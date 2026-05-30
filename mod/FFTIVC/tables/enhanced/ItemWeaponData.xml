@@ -361,6 +361,96 @@
       <OptionsAbilityId>11</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
+      <Id>38</Id> <!-- Asura (was Ashura) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>7</Power>
+      <Evasion>25</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>39</Id> <!-- Kotetsu -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>18</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>9</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>40</Id> <!-- Bizen Osafune -->
+      <Range>1</Range>
+      <Formula>47</Formula>
+      <Power>9</Power>
+      <Evasion>12</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>41</Id> <!-- Murasame -->
+      <Range>1</Range>
+      <Formula>6</Formula>
+      <Power>9</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>42</Id> <!-- Ame-no-Murakumo -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>10</Power>
+      <Evasion>10</Evasion>
+      <Elements>Wind</Elements>
+      <OptionsAbilityId>10</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>43</Id> <!-- Kiyomori -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>11</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>44</Id> <!-- Muramasa -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>13</Power>
+      <Evasion>8</Evasion>
+      <Elements>Dark</Elements>
+      <OptionsAbilityId>11</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>45</Id> <!-- Kiku-ichimonji -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>14</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>46</Id> <!-- Masamune -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>16</Power>
+      <Evasion>18</Evasion>
+      <Elements>Holy</Elements>
+      <OptionsAbilityId>12</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>47</Id> <!-- Chirijiraden -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>20</Power>
+      <Evasion>12</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>14</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
       <Id>48</Id> <!-- Hatchet (was Battle Axe) -->
       <Range>1</Range>
       <Formula>1</Formula>
@@ -384,6 +474,150 @@
       <Formula>1</Formula>
       <Power>16</Power>
       <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>11</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>51</Id> <!-- Apprentice Rod (was Rod) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>3</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>3</Power>
+      <Evasion>20</Evasion>
+      <Elements>Lightning</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>3</Power>
+      <Evasion>20</Evasion>
+      <Elements>Fire</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>54</Id> <!-- Frost Rod (was Ice Rod) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>3</Power>
+      <Evasion>20</Evasion>
+      <Elements>Ice</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>55</Id> <!-- Venom Rod (was Poison Rod) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>4</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>56</Id> <!-- Wizard's Rod -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>4</Power>
+      <Evasion>20</Evasion>
+      <Elements>Dark</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>57</Id> <!-- Hush Rod (was Dragon Rod) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>5</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>10</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>58</Id> <!-- Rod of Faith -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>5</Power>
+      <Evasion>15</Evasion>
+      <Elements>Holy</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>59</Id> <!-- Oak Staff -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>3</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>60</Id> <!-- White Staff -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>3</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>12</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>61</Id> <!-- Healing Staff -->
+      <Range>1</Range>
+      <Formula>7</Formula>
+      <Power>4</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>62</Id> <!-- Serpent Staff -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>5</Power>
+      <Evasion>12</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>14</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>63</Id> <!-- Mage's Staff -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>5</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>64</Id> <!-- Golden Staff -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>6</Power>
+      <Evasion>12</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>65</Id> <!-- Zeus Mace -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>6</Power>
+      <Evasion>15</Evasion>
+      <Elements>Lightning</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>66</Id> <!-- Staff of the Magi -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>7</Power>
+      <Evasion>15</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>11</OptionsAbilityId>
     </ItemWeapon>
@@ -422,6 +656,60 @@
       <Evasion>0</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>71</Id> <!-- Outrider Pistol (was Romandan Pistol) -->
+      <Range>9</Range>
+      <Formula>3</Formula>
+      <Power>7</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>72</Id> <!-- Ironclad Repeater (was Mythril Gun) -->
+      <Range>8</Range>
+      <Formula>3</Formula>
+      <Power>9</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>73</Id> <!-- Gorgon Petromortar (was Stoneshooter) -->
+      <Range>9</Range>
+      <Formula>4</Formula>
+      <Power>16</Power>
+      <Evasion>5</Evasion>
+      <Elements>Earth</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>74</Id> <!-- Rimefire Hailshot (was Glacial Gun) -->
+      <Range>8</Range>
+      <Formula>4</Formula>
+      <Power>12</Power>
+      <Evasion>5</Evasion>
+      <Elements>Ice</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>75</Id> <!-- Cinderbore Igniter (was Blaze Gun) -->
+      <Range>8</Range>
+      <Formula>4</Formula>
+      <Power>12</Power>
+      <Evasion>5</Evasion>
+      <Elements>Fire</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>76</Id> <!-- Levinbrand Annihilator (was Blaster) -->
+      <Range>7</Range>
+      <Formula>4</Formula>
+      <Power>15</Power>
+      <Evasion>5</Evasion>
+      <Elements>Lightning</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>77</Id> <!-- Scoutbolt (was Bowgun) -->
@@ -574,6 +862,213 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
+      <Id>92</Id> <!-- Lamia's Harp -->
+      <Range>3</Range>
+      <Formula>1</Formula>
+      <Power>7</Power>
+      <Evasion>10</Evasion>
+      <Elements>Wind</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>93</Id> <!-- Bloodstring Harp -->
+      <Range>3</Range>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>9</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>94</Id> <!-- Faerie Harp -->
+      <Range>3</Range>
+      <Formula>1</Formula>
+      <Power>9</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>12</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>95</Id> <!-- Battle Folio -->
+      <Range>3</Range>
+      <Formula>1</Formula>
+      <Power>6</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>9</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>96</Id> <!-- Bestiary -->
+      <Range>3</Range>
+      <Formula>1</Formula>
+      <Power>7</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>11</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>97</Id> <!-- Papyrus Codex -->
+      <Range>3</Range>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>14</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>98</Id> <!-- Omnilex -->
+      <Range>3</Range>
+      <Formula>1</Formula>
+      <Power>10</Power>
+      <Evasion>15</Evasion>
+      <Elements>Holy</Elements>
+      <OptionsAbilityId>10</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>99</Id> <!-- Skewer (was Javelin) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>7</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>100</Id> <!-- Footman's Spear (was Spear) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>9</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>101</Id> <!-- Frostpoint (was Mythril Spear) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>9</Power>
+      <Evasion>10</Evasion>
+      <Elements>Ice</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>102</Id> <!-- Stormpike (was Partisan) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>10</Power>
+      <Evasion>10</Evasion>
+      <Elements>Lightning</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>103</Id> <!-- Tombspire (was Obelisk) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>11</Power>
+      <Evasion>10</Evasion>
+      <Elements>Earth</Elements>
+      <OptionsAbilityId>14</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>104</Id> <!-- Holy Lance -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>13</Power>
+      <Evasion>10</Evasion>
+      <Elements>Holy</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>105</Id> <!-- Dragon Whisker -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>16</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>106</Id> <!-- Wyrmpike (was Javelin) -->
+      <Range>3</Range>
+      <Formula>1</Formula>
+      <Power>13</Power>
+      <Evasion>10</Evasion>
+      <Elements>Wind</Elements>
+      <OptionsAbilityId>11</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>107</Id> <!-- Cypress Pole -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>6</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>108</Id> <!-- Battle Bamboo -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>109</Id> <!-- Slumber Rod (was Musk Pole) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>12</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>110</Id> <!-- Hushfan (was Iron Fan) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>9</Power>
+      <Evasion>25</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>10</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>111</Id> <!-- Gokuu's Pole -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>12</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>112</Id> <!-- Blindstaff (was Ivory Pole) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>10</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>9</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>113</Id> <!-- Eight-Fluted Pole (was Eight-fluted Pole) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>14</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>114</Id> <!-- Whale Whisker -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>15</Power>
+      <Evasion>20</Evasion>
+      <Elements>Water</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
       <Id>115</Id> <!-- Sandman Satchel (was Catskin Bag) -->
       <Range>1</Range>
       <Formula>1</Formula>
@@ -608,6 +1103,33 @@
       <Evasion>0</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>10</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>119</Id> <!-- Damask Cloth -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>7</Power>
+      <Evasion>50</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>101</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>120</Id> <!-- Bindsilk Veil (was Cashmere) -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>50</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>14</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>121</Id> <!-- Wyrmweave Silk -->
+      <Range>2</Range>
+      <Formula>6</Formula>
+      <Power>9</Power>
+      <Evasion>50</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
   </Entries>
 </ItemWeaponTable>

@@ -974,6 +974,246 @@
       }
     },
     {
+      "id": 38,
+      "category": "Katana",
+      "vanillaName": "Ashura",
+      "name": "Asura",
+      "tier": 1,
+      "identity": "Earliest katana + the line's evade crown (25%) -- the defensive samurai's first blade; out-dodges every higher-WP katana, earning its slot on availability + guard, not power. No rider to misfire while you learn the class.",
+      "baseline": {
+        "wp": 7,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP, Brave-scaling)"
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 25,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 39,
+      "category": "Katana",
+      "vanillaName": "Kotetsu",
+      "name": "Kotetsu",
+      "tier": 1,
+      "identity": "Cheap anti-bruiser -- one swing Blinds an enemy melee threat for the fight (only early Blind katana). Pays -7 evade vs Asura for +1 WP and the rider.",
+      "baseline": {
+        "wp": 8,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 18,
+        "element": "None",
+        "onHit": "Blind",
+        "onHitAbilityId": 9,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 40,
+      "category": "Katana",
+      "vanillaName": "Bizen Osafune",
+      "name": "Bizen Osafune",
+      "tier": 2,
+      "identity": "MP-siphon blade (Formula 47 = Absorb-MP) -- every hit drains the target's MP and refuels the wielder's own Iaido casts. The mage-samurai / Draw-Out fuel battery. Same WP as Murasame; identity is the MP economy. Set UiStatusEffectId=1001 (absorb convention).",
+      "baseline": {
+        "wp": 9,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 12,
+        "element": "None",
+        "onHit": "Absorb MP",
+        "onHitAbilityId": 0,
+        "formula": 47,
+        "range": 1
+      }
+    },
+    {
+      "id": 41,
+      "category": "Katana",
+      "vanillaName": "Murasame",
+      "name": "Murasame",
+      "tier": 2,
+      "identity": "The rain blade (Formula 6 = Absorb-HP) -- leeches HP on every strike, the famous heal-Iaido made literal; keeps the samurai topped off in healer-light squads. True sidegrade to Bizen (HP not MP, +3 evade). WARNING: harms wielder vs Undead. UiStatusEffectId=1001.",
+      "baseline": {
+        "wp": 10,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Absorb HP",
+        "onHitAbilityId": 0,
+        "formula": 6,
+        "range": 1
+      }
+    },
+    {
+      "id": 42,
+      "category": "Katana",
+      "vanillaName": "Ame-no-Murakumo",
+      "name": "Ame-no-Murakumo",
+      "tier": 3,
+      "identity": "The gathering-storm blade -- only Wind katana (x2 vs Wind-weak) AND Silences on hit, choking an enemy mage's spellbook. The anti-caster capstone of the mid line (Heaven's Cloud lore). Trades evade for the storm package.",
+      "baseline": {
+        "wp": 11,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 10,
+        "evade": 10,
+        "element": "Wind",
+        "onHit": "Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 43,
+      "category": "Katana",
+      "vanillaName": "Kiyomori",
+      "name": "Kiyomori",
+      "tier": 3,
+      "identity": "Attrition parry-blade -- the evade apex below the capstones (20%) plus Poison-on-hit that chips high-HP foes every clock tick (its Protect/Shell Draw Out reframed as relentless pressure). Survives any duel; outlasts raw blades vs bulk.",
+      "baseline": {
+        "wp": 12,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 11,
+        "evade": 20,
+        "element": "None",
+        "onHit": "Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 44,
+      "category": "Katana",
+      "vanillaName": "Muramasa",
+      "name": "Muramasa",
+      "tier": 4,
+      "identity": "The cursed blade -- innate Dark element AND Doom-on-hit (death in 3 turns), a kill-condition no cleaner katana offers. Lowest evade in the line (8): all menace, no guard. Dark-absorbers heal (the curse's risk).",
+      "baseline": {
+        "wp": 14,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 8,
+        "element": "Dark",
+        "onHit": "Doom",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 45,
+      "category": "Katana",
+      "vanillaName": "Kiku-ichimonji",
+      "name": "Kiku-ichimonji",
+      "tier": 4,
+      "identity": "The reach blade -- the ONLY range-2 katana, echoing Kikuichimonji's long-range Draw Out. Strike from the second rank and stay safer; no element or status, reach IS the identity. Nothing at this WP can match its range.",
+      "baseline": {
+        "wp": 15,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 14,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 46,
+      "category": "Katana",
+      "vanillaName": "Masamune",
+      "name": "Masamune",
+      "tier": 5,
+      "identity": "The legendary all-rounder -- high WP AND top-tier evade AND innate Holy AND Sleep-on-hit soft CC (its Haste/Regen Draw Out rendered honestly as battlefield tempo control). Poach-from-Elmdore rarity (T5). Trades 4 WP for the whole package, so it never dominates Chirijiraden. Holy-absorbers heal.",
+      "baseline": {
+        "wp": 18,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 16,
+        "evade": 18,
+        "element": "Holy",
+        "onHit": "Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 47,
+      "category": "Katana",
+      "vanillaName": "Chirijiraden",
+      "name": "Chirijiraden",
+      "tier": 6,
+      "identity": "Endgame damage capstone -- max WP (20) and Immobilize-on-hit that pins the target so it can't flee the carnage (its MA*30 ultimate Draw Out reframed as 'nowhere to run'). Pays for top damage with middling guard, no element, and pure endgame-only availability (T6). A sidegrade to Masamune, not a strict upgrade.",
+      "baseline": {
+        "wp": 25,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*Brave/100*WP)"
+      },
+      "proposed": {
+        "wp": 20,
+        "evade": 12,
+        "element": "None",
+        "onHit": "Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
       "id": 48,
       "category": "Axe",
       "vanillaName": "Battle Axe",
@@ -1040,6 +1280,390 @@
         "evade": 0,
         "element": "None",
         "onHit": "Add: Doom (Death Sentence)",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 51,
+      "category": "Rod",
+      "vanillaName": "Rod",
+      "name": "Apprentice Rod",
+      "tier": 1,
+      "identity": "Only tier-1 rod -- cheapest, earliest, max rod evade. Earliest unlock is its exclusive niche.",
+      "baseline": {
+        "wp": 3,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 3,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 52,
+      "category": "Rod",
+      "vanillaName": "Thunder Rod",
+      "name": "Spark Rod",
+      "tier": 2,
+      "identity": "Only Lightning rod -- anti-armor/mech matchup; sidegrade trio w/ Ember/Frost, element is the sole difference.",
+      "baseline": {
+        "wp": 3,
+        "evade": 20,
+        "element": "Lightning",
+        "onHit": "chance to cast Thunder spell on hit",
+        "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
+      },
+      "proposed": {
+        "wp": 3,
+        "evade": 20,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 53,
+      "category": "Rod",
+      "vanillaName": "Flame Rod",
+      "name": "Ember Rod",
+      "tier": 2,
+      "identity": "Only Fire rod -- anti-ice-creature / hit Fire weakness. Equal-WP sidegrade, picked for element coverage.",
+      "baseline": {
+        "wp": 3,
+        "evade": 20,
+        "element": "Fire",
+        "onHit": "chance to cast Fire spell on hit",
+        "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
+      },
+      "proposed": {
+        "wp": 3,
+        "evade": 20,
+        "element": "Fire",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 54,
+      "category": "Rod",
+      "vanillaName": "Ice Rod",
+      "name": "Frost Rod",
+      "tier": 2,
+      "identity": "Only Ice rod -- anti-fire-creature / anti-dragon. Completes the early elemental trio.",
+      "baseline": {
+        "wp": 3,
+        "evade": 20,
+        "element": "Ice",
+        "onHit": "chance to cast Blizzard spell on hit",
+        "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
+      },
+      "proposed": {
+        "wp": 3,
+        "evade": 20,
+        "element": "Ice",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 55,
+      "category": "Rod",
+      "vanillaName": "Poison Rod",
+      "name": "Venom Rod",
+      "tier": 2,
+      "identity": "Cheapest Poison source -- colorless DoT to grind HP-fat/fleeing targets. Trades 5 rod evade for the proc.",
+      "baseline": {
+        "wp": 3,
+        "evade": 20,
+        "element": "None (Poison)",
+        "onHit": "inflicts Poison on hit",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 4,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 56,
+      "category": "Rod",
+      "vanillaName": "Wizard's Rod",
+      "name": "Wizard's Rod",
+      "tier": 3,
+      "identity": "Only Dark caster weapon AND the MA+2 EquipBonus rider -- black-mage power stick; anti-Holy-creature niche.",
+      "baseline": {
+        "wp": 4,
+        "evade": 20,
+        "element": "None",
+        "onHit": "EquipBonus MA+2 (passive)",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 4,
+        "evade": 20,
+        "element": "Dark",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 57,
+      "category": "Rod",
+      "vanillaName": "Dragon Rod",
+      "name": "Hush Rod",
+      "tier": 4,
+      "identity": "Only Silence rod -- anti-caster lock. Line-low evade (10) pays for WP5 + a strong debuff.",
+      "baseline": {
+        "wp": 5,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None (flavor)",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 58,
+      "category": "Rod",
+      "vanillaName": "Rod of Faith",
+      "name": "Rod of Faith",
+      "tier": 5,
+      "identity": "Only Holy rod -- smite undead + self-Faith glass-cannon rider. Top rod, element is the draw.",
+      "baseline": {
+        "wp": 5,
+        "evade": 20,
+        "element": "None",
+        "onHit": "chance to inflict Faith on target on hit; EquipBonus permanent Faith on wielder",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 15,
+        "element": "Holy",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 59,
+      "category": "Staff",
+      "vanillaName": "Oak Staff",
+      "name": "Oak Staff",
+      "tier": 1,
+      "identity": "Only tier-1 staff -- bare MA-scaling starter. Not a worse Apprentice Rod: MA*WP scaling is its incomparable good.",
+      "baseline": {
+        "wp": 3,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 3,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 60,
+      "category": "Staff",
+      "vanillaName": "White Staff",
+      "name": "White Staff",
+      "tier": 2,
+      "identity": "Only Sleep source -- white-mage pacifier, removes a target non-lethally. Earliest status staff.",
+      "baseline": {
+        "wp": 3,
+        "evade": 15,
+        "element": "None",
+        "onHit": "chance to REMOVE Doom on hit (cure rider)",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 3,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 61,
+      "category": "Staff",
+      "vanillaName": "Healing Staff",
+      "name": "Healing Staff",
+      "tier": 3,
+      "identity": "Only heal-on-attack weapon (Formula 7) -- attack allies to heal, attack Undead to nuke. WP held low so the heal identity stays load-bearing.",
+      "baseline": {
+        "wp": 4,
+        "evade": 15,
+        "element": "None",
+        "onHit": "attack HEALS target's HP (damages Undead)",
+        "formula": "heal-on-attack (Regabonds Formula 7)"
+      },
+      "proposed": {
+        "wp": 4,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 7,
+        "range": 1
+      }
+    },
+    {
+      "id": 62,
+      "category": "Staff",
+      "vanillaName": "Serpent Staff",
+      "name": "Serpent Staff",
+      "tier": 3,
+      "identity": "Only Immobilize source -- the serpent's coil pins runners in place. MA-scaling status pick; pays WP5 with ev12.",
+      "baseline": {
+        "wp": 5,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None per Game8 IVC (classic FFT = Poison rider; unconfirmed in IVC)",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 12,
+        "element": "None",
+        "onHit": "Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 63,
+      "category": "Staff",
+      "vanillaName": "Mage's Staff",
+      "name": "Mage's Staff",
+      "tier": 3,
+      "identity": "Mid MA+1 EquipBonus staff -- clean caster-power pick before endgame, full 15 evade. MA+1 != MA+2.",
+      "baseline": {
+        "wp": 4,
+        "evade": 15,
+        "element": "None",
+        "onHit": "EquipBonus MA+1 (passive)",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 64,
+      "category": "Staff",
+      "vanillaName": "Golden Staff",
+      "name": "Golden Staff",
+      "tier": 4,
+      "identity": "Pure-WP no-rider staff -- the 'biggest MA*WP swing now' pick. Pays 3 evade vs the MA staves and carries no proc.",
+      "baseline": {
+        "wp": 6,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 12,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 65,
+      "category": "Staff",
+      "vanillaName": "Zeus Mace",
+      "name": "Zeus Mace",
+      "tier": 5,
+      "identity": "Hybrid gish staff -- only Lightning staff + MA+1 rider, full evade. Treasure-gated; element is a good the capstone lacks.",
+      "baseline": {
+        "wp": 6,
+        "evade": 15,
+        "element": "Lightning",
+        "onHit": "EquipBonus Phys+2 / Mag+1 (dual passive)",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 15,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 66,
+      "category": "Staff",
+      "vanillaName": "Staff of the Magi",
+      "name": "Staff of the Magi",
+      "tier": 6,
+      "identity": "Endgame capstone -- highest WP, top MA+2 rider, AND only Doom source. T6 gate earns the WP gap; dominates nothing (no element vs Zeus, later tier than Mage's).",
+      "baseline": {
+        "wp": 7,
+        "evade": 15,
+        "element": "None",
+        "onHit": "EquipBonus MA+1 (passive); highest staff WP",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Doom",
         "onHitAbilityId": 11,
         "formula": 1,
         "range": 1
@@ -1139,6 +1763,150 @@
         "onHitAbilityId": 22,
         "formula": 1,
         "range": 2
+      }
+    },
+    {
+      "id": 71,
+      "category": "Gun",
+      "vanillaName": "Romandan Pistol",
+      "name": "Outrider Pistol",
+      "tier": 1,
+      "identity": "Tier-1 starter and the LONGEST reach in the game (R9). Plain WP*WP (49 flat) ignoring PA/Speed/evade, no element to whiff or be absorbed, no drawback, earliest/cheapest gun. The out-range-everything pick that never retires; reach + availability ARE the niche.",
+      "baseline": {
+        "wp": 6,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed"
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 3,
+        "range": 9
+      }
+    },
+    {
+      "id": 72,
+      "category": "Gun",
+      "vanillaName": "Mythril Gun",
+      "name": "Ironclad Repeater",
+      "tier": 2,
+      "identity": "Mid-shop reliable workhorse: +2 WP over the Outrider (81 flat) for -1 range. Plain WP*WP, the only element-proof AND Faith-independent gun above the starter; never whiffs on Faith-immune targets, no absorber heals off it. The zero-gimmick hit-hard-at-range default.",
+      "baseline": {
+        "wp": 8,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 3,
+        "range": 8
+      }
+    },
+    {
+      "id": 73,
+      "category": "Gun",
+      "vanillaName": "Stoneshooter",
+      "name": "Gorgon Petromortar",
+      "tier": 4,
+      "identity": "Drawback-paid power spike: top-of-line WP16 (256 base) AND tied-longest R9, fires EARTH (only Earth gun; ignores Float, shreds grounded). PRICE: the wielder begins EVERY battle Petrified, the iconic Stoneshooter curse, demanding a Maintenance/esuna plan. Highest ceiling but the deadliest to field, so it never free-lunches the clean capstone.",
+      "baseline": {
+        "wp": 16,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None on TARGET. DRAWBACK: wielder starts battle in Stone (Petrify) status.",
+        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed"
+      },
+      "proposed": {
+        "wp": 16,
+        "evade": 5,
+        "element": "Earth",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 4,
+        "range": 9
+      }
+    },
+    {
+      "id": 74,
+      "category": "Gun",
+      "vanillaName": "Glacial Gun",
+      "name": "Rimefire Hailshot",
+      "tier": 3,
+      "identity": "First elemental gun: Ice, WP12 (144 base), R8. Formula-4 innate Blizzard-line cast, Faith-scaled (a high roll beats the Repeater, a low/immune roll loses). The only Ice gun: anti-Fire-creature, +25% vs Ice-weak, but Ice-absorbers heal it. Element + Faith variance is the trade for the WP jump.",
+      "baseline": {
+        "wp": 21,
+        "evade": 5,
+        "element": "Ice",
+        "onHit": "Inherent chance to cast Blizzard/Blizzara/Blizzaga (Ice spell) on hit - this is the elemental-gun magic-cast, NOT a status rider.",
+        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Ice-element via Elements field"
+      },
+      "proposed": {
+        "wp": 12,
+        "evade": 5,
+        "element": "Ice",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 4,
+        "range": 8
+      }
+    },
+    {
+      "id": 75,
+      "category": "Gun",
+      "vanillaName": "Blaze Gun",
+      "name": "Cinderbore Igniter",
+      "tier": 3,
+      "identity": "Fire twin of the Hailshot at IDENTICAL WP12/R8: the different element is the entire differentiator. The only Fire gun: anti-Undead, anti-Ice-creature, shreds Oiled targets; Fire-absorbers heal it. A true sidegrade, never an upgrade, picked purely for the Fire matchup.",
+      "baseline": {
+        "wp": 20,
+        "evade": 5,
+        "element": "Fire",
+        "onHit": "Inherent chance to cast Fire/Fira/Firaga (Fire spell) on hit - elemental-gun magic-cast, NOT a status rider.",
+        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Fire-element via Elements field"
+      },
+      "proposed": {
+        "wp": 12,
+        "evade": 5,
+        "element": "Fire",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 4,
+        "range": 8
+      }
+    },
+    {
+      "id": 76,
+      "category": "Gun",
+      "vanillaName": "Blaster",
+      "name": "Levinbrand Annihilator",
+      "tier": 6,
+      "identity": "Endgame capstone: Lightning, WP15 (225 base), no drawback, only Lightning gun (+25% in rain; Lightning-absorbers heal). PAYS for its clean power with the SHORTEST gun range (R7) so every other gun out-distances it: the close-the-gap-and-nuke finisher, not a kiter. The poach/endgame trophy.",
+      "baseline": {
+        "wp": 22,
+        "evade": 5,
+        "element": "Lightning",
+        "onHit": "Inherent chance to cast Thunder/Thundara/Thundaga (Lightning spell) on hit - elemental-gun magic-cast, NOT a status rider.",
+        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Lightning-element via Elements field"
+      },
+      "proposed": {
+        "wp": 15,
+        "evade": 5,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 4,
+        "range": 7
       }
     },
     {
@@ -1562,6 +2330,558 @@
       "desc": "A radiant greatbow of holy light -- the longest reach and deadliest draw of any bow.\nDeals Holy-elemental damage."
     },
     {
+      "id": 92,
+      "category": "Instrument",
+      "vanillaName": "Lamia's Harp",
+      "name": "Lamia's Harp",
+      "tier": 2,
+      "identity": "T2 elemental opener harp -- the family's only Wind source: Formula-1 Wind attacks punish Wind-weak/Float foes at R3. Hybrid (PA+MA)/2 bard; element is the rider, WP modest. Earliest harp.",
+      "baseline": {
+        "wp": 10,
+        "evade": 10,
+        "element": "Wind",
+        "onHit": "Confuse (Confusion)",
+        "formula": "1"
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 10,
+        "element": "Wind",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 3
+      }
+    },
+    {
+      "id": 93,
+      "category": "Instrument",
+      "vanillaName": "Bloodstring Harp",
+      "name": "Bloodstring Harp",
+      "tier": 3,
+      "identity": "T3 anti-physical harp -- the only ranged Blind in the harp lane: crater an enemy bruiser's hit-rate from 3 tiles back without waking them. Owns Blind.",
+      "baseline": {
+        "wp": 13,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Absorb HP (Formula 6 -- heals attacker for damage dealt)",
+        "formula": "6"
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Blind",
+        "onHitAbilityId": 9,
+        "formula": 1,
+        "range": 3
+      }
+    },
+    {
+      "id": 94,
+      "category": "Instrument",
+      "vanillaName": "Faerie Harp",
+      "name": "Faerie Harp",
+      "tier": 5,
+      "identity": "T5 capstone harp -- iconic faerie lullaby: ranged Sleep lulls a target out of the fight for a team burst (self-removes on hit, so a setup tool not a delete). Top harp WP, T5-gated. Owns Sleep line-wide.",
+      "baseline": {
+        "wp": 15,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Charm (Confusion-family; NOT Sleep in vanilla)",
+        "formula": "7"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1,
+        "range": 3
+      }
+    },
+    {
+      "id": 95,
+      "category": "Book",
+      "vanillaName": "Battle Folio",
+      "name": "Battle Folio",
+      "tier": 1,
+      "identity": "T1 orator opener -- earliest/cheapest book and the only ranged Blind in the Book lane: neuter an enemy physical attacker from afar. Lowest WP in the category; the accuracy-denial rider is the point.",
+      "baseline": {
+        "wp": 7,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Casts Trepidation (AoE Bravery-down; vanilla Foxbird) -- Formula 2",
+        "formula": "2"
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Blind",
+        "onHitAbilityId": 9,
+        "formula": 1,
+        "range": 3
+      }
+    },
+    {
+      "id": 96,
+      "category": "Book",
+      "vanillaName": "Bestiary",
+      "name": "Bestiary",
+      "tier": 4,
+      "identity": "T4 execution codex -- the only Doom source line-wide: tag an elite, retreat, let the 3-turn countdown guarantee the KO. Owns Doom.",
+      "baseline": {
+        "wp": 8,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Casts Fervor (vanilla Death Sentence / Praise-family) -- Formula 2",
+        "formula": "2"
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Doom",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 3
+      }
+    },
+    {
+      "id": 97,
+      "category": "Book",
+      "vanillaName": "Papyrus Codex",
+      "name": "Papyrus Codex",
+      "tier": 4,
+      "identity": "T4 pin codex -- ranged (R3) Immobilize locks a runner/charger in place for your casters and archers. Book-lane Immobilize (R3/Ev15 pin-from-range), distinct from the cloth pinner.",
+      "baseline": {
+        "wp": 9,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Casts Induration (Petrify; vanilla 'stone seal') -- Formula 2",
+        "formula": "2"
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1,
+        "range": 3
+      }
+    },
+    {
+      "id": 98,
+      "category": "Book",
+      "vanillaName": "Omnilex",
+      "name": "Omnilex",
+      "tier": 6,
+      "identity": "T6 anti-caster capstone -- ranged Silence shuts an enemy mage's spellbook before they nuke, plus innate Holy attacks (anti-Undead; Holy-absorbers heal). Top book WP, T6-gated, owns Silence + Holy.",
+      "baseline": {
+        "wp": 11,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Casts Harmony (Dispel / CancelStatus) -- Formula 2",
+        "formula": "2"
+      },
+      "proposed": {
+        "wp": 10,
+        "evade": 15,
+        "element": "Holy",
+        "onHit": "Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "range": 3
+      }
+    },
+    {
+      "id": 99,
+      "category": "Polearm",
+      "vanillaName": "Javelin",
+      "name": "Skewer",
+      "tier": 1,
+      "identity": "T1 starter spear -- earliest/cheapest reach, line-only 15% spear evade. Promoted to R2 (the family identity; vanilla R1 was a trap). The honest first poke + Dragoon Jump fodder.",
+      "baseline": {
+        "wp": 8,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 100,
+      "category": "Polearm",
+      "vanillaName": "Spear",
+      "name": "Footman's Spear",
+      "tier": 2,
+      "identity": "T2 raw-stat baseline -- cheapest pure-stat reach, clean PA*WP. The 'just poke hard from a tile back' default every other spear is measured against.",
+      "baseline": {
+        "wp": 9,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 101,
+      "category": "Polearm",
+      "vanillaName": "Mythril Spear",
+      "name": "Frostpoint",
+      "tier": 3,
+      "identity": "T3 only Ice spear -- innate Ice melee, WP tied to Footman's (zero raw paid for the matchup tool). Shreds Fire-creatures/Ice-weak; Ice-absorbers heal (cost).",
+      "baseline": {
+        "wp": 10,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 10,
+        "element": "Ice",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 102,
+      "category": "Polearm",
+      "vanillaName": "Partisan",
+      "name": "Stormpike",
+      "tier": 3,
+      "identity": "T3 only Lightning spear -- innate Bolt melee, +1 WP over Frostpoint (sidegrade, different element). Anti-armor/Lightning-weak; +25% in rain.",
+      "baseline": {
+        "wp": 11,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 10,
+        "evade": 10,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 103,
+      "category": "Polearm",
+      "vanillaName": "Obelisk",
+      "name": "Tombspire",
+      "tier": 4,
+      "identity": "T4 control spear -- only Earth spear + on-hit Immobilize (14). Pins a fleeing target a tile away, then the Dragoon Jumps. The zoning tool; carries two unique riders.",
+      "baseline": {
+        "wp": 12,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 11,
+        "evade": 10,
+        "element": "Earth",
+        "onHit": "Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 104,
+      "category": "Polearm",
+      "vanillaName": "Holy Lance",
+      "name": "Holy Lance",
+      "tier": 5,
+      "identity": "ICONIC. T5 only Holy spear -- innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated.",
+      "baseline": {
+        "wp": 14,
+        "evade": 10,
+        "element": "Holy",
+        "onHit": "25% cast Holy (instant, no MP, unreflectable)",
+        "formula": "1 (PA*WP) + Holy-element + 25% Holy proc"
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 10,
+        "element": "Holy",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 105,
+      "category": "Polearm",
+      "vanillaName": "Dragon Whisker",
+      "name": "Dragon Whisker",
+      "tier": 6,
+      "identity": "ICONIC capstone. T6 riderless raw apex -- strictly-highest spear WP (16), the ultimate Jump platform. Pure PA*WP ceiling; pays with the lowest 10% evade and zero utility. Red-Dragon poach.",
+      "baseline": {
+        "wp": 17,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 16,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 106,
+      "category": "Polearm",
+      "vanillaName": "Javelin",
+      "name": "Wyrmpike",
+      "tier": 6,
+      "identity": "T6 split-apex (Nelveska treasure) -- the ONLY range-3 spear + only Wind spear + on-hit Doom (11). Tag a boss from two tiles back and retreat. Wins range/element/Doom where Dragon Whisker wins WP; neither dominates.",
+      "baseline": {
+        "wp": 30,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 10,
+        "element": "Wind",
+        "onHit": "Doom",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 3
+      }
+    },
+    {
+      "id": 107,
+      "category": "Pole",
+      "vanillaName": "Cypress Pole",
+      "name": "Cypress Pole",
+      "tier": 1,
+      "identity": "ICONIC. T1 starter pole -- earliest/cheapest MA-reach, the 20% evade family floor. The honest training staff for early Geomancer/Monk.",
+      "baseline": {
+        "wp": 6,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 108,
+      "category": "Pole",
+      "vanillaName": "Battle Bamboo",
+      "name": "Battle Bamboo",
+      "tier": 2,
+      "identity": "ICONIC. T2 raw-stat pole baseline -- best no-rider WP of its era at 20% evade. The 'monk who just wants to hit from a tile back' default.",
+      "baseline": {
+        "wp": 7,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 109,
+      "category": "Pole",
+      "vanillaName": "Musk Pole",
+      "name": "Slumber Rod",
+      "tier": 3,
+      "identity": "T3 only Sleep pole -- on-hit Sleep (12), WP tied to Battle Bamboo (zero raw paid for the disable). Nap a threat to open a fight from range.",
+      "baseline": {
+        "wp": 8,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 20,
+        "element": "None",
+        "onHit": "Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 110,
+      "category": "Pole",
+      "vanillaName": "Iron Fan",
+      "name": "Hushfan",
+      "tier": 3,
+      "identity": "T3 only Silence pole + line-best 25% evade -- on-hit Silence (10). The dodge-tank anti-caster stick; shut a mage down from a tile back. Sidegrade to Slumber Rod.",
+      "baseline": {
+        "wp": 9,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 25,
+        "element": "None",
+        "onHit": "Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 111,
+      "category": "Pole",
+      "vanillaName": "Gokuu's Pole",
+      "name": "Gokuu's Pole",
+      "tier": 5,
+      "identity": "ICONIC. T5 riderless raw-WP pole leader -- clean MA*WP, no gimmick. The high-MA finisher that just wants to hit hard; tier-gated above the rider-poles.",
+      "baseline": {
+        "wp": 10,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 12,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 112,
+      "category": "Pole",
+      "vanillaName": "Ivory Pole",
+      "name": "Blindstaff",
+      "tier": 4,
+      "identity": "T4 only Blind pole -- on-hit Blind (9) craters a target's physical hit-rate. Sits under Gokuu's WP: the rider is the whole identity. Neuter an enemy bruiser from range.",
+      "baseline": {
+        "wp": 11,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 10,
+        "evade": 20,
+        "element": "None",
+        "onHit": "Blind",
+        "onHitAbilityId": 9,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 113,
+      "category": "Pole",
+      "vanillaName": "Eight-fluted Pole",
+      "name": "Eight-Fluted Pole",
+      "tier": 6,
+      "identity": "ICONIC. T6 attrition pole -- highest physical-pole WP (14) + only Poison rider (22). Chips high-HP targets over a long fight. Out-WPs Gokuu's but pays via tier + DoT-vs-burst tradeoff.",
+      "baseline": {
+        "wp": 12,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP)"
+      },
+      "proposed": {
+        "wp": 14,
+        "evade": 20,
+        "element": "None",
+        "onHit": "Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 114,
+      "category": "Pole",
+      "vanillaName": "Whale Whisker",
+      "name": "Whale Whisker",
+      "tier": 6,
+      "identity": "ICONIC capstone. THE caster pole -- highest pole WP (15) + only Water element; MA*WP comes free from the Pole weapon type (Formula 1, no risk). Best-in-slot for a high-MA front-liner. Tiamat-poach.",
+      "baseline": {
+        "wp": 16,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "formula": "2 (MA*WP) — uses Magic Attack, NOT PA"
+      },
+      "proposed": {
+        "wp": 15,
+        "evade": 20,
+        "element": "Water",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
       "id": 115,
       "category": "Bag",
       "vanillaName": "Catskin Bag",
@@ -1655,6 +2975,78 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "range": 1
+      }
+    },
+    {
+      "id": 119,
+      "category": "Cloth",
+      "vanillaName": "Damask Cloth",
+      "name": "Damask Cloth",
+      "tier": 3,
+      "identity": "T3 combo-enabler rag -- the only Oil source: Oil doubles incoming Fire, priming a target for your Black Mages while the dancer hides behind 50% evade. R2 short reach is the cloth trade.",
+      "baseline": {
+        "wp": 8,
+        "evade": 50,
+        "element": "None",
+        "onHit": "Frog / Toad (opt101 as Formula-1 item-option)",
+        "formula": "1"
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 50,
+        "element": "None",
+        "onHit": "Oil",
+        "onHitAbilityId": 101,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 120,
+      "category": "Cloth",
+      "vanillaName": "Cashmere",
+      "name": "Bindsilk Veil",
+      "tier": 4,
+      "identity": "T4 lockdown rag (renamed from Cashmere) -- Immobilize behind a 50% evade wall: pin a target so your team kites it while she dodges everything. Cloth-lane Immobilize (R2/Ev50 evasion-fortress), non-comparable to the R3/Ev15 book pinner.",
+      "baseline": {
+        "wp": 10,
+        "evade": 50,
+        "element": "None",
+        "onHit": "None (pure stat -- Formula 1)",
+        "formula": "1"
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 50,
+        "element": "None",
+        "onHit": "Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 121,
+      "category": "Cloth",
+      "vanillaName": "Wyrmweave Silk",
+      "name": "Wyrmweave Silk",
+      "tier": 6,
+      "identity": "T6 vampire capstone rag -- 50% evade AND HP-drain on hit (Formula 6, live/confirmed): the self-sustaining dancer who almost never gets hit and heals when she does. Top cloth WP; Formula 6 switches damage to PA*WP (sustain-vs-burst tradeoff). Only leech in the line; UiSE=1001.",
+      "baseline": {
+        "wp": 15,
+        "evade": 50,
+        "element": "None",
+        "onHit": "None (pure stat -- Formula 1)",
+        "formula": "1"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 50,
+        "element": "None",
+        "onHit": "AbsorbHP",
+        "onHitAbilityId": 0,
+        "formula": 6,
+        "range": 2
       }
     },
     {
@@ -1976,6 +3368,622 @@
         "equipBonusId": 68
       },
       "desc": "The ultimate aegis, proof against blade and spell alike.\nGrants Protect and Shell, with unmatched magick evasion."
+    },
+    {
+      "id": 144,
+      "category": "Helmet",
+      "vanillaName": "Leather Helm",
+      "name": "Padded Coif",
+      "tier": 1,
+      "identity": "Availability: the only riderless helm, alone at the bottom of the curve -- the head item armor jobs get turn 1 before any rider gear exists.",
+      "baseline": {
+        "hp": 10,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 12,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 145,
+      "category": "Helmet",
+      "vanillaName": "Bronze Helm",
+      "name": "Bronze Helm",
+      "tier": 2,
+      "identity": "Niche: innate Regen makes an early front-liner a self-healing wall before any healer is online -- attrition durability the raw-HP rungs never offer.",
+      "baseline": {
+        "hp": 20,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 22,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Regen",
+        "equipBonusId": 5
+      }
+    },
+    {
+      "id": 146,
+      "category": "Helmet",
+      "vanillaName": "Iron Helm",
+      "name": "Iron Helm",
+      "tier": 2,
+      "identity": "Niche: innate Protect (halve physical) on a solid early block -- the front-line tank's first real wall; pick over Bronze vs hard hitters, not chip.",
+      "baseline": {
+        "hp": 30,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 30,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Protect",
+        "equipBonusId": 2
+      }
+    },
+    {
+      "id": 147,
+      "category": "Helmet",
+      "vanillaName": "Barbut",
+      "name": "Storm Barbut",
+      "tier": 3,
+      "identity": "Niche: nullifies Lightning entirely -- the slot's one element answer; hard-counters gun-heavy maps and Bolt/Summon mages where raw HP wouldn't save you.",
+      "baseline": {
+        "hp": 40,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 40,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "null Lightning",
+        "equipBonusId": 35
+      }
+    },
+    {
+      "id": 148,
+      "category": "Helmet",
+      "vanillaName": "Mythril Helm",
+      "name": "Mythril Helm",
+      "tier": 3,
+      "identity": "Niche: Silence immunity keeps a magic-knight's or battle-skill user's spells online -- the spell-using tank's helm, no element commitment.",
+      "baseline": {
+        "hp": 50,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 50,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Silence",
+        "equipBonusId": 26
+      }
+    },
+    {
+      "id": 149,
+      "category": "Helmet",
+      "vanillaName": "Golden Helm",
+      "name": "Sunsteel Helm",
+      "tier": 3,
+      "identity": "Niche: innate Float dodges Earth magic and ground traps and ignores swamp/terrain damage -- a positioning tool, not raw defense; the only mobility helm.",
+      "baseline": {
+        "hp": 60,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 60,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Float",
+        "equipBonusId": 46
+      }
+    },
+    {
+      "id": 150,
+      "category": "Helmet",
+      "vanillaName": "Close Helmet",
+      "name": "Sealed Visor",
+      "tier": 3,
+      "identity": "Niche: immune Sleep and Blind -- the anti-control HP wall; keeps a front-liner awake and accurate when casters try to park or blind it off its hits.",
+      "baseline": {
+        "hp": 70,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 70,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Sleep, Blind",
+        "equipBonusId": 20
+      }
+    },
+    {
+      "id": 151,
+      "category": "Helmet",
+      "vanillaName": "Diamond Helm",
+      "name": "Diamond Helm",
+      "tier": 4,
+      "identity": "Niche: Stop immunity -- the Time-Mage counter; the heavy tank that can never be frozen out of the fight for a lethal turn-skip.",
+      "baseline": {
+        "hp": 80,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 80,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Stop",
+        "equipBonusId": 34
+      }
+    },
+    {
+      "id": 152,
+      "category": "Helmet",
+      "vanillaName": "Platinum Helm",
+      "name": "Platinum Helm",
+      "tier": 4,
+      "identity": "Niche: innate Shell (halve magic) on a heavy block -- the anti-mage wall, magic mirror of Iron's Protect; the rung you grab for caster-boss maps.",
+      "baseline": {
+        "hp": 90,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 90,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Shell",
+        "equipBonusId": 4
+      }
+    },
+    {
+      "id": 153,
+      "category": "Helmet",
+      "vanillaName": "Circlet",
+      "name": "Warded Circlet",
+      "tier": 4,
+      "identity": "Niche: Charm immunity -- no friendly fire; 100 HP for a heavy unit that absolutely must stay loyal against mind-control bosses.",
+      "baseline": {
+        "hp": 100,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 100,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Charm",
+        "equipBonusId": 82
+      }
+    },
+    {
+      "id": 154,
+      "category": "Helmet",
+      "vanillaName": "Crystal Helm",
+      "name": "Crystal Helm",
+      "tier": 5,
+      "identity": "Niche: the buyable defensive apex -- double-immunity to Stop AND Petrify (both instant-loss) on a huge HP pool; owns the unique Stone atom no other helm has.",
+      "baseline": {
+        "hp": 120,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 120,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Stop, Stone",
+        "equipBonusId": 59
+      }
+    },
+    {
+      "id": 155,
+      "category": "Helmet",
+      "vanillaName": "Genji Helm",
+      "name": "Genji Helm",
+      "tier": 6,
+      "identity": "ICONIC: the legend, finally earning it -- rare/steal-gated, granting BOTH innate Protect and Shell (halve ALL incoming damage) on near-apex HP.",
+      "baseline": {
+        "hp": 130,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 130,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Protect, Shell",
+        "equipBonusId": 68
+      }
+    },
+    {
+      "id": 156,
+      "category": "Helmet",
+      "vanillaName": "Grand Helm",
+      "name": "Grand Helm",
+      "tier": 6,
+      "identity": "ICONIC: the heavy-armor HP capstone (150, slot ceiling) plus Doom/Sleep immunity -- no death-clock, no nap; the brick that can't be cheesed off the field.",
+      "baseline": {
+        "hp": 150,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 150,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Doom, Sleep",
+        "equipBonusId": 54
+      }
+    },
+    {
+      "id": 157,
+      "category": "Hat",
+      "vanillaName": "Leather Cap",
+      "name": "Leather Cap",
+      "tier": 1,
+      "identity": "Availability: cheapest head item, universal (any job turn 1, no Equip Heavy Armor) -- the mage/thief head-slot floor, alone at the bottom of the hat curve.",
+      "baseline": {
+        "hp": 8,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 10,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 158,
+      "category": "Hat",
+      "vanillaName": "Plumed Hat",
+      "name": "Plumed Hat",
+      "tier": 2,
+      "identity": "Niche: trades MP for magic-evade (magEv5) -- the cheap 'duck the first spell' hat; riderless but distinct on the magEv axis, a sidegrade not a downgrade to Red Hood.",
+      "baseline": {
+        "hp": 16,
+        "mp": 5,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 16,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 5,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 159,
+      "category": "Hat",
+      "vanillaName": "Red Hood",
+      "name": "Red Hood",
+      "tier": 2,
+      "identity": "Availability: the early caster cap -- a small MP pool, HP-leaning twin of Plumed; the squishy mage's first survivable head, distinct on the MP axis.",
+      "baseline": {
+        "hp": 24,
+        "mp": 8,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 20,
+        "mp": 12,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 160,
+      "category": "Hat",
+      "vanillaName": "Headgear",
+      "name": "Martial Band",
+      "tier": 3,
+      "identity": "Niche: PA+1 with the highest HP of the early hats -- the cheap melee hat for a Monk/Archer wanting hat mobility plus a little punch; Headband is the budget-to-cap fork.",
+      "baseline": {
+        "hp": 32,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 34,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+1",
+        "equipBonusId": 21
+      }
+    },
+    {
+      "id": 161,
+      "category": "Hat",
+      "vanillaName": "Wizard's Hat",
+      "name": "Wizard's Hat",
+      "tier": 3,
+      "identity": "ICONIC: MA+1 plus a real MP pool, lowest HP of its tier -- the classic caster fork, glassy but more and stronger spells; the MA/MP answer to Martial Band's PA.",
+      "baseline": {
+        "hp": 40,
+        "mp": 12,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 28,
+        "mp": 18,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "MA+1",
+        "equipBonusId": 10
+      }
+    },
+    {
+      "id": 162,
+      "category": "Hat",
+      "vanillaName": "Green Beret",
+      "name": "Green Beret",
+      "tier": 3,
+      "identity": "ICONIC: Speed+1 -- the universal tempo hat; more turns on literally any build, no stat-school commitment.",
+      "baseline": {
+        "hp": 48,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 40,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Speed+1",
+        "equipBonusId": 14
+      }
+    },
+    {
+      "id": 163,
+      "category": "Hat",
+      "vanillaName": "Headband",
+      "name": "Twisted Headband",
+      "tier": 4,
+      "identity": "ICONIC: PA+2, the physical-apex hat -- the Monk/Brawler damage cap; Martial Band (PA+1, T3) keeps the budget niche below it.",
+      "baseline": {
+        "hp": 56,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 46,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+2",
+        "equipBonusId": 24
+      }
+    },
+    {
+      "id": 164,
+      "category": "Hat",
+      "vanillaName": "Celebrant's Miter",
+      "name": "Celebrant's Miter",
+      "tier": 4,
+      "identity": "ICONIC: MA+2 plus a deep MP well -- the mage damage-and-fuel cap; Wizard's Hat (MA+1, T3) keeps the budget niche. The magic counterpart to Headband.",
+      "baseline": {
+        "hp": 64,
+        "mp": 20,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 42,
+        "mp": 28,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "MA+2",
+        "equipBonusId": 1
+      }
+    },
+    {
+      "id": 165,
+      "category": "Hat",
+      "vanillaName": "Black Cowl",
+      "name": "Assassin's Cowl",
+      "tier": 4,
+      "identity": "Niche: physical-evade (physEv8) plus Move+1 -- the rogue/skirmisher hat; reposition and dodge, a mobility-plus-evade lane no other hat offers.",
+      "baseline": {
+        "hp": 72,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 50,
+        "mp": 0,
+        "physEv": 8,
+        "magEv": 0,
+        "rider": "Move+1",
+        "equipBonusId": 42
+      }
+    },
+    {
+      "id": 166,
+      "category": "Hat",
+      "vanillaName": "Gold Hairpin",
+      "name": "Gold Hairpin",
+      "tier": 4,
+      "identity": "ICONIC: the MP throne of the hats (40, slot max) plus Silence immunity -- the artillery-mage hat; bottomless spells that can't be cut off. MP is the identity.",
+      "baseline": {
+        "hp": 80,
+        "mp": 50,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 48,
+        "mp": 40,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Silence",
+        "equipBonusId": 26
+      }
+    },
+    {
+      "id": 167,
+      "category": "Hat",
+      "vanillaName": "Lambent Hat",
+      "name": "Lambent Hat",
+      "tier": 5,
+      "identity": "ICONIC: the hybrid endgame mage hat -- MA+1, Speed+1, MP AND magic-evade (magEv10); the only hat blending magic offense, tempo and mag-defense on one head.",
+      "baseline": {
+        "hp": 88,
+        "mp": 15,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 54,
+        "mp": 20,
+        "physEv": 0,
+        "magEv": 10,
+        "rider": "MA+1, Speed+1",
+        "equipBonusId": 27
+      }
+    },
+    {
+      "id": 168,
+      "category": "Hat",
+      "vanillaName": "Thief's Cap",
+      "name": "Thief's Cap",
+      "tier": 5,
+      "identity": "ICONIC: the rogue capstone -- Speed+2, top physical-evade (physEv15), immune Disable + Immobilize; the untouchable, unstoppable skirmisher hat.",
+      "baseline": {
+        "hp": 100,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 58,
+        "mp": 0,
+        "physEv": 15,
+        "magEv": 0,
+        "rider": "Speed+2, immune Disable, Immobilize",
+        "equipBonusId": 28
+      }
+    },
+    {
+      "id": 169,
+      "category": "HairAdornment",
+      "vanillaName": "Hairband",
+      "name": "Hairband",
+      "tier": 3,
+      "identity": "Female partial immunity, half A: +20 HP + immune the 9 'degrade/lock' statuses. One of only 3 HP accessories; the affordable female defense before Ribbon. Disjoint set from Barrette.",
+      "baseline": {
+        "hp": 20,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 20,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Doom, Disable, Immobilize, Slow, Poison, Toad, Silence, Blind, Undead",
+        "equipBonusId": 69
+      }
+    },
+    {
+      "id": 170,
+      "category": "HairAdornment",
+      "vanillaName": "Barrette",
+      "name": "Barrette",
+      "tier": 4,
+      "identity": "Female partial immunity, half B: +20 HP + immune the 9 'death/mind-control' statuses (incl KO and Petrify). The disjoint other half; together with Hairband equals Ribbon coverage. Neither half dominates the other.",
+      "baseline": {
+        "hp": 20,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 20,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune KO, Stone, Confuse, Vampire, Berserk, Stop, Charm, Sleep, Traitor",
+        "equipBonusId": 70
+      }
+    },
+    {
+      "id": 171,
+      "category": "HairAdornment",
+      "vanillaName": "Ribbon",
+      "name": "Ribbon",
+      "tier": 6,
+      "identity": "Total immunity to every status. The crown jewel - deliberately the LOWEST HP (10) so the +20 half-sets stay viable when you only need one cluster + bulk. Loses the HP axis, so it dominates neither half-set.",
+      "baseline": {
+        "hp": 10,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 10,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune all status",
+        "equipBonusId": 71
+      }
     },
     {
       "id": 172,
@@ -2591,6 +4599,908 @@
         "magEv": 0,
         "rider": "null Lightning",
         "equipBonusId": 35
+      }
+    },
+    {
+      "id": 200,
+      "category": "Robe",
+      "vanillaName": "Hempen Robe",
+      "name": "Penitent's Robe",
+      "tier": 1,
+      "identity": "T1 starter caster body -- cheapest, earliest robe. Lowest HP/MP in the line but the ONLY robe with innate Regen (EB5): heals every turn. The budget attrition mage that out-sustains a plain riderless stat-stick in early poke wars.",
+      "baseline": {
+        "hp": 10,
+        "mp": 10,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 14,
+        "mp": 14,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Regen",
+        "equipBonusId": 5
+      }
+    },
+    {
+      "id": 201,
+      "category": "Robe",
+      "vanillaName": "Silken Robe",
+      "name": "Acolyte Robe",
+      "tier": 2,
+      "identity": "T2 early-offense sidegrade to the Penitent's -- trades Regen sustain for +1 Magic Attack (EB10). The first damage robe; heal-over-time vs hit-harder-now is the early fork. Earliest MA in the slot.",
+      "baseline": {
+        "hp": 20,
+        "mp": 16,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 22,
+        "mp": 20,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "MA+1",
+        "equipBonusId": 10
+      }
+    },
+    {
+      "id": 202,
+      "category": "Robe",
+      "vanillaName": "Wizard's Robe",
+      "name": "Magus Robe",
+      "tier": 3,
+      "identity": "T3 pure spell-power body -- +2 Magic Attack (EB36), zero defensive frills. Biggest flat MA in the slot; the black/white/time-mage damage default through mid-game. The OFFENSE half of the T3 fork with Chameleon.",
+      "baseline": {
+        "hp": 30,
+        "mp": 22,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 30,
+        "mp": 26,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "MA+2",
+        "equipBonusId": 1
+      }
+    },
+    {
+      "id": 203,
+      "category": "Robe",
+      "vanillaName": "Chameleon Robe",
+      "name": "Chameleon Robe",
+      "tier": 3,
+      "identity": "ICONIC. The SURVIVAL half of the T3 fork -- absorbs Holy (heal off enemy/ally Holy) and immune to instant-KO (EB37). Pick vs Holy-slinging foes (Knights Templar, undead) or Death-spam fights. More HP/MP than Magus but gives up its MA+2: offense vs survival, neither dominates.",
+      "baseline": {
+        "hp": 40,
+        "mp": 28,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 36,
+        "mp": 32,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "absorb Holy, immune KO",
+        "equipBonusId": 37
+      }
+    },
+    {
+      "id": 204,
+      "category": "Robe",
+      "vanillaName": "White Robe",
+      "name": "White Robe",
+      "tier": 4,
+      "identity": "ICONIC. The element-DEFENSE robe -- halves all three primary attack elements (EB19). The durable caster who walks into enemy Fire/Bolt/Ice crossfire. More HP than its Black twin (defense = more body) at a touch less MP.",
+      "baseline": {
+        "hp": 50,
+        "mp": 34,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 50,
+        "mp": 36,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "halve Fire, Lightning, Ice",
+        "equipBonusId": 19
+      }
+    },
+    {
+      "id": 205,
+      "category": "Robe",
+      "vanillaName": "Black Robe",
+      "name": "Black Robe",
+      "tier": 4,
+      "identity": "ICONIC. The element-OFFENSE twin of White Robe (same tier, same 3 elements, opposite intent) -- boosts the WEARER's own Fire/Lightning/Ice spells (EB18). Glass cannon: more MP than White (more spells to throw) but less HP and no resist. Pick to nuke harder, not survive.",
+      "baseline": {
+        "hp": 60,
+        "mp": 30,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 44,
+        "mp": 42,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "boost Fire, Lightning, Ice",
+        "equipBonusId": 18
+      }
+    },
+    {
+      "id": 206,
+      "category": "Robe",
+      "vanillaName": "Luminous Robe",
+      "name": "Luminous Robe",
+      "tier": 5,
+      "identity": "T5 MP throne -- highest MP short of the capstone. Its vanilla rider slot was empty; repurposed to innate Float (EB46): dodge Earth/Quake/floor-trap damage and ignore terrain. The battlefield-control caster body -- a mobility/immunity trait even Lordly lacks, so it stands on its own axis, not just availability.",
+      "baseline": {
+        "hp": 75,
+        "mp": 50,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 64,
+        "mp": 52,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Float",
+        "equipBonusId": 46
+      }
+    },
+    {
+      "id": 207,
+      "category": "Robe",
+      "vanillaName": "Lordly Robe",
+      "name": "Lordly Robe",
+      "tier": 6,
+      "identity": "ICONIC capstone (rare/poach, T6). Top HP & MP of the line PLUS PA+2/MA+1 and innate Protect+Shell (EB41) -- the king's robe, best all-round body in the game. Endgame-gated so its raw superiority never dominates the T1-5 robes you wore earlier; tier IS the protecting axis, and every lower robe owns a rider trait Lordly doesn't have.",
+      "baseline": {
+        "hp": 100,
+        "mp": 80,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 88,
+        "mp": 64,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+2, MA+1, innate Protect, innate Shell",
+        "equipBonusId": 41
+      }
+    },
+    {
+      "id": 208,
+      "category": "Shoes",
+      "vanillaName": "Battle Boots",
+      "name": "Wayfarer Boots",
+      "tier": 1,
+      "identity": "Earliest Move source. The cheap scout/flanker sandal; wins on tier-1 availability.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Move+1",
+        "equipBonusId": 42
+      }
+    },
+    {
+      "id": 209,
+      "category": "Shoes",
+      "vanillaName": "Spiked Boots",
+      "name": "Spiked Boots",
+      "tier": 1,
+      "identity": "The Jump+1 vertical-reach pick. Orthogonal to Wayfarer (vertical vs horizontal); same tier.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Jump+1",
+        "equipBonusId": 43
+      }
+    },
+    {
+      "id": 210,
+      "category": "Shoes",
+      "vanillaName": "Germinas Boots",
+      "name": "Germinas Boots",
+      "tier": 4,
+      "identity": "Mobility king: Move+1 AND Jump+1. Pure positioning for thieves/Ninjas; pays its mid tier vs the cheaper singles.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Move+1, Jump+1",
+        "equipBonusId": 44
+      }
+    },
+    {
+      "id": 211,
+      "category": "Shoes",
+      "vanillaName": "Rubber Boots",
+      "name": "Storm-Tread Boots",
+      "tier": 2,
+      "identity": "Anti-Bolt / anti-pin tech boot. Not mobility at all; a hard counter to Lightning casters and Immobilize lockdown.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "null Lightning, immune Immobilize",
+        "equipBonusId": 45
+      }
+    },
+    {
+      "id": 212,
+      "category": "Shoes",
+      "vanillaName": "Winged Boots",
+      "name": "Featherfoot Boots",
+      "tier": 3,
+      "identity": "Permanent Float: ignores Earth/quake and all floor traps, walks water/lava as level. The terrain-immunity boot (no Move number).",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Float",
+        "equipBonusId": 46
+      }
+    },
+    {
+      "id": 213,
+      "category": "Shoes",
+      "vanillaName": "Hermes Shoes",
+      "name": "Hermes Shoes",
+      "tier": 6,
+      "identity": "The only tempo boot: Speed+1 = more turns, the scarcest stat in the slot. Endgame-gated; competes with the whole slot for raw tempo.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Speed+1",
+        "equipBonusId": 14
+      }
+    },
+    {
+      "id": 214,
+      "category": "Shoes",
+      "vanillaName": "Red Shoes",
+      "name": "Sprinter's Shoes",
+      "tier": 5,
+      "identity": "The mage's boot: MA+1 AND Move+1. The only boot touching a damage stat; reach for casters without spending the glove slot.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "MA+1, Move+1",
+        "equipBonusId": 48
+      }
+    },
+    {
+      "id": 215,
+      "category": "Armguard",
+      "vanillaName": "Power Gauntlets",
+      "name": "Power Gauntlets",
+      "tier": 2,
+      "identity": "Entry PA stick, bumped to PA+2 so it isn't trash next to Bracers. Cheap early physical boost for any martial job.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+2",
+        "equipBonusId": 24
+      }
+    },
+    {
+      "id": 216,
+      "category": "Armguard",
+      "vanillaName": "Genji Gloves",
+      "name": "Genji Gloves",
+      "tier": 6,
+      "identity": "The only dual-stat glove (PA+2/MA+1, magic-knight leaning physical). Less PA than Bracers (3>2), less MA than Magepower (2>1), subset of neither. Wins on breadth + the iconic steal.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+2, MA+1",
+        "equipBonusId": 11
+      }
+    },
+    {
+      "id": 217,
+      "category": "Armguard",
+      "vanillaName": "Magepower Gloves",
+      "name": "Magepower Gloves",
+      "tier": 3,
+      "identity": "The caster's stat stick: the only MA+2 source in the slot. A pure mage prefers this over Genji (more MA).",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "MA+2",
+        "equipBonusId": 1
+      }
+    },
+    {
+      "id": 218,
+      "category": "Armguard",
+      "vanillaName": "Bracers",
+      "name": "Bracers",
+      "tier": 5,
+      "identity": "The PA apex: PA+3, the only +3 stat in the slot. The pure-physical capstone; gives zero MA.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+3",
+        "equipBonusId": 52
+      }
+    },
+    {
+      "id": 219,
+      "category": "Ring",
+      "vanillaName": "Reflect Ring",
+      "name": "Reflect Ring",
+      "tier": 4,
+      "identity": "Permanent Reflect: bounces single-target magic back at casters; also bank-shots buffs off allies. The anti-mage staple.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Reflect",
+        "equipBonusId": 29
+      }
+    },
+    {
+      "id": 220,
+      "category": "Ring",
+      "vanillaName": "Protect Ring",
+      "name": "Warding Ring",
+      "tier": 2,
+      "identity": "Early anti-clock ring: never Doomed (countdown KO) or Slept. Cheap Ch2 status insurance.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Doom, Sleep",
+        "equipBonusId": 54
+      }
+    },
+    {
+      "id": 221,
+      "category": "Ring",
+      "vanillaName": "Magick Ring",
+      "name": "Sealward Ring",
+      "tier": 3,
+      "identity": "The caster's seal-breaker: never Silenced (can't lose spells) or Berserked (can't lose control). Keeps a mage online.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Berserk, Silence",
+        "equipBonusId": 55
+      }
+    },
+    {
+      "id": 222,
+      "category": "Ring",
+      "vanillaName": "Cursed Ring",
+      "name": "Cursed Ring",
+      "tier": 5,
+      "identity": "The all-stats curse: +1 PA/MA/Speed (best spread in the slot) but innate Undead (cures kill, harm heals, no normal revive). The drawback is why it dominates nothing.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+1, MA+1, Speed+1, innate Undead, immune Traitor",
+        "equipBonusId": 56
+      }
+    },
+    {
+      "id": 223,
+      "category": "Ring",
+      "vanillaName": "Angel Ring",
+      "name": "Angel Ring",
+      "tier": 6,
+      "identity": "Survivability crown (unisex): auto-Reraise + immune KO/Blind. The male answer to Chantage; the 'won't stay dead' ring.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "start Reraise, immune KO, Blind",
+        "equipBonusId": 57
+      }
+    },
+    {
+      "id": 224,
+      "category": "Armlet",
+      "vanillaName": "Diamond Bracelet",
+      "name": "Diamond Bracelet",
+      "tier": 4,
+      "identity": "The only stat armlet: +1 PA AND +1 MA plus immune Slow. Hybrid stat + tempo with no Undead drawback; a safe middle vs the Cursed Ring gamble.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+1, MA+1, immune Slow",
+        "equipBonusId": 58
+      }
+    },
+    {
+      "id": 225,
+      "category": "Armlet",
+      "vanillaName": "Jade Armlet",
+      "name": "Jade Armlet",
+      "tier": 4,
+      "identity": "Anti-petrify: immune Stop (turn-locked) and Stone (instant loss). The 'you literally can't act' insurance vs Time mages.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Stop, Stone",
+        "equipBonusId": 59
+      }
+    },
+    {
+      "id": 226,
+      "category": "Armlet",
+      "vanillaName": "Japa Mala",
+      "name": "Japa Mala",
+      "tier": 5,
+      "identity": "The 108-gems armlet: immune the four 'corruption' statuses AND strong to all 8 elements (every element heals you) - which amplifies elemental damage taken too. Bizarre element-soak grail, dominates no pure-defense armlet.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Undead, Vampire, Toad, Poison, boost all elements",
+        "equipBonusId": 60
+      }
+    },
+    {
+      "id": 227,
+      "category": "Armlet",
+      "vanillaName": "Nu Khai Armband",
+      "name": "Nu Khai Armband",
+      "tier": 4,
+      "identity": "Anti-mind-control: never Charmed or Confused (no turning on your team) plus halve Dark. The only armlet mixing immunity with element resist.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Charm, Confuse, halve Dark",
+        "equipBonusId": 61
+      }
+    },
+    {
+      "id": 228,
+      "category": "Armlet",
+      "vanillaName": "Guardian Bracelet",
+      "name": "Guardian Bracelet",
+      "tier": 3,
+      "identity": "Anti-lockdown: never Disabled (can't act) or Immobilized (can't move). The budget 'stay in the fight' armlet.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Disable, Immobilize",
+        "equipBonusId": 62
+      }
+    },
+    {
+      "id": 229,
+      "category": "Cloak",
+      "vanillaName": "Shoulder Cape",
+      "name": "Shoulder Cape",
+      "tier": 1,
+      "identity": "The starter balanced cloak (10/10). Earliest evade in the whole slot; equal phys/mag, asks nothing. Only T1 evade.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 10,
+        "magEv": 10
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 10,
+        "magEv": 10,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 230,
+      "category": "Cloak",
+      "vanillaName": "Leather Cloak",
+      "name": "Leather Cloak",
+      "tier": 2,
+      "identity": "The anti-physical cloak (18 phys / 6 mag). Trades mag-dodge for cheap strong phys evade; the front-line dodge vs melee maps.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 15,
+        "magEv": 15
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 18,
+        "magEv": 6,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 231,
+      "category": "Cloak",
+      "vanillaName": "Mage's Cloak",
+      "name": "Mage's Cloak",
+      "tier": 3,
+      "identity": "The caster cloak: mag-leaning evade (12/18) PLUS MA+1. The only cloak with a stat rider; dodge spells AND hit harder. Lower phys is the tradeoff.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 18,
+        "magEv": 18
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 12,
+        "magEv": 18,
+        "rider": "MA+1",
+        "equipBonusId": 10
+      }
+    },
+    {
+      "id": 232,
+      "category": "Cloak",
+      "vanillaName": "Elven Cloak",
+      "name": "Elven Cloak",
+      "tier": 4,
+      "identity": "The phys-leaning mid cloak (25/15). The all-rounder dodge tank's pick; forks against Vampire on which axis you need.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 25,
+        "magEv": 25
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 25,
+        "magEv": 15,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 233,
+      "category": "Cloak",
+      "vanillaName": "Vampire Cape",
+      "name": "Vampire Cape",
+      "tier": 4,
+      "identity": "The anti-magic cloak (20 phys / 25 mag) PLUS innate Regen. Mirror of Elven; self-sustaining dodge vs caster-heavy maps. Does not dominate Elven (forks on axis + Regen vs raw phys).",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 28,
+        "magEv": 28
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 20,
+        "magEv": 25,
+        "rider": "innate Regen",
+        "equipBonusId": 5
+      }
+    },
+    {
+      "id": 234,
+      "category": "Cloak",
+      "vanillaName": "Featherweave Cloak",
+      "name": "Featherweave Cloak",
+      "tier": 5,
+      "identity": "The phys-evade apex (35/20). Dedicated melee-dodge capstone; trails the mag-cloaks on magic evade, no rider - raw phys-avoidance is the sell.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 40,
+        "magEv": 40
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 35,
+        "magEv": 20,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 235,
+      "category": "Cloak",
+      "vanillaName": "Invisibility Cloak",
+      "name": "Phantom Cloak",
+      "tier": 6,
+      "identity": "Starts each battle Invisible (untargetable + crit on the break) plus 30 phys evade. magEv 0 is the deliberate hole. The assassin/opener cloak; does not dominate Featherweave (less phys, zero mag).",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 35,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 30,
+        "magEv": 0,
+        "rider": "start Invisible",
+        "equipBonusId": 64
+      }
+    },
+    {
+      "id": 236,
+      "category": "Perfume",
+      "vanillaName": "Chantage",
+      "name": "Chantage",
+      "tier": 6,
+      "identity": "The immortality perfume (female): permanent Regen + auto-Reraise. The 'never dies' throne; stronger than Angel Ring because Regen heals the Reraise back up.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Regen, start Reraise",
+        "equipBonusId": 65
+      }
+    },
+    {
+      "id": 237,
+      "category": "Perfume",
+      "vanillaName": "Envoûtement",
+      "name": "Envoutement",
+      "tier": 5,
+      "identity": "The zoner perfume (female): Float + Reflect. Ignores terrain AND bounces magic in one slot. Female-gated separate pool, so it never strictly dominates the unisex Reflect Ring / Featherfoot Boots.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Float, innate Reflect",
+        "equipBonusId": 66
+      }
+    },
+    {
+      "id": 238,
+      "category": "Perfume",
+      "vanillaName": "Septième Sens",
+      "name": "Septieme Sens",
+      "tier": 4,
+      "identity": "The aggressive caster perfume (female): MA+1 + Haste + opens Invisible. The burst-mage / opener throne. Female-gated, so never dominates a unisex item.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "MA+1, innate Haste, start Invisible",
+        "equipBonusId": 67
+      }
+    },
+    {
+      "id": 239,
+      "category": "Perfume",
+      "vanillaName": "Sortilège",
+      "name": "Sortilege",
+      "tier": 4,
+      "identity": "The bulwark perfume (female): Protect AND Shell (-50% physical AND magical). The defensive wall; turns a fragile caster into a brick.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Protect, Shell",
+        "equipBonusId": 68
+      }
+    },
+    {
+      "id": 260,
+      "category": "Ring",
+      "vanillaName": "Ring of Aptitude",
+      "name": "Ring of Aptitude",
+      "tier": 2,
+      "identity": "Doubles JP earned. Zero combat value - a pure progression item; swap on while grinding, off for fights. Owns its lane outright.",
+      "baseline": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 0,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "BoostJP",
+        "equipBonusId": 80
       }
     }
   ]

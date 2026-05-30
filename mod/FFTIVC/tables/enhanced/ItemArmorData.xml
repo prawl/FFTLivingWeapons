@@ -4,6 +4,146 @@
   <Version>1</Version>
   <Entries>
     <ItemArmor>
+      <Id>0</Id> <!-- Padded Coif (was Leather Helm) -->
+      <HPBonus>12</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>1</Id> <!-- Bronze Helm -->
+      <HPBonus>22</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>2</Id> <!-- Iron Helm -->
+      <HPBonus>30</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>3</Id> <!-- Storm Barbut (was Barbut) -->
+      <HPBonus>40</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>4</Id> <!-- Mythril Helm -->
+      <HPBonus>50</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>5</Id> <!-- Sunsteel Helm (was Golden Helm) -->
+      <HPBonus>60</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>6</Id> <!-- Sealed Visor (was Close Helmet) -->
+      <HPBonus>70</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>7</Id> <!-- Diamond Helm -->
+      <HPBonus>80</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>8</Id> <!-- Platinum Helm -->
+      <HPBonus>90</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>9</Id> <!-- Warded Circlet (was Circlet) -->
+      <HPBonus>100</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>10</Id> <!-- Crystal Helm -->
+      <HPBonus>120</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>11</Id> <!-- Genji Helm -->
+      <HPBonus>130</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>12</Id> <!-- Grand Helm -->
+      <HPBonus>150</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>13</Id> <!-- Leather Cap -->
+      <HPBonus>10</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>14</Id> <!-- Plumed Hat -->
+      <HPBonus>16</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>15</Id> <!-- Red Hood -->
+      <HPBonus>20</HPBonus>
+      <MPBonus>12</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>16</Id> <!-- Martial Band (was Headgear) -->
+      <HPBonus>34</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>17</Id> <!-- Wizard's Hat -->
+      <HPBonus>28</HPBonus>
+      <MPBonus>18</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>18</Id> <!-- Green Beret -->
+      <HPBonus>40</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>19</Id> <!-- Twisted Headband (was Headband) -->
+      <HPBonus>46</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>20</Id> <!-- Celebrant's Miter -->
+      <HPBonus>42</HPBonus>
+      <MPBonus>28</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>21</Id> <!-- Assassin's Cowl (was Black Cowl) -->
+      <HPBonus>50</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>22</Id> <!-- Gold Hairpin -->
+      <HPBonus>48</HPBonus>
+      <MPBonus>40</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>23</Id> <!-- Lambent Hat -->
+      <HPBonus>54</HPBonus>
+      <MPBonus>20</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>24</Id> <!-- Thief's Cap -->
+      <HPBonus>58</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>25</Id> <!-- Hairband -->
+      <HPBonus>20</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>26</Id> <!-- Barrette -->
+      <HPBonus>20</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>27</Id> <!-- Ribbon -->
+      <HPBonus>10</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
       <Id>28</Id> <!-- Leather Armor -->
       <HPBonus>14</HPBonus>
       <MPBonus>0</MPBonus>
@@ -142,6 +282,46 @@
       <Id>55</Id> <!-- Storm Garb (was Rubber Suit) -->
       <HPBonus>90</HPBonus>
       <MPBonus>14</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>56</Id> <!-- Penitent's Robe (was Hempen Robe) -->
+      <HPBonus>14</HPBonus>
+      <MPBonus>14</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>57</Id> <!-- Acolyte Robe (was Silken Robe) -->
+      <HPBonus>22</HPBonus>
+      <MPBonus>20</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>58</Id> <!-- Magus Robe (was Wizard's Robe) -->
+      <HPBonus>30</HPBonus>
+      <MPBonus>26</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>59</Id> <!-- Chameleon Robe -->
+      <HPBonus>36</HPBonus>
+      <MPBonus>32</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>60</Id> <!-- White Robe -->
+      <HPBonus>50</HPBonus>
+      <MPBonus>36</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>61</Id> <!-- Black Robe -->
+      <HPBonus>44</HPBonus>
+      <MPBonus>42</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>62</Id> <!-- Luminous Robe -->
+      <HPBonus>64</HPBonus>
+      <MPBonus>52</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>63</Id> <!-- Lordly Robe -->
+      <HPBonus>88</HPBonus>
+      <MPBonus>64</MPBonus>
     </ItemArmor>
   </Entries>
 </ItemArmorTable>

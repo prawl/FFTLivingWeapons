@@ -15,6 +15,8 @@ Usage:
 import json, sys, subprocess, shutil, re
 from pathlib import Path
 import sqlite3
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from integrate_panel import parse_rider, ALL8
 
 ROOT = Path(__file__).resolve().parent.parent
 ITEMS = ROOT / "data" / "items.json"
@@ -26,6 +28,7 @@ ENC_DIR = ROOT / "working" / "nxd_out"
 WEAPON_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff",
                "Flail", "Gun", "Crossbow", "Bow", "Instrument", "Book", "Polearm", "Pole", "Bag", "Cloth"}
 MELEE1_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff", "Flail", "Bag"}
+ACC_CATS = {"Shoes", "Armguard", "Ring", "Armlet", "Cloak", "Perfume"}
 CAT_NOUN = {"Knife": "knife", "NinjaBlade": "ninja blade", "Sword": "blade", "KnightSword": "knight's sword",
             "Katana": "katana", "Axe": "axe", "Rod": "rod", "Staff": "staff", "Flail": "flail", "Gun": "gun",
             "Crossbow": "crossbow", "Bow": "bow", "Instrument": "instrument", "Book": "tome", "Polearm": "spear",
@@ -54,31 +57,32 @@ PROC_FLAVOR = {
 
 
 def rider_text(rider):
-    r = (rider or "None").strip()
-    if r.lower() in ("none", ""):
+    """Render an EquipBonus rider as readable prose via the structural parser (no regex overlap bugs)."""
+    q = parse_rider(rider)
+    if not q:
         return ""
     out = []
-    for m in re.finditer(r"(PA|MA|Speed|Move|Jump)\s*\+\s*(\d+)", r):
-        nm = {"PA": "Physical Attack", "MA": "Magick Attack", "Speed": "Speed", "Move": "Move", "Jump": "Jump"}[m.group(1)]
-        out.append(f"{nm} +{m.group(2)}.")
-    for m in re.finditer(r"innate\s+([A-Za-z &,]+?)(?=$|,|\(| innate)", r):
-        out.append("Grants " + m.group(1).strip().replace(" & ", " and ") + ".")
-    for m in re.finditer(r"immune\s+([A-Za-z, ]+?)(?=$|\(|;)", r):
-        st = re.sub(r"\b(Death|KO)\b", "instant death", m.group(1).strip(), flags=re.I)
-        out.append("Wards against " + st + ".")
-    for kind, verb in [("absorb", "Absorbs"), ("null", "Nullifies"), ("nullify", "Nullifies"),
-                       ("halve", "Halves"), ("boost", "Strengthens")]:
-        for m in re.finditer(kind + r"\s+([A-Za-z/, ]+?)(?=$|\(|;|,? \+)", r):
-            els = m.group(1).strip().rstrip(".")
-            out.append(f"{verb} {els} damage.")
-    if "start invisible" in r.lower() or "start: invisible" in r.lower():
-        out.append("Begins battle Transparent.")
-    # de-dupe preserving order
-    seen, ded = set(), []
-    for o in out:
-        if o not in seen:
-            seen.add(o); ded.append(o)
-    return " ".join(ded)
+    for f, label in [("PABonus", "Physical Attack"), ("MABonus", "Magick Attack"),
+                     ("SpeedBonus", "Speed"), ("MoveBonus", "Move"), ("JumpBonus", "Jump")]:
+        if q.get(f):
+            out.append(f"{label} +{q[f]}.")
+    if q.get("InnateStatus"):
+        out.append("Grants " + q["InnateStatus"].replace(" & ", " and ") + ".")
+    if q.get("StartingStatus"):
+        for st in q["StartingStatus"].split(", "):
+            out.append("Begins battle Transparent." if st == "Invisible" else f"Begins battle with {st}.")
+    if q.get("ImmuneStatus"):
+        out.append("Wards against " + re.sub(r"\bKO\b", "instant death", q["ImmuneStatus"]) + ".")
+    for f, verb in [("AbsorbElements", "Absorbs"), ("NullifyElements", "Nullifies"),
+                    ("HalveElements", "Halves"), ("StrongElements", "Strengthens")]:
+        if q.get(f):
+            v = q[f]
+            if set(v.split(", ")) == set(ALL8.split(", ")):
+                v = "all elemental"
+            out.append(f"{verb} {v} damage.")
+    if q.get("BoostJP"):
+        out.append("Boosts JP earned.")
+    return " ".join(out)
 
 
 def mechanics(it):
@@ -100,6 +104,16 @@ def mechanics(it):
         if rng >= 2 and it["category"] in MELEE1_CATS:
             parts.append(f"Strikes from up to {rng} tiles away.")
     else:
+        if it["category"] in ACC_CATS:
+            pe, me = s.get("physEv", 0) or 0, s.get("magEv", 0) or 0
+            if pe and me and pe == me:
+                parts.append(f"Grants {pe}% evasion.")
+            elif pe and me:
+                parts.append(f"Grants {pe}% physical and {me}% magick evasion.")
+            elif pe:
+                parts.append(f"Grants {pe}% physical evasion.")
+            elif me:
+                parts.append(f"Grants {me}% magick evasion.")
         rt = rider_text(s.get("rider"))
         if rt:
             parts.append(rt)
