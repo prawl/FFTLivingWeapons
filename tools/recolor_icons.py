@@ -83,6 +83,12 @@ ICON_TINTS = {
     143: (0.60, 0.60, 1.10),  # Aegis Prime     radiant blue (capstone)
 }
 
+# Merge per-item tints from data/items.json (the single source for the overhaul's new categories).
+import json as _json
+for _it in _json.loads((ROOT / "data" / "items.json").read_text(encoding="utf-8"))["items"]:
+    if _it.get("iconTint"):
+        ICON_TINTS[_it["id"]] = tuple(_it["iconTint"])
+
 
 def recolor(im, hue, sat, val_mult):
     px = im.load()

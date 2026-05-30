@@ -317,7 +317,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.62,
+        0.25,
+        0.55
+      ]
     },
     {
       "id": 12,
@@ -341,7 +346,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.15,
+        0.85
+      ]
     },
     {
       "id": 13,
@@ -365,7 +375,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.5,
+        0.55,
+        1.08
+      ]
     },
     {
       "id": 14,
@@ -389,7 +404,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.72,
+        0.55,
+        1.05
+      ]
     },
     {
       "id": 15,
@@ -413,7 +433,12 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.83,
+        0.6,
+        1.0
+      ]
     },
     {
       "id": 16,
@@ -437,7 +462,12 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.66,
+        0.5,
+        1.0
+      ]
     },
     {
       "id": 17,
@@ -461,7 +491,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.35,
+        1.05
+      ]
     },
     {
       "id": 18,
@@ -485,7 +520,12 @@
         "onHitAbilityId": 22,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.3,
+        0.7,
+        0.7
+      ]
     },
     {
       "id": 19,
@@ -875,7 +915,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.18,
+        0.92
+      ]
     },
     {
       "id": 34,
@@ -899,7 +944,12 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.36,
+        0.55,
+        0.85
+      ]
     },
     {
       "id": 35,
@@ -923,7 +973,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.78,
+        1.06
+      ]
     },
     {
       "id": 36,
@@ -947,7 +1002,12 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.62,
+        0.7
+      ]
     },
     {
       "id": 37,
@@ -971,7 +1031,12 @@
         "onHitAbilityId": 11,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.99,
+        0.85,
+        0.95
+      ]
     },
     {
       "id": 38,
@@ -995,7 +1060,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.1,
+        1.16
+      ]
     },
     {
       "id": 39,
@@ -1019,7 +1089,12 @@
         "onHitAbilityId": 9,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.79,
+        0.6,
+        0.78
+      ]
     },
     {
       "id": 40,
@@ -1043,7 +1118,12 @@
         "onHitAbilityId": 0,
         "formula": 47,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.5,
+        0.62
+      ]
     },
     {
       "id": 41,
@@ -1067,7 +1147,12 @@
         "onHitAbilityId": 0,
         "formula": 6,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.99,
+        0.74,
+        0.94
+      ]
     },
     {
       "id": 42,
@@ -1091,7 +1176,12 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.45,
+        0.62,
+        1.06
+      ]
     },
     {
       "id": 43,
@@ -1115,7 +1205,12 @@
         "onHitAbilityId": 22,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.27,
+        0.62,
+        0.86
+      ]
     },
     {
       "id": 44,
@@ -1139,7 +1234,12 @@
         "onHitAbilityId": 11,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.55,
+        0.6
+      ]
     },
     {
       "id": 45,
@@ -1163,7 +1263,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.52,
+        0.2,
+        1.12
+      ]
     },
     {
       "id": 46,
@@ -1187,7 +1292,12 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.45,
+        1.18
+      ]
     },
     {
       "id": 47,
@@ -1211,7 +1321,12 @@
         "onHitAbilityId": 14,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.05,
+        1.18
+      ]
     },
     {
       "id": 48,
@@ -1235,7 +1350,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.18,
+        0.78
+      ]
     },
     {
       "id": 49,
@@ -1259,7 +1379,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.07,
+        0.35,
+        0.62
+      ]
     },
     {
       "id": 50,
@@ -1283,7 +1408,12 @@
         "onHitAbilityId": 11,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.55,
+        0.42
+      ]
     },
     {
       "id": 51,
@@ -1307,7 +1437,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.0,
+        0.0,
+        0.7
+      ]
     },
     {
       "id": 52,
@@ -1331,7 +1466,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.62,
+        0.7,
+        1.05
+      ]
     },
     {
       "id": 53,
@@ -1355,7 +1495,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.05,
+        0.85,
+        1.05
+      ]
     },
     {
       "id": 54,
@@ -1379,7 +1524,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.5,
+        0.55,
+        1.08
+      ]
     },
     {
       "id": 55,
@@ -1403,7 +1553,12 @@
         "onHitAbilityId": 22,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.28,
+        0.8,
+        0.85
+      ]
     },
     {
       "id": 56,
@@ -1427,7 +1582,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.6,
+        0.65
+      ]
     },
     {
       "id": 57,
@@ -1451,7 +1611,12 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.72,
+        0.35,
+        0.55
+      ]
     },
     {
       "id": 58,
@@ -1475,7 +1640,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.45,
+        1.1
+      ]
     },
     {
       "id": 59,
@@ -1499,7 +1669,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.09,
+        0.4,
+        0.75
+      ]
     },
     {
       "id": 60,
@@ -1523,7 +1698,12 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.0,
+        0.0,
+        1.0
+      ]
     },
     {
       "id": 61,
@@ -1547,7 +1727,12 @@
         "onHitAbilityId": 0,
         "formula": 7,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.33,
+        0.45,
+        1.05
+      ]
     },
     {
       "id": 62,
@@ -1571,7 +1756,12 @@
         "onHitAbilityId": 14,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.3,
+        0.65,
+        0.8
+      ]
     },
     {
       "id": 63,
@@ -1595,7 +1785,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.7,
+        0.45,
+        0.85
+      ]
     },
     {
       "id": 64,
@@ -1619,7 +1814,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.75,
+        1.1
+      ]
     },
     {
       "id": 65,
@@ -1643,7 +1843,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.6,
+        0.65,
+        1.1
+      ]
     },
     {
       "id": 66,
@@ -1667,7 +1872,12 @@
         "onHitAbilityId": 11,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.77,
+        0.55,
+        0.95
+      ]
     },
     {
       "id": 67,
@@ -1691,7 +1901,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.0,
+        0.0,
+        0.55
+      ]
     },
     {
       "id": 68,
@@ -1715,7 +1930,12 @@
         "onHitAbilityId": 0,
         "formula": 2,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.05,
+        0.85,
+        1.05
+      ]
     },
     {
       "id": 69,
@@ -1739,7 +1959,12 @@
         "onHitAbilityId": 14,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.52,
+        0.42,
+        0.85
+      ]
     },
     {
       "id": 70,
@@ -1763,7 +1988,12 @@
         "onHitAbilityId": 22,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.3,
+        0.85,
+        0.7
+      ]
     },
     {
       "id": 71,
@@ -1787,7 +2017,12 @@
         "onHitAbilityId": 0,
         "formula": 3,
         "range": 9
-      }
+      },
+      "iconTint": [
+        0.09,
+        0.4,
+        0.88
+      ]
     },
     {
       "id": 72,
@@ -1811,7 +2046,12 @@
         "onHitAbilityId": 0,
         "formula": 3,
         "range": 8
-      }
+      },
+      "iconTint": [
+        0.6,
+        0.12,
+        0.82
+      ]
     },
     {
       "id": 73,
@@ -1835,7 +2075,12 @@
         "onHitAbilityId": 0,
         "formula": 4,
         "range": 9
-      }
+      },
+      "iconTint": [
+        0.1,
+        0.55,
+        0.78
+      ]
     },
     {
       "id": 74,
@@ -1859,7 +2104,12 @@
         "onHitAbilityId": 0,
         "formula": 4,
         "range": 8
-      }
+      },
+      "iconTint": [
+        0.5,
+        0.55,
+        1.08
+      ]
     },
     {
       "id": 75,
@@ -1883,7 +2133,12 @@
         "onHitAbilityId": 0,
         "formula": 4,
         "range": 8
-      }
+      },
+      "iconTint": [
+        0.05,
+        0.85,
+        1.05
+      ]
     },
     {
       "id": 76,
@@ -1907,7 +2162,12 @@
         "onHitAbilityId": 0,
         "formula": 4,
         "range": 7
-      }
+      },
+      "iconTint": [
+        0.14,
+        0.8,
+        1.1
+      ]
     },
     {
       "id": 77,
@@ -2351,7 +2611,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 3
-      }
+      },
+      "iconTint": [
+        0.42,
+        0.55,
+        1.05
+      ]
     },
     {
       "id": 93,
@@ -2375,7 +2640,12 @@
         "onHitAbilityId": 9,
         "formula": 1,
         "range": 3
-      }
+      },
+      "iconTint": [
+        0.0,
+        0.7,
+        0.85
+      ]
     },
     {
       "id": 94,
@@ -2399,7 +2669,12 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "range": 3
-      }
+      },
+      "iconTint": [
+        0.83,
+        0.45,
+        1.08
+      ]
     },
     {
       "id": 95,
@@ -2423,7 +2698,12 @@
         "onHitAbilityId": 9,
         "formula": 1,
         "range": 3
-      }
+      },
+      "iconTint": [
+        0.08,
+        0.55,
+        0.85
+      ]
     },
     {
       "id": 96,
@@ -2447,7 +2727,12 @@
         "onHitAbilityId": 11,
         "formula": 1,
         "range": 3
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.6,
+        0.5
+      ]
     },
     {
       "id": 97,
@@ -2471,7 +2756,12 @@
         "onHitAbilityId": 14,
         "formula": 1,
         "range": 3
-      }
+      },
+      "iconTint": [
+        0.33,
+        0.5,
+        0.8
+      ]
     },
     {
       "id": 98,
@@ -2495,7 +2785,12 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "range": 3
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.25,
+        1.1
+      ]
     },
     {
       "id": 99,
@@ -2519,7 +2814,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.3,
+        0.95
+      ]
     },
     {
       "id": 100,
@@ -2543,7 +2843,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.08,
+        0.2,
+        0.85
+      ]
     },
     {
       "id": 101,
@@ -2567,7 +2872,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.52,
+        0.55,
+        1.08
+      ]
     },
     {
       "id": 102,
@@ -2591,7 +2901,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.15,
+        0.75,
+        1.05
+      ]
     },
     {
       "id": 103,
@@ -2615,7 +2930,12 @@
         "onHitAbilityId": 14,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.1,
+        0.65,
+        0.7
+      ]
     },
     {
       "id": 104,
@@ -2639,7 +2959,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.25,
+        1.1
+      ]
     },
     {
       "id": 105,
@@ -2663,7 +2988,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.02,
+        0.8,
+        0.9
+      ]
     },
     {
       "id": 106,
@@ -2687,7 +3017,12 @@
         "onHitAbilityId": 11,
         "formula": 1,
         "range": 3
-      }
+      },
+      "iconTint": [
+        0.42,
+        0.45,
+        1.05
+      ]
     },
     {
       "id": 107,
@@ -2711,7 +3046,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.28,
+        0.3,
+        0.75
+      ]
     },
     {
       "id": 108,
@@ -2735,7 +3075,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.25,
+        0.55,
+        0.8
+      ]
     },
     {
       "id": 109,
@@ -2759,7 +3104,12 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.72,
+        0.4,
+        0.85
+      ]
     },
     {
       "id": 110,
@@ -2783,7 +3133,12 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.55,
+        0.2,
+        0.95
+      ]
     },
     {
       "id": 111,
@@ -2807,7 +3162,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.09,
+        0.7,
+        1.0
+      ]
     },
     {
       "id": 112,
@@ -2831,7 +3191,12 @@
         "onHitAbilityId": 9,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.15,
+        0.55
+      ]
     },
     {
       "id": 113,
@@ -2855,7 +3220,12 @@
         "onHitAbilityId": 22,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.3,
+        0.75,
+        0.7
+      ]
     },
     {
       "id": 114,
@@ -2879,7 +3249,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.55,
+        0.65,
+        1.05
+      ]
     },
     {
       "id": 115,
@@ -2903,7 +3278,12 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.7,
+        0.45,
+        0.7
+      ]
     },
     {
       "id": 116,
@@ -2927,7 +3307,12 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.55,
+        1.05
+      ]
     },
     {
       "id": 117,
@@ -2951,7 +3336,12 @@
         "onHitAbilityId": 22,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.22,
+        0.8,
+        0.78
+      ]
     },
     {
       "id": 118,
@@ -2975,7 +3365,12 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "range": 1
-      }
+      },
+      "iconTint": [
+        0.83,
+        0.55,
+        0.7
+      ]
     },
     {
       "id": 119,
@@ -2999,7 +3394,12 @@
         "onHitAbilityId": 101,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.05,
+        0.6,
+        0.95
+      ]
     },
     {
       "id": 120,
@@ -3023,7 +3423,12 @@
         "onHitAbilityId": 14,
         "formula": 1,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.55,
+        0.4,
+        0.85
+      ]
     },
     {
       "id": 121,
@@ -3047,7 +3452,12 @@
         "onHitAbilityId": 0,
         "formula": 6,
         "range": 2
-      }
+      },
+      "iconTint": [
+        0.96,
+        0.65,
+        0.8
+      ]
     },
     {
       "id": 128,
@@ -3389,7 +3799,12 @@
         "magEv": 0,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.08,
+        0.45,
+        0.55
+      ]
     },
     {
       "id": 145,
@@ -3411,7 +3826,12 @@
         "magEv": 0,
         "rider": "innate Regen",
         "equipBonusId": 5
-      }
+      },
+      "iconTint": [
+        0.09,
+        0.65,
+        0.65
+      ]
     },
     {
       "id": 146,
@@ -3433,7 +3853,12 @@
         "magEv": 0,
         "rider": "innate Protect",
         "equipBonusId": 2
-      }
+      },
+      "iconTint": [
+        0.0,
+        0.0,
+        0.5
+      ]
     },
     {
       "id": 147,
@@ -3455,7 +3880,12 @@
         "magEv": 0,
         "rider": "null Lightning",
         "equipBonusId": 35
-      }
+      },
+      "iconTint": [
+        0.15,
+        0.7,
+        0.85
+      ]
     },
     {
       "id": 148,
@@ -3477,7 +3907,12 @@
         "magEv": 0,
         "rider": "immune Silence",
         "equipBonusId": 26
-      }
+      },
+      "iconTint": [
+        0.5,
+        0.3,
+        0.8
+      ]
     },
     {
       "id": 149,
@@ -3499,7 +3934,12 @@
         "magEv": 0,
         "rider": "innate Float",
         "equipBonusId": 46
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.85,
+        0.9
+      ]
     },
     {
       "id": 150,
@@ -3521,7 +3961,12 @@
         "magEv": 0,
         "rider": "immune Sleep, Blind",
         "equipBonusId": 20
-      }
+      },
+      "iconTint": [
+        0.0,
+        0.0,
+        0.35
+      ]
     },
     {
       "id": 151,
@@ -3543,7 +3988,12 @@
         "magEv": 0,
         "rider": "immune Stop",
         "equipBonusId": 34
-      }
+      },
+      "iconTint": [
+        0.5,
+        0.25,
+        0.95
+      ]
     },
     {
       "id": 152,
@@ -3565,7 +4015,12 @@
         "magEv": 0,
         "rider": "innate Shell",
         "equipBonusId": 4
-      }
+      },
+      "iconTint": [
+        0.55,
+        0.08,
+        0.85
+      ]
     },
     {
       "id": 153,
@@ -3587,7 +4042,12 @@
         "magEv": 0,
         "rider": "immune Charm",
         "equipBonusId": 82
-      }
+      },
+      "iconTint": [
+        0.14,
+        0.6,
+        0.95
+      ]
     },
     {
       "id": 154,
@@ -3609,7 +4069,12 @@
         "magEv": 0,
         "rider": "immune Stop, Stone",
         "equipBonusId": 59
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.4,
+        0.95
+      ]
     },
     {
       "id": 155,
@@ -3631,7 +4096,12 @@
         "magEv": 0,
         "rider": "innate Protect, Shell",
         "equipBonusId": 68
-      }
+      },
+      "iconTint": [
+        0.02,
+        0.7,
+        0.8
+      ]
     },
     {
       "id": 156,
@@ -3653,7 +4123,12 @@
         "magEv": 0,
         "rider": "immune Doom, Sleep",
         "equipBonusId": 54
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.35,
+        1.0
+      ]
     },
     {
       "id": 157,
@@ -3675,7 +4150,12 @@
         "magEv": 0,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.08,
+        0.5,
+        0.5
+      ]
     },
     {
       "id": 158,
@@ -3697,7 +4177,12 @@
         "magEv": 5,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.45,
+        0.45,
+        0.85
+      ]
     },
     {
       "id": 159,
@@ -3719,7 +4204,12 @@
         "magEv": 0,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.99,
+        0.7,
+        0.7
+      ]
     },
     {
       "id": 160,
@@ -3741,7 +4231,12 @@
         "magEv": 0,
         "rider": "PA+1",
         "equipBonusId": 21
-      }
+      },
+      "iconTint": [
+        0.02,
+        0.6,
+        0.7
+      ]
     },
     {
       "id": 161,
@@ -3763,7 +4258,12 @@
         "magEv": 0,
         "rider": "MA+1",
         "equipBonusId": 10
-      }
+      },
+      "iconTint": [
+        0.62,
+        0.6,
+        0.65
+      ]
     },
     {
       "id": 162,
@@ -3785,7 +4285,12 @@
         "magEv": 0,
         "rider": "Speed+1",
         "equipBonusId": 14
-      }
+      },
+      "iconTint": [
+        0.33,
+        0.7,
+        0.6
+      ]
     },
     {
       "id": 163,
@@ -3807,7 +4312,12 @@
         "magEv": 0,
         "rider": "PA+2",
         "equipBonusId": 24
-      }
+      },
+      "iconTint": [
+        0.0,
+        0.8,
+        0.75
+      ]
     },
     {
       "id": 164,
@@ -3829,7 +4339,12 @@
         "magEv": 0,
         "rider": "MA+2",
         "equipBonusId": 1
-      }
+      },
+      "iconTint": [
+        0.6,
+        0.45,
+        0.85
+      ]
     },
     {
       "id": 165,
@@ -3851,7 +4366,12 @@
         "magEv": 0,
         "rider": "Move+1",
         "equipBonusId": 42
-      }
+      },
+      "iconTint": [
+        0.72,
+        0.4,
+        0.3
+      ]
     },
     {
       "id": 166,
@@ -3873,7 +4393,12 @@
         "magEv": 0,
         "rider": "immune Silence",
         "equipBonusId": 26
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.8,
+        0.95
+      ]
     },
     {
       "id": 167,
@@ -3895,7 +4420,12 @@
         "magEv": 10,
         "rider": "MA+1, Speed+1",
         "equipBonusId": 27
-      }
+      },
+      "iconTint": [
+        0.48,
+        0.65,
+        0.9
+      ]
     },
     {
       "id": 168,
@@ -3917,7 +4447,12 @@
         "magEv": 0,
         "rider": "Speed+2, immune Disable, Immobilize",
         "equipBonusId": 28
-      }
+      },
+      "iconTint": [
+        0.75,
+        0.6,
+        0.4
+      ]
     },
     {
       "id": 169,
@@ -3939,7 +4474,12 @@
         "magEv": 0,
         "rider": "immune Doom, Disable, Immobilize, Slow, Poison, Toad, Silence, Blind, Undead",
         "equipBonusId": 69
-      }
+      },
+      "iconTint": [
+        0.95,
+        0.3,
+        0.85
+      ]
     },
     {
       "id": 170,
@@ -3961,7 +4501,12 @@
         "magEv": 0,
         "rider": "immune KO, Stone, Confuse, Vampire, Berserk, Stop, Charm, Sleep, Traitor",
         "equipBonusId": 70
-      }
+      },
+      "iconTint": [
+        0.88,
+        0.45,
+        0.95
+      ]
     },
     {
       "id": 171,
@@ -3983,7 +4528,12 @@
         "magEv": 0,
         "rider": "immune all status",
         "equipBonusId": 71
-      }
+      },
+      "iconTint": [
+        0.92,
+        0.25,
+        0.99
+      ]
     },
     {
       "id": 172,
@@ -4005,7 +4555,12 @@
         "magEv": 0,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.08,
+        0.45,
+        0.78
+      ]
     },
     {
       "id": 173,
@@ -4027,7 +4582,12 @@
         "magEv": 0,
         "rider": "innate Regen",
         "equipBonusId": 5
-      }
+      },
+      "iconTint": [
+        0.3,
+        0.4,
+        0.82
+      ]
     },
     {
       "id": 174,
@@ -4049,7 +4609,12 @@
         "magEv": 0,
         "rider": "PA+1",
         "equipBonusId": 21
-      }
+      },
+      "iconTint": [
+        0.09,
+        0.55,
+        0.85
+      ]
     },
     {
       "id": 175,
@@ -4071,7 +4636,12 @@
         "magEv": 0,
         "rider": "immune Silence",
         "equipBonusId": 26
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.2,
+        0.88
+      ]
     },
     {
       "id": 176,
@@ -4093,7 +4663,12 @@
         "magEv": 0,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.52,
+        0.22,
+        1.05
+      ]
     },
     {
       "id": 177,
@@ -4115,7 +4690,12 @@
         "magEv": 0,
         "rider": "innate Protect",
         "equipBonusId": 2
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.1,
+        1.05
+      ]
     },
     {
       "id": 178,
@@ -4137,7 +4717,12 @@
         "magEv": 0,
         "rider": "absorb Fire",
         "equipBonusId": 16
-      }
+      },
+      "iconTint": [
+        0.06,
+        0.7,
+        1.0
+      ]
     },
     {
       "id": 179,
@@ -4159,7 +4744,12 @@
         "magEv": 0,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.55,
+        0.3,
+        1.12
+      ]
     },
     {
       "id": 180,
@@ -4181,7 +4771,12 @@
         "magEv": 0,
         "rider": "immune Stop",
         "equipBonusId": 34
-      }
+      },
+      "iconTint": [
+        0.6,
+        0.08,
+        1.15
+      ]
     },
     {
       "id": 181,
@@ -4203,7 +4798,12 @@
         "magEv": 0,
         "rider": "Speed+1",
         "equipBonusId": 14
-      }
+      },
+      "iconTint": [
+        0.48,
+        0.3,
+        1.05
+      ]
     },
     {
       "id": 182,
@@ -4225,7 +4825,12 @@
         "magEv": 0,
         "rider": "immune Stop, Stone",
         "equipBonusId": 59
-      }
+      },
+      "iconTint": [
+        0.5,
+        0.45,
+        1.1
+      ]
     },
     {
       "id": 183,
@@ -4247,7 +4852,12 @@
         "magEv": 0,
         "rider": "PA+2",
         "equipBonusId": 24
-      }
+      },
+      "iconTint": [
+        0.99,
+        0.65,
+        0.9
+      ]
     },
     {
       "id": 184,
@@ -4269,7 +4879,12 @@
         "magEv": 0,
         "rider": "innate Reflect",
         "equipBonusId": 29
-      }
+      },
+      "iconTint": [
+        0.72,
+        0.35,
+        1.1
+      ]
     },
     {
       "id": 185,
@@ -4291,7 +4906,12 @@
         "magEv": 0,
         "rider": "innate Shell",
         "equipBonusId": 4
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.4,
+        1.05
+      ]
     },
     {
       "id": 186,
@@ -4313,7 +4933,12 @@
         "magEv": 0,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.32,
+        0.22,
+        0.82
+      ]
     },
     {
       "id": 187,
@@ -4335,7 +4960,12 @@
         "magEv": 0,
         "rider": "absorb Fire (+halve Ice)",
         "equipBonusId": 16
-      }
+      },
+      "iconTint": [
+        0.14,
+        0.75,
+        0.88
+      ]
     },
     {
       "id": 188,
@@ -4357,7 +4987,12 @@
         "magEv": 0,
         "rider": "Move+1",
         "equipBonusId": 42
-      }
+      },
+      "iconTint": [
+        0.96,
+        0.52,
+        0.66
+      ]
     },
     {
       "id": 189,
@@ -4379,7 +5014,12 @@
         "magEv": 0,
         "rider": "halve Fire/Ice/Lightning",
         "equipBonusId": 19
-      }
+      },
+      "iconTint": [
+        2.05,
+        0.45,
+        0.78
+      ]
     },
     {
       "id": 190,
@@ -4401,7 +5041,12 @@
         "magEv": 0,
         "rider": "Speed+1",
         "equipBonusId": 14
-      }
+      },
+      "iconTint": [
+        1.84,
+        0.42,
+        0.8
+      ]
     },
     {
       "id": 191,
@@ -4423,7 +5068,12 @@
         "magEv": 0,
         "rider": "immune Silence",
         "equipBonusId": 26
-      }
+      },
+      "iconTint": [
+        0.48,
+        0.28,
+        0.78
+      ]
     },
     {
       "id": 192,
@@ -4445,7 +5095,12 @@
         "magEv": 0,
         "rider": "MA+1",
         "equipBonusId": 10
-      }
+      },
+      "iconTint": [
+        2.68,
+        0.52,
+        0.76
+      ]
     },
     {
       "id": 193,
@@ -4467,7 +5122,12 @@
         "magEv": 0,
         "rider": "innate Protect",
         "equipBonusId": 2
-      }
+      },
+      "iconTint": [
+        0.24,
+        0.42,
+        0.56
+      ]
     },
     {
       "id": 194,
@@ -4489,7 +5149,12 @@
         "magEv": 0,
         "rider": "PA+1, immune Death",
         "equipBonusId": 30
-      }
+      },
+      "iconTint": [
+        0.36,
+        0.12,
+        0.93
+      ]
     },
     {
       "id": 195,
@@ -4511,7 +5176,12 @@
         "magEv": 0,
         "rider": "PA+2",
         "equipBonusId": 24
-      }
+      },
+      "iconTint": [
+        0.04,
+        0.78,
+        0.72
+      ]
     },
     {
       "id": 196,
@@ -4533,7 +5203,12 @@
         "magEv": 0,
         "rider": "absorb Earth (+boost Earth)",
         "equipBonusId": 32
-      }
+      },
+      "iconTint": [
+        0.96,
+        0.58,
+        0.52
+      ]
     },
     {
       "id": 197,
@@ -4555,7 +5230,12 @@
         "magEv": 0,
         "rider": "Speed+2, start Invisible",
         "equipBonusId": 33
-      }
+      },
+      "iconTint": [
+        2.72,
+        0.22,
+        0.26
+      ]
     },
     {
       "id": 198,
@@ -4577,7 +5257,12 @@
         "magEv": 0,
         "rider": "immune Stop",
         "equipBonusId": 34
-      }
+      },
+      "iconTint": [
+        0.0,
+        0.0,
+        0.16
+      ]
     },
     {
       "id": 199,
@@ -4599,7 +5284,12 @@
         "magEv": 0,
         "rider": "null Lightning",
         "equipBonusId": 35
-      }
+      },
+      "iconTint": [
+        2.28,
+        0.42,
+        0.32
+      ]
     },
     {
       "id": 200,
@@ -4621,7 +5311,12 @@
         "magEv": 0,
         "rider": "innate Regen",
         "equipBonusId": 5
-      }
+      },
+      "iconTint": [
+        0.58,
+        0.18,
+        0.55
+      ]
     },
     {
       "id": 201,
@@ -4643,7 +5338,12 @@
         "magEv": 0,
         "rider": "MA+1",
         "equipBonusId": 10
-      }
+      },
+      "iconTint": [
+        0.6,
+        0.3,
+        0.68
+      ]
     },
     {
       "id": 202,
@@ -4665,7 +5365,12 @@
         "magEv": 0,
         "rider": "MA+2",
         "equipBonusId": 1
-      }
+      },
+      "iconTint": [
+        0.62,
+        0.45,
+        0.8
+      ]
     },
     {
       "id": 203,
@@ -4687,7 +5392,12 @@
         "magEv": 0,
         "rider": "absorb Holy, immune KO",
         "equipBonusId": 37
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.62,
+        0.85
+      ]
     },
     {
       "id": 204,
@@ -4709,7 +5419,12 @@
         "magEv": 0,
         "rider": "halve Fire, Lightning, Ice",
         "equipBonusId": 19
-      }
+      },
+      "iconTint": [
+        0.12,
+        0.06,
+        0.97
+      ]
     },
     {
       "id": 205,
@@ -4731,7 +5446,12 @@
         "magEv": 0,
         "rider": "boost Fire, Lightning, Ice",
         "equipBonusId": 18
-      }
+      },
+      "iconTint": [
+        0.76,
+        0.55,
+        0.3
+      ]
     },
     {
       "id": 206,
@@ -4753,7 +5473,12 @@
         "magEv": 0,
         "rider": "innate Float",
         "equipBonusId": 46
-      }
+      },
+      "iconTint": [
+        0.14,
+        0.1,
+        1.0
+      ]
     },
     {
       "id": 207,
@@ -4775,7 +5500,12 @@
         "magEv": 0,
         "rider": "PA+2, MA+1, innate Protect, innate Shell",
         "equipBonusId": 41
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.62,
+        0.62
+      ]
     },
     {
       "id": 208,
@@ -4797,7 +5527,12 @@
         "magEv": 0,
         "rider": "Move+1",
         "equipBonusId": 42
-      }
+      },
+      "iconTint": [
+        0.09,
+        0.55,
+        0.55
+      ]
     },
     {
       "id": 209,
@@ -4819,7 +5554,12 @@
         "magEv": 0,
         "rider": "Jump+1",
         "equipBonusId": 43
-      }
+      },
+      "iconTint": [
+        0.55,
+        0.5,
+        0.6
+      ]
     },
     {
       "id": 210,
@@ -4841,7 +5581,12 @@
         "magEv": 0,
         "rider": "Move+1, Jump+1",
         "equipBonusId": 44
-      }
+      },
+      "iconTint": [
+        0.11,
+        0.65,
+        0.75
+      ]
     },
     {
       "id": 211,
@@ -4863,7 +5608,12 @@
         "magEv": 0,
         "rider": "null Lightning, immune Immobilize",
         "equipBonusId": 45
-      }
+      },
+      "iconTint": [
+        0.62,
+        0.65,
+        0.85
+      ]
     },
     {
       "id": 212,
@@ -4885,7 +5635,12 @@
         "magEv": 0,
         "rider": "innate Float",
         "equipBonusId": 46
-      }
+      },
+      "iconTint": [
+        0.5,
+        0.3,
+        0.92
+      ]
     },
     {
       "id": 213,
@@ -4907,7 +5662,12 @@
         "magEv": 0,
         "rider": "Speed+1",
         "equipBonusId": 14
-      }
+      },
+      "iconTint": [
+        0.14,
+        0.85,
+        0.95
+      ]
     },
     {
       "id": 214,
@@ -4929,7 +5689,12 @@
         "magEv": 0,
         "rider": "MA+1, Move+1",
         "equipBonusId": 48
-      }
+      },
+      "iconTint": [
+        0.97,
+        0.6,
+        0.8
+      ]
     },
     {
       "id": 215,
@@ -4951,7 +5716,12 @@
         "magEv": 0,
         "rider": "PA+2",
         "equipBonusId": 24
-      }
+      },
+      "iconTint": [
+        0.02,
+        0.7,
+        0.6
+      ]
     },
     {
       "id": 216,
@@ -4973,7 +5743,12 @@
         "magEv": 0,
         "rider": "PA+2, MA+1",
         "equipBonusId": 11
-      }
+      },
+      "iconTint": [
+        0.1,
+        0.45,
+        0.45
+      ]
     },
     {
       "id": 217,
@@ -4995,7 +5770,12 @@
         "magEv": 0,
         "rider": "MA+2",
         "equipBonusId": 1
-      }
+      },
+      "iconTint": [
+        0.72,
+        0.7,
+        0.7
+      ]
     },
     {
       "id": 218,
@@ -5017,7 +5797,12 @@
         "magEv": 0,
         "rider": "PA+3",
         "equipBonusId": 52
-      }
+      },
+      "iconTint": [
+        0.04,
+        0.8,
+        0.5
+      ]
     },
     {
       "id": 219,
@@ -5039,7 +5824,12 @@
         "magEv": 0,
         "rider": "innate Reflect",
         "equipBonusId": 29
-      }
+      },
+      "iconTint": [
+        0.55,
+        0.6,
+        0.9
+      ]
     },
     {
       "id": 220,
@@ -5061,7 +5851,12 @@
         "magEv": 0,
         "rider": "immune Doom, Sleep",
         "equipBonusId": 54
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.4,
+        0.7
+      ]
     },
     {
       "id": 221,
@@ -5083,7 +5878,12 @@
         "magEv": 0,
         "rider": "immune Berserk, Silence",
         "equipBonusId": 55
-      }
+      },
+      "iconTint": [
+        0.78,
+        0.45,
+        0.65
+      ]
     },
     {
       "id": 222,
@@ -5105,7 +5905,12 @@
         "magEv": 0,
         "rider": "PA+1, MA+1, Speed+1, innate Undead, immune Traitor",
         "equipBonusId": 56
-      }
+      },
+      "iconTint": [
+        0.85,
+        0.8,
+        0.4
+      ]
     },
     {
       "id": 223,
@@ -5127,7 +5932,12 @@
         "magEv": 0,
         "rider": "start Reraise, immune KO, Blind",
         "equipBonusId": 57
-      }
+      },
+      "iconTint": [
+        0.15,
+        0.3,
+        0.98
+      ]
     },
     {
       "id": 224,
@@ -5149,7 +5959,12 @@
         "magEv": 0,
         "rider": "PA+1, MA+1, immune Slow",
         "equipBonusId": 58
-      }
+      },
+      "iconTint": [
+        0.5,
+        0.2,
+        0.95
+      ]
     },
     {
       "id": 225,
@@ -5171,7 +5986,12 @@
         "magEv": 0,
         "rider": "immune Stop, Stone",
         "equipBonusId": 59
-      }
+      },
+      "iconTint": [
+        0.38,
+        0.55,
+        0.65
+      ]
     },
     {
       "id": 226,
@@ -5193,7 +6013,12 @@
         "magEv": 0,
         "rider": "immune Undead, Vampire, Toad, Poison, boost all elements",
         "equipBonusId": 60
-      }
+      },
+      "iconTint": [
+        0.33,
+        0.45,
+        0.8
+      ]
     },
     {
       "id": 227,
@@ -5215,7 +6040,12 @@
         "magEv": 0,
         "rider": "immune Charm, Confuse, halve Dark",
         "equipBonusId": 61
-      }
+      },
+      "iconTint": [
+        0.8,
+        0.55,
+        0.45
+      ]
     },
     {
       "id": 228,
@@ -5237,7 +6067,12 @@
         "magEv": 0,
         "rider": "immune Disable, Immobilize",
         "equipBonusId": 62
-      }
+      },
+      "iconTint": [
+        0.45,
+        0.4,
+        0.55
+      ]
     },
     {
       "id": 229,
@@ -5259,7 +6094,12 @@
         "magEv": 10,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.08,
+        0.35,
+        0.55
+      ]
     },
     {
       "id": 230,
@@ -5281,7 +6121,12 @@
         "magEv": 6,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.07,
+        0.5,
+        0.45
+      ]
     },
     {
       "id": 231,
@@ -5303,7 +6148,12 @@
         "magEv": 18,
         "rider": "MA+1",
         "equipBonusId": 10
-      }
+      },
+      "iconTint": [
+        0.7,
+        0.55,
+        0.75
+      ]
     },
     {
       "id": 232,
@@ -5325,7 +6175,12 @@
         "magEv": 15,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.28,
+        0.5,
+        0.7
+      ]
     },
     {
       "id": 233,
@@ -5347,7 +6202,12 @@
         "magEv": 25,
         "rider": "innate Regen",
         "equipBonusId": 5
-      }
+      },
+      "iconTint": [
+        0.97,
+        0.65,
+        0.55
+      ]
     },
     {
       "id": 234,
@@ -5369,7 +6229,12 @@
         "magEv": 20,
         "rider": "None",
         "equipBonusId": 0
-      }
+      },
+      "iconTint": [
+        0.13,
+        0.4,
+        0.85
+      ]
     },
     {
       "id": 235,
@@ -5391,7 +6256,12 @@
         "magEv": 0,
         "rider": "start Invisible",
         "equipBonusId": 64
-      }
+      },
+      "iconTint": [
+        0.74,
+        0.3,
+        0.35
+      ]
     },
     {
       "id": 236,
@@ -5413,7 +6283,12 @@
         "magEv": 0,
         "rider": "innate Regen, start Reraise",
         "equipBonusId": 65
-      }
+      },
+      "iconTint": [
+        0.95,
+        0.45,
+        0.92
+      ]
     },
     {
       "id": 237,
@@ -5435,7 +6310,12 @@
         "magEv": 0,
         "rider": "innate Float, innate Reflect",
         "equipBonusId": 66
-      }
+      },
+      "iconTint": [
+        0.48,
+        0.55,
+        0.88
+      ]
     },
     {
       "id": 238,
@@ -5457,7 +6337,12 @@
         "magEv": 0,
         "rider": "MA+1, innate Haste, start Invisible",
         "equipBonusId": 67
-      }
+      },
+      "iconTint": [
+        0.9,
+        0.5,
+        0.85
+      ]
     },
     {
       "id": 239,
@@ -5479,7 +6364,12 @@
         "magEv": 0,
         "rider": "innate Protect, Shell",
         "equipBonusId": 68
-      }
+      },
+      "iconTint": [
+        0.6,
+        0.4,
+        0.75
+      ]
     },
     {
       "id": 260,
@@ -5501,7 +6391,12 @@
         "magEv": 0,
         "rider": "BoostJP",
         "equipBonusId": 80
-      }
+      },
+      "iconTint": [
+        0.16,
+        0.75,
+        0.85
+      ]
     }
   ]
 }
