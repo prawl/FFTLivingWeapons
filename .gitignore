@@ -1,0 +1,15 @@
+# scratch / analysis artifacts
+working/
+out/
+
+# NOTE: mod/FFTIVC/ (generated tables + nxd + icons) IS committed for now — the
+# item.en.nxd build is still a manual step, so we preserve the working artifacts.
+
+# The global ~/.gitignore_global has a case-insensitive "Icon" rule (macOS Icon\r)
+# that, on Windows, ignores our whole ui/ffto/icon/ tree. Re-include the equip icons:
+!mod/FFTIVC/data/enhanced/ui/ffto/icon/
+!mod/FFTIVC/data/enhanced/ui/ffto/icon/**
+
+# os / editor
+*.tmp
+.DS_Store

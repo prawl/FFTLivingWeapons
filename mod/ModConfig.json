@@ -1,0 +1,35 @@
+{
+  "ModId": "paxtrick.fft.itemoverhaul",
+  "ModName": "FFT Item Overhaul",
+  "ModAuthor": "paxtrick",
+  "ModVersion": "0.0.1",
+  "ModDescription": "A build-diversity rebalance of every item: gentle power climb, but every item keeps its own identity (evasion / element / on-hit status / niche) so old gear never becomes trash. Pure-data, no DLL. Authoritative item mod — disable other item-rebalance mods (e.g. Regabonds Rebalance, Equipment Replacer).",
+  "ModDll": "",
+  "ModIcon": "preview.png",
+  "ModR2RManagedDll32": "",
+  "ModR2RManagedDll64": "",
+  "ModNativeDll32": "",
+  "ModNativeDll64": "",
+  "Tags": [],
+  "IsLibrary": false,
+  "IgnoreRegexes": [".*\\.json"],
+  "PluginData": {
+    "GitHubDependencies": {
+      "IdToConfigMap": {
+        "fftivc.utility.modloader": {
+          "Config": {
+            "UserName": "Nenkai",
+            "RepositoryName": "fftivc.utility.modloader",
+            "UseReleaseTag": true,
+            "AssetFileName": "Mod.zip"
+          },
+          "ReleaseMetadataName": "fftivc.utility.modloader.ReleaseMetadata.json"
+        }
+      }
+    }
+  },
+  "IsUniversalMod": false,
+  "ModDependencies": ["fftivc.utility.modloader"],
+  "OptionalDependencies": [],
+  "SupportedAppId": ["fft_enhanced.exe"]
+}
