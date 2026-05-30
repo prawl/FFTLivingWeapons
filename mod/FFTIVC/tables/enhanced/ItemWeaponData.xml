@@ -117,5 +117,324 @@
       <Elements>None</Elements>
       <OptionsAbilityId>12</OptionsAbilityId>
     </ItemWeapon>
+    <ItemWeapon>
+      <Id>19</Id> <!-- Vagabond (was Broadsword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>4</Power>
+      <Evasion>12</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>20</Id> <!-- Cleaver (was Longsword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>6</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>21</Id> <!-- Riposte (was Iron Sword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>7</Power>
+      <Evasion>16</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>22</Id> <!-- Reaver (was Mythril Sword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>8</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>23</Id> <!-- Lifedrinker (was Blood Sword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>6</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>6</Power>
+      <Evasion>8</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>24</Id> <!-- Stormbrand (was Coral Sword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>8</Power>
+      <Evasion>5</Evasion>
+      <Elements>Lightning</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>25</Id> <!-- Tanglethorn (was Ancient Sword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>7</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>14</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>26</Id> <!-- Flamberge (was Sleep Blade) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>9</Power>
+      <Evasion>5</Evasion>
+      <Elements>Fire</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>27</Id> <!-- Headsman (was Platinum Sword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>12</Power>
+      <Evasion>4</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>28</Id> <!-- Bulwark (was Diamond Sword) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>10</Power>
+      <Evasion>14</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>29</Id> <!-- Rimebrand (was Icebrand) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>13</Power>
+      <Evasion>10</Evasion>
+      <Elements>Ice</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>30</Id> <!-- Arcanum (was Runeblade) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>14</Power>
+      <Evasion>8</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>31</Id> <!-- Hexfang (was Nagnarok) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>3</Power>
+      <Evasion>50</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>16</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>32</Id> <!-- Nightfall (was Materia Blade) -->
+      <Range>1</Range>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>47</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>11</Power>
+      <Evasion>12</Evasion>
+      <Elements>Dark</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>77</Id> <!-- Scoutbolt (was Bowgun) -->
+      <Range>3</Range>
+      <AttackFlags>Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>4</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>78</Id> <!-- Knightslayer -->
+      <Range>4</Range>
+      <AttackFlags>Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>5</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>11</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>79</Id> <!-- Arbalest (was Crossbow) -->
+      <Range>5</Range>
+      <AttackFlags>Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>7</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>80</Id> <!-- Venombolt (was Poison Crossbow) -->
+      <Range>4</Range>
+      <AttackFlags>Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>6</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>81</Id> <!-- Pitchbolt (was Hunting Crossbow) -->
+      <Range>4</Range>
+      <AttackFlags>Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>8</Power>
+      <Evasion>8</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>101</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>82</Id> <!-- Siegebolt (was Gastrophetes) -->
+      <Range>4</Range>
+      <AttackFlags>Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>11</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>83</Id> <!-- Skirmisher (was Longbow) -->
+      <Range>5</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>4</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>84</Id> <!-- Windrunner (was Silver Bow) -->
+      <Range>6</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>5</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>85</Id> <!-- Frostarc (was Ice Bow) -->
+      <Range>6</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>5</Power>
+      <Evasion>5</Evasion>
+      <Elements>Ice</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>86</Id> <!-- Stormarc (was Lightning Bow) -->
+      <Range>6</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>6</Power>
+      <Evasion>5</Evasion>
+      <Elements>Lightning</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>87</Id> <!-- Skypiercer (was Windslash Bow) -->
+      <Range>7</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>8</Power>
+      <Evasion>0</Evasion>
+      <Elements>Wind</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>88</Id> <!-- Silentstring (was Mythril Bow) -->
+      <Range>6</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>7</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>10</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>89</Id> <!-- Huntress (was Artemis Bow) -->
+      <Range>6</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>9</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>90</Id> <!-- Tempest (was Yoichi Bow) -->
+      <Range>6</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>12</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>91</Id> <!-- Seraph (was Perseus Bow) -->
+      <Range>8</Range>
+      <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
+      <Formula>1</Formula>
+      <Unused_0x03>255</Unused_0x03>
+      <Power>15</Power>
+      <Evasion>0</Evasion>
+      <Elements>Holy</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
   </Entries>
 </ItemWeaponTable>

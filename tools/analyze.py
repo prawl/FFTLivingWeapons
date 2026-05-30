@@ -35,7 +35,9 @@ def riders(s, normal_formulas):
 def dominates(bi, ai, key, normal_formulas):
     """Does item B strictly dominate item A? (full items; uses bi[key] stats + tier)"""
     b, a = bi[key], ai[key]
-    if not (b["wp"] >= a["wp"] and b["evade"] >= a["evade"]):
+    # numeric "more is better" axes: WP, evade, and range (range defaults to 1 = melee for non-ranged)
+    br, ar = b.get("range", 1), a.get("range", 1)
+    if not (b["wp"] >= a["wp"] and b["evade"] >= a["evade"] and br >= ar):
         return False
     tb, ta = bi.get("tier", 0), ai.get("tier", 0)
     if tb > ta:
@@ -43,7 +45,7 @@ def dominates(bi, ai, key, normal_formulas):
     ra, rb = riders(a, normal_formulas), riders(b, normal_formulas)
     if not ra.issubset(rb):
         return False  # A has a rider B lacks -> niche
-    strictly_better = (b["wp"] > a["wp"]) or (b["evade"] > a["evade"]) or (rb > ra) or (tb < ta)
+    strictly_better = (b["wp"] > a["wp"]) or (b["evade"] > a["evade"]) or (br > ar) or (rb > ra) or (tb < ta)
     return strictly_better
 
 

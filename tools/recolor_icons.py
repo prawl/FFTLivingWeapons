@@ -32,6 +32,38 @@ ICON_TINTS = {
     8:  (0.27, 0.60, 0.90),   # Mortal Coil     necrotic green (Doom)
     9:  (0.46, 0.66, 1.05),   # Galewind        storm teal (Wind)
     10: (0.72, 0.42, 1.10),   # Dreamsever      dream lavender (Sleep)
+    # --- Swords (ids 19-32) ---
+    19: (0.08, 0.14, 0.90),   # Vagabond        worn warm steel
+    20: (0.60, 0.10, 0.70),   # Cleaver         dark heavy steel
+    21: (0.55, 0.08, 1.15),   # Riposte         bright silver (parry)
+    22: (0.48, 0.24, 1.08),   # Reaver          pale mythril teal
+    23: (0.99, 0.78, 0.92),   # Lifedrinker     blood red (HP drain)
+    24: (0.14, 0.82, 1.10),   # Stormbrand      electric yellow (Lightning)
+    25: (0.10, 0.45, 0.78),   # Tanglethorn     earthy brown (Immobilize)
+    26: (0.05, 0.85, 1.05),   # Flamberge       fire orange (Fire)
+    27: (0.60, 0.05, 1.18),   # Headsman        stark white (glass cannon)
+    28: (0.58, 0.32, 1.12),   # Bulwark         diamond light-blue
+    29: (0.50, 0.58, 1.08),   # Rimebrand       ice cyan (Ice)
+    30: (0.74, 0.55, 0.95),   # Arcanum         arcane violet
+    31: (0.27, 0.65, 0.88),   # Hexfang         toad green (Toad)
+    32: (0.78, 0.50, 0.62),   # Nightfall       dark violet (Dark/MP)
+    # --- Crossbows (ids 77-82) ---
+    77: (0.08, 0.40, 0.85),   # Scoutbolt       wood brown
+    78: (0.99, 0.55, 0.55),   # Knightslayer    dark crimson (Death)
+    79: (0.60, 0.12, 0.85),   # Arbalest        gunmetal
+    80: (0.25, 0.70, 0.85),   # Venombolt       toxic green (Poison)
+    81: (0.09, 0.55, 0.88),   # Snarebolt       amber bronze (Immobilize)
+    82: (0.60, 0.15, 0.68),   # Siegebolt       dark iron (capstone)
+    # --- Bows (ids 83-91) ---
+    83: (0.10, 0.30, 0.95),   # Skirmisher      light leather/tan
+    84: (0.45, 0.18, 1.05),   # Windrunner      pale silver-teal
+    85: (0.50, 0.55, 1.08),   # Frostarc        ice cyan (Ice)
+    86: (0.14, 0.80, 1.10),   # Stormarc        electric yellow (Lightning)
+    87: (0.42, 0.52, 1.05),   # Skypiercer      sky teal (Wind)
+    88: (0.64, 0.42, 0.92),   # Silentstring    muted indigo (Silence)
+    89: (0.30, 0.55, 0.88),   # Huntress        forest green
+    90: (0.58, 0.42, 0.95),   # Tempest         storm grey-blue
+    91: (0.13, 0.45, 1.18),   # Seraph          radiant gold (Holy)
 }
 
 
