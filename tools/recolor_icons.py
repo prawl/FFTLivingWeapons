@@ -64,6 +64,23 @@ ICON_TINTS = {
     89: (0.30, 0.55, 0.88),   # Huntress        forest green
     90: (0.58, 0.42, 0.95),   # Tempest         storm grey-blue
     91: (0.13, 0.45, 1.18),   # Seraph          radiant gold (Holy)
+    # --- Shields (ids 128-143) ---
+    128: (0.52, 0.55, 0.95),  # Tideward        water blue
+    129: (0.42, 0.52, 1.00),  # Galewall        wind teal
+    130: (0.14, 0.75, 1.05),  # Stormwall       lightning yellow
+    131: (0.52, 0.20, 1.10),  # Swiftguard      silver-cyan (Speed)
+    132: (0.62, 0.32, 1.00),  # Wardstone       pale blue (Shell)
+    133: (0.13, 0.48, 1.15),  # Sanctguard      gold (Holy)
+    134: (0.50, 0.58, 1.08),  # Rimeward        ice cyan
+    135: (0.05, 0.82, 1.05),  # Emberward       fire orange
+    136: (0.64, 0.55, 0.92),  # Spellbane       indigo (anti-mage)
+    137: (0.30, 0.55, 0.95),  # Trailblazer     green (Move)
+    138: (0.99, 0.45, 0.82),  # Vanguard        crimson (PA)
+    139: (0.78, 0.50, 0.62),  # Nightward       dark violet (Dark)
+    140: (0.60, 0.12, 0.72),  # Ronin Wall      gunmetal (rare)
+    141: (0.85, 0.55, 0.95),  # Conduit         magenta (boost)
+    142: (0.58, 0.10, 1.15),  # Bastion         platinum (generalist)
+    143: (0.60, 0.60, 1.10),  # Aegis Prime     radiant blue (capstone)
 }
 
 

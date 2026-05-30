@@ -2,170 +2,1353 @@
   "_meta": {
     "note": "Source of truth for the FFT:IVC item OVERHAUL. baseline = REAL vanilla/IVC values (Game8). proposed = our build-diversity rebalance, emitted to the modloader ItemWeaponData XML by tools/generate.py. name = NEW overhaul name (-> item.en.nxd); vanillaName kept for reference. tier = availability rank (1=earliest .. 6=poach/endgame) -- a valid 'pick this' axis, enforced by analyze.py.",
     "knifeFormula": "(PA + Speed) / 2 * WP  -- speed-scaling; knives own the fast/agile/utility niche",
-    "normalFormulaIds": [1, 5],
+    "normalFormulaIds": [
+      1,
+      5
+    ],
     "renameTarget": "item.en.nxd (name + description). NXD round-trip mechanism: WIP.",
     "design": "Three lanes run the curve in parallel: RAW (Cutpurse/Argent Dirk/Adamant Fang), AGILE (Quicksilver 25ev / Sanguine Gauche 50ev), UTILITY (Gloomfang Blind / Hushblade Silence / Mortal Coil Doom / Dreamsever Sleep). Non-monotonic WP (5,6,5,6,7,6,9,8,10,12) makes every proc/evade knife undercut WP to pay for its gimmick.",
-    "openProcs": "id4 Hushblade Silence onHitAbilityId is UNRESOLVED (not in confirmed 9/11/12 set) -- needs in-engine proc verify; identity depends on it."
+    "openProcs": "id4 Hushblade Silence onHitAbilityId is UNRESOLVED (not in confirmed 9/11/12 set) -- needs in-engine proc verify; identity depends on it.",
+    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible (only 8 free ItemEquipBonusData slots: 0,40,74-79; 77 of 85 used). Each item's proposed.equipBonusId points at a vanilla id OR a free-slot id defined in _equipBonus below. The iconic element shields already exist: Ice=15, Flame=16, Kaiser-boost=18, Venetian-halve=19; stats: MA+1=10/12, MA+2=1/9, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4."
+  },
+  "_equipBonus": {
+    "40": {
+      "MABonus": 1,
+      "HalveElements": "Holy, Dark"
+    },
+    "74": {
+      "HalveElements": "Water"
+    },
+    "75": {
+      "HalveElements": "Wind"
+    },
+    "76": {
+      "HalveElements": "Lightning"
+    },
+    "77": {
+      "HalveElements": "Holy",
+      "StrongElements": "Holy"
+    },
+    "78": {
+      "AbsorbElements": "Dark",
+      "WeakElements": "Holy"
+    },
+    "79": {
+      "MABonus": 1,
+      "NullifyElements": "Earth"
+    }
   },
   "items": [
-    { "id": 1, "category": "Knife", "vanillaName": "Dagger", "name": "Cutpurse", "tier": 1,
+    {
+      "id": 1,
+      "category": "Knife",
+      "vanillaName": "Dagger",
+      "name": "Cutpurse",
+      "tier": 1,
       "identity": "Honest Ch1 starter / cheapest dual-wield enabler -- earliest unlock is its niche",
-      "baseline": {"wp": 3,  "evade": 5,  "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1},
-      "proposed": {"wp": 5,  "evade": 10, "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 2, "category": "Knife", "vanillaName": "Mythril Knife", "name": "Quicksilver", "tier": 2,
+      "baseline": {
+        "wp": 3,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 2,
+      "category": "Knife",
+      "vanillaName": "Mythril Knife",
+      "name": "Quicksilver",
+      "tier": 2,
       "identity": "Early AGILE knife -- real dodge identity (25 evade), not just 'a bit better than Cutpurse'",
-      "baseline": {"wp": 4,  "evade": 5,  "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1},
-      "proposed": {"wp": 6,  "evade": 25, "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 3, "category": "Knife", "vanillaName": "Blind Knife", "name": "Gloomfang", "tier": 2,
+      "baseline": {
+        "wp": 4,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 25,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 3,
+      "category": "Knife",
+      "vanillaName": "Blind Knife",
+      "name": "Gloomfang",
+      "tier": 2,
       "identity": "Anti-physical debuffer -- one hit blinds an enemy bruiser for the whole fight (only Blind source)",
-      "baseline": {"wp": 4,  "evade": 5,  "element": "None", "onHit": "Blind",   "onHitAbilityId": 9,  "formula": 1},
-      "proposed": {"wp": 5,  "evade": 15, "element": "None", "onHit": "Blind",   "onHitAbilityId": 9,  "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 4, "category": "Knife", "vanillaName": "Mage Masher", "name": "Hushblade", "tier": 2,
+      "baseline": {
+        "wp": 4,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Blind",
+        "onHitAbilityId": 9,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Blind",
+        "onHitAbilityId": 9,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 4,
+      "category": "Knife",
+      "vanillaName": "Mage Masher",
+      "name": "Hushblade",
+      "tier": 2,
       "identity": "Anti-caster -- shut an enemy mage's spellbook before they nuke (only Silence source). PROC ID UNRESOLVED.",
-      "baseline": {"wp": 4,  "evade": 5,  "element": "None", "onHit": "Silence", "onHitAbilityId": 0,  "formula": 1},
-      "proposed": {"wp": 6,  "evade": 15, "element": "None", "onHit": "Silence", "onHitAbilityId": 10, "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 5, "category": "Knife", "vanillaName": "Platinum Dagger", "name": "Argent Dirk", "tier": 3,
+      "baseline": {
+        "wp": 4,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Silence",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 5,
+      "category": "Knife",
+      "vanillaName": "Platinum Dagger",
+      "name": "Argent Dirk",
+      "tier": 3,
       "identity": "Clean no-strings mid-game main-hand -- reliable damage + modest dodge, no gimmick",
-      "baseline": {"wp": 5,  "evade": 10, "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1},
-      "proposed": {"wp": 7,  "evade": 10, "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 6, "category": "Knife", "vanillaName": "Main Gauche", "name": "Sanguine Gauche", "tier": 3,
+      "baseline": {
+        "wp": 5,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 6,
+      "category": "Knife",
+      "vanillaName": "Main Gauche",
+      "name": "Sanguine Gauche",
+      "tier": 3,
       "identity": "Parry-tank lifeleech -- line-max evade (50) AND every hit drains HP (Night Sword, decimal 48 = 0x30; switches dmg to PA*WP). Two reasons it's never dominated.",
-      "baseline": {"wp": 6,  "evade": 40, "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1},
-      "proposed": {"wp": 6,  "evade": 50, "element": "None", "onHit": "Absorb HP", "onHitAbilityId": 0, "formula": 48, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 7, "category": "Knife", "vanillaName": "Orichalcum Dirk", "name": "Adamant Fang", "tier": 4,
+      "baseline": {
+        "wp": 6,
+        "evade": 40,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 50,
+        "element": "None",
+        "onHit": "Absorb HP",
+        "onHitAbilityId": 0,
+        "formula": 48,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 7,
+      "category": "Knife",
+      "vanillaName": "Orichalcum Dirk",
+      "name": "Adamant Fang",
+      "tier": 4,
       "identity": "Glass-cannon stat-stick -- best STRINGLESS buyable damage; pays with line-min evade (5) and zero rider",
-      "baseline": {"wp": 7,  "evade": 5,  "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1},
-      "proposed": {"wp": 9,  "evade": 5,  "element": "None", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 8, "category": "Knife", "vanillaName": "Assassin's Dagger", "name": "Mortal Coil", "tier": 4,
+      "baseline": {
+        "wp": 7,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 8,
+      "category": "Knife",
+      "vanillaName": "Assassin's Dagger",
+      "name": "Mortal Coil",
+      "tier": 4,
       "identity": "Single-target deleter on a clock -- Doom countdown then guaranteed KO. WP8 sits UNDER Adamant Fang (pays for the proc).",
-      "baseline": {"wp": 7,  "evade": 5,  "element": "None", "onHit": "Doom",    "onHitAbilityId": 11, "formula": 1},
-      "proposed": {"wp": 8,  "evade": 15, "element": "None", "onHit": "Doom",    "onHitAbilityId": 11, "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 9, "category": "Knife", "vanillaName": "Air Knife", "name": "Galewind", "tier": 5,
+      "baseline": {
+        "wp": 7,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Doom",
+        "onHitAbilityId": 11,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Doom",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 9,
+      "category": "Knife",
+      "vanillaName": "Air Knife",
+      "name": "Galewind",
+      "tier": 5,
       "identity": "Elemental main-hand -- top flat damage with a Wind exploit (x2 vs Wind-weak). Double-edged: Wind-absorbers heal.",
-      "baseline": {"wp": 10, "evade": 5,  "element": "Wind", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1},
-      "proposed": {"wp": 10, "evade": 5,  "element": "Wind", "onHit": "None",    "onHitAbilityId": 0,  "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-    { "id": 10, "category": "Knife", "vanillaName": "Zwill Straightblade", "name": "Dreamsever", "tier": 6,
+      "baseline": {
+        "wp": 10,
+        "evade": 5,
+        "element": "Wind",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 10,
+        "evade": 5,
+        "element": "Wind",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 10,
+      "category": "Knife",
+      "vanillaName": "Zwill Straightblade",
+      "name": "Dreamsever",
+      "tier": 6,
       "identity": "Endgame capstone + burst-setup -- Sleep a target, team deletes it at +50%. Top WP but poach-gated and the Sleep self-removes, so a setup tool not a universal best.",
-      "baseline": {"wp": 12, "evade": 10, "element": "None", "onHit": "Sleep",   "onHitAbilityId": 12, "formula": 1},
-      "proposed": {"wp": 12, "evade": 10, "element": "None", "onHit": "Sleep",   "onHitAbilityId": 12, "formula": 1, "attackFlags": "Throwable, TwoSwords, Striking"} },
-
-    { "id": 19, "category": "Sword", "vanillaName": "Broadsword", "name": "Vagabond", "tier": 1,
+      "baseline": {
+        "wp": 12,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 12,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 19,
+      "category": "Sword",
+      "vanillaName": "Broadsword",
+      "name": "Vagabond",
+      "tier": 1,
       "identity": "Nimble budget starter -- lowest WP but line-best early evade (12). Dodge over hit; earliest unlock.",
-      "baseline": {"wp": 4, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 4, "evade": 12, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 20, "category": "Sword", "vanillaName": "Longsword", "name": "Cleaver", "tier": 1,
+      "baseline": {
+        "wp": 4,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 4,
+        "evade": 12,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 20,
+      "category": "Sword",
+      "vanillaName": "Longsword",
+      "name": "Cleaver",
+      "tier": 1,
       "identity": "Heavy starter -- trades the Vagabond's guard for +2 raw WP. The early aggressor's pick.",
-      "baseline": {"wp": 5, "evade": 10, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 6, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 21, "category": "Sword", "vanillaName": "Iron Sword", "name": "Riposte", "tier": 2,
+      "baseline": {
+        "wp": 5,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 21,
+      "category": "Sword",
+      "vanillaName": "Iron Sword",
+      "name": "Riposte",
+      "tier": 2,
       "identity": "Parry sword -- top evade of the line below Nagnarok (16). The defensive duelist; out-guards every higher-WP sword.",
-      "baseline": {"wp": 6, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 7, "evade": 16, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 22, "category": "Sword", "vanillaName": "Mythril Sword", "name": "Reaver", "tier": 2,
+      "baseline": {
+        "wp": 6,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 16,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 22,
+      "category": "Sword",
+      "vanillaName": "Mythril Sword",
+      "name": "Reaver",
+      "tier": 2,
       "identity": "Offensive workhorse -- best early stringless raw damage (WP8), bought with zero evade. Pure damage behind a healer.",
-      "baseline": {"wp": 7, "evade": 8, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 8, "evade": 0, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 23, "category": "Sword", "vanillaName": "Blood Sword", "name": "Lifedrinker", "tier": 3,
+      "baseline": {
+        "wp": 7,
+        "evade": 8,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 23,
+      "category": "Sword",
+      "vanillaName": "Blood Sword",
+      "name": "Lifedrinker",
+      "tier": 3,
       "identity": "Vampiric sustain blade -- every swing leeches HP at full PA*WP. WP undercut (6) pays for the drain. WARNING: harms wielder vs Undead. UiSE 1001.",
-      "baseline": {"wp": 8, "evade": 5, "element": "None", "onHit": "Absorb HP", "onHitAbilityId": 0, "formula": 6},
-      "proposed": {"wp": 6, "evade": 8, "element": "None", "onHit": "Absorb HP", "onHitAbilityId": 0, "formula": 6, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 24, "category": "Sword", "vanillaName": "Coral Sword", "name": "Stormbrand", "tier": 3,
+      "baseline": {
+        "wp": 8,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Absorb HP",
+        "onHitAbilityId": 0,
+        "formula": 6
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 8,
+        "element": "None",
+        "onHit": "Absorb HP",
+        "onHitAbilityId": 0,
+        "formula": 6,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 24,
+      "category": "Sword",
+      "vanillaName": "Coral Sword",
+      "name": "Stormbrand",
+      "tier": 3,
       "identity": "Lightning blade -- attacks deal Lightning (x2 vs Lightning-weak; Lightning-absorbers heal it). Only Lightning sword.",
-      "baseline": {"wp": 8, "evade": 5, "element": "Lightning", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 8, "evade": 5, "element": "Lightning", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 25, "category": "Sword", "vanillaName": "Ancient Sword", "name": "Tanglethorn", "tier": 3,
+      "baseline": {
+        "wp": 8,
+        "evade": 5,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 5,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 25,
+      "category": "Sword",
+      "vanillaName": "Ancient Sword",
+      "name": "Tanglethorn",
+      "tier": 3,
       "identity": "Pin-blade -- chance to inflict Immobilize (target can act but can't move). Pin runners; lock melee off your back line. Only Immobilize source. PROC ID 14 NEEDS IN-ENGINE VERIFY.",
-      "baseline": {"wp": 9, "evade": 5, "element": "None", "onHit": "Immobilize", "onHitAbilityId": 14, "formula": 1},
-      "proposed": {"wp": 7, "evade": 5, "element": "None", "onHit": "Immobilize", "onHitAbilityId": 14, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 26, "category": "Sword", "vanillaName": "Sleep Blade", "name": "Flamberge", "tier": 3,
+      "baseline": {
+        "wp": 9,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 26,
+      "category": "Sword",
+      "vanillaName": "Sleep Blade",
+      "name": "Flamberge",
+      "tier": 3,
       "identity": "Fire blade -- attacks deal Fire (anti-Undead, shreds Oiled/Ice foes; Fire-absorbers heal it). Re-themed off Sleep (knives own Sleep). Only Fire sword.",
-      "baseline": {"wp": 9, "evade": 5, "element": "None", "onHit": "Sleep", "onHitAbilityId": 15, "formula": 1},
-      "proposed": {"wp": 9, "evade": 5, "element": "Fire", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 27, "category": "Sword", "vanillaName": "Platinum Sword", "name": "Headsman", "tier": 4,
+      "baseline": {
+        "wp": 9,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Sleep",
+        "onHitAbilityId": 15,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 5,
+        "element": "Fire",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 27,
+      "category": "Sword",
+      "vanillaName": "Platinum Sword",
+      "name": "Headsman",
+      "tier": 4,
       "identity": "Glass cannon -- top raw WP at its tier (12), bought with the lowest evade of any non-Reaver sword (4). Max damage, near-zero defense.",
-      "baseline": {"wp": 12, "evade": 10, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 12, "evade": 4, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 28, "category": "Sword", "vanillaName": "Diamond Sword", "name": "Bulwark", "tier": 4,
+      "baseline": {
+        "wp": 12,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 12,
+        "evade": 4,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 28,
+      "category": "Sword",
+      "vanillaName": "Diamond Sword",
+      "name": "Bulwark",
+      "tier": 4,
       "identity": "Clean workhorse -- less WP than Headsman but far higher evade (14). The safe no-drawback all-rounder.",
-      "baseline": {"wp": 10, "evade": 10, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 10, "evade": 14, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 29, "category": "Sword", "vanillaName": "Icebrand", "name": "Rimebrand", "tier": 5,
+      "baseline": {
+        "wp": 10,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 10,
+        "evade": 14,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 29,
+      "category": "Sword",
+      "vanillaName": "Icebrand",
+      "name": "Rimebrand",
+      "tier": 5,
       "identity": "Ice blade -- high WP, attacks deal Ice (anti-Fire-creature; Ice-absorbers heal it). Only Ice sword.",
-      "baseline": {"wp": 13, "evade": 10, "element": "Ice", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 13, "evade": 10, "element": "Ice", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 30, "category": "Sword", "vanillaName": "Runeblade", "name": "Arcanum", "tier": 5,
-      "identity": "Raw-power apex (WP14, highest of any sword). Mage-hybrid MA+2 rider DEFERRED until EquipBonus generator support exists.",
-      "baseline": {"wp": 14, "evade": 15, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 14, "evade": 8, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 31, "category": "Sword", "vanillaName": "Nagrarok", "name": "Hexfang", "tier": 6,
+      "baseline": {
+        "wp": 13,
+        "evade": 10,
+        "element": "Ice",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 10,
+        "element": "Ice",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 30,
+      "category": "Sword",
+      "vanillaName": "Runeblade",
+      "name": "Arcanum",
+      "tier": 5,
+      "identity": "Raw-power apex (WP14, highest of any sword) AND the only MA+2 sword -- the battle-mage Knight's blade. EquipBonus row 1 (MA+2).",
+      "baseline": {
+        "wp": 14,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 14,
+        "evade": 8,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "rider": "MA+2",
+        "equipBonusId": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 31,
+      "category": "Sword",
+      "vanillaName": "Nagrarok",
+      "name": "Hexfang",
+      "tier": 6,
       "identity": "Evade-wall trickster -- line-max 50% physical evade AND on-hit Toad (target reduced to weak basic attack). Near-zero WP (3): dodge-and-disable, never damage. PROC ID 16 NEEDS IN-ENGINE VERIFY.",
-      "baseline": {"wp": 1, "evade": 50, "element": "None", "onHit": "Toad", "onHitAbilityId": 16, "formula": 1},
-      "proposed": {"wp": 3, "evade": 50, "element": "None", "onHit": "Toad", "onHitAbilityId": 16, "formula": 1, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-    { "id": 32, "category": "Sword", "vanillaName": "Materia Blade", "name": "Nightfall", "tier": 6,
+      "baseline": {
+        "wp": 1,
+        "evade": 50,
+        "element": "None",
+        "onHit": "Toad",
+        "onHitAbilityId": 16,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 3,
+        "evade": 50,
+        "element": "None",
+        "onHit": "Toad",
+        "onHitAbilityId": 16,
+        "formula": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 32,
+      "category": "Sword",
+      "vanillaName": "Materia Blade",
+      "name": "Nightfall",
+      "tier": 6,
       "identity": "Dark mage-knight capstone -- Dark element + absorbs MP every hit (battle-mage fuel). Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
-      "baseline": {"wp": 10, "evade": 10, "element": "None", "onHit": "Absorb MP", "onHitAbilityId": 0, "formula": 1},
-      "proposed": {"wp": 11, "evade": 12, "element": "Dark", "onHit": "Absorb MP", "onHitAbilityId": 0, "formula": 47, "attackFlags": "Striking, TwoSwords, TwoHands"} },
-
-    { "id": 77, "category": "Crossbow", "vanillaName": "Bowgun", "name": "Scoutbolt", "tier": 1,
+      "baseline": {
+        "wp": 10,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Absorb MP",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 11,
+        "evade": 12,
+        "element": "Dark",
+        "onHit": "Absorb MP",
+        "onHitAbilityId": 0,
+        "formula": 47,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
+      }
+    },
+    {
+      "id": 77,
+      "category": "Crossbow",
+      "vanillaName": "Bowgun",
+      "name": "Scoutbolt",
+      "tier": 1,
       "identity": "T1 scout's sidearm -- earliest/cheapest unlock + line-high 10% evade. Shortest range (3), lowest WP.",
-      "baseline": {"wp": 3, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 3},
-      "proposed": {"wp": 4, "evade": 10, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 3, "attackFlags": "Direct"} },
-    { "id": 78, "category": "Crossbow", "vanillaName": "Knightslayer", "name": "Knightslayer", "tier": 2,
+      "baseline": {
+        "wp": 3,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 3
+      },
+      "proposed": {
+        "wp": 4,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 3,
+        "attackFlags": "Direct"
+      }
+    },
+    {
+      "id": 78,
+      "category": "Crossbow",
+      "vanillaName": "Knightslayer",
+      "name": "Knightslayer",
+      "tier": 2,
       "identity": "Assassin's bolt -- marks an elite for death. IN-GAME FINDING: proc id 21 applies BLIND not Death, so switched to Doom (id 11, confirmed) = a countdown to certain KO. Only Doom crossbow.",
-      "baseline": {"wp": 4, "evade": 5, "element": "None", "onHit": "Doom", "onHitAbilityId": 11, "formula": 1, "range": 4},
-      "proposed": {"wp": 5, "evade": 5, "element": "None", "onHit": "Doom", "onHitAbilityId": 11, "formula": 1, "range": 4, "attackFlags": "Direct"} },
-    { "id": 79, "category": "Crossbow", "vanillaName": "Crossbow", "name": "Arbalest", "tier": 3,
+      "baseline": {
+        "wp": 4,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Doom",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 4
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Doom",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 4,
+        "attackFlags": "Direct"
+      }
+    },
+    {
+      "id": 79,
+      "category": "Crossbow",
+      "vanillaName": "Crossbow",
+      "name": "Arbalest",
+      "tier": 3,
       "identity": "Raw stringless workhorse and the ONLY Range-5 crossbow. Best rider-free WP of its era + unique reach; the clean PA*WP sniper.",
-      "baseline": {"wp": 4, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 4},
-      "proposed": {"wp": 7, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 5, "attackFlags": "Direct"} },
-    { "id": 80, "category": "Crossbow", "vanillaName": "Poison Crossbow", "name": "Venombolt", "tier": 3,
+      "baseline": {
+        "wp": 4,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 4
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 5,
+        "attackFlags": "Direct"
+      }
+    },
+    {
+      "id": 80,
+      "category": "Crossbow",
+      "vanillaName": "Poison Crossbow",
+      "name": "Venombolt",
+      "tier": 3,
       "identity": "Attrition tool -- only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Poison proc 22 confirmed live.",
-      "baseline": {"wp": 4, "evade": 5, "element": "None", "onHit": "Poison", "onHitAbilityId": 22, "formula": 1, "range": 4},
-      "proposed": {"wp": 6, "evade": 5, "element": "None", "onHit": "Poison", "onHitAbilityId": 22, "formula": 1, "range": 4, "attackFlags": "Direct"} },
-    { "id": 81, "category": "Crossbow", "vanillaName": "Hunting Crossbow", "name": "Pitchbolt", "tier": 4,
+      "baseline": {
+        "wp": 4,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "range": 4
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "range": 4,
+        "attackFlags": "Direct"
+      }
+    },
+    {
+      "id": 81,
+      "category": "Crossbow",
+      "vanillaName": "Hunting Crossbow",
+      "name": "Pitchbolt",
+      "tier": 4,
       "identity": "Combo-setup bolt -- IN-GAME FINDING: proc id 101 applies OIL (not Immobilize as the panel guessed). Oil doubles Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
-      "baseline": {"wp": 5, "evade": 5, "element": "None", "onHit": "Oil", "onHitAbilityId": 101, "formula": 1, "range": 4},
-      "proposed": {"wp": 8, "evade": 8, "element": "None", "onHit": "Oil", "onHitAbilityId": 101, "formula": 1, "range": 4, "attackFlags": "Direct"} },
-    { "id": 82, "category": "Crossbow", "vanillaName": "Gastrophetes", "name": "Siegebolt", "tier": 6,
+      "baseline": {
+        "wp": 5,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Oil",
+        "onHitAbilityId": 101,
+        "formula": 1,
+        "range": 4
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 8,
+        "element": "None",
+        "onHit": "Oil",
+        "onHitAbilityId": 101,
+        "formula": 1,
+        "range": 4,
+        "attackFlags": "Direct"
+      }
+    },
+    {
+      "id": 82,
+      "category": "Crossbow",
+      "vanillaName": "Gastrophetes",
+      "name": "Siegebolt",
+      "tier": 6,
       "identity": "Endgame raw-power capstone -- top crossbow WP (11), no rider. At PA9+ it out-damages bows on a strength build; surrenders all utility for damage.",
-      "baseline": {"wp": 10, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 4},
-      "proposed": {"wp": 11, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 4, "attackFlags": "Direct"} },
-
-    { "id": 83, "category": "Bow", "vanillaName": "Longbow", "name": "Skirmisher", "tier": 1,
+      "baseline": {
+        "wp": 10,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 4
+      },
+      "proposed": {
+        "wp": 11,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 4,
+        "attackFlags": "Direct"
+      }
+    },
+    {
+      "id": 83,
+      "category": "Bow",
+      "vanillaName": "Longbow",
+      "name": "Skirmisher",
+      "tier": 1,
       "identity": "T1 light scout -- HIGHEST evade in the line (20) + earliest/cheapest. Shortest range (5), lowest WP. The nimble dodge-opener.",
-      "baseline": {"wp": 4, "evade": 0, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 5},
-      "proposed": {"wp": 4, "evade": 20, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 5, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} },
-    { "id": 84, "category": "Bow", "vanillaName": "Silver Bow", "name": "Windrunner", "tier": 2,
+      "baseline": {
+        "wp": 4,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 5
+      },
+      "proposed": {
+        "wp": 4,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 5,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 84,
+      "category": "Bow",
+      "vanillaName": "Silver Bow",
+      "name": "Windrunner",
+      "tier": 2,
       "identity": "T2 dodge duelist -- 2nd-best evade (15) + colorless = safe vs any element-absorber. True sidegrade to Frostarc (same WP5: evade+safety vs element).",
-      "baseline": {"wp": 5, "evade": 0, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6},
-      "proposed": {"wp": 5, "evade": 15, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} },
-    { "id": 85, "category": "Bow", "vanillaName": "Ice Bow", "name": "Frostarc", "tier": 2,
+      "baseline": {
+        "wp": 5,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 85,
+      "category": "Bow",
+      "vanillaName": "Ice Bow",
+      "name": "Frostarc",
+      "tier": 2,
       "identity": "T2 first elemental -- attacks deal Ice (anti-Fire-creature; Ice-absorbers heal it). Trades Windrunner's evade for element at equal WP5.",
-      "baseline": {"wp": 5, "evade": 0, "element": "Ice", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6},
-      "proposed": {"wp": 5, "evade": 5, "element": "Ice", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} },
-    { "id": 86, "category": "Bow", "vanillaName": "Lightning Bow", "name": "Stormarc", "tier": 3,
+      "baseline": {
+        "wp": 5,
+        "evade": 0,
+        "element": "Ice",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 5,
+        "element": "Ice",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 86,
+      "category": "Bow",
+      "vanillaName": "Lightning Bow",
+      "name": "Stormarc",
+      "tier": 3,
       "identity": "T3 elemental -- attacks deal Lightning (anti-armor/robotic; Lightning-absorbers heal it). +1 WP over Frostarc, different element coverage.",
-      "baseline": {"wp": 6, "evade": 0, "element": "Lightning", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6},
-      "proposed": {"wp": 6, "evade": 5, "element": "Lightning", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} },
-    { "id": 87, "category": "Bow", "vanillaName": "Windslash Bow", "name": "Skypiercer", "tier": 4,
+      "baseline": {
+        "wp": 6,
+        "evade": 0,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6
+      },
+      "proposed": {
+        "wp": 6,
+        "evade": 5,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 87,
+      "category": "Bow",
+      "vanillaName": "Windslash Bow",
+      "name": "Skypiercer",
+      "tier": 4,
       "identity": "T4 the REACH bow -- innate Wind + longest non-capstone range (7); arcs over cover, picks off fliers/cliff-campers. Glass: 0 evade, all reach.",
-      "baseline": {"wp": 8, "evade": 0, "element": "Wind", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 7},
-      "proposed": {"wp": 8, "evade": 0, "element": "Wind", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 7, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} },
-    { "id": 88, "category": "Bow", "vanillaName": "Mythril Bow", "name": "Silentstring", "tier": 3,
+      "baseline": {
+        "wp": 8,
+        "evade": 0,
+        "element": "Wind",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 7
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 0,
+        "element": "Wind",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 7,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 88,
+      "category": "Bow",
+      "vanillaName": "Mythril Bow",
+      "name": "Silentstring",
+      "tier": 3,
       "identity": "T3 caster-lock / control bow -- Silence on hit shuts enemy mages at range. WP7 + 10 evade. Renamed from filler Mythril Bow. Silence proc 10 confirmed live.",
-      "baseline": {"wp": 7, "evade": 0, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6},
-      "proposed": {"wp": 7, "evade": 10, "element": "None", "onHit": "Silence", "onHitAbilityId": 10, "formula": 1, "range": 6, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} },
-    { "id": 89, "category": "Bow", "vanillaName": "Artemis Bow", "name": "Huntress", "tier": 5,
+      "baseline": {
+        "wp": 7,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6
+      },
+      "proposed": {
+        "wp": 7,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "range": 6,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 89,
+      "category": "Bow",
+      "vanillaName": "Artemis Bow",
+      "name": "Huntress",
+      "tier": 5,
       "identity": "T5 marksman / mid-evade owner -- WP9 + 10 evade, earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla 'Yoichi dominates Artemis'.",
-      "baseline": {"wp": 10, "evade": 0, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6},
-      "proposed": {"wp": 9, "evade": 10, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} },
-    { "id": 90, "category": "Bow", "vanillaName": "Yoichi Bow", "name": "Tempest", "tier": 6,
+      "baseline": {
+        "wp": 10,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 90,
+      "category": "Bow",
+      "vanillaName": "Yoichi Bow",
+      "name": "Tempest",
+      "tier": 6,
       "identity": "T6 AGILE capstone -- top sustained WP (12) that STILL keeps 5 evade: heavy damage on light feet. The speed-build DPS capstone vs Seraph's glass cannon.",
-      "baseline": {"wp": 12, "evade": 0, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6},
-      "proposed": {"wp": 12, "evade": 5, "element": "None", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 6, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} },
-    { "id": 91, "category": "Bow", "vanillaName": "Perseus Bow", "name": "Seraph", "tier": 6,
+      "baseline": {
+        "wp": 12,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6
+      },
+      "proposed": {
+        "wp": 12,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 6,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 91,
+      "category": "Bow",
+      "vanillaName": "Perseus Bow",
+      "name": "Seraph",
+      "tier": 6,
       "identity": "T6 RAW+REACH capstone -- max WP (15) + max range (8, RANGE-8 CEILING TEST) + innate Holy (anti-Undead). 0 evade = pure glass cannon.",
-      "baseline": {"wp": 16, "evade": 0, "element": "Holy", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 7},
-      "proposed": {"wp": 15, "evade": 0, "element": "Holy", "onHit": "None", "onHitAbilityId": 0, "formula": 1, "range": 8, "attackFlags": "ForcedTwoHands, TwoHands, Arc"} }
+      "baseline": {
+        "wp": 16,
+        "evade": 0,
+        "element": "Holy",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 7
+      },
+      "proposed": {
+        "wp": 15,
+        "evade": 0,
+        "element": "Holy",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 8,
+        "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      }
+    },
+    {
+      "id": 128,
+      "category": "Shield",
+      "vanillaName": "Escutcheon",
+      "name": "Tideward",
+      "tier": 1,
+      "identity": "Mag-leaning T1 starter -- only earliest shield with real magEv, plus a cheap anti-Water resist.",
+      "baseline": {
+        "physEv": 10,
+        "magEv": 5,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 10,
+        "magEv": 14,
+        "rider": "halve Water",
+        "equipBonusId": 74
+      }
+    },
+    {
+      "id": 129,
+      "category": "Shield",
+      "vanillaName": "Buckler",
+      "name": "Galewall",
+      "tier": 1,
+      "identity": "T1 physical apex -- highest early physEv + anti-Wind resist for early archers/cyclones.",
+      "baseline": {
+        "physEv": 15,
+        "magEv": 0,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 24,
+        "magEv": 2,
+        "rider": "halve Wind",
+        "equipBonusId": 75
+      }
+    },
+    {
+      "id": 130,
+      "category": "Shield",
+      "vanillaName": "Bronze Shield",
+      "name": "Stormwall",
+      "tier": 2,
+      "identity": "First buyable element tool -- halves Lightning (guns, thunder mages). Balanced split.",
+      "baseline": {
+        "physEv": 15,
+        "magEv": 5,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 16,
+        "magEv": 10,
+        "rider": "halve Lightning",
+        "equipBonusId": 76
+      }
+    },
+    {
+      "id": 131,
+      "category": "Shield",
+      "vanillaName": "Round Shield",
+      "name": "Swiftguard",
+      "tier": 2,
+      "identity": "Agility shield -- phys-leaning evade + Speed+1 tempo prize for skirmishers.",
+      "baseline": {
+        "physEv": 20,
+        "magEv": 0,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 22,
+        "magEv": 4,
+        "rider": "Speed+1",
+        "equipBonusId": 14
+      }
+    },
+    {
+      "id": 132,
+      "category": "Shield",
+      "vanillaName": "Mythril Shield",
+      "name": "Wardstone",
+      "tier": 3,
+      "identity": "Anti-mage generalist -- top buyable magEv + innate Shell (stacks with mag-evade).",
+      "baseline": {
+        "physEv": 15,
+        "magEv": 15,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 18,
+        "magEv": 26,
+        "rider": "Innate Shell",
+        "equipBonusId": 4
+      }
+    },
+    {
+      "id": 133,
+      "category": "Shield",
+      "vanillaName": "Golden Shield",
+      "name": "Sanctguard",
+      "tier": 3,
+      "identity": "Anti-Holy + Holy-amp -- halves incoming Holy AND boosts the wearer's own Holy output.",
+      "baseline": {
+        "physEv": 20,
+        "magEv": 5,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 28,
+        "magEv": 12,
+        "rider": "halve+boost Holy",
+        "equipBonusId": 77
+      }
+    },
+    {
+      "id": 134,
+      "category": "Shield",
+      "vanillaName": "Ice Shield",
+      "name": "Rimeward",
+      "tier": 3,
+      "identity": "Vanilla standout -- absorbs Ice, halves Fire, weak to Lightning. Anti-Ice/Fire tank.",
+      "baseline": {
+        "physEv": 30,
+        "magEv": 0,
+        "rider": "absorb Ice"
+      },
+      "proposed": {
+        "physEv": 30,
+        "magEv": 6,
+        "rider": "absorb Ice",
+        "equipBonusId": 15
+      }
+    },
+    {
+      "id": 135,
+      "category": "Shield",
+      "vanillaName": "Flame Shield",
+      "name": "Emberward",
+      "tier": 3,
+      "identity": "Vanilla standout -- absorbs Fire, halves Ice, weak to Water. Ice/Flame element partner.",
+      "baseline": {
+        "physEv": 30,
+        "magEv": 0,
+        "rider": "absorb Fire"
+      },
+      "proposed": {
+        "physEv": 30,
+        "magEv": 6,
+        "rider": "absorb Fire",
+        "equipBonusId": 16
+      }
+    },
+    {
+      "id": 136,
+      "category": "Shield",
+      "vanillaName": "Aegis Shield",
+      "name": "Spellbane",
+      "tier": 5,
+      "identity": "THE anti-mage shield -- 50 magEv + MA+1 + nullify Earth. Near-zero phys is the cost.",
+      "baseline": {
+        "physEv": 10,
+        "magEv": 50,
+        "rider": "MA+1"
+      },
+      "proposed": {
+        "physEv": 10,
+        "magEv": 50,
+        "rider": "MA+1 null Earth",
+        "equipBonusId": 79
+      }
+    },
+    {
+      "id": 137,
+      "category": "Shield",
+      "vanillaName": "Diamond Shield",
+      "name": "Trailblazer",
+      "tier": 4,
+      "identity": "Mobility defender -- solid balanced evade + the only Move+1 shield. Tank that flanks.",
+      "baseline": {
+        "physEv": 35,
+        "magEv": 15,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 36,
+        "magEv": 16,
+        "rider": "Move+1",
+        "equipBonusId": 42
+      }
+    },
+    {
+      "id": 138,
+      "category": "Shield",
+      "vanillaName": "Platinum Shield",
+      "name": "Vanguard",
+      "tier": 4,
+      "identity": "Offensive bruiser -- high physEv + the only PA+1 shield. Defense that adds damage.",
+      "baseline": {
+        "physEv": 40,
+        "magEv": 10,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 44,
+        "magEv": 8,
+        "rider": "PA+1",
+        "equipBonusId": 21
+      }
+    },
+    {
+      "id": 139,
+      "category": "Shield",
+      "vanillaName": "Crystal Shield",
+      "name": "Nightward",
+      "tier": 5,
+      "identity": "Anti-Dark -- absorbs Dark (undead bosses), weak to Holy. Best-balanced absorb shield.",
+      "baseline": {
+        "physEv": 40,
+        "magEv": 15,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 34,
+        "magEv": 24,
+        "rider": "absorb Dark",
+        "equipBonusId": 78
+      }
+    },
+    {
+      "id": 140,
+      "category": "Shield",
+      "vanillaName": "Genji Shield",
+      "name": "Ronin Wall",
+      "tier": 5,
+      "identity": "Phys-evade apex -- poach/steal-gated, with a Speed+1 prize for the rare-drop effort.",
+      "baseline": {
+        "physEv": 45,
+        "magEv": 10,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 50,
+        "magEv": 12,
+        "rider": "Speed+1",
+        "equipBonusId": 23
+      }
+    },
+    {
+      "id": 141,
+      "category": "Shield",
+      "vanillaName": "Kaiser Shield",
+      "name": "Conduit",
+      "tier": 5,
+      "identity": "The only OFFENSIVE shield -- strengthens the wearer's Fire/Lightning/Ice. A damage shield.",
+      "baseline": {
+        "physEv": 45,
+        "magEv": 20,
+        "rider": "boost tri-elem"
+      },
+      "proposed": {
+        "physEv": 42,
+        "magEv": 20,
+        "rider": "boost Fire/Ltng/Ice",
+        "equipBonusId": 18
+      }
+    },
+    {
+      "id": 142,
+      "category": "Shield",
+      "vanillaName": "Venetian Shield",
+      "name": "Bastion",
+      "tier": 6,
+      "identity": "Best generalist -- top on both evade axes + tri-element halve, no weakness, no rider.",
+      "baseline": {
+        "physEv": 50,
+        "magEv": 25,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 46,
+        "magEv": 32,
+        "rider": "halve Fire/Ltng/Ice",
+        "equipBonusId": 19
+      }
+    },
+    {
+      "id": 143,
+      "category": "Shield",
+      "vanillaName": "Escutcheon II",
+      "name": "Aegis Prime",
+      "tier": 6,
+      "identity": "Endgame anti-mage capstone (recast from the 75/50 dominance-bomb) -- 56 magEv, MA+1, halves Holy/Dark.",
+      "baseline": {
+        "physEv": 75,
+        "magEv": 50,
+        "rider": "None"
+      },
+      "proposed": {
+        "physEv": 30,
+        "magEv": 56,
+        "rider": "MA+1 halve Holy/Dark",
+        "equipBonusId": 40
+      }
+    }
   ]
 }
