@@ -9,13 +9,9 @@
     "renameTarget": "item.en.nxd (name + description). NXD round-trip mechanism: WIP.",
     "design": "Three lanes run the curve in parallel: RAW (Cutpurse/Argent Dirk/Adamant Fang), AGILE (Quicksilver 25ev / Sanguine Gauche 50ev), UTILITY (Gloomfang Blind / Hushblade Silence / Mortal Coil Doom / Dreamsever Sleep). Non-monotonic WP (5,6,5,6,7,6,9,8,10,12) makes every proc/evade knife undercut WP to pay for its gimmick.",
     "openProcs": "id4 Hushblade Silence onHitAbilityId is UNRESOLVED (not in confirmed 9/11/12 set) -- needs in-engine proc verify; identity depends on it.",
-    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible (only 8 free ItemEquipBonusData slots: 0,40,74-79; 77 of 85 used). Each item's proposed.equipBonusId points at a vanilla id OR a free-slot id defined in _equipBonus below. The iconic element shields already exist: Ice=15, Flame=16, Kaiser-boost=18, Venetian-halve=19; stats: MA+1=10/12, MA+2=1/9, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4."
+    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible (only 8 free ItemEquipBonusData slots: 74-79; 77 of 85 used). Each item's proposed.equipBonusId points at a vanilla id OR a free-slot id defined in _equipBonus below. The iconic element shields already exist: Ice=15, Flame=16, Kaiser-boost=18, Venetian-halve=19; stats: MA+1=10/12, MA+2=1/9, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4."
   },
   "_equipBonus": {
-    "40": {
-      "MABonus": 1,
-      "HalveElements": "Holy, Dark"
-    },
     "74": {
       "HalveElements": "Water"
     },
@@ -62,7 +58,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "A humble street knife, cheap and ready from your first day in the field."
     },
     {
       "id": 2,
@@ -87,7 +84,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "A featherlight blade that seems to leap aside of its own accord."
     },
     {
       "id": 3,
@@ -112,7 +110,8 @@
         "onHitAbilityId": 9,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "Etched with shadow. A solid hit leaves foes blinking in darkness.\nWhen attacking, has a chance of inflicting Blind."
     },
     {
       "id": 4,
@@ -137,7 +136,8 @@
         "onHitAbilityId": 10,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "Forged to throttle spellcraft. A caster's worst nightmare.\nWhen attacking, has a chance of inflicting Silence."
     },
     {
       "id": 5,
@@ -162,7 +162,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "A clean, honest blade of silvered steel. No tricks, just a reliable edge."
     },
     {
       "id": 6,
@@ -187,7 +188,8 @@
         "onHitAbilityId": 0,
         "formula": 48,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "A parrying blade that drinks the blood it spills.\nDeflects with rare skill, and heals the wielder for damage dealt."
     },
     {
       "id": 7,
@@ -212,7 +214,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "Brutally sharp, brutally simple. All bite and no guard."
     },
     {
       "id": 8,
@@ -237,7 +240,8 @@
         "onHitAbilityId": 11,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "Mark a foe and let the clock run; death keeps its appointment.\nWhen attacking, has a chance of inflicting Doom."
     },
     {
       "id": 9,
@@ -262,7 +266,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      }
+      },
+      "desc": "Bound with a sliver of caged storm. Each strike rides the wind.\nDeals Wind-elemental damage."
     },
     {
       "id": 10,
@@ -287,6 +292,199 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
+      },
+      "desc": "Its whisper drags even the mightiest foe into helpless slumber.\nWhen attacking, has a chance of inflicting Sleep."
+    },
+    {
+      "id": 11,
+      "category": "NinjaBlade",
+      "vanillaName": "Ninja Blade",
+      "name": "Shadowfang",
+      "tier": 2,
+      "identity": "Earliest ninja blade -- budget dodge main-hand: line-low WP, line-high 15% evade, only blade this early. Availability + evade is the pick.",
+      "baseline": {
+        "wp": 8,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 12,
+      "category": "NinjaBlade",
+      "vanillaName": "Kunai",
+      "name": "Kunai",
+      "tier": 3,
+      "identity": "REACH outlier -- the only Range-2 melee in the line (throwing-knife fantasy). Hits from a tile back without melee retaliation; pays with line-min evade for its tier. Iconic name kept.",
+      "baseline": {
+        "wp": 9,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 13,
+      "category": "NinjaBlade",
+      "vanillaName": "Kodachi",
+      "name": "Frost Kodachi",
+      "tier": 3,
+      "identity": "Ice arsenal -- first elemental blade; two Ice procs/turn under Dual Wield. Anti-Fire, +25% vs Ice-weak. Only Ice source; unlocks a tier before the Lightning blade so it can't be dominated by it.",
+      "baseline": {
+        "wp": 10,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 10,
+        "evade": 10,
+        "element": "Ice",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 14,
+      "category": "NinjaBlade",
+      "vanillaName": "Ninja Longblade",
+      "name": "Raijin Longblade",
+      "tier": 4,
+      "identity": "Lightning arsenal + line-max 20% evade. Mid-game dodge-DPS: anti-mechanical / Lightning-weak coverage on the highest-evade chassis. Only Lightning melee source. Splits from Spellbinder (same tier/WP) by trading Silence for element + top evade.",
+      "baseline": {
+        "wp": 12,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 11,
+        "evade": 20,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 15,
+      "category": "NinjaBlade",
+      "vanillaName": "Spellbinder",
+      "name": "Spellbinder",
+      "tier": 4,
+      "identity": "Anti-caster blade -- on-hit Silence shuts down enemy mages (vanilla Disable re-skinned to confirmed Silence id10, matching Regabonds). Pays with no element and base evade. Only on-hit Silence in the line. Iconic name kept.",
+      "baseline": {
+        "wp": 13,
+        "evade": 5,
+        "element": "None",
+        "onHit": "Disable (Don't Act) -- VANILLA. ** Regabonds CHANGED to Silence (OptionsAbilityId=10) **",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 11,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 16,
+      "category": "NinjaBlade",
+      "vanillaName": "Sasuke's Blade",
+      "name": "Sasuke's Blade",
+      "tier": 6,
+      "identity": "Marquee ninja blade -- best-in-line 20% evade AND on-hit Sleep (vanilla Stop re-skinned to confirmed Sleep id12; both deny turns). Trades 1 WP under Iga for top evade + a soft-lock fired twice/turn. Iconic name kept.",
+      "baseline": {
+        "wp": 14,
+        "evade": 10,
+        "element": "None",
+        "onHit": "Stop -- VANILLA (no confirmed proc id available)",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 20,
+        "element": "None",
+        "onHit": "Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 17,
+      "category": "NinjaBlade",
+      "vanillaName": "Iga Blade",
+      "name": "Iga Blade",
+      "tier": 6,
+      "identity": "No-strings DPS capstone -- line-max 14 WP, strong 15% evade, zero gimmick. Two 14-WP PA*WP hits/turn when you want raw damage over a tradeoff. The endgame default. Iconic name kept.",
+      "baseline": {
+        "wp": 15,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 14,
+        "evade": 15,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 18,
+      "category": "NinjaBlade",
+      "vanillaName": "Koga Blade",
+      "name": "Koga Blade",
+      "tier": 6,
+      "identity": "Attrition capstone -- only Dark-element blade + on-hit Poison DOT (Regabonds id51 re-skinned to confirmed Poison id22). Trades evade for relentless chip that ticks while the ninja dodges away. Fixes vanilla's strictly-dominated Koga. Iconic name kept.",
+      "baseline": {
+        "wp": 15,
+        "evade": 5,
+        "element": "None",
+        "onHit": "None -- VANILLA. ** Regabonds SET OptionsAbilityId=51 (non-vanilla, non-confirmed) **",
+        "formula": "1 (PA*WP melee)"
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 5,
+        "element": "Dark",
+        "onHit": "Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "range": 1
       }
     },
     {
@@ -312,7 +510,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A worn wanderer's blade -- cheap, light, and ready from your first march."
     },
     {
       "id": 20,
@@ -337,7 +536,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A heavy, brutal edge that trades finesse for raw cutting weight."
     },
     {
       "id": 21,
@@ -362,7 +562,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A duelist's sword built to turn blows aside and answer them."
     },
     {
       "id": 22,
@@ -387,7 +588,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "Lightweight mythril honed purely for offense. All bite, no guard."
     },
     {
       "id": 23,
@@ -412,7 +614,8 @@
         "onHitAbilityId": 0,
         "formula": 6,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A cursed blade that drinks the blood it spills.\nAbsorbs HP on hit -- but beware the undead."
     },
     {
       "id": 24,
@@ -437,7 +640,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A blade wreathed in caged lightning; every strike crackles.\nDeals Lightning-elemental damage."
     },
     {
       "id": 25,
@@ -462,7 +666,8 @@
         "onHitAbilityId": 14,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "An ancient blade that roots its victims where they stand.\nWhen attacking, has a chance of inflicting Immobilize."
     },
     {
       "id": 26,
@@ -487,7 +692,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A wavering blade that burns like a torch.\nDeals Fire-elemental damage."
     },
     {
       "id": 27,
@@ -512,7 +718,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A massive executioner's blade -- devastating, and utterly without guard."
     },
     {
       "id": 28,
@@ -537,7 +744,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A flawless diamond edge: reliable damage that never leaves you exposed."
     },
     {
       "id": 29,
@@ -562,7 +770,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A blade of eternal frost; each cut bites with cold.\nDeals Ice-elemental damage."
     },
     {
       "id": 30,
@@ -589,7 +798,8 @@
         "rider": "MA+2",
         "equipBonusId": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A rune-etched greatblade, the heaviest hitter ever forged."
     },
     {
       "id": 31,
@@ -614,7 +824,8 @@
         "onHitAbilityId": 16,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      }
+      },
+      "desc": "A trickster's blade, impossible to pin -- and it turns foes to toads.\nWhen attacking, has a chance of inflicting Toad."
     },
     {
       "id": 32,
@@ -639,6 +850,295 @@
         "onHitAbilityId": 0,
         "formula": 47,
         "attackFlags": "Striking, TwoSwords, TwoHands"
+      },
+      "desc": "A blade of living shadow that devours magick.\nAbsorbs MP on hit. Deals Dark-elemental damage."
+    },
+    {
+      "id": 33,
+      "category": "KnightSword",
+      "vanillaName": "Defender",
+      "name": "Aegisbrand",
+      "tier": 4,
+      "identity": "Parry-tank capstone -- game-max 60% physical evade, lowest WP of the five, EquipBonus rider Protect (halve physical taken). The un-killable front-line dodge wall; pick it to NOT die, not to deal damage. Most available of the five (tier 4). Renamed from generic 'Defender' to signal the pure shield-blade role.",
+      "baseline": {
+        "wp": 16,
+        "evade": 60,
+        "element": "None",
+        "onHit": "None",
+        "formula": "Knight Sword (PA*Brave/100*WP); XML Formula field=1, Brave-scaling is hardcoded by weapon type"
+      },
+      "proposed": {
+        "wp": 16,
+        "evade": 60,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 34,
+      "category": "KnightSword",
+      "vanillaName": "Save the Queen",
+      "name": "Sentinel's Vow",
+      "tier": 5,
+      "identity": "Disabler-bruiser -- strong 45% evade plus Sleep-on-hit to neuter a target while you out-tempo the duel, backed by an EquipBonus Regen rider for self-sustain. The 'control the fight' pick between pure tank (Aegisbrand) and the Holy capstone. Sleep proc owned by no other sword. Renamed from 'Save the Queen' for the warden identity.",
+      "baseline": {
+        "wp": 18,
+        "evade": 30,
+        "element": "None",
+        "onHit": "None (rider only)",
+        "formula": "Knight Sword (PA*Brave/100*WP); XML Formula field=1"
+      },
+      "proposed": {
+        "wp": 18,
+        "evade": 45,
+        "element": "None",
+        "onHit": "Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 35,
+      "category": "KnightSword",
+      "vanillaName": "Excalibur",
+      "name": "Excalibur",
+      "tier": 6,
+      "identity": "Holy-knight tempo capstone -- Holy element (anti-Undead, with its signature Holy absorb) plus EquipBonus rider Haste for extra turns. The build-defining matchup + tempo + survivability blade; the only elemental Knight Sword that also carries a permanent rider. Iconic name kept. Seated at vanilla WP21 (verbatim Game8/Regabonds) mid-ladder.",
+      "baseline": {
+        "wp": 21,
+        "evade": 35,
+        "element": "Holy",
+        "onHit": "None (rider only); ABSORBS Holy",
+        "formula": "Knight Sword (PA*Brave/100*WP); XML Formula field=1, Elements=Holy"
+      },
+      "proposed": {
+        "wp": 21,
+        "evade": 35,
+        "element": "Holy",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 36,
+      "category": "KnightSword",
+      "vanillaName": "Ragnarok",
+      "name": "Ragnarok",
+      "tier": 6,
+      "identity": "Anti-caster prestige blade -- unique Dark element plus Silence-on-hit shuts down enemy mages, with high WP and middling evade. Fixes vanilla's 'squeezed slot' (riderless WP24, dominated by Chaos): now owns the Dark + Silence niche so it is NOT dominated by Chaos Blade. Iconic name kept. The pick versus caster-heavy comps.",
+      "baseline": {
+        "wp": 24,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None (rider only)",
+        "formula": "Knight Sword (PA*Brave/100*WP); XML Formula field=1"
+      },
+      "proposed": {
+        "wp": 24,
+        "evade": 25,
+        "element": "Dark",
+        "onHit": "Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 37,
+      "category": "KnightSword",
+      "vanillaName": "Chaos Blade",
+      "name": "Chaos Blade",
+      "tier": 6,
+      "identity": "Raw-power king -- highest WP in the category, lowest evade (paid defensively), Doom-on-hit (death-timer) plus EquipBonus rider Regen for sustain. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker TAMED to WP28 so it no longer strictly dominates Ragnarok; unconfirmed Stone/Petrify proc replaced by Doom (confirmed id 11), thematically on-point. Iconic name kept.",
+      "baseline": {
+        "wp": 50,
+        "evade": 20,
+        "element": "None",
+        "onHit": "Stone/Petrify proc on hit (chance) + EquipBonus rider PERMANENT REGEN",
+        "formula": "Knight Sword (PA*Brave/100*WP); XML Formula field=1"
+      },
+      "proposed": {
+        "wp": 28,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Doom",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 48,
+      "category": "Axe",
+      "vanillaName": "Battle Axe",
+      "name": "Hatchet",
+      "tier": 1,
+      "identity": "Tier-1 budget brute. Cheapest/earliest axe in the family, no rider, lowest WP. The 'just give me a big random swing right now' opener: Rand(1..PA)*WP means even at WP8 a high-Brave/PA Squire can spike a full PA*8 hit. ForcedTwoHands (no shield). Wins on price + timing, never on ceiling. The first gambler's-burst weapon.",
+      "baseline": {
+        "wp": 9,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (Weapon formula; engine applies Axe random-damage Rdm(1..PA)*WP by weapon type)"
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 49,
+      "category": "Axe",
+      "vanillaName": "Giant's Axe",
+      "name": "War Axe",
+      "tier": 3,
+      "identity": "Raw mid-power workhorse and the family's pure-ceiling pick. Best no-rider axe WP of its era (Rand up to PA*13), range 1. PICK when you want the single biggest possible hit with zero status fuss; pays with zero evade and zero consistency (1*13 floor whiffs happen). The honest brute lane vs the flails' control lane.",
+      "baseline": {
+        "wp": 12,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 50,
+      "category": "Axe",
+      "vanillaName": "Slasher",
+      "name": "Headsman's Axe",
+      "tier": 5,
+      "identity": "The executioner capstone. Top axe WP AND a Doom rider (confirmed id11: 3-turn timer KOs whatever survives the swing). Hardest melee swing in the family + a death clock. Replaces vanilla Slasher's unreliable Slow (Op18, NOT in the confirmed proc set) with a confirmed-live execute that fits the new name. Doom keeps axes in the 'kill' lane, distinct from the flails' control statuses. T5-gated, pays with the random floor + zero evade.",
+      "baseline": {
+        "wp": 16,
+        "evade": 0,
+        "element": "None",
+        "onHit": "Slow (chance) — OptionsAbilityId 18 in Regabonds; Game8 IVC confirms 'chance of inflicting Slow'",
+        "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
+      },
+      "proposed": {
+        "wp": 16,
+        "evade": 0,
+        "element": "None",
+        "onHit": "Add: Doom (Death Sentence)",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 67,
+      "category": "Flail",
+      "vanillaName": "Iron Flail",
+      "name": "Iron Flail",
+      "tier": 2,
+      "identity": "The reach starter. Introduces the flail line's signature lever: RANGE 2 (the chain swings past the front rank). Earliest reach bludgeon; hit an enemy a tile back while a body-block tank covers you. No element/status, the raw-reach pick. Iconic name kept. The +1 range vs every axe is the structural guarantee that no axe can ever dominate a flail.",
+      "baseline": {
+        "wp": 9,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 68,
+      "category": "Flail",
+      "vanillaName": "Flail of Flame",
+      "name": "Flail of Flame",
+      "tier": 3,
+      "identity": "The family's flavor pick, vanilla's one genuinely-interesting item kept verbatim-mechanic: Fire element + Fira cast-on-hit via Formula 2 (Op17 -- LIVE in the vanilla item, the documented F2 pairing). A different damage MODEL than the rest (magic-formula elemental, not Rand random), so no raw axe/flail can dominate it. Anti-Undead, shreds Oiled / Ice-creature foes; Fire-absorbers heal (double-edged). Now also gets reach (range 2). Only elemental in the category. If Op17 proves unverified in-engine, fall back to OptionsAbilityId 0 and let Fire+Formula2 carry the identity.",
+      "baseline": {
+        "wp": 11,
+        "evade": 0,
+        "element": "Fire",
+        "onHit": "Chance to cast Fira (OptionsAbilityId 17). Game8 IVC: 'chance of casting Fira'",
+        "formula": "2 (Elemental weapon formula — REQUIRED to carry Fire element; NOT formula 1)"
+      },
+      "proposed": {
+        "wp": 11,
+        "evade": 0,
+        "element": "Fire",
+        "onHit": "Casts Fira on hit",
+        "onHitAbilityId": 0,
+        "formula": 2,
+        "range": 2
+      }
+    },
+    {
+      "id": 69,
+      "category": "Flail",
+      "vanillaName": "Morning Star",
+      "name": "Morning Star",
+      "tier": 4,
+      "identity": "The control flail. Same WP13 as War Axe but trades the axe's earlier unlock + Geomancer job for the flail's +1 range + Ninja job AND an Immobilize rider (confirmed id14): pin a target in place for your casters/archers to delete. Iconic name kept. Sidegrade-not-upgrade to War Axe (range+rider vs earlier tier), and at range 2 it can never be dominated by any range-1 item.",
+      "baseline": {
+        "wp": 16,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None (VANILLA) — Regabonds also has OptionsAbilityId 0. Brief's Immobilize(14) is a DESIGN TARGET, not vanilla.",
+        "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 0,
+        "element": "None",
+        "onHit": "Add: Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1,
+        "range": 2
+      }
+    },
+    {
+      "id": 70,
+      "category": "Flail",
+      "vanillaName": "Scorpion Tail",
+      "name": "Scorpion Tail",
+      "tier": 5,
+      "identity": "The venomous reach capstone. Poach-only (Hydra) so rarity is part of its niche, plus the only Poison flail (confirmed id22: DoT ~1/8 max HP per turn, cancels Regen). Highest no-Doom WP at range 2: chip a high-HP or fleeing target from a tile back and let the venom finish it. Vanilla's absurd wp23 poach-outlier re-curved to a gentle 15. Doesn't dominate Headsman's Axe -- Poison-tick attrition is a different win condition than the Doom clock, and at range 2 it's a different equip lane (Ninja/Squire flail vs axe). Iconic name kept.",
+      "baseline": {
+        "wp": 23,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None (VANILLA, per Game8 IVC: no status). Regabonds ADDS OptionsAbilityId 22 (Poison) — that is a Regabonds change, NOT vanilla. Brief's Poison(22) target matches Regabonds, not pure vanilla.",
+        "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
+      },
+      "proposed": {
+        "wp": 15,
+        "evade": 0,
+        "element": "None",
+        "onHit": "Add: Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "range": 2
       }
     },
     {
@@ -666,7 +1166,8 @@
         "formula": 1,
         "range": 3,
         "attackFlags": "Direct"
-      }
+      },
+      "desc": "A light scout's crossbow, quick to the shoulder and cheap to replace."
     },
     {
       "id": 78,
@@ -693,7 +1194,8 @@
         "formula": 1,
         "range": 4,
         "attackFlags": "Direct"
-      }
+      },
+      "desc": "A grim crossbow forged to fell armored elites.\nWhen attacking, has a chance of inflicting Doom -- a countdown to certain death."
     },
     {
       "id": 79,
@@ -720,7 +1222,8 @@
         "formula": 1,
         "range": 5,
         "attackFlags": "Direct"
-      }
+      },
+      "desc": "A heavy steel crossbow with unmatched reach. Pure, reliable punch."
     },
     {
       "id": 80,
@@ -747,7 +1250,8 @@
         "formula": 1,
         "range": 4,
         "attackFlags": "Direct"
-      }
+      },
+      "desc": "A crossbow that coats its bolts in venom.\nWhen attacking, has a chance of inflicting Poison."
     },
     {
       "id": 81,
@@ -774,7 +1278,8 @@
         "formula": 1,
         "range": 4,
         "attackFlags": "Direct"
-      }
+      },
+      "desc": "A crossbow that douses its target in clinging pitch.\nWhen attacking, has a chance of inflicting Oil -- the target takes double Fire damage."
     },
     {
       "id": 82,
@@ -801,7 +1306,8 @@
         "formula": 1,
         "range": 4,
         "attackFlags": "Direct"
-      }
+      },
+      "desc": "A massive siege crossbow -- all the stopping power a strong arm can drive."
     },
     {
       "id": 83,
@@ -828,7 +1334,8 @@
         "formula": 1,
         "range": 5,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      }
+      },
+      "desc": "A short, nimble bow for hit-and-run scouts. Quick draw, quicker feet."
     },
     {
       "id": 84,
@@ -855,7 +1362,8 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      }
+      },
+      "desc": "A featherlight silver bow that dances out of reach. No element, no risk."
     },
     {
       "id": 85,
@@ -882,7 +1390,8 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      }
+      },
+      "desc": "A bow strung with frostsilk; each arrow bites with cold.\nDeals Ice-elemental damage."
     },
     {
       "id": 86,
@@ -909,7 +1418,8 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      }
+      },
+      "desc": "A bow humming with static; arrows crack like thunder.\nDeals Lightning-elemental damage."
     },
     {
       "id": 87,
@@ -936,7 +1446,8 @@
         "formula": 1,
         "range": 7,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      }
+      },
+      "desc": "A long-limbed bow that arcs arrows over any wall.\nDeals Wind-elemental damage; longest reach of the buyable bows."
     },
     {
       "id": 88,
@@ -963,7 +1474,8 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      }
+      },
+      "desc": "A bow whose arrows steal the voice.\nWhen attacking, has a chance of inflicting Silence."
     },
     {
       "id": 89,
@@ -990,7 +1502,8 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      }
+      },
+      "desc": "A balanced marksman's bow -- power and poise in equal measure."
     },
     {
       "id": 90,
@@ -1017,7 +1530,8 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      }
+      },
+      "desc": "A legendary bow, heavy of draw yet light in hand. Damage on the move."
     },
     {
       "id": 91,
@@ -1044,6 +1558,103 @@
         "formula": 1,
         "range": 8,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      },
+      "desc": "A radiant greatbow of holy light -- the longest reach and deadliest draw of any bow.\nDeals Holy-elemental damage."
+    },
+    {
+      "id": 115,
+      "category": "Bag",
+      "vanillaName": "Catskin Bag",
+      "name": "Sandman Satchel",
+      "tier": 2,
+      "identity": "Female/Onion-Knight bag, the soft-disable opener. Low WP but Sleep-on-hit (confirmed id12) removes a target from the fight outright. Owns Sleep across the bag toolbox. Tier 2 (bags genuinely unlock Ch2+, never Ch1) keeps it strictly distinct from the Ch1 Hatchet even in a forced single-bucket check. Gender/job-locked, so it never competes with an axe in practice.",
+      "baseline": {
+        "wp": 10,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None (vanilla)",
+        "formula": "1 (Weapon formula; Bag random — IVC Bag uses Rdm(1..PA)*WP same as axes/flails per DamageFormulas wiki)"
+      },
+      "proposed": {
+        "wp": 10,
+        "evade": 0,
+        "element": "None",
+        "onHit": "Add: Sleep",
+        "onHitAbilityId": 12,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 116,
+      "category": "Bag",
+      "vanillaName": "Fallingstar Bag",
+      "name": "Fallingstar Bag",
+      "tier": 5,
+      "identity": "The bag ceiling king. Highest bag WP (vanilla's WP20 poach-outlier re-curved to a gentle 18, preserving its 'strongest bag' identity), no rider -- the female 'just hit hardest' pick when you don't want a status. Poach/late-game availability. Pays for its ceiling with zero utility, the bag mirror of War Axe. Owns the raw-WP niche in the bag set; can't dominate Sandman/Hornet/Hexweave because it lacks every one of their status riders.",
+      "baseline": {
+        "wp": 20,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None (vanilla)",
+        "formula": "1 (Weapon formula; Bag random Rdm(1..PA)*WP)"
+      },
+      "proposed": {
+        "wp": 18,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 117,
+      "category": "Bag",
+      "vanillaName": "Proudhide Bag",
+      "name": "Hornet Pouch",
+      "tier": 3,
+      "identity": "Female bag attrition tool. Poison applicator (confirmed id22) for units who can't wield the endgame Scorpion Tail flail -- the niche is gender/job access, not raw power. Lower WP than Scorpion Tail but a separate equip class entirely; owns nothing the other bags own (Sleep/Silence/raw-ceiling), so no bag dominates it.",
+      "baseline": {
+        "wp": 12,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None (vanilla)",
+        "formula": "1 (Weapon formula; Bag random Rdm(1..PA)*WP)"
+      },
+      "proposed": {
+        "wp": 12,
+        "evade": 0,
+        "element": "None",
+        "onHit": "Add: Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "range": 1
+      }
+    },
+    {
+      "id": 118,
+      "category": "Bag",
+      "vanillaName": "Hardscale Bag",
+      "name": "Hexweave Bag",
+      "tier": 4,
+      "identity": "Female anti-caster bag. Silence-on-hit (confirmed id10) shuts down enemy mages -- the only Silence applicator in the whole bludgeon category. Mid-high bag WP, gender/job-locked. Owns Silence so no other bag dominates it; doesn't dominate Hornet Pouch (lacks its Poison) or Fallingstar (lower WP).",
+      "baseline": {
+        "wp": 14,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None (vanilla)",
+        "formula": "1 (Weapon formula; Bag random Rdm(1..PA)*WP)"
+      },
+      "proposed": {
+        "wp": 14,
+        "evade": 0,
+        "element": "None",
+        "onHit": "Add: Silence",
+        "onHitAbilityId": 10,
+        "formula": 1,
+        "range": 1
       }
     },
     {
@@ -1063,7 +1674,8 @@
         "magEv": 14,
         "rider": "halve Water",
         "equipBonusId": 74
-      }
+      },
+      "desc": "A shield warded against the tides.\nHalves Water-elemental damage."
     },
     {
       "id": 129,
@@ -1082,7 +1694,8 @@
         "magEv": 2,
         "rider": "halve Wind",
         "equipBonusId": 75
-      }
+      },
+      "desc": "A broad shield that breaks the wind.\nHalves Wind-elemental damage."
     },
     {
       "id": 130,
@@ -1101,7 +1714,8 @@
         "magEv": 10,
         "rider": "halve Lightning",
         "equipBonusId": 76
-      }
+      },
+      "desc": "A shield that grounds the storm.\nHalves Lightning-elemental damage."
     },
     {
       "id": 131,
@@ -1120,7 +1734,8 @@
         "magEv": 4,
         "rider": "Speed+1",
         "equipBonusId": 14
-      }
+      },
+      "desc": "A light shield that never slows your step.\nGrants Speed +1."
     },
     {
       "id": 132,
@@ -1139,7 +1754,8 @@
         "magEv": 26,
         "rider": "Innate Shell",
         "equipBonusId": 4
-      }
+      },
+      "desc": "A rune-warded shield humming with protective magick.\nGrants innate Shell -- magick damage reduced."
     },
     {
       "id": 133,
@@ -1158,7 +1774,8 @@
         "magEv": 12,
         "rider": "halve+boost Holy",
         "equipBonusId": 77
-      }
+      },
+      "desc": "A consecrated shield that turns holy wrath aside, and amplifies your own.\nHalves incoming Holy and strengthens your Holy attacks."
     },
     {
       "id": 134,
@@ -1177,7 +1794,8 @@
         "magEv": 6,
         "rider": "absorb Ice",
         "equipBonusId": 15
-      }
+      },
+      "desc": "A shield of everlasting frost.\nAbsorbs Ice, halves Fire, but weak to Lightning."
     },
     {
       "id": 135,
@@ -1196,7 +1814,8 @@
         "magEv": 6,
         "rider": "absorb Fire",
         "equipBonusId": 16
-      }
+      },
+      "desc": "A shield forged in dragonfire.\nAbsorbs Fire, halves Ice, but weak to Water."
     },
     {
       "id": 136,
@@ -1215,7 +1834,8 @@
         "magEv": 50,
         "rider": "MA+1 null Earth",
         "equipBonusId": 79
-      }
+      },
+      "desc": "A mage's bane, woven to swallow spellcraft.\nHuge magick evasion, grants Magick Attack +1, nullifies Earth."
     },
     {
       "id": 137,
@@ -1234,7 +1854,8 @@
         "magEv": 16,
         "rider": "Move+1",
         "equipBonusId": 42
-      }
+      },
+      "desc": "A shield light enough to range ahead of the line.\nGrants Move +1."
     },
     {
       "id": 138,
@@ -1253,7 +1874,8 @@
         "magEv": 8,
         "rider": "PA+1",
         "equipBonusId": 21
-      }
+      },
+      "desc": "A bruiser's shield -- defense that hits back.\nGrants Physical Attack +1."
     },
     {
       "id": 139,
@@ -1272,7 +1894,8 @@
         "magEv": 24,
         "rider": "absorb Dark",
         "equipBonusId": 78
-      }
+      },
+      "desc": "A shield that drinks the dark.\nAbsorbs Dark, but weak to Holy."
     },
     {
       "id": 140,
@@ -1291,7 +1914,8 @@
         "magEv": 12,
         "rider": "Speed+1",
         "equipBonusId": 23
-      }
+      },
+      "desc": "A masterless warrior's shield, won only by the bold.\nHigh evasion, grants Speed +1."
     },
     {
       "id": 141,
@@ -1310,7 +1934,8 @@
         "magEv": 20,
         "rider": "boost Fire/Ltng/Ice",
         "equipBonusId": 18
-      }
+      },
+      "desc": "A shield that channels raw elements into your strikes.\nStrengthens your Fire, Lightning, and Ice."
     },
     {
       "id": 142,
@@ -1329,7 +1954,8 @@
         "magEv": 32,
         "rider": "halve Fire/Ltng/Ice",
         "equipBonusId": 19
-      }
+      },
+      "desc": "The finest shield ever wrought -- proof against nearly all.\nTop evasion, halves Fire/Lightning/Ice, no weakness."
     },
     {
       "id": 143,
@@ -1346,8 +1972,625 @@
       "proposed": {
         "physEv": 30,
         "magEv": 56,
-        "rider": "MA+1 halve Holy/Dark",
-        "equipBonusId": 40
+        "rider": "innate Protect & Shell (capstone aegis)",
+        "equipBonusId": 68
+      },
+      "desc": "The ultimate aegis, proof against blade and spell alike.\nGrants Protect and Shell, with unmatched magick evasion."
+    },
+    {
+      "id": 172,
+      "category": "Armor",
+      "vanillaName": "Leather Armor",
+      "name": "Leather Armor",
+      "tier": 1,
+      "identity": "Honest Ch1 starter wall -- cheapest heavy body; earliest unlock IS its niche. A riderless anchor protected purely by being the only heavy armor you can have in Ch1.",
+      "baseline": {
+        "hp": 10,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 14,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 173,
+      "category": "Armor",
+      "vanillaName": "Linen Cuirass",
+      "name": "Studded Mail",
+      "tier": 2,
+      "identity": "Attrition body -- a free Regen tick outlasts a slow poke-war; the early sustain pick for a front-liner who trades blows. (vanillaName Linen Cuirass)",
+      "baseline": {
+        "hp": 20,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 22,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Regen",
+        "equipBonusId": 5
+      }
+    },
+    {
+      "id": 174,
+      "category": "Armor",
+      "vanillaName": "Bronze Armor",
+      "name": "Bronze Armor",
+      "tier": 2,
+      "identity": "Aggro starter plate -- the only early heavy body that pushes Knight/Dragoon damage; offense over a few HP.",
+      "baseline": {
+        "hp": 30,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 32,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+1",
+        "equipBonusId": 21
+      }
+    },
+    {
+      "id": 175,
+      "category": "Armor",
+      "vanillaName": "Chainmail",
+      "name": "Chainmail",
+      "tier": 3,
+      "identity": "Anti-hush body -- a melee fighter who can never be Silenced; counters enemy mage packs that lock your skillset.",
+      "baseline": {
+        "hp": 40,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 42,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Silence",
+        "equipBonusId": 26
+      }
+    },
+    {
+      "id": 176,
+      "category": "Armor",
+      "vanillaName": "Mythril Armor",
+      "name": "Mythril Armor",
+      "tier": 3,
+      "identity": "Clean mid-game HP wall -- pure tonnage, no rider tax; the cheap 'just give me bulk' anchor of T3.",
+      "baseline": {
+        "hp": 50,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 52,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 177,
+      "category": "Armor",
+      "vanillaName": "Plate Mail",
+      "name": "Knight's Plate",
+      "tier": 4,
+      "identity": "Front-line bulwark -- innate Protect soft-halves all physical damage; the dedicated physical-tank body. (vanillaName Plate Mail)",
+      "baseline": {
+        "hp": 60,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 62,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Protect",
+        "equipBonusId": 2
+      }
+    },
+    {
+      "id": 178,
+      "category": "Armor",
+      "vanillaName": "Golden Armor",
+      "name": "Sungold Mail",
+      "tier": 4,
+      "identity": "Pyre-ward plate -- heals from Fire (geomancers / enemy Fire mages) but takes extra Water (EB16 weakness); a true defensive sidegrade to Knight's Plate. (vanillaName Golden Armor)",
+      "baseline": {
+        "hp": 70,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 72,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "absorb Fire",
+        "equipBonusId": 16
+      }
+    },
+    {
+      "id": 179,
+      "category": "Armor",
+      "vanillaName": "Diamond Armor",
+      "name": "Diamond Armor",
+      "tier": 4,
+      "identity": "Riderless HP throne of the buyable line -- max bulk-per-gil one tier before the T5 wall; pick when you want raw HP and nothing else.",
+      "baseline": {
+        "hp": 80,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 84,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 180,
+      "category": "Armor",
+      "vanillaName": "Platinum Armor",
+      "name": "Warden Plate",
+      "tier": 5,
+      "identity": "Anti-lockdown body -- immune Stop keeps your tank acting vs Time mages; tempo insurance and the cheaper anti-Stop pick under Crystal Mail. (renamed from designer 'Aegis Plate' to avoid clash with shipped shield 'Aegis Prime'; vanillaName Platinum Armor)",
+      "baseline": {
+        "hp": 90,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 92,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Stop",
+        "equipBonusId": 34
+      }
+    },
+    {
+      "id": 181,
+      "category": "Armor",
+      "vanillaName": "Carabineer Mail",
+      "name": "Carabineer Mail",
+      "tier": 5,
+      "identity": "Tempo plate -- a rare +Speed on heavy armor; a tank that takes more turns. The only body that buys initiative.",
+      "baseline": {
+        "hp": 100,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 102,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Speed+1",
+        "equipBonusId": 14
+      }
+    },
+    {
+      "id": 182,
+      "category": "Armor",
+      "vanillaName": "Crystal Mail",
+      "name": "Crystal Mail",
+      "tier": 5,
+      "identity": "Petrify-proof crystal -- immune to Stop AND Stone; hard counter to Break/Petrify plus Time-mage lockdown; top buyable HP.",
+      "baseline": {
+        "hp": 110,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 110,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Stop, Stone",
+        "equipBonusId": 59
+      }
+    },
+    {
+      "id": 183,
+      "category": "Armor",
+      "vanillaName": "Genji Armor",
+      "name": "Genji Armor",
+      "tier": 6,
+      "identity": "Samurai/Knight offensive capstone -- top-tier HP PLUS PA+2; the rare plate for a damage build, not just a wall. Iconic name preserved.",
+      "baseline": {
+        "hp": 150,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 125,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+2",
+        "equipBonusId": 24
+      }
+    },
+    {
+      "id": 184,
+      "category": "Armor",
+      "vanillaName": "Mirror Mail",
+      "name": "Mirror Mail",
+      "tier": 5,
+      "identity": "The Reflect body -- bounces enemy single-target magic back at the caster; the only Reflect armor. Iconic name preserved.",
+      "baseline": {
+        "hp": 130,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 108,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Reflect",
+        "equipBonusId": 29
+      }
+    },
+    {
+      "id": 185,
+      "category": "Armor",
+      "vanillaName": "Maximillian",
+      "name": "Maximillian",
+      "tier": 6,
+      "identity": "HP throne -- the single highest body HP in the game (160, well under the 255 cap for headroom), now with innate Shell to blunt the magic raw HP can't dodge; the endgame wall. Iconic name preserved.",
+      "baseline": {
+        "hp": 200,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 160,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Shell",
+        "equipBonusId": 4
+      }
+    },
+    {
+      "id": 186,
+      "category": "Clothing",
+      "vanillaName": "Clothing",
+      "name": "Wayfarer's Garb",
+      "tier": 1,
+      "identity": "The one riderless floor. Cheapest, available first, the bare body everything above earns its keep against. Pick when nothing else is affordable yet.",
+      "baseline": {
+        "hp": 5,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 8,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "None",
+        "equipBonusId": 0
+      }
+    },
+    {
+      "id": 187,
+      "category": "Clothing",
+      "vanillaName": "Leather Clothing",
+      "name": "Emberweave Vest",
+      "tier": 2,
+      "identity": "Early Fire-resist body (reuses vanilla EB16) -- absorb Fire, halve Ice, slightly weak to Water. The budget anti-Bomb/anti-Fire-mage pick before any heavy resist exists.",
+      "baseline": {
+        "hp": 10,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 14,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "absorb Fire (+halve Ice)",
+        "equipBonusId": 16
+      }
+    },
+    {
+      "id": 188,
+      "category": "Clothing",
+      "vanillaName": "Leather Plate",
+      "name": "Trailwarden Jerkin",
+      "tier": 2,
+      "identity": "Nimble light body -- +1 Move for skirmishers and archers. The early mobility pick when positioning beats raw HP.",
+      "baseline": {
+        "hp": 18,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 20,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Move+1",
+        "equipBonusId": 42
+      }
+    },
+    {
+      "id": 189,
+      "category": "Clothing",
+      "vanillaName": "Ringmail",
+      "name": "Wardweave Vest",
+      "tier": 2,
+      "identity": "Traveler's tri-element ward (reuses vanilla EB19) -- halves all three primary elements. The broad-resist budget body for mixed-element fights.",
+      "baseline": {
+        "hp": 24,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 28,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "halve Fire/Ice/Lightning",
+        "equipBonusId": 19
+      }
+    },
+    {
+      "id": 190,
+      "category": "Clothing",
+      "vanillaName": "Mythril Vest",
+      "name": "Tempo Vest",
+      "tier": 3,
+      "identity": "Tempo body -- +1 Speed to act sooner each round. The light-armor speed pick before Ninja Gear exists. Pick when you want more turns out of a unit.",
+      "baseline": {
+        "hp": 30,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 34,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Speed+1",
+        "equipBonusId": 14
+      }
+    },
+    {
+      "id": 191,
+      "category": "Clothing",
+      "vanillaName": "Adamant Vest",
+      "name": "Wardsilk Vest",
+      "tier": 3,
+      "identity": "Caster-safety body -- never get Silenced out of your spells. Pick when your mage must keep casting through enemy Silence.",
+      "baseline": {
+        "hp": 36,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 42,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Silence",
+        "equipBonusId": 26
+      }
+    },
+    {
+      "id": 192,
+      "category": "Clothing",
+      "vanillaName": "Wizard Clothing",
+      "name": "Mage's Wrap",
+      "tier": 3,
+      "identity": "ICONIC MP body (Wizard Clothing) -- +18 MP and +1 MA. The mage's light armor: trades HP for spell uptime + a touch of power. MP+MA is the whole identity, so its lower HP is never a strict loss.",
+      "baseline": {
+        "hp": 42,
+        "mp": 15,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 36,
+        "mp": 18,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "MA+1",
+        "equipBonusId": 10
+      }
+    },
+    {
+      "id": 193,
+      "category": "Clothing",
+      "vanillaName": "Brigandine",
+      "name": "Bulwark Brigandine",
+      "tier": 4,
+      "identity": "Durable front-line cloth -- innate Protect halves incoming physical. Heavy-armor-like survivability with universal access and no Equip ability. The light bruiser's wall.",
+      "baseline": {
+        "hp": 50,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 52,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "innate Protect",
+        "equipBonusId": 2
+      }
+    },
+    {
+      "id": 194,
+      "category": "Clothing",
+      "vanillaName": "Jujitsu Gi",
+      "name": "Jujitsu Gi",
+      "tier": 4,
+      "identity": "ICONIC Monk body (vanilla EB30) -- +1 PA and immune to instant-death (Death/KO). Pick for a melee unit that must not get one-shot by Death spells.",
+      "baseline": {
+        "hp": 60,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 60,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+1, immune Death",
+        "equipBonusId": 30
+      }
+    },
+    {
+      "id": 195,
+      "category": "Clothing",
+      "vanillaName": "Power Garb",
+      "name": "Power Garb",
+      "tier": 5,
+      "identity": "ICONIC +PA bruiser body (vanilla EB31) -- the clean physical-attack stat stick. Pick when maximizing Monk/Ninja/melee damage.",
+      "baseline": {
+        "hp": 70,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 70,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "PA+2",
+        "equipBonusId": 24
+      }
+    },
+    {
+      "id": 196,
+      "category": "Clothing",
+      "vanillaName": "Gaia Gear",
+      "name": "Gaia Gear",
+      "tier": 5,
+      "identity": "ICONIC Earth body (vanilla EB32) -- heal from Earth attacks and boost your own Earth/Geomancy, plus a little MP. Pick for Earth builds or against enemy Earth nukes.",
+      "baseline": {
+        "hp": 85,
+        "mp": 10,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 82,
+        "mp": 10,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "absorb Earth (+boost Earth)",
+        "equipBonusId": 32
+      }
+    },
+    {
+      "id": 197,
+      "category": "Clothing",
+      "vanillaName": "Ninja Gear",
+      "name": "Ninja Gear",
+      "tier": 6,
+      "identity": "ICONIC assassin body (vanilla EB33) -- pure agility: +2 Speed and start each battle Invisible, traded for deliberately low HP. End-tier rare for a fast striker who opens from stealth.",
+      "baseline": {
+        "hp": 20,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 34,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "Speed+2, start Invisible",
+        "equipBonusId": 33
+      }
+    },
+    {
+      "id": 198,
+      "category": "Clothing",
+      "vanillaName": "Black Garb",
+      "name": "Black Garb",
+      "tier": 5,
+      "identity": "Anti-Stop durability body (vanilla EB34) -- the highest-HP light body that can never be time-locked out of the fight. The near-pure HP wall.",
+      "baseline": {
+        "hp": 100,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 96,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "immune Stop",
+        "equipBonusId": 34
+      }
+    },
+    {
+      "id": 199,
+      "category": "Clothing",
+      "vanillaName": "Rubber Suit",
+      "name": "Storm Garb",
+      "tier": 6,
+      "identity": "ICONIC Rubber body (vanilla EB35) -- fully null Lightning, high HP and some MP. End-tier rare. Hard counter to Thunder/Bolt fights or a hybrid-caster anchor.",
+      "baseline": {
+        "hp": 150,
+        "mp": 0,
+        "physEv": 0,
+        "magEv": 0
+      },
+      "proposed": {
+        "hp": 90,
+        "mp": 14,
+        "physEv": 0,
+        "magEv": 0,
+        "rider": "null Lightning",
+        "equipBonusId": 35
       }
     }
   ]

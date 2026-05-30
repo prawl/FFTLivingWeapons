@@ -68,8 +68,120 @@
       <EquipBonusId>19</EquipBonusId>
     </Item>
     <Item>
-      <Id>143</Id> <!-- Aegis Prime (was Escutcheon II): EquipBonus 40 (MA+1 halve Holy/Dark) -->
-      <EquipBonusId>40</EquipBonusId>
+      <Id>143</Id> <!-- Aegis Prime (was Escutcheon II): EquipBonus 68 (innate Protect & Shell (capstone aegis)) -->
+      <EquipBonusId>68</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>172</Id> <!-- Leather Armor: EquipBonus 0 (None) -->
+      <EquipBonusId>0</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>173</Id> <!-- Studded Mail (was Linen Cuirass): EquipBonus 5 (innate Regen) -->
+      <EquipBonusId>5</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>174</Id> <!-- Bronze Armor: EquipBonus 21 (PA+1) -->
+      <EquipBonusId>21</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>175</Id> <!-- Chainmail: EquipBonus 26 (immune Silence) -->
+      <EquipBonusId>26</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>176</Id> <!-- Mythril Armor: EquipBonus 0 (None) -->
+      <EquipBonusId>0</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>177</Id> <!-- Knight's Plate (was Plate Mail): EquipBonus 2 (innate Protect) -->
+      <EquipBonusId>2</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>178</Id> <!-- Sungold Mail (was Golden Armor): EquipBonus 16 (absorb Fire) -->
+      <EquipBonusId>16</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>179</Id> <!-- Diamond Armor: EquipBonus 0 (None) -->
+      <EquipBonusId>0</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>180</Id> <!-- Warden Plate (was Platinum Armor): EquipBonus 34 (immune Stop) -->
+      <EquipBonusId>34</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>181</Id> <!-- Carabineer Mail: EquipBonus 14 (Speed+1) -->
+      <EquipBonusId>14</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>182</Id> <!-- Crystal Mail: EquipBonus 59 (immune Stop, Stone) -->
+      <EquipBonusId>59</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>183</Id> <!-- Genji Armor: EquipBonus 24 (PA+2) -->
+      <EquipBonusId>24</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>184</Id> <!-- Mirror Mail: EquipBonus 29 (innate Reflect) -->
+      <EquipBonusId>29</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>185</Id> <!-- Maximillian: EquipBonus 4 (innate Shell) -->
+      <EquipBonusId>4</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>186</Id> <!-- Wayfarer's Garb (was Clothing): EquipBonus 0 (None) -->
+      <EquipBonusId>0</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>187</Id> <!-- Emberweave Vest (was Leather Clothing): EquipBonus 16 (absorb Fire (+halve Ice)) -->
+      <EquipBonusId>16</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>188</Id> <!-- Trailwarden Jerkin (was Leather Plate): EquipBonus 42 (Move+1) -->
+      <EquipBonusId>42</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>189</Id> <!-- Wardweave Vest (was Ringmail): EquipBonus 19 (halve Fire/Ice/Lightning) -->
+      <EquipBonusId>19</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>190</Id> <!-- Tempo Vest (was Mythril Vest): EquipBonus 14 (Speed+1) -->
+      <EquipBonusId>14</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>191</Id> <!-- Wardsilk Vest (was Adamant Vest): EquipBonus 26 (immune Silence) -->
+      <EquipBonusId>26</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>192</Id> <!-- Mage's Wrap (was Wizard Clothing): EquipBonus 10 (MA+1) -->
+      <EquipBonusId>10</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>193</Id> <!-- Bulwark Brigandine (was Brigandine): EquipBonus 2 (innate Protect) -->
+      <EquipBonusId>2</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>194</Id> <!-- Jujitsu Gi: EquipBonus 30 (PA+1, immune Death) -->
+      <EquipBonusId>30</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>195</Id> <!-- Power Garb: EquipBonus 24 (PA+2) -->
+      <EquipBonusId>24</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>196</Id> <!-- Gaia Gear: EquipBonus 32 (absorb Earth (+boost Earth)) -->
+      <EquipBonusId>32</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>197</Id> <!-- Ninja Gear: EquipBonus 33 (Speed+2, start Invisible) -->
+      <EquipBonusId>33</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>198</Id> <!-- Black Garb: EquipBonus 34 (immune Stop) -->
+      <EquipBonusId>34</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>199</Id> <!-- Storm Garb (was Rubber Suit): EquipBonus 35 (null Lightning) -->
+      <EquipBonusId>35</EquipBonusId>
     </Item>
   </Entries>
 </ItemTable>

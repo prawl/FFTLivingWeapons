@@ -8,7 +8,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>5</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
@@ -19,7 +18,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>6</Power>
       <Evasion>25</Evasion>
       <Elements>None</Elements>
@@ -30,7 +28,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>5</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
@@ -41,7 +38,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>6</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
@@ -52,7 +48,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>7</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
@@ -63,7 +58,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>48</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>6</Power>
       <Evasion>50</Evasion>
       <Elements>None</Elements>
@@ -74,7 +68,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>9</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -85,7 +78,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>8</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
@@ -96,7 +88,6 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>10</Power>
       <Evasion>5</Evasion>
       <Elements>Wind</Elements>
@@ -107,18 +98,88 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>12</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>12</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
+      <Id>11</Id> <!-- Shadowfang (was Ninja Blade) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>12</Id> <!-- Kunai -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>9</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>13</Id> <!-- Frost Kodachi (was Kodachi) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>10</Power>
+      <Evasion>10</Evasion>
+      <Elements>Ice</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>14</Id> <!-- Raijin Longblade (was Ninja Longblade) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>11</Power>
+      <Evasion>20</Evasion>
+      <Elements>Lightning</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>15</Id> <!-- Spellbinder -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>11</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>10</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>16</Id> <!-- Sasuke's Blade -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>13</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>12</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>17</Id> <!-- Iga Blade -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>14</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>18</Id> <!-- Koga Blade -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>13</Power>
+      <Evasion>5</Evasion>
+      <Elements>Dark</Elements>
+      <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
       <Id>19</Id> <!-- Vagabond (was Broadsword) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>4</Power>
       <Evasion>12</Evasion>
       <Elements>None</Elements>
@@ -129,7 +190,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>6</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -140,7 +200,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>7</Power>
       <Evasion>16</Evasion>
       <Elements>None</Elements>
@@ -151,7 +210,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>8</Power>
       <Evasion>0</Evasion>
       <Elements>None</Elements>
@@ -162,7 +220,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>6</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>6</Power>
       <Evasion>8</Evasion>
       <Elements>None</Elements>
@@ -173,7 +230,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>8</Power>
       <Evasion>5</Evasion>
       <Elements>Lightning</Elements>
@@ -184,7 +240,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>7</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -195,7 +250,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>9</Power>
       <Evasion>5</Evasion>
       <Elements>Fire</Elements>
@@ -206,7 +260,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>12</Power>
       <Evasion>4</Evasion>
       <Elements>None</Elements>
@@ -217,7 +270,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>10</Power>
       <Evasion>14</Evasion>
       <Elements>None</Elements>
@@ -228,7 +280,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>13</Power>
       <Evasion>10</Evasion>
       <Elements>Ice</Elements>
@@ -239,7 +290,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>14</Power>
       <Evasion>8</Evasion>
       <Elements>None</Elements>
@@ -250,7 +300,6 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>3</Power>
       <Evasion>50</Evasion>
       <Elements>None</Elements>
@@ -261,18 +310,124 @@
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>47</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>11</Power>
       <Evasion>12</Evasion>
       <Elements>Dark</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
+      <Id>33</Id> <!-- Aegisbrand (was Defender) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>16</Power>
+      <Evasion>60</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>34</Id> <!-- Sentinel's Vow (was Save the Queen) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>18</Power>
+      <Evasion>45</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>12</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>35</Id> <!-- Excalibur -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>21</Power>
+      <Evasion>35</Evasion>
+      <Elements>Holy</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>36</Id> <!-- Ragnarok -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>24</Power>
+      <Evasion>25</Evasion>
+      <Elements>Dark</Elements>
+      <OptionsAbilityId>10</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>37</Id> <!-- Chaos Blade -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>28</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>11</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>48</Id> <!-- Hatchet (was Battle Axe) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>49</Id> <!-- War Axe (was Giant's Axe) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>13</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>50</Id> <!-- Headsman's Axe (was Slasher) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>16</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>11</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>67</Id> <!-- Iron Flail -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>9</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>68</Id> <!-- Flail of Flame -->
+      <Range>2</Range>
+      <Formula>2</Formula>
+      <Power>11</Power>
+      <Evasion>0</Evasion>
+      <Elements>Fire</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>69</Id> <!-- Morning Star -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>13</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>14</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>70</Id> <!-- Scorpion Tail -->
+      <Range>2</Range>
+      <Formula>1</Formula>
+      <Power>15</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
       <Id>77</Id> <!-- Scoutbolt (was Bowgun) -->
       <Range>3</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>4</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
@@ -283,7 +438,6 @@
       <Range>4</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>5</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -294,7 +448,6 @@
       <Range>5</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>7</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -305,7 +458,6 @@
       <Range>4</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>6</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -316,7 +468,6 @@
       <Range>4</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>8</Power>
       <Evasion>8</Evasion>
       <Elements>None</Elements>
@@ -327,7 +478,6 @@
       <Range>4</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>11</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -338,7 +488,6 @@
       <Range>5</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>4</Power>
       <Evasion>20</Evasion>
       <Elements>None</Elements>
@@ -349,7 +498,6 @@
       <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>5</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
@@ -360,7 +508,6 @@
       <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>5</Power>
       <Evasion>5</Evasion>
       <Elements>Ice</Elements>
@@ -371,7 +518,6 @@
       <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>6</Power>
       <Evasion>5</Evasion>
       <Elements>Lightning</Elements>
@@ -382,7 +528,6 @@
       <Range>7</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>8</Power>
       <Evasion>0</Evasion>
       <Elements>Wind</Elements>
@@ -393,7 +538,6 @@
       <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>7</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
@@ -404,7 +548,6 @@
       <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>9</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
@@ -415,7 +558,6 @@
       <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>12</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -426,11 +568,46 @@
       <Range>8</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Unused_0x03>255</Unused_0x03>
       <Power>15</Power>
       <Evasion>0</Evasion>
       <Elements>Holy</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>115</Id> <!-- Sandman Satchel (was Catskin Bag) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>10</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>12</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>116</Id> <!-- Fallingstar Bag -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>18</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>117</Id> <!-- Hornet Pouch (was Proudhide Bag) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>12</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>118</Id> <!-- Hexweave Bag (was Hardscale Bag) -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>14</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>10</OptionsAbilityId>
     </ItemWeapon>
   </Entries>
 </ItemWeaponTable>

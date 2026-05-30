@@ -4,11 +4,6 @@
   <Version>1</Version>
   <Entries>
     <ItemEquipBonus>
-      <Id>40</Id>
-      <MABonus>1</MABonus>
-      <HalveElements>Holy, Dark</HalveElements>
-    </ItemEquipBonus>
-    <ItemEquipBonus>
       <Id>74</Id>
       <HalveElements>Water</HalveElements>
     </ItemEquipBonus>

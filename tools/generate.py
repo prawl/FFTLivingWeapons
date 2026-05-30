@@ -25,6 +25,11 @@ WEAPON_CATEGORIES = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "A
                      "Flail", "Gun", "Crossbow", "Bow", "Instrument", "Book", "Polearm", "Pole", "Bag", "Cloth"}
 SHIELD_CATEGORIES = {"Shield"}
 SHIELD_DATA_BASE = 128  # shield item id 128 -> ItemShieldData row 0
+ARMOR_CATEGORIES = {"Helmet", "Hat", "HairAdornment", "Armor", "Clothing", "Robe"}      # -> ItemArmorData (HP/MP)
+ACCESSORY_CATEGORIES = {"Shoes", "Armguard", "Ring", "Armlet", "Cloak", "Perfume"}      # -> ItemAccessoryData (evade)
+# AdditionalDataId per global item id (from tools/decode_tables.py ref) -- maps each item to its type-table row.
+_REF = ROOT / "working" / "ref" / "itemdata.json"
+ADD_DATA_ID = {int(k): v["additionalDataId"] for k, v in json.loads(_REF.read_text(encoding="utf-8")).items()} if _REF.exists() else {}
 # EquipBonus row fields in canonical emit order
 EB_FIELDS = ["PABonus", "MABonus", "SpeedBonus", "MoveBonus", "JumpBonus", "InnateStatus", "ImmuneStatus",
              "StartingStatus", "AbsorbElements", "NullifyElements", "HalveElements", "WeakElements",
@@ -43,10 +48,12 @@ def name_comment(it):
 
 
 def weapon_entry(it):
+    # Sparse: omit AttackFlags (preserve vanilla TwoSwords/Throwable/TwoHands) unless a design explicitly sets it.
     s = it["proposed"]
+    flags = f"      <AttackFlags>{s['attackFlags']}</AttackFlags>\n" if s.get("attackFlags") else ""
     return (f"    <ItemWeapon>\n      <Id>{it['id']}</Id> <!-- {name_comment(it)} -->\n"
-            f"      <Range>{s.get('range', 1)}</Range>\n      <AttackFlags>{s.get('attackFlags', 'Striking')}</AttackFlags>\n"
-            f"      <Formula>{s.get('formula', 1)}</Formula>\n      <Unused_0x03>255</Unused_0x03>\n"
+            f"      <Range>{s.get('range', 1)}</Range>\n{flags}"
+            f"      <Formula>{s.get('formula', 1)}</Formula>\n"
             f"      <Power>{s['wp']}</Power>\n      <Evasion>{s['evade']}</Evasion>\n"
             f"      <Elements>{s.get('element', 'None')}</Elements>\n      <OptionsAbilityId>{s.get('onHitAbilityId', 0)}</OptionsAbilityId>\n    </ItemWeapon>\n")
 
@@ -55,6 +62,25 @@ def shield_entry(it):
     s = it["proposed"]
     return (f"    <ItemShield>\n      <Id>{it['id'] - SHIELD_DATA_BASE}</Id> <!-- {name_comment(it)} -->\n"
             f"      <PhysicalEvasion>{s['physEv']}</PhysicalEvasion>\n      <MagicalEvasion>{s['magEv']}</MagicalEvasion>\n    </ItemShield>\n")
+
+
+def _add_id(it):
+    aid = ADD_DATA_ID.get(it["id"])
+    if aid is None:
+        raise SystemExit(f"No AdditionalDataId for item {it['id']} ({it.get('name')}). Run tools/decode_tables.py first.")
+    return aid
+
+
+def armor_entry(it):
+    s = it["proposed"]
+    return (f"    <ItemArmor>\n      <Id>{_add_id(it)}</Id> <!-- {name_comment(it)} -->\n"
+            f"      <HPBonus>{s.get('hp', 0)}</HPBonus>\n      <MPBonus>{s.get('mp', 0)}</MPBonus>\n    </ItemArmor>\n")
+
+
+def accessory_entry(it):
+    s = it["proposed"]
+    return (f"    <ItemAccessory>\n      <Id>{_add_id(it)}</Id> <!-- {name_comment(it)} -->\n"
+            f"      <PhysicalEvasion>{s.get('physEv', 0)}</PhysicalEvasion>\n      <MagicalEvasion>{s.get('magEv', 0)}</MagicalEvasion>\n    </ItemAccessory>\n")
 
 
 def itemdata_entry(it):
@@ -86,6 +112,18 @@ def main():
         (MOD_TABLES / "ItemShieldData.xml").write_text(
             hdr("ItemShieldTable") + "".join(shield_entry(it) for it in shields) + "  </Entries>\n</ItemShieldTable>\n", encoding="utf-8")
         wrote.append(f"ItemShieldData.xml ({len(shields)} shields)")
+
+    armor = [it for it in items if it["category"] in ARMOR_CATEGORIES]
+    if armor:
+        (MOD_TABLES / "ItemArmorData.xml").write_text(
+            hdr("ItemArmorTable") + "".join(armor_entry(it) for it in armor) + "  </Entries>\n</ItemArmorTable>\n", encoding="utf-8")
+        wrote.append(f"ItemArmorData.xml ({len(armor)} armor)")
+
+    accessories = [it for it in items if it["category"] in ACCESSORY_CATEGORIES]
+    if accessories:
+        (MOD_TABLES / "ItemAccessoryData.xml").write_text(
+            hdr("ItemAccessoryTable") + "".join(accessory_entry(it) for it in accessories) + "  </Entries>\n</ItemAccessoryTable>\n", encoding="utf-8")
+        wrote.append(f"ItemAccessoryData.xml ({len(accessories)} accessories)")
 
     # ItemData: every item that sets an equipBonusId (shields + any weapon w/ a rider, e.g. Arcanum MA+2)
     eb_items = [it for it in items if "equipBonusId" in it["proposed"]]
