@@ -23,20 +23,28 @@ already-confirmed formula vectors: 67 missing-HP berserker, 99 Speed-weapon, 4 F
 weapon, status procs, dispel (Cancel 55), Rush knockback. Re-balance WP/evade/element/proc and
 re-pass the dominance gate per category; fold in re-pricing + shop re-timing while we're in there.
 
-## Offensive Chemist / offensive items (NEW — confirmed working in-game)
+Lore / signature weapons to slot in during the pass:
+- **Gaffgarion's Blade** (KnightSword) — formula 2 + cast **Sanguine Sword (45, "Absorb HP from
+  the target")**, the HP-steal Gaffgarion spams every battle. Dark theme; convert a KnightSword
+  slot (e.g. the crimson Ravager, id 49). id 45 <= 255, cast confirmed.
 
-Make the Item command an offensive lane. CONFIRMED: a consumable's `StatusEffectId` is an
-ItemOptionsId pointer; point a repurposed slot at an ADD-type row and it INFLICTS the status on
-a thrown enemy (High Ether -> Sleep landed in-game). So any Item-command job (Chemist, or Item
-secondary on a fighter) becomes a crowd-controller — MP-free, Faith-independent, reliable (no
-19% roll).
-- ItemConsumableData is hard-capped at 14 slots, all used -> each offensive item COSTS an
-  existing consumable (sacrifice High Ether / Elixir / a redundant cure).
-- Status grenades: StatusEffectId -> Sleep(12) / Slow / Blind / Poison ADD rows (formula 56
-  applies the row faithfully). Spread a few different ailments.
-- Try DAMAGE items too (bomb / elemental flask) — vanilla has no offensive-damage consumable,
+## Offensive Chemist — SHIPPED 2026-06-01 (price still pending)
+
+Built 5 status grenades from the 5 Remedy-covered single-cures (item ids 246-250): Venom Flask
+(Poison) / Smoke Bomb (Blind) / Oil Flask (Oil) / Hush Vial (Silence) / Sludge Bomb (Slow), via
+ItemConsumableData Formula 56 + StatusEffectId -> an ADD-type ItemOptions row. Renamed
+(patch_grenades.py), recolored (recolor_icons.py), staggered Ch1/Ch2/Ch3/Ch4, and Remedy bumped
+to Ch1 (it became the only cure). Mechanic + availability confirmed in-game; Remedy still covers
+all 5 ailments so curing is intact.
+
+Remaining:
+- PRICE: stuck at vanilla 50/100 g. ItemData `<Price>` is silently overridden by the nex 'Item'
+  table for consumables (ShopAvailability is NOT — that one sticks). The real price lives in the
+  base `item.nxd`, which is NOT extracted (only item.en.nxd is, and price isn't in it). To set
+  grenade prices (Sludge 1000 etc.) we must extract + edit the base item.nxd -- the SAME table
+  the "re-price everything" pass needs, so do them together.
+- Try DAMAGE items too (bomb / elemental flask) -- vanilla has no offensive-damage consumable,
   so the damage-consumable formula needs a test.
-- No equip-screen oracle for consumables -> confirm each with one in-battle toss.
 
 ## Lost-HP berserker weapon (want this one)
 
