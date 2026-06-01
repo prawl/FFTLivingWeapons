@@ -51,7 +51,7 @@ param (
 # FFT IC extension treats a zip with files-at-root as malformed and falls back
 # to fabricating a fake wrapper, which double-nests the install. Naming this
 # folder after our ModId makes the zip extract to the expected layout.
-$ModId            = "paxtrick.fft.itemoverhaul"
+$ModId            = "prawl.fft.itemoverhaul"
 $SourceModPath    = "mod"
 $BuildOutputPath  = "Publish/$ModId"
 $SourceModConfig  = "$SourceModPath/ModConfig.json"
@@ -194,15 +194,18 @@ function Create-Package {
 
     Write-Status "Creating ZIP package..." "Green"
 
-    # Nexus archive naming convention: <ModName>-<NexusModId>-<version-with-dashes>-<unix-timestamp>.zip
-    # Vortex parses version + mod ID from this filename pattern to populate its UI
-    # (without it the mod shows a "!" with no version when manually installed).
-    if ($NexusModId -le 0) {
-        Write-Host "  -> NexusModId is $NexusModId (placeholder); set -NexusModId before uploading to Nexus." -ForegroundColor Yellow
-    }
+    # Default: a STABLE name (FFTItemOverhaul-<version>.zip) so re-cutting a tag overwrites the
+    # release asset in place instead of piling up timestamped copies. With -NexusModId set, switch to
+    # the Nexus convention (<ModName>-<NexusModId>-<version-dashed>-<unix-timestamp>.zip) that Vortex
+    # parses for version + mod ID (without which the mod shows a "!" with no version when hand-installed).
     $versionDashed = $ModVersion -replace '\.', '-'
-    $unixTimestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-    $packageName = "FFTItemOverhaul-$NexusModId-$versionDashed-$unixTimestamp.zip"
+    if ($NexusModId -gt 0) {
+        $unixTimestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+        $packageName = "FFTItemOverhaul-$NexusModId-$versionDashed-$unixTimestamp.zip"
+    } else {
+        Write-Host "  -> Stable name (no -NexusModId); pass -NexusModId for the Vortex-parseable name before a Nexus upload." -ForegroundColor Yellow
+        $packageName = "FFTItemOverhaul-$ModVersion.zip"
+    }
     $packagePath = Join-Path $OutputPath $packageName
 
     # Remove existing package if it exists
@@ -241,7 +244,7 @@ function Create-Package {
         Write-Host "  -> Target: $absolutePackagePath"
 
         # includeBaseDirectory: $true wraps zip contents in a folder named after
-        # the build folder (paxtrick.fft.itemoverhaul). Vortex's FFT IC extension
+        # the build folder (prawl.fft.itemoverhaul). Vortex's FFT IC extension
         # installer treats this as the proper structure and avoids creating a
         # fake wrapper folder (which would double-nest the install).
         [System.IO.Compression.ZipFile]::CreateFromDirectory(

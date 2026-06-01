@@ -5,7 +5,7 @@
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
-$modId = "paxtrick.fft.itemoverhaul"
+$modId = "prawl.fft.itemoverhaul"
 $modsDir = $env:RELOADEDIIMODS
 if (-not $modsDir) {
     $modsDir = "C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods"
