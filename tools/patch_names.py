@@ -99,9 +99,9 @@ def mechanics(it):
         p = s.get("onHitAbilityId", 0) or 0
         if f == 67:  # CasMaxHP - CasCurHP: damage = the wielder's missing HP, ignores WP
             return "Deals damage equal to the wielder's missing HP. Harmless at full health, devastating near death."
-        if f == 4 and el not in ("None", None, ""):  # magic gun: the attack IS the elemental spell, off Magick Attack
+        if f == 4 and el not in ("None", None, ""):  # magic gun: attack IS the elemental spell; scales off FAITH (not MA), ignores armor
             spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
-            parts.append(f"Its attack casts {spell}, scaling with Magick Attack instead of striking (no MP cost).")
+            parts.append(f"Its attack strikes as {spell} at no MP cost; the magic damage scales with the wielder's Faith.")
         elif el not in ("None", None, ""):
             parts.append(f"Deals {el}-elemental damage.")
         if f == 99:
