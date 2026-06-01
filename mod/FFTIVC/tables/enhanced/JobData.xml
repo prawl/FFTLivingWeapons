@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FFTItemOverhaul: widened per-job equippability + universal shields (sparse). Load AFTER other job mods. -->
+<JobTable>
+  <Version>1</Version>
+  <Entries>
+    <Job>
+      <Id>61</Id> <!-- Knight: +Axe -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, Flail, KnightSword, Sword, Unarmed, Axe</EquippableItems>
+    </Job>
+    <Job>
+      <Id>63</Id> <!-- Archer: +Gun -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Bow, Crossbow, Unarmed, Gun</EquippableItems>
+    </Job>
+    <Job>
+      <Id>66</Id> <!-- Black Mage: +Knife +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>68</Id> <!-- Time Mage: +Rod +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Unarmed, Rod, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>70</Id> <!-- Mystic: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Pole, Book, Staff, Rod, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>71</Id> <!-- Summoner: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Rod, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>74</Id> <!-- Squire: +Crossbow +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Flail, Axe, Sword, Knife, Unarmed, Crossbow, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>75</Id> <!-- Chemist: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Gun, Knife, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>76</Id> <!-- Knight: +Axe -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, KnightSword, Sword, Unarmed, Axe</EquippableItems>
+    </Job>
+    <Job>
+      <Id>77</Id> <!-- Archer: +Gun -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Shield, Bow, Crossbow, Unarmed, Gun</EquippableItems>
+    </Job>
+    <Job>
+      <Id>78</Id> <!-- Monk: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>79</Id> <!-- White Mage: +Rod +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Unarmed, Rod, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>80</Id> <!-- Black Mage: +Knife +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>81</Id> <!-- Time Mage: +Rod +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Unarmed, Rod, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>82</Id> <!-- Summoner: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Rod, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>83</Id> <!-- Thief: +Bow +Crossbow +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Knife, Unarmed, Bow, Crossbow, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>84</Id> <!-- Orator: +Sword +Book +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Gun, Knife, Unarmed, Sword, Book, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>85</Id> <!-- Mystic: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Pole, Book, Staff, Rod, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>86</Id> <!-- Geomancer: +Pole -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Axe, Sword, Unarmed, Pole</EquippableItems>
+    </Job>
+    <Job>
+      <Id>87</Id> <!-- Dragoon: +Sword -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, Polearm, Unarmed, Sword</EquippableItems>
+    </Job>
+    <Job>
+      <Id>88</Id> <!-- Samurai: +Polearm +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Katana, Unarmed, Polearm, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>89</Id> <!-- Ninja: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Flail, NinjaBlade, Knife, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>90</Id> <!-- Arithmetician: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Pole, Book, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>91</Id> <!-- Bard: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Bag, Instrument, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>92</Id> <!-- Dancer: +Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Cloth, Bag, Knife, Unarmed, Shield</EquippableItems>
+    </Job>
+    <Job>
+      <Id>93</Id> <!-- Mime: +Shield -->
+      <EquippableItems>Unarmed, Shield</EquippableItems>
+    </Job>
+  </Entries>
+</JobTable>

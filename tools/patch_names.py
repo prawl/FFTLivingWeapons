@@ -35,8 +35,9 @@ CAT_NOUN = {"Knife": "knife", "NinjaBlade": "ninja blade", "Sword": "blade", "Kn
             "Pole": "pole", "Bag": "bag", "Cloth": "cloth", "Shield": "shield", "Helmet": "helm", "Hat": "hat",
             "HairAdornment": "adornment", "Armor": "armor", "Clothing": "garb", "Robe": "robe", "Shoes": "boots",
             "Armguard": "gauntlet", "Ring": "ring", "Armlet": "armlet", "Cloak": "cloak", "Perfume": "perfume"}
-PROC = {9: "Blind", 10: "Silence", 11: "Doom", 12: "Sleep", 14: "Immobilize", 22: "Poison",
-        23: "Confuse", 24: "Charm", 101: "Oil"}  # Formula-1 status procs (in Formula 2 the same ids mean spells)
+PROC = {9: "Blind", 10: "Silence", 11: "Doom", 12: "Sleep", 13: "Don't Act", 14: "Immobilize",
+        17: "Petrify", 18: "Slow", 22: "Poison", 23: "Confuse", 24: "Charm", 44: "Stop", 53: "Berserk",
+        101: "Oil"}  # Formula-1 status procs (ItemOptions ids; in Formula 2/4 the same ids mean spells)
 
 # thematic flavor clauses keyed by the item's defining trait (element > proc > rider > role)
 ELEM_FLAVOR = {
@@ -81,6 +82,8 @@ def rider_text(rider):
             if set(v.split(", ")) == set(ALL8.split(", ")):
                 v = "all elemental"
             out.append(f"{verb} {v} damage.")
+    if q.get("WeakElements"):
+        out.append(f"Weak to {q['WeakElements']} (takes extra damage).")
     if q.get("BoostJP"):
         out.append("Boosts JP earned.")
     return " ".join(out)
@@ -91,19 +94,31 @@ def mechanics(it):
     parts = []
     if it["category"] in WEAPON_CATS:
         el = s.get("element", "None")
-        if el not in ("None", None, ""):
-            parts.append(f"Deals {el}-elemental damage.")
+        f = s.get("formula", 1)
         p = s.get("onHitAbilityId", 0) or 0
-        if p in PROC and s.get("formula") not in (2, 4):  # Formula 2/4 read the opt id as a spell cast, not a status
-            parts.append(f"May inflict {PROC[p]} on hit.")
-        if s.get("formula") in (6, 47, 48):
-            parts.append({6: "Absorbs HP dealt.", 47: "Absorbs MP dealt.", 48: "Night Sword: drains HP."}[s["formula"]])
-        if s.get("formula") == 2 and el not in ("None", None, ""):  # vanilla elemental spell-cast on hit
+        if f == 4 and el not in ("None", None, ""):  # magic gun: the attack IS the elemental spell, off Magick Attack
+            spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
+            parts.append(f"Its attack casts {spell}, scaling with Magick Attack instead of striking (no MP cost).")
+        elif el not in ("None", None, ""):
+            parts.append(f"Deals {el}-elemental damage.")
+        if f == 99:
+            parts.append("Damage scales with the wielder's Speed, not Physical Attack.")
+        if f not in (2, 4):  # Formula 2/4 read the opt id as a spell cast, not a status
+            if p == 55:
+                parts.append("Strips the target's buffs on hit.")
+            elif p == 95:
+                parts.append("May Stop, petrify, or kill on hit.")
+            elif p == 41:
+                parts.append("May instantly kill on hit.")
+            elif p in PROC:
+                parts.append(f"May inflict {PROC[p]} on hit.")
+        if f in (6, 47, 48):
+            parts.append({6: "Absorbs HP dealt.", 47: "Absorbs MP dealt.", 48: "Night Sword: drains HP."}[f])
+        if f == 2 and el not in ("None", None, ""):  # vanilla elemental spell-cast on hit
             spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
             parts.append(f"May cast {spell} on hit.")
-        ev = s.get("evade", 0) or 0
-        if ev >= 15:
-            parts.append(f"Turns aside {ev}% of physical blows.")
+        if f == 2 and p == 147:  # Rush = knockback
+            parts.append("May knock the target back a tile on hit.")
         rng = s.get("range", 1) or 1
         if rng >= 2:  # any reach weapon states its range (per user request)
             parts.append(f"Strikes from up to {rng} tiles away.")

@@ -4,6 +4,16 @@
   <Version>1</Version>
   <Entries>
     <ItemEquipBonus>
+      <Id>56</Id>
+      <PABonus>0</PABonus>
+      <MABonus>0</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <WeakElements>Holy</WeakElements>
+      <StrongElements>Dark</StrongElements>
+    </ItemEquipBonus>
+    <ItemEquipBonus>
       <Id>74</Id>
       <HalveElements>Water</HalveElements>
     </ItemEquipBonus>

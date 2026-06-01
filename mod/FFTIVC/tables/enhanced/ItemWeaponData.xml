@@ -101,7 +101,7 @@
       <Power>12</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>12</OptionsAbilityId>
+      <OptionsAbilityId>41</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>11</Id> <!-- Shadowfang (was Ninja Blade) -->
@@ -114,10 +114,10 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>12</Id> <!-- Mistedge (was Kunai) -->
-      <Range>1</Range>
+      <Range>2</Range>
       <Formula>1</Formula>
       <Power>9</Power>
-      <Evasion>15</Evasion>
+      <Evasion>10</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
@@ -189,11 +189,11 @@
       <Id>20</Id> <!-- Cleaver (was Longsword) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>6</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>147</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>21</Id> <!-- Riposte (was Iron Sword) -->
@@ -206,7 +206,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>22</Id> <!-- Reaver (was Mythril Sword) -->
+      <Id>22</Id> <!-- Claymore (was Mythril Sword) -->
       <Range>2</Range>
       <AttackFlags>Throwable, TwoHands, Lunging</AttackFlags>
       <Formula>1</Formula>
@@ -229,11 +229,11 @@
       <Id>24</Id> <!-- Stormbrand (was Coral Sword) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>8</Power>
       <Evasion>5</Evasion>
       <Elements>Lightning</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>20</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>25</Id> <!-- Tanglethorn (was Ancient Sword) -->
@@ -266,12 +266,12 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>28</Id> <!-- Bulwark (was Diamond Sword) -->
+      <Id>28</Id> <!-- Swiftedge (was Diamond Sword) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>1</Formula>
-      <Power>10</Power>
-      <Evasion>14</Evasion>
+      <Formula>99</Formula>
+      <Power>8</Power>
+      <Evasion>10</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
@@ -309,7 +309,7 @@
       <Id>32</Id> <!-- Materia Blade -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>47</Formula>
+      <Formula>1</Formula>
       <Power>11</Power>
       <Evasion>12</Evasion>
       <Elements>Dark</Elements>
@@ -358,10 +358,10 @@
       <Power>28</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>11</OptionsAbilityId>
+      <OptionsAbilityId>17</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>38</Id> <!-- Asura (was Ashura) -->
+      <Id>38</Id> <!-- Ashura -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>7</Power>
@@ -467,16 +467,16 @@
       <Power>13</Power>
       <Evasion>0</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>53</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>50</Id> <!-- Headsman's Axe (was Slasher) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>16</Power>
       <Evasion>0</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>11</OptionsAbilityId>
+      <OptionsAbilityId>147</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>51</Id> <!-- Apprentice Rod (was Rod) -->
@@ -490,29 +490,29 @@
     <ItemWeapon>
       <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
       <Range>1</Range>
-      <Formula>2</Formula>
-      <Power>3</Power>
+      <Formula>4</Formula>
+      <Power>8</Power>
       <Evasion>20</Evasion>
       <Elements>Lightning</Elements>
-      <OptionsAbilityId>20</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
       <Range>1</Range>
-      <Formula>2</Formula>
-      <Power>3</Power>
+      <Formula>4</Formula>
+      <Power>8</Power>
       <Evasion>20</Evasion>
       <Elements>Fire</Elements>
-      <OptionsAbilityId>16</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>54</Id> <!-- Frost Rod (was Ice Rod) -->
       <Range>1</Range>
-      <Formula>2</Formula>
-      <Power>3</Power>
+      <Formula>4</Formula>
+      <Power>8</Power>
       <Evasion>20</Evasion>
       <Elements>Ice</Elements>
-      <OptionsAbilityId>24</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>55</Id> <!-- Venom Rod (was Poison Rod) -->
@@ -620,7 +620,7 @@
       <Power>7</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>11</OptionsAbilityId>
+      <OptionsAbilityId>44</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>67</Id> <!-- Ironlash (was Iron Flail) -->
@@ -634,11 +634,11 @@
     <ItemWeapon>
       <Id>68</Id> <!-- Pyrelash (was Flail of Flame) -->
       <Range>1</Range>
-      <Formula>2</Formula>
+      <Formula>1</Formula>
       <Power>11</Power>
       <Evasion>0</Evasion>
       <Elements>Fire</Elements>
-      <OptionsAbilityId>17</OptionsAbilityId>
+      <OptionsAbilityId>12</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>69</Id> <!-- Snarelash (was Morning Star) -->
@@ -656,7 +656,7 @@
       <Power>15</Power>
       <Evasion>0</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>22</OptionsAbilityId>
+      <OptionsAbilityId>95</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>71</Id> <!-- Outrider Pistol (was Romandan Pistol) -->
@@ -679,7 +679,7 @@
     <ItemWeapon>
       <Id>73</Id> <!-- Stoneshooter -->
       <Range>9</Range>
-      <Formula>4</Formula>
+      <Formula>3</Formula>
       <Power>16</Power>
       <Evasion>5</Evasion>
       <Elements>Earth</Elements>
@@ -734,7 +734,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>79</Id> <!-- Arbalest (was Crossbow) -->
-      <Range>5</Range>
+      <Range>6</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
       <Power>7</Power>
@@ -744,7 +744,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>80</Id> <!-- Venombolt (was Poison Crossbow) -->
-      <Range>4</Range>
+      <Range>5</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
       <Power>6</Power>
@@ -754,7 +754,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>81</Id> <!-- Pitchbolt (was Hunting Crossbow) -->
-      <Range>4</Range>
+      <Range>7</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
       <Power>8</Power>
@@ -764,7 +764,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>82</Id> <!-- Siegebolt (was Gastrophetes) -->
-      <Range>4</Range>
+      <Range>8</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
       <Power>11</Power>
@@ -794,7 +794,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>85</Id> <!-- Frostarc (was Ice Bow) -->
-      <Range>6</Range>
+      <Range>4</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
       <Power>5</Power>
@@ -804,7 +804,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>86</Id> <!-- Stormarc (was Lightning Bow) -->
-      <Range>6</Range>
+      <Range>7</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
       <Power>6</Power>
@@ -814,7 +814,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>87</Id> <!-- Skypiercer (was Windslash Bow) -->
-      <Range>7</Range>
+      <Range>8</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
       <Power>8</Power>
@@ -823,14 +823,14 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>88</Id> <!-- Silentstring (was Mythril Bow) -->
-      <Range>6</Range>
+      <Id>88</Id> <!-- Tidecaller (was Mythril Bow) -->
+      <Range>5</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
       <Power>7</Power>
       <Evasion>10</Evasion>
-      <Elements>None</Elements>
-      <OptionsAbilityId>10</OptionsAbilityId>
+      <Elements>Water</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>89</Id> <!-- Huntress (was Artemis Bow) -->
@@ -844,7 +844,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>90</Id> <!-- Yoichi Bow -->
-      <Range>6</Range>
+      <Range>7</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
       <Power>12</Power>
@@ -854,13 +854,13 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>91</Id> <!-- Perseus Bow -->
-      <Range>8</Range>
+      <Range>9</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
       <Power>15</Power>
       <Evasion>0</Evasion>
       <Elements>Holy</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>13</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>92</Id> <!-- Siren's Lyre (was Lamia's Harp) -->
@@ -923,7 +923,7 @@
       <Power>10</Power>
       <Evasion>15</Evasion>
       <Elements>Holy</Elements>
-      <OptionsAbilityId>10</OptionsAbilityId>
+      <OptionsAbilityId>55</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>99</Id> <!-- Skewer (was Javelin) -->
@@ -990,7 +990,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>106</Id> <!-- Wyrmpike (was Javelin) -->
-      <Range>2</Range>
+      <Range>3</Range>
       <Formula>1</Formula>
       <Power>13</Power>
       <Evasion>10</Evasion>
@@ -1040,7 +1040,7 @@
       <Power>12</Power>
       <Evasion>20</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>18</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>112</Id> <!-- Ivory Pole -->

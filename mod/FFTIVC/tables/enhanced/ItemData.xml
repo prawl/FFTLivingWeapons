@@ -8,6 +8,10 @@
       <EquipBonusId>1</EquipBonusId>
     </Item>
     <Item>
+      <Id>73</Id> <!-- Stoneshooter: EquipBonus 0 () -->
+      <EquipBonusId>0</EquipBonusId>
+    </Item>
+    <Item>
       <Id>128</Id> <!-- Tideward (was Escutcheon): EquipBonus 74 (halve Water) -->
       <EquipBonusId>74</EquipBonusId>
     </Item>
@@ -384,7 +388,7 @@
       <EquipBonusId>55</EquipBonusId>
     </Item>
     <Item>
-      <Id>222</Id> <!-- Cursed Ring: EquipBonus 56 (PA+1, MA+1, Speed+1, innate Undead, immune Traitor) -->
+      <Id>222</Id> <!-- Cursed Ring: EquipBonus 56 (boost Dark, weak Holy) -->
       <EquipBonusId>56</EquipBonusId>
     </Item>
     <Item>
