@@ -58,6 +58,11 @@ def name_comment(it):
 def weapon_entry(it):
     # Sparse: omit AttackFlags (preserve vanilla TwoSwords/Throwable/TwoHands) unless a design explicitly sets it.
     s = it["proposed"]
+    oai = s.get("onHitAbilityId", 0) or 0
+    if oai > 255:  # OptionsAbilityId is a BYTE. A value >255 makes the modloader throw YAXBadlyFormedInput and
+        # SILENTLY reject the ENTIRE ItemWeaponData file (every weapon reverts to vanilla). ET.parse won't catch it.
+        raise SystemExit(f"item {it['id']} ({it.get('name')}): onHitAbilityId={oai} > 255 -- OptionsAbilityId is a byte; "
+                         f">255 silently kills the whole ItemWeaponData table. Use an ability id <= 255.")
     flags = f"      <AttackFlags>{s['attackFlags']}</AttackFlags>\n" if s.get("attackFlags") else ""
     return (f"    <ItemWeapon>\n      <Id>{it['id']}</Id> <!-- {name_comment(it)} -->\n"
             f"      <Range>{s.get('range', 1)}</Range>\n{flags}"
