@@ -133,7 +133,7 @@ def main():
         else:
             for a, doms in v:
                 an = a.get("name") if a.get("name") not in (None, "TBD") else a["vanillaName"]
-                print(f"  DOMINATED: id{a['id']} {an} -- by {', '.join('id'+str(b['id']) for b in doms)}")
+                print(f"  DOMINATED: id{a['id']} {an}, beaten by {', '.join('id'+str(b['id']) for b in doms)}")
             if label == "PROPOSED":
                 rc = 1
     sv = check_slots(items, nf)
@@ -143,7 +143,7 @@ def main():
     else:
         for a, doms in sv:
             an = a.get("name") if a.get("name") not in (None, "TBD") else a["vanillaName"]
-            print(f"  DOMINATED id{a['id']} {an} ({a['category']}) -- by "
+            print(f"  DOMINATED id{a['id']} {an} ({a['category']}), beaten by "
                   + ", ".join(f"id{b['id']} {b.get('name')}({b['category']})" for b in doms))
         rc = 1
     sys.exit(rc)

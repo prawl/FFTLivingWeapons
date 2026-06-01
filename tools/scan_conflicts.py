@@ -2,9 +2,9 @@
 """
 Conflict scanner: which OTHER installed mods edit the same item ids we do?
 
-Two full item overhauls can't coherently stack (the modloader resolves field
-collisions by load order). This honestly reports the overlap so the user knows
-which mods collide and that ours should load AFTER them. See docs/DESIGN.md.
+Two full item overhauls can't cleanly stack (the modloader resolves field
+collisions by load order). This reports the overlap so you know which mods
+collide and that ours should load after them. See docs/DESIGN.md.
 
 Usage: python tools/scan_conflicts.py [data/items.json] [reloaded_mods_dir]
 """
@@ -17,7 +17,7 @@ ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "data" / "items.json"
 MODS = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(
     r"C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods")
 
-OUR_MOD_ID = "fftivc.gameplay.itemoverhaul"
+OUR_MOD_ID = "prawl.fft.itemoverhaul"
 ITEM_TABLES = ["ItemData", "ItemWeaponData", "ItemArmorData", "ItemAccessoryData",
                "ItemShieldData", "ItemEquipBonusData", "ItemShopsData", "MapTrapFormationData"]
 
@@ -68,7 +68,7 @@ def main():
             print()
 
     if found_conflict:
-        print("=> Load this mod AFTER the conflicting mods so our complete-per-item entries win cleanly.")
+        print("=> Load this mod AFTER the conflicting mods so our complete-per-item entries win.")
     else:
         print("=> No id collisions on our current pilot set.")
 

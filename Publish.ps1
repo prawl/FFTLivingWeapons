@@ -9,7 +9,7 @@
     ModId and zips it with a single top-level wrapper folder so Reloaded-II /
     Nexus / Vortex extract to the expected path.
 
-    No DLL, no dotnet build — this is a data-only mod (XML + nxd + tex). The
+    No DLL, no dotnet build; data-only mod (XML + nxd + tex). The
     generate + gate steps mirror deploy.ps1 so a local `.\Publish.ps1` produces
     the same vetted tables a deploy would. NOTE: generate.py emits the 6 table
     XMLs only; item.en.nxd is produced separately by tools/patch_names.py
@@ -25,7 +25,7 @@
     Default: "." under GitHub Actions, else "C:\Users\ptyRa\Downloads".
 .PARAMETER NexusModId
     Nexus mod ID for the archive filename convention. Placeholder 0 until the
-    mod is registered on Nexus — MUST be set before uploading to Nexus, otherwise
+    mod is registered on Nexus; MUST be set before uploading to Nexus, otherwise
     Vortex can't parse the version/mod ID from the filename.
 .PARAMETER SkipGenerate
     Skip the generate + build-diversity gate (package the committed tree as-is).
@@ -117,7 +117,7 @@ function Get-ModVersion {
         return $RequestedVersion
     }
 
-    # Derive from the SOURCE ModConfig.json — never hardcoded.
+    # Derive from the SOURCE ModConfig.json, never hardcoded.
     if (-not (Test-Path $SourceModConfig)) {
         Write-ErrorMessage "No version specified and ModConfig.json not found at: $SourceModConfig"
     }
@@ -152,7 +152,7 @@ function Copy-ModAssets {
     Write-Host "  -> Copying ModConfig.json..."
     Copy-Item $SourceModConfig -Destination $BuildOutputPath -Force
 
-    # preview.png (required — it's the ModIcon)
+    # preview.png (required; it's the ModIcon)
     if (-not (Test-Path $SourcePreview)) {
         Write-ErrorMessage "preview.png not found at: $SourcePreview"
     }
@@ -279,7 +279,7 @@ function Verify-Package {
     param([string]$PackagePath)
 
     # Returns $true if the package contains every required file and directory,
-    # $false otherwise. Caller MUST honor the return value — this is the gate
+    # $false otherwise. Caller MUST honor the return value; this is the gate
     # that catches "the zip exists but is empty / wrong" bugs before they ship
     # to users (see the v3.0.7 incident on the color mod, where a source archive
     # shipped as the release because nothing checked the artifact contents).
@@ -372,7 +372,7 @@ Split-Path $MyInvocation.MyCommand.Path | Push-Location
 [Environment]::CurrentDirectory = $PWD
 
 try {
-    # Step 1: Resolve version (from -Version, else ModConfig.json — never hardcoded)
+    # Step 1: Resolve version (from -Version, else ModConfig.json, never hardcoded)
     $finalVersion = Get-ModVersion -RequestedVersion $Version
 
     # Step 2: Regenerate tables + build-diversity gate (unless -SkipGenerate)
@@ -392,7 +392,7 @@ try {
     $packagePath = Create-Package -ModVersion $finalVersion
 
     if ($packagePath) {
-        # Step 6: Verify — fail loudly if anything's missing. This is the gate
+        # Step 6: Verify, fail loudly if anything's missing. This is the gate
         # that stops a broken/empty/wrong zip from shipping to users.
         $verifyOk = Verify-Package -PackagePath $packagePath
         if (-not $verifyOk) {

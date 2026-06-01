@@ -1,8 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FFTItemOverhaul: widened per-job equippability + universal shields (sparse). Load AFTER other job mods. -->
+<!-- FFTItemOverhaul: widened generic-job equip + shields, and a class-evade floor on every human job. Load after other job mods. -->
 <JobTable>
   <Version>1</Version>
   <Entries>
+    <Job>
+      <Id>0</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>4</Id> <!-- Squire: C-EV 5 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>15</Id> <!-- Dragonkin: C-EV 7 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>28</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>53</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>54</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>55</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>56</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>57</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
     <Job>
       <Id>61</Id> <!-- Knight: +Axe -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, Flail, KnightSword, Sword, Unarmed, Axe</EquippableItems>
@@ -12,28 +48,34 @@
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Bow, Crossbow, Unarmed, Gun</EquippableItems>
     </Job>
     <Job>
-      <Id>66</Id> <!-- Black Mage: +Knife +Shield -->
+      <Id>66</Id> <!-- Black Mage: +Knife +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>68</Id> <!-- Time Mage: +Rod +Shield -->
+      <Id>68</Id> <!-- Time Mage: +Rod +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Unarmed, Rod, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>70</Id> <!-- Mystic: +Shield -->
+      <Id>70</Id> <!-- Mystic: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Pole, Book, Staff, Rod, Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>71</Id> <!-- Summoner: +Shield -->
+      <Id>71</Id> <!-- Summoner: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Rod, Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>74</Id> <!-- Squire: +Crossbow +Shield -->
+      <Id>74</Id> <!-- Squire: +Crossbow +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Flail, Axe, Sword, Knife, Unarmed, Crossbow, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>75</Id> <!-- Chemist: +Shield -->
+      <Id>75</Id> <!-- Chemist: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Gun, Knife, Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
       <Id>76</Id> <!-- Knight: +Axe -->
@@ -48,32 +90,38 @@
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Unarmed, Shield</EquippableItems>
     </Job>
     <Job>
-      <Id>79</Id> <!-- White Mage: +Rod +Shield -->
+      <Id>79</Id> <!-- White Mage: +Rod +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Unarmed, Rod, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>80</Id> <!-- Black Mage: +Knife +Shield -->
+      <Id>80</Id> <!-- Black Mage: +Knife +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>81</Id> <!-- Time Mage: +Rod +Shield -->
+      <Id>81</Id> <!-- Time Mage: +Rod +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Unarmed, Rod, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>82</Id> <!-- Summoner: +Shield -->
+      <Id>82</Id> <!-- Summoner: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Staff, Rod, Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
       <Id>83</Id> <!-- Thief: +Bow +Crossbow +Shield -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Knife, Unarmed, Bow, Crossbow, Shield</EquippableItems>
     </Job>
     <Job>
-      <Id>84</Id> <!-- Orator: +Sword +Book +Shield -->
+      <Id>84</Id> <!-- Orator: +Sword +Book +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Gun, Knife, Unarmed, Sword, Book, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>85</Id> <!-- Mystic: +Shield -->
+      <Id>85</Id> <!-- Mystic: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Pole, Book, Staff, Rod, Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
       <Id>86</Id> <!-- Geomancer: +Pole -->
@@ -92,20 +140,88 @@
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Flail, NinjaBlade, Knife, Unarmed, Shield</EquippableItems>
     </Job>
     <Job>
-      <Id>90</Id> <!-- Arithmetician: +Shield -->
+      <Id>90</Id> <!-- Arithmetician: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Pole, Book, Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>91</Id> <!-- Bard: +Shield -->
+      <Id>91</Id> <!-- Bard: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Bag, Instrument, Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>92</Id> <!-- Dancer: +Shield -->
+      <Id>92</Id> <!-- Dancer: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Cloth, Bag, Knife, Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>93</Id> <!-- Mime: +Shield -->
+      <Id>93</Id> <!-- Mime: +Shield; C-EV 5 to 8 -->
       <EquippableItems>Unarmed, Shield</EquippableItems>
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>142</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>143</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>145</Id> <!-- Automaton: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>146</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>147</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>148</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>149</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>151</Id> <!-- Keeper of Darkness: C-EV 3 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>153</Id> <!-- Archaeodaemon: C-EV 5 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>155</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>156</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>157</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>158</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>159</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>160</Id> <!-- ?: C-EV 0 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
+    </Job>
+    <Job>
+      <Id>161</Id> <!-- ?: C-EV 5 to 8 -->
+      <CharacterEvasion>8</CharacterEvasion>
     </Job>
   </Entries>
 </JobTable>

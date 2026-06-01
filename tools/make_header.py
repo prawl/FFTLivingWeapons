@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Build the mod-page header: a dense grid of every recolored item icon on black -- the item-mod
-rhyme of the color mod's "wall of recolored sprites" header.
+Build the mod-page header: a dense grid of every recolored item icon on black. Like the color
+mod's wall-of-sprites header, but for items.
 
 Loads each item's recolored icon PNG (from the recolor working cache; decodes the committed mod .tex
 as a fallback), tiles them in id order (which groups by category), saves working/header/header.png.
@@ -68,13 +68,7 @@ def main():
     rows = (len(icons) + COLS - 1) // COLS
     W = PAD * 2 + COLS * TILE + (COLS - 1) * GAP
     H = PAD * 2 + rows * TILE + (rows - 1) * GAP
-    # subtle vertical gradient background (near-black) + faint vignette
-    bg = Image.new("RGB", (W, H))
-    for y in range(H):
-        t = y / H
-        c = (int(10 + 8 * (1 - abs(0.5 - t) * 2)), int(11 + 9 * (1 - abs(0.5 - t) * 2)), int(15 + 12 * (1 - abs(0.5 - t) * 2)))
-        for x in range(0, W, 1):
-            pass
+    # flat near-black background
     bg = Image.new("RGB", (W, H), (9, 10, 14))
     canvas = bg.convert("RGBA")
     for idx, ic in enumerate(icons):

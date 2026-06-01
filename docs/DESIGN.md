@@ -1,9 +1,9 @@
-# FFT:IVC Item Overhaul — Design Doc (living draft)
+# FFT:IVC Item Overhaul: Design Doc (living draft)
 
 **Status:** design discussion, pre-build. Working title TBD.
 **Date:** 2026-05-29
 **Goal (user-set):** Rebalance **all** items in Final Fantasy Tactics: The Ivalice Chronicles for
-**build diversity** — every item should have a reason to exist; new gear should not auto-obsolete old gear.
+**build diversity**. Every item should have a reason to exist; new gear should not auto-obsolete old gear.
 **Mechanism:** pure-data mod over Nenkai's `fftivc.utility.modloader` (no DLL), same channel as the
 "WotL Equipment Replacer / Treasure Hunt" and `FFT.Regabonds.Rebalance`.
 
@@ -11,7 +11,7 @@
 
 ## 1. The thesis (the spine of the whole mod)
 
-> **Let Weapon Power (and HP) climb gently and predictably across chapters — but load every item's
+> **Let Weapon Power (and HP) climb gently and predictably across chapters, but load every item's
 > *longevity and interest* into its non-WP dimensions** (evasion, element, on-hit status, stat bonus,
 > movement, status immunity, element resist).
 
@@ -25,7 +25,7 @@ One move, three problems solved:
   innate status are things passive *abilities can't replicate*; raw stats are boring next to free skills.
 
 **The acceptance test for every item:** *"When would I pick THIS over its neighbors?"* Only three valid
-answers — **Niche** (best for a build), **Tradeoff** (power for evade/element/status/stat), or
+answers: **Niche** (best for a build), **Tradeoff** (power for evade/element/status/stat), or
 **Availability** (a fine budget pick, not strictly dominated forever). Vanilla FFT fails all three for
 most non-top-tier gear, which is why the roster is full of vendor trash.
 
@@ -36,20 +36,20 @@ Vanilla swords are a strict ladder (Broadsword 4 → Longsword 5 → … → Run
 | Weapon | WP | Evade | Extra | Pick when… |
 |---|---|---|---|---|
 | Broadsword | 9 | 0% | cheap | you just want raw damage |
-| Longsword | 6 | 15% | — | front-line duelist who dodges |
+| Longsword | 6 | 15% | none | front-line duelist who dodges |
 | Coral Sword | 7 | 5% | Lightning | exploit Ice-shield enemies |
 | Ancient Sword | 6 | 5% | inflicts Old | debuff utility |
 | Runeblade | 7 | 10% | +2 MA, Dark | magic-knight hybrid |
-| Nagnarok | 5 | 50% | — | evasion tank |
+| Nagnarok | 5 | 50% | none | evasion tank |
 
-(Illustrative numbers, not final.) Nothing strictly dominates — you choose a *profile*. Legendaries
+(Illustrative numbers, not final.) Nothing strictly dominates; you choose a *profile*. Legendaries
 (Chaos Blade, Excalibur) stay iconic-strong but pay a real cost so they're a *choice*, not an auto-include.
 
 ---
 
 ## 2. How items work (the system we're editing)
 
-### Data model — every item points at secondary tables
+### Data model: every item points at secondary tables
 ```
 Item Data (0x0C/entry, ≤261 ids) ──AdditionalDataId──▶ Weapon / Shield / Head-Body / Accessory secondary
                                   ──EquipBonusId──────▶ Item Attributes (PA/MA/Spd/Move/Jump, innate status, element)
@@ -61,7 +61,7 @@ The modloader exposes all of this as **sparse XML** (include only `<Id>` + chang
 Tables and hardcoded size caps: ItemData ≤261 ("256 + 5 extended"), Weapon ≤127, Armor ≤63, Accessory
 ≤31, Shield ≤15, EquipBonus ≤84, Shops ≤255, MapTrapFormation ≤127.
 
-### Combat model — damage is formula-by-weapon-type
+### Combat model: damage is formula-by-weapon-type
 | Type | Formula | Design consequence |
 |---|---|---|
 | Sword/Spear/Rod/Crossbow | `PA × WP` | linear → top WP always wins, no tradeoffs |
@@ -69,13 +69,13 @@ Tables and hardcoded size caps: ItemData ≤261 ("256 + 5 extended"), Weapon ≤
 | Knife/Bow/Ninja Blade | `(PA+Sp)/2 × WP` | speed-scaling; good for Dual Wield |
 | Staff/Pole | `MA × WP` | caster melee |
 | Book/Instrument/Cloth | `(PA+MA)/2 × WP` | hybrid |
-| **Gun** | `WP × WP` | **quadratic, ignores PA & evasion** — the broken one |
+| **Gun** | `WP × WP` | **quadratic, ignores PA & evasion**, the broken one |
 | Axe/Flail/Bag | `Rand(1..PA) × WP` | swingy; players avoid |
 
 **Lever confirmed:** the per-weapon `<Formula>` field is editable (Regabonds' Mage Masher uses Formula 47
 = Blood Suck; the Treasure Hunt Orochi uses Formula 6 = absorb-HP). So we can re-curve individual weapons
 (e.g. take a gun off `WP²`). `OptionsAbilityId` is the on-hit status/spell hook.
-**Open:** whether `WP²` is the gun's *Formula value* (overridable) or hardcoded by item type — pending the
+**Open:** whether `WP²` is the gun's *Formula value* (overridable) or hardcoded by item type, pending the
 reference-mod teardown + an in-game test.
 
 (Source: FFTHandsFree `docs/Wiki/{Equipment,DamageFormulas,FormulaTable,GameDataStructs}.md`; the Treasure
@@ -89,12 +89,12 @@ Audit of the user's installed stack:
 
 | Bucket | Mods | Interaction |
 |---|---|---|
-| 🔴 Item-table editors | **Regabonds.Rebalance** (93 weapons, 64 armors, +abilities/jobs/spawns), **Treasure Hunt** (11 items) | direct field conflict — load order decides per field |
-| 🟡 Combat-context shifters | Level Scaling, Strong Monsters, Spell Overhaul, All-Skills-Cost-0 | no field conflict, but change the math our gear lives in |
-| 🟢 Clean compose | GenericJobs, WotL Characters, Innate Skills, Blue/Red Mages, color mod | no interaction |
+| Item-table editors | **Regabonds.Rebalance** (93 weapons, 64 armors, +abilities/jobs/spawns), **Treasure Hunt** (11 items) | direct field conflict; load order decides per field |
+| Combat-context shifters | Level Scaling, Strong Monsters, Spell Overhaul, All-Skills-Cost-0 | no field conflict, but change the math our gear lives in |
+| Clean compose | GenericJobs, WotL Characters, Innate Skills, Blue/Red Mages, color mod | no interaction |
 
 **DECISION (2026-05-30):** the user will **disable conflicting item mods** (Regabonds, Equipment Replacer)
-rather than coexist with them. So we are simply *the* authoritative item mod — no load-order fighting
+rather than coexist with them. So we are simply *the* authoritative item mod; no load-order fighting
 needed. `scan_conflicts.py` becomes a "here's your disable list" advisor. We still compose cleanly with all
 non-item mods (Level Scaling, jobs, skills, spells). The hardening points below are kept as good practice
 (complete-per-item, ratio balancing) but are no longer load-bearing.
@@ -107,11 +107,11 @@ designed. So "harden for stackers" means:
    yields a clean winner (us-or-them per item), never a hybrid. Document "load after other item mods."
 2. **Ship a conflict scanner.** Tool reads other installed mods' item XMLs and reports the exact item IDs
    that collide. The honest way to support stackers.
-3. **Compose with 🟡/🟢** — that's where the real "all the mods" value lives, not item-vs-item.
+3. **Compose with the context-shifters and clean-compose buckets**, that's where the real "all the mods" value lives, not item-vs-item.
 4. **Balance on ratios, not absolute breakpoints**, so enemy-stat-scaling mods don't break us.
 
 **Positioning vs Regabonds:** Regabonds is a *smoothed vertical curve* (knife line WP 3→4→4→5→5, flat 15%
-evade — still strict-dominant within a category). Our *sidegrade/identity* philosophy is a different,
+evade, still strict-dominant within a category). Our *sidegrade/identity* philosophy is a different,
 more ambitious design. Not redundant; mutually exclusive on items. Users pick one item mod, ours composes
 with everything non-item.
 
@@ -129,7 +129,7 @@ items.json   (one row per item: id, type, every stat, name, icon ref, design-int
    └─ scanner   ──▶ CONFLICT CHECK: reads other installed mods' item XMLs, reports colliding ids
 ```
 
-The **analyzer is the secret weapon** — it lets us *prove* "no item is strictly dominated" across the whole
+The **analyzer is the secret weapon**: it lets us *prove* "no item is strictly dominated" across the whole
 roster instead of eyeballing 256 of them, and keeps the build-diversity invariant enforceable as we tune.
 
 ---
@@ -143,7 +143,7 @@ roster instead of eyeballing 256 of them, and keeps the build-diversity invarian
 - **Head/Body armor:** HP vs MP vs (via EquipBonus) innate status / element resist / stat. Kill the
   identity-less "pure HP" armors by giving each a small hook.
 - **Accessories:** the richest identity slot already (stat / movement / status-immunity / element). Problem
-  is opportunity cost — most lose to a flat stat booster. Fix by making protections *also* carry a minor
+  is opportunity cost: most lose to a flat stat booster. Fix by making protections *also* carry a minor
   stat or by tightening the stat boosters.
 - **Consumables:** lower priority; mostly fine. Possible: smooth the Potion → Hi → X curve, fix Phoenix
   Down's ~1 HP glitchiness if reachable.
@@ -153,22 +153,22 @@ roster instead of eyeballing 256 of them, and keeps the build-diversity invarian
 ## 6. Enemy-side consideration (do NOT forget)
 
 Enemies equip from the **same item tables** (gated by `RequiredLevel`). Restatting gear changes enemy power
-too — buffing swords buffs every enemy Knight. The overhaul is really a **combat rebalance wearing an item
+too; buffing swords buffs every enemy Knight. The overhaul is really a **combat rebalance wearing an item
 hat.** Helpfully, our thesis (value in defensive/utility dims) aligns: when enemies are tougher (Level
-Scaling/Strong Monsters), evade/immunity/resist gear gets *more* valuable — exactly what we're emphasizing.
+Scaling/Strong Monsters), evade/immunity/resist gear gets *more* valuable, exactly what we're emphasizing.
 Design player and enemy loadouts together; use `RequiredLevel` to control when stronger gear enters the
 enemy pool.
 
 ---
 
-## Gotchas (learned in the knife pilot — these apply to the WHOLE overhaul)
+## Gotchas (learned in the knife pilot; these apply to the WHOLE overhaul)
 
 1. **Formula IDs in the XML are DECIMAL; every FFT reference (FFHacktics, our docs) lists them in HEX.**
    `<Formula>47</Formula>` = decimal 47 = `0x2F` = **Absorb MP** (Dark Sword), NOT `0x47` Blood Suck.
    Confirmed in-game (Sanguine Gauche with 47 stole MP). HP-absorb = decimal **48** (`0x30` Night Sword).
-   The absorb formulas also switch damage to `PA*WP` (off knife speed-scaling) — a deliberate tradeoff.
-   ALWAYS hex→decimal convert formula/effect ids. (Small ids where hex==decimal — Blind 9, Doom 11,
-   Sleep 12 — happen to be safe.)
+   The absorb formulas also switch damage to `PA*WP` (off knife speed-scaling), a deliberate tradeoff.
+   ALWAYS hex→decimal convert formula/effect ids. (Small ids where hex==decimal, like Blind 9, Doom 11,
+   Sleep 12, happen to be safe.)
 
 2. **The description's "Special Effect" badge is a SEPARATE nxd field: `UiStatusEffectId` in item.en.nxd**,
    not auto-derived from the weapon row. The IVC item table uses only `1001` (="Absorbs HP") and `1002`
@@ -184,15 +184,15 @@ enemy pool.
 
 ## 7. Open questions / next steps
 
-- [ ] **Formula override scope** — can the `<Formula>` field re-curve guns off `WP²`, or is `WP²` hardcoded
+- [ ] **Formula override scope**: can the `<Formula>` field re-curve guns off `WP²`, or is `WP²` hardcoded
       by item *type*? (reference-mod teardown + in-game test)
-- [ ] **Add vs replace** — are the 5 "extended" item slots (256–260) usable for net-new items, or are we
-      strictly restatting the existing roster? (reference-mod teardown) — not blocking; a rebalance restats.
-- [ ] **In-hand graphic** — `SpriteID`/`Palette` select the wielded-weapon look; what to change for a new
+- [ ] **Add vs replace**: are the 5 "extended" item slots (256–260) usable for net-new items, or are we
+      strictly restatting the existing roster? (reference-mod teardown). Not blocking; a rebalance restats.
+- [ ] **In-hand graphic**: `SpriteID`/`Palette` select the wielded-weapon look; what to change for a new
       battle appearance (vs just the menu icon). (reference-mod teardown, may be UNCONFIRMED)
-- [ ] **Pilot category** — prototype one category (proposal: **weapons**) end-to-end: items.json schema →
+- [ ] **Pilot category**: prototype one category (proposal: **weapons**) end-to-end: items.json schema →
       generator → analyzer (prove no strict dominance) → deploy → in-game check.
-- [ ] **Naming** — mod name + working folder name.
+- [ ] **Naming**: mod name + working folder name.
 
 ### Immediate next step
 Build the **vertical slice**: `items.json` schema + generator + dominance analyzer for **one weapon

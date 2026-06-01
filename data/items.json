@@ -556,7 +556,7 @@
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
       },
-      "desc": "A worn wanderer's blade -- cheap, light, and ready from your first march."
+      "desc": "A worn wanderer's blade. Cheap, light, ready from your first march."
     },
     {
       "id": 20,
@@ -659,7 +659,7 @@
         "formula": 6,
         "attackFlags": "Striking, TwoSwords, TwoHands"
       },
-      "desc": "A cursed blade that drinks the blood it spills.\nAbsorbs HP on hit -- but beware the undead."
+      "desc": "A cursed blade that drinks the blood it spills.\nAbsorbs HP on hit. Beware the undead."
     },
     {
       "id": 24,
@@ -762,7 +762,7 @@
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
       },
-      "desc": "A massive executioner's blade -- devastating, and utterly without guard."
+      "desc": "A massive executioner's blade. Devastating, and utterly without guard."
     },
     {
       "id": 28,
@@ -2291,7 +2291,7 @@
         "range": 7,
         "attackFlags": "Direct"
       },
-      "desc": "A crossbow that douses its target in clinging pitch.\nWhen attacking, has a chance of inflicting Oil -- the target takes double Fire damage.\nEffective range: 7 tiles."
+      "desc": "A crossbow that douses its target in clinging pitch.\nWhen attacking, has a chance of inflicting Oil (the target takes double Fire damage).\nEffective range: 7 tiles."
     },
     {
       "id": 82,
@@ -2319,7 +2319,7 @@
         "range": 8,
         "attackFlags": "Direct"
       },
-      "desc": "A massive siege crossbow -- all the stopping power a strong arm can drive.\nEffective range: 8 tiles."
+      "desc": "A massive siege crossbow. All the stopping power a strong arm can drive.\nEffective range: 8 tiles."
     },
     {
       "id": 83,
@@ -2515,7 +2515,7 @@
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "A balanced marksman's bow -- power and poise in equal measure.\nEffective range: 6 tiles."
+      "desc": "A balanced marksman's bow. Power and poise in equal measure.\nEffective range: 6 tiles."
     },
     {
       "id": 90,
@@ -3539,7 +3539,7 @@
         "rider": "Innate Shell",
         "equipBonusId": 4
       },
-      "desc": "A rune-warded shield humming with protective magick.\nGrants innate Shell -- magick damage reduced."
+      "desc": "A rune-warded shield humming with protective magick.\nGrants innate Shell (magick damage reduced)."
     },
     {
       "id": 133,
@@ -3659,7 +3659,7 @@
         "rider": "PA+1",
         "equipBonusId": 21
       },
-      "desc": "A bruiser's shield -- defense that hits back.\nGrants Physical Attack +1."
+      "desc": "A bruiser's shield. Defense that hits back.\nGrants Physical Attack +1."
     },
     {
       "id": 139,

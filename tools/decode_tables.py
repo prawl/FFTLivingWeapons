@@ -101,7 +101,7 @@ def parse_simple(fname, tag, fields):
     return out
 
 
-# ---- importable resolver --------------------------------------------------
+# importable resolver
 _EB_CACHE = None
 
 def _eb():

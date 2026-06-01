@@ -7,7 +7,7 @@ Pipeline per item (both the 100x100 full icon and the 48x48 small icon):
   (HSV: fix hue + saturation, scale value to preserve shading) -> img-conv --no-chunk-compression
   -> .tex placed in the mod tree.
 
-ICON_TINTS = {id: (hue, sat, value_mult)} -- hue/sat in 0..1, value_mult scales brightness.
+ICON_TINTS = {id: (hue, sat, value_mult)}; hue/sat in 0..1, value_mult scales brightness.
 Run: python tools/recolor_icons.py
 """
 import subprocess, shutil, colorsys, sys
@@ -83,7 +83,7 @@ ICON_TINTS = {
     143: (0.60, 0.60, 1.10),  # Aegis Prime     radiant blue (capstone)
 }
 
-# Merge per-item tints from data/items.json (the single source for the overhaul's new categories).
+# Merge per-item tints from data/items.json (source for the new categories).
 import json as _json
 for _it in _json.loads((ROOT / "data" / "items.json").read_text(encoding="utf-8"))["items"]:
     if _it.get("iconTint"):

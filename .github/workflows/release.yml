@@ -67,7 +67,7 @@ jobs:
         }
 
     # Regenerate the modloader tables from data/items.json so the package
-    # always reflects the committed design source — not a stale checkout.
+    # always reflects the committed design source, not a stale checkout.
     - name: Generate Tables
       run: python tools/generate.py
 
@@ -81,7 +81,7 @@ jobs:
       id: publish
       run: ./Publish.ps1
 
-    # Independent assertion — even if Publish.ps1's own Verify-Package missed
+    # Independent assertion. Even if Publish.ps1's own Verify-Package missed
     # something, this won't. Fails loud (workflow goes red) if the zip is
     # missing, empty, or doesn't contain the core data tables. Prevents
     # shipping a broken release (the v3.0.7 silent-drift incident).
@@ -91,7 +91,7 @@ jobs:
         if (-not $zipName) { throw "Publish.ps1 did not emit a 'zip' output." }
         if (-not (Test-Path $zipName)) { throw "Expected zip not found: $zipName" }
         $sizeKB = [math]::Round((Get-Item $zipName).Length / 1KB, 2)
-        if ($sizeKB -lt 50) { throw "Zip suspiciously small ($sizeKB KB) — data package (xml/nxd/tex) should be larger" }
+        if ($sizeKB -lt 50) { throw "Zip suspiciously small ($sizeKB KB); data package (xml/nxd/tex) should be larger" }
         Add-Type -Assembly System.IO.Compression.FileSystem
         $z = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipName))
         $hasWeaponXml = $z.Entries | Where-Object { $_.Name -eq 'ItemWeaponData.xml' } | Select-Object -First 1

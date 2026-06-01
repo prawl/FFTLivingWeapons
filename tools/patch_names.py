@@ -5,8 +5,8 @@ Batch-patch item.en.nxd names + descriptions from data/items.json.
 For every renamed item it updates the Item-en row (Name / NameSingular / NamePlural / Name2 / Description),
 then re-encodes the working sqlite to item.en.nxd via FF16Tools and drops it in the mod tree.
 
-Description = one flavor line + one mechanics line (mechanics derived from the proposed stats, so the
-player always sees what an item actually does: element, on-hit status, or EquipBonus rider).
+Description = one flavor line + one mechanics line, the mechanics derived from the proposed stats
+(element, on-hit status, or EquipBonus rider).
 
 Usage:
   python tools/patch_names.py            # patch all named items, re-encode, deploy nxd to mod tree
@@ -59,7 +59,7 @@ PROC_FLAVOR = {
 
 
 def rider_text(rider):
-    """Render an EquipBonus rider as readable prose via the structural parser (no regex overlap bugs)."""
+    """Render an EquipBonus rider as prose via the structural parser (avoids regex overlap bugs)."""
     q = parse_rider(rider)
     if not q:
         return ""

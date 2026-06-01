@@ -5,8 +5,7 @@ Turn an equip-bonus rider phrase into an EquipBonus field query.
 A "rider" is the bonus text on a piece of armor or an accessory, e.g.
 "PA+2, immune Silence" or "absorb Holy". parse_rider() reads that prose and
 returns a dict of EquipBonus fields (PABonus, ImmuneStatus, AbsorbElements, ...)
-so the generator and the description patcher can resolve the item to a row and
-write a clean tooltip. Returns None for "none"/empty.
+that generate.py and patch_names.py use to find the row and build the tooltip. Returns None for "none"/empty.
 """
 import re
 
