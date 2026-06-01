@@ -13,3 +13,4 @@ out/
 # os / editor
 *.tmp
 .DS_Store
+dist/
