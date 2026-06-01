@@ -1,44 +1,99 @@
 # TODO / ideas
 
-Stuff I want to try next. Rough order, not strict priority. Most of this came out of
-the Reddit thread + my own testing, so it's half design notes, half "go check if this
-is even possible."
+Stuff I want to try next. Rough order, not strict priority. Some from the Reddit
+thread, some from digging through the game's data tables. Half design notes, half
+"go check if this is even possible."
 
-## 1. Innate Parry
+## Lost-HP berserker weapon (want this one)
 
-Give classes innate Parry so weapon-evade builds aren't the only way to dodge melee.
+Damage scales off missing HP: max HP minus current, so the lower I drop the harder I
+hit. A real desperation / glass-cannon weapon. Should actually work too, because it's
+pure self-stat. The magic-sword style formulas are all dead on weapons (they read an
+ability value that's zero on a plain swing), but this one doesn't. Plan: rig one
+weapon, confirm the formula in a fight, then pick which weapon(s) carry it.
 
-Big open question: every class, or just the melee/combat jobs?
-- Every job is simplest, and it barely moves difficulty since humanoid enemies get it
-  too. Only physical attacks are affected and you still can't parry from behind.
-- Melee-only is more flavorful. One idea from the thread: innate at half strength for
-  combat jobs, full strength with the Parry passive equipped, and Knight gets full
-  parry no matter what.
+## Other weapon / formula ideas
 
-If I add it, probably cut the current weapon evade values (half or quarter) so it's
-not double-dipping. Need to retest difficulty either way.
+- MA-scaling melee weapon so a mage hits hard without switching job (only if the slot
+  is MA times WP, not MA times an ability value, which is the dead kind).
+- Faith or Brave scaling blade (a holy sword that hits harder the more faithful you are).
+- A no-shield, huge-WP greatsword using ForcedTwoHands (the flag we just proved on the
+  Claymore) so the big damage actually costs you the off-hand.
+- "Cancel" on-hit weapon that strips the enemy's buffs (Haste/Protect/Reflect). We only
+  do debuffs right now, never this.
+- Chaos weapon that rolls a random status on hit (Sleep/Slow/Confuse/Blind), or a
+  debuff-shotgun that rolls each one independently.
+- Weapon that buffs the wielder on strike (Regen/Reraise) instead of debuffing the enemy.
 
-## 2. Make weapon reach cost something
+## Gear: status and elements
 
-Right now a reach-2 sword still lets you equip a shield (tested it), so reach is
-basically a free upgrade. That needs a real cost.
+- Phoenix-charm accessory: starts the battle with Reraise, auto-revives once. One row
+  to write, vanilla already has it. Check whether it re-applies every battle.
+- Status-immunity accessories: anti-Charm, anti-Stone, anti-Doom, anti-Don't-Move.
+  Counter-picks against enemy status spam. None of these exist in the mod yet.
+- Innate-status gear: a sword with permanent Haste (glass cannon), a ring with Reflect
+  (mage-killer), Float boots (immune to Earth and ground traps). Reraise/Regen/Faith on
+  the table too.
+- Ambush cloak: start every fight Invisible (assassin opener).
+- More elemental armor: per-element absorb ("drink Fire" demon mail) plus more
+  halve/nullify lanes. Can also use Weak-to-X as a cost to pay for an over-strong item.
 
-Idea: the long-reach swords give up their off-hand; trade the shield / dual-wield
-slot for the extra range. Maybe a reach-3 tier as the dedicated big two-hander
-(claymore / zweihander vibe).
+## Mobility
 
-Things to actually verify before promising any of it:
-- Can a sword even hit at reach 3? Lunging is confirmed at reach 2; I haven't gotten 3.
-- Lunging does NOT force two-handed (shield still equips). So I need to find whatever
-  flag actually blocks the off-hand. If there isn't one, fake the cost with lower
-  WP/evade so reach is still a tradeoff.
+- Move+1/+2 and Jump+2 accessories as a real axis (kite builds, vertical maps).
+- Bake Move/Jump into the job itself (skirmisher moves far, heavy moves short) so it
+  doesn't cost the movement slot.
 
-## 3. Bake abilities into weapons
+## Class identity
 
-Let a weapon grant an ability so it frees up a slot. Example: the Riposte sword comes
-with Counter built in, so you don't have to spend your reaction slot on it; equip the
-sword, pick something else for the slot.
+- Free innate passives on jobs: every job has 4 innate slots and we ship zero. Drop a
+  passive or two on the flat generics (Counter, Move+1, Defense) so they have a reason to
+  exist, without taxing the player's own slots. Biggest bang for the effort.
+- Stat multipliers per job (PA/MA/Speed/HP) for real archetype separation: Knight high PA,
+  Mage low PA, fast thief, etc. Powerful, so tune carefully.
+- Multi-reaction builds: we already proved you can move a reaction into the Support slot
+  and it still fires. Could ship it as a real feature (two reactions at once).
+- Maybe: gate signature skills to learn-on-hit (blue-mage style), or reshape the job-tree
+  prerequisites.
 
-Need to check whether IVC equipment can grant reaction/support abilities at all, or if
-I'm limited to the stat / element / status riders I'm already doing through EquipBonus.
-Research before designing around it.
+## Progression and economy
+
+- Re-price everything. We changed power but kept vanilla prices, so cost-per-power is
+  broken. Re-pricing adds opportunity cost and gates power behind gold. Low risk.
+- Re-time shop stock so the raw / agile / utility weapon lanes unlock in step per chapter.
+  Maybe regional shop identities (Goug = tech, Limberry = dark).
+- RequiredLevel to stop a poached endgame blade equipping at level 5 (confirm IVC actually
+  enforces it).
+- Rebalance consumables. The whole potion / Phoenix Down / throw economy is untouched, and
+  the X-Potion blanket heal is probably too good.
+- Re-seed map treasure at the rebalanced items so exploring is a loot path.
+
+## Environment
+
+- Map traps: arm tiles with Deathtrap, Sleeping Gas, etc. Positioning starts to cost
+  something, and suddenly Float boots have a reason. Needs testing.
+
+## Status system tuning
+
+- Proc duration (one number) sets how long our Sleep/Charm/Don't-Move last. Tunes the whole
+  utility-knife lane without touching a single weapon.
+- Deeper status edits if I'm brave: a Sleep that doesn't wake on damage, cleansing rules
+  (Haste cancels Slow), resolution order. Higher risk, lots of opaque flags.
+
+---
+
+## Settled this session
+
+- Innate Parry: dead end. Parry's evade only works from the reaction slot, so going innate
+  would bury everyone's Counter. Shipped the class-evade dodge dial instead.
+- Make reach cost something: done. ForcedTwoHands is the off-hand flag (Claymore and
+  Wyrmpike are two-handed now). Reach-3 is impossible, the engine caps melee at 2.
+- Bake abilities into weapons: not possible in pure data. Only job-innate grants abilities,
+  and that's per-job, not per-weapon.
+
+## Dead ends, don't chase
+
+- Weapon formulas that multiply by an ability value (magic-sword, multi-hit, mana-burn,
+  gravity): all zero on a plain swing.
+- AbilityData range/power/formula/AoE/MP: those live in the nex Ability table, a separate
+  pipeline, not the XML we edit.
