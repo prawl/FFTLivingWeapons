@@ -35,7 +35,8 @@ CAT_NOUN = {"Knife": "knife", "NinjaBlade": "ninja blade", "Sword": "blade", "Kn
             "Pole": "pole", "Bag": "bag", "Cloth": "cloth", "Shield": "shield", "Helmet": "helm", "Hat": "hat",
             "HairAdornment": "adornment", "Armor": "armor", "Clothing": "garb", "Robe": "robe", "Shoes": "boots",
             "Armguard": "gauntlet", "Ring": "ring", "Armlet": "armlet", "Cloak": "cloak", "Perfume": "perfume"}
-PROC = {9: "Blind", 10: "Silence", 11: "Doom", 12: "Sleep", 14: "Immobilize", 22: "Poison", 101: "Oil"}
+PROC = {9: "Blind", 10: "Silence", 11: "Doom", 12: "Sleep", 14: "Immobilize", 22: "Poison",
+        23: "Confuse", 24: "Charm", 101: "Oil"}  # Formula-1 status procs (in Formula 2 the same ids mean spells)
 
 # thematic flavor clauses keyed by the item's defining trait (element > proc > rider > role)
 ELEM_FLAVOR = {
@@ -93,7 +94,7 @@ def mechanics(it):
         if el not in ("None", None, ""):
             parts.append(f"Deals {el}-elemental damage.")
         p = s.get("onHitAbilityId", 0) or 0
-        if p in PROC:
+        if p in PROC and s.get("formula") not in (2, 4):  # Formula 2/4 read the opt id as a spell cast, not a status
             parts.append(f"May inflict {PROC[p]} on hit.")
         if s.get("formula") in (6, 47, 48):
             parts.append({6: "Absorbs HP dealt.", 47: "Absorbs MP dealt.", 48: "Night Sword: drains HP."}[s["formula"]])

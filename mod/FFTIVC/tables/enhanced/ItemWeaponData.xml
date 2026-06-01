@@ -868,8 +868,8 @@
       <Formula>1</Formula>
       <Power>7</Power>
       <Evasion>10</Evasion>
-      <Elements>Wind</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <Elements>None</Elements>
+      <OptionsAbilityId>23</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>93</Id> <!-- Bloodstring Harp -->
@@ -887,7 +887,7 @@
       <Power>9</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>12</OptionsAbilityId>
+      <OptionsAbilityId>24</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>95</Id> <!-- Battle Folio -->

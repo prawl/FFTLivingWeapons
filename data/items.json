@@ -2600,9 +2600,9 @@
       "proposed": {
         "wp": 7,
         "evade": 10,
-        "element": "Wind",
-        "onHit": "None",
-        "onHitAbilityId": 0,
+        "element": "None",
+        "onHit": "Confuses the target on hit",
+        "onHitAbilityId": 23,
         "formula": 1,
         "range": 3
       },
@@ -2659,8 +2659,8 @@
         "wp": 9,
         "evade": 10,
         "element": "None",
-        "onHit": "Sleep",
-        "onHitAbilityId": 12,
+        "onHit": "Charms the target on hit",
+        "onHitAbilityId": 24,
         "formula": 1,
         "range": 3
       },
