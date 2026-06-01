@@ -1,0 +1,126 @@
+# GitHub Actions workflow for FFT Item Overhaul
+# Builds and publishes the pure-data Reloaded-II mod (no DLL).
+# Mirrors the sibling color mod's release pipeline.
+#
+# Produces:
+#   - Build artifacts for testing (on every push)
+#   - GitHub Release (on tag push: vX.Y.Z)
+#   - Automatic changelog generation
+
+name: Build and Publish FFT Item Overhaul
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  PUBLISH_PATH: ./Publish
+  PUBLISH_GITHUB_PATH: .
+  PUBLISH_CHANGELOG_PATH: ./Publish/Changelog.md
+
+  # Determine if this is a release (tag push)
+  IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
+  RELEASE_TAG: ${{ github.ref_name }}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write  # Need write permission to create releases
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for changelog
+        submodules: 'recursive'
+
+    - name: Setup Python (for table generation + dominance gate)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Setup Node.js (for changelog)
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install Changelog Generator
+      run: npm install -g auto-changelog
+
+    - name: Generate Changelog
+      run: |
+        [System.IO.Directory]::CreateDirectory("$env:PUBLISH_PATH")
+        if ($env:IS_RELEASE -eq 'true') {
+            auto-changelog --sort-commits date --hide-credit --template keepachangelog --commit-limit false --starting-version "$env:RELEASE_TAG" --output "$env:PUBLISH_CHANGELOG_PATH"
+        }
+        else {
+            auto-changelog --sort-commits date --hide-credit --template keepachangelog --commit-limit false --unreleased --output "$env:PUBLISH_CHANGELOG_PATH"
+        }
+
+    # Regenerate the modloader tables from data/items.json so the package
+    # always reflects the committed design source — not a stale checkout.
+    - name: Generate Tables
+      run: python tools/generate.py
+
+    # The build-diversity gate. This is our equivalent of "run tests":
+    # analyze.py exits 1 if ANY item is strictly dominated. A red gate
+    # here means the design regressed and the release must not ship.
+    - name: Build-Diversity Gate (analyze.py)
+      run: python tools/analyze.py
+
+    - name: Build and Package
+      id: publish
+      run: ./Publish.ps1
+
+    # Independent assertion — even if Publish.ps1's own Verify-Package missed
+    # something, this won't. Fails loud (workflow goes red) if the zip is
+    # missing, empty, or doesn't contain the core data tables. Prevents
+    # shipping a broken release (the v3.0.7 silent-drift incident).
+    - name: Verify Release Artifact
+      run: |
+        $zipName = '${{ steps.publish.outputs.zip }}'
+        if (-not $zipName) { throw "Publish.ps1 did not emit a 'zip' output." }
+        if (-not (Test-Path $zipName)) { throw "Expected zip not found: $zipName" }
+        $sizeKB = [math]::Round((Get-Item $zipName).Length / 1KB, 2)
+        if ($sizeKB -lt 50) { throw "Zip suspiciously small ($sizeKB KB) — data package (xml/nxd/tex) should be larger" }
+        Add-Type -Assembly System.IO.Compression.FileSystem
+        $z = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipName))
+        $hasWeaponXml = $z.Entries | Where-Object { $_.Name -eq 'ItemWeaponData.xml' } | Select-Object -First 1
+        $hasItemNxd   = $z.Entries | Where-Object { $_.Name -eq 'item.en.nxd' } | Select-Object -First 1
+        $z.Dispose()
+        if (-not $hasWeaponXml) { throw "ItemWeaponData.xml missing from $zipName" }
+        if (-not $hasItemNxd)   { throw "item.en.nxd missing from $zipName" }
+        Write-Host "OK: $zipName ($sizeKB KB) contains ItemWeaponData.xml + item.en.nxd"
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: FFTItemOverhaul-${{ github.sha }}
+        path: ${{ steps.publish.outputs.zip }}
+        retention-days: 30
+
+    - name: Upload Changelog
+      uses: actions/upload-artifact@v4
+      with:
+        name: Changelog
+        path: ${{ env.PUBLISH_CHANGELOG_PATH }}
+        retention-days: 30
+
+    - name: Create GitHub Release (on Tag)
+      uses: softprops/action-gh-release@v2
+      if: env.IS_RELEASE == 'true'
+      with:
+        name: FFT Item Overhaul ${{ env.RELEASE_TAG }}
+        body_path: ${{ env.PUBLISH_CHANGELOG_PATH }}
+        files: ${{ steps.publish.outputs.zip }}
+        draft: false
+        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
