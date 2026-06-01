@@ -49,7 +49,7 @@
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
       <Power>7</Power>
-      <Evasion>10</Evasion>
+      <Evasion>16</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
@@ -68,7 +68,7 @@
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
-      <Power>9</Power>
+      <Power>12</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>

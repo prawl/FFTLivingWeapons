@@ -19,7 +19,29 @@ ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("-
 CHECK_BASELINE = "--baseline" in sys.argv
 
 # "more is better" numeric axes across all item types. default = neutral (range melee=1, rest 0).
+# RANGE is a first-class fairness axis: a longer-reach weapon wins the range axis, so it is never dominated by a
+# shorter one, and it can only dominate a shorter weapon if it also matches/beats it on WP/evade/riders (in-game
+# confirmed: a sword set to Range 2 via the Lunging flag really does strike 2 tiles).
 NUMERIC_AXES = {"wp": 0, "evade": 0, "range": 1, "physEv": 0, "magEv": 0, "hp": 0, "mp": 0}
+
+# Cross-category dominance: items competing for the SAME equip slot can dominate each other, but only if the
+# dominator is at least as broadly equippable. Access class per category + the "can dominate" relation (B may
+# dominate A only if B's wearer-set superset-or-equals A's). 'universal' is wearable by every job in its slot.
+SLOT_GROUP = {"Armor": "body", "Clothing": "body", "Robe": "body",
+              "Helmet": "head", "Hat": "head", "HairAdornment": "head",
+              "Shoes": "acc", "Armguard": "acc", "Ring": "acc", "Armlet": "acc", "Cloak": "acc", "Perfume": "acc",
+              "Knife": "sidearm", "NinjaBlade": "sidearm"}
+ACCESS = {"Armor": "armored", "Clothing": "universal", "Robe": "caster",
+          "Helmet": "armored", "Hat": "universal", "HairAdornment": "female",
+          "Shoes": "universal", "Armguard": "universal", "Ring": "universal", "Armlet": "universal",
+          "Cloak": "universal", "Perfume": "female", "Knife": "knife", "NinjaBlade": "ninja"}
+ACC_DOM = {"universal": {"universal", "armored", "caster", "female"}, "armored": {"armored"},
+           "caster": {"caster"}, "female": {"female"},
+           "knife": {"knife", "ninja"}, "ninja": {"ninja"}}  # knives equip on more jobs than ninja blades
+
+
+def can_dominate_access(b, a):
+    return ACCESS.get(a["category"]) in ACC_DOM.get(ACCESS.get(b["category"], ""), set())
 
 
 def riders(s, normal_formulas):
@@ -68,6 +90,24 @@ def check(items, key, normal_formulas):
     return violations
 
 
+def check_slots(items, normal_formulas):
+    """Cross-category dominance within a shared equip slot, access-aware (a restricted item can't be dominated by
+    a broader-access one's narrower sibling; a universal item dominates restricted ones it out-stats)."""
+    groups = {}
+    for it in items:
+        g = SLOT_GROUP.get(it["category"])
+        if g:
+            groups.setdefault(g, []).append(it)
+    violations = []
+    for grp in groups.values():
+        for a in grp:
+            doms = [b for b in grp if b["id"] != a["id"] and can_dominate_access(b, a)
+                    and dominates(b, a, "proposed", normal_formulas)]
+            if doms:
+                violations.append((a, doms))
+    return violations
+
+
 def fmt(it, key, nf):
     s = it[key]
     axes = " ".join(f"{ax}{s[ax]}" for ax in NUMERIC_AXES if ax in s)
@@ -96,6 +136,16 @@ def main():
                 print(f"  DOMINATED: id{a['id']} {an} -- by {', '.join('id'+str(b['id']) for b in doms)}")
             if label == "PROPOSED":
                 rc = 1
+    sv = check_slots(items, nf)
+    print("\n--- SLOT-WIDE dominance (cross-category, same equip slot, access-aware) ---")
+    if not sv:
+        print("  PASS: no item is dominated within its equip slot.")
+    else:
+        for a, doms in sv:
+            an = a.get("name") if a.get("name") not in (None, "TBD") else a["vanillaName"]
+            print(f"  DOMINATED id{a['id']} {an} ({a['category']}) -- by "
+                  + ", ".join(f"id{b['id']} {b.get('name')}({b['category']})" for b in doms))
+        rc = 1
     sys.exit(rc)
 
 

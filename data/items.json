@@ -156,14 +156,13 @@
       },
       "proposed": {
         "wp": 7,
-        "evade": 10,
+        "evade": 16,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "desc": "A clean, honest blade of silvered steel. No tricks, just a reliable edge."
+      }
     },
     {
       "id": 6,
@@ -207,15 +206,14 @@
         "formula": 1
       },
       "proposed": {
-        "wp": 9,
+        "wp": 12,
         "evade": 5,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "desc": "Brutally sharp, brutally simple. All bite and no guard."
+      }
     },
     {
       "id": 8,
@@ -4761,8 +4759,8 @@
         "mp": 0,
         "physEv": 0,
         "magEv": 0,
-        "rider": "immune Stop",
-        "equipBonusId": 34
+        "rider": "immune Disable, Immobilize",
+        "equipBonusId": 62
       },
       "iconTint": [
         0.6,

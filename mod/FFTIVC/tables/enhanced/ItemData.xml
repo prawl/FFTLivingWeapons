@@ -216,8 +216,8 @@
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>180</Id> <!-- Warden Plate (was Platinum Armor): EquipBonus 34 (immune Stop) -->
-      <EquipBonusId>34</EquipBonusId>
+      <Id>180</Id> <!-- Warden Plate (was Platinum Armor): EquipBonus 62 (immune Disable, Immobilize) -->
+      <EquipBonusId>62</EquipBonusId>
     </Item>
     <Item>
       <Id>181</Id> <!-- Carabineer Mail: EquipBonus 14 (Speed+1) -->
