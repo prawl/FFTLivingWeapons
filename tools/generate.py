@@ -27,9 +27,17 @@ SHIELD_CATEGORIES = {"Shield"}
 SHIELD_DATA_BASE = 128  # shield item id 128 -> ItemShieldData row 0
 ARMOR_CATEGORIES = {"Helmet", "Hat", "HairAdornment", "Armor", "Clothing", "Robe"}      # -> ItemArmorData (HP/MP)
 ACCESSORY_CATEGORIES = {"Shoes", "Armguard", "Ring", "Armlet", "Cloak", "Perfume"}      # -> ItemAccessoryData (evade)
-# AdditionalDataId per global item id (from tools/decode_tables.py ref) -- maps each item to its type-table row.
+# AdditionalDataId per global item id -- maps each item to its type-table row. Sourced from the COMMITTED
+# data/additional_data_ids.json (so generate.py is self-contained on CI / any checkout); falls back to the
+# decode_tables.py dev ref under working/ if the committed map is absent.
+_ADD_FILE = ROOT / "data" / "additional_data_ids.json"
 _REF = ROOT / "working" / "ref" / "itemdata.json"
-ADD_DATA_ID = {int(k): v["additionalDataId"] for k, v in json.loads(_REF.read_text(encoding="utf-8")).items()} if _REF.exists() else {}
+if _ADD_FILE.exists():
+    ADD_DATA_ID = {int(k): v for k, v in json.loads(_ADD_FILE.read_text(encoding="utf-8")).items()}
+elif _REF.exists():
+    ADD_DATA_ID = {int(k): v["additionalDataId"] for k, v in json.loads(_REF.read_text(encoding="utf-8")).items()}
+else:
+    ADD_DATA_ID = {}
 # EquipBonus row fields in canonical emit order
 EB_FIELDS = ["PABonus", "MABonus", "SpeedBonus", "MoveBonus", "JumpBonus", "InnateStatus", "ImmuneStatus",
              "StartingStatus", "AbsorbElements", "NullifyElements", "HalveElements", "WeakElements",
