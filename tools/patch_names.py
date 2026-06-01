@@ -101,7 +101,7 @@ def mechanics(it):
         if ev >= 15:
             parts.append(f"Turns aside {ev}% of physical blows.")
         rng = s.get("range", 1) or 1
-        if rng >= 2 and it["category"] in MELEE1_CATS:
+        if rng >= 2:  # any reach weapon states its range (per user request)
             parts.append(f"Strikes from up to {rng} tiles away.")
     else:
         if it["category"] in ACC_CATS:

@@ -114,10 +114,10 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>12</Id> <!-- Kunai -->
-      <Range>2</Range>
+      <Range>1</Range>
       <Formula>1</Formula>
       <Power>9</Power>
-      <Evasion>10</Evasion>
+      <Evasion>15</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
@@ -426,6 +426,7 @@
     <ItemWeapon>
       <Id>45</Id> <!-- Kiku-ichimonji -->
       <Range>2</Range>
+      <AttackFlags>Throwable, TwoHands, Lunging</AttackFlags>
       <Formula>1</Formula>
       <Power>14</Power>
       <Evasion>10</Evasion>
@@ -623,7 +624,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>67</Id> <!-- Iron Flail -->
-      <Range>2</Range>
+      <Range>1</Range>
       <Formula>1</Formula>
       <Power>9</Power>
       <Evasion>0</Evasion>
@@ -632,7 +633,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>68</Id> <!-- Flail of Flame -->
-      <Range>2</Range>
+      <Range>1</Range>
       <Formula>2</Formula>
       <Power>11</Power>
       <Evasion>0</Evasion>
@@ -641,7 +642,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>69</Id> <!-- Morning Star -->
-      <Range>2</Range>
+      <Range>1</Range>
       <Formula>1</Formula>
       <Power>13</Power>
       <Evasion>0</Evasion>
@@ -650,7 +651,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>70</Id> <!-- Scorpion Tail -->
-      <Range>2</Range>
+      <Range>1</Range>
       <Formula>1</Formula>
       <Power>15</Power>
       <Evasion>0</Evasion>
@@ -989,7 +990,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>106</Id> <!-- Wyrmpike (was Javelin) -->
-      <Range>3</Range>
+      <Range>2</Range>
       <Formula>1</Formula>
       <Power>13</Power>
       <Evasion>10</Evasion>
