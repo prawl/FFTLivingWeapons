@@ -490,29 +490,29 @@
     <ItemWeapon>
       <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>3</Power>
       <Evasion>20</Evasion>
       <Elements>Lightning</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>20</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>3</Power>
       <Evasion>20</Evasion>
       <Elements>Fire</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>16</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>54</Id> <!-- Frost Rod (was Ice Rod) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>3</Power>
       <Evasion>20</Evasion>
       <Elements>Ice</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>24</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>55</Id> <!-- Venom Rod (was Poison Rod) -->
@@ -638,7 +638,7 @@
       <Power>11</Power>
       <Evasion>0</Evasion>
       <Elements>Fire</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>17</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>69</Id> <!-- Morning Star -->

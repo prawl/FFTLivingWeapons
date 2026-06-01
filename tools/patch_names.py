@@ -97,6 +97,9 @@ def mechanics(it):
             parts.append(f"May inflict {PROC[p]} on hit.")
         if s.get("formula") in (6, 47, 48):
             parts.append({6: "Absorbs HP dealt.", 47: "Absorbs MP dealt.", 48: "Night Sword: drains HP."}[s["formula"]])
+        if s.get("formula") == 2 and el not in ("None", None, ""):  # vanilla elemental spell-cast on hit
+            spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
+            parts.append(f"May cast {spell} on hit.")
         ev = s.get("evade", 0) or 0
         if ev >= 15:
             parts.append(f"Turns aside {ev}% of physical blows.")

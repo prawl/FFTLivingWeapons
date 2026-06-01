@@ -1458,9 +1458,9 @@
         "wp": 3,
         "evade": 20,
         "element": "Lightning",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHit": "Casts Thunder on hit",
+        "onHitAbilityId": 20,
+        "formula": 2,
         "range": 1
       },
       "iconTint": [
@@ -1487,9 +1487,9 @@
         "wp": 3,
         "evade": 20,
         "element": "Fire",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHit": "Casts Fire on hit",
+        "onHitAbilityId": 16,
+        "formula": 2,
         "range": 1
       },
       "iconTint": [
@@ -1516,9 +1516,9 @@
         "wp": 3,
         "evade": 20,
         "element": "Ice",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHit": "Casts Blizzard on hit",
+        "onHitAbilityId": 24,
+        "formula": 2,
         "range": 1
       },
       "iconTint": [
@@ -1923,7 +1923,7 @@
         "evade": 0,
         "element": "Fire",
         "onHit": "Casts Fira on hit",
-        "onHitAbilityId": 0,
+        "onHitAbilityId": 17,
         "formula": 2,
         "range": 1
       },
