@@ -54,6 +54,7 @@ PROC_FLAVOR = {
     9: "Its glare leaves foes groping blind.", 10: "It smothers an enemy's voice mid-spell.",
     11: "A mark of doom rides every blow.", 12: "Its rhythm lulls the wary to sleep.",
     14: "It pins quarry fast where they stand.", 22: "A venom-slick edge that festers wounds.",
+    55: "An arcane edge that unravels enchantments.",
     101: "It slicks the target in clinging oil.",
 }
 
@@ -107,23 +108,26 @@ def mechanics(it):
             parts.append("Damage scales with the wielder's Speed, not Physical Attack.")
         if f not in (2, 4):  # Formula 2/4 read the opt id as a spell cast, not a status
             if p == 55:
-                parts.append("Strips the target's buffs on hit.")
+                parts.append("Has a 19% chance to remove the target's buffs on hit.")
             elif p == 95:
-                parts.append("May Stop, petrify, or kill on hit.")
+                parts.append("Has a 19% chance to Stop, petrify, or kill on hit.")
             elif p == 41:
-                parts.append("May instantly kill on hit.")
+                parts.append("Has a 19% chance to instantly kill on hit.")
             elif p in PROC:
-                parts.append(f"May inflict {PROC[p]} on hit.")
+                parts.append(f"Has a 19% chance to inflict {PROC[p]} on hit.")
         if f in (6, 47, 48):
             parts.append({6: "Absorbs HP dealt.", 47: "Absorbs MP dealt.", 48: "Night Sword: drains HP."}[f])
         if f == 2 and el not in ("None", None, ""):  # vanilla elemental spell-cast on hit
             spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
-            parts.append(f"May cast {spell} on hit.")
+            parts.append(f"Has a 19% chance to cast {spell} on hit.")
         if f == 2 and p == 147:  # Rush = knockback
-            parts.append("May knock the target back a tile on hit.")
+            parts.append("Has a 19% chance to knock the target back a tile on hit.")
         rng = s.get("range", 1) or 1
         if rng >= 2:  # any reach weapon states its range (per user request)
             parts.append(f"Strikes from up to {rng} tiles away.")
+        af = s.get("attackFlags") or ""
+        if "ForcedTwoHands" in af and "Arc" not in af:  # melee two-hander; bows (Arc) are obviously 2H, skip
+            parts.append("Held in two hands only (no shield).")
     else:
         if it["category"] in ACC_CATS:
             pe, me = s.get("physEv", 0) or 0, s.get("magEv", 0) or 0
