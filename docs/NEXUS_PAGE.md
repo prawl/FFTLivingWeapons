@@ -1,68 +1,63 @@
 # FFT Item Overhaul
 
-Final Fantasy Tactics has the bones of a great loot game buried under a flat reward curve. You buy the new sword, sell the old sword, and never look back — every chapter quietly invalidates the last chapter's shopping. That's not a build, that's a treadmill. **FFT Item Overhaul** rebalances all 234 equippable items in *FINAL FANTASY TACTICS: The Ivalice Chronicles* so old gear never becomes vendor trash. Every weapon, shield, head and body armor, and accessory gets reworked stats, a recolored menu icon, and a rewritten description — plus a fresh name, save the iconic legendaries and the samurai katanas, which keep theirs. It is all built around one idea: a newer item is a *sidegrade* with a different reason to exist, not a strict upgrade.
+Vanilla FFT gear is a shopping treadmill. Buy the new sword, sell the old one, never look back. I got tired of that, so I sat down and reworked every single piece of equipment in the game so your old stuff doesn't turn into vendor trash the second the next tier shows up.
 
-### What does this mod actually change?
+All 234 equippable items got touched. Weapons, shields, helmets, armor, accessories. New stats, recolored icons, rewritten descriptions, and fresh names for most of them.
 
-It rebalances every equippable item in the game for build diversity — 121 weapons, 16 shields, 28 head armor, 36 body armor, and 33 accessories. Each gets reworked stats, a recolored menu icon, and a rewritten description; nearly all also get a new name (the iconic legendaries and the samurai katanas keep theirs).
+It's pure data. No DLL, no config window, nothing to fiddle with. Drop it in, restart, play.
 
-### Why does my best weapon stop mattering ten hours in?
+### So what actually changes?
 
-In vanilla, equipment is a strict power ladder — every new tier dominates the old one, so there's only ever one "best" pick and a pile of dead weight behind it. This mod kills the ladder. Weapon Power and HP still climb gently and predictably across the chapters, but the *interesting* differences live everywhere else: evasion, element, on-hit status, equip riders, weapon range, and when in the story you can get it.
+Weapon Power and HP still climb over the chapters, just slower and steadier than vanilla. The interesting part of a weapon lives somewhere other than its damage number now: how much it dodges, what element it carries, a status it lands on hit, a stat bonus, how far it reaches, or just how early you can get your hands on it. Two weapons with the same WP can play completely differently.
 
-### So my early-game blade doesn't become garbage?
+### Why bother keeping the old gear around?
 
-Right. No item is strictly dominated by another, so the dagger you loved in Chapter 1 can stay on your bar deep into the game because it does something the shiny new one doesn't — reach, an elemental bite, an evasion edge, a chance to inflict a status on hit. Every item answers a single question: *when would I actually pick THIS?*
+Because nothing in here is a flat upgrade over something else. That chapter-1 dagger might dodge better, or hit at range, or inflict a status the shiny new sword can't touch. Every item had to pass one question before it shipped: "okay, when would I actually grab this one?" If I couldn't answer that, I kept tweaking until I could.
 
-### How do I know what an item does at a glance?
+### How do I know what an item does?
 
-Every single description was rewritten from scratch to spell out exactly what the item does — its element, any on-hit status, its equip bonus, and its reach. No guessing what a weapon's gimmick is, no wiki tab open on your second monitor. If an item does something, the description says so in plain words.
+I rewrote all the descriptions to actually tell you. Element, on-hit status, equip bonus, reach, it's right there in the tooltip. No more digging through a wiki to figure out what a weapon's gimmick is.
 
-### Does my favorite legendary survive this?
+### Did you rename everything?
 
-Yes. Non-shop legendaries — Excalibur, the Genji set, Save the Queen, the Materia Blade, Masamune, and the rest — keep their vanilla names. They still get the rebalanced stats so they slot cleanly into the new curve, but they stay the named treasures you remember earning. The samurai katanas (Masamune, Muramasa, and the rest) keep their names too.
+Most of it. Shop gear got fresh names and recolored icons across the board. The legendaries keep theirs though. I wasn't about to rename Excalibur or the Genji set, and the samurai katanas stay as they are too. So if you're hunting for a specific named treasure, it's still called what you remember.
 
-### Does this make the game harder or easier?
+### Is the game harder or easier now?
 
-Both, on purpose. Enemies equip from the same tables you do, so the rebalance cuts both ways — your sidegrades are also their sidegrades. It matters *more* the more the rest of your install ramps power up, so it pairs especially well with enemy-buffing or free-ability mods that would otherwise flatten loot decisions.
+A bit of both, honestly. Enemies pull from the same item tables you do, so they get all of these changes right along with you. The more your other mods crank up enemy power, the more this one earns its keep, since picking gear becomes an actual decision instead of "grab whatever has the biggest number."
 
-### Do I have to configure anything?
+### Do I need to set anything up?
 
-No. There's no config window, no sliders, no themes, no hotkey. It's pure data — install it and it just works on the next game restart. Nothing to operate, nothing to babysit.
+Nope. No menu, no sliders, no hotkeys. It's just data, so it kicks in the next time you start the game.
 
 ## Installation
 
-Requires Reloaded-II and the FFT:TIC Mod Loader. Installing via Vortex (Nexus Mod Manager) should set everything up for you. Need help? Check out this video on how to set up mods for FFT.
+You'll need Reloaded-II and the FFT:TIC Mod Loader. If you install through Vortex it should pull the dependencies in for you. New to modding FFT? There's a setup video below.
 
-- Vortex setup video: [link placeholder]
-- Reloaded-II setup video: [link placeholder]
+(Vortex setup video)
 
-## Mod Load Order
+(Reloaded-II setup video)
 
-You don't need to fuss with this. FFT Item Overhaul is a pure-data mod with no DLL and no UI, so it doesn't compete with your other mods for hooks or startup order. The only thing that matters is that no *other* item-table mod is enabled alongside it — see the first FAQ entry below. Everything else can sit wherever Vortex puts it.
+## Load Order
+
+Never had to touch mine. The only real rule is don't run another item mod at the same time as this one (more on that in the FAQ). Anything that isn't editing items can sit wherever it likes.
 
 ## FAQ
 
-**Will this conflict with other mods?**
-For item-table mods, yes — and this one is meant to be the authoritative one. If you run another item rebalancer (for example, Regabond's Rebalance, or the WotL Equipment Replacer / Treasure Hunt mods), disable it. Two mods editing the same item tables will fight, and whichever loads last wins in a messy, unpredictable way. Outside of item tables it composes cleanly: level-scaling mods, job mods, and skill mods all live in different data and run alongside it without issue.
+**Will it fight with my other mods?**
+Only other item mods. This is meant to be the one item mod you run. If you've got something like Regabond's Rebalance or the WotL Equipment Replacer / Treasure Hunt, switch those off, or they'll wrestle over the same tables and you'll end up with items neither mod actually designed. Everything else (level scaling, job mods, skill and spell mods) is totally fine alongside it.
 
-**Does it change enemy gear too?**
-Yes. Enemies equip from the same item tables your party does, so they get the reworked stats right along with you. That's intentional — the difficulty change cuts both ways, and it keeps fights honest instead of handing the player a one-sided power spike.
+**Does it change enemy equipment too?**
+Yep, on purpose. Enemies wear gear out of the same tables you buy from, so they get the reworked stats too.
 
-**Does it touch potions, ethers, or throwables like Shuriken and Bombs?**
-No. This is an equipment-only mod — weapons, shields, head and body armor, and accessories. Consumables (Potions, Ethers, and the like) and throwables (Shuriken, Bombs) are left completely vanilla.
+**What about potions and throwables?**
+Left alone. This is equipment only. Potions, ethers, shuriken, bombs, all still vanilla.
 
 **Does it add new items?**
-No. The game's item table is a fixed size, so this mod reworks the items that already exist rather than adding new slots. You get 234 reimagined items, not 235.
+No. The item table is a fixed size, so instead of bolting on new slots I reworked the 234 that are already there. Same count, all different.
 
-**Is it save-safe? Can I add or remove it mid-playthrough?**
-Yes, on both counts. It's pure data — it only changes item stats, names, icons, and descriptions, and it makes no permanent edits to your save. Add it whenever you like, and if you remove it, every item reverts to vanilla. Nothing is baked into the save file.
+**Can I add or remove it mid-playthrough?**
+Go for it. It only changes item data and never writes anything to your save, so you can drop it in whenever, and if you pull it back out everything goes right back to vanilla.
 
-**Will my favorite legendary keep its name (Excalibur, Genji, Masamune, etc.)?**
-Yes. Non-shop legendaries keep their vanilla names — they just pick up the rebalanced stats along with everyone else. See the Q&A above.
-
-**Does it work on Steam Deck?**
-Yes. Unlike a mod with a config window, this one has no UI to render — no F1 menu, no sliders, no toggles. There's nothing to draw, so it runs anywhere Reloaded-II and the FFT:TIC Mod Loader run, Steam Deck included.
-
-**How do I see what an item does now that the stats changed?**
-Read the description — every single one was rewritten to spell out the item's effect: its element, any on-hit status, its equip bonus, and its reach. The screenshots throughout this page show the new names, icons, and descriptions in action.
+**Does it run on Steam Deck?**
+Should be fine. There's no interface to draw, it's just data, so it works anywhere Reloaded-II and the mod loader do.

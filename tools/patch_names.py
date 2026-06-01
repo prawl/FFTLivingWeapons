@@ -16,7 +16,7 @@ import json, sys, subprocess, shutil, re
 from pathlib import Path
 import sqlite3
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from integrate_panel import parse_rider, ALL8
+from riders import parse_rider, ALL8
 
 ROOT = Path(__file__).resolve().parent.parent
 ITEMS = ROOT / "data" / "items.json"

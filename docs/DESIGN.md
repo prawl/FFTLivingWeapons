@@ -76,7 +76,7 @@ Tables and hardcoded size caps: ItemData ≤261 ("256 + 5 extended"), Weapon ≤
 = Blood Suck; the Treasure Hunt Orochi uses Formula 6 = absorb-HP). So we can re-curve individual weapons
 (e.g. take a gun off `WP²`). `OptionsAbilityId` is the on-hit status/spell hook.
 **Open:** whether `WP²` is the gun's *Formula value* (overridable) or hardcoded by item type — pending the
-reference workflow + an in-game test.
+reference-mod teardown + an in-game test.
 
 (Source: FFTHandsFree `docs/Wiki/{Equipment,DamageFormulas,FormulaTable,GameDataStructs}.md`; the Treasure
 Hunt + Regabonds XML teardown.)
@@ -185,11 +185,11 @@ enemy pool.
 ## 7. Open questions / next steps
 
 - [ ] **Formula override scope** — can the `<Formula>` field re-curve guns off `WP²`, or is `WP²` hardcoded
-      by item *type*? (reference workflow + in-game test)
+      by item *type*? (reference-mod teardown + in-game test)
 - [ ] **Add vs replace** — are the 5 "extended" item slots (256–260) usable for net-new items, or are we
-      strictly restatting the existing roster? (reference workflow) — not blocking; a rebalance restats.
+      strictly restatting the existing roster? (reference-mod teardown) — not blocking; a rebalance restats.
 - [ ] **In-hand graphic** — `SpriteID`/`Palette` select the wielded-weapon look; what to change for a new
-      battle appearance (vs just the menu icon). (reference workflow, may be UNCONFIRMED)
+      battle appearance (vs just the menu icon). (reference-mod teardown, may be UNCONFIRMED)
 - [ ] **Pilot category** — prototype one category (proposal: **weapons**) end-to-end: items.json schema →
       generator → analyzer (prove no strict dominance) → deploy → in-game check.
 - [ ] **Naming** — mod name + working folder name.

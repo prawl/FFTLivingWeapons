@@ -2,7 +2,7 @@
 
 **Every item in Final Fantasy Tactics: The Ivalice Chronicles, rebalanced so old gear never becomes vendor trash.**
 
-A pure-data rebalance of all **234** equippable items — every weapon, shield, head/body armor, and accessory — built for one goal: **build diversity**. Weapon Power and HP climb *gently and predictably* across chapters, while each item keeps its own identity in the dimensions that actually make a build (evasion, element, on-hit status, stat/equip riders, range, availability tier). A newer weapon is rarely a *strict* upgrade — it's a sidegrade with a different reason to exist.
+A pure-data rebalance of all **234** equippable items (every weapon, shield, head/body armor, and accessory), aimed at one thing: build diversity. Weapon Power and HP climb gently across the chapters, and each item earns its own identity in the stats that actually shape a build: evasion, element, on-hit status, stat and equip riders, range, and how early you can get it. A newer weapon is rarely a flat upgrade. It's a sidegrade with a different reason to run it.
 
 Pure-data Reloaded-II mod (no DLL) over Nenkai's `fftivc.utility.modloader`.
 
@@ -10,9 +10,9 @@ See [`docs/DESIGN.md`](docs/DESIGN.md) for the full design rationale.
 
 ## Thesis
 
-Vanilla loot is a strict tier ladder: each shop tier dominates the last, so old gear is dead weight the moment you can afford the next thing. This mod flattens the power curve and pushes the *interesting* differences out of Weapon Power and into everything else. The acceptance test for every single item is one question — **"When would I pick THIS?"** — and every item has an answer: a niche, a tradeoff, or an availability window.
+Vanilla loot is a strict tier ladder. Each shop tier beats the last, so old gear is dead weight the moment you can afford the next thing. This mod flattens the power curve and moves the interesting differences out of Weapon Power and into everything else. Every item has to answer one question: "when would I pick this?" The answer is always a niche, a tradeoff, or an availability window.
 
-It matters **more**, not less, the more the rest of your install ramps up. Under enemy-buffing mods (Level Scaling, Strong Monsters) or free-ability mods (All-Skills-Cost-0), strict-tier vanilla gear collapses into "always equip the newest"; sidegrades stay relevant because the *reason* to run them isn't raw power. Note that enemies equip from these same tables, so the rebalance cuts both ways.
+This pays off harder the more the rest of your install ramps up. Under enemy-buffing mods (Level Scaling, Strong Monsters) or free-ability mods (All-Skills-Cost-0), strict-tier vanilla gear collapses into "just equip the newest thing". Sidegrades stay relevant because the reason to run them was never raw power. Enemies equip from these same tables too, so it applies to both sides.
 
 ## Features
 
