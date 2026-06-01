@@ -742,9 +742,9 @@
       "id": 27,
       "category": "Sword",
       "vanillaName": "Platinum Sword",
-      "name": "Headsman",
+      "name": "Wrathblade",
       "tier": 4,
-      "identity": "Glass cannon -- top raw WP at its tier (12), bought with the lowest evade of any non-Reaver sword (4). Max damage, near-zero defense.",
+      "identity": "Berserker sword: damage equals the wielder's missing HP. Zero at full health, devastating near death. WP and evade are cosmetic for damage. The widely-equippable desperation blade.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -759,10 +759,9 @@
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
-        "formula": 1,
+        "formula": 67,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "A massive executioner's blade. Devastating, and utterly without guard."
+      }
     },
     {
       "id": 28,
@@ -1218,7 +1217,7 @@
       "vanillaName": "Muramasa",
       "name": "Muramasa",
       "tier": 4,
-      "identity": "The cursed blade -- innate Dark element AND Doom-on-hit (death in 3 turns), a kill-condition no cleaner katana offers. Lowest evade in the line (8): all menace, no guard. Dark-absorbers heal (the curse's risk).",
+      "identity": "Berserker katana (the Muramasa curse): damage equals the wielder's missing HP. Zero at full health, up to a near-MaxHP hit near death. WP and evade are cosmetic for damage. A desperation finisher.",
       "baseline": {
         "wp": 14,
         "evade": 15,
@@ -1229,10 +1228,10 @@
       "proposed": {
         "wp": 13,
         "evade": 8,
-        "element": "Dark",
-        "onHit": "Doom",
-        "onHitAbilityId": 11,
-        "formula": 1,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 67,
         "range": 1
       },
       "iconTint": [
@@ -1362,9 +1361,9 @@
       "id": 49,
       "category": "Axe",
       "vanillaName": "Giant's Axe",
-      "name": "War Axe",
+      "name": "Ravager",
       "tier": 3,
-      "identity": "Raw mid-power workhorse and the family's pure-ceiling pick. Best no-rider axe WP of its era (Rand up to PA*13), range 1. PICK when you want the single biggest possible hit with zero status fuss; pays with zero evade and zero consistency (1*13 floor whiffs happen). The honest brute lane vs the flails' control lane.",
+      "identity": "Berserker axe: damage equals the wielder's missing HP. Zero at full health, devastating near death. WP and evade are cosmetic for damage. The reckless all-or-nothing axe.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -1376,9 +1375,9 @@
         "wp": 13,
         "evade": 0,
         "element": "None",
-        "onHit": "May berserk",
-        "onHitAbilityId": 53,
-        "formula": 1,
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 67,
         "range": 1
       },
       "iconTint": [
@@ -1896,9 +1895,9 @@
       "id": 68,
       "category": "Flail",
       "vanillaName": "Flail of Flame",
-      "name": "Pyrelash",
+      "name": "Bloodlash",
       "tier": 3,
-      "identity": "The family's flavor pick, vanilla's one genuinely-interesting item kept verbatim: Fire element + Fira cast-on-hit via Formula 2 (Op17, present in the vanilla item -- the documented F2 pairing). A different damage MODEL than the rest (magic-formula elemental, not Rand random), so no raw axe/flail can dominate it. Anti-Undead, shreds Oiled / Ice-creature foes; Fire-absorbers heal (double-edged). Now also gets reach (range 2). Only elemental in the category.",
+      "identity": "Berserker flail: damage equals the wielder's missing HP. Zero at full health, brutal near death. WP and evade are cosmetic for damage. The flail line's wild desperation pick.",
       "baseline": {
         "wp": 11,
         "evade": 0,
@@ -1909,10 +1908,10 @@
       "proposed": {
         "wp": 11,
         "evade": 0,
-        "element": "Fire",
-        "onHit": "May inflict Sleep",
-        "onHitAbilityId": 12,
-        "formula": 1,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 67,
         "range": 1
       },
       "iconTint": [

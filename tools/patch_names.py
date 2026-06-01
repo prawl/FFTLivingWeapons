@@ -96,6 +96,8 @@ def mechanics(it):
         el = s.get("element", "None")
         f = s.get("formula", 1)
         p = s.get("onHitAbilityId", 0) or 0
+        if f == 67:  # CasMaxHP - CasCurHP: damage = the wielder's missing HP, ignores WP
+            return "Deals damage equal to the wielder's missing HP. Harmless at full health, devastating near death."
         if f == 4 and el not in ("None", None, ""):  # magic gun: the attack IS the elemental spell, off Magick Attack
             spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
             parts.append(f"Its attack casts {spell}, scaling with Magick Attack instead of striking (no MP cost).")
@@ -142,6 +144,10 @@ def mechanics(it):
 def flavor(it):
     s = it["proposed"]
     if it["category"] in WEAPON_CATS:
+        if s.get("formula") == 67:
+            noun = CAT_NOUN.get(it["category"], it["vanillaName"].lower())
+            art = "An" if noun[:1].lower() in "aeiou" else "A"
+            return f"{art} {noun} that feeds on its wielder's pain."
         el = s.get("element", "None")
         if el in ELEM_FLAVOR:
             return ELEM_FLAVOR[el]

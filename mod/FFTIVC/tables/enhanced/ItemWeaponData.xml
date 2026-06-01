@@ -256,10 +256,10 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>27</Id> <!-- Headsman (was Platinum Sword) -->
+      <Id>27</Id> <!-- Wrathblade (was Platinum Sword) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>1</Formula>
+      <Formula>67</Formula>
       <Power>12</Power>
       <Evasion>4</Evasion>
       <Elements>None</Elements>
@@ -417,11 +417,11 @@
     <ItemWeapon>
       <Id>44</Id> <!-- Muramasa -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>67</Formula>
       <Power>13</Power>
       <Evasion>8</Evasion>
-      <Elements>Dark</Elements>
-      <OptionsAbilityId>11</OptionsAbilityId>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>45</Id> <!-- Kiku-ichimonji -->
@@ -461,13 +461,13 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>49</Id> <!-- War Axe (was Giant's Axe) -->
+      <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>67</Formula>
       <Power>13</Power>
       <Evasion>0</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>53</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>50</Id> <!-- Headsman's Axe (was Slasher) -->
@@ -632,13 +632,13 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>68</Id> <!-- Pyrelash (was Flail of Flame) -->
+      <Id>68</Id> <!-- Bloodlash (was Flail of Flame) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>67</Formula>
       <Power>11</Power>
       <Evasion>0</Evasion>
-      <Elements>Fire</Elements>
-      <OptionsAbilityId>12</OptionsAbilityId>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>69</Id> <!-- Snarelash (was Morning Star) -->
