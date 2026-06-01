@@ -96,6 +96,25 @@ def accessory_entry(it):
             f"      <PhysicalEvasion>{s.get('physEv', 0)}</PhysicalEvasion>\n      <MagicalEvasion>{s.get('magEv', 0)}</MagicalEvasion>\n    </ItemAccessory>\n")
 
 
+# Sparse ItemData overrides for items NOT in items.json: the recycled-consumable grenades' shop
+# timing + bumping Remedy to Chapter 1 (it became the only cure). ShopAvailability is honored via
+# ItemData for weapons (confirmed on Sasori); whether it sticks for CONSUMABLES is being verified
+# (their Price is nex-overridden). Price is NOT settable here -- it lives in the base item.nxd.
+EXTRA_ITEMDATA = {
+    246: {"shop": "Chapter1_Start"},  # Venom Flask  (Poison)  - early
+    247: {"shop": "Chapter1_Start"},  # Smoke Bomb   (Blind)   - early
+    249: {"shop": "Chapter2_Start"},  # Oil Flask    (Oil)     - earlier (situational Fire combo)
+    248: {"shop": "Chapter3_Start"},  # Hush Vial    (Silence) - later (more universally useful)
+    250: {"shop": "Chapter4_Start"},  # Sludge Bomb  (Slow)    - late
+    252: {"shop": "Chapter1_Start"},  # Remedy: now the only cure, must be buyable in Chapter 1
+}
+
+
+def extra_itemdata_entry(iid, fields):
+    body = f"      <ShopAvailability>{fields['shop']}</ShopAvailability>\n" if fields.get("shop") else ""
+    return f"    <Item>\n      <Id>{iid}</Id>\n{body}    </Item>\n"
+
+
 def itemdata_entry(it):
     s = it["proposed"]
     body = ""
@@ -148,10 +167,12 @@ def main():
 
     # ItemData: every item that sets an equipBonusId (shields + any weapon w/ a rider, e.g. Arcanum MA+2)
     data_items = [it for it in items if "equipBonusId" in it["proposed"] or it["proposed"].get("categoryOverride") or it["proposed"].get("typeFlagsOverride") or it["proposed"].get("shopOverride")]
-    if data_items:
+    if data_items or EXTRA_ITEMDATA:
+        body = "".join(itemdata_entry(it) for it in data_items)
+        body += "".join(extra_itemdata_entry(i, f) for i, f in sorted(EXTRA_ITEMDATA.items()))
         (MOD_TABLES / "ItemData.xml").write_text(
-            hdr("ItemTable") + "".join(itemdata_entry(it) for it in data_items) + "  </Entries>\n</ItemTable>\n", encoding="utf-8")
-        wrote.append(f"ItemData.xml ({len(data_items)} entries)")
+            hdr("ItemTable") + body + "  </Entries>\n</ItemTable>\n", encoding="utf-8")
+        wrote.append(f"ItemData.xml ({len(data_items)} entries + {len(EXTRA_ITEMDATA)} consumable shop overrides)")
 
     if new_eb:
         rows = "".join(equipbonus_entry(int(k), v) for k, v in sorted(new_eb.items(), key=lambda kv: int(kv[0])))

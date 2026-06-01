@@ -493,5 +493,29 @@
       <Id>260</Id> <!-- Scholar's Ring (was Ring of Aptitude) -->
       <EquipBonusId>80</EquipBonusId>
     </Item>
+    <Item>
+      <Id>246</Id>
+      <ShopAvailability>Chapter1_Start</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>247</Id>
+      <ShopAvailability>Chapter1_Start</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>248</Id>
+      <ShopAvailability>Chapter3_Start</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>249</Id>
+      <ShopAvailability>Chapter2_Start</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>250</Id>
+      <ShopAvailability>Chapter4_Start</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>252</Id>
+      <ShopAvailability>Chapter1_Start</ShopAvailability>
+    </Item>
   </Entries>
 </ItemTable>
