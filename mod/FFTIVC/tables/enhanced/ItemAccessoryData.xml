@@ -9,12 +9,12 @@
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>1</Id> <!-- Spiked Boots -->
+      <Id>1</Id> <!-- Cragstep Boots (was Spiked Boots) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>2</Id> <!-- Germinas Boots -->
+      <Id>2</Id> <!-- Roamer's Boots (was Germinas Boots) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
@@ -29,7 +29,7 @@
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>5</Id> <!-- Hermes Shoes -->
+      <Id>5</Id> <!-- Fleetfoot Shoes (was Hermes Shoes) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
@@ -39,7 +39,7 @@
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>7</Id> <!-- Power Gauntlets -->
+      <Id>7</Id> <!-- Ironhand Gauntlets (was Power Gauntlets) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
@@ -49,17 +49,17 @@
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>9</Id> <!-- Magepower Gloves -->
+      <Id>9</Id> <!-- Runecast Gloves (was Magepower Gloves) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>10</Id> <!-- Bracers -->
+      <Id>10</Id> <!-- Titan Grips (was Bracers) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>11</Id> <!-- Reflect Ring -->
+      <Id>11</Id> <!-- Mirror Ring (was Reflect Ring) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
@@ -79,62 +79,62 @@
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>15</Id> <!-- Angel Ring -->
+      <Id>15</Id> <!-- Seraph Ring (was Angel Ring) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>16</Id> <!-- Diamond Bracelet -->
+      <Id>16</Id> <!-- Adamant Bangle (was Diamond Bracelet) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>17</Id> <!-- Jade Armlet -->
+      <Id>17</Id> <!-- Stoneward Armlet (was Jade Armlet) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>18</Id> <!-- Japa Mala -->
+      <Id>18</Id> <!-- Sanctus Beads (was Japa Mala) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>19</Id> <!-- Nu Khai Armband -->
+      <Id>19</Id> <!-- Clearmind Armlet (was Nu Khai Armband) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>20</Id> <!-- Guardian Bracelet -->
+      <Id>20</Id> <!-- Unbound Armlet (was Guardian Bracelet) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>21</Id> <!-- Shoulder Cape -->
+      <Id>21</Id> <!-- Drifter's Cape (was Shoulder Cape) -->
       <PhysicalEvasion>10</PhysicalEvasion>
       <MagicalEvasion>10</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>22</Id> <!-- Leather Cloak -->
+      <Id>22</Id> <!-- Duelist's Cape (was Leather Cloak) -->
       <PhysicalEvasion>18</PhysicalEvasion>
       <MagicalEvasion>6</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>23</Id> <!-- Mage's Cloak -->
+      <Id>23</Id> <!-- Runecloak (was Mage's Cloak) -->
       <PhysicalEvasion>12</PhysicalEvasion>
       <MagicalEvasion>18</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>24</Id> <!-- Elven Cloak -->
+      <Id>24</Id> <!-- Sylvan Shroud (was Elven Cloak) -->
       <PhysicalEvasion>25</PhysicalEvasion>
       <MagicalEvasion>15</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>25</Id> <!-- Vampire Cape -->
+      <Id>25</Id> <!-- Nocturne Cape (was Vampire Cape) -->
       <PhysicalEvasion>20</PhysicalEvasion>
       <MagicalEvasion>25</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>26</Id> <!-- Featherweave Cloak -->
+      <Id>26</Id> <!-- Zephyr Cloak (was Featherweave Cloak) -->
       <PhysicalEvasion>35</PhysicalEvasion>
       <MagicalEvasion>20</MagicalEvasion>
     </ItemAccessory>
@@ -164,7 +164,7 @@
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>11</Id> <!-- Ring of Aptitude -->
+      <Id>11</Id> <!-- Scholar's Ring (was Ring of Aptitude) -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>

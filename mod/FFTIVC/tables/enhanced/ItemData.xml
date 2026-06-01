@@ -76,11 +76,11 @@
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>145</Id> <!-- Bronze Helm: EquipBonus 5 (innate Regen) -->
+      <Id>145</Id> <!-- Mendsteel Helm (was Bronze Helm): EquipBonus 5 (innate Regen) -->
       <EquipBonusId>5</EquipBonusId>
     </Item>
     <Item>
-      <Id>146</Id> <!-- Iron Helm: EquipBonus 2 (innate Protect) -->
+      <Id>146</Id> <!-- Aegis Helm (was Iron Helm): EquipBonus 2 (innate Protect) -->
       <EquipBonusId>2</EquipBonusId>
     </Item>
     <Item>
@@ -88,7 +88,7 @@
       <EquipBonusId>35</EquipBonusId>
     </Item>
     <Item>
-      <Id>148</Id> <!-- Mythril Helm: EquipBonus 26 (immune Silence) -->
+      <Id>148</Id> <!-- Clarion Helm (was Mythril Helm): EquipBonus 26 (immune Silence) -->
       <EquipBonusId>26</EquipBonusId>
     </Item>
     <Item>
@@ -100,11 +100,11 @@
       <EquipBonusId>20</EquipBonusId>
     </Item>
     <Item>
-      <Id>151</Id> <!-- Diamond Helm: EquipBonus 34 (immune Stop) -->
+      <Id>151</Id> <!-- Timeward Helm (was Diamond Helm): EquipBonus 34 (immune Stop) -->
       <EquipBonusId>34</EquipBonusId>
     </Item>
     <Item>
-      <Id>152</Id> <!-- Platinum Helm: EquipBonus 4 (innate Shell) -->
+      <Id>152</Id> <!-- Wardsteel Helm (was Platinum Helm): EquipBonus 4 (innate Shell) -->
       <EquipBonusId>4</EquipBonusId>
     </Item>
     <Item>
@@ -112,7 +112,7 @@
       <EquipBonusId>82</EquipBonusId>
     </Item>
     <Item>
-      <Id>154</Id> <!-- Crystal Helm: EquipBonus 59 (immune Stop, Stone) -->
+      <Id>154</Id> <!-- Crystalward Helm (was Crystal Helm): EquipBonus 59 (immune Stop, Stone) -->
       <EquipBonusId>59</EquipBonusId>
     </Item>
     <Item>
@@ -124,15 +124,15 @@
       <EquipBonusId>54</EquipBonusId>
     </Item>
     <Item>
-      <Id>157</Id> <!-- Leather Cap: EquipBonus 0 (None) -->
+      <Id>157</Id> <!-- Roughspun Cap (was Leather Cap): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>158</Id> <!-- Plumed Hat: EquipBonus 0 (None) -->
+      <Id>158</Id> <!-- Wardplume Hat (was Plumed Hat): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>159</Id> <!-- Red Hood: EquipBonus 0 (None) -->
+      <Id>159</Id> <!-- Adept's Hood (was Red Hood): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
@@ -140,11 +140,11 @@
       <EquipBonusId>21</EquipBonusId>
     </Item>
     <Item>
-      <Id>161</Id> <!-- Wizard's Hat: EquipBonus 10 (MA+1) -->
+      <Id>161</Id> <!-- Arcanist Cap (was Wizard's Hat): EquipBonus 10 (MA+1) -->
       <EquipBonusId>10</EquipBonusId>
     </Item>
     <Item>
-      <Id>162</Id> <!-- Green Beret: EquipBonus 14 (Speed+1) -->
+      <Id>162</Id> <!-- Zephyr Beret (was Green Beret): EquipBonus 14 (Speed+1) -->
       <EquipBonusId>14</EquipBonusId>
     </Item>
     <Item>
@@ -152,7 +152,7 @@
       <EquipBonusId>24</EquipBonusId>
     </Item>
     <Item>
-      <Id>164</Id> <!-- Celebrant's Miter: EquipBonus 1 (MA+2) -->
+      <Id>164</Id> <!-- Hierophant Miter (was Celebrant's Miter): EquipBonus 1 (MA+2) -->
       <EquipBonusId>1</EquipBonusId>
     </Item>
     <Item>
@@ -160,15 +160,15 @@
       <EquipBonusId>42</EquipBonusId>
     </Item>
     <Item>
-      <Id>166</Id> <!-- Gold Hairpin: EquipBonus 26 (immune Silence) -->
+      <Id>166</Id> <!-- Mana Coronet (was Gold Hairpin): EquipBonus 26 (immune Silence) -->
       <EquipBonusId>26</EquipBonusId>
     </Item>
     <Item>
-      <Id>167</Id> <!-- Lambent Hat: EquipBonus 27 (MA+1, Speed+1) -->
+      <Id>167</Id> <!-- Lumen Crown (was Lambent Hat): EquipBonus 27 (MA+1, Speed+1) -->
       <EquipBonusId>27</EquipBonusId>
     </Item>
     <Item>
-      <Id>168</Id> <!-- Thief's Cap: EquipBonus 28 (Speed+2, immune Disable, Immobilize) -->
+      <Id>168</Id> <!-- Nightrunner Cap (was Thief's Cap): EquipBonus 28 (Speed+2, immune Disable, Immobilize) -->
       <EquipBonusId>28</EquipBonusId>
     </Item>
     <Item>
@@ -184,7 +184,7 @@
       <EquipBonusId>71</EquipBonusId>
     </Item>
     <Item>
-      <Id>172</Id> <!-- Leather Armor: EquipBonus 0 (None) -->
+      <Id>172</Id> <!-- Roughhide Mail (was Leather Armor): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
@@ -192,15 +192,15 @@
       <EquipBonusId>5</EquipBonusId>
     </Item>
     <Item>
-      <Id>174</Id> <!-- Bronze Armor: EquipBonus 21 (PA+1) -->
+      <Id>174</Id> <!-- Reaver Mail (was Bronze Armor): EquipBonus 21 (PA+1) -->
       <EquipBonusId>21</EquipBonusId>
     </Item>
     <Item>
-      <Id>175</Id> <!-- Chainmail: EquipBonus 26 (immune Silence) -->
+      <Id>175</Id> <!-- Hushward Mail (was Chainmail): EquipBonus 26 (immune Silence) -->
       <EquipBonusId>26</EquipBonusId>
     </Item>
     <Item>
-      <Id>176</Id> <!-- Mythril Armor: EquipBonus 0 (None) -->
+      <Id>176</Id> <!-- Stalwart Plate (was Mythril Armor): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
@@ -212,7 +212,7 @@
       <EquipBonusId>16</EquipBonusId>
     </Item>
     <Item>
-      <Id>179</Id> <!-- Diamond Armor: EquipBonus 0 (None) -->
+      <Id>179</Id> <!-- Adamant Plate (was Diamond Armor): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
@@ -220,11 +220,11 @@
       <EquipBonusId>62</EquipBonusId>
     </Item>
     <Item>
-      <Id>181</Id> <!-- Carabineer Mail: EquipBonus 14 (Speed+1) -->
+      <Id>181</Id> <!-- Charger's Plate (was Carabineer Mail): EquipBonus 14 (Speed+1) -->
       <EquipBonusId>14</EquipBonusId>
     </Item>
     <Item>
-      <Id>182</Id> <!-- Crystal Mail: EquipBonus 59 (immune Stop, Stone) -->
+      <Id>182</Id> <!-- Crystalward Mail (was Crystal Mail): EquipBonus 59 (immune Stop, Stone) -->
       <EquipBonusId>59</EquipBonusId>
     </Item>
     <Item>
@@ -232,7 +232,7 @@
       <EquipBonusId>24</EquipBonusId>
     </Item>
     <Item>
-      <Id>184</Id> <!-- Mirror Mail: EquipBonus 29 (innate Reflect) -->
+      <Id>184</Id> <!-- Mirrorscale Mail (was Mirror Mail): EquipBonus 29 (innate Reflect) -->
       <EquipBonusId>29</EquipBonusId>
     </Item>
     <Item>
@@ -272,15 +272,15 @@
       <EquipBonusId>2</EquipBonusId>
     </Item>
     <Item>
-      <Id>194</Id> <!-- Jujitsu Gi: EquipBonus 30 (PA+1, immune Death) -->
+      <Id>194</Id> <!-- Adept's Gi (was Jujitsu Gi): EquipBonus 30 (PA+1, immune Death) -->
       <EquipBonusId>30</EquipBonusId>
     </Item>
     <Item>
-      <Id>195</Id> <!-- Power Garb: EquipBonus 24 (PA+2) -->
+      <Id>195</Id> <!-- Berserker's Garb (was Power Garb): EquipBonus 24 (PA+2) -->
       <EquipBonusId>24</EquipBonusId>
     </Item>
     <Item>
-      <Id>196</Id> <!-- Gaia Gear: EquipBonus 32 (absorb Earth (+boost Earth)) -->
+      <Id>196</Id> <!-- Terraweave Garb (was Gaia Gear): EquipBonus 32 (absorb Earth (+boost Earth)) -->
       <EquipBonusId>32</EquipBonusId>
     </Item>
     <Item>
@@ -288,7 +288,7 @@
       <EquipBonusId>33</EquipBonusId>
     </Item>
     <Item>
-      <Id>198</Id> <!-- Black Garb: EquipBonus 34 (immune Stop) -->
+      <Id>198</Id> <!-- Nightweave Garb (was Black Garb): EquipBonus 34 (immune Stop) -->
       <EquipBonusId>34</EquipBonusId>
     </Item>
     <Item>
@@ -308,19 +308,19 @@
       <EquipBonusId>1</EquipBonusId>
     </Item>
     <Item>
-      <Id>203</Id> <!-- Chameleon Robe: EquipBonus 37 (absorb Holy, immune KO) -->
+      <Id>203</Id> <!-- Vesper Robe (was Chameleon Robe): EquipBonus 37 (absorb Holy, immune KO) -->
       <EquipBonusId>37</EquipBonusId>
     </Item>
     <Item>
-      <Id>204</Id> <!-- White Robe: EquipBonus 19 (halve Fire, Lightning, Ice) -->
+      <Id>204</Id> <!-- Wardlight Robe (was White Robe): EquipBonus 19 (halve Fire, Lightning, Ice) -->
       <EquipBonusId>19</EquipBonusId>
     </Item>
     <Item>
-      <Id>205</Id> <!-- Black Robe: EquipBonus 18 (boost Fire, Lightning, Ice) -->
+      <Id>205</Id> <!-- Channeler's Robe (was Black Robe): EquipBonus 18 (boost Fire, Lightning, Ice) -->
       <EquipBonusId>18</EquipBonusId>
     </Item>
     <Item>
-      <Id>206</Id> <!-- Luminous Robe: EquipBonus 46 (innate Float) -->
+      <Id>206</Id> <!-- Empyrean Robe (was Luminous Robe): EquipBonus 46 (innate Float) -->
       <EquipBonusId>46</EquipBonusId>
     </Item>
     <Item>
@@ -332,11 +332,11 @@
       <EquipBonusId>42</EquipBonusId>
     </Item>
     <Item>
-      <Id>209</Id> <!-- Spiked Boots: EquipBonus 43 (Jump+1) -->
+      <Id>209</Id> <!-- Cragstep Boots (was Spiked Boots): EquipBonus 43 (Jump+1) -->
       <EquipBonusId>43</EquipBonusId>
     </Item>
     <Item>
-      <Id>210</Id> <!-- Germinas Boots: EquipBonus 44 (Move+1, Jump+1) -->
+      <Id>210</Id> <!-- Roamer's Boots (was Germinas Boots): EquipBonus 44 (Move+1, Jump+1) -->
       <EquipBonusId>44</EquipBonusId>
     </Item>
     <Item>
@@ -348,7 +348,7 @@
       <EquipBonusId>46</EquipBonusId>
     </Item>
     <Item>
-      <Id>213</Id> <!-- Hermes Shoes: EquipBonus 14 (Speed+1) -->
+      <Id>213</Id> <!-- Fleetfoot Shoes (was Hermes Shoes): EquipBonus 14 (Speed+1) -->
       <EquipBonusId>14</EquipBonusId>
     </Item>
     <Item>
@@ -356,7 +356,7 @@
       <EquipBonusId>48</EquipBonusId>
     </Item>
     <Item>
-      <Id>215</Id> <!-- Power Gauntlets: EquipBonus 24 (PA+2) -->
+      <Id>215</Id> <!-- Ironhand Gauntlets (was Power Gauntlets): EquipBonus 24 (PA+2) -->
       <EquipBonusId>24</EquipBonusId>
     </Item>
     <Item>
@@ -364,15 +364,15 @@
       <EquipBonusId>11</EquipBonusId>
     </Item>
     <Item>
-      <Id>217</Id> <!-- Magepower Gloves: EquipBonus 1 (MA+2) -->
+      <Id>217</Id> <!-- Runecast Gloves (was Magepower Gloves): EquipBonus 1 (MA+2) -->
       <EquipBonusId>1</EquipBonusId>
     </Item>
     <Item>
-      <Id>218</Id> <!-- Bracers: EquipBonus 52 (PA+3) -->
+      <Id>218</Id> <!-- Titan Grips (was Bracers): EquipBonus 52 (PA+3) -->
       <EquipBonusId>52</EquipBonusId>
     </Item>
     <Item>
-      <Id>219</Id> <!-- Reflect Ring: EquipBonus 29 (innate Reflect) -->
+      <Id>219</Id> <!-- Mirror Ring (was Reflect Ring): EquipBonus 29 (innate Reflect) -->
       <EquipBonusId>29</EquipBonusId>
     </Item>
     <Item>
@@ -388,51 +388,51 @@
       <EquipBonusId>56</EquipBonusId>
     </Item>
     <Item>
-      <Id>223</Id> <!-- Angel Ring: EquipBonus 57 (start Reraise, immune KO, Blind) -->
+      <Id>223</Id> <!-- Seraph Ring (was Angel Ring): EquipBonus 57 (start Reraise, immune KO, Blind) -->
       <EquipBonusId>57</EquipBonusId>
     </Item>
     <Item>
-      <Id>224</Id> <!-- Diamond Bracelet: EquipBonus 58 (PA+1, MA+1, immune Slow) -->
+      <Id>224</Id> <!-- Adamant Bangle (was Diamond Bracelet): EquipBonus 58 (PA+1, MA+1, immune Slow) -->
       <EquipBonusId>58</EquipBonusId>
     </Item>
     <Item>
-      <Id>225</Id> <!-- Jade Armlet: EquipBonus 59 (immune Stop, Stone) -->
+      <Id>225</Id> <!-- Stoneward Armlet (was Jade Armlet): EquipBonus 59 (immune Stop, Stone) -->
       <EquipBonusId>59</EquipBonusId>
     </Item>
     <Item>
-      <Id>226</Id> <!-- Japa Mala: EquipBonus 60 (immune Undead, Vampire, Toad, Poison, boost all elements) -->
+      <Id>226</Id> <!-- Sanctus Beads (was Japa Mala): EquipBonus 60 (immune Undead, Vampire, Toad, Poison, boost all elements) -->
       <EquipBonusId>60</EquipBonusId>
     </Item>
     <Item>
-      <Id>227</Id> <!-- Nu Khai Armband: EquipBonus 61 (immune Charm, Confuse, halve Dark) -->
+      <Id>227</Id> <!-- Clearmind Armlet (was Nu Khai Armband): EquipBonus 61 (immune Charm, Confuse, halve Dark) -->
       <EquipBonusId>61</EquipBonusId>
     </Item>
     <Item>
-      <Id>228</Id> <!-- Guardian Bracelet: EquipBonus 62 (immune Disable, Immobilize) -->
+      <Id>228</Id> <!-- Unbound Armlet (was Guardian Bracelet): EquipBonus 62 (immune Disable, Immobilize) -->
       <EquipBonusId>62</EquipBonusId>
     </Item>
     <Item>
-      <Id>229</Id> <!-- Shoulder Cape: EquipBonus 0 (None) -->
+      <Id>229</Id> <!-- Drifter's Cape (was Shoulder Cape): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>230</Id> <!-- Leather Cloak: EquipBonus 0 (None) -->
+      <Id>230</Id> <!-- Duelist's Cape (was Leather Cloak): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>231</Id> <!-- Mage's Cloak: EquipBonus 10 (MA+1) -->
+      <Id>231</Id> <!-- Runecloak (was Mage's Cloak): EquipBonus 10 (MA+1) -->
       <EquipBonusId>10</EquipBonusId>
     </Item>
     <Item>
-      <Id>232</Id> <!-- Elven Cloak: EquipBonus 0 (None) -->
+      <Id>232</Id> <!-- Sylvan Shroud (was Elven Cloak): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>233</Id> <!-- Vampire Cape: EquipBonus 5 (innate Regen) -->
+      <Id>233</Id> <!-- Nocturne Cape (was Vampire Cape): EquipBonus 5 (innate Regen) -->
       <EquipBonusId>5</EquipBonusId>
     </Item>
     <Item>
-      <Id>234</Id> <!-- Featherweave Cloak: EquipBonus 0 (None) -->
+      <Id>234</Id> <!-- Zephyr Cloak (was Featherweave Cloak): EquipBonus 0 (None) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
@@ -456,7 +456,7 @@
       <EquipBonusId>68</EquipBonusId>
     </Item>
     <Item>
-      <Id>260</Id> <!-- Ring of Aptitude: EquipBonus 80 (BoostJP) -->
+      <Id>260</Id> <!-- Scholar's Ring (was Ring of Aptitude): EquipBonus 80 (BoostJP) -->
       <EquipBonusId>80</EquipBonusId>
     </Item>
   </Entries>

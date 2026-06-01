@@ -9,12 +9,12 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>1</Id> <!-- Bronze Helm -->
+      <Id>1</Id> <!-- Mendsteel Helm (was Bronze Helm) -->
       <HPBonus>22</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>2</Id> <!-- Iron Helm -->
+      <Id>2</Id> <!-- Aegis Helm (was Iron Helm) -->
       <HPBonus>30</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -24,7 +24,7 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>4</Id> <!-- Mythril Helm -->
+      <Id>4</Id> <!-- Clarion Helm (was Mythril Helm) -->
       <HPBonus>50</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -39,12 +39,12 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>7</Id> <!-- Diamond Helm -->
+      <Id>7</Id> <!-- Timeward Helm (was Diamond Helm) -->
       <HPBonus>80</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>8</Id> <!-- Platinum Helm -->
+      <Id>8</Id> <!-- Wardsteel Helm (was Platinum Helm) -->
       <HPBonus>90</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -54,7 +54,7 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>10</Id> <!-- Crystal Helm -->
+      <Id>10</Id> <!-- Crystalward Helm (was Crystal Helm) -->
       <HPBonus>120</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -69,17 +69,17 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>13</Id> <!-- Leather Cap -->
+      <Id>13</Id> <!-- Roughspun Cap (was Leather Cap) -->
       <HPBonus>10</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>14</Id> <!-- Plumed Hat -->
+      <Id>14</Id> <!-- Wardplume Hat (was Plumed Hat) -->
       <HPBonus>16</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>15</Id> <!-- Red Hood -->
+      <Id>15</Id> <!-- Adept's Hood (was Red Hood) -->
       <HPBonus>20</HPBonus>
       <MPBonus>12</MPBonus>
     </ItemArmor>
@@ -89,12 +89,12 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>17</Id> <!-- Wizard's Hat -->
+      <Id>17</Id> <!-- Arcanist Cap (was Wizard's Hat) -->
       <HPBonus>28</HPBonus>
       <MPBonus>18</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>18</Id> <!-- Green Beret -->
+      <Id>18</Id> <!-- Zephyr Beret (was Green Beret) -->
       <HPBonus>40</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -104,7 +104,7 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>20</Id> <!-- Celebrant's Miter -->
+      <Id>20</Id> <!-- Hierophant Miter (was Celebrant's Miter) -->
       <HPBonus>42</HPBonus>
       <MPBonus>28</MPBonus>
     </ItemArmor>
@@ -114,17 +114,17 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>22</Id> <!-- Gold Hairpin -->
+      <Id>22</Id> <!-- Mana Coronet (was Gold Hairpin) -->
       <HPBonus>48</HPBonus>
       <MPBonus>40</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>23</Id> <!-- Lambent Hat -->
+      <Id>23</Id> <!-- Lumen Crown (was Lambent Hat) -->
       <HPBonus>54</HPBonus>
       <MPBonus>20</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>24</Id> <!-- Thief's Cap -->
+      <Id>24</Id> <!-- Nightrunner Cap (was Thief's Cap) -->
       <HPBonus>58</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -144,7 +144,7 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>28</Id> <!-- Leather Armor -->
+      <Id>28</Id> <!-- Roughhide Mail (was Leather Armor) -->
       <HPBonus>14</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -154,17 +154,17 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>30</Id> <!-- Bronze Armor -->
+      <Id>30</Id> <!-- Reaver Mail (was Bronze Armor) -->
       <HPBonus>32</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>31</Id> <!-- Chainmail -->
+      <Id>31</Id> <!-- Hushward Mail (was Chainmail) -->
       <HPBonus>42</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>32</Id> <!-- Mythril Armor -->
+      <Id>32</Id> <!-- Stalwart Plate (was Mythril Armor) -->
       <HPBonus>52</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -179,7 +179,7 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>35</Id> <!-- Diamond Armor -->
+      <Id>35</Id> <!-- Adamant Plate (was Diamond Armor) -->
       <HPBonus>84</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -189,12 +189,12 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>37</Id> <!-- Carabineer Mail -->
+      <Id>37</Id> <!-- Charger's Plate (was Carabineer Mail) -->
       <HPBonus>102</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>38</Id> <!-- Crystal Mail -->
+      <Id>38</Id> <!-- Crystalward Mail (was Crystal Mail) -->
       <HPBonus>110</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -204,7 +204,7 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>40</Id> <!-- Mirror Mail -->
+      <Id>40</Id> <!-- Mirrorscale Mail (was Mirror Mail) -->
       <HPBonus>108</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -254,17 +254,17 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>50</Id> <!-- Jujitsu Gi -->
+      <Id>50</Id> <!-- Adept's Gi (was Jujitsu Gi) -->
       <HPBonus>60</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>51</Id> <!-- Power Garb -->
+      <Id>51</Id> <!-- Berserker's Garb (was Power Garb) -->
       <HPBonus>70</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>52</Id> <!-- Gaia Gear -->
+      <Id>52</Id> <!-- Terraweave Garb (was Gaia Gear) -->
       <HPBonus>82</HPBonus>
       <MPBonus>10</MPBonus>
     </ItemArmor>
@@ -274,7 +274,7 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>54</Id> <!-- Black Garb -->
+      <Id>54</Id> <!-- Nightweave Garb (was Black Garb) -->
       <HPBonus>96</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
@@ -299,22 +299,22 @@
       <MPBonus>26</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>59</Id> <!-- Chameleon Robe -->
+      <Id>59</Id> <!-- Vesper Robe (was Chameleon Robe) -->
       <HPBonus>36</HPBonus>
       <MPBonus>32</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>60</Id> <!-- White Robe -->
+      <Id>60</Id> <!-- Wardlight Robe (was White Robe) -->
       <HPBonus>50</HPBonus>
       <MPBonus>36</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>61</Id> <!-- Black Robe -->
+      <Id>61</Id> <!-- Channeler's Robe (was Black Robe) -->
       <HPBonus>44</HPBonus>
       <MPBonus>42</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>62</Id> <!-- Luminous Robe -->
+      <Id>62</Id> <!-- Empyrean Robe (was Luminous Robe) -->
       <HPBonus>64</HPBonus>
       <MPBonus>52</MPBonus>
     </ItemArmor>

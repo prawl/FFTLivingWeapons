@@ -113,7 +113,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>12</Id> <!-- Kunai -->
+      <Id>12</Id> <!-- Mistedge (was Kunai) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>9</Power>
@@ -140,7 +140,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>15</Id> <!-- Spellbinder -->
+      <Id>15</Id> <!-- Silentfang (was Spellbinder) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>11</Power>
@@ -524,7 +524,7 @@
       <OptionsAbilityId>22</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>56</Id> <!-- Wizard's Rod -->
+      <Id>56</Id> <!-- Umbral Rod (was Wizard's Rod) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>4</Power>
@@ -551,7 +551,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>59</Id> <!-- Oak Staff -->
+      <Id>59</Id> <!-- Birchwood Staff (was Oak Staff) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>3</Power>
@@ -560,7 +560,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>60</Id> <!-- White Staff -->
+      <Id>60</Id> <!-- Lullaby Staff (was White Staff) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>3</Power>
@@ -569,7 +569,7 @@
       <OptionsAbilityId>12</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>61</Id> <!-- Healing Staff -->
+      <Id>61</Id> <!-- Mending Staff (was Healing Staff) -->
       <Range>1</Range>
       <Formula>7</Formula>
       <Power>4</Power>
@@ -578,7 +578,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>62</Id> <!-- Serpent Staff -->
+      <Id>62</Id> <!-- Viper Staff (was Serpent Staff) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>5</Power>
@@ -587,7 +587,7 @@
       <OptionsAbilityId>14</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>63</Id> <!-- Mage's Staff -->
+      <Id>63</Id> <!-- Conduit Staff (was Mage's Staff) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>5</Power>
@@ -596,7 +596,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>64</Id> <!-- Golden Staff -->
+      <Id>64</Id> <!-- Smiter's Staff (was Golden Staff) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>6</Power>
@@ -623,7 +623,7 @@
       <OptionsAbilityId>11</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>67</Id> <!-- Iron Flail -->
+      <Id>67</Id> <!-- Ironlash (was Iron Flail) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>9</Power>
@@ -632,7 +632,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>68</Id> <!-- Flail of Flame -->
+      <Id>68</Id> <!-- Pyrelash (was Flail of Flame) -->
       <Range>1</Range>
       <Formula>2</Formula>
       <Power>11</Power>
@@ -641,7 +641,7 @@
       <OptionsAbilityId>17</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>69</Id> <!-- Morning Star -->
+      <Id>69</Id> <!-- Snarelash (was Morning Star) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>13</Power>
@@ -723,7 +723,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>78</Id> <!-- Knightslayer -->
+      <Id>78</Id> <!-- Eclipsebolt (was Knightslayer) -->
       <Range>4</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>1</Formula>
@@ -863,7 +863,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>92</Id> <!-- Lamia's Harp -->
+      <Id>92</Id> <!-- Siren's Lyre (was Lamia's Harp) -->
       <Range>3</Range>
       <Formula>1</Formula>
       <Power>7</Power>
@@ -872,7 +872,7 @@
       <OptionsAbilityId>23</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>93</Id> <!-- Bloodstring Harp -->
+      <Id>93</Id> <!-- Duskstring Harp (was Bloodstring Harp) -->
       <Range>3</Range>
       <Formula>1</Formula>
       <Power>8</Power>
@@ -890,7 +890,7 @@
       <OptionsAbilityId>24</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>95</Id> <!-- Battle Folio -->
+      <Id>95</Id> <!-- Glarebound Tome (was Battle Folio) -->
       <Range>3</Range>
       <Formula>1</Formula>
       <Power>6</Power>
@@ -899,7 +899,7 @@
       <OptionsAbilityId>9</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>96</Id> <!-- Bestiary -->
+      <Id>96</Id> <!-- Knell Codex (was Bestiary) -->
       <Range>3</Range>
       <Formula>1</Formula>
       <Power>7</Power>
@@ -908,7 +908,7 @@
       <OptionsAbilityId>11</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>97</Id> <!-- Papyrus Codex -->
+      <Id>97</Id> <!-- Binding Codex (was Papyrus Codex) -->
       <Range>3</Range>
       <Formula>1</Formula>
       <Power>8</Power>
@@ -998,7 +998,7 @@
       <OptionsAbilityId>11</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>107</Id> <!-- Cypress Pole -->
+      <Id>107</Id> <!-- Greenwood Pole (was Cypress Pole) -->
       <Range>2</Range>
       <Formula>1</Formula>
       <Power>6</Power>
@@ -1007,7 +1007,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>108</Id> <!-- Battle Bamboo -->
+      <Id>108</Id> <!-- Ironreed Pole (was Battle Bamboo) -->
       <Range>2</Range>
       <Formula>1</Formula>
       <Power>8</Power>
@@ -1034,7 +1034,7 @@
       <OptionsAbilityId>10</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>111</Id> <!-- Gokuu's Pole -->
+      <Id>111</Id> <!-- Sage's Pole (was Gokuu's Pole) -->
       <Range>2</Range>
       <Formula>1</Formula>
       <Power>12</Power>
@@ -1106,7 +1106,7 @@
       <OptionsAbilityId>10</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>119</Id> <!-- Damask Cloth -->
+      <Id>119</Id> <!-- Tarsilk Veil (was Damask Cloth) -->
       <Range>2</Range>
       <Formula>1</Formula>
       <Power>7</Power>
