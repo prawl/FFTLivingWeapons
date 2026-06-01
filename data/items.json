@@ -273,7 +273,7 @@
       "id": 10,
       "category": "Knife",
       "vanillaName": "Zwill Straightblade",
-      "name": "Dreamsever",
+      "name": "Zwill Straightblade",
       "tier": 6,
       "identity": "Endgame capstone + burst-setup -- Sleep a target, team deletes it at +50%. Top WP but poach-gated and the Sleep self-removes, so a setup tool not a universal best.",
       "baseline": {
@@ -292,8 +292,7 @@
         "onHitAbilityId": 12,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "desc": "Its whisper drags even the mightiest foe into helpless slumber.\nWhen attacking, has a chance of inflicting Sleep."
+      }
     },
     {
       "id": 11,
@@ -611,7 +610,7 @@
       "vanillaName": "Mythril Sword",
       "name": "Reaver",
       "tier": 2,
-      "identity": "Offensive workhorse -- best early stringless raw damage (WP8), bought with zero evade. Pure damage behind a healer.",
+      "identity": "REACH SWORD test -- the only sword that strikes from 2 tiles, paid for with zero evade + no element/proc",
       "baseline": {
         "wp": 7,
         "evade": 8,
@@ -627,9 +626,9 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "Lightweight mythril honed purely for offense. All bite, no guard."
+        "attackFlags": "Throwable, TwoHands, Lunging",
+        "range": 2
+      }
     },
     {
       "id": 23,
@@ -845,7 +844,7 @@
       "id": 31,
       "category": "Sword",
       "vanillaName": "Nagrarok",
-      "name": "Hexfang",
+      "name": "Nagrarok",
       "tier": 6,
       "identity": "Evade-wall trickster -- line-max 50% physical evade AND on-hit Toad (target reduced to weak basic attack). Near-zero WP (3): dodge-and-disable, never damage. PROC ID 16 NEEDS IN-ENGINE VERIFY.",
       "baseline": {
@@ -864,14 +863,13 @@
         "onHitAbilityId": 16,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "A trickster's blade, impossible to pin -- and it turns foes to toads.\nWhen attacking, has a chance of inflicting Toad."
+      }
     },
     {
       "id": 32,
       "category": "Sword",
       "vanillaName": "Materia Blade",
-      "name": "Nightfall",
+      "name": "Materia Blade",
       "tier": 6,
       "identity": "Dark mage-knight capstone -- Dark element + absorbs MP every hit (battle-mage fuel). Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
       "baseline": {
@@ -890,14 +888,13 @@
         "onHitAbilityId": 0,
         "formula": 47,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "A blade of living shadow that devours magick.\nAbsorbs MP on hit. Deals Dark-elemental damage."
+      }
     },
     {
       "id": 33,
       "category": "KnightSword",
       "vanillaName": "Defender",
-      "name": "Aegisbrand",
+      "name": "Defender",
       "tier": 4,
       "identity": "Parry-tank capstone -- game-max 60% physical evade, lowest WP of the five, EquipBonus rider Protect (halve physical taken). The un-killable front-line dodge wall; pick it to NOT die, not to deal damage. Most available of the five (tier 4). Renamed from generic 'Defender' to signal the pure shield-blade role.",
       "baseline": {
@@ -926,7 +923,7 @@
       "id": 34,
       "category": "KnightSword",
       "vanillaName": "Save the Queen",
-      "name": "Sentinel's Vow",
+      "name": "Save the Queen",
       "tier": 5,
       "identity": "Disabler-bruiser -- strong 45% evade plus Sleep-on-hit to neuter a target while you out-tempo the duel, backed by an EquipBonus Regen rider for self-sustain. The 'control the fight' pick between pure tank (Aegisbrand) and the Holy capstone. Sleep proc owned by no other sword. Renamed from 'Save the Queen' for the warden identity.",
       "baseline": {
@@ -1593,7 +1590,7 @@
       "id": 57,
       "category": "Rod",
       "vanillaName": "Dragon Rod",
-      "name": "Hush Rod",
+      "name": "Dragon Rod",
       "tier": 4,
       "identity": "Only Silence rod -- anti-caster lock. Line-low evade (10) pays for WP5 + a strong debuff.",
       "baseline": {
@@ -2057,7 +2054,7 @@
       "id": 73,
       "category": "Gun",
       "vanillaName": "Stoneshooter",
-      "name": "Gorgon Petromortar",
+      "name": "Stoneshooter",
       "tier": 4,
       "identity": "Drawback-paid power spike: top-of-line WP16 (256 base) AND tied-longest R9, fires EARTH (only Earth gun; ignores Float, shreds grounded). PRICE: the wielder begins EVERY battle Petrified, the iconic Stoneshooter curse, demanding a Maintenance/esuna plan. Highest ceiling but the deadliest to field, so it never free-lunches the clean capstone.",
       "baseline": {
@@ -2086,7 +2083,7 @@
       "id": 74,
       "category": "Gun",
       "vanillaName": "Glacial Gun",
-      "name": "Rimefire Hailshot",
+      "name": "Glacial Gun",
       "tier": 3,
       "identity": "First elemental gun: Ice, WP12 (144 base), R8. Formula-4 innate Blizzard-line cast, Faith-scaled (a high roll beats the Repeater, a low/immune roll loses). The only Ice gun: anti-Fire-creature, +25% vs Ice-weak, but Ice-absorbers heal it. Element + Faith variance is the trade for the WP jump.",
       "baseline": {
@@ -2115,7 +2112,7 @@
       "id": 75,
       "category": "Gun",
       "vanillaName": "Blaze Gun",
-      "name": "Cinderbore Igniter",
+      "name": "Blaze Gun",
       "tier": 3,
       "identity": "Fire twin of the Hailshot at IDENTICAL WP12/R8: the different element is the entire differentiator. The only Fire gun: anti-Undead, anti-Ice-creature, shreds Oiled targets; Fire-absorbers heal it. A true sidegrade, never an upgrade, picked purely for the Fire matchup.",
       "baseline": {
@@ -2144,7 +2141,7 @@
       "id": 76,
       "category": "Gun",
       "vanillaName": "Blaster",
-      "name": "Levinbrand Annihilator",
+      "name": "Blaster",
       "tier": 6,
       "identity": "Endgame capstone: Lightning, WP15 (225 base), no drawback, only Lightning gun (+25% in rain; Lightning-absorbers heal). PAYS for its clean power with the SHORTEST gun range (R7) so every other gun out-distances it: the close-the-gap-and-nuke finisher, not a kiter. The poach/endgame trophy.",
       "baseline": {
@@ -2537,7 +2534,7 @@
       "id": 90,
       "category": "Bow",
       "vanillaName": "Yoichi Bow",
-      "name": "Tempest",
+      "name": "Yoichi Bow",
       "tier": 6,
       "identity": "T6 AGILE capstone -- top sustained WP (12) that STILL keeps 5 evade: heavy damage on light feet. The speed-build DPS capstone vs Seraph's glass cannon.",
       "baseline": {
@@ -2558,14 +2555,13 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "A legendary bow, heavy of draw yet light in hand. Damage on the move."
+      }
     },
     {
       "id": 91,
       "category": "Bow",
       "vanillaName": "Perseus Bow",
-      "name": "Seraph",
+      "name": "Perseus Bow",
       "tier": 6,
       "identity": "T6 RAW+REACH capstone -- max WP (15) + max range (8, RANGE-8 CEILING TEST) + innate Holy (anti-Undead). 0 evade = pure glass cannon.",
       "baseline": {
@@ -2586,8 +2582,7 @@
         "formula": 1,
         "range": 8,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "A radiant greatbow of holy light -- the longest reach and deadliest draw of any bow.\nDeals Holy-elemental damage."
+      }
     },
     {
       "id": 92,
@@ -3173,7 +3168,7 @@
       "id": 112,
       "category": "Pole",
       "vanillaName": "Ivory Pole",
-      "name": "Blindstaff",
+      "name": "Ivory Pole",
       "tier": 4,
       "identity": "T4 only Blind pole -- on-hit Blind (9) craters a target's physical hit-rate. Sits under Gokuu's WP: the rider is the whole identity. Neuter an enemy bruiser from range.",
       "baseline": {
@@ -3703,7 +3698,7 @@
       "id": 140,
       "category": "Shield",
       "vanillaName": "Genji Shield",
-      "name": "Ronin Wall",
+      "name": "Genji Shield",
       "tier": 5,
       "identity": "Phys-evade apex -- poach/steal-gated, with a Speed+1 prize for the rare-drop effort.",
       "baseline": {
@@ -3716,14 +3711,13 @@
         "magEv": 12,
         "rider": "Speed+1",
         "equipBonusId": 23
-      },
-      "desc": "A masterless warrior's shield, won only by the bold.\nHigh evasion, grants Speed +1."
+      }
     },
     {
       "id": 141,
       "category": "Shield",
       "vanillaName": "Kaiser Shield",
-      "name": "Conduit",
+      "name": "Kaiser Shield",
       "tier": 5,
       "identity": "The only OFFENSIVE shield -- strengthens the wearer's Fire/Lightning/Ice. A damage shield.",
       "baseline": {
@@ -3736,14 +3730,13 @@
         "magEv": 20,
         "rider": "boost Fire/Ltng/Ice",
         "equipBonusId": 18
-      },
-      "desc": "A shield that channels raw elements into your strikes.\nStrengthens your Fire, Lightning, and Ice."
+      }
     },
     {
       "id": 142,
       "category": "Shield",
       "vanillaName": "Venetian Shield",
-      "name": "Bastion",
+      "name": "Venetian Shield",
       "tier": 6,
       "identity": "Best generalist -- top on both evade axes + tri-element halve, no weakness, no rider.",
       "baseline": {
@@ -3756,8 +3749,7 @@
         "magEv": 32,
         "rider": "halve Fire/Ltng/Ice",
         "equipBonusId": 19
-      },
-      "desc": "The finest shield ever wrought -- proof against nearly all.\nTop evasion, halves Fire/Lightning/Ice, no weakness."
+      }
     },
     {
       "id": 143,
@@ -5268,7 +5260,7 @@
       "id": 199,
       "category": "Clothing",
       "vanillaName": "Rubber Suit",
-      "name": "Storm Garb",
+      "name": "Rubber Suit",
       "tier": 6,
       "identity": "ICONIC Rubber body (vanilla EB35) -- fully null Lightning, high HP and some MP. End-tier rare. Hard counter to Thunder/Bolt fights or a hybrid-caster anchor.",
       "baseline": {
@@ -6240,7 +6232,7 @@
       "id": 235,
       "category": "Cloak",
       "vanillaName": "Invisibility Cloak",
-      "name": "Phantom Cloak",
+      "name": "Invisibility Cloak",
       "tier": 6,
       "identity": "Starts each battle Invisible (untargetable + crit on the break) plus 30 phys evade. magEv 0 is the deliberate hole. The assassin/opener cloak; does not dominate Featherweave (less phys, zero mag).",
       "baseline": {
@@ -6294,7 +6286,7 @@
       "id": 237,
       "category": "Perfume",
       "vanillaName": "Envoûtement",
-      "name": "Envoutement",
+      "name": "Envoûtement",
       "tier": 5,
       "identity": "The zoner perfume (female): Float + Reflect. Ignores terrain AND bounces magic in one slot. Female-gated separate pool, so it never strictly dominates the unisex Reflect Ring / Featherfoot Boots.",
       "baseline": {
@@ -6321,7 +6313,7 @@
       "id": 238,
       "category": "Perfume",
       "vanillaName": "Septième Sens",
-      "name": "Septieme Sens",
+      "name": "Septième Sens",
       "tier": 4,
       "identity": "The aggressive caster perfume (female): MA+1 + Haste + opens Invisible. The burst-mage / opener throne. Female-gated, so never dominates a unisex item.",
       "baseline": {
@@ -6348,7 +6340,7 @@
       "id": 239,
       "category": "Perfume",
       "vanillaName": "Sortilège",
-      "name": "Sortilege",
+      "name": "Sortilège",
       "tier": 4,
       "identity": "The bulwark perfume (female): Protect AND Shell (-50% physical AND magical). The defensive wall; turns a fragile caster into a brick.",
       "baseline": {

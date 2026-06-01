@@ -94,7 +94,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>10</Id> <!-- Dreamsever (was Zwill Straightblade) -->
+      <Id>10</Id> <!-- Zwill Straightblade -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
@@ -207,8 +207,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>22</Id> <!-- Reaver (was Mythril Sword) -->
-      <Range>1</Range>
-      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Range>2</Range>
+      <AttackFlags>Throwable, TwoHands, Lunging</AttackFlags>
       <Formula>1</Formula>
       <Power>8</Power>
       <Evasion>0</Evasion>
@@ -296,7 +296,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>31</Id> <!-- Hexfang (was Nagrarok) -->
+      <Id>31</Id> <!-- Nagrarok -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
@@ -306,7 +306,7 @@
       <OptionsAbilityId>16</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>32</Id> <!-- Nightfall (was Materia Blade) -->
+      <Id>32</Id> <!-- Materia Blade -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>47</Formula>
@@ -316,7 +316,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>33</Id> <!-- Aegisbrand (was Defender) -->
+      <Id>33</Id> <!-- Defender -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>16</Power>
@@ -325,7 +325,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>34</Id> <!-- Sentinel's Vow (was Save the Queen) -->
+      <Id>34</Id> <!-- Save the Queen -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>18</Power>
@@ -532,7 +532,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>57</Id> <!-- Hush Rod (was Dragon Rod) -->
+      <Id>57</Id> <!-- Dragon Rod -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>5</Power>
@@ -676,7 +676,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>73</Id> <!-- Gorgon Petromortar (was Stoneshooter) -->
+      <Id>73</Id> <!-- Stoneshooter -->
       <Range>9</Range>
       <Formula>4</Formula>
       <Power>16</Power>
@@ -685,7 +685,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>74</Id> <!-- Rimefire Hailshot (was Glacial Gun) -->
+      <Id>74</Id> <!-- Glacial Gun -->
       <Range>8</Range>
       <Formula>4</Formula>
       <Power>12</Power>
@@ -694,7 +694,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>75</Id> <!-- Cinderbore Igniter (was Blaze Gun) -->
+      <Id>75</Id> <!-- Blaze Gun -->
       <Range>8</Range>
       <Formula>4</Formula>
       <Power>12</Power>
@@ -703,7 +703,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>76</Id> <!-- Levinbrand Annihilator (was Blaster) -->
+      <Id>76</Id> <!-- Blaster -->
       <Range>7</Range>
       <Formula>4</Formula>
       <Power>15</Power>
@@ -842,7 +842,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>90</Id> <!-- Tempest (was Yoichi Bow) -->
+      <Id>90</Id> <!-- Yoichi Bow -->
       <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
@@ -852,7 +852,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>91</Id> <!-- Seraph (was Perseus Bow) -->
+      <Id>91</Id> <!-- Perseus Bow -->
       <Range>8</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
@@ -1042,7 +1042,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>112</Id> <!-- Blindstaff (was Ivory Pole) -->
+      <Id>112</Id> <!-- Ivory Pole -->
       <Range>2</Range>
       <Formula>1</Formula>
       <Power>10</Power>

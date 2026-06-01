@@ -64,17 +64,17 @@
       <MagicalEvasion>24</MagicalEvasion>
     </ItemShield>
     <ItemShield>
-      <Id>12</Id> <!-- Ronin Wall (was Genji Shield) -->
+      <Id>12</Id> <!-- Genji Shield -->
       <PhysicalEvasion>50</PhysicalEvasion>
       <MagicalEvasion>12</MagicalEvasion>
     </ItemShield>
     <ItemShield>
-      <Id>13</Id> <!-- Conduit (was Kaiser Shield) -->
+      <Id>13</Id> <!-- Kaiser Shield -->
       <PhysicalEvasion>42</PhysicalEvasion>
       <MagicalEvasion>20</MagicalEvasion>
     </ItemShield>
     <ItemShield>
-      <Id>14</Id> <!-- Bastion (was Venetian Shield) -->
+      <Id>14</Id> <!-- Venetian Shield -->
       <PhysicalEvasion>46</PhysicalEvasion>
       <MagicalEvasion>32</MagicalEvasion>
     </ItemShield>

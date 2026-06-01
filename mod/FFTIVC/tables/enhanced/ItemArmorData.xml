@@ -279,7 +279,7 @@
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
-      <Id>55</Id> <!-- Storm Garb (was Rubber Suit) -->
+      <Id>55</Id> <!-- Rubber Suit -->
       <HPBonus>90</HPBonus>
       <MPBonus>14</MPBonus>
     </ItemArmor>

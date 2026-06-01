@@ -56,15 +56,15 @@
       <EquipBonusId>78</EquipBonusId>
     </Item>
     <Item>
-      <Id>140</Id> <!-- Ronin Wall (was Genji Shield): EquipBonus 23 (Speed+1) -->
+      <Id>140</Id> <!-- Genji Shield: EquipBonus 23 (Speed+1) -->
       <EquipBonusId>23</EquipBonusId>
     </Item>
     <Item>
-      <Id>141</Id> <!-- Conduit (was Kaiser Shield): EquipBonus 18 (boost Fire/Ltng/Ice) -->
+      <Id>141</Id> <!-- Kaiser Shield: EquipBonus 18 (boost Fire/Ltng/Ice) -->
       <EquipBonusId>18</EquipBonusId>
     </Item>
     <Item>
-      <Id>142</Id> <!-- Bastion (was Venetian Shield): EquipBonus 19 (halve Fire/Ltng/Ice) -->
+      <Id>142</Id> <!-- Venetian Shield: EquipBonus 19 (halve Fire/Ltng/Ice) -->
       <EquipBonusId>19</EquipBonusId>
     </Item>
     <Item>
@@ -292,7 +292,7 @@
       <EquipBonusId>34</EquipBonusId>
     </Item>
     <Item>
-      <Id>199</Id> <!-- Storm Garb (was Rubber Suit): EquipBonus 35 (null Lightning) -->
+      <Id>199</Id> <!-- Rubber Suit: EquipBonus 35 (null Lightning) -->
       <EquipBonusId>35</EquipBonusId>
     </Item>
     <Item>
@@ -436,7 +436,7 @@
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>235</Id> <!-- Phantom Cloak (was Invisibility Cloak): EquipBonus 64 (start Invisible) -->
+      <Id>235</Id> <!-- Invisibility Cloak: EquipBonus 64 (start Invisible) -->
       <EquipBonusId>64</EquipBonusId>
     </Item>
     <Item>
@@ -444,15 +444,15 @@
       <EquipBonusId>65</EquipBonusId>
     </Item>
     <Item>
-      <Id>237</Id> <!-- Envoutement (was Envoûtement): EquipBonus 66 (innate Float, innate Reflect) -->
+      <Id>237</Id> <!-- Envoûtement: EquipBonus 66 (innate Float, innate Reflect) -->
       <EquipBonusId>66</EquipBonusId>
     </Item>
     <Item>
-      <Id>238</Id> <!-- Septieme Sens (was Septième Sens): EquipBonus 67 (MA+1, innate Haste, start Invisible) -->
+      <Id>238</Id> <!-- Septième Sens: EquipBonus 67 (MA+1, innate Haste, start Invisible) -->
       <EquipBonusId>67</EquipBonusId>
     </Item>
     <Item>
-      <Id>239</Id> <!-- Sortilege (was Sortilège): EquipBonus 68 (innate Protect, Shell) -->
+      <Id>239</Id> <!-- Sortilège: EquipBonus 68 (innate Protect, Shell) -->
       <EquipBonusId>68</EquipBonusId>
     </Item>
     <Item>

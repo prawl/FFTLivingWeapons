@@ -139,7 +139,7 @@
       <MagicalEvasion>20</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>27</Id> <!-- Phantom Cloak (was Invisibility Cloak) -->
+      <Id>27</Id> <!-- Invisibility Cloak -->
       <PhysicalEvasion>30</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
@@ -149,17 +149,17 @@
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>29</Id> <!-- Envoutement (was Envoûtement) -->
+      <Id>29</Id> <!-- Envoûtement -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>30</Id> <!-- Septieme Sens (was Septième Sens) -->
+      <Id>30</Id> <!-- Septième Sens -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
     <ItemAccessory>
-      <Id>31</Id> <!-- Sortilege (was Sortilège) -->
+      <Id>31</Id> <!-- Sortilège -->
       <PhysicalEvasion>0</PhysicalEvasion>
       <MagicalEvasion>0</MagicalEvasion>
     </ItemAccessory>
