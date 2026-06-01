@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ItemConsumableTable>
+  <Version>1</Version>
+  <Entries>
+    <ItemConsumable>
+      <Id>6</Id> <!-- item 246 Venom Flask: inflict Poison (ItemOptions 22) -->
+      <Formula>56</Formula>
+      <Z>100</Z>
+      <StatusEffectId>22</StatusEffectId>
+    </ItemConsumable>
+    <ItemConsumable>
+      <Id>7</Id> <!-- item 247 Smoke Bomb: inflict Blind (ItemOptions 9) -->
+      <Formula>56</Formula>
+      <Z>100</Z>
+      <StatusEffectId>9</StatusEffectId>
+    </ItemConsumable>
+    <ItemConsumable>
+      <Id>8</Id> <!-- item 248 Hush Vial: inflict Silence (ItemOptions 10) -->
+      <Formula>56</Formula>
+      <Z>100</Z>
+      <StatusEffectId>10</StatusEffectId>
+    </ItemConsumable>
+    <ItemConsumable>
+      <Id>9</Id> <!-- item 249 Oil Flask: inflict Oil (ItemOptions 101) -->
+      <Formula>56</Formula>
+      <Z>100</Z>
+      <StatusEffectId>101</StatusEffectId>
+    </ItemConsumable>
+    <ItemConsumable>
+      <Id>10</Id> <!-- item 250 Sludge Bomb: inflict Slow (ItemOptions 18) -->
+      <Formula>56</Formula>
+      <Z>100</Z>
+      <StatusEffectId>18</StatusEffectId>
+    </ItemConsumable>
+  </Entries>
+</ItemConsumableTable>
