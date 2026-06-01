@@ -20,8 +20,8 @@ CHECK_BASELINE = "--baseline" in sys.argv
 
 # "more is better" numeric axes across all item types. default = neutral (range melee=1, rest 0).
 # RANGE is a first-class fairness axis: a longer-reach weapon wins the range axis, so it is never dominated by a
-# shorter one, and it can only dominate a shorter weapon if it also matches/beats it on WP/evade/riders (in-game
-# confirmed: a sword set to Range 2 via the Lunging flag really does strike 2 tiles).
+# shorter one, and it can only dominate a shorter weapon if it also matches/beats it on WP/evade/riders
+# (Range 2 via the Lunging flag strikes 2 tiles).
 NUMERIC_AXES = {"wp": 0, "evade": 0, "range": 1, "physEv": 0, "magEv": 0, "hp": 0, "mp": 0}
 
 # Cross-category dominance: items competing for the SAME equip slot can dominate each other, but only if the

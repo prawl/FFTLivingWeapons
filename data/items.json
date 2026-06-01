@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "note": "Source of truth for the FFT:IVC item OVERHAUL. baseline = REAL vanilla/IVC values (Game8). proposed = our build-diversity rebalance, emitted to the modloader ItemWeaponData XML by tools/generate.py. name = NEW overhaul name (-> item.en.nxd); vanillaName kept for reference. tier = availability rank (1=earliest .. 6=poach/endgame) -- a valid 'pick this' axis, enforced by analyze.py.",
+    "note": "Source of truth for the FFT:IVC item OVERHAUL. baseline = REAL vanilla/IVC values (Game8). proposed = the build-diversity rebalance values, emitted to the modloader ItemWeaponData XML by tools/generate.py. name = NEW overhaul name (-> item.en.nxd); vanillaName kept for reference. tier = availability rank (1=earliest .. 6=poach/endgame) -- a valid 'pick this' axis, enforced by analyze.py.",
     "knifeFormula": "(PA + Speed) / 2 * WP  -- speed-scaling; knives own the fast/agile/utility niche",
     "normalFormulaIds": [
       1,
@@ -8,7 +8,7 @@
     ],
     "renameTarget": "item.en.nxd (name + description). NXD round-trip mechanism: WIP.",
     "design": "Three lanes run the curve in parallel: RAW (Cutpurse/Argent Dirk/Adamant Fang), AGILE (Quicksilver 25ev / Sanguine Gauche 50ev), UTILITY (Gloomfang Blind / Hushblade Silence / Mortal Coil Doom / Dreamsever Sleep). Non-monotonic WP (5,6,5,6,7,6,9,8,10,12) makes every proc/evade knife undercut WP to pay for its gimmick.",
-    "openProcs": "id4 Hushblade Silence onHitAbilityId is UNRESOLVED (not in confirmed 9/11/12 set) -- needs in-engine proc verify; identity depends on it.",
+    "openProcs": "id4 Hushblade Silence onHitAbilityId is unknown -- not one of the 9/11/12 procs. Confirm in-game before locking the description.",
     "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible (only 8 free ItemEquipBonusData slots: 74-79; 77 of 85 used). Each item's proposed.equipBonusId points at a vanilla id OR a free-slot id defined in _equipBonus below. The iconic element shields already exist: Ice=15, Flame=16, Kaiser-boost=18, Venetian-halve=19; stats: MA+1=10/12, MA+2=1/9, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4."
   },
   "_equipBonus": {
@@ -119,7 +119,7 @@
       "vanillaName": "Mage Masher",
       "name": "Hushblade",
       "tier": 2,
-      "identity": "Anti-caster -- shut an enemy mage's spellbook before they nuke (only Silence source). PROC ID UNRESOLVED.",
+      "identity": "Anti-caster -- shut an enemy mage's spellbook before they nuke (only Silence source). Proc id not yet pinned down in-game.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -414,7 +414,7 @@
       "vanillaName": "Spellbinder",
       "name": "Silentfang",
       "tier": 4,
-      "identity": "Anti-caster blade -- on-hit Silence shuts down enemy mages (vanilla Disable re-skinned to confirmed Silence id10, matching Regabonds). Pays with no element and base evade. Only on-hit Silence in the line. Iconic name kept.",
+      "identity": "Anti-caster blade -- on-hit Silence shuts down enemy mages (vanilla Disable re-skinned to Silence id10, matching Regabonds). Pays with no element and base evade. Only on-hit Silence in the line. Iconic name kept.",
       "baseline": {
         "wp": 13,
         "evade": 5,
@@ -443,12 +443,12 @@
       "vanillaName": "Sasuke's Blade",
       "name": "Sasuke's Blade",
       "tier": 6,
-      "identity": "Marquee ninja blade -- best-in-line 20% evade AND on-hit Sleep (vanilla Stop re-skinned to confirmed Sleep id12; both deny turns). Trades 1 WP under Iga for top evade + a soft-lock fired twice/turn. Iconic name kept.",
+      "identity": "Marquee ninja blade -- best-in-line 20% evade AND on-hit Sleep (vanilla Stop re-skinned to Sleep id12; both deny turns). Trades 1 WP under Iga for top evade + a soft-lock fired twice/turn. Iconic name kept.",
       "baseline": {
         "wp": 14,
         "evade": 10,
         "element": "None",
-        "onHit": "Stop -- VANILLA (no confirmed proc id available)",
+        "onHit": "Stop (vanilla)",
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -501,7 +501,7 @@
       "vanillaName": "Koga Blade",
       "name": "Koga Blade",
       "tier": 6,
-      "identity": "Attrition capstone -- only Dark-element blade + on-hit Poison DOT (Regabonds id51 re-skinned to confirmed Poison id22). Trades evade for relentless chip that ticks while the ninja dodges away. Fixes vanilla's strictly-dominated Koga. Iconic name kept.",
+      "identity": "Attrition capstone -- only Dark-element blade + on-hit Poison DOT (Regabonds id51 re-skinned to Poison id22). Trades evade for relentless chip that ticks while the ninja dodges away. Fixes vanilla's strictly-dominated Koga. Iconic name kept.",
       "baseline": {
         "wp": 15,
         "evade": 5,
@@ -686,7 +686,7 @@
       "vanillaName": "Ancient Sword",
       "name": "Tanglethorn",
       "tier": 3,
-      "identity": "Pin-blade -- chance to inflict Immobilize (target can act but can't move). Pin runners; lock melee off your back line. Only Immobilize source. PROC ID 14 NEEDS IN-ENGINE VERIFY.",
+      "identity": "Pin-blade -- chance to inflict Immobilize (target can act but can't move). Pin runners; lock melee off your back line. Only Immobilize source. Proc id 14 unverified in-game.",
       "baseline": {
         "wp": 9,
         "evade": 5,
@@ -844,7 +844,7 @@
       "vanillaName": "Nagrarok",
       "name": "Nagrarok",
       "tier": 6,
-      "identity": "Evade-wall trickster -- line-max 50% physical evade AND on-hit Toad (target reduced to weak basic attack). Near-zero WP (3): dodge-and-disable, never damage. PROC ID 16 NEEDS IN-ENGINE VERIFY.",
+      "identity": "Evade-wall trickster -- line-max 50% physical evade AND on-hit Toad (target reduced to weak basic attack). Near-zero WP (3): dodge-and-disable, never damage. Proc id 16 unverified in-game.",
       "baseline": {
         "wp": 1,
         "evade": 50,
@@ -1010,7 +1010,7 @@
       "vanillaName": "Chaos Blade",
       "name": "Chaos Blade",
       "tier": 6,
-      "identity": "Raw-power king -- highest WP in the category, lowest evade (paid defensively), Doom-on-hit (death-timer) plus EquipBonus rider Regen for sustain. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker TAMED to WP28 so it no longer strictly dominates Ragnarok; unconfirmed Stone/Petrify proc replaced by Doom (confirmed id 11), thematically on-point. Iconic name kept.",
+      "identity": "Raw-power king -- highest WP in the category, lowest evade (paid defensively), Doom-on-hit (death-timer) plus EquipBonus rider Regen for sustain. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker cut to WP28 so it no longer strictly dominates Ragnarok; the unreliable Stone/Petrify proc swapped for Doom (id 11), thematically on-point. Iconic name kept.",
       "baseline": {
         "wp": 50,
         "evade": 20,
@@ -1910,7 +1910,7 @@
       "vanillaName": "Flail of Flame",
       "name": "Pyrelash",
       "tier": 3,
-      "identity": "The family's flavor pick, vanilla's one genuinely-interesting item kept verbatim-mechanic: Fire element + Fira cast-on-hit via Formula 2 (Op17 -- LIVE in the vanilla item, the documented F2 pairing). A different damage MODEL than the rest (magic-formula elemental, not Rand random), so no raw axe/flail can dominate it. Anti-Undead, shreds Oiled / Ice-creature foes; Fire-absorbers heal (double-edged). Now also gets reach (range 2). Only elemental in the category. If Op17 proves unverified in-engine, fall back to OptionsAbilityId 0 and let Fire+Formula2 carry the identity.",
+      "identity": "The family's flavor pick, vanilla's one genuinely-interesting item kept verbatim: Fire element + Fira cast-on-hit via Formula 2 (Op17, present in the vanilla item -- the documented F2 pairing). A different damage MODEL than the rest (magic-formula elemental, not Rand random), so no raw axe/flail can dominate it. Anti-Undead, shreds Oiled / Ice-creature foes; Fire-absorbers heal (double-edged). Now also gets reach (range 2). Only elemental in the category.",
       "baseline": {
         "wp": 11,
         "evade": 0,
@@ -2199,7 +2199,7 @@
       "vanillaName": "Knightslayer",
       "name": "Eclipsebolt",
       "tier": 2,
-      "identity": "Assassin's bolt -- marks an elite for death. IN-GAME FINDING: proc id 21 applies BLIND not Death, so switched to Doom (id 11, confirmed) = a countdown to certain KO. Only Doom crossbow.",
+      "identity": "Assassin's bolt -- marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead -- a countdown to a certain KO. Only Doom crossbow.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2254,7 +2254,7 @@
       "vanillaName": "Poison Crossbow",
       "name": "Venombolt",
       "tier": 3,
-      "identity": "Attrition tool -- only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Poison proc 22 confirmed live.",
+      "identity": "Attrition tool -- only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Inflicts Poison (proc 22).",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2282,7 +2282,7 @@
       "vanillaName": "Hunting Crossbow",
       "name": "Pitchbolt",
       "tier": 4,
-      "identity": "Combo-setup bolt -- IN-GAME FINDING: proc id 101 applies OIL (not Immobilize as the panel guessed). Oil doubles Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
+      "identity": "Combo-setup bolt -- proc 101 applies Oil, which doubles the Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
       "baseline": {
         "wp": 5,
         "evade": 5,
@@ -2478,7 +2478,7 @@
       "vanillaName": "Mythril Bow",
       "name": "Silentstring",
       "tier": 3,
-      "identity": "T3 caster-lock / control bow -- Silence on hit shuts enemy mages at range. WP7 + 10 evade. Renamed from filler Mythril Bow. Silence proc 10 confirmed live.",
+      "identity": "T3 caster-lock / control bow -- Silence on hit shuts enemy mages at range. WP7 + 10 evade. Renamed from filler Mythril Bow. Inflicts Silence (proc 10).",
       "baseline": {
         "wp": 7,
         "evade": 0,
@@ -2561,7 +2561,7 @@
       "vanillaName": "Perseus Bow",
       "name": "Perseus Bow",
       "tier": 6,
-      "identity": "T6 RAW+REACH capstone -- max WP (15) + max range (8, RANGE-8 CEILING TEST) + innate Holy (anti-Undead). 0 evade = pure glass cannon.",
+      "identity": "T6 raw+reach capstone -- max WP (15) + max range (8) + innate Holy (anti-Undead). 0 evade = pure glass cannon.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -3755,7 +3755,7 @@
       "vanillaName": "Escutcheon II",
       "name": "Aegis Prime",
       "tier": 6,
-      "identity": "Endgame anti-mage capstone (recast from the 75/50 dominance-bomb) -- 56 magEv, MA+1, halves Holy/Dark.",
+      "identity": "Endgame anti-mage capstone -- 56 magEv, MA+1, halves Holy/Dark.",
       "baseline": {
         "physEv": 75,
         "magEv": 50,
@@ -4747,7 +4747,7 @@
       "vanillaName": "Platinum Armor",
       "name": "Warden Plate",
       "tier": 5,
-      "identity": "Anti-lockdown body -- immune Stop keeps your tank acting vs Time mages; tempo insurance and the cheaper anti-Stop pick under Crystal Mail. (renamed from designer 'Aegis Plate' to avoid clash with shipped shield 'Aegis Prime'; vanillaName Platinum Armor)",
+      "identity": "Anti-lockdown body -- immune Stop keeps your tank acting vs Time mages; tempo insurance and the cheaper anti-Stop pick under Crystal Mail. (vanillaName Platinum Armor)",
       "baseline": {
         "hp": 90,
         "mp": 0,
