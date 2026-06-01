@@ -85,9 +85,12 @@ ICON_TINTS = {
 
 # Merge per-item tints from data/items.json (source for the new categories).
 import json as _json
+SRC = {}  # item id -> vanilla icon id to source from, for repurposed weapons that need a different shape
 for _it in _json.loads((ROOT / "data" / "items.json").read_text(encoding="utf-8"))["items"]:
     if _it.get("iconTint"):
         ICON_TINTS[_it["id"]] = tuple(_it["iconTint"])
+    if _it.get("iconSource"):
+        SRC[_it["id"]] = _it["iconSource"]
 
 
 def recolor(im, hue, sat, val_mult):
@@ -103,26 +106,28 @@ def recolor(im, hue, sat, val_mult):
     return im
 
 
-def process(item_id, hue, sat, val_mult):
+def process(item_id, hue, sat, val_mult, src_id=None):
     WORK.mkdir(parents=True, exist_ok=True)
-    for sub, prefix in [("equip_item", f"ei_{item_id:03d}"), ("equip_item_s", f"ei_s_{item_id:03d}")]:
-        name = f"{prefix}_uitx"
-        src = VANILLA / sub / "texture" / f"{name}.tex"
+    sid = item_id if src_id is None else src_id
+    for sub, pfx in [("equip_item", "ei"), ("equip_item_s", "ei_s")]:
+        src_name = f"{pfx}_{sid:03d}_uitx"
+        out_name = f"{pfx}_{item_id:03d}_uitx"
+        src = VANILLA / sub / "texture" / f"{src_name}.tex"
         if not src.exists():
             print(f"  MISSING {src}"); continue
-        work_tex = WORK / f"{name}.tex"
+        work_tex = WORK / f"{src_name}.tex"
         shutil.copy(src, work_tex)
         subprocess.run([str(FF16), "tex-conv", "-i", str(work_tex)], capture_output=True)
-        im = Image.open(WORK / f"{name}.dds").convert("RGBA")
+        im = Image.open(WORK / f"{src_name}.dds").convert("RGBA")
         recolor(im, hue, sat, val_mult)
-        png = WORK / f"{name}.png"
+        png = WORK / f"{out_name}.png"
         im.save(png)
         work_tex.unlink(missing_ok=True)
         subprocess.run([str(FF16), "img-conv", "-i", str(png), "--no-chunk-compression"], capture_output=True)
         dst = MOD / sub / "texture"
         dst.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(WORK / f"{name}.tex"), str(dst / f"{name}.tex"))
-        print(f"  {name} -> {sub}")
+        shutil.move(str(WORK / f"{out_name}.tex"), str(dst / f"{out_name}.tex"))
+        print(f"  {out_name}" + (f" (from {src_name})" if src_id is not None else "") + f" -> {sub}")
 
 
 def main():
@@ -131,7 +136,7 @@ def main():
         if only and i not in only:
             continue
         print(f"id{i}:")
-        process(i, h, s, v)
+        process(i, h, s, v, SRC.get(i))
     print("Done. Recolored icons placed in the mod tree.")
 
 

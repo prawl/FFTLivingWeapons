@@ -14,13 +14,14 @@ OUT = Path(__file__).resolve().parent.parent / "mod" / "FFTIVC" / "tables" / "en
 
 # weapon cross-equips by job name, applied to GENERIC player jobs only (don't rewrite story-char loadouts)
 CROSS = {
-    "Knight": ["Axe"], "Archer": ["Gun"], "Black Mage": ["Knife"], "Time Mage": ["Rod"],
+    "Archer": ["Gun"], "Black Mage": ["Knife"], "Time Mage": ["Rod"],
     "White Mage": ["Rod"], "Thief": ["Bow", "Crossbow"], "Orator": ["Sword", "Book"],
     "Geomancer": ["Pole"], "Dragoon": ["Sword"], "Samurai": ["Polearm"], "Squire": ["Crossbow"],
 }
 INNATE = {}                # per-job signature innate abilities (job name -> AbilityData ids); none yet
 CEV_FLOOR = 8              # floor every human job's class evade to this (raises only; vanilla squishies sit at 5)
 LUCAVI = {62, 64, 65, 67, 69, 73}  # boss forms in the generic id range; enemy-only, skip equip edits
+REMOVE = {"Axe", "Flail"}  # emptied categories (all axes/flails repurposed into other weapons); strip from every equip list
 
 raw = VANILLA.read_text(encoding="utf-8")
 names = {int(m.group(1)): m.group(2).strip() for m in re.finditer(r"<Id>(\d+)</Id>\s*<!--\s*([^/]+?)\s*/", raw)}
@@ -43,7 +44,9 @@ for jid in human:
     job = jobs[jid]
     nm = names.get(jid, "?")
     cur = [c.strip() for c in (job.findtext("EquippableItems") or "").split(",") if c.strip()]
-    new_equip = [a for a in (list(CROSS.get(nm, [])) + ["Shield"]) if a not in cur] if jid in generic else []
+    additions = [a for a in (list(CROSS.get(nm, [])) + ["Shield"]) if a not in cur] if jid in generic else []
+    final_equip = [c for c in (cur + additions) if c not in REMOVE]
+    equip_changed = final_equip != cur
     innate = []
     have = [int((job.findtext(f"InnateAbilityId{i}") or "0").strip() or 0) for i in (1, 2, 3, 4)]
     free = [i for i in (1, 2, 3, 4) if have[i - 1] == 0]
@@ -53,15 +56,15 @@ for jid in human:
         innate.append((free.pop(0), aid))
     cev_cur = int((job.findtext("CharacterEvasion") or "0").strip() or 0)
     cev_new = CEV_FLOOR if cev_cur < CEV_FLOOR else None
-    if not new_equip and not innate and cev_new is None:
+    if not equip_changed and not innate and cev_new is None:
         continue
-    note = ((["+" + " +".join(new_equip)] if new_equip else [])
+    note = ((["equip: " + ", ".join(final_equip)] if equip_changed else [])
             + ([f"C-EV {cev_cur} to {cev_new}"] if cev_new is not None else [])
             + ([f"innate {','.join(str(a) for _, a in innate)}"] if innate else []))
     out.append('    <Job>')
     out.append(f'      <Id>{jid}</Id> <!-- {nm.replace("--", "-")}: {"; ".join(note)} -->')
-    if new_equip:
-        out.append(f'      <EquippableItems>{", ".join(cur + new_equip)}</EquippableItems>')
+    if equip_changed:
+        out.append(f'      <EquippableItems>{", ".join(final_equip)}</EquippableItems>')
     if cev_new is not None:
         out.append(f'      <CharacterEvasion>{cev_new}</CharacterEvasion>')
     for slot, aid in innate:

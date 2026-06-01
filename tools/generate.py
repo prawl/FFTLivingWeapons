@@ -93,8 +93,16 @@ def accessory_entry(it):
 
 def itemdata_entry(it):
     s = it["proposed"]
-    return (f"    <Item>\n      <Id>{it['id']}</Id> <!-- {name_comment(it)}: EquipBonus {s['equipBonusId']} ({s.get('rider', '')}) -->\n"
-            f"      <EquipBonusId>{s['equipBonusId']}</EquipBonusId>\n    </Item>\n")
+    body = ""
+    if "equipBonusId" in s:
+        body += f"      <EquipBonusId>{s['equipBonusId']}</EquipBonusId>\n"
+    if s.get("categoryOverride"):
+        body += f"      <ItemCategory>{s['categoryOverride']}</ItemCategory>\n"
+    if s.get("typeFlagsOverride"):
+        body += f"      <TypeFlags>{s['typeFlagsOverride']}</TypeFlags>\n"
+    if s.get("shopOverride"):
+        body += f"      <ShopAvailability>{s['shopOverride']}</ShopAvailability>\n"
+    return f"    <Item>\n      <Id>{it['id']}</Id> <!-- {name_comment(it)} -->\n{body}    </Item>\n"
 
 
 def equipbonus_entry(eid, fields):
@@ -134,11 +142,11 @@ def main():
         wrote.append(f"ItemAccessoryData.xml ({len(accessories)} accessories)")
 
     # ItemData: every item that sets an equipBonusId (shields + any weapon w/ a rider, e.g. Arcanum MA+2)
-    eb_items = [it for it in items if "equipBonusId" in it["proposed"]]
-    if eb_items:
+    data_items = [it for it in items if "equipBonusId" in it["proposed"] or it["proposed"].get("categoryOverride") or it["proposed"].get("typeFlagsOverride") or it["proposed"].get("shopOverride")]
+    if data_items:
         (MOD_TABLES / "ItemData.xml").write_text(
-            hdr("ItemTable") + "".join(itemdata_entry(it) for it in eb_items) + "  </Entries>\n</ItemTable>\n", encoding="utf-8")
-        wrote.append(f"ItemData.xml ({len(eb_items)} EquipBonusId pointers)")
+            hdr("ItemTable") + "".join(itemdata_entry(it) for it in data_items) + "  </Entries>\n</ItemTable>\n", encoding="utf-8")
+        wrote.append(f"ItemData.xml ({len(data_items)} entries)")
 
     if new_eb:
         rows = "".join(equipbonus_entry(int(k), v) for k, v in sorted(new_eb.items(), key=lambda kv: int(kv[0])))
