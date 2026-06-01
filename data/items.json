@@ -294,8 +294,8 @@
         "wp": 12,
         "evade": 10,
         "element": "None",
-        "onHit": "May instantly kill",
-        "onHitAbilityId": 41,
+        "onHit": "May inflict Sleep",
+        "onHitAbilityId": 12,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
       }
@@ -820,7 +820,7 @@
       "vanillaName": "Runeblade",
       "name": "Arcanum",
       "tier": 5,
-      "identity": "Raw-power apex (WP14, highest of any sword) AND the only MA+2 sword -- the battle-mage Knight's blade. EquipBonus row 1 (MA+2).",
+      "identity": "Arcane dispel sword: chance to strip the target's buffs on hit (Protect/Shell/Haste/Reflect/etc.). The melee answer to buffed foes; Omnilex is the ranged version.",
       "baseline": {
         "wp": 14,
         "evade": 15,
@@ -833,14 +833,13 @@
         "wp": 14,
         "evade": 8,
         "element": "None",
-        "onHit": "None",
-        "onHitAbilityId": 0,
+        "onHit": "May strip buffs",
+        "onHitAbilityId": 55,
         "formula": 1,
         "rider": "MA+2",
         "equipBonusId": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "A rune-etched greatblade, the heaviest hitter ever forged."
+      }
     },
     {
       "id": 31,
@@ -1330,11 +1329,11 @@
     },
     {
       "id": 48,
-      "category": "Axe",
+      "category": "Pole",
       "vanillaName": "Battle Axe",
-      "name": "Hatchet",
+      "name": "Terrastaff",
       "tier": 1,
-      "identity": "Tier-1 budget brute. Cheapest/earliest axe in the family, no rider, lowest WP. The 'just give me a big random swing right now' opener: Rand(1..PA)*WP means even at WP8 a high-Brave/PA Squire can spike a full PA*8 hit. ForcedTwoHands (no shield). Wins on price + timing, never on ceiling. The first gambler's-burst weapon.",
+      "identity": "Earth pole: the only Earth-element pole, for the Geomancer who lost the Axe. (was the Hatchet)",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -1343,27 +1342,28 @@
         "formula": "1 (Weapon formula; engine applies Axe random-damage Rdm(1..PA)*WP by weapon type)"
       },
       "proposed": {
-        "wp": 8,
-        "evade": 0,
-        "element": "None",
+        "wp": 9,
+        "evade": 20,
+        "element": "Earth",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1
+        "categoryOverride": "Pole"
       },
       "iconTint": [
-        0.58,
-        0.18,
-        0.78
-      ]
+        0.1,
+        0.45,
+        0.85
+      ],
+      "iconSource": 107
     },
     {
       "id": 49,
-      "category": "Axe",
+      "category": "KnightSword",
       "vanillaName": "Giant's Axe",
       "name": "Ravager",
       "tier": 3,
-      "identity": "Berserker axe: damage equals the wielder's missing HP. Zero at full health, devastating near death. WP and evade are cosmetic for damage. The reckless all-or-nothing axe.",
+      "identity": "Knight sword that drives the foe into a mindless rage: chance to Berserk on hit (they attack, can't use abilities). (was the War Axe)",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -1372,27 +1372,28 @@
         "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 13,
-        "evade": 0,
+        "wp": 16,
+        "evade": 15,
         "element": "None",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 67,
-        "range": 1
+        "onHit": "May berserk",
+        "onHitAbilityId": 53,
+        "formula": 1,
+        "categoryOverride": "KnightSword"
       },
       "iconTint": [
-        0.07,
-        0.35,
-        0.62
-      ]
+        0.99,
+        0.7,
+        0.9
+      ],
+      "iconSource": 33
     },
     {
       "id": 50,
-      "category": "Axe",
+      "category": "KnightSword",
       "vanillaName": "Slasher",
-      "name": "Headsman's Axe",
+      "name": "Executioner",
       "tier": 5,
-      "identity": "The executioner capstone. Top axe WP AND a Doom rider (confirmed id11: 3-turn timer KOs whatever survives the swing). Hardest melee swing in the family + a death clock. Replaces vanilla Slasher's unreliable Slow (Op18, NOT in the confirmed proc set) with a confirmed-live execute that fits the new name. Doom keeps axes in the 'kill' lane, distinct from the flails' control statuses. T5-gated, pays with the random floor + zero evade.",
+      "identity": "Executioner knight sword: pins the condemned where they stand, chance to Immobilize on hit. (was Headsman's Axe)",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -1401,19 +1402,20 @@
         "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 16,
-        "evade": 0,
+        "wp": 17,
+        "evade": 18,
         "element": "None",
-        "onHit": "Knockback (Rush)",
-        "onHitAbilityId": 147,
-        "formula": 2,
-        "range": 1
+        "onHit": "May inflict Immobilize",
+        "onHitAbilityId": 14,
+        "formula": 1,
+        "categoryOverride": "KnightSword"
       },
       "iconTint": [
-        0.78,
-        0.55,
-        0.42
-      ]
+        0.6,
+        0.1,
+        0.62
+      ],
+      "iconSource": 34
     },
     {
       "id": 51,
@@ -1864,11 +1866,11 @@
     },
     {
       "id": 67,
-      "category": "Flail",
+      "category": "Sword",
       "vanillaName": "Iron Flail",
-      "name": "Ironlash",
+      "name": "Warbrand",
       "tier": 2,
-      "identity": "The reach starter. Introduces the flail line's signature lever: RANGE 2 (the chain swings past the front rank). Earliest reach bludgeon; hit an enemy a tile back while a body-block tank covers you. No element/status, the raw-reach pick. Iconic name kept. The +1 range vs every axe is the structural guarantee that no axe can ever dominate a flail.",
+      "identity": "Pure-power brute: the highest weapon power of any sword, bought with zero evade. (was Ironlash)",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -1877,27 +1879,28 @@
         "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 9,
+        "wp": 15,
         "evade": 0,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1
+        "categoryOverride": "Sword"
       },
       "iconTint": [
-        0.0,
-        0.0,
-        0.55
-      ]
+        0.6,
+        0.08,
+        0.95
+      ],
+      "iconSource": 19
     },
     {
       "id": 68,
-      "category": "Flail",
+      "category": "Knife",
       "vanillaName": "Flail of Flame",
       "name": "Bloodlash",
       "tier": 3,
-      "identity": "Berserker flail: damage equals the wielder's missing HP. Zero at full health, brutal near death. WP and evade are cosmetic for damage. The flail line's wild desperation pick.",
+      "identity": "Venom dagger: chance to Poison on hit, a bleeding wound that festers. (was a flail)",
       "baseline": {
         "wp": 11,
         "evade": 0,
@@ -1906,27 +1909,28 @@
         "formula": "2 (Elemental weapon formula — REQUIRED to carry Fire element; NOT formula 1)"
       },
       "proposed": {
-        "wp": 11,
-        "evade": 0,
+        "wp": 8,
+        "evade": 15,
         "element": "None",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 67,
-        "range": 1
+        "onHit": "May inflict Poison",
+        "onHitAbilityId": 22,
+        "formula": 1,
+        "categoryOverride": "Knife"
       },
       "iconTint": [
-        0.05,
-        0.85,
-        1.05
-      ]
+        0.27,
+        0.6,
+        0.85
+      ],
+      "iconSource": 1
     },
     {
       "id": 69,
-      "category": "Flail",
+      "category": "NinjaBlade",
       "vanillaName": "Morning Star",
-      "name": "Snarelash",
+      "name": "Snarefang",
       "tier": 4,
-      "identity": "The control flail. Same WP13 as War Axe but trades the axe's earlier unlock + Geomancer job for the flail's +1 range + Ninja job AND an Immobilize rider (confirmed id14): pin a target in place for your casters/archers to delete. Iconic name kept. Sidegrade-not-upgrade to War Axe (range+rider vs earlier tier), and at range 2 it can never be dominated by any range-1 item.",
+      "identity": "Snare blade: chance to Immobilize on hit, pinning the target where it stands. (was Snarelash)",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -1935,27 +1939,28 @@
         "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 13,
-        "evade": 0,
+        "wp": 11,
+        "evade": 15,
         "element": "None",
-        "onHit": "Add: Immobilize",
+        "onHit": "May inflict Immobilize",
         "onHitAbilityId": 14,
         "formula": 1,
-        "range": 1
+        "categoryOverride": "NinjaBlade"
       },
       "iconTint": [
-        0.52,
-        0.42,
-        0.85
-      ]
+        0.09,
+        0.5,
+        0.88
+      ],
+      "iconSource": 11
     },
     {
       "id": 70,
-      "category": "Flail",
+      "category": "Katana",
       "vanillaName": "Scorpion Tail",
-      "name": "Scorpion Tail",
+      "name": "Sasori",
       "tier": 5,
-      "identity": "The venomous reach capstone. Poach-only (Hydra) so rarity is part of its niche, plus the only Poison flail (confirmed id22: DoT ~1/8 max HP per turn, cancels Regen). Highest no-Doom WP at range 2: chip a high-HP or fleeing target from a tile back and let the venom finish it. Vanilla's absurd wp23 poach-outlier re-curved to a gentle 15. Doesn't dominate Headsman's Axe -- Poison-tick attrition is a different win condition than the Doom clock, and at range 2 it's a different equip lane (Ninja/Squire flail vs axe). Iconic name kept.",
+      "identity": "Venom katana: a scorpion's lethal sting, chance to Doom on hit (death in three turns). (was Scorpion Tail)",
       "baseline": {
         "wp": 23,
         "evade": 0,
@@ -1964,19 +1969,22 @@
         "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 15,
-        "evade": 0,
+        "wp": 11,
+        "evade": 10,
         "element": "None",
-        "onHit": "May Stop, petrify, or kill",
-        "onHitAbilityId": 95,
+        "onHit": "May inflict Doom",
+        "onHitAbilityId": 11,
         "formula": 1,
-        "range": 1
+        "categoryOverride": "Katana",
+        "shopOverride": "Chapter3_Zalmo",
+        "typeFlagsOverride": "Weapon"
       },
       "iconTint": [
-        0.3,
-        0.85,
-        0.7
-      ]
+        0.78,
+        0.55,
+        0.8
+      ],
+      "iconSource": 38
     },
     {
       "id": 71,

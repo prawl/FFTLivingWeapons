@@ -101,7 +101,7 @@
       <Power>12</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>41</OptionsAbilityId>
+      <OptionsAbilityId>12</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>11</Id> <!-- Shadowfang (was Ninja Blade) -->
@@ -293,7 +293,7 @@
       <Power>14</Power>
       <Evasion>8</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>55</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>31</Id> <!-- Nagrarok -->
@@ -452,31 +452,31 @@
       <OptionsAbilityId>14</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>48</Id> <!-- Hatchet (was Battle Axe) -->
+      <Id>48</Id> <!-- Terrastaff (was Battle Axe) -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>8</Power>
-      <Evasion>0</Evasion>
-      <Elements>None</Elements>
+      <Power>9</Power>
+      <Evasion>20</Evasion>
+      <Elements>Earth</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
       <Range>1</Range>
-      <Formula>67</Formula>
-      <Power>13</Power>
-      <Evasion>0</Evasion>
+      <Formula>1</Formula>
+      <Power>16</Power>
+      <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>53</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>50</Id> <!-- Headsman's Axe (was Slasher) -->
+      <Id>50</Id> <!-- Executioner (was Slasher) -->
       <Range>1</Range>
-      <Formula>2</Formula>
-      <Power>16</Power>
-      <Evasion>0</Evasion>
+      <Formula>1</Formula>
+      <Power>17</Power>
+      <Evasion>18</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>147</OptionsAbilityId>
+      <OptionsAbilityId>14</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>51</Id> <!-- Apprentice Rod (was Rod) -->
@@ -623,10 +623,10 @@
       <OptionsAbilityId>44</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>67</Id> <!-- Ironlash (was Iron Flail) -->
+      <Id>67</Id> <!-- Warbrand (was Iron Flail) -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>9</Power>
+      <Power>15</Power>
       <Evasion>0</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -634,29 +634,29 @@
     <ItemWeapon>
       <Id>68</Id> <!-- Bloodlash (was Flail of Flame) -->
       <Range>1</Range>
-      <Formula>67</Formula>
-      <Power>11</Power>
-      <Evasion>0</Evasion>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>22</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>69</Id> <!-- Snarelash (was Morning Star) -->
+      <Id>69</Id> <!-- Snarefang (was Morning Star) -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>13</Power>
-      <Evasion>0</Evasion>
+      <Power>11</Power>
+      <Evasion>15</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>14</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>70</Id> <!-- Scorpion Tail -->
+      <Id>70</Id> <!-- Sasori (was Scorpion Tail) -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>15</Power>
-      <Evasion>0</Evasion>
+      <Power>11</Power>
+      <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>95</OptionsAbilityId>
+      <OptionsAbilityId>11</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>71</Id> <!-- Outrider Pistol (was Romandan Pistol) -->
