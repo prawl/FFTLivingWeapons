@@ -208,7 +208,7 @@
     <ItemWeapon>
       <Id>22</Id> <!-- Claymore (was Mythril Sword) -->
       <Range>2</Range>
-      <AttackFlags>Throwable, TwoHands, Lunging</AttackFlags>
+      <AttackFlags>Throwable, TwoHands, Lunging, ForcedTwoHands</AttackFlags>
       <Formula>1</Formula>
       <Power>8</Power>
       <Evasion>0</Evasion>
@@ -990,7 +990,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>106</Id> <!-- Wyrmpike (was Javelin) -->
-      <Range>3</Range>
+      <Range>2</Range>
+      <AttackFlags>Throwable, TwoHands, Lunging, ForcedTwoHands</AttackFlags>
       <Formula>1</Formula>
       <Power>13</Power>
       <Evasion>10</Evasion>

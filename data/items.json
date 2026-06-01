@@ -631,7 +631,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "attackFlags": "Throwable, TwoHands, Lunging",
+        "attackFlags": "Throwable, TwoHands, Lunging, ForcedTwoHands",
         "range": 2
       }
     },
@@ -2983,7 +2983,7 @@
       "vanillaName": "Javelin",
       "name": "Wyrmpike",
       "tier": 6,
-      "identity": "T6 split-apex (Nelveska treasure) -- the ONLY range-3 spear + only Wind spear + on-hit Doom (11). Tag a boss from two tiles back and retreat. Wins range/element/Doom where Dragon Whisker wins WP; neither dominates.",
+      "identity": "T6 split-apex (Nelveska treasure) -- only Wind spear + on-hit Doom (11), two-handed (trades the shield for the package). Tag a boss from two tiles back. Wins element/Doom where Dragon Whisker wins WP; neither dominates.",
       "baseline": {
         "wp": 30,
         "evade": 10,
@@ -2998,7 +2998,8 @@
         "onHit": "May inflict Doom",
         "onHitAbilityId": 11,
         "formula": 1,
-        "range": 3
+        "attackFlags": "Throwable, TwoHands, Lunging, ForcedTwoHands",
+        "range": 2
       },
       "iconTint": [
         0.42,
