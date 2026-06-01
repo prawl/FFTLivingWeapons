@@ -22,7 +22,7 @@ It matters **more**, not less, the more the rest of your install ramps up. Under
   - **Head — 28** (Helmet 13, Hat 12, Hair Adornment 3)
   - **Body — 36** (Clothing 14, Armor 14, Robe 8)
   - **Accessories — 33** (Shoes 7, Cloak 7, Ring 6, Armlet 5, Perfume 4, Armguard 4)
-- **New names, recolored menu icons, and rewritten descriptions** for the full roster — every item ships an `ei_<id>` / `ei_s_<id>` icon pair (468 `.tex` files total).
+- **Recolored menu icons and rewritten descriptions for the full roster**, plus fresh names for all but the iconic legendaries and samurai katanas — every item ships an `ei_<id>` / `ei_s_<id>` icon pair (468 `.tex` files total).
 - **A programmatic no-strict-domination gate.** `tools/analyze.py` fails the build if *any* item is strictly dominated by another — and it even models **equip-slot access**, so an item isn't called "dominated" by something its slot can't actually use.
 - **Range as a real lever.** Reach is a first-class tradeoff via the **Lunging** flag, not just a number, so short-range and extended-range weapons stay distinct choices instead of one obsoleting the other.
 - **Vanilla spell and status casts preserved.** On-equip and on-use spell/status effects keep their original behavior — the rebalance touches stats and identity, not the game's existing magic.

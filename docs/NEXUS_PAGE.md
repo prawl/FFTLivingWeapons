@@ -1,10 +1,10 @@
 # FFT Item Overhaul
 
-Final Fantasy Tactics has the bones of a great loot game buried under a flat reward curve. You buy the new sword, sell the old sword, and never look back — every chapter quietly invalidates the last chapter's shopping. That's not a build, that's a treadmill. **FFT Item Overhaul** rebalances all 234 equippable items in *FINAL FANTASY TACTICS: The Ivalice Chronicles* so old gear never becomes vendor trash. Every weapon, shield, head and body armor, and accessory gets a new name, a recolored menu icon, a rewritten description, and reworked stats — built around one idea: a newer item is a *sidegrade* with a different reason to exist, not a strict upgrade.
+Final Fantasy Tactics has the bones of a great loot game buried under a flat reward curve. You buy the new sword, sell the old sword, and never look back — every chapter quietly invalidates the last chapter's shopping. That's not a build, that's a treadmill. **FFT Item Overhaul** rebalances all 234 equippable items in *FINAL FANTASY TACTICS: The Ivalice Chronicles* so old gear never becomes vendor trash. Every weapon, shield, head and body armor, and accessory gets reworked stats, a recolored menu icon, and a rewritten description — plus a fresh name, save the iconic legendaries and the samurai katanas, which keep theirs. It is all built around one idea: a newer item is a *sidegrade* with a different reason to exist, not a strict upgrade.
 
 ### What does this mod actually change?
 
-It rebalances every equippable item in the game for build diversity — 121 weapons, 16 shields, 28 head armor, 36 body armor, and 33 accessories. Each one gets a fresh name, a recolored menu icon, a rewritten description, and reworked stats.
+It rebalances every equippable item in the game for build diversity — 121 weapons, 16 shields, 28 head armor, 36 body armor, and 33 accessories. Each gets reworked stats, a recolored menu icon, and a rewritten description; nearly all also get a new name (the iconic legendaries and the samurai katanas keep theirs).
 
 ### Why does my best weapon stop mattering ten hours in?
 
@@ -20,7 +20,7 @@ Every single description was rewritten from scratch to spell out exactly what th
 
 ### Does my favorite legendary survive this?
 
-Yes. Non-shop legendaries — Excalibur, the Genji set, Save the Queen, the Materia Blade, Masamune, and the rest — keep their vanilla names. They still get the rebalanced stats so they slot cleanly into the new curve, but they stay the named treasures you remember earning.
+Yes. Non-shop legendaries — Excalibur, the Genji set, Save the Queen, the Materia Blade, Masamune, and the rest — keep their vanilla names. They still get the rebalanced stats so they slot cleanly into the new curve, but they stay the named treasures you remember earning. The samurai katanas (Masamune, Muramasa, and the rest) keep their names too.
 
 ### Does this make the game harder or easier?
 

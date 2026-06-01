@@ -325,7 +325,7 @@
       "id": 12,
       "category": "NinjaBlade",
       "vanillaName": "Kunai",
-      "name": "Kunai",
+      "name": "Mistedge",
       "tier": 3,
       "identity": "REACH outlier -- the only Range-2 melee in the line (throwing-knife fantasy). Hits from a tile back without melee retaliation; pays with line-min evade for its tier. Iconic name kept.",
       "baseline": {
@@ -412,7 +412,7 @@
       "id": 15,
       "category": "NinjaBlade",
       "vanillaName": "Spellbinder",
-      "name": "Spellbinder",
+      "name": "Silentfang",
       "tier": 4,
       "identity": "Anti-caster blade -- on-hit Silence shuts down enemy mages (vanilla Disable re-skinned to confirmed Silence id10, matching Regabonds). Pays with no element and base evade. Only on-hit Silence in the line. Iconic name kept.",
       "baseline": {
@@ -1560,7 +1560,7 @@
       "id": 56,
       "category": "Rod",
       "vanillaName": "Wizard's Rod",
-      "name": "Wizard's Rod",
+      "name": "Umbral Rod",
       "tier": 3,
       "identity": "Only Dark caster weapon AND the MA+2 EquipBonus rider -- black-mage power stick; anti-Holy-creature niche.",
       "baseline": {
@@ -1647,7 +1647,7 @@
       "id": 59,
       "category": "Staff",
       "vanillaName": "Oak Staff",
-      "name": "Oak Staff",
+      "name": "Birchwood Staff",
       "tier": 1,
       "identity": "Only tier-1 staff -- bare MA-scaling starter. Not a worse Apprentice Rod: MA*WP scaling is its incomparable good.",
       "baseline": {
@@ -1676,7 +1676,7 @@
       "id": 60,
       "category": "Staff",
       "vanillaName": "White Staff",
-      "name": "White Staff",
+      "name": "Lullaby Staff",
       "tier": 2,
       "identity": "Only Sleep source -- white-mage pacifier, removes a target non-lethally. Earliest status staff.",
       "baseline": {
@@ -1705,7 +1705,7 @@
       "id": 61,
       "category": "Staff",
       "vanillaName": "Healing Staff",
-      "name": "Healing Staff",
+      "name": "Mending Staff",
       "tier": 3,
       "identity": "Only heal-on-attack weapon (Formula 7) -- attack allies to heal, attack Undead to nuke. WP held low so the heal identity stays load-bearing.",
       "baseline": {
@@ -1734,7 +1734,7 @@
       "id": 62,
       "category": "Staff",
       "vanillaName": "Serpent Staff",
-      "name": "Serpent Staff",
+      "name": "Viper Staff",
       "tier": 3,
       "identity": "Only Immobilize source -- the serpent's coil pins runners in place. MA-scaling status pick; pays WP5 with ev12.",
       "baseline": {
@@ -1763,7 +1763,7 @@
       "id": 63,
       "category": "Staff",
       "vanillaName": "Mage's Staff",
-      "name": "Mage's Staff",
+      "name": "Conduit Staff",
       "tier": 3,
       "identity": "Mid MA+1 EquipBonus staff -- clean caster-power pick before endgame, full 15 evade. MA+1 != MA+2.",
       "baseline": {
@@ -1792,7 +1792,7 @@
       "id": 64,
       "category": "Staff",
       "vanillaName": "Golden Staff",
-      "name": "Golden Staff",
+      "name": "Smiter's Staff",
       "tier": 4,
       "identity": "Pure-WP no-rider staff -- the 'biggest MA*WP swing now' pick. Pays 3 evade vs the MA staves and carries no proc.",
       "baseline": {
@@ -1879,7 +1879,7 @@
       "id": 67,
       "category": "Flail",
       "vanillaName": "Iron Flail",
-      "name": "Iron Flail",
+      "name": "Ironlash",
       "tier": 2,
       "identity": "The reach starter. Introduces the flail line's signature lever: RANGE 2 (the chain swings past the front rank). Earliest reach bludgeon; hit an enemy a tile back while a body-block tank covers you. No element/status, the raw-reach pick. Iconic name kept. The +1 range vs every axe is the structural guarantee that no axe can ever dominate a flail.",
       "baseline": {
@@ -1908,7 +1908,7 @@
       "id": 68,
       "category": "Flail",
       "vanillaName": "Flail of Flame",
-      "name": "Flail of Flame",
+      "name": "Pyrelash",
       "tier": 3,
       "identity": "The family's flavor pick, vanilla's one genuinely-interesting item kept verbatim-mechanic: Fire element + Fira cast-on-hit via Formula 2 (Op17 -- LIVE in the vanilla item, the documented F2 pairing). A different damage MODEL than the rest (magic-formula elemental, not Rand random), so no raw axe/flail can dominate it. Anti-Undead, shreds Oiled / Ice-creature foes; Fire-absorbers heal (double-edged). Now also gets reach (range 2). Only elemental in the category. If Op17 proves unverified in-engine, fall back to OptionsAbilityId 0 and let Fire+Formula2 carry the identity.",
       "baseline": {
@@ -1937,7 +1937,7 @@
       "id": 69,
       "category": "Flail",
       "vanillaName": "Morning Star",
-      "name": "Morning Star",
+      "name": "Snarelash",
       "tier": 4,
       "identity": "The control flail. Same WP13 as War Axe but trades the axe's earlier unlock + Geomancer job for the flail's +1 range + Ninja job AND an Immobilize rider (confirmed id14): pin a target in place for your casters/archers to delete. Iconic name kept. Sidegrade-not-upgrade to War Axe (range+rider vs earlier tier), and at range 2 it can never be dominated by any range-1 item.",
       "baseline": {
@@ -2197,7 +2197,7 @@
       "id": 78,
       "category": "Crossbow",
       "vanillaName": "Knightslayer",
-      "name": "Knightslayer",
+      "name": "Eclipsebolt",
       "tier": 2,
       "identity": "Assassin's bolt -- marks an elite for death. IN-GAME FINDING: proc id 21 applies BLIND not Death, so switched to Doom (id 11, confirmed) = a countdown to certain KO. Only Doom crossbow.",
       "baseline": {
@@ -2218,8 +2218,7 @@
         "formula": 1,
         "range": 4,
         "attackFlags": "Direct"
-      },
-      "desc": "A grim crossbow forged to fell armored elites.\nWhen attacking, has a chance of inflicting Doom -- a countdown to certain death."
+      }
     },
     {
       "id": 79,
@@ -2587,7 +2586,7 @@
       "id": 92,
       "category": "Instrument",
       "vanillaName": "Lamia's Harp",
-      "name": "Lamia's Harp",
+      "name": "Siren's Lyre",
       "tier": 2,
       "identity": "T2 elemental opener harp -- the family's only Wind source: Formula-1 Wind attacks punish Wind-weak/Float foes at R3. Hybrid (PA+MA)/2 bard; element is the rider, WP modest. Earliest harp.",
       "baseline": {
@@ -2616,7 +2615,7 @@
       "id": 93,
       "category": "Instrument",
       "vanillaName": "Bloodstring Harp",
-      "name": "Bloodstring Harp",
+      "name": "Duskstring Harp",
       "tier": 3,
       "identity": "T3 anti-physical harp -- the only ranged Blind in the harp lane: crater an enemy bruiser's hit-rate from 3 tiles back without waking them. Owns Blind.",
       "baseline": {
@@ -2674,7 +2673,7 @@
       "id": 95,
       "category": "Book",
       "vanillaName": "Battle Folio",
-      "name": "Battle Folio",
+      "name": "Glarebound Tome",
       "tier": 1,
       "identity": "T1 orator opener -- earliest/cheapest book and the only ranged Blind in the Book lane: neuter an enemy physical attacker from afar. Lowest WP in the category; the accuracy-denial rider is the point.",
       "baseline": {
@@ -2703,7 +2702,7 @@
       "id": 96,
       "category": "Book",
       "vanillaName": "Bestiary",
-      "name": "Bestiary",
+      "name": "Knell Codex",
       "tier": 4,
       "identity": "T4 execution codex -- the only Doom source line-wide: tag an elite, retreat, let the 3-turn countdown guarantee the KO. Owns Doom.",
       "baseline": {
@@ -2732,7 +2731,7 @@
       "id": 97,
       "category": "Book",
       "vanillaName": "Papyrus Codex",
-      "name": "Papyrus Codex",
+      "name": "Binding Codex",
       "tier": 4,
       "identity": "T4 pin codex -- ranged (R3) Immobilize locks a runner/charger in place for your casters and archers. Book-lane Immobilize (R3/Ev15 pin-from-range), distinct from the cloth pinner.",
       "baseline": {
@@ -3022,7 +3021,7 @@
       "id": 107,
       "category": "Pole",
       "vanillaName": "Cypress Pole",
-      "name": "Cypress Pole",
+      "name": "Greenwood Pole",
       "tier": 1,
       "identity": "ICONIC. T1 starter pole -- earliest/cheapest MA-reach, the 20% evade family floor. The honest training staff for early Geomancer/Monk.",
       "baseline": {
@@ -3051,7 +3050,7 @@
       "id": 108,
       "category": "Pole",
       "vanillaName": "Battle Bamboo",
-      "name": "Battle Bamboo",
+      "name": "Ironreed Pole",
       "tier": 2,
       "identity": "ICONIC. T2 raw-stat pole baseline -- best no-rider WP of its era at 20% evade. The 'monk who just wants to hit from a tile back' default.",
       "baseline": {
@@ -3138,7 +3137,7 @@
       "id": 111,
       "category": "Pole",
       "vanillaName": "Gokuu's Pole",
-      "name": "Gokuu's Pole",
+      "name": "Sage's Pole",
       "tier": 5,
       "identity": "ICONIC. T5 riderless raw-WP pole leader -- clean MA*WP, no gimmick. The high-MA finisher that just wants to hit hard; tier-gated above the rider-poles.",
       "baseline": {
@@ -3370,7 +3369,7 @@
       "id": 119,
       "category": "Cloth",
       "vanillaName": "Damask Cloth",
-      "name": "Damask Cloth",
+      "name": "Tarsilk Veil",
       "tier": 3,
       "identity": "T3 combo-enabler rag -- the only Oil source: Oil doubles incoming Fire, priming a target for your Black Mages while the dancer hides behind 50% evade. R2 short reach is the cloth trade.",
       "baseline": {
@@ -3801,7 +3800,7 @@
       "id": 145,
       "category": "Helmet",
       "vanillaName": "Bronze Helm",
-      "name": "Bronze Helm",
+      "name": "Mendsteel Helm",
       "tier": 2,
       "identity": "Niche: innate Regen makes an early front-liner a self-healing wall before any healer is online -- attrition durability the raw-HP rungs never offer.",
       "baseline": {
@@ -3828,7 +3827,7 @@
       "id": 146,
       "category": "Helmet",
       "vanillaName": "Iron Helm",
-      "name": "Iron Helm",
+      "name": "Aegis Helm",
       "tier": 2,
       "identity": "Niche: innate Protect (halve physical) on a solid early block -- the front-line tank's first real wall; pick over Bronze vs hard hitters, not chip.",
       "baseline": {
@@ -3882,7 +3881,7 @@
       "id": 148,
       "category": "Helmet",
       "vanillaName": "Mythril Helm",
-      "name": "Mythril Helm",
+      "name": "Clarion Helm",
       "tier": 3,
       "identity": "Niche: Silence immunity keeps a magic-knight's or battle-skill user's spells online -- the spell-using tank's helm, no element commitment.",
       "baseline": {
@@ -3963,7 +3962,7 @@
       "id": 151,
       "category": "Helmet",
       "vanillaName": "Diamond Helm",
-      "name": "Diamond Helm",
+      "name": "Timeward Helm",
       "tier": 4,
       "identity": "Niche: Stop immunity -- the Time-Mage counter; the heavy tank that can never be frozen out of the fight for a lethal turn-skip.",
       "baseline": {
@@ -3990,7 +3989,7 @@
       "id": 152,
       "category": "Helmet",
       "vanillaName": "Platinum Helm",
-      "name": "Platinum Helm",
+      "name": "Wardsteel Helm",
       "tier": 4,
       "identity": "Niche: innate Shell (halve magic) on a heavy block -- the anti-mage wall, magic mirror of Iron's Protect; the rung you grab for caster-boss maps.",
       "baseline": {
@@ -4044,7 +4043,7 @@
       "id": 154,
       "category": "Helmet",
       "vanillaName": "Crystal Helm",
-      "name": "Crystal Helm",
+      "name": "Crystalward Helm",
       "tier": 5,
       "identity": "Niche: the buyable defensive apex -- double-immunity to Stop AND Petrify (both instant-loss) on a huge HP pool; owns the unique Stone atom no other helm has.",
       "baseline": {
@@ -4125,7 +4124,7 @@
       "id": 157,
       "category": "Hat",
       "vanillaName": "Leather Cap",
-      "name": "Leather Cap",
+      "name": "Roughspun Cap",
       "tier": 1,
       "identity": "Availability: cheapest head item, universal (any job turn 1, no Equip Heavy Armor) -- the mage/thief head-slot floor, alone at the bottom of the hat curve.",
       "baseline": {
@@ -4152,7 +4151,7 @@
       "id": 158,
       "category": "Hat",
       "vanillaName": "Plumed Hat",
-      "name": "Plumed Hat",
+      "name": "Wardplume Hat",
       "tier": 2,
       "identity": "Niche: trades MP for magic-evade (magEv5) -- the cheap 'duck the first spell' hat; riderless but distinct on the magEv axis, a sidegrade not a downgrade to Red Hood.",
       "baseline": {
@@ -4179,7 +4178,7 @@
       "id": 159,
       "category": "Hat",
       "vanillaName": "Red Hood",
-      "name": "Red Hood",
+      "name": "Adept's Hood",
       "tier": 2,
       "identity": "Availability: the early caster cap -- a small MP pool, HP-leaning twin of Plumed; the squishy mage's first survivable head, distinct on the MP axis.",
       "baseline": {
@@ -4233,7 +4232,7 @@
       "id": 161,
       "category": "Hat",
       "vanillaName": "Wizard's Hat",
-      "name": "Wizard's Hat",
+      "name": "Arcanist Cap",
       "tier": 3,
       "identity": "ICONIC: MA+1 plus a real MP pool, lowest HP of its tier -- the classic caster fork, glassy but more and stronger spells; the MA/MP answer to Martial Band's PA.",
       "baseline": {
@@ -4260,7 +4259,7 @@
       "id": 162,
       "category": "Hat",
       "vanillaName": "Green Beret",
-      "name": "Green Beret",
+      "name": "Zephyr Beret",
       "tier": 3,
       "identity": "ICONIC: Speed+1 -- the universal tempo hat; more turns on literally any build, no stat-school commitment.",
       "baseline": {
@@ -4314,7 +4313,7 @@
       "id": 164,
       "category": "Hat",
       "vanillaName": "Celebrant's Miter",
-      "name": "Celebrant's Miter",
+      "name": "Hierophant Miter",
       "tier": 4,
       "identity": "ICONIC: MA+2 plus a deep MP well -- the mage damage-and-fuel cap; Wizard's Hat (MA+1, T3) keeps the budget niche. The magic counterpart to Headband.",
       "baseline": {
@@ -4368,7 +4367,7 @@
       "id": 166,
       "category": "Hat",
       "vanillaName": "Gold Hairpin",
-      "name": "Gold Hairpin",
+      "name": "Mana Coronet",
       "tier": 4,
       "identity": "ICONIC: the MP throne of the hats (40, slot max) plus Silence immunity -- the artillery-mage hat; bottomless spells that can't be cut off. MP is the identity.",
       "baseline": {
@@ -4395,7 +4394,7 @@
       "id": 167,
       "category": "Hat",
       "vanillaName": "Lambent Hat",
-      "name": "Lambent Hat",
+      "name": "Lumen Crown",
       "tier": 5,
       "identity": "ICONIC: the hybrid endgame mage hat -- MA+1, Speed+1, MP AND magic-evade (magEv10); the only hat blending magic offense, tempo and mag-defense on one head.",
       "baseline": {
@@ -4422,7 +4421,7 @@
       "id": 168,
       "category": "Hat",
       "vanillaName": "Thief's Cap",
-      "name": "Thief's Cap",
+      "name": "Nightrunner Cap",
       "tier": 5,
       "identity": "ICONIC: the rogue capstone -- Speed+2, top physical-evade (physEv15), immune Disable + Immobilize; the untouchable, unstoppable skirmisher hat.",
       "baseline": {
@@ -4530,7 +4529,7 @@
       "id": 172,
       "category": "Armor",
       "vanillaName": "Leather Armor",
-      "name": "Leather Armor",
+      "name": "Roughhide Mail",
       "tier": 1,
       "identity": "Honest Ch1 starter wall -- cheapest heavy body; earliest unlock IS its niche. A riderless anchor protected purely by being the only heavy armor you can have in Ch1.",
       "baseline": {
@@ -4584,7 +4583,7 @@
       "id": 174,
       "category": "Armor",
       "vanillaName": "Bronze Armor",
-      "name": "Bronze Armor",
+      "name": "Reaver Mail",
       "tier": 2,
       "identity": "Aggro starter plate -- the only early heavy body that pushes Knight/Dragoon damage; offense over a few HP.",
       "baseline": {
@@ -4611,7 +4610,7 @@
       "id": 175,
       "category": "Armor",
       "vanillaName": "Chainmail",
-      "name": "Chainmail",
+      "name": "Hushward Mail",
       "tier": 3,
       "identity": "Anti-hush body -- a melee fighter who can never be Silenced; counters enemy mage packs that lock your skillset.",
       "baseline": {
@@ -4638,7 +4637,7 @@
       "id": 176,
       "category": "Armor",
       "vanillaName": "Mythril Armor",
-      "name": "Mythril Armor",
+      "name": "Stalwart Plate",
       "tier": 3,
       "identity": "Clean mid-game HP wall -- pure tonnage, no rider tax; the cheap 'just give me bulk' anchor of T3.",
       "baseline": {
@@ -4719,7 +4718,7 @@
       "id": 179,
       "category": "Armor",
       "vanillaName": "Diamond Armor",
-      "name": "Diamond Armor",
+      "name": "Adamant Plate",
       "tier": 4,
       "identity": "Riderless HP throne of the buyable line -- max bulk-per-gil one tier before the T5 wall; pick when you want raw HP and nothing else.",
       "baseline": {
@@ -4773,7 +4772,7 @@
       "id": 181,
       "category": "Armor",
       "vanillaName": "Carabineer Mail",
-      "name": "Carabineer Mail",
+      "name": "Charger's Plate",
       "tier": 5,
       "identity": "Tempo plate -- a rare +Speed on heavy armor; a tank that takes more turns. The only body that buys initiative.",
       "baseline": {
@@ -4800,7 +4799,7 @@
       "id": 182,
       "category": "Armor",
       "vanillaName": "Crystal Mail",
-      "name": "Crystal Mail",
+      "name": "Crystalward Mail",
       "tier": 5,
       "identity": "Petrify-proof crystal -- immune to Stop AND Stone; hard counter to Break/Petrify plus Time-mage lockdown; top buyable HP.",
       "baseline": {
@@ -4854,7 +4853,7 @@
       "id": 184,
       "category": "Armor",
       "vanillaName": "Mirror Mail",
-      "name": "Mirror Mail",
+      "name": "Mirrorscale Mail",
       "tier": 5,
       "identity": "The Reflect body -- bounces enemy single-target magic back at the caster; the only Reflect armor. Iconic name preserved.",
       "baseline": {
@@ -5124,7 +5123,7 @@
       "id": 194,
       "category": "Clothing",
       "vanillaName": "Jujitsu Gi",
-      "name": "Jujitsu Gi",
+      "name": "Adept's Gi",
       "tier": 4,
       "identity": "ICONIC Monk body (vanilla EB30) -- +1 PA and immune to instant-death (Death/KO). Pick for a melee unit that must not get one-shot by Death spells.",
       "baseline": {
@@ -5151,7 +5150,7 @@
       "id": 195,
       "category": "Clothing",
       "vanillaName": "Power Garb",
-      "name": "Power Garb",
+      "name": "Berserker's Garb",
       "tier": 5,
       "identity": "ICONIC +PA bruiser body (vanilla EB31) -- the clean physical-attack stat stick. Pick when maximizing Monk/Ninja/melee damage.",
       "baseline": {
@@ -5178,7 +5177,7 @@
       "id": 196,
       "category": "Clothing",
       "vanillaName": "Gaia Gear",
-      "name": "Gaia Gear",
+      "name": "Terraweave Garb",
       "tier": 5,
       "identity": "ICONIC Earth body (vanilla EB32) -- heal from Earth attacks and boost your own Earth/Geomancy, plus a little MP. Pick for Earth builds or against enemy Earth nukes.",
       "baseline": {
@@ -5232,7 +5231,7 @@
       "id": 198,
       "category": "Clothing",
       "vanillaName": "Black Garb",
-      "name": "Black Garb",
+      "name": "Nightweave Garb",
       "tier": 5,
       "identity": "Anti-Stop durability body (vanilla EB34) -- the highest-HP light body that can never be time-locked out of the fight. The near-pure HP wall.",
       "baseline": {
@@ -5367,7 +5366,7 @@
       "id": 203,
       "category": "Robe",
       "vanillaName": "Chameleon Robe",
-      "name": "Chameleon Robe",
+      "name": "Vesper Robe",
       "tier": 3,
       "identity": "ICONIC. The SURVIVAL half of the T3 fork -- absorbs Holy (heal off enemy/ally Holy) and immune to instant-KO (EB37). Pick vs Holy-slinging foes (Knights Templar, undead) or Death-spam fights. More HP/MP than Magus but gives up its MA+2: offense vs survival, neither dominates.",
       "baseline": {
@@ -5394,7 +5393,7 @@
       "id": 204,
       "category": "Robe",
       "vanillaName": "White Robe",
-      "name": "White Robe",
+      "name": "Wardlight Robe",
       "tier": 4,
       "identity": "ICONIC. The element-DEFENSE robe -- halves all three primary attack elements (EB19). The durable caster who walks into enemy Fire/Bolt/Ice crossfire. More HP than its Black twin (defense = more body) at a touch less MP.",
       "baseline": {
@@ -5421,7 +5420,7 @@
       "id": 205,
       "category": "Robe",
       "vanillaName": "Black Robe",
-      "name": "Black Robe",
+      "name": "Channeler's Robe",
       "tier": 4,
       "identity": "ICONIC. The element-OFFENSE twin of White Robe (same tier, same 3 elements, opposite intent) -- boosts the WEARER's own Fire/Lightning/Ice spells (EB18). Glass cannon: more MP than White (more spells to throw) but less HP and no resist. Pick to nuke harder, not survive.",
       "baseline": {
@@ -5448,7 +5447,7 @@
       "id": 206,
       "category": "Robe",
       "vanillaName": "Luminous Robe",
-      "name": "Luminous Robe",
+      "name": "Empyrean Robe",
       "tier": 5,
       "identity": "T5 MP throne -- highest MP short of the capstone. Its vanilla rider slot was empty; repurposed to innate Float (EB46): dodge Earth/Quake/floor-trap damage and ignore terrain. The battlefield-control caster body -- a mobility/immunity trait even Lordly lacks, so it stands on its own axis, not just availability.",
       "baseline": {
@@ -5529,7 +5528,7 @@
       "id": 209,
       "category": "Shoes",
       "vanillaName": "Spiked Boots",
-      "name": "Spiked Boots",
+      "name": "Cragstep Boots",
       "tier": 1,
       "identity": "The Jump+1 vertical-reach pick. Orthogonal to Wayfarer (vertical vs horizontal); same tier.",
       "baseline": {
@@ -5556,7 +5555,7 @@
       "id": 210,
       "category": "Shoes",
       "vanillaName": "Germinas Boots",
-      "name": "Germinas Boots",
+      "name": "Roamer's Boots",
       "tier": 4,
       "identity": "Mobility king: Move+1 AND Jump+1. Pure positioning for thieves/Ninjas; pays its mid tier vs the cheaper singles.",
       "baseline": {
@@ -5637,7 +5636,7 @@
       "id": 213,
       "category": "Shoes",
       "vanillaName": "Hermes Shoes",
-      "name": "Hermes Shoes",
+      "name": "Fleetfoot Shoes",
       "tier": 6,
       "identity": "The only tempo boot: Speed+1 = more turns, the scarcest stat in the slot. Endgame-gated; competes with the whole slot for raw tempo.",
       "baseline": {
@@ -5691,7 +5690,7 @@
       "id": 215,
       "category": "Armguard",
       "vanillaName": "Power Gauntlets",
-      "name": "Power Gauntlets",
+      "name": "Ironhand Gauntlets",
       "tier": 2,
       "identity": "Entry PA stick, bumped to PA+2 so it isn't trash next to Bracers. Cheap early physical boost for any martial job.",
       "baseline": {
@@ -5745,7 +5744,7 @@
       "id": 217,
       "category": "Armguard",
       "vanillaName": "Magepower Gloves",
-      "name": "Magepower Gloves",
+      "name": "Runecast Gloves",
       "tier": 3,
       "identity": "The caster's stat stick: the only MA+2 source in the slot. A pure mage prefers this over Genji (more MA).",
       "baseline": {
@@ -5772,7 +5771,7 @@
       "id": 218,
       "category": "Armguard",
       "vanillaName": "Bracers",
-      "name": "Bracers",
+      "name": "Titan Grips",
       "tier": 5,
       "identity": "The PA apex: PA+3, the only +3 stat in the slot. The pure-physical capstone; gives zero MA.",
       "baseline": {
@@ -5799,7 +5798,7 @@
       "id": 219,
       "category": "Ring",
       "vanillaName": "Reflect Ring",
-      "name": "Reflect Ring",
+      "name": "Mirror Ring",
       "tier": 4,
       "identity": "Permanent Reflect: bounces single-target magic back at casters; also bank-shots buffs off allies. The anti-mage staple.",
       "baseline": {
@@ -5907,7 +5906,7 @@
       "id": 223,
       "category": "Ring",
       "vanillaName": "Angel Ring",
-      "name": "Angel Ring",
+      "name": "Seraph Ring",
       "tier": 6,
       "identity": "Survivability crown (unisex): auto-Reraise + immune KO/Blind. The male answer to Chantage; the 'won't stay dead' ring.",
       "baseline": {
@@ -5934,7 +5933,7 @@
       "id": 224,
       "category": "Armlet",
       "vanillaName": "Diamond Bracelet",
-      "name": "Diamond Bracelet",
+      "name": "Adamant Bangle",
       "tier": 4,
       "identity": "The only stat armlet: +1 PA AND +1 MA plus immune Slow. Hybrid stat + tempo with no Undead drawback; a safe middle vs the Cursed Ring gamble.",
       "baseline": {
@@ -5961,7 +5960,7 @@
       "id": 225,
       "category": "Armlet",
       "vanillaName": "Jade Armlet",
-      "name": "Jade Armlet",
+      "name": "Stoneward Armlet",
       "tier": 4,
       "identity": "Anti-petrify: immune Stop (turn-locked) and Stone (instant loss). The 'you literally can't act' insurance vs Time mages.",
       "baseline": {
@@ -5988,7 +5987,7 @@
       "id": 226,
       "category": "Armlet",
       "vanillaName": "Japa Mala",
-      "name": "Japa Mala",
+      "name": "Sanctus Beads",
       "tier": 5,
       "identity": "The 108-gems armlet: immune the four 'corruption' statuses AND strong to all 8 elements (every element heals you) - which amplifies elemental damage taken too. Bizarre element-soak grail, dominates no pure-defense armlet.",
       "baseline": {
@@ -6015,7 +6014,7 @@
       "id": 227,
       "category": "Armlet",
       "vanillaName": "Nu Khai Armband",
-      "name": "Nu Khai Armband",
+      "name": "Clearmind Armlet",
       "tier": 4,
       "identity": "Anti-mind-control: never Charmed or Confused (no turning on your team) plus halve Dark. The only armlet mixing immunity with element resist.",
       "baseline": {
@@ -6042,7 +6041,7 @@
       "id": 228,
       "category": "Armlet",
       "vanillaName": "Guardian Bracelet",
-      "name": "Guardian Bracelet",
+      "name": "Unbound Armlet",
       "tier": 3,
       "identity": "Anti-lockdown: never Disabled (can't act) or Immobilized (can't move). The budget 'stay in the fight' armlet.",
       "baseline": {
@@ -6069,7 +6068,7 @@
       "id": 229,
       "category": "Cloak",
       "vanillaName": "Shoulder Cape",
-      "name": "Shoulder Cape",
+      "name": "Drifter's Cape",
       "tier": 1,
       "identity": "The starter balanced cloak (10/10). Earliest evade in the whole slot; equal phys/mag, asks nothing. Only T1 evade.",
       "baseline": {
@@ -6096,7 +6095,7 @@
       "id": 230,
       "category": "Cloak",
       "vanillaName": "Leather Cloak",
-      "name": "Leather Cloak",
+      "name": "Duelist's Cape",
       "tier": 2,
       "identity": "The anti-physical cloak (18 phys / 6 mag). Trades mag-dodge for cheap strong phys evade; the front-line dodge vs melee maps.",
       "baseline": {
@@ -6123,7 +6122,7 @@
       "id": 231,
       "category": "Cloak",
       "vanillaName": "Mage's Cloak",
-      "name": "Mage's Cloak",
+      "name": "Runecloak",
       "tier": 3,
       "identity": "The caster cloak: mag-leaning evade (12/18) PLUS MA+1. The only cloak with a stat rider; dodge spells AND hit harder. Lower phys is the tradeoff.",
       "baseline": {
@@ -6150,7 +6149,7 @@
       "id": 232,
       "category": "Cloak",
       "vanillaName": "Elven Cloak",
-      "name": "Elven Cloak",
+      "name": "Sylvan Shroud",
       "tier": 4,
       "identity": "The phys-leaning mid cloak (25/15). The all-rounder dodge tank's pick; forks against Vampire on which axis you need.",
       "baseline": {
@@ -6177,7 +6176,7 @@
       "id": 233,
       "category": "Cloak",
       "vanillaName": "Vampire Cape",
-      "name": "Vampire Cape",
+      "name": "Nocturne Cape",
       "tier": 4,
       "identity": "The anti-magic cloak (20 phys / 25 mag) PLUS innate Regen. Mirror of Elven; self-sustaining dodge vs caster-heavy maps. Does not dominate Elven (forks on axis + Regen vs raw phys).",
       "baseline": {
@@ -6204,7 +6203,7 @@
       "id": 234,
       "category": "Cloak",
       "vanillaName": "Featherweave Cloak",
-      "name": "Featherweave Cloak",
+      "name": "Zephyr Cloak",
       "tier": 5,
       "identity": "The phys-evade apex (35/20). Dedicated melee-dodge capstone; trails the mag-cloaks on magic evade, no rider - raw phys-avoidance is the sell.",
       "baseline": {
@@ -6366,7 +6365,7 @@
       "id": 260,
       "category": "Ring",
       "vanillaName": "Ring of Aptitude",
-      "name": "Ring of Aptitude",
+      "name": "Scholar's Ring",
       "tier": 2,
       "identity": "Doubles JP earned. Zero combat value - a pure progression item; swap on while grinding, off for fights. Owns its lane outright.",
       "baseline": {
