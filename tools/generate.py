@@ -42,6 +42,12 @@ else:
 EB_FIELDS = ["PABonus", "MABonus", "SpeedBonus", "MoveBonus", "JumpBonus", "InnateStatus", "ImmuneStatus",
              "StartingStatus", "AbsorbElements", "NullifyElements", "HalveElements", "WeakElements",
              "StrongElements", "BoostJP"]
+# Defaults for unset fields so a custom row fully REPLACES the vanilla slot (no sparse-inherited leftovers,
+# e.g. row 56 silently keeping the vanilla Cursed Ring's Undead/Traitor statuses).
+EB_DEFAULTS = {"PABonus": 0, "MABonus": 0, "SpeedBonus": 0, "MoveBonus": 0, "JumpBonus": 0,
+               "InnateStatus": "None", "ImmuneStatus": "None", "StartingStatus": "None",
+               "AbsorbElements": "None", "NullifyElements": "None", "HalveElements": "None",
+               "WeakElements": "None", "StrongElements": "None", "BoostJP": "false"}
 
 
 def hdr(table):
@@ -130,7 +136,7 @@ def itemdata_entry(it):
 
 
 def equipbonus_entry(eid, fields):
-    body = "".join(f"      <{f}>{fields[f]}</{f}>\n" for f in EB_FIELDS if f in fields)
+    body = "".join(f"      <{f}>{fields.get(f, EB_DEFAULTS[f])}</{f}>\n" for f in EB_FIELDS)
     return f"    <ItemEquipBonus>\n      <Id>{eid}</Id>\n{body}    </ItemEquipBonus>\n"
 
 

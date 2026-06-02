@@ -128,6 +128,9 @@ def mechanics(it):
         af = s.get("attackFlags") or ""
         if "ForcedTwoHands" in af and "Arc" not in af:  # melee two-hander; bows (Arc) are obviously 2H, skip
             parts.append("Held in two hands only (no shield).")
+        rt = rider_text(s.get("rider"))  # weapons can carry an EquipBonus rider too (Arcanum MA+2, Dragon Rod Reraise)
+        if rt:
+            parts.append(rt)
     else:
         if it["category"] in ACC_CATS:
             pe, me = s.get("physEv", 0) or 0, s.get("magEv", 0) or 0
@@ -199,7 +202,9 @@ def main():
         if custom:
             desc = custom
         else:
-            fl, mech = flavor(it), mechanics(it)
+            # flavorOverride lets an item keep a hand-written flavor line while STILL auto-appending its
+            # mechanics (so the stats stay in sync if we retune them); plain flavor() is the fallback.
+            fl, mech = (it.get("flavorOverride") or flavor(it)), mechanics(it)
             desc = fl + ("\n" + mech if mech else "")
         name = it["name"]
         if dry:
