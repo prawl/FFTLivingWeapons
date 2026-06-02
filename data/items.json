@@ -12,6 +12,19 @@
     "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible (only 8 free ItemEquipBonusData slots: 74-79; 77 of 85 used). Each item's proposed.equipBonusId points at a vanilla id OR a free-slot id defined in _equipBonus below. The iconic element shields already exist: Ice=15, Flame=16, Kaiser-boost=18, Venetian-halve=19; stats: MA+1=10/12, MA+2=1/9, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4."
   },
   "_equipBonus": {
+    "3": {
+      "MABonus": 2,
+      "StrongElements": "Dark"
+    },
+    "6": {
+      "InnateStatus": "Faith"
+    },
+    "7": {
+      "StrongElements": "Holy"
+    },
+    "83": {
+      "InnateStatus": "Atheist"
+    },
     "74": {
       "HalveElements": "Water"
     },
@@ -44,6 +57,13 @@
     },
     "40": {
       "StartingStatus": "Reraise"
+    },
+    "3": {
+      "MABonus": 2,
+      "StrongElements": "Dark"
+    },
+    "6": {
+      "InnateStatus": "Faith"
     }
   },
   "items": [
@@ -609,9 +629,10 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "attackFlags": "Striking, TwoSwords, TwoHands"
+        "attackFlags": "Striking, TwoSwords, TwoHands",
+        "equipBonusId": 83
       },
-      "desc": "A duelist's sword built to turn blows aside and answer them."
+      "desc": "A duelist's sword built to turn blows aside and answer them.\nAlways: Atheist -- enemy magick barely scratches the wielder (and their own is just as hollow)."
     },
     {
       "id": 22,
@@ -1399,9 +1420,10 @@
       "id": 50,
       "category": "KnightSword",
       "vanillaName": "Slasher",
-      "name": "Executioner",
+      "name": "Sunderer",
       "tier": 5,
-      "identity": "Executioner knight sword: pins the condemned where they stand, chance to Immobilize on hit. (was Headsman's Axe)",
+      "identity": "Sunder bruiser -- normal KnightSword damage PLUS every hit shatters a random piece of the foe's gear (formula 46). The break is the whole point, so it pays the LOWEST WP in the category (13) = a sidegrade, not an upgrade; whiffs on the unequipped and on monsters.",
+      "desc": "A cruel blade that breaks what it cannot kill.\nDeals normal damage and shatters a piece of the foe's gear; finds nothing on the unequipped.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -1410,12 +1432,12 @@
         "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 17,
-        "evade": 18,
+        "wp": 13,
+        "evade": 10,
         "element": "None",
-        "onHit": "May inflict Immobilize",
-        "onHitAbilityId": 14,
-        "formula": 1,
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 46,
         "categoryOverride": "KnightSword"
       },
       "iconTint": [
@@ -1423,15 +1445,17 @@
         0.1,
         0.62
       ],
-      "iconSource": 34
+      "iconSource": 34,
+      "desc": "A cruel blade that breaks what it cannot kill.\nDeals normal damage and shatters a piece of the foe's gear; finds nothing on the unequipped."
     },
     {
       "id": 51,
       "category": "Rod",
       "vanillaName": "Rod",
-      "name": "Apprentice Rod",
+      "name": "Wellspring Rod",
       "tier": 1,
-      "identity": "Only tier-1 rod -- cheapest, earliest, max rod evade. Earliest unlock is its exclusive niche.",
+      "identity": "Never-run-dry battle-mage rod. Active Attack (formula 47 = Absorb-MP) steals the struck foe's MP into the wielder's pool, MP-free, every turn -- a mage refuels its own spellbook by poking a body. Earliest unlock + only MP-siphon rod.",
+      "desc": "A humble apprentice's rod whose every tap draws an enemy's magic into your own reserves. Absorbs MP dealt.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1440,8 +1464,13 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 3,
-        "evade": 20
+        "wp": 4,
+        "evade": 18,
+        "element": "None",
+        "onHit": "Absorb MP",
+        "onHitAbilityId": 0,
+        "formula": 47,
+        "range": 1
       },
       "iconTint": [
         0.0,
@@ -1455,7 +1484,8 @@
       "vanillaName": "Thunder Rod",
       "name": "Spark Rod",
       "tier": 2,
-      "identity": "Only Lightning rod -- anti-armor/mech matchup; sidegrade trio w/ Ember/Frost, element is the sole difference.",
+      "identity": "Battle-mage nuke rod -- the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-armor/mech. WP trimmed to 6 so the free bolt never out-nukes a real MP spell.",
+      "desc": "It cracks with caged thunder. Its attack strikes as Thunder at no MP cost; the magic damage scales with the wielder's Faith.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1464,7 +1494,7 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 8,
+        "wp": 6,
         "evade": 20,
         "element": "Lightning",
         "onHit": "Attack casts Thunder (Magick Attack)",
@@ -1484,7 +1514,8 @@
       "vanillaName": "Flame Rod",
       "name": "Ember Rod",
       "tier": 2,
-      "identity": "Only Fire rod -- anti-ice-creature / hit Fire weakness. Equal-WP sidegrade, picked for element coverage.",
+      "identity": "Atheist fire battle-mage rod -- f4 Fire nuke (MP-free, Faith-scaled) PLUS InnateStatus:Atheist = the wielder is magic-IMMUNE. Own non-fire magick goes dead, but the plan IS the fire-breath. Lower evade (12) pays for the magic-immunity vs the clean Spark/Frost nuke-rods.",
+      "desc": "Embers cling to its core, and hostile magick guts itself against the heat. Its Attack strikes as Fire at no MP cost (Faith-scaled). Grants Atheist -- magick barely touches the wielder.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1493,13 +1524,14 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 8,
-        "evade": 20,
+        "wp": 6,
+        "evade": 12,
         "element": "Fire",
         "onHit": "Attack casts Fire (Magick Attack)",
         "onHitAbilityId": 0,
         "formula": 4,
-        "range": 1
+        "range": 1,
+        "equipBonusId": 83
       },
       "iconTint": [
         0.05,
@@ -1513,7 +1545,8 @@
       "vanillaName": "Ice Rod",
       "name": "Frost Rod",
       "tier": 2,
-      "identity": "Only Ice rod -- anti-fire-creature / anti-dragon. Completes the early elemental trio.",
+      "identity": "Battle-mage nuke rod -- the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental trio; WP trimmed to 6.",
+      "desc": "A chill blade that bites like deep winter. Its attack strikes as Blizzard at no MP cost; the magic damage scales with the wielder's Faith.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1522,11 +1555,12 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 8,
+        "wp": 6,
         "evade": 20,
         "element": "Ice",
         "formula": 4,
         "onHitAbilityId": 0,
+        "range": 1,
         "onHit": "Attack casts Blizzard (Magick Attack)"
       },
       "iconTint": [
@@ -1539,9 +1573,10 @@
       "id": 55,
       "category": "Rod",
       "vanillaName": "Poison Rod",
-      "name": "Venom Rod",
+      "name": "Hushward Rod",
       "tier": 2,
-      "identity": "Cheapest Poison source -- colorless DoT to grind HP-fat/fleeing targets. Trades 5 rod evade for the proc.",
+      "identity": "Silence-immune mage rod -- ImmuneStatus: Silence means the wielder's own spellbook can never be shut off. Build-defining vs caster-killer comps (Mage Masher / Ame-no-Murakumo): casts on while everyone else goes quiet.",
+      "desc": "A warded rod that keeps a caster's voice when the battlefield falls silent. Wards against Silence.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1552,8 +1587,13 @@
       "proposed": {
         "wp": 4,
         "evade": 15,
-        "onHitAbilityId": 22,
-        "onHit": "May inflict Poison"
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1,
+        "rider": "immune Silence",
+        "equipBonusId": 26
       },
       "iconTint": [
         0.28,
@@ -1567,7 +1607,8 @@
       "vanillaName": "Wizard's Rod",
       "name": "Umbral Rod",
       "tier": 3,
-      "identity": "Only Dark caster weapon AND the MA+2 EquipBonus rider -- black-mage power stick; anti-Holy-creature niche.",
+      "identity": "Dark-specialist power stick -- MA+2 raw spell power AND StrongElements: Dark (+25% to Dark spells), plus Dark element on the Attack for anti-Holy-creature poke. Only Dark caster weapon and only StrongElements rod.",
+      "desc": "Shadow clings to its edge. Deals Dark-elemental damage. Magick Attack +2. Strengthens Dark damage.",
       "baseline": {
         "wp": 4,
         "evade": 20,
@@ -1579,8 +1620,12 @@
         "wp": 4,
         "evade": 20,
         "element": "Dark",
-        "rider": "MA+2",
-        "equipBonusId": 1
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1,
+        "rider": "MA+2, boost Dark",
+        "equipBonusId": 3
       },
       "iconTint": [
         0.78,
@@ -1625,7 +1670,8 @@
       "vanillaName": "Rod of Faith",
       "name": "Rod of Faith",
       "tier": 5,
-      "identity": "Only Holy rod -- smite undead + self-Faith glass-cannon rider. Top rod, element is the draw.",
+      "identity": "Faith-zealot rod -- InnateStatus: Faith pins the wielder at max Faith, so every spell cast (and cast AT them) lands at peak potency: a glass-cannon nuker. Holy element on the Attack smites undead. Only innate-Faith weapon.",
+      "desc": "Blessed steel that burns the unclean. Deals Holy-elemental damage. Grants Faith.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -1636,7 +1682,13 @@
       "proposed": {
         "wp": 5,
         "evade": 15,
-        "element": "Holy"
+        "element": "Holy",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1,
+        "rider": "innate Faith",
+        "equipBonusId": 6
       },
       "iconTint": [
         0.13,
@@ -1650,7 +1702,8 @@
       "vanillaName": "Oak Staff",
       "name": "Birchwood Staff",
       "tier": 1,
-      "identity": "Only tier-1 staff -- bare MA-scaling starter. Not a worse Apprentice Rod: MA*WP scaling is its incomparable good.",
+      "identity": "T1 starter -- the only tier-1 staff, with the line's highest evade (20). Earliest unlock plus the evade crown is its niche; intentionally bare so nothing misfires while you learn to cast (mirrors the Apprentice Rod).",
+      "desc": "A plain rod of green birch, the first staff any apprentice is handed.\nScales its swing with Magick Attack.",
       "baseline": {
         "wp": 3,
         "evade": 15,
@@ -1660,7 +1713,7 @@
       },
       "proposed": {
         "wp": 3,
-        "evade": 15,
+        "evade": 20,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
@@ -1677,9 +1730,10 @@
       "id": 60,
       "category": "Staff",
       "vanillaName": "White Staff",
-      "name": "Lullaby Staff",
+      "name": "Warlock's Staff",
       "tier": 2,
-      "identity": "Only Sleep source -- white-mage pacifier, removes a target non-lethally. Earliest status staff.",
+      "identity": "WARLOCK staff -- innate Reflect turns enemy single-target spells back on their caster, the spell-eater build's anchor. The cost is real (your own single-target cures bounce off you too), which keeps it a build choice, not a free win. Earliest rider staff (T2).",
+      "desc": "A staff bound with a warlock's hex; spells bend away from its bearer.\nAlways: Reflect -- bounces enemy single-target magick back at the caster (and rebounds your own single-target cures, so heal with care).",
       "baseline": {
         "wp": 3,
         "evade": 15,
@@ -1694,7 +1748,8 @@
         "onHit": "May inflict Sleep",
         "onHitAbilityId": 12,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "equipBonusId": 29
       },
       "iconTint": [
         0.0,
@@ -1708,7 +1763,8 @@
       "vanillaName": "Healing Staff",
       "name": "Mending Staff",
       "tier": 3,
-      "identity": "Only heal-on-attack weapon (Formula 7) -- attack allies to heal, attack Undead to nuke. WP held low so the heal identity stays load-bearing.",
+      "identity": "HEALER staff -- the only heal-on-attack weapon (formula 7): spend the free Attack command to top up an ally at melee range, or smite Undead with that same heal. WP kept low (4) so the heal identity stays the draw, not raw damage.",
+      "desc": "A white-lacquered staff whose touch knits flesh and sears the dead.\nThe Attack command HEALS the struck ally's HP (Physical Attack x Weapon Power), and burns Undead for the same.",
       "baseline": {
         "wp": 4,
         "evade": 15,
@@ -1735,9 +1791,10 @@
       "id": 62,
       "category": "Staff",
       "vanillaName": "Serpent Staff",
-      "name": "Viper Staff",
+      "name": "Warding Staff",
       "tier": 3,
-      "identity": "Only Immobilize source -- the serpent's coil pins runners in place. MA-scaling status pick; pays WP5 with ev12.",
+      "identity": "SILENCE-IMMUNE staff -- the mage's answer to enemy Hushblades and Silence procs; your spellbook can't be shut off. Build-defining for a glass-cannon caster in a Silence-heavy fight. f1 baseline but the immunity rider is the whole point, so it's never 'plain f1'.",
+      "desc": "A consecrated staff that keeps a caster's voice their own.\nAlways: immune to Silence -- the wielder's spellbook can never be locked.",
       "baseline": {
         "wp": 5,
         "evade": 15,
@@ -1746,13 +1803,14 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 5,
-        "evade": 12,
+        "wp": 4,
+        "evade": 15,
         "element": "None",
         "onHit": "May inflict Immobilize",
         "onHitAbilityId": 14,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "equipBonusId": 26
       },
       "iconTint": [
         0.3,
@@ -1764,9 +1822,10 @@
       "id": 63,
       "category": "Staff",
       "vanillaName": "Mage's Staff",
-      "name": "Conduit Staff",
+      "name": "Blazing Staff",
       "tier": 3,
-      "identity": "Mid MA+1 EquipBonus staff -- clean caster-power pick before endgame, full 15 evade. MA+1 != MA+2.",
+      "identity": "BLAZING active-attack staff (user request) -- formula 4 turns the free Attack command into an MP-free Faith-scaled Fire bolt (melee), so a battle-mage can chip every turn without burning MP. Move +1 ('feet hot and moving') gives it map control no other staff has. WP held to 6 so the free Fire bolt never out-nukes a real MP spell.",
+      "desc": "Its head smolders with caged flame -- the heat gets your feet hot and moving.\nThe Attack strikes as Fire at no MP cost, scaling with the wielder's Faith. Move +1.",
       "baseline": {
         "wp": 4,
         "evade": 15,
@@ -1775,15 +1834,15 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 5,
-        "evade": 15,
-        "element": "None",
+        "wp": 6,
+        "evade": 12,
+        "element": "Fire",
         "onHit": "None",
         "onHitAbilityId": 0,
-        "formula": 1,
+        "formula": 4,
         "range": 1,
         "rider": "MA+1",
-        "equipBonusId": 10
+        "equipBonusId": 42
       },
       "iconTint": [
         0.7,
@@ -1795,9 +1854,10 @@
       "id": 64,
       "category": "Staff",
       "vanillaName": "Golden Staff",
-      "name": "Smiter's Staff",
+      "name": "Sanctus Staff",
       "tier": 4,
-      "identity": "Pure-WP no-rider staff -- the 'biggest MA*WP swing now' pick. Pays 3 evade vs the MA staves and carries no proc.",
+      "identity": "STRONGELEMENTS specialist staff -- the +25%-Holy-spell line: a white/holy mage's nuke amplifier (boosts Holy, Holy Explosion, etc.), plus Holy element on the swing for anti-Undead matchups. The specialist whose niche is spell amplification, not stats.",
+      "desc": "A consecrated stave that magnifies sacred light.\nDeals Holy-elemental damage and strengthens the wielder's Holy spells by 25%.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -1806,13 +1866,14 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 6,
-        "evade": 12,
-        "element": "None",
+        "wp": 5,
+        "evade": 15,
+        "element": "Holy",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "equipBonusId": 7
       },
       "iconTint": [
         0.13,
@@ -1826,7 +1887,8 @@
       "vanillaName": "Zeus Mace",
       "name": "Zeus Mace",
       "tier": 5,
-      "identity": "Hybrid gish staff -- only Lightning staff + MA+1 rider, full evade. Treasure-gated; element is a good the capstone lacks.",
+      "identity": "Hybrid gish staff (iconic name kept) -- the only Lightning staff PLUS an MA+1 rider: element coverage for anti-armor/mech fights stacked with a modest spell-power bump. Treasure-gated (T5); its Lightning element is a good the MA+2 capstone lacks.",
+      "desc": "A thunder-charged mace, prize of the storm.\nDeals Lightning-elemental damage. Magick Attack +1.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -1857,7 +1919,8 @@
       "vanillaName": "Staff of the Magi",
       "name": "Staff of the Magi",
       "tier": 6,
-      "identity": "Endgame capstone -- highest WP, top MA+2 rider, AND only Doom source. T6 gate earns the WP gap; dominates nothing (no element vs Zeus, later tier than Mage's).",
+      "identity": "MA-BOOST 'bigger-heals' capstone -- top MA+2 rider drives both offense and, because Cure spells scale off Magick Attack, the strongest heals in the line. Highest staff WP (7) and the endgame (T6) gate earn the rider; the pure spell-power pick. (Dropped the old Stop proc so its identity is cleanly MA, not a gimmick.)",
+      "desc": "The archmage's masterwork, humming with raw arcane power.\nMagick Attack +2 -- bigger nukes and, since Cure-line heals scale with Magick Attack, bigger heals too.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -1949,7 +2012,8 @@
       "vanillaName": "Morning Star",
       "name": "Climhazzard",
       "tier": 4,
-      "identity": "Execute blade -- damage = the TARGET's missing HP (formula 69): near-nothing vs a fresh foe, lethal vs a wounded one. The assassin's mercy stroke; soften with anything, then finish. Ignores WP entirely, so the budget goes to evade. Mid-tier, like its missing-HP cousins Wrathblade/Muramasa. (was Snarelash)",
+      "identity": "T4 agile dual-wield executioner -- the ninja's mercy stroke. Damage = the TARGET's missing HP (formula 69), useless on a fresh foe, lethal on a wounded one. Dual-wieldable = two missing-HP strikes per turn; WP barely matters so the budget goes to evade.",
+      "desc": "A light killing stroke that bites deepest into the already-bloodied -- glances off the hale, guts the dying.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -1958,7 +2022,7 @@
         "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 3,
+        "wp": 5,
         "evade": 20,
         "element": "None",
         "onHit": "None",
@@ -2588,7 +2652,7 @@
         "range": 7
       },
       "proposed": {
-        "wp": 15,
+        "wp": 16,
         "evade": 0,
         "element": "Holy",
         "onHit": "May disable",
@@ -2923,7 +2987,8 @@
       "vanillaName": "Obelisk",
       "name": "Tombspire",
       "tier": 4,
-      "identity": "T4 control spear -- only Earth spear + on-hit Immobilize (14). Pins a fleeing target a tile away, then the Dragoon Jumps. The zoning tool; carries two unique riders.",
+      "identity": "T4 reach executioner -- the Dragoon-Jump finisher. Range-2 + on-hit Immobilize pins a wounded target a tile away, then the Lancer Jumps the killing blow. Damage = the TARGET's missing HP (formula 69), a softener's mercy stroke, not an opener.",
+      "desc": "A reaching spear whose strike lands harder the more wounded its mark -- a feather-tap on the healthy, a death-knell on the bleeding.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -2937,7 +3002,7 @@
         "element": "Earth",
         "onHit": "May inflict Immobilize",
         "onHitAbilityId": 14,
-        "formula": 1,
+        "formula": 69,
         "range": 2
       },
       "iconTint": [

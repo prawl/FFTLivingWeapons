@@ -470,20 +470,20 @@
       <OptionsAbilityId>53</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>50</Id> <!-- Executioner (was Slasher) -->
+      <Id>50</Id> <!-- Sunderer (was Slasher) -->
       <Range>1</Range>
-      <Formula>1</Formula>
-      <Power>17</Power>
-      <Evasion>18</Evasion>
+      <Formula>46</Formula>
+      <Power>13</Power>
+      <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>14</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>51</Id> <!-- Apprentice Rod (was Rod) -->
+      <Id>51</Id> <!-- Wellspring Rod (was Rod) -->
       <Range>1</Range>
-      <Formula>1</Formula>
-      <Power>3</Power>
-      <Evasion>20</Evasion>
+      <Formula>47</Formula>
+      <Power>4</Power>
+      <Evasion>18</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
@@ -491,7 +491,7 @@
       <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
       <Range>1</Range>
       <Formula>4</Formula>
-      <Power>8</Power>
+      <Power>6</Power>
       <Evasion>20</Evasion>
       <Elements>Lightning</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -500,8 +500,8 @@
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
       <Range>1</Range>
       <Formula>4</Formula>
-      <Power>8</Power>
-      <Evasion>20</Evasion>
+      <Power>6</Power>
+      <Evasion>12</Evasion>
       <Elements>Fire</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
@@ -509,19 +509,19 @@
       <Id>54</Id> <!-- Frost Rod (was Ice Rod) -->
       <Range>1</Range>
       <Formula>4</Formula>
-      <Power>8</Power>
+      <Power>6</Power>
       <Evasion>20</Evasion>
       <Elements>Ice</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>55</Id> <!-- Venom Rod (was Poison Rod) -->
+      <Id>55</Id> <!-- Hushward Rod (was Poison Rod) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>4</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>22</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>56</Id> <!-- Umbral Rod (was Wizard's Rod) -->
@@ -555,12 +555,12 @@
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>3</Power>
-      <Evasion>15</Evasion>
+      <Evasion>20</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>60</Id> <!-- Lullaby Staff (was White Staff) -->
+      <Id>60</Id> <!-- Warlock's Staff (was White Staff) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>3</Power>
@@ -578,30 +578,30 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>62</Id> <!-- Viper Staff (was Serpent Staff) -->
+      <Id>62</Id> <!-- Warding Staff (was Serpent Staff) -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>5</Power>
-      <Evasion>12</Evasion>
+      <Power>4</Power>
+      <Evasion>15</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>14</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>63</Id> <!-- Conduit Staff (was Mage's Staff) -->
+      <Id>63</Id> <!-- Blazing Staff (was Mage's Staff) -->
+      <Range>1</Range>
+      <Formula>4</Formula>
+      <Power>6</Power>
+      <Evasion>12</Evasion>
+      <Elements>Fire</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>64</Id> <!-- Sanctus Staff (was Golden Staff) -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>5</Power>
       <Evasion>15</Evasion>
-      <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
-    </ItemWeapon>
-    <ItemWeapon>
-      <Id>64</Id> <!-- Smiter's Staff (was Golden Staff) -->
-      <Range>1</Range>
-      <Formula>1</Formula>
-      <Power>6</Power>
-      <Evasion>12</Evasion>
-      <Elements>None</Elements>
+      <Elements>Holy</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
@@ -644,7 +644,7 @@
       <Id>69</Id> <!-- Climhazzard (was Morning Star) -->
       <Range>1</Range>
       <Formula>69</Formula>
-      <Power>3</Power>
+      <Power>5</Power>
       <Evasion>20</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -857,7 +857,7 @@
       <Range>9</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
-      <Power>15</Power>
+      <Power>16</Power>
       <Evasion>0</Evasion>
       <Elements>Holy</Elements>
       <OptionsAbilityId>13</OptionsAbilityId>
@@ -964,7 +964,7 @@
     <ItemWeapon>
       <Id>103</Id> <!-- Tombspire (was Obelisk) -->
       <Range>2</Range>
-      <Formula>1</Formula>
+      <Formula>69</Formula>
       <Power>11</Power>
       <Evasion>10</Evasion>
       <Elements>Earth</Elements>
