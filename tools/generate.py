@@ -22,7 +22,8 @@ MOD_TABLES = ROOT / "mod" / "FFTIVC" / "tables" / "enhanced"
 OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "out"
 
 WEAPON_CATEGORIES = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff",
-                     "Flail", "Gun", "Crossbow", "Bow", "Instrument", "Book", "Polearm", "Pole", "Bag", "Cloth"}
+                     "Flail", "Gun", "Crossbow", "Bow", "Instrument", "Book", "Polearm", "Pole", "Bag", "Cloth",
+                     "Throwing", "Bomb"}  # Throwing/Bomb = the ninja's Throw-command projectiles (damage = Speed x WP)
 SHIELD_CATEGORIES = {"Shield"}
 SHIELD_DATA_BASE = 128  # shield item id 128 -> ItemShieldData row 0
 ARMOR_CATEGORIES = {"Helmet", "Hat", "HairAdornment", "Armor", "Clothing", "Robe"}      # -> ItemArmorData (HP/MP)

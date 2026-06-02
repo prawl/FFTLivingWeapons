@@ -104,10 +104,10 @@
       <OptionsAbilityId>12</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>11</Id> <!-- Shadowfang (was Ninja Blade) -->
+      <Id>11</Id> <!-- Swiftfang (was Ninja Blade) -->
       <Range>1</Range>
-      <Formula>1</Formula>
-      <Power>8</Power>
+      <Formula>99</Formula>
+      <Power>4</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -641,13 +641,13 @@
       <OptionsAbilityId>22</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>69</Id> <!-- Snarefang (was Morning Star) -->
+      <Id>69</Id> <!-- Climhazzard (was Morning Star) -->
       <Range>1</Range>
-      <Formula>1</Formula>
-      <Power>11</Power>
-      <Evasion>15</Evasion>
+      <Formula>69</Formula>
+      <Power>3</Power>
+      <Evasion>20</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>14</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>70</Id> <!-- Sasori (was Scorpion Tail) -->
@@ -1132,6 +1132,66 @@
       <Evasion>50</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>42</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>122</Id> <!-- Shuriken -->
+      <Range>0</Range>
+      <AttackFlags>Throwable, Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Power>4</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>123</Id> <!-- Fuma Shuriken -->
+      <Range>0</Range>
+      <AttackFlags>Throwable, Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Power>6</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>124</Id> <!-- Yagyu Darkrood -->
+      <Range>0</Range>
+      <AttackFlags>Throwable, Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Power>8</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>125</Id> <!-- Flameburst Bomb -->
+      <Range>0</Range>
+      <AttackFlags>Throwable, Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Power>6</Power>
+      <Evasion>0</Evasion>
+      <Elements>Fire</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>126</Id> <!-- Snowmelt Bomb -->
+      <Range>0</Range>
+      <AttackFlags>Throwable, Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Power>6</Power>
+      <Evasion>0</Evasion>
+      <Elements>Water</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>127</Id> <!-- Spark Bomb -->
+      <Range>0</Range>
+      <AttackFlags>Throwable, Direct</AttackFlags>
+      <Formula>1</Formula>
+      <Power>6</Power>
+      <Evasion>0</Evasion>
+      <Elements>Lightning</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
   </Entries>
 </ItemWeaponTable>

@@ -108,6 +108,8 @@ def mechanics(it):
         p = s.get("onHitAbilityId", 0) or 0
         if f == 67:  # CasMaxHP - CasCurHP: damage = the wielder's missing HP, ignores WP
             return "Deals damage equal to the wielder's missing HP. Harmless at full health, devastating near death."
+        if f == 69:  # TarMaxHP - TarCurHP: damage = the TARGET's missing HP, ignores WP -- an execute
+            return "Deals damage equal to the TARGET's missing HP -- near-nothing against a fresh foe, lethal against a wounded one."
         if f == 4 and el not in ("None", None, ""):  # magic gun: attack IS the elemental spell; scales off FAITH (not MA), ignores armor
             spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
             parts.append(f"Its attack strikes as {spell} at no MP cost; the magic damage scales with the wielder's Faith.")
@@ -226,9 +228,11 @@ def main():
             continue
         con.execute('UPDATE "Item-en" SET Name=?, NameSingular=?, NamePlural=?, Name2=?, Description=? WHERE Key=?',
                     (name, name.lower(), plural(name), name, desc, it["id"]))
-        cat_ov = it["proposed"].get("categoryOverride")  # fix the equip-card type label for repurposed weapons
-        if cat_ov in UICAT:
-            con.execute('UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?', (UICAT[cat_ov], it["id"]))
+        # card type-label = the override category if repurposed, else the native category. Setting it for EVERY
+        # weapon also auto-corrects vanilla mislabels (e.g. Birchwood Staff shipped as a KnightSword).
+        eff_cat = it["proposed"].get("categoryOverride") or it.get("category")
+        if eff_cat in UICAT:
+            con.execute('UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?', (UICAT[eff_cat], it["id"]))
         n += 1
     if dry:
         con.close(); return

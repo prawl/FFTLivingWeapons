@@ -25,19 +25,36 @@
       <ItemCategory>KnightSword</ItemCategory>
     </Item>
     <Item>
+      <Id>56</Id> <!-- Umbral Rod (was Wizard's Rod) -->
+      <EquipBonusId>1</EquipBonusId>
+    </Item>
+    <Item>
       <Id>57</Id> <!-- Dragon Rod -->
       <EquipBonusId>40</EquipBonusId>
     </Item>
     <Item>
+      <Id>63</Id> <!-- Conduit Staff (was Mage's Staff) -->
+      <EquipBonusId>10</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>65</Id> <!-- Zeus Mace -->
+      <EquipBonusId>10</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>66</Id> <!-- Staff of the Magi -->
+      <EquipBonusId>1</EquipBonusId>
+    </Item>
+    <Item>
       <Id>67</Id> <!-- Warbrand (was Iron Flail) -->
       <ItemCategory>Sword</ItemCategory>
+      <ShopAvailability>Chapter3_Start</ShopAvailability>
     </Item>
     <Item>
       <Id>68</Id> <!-- Bloodlash (was Flail of Flame) -->
       <ItemCategory>Knife</ItemCategory>
     </Item>
     <Item>
-      <Id>69</Id> <!-- Snarefang (was Morning Star) -->
+      <Id>69</Id> <!-- Climhazzard (was Morning Star) -->
       <ItemCategory>NinjaBlade</ItemCategory>
     </Item>
     <Item>

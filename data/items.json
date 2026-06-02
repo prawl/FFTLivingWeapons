@@ -307,9 +307,9 @@
       "id": 11,
       "category": "NinjaBlade",
       "vanillaName": "Ninja Blade",
-      "name": "Shadowfang",
+      "name": "Swiftfang",
       "tier": 2,
-      "identity": "Earliest ninja blade -- budget dodge main-hand: line-low WP, line-high 15% evade, only blade this early. Availability + evade is the pick.",
+      "identity": "Speed blade -- damage = Speed x WP (formula 99): starts tame and GROWS as you stack Speed (gear + Shout), and dual-wield doubles it. The 'faster = deadlier' ninja weapon -- weak early, a blender once you commit to Speed. The melee anchor of the Speed-ninja archetype.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -318,19 +318,20 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 8,
+        "wp": 4,
         "evade": 15,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
-        "formula": 1,
+        "formula": 99,
         "range": 1
       },
       "iconTint": [
         0.62,
         0.25,
         0.55
-      ]
+      ],
+      "flavorOverride": "A blade so light it answers the hand faster than thought -- the swifter the ninja, the deadlier the cut."
     },
     {
       "id": 12,
@@ -1577,7 +1578,9 @@
       "proposed": {
         "wp": 4,
         "evade": 20,
-        "element": "Dark"
+        "element": "Dark",
+        "rider": "MA+2",
+        "equipBonusId": 1
       },
       "iconTint": [
         0.78,
@@ -1778,7 +1781,9 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "rider": "MA+1",
+        "equipBonusId": 10
       },
       "iconTint": [
         0.7,
@@ -1836,7 +1841,9 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "rider": "MA+1",
+        "equipBonusId": 10
       },
       "iconTint": [
         0.6,
@@ -1865,7 +1872,9 @@
         "onHit": "May Stop",
         "onHitAbilityId": 44,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "rider": "MA+2",
+        "equipBonusId": 1
       },
       "iconTint": [
         0.77,
@@ -1878,8 +1887,8 @@
       "category": "Sword",
       "vanillaName": "Iron Flail",
       "name": "Warbrand",
-      "tier": 2,
-      "identity": "Pure-power brute: the highest weapon power of any sword, bought with zero evade. (was Ironlash)",
+      "tier": 5,
+      "identity": "Pure-power brute -- the highest weapon power of any sword, bought with zero evade AND zero utility. A back-half pick (Ch3-gated, tier 5) so the raw-damage king doesn't eclipse the early game; the brute alternative to the utility blades (Arcanum/Rimebrand/Materia). (was Ironlash)",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -1894,7 +1903,8 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "categoryOverride": "Sword"
+        "categoryOverride": "Sword",
+        "shopOverride": "Chapter3_Start"
       },
       "iconTint": [
         0.6,
@@ -1937,9 +1947,9 @@
       "id": 69,
       "category": "NinjaBlade",
       "vanillaName": "Morning Star",
-      "name": "Snarefang",
+      "name": "Climhazzard",
       "tier": 4,
-      "identity": "Snare blade: chance to Immobilize on hit, pinning the target where it stands. (was Snarelash)",
+      "identity": "Execute blade -- damage = the TARGET's missing HP (formula 69): near-nothing vs a fresh foe, lethal vs a wounded one. The assassin's mercy stroke; soften with anything, then finish. Ignores WP entirely, so the budget goes to evade. Mid-tier, like its missing-HP cousins Wrathblade/Muramasa. (was Snarelash)",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -1948,12 +1958,12 @@
         "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 11,
-        "evade": 15,
+        "wp": 3,
+        "evade": 20,
         "element": "None",
-        "onHit": "May inflict Immobilize",
-        "onHitAbilityId": 14,
-        "formula": 1,
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 69,
         "categoryOverride": "NinjaBlade"
       },
       "iconTint": [
@@ -1961,7 +1971,8 @@
         0.5,
         0.88
       ],
-      "iconSource": 11
+      "iconSource": 11,
+      "flavorOverride": "A killing stroke meant only for the wounded -- it finds the wound another blade opened and ends the fight."
     },
     {
       "id": 70,
@@ -3458,6 +3469,120 @@
         0.55
       ],
       "flavorOverride": "Silk that falls like a tombstone; even giants sag beneath its weight."
+    },
+    {
+      "id": 122,
+      "category": "Throwing",
+      "vanillaName": "Shuriken",
+      "name": "Shuriken",
+      "tier": 1,
+      "identity": "Starter throwing star -- thrown damage = Speed x WP, so it scales with the ninja's defining stat. Colorless: never resisted or absorbed. The cheap early ranged option.",
+      "proposed": {
+        "wp": 4,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 0,
+        "attackFlags": "Throwable, Direct"
+      },
+      "desc": "A ninja's basic throwing star. Thrown, its damage scales with the wielder's Speed -- weak in slow hands, a real ranged hit once you stack Speed. Colorless: never resisted or absorbed."
+    },
+    {
+      "id": 123,
+      "category": "Throwing",
+      "vanillaName": "Fuma Shuriken",
+      "name": "Fuma Shuriken",
+      "tier": 3,
+      "identity": "Mid throwing star -- a bigger Speed-scaled colorless hit than the Shuriken. The reliable element-proof ranged DPS throw.",
+      "proposed": {
+        "wp": 6,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 0,
+        "attackFlags": "Throwable, Direct"
+      },
+      "desc": "A heavier star with a bigger Speed-scaled bite. Reliable, element-proof ranged damage for a fast ninja."
+    },
+    {
+      "id": 124,
+      "category": "Throwing",
+      "vanillaName": "Yagyu Darkrood",
+      "name": "Yagyu Darkrood",
+      "tier": 5,
+      "identity": "Capstone throwing star -- top colorless Speed-scaled ranged damage. A maxed-Speed ninja's throw hits like a nuke and can never be resisted or absorbed.",
+      "proposed": {
+        "wp": 8,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 0,
+        "attackFlags": "Throwable, Direct"
+      },
+      "desc": "The deadliest throwing star. A maxed-Speed ninja's throw hits like a nuke, and being colorless it can never be resisted or absorbed -- the reliable finisher of the throw arsenal."
+    },
+    {
+      "id": 125,
+      "category": "Bomb",
+      "vanillaName": "Flameburst Bomb",
+      "name": "Flameburst Bomb",
+      "tier": 3,
+      "identity": "Fire throwing bomb -- Speed-scaled ranged Fire (x2 vs Fire-weak, shreds the Oiled; Fire-absorbers heal it). The matchup half of the throw arsenal: higher ceiling than the stars vs the right target, a gamble vs the wrong one.",
+      "proposed": {
+        "wp": 6,
+        "evade": 0,
+        "element": "Fire",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 0,
+        "attackFlags": "Throwable, Direct"
+      },
+      "desc": "A thrown Fire bomb. Speed-scaled ranged Fire -- doubles against Fire-weak foes and shreds the Oiled, but Fire-absorbers heal from it."
+    },
+    {
+      "id": 126,
+      "category": "Bomb",
+      "vanillaName": "Snowmelt Bomb",
+      "name": "Snowmelt Bomb",
+      "tier": 3,
+      "identity": "Water throwing bomb -- Speed-scaled ranged Water (x2 vs Water-weak; Water-absorbers heal it). Twin to the Flameburst, different matchup coverage.",
+      "proposed": {
+        "wp": 6,
+        "evade": 0,
+        "element": "Water",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 0,
+        "attackFlags": "Throwable, Direct"
+      },
+      "desc": "A thrown Water bomb. Speed-scaled ranged Water -- doubles against Water-weak foes; Water-absorbers heal from it."
+    },
+    {
+      "id": 127,
+      "category": "Bomb",
+      "vanillaName": "Spark Bomb",
+      "name": "Spark Bomb",
+      "tier": 3,
+      "identity": "Lightning throwing bomb -- Speed-scaled ranged Lightning (x2 vs Lightning-weak and armored/robotic foes; Lightning-absorbers heal it). Completes the Fire/Water/Lightning throw-bomb trio.",
+      "proposed": {
+        "wp": 6,
+        "evade": 0,
+        "element": "Lightning",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 0,
+        "attackFlags": "Throwable, Direct"
+      },
+      "desc": "A thrown Lightning bomb. Speed-scaled ranged Lightning -- doubles against Lightning-weak and armored foes; Lightning-absorbers heal from it. Completes the Fire/Water/Lightning trio."
     },
     {
       "id": 128,
