@@ -116,7 +116,9 @@ def mechanics(it):
         if f == 99:
             parts.append("Damage scales with the wielder's Speed, not Physical Attack.")
         if f not in (2, 4):  # Formula 2/4 read the opt id as a spell cast, not a status
-            if p == 55:
+            if f == 45 and p in PROC:  # formula 0x2D = 100% status (confirmed in-game): always lands
+                parts.append(f"Always inflicts {PROC[p]} on hit.")
+            elif p == 55:
                 parts.append("Has a chance to remove the target's buffs on hit.")
             elif p == 95:
                 parts.append("Has a chance to Stop, petrify, or kill on hit.")

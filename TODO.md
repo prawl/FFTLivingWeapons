@@ -55,6 +55,39 @@ ALSO LEARNED (related, now fixed): a weapon's `<TypeFlags>` must be `Rare, Weapo
 `Rare, Weapon`. (The Sanguine Sword shipped briefly with bare `Rare` and showed no Attack Power/Parry
 until corrected.) Old "Rare/not-sold = TypeFlags 'Rare'" note was WRONG.
 
+## Weapon proc rate (the 19%) — verified NOT a data field
+
+Patrick hates that weapon ability-casts proc at ~19%. Scanned ALL ~30 TableData tables for any
+rate/chance/percent/proc/success field: the ONLY hit is AbilityData.ChanceToLearn (JP learning,
+irrelevant). The weapon row is just Id/Range/AttackFlags/Formula/Power/Evasion/Elements/
+OptionsAbilityId (+1 Unused byte = 255 on every weapon). The 19% is baked into the CAST formula
+(weapon formula 0x02) in the engine, not the data.
+
+- Formula swap is the only data lever. Formula 4 (Magic Gun) = 100% but the attack BECOMES the
+  elemental spell (Faith-scaled, Fire/Ice/Bolt only) -- can't cast arbitrary abilities. No formula
+  does "physical strike + cast an arbitrary ability above 19%".
+- On-hit STATUS procs are the engine "Separate Status" mechanic, capped at 25% (we sit near ~19%).
+- ✅ CONFIRMED 2026-06-01: formula 2D (0x2D = decimal 45, "PA*(WP+Y), 100% status", Holy Sword) on a
+  WEAPON inflicts the OptionsAbilityId STATUS at 100% with the strike intact. Tested on Ravager
+  (id 49, OptionsAbilityId 53 Berserk) — Berserk landed on EVERY hit. So pure-data 100%-on-hit
+  STATUS weapons ARE possible (vs the 19% proc). ⚠ SCOPE: this is for STATUS effects (the formula-1
+  proc family). Full spell-CASTS (Thunder/Ashura/Gravity via formula 2) are STILL 19% — 2D has no
+  cast equivalent. VERIFIED in-game: (a) damage NORMAL (231 dmg, PA*(WP+Y) — possibly a hair higher
+  than plain PA*WP if Y>0); (b) NOT forced Holy — element-NEUTRAL (an undead took the same 231, not
+  2x), so it uses the weapon's Elements field, free to set any element. Still unchecked: (c) does
+  status immunity (Ribbon) still block it (assume yes = natural counter). ⚠ BALANCE: 100%
+  removal-tier statuses (Petrify/Stop/Don't-Act/Sleep/Charm/Doom/Confuse) = "delete the unit every
+  hit" — same veto as KO-on-hit. Restrict 100% to mild/double-edged (Poison/Blind/Oil/Berserk;
+  Slow/Immobilize with care) + a real WP cost.
+
+### TODO: memory/engine scan for the 19% constant
+The only thing that ACTUALLY changes the number is a runtime memory patch -- find the 19%
+weapon-proc constant in the game's code and overwrite it. Use the FFTHandsFree project
+(Dev/FFTHandsFree) AoB/memory-scan infra: scan near the weapon-attack proc routine (19 = 0x13, but
+it may be stored as a fraction or a compare-immediate). Out of scope for the pure-DATA overhaul
+(it's a live hack, not shippable in the mod) but it's the real lever if we want weapon casts to fire
+more often. Pure-data ceiling without it: 25% (status) / formula-4 100% (elemental magic only).
+
 ## Offensive Chemist — SHIPPED 2026-06-01 (price still pending)
 
 Built 5 status grenades from the 5 Remedy-covered single-cures (item ids 246-250): Venom Flask
@@ -65,6 +98,13 @@ to Ch1 (it became the only cure). Mechanic + availability confirmed in-game; Rem
 all 5 ailments so curing is intact.
 
 Remaining:
+- CHEMIST LEARN-LIST shows the OLD items: the Chemist's Item-command "learn abilities" menu still
+  lists the removed cures (Antidote / Eye Drops / Echo Herbs / Maiden's Kiss / Gold Needle) instead
+  of the new grenades (Venom Flask / Smoke Bomb / Hush Vial / Oil Flask / Sludge Bomb). We renamed
+  the ITEMS (item.en.nxd via patch_grenades.py) but the Chemist's learnable-ability entries live in
+  a SEPARATE table (ability name table ability.en.nxd and/or the Item skillset / JobCommandData)
+  that still points at the old names. Find which table drives that menu and update it to the new
+  items. (Same item-table-vs-ability-table split as the weapon "May Cast" tooltips.)
 - PRICE: stuck at vanilla 50/100 g. ItemData `<Price>` is silently overridden by the nex 'Item'
   table for consumables (ShopAvailability is NOT — that one sticks). The real price lives in the
   base `item.nxd`, which is NOT extracted (only item.en.nxd is, and price isn't in it). To set

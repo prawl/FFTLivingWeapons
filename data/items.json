@@ -104,7 +104,7 @@
       "vanillaName": "Blind Knife",
       "name": "Gloomfang",
       "tier": 2,
-      "identity": "Anti-physical debuffer -- one hit blinds an enemy bruiser for the whole fight (only Blind source)",
+      "identity": "Anti-physical debuffer -- GUARANTEED Blind on EVERY hit (formula 2D), cripples an enemy bruiser's accuracy for the fight. Melee + low knife damage is the price; only Blind source.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -119,10 +119,10 @@
         "element": "None",
         "onHit": "Blind",
         "onHitAbilityId": 9,
-        "formula": 1,
+        "formula": 45,
         "attackFlags": "Throwable, TwoSwords, Striking"
       },
-      "desc": "Etched with shadow. A solid hit leaves foes blinking in darkness.\nWhen attacking, has a chance of inflicting Blind."
+      "flavorOverride": "Etched with shadow; a solid hit leaves foes blinking in the dark."
     },
     {
       "id": 4,
@@ -130,7 +130,7 @@
       "vanillaName": "Mage Masher",
       "name": "Hushblade",
       "tier": 2,
-      "identity": "Anti-caster -- shut an enemy mage's spellbook before they nuke (only Silence source). Proc id not yet pinned down in-game.",
+      "identity": "Anti-caster -- GUARANTEED Silence on EVERY hit (formula 2D), shuts an enemy mage's spellbook cold. Melee-range + low knife damage is the price; only Silence source. (Spiciest of the 100% daggers; trim WP if it ever feels oppressive.)",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -145,10 +145,10 @@
         "element": "None",
         "onHit": "Silence",
         "onHitAbilityId": 10,
-        "formula": 1,
+        "formula": 45,
         "attackFlags": "Throwable, TwoSwords, Striking"
       },
-      "desc": "Forged to throttle spellcraft. A caster's worst nightmare.\nWhen attacking, has a chance of inflicting Silence."
+      "flavorOverride": "Forged to throttle spellcraft -- a caster's worst nightmare."
     },
     {
       "id": 5,
@@ -1369,7 +1369,7 @@
       "vanillaName": "Giant's Axe",
       "name": "Ravager",
       "tier": 4,
-      "identity": "Berserk brute -- high-WP striker with on-hit Berserk: drives the struck foe into a mindless rage (shuts off their abilities/spells, but they hit +50% harder). Only Berserk source mod-wide; an anti-caster/anti-healer gambit. Repurposed Giant's Axe slot; relabeled KnightSword via UiItemCategoryId + a KnightSword icon so the card no longer reads Axe (pending in-game verify).",
+      "identity": "Berserk brute -- a high-WP KnightSword that ALWAYS inflicts Berserk on hit (formula 2D = 100%): drives the struck foe into a mindless rage, shutting off their abilities/spells but making them hit +50% harder -- a double-edged anti-caster gambit. Only Berserk source mod-wide. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -1381,9 +1381,9 @@
         "wp": 15,
         "evade": 5,
         "element": "None",
-        "onHit": "Berserk",
+        "onHit": "Berserk (100% via formula 2D)",
         "onHitAbilityId": 53,
-        "formula": 1,
+        "formula": 45,
         "categoryOverride": "KnightSword"
       },
       "iconTint": [
@@ -1909,7 +1909,7 @@
       "vanillaName": "Flail of Flame",
       "name": "Bloodlash",
       "tier": 3,
-      "identity": "Venom dagger: chance to Poison on hit, a bleeding wound that festers. (was a flail)",
+      "identity": "Plague dagger: GUARANTEED Poison on EVERY hit (formula 2D), a festering wound that chips bulky foes down over time. Mildest of the 100% daggers, full WP. (was a flail)",
       "baseline": {
         "wp": 11,
         "evade": 0,
@@ -1921,9 +1921,9 @@
         "wp": 8,
         "evade": 15,
         "element": "None",
-        "onHit": "May inflict Poison",
+        "onHit": "Poison (100% via formula 2D)",
         "onHitAbilityId": 22,
-        "formula": 1,
+        "formula": 45,
         "categoryOverride": "Knife"
       },
       "iconTint": [

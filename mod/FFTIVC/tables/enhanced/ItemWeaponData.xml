@@ -27,7 +27,7 @@
       <Id>3</Id> <!-- Gloomfang (was Blind Knife) -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
-      <Formula>1</Formula>
+      <Formula>45</Formula>
       <Power>5</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
@@ -37,7 +37,7 @@
       <Id>4</Id> <!-- Hushblade (was Mage Masher) -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
-      <Formula>1</Formula>
+      <Formula>45</Formula>
       <Power>6</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
@@ -463,7 +463,7 @@
     <ItemWeapon>
       <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>45</Formula>
       <Power>15</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -634,7 +634,7 @@
     <ItemWeapon>
       <Id>68</Id> <!-- Bloodlash (was Flail of Flame) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>45</Formula>
       <Power>8</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
