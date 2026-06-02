@@ -34,13 +34,16 @@
       "NullifyElements": "Earth"
     },
     "56": {
-      "PABonus": 0,
-      "MABonus": 0,
-      "SpeedBonus": 0,
-      "InnateStatus": "None",
-      "ImmuneStatus": "None",
-      "StrongElements": "Dark",
+      "PABonus": 2,
+      "MABonus": 1,
+      "SpeedBonus": 2,
+      "MoveBonus": 1,
+      "JumpBonus": 1,
+      "AbsorbElements": "Dark",
       "WeakElements": "Holy"
+    },
+    "40": {
+      "StartingStatus": "Reraise"
     }
   },
   "items": [
@@ -1584,7 +1587,7 @@
       "vanillaName": "Dragon Rod",
       "name": "Dragon Rod",
       "tier": 4,
-      "identity": "Only Silence rod -- anti-caster lock. Line-low evade (10) pays for WP5 + a strong debuff.",
+      "identity": "Silence on hit, plus the only weapon that grants Initial Reraise (auto-revive once per battle). A survivable battle-mage rod, echoing the dragoon Dragon Spirit (community-requested buff).",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -1599,7 +1602,9 @@
         "onHit": "Silence",
         "onHitAbilityId": 10,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "rider": "start Reraise",
+        "equipBonusId": 40
       },
       "iconTint": [
         0.72,
@@ -5878,7 +5883,7 @@
       "vanillaName": "Cursed Ring",
       "name": "Cursed Ring",
       "tier": 5,
-      "identity": "Dark Pact ring (unique): Strengthens the wielder Dark damage (Dark weapons + spells) but weak to Holy. Undead curse removed.",
+      "identity": "Dark Pact ring (unique): a loaded PA+2/MA+1/Speed+2/Move+1/Jump+1 stat bundle that absorbs Dark, paid for with a Holy weakness. High risk/reward build-around (community-requested buff).",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5890,7 +5895,7 @@
         "mp": 0,
         "physEv": 0,
         "magEv": 0,
-        "rider": "boost Dark, weak Holy",
+        "rider": "PA+2, MA+1, Speed+2, Move+1, Jump+1, absorb Dark, weak Holy",
         "equipBonusId": 56
       },
       "iconTint": [
@@ -5898,7 +5903,7 @@
         0.8,
         0.4
       ],
-      "desc": "Forged in a forgotten pact: the wielder Dark attacks and spells strike harder, but holy light scorches them."
+      "flavorOverride": "A ring forged in a forbidden pact. It floods the wielder with power and drinks the dark that strikes them, but holy light scorches the cursed twice as deep."
     },
     {
       "id": 223,

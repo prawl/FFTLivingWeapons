@@ -20,6 +20,10 @@
       <ItemCategory>KnightSword</ItemCategory>
     </Item>
     <Item>
+      <Id>57</Id> <!-- Dragon Rod -->
+      <EquipBonusId>40</EquipBonusId>
+    </Item>
+    <Item>
       <Id>67</Id> <!-- Warbrand (was Iron Flail) -->
       <ItemCategory>Sword</ItemCategory>
     </Item>

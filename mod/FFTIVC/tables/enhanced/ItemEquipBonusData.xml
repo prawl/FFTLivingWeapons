@@ -4,41 +4,140 @@
   <Version>1</Version>
   <Entries>
     <ItemEquipBonus>
-      <Id>56</Id>
+      <Id>40</Id>
       <PABonus>0</PABonus>
       <MABonus>0</MABonus>
       <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
       <InnateStatus>None</InnateStatus>
       <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>Reraise</StartingStatus>
+      <AbsorbElements>None</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
+      <HalveElements>None</HalveElements>
+      <WeakElements>None</WeakElements>
+      <StrongElements>None</StrongElements>
+      <BoostJP>false</BoostJP>
+    </ItemEquipBonus>
+    <ItemEquipBonus>
+      <Id>56</Id>
+      <PABonus>2</PABonus>
+      <MABonus>1</MABonus>
+      <SpeedBonus>2</SpeedBonus>
+      <MoveBonus>1</MoveBonus>
+      <JumpBonus>1</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
+      <AbsorbElements>Dark</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
+      <HalveElements>None</HalveElements>
       <WeakElements>Holy</WeakElements>
-      <StrongElements>Dark</StrongElements>
+      <StrongElements>None</StrongElements>
+      <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
       <Id>74</Id>
+      <PABonus>0</PABonus>
+      <MABonus>0</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
+      <AbsorbElements>None</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
       <HalveElements>Water</HalveElements>
+      <WeakElements>None</WeakElements>
+      <StrongElements>None</StrongElements>
+      <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
       <Id>75</Id>
+      <PABonus>0</PABonus>
+      <MABonus>0</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
+      <AbsorbElements>None</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
       <HalveElements>Wind</HalveElements>
+      <WeakElements>None</WeakElements>
+      <StrongElements>None</StrongElements>
+      <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
       <Id>76</Id>
+      <PABonus>0</PABonus>
+      <MABonus>0</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
+      <AbsorbElements>None</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
       <HalveElements>Lightning</HalveElements>
+      <WeakElements>None</WeakElements>
+      <StrongElements>None</StrongElements>
+      <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
       <Id>77</Id>
+      <PABonus>0</PABonus>
+      <MABonus>0</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
+      <AbsorbElements>None</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
       <HalveElements>Holy</HalveElements>
+      <WeakElements>None</WeakElements>
       <StrongElements>Holy</StrongElements>
+      <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
       <Id>78</Id>
+      <PABonus>0</PABonus>
+      <MABonus>0</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
       <AbsorbElements>Dark</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
+      <HalveElements>None</HalveElements>
       <WeakElements>Holy</WeakElements>
+      <StrongElements>None</StrongElements>
+      <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
       <Id>79</Id>
+      <PABonus>0</PABonus>
       <MABonus>1</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
+      <AbsorbElements>None</AbsorbElements>
       <NullifyElements>Earth</NullifyElements>
+      <HalveElements>None</HalveElements>
+      <WeakElements>None</WeakElements>
+      <StrongElements>None</StrongElements>
+      <BoostJP>false</BoostJP>
     </ItemEquipBonus>
   </Entries>
 </ItemEquipBonusTable>
