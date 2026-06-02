@@ -80,13 +80,17 @@ OptionsAbilityId (+1 Unused byte = 255 on every weapon). The 19% is baked into t
   hit" — same veto as KO-on-hit. Restrict 100% to mild/double-edged (Poison/Blind/Oil/Berserk;
   Slow/Immobilize with care) + a real WP cost.
 
-### TODO: memory/engine scan for the 19% constant
-The only thing that ACTUALLY changes the number is a runtime memory patch -- find the 19%
-weapon-proc constant in the game's code and overwrite it. Use the FFTHandsFree project
-(Dev/FFTHandsFree) AoB/memory-scan infra: scan near the weapon-attack proc routine (19 = 0x13, but
-it may be stored as a fraction or a compare-immediate). Out of scope for the pure-DATA overhaul
-(it's a live hack, not shippable in the mod) but it's the real lever if we want weapon casts to fire
-more often. Pure-data ceiling without it: 25% (status) / formula-4 100% (elemental magic only).
+### TODO: memory patch for the 19% constant — MECHANIC CRACKED, address pending
+The 19% is **50/256** (`floor(50*100/256)=19`). The engine rolls `Rand()&0xFF` per qualifying hit
+and casts if `roll < 0x32` (50). **The lever is one byte: `0x32` in the weapon-strike routine**
+(native code in FFT_enhanced.exe, base 0x140000000 — NOT a data table, quadruple-confirmed). Set
+the rate by writing `round(rate%*256/100)`: 50%->0x80, 30%->0x4D, 25%->0x40, ~100%->0xFF. The
+FFTHandsFree bridge `wv <addr> <value>` is the patch tool; finding the address needs a debugger
+(Cheat Engine "find what accesses" on a cast-weapon's CastSpellID byte -> step to the `cmp ...,0x32`
+-> record module offset -> `wv`). No disassembler installed yet = next-session job. Full recipe +
+rate table: **docs/PROC_RATE_RESEARCH.md**. Out of scope for the shippable pure-DATA mod (live/binary
+hack). Pure-data ceiling without it: 25% (status) / formula-45 100% (status) / formula-4 100%
+(elemental magic only).
 
 ## Offensive Chemist — SHIPPED 2026-06-01 (price still pending)
 
