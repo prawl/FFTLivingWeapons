@@ -642,9 +642,9 @@
       "id": 23,
       "category": "Sword",
       "vanillaName": "Blood Sword",
-      "name": "Lifedrinker",
+      "name": "Sanguine Sword",
       "tier": 3,
-      "identity": "Vampiric sustain blade -- every swing leeches HP at full PA*WP. WP undercut (6) pays for the drain. WARNING: harms wielder vs Undead. UiSE 1001.",
+      "identity": "Rare one-handed Sword (not sold, shield-friendly): casts Sanguine Sword (absorb HP) on hit -- the life-drain of a fell mercenary knight, echoing Gaffgarion. Lives on the NATIVE Blood Sword slot so the card correctly reads Sword (relocated off the Giant's Axe slot, which read Axe).",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -654,15 +654,17 @@
         "formula": 6
       },
       "proposed": {
-        "wp": 6,
-        "evade": 8,
+        "wp": 14,
+        "evade": 12,
         "element": "None",
-        "onHit": "Absorb HP",
-        "onHitAbilityId": 0,
-        "formula": 6,
-        "attackFlags": "Striking, TwoSwords, TwoHands"
+        "onHit": "None",
+        "onHitAbilityId": 45,
+        "formula": 2,
+        "attackFlags": "Striking, TwoSwords, TwoHands",
+        "typeFlagsOverride": "Rare, Weapon",
+        "shopOverride": "Unknown20"
       },
-      "desc": "A cursed blade that drinks the blood it spills.\nAbsorbs HP on hit. Beware the undead."
+      "flavorOverride": "Once the blade of a fell mercenary who drank the life of all he struck, until he too fell in battle."
     },
     {
       "id": 24,
@@ -1132,7 +1134,7 @@
       "vanillaName": "Murasame",
       "name": "Murasame",
       "tier": 2,
-      "identity": "The rain blade (Formula 6 = Absorb-HP) -- leeches HP on every strike, the famous heal-Iaido made literal; keeps the samurai topped off in healer-light squads. True sidegrade to Bizen (HP not MP, +3 evade). WARNING: harms wielder vs Undead. UiStatusEffectId=1001.",
+      "identity": "The rain blade made literal -- chance to perform Draw Out: Ashura on the struck enemy (formula 2 cast). Where Bizen FUELS Iaido (MP drain), Murasame PERFORMS one on hit. No other weapon casts a Draw-Out; pure samurai fantasy. Formula 2 re-scales the strike to PA*WP (clean T2 sidegrade, +3 evade over Bizen).",
       "baseline": {
         "wp": 10,
         "evade": 15,
@@ -1144,16 +1146,17 @@
         "wp": 9,
         "evade": 15,
         "element": "None",
-        "onHit": "Absorb HP",
-        "onHitAbilityId": 0,
-        "formula": 6,
+        "onHit": "None",
+        "onHitAbilityId": 76,
+        "formula": 2,
         "range": 1
       },
       "iconTint": [
         0.99,
         0.74,
         0.94
-      ]
+      ],
+      "flavorOverride": "The rain blade, whose every cut recalls an Iaido it was never taught."
     },
     {
       "id": 42,
@@ -1365,8 +1368,8 @@
       "category": "KnightSword",
       "vanillaName": "Giant's Axe",
       "name": "Ravager",
-      "tier": 3,
-      "identity": "Knight sword that drives the foe into a mindless rage: chance to Berserk on hit (they attack, can't use abilities). (was the War Axe)",
+      "tier": 4,
+      "identity": "Berserk brute -- high-WP striker with on-hit Berserk: drives the struck foe into a mindless rage (shuts off their abilities/spells, but they hit +50% harder). Only Berserk source mod-wide; an anti-caster/anti-healer gambit. Repurposed Giant's Axe slot; relabeled KnightSword via UiItemCategoryId + a KnightSword icon so the card no longer reads Axe (pending in-game verify).",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -1375,20 +1378,21 @@
         "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 16,
-        "evade": 15,
+        "wp": 15,
+        "evade": 5,
         "element": "None",
-        "onHit": "May berserk",
+        "onHit": "Berserk",
         "onHitAbilityId": 53,
         "formula": 1,
         "categoryOverride": "KnightSword"
       },
       "iconTint": [
-        0.99,
-        0.7,
-        0.9
+        0.0,
+        0.75,
+        0.85
       ],
-      "iconSource": 33
+      "iconSource": 33,
+      "flavorOverride": "A brutal weapon that infects all it cuts with its own blind, mindless fury."
     },
     {
       "id": 50,
@@ -3429,9 +3433,9 @@
       "id": 121,
       "category": "Cloth",
       "vanillaName": "Wyrmweave Silk",
-      "name": "Wyrmweave Silk",
+      "name": "Gravesilk Veil",
       "tier": 6,
-      "identity": "T6 vampire capstone rag -- 50% evade AND HP-drain on hit (Formula 6, live/confirmed): the self-sustaining dancer who almost never gets hit and heals when she does. Top cloth WP; Formula 6 switches damage to PA*WP (sustain-vs-burst tradeoff). Only leech in the line; UiSE=1001.",
+      "identity": "T6 capstone caster rag -- chance to cast Gravity/Demi on hit (formula 2), chunking a flat share of the target's current HP regardless of defenses. The only Gravity source mod-wide; %HP scaling IGNORES the dancer's low PA, the rare offense vector that works despite her stat sheet. Keeps the 50% evade fortress.",
       "baseline": {
         "wp": 15,
         "evade": 50,
@@ -3443,16 +3447,17 @@
         "wp": 9,
         "evade": 50,
         "element": "None",
-        "onHit": "AbsorbHP",
-        "onHitAbilityId": 0,
-        "formula": 6,
+        "onHit": "None",
+        "onHitAbilityId": 42,
+        "formula": 2,
         "range": 2
       },
       "iconTint": [
-        0.96,
-        0.65,
-        0.8
-      ]
+        0.75,
+        0.5,
+        0.55
+      ],
+      "flavorOverride": "Silk that falls like a tombstone; even giants sag beneath its weight."
     },
     {
       "id": 128,

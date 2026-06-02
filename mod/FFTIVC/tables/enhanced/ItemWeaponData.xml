@@ -216,14 +216,14 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>23</Id> <!-- Lifedrinker (was Blood Sword) -->
+      <Id>23</Id> <!-- Sanguine Sword (was Blood Sword) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>6</Formula>
-      <Power>6</Power>
-      <Evasion>8</Evasion>
+      <Formula>2</Formula>
+      <Power>14</Power>
+      <Evasion>12</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>45</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>24</Id> <!-- Stormbrand (was Coral Sword) -->
@@ -390,11 +390,11 @@
     <ItemWeapon>
       <Id>41</Id> <!-- Murasame -->
       <Range>1</Range>
-      <Formula>6</Formula>
+      <Formula>2</Formula>
       <Power>9</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>76</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>42</Id> <!-- Ame-no-Murakumo -->
@@ -464,8 +464,8 @@
       <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>16</Power>
-      <Evasion>15</Evasion>
+      <Power>15</Power>
+      <Evasion>5</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>53</OptionsAbilityId>
     </ItemWeapon>
@@ -1125,13 +1125,13 @@
       <OptionsAbilityId>14</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>121</Id> <!-- Wyrmweave Silk -->
+      <Id>121</Id> <!-- Gravesilk Veil (was Wyrmweave Silk) -->
       <Range>2</Range>
-      <Formula>6</Formula>
+      <Formula>2</Formula>
       <Power>9</Power>
       <Evasion>50</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>42</OptionsAbilityId>
     </ItemWeapon>
   </Entries>
 </ItemWeaponTable>

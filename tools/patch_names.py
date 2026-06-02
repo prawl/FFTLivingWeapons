@@ -38,6 +38,15 @@ CAT_NOUN = {"Knife": "knife", "NinjaBlade": "ninja blade", "Sword": "blade", "Kn
 PROC = {9: "Blind", 10: "Silence", 11: "Doom", 12: "Sleep", 13: "Don't Act", 14: "Immobilize",
         17: "Petrify", 18: "Slow", 22: "Poison", 23: "Confuse", 24: "Charm", 44: "Stop", 53: "Berserk",
         101: "Oil"}  # Formula-1 status procs (ItemOptions ids; in Formula 2/4 the same ids mean spells)
+CAST = {42: "Gravity (damaging a share of the target's current HP)",
+        45: "Sanguine Sword (draining the target's HP)",
+        76: "Draw Out: Ashura"}  # Formula-2 NON-elemental ability casts by opt id (elemental casts handled separately)
+# UiItemCategoryId = the equip-card weapon-TYPE label (item.en.nxd Item-en table). A repurposed weapon
+# keeps its BASE slot's type id, so the card mislabels it (e.g. a KnightSword on the Giant's Axe slot
+# reads "Axe"). Patch it to match the categoryOverride so the card reads right. Ids dumped from vanilla.
+UICAT = {"Knife": 1, "NinjaBlade": 2, "Sword": 3, "KnightSword": 4, "Katana": 5, "Axe": 6,
+         "Rod": 7, "Staff": 8, "Flail": 9, "Gun": 10, "Crossbow": 11, "Bow": 12, "Instrument": 13,
+         "Book": 14, "Polearm": 15, "Pole": 16, "Bag": 17, "Cloth": 18}
 
 # thematic flavor clauses keyed by the item's defining trait (element > proc > rider > role)
 ELEM_FLAVOR = {
@@ -108,20 +117,22 @@ def mechanics(it):
             parts.append("Damage scales with the wielder's Speed, not Physical Attack.")
         if f not in (2, 4):  # Formula 2/4 read the opt id as a spell cast, not a status
             if p == 55:
-                parts.append("Has a 19% chance to remove the target's buffs on hit.")
+                parts.append("Has a chance to remove the target's buffs on hit.")
             elif p == 95:
-                parts.append("Has a 19% chance to Stop, petrify, or kill on hit.")
+                parts.append("Has a chance to Stop, petrify, or kill on hit.")
             elif p == 41:
-                parts.append("Has a 19% chance to instantly kill on hit.")
+                parts.append("Has a chance to instantly kill on hit.")
             elif p in PROC:
-                parts.append(f"Has a 19% chance to inflict {PROC[p]} on hit.")
+                parts.append(f"Has a chance to inflict {PROC[p]} on hit.")
         if f in (6, 47, 48):
             parts.append({6: "Absorbs HP dealt.", 47: "Absorbs MP dealt.", 48: "Night Sword: drains HP."}[f])
         if f == 2 and el not in ("None", None, ""):  # vanilla elemental spell-cast on hit
             spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
-            parts.append(f"Has a 19% chance to cast {spell} on hit.")
+            parts.append(f"Has a chance to cast {spell} on hit.")
         if f == 2 and p == 147:  # Rush = knockback
-            parts.append("Has a 19% chance to knock the target back a tile on hit.")
+            parts.append("Has a chance to knock the target back a tile on hit.")
+        if f == 2 and p in CAST:  # non-elemental ability cast on hit (Sanguine / Ashura / Gravity)
+            parts.append(f"Has a chance to cast {CAST[p]} on hit.")
         rng = s.get("range", 1) or 1
         if rng >= 2:  # any reach weapon states its range (per user request)
             parts.append(f"Strikes from up to {rng} tiles away.")
@@ -213,6 +224,9 @@ def main():
             continue
         con.execute('UPDATE "Item-en" SET Name=?, NameSingular=?, NamePlural=?, Name2=?, Description=? WHERE Key=?',
                     (name, name.lower(), plural(name), name, desc, it["id"]))
+        cat_ov = it["proposed"].get("categoryOverride")  # fix the equip-card type label for repurposed weapons
+        if cat_ov in UICAT:
+            con.execute('UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?', (UICAT[cat_ov], it["id"]))
         n += 1
     if dry:
         con.close(); return

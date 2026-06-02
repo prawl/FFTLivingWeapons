@@ -4,6 +4,11 @@
   <Version>1</Version>
   <Entries>
     <Item>
+      <Id>23</Id> <!-- Sanguine Sword (was Blood Sword) -->
+      <TypeFlags>Rare, Weapon</TypeFlags>
+      <ShopAvailability>Unknown20</ShopAvailability>
+    </Item>
+    <Item>
       <Id>30</Id> <!-- Arcanum (was Runeblade) -->
       <EquipBonusId>1</EquipBonusId>
     </Item>

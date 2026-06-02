@@ -24,9 +24,36 @@ weapon, status procs, dispel (Cancel 55), Rush knockback. Re-balance WP/evade/el
 re-pass the dominance gate per category; fold in re-pricing + shop re-timing while we're in there.
 
 Lore / signature weapons to slot in during the pass:
-- **Gaffgarion's Blade** (KnightSword) — formula 2 + cast **Sanguine Sword (45, "Absorb HP from
-  the target")**, the HP-steal Gaffgarion spams every battle. Dark theme; convert a KnightSword
-  slot (e.g. the crimson Ravager, id 49). id 45 <= 255, cast confirmed.
+- **Gaffgarion's Blade** — DONE (2026-06-01). Shipped as the **Sanguine Sword** on the NATIVE
+  **Blood Sword** slot (id 23): formula 2 + cast **Sanguine Sword (45)**, rare / not-sold,
+  one-handed (shield-friendly). First tried the Giant's Axe slot (id 49) but its card read "Axe"
+  (walled base type — see card-label bug below), so it was re-homed to the Blood Sword. id 49 is
+  now the Berserk **Ravager**.
+
+## Repurposed-item cards show the wrong weapon TYPE (card-label bug)
+
+Items repurposed via `categoryOverride` keep the BASE weapon's type on the equip-screen card,
+even though they equip/swing/gate as the new category. The Sanguine Sword on the Giant's Axe slot
+read "Axe"; Warbrand (Flail->Sword), Sasori (Flail->Katana) and the rest of the repurposed
+axe/flail slots (ids 48/49/50/67/68/69/70) all show their base Axe/Flail type. The displayed type
+lives in the base nex `item.nxd` (category column), which is NOT extracted -- same wall as Price
+and Palette. `categoryOverride` changes FUNCTION (equip + swing + gate bucket) but NOT the card.
+
+FIX FOUND + IMPLEMENTED (2026-06-01, pending in-game verify): the `Item-en` table in `item.en.nxd`
+-- which patch_names.py already patches -- has a `UiItemCategoryId` column that IS the equip-card
+type label. Verified by dumping it: cat 1=Knife, 2=NinjaBlade, 3=Sword, 4=KnightSword, 5=Katana,
+6=Axe, 7=Rod, 8=Staff, 9=Flail, 10=Gun, 11=Crossbow, 12=Bow, 13=Instrument, 14=Book, 15=Polearm,
+16=Pole, 17=Bag, 18=Cloth. patch_names.py now sets UiItemCategoryId = UICAT[categoryOverride] for
+every repurposed weapon, so the card reads the OVERRIDE category, not the base slot. Applied to all
+7 known repurposes (48 Terrastaff->Pole, 49 Ravager->KnightSword, 50 Executioner->KnightSword,
+67 Warbrand->Sword, 68 Bloodlash->Knife, 69 Snarefang->NinjaBlade, 70 Sasori->Katana). ZERO base
+item.nxd extraction needed. ==> VERIFY IN-GAME after restart that the Ravager card reads "Knight
+Sword" (and ideally spot-check Warbrand/Sasori). If confirmed, this bug is fully solved; close it.
+
+ALSO LEARNED (related, now fixed): a weapon's `<TypeFlags>` must be `Rare, Weapon` for a rare weapon
+-- `Rare` ALONE drops the `Weapon` flag and the card stops rendering WP/Parry. Vanilla rares are all
+`Rare, Weapon`. (The Sanguine Sword shipped briefly with bare `Rare` and showed no Attack Power/Parry
+until corrected.) Old "Rare/not-sold = TypeFlags 'Rare'" note was WRONG.
 
 ## Offensive Chemist — SHIPPED 2026-06-01 (price still pending)
 
