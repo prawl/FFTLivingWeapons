@@ -2331,7 +2331,7 @@
         "range": 6,
         "attackFlags": "Direct"
       },
-      "desc": "A heavy steel crossbow with unmatched reach. Pure, reliable punch.\nEffective range: 6 tiles."
+      "desc": "A heavy steel crossbow with unmatched reach. Pure, reliable punch."
     },
     {
       "id": 80,
@@ -2359,7 +2359,7 @@
         "range": 5,
         "attackFlags": "Direct"
       },
-      "desc": "A crossbow that coats its bolts in venom.\nWhen attacking, has a chance of inflicting Poison.\nEffective range: 5 tiles."
+      "desc": "A crossbow that coats its bolts in venom.\nWhen attacking, has a chance of inflicting Poison."
     },
     {
       "id": 81,
@@ -2387,7 +2387,7 @@
         "range": 7,
         "attackFlags": "Direct"
       },
-      "desc": "A crossbow that douses its target in clinging pitch.\nWhen attacking, has a chance of inflicting Oil (the target takes double Fire damage).\nEffective range: 7 tiles."
+      "desc": "A crossbow that douses its target in clinging pitch.\nWhen attacking, has a chance of inflicting Oil (the target takes double Fire damage)."
     },
     {
       "id": 82,
@@ -2415,7 +2415,7 @@
         "range": 8,
         "attackFlags": "Direct"
       },
-      "desc": "A massive siege crossbow. All the stopping power a strong arm can drive.\nEffective range: 8 tiles."
+      "desc": "A massive siege crossbow. All the stopping power a strong arm can drive."
     },
     {
       "id": 83,
@@ -2443,7 +2443,7 @@
         "range": 5,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "A short, nimble bow for hit-and-run scouts. Quick draw, quicker feet.\nEffective range: 5 tiles."
+      "desc": "A short, nimble bow for hit-and-run scouts. Quick draw, quicker feet."
     },
     {
       "id": 84,
@@ -2471,7 +2471,7 @@
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "A featherlight silver bow that dances out of reach. No element, no risk.\nEffective range: 6 tiles."
+      "desc": "A featherlight silver bow that dances out of reach. No element, no risk."
     },
     {
       "id": 85,
@@ -2555,7 +2555,7 @@
         "range": 8,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "Wind-element reach bow (R8).\nHas a chance to cast Wind Slash on hit."
+      "desc": "Wind-element reach bow.\nHas a chance to cast Wind Slash on hit."
     },
     {
       "id": 88,

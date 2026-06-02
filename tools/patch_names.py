@@ -137,9 +137,6 @@ def mechanics(it):
             parts.append("Has a chance to knock the target back a tile on hit.")
         if f == 2 and p in CAST:  # non-elemental ability cast on hit (Sanguine / Ashura / Gravity)
             parts.append(f"Has a chance to cast {CAST[p]} on hit.")
-        rng = s.get("range", 1) or 1
-        if rng >= 2:  # any reach weapon states its range (per user request)
-            parts.append(f"Strikes from up to {rng} tiles away.")
         af = s.get("attackFlags") or ""
         if "ForcedTwoHands" in af and "Arc" not in af:  # melee two-hander; bows (Arc) are obviously 2H, skip
             parts.append("Held in two hands only (no shield).")
@@ -221,6 +218,13 @@ def main():
             # mechanics (so the stats stay in sync if we retune them); plain flavor() is the fallback.
             fl, mech = (it.get("flavorOverride") or flavor(it)), mechanics(it)
             desc = fl + ("\n" + mech if mech else "")
+        # reach line appended uniformly (custom + generated) so every ranged weapon phrases range identically
+        rng = it["proposed"].get("range", 1) or 1
+        if it["category"] in WEAPON_CATS and rng >= 2:
+            desc = desc.rstrip()
+            if desc and not desc.endswith((".", "!", "?")):
+                desc += "."
+            desc += f" Strikes from up to {rng} tiles away."
         name = it["name"]
         if dry:
             if it["id"] >= 11:  # show the new ones
