@@ -87,11 +87,11 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 108,
+        "formula": 2,
         "attackFlags": "Throwable, TwoSwords, Striking"
       },
-      "desc": "A humble street knife, cheap and ready from your first day in the field."
+      "desc": "A humble street knife, cheap and ready from your first day in the field.\nHas a chance to cast Steal Gil on hit."
     },
     {
       "id": 2,
@@ -389,6 +389,7 @@
       "name": "Frost Kodachi",
       "tier": 3,
       "identity": "Ice arsenal -- first elemental blade; two Ice procs/turn under Dual Wield. Anti-Fire, +25% vs Ice-weak. Only Ice source; unlocks a tier before the Lightning blade so it can't be dominated by it.",
+      "desc": "An ice-forged short blade; its bite carries the cold.\nDeals Ice-elemental damage.\nHas a chance to cast Blizzard on hit.",
       "baseline": {
         "wp": 10,
         "evade": 5,
@@ -401,8 +402,8 @@
         "evade": 10,
         "element": "Ice",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 24,
+        "formula": 2,
         "range": 1
       },
       "iconTint": [
@@ -418,6 +419,7 @@
       "name": "Raijin Longblade",
       "tier": 4,
       "identity": "Lightning arsenal + line-max 20% evade. Mid-game dodge-DPS: anti-mechanical / Lightning-weak coverage on the highest-evade chassis. Only Lightning melee source. Splits from Spellbinder (same tier/WP) by trading Silence for element + top evade.",
+      "desc": "Named for the thunder god; each cut crackles with stormlight.\nDeals Lightning-elemental damage.\nHas a chance to cast Thunder on hit.",
       "baseline": {
         "wp": 12,
         "evade": 5,
@@ -430,8 +432,8 @@
         "evade": 20,
         "element": "Lightning",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 20,
+        "formula": 2,
         "range": 1
       },
       "iconTint": [
@@ -623,16 +625,16 @@
         "formula": 1
       },
       "proposed": {
-        "wp": 7,
+        "wp": 6,
         "evade": 16,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 141,
+        "formula": 2,
         "attackFlags": "Striking, TwoSwords, TwoHands",
         "equipBonusId": 83
       },
-      "desc": "A duelist's sword built to turn blows aside and answer them.\nAlways: Atheist -- enemy magick barely scratches the wielder (and their own is just as hollow)."
+      "desc": "A duelist's sword built to turn blows aside and answer them.\nHas a chance to cast Rend Weapon on hit."
     },
     {
       "id": 22,
@@ -641,6 +643,7 @@
       "name": "Claymore",
       "tier": 2,
       "identity": "REACH SWORD test -- the only sword that strikes from 2 tiles, paid for with zero evade + no element/proc",
+      "desc": "A two-handed greatsword that strikes from a tile back.\nHas a chance to cast Rend Armor on hit.",
       "baseline": {
         "wp": 7,
         "evade": 8,
@@ -650,12 +653,12 @@
         "formula": 1
       },
       "proposed": {
-        "wp": 8,
+        "wp": 7,
         "evade": 0,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 139,
+        "formula": 2,
         "attackFlags": "Throwable, TwoHands, Lunging, ForcedTwoHands",
         "range": 2
       }
@@ -755,15 +758,15 @@
         "formula": 1
       },
       "proposed": {
-        "wp": 9,
+        "wp": 8,
         "evade": 5,
         "element": "Fire",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 16,
+        "formula": 2,
         "attackFlags": "Striking, TwoSwords, TwoHands"
       },
-      "desc": "A wavering blade that burns like a torch.\nDeals Fire-elemental damage."
+      "desc": "A wavering blade that burns like a torch. Deals Fire-elemental damage.\nHas a chance to cast Fire on hit."
     },
     {
       "id": 27,
@@ -831,15 +834,15 @@
         "formula": 1
       },
       "proposed": {
-        "wp": 13,
+        "wp": 12,
         "evade": 10,
         "element": "Ice",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 26,
+        "formula": 2,
         "attackFlags": "Striking, TwoSwords, TwoHands"
       },
-      "desc": "A blade of eternal frost; each cut bites with cold.\nDeals Ice-elemental damage."
+      "desc": "A blade of eternal frost; each cut bites with cold. Deals Ice-elemental damage.\nHas a chance to cast Blizzaga on hit."
     },
     {
       "id": 30,
@@ -1070,6 +1073,7 @@
       "name": "Ashura",
       "tier": 1,
       "identity": "Earliest katana + the line's evade crown (25%) -- the defensive samurai's first blade; out-dodges every higher-WP katana, earning its slot on availability + guard, not power. No rider to misfire while you learn the class.",
+      "desc": "The earliest katana, named for the Ashura's spirit blade.\nHas a chance to cast Draw Out: Ashura on hit.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -1078,12 +1082,12 @@
         "formula": "1 (PA*Brave/100*WP, Brave-scaling)"
       },
       "proposed": {
-        "wp": 7,
+        "wp": 6,
         "evade": 25,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 76,
+        "formula": 2,
         "range": 1
       },
       "iconTint": [
@@ -1274,6 +1278,7 @@
       "name": "Kiku-ichimonji",
       "tier": 4,
       "identity": "The reach blade -- the ONLY range-2 katana, echoing Kikuichimonji's long-range Draw Out. Strike from the second rank and stay safer; no element or status, reach IS the identity. Nothing at this WP can match its range.",
+      "desc": "The long-reach katana, named for its spirit blade.\nHas a chance to cast Draw Out: Kiku-ichimonji on hit.",
       "baseline": {
         "wp": 15,
         "evade": 15,
@@ -1282,12 +1287,12 @@
         "formula": "1 (PA*Brave/100*WP)"
       },
       "proposed": {
-        "wp": 14,
+        "wp": 13,
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 83,
+        "formula": 2,
         "range": 2,
         "attackFlags": "Throwable, TwoHands, Lunging"
       },
@@ -2262,16 +2267,16 @@
         "range": 3
       },
       "proposed": {
-        "wp": 4,
+        "wp": 3,
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 213,
+        "formula": 2,
         "range": 3,
         "attackFlags": "Direct"
       },
-      "desc": "A light scout's crossbow, quick to the shoulder and cheap to replace.\nEffective range: 3 tiles."
+      "desc": "A light scout's crossbow.\nHas a chance to cast Leg Shot on hit."
     },
     {
       "id": 78,
@@ -2485,16 +2490,16 @@
         "range": 6
       },
       "proposed": {
-        "wp": 5,
+        "wp": 4,
         "evade": 5,
         "element": "Ice",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 24,
+        "formula": 2,
         "range": 4,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "A bow strung with frostsilk; each arrow bites with cold.\nDeals Ice-elemental damage.\nEffective range: 4 tiles."
+      "desc": "Ice-element bow.\nHas a chance to cast Blizzard on hit."
     },
     {
       "id": 86,
@@ -2513,16 +2518,16 @@
         "range": 6
       },
       "proposed": {
-        "wp": 6,
+        "wp": 5,
         "evade": 5,
         "element": "Lightning",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 20,
+        "formula": 2,
         "range": 7,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "A bow humming with static; arrows crack like thunder.\nDeals Lightning-elemental damage.\nEffective range: 7 tiles."
+      "desc": "Lightning-element bow.\nHas a chance to cast Thunder on hit."
     },
     {
       "id": 87,
@@ -2541,16 +2546,16 @@
         "range": 7
       },
       "proposed": {
-        "wp": 8,
+        "wp": 7,
         "evade": 0,
         "element": "Wind",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 131,
+        "formula": 2,
         "range": 8,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "A long-limbed bow that arcs arrows over any wall.\nDeals Wind-elemental damage; longest reach of the buyable bows.\nEffective range: 8 tiles."
+      "desc": "Wind-element reach bow (R8).\nHas a chance to cast Wind Slash on hit."
     },
     {
       "id": 88,
@@ -2569,16 +2574,16 @@
         "range": 6
       },
       "proposed": {
-        "wp": 7,
+        "wp": 6,
         "evade": 10,
         "element": "Water",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 127,
+        "formula": 2,
         "range": 5,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "A bow whose arrows steal the voice.\nWhen attacking, has a chance of inflicting Silence.\nEffective range: 5 tiles."
+      "desc": "Water-element bow.\nHas a chance to cast Torrent on hit."
     },
     {
       "id": 89,
@@ -2597,16 +2602,16 @@
         "range": 6
       },
       "proposed": {
-        "wp": 9,
+        "wp": 8,
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 214,
+        "formula": 2,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
-      "desc": "A balanced marksman's bow. Power and poise in equal measure.\nEffective range: 6 tiles."
+      "desc": "T5 marksman bow.\nHas a chance to cast Arm Shot on hit."
     },
     {
       "id": 90,
@@ -2669,6 +2674,7 @@
       "name": "Siren's Lyre",
       "tier": 2,
       "identity": "T2 elemental opener harp -- the family's only Wind source: Formula-1 Wind attacks punish Wind-weak/Float foes at R3. Hybrid (PA+MA)/2 bard; element is the rider, WP modest. Earliest harp.",
+      "desc": "T2 enchanting harp.\nHas a chance to cast Charm on hit.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -2677,12 +2683,12 @@
         "formula": "1"
       },
       "proposed": {
-        "wp": 7,
+        "wp": 6,
         "evade": 10,
         "element": "None",
         "onHit": "Confuses the target on hit",
-        "onHitAbilityId": 23,
-        "formula": 1,
+        "onHitAbilityId": 201,
+        "formula": 2,
         "range": 3
       },
       "iconTint": [
@@ -2698,6 +2704,7 @@
       "name": "Duskstring Harp",
       "tier": 3,
       "identity": "T3 anti-physical harp -- the only ranged Blind in the harp lane: crater an enemy bruiser's hit-rate from 3 tiles back without waking them. Owns Blind.",
+      "desc": "T3 anti-physical harp.\nHas a chance to cast Blind on hit.",
       "baseline": {
         "wp": 13,
         "evade": 10,
@@ -2706,12 +2713,12 @@
         "formula": "6"
       },
       "proposed": {
-        "wp": 8,
+        "wp": 7,
         "evade": 10,
         "element": "None",
         "onHit": "Blind",
-        "onHitAbilityId": 9,
-        "formula": 1,
+        "onHitAbilityId": 234,
+        "formula": 2,
         "range": 3
       },
       "iconTint": [
@@ -2727,6 +2734,7 @@
       "name": "Faerie Harp",
       "tier": 5,
       "identity": "T5 capstone harp -- iconic faerie lullaby: ranged Sleep lulls a target out of the fight for a team burst (self-removes on hit, so a setup tool not a delete). Top harp WP, T5-gated. Owns Sleep line-wide.",
+      "desc": "T5 capstone harp.\nHas a chance to cast Sleep on hit.",
       "baseline": {
         "wp": 15,
         "evade": 10,
@@ -2735,12 +2743,12 @@
         "formula": "7"
       },
       "proposed": {
-        "wp": 9,
+        "wp": 8,
         "evade": 10,
         "element": "None",
         "onHit": "Charms the target on hit",
-        "onHitAbilityId": 24,
-        "formula": 1,
+        "onHitAbilityId": 246,
+        "formula": 2,
         "range": 3
       },
       "iconTint": [
@@ -2756,6 +2764,7 @@
       "name": "Glarebound Tome",
       "tier": 1,
       "identity": "T1 orator opener -- earliest/cheapest book and the only ranged Blind in the Book lane: neuter an enemy physical attacker from afar. Lowest WP in the category; the accuracy-denial rider is the point.",
+      "desc": "T1 orator's book.\nHas a chance to cast Intimidate on hit.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -2764,12 +2773,12 @@
         "formula": "2"
       },
       "proposed": {
-        "wp": 6,
+        "wp": 5,
         "evade": 15,
         "element": "None",
         "onHit": "May inflict Blind",
-        "onHitAbilityId": 9,
-        "formula": 1,
+        "onHitAbilityId": 119,
+        "formula": 2,
         "range": 3
       },
       "iconTint": [
@@ -2814,6 +2823,7 @@
       "name": "Binding Codex",
       "tier": 4,
       "identity": "T4 pin codex -- ranged (R3) Immobilize locks a runner/charger in place for your casters and archers. Book-lane Immobilize (R3/Ev15 pin-from-range), distinct from the cloth pinner.",
+      "desc": "T4 pin codex.\nHas a chance to cast Immobilize on hit.",
       "baseline": {
         "wp": 9,
         "evade": 15,
@@ -2822,12 +2832,12 @@
         "formula": "2"
       },
       "proposed": {
-        "wp": 8,
+        "wp": 7,
         "evade": 15,
         "element": "None",
         "onHit": "May inflict Immobilize",
-        "onHitAbilityId": 14,
-        "formula": 1,
+        "onHitAbilityId": 37,
+        "formula": 2,
         "range": 3
       },
       "iconTint": [
@@ -2930,6 +2940,7 @@
       "name": "Frostpoint",
       "tier": 3,
       "identity": "T3 only Ice spear -- innate Ice melee, WP tied to Footman's (zero raw paid for the matchup tool). Shreds Fire-creatures/Ice-weak; Ice-absorbers heal (cost).",
+      "desc": "An ice-veined spear; its frozen tip sometimes shatters into raining ice.\nHas a chance to cast Blizzard on hit.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -2938,12 +2949,12 @@
         "formula": "1 (PA*WP)"
       },
       "proposed": {
-        "wp": 9,
+        "wp": 8,
         "evade": 10,
         "element": "Ice",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 24,
+        "formula": 2,
         "range": 2
       },
       "iconTint": [
@@ -2959,6 +2970,7 @@
       "name": "Stormpike",
       "tier": 3,
       "identity": "T3 only Lightning spear -- innate Bolt melee, +1 WP over Frostpoint (sidegrade, different element). Anti-armor/Lightning-weak; +25% in rain.",
+      "desc": "A lightning-charged partisan; its strike sometimes calls down a bolt.\nHas a chance to cast Thunder on hit.",
       "baseline": {
         "wp": 11,
         "evade": 10,
@@ -2967,12 +2979,12 @@
         "formula": "1 (PA*WP)"
       },
       "proposed": {
-        "wp": 10,
+        "wp": 9,
         "evade": 10,
         "element": "Lightning",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 20,
+        "formula": 2,
         "range": 2
       },
       "iconTint": [
@@ -3018,6 +3030,7 @@
       "name": "Holy Lance",
       "tier": 5,
       "identity": "ICONIC. T5 only Holy spear -- innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated.",
+      "desc": "The crusader's holy spear; its blessed point sometimes erupts with sacred light.\nHas a chance to cast Holy on hit.",
       "baseline": {
         "wp": 14,
         "evade": 10,
@@ -3026,12 +3039,12 @@
         "formula": "1 (PA*WP) + Holy-element + 25% Holy proc"
       },
       "proposed": {
-        "wp": 13,
+        "wp": 12,
         "evade": 10,
         "element": "Holy",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 15,
+        "formula": 2,
         "range": 2
       },
       "iconTint": [
@@ -3047,6 +3060,7 @@
       "name": "Dragon Whisker",
       "tier": 6,
       "identity": "ICONIC capstone. T6 riderless raw apex -- strictly-highest spear WP (16), the ultimate Jump platform. Pure PA*WP ceiling; pays with the lowest 10% evade and zero utility. Red-Dragon poach.",
+      "desc": "The wyrm-feather apex spear; its thrust sometimes looses a gout of draconic flame.\nHas a chance to cast Fire Breath on hit.",
       "baseline": {
         "wp": 17,
         "evade": 10,
@@ -3055,12 +3069,12 @@
         "formula": "1 (PA*WP)"
       },
       "proposed": {
-        "wp": 16,
+        "wp": 15,
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 249,
+        "formula": 2,
         "range": 2
       },
       "iconTint": [
@@ -3106,6 +3120,7 @@
       "name": "Greenwood Pole",
       "tier": 1,
       "identity": "ICONIC. T1 starter pole -- earliest/cheapest MA-reach, the 20% evade family floor. The honest training staff for early Geomancer/Monk.",
+      "desc": "A humble training pole; a focused strike sometimes channels raw martial spirit at a distant foe.\nHas a chance to cast Aurablast on hit.",
       "baseline": {
         "wp": 6,
         "evade": 20,
@@ -3118,8 +3133,8 @@
         "evade": 20,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 102,
+        "formula": 2,
         "range": 2
       },
       "iconTint": [
@@ -3309,6 +3324,7 @@
       "name": "Whale Whisker",
       "tier": 6,
       "identity": "ICONIC capstone. THE caster pole -- highest pole WP (15) + only Water element; MA*WP comes free from the Pole weapon type (Formula 1, no risk). Best-in-slot for a high-MA front-liner. Tiamat-poach.",
+      "desc": "THE caster pole, charged with the sea; its strike sometimes drowns a distant foe in surging water.\nHas a chance to cast Torrent on hit.",
       "baseline": {
         "wp": 16,
         "evade": 20,
@@ -3317,12 +3333,12 @@
         "formula": "2 (MA*WP) — uses Magic Attack, NOT PA"
       },
       "proposed": {
-        "wp": 15,
+        "wp": 14,
         "evade": 20,
         "element": "Water",
         "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHitAbilityId": 127,
+        "formula": 2,
         "range": 2
       },
       "iconTint": [

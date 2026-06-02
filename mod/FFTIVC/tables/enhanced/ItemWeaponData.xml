@@ -7,11 +7,11 @@
       <Id>1</Id> <!-- Cutpurse (was Dagger) -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>5</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>108</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>2</Id> <!-- Quicksilver (was Mythril Knife) -->
@@ -124,20 +124,20 @@
     <ItemWeapon>
       <Id>13</Id> <!-- Frost Kodachi (was Kodachi) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>10</Power>
       <Evasion>10</Evasion>
       <Elements>Ice</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>24</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>14</Id> <!-- Raijin Longblade (was Ninja Longblade) -->
       <Range>1</Range>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>11</Power>
       <Evasion>20</Evasion>
       <Elements>Lightning</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>20</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>15</Id> <!-- Silentfang (was Spellbinder) -->
@@ -199,21 +199,21 @@
       <Id>21</Id> <!-- Riposte (was Iron Sword) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>1</Formula>
-      <Power>7</Power>
+      <Formula>2</Formula>
+      <Power>6</Power>
       <Evasion>16</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>141</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>22</Id> <!-- Claymore (was Mythril Sword) -->
       <Range>2</Range>
       <AttackFlags>Throwable, TwoHands, Lunging, ForcedTwoHands</AttackFlags>
-      <Formula>1</Formula>
-      <Power>8</Power>
+      <Formula>2</Formula>
+      <Power>7</Power>
       <Evasion>0</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>139</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>23</Id> <!-- Sanguine Sword (was Blood Sword) -->
@@ -249,11 +249,11 @@
       <Id>26</Id> <!-- Flamberge (was Sleep Blade) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>1</Formula>
-      <Power>9</Power>
+      <Formula>2</Formula>
+      <Power>8</Power>
       <Evasion>5</Evasion>
       <Elements>Fire</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>16</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>27</Id> <!-- Wrathblade (was Platinum Sword) -->
@@ -279,11 +279,11 @@
       <Id>29</Id> <!-- Rimebrand (was Icebrand) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>1</Formula>
-      <Power>13</Power>
+      <Formula>2</Formula>
+      <Power>12</Power>
       <Evasion>10</Evasion>
       <Elements>Ice</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>26</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>30</Id> <!-- Arcanum (was Runeblade) -->
@@ -363,11 +363,11 @@
     <ItemWeapon>
       <Id>38</Id> <!-- Ashura -->
       <Range>1</Range>
-      <Formula>1</Formula>
-      <Power>7</Power>
+      <Formula>2</Formula>
+      <Power>6</Power>
       <Evasion>25</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>76</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>39</Id> <!-- Kotetsu -->
@@ -427,11 +427,11 @@
       <Id>45</Id> <!-- Kiku-ichimonji -->
       <Range>2</Range>
       <AttackFlags>Throwable, TwoHands, Lunging</AttackFlags>
-      <Formula>1</Formula>
-      <Power>14</Power>
+      <Formula>2</Formula>
+      <Power>13</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>83</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>46</Id> <!-- Masamune -->
@@ -716,11 +716,11 @@
       <Id>77</Id> <!-- Scoutbolt (was Bowgun) -->
       <Range>3</Range>
       <AttackFlags>Direct</AttackFlags>
-      <Formula>1</Formula>
-      <Power>4</Power>
+      <Formula>2</Formula>
+      <Power>3</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>213</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>78</Id> <!-- Eclipsebolt (was Knightslayer) -->
@@ -796,51 +796,51 @@
       <Id>85</Id> <!-- Frostarc (was Ice Bow) -->
       <Range>4</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
-      <Formula>1</Formula>
-      <Power>5</Power>
+      <Formula>2</Formula>
+      <Power>4</Power>
       <Evasion>5</Evasion>
       <Elements>Ice</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>24</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>86</Id> <!-- Stormarc (was Lightning Bow) -->
       <Range>7</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
-      <Formula>1</Formula>
-      <Power>6</Power>
+      <Formula>2</Formula>
+      <Power>5</Power>
       <Evasion>5</Evasion>
       <Elements>Lightning</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>20</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>87</Id> <!-- Skypiercer (was Windslash Bow) -->
       <Range>8</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
-      <Formula>1</Formula>
-      <Power>8</Power>
+      <Formula>2</Formula>
+      <Power>7</Power>
       <Evasion>0</Evasion>
       <Elements>Wind</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>131</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>88</Id> <!-- Tidecaller (was Mythril Bow) -->
       <Range>5</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
-      <Formula>1</Formula>
-      <Power>7</Power>
+      <Formula>2</Formula>
+      <Power>6</Power>
       <Evasion>10</Evasion>
       <Elements>Water</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>127</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>89</Id> <!-- Huntress (was Artemis Bow) -->
       <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
-      <Formula>1</Formula>
-      <Power>9</Power>
+      <Formula>2</Formula>
+      <Power>8</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>214</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>90</Id> <!-- Yoichi Bow -->
@@ -865,38 +865,38 @@
     <ItemWeapon>
       <Id>92</Id> <!-- Siren's Lyre (was Lamia's Harp) -->
       <Range>3</Range>
-      <Formula>1</Formula>
-      <Power>7</Power>
+      <Formula>2</Formula>
+      <Power>6</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>23</OptionsAbilityId>
+      <OptionsAbilityId>201</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>93</Id> <!-- Duskstring Harp (was Bloodstring Harp) -->
       <Range>3</Range>
-      <Formula>1</Formula>
-      <Power>8</Power>
+      <Formula>2</Formula>
+      <Power>7</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>9</OptionsAbilityId>
+      <OptionsAbilityId>234</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>94</Id> <!-- Faerie Harp -->
       <Range>3</Range>
-      <Formula>1</Formula>
-      <Power>9</Power>
+      <Formula>2</Formula>
+      <Power>8</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>24</OptionsAbilityId>
+      <OptionsAbilityId>246</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>95</Id> <!-- Glarebound Tome (was Battle Folio) -->
       <Range>3</Range>
-      <Formula>1</Formula>
-      <Power>6</Power>
+      <Formula>2</Formula>
+      <Power>5</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>9</OptionsAbilityId>
+      <OptionsAbilityId>119</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>96</Id> <!-- Knell Codex (was Bestiary) -->
@@ -910,11 +910,11 @@
     <ItemWeapon>
       <Id>97</Id> <!-- Binding Codex (was Papyrus Codex) -->
       <Range>3</Range>
-      <Formula>1</Formula>
-      <Power>8</Power>
+      <Formula>2</Formula>
+      <Power>7</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>14</OptionsAbilityId>
+      <OptionsAbilityId>37</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>98</Id> <!-- Omnilex -->
@@ -946,20 +946,20 @@
     <ItemWeapon>
       <Id>101</Id> <!-- Frostpoint (was Mythril Spear) -->
       <Range>2</Range>
-      <Formula>1</Formula>
-      <Power>9</Power>
+      <Formula>2</Formula>
+      <Power>8</Power>
       <Evasion>10</Evasion>
       <Elements>Ice</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>24</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>102</Id> <!-- Stormpike (was Partisan) -->
       <Range>2</Range>
-      <Formula>1</Formula>
-      <Power>10</Power>
+      <Formula>2</Formula>
+      <Power>9</Power>
       <Evasion>10</Evasion>
       <Elements>Lightning</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>20</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>103</Id> <!-- Tombspire (was Obelisk) -->
@@ -973,20 +973,20 @@
     <ItemWeapon>
       <Id>104</Id> <!-- Holy Lance -->
       <Range>2</Range>
-      <Formula>1</Formula>
-      <Power>13</Power>
+      <Formula>2</Formula>
+      <Power>12</Power>
       <Evasion>10</Evasion>
       <Elements>Holy</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>15</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>105</Id> <!-- Dragon Whisker -->
       <Range>2</Range>
-      <Formula>1</Formula>
-      <Power>16</Power>
+      <Formula>2</Formula>
+      <Power>15</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>249</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>106</Id> <!-- Wyrmpike (was Javelin) -->
@@ -1001,11 +1001,11 @@
     <ItemWeapon>
       <Id>107</Id> <!-- Greenwood Pole (was Cypress Pole) -->
       <Range>2</Range>
-      <Formula>1</Formula>
+      <Formula>2</Formula>
       <Power>6</Power>
       <Evasion>20</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>102</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>108</Id> <!-- Ironreed Pole (was Battle Bamboo) -->
@@ -1064,11 +1064,11 @@
     <ItemWeapon>
       <Id>114</Id> <!-- Whale Whisker -->
       <Range>2</Range>
-      <Formula>1</Formula>
-      <Power>15</Power>
+      <Formula>2</Formula>
+      <Power>14</Power>
       <Evasion>20</Evasion>
       <Elements>Water</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>127</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>115</Id> <!-- Sandman Satchel (was Catskin Bag) -->
