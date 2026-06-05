@@ -822,27 +822,29 @@
       "id": 29,
       "category": "Sword",
       "vanillaName": "Icebrand",
-      "name": "Rimebrand",
+      "name": "Living Blade+",
       "tier": 5,
-      "identity": "Ice blade -- high WP, attacks deal Ice (anti-Fire-creature; Ice-absorbers heal it). Only Ice sword.",
+      "livingWeapon": true,
+      "identity": "LIVING WEAPON tier 1 (10 kills), repurposed from Rimebrand. WP 16->18 AND +1 Physical Attack (EquipBonus row 21) over the id31 base -- both WP and PA grow per tier. Companion-only -- the player never obtains this directly (TODO: pull from shops/drops). Exempt from the dominance gate.",
+      "desc": "The blade stirs with borrowed strength; its edge favors the one who feeds it.\n+1 Physical Attack.\nKills: 000",
       "baseline": {
-        "wp": 13,
-        "evade": 10,
-        "element": "Ice",
+        "wp": 18,
+        "evade": 12,
+        "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 0,
         "formula": 1
       },
       "proposed": {
-        "wp": 12,
-        "evade": 10,
-        "element": "Ice",
+        "wp": 18,
+        "evade": 12,
+        "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 26,
-        "formula": 2,
-        "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "A blade of eternal frost; each cut bites with cold. Deals Ice-elemental damage.\nHas a chance to cast Blizzaga on hit."
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1,
+        "rider": "PA+1",
+        "equipBonusId": 21
+      }
     },
     {
       "id": 30,
@@ -875,25 +877,26 @@
       "id": 31,
       "category": "Sword",
       "vanillaName": "Nagrarok",
-      "name": "Nagrarok",
-      "tier": 6,
-      "identity": "Evade-wall trickster -- line-max 50% physical evade AND on-hit Toad (target reduced to weak basic attack). Near-zero WP (3): dodge-and-disable, never damage. Proc id 16 unverified in-game.",
+      "name": "Living Blade",
+      "tier": 5,
+      "livingWeapon": true,
+      "identity": "LIVING WEAPON base (companion-driven), repurposed from Nagrarok. An endgame-competitive Sword (WP 16, top of the sword class) that grows in WP and Physical Attack as it scores kills; the FFTHandsFree companion swaps the wielder's equip slot up the tier ladder between battles (id31 base -> id29 'Living Blade+' @10 kills; further tiers later). Exempt from the dominance gate (it is not a static item). Obtained once (Move-Find treasure -- TODO); upgrade tiers are companion-only.",
+      "desc": "A nameless blade that hungers.\nIt grows stronger with every life it claims.\nKills: 000",
       "baseline": {
-        "wp": 1,
-        "evade": 50,
+        "wp": 16,
+        "evade": 12,
         "element": "None",
-        "onHit": "Toad",
-        "onHitAbilityId": 16,
+        "onHit": "None",
         "formula": 1
       },
       "proposed": {
-        "wp": 3,
-        "evade": 50,
+        "wp": 16,
+        "evade": 12,
         "element": "None",
-        "onHit": "Toad",
-        "onHitAbilityId": 16,
+        "onHit": "None",
+        "onHitAbilityId": 0,
         "formula": 1,
-        "attackFlags": "Striking, TwoSwords, TwoHands"
+        "range": 1
       }
     },
     {

@@ -1,4 +1,6 @@
 TODO
+- Remove Regen from Chaos Blade
+- Make the Genji Gloves Red like the rest of the set
 - Fix the coloring on all icons
 - Fix the descriptions they're all sorta of fucked up and wrong
 - Fix the ordering of the weapons

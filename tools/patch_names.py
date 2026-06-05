@@ -27,6 +27,9 @@ ENC_DIR = ROOT / "working" / "nxd_out"
 
 WEAPON_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff",
                "Flail", "Gun", "Crossbow", "Bow", "Instrument", "Book", "Polearm", "Pole", "Bag", "Cloth"}
+# Living Weapon display scaffolding: bake a fixed 2-char name-suffix SLOT (companion paints +/+2/+3)
+# and a fixed-width Kills line onto every weapon, so the in-card "it leveled up" overwrite works.
+SCAFFOLD_LIVING = True
 MELEE1_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff", "Flail", "Bag"}
 ACC_CATS = {"Shoes", "Armguard", "Ring", "Armlet", "Cloak", "Perfume"}
 CAT_NOUN = {"Knife": "knife", "NinjaBlade": "ninja blade", "Sword": "blade", "KnightSword": "knight's sword",
@@ -225,16 +228,25 @@ def main():
             if desc and not desc.endswith((".", "!", "?")):
                 desc += "."
             desc += f" Strikes from up to {rng} tiles away."
-        name = it["name"]
+        clean = it["name"]
+        eff_cat = it["proposed"].get("categoryOverride") or it.get("category")
+        # --- Living Weapon display scaffolding (every weapon grows as it kills) ---
+        # Two trailing spaces = a 2-char name-suffix SLOT the companion paints +/+2/+3 into
+        # (spaces render as nothing, so tier 0 reads clean). A fixed-width "Kills 0000" line
+        # gives the per-weapon counter a stable overwrite target. Same proven loaded-string
+        # overwrite the Living Blade MVP used, now armed on all 121 weapons.
+        name = clean
+        if SCAFFOLD_LIVING and eff_cat in WEAPON_CATS:
+            name = clean + "  "
+            desc = desc.rstrip() + "\nKills 0000"
         if dry:
             if it["id"] >= 11:  # show the new ones
-                print(f"id{it['id']:>3} {name}\n      {desc!r}")
+                print(f"id{it['id']:>3} {name!r}\n      {desc!r}")
             continue
         con.execute('UPDATE "Item-en" SET Name=?, NameSingular=?, NamePlural=?, Name2=?, Description=? WHERE Key=?',
-                    (name, name.lower(), plural(name), name, desc, it["id"]))
+                    (name, clean.lower(), plural(clean), name, desc, it["id"]))
         # card type-label = the override category if repurposed, else the native category. Setting it for EVERY
         # weapon also auto-corrects vanilla mislabels (e.g. Birchwood Staff shipped as a KnightSword).
-        eff_cat = it["proposed"].get("categoryOverride") or it.get("category")
         if eff_cat in UICAT:
             con.execute('UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?', (UICAT[eff_cat], it["id"]))
         n += 1

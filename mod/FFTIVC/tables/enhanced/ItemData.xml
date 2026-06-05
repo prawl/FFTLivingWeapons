@@ -13,6 +13,10 @@
       <ShopAvailability>Unknown20</ShopAvailability>
     </Item>
     <Item>
+      <Id>29</Id> <!-- Living Blade+ (was Icebrand) -->
+      <EquipBonusId>21</EquipBonusId>
+    </Item>
+    <Item>
       <Id>30</Id> <!-- Arcanum (was Runeblade) -->
       <EquipBonusId>1</EquipBonusId>
     </Item>

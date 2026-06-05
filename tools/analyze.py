@@ -78,6 +78,11 @@ def dominates(bi, ai, key, normal_formulas):
 
 
 def check(items, key, normal_formulas):
+    # Living-weapon tiers grow between battles (companion-driven), so a static
+    # snapshot can't fairly judge them: the base is deliberately weak and the
+    # upgrade rungs are unobtainable except via growth. Exempt from the gate
+    # (both as dominatee and dominator) so they neither trip nor mask it.
+    items = [it for it in items if not it.get("livingWeapon")]
     by_cat = {}
     for it in items:
         by_cat.setdefault(it["category"], []).append(it)
@@ -93,6 +98,7 @@ def check(items, key, normal_formulas):
 def check_slots(items, normal_formulas):
     """Cross-category dominance within a shared equip slot, access-aware (a restricted item can't be dominated by
     a broader-access one's narrower sibling; a universal item dominates restricted ones it out-stats)."""
+    items = [it for it in items if not it.get("livingWeapon")]  # see check(): living weapons are gate-exempt
     groups = {}
     for it in items:
         g = SLOT_GROUP.get(it["category"])

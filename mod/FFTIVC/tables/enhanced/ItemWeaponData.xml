@@ -276,14 +276,13 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>29</Id> <!-- Rimebrand (was Icebrand) -->
+      <Id>29</Id> <!-- Living Blade+ (was Icebrand) -->
       <Range>1</Range>
-      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>2</Formula>
-      <Power>12</Power>
-      <Evasion>10</Evasion>
-      <Elements>Ice</Elements>
-      <OptionsAbilityId>26</OptionsAbilityId>
+      <Formula>1</Formula>
+      <Power>18</Power>
+      <Evasion>12</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>30</Id> <!-- Arcanum (was Runeblade) -->
@@ -296,14 +295,13 @@
       <OptionsAbilityId>55</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>31</Id> <!-- Nagrarok -->
+      <Id>31</Id> <!-- Living Blade (was Nagrarok) -->
       <Range>1</Range>
-      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
-      <Power>3</Power>
-      <Evasion>50</Evasion>
+      <Power>16</Power>
+      <Evasion>12</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>16</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>32</Id> <!-- Materia Blade -->
