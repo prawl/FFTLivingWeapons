@@ -1,14 +1,14 @@
 {
   "_meta": {
-    "note": "Source of truth for the FFT:IVC item OVERHAUL. baseline = REAL vanilla/IVC values (Game8). proposed = the build-diversity rebalance values, emitted to the modloader ItemWeaponData XML by tools/generate.py. name = NEW overhaul name (-> item.en.nxd); vanillaName kept for reference. tier = availability rank (1=earliest .. 6=poach/endgame) -- a valid 'pick this' axis, enforced by analyze.py.",
-    "knifeFormula": "(PA + Speed) / 2 * WP  -- speed-scaling; knives own the fast/agile/utility niche",
+    "note": "Source of truth for the FFT:IVC item OVERHAUL. baseline = REAL vanilla/IVC values (Game8). proposed = the build-diversity rebalance values, emitted to the modloader ItemWeaponData XML by tools/generate.py. name = NEW overhaul name (-> item.en.nxd); vanillaName kept for reference. tier = availability rank (1=earliest .. 6=poach/endgame) — a valid 'pick this' axis, enforced by analyze.py.",
+    "knifeFormula": "(PA + Speed) / 2 * WP  — speed-scaling; knives own the fast/agile/utility niche",
     "normalFormulaIds": [
       1,
       5
     ],
     "renameTarget": "item.en.nxd (name + description). NXD round-trip mechanism: WIP.",
     "design": "Three lanes run the curve in parallel: RAW (Cutpurse/Argent Dirk/Adamant Fang), AGILE (Quicksilver 25ev / Sanguine Gauche 50ev), UTILITY (Gloomfang Blind / Hushblade Silence / Mortal Coil Doom / Dreamsever Sleep). Non-monotonic WP (5,6,5,6,7,6,9,8,10,12) makes every proc/evade knife undercut WP to pay for its gimmick.",
-    "openProcs": "id4 Hushblade Silence onHitAbilityId is unknown -- not one of the 9/11/12 procs. Confirm in-game before locking the description.",
+    "openProcs": "id4 Hushblade Silence onHitAbilityId is unknown — not one of the 9/11/12 procs. Confirm in-game before locking the description.",
     "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible (only 8 free ItemEquipBonusData slots: 74-79; 77 of 85 used). Each item's proposed.equipBonusId points at a vanilla id OR a free-slot id defined in _equipBonus below. The iconic element shields already exist: Ice=15, Flame=16, Kaiser-boost=18, Venetian-halve=19; stats: MA+1=10/12, MA+2=1/9, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4."
   },
   "_equipBonus": {
@@ -73,7 +73,7 @@
       "vanillaName": "Dagger",
       "name": "Cutpurse",
       "tier": 1,
-      "identity": "Honest Ch1 starter / cheapest dual-wield enabler -- earliest unlock is its niche",
+      "identity": "Honest Ch1 starter / cheapest dual-wield enabler — earliest unlock is its niche",
       "baseline": {
         "wp": 3,
         "evade": 5,
@@ -99,7 +99,7 @@
       "vanillaName": "Mythril Knife",
       "name": "Quicksilver",
       "tier": 2,
-      "identity": "Early AGILE knife -- real dodge identity (25 evade), not just 'a bit better than Cutpurse'",
+      "identity": "Early AGILE knife — real dodge identity (25 evade), not just 'a bit better than Cutpurse'",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -124,7 +124,7 @@
       "vanillaName": "Blind Knife",
       "name": "Gloomfang",
       "tier": 2,
-      "identity": "Anti-physical debuffer -- GUARANTEED Blind on EVERY hit (formula 2D), cripples an enemy bruiser's accuracy for the fight. Melee + low knife damage is the price; only Blind source.",
+      "identity": "Anti-physical debuffer — GUARANTEED Blind on EVERY hit (formula 2D), cripples an enemy bruiser's accuracy for the fight. Melee + low knife damage is the price; only Blind source.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -150,7 +150,7 @@
       "vanillaName": "Mage Masher",
       "name": "Hushblade",
       "tier": 2,
-      "identity": "Anti-caster -- GUARANTEED Silence on EVERY hit (formula 2D), shuts an enemy mage's spellbook cold. Melee-range + low knife damage is the price; only Silence source. (Spiciest of the 100% daggers; trim WP if it ever feels oppressive.)",
+      "identity": "Anti-caster — GUARANTEED Silence on EVERY hit (formula 2D), shuts an enemy mage's spellbook cold. Melee-range + low knife damage is the price; only Silence source. (Spiciest of the 100% daggers; trim WP if it ever feels oppressive.)",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -168,7 +168,7 @@
         "formula": 45,
         "attackFlags": "Throwable, TwoSwords, Striking"
       },
-      "flavorOverride": "Forged to throttle spellcraft -- a caster's worst nightmare."
+      "flavorOverride": "Forged to throttle spellcraft — a caster's worst nightmare."
     },
     {
       "id": 5,
@@ -176,7 +176,7 @@
       "vanillaName": "Platinum Dagger",
       "name": "Argent Dirk",
       "tier": 3,
-      "identity": "Clean no-strings mid-game main-hand -- reliable damage + modest dodge, no gimmick",
+      "identity": "Clean no-strings mid-game main-hand — reliable damage + modest dodge, no gimmick",
       "baseline": {
         "wp": 5,
         "evade": 10,
@@ -201,7 +201,7 @@
       "vanillaName": "Main Gauche",
       "name": "Sanguine Gauche",
       "tier": 3,
-      "identity": "Parry-tank lifeleech -- line-max evade (50) AND every hit drains HP (Night Sword, decimal 48 = 0x30; switches dmg to PA*WP). Two reasons it's never dominated.",
+      "identity": "Parry-tank lifeleech — line-max evade (50) AND every hit drains HP (Night Sword, decimal 48 = 0x30; switches dmg to PA*WP). Two reasons it's never dominated.",
       "baseline": {
         "wp": 6,
         "evade": 40,
@@ -227,7 +227,7 @@
       "vanillaName": "Orichalcum Dirk",
       "name": "Adamant Fang",
       "tier": 4,
-      "identity": "Glass-cannon stat-stick -- best STRINGLESS buyable damage; pays with line-min evade (5) and zero rider",
+      "identity": "Glass-cannon stat-stick — best STRINGLESS buyable damage; pays with line-min evade (5) and zero rider",
       "baseline": {
         "wp": 7,
         "evade": 5,
@@ -252,7 +252,7 @@
       "vanillaName": "Assassin's Dagger",
       "name": "Mortal Coil",
       "tier": 4,
-      "identity": "Single-target deleter on a clock -- Doom countdown then guaranteed KO. WP8 sits UNDER Adamant Fang (pays for the proc).",
+      "identity": "Single-target deleter on a clock — Doom countdown then guaranteed KO. WP8 sits UNDER Adamant Fang (pays for the proc).",
       "baseline": {
         "wp": 7,
         "evade": 5,
@@ -278,7 +278,7 @@
       "vanillaName": "Air Knife",
       "name": "Galewind",
       "tier": 5,
-      "identity": "Elemental main-hand -- top flat damage with a Wind exploit (x2 vs Wind-weak). Double-edged: Wind-absorbers heal.",
+      "identity": "Elemental main-hand — top flat damage with a Wind exploit (x2 vs Wind-weak). Double-edged: Wind-absorbers heal.",
       "baseline": {
         "wp": 10,
         "evade": 5,
@@ -304,7 +304,7 @@
       "vanillaName": "Zwill Straightblade",
       "name": "Zwill Straightblade",
       "tier": 6,
-      "identity": "Endgame capstone + burst-setup -- Sleep a target, team deletes it at +50%. Top WP but poach-gated and the Sleep self-removes, so a setup tool not a universal best.",
+      "identity": "Endgame capstone + burst-setup — Sleep a target, team deletes it at +50%. Top WP but poach-gated and the Sleep self-removes, so a setup tool not a universal best.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -329,7 +329,7 @@
       "vanillaName": "Ninja Blade",
       "name": "Swiftfang",
       "tier": 2,
-      "identity": "Speed blade -- damage = Speed x WP (formula 99): starts tame and GROWS as you stack Speed (gear + Shout), and dual-wield doubles it. The 'faster = deadlier' ninja weapon -- weak early, a blender once you commit to Speed. The melee anchor of the Speed-ninja archetype.",
+      "identity": "Speed blade — damage = Speed x WP (formula 99): starts tame and GROWS as you stack Speed (gear + Shout), and dual-wield doubles it. The 'faster = deadlier' ninja weapon — weak early, a blender once you commit to Speed. The melee anchor of the Speed-ninja archetype.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -351,7 +351,7 @@
         0.25,
         0.55
       ],
-      "flavorOverride": "A blade so light it answers the hand faster than thought -- the swifter the ninja, the deadlier the cut."
+      "flavorOverride": "A blade so light it answers the hand faster than thought — the swifter the ninja, the deadlier the cut."
     },
     {
       "id": 12,
@@ -359,7 +359,7 @@
       "vanillaName": "Kunai",
       "name": "Mistedge",
       "tier": 3,
-      "identity": "REACH outlier -- the only Range-2 melee in the line (throwing-knife fantasy). Hits from a tile back without melee retaliation; pays with line-min evade for its tier. Iconic name kept.",
+      "identity": "REACH outlier — the only Range-2 melee in the line (throwing-knife fantasy). Hits from a tile back without melee retaliation; pays with line-min evade for its tier. Iconic name kept.",
       "baseline": {
         "wp": 9,
         "evade": 5,
@@ -388,7 +388,7 @@
       "vanillaName": "Kodachi",
       "name": "Frost Kodachi",
       "tier": 3,
-      "identity": "Ice arsenal -- first elemental blade; two Ice procs/turn under Dual Wield. Anti-Fire, +25% vs Ice-weak. Only Ice source; unlocks a tier before the Lightning blade so it can't be dominated by it.",
+      "identity": "Ice arsenal — first elemental blade; two Ice procs/turn under Dual Wield. Anti-Fire, +25% vs Ice-weak. Only Ice source; unlocks a tier before the Lightning blade so it can't be dominated by it.",
       "desc": "An ice-forged short blade; its bite carries the cold.\nDeals Ice-elemental damage.\nHas a chance to cast Blizzard on hit.",
       "baseline": {
         "wp": 10,
@@ -448,12 +448,12 @@
       "vanillaName": "Spellbinder",
       "name": "Silentfang",
       "tier": 4,
-      "identity": "Anti-caster blade -- on-hit Silence shuts down enemy mages (vanilla Disable re-skinned to Silence id10, matching Regabonds). Pays with no element and base evade. Only on-hit Silence in the line. Iconic name kept.",
+      "identity": "Anti-caster blade — on-hit Silence shuts down enemy mages (vanilla Disable re-skinned to Silence id10, matching Regabonds). Pays with no element and base evade. Only on-hit Silence in the line. Iconic name kept.",
       "baseline": {
         "wp": 13,
         "evade": 5,
         "element": "None",
-        "onHit": "Disable (Don't Act) -- VANILLA. ** Regabonds CHANGED to Silence (OptionsAbilityId=10) **",
+        "onHit": "Disable (Don't Act) — VANILLA. ** Regabonds CHANGED to Silence (OptionsAbilityId=10) **",
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -477,7 +477,7 @@
       "vanillaName": "Sasuke's Blade",
       "name": "Sasuke's Blade",
       "tier": 6,
-      "identity": "Marquee ninja blade -- best-in-line 20% evade AND on-hit Sleep (vanilla Stop re-skinned to Sleep id12; both deny turns). Trades 1 WP under Iga for top evade + a soft-lock fired twice/turn. Iconic name kept.",
+      "identity": "Marquee ninja blade — best-in-line 20% evade AND on-hit Sleep (vanilla Stop re-skinned to Sleep id12; both deny turns). Trades 1 WP under Iga for top evade + a soft-lock fired twice/turn. Iconic name kept.",
       "baseline": {
         "wp": 14,
         "evade": 10,
@@ -506,7 +506,7 @@
       "vanillaName": "Iga Blade",
       "name": "Iga Blade",
       "tier": 6,
-      "identity": "No-strings DPS capstone -- line-max 14 WP, strong 15% evade, zero gimmick. Two 14-WP PA*WP hits/turn when you want raw damage over a tradeoff. The endgame default. Iconic name kept.",
+      "identity": "No-strings DPS capstone — line-max 14 WP, strong 15% evade, zero gimmick. Two 14-WP PA*WP hits/turn when you want raw damage over a tradeoff. The endgame default. Iconic name kept.",
       "baseline": {
         "wp": 15,
         "evade": 15,
@@ -535,12 +535,12 @@
       "vanillaName": "Koga Blade",
       "name": "Koga Blade",
       "tier": 6,
-      "identity": "Attrition capstone -- only Dark-element blade + on-hit Poison DOT (Regabonds id51 re-skinned to Poison id22). Trades evade for relentless chip that ticks while the ninja dodges away. Fixes vanilla's strictly-dominated Koga. Iconic name kept.",
+      "identity": "Attrition capstone — only Dark-element blade + on-hit Poison DOT (Regabonds id51 re-skinned to Poison id22). Trades evade for relentless chip that ticks while the ninja dodges away. Fixes vanilla's strictly-dominated Koga. Iconic name kept.",
       "baseline": {
         "wp": 15,
         "evade": 5,
         "element": "None",
-        "onHit": "None -- VANILLA. ** Regabonds SET OptionsAbilityId=51 (non-vanilla, non-confirmed) **",
+        "onHit": "None — VANILLA. ** Regabonds SET OptionsAbilityId=51 (non-vanilla, non-confirmed) **",
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -564,7 +564,7 @@
       "vanillaName": "Broadsword",
       "name": "Vagabond",
       "tier": 1,
-      "identity": "Nimble budget starter -- lowest WP but line-best early evade (12). Dodge over hit; earliest unlock.",
+      "identity": "Nimble budget starter — lowest WP but line-best early evade (12). Dodge over hit; earliest unlock.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -590,7 +590,7 @@
       "vanillaName": "Longsword",
       "name": "Cleaver",
       "tier": 1,
-      "identity": "Heavy starter -- trades the Vagabond's guard for +2 raw WP. The early aggressor's pick.",
+      "identity": "Heavy starter — trades the Vagabond's guard for +2 raw WP. The early aggressor's pick.",
       "baseline": {
         "wp": 5,
         "evade": 10,
@@ -615,7 +615,7 @@
       "vanillaName": "Iron Sword",
       "name": "Riposte",
       "tier": 2,
-      "identity": "Parry sword -- top evade of the line below Nagnarok (16). The defensive duelist; out-guards every higher-WP sword.",
+      "identity": "Parry sword — top evade of the line below Nagnarok (16). The defensive duelist; out-guards every higher-WP sword.",
       "baseline": {
         "wp": 6,
         "evade": 5,
@@ -642,7 +642,7 @@
       "vanillaName": "Mythril Sword",
       "name": "Claymore",
       "tier": 2,
-      "identity": "REACH SWORD test -- the only sword that strikes from 2 tiles, paid for with zero evade + no element/proc",
+      "identity": "REACH SWORD test — the only sword that strikes from 2 tiles, paid for with zero evade + no element/proc",
       "desc": "A two-handed greatsword that strikes from a tile back.\nHas a chance to cast Rend Armor on hit.",
       "baseline": {
         "wp": 7,
@@ -669,7 +669,7 @@
       "vanillaName": "Blood Sword",
       "name": "Sanguine Sword",
       "tier": 3,
-      "identity": "Rare one-handed Sword (not sold, shield-friendly): casts Sanguine Sword (absorb HP) on hit -- the life-drain of a fell mercenary knight, echoing Gaffgarion. Lives on the NATIVE Blood Sword slot so the card correctly reads Sword (relocated off the Giant's Axe slot, which read Axe).",
+      "identity": "Rare one-handed Sword (not sold, shield-friendly): casts Sanguine Sword (absorb HP) on hit — the life-drain of a fell mercenary knight, echoing Gaffgarion. Lives on the NATIVE Blood Sword slot so the card correctly reads Sword (relocated off the Giant's Axe slot, which read Axe).",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -697,7 +697,7 @@
       "vanillaName": "Coral Sword",
       "name": "Stormbrand",
       "tier": 3,
-      "identity": "Lightning blade -- attacks deal Lightning (x2 vs Lightning-weak; Lightning-absorbers heal it). Only Lightning sword.",
+      "identity": "Lightning blade — attacks deal Lightning (x2 vs Lightning-weak; Lightning-absorbers heal it). Only Lightning sword.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -722,7 +722,7 @@
       "vanillaName": "Ancient Sword",
       "name": "Tanglethorn",
       "tier": 3,
-      "identity": "Pin-blade -- chance to inflict Immobilize (target can act but can't move). Pin runners; lock melee off your back line. Only Immobilize source. Proc id 14 unverified in-game.",
+      "identity": "Pin-blade — chance to inflict Immobilize (target can act but can't move). Pin runners; lock melee off your back line. Only Immobilize source. Proc id 14 unverified in-game.",
       "baseline": {
         "wp": 9,
         "evade": 5,
@@ -748,7 +748,7 @@
       "vanillaName": "Sleep Blade",
       "name": "Flamberge",
       "tier": 3,
-      "identity": "Fire blade -- attacks deal Fire (anti-Undead, shreds Oiled/Ice foes; Fire-absorbers heal it). Re-themed off Sleep (knives own Sleep). Only Fire sword.",
+      "identity": "Fire blade — attacks deal Fire (anti-Undead, shreds Oiled/Ice foes; Fire-absorbers heal it). Re-themed off Sleep (knives own Sleep). Only Fire sword.",
       "baseline": {
         "wp": 9,
         "evade": 5,
@@ -822,11 +822,10 @@
       "id": 29,
       "category": "Sword",
       "vanillaName": "Icebrand",
-      "name": "Living Blade+",
+      "name": "Graviton",
       "tier": 5,
-      "livingWeapon": true,
-      "identity": "LIVING WEAPON tier 1 (10 kills), repurposed from Rimebrand. WP 16->18 AND +1 Physical Attack (EquipBonus row 21) over the id31 base -- both WP and PA grow per tier. Companion-only -- the player never obtains this directly (TODO: pull from shops/drops). Exempt from the dominance gate.",
-      "desc": "The blade stirs with borrowed strength; its edge favors the one who feeds it.\n+1 Physical Attack.\nKills: 000",
+      "identity": "Giant-slayer sword: on hit, a chance to cast Gravity, shearing off a share of the target's CURRENT HP regardless of defense — the melee counter to high-HP tanks and bosses. Trades raw WP for top-of-line evade and the %-HP proc; the swing is just the delivery. (Repurposed from the retired Living Blade+.)",
+      "flavorOverride": "A leaden blade that drags even the mightiest to their knees.",
       "baseline": {
         "wp": 18,
         "evade": 12,
@@ -835,15 +834,14 @@
         "formula": 1
       },
       "proposed": {
-        "wp": 18,
-        "evade": 12,
+        "wp": 12,
+        "evade": 14,
         "element": "None",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
+        "onHit": "Casts Gravity on hit",
+        "onHitAbilityId": 42,
+        "formula": 2,
         "range": 1,
-        "rider": "PA+1",
-        "equipBonusId": 21
+        "attackFlags": "Striking, TwoSwords, TwoHands"
       }
     },
     {
@@ -877,11 +875,10 @@
       "id": 31,
       "category": "Sword",
       "vanillaName": "Nagrarok",
-      "name": "Living Blade",
+      "name": "Lightbringer",
       "tier": 5,
-      "livingWeapon": true,
-      "identity": "LIVING WEAPON base (companion-driven), repurposed from Nagrarok. An endgame-competitive Sword (WP 16, top of the sword class) that grows in WP and Physical Attack as it scores kills; the FFTHandsFree companion swaps the wielder's equip slot up the tier ladder between battles (id31 base -> id29 'Living Blade+' @10 kills; further tiers later). Exempt from the dominance gate (it is not a static item). Obtained once (Move-Find treasure -- TODO); upgrade tiers are companion-only.",
-      "desc": "A nameless blade that hungers.\nIt grows stronger with every life it claims.\nKills: 000",
+      "identity": "The line's only Holy sword (Excalibur's Holy is locked to Knight Swords). Holy element — bonus damage to Undead and dark foes, healed by Holy-absorbers. The radiant melee pick against undead/dark comps; pays a little raw WP for the element and the matchup edge. (Repurposed from the retired Living Blade base.)",
+      "desc": "Blessed steel that burns the unclean.\nDeals Holy-elemental damage; strikes Undead for extra.",
       "baseline": {
         "wp": 16,
         "evade": 12,
@@ -890,13 +887,14 @@
         "formula": 1
       },
       "proposed": {
-        "wp": 16,
+        "wp": 14,
         "evade": 12,
-        "element": "None",
+        "element": "Holy",
         "onHit": "None",
         "onHitAbilityId": 0,
-        "formula": 1,
-        "range": 1
+        "formula": 2,
+        "range": 1,
+        "attackFlags": "Striking, TwoSwords, TwoHands"
       }
     },
     {
@@ -905,7 +903,7 @@
       "vanillaName": "Materia Blade",
       "name": "Materia Blade",
       "tier": 6,
-      "identity": "Dark mage-knight capstone -- Dark element + absorbs MP every hit (battle-mage fuel). Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
+      "identity": "Dark mage-knight capstone — Dark element + absorbs MP every hit (battle-mage fuel). Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -930,7 +928,7 @@
       "vanillaName": "Defender",
       "name": "Defender",
       "tier": 4,
-      "identity": "Parry-tank capstone -- game-max 60% physical evade, lowest WP of the five, EquipBonus rider Protect (halve physical taken). The un-killable front-line dodge wall; pick it to NOT die, not to deal damage. Most available of the five (tier 4). Renamed from generic 'Defender' to signal the pure shield-blade role.",
+      "identity": "Parry-tank capstone — game-max 60% physical evade, lowest WP of the five, EquipBonus rider Protect (halve physical taken). The un-killable front-line dodge wall; pick it to NOT die, not to deal damage. Most available of the five (tier 4). Renamed from generic 'Defender' to signal the pure shield-blade role.",
       "baseline": {
         "wp": 16,
         "evade": 60,
@@ -959,7 +957,7 @@
       "vanillaName": "Save the Queen",
       "name": "Save the Queen",
       "tier": 5,
-      "identity": "Disabler-bruiser -- strong 45% evade plus Sleep-on-hit to neuter a target while you out-tempo the duel, backed by an EquipBonus Regen rider for self-sustain. The 'control the fight' pick between pure tank (Aegisbrand) and the Holy capstone. Sleep proc owned by no other sword. Renamed from 'Save the Queen' for the warden identity.",
+      "identity": "Disabler-bruiser — strong 45% evade plus Sleep-on-hit to neuter a target while you out-tempo the duel, backed by an EquipBonus Regen rider for self-sustain. The 'control the fight' pick between pure tank (Aegisbrand) and the Holy capstone. Sleep proc owned by no other sword. Renamed from 'Save the Queen' for the warden identity.",
       "baseline": {
         "wp": 18,
         "evade": 30,
@@ -988,7 +986,7 @@
       "vanillaName": "Excalibur",
       "name": "Excalibur",
       "tier": 6,
-      "identity": "Holy-knight tempo capstone -- Holy element (anti-Undead, with its signature Holy absorb) plus EquipBonus rider Haste for extra turns. The build-defining matchup + tempo + survivability blade; the only elemental Knight Sword that also carries a permanent rider. Iconic name kept. Seated at vanilla WP21 (verbatim Game8/Regabonds) mid-ladder.",
+      "identity": "Holy-knight tempo capstone — Holy element (anti-Undead, with its signature Holy absorb) plus EquipBonus rider Haste for extra turns. The build-defining matchup + tempo + survivability blade; the only elemental Knight Sword that also carries a permanent rider. Iconic name kept. Seated at vanilla WP21 (verbatim Game8/Regabonds) mid-ladder.",
       "baseline": {
         "wp": 21,
         "evade": 35,
@@ -1017,7 +1015,7 @@
       "vanillaName": "Ragnarok",
       "name": "Ragnarok",
       "tier": 6,
-      "identity": "Anti-caster prestige blade -- unique Dark element plus Silence-on-hit shuts down enemy mages, with high WP and middling evade. Fixes vanilla's 'squeezed slot' (riderless WP24, dominated by Chaos): now owns the Dark + Silence niche so it is NOT dominated by Chaos Blade. Iconic name kept. The pick versus caster-heavy comps.",
+      "identity": "Anti-caster prestige blade — unique Dark element plus Silence-on-hit shuts down enemy mages, with high WP and middling evade. Fixes vanilla's 'squeezed slot' (riderless WP24, dominated by Chaos): now owns the Dark + Silence niche so it is NOT dominated by Chaos Blade. Iconic name kept. The pick versus caster-heavy comps.",
       "baseline": {
         "wp": 24,
         "evade": 20,
@@ -1046,7 +1044,7 @@
       "vanillaName": "Chaos Blade",
       "name": "Chaos Blade",
       "tier": 6,
-      "identity": "Raw-power king -- highest WP in the category, lowest evade (paid defensively), Doom-on-hit (death-timer) plus EquipBonus rider Regen for sustain. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker cut to WP28 so it no longer strictly dominates Ragnarok; the unreliable Stone/Petrify proc swapped for Doom (id 11), thematically on-point. Iconic name kept.",
+      "identity": "Raw-power king — highest WP in the category, lowest evade (paid defensively), with a chance to Petrify on hit. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker cut to WP28 so it no longer strictly dominates Ragnarok. Iconic name kept; vanilla's Regen rider stripped (equipBonusId 0) so it's pure offense.",
       "baseline": {
         "wp": 50,
         "evade": 20,
@@ -1061,7 +1059,8 @@
         "onHit": "May petrify",
         "onHitAbilityId": 17,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "equipBonusId": 0
       },
       "iconTint": [
         0.99,
@@ -1075,7 +1074,7 @@
       "vanillaName": "Ashura",
       "name": "Ashura",
       "tier": 1,
-      "identity": "Earliest katana + the line's evade crown (25%) -- the defensive samurai's first blade; out-dodges every higher-WP katana, earning its slot on availability + guard, not power. No rider to misfire while you learn the class.",
+      "identity": "Earliest katana + the line's evade crown (25%) — the defensive samurai's first blade; out-dodges every higher-WP katana, earning its slot on availability + guard, not power. No rider to misfire while you learn the class.",
       "desc": "The earliest katana, named for the Ashura's spirit blade.\nHas a chance to cast Draw Out: Ashura on hit.",
       "baseline": {
         "wp": 7,
@@ -1105,7 +1104,7 @@
       "vanillaName": "Kotetsu",
       "name": "Kotetsu",
       "tier": 1,
-      "identity": "Cheap anti-bruiser -- one swing Blinds an enemy melee threat for the fight (only early Blind katana). Pays -7 evade vs Asura for +1 WP and the rider.",
+      "identity": "Cheap anti-bruiser — one swing Blinds an enemy melee threat for the fight (only early Blind katana). Pays -7 evade vs Asura for +1 WP and the rider.",
       "baseline": {
         "wp": 8,
         "evade": 15,
@@ -1134,7 +1133,7 @@
       "vanillaName": "Bizen Osafune",
       "name": "Bizen Osafune",
       "tier": 2,
-      "identity": "MP-siphon blade (Formula 47 = Absorb-MP) -- every hit drains the target's MP and refuels the wielder's own Iaido casts. The mage-samurai / Draw-Out fuel battery. Same WP as Murasame; identity is the MP economy. Set UiStatusEffectId=1001 (absorb convention).",
+      "identity": "MP-siphon blade (Formula 47 = Absorb-MP) — every hit drains the target's MP and refuels the wielder's own Iaido casts. The mage-samurai / Draw-Out fuel battery. Same WP as Murasame; identity is the MP economy. Set UiStatusEffectId=1001 (absorb convention).",
       "baseline": {
         "wp": 9,
         "evade": 15,
@@ -1163,7 +1162,7 @@
       "vanillaName": "Murasame",
       "name": "Murasame",
       "tier": 2,
-      "identity": "The rain blade made literal -- chance to perform Draw Out: Ashura on the struck enemy (formula 2 cast). Where Bizen FUELS Iaido (MP drain), Murasame PERFORMS one on hit. No other weapon casts a Draw-Out; pure samurai fantasy. Formula 2 re-scales the strike to PA*WP (clean T2 sidegrade, +3 evade over Bizen).",
+      "identity": "The rain blade — a chance to Slow the struck foe, miring them as a downpour mires a battlefield. The only Slow katana; distinct from Ashura's raw cast and Bizen's MP drain. Trades formula-2 burst for Brave-scaled damage plus the tempo swing of Slow.",
       "baseline": {
         "wp": 10,
         "evade": 15,
@@ -1175,9 +1174,9 @@
         "wp": 9,
         "evade": 15,
         "element": "None",
-        "onHit": "None",
-        "onHitAbilityId": 76,
-        "formula": 2,
+        "onHit": "Slow",
+        "onHitAbilityId": 18,
+        "formula": 1,
         "range": 1
       },
       "iconTint": [
@@ -1185,7 +1184,7 @@
         0.74,
         0.94
       ],
-      "flavorOverride": "The rain blade, whose every cut recalls an Iaido it was never taught."
+      "flavorOverride": "The rain blade, whose every cut drags at a foe like a downpour turning the field to mire."
     },
     {
       "id": 42,
@@ -1193,7 +1192,7 @@
       "vanillaName": "Ame-no-Murakumo",
       "name": "Ame-no-Murakumo",
       "tier": 3,
-      "identity": "The gathering-storm blade -- only Wind katana (x2 vs Wind-weak) AND Silences on hit, choking an enemy mage's spellbook. The anti-caster capstone of the mid line (Heaven's Cloud lore). Trades evade for the storm package.",
+      "identity": "The gathering-storm blade — only Wind katana (x2 vs Wind-weak) AND Silences on hit, choking an enemy mage's spellbook. The anti-caster capstone of the mid line (Heaven's Cloud lore). Trades evade for the storm package.",
       "baseline": {
         "wp": 11,
         "evade": 15,
@@ -1222,7 +1221,7 @@
       "vanillaName": "Kiyomori",
       "name": "Kiyomori",
       "tier": 3,
-      "identity": "Attrition parry-blade -- the evade apex below the capstones (20%) plus Poison-on-hit that chips high-HP foes every clock tick (its Protect/Shell Draw Out reframed as relentless pressure). Survives any duel; outlasts raw blades vs bulk.",
+      "identity": "Attrition parry-blade — the evade apex below the capstones (20%) plus Poison-on-hit that chips high-HP foes every clock tick (its Protect/Shell Draw Out reframed as relentless pressure). Survives any duel; outlasts raw blades vs bulk.",
       "baseline": {
         "wp": 12,
         "evade": 15,
@@ -1280,7 +1279,7 @@
       "vanillaName": "Kiku-ichimonji",
       "name": "Kiku-ichimonji",
       "tier": 4,
-      "identity": "The reach blade -- the ONLY range-2 katana, echoing Kikuichimonji's long-range Draw Out. Strike from the second rank and stay safer; no element or status, reach IS the identity. Nothing at this WP can match its range.",
+      "identity": "The reach blade — the ONLY range-2 katana, echoing Kikuichimonji's long-range Draw Out. Strike from the second rank and stay safer; no element or status, reach IS the identity. Nothing at this WP can match its range.",
       "desc": "The long-reach katana, named for its spirit blade.\nHas a chance to cast Draw Out: Kiku-ichimonji on hit.",
       "baseline": {
         "wp": 15,
@@ -1311,7 +1310,7 @@
       "vanillaName": "Masamune",
       "name": "Masamune",
       "tier": 5,
-      "identity": "The legendary all-rounder -- high WP AND top-tier evade AND innate Holy AND Sleep-on-hit soft CC (its Haste/Regen Draw Out rendered honestly as battlefield tempo control). Poach-from-Elmdore rarity (T5). Trades 4 WP for the whole package, so it never dominates Chirijiraden. Holy-absorbers heal.",
+      "identity": "The legendary all-rounder — high WP AND top-tier evade AND innate Holy AND Sleep-on-hit soft CC (its Haste/Regen Draw Out rendered honestly as battlefield tempo control). Poach-from-Elmdore rarity (T5). Trades 4 WP for the whole package, so it never dominates Chirijiraden. Holy-absorbers heal.",
       "baseline": {
         "wp": 18,
         "evade": 15,
@@ -1340,7 +1339,7 @@
       "vanillaName": "Chirijiraden",
       "name": "Chirijiraden",
       "tier": 6,
-      "identity": "Endgame damage capstone -- max WP (20) and Immobilize-on-hit that pins the target so it can't flee the carnage (its MA*30 ultimate Draw Out reframed as 'nowhere to run'). Pays for top damage with middling guard, no element, and pure endgame-only availability (T6). A sidegrade to Masamune, not a strict upgrade.",
+      "identity": "Endgame damage capstone — max WP (20) and Immobilize-on-hit that pins the target so it can't flee the carnage (its MA*30 ultimate Draw Out reframed as 'nowhere to run'). Pays for top damage with middling guard, no element, and pure endgame-only availability (T6). A sidegrade to Masamune, not a strict upgrade.",
       "baseline": {
         "wp": 25,
         "evade": 15,
@@ -1399,7 +1398,7 @@
       "vanillaName": "Giant's Axe",
       "name": "Ravager",
       "tier": 4,
-      "identity": "Berserk brute -- a high-WP KnightSword that ALWAYS inflicts Berserk on hit (formula 2D = 100%): drives the struck foe into a mindless rage, shutting off their abilities/spells but making them hit +50% harder -- a double-edged anti-caster gambit. Only Berserk source mod-wide. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right.",
+      "identity": "Berserk brute — a high-WP KnightSword that ALWAYS inflicts Berserk on hit (formula 2D = 100%): drives the struck foe into a mindless rage, shutting off their abilities/spells but making them hit +50% harder — a double-edged anti-caster gambit. Only Berserk source mod-wide. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -1430,7 +1429,7 @@
       "vanillaName": "Slasher",
       "name": "Sunderer",
       "tier": 5,
-      "identity": "Sunder bruiser -- normal KnightSword damage PLUS every hit shatters a random piece of the foe's gear (formula 46). The break is the whole point, so it pays the LOWEST WP in the category (13) = a sidegrade, not an upgrade; whiffs on the unequipped and on monsters.",
+      "identity": "Sunder bruiser — normal KnightSword damage PLUS every hit shatters a random piece of the foe's gear (formula 46). The break is the whole point, so it pays the LOWEST WP in the category (13) = a sidegrade, not an upgrade; whiffs on the unequipped and on monsters.",
       "desc": "A cruel blade that breaks what it cannot kill.\nDeals normal damage and shatters a piece of the foe's gear; finds nothing on the unequipped.",
       "baseline": {
         "wp": 16,
@@ -1453,8 +1452,7 @@
         0.1,
         0.62
       ],
-      "iconSource": 34,
-      "desc": "A cruel blade that breaks what it cannot kill.\nDeals normal damage and shatters a piece of the foe's gear; finds nothing on the unequipped."
+      "iconSource": 34
     },
     {
       "id": 51,
@@ -1462,7 +1460,7 @@
       "vanillaName": "Rod",
       "name": "Wellspring Rod",
       "tier": 1,
-      "identity": "Never-run-dry battle-mage rod. Active Attack (formula 47 = Absorb-MP) steals the struck foe's MP into the wielder's pool, MP-free, every turn -- a mage refuels its own spellbook by poking a body. Earliest unlock + only MP-siphon rod.",
+      "identity": "Never-run-dry battle-mage rod. Active Attack (formula 47 = Absorb-MP) steals the struck foe's MP into the wielder's pool, MP-free, every turn — a mage refuels its own spellbook by poking a body. Earliest unlock + only MP-siphon rod.",
       "desc": "A humble apprentice's rod whose every tap draws an enemy's magic into your own reserves. Absorbs MP dealt.",
       "baseline": {
         "wp": 3,
@@ -1492,7 +1490,7 @@
       "vanillaName": "Thunder Rod",
       "name": "Spark Rod",
       "tier": 2,
-      "identity": "Battle-mage nuke rod -- the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-armor/mech. WP trimmed to 6 so the free bolt never out-nukes a real MP spell.",
+      "identity": "Battle-mage nuke rod — the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-armor/mech. WP 8 — a real battle-mage nuke, but melee-range and every-turn rather than burst.",
       "desc": "It cracks with caged thunder. Its attack strikes as Thunder at no MP cost; the magic damage scales with the wielder's Faith.",
       "baseline": {
         "wp": 3,
@@ -1502,7 +1500,7 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 6,
+        "wp": 8,
         "evade": 20,
         "element": "Lightning",
         "onHit": "Attack casts Thunder (Magick Attack)",
@@ -1522,8 +1520,8 @@
       "vanillaName": "Flame Rod",
       "name": "Ember Rod",
       "tier": 2,
-      "identity": "Atheist fire battle-mage rod -- f4 Fire nuke (MP-free, Faith-scaled) PLUS InnateStatus:Atheist = the wielder is magic-IMMUNE. Own non-fire magick goes dead, but the plan IS the fire-breath. Lower evade (12) pays for the magic-immunity vs the clean Spark/Frost nuke-rods.",
-      "desc": "Embers cling to its core, and hostile magick guts itself against the heat. Its Attack strikes as Fire at no MP cost (Faith-scaled). Grants Atheist -- magick barely touches the wielder.",
+      "identity": "Fire nuke battle-mage rod — its Attack strikes as Fire (formula 4): Faith-scaled, MP-free, melee, every turn. The Fire member of the elemental nuke trio with Spark (Thunder) and Frost (Blizzard); pick by matchup. Anti-Undead, shreds Oiled and Ice-weak foes. WP 8 with Spark/Frost so the trio stays symmetric.",
+      "desc": "Embers cling to its core, ready to leap at a touch. Its Attack strikes as Fire at no MP cost; the magic damage scales with the wielder's Faith.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1532,14 +1530,14 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 6,
-        "evade": 12,
+        "wp": 8,
+        "evade": 20,
         "element": "Fire",
         "onHit": "Attack casts Fire (Magick Attack)",
         "onHitAbilityId": 0,
         "formula": 4,
         "range": 1,
-        "equipBonusId": 83
+        "equipBonusId": 0
       },
       "iconTint": [
         0.05,
@@ -1553,7 +1551,7 @@
       "vanillaName": "Ice Rod",
       "name": "Frost Rod",
       "tier": 2,
-      "identity": "Battle-mage nuke rod -- the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental trio; WP trimmed to 6.",
+      "identity": "Battle-mage nuke rod — the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental nuke trio at WP 8.",
       "desc": "A chill blade that bites like deep winter. Its attack strikes as Blizzard at no MP cost; the magic damage scales with the wielder's Faith.",
       "baseline": {
         "wp": 3,
@@ -1563,7 +1561,7 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 6,
+        "wp": 8,
         "evade": 20,
         "element": "Ice",
         "formula": 4,
@@ -1583,7 +1581,7 @@
       "vanillaName": "Poison Rod",
       "name": "Hushward Rod",
       "tier": 2,
-      "identity": "Silence-immune mage rod -- ImmuneStatus: Silence means the wielder's own spellbook can never be shut off. Build-defining vs caster-killer comps (Mage Masher / Ame-no-Murakumo): casts on while everyone else goes quiet.",
+      "identity": "Silence-immune mage rod — ImmuneStatus: Silence means the wielder's own spellbook can never be shut off. Build-defining vs caster-killer comps (Mage Masher / Ame-no-Murakumo): casts on while everyone else goes quiet.",
       "desc": "A warded rod that keeps a caster's voice when the battlefield falls silent. Wards against Silence.",
       "baseline": {
         "wp": 3,
@@ -1615,7 +1613,7 @@
       "vanillaName": "Wizard's Rod",
       "name": "Umbral Rod",
       "tier": 3,
-      "identity": "Dark-specialist power stick -- MA+2 raw spell power AND StrongElements: Dark (+25% to Dark spells), plus Dark element on the Attack for anti-Holy-creature poke. Only Dark caster weapon and only StrongElements rod.",
+      "identity": "Dark-specialist power stick — MA+2 raw spell power AND StrongElements: Dark (+25% to Dark spells), plus Dark element on the Attack for anti-Holy-creature poke. Only Dark caster weapon and only StrongElements rod.",
       "desc": "Shadow clings to its edge. Deals Dark-elemental damage. Magick Attack +2. Strengthens Dark damage.",
       "baseline": {
         "wp": 4,
@@ -1678,7 +1676,7 @@
       "vanillaName": "Rod of Faith",
       "name": "Rod of Faith",
       "tier": 5,
-      "identity": "Faith-zealot rod -- InnateStatus: Faith pins the wielder at max Faith, so every spell cast (and cast AT them) lands at peak potency: a glass-cannon nuker. Holy element on the Attack smites undead. Only innate-Faith weapon.",
+      "identity": "Faith-zealot rod — InnateStatus: Faith pins the wielder at max Faith, so every spell cast (and cast AT them) lands at peak potency: a glass-cannon nuker. Holy element on the Attack smites undead. Only innate-Faith weapon.",
       "desc": "Blessed steel that burns the unclean. Deals Holy-elemental damage. Grants Faith.",
       "baseline": {
         "wp": 5,
@@ -1710,7 +1708,7 @@
       "vanillaName": "Oak Staff",
       "name": "Birchwood Staff",
       "tier": 1,
-      "identity": "T1 starter -- the only tier-1 staff, with the line's highest evade (20). Earliest unlock plus the evade crown is its niche; intentionally bare so nothing misfires while you learn to cast (mirrors the Apprentice Rod).",
+      "identity": "T1 starter — the only tier-1 staff, with the line's highest evade (20). Earliest unlock plus the evade crown is its niche; intentionally bare so nothing misfires while you learn to cast (mirrors the Apprentice Rod).",
       "desc": "A plain rod of green birch, the first staff any apprentice is handed.\nScales its swing with Magick Attack.",
       "baseline": {
         "wp": 3,
@@ -1740,8 +1738,8 @@
       "vanillaName": "White Staff",
       "name": "Warlock's Staff",
       "tier": 2,
-      "identity": "WARLOCK staff -- innate Reflect turns enemy single-target spells back on their caster, the spell-eater build's anchor. The cost is real (your own single-target cures bounce off you too), which keeps it a build choice, not a free win. Earliest rider staff (T2).",
-      "desc": "A staff bound with a warlock's hex; spells bend away from its bearer.\nAlways: Reflect -- bounces enemy single-target magick back at the caster (and rebounds your own single-target cures, so heal with care).",
+      "identity": "WARLOCK staff — innate Reflect turns enemy single-target spells back on their caster, the spell-eater build's anchor. The cost is real (your own single-target cures bounce off you too), which keeps it a build choice, not a free win. Earliest rider staff (T2).",
+      "desc": "A staff bound with a warlock's hex; spells bend away from its bearer.\nAlways: Reflect — bounces enemy single-target magick back at the caster (and rebounds your own single-target cures, so heal with care).",
       "baseline": {
         "wp": 3,
         "evade": 15,
@@ -1771,7 +1769,7 @@
       "vanillaName": "Healing Staff",
       "name": "Mending Staff",
       "tier": 3,
-      "identity": "HEALER staff -- the only heal-on-attack weapon (formula 7): spend the free Attack command to top up an ally at melee range, or smite Undead with that same heal. WP kept low (4) so the heal identity stays the draw, not raw damage.",
+      "identity": "HEALER staff — the only heal-on-attack weapon (formula 7): spend the free Attack command to top up an ally at melee range, or smite Undead with that same heal. WP kept low (4) so the heal identity stays the draw, not raw damage.",
       "desc": "A white-lacquered staff whose touch knits flesh and sears the dead.\nThe Attack command HEALS the struck ally's HP (Physical Attack x Weapon Power), and burns Undead for the same.",
       "baseline": {
         "wp": 4,
@@ -1801,8 +1799,8 @@
       "vanillaName": "Serpent Staff",
       "name": "Warding Staff",
       "tier": 3,
-      "identity": "SILENCE-IMMUNE staff -- the mage's answer to enemy Hushblades and Silence procs; your spellbook can't be shut off. Build-defining for a glass-cannon caster in a Silence-heavy fight. f1 baseline but the immunity rider is the whole point, so it's never 'plain f1'.",
-      "desc": "A consecrated staff that keeps a caster's voice their own.\nAlways: immune to Silence -- the wielder's spellbook can never be locked.",
+      "identity": "SILENCE-IMMUNE staff — the mage's answer to enemy Hushblades and Silence procs; your spellbook can't be shut off. Build-defining for a glass-cannon caster in a Silence-heavy fight. f1 baseline but the immunity rider is the whole point, so it's never 'plain f1'.",
+      "desc": "A consecrated staff that keeps a caster's voice their own.\nAlways: immune to Silence — the wielder's spellbook can never be locked.",
       "baseline": {
         "wp": 5,
         "evade": 15,
@@ -1832,8 +1830,8 @@
       "vanillaName": "Mage's Staff",
       "name": "Blazing Staff",
       "tier": 3,
-      "identity": "BLAZING active-attack staff (user request) -- formula 4 turns the free Attack command into an MP-free Faith-scaled Fire bolt (melee), so a battle-mage can chip every turn without burning MP. Move +1 ('feet hot and moving') gives it map control no other staff has. WP held to 6 so the free Fire bolt never out-nukes a real MP spell.",
-      "desc": "Its head smolders with caged flame -- the heat gets your feet hot and moving.\nThe Attack strikes as Fire at no MP cost, scaling with the wielder's Faith. Move +1.",
+      "identity": "BLAZING active-attack staff (user request) — formula 4 turns the free Attack command into an MP-free Faith-scaled Fire bolt (melee), so a battle-mage can chip every turn without burning MP. Move +1 ('feet hot and moving') gives it map control no other staff has. WP held to 6 so the free Fire bolt never out-nukes a real MP spell.",
+      "desc": "Its head smolders with caged flame — the heat gets your feet hot and moving.\nThe Attack strikes as Fire at no MP cost, scaling with the wielder's Faith. Move +1.",
       "baseline": {
         "wp": 4,
         "evade": 15,
@@ -1864,7 +1862,7 @@
       "vanillaName": "Golden Staff",
       "name": "Sanctus Staff",
       "tier": 4,
-      "identity": "STRONGELEMENTS specialist staff -- the +25%-Holy-spell line: a white/holy mage's nuke amplifier (boosts Holy, Holy Explosion, etc.), plus Holy element on the swing for anti-Undead matchups. The specialist whose niche is spell amplification, not stats.",
+      "identity": "STRONGELEMENTS specialist staff — the +25%-Holy-spell line: a white/holy mage's nuke amplifier (boosts Holy, Holy Explosion, etc.), plus Holy element on the swing for anti-Undead matchups. The specialist whose niche is spell amplification, not stats.",
       "desc": "A consecrated stave that magnifies sacred light.\nDeals Holy-elemental damage and strengthens the wielder's Holy spells by 25%.",
       "baseline": {
         "wp": 6,
@@ -1895,7 +1893,7 @@
       "vanillaName": "Zeus Mace",
       "name": "Zeus Mace",
       "tier": 5,
-      "identity": "Hybrid gish staff (iconic name kept) -- the only Lightning staff PLUS an MA+1 rider: element coverage for anti-armor/mech fights stacked with a modest spell-power bump. Treasure-gated (T5); its Lightning element is a good the MA+2 capstone lacks.",
+      "identity": "Hybrid gish staff (iconic name kept) — the only Lightning staff PLUS an MA+1 rider: element coverage for anti-armor/mech fights stacked with a modest spell-power bump. Treasure-gated (T5); its Lightning element is a good the MA+2 capstone lacks.",
       "desc": "A thunder-charged mace, prize of the storm.\nDeals Lightning-elemental damage. Magick Attack +1.",
       "baseline": {
         "wp": 6,
@@ -1927,8 +1925,8 @@
       "vanillaName": "Staff of the Magi",
       "name": "Staff of the Magi",
       "tier": 6,
-      "identity": "MA-BOOST 'bigger-heals' capstone -- top MA+2 rider drives both offense and, because Cure spells scale off Magick Attack, the strongest heals in the line. Highest staff WP (7) and the endgame (T6) gate earn the rider; the pure spell-power pick. (Dropped the old Stop proc so its identity is cleanly MA, not a gimmick.)",
-      "desc": "The archmage's masterwork, humming with raw arcane power.\nMagick Attack +2 -- bigger nukes and, since Cure-line heals scale with Magick Attack, bigger heals too.",
+      "identity": "MA-BOOST 'bigger-heals' capstone — top MA+2 rider drives both offense and, because Cure spells scale off Magick Attack, the strongest heals in the line. Highest staff WP (7) and the endgame (T6) gate earn the rider; the pure spell-power pick. (Dropped the old Stop proc so its identity is cleanly MA, not a gimmick.)",
+      "desc": "The archmage's masterwork, humming with raw arcane power.\nMagick Attack +2 — bigger nukes and, since Cure-line heals scale with Magick Attack, bigger heals too.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -1959,7 +1957,7 @@
       "vanillaName": "Iron Flail",
       "name": "Warbrand",
       "tier": 5,
-      "identity": "Pure-power brute -- the highest weapon power of any sword, bought with zero evade AND zero utility. A back-half pick (Ch3-gated, tier 5) so the raw-damage king doesn't eclipse the early game; the brute alternative to the utility blades (Arcanum/Rimebrand/Materia). (was Ironlash)",
+      "identity": "Pure-power brute — the highest weapon power of any sword, bought with zero evade AND zero utility. A back-half pick (Ch3-gated, tier 5) so the raw-damage king doesn't eclipse the early game; the brute alternative to the utility blades (Arcanum/Rimebrand/Materia). (was Ironlash)",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -2020,8 +2018,8 @@
       "vanillaName": "Morning Star",
       "name": "Climhazzard",
       "tier": 4,
-      "identity": "T4 agile dual-wield executioner -- the ninja's mercy stroke. Damage = the TARGET's missing HP (formula 69), useless on a fresh foe, lethal on a wounded one. Dual-wieldable = two missing-HP strikes per turn; WP barely matters so the budget goes to evade.",
-      "desc": "A light killing stroke that bites deepest into the already-bloodied -- glances off the hale, guts the dying.",
+      "identity": "T4 agile dual-wield executioner — the ninja's mercy stroke. Damage = the TARGET's missing HP (formula 69), useless on a fresh foe, lethal on a wounded one. Dual-wieldable = two missing-HP strikes per turn; WP barely matters so the budget goes to evade.",
+      "desc": "A light killing stroke that bites deepest into the already-bloodied — glances off the hale, guts the dying.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2044,7 +2042,7 @@
         0.88
       ],
       "iconSource": 11,
-      "flavorOverride": "A killing stroke meant only for the wounded -- it finds the wound another blade opened and ends the fight."
+      "flavorOverride": "A killing stroke meant only for the wounded — it finds the wound another blade opened and ends the fight."
     },
     {
       "id": 70,
@@ -2142,7 +2140,7 @@
       "vanillaName": "Stoneshooter",
       "name": "Stoneshooter",
       "tier": 4,
-      "identity": "Drawback-paid power spike: top-of-line WP16 (256 base) AND tied-longest R9, fires EARTH (only Earth gun; ignores Float, shreds grounded). PRICE: the wielder begins EVERY battle Petrified, the iconic Stoneshooter curse, demanding a Maintenance/esuna plan. Highest ceiling but the deadliest to field, so it never free-lunches the clean capstone.",
+      "identity": "Top-of-line gun — max WP (16, 256 base) AND tied-longest R9, firing EARTH (the only Earth gun: ignores Float, shreds the grounded). Pure reach-and-power, held in check by rock-bottom evade (5) and the flat gun formula (WP*WP, no Faith-scaling or spell-cast), so the Faith-scaled elemental guns still out-roll it against the right target.",
       "baseline": {
         "wp": 16,
         "evade": 5,
@@ -2259,7 +2257,7 @@
       "vanillaName": "Bowgun",
       "name": "Scoutbolt",
       "tier": 1,
-      "identity": "T1 scout's sidearm -- earliest/cheapest unlock + line-high 10% evade. Shortest range (3), lowest WP.",
+      "identity": "T1 scout's sidearm — earliest/cheapest unlock + line-high 10% evade. Shortest range (3), lowest WP.",
       "baseline": {
         "wp": 3,
         "evade": 5,
@@ -2287,7 +2285,7 @@
       "vanillaName": "Knightslayer",
       "name": "Eclipsebolt",
       "tier": 2,
-      "identity": "Assassin's bolt -- marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead -- a countdown to a certain KO. Only Doom crossbow.",
+      "identity": "Assassin's bolt — marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead — a countdown to a certain KO. Only Doom crossbow.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2342,7 +2340,7 @@
       "vanillaName": "Poison Crossbow",
       "name": "Venombolt",
       "tier": 3,
-      "identity": "Attrition tool -- only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Inflicts Poison (proc 22).",
+      "identity": "Attrition tool — only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Inflicts Poison (proc 22).",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2370,7 +2368,7 @@
       "vanillaName": "Hunting Crossbow",
       "name": "Pitchbolt",
       "tier": 4,
-      "identity": "Combo-setup bolt -- proc 101 applies Oil, which doubles the Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
+      "identity": "Combo-setup bolt — proc 101 applies Oil, which doubles the Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
       "baseline": {
         "wp": 5,
         "evade": 5,
@@ -2398,7 +2396,7 @@
       "vanillaName": "Gastrophetes",
       "name": "Siegebolt",
       "tier": 6,
-      "identity": "Endgame raw-power capstone -- top crossbow WP (11), no rider. At PA9+ it out-damages bows on a strength build; surrenders all utility for damage.",
+      "identity": "Endgame raw-power capstone — top crossbow WP (11), no rider. At PA9+ it out-damages bows on a strength build; surrenders all utility for damage.",
       "baseline": {
         "wp": 10,
         "evade": 5,
@@ -2426,7 +2424,7 @@
       "vanillaName": "Longbow",
       "name": "Skirmisher",
       "tier": 1,
-      "identity": "T1 light scout -- HIGHEST evade in the line (20) + earliest/cheapest. Shortest range (5), lowest WP. The nimble dodge-opener.",
+      "identity": "T1 light scout — HIGHEST evade in the line (20) + earliest/cheapest. Shortest range (5), lowest WP. The nimble dodge-opener.",
       "baseline": {
         "wp": 4,
         "evade": 0,
@@ -2454,7 +2452,7 @@
       "vanillaName": "Silver Bow",
       "name": "Windrunner",
       "tier": 2,
-      "identity": "T2 dodge duelist -- 2nd-best evade (15) + colorless = safe vs any element-absorber. True sidegrade to Frostarc (same WP5: evade+safety vs element).",
+      "identity": "T2 dodge duelist — 2nd-best evade (15) + colorless = safe vs any element-absorber. True sidegrade to Frostarc (same WP5: evade+safety vs element).",
       "baseline": {
         "wp": 5,
         "evade": 0,
@@ -2482,7 +2480,7 @@
       "vanillaName": "Ice Bow",
       "name": "Frostarc",
       "tier": 2,
-      "identity": "T2 first elemental -- attacks deal Ice (anti-Fire-creature; Ice-absorbers heal it). Trades Windrunner's evade for element at equal WP5.",
+      "identity": "T2 first elemental — attacks deal Ice (anti-Fire-creature; Ice-absorbers heal it). Trades Windrunner's evade for element at equal WP5.",
       "baseline": {
         "wp": 5,
         "evade": 0,
@@ -2510,7 +2508,7 @@
       "vanillaName": "Lightning Bow",
       "name": "Stormarc",
       "tier": 3,
-      "identity": "T3 elemental -- attacks deal Lightning (anti-armor/robotic; Lightning-absorbers heal it). +1 WP over Frostarc, different element coverage.",
+      "identity": "T3 elemental — attacks deal Lightning (anti-armor/robotic; Lightning-absorbers heal it). +1 WP over Frostarc, different element coverage.",
       "baseline": {
         "wp": 6,
         "evade": 0,
@@ -2538,7 +2536,7 @@
       "vanillaName": "Windslash Bow",
       "name": "Skypiercer",
       "tier": 4,
-      "identity": "T4 the REACH bow -- innate Wind + longest non-capstone range (7); arcs over cover, picks off fliers/cliff-campers. Glass: 0 evade, all reach.",
+      "identity": "T4 the REACH bow — innate Wind + longest non-capstone range (7); arcs over cover, picks off fliers/cliff-campers. Glass: 0 evade, all reach.",
       "baseline": {
         "wp": 8,
         "evade": 0,
@@ -2566,7 +2564,7 @@
       "vanillaName": "Mythril Bow",
       "name": "Tidecaller",
       "tier": 3,
-      "identity": "T3 caster-lock / control bow -- Silence on hit shuts enemy mages at range. WP7 + 10 evade. Renamed from filler Mythril Bow. Inflicts Silence (proc 10).",
+      "identity": "T3 caster-lock / control bow — Silence on hit shuts enemy mages at range. WP7 + 10 evade. Renamed from filler Mythril Bow. Inflicts Silence (proc 10).",
       "baseline": {
         "wp": 7,
         "evade": 0,
@@ -2594,7 +2592,7 @@
       "vanillaName": "Artemis Bow",
       "name": "Huntress",
       "tier": 5,
-      "identity": "T5 marksman / mid-evade owner -- WP9 + 10 evade, earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla 'Yoichi dominates Artemis'.",
+      "identity": "T5 marksman / mid-evade owner — WP9 + 10 evade, earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla 'Yoichi dominates Artemis'.",
       "baseline": {
         "wp": 10,
         "evade": 0,
@@ -2622,7 +2620,7 @@
       "vanillaName": "Yoichi Bow",
       "name": "Yoichi Bow",
       "tier": 6,
-      "identity": "T6 AGILE capstone -- top sustained WP (12) that STILL keeps 5 evade: heavy damage on light feet. The speed-build DPS capstone vs Seraph's glass cannon.",
+      "identity": "T6 AGILE capstone — top sustained WP (12) that STILL keeps 5 evade: heavy damage on light feet. The speed-build DPS capstone vs Seraph's glass cannon.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -2649,7 +2647,7 @@
       "vanillaName": "Perseus Bow",
       "name": "Perseus Bow",
       "tier": 6,
-      "identity": "T6 raw+reach capstone -- max WP (15) + max range (8) + innate Holy (anti-Undead). 0 evade = pure glass cannon.",
+      "identity": "T6 raw+reach capstone — max WP (16) + max range (9) + innate Holy (anti-Undead), with a chance to inflict Don't Act to lock a key target down from across the map. 0 evade = pure glass cannon.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2676,7 +2674,7 @@
       "vanillaName": "Lamia's Harp",
       "name": "Siren's Lyre",
       "tier": 2,
-      "identity": "T2 elemental opener harp -- the family's only Wind source: Formula-1 Wind attacks punish Wind-weak/Float foes at R3. Hybrid (PA+MA)/2 bard; element is the rider, WP modest. Earliest harp.",
+      "identity": "T2 elemental opener harp — the family's only Wind source: Formula-1 Wind attacks punish Wind-weak/Float foes at R3. Hybrid (PA+MA)/2 bard; element is the rider, WP modest. Earliest harp.",
       "desc": "T2 enchanting harp.\nHas a chance to cast Charm on hit.",
       "baseline": {
         "wp": 10,
@@ -2706,13 +2704,13 @@
       "vanillaName": "Bloodstring Harp",
       "name": "Duskstring Harp",
       "tier": 3,
-      "identity": "T3 anti-physical harp -- the only ranged Blind in the harp lane: crater an enemy bruiser's hit-rate from 3 tiles back without waking them. Owns Blind.",
+      "identity": "T3 anti-physical harp — the only ranged Blind in the harp lane: crater an enemy bruiser's hit-rate from 3 tiles back without waking them. Owns Blind.",
       "desc": "T3 anti-physical harp.\nHas a chance to cast Blind on hit.",
       "baseline": {
         "wp": 13,
         "evade": 10,
         "element": "None",
-        "onHit": "Absorb HP (Formula 6 -- heals attacker for damage dealt)",
+        "onHit": "Absorb HP (Formula 6 — heals attacker for damage dealt)",
         "formula": "6"
       },
       "proposed": {
@@ -2736,7 +2734,7 @@
       "vanillaName": "Faerie Harp",
       "name": "Faerie Harp",
       "tier": 5,
-      "identity": "T5 capstone harp -- iconic faerie lullaby: ranged Sleep lulls a target out of the fight for a team burst (self-removes on hit, so a setup tool not a delete). Top harp WP, T5-gated. Owns Sleep line-wide.",
+      "identity": "T5 capstone harp — iconic faerie lullaby: ranged Sleep lulls a target out of the fight for a team burst (self-removes on hit, so a setup tool not a delete). Top harp WP, T5-gated. Owns Sleep line-wide.",
       "desc": "T5 capstone harp.\nHas a chance to cast Sleep on hit.",
       "baseline": {
         "wp": 15,
@@ -2766,13 +2764,13 @@
       "vanillaName": "Battle Folio",
       "name": "Glarebound Tome",
       "tier": 1,
-      "identity": "T1 orator opener -- earliest/cheapest book and the only ranged Blind in the Book lane: neuter an enemy physical attacker from afar. Lowest WP in the category; the accuracy-denial rider is the point.",
+      "identity": "T1 orator opener — earliest/cheapest book and the only ranged Blind in the Book lane: neuter an enemy physical attacker from afar. Lowest WP in the category; the accuracy-denial rider is the point.",
       "desc": "T1 orator's book.\nHas a chance to cast Intimidate on hit.",
       "baseline": {
         "wp": 7,
         "evade": 15,
         "element": "None",
-        "onHit": "Casts Trepidation (AoE Bravery-down; vanilla Foxbird) -- Formula 2",
+        "onHit": "Casts Trepidation (AoE Bravery-down; vanilla Foxbird) — Formula 2",
         "formula": "2"
       },
       "proposed": {
@@ -2796,12 +2794,12 @@
       "vanillaName": "Bestiary",
       "name": "Knell Codex",
       "tier": 4,
-      "identity": "T4 execution codex -- the only Doom source line-wide: tag an elite, retreat, let the 3-turn countdown guarantee the KO. Owns Doom.",
+      "identity": "T4 execution codex — the only Doom source line-wide: tag an elite, retreat, let the 3-turn countdown guarantee the KO. Owns Doom.",
       "baseline": {
         "wp": 8,
         "evade": 15,
         "element": "None",
-        "onHit": "Casts Fervor (vanilla Death Sentence / Praise-family) -- Formula 2",
+        "onHit": "Casts Fervor (vanilla Death Sentence / Praise-family) — Formula 2",
         "formula": "2"
       },
       "proposed": {
@@ -2825,13 +2823,13 @@
       "vanillaName": "Papyrus Codex",
       "name": "Binding Codex",
       "tier": 4,
-      "identity": "T4 pin codex -- ranged (R3) Immobilize locks a runner/charger in place for your casters and archers. Book-lane Immobilize (R3/Ev15 pin-from-range), distinct from the cloth pinner.",
+      "identity": "T4 pin codex — ranged (R3) Immobilize locks a runner/charger in place for your casters and archers. Book-lane Immobilize (R3/Ev15 pin-from-range), distinct from the cloth pinner.",
       "desc": "T4 pin codex.\nHas a chance to cast Immobilize on hit.",
       "baseline": {
         "wp": 9,
         "evade": 15,
         "element": "None",
-        "onHit": "Casts Induration (Petrify; vanilla 'stone seal') -- Formula 2",
+        "onHit": "Casts Induration (Petrify; vanilla 'stone seal') — Formula 2",
         "formula": "2"
       },
       "proposed": {
@@ -2855,12 +2853,12 @@
       "vanillaName": "Omnilex",
       "name": "Omnilex",
       "tier": 6,
-      "identity": "T6 anti-caster capstone -- ranged Silence shuts an enemy mage's spellbook before they nuke, plus innate Holy attacks (anti-Undead; Holy-absorbers heal). Top book WP, T6-gated, owns Silence + Holy.",
+      "identity": "T6 anti-caster capstone — ranged Silence shuts an enemy mage's spellbook before they nuke, plus innate Holy attacks (anti-Undead; Holy-absorbers heal). Top book WP, T6-gated, owns Silence + Holy.",
       "baseline": {
         "wp": 11,
         "evade": 15,
         "element": "None",
-        "onHit": "Casts Harmony (Dispel / CancelStatus) -- Formula 2",
+        "onHit": "Casts Harmony (Dispel / CancelStatus) — Formula 2",
         "formula": "2"
       },
       "proposed": {
@@ -2884,7 +2882,7 @@
       "vanillaName": "Javelin",
       "name": "Skewer",
       "tier": 1,
-      "identity": "T1 starter spear -- earliest/cheapest reach, line-only 15% spear evade. Promoted to R2 (the family identity; vanilla R1 was a trap). The honest first poke + Dragoon Jump fodder.",
+      "identity": "T1 starter spear — earliest/cheapest reach, line-only 15% spear evade. Promoted to R2 (the family identity; vanilla R1 was a trap). The honest first poke + Dragoon Jump fodder.",
       "baseline": {
         "wp": 8,
         "evade": 10,
@@ -2913,7 +2911,7 @@
       "vanillaName": "Spear",
       "name": "Footman's Spear",
       "tier": 2,
-      "identity": "T2 raw-stat baseline -- cheapest pure-stat reach, clean PA*WP. The 'just poke hard from a tile back' default every other spear is measured against.",
+      "identity": "T2 raw-stat baseline — cheapest pure-stat reach, clean PA*WP. The 'just poke hard from a tile back' default every other spear is measured against.",
       "baseline": {
         "wp": 9,
         "evade": 10,
@@ -2942,7 +2940,7 @@
       "vanillaName": "Mythril Spear",
       "name": "Frostpoint",
       "tier": 3,
-      "identity": "T3 only Ice spear -- innate Ice melee, WP tied to Footman's (zero raw paid for the matchup tool). Shreds Fire-creatures/Ice-weak; Ice-absorbers heal (cost).",
+      "identity": "T3 only Ice spear — innate Ice melee, WP tied to Footman's (zero raw paid for the matchup tool). Shreds Fire-creatures/Ice-weak; Ice-absorbers heal (cost).",
       "desc": "An ice-veined spear; its frozen tip sometimes shatters into raining ice.\nHas a chance to cast Blizzard on hit.",
       "baseline": {
         "wp": 10,
@@ -2972,7 +2970,7 @@
       "vanillaName": "Partisan",
       "name": "Stormpike",
       "tier": 3,
-      "identity": "T3 only Lightning spear -- innate Bolt melee, +1 WP over Frostpoint (sidegrade, different element). Anti-armor/Lightning-weak; +25% in rain.",
+      "identity": "T3 only Lightning spear — innate Bolt melee, +1 WP over Frostpoint (sidegrade, different element). Anti-armor/Lightning-weak; +25% in rain.",
       "desc": "A lightning-charged partisan; its strike sometimes calls down a bolt.\nHas a chance to cast Thunder on hit.",
       "baseline": {
         "wp": 11,
@@ -3002,8 +3000,8 @@
       "vanillaName": "Obelisk",
       "name": "Tombspire",
       "tier": 4,
-      "identity": "T4 reach executioner -- the Dragoon-Jump finisher. Range-2 + on-hit Immobilize pins a wounded target a tile away, then the Lancer Jumps the killing blow. Damage = the TARGET's missing HP (formula 69), a softener's mercy stroke, not an opener.",
-      "desc": "A reaching spear whose strike lands harder the more wounded its mark -- a feather-tap on the healthy, a death-knell on the bleeding.",
+      "identity": "T4 reach executioner — the Dragoon-Jump finisher. Range-2 + on-hit Immobilize pins a wounded target a tile away, then the Lancer Jumps the killing blow. Damage = the TARGET's missing HP (formula 69), a softener's mercy stroke, not an opener.",
+      "desc": "A reaching spear whose strike lands harder the more wounded its mark — a feather-tap on the healthy, a death-knell on the bleeding.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -3032,7 +3030,7 @@
       "vanillaName": "Holy Lance",
       "name": "Holy Lance",
       "tier": 5,
-      "identity": "ICONIC. T5 only Holy spear -- innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated.",
+      "identity": "ICONIC. T5 only Holy spear — innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated.",
       "desc": "The crusader's holy spear; its blessed point sometimes erupts with sacred light.\nHas a chance to cast Holy on hit.",
       "baseline": {
         "wp": 14,
@@ -3062,7 +3060,7 @@
       "vanillaName": "Dragon Whisker",
       "name": "Dragon Whisker",
       "tier": 6,
-      "identity": "ICONIC capstone. T6 riderless raw apex -- strictly-highest spear WP (16), the ultimate Jump platform. Pure PA*WP ceiling; pays with the lowest 10% evade and zero utility. Red-Dragon poach.",
+      "identity": "ICONIC capstone. T6 riderless raw apex — strictly-highest spear WP (16), the ultimate Jump platform. Pure PA*WP ceiling; pays with the lowest 10% evade and zero utility. Red-Dragon poach.",
       "desc": "The wyrm-feather apex spear; its thrust sometimes looses a gout of draconic flame.\nHas a chance to cast Fire Breath on hit.",
       "baseline": {
         "wp": 17,
@@ -3092,7 +3090,7 @@
       "vanillaName": "Javelin",
       "name": "Wyrmpike",
       "tier": 6,
-      "identity": "T6 split-apex (Nelveska treasure) -- only Wind spear + on-hit Doom (11), two-handed (trades the shield for the package). Tag a boss from two tiles back. Wins element/Doom where Dragon Whisker wins WP; neither dominates.",
+      "identity": "T6 split-apex (Nelveska treasure) — only Wind spear + on-hit Doom (11), two-handed (trades the shield for the package). Tag a boss from two tiles back. Wins element/Doom where Dragon Whisker wins WP; neither dominates.",
       "baseline": {
         "wp": 30,
         "evade": 10,
@@ -3122,7 +3120,7 @@
       "vanillaName": "Cypress Pole",
       "name": "Greenwood Pole",
       "tier": 1,
-      "identity": "ICONIC. T1 starter pole -- earliest/cheapest MA-reach, the 20% evade family floor. The honest training staff for early Geomancer/Monk.",
+      "identity": "ICONIC. T1 starter pole — earliest/cheapest MA-reach, the 20% evade family floor. The honest training staff for early Geomancer/Monk.",
       "desc": "A humble training pole; a focused strike sometimes channels raw martial spirit at a distant foe.\nHas a chance to cast Aurablast on hit.",
       "baseline": {
         "wp": 6,
@@ -3152,7 +3150,7 @@
       "vanillaName": "Battle Bamboo",
       "name": "Ironreed Pole",
       "tier": 2,
-      "identity": "ICONIC. T2 raw-stat pole baseline -- best no-rider WP of its era at 20% evade. The 'monk who just wants to hit from a tile back' default.",
+      "identity": "ICONIC. T2 raw-stat pole baseline — best no-rider WP of its era at 20% evade. The 'monk who just wants to hit from a tile back' default.",
       "baseline": {
         "wp": 7,
         "evade": 20,
@@ -3181,7 +3179,7 @@
       "vanillaName": "Musk Pole",
       "name": "Slumber Rod",
       "tier": 3,
-      "identity": "T3 only Sleep pole -- on-hit Sleep (12), WP tied to Battle Bamboo (zero raw paid for the disable). Nap a threat to open a fight from range.",
+      "identity": "T3 only Sleep pole — on-hit Sleep (12), WP tied to Battle Bamboo (zero raw paid for the disable). Nap a threat to open a fight from range.",
       "baseline": {
         "wp": 8,
         "evade": 20,
@@ -3210,7 +3208,7 @@
       "vanillaName": "Iron Fan",
       "name": "Hushfan",
       "tier": 3,
-      "identity": "T3 only Silence pole + line-best 25% evade -- on-hit Silence (10). The dodge-tank anti-caster stick; shut a mage down from a tile back. Sidegrade to Slumber Rod.",
+      "identity": "T3 only Silence pole + line-best 25% evade — on-hit Silence (10). The dodge-tank anti-caster stick; shut a mage down from a tile back. Sidegrade to Slumber Rod.",
       "baseline": {
         "wp": 9,
         "evade": 20,
@@ -3239,7 +3237,7 @@
       "vanillaName": "Gokuu's Pole",
       "name": "Sage's Pole",
       "tier": 5,
-      "identity": "ICONIC. T5 riderless raw-WP pole leader -- clean MA*WP, no gimmick. The high-MA finisher that just wants to hit hard; tier-gated above the rider-poles.",
+      "identity": "ICONIC. T5 riderless raw-WP pole leader — clean MA*WP, no gimmick. The high-MA finisher that just wants to hit hard; tier-gated above the rider-poles.",
       "baseline": {
         "wp": 10,
         "evade": 20,
@@ -3268,7 +3266,7 @@
       "vanillaName": "Ivory Pole",
       "name": "Ivory Pole",
       "tier": 4,
-      "identity": "T4 only Blind pole -- on-hit Blind (9) craters a target's physical hit-rate. Sits under Gokuu's WP: the rider is the whole identity. Neuter an enemy bruiser from range.",
+      "identity": "T4 only Blind pole — on-hit Blind (9) craters a target's physical hit-rate. Sits under Gokuu's WP: the rider is the whole identity. Neuter an enemy bruiser from range.",
       "baseline": {
         "wp": 11,
         "evade": 20,
@@ -3297,7 +3295,7 @@
       "vanillaName": "Eight-fluted Pole",
       "name": "Eight-Fluted Pole",
       "tier": 6,
-      "identity": "ICONIC. T6 attrition pole -- highest physical-pole WP (14) + only Poison rider (22). Chips high-HP targets over a long fight. Out-WPs Gokuu's but pays via tier + DoT-vs-burst tradeoff.",
+      "identity": "ICONIC. T6 attrition pole — highest physical-pole WP (14) + only Poison rider (22). Chips high-HP targets over a long fight. Out-WPs Gokuu's but pays via tier + DoT-vs-burst tradeoff.",
       "baseline": {
         "wp": 12,
         "evade": 20,
@@ -3326,7 +3324,7 @@
       "vanillaName": "Whale Whisker",
       "name": "Whale Whisker",
       "tier": 6,
-      "identity": "ICONIC capstone. THE caster pole -- highest pole WP (15) + only Water element; MA*WP comes free from the Pole weapon type (Formula 1, no risk). Best-in-slot for a high-MA front-liner. Tiamat-poach.",
+      "identity": "ICONIC capstone. THE caster pole — highest pole WP (15) + only Water element; MA*WP comes free from the Pole weapon type (Formula 1, no risk). Best-in-slot for a high-MA front-liner. Tiamat-poach.",
       "desc": "THE caster pole, charged with the sea; its strike sometimes drowns a distant foe in surging water.\nHas a chance to cast Torrent on hit.",
       "baseline": {
         "wp": 16,
@@ -3385,7 +3383,7 @@
       "vanillaName": "Fallingstar Bag",
       "name": "Fallingstar Bag",
       "tier": 5,
-      "identity": "The bag ceiling king. Highest bag WP (vanilla's WP20 poach-outlier re-curved to a gentle 18, preserving its 'strongest bag' identity), no rider -- the female 'just hit hardest' pick when you don't want a status. Poach/late-game availability. Pays for its ceiling with zero utility, the bag mirror of War Axe. Owns the raw-WP niche in the bag set; can't dominate Sandman/Hornet/Hexweave because it lacks every one of their status riders.",
+      "identity": "The bag ceiling king. Highest bag WP (vanilla's WP20 poach-outlier re-curved to a gentle 18, preserving its 'strongest bag' identity), no rider — the female 'just hit hardest' pick when you don't want a status. Poach/late-game availability. Pays for its ceiling with zero utility, the bag mirror of War Axe. Owns the raw-WP niche in the bag set; can't dominate Sandman/Hornet/Hexweave because it lacks every one of their status riders.",
       "baseline": {
         "wp": 20,
         "evade": 0,
@@ -3414,7 +3412,7 @@
       "vanillaName": "Proudhide Bag",
       "name": "Hornet Pouch",
       "tier": 3,
-      "identity": "Female bag attrition tool. Poison applicator (confirmed id22) for units who can't wield the endgame Scorpion Tail flail -- the niche is gender/job access, not raw power. Lower WP than Scorpion Tail but a separate equip class entirely; owns nothing the other bags own (Sleep/Silence/raw-ceiling), so no bag dominates it.",
+      "identity": "Female bag attrition tool. Poison applicator (confirmed id22) for units who can't wield the endgame Scorpion Tail flail — the niche is gender/job access, not raw power. Lower WP than Scorpion Tail but a separate equip class entirely; owns nothing the other bags own (Sleep/Silence/raw-ceiling), so no bag dominates it.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -3443,7 +3441,7 @@
       "vanillaName": "Hardscale Bag",
       "name": "Hexweave Bag",
       "tier": 4,
-      "identity": "Female anti-caster bag. Silence-on-hit (confirmed id10) shuts down enemy mages -- the only Silence applicator in the whole bludgeon category. Mid-high bag WP, gender/job-locked. Owns Silence so no other bag dominates it; doesn't dominate Hornet Pouch (lacks its Poison) or Fallingstar (lower WP).",
+      "identity": "Female anti-caster bag. Silence-on-hit (confirmed id10) shuts down enemy mages — the only Silence applicator in the whole bludgeon category. Mid-high bag WP, gender/job-locked. Owns Silence so no other bag dominates it; doesn't dominate Hornet Pouch (lacks its Poison) or Fallingstar (lower WP).",
       "baseline": {
         "wp": 14,
         "evade": 0,
@@ -3472,7 +3470,7 @@
       "vanillaName": "Damask Cloth",
       "name": "Tarsilk Veil",
       "tier": 3,
-      "identity": "T3 combo-enabler rag -- the only Oil source: Oil doubles incoming Fire, priming a target for your Black Mages while the dancer hides behind 50% evade. R2 short reach is the cloth trade.",
+      "identity": "T3 combo-enabler rag — the only Oil source: Oil doubles incoming Fire, priming a target for your Black Mages while the dancer hides behind 50% evade. R2 short reach is the cloth trade.",
       "baseline": {
         "wp": 8,
         "evade": 50,
@@ -3501,12 +3499,12 @@
       "vanillaName": "Cashmere",
       "name": "Bindsilk Veil",
       "tier": 4,
-      "identity": "T4 lockdown rag (renamed from Cashmere) -- Immobilize behind a 50% evade wall: pin a target so your team kites it while she dodges everything. Cloth-lane Immobilize (R2/Ev50 evasion-fortress), non-comparable to the R3/Ev15 book pinner.",
+      "identity": "T4 lockdown rag (renamed from Cashmere) — Immobilize behind a 50% evade wall: pin a target so your team kites it while she dodges everything. Cloth-lane Immobilize (R2/Ev50 evasion-fortress), non-comparable to the R3/Ev15 book pinner.",
       "baseline": {
         "wp": 10,
         "evade": 50,
         "element": "None",
-        "onHit": "None (pure stat -- Formula 1)",
+        "onHit": "None (pure stat — Formula 1)",
         "formula": "1"
       },
       "proposed": {
@@ -3530,12 +3528,12 @@
       "vanillaName": "Wyrmweave Silk",
       "name": "Gravesilk Veil",
       "tier": 6,
-      "identity": "T6 capstone caster rag -- chance to cast Gravity/Demi on hit (formula 2), chunking a flat share of the target's current HP regardless of defenses. The only Gravity source mod-wide; %HP scaling IGNORES the dancer's low PA, the rare offense vector that works despite her stat sheet. Keeps the 50% evade fortress.",
+      "identity": "T6 capstone caster rag — chance to cast Gravity/Demi on hit (formula 2), chunking a flat share of the target's current HP regardless of defenses. The only Gravity source mod-wide; %HP scaling IGNORES the dancer's low PA, the rare offense vector that works despite her stat sheet. Keeps the 50% evade fortress.",
       "baseline": {
         "wp": 15,
         "evade": 50,
         "element": "None",
-        "onHit": "None (pure stat -- Formula 1)",
+        "onHit": "None (pure stat — Formula 1)",
         "formula": "1"
       },
       "proposed": {
@@ -3560,7 +3558,7 @@
       "vanillaName": "Shuriken",
       "name": "Shuriken",
       "tier": 1,
-      "identity": "Starter throwing star -- thrown damage = Speed x WP, so it scales with the ninja's defining stat. Colorless: never resisted or absorbed. The cheap early ranged option.",
+      "identity": "Starter throwing star — thrown damage = Speed x WP, so it scales with the ninja's defining stat. Colorless: never resisted or absorbed. The cheap early ranged option.",
       "proposed": {
         "wp": 4,
         "evade": 0,
@@ -3571,7 +3569,7 @@
         "range": 0,
         "attackFlags": "Throwable, Direct"
       },
-      "desc": "A ninja's basic throwing star. Thrown, its damage scales with the wielder's Speed -- weak in slow hands, a real ranged hit once you stack Speed. Colorless: never resisted or absorbed."
+      "desc": "A ninja's basic throwing star. Thrown, its damage scales with the wielder's Speed — weak in slow hands, a real ranged hit once you stack Speed. Colorless: never resisted or absorbed."
     },
     {
       "id": 123,
@@ -3579,7 +3577,7 @@
       "vanillaName": "Fuma Shuriken",
       "name": "Fuma Shuriken",
       "tier": 3,
-      "identity": "Mid throwing star -- a bigger Speed-scaled colorless hit than the Shuriken. The reliable element-proof ranged DPS throw.",
+      "identity": "Mid throwing star — a bigger Speed-scaled colorless hit than the Shuriken. The reliable element-proof ranged DPS throw.",
       "proposed": {
         "wp": 6,
         "evade": 0,
@@ -3598,7 +3596,7 @@
       "vanillaName": "Yagyu Darkrood",
       "name": "Yagyu Darkrood",
       "tier": 5,
-      "identity": "Capstone throwing star -- top colorless Speed-scaled ranged damage. A maxed-Speed ninja's throw hits like a nuke and can never be resisted or absorbed.",
+      "identity": "Capstone throwing star — top colorless Speed-scaled ranged damage. A maxed-Speed ninja's throw hits like a nuke and can never be resisted or absorbed.",
       "proposed": {
         "wp": 8,
         "evade": 0,
@@ -3609,7 +3607,7 @@
         "range": 0,
         "attackFlags": "Throwable, Direct"
       },
-      "desc": "The deadliest throwing star. A maxed-Speed ninja's throw hits like a nuke, and being colorless it can never be resisted or absorbed -- the reliable finisher of the throw arsenal."
+      "desc": "The deadliest throwing star. A maxed-Speed ninja's throw hits like a nuke, and being colorless it can never be resisted or absorbed — the reliable finisher of the throw arsenal."
     },
     {
       "id": 125,
@@ -3617,7 +3615,7 @@
       "vanillaName": "Flameburst Bomb",
       "name": "Flameburst Bomb",
       "tier": 3,
-      "identity": "Fire throwing bomb -- Speed-scaled ranged Fire (x2 vs Fire-weak, shreds the Oiled; Fire-absorbers heal it). The matchup half of the throw arsenal: higher ceiling than the stars vs the right target, a gamble vs the wrong one.",
+      "identity": "Fire throwing bomb — Speed-scaled ranged Fire (x2 vs Fire-weak, shreds the Oiled; Fire-absorbers heal it). The matchup half of the throw arsenal: higher ceiling than the stars vs the right target, a gamble vs the wrong one.",
       "proposed": {
         "wp": 6,
         "evade": 0,
@@ -3628,7 +3626,7 @@
         "range": 0,
         "attackFlags": "Throwable, Direct"
       },
-      "desc": "A thrown Fire bomb. Speed-scaled ranged Fire -- doubles against Fire-weak foes and shreds the Oiled, but Fire-absorbers heal from it."
+      "desc": "A thrown Fire bomb. Speed-scaled ranged Fire — doubles against Fire-weak foes and shreds the Oiled, but Fire-absorbers heal from it."
     },
     {
       "id": 126,
@@ -3636,7 +3634,7 @@
       "vanillaName": "Snowmelt Bomb",
       "name": "Snowmelt Bomb",
       "tier": 3,
-      "identity": "Water throwing bomb -- Speed-scaled ranged Water (x2 vs Water-weak; Water-absorbers heal it). Twin to the Flameburst, different matchup coverage.",
+      "identity": "Water throwing bomb — Speed-scaled ranged Water (x2 vs Water-weak; Water-absorbers heal it). Twin to the Flameburst, different matchup coverage.",
       "proposed": {
         "wp": 6,
         "evade": 0,
@@ -3647,7 +3645,7 @@
         "range": 0,
         "attackFlags": "Throwable, Direct"
       },
-      "desc": "A thrown Water bomb. Speed-scaled ranged Water -- doubles against Water-weak foes; Water-absorbers heal from it."
+      "desc": "A thrown Water bomb. Speed-scaled ranged Water — doubles against Water-weak foes; Water-absorbers heal from it."
     },
     {
       "id": 127,
@@ -3655,7 +3653,7 @@
       "vanillaName": "Spark Bomb",
       "name": "Spark Bomb",
       "tier": 3,
-      "identity": "Lightning throwing bomb -- Speed-scaled ranged Lightning (x2 vs Lightning-weak and armored/robotic foes; Lightning-absorbers heal it). Completes the Fire/Water/Lightning throw-bomb trio.",
+      "identity": "Lightning throwing bomb — Speed-scaled ranged Lightning (x2 vs Lightning-weak and armored/robotic foes; Lightning-absorbers heal it). Completes the Fire/Water/Lightning throw-bomb trio.",
       "proposed": {
         "wp": 6,
         "evade": 0,
@@ -3666,7 +3664,7 @@
         "range": 0,
         "attackFlags": "Throwable, Direct"
       },
-      "desc": "A thrown Lightning bomb. Speed-scaled ranged Lightning -- doubles against Lightning-weak and armored foes; Lightning-absorbers heal from it. Completes the Fire/Water/Lightning trio."
+      "desc": "A thrown Lightning bomb. Speed-scaled ranged Lightning — doubles against Lightning-weak and armored foes; Lightning-absorbers heal from it. Completes the Fire/Water/Lightning trio."
     },
     {
       "id": 128,
@@ -3674,7 +3672,7 @@
       "vanillaName": "Escutcheon",
       "name": "Tideward",
       "tier": 1,
-      "identity": "Mag-leaning T1 starter -- only earliest shield with real magEv, plus a cheap anti-Water resist.",
+      "identity": "Mag-leaning T1 starter — only earliest shield with real magEv, plus a cheap anti-Water resist.",
       "baseline": {
         "physEv": 10,
         "magEv": 5,
@@ -3694,7 +3692,7 @@
       "vanillaName": "Buckler",
       "name": "Galewall",
       "tier": 1,
-      "identity": "T1 physical apex -- highest early physEv + anti-Wind resist for early archers/cyclones.",
+      "identity": "T1 physical apex — highest early physEv + anti-Wind resist for early archers/cyclones.",
       "baseline": {
         "physEv": 15,
         "magEv": 0,
@@ -3714,7 +3712,7 @@
       "vanillaName": "Bronze Shield",
       "name": "Stormwall",
       "tier": 2,
-      "identity": "First buyable element tool -- halves Lightning (guns, thunder mages). Balanced split.",
+      "identity": "First buyable element tool — halves Lightning (guns, thunder mages). Balanced split.",
       "baseline": {
         "physEv": 15,
         "magEv": 5,
@@ -3734,7 +3732,7 @@
       "vanillaName": "Round Shield",
       "name": "Swiftguard",
       "tier": 2,
-      "identity": "Agility shield -- phys-leaning evade + Speed+1 tempo prize for skirmishers.",
+      "identity": "Agility shield — phys-leaning evade + Speed+1 tempo prize for skirmishers.",
       "baseline": {
         "physEv": 20,
         "magEv": 0,
@@ -3754,7 +3752,7 @@
       "vanillaName": "Mythril Shield",
       "name": "Wardstone",
       "tier": 3,
-      "identity": "Anti-mage generalist -- top buyable magEv + innate Shell (stacks with mag-evade).",
+      "identity": "Anti-mage generalist — top buyable magEv + innate Shell (stacks with mag-evade).",
       "baseline": {
         "physEv": 15,
         "magEv": 15,
@@ -3774,7 +3772,7 @@
       "vanillaName": "Golden Shield",
       "name": "Sanctguard",
       "tier": 3,
-      "identity": "Anti-Holy + Holy-amp -- halves incoming Holy AND boosts the wearer's own Holy output.",
+      "identity": "Anti-Holy + Holy-amp — halves incoming Holy AND boosts the wearer's own Holy output.",
       "baseline": {
         "physEv": 20,
         "magEv": 5,
@@ -3794,7 +3792,7 @@
       "vanillaName": "Ice Shield",
       "name": "Rimeward",
       "tier": 3,
-      "identity": "Vanilla standout -- absorbs Ice, halves Fire, weak to Lightning. Anti-Ice/Fire tank.",
+      "identity": "Vanilla standout — absorbs Ice, halves Fire, weak to Lightning. Anti-Ice/Fire tank.",
       "baseline": {
         "physEv": 30,
         "magEv": 0,
@@ -3814,7 +3812,7 @@
       "vanillaName": "Flame Shield",
       "name": "Emberward",
       "tier": 3,
-      "identity": "Vanilla standout -- absorbs Fire, halves Ice, weak to Water. Ice/Flame element partner.",
+      "identity": "Vanilla standout — absorbs Fire, halves Ice, weak to Water. Ice/Flame element partner.",
       "baseline": {
         "physEv": 30,
         "magEv": 0,
@@ -3834,7 +3832,7 @@
       "vanillaName": "Aegis Shield",
       "name": "Spellbane",
       "tier": 5,
-      "identity": "THE anti-mage shield -- 50 magEv + MA+1 + nullify Earth. Near-zero phys is the cost.",
+      "identity": "THE anti-mage shield — 50 magEv + MA+1 + nullify Earth. Near-zero phys is the cost.",
       "baseline": {
         "physEv": 10,
         "magEv": 50,
@@ -3854,7 +3852,7 @@
       "vanillaName": "Diamond Shield",
       "name": "Trailblazer",
       "tier": 4,
-      "identity": "Mobility defender -- solid balanced evade + the only Move+1 shield. Tank that flanks.",
+      "identity": "Mobility defender — solid balanced evade + the only Move+1 shield. Tank that flanks.",
       "baseline": {
         "physEv": 35,
         "magEv": 15,
@@ -3874,7 +3872,7 @@
       "vanillaName": "Platinum Shield",
       "name": "Vanguard",
       "tier": 4,
-      "identity": "Offensive bruiser -- high physEv + the only PA+1 shield. Defense that adds damage.",
+      "identity": "Offensive bruiser — high physEv + the only PA+1 shield. Defense that adds damage.",
       "baseline": {
         "physEv": 40,
         "magEv": 10,
@@ -3894,7 +3892,7 @@
       "vanillaName": "Crystal Shield",
       "name": "Nightward",
       "tier": 5,
-      "identity": "Anti-Dark -- absorbs Dark (undead bosses), weak to Holy. Best-balanced absorb shield.",
+      "identity": "Anti-Dark — absorbs Dark (undead bosses), weak to Holy. Best-balanced absorb shield.",
       "baseline": {
         "physEv": 40,
         "magEv": 15,
@@ -3914,7 +3912,7 @@
       "vanillaName": "Genji Shield",
       "name": "Genji Shield",
       "tier": 5,
-      "identity": "Phys-evade apex -- poach/steal-gated, with a Speed+1 prize for the rare-drop effort.",
+      "identity": "Phys-evade apex — poach/steal-gated, with a Speed+1 prize for the rare-drop effort.",
       "baseline": {
         "physEv": 45,
         "magEv": 10,
@@ -3933,7 +3931,7 @@
       "vanillaName": "Kaiser Shield",
       "name": "Kaiser Shield",
       "tier": 5,
-      "identity": "The only OFFENSIVE shield -- strengthens the wearer's Fire/Lightning/Ice. A damage shield.",
+      "identity": "The only OFFENSIVE shield — strengthens the wearer's Fire/Lightning/Ice. A damage shield.",
       "baseline": {
         "physEv": 45,
         "magEv": 20,
@@ -3942,7 +3940,7 @@
       "proposed": {
         "physEv": 42,
         "magEv": 20,
-        "rider": "boost Fire/Ltng/Ice",
+        "rider": "boost Fire/Lightning/Ice",
         "equipBonusId": 18
       }
     },
@@ -3952,7 +3950,7 @@
       "vanillaName": "Venetian Shield",
       "name": "Venetian Shield",
       "tier": 6,
-      "identity": "Best generalist -- top on both evade axes + tri-element halve, no weakness, no rider.",
+      "identity": "Best generalist — top on both evade axes + tri-element halve, no weakness, no rider.",
       "baseline": {
         "physEv": 50,
         "magEv": 25,
@@ -3961,7 +3959,7 @@
       "proposed": {
         "physEv": 46,
         "magEv": 32,
-        "rider": "halve Fire/Ltng/Ice",
+        "rider": "halve Fire/Lightning/Ice",
         "equipBonusId": 19
       }
     },
@@ -3971,7 +3969,7 @@
       "vanillaName": "Escutcheon II",
       "name": "Aegis Prime",
       "tier": 6,
-      "identity": "Endgame anti-mage capstone -- 56 magEv, MA+1, halves Holy/Dark.",
+      "identity": "Endgame anti-mage capstone — 56 magEv, MA+1, halves Holy/Dark.",
       "baseline": {
         "physEv": 75,
         "magEv": 50,
@@ -3991,7 +3989,7 @@
       "vanillaName": "Leather Helm",
       "name": "Padded Coif",
       "tier": 1,
-      "identity": "Availability: the only riderless helm, alone at the bottom of the curve -- the head item armor jobs get turn 1 before any rider gear exists.",
+      "identity": "Availability: the only riderless helm, alone at the bottom of the curve — the head item armor jobs get turn 1 before any rider gear exists.",
       "baseline": {
         "hp": 10,
         "mp": 0,
@@ -4018,7 +4016,7 @@
       "vanillaName": "Bronze Helm",
       "name": "Mendsteel Helm",
       "tier": 2,
-      "identity": "Niche: innate Regen makes an early front-liner a self-healing wall before any healer is online -- attrition durability the raw-HP rungs never offer.",
+      "identity": "Niche: innate Regen makes an early front-liner a self-healing wall before any healer is online — attrition durability the raw-HP rungs never offer.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -4045,7 +4043,7 @@
       "vanillaName": "Iron Helm",
       "name": "Aegis Helm",
       "tier": 2,
-      "identity": "Niche: innate Protect (halve physical) on a solid early block -- the front-line tank's first real wall; pick over Bronze vs hard hitters, not chip.",
+      "identity": "Niche: innate Protect (halve physical) on a solid early block — the front-line tank's first real wall; pick over Bronze vs hard hitters, not chip.",
       "baseline": {
         "hp": 30,
         "mp": 0,
@@ -4072,7 +4070,7 @@
       "vanillaName": "Barbut",
       "name": "Storm Barbut",
       "tier": 3,
-      "identity": "Niche: nullifies Lightning entirely -- the slot's one element answer; hard-counters gun-heavy maps and Bolt/Summon mages where raw HP wouldn't save you.",
+      "identity": "Niche: nullifies Lightning entirely — the slot's one element answer; hard-counters gun-heavy maps and Bolt/Summon mages where raw HP wouldn't save you.",
       "baseline": {
         "hp": 40,
         "mp": 0,
@@ -4099,7 +4097,7 @@
       "vanillaName": "Mythril Helm",
       "name": "Clarion Helm",
       "tier": 3,
-      "identity": "Niche: Silence immunity keeps a magic-knight's or battle-skill user's spells online -- the spell-using tank's helm, no element commitment.",
+      "identity": "Niche: Silence immunity keeps a magic-knight's or battle-skill user's spells online — the spell-using tank's helm, no element commitment.",
       "baseline": {
         "hp": 50,
         "mp": 0,
@@ -4126,7 +4124,7 @@
       "vanillaName": "Golden Helm",
       "name": "Sunsteel Helm",
       "tier": 3,
-      "identity": "Niche: innate Float dodges Earth magic and ground traps and ignores swamp/terrain damage -- a positioning tool, not raw defense; the only mobility helm.",
+      "identity": "Niche: innate Float dodges Earth magic and ground traps and ignores swamp/terrain damage — a positioning tool, not raw defense; the only mobility helm.",
       "baseline": {
         "hp": 60,
         "mp": 0,
@@ -4153,7 +4151,7 @@
       "vanillaName": "Close Helmet",
       "name": "Sealed Visor",
       "tier": 3,
-      "identity": "Niche: immune Sleep and Blind -- the anti-control HP wall; keeps a front-liner awake and accurate when casters try to park or blind it off its hits.",
+      "identity": "Niche: immune Sleep and Blind — the anti-control HP wall; keeps a front-liner awake and accurate when casters try to park or blind it off its hits.",
       "baseline": {
         "hp": 70,
         "mp": 0,
@@ -4180,7 +4178,7 @@
       "vanillaName": "Diamond Helm",
       "name": "Timeward Helm",
       "tier": 4,
-      "identity": "Niche: Stop immunity -- the Time-Mage counter; the heavy tank that can never be frozen out of the fight for a lethal turn-skip.",
+      "identity": "Niche: Stop immunity — the Time-Mage counter; the heavy tank that can never be frozen out of the fight for a lethal turn-skip.",
       "baseline": {
         "hp": 80,
         "mp": 0,
@@ -4207,7 +4205,7 @@
       "vanillaName": "Platinum Helm",
       "name": "Wardsteel Helm",
       "tier": 4,
-      "identity": "Niche: innate Shell (halve magic) on a heavy block -- the anti-mage wall, magic mirror of Iron's Protect; the rung you grab for caster-boss maps.",
+      "identity": "Niche: innate Shell (halve magic) on a heavy block — the anti-mage wall, magic mirror of Iron's Protect; the rung you grab for caster-boss maps.",
       "baseline": {
         "hp": 90,
         "mp": 0,
@@ -4234,7 +4232,7 @@
       "vanillaName": "Circlet",
       "name": "Warded Circlet",
       "tier": 4,
-      "identity": "Niche: Charm immunity -- no friendly fire; 100 HP for a heavy unit that absolutely must stay loyal against mind-control bosses.",
+      "identity": "Niche: Charm immunity — no friendly fire; 100 HP for a heavy unit that absolutely must stay loyal against mind-control bosses.",
       "baseline": {
         "hp": 100,
         "mp": 0,
@@ -4261,7 +4259,7 @@
       "vanillaName": "Crystal Helm",
       "name": "Crystalward Helm",
       "tier": 5,
-      "identity": "Niche: the buyable defensive apex -- double-immunity to Stop AND Petrify (both instant-loss) on a huge HP pool; owns the unique Stone atom no other helm has.",
+      "identity": "Niche: the buyable defensive apex — double-immunity to Stop AND Petrify (both instant-loss) on a huge HP pool; owns the unique Stone atom no other helm has.",
       "baseline": {
         "hp": 120,
         "mp": 0,
@@ -4288,7 +4286,7 @@
       "vanillaName": "Genji Helm",
       "name": "Genji Helm",
       "tier": 6,
-      "identity": "ICONIC: the legend, finally earning it -- rare/steal-gated, granting BOTH innate Protect and Shell (halve ALL incoming damage) on near-apex HP.",
+      "identity": "ICONIC: the legend, finally earning it — rare/steal-gated, granting BOTH innate Protect and Shell (halve ALL incoming damage) on near-apex HP.",
       "baseline": {
         "hp": 130,
         "mp": 0,
@@ -4315,7 +4313,7 @@
       "vanillaName": "Grand Helm",
       "name": "Grand Helm",
       "tier": 6,
-      "identity": "ICONIC: the heavy-armor HP capstone (150, slot ceiling) plus Doom/Sleep immunity -- no death-clock, no nap; the brick that can't be cheesed off the field.",
+      "identity": "ICONIC: the heavy-armor HP capstone (150, slot ceiling) plus Doom/Sleep immunity — no death-clock, no nap; the brick that can't be cheesed off the field.",
       "baseline": {
         "hp": 150,
         "mp": 0,
@@ -4342,7 +4340,7 @@
       "vanillaName": "Leather Cap",
       "name": "Roughspun Cap",
       "tier": 1,
-      "identity": "Availability: cheapest head item, universal (any job turn 1, no Equip Heavy Armor) -- the mage/thief head-slot floor, alone at the bottom of the hat curve.",
+      "identity": "Availability: cheapest head item, universal (any job turn 1, no Equip Heavy Armor) — the mage/thief head-slot floor, alone at the bottom of the hat curve.",
       "baseline": {
         "hp": 8,
         "mp": 0,
@@ -4369,7 +4367,7 @@
       "vanillaName": "Plumed Hat",
       "name": "Wardplume Hat",
       "tier": 2,
-      "identity": "Niche: trades MP for magic-evade (magEv5) -- the cheap 'duck the first spell' hat; riderless but distinct on the magEv axis, a sidegrade not a downgrade to Red Hood.",
+      "identity": "Niche: trades MP for magic-evade (magEv5) — the cheap 'duck the first spell' hat; riderless but distinct on the magEv axis, a sidegrade not a downgrade to Red Hood.",
       "baseline": {
         "hp": 16,
         "mp": 5,
@@ -4396,7 +4394,7 @@
       "vanillaName": "Red Hood",
       "name": "Adept's Hood",
       "tier": 2,
-      "identity": "Availability: the early caster cap -- a small MP pool, HP-leaning twin of Plumed; the squishy mage's first survivable head, distinct on the MP axis.",
+      "identity": "Availability: the early caster cap — a small MP pool, HP-leaning twin of Plumed; the squishy mage's first survivable head, distinct on the MP axis.",
       "baseline": {
         "hp": 24,
         "mp": 8,
@@ -4423,7 +4421,7 @@
       "vanillaName": "Headgear",
       "name": "Martial Band",
       "tier": 3,
-      "identity": "Niche: PA+1 with the highest HP of the early hats -- the cheap melee hat for a Monk/Archer wanting hat mobility plus a little punch; Headband is the budget-to-cap fork.",
+      "identity": "Niche: PA+1 with the highest HP of the early hats — the cheap melee hat for a Monk/Archer wanting hat mobility plus a little punch; Headband is the budget-to-cap fork.",
       "baseline": {
         "hp": 32,
         "mp": 0,
@@ -4450,7 +4448,7 @@
       "vanillaName": "Wizard's Hat",
       "name": "Arcanist Cap",
       "tier": 3,
-      "identity": "ICONIC: MA+1 plus a real MP pool, lowest HP of its tier -- the classic caster fork, glassy but more and stronger spells; the MA/MP answer to Martial Band's PA.",
+      "identity": "ICONIC: MA+1 plus a real MP pool, lowest HP of its tier — the classic caster fork, glassy but more and stronger spells; the MA/MP answer to Martial Band's PA.",
       "baseline": {
         "hp": 40,
         "mp": 12,
@@ -4477,7 +4475,7 @@
       "vanillaName": "Green Beret",
       "name": "Zephyr Beret",
       "tier": 3,
-      "identity": "ICONIC: Speed+1 -- the universal tempo hat; more turns on literally any build, no stat-school commitment.",
+      "identity": "ICONIC: Speed+1 — the universal tempo hat; more turns on literally any build, no stat-school commitment.",
       "baseline": {
         "hp": 48,
         "mp": 0,
@@ -4504,7 +4502,7 @@
       "vanillaName": "Headband",
       "name": "Twisted Headband",
       "tier": 4,
-      "identity": "ICONIC: PA+2, the physical-apex hat -- the Monk/Brawler damage cap; Martial Band (PA+1, T3) keeps the budget niche below it.",
+      "identity": "ICONIC: PA+2, the physical-apex hat — the Monk/Brawler damage cap; Martial Band (PA+1, T3) keeps the budget niche below it.",
       "baseline": {
         "hp": 56,
         "mp": 0,
@@ -4531,7 +4529,7 @@
       "vanillaName": "Celebrant's Miter",
       "name": "Hierophant Miter",
       "tier": 4,
-      "identity": "ICONIC: MA+2 plus a deep MP well -- the mage damage-and-fuel cap; Wizard's Hat (MA+1, T3) keeps the budget niche. The magic counterpart to Headband.",
+      "identity": "ICONIC: MA+2 plus a deep MP well — the mage damage-and-fuel cap; Wizard's Hat (MA+1, T3) keeps the budget niche. The magic counterpart to Headband.",
       "baseline": {
         "hp": 64,
         "mp": 20,
@@ -4558,7 +4556,7 @@
       "vanillaName": "Black Cowl",
       "name": "Assassin's Cowl",
       "tier": 4,
-      "identity": "Niche: physical-evade (physEv8) plus Move+1 -- the rogue/skirmisher hat; reposition and dodge, a mobility-plus-evade lane no other hat offers.",
+      "identity": "Niche: physical-evade (physEv8) plus Move+1 — the rogue/skirmisher hat; reposition and dodge, a mobility-plus-evade lane no other hat offers.",
       "baseline": {
         "hp": 72,
         "mp": 0,
@@ -4585,7 +4583,7 @@
       "vanillaName": "Gold Hairpin",
       "name": "Mana Coronet",
       "tier": 4,
-      "identity": "ICONIC: the MP throne of the hats (40, slot max) plus Silence immunity -- the artillery-mage hat; bottomless spells that can't be cut off. MP is the identity.",
+      "identity": "ICONIC: the MP throne of the hats (40, slot max) plus Silence immunity — the artillery-mage hat; bottomless spells that can't be cut off. MP is the identity.",
       "baseline": {
         "hp": 80,
         "mp": 50,
@@ -4612,7 +4610,7 @@
       "vanillaName": "Lambent Hat",
       "name": "Lumen Crown",
       "tier": 5,
-      "identity": "ICONIC: the hybrid endgame mage hat -- MA+1, Speed+1, MP AND magic-evade (magEv10); the only hat blending magic offense, tempo and mag-defense on one head.",
+      "identity": "ICONIC: the hybrid endgame mage hat — MA+1, Speed+1, MP AND magic-evade (magEv10); the only hat blending magic offense, tempo and mag-defense on one head.",
       "baseline": {
         "hp": 88,
         "mp": 15,
@@ -4639,7 +4637,7 @@
       "vanillaName": "Thief's Cap",
       "name": "Nightrunner Cap",
       "tier": 5,
-      "identity": "ICONIC: the rogue capstone -- Speed+2, top physical-evade (physEv15), immune Disable + Immobilize; the untouchable, unstoppable skirmisher hat.",
+      "identity": "ICONIC: the rogue capstone — Speed+2, top physical-evade (physEv15), immune Disable + Immobilize; the untouchable, unstoppable skirmisher hat.",
       "baseline": {
         "hp": 100,
         "mp": 0,
@@ -4721,6 +4719,7 @@
       "name": "Ribbon",
       "tier": 6,
       "identity": "Total immunity to every status. The crown jewel - deliberately the LOWEST HP (10) so the +20 half-sets stay viable when you only need one cluster + bulk. Loses the HP axis, so it dominates neither half-set.",
+      "desc": "A blessed ribbon that turns aside every ill.\nImmune to all status ailments.",
       "baseline": {
         "hp": 10,
         "mp": 0,
@@ -4747,7 +4746,7 @@
       "vanillaName": "Leather Armor",
       "name": "Roughhide Mail",
       "tier": 1,
-      "identity": "Honest Ch1 starter wall -- cheapest heavy body; earliest unlock IS its niche. A riderless anchor protected purely by being the only heavy armor you can have in Ch1.",
+      "identity": "Honest Ch1 starter wall — cheapest heavy body; earliest unlock IS its niche. A riderless anchor protected purely by being the only heavy armor you can have in Ch1.",
       "baseline": {
         "hp": 10,
         "mp": 0,
@@ -4774,7 +4773,7 @@
       "vanillaName": "Linen Cuirass",
       "name": "Studded Mail",
       "tier": 2,
-      "identity": "Attrition body -- a free Regen tick outlasts a slow poke-war; the early sustain pick for a front-liner who trades blows. (vanillaName Linen Cuirass)",
+      "identity": "Attrition body — a free Regen tick outlasts a slow poke-war; the early sustain pick for a front-liner who trades blows. (vanillaName Linen Cuirass)",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -4801,7 +4800,7 @@
       "vanillaName": "Bronze Armor",
       "name": "Reaver Mail",
       "tier": 2,
-      "identity": "Aggro starter plate -- the only early heavy body that pushes Knight/Dragoon damage; offense over a few HP.",
+      "identity": "Aggro starter plate — the only early heavy body that pushes Knight/Dragoon damage; offense over a few HP.",
       "baseline": {
         "hp": 30,
         "mp": 0,
@@ -4828,7 +4827,7 @@
       "vanillaName": "Chainmail",
       "name": "Hushward Mail",
       "tier": 3,
-      "identity": "Anti-hush body -- a melee fighter who can never be Silenced; counters enemy mage packs that lock your skillset.",
+      "identity": "Anti-hush body — a melee fighter who can never be Silenced; counters enemy mage packs that lock your skillset.",
       "baseline": {
         "hp": 40,
         "mp": 0,
@@ -4855,7 +4854,7 @@
       "vanillaName": "Mythril Armor",
       "name": "Stalwart Plate",
       "tier": 3,
-      "identity": "Clean mid-game HP wall -- pure tonnage, no rider tax; the cheap 'just give me bulk' anchor of T3.",
+      "identity": "Clean mid-game HP wall — pure tonnage, no rider tax; the cheap 'just give me bulk' anchor of T3.",
       "baseline": {
         "hp": 50,
         "mp": 0,
@@ -4882,7 +4881,7 @@
       "vanillaName": "Plate Mail",
       "name": "Knight's Plate",
       "tier": 4,
-      "identity": "Front-line bulwark -- innate Protect soft-halves all physical damage; the dedicated physical-tank body. (vanillaName Plate Mail)",
+      "identity": "Front-line bulwark — innate Protect soft-halves all physical damage; the dedicated physical-tank body. (vanillaName Plate Mail)",
       "baseline": {
         "hp": 60,
         "mp": 0,
@@ -4909,7 +4908,7 @@
       "vanillaName": "Golden Armor",
       "name": "Sungold Mail",
       "tier": 4,
-      "identity": "Pyre-ward plate -- heals from Fire (geomancers / enemy Fire mages) but takes extra Water (EB16 weakness); a true defensive sidegrade to Knight's Plate. (vanillaName Golden Armor)",
+      "identity": "Pyre-ward plate — heals from Fire (geomancers / enemy Fire mages) but takes extra Water (EB16 weakness); a true defensive sidegrade to Knight's Plate. (vanillaName Golden Armor)",
       "baseline": {
         "hp": 70,
         "mp": 0,
@@ -4936,7 +4935,7 @@
       "vanillaName": "Diamond Armor",
       "name": "Adamant Plate",
       "tier": 4,
-      "identity": "Riderless HP throne of the buyable line -- max bulk-per-gil one tier before the T5 wall; pick when you want raw HP and nothing else.",
+      "identity": "Riderless HP throne of the buyable line — max bulk-per-gil one tier before the T5 wall; pick when you want raw HP and nothing else.",
       "baseline": {
         "hp": 80,
         "mp": 0,
@@ -4963,7 +4962,7 @@
       "vanillaName": "Platinum Armor",
       "name": "Warden Plate",
       "tier": 5,
-      "identity": "Anti-lockdown body -- immune Stop keeps your tank acting vs Time mages; tempo insurance and the cheaper anti-Stop pick under Crystal Mail. (vanillaName Platinum Armor)",
+      "identity": "Anti-lockdown body — immune Stop keeps your tank acting vs Time mages; tempo insurance and the cheaper anti-Stop pick under Crystal Mail. (vanillaName Platinum Armor)",
       "baseline": {
         "hp": 90,
         "mp": 0,
@@ -4990,7 +4989,7 @@
       "vanillaName": "Carabineer Mail",
       "name": "Charger's Plate",
       "tier": 5,
-      "identity": "Tempo plate -- a rare +Speed on heavy armor; a tank that takes more turns. The only body that buys initiative.",
+      "identity": "Tempo plate — a rare +Speed on heavy armor; a tank that takes more turns. The only body that buys initiative.",
       "baseline": {
         "hp": 100,
         "mp": 0,
@@ -5017,7 +5016,7 @@
       "vanillaName": "Crystal Mail",
       "name": "Crystalward Mail",
       "tier": 5,
-      "identity": "Petrify-proof crystal -- immune to Stop AND Stone; hard counter to Break/Petrify plus Time-mage lockdown; top buyable HP.",
+      "identity": "Petrify-proof crystal — immune to Stop AND Stone; hard counter to Break/Petrify plus Time-mage lockdown; top buyable HP.",
       "baseline": {
         "hp": 110,
         "mp": 0,
@@ -5044,7 +5043,7 @@
       "vanillaName": "Genji Armor",
       "name": "Genji Armor",
       "tier": 6,
-      "identity": "Samurai/Knight offensive capstone -- top-tier HP PLUS PA+2; the rare plate for a damage build, not just a wall. Iconic name preserved.",
+      "identity": "Samurai/Knight offensive capstone — top-tier HP PLUS PA+2; the rare plate for a damage build, not just a wall. Iconic name preserved.",
       "baseline": {
         "hp": 150,
         "mp": 0,
@@ -5071,7 +5070,7 @@
       "vanillaName": "Mirror Mail",
       "name": "Mirrorscale Mail",
       "tier": 5,
-      "identity": "The Reflect body -- bounces enemy single-target magic back at the caster; the only Reflect armor. Iconic name preserved.",
+      "identity": "The Reflect body — bounces enemy single-target magic back at the caster; the only Reflect armor. Iconic name preserved.",
       "baseline": {
         "hp": 130,
         "mp": 0,
@@ -5098,7 +5097,7 @@
       "vanillaName": "Maximillian",
       "name": "Maximillian",
       "tier": 6,
-      "identity": "HP throne -- the single highest body HP in the game (160, well under the 255 cap for headroom), now with innate Shell to blunt the magic raw HP can't dodge; the endgame wall. Iconic name preserved.",
+      "identity": "HP throne — the single highest body HP in the game (160, well under the 255 cap for headroom), now with innate Shell to blunt the magic raw HP can't dodge; the endgame wall. Iconic name preserved.",
       "baseline": {
         "hp": 200,
         "mp": 0,
@@ -5152,7 +5151,7 @@
       "vanillaName": "Leather Clothing",
       "name": "Emberweave Vest",
       "tier": 2,
-      "identity": "Early Fire-resist body (reuses vanilla EB16) -- absorb Fire, halve Ice, slightly weak to Water. The budget anti-Bomb/anti-Fire-mage pick before any heavy resist exists.",
+      "identity": "Early Fire-resist body (reuses vanilla EB16) — absorb Fire, halve Ice, slightly weak to Water. The budget anti-Bomb/anti-Fire-mage pick before any heavy resist exists.",
       "baseline": {
         "hp": 10,
         "mp": 0,
@@ -5179,7 +5178,7 @@
       "vanillaName": "Leather Plate",
       "name": "Trailwarden Jerkin",
       "tier": 2,
-      "identity": "Nimble light body -- +1 Move for skirmishers and archers. The early mobility pick when positioning beats raw HP.",
+      "identity": "Nimble light body — +1 Move for skirmishers and archers. The early mobility pick when positioning beats raw HP.",
       "baseline": {
         "hp": 18,
         "mp": 0,
@@ -5206,7 +5205,7 @@
       "vanillaName": "Ringmail",
       "name": "Wardweave Vest",
       "tier": 2,
-      "identity": "Traveler's tri-element ward (reuses vanilla EB19) -- halves all three primary elements. The broad-resist budget body for mixed-element fights.",
+      "identity": "Traveler's tri-element ward (reuses vanilla EB19) — halves all three primary elements. The broad-resist budget body for mixed-element fights.",
       "baseline": {
         "hp": 24,
         "mp": 0,
@@ -5233,7 +5232,7 @@
       "vanillaName": "Mythril Vest",
       "name": "Tempo Vest",
       "tier": 3,
-      "identity": "Tempo body -- +1 Speed to act sooner each round. The light-armor speed pick before Ninja Gear exists. Pick when you want more turns out of a unit.",
+      "identity": "Tempo body — +1 Speed to act sooner each round. The light-armor speed pick before Ninja Gear exists. Pick when you want more turns out of a unit.",
       "baseline": {
         "hp": 30,
         "mp": 0,
@@ -5260,7 +5259,7 @@
       "vanillaName": "Adamant Vest",
       "name": "Wardsilk Vest",
       "tier": 3,
-      "identity": "Caster-safety body -- never get Silenced out of your spells. Pick when your mage must keep casting through enemy Silence.",
+      "identity": "Caster-safety body — never get Silenced out of your spells. Pick when your mage must keep casting through enemy Silence.",
       "baseline": {
         "hp": 36,
         "mp": 0,
@@ -5287,7 +5286,7 @@
       "vanillaName": "Wizard Clothing",
       "name": "Mage's Wrap",
       "tier": 3,
-      "identity": "ICONIC MP body (Wizard Clothing) -- +18 MP and +1 MA. The mage's light armor: trades HP for spell uptime + a touch of power. MP+MA is the whole identity, so its lower HP is never a strict loss.",
+      "identity": "ICONIC MP body (Wizard Clothing) — +18 MP and +1 MA. The mage's light armor: trades HP for spell uptime + a touch of power. MP+MA is the whole identity, so its lower HP is never a strict loss.",
       "baseline": {
         "hp": 42,
         "mp": 15,
@@ -5314,7 +5313,7 @@
       "vanillaName": "Brigandine",
       "name": "Bulwark Brigandine",
       "tier": 4,
-      "identity": "Durable front-line cloth -- innate Protect halves incoming physical. Heavy-armor-like survivability with universal access and no Equip ability. The light bruiser's wall.",
+      "identity": "Durable front-line cloth — innate Protect halves incoming physical. Heavy-armor-like survivability with universal access and no Equip ability. The light bruiser's wall.",
       "baseline": {
         "hp": 50,
         "mp": 0,
@@ -5341,7 +5340,7 @@
       "vanillaName": "Jujitsu Gi",
       "name": "Adept's Gi",
       "tier": 4,
-      "identity": "ICONIC Monk body (vanilla EB30) -- +1 PA and immune to instant-death (Death/KO). Pick for a melee unit that must not get one-shot by Death spells.",
+      "identity": "ICONIC Monk body (vanilla EB30) — +1 PA and immune to instant-death (Death/KO). Pick for a melee unit that must not get one-shot by Death spells.",
       "baseline": {
         "hp": 60,
         "mp": 0,
@@ -5368,7 +5367,7 @@
       "vanillaName": "Power Garb",
       "name": "Berserker's Garb",
       "tier": 5,
-      "identity": "ICONIC +PA bruiser body (vanilla EB31) -- the clean physical-attack stat stick. Pick when maximizing Monk/Ninja/melee damage.",
+      "identity": "ICONIC +PA bruiser body (vanilla EB31) — the clean physical-attack stat stick. Pick when maximizing Monk/Ninja/melee damage.",
       "baseline": {
         "hp": 70,
         "mp": 0,
@@ -5395,7 +5394,7 @@
       "vanillaName": "Gaia Gear",
       "name": "Terraweave Garb",
       "tier": 5,
-      "identity": "ICONIC Earth body (vanilla EB32) -- heal from Earth attacks and boost your own Earth/Geomancy, plus a little MP. Pick for Earth builds or against enemy Earth nukes.",
+      "identity": "ICONIC Earth body (vanilla EB32) — heal from Earth attacks and boost your own Earth/Geomancy, plus a little MP. Pick for Earth builds or against enemy Earth nukes.",
       "baseline": {
         "hp": 85,
         "mp": 10,
@@ -5422,7 +5421,7 @@
       "vanillaName": "Ninja Gear",
       "name": "Ninja Gear",
       "tier": 6,
-      "identity": "ICONIC assassin body (vanilla EB33) -- pure agility: +2 Speed and start each battle Invisible, traded for deliberately low HP. End-tier rare for a fast striker who opens from stealth.",
+      "identity": "ICONIC assassin body (vanilla EB33) — pure agility: +2 Speed and start each battle Invisible, traded for deliberately low HP. End-tier rare for a fast striker who opens from stealth.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -5449,7 +5448,7 @@
       "vanillaName": "Black Garb",
       "name": "Nightweave Garb",
       "tier": 5,
-      "identity": "Anti-Stop durability body (vanilla EB34) -- the highest-HP light body that can never be time-locked out of the fight. The near-pure HP wall.",
+      "identity": "Anti-Stop durability body (vanilla EB34) — the highest-HP light body that can never be time-locked out of the fight. The near-pure HP wall.",
       "baseline": {
         "hp": 100,
         "mp": 0,
@@ -5476,7 +5475,7 @@
       "vanillaName": "Rubber Suit",
       "name": "Rubber Suit",
       "tier": 6,
-      "identity": "ICONIC Rubber body (vanilla EB35) -- fully null Lightning, high HP and some MP. End-tier rare. Hard counter to Thunder/Bolt fights or a hybrid-caster anchor.",
+      "identity": "ICONIC Rubber body (vanilla EB35) — fully null Lightning, high HP and some MP. End-tier rare. Hard counter to Thunder/Bolt fights or a hybrid-caster anchor.",
       "baseline": {
         "hp": 150,
         "mp": 0,
@@ -5484,7 +5483,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 90,
+        "hp": 110,
         "mp": 14,
         "physEv": 0,
         "magEv": 0,
@@ -5503,7 +5502,7 @@
       "vanillaName": "Hempen Robe",
       "name": "Penitent's Robe",
       "tier": 1,
-      "identity": "T1 starter caster body -- cheapest, earliest robe. Lowest HP/MP in the line but the ONLY robe with innate Regen (EB5): heals every turn. The budget attrition mage that out-sustains a plain riderless stat-stick in early poke wars.",
+      "identity": "T1 starter caster body — cheapest, earliest robe. Lowest HP/MP in the line but the ONLY robe with innate Regen (EB5): heals every turn. The budget attrition mage that out-sustains a plain riderless stat-stick in early poke wars.",
       "baseline": {
         "hp": 10,
         "mp": 10,
@@ -5530,7 +5529,7 @@
       "vanillaName": "Silken Robe",
       "name": "Acolyte Robe",
       "tier": 2,
-      "identity": "T2 early-offense sidegrade to the Penitent's -- trades Regen sustain for +1 Magic Attack (EB10). The first damage robe; heal-over-time vs hit-harder-now is the early fork. Earliest MA in the slot.",
+      "identity": "T2 early-offense sidegrade to the Penitent's — trades Regen sustain for +1 Magic Attack (EB10). The first damage robe; heal-over-time vs hit-harder-now is the early fork. Earliest MA in the slot.",
       "baseline": {
         "hp": 20,
         "mp": 16,
@@ -5557,7 +5556,7 @@
       "vanillaName": "Wizard's Robe",
       "name": "Magus Robe",
       "tier": 3,
-      "identity": "T3 pure spell-power body -- +2 Magic Attack (EB36), zero defensive frills. Biggest flat MA in the slot; the black/white/time-mage damage default through mid-game. The OFFENSE half of the T3 fork with Chameleon.",
+      "identity": "T3 pure spell-power body — +2 Magic Attack (EB36), zero defensive frills. Biggest flat MA in the slot; the black/white/time-mage damage default through mid-game. The OFFENSE half of the T3 fork with Chameleon.",
       "baseline": {
         "hp": 30,
         "mp": 22,
@@ -5584,7 +5583,7 @@
       "vanillaName": "Chameleon Robe",
       "name": "Vesper Robe",
       "tier": 3,
-      "identity": "ICONIC. The SURVIVAL half of the T3 fork -- absorbs Holy (heal off enemy/ally Holy) and immune to instant-KO (EB37). Pick vs Holy-slinging foes (Knights Templar, undead) or Death-spam fights. More HP/MP than Magus but gives up its MA+2: offense vs survival, neither dominates.",
+      "identity": "ICONIC. The SURVIVAL half of the T3 fork — absorbs Holy (heal off enemy/ally Holy) and immune to instant-KO (EB37). Pick vs Holy-slinging foes (Knights Templar, undead) or Death-spam fights. More HP/MP than Magus but gives up its MA+2: offense vs survival, neither dominates.",
       "baseline": {
         "hp": 40,
         "mp": 28,
@@ -5611,7 +5610,7 @@
       "vanillaName": "White Robe",
       "name": "Wardlight Robe",
       "tier": 4,
-      "identity": "ICONIC. The element-DEFENSE robe -- halves all three primary attack elements (EB19). The durable caster who walks into enemy Fire/Bolt/Ice crossfire. More HP than its Black twin (defense = more body) at a touch less MP.",
+      "identity": "ICONIC. The element-DEFENSE robe — halves all three primary attack elements (EB19). The durable caster who walks into enemy Fire/Bolt/Ice crossfire. More HP than its Black twin (defense = more body) at a touch less MP.",
       "baseline": {
         "hp": 50,
         "mp": 34,
@@ -5638,7 +5637,7 @@
       "vanillaName": "Black Robe",
       "name": "Channeler's Robe",
       "tier": 4,
-      "identity": "ICONIC. The element-OFFENSE twin of White Robe (same tier, same 3 elements, opposite intent) -- boosts the WEARER's own Fire/Lightning/Ice spells (EB18). Glass cannon: more MP than White (more spells to throw) but less HP and no resist. Pick to nuke harder, not survive.",
+      "identity": "ICONIC. The element-OFFENSE twin of White Robe (same tier, same 3 elements, opposite intent) — boosts the WEARER's own Fire/Lightning/Ice spells (EB18). Glass cannon: more MP than White (more spells to throw) but less HP and no resist. Pick to nuke harder, not survive.",
       "baseline": {
         "hp": 60,
         "mp": 30,
@@ -5665,7 +5664,7 @@
       "vanillaName": "Luminous Robe",
       "name": "Empyrean Robe",
       "tier": 5,
-      "identity": "T5 MP throne -- highest MP short of the capstone. Its vanilla rider slot was empty; repurposed to innate Float (EB46): dodge Earth/Quake/floor-trap damage and ignore terrain. The battlefield-control caster body -- a mobility/immunity trait even Lordly lacks, so it stands on its own axis, not just availability.",
+      "identity": "T5 MP throne — highest MP short of the capstone. Its vanilla rider slot was empty; repurposed to innate Float (EB46): dodge Earth/Quake/floor-trap damage and ignore terrain. The battlefield-control caster body — a mobility/immunity trait even Lordly lacks, so it stands on its own axis, not just availability.",
       "baseline": {
         "hp": 75,
         "mp": 50,
@@ -5692,7 +5691,7 @@
       "vanillaName": "Lordly Robe",
       "name": "Lordly Robe",
       "tier": 6,
-      "identity": "ICONIC capstone (rare/poach, T6). Top HP & MP of the line PLUS PA+2/MA+1 and innate Protect+Shell (EB41) -- the king's robe, best all-round body in the game. Endgame-gated so its raw superiority never dominates the T1-5 robes you wore earlier; tier IS the protecting axis, and every lower robe owns a rider trait Lordly doesn't have.",
+      "identity": "ICONIC capstone (rare/poach, T6). Top HP & MP of the line PLUS PA+2/MA+1 and innate Protect+Shell (EB41) — the king's robe, best all-round body in the game. Endgame-gated so its raw superiority never dominates the T1-5 robes you wore earlier; tier IS the protecting axis, and every lower robe owns a rider trait Lordly doesn't have.",
       "baseline": {
         "hp": 100,
         "mp": 80,

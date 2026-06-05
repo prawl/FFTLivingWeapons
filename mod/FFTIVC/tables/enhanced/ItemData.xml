@@ -13,12 +13,12 @@
       <ShopAvailability>Unknown20</ShopAvailability>
     </Item>
     <Item>
-      <Id>29</Id> <!-- Living Blade+ (was Icebrand) -->
-      <EquipBonusId>21</EquipBonusId>
-    </Item>
-    <Item>
       <Id>30</Id> <!-- Arcanum (was Runeblade) -->
       <EquipBonusId>1</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>37</Id> <!-- Chaos Blade -->
+      <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
       <Id>48</Id> <!-- Terrastaff (was Battle Axe) -->
@@ -34,7 +34,7 @@
     </Item>
     <Item>
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
-      <EquipBonusId>83</EquipBonusId>
+      <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
       <Id>55</Id> <!-- Hushward Rod (was Poison Rod) -->

@@ -276,13 +276,14 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>29</Id> <!-- Living Blade+ (was Icebrand) -->
+      <Id>29</Id> <!-- Graviton (was Icebrand) -->
       <Range>1</Range>
-      <Formula>1</Formula>
-      <Power>18</Power>
-      <Evasion>12</Evasion>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>2</Formula>
+      <Power>12</Power>
+      <Evasion>14</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>42</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>30</Id> <!-- Arcanum (was Runeblade) -->
@@ -295,12 +296,13 @@
       <OptionsAbilityId>55</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>31</Id> <!-- Living Blade (was Nagrarok) -->
+      <Id>31</Id> <!-- Lightbringer (was Nagrarok) -->
       <Range>1</Range>
-      <Formula>1</Formula>
-      <Power>16</Power>
+      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <Formula>2</Formula>
+      <Power>14</Power>
       <Evasion>12</Evasion>
-      <Elements>None</Elements>
+      <Elements>Holy</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
@@ -388,11 +390,11 @@
     <ItemWeapon>
       <Id>41</Id> <!-- Murasame -->
       <Range>1</Range>
-      <Formula>2</Formula>
+      <Formula>1</Formula>
       <Power>9</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>76</OptionsAbilityId>
+      <OptionsAbilityId>18</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>42</Id> <!-- Ame-no-Murakumo -->
@@ -489,7 +491,7 @@
       <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
       <Range>1</Range>
       <Formula>4</Formula>
-      <Power>6</Power>
+      <Power>8</Power>
       <Evasion>20</Evasion>
       <Elements>Lightning</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -498,8 +500,8 @@
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
       <Range>1</Range>
       <Formula>4</Formula>
-      <Power>6</Power>
-      <Evasion>12</Evasion>
+      <Power>8</Power>
+      <Evasion>20</Evasion>
       <Elements>Fire</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
@@ -507,7 +509,7 @@
       <Id>54</Id> <!-- Frost Rod (was Ice Rod) -->
       <Range>1</Range>
       <Formula>4</Formula>
-      <Power>6</Power>
+      <Power>8</Power>
       <Evasion>20</Evasion>
       <Elements>Ice</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>

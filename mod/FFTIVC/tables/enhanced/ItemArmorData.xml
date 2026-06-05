@@ -280,7 +280,7 @@
     </ItemArmor>
     <ItemArmor>
       <Id>55</Id> <!-- Rubber Suit -->
-      <HPBonus>90</HPBonus>
+      <HPBonus>110</HPBonus>
       <MPBonus>14</MPBonus>
     </ItemArmor>
     <ItemArmor>

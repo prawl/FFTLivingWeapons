@@ -50,6 +50,12 @@ CAST = {42: "Gravity (damaging a share of the target's current HP)",
 UICAT = {"Knife": 1, "NinjaBlade": 2, "Sword": 3, "KnightSword": 4, "Katana": 5, "Axe": 6,
          "Rod": 7, "Staff": 8, "Flail": 9, "Gun": 10, "Crossbow": 11, "Bow": 12, "Instrument": 13,
          "Book": 14, "Polearm": 15, "Pole": 16, "Bag": 17, "Cloth": 18}
+# Weapon menu order = SortOrder, whose hundreds digit groups by type. Repurposing items in-place left them
+# with their OLD slot's value (a Sword stuck in the knight-sword range, etc.). We regenerate SortOrder for
+# every weapon so it groups with its ACTUAL type. GROUP_RANK = the base nxd's vanilla type order, keyed by
+# UiItemCategoryId -> hundreds (derived from the dominant SortOrder//100 per category in the stock data).
+GROUP_RANK = {1: 1, 3: 2, 4: 3, 12: 4, 11: 5, 8: 6, 7: 7, 10: 8, 14: 9, 16: 10,
+              6: 11, 15: 12, 5: 13, 2: 14, 9: 15, 13: 16, 18: 17, 17: 18}
 
 # thematic flavor clauses keyed by the item's defining trait (element > proc > rider > role)
 ELEM_FLAVOR = {
@@ -142,21 +148,12 @@ def mechanics(it):
             parts.append(f"Has a chance to cast {CAST[p]} on hit.")
         af = s.get("attackFlags") or ""
         if "ForcedTwoHands" in af and "Arc" not in af:  # melee two-hander; bows (Arc) are obviously 2H, skip
-            parts.append("Held in two hands only (no shield).")
+            parts.append("Held in two hands only.")
         rt = rider_text(s.get("rider"))  # weapons can carry an EquipBonus rider too (Arcanum MA+2, Dragon Rod Reraise)
         if rt:
             parts.append(rt)
     else:
-        if it["category"] in ACC_CATS:
-            pe, me = s.get("physEv", 0) or 0, s.get("magEv", 0) or 0
-            if pe and me and pe == me:
-                parts.append(f"Grants {pe}% evasion.")
-            elif pe and me:
-                parts.append(f"Grants {pe}% physical and {me}% magick evasion.")
-            elif pe:
-                parts.append(f"Grants {pe}% physical evasion.")
-            elif me:
-                parts.append(f"Grants {me}% magick evasion.")
+        # accessory evasion is shown on the equip card's stat panel already -- don't repeat it in the desc.
         rt = rider_text(s.get("rider"))
         if rt:
             parts.append(rt)
@@ -176,7 +173,10 @@ def flavor(it):
         p = s.get("onHitAbilityId", 0) or 0
         if p in PROC_FLAVOR:
             return PROC_FLAVOR[p]
+    # No element/proc flavor available -> pick from a varied pool, indexed by id so adjacent
+    # items never share a line (kills the "Sturdy X of dependable make" on 60 items problem).
     noun = CAT_NOUN.get(it["category"], it["vanillaName"].lower())
+    pick = lambda pool: pool[it["id"] % len(pool)]
     if it["category"] in WEAPON_CATS:
         ev = s.get("evade", 0) or 0
         wp = s.get("wp", 0) or 0
@@ -184,19 +184,47 @@ def flavor(it):
         if ev >= 40:
             return f"A {noun} made to never be where the blow lands."
         if ev >= 20:
-            return f"A light, quick {noun} that favors the nimble hand."
+            return pick([f"A light, quick {noun} that favors the nimble hand.",
+                         f"A nimble {noun} that reads a blow before it lands.",
+                         f"A whisper-light {noun} that rewards a quick wrist."])
         if tier <= 2:
-            return f"A plain, dependable {noun} for the early road."
+            return pick([f"A plain, dependable {noun} for the early road.",
+                         f"A humble {noun}, the first a recruit is trusted with.",
+                         f"A workmanlike {noun} with no pretensions."])
         if wp >= 20:
-            return f"A brutal {noun} that trades finesse for sheer force."
-        return f"A finely-wrought {noun} of proven temper."
-    # armor / accessory plain piece
+            return pick([f"A brutal {noun} that trades finesse for sheer force.",
+                         f"A heavy {noun} that ends an argument in one swing.",
+                         f"A {noun} forged for raw, uncompromising power."])
+        return pick([f"A finely-wrought {noun} of proven temper.",
+                     f"A well-balanced {noun}, the smith's quiet pride.",
+                     f"A keen {noun} that has earned its keep many times over.",
+                     f"A trustworthy {noun} a veteran would not part with."])
+    if it["category"] in ACC_CATS:
+        return pick([f"A finely-made {noun} that lends a quiet edge.",
+                     f"An understated {noun} prized by those who know its worth.",
+                     f"A {noun} of subtle, lasting craft.",
+                     f"A traveler's {noun}, light and never in the way.",
+                     f"A well-kept {noun} with a faint trace of old magic."])
+    # armor (HP/MP pieces): pools by tier band, varied by id
     tier = it.get("tier", 3) or 3
-    if tier <= 2:
-        return f"Honest {noun} for a soldier just starting out."
-    if (s.get("hp", 0) or 0) >= 120 or (it.get("tier", 0) or 0) >= 6:
-        return f"Masterwork {noun}, the pride of an armory."
-    return f"Sturdy {noun} of dependable make."
+    band = ("late" if ((s.get("hp", 0) or 0) >= 120 or tier >= 6) else ("early" if tier <= 2 else "mid"))
+    return pick({
+        "early": [f"Honest {noun} for a soldier just starting out.",
+                  f"Simple {noun}, all a green recruit can afford.",
+                  f"Roughspun {noun} that turns aside a careless blow.",
+                  f"Plain {noun} issued to the rank and file.",
+                  f"Cheap but serviceable {noun} for the long first march."],
+        "mid":   [f"Sturdy {noun} of dependable make.",
+                  f"Field-tempered {noun} that has weathered hard marches.",
+                  f"Well-wrought {noun} trusted by seasoned hands.",
+                  f"Heavy {noun} built to outlast a long campaign.",
+                  f"Reliable {noun}, neither cheap nor showy."],
+        "late":  [f"Masterwork {noun}, the pride of an armory.",
+                  f"Peerless {noun} fit for a champion.",
+                  f"Flawless {noun}, a master smith's life work.",
+                  f"Storied {noun} whispered of in old war tales.",
+                  f"Resplendent {noun} worn only by the worthy."],
+    }[band])
 
 
 def plural(name):
@@ -210,6 +238,17 @@ def main():
     dry = "--dry" in sys.argv
     doc = json.loads(ITEMS.read_text(encoding="utf-8"))
     named = [it for it in doc["items"] if it.get("name") and it["name"] != "TBD"]
+    # Regroup weapon SortOrder by ACTUAL type (fixes repurposed-in-place scatter). Within a type, order by
+    # (tier, id) for a clean weak->strong progression. Non-weapons keep their stock SortOrder.
+    sort_map, by_group = {}, {}
+    for it in named:
+        eff = it["proposed"].get("categoryOverride") or it.get("category")
+        if eff in WEAPON_CATS:
+            by_group.setdefault(UICAT[eff], []).append(it)
+    for uicat, items_in in by_group.items():
+        rank = GROUP_RANK.get(uicat, 19)
+        for i, it in enumerate(sorted(items_in, key=lambda x: (x.get("tier", 99) or 99, x["id"])), start=1):
+            sort_map[it["id"]] = rank * 100 + i
     con = sqlite3.connect(SQLITE)
     n = 0
     for it in named:
@@ -249,9 +288,22 @@ def main():
         # weapon also auto-corrects vanilla mislabels (e.g. Birchwood Staff shipped as a KnightSword).
         if eff_cat in UICAT:
             con.execute('UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?', (UICAT[eff_cat], it["id"]))
+        if it["id"] in sort_map:
+            con.execute('UPDATE "Item-en" SET SortOrder=? WHERE Key=?', (sort_map[it["id"]], it["id"]))
         n += 1
     if dry:
         con.close(); return
+    # Orphan weapons not in items.json (e.g. DLC dupes like the id254 Moonblade) keep a stale SortOrder --
+    # sweep any that don't match their type group to the END of that group, so none stray to the front.
+    grp_max = {}
+    for so in sort_map.values():
+        grp_max[so // 100] = max(grp_max.get(so // 100, 0), so % 100)
+    for key, uicat, so in con.execute(
+            'SELECT Key, UiItemCategoryId, SortOrder FROM "Item-en" WHERE UiItemCategoryId BETWEEN 1 AND 18').fetchall():
+        rank = GROUP_RANK.get(uicat)
+        if key not in sort_map and rank and so // 100 != rank:
+            grp_max[rank] = grp_max.get(rank, 0) + 1
+            con.execute('UPDATE "Item-en" SET SortOrder=? WHERE Key=?', (rank * 100 + grp_max[rank], key))
     con.commit(); con.close()
     print(f"Patched {n} rows in {SQLITE.name}. Re-encoding to nxd...")
     ENC_DIR.mkdir(parents=True, exist_ok=True)
