@@ -1,3 +1,10 @@
+⚠️ REVERTED 2026-06-05 — Bloodpact shipped a modified `ability.en.nxd` + `overrideabilityactiondata.nxd`
+(the slot-219 relocation). Editing the ability table CORRUPTED UNRELATED ABILITIES: the Fire spell's range
+went map-wide, Red Mage lost all abilities, and new-game crashed (worked from save). Took ~6 in-game bisection
+restarts to find because the mod was assumed "items-only." Both ability nxds are now PARKED (source
+`*.bloodpact_parked`, deployed `*.DIAGOFF`) so the mod ships vanilla abilities. To revive Bloodpact: isolate
+its ability edits and re-test Fire range + new-game BEFORE shipping. See memory [[bloodpact-ability-corruption]].
+
 PARKED — "Bloodpact" (HP-cost capstone weapon). PROTOTYPED + DEPLOYED LIVE on Chaos Blade (id37):
 formula=2, May-Cast host slot 219, ~19% on hit = PA*Y bonus dmg to target + PA*Y/X self-recoil on the
 wielder. CONFIRMED WORKING in-game (and it live-confirmed Formula 66 / 0x42 fires self-recoil in the
