@@ -67,6 +67,7 @@
       "name": "Cutpurse",
       "tier": 1,
       "identity": "Honest Ch1 starter / cheapest dual-wield enabler — earliest unlock is its niche",
+      "flavorOverride": "First steel of a guttersnipe's trade, light to palm and cheap to abandon in flight.",
       "baseline": {
         "wp": 3,
         "evade": 5,
@@ -83,8 +84,7 @@
         "onHitAbilityId": 108,
         "formula": 2,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "desc": "A humble street knife, cheap and ready from your first day in the field.\nHas a chance to cast Steal Gil on hit."
+      }
     },
     {
       "id": 2,
@@ -93,6 +93,7 @@
       "name": "Quicksilver",
       "tier": 2,
       "identity": "Early AGILE knife — real dodge identity (25 evade), not just 'a bit better than Cutpurse'",
+      "flavorOverride": "Quenched to a liquid sheen, it slips aside as readily as it slips between ribs.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -118,6 +119,7 @@
       "name": "Gloomfang",
       "tier": 2,
       "identity": "Anti-physical debuffer — GUARANTEED Blind on EVERY hit (formula 2D), cripples an enemy bruiser's accuracy for the fight. Melee + low knife damage is the price; only Blind source.",
+      "flavorOverride": "Its edge swims with gloom, and every wound it opens steals the daylight from a foe's eyes.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -134,8 +136,7 @@
         "onHitAbilityId": 9,
         "formula": 45,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "flavorOverride": "Etched with shadow; a solid hit leaves foes blinking in the dark."
+      }
     },
     {
       "id": 4,
@@ -144,6 +145,7 @@
       "name": "Hushblade",
       "tier": 2,
       "identity": "Anti-caster — GUARANTEED Silence on EVERY hit (formula 2D), shuts an enemy mage's spellbook cold. Melee-range + low knife damage is the price; only Silence source. (Spiciest of the 100% daggers; trim WP if it ever feels oppressive.)",
+      "flavorOverride": "Smith-wrought to throttle the throat; a chant dies unspoken the instant it draws blood.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -160,8 +162,7 @@
         "onHitAbilityId": 10,
         "formula": 45,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "flavorOverride": "Forged to throttle spellcraft — a caster's worst nightmare."
+      }
     },
     {
       "id": 5,
@@ -170,6 +171,7 @@
       "name": "Argent Dirk",
       "tier": 3,
       "identity": "Clean no-strings mid-game main-hand — reliable damage + modest dodge, no gimmick",
+      "flavorOverride": "Balanced to the grain and burnished bright, the dirk a silversmith sets aside for himself.",
       "baseline": {
         "wp": 5,
         "evade": 10,
@@ -195,6 +197,7 @@
       "name": "Sanguine Gauche",
       "tier": 3,
       "identity": "Parry-tank lifeleech — line-max evade (50) AND every hit drains HP (Night Sword, decimal 48 = 0x30; switches dmg to PA*WP). Two reasons it's never dominated.",
+      "flavorOverride": "A duelist's parrying knife that drinks the blood it turns aside to mend its own bearer.",
       "baseline": {
         "wp": 6,
         "evade": 40,
@@ -211,8 +214,7 @@
         "onHitAbilityId": 0,
         "formula": 48,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "desc": "A parrying blade that drinks the blood it spills.\nDeflects with rare skill, and heals the wielder for damage dealt."
+      }
     },
     {
       "id": 7,
@@ -221,6 +223,7 @@
       "name": "Adamant Fang",
       "tier": 4,
       "identity": "Glass-cannon stat-stick — best STRINGLESS buyable damage; pays with line-min evade (5) and zero rider",
+      "flavorOverride": "Honed past sense into a tooth of cold adamant: it bites to the bone and shields nothing.",
       "baseline": {
         "wp": 7,
         "evade": 5,
@@ -246,6 +249,7 @@
       "name": "Mortal Coil",
       "tier": 4,
       "identity": "Single-target deleter on a clock — Doom countdown then guaranteed KO. WP8 sits UNDER Adamant Fang (pays for the proc).",
+      "flavorOverride": "One graze, and the appointed hour begins its quiet count; what it marks, death collects.",
       "baseline": {
         "wp": 7,
         "evade": 5,
@@ -262,8 +266,7 @@
         "onHitAbilityId": 11,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "desc": "Mark a foe and let the clock run; death keeps its appointment.\nWhen attacking, has a chance of inflicting Doom."
+      }
     },
     {
       "id": 9,
@@ -272,6 +275,7 @@
       "name": "Galewind",
       "tier": 5,
       "identity": "Elemental main-hand — top flat damage with a Wind exploit (x2 vs Wind-weak). Double-edged: Wind-absorbers heal.",
+      "flavorOverride": "A gust lies coiled in its hollow blade, loosed to harry the foe with every keening stroke.",
       "baseline": {
         "wp": 10,
         "evade": 5,
@@ -288,8 +292,7 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Throwable, TwoSwords, Striking"
-      },
-      "desc": "Bound with a sliver of caged storm. Each strike rides the wind.\nDeals Wind-elemental damage."
+      }
     },
     {
       "id": 10,
@@ -298,6 +301,7 @@
       "name": "Zwill Straightblade",
       "tier": 6,
       "identity": "Endgame capstone + burst-setup — Sleep a target, team deletes it at +50%. Top WP but poach-gated and the Sleep self-removes, so a setup tool not a universal best.",
+      "desc": "A knife manufactured in a region renowned for its blades.\nWhen attacking, has a chance of inflicting Sleep.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -323,6 +327,7 @@
       "name": "Swiftfang",
       "tier": 2,
       "identity": "Speed blade — damage = Speed x WP (formula 99): starts tame and GROWS as you stack Speed (gear + Shout), and dual-wield doubles it. The 'faster = deadlier' ninja weapon — weak early, a blender once you commit to Speed. The melee anchor of the Speed-ninja archetype.",
+      "flavorOverride": "So weightless it leads the hand rather than follows; swifter the wielder, crueler the cut.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -343,8 +348,7 @@
         0.62,
         0.25,
         0.55
-      ],
-      "flavorOverride": "A blade so light it answers the hand faster than thought — the swifter the ninja, the deadlier the cut."
+      ]
     },
     {
       "id": 12,
@@ -353,6 +357,7 @@
       "name": "Mistedge",
       "tier": 3,
       "identity": "REACH outlier — the only Range-2 melee in the line (throwing-knife fantasy). Hits from a tile back without melee retaliation; pays with line-min evade for its tier. Iconic name kept.",
+      "flavorOverride": "A throwing blade balanced for the long cast, finding its mark a pace beyond a foe's reach.",
       "baseline": {
         "wp": 9,
         "evade": 5,
@@ -382,7 +387,7 @@
       "name": "Frost Kodachi",
       "tier": 3,
       "identity": "Ice arsenal — first elemental blade; two Ice procs/turn under Dual Wield. Anti-Fire, +25% vs Ice-weak. Only Ice source; unlocks a tier before the Lightning blade so it can't be dominated by it.",
-      "desc": "An ice-forged short blade; its bite carries the cold.\nDeals Ice-elemental damage.\nHas a chance to cast Blizzard on hit.",
+      "flavorOverride": "Tempered in winter's heart, its kiss leaves frost, and a deeper cold where it sinks.",
       "baseline": {
         "wp": 10,
         "evade": 5,
@@ -412,7 +417,7 @@
       "name": "Raijin Longblade",
       "tier": 4,
       "identity": "Lightning arsenal + line-max 20% evade. Mid-game dodge-DPS: anti-mechanical / Lightning-weak coverage on the highest-evade chassis. Only Lightning melee source. Splits from Spellbinder (same tier/WP) by trading Silence for element + top evade.",
-      "desc": "Named for the thunder god; each cut crackles with stormlight.\nDeals Lightning-elemental damage.\nHas a chance to cast Thunder on hit.",
+      "flavorOverride": "Christened for the thunder god, it carries his storm and looses it at the touch of flesh.",
       "baseline": {
         "wp": 12,
         "evade": 5,
@@ -442,6 +447,7 @@
       "name": "Silentfang",
       "tier": 4,
       "identity": "Anti-caster blade — on-hit Silence shuts down enemy mages (vanilla Disable re-skinned to Silence id10, matching Regabonds). Pays with no element and base evade. Only on-hit Silence in the line. Iconic name kept.",
+      "flavorOverride": "Drawn against the spellbound, it stops a chant mid-breath; the silence finishes the deed.",
       "baseline": {
         "wp": 13,
         "evade": 5,
@@ -471,6 +477,7 @@
       "name": "Sasuke's Blade",
       "tier": 6,
       "identity": "Marquee ninja blade — best-in-line 20% evade AND on-hit Sleep (vanilla Stop re-skinned to Sleep id12; both deny turns). Trades 1 WP under Iga for top evade + a soft-lock fired twice/turn. Iconic name kept.",
+      "desc": "A legendary ninja's sword.",
       "baseline": {
         "wp": 14,
         "evade": 10,
@@ -500,6 +507,7 @@
       "name": "Iga Blade",
       "tier": 6,
       "identity": "No-strings DPS capstone — line-max 14 WP, strong 15% evade, zero gimmick. Two 14-WP PA*WP hits/turn when you want raw damage over a tradeoff. The endgame default. Iconic name kept.",
+      "desc": "An exquisitely crafted ninja sword that was once used by a secret society.",
       "baseline": {
         "wp": 15,
         "evade": 15,
@@ -529,6 +537,7 @@
       "name": "Koga Blade",
       "tier": 6,
       "identity": "Attrition capstone — only Dark-element blade + on-hit Poison DOT (Regabonds id51 re-skinned to Poison id22). Trades evade for relentless chip that ticks while the ninja dodges away. Fixes vanilla's strictly-dominated Koga. Iconic name kept.",
+      "desc": "A powerful ninja sword that was once used by a secret society.",
       "baseline": {
         "wp": 15,
         "evade": 5,
@@ -558,6 +567,7 @@
       "name": "Vagabond",
       "tier": 1,
       "identity": "Nimble budget starter — lowest WP but line-best early evade (12). Dodge over hit; earliest unlock.",
+      "flavorOverride": "A wanderer's blade worn smooth by the road, slim enough to slip a blow before it falls.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -574,8 +584,7 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "A worn wanderer's blade. Cheap, light, ready from your first march."
+      }
     },
     {
       "id": 20,
@@ -584,6 +593,7 @@
       "name": "Cleaver",
       "tier": 1,
       "identity": "Heavy starter — trades the Vagabond's guard for +2 raw WP. The early aggressor's pick.",
+      "flavorOverride": "Broad and heavy at the edge, it parries nothing; it drives a foe back off their feet.",
       "baseline": {
         "wp": 5,
         "evade": 10,
@@ -609,6 +619,7 @@
       "name": "Riposte",
       "tier": 2,
       "identity": "Parry sword — top evade of the line below Nagnarok (16). The defensive duelist; out-guards every higher-WP sword.",
+      "flavorOverride": "A duelist's sword balanced to catch an incoming stroke and return it in the same breath.",
       "baseline": {
         "wp": 6,
         "evade": 5,
@@ -626,8 +637,7 @@
         "formula": 2,
         "attackFlags": "Striking, TwoSwords, TwoHands",
         "equipBonusId": 83
-      },
-      "desc": "A duelist's sword built to turn blows aside and answer them.\nHas a chance to cast Rend Weapon on hit."
+      }
     },
     {
       "id": 22,
@@ -636,7 +646,7 @@
       "name": "Claymore",
       "tier": 2,
       "identity": "REACH SWORD test — the only sword that strikes from 2 tiles, paid for with zero evade + no element/proc",
-      "desc": "A two-handed greatsword that strikes from a tile back.\nHas a chance to cast Rend Armor on hit.",
+      "flavorOverride": "A two-handed greatsword whose reach lets its bearer cut a pace beyond the foe's swing.",
       "baseline": {
         "wp": 7,
         "evade": 8,
@@ -663,6 +673,7 @@
       "name": "Sanguine Sword",
       "tier": 3,
       "identity": "Rare one-handed Sword (not sold, shield-friendly): casts Sanguine Sword (absorb HP) on hit — the life-drain of a fell mercenary knight, echoing Gaffgarion. Lives on the NATIVE Blood Sword slot so the card correctly reads Sword (relocated off the Giant's Axe slot, which read Axe).",
+      "flavorOverride": "The blade of a sellsword who supped on the lives he felled, till the field claimed him.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -681,8 +692,7 @@
         "attackFlags": "Striking, TwoSwords, TwoHands",
         "typeFlagsOverride": "Rare, Weapon",
         "shopOverride": "Unknown20"
-      },
-      "flavorOverride": "Once the blade of a fell mercenary who drank the life of all he struck, until he too fell in battle."
+      }
     },
     {
       "id": 24,
@@ -691,6 +701,7 @@
       "name": "Stormbrand",
       "tier": 3,
       "identity": "Lightning blade — attacks deal Lightning (x2 vs Lightning-weak; Lightning-absorbers heal it). Only Lightning sword.",
+      "flavorOverride": "Drawn from coral and storm alike, its edge mutters with thunder waiting to leap free.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -716,6 +727,7 @@
       "name": "Tanglethorn",
       "tier": 3,
       "identity": "Pin-blade — chance to inflict Immobilize (target can act but can't move). Pin runners; lock melee off your back line. Only Immobilize source. Proc id 14 unverified in-game.",
+      "flavorOverride": "A briar-marked blade said to send roots through any it strikes, fixing them to the earth.",
       "baseline": {
         "wp": 9,
         "evade": 5,
@@ -732,8 +744,7 @@
         "onHitAbilityId": 14,
         "formula": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "An ancient blade that roots its victims where they stand.\nWhen attacking, has a chance of inflicting Immobilize."
+      }
     },
     {
       "id": 26,
@@ -742,6 +753,7 @@
       "name": "Flamberge",
       "tier": 3,
       "identity": "Fire blade — attacks deal Fire (anti-Undead, shreds Oiled/Ice foes; Fire-absorbers heal it). Re-themed off Sleep (knives own Sleep). Only Fire sword.",
+      "flavorOverride": "A waving, flame-shaped edge that kindles where it lands, leaving the unclean to smolder.",
       "baseline": {
         "wp": 9,
         "evade": 5,
@@ -758,8 +770,7 @@
         "onHitAbilityId": 16,
         "formula": 2,
         "attackFlags": "Striking, TwoSwords, TwoHands"
-      },
-      "desc": "A wavering blade that burns like a torch. Deals Fire-elemental damage.\nHas a chance to cast Fire on hit."
+      }
     },
     {
       "id": 27,
@@ -768,6 +779,7 @@
       "name": "Wrathblade",
       "tier": 4,
       "identity": "Berserker sword: damage equals the wielder's missing HP. Zero at full health, devastating near death. WP and evade are cosmetic for damage. The widely-equippable desperation blade.",
+      "flavorOverride": "Forged for the cornered and bleeding; nearer to ruin, the hungrier its edge grows.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -793,6 +805,7 @@
       "name": "Swiftedge",
       "tier": 4,
       "identity": "Speed-Knight blade (unique): damage = Speed x WP, not Physical Attack. Mediocre at base, devastating if you stack Speed.",
+      "flavorOverride": "A keen blade that answers the swift hand alone, biting harder the quicker its bearer goes.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -818,7 +831,7 @@
       "name": "Graviton",
       "tier": 5,
       "identity": "Giant-slayer sword: on hit, a chance to cast Gravity, shearing off a share of the target's CURRENT HP regardless of defense — the melee counter to high-HP tanks and bosses. Trades raw WP for top-of-line evade and the %-HP proc; the swing is just the delivery. (Repurposed from the retired Living Blade+.)",
-      "flavorOverride": "A leaden blade that drags even the mightiest to their knees.",
+      "flavorOverride": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down.",
       "baseline": {
         "wp": 18,
         "evade": 12,
@@ -844,6 +857,7 @@
       "name": "Arcanum",
       "tier": 5,
       "identity": "Arcane dispel sword: chance to strip the target's buffs on hit (Protect/Shell/Haste/Reflect/etc.). The melee answer to buffed foes; Omnilex is the ranged version.",
+      "flavorOverride": "Runes crawl its fuller, and at a touch unwind whatever wards a foe wraps about itself.",
       "baseline": {
         "wp": 14,
         "evade": 15,
@@ -871,7 +885,7 @@
       "name": "Lightbringer",
       "tier": 5,
       "identity": "The line's only Holy sword (Excalibur's Holy is locked to Knight Swords). Holy element — bonus damage to Undead and dark foes, healed by Holy-absorbers. The radiant melee pick against undead/dark comps; pays a little raw WP for the element and the matchup edge. (Repurposed from the retired Living Blade base.)",
-      "desc": "Blessed steel that burns the unclean.\nDeals Holy-elemental damage; strikes Undead for extra.",
+      "flavorOverride": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away.",
       "baseline": {
         "wp": 16,
         "evade": 12,
@@ -897,6 +911,7 @@
       "name": "Materia Blade",
       "tier": 6,
       "identity": "Dark mage-knight capstone — Dark element + absorbs MP every hit (battle-mage fuel). Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
+      "desc": "The sword belonging to Cloud, the extraplanar wanderer. It was designed for members of SOLDIER, allowing them to fight to their full potential.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -922,6 +937,7 @@
       "name": "Defender",
       "tier": 4,
       "identity": "Parry-tank capstone — game-max 60% physical evade, lowest WP of the five, EquipBonus rider Protect (halve physical taken). The un-killable front-line dodge wall; pick it to NOT die, not to deal damage. Most available of the five (tier 4). Renamed from generic 'Defender' to signal the pure shield-blade role.",
+      "desc": "A broad-bladed knight's sword with jewels embedded in its pommel.",
       "baseline": {
         "wp": 16,
         "evade": 60,
@@ -951,6 +967,7 @@
       "name": "Save the Queen",
       "tier": 5,
       "identity": "Disabler-bruiser — strong 45% evade plus Sleep-on-hit to neuter a target while you out-tempo the duel, backed by an EquipBonus Regen rider for self-sustain. The 'control the fight' pick between pure tank (Aegisbrand) and the Holy capstone. Sleep proc owned by no other sword. Renamed from 'Save the Queen' for the warden identity.",
+      "desc": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection.\nWhile equipped, grants Protect.",
       "baseline": {
         "wp": 18,
         "evade": 30,
@@ -980,6 +997,7 @@
       "name": "Excalibur",
       "tier": 6,
       "identity": "Holy-knight tempo capstone — Holy element (anti-Undead, with its signature Holy absorb) plus EquipBonus rider Haste for extra turns. The build-defining matchup + tempo + survivability blade; the only elemental Knight Sword that also carries a permanent rider. Iconic name kept. Seated at vanilla WP21 (verbatim Game8/Regabonds) mid-ladder.",
+      "desc": "It is said that only the true heir to the throne can wield this legendary knight's sword. The worthy will be granted fleetness of foot and divine might.\nWhile equipped, grants Haste.",
       "baseline": {
         "wp": 21,
         "evade": 35,
@@ -1009,6 +1027,7 @@
       "name": "Ragnarok",
       "tier": 6,
       "identity": "Anti-caster prestige blade — unique Dark element plus Silence-on-hit shuts down enemy mages, with high WP and middling evade. Fixes vanilla's 'squeezed slot' (riderless WP24, dominated by Chaos): now owns the Dark + Silence niche so it is NOT dominated by Chaos Blade. Iconic name kept. The pick versus caster-heavy comps.",
+      "desc": "This knight's sword is mentioned in tales about the end of the world. It provides defense against spellcraft.\nWhile equipped, grants Shell.",
       "baseline": {
         "wp": 24,
         "evade": 20,
@@ -1038,6 +1057,7 @@
       "name": "Chaos Blade",
       "tier": 6,
       "identity": "Raw-power king — highest WP in the category, lowest evade (paid defensively), with a chance to Petrify on hit. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker cut to WP28 so it no longer strictly dominates Ragnarok. Iconic name kept; vanilla's Regen rider stripped (equipBonusId 0) so it's pure offense.",
+      "desc": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers.\nWhile equipped, grants Regen. When used to perform a standard attack, has a chance of inflicting Stone.",
       "baseline": {
         "wp": 50,
         "evade": 20,
@@ -1068,7 +1088,7 @@
       "name": "Ashura",
       "tier": 1,
       "identity": "Earliest katana + the line's evade crown (25%) — the defensive samurai's first blade; out-dodges every higher-WP katana, earning its slot on availability + guard, not power. No rider to misfire while you learn the class.",
-      "desc": "The earliest katana, named for the Ashura's spirit blade.\nHas a chance to cast Draw Out: Ashura on hit.",
+      "desc": "A katana with a brilliant white blade.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -1098,6 +1118,7 @@
       "name": "Kotetsu",
       "tier": 1,
       "identity": "Cheap anti-bruiser — one swing Blinds an enemy melee threat for the fight (only early Blind katana). Pays -7 evade vs Asura for +1 WP and the rider.",
+      "desc": "A katana whose blade is adorned with a breathtaking carving of a tiger.",
       "baseline": {
         "wp": 8,
         "evade": 15,
@@ -1127,6 +1148,7 @@
       "name": "Bizen Osafune",
       "tier": 2,
       "identity": "MP-siphon blade (Formula 47 = Absorb-MP) — every hit drains the target's MP and refuels the wielder's own Iaido casts. The mage-samurai / Draw-Out fuel battery. Same WP as Murasame; identity is the MP economy. Set UiStatusEffectId=1001 (absorb convention).",
+      "desc": "A katana with a blade forged of the finest iron sand by master swordsmith Nagamitsu Osafune, of the eastern land of Bizen.",
       "baseline": {
         "wp": 9,
         "evade": 15,
@@ -1156,6 +1178,7 @@
       "name": "Murasame",
       "tier": 2,
       "identity": "The rain blade — a chance to Slow the struck foe, miring them as a downpour mires a battlefield. The only Slow katana; distinct from Ashura's raw cast and Bizen's MP drain. Trades formula-2 burst for Brave-scaled damage plus the tempo swing of Slow.",
+      "desc": "Referred to as a demon sword, this katana's keen blade showers blood upon the battlefield.",
       "baseline": {
         "wp": 10,
         "evade": 15,
@@ -1176,8 +1199,7 @@
         0.99,
         0.74,
         0.94
-      ],
-      "flavorOverride": "The rain blade, whose every cut drags at a foe like a downpour turning the field to mire."
+      ]
     },
     {
       "id": 42,
@@ -1186,6 +1208,7 @@
       "name": "Ame-no-Murakumo",
       "tier": 3,
       "identity": "The gathering-storm blade — only Wind katana (x2 vs Wind-weak) AND Silences on hit, choking an enemy mage's spellbook. The anti-caster capstone of the mid line (Heaven's Cloud lore). Trades evade for the storm package.",
+      "desc": "This katana's design was inspired by a legendary blade said to have been plucked from the tail of a dragon that marauded eastern lands.",
       "baseline": {
         "wp": 11,
         "evade": 15,
@@ -1215,6 +1238,7 @@
       "name": "Kiyomori",
       "tier": 3,
       "identity": "Attrition parry-blade — the evade apex below the capstones (20%) plus Poison-on-hit that chips high-HP foes every clock tick (its Protect/Shell Draw Out reframed as relentless pressure). Survives any duel; outlasts raw blades vs bulk.",
+      "desc": "This exquisitely crafted katana has a beautifully patterned blade and an incredible cutting edge.",
       "baseline": {
         "wp": 12,
         "evade": 15,
@@ -1244,6 +1268,7 @@
       "name": "Muramasa",
       "tier": 4,
       "identity": "Berserker katana (the Muramasa curse): damage equals the wielder's missing HP. Zero at full health, up to a near-MaxHP hit near death. WP and evade are cosmetic for damage. A desperation finisher.",
+      "desc": "This katana is said to have drunk the blood of countless enemies.",
       "baseline": {
         "wp": 14,
         "evade": 15,
@@ -1273,7 +1298,7 @@
       "name": "Kiku-ichimonji",
       "tier": 4,
       "identity": "The reach blade — the ONLY range-2 katana, echoing Kikuichimonji's long-range Draw Out. Strike from the second rank and stay safer; no element or status, reach IS the identity. Nothing at this WP can match its range.",
-      "desc": "The long-reach katana, named for its spirit blade.\nHas a chance to cast Draw Out: Kiku-ichimonji on hit.",
+      "desc": "A katana with a hilt in the shape of a chrysanthemum.",
       "baseline": {
         "wp": 15,
         "evade": 15,
@@ -1304,6 +1329,7 @@
       "name": "Masamune",
       "tier": 5,
       "identity": "The legendary all-rounder — high WP AND top-tier evade AND innate Holy AND Sleep-on-hit soft CC (its Haste/Regen Draw Out rendered honestly as battlefield tempo control). Poach-from-Elmdore rarity (T5). Trades 4 WP for the whole package, so it never dominates Chirijiraden. Holy-absorbers heal.",
+      "desc": "This katana was forged by a master swordsmith, and its sheath is inlaid with beautiful patterns.",
       "baseline": {
         "wp": 18,
         "evade": 15,
@@ -1333,6 +1359,7 @@
       "name": "Chirijiraden",
       "tier": 6,
       "identity": "Endgame damage capstone — max WP (20) and Immobilize-on-hit that pins the target so it can't flee the carnage (its MA*30 ultimate Draw Out reframed as 'nowhere to run'). Pays for top damage with middling guard, no element, and pure endgame-only availability (T6). A sidegrade to Masamune, not a strict upgrade.",
+      "desc": "This katana is decorated with intricate designs and boasts a wickedly sharp edge.",
       "baseline": {
         "wp": 25,
         "evade": 15,
@@ -1362,6 +1389,7 @@
       "name": "Terrastaff",
       "tier": 1,
       "identity": "Earth pole: the only Earth-element pole, for the Geomancer who lost the Axe. (was the Hatchet)",
+      "flavorOverride": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -1392,6 +1420,7 @@
       "name": "Ravager",
       "tier": 4,
       "identity": "Berserk brute — a high-WP KnightSword that ALWAYS inflicts Berserk on hit (formula 2D = 100%): drives the struck foe into a mindless rage, shutting off their abilities/spells but making them hit +50% harder — a double-edged anti-caster gambit. Only Berserk source mod-wide. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right.",
+      "flavorOverride": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -1413,8 +1442,7 @@
         0.75,
         0.85
       ],
-      "iconSource": 33,
-      "flavorOverride": "A brutal weapon that infects all it cuts with its own blind, mindless fury."
+      "iconSource": 33
     },
     {
       "id": 50,
@@ -1423,7 +1451,7 @@
       "name": "Sunderer",
       "tier": 5,
       "identity": "Sunder bruiser — normal KnightSword damage PLUS every hit shatters a random piece of the foe's gear (formula 46). The break is the whole point, so it pays the LOWEST WP in the category (13) = a sidegrade, not an upgrade; whiffs on the unequipped and on monsters.",
-      "desc": "A cruel blade that breaks what it cannot kill.\nDeals normal damage and shatters a piece of the foe's gear; finds nothing on the unequipped.",
+      "flavorOverride": "A spiteful edge made less to slay than to ruin, shattering the arms off whatever it meets.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -1454,7 +1482,7 @@
       "name": "Wellspring Rod",
       "tier": 1,
       "identity": "Never-run-dry battle-mage rod. Active Attack (formula 47 = Absorb-MP) steals the struck foe's MP into the wielder's pool, MP-free, every turn — a mage refuels its own spellbook by poking a body. Earliest unlock + only MP-siphon rod.",
-      "desc": "A humble apprentice's rod whose every tap draws an enemy's magic into your own reserves. Absorbs MP dealt.",
+      "flavorOverride": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1484,7 +1512,7 @@
       "name": "Spark Rod",
       "tier": 2,
       "identity": "Battle-mage nuke rod — the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-armor/mech. WP 8 — a real battle-mage nuke, but melee-range and every-turn rather than burst.",
-      "desc": "It cracks with caged thunder. Its attack strikes as Thunder at no MP cost; the magic damage scales with the wielder's Faith.",
+      "flavorOverride": "A rod that holds a fistful of caged storm; each blow lets the thunder out for the asking.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1514,7 +1542,7 @@
       "name": "Ember Rod",
       "tier": 2,
       "identity": "Fire nuke battle-mage rod — its Attack strikes as Fire (formula 4): Faith-scaled, MP-free, melee, every turn. The Fire member of the elemental nuke trio with Spark (Thunder) and Frost (Blizzard); pick by matchup. Anti-Undead, shreds Oiled and Ice-weak foes. WP 8 with Spark/Frost so the trio stays symmetric.",
-      "desc": "Embers cling to its core, ready to leap at a touch. Its Attack strikes as Fire at no MP cost; the magic damage scales with the wielder's Faith.",
+      "flavorOverride": "Embers smolder in its heart, eager to leap; a touch is enough to set a foe ablaze.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1545,7 +1573,7 @@
       "name": "Frost Rod",
       "tier": 2,
       "identity": "Battle-mage nuke rod — the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental nuke trio at WP 8.",
-      "desc": "A chill blade that bites like deep winter. Its attack strikes as Blizzard at no MP cost; the magic damage scales with the wielder's Faith.",
+      "flavorOverride": "Its tip is sheathed in everlasting rime; where it points, the air turns to killing winter.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1575,7 +1603,7 @@
       "name": "Hushward Rod",
       "tier": 2,
       "identity": "Silence-immune mage rod — ImmuneStatus: Silence means the wielder's own spellbook can never be shut off. Build-defining vs caster-killer comps (Mage Masher / Ame-no-Murakumo): casts on while everyone else goes quiet.",
-      "desc": "A warded rod that keeps a caster's voice when the battlefield falls silent. Wards against Silence.",
+      "flavorOverride": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1607,7 +1635,7 @@
       "name": "Umbral Rod",
       "tier": 3,
       "identity": "Dark-specialist power stick — MA+2 raw spell power AND StrongElements: Dark (+25% to Dark spells), plus Dark element on the Attack for anti-Holy-creature poke. Only Dark caster weapon and only StrongElements rod.",
-      "desc": "Shadow clings to its edge. Deals Dark-elemental damage. Magick Attack +2. Strengthens Dark damage.",
+      "flavorOverride": "Carved from nightwood and steeped in shadow; the dark answers eagerly to who wields it.",
       "baseline": {
         "wp": 4,
         "evade": 20,
@@ -1639,6 +1667,7 @@
       "name": "Dragon Rod",
       "tier": 4,
       "identity": "Silence on hit, plus the only weapon that grants Initial Reraise (auto-revive once per battle). A survivable battle-mage rod, echoing the dragoon Dragon Spirit (community-requested buff).",
+      "desc": "A rod wielded by a dragon master. Its tip is made from carved dragon bone.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -1670,7 +1699,7 @@
       "name": "Rod of Faith",
       "tier": 5,
       "identity": "Faith-zealot rod — InnateStatus: Faith pins the wielder at max Faith, so every spell cast (and cast AT them) lands at peak potency: a glass-cannon nuker. Holy element on the Attack smites undead. Only innate-Faith weapon.",
-      "desc": "Blessed steel that burns the unclean. Deals Holy-elemental damage. Grants Faith.",
+      "desc": "This rod purges doubt from those it touches, turning them into pillars of faith.\nWhile equipped, grants Faith. When used to perform a standard attack, has a chance of granting Faith.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -1702,7 +1731,7 @@
       "name": "Birchwood Staff",
       "tier": 1,
       "identity": "T1 starter — the only tier-1 staff, with the line's highest evade (20). Earliest unlock plus the evade crown is its niche; intentionally bare so nothing misfires while you learn to cast (mirrors the Apprentice Rod).",
-      "desc": "A plain rod of green birch, the first staff any apprentice is handed.\nScales its swing with Magick Attack.",
+      "flavorOverride": "A plain length of green birch, the first staff pressed into any apprentice's hands.",
       "baseline": {
         "wp": 3,
         "evade": 15,
@@ -1732,7 +1761,7 @@
       "name": "Warlock's Staff",
       "tier": 2,
       "identity": "WARLOCK staff — innate Reflect turns enemy single-target spells back on their caster, the spell-eater build's anchor. The cost is real (your own single-target cures bounce off you too), which keeps it a build choice, not a free win. Earliest rider staff (T2).",
-      "desc": "A staff bound with a warlock's hex; spells bend away from its bearer.\nAlways: Reflect — bounces enemy single-target magick back at the caster (and rebounds your own single-target cures, so heal with care).",
+      "flavorOverride": "Bound with a warlock's hex, it turns hostile spells back upon the throats that spoke them.",
       "baseline": {
         "wp": 3,
         "evade": 15,
@@ -1763,7 +1792,7 @@
       "name": "Mending Staff",
       "tier": 3,
       "identity": "HEALER staff — the only heal-on-attack weapon (formula 7): spend the free Attack command to top up an ally at melee range, or smite Undead with that same heal. WP kept low (4) so the heal identity stays the draw, not raw damage.",
-      "desc": "A white-lacquered staff whose touch knits flesh and sears the dead.\nThe Attack command HEALS the struck ally's HP (Physical Attack x Weapon Power), and burns Undead for the same.",
+      "flavorOverride": "White-lacquered and consecrated, its touch knits living flesh and withers the dead.",
       "baseline": {
         "wp": 4,
         "evade": 15,
@@ -1793,7 +1822,7 @@
       "name": "Warding Staff",
       "tier": 3,
       "identity": "SILENCE-IMMUNE staff — the mage's answer to enemy Hushblades and Silence procs; your spellbook can't be shut off. Build-defining for a glass-cannon caster in a Silence-heavy fight. f1 baseline but the immunity rider is the whole point, so it's never 'plain f1'.",
-      "desc": "A consecrated staff that keeps a caster's voice their own.\nAlways: immune to Silence — the wielder's spellbook can never be locked.",
+      "flavorOverride": "A consecrated stave that lets no enchantment seal its bearer's lips, however loud the din.",
       "baseline": {
         "wp": 5,
         "evade": 15,
@@ -1824,7 +1853,7 @@
       "name": "Blazing Staff",
       "tier": 3,
       "identity": "BLAZING active-attack staff (user request) — formula 4 turns the free Attack command into an MP-free Faith-scaled Fire bolt (melee), so a battle-mage can chip every turn without burning MP. Move +1 ('feet hot and moving') gives it map control no other staff has. WP held to 6 so the free Fire bolt never out-nukes a real MP spell.",
-      "desc": "Its head smolders with caged flame — the heat gets your feet hot and moving.\nThe Attack strikes as Fire at no MP cost, scaling with the wielder's Faith. Move +1.",
+      "flavorOverride": "Its crown smolders with caged flame; the warmth keeps restless feet quick afield.",
       "baseline": {
         "wp": 4,
         "evade": 15,
@@ -1856,7 +1885,7 @@
       "name": "Sanctus Staff",
       "tier": 4,
       "identity": "STRONGELEMENTS specialist staff — the +25%-Holy-spell line: a white/holy mage's nuke amplifier (boosts Holy, Holy Explosion, etc.), plus Holy element on the swing for anti-Undead matchups. The specialist whose niche is spell amplification, not stats.",
-      "desc": "A consecrated stave that magnifies sacred light.\nDeals Holy-elemental damage and strengthens the wielder's Holy spells by 25%.",
+      "flavorOverride": "A gilded stave that gathers sacred light and gives it back tenfold to those who pray.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -1887,7 +1916,7 @@
       "name": "Zeus Mace",
       "tier": 5,
       "identity": "Hybrid gish staff (iconic name kept) — the only Lightning staff PLUS an MA+1 rider: element coverage for anti-armor/mech fights stacked with a modest spell-power bump. Treasure-gated (T5); its Lightning element is a good the MA+2 capstone lacks.",
-      "desc": "A thunder-charged mace, prize of the storm.\nDeals Lightning-elemental damage. Magick Attack +1.",
+      "desc": "A staff that increases the might of its user.\nWhile equipped, raises physical and magick attack power.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -1919,7 +1948,7 @@
       "name": "Staff of the Magi",
       "tier": 6,
       "identity": "MA-BOOST 'bigger-heals' capstone — top MA+2 rider drives both offense and, because Cure spells scale off Magick Attack, the strongest heals in the line. Highest staff WP (7) and the endgame (T6) gate earn the rider; the pure spell-power pick. (Dropped the old Stop proc so its identity is cleanly MA, not a gimmick.)",
-      "desc": "The archmage's masterwork, humming with raw arcane power.\nMagick Attack +2 — bigger nukes and, since Cure-line heals scale with Magick Attack, bigger heals too.",
+      "desc": "An ordinary-looking wooden stick with a curious stone embedded in its tip.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -1951,6 +1980,7 @@
       "name": "Warbrand",
       "tier": 5,
       "identity": "Pure-power brute — the highest weapon power of any sword, bought with zero evade AND zero utility. A back-half pick (Ch3-gated, tier 5) so the raw-damage king doesn't eclipse the early game; the brute alternative to the utility blades (Arcanum/Rimebrand/Materia). (was Ironlash)",
+      "flavorOverride": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -1982,6 +2012,7 @@
       "name": "Bloodlash",
       "tier": 3,
       "identity": "Plague dagger: GUARANTEED Poison on EVERY hit (formula 2D), a festering wound that chips bulky foes down over time. Mildest of the 100% daggers, full WP. (was a flail)",
+      "flavorOverride": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers.",
       "baseline": {
         "wp": 11,
         "evade": 0,
@@ -2012,7 +2043,7 @@
       "name": "Climhazzard",
       "tier": 4,
       "identity": "T4 agile dual-wield executioner — the ninja's mercy stroke. Damage = the TARGET's missing HP (formula 69), useless on a fresh foe, lethal on a wounded one. Dual-wieldable = two missing-HP strikes per turn; WP barely matters so the budget goes to evade.",
-      "desc": "A light killing stroke that bites deepest into the already-bloodied — glances off the hale, guts the dying.",
+      "flavorOverride": "A merciful stroke for the dying; it glances off the hale yet guts the already-bleeding.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2034,8 +2065,7 @@
         0.5,
         0.88
       ],
-      "iconSource": 11,
-      "flavorOverride": "A killing stroke meant only for the wounded — it finds the wound another blade opened and ends the fight."
+      "iconSource": 11
     },
     {
       "id": 70,
@@ -2044,6 +2074,7 @@
       "name": "Sasori",
       "tier": 5,
       "identity": "Venom katana: a scorpion's lethal sting, chance to Doom on hit (death in three turns). (was Scorpion Tail)",
+      "flavorOverride": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
       "baseline": {
         "wp": 23,
         "evade": 0,
@@ -2076,6 +2107,7 @@
       "name": "Outrider Pistol",
       "tier": 1,
       "identity": "Tier-1 starter and the LONGEST reach in the game (R9). Plain WP*WP (49 flat) ignoring PA/Speed/evade, no element to whiff or be absorbed, no drawback, earliest/cheapest gun. The out-range-everything pick that never retires; reach + availability ARE the niche.",
+      "flavorOverride": "A plain wheel-lock that throws its shot farther than any, asking nothing of the hand.",
       "baseline": {
         "wp": 6,
         "evade": 5,
@@ -2105,6 +2137,7 @@
       "name": "Ironclad Repeater",
       "tier": 2,
       "identity": "Mid-shop reliable workhorse: +2 WP over the Outrider (81 flat) for -1 range. Plain WP*WP, the only element-proof AND Faith-independent gun above the starter; never whiffs on Faith-immune targets, no absorber heals off it. The zero-gimmick hit-hard-at-range default.",
+      "flavorOverride": "An iron-framed repeater for the long road; it hits harder than the pistol and never jams.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -2134,6 +2167,7 @@
       "name": "Stoneshooter",
       "tier": 4,
       "identity": "Top-of-line gun — max WP (16, 256 base) AND tied-longest R9, firing EARTH (the only Earth gun: ignores Float, shreds the grounded). Pure reach-and-power, held in check by rock-bottom evade (5) and the flat gun formula (WP*WP, no Faith-scaling or spell-cast), so the Faith-scaled elemental guns still out-roll it against the right target.",
+      "flavorOverride": "A heavy gun bored to spit earthen shards; each shot lands like a sliding mountain.",
       "baseline": {
         "wp": 16,
         "evade": 5,
@@ -2164,6 +2198,7 @@
       "name": "Glacial Gun",
       "tier": 3,
       "identity": "First elemental gun: Ice, WP12 (144 base), R8. Formula-4 innate Blizzard-line cast, Faith-scaled (a high roll beats the Repeater, a low/immune roll loses). The only Ice gun: anti-Fire-creature, +25% vs Ice-weak, but Ice-absorbers heal it. Element + Faith variance is the trade for the WP jump.",
+      "desc": "A magickal firearm that shoots freezing bullets.\nWhen attacking, has a chance of increasing the potency of the attack.",
       "baseline": {
         "wp": 21,
         "evade": 5,
@@ -2193,6 +2228,7 @@
       "name": "Blaze Gun",
       "tier": 3,
       "identity": "Fire twin of the Hailshot at IDENTICAL WP12/R8: the different element is the entire differentiator. The only Fire gun: anti-Undead, anti-Ice-creature, shreds Oiled targets; Fire-absorbers heal it. A true sidegrade, never an upgrade, picked purely for the Fire matchup.",
+      "desc": "A magickal firearm that shoots flaming bullets.\nWhen attacking, has a chance of increasing the potency of the attack.",
       "baseline": {
         "wp": 20,
         "evade": 5,
@@ -2222,6 +2258,7 @@
       "name": "Blaster",
       "tier": 6,
       "identity": "Endgame capstone: Lightning, WP15 (225 base), no drawback, only Lightning gun (+25% in rain; Lightning-absorbers heal). PAYS for its clean power with the SHORTEST gun range (R7) so every other gun out-distances it: the close-the-gap-and-nuke finisher, not a kiter. The poach/endgame trophy.",
+      "desc": "A magickal firearm that shoots electrically charged bullets.\nWhen attacking, has a chance of increasing the potency of the attack.",
       "baseline": {
         "wp": 22,
         "evade": 5,
@@ -2251,6 +2288,7 @@
       "name": "Scoutbolt",
       "tier": 1,
       "identity": "T1 scout's sidearm — earliest/cheapest unlock + line-high 10% evade. Shortest range (3), lowest WP.",
+      "flavorOverride": "A featherlight crossbow a scout slings on one shoulder, drawn quick and loosed quicker.",
       "baseline": {
         "wp": 3,
         "evade": 5,
@@ -2269,8 +2307,7 @@
         "formula": 2,
         "range": 3,
         "attackFlags": "Direct"
-      },
-      "desc": "A light scout's crossbow.\nHas a chance to cast Leg Shot on hit."
+      }
     },
     {
       "id": 78,
@@ -2279,6 +2316,7 @@
       "name": "Eclipsebolt",
       "tier": 2,
       "identity": "Assassin's bolt — marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead — a countdown to a certain KO. Only Doom crossbow.",
+      "flavorOverride": "A bolt meant for slaying elites; its quarrel marks a foe, who sees no further dusk.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2306,6 +2344,7 @@
       "name": "Arbalest",
       "tier": 3,
       "identity": "Raw stringless workhorse and the ONLY Range-5 crossbow. Best rider-free WP of its era + unique reach; the clean PA*WP sniper.",
+      "flavorOverride": "A steel arbalest cranked taut as a war-engine, its shaft passing clean through any foe.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2324,8 +2363,7 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "Direct"
-      },
-      "desc": "A heavy steel crossbow with unmatched reach. Pure, reliable punch."
+      }
     },
     {
       "id": 80,
@@ -2334,6 +2372,7 @@
       "name": "Venombolt",
       "tier": 3,
       "identity": "Attrition tool — only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Inflicts Poison (proc 22).",
+      "flavorOverride": "Its quarrels glisten with a slow venom that creeps the wound long after the bolt is drawn.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2352,8 +2391,7 @@
         "formula": 1,
         "range": 5,
         "attackFlags": "Direct"
-      },
-      "desc": "A crossbow that coats its bolts in venom.\nWhen attacking, has a chance of inflicting Poison."
+      }
     },
     {
       "id": 81,
@@ -2362,6 +2400,7 @@
       "name": "Pitchbolt",
       "tier": 4,
       "identity": "Combo-setup bolt — proc 101 applies Oil, which doubles the Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
+      "flavorOverride": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark.",
       "baseline": {
         "wp": 5,
         "evade": 5,
@@ -2380,8 +2419,7 @@
         "formula": 1,
         "range": 7,
         "attackFlags": "Direct"
-      },
-      "desc": "A crossbow that douses its target in clinging pitch.\nWhen attacking, has a chance of inflicting Oil (the target takes double Fire damage)."
+      }
     },
     {
       "id": 82,
@@ -2390,6 +2428,7 @@
       "name": "Siegebolt",
       "tier": 6,
       "identity": "Endgame raw-power capstone — top crossbow WP (11), no rider. At PA9+ it out-damages bows on a strength build; surrenders all utility for damage.",
+      "flavorOverride": "A siege-grade crossbow scaled for a strong back, driving a quarrel to crack a shield wall.",
       "baseline": {
         "wp": 10,
         "evade": 5,
@@ -2408,8 +2447,7 @@
         "formula": 1,
         "range": 8,
         "attackFlags": "Direct"
-      },
-      "desc": "A massive siege crossbow. All the stopping power a strong arm can drive."
+      }
     },
     {
       "id": 83,
@@ -2418,6 +2456,7 @@
       "name": "Skirmisher",
       "tier": 1,
       "identity": "T1 light scout — HIGHEST evade in the line (20) + earliest/cheapest. Shortest range (5), lowest WP. The nimble dodge-opener.",
+      "flavorOverride": "A slender hunting bow that prizes the quick step; loosed and gone before the answer comes.",
       "baseline": {
         "wp": 4,
         "evade": 0,
@@ -2436,8 +2475,7 @@
         "formula": 1,
         "range": 5,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "A short, nimble bow for hit-and-run scouts. Quick draw, quicker feet."
+      }
     },
     {
       "id": 84,
@@ -2446,6 +2484,7 @@
       "name": "Windrunner",
       "tier": 2,
       "identity": "T2 dodge duelist — 2nd-best evade (15) + colorless = safe vs any element-absorber. True sidegrade to Frostarc (same WP5: evade+safety vs element).",
+      "flavorOverride": "Worked from pale silver, light as nothing, it dances clear of every blow without a trick.",
       "baseline": {
         "wp": 5,
         "evade": 0,
@@ -2464,8 +2503,7 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "A featherlight silver bow that dances out of reach. No element, no risk."
+      }
     },
     {
       "id": 85,
@@ -2474,6 +2512,7 @@
       "name": "Frostarc",
       "tier": 2,
       "identity": "T2 first elemental — attacks deal Ice (anti-Fire-creature; Ice-absorbers heal it). Trades Windrunner's evade for element at equal WP5.",
+      "flavorOverride": "Carved from rimed wood that never thaws; its arrows carry the chill of a frozen lake.",
       "baseline": {
         "wp": 5,
         "evade": 0,
@@ -2492,8 +2531,7 @@
         "formula": 2,
         "range": 4,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "Ice-element bow.\nHas a chance to cast Blizzard on hit."
+      }
     },
     {
       "id": 86,
@@ -2502,6 +2540,7 @@
       "name": "Stormarc",
       "tier": 3,
       "identity": "T3 elemental — attacks deal Lightning (anti-armor/robotic; Lightning-absorbers heal it). +1 WP over Frostarc, different element coverage.",
+      "flavorOverride": "Strung with a wire that hums before it sings, each shaft crackling stormlight to its mark.",
       "baseline": {
         "wp": 6,
         "evade": 0,
@@ -2520,8 +2559,7 @@
         "formula": 2,
         "range": 7,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "Lightning-element bow.\nHas a chance to cast Thunder on hit."
+      }
     },
     {
       "id": 87,
@@ -2530,6 +2568,7 @@
       "name": "Skypiercer",
       "tier": 4,
       "identity": "T4 the REACH bow — innate Wind + longest non-capstone range (7); arcs over cover, picks off fliers/cliff-campers. Glass: 0 evade, all reach.",
+      "flavorOverride": "A tall bow that lofts arrows on the wind, arcing over crag to pluck a foe from any perch.",
       "baseline": {
         "wp": 8,
         "evade": 0,
@@ -2548,8 +2587,7 @@
         "formula": 2,
         "range": 8,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "Wind-element reach bow.\nHas a chance to cast Wind Slash on hit."
+      }
     },
     {
       "id": 88,
@@ -2558,6 +2596,7 @@
       "name": "Tidecaller",
       "tier": 3,
       "identity": "T3 caster-lock / control bow — Silence on hit shuts enemy mages at range. WP7 + 10 evade. Renamed from filler Mythril Bow. Inflicts Silence (proc 10).",
+      "flavorOverride": "A bow whose shaft hisses like surf and stills the throat it finds, drowning words mid-cry.",
       "baseline": {
         "wp": 7,
         "evade": 0,
@@ -2576,8 +2615,7 @@
         "formula": 2,
         "range": 5,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "Water-element bow.\nHas a chance to cast Torrent on hit."
+      }
     },
     {
       "id": 89,
@@ -2586,6 +2624,7 @@
       "name": "Huntress",
       "tier": 5,
       "identity": "T5 marksman / mid-evade owner — WP9 + 10 evade, earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla 'Yoichi dominates Artemis'.",
+      "flavorOverride": "The mark of a true marksman, balanced so fine that hand and target seem joined in flight.",
       "baseline": {
         "wp": 10,
         "evade": 0,
@@ -2604,8 +2643,7 @@
         "formula": 2,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
-      },
-      "desc": "T5 marksman bow.\nHas a chance to cast Arm Shot on hit."
+      }
     },
     {
       "id": 90,
@@ -2614,6 +2652,7 @@
       "name": "Yoichi Bow",
       "tier": 6,
       "identity": "T6 AGILE capstone — top sustained WP (12) that STILL keeps 5 evade: heavy damage on light feet. The speed-build DPS capstone vs Seraph's glass cannon.",
+      "desc": "The bow of a legendary archer. Its great size allows it to generate incredible power.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -2641,6 +2680,7 @@
       "name": "Perseus Bow",
       "tier": 6,
       "identity": "T6 raw+reach capstone — max WP (16) + max range (9) + innate Holy (anti-Undead), with a chance to inflict Don't Act to lock a key target down from across the map. 0 evade = pure glass cannon.",
+      "desc": "The bow of a mythical hero. It is constructed entirely of metal and requires great strength to draw.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2668,7 +2708,7 @@
       "name": "Siren's Lyre",
       "tier": 2,
       "identity": "T2 elemental opener harp — the family's only Wind source: Formula-1 Wind attacks punish Wind-weak/Float foes at R3. Hybrid (PA+MA)/2 bard; element is the rider, WP modest. Earliest harp.",
-      "desc": "T2 enchanting harp.\nHas a chance to cast Charm on hit.",
+      "flavorOverride": "A harp whose airs ride the gathering wind, luring the unwary into a fog of confusion.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -2698,7 +2738,7 @@
       "name": "Duskstring Harp",
       "tier": 3,
       "identity": "T3 anti-physical harp — the only ranged Blind in the harp lane: crater an enemy bruiser's hit-rate from 3 tiles back without waking them. Owns Blind.",
-      "desc": "T3 anti-physical harp.\nHas a chance to cast Blind on hit.",
+      "flavorOverride": "Strung for twilight songs that smear a listener's sight to dusk as they stand entranced.",
       "baseline": {
         "wp": 13,
         "evade": 10,
@@ -2728,7 +2768,7 @@
       "name": "Faerie Harp",
       "tier": 5,
       "identity": "T5 capstone harp — iconic faerie lullaby: ranged Sleep lulls a target out of the fight for a team burst (self-removes on hit, so a setup tool not a delete). Top harp WP, T5-gated. Owns Sleep line-wide.",
-      "desc": "T5 capstone harp.\nHas a chance to cast Sleep on hit.",
+      "desc": "The pure sound of this harp can charm those who hear it played.\nWhen attacking, has a chance of inflicting Charmed.",
       "baseline": {
         "wp": 15,
         "evade": 10,
@@ -2758,7 +2798,7 @@
       "name": "Glarebound Tome",
       "tier": 1,
       "identity": "T1 orator opener — earliest/cheapest book and the only ranged Blind in the Book lane: neuter an enemy physical attacker from afar. Lowest WP in the category; the accuracy-denial rider is the point.",
-      "desc": "T1 orator's book.\nHas a chance to cast Intimidate on hit.",
+      "flavorOverride": "A street orator's folio, its arguments so dazzling they leave the heckler blinking, lost.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -2788,6 +2828,7 @@
       "name": "Knell Codex",
       "tier": 4,
       "identity": "T4 execution codex — the only Doom source line-wide: tag an elite, retreat, let the 3-turn countdown guarantee the KO. Owns Doom.",
+      "flavorOverride": "A codex of beasts and their endings; to be named in its pages is to be promised the grave.",
       "baseline": {
         "wp": 8,
         "evade": 15,
@@ -2817,7 +2858,7 @@
       "name": "Binding Codex",
       "tier": 4,
       "identity": "T4 pin codex — ranged (R3) Immobilize locks a runner/charger in place for your casters and archers. Book-lane Immobilize (R3/Ev15 pin-from-range), distinct from the cloth pinner.",
-      "desc": "T4 pin codex.\nHas a chance to cast Immobilize on hit.",
+      "flavorOverride": "A codex of binding sigils that fix a reader's feet fast, rooted by the words' own weight.",
       "baseline": {
         "wp": 9,
         "evade": 15,
@@ -2847,6 +2888,7 @@
       "name": "Omnilex",
       "tier": 6,
       "identity": "T6 anti-caster capstone — ranged Silence shuts an enemy mage's spellbook before they nuke, plus innate Holy attacks (anti-Undead; Holy-absorbers heal). Top book WP, T6-gated, owns Silence + Holy.",
+      "desc": "A book said to contain every word of every known language.",
       "baseline": {
         "wp": 11,
         "evade": 15,
@@ -2876,6 +2918,7 @@
       "name": "Skewer",
       "tier": 1,
       "identity": "T1 starter spear — earliest/cheapest reach, line-only 15% spear evade. Promoted to R2 (the family identity; vanilla R1 was a trap). The honest first poke + Dragoon Jump fodder.",
+      "flavorOverride": "A plain ash spear cut to reach a foe a pace beyond a sword's swing, and nothing more.",
       "baseline": {
         "wp": 8,
         "evade": 10,
@@ -2905,6 +2948,7 @@
       "name": "Footman's Spear",
       "tier": 2,
       "identity": "T2 raw-stat baseline — cheapest pure-stat reach, clean PA*WP. The 'just poke hard from a tile back' default every other spear is measured against.",
+      "flavorOverride": "Issued to every footsoldier; it thrusts clean from the second rank, out of the press.",
       "baseline": {
         "wp": 9,
         "evade": 10,
@@ -2934,7 +2978,7 @@
       "name": "Frostpoint",
       "tier": 3,
       "identity": "T3 only Ice spear — innate Ice melee, WP tied to Footman's (zero raw paid for the matchup tool). Shreds Fire-creatures/Ice-weak; Ice-absorbers heal (cost).",
-      "desc": "An ice-veined spear; its frozen tip sometimes shatters into raining ice.\nHas a chance to cast Blizzard on hit.",
+      "flavorOverride": "Ice rimes the spearhead and clings, so a deep thrust leaves frost glittering in the wound.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -2964,7 +3008,7 @@
       "name": "Stormpike",
       "tier": 3,
       "identity": "T3 only Lightning spear — innate Bolt melee, +1 WP over Frostpoint (sidegrade, different element). Anti-armor/Lightning-weak; +25% in rain.",
-      "desc": "A lightning-charged partisan; its strike sometimes calls down a bolt.\nHas a chance to cast Thunder on hit.",
+      "flavorOverride": "A charged partisan that hums before it strikes, calling a bolt down as steel meets flesh.",
       "baseline": {
         "wp": 11,
         "evade": 10,
@@ -2994,7 +3038,7 @@
       "name": "Tombspire",
       "tier": 4,
       "identity": "T4 reach executioner — the Dragoon-Jump finisher. Range-2 + on-hit Immobilize pins a wounded target a tile away, then the Lancer Jumps the killing blow. Damage = the TARGET's missing HP (formula 69), a softener's mercy stroke, not an opener.",
-      "desc": "A reaching spear whose strike lands harder the more wounded its mark — a feather-tap on the healthy, a death-knell on the bleeding.",
+      "flavorOverride": "Grave-marker carved and far of reach; it spares the hale, but pins the bleeding to finish.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -3024,7 +3068,7 @@
       "name": "Holy Lance",
       "tier": 5,
       "identity": "ICONIC. T5 only Holy spear — innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated.",
-      "desc": "The crusader's holy spear; its blessed point sometimes erupts with sacred light.\nHas a chance to cast Holy on hit.",
+      "desc": "This sacred weapon shines with a pure and brilliant light.\nWhen attacking, has a chance of casting Holy.",
       "baseline": {
         "wp": 14,
         "evade": 10,
@@ -3054,7 +3098,7 @@
       "name": "Dragon Whisker",
       "tier": 6,
       "identity": "ICONIC capstone. T6 riderless raw apex — strictly-highest spear WP (16), the ultimate Jump platform. Pure PA*WP ceiling; pays with the lowest 10% evade and zero utility. Red-Dragon poach.",
-      "desc": "The wyrm-feather apex spear; its thrust sometimes looses a gout of draconic flame.\nHas a chance to cast Fire Breath on hit.",
+      "desc": "A spear made from a mysterious material that some say is the whisker of a dragon.",
       "baseline": {
         "wp": 17,
         "evade": 10,
@@ -3084,6 +3128,7 @@
       "name": "Wyrmpike",
       "tier": 6,
       "identity": "T6 split-apex (Nelveska treasure) — only Wind spear + on-hit Doom (11), two-handed (trades the shield for the package). Tag a boss from two tiles back. Wins element/Doom where Dragon Whisker wins WP; neither dominates.",
+      "flavorOverride": "A two-handed pike light as a squall; it tags a far mark, then doom gathers like wind.",
       "baseline": {
         "wp": 30,
         "evade": 10,
@@ -3114,7 +3159,7 @@
       "name": "Greenwood Pole",
       "tier": 1,
       "identity": "ICONIC. T1 starter pole — earliest/cheapest MA-reach, the 20% evade family floor. The honest training staff for early Geomancer/Monk.",
-      "desc": "A humble training pole; a focused strike sometimes channels raw martial spirit at a distant foe.\nHas a chance to cast Aurablast on hit.",
+      "flavorOverride": "Cut from green wood for the unblooded; a focused blow flings martial spirit a pace off.",
       "baseline": {
         "wp": 6,
         "evade": 20,
@@ -3144,6 +3189,7 @@
       "name": "Ironreed Pole",
       "tier": 2,
       "identity": "ICONIC. T2 raw-stat pole baseline — best no-rider WP of its era at 20% evade. The 'monk who just wants to hit from a tile back' default.",
+      "flavorOverride": "Reed banded with iron, springy and swift, suited to a hand that prizes speed over weight.",
       "baseline": {
         "wp": 7,
         "evade": 20,
@@ -3173,6 +3219,7 @@
       "name": "Slumber Rod",
       "tier": 3,
       "identity": "T3 only Sleep pole — on-hit Sleep (12), WP tied to Battle Bamboo (zero raw paid for the disable). Nap a threat to open a fight from range.",
+      "flavorOverride": "Wax-scented, slow to swing; its measured taps coax the watchful into heavy-lidded sleep.",
       "baseline": {
         "wp": 8,
         "evade": 20,
@@ -3202,6 +3249,7 @@
       "name": "Hushfan",
       "tier": 3,
       "identity": "T3 only Silence pole + line-best 25% evade — on-hit Silence (10). The dodge-tank anti-caster stick; shut a mage down from a tile back. Sidegrade to Slumber Rod.",
+      "flavorOverride": "A folded-iron war-fan that beats the air shut round a chanting mouth, stealing its spell.",
       "baseline": {
         "wp": 9,
         "evade": 20,
@@ -3231,6 +3279,7 @@
       "name": "Sage's Pole",
       "tier": 5,
       "identity": "ICONIC. T5 riderless raw-WP pole leader — clean MA*WP, no gimmick. The high-MA finisher that just wants to hit hard; tier-gated above the rider-poles.",
+      "flavorOverride": "Worn smooth by a sage's grip; no trick to it, only the weight of a practiced strike.",
       "baseline": {
         "wp": 10,
         "evade": 20,
@@ -3260,6 +3309,7 @@
       "name": "Ivory Pole",
       "tier": 4,
       "identity": "T4 only Blind pole — on-hit Blind (9) craters a target's physical hit-rate. Sits under Gokuu's WP: the rider is the whole identity. Neuter an enemy bruiser from range.",
+      "desc": "A pole made from ivory that has been specially treated for improved durability.",
       "baseline": {
         "wp": 11,
         "evade": 20,
@@ -3289,6 +3339,7 @@
       "name": "Eight-Fluted Pole",
       "tier": 6,
       "identity": "ICONIC. T6 attrition pole — highest physical-pole WP (14) + only Poison rider (22). Chips high-HP targets over a long fight. Out-WPs Gokuu's but pays via tier + DoT-vs-burst tradeoff.",
+      "flavorOverride": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won.",
       "baseline": {
         "wp": 12,
         "evade": 20,
@@ -3318,7 +3369,7 @@
       "name": "Whale Whisker",
       "tier": 6,
       "identity": "ICONIC capstone. THE caster pole — highest pole WP (15) + only Water element; MA*WP comes free from the Pole weapon type (Formula 1, no risk). Best-in-slot for a high-MA front-liner. Tiamat-poach.",
-      "desc": "THE caster pole, charged with the sea; its strike sometimes drowns a distant foe in surging water.\nHas a chance to cast Torrent on hit.",
+      "desc": "A pole made from an unidentified material that some say is a whale's whisker.",
       "baseline": {
         "wp": 16,
         "evade": 20,
@@ -3348,6 +3399,7 @@
       "name": "Sandman Satchel",
       "tier": 2,
       "identity": "Female/Onion-Knight bag, the soft-disable opener. Low WP but Sleep-on-hit (confirmed id12) removes a target from the fight outright. Owns Sleep across the bag toolbox. Tier 2 (bags genuinely unlock Ch2+, never Ch1) keeps it strictly distinct from the Ch1 Hatchet even in a forced single-bucket check. Gender/job-locked, so it never competes with an axe in practice.",
+      "flavorOverride": "A conjurer's satchel that breathes slumberdust, sinking the wakeful into untroubled dream.",
       "baseline": {
         "wp": 10,
         "evade": 0,
@@ -3377,6 +3429,7 @@
       "name": "Fallingstar Bag",
       "tier": 5,
       "identity": "The bag ceiling king. Highest bag WP (vanilla's WP20 poach-outlier re-curved to a gentle 18, preserving its 'strongest bag' identity), no rider — the female 'just hit hardest' pick when you don't want a status. Poach/late-game availability. Pays for its ceiling with zero utility, the bag mirror of War Axe. Owns the raw-WP niche in the bag set; can't dominate Sandman/Hornet/Hexweave because it lacks every one of their status riders.",
+      "desc": "A custom-made handbag designed for battle.\nThe damage dealt varies greatly.",
       "baseline": {
         "wp": 20,
         "evade": 0,
@@ -3406,6 +3459,7 @@
       "name": "Hornet Pouch",
       "tier": 3,
       "identity": "Female bag attrition tool. Poison applicator (confirmed id22) for units who can't wield the endgame Scorpion Tail flail — the niche is gender/job access, not raw power. Lower WP than Scorpion Tail but a separate equip class entirely; owns nothing the other bags own (Sleep/Silence/raw-ceiling), so no bag dominates it.",
+      "flavorOverride": "A pouch that looses a sting at the lash, festering in the wound long after the blow.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -3435,6 +3489,7 @@
       "name": "Hexweave Bag",
       "tier": 4,
       "identity": "Female anti-caster bag. Silence-on-hit (confirmed id10) shuts down enemy mages — the only Silence applicator in the whole bludgeon category. Mid-high bag WP, gender/job-locked. Owns Silence so no other bag dominates it; doesn't dominate Hornet Pouch (lacks its Poison) or Fallingstar (lower WP).",
+      "flavorOverride": "Woven with binding hexes; one swing snares a voice and strangles the spell mid-word.",
       "baseline": {
         "wp": 14,
         "evade": 0,
@@ -3464,6 +3519,7 @@
       "name": "Tarsilk Veil",
       "tier": 3,
       "identity": "T3 combo-enabler rag — the only Oil source: Oil doubles incoming Fire, priming a target for your Black Mages while the dancer hides behind 50% evade. R2 short reach is the cloth trade.",
+      "flavorOverride": "Tarred silk that clings where it lands, leaving the mark slick and waiting for a spark.",
       "baseline": {
         "wp": 8,
         "evade": 50,
@@ -3493,6 +3549,7 @@
       "name": "Bindsilk Veil",
       "tier": 4,
       "identity": "T4 lockdown rag (renamed from Cashmere) — Immobilize behind a 50% evade wall: pin a target so your team kites it while she dodges everything. Cloth-lane Immobilize (R2/Ev50 evasion-fortress), non-comparable to the R3/Ev15 book pinner.",
+      "flavorOverride": "Gossamer veil snapping taut round a quarry's limbs, rooting it as its dancer slips aside.",
       "baseline": {
         "wp": 10,
         "evade": 50,
@@ -3522,6 +3579,7 @@
       "name": "Gravesilk Veil",
       "tier": 6,
       "identity": "T6 capstone caster rag — chance to cast Gravity/Demi on hit (formula 2), chunking a flat share of the target's current HP regardless of defenses. The only Gravity source mod-wide; %HP scaling IGNORES the dancer's low PA, the rare offense vector that works despite her stat sheet. Keeps the 50% evade fortress.",
+      "flavorOverride": "Funeral silk falling with the weight of a tomb; beneath its hem the mighty buckle and sag.",
       "baseline": {
         "wp": 15,
         "evade": 50,
@@ -3542,8 +3600,7 @@
         0.75,
         0.5,
         0.55
-      ],
-      "flavorOverride": "Silk that falls like a tombstone; even giants sag beneath its weight."
+      ]
     },
     {
       "id": 122,
@@ -3552,6 +3609,7 @@
       "name": "Shuriken",
       "tier": 1,
       "identity": "Starter throwing star — thrown damage = Speed x WP, so it scales with the ninja's defining stat. Colorless: never resisted or absorbed. The cheap early ranged option.",
+      "desc": "Throwing weapon. A weapon originating from the distant east. It spins in the air before hitting its target.",
       "proposed": {
         "wp": 4,
         "evade": 0,
@@ -3561,8 +3619,7 @@
         "formula": 1,
         "range": 0,
         "attackFlags": "Throwable, Direct"
-      },
-      "desc": "A ninja's basic throwing star. Thrown, its damage scales with the wielder's Speed — weak in slow hands, a real ranged hit once you stack Speed. Colorless: never resisted or absorbed."
+      }
     },
     {
       "id": 123,
@@ -3571,6 +3628,7 @@
       "name": "Fuma Shuriken",
       "tier": 3,
       "identity": "Mid throwing star — a bigger Speed-scaled colorless hit than the Shuriken. The reliable element-proof ranged DPS throw.",
+      "desc": "Throwing weapon. A pinwheel-shaped throwing star that spins at great speed.",
       "proposed": {
         "wp": 6,
         "evade": 0,
@@ -3580,8 +3638,7 @@
         "formula": 1,
         "range": 0,
         "attackFlags": "Throwable, Direct"
-      },
-      "desc": "A heavier star with a bigger Speed-scaled bite. Reliable, element-proof ranged damage for a fast ninja."
+      }
     },
     {
       "id": 124,
@@ -3590,6 +3647,7 @@
       "name": "Yagyu Darkrood",
       "tier": 5,
       "identity": "Capstone throwing star — top colorless Speed-scaled ranged damage. A maxed-Speed ninja's throw hits like a nuke and can never be resisted or absorbed.",
+      "desc": "Throwing weapon. A cross-shaped throwing star with hooked points for inflicting maximum damage.",
       "proposed": {
         "wp": 8,
         "evade": 0,
@@ -3599,8 +3657,7 @@
         "formula": 1,
         "range": 0,
         "attackFlags": "Throwable, Direct"
-      },
-      "desc": "The deadliest throwing star. A maxed-Speed ninja's throw hits like a nuke, and being colorless it can never be resisted or absorbed — the reliable finisher of the throw arsenal."
+      }
     },
     {
       "id": 125,
@@ -3609,6 +3666,7 @@
       "name": "Flameburst Bomb",
       "tier": 3,
       "identity": "Fire throwing bomb — Speed-scaled ranged Fire (x2 vs Fire-weak, shreds the Oiled; Fire-absorbers heal it). The matchup half of the throw arsenal: higher ceiling than the stars vs the right target, a gamble vs the wrong one.",
+      "desc": "Throwing weapon. An explosive sphere that showers its target with flame.",
       "proposed": {
         "wp": 6,
         "evade": 0,
@@ -3618,8 +3676,7 @@
         "formula": 1,
         "range": 0,
         "attackFlags": "Throwable, Direct"
-      },
-      "desc": "A thrown Fire bomb. Speed-scaled ranged Fire — doubles against Fire-weak foes and shreds the Oiled, but Fire-absorbers heal from it."
+      }
     },
     {
       "id": 126,
@@ -3628,6 +3685,7 @@
       "name": "Snowmelt Bomb",
       "tier": 3,
       "identity": "Water throwing bomb — Speed-scaled ranged Water (x2 vs Water-weak; Water-absorbers heal it). Twin to the Flameburst, different matchup coverage.",
+      "desc": "Throwing weapon. An explosive sphere that drenches its target with water.",
       "proposed": {
         "wp": 6,
         "evade": 0,
@@ -3637,8 +3695,7 @@
         "formula": 1,
         "range": 0,
         "attackFlags": "Throwable, Direct"
-      },
-      "desc": "A thrown Water bomb. Speed-scaled ranged Water — doubles against Water-weak foes; Water-absorbers heal from it."
+      }
     },
     {
       "id": 127,
@@ -3647,6 +3704,7 @@
       "name": "Spark Bomb",
       "tier": 3,
       "identity": "Lightning throwing bomb — Speed-scaled ranged Lightning (x2 vs Lightning-weak and armored/robotic foes; Lightning-absorbers heal it). Completes the Fire/Water/Lightning throw-bomb trio.",
+      "desc": "Throwing weapon. An explosive sphere that electrifies its target with lightning.",
       "proposed": {
         "wp": 6,
         "evade": 0,
@@ -3656,8 +3714,7 @@
         "formula": 1,
         "range": 0,
         "attackFlags": "Throwable, Direct"
-      },
-      "desc": "A thrown Lightning bomb. Speed-scaled ranged Lightning — doubles against Lightning-weak and armored foes; Lightning-absorbers heal from it. Completes the Fire/Water/Lightning trio."
+      }
     },
     {
       "id": 128,
@@ -3666,6 +3723,7 @@
       "name": "Tideward",
       "tier": 1,
       "identity": "Mag-leaning T1 starter — only earliest shield with real magEv, plus a cheap anti-Water resist.",
+      "flavorOverride": "A mariner's shield lacquered against the surge, turning aside the cold reach of the tide.",
       "baseline": {
         "physEv": 10,
         "magEv": 5,
@@ -3676,8 +3734,7 @@
         "magEv": 14,
         "rider": "halve Water",
         "equipBonusId": 74
-      },
-      "desc": "A shield warded against the tides.\nHalves Water-elemental damage."
+      }
     },
     {
       "id": 129,
@@ -3686,6 +3743,7 @@
       "name": "Galewall",
       "tier": 1,
       "identity": "T1 physical apex — highest early physEv + anti-Wind resist for early archers/cyclones.",
+      "flavorOverride": "A broad guard angled to split a headwind, so neither gale nor arrow finds purchase.",
       "baseline": {
         "physEv": 15,
         "magEv": 0,
@@ -3696,8 +3754,7 @@
         "magEv": 2,
         "rider": "halve Wind",
         "equipBonusId": 75
-      },
-      "desc": "A broad shield that breaks the wind.\nHalves Wind-elemental damage."
+      }
     },
     {
       "id": 130,
@@ -3706,6 +3763,7 @@
       "name": "Stormwall",
       "tier": 2,
       "identity": "First buyable element tool — halves Lightning (guns, thunder mages). Balanced split.",
+      "flavorOverride": "Banded in earthed iron that bleeds the lightning into the ground before it can bite.",
       "baseline": {
         "physEv": 15,
         "magEv": 5,
@@ -3716,8 +3774,7 @@
         "magEv": 10,
         "rider": "halve Lightning",
         "equipBonusId": 76
-      },
-      "desc": "A shield that grounds the storm.\nHalves Lightning-elemental damage."
+      }
     },
     {
       "id": 131,
@@ -3726,6 +3783,7 @@
       "name": "Swiftguard",
       "tier": 2,
       "identity": "Agility shield — phys-leaning evade + Speed+1 tempo prize for skirmishers.",
+      "flavorOverride": "Pared down to almost nothing, this guard quickens the feet rather than burdening them.",
       "baseline": {
         "physEv": 20,
         "magEv": 0,
@@ -3736,8 +3794,7 @@
         "magEv": 4,
         "rider": "Speed+1",
         "equipBonusId": 14
-      },
-      "desc": "A light shield that never slows your step.\nGrants Speed +1."
+      }
     },
     {
       "id": 132,
@@ -3746,6 +3803,7 @@
       "name": "Wardstone",
       "tier": 3,
       "identity": "Anti-mage generalist — top buyable magEv + innate Shell (stacks with mag-evade).",
+      "flavorOverride": "Graven with runes that murmur a quiet ward, veiling its bearer against hostile spellcraft.",
       "baseline": {
         "physEv": 15,
         "magEv": 15,
@@ -3756,8 +3814,7 @@
         "magEv": 26,
         "rider": "Innate Shell",
         "equipBonusId": 4
-      },
-      "desc": "A rune-warded shield humming with protective magick.\nGrants innate Shell (magick damage reduced)."
+      }
     },
     {
       "id": 133,
@@ -3766,6 +3823,7 @@
       "name": "Sanctguard",
       "tier": 3,
       "identity": "Anti-Holy + Holy-amp — halves incoming Holy AND boosts the wearer's own Holy output.",
+      "flavorOverride": "Consecrated bronze that drinks holy fire and gives it back redoubled through the hand.",
       "baseline": {
         "physEv": 20,
         "magEv": 5,
@@ -3776,8 +3834,7 @@
         "magEv": 12,
         "rider": "halve+boost Holy",
         "equipBonusId": 77
-      },
-      "desc": "A consecrated shield that turns holy wrath aside, and amplifies your own.\nHalves incoming Holy and strengthens your Holy attacks."
+      }
     },
     {
       "id": 134,
@@ -3786,6 +3843,7 @@
       "name": "Rimeward",
       "tier": 3,
       "identity": "Vanilla standout — absorbs Ice, halves Fire, weak to Lightning. Anti-Ice/Fire tank.",
+      "flavorOverride": "Sheathed in unthawing frost, it swallows the killing cold and leaves its bearer warmer.",
       "baseline": {
         "physEv": 30,
         "magEv": 0,
@@ -3796,8 +3854,7 @@
         "magEv": 6,
         "rider": "absorb Ice",
         "equipBonusId": 15
-      },
-      "desc": "A shield of everlasting frost.\nAbsorbs Ice, halves Fire, but weak to Lightning."
+      }
     },
     {
       "id": 135,
@@ -3806,6 +3863,7 @@
       "name": "Emberward",
       "tier": 3,
       "identity": "Vanilla standout — absorbs Fire, halves Ice, weak to Water. Ice/Flame element partner.",
+      "flavorOverride": "Quenched in dragonfire and hungry still, it feeds on the flames flung against it.",
       "baseline": {
         "physEv": 30,
         "magEv": 0,
@@ -3816,8 +3874,7 @@
         "magEv": 6,
         "rider": "absorb Fire",
         "equipBonusId": 16
-      },
-      "desc": "A shield forged in dragonfire.\nAbsorbs Fire, halves Ice, but weak to Water."
+      }
     },
     {
       "id": 136,
@@ -3826,6 +3883,7 @@
       "name": "Spellbane",
       "tier": 5,
       "identity": "THE anti-mage shield — 50 magEv + MA+1 + nullify Earth. Near-zero phys is the cost.",
+      "flavorOverride": "Woven through with counter-sigils that unravel an incantation before it ever lands.",
       "baseline": {
         "physEv": 10,
         "magEv": 50,
@@ -3836,8 +3894,7 @@
         "magEv": 50,
         "rider": "MA+1 null Earth",
         "equipBonusId": 79
-      },
-      "desc": "A mage's bane, woven to swallow spellcraft.\nHuge magick evasion, grants Magick Attack +1, nullifies Earth."
+      }
     },
     {
       "id": 137,
@@ -3846,6 +3903,7 @@
       "name": "Trailblazer",
       "tier": 4,
       "identity": "Mobility defender — solid balanced evade + the only Move+1 shield. Tank that flanks.",
+      "flavorOverride": "Pared light for the march, this guard lets its bearer outpace the line and flank unseen.",
       "baseline": {
         "physEv": 35,
         "magEv": 15,
@@ -3856,8 +3914,7 @@
         "magEv": 16,
         "rider": "Move+1",
         "equipBonusId": 42
-      },
-      "desc": "A shield light enough to range ahead of the line.\nGrants Move +1."
+      }
     },
     {
       "id": 138,
@@ -3866,6 +3923,7 @@
       "name": "Vanguard",
       "tier": 4,
       "identity": "Offensive bruiser — high physEv + the only PA+1 shield. Defense that adds damage.",
+      "flavorOverride": "Forged thick at the boss for shoving forward, it lends weight to the arm as much as cover.",
       "baseline": {
         "physEv": 40,
         "magEv": 10,
@@ -3876,8 +3934,7 @@
         "magEv": 8,
         "rider": "PA+1",
         "equipBonusId": 21
-      },
-      "desc": "A bruiser's shield. Defense that hits back.\nGrants Physical Attack +1."
+      }
     },
     {
       "id": 139,
@@ -3886,6 +3943,7 @@
       "name": "Nightward",
       "tier": 5,
       "identity": "Anti-Dark — absorbs Dark (undead bosses), weak to Holy. Best-balanced absorb shield.",
+      "flavorOverride": "Cut from black crystal that swallows shadow, making the dark a strength, not a wound.",
       "baseline": {
         "physEv": 40,
         "magEv": 15,
@@ -3896,8 +3954,7 @@
         "magEv": 24,
         "rider": "absorb Dark",
         "equipBonusId": 78
-      },
-      "desc": "A shield that drinks the dark.\nAbsorbs Dark, but weak to Holy."
+      }
     },
     {
       "id": 140,
@@ -3906,6 +3963,7 @@
       "name": "Genji Shield",
       "tier": 5,
       "identity": "Phys-evade apex — poach/steal-gated, with a Speed+1 prize for the rare-drop effort.",
+      "desc": "An unusually shaped, pitch-black shield forged from iron using the techniques of a distant land.",
       "baseline": {
         "physEv": 45,
         "magEv": 10,
@@ -3925,6 +3983,7 @@
       "name": "Kaiser Shield",
       "tier": 5,
       "identity": "The only OFFENSIVE shield — strengthens the wearer's Fire/Lightning/Ice. A damage shield.",
+      "desc": "A shield named after a title used by emperors of eld. Increases the power of certain elemental magicks.",
       "baseline": {
         "physEv": 45,
         "magEv": 20,
@@ -3944,6 +4003,7 @@
       "name": "Venetian Shield",
       "tier": 6,
       "identity": "Best generalist — top on both evade axes + tri-element halve, no weakness, no rider.",
+      "desc": "A shield that has been ostentatiously colored using special dyes and pigments. Resistant to certain elemental magicks.",
       "baseline": {
         "physEv": 50,
         "magEv": 25,
@@ -3963,6 +4023,7 @@
       "name": "Aegis Prime",
       "tier": 6,
       "identity": "Endgame anti-mage capstone — 56 magEv, MA+1, halves Holy/Dark.",
+      "flavorOverride": "The crowning aegis of the realm, sealing its bearer in ward from blade and incantation.",
       "baseline": {
         "physEv": 75,
         "magEv": 50,
@@ -3973,8 +4034,7 @@
         "magEv": 56,
         "rider": "innate Protect & Shell (capstone aegis)",
         "equipBonusId": 68
-      },
-      "desc": "The ultimate aegis, proof against blade and spell alike.\nGrants Protect and Shell, with unmatched magick evasion."
+      }
     },
     {
       "id": 144,
@@ -3983,6 +4043,7 @@
       "name": "Padded Coif",
       "tier": 1,
       "identity": "Availability: the only riderless helm, alone at the bottom of the curve — the head item armor jobs get turn 1 before any rider gear exists.",
+      "flavorOverride": "Quilted cloth and boiled hide, the plainest helm an armorer hands a green recruit.",
       "baseline": {
         "hp": 10,
         "mp": 0,
@@ -4010,6 +4071,7 @@
       "name": "Mendsteel Helm",
       "tier": 2,
       "identity": "Niche: innate Regen makes an early front-liner a self-healing wall before any healer is online — attrition durability the raw-HP rungs never offer.",
+      "flavorOverride": "Steel chased with a mending charm, so a campaign's small hurts close on the march.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -4037,6 +4099,7 @@
       "name": "Aegis Helm",
       "tier": 2,
       "identity": "Niche: innate Protect (halve physical) on a solid early block — the front-line tank's first real wall; pick over Bronze vs hard hitters, not chip.",
+      "flavorOverride": "An iron helm thick at the brow, that the heaviest swing might glance rather than bite.",
       "baseline": {
         "hp": 30,
         "mp": 0,
@@ -4064,6 +4127,7 @@
       "name": "Storm Barbut",
       "tier": 3,
       "identity": "Niche: nullifies Lightning entirely — the slot's one element answer; hard-counters gun-heavy maps and Bolt/Summon mages where raw HP wouldn't save you.",
+      "flavorOverride": "A barbut wound with grounding wire; the storm's white fury spends itself across its crest.",
       "baseline": {
         "hp": 40,
         "mp": 0,
@@ -4091,6 +4155,7 @@
       "name": "Clarion Helm",
       "tier": 3,
       "identity": "Niche: Silence immunity keeps a magic-knight's or battle-skill user's spells online — the spell-using tank's helm, no element commitment.",
+      "flavorOverride": "An open-faced helm that frees the mouth, so no hush of sorcery may steal its words.",
       "baseline": {
         "hp": 50,
         "mp": 0,
@@ -4118,6 +4183,7 @@
       "name": "Sunsteel Helm",
       "tier": 3,
       "identity": "Niche: innate Float dodges Earth magic and ground traps and ignores swamp/terrain damage — a positioning tool, not raw defense; the only mobility helm.",
+      "flavorOverride": "Gilded steel light as a held breath, lifting its bearer clear of swamp, snare, and earth.",
       "baseline": {
         "hp": 60,
         "mp": 0,
@@ -4145,6 +4211,7 @@
       "name": "Sealed Visor",
       "tier": 3,
       "identity": "Niche: immune Sleep and Blind — the anti-control HP wall; keeps a front-liner awake and accurate when casters try to park or blind it off its hits.",
+      "flavorOverride": "A visor riveted shut; behind it neither creeping drowse nor blinding dark finds a way in.",
       "baseline": {
         "hp": 70,
         "mp": 0,
@@ -4172,6 +4239,7 @@
       "name": "Timeward Helm",
       "tier": 4,
       "identity": "Niche: Stop immunity — the Time-Mage counter; the heavy tank that can never be frozen out of the fight for a lethal turn-skip.",
+      "flavorOverride": "Diamond-hard and humming, it refuses the spell that would freeze its wearer out of time.",
       "baseline": {
         "hp": 80,
         "mp": 0,
@@ -4199,6 +4267,7 @@
       "name": "Wardsteel Helm",
       "tier": 4,
       "identity": "Niche: innate Shell (halve magic) on a heavy block — the anti-mage wall, magic mirror of Iron's Protect; the rung you grab for caster-boss maps.",
+      "flavorOverride": "Platinum forged with a silvered ward, turning sorcery aside as steel turns a blade.",
       "baseline": {
         "hp": 90,
         "mp": 0,
@@ -4226,6 +4295,7 @@
       "name": "Warded Circlet",
       "tier": 4,
       "identity": "Niche: Charm immunity — no friendly fire; 100 HP for a heavy unit that absolutely must stay loyal against mind-control bosses.",
+      "flavorOverride": "A slender circlet that keeps the heart its own, deaf to every honeyed word a foe whispers.",
       "baseline": {
         "hp": 100,
         "mp": 0,
@@ -4253,6 +4323,7 @@
       "name": "Crystalward Helm",
       "tier": 5,
       "identity": "Niche: the buyable defensive apex — double-immunity to Stop AND Petrify (both instant-loss) on a huge HP pool; owns the unique Stone atom no other helm has.",
+      "flavorOverride": "Helm of living crystal, proof alike against the breath-halting touch and the stoning gaze.",
       "baseline": {
         "hp": 120,
         "mp": 0,
@@ -4280,6 +4351,7 @@
       "name": "Genji Helm",
       "tier": 6,
       "identity": "ICONIC: the legend, finally earning it — rare/steal-gated, granting BOTH innate Protect and Shell (halve ALL incoming damage) on near-apex HP.",
+      "desc": "An unusually shaped, vermilion helm forged from iron using the techniques of a distant land.",
       "baseline": {
         "hp": 130,
         "mp": 0,
@@ -4307,6 +4379,7 @@
       "name": "Grand Helm",
       "tier": 6,
       "identity": "ICONIC: the heavy-armor HP capstone (150, slot ceiling) plus Doom/Sleep immunity — no death-clock, no nap; the brick that can't be cheesed off the field.",
+      "desc": "This warrior's helm offers an excellent field of vision, and may protect the wearer from misfortune.\nWhile equipped, grants immunity to Blindness and Sleep.",
       "baseline": {
         "hp": 150,
         "mp": 0,
@@ -4334,6 +4407,7 @@
       "name": "Roughspun Cap",
       "tier": 1,
       "identity": "Availability: cheapest head item, universal (any job turn 1, no Equip Heavy Armor) — the mage/thief head-slot floor, alone at the bottom of the hat curve.",
+      "flavorOverride": "A cap of coarse homespun cloth, asking no coin and fitting any head that needs covering.",
       "baseline": {
         "hp": 8,
         "mp": 0,
@@ -4361,6 +4435,7 @@
       "name": "Wardplume Hat",
       "tier": 2,
       "identity": "Niche: trades MP for magic-evade (magEv5) — the cheap 'duck the first spell' hat; riderless but distinct on the magEv axis, a sidegrade not a downgrade to Red Hood.",
+      "flavorOverride": "A feathered cap whose plume sways with the air, nudging a stray spell past the brow.",
       "baseline": {
         "hp": 16,
         "mp": 5,
@@ -4388,6 +4463,7 @@
       "name": "Adept's Hood",
       "tier": 2,
       "identity": "Availability: the early caster cap — a small MP pool, HP-leaning twin of Plumed; the squishy mage's first survivable head, distinct on the MP axis.",
+      "flavorOverride": "A dyed hood favored by apprentices, its folds holding a small reserve for the fledgling.",
       "baseline": {
         "hp": 24,
         "mp": 8,
@@ -4415,6 +4491,7 @@
       "name": "Martial Band",
       "tier": 3,
       "identity": "Niche: PA+1 with the highest HP of the early hats — the cheap melee hat for a Monk/Archer wanting hat mobility plus a little punch; Headband is the budget-to-cap fork.",
+      "flavorOverride": "A band bound tight across a brawler's brow, lending the arm more weight behind every blow.",
       "baseline": {
         "hp": 32,
         "mp": 0,
@@ -4442,6 +4519,7 @@
       "name": "Arcanist Cap",
       "tier": 3,
       "identity": "ICONIC: MA+1 plus a real MP pool, lowest HP of its tier — the classic caster fork, glassy but more and stronger spells; the MA/MP answer to Martial Band's PA.",
+      "flavorOverride": "A peaked cap stitched with old sigils, sharpening the mind to draw deeper on the arcane.",
       "baseline": {
         "hp": 40,
         "mp": 12,
@@ -4469,6 +4547,7 @@
       "name": "Zephyr Beret",
       "tier": 3,
       "identity": "ICONIC: Speed+1 — the universal tempo hat; more turns on literally any build, no stat-school commitment.",
+      "flavorOverride": "A beret cut light as breeze, quickening the step of whoever wears it into the fray.",
       "baseline": {
         "hp": 48,
         "mp": 0,
@@ -4496,6 +4575,7 @@
       "name": "Twisted Headband",
       "tier": 4,
       "identity": "ICONIC: PA+2, the physical-apex hat — the Monk/Brawler damage cap; Martial Band (PA+1, T3) keeps the budget niche below it.",
+      "flavorOverride": "Wrung and knotted cloth that grips the skull, channeling raw temper into the fist.",
       "baseline": {
         "hp": 56,
         "mp": 0,
@@ -4523,6 +4603,7 @@
       "name": "Hierophant Miter",
       "tier": 4,
       "identity": "ICONIC: MA+2 plus a deep MP well — the mage damage-and-fuel cap; Wizard's Hat (MA+1, T3) keeps the budget niche. The magic counterpart to Headband.",
+      "flavorOverride": "A tall miter that deepens a priest's reserves and the fury of the prayers he hurls.",
       "baseline": {
         "hp": 64,
         "mp": 20,
@@ -4550,6 +4631,7 @@
       "name": "Assassin's Cowl",
       "tier": 4,
       "identity": "Niche: physical-evade (physEv8) plus Move+1 — the rogue/skirmisher hat; reposition and dodge, a mobility-plus-evade lane no other hat offers.",
+      "flavorOverride": "A close-drawn cowl of black weave, made to slip a killer through shadow unseen and unheld.",
       "baseline": {
         "hp": 72,
         "mp": 0,
@@ -4577,6 +4659,7 @@
       "name": "Mana Coronet",
       "tier": 4,
       "identity": "ICONIC: the MP throne of the hats (40, slot max) plus Silence immunity — the artillery-mage hat; bottomless spells that can't be cut off. MP is the identity.",
+      "flavorOverride": "A delicate coronet brimming with stored magick, a well whose voice can never be stilled.",
       "baseline": {
         "hp": 80,
         "mp": 50,
@@ -4604,6 +4687,7 @@
       "name": "Lumen Crown",
       "tier": 5,
       "identity": "ICONIC: the hybrid endgame mage hat — MA+1, Speed+1, MP AND magic-evade (magEv10); the only hat blending magic offense, tempo and mag-defense on one head.",
+      "flavorOverride": "A circlet of soft inner glow, quickening both the spell and the step of the mage below.",
       "baseline": {
         "hp": 88,
         "mp": 15,
@@ -4631,6 +4715,7 @@
       "name": "Nightrunner Cap",
       "tier": 5,
       "identity": "ICONIC: the rogue capstone — Speed+2, top physical-evade (physEv15), immune Disable + Immobilize; the untouchable, unstoppable skirmisher hat.",
+      "flavorOverride": "A close cap for night roads, leaving its wearer swift, unbound, and ahead of the snare.",
       "baseline": {
         "hp": 100,
         "mp": 0,
@@ -4658,6 +4743,7 @@
       "name": "Hairband",
       "tier": 3,
       "identity": "Female partial immunity, half A: +20 HP + immune the 9 'degrade/lock' statuses. One of only 3 HP accessories; the affordable female defense before Ribbon. Disjoint set from Barrette.",
+      "desc": "A finely crafted hair accessory.\nWhile equipped, grants immunity to various status ailments.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -4685,6 +4771,7 @@
       "name": "Barrette",
       "tier": 4,
       "identity": "Female partial immunity, half B: +20 HP + immune the 9 'death/mind-control' statuses (incl KO and Petrify). The disjoint other half; together with Hairband equals Ribbon coverage. Neither half dominates the other.",
+      "desc": "A hairpin adorned with a crimson gem.\nWhile equipped, grants immunity to various status ailments.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -4712,7 +4799,7 @@
       "name": "Ribbon",
       "tier": 6,
       "identity": "Total immunity to every status. The crown jewel - deliberately the LOWEST HP (10) so the +20 half-sets stay viable when you only need one cluster + bulk. Loses the HP axis, so it dominates neither half-set.",
-      "desc": "A blessed ribbon that turns aside every ill.\nImmune to all status ailments.",
+      "desc": "A hair accessory made from cloth imbued with mystical energies.\nWhile equipped, grants immunity to most status ailments.",
       "baseline": {
         "hp": 10,
         "mp": 0,
@@ -4740,6 +4827,7 @@
       "name": "Roughhide Mail",
       "tier": 1,
       "identity": "Honest Ch1 starter wall — cheapest heavy body; earliest unlock IS its niche. A riderless anchor protected purely by being the only heavy armor you can have in Ch1.",
+      "flavorOverride": "Boiled hide laced over the chest; the first heavy guard a soldier is ever granted.",
       "baseline": {
         "hp": 10,
         "mp": 0,
@@ -4767,6 +4855,7 @@
       "name": "Studded Mail",
       "tier": 2,
       "identity": "Attrition body — a free Regen tick outlasts a slow poke-war; the early sustain pick for a front-liner who trades blows. (vanillaName Linen Cuirass)",
+      "flavorOverride": "Iron-studded mail with a healing ward, that its wearer outlast a long, grinding fight.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -4794,6 +4883,7 @@
       "name": "Reaver Mail",
       "tier": 2,
       "identity": "Aggro starter plate — the only early heavy body that pushes Knight/Dragoon damage; offense over a few HP.",
+      "flavorOverride": "Cheap plate for one who'd strike rather than be struck; it lends the arm an angry weight.",
       "baseline": {
         "hp": 30,
         "mp": 0,
@@ -4821,6 +4911,7 @@
       "name": "Hushward Mail",
       "tier": 3,
       "identity": "Anti-hush body — a melee fighter who can never be Silenced; counters enemy mage packs that lock your skillset.",
+      "flavorOverride": "Chain warded inward against the hush, so no enemy spell can still its bearer's tongue.",
       "baseline": {
         "hp": 40,
         "mp": 0,
@@ -4848,6 +4939,7 @@
       "name": "Stalwart Plate",
       "tier": 3,
       "identity": "Clean mid-game HP wall — pure tonnage, no rider tax; the cheap 'just give me bulk' anchor of T3.",
+      "flavorOverride": "Thick mythril plate without ornament or trick, only more iron between flesh and the foe.",
       "baseline": {
         "hp": 50,
         "mp": 0,
@@ -4875,6 +4967,7 @@
       "name": "Knight's Plate",
       "tier": 4,
       "identity": "Front-line bulwark — innate Protect soft-halves all physical damage; the dedicated physical-tank body. (vanillaName Plate Mail)",
+      "flavorOverride": "The plate of a sworn knight, blessed to soften every blow that lands upon its bearer.",
       "baseline": {
         "hp": 60,
         "mp": 0,
@@ -4902,6 +4995,7 @@
       "name": "Sungold Mail",
       "tier": 4,
       "identity": "Pyre-ward plate — heals from Fire (geomancers / enemy Fire mages) but takes extra Water (EB16 weakness); a true defensive sidegrade to Knight's Plate. (vanillaName Golden Armor)",
+      "flavorOverride": "Gilded armor that drinks flame like a hearth, though water seeps through its golden seams.",
       "baseline": {
         "hp": 70,
         "mp": 0,
@@ -4929,6 +5023,7 @@
       "name": "Adamant Plate",
       "tier": 4,
       "identity": "Riderless HP throne of the buyable line — max bulk-per-gil one tier before the T5 wall; pick when you want raw HP and nothing else.",
+      "flavorOverride": "Diamond-scaled plate of immense make, prized by those who measure worth in endurance.",
       "baseline": {
         "hp": 80,
         "mp": 0,
@@ -4956,6 +5051,7 @@
       "name": "Warden Plate",
       "tier": 5,
       "identity": "Anti-lockdown body — immune Stop keeps your tank acting vs Time mages; tempo insurance and the cheaper anti-Stop pick under Crystal Mail. (vanillaName Platinum Armor)",
+      "flavorOverride": "Platinum harness warded so no time-mage's craft can pin or freeze its wearer mid-stride.",
       "baseline": {
         "hp": 90,
         "mp": 0,
@@ -4983,6 +5079,7 @@
       "name": "Charger's Plate",
       "tier": 5,
       "identity": "Tempo plate — a rare +Speed on heavy armor; a tank that takes more turns. The only body that buys initiative.",
+      "flavorOverride": "Heavy mail balanced for the saddle, light enough that its bearer moves a half-beat sooner.",
       "baseline": {
         "hp": 100,
         "mp": 0,
@@ -5010,6 +5107,7 @@
       "name": "Crystalward Mail",
       "tier": 5,
       "identity": "Petrify-proof crystal — immune to Stop AND Stone; hard counter to Break/Petrify plus Time-mage lockdown; top buyable HP.",
+      "flavorOverride": "Mail grown from living crystal, proof against the stillness of stone and a halted clock.",
       "baseline": {
         "hp": 110,
         "mp": 0,
@@ -5037,6 +5135,7 @@
       "name": "Genji Armor",
       "tier": 6,
       "identity": "Samurai/Knight offensive capstone — top-tier HP PLUS PA+2; the rare plate for a damage build, not just a wall. Iconic name preserved.",
+      "desc": "Crimson enameled armor made using the techniques of a distant land. Provides complete protection for torso and hips.",
       "baseline": {
         "hp": 150,
         "mp": 0,
@@ -5064,6 +5163,7 @@
       "name": "Mirrorscale Mail",
       "tier": 5,
       "identity": "The Reflect body — bounces enemy single-target magic back at the caster; the only Reflect armor. Iconic name preserved.",
+      "flavorOverride": "Mirror-bright scales that hurl an enemy's spellcraft back upon the hand that cast it.",
       "baseline": {
         "hp": 130,
         "mp": 0,
@@ -5091,6 +5191,7 @@
       "name": "Maximillian",
       "tier": 6,
       "identity": "HP throne — the single highest body HP in the game (160, well under the 255 cap for headroom), now with innate Shell to blunt the magic raw HP can't dodge; the endgame wall. Iconic name preserved.",
+      "desc": "Top-grade armor made using the finest materials and advanced techniques for unmatched strength.",
       "baseline": {
         "hp": 200,
         "mp": 0,
@@ -5118,6 +5219,7 @@
       "name": "Wayfarer's Garb",
       "tier": 1,
       "identity": "The one riderless floor. Cheapest, available first, the bare body everything above earns its keep against. Pick when nothing else is affordable yet.",
+      "flavorOverride": "Plain travelling clothes, all a recruit can scrape up before the road takes the rest.",
       "baseline": {
         "hp": 5,
         "mp": 0,
@@ -5145,6 +5247,7 @@
       "name": "Emberweave Vest",
       "tier": 2,
       "identity": "Early Fire-resist body (reuses vanilla EB16) — absorb Fire, halve Ice, slightly weak to Water. The budget anti-Bomb/anti-Fire-mage pick before any heavy resist exists.",
+      "flavorOverride": "Leather treated to swallow flame and shrug off frost, though cold water finds the skin.",
       "baseline": {
         "hp": 10,
         "mp": 0,
@@ -5172,6 +5275,7 @@
       "name": "Trailwarden Jerkin",
       "tier": 2,
       "identity": "Nimble light body — +1 Move for skirmishers and archers. The early mobility pick when positioning beats raw HP.",
+      "flavorOverride": "A ranger's jerkin cut for long ground, easing the stride of all who must cover it.",
       "baseline": {
         "hp": 18,
         "mp": 0,
@@ -5199,6 +5303,7 @@
       "name": "Wardweave Vest",
       "tier": 2,
       "identity": "Traveler's tri-element ward (reuses vanilla EB19) — halves all three primary elements. The broad-resist budget body for mixed-element fights.",
+      "flavorOverride": "Ringed cloth a ward-weaver hung against flame, frost, and storm in equal measure.",
       "baseline": {
         "hp": 24,
         "mp": 0,
@@ -5226,6 +5331,7 @@
       "name": "Tempo Vest",
       "tier": 3,
       "identity": "Tempo body — +1 Speed to act sooner each round. The light-armor speed pick before Ninja Gear exists. Pick when you want more turns out of a unit.",
+      "flavorOverride": "Mythril-laced cloth that quickens the limbs, so its wearer takes the field a moment ahead.",
       "baseline": {
         "hp": 30,
         "mp": 0,
@@ -5253,6 +5359,7 @@
       "name": "Wardsilk Vest",
       "tier": 3,
       "identity": "Caster-safety body — never get Silenced out of your spells. Pick when your mage must keep casting through enemy Silence.",
+      "flavorOverride": "Silk woven with a guarding charm, keeping a caster's voice when an enemy would hush it.",
       "baseline": {
         "hp": 36,
         "mp": 0,
@@ -5280,6 +5387,7 @@
       "name": "Mage's Wrap",
       "tier": 3,
       "identity": "ICONIC MP body (Wizard Clothing) — +18 MP and +1 MA. The mage's light armor: trades HP for spell uptime + a touch of power. MP+MA is the whole identity, so its lower HP is never a strict loss.",
+      "flavorOverride": "A mage's wrap deep with hidden power, sparing spellcraft and sharpening it both at once.",
       "baseline": {
         "hp": 42,
         "mp": 15,
@@ -5307,6 +5415,7 @@
       "name": "Bulwark Brigandine",
       "tier": 4,
       "identity": "Durable front-line cloth — innate Protect halves incoming physical. Heavy-armor-like survivability with universal access and no Equip ability. The light bruiser's wall.",
+      "flavorOverride": "Layered brigandine stitched as a soft wall, blunting a blow without the burden of plate.",
       "baseline": {
         "hp": 50,
         "mp": 0,
@@ -5334,6 +5443,7 @@
       "name": "Adept's Gi",
       "tier": 4,
       "identity": "ICONIC Monk body (vanilla EB30) — +1 PA and immune to instant-death (Death/KO). Pick for a melee unit that must not get one-shot by Death spells.",
+      "flavorOverride": "A disciple's gi that hardens the arm and steels the spirit against death's cold reach.",
       "baseline": {
         "hp": 60,
         "mp": 0,
@@ -5361,6 +5471,7 @@
       "name": "Berserker's Garb",
       "tier": 5,
       "identity": "ICONIC +PA bruiser body (vanilla EB31) — the clean physical-attack stat stick. Pick when maximizing Monk/Ninja/melee damage.",
+      "flavorOverride": "Battle-garb cut for the raging fighter, every seam straining to feed a hungrier swing.",
       "baseline": {
         "hp": 70,
         "mp": 0,
@@ -5388,6 +5499,7 @@
       "name": "Terraweave Garb",
       "tier": 5,
       "identity": "ICONIC Earth body (vanilla EB32) — heal from Earth attacks and boost your own Earth/Geomancy, plus a little MP. Pick for Earth builds or against enemy Earth nukes.",
+      "flavorOverride": "Earthen-dyed cloth that draws up the soil's strength, turning the ground's fury to gain.",
       "baseline": {
         "hp": 85,
         "mp": 10,
@@ -5415,6 +5527,7 @@
       "name": "Ninja Gear",
       "tier": 6,
       "identity": "ICONIC assassin body (vanilla EB33) — pure agility: +2 Speed and start each battle Invisible, traded for deliberately low HP. End-tier rare for a fast striker who opens from stealth.",
+      "desc": "Lightweight clothing that allows the wearer to blend into their surroundings. Ideal for covert missions.\nWhile equipped, raises speed and grants Invisibility at the start of battle.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -5442,6 +5555,7 @@
       "name": "Nightweave Garb",
       "tier": 5,
       "identity": "Anti-Stop durability body (vanilla EB34) — the highest-HP light body that can never be time-locked out of the fight. The near-pure HP wall.",
+      "flavorOverride": "Night-black garb spun thick, keeping its wearer free of any moment-freezing spell.",
       "baseline": {
         "hp": 100,
         "mp": 0,
@@ -5469,6 +5583,7 @@
       "name": "Rubber Suit",
       "tier": 6,
       "identity": "ICONIC Rubber body (vanilla EB35) — fully null Lightning, high HP and some MP. End-tier rare. Hard counter to Thunder/Bolt fights or a hybrid-caster anchor.",
+      "desc": "Electrically insulated clothing made from a special resin that molds to the contours of the wearer's body.",
       "baseline": {
         "hp": 150,
         "mp": 0,
@@ -5496,6 +5611,7 @@
       "name": "Penitent's Robe",
       "tier": 1,
       "identity": "T1 starter caster body — cheapest, earliest robe. Lowest HP/MP in the line but the ONLY robe with innate Regen (EB5): heals every turn. The budget attrition mage that out-sustains a plain riderless stat-stick in early poke wars.",
+      "flavorOverride": "A penitent's coarse robe, mending grace woven in; the faithful endure where proud fall.",
       "baseline": {
         "hp": 10,
         "mp": 10,
@@ -5523,6 +5639,7 @@
       "name": "Acolyte Robe",
       "tier": 2,
       "identity": "T2 early-offense sidegrade to the Penitent's — trades Regen sustain for +1 Magic Attack (EB10). The first damage robe; heal-over-time vs hit-harder-now is the early fork. Earliest MA in the slot.",
+      "flavorOverride": "An acolyte's simple silk, lent power enough to make a young caster's first cantrips bite.",
       "baseline": {
         "hp": 20,
         "mp": 16,
@@ -5550,6 +5667,7 @@
       "name": "Magus Robe",
       "tier": 3,
       "identity": "T3 pure spell-power body — +2 Magic Attack (EB36), zero defensive frills. Biggest flat MA in the slot; the black/white/time-mage damage default through mid-game. The OFFENSE half of the T3 fork with Chameleon.",
+      "flavorOverride": "A mage's robe heavy with stored arcana, swelling every incantation the wearer dares speak.",
       "baseline": {
         "hp": 30,
         "mp": 22,
@@ -5577,6 +5695,7 @@
       "name": "Vesper Robe",
       "tier": 3,
       "identity": "ICONIC. The SURVIVAL half of the T3 fork — absorbs Holy (heal off enemy/ally Holy) and immune to instant-KO (EB37). Pick vs Holy-slinging foes (Knights Templar, undead) or Death-spam fights. More HP/MP than Magus but gives up its MA+2: offense vs survival, neither dominates.",
+      "flavorOverride": "Shifting robe of vespertine hue that feeds on holy light and turns aside death's touch.",
       "baseline": {
         "hp": 40,
         "mp": 28,
@@ -5604,6 +5723,7 @@
       "name": "Wardlight Robe",
       "tier": 4,
       "identity": "ICONIC. The element-DEFENSE robe — halves all three primary attack elements (EB19). The durable caster who walks into enemy Fire/Bolt/Ice crossfire. More HP than its Black twin (defense = more body) at a touch less MP.",
+      "flavorOverride": "Pale ward-robe that tempers flame, frost, and storm for the caster who walks a crossfire.",
       "baseline": {
         "hp": 50,
         "mp": 34,
@@ -5631,6 +5751,7 @@
       "name": "Channeler's Robe",
       "tier": 4,
       "identity": "ICONIC. The element-OFFENSE twin of White Robe (same tier, same 3 elements, opposite intent) — boosts the WEARER's own Fire/Lightning/Ice spells (EB18). Glass cannon: more MP than White (more spells to throw) but less HP and no resist. Pick to nuke harder, not survive.",
+      "flavorOverride": "Dark robe that hones fire, frost, and storm to a finer point at a whispered word.",
       "baseline": {
         "hp": 60,
         "mp": 30,
@@ -5658,6 +5779,7 @@
       "name": "Empyrean Robe",
       "tier": 5,
       "identity": "T5 MP throne — highest MP short of the capstone. Its vanilla rider slot was empty; repurposed to innate Float (EB46): dodge Earth/Quake/floor-trap damage and ignore terrain. The battlefield-control caster body — a mobility/immunity trait even Lordly lacks, so it stands on its own axis, not just availability.",
+      "flavorOverride": "Robe of the high heavens, deep with reserves, lifting its wearer a breath above the earth.",
       "baseline": {
         "hp": 75,
         "mp": 50,
@@ -5685,6 +5807,7 @@
       "name": "Lordly Robe",
       "tier": 6,
       "identity": "ICONIC capstone (rare/poach, T6). Top HP & MP of the line PLUS PA+2/MA+1 and innate Protect+Shell (EB41) — the king's robe, best all-round body in the game. Endgame-gated so its raw superiority never dominates the T1-5 robes you wore earlier; tier IS the protecting axis, and every lower robe owns a rider trait Lordly doesn't have.",
+      "desc": "A luxurious robe worn by high-ranking nobles. Enchanted with protective magick.\nWhile equipped, raises physical and magick attack power, and grants Protect and Shell.",
       "baseline": {
         "hp": 100,
         "mp": 80,
@@ -5712,6 +5835,7 @@
       "name": "Wayfarer Boots",
       "tier": 1,
       "identity": "Earliest Move source. The cheap scout/flanker sandal; wins on tier-1 availability.",
+      "flavorOverride": "Worn soft by a thousand leagues of road, they carry their wearer a stride past any march.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5739,6 +5863,7 @@
       "name": "Cragstep Boots",
       "tier": 1,
       "identity": "The Jump+1 vertical-reach pick. Orthogonal to Wayfarer (vertical vs horizontal); same tier.",
+      "flavorOverride": "Iron-cleated boots that grip sheer rock; their wearer climbs where others go around.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5766,6 +5891,7 @@
       "name": "Roamer's Boots",
       "tier": 4,
       "identity": "Mobility king: Move+1 AND Jump+1. Pure positioning for thieves/Ninjas; pays its mid tier vs the cheaper singles.",
+      "flavorOverride": "Roving boots cut for the restless foot, swift on flat ground and sure on the high crags.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5793,6 +5919,7 @@
       "name": "Storm-Tread Boots",
       "tier": 2,
       "identity": "Anti-Bolt / anti-pin tech boot. Not mobility at all; a hard counter to Lightning casters and Immobilize lockdown.",
+      "flavorOverride": "Boots soled in black gum that drink the thunderbolt and shrug off any snare meant to root.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5820,6 +5947,7 @@
       "name": "Featherfoot Boots",
       "tier": 3,
       "identity": "Permanent Float: ignores Earth/quake and all floor traps, walks water/lava as level. The terrain-immunity boot (no Move number).",
+      "flavorOverride": "So lightly made the wearer never quite touches earth, drifting clear of quake and mire.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5847,6 +5975,7 @@
       "name": "Fleetfoot Shoes",
       "tier": 6,
       "identity": "The only tempo boot: Speed+1 = more turns, the scarcest stat in the slot. Endgame-gated; competes with the whole slot for raw tempo.",
+      "flavorOverride": "Winged at the heel in the old fashion; whoever laces them finds the world slowed by half.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5874,6 +6003,7 @@
       "name": "Sprinter's Shoes",
       "tier": 5,
       "identity": "The mage's boot: MA+1 AND Move+1. The only boot touching a damage stat; reach for casters without spending the glove slot.",
+      "flavorOverride": "Crimson shoes of battle-mages, lending fleeter feet and a sharper edge to spells cast.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5901,6 +6031,7 @@
       "name": "Ironhand Gauntlets",
       "tier": 2,
       "identity": "Entry PA stick, bumped to PA+2 so it isn't trash next to Bracers. Cheap early physical boost for any martial job.",
+      "flavorOverride": "Plated gauntlets that lend a green recruit's arm the grip and heft of a far older hand.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5928,6 +6059,7 @@
       "name": "Genji Gloves",
       "tier": 6,
       "identity": "The only dual-stat glove (PA+2/MA+1, magic-knight leaning physical). Less PA than Bracers (3>2), less MA than Magepower (2>1), subset of neither. Wins on breadth + the iconic steal.",
+      "desc": "Vermilion gloves that boost physical and magickal prowess, made using techniques from a distant land.\nWhile equipped, raise physical and magick attack power.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5955,6 +6087,7 @@
       "name": "Runecast Gloves",
       "tier": 3,
       "identity": "The caster's stat stick: the only MA+2 source in the slot. A pure mage prefers this over Genji (more MA).",
+      "flavorOverride": "Gloves etched with running script that hum against the palm, sharpening every incantation.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -5982,6 +6115,7 @@
       "name": "Titan Grips",
       "tier": 5,
       "identity": "The PA apex: PA+3, the only +3 stat in the slot. The pure-physical capstone; gives zero MA.",
+      "flavorOverride": "Grips wrought for a giant's labor; the arm sheathed in them strikes with mountain force.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6009,6 +6143,7 @@
       "name": "Mirror Ring",
       "tier": 4,
       "identity": "Permanent Reflect: bounces single-target magic back at casters; also bank-shots buffs off allies. The anti-mage staple.",
+      "flavorOverride": "A polished band that throws a hostile spell back along its path, into the caster's face.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6036,6 +6171,7 @@
       "name": "Warding Ring",
       "tier": 2,
       "identity": "Early anti-clock ring: never Doomed (countdown KO) or Slept. Cheap Ch2 status insurance.",
+      "flavorOverride": "A plain warding band that lets no creeping curse take root nor doom-clock start its count.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6063,6 +6199,7 @@
       "name": "Sealward Ring",
       "tier": 3,
       "identity": "The caster's seal-breaker: never Silenced (can't lose spells) or Berserked (can't lose control). Keeps a mage online.",
+      "flavorOverride": "A sealed band keeping a caster's tongue free and their wits their own when foes would gag.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6090,6 +6227,7 @@
       "name": "Cursed Ring",
       "tier": 5,
       "identity": "Dark Pact ring (unique): a loaded PA+2/MA+1/Speed+2/Move+1/Jump+1 stat bundle that absorbs Dark, paid for with a Holy weakness. High risk/reward build-around (community-requested buff).",
+      "desc": "A ring inhabited by evil spirits that imparts great power, but transforms the wearer into the living dead.\nWhile equipped, raises speed, physical and magick attack power, but inflicts Undead status.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6108,8 +6246,7 @@
         0.85,
         0.8,
         0.4
-      ],
-      "flavorOverride": "A ring forged in a forbidden pact. It floods the wielder with power and drinks the dark that strikes them, but holy light scorches the cursed twice as deep."
+      ]
     },
     {
       "id": 223,
@@ -6118,6 +6255,7 @@
       "name": "Seraph Ring",
       "tier": 6,
       "identity": "Survivability crown (unisex): auto-Reraise + immune KO/Blind. The male answer to Chantage; the 'won't stay dead' ring.",
+      "flavorOverride": "A band blessed by a kind seraph; though death take its wearer, it lifts them whole again.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6145,6 +6283,7 @@
       "name": "Adamant Bangle",
       "tier": 4,
       "identity": "The only stat armlet: +1 PA AND +1 MA plus immune Slow. Hybrid stat + tempo with no Undead drawback; a safe middle vs the Cursed Ring gamble.",
+      "flavorOverride": "A hard, clear-cut bangle that steadies blade and spell, and lets no working drag the step.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6172,6 +6311,7 @@
       "name": "Stoneward Armlet",
       "tier": 4,
       "identity": "Anti-petrify: immune Stop (turn-locked) and Stone (instant loss). The 'you literally can't act' insurance vs Time mages.",
+      "flavorOverride": "An armlet of cool jade that keeps the flesh supple against the spell that would stone it.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6199,6 +6339,7 @@
       "name": "Sanctus Beads",
       "tier": 5,
       "identity": "The 108-gems armlet: immune the four 'corruption' statuses AND strong to all 8 elements (every element heals you) - which amplifies elemental damage taken too. Bizarre element-soak grail, dominates no pure-defense armlet.",
+      "flavorOverride": "A strand of prayer-gems; corruption slides off the wearer while every element pours in.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6226,6 +6367,7 @@
       "name": "Clearmind Armlet",
       "tier": 4,
       "identity": "Anti-mind-control: never Charmed or Confused (no turning on your team) plus halve Dark. The only armlet mixing immunity with element resist.",
+      "flavorOverride": "An armband that keeps the mind one's own, deaf to honeyed words and fog, and dulls shadow.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6253,6 +6395,7 @@
       "name": "Unbound Armlet",
       "tier": 3,
       "identity": "Anti-lockdown: never Disabled (can't act) or Immobilized (can't move). The budget 'stay in the fight' armlet.",
+      "flavorOverride": "A guardian's armlet suffering neither shackle nor seizure; its bearer never loses a move.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6280,6 +6423,7 @@
       "name": "Drifter's Cape",
       "tier": 1,
       "identity": "The starter balanced cloak (10/10). Earliest evade in the whole slot; equal phys/mag, asks nothing. Only T1 evade.",
+      "flavorOverride": "A drifter's well-kept cape, plain and even in make, ready to turn a blow from any quarter.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6307,6 +6451,7 @@
       "name": "Duelist's Cape",
       "tier": 2,
       "identity": "The anti-physical cloak (18 phys / 6 mag). Trades mag-dodge for cheap strong phys evade; the front-line dodge vs melee maps.",
+      "flavorOverride": "A fencer's cape, weighted to sweep aside a thrust; better at parrying steel than sorcery.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6334,6 +6479,7 @@
       "name": "Runecloak",
       "tier": 3,
       "identity": "The caster cloak: mag-leaning evade (12/18) PLUS MA+1. The only cloak with a stat rider; dodge spells AND hit harder. Lower phys is the tradeoff.",
+      "flavorOverride": "A cloak stitched with quiet runes that bend spellcraft astray and sharpen the wearer's.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6361,6 +6507,7 @@
       "name": "Sylvan Shroud",
       "tier": 4,
       "identity": "The phys-leaning mid cloak (25/15). The all-rounder dodge tank's pick; forks against Vampire on which axis you need.",
+      "flavorOverride": "Elven weave light as leaf-shadow, slipping its wearer just past the falling blow.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6388,6 +6535,7 @@
       "name": "Nocturne Cape",
       "tier": 4,
       "identity": "The anti-magic cloak (20 phys / 25 mag) PLUS innate Regen. Mirror of Elven; self-sustaining dodge vs caster-heavy maps. Does not dominate Elven (forks on axis + Regen vs raw phys).",
+      "flavorOverride": "A dusk-dark cape that mends flesh as it hides it, turning the wearer aside from spells.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6415,6 +6563,7 @@
       "name": "Zephyr Cloak",
       "tier": 5,
       "identity": "The phys-evade apex (35/20). Dedicated melee-dodge capstone; trails the mag-cloaks on magic evade, no rider - raw phys-avoidance is the sell.",
+      "flavorOverride": "So airy it scarcely seems worn; the blow that should land finds only breeze where it fell.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6442,6 +6591,7 @@
       "name": "Invisibility Cloak",
       "tier": 6,
       "identity": "Starts each battle Invisible (untargetable + crit on the break) plus 30 phys evade. magEv 0 is the deliberate hole. The assassin/opener cloak; does not dominate Featherweave (less phys, zero mag).",
+      "desc": "This cloak allows the wearer to blend in perfectly with their surroundings.\nWhile equipped, grants Invisibility at the start of battle.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6469,6 +6619,7 @@
       "name": "Chantage",
       "tier": 6,
       "identity": "The immortality perfume (female): permanent Regen + auto-Reraise. The 'never dies' throne; stronger than Angel Ring because Regen heals the Reraise back up.",
+      "desc": "The soothing scent of this perfume gives a sensation of endless vitality.\nWhile equipped, grants Regen and Reraise.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6496,6 +6647,7 @@
       "name": "Envoûtement",
       "tier": 5,
       "identity": "The zoner perfume (female): Float + Reflect. Ignores terrain AND bounces magic in one slot. Female-gated separate pool, so it never strictly dominates the unisex Reflect Ring / Featherfoot Boots.",
+      "desc": "The refreshing fragrance of this perfume makes one feel light as air, and able to repel even the mightiest of magicks.\nWhile equipped, grants Float and Reflect.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6523,6 +6675,7 @@
       "name": "Septième Sens",
       "tier": 4,
       "identity": "The aggressive caster perfume (female): MA+1 + Haste + opens Invisible. The burst-mage / opener throne. Female-gated, so never dominates a unisex item.",
+      "desc": "A perfume with an otherworldly aroma that grants a sense of unbound celerity.\nWhile equipped, raises magick attack power and grants Haste. Also grants Invisibility at the start of battle.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6550,6 +6703,7 @@
       "name": "Sortilège",
       "tier": 4,
       "identity": "The bulwark perfume (female): Protect AND Shell (-50% physical AND magical). The defensive wall; turns a fragile caster into a brick.",
+      "desc": "A perfume with a rich redolence that gives a sensation of being enveloped by potent blessings.\nWhile equipped, grants Protect and Shell.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6577,6 +6731,7 @@
       "name": "Scholar's Ring",
       "tier": 2,
       "identity": "Doubles JP earned. Zero combat value - a pure progression item; swap on while grinding, off for fights. Owns its lane outright.",
+      "flavorOverride": "A scholar's modest band that sharpens each skirmish's lessons; a won fight teaches twice.",
       "baseline": {
         "hp": 0,
         "mp": 0,

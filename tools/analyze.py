@@ -14,6 +14,9 @@ Exit 1 if any 'proposed' item is strictly dominated.
 import json, sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from gen_living_weapon_meta import flavor_anchor   # the exact flavor line each item renders with
+
 ROOT = Path(__file__).resolve().parent.parent
 ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else ROOT / "data" / "items.json"
 CHECK_BASELINE = "--baseline" in sys.argv
@@ -114,6 +117,40 @@ def check_slots(items, normal_formulas):
     return violations
 
 
+FLAVOR_MAX = 90   # authored flavor lines must fit the equip card
+
+def check_flavor_length(items):
+    """Authored flavor lines (flavorOverride) must stay <= FLAVOR_MAX chars. Items that carry a
+    verbatim `desc` (restored vanilla originals for unchanged-name items) are exempt -- those are
+    kept as the game shipped them."""
+    bad = []
+    for it in items:
+        fo = it.get("flavorOverride")
+        if fo and len(fo) > FLAVOR_MAX:
+            bad.append((it, len(fo)))
+    return bad
+
+
+def check_unique_flavor(items):
+    """Every named item's flavor line must be UNIQUE. The Living Weapon in-card counter anchors a
+    weapon's Kills tally to its flavor line (the stable lead of its description); two items sharing
+    a line make the counter show the wrong weapon's count. Identical flavor => identical description,
+    so this also enforces 'no two items share a description'."""
+    seen, violations = {}, []
+    for it in items:
+        name = it.get("name")
+        if not name or name == "TBD":
+            continue
+        key = (flavor_anchor(it) or "").strip().lower()
+        if not key:
+            continue
+        if key in seen:
+            violations.append((it, seen[key]))
+        else:
+            seen[key] = it
+    return violations
+
+
 def fmt(it, key, nf):
     s = it[key]
     axes = " ".join(f"{ax}{s[ax]}" for ax in NUMERIC_AXES if ax in s)
@@ -151,6 +188,25 @@ def main():
             an = a.get("name") if a.get("name") not in (None, "TBD") else a["vanillaName"]
             print(f"  DOMINATED id{a['id']} {an} ({a['category']}), beaten by "
                   + ", ".join(f"id{b['id']} {b.get('name')}({b['category']})" for b in doms))
+        rc = 1
+
+    fv = check_unique_flavor(items)
+    print("\n--- DESCRIPTION UNIQUENESS (no two items share a flavor line) ---")
+    if not fv:
+        print("  PASS: every item's flavor line is unique.")
+    else:
+        for a, b in fv:
+            print(f"  DUPLICATE id{a['id']} {a.get('name')} shares its flavor with id{b['id']} {b.get('name')}:")
+            print(f"      {flavor_anchor(a)!r}")
+        rc = 1
+
+    fl = check_flavor_length(items)
+    print(f"\n--- FLAVOR LENGTH (authored flavorOverride <= {FLAVOR_MAX} chars) ---")
+    if not fl:
+        print(f"  PASS: every authored flavor line is <= {FLAVOR_MAX} chars.")
+    else:
+        for a, n in fl:
+            print(f"  TOO LONG id{a['id']} {a.get('name')} ({n} chars): {a['flavorOverride']!r}")
         rc = 1
     sys.exit(rc)
 

@@ -3,726 +3,847 @@
     "name": "Cutpurse",
     "wp": 5,
     "cat": "Knife",
-    "formula": 2
+    "formula": 2,
+    "flavor": "First steel of a guttersnipe's trade, light to palm and cheap to abandon in flight."
   },
   "2": {
     "name": "Quicksilver",
     "wp": 6,
     "cat": "Knife",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Quenched to a liquid sheen, it slips aside as readily as it slips between ribs."
   },
   "3": {
     "name": "Gloomfang",
     "wp": 5,
     "cat": "Knife",
-    "formula": 45
+    "formula": 45,
+    "flavor": "Its edge swims with gloom, and every wound it opens steals the daylight from a foe's eyes."
   },
   "4": {
     "name": "Hushblade",
     "wp": 6,
     "cat": "Knife",
-    "formula": 45
+    "formula": 45,
+    "flavor": "Smith-wrought to throttle the throat; a chant dies unspoken the instant it draws blood."
   },
   "5": {
     "name": "Argent Dirk",
     "wp": 7,
     "cat": "Knife",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Balanced to the grain and burnished bright, the dirk a silversmith sets aside for himself."
   },
   "6": {
     "name": "Sanguine Gauche",
     "wp": 6,
     "cat": "Knife",
-    "formula": 48
+    "formula": 48,
+    "flavor": "A duelist's parrying knife that drinks the blood it turns aside to mend its own bearer."
   },
   "7": {
     "name": "Adamant Fang",
     "wp": 12,
     "cat": "Knife",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Honed past sense into a tooth of cold adamant: it bites to the bone and shields nothing."
   },
   "8": {
     "name": "Mortal Coil",
     "wp": 8,
     "cat": "Knife",
-    "formula": 1
+    "formula": 1,
+    "flavor": "One graze, and the appointed hour begins its quiet count; what it marks, death collects."
   },
   "9": {
     "name": "Galewind",
     "wp": 10,
     "cat": "Knife",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A gust lies coiled in its hollow blade, loosed to harry the foe with every keening stroke."
   },
   "10": {
     "name": "Zwill Straightblade",
     "wp": 12,
     "cat": "Knife",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A knife manufactured in a region renowned for its blades."
   },
   "11": {
     "name": "Swiftfang",
     "wp": 4,
     "cat": "NinjaBlade",
-    "formula": 99
+    "formula": 99,
+    "flavor": "So weightless it leads the hand rather than follows; swifter the wielder, crueler the cut."
   },
   "12": {
     "name": "Mistedge",
     "wp": 9,
     "cat": "NinjaBlade",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A throwing blade balanced for the long cast, finding its mark a pace beyond a foe's reach."
   },
   "13": {
     "name": "Frost Kodachi",
     "wp": 10,
     "cat": "NinjaBlade",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Tempered in winter's heart, its kiss leaves frost, and a deeper cold where it sinks."
   },
   "14": {
     "name": "Raijin Longblade",
     "wp": 11,
     "cat": "NinjaBlade",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Christened for the thunder god, it carries his storm and looses it at the touch of flesh."
   },
   "15": {
     "name": "Silentfang",
     "wp": 11,
     "cat": "NinjaBlade",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Drawn against the spellbound, it stops a chant mid-breath; the silence finishes the deed."
   },
   "16": {
     "name": "Sasuke's Blade",
     "wp": 13,
     "cat": "NinjaBlade",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A legendary ninja's sword."
   },
   "17": {
     "name": "Iga Blade",
     "wp": 14,
     "cat": "NinjaBlade",
-    "formula": 1
+    "formula": 1,
+    "flavor": "An exquisitely crafted ninja sword that was once used by a secret society."
   },
   "18": {
     "name": "Koga Blade",
     "wp": 13,
     "cat": "NinjaBlade",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A powerful ninja sword that was once used by a secret society."
   },
   "19": {
     "name": "Vagabond",
     "wp": 4,
     "cat": "Sword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A wanderer's blade worn smooth by the road, slim enough to slip a blow before it falls."
   },
   "20": {
     "name": "Cleaver",
     "wp": 6,
     "cat": "Sword",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Broad and heavy at the edge, it parries nothing; it drives a foe back off their feet."
   },
   "21": {
     "name": "Riposte",
     "wp": 6,
     "cat": "Sword",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A duelist's sword balanced to catch an incoming stroke and return it in the same breath."
   },
   "22": {
     "name": "Claymore",
     "wp": 7,
     "cat": "Sword",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A two-handed greatsword whose reach lets its bearer cut a pace beyond the foe's swing."
   },
   "23": {
     "name": "Sanguine Sword",
     "wp": 14,
     "cat": "Sword",
-    "formula": 2
+    "formula": 2,
+    "flavor": "The blade of a sellsword who supped on the lives he felled, till the field claimed him."
   },
   "24": {
     "name": "Stormbrand",
     "wp": 8,
     "cat": "Sword",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Drawn from coral and storm alike, its edge mutters with thunder waiting to leap free."
   },
   "25": {
     "name": "Tanglethorn",
     "wp": 7,
     "cat": "Sword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A briar-marked blade said to send roots through any it strikes, fixing them to the earth."
   },
   "26": {
     "name": "Flamberge",
     "wp": 8,
     "cat": "Sword",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A waving, flame-shaped edge that kindles where it lands, leaving the unclean to smolder."
   },
   "27": {
     "name": "Wrathblade",
     "wp": 12,
     "cat": "Sword",
-    "formula": 67
+    "formula": 67,
+    "flavor": "Forged for the cornered and bleeding; nearer to ruin, the hungrier its edge grows."
   },
   "28": {
     "name": "Swiftedge",
     "wp": 8,
     "cat": "Sword",
-    "formula": 99
+    "formula": 99,
+    "flavor": "A keen blade that answers the swift hand alone, biting harder the quicker its bearer goes."
   },
   "29": {
     "name": "Graviton",
     "wp": 12,
     "cat": "Sword",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down."
   },
   "30": {
     "name": "Arcanum",
     "wp": 14,
     "cat": "Sword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Runes crawl its fuller, and at a touch unwind whatever wards a foe wraps about itself."
   },
   "31": {
     "name": "Lightbringer",
     "wp": 14,
     "cat": "Sword",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away."
   },
   "32": {
     "name": "Materia Blade",
     "wp": 11,
     "cat": "Sword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "The sword belonging to Cloud, the extraplanar wanderer. It was designed for members of SOLDIER, allowing them to fight to their full potential."
   },
   "33": {
     "name": "Defender",
     "wp": 16,
     "cat": "KnightSword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A broad-bladed knight's sword with jewels embedded in its pommel."
   },
   "34": {
     "name": "Save the Queen",
     "wp": 18,
     "cat": "KnightSword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection."
   },
   "35": {
     "name": "Excalibur",
     "wp": 21,
     "cat": "KnightSword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "It is said that only the true heir to the throne can wield this legendary knight's sword. The worthy will be granted fleetness of foot and divine might."
   },
   "36": {
     "name": "Ragnarok",
     "wp": 24,
     "cat": "KnightSword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "This knight's sword is mentioned in tales about the end of the world. It provides defense against spellcraft."
   },
   "37": {
     "name": "Chaos Blade",
     "wp": 28,
     "cat": "KnightSword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers."
   },
   "38": {
     "name": "Ashura",
     "wp": 6,
     "cat": "Katana",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A katana with a brilliant white blade."
   },
   "39": {
     "name": "Kotetsu",
     "wp": 8,
     "cat": "Katana",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A katana whose blade is adorned with a breathtaking carving of a tiger."
   },
   "40": {
     "name": "Bizen Osafune",
     "wp": 9,
     "cat": "Katana",
-    "formula": 47
+    "formula": 47,
+    "flavor": "A katana with a blade forged of the finest iron sand by master swordsmith Nagamitsu Osafune, of the eastern land of Bizen."
   },
   "41": {
     "name": "Murasame",
     "wp": 9,
     "cat": "Katana",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Referred to as a demon sword, this katana's keen blade showers blood upon the battlefield."
   },
   "42": {
     "name": "Ame-no-Murakumo",
     "wp": 10,
     "cat": "Katana",
-    "formula": 1
+    "formula": 1,
+    "flavor": "This katana's design was inspired by a legendary blade said to have been plucked from the tail of a dragon that marauded eastern lands."
   },
   "43": {
     "name": "Kiyomori",
     "wp": 11,
     "cat": "Katana",
-    "formula": 1
+    "formula": 1,
+    "flavor": "This exquisitely crafted katana has a beautifully patterned blade and an incredible cutting edge."
   },
   "44": {
     "name": "Muramasa",
     "wp": 13,
     "cat": "Katana",
-    "formula": 67
+    "formula": 67,
+    "flavor": "This katana is said to have drunk the blood of countless enemies."
   },
   "45": {
     "name": "Kiku-ichimonji",
     "wp": 13,
     "cat": "Katana",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A katana with a hilt in the shape of a chrysanthemum."
   },
   "46": {
     "name": "Masamune",
     "wp": 16,
     "cat": "Katana",
-    "formula": 1
+    "formula": 1,
+    "flavor": "This katana was forged by a master swordsmith, and its sheath is inlaid with beautiful patterns."
   },
   "47": {
     "name": "Chirijiraden",
     "wp": 20,
     "cat": "Katana",
-    "formula": 1
+    "formula": 1,
+    "flavor": "This katana is decorated with intricate designs and boasts a wickedly sharp edge."
   },
   "48": {
     "name": "Terrastaff",
     "wp": 9,
     "cat": "Pole",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Quarried from old bedrock, it strikes with the slow patience of shifting earth."
   },
   "49": {
     "name": "Ravager",
     "wp": 15,
     "cat": "KnightSword",
-    "formula": 45
+    "formula": 45,
+    "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open."
   },
   "50": {
     "name": "Sunderer",
     "wp": 13,
     "cat": "KnightSword",
-    "formula": 46
+    "formula": 46,
+    "flavor": "A spiteful edge made less to slay than to ruin, shattering the arms off whatever it meets."
   },
   "51": {
     "name": "Wellspring Rod",
     "wp": 4,
     "cat": "Rod",
-    "formula": 47
+    "formula": 47,
+    "flavor": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power."
   },
   "52": {
     "name": "Spark Rod",
     "wp": 8,
     "cat": "Rod",
-    "formula": 4
+    "formula": 4,
+    "flavor": "A rod that holds a fistful of caged storm; each blow lets the thunder out for the asking."
   },
   "53": {
     "name": "Ember Rod",
     "wp": 8,
     "cat": "Rod",
-    "formula": 4
+    "formula": 4,
+    "flavor": "Embers smolder in its heart, eager to leap; a touch is enough to set a foe ablaze."
   },
   "54": {
     "name": "Frost Rod",
     "wp": 8,
     "cat": "Rod",
-    "formula": 4
+    "formula": 4,
+    "flavor": "Its tip is sheathed in everlasting rime; where it points, the air turns to killing winter."
   },
   "55": {
     "name": "Hushward Rod",
     "wp": 4,
     "cat": "Rod",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed."
   },
   "56": {
     "name": "Umbral Rod",
     "wp": 4,
     "cat": "Rod",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Carved from nightwood and steeped in shadow; the dark answers eagerly to who wields it."
   },
   "57": {
     "name": "Dragon Rod",
     "wp": 5,
     "cat": "Rod",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A rod wielded by a dragon master. Its tip is made from carved dragon bone."
   },
   "58": {
     "name": "Rod of Faith",
     "wp": 5,
     "cat": "Rod",
-    "formula": 1
+    "formula": 1,
+    "flavor": "This rod purges doubt from those it touches, turning them into pillars of faith."
   },
   "59": {
     "name": "Birchwood Staff",
     "wp": 3,
     "cat": "Staff",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A plain length of green birch, the first staff pressed into any apprentice's hands."
   },
   "60": {
     "name": "Warlock's Staff",
     "wp": 3,
     "cat": "Staff",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Bound with a warlock's hex, it turns hostile spells back upon the throats that spoke them."
   },
   "61": {
     "name": "Mending Staff",
     "wp": 4,
     "cat": "Staff",
-    "formula": 7
+    "formula": 7,
+    "flavor": "White-lacquered and consecrated, its touch knits living flesh and withers the dead."
   },
   "62": {
     "name": "Warding Staff",
     "wp": 4,
     "cat": "Staff",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A consecrated stave that lets no enchantment seal its bearer's lips, however loud the din."
   },
   "63": {
     "name": "Blazing Staff",
     "wp": 6,
     "cat": "Staff",
-    "formula": 4
+    "formula": 4,
+    "flavor": "Its crown smolders with caged flame; the warmth keeps restless feet quick afield."
   },
   "64": {
     "name": "Sanctus Staff",
     "wp": 5,
     "cat": "Staff",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A gilded stave that gathers sacred light and gives it back tenfold to those who pray."
   },
   "65": {
     "name": "Zeus Mace",
     "wp": 6,
     "cat": "Staff",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A staff that increases the might of its user."
   },
   "66": {
     "name": "Staff of the Magi",
     "wp": 7,
     "cat": "Staff",
-    "formula": 1
+    "formula": 1,
+    "flavor": "An ordinary-looking wooden stick with a curious stone embedded in its tip."
   },
   "67": {
     "name": "Warbrand",
     "wp": 15,
     "cat": "Sword",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets."
   },
   "68": {
     "name": "Bloodlash",
     "wp": 8,
     "cat": "Knife",
-    "formula": 45
+    "formula": 45,
+    "flavor": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers."
   },
   "69": {
     "name": "Climhazzard",
     "wp": 5,
     "cat": "NinjaBlade",
-    "formula": 69
+    "formula": 69,
+    "flavor": "A merciful stroke for the dying; it glances off the hale yet guts the already-bleeding."
   },
   "70": {
     "name": "Sasori",
     "wp": 11,
     "cat": "Katana",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death."
   },
   "71": {
     "name": "Outrider Pistol",
     "wp": 7,
     "cat": "Gun",
-    "formula": 3
+    "formula": 3,
+    "flavor": "A plain wheel-lock that throws its shot farther than any, asking nothing of the hand."
   },
   "72": {
     "name": "Ironclad Repeater",
     "wp": 9,
     "cat": "Gun",
-    "formula": 3
+    "formula": 3,
+    "flavor": "An iron-framed repeater for the long road; it hits harder than the pistol and never jams."
   },
   "73": {
     "name": "Stoneshooter",
     "wp": 16,
     "cat": "Gun",
-    "formula": 3
+    "formula": 3,
+    "flavor": "A heavy gun bored to spit earthen shards; each shot lands like a sliding mountain."
   },
   "74": {
     "name": "Glacial Gun",
     "wp": 12,
     "cat": "Gun",
-    "formula": 4
+    "formula": 4,
+    "flavor": "A magickal firearm that shoots freezing bullets."
   },
   "75": {
     "name": "Blaze Gun",
     "wp": 12,
     "cat": "Gun",
-    "formula": 4
+    "formula": 4,
+    "flavor": "A magickal firearm that shoots flaming bullets."
   },
   "76": {
     "name": "Blaster",
     "wp": 15,
     "cat": "Gun",
-    "formula": 4
+    "formula": 4,
+    "flavor": "A magickal firearm that shoots electrically charged bullets."
   },
   "77": {
     "name": "Scoutbolt",
     "wp": 3,
     "cat": "Crossbow",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A featherlight crossbow a scout slings on one shoulder, drawn quick and loosed quicker."
   },
   "78": {
     "name": "Eclipsebolt",
     "wp": 5,
     "cat": "Crossbow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A bolt meant for slaying elites; its quarrel marks a foe, who sees no further dusk."
   },
   "79": {
     "name": "Arbalest",
     "wp": 7,
     "cat": "Crossbow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A steel arbalest cranked taut as a war-engine, its shaft passing clean through any foe."
   },
   "80": {
     "name": "Venombolt",
     "wp": 6,
     "cat": "Crossbow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Its quarrels glisten with a slow venom that creeps the wound long after the bolt is drawn."
   },
   "81": {
     "name": "Pitchbolt",
     "wp": 8,
     "cat": "Crossbow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark."
   },
   "82": {
     "name": "Siegebolt",
     "wp": 11,
     "cat": "Crossbow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A siege-grade crossbow scaled for a strong back, driving a quarrel to crack a shield wall."
   },
   "83": {
     "name": "Skirmisher",
     "wp": 4,
     "cat": "Bow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A slender hunting bow that prizes the quick step; loosed and gone before the answer comes."
   },
   "84": {
     "name": "Windrunner",
     "wp": 5,
     "cat": "Bow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Worked from pale silver, light as nothing, it dances clear of every blow without a trick."
   },
   "85": {
     "name": "Frostarc",
     "wp": 4,
     "cat": "Bow",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Carved from rimed wood that never thaws; its arrows carry the chill of a frozen lake."
   },
   "86": {
     "name": "Stormarc",
     "wp": 5,
     "cat": "Bow",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Strung with a wire that hums before it sings, each shaft crackling stormlight to its mark."
   },
   "87": {
     "name": "Skypiercer",
     "wp": 7,
     "cat": "Bow",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A tall bow that lofts arrows on the wind, arcing over crag to pluck a foe from any perch."
   },
   "88": {
     "name": "Tidecaller",
     "wp": 6,
     "cat": "Bow",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A bow whose shaft hisses like surf and stills the throat it finds, drowning words mid-cry."
   },
   "89": {
     "name": "Huntress",
     "wp": 8,
     "cat": "Bow",
-    "formula": 2
+    "formula": 2,
+    "flavor": "The mark of a true marksman, balanced so fine that hand and target seem joined in flight."
   },
   "90": {
     "name": "Yoichi Bow",
     "wp": 12,
     "cat": "Bow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "The bow of a legendary archer. Its great size allows it to generate incredible power."
   },
   "91": {
     "name": "Perseus Bow",
     "wp": 16,
     "cat": "Bow",
-    "formula": 1
+    "formula": 1,
+    "flavor": "The bow of a mythical hero. It is constructed entirely of metal and requires great strength to draw."
   },
   "92": {
     "name": "Siren's Lyre",
     "wp": 6,
     "cat": "Instrument",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A harp whose airs ride the gathering wind, luring the unwary into a fog of confusion."
   },
   "93": {
     "name": "Duskstring Harp",
     "wp": 7,
     "cat": "Instrument",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Strung for twilight songs that smear a listener's sight to dusk as they stand entranced."
   },
   "94": {
     "name": "Faerie Harp",
     "wp": 8,
     "cat": "Instrument",
-    "formula": 2
+    "formula": 2,
+    "flavor": "The pure sound of this harp can charm those who hear it played."
   },
   "95": {
     "name": "Glarebound Tome",
     "wp": 5,
     "cat": "Book",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A street orator's folio, its arguments so dazzling they leave the heckler blinking, lost."
   },
   "96": {
     "name": "Knell Codex",
     "wp": 7,
     "cat": "Book",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A codex of beasts and their endings; to be named in its pages is to be promised the grave."
   },
   "97": {
     "name": "Binding Codex",
     "wp": 7,
     "cat": "Book",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A codex of binding sigils that fix a reader's feet fast, rooted by the words' own weight."
   },
   "98": {
     "name": "Omnilex",
     "wp": 10,
     "cat": "Book",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A book said to contain every word of every known language."
   },
   "99": {
     "name": "Skewer",
     "wp": 7,
     "cat": "Polearm",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A plain ash spear cut to reach a foe a pace beyond a sword's swing, and nothing more."
   },
   "100": {
     "name": "Footman's Spear",
     "wp": 9,
     "cat": "Polearm",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Issued to every footsoldier; it thrusts clean from the second rank, out of the press."
   },
   "101": {
     "name": "Frostpoint",
     "wp": 8,
     "cat": "Polearm",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Ice rimes the spearhead and clings, so a deep thrust leaves frost glittering in the wound."
   },
   "102": {
     "name": "Stormpike",
     "wp": 9,
     "cat": "Polearm",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A charged partisan that hums before it strikes, calling a bolt down as steel meets flesh."
   },
   "103": {
     "name": "Tombspire",
     "wp": 11,
     "cat": "Polearm",
-    "formula": 69
+    "formula": 69,
+    "flavor": "Grave-marker carved and far of reach; it spares the hale, but pins the bleeding to finish."
   },
   "104": {
     "name": "Holy Lance",
     "wp": 12,
     "cat": "Polearm",
-    "formula": 2
+    "formula": 2,
+    "flavor": "This sacred weapon shines with a pure and brilliant light."
   },
   "105": {
     "name": "Dragon Whisker",
     "wp": 15,
     "cat": "Polearm",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A spear made from a mysterious material that some say is the whisker of a dragon."
   },
   "106": {
     "name": "Wyrmpike",
     "wp": 13,
     "cat": "Polearm",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A two-handed pike light as a squall; it tags a far mark, then doom gathers like wind."
   },
   "107": {
     "name": "Greenwood Pole",
     "wp": 6,
     "cat": "Pole",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Cut from green wood for the unblooded; a focused blow flings martial spirit a pace off."
   },
   "108": {
     "name": "Ironreed Pole",
     "wp": 8,
     "cat": "Pole",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Reed banded with iron, springy and swift, suited to a hand that prizes speed over weight."
   },
   "109": {
     "name": "Slumber Rod",
     "wp": 8,
     "cat": "Pole",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Wax-scented, slow to swing; its measured taps coax the watchful into heavy-lidded sleep."
   },
   "110": {
     "name": "Hushfan",
     "wp": 9,
     "cat": "Pole",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A folded-iron war-fan that beats the air shut round a chanting mouth, stealing its spell."
   },
   "111": {
     "name": "Sage's Pole",
     "wp": 12,
     "cat": "Pole",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Worn smooth by a sage's grip; no trick to it, only the weight of a practiced strike."
   },
   "112": {
     "name": "Ivory Pole",
     "wp": 10,
     "cat": "Pole",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A pole made from ivory that has been specially treated for improved durability."
   },
   "113": {
     "name": "Eight-Fluted Pole",
     "wp": 14,
     "cat": "Pole",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won."
   },
   "114": {
     "name": "Whale Whisker",
     "wp": 14,
     "cat": "Pole",
-    "formula": 2
+    "formula": 2,
+    "flavor": "A pole made from an unidentified material that some say is a whale's whisker."
   },
   "115": {
     "name": "Sandman Satchel",
     "wp": 10,
     "cat": "Bag",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A conjurer's satchel that breathes slumberdust, sinking the wakeful into untroubled dream."
   },
   "116": {
     "name": "Fallingstar Bag",
     "wp": 18,
     "cat": "Bag",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A custom-made handbag designed for battle."
   },
   "117": {
     "name": "Hornet Pouch",
     "wp": 12,
     "cat": "Bag",
-    "formula": 1
+    "formula": 1,
+    "flavor": "A pouch that looses a sting at the lash, festering in the wound long after the blow."
   },
   "118": {
     "name": "Hexweave Bag",
     "wp": 14,
     "cat": "Bag",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Woven with binding hexes; one swing snares a voice and strangles the spell mid-word."
   },
   "119": {
     "name": "Tarsilk Veil",
     "wp": 7,
     "cat": "Cloth",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Tarred silk that clings where it lands, leaving the mark slick and waiting for a spark."
   },
   "120": {
     "name": "Bindsilk Veil",
     "wp": 8,
     "cat": "Cloth",
-    "formula": 1
+    "formula": 1,
+    "flavor": "Gossamer veil snapping taut round a quarry's limbs, rooting it as its dancer slips aside."
   },
   "121": {
     "name": "Gravesilk Veil",
     "wp": 9,
     "cat": "Cloth",
-    "formula": 2
+    "formula": 2,
+    "flavor": "Funeral silk falling with the weight of a tomb; beneath its hem the mighty buckle and sag."
   }
 }
