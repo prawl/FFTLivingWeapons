@@ -1,5 +1,5 @@
 # GitHub Actions workflow for FFT Item Overhaul
-# Builds and publishes the pure-data Reloaded-II mod (no DLL).
+# Builds and publishes the Reloaded-II mod (data tables + Living Weapon DLL).
 # Mirrors the sibling color mod's release pipeline.
 #
 # Produces:
@@ -47,6 +47,11 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+
+    - name: Setup .NET 8.0 SDK (for the Living Weapon DLL)
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
 
     - name: Setup Node.js (for changelog)
       uses: actions/setup-node@v4
@@ -96,10 +101,12 @@ jobs:
         $z = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipName))
         $hasWeaponXml = $z.Entries | Where-Object { $_.Name -eq 'ItemWeaponData.xml' } | Select-Object -First 1
         $hasItemNxd   = $z.Entries | Where-Object { $_.Name -eq 'item.en.nxd' } | Select-Object -First 1
+        $hasDll       = $z.Entries | Where-Object { $_.Name -eq 'LivingWeapon.dll' } | Select-Object -First 1
         $z.Dispose()
         if (-not $hasWeaponXml) { throw "ItemWeaponData.xml missing from $zipName" }
         if (-not $hasItemNxd)   { throw "item.en.nxd missing from $zipName" }
-        Write-Host "OK: $zipName ($sizeKB KB) contains ItemWeaponData.xml + item.en.nxd"
+        if (-not $hasDll)       { throw "LivingWeapon.dll missing from $zipName (ModConfig declares it)" }
+        Write-Host "OK: $zipName ($sizeKB KB) contains ItemWeaponData.xml + item.en.nxd + LivingWeapon.dll"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4

@@ -1,22 +1,28 @@
 <#
 .SYNOPSIS
-    Packages FFT Item Overhaul (pure-data Reloaded-II mod) for release.
+    Packages FFT Item Overhaul (data tables + Living Weapon DLL) for release.
 .DESCRIPTION
+    Production counterpart to BuildLinked.ps1 (which deploys straight into the
+    live Reloaded Mods folder). Mirrors the sibling FFTColorCustomizer's
+    BuildLinked / Publish split.
+
     Regenerates the modloader tables from data/items.json, GATES on the
     build-diversity check (refuses to package a design with any strictly-
-    dominated item), then stages the mod deliverables (ModConfig.json,
-    preview.png, FFTIVC table/nxd/tex tree) into a build folder named after the
+    dominated item), bakes meta.json, builds the Living Weapon DLL, then stages
+    the mod deliverables (ModConfig.json, preview.png, LivingWeapon.dll + deps,
+    meta.json, FFTIVC table/nxd/tex tree) into a build folder named after the
     ModId and zips it with a single top-level wrapper folder so Reloaded-II /
     Nexus / Vortex extract to the expected path.
 
-    No DLL, no dotnet build; data-only mod (XML + nxd + tex). The
-    generate + gate steps mirror deploy.ps1 so a local `.\Publish.ps1` produces
-    the same vetted tables a deploy would. NOTE: generate.py emits the 6 table
-    XMLs only; item.en.nxd is produced separately by tools/patch_names.py
-    (needs FF16Tools) and is shipped from its committed copy in the mod tree.
+    The generate + gate + meta + DLL-build steps mirror BuildLinked.ps1 so a local
+    `.\Publish.ps1` produces the same vetted artifacts a deploy would. NOTE:
+    generate.py emits the 6 table XMLs only; item.en.nxd is produced separately by
+    tools/patch_names.py (needs FF16Tools) and is shipped from its committed copy
+    in the mod tree.
 
     The package is verified before it's considered shippable: any missing
-    required file makes the script exit 1 (the v3.0.7 silent-artifact-drift guard).
+    required file (including LivingWeapon.dll) makes the script exit 1 (the
+    v3.0.7 silent-artifact-drift guard).
 .PARAMETER Version
     Version number for the mod (e.g., "1.0.1").
     Default: reads ModVersion from mod/ModConfig.json (NOT hardcoded).
@@ -106,7 +112,38 @@ function Invoke-GenerateAndGate {
         Write-ErrorMessage "REFUSING TO PACKAGE: at least one item is strictly dominated (see above)."
     }
 
-    Write-Host "  -> Generated + gated OK." -ForegroundColor Green
+    # Bake the runtime's per-weapon facts so the DLL build picks up a fresh
+    # meta.json (copied into the package via the csproj).
+    Write-Host "  -> tools/gen_living_weapon_meta.py (items.json -> meta.json)..."
+    & python "tools/gen_living_weapon_meta.py"
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorMessage "meta-gen failed (exit $LASTEXITCODE)."
+    }
+
+    Write-Host "  -> Generated + gated + meta baked OK." -ForegroundColor Green
+}
+
+function Invoke-BuildDll {
+    # Build the Living Weapon runtime straight into the package folder so the
+    # release zip contains the DLL + its deps + meta.json. ModConfig.json declares
+    # "ModDll": "LivingWeapon.dll", so a package without it is a broken mod (this
+    # was the gap: the old data-only Publish shipped a manifest pointing at a DLL
+    # it never included). The framework-dependent publish emits LivingWeapon.dll,
+    # Newtonsoft.Json.dll, the *.deps.json / *.runtimeconfig.json the loader needs,
+    # and meta.json (copied via the csproj).
+    Write-Status "Building Living Weapon DLL into the package..." "Cyan"
+
+    & dotnet publish "LivingWeapon/LivingWeapon.csproj" -c Release -o $BuildOutputPath
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorMessage "dotnet publish failed (exit $LASTEXITCODE)."
+    }
+
+    # Drop debug symbols from the package root (users don't need them; keep the
+    # deps.json / runtimeconfig.json the Reloaded loader relies on).
+    Get-ChildItem $BuildOutputPath -Filter *.pdb -File -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+
+    Write-Host "  -> DLL build complete." -ForegroundColor Green
 }
 
 function Get-ModVersion {
@@ -311,11 +348,17 @@ function Verify-Package {
             Write-Host "  -> Wrapper folder: $wrapper" -ForegroundColor Gray
         }
 
-        # Required individual files: mod manifest, icon, all 6 sparse table XMLs,
-        # and the full-table item nxd.
+        # Required individual files: mod manifest, icon, the Living Weapon runtime
+        # (DLL + its JSON dep + baked meta), all 6 sparse table XMLs, and the
+        # full-table item nxd. ModConfig.json declares "ModDll": "LivingWeapon.dll",
+        # so the DLL is non-optional — shipping the manifest without it is the bug
+        # this guard exists to catch.
         $requiredFiles = @(
             "ModConfig.json",
             "preview.png",
+            "LivingWeapon.dll",
+            "Newtonsoft.Json.dll",
+            "meta.json",
             "FFTIVC/tables/enhanced/ItemData.xml",
             "FFTIVC/tables/enhanced/ItemWeaponData.xml",
             "FFTIVC/tables/enhanced/ItemArmorData.xml",
@@ -385,14 +428,17 @@ try {
     # Step 3: Clean build directory
     Clean-BuildDirectories
 
-    # Step 4: Stage deliverables into Publish/<ModId>/
+    # Step 4: Build the Living Weapon DLL into the package folder
+    Invoke-BuildDll
+
+    # Step 5: Stage deliverables into Publish/<ModId>/ (ModConfig copied here wins)
     Copy-ModAssets
 
-    # Step 5: Create Package
+    # Step 6: Create Package
     $packagePath = Create-Package -ModVersion $finalVersion
 
     if ($packagePath) {
-        # Step 6: Verify, fail loudly if anything's missing. This is the gate
+        # Step 7: Verify, fail loudly if anything's missing. This is the gate
         # that stops a broken/empty/wrong zip from shipping to users.
         $verifyOk = Verify-Package -PackagePath $packagePath
         if (-not $verifyOk) {

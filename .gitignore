@@ -1,21 +1,48 @@
-# scratch / analysis artifacts
+# .gitignore for prawl.fft.itemoverhaul
+#
+# Self-contained: this repo does NOT rely on ~/.gitignore_global. Every rule the
+# project needs lives here so a fresh clone on any machine ignores the right
+# things (the global was silently swallowing *.sqlite, __pycache__, etc.).
+
+# --- Python (tools/ + working/ scripts) ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- .NET build artifacts (LivingWeapon mod) ---
+bin/
+obj/
+*.pdb
+
+# --- SQLite caches (decode/reference DBs; never source) ---
+# This is why a stray ability.sqlite stub used to vanish from `git status`.
+*.sqlite
+
+# --- Load-bearing build inputs that are NOT committed ---
+# working/ = sqlite/icon caches + decoded refs (patch_names.py, recolor_icons.py,
+#            decode_tables.py, generate.py read from here). out/ = generate.py handoff.
 working/
 out/
 
-# C# build artifacts (LivingWeapon mod)
-LivingWeapon/bin/
-LivingWeapon/obj/
+# --- Release / packaging artifacts ---
+Publish/
+dist/
+*.zip
+
+# --- OS / editor cruft ---
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+.vs/
+.vscode/
+*.user
 
 # NOTE: mod/FFTIVC/ (generated tables + nxd + icons) IS committed for now — the
 # item.en.nxd build is still a manual step, so we preserve the working artifacts.
 
-# The global ~/.gitignore_global has a case-insensitive "Icon" rule (macOS Icon\r)
-# that, on Windows, ignores our whole ui/ffto/icon/ tree. Re-include the equip icons:
+# A case-insensitive "Icon" rule (from some global/OS ignore files, e.g. the
+# macOS Icon\r marker) ignores our whole ui/ffto/icon/ tree on a case-insensitive
+# filesystem. Re-include the equip icons so they stay tracked regardless:
 !mod/FFTIVC/data/enhanced/ui/ffto/icon/
 !mod/FFTIVC/data/enhanced/ui/ffto/icon/**
-
-# os / editor
-*.tmp
-.DS_Store
-dist/
-Publish/

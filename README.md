@@ -63,8 +63,8 @@ data/items.json             # the only hand-edited source: every item's stats, n
 ```bash
 python tools/generate.py        # emit the modloader tables from items.json
 python tools/analyze.py         # prove no item is strictly dominated (gates deploy/release)
-.\deploy.ps1                    # generate + gate + copy into your Reloaded Mods folder
-.\Publish.ps1                   # generate + gate + build the release zip
+.\BuildLinked.ps1               # DEV: generate + gate + build the DLL + deploy into your Reloaded Mods folder
+.\Publish.ps1                   # PROD: generate + gate + build the DLL + package the release zip
 ```
 
 The package contains 6 sparse modloader XMLs (`ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`), the full-table `item.en.nxd` (names + descriptions), and the 234 menu-icon `.tex` pairs.

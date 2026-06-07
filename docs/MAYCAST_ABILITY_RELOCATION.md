@@ -105,11 +105,12 @@ on-hit physical "Dispose" strike on the struck enemy. **Live-confirmed.**
   (50/256). AoE monster spells lose their AoE; offense/debuff = good, heals/buffs would benefit your victim.
 - **Animation stays the host's** — pick the host for its look, not just a free slot.
 - **`generate.py` reads the `proposed` block** of each `items.json` weapon and emits `<Formula>` +
-  `<OptionsAbilityId>`. `deploy.ps1` = generate → diversity-gate (`analyze.py`) → copy `mod/FFTIVC` to the
-  live Reloaded mod dir. Data-only → **restart the game** to apply.
+  `<OptionsAbilityId>`. `BuildLinked.ps1` (dev) / `Publish.ps1` (prod) = generate → diversity-gate
+  (`analyze.py`) → bake `meta.json` → build the DLL → copy `mod/FFTIVC` to the live Reloaded mod dir (or
+  package it). Data-only at the table level → **restart the game** to apply.
 - **Env:** use `python` (real CPython); `python3` is the broken MS-Store stub. No `sqlite3` CLI — use the
-  python module. `ability.sqlite` in the repo root is a **0-byte stub** — the real ability list is the
-  vanilla `AbilityData.xml` (512 rows, ids 0–511) or a decode of `ability.en.nxd`.
+  python module. The real ability list is the vanilla `AbilityData.xml` (512 rows, ids 0–511) or a decode
+  of `ability.en.nxd` — there used to be a 0-byte `ability.sqlite` stub in the repo root; it was removed.
 
 ---
 
