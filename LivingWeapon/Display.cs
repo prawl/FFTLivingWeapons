@@ -49,9 +49,16 @@ internal sealed partial class Display
 
     public void Tick()
     {
+        // Paint ONLY the weapon whose equip card is on screen -- the mirror's weapon slot
+        // (0x141870854). Painting every tiered weapon meant writing the counter into hundreds
+        // of stale render copies across the heap; one of those writes eventually corrupted game
+        // memory and crashed. The viewed weapon is the only one visible, so this is both safer
+        // (one weapon's sites, not all) and sufficient.
         var targets = new HashSet<int>();
-        foreach (var kv in _kills)
-            if (Tuning.TierFor(kv.Value) > 0 && _meta.ContainsKey(kv.Key)) targets.Add(kv.Key);
+        int viewed = Mem.U16(Offsets.MirrorWeapon);
+        if (viewed > 0 && viewed < 0xFFFF && _meta.ContainsKey(viewed)
+            && Tuning.TierFor(_kills.TryGetValue(viewed, out int vk) ? vk : 0) > 0)
+            targets.Add(viewed);
         if (targets.Count == 0) return;
 
         bool changed = !targets.SetEquals(_lastTargets);
