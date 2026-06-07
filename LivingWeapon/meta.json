@@ -1,0 +1,728 @@
+{
+  "1": {
+    "name": "Cutpurse",
+    "wp": 5,
+    "cat": "Knife",
+    "formula": 2
+  },
+  "2": {
+    "name": "Quicksilver",
+    "wp": 6,
+    "cat": "Knife",
+    "formula": 1
+  },
+  "3": {
+    "name": "Gloomfang",
+    "wp": 5,
+    "cat": "Knife",
+    "formula": 45
+  },
+  "4": {
+    "name": "Hushblade",
+    "wp": 6,
+    "cat": "Knife",
+    "formula": 45
+  },
+  "5": {
+    "name": "Argent Dirk",
+    "wp": 7,
+    "cat": "Knife",
+    "formula": 1
+  },
+  "6": {
+    "name": "Sanguine Gauche",
+    "wp": 6,
+    "cat": "Knife",
+    "formula": 48
+  },
+  "7": {
+    "name": "Adamant Fang",
+    "wp": 12,
+    "cat": "Knife",
+    "formula": 1
+  },
+  "8": {
+    "name": "Mortal Coil",
+    "wp": 8,
+    "cat": "Knife",
+    "formula": 1
+  },
+  "9": {
+    "name": "Galewind",
+    "wp": 10,
+    "cat": "Knife",
+    "formula": 1
+  },
+  "10": {
+    "name": "Zwill Straightblade",
+    "wp": 12,
+    "cat": "Knife",
+    "formula": 1
+  },
+  "11": {
+    "name": "Swiftfang",
+    "wp": 4,
+    "cat": "NinjaBlade",
+    "formula": 99
+  },
+  "12": {
+    "name": "Mistedge",
+    "wp": 9,
+    "cat": "NinjaBlade",
+    "formula": 1
+  },
+  "13": {
+    "name": "Frost Kodachi",
+    "wp": 10,
+    "cat": "NinjaBlade",
+    "formula": 2
+  },
+  "14": {
+    "name": "Raijin Longblade",
+    "wp": 11,
+    "cat": "NinjaBlade",
+    "formula": 2
+  },
+  "15": {
+    "name": "Silentfang",
+    "wp": 11,
+    "cat": "NinjaBlade",
+    "formula": 1
+  },
+  "16": {
+    "name": "Sasuke's Blade",
+    "wp": 13,
+    "cat": "NinjaBlade",
+    "formula": 1
+  },
+  "17": {
+    "name": "Iga Blade",
+    "wp": 14,
+    "cat": "NinjaBlade",
+    "formula": 1
+  },
+  "18": {
+    "name": "Koga Blade",
+    "wp": 13,
+    "cat": "NinjaBlade",
+    "formula": 1
+  },
+  "19": {
+    "name": "Vagabond",
+    "wp": 4,
+    "cat": "Sword",
+    "formula": 1
+  },
+  "20": {
+    "name": "Cleaver",
+    "wp": 6,
+    "cat": "Sword",
+    "formula": 2
+  },
+  "21": {
+    "name": "Riposte",
+    "wp": 6,
+    "cat": "Sword",
+    "formula": 2
+  },
+  "22": {
+    "name": "Claymore",
+    "wp": 7,
+    "cat": "Sword",
+    "formula": 2
+  },
+  "23": {
+    "name": "Sanguine Sword",
+    "wp": 14,
+    "cat": "Sword",
+    "formula": 2
+  },
+  "24": {
+    "name": "Stormbrand",
+    "wp": 8,
+    "cat": "Sword",
+    "formula": 2
+  },
+  "25": {
+    "name": "Tanglethorn",
+    "wp": 7,
+    "cat": "Sword",
+    "formula": 1
+  },
+  "26": {
+    "name": "Flamberge",
+    "wp": 8,
+    "cat": "Sword",
+    "formula": 2
+  },
+  "27": {
+    "name": "Wrathblade",
+    "wp": 12,
+    "cat": "Sword",
+    "formula": 67
+  },
+  "28": {
+    "name": "Swiftedge",
+    "wp": 8,
+    "cat": "Sword",
+    "formula": 99
+  },
+  "29": {
+    "name": "Graviton",
+    "wp": 12,
+    "cat": "Sword",
+    "formula": 2
+  },
+  "30": {
+    "name": "Arcanum",
+    "wp": 14,
+    "cat": "Sword",
+    "formula": 1
+  },
+  "31": {
+    "name": "Lightbringer",
+    "wp": 14,
+    "cat": "Sword",
+    "formula": 2
+  },
+  "32": {
+    "name": "Materia Blade",
+    "wp": 11,
+    "cat": "Sword",
+    "formula": 1
+  },
+  "33": {
+    "name": "Defender",
+    "wp": 16,
+    "cat": "KnightSword",
+    "formula": 1
+  },
+  "34": {
+    "name": "Save the Queen",
+    "wp": 18,
+    "cat": "KnightSword",
+    "formula": 1
+  },
+  "35": {
+    "name": "Excalibur",
+    "wp": 21,
+    "cat": "KnightSword",
+    "formula": 1
+  },
+  "36": {
+    "name": "Ragnarok",
+    "wp": 24,
+    "cat": "KnightSword",
+    "formula": 1
+  },
+  "37": {
+    "name": "Chaos Blade",
+    "wp": 28,
+    "cat": "KnightSword",
+    "formula": 1
+  },
+  "38": {
+    "name": "Ashura",
+    "wp": 6,
+    "cat": "Katana",
+    "formula": 2
+  },
+  "39": {
+    "name": "Kotetsu",
+    "wp": 8,
+    "cat": "Katana",
+    "formula": 1
+  },
+  "40": {
+    "name": "Bizen Osafune",
+    "wp": 9,
+    "cat": "Katana",
+    "formula": 47
+  },
+  "41": {
+    "name": "Murasame",
+    "wp": 9,
+    "cat": "Katana",
+    "formula": 1
+  },
+  "42": {
+    "name": "Ame-no-Murakumo",
+    "wp": 10,
+    "cat": "Katana",
+    "formula": 1
+  },
+  "43": {
+    "name": "Kiyomori",
+    "wp": 11,
+    "cat": "Katana",
+    "formula": 1
+  },
+  "44": {
+    "name": "Muramasa",
+    "wp": 13,
+    "cat": "Katana",
+    "formula": 67
+  },
+  "45": {
+    "name": "Kiku-ichimonji",
+    "wp": 13,
+    "cat": "Katana",
+    "formula": 2
+  },
+  "46": {
+    "name": "Masamune",
+    "wp": 16,
+    "cat": "Katana",
+    "formula": 1
+  },
+  "47": {
+    "name": "Chirijiraden",
+    "wp": 20,
+    "cat": "Katana",
+    "formula": 1
+  },
+  "48": {
+    "name": "Terrastaff",
+    "wp": 9,
+    "cat": "Pole",
+    "formula": 1
+  },
+  "49": {
+    "name": "Ravager",
+    "wp": 15,
+    "cat": "KnightSword",
+    "formula": 45
+  },
+  "50": {
+    "name": "Sunderer",
+    "wp": 13,
+    "cat": "KnightSword",
+    "formula": 46
+  },
+  "51": {
+    "name": "Wellspring Rod",
+    "wp": 4,
+    "cat": "Rod",
+    "formula": 47
+  },
+  "52": {
+    "name": "Spark Rod",
+    "wp": 8,
+    "cat": "Rod",
+    "formula": 4
+  },
+  "53": {
+    "name": "Ember Rod",
+    "wp": 8,
+    "cat": "Rod",
+    "formula": 4
+  },
+  "54": {
+    "name": "Frost Rod",
+    "wp": 8,
+    "cat": "Rod",
+    "formula": 4
+  },
+  "55": {
+    "name": "Hushward Rod",
+    "wp": 4,
+    "cat": "Rod",
+    "formula": 1
+  },
+  "56": {
+    "name": "Umbral Rod",
+    "wp": 4,
+    "cat": "Rod",
+    "formula": 1
+  },
+  "57": {
+    "name": "Dragon Rod",
+    "wp": 5,
+    "cat": "Rod",
+    "formula": 1
+  },
+  "58": {
+    "name": "Rod of Faith",
+    "wp": 5,
+    "cat": "Rod",
+    "formula": 1
+  },
+  "59": {
+    "name": "Birchwood Staff",
+    "wp": 3,
+    "cat": "Staff",
+    "formula": 1
+  },
+  "60": {
+    "name": "Warlock's Staff",
+    "wp": 3,
+    "cat": "Staff",
+    "formula": 1
+  },
+  "61": {
+    "name": "Mending Staff",
+    "wp": 4,
+    "cat": "Staff",
+    "formula": 7
+  },
+  "62": {
+    "name": "Warding Staff",
+    "wp": 4,
+    "cat": "Staff",
+    "formula": 1
+  },
+  "63": {
+    "name": "Blazing Staff",
+    "wp": 6,
+    "cat": "Staff",
+    "formula": 4
+  },
+  "64": {
+    "name": "Sanctus Staff",
+    "wp": 5,
+    "cat": "Staff",
+    "formula": 1
+  },
+  "65": {
+    "name": "Zeus Mace",
+    "wp": 6,
+    "cat": "Staff",
+    "formula": 1
+  },
+  "66": {
+    "name": "Staff of the Magi",
+    "wp": 7,
+    "cat": "Staff",
+    "formula": 1
+  },
+  "67": {
+    "name": "Warbrand",
+    "wp": 15,
+    "cat": "Sword",
+    "formula": 1
+  },
+  "68": {
+    "name": "Bloodlash",
+    "wp": 8,
+    "cat": "Knife",
+    "formula": 45
+  },
+  "69": {
+    "name": "Climhazzard",
+    "wp": 5,
+    "cat": "NinjaBlade",
+    "formula": 69
+  },
+  "70": {
+    "name": "Sasori",
+    "wp": 11,
+    "cat": "Katana",
+    "formula": 1
+  },
+  "71": {
+    "name": "Outrider Pistol",
+    "wp": 7,
+    "cat": "Gun",
+    "formula": 3
+  },
+  "72": {
+    "name": "Ironclad Repeater",
+    "wp": 9,
+    "cat": "Gun",
+    "formula": 3
+  },
+  "73": {
+    "name": "Stoneshooter",
+    "wp": 16,
+    "cat": "Gun",
+    "formula": 3
+  },
+  "74": {
+    "name": "Glacial Gun",
+    "wp": 12,
+    "cat": "Gun",
+    "formula": 4
+  },
+  "75": {
+    "name": "Blaze Gun",
+    "wp": 12,
+    "cat": "Gun",
+    "formula": 4
+  },
+  "76": {
+    "name": "Blaster",
+    "wp": 15,
+    "cat": "Gun",
+    "formula": 4
+  },
+  "77": {
+    "name": "Scoutbolt",
+    "wp": 3,
+    "cat": "Crossbow",
+    "formula": 2
+  },
+  "78": {
+    "name": "Eclipsebolt",
+    "wp": 5,
+    "cat": "Crossbow",
+    "formula": 1
+  },
+  "79": {
+    "name": "Arbalest",
+    "wp": 7,
+    "cat": "Crossbow",
+    "formula": 1
+  },
+  "80": {
+    "name": "Venombolt",
+    "wp": 6,
+    "cat": "Crossbow",
+    "formula": 1
+  },
+  "81": {
+    "name": "Pitchbolt",
+    "wp": 8,
+    "cat": "Crossbow",
+    "formula": 1
+  },
+  "82": {
+    "name": "Siegebolt",
+    "wp": 11,
+    "cat": "Crossbow",
+    "formula": 1
+  },
+  "83": {
+    "name": "Skirmisher",
+    "wp": 4,
+    "cat": "Bow",
+    "formula": 1
+  },
+  "84": {
+    "name": "Windrunner",
+    "wp": 5,
+    "cat": "Bow",
+    "formula": 1
+  },
+  "85": {
+    "name": "Frostarc",
+    "wp": 4,
+    "cat": "Bow",
+    "formula": 2
+  },
+  "86": {
+    "name": "Stormarc",
+    "wp": 5,
+    "cat": "Bow",
+    "formula": 2
+  },
+  "87": {
+    "name": "Skypiercer",
+    "wp": 7,
+    "cat": "Bow",
+    "formula": 2
+  },
+  "88": {
+    "name": "Tidecaller",
+    "wp": 6,
+    "cat": "Bow",
+    "formula": 2
+  },
+  "89": {
+    "name": "Huntress",
+    "wp": 8,
+    "cat": "Bow",
+    "formula": 2
+  },
+  "90": {
+    "name": "Yoichi Bow",
+    "wp": 12,
+    "cat": "Bow",
+    "formula": 1
+  },
+  "91": {
+    "name": "Perseus Bow",
+    "wp": 16,
+    "cat": "Bow",
+    "formula": 1
+  },
+  "92": {
+    "name": "Siren's Lyre",
+    "wp": 6,
+    "cat": "Instrument",
+    "formula": 2
+  },
+  "93": {
+    "name": "Duskstring Harp",
+    "wp": 7,
+    "cat": "Instrument",
+    "formula": 2
+  },
+  "94": {
+    "name": "Faerie Harp",
+    "wp": 8,
+    "cat": "Instrument",
+    "formula": 2
+  },
+  "95": {
+    "name": "Glarebound Tome",
+    "wp": 5,
+    "cat": "Book",
+    "formula": 2
+  },
+  "96": {
+    "name": "Knell Codex",
+    "wp": 7,
+    "cat": "Book",
+    "formula": 1
+  },
+  "97": {
+    "name": "Binding Codex",
+    "wp": 7,
+    "cat": "Book",
+    "formula": 2
+  },
+  "98": {
+    "name": "Omnilex",
+    "wp": 10,
+    "cat": "Book",
+    "formula": 1
+  },
+  "99": {
+    "name": "Skewer",
+    "wp": 7,
+    "cat": "Polearm",
+    "formula": 1
+  },
+  "100": {
+    "name": "Footman's Spear",
+    "wp": 9,
+    "cat": "Polearm",
+    "formula": 1
+  },
+  "101": {
+    "name": "Frostpoint",
+    "wp": 8,
+    "cat": "Polearm",
+    "formula": 2
+  },
+  "102": {
+    "name": "Stormpike",
+    "wp": 9,
+    "cat": "Polearm",
+    "formula": 2
+  },
+  "103": {
+    "name": "Tombspire",
+    "wp": 11,
+    "cat": "Polearm",
+    "formula": 69
+  },
+  "104": {
+    "name": "Holy Lance",
+    "wp": 12,
+    "cat": "Polearm",
+    "formula": 2
+  },
+  "105": {
+    "name": "Dragon Whisker",
+    "wp": 15,
+    "cat": "Polearm",
+    "formula": 2
+  },
+  "106": {
+    "name": "Wyrmpike",
+    "wp": 13,
+    "cat": "Polearm",
+    "formula": 1
+  },
+  "107": {
+    "name": "Greenwood Pole",
+    "wp": 6,
+    "cat": "Pole",
+    "formula": 2
+  },
+  "108": {
+    "name": "Ironreed Pole",
+    "wp": 8,
+    "cat": "Pole",
+    "formula": 1
+  },
+  "109": {
+    "name": "Slumber Rod",
+    "wp": 8,
+    "cat": "Pole",
+    "formula": 1
+  },
+  "110": {
+    "name": "Hushfan",
+    "wp": 9,
+    "cat": "Pole",
+    "formula": 1
+  },
+  "111": {
+    "name": "Sage's Pole",
+    "wp": 12,
+    "cat": "Pole",
+    "formula": 1
+  },
+  "112": {
+    "name": "Ivory Pole",
+    "wp": 10,
+    "cat": "Pole",
+    "formula": 1
+  },
+  "113": {
+    "name": "Eight-Fluted Pole",
+    "wp": 14,
+    "cat": "Pole",
+    "formula": 1
+  },
+  "114": {
+    "name": "Whale Whisker",
+    "wp": 14,
+    "cat": "Pole",
+    "formula": 2
+  },
+  "115": {
+    "name": "Sandman Satchel",
+    "wp": 10,
+    "cat": "Bag",
+    "formula": 1
+  },
+  "116": {
+    "name": "Fallingstar Bag",
+    "wp": 18,
+    "cat": "Bag",
+    "formula": 1
+  },
+  "117": {
+    "name": "Hornet Pouch",
+    "wp": 12,
+    "cat": "Bag",
+    "formula": 1
+  },
+  "118": {
+    "name": "Hexweave Bag",
+    "wp": 14,
+    "cat": "Bag",
+    "formula": 1
+  },
+  "119": {
+    "name": "Tarsilk Veil",
+    "wp": 7,
+    "cat": "Cloth",
+    "formula": 1
+  },
+  "120": {
+    "name": "Bindsilk Veil",
+    "wp": 8,
+    "cat": "Cloth",
+    "formula": 1
+  },
+  "121": {
+    "name": "Gravesilk Veil",
+    "wp": 9,
+    "cat": "Cloth",
+    "formula": 2
+  }
+}

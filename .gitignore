@@ -2,6 +2,10 @@
 working/
 out/
 
+# C# build artifacts (LivingWeapon mod)
+LivingWeapon/bin/
+LivingWeapon/obj/
+
 # NOTE: mod/FFTIVC/ (generated tables + nxd + icons) IS committed for now — the
 # item.en.nxd build is still a manual step, so we preserve the working artifacts.
 
