@@ -28,28 +28,33 @@ try {
     }
     $dest = Join-Path $modsDir $modId
 
-    # --- [1/5] Generate tables from the single source of truth ---
-    Write-Host "`n[1/5] Generating tables from data/items.json..." -ForegroundColor Yellow
+    # --- [1/6] Generate tables from the single source of truth ---
+    Write-Host "`n[1/6] Generating tables from data/items.json..." -ForegroundColor Yellow
     python "$root\tools\generate.py"
     if ($LASTEXITCODE -ne 0) { Write-Host "generate.py failed" -ForegroundColor Red; exit 1 }
 
-    # --- [2/5] Build-diversity gate (THE gate; refuse a dominated design) ---
-    Write-Host "[2/5] Build-diversity gate (analyze.py)..." -ForegroundColor Yellow
+    # --- [2/6] Build-diversity gate (THE gate; refuse a dominated design) ---
+    Write-Host "[2/6] Build-diversity gate (analyze.py)..." -ForegroundColor Yellow
     python "$root\tools\analyze.py"
     if ($LASTEXITCODE -ne 0) {
         Write-Host "REFUSING TO DEPLOY: at least one item is strictly dominated (see above)." -ForegroundColor Red
         exit 1
     }
 
-    # --- [3/5] Bake the runtime's per-weapon facts (meta.json) ---
-    Write-Host "[3/5] Baking LivingWeapon meta.json..." -ForegroundColor Yellow
+    # --- [3/6] Unit tests (TDD gate; refuse to deploy on a red test) ---
+    Write-Host "[3/6] Running unit tests (LivingWeapon.Tests)..." -ForegroundColor Yellow
+    dotnet test "$root\LivingWeapon.Tests\LivingWeapon.Tests.csproj" --nologo -v q
+    if ($LASTEXITCODE -ne 0) { Write-Host "REFUSING TO DEPLOY: unit tests failed (see above)." -ForegroundColor Red; exit 1 }
+
+    # --- [4/6] Bake the runtime's per-weapon facts (meta.json) ---
+    Write-Host "[4/6] Baking LivingWeapon meta.json..." -ForegroundColor Yellow
     python "$root\tools\gen_living_weapon_meta.py"
     if ($LASTEXITCODE -ne 0) { Write-Host "meta-gen failed" -ForegroundColor Red; exit 1 }
 
-    # --- [4/5] Clean the live mod folder, preserving the player's kill tally ---
+    # --- [5/6] Clean the live mod folder, preserving the player's kill tally ---
     # kills.json is the wielder's per-weapon kill count (their progress). Treat it
     # like ColorCustomizer treats UserThemes: back it up, clean, restore.
-    Write-Host "[4/5] Cleaning $dest (preserving kills.json)..." -ForegroundColor Yellow
+    Write-Host "[5/6] Cleaning $dest (preserving kills.json)..." -ForegroundColor Yellow
     $killsBak = $null
     if (Test-Path "$dest\kills.json") {
         $killsBak = Join-Path $env:TEMP "livingweapon_kills.json.bak"
@@ -62,8 +67,8 @@ try {
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
     }
 
-    # --- [5/5] Build the DLL into the mod folder + stage the data tree ---
-    Write-Host "[5/5] Publishing Living Weapon DLL + staging data..." -ForegroundColor Yellow
+    # --- [6/6] Build the DLL into the mod folder + stage the data tree ---
+    Write-Host "[6/6] Publishing Living Weapon DLL + staging data..." -ForegroundColor Yellow
     dotnet publish "$root\LivingWeapon\LivingWeapon.csproj" -c Release -o $dest
     if ($LASTEXITCODE -ne 0) { Write-Host "DLL build failed" -ForegroundColor Red; exit 1 }
 

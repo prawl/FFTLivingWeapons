@@ -14,6 +14,9 @@ public sealed class WeaponMeta
     [JsonProperty("wp")] public int Wp { get; set; }
     [JsonProperty("cat")] public string Cat { get; set; } = "";
     [JsonProperty("formula")] public int Formula { get; set; }
+    // The weapon's flavor line -- the stable lead of its description. The in-card Kills
+    // counter is anchored to this (the nearest flavor before a "Kills " is that weapon's).
+    [JsonProperty("flavor")] public string Flavor { get; set; } = "";
 }
 
 internal static class MetaLoader

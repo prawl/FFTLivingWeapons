@@ -24,13 +24,16 @@ internal sealed class Engine
     private readonly Display _display;
     private CancellationTokenSource? _cts;
     private bool _inBattle;
+    private DateTime _lastField = DateTime.MinValue;   // last tick we were on the live battlefield
+    private const double FieldSettleSeconds = 1.5;      // wait this long off-field before painting
+    private bool _lastBattleStatus;                     // edge-detect entering the in-battle status card
 
     public Engine(string modDir)
     {
         _tallyPath = Path.Combine(modDir, "kills.json");
         _kills = LoadTally(_tallyPath);
         var meta = MetaLoader.Load(modDir);
-        _tracker = new KillTracker(_kills);
+        _tracker = new KillTracker(_kills, new LiveMemory());
         _growth = new GrowthEngine(meta, _kills);
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
@@ -62,8 +65,21 @@ internal sealed class Engine
     {
         uint slot0 = Mem.U32(Offsets.Slot0);
         uint slot9 = Mem.U32(Offsets.Slot9);
+        int battleMode = Mem.U8(Offsets.BattleMode);
         bool entering = slot0 == 0xFF && slot9 == 0xFFFFFFFF;
         bool nowIn = entering || (_inBattle && slot9 == 0xFFFFFFFF);
+        // slot9 stays stuck on the world-map party menu, so it can't tell combat from a
+        // menu. battleMode does: 2/3/4 = live battlefield, 0 = world map / menus.
+        bool onField = nowIn && (battleMode == 2 || battleMode == 3 || battleMode == 4);
+        if (onField) _lastField = DateTime.Now;
+
+        // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.
+        // Open status card = paused submenu in the action-menu context (battleMode 3).
+        // menuCursor is the card's own cursor once open (not 3), so don't gate on it.
+        bool battleStatus = nowIn && battleMode == 3
+                            && Mem.U8(Offsets.PauseFlag) == 1 && Mem.U8(Offsets.SubmenuFlag) == 1;
+        if (battleStatus && !_lastBattleStatus) _display.Invalidate();   // re-find the card's fresh buffers
+        _lastBattleStatus = battleStatus;
 
         if (!nowIn)
         {
@@ -73,15 +89,23 @@ internal sealed class Engine
                 _tracker.ResetBattle();
                 _growth.ResetBattle();
                 SaveTally();                 // flush on battle end
+                _display.Invalidate();       // re-find the menu's freshly-allocated render copies
             }
-            _display.Tick();   // out of battle: keep the equip card painted
+            _display.Tick();   // out of battle (slot9 cleared): keep the equip card painted
             return;
         }
         _inBattle = true;
 
-        bool changed = _tracker.Poll();
+        bool changed = _tracker.Poll();      // kill detection unchanged: polls all in-battle ticks
         _growth.Apply();
         if (changed) SaveTally();
+
+        // slot9 is still the battle sentinel, but once we've been OFF the live battlefield
+        // for a beat (battleMode 0 = world-map party menu / post-battle), paint the card.
+        // RPM/WPM make the scan/paint fail-safe, so doing this in a churny menu can't crash;
+        // the settle window just avoids needless work during a mid-combat battleMode flicker.
+        if (battleStatus || (!onField && (DateTime.Now - _lastField).TotalSeconds > FieldSettleSeconds))
+            _display.Tick();
     }
 
     // ---- tally persistence (atomic + .bak) ----

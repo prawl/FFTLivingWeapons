@@ -4,26 +4,35 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Counts kills and attributes each to the swinging weapon. Ported from the
-/// battle-tested FFTHandsFree BattleTracker:
+/// Counts kills and attributes each to the acting player's weapon. Ported from the
+/// FFTHandsFree active-unit resolver (NavigationActions.Scan, lines 953 + 1076):
 ///   * STATE-BASED death -- credit a corpse exactly once (DeadCredited), reset
 ///     when the slot is seen alive. Survives the move / MaxHP-flicker race that
 ///     defeats naive "catch HP cross 0" detection.
 ///   * ATTRIBUTE BY CORPSE TEAM -- an enemy slot hitting 0 HP means the last
-///     player who ACTED killed it, so we credit that weapon. Crediting whoever is
-///     active at corpse-time mis-fires: the game rotates the active pointer to the
-///     next enemy the instant an action ends. Player corpses are an enemy's kill
-///     and are ignored (the Living Weapon only cares about player kills).
-///   * The acting player's weapon = roster R-hand (+0x14) of the slot whose
-///     nameId (+0x230) matches the condensed turn-queue nameId (+0x04).
+///     player who acted killed it, so we credit that weapon. Player corpses are an
+///     enemy's kill and are ignored (the Living Weapon only cares about player kills).
+///   * THE ACTING PLAYER, the reliable way -- the condensed active struct's +0x04
+///     "nameId" is a SEQUENTIAL battle index, NOT the roster nameId; it collides (a
+///     Time Mage's index 1 == Ramza's roster nameId 1) and mis-credited everyone's
+///     kills to Ramza. Instead: read the active struct's team + HP + MaxHP + level,
+///     find the battle-array slot that matches, read its level/brave/faith, and
+///     fingerprint THAT to the roster -> the acting unit's R-hand weapon.
+///
+/// Memory access is injected (IGameMemory) so the attribution logic is unit-testable.
 /// </summary>
 internal sealed class KillTracker
 {
     private readonly Dictionary<int, int> _kills;            // weapon id -> kill count
+    private readonly IGameMemory _mem;
     private readonly bool[] _deadCredited = new bool[Offsets.NSlots];
     private int _lastPlayerWeapon = -1;
 
-    public KillTracker(Dictionary<int, int> kills) => _kills = kills;
+    public KillTracker(Dictionary<int, int> kills, IGameMemory mem)
+    {
+        _kills = kills;
+        _mem = mem;
+    }
 
     /// <summary>Reset per-battle state. Call on battle enter and exit.</summary>
     public void ResetBattle()
@@ -37,30 +46,31 @@ internal sealed class KillTracker
     {
         bool changed = false;
 
-        // Capture the acting player's weapon on the tick they act.
-        byte acted = Mem.U8(Offsets.Acted);
-        ushort team = Mem.U16(Offsets.TurnQueue + Offsets.TqTeam);
-        ushort nameId = Mem.U16(Offsets.TurnQueue + Offsets.TqNameId);
-        ushort level = Mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
-        ushort maxHp = Mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
-        if (acted == 1 && team == 0 && nameId > 0 && level >= 1 && level <= 99 && maxHp > 0)
+        // Latch the acting player's weapon whenever a player is the active unit. The active
+        // unit is identified robustly (HP+MaxHP+level -> battle-array slot -> level/brave/faith
+        // fingerprint -> roster R-hand), never by the colliding condensed +0x04 index.
+        if (_mem.U16(Offsets.TurnQueue + Offsets.TqTeam) == 0)
         {
-            int w = ResolveWeapon(nameId);
-            _lastPlayerWeapon = (w >= 0 && w < 0xFFFF) ? w : -1;   // unarmed/unresolved: don't credit a stale weapon
+            int w = ResolveActiveWeapon();
+            if (w >= 0 && w != _lastPlayerWeapon)
+            {
+                _lastPlayerWeapon = w;
+                Log.Info($"active player weapon -> {w}");
+            }
         }
 
         // Scan the unit array for fresh corpses.
         for (int s = 0; s < Offsets.NSlots; s++)
         {
             long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
-            ushort inb = Mem.U16(slot + Offsets.AInBattle);
-            ushort smax = Mem.U16(slot + Offsets.AMaxHp);
-            byte gx = Mem.U8(slot + Offsets.AGx);
-            byte gy = Mem.U8(slot + Offsets.AGy);
+            ushort inb = _mem.U16(slot + Offsets.AInBattle);
+            ushort smax = _mem.U16(slot + Offsets.AMaxHp);
+            byte gx = _mem.U8(slot + Offsets.AGx);
+            byte gy = _mem.U8(slot + Offsets.AGy);
             if (inb == 0 || smax == 0 || smax >= 2000 || gx > 30 || gy > 30)
                 continue;                                   // empty / stale / garbage slot
 
-            ushort hp = Mem.U16(slot + Offsets.AHp);
+            ushort hp = _mem.U16(slot + Offsets.AHp);
             if (hp == 0)                                     // KO'd
             {
                 if (!_deadCredited[s])
@@ -73,6 +83,8 @@ internal sealed class KillTracker
                         changed = true;
                         Log.Info($"KILL -> weapon {_lastPlayerWeapon} now {c + 1} kills (enemy at {gx},{gy})");
                     }
+                    else if (s <= Offsets.EnemySlotMax)
+                        Log.Info($"enemy corpse slot {s} at ({gx},{gy}) but no player weapon captured -> uncredited");
                 }
                 continue;
             }
@@ -81,14 +93,54 @@ internal sealed class KillTracker
         return changed;
     }
 
-    private static int ResolveWeapon(ushort nameId)
+    /// <summary>
+    /// Identify the acting player's weapon WITHOUT the unreliable condensed nameId.
+    /// active HP+MaxHP+level -> battle-array slot -> (level,brave,faith) fingerprint ->
+    /// roster R-hand. Returns -1 if no player slot matches, the actor isn't a roster unit
+    /// (e.g. an enemy sharing HP), or the match is ambiguous (two units share HP/MaxHP/level
+    /// AND fingerprint to different weapons) -- a miss beats a mis-credit.
+    /// </summary>
+    private int ResolveActiveWeapon()
     {
+        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
+        ushort hp = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
+        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
+        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99)
+            return -1;
+
+        int found = -1;
+        for (int s = 0; s < Offsets.NSlots; s++)
+        {
+            long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
+            ushort inb = _mem.U16(slot + Offsets.AInBattle);
+            if (inb != 0 && inb != 1) continue;
+            if (_mem.U16(slot + Offsets.AMaxHp) != maxHp) continue;
+            if (_mem.U16(slot + Offsets.AHp) != hp) continue;
+            if (_mem.U8(slot + Offsets.ALevel) != level) continue;
+            int w = FingerprintRoster(level, _mem.U8(slot + Offsets.ABrave), _mem.U8(slot + Offsets.AFaith));
+            if (w < 0) continue;                  // not a roster unit (e.g. an enemy)
+            if (found < 0) found = w;
+            else if (found != w) return -1;       // two distinct weapons -> ambiguous
+        }
+        return found;
+    }
+
+    /// <summary>Roster slot whose (level,brave,faith) matches -> its R-hand, else -1. Skips
+    /// empty hands (0xFF/0xFFFF) and returns -1 on a roster collision (two slots, two weapons).</summary>
+    private int FingerprintRoster(int level, int brave, int faith)
+    {
+        int found = -1;
         for (int s = 0; s < Offsets.RosterSlots; s++)
         {
-            long baseAddr = Offsets.RosterBase + (long)s * Offsets.RosterStride;
-            if (Mem.U16(baseAddr + Offsets.RNameId) == nameId)
-                return Mem.U16(baseAddr + Offsets.RRHand);
+            long b = Offsets.RosterBase + (long)s * Offsets.RosterStride;
+            if (_mem.U8(b + Offsets.RLevel) != level) continue;
+            if (_mem.U8(b + Offsets.RBrave) != brave) continue;
+            if (_mem.U8(b + Offsets.RFaith) != faith) continue;
+            ushort w = _mem.U16(b + Offsets.RRHand);
+            if (w == 0x00FF || w == 0xFFFF) continue;   // empty hand / monster
+            if (found < 0) found = w;
+            else if (found != w) return -1;
         }
-        return -1;
+        return found;
     }
 }

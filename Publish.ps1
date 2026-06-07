@@ -425,20 +425,25 @@ try {
         Write-Host "  -> -SkipGenerate set; packaging committed tables as-is." -ForegroundColor Yellow
     }
 
-    # Step 3: Clean build directory
+    # Step 3: Unit tests (TDD gate; refuse to package on a red test)
+    Write-Status "Running unit tests (LivingWeapon.Tests)..." "Cyan"
+    & dotnet test "LivingWeapon.Tests/LivingWeapon.Tests.csproj" --nologo -v q
+    if ($LASTEXITCODE -ne 0) { Write-ErrorMessage "REFUSING TO PACKAGE: unit tests failed (see above)." }
+
+    # Step 4: Clean build directory
     Clean-BuildDirectories
 
-    # Step 4: Build the Living Weapon DLL into the package folder
+    # Step 5: Build the Living Weapon DLL into the package folder
     Invoke-BuildDll
 
-    # Step 5: Stage deliverables into Publish/<ModId>/ (ModConfig copied here wins)
+    # Step 6: Stage deliverables into Publish/<ModId>/ (ModConfig copied here wins)
     Copy-ModAssets
 
-    # Step 6: Create Package
+    # Step 7: Create Package
     $packagePath = Create-Package -ModVersion $finalVersion
 
     if ($packagePath) {
-        # Step 7: Verify, fail loudly if anything's missing. This is the gate
+        # Step 8: Verify, fail loudly if anything's missing. This is the gate
         # that stops a broken/empty/wrong zip from shipping to users.
         $verifyOk = Verify-Package -PackagePath $packagePath
         if (-not $verifyOk) {

@@ -82,6 +82,11 @@ jobs:
     - name: Build-Diversity Gate (analyze.py)
       run: python tools/analyze.py
 
+    # Unit tests for the Living Weapon runtime (kill attribution, etc.). A red test
+    # blocks the release -- same TDD gate as the local BuildLinked/Publish scripts.
+    - name: Unit Tests (LivingWeapon.Tests)
+      run: dotnet test LivingWeapon.Tests/LivingWeapon.Tests.csproj --nologo
+
     - name: Build and Package
       id: publish
       run: ./Publish.ps1

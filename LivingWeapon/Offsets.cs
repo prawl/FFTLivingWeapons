@@ -14,12 +14,18 @@ internal static class Offsets
     public const long Slot9 = 0x14077CA54;   // u32 == 0xFFFFFFFF  when in battle (sticky indicator)
     public const long Acted = 0x14077CA8C;   // u8  acting unit has acted this turn
 
-    // --- condensed turn-queue head (the acting unit) ---
+    // --- condensed active-unit struct = the unit whose turn it is (FFTHandsFree
+    //     NavigationActions.Scan "AddrCondensedBase"). The acting player is identified by
+    //     HP+MaxHP+level matched against the battle array, then resolved to the roster by a
+    //     level/brave/faith FINGERPRINT -- NOT by +0x04. TqNameId (+0x04) is a SEQUENTIAL
+    //     battle index, not the roster nameId: a Time Mage's index 1 collides with Ramza's
+    //     roster nameId 1, which mis-credited everyone's kills to Ramza. Do not resolve by it. ---
     public const long TurnQueue = 0x14077D2A0;
     public const int TqLevel = 0x00;   // u16
     public const int TqTeam  = 0x02;   // u16  0 = player, 1 = enemy
-    public const int TqNameId = 0x04;  // u16  matches roster +0x230
-    public const int TqMaxHp = 0x10;   // u16
+    public const int TqNameId = 0x04;  // u16  SEQUENTIAL battle index (NOT roster nameId -- a trap)
+    public const int TqHp    = 0x0C;   // u16  active unit's current HP (fingerprint key)
+    public const int TqMaxHp = 0x10;   // u16  active unit's MaxHP (fingerprint key)
 
     // --- static unit array ---
     public const long ArrayBase = 0x140893C00;
@@ -30,6 +36,9 @@ internal static class Offsets
     // slot s sits at ArrayBase + (s - (SlotsBack - 1)) * stride; enemy slots are s <= SlotsBack-1.
     public const long ArrayReadBase = ArrayBase - (SlotsBack - 1) * ArrayStride;
     public const int EnemySlotMax = SlotsBack - 1;   // slots 0..19 are enemy-side
+    public const int ALevel    = 0x0D; // u8   (roster-match fingerprint)
+    public const int ABrave    = 0x0E; // u8   origBrave (roster-match fingerprint)
+    public const int AFaith    = 0x10; // u8   origFaith (roster-match fingerprint)
     public const int AInBattle = 0x12; // u16
     public const int AHp       = 0x14; // u16  (0 == KO'd)
     public const int AMaxHp    = 0x16; // u16
@@ -63,4 +72,25 @@ internal static class Offsets
 
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
     public const long WpScratch = 0x141870836;
+
+    // --- battlefield discriminator: 0 = OUT of battle (world map / menus -- even when
+    //     slot9 is still the stuck 0xFFFFFFFF sentinel), 2/3/4 = on the live battlefield.
+    //     Verified in FFTHandsFree (CommandWatcher.cs). slot9 alone can't tell the
+    //     world-map party menu from combat; this can, so the card paints there instead
+    //     of only at game boot (the old "kills update only after restart" bug). ---
+    public const long BattleMode = 0x140900650;
+
+    // --- in-battle "BattleStatus" card: checking a unit's status mid-battle opens the
+    //     equip card (with the Kills line). Detected (per FFTHandsFree ScreenDetectionLogic)
+    //     as pauseFlag==1 && menuCursor==3 (the Status action-menu slot) && submenuFlag==1.
+    //     Lets the counter paint there too -- safe because it's a paused, stable menu. ---
+    public const long PauseFlag = 0x140C64A5C;
+    public const long MenuCursor = 0x1407FC620;
+    public const long SubmenuFlag = 0x140D3A10C;
+
+    // --- equip-screen "mirror": the VIEWED unit's equipped gear in UI row order,
+    //     [Weapon, LHand, Helm, Body, Accessory] as u16. Mirror[0] = the weapon whose
+    //     card is on screen, so the in-card Kills counter knows WHICH weapon to show.
+    //     Verified in FFTHandsFree (CommandWatcher.cs, 2026-04-15). Two synced copies. ---
+    public const long MirrorWeapon = 0x141870854;
 }
