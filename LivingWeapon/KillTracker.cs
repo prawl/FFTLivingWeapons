@@ -46,10 +46,14 @@ internal sealed class KillTracker
     {
         bool changed = false;
 
-        // Latch the acting player's weapon whenever a player is the active unit. The active
-        // unit is identified robustly (HP+MaxHP+level -> battle-array slot -> level/brave/faith
-        // fingerprint -> roster R-hand), never by the colliding condensed +0x04 index.
-        if (_mem.U16(Offsets.TurnQueue + Offsets.TqTeam) == 0)
+        // Latch the acting player's weapon only when a player has COMPLETED an action
+        // (acted==1). Between turns the condensed struct flickers to other units (cursor /
+        // turn preview) with acted==0; following that flicker mis-credited an actor's kill to
+        // whatever weapon was showing when the corpse was noticed. The acted gate pins the
+        // latch to the true actor; the weapon itself is resolved robustly (HP+MaxHP+level ->
+        // battle-array slot -> level/brave/faith fingerprint -> roster R-hand), never by the
+        // colliding condensed +0x04 index. A held latch survives until the next real actor.
+        if (_mem.U8(Offsets.Acted) == 1 && _mem.U16(Offsets.TurnQueue + Offsets.TqTeam) == 0)
         {
             int w = ResolveActiveWeapon();
             if (w >= 0 && w != _lastPlayerWeapon)

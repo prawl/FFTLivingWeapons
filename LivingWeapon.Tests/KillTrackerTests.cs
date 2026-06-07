@@ -26,13 +26,16 @@ public class KillTrackerTests
         public ushort U16(long a) => U16s.TryGetValue(a, out var v) ? v : (ushort)0;
     }
 
-    /// <summary>The active (condensed) struct: which unit's turn it is, by HP/MaxHP/level.</summary>
-    private static void SetActive(FakeMemory m, int hp, int maxHp, int level, int team = 0)
+    /// <summary>The active (condensed) struct: which unit's turn it is, by HP/MaxHP/level.
+    /// `acted` is the action-complete flag (0x14077CA8C): the latch only captures when it is 1,
+    /// so the inter-turn flicker of the struct (acted=0) can't steal credit.</summary>
+    private static void SetActive(FakeMemory m, int hp, int maxHp, int level, int team = 0, int acted = 1)
     {
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;
         m.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
         m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
+        m.U8s[Offsets.Acted] = (byte)acted;
     }
 
     /// <summary>A battle-array slot. Pass level/brave/faith to make it matchable as the actor.</summary>
@@ -137,6 +140,31 @@ public class KillTrackerTests
         t.Poll();
 
         Assert.False(kills.ContainsKey(52));   // an ally going down is not a weapon's kill
+    }
+
+    [Fact]
+    public void Holds_the_actors_weapon_when_the_struct_flickers_to_a_non_actor()
+    {
+        // Live bug: between turns the active struct flickers to another player (cursor/preview)
+        // with acted==0. Without the acted gate the latch followed the flicker, so an archer's
+        // kill credited whatever weapon was showing at corpse-detection (e.g. a mage's staff).
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);   // archer (Yoichi Bow)
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // mage (Blazing Staff)
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);  // archer struct
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);   // mage struct
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // archer ACTS -> latch 90
+        var t = new KillTracker(kills, m);
+        t.Poll();
+
+        // struct flickers to the mage, but the mage has NOT acted (acted==0)
+        SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 0);
+        SetUnit(m, slot: 0, hp: 0);   // the archer's target dies now
+        t.Poll();
+
+        Assert.Equal(1, kills.GetValueOrDefault(90));   // archer's Yoichi Bow
+        Assert.False(kills.ContainsKey(63));            // NOT the flickered mage staff
     }
 
     [Fact]
