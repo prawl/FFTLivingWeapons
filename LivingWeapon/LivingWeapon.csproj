@@ -22,7 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="ModConfig.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="meta.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('meta.json')" />
   </ItemGroup>
 

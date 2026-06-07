@@ -1,7 +1,7 @@
 # Deploy the FFT Item Overhaul mod to Reloaded-II.
 # Regenerates tables from data/items.json, GATES on the build-diversity check
 # (refuses to deploy a design with any strictly-dominated item), then copies the
-# mod tree into the Reloaded Mods folder. Data-only mod => takes effect on game restart.
+# mod tree + builds the Living Weapon DLL into the Reloaded Mods folder. Takes effect on restart.
 
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
@@ -22,12 +22,21 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "[3/3] Copying mod -> $modsDir\$modId ..." -ForegroundColor Yellow
+Write-Host "[3/4] Copying data tables + config -> $modsDir\$modId ..." -ForegroundColor Yellow
 $dest = Join-Path $modsDir $modId
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 Copy-Item "$root\mod\ModConfig.json" $dest -Force
 Copy-Item "$root\mod\FFTIVC" $dest -Recurse -Force
 if (Test-Path "$root\mod\preview.png") { Copy-Item "$root\mod\preview.png" $dest -Force }
 
+Write-Host "[4/4] Building the Living Weapon runtime into the mod..." -ForegroundColor Yellow
+python "$root\tools\gen_living_weapon_meta.py"
+if ($LASTEXITCODE -ne 0) { Write-Host "meta-gen failed" -ForegroundColor Red; exit 1 }
+$pub = "$root\LivingWeapon\bin\publish"
+dotnet publish "$root\LivingWeapon\LivingWeapon.csproj" -c Release -o $pub
+if ($LASTEXITCODE -ne 0) { Write-Host "DLL build failed" -ForegroundColor Red; exit 1 }
+Copy-Item "$pub\*" $dest -Recurse -Force
+Copy-Item "$root\mod\ModConfig.json" $dest -Force   # our config wins over any published one
+
 $xmls = (Get-ChildItem "$dest\FFTIVC\tables\enhanced\*.xml" | Measure-Object).Count
-Write-Host "Deployed. $xmls table(s) under $dest. Restart the game to apply." -ForegroundColor Green
+Write-Host "Deployed: $xmls tables + LivingWeapon.dll under $dest. Restart the game to apply." -ForegroundColor Green
