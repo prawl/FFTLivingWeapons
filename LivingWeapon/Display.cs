@@ -6,7 +6,8 @@ namespace LivingWeapon;
 /// <summary>
 /// Paints the equip card: the 2-char name suffix (+/+2/+3), the "Kills NNNN" counter,
 /// and the equipped-weapon WP number. Ported from the Python display companion. Runs
-/// only OUT of battle. The expensive memory scan is cached; painting from the cache is
+/// every tick (the card is viewable in AND out of battle), on the engine's background
+/// thread so the scan never stalls the game. The scan is cached; painting from it is
 /// cheap. CRITICAL: cached addresses can go stale (the game frees/moves UI buffers), so
 /// every write is VirtualQuery-guarded AND the suffix slot is re-checked to still hold a
 /// valid slot value before we overwrite it -- a recycled buffer is rejected, never poked.
@@ -23,22 +24,23 @@ internal sealed class Display
     private static readonly List<byte[]> ValidUtf16 = ByteScan.Slots(2, ValidSlots);
 
     private readonly Dictionary<int, WeaponMeta> _meta;
-    private readonly Dictionary<int, int> _kills;
+    private readonly Func<Dictionary<int, int>> _view;   // lock-free snapshot from the battle loop
     // weapon id -> baked locations: (encoding, suffix-slot address, Kills-digits address or 0)
     private readonly Dictionary<int, List<(int enc, long slot, long kills)>> _cache = new();
     private HashSet<int> _lastTargets = new();
     private DateTime _lastScan = DateTime.MinValue;
 
-    public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills)
+    public Display(Dictionary<int, WeaponMeta> meta, Func<Dictionary<int, int>> view)
     {
         _meta = meta;
-        _kills = kills;
+        _view = view;
     }
 
     public void Tick()
     {
+        var kills = _view();
         var targets = new HashSet<int>();
-        foreach (var kv in _kills)
+        foreach (var kv in kills)
             if (Tuning.TierFor(kv.Value) > 0 && _meta.ContainsKey(kv.Key)) targets.Add(kv.Key);
         if (targets.Count == 0) return;
 
@@ -50,7 +52,7 @@ internal sealed class Display
             _lastTargets = targets;
             _lastScan = DateTime.Now;
         }
-        Paint();
+        Paint(kills);
     }
 
     private void Scan(HashSet<int> targets)
@@ -111,14 +113,13 @@ internal sealed class Display
         }
     }
 
-    private void Paint()
+    private void Paint(Dictionary<int, int> kills)
     {
         foreach (var kv in _cache)
         {
-            int kills = _kills.TryGetValue(kv.Key, out int k) ? k : 0;
-            int tier = Tuning.TierFor(kills);
-            string suffix = Tuning.Suffix[tier];
-            string d4 = (kills % 10000).ToString("0000");
+            int n = kills.TryGetValue(kv.Key, out int k) ? k : 0;
+            string suffix = Tuning.Suffix[Tuning.TierFor(n)];
+            string d4 = (n % 10000).ToString("0000");
             foreach (var (enc, slot, killsAddr) in kv.Value)
             {
                 if (SlotIntact(slot, enc)) WriteStr(slot, suffix, enc);   // skip recycled buffers
@@ -130,8 +131,8 @@ internal sealed class Display
         int rw = Mem.U16(Offsets.RosterBase + Offsets.RRHand);
         if (_meta.TryGetValue(rw, out var m) && Mem.Readable(Offsets.WpScratch, 1))
         {
-            int kills = _kills.TryGetValue(rw, out int k) ? k : 0;
-            int boosted = Math.Min(255, (int)Math.Round(m.Wp * (1 + Tuning.Factor[Tuning.TierFor(kills)])));
+            int n = kills.TryGetValue(rw, out int k) ? k : 0;
+            int boosted = Math.Min(255, (int)Math.Round(m.Wp * (1 + Tuning.Factor[Tuning.TierFor(n)])));
             int cur = Mem.U8(Offsets.WpScratch);
             if ((cur == m.Wp || cur == boosted) && boosted != cur && Mem.Writable(Offsets.WpScratch, 1))
                 Mem.W8(Offsets.WpScratch, (byte)boosted);
