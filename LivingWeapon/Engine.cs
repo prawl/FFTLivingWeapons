@@ -21,6 +21,7 @@ internal sealed class Engine
     private readonly Dictionary<int, int> _kills;
     private readonly KillTracker _tracker;
     private readonly GrowthEngine _growth;
+    private readonly Display _display;
     private CancellationTokenSource? _cts;
     private bool _inBattle;
 
@@ -31,6 +32,7 @@ internal sealed class Engine
         var meta = MetaLoader.Load(modDir);
         _tracker = new KillTracker(_kills);
         _growth = new GrowthEngine(meta, _kills);
+        _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }
 
@@ -72,6 +74,7 @@ internal sealed class Engine
                 _growth.ResetBattle();
                 SaveTally();                 // flush on battle end
             }
+            _display.Tick();   // out of battle: keep the equip card painted
             return;
         }
         _inBattle = true;

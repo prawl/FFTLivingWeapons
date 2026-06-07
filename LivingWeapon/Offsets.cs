@@ -41,15 +41,25 @@ internal static class Offsets
     public const int RosterStride = 0x258;
     public const int RosterSlots = 20;
     public const int RRHand  = 0x14;   // u16 right-hand weapon id (FFTPatcher-canonical, == items.json id)
+    public const int RLevel  = 0x1D;   // u8  (0 / empty slot guard)
+    public const int RBrave  = 0x1E;   // u8  (fingerprint to find this unit's combat struct)
+    public const int RFaith  = 0x1F;   // u8
     public const int RNameId = 0x230;  // u16
 
-    // --- combat struct (writable stats that actually drive battle damage) ---
-    // Ramza is the verified anchor: PA byte at 0x14184F8CE, MA +1, Speed +2.
-    // Growing the rest of the party needs the combat-array slot-0 base (TODO --
-    // one Cheat Engine pass; see docs/UNIMPLEMENTED_MECHANICS.md).
-    public const long RamzaPa = 0x14184F8CE;
-    public const int MaDelta = 1;      // MA  address = PA address + 1
-    public const int SpeedDelta = 2;   // Spd address = PA address + 2
+    // --- combat-struct array (writable stats that actually drive battle damage) ---
+    // Ramza's struct (0x14184F890; PA at +0x3E = 0x14184F8CE) is the verified anchor.
+    // Party units sit at +/- n*stride. We self-map each via its weapon id at +0x20 --
+    // no need for the exact slot-0 base -- and only WRITE where a full combat-struct
+    // signature checks out, so a wrong layout guess can never corrupt memory.
+    public const long CombatAnchor = 0x14184F890;
+    public const int CombatStride = 0x200;
+    public const int CombatSearchSlots = 24;   // scan +/- this many slots around the anchor
+    public const int CWeapon = 0x20;   // u16 equipped weapon id (the self-mapping key)
+    public const int CBrave  = 0x2A;   // u8
+    public const int CFaith  = 0x2C;   // u8
+    public const int CPa     = 0x3E;   // u8  (drives physical damage)
+    public const int CMa     = 0x3F;   // u8
+    public const int CSpeed  = 0x40;   // u8
 
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
     public const long WpScratch = 0x141870836;

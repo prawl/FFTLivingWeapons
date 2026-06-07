@@ -46,7 +46,7 @@ internal sealed class KillTracker
         if (acted == 1 && team == 0 && nameId > 0 && level >= 1 && level <= 99 && maxHp > 0)
         {
             int w = ResolveWeapon(nameId);
-            if (w >= 0 && w < 0xFFFF) _lastPlayerWeapon = w;
+            _lastPlayerWeapon = (w >= 0 && w < 0xFFFF) ? w : -1;   // unarmed/unresolved: don't credit a stale weapon
         }
 
         // Scan the unit array for fresh corpses.

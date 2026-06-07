@@ -40,6 +40,24 @@ internal static unsafe class Mem
     public static ushort U16(byte[] b, int o) => (ushort)(b[o] | (b[o + 1] << 8));
     public static uint U32(byte[] b, int o) => (uint)(b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24));
 
+    // ---- guarded validation: VirtualQuery a range before any raw read/write ----
+    // A faulting raw deref crashes the whole game (in-process; AVs aren't catchable
+    // in .NET), so every speculative read (the combat-struct scan) and every write
+    // (growth + display paint) must confirm the page is committed + the right access.
+    public static bool Readable(long addr, int len) => Probe(addr, len, false);
+    public static bool Writable(long addr, int len) => Probe(addr, len, true);
+
+    private static bool Probe(long addr, int len, bool needWrite)
+    {
+        if (VirtualQueryEx(GetCurrentProcess(), (nint)addr, out var mbi, (uint)Marshal.SizeOf<MEMORY_BASIC_INFORMATION>()) == 0)
+            return false;
+        if (mbi.State != MEM_COMMIT || (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)) != 0) return false;
+        const uint writable = 0x04 | 0x08 | 0x40 | 0x80;   // RW | WriteCopy | ExecRW | ExecWriteCopy
+        if ((mbi.Protect & (needWrite ? writable : READABLE)) == 0) return false;
+        long b = (long)mbi.BaseAddress, e = b + (long)mbi.RegionSize;
+        return addr >= b && addr + len <= e;          // whole range stays inside the queried region
+    }
+
     // ---- region walk for the display scan -------------------------------
     private const uint MEM_COMMIT = 0x1000;
     private const uint READABLE = 0x02 | 0x04 | 0x08 | 0x20 | 0x40 | 0x80;
