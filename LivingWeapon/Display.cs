@@ -16,7 +16,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Display
 {
-    private const double RescanSeconds = 4.0;
+    private const double RescanSeconds = 2.0;   // idle re-find of re-rendered card buffers
 
     private static readonly string[] ValidSlots = { "  ", "+ ", "+2", "+3" };
     private static readonly List<byte[]> ValidAscii = ByteScan.Slots(1, ValidSlots);
@@ -61,16 +61,21 @@ internal sealed partial class Display
             targets.Add(viewed);
         if (targets.Count == 0) return;
 
+        int sig = PaintSig(targets);
         bool changed = !targets.SetEquals(_lastTargets);
+        // A kill/tier-up while the card is open changes the count -> RESCAN (not just repaint):
+        // the game re-renders the name/desc into a fresh buffer on the level-up, so the cached
+        // paint address is stale. Re-finding it lands the new +N / count within a tick (~100ms)
+        // instead of waiting for the idle rescan.
+        bool countChanged = sig != _lastPaintSig;
         bool stale = (DateTime.Now - _lastScan).TotalSeconds > RescanSeconds;
-        bool scannedNow = changed || stale || _slots.Count == 0;
+        bool scannedNow = changed || countChanged || stale || _slots.Count == 0;
         if (scannedNow)
         {
             try { Scan(targets, changed); } catch (Exception ex) { Log.Error("scan: " + ex.Message); }
             _lastTargets = targets;
             _lastScan = DateTime.Now;
         }
-        int sig = PaintSig(targets);
         if (scannedNow || sig != _lastPaintSig)
         {
             Paint();
