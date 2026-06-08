@@ -168,17 +168,39 @@ public class KillTrackerTests
     }
 
     [Fact]
-    public void Does_not_latch_on_an_enemy_turn()
+    public void Latches_regardless_of_the_unreliable_team_field()
     {
+        // Live, the condensed struct's team field reads 0/1/3 even for the SAME active player
+        // (often 3 in a battle entered straight from a save load). The roster fingerprint -- not
+        // team -- decides whether the actor is a player, so the capture must NOT gate on team.
         var kills = new Dictionary<int, int>();
         var m = new FakeMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
-        SetActive(m, hp: 352, maxHp: 352, level: 99, team: 1);   // an ENEMY is acting
+        SetActive(m, hp: 352, maxHp: 352, level: 99, team: 3, acted: 1);   // team reads 3, not 0
+        var t = new KillTracker(kills, m);
+
+        t.Poll();                       // must still latch -- the actor fingerprints to a roster player
+        SetUnit(m, slot: 0, hp: 0);
+        t.Poll();
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void Does_not_latch_when_an_enemy_is_the_active_unit()
+    {
+        // An enemy's turn: the active struct shows the ENEMY, whose HP/level/fingerprint match no
+        // roster player -> resolve returns -1 -> nothing latches (that, not team, is the guard).
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);   // a player on the field
+        SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 1);   // an ENEMY active (no roster match)
         var t = new KillTracker(kills, m);
 
         t.Poll();
-        SetUnit(m, slot: 0, hp: 0);   // an enemy dies, but no player weapon was latched
+        SetUnit(m, slot: 0, hp: 0);   // an enemy dies on the enemy's turn
         t.Poll();
 
         Assert.Empty(kills);

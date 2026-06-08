@@ -16,9 +16,11 @@ namespace LivingWeapon;
 ///   * THE ACTING PLAYER, the reliable way -- the condensed active struct's +0x04
 ///     "nameId" is a SEQUENTIAL battle index, NOT the roster nameId; it collides (a
 ///     Time Mage's index 1 == Ramza's roster nameId 1) and mis-credited everyone's
-///     kills to Ramza. Instead: read the active struct's team + HP + MaxHP + level,
-///     find the battle-array slot that matches, read its level/brave/faith, and
-///     fingerprint THAT to the roster -> the acting unit's R-hand weapon.
+///     kills to Ramza. Instead: read the active struct's HP + MaxHP + level, find the
+///     battle-array slot that matches, read its level/brave/faith, and fingerprint THAT
+///     to the roster -> the acting unit's R-hand weapon. (The struct's team field is
+///     unreliable -- reads 0/1/3 for one player -- so the roster match, not team, is the
+///     player test.)
 ///
 /// Memory access is injected (IGameMemory) so the attribution logic is unit-testable.
 /// </summary>
@@ -53,14 +55,14 @@ internal sealed class KillTracker
     {
         bool changed = false;
 
-        // Latch the acting player's weapon only when a player has COMPLETED an action
-        // (acted==1). Between turns the condensed struct flickers to other units (cursor /
-        // turn preview) with acted==0; following that flicker mis-credited an actor's kill to
-        // whatever weapon was showing when the corpse was noticed. The acted gate pins the
-        // latch to the true actor; the weapon itself is resolved robustly (HP+MaxHP+level ->
-        // battle-array slot -> level/brave/faith fingerprint -> roster R-hand), never by the
-        // colliding condensed +0x04 index. A held latch survives until the next real actor.
-        if (_mem.U8(Offsets.Acted) == 1 && _mem.U16(Offsets.TurnQueue + Offsets.TqTeam) == 0)
+        // Latch the acting player's weapon when a player has COMPLETED an action (acted==1).
+        // The condensed struct's team field is NOT a reliable "player's turn" gate -- live it
+        // reads 0/1/3 for the very same active player (often stuck at 3 in a battle entered
+        // straight from a save load), which silently dropped captures. The roster fingerprint
+        // is the real player test: ResolveActiveWeapon returns >=0 ONLY when the active unit
+        // matches a roster slot (enemies resolve to -1), so we gate on that, not team. The
+        // acted==1 gate still rejects the inter-turn flicker (cursor/preview at acted==0).
+        if (_mem.U8(Offsets.Acted) == 1)
         {
             int w = ResolveActiveWeapon();
             if (w >= 0 && w != _lastPlayerWeapon)
