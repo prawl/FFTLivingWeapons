@@ -909,6 +909,7 @@
       "category": "Sword",
       "vanillaName": "Materia Blade",
       "name": "Materia Blade",
+      "noGrowth": true,
       "tier": 6,
       "identity": "Dark mage-knight capstone — Dark element + absorbs MP every hit (battle-mage fuel). Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
       "desc": "The sword belonging to Cloud, the extraplanar wanderer. It was designed for members of SOLDIER, allowing them to fight to their full potential.",

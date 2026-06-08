@@ -216,13 +216,6 @@
     "formula": 2,
     "flavor": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away."
   },
-  "32": {
-    "name": "Materia Blade",
-    "wp": 11,
-    "cat": "Sword",
-    "formula": 1,
-    "flavor": "The sword belonging to Cloud, the extraplanar wanderer. It was designed for members of SOLDIER, allowing them to fight to their full potential."
-  },
   "33": {
     "name": "Defender",
     "wp": 16,

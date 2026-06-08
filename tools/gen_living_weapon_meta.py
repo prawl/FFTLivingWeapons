@@ -41,6 +41,8 @@ def main():
         cat = p.get("categoryOverride") or it.get("category")
         if cat not in WEAPON_CATS:
             continue
+        if it.get("noGrowth"):
+            continue   # excluded from the Living Weapon + system (e.g. Materia Blade)
         name = it.get("name")
         if not name or name == "TBD":
             continue
