@@ -6,7 +6,7 @@
     <ItemWeapon>
       <Id>1</Id> <!-- Cutpurse (was Dagger) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>2</Formula>
       <Power>5</Power>
       <Evasion>10</Evasion>
@@ -16,7 +16,7 @@
     <ItemWeapon>
       <Id>2</Id> <!-- Quicksilver (was Mythril Knife) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>1</Formula>
       <Power>6</Power>
       <Evasion>25</Evasion>
@@ -26,7 +26,7 @@
     <ItemWeapon>
       <Id>3</Id> <!-- Gloomfang (was Blind Knife) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>45</Formula>
       <Power>5</Power>
       <Evasion>15</Evasion>
@@ -36,7 +36,7 @@
     <ItemWeapon>
       <Id>4</Id> <!-- Hushblade (was Mage Masher) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>45</Formula>
       <Power>6</Power>
       <Evasion>15</Evasion>
@@ -46,7 +46,7 @@
     <ItemWeapon>
       <Id>5</Id> <!-- Argent Dirk (was Platinum Dagger) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>1</Formula>
       <Power>7</Power>
       <Evasion>16</Evasion>
@@ -56,7 +56,7 @@
     <ItemWeapon>
       <Id>6</Id> <!-- Sanguine Gauche (was Main Gauche) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>48</Formula>
       <Power>6</Power>
       <Evasion>50</Evasion>
@@ -66,7 +66,7 @@
     <ItemWeapon>
       <Id>7</Id> <!-- Adamant Fang (was Orichalcum Dirk) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>1</Formula>
       <Power>12</Power>
       <Evasion>5</Evasion>
@@ -76,7 +76,7 @@
     <ItemWeapon>
       <Id>8</Id> <!-- Mortal Coil (was Assassin's Dagger) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>1</Formula>
       <Power>8</Power>
       <Evasion>15</Evasion>
@@ -86,7 +86,7 @@
     <ItemWeapon>
       <Id>9</Id> <!-- Galewind (was Air Knife) -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>1</Formula>
       <Power>10</Power>
       <Evasion>5</Evasion>
@@ -96,7 +96,7 @@
     <ItemWeapon>
       <Id>10</Id> <!-- Zwill Straightblade -->
       <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
       <Formula>1</Formula>
       <Power>12</Power>
       <Evasion>10</Evasion>
@@ -331,7 +331,7 @@
       <Power>18</Power>
       <Evasion>45</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>12</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>35</Id> <!-- Excalibur -->
@@ -463,11 +463,11 @@
     <ItemWeapon>
       <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
       <Range>1</Range>
-      <Formula>45</Formula>
+      <Formula>1</Formula>
       <Power>15</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>53</OptionsAbilityId>
+      <OptionsAbilityId>23</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>50</Id> <!-- Sunderer (was Slasher) -->
@@ -482,7 +482,7 @@
       <Id>51</Id> <!-- Wellspring Rod (was Rod) -->
       <Range>1</Range>
       <Formula>47</Formula>
-      <Power>4</Power>
+      <Power>5</Power>
       <Evasion>18</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -518,7 +518,7 @@
       <Id>55</Id> <!-- Hushward Rod (was Poison Rod) -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>4</Power>
+      <Power>6</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -536,7 +536,7 @@
       <Id>57</Id> <!-- Dragon Rod -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>5</Power>
+      <Power>7</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>10</OptionsAbilityId>
@@ -545,7 +545,7 @@
       <Id>58</Id> <!-- Rod of Faith -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>5</Power>
+      <Power>7</Power>
       <Evasion>15</Evasion>
       <Elements>Holy</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>

@@ -17,6 +17,10 @@
       <EquipBonusId>1</EquipBonusId>
     </Item>
     <Item>
+      <Id>34</Id> <!-- Save the Queen -->
+      <EquipBonusId>2</EquipBonusId>
+    </Item>
+    <Item>
       <Id>37</Id> <!-- Chaos Blade -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
@@ -31,6 +35,10 @@
     <Item>
       <Id>50</Id> <!-- Sunderer (was Slasher) -->
       <ItemCategory>KnightSword</ItemCategory>
+    </Item>
+    <Item>
+      <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
+      <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->

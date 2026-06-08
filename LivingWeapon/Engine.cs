@@ -24,7 +24,9 @@ internal sealed class Engine
     private readonly string _tallyPath;
     private readonly Dictionary<int, int> _kills;
     private readonly KillTracker _tracker;
+    private readonly TurnTracker _turns;
     private readonly GrowthEngine _growth;
+    private readonly CharmLock _charm;
     private readonly Display _display;
     private CancellationTokenSource? _cts;
     private bool _inBattle;
@@ -37,8 +39,10 @@ internal sealed class Engine
         _tallyPath = Path.Combine(modDir, "kills.json");
         _kills = LoadTally(_tallyPath);
         var meta = MetaLoader.Load(modDir);
+        _turns = new TurnTracker(new LiveMemory());
         _tracker = new KillTracker(_kills, new LiveMemory(), new HashSet<int>(meta.Keys));
-        _growth = new GrowthEngine(meta, _kills);
+        _growth = new GrowthEngine(meta, _kills, _turns);
+        _charm = new CharmLock(meta, _kills);   // counts turns off the target's own CT (not TurnTracker)
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }
@@ -91,7 +95,9 @@ internal sealed class Engine
             {
                 _inBattle = false;
                 _tracker.ResetBattle();
+                _turns.ResetBattle();
                 _growth.ResetBattle();
+                _charm.ResetBattle();
                 SaveTally();                 // flush on battle end
                 _display.Invalidate();       // re-find the menu's freshly-allocated render copies
             }
@@ -101,6 +107,8 @@ internal sealed class Engine
         _inBattle = true;
 
         bool changed = _tracker.Poll();      // every ~33ms tick so fast-forward deaths aren't missed
+        _turns.Poll();                        // edge-detect each unit's turns (for timed signatures)
+        _charm.Tick();                        // charm-lock: hold/clear each tick to beat the on-hit clear
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 

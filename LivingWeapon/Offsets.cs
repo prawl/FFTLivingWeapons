@@ -73,6 +73,10 @@ internal static class Offsets
     public const int CPa     = 0x3E;   // u8  (drives physical damage)
     public const int CMa     = 0x3F;   // u8
     public const int CSpeed  = 0x40;   // u8
+    // Passive bitfields on the LIVE combat struct (proven write+holdable mid-battle, 2026-06-08):
+    // reaction +0x94 (4 bytes, base id 166), support +0x98 (4 bytes, base 198), movement +0x9C
+    // (3 bytes, base 230); MSB-first. Signatures only ever touch SUPPORT (stacks, no slot hijack).
+    public const int CSupport = 0x98;
 
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
     public const long WpScratch = 0x141870836;

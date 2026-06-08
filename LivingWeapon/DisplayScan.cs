@@ -35,6 +35,7 @@ internal sealed partial class Display
     {
         _slots.Clear();
         _killsCache.Clear();
+        _grantCache.Clear();
         var names = new List<(int id, int enc, byte[] b)>();
         var flavors = new List<(int id, int enc, byte[] b)>();
         foreach (int id in targets)
@@ -49,9 +50,12 @@ internal sealed partial class Display
             }
             _slots[id] = new List<(int, long)>();
             _killsCache[id] = new List<(int, long)>();
+            _grantCache[id] = new List<(int, long)>();
         }
         byte[] killsAscii = ByteScan.Ascii("Kills ");
         byte[] killsUtf16 = ByteScan.Utf16("Kills ");
+        byte[] grantAscii = ByteScan.Ascii("Grant ");
+        byte[] grantUtf16 = ByteScan.Utf16("Grant ");
 
         bool full = _hotRegions.Count == 0 || (DateTime.Now - _lastFullScan).TotalSeconds > FullScanSeconds;
         var regions = full ? Mem.Regions() : (IEnumerable<(long, long)>)_hotRegions;
@@ -73,6 +77,7 @@ internal sealed partial class Display
                 int searchable = (int)Math.Min(ChunkSize, buf.Length);
                 ScanNames(buf, searchable, rbase, off, names);
                 ScanKills(buf, searchable, rbase, off, flavors, killsAscii, killsUtf16);
+                ScanGrant(buf, searchable, rbase, off, flavors, grantAscii, grantUtf16);
                 scanned += searchable;
                 off += ChunkSize;
             }
@@ -82,14 +87,14 @@ internal sealed partial class Display
 
         if (log)
             foreach (int id in targets)
-                Log.Info($"display: {_meta[id].Name} nameSites={_slots[id].Count} killSites={_killsCache[id].Count} (paint targets, not kills)");
+                Log.Info($"display: {_meta[id].Name} nameSites={_slots[id].Count} killSites={_killsCache[id].Count} grantSites={_grantCache[id].Count} (paint targets, not kills)");
     }
 
     /// <summary>Total paint sites currently found for the target weapons (used to mark hot regions).</summary>
     private int SiteCount(HashSet<int> targets)
     {
         int n = 0;
-        foreach (int id in targets) n += _slots[id].Count + _killsCache[id].Count;
+        foreach (int id in targets) n += _slots[id].Count + _killsCache[id].Count + _grantCache[id].Count;
         return n;
     }
 
@@ -119,16 +124,31 @@ internal sealed partial class Display
         }
     }
 
-    /// <summary>Pass 2: "Kills " + 4 digits -> counter, tied to the nearest preceding flavor
-    /// line (same encoding) within FlavorWindow -- i.e. the weapon whose description it ends.</summary>
+    /// <summary>Pass 2: "Kills " + 4 digits -> the per-weapon counter.</summary>
     private void ScanKills(byte[] buf, int searchable, long rbase, long off,
-                           List<(int id, int enc, byte[] b)> flavors, byte[] ka, byte[] ku)
+                           List<(int id, int enc, byte[] b)> flavors, byte[] ka, byte[] ku) =>
+        ScanAnchored(buf, searchable, rbase, off, flavors, ka, ku, 4, ByteScan.FourDigits, _killsCache);
+
+    /// <summary>Pass 3: "Grant " + a GrantWidth label slot -> the signature ability badge.</summary>
+    private void ScanGrant(byte[] buf, int searchable, long rbase, long off,
+                           List<(int id, int enc, byte[] b)> flavors, byte[] ga, byte[] gu) =>
+        ScanAnchored(buf, searchable, rbase, off, flavors, ga, gu, Signatures.GrantWidth, ByteScan.GrantSlot, _grantCache);
+
+    /// <summary>Find PREFIX (per enc), validate a fixed-width SLOT right after it, and tie the
+    /// site to the NEAREST preceding flavor line (same enc) within FlavorWindow -- the weapon whose
+    /// description block it ends. The card's "Kills "/"Grant " lines live in the description buffer,
+    /// far from (and often before) the name copy, so name-anchoring grabbed the WRONG weapon's line;
+    /// the leading flavor line is the stable, unique anchor. Shared by the Kills + Grant passes.</summary>
+    private void ScanAnchored(byte[] buf, int searchable, long rbase, long off,
+                              List<(int id, int enc, byte[] b)> flavors, byte[] preAscii, byte[] preUtf16,
+                              int slotChars, Func<byte[], int, int, bool> slotValid,
+                              Dictionary<int, List<(int enc, long addr)>> cache)
     {
         var span = buf.AsSpan();
         foreach (int enc in new[] { 1, 2 })
         {
-            byte[] pre = enc == 1 ? ka : ku;
-            int dw = 4 * enc;
+            byte[] pre = enc == 1 ? preAscii : preUtf16;
+            int sw = slotChars * enc;
             int from = 0;
             while (from <= buf.Length - pre.Length)
             {
@@ -137,32 +157,28 @@ internal sealed partial class Display
                 int i = from + rel;
                 from = i + 1;
                 if (i >= searchable) break;
-                int digPos = i + pre.Length;
-                if (digPos + dw > buf.Length) continue;
-                if (!FourDigits(buf, digPos, enc)) continue;
-
-                int winStart = Math.Max(0, i - FlavorWindow);
-                int bestPos = -1, bestId = -1;
-                foreach (var (id, fenc, fb) in flavors)
-                {
-                    if (fenc != enc || fb.Length == 0 || i - winStart < fb.Length) continue;
-                    int pos = buf.AsSpan(winStart, i - winStart).LastIndexOf(fb.AsSpan());
-                    if (pos < 0) continue;
-                    pos += winStart;
-                    if (pos > bestPos) { bestPos = pos; bestId = id; }
-                }
-                if (bestId >= 0) _killsCache[bestId].Add((enc, rbase + off + digPos));
+                int slotPos = i + pre.Length;
+                if (slotPos + sw > buf.Length) continue;
+                if (!slotValid(buf, slotPos, enc)) continue;
+                int bestId = NearestFlavor(buf, i, flavors, enc);
+                if (bestId >= 0) cache[bestId].Add((enc, rbase + off + slotPos));
             }
         }
     }
 
-    private static bool FourDigits(byte[] buf, int pos, int enc)
+    /// <summary>Weapon id of the nearest flavor line (same enc) ending before byte i, or -1.</summary>
+    private static int NearestFlavor(byte[] buf, int i, List<(int id, int enc, byte[] b)> flavors, int enc)
     {
-        for (int d = 0; d < 4; d++)
+        int winStart = Math.Max(0, i - FlavorWindow);
+        int bestPos = -1, bestId = -1;
+        foreach (var (id, fenc, fb) in flavors)
         {
-            if (buf[pos + d * enc] is < (byte)'0' or > (byte)'9') return false;
-            if (enc == 2 && buf[pos + d * enc + 1] != 0) return false;
+            if (fenc != enc || fb.Length == 0 || i - winStart < fb.Length) continue;
+            int pos = buf.AsSpan(winStart, i - winStart).LastIndexOf(fb.AsSpan());
+            if (pos < 0) continue;
+            pos += winStart;
+            if (pos > bestPos) { bestPos = pos; bestId = id; }
         }
-        return true;
+        return bestId;
     }
 }

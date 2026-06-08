@@ -49,4 +49,29 @@ internal static class ByteScan
         int rel = buf.AsSpan(start, end - start).IndexOf(needle.AsSpan());
         return rel < 0 ? -1 : start + rel;
     }
+
+    /// <summary>Slot validator: four ASCII digits at pos (the "Kills NNNN" counter), enc-aware.</summary>
+    public static bool FourDigits(byte[] buf, int pos, int enc)
+    {
+        for (int d = 0; d < 4; d++)
+        {
+            if (buf[pos + d * enc] is < (byte)'0' or > (byte)'9') return false;
+            if (enc == 2 && buf[pos + d * enc + 1] != 0) return false;
+        }
+        return true;
+    }
+
+    /// <summary>Slot validator: GrantWidth printable-ASCII-or-space chars (the "Grant &lt;ability&gt;"
+    /// label slot). Matches BOTH the baked blank slot and a painted label, so a re-scan re-finds a
+    /// painted site. enc-aware (UTF-16 high byte must be 0).</summary>
+    public static bool GrantSlot(byte[] buf, int pos, int enc)
+    {
+        for (int d = 0; d < Signatures.GrantWidth; d++)
+        {
+            byte b = buf[pos + d * enc];
+            if (b < (byte)' ' || b > (byte)'~') return false;
+            if (enc == 2 && buf[pos + d * enc + 1] != 0) return false;
+        }
+        return true;
+    }
 }

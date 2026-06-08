@@ -26,6 +26,7 @@ internal sealed partial class Display
     private readonly Dictionary<int, int> _kills;
     private readonly Dictionary<int, List<(int enc, long addr)>> _slots = new();       // id -> suffix slots
     private readonly Dictionary<int, List<(int enc, long addr)>> _killsCache = new();  // id -> "Kills NNNN" digits
+    private readonly Dictionary<int, List<(int enc, long addr)>> _grantCache = new();  // id -> "Grant <ability>" label slots
     private HashSet<int> _lastTargets = new();
     private DateTime _lastScan = DateTime.MinValue;
     private int _lastPaintSig = int.MinValue;
@@ -42,6 +43,7 @@ internal sealed partial class Display
     {
         _slots.Clear();
         _killsCache.Clear();
+        _grantCache.Clear();
         _lastTargets = new HashSet<int>();
         _lastScan = DateTime.MinValue;
         _lastPaintSig = int.MinValue;
@@ -95,6 +97,16 @@ internal sealed partial class Display
             string d4 = ((_kills.TryGetValue(kv.Key, out int k) ? k : 0) % 10000).ToString("0000");
             foreach (var (enc, addr) in kv.Value)
                 if (KillsIntact(addr, enc)) WriteStr(addr, d4, enc);
+        }
+        // Signature ability label: paint the granted ability's name once its tier is earned, blank
+        // below it. Same per-weapon, scan-confirmed, guarded paint as the counter above.
+        foreach (var kv in _grantCache)
+        {
+            if (!_meta.TryGetValue(kv.Key, out var gm)) continue;
+            int tier = Tuning.TierFor(_kills.TryGetValue(kv.Key, out int k) ? k : 0);
+            string text = Signatures.GrantSlot(Signatures.ShowsGrant(gm.Signature, tier) ? gm.Signature!.DisplayLabel : "");
+            foreach (var (enc, addr) in kv.Value)
+                if (GrantIntact(addr, enc)) WriteStr(addr, text, enc);
         }
 
         // WP number for the weapon in Ramza's hand (guarded; only when the scratch shows his weapon)
@@ -152,6 +164,18 @@ internal sealed partial class Display
             if (enc == 2 && got[pre.Length + d * enc + 1] != 0) return false;
         }
         return true;
+    }
+
+    /// <summary>A cached grant slot is still ours only if "Grant " sits immediately before it and
+    /// the slot holds GrantWidth printable/space chars -- rejects recycled/freed buffers.</summary>
+    private static bool GrantIntact(long addr, int enc)
+    {
+        byte[] pre = ByteScan.Enc("Grant ", enc);
+        int sw = Signatures.GrantWidth * enc;
+        long preAddr = addr - pre.Length;
+        if (!Mem.TryReadBytes(preAddr, pre.Length + sw, out var got)) return false;
+        for (int j = 0; j < pre.Length; j++) if (got[j] != pre[j]) return false;
+        return ByteScan.GrantSlot(got, pre.Length, enc);
     }
 
     private static void WriteStr(long addr, string s, int enc)

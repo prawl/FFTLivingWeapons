@@ -48,10 +48,26 @@ def main():
             continue
         wp = p.get("wp") or (it.get("baseline", {}) or {}).get("wp") or 0
         formula = p.get("formula") if isinstance(p.get("formula"), int) else 1
-        meta[str(it["id"])] = {
+        entry = {
             "name": name, "wp": int(wp), "cat": cat, "formula": int(formula),
             "flavor": flavor_anchor(it),
         }
+        sig = it.get("signature")
+        if sig:   # iconic tier-grant; emit only the fields the runtime uses (drop curator notes).
+            # abilityId/slot are absent on a timed stat grant (e.g. Galewind's Speed +3) -> default them.
+            entry["signature"] = {
+                "abilityId": int(sig.get("abilityId", 0)), "slot": sig.get("slot", ""), "atTier": int(sig["atTier"]),
+                "displayLabel": sig.get("displayLabel", ""),
+            }
+            if sig.get("hpBelow"):   # conditional HP-gate (e.g. Mortal Coil: Attack Boost while HP < 50%)
+                entry["signature"]["hpBelow"] = int(sig["hpBelow"])
+            if sig.get("forTurns"):  # timed stat grant (e.g. Galewind: Speed +3 for the first 3 turns)
+                entry["signature"]["stat"] = sig.get("stat", "")
+                entry["signature"]["statBonus"] = int(sig.get("statBonus", 0))
+                entry["signature"]["forTurns"] = int(sig["forTurns"])
+            if sig.get("charmLockTurns"):  # charm-lock aura (Galewind): landed Charm unbreakable N turns
+                entry["signature"]["charmLockTurns"] = int(sig["charmLockTurns"])
+        meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")
 

@@ -83,7 +83,7 @@
         "onHit": "None",
         "onHitAbilityId": 108,
         "formula": 2,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
       }
     },
     {
@@ -109,7 +109,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
       }
     },
     {
@@ -135,7 +135,14 @@
         "onHit": "Blind",
         "onHitAbilityId": 9,
         "formula": 45,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
+      },
+      "signature": {
+        "abilityId": 213,
+        "slot": "support",
+        "atTier": 3,
+        "displayLabel": "Concentration",
+        "note": "Concentration — negates evade so Gloomfang's always-Blind can never miss (the P3 payoff in living_weapon_knives.csv)"
       }
     },
     {
@@ -161,7 +168,14 @@
         "onHit": "Silence",
         "onHitAbilityId": 10,
         "formula": 45,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
+      },
+      "signature": {
+        "abilityId": 212,
+        "slot": "support",
+        "atTier": 3,
+        "displayLabel": "Magick Def Boost",
+        "note": "Magick Def Boost — anti-caster capstone: it silences spells then shrugs off the ones that land (living_weapon_knives.csv)"
       }
     },
     {
@@ -187,7 +201,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
       }
     },
     {
@@ -213,7 +227,14 @@
         "onHit": "Absorb HP",
         "onHitAbilityId": 0,
         "formula": 48,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
+      },
+      "signature": {
+        "abilityId": 228,
+        "slot": "support",
+        "atTier": 3,
+        "displayLabel": "HP Boost",
+        "note": "HP Boost — a bigger pool for the Night Sword lifesteal to refill (living_weapon_knives.csv)"
       }
     },
     {
@@ -239,7 +260,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
       }
     },
     {
@@ -265,7 +286,15 @@
         "onHit": "Doom",
         "onHitAbilityId": 11,
         "formula": 1,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
+      },
+      "signature": {
+        "abilityId": 209,
+        "slot": "support",
+        "atTier": 3,
+        "hpBelow": 50,
+        "displayLabel": "Attack Boost",
+        "note": "Attack Boost while HP < 50% — the cornered executioner hits harder as he bleeds; arm-and-stays for the battle once tripped (living_weapon_knives.csv)"
       }
     },
     {
@@ -291,7 +320,13 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
+      },
+      "signature": {
+        "atTier": 3,
+        "displayLabel": "Charm holds 3t",
+        "charmLockTurns": 3,
+        "note": "While a +3 Galewind is equipped, any Charm your party lands is unbreakable for 3 of the target's turns, then force-cleared (the gale sweeps them off their feet). Mechanic: hold authoritative charm bytes +0x49/+0x54 — see memory charm-unbreakable-bytes.md."
       }
     },
     {
@@ -317,7 +352,14 @@
         "onHit": "May inflict Sleep",
         "onHitAbilityId": 12,
         "formula": 1,
-        "attackFlags": "Throwable, TwoSwords, Striking"
+        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
+      },
+      "signature": {
+        "abilityId": 221,
+        "slot": "support",
+        "atTier": 3,
+        "displayLabel": "Dual Wield",
+        "note": "Dual Wield FALLBACK — the designed P3 'extra turn on kill (CT to 100)' needs the hidden-scheduler-CT dig (the +0x25 display CT is a proven decoy); shipping the twin-blade-assassin reskin until that RE lands. See docs/HANDOFF.md."
       }
     },
     {
@@ -967,7 +1009,7 @@
       "vanillaName": "Save the Queen",
       "name": "Save the Queen",
       "tier": 5,
-      "identity": "Disabler-bruiser — strong 45% evade plus Sleep-on-hit to neuter a target while you out-tempo the duel, backed by an EquipBonus Regen rider for self-sustain. The 'control the fight' pick between pure tank (Aegisbrand) and the Holy capstone. Sleep proc owned by no other sword. Renamed from 'Save the Queen' for the warden identity.",
+      "identity": "Protect-warden — strong 45% evade plus innate Protect (halve incoming physical), a tanky duelist that out-survives the fight. The 'control the fight' pick between pure tank (Defender) and the Holy capstone. Vanilla Save the Queen's Protect, restored.",
       "desc": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection.\nWhile equipped, grants Protect.",
       "baseline": {
         "wp": 18,
@@ -980,10 +1022,11 @@
         "wp": 18,
         "evade": 45,
         "element": "None",
-        "onHit": "Sleep",
-        "onHitAbilityId": 12,
+        "onHit": "None",
+        "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1
+        "range": 1,
+        "equipBonusId": 2
       },
       "iconTint": [
         0.36,
@@ -1058,7 +1101,7 @@
       "name": "Chaos Blade",
       "tier": 6,
       "identity": "Raw-power king — highest WP in the category, lowest evade (paid defensively), with a chance to Petrify on hit. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker cut to WP28 so it no longer strictly dominates Ragnarok. Iconic name kept; vanilla's Regen rider stripped (equipBonusId 0) so it's pure offense.",
-      "desc": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers.\nWhile equipped, grants Regen. When used to perform a standard attack, has a chance of inflicting Stone.",
+      "desc": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers.\nIts edge carries a curse that petrifies the unwary.",
       "baseline": {
         "wp": 50,
         "evade": 20,
@@ -1420,7 +1463,7 @@
       "vanillaName": "Giant's Axe",
       "name": "Ravager",
       "tier": 4,
-      "identity": "Berserk brute — a high-WP KnightSword that ALWAYS inflicts Berserk on hit (formula 2D = 100%): drives the struck foe into a mindless rage, shutting off their abilities/spells but making them hit +50% harder — a double-edged anti-caster gambit. Only Berserk source mod-wide. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right.",
+      "identity": "Frenzy-cleaver — a high-WP KnightSword with a chance to Confuse on hit: a savage blow that scrambles the struck foe into lashing out at random, the chaos of the old Berserk gambit without its always-on self-harm. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right.",
       "flavorOverride": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
       "baseline": {
         "wp": 12,
@@ -1433,9 +1476,9 @@
         "wp": 15,
         "evade": 5,
         "element": "None",
-        "onHit": "Berserk (100% via formula 2D)",
-        "onHitAbilityId": 53,
-        "formula": 45,
+        "onHit": "May inflict Confuse",
+        "onHitAbilityId": 23,
+        "formula": 1,
         "categoryOverride": "KnightSword"
       },
       "iconTint": [
@@ -1492,7 +1535,7 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 4,
+        "wp": 5,
         "evade": 18,
         "element": "None",
         "onHit": "Absorb MP",
@@ -1528,7 +1571,8 @@
         "onHit": "Attack casts Thunder (Magick Attack)",
         "onHitAbilityId": 0,
         "formula": 4,
-        "range": 1
+        "range": 1,
+        "equipBonusId": 0
       },
       "iconTint": [
         0.62,
@@ -1613,7 +1657,7 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 4,
+        "wp": 6,
         "evade": 15,
         "element": "None",
         "onHit": "None",
@@ -1677,7 +1721,7 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 5,
+        "wp": 7,
         "evade": 10,
         "element": "None",
         "onHit": "Silence",
@@ -1709,7 +1753,7 @@
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
-        "wp": 5,
+        "wp": 7,
         "evade": 15,
         "element": "Holy",
         "onHit": "None",
@@ -1917,7 +1961,7 @@
       "name": "Zeus Mace",
       "tier": 5,
       "identity": "Hybrid gish staff (iconic name kept) — the only Lightning staff PLUS an MA+1 rider: element coverage for anti-armor/mech fights stacked with a modest spell-power bump. Treasure-gated (T5); its Lightning element is a good the MA+2 capstone lacks.",
-      "desc": "A staff that increases the might of its user.\nWhile equipped, raises physical and magick attack power.",
+      "desc": "A staff that increases the might of its user.\nWhile equipped, raises magick attack power.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -4380,7 +4424,7 @@
       "name": "Grand Helm",
       "tier": 6,
       "identity": "ICONIC: the heavy-armor HP capstone (150, slot ceiling) plus Doom/Sleep immunity — no death-clock, no nap; the brick that can't be cheesed off the field.",
-      "desc": "This warrior's helm offers an excellent field of vision, and may protect the wearer from misfortune.\nWhile equipped, grants immunity to Blindness and Sleep.",
+      "desc": "This warrior's helm offers an excellent field of vision, and may protect the wearer from misfortune.\nWhile equipped, grants immunity to Doom and Sleep.",
       "baseline": {
         "hp": 150,
         "mp": 0,

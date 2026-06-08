@@ -18,14 +18,26 @@
     "wp": 5,
     "cat": "Knife",
     "formula": 45,
-    "flavor": "Its edge swims with gloom, and every wound it opens steals the daylight from a foe's eyes."
+    "flavor": "Its edge swims with gloom, and every wound it opens steals the daylight from a foe's eyes.",
+    "signature": {
+      "abilityId": 213,
+      "slot": "support",
+      "atTier": 3,
+      "displayLabel": "Concentration"
+    }
   },
   "4": {
     "name": "Hushblade",
     "wp": 6,
     "cat": "Knife",
     "formula": 45,
-    "flavor": "Smith-wrought to throttle the throat; a chant dies unspoken the instant it draws blood."
+    "flavor": "Smith-wrought to throttle the throat; a chant dies unspoken the instant it draws blood.",
+    "signature": {
+      "abilityId": 212,
+      "slot": "support",
+      "atTier": 3,
+      "displayLabel": "Magick Def Boost"
+    }
   },
   "5": {
     "name": "Argent Dirk",
@@ -39,7 +51,13 @@
     "wp": 6,
     "cat": "Knife",
     "formula": 48,
-    "flavor": "A duelist's parrying knife that drinks the blood it turns aside to mend its own bearer."
+    "flavor": "A duelist's parrying knife that drinks the blood it turns aside to mend its own bearer.",
+    "signature": {
+      "abilityId": 228,
+      "slot": "support",
+      "atTier": 3,
+      "displayLabel": "HP Boost"
+    }
   },
   "7": {
     "name": "Adamant Fang",
@@ -53,21 +71,41 @@
     "wp": 8,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "One graze, and the appointed hour begins its quiet count; what it marks, death collects."
+    "flavor": "One graze, and the appointed hour begins its quiet count; what it marks, death collects.",
+    "signature": {
+      "abilityId": 209,
+      "slot": "support",
+      "atTier": 3,
+      "displayLabel": "Attack Boost",
+      "hpBelow": 50
+    }
   },
   "9": {
     "name": "Galewind",
     "wp": 10,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "A gust lies coiled in its hollow blade, loosed to harry the foe with every keening stroke."
+    "flavor": "A gust lies coiled in its hollow blade, loosed to harry the foe with every keening stroke.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Charm holds 3t",
+      "charmLockTurns": 3
+    }
   },
   "10": {
     "name": "Zwill Straightblade",
     "wp": 12,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "A knife manufactured in a region renowned for its blades."
+    "flavor": "A knife manufactured in a region renowned for its blades.",
+    "signature": {
+      "abilityId": 221,
+      "slot": "support",
+      "atTier": 3,
+      "displayLabel": "Dual Wield"
+    }
   },
   "11": {
     "name": "Swiftfang",
@@ -332,7 +370,7 @@
     "name": "Ravager",
     "wp": 15,
     "cat": "KnightSword",
-    "formula": 45,
+    "formula": 1,
     "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open."
   },
   "50": {
@@ -344,7 +382,7 @@
   },
   "51": {
     "name": "Wellspring Rod",
-    "wp": 4,
+    "wp": 5,
     "cat": "Rod",
     "formula": 47,
     "flavor": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power."
@@ -372,7 +410,7 @@
   },
   "55": {
     "name": "Hushward Rod",
-    "wp": 4,
+    "wp": 6,
     "cat": "Rod",
     "formula": 1,
     "flavor": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed."
@@ -386,14 +424,14 @@
   },
   "57": {
     "name": "Dragon Rod",
-    "wp": 5,
+    "wp": 7,
     "cat": "Rod",
     "formula": 1,
     "flavor": "A rod wielded by a dragon master. Its tip is made from carved dragon bone."
   },
   "58": {
     "name": "Rod of Faith",
-    "wp": 5,
+    "wp": 7,
     "cat": "Rod",
     "formula": 1,
     "flavor": "This rod purges doubt from those it touches, turning them into pillars of faith."

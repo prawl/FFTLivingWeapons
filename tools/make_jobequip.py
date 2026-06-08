@@ -15,13 +15,17 @@ OUT = Path(__file__).resolve().parent.parent / "mod" / "FFTIVC" / "tables" / "en
 # weapon cross-equips by job name, applied to GENERIC player jobs only (don't rewrite story-char loadouts)
 CROSS = {
     "Archer": ["Gun"], "Black Mage": ["Knife"], "Time Mage": ["Rod"],
-    "White Mage": ["Rod"], "Thief": ["Bow", "Crossbow"], "Orator": ["Sword", "Book"],
+    "White Mage": ["Rod"], "Thief": ["Crossbow"], "Orator": ["Sword", "Book"],
     "Geomancer": ["Pole"], "Dragoon": ["Sword"], "Samurai": ["Polearm"], "Squire": ["Crossbow"],
 }
 INNATE = {}                # per-job signature innate abilities (job name -> AbilityData ids); none yet
 CEV_FLOOR = 8              # floor every human job's class evade to this (raises only; vanilla squishies sit at 5)
 LUCAVI = {62, 64, 65, 67, 69, 73}  # boss forms in the generic id range; enemy-only, skip equip edits
 REMOVE = {"Axe", "Flail"}  # emptied categories (all axes/flails repurposed into other weapons); strip from every equip list
+# Daggers grew teeth (signatures), so narrow generic dagger access. Per-GENERIC-job category strip
+# (story chars keep their loadouts). Keep Knife on Thief/Chemist/Black Mage (+ Ninja, the dual-blade
+# class). Dancer also equips knives in vanilla -- left alone pending a call.
+STRIP = {"Squire": {"Knife"}, "Orator": {"Knife"}}
 
 raw = VANILLA.read_text(encoding="utf-8")
 names = {int(m.group(1)): m.group(2).strip() for m in re.finditer(r"<Id>(\d+)</Id>\s*<!--\s*([^/]+?)\s*/", raw)}
@@ -45,7 +49,8 @@ for jid in human:
     nm = names.get(jid, "?")
     cur = [c.strip() for c in (job.findtext("EquippableItems") or "").split(",") if c.strip()]
     additions = [a for a in (list(CROSS.get(nm, [])) + ["Shield"]) if a not in cur] if jid in generic else []
-    final_equip = [c for c in (cur + additions) if c not in REMOVE]
+    strip = set(REMOVE) | (STRIP.get(nm, set()) if jid in generic else set())   # per-generic-job category strip
+    final_equip = [c for c in (cur + additions) if c not in strip]
     equip_changed = final_equip != cur
     innate = []
     have = [int((job.findtext(f"InnateAbilityId{i}") or "0").strip() or 0) for i in (1, 2, 3, 4)]

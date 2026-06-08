@@ -30,6 +30,11 @@ WEAPON_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "
 # Living Weapon display scaffolding: bake a fixed 2-char name-suffix SLOT (companion paints +/+2/+3)
 # and a fixed-width Kills line onto every weapon, so the in-card "it leveled up" overwrite works.
 SCAFFOLD_LIVING = True
+# Fixed char width of the "Grant <ability>" slot baked onto signature weapons; the companion
+# paints the granted ability's name here once its kill-tier is reached. MUST equal
+# Signatures.GrantWidth in the LivingWeapon DLL (they bake/paint the same region). 16 fits the
+# longest shipping label ("Magick Def Boost").
+GRANT_WIDTH = 16
 MELEE1_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff", "Flail", "Bag"}
 ACC_CATS = {"Shoes", "Armguard", "Ring", "Armlet", "Cloak", "Perfume"}
 CAT_NOUN = {"Knife": "knife", "NinjaBlade": "ninja blade", "Sword": "blade", "KnightSword": "knight's sword",
@@ -278,6 +283,11 @@ def main():
         if SCAFFOLD_LIVING and eff_cat in WEAPON_CATS:
             name = clean + "  "
             desc = desc.rstrip() + "\nKills 0000"
+            # Signature weapons get a fixed-width "Grant <ability>" slot after the Kills line;
+            # the companion paints the granted ability's name here at its kill-tier (blank below).
+            sig = it.get("signature")
+            if sig and sig.get("displayLabel"):
+                desc += "\nGrant " + (" " * GRANT_WIDTH)
         if dry:
             if it["id"] >= 11:  # show the new ones
                 print(f"id{it['id']:>3} {name!r}\n      {desc!r}")
