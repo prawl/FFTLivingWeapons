@@ -8,7 +8,8 @@ namespace LivingWeapon;
 /// FFTHandsFree active-unit resolver (NavigationActions.Scan, lines 953 + 1076):
 ///   * STATE-BASED death -- credit a corpse exactly once (DeadCredited), reset
 ///     when the slot is seen alive. Survives the move / MaxHP-flicker race that
-///     defeats naive "catch HP cross 0" detection.
+///     defeats naive "catch HP cross 0" detection. A corpse seen before its killer's
+///     `acted` flag latches is held PENDING (not dropped) and credited a tick later.
 ///   * ATTRIBUTE BY CORPSE TEAM -- an enemy slot hitting 0 HP means the last
 ///     player who acted killed it, so we credit that weapon. Player corpses are an
 ///     enemy's kill and are ignored (the Living Weapon only cares about player kills).
@@ -23,9 +24,13 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class KillTracker
 {
+    private const int PendingTtl = 30;   // ~3s at the 100ms poll: how long a corpse waits for an actor
+
     private readonly Dictionary<int, int> _kills;            // weapon id -> kill count
     private readonly IGameMemory _mem;
     private readonly bool[] _deadCredited = new bool[Offsets.NSlots];
+    private readonly bool[] _pending = new bool[Offsets.NSlots];   // corpse seen, awaiting an actor latch
+    private readonly int[] _pendingAge = new int[Offsets.NSlots];  // ticks a corpse has waited
     private int _lastPlayerWeapon = -1;
 
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem)
@@ -38,6 +43,8 @@ internal sealed class KillTracker
     public void ResetBattle()
     {
         Array.Clear(_deadCredited, 0, _deadCredited.Length);
+        Array.Clear(_pending, 0, _pending.Length);
+        Array.Clear(_pendingAge, 0, _pendingAge.Length);
         _lastPlayerWeapon = -1;
     }
 
@@ -77,22 +84,36 @@ internal sealed class KillTracker
             ushort hp = _mem.U16(slot + Offsets.AHp);
             if (hp == 0)                                     // KO'd
             {
-                if (!_deadCredited[s])
+                if (_deadCredited[s]) continue;              // already settled
+                if (s > Offsets.EnemySlotMax)                // a player corpse -> not a weapon's kill
                 {
                     _deadCredited[s] = true;
-                    if (s <= Offsets.EnemySlotMax && _lastPlayerWeapon >= 0)
-                    {
-                        _kills.TryGetValue(_lastPlayerWeapon, out int c);
-                        _kills[_lastPlayerWeapon] = c + 1;
-                        changed = true;
-                        Log.Info($"KILL -> weapon {_lastPlayerWeapon} now {c + 1} kills (enemy at {gx},{gy})");
-                    }
-                    else if (s <= Offsets.EnemySlotMax)
-                        Log.Info($"enemy corpse slot {s} at ({gx},{gy}) but no player weapon captured -> uncredited");
+                    continue;
+                }
+                // Enemy corpse. The killer's `acted` flag flips to 1 AFTER the death registers, so
+                // on the 100ms loop the corpse is often seen a tick or two before the actor latches.
+                // Hold it PENDING until the actor appears (then credit), rather than dropping it.
+                if (_lastPlayerWeapon >= 0)
+                {
+                    _kills.TryGetValue(_lastPlayerWeapon, out int c);
+                    _kills[_lastPlayerWeapon] = c + 1;
+                    _deadCredited[s] = true; _pending[s] = false;
+                    changed = true;
+                    Log.Info($"KILL -> weapon {_lastPlayerWeapon} now {c + 1} kills (enemy at {gx},{gy})");
+                }
+                else if (!_pending[s])
+                {
+                    _pending[s] = true; _pendingAge[s] = 0;
+                    Log.Info($"enemy corpse slot {s} at ({gx},{gy}) -> pending (awaiting actor)");
+                }
+                else if (++_pendingAge[s] > PendingTtl)      // no actor in time -> give up
+                {
+                    _deadCredited[s] = true; _pending[s] = false;
+                    Log.Info($"enemy corpse slot {s} expired -> uncredited (no actor)");
                 }
                 continue;
             }
-            _deadCredited[s] = false;                        // alive -> a revive+rekill recounts
+            _deadCredited[s] = false; _pending[s] = false;   // alive -> a revive+rekill recounts
         }
         return changed;
     }

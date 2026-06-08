@@ -67,7 +67,7 @@ internal sealed partial class Display
         }
         if (log)
             foreach (int id in targets)
-                Log.Info($"display: {_meta[id].Name} slots={_slots[id].Count} kills={_killsCache[id].Count}");
+                Log.Info($"display: {_meta[id].Name} nameSites={_slots[id].Count} killSites={_killsCache[id].Count} (paint targets, not kills)");
     }
 
     /// <summary>Pass 1: weapon name + valid 2-char slot -> per-weapon suffix target.</summary>

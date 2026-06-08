@@ -204,4 +204,48 @@ public class KillTrackerTests
 
         Assert.Empty(kills);
     }
+
+    [Fact]
+    public void Credits_a_corpse_seen_before_the_actor_latched()
+    {
+        // The corpse appears BEFORE acted flips to 1 (acted = action-complete, set after the
+        // death registers). On the 100ms loop the corpse is often noticed in that gap; it must
+        // WAIT for the actor, not be permanently dropped.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // actor has NOT acted yet
+        SetUnit(m, slot: 0, hp: 0);                                // enemy already dead
+        var t = new KillTracker(kills, m);
+
+        bool first = t.Poll();        // corpse seen, no latch -> held pending, not credited/dropped
+        Assert.False(first);
+        Assert.Empty(kills);
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // action completes -> actor latches
+        bool second = t.Poll();       // the pending corpse is credited now
+        Assert.True(second);
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void Does_not_credit_a_pending_corpse_after_it_expires()
+    {
+        // A corpse with no actor for too long is given up, so a much-later actor (next turn)
+        // can't inherit a stale kill.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // no actor
+        SetUnit(m, slot: 0, hp: 0);
+        var t = new KillTracker(kills, m);
+        for (int i = 0; i < 40; i++) t.Poll();   // pending corpse exceeds its TTL -> given up
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // a late actor finally latches
+        t.Poll();
+
+        Assert.Empty(kills);   // the expired corpse is NOT credited to the late actor
+    }
 }
