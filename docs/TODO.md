@@ -1,6 +1,4 @@
 2.0 Release
-- Make the card display with kill: 0000 update mid battle
-- Make sure all party units will make the kill count go up
 - Make sure having 2 swords makes both go up
 - Make sure having a weapon in off hand makes kill go up
 - When a weapon levels up show a banner?

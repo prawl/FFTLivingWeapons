@@ -140,7 +140,7 @@ auto-arm at `HookHost.SetHooks` (pre-boot, before the engine's table build):
   `write_address`.
 
 Driving: `source ./fft.sh` then `boot` / `scan_inventory` / etc., or write raw
-JSON to `…/FFTHandsFree/claude_bridge/command.json` and read `response.json`.
+JSON to `…/FFTHandsFree/command.json` and read `response.json`.
 Screenshots (ground truth): `./screenshot_crop.ps1`.
 
 ---
