@@ -54,17 +54,25 @@ public class KillTrackerTests
     }
 
     /// <summary>A roster slot keyed by the (level,brave,faith) fingerprint -> its R-hand weapon.</summary>
-    private static void SetRoster(FakeMemory m, int slot, int level, int brave, int faith, int weapon)
+    private static void SetRoster(FakeMemory m, int slot, int level, int brave, int faith, int weapon,
+                                  int lhand = 0xFFFF, int offhand = 0xFFFF)
     {
         long b = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
         m.U8s[b + Offsets.RLevel] = (byte)level;
         m.U8s[b + Offsets.RBrave] = (byte)brave;
         m.U8s[b + Offsets.RFaith] = (byte)faith;
         m.U16s[b + Offsets.RRHand] = (ushort)weapon;
+        m.U16s[b + Offsets.RLHand] = (ushort)lhand;
+        m.U16s[b + Offsets.ROffHand] = (ushort)offhand;   // +0x18: where the live dual-wield off-hand actually sits
     }
 
     private const int Wilham = Offsets.SlotsBack;       // first player-side array slot (slot 20)
     private const int Ramza = Offsets.SlotsBack + 1;
+
+    // Ids that count as real weapons (meta keys). A hand holding anything NOT in here
+    // (e.g. Shield) is never credited. Covers every weapon id used across these tests.
+    private static readonly HashSet<int> Weapons = new() { 52, 63, 73, 90 };
+    private const int Shield = 200;   // a non-weapon left-hand item -> never credited
 
     [Fact]
     public void Credits_the_acting_players_weapon()
@@ -74,7 +82,7 @@ public class KillTrackerTests
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
 
         t.Poll();                       // capture acting weapon (no corpse yet)
         SetUnit(m, slot: 0, hp: 0);     // an enemy slot drops to 0 HP
@@ -97,7 +105,7 @@ public class KillTrackerTests
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetUnit(m, Ramza, hp: 679, maxHp: 679, level: 99, brave: 70, faith: 50);
         SetActive(m, hp: 352, maxHp: 352, level: 99);   // Wilham is acting
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
         t.Poll();                                       // latch Wilham's Spark Rod (52)
 
         SetUnit(m, slot: 0, hp: 0);                      // an enemy dies on Wilham's turn
@@ -115,7 +123,7 @@ public class KillTrackerTests
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
 
         SetUnit(m, slot: 0, hp: 0);
         t.Poll();
@@ -133,7 +141,7 @@ public class KillTrackerTests
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
 
         t.Poll();
         SetUnit(m, slot: Offsets.EnemySlotMax + 5, hp: 0);   // a PLAYER-side slot dies
@@ -155,7 +163,7 @@ public class KillTrackerTests
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);  // archer struct
         SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);   // mage struct
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // archer ACTS -> latch 90
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
         t.Poll();
 
         // struct flickers to the mage, but the mage has NOT acted (acted==0)
@@ -178,7 +186,7 @@ public class KillTrackerTests
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, team: 3, acted: 1);   // team reads 3, not 0
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
 
         t.Poll();                       // must still latch -- the actor fingerprints to a roster player
         SetUnit(m, slot: 0, hp: 0);
@@ -197,7 +205,7 @@ public class KillTrackerTests
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);   // a player on the field
         SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 1);   // an ENEMY active (no roster match)
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
 
         t.Poll();
         SetUnit(m, slot: 0, hp: 0);   // an enemy dies on the enemy's turn
@@ -218,7 +226,7 @@ public class KillTrackerTests
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetUnit(m, Ramza, hp: 352, maxHp: 352, level: 99, brave: 70, faith: 50);  // same HP!
         SetActive(m, hp: 352, maxHp: 352, level: 99);
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
 
         t.Poll();
         SetUnit(m, slot: 0, hp: 0);
@@ -239,7 +247,7 @@ public class KillTrackerTests
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // actor has NOT acted yet
         SetUnit(m, slot: 0, hp: 0);                                // enemy already dead
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
 
         bool first = t.Poll();        // corpse seen, no latch -> held pending, not credited/dropped
         Assert.False(first);
@@ -262,12 +270,110 @@ public class KillTrackerTests
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // no actor
         SetUnit(m, slot: 0, hp: 0);
-        var t = new KillTracker(kills, m);
+        var t = new KillTracker(kills, m, Weapons);
         for (int i = 0; i < 40; i++) t.Poll();   // pending corpse exceeds its TTL -> given up
 
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // a late actor finally latches
         t.Poll();
 
         Assert.Empty(kills);   // the expired corpse is NOT credited to the late actor
+    }
+
+    [Fact]
+    public void Credits_both_weapons_of_a_dual_wielder()
+    {
+        // A dual-wielding unit (a weapon in EACH hand) earns a kill on BOTH blades at once.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, lhand: 90);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll();                       // latch both hands
+        SetUnit(m, slot: 0, hp: 0);     // an enemy dies
+        t.Poll();
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // right-hand weapon
+        Assert.Equal(1, kills.GetValueOrDefault(90));   // left-hand weapon -- BOTH counted
+    }
+
+    [Fact]
+    public void Does_not_credit_a_shield_in_the_off_hand()
+    {
+        // Normal loadout: weapon in the right hand, SHIELD in the left. Only the weapon counts.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, lhand: Shield);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll();
+        SetUnit(m, slot: 0, hp: 0);
+        t.Poll();
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+        Assert.False(kills.ContainsKey(Shield));   // a shield never earns a kill
+    }
+
+    [Fact]
+    public void Credits_an_off_hand_weapon_even_with_a_shield_in_the_primary()
+    {
+        // The degenerate loadout: SHIELD in the right hand, weapon in the left. Trust the item,
+        // not the slot -- the weapon counts wherever it sits, the shield never does.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: Shield, lhand: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll();
+        SetUnit(m, slot: 0, hp: 0);
+        t.Poll();
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // the off-hand weapon still counts
+        Assert.False(kills.ContainsKey(Shield));        // the primary shield does not
+    }
+
+    [Fact]
+    public void Counts_the_same_weapon_in_both_hands_only_once()
+    {
+        // Two copies of the SAME blade dual-wielded (id 52 in both hands) share one kill counter
+        // -- a single kill is +1 for that weapon, NOT +2 (ActorResolver dedups the hand list).
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, lhand: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll();
+        SetUnit(m, slot: 0, hp: 0);
+        t.Poll();
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // ONE kill, not two
+    }
+
+    [Fact]
+    public void Credits_a_dual_wield_off_hand_at_the_reserved_0x18_slot()
+    {
+        // LIVE roster dump (FFT:IC): a dual-wielder's SECOND weapon sits at +0x18 -- the field
+        // FFTHandsFree labels "reserved" -- NOT +0x16 (which stayed empty). Shields go to +0x1A.
+        // This is the real-game path; reading only +0x14/+0x16 credited just the right hand.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, offhand: 90);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll();
+        SetUnit(m, slot: 0, hp: 0);
+        t.Poll();
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // right hand
+        Assert.Equal(1, kills.GetValueOrDefault(90));   // off-hand at +0x18 -- the live bug
     }
 }

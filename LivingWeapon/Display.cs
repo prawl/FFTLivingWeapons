@@ -49,16 +49,14 @@ internal sealed partial class Display
 
     public void Tick()
     {
-        // Paint ONLY the weapon whose equip card is on screen -- the mirror's weapon slot
-        // (0x141870854). Painting every tiered weapon meant writing the counter into hundreds
-        // of stale render copies across the heap; one of those writes eventually corrupted game
-        // memory and crashed. The viewed weapon is the only one visible, so this is both safer
-        // (one weapon's sites, not all) and sufficient.
+        // Paint the viewed unit's EQUIPPED weapons. The equip mirror holds its loadout in slot
+        // order: [0]=right hand (0x141870854), [1]=left/off-hand. A dual-wielder's 2nd weapon sits
+        // in [1], so target BOTH hands or the off-hand's card never gets its counter. Still bounded
+        // to two weapons -- NOT the all-weapons paint that once wrote into hundreds of stale render
+        // copies and crashed. Meta-gating drops a shield in [1]; tier-gating drops un-leveled weapons.
         var targets = new HashSet<int>();
-        int viewed = Mem.U16(Offsets.MirrorWeapon);
-        if (viewed > 0 && viewed < 0xFFFF && _meta.ContainsKey(viewed)
-            && Tuning.TierFor(_kills.TryGetValue(viewed, out int vk) ? vk : 0) > 0)
-            targets.Add(viewed);
+        AddTarget(targets, Mem.U16(Offsets.MirrorWeapon));
+        AddTarget(targets, Mem.U16(Offsets.MirrorOffHand));
         if (targets.Count == 0) return;
 
         int sig = PaintSig(targets);
@@ -119,6 +117,15 @@ internal sealed partial class Display
         foreach (int id in targets)
             sig ^= (id * 397) ^ ((_kills.TryGetValue(id, out int k) ? k : 0) + 1);
         return sig;
+    }
+
+    /// <summary>Add a mirror-slot weapon to the paint targets if it's a tracked, leveled weapon --
+    /// drops empties (0/0xFFFF), a shield in the off-hand slot (not in meta), and tier-0 weapons.</summary>
+    private void AddTarget(HashSet<int> targets, int id)
+    {
+        if (id > 0 && id < 0xFFFF && _meta.ContainsKey(id)
+            && Tuning.TierFor(_kills.TryGetValue(id, out int k) ? k : 0) > 0)
+            targets.Add(id);
     }
 
     /// <summary>A cached suffix slot is still ours only if it still holds a valid slot value.</summary>

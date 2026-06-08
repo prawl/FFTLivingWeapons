@@ -50,6 +50,10 @@ internal static class Offsets
     public const int RosterStride = 0x258;
     public const int RosterSlots = 20;
     public const int RRHand  = 0x14;   // u16 right-hand weapon id (FFTPatcher-canonical, == items.json id)
+    public const int RLHand  = 0x16;   // u16 left-hand weapon id; 0xFF/0xFFFF when empty (kept for safety; live it stays empty)
+    public const int ROffHand = 0x18;  // u16 dual-wield OFF-HAND weapon. FFTHandsFree mislabels this "reserved" --
+                                       // a live FFT:IC roster dump proved the 2nd weapon lands HERE (+0x16 stays empty;
+                                       // shields go to +0x1A). Read alongside RRHand to credit both blades.
     public const int RLevel  = 0x1D;   // u8  (0 / empty slot guard)
     public const int RBrave  = 0x1E;   // u8  (fingerprint to find this unit's combat struct)
     public const int RFaith  = 0x1F;   // u8
@@ -93,4 +97,5 @@ internal static class Offsets
     //     card is on screen, so the in-card Kills counter knows WHICH weapon to show.
     //     Verified in FFTHandsFree (CommandWatcher.cs, 2026-04-15). Two synced copies. ---
     public const long MirrorWeapon = 0x141870854;
+    public const long MirrorOffHand = 0x141870856;   // mirror[1]: the viewed unit's off-hand (dual-wield 2nd weapon, or a shield)
 }

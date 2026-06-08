@@ -37,7 +37,7 @@ internal sealed class Engine
         _tallyPath = Path.Combine(modDir, "kills.json");
         _kills = LoadTally(_tallyPath);
         var meta = MetaLoader.Load(modDir);
-        _tracker = new KillTracker(_kills, new LiveMemory());
+        _tracker = new KillTracker(_kills, new LiveMemory(), new HashSet<int>(meta.Keys));
         _growth = new GrowthEngine(meta, _kills);
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
