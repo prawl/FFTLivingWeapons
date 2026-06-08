@@ -84,11 +84,17 @@ internal static class Mem
     }
 
     private const uint MEM_COMMIT = 0x1000;
+    private const uint MEM_PRIVATE = 0x20000;
+    private const uint WRITABLE = 0x04 | 0x08 | 0x40 | 0x80;   // RW | WriteCopy | ExecRW | ExecWriteCopy
     private const uint READABLE = 0x02 | 0x04 | 0x08 | 0x20 | 0x40 | 0x80;
     private const uint PAGE_GUARD = 0x100;
     private const uint PAGE_NOACCESS = 0x01;
 
-    /// <summary>Yield (base, size) for every committed, readable, non-guard region.</summary>
+    /// <summary>Yield (base, size) for every committed, PRIVATE, writable, non-guard region --
+    /// the process heap where the game's UI render copies (the card text we paint) live. Skips
+    /// module (IMAGE) and file-backed (MAPPED) memory: the display can't write there and the
+    /// card text is never there, so excluding them shrinks the paint scan from GBs to the heap
+    /// (much faster, which is what lets the counter refresh near-instantly).</summary>
     public static IEnumerable<(long baseAddr, long size)> Regions()
     {
         long addr = 0;
@@ -101,7 +107,7 @@ internal static class Mem
             long b = (long)mbi.BaseAddress;
             long size = (long)mbi.RegionSize;
             long next = b + size;
-            if (mbi.State == MEM_COMMIT && (mbi.Protect & READABLE) != 0
+            if (mbi.State == MEM_COMMIT && mbi.Type == MEM_PRIVATE && (mbi.Protect & WRITABLE) != 0
                 && (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)) == 0)
                 yield return (b, size);
             addr = next > addr ? next : addr + 0x1000;

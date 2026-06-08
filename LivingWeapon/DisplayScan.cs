@@ -23,9 +23,17 @@ internal sealed partial class Display
     private const int Overlap = 4096;
     private const long ScanCap = 6L * 1024 * 1024 * 1024;
     private const int FlavorWindow = 2048;   // how far before "Kills " the flavor line may sit
+    private const double FullScanSeconds = 90.0;   // re-discover the hot-region set this often
+
+    // The full heap is ~2.6GB -> a full scan is ~9s. But card text lives in only a few regions.
+    // Learn them once (full scan), then rescan ONLY those each cycle (tens of ms). Refresh the
+    // set occasionally in case the game grows new heap arenas.
+    private List<(long baseAddr, long size)> _hotRegions = new();
+    private DateTime _lastFullScan = DateTime.MinValue;
 
     private void Scan(HashSet<int> targets, bool log)
     {
+        var sw = System.Diagnostics.Stopwatch.StartNew();   // DIAGNOSTIC: measure heap-scan cost
         _slots.Clear();
         _killsCache.Clear();
         var names = new List<(int id, int enc, byte[] b)>();
@@ -46,12 +54,17 @@ internal sealed partial class Display
         byte[] killsAscii = ByteScan.Ascii("Kills ");
         byte[] killsUtf16 = ByteScan.Utf16("Kills ");
 
+        bool full = _hotRegions.Count == 0 || (DateTime.Now - _lastFullScan).TotalSeconds > FullScanSeconds;
+        var regions = full ? Mem.Regions() : (IEnumerable<(long, long)>)_hotRegions;
+        var newHot = new List<(long, long)>();   // regions found to hold card text this scan
+
         long scanned = 0;
-        foreach (var (rbase, rsize) in Mem.Regions())
+        foreach (var (rbase, rsize) in regions)
         {
-            if (scanned >= ScanCap) break;
+            if (full && scanned >= ScanCap) break;
+            int before = SiteCount(targets);
             long off = 0;
-            while (off < rsize && scanned < ScanCap)
+            while (off < rsize && (!full || scanned < ScanCap))
             {
                 int want = (int)Math.Min(ChunkSize + Overlap, rsize - off);
                 if (!Mem.Readable(rbase + off, want)) { off += ChunkSize; continue; }
@@ -64,10 +77,22 @@ internal sealed partial class Display
                 scanned += searchable;
                 off += ChunkSize;
             }
+            if (SiteCount(targets) > before) newHot.Add((rbase, rsize));   // region holds card text
         }
+        if (full) { _hotRegions = newHot; _lastFullScan = DateTime.Now; }
+
         if (log)
             foreach (int id in targets)
                 Log.Info($"display: {_meta[id].Name} nameSites={_slots[id].Count} killSites={_killsCache[id].Count} (paint targets, not kills)");
+        Log.Info($"scan {sw.ElapsedMilliseconds}ms {(full ? "FULL" : "hot")} {scanned / (1024 * 1024)}MB, {_hotRegions.Count} hot regions");   // DIAGNOSTIC
+    }
+
+    /// <summary>Total paint sites currently found for the target weapons (used to mark hot regions).</summary>
+    private int SiteCount(HashSet<int> targets)
+    {
+        int n = 0;
+        foreach (int id in targets) n += _slots[id].Count + _killsCache[id].Count;
+        return n;
     }
 
     /// <summary>Pass 1: weapon name + valid 2-char slot -> per-weapon suffix target.</summary>

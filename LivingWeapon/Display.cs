@@ -16,7 +16,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Display
 {
-    private const double RescanSeconds = 2.0;   // idle re-find of re-rendered card buffers
+    private const double RescanSeconds = 0.25;  // re-find re-rendered card buffers (cheap: heap-only scan)
 
     private static readonly string[] ValidSlots = { "  ", "+ ", "+2", "+3" };
     private static readonly List<byte[]> ValidAscii = ByteScan.Slots(1, ValidSlots);
@@ -75,12 +75,13 @@ internal sealed partial class Display
             try { Scan(targets, changed); } catch (Exception ex) { Log.Error("scan: " + ex.Message); }
             _lastTargets = targets;
             _lastScan = DateTime.Now;
-        }
-        if (scannedNow || sig != _lastPaintSig)
-        {
+            // Paint ONLY the sites this scan just verified hold THIS weapon's flavor+counter.
+            // Painting cached sites every tick stamped a weapon's count onto heap buffers the
+            // game had reused for OTHER cards (every card briefly read the last weapon's count).
+            // Scanning re-confirms the flavor is still there, so a reused buffer is never stamped.
             Paint();
-            _lastPaintSig = sig;
         }
+        _lastPaintSig = sig;
     }
 
     private void Paint()
