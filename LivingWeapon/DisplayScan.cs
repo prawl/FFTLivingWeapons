@@ -33,7 +33,6 @@ internal sealed partial class Display
 
     private void Scan(HashSet<int> targets, bool log)
     {
-        var sw = System.Diagnostics.Stopwatch.StartNew();   // DIAGNOSTIC: measure heap-scan cost
         _slots.Clear();
         _killsCache.Clear();
         var names = new List<(int id, int enc, byte[] b)>();
@@ -84,7 +83,6 @@ internal sealed partial class Display
         if (log)
             foreach (int id in targets)
                 Log.Info($"display: {_meta[id].Name} nameSites={_slots[id].Count} killSites={_killsCache[id].Count} (paint targets, not kills)");
-        Log.Info($"scan {sw.ElapsedMilliseconds}ms {(full ? "FULL" : "hot")} {scanned / (1024 * 1024)}MB, {_hotRegions.Count} hot regions");   // DIAGNOSTIC
     }
 
     /// <summary>Total paint sites currently found for the target weapons (used to mark hot regions).</summary>
