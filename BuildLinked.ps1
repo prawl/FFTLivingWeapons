@@ -68,8 +68,10 @@ try {
     }
 
     # --- [6/6] Build the DLL into the mod folder + stage the data tree ---
-    Write-Host "[6/6] Publishing Living Weapon DLL + staging data..." -ForegroundColor Yellow
-    dotnet publish "$root\LivingWeapon\LivingWeapon.csproj" -c Release -o $dest
+    # -p:LwDev=true defines LWDEV: DEV kill thresholds {1,2,3} + every weapon pre-seeded to P2 (one kill
+    # from P3), so a single kill flips the P3 grant on in-game. Publish.ps1 omits it (prod {5,20,50}).
+    Write-Host "[6/6] Publishing Living Weapon DLL (DEV: LwDev=true) + staging data..." -ForegroundColor Yellow
+    dotnet publish "$root\LivingWeapon\LivingWeapon.csproj" -c Release -o $dest -p:LwDev=true
     if ($LASTEXITCODE -ne 0) { Write-Host "DLL build failed" -ForegroundColor Red; exit 1 }
 
     Copy-Item "$root\mod\FFTIVC" $dest -Recurse -Force

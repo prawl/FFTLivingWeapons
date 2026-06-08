@@ -230,11 +230,11 @@
         "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
       },
       "signature": {
-        "abilityId": 228,
+        "abilityId": 210,
         "slot": "support",
         "atTier": 3,
-        "displayLabel": "HP Boost",
-        "note": "HP Boost — a bigger pool for the Night Sword lifesteal to refill (living_weapon_knives.csv)"
+        "displayLabel": "Defense Boost",
+        "note": "Defense Boost — the parrying lifesteal duelist takes less and out-drains the rest. (Was HP Boost, but max HP bakes at battle build, so it can't be granted live; Defense Boost gates a live damage-taken calc.)"
       }
     },
     {

@@ -133,6 +133,8 @@ function Invoke-BuildDll {
     # and meta.json (copied via the csproj).
     Write-Status "Building Living Weapon DLL into the package..." "Cyan"
 
+    # NO -p:LwDev here: production ships the real escalating thresholds {5,20,50} and seeds no kills.
+    # (BuildLinked.ps1 passes -p:LwDev=true for the dev {1,2,3} + auto-P3 testing build.)
     & dotnet publish "LivingWeapon/LivingWeapon.csproj" -c Release -o $BuildOutputPath
     if ($LASTEXITCODE -ne 0) {
         Write-ErrorMessage "dotnet publish failed (exit $LASTEXITCODE)."

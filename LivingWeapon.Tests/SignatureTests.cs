@@ -110,7 +110,7 @@ public class SignatureTests
 
     [Theory]
     [InlineData(212, 1, 0x02)]   // Hushblade -> Magick Def Boost
-    [InlineData(228, 3, 0x02)]   // Sanguine Gauche -> HP Boost
+    [InlineData(210, 1, 0x08)]   // Sanguine Gauche -> Defense Boost (was HP Boost; can't grant max-HP live)
     [InlineData(221, 2, 0x01)]   // Zwill -> Dual Wield (fallback)
     public void Knife_support_signatures_arm_their_bit_at_P3(int id, int expectOff, int expectMask)
     {

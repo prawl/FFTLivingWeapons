@@ -4,30 +4,36 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Galewind's signature: while a +3 Galewind is equipped, any Charm the party lands on an enemy is
+/// Galewind's signature: while a +3 Galewind is equipped, ONE charm the party lands on an enemy is
 /// held UNBREAKABLE for N of that enemy's turns, then force-cleared. Mechanism PROVEN live (memory
 /// charm-unbreakable-bytes): the AUTHORITATIVE unit copy (0x14184xxxx, static-array layout) carries
 /// charm at base+0x49 (status, mask 0x20) and an allegiance flag at base+0x54 (0x20). Re-stamping
 /// both each tick beats the engine's on-hit clear; zeroing them after N turns ends it cleanly.
 ///
+/// ANTI-CHEESE: only ONE enemy is ever locked (else you charm-lock the whole field and win). The
+/// lock is newest-wins -- landing a charm on a new enemy drops the previous one and moves the lock
+/// (see <see cref="Decide"/>). Other charmed enemies are left as ordinary, breakable charms.
+///
 /// DETECTION: enumerate REAL enemies from the static array (sane filter -> no phantoms), then in one
-/// band pass match each one's 5-field fingerprint and read its charm bit LIVE off the authoritative
-/// copy (the 0x140893C00 mirror lags + a raw bit-scan is noise). TURN COUNT: off the locked enemy's
-/// own CT (+0x25) -- it sits full during its turn then resets when it acts; a reset = one turn. (The
-/// cross-array active-unit turn-resolver was unreliable live; this self-contained CT edge is robust.)
-/// Every read/write is Mem-guarded.
+/// band pass match each one's fingerprint and read its charm bit LIVE off the authoritative copy.
+/// TURN COUNT: off the locked enemy's own CT (+0x25) -- full during its turn, resets when it acts.
+/// HEARTBEAT: the engine pings on every live-battlefield tick; if pings lapse (battle ended even
+/// though the sticky sentinel lies) the lock deactivates and goes quiet. Every read/write is guarded.
 /// </summary>
-internal sealed class CharmLock
+internal sealed partial class CharmLock
 {
-    private const int CharmStatusOff = 0x49, CharmAllegOff = 0x54, CtOff = 0x25;   // base-relative
-    private const byte CharmBit = 0x20;
+    internal const int CharmStatusOff = 0x49, CharmAllegOff = 0x54;   // base-relative (internal: tests assert the held bytes)
+    private const int CtOff = 0x25;
+    internal const byte CharmBit = 0x20;
     private const int GalewindId = 9;
     private const long BandRadius = 0x100000;   // +/-1MB around the combat anchor
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    // charm-locked authoritative copies: address -> (enemy fingerprint, turns counted, last CT seen)
-    private readonly Dictionary<long, ((int mhp, int lvl, int br, int fa) fp, int counted, int lastCt)> _locks = new();
+    // The single charm-locked enemy (anti-cheese): authoritative-copy address, its fingerprint,
+    // turns counted, and the last CT seen. null = nothing locked.
+    private (long addr, (int mhp, int lvl, int br, int fa) fp, int counted, int lastCt)? _lock;
+    private DateTime _lastBeat;
     private bool _wasActive;
     private int _tick, _dbg;
 
@@ -37,13 +43,17 @@ internal sealed class CharmLock
         _kills = kills;
     }
 
-    public void ResetBattle() { _locks.Clear(); _wasActive = false; _tick = 0; }
+    public void ResetBattle() { _lock = null; _wasActive = false; _tick = 0; _dbg = 0; _lastBeat = default; }
 
-    /// <summary>A completed turn = the unit's CT was (near-)full and has since reset notably lower.</summary>
-    public static bool IsTurn(int lastCt, int curCt) => lastCt >= 90 && curCt < 70;
+    /// <summary>The fingerprint of the one locked enemy, or null (exposed for tests).</summary>
+    internal (int mhp, int lvl, int br, int fa)? LockedFingerprint => _lock?.fp;
 
-    public void Tick()
+    /// <summary>Engine pings this on every live-battlefield tick; lapsed pings time the lock out.</summary>
+    public void Heartbeat(DateTime now) => _lastBeat = now;
+
+    public void Tick(DateTime now)
     {
+        if (HeartbeatExpired(now, _lastBeat, TimeoutMs)) { Deactivate(); return; }
         int lockTurns = ActiveLockTurns();
         if ((lockTurns > 0) != _wasActive)
         {
@@ -52,6 +62,15 @@ internal sealed class CharmLock
         }
         if (lockTurns > 0 && _tick++ % 6 == 0) Detect();   // band scan is heavy -> ~every 200ms
         Drive(lockTurns);                                   // hold/clear every tick (beats on-hit clear)
+    }
+
+    /// <summary>Heartbeat lapsed (battle ended). Drop the lock and go quiet; log the edge once.</summary>
+    private void Deactivate()
+    {
+        _lock = null;
+        _tick = 0;
+        _dbg = 0;
+        if (_wasActive) { _wasActive = false; Log.Info("charm-lock inactive (battle ended -- heartbeat lapsed)"); }
     }
 
     /// <summary>charmLockTurns if a +3 Galewind is equipped by any roster unit, else 0.</summary>
@@ -71,17 +90,24 @@ internal sealed class CharmLock
         return 0;
     }
 
-    /// <summary>Lock any real enemy whose authoritative copy shows Charm live. One band pass, matching
-    /// each enemy's exact fingerprint -> specific, no noise, no mirror lag.</summary>
     private void Detect()
     {
+        var charmed = ScanCharmed();
+        if (charmed.Count > 0) AdoptOrTransfer(charmed);
+    }
+
+    /// <summary>Find every real enemy whose authoritative copy shows Charm live. One band pass,
+    /// matching each enemy's exact fingerprint -> specific, no noise, no mirror lag.</summary>
+    private List<(long addr, (int mhp, int lvl, int br, int fa) fp)> ScanCharmed()
+    {
+        var found = new List<(long addr, (int mhp, int lvl, int br, int fa) fp)>();
         var byMhp = new Dictionary<int, List<(int mhp, int lvl, int br, int fa)>>();
         foreach (var fp in Enemies())
         {
             if (!byMhp.TryGetValue(fp.mhp, out var l)) byMhp[fp.mhp] = l = new();
             l.Add(fp);
         }
-        if (byMhp.Count == 0) return;
+        if (byMhp.Count == 0) return found;
         long lo = Offsets.CombatAnchor - BandRadius, total = BandRadius * 2;
         const int chunk = 0x40000;
         for (long off = 0; off < total; off += chunk)
@@ -98,14 +124,26 @@ internal sealed class CharmLock
                 {
                     if (buf[b + Offsets.ALevel] != fp.lvl || buf[b + Offsets.ABrave] != fp.br || buf[b + Offsets.AFaith] != fp.fa) continue;
                     if ((buf[b + CharmStatusOff] & CharmBit) == 0) continue;   // this copy isn't charmed
-                    long addr = lo + off + b;
-                    if (_locks.ContainsKey(addr)) break;
-                    _locks[addr] = (fp, 0, buf[b + CtOff]);
-                    Log.Info($"charm-lock armed: mhp {fp.mhp} lvl {fp.lvl} @ {addr:X}");
+                    if (!found.Exists(x => x.fp.Equals(fp))) found.Add((lo + off + b, fp));
                     break;
                 }
             }
         }
+        return found;
+    }
+
+    /// <summary>Newest-wins single lock: adopt the new charm, dropping the previous one if any.</summary>
+    internal void AdoptOrTransfer(IReadOnlyList<(long addr, (int mhp, int lvl, int br, int fa) fp)> charmed)
+    {
+        var fps = new List<(int mhp, int lvl, int br, int fa)>(charmed.Count);
+        foreach (var c in charmed) fps.Add(c.fp);
+        if (!Decide(_lock?.fp, fps, out var target, out bool dropPrevious)) return;
+        if (dropPrevious && _lock is { } prev && Valid(prev.addr, prev.fp))
+            SetCharm(prev.addr, false);   // drop the charm from the previous monster
+        long addr = 0;
+        foreach (var c in charmed) if (c.fp.Equals(target)) { addr = c.addr; break; }
+        _lock = (addr, target, 0, Mem.U8(addr + CtOff));
+        Log.Info($"charm-lock armed: mhp {target.mhp} lvl {target.lvl} @ {addr:X}{(dropPrevious ? " (dropped previous)" : "")}");
     }
 
     /// <summary>Real enemy fingerprints from the static array; filters phantoms (level 0 / garbage).</summary>
@@ -125,22 +163,18 @@ internal sealed class CharmLock
         return list;
     }
 
-    /// <summary>Hold the charm bytes on each locked enemy, counting its turns off CT; clear after N.</summary>
+    /// <summary>Hold the charm bytes on the locked enemy, counting its turns off CT; clear after N.</summary>
     private void Drive(int lockTurns)
     {
-        if (_locks.Count == 0) return;
-        foreach (long addr in new List<long>(_locks.Keys))
-        {
-            var (fp, counted, lastCt) = _locks[addr];
-            if (!Valid(addr, fp)) { _locks.Remove(addr); continue; }   // copy moved/freed -> re-detect later
-            int ct = Mem.U8(addr + CtOff);
-            if (IsTurn(lastCt, ct)) counted++;
-            if (_dbg++ % 20 == 0) Log.Info($"charm-lock mhp {fp.mhp}: CT {ct} turns {counted}/{lockTurns}");
-            bool hold = lockTurns > 0 && counted < lockTurns;
-            SetCharm(addr, hold);
-            if (hold) _locks[addr] = (fp, counted, ct);
-            else { _locks.Remove(addr); Log.Info($"charm-lock cleared: mhp {fp.mhp} after {counted} turns"); }
-        }
+        if (_lock is not { } L) return;
+        if (!Valid(L.addr, L.fp)) { _lock = null; return; }   // copy moved/freed -> re-detect later
+        int ct = Mem.U8(L.addr + CtOff);
+        int counted = L.counted + (IsTurn(L.lastCt, ct) ? 1 : 0);
+        if (_dbg++ % 20 == 0) Log.Info($"charm-lock mhp {L.fp.mhp}: CT {ct} turns {counted}/{lockTurns}");
+        bool hold = lockTurns > 0 && counted < lockTurns;
+        SetCharm(L.addr, hold);
+        if (hold) _lock = (L.addr, L.fp, counted, ct);
+        else { _lock = null; Log.Info($"charm-lock cleared: mhp {L.fp.mhp} after {counted} turns"); }
     }
 
     private static bool Valid(long b, (int mhp, int lvl, int br, int fa) fp)

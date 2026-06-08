@@ -16,6 +16,12 @@
     <RootNamespace>LivingWeapon</RootNamespace>
   </PropertyGroup>
 
+  <!-- DEV build flag: BuildLinked.ps1 passes -p:LwDev=true to define LWDEV, which switches Tuning
+       to {1,2,3} kill thresholds and seeds every weapon to P2 (one kill from P3). Publish.ps1 omits it. -->
+  <PropertyGroup Condition="'$(LwDev)' == 'true'">
+    <DefineConstants>$(DefineConstants);LWDEV</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Reloaded.Mod.Interfaces" Version="2.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

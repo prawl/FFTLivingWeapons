@@ -48,6 +48,7 @@ internal sealed partial class GrowthEngine
         _applied.Clear();
         _timedNatural.Clear();
         _structForSlot.Clear();
+        _grantLogged.Clear();
         _logged = false;
     }
 
@@ -81,7 +82,7 @@ internal sealed partial class GrowthEngine
                 int hp = 0, maxHp = 0;
                 if (m.Signature != null && m.Signature.HpBelow > 0)        // only conditional sigs read HP
                     (hp, maxHp) = ReadHp(level, brave, faith);
-                HoldSignature(s, m.Signature, tier, hp, maxHp);            // iconic passive
+                HoldSignature(s, weapon, m.Name, m.Signature, tier, hp, maxHp);   // iconic passive (+ read-back log)
                 if (m.Signature != null && m.Signature.ForTurns > 0)       // timed flat-stat grant
                     HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
                 if (Route(s, m, tier, out long addr, out double factor))

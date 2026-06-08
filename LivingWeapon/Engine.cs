@@ -39,6 +39,11 @@ internal sealed class Engine
         _tallyPath = Path.Combine(modDir, "kills.json");
         _kills = LoadTally(_tallyPath);
         var meta = MetaLoader.Load(modDir);
+        if (Tuning.DevSeedAllKills)   // DEV build: every weapon starts at max tier for fast verification
+        {
+            Tuning.SeedKills(meta.Keys, _kills, Tuning.DevKillSeed);
+            Log.Info($"DEV: seeded {meta.Count} weapons to >= {Tuning.DevKillSeed} kills (one kill from P3).");
+        }
         _turns = new TurnTracker(new LiveMemory());
         _tracker = new KillTracker(_kills, new LiveMemory(), new HashSet<int>(meta.Keys));
         _growth = new GrowthEngine(meta, _kills, _turns);
@@ -79,7 +84,12 @@ internal sealed class Engine
         // slot9 stays stuck on the world-map party menu, so it can't tell combat from a
         // menu. battleMode does: 2/3/4 = live battlefield, 0 = world map / menus.
         bool onField = nowIn && (battleMode == 2 || battleMode == 3 || battleMode == 4);
-        if (onField) _lastField = DateTime.Now;
+        var now = DateTime.Now;
+        if (onField) _lastField = now;
+        // Heartbeat on ANY genuine in-battle frame -- slot0==0xFF covers cast/attack targeting
+        // (battleMode 1/5), where gating on {2,3,4} alone starves the beat and false-drops a live
+        // lock the moment the player dwells on a target. Goes quiet only on the post-battle world map.
+        if (nowIn && CharmLock.InLiveBattle(slot0, battleMode)) _charm.Heartbeat(now);
 
         // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.
         // Open status card = paused submenu in the action-menu context (battleMode 3).
@@ -108,7 +118,7 @@ internal sealed class Engine
 
         bool changed = _tracker.Poll();      // every ~33ms tick so fast-forward deaths aren't missed
         _turns.Poll();                        // edge-detect each unit's turns (for timed signatures)
-        _charm.Tick();                        // charm-lock: hold/clear each tick to beat the on-hit clear
+        _charm.Tick(now);                     // charm-lock: hold/clear each tick to beat the on-hit clear
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 
@@ -116,7 +126,7 @@ internal sealed class Engine
         // for a beat (battleMode 0 = world-map party menu / post-battle), paint the card.
         // RPM/WPM make the scan/paint fail-safe, so doing this in a churny menu can't crash;
         // the settle window just avoids needless work during a mid-combat battleMode flicker.
-        if (battleStatus || (!onField && (DateTime.Now - _lastField).TotalSeconds > FieldSettleSeconds))
+        if (battleStatus || (!onField && (now - _lastField).TotalSeconds > FieldSettleSeconds))
             _display.Tick();
     }
 

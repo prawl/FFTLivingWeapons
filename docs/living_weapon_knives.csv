@@ -4,9 +4,9 @@ id,tier,name,WP,parry%,grows,onHit,P,P2,P3,opRisk,sigNote,Verified Live?
 3,2,Gloomfang,5,15%,PA,Blind (always),PA +10%,PA +20%,PA +30% + Concentration,med,its always-Blind can never be evaded,
 4,2,Hushblade,6,15%,PA,Silence (always),PA +10%,PA +20%,PA +30% + Magick Def Boost,low,anti-caster: silence + shrug off spells,
 5,3,Argent Dirk,7,16%,PA,—,PA +10%,PA +20%,PA +30%,—,,Yes
-6,3,Sanguine Gauche,6,50%,PA,Absorb HP (drain),PA +10%,PA +20%,PA +30% + HP Boost,low,bigger pool for the lifesteal to refill,
+6,3,Sanguine Gauche,6,50%,PA,Absorb HP (drain),PA +10%,PA +20%,PA +30% + Defense Boost,low,"tanky parry duelist: takes less, out-drains the rest (HP Boost can't be granted live -- max HP bakes at build)",
 68,3,Bloodlash,8,15%,PA,Poison (always),PA +10%,PA +20%,PA +30%,—,,Yes
 7,4,Adamant Fang,12,5%,PA,—,PA +10%,PA +20%,PA +30%,—,,Yes
-8,4,Mortal Coil,8,15%,PA,Doom (~25%),PA +10%,PA +20%,PA +30% + Attack Boost (while HP < 50%),low,desperation: the cornered executioner hits harder as he bleeds,
+8,4,Mortal Coil,8,15%,PA,Doom (~25%),PA +10%,PA +20%,PA +30% + Attack Boost (while HP < 50%),low,desperation: the cornered executioner hits harder as he bleeds,Yes
 9,5,Galewind,10,5%,PA,—,PA +10%,PA +20%,PA +30% +  Charm becomes unbreakable for 3 turns,high,"the gale sweeps charmed foes off their feet: while a +3 Galewind is equipped, a landed Charm cannot be broken by damage for 3 of the target turns, then force-clears",Yes
 10,6,Zwill Straightblade,12,10%,PA,Sleep (~25%),PA +10%,PA +20%,PA +30% + Extra turn on kill (CT to 100),high,"legendary assassin flow. UNPROVEN: needs the hidden-scheduler-CT dig (real RE spike, may be unbuildable). Fallback: Dual Wield",

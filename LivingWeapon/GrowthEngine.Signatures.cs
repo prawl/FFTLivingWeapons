@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace LivingWeapon;
 
 /// <summary>
@@ -11,11 +13,14 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class GrowthEngine
 {
+    // Grants announced this battle (weapon id), so the read-back log fires once per arm, not every tick.
+    private readonly HashSet<int> _grantLogged = new();
+
     /// <summary>Hold this weapon's signature support passive on the combat struct, once its
     /// kill-tier is earned -- OR-in the bit each tick to beat the engine's per-turn normalize,
     /// exactly as the stat hold does. Guarded write; never clears (kills only climb, and the
     /// struct is rebuilt fresh each battle, so it re-arms naturally).</summary>
-    private void HoldSignature(long s, WeaponSignature? sig, int tier, int hp, int maxHp)
+    private void HoldSignature(long s, int weapon, string name, WeaponSignature? sig, int tier, int hp, int maxHp)
     {
         if (!Signatures.ResolveSupport(sig, tier, out int off, out byte mask)) return;
         if (!Signatures.ConditionMet(sig, hp, maxHp)) return;   // HP-gate; no-op for always-on signatures
@@ -23,6 +28,21 @@ internal sealed partial class GrowthEngine
         if (!Mem.Writable(addr, 1)) return;
         int cur = Mem.U8(addr);
         if ((cur & mask) == 0) Mem.W8(addr, (byte)(cur | mask));
+        LogGrantOnce(weapon, name, sig!, off, mask, addr);
+    }
+
+    /// <summary>Read the granted bit back and announce it once per weapon per battle: confirms the
+    /// write landed (SET vs MISS) and decodes the ability by name -- the clean test signal that
+    /// replaces eyeballing a memory diff. Warns when the support is build-time-only (e.g. HP Boost),
+    /// whose live bit can't take effect, so a dud signature is obvious in the log.</summary>
+    private void LogGrantOnce(int weapon, string name, WeaponSignature sig, int off, byte mask, long addr)
+    {
+        if (!_grantLogged.Add(weapon)) return;
+        bool present = (Mem.U8(addr) & mask) != 0;   // read-back: did our write actually land?
+        string warn = Signatures.IsBuildTimeOnly(sig.AbilityId)
+            ? "  WARN build-time-only support -- a live bit will NOT take effect"
+            : "";
+        Log.Info($"GRANT {name} -> {sig.DisplayLabel} (support {sig.AbilityId}) @ +0x98[{off}]=0x{mask:X2} readback={(present ? "SET" : "MISS")}{warn}");
     }
 
     /// <summary>Read a unit's (currentHP, maxHP) from the static array by its (level,brave,faith)

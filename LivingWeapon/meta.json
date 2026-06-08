@@ -53,10 +53,10 @@
     "formula": 48,
     "flavor": "A duelist's parrying knife that drinks the blood it turns aside to mend its own bearer.",
     "signature": {
-      "abilityId": 228,
+      "abilityId": 210,
       "slot": "support",
       "atTier": 3,
-      "displayLabel": "HP Boost"
+      "displayLabel": "Defense Boost"
     }
   },
   "7": {

@@ -38,6 +38,15 @@ internal static class Signatures
         return true;
     }
 
+    /// <summary>Supports that a LIVE-set bit can't actually grant: their effect is baked at battle
+    /// build, not re-read from the bitfield each calculation. HP Boost / MP Boost change a derived
+    /// stat (max HP/MP) computed once at build; Doublehand / Dual Wield are equip-time (how the unit
+    /// holds weapons). Wiring one as a signature is a design bug -- the grant read-back log warns on
+    /// it. (Calculation-gating supports -- Attack/Defense/Magick(Def) Boost, Concentration -- DO work
+    /// live, because the engine re-reads the bit when it computes that hit/damage.)</summary>
+    public static bool IsBuildTimeOnly(int abilityId) =>
+        abilityId == 220 || abilityId == 221 || abilityId == 228;   // Doublehand, Dual Wield, HP Boost
+
     // --- card display: the painted "Grant <ability>" label (the tried-and-true text paint,
     //     same mechanism as the +N suffix and the Kills counter) ---
 
