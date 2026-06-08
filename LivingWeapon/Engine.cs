@@ -15,7 +15,11 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class Engine
 {
-    private const int PollMs = 100;
+    // Poll fast: at fast-forward a death's hp==0 window is brief, and a 100ms loop sailed
+    // past it, missing kills. The kill scan is cheap; growth (heavier) runs every Nth tick.
+    private const int PollMs = 33;
+    private const int GrowthEveryNTicks = 3;   // ~100ms; stat-hold doesn't need 33ms
+    private int _tick;
 
     private readonly string _tallyPath;
     private readonly Dictionary<int, int> _kills;
@@ -96,8 +100,8 @@ internal sealed class Engine
         }
         _inBattle = true;
 
-        bool changed = _tracker.Poll();      // kill detection unchanged: polls all in-battle ticks
-        _growth.Apply();
+        bool changed = _tracker.Poll();      // every ~33ms tick so fast-forward deaths aren't missed
+        if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 
         // slot9 is still the battle sentinel, but once we've been OFF the live battlefield
