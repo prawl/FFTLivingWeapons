@@ -1041,7 +1041,7 @@
       "name": "Excalibur",
       "tier": 6,
       "identity": "Holy-knight tempo capstone — Holy element (anti-Undead, with its signature Holy absorb) plus EquipBonus rider Haste for extra turns. The build-defining matchup + tempo + survivability blade; the only elemental Knight Sword that also carries a permanent rider. Iconic name kept. Seated at vanilla WP21 (verbatim Game8/Regabonds) mid-ladder.",
-      "desc": "It is said that only the true heir to the throne can wield this legendary knight's sword. The worthy will be granted fleetness of foot and divine might.\nWhile equipped, grants Haste.",
+      "desc": "It is said that only the true heir to the throne can wield this legendary knight's sword. The worthy will be granted fleetness of foot and divine might.\nWhen attacking, deals Holy-elemental damage.",
       "baseline": {
         "wp": 21,
         "evade": 35,
@@ -1071,7 +1071,7 @@
       "name": "Ragnarok",
       "tier": 6,
       "identity": "Anti-caster prestige blade — unique Dark element plus Silence-on-hit shuts down enemy mages, with high WP and middling evade. Fixes vanilla's 'squeezed slot' (riderless WP24, dominated by Chaos): now owns the Dark + Silence niche so it is NOT dominated by Chaos Blade. Iconic name kept. The pick versus caster-heavy comps.",
-      "desc": "This knight's sword is mentioned in tales about the end of the world. It provides defense against spellcraft.\nWhile equipped, grants Shell.",
+      "desc": "This knight's sword is mentioned in tales about the end of the world. It provides defense against spellcraft.\nWhen attacking, deals Dark-elemental damage and has a chance of inflicting Silence.",
       "baseline": {
         "wp": 24,
         "evade": 20,
@@ -1744,7 +1744,7 @@
       "name": "Rod of Faith",
       "tier": 5,
       "identity": "Faith-zealot rod — InnateStatus: Faith pins the wielder at max Faith, so every spell cast (and cast AT them) lands at peak potency: a glass-cannon nuker. Holy element on the Attack smites undead. Only innate-Faith weapon.",
-      "desc": "This rod purges doubt from those it touches, turning them into pillars of faith.\nWhile equipped, grants Faith. When used to perform a standard attack, has a chance of granting Faith.",
+      "desc": "This rod purges doubt from those it touches, turning them into pillars of faith.\nWhile equipped, grants Faith.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -2243,7 +2243,7 @@
       "name": "Glacial Gun",
       "tier": 3,
       "identity": "First elemental gun: Ice, WP12 (144 base), R8. Formula-4 innate Blizzard-line cast, Faith-scaled (a high roll beats the Repeater, a low/immune roll loses). The only Ice gun: anti-Fire-creature, +25% vs Ice-weak, but Ice-absorbers heal it. Element + Faith variance is the trade for the WP jump.",
-      "desc": "A magickal firearm that shoots freezing bullets.\nWhen attacking, has a chance of increasing the potency of the attack.",
+      "desc": "A magickal firearm that shoots freezing bullets.\nIts attack strikes as Blizzard at no MP cost, scaling with the wielder's Faith.",
       "baseline": {
         "wp": 21,
         "evade": 5,
@@ -2273,7 +2273,7 @@
       "name": "Blaze Gun",
       "tier": 3,
       "identity": "Fire twin of the Hailshot at IDENTICAL WP12/R8: the different element is the entire differentiator. The only Fire gun: anti-Undead, anti-Ice-creature, shreds Oiled targets; Fire-absorbers heal it. A true sidegrade, never an upgrade, picked purely for the Fire matchup.",
-      "desc": "A magickal firearm that shoots flaming bullets.\nWhen attacking, has a chance of increasing the potency of the attack.",
+      "desc": "A magickal firearm that shoots flaming bullets.\nIts attack strikes as Fire at no MP cost, scaling with the wielder's Faith.",
       "baseline": {
         "wp": 20,
         "evade": 5,
@@ -2303,7 +2303,7 @@
       "name": "Blaster",
       "tier": 6,
       "identity": "Endgame capstone: Lightning, WP15 (225 base), no drawback, only Lightning gun (+25% in rain; Lightning-absorbers heal). PAYS for its clean power with the SHORTEST gun range (R7) so every other gun out-distances it: the close-the-gap-and-nuke finisher, not a kiter. The poach/endgame trophy.",
-      "desc": "A magickal firearm that shoots electrically charged bullets.\nWhen attacking, has a chance of increasing the potency of the attack.",
+      "desc": "A magickal firearm that shoots electrically charged bullets.\nIts attack strikes as Thunder at no MP cost, scaling with the wielder's Faith.",
       "baseline": {
         "wp": 22,
         "evade": 5,
@@ -2813,7 +2813,7 @@
       "name": "Faerie Harp",
       "tier": 5,
       "identity": "T5 capstone harp — iconic faerie lullaby: ranged Sleep lulls a target out of the fight for a team burst (self-removes on hit, so a setup tool not a delete). Top harp WP, T5-gated. Owns Sleep line-wide.",
-      "desc": "The pure sound of this harp can charm those who hear it played.\nWhen attacking, has a chance of inflicting Charmed.",
+      "desc": "The pure sound of this harp can charm those who hear it played.\nWhen attacking, has a chance of casting Sleep.",
       "baseline": {
         "wp": 15,
         "evade": 10,
@@ -2825,7 +2825,7 @@
         "wp": 8,
         "evade": 10,
         "element": "None",
-        "onHit": "Charms the target on hit",
+        "onHit": "Casts Sleep on the target on hit",
         "onHitAbilityId": 246,
         "formula": 2,
         "range": 3
@@ -6272,7 +6272,7 @@
       "name": "Cursed Ring",
       "tier": 5,
       "identity": "Dark Pact ring (unique): a loaded PA+2/MA+1/Speed+2/Move+1/Jump+1 stat bundle that absorbs Dark, paid for with a Holy weakness. High risk/reward build-around (community-requested buff).",
-      "desc": "A ring inhabited by evil spirits that imparts great power, but transforms the wearer into the living dead.\nWhile equipped, raises speed, physical and magick attack power, but inflicts Undead status.",
+      "desc": "A ring inhabited by evil spirits that imparts great power, but transforms the wearer into the living dead.\nWhile equipped, raises physical and magick attack power, speed, movement, and jump, and absorbs Dark damage, but causes weakness to Holy.",
       "baseline": {
         "hp": 0,
         "mp": 0,
