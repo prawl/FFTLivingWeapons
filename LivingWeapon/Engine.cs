@@ -27,9 +27,10 @@ internal sealed class Engine
     private readonly TurnTracker _turns;
     private readonly GrowthEngine _growth;
     private readonly CharmLock _charm;
+    private readonly ExtraTurn _extra;
     private readonly Display _display;
+    private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
-    private bool _inBattle;
     private DateTime _lastField = DateTime.MinValue;   // last tick we were on the live battlefield
     private const double FieldSettleSeconds = 1.5;      // wait this long off-field before painting
     private bool _lastBattleStatus;                     // edge-detect entering the in-battle status card
@@ -45,9 +46,11 @@ internal sealed class Engine
             Log.Info($"DEV: seeded {meta.Count} weapons to >= {Tuning.DevKillSeed} kills (one kill from P3).");
         }
         _turns = new TurnTracker(new LiveMemory());
-        _tracker = new KillTracker(_kills, new LiveMemory(), new HashSet<int>(meta.Keys));
+        _tracker = new KillTracker(_kills, new LiveMemory(), new HashSet<int>(meta.Keys),
+                                   new BattleLog(Tuning.VerboseEvents));
         _growth = new GrowthEngine(meta, _kills, _turns);
         _charm = new CharmLock(meta, _kills);   // counts turns off the target's own CT (not TurnTracker)
+        _extra = new ExtraTurn(_kills);         // Zwill +3: a kill grants the killer an immediate extra turn
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }
@@ -79,17 +82,23 @@ internal sealed class Engine
         uint slot0 = Mem.U32(Offsets.Slot0);
         uint slot9 = Mem.U32(Offsets.Slot9);
         int battleMode = Mem.U8(Offsets.BattleMode);
-        bool entering = slot0 == 0xFF && slot9 == 0xFFFFFFFF;
-        bool nowIn = entering || (_inBattle && slot9 == 0xFFFFFFFF);
+        bool paused = Mem.U8(Offsets.PauseFlag) == 1;
+        int eventId = Mem.U16(Offsets.EventId);   // out-of-live: dialogue/cutscene; in-combat: nameId alias
+        var now = DateTime.Now;
+        // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks). nowIn is sticky
+        // through mid-battle dips, flipping only on the debounced edges.
+        BattleEdge edge = _battle.Step(slot0, slot9, battleMode, paused, eventId, now);
+        bool nowIn = _battle.In;
         // slot9 stays stuck on the world-map party menu, so it can't tell combat from a
         // menu. battleMode does: 2/3/4 = live battlefield, 0 = world map / menus.
         bool onField = nowIn && (battleMode == 2 || battleMode == 3 || battleMode == 4);
-        var now = DateTime.Now;
         if (onField) _lastField = now;
         // Heartbeat on ANY genuine in-battle frame -- slot0==0xFF covers cast/attack targeting
         // (battleMode 1/5), where gating on {2,3,4} alone starves the beat and false-drops a live
         // lock the moment the player dwells on a target. Goes quiet only on the post-battle world map.
-        if (nowIn && CharmLock.InLiveBattle(slot0, battleMode)) _charm.Heartbeat(now);
+        if (CharmLock.InLiveBattle(slot0, battleMode)) _charm.Heartbeat(now);
+        if (edge == BattleEdge.Entered)
+            Log.Info($"battle: enter slot0={slot0:X} slot9={slot9:X} mode={battleMode}");
 
         // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.
         // Open status card = paused submenu in the action-menu context (battleMode 3).
@@ -99,26 +108,27 @@ internal sealed class Engine
         if (battleStatus && !_lastBattleStatus) _display.Invalidate();   // re-find the card's fresh buffers
         _lastBattleStatus = battleStatus;
 
+        if (edge == BattleEdge.Exited)
+        {
+            Log.Info($"battle: exit slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId}");
+            _tracker.ResetBattle();
+            _turns.ResetBattle();
+            _growth.ResetBattle();
+            _charm.ResetBattle();
+            _extra.ResetBattle();
+            SaveTally();                 // flush on battle end
+            _display.Invalidate();       // re-find the menu's freshly-allocated render copies
+        }
         if (!nowIn)
         {
-            if (_inBattle)
-            {
-                _inBattle = false;
-                _tracker.ResetBattle();
-                _turns.ResetBattle();
-                _growth.ResetBattle();
-                _charm.ResetBattle();
-                SaveTally();                 // flush on battle end
-                _display.Invalidate();       // re-find the menu's freshly-allocated render copies
-            }
             _display.Tick();   // out of battle (slot9 cleared): keep the equip card painted
             return;
         }
-        _inBattle = true;
 
-        bool changed = _tracker.Poll();      // every ~33ms tick so fast-forward deaths aren't missed
+        bool changed = _tracker.Poll(onField);   // every ~33ms tick so fast-forward deaths aren't missed
         _turns.Poll();                        // edge-detect each unit's turns (for timed signatures)
         _charm.Tick(now);                     // charm-lock: hold/clear each tick to beat the on-hit clear
+        _extra.Tick(now);                     // Zwill +3: on a kill, slam the killer's CT to 100 (extra turn)
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 

@@ -111,7 +111,7 @@ public class SignatureTests
     [Theory]
     [InlineData(212, 1, 0x02)]   // Hushblade -> Magick Def Boost
     [InlineData(210, 1, 0x08)]   // Sanguine Gauche -> Defense Boost (was HP Boost; can't grant max-HP live)
-    [InlineData(221, 2, 0x01)]   // Zwill -> Dual Wield (fallback)
+    [InlineData(221, 2, 0x01)]   // Dual Wield (bit math kept; no weapon ships it -- Zwill's +3 is the extra turn)
     public void Knife_support_signatures_arm_their_bit_at_P3(int id, int expectOff, int expectMask)
     {
         Assert.True(Signatures.ResolveSupport(Sig(id, 3), tier: 3, out int off, out byte mask));

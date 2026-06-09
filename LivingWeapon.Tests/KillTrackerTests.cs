@@ -8,10 +8,12 @@ namespace LivingWeapon.Tests;
 /// Kill-attribution logic, driven by a fake memory (no live game). Locks in the
 /// FFTHandsFree active-unit resolver:
 ///   - the acting player is identified by the active struct's HP+MaxHP+level matched
-///     against the battle array, then resolved to the roster by a level/brave/faith
+///     against the BAND (live source), then resolved to the roster by a level/brave/faith
 ///     FINGERPRINT. NOT by the condensed +0x04 "nameId" -- that is a sequential battle
 ///     index that collides (a Time Mage's index 1 == Ramza's roster nameId 1), which
 ///     mis-credited every unit's kills to Ramza.
+///   - band corpse scan with seen-alive + 3-tick-dead guards (phantom-load race fix).
+///   - static array = identity/team oracle (captured while live; survives the restart freeze).
 ///   - hold that weapon and credit enemy corpses to it; credit each corpse once; never
 ///     credit a player corpse; bail (no latch) on an ambiguous match.
 /// </summary>
@@ -38,12 +40,13 @@ public class KillTrackerTests
         m.U8s[Offsets.Acted] = (byte)acted;
     }
 
-    /// <summary>A battle-array slot. Pass level/brave/faith to make it matchable as the actor.</summary>
+    /// <summary>Write a unit into the BAND entry at band slot <paramref name="slot"/>.
+    /// This is the live source for corpse detection and actor resolution.
+    /// Pass level/brave/faith to make it matchable as the actor (ActorResolver reads the band).</summary>
     private static void SetUnit(FakeMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                int level = 0, int brave = 0, int faith = 0)
+                                int level = 10, int brave = 50, int faith = 50)
     {
-        long s = Offsets.ArrayReadBase + (long)slot * Offsets.ArrayStride;
-        m.U16s[s + Offsets.AInBattle] = 1;
+        long s = Offsets.BandReadBase + (long)slot * Offsets.CombatStride;
         m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
         m.U16s[s + Offsets.AHp] = (ushort)hp;
         m.U8s[s + Offsets.AGx] = (byte)gx;
@@ -51,6 +54,30 @@ public class KillTrackerTests
         m.U8s[s + Offsets.ALevel] = (byte)level;
         m.U8s[s + Offsets.ABrave] = (byte)brave;
         m.U8s[s + Offsets.AFaith] = (byte)faith;
+    }
+
+    /// <summary>Write identity fields into the STATIC ARRAY slot so the capture oracle can
+    /// classify this as a known enemy. inb defaults to 1 but is NOT required by the capture --
+    /// live, the flag pulses 0/1 per unit mid-battle (it is not a membership marker).</summary>
+    private static void SetArrayEnemy(FakeMemory m, int slot, int level, int brave, int faith, int maxHp,
+                                      int inb = 1)
+    {
+        long s = Offsets.ArrayReadBase + (long)slot * Offsets.ArrayStride;
+        m.U16s[s + Offsets.AInBattle] = (ushort)inb;
+        m.U8s[s + Offsets.ALevel] = (byte)level;
+        m.U8s[s + Offsets.ABrave] = (byte)brave;
+        m.U8s[s + Offsets.AFaith] = (byte)faith;
+        m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
+    }
+
+    /// <summary>Convenience: write BOTH the band entry (liveness) and the static array slot
+    /// (identity capture). Enemies in tests must have their identity captured to earn credit.</summary>
+    private static void SetEnemy(FakeMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
+                                 int level = 10, int brave = 50, int faith = 50)
+    {
+        SetUnit(m, slot, hp, maxHp, gx, gy, level, brave, faith);
+        if (slot <= Offsets.EnemySlotMax)
+            SetArrayEnemy(m, slot, level, brave, faith, maxHp);
     }
 
     /// <summary>A roster slot keyed by the (level,brave,faith) fingerprint -> its R-hand weapon.</summary>
@@ -66,13 +93,29 @@ public class KillTrackerTests
         m.U16s[b + Offsets.ROffHand] = (ushort)offhand;   // +0x18: where the live dual-wield off-hand actually sits
     }
 
-    private const int Wilham = Offsets.SlotsBack;       // first player-side array slot (slot 20)
-    private const int Ramza = Offsets.SlotsBack + 1;
+    // Band slot indices for player-side units (arbitrary; just need to be non-enemy for clarity).
+    // Enemy band slots can be anywhere in 0..BandSlots-1; slot 0 is a convenient enemy slot.
+    private const int Wilham = Offsets.SlotsBack;       // band slot 20 (player-side actor)
+    private const int Ramza = Offsets.SlotsBack + 1;    // band slot 21
 
     // Ids that count as real weapons (meta keys). A hand holding anything NOT in here
     // (e.g. Shield) is never credited. Covers every weapon id used across these tests.
     private static readonly HashSet<int> Weapons = new() { 52, 63, 73, 90 };
     private const int Shield = 200;   // a non-weapon left-hand item -> never credited
+
+    /// <summary>Poll n times with onField=true (builds alive/dead streaks).</summary>
+    private static void Settle(KillTracker t, int n = 3) { for (int i = 0; i < n; i++) t.Poll(true); }
+
+    /// <summary>Set a band slot alive (hp>0), settle 3 ticks (seenAlive), then set it dead and
+    /// settle 3 ticks (deadStreak). Leaves it ready for credit. Returns tracker for fluent use.</summary>
+    private static void AliveThenDead(FakeMemory m, int slot, KillTracker t,
+                                      int hp = 300, int maxHp = 400, int level = 10, int brave = 50, int faith = 50)
+    {
+        SetEnemy(m, slot, hp, maxHp, level: level, brave: brave, faith: faith);
+        Settle(t);
+        SetUnit(m, slot, hp: 0, maxHp: maxHp, level: level, brave: brave, faith: faith);
+        Settle(t);
+    }
 
     [Fact]
     public void Credits_the_acting_players_weapon()
@@ -84,9 +127,14 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();                       // capture acting weapon (no corpse yet)
-        SetUnit(m, slot: 0, hp: 0);     // an enemy slot drops to 0 HP
-        bool changed = t.Poll();        // detect corpse + credit
+        Settle(t);                      // latch acting weapon; enemy slot not yet seen alive
+        // Bring enemy alive for 3 ticks, then kill.
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t);                      // seenAlive
+        SetUnit(m, slot: 0, hp: 0);
+        bool changed = t.Poll(true);    // first dead tick (need 3 total)
+        Assert.False(changed);          // not yet
+        t.Poll(true); changed = t.Poll(true);   // 3rd dead tick -> credit
 
         Assert.True(changed);
         Assert.Equal(1, kills.GetValueOrDefault(52));
@@ -106,10 +154,9 @@ public class KillTrackerTests
         SetUnit(m, Ramza, hp: 679, maxHp: 679, level: 99, brave: 70, faith: 50);
         SetActive(m, hp: 352, maxHp: 352, level: 99);   // Wilham is acting
         var t = new KillTracker(kills, m, Weapons);
-        t.Poll();                                       // latch Wilham's Spark Rod (52)
+        Settle(t);                      // latch Wilham's Spark Rod (52)
 
-        SetUnit(m, slot: 0, hp: 0);                      // an enemy dies on Wilham's turn
-        t.Poll();
+        AliveThenDead(m, slot: 0, t);   // enemy dies
 
         Assert.Equal(1, kills.GetValueOrDefault(52));    // Spark Rod
         Assert.False(kills.ContainsKey(73));             // NOT Ramza's Stoneshooter
@@ -125,10 +172,10 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        SetUnit(m, slot: 0, hp: 0);
-        t.Poll();
-        t.Poll();   // still a corpse -- must not count twice
-        t.Poll();
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
+
+        t.Poll(true); t.Poll(true); t.Poll(true);   // still a corpse -- must not count again
 
         Assert.Equal(1, kills.GetValueOrDefault(52));
     }
@@ -143,9 +190,13 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();
-        SetUnit(m, slot: Offsets.EnemySlotMax + 5, hp: 0);   // a PLAYER-side slot dies
-        t.Poll();
+        Settle(t);
+        // A player-side slot: band slot at EnemySlotMax+5, hp>0 then 0; identity NOT in enemyIds.
+        int pSlot = Offsets.EnemySlotMax + 5;
+        SetUnit(m, pSlot, hp: 300, maxHp: 400, level: 15, brave: 55, faith: 55);
+        Settle(t);
+        SetUnit(m, pSlot, hp: 0, maxHp: 400, level: 15, brave: 55, faith: 55);
+        Settle(t);
 
         Assert.False(kills.ContainsKey(52));   // an ally going down is not a weapon's kill
     }
@@ -164,15 +215,84 @@ public class KillTrackerTests
         SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);   // mage struct
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // archer ACTS -> latch 90
         var t = new KillTracker(kills, m, Weapons);
-        t.Poll();
+        Settle(t);
 
         // struct flickers to the mage, but the mage has NOT acted (acted==0)
         SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 0);
-        SetUnit(m, slot: 0, hp: 0);   // the archer's target dies now
-        t.Poll();
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Equal(1, kills.GetValueOrDefault(90));   // archer's Yoichi Bow
         Assert.False(kills.ContainsKey(63));            // NOT the flickered mage staff
+    }
+
+    [Fact]
+    public void Holds_the_latch_when_an_ally_is_hovered_after_acting()
+    {
+        // The condensed struct follows cursor HOVER (BATTLE_COORDINATES.md), and acted stays 1 for
+        // the REST of the turn after the action -- so hovering an ally while picking a post-act move
+        // resolves THAT ally. The latch must freeze on the first resolve of the acted-period.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);   // archer: the actor
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // mage: hovered later
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // archer acts -> latch 90
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 1);   // hover the mage, SAME acted-period
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(90));   // frozen on the actor
+        Assert.False(kills.ContainsKey(63));            // the hovered mage never re-latched
+    }
+
+    [Fact]
+    public void A_drift_dip_in_acted_does_not_open_the_latch()
+    {
+        // The acted byte transiently reads 0 after a confirmed action (FFTHandsFree's documented
+        // byte-drift). A 1-tick dip must NOT end the acted-period and let a hovered ally re-latch.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // archer acts -> latch 90
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 0);   // drift dip, mage hovered
+        t.Poll(true);                                             // one tick only
+        SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 1);   // drift over, hover persists
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(90));
+        Assert.False(kills.ContainsKey(63));
+    }
+
+    [Fact]
+    public void Re_latches_on_the_next_acted_period()
+    {
+        // The freeze is per acted-period: once acted stays low long enough (a real turn end), the
+        // next actor must latch normally.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);   // archer, turn 1
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // mage, turn 2
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // archer acts -> latch 90
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // turn really ends
+        for (int i = 0; i < 5; i++) t.Poll(true);
+        SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 1);   // mage's turn, mage acts
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(63));   // the new period latched the mage
     }
 
     [Fact]
@@ -188,9 +308,8 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99, team: 3, acted: 1);   // team reads 3, not 0
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();                       // must still latch -- the actor fingerprints to a roster player
-        SetUnit(m, slot: 0, hp: 0);
-        t.Poll();
+        Settle(t);                      // must still latch -- the actor fingerprints to a roster player
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Equal(1, kills.GetValueOrDefault(52));
     }
@@ -207,9 +326,8 @@ public class KillTrackerTests
         SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 1);   // an ENEMY active (no roster match)
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();
-        SetUnit(m, slot: 0, hp: 0);   // an enemy dies on the enemy's turn
-        t.Poll();
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Empty(kills);
     }
@@ -228,9 +346,8 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();
-        SetUnit(m, slot: 0, hp: 0);
-        t.Poll();
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Empty(kills);
     }
@@ -246,37 +363,233 @@ public class KillTrackerTests
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // actor has NOT acted yet
-        SetUnit(m, slot: 0, hp: 0);                                // enemy already dead
         var t = new KillTracker(kills, m, Weapons);
 
-        bool first = t.Poll();        // corpse seen, no latch -> held pending, not credited/dropped
-        Assert.False(first);
-        Assert.Empty(kills);
+        // The enemy must be seen alive first (seenAlive guard), then dead.
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);   // seenAlive built during acted=0
 
-        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // action completes -> actor latches
-        bool second = t.Poll();       // the pending corpse is credited now
+        SetUnit(m, slot: 0, hp: 0);   // enemy now dead
+        bool first = t.Poll(true);   // dead tick 1: pending, no latch yet
+        Assert.False(first);
+        t.Poll(true);                // dead tick 2
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // action completes
+        bool second = t.Poll(true);   // dead tick 3 -> deadStreak >=3, actor latched -> credit
         Assert.True(second);
         Assert.Equal(1, kills.GetValueOrDefault(52));
     }
 
     [Fact]
-    public void Does_not_credit_a_pending_corpse_after_it_expires()
+    public void Does_not_credit_a_pending_corpse_after_two_acted_fall_edges()
     {
-        // A corpse with no actor for too long is given up, so a much-later actor (next turn)
-        // can't inherit a stale kill.
+        // The real expiry is turn-edge-driven: a DoT corpse during ENEMY phases (no player latch)
+        // expires when two debounced acted-falling edges pass uncredited -- so the NEXT player's
+        // latch can't inherit it. The killer's own action would have latched during its acted
+        // period BEFORE its fall, so two falls with no latch means this was never a player kill.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);   // a player on field
+        SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 0);   // an ENEMY active (no roster match)
+        var t = new KillTracker(kills, m, Weapons);
+
+        // Enemy seen alive, then dead (seenAlive guard + deadStreak).
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);   // seenAlive
+        SetUnit(m, slot: 0, hp: 0);
+        Settle(t, 3);   // deadStreak >=3, but no latch -> pending
+
+        // Two full enemy acted 1->0 cycles. Each falling edge (acted low for UnfreezeTicks) counts once.
+        for (int cycle = 0; cycle < 2; cycle++)
+        {
+            SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 1);   // enemy acts
+            t.Poll(true);
+            SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 0);   // acted falls
+            for (int i = 0; i < KillTracker.UnfreezeTicks + 1; i++) t.Poll(true);   // debounce the fall
+        }
+
+        SetRoster(m, slot: 4, level: 50, brave: 60, faith: 60, weapon: 63);   // a LATER player
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 60);
+        SetActive(m, hp: 400, maxHp: 400, level: 50, acted: 1);   // the next player's turn latches
+        t.Poll(true);
+
+        Assert.Empty(kills);   // the expired corpse is NOT credited to the late player
+    }
+
+    [Fact]
+    public void Expires_a_pending_corpse_on_the_wall_clock_backstop_with_no_edges()
+    {
+        // Backstop: with NO acted-falling edges at all (a frozen/softlocked scene), the corpse still
+        // expires after PendingTtl ticks so it can't dangle forever.
         var kills = new Dictionary<int, int>();
         var m = new FakeMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
-        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // no actor
-        SetUnit(m, slot: 0, hp: 0);
+        SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 0);   // an enemy active, never acts
         var t = new KillTracker(kills, m, Weapons);
-        for (int i = 0; i < 40; i++) t.Poll();   // pending corpse exceeds its TTL -> given up
 
-        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // a late actor finally latches
-        t.Poll();
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);  // seenAlive
+        SetUnit(m, slot: 0, hp: 0);
+        // 3 ticks to get deadStreak (enters pending), then enough ticks to exceed backstop.
+        for (int i = 0; i < KillTracker.PendingTtl + 5; i++) t.Poll(true);
 
-        Assert.Empty(kills);   // the expired corpse is NOT credited to the late actor
+        SetRoster(m, slot: 4, level: 50, brave: 60, faith: 60, weapon: 63);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 60);
+        SetActive(m, hp: 400, maxHp: 400, level: 50, acted: 1);   // a late actor finally latches
+        t.Poll(true);
+
+        Assert.Empty(kills);   // the backstop-expired corpse is NOT credited to the late actor
+    }
+
+    // --- re-baseline on reset: corpses present at battle start never credit ---
+
+    [Fact]
+    public void Corpses_present_at_reset_are_not_counted_as_kills()
+    {
+        // A reset (battle enter, or a quick-load) must not let a pre-existing corpse credit -- the
+        // seen-alive guard means a pre-existing corpse (never seen alive this battle) is ineligible.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // a player would otherwise be latched
+        SetUnit(m, slot: 0, hp: 0);                                // a corpse already on the field at reset
+        var t = new KillTracker(kills, m, Weapons);
+        t.ResetBattle();
+        Settle(t);   // pre-existing corpse never saw alive -> seenAlive=false -> never credits
+
+        Assert.Empty(kills);
+    }
+
+    [Fact]
+    public void A_unit_dying_after_the_baseline_poll_still_credits()
+    {
+        // The baseline only protects corpses present at reset; a unit that dies AFTER counts normally.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        t.ResetBattle();
+        Settle(t);   // latch the actor, no enemy yet
+
+        AliveThenDead(m, slot: 0, t);   // now it dies
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+    }
+
+    // --- corpse-time fallback latch: the first-kill fix ---
+
+    [Fact]
+    public void First_kill_fallback_latches_a_stable_actor_with_acted_zero()
+    {
+        // The first action of a battle: the killing action's `acted` edge arrives seconds AFTER the
+        // corpse, with no prior latch. While a corpse is pending and no latch exists, resolve the
+        // actor WITHOUT the acted gate -- accept only after 3 consecutive identical non-empty resolves.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // actor present, acted NOT set
+        var t = new KillTracker(kills, m, Weapons);
+
+        // Build seenAlive first (enemy alive 3 ticks).
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);
+
+        // Enemy dies; fallback should activate (pending, no latch).
+        SetUnit(m, slot: 0, hp: 0);
+        // 3 dead ticks to enter pending, then fallback streak builds.
+        Assert.False(t.Poll(true));   // dead tick 1 -> pending
+        Assert.False(t.Poll(true));   // dead tick 2
+        Assert.False(t.Poll(true));   // dead tick 3 -> deadStreak>=3, enters pending, fallback tick 1
+        Assert.False(t.Poll(true));   // fallback streak 2
+        Assert.False(t.Poll(true));   // fallback streak 3 -> latch accepted
+
+        bool credited = t.Poll(true); // latch exists -> pending corpse credits
+
+        Assert.True(credited);
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void First_kill_fallback_does_not_latch_a_flickering_resolve()
+    {
+        // A hover that flickers between two units (A,B,A) over the streak window must NOT latch --
+        // any disagreement resets the stability streak.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);   // unit A
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // unit B
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);
+        var t = new KillTracker(kills, m, Weapons);
+
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);
+        SetUnit(m, slot: 0, hp: 0);
+        Settle(t, 3);   // enters pending
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // resolves A
+        t.Poll(true);
+        SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 0);   // resolves B (flicker)
+        t.Poll(true);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // resolves A again
+        t.Poll(true);
+        t.Poll(true);
+
+        Assert.Empty(kills);   // no stable 3-in-a-row -> never latched
+    }
+
+    [Fact]
+    public void First_kill_fallback_does_not_run_once_a_latch_exists()
+    {
+        // Once a real (acted-gated) latch exists, a HOVER over an ally must not steal it via the
+        // fallback path -- the fallback only runs while _lastPlayerWeapons is empty.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);   // archer: the real actor
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // mage: hovered later
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // archer acts -> real latch 90
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 0);   // hover the mage, acted 0
+        AliveThenDead(m, slot: 0, t);
+        for (int i = 0; i < 5; i++) t.Poll(true);   // fallback must NOT re-latch the mage
+
+        Assert.Equal(1, kills.GetValueOrDefault(90));   // archer's bow
+        Assert.False(kills.ContainsKey(63));            // the hovered mage never stole it
+    }
+
+    [Fact]
+    public void A_pending_corpse_survives_a_slow_death_animation()
+    {
+        // The TTL is ticks of the 33ms engine loop. 60 ticks ~ a 2s animation before the actor's
+        // acted flag latches -- a realistic wait that the old 100ms-era constant (30) expired at ~1s.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        var t = new KillTracker(kills, m, Weapons);
+
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);   // seenAlive
+        SetUnit(m, slot: 0, hp: 0);
+        Settle(t, 3);   // deadStreak -> pending
+
+        for (int i = 0; i < 57; i++) t.Poll(true);   // ~2s with no actor: still pending
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // animation over, actor latches
+        t.Poll(true);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
     }
 
     [Fact]
@@ -290,9 +603,8 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();                       // latch both hands
-        SetUnit(m, slot: 0, hp: 0);     // an enemy dies
-        t.Poll();
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Equal(1, kills.GetValueOrDefault(52));   // right-hand weapon
         Assert.Equal(1, kills.GetValueOrDefault(90));   // left-hand weapon -- BOTH counted
@@ -309,9 +621,8 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();
-        SetUnit(m, slot: 0, hp: 0);
-        t.Poll();
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Equal(1, kills.GetValueOrDefault(52));
         Assert.False(kills.ContainsKey(Shield));   // a shield never earns a kill
@@ -329,9 +640,8 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();
-        SetUnit(m, slot: 0, hp: 0);
-        t.Poll();
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Equal(1, kills.GetValueOrDefault(52));   // the off-hand weapon still counts
         Assert.False(kills.ContainsKey(Shield));        // the primary shield does not
@@ -349,9 +659,8 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();
-        SetUnit(m, slot: 0, hp: 0);
-        t.Poll();
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Equal(1, kills.GetValueOrDefault(52));   // ONE kill, not two
     }
@@ -369,11 +678,204 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         var t = new KillTracker(kills, m, Weapons);
 
-        t.Poll();
-        SetUnit(m, slot: 0, hp: 0);
-        t.Poll();
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
 
         Assert.Equal(1, kills.GetValueOrDefault(52));   // right hand
         Assert.Equal(1, kills.GetValueOrDefault(90));   // off-hand at +0x18 -- the live bug
+    }
+
+    // --- new behavioral facts for the band/capture-hybrid ---
+
+    [Fact]
+    public void Load_transient_never_credits()
+    {
+        // A unit seen alive fewer than 3 consecutive ticks then dead never earns credit --
+        // the seenAlive guard defeats phantom kills from load-transient memory noise.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+
+        SetEnemy(m, slot: 0, hp: 300);
+        t.Poll(true);  // alive tick 1 (streak 1, not seenAlive yet)
+        t.Poll(true);  // alive tick 2 (streak 2)
+        SetUnit(m, slot: 0, hp: 0);   // dies before reaching streak 3
+        for (int i = 0; i < 5; i++) t.Poll(true);
+
+        Assert.Empty(kills);   // seenAlive was never set -> credit gate closed
+    }
+
+    [Fact]
+    public void Slot_identity_swap_resets_seen_alive()
+    {
+        // If a slot's (level,brave,faith) identity changes while alive, the slot-reuse path
+        // resets seenAlive -- the new unit must build its own 3-tick streak from scratch.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+
+        // Original unit, alive for 3 ticks (seenAlive=true with identity A).
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        // SWAP: a different unit appears at the same slot (level changes).
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 15, brave: 55, faith: 55);
+        // Only 2 alive ticks of the new identity -> NOT seenAlive.
+        t.Poll(true); t.Poll(true);
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 15, brave: 55, faith: 55);
+        Settle(t, 3);
+
+        Assert.Empty(kills);   // swap reset seenAlive; new unit only 2 alive ticks -> no credit
+    }
+
+    [Fact]
+    public void Revive_then_rekill_credits_twice()
+    {
+        // Belt eviction: when a credited identity is seen alive again (revive), it leaves the
+        // belt so a subsequent kill counts normally -- a genuine rekill earns full credit.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        // First kill.
+        AliveThenDead(m, slot: 0, t);
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+
+        // Revive (seen alive again -> evict from belt + reset deadCredited).
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);   // eviction happens once seenAlive again
+
+        // Kill again.
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        Assert.Equal(2, kills.GetValueOrDefault(52));   // both kills count
+    }
+
+    [Fact]
+    public void Duplicate_corpse_identity_at_second_slot_is_blocked()
+    {
+        // If the same (lvl,brave,faith,maxHp) identity appears dead at a SECOND band slot
+        // after already being credited, the duplicate is blocked (deadCredited) and logged loudly.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        // First kill at slot 0.
+        AliveThenDead(m, slot: 0, t);
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+
+        // Same identity appears dead at slot 1.
+        SetEnemy(m, slot: 1, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+        SetUnit(m, slot: 1, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // NOT 2; duplicate blocked
+    }
+
+    [Fact]
+    public void Unknown_identity_corpse_never_credits()
+    {
+        // A band corpse whose identity was NEVER captured in the static array (inb==1) never
+        // credits -- the capture is the team oracle (only known enemies count as kills).
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        // Band entry exists, but NO array entry (inb==1) for this identity.
+        SetUnit(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        // No SetArrayEnemy call -- identity NOT captured.
+        Settle(t, 3);   // seenAlive
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);   // deadStreak
+
+        Assert.Empty(kills);   // unknown identity -> no credit
+    }
+
+    [Fact]
+    public void Captures_an_enemy_whose_array_flag_reads_zero()
+    {
+        // Live finding (2026-06-09): the array's "inBattle" u16 PULSES 0/1 per unit mid-battle --
+        // roughly half the live enemies read 0 at any instant. The capture must key on sane
+        // identity fields in an enemy-side slot, NOT the flag, or those enemies' kills are
+        // refused as "not a captured enemy" (the restart-and-first-kill refusal Patrick hit).
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        SetUnit(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);       // band: alive
+        SetArrayEnemy(m, slot: 0, level: 10, brave: 50, faith: 50, maxHp: 400, inb: 0);  // flag low
+        Settle(t);   // seenAlive + capture window
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t);   // deadStreak -> credit attempt
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // captured despite inb==0
+    }
+
+    [Fact]
+    public void Enemy_colliding_with_roster_fingerprint_still_credits()
+    {
+        // An enemy whose (lvl,brave,faith) matches a roster unit's fingerprint STILL earns a
+        // kill credit when captured in the static array -- capture beats roster coincidence.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        // Roster player: same level/brave/faith as the enemy below.
+        SetRoster(m, slot: 3, level: 10, brave: 50, faith: 50, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 10, brave: 50, faith: 50);
+        SetActive(m, hp: 352, maxHp: 352, level: 10, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        // Enemy at slot 0 shares the same fingerprint as the roster player.
+        AliveThenDead(m, slot: 0, t, level: 10, brave: 50, faith: 50);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // capture oracle wins -> credits
+    }
+
+    [Fact]
+    public void Marking_frozen_while_not_on_field()
+    {
+        // Alive ticks with onField=false don't build the seenAlive streak; dead ticks also
+        // don't build the dead streak. Latch logic still runs (it's not field-gated).
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+
+        // 5 ticks with onField=false: alive ticks don't count toward streak.
+        SetEnemy(m, slot: 0, hp: 300);
+        for (int i = 0; i < 5; i++) t.Poll(false);   // off-field: no streak progress
+
+        // Now on-field: still need 3 alive ticks from scratch.
+        Settle(t, 2);   // only 2 alive ticks on-field
+        SetUnit(m, slot: 0, hp: 0);
+        Settle(t, 3);   // dead ticks, but seenAlive not yet reached 3
+
+        Assert.Empty(kills);   // off-field ticks didn't count -> seenAlive never set
     }
 }

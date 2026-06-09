@@ -355,11 +355,9 @@
         "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
       },
       "signature": {
-        "abilityId": 221,
-        "slot": "support",
         "atTier": 3,
-        "displayLabel": "Dual Wield",
-        "note": "Dual Wield FALLBACK — the designed P3 'extra turn on kill (CT to 100)' needs the hidden-scheduler-CT dig (the +0x25 display CT is a proven decoy); shipping the twin-blade-assassin reskin until that RE lands. See docs/HANDOFF.md."
+        "displayLabel": "Extra Turn",
+        "note": "Extra turn on kill — NOT a passive grant: the runtime slams the killer's scheduler CT (combat struct +0x41, the solved hidden-scheduler field) until the bonus move is consumed (LivingWeapon/ExtraTurn.cs). Label-only signature: the card paints 'Grant Extra Turn' at P3; no abilityId/slot means no support bit is armed. Replaced the Dual Wield fallback (221) once the CT dig landed."
       }
     },
     {

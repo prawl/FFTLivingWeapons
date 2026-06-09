@@ -45,21 +45,28 @@ internal sealed partial class GrowthEngine
         Log.Info($"GRANT {name} -> {sig.DisplayLabel} (support {sig.AbilityId}) @ +0x98[{off}]=0x{mask:X2} readback={(present ? "SET" : "MISS")}{warn}");
     }
 
-    /// <summary>Read a unit's (currentHP, maxHP) from the static array by its (level,brave,faith)
-    /// fingerprint -- the combat struct doesn't carry HP. Returns (0,0) if no slot matches. Only
-    /// called for conditional (HP-gated) signatures, so the always-on path never pays for this walk.</summary>
+    /// <summary>Read a unit's (currentHP, maxHP) from the BAND by its (level,brave,faith)
+    /// fingerprint -- the combat struct doesn't carry HP, and the static array freezes on
+    /// battle restart (stale HP breaks the HP-gated guard after a restart). Returns (0,0)
+    /// if no band slot matches. Only called for conditional (HP-gated) signatures.
+    /// Prefers real-position entries over (0,0) twins; uses static Mem (GrowthEngine pattern).</summary>
     private (int hp, int maxHp) ReadHp(int level, int brave, int faith)
     {
-        for (int a = 0; a < Offsets.NSlots; a++)
+        (int hp, int maxHp) result = (0, 0);
+        bool foundReal = false;
+        for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            long slot = Offsets.ArrayReadBase + (long)a * Offsets.ArrayStride;
-            if (!Mem.Readable(slot + Offsets.AMaxHp, 2)) continue;
-            if (Mem.U8(slot + Offsets.ALevel) != level) continue;
-            if (Mem.U8(slot + Offsets.ABrave) != brave) continue;
-            if (Mem.U8(slot + Offsets.AFaith) != faith) continue;
-            return (Mem.U16(slot + Offsets.AHp), Mem.U16(slot + Offsets.AMaxHp));
+            long addr = Offsets.BandReadBase + (long)s * Offsets.CombatStride;
+            if (!Mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
+            if (Mem.U8(addr + Offsets.ALevel) != level) continue;
+            if (Mem.U8(addr + Offsets.ABrave) != brave) continue;
+            if (Mem.U8(addr + Offsets.AFaith) != faith) continue;
+            bool realPos = Mem.U8(addr + Offsets.AGx) != 0 || Mem.U8(addr + Offsets.AGy) != 0;
+            if (foundReal && !realPos) continue;   // prefer real over twin
+            result = (Mem.U16(addr + Offsets.AHp), Mem.U16(addr + Offsets.AMaxHp));
+            if (realPos) foundReal = true;
         }
-        return (0, 0);
+        return result;
     }
 
     /// <summary>Hold a TIMED flat stat bonus (Galewind's Speed +3 for the wielder's first ForTurns

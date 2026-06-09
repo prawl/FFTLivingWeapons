@@ -5,8 +5,8 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// Per-unit turn counting behind the IGameMemory fake (no live game). The tracker credits a
-/// completed turn to the ACTIVE unit (resolved by the turn-queue HP/MaxHP/level -> static-array
-/// slot -> level/brave/faith fingerprint) on each rising edge of the global "acted" flag.
+/// completed turn to the ACTIVE unit (resolved by the turn-queue HP/MaxHP/level -> BAND entry
+/// -> level/brave/faith fingerprint) on each rising edge of the global "acted" flag.
 /// Drives timed signatures like Galewind's Speed +3 for the wielder's first 3 turns.
 /// </summary>
 public class TurnTrackerTests
@@ -19,10 +19,11 @@ public class TurnTrackerTests
         public ushort U16(long a) => U16s.TryGetValue(a, out var v) ? v : (ushort)0;
     }
 
-    /// <summary>Seat a unit in static-array slot `arrIdx` AND make it the active (turn-queue) unit.</summary>
-    private static void SetActive(FakeMemory m, int arrIdx, int hp, int maxHp, int level, int brave, int faith)
+    /// <summary>Seat a unit in BAND slot <paramref name="bandIdx"/> AND make it the active (turn-queue) unit.
+    /// TurnTracker now resolves the active unit via the band (not the static array).</summary>
+    private static void SetActive(FakeMemory m, int bandIdx, int hp, int maxHp, int level, int brave, int faith)
     {
-        long slot = Offsets.ArrayReadBase + (long)arrIdx * Offsets.ArrayStride;
+        long slot = Offsets.BandReadBase + (long)bandIdx * Offsets.CombatStride;
         m.U16s[slot + Offsets.AMaxHp] = (ushort)maxHp;
         m.U16s[slot + Offsets.AHp] = (ushort)hp;
         m.U8s[slot + Offsets.ALevel] = (byte)level;
@@ -81,12 +82,35 @@ public class TurnTrackerTests
     {
         var m = new FakeMemory();
         var t = new TurnTracker(m);
-        // Active unit named in the turn queue, but NO matching static-array slot.
+        // Active unit named in the turn queue, but NO matching band entry.
         m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
         m.U16s[Offsets.TurnQueue + Offsets.TqHp] = 100;
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 20;
         Acted(m, 1);
         t.Poll();   // must not throw, must not count
         Assert.Equal(0, t.Turns(20, 70, 50));
+    }
+
+    [Fact]
+    public void Ambiguous_distinct_fingerprints_credits_nothing()
+    {
+        // Two band entries match the turn-queue HP/MaxHP/level but have DIFFERENT (lvl,brave,faith)
+        // fingerprints -- ambiguous actor -> no turn credited (miss beats mis-credit).
+        var m = new FakeMemory();
+        var t = new TurnTracker(m);
+        // Two units, same HP/MaxHP/level, different brave/faith.
+        long s1 = Offsets.BandReadBase + (long)5 * Offsets.CombatStride;
+        long s2 = Offsets.BandReadBase + (long)6 * Offsets.CombatStride;
+        m.U16s[s1 + Offsets.AMaxHp] = 100; m.U16s[s1 + Offsets.AHp] = 100;
+        m.U8s[s1 + Offsets.ALevel] = 20; m.U8s[s1 + Offsets.ABrave] = 70; m.U8s[s1 + Offsets.AFaith] = 50;
+        m.U16s[s2 + Offsets.AMaxHp] = 100; m.U16s[s2 + Offsets.AHp] = 100;
+        m.U8s[s2 + Offsets.ALevel] = 20; m.U8s[s2 + Offsets.ABrave] = 60; m.U8s[s2 + Offsets.AFaith] = 40;
+        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 20;
+        Acted(m, 1); t.Poll();
+
+        Assert.Equal(0, t.Turns(20, 70, 50));   // ambiguous -> nothing credited
+        Assert.Equal(0, t.Turns(20, 60, 40));
     }
 }

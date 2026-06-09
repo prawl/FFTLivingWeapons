@@ -10,113 +10,156 @@ namespace LivingWeapon;
 ///     slot is seen alive. Survives the move / MaxHP-flicker race that defeats naive
 ///     "catch HP cross 0" detection. A corpse seen before its killer's `acted` flag
 ///     latches is held PENDING (not dropped) and credited a tick later.
-///   * ATTRIBUTE BY CORPSE TEAM -- an enemy slot hitting 0 HP means the last player who
-///     acted killed it, so we credit that unit's weapon(s). Player corpses are an enemy's
-///     kill and are ignored (the Living Weapon only cares about player kills).
-///   * THE ACTING PLAYER's weapons come from ActorResolver (HP+MaxHP+level -> battle slot
+///   * ATTRIBUTE BY CORPSE TEAM -- only band-slot entries whose identity was captured from
+///     the static array (inb==1, enemy-side slots) can earn a kill credit. Player corpses,
+///     guests, and any uncaptured identity are structurally excluded.
+///   * THE ACTING PLAYER's weapons come from ActorResolver (HP+MaxHP+level -> band entry
 ///     -> level/brave/faith fingerprint -> roster hands). A DUAL-WIELDER latches BOTH
 ///     hands, so one kill credits both blades; a hand holding a shield is never credited.
 ///
 /// Memory access is injected (IGameMemory) so the attribution logic is unit-testable.
+/// Corpse scan and belt/coverage live in KillTracker.Corpses.cs (partial class, 200-line split).
 /// </summary>
-internal sealed class KillTracker
+internal sealed partial class KillTracker
 {
-    private const int PendingTtl = 30;   // ~3s at the 100ms poll: how long a corpse waits for an actor
+    internal const int PendingTtl = 900; // ~30s wall-clock BACKSTOP at the 33ms tick: the REAL expiry is
+                                         //   two debounced acted-falling edges (a killer latches during its
+                                         //   own acted period, BEFORE its fall) -- this only catches a frozen
+                                         //   scene with no turn edges at all
+    internal const int UnfreezeTicks = 3; // acted must read 0 this long before the acted-period ends --
+                                          //   the byte transiently drifts to 0 after a confirmed action
+    internal const int ExpireFalls = 2;  // pending corpse expires after this many acted-falling edges uncredited
+    internal const int FallbackStreak = 3; // consecutive identical non-empty resolves before the no-actor
 
     private readonly Dictionary<int, int> _kills;            // weapon id -> kill count
-    private readonly IGameMemory _mem;
+    internal readonly IGameMemory _mem;
     private readonly ActorResolver _resolver;
-    private readonly bool[] _deadCredited = new bool[Offsets.NSlots];
-    private readonly bool[] _pending = new bool[Offsets.NSlots];   // corpse seen, awaiting an actor latch
-    private readonly int[] _pendingAge = new int[Offsets.NSlots];  // ticks a corpse has waited
-    private List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
+    internal readonly bool[] _pending = new bool[Offsets.BandSlots];   // corpse seen, awaiting an actor latch
+    internal readonly int[] _pendingAge = new int[Offsets.BandSlots];  // ticks a corpse has waited (backstop)
+    internal readonly int[] _pendingFalls = new int[Offsets.BandSlots];// _actedFalls when the corpse went pending
+    internal List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
+    private bool _latched;                           // a player resolved this acted-period -> frozen until it ends
+    private int _actedLow;                           // consecutive acted==0 ticks (drift-debounced period end)
+    internal int _actedFalls;                        // battle-local count of debounced acted-falling edges
+    private string _actorTag = "";                   // cached "10,52" form of the latch, for event lines
+    private List<int> _fallbackSet = new();          // the resolve being stability-counted by the no-actor fallback
+    private int _fallbackStreak;                     // consecutive identical non-empty resolves
+    internal readonly BattleLog? _events;            // dev event timeline (damage/heal/move); null = off
 
-    public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons)
+    public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null)
     {
         _kills = kills;
         _mem = mem;
         _resolver = new ActorResolver(mem, weapons);
+        _events = events;
     }
 
-    /// <summary>Reset per-battle state. Call on battle enter and exit.</summary>
+    /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
+    /// the seen-alive guard ensures any pre-existing corpse (never seen alive) is ineligible.</summary>
     public void ResetBattle()
     {
-        Array.Clear(_deadCredited, 0, _deadCredited.Length);
         Array.Clear(_pending, 0, _pending.Length);
         Array.Clear(_pendingAge, 0, _pendingAge.Length);
+        Array.Clear(_pendingFalls, 0, _pendingFalls.Length);
         _lastPlayerWeapons = new();
+        _latched = false;
+        _actedLow = 0;
+        _actedFalls = 0;
+        _actorTag = "";
+        _fallbackSet = new();
+        _fallbackStreak = 0;
+        _events?.ResetBattle();
+        ResetBattleCorpses();   // clear per-battle band-scan state (Corpses.cs)
     }
 
-    /// <summary>One in-battle tick. Returns true if the tally changed.</summary>
-    public bool Poll()
+    /// <summary>One in-battle tick. <paramref name="onField"/> gates streak accumulation --
+    /// off-field ticks (load screens / menu flickers) don't advance alive/dead counters.
+    /// Returns true if the tally changed.</summary>
+    public bool Poll(bool onField)
     {
         bool changed = false;
 
-        // Latch the acting player's weapon(s) when a player has COMPLETED an action (acted==1).
-        // The condensed struct's team field is NOT a reliable "player's turn" gate -- live it
-        // reads 0/1/3 for the very same active player (often stuck at 3 in a battle entered
-        // straight from a save load), which silently dropped captures. The roster fingerprint
-        // is the real player test: ResolveActingWeapons returns a non-empty set ONLY when the
-        // active unit matches a roster slot (enemies resolve to empty), so we gate on that, not
-        // team. The acted==1 gate still rejects the inter-turn flicker (cursor/preview at acted==0).
+        // Latch the acting player's weapon(s) ONCE per acted-period. acted==1 marks an action
+        // complete, but the condensed struct follows the CURSOR (BATTLE_COORDINATES.md) and acted
+        // stays 1 for the rest of the turn -- so re-resolving every tick let a post-act hover over
+        // an ALLY steal the latch. The first successful resolve of the period is the actor (the
+        // struct shows them when their action lands); freeze on it until acted stays 0 for
+        // UnfreezeTicks (the byte drifts to 0 transiently after confirmed actions). The roster
+        // fingerprint -- not the unreliable team field -- is the player test: enemies resolve empty,
+        // so an enemy's acted-period never latches and the previous player's latch stays sticky.
         if (_mem.U8(Offsets.Acted) == 1)
         {
-            var ws = _resolver.ResolveActingWeapons();
-            if (ws.Count > 0 && !ActorResolver.SameSet(ws, _lastPlayerWeapons))
+            _actedLow = 0;
+            if (!_latched)
             {
-                _lastPlayerWeapons = ws;
-                Log.Info($"active player weapon(s) -> {string.Join(",", ws)}");
-            }
-        }
-
-        // Scan the unit array for fresh corpses.
-        for (int s = 0; s < Offsets.NSlots; s++)
-        {
-            long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
-            ushort inb = _mem.U16(slot + Offsets.AInBattle);
-            ushort smax = _mem.U16(slot + Offsets.AMaxHp);
-            byte gx = _mem.U8(slot + Offsets.AGx);
-            byte gy = _mem.U8(slot + Offsets.AGy);
-            if (inb == 0 || smax == 0 || smax >= 2000 || gx > 30 || gy > 30)
-                continue;                                   // empty / stale / garbage slot
-
-            ushort hp = _mem.U16(slot + Offsets.AHp);
-            if (hp == 0)                                     // KO'd
-            {
-                if (_deadCredited[s]) continue;              // already settled
-                if (s > Offsets.EnemySlotMax)                // a player corpse -> not a weapon's kill
+                var ws = _resolver.ResolveActingWeapons();
+                if (ws.Count > 0)
                 {
-                    _deadCredited[s] = true;
-                    continue;
-                }
-                // Enemy corpse. The killer's `acted` flag flips to 1 AFTER the death registers, so
-                // on the 100ms loop the corpse is often seen a tick or two before the actor latches.
-                // Hold it PENDING until the actor appears (then credit), rather than dropping it.
-                if (_lastPlayerWeapons.Count > 0)
-                {
-                    foreach (int w in _lastPlayerWeapons)    // a dual-wielder credits BOTH blades on one kill
+                    _latched = true;
+                    if (!ActorResolver.SameSet(ws, _lastPlayerWeapons))
                     {
-                        _kills.TryGetValue(w, out int c);
-                        _kills[w] = c + 1;
-                        Log.Info($"KILL -> weapon {w} now {c + 1} kills (enemy at {gx},{gy})");
+                        _lastPlayerWeapons = ws;
+                        _actorTag = string.Join(",", ws);
+                        Log.Info($"active player weapon(s) -> {_actorTag}");
                     }
-                    _deadCredited[s] = true; _pending[s] = false;
-                    changed = true;
                 }
-                else if (!_pending[s])
-                {
-                    _pending[s] = true; _pendingAge[s] = 0;
-                    Log.Info($"enemy corpse slot {s} at ({gx},{gy}) -> pending (awaiting actor)");
-                }
-                else if (++_pendingAge[s] > PendingTtl)      // no actor in time -> give up
-                {
-                    _deadCredited[s] = true; _pending[s] = false;
-                    Log.Info($"enemy corpse slot {s} expired -> uncredited (no actor)");
-                }
-                continue;
             }
-            _deadCredited[s] = false; _pending[s] = false;   // alive -> a revive+rekill recounts
         }
+        // The debounced acted-falling edge (acted low for UnfreezeTicks) is one turn-end event: count it
+        // once per period (drives the two-edge pending expiry below) as the latch unfreezes.
+        else if (_actedLow < UnfreezeTicks && ++_actedLow >= UnfreezeTicks) { _latched = false; _actedFalls++; }
+
+        FirstKillFallback();   // no prior latch + a corpse waiting -> resolve the actor without the acted gate
+
+        changed = ScanCorpses(onField);   // band corpse scan + identity capture (Corpses.cs)
+
+        return changed;
+    }
+
+    /// <summary>First-kill fix: the killing action's `acted` edge can arrive seconds after the corpse,
+    /// and the FIRST action of a battle has no prior latch to fall back on. While a corpse is pending
+    /// and no latch exists, resolve the actor WITHOUT the acted gate -- but only when not paused, and
+    /// accept only after <see cref="FallbackStreak"/> consecutive identical non-empty resolves (a
+    /// stability gate, so a flickering hover can't latch). Inert once a real latch exists, so a
+    /// post-act ally hover can never steal credit.</summary>
+    private void FirstKillFallback()
+    {
+        if (_lastPlayerWeapons.Count > 0 || !AnyPending() || _mem.U8(Offsets.PauseFlag) != 0)
+        {
+            _fallbackStreak = 0; _fallbackSet = new();
+            return;
+        }
+        var ws = _resolver.ResolveActingWeapons();
+        if (ws.Count == 0) { _fallbackStreak = 0; _fallbackSet = new(); return; }
+        if (_fallbackStreak > 0 && ActorResolver.SameSet(ws, _fallbackSet)) _fallbackStreak++;
+        else { _fallbackSet = ws; _fallbackStreak = 1; }
+        if (_fallbackStreak >= FallbackStreak)
+        {
+            _lastPlayerWeapons = ws;
+            _actorTag = string.Join(",", ws);
+            _fallbackStreak = 0; _fallbackSet = new();
+            Log.Info($"first-kill fallback latch -> {_actorTag}");
+        }
+    }
+
+    internal bool AnyPending()
+    {
+        for (int s = 0; s < _pending.Length; s++) if (_pending[s]) return true;
+        return false;
+    }
+
+    /// <summary>Credit all _lastPlayerWeapons for a kill at band slot s (position gx,gy).</summary>
+    internal bool CreditKill(int s, int gx, int gy)
+    {
+        bool changed = false;
+        foreach (int w in _lastPlayerWeapons)
+        {
+            _kills.TryGetValue(w, out int c);
+            _kills[w] = c + 1;
+            Log.Info($"KILL -> weapon {w} now {c + 1} kills (enemy at {gx},{gy})");
+            changed = true;
+        }
+        _pending[s] = false;
         return changed;
     }
 }

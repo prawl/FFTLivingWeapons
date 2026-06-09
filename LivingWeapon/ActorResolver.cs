@@ -5,13 +5,17 @@ namespace LivingWeapon;
 /// <summary>
 /// Identifies the acting player's equipped WEAPONS -- both hands, so a dual-wielder is
 /// fully credited -- without the unreliable condensed nameId. active HP+MaxHP+level ->
-/// battle-array slot -> (level,brave,faith) fingerprint -> roster hands. A hand counts
-/// ONLY if it holds a real weapon (id in the meta set): a shield in either hand is
-/// ignored, and a weapon is credited whichever hand it sits in (trust the item, not the
-/// slot, so a weapon-in-off-hand / shield-in-primary loadout still scores). Returns an
-/// empty list when no player slot matches, the actor isn't a roster unit (an enemy), or
-/// the match is ambiguous (two units share HP/MaxHP/level AND resolve to different weapon
-/// sets) -- a miss beats a mis-credit.
+/// BAND entry (live source; the static array freezes on battle restart) ->
+/// (level,brave,faith) fingerprint -> roster hands. A hand counts ONLY if it holds a
+/// real weapon (id in the meta set): a shield in either hand is ignored, and a weapon is
+/// credited whichever hand it sits in (trust the item, not the slot, so a weapon-in-off-hand /
+/// shield-in-primary loadout still scores). Returns an empty list when no band entry matches,
+/// the actor isn't a roster unit (an enemy), or the match is ambiguous (two entries share
+/// HP/MaxHP/level AND resolve to different weapon sets) -- a miss beats a mis-credit.
+///
+/// Twin filter: when matches include both a real-position entry (gx/gy != 0,0) and a (0,0)
+/// frozen twin (roster unit's mirror in the band), prefer the real-position entry to avoid
+/// reading stale HP from the twin.
 /// </summary>
 internal sealed class ActorResolver
 {
@@ -33,19 +37,34 @@ internal sealed class ActorResolver
         ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
         if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return Empty;
 
+        // Collect all band entries matching (mhp, hp, lvl); track whether any have real position.
         List<int>? found = null;
-        for (int s = 0; s < Offsets.NSlots; s++)
+        bool foundReal = false;   // any match at gx/gy != (0,0)
+
+        for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
-            ushort inb = _mem.U16(slot + Offsets.AInBattle);
-            if (inb != 0 && inb != 1) continue;
-            if (_mem.U16(slot + Offsets.AMaxHp) != maxHp) continue;
-            if (_mem.U16(slot + Offsets.AHp) != hp) continue;
-            if (_mem.U8(slot + Offsets.ALevel) != level) continue;
-            var w = Fingerprint(level, _mem.U8(slot + Offsets.ABrave), _mem.U8(slot + Offsets.AFaith));
-            if (w.Count == 0) continue;                 // not a roster unit / unarmed
+            long addr = Band.Entry(s);
+            if (!Band.IsValid(_mem, addr)) continue;
+            if (_mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
+            if (_mem.U16(addr + Offsets.AHp) != hp) continue;
+            if (_mem.U8(addr + Offsets.ALevel) != level) continue;
+
+            bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
+            var w = Fingerprint(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith));
+            if (w.Count == 0) continue;   // not a roster unit / unarmed
+
+            // Twin filter: if we already have a real-position match, skip (0,0) entries.
+            if (foundReal && !realPos) continue;
+            // If this is real and we only had (0,0) so far, discard the old match and restart.
+            if (realPos && !foundReal && found != null)
+            {
+                found = null;
+                foundReal = true;
+            }
+            if (realPos) foundReal = true;
+
             if (found == null) found = w;
-            else if (!SameSet(found, w)) return Empty;  // two distinct weapon sets -> ambiguous
+            else if (!SameSet(found, w)) return Empty;   // two distinct weapon sets -> ambiguous
         }
         return found ?? Empty;
     }

@@ -13,6 +13,9 @@ internal static class Offsets
     public const long Slot0 = 0x14077CA30;   // u32 == 0xFF        when in battle
     public const long Slot9 = 0x14077CA54;   // u32 == 0xFFFFFFFF  when in battle (sticky indicator)
     public const long Acted = 0x14077CA8C;   // u8  acting unit has acted this turn
+    public const long EventId = 0x14077CA94; // u16 event file number during cutscenes/dialogue; ALIASES as
+                                             //   the active unit's nameId during combat animations -- only
+                                             //   meaningful while out of live battle (dialogue/cutscene gate)
 
     // --- condensed active-unit struct = the unit whose turn it is (FFTHandsFree
     //     NavigationActions.Scan "AddrCondensedBase"). The acting player is identified by
@@ -70,6 +73,7 @@ internal static class Offsets
     public const int CWeapon = 0x20;   // u16 equipped weapon id (the self-mapping key)
     public const int CBrave  = 0x2A;   // u8
     public const int CFaith  = 0x2C;   // u8
+    public const int CHp     = 0x30;   // u16 current HP (== the auth-band framing's +0x14)
     public const int CPa     = 0x3E;   // u8  (drives physical damage)
     public const int CMa     = 0x3F;   // u8
     public const int CSpeed  = 0x40;   // u8
@@ -77,6 +81,14 @@ internal static class Offsets
     // reaction +0x94 (4 bytes, base id 166), support +0x98 (4 bytes, base 198), movement +0x9C
     // (3 bytes, base 230); MSB-first. Signatures only ever touch SUPPORT (stacks, no slot hijack).
     public const int CSupport = 0x98;
+
+    // --- auth band: LIVE unit data (the static array freezes on battle restart; the band stays live).
+    //     Entry layout matches the static-array A* offsets. BandEntry = unit-copy offset inside
+    //     each slot; BandReadBase starts at n=-24 (the lowest valid scan index).
+    //     Sources: live probe -- fresh corpse 0/539 only in the band; Ramza real pos only there.
+    public const int BandEntry = 0x1C;    // unit copy offset within a combat band slot
+    public const long BandReadBase = CombatAnchor + BandEntry - 24 * (long)CombatStride;  // n=-24 anchor
+    public const int BandSlots = 49;     // n = -24..+24 around the anchor
 
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
     public const long WpScratch = 0x141870836;

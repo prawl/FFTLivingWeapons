@@ -101,10 +101,10 @@
     "formula": 1,
     "flavor": "A knife manufactured in a region renowned for its blades.",
     "signature": {
-      "abilityId": 221,
-      "slot": "support",
+      "abilityId": 0,
+      "slot": "",
       "atTier": 3,
-      "displayLabel": "Dual Wield"
+      "displayLabel": "Extra Turn"
     }
   },
   "11": {

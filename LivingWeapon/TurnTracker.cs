@@ -6,9 +6,12 @@ using System.Collections.Generic;
 /// Counts each unit's completed turns in the current battle, for TIMED signatures (e.g.
 /// Galewind's Speed +3 for the wielder's first 3 turns). On every rising edge of the global
 /// "acted" flag (0x14077CA8C) it credits one turn to the ACTIVE unit, identified the same way
-/// KillTracker attributes a kill: the turn-queue HP/MaxHP/level -> static-array slot ->
-/// (level,brave,faith) fingerprint. Keyed by that fingerprint so GrowthEngine (which has each
-/// roster unit's level/brave/faith) can look up its wielder's turn count.
+/// KillTracker attributes a kill: the turn-queue HP/MaxHP/level -> BAND entry (live source;
+/// the static array freezes on battle restart) -> (level,brave,faith) fingerprint.
+///
+/// Ambiguity bail: if multiple BAND entries match the turn-queue HP/MaxHP/level but have
+/// DIFFERENT (level,brave,faith) fingerprints, no turn is credited (miss beats mis-credit).
+/// Same-fingerprint multiples (twin) are fine -- both entries resolve to the same unit.
 ///
 /// Memory access is injected (IGameMemory) so the counting is unit-testable with no live game.
 /// </summary>
@@ -36,12 +39,17 @@ internal sealed class TurnTracker
     {
         bool acted = _mem.U8(Offsets.Acted) == 1;
         if (acted && !_wasActed && TryActiveFingerprint(out var fp))
-            _turns[fp] = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
+        {
+            int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
+            _turns[fp] = n;
+            Log.Info($"turn: {fp.Item1}/{fp.Item2}/{fp.Item3} acted (#{n} this battle)");
+        }
         _wasActed = acted;
     }
 
-    /// <summary>The active (turn-queue) unit's (level,brave,faith), via its array slot. False if
-    /// the queue is empty/garbage or no array slot matches (then no turn is credited).</summary>
+    /// <summary>The active (turn-queue) unit's (level,brave,faith), via a band walk. Returns false
+    /// if the queue is empty/garbage, no band entry matches, or the match is ambiguous (distinct
+    /// fingerprints -- miss beats mis-credit). Twin entries (same fingerprint) are fine.</summary>
     private bool TryActiveFingerprint(out (int, int, int) fp)
     {
         fp = default;
@@ -49,15 +57,31 @@ internal sealed class TurnTracker
         ushort hp = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
         ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
         if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return false;
-        for (int a = 0; a < Offsets.NSlots; a++)
+
+        (int, int, int) found = default;
+        bool haveFp = false;
+        bool foundReal = false;   // twin filter: prefer real-position entries
+
+        for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            long slot = Offsets.ArrayReadBase + (long)a * Offsets.ArrayStride;
-            if (_mem.U16(slot + Offsets.AMaxHp) != maxHp) continue;
-            if (_mem.U16(slot + Offsets.AHp) != hp) continue;
-            if (_mem.U8(slot + Offsets.ALevel) != level) continue;
-            fp = (level, _mem.U8(slot + Offsets.ABrave), _mem.U8(slot + Offsets.AFaith));
-            return true;
+            long addr = Band.Entry(s);
+            if (!Band.IsValid(_mem, addr)) continue;
+            if (_mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
+            if (_mem.U16(addr + Offsets.AHp) != hp) continue;
+            if (_mem.U8(addr + Offsets.ALevel) != level) continue;
+
+            bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
+            // twin filter: skip (0,0) entries if we already have a real-position match
+            if (foundReal && !realPos) continue;
+            if (realPos && !foundReal && haveFp) { found = default; haveFp = false; foundReal = true; }
+            if (realPos) foundReal = true;
+
+            var candidate = (level, (int)_mem.U8(addr + Offsets.ABrave), (int)_mem.U8(addr + Offsets.AFaith));
+            if (!haveFp) { found = candidate; haveFp = true; }
+            else if (found != candidate) return false;   // distinct fingerprints -> ambiguous
         }
-        return false;
+        if (!haveFp) return false;
+        fp = found;
+        return true;
     }
 }

@@ -9,4 +9,4 @@ id,tier,name,WP,parry%,grows,onHit,P,P2,P3,opRisk,sigNote,Verified Live?
 7,4,Adamant Fang,12,5%,PA,—,PA +10%,PA +20%,PA +30%,—,,Yes
 8,4,Mortal Coil,8,15%,PA,Doom (~25%),PA +10%,PA +20%,PA +30% + Attack Boost (while HP < 50%),low,desperation: the cornered executioner hits harder as he bleeds,Yes
 9,5,Galewind,10,5%,PA,—,PA +10%,PA +20%,PA +30% +  Charm becomes unbreakable for 3 turns,high,"the gale sweeps charmed foes off their feet: while a +3 Galewind is equipped, a landed Charm cannot be broken by damage for 3 of the target turns, then force-clears",Yes
-10,6,Zwill Straightblade,12,10%,PA,Sleep (~25%),PA +10%,PA +20%,PA +30% + Extra turn on kill (CT to 100),high,"legendary assassin flow. UNPROVEN: needs the hidden-scheduler-CT dig (real RE spike, may be unbuildable). Fallback: Dual Wield",
+10,6,Zwill Straightblade,12,10%,PA,Sleep (~25%),PA +10%,PA +20%,PA +30% + Extra turn on kill (CT to 100),high,"legendary assassin flow. BUILT: the hidden scheduler CT landed (combat struct +0x41); the runtime slams it until the bonus move is consumed (ExtraTurn.cs). Replaced the Dual Wield fallback; no chaining (one bonus per kill-turn)",Yes

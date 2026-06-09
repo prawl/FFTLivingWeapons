@@ -20,10 +20,14 @@ internal static class Tuning
     public static readonly int[] KillThresholds = DevThresholds;
     /// <summary>DEV: floor every known weapon to <see cref="DevKillSeed"/> kills on load.</summary>
     public const bool DevSeedAllKills = true;
+    /// <summary>DEV: per-tick battle-event timeline (damage/heal/move) in the log.</summary>
+    public const bool VerboseEvents = true;
 #else
     public static readonly int[] KillThresholds = ProdThresholds;
     /// <summary>Production seeds nothing -- the wielder earns every tier.</summary>
     public const bool DevSeedAllKills = false;
+    /// <summary>Production logs stay lean: kills/turns/grants only, no per-tick events.</summary>
+    public const bool VerboseEvents = false;
 #endif
 
     /// <summary>DEV seed floor: every weapon starts at least this many kills. 2 (== P2 under the dev
