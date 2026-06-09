@@ -2366,7 +2366,7 @@
       "vanillaName": "Knightslayer",
       "name": "Eclipsebolt",
       "tier": 2,
-      "identity": "Assassin's bolt — marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead — a countdown to a certain KO. Only Doom crossbow.",
+      "identity": "Assassin's bolt — marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead — a countdown to a certain KO. Only Doom crossbow. Applies Doom at 100% (formula 2D); a 25% revert is on the table once the Eagle Eye signature lands.",
       "flavorOverride": "A bolt meant for slaying elites; its quarrel marks a foe, who sees no further dusk.",
       "baseline": {
         "wp": 4,
@@ -2381,11 +2381,19 @@
         "wp": 5,
         "evade": 5,
         "element": "None",
-        "onHit": "Doom",
+        "onHit": "Doom (100% via formula 2D)",
         "onHitAbilityId": 11,
-        "formula": 1,
+        "formula": 45,
         "range": 4,
         "attackFlags": "Direct"
+      },
+      "signature": {
+        "atTier": 3,
+        "sigName": "Eagle Eye",
+        "displayLabel": "Eagle Eye",
+        "doomCountdownTo": 1,
+        "note": "While a +3 Eclipsebolt is equipped, every enemy Doom's countdown is forced down to 1 (band +0x59), so the mark resolves on the victim's next turn. SHIPPED runtime: EagleEye.cs (enemy scan + countdown write, idempotent: only writes a countdown still above 1). Doom bit = +0x49 mask 0x01. PROVEN LIVE 2026-06-09: wrote the countdown mid-battle, head-counter re-rendered live, victim died on its next turn with a clean engine death. Undead no-op the expiry (engine declines the kill). Aura model (matches CharmLock): hastens any enemy Doom while equipped, not just the wielder's.",
+        "p3Desc": "Eagle Eye: Doom strikes after 1 turn, not 3. Must be equipped at +3 to take effect."
       }
     },
     {

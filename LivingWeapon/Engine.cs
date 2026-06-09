@@ -28,6 +28,7 @@ internal sealed class Engine
     private readonly GrowthEngine _growth;
     private readonly CharmLock _charm;
     private readonly ExtraTurn _extra;
+    private readonly EagleEye _eagle;
     private readonly Display _display;
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
@@ -51,6 +52,7 @@ internal sealed class Engine
         _growth = new GrowthEngine(meta, _kills, _turns);
         _charm = new CharmLock(meta, _kills);   // counts turns off the target's own CT (not TurnTracker)
         _extra = new ExtraTurn(_kills);         // Zwill +3: a kill grants the killer an immediate extra turn
+        _eagle = new EagleEye(meta, _kills);    // Eclipsebolt +3: hasten any enemy Doom to a 1-turn countdown
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }
@@ -116,6 +118,7 @@ internal sealed class Engine
             _growth.ResetBattle();
             _charm.ResetBattle();
             _extra.ResetBattle();
+            _eagle.ResetBattle();
             SaveTally();                 // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
@@ -129,6 +132,7 @@ internal sealed class Engine
         _turns.Poll();                        // edge-detect each unit's turns (for timed signatures)
         _charm.Tick(now);                     // charm-lock: hold/clear each tick to beat the on-hit clear
         _extra.Tick(now);                     // Zwill +3: on a kill, slam the killer's CT to 100 (extra turn)
+        _eagle.Tick();                        // Eclipsebolt +3: force enemy Doom countdowns down to 1
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 

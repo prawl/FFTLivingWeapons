@@ -573,8 +573,15 @@
     "name": "Eclipsebolt",
     "wp": 5,
     "cat": "Crossbow",
-    "formula": 1,
-    "flavor": "A bolt meant for slaying elites; its quarrel marks a foe, who sees no further dusk."
+    "formula": 45,
+    "flavor": "A bolt meant for slaying elites; its quarrel marks a foe, who sees no further dusk.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Eagle Eye",
+      "doomCountdownTo": 1
+    }
   },
   "79": {
     "name": "Arbalest",

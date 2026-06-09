@@ -67,6 +67,8 @@ def main():
                 entry["signature"]["forTurns"] = int(sig["forTurns"])
             if sig.get("charmLockTurns"):  # charm-lock aura (Galewind): landed Charm unbreakable N turns
                 entry["signature"]["charmLockTurns"] = int(sig["charmLockTurns"])
+            if sig.get("doomCountdownTo"):  # doom-hasten aura (Eclipsebolt "Eagle Eye"): force enemy Doom to this
+                entry["signature"]["doomCountdownTo"] = int(sig["doomCountdownTo"])
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")
