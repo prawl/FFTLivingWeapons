@@ -118,10 +118,12 @@ def check_slots(items, normal_formulas):
 
 
 FLAVOR_MAX = 90   # authored flavor lines must fit the equip card
-P3DESC_PREFIX = "While this weapon is equipped"
+P3DESC_MAX = 90   # signature lines must fit the card too: "Name: effect. Must be equipped at +3 to take effect."
 
 def check_p3desc(items):
-    """Every signature.p3Desc must be <= 90 chars and start with the canonical prefix."""
+    """Every signature.p3Desc must fit the card (<= P3DESC_MAX) and follow the
+    'Name: effect. Must be equipped at +3 to take effect.' shape -- a 'Name: '
+    prefix (': ' present) and a '+3' tier-requirement mention."""
     bad = []
     for it in items:
         sig = it.get("signature")
@@ -130,7 +132,7 @@ def check_p3desc(items):
         p3 = sig.get("p3Desc")
         if not p3:
             continue
-        if len(p3) > FLAVOR_MAX or not p3.startswith(P3DESC_PREFIX):
+        if len(p3) > P3DESC_MAX or ": " not in p3 or "+3" not in p3:
             bad.append((it, p3))
     return bad
 
@@ -226,12 +228,12 @@ def main():
         rc = 1
 
     p3 = check_p3desc(items)
-    print(f"\n--- P3 DESCRIPTION (signature.p3Desc <= {FLAVOR_MAX} chars, starts with '{P3DESC_PREFIX}') ---")
+    print(f"\n--- P3 DESCRIPTION (signature.p3Desc <= {P3DESC_MAX} chars, 'Name: effect ... +3' shape) ---")
     if not p3:
         print(f"  PASS: every p3Desc is valid.")
     else:
         for a, s in p3:
-            print(f"  INVALID id{a['id']} {a.get('name')} (len={len(s)}, prefix ok={s.startswith(P3DESC_PREFIX)}): {s!r}")
+            print(f"  INVALID id{a['id']} {a.get('name')} (len={len(s)}): {s!r}")
         rc = 1
 
     sys.exit(rc)

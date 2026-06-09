@@ -15,7 +15,7 @@ OUT = Path(__file__).resolve().parent.parent / "mod" / "FFTIVC" / "tables" / "en
 # weapon cross-equips by job name, applied to GENERIC player jobs only (don't rewrite story-char loadouts)
 CROSS = {
     "Archer": ["Gun"], "Black Mage": ["Knife"], "Time Mage": ["Rod"],
-    "White Mage": ["Rod"], "Thief": ["Crossbow"], "Orator": ["Sword", "Book"],
+    "White Mage": ["Rod"], "Thief": ["Crossbow", "Bow"], "Orator": ["Sword", "Book"],
     "Geomancer": ["Pole"], "Dragoon": ["Sword"], "Samurai": ["Polearm"], "Squire": ["Crossbow"],
 }
 INNATE = {}                # per-job signature innate abilities (job name -> AbilityData ids); none yet

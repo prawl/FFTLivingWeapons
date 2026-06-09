@@ -135,8 +135,8 @@
       <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>83</Id> <!-- Thief: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Knife, Unarmed, Crossbow, Shield -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Knife, Unarmed, Crossbow, Shield</EquippableItems>
+      <Id>83</Id> <!-- Thief: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Knife, Unarmed, Crossbow, Bow, Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Knife, Unarmed, Crossbow, Bow, Shield</EquippableItems>
     </Job>
     <Job>
       <Id>84</Id> <!-- Orator: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Gun, Unarmed, Sword, Book, Shield; C-EV 5 to 8 -->

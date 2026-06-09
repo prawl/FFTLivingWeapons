@@ -746,7 +746,7 @@
       <Id>80</Id> <!-- Venombolt (was Poison Crossbow) -->
       <Range>5</Range>
       <AttackFlags>Direct</AttackFlags>
-      <Formula>1</Formula>
+      <Formula>45</Formula>
       <Power>6</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>
@@ -756,7 +756,7 @@
       <Id>81</Id> <!-- Pitchbolt (was Hunting Crossbow) -->
       <Range>7</Range>
       <AttackFlags>Direct</AttackFlags>
-      <Formula>1</Formula>
+      <Formula>45</Formula>
       <Power>8</Power>
       <Evasion>8</Evasion>
       <Elements>None</Elements>

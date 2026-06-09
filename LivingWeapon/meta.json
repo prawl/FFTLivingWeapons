@@ -587,14 +587,20 @@
     "name": "Venombolt",
     "wp": 6,
     "cat": "Crossbow",
-    "formula": 1,
-    "flavor": "Its quarrels glisten with a slow venom that creeps the wound long after the bolt is drawn."
+    "formula": 45,
+    "flavor": "Its quarrels glisten with a slow venom that creeps the wound long after the bolt is drawn.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Plague"
+    }
   },
   "81": {
     "name": "Pitchbolt",
     "wp": 8,
     "cat": "Crossbow",
-    "formula": 1,
+    "formula": 45,
     "flavor": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark."
   },
   "82": {

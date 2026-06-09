@@ -143,7 +143,7 @@
         "atTier": 3,
         "displayLabel": "Concentration",
         "note": "Concentration — negates evade so Gloomfang's always-Blind can never miss (the P3 payoff in living_weapon_grid.csv)",
-        "p3Desc": "While this weapon is equipped at +3, the wielder gains Concentration."
+        "p3Desc": "Concentration: Attacks cannot be evaded. Must be equipped at +3 to take effect."
       }
     },
     {
@@ -177,7 +177,7 @@
         "atTier": 3,
         "displayLabel": "Magick Def Boost",
         "note": "Magick Def Boost — anti-caster capstone: it silences spells then shrugs off the ones that land (living_weapon_grid.csv)",
-        "p3Desc": "While this weapon is equipped at +3, the wielder gains Magick Def Boost."
+        "p3Desc": "Magick Def Boost: Reduces magick damage taken. Must be equipped at +3 to take effect."
       }
     },
     {
@@ -237,7 +237,7 @@
         "atTier": 3,
         "displayLabel": "Defense Boost",
         "note": "Defense Boost — the parrying lifesteal duelist takes less and out-drains the rest. (Was HP Boost, but max HP bakes at battle build, so it can't be granted live; Defense Boost gates a live damage-taken calc.)",
-        "p3Desc": "While this weapon is equipped at +3, the wielder gains Defense Boost."
+        "p3Desc": "Defense Boost: Reduces physical damage taken. Must be equipped at +3 to take effect."
       }
     },
     {
@@ -298,7 +298,7 @@
         "hpBelow": 50,
         "displayLabel": "Attack Boost",
         "note": "Attack Boost while HP < 50% — the cornered executioner hits harder as he bleeds; arm-and-stays for the battle once tripped (living_weapon_grid.csv)",
-        "p3Desc": "While this weapon is equipped at +3, the wielder gains Attack Boost below half HP."
+        "p3Desc": "Attack Boost: Active while below half HP. Must be equipped at +3 to take effect."
       }
     },
     {
@@ -328,10 +328,11 @@
       },
       "signature": {
         "atTier": 3,
+        "sigName": "Infatuation",
         "displayLabel": "Charm holds 3t",
         "charmLockTurns": 3,
         "note": "While a +3 Galewind is equipped, any Charm your party lands is unbreakable for 3 of the target's turns, then force-cleared (the gale sweeps them off their feet). Mechanic: hold authoritative charm bytes +0x49/+0x54 — see memory charm-unbreakable-bytes.md.",
-        "p3Desc": "While this weapon is equipped at +3, Charm becomes unbreakable for 3 turns."
+        "p3Desc": "Infatuation: Charm becomes unbreakable for 3 turns. Must be equipped at +3 to take effect."
       }
     },
     {
@@ -361,9 +362,10 @@
       },
       "signature": {
         "atTier": 3,
+        "sigName": "Bloodthirst",
         "displayLabel": "Extra Turn",
         "note": "Extra turn on kill — NOT a passive grant: the runtime slams the killer's scheduler CT (combat struct +0x41, the solved hidden-scheduler field) until the bonus move is consumed (LivingWeapon/ExtraTurn.cs). Label-only signature: the card paints 'Grant Extra Turn' at P3; no abilityId/slot means no support bit is armed. Replaced the Dual Wield fallback (221) once the CT dig landed.",
-        "p3Desc": "While this weapon is equipped at +3, a kill grants the wielder another turn."
+        "p3Desc": "Bloodthirst: A kill grants another turn. Must be equipped at +3 to take effect."
       }
     },
     {
@@ -2420,7 +2422,7 @@
       "vanillaName": "Poison Crossbow",
       "name": "Venombolt",
       "tier": 3,
-      "identity": "Attrition tool — only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Inflicts Poison (proc 22).",
+      "identity": "Attrition tool — only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Inflicts Poison at 100% (formula 2D, like Bloodlash).",
       "flavorOverride": "Its quarrels glisten with a slow venom that creeps the wound long after the bolt is drawn.",
       "baseline": {
         "wp": 4,
@@ -2435,11 +2437,18 @@
         "wp": 6,
         "evade": 5,
         "element": "None",
-        "onHit": "Poison",
+        "onHit": "Poison (100% via formula 2D)",
         "onHitAbilityId": 22,
-        "formula": 1,
+        "formula": 45,
         "range": 5,
         "attackFlags": "Direct"
+      },
+      "signature": {
+        "atTier": 3,
+        "sigName": "Plague",
+        "displayLabel": "Plague",
+        "note": "Persistent + 1.75x poison. CARD-ONLY for now: the +3 runtime is TODO (latch units poisoned by the +3 wielder, hold poison bit +0x48/0x80 + timer +0x4A, augment each tick to 1.75x in the Engine loop). p3Desc baked so the card states the ability; no abilityId/slot means no support bit is armed.",
+        "p3Desc": "Plague: Poison never fades and is stronger. Must be equipped at +3 to take effect."
       }
     },
     {
@@ -2448,7 +2457,7 @@
       "vanillaName": "Hunting Crossbow",
       "name": "Pitchbolt",
       "tier": 4,
-      "identity": "Combo-setup bolt — proc 101 applies Oil, which doubles the Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
+      "identity": "Combo-setup bolt — applies Oil at 100% (formula 2D), which doubles the Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
       "flavorOverride": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark.",
       "baseline": {
         "wp": 5,
@@ -2463,9 +2472,9 @@
         "wp": 8,
         "evade": 8,
         "element": "None",
-        "onHit": "Oil",
+        "onHit": "Oil (100% via formula 2D)",
         "onHitAbilityId": 101,
-        "formula": 1,
+        "formula": 45,
         "range": 7,
         "attackFlags": "Direct"
       }
