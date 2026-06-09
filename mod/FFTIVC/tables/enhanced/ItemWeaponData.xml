@@ -7,11 +7,11 @@
       <Id>1</Id> <!-- Cutpurse (was Dagger) -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
-      <Formula>2</Formula>
+      <Formula>1</Formula>
       <Power>5</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>108</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>2</Id> <!-- Quicksilver (was Mythril Knife) -->

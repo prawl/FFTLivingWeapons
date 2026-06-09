@@ -81,8 +81,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 108,
-        "formula": 2,
+        "onHitAbilityId": 0,
+        "formula": 1,
         "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
       }
     },
