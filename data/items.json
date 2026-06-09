@@ -142,7 +142,7 @@
         "slot": "support",
         "atTier": 3,
         "displayLabel": "Concentration",
-        "note": "Concentration — negates evade so Gloomfang's always-Blind can never miss (the P3 payoff in living_weapon_knives.csv)",
+        "note": "Concentration — negates evade so Gloomfang's always-Blind can never miss (the P3 payoff in living_weapon_grid.csv)",
         "p3Desc": "While this weapon is equipped at +3, the wielder gains Concentration."
       }
     },
@@ -176,7 +176,7 @@
         "slot": "support",
         "atTier": 3,
         "displayLabel": "Magick Def Boost",
-        "note": "Magick Def Boost — anti-caster capstone: it silences spells then shrugs off the ones that land (living_weapon_knives.csv)",
+        "note": "Magick Def Boost — anti-caster capstone: it silences spells then shrugs off the ones that land (living_weapon_grid.csv)",
         "p3Desc": "While this weapon is equipped at +3, the wielder gains Magick Def Boost."
       }
     },
@@ -297,7 +297,7 @@
         "atTier": 3,
         "hpBelow": 50,
         "displayLabel": "Attack Boost",
-        "note": "Attack Boost while HP < 50% — the cornered executioner hits harder as he bleeds; arm-and-stays for the battle once tripped (living_weapon_knives.csv)",
+        "note": "Attack Boost while HP < 50% — the cornered executioner hits harder as he bleeds; arm-and-stays for the battle once tripped (living_weapon_grid.csv)",
         "p3Desc": "While this weapon is equipped at +3, the wielder gains Attack Boost below half HP."
       }
     },

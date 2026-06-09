@@ -38,7 +38,7 @@ New Buffs Exploration
 - On Successful Parry gain X (mana/health)
 - Reduce the targets level on hit
 - On hit reduce the units Bravery to prevent reaction abilities?
-- 
+-  
 
 Scrapped
 2. PROVEN: Give two counter abilities we know work together.
