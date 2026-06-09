@@ -19,8 +19,11 @@ internal sealed partial class GrowthEngine
     /// <summary>Hold this weapon's signature support passive on the combat struct, once its
     /// kill-tier is earned -- OR-in the bit each tick to beat the engine's per-turn normalize,
     /// exactly as the stat hold does. Guarded write; never clears (kills only climb, and the
-    /// struct is rebuilt fresh each battle, so it re-arms naturally).</summary>
-    private void HoldSignature(long s, int weapon, string name, WeaponSignature? sig, int tier, int hp, int maxHp)
+    /// struct is rebuilt fresh each battle, so it re-arms naturally).
+    /// pickedSupport: the player's chosen roster support id (Offsets.RSupport); used to emit the
+    /// redundancy note when the wielder already has the same support equipped (default 0 = unknown).</summary>
+    private void HoldSignature(long s, int weapon, string name, WeaponSignature? sig, int tier, int hp, int maxHp,
+                                int pickedSupport = 0)
     {
         if (!Signatures.ResolveSupport(sig, tier, out int off, out byte mask)) return;
         if (!Signatures.ConditionMet(sig, hp, maxHp)) return;   // HP-gate; no-op for always-on signatures
@@ -28,14 +31,16 @@ internal sealed partial class GrowthEngine
         if (!Mem.Writable(addr, 1)) return;
         int cur = Mem.U8(addr);
         if ((cur & mask) == 0) Mem.W8(addr, (byte)(cur | mask));
-        LogGrantOnce(weapon, name, sig!, off, mask, addr);
+        LogGrantOnce(weapon, name, sig!, off, mask, addr, pickedSupport);
     }
 
     /// <summary>Read the granted bit back and announce it once per weapon per battle: confirms the
     /// write landed (SET vs MISS) and decodes the ability by name -- the clean test signal that
     /// replaces eyeballing a memory diff. Warns when the support is build-time-only (e.g. HP Boost),
-    /// whose live bit can't take effect, so a dud signature is obvious in the log.</summary>
-    private void LogGrantOnce(int weapon, string name, WeaponSignature sig, int off, byte mask, long addr)
+    /// whose live bit can't take effect, so a dud signature is obvious in the log. When the player's
+    /// picked support matches the grant, emits a redundancy note (same bit -> no stack).</summary>
+    private void LogGrantOnce(int weapon, string name, WeaponSignature sig, int off, byte mask, long addr,
+                               int pickedSupport = 0)
     {
         if (!_grantLogged.Add(weapon)) return;
         bool present = (Mem.U8(addr) & mask) != 0;   // read-back: did our write actually land?
@@ -43,6 +48,8 @@ internal sealed partial class GrowthEngine
             ? "  WARN build-time-only support -- a live bit will NOT take effect"
             : "";
         Log.Info($"GRANT {name} -> {sig.DisplayLabel} (support {sig.AbilityId}) @ +0x98[{off}]=0x{mask:X2} readback={(present ? "SET" : "MISS")}{warn}");
+        if (pickedSupport != 0 && pickedSupport == sig.AbilityId)
+            Log.Info($"note: wielder already equips {sig.DisplayLabel} -- the weapon grant adds nothing (pick a different support)");
     }
 
     /// <summary>Read a unit's (currentHP, maxHP) from the BAND by its (level,brave,faith)

@@ -75,6 +75,7 @@ internal sealed partial class GrowthEngine
 
             // Signatures are per-weapon (independent fields); stat growth is shared (one PA/MA/Speed),
             // so take the strongest factor per stat across the hands rather than letting them fight.
+            int pickedSupport = Mem.Readable(rb + Offsets.RSupport, 1) ? Mem.U8(rb + Offsets.RSupport) : 0;
             var plan = new Dictionary<long, double>();
             foreach (var (weapon, m) in hands)
             {
@@ -82,7 +83,7 @@ internal sealed partial class GrowthEngine
                 int hp = 0, maxHp = 0;
                 if (m.Signature != null && m.Signature.HpBelow > 0)        // only conditional sigs read HP
                     (hp, maxHp) = ReadHp(level, brave, faith);
-                HoldSignature(s, weapon, m.Name, m.Signature, tier, hp, maxHp);   // iconic passive (+ read-back log)
+                HoldSignature(s, weapon, m.Name, m.Signature, tier, hp, maxHp, pickedSupport);   // iconic passive (+ read-back log)
                 if (m.Signature != null && m.Signature.ForTurns > 0)       // timed flat-stat grant
                     HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
                 if (Route(s, m, tier, out long addr, out double factor))

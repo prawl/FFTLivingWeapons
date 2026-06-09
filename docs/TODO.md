@@ -13,7 +13,7 @@
 - Fix the coloring on all icons
 - Create a changelog of all the new mechanic changes
 - Fix the P3 descriptions
-- If I have Attack Boost from a weapon does it stack if I pick Attack Boost?
+- If I have Attack Boost from a weapon does it stack if I pick Attack Boost? — ANSWERED 2026-06-09: no. A support grant is one engine bit (the hold OR-sets it); picking the same support sets the same bit, so stacking is structurally impossible. The card's "While equipped at +3" line + the painted Grant label tell the player; a dev log notes the redundancy.
 - Should the game revert the number of kills if you lose or quit the battle?
 - When using the new chemist items there's a tag that still says the old items name when you're targeting a tile to use.
 - Why is using fists (+ brawler) so strong compared to weapons?
@@ -31,12 +31,12 @@ New Buffs Exploration
 6 PROVEN: Take another turn now.  When killing a unit, immediately take another turn.
 
 
+- HIGH CONFIDENCE: Suppress the enemies Reactions
 - When hit with an element, gain resistance to that element for x turns
 - Health gain from healing spells increased by X%
 - When reviving an ally heal % amount of health back on revival
 - On Successful Parry gain X (mana/health)
 - Reduce the targets level on hit
-- High Confidence: Suppress the enemies Reactions
 - On hit reduce the units Bravery to prevent reaction abilities?
 - 
 

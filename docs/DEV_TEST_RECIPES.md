@@ -40,3 +40,26 @@ Edit `data/items.json` → the item's `proposed.wp` (NOT `baseline`) → `BuildL
 
 `%TEMP%\fft_probes\ct_probe.py` — RPM/WPM (can't crash the game) watch/dump/hold of the battle structs. Modes:
 `dump`, `watch [s] [hz]`, `hold combat|static|cond <val> <mhp> <lvl> [s]`. Used to find the scheduler CT.
+
+## Verify a signature grant is ACTIVE
+
+**1. The once-per-battle log is the primary check.**
+The DLL logs a `GRANT` line when the bit first fires each battle:
+```
+GRANT Gloomfang -> Concentration (support 213) @ +0x98[1]=0x01 readback=SET
+```
+`readback=SET` = write landed; `readback=MISS` = write failed (VirtualQuery guard rejected the address — investigate Mem.Writable).
+`WARN build-time-only support` = the ability id bakes at battle-build, so the live bit can't take effect (design bug in the signature config).
+
+**2. Per-ability in-game oracle** (no memory tools needed):
+- **Concentration** (Gloomfang) — open the attack command and preview a hit against a unit with high physical evade or a shield; the hit% should read full (100%) rather than reduced. Without Concentration, evade knocks it down.
+- **Attack Boost** (Mortal Coil, below half HP) — watch the damage preview on any physical attack before and after the wielder drops under 50% HP; the number rises once the condition trips. The boost arms and stays for the rest of the battle even if HP recovers.
+- **Defense Boost** (Sanguine Gauche) / **Magick Def Boost** (Hushblade) — compare incoming damage from a known attack or spell before and after the grant fires; the number drops.
+- **Charm-lock** (Galewind) / **Extra Turn** (Zwill) — behavioral; both are already live-verified.
+
+**3. Redundancy note.**
+If the wielder's job already has the same support picked, the log also emits:
+```
+note: wielder already equips Concentration -- the weapon grant adds nothing (pick a different support)
+```
+The grant writes the same bit that's already set — no stacking is possible (the engine reads a flag, not a count). Switch the equipped support to get value from the weapon grant.

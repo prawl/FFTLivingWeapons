@@ -52,8 +52,8 @@ internal sealed partial class Display
             _killsCache[id] = new List<(int, long)>();
             _grantCache[id] = new List<(int, long)>();
         }
-        byte[] killsAscii = ByteScan.Ascii("Kills ");
-        byte[] killsUtf16 = ByteScan.Utf16("Kills ");
+        byte[] killsAscii = ByteScan.Ascii("Kills: ");
+        byte[] killsUtf16 = ByteScan.Utf16("Kills: ");
         byte[] grantAscii = ByteScan.Ascii("Grant ");
         byte[] grantUtf16 = ByteScan.Utf16("Grant ");
 
@@ -127,7 +127,7 @@ internal sealed partial class Display
     /// <summary>Pass 2: "Kills " + 4 digits -> the per-weapon counter.</summary>
     private void ScanKills(byte[] buf, int searchable, long rbase, long off,
                            List<(int id, int enc, byte[] b)> flavors, byte[] ka, byte[] ku) =>
-        ScanAnchored(buf, searchable, rbase, off, flavors, ka, ku, 4, ByteScan.FourDigits, _killsCache);
+        ScanAnchored(buf, searchable, rbase, off, flavors, ka, ku, 4, ByteScan.KillsDigits, _killsCache);
 
     /// <summary>Pass 3: "Grant " + a GrantWidth label slot -> the signature ability badge.</summary>
     private void ScanGrant(byte[] buf, int searchable, long rbase, long off,

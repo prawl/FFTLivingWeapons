@@ -118,6 +118,22 @@ def check_slots(items, normal_formulas):
 
 
 FLAVOR_MAX = 90   # authored flavor lines must fit the equip card
+P3DESC_PREFIX = "While this weapon is equipped"
+
+def check_p3desc(items):
+    """Every signature.p3Desc must be <= 90 chars and start with the canonical prefix."""
+    bad = []
+    for it in items:
+        sig = it.get("signature")
+        if not sig:
+            continue
+        p3 = sig.get("p3Desc")
+        if not p3:
+            continue
+        if len(p3) > FLAVOR_MAX or not p3.startswith(P3DESC_PREFIX):
+            bad.append((it, p3))
+    return bad
+
 
 def check_flavor_length(items):
     """Authored flavor lines (flavorOverride) must stay <= FLAVOR_MAX chars. Items that carry a
@@ -208,6 +224,16 @@ def main():
         for a, n in fl:
             print(f"  TOO LONG id{a['id']} {a.get('name')} ({n} chars): {a['flavorOverride']!r}")
         rc = 1
+
+    p3 = check_p3desc(items)
+    print(f"\n--- P3 DESCRIPTION (signature.p3Desc <= {FLAVOR_MAX} chars, starts with '{P3DESC_PREFIX}') ---")
+    if not p3:
+        print(f"  PASS: every p3Desc is valid.")
+    else:
+        for a, s in p3:
+            print(f"  INVALID id{a['id']} {a.get('name')} (len={len(s)}, prefix ok={s.startswith(P3DESC_PREFIX)}): {s!r}")
+        rc = 1
+
     sys.exit(rc)
 
 

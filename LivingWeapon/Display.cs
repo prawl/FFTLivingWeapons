@@ -94,7 +94,7 @@ internal sealed partial class Display
         }
         foreach (var kv in _killsCache)
         {
-            string d4 = ((_kills.TryGetValue(kv.Key, out int k) ? k : 0) % 10000).ToString("0000");
+            string d4 = Signatures.KillsSlot(_kills.TryGetValue(kv.Key, out int k) ? k : 0);
             foreach (var (enc, addr) in kv.Value)
                 if (KillsIntact(addr, enc)) WriteStr(addr, d4, enc);
         }
@@ -149,21 +149,18 @@ internal sealed partial class Display
         return Mem.TryReadBytes(addr, sw, out var got) && ByteScan.MatchesAny(got, 0, valid, sw);
     }
 
-    /// <summary>A cached Kills digit slot is still ours only if "Kills " still sits immediately
-    /// before it and four ASCII digits sit at it -- rejects recycled/freed buffers.</summary>
+    /// <summary>A cached Kills digit slot is still ours only if "Kills: " still sits immediately
+    /// before it and the 4-char slot holds a left-aligned digit pattern -- char 0 is a digit,
+    /// chars 1..3 are digits then only spaces (superset of the old all-digits form, so any
+    /// "0042"-era buffer still validates). Rejects recycled/freed buffers.</summary>
     private static bool KillsIntact(long addr, int enc)
     {
-        byte[] pre = ByteScan.Enc("Kills ", enc);
+        byte[] pre = ByteScan.Enc("Kills: ", enc);
         int dw = 4 * enc;
         long preAddr = addr - pre.Length;
         if (!Mem.TryReadBytes(preAddr, pre.Length + dw, out var got)) return false;
         for (int j = 0; j < pre.Length; j++) if (got[j] != pre[j]) return false;
-        for (int d = 0; d < 4; d++)
-        {
-            if (got[pre.Length + d * enc] is < (byte)'0' or > (byte)'9') return false;
-            if (enc == 2 && got[pre.Length + d * enc + 1] != 0) return false;
-        }
-        return true;
+        return ByteScan.KillsDigits(got, pre.Length, enc);
     }
 
     /// <summary>A cached grant slot is still ours only if "Grant " sits immediately before it and

@@ -50,13 +50,33 @@ internal static class ByteScan
         return rel < 0 ? -1 : start + rel;
     }
 
-    /// <summary>Slot validator: four ASCII digits at pos (the "Kills NNNN" counter), enc-aware.</summary>
-    public static bool FourDigits(byte[] buf, int pos, int enc)
+    /// <summary>Slot validator for the "Kills NNNN" counter: left-aligned digits padded with spaces.
+    /// Char 0 must be an ASCII digit; chars 1..3 are digits until the first space, then only spaces
+    /// (a digit after a space = not our slot). This is a strict superset of the old all-digits form
+    /// ("0042"-era buffers still validate). enc-aware: UTF-16 high byte must be 0x00 for every
+    /// char (covers both digits and the 0x20 space).</summary>
+    public static bool KillsDigits(byte[] buf, int pos, int enc)
     {
-        for (int d = 0; d < 4; d++)
+        // char 0 must be a digit
+        if (buf[pos] is < (byte)'0' or > (byte)'9') return false;
+        if (enc == 2 && buf[pos + 1] != 0) return false;
+        bool seenSpace = false;
+        for (int d = 1; d < 4; d++)
         {
-            if (buf[pos + d * enc] is < (byte)'0' or > (byte)'9') return false;
+            byte b = buf[pos + d * enc];
             if (enc == 2 && buf[pos + d * enc + 1] != 0) return false;
+            if (seenSpace)
+            {
+                if (b != (byte)' ') return false;   // digit after space -> not our slot
+            }
+            else if (b == (byte)' ')
+            {
+                seenSpace = true;
+            }
+            else if (b is < (byte)'0' or > (byte)'9')
+            {
+                return false;
+            }
         }
         return true;
     }

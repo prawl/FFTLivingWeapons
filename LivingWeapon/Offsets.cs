@@ -57,6 +57,7 @@ internal static class Offsets
     public const int ROffHand = 0x18;  // u16 dual-wield OFF-HAND weapon. FFTHandsFree mislabels this "reserved" --
                                        // a live FFT:IC roster dump proved the 2nd weapon lands HERE (+0x16 stays empty;
                                        // shields go to +0x1A). Read alongside RRHand to credit both blades.
+    public const int RSupport = 0x0A;   // u8 support ability id the player picked (FFTHandsFree RosterOffSupport)
     public const int RLevel  = 0x1D;   // u8  (0 / empty slot guard)
     public const int RBrave  = 0x1E;   // u8  (fingerprint to find this unit's combat struct)
     public const int RFaith  = 0x1F;   // u8

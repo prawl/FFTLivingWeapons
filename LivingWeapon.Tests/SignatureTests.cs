@@ -148,4 +148,25 @@ public class SignatureTests
         Assert.False(Signatures.ConditionMet(sig, hp: 0, maxHp: 0));   // struct not located / dead
         Assert.False(Signatures.ConditionMet(null, hp: 1, maxHp: 100));
     }
+
+    // --- KillsSlot: left-aligned digits in a fixed 4-char slot ---
+
+    [Theory]
+    [InlineData(0,     "0   ")]   // single digit -> digit then 3 spaces
+    [InlineData(7,     "7   ")]
+    [InlineData(42,    "42  ")]   // two digits -> 2 spaces
+    [InlineData(137,   "137 ")]   // three digits -> 1 space
+    [InlineData(1337,  "1337")]   // four digits -> exactly full
+    [InlineData(12345, "2345")]   // wraps at 10000: 12345 % 10000 = 2345
+    public void KillsSlot_formats_correctly(int count, string expected)
+    {
+        Assert.Equal(expected, Signatures.KillsSlot(count));
+    }
+
+    [Fact]
+    public void KillsSlot_is_always_4_chars()
+    {
+        foreach (int n in new[] { 0, 1, 9, 10, 99, 100, 999, 1000, 9999, 10000 })
+            Assert.Equal(4, Signatures.KillsSlot(n).Length);
+    }
 }

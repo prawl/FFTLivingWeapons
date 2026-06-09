@@ -60,6 +60,11 @@ internal static class Signatures
     public static bool ShowsGrant(WeaponSignature? sig, int tier) =>
         sig != null && !string.IsNullOrEmpty(sig.DisplayLabel) && tier >= sig.AtTier;
 
+    /// <summary>The Kills counter fitted to its fixed 4-char slot: left-aligned digits, space-padded
+    /// ("0   ", "42  ", "1337"). The card reads naturally ("Kills 42") while the painted byte width
+    /// never changes. Counts wrap at 10000 (the slot is 4 chars).</summary>
+    public static string KillsSlot(int count) => (count % 10000).ToString().PadRight(4);
+
     /// <summary>The label fitted to the baked slot: padded with spaces to GrantWidth, or
     /// truncated if longer. Pass "" to blank the slot (e.g. below the grant's tier).</summary>
     public static string GrantSlot(string label)
