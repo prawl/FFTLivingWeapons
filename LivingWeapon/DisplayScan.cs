@@ -10,11 +10,11 @@ namespace LivingWeapon;
 /// Two passes, anchored differently on purpose:
 ///   1. SUFFIX -> a weapon name + a valid 2-char slot. The +/+2/+3 badge sits exactly at
 ///      name+len, so the name is the right anchor for it.
-///   2. KILLS  -> a literal "Kills " + 4 digits, tied to a weapon by the NEAREST FLAVOR
-///      line before it. The card's "Kills " line lives in the description buffer, far from
-///      (and often before) the name copy, so name-anchoring grabbed the WRONG weapon's
+///   2. KILLS  -> a literal "Kills: " + a 4-char digit slot, tied to a weapon by the NEAREST
+///      FLAVOR line before it. The card's "Kills: " line lives in the description buffer, far
+///      from (and often before) the name copy, so name-anchoring grabbed the WRONG weapon's
 ///      line. The flavor line leads that same description block, is stable across leveling,
-///      and is unique enough -- so the nearest flavor before a "Kills " is that weapon's own.
+///      and is unique enough -- so the nearest flavor before a "Kills: " is that weapon's own.
 /// All reads go through Mem (RPM-backed): a chunk freed mid-scan is a caught miss, not a crash.
 /// </summary>
 internal sealed partial class Display
@@ -22,7 +22,7 @@ internal sealed partial class Display
     private const long ChunkSize = 8 * 1024 * 1024;
     private const int Overlap = 4096;
     private const long ScanCap = 6L * 1024 * 1024 * 1024;
-    private const int FlavorWindow = 2048;   // how far before "Kills " the flavor line may sit
+    private const int FlavorWindow = 2048;   // how far before "Kills: " the flavor line may sit
     private const double FullScanSeconds = 90.0;   // re-discover the hot-region set this often
 
     // The full heap is ~2.6GB -> a full scan is ~9s. But card text lives in only a few regions.
@@ -35,7 +35,6 @@ internal sealed partial class Display
     {
         _slots.Clear();
         _killsCache.Clear();
-        _grantCache.Clear();
         var names = new List<(int id, int enc, byte[] b)>();
         var flavors = new List<(int id, int enc, byte[] b)>();
         foreach (int id in targets)
@@ -50,12 +49,9 @@ internal sealed partial class Display
             }
             _slots[id] = new List<(int, long)>();
             _killsCache[id] = new List<(int, long)>();
-            _grantCache[id] = new List<(int, long)>();
         }
         byte[] killsAscii = ByteScan.Ascii("Kills: ");
         byte[] killsUtf16 = ByteScan.Utf16("Kills: ");
-        byte[] grantAscii = ByteScan.Ascii("Grant ");
-        byte[] grantUtf16 = ByteScan.Utf16("Grant ");
 
         bool full = _hotRegions.Count == 0 || (DateTime.Now - _lastFullScan).TotalSeconds > FullScanSeconds;
         var regions = full ? Mem.Regions() : (IEnumerable<(long, long)>)_hotRegions;
@@ -77,7 +73,6 @@ internal sealed partial class Display
                 int searchable = (int)Math.Min(ChunkSize, buf.Length);
                 ScanNames(buf, searchable, rbase, off, names);
                 ScanKills(buf, searchable, rbase, off, flavors, killsAscii, killsUtf16);
-                ScanGrant(buf, searchable, rbase, off, flavors, grantAscii, grantUtf16);
                 scanned += searchable;
                 off += ChunkSize;
             }
@@ -87,14 +82,14 @@ internal sealed partial class Display
 
         if (log)
             foreach (int id in targets)
-                Log.Info($"display: {_meta[id].Name} nameSites={_slots[id].Count} killSites={_killsCache[id].Count} grantSites={_grantCache[id].Count} (paint targets, not kills)");
+                Log.Info($"display: {_meta[id].Name} nameSites={_slots[id].Count} killSites={_killsCache[id].Count} (paint targets, not kills)");
     }
 
     /// <summary>Total paint sites currently found for the target weapons (used to mark hot regions).</summary>
     private int SiteCount(HashSet<int> targets)
     {
         int n = 0;
-        foreach (int id in targets) n += _slots[id].Count + _killsCache[id].Count + _grantCache[id].Count;
+        foreach (int id in targets) n += _slots[id].Count + _killsCache[id].Count;
         return n;
     }
 
@@ -124,21 +119,16 @@ internal sealed partial class Display
         }
     }
 
-    /// <summary>Pass 2: "Kills " + 4 digits -> the per-weapon counter.</summary>
+    /// <summary>Pass 2: "Kills: " + the 4-char digit slot -> the per-weapon counter.</summary>
     private void ScanKills(byte[] buf, int searchable, long rbase, long off,
                            List<(int id, int enc, byte[] b)> flavors, byte[] ka, byte[] ku) =>
         ScanAnchored(buf, searchable, rbase, off, flavors, ka, ku, 4, ByteScan.KillsDigits, _killsCache);
 
-    /// <summary>Pass 3: "Grant " + a GrantWidth label slot -> the signature ability badge.</summary>
-    private void ScanGrant(byte[] buf, int searchable, long rbase, long off,
-                           List<(int id, int enc, byte[] b)> flavors, byte[] ga, byte[] gu) =>
-        ScanAnchored(buf, searchable, rbase, off, flavors, ga, gu, Signatures.GrantWidth, ByteScan.GrantSlot, _grantCache);
-
     /// <summary>Find PREFIX (per enc), validate a fixed-width SLOT right after it, and tie the
     /// site to the NEAREST preceding flavor line (same enc) within FlavorWindow -- the weapon whose
-    /// description block it ends. The card's "Kills "/"Grant " lines live in the description buffer,
+    /// description block it ends. The card's "Kills: " line lives in the description buffer,
     /// far from (and often before) the name copy, so name-anchoring grabbed the WRONG weapon's line;
-    /// the leading flavor line is the stable, unique anchor. Shared by the Kills + Grant passes.</summary>
+    /// the leading flavor line is the stable, unique anchor.</summary>
     private void ScanAnchored(byte[] buf, int searchable, long rbase, long off,
                               List<(int id, int enc, byte[] b)> flavors, byte[] preAscii, byte[] preUtf16,
                               int slotChars, Func<byte[], int, int, bool> slotValid,

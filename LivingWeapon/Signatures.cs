@@ -47,31 +47,16 @@ internal static class Signatures
     public static bool IsBuildTimeOnly(int abilityId) =>
         abilityId == 220 || abilityId == 221 || abilityId == 228;   // Doublehand, Dual Wield, HP Boost
 
-    // --- card display: the painted "Grant <ability>" label (the tried-and-true text paint,
-    //     same mechanism as the +N suffix and the Kills counter) ---
-
-    /// <summary>Fixed character width of the baked grant slot. MUST match GRANT_WIDTH in
-    /// tools/patch_names.py (they bake/paint the same region). 16 fits the longest shipping
-    /// knife label ("Magick Def Boost").</summary>
-    public const int GrantWidth = 16;
-
-    /// <summary>True when this weapon's signature should paint its label on the card: it has a
-    /// label and the wielder's kill-tier has reached the grant's tier.</summary>
-    public static bool ShowsGrant(WeaponSignature? sig, int tier) =>
-        sig != null && !string.IsNullOrEmpty(sig.DisplayLabel) && tier >= sig.AtTier;
+    // --- card display: the painted Kills counter (the tried-and-true text paint, same
+    //     mechanism as the +N suffix). The old painted "Grant <ability>" label is GONE: the
+    //     baked "While this weapon is equipped at +3, ..." sentence states the ability on
+    //     every card, and unequipped cards (which the painter never touches) showed the
+    //     slot as a floating bare "Grant". The +N name suffix is the earned-state signal. ---
 
     /// <summary>The Kills counter fitted to its fixed 4-char slot: left-aligned digits, space-padded
-    /// ("0   ", "42  ", "1337"). The card reads naturally ("Kills 42") while the painted byte width
+    /// ("0   ", "42  ", "1337"). The card reads naturally ("Kills: 42") while the painted byte width
     /// never changes. Counts wrap at 10000 (the slot is 4 chars).</summary>
     public static string KillsSlot(int count) => (count % 10000).ToString().PadRight(4);
-
-    /// <summary>The label fitted to the baked slot: padded with spaces to GrantWidth, or
-    /// truncated if longer. Pass "" to blank the slot (e.g. below the grant's tier).</summary>
-    public static string GrantSlot(string label)
-    {
-        label ??= "";
-        return label.Length >= GrantWidth ? label.Substring(0, GrantWidth) : label.PadRight(GrantWidth);
-    }
 
     /// <summary>True if this signature's HP condition (if any) is currently met. No condition
     /// (HpBelow &lt;= 0) is always-on. The gate is integer math (hp*100 &lt; maxHp*HpBelow) so it

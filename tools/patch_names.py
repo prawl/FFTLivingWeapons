@@ -30,11 +30,6 @@ WEAPON_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "
 # Living Weapon display scaffolding: bake a fixed 2-char name-suffix SLOT (companion paints +/+2/+3)
 # and a fixed-width Kills line onto every weapon, so the in-card "it leveled up" overwrite works.
 SCAFFOLD_LIVING = True
-# Fixed char width of the "Grant <ability>" slot baked onto signature weapons; the companion
-# paints the granted ability's name here once its kill-tier is reached. MUST equal
-# Signatures.GrantWidth in the LivingWeapon DLL (they bake/paint the same region). 16 fits the
-# longest shipping label ("Magick Def Boost").
-GRANT_WIDTH = 16
 MELEE1_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff", "Flail", "Bag"}
 ACC_CATS = {"Shoes", "Armguard", "Ring", "Armlet", "Cloak", "Perfume"}
 CAT_NOUN = {"Knife": "knife", "NinjaBlade": "ninja blade", "Sword": "blade", "KnightSword": "knight's sword",
@@ -288,20 +283,14 @@ def main():
             p3 = sig.get("p3Desc") if sig else None
             if p3:
                 desc = desc.rstrip() + "\n" + p3
-            # ONE rstrip, BEFORE the scaffold lines: the Grant slot's 16 blank chars are
-            # load-bearing paint targets -- an rstrip after appending them bakes a slotless
-            # "Grant" the DLL can never find (grantSites=0, the lone-"Grant" card bug).
-            desc = desc.rstrip()
-            # Signature weapons get a fixed-width "Grant <ability>" slot before the Kills line;
-            # the companion paints the granted ability's name here at its kill-tier (blank below).
-            if sig and sig.get("displayLabel"):
-                desc += "\nGrant " + (" " * GRANT_WIDTH)
             # bake "Kills: 0   " (digit + 3 spaces) as the LAST line of EVERY weapon card -- the
             # counter reads as consistent UI when it always closes the card. The DLL paints
             # left-aligned variable digits into this fixed 4-char slot (KillsSlot helper); the
             # baked value must match the left-aligned pattern the slot validator accepts. The
             # "Kills: " literal MUST stay in lockstep with Display/DisplayScan + ByteScan.KillsDigits.
-            desc += "\nKills: 0   "
+            # (No painted "Grant" line anymore: the baked "While this weapon is equipped at +3, ..."
+            # sentence states the ability, and unpainted cards showed the slot as a bare "Grant".)
+            desc = desc.rstrip() + "\nKills: 0   "
         if dry:
             if it["id"] >= 11:  # show the new ones
                 print(f"id{it['id']:>3} {name!r}\n      {desc!r}")

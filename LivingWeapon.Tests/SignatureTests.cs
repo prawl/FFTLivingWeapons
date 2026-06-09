@@ -69,43 +69,6 @@ public class SignatureTests
         Assert.False(Signatures.ResolveSupport(null, tier: 3, out _, out _));
     }
 
-    // --- card display (the painted "Grant <ability>" label) ---
-
-    [Fact]
-    public void ShowsGrant_only_at_or_above_tier_with_a_label()
-    {
-        var sig = new WeaponSignature { AbilityId = 213, Slot = "support", AtTier = 3, DisplayLabel = "Concentration" };
-        Assert.False(Signatures.ShowsGrant(sig, tier: 2));
-        Assert.True(Signatures.ShowsGrant(sig, tier: 3));
-        Assert.True(Signatures.ShowsGrant(sig, tier: 3));
-    }
-
-    [Fact]
-    public void ShowsGrant_false_for_null_or_unlabelled()
-    {
-        Assert.False(Signatures.ShowsGrant(null, tier: 3));
-        var noLabel = new WeaponSignature { AbilityId = 213, Slot = "support", AtTier = 3, DisplayLabel = "" };
-        Assert.False(Signatures.ShowsGrant(noLabel, tier: 3));
-    }
-
-    [Theory]
-    [InlineData("Concentration", "Concentration   ")]    // 13 -> padded to 16
-    [InlineData("Magick Def Boost", "Magick Def Boost")] // 16 -> exact, the longest shipping label
-    [InlineData("", "                ")]                  // blank slot = 16 spaces
-    public void GrantSlot_pads_or_truncates_to_width(string label, string expected)
-    {
-        string slot = Signatures.GrantSlot(label);
-        Assert.Equal(Signatures.GrantWidth, slot.Length);
-        Assert.Equal(expected, slot);
-    }
-
-    [Fact]
-    public void GrantSlot_truncates_an_overlong_label_to_width()
-    {
-        string slot = Signatures.GrantSlot(new string('x', 40));
-        Assert.Equal(Signatures.GrantWidth, slot.Length);
-    }
-
     // --- the shipping knife support signatures arm the correct bit ---
 
     [Theory]
