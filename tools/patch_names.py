@@ -288,16 +288,20 @@ def main():
             p3 = sig.get("p3Desc") if sig else None
             if p3:
                 desc = desc.rstrip() + "\n" + p3
+            # ONE rstrip, BEFORE the scaffold lines: the Grant slot's 16 blank chars are
+            # load-bearing paint targets -- an rstrip after appending them bakes a slotless
+            # "Grant" the DLL can never find (grantSites=0, the lone-"Grant" card bug).
+            desc = desc.rstrip()
             # Signature weapons get a fixed-width "Grant <ability>" slot before the Kills line;
             # the companion paints the granted ability's name here at its kill-tier (blank below).
             if sig and sig.get("displayLabel"):
-                desc = desc.rstrip() + "\nGrant " + (" " * GRANT_WIDTH)
+                desc += "\nGrant " + (" " * GRANT_WIDTH)
             # bake "Kills: 0   " (digit + 3 spaces) as the LAST line of EVERY weapon card -- the
             # counter reads as consistent UI when it always closes the card. The DLL paints
             # left-aligned variable digits into this fixed 4-char slot (KillsSlot helper); the
             # baked value must match the left-aligned pattern the slot validator accepts. The
             # "Kills: " literal MUST stay in lockstep with Display/DisplayScan + ByteScan.KillsDigits.
-            desc = desc.rstrip() + "\nKills: 0   "
+            desc += "\nKills: 0   "
         if dry:
             if it["id"] >= 11:  # show the new ones
                 print(f"id{it['id']:>3} {name!r}\n      {desc!r}")
