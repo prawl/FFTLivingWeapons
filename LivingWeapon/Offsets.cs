@@ -101,6 +101,14 @@ internal static class Offsets
     public const int CSupport = 0x98;
     public const int CMovement = 0x9C;   // 3 bytes, base id 230; Rapture holds its teleport image here
 
+    // --- dead / undead status bytes (band-entry relative) ---
+    // Proven layout from Doom research (doom-status-bytes memory): Dead +0x45/0x20, Undead +0x45/0x10.
+    // A unit is structurally dead when this bit is set regardless of HP -- the Phoenix-Down undead
+    // kill is a scripted status-death whose HP write the 33ms poll may never observe.
+    public const int ADeadStatus  = 0x45;  // u8 status bitfield byte shared by Dead and Undead flags
+    public const byte ADeadBit    = 0x20;  // mask: bit 5 of ADeadStatus is the Dead flag
+    public const byte AUndeadBit  = 0x10;  // mask: bit 4 of ADeadStatus is the Undead flag
+
     // --- poison status bytes (band-entry relative, proven live 2026-06-09) ---
     public const int APoison      = 0x48;  // u8 status bitfield byte containing the poison flag
     public const byte APoisonBit  = 0x80;  // mask: bit 7 of APoison is the "poisoned" flag

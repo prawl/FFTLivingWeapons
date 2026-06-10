@@ -763,10 +763,13 @@ public class KillTrackerTests
     }
 
     [Fact]
-    public void Duplicate_corpse_identity_at_second_slot_is_blocked()
+    public void Same_identity_alive_at_second_slot_then_dead_is_a_revive_and_credits_again()
     {
-        // If the same (lvl,brave,faith,maxHp) identity appears dead at a SECOND band slot
-        // after already being credited, the duplicate is blocked (deadCredited) and logged loudly.
+        // Per-down credit ruling: if the same (lvl,brave,faith,maxHp) identity is SEEN ALIVE
+        // (3-tick streak) at a second band slot after being credited at slot 0, that is treated
+        // as a genuine revive -- the identity re-enters the creditable pool. The second death at
+        // slot 1 earns a kill. (Compare with the frozen-twin test, where the twin is never seen
+        // alive at all -- that case still credits only once.)
         var kills = new Dictionary<int, int>();
         var m = new FakeMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
@@ -779,13 +782,14 @@ public class KillTrackerTests
         AliveThenDead(m, slot: 0, t);
         Assert.Equal(1, kills.GetValueOrDefault(52));
 
-        // Same identity appears dead at slot 1.
+        // Same identity seen alive (3 ticks) at slot 1 -> revive detected -> creditable again.
         SetEnemy(m, slot: 1, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
         Settle(t, 3);
+        // Dies at slot 1 -> second credit earned.
         SetUnit(m, slot: 1, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
         Settle(t, 3);
 
-        Assert.Equal(1, kills.GetValueOrDefault(52));   // NOT 2; duplicate blocked
+        Assert.Equal(2, kills.GetValueOrDefault(52));   // revive then re-kill earns the second credit
     }
 
     [Fact]
@@ -928,5 +932,183 @@ public class KillTrackerTests
         Assert.NotEqual(0, t.LastPlayerMainHand);
         t.ResetBattle();
         Assert.Equal(0, t.LastPlayerMainHand);
+    }
+
+    // --- status-death detection (Spec A + B) ---
+
+    /// <summary>Set the Dead status bit on a band entry at the given slot without touching HP.
+    /// When <paramref name="set"/> is false, clears the bit (alive again).</summary>
+    private static void SetDeadBit(FakeMemory m, int slot, bool set = true)
+    {
+        long s = Offsets.BandReadBase + (long)slot * Offsets.CombatStride;
+        byte cur = m.U8s.TryGetValue(s + Offsets.ADeadStatus, out var v) ? v : (byte)0;
+        m.U8s[s + Offsets.ADeadStatus] = set
+            ? (byte)(cur | Offsets.ADeadBit)
+            : (byte)(cur & ~Offsets.ADeadBit);
+    }
+
+    [Fact]
+    public void Status_death_hp_positive_dead_bit_set_enters_corpse_pipeline()
+    {
+        // Root bug: Phoenix Down on undead kills with a status transition -- HP stays nonzero
+        // but the Dead bit fires. The corpse must enter pending and be credited normally.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);   // latch weapon 52
+
+        // Enemy alive (hp > 0, Dead bit clear) for 3 ticks -> seenAlive.
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        // Status death: hp stays 300 (never hits 0), Dead bit set.
+        SetDeadBit(m, slot: 0, set: true);
+        Settle(t, 3);   // 3 dead-by-status ticks -> credit
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void Status_death_is_credited_to_the_acting_players_weapon()
+    {
+        // The attribution path must be the same as the HP==0 path -- the acting weapon earns it.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+        SetDeadBit(m, slot: 0, set: true);
+        Settle(t, 3);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+        Assert.Equal(1, kills.Count);   // nothing else credited
+    }
+
+    [Fact]
+    public void Hp_zero_path_unchanged_after_adding_dead_bit_check()
+    {
+        // Regression pin: plain hp==0 death (no Dead bit) still credits normally.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        AliveThenDead(m, slot: 0, t);   // hp -> 0, Dead bit never set
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void Undead_dies_revives_dies_again_credits_twice()
+    {
+        // Design ruling: per-down credit. An undead that dies (status or HP), revives, then dies
+        // again earns a credit EACH time. The duplicate-identity guard must not block the second death.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        // First death: status-death (hp stays positive, Dead bit fires).
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);   // seenAlive
+        SetDeadBit(m, slot: 0, set: true);
+        Settle(t, 3);   // credited (#1)
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+
+        // Revive: hp still 300 (or restored), Dead bit CLEARED -> observed alive again.
+        SetDeadBit(m, slot: 0, set: false);
+        Settle(t, 3);   // alive streak -> identity re-enters the creditable pool
+
+        // Second death: hp goes to 0 this time.
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        SetDeadBit(m, slot: 0, set: false);   // bit already clear; hp==0 drives the dead path
+        Settle(t, 3);   // credited (#2)
+
+        Assert.Equal(2, kills.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void Dead_identity_at_two_band_slots_credits_exactly_once()
+    {
+        // Frozen-twin regression: slot 0 dies and is credited; the SAME identity immediately
+        // appears dead at slot 1 (a frozen copy from a restart -- never seen alive at slot 1).
+        // The twin copy never reads alive in between, so the belt blocks the second attempt.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        // Slot 0: alive then dead -> credit #1.
+        AliveThenDead(m, slot: 0, t);
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+
+        // Slot 1: same identity, but starts ALREADY dead (frozen twin -- never seen alive at slot 1).
+        // SetUnit writes hp=0 directly; no alive ticks at this slot before the dead scan.
+        SetUnit(m, slot: 1, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        SetArrayEnemy(m, slot: 1, level: 10, brave: 50, faith: 50, maxHp: 400);
+        Settle(t, 3);   // 3 dead ticks at slot 1, but seenAlive[1] is false -> no credit
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // still ONE credit, not two
+    }
+
+    [Fact]
+    public void Dead_bit_read_unreadable_hp_path_still_works()
+    {
+        // If the memory guard on the Dead-bit read fails (returns 0 -- mem is already
+        // zeroing unregistered addresses in FakeMemory), the hp==0 path must still credit.
+        // This is implicitly covered by the FakeMemory returning 0 for unknown addresses --
+        // unregistered status bytes return 0, so bit tests return false and only hp decides.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        // The status byte is NOT written for this unit (FakeMemory returns 0 -> Dead bit = 0).
+        AliveThenDead(m, slot: 0, t);   // only hp==0 drives death detection
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void Ally_with_dead_bit_set_never_credited()
+    {
+        // An ally whose Dead bit is set (knocked out) must never earn a kill credit.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        // A player-side band slot -- identity NOT in the enemy oracle.
+        int pSlot = Offsets.EnemySlotMax + 5;
+        SetUnit(m, pSlot, hp: 300, maxHp: 400, level: 15, brave: 55, faith: 55);
+        Settle(t, 3);   // seenAlive
+        // Set Dead bit but keep hp > 0 (status death on an ally).
+        SetDeadBit(m, pSlot, set: true);
+        Settle(t, 3);
+
+        Assert.False(kills.ContainsKey(52));   // ally death is never a weapon's kill
     }
 }
