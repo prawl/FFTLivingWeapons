@@ -27,13 +27,13 @@ public class TuningTests
     }
 
     [Fact]
-    public void Dev_seed_sits_one_kill_below_P3_under_the_dev_thresholds()
+    public void Dev_seed_lands_at_P3_under_the_dev_thresholds()
     {
-        // The dev seed is meant to land at P2 so a SINGLE kill flips a weapon to P3 (its grant turns
-        // on, live). This guards against the seed and the dev thresholds silently drifting apart --
-        // checked against DevThresholds directly, so it's valid even though tests compile under prod.
-        Assert.Equal(2, Tuning.TierForIn(Tuning.DevKillSeed, Tuning.DevThresholds));        // seeded -> P2
-        Assert.Equal(3, Tuning.TierForIn(Tuning.DevKillSeed + 1, Tuning.DevThresholds));    // +1 kill -> P3
+        // The dev seed lands AT P3 so every +3 signature is live the moment a weapon is equipped
+        // (the rod pass put all five signatures at +3; a P2 seed forced a grind kill per weapon
+        // before anything could be tested). Checked against DevThresholds directly, so it's valid
+        // even though tests compile under prod.
+        Assert.Equal(3, Tuning.TierForIn(Tuning.DevKillSeed, Tuning.DevThresholds));    // seeded -> P3
     }
 
     [Fact]

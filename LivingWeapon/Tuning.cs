@@ -30,9 +30,9 @@ internal static class Tuning
     public const bool VerboseEvents = false;
 #endif
 
-    /// <summary>DEV seed floor: every weapon starts at least this many kills. 2 (== P2 under the dev
-    /// thresholds) so ONE kill bumps a weapon to P3 and you watch its grant switch on, live.</summary>
-    public const int DevKillSeed = 2;
+    /// <summary>DEV seed floor: every weapon starts at least this many kills. 3 (== P3 under the dev
+    /// thresholds) so every +3 signature is live the moment the weapon is equipped.</summary>
+    public const int DevKillSeed = 3;
 
     /// <summary>kills -> tier (0..3) against the active thresholds, checked high to low.</summary>
     public static int TierFor(int kills) => TierForIn(kills, KillThresholds);
