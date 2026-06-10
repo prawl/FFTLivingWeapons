@@ -69,6 +69,15 @@ internal static class Tuning
     /// per wielder turn -- 8 == the vanilla Regen rate.</summary>
     public const int WyrmbloodDiv = 8;
 
+    /// <summary>Spiritual Font (Wellspring Rod +3): fraction of max HP the wielder regains at a
+    /// completed-turn edge where their grid position changed (the runtime writes the restore
+    /// itself -- the engine honors only ONE movement passive, so the font bits are retired).</summary>
+    public const double FontHpPct = 0.10;
+
+    /// <summary>Spiritual Font: fraction of max MP regained on the same moved-turn edge. MP writes
+    /// ride the PROVISIONAL band +0x18/+0x1A pair, gated per battle (SpiritualFont.MpLayoutOk).</summary>
+    public const double FontMpPct = 0.10;
+
     /// <summary>Rapture (Rod of Faith +3): the window arms when the wielder's HP drops strictly
     /// below this fraction of max.</summary>
     public const double RaptureHpPct = 0.30;

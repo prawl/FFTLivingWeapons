@@ -47,22 +47,6 @@ internal sealed partial class Rapture
         return f;
     }
 
-    /// <summary>The 3-byte image the window HOLDS: the granted teleport bit, merged with the
-    /// EARNED movement-bit grants of the wielder's other hand(s). Every rod is dual-wieldable
-    /// and band +0x80 IS combat +0x9C, so without the merge Rapture's replace-image and the
-    /// font hold (GrowthEngine.HoldMovementBits) would fight over the same field tick by tick.
-    /// With it, both writers converge on one image (the font hold OR-only re-arms are no-ops).
-    /// Null when the teleport id falls outside the movement field.</summary>
-    public static byte[]? GrantImage(int moveAbilityId, IEnumerable<(WeaponSignature? sig, int tier)> otherHands)
-    {
-        byte[]? f = FieldFor(moveAbilityId);
-        if (f is null) return null;
-        foreach (var (sig, tier) in otherHands)
-            foreach (var (_, off, mask) in Signatures.ResolveMovementGrant(sig, tier))
-                f[off] |= mask;
-        return f;
-    }
-
     /// <summary>Read the wielder's current 3-byte movement field off its band entry
     /// (+<see cref="Offsets.AMovement"/>). Null when unreadable (entry moved/freed).</summary>
     public static byte[]? ReadField(long entryAddr)
@@ -126,8 +110,8 @@ internal sealed class RaptureState
     /// this fingerprint first (Rapture.SameUnit), so a migrated unit is never written.</summary>
     public (int lvl, int br, int fa) Fp { get; private set; }
 
-    /// <summary>The image the window holds (teleport bit + the other hand's earned grants,
-    /// Rapture.GrantImage), fixed at arm time like the saved bytes.</summary>
+    /// <summary>The image the window holds (the teleport bit, Rapture.FieldFor), fixed at
+    /// arm time like the saved bytes.</summary>
     public byte[]? GrantField { get; private set; }
 
     /// <summary>Open the window. No-ops while held (never-re-save).</summary>

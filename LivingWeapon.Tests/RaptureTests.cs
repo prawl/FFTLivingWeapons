@@ -133,34 +133,6 @@ public class RaptureTests
         finally { h.Free(); }
     }
 
-    // ---- (5a) GrantImage: dual-wield coexistence with Spiritual Font ----
-    // Every rod ships TwoSwords, so one unit can wield Rod of Faith AND Wellspring Rod --
-    // and band +0x80 IS combat +0x9C, so Rapture's 3-byte image and the font hold write the
-    // SAME field. The armed image must carry the other hand's EARNED movement-bit grants,
-    // or the two holds oscillate the field tick by tick with a timing-dependent winner.
-
-    [Fact]
-    public void GrantImage_merges_an_earned_other_hand_font_grant()
-    {
-        var font = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 237, 238 } };
-        var f = Rapture.GrantImage(243, new[] { ((WeaponSignature?)font, 3) });
-        Assert.Equal(new byte[] { 0x01, 0x84, 0x00 }, f);   // Lifefont | Manafont+teleport
-    }
-
-    [Fact]
-    public void GrantImage_ignores_unearned_or_absent_other_hand_grants()
-    {
-        var font = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 237, 238 } };
-        Assert.Equal(new byte[] { 0x00, 0x04, 0x00 },
-                     Rapture.GrantImage(243, new[] { ((WeaponSignature?)font, 2) }));   // tier not earned
-        Assert.Equal(new byte[] { 0x00, 0x04, 0x00 },
-                     Rapture.GrantImage(243, new (WeaponSignature?, int)[] { (null, 3) }));
-    }
-
-    [Fact]
-    public void GrantImage_null_for_an_id_outside_the_movement_field()
-        => Assert.Null(Rapture.GrantImage(999, System.Array.Empty<(WeaponSignature?, int)>()));
-
     // ---- (5b) ReadBackSet: the once-per-window live-test signal for the held bit ----
     // RaptureMoveId 243 (Master Teleportation) is CUT content per FOLDABLE_ABILITIES, so the
     // engine honoring its movement bit is unverified -- the arm-time read-back (SET/MISS in

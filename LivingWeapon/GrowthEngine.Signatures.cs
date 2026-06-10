@@ -47,9 +47,7 @@ internal sealed partial class GrowthEngine
     /// support bit -- unless it is the player's own picked support (never strip their choice), and
     /// only while the latched struct still fingerprint-matches (units migrate between fixed slots;
     /// the Maim.Drive discipline). An unreadable/emptied roster slot keeps the latch (transient or
-    /// battle teardown -- the fresh per-battle struct clears it anyway). MOVEMENT grants stay
-    /// OR-only: no roster movement-pick offset is mapped, so a player-picked font could not be
-    /// told from the grant and clearing would risk stripping the player's choice.</summary>
+    /// battle teardown -- the fresh per-battle struct clears it anyway).</summary>
     private void ReleaseUnequipped()
     {
         if (_heldSupports.Count == 0) return;
@@ -91,31 +89,6 @@ internal sealed partial class GrowthEngine
         Log.Info($"GRANT {name} -> {sig.DisplayLabel} (support {sig.AbilityId}) @ +0x98[{off}]=0x{mask:X2} readback={(present ? "SET" : "MISS")}{warn}");
         if (pickedSupport != 0 && pickedSupport == sig.AbilityId)
             Log.Info($"note: wielder already equips {sig.DisplayLabel} -- the weapon grant adds nothing (pick a different support)");
-    }
-
-    /// <summary>Hold a weapon's MOVEMENT-bit grants (Wellspring's "Spiritual Font": Lifefont 237 +
-    /// Manafont 238) on the combat struct, once the kill-tier is earned (the pure, tested
-    /// Signatures.ResolveMovementGrant decides what to write) -- OR-in every resolved bit each
-    /// hold, never clearing (the struct rebuilds fresh per battle). Movement is normally
-    /// exactly-ONE-effective, so whether the engine honors one font or both when BOTH bits sit in
-    /// the field is an OPEN LIVE QUESTION: every hold dev-logs each bit's verdict (VerboseEvents
-    /// builds) -- HELD = the engine kept it since the last hold, REARMED = the engine cleared it
-    /// and we just re-OR'd it, MISS = the write didn't land -- so one test battle answers it.
-    /// Guarded writes via Signatures.OrBit.</summary>
-    private void HoldMovementBits(long s, int weapon, string name, WeaponSignature? sig, int tier)
-    {
-        var grants = Signatures.ResolveMovementGrant(sig, tier);
-        if (grants.Count == 0) return;
-        string state = "";
-        foreach (var (id, off, mask) in grants)
-        {
-            bool set = Signatures.OrBit(s + Offsets.CMovement + off, mask, out bool wasSet);
-            state += $" {id}[{off}]=0x{mask:X2}:{(!set ? "MISS" : wasSet ? "HELD" : "REARMED")}";
-        }
-        if (_grantLogged.Add(weapon))
-            Log.Info($"GRANT {name} -> {sig!.DisplayLabel} (movement bits @ +0x9C){state}");
-        else if (Tuning.VerboseEvents)
-            Log.Info($"font {name}:{state}");   // every-hold verdicts: does the engine keep one bit, or both?
     }
 
     /// <summary>Read a unit's (currentHP, maxHP) from the BAND by its (level,brave,faith)

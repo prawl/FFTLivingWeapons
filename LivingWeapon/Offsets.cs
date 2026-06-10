@@ -45,6 +45,11 @@ internal static class Offsets
     public const int AInBattle = 0x12; // u16
     public const int AHp       = 0x14; // u16  (0 == KO'd)
     public const int AMaxHp    = 0x16; // u16
+    public const int AMp       = 0x18; // u16  PROVISIONAL -- never live-verified. The u16 pair right
+                                       //      after HP/MaxHP in the band-entry layout. EVERY MP write
+                                       //      is gated behind SpiritualFont's per-battle layout
+                                       //      validation + a post-write read-back (SET/MISS log).
+    public const int AMaxMp    = 0x1A; // u16  PROVISIONAL (see AMp)
     public const int AGx       = 0x33; // u8
     public const int AGy       = 0x34; // u8
 
@@ -83,7 +88,7 @@ internal static class Offsets
     // (3 bytes, base 230); MSB-first. Signatures only ever touch SUPPORT (stacks, no slot hijack).
     public const int CReaction = 0x94;   // 4 bytes; Maim zeroes this to suppress Counter etc.
     public const int CSupport = 0x98;
-    public const int CMovement = 0x9C;   // 3 bytes, base id 230; Spiritual Font OR-sets font bits here
+    public const int CMovement = 0x9C;   // 3 bytes, base id 230; Rapture holds its teleport image here
 
     // --- auth band: LIVE unit data (the static array freezes on battle restart; the band stays live).
     //     Entry layout matches the static-array A* offsets. BandEntry = unit-copy offset inside

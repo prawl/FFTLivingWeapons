@@ -80,8 +80,8 @@ def main():
                 entry["signature"]["lifeSapOnKill"] = True
             if sig.get("regenSplashRadius"):  # wyrmblood (Dragon Rod): turn-edge regen splash to allies
                 entry["signature"]["regenSplashRadius"] = int(sig["regenSplashRadius"])
-            if sig.get("moveAbilityIds"):  # spiritual font (Wellspring): movement bits OR-set + held
-                entry["signature"]["moveAbilityIds"] = [int(x) for x in sig["moveAbilityIds"]]
+            if sig.get("fontOnMove"):  # spiritual font (Wellspring): a moved turn restores HP/MP (runtime-written)
+                entry["signature"]["fontOnMove"] = True
             if sig.get("raptureMove"):  # rapture (Rod of Faith): low-HP Master Teleportation window
                 entry["signature"]["raptureMove"] = True
         meta[str(it["id"])] = entry

@@ -157,22 +157,22 @@ public class SignatureTests
     public void ResolveMovement_rejects_ids_outside_the_field(int id)
         => Assert.False(Signatures.ResolveMovement(id, out _, out _));
 
-    // ResolveMovementGrant: the PURE grant decision (the tier gate lives HERE, tested --
-    // not only inside the untestable live hold). Empty list == hold writes nothing.
+    // ResolveMovementGrant: the PURE grant decision (the tier gate lives HERE, tested).
+    // Empty list == a hold writes nothing. The generic encoder for any future movement-bit
+    // grant; no data ships one today (Spiritual Font's live test proved the engine honors
+    // exactly ONE movement passive, so its font bits were retired for a runtime restore).
 
     [Fact]
     public void ResolveMovementGrant_is_empty_below_the_tier()
     {
-        var sig = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 237, 238 } };
-        Assert.Empty(Signatures.ResolveMovementGrant(sig, tier: 2));
-        Assert.Empty(Signatures.ResolveMovementGrant(sig, tier: 0));
+        Assert.Empty(Signatures.ResolveMovementGrant(new[] { 237, 238 }, atTier: 3, tier: 2));
+        Assert.Empty(Signatures.ResolveMovementGrant(new[] { 237, 238 }, atTier: 3, tier: 0));
     }
 
     [Fact]
     public void ResolveMovementGrant_yields_both_font_encodings_at_tier()
     {
-        var sig = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 237, 238 } };
-        var grants = Signatures.ResolveMovementGrant(sig, tier: 3);
+        var grants = Signatures.ResolveMovementGrant(new[] { 237, 238 }, atTier: 3, tier: 3);
         Assert.Equal(2, grants.Count);
         Assert.Equal((237, 0, (byte)0x01), grants[0]);   // Lifefont
         Assert.Equal((238, 1, (byte)0x80), grants[1]);   // Manafont
@@ -181,10 +181,9 @@ public class SignatureTests
     [Fact]
     public void ResolveMovementGrant_empty_when_null_unconfigured_or_out_of_field()
     {
-        Assert.Empty(Signatures.ResolveMovementGrant(null, tier: 3));
-        Assert.Empty(Signatures.ResolveMovementGrant(new WeaponSignature { AtTier = 3 }, tier: 3));
-        var bad = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 999 } };
-        Assert.Empty(Signatures.ResolveMovementGrant(bad, tier: 3));
+        Assert.Empty(Signatures.ResolveMovementGrant(null, atTier: 3, tier: 3));
+        Assert.Empty(Signatures.ResolveMovementGrant(System.Array.Empty<int>(), atTier: 3, tier: 3));
+        Assert.Empty(Signatures.ResolveMovementGrant(new[] { 999 }, atTier: 3, tier: 3));
     }
 
     [Fact]

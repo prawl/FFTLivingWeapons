@@ -1556,9 +1556,9 @@
         "atTier": 3,
         "sigName": "Spiritual Font",
         "displayLabel": "Spiritual Font",
-        "moveAbilityIds": [237, 238],
-        "p3Desc": "Grants Lifefont and Manafont: moving restores the wielder's HP and MP.",
-        "note": "At +3, BOTH movement-ability bits -- Lifefont (237) and Manafont (238) -- are OR-set and HELD on the wielder's combat-struct movement bitfield (+0x9C, base 230, MSB-first: 237 = byte0 0x01, 238 = byte1 0x80), via Signatures.ResolveMovement + OrBit through the GrowthEngine struct walk. Completes the never-run-dry identity: Absorb-MP refuels by poking, the fonts refuel by walking. OPEN LIVE QUESTION: movement is normally exactly-ONE-effective (a Move+N also blocks a font per the grants doc), so whether the engine honors one font or both is unproven -- every hold dev-logs each bit's PRE-write verdict (VerboseEvents): HELD = the engine kept it since the last hold, REARMED = the engine cleared it and the hold re-OR'd it, MISS = the write didn't land. One test battle answers it. RUNTIME: GrowthEngine.Signatures.cs HoldMovementBits."
+        "fontOnMove": true,
+        "p3Desc": "Moving restores the wielder's HP and MP.",
+        "note": "At +3, the RUNTIME restores the wielder itself -- no engine font passives. The live test (2026-06-10) settled the open question: both Lifefont (237) and Manafont (238) bits HELD perfectly on +0x9C, but the engine honors exactly ONE movement passive and picked Lifefont (only HP ticked on move), so the bit grant is retired. Now, at each wielder completed-turn edge (TurnTracker), IF their gx/gy changed since their previous turn edge (the first edge of a battle only snapshots, never fires), the runtime writes HP += round(maxHP*FontHpPct) (LifeSap.NewHp: floor 1, clamp at full, NEVER revive) and MP += round(maxMP*FontMpPct) (floor 1, clamp at maxMP). MP rides the PROVISIONAL band +0x18/+0x1A pair (never live-verified): every MP write is gated behind a per-battle layout validation (>= 2 valid band units, mp <= maxMp and maxMp <= 999 for all, maxMp >= 1 for at least one; fail = HP-only that battle) plus a post-write SET/MISS read-back. Completes the never-run-dry identity: Absorb-MP refuels by poking, the font by walking. RUNTIME: SpiritualFont.cs + SpiritualFont.Policy.cs."
       }
     },
     {

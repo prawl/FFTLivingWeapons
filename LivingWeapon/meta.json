@@ -391,10 +391,7 @@
       "slot": "",
       "atTier": 3,
       "displayLabel": "Spiritual Font",
-      "moveAbilityIds": [
-        237,
-        238
-      ]
+      "fontOnMove": true
     }
   },
   "52": {

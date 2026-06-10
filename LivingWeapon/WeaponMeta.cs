@@ -64,9 +64,10 @@ public sealed class WeaponSignature
     // many Manhattan tiles regen their OWN maxHP/Tuning.WyrmbloodDiv (emulated; the Regen status bit is
     // unmapped and never touched). 0 = not a regen-splash weapon.
     [JsonProperty("regenSplashRadius")] public int RegenSplashRadius { get; set; }
-    // SPIRITUAL FONT (Wellspring "Spiritual Font"): movement-ability bits (base 230) OR-set + held on
-    // the wielder at AtTier -- e.g. [237, 238] = Lifefont + Manafont. Empty = no movement grant.
-    [JsonProperty("moveAbilityIds")] public int[] MoveAbilityIds { get; set; } = System.Array.Empty<int>();
+    // SPIRITUAL FONT (Wellspring "Spiritual Font"): at AtTier, a completed wielder turn whose grid
+    // position changed since their previous turn restores Tuning.FontHpPct of max HP and FontMpPct of
+    // max MP -- written by the RUNTIME, not via engine movement passives (the engine honors only one).
+    [JsonProperty("fontOnMove")] public bool FontOnMove { get; set; }
     // RAPTURE (Rod of Faith "Rapture"): below Tuning.RaptureHpPct of max HP, Master Teleportation
     // (Tuning.RaptureMoveId) replaces the wielder's movement for Tuning.RaptureTurns turns, then the
     // saved movement restores. false = not a rapture weapon.

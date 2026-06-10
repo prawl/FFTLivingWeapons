@@ -97,12 +97,11 @@ internal sealed partial class Rapture
         _rearmReady = CanRearm(_rearmReady, below);
         if (!_rearmReady || !ShouldArm(hp, maxHp, Tuning.RaptureHpPct)) return;
 
-        // The saved capture may include font bits the other hand's hold OR-set (no roster
-        // movement-pick offset exists, so they can't be told from the player's own); restoring
-        // them is accepted -- the font hold re-asserts them anyway while that rod is wielded,
-        // and the struct rebuilds fresh next battle.
+        // The saved bytes are the player's own movement pick; the grant image carries ONLY the
+        // teleport bit (no other movement-bit writer exists -- Spiritual Font restores HP/MP via
+        // runtime writes now, never the movement field).
         byte[]? saved = ReadField(e);
-        byte[]? grant = GrantImage(Tuning.RaptureMoveId, OtherHandGrants());
+        byte[]? grant = FieldFor(Tuning.RaptureMoveId);
         if (saved is null || grant is null) return;
         _state.Arm(e, saved, turns, fp, grant);
         _rearmReady = false;
@@ -113,20 +112,6 @@ internal sealed partial class Rapture
         string readback = ReadBackSet(Live, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
         Log.Info($"rapture: armed at hp {hp}/{maxHp} -- movement {Tuning.RaptureMoveId} held for " +
                  $"{Tuning.RaptureTurns} turns (saved {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}) readback={readback}");
-    }
-
-    /// <summary>The other wielded weapons' (signature, earned tier) -- their movement-bit grants
-    /// ride INSIDE the held image (GrantImage) so Rapture and Spiritual Font never fight over
-    /// the shared movement field (band +0x80 == combat +0x9C) on a dual-wielder.</summary>
-    private List<(WeaponSignature? sig, int tier)> OtherHandGrants()
-    {
-        var others = new List<(WeaponSignature?, int)>();
-        foreach (int hw in _hands)
-        {
-            if (hw == RodOfFaithId || !_meta.TryGetValue(hw, out var hm)) continue;
-            others.Add((hm.Signature, Tuning.TierFor(_kills.TryGetValue(hw, out int k) ? k : 0)));
-        }
-        return others;
     }
 
     /// <summary>Re-write the armed grant image at the last located entry (beats engine

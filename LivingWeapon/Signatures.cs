@@ -49,9 +49,9 @@ internal static class Signatures
     /// <summary>
     /// Encode a movement-ability id into its (byteOffset, mask) in the 3-byte movement bitfield
     /// (<see cref="Offsets.CMovement"/> = +0x9C, base id 230, MSB-first -- the same shape as the
-    /// support field). False outside the field. NOTE: unlike supports, movement is normally
-    /// exactly-ONE-effective; OR-setting a pair (Spiritual Font's Lifefont + Manafont) is the
-    /// open live question the every-hold read-back log answers.
+    /// support field). False outside the field. NOTE: unlike supports, movement is
+    /// exactly-ONE-effective -- LIVE-PROVEN 2026-06-10: both Spiritual Font bits (237+238) held
+    /// perfectly, but the engine honored only Lifefont. Never grant a movement pair.
     /// </summary>
     public static bool ResolveMovement(int abilityId, out int byteOffset, out byte mask)
     {
@@ -64,15 +64,17 @@ internal static class Signatures
         return true;
     }
 
-    /// <summary>Resolve a weapon's MOVEMENT-bit grant at the wielder's kill-tier into the
-    /// (id, byteOffset, mask) writes to hold -- empty when there is no signature, no movement
-    /// ids, the tier isn't earned, or every id falls outside the field. The PURE decision the
-    /// live hold consumes (so the tier gate is unit-tested, like ResolveSupport's).</summary>
-    public static List<(int id, int off, byte mask)> ResolveMovementGrant(WeaponSignature? sig, int tier)
+    /// <summary>Resolve a MOVEMENT-bit grant at the wielder's kill-tier into the (id, byteOffset,
+    /// mask) writes to hold -- empty when there are no movement ids, the tier isn't earned, or
+    /// every id falls outside the field. The generic PURE encoder for any future movement-bit
+    /// grant (the tier gate stays unit-tested, like ResolveSupport's); no shipped signature
+    /// carries one today (Spiritual Font's bits were retired -- the engine honors only one
+    /// movement passive, so its restore is runtime-written, see SpiritualFont.cs).</summary>
+    public static List<(int id, int off, byte mask)> ResolveMovementGrant(int[]? moveAbilityIds, int atTier, int tier)
     {
         var grants = new List<(int, int, byte)>();
-        if (sig is null || tier < sig.AtTier) return grants;
-        foreach (int id in sig.MoveAbilityIds)
+        if (moveAbilityIds is null || tier < atTier) return grants;
+        foreach (int id in moveAbilityIds)
             if (ResolveMovement(id, out int off, out byte mask)) grants.Add((id, off, mask));
         return grants;
     }

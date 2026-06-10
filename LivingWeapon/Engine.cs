@@ -34,6 +34,7 @@ internal sealed partial class Engine
     private readonly LifeSap _lifeSap;
     private readonly Wyrmblood _wyrmblood;
     private readonly Rapture _rapture;
+    private readonly SpiritualFont _font;
     private readonly Display _display;
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
@@ -64,6 +65,7 @@ internal sealed partial class Engine
         _lifeSap = new LifeSap(meta, _kills);              // Umbral +3: a kill heals the wielder 25% max HP
         _wyrmblood = new Wyrmblood(meta, _kills, _turns);  // Dragon Rod +3: turn-edge regen splash (1 tile)
         _rapture = new Rapture(meta, _kills, _turns);      // Rod of Faith +3: low-HP Master Teleportation window
+        _font = new SpiritualFont(meta, _kills, _turns);   // Wellspring +3: a moved turn restores HP and MP
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }
@@ -136,6 +138,7 @@ internal sealed partial class Engine
             _lifeSap.ResetBattle();
             _wyrmblood.ResetBattle();
             _rapture.ResetBattle();
+            _font.ResetBattle();
             SaveTally();                 // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
@@ -158,6 +161,7 @@ internal sealed partial class Engine
         _lifeSap.Tick();                      // Umbral +3: a kill restores the wielder 25% of max HP
         _wyrmblood.Tick(onField);             // Dragon Rod +3: wielder turn edge mends self + adjacent allies
         _rapture.Tick(onField);               // Rod of Faith +3: below 30% HP, Master Teleportation for 3 turns
+        _font.Tick(onField);                  // Wellspring +3: a moved turn restores the wielder's HP and MP
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 
