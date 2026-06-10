@@ -2,12 +2,13 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Counts a unit's COMPLETED turns off its OWN scheduler CT (band entry
-/// +<see cref="Offsets.ACt"/>): a turn = CT seen at/above <see cref="TurnHi"/> (the turn came)
-/// followed by CT below <see cref="TurnLo"/> (it was taken) -- CharmLock's victim-turn
-/// discipline. Pure and per-unit, so it is immune to the global acted-edge attribution that
+/// +<see cref="Offsets.ACtTurn"/> = 0x09, the READ-PROVEN byte -- NOT +0x25 which is the
+/// ExtraTurn WRITE target): a turn = CT seen at/above <see cref="TurnHi"/> (the turn came)
+/// followed by CT below <see cref="TurnLo"/> (it was taken) -- Maim's victim-turn discipline
+/// (proven live). Pure and per-unit, so it is immune to the global acted-edge attribution that
 /// stalled the original TurnTracker-based expiry live (every edge credited one fingerprint;
-/// the active struct follows the CURSOR, not the turn owner). Rapture's window expiry and
-/// Spiritual Font's moved-turn edge both ride this clock.
+/// the active struct follows the CURSOR, not the turn owner). Spiritual Font's moved-turn edge
+/// rides this clock.
 /// </summary>
 internal sealed class CtTurns
 {

@@ -28,14 +28,6 @@ internal sealed partial class Rapture
     /// (and HP 0 -&gt; the heal/revive machinery must never see our writes).</summary>
     public static bool ShouldArm(int hp, int maxHp, double pct) => hp > 0 && IsBelow(hp, maxHp, pct);
 
-    /// <summary>The window is over once the wielder has completed the configured turns.</summary>
-    public static bool IsExpired(int turnsSinceArm, int windowTurns) => turnsSinceArm >= windowTurns;
-
-    /// <summary>Re-arm hysteresis: after a spent window the wielder's HP must RECOVER to/above
-    /// the threshold before a new drop can arm again -- otherwise a wielder parked at low HP
-    /// holds Master Teleportation forever and the window is a lie.</summary>
-    public static bool CanRearm(bool rearmReady, bool below) => rearmReady || !below;
-
     /// <summary>The 3-byte movement-field image holding ONLY the granted ability's bit (movement
     /// is exactly-one-effective; the grant REPLACES the field, the restore brings the player's
     /// pick back). Null when the id falls outside the movement field.</summary>

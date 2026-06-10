@@ -8,8 +8,9 @@ namespace LivingWeapon;
 /// edge, the RUNTIME restores Tuning.FontHpPct of max HP (LifeSap.NewHp: floor 1, clamp at
 /// full, never revive) and Tuning.FontMpPct of max MP -- never into a corpse (MpHalfAllowed).
 ///
-/// THE EDGE is the wielder's OWN scheduler CT pull-down (CtTurns, band +0x25 -- CharmLock's
-/// victim-turn discipline), NOT the global acted-edge TurnTracker: the acted edge fingerprints
+/// THE EDGE is the wielder's OWN scheduler CT pull-down (CtTurns, band +0x09 / ACtTurn --
+/// Maim's READ-PROVEN victim-turn byte; NOT +0x25 / ACtSlam which is ExtraTurn's write target
+/// and does not tick reliably for reads), NOT the global acted-edge TurnTracker: the acted edge fingerprints
 /// the active struct at 0x14077D2A0, which follows the CURSOR and mis-credited turns live
 /// (every edge credited one fingerprint -- it stalled Rapture's expiry the same way). An
 /// unlocated wielder simply pauses the clock; a missed pull-down lands late, never lost.
@@ -82,7 +83,7 @@ internal sealed partial class SpiritualFont
 
         long e = Wielder.Locate(Live, WellspringId, _hands, fp);
         if (e == 0) return;                                  // unlocated: the CT clock pauses
-        _ct.Observe(Live.U8(e + Offsets.ACt));               // own-CT pull-down = a completed turn
+        _ct.Observe(Live.U8(e + Offsets.ACtTurn));            // own-CT pull-down = a completed turn
         bool edge = _ct.Completed > _lastDone;
         _lastDone = _ct.Completed;
         if (!edge) return;

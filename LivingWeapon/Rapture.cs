@@ -3,19 +3,19 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Rod of Faith's "Rapture" signature: when the +3 wielder's HP drops below RaptureHpPct (30%)
-/// of max, Master Teleportation (Tuning.RaptureMoveId) is written and HELD in their movement-
-/// ability field (band +0x80 == combat +0x9C) for RaptureTurns (3) of their turns -- then the
-/// PREVIOUS movement bytes restore. The save-once/hold/restore discipline is Maim's; the turn
-/// clock is the wielder's OWN scheduler CT (CtTurns -- the global TurnTracker mis-credits under
-/// the cursor-following active struct, which stalled expiry live); the HP gate is ConditionMet's
-/// integer math (Rapture.Policy.cs).
+/// Rod of Faith's "Rapture" signature: when the +3 wielder's HP drops strictly below
+/// RaptureHpPct (30%) of max, Master Teleportation (Tuning.RaptureMoveId) is written and HELD
+/// in their movement-ability field (band +0x80 == combat +0x9C) UNTIL THEY RECOVER -- then the
+/// PREVIOUS movement bytes restore. The save-once/hold/restore discipline is Maim's; the HP
+/// gate is ConditionMet's integer math (Rapture.Policy.cs). The original 3-turn cap is retired:
+/// its clock never ticked live (both TurnTracker attribution and the band-CT read failed the
+/// live test, 2026-06-10), while the recovery release was player-verified the same day --
+/// "active while desperate" is the design now, and it needs no clock at all.
 ///
 /// Releases that restore the player's movement: HP recovery to/above the threshold (the
-/// emergency is over -- re-arm allowed on the next drop), window expiry (then HP must RECOVER
-/// above the threshold before re-arming -- no perpetual teleport at low HP), unequip / tier
-/// loss / wielder ambiguity (grant verification), wielder death (3-tick streak), and battle
-/// exit. An unlocated entry skips writes and PAUSES the clock (no CT to read). Guarded writes.
+/// emergency is over -- the next drop below it arms a fresh window), unequip / tier loss /
+/// wielder ambiguity (grant verification), wielder death (3-tick streak), and battle exit.
+/// An unlocated entry holds at the last known copy, SameUnit-guarded. Guarded writes only.
 /// </summary>
 internal sealed partial class Rapture
 {
@@ -28,9 +28,7 @@ internal sealed partial class Rapture
     private readonly Dictionary<int, int> _kills;
     private readonly List<int> _hands = new();
     private readonly RaptureState _state = new();
-    private readonly CtTurns _ct = new();   // the wielder's own-CT turn clock (owns expiry)
     private bool _wasActive;
-    private bool _rearmReady = true;
     private int _deadStreak;
 
     // The TurnTracker parameter is retained for wiring stability (Engine constructs every
@@ -44,10 +42,8 @@ internal sealed partial class Rapture
     public void ResetBattle()
     {
         if (_state.Held) Restore("battle reset");
-        _rearmReady = true;
         _wasActive = false;
         _deadStreak = 0;
-        _ct.Reset();
     }
 
     public void Tick(bool onField)
@@ -64,7 +60,7 @@ internal sealed partial class Rapture
         if (!active)
         {
             // Unequip / tier loss / ambiguity: the player's movement comes back NOW.
-            if (_state.Held) { Restore("gate lost"); _rearmReady = true; }
+            if (_state.Held) Restore("gate lost");
             return;
         }
         if (!onField)
@@ -77,7 +73,7 @@ internal sealed partial class Rapture
         if (e != 0 && _state.Held) _state.Addr = e;   // entry relocated: retarget the restore
         if (e == 0)
         {
-            if (_state.Held) Hold();   // unlocated: hold at the last known copy; the CT clock pauses
+            if (_state.Held) Hold();   // unlocated: hold at the last known copy
             return;
         }
 
@@ -87,26 +83,17 @@ internal sealed partial class Rapture
         {
             if (hp == 0 && ++_deadStreak >= DeadNeeded) { Restore("wielder dead"); return; }
             if (hp > 0) _deadStreak = 0;
-            _ct.Observe(Live.U8(e + Offsets.ACt));
             if (HasRecovered(hp, Live.U16(e + Offsets.AMaxHp), Tuning.RaptureHpPct))
             {
                 Restore("recovered above threshold");
-                _rearmReady = true;   // recovery IS the hysteresis: the next drop may arm again
                 return;
-            }
-            if (IsExpired(_ct.Completed, Tuning.RaptureTurns))
-            {
-                Restore($"window over ({Tuning.RaptureTurns} turns)");
-                return;   // _rearmReady stays false: HP must recover above the threshold first
             }
             Hold();
             return;
         }
 
         int maxHp = Live.U16(e + Offsets.AMaxHp);
-        bool below = IsBelow(hp, maxHp, Tuning.RaptureHpPct);
-        _rearmReady = CanRearm(_rearmReady, below);
-        if (!_rearmReady || !ShouldArm(hp, maxHp, Tuning.RaptureHpPct)) return;
+        if (!ShouldArm(hp, maxHp, Tuning.RaptureHpPct)) return;
 
         // The saved bytes are the player's own movement pick; the grant image carries ONLY the
         // teleport bit (no other movement-bit writer exists -- Spiritual Font restores HP/MP via
@@ -114,16 +101,14 @@ internal sealed partial class Rapture
         byte[]? saved = ReadField(e);
         byte[]? grant = FieldFor(Tuning.RaptureMoveId);
         if (saved is null || grant is null) return;
-        _state.Arm(e, saved, baselineTurns: 0, fp, grant);   // the CT clock owns expiry now
-        _ct.Reset();
-        _rearmReady = false;
+        _state.Arm(e, saved, baselineTurns: 0, fp, grant);
         _deadStreak = 0;
         WriteField(e, grant);
-        // Once-per-window read-back: 243 is cut content, so SET/MISS here is the live signal
-        // for whether the engine accepts the bit (MISS -> flip Tuning.RaptureMoveId to 242).
+        // Once-per-window read-back: 243 is proven live (player teleported, 2026-06-10); SET/MISS
+        // still logged as a sanity signal (if MISS, flip Tuning.RaptureMoveId to 242).
         string readback = ReadBackSet(Live, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
-        Log.Info($"rapture: armed at hp {hp}/{maxHp} -- movement {Tuning.RaptureMoveId} held for " +
-                 $"{Tuning.RaptureTurns} turns (saved {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}) readback={readback}");
+        Log.Info($"rapture: armed at hp {hp}/{maxHp} -- movement {Tuning.RaptureMoveId} held until " +
+                 $"recovery (saved {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}) readback={readback}");
     }
 
     /// <summary>Re-write the armed grant image at the last located entry (beats engine

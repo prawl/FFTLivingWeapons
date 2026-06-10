@@ -52,9 +52,14 @@ internal static class Offsets
     public const int AMaxMp    = 0x1A; // u16  PROVISIONAL (see AMp)
     public const int AGx       = 0x33; // u8
     public const int AGy       = 0x34; // u8
-    public const int ACt       = 0x25; // u8  scheduler CT (band entry == static layout); CharmLock,
-                                       //     Rapture, and SpiritualFont count a unit's turns off it
-                                       //     (>=90 then <70 -- CtTurns)
+    /// <summary>u8 band-relative WRITE TARGET: slam this to 100 to inject a scheduler turn
+    /// (ExtraTurn.CtOff). Matches combat base+0x41. Do NOT read this for turn counting --
+    /// a live watcher saw zero transitions; the write takes, but reads don't tick reliably.</summary>
+    public const int ACtSlam   = 0x25;
+    /// <summary>u8 band-relative READ byte for counting a unit's completed turns: CT seen
+    /// at/above 90, then falls below 70 = one turn taken. Live-proven by Maim (victim-turn
+    /// counting) and CharmLock. CtTurns feeds off this offset. Equals combat base+0x25.</summary>
+    public const int ACtTurn   = 0x09;
 
     // --- roster (nameId -> equipped right hand) ---
     public const long RosterBase = 0x1411A18D0;

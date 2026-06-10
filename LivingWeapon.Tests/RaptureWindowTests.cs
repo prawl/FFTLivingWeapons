@@ -4,14 +4,25 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Rapture's window clock and early release. The original expiry rode TurnTracker's global
-/// acted-edge attribution, which mis-credits under the cursor-following active struct -- live,
-/// the window never aged and the teleport never expired. The fix counts the wielder's COMPLETED
-/// turns off their OWN scheduler CT (band +0x25, CharmLock's >=90-then-&lt;70 discipline), and
-/// releases early the moment HP recovers to/above the threshold.
+/// Spiritual Font's (and formerly Rapture's) turn-counting clock, plus Rapture's early
+/// recovery release. CtTurns reads the unit's OWN scheduler CT at band offset ACtTurn (0x09,
+/// the READ-PROVEN byte -- Maim's victim-turn counter uses this same offset). The write target
+/// (0x25 / ACtSlam) is ExtraTurn's slam field and does NOT tick reliably for reads (live
+/// watcher, 2026-06-10). Thresholds: rise at >=90 (TurnHi), fall below 70 (TurnLo) -- Maim's
+/// IsTurn discipline, proven live.
 /// </summary>
 public class RaptureWindowTests
 {
+    // ---- CtTurns offset pin: must read ACtTurn (0x09), NOT ACtSlam (0x25) ----
+
+    [Fact]
+    public void CtTurns_uses_the_read_proven_band_offset()
+    {
+        Assert.Equal(0x09, Offsets.ACtTurn);    // READ byte: Maim victim-turn counting, live-proven
+        Assert.Equal(0x25, Offsets.ACtSlam);    // WRITE target: ExtraTurn slam, does NOT tick for reads
+        Assert.NotEqual(Offsets.ACtTurn, Offsets.ACtSlam);
+    }
+
     // ---- CtTurns: completed-turn counting off the wielder's own CT ----
 
     [Fact]

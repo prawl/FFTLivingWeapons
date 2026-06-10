@@ -14,9 +14,8 @@ namespace LivingWeapon.Tests;
 ///   (1) IsActive: gates on raptureMove AND tier >= AtTier.
 ///   (2) IsBelow / ShouldArm: the integer hp-percent gate (ConditionMet's math); a dead
 ///       wielder (hp <= 0) NEVER arms (a corpse needs no teleport).
-///   (3) IsExpired: window over after RaptureTurns completed wielder turns.
-///   (4) CanRearm: hysteresis -- after a window, HP must recover to/above the threshold
-///       before a new drop can arm again (else a low-HP wielder teleports forever).
+///   (3)/(4) retired: the turn-cap and its hysteresis are gone -- the window releases when
+///       the wielder RECOVERS to/above the threshold (HasRecovered, RaptureWindowTests).
 ///   (5) FieldFor / WriteField / ReadField: the 3-byte movement field image for the grant,
 ///       and the guarded save/hold/restore writes.
 ///   (6) RaptureState: the never-re-save invariant (saving while held would capture our own
@@ -76,25 +75,8 @@ public class RaptureTests
         Assert.True(Rapture.ShouldArm(29, 100, 0.30));
     }
 
-    // ---- (3) IsExpired: 3 completed wielder turns ----
-
-    [Theory]
-    [InlineData(0, 3, false)]
-    [InlineData(2, 3, false)]
-    [InlineData(3, 3, true)]
-    [InlineData(4, 3, true)]
-    public void IsExpired_after_the_turn_window(int turnsSinceArm, int window, bool expected)
-        => Assert.Equal(expected, Rapture.IsExpired(turnsSinceArm, window));
-
-    // ---- (4) CanRearm: hysteresis ----
-
-    [Theory]
-    [InlineData(false, true, false)]   // window spent, HP still low -> no instant re-arm
-    [InlineData(false, false, true)]   // HP recovered to/above the threshold -> re-armable
-    [InlineData(true, true, true)]     // already primed -> a drop arms
-    [InlineData(true, false, true)]
-    public void CanRearm_requires_recovery_between_windows(bool ready, bool below, bool expected)
-        => Assert.Equal(expected, Rapture.CanRearm(ready, below));
+    // ---- (3)/(4) retired with the turn-cap: the window now releases on RECOVERY (HasRecovered,
+    // RaptureWindowTests) -- the live-verified release -- not on a turn count. ----
 
     // ---- (5) FieldFor / WriteField / ReadField ----
 

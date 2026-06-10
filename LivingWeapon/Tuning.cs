@@ -79,17 +79,14 @@ internal static class Tuning
     public const double FontMpPct = 0.10;
 
     /// <summary>Rapture (Rod of Faith +3): the window arms when the wielder's HP drops strictly
-    /// below this fraction of max.</summary>
+    /// below this fraction of max. Held UNTIL RECOVERY (no turn cap -- the 3-turn clock was
+    /// retired 2026-06-10: the band CT it read never ticked live, while the recovery release
+    /// was player-verified the same session).</summary>
     public const double RaptureHpPct = 0.30;
 
-    /// <summary>Rapture: the granted movement holds for this many completed wielder turns.</summary>
-    public const int RaptureTurns = 3;
-
     /// <summary>Rapture: the granted movement ability -- 243 = Master Teleportation (ability.en
-    /// key 499). CAUTION: FOLDABLE_ABILITIES marks it CUT content, so the engine honoring its
-    /// movement bit is live-unverified; the arm-time read-back in the log (SET/MISS) settles it.
-    /// If it reads MISS (or teleports never fire), flip this to the documented-functional plain
-    /// Teleport, 242 -- a one-line change.</summary>
+    /// key 499). CONFIRMED LIVE 2026-06-10: the player teleported, so the engine honors the bit.
+    /// Fallback: flip to 242 (plain Teleport) if the arm-time read-back ever logs MISS.</summary>
     public const int RaptureMoveId = 243;
 
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
