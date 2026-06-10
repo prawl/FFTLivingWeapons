@@ -5,24 +5,23 @@ namespace LivingWeapon;
 /// <summary>
 /// Yoichi Bow's "Barrage" signature: while a +3 Yoichi Bow wielder exists in the roster,
 /// ability 358 (Barrage, 4-arrow volley) is injected into their current job's JobCommand
-/// record and held there each session. The table rebuilds at boot, so the injection MUST
-/// be re-asserted each tick (idempotent: NeedsInject only writes if the slot is wrong).
+/// record and held there. The table rebuilds at boot, so the injection is re-asserted each
+/// tick (idempotent: NeedsInject only writes when the slot is wrong). Ticked in AND out of
+/// battle -- the learn screen and pre-battle menus read the table live.
 ///
 /// RECORD SAVE: the 25-byte record (flag prefix + 16 ability bytes + 6 RSM bytes) is saved
-/// ONCE on first inject. A re-save while injected would overwrite originals with injected
-/// state, and the restore would restore zeros. Never-re-save is the invariant.
+/// ONCE on first inject. A re-save while injected would capture injected state and make the
+/// restore restore the injection. Never-re-save is the invariant.
 ///
-/// LEARNED BIT: set once in the roster's action bitfield (roster +0x32 + jobIdx*3, slot 10 =
-/// byte1 0x40). NEVER cleared -- the bow teaches permanently; the residue is inert any session
-/// the record isn't injected (battle menu needs the bit; the slot is blank-named).
+/// LEARNED BIT: HELD each tick (re-set whenever clear) and NEVER cleared. Set-once is not
+/// enough: the learn menu's purchase flow writes the learned block back from a stale
+/// snapshot and wipes externally-set bits (proven live 2026-06-10, High Ether purchase).
+/// The wipe risk only matters while the menu is open; the 33ms hold closes it.
 ///
-/// GRANT END: when the wielder unequips / is gone / changes jobs mid-session, restore the
-/// original record bytes and re-resolve the new state next tick.
-///
-/// NEEDS-LIVE-VERIFY (marked in CSV):
-///   (1) Generic-job record mapping: job id -> JobCommand record index. Ramza (job 3) -> rec 27
-///       proven; generic classes unverified. barrage_probe.py dump is the oracle.
-///   (2) Learned-bit jobIdx: assumed == job id (roster +0x02). learned_probe.py is the oracle.
+/// JOB RESOLUTION (live-anchored, see Barrage.Policy.cs): roster job byte +0x02; generic
+/// band 74..92 -> rec = job-69, learned jobIdx = job-74 (Dancer 92 shares jobIdx 17).
+/// Unmapped (story-canonical uniques like Mettle/Aimed Shot, Mime, monsters, Dark Knight):
+/// log once per job id and no-op -- noted in the bows CSV as a known gap.
 ///
 /// All reads/writes are VirtualQuery-guarded (Mem.Writable/Readable).
 /// </summary>
@@ -35,9 +34,9 @@ internal sealed partial class Barrage
     private const int FlagPrefixSize = 3;   // ExtAb u16 + ExtRSM u8
     private const int AbilityCount = 16;
 
-    // Roster job id at +0x02 (UNIT_DATA_STRUCTURE.md, IC-verified).
+    // Roster job id at +0x02 (FFTHandsFree UNIT_DATA_STRUCTURE.md; live-read 77 = Archer).
     private const int RJobId = 0x02;
-    // Roster learned bitfield at +0x32 + jobIdx*3; jobIdx assumed == job id (NEEDS-LIVE-VERIFY).
+    // Roster learned bitfield at +0x32 + jobIdx*3 (jobIdx from TryResolveJob, NOT the job id).
     private const int RLearnedBase = 0x32;
     private const int LearnedStride = 3;
 
@@ -48,7 +47,8 @@ internal sealed partial class Barrage
     private readonly Dictionary<int, int> _kills;
     private readonly BarrageState _state;
     private bool _wasActive;
-    private int _lastRecId = -1;   // record id currently injected (-1 = none)
+    private int _lastRecId = -1;          // record id currently injected (-1 = none)
+    private int _lastUnsupportedJob = -1; // log-once guard for unmapped jobs
 
     public Barrage(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills)
     {
@@ -59,10 +59,9 @@ internal sealed partial class Barrage
 
     public void ResetBattle()
     {
-        // Do NOT restore on battle exit; the record rebuilds at boot and the grant is
-        // a session-long injection. Only restore on explicit grant-end or wielder change.
+        // No restore on battle exit: the grant is session-long while the bow stays equipped.
+        // Saved-record state persists across battles within one session.
         _wasActive = false;
-        // State (saved record + slot) persists across battles within one session.
     }
 
     public void Tick()
@@ -71,7 +70,7 @@ internal sealed partial class Barrage
         int tier = Tuning.TierFor(_kills.TryGetValue(YoichiId, out int k) ? k : 0);
         bool active = IsActive(m.Signature, tier);
 
-        // Find the wielder's roster slot (any slot holding the Yoichi Bow at +3).
+        // Find the wielder's roster slot (any slot holding the Yoichi Bow).
         int wielderSlot = -1;
         int wielderJob = -1;
         if (active)
@@ -92,22 +91,34 @@ internal sealed partial class Barrage
         }
 
         bool nowActive = wielderSlot >= 0;
-        if (nowActive != _wasActive)
-        {
-            _wasActive = nowActive;
-            Log.Info($"barrage {(nowActive ? $"ACTIVE (Yoichi job {wielderJob} rec {wielderJob})" : "inactive")}");
-        }
-
         if (!nowActive)
         {
+            if (_wasActive) Log.Info("barrage inactive");
+            _wasActive = false;
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             return;
         }
 
-        int recId = wielderJob;   // NEEDS-LIVE-VERIFY: rec index == job id assumed (Ramza rec 27 proven)
-        if (recId < 0 || recId >= 200) { Log.Info($"barrage: recId {recId} out of range, no-op"); return; }
+        // Resolve the wielder's job to (JobCommand record, learned jobIdx).
+        if (!TryResolveJob(wielderJob, out int recId, out int jobIdx))
+        {
+            if (_lastUnsupportedJob != wielderJob)
+            {
+                _lastUnsupportedJob = wielderJob;
+                Log.Info($"barrage: job {wielderJob} unmapped (story-unique/monster/DK) -> no grant");
+            }
+            if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
+            _wasActive = false;
+            return;
+        }
 
-        // Job changed mid-session: restore old record and re-inject for the new job.
+        if (!_wasActive)
+        {
+            _wasActive = true;
+            Log.Info($"barrage ACTIVE (Yoichi slot {wielderSlot} job {wielderJob} -> rec {recId} jobIdx {jobIdx})");
+        }
+
+        // Job changed mid-session: restore the old record and re-inject for the new job.
         if (_lastRecId >= 0 && _lastRecId != recId)
         {
             Restore(_lastRecId);
@@ -133,7 +144,6 @@ internal sealed partial class Barrage
         int slotIdx = _state.SlotIdx;
         if (slotIdx < 0)
         {
-            // Read current ability bytes to find first empty slot.
             if (!Mem.TryReadBytes(flagAddr, RecSize, out byte[] buf)) return;
             ushort extAb = (ushort)(buf[0] | (buf[1] << 8));
             var ab = new byte[AbilityCount];
@@ -145,15 +155,15 @@ internal sealed partial class Barrage
             Log.Info($"barrage: picked slot {slot1} (idx {slotIdx}) in rec {recId}");
         }
 
-        // Idempotent inject: only write if the slot is not already correct.
+        // Idempotent inject: only write when the slot is not already correct.
         if (!Mem.TryReadBytes(flagAddr, RecSize, out byte[] cur)) return;
         ushort curExt = (ushort)(cur[0] | (cur[1] << 8));
         byte curByte = cur[FlagPrefixSize + slotIdx];
         if (NeedsInject(curByte, curExt, slotIdx))
             InjectSlot(flagAddr, abBase, slotIdx, BarrageAbilityId);
 
-        // Set the learned bit (NEVER cleared). NEEDS-LIVE-VERIFY: jobIdx == job id assumed.
-        SetLearnedBit(wielderSlot, wielderJob, slotIdx + 1);   // 1-indexed slot for learned math
+        // Hold the learned bit (re-set whenever clear; NEVER cleared by us).
+        HoldLearnedBit(wielderSlot, jobIdx, slotIdx + 1);   // 1-indexed slot for learned math
     }
 
     /// <summary>Restore the original record bytes if we have them saved.</summary>
@@ -167,21 +177,19 @@ internal sealed partial class Barrage
         Log.Info($"barrage: restored rec {recId}");
     }
 
-    /// <summary>Set the learned bit for the given 1-indexed action slot in the wielder's roster.
-    /// Permanent write -- never cleared. NEEDS-LIVE-VERIFY: jobIdx == job id is assumed here.</summary>
-    private static void SetLearnedBit(int rosterSlot, int jobId, int slotIdx1)
+    /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
+    /// (jobIdx triple). Re-sets whenever clear -- the learn menu's purchase writeback can wipe
+    /// externally-set bits. Never cleared by us.</summary>
+    private static void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
     {
         long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
-        // jobIdx assumed == job id (NEEDS-LIVE-VERIFY).
-        long learnBase = rb + RLearnedBase + (long)jobId * LearnedStride;
-        int byteOff = LearnedByteIndex(slotIdx1);
+        long addr = rb + RLearnedBase + (long)jobIdx * LearnedStride + LearnedByteIndex(slotIdx1);
         byte mask = LearnedBitMask(slotIdx1);
-        long addr = learnBase + byteOff;
         if (!Mem.Readable(addr, 1)) return;
         byte cur = Mem.U8(addr);
         if ((cur & mask) != 0) return;   // already set -> no write needed
         if (!Mem.Writable(addr, 1)) return;
         Mem.W8(addr, (byte)(cur | mask));
-        Log.Info($"barrage: learned bit set for rosterSlot {rosterSlot} job {jobId} slot {slotIdx1}");
+        Log.Info($"barrage: learned bit held (rosterSlot {rosterSlot} jobIdx {jobIdx} slot {slotIdx1})");
     }
 }

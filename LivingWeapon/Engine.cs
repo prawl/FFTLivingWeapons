@@ -131,6 +131,9 @@ internal sealed class Engine
             SaveTally();                 // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
+        // Barrage runs in AND out of battle: the learn screen / pre-battle menus read the
+        // JobCommand table live, and the learned bit needs its hold against menu writebacks.
+        _barrage.Tick();
         if (!nowIn)
         {
             _display.Tick();   // out of battle (slot9 cleared): keep the equip card painted
@@ -144,7 +147,6 @@ internal sealed class Engine
         _eagle.Tick();                        // Eclipsebolt +3: force enemy Doom countdowns down to 1
         _ricochet.Tick(onField);              // Stormarc +3: bounce chip to nearest other enemy on damage
         _maim.Tick(onField);                  // Huntress +3: struck enemies lose reactions for N turns
-        _barrage.Tick();                      // Yoichi +3: inject Barrage command into wielder's job record
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 
