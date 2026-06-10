@@ -58,12 +58,12 @@ public class BarrageTests
 
     [Theory]
     [InlineData(74, 5, 0)]     // Squire -> Fundaments
-    [InlineData(75, 6, 1)]     // Chemist -> Items (jobIdx LIVE-proven by High Ether purchase)
     [InlineData(76, 7, 2)]     // Knight -> Arts of War
-    [InlineData(77, 8, 3)]     // Archer -> rec 8 (LIVE-proven: injected entry rendered in menu)
+    [InlineData(78, 9, 4)]     // Monk -> Martial Arts
     [InlineData(80, 11, 6)]    // Black Mage -> Black Magicks
-    [InlineData(83, 14, 9)]    // Thief -> Steal
-    [InlineData(87, 18, 13)]   // Dragoon -> Jump
+    [InlineData(83, 14, 9)]    // Thief -> Steal (LIVE-proven: Barrage cast from Steal, twice)
+    [InlineData(85, 16, 11)]   // Mystic -> Mystic Arts
+    [InlineData(88, 19, 14)]   // Samurai -> Iaido
     [InlineData(91, 22, 17)]   // Bard -> Bardsong
     [InlineData(92, 23, 17)]   // Dancer -> Dance (rec differs from Bard, jobIdx SHARED = 17)
     public void TryResolveJob_maps_generic_band(int job, int expectedRec, int expectedJobIdx)
@@ -82,6 +82,91 @@ public class BarrageTests
     [InlineData(160)]   // Dark Knight: rec unmapped, unsupported for now
     public void TryResolveJob_rejects_outside_generic_band(int job)
         => Assert.False(Barrage.TryResolveJob(job, out _, out _));
+
+    // Special-executor commands silently drop foreign ability ids at confirm time.
+    // PROVEN LIVE for Aim (2026-06-10): 358, 102 Aurablast, 146 Focus, and 16 Fire all
+    // swallowed from rec 8 slots 1/9/10/11 on two different units; the menu label renders but
+    // targeting/preview are positional basic-attack cosmetics and execution no-ops. The id
+    // whitelist is code-side (no writable tier table found in a full memory scan). Jump shares
+    // Aim's tier-row structure; Items/Throw consult inventory; Arithmeticks is a bespoke picker.
+    [Theory]
+    [InlineData(75)]    // Chemist -> Items
+    [InlineData(77)]    // Archer -> Aim (the live-proven wall)
+    [InlineData(87)]    // Dragoon -> Jump
+    [InlineData(89)]    // Ninja -> Throw
+    [InlineData(90)]    // Arithmetician -> Arithmeticks
+    public void TryResolveJob_rejects_special_executor_jobs(int job)
+        => Assert.False(Barrage.TryResolveJob(job, out _, out _));
+
+    // ---- Secondary fallback: roster +0x07 holds the JobCommand rec id directly
+    // (live-read 14 with Steal mounted). Barrage cast from an Archer's mounted Steal
+    // secondary is LIVE-PROVEN -- the executor follows the skillset, not the slot. ----
+
+    [Theory]
+    [InlineData(14, 9)]    // Steal (the live-proven fallback)
+    [InlineData(5, 0)]     // Fundaments
+    [InlineData(7, 2)]     // Arts of War
+    [InlineData(19, 14)]   // Iaido
+    [InlineData(22, 17)]   // Bardsong
+    [InlineData(23, 17)]   // Dance (shares Bard's jobIdx)
+    [InlineData(25, 0)]    // Mettle ch1 variant (Mettle executed 358 in the morning proof)
+    [InlineData(27, 0)]    // Mettle endgame variant
+    public void TryResolveSecondary_maps_normal_records(int rec, int expectedJobIdx)
+    {
+        Assert.True(Barrage.TryResolveSecondary(rec, out int jobIdx));
+        Assert.Equal(expectedJobIdx, jobIdx);
+    }
+
+    [Theory]
+    [InlineData(6)]     // Items
+    [InlineData(8)]     // Aim
+    [InlineData(18)]    // Jump
+    [InlineData(20)]    // Throw
+    [InlineData(21)]    // Arithmeticks
+    [InlineData(24)]    // Mime (empty record)
+    [InlineData(0)]     // no secondary
+    [InlineData(4)]     // empty record below the wheel
+    [InlineData(28)]    // outside the supported set
+    [InlineData(255)]
+    public void TryResolveSecondary_rejects_special_and_invalid(int rec)
+        => Assert.False(Barrage.TryResolveSecondary(rec, out _));
+
+    [Fact]
+    public void TryResolveGrant_prefers_the_primary_when_normal()
+    {
+        // Thief primary -> Steal record, even with some secondary mounted.
+        Assert.True(Barrage.TryResolveGrant(83, secondaryRec: 11, out int rec, out int jobIdx, out bool viaSecondary));
+        Assert.Equal(14, rec);
+        Assert.Equal(9, jobIdx);
+        Assert.False(viaSecondary);
+    }
+
+    [Fact]
+    public void TryResolveGrant_falls_back_to_secondary_for_special_executor_primary()
+    {
+        // Archer with Steal mounted: the live-proven rescue.
+        Assert.True(Barrage.TryResolveGrant(77, secondaryRec: 14, out int rec, out int jobIdx, out bool viaSecondary));
+        Assert.Equal(14, rec);
+        Assert.Equal(9, jobIdx);
+        Assert.True(viaSecondary);
+    }
+
+    [Fact]
+    public void TryResolveGrant_covers_story_unique_primaries_via_secondary()
+    {
+        // A story-job byte outside the generic band (e.g. Ramza in Mettle) still gets the
+        // grant through a mounted normal secondary.
+        Assert.True(Barrage.TryResolveGrant(1, secondaryRec: 14, out int rec, out int jobIdx, out bool viaSecondary));
+        Assert.Equal(14, rec);
+        Assert.True(viaSecondary);
+    }
+
+    [Theory]
+    [InlineData(77, 6)]    // Archer with Items secondary: both special
+    [InlineData(77, 0)]    // Archer with no secondary
+    [InlineData(94, 0)]    // monster
+    public void TryResolveGrant_fails_when_nothing_grantable(int job, int sec)
+        => Assert.False(Barrage.TryResolveGrant(job, sec, out _, out _, out _));
 
     // ---- (3) FindEmptySlot: first slot with byte==0 and extend bit==0 (1-indexed) ----
 

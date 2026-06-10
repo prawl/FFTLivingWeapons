@@ -36,6 +36,8 @@ internal sealed partial class Barrage
 
     // Roster job id at +0x02 (FFTHandsFree UNIT_DATA_STRUCTURE.md; live-read 77 = Archer).
     private const int RJobId = 0x02;
+    // Roster secondary command at +0x07 = the JobCommand rec id (live-read 14 = Steal).
+    private const int RSecondary = 0x07;
     // Roster learned bitfield at +0x32 + jobIdx*3 (jobIdx from TryResolveJob, NOT the job id).
     private const int RLearnedBase = 0x32;
     private const int LearnedStride = 3;
@@ -73,6 +75,7 @@ internal sealed partial class Barrage
         // Find the wielder's roster slot (any slot holding the Yoichi Bow).
         int wielderSlot = -1;
         int wielderJob = -1;
+        int wielderSecondary = -1;
         if (active)
         {
             for (int r = 0; r < Offsets.RosterSlots; r++)
@@ -86,6 +89,7 @@ internal sealed partial class Barrage
                 if (jobId <= 0) continue;
                 wielderSlot = r;
                 wielderJob = jobId;
+                wielderSecondary = Mem.U8(rb + RSecondary);
                 break;
             }
         }
@@ -99,13 +103,14 @@ internal sealed partial class Barrage
             return;
         }
 
-        // Resolve the wielder's job to (JobCommand record, learned jobIdx).
-        if (!TryResolveJob(wielderJob, out int recId, out int jobIdx))
+        // Resolve the grant target: primary job's record, else the mounted secondary's record
+        // (special-executor primaries like Aim silently drop foreign abilities at confirm).
+        if (!TryResolveGrant(wielderJob, wielderSecondary, out int recId, out int jobIdx, out bool viaSecondary))
         {
             if (_lastUnsupportedJob != wielderJob)
             {
                 _lastUnsupportedJob = wielderJob;
-                Log.Info($"barrage: job {wielderJob} unmapped (story-unique/monster/DK) -> no grant");
+                Log.Info($"barrage: job {wielderJob} sec {wielderSecondary} ungrantable (special-executor/story-unique/monster) -> no grant");
             }
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             _wasActive = false;
@@ -115,7 +120,7 @@ internal sealed partial class Barrage
         if (!_wasActive)
         {
             _wasActive = true;
-            Log.Info($"barrage ACTIVE (Yoichi slot {wielderSlot} job {wielderJob} -> rec {recId} jobIdx {jobIdx})");
+            Log.Info($"barrage ACTIVE (Yoichi slot {wielderSlot} job {wielderJob} -> rec {recId} jobIdx {jobIdx}{(viaSecondary ? " via secondary" : "")})");
         }
 
         // Job changed mid-session: restore the old record and re-inject for the new job.

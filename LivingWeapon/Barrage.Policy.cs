@@ -29,17 +29,61 @@ internal sealed partial class Barrage
         return tier >= sig.AtTier;
     }
 
+    /// <summary>Jobs whose PRIMARY command is a special-cased executor that silently drops
+    /// foreign ability ids at confirm time (the menu label renders, targeting/preview show
+    /// positional basic-attack cosmetics, execution no-ops). PROVEN LIVE for Aim 2026-06-10:
+    /// 358/102/146 all swallowed from rec 8 slots 1/9/10/11 on two units; the id whitelist is
+    /// code-side (no writable tier table found). Jump shares Aim's tier-row structure; Items/
+    /// Throw consult inventory; Arithmeticks has a bespoke picker — excluded conservatively.
+    /// Future Archer path: the +0x07 secondary-command route (bypasses the primary executor).</summary>
+    private static readonly int[] SpecialExecutorJobs = { 75, 77, 87, 89, 90 }; // Chemist, Archer, Dragoon, Ninja, Arithmetician
+
     /// <summary>Resolve a roster job byte (+0x02) to its JobCommand record id and its
-    /// learned-bitfield jobIdx. Only the generic band 74..92 is mapped; Mime (93, nothing
-    /// learnable), story-canonical unique jobs, monsters, and Dark Knight return false.</summary>
+    /// learned-bitfield jobIdx. Only the generic band 74..92 is mapped, MINUS the
+    /// special-executor jobs; Mime (93, nothing learnable), story-canonical unique jobs,
+    /// monsters, and Dark Knight return false.</summary>
     public static bool TryResolveJob(int job, out int recId, out int jobIdx)
     {
         recId = -1;
         jobIdx = -1;
         if (job < 74 || job > 92) return false;
+        if (System.Array.IndexOf(SpecialExecutorJobs, job) >= 0) return false;
         recId = job - 69;                       // Squire 74 -> rec 5 ... Dancer 92 -> rec 23
         jobIdx = job == 92 ? 17 : job - 74;     // Bard & Dance share learned jobIdx 17
         return true;
+    }
+
+    /// <summary>Resolve a SECONDARY command record (roster +0x07 holds the JobCommand rec id
+    /// directly — live-read 14 with Steal mounted) to its learned jobIdx. Only normal-executor
+    /// records are grantable: the generic wheel recs minus Items 6 / Aim 8 / Jump 18 / Throw 20
+    /// / Arithmeticks 21 / Mime 24, plus the Mettle variants 25-27 (jobIdx 0; Mettle executed
+    /// 358 in the morning proof).</summary>
+    public static bool TryResolveSecondary(int secondaryRec, out int jobIdx)
+    {
+        jobIdx = -1;
+        if (secondaryRec >= 25 && secondaryRec <= 27) { jobIdx = 0; return true; }   // Mettle variants
+        if (secondaryRec < 5 || secondaryRec > 23) return false;
+        if (secondaryRec is 6 or 8 or 18 or 20 or 21) return false;                  // special executors
+        jobIdx = secondaryRec == 23 ? 17 : secondaryRec - 5;                          // Dance shares Bard's 17
+        return true;
+    }
+
+    /// <summary>The grant target for a wielder: the PRIMARY job's record when it's a normal
+    /// executor; otherwise fall back to the mounted SECONDARY command's record (LIVE-PROVEN
+    /// 2026-06-10: Barrage cast from Steal mounted as an Archer's secondary). False when
+    /// neither is grantable (e.g. Archer with Items secondary, or no secondary).</summary>
+    public static bool TryResolveGrant(int job, int secondaryRec, out int recId, out int jobIdx, out bool viaSecondary)
+    {
+        viaSecondary = false;
+        if (TryResolveJob(job, out recId, out jobIdx)) return true;
+        if (TryResolveSecondary(secondaryRec, out jobIdx))
+        {
+            recId = secondaryRec;
+            viaSecondary = true;
+            return true;
+        }
+        recId = -1;
+        return false;
     }
 
     /// <summary>Find the first empty action slot in a 16-byte ability array, paired with an
