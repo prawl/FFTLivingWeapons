@@ -4,9 +4,15 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Wellspring Rod's "Spiritual Font" signature, REWORKED: at each of the +3 wielder's
-/// completed-turn edges (TurnTracker -- Wyrmblood's edge), IF the wielder's grid position
-/// changed since their PREVIOUS turn edge, the RUNTIME restores Tuning.FontHpPct of max HP
-/// (LifeSap.NewHp: floor 1, clamp at full, never revive) and Tuning.FontMpPct of max MP.
+/// completed-turn edges, IF the wielder's grid position changed since their PREVIOUS turn
+/// edge, the RUNTIME restores Tuning.FontHpPct of max HP (LifeSap.NewHp: floor 1, clamp at
+/// full, never revive) and Tuning.FontMpPct of max MP -- never into a corpse (MpHalfAllowed).
+///
+/// THE EDGE is the wielder's OWN scheduler CT pull-down (CtTurns, band +0x25 -- CharmLock's
+/// victim-turn discipline), NOT the global acted-edge TurnTracker: the acted edge fingerprints
+/// the active struct at 0x14077D2A0, which follows the CURSOR and mis-credited turns live
+/// (every edge credited one fingerprint -- it stalled Rapture's expiry the same way). An
+/// unlocated wielder simply pauses the clock; a missed pull-down lands late, never lost.
 ///
 /// WHY runtime writes, not engine passives: the live test (2026-06-10) proved both Lifefont
 /// (237) and Manafont (238) bits OR-hold perfectly on +0x9C, but the engine honors exactly
@@ -28,25 +34,27 @@ internal sealed partial class SpiritualFont
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly TurnTracker _turns;
     private readonly List<int> _hands = new();
-    private int _lastTurns = -1;
+    private readonly CtTurns _ct = new();   // the wielder's OWN scheduler-CT turn clock
+    private int _lastDone;             // completed turns already consumed off the clock
     private bool _posKnown;            // a turn-edge position snapshot exists
     private int _lastGx, _lastGy;      // the wielder's tile at their previous turn edge
     private bool _wasActive;
     private bool _mpChecked;           // per-battle MP layout verdict latched?
     private bool _mpOk;
 
+    // The TurnTracker parameter is retained for wiring stability (Engine constructs every
+    // subsystem identically) but deliberately unused: the edge is the wielder's own CT.
     public SpiritualFont(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns)
     {
         _meta = meta;
         _kills = kills;
-        _turns = turns;
     }
 
     public void ResetBattle()
     {
-        _lastTurns = -1;
+        _ct.Reset();
+        _lastDone = 0;
         _posKnown = false;
         _wasActive = false;
         _mpChecked = false;
@@ -66,32 +74,37 @@ internal sealed partial class SpiritualFont
             _wasActive = active;
             Log.Info($"font {(active ? "ACTIVE (+3 Wellspring Rod wielded)" : "inactive")}");
         }
-        if (!active) { _lastTurns = -1; _posKnown = false; return; }   // unequip: re-baseline turn AND tile
-
-        int turns = _turns.Turns(fp.lvl, fp.br, fp.fa);
-        bool edge = Wyrmblood.IsTurnEdge(_lastTurns, turns);           // the shared completed-turn edge
-        _lastTurns = turns;
-        if (!edge) return;
+        if (!active)
+        {
+            _ct.Reset(); _lastDone = 0; _posKnown = false;   // unequip: re-baseline clock AND tile
+            return;
+        }
 
         long e = Wielder.Locate(Live, WellspringId, _hands, fp);
-        if (e == 0) { Log.Info("font: turn edge but wielder unlocated -> skipped"); return; }
+        if (e == 0) return;                                  // unlocated: the CT clock pauses
+        _ct.Observe(Live.U8(e + Offsets.ACt));               // own-CT pull-down = a completed turn
+        bool edge = _ct.Completed > _lastDone;
+        _lastDone = _ct.Completed;
+        if (!edge) return;
+
         int gx = Live.U8(e + Offsets.AGx), gy = Live.U8(e + Offsets.AGy);
         bool fire = ShouldFire(_posKnown, _lastGx, _lastGy, gx, gy);
         _lastGx = gx; _lastGy = gy; _posKnown = true;                  // snapshot per turn edge
         if (!fire) return;
-        Replenish(e, turns);
+        Replenish(e, _ct.Completed);
     }
 
     /// <summary>One moved-turn restore: the HP half always (clamped, never revives), the MP half
-    /// only while this battle's layout validation passed -- with a post-write SET/MISS read-back
-    /// (the live verification signal for the provisional offsets).</summary>
+    /// only for a LIVING wielder while this battle's layout validation passed (MpHalfAllowed --
+    /// a corpse gains nothing) -- with a post-write SET/MISS read-back (the live verification
+    /// signal for the provisional offsets).</summary>
     private void Replenish(long e, int turn)
     {
         int hp = Live.U16(e + Offsets.AHp), maxHp = Live.U16(e + Offsets.AMaxHp);
         int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
         if (newHp != hp) LifeSap.WriteHp(e, newHp);
         Log.Info($"font: moved -> turn {turn} hp {hp} -> {newHp} (max {maxHp})");
-        if (!_mpOk) return;   // layout unproven this battle: HP-only
+        if (!MpHalfAllowed(hp, _mpOk)) return;   // layout unproven OR a dead wielder: no MP write
         int mp = Live.U16(e + Offsets.AMp), maxMp = Live.U16(e + Offsets.AMaxMp);
         int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
         if (newMp == mp) { Log.Info($"font: mp full ({mp}/{maxMp})"); return; }

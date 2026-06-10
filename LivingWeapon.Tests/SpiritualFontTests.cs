@@ -6,7 +6,7 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// Wellspring Rod's "Spiritual Font" signature, REWORKED: the runtime restores HP AND MP itself
-/// at the +3 wielder's completed-turn edge (TurnTracker, Wyrmblood's edge) IF the wielder's
+/// at the +3 wielder's completed-turn edge (their OWN scheduler CT, CtTurns) IF the wielder's
 /// grid position changed since their previous turn edge. No engine movement passives -- the
 /// live test proved both font bits hold but the engine honors exactly ONE movement passive
 /// (it picked Lifefont; only HP ticked on move), so the bit grant is gone.
@@ -153,12 +153,46 @@ public class SpiritualFontTests
         Assert.Equal(Offsets.AMp + 2, Offsets.AMaxMp);    // 0x1A
     }
 
-    // ---- the turn edge itself is Wyrmblood's shared IsTurnEdge (tested in WyrmbloodTests) ----
+    // ---- (8) the corpse gate: a dead wielder gains NOTHING. The HP half already no-ops via
+    //      LifeSap.NewHp; the MP half must skip a corpse too (moved, then died before the
+    //      turn edge -- trap tile, counter-kill). mpOk alone is NOT enough. ----
+
+    [Theory]
+    [InlineData(0, true, false)]    // dead + proven layout: still no MP into a corpse
+    [InlineData(0, false, false)]   // dead + unproven layout
+    [InlineData(1, true, true)]     // barely alive + proven layout: the MP half runs
+    [InlineData(40, false, false)]  // alive but unproven layout: HP-only this battle
+    public void Mp_half_requires_a_living_wielder_and_a_proven_layout(int hp, bool mpOk, bool expected)
+        => Assert.Equal(expected, SpiritualFont.MpHalfAllowed(hp, mpOk));
+
+    // ---- (9) the turn edge: the wielder's OWN scheduler CT (band +0x25, CtTurns pull-down) --
+    //      NOT the global acted-edge TurnTracker, whose cursor-following active-struct
+    //      attribution mis-credited turns live (it stalled Rapture's expiry the same way). ----
 
     [Fact]
-    public void Turn_edge_semantics_are_shared_with_Wyrmblood()
+    public void Turn_edge_is_the_wielders_own_ct_pull_down()
     {
-        Assert.False(Wyrmblood.IsTurnEdge(-1, 5));   // unprimed first sight baselines silently
-        Assert.True(Wyrmblood.IsTurnEdge(1, 2));
+        var t = new CtTurns();
+        t.Observe(95);                  // the turn came (>= TurnHi)...
+        Assert.Equal(0, t.Completed);
+        t.Observe(10);                  // ...and was taken (< TurnLo): one completed turn
+        Assert.Equal(1, t.Completed);
+        t.Observe(80); t.Observe(60);   // mid-band drift: neither a rise nor a fall
+        Assert.Equal(1, t.Completed);
+        t.Observe(91); t.Observe(75);   // rose, but 75 >= TurnLo: not yet completed
+        Assert.Equal(1, t.Completed);
+        t.Observe(69);                  // an unlocated gap lands the edge late, never lost
+        Assert.Equal(2, t.Completed);
+    }
+
+    [Fact]
+    public void Reequip_and_battle_reset_zero_the_ct_clock()
+    {
+        var t = new CtTurns();
+        t.Observe(95); t.Observe(0);
+        Assert.Equal(1, t.Completed);
+        t.Reset();
+        t.Observe(50);                  // post-reset low CT: no phantom completed turn
+        Assert.Equal(0, t.Completed);
     }
 }

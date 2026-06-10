@@ -31,6 +31,12 @@ internal sealed partial class SpiritualFont
         return n > maxMp ? maxMp : n;
     }
 
+    /// <summary>The MP half runs only for a LIVING wielder on a layout-proven battle: a wielder
+    /// who moved and then died before their turn edge (trap tile, counter-kill) gains NOTHING --
+    /// the HP half already no-ops at hp 0 (LifeSap.NewHp never revives), and MP must not be
+    /// written into a corpse either, even though MP carries no revival semantics.</summary>
+    public static bool MpHalfAllowed(int hp, bool mpOk) => mpOk && hp > 0;
+
     /// <summary>The PURE per-battle layout validation gating EVERY MP write: the band +0x18/+0x1A
     /// pair is PROVISIONAL (never live-verified), so before the first MP write of a battle the
     /// whole band must look like MP -- at least 2 sampled units, mp &lt;= maxMp AND maxMp &lt;= 999

@@ -52,6 +52,9 @@ internal static class Offsets
     public const int AMaxMp    = 0x1A; // u16  PROVISIONAL (see AMp)
     public const int AGx       = 0x33; // u8
     public const int AGy       = 0x34; // u8
+    public const int ACt       = 0x25; // u8  scheduler CT (band entry == static layout); CharmLock,
+                                       //     Rapture, and SpiritualFont count a unit's turns off it
+                                       //     (>=90 then <70 -- CtTurns)
 
     // --- roster (nameId -> equipped right hand) ---
     public const long RosterBase = 0x1411A18D0;
