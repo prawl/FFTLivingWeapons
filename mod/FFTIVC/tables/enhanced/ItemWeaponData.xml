@@ -489,7 +489,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
-      <Range>1</Range>
+      <Range>4</Range>
+      <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>4</Formula>
       <Power>8</Power>
       <Evasion>20</Evasion>
@@ -498,7 +499,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
-      <Range>1</Range>
+      <Range>4</Range>
+      <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>4</Formula>
       <Power>8</Power>
       <Evasion>20</Evasion>
@@ -507,7 +509,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>54</Id> <!-- Frost Rod (was Ice Rod) -->
-      <Range>1</Range>
+      <Range>4</Range>
+      <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>4</Formula>
       <Power>8</Power>
       <Evasion>20</Evasion>

@@ -9,20 +9,17 @@
     "renameTarget": "item.en.nxd (name + description). NXD round-trip mechanism: WIP.",
     "design": "Three lanes run the curve in parallel: RAW (Cutpurse/Argent Dirk/Adamant Fang), AGILE (Quicksilver 25ev / Sanguine Gauche 50ev), UTILITY (Gloomfang Blind / Hushblade Silence / Mortal Coil Doom / Dreamsever Sleep). Non-monotonic WP (5,6,5,6,7,6,9,8,10,12) makes every proc/evade knife undercut WP to pay for its gimmick.",
     "openProcs": "id4 Hushblade Silence onHitAbilityId is unknown — not one of the 9/11/12 procs. Confirm in-game before locking the description.",
-    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible (only 8 free ItemEquipBonusData slots: 74-79; 77 of 85 used). Each item's proposed.equipBonusId points at a vanilla id OR a free-slot id defined in _equipBonus below. The iconic element shields already exist: Ice=15, Flame=16, Kaiser-boost=18, Venetian-halve=19; stats: MA+1=10/12, MA+2=1/9, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4."
+    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible. Each item's proposed.equipBonusId points at a vanilla id OR an id redefined in _equipBonus below. RULE for redefining a vanilla row: every VANILLA item pointing at that row must be repointed by our ItemData, or it silently inherits the new bonus (this corrupted Excalibur via row 3 and Akademy Tunic via row 83 until 2026-06-10). Orphaned rows verified free to claim: 11, 17, 20, 22, 23, 25, 31, 36, 38, 39, 47, 49, 50, 51, 53, 63, 72 (5, 9, 10, 40, 56 already claimed below; 74-79 are empty+unreferenced and claimed). Iconic vanilla rows: Ice shield=15, Flame shield=16, Kaiser-boost=18, Venetian-halve=19, MA+1=12, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4, StrongElements L/F/I=6/7/8 (the elemental rods'), innate Faith=73."
   },
   "_equipBonus": {
-    "3": {
+    "9": {
       "MABonus": 2,
       "StrongElements": "Dark"
     },
-    "6": {
-      "InnateStatus": "Faith"
-    },
-    "7": {
+    "5": {
       "StrongElements": "Holy"
     },
-    "83": {
+    "10": {
       "InnateStatus": "Atheist"
     },
     "74": {
@@ -684,7 +681,7 @@
         "onHitAbilityId": 141,
         "formula": 2,
         "attackFlags": "Striking, TwoSwords, TwoHands",
-        "equipBonusId": 83
+        "equipBonusId": 10
       }
     },
     {
@@ -1561,7 +1558,7 @@
       "vanillaName": "Thunder Rod",
       "name": "Spark Rod",
       "tier": 2,
-      "identity": "Battle-mage nuke rod — the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-armor/mech. WP 8 — a real battle-mage nuke, but melee-range and every-turn rather than burst.",
+      "identity": "Battle-mage nuke rod — the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. Anti-armor/mech. WP 8 + Strengthens Lightning (+25%) — a real battle-mage nuke, every-turn chip rather than burst.",
       "flavorOverride": "A rod that holds a fistful of caged storm; each blow lets the thunder out for the asking.",
       "baseline": {
         "wp": 3,
@@ -1577,8 +1574,10 @@
         "onHit": "Attack casts Thunder (Magick Attack)",
         "onHitAbilityId": 0,
         "formula": 4,
-        "range": 1,
-        "equipBonusId": 0
+        "range": 4,
+        "attackFlags": "TwoHands, TwoSwords, Direct",
+        "rider": "boost Lightning",
+        "equipBonusId": 6
       },
       "iconTint": [
         0.62,
@@ -1592,7 +1591,7 @@
       "vanillaName": "Flame Rod",
       "name": "Ember Rod",
       "tier": 2,
-      "identity": "Fire nuke battle-mage rod — its Attack strikes as Fire (formula 4): Faith-scaled, MP-free, melee, every turn. The Fire member of the elemental nuke trio with Spark (Thunder) and Frost (Blizzard); pick by matchup. Anti-Undead, shreds Oiled and Ice-weak foes. WP 8 with Spark/Frost so the trio stays symmetric.",
+      "identity": "Fire nuke battle-mage rod — its Attack strikes as Fire (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. The Fire member of the elemental nuke trio with Spark (Thunder) and Frost (Blizzard); pick by matchup. Anti-Undead, shreds Oiled and Ice-weak foes. WP 8 + Strengthens Fire (+25%) with Spark/Frost so the trio stays symmetric.",
       "flavorOverride": "Embers smolder in its heart, eager to leap; a touch is enough to set a foe ablaze.",
       "baseline": {
         "wp": 3,
@@ -1608,8 +1607,10 @@
         "onHit": "Attack casts Fire (Magick Attack)",
         "onHitAbilityId": 0,
         "formula": 4,
-        "range": 1,
-        "equipBonusId": 0
+        "range": 4,
+        "attackFlags": "TwoHands, TwoSwords, Direct",
+        "rider": "boost Fire",
+        "equipBonusId": 7
       },
       "iconTint": [
         0.05,
@@ -1623,7 +1624,7 @@
       "vanillaName": "Ice Rod",
       "name": "Frost Rod",
       "tier": 2,
-      "identity": "Battle-mage nuke rod — the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, melee range, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental nuke trio at WP 8.",
+      "identity": "Battle-mage nuke rod — the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental nuke trio at WP 8 + Strengthens Ice (+25%).",
       "flavorOverride": "Its tip is sheathed in everlasting rime; where it points, the air turns to killing winter.",
       "baseline": {
         "wp": 3,
@@ -1638,8 +1639,11 @@
         "element": "Ice",
         "formula": 4,
         "onHitAbilityId": 0,
-        "range": 1,
-        "onHit": "Attack casts Blizzard (Magick Attack)"
+        "range": 4,
+        "onHit": "Attack casts Blizzard (Magick Attack)",
+        "attackFlags": "TwoHands, TwoSwords, Direct",
+        "rider": "boost Ice",
+        "equipBonusId": 8
       },
       "iconTint": [
         0.5,
@@ -1703,7 +1707,7 @@
         "formula": 1,
         "range": 1,
         "rider": "MA+2, boost Dark",
-        "equipBonusId": 3
+        "equipBonusId": 9
       },
       "iconTint": [
         0.78,
@@ -1718,7 +1722,7 @@
       "name": "Dragon Rod",
       "tier": 4,
       "identity": "Silence on hit, plus the only weapon that grants Initial Reraise (auto-revive once per battle). A survivable battle-mage rod, echoing the dragoon Dragon Spirit (community-requested buff).",
-      "desc": "A rod wielded by a dragon master. Its tip is made from carved dragon bone.",
+      "desc": "A rod wielded by a dragon master. Its tip is made from carved dragon bone.\nHas a chance to inflict Silence on hit. Begins battle with Reraise.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -1767,7 +1771,7 @@
         "formula": 1,
         "range": 1,
         "rider": "innate Faith",
-        "equipBonusId": 6
+        "equipBonusId": 73
       },
       "iconTint": [
         0.13,
@@ -1952,7 +1956,8 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "range": 1,
-        "equipBonusId": 7
+        "rider": "boost Holy",
+        "equipBonusId": 5
       },
       "iconTint": [
         0.13,

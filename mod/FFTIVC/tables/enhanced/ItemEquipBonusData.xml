@@ -4,7 +4,24 @@
   <Version>1</Version>
   <Entries>
     <ItemEquipBonus>
-      <Id>3</Id>
+      <Id>5</Id>
+      <PABonus>0</PABonus>
+      <MABonus>0</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>None</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
+      <AbsorbElements>None</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
+      <HalveElements>None</HalveElements>
+      <WeakElements>None</WeakElements>
+      <StrongElements>Holy</StrongElements>
+      <BoostJP>false</BoostJP>
+    </ItemEquipBonus>
+    <ItemEquipBonus>
+      <Id>9</Id>
       <PABonus>0</PABonus>
       <MABonus>2</MABonus>
       <SpeedBonus>0</SpeedBonus>
@@ -21,13 +38,13 @@
       <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
-      <Id>6</Id>
+      <Id>10</Id>
       <PABonus>0</PABonus>
       <MABonus>0</MABonus>
       <SpeedBonus>0</SpeedBonus>
       <MoveBonus>0</MoveBonus>
       <JumpBonus>0</JumpBonus>
-      <InnateStatus>Faith</InnateStatus>
+      <InnateStatus>Atheist</InnateStatus>
       <ImmuneStatus>None</ImmuneStatus>
       <StartingStatus>None</StartingStatus>
       <AbsorbElements>None</AbsorbElements>
@@ -35,23 +52,6 @@
       <HalveElements>None</HalveElements>
       <WeakElements>None</WeakElements>
       <StrongElements>None</StrongElements>
-      <BoostJP>false</BoostJP>
-    </ItemEquipBonus>
-    <ItemEquipBonus>
-      <Id>7</Id>
-      <PABonus>0</PABonus>
-      <MABonus>0</MABonus>
-      <SpeedBonus>0</SpeedBonus>
-      <MoveBonus>0</MoveBonus>
-      <JumpBonus>0</JumpBonus>
-      <InnateStatus>None</InnateStatus>
-      <ImmuneStatus>None</ImmuneStatus>
-      <StartingStatus>None</StartingStatus>
-      <AbsorbElements>None</AbsorbElements>
-      <NullifyElements>None</NullifyElements>
-      <HalveElements>None</HalveElements>
-      <WeakElements>None</WeakElements>
-      <StrongElements>Holy</StrongElements>
       <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
@@ -185,23 +185,6 @@
       <StartingStatus>None</StartingStatus>
       <AbsorbElements>None</AbsorbElements>
       <NullifyElements>Earth</NullifyElements>
-      <HalveElements>None</HalveElements>
-      <WeakElements>None</WeakElements>
-      <StrongElements>None</StrongElements>
-      <BoostJP>false</BoostJP>
-    </ItemEquipBonus>
-    <ItemEquipBonus>
-      <Id>83</Id>
-      <PABonus>0</PABonus>
-      <MABonus>0</MABonus>
-      <SpeedBonus>0</SpeedBonus>
-      <MoveBonus>0</MoveBonus>
-      <JumpBonus>0</JumpBonus>
-      <InnateStatus>Atheist</InnateStatus>
-      <ImmuneStatus>None</ImmuneStatus>
-      <StartingStatus>None</StartingStatus>
-      <AbsorbElements>None</AbsorbElements>
-      <NullifyElements>None</NullifyElements>
       <HalveElements>None</HalveElements>
       <WeakElements>None</WeakElements>
       <StrongElements>None</StrongElements>

@@ -5,7 +5,7 @@
   <Entries>
     <Item>
       <Id>21</Id> <!-- Riposte (was Iron Sword) -->
-      <EquipBonusId>83</EquipBonusId>
+      <EquipBonusId>10</EquipBonusId>
     </Item>
     <Item>
       <Id>23</Id> <!-- Sanguine Sword (was Blood Sword) -->
@@ -38,11 +38,15 @@
     </Item>
     <Item>
       <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
-      <EquipBonusId>0</EquipBonusId>
+      <EquipBonusId>6</EquipBonusId>
     </Item>
     <Item>
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
-      <EquipBonusId>0</EquipBonusId>
+      <EquipBonusId>7</EquipBonusId>
+    </Item>
+    <Item>
+      <Id>54</Id> <!-- Frost Rod (was Ice Rod) -->
+      <EquipBonusId>8</EquipBonusId>
     </Item>
     <Item>
       <Id>55</Id> <!-- Hushward Rod (was Poison Rod) -->
@@ -50,7 +54,7 @@
     </Item>
     <Item>
       <Id>56</Id> <!-- Umbral Rod (was Wizard's Rod) -->
-      <EquipBonusId>3</EquipBonusId>
+      <EquipBonusId>9</EquipBonusId>
     </Item>
     <Item>
       <Id>57</Id> <!-- Dragon Rod -->
@@ -58,7 +62,7 @@
     </Item>
     <Item>
       <Id>58</Id> <!-- Rod of Faith -->
-      <EquipBonusId>6</EquipBonusId>
+      <EquipBonusId>73</EquipBonusId>
     </Item>
     <Item>
       <Id>60</Id> <!-- Warlock's Staff (was White Staff) -->
@@ -74,7 +78,7 @@
     </Item>
     <Item>
       <Id>64</Id> <!-- Sanctus Staff (was Golden Staff) -->
-      <EquipBonusId>7</EquipBonusId>
+      <EquipBonusId>5</EquipBonusId>
     </Item>
     <Item>
       <Id>65</Id> <!-- Zeus Mace -->
