@@ -61,12 +61,14 @@ out = [
     "  <Entries>",
 ]
 
+# NO inline comments inside the entries: this table's deserializer is stricter than the
+# Item tables' -- a comment node between elements gets read as the NEXT element's value
+# ("Fundaments: RSMId2 460->0" is not an int), and the whole table is dropped with
+# YAXPropertyCannotBeAssignedTo (live failure, 2026-06-10). Provenance lives in the header
+# comment above the root, where the vanilla dump also keeps its prose.
 for rec_id, hits in sorted(affected):
-    label = labels.get(rec_id, "")
-    slot_note = ", ".join(f"RSMId{i} {old}->0" for i, old in hits)
-    comment = f"{label}: {slot_note}".strip(": ")
     out.append(f"    <JobCommand>")
-    out.append(f"      <Id>{rec_id}</Id> <!-- {comment} -->")
+    out.append(f"      <Id>{rec_id}</Id>")
     for i, _old in hits:
         out.append(f"      <ReactionSupportMovementId{i}>0</ReactionSupportMovementId{i}>")
     out.append(f"    </JobCommand>")
