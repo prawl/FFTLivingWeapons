@@ -1691,16 +1691,7 @@
         0.28,
         0.8,
         0.85
-      ],
-      "signature": {
-        "atTier": 3,
-        "sigName": "Unbroken Chant",
-        "abilityId": 226,
-        "slot": "support",
-        "displayLabel": "Swiftspell",
-        "p3Desc": "Grants Swiftspell: the wielder casts in half the usual time.",
-        "note": "Swiftspell (support 226) OR-set and HELD on the wielder's combat-struct support bitfield (+0x98 byte 3, mask 0x08) via the proven HoldSignature path -- stacks with the player's own support, never hijacks a slot. Mid-battle unequip (Rend/Steal) releases the grant: the bit is AND-cleared unless it is the player's own picked support (GrowthEngine ReleaseUnequipped, all support signatures). Deepens the rod's anti-Silence identity: the voice that cannot be hushed chants twice as fast. OPEN LIVE QUESTION: charge time is computed when a cast queues, so the held live bit should halve it, but Swiftspell has never been live-verified as a grant -- the GRANT read-back log (SET/MISS) plus one timed cast settles it. Not marked build-time-only (IsBuildTimeOnly covers Doublehand/Dual Wield/HP Boost only)."
-      }
+      ]
     },
     {
       "id": 56,
@@ -1733,15 +1724,7 @@
         0.78,
         0.6,
         0.65
-      ],
-      "signature": {
-        "atTier": 3,
-        "sigName": "Life Sap",
-        "displayLabel": "Life Sap",
-        "lifeSapOnKill": true,
-        "p3Desc": "Defeating a foe restores a quarter of the wielder's health.",
-        "note": "When a kill is credited to the +3 Umbral Rod (per-weapon kill-tally diff, the ExtraTurn freshKill pattern), the wielder's HP is written UP by Tuning.LifeSapPct (0.25) of max HP, clamped at full. NEVER revives (a 0-HP wielder is untouched; HP 0 -> positive is the engine's revival signal). Wielder located via roster resolve + band twin-filter walk (Wielder.cs, the ExtraTurn-proven locator); the heal lands on the authoritative band entry HP (the field Ricochet's chip writes), Mem.Writable-guarded. RUNTIME: LifeSap.cs + LifeSap.Policy.cs."
-      }
+      ]
     },
     {
       "id": 57,
@@ -1774,15 +1757,7 @@
         0.72,
         0.35,
         0.55
-      ],
-      "signature": {
-        "atTier": 3,
-        "sigName": "Wyrmblood",
-        "displayLabel": "Wyrmblood",
-        "regenSplashRadius": 1,
-        "p3Desc": "The wielder regenerates each turn, and the warmth mends adjacent allies.",
-        "note": "At each of the +3 wielder's COMPLETED-turn edges (TurnTracker's rising Acted flag -- the heal lands as the wielder finishes acting, adjacency from the post-move tile, not pre-move like vanilla Regen), the wielder AND every ALLY within 1 Manhattan tile heal their OWN maxHP/8 (Tuning.WyrmbloodDiv; the vanilla Regen rate), clamped at full. EMULATED regen -- the Regen status bit is unmapped and never touched; plain guarded HP writes on the authoritative band entries. Allies positively identified (static-array player-slot fingerprints; never enemies); the dead never healed (no accidental revival); one heal per fingerprint per splash (band twins). NAME NOTE: 'Dragonheart' is forbidden -- the game uses it for the Dragoon reaction. RUNTIME: Wyrmblood.cs + Wyrmblood.Policy.cs."
-      }
+      ]
     },
     {
       "id": 58,
