@@ -74,7 +74,7 @@ id,tier,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRisk,Verifie
 74,3,Glacial Gun,Gun,TBD,12,Faith spell (f4),5%,MA,—,MA +10%,MA +20%,MA +30%,med,
 75,3,Blaze Gun,Gun,TBD,12,Faith spell (f4),5%,MA,—,MA +10%,MA +20%,MA +30%,med,
 76,6,Blaster,Gun,TBD,15,Faith spell (f4),5%,MA,—,MA +10%,MA +20%,MA +30%,high,
-77,1,Scoutbolt,Crossbow,Shop,3,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,—,
+77,1,Scoutbolt,Crossbow,Shop,4,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,—,
 78,2,Eclipsebolt,Crossbow,Shop,5,PA x WP,5%,PA,Doom,PA +10%,PA +20%,PA +30% + Eagle Eye,med,
 79,3,Arbalest,Crossbow,Shop,7,PA x WP,5%,PA,—,PA +10%,PA +20%,PA +30% + Concentration,low,
 80,3,Venombolt,Crossbow,Shop,6,PA x WP,5%,PA,Poison (100%),PA +10%,PA +20%,PA +30% + Plague,med,

@@ -2360,7 +2360,7 @@
       "vanillaName": "Bowgun",
       "name": "Scoutbolt",
       "tier": 1,
-      "identity": "T1 scout's sidearm — earliest/cheapest unlock + line-high 10% evade. Shortest range (3), lowest WP.",
+      "identity": "T1 scout's sidearm — earliest/cheapest unlock + line-high 10% evade. Shortest range (4) and lowest WP of the line, but no longer below the vanilla crossbow standard: it shipped at vanilla wp3/r3 while every other crossbow climbed, leaving it outranged by Throw Stone (range 4). Lifted to wp4/r4 2026-06-10.",
       "flavorOverride": "A featherlight crossbow a scout slings on one shoulder, drawn quick and loosed quicker.",
       "baseline": {
         "wp": 3,
@@ -2372,13 +2372,13 @@
         "range": 3
       },
       "proposed": {
-        "wp": 3,
+        "wp": 4,
         "evade": 10,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 213,
         "formula": 2,
-        "range": 3,
+        "range": 4,
         "attackFlags": "Direct"
       }
     },

@@ -722,10 +722,10 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>77</Id> <!-- Scoutbolt (was Bowgun) -->
-      <Range>3</Range>
+      <Range>4</Range>
       <AttackFlags>Direct</AttackFlags>
       <Formula>2</Formula>
-      <Power>3</Power>
+      <Power>4</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>213</OptionsAbilityId>
