@@ -4096,7 +4096,7 @@
       "name": "Kaiser Shield",
       "tier": 5,
       "identity": "The only OFFENSIVE shield — strengthens the wearer's Fire/Lightning/Ice. A damage shield.",
-      "desc": "A shield named after a title used by emperors of eld. Increases the power of certain elemental magicks.",
+      "desc": "A shield named after a title used by emperors of eld.\nStrengthens Fire, Lightning, and Ice damage.",
       "baseline": {
         "physEv": 45,
         "magEv": 20,
@@ -4116,7 +4116,7 @@
       "name": "Venetian Shield",
       "tier": 6,
       "identity": "Best generalist — top on both evade axes + tri-element halve, no weakness, no rider.",
-      "desc": "A shield that has been ostentatiously colored using special dyes and pigments. Resistant to certain elemental magicks.",
+      "desc": "A shield that has been ostentatiously colored using special dyes and pigments.\nHalves Fire, Lightning, and Ice damage.",
       "baseline": {
         "physEv": 50,
         "magEv": 25,
@@ -4856,7 +4856,7 @@
       "name": "Hairband",
       "tier": 3,
       "identity": "Female partial immunity, half A: +20 HP + immune the 9 'degrade/lock' statuses. One of only 3 HP accessories; the affordable female defense before Ribbon. Disjoint set from Barrette.",
-      "desc": "A finely crafted hair accessory.\nWhile equipped, grants immunity to various status ailments.",
+      "desc": "A finely crafted hair accessory.\nWards against Doom, Disable, Immobilize, Slow, Poison, Toad, Silence, Blind, and Undead.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -4884,7 +4884,7 @@
       "name": "Barrette",
       "tier": 4,
       "identity": "Female partial immunity, half B: +20 HP + immune the 9 'death/mind-control' statuses (incl KO and Petrify). The disjoint other half; together with Hairband equals Ribbon coverage. Neither half dominates the other.",
-      "desc": "A hairpin adorned with a crimson gem.\nWhile equipped, grants immunity to various status ailments.",
+      "desc": "A hairpin adorned with a crimson gem.\nWards against instant death, Stone, Confuse, Vampire, Berserk, Stop, Charm, Sleep, and Traitor.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -5696,7 +5696,7 @@
       "name": "Rubber Suit",
       "tier": 6,
       "identity": "ICONIC Rubber body (vanilla EB35) — fully null Lightning, high HP and some MP. End-tier rare. Hard counter to Thunder/Bolt fights or a hybrid-caster anchor.",
-      "desc": "Electrically insulated clothing made from a special resin that molds to the contours of the wearer's body.",
+      "desc": "Electrically insulated clothing made from a special resin that molds to the contours of the wearer's body.\nNullifies Lightning damage.",
       "baseline": {
         "hp": 150,
         "mp": 0,

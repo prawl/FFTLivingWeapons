@@ -11,11 +11,12 @@ immunizes A.
 Usage: python tools/analyze.py [data/items.json] [--baseline]
 Exit 1 if any 'proposed' item is strictly dominated.
 """
-import json, sys
+import csv, json, re, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_living_weapon_meta import flavor_anchor   # the exact flavor line each item renders with
+from gen_living_weapon_meta import flavor_anchor, WEAPON_CATS   # the exact flavor line each item renders with
+from patch_names import rider_text   # the house-voice prose each rider bakes onto its card
 
 ROOT = Path(__file__).resolve().parent.parent
 ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else ROOT / "data" / "items.json"
@@ -171,6 +172,98 @@ def check_unique_flavor(items):
     return violations
 
 
+# Sentence-lead words and connectives in rider prose that carry no mechanic of their own;
+# everything else in a rider sentence is a status/element/stat NAME the desc must mention.
+_RIDER_NOISE = {"grants", "wards", "against", "begins", "battle", "with", "damage", "absorbs",
+                "halves", "nullifies", "strengthens", "weak", "to", "takes", "extra", "boosts",
+                "jp", "earned", "and", "all", "the", "a"}
+# Accepted synonyms: vanilla prose conveys some mechanics under different names.
+_RIDER_SYNONYMS = {"transparent": ("transparent", "invisib"),
+                   "instant death": ("instant death", "ko"),
+                   "status": ("status",)}
+
+
+def check_rider_desc(items):
+    """An item with a hand-written (verbatim) desc AND an equip-bonus rider must STATE every rider
+    clause. NUMERIC bonuses must use the exact house voice ('Physical Attack +2') -- a bonus without
+    its number is the live bug this gate exists for (the Genji set / Cursed Ring family, 2026-06-10).
+    Prose clauses (innates, wards, elements) may use natural phrasing, but every status/element NAME
+    in the clause must appear somewhere in the desc -- 'certain elemental magicks' does not tell the
+    player it means Fire, Lightning, and Ice. flavorOverride items auto-append their mechanics and
+    are safe by construction."""
+    violations = []
+    for it in items:
+        rider = it.get("proposed", {}).get("rider")
+        desc = it.get("desc")
+        if not rider or not desc:
+            continue
+        prose = rider_text(rider)
+        if not prose:
+            continue
+        low = desc.lower()
+        missing = []
+        for s in (x.strip() for x in re.split(r"(?<=\.)\s+", prose) if x.strip()):
+            m = re.match(r"(Physical Attack|Magick Attack|Speed|Move|Jump) \+(\d+)\.", s)
+            if m:
+                if not re.search(re.escape(m.group(1)) + r"\s*\+" + m.group(2), desc, re.I):
+                    missing.append(s)
+                continue
+            toks = [t for t in re.findall(r"[A-Za-z']+", s) if t.lower() not in _RIDER_NOISE]
+            for tok in toks:
+                accepted = _RIDER_SYNONYMS.get(tok.lower(), (tok.lower(),))
+                if not any(a in low for a in accepted):
+                    missing.append(s)
+                    break
+        if missing:
+            violations.append((it, missing))
+    return violations
+
+
+def check_grid_sync(items):
+    """docs/living_weapon_grid.csv is the DESIGN SOURCE OF TRUTH for the living weapons and must
+    never drift from items.json. Mechanically-checkable columns are enforced: every living weapon
+    (weapon category, not noGrowth) has exactly one grid row, and the row's name / tier / WP /
+    parry% match items.json. Prose columns (sigNote, onHit) and 'Verified Live?' are NOT checked --
+    the verified flag is flipped by a human only."""
+    grid_path = ROOT / "docs" / "living_weapon_grid.csv"
+    violations = []
+    if not grid_path.exists():
+        return [({"id": 0, "name": "living_weapon_grid.csv"}, ["grid file missing"])]
+    rows = {}
+    for r in csv.DictReader(grid_path.open(encoding="utf-8-sig")):
+        try:
+            rid = int(r["id"])
+        except (KeyError, ValueError):
+            continue
+        if rid in rows:
+            violations.append(({"id": rid, "name": r.get("name")}, ["duplicate grid row"]))
+        rows[rid] = r
+    lw = {it["id"]: it for it in items
+          if it.get("category") in WEAPON_CATS and not it.get("noGrowth")}
+    for iid in sorted(set(lw) - set(rows)):
+        violations.append((lw[iid], ["missing from the grid"]))
+    for iid in sorted(set(rows) - set(lw)):
+        violations.append(({"id": iid, "name": rows[iid].get("name")},
+                           ["grid row has no living weapon in items.json"]))
+    for iid in sorted(set(lw) & set(rows)):
+        it, r, p, probs = lw[iid], rows[iid], lw[iid]["proposed"], []
+        if (r.get("name") or "").strip() != it.get("name"):
+            probs.append(f"name: grid {r.get('name')!r} != items {it.get('name')!r}")
+        want_type = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", it.get("category") or "")
+        if (r.get("type") or "").strip() != want_type:
+            probs.append(f"type: grid {r.get('type')!r} != items {want_type!r}")
+        if (r.get("tier") or "").strip() != str(it.get("tier")):
+            probs.append(f"tier: grid {r.get('tier')} != items {it.get('tier')}")
+        if (r.get("WP") or "").strip() != str(p.get("wp", "")):
+            probs.append(f"WP: grid {r.get('WP')} != items {p.get('wp')}")
+        ev = (r.get("parry%") or "").strip().rstrip("%")
+        if ev and ev != str(p.get("evade", 0)):
+            probs.append(f"evade: grid {ev}% != items {p.get('evade')}%")
+        if probs:
+            violations.append((it, probs))
+    return violations
+
+
 def fmt(it, key, nf):
     s = it[key]
     axes = " ".join(f"{ax}{s[ax]}" for ax in NUMERIC_AXES if ax in s)
@@ -236,6 +329,25 @@ def main():
     else:
         for a, s in p3:
             print(f"  INVALID id{a['id']} {a.get('name')} (len={len(s)}): {s!r}")
+        rc = 1
+
+    rd = check_rider_desc(items)
+    print("\n--- RIDER PROSE (verbatim descs state every equip-bonus clause) ---")
+    if not rd:
+        print("  PASS: every verbatim desc states its rider in the house voice.")
+    else:
+        for a, missing in rd:
+            print(f"  UNSTATED id{a['id']} {a.get('name')}: desc is missing {missing}")
+        rc = 1
+
+    gs = check_grid_sync(items)
+    print("\n--- GRID SYNC (docs/living_weapon_grid.csv matches items.json on id/name/tier/WP/parry) ---")
+    if not gs:
+        print("  PASS: the living weapon grid matches items.json.")
+    else:
+        for a, probs in gs:
+            for prob in probs:
+                print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
         rc = 1
 
     sys.exit(rc)
