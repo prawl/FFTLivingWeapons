@@ -9,6 +9,13 @@ namespace LivingWeapon;
 /// the Regen status bit is unmapped and never touched; the heal is a plain guarded HP write
 /// on the authoritative band entries (the field Ricochet's chip writes).
 ///
+/// TIMING: TurnTracker's edge is the COMPLETED-turn edge (the rising Acted flag), so the
+/// splash lands as the wielder FINISHES acting, with adjacency measured from the post-move
+/// tile -- NOT before the wielder moves, as vanilla Regen would tick. Completed turns are
+/// the only edge TurnTracker offers (and the mechanism the design prescribes); true
+/// start-of-turn semantics would need an active-unit fingerprint watch on the turn queue
+/// (TryActiveFingerprint before Acted rises) and is deliberately not attempted here.
+///
 /// ALLIES ONLY, positively identified: a splash target's fingerprint must match a static-array
 /// PLAYER slot (s &gt; EnemySlotMax) -- "not an enemy" would risk healing an uncaptured enemy
 /// reinforcement. The dead are never healed (LifeSap.NewHp leaves hp 0 alone -- no accidental
