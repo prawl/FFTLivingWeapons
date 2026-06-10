@@ -1551,15 +1551,7 @@
         0.0,
         0.0,
         0.7
-      ],
-      "signature": {
-        "atTier": 3,
-        "sigName": "Spiritual Font",
-        "displayLabel": "Spiritual Font",
-        "fontOnMove": true,
-        "p3Desc": "Moving restores the wielder's HP and MP.",
-        "note": "At +3, the RUNTIME restores the wielder itself -- no engine font passives. The live test (2026-06-10) settled the open question: both Lifefont (237) and Manafont (238) bits HELD perfectly on +0x9C, but the engine honors exactly ONE movement passive and picked Lifefont (only HP ticked on move), so the bit grant is retired. TRIGGER: the actor latch (KillTracker.LastPlayerWeapons) -- a rising edge with weapon id 51 present fires the action snapshot. CT reads failed live (both +0x25 ACtSlam = ExtraTurn write target never ticked for reads, and +0x09 ACtTurn never reached >=90 across full player turns in the watcher). Now, at each wielder ACTION EDGE (the latch opens with id 51), IF their gx/gy changed since their previous action edge (the first edge of a battle only snapshots, never fires), the runtime writes HP += round(maxHP*FontHpPct) (LifeSap.NewHp: floor 1, clamp at full, NEVER revive) and MP += round(maxMP*FontMpPct) (floor 1, clamp at maxMP; never into a corpse -- a wielder who moved and then died before the edge gains nothing). KNOWN GAP: a move-only turn (unit moves but never acts) raises no latch; its movement is credited at the wielder's NEXT action instead (delta accumulates) -- late, never lost. MP rides the PROVISIONAL band +0x18/+0x1A pair (never live-verified): every MP write is gated behind a per-battle layout validation (>= 2 valid band units, mp <= maxMp and maxMp <= 999 for all, maxMp >= 1 for at least one; fail = HP-only that battle) plus a post-write SET/MISS read-back. Completes the never-run-dry identity: Absorb-MP refuels by poking, the font by walking. RUNTIME: SpiritualFont.cs + SpiritualFont.Policy.cs."
-      }
+      ]
     },
     {
       "id": 52,
@@ -1700,7 +1692,7 @@
       "name": "Umbral Rod",
       "tier": 3,
       "identity": "Dark-specialist power stick — MA+2 raw spell power AND StrongElements: Dark (+25% to Dark spells), plus Dark element on the Attack for anti-Holy-creature poke. Only Dark caster weapon and only StrongElements rod.",
-      "flavorOverride": "Carved from nightwood and steeped in shadow; the dark answers eagerly to who wields it.",
+      "flavorOverride": "Nightwood steeped in shadow; the dark answers its bearer.",
       "baseline": {
         "wp": 4,
         "evade": 20,
@@ -1724,7 +1716,15 @@
         0.78,
         0.6,
         0.65
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "sigName": "Spiritual Font",
+        "displayLabel": "Spiritual Font",
+        "fontOnMove": true,
+        "p3Desc": "Moving restores the wielder's HP and MP.",
+        "note": "At +3, the RUNTIME restores the wielder itself on every moved-action edge. T1 weapons carry no signatures; Wellspring is a growth-only starter. TRIGGER: the actor latch (KillTracker.LastPlayerWeapons) rising edge for weapon id 56 -- when the Umbral Rod appears in the latch (absent -> present), the wielder is taking an action. KNOWN GAP: a move-only turn (unit moves but never acts) raises no latch; its movement is credited at the wielder's NEXT action instead (delta accumulates) -- late, never lost. TWIN WRITE-THROUGH: Wielder.LocateAll + ReplenishAll write HP and MP to every located twin (live copy and any frozen band copies) -- idempotent writes so the live copy always takes effect; the (0,0)-tile corner case is covered by the same path. At each wielder ACTION EDGE, IF their gx/gy changed since their previous action edge (first edge of a battle only snapshots, never fires), the runtime writes HP += round(maxHP*FontHpPct) (LifeSap.NewHp: floor 1, clamp at full, NEVER revive) and MP += round(maxMP*FontMpPct) (floor 1, clamp at maxMP; never into a corpse). The band +0x18/+0x1A (AMp/AMaxMp) pair is LIVE-VERIFIED on screen 2026-06-10 -- MP visibly restored in battle. The per-battle layout validation (>= 2 valid band units, mp <= maxMp, maxMp <= 999, at least one maxMp >= 1) is kept as a guard; it is no longer provisional but remains as a sanity check each battle. Post-write SET/MISS read-back still logged. Knobs: Tuning.FontHpPct/FontMpPct = 0.10. RUNTIME: SpiritualFont.cs + SpiritualFont.Policy.cs."
+      }
     },
     {
       "id": 57,

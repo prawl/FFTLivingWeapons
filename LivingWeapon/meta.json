@@ -385,14 +385,7 @@
     "wp": 5,
     "cat": "Rod",
     "formula": 47,
-    "flavor": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power.",
-    "signature": {
-      "abilityId": 0,
-      "slot": "",
-      "atTier": 3,
-      "displayLabel": "Spiritual Font",
-      "fontOnMove": true
-    }
+    "flavor": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power."
   },
   "52": {
     "name": "Spark Rod",
@@ -427,7 +420,14 @@
     "wp": 4,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "Carved from nightwood and steeped in shadow; the dark answers eagerly to who wields it."
+    "flavor": "Nightwood steeped in shadow; the dark answers its bearer.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Spiritual Font",
+      "fontOnMove": true
+    }
   },
   "57": {
     "name": "Dragon Rod",

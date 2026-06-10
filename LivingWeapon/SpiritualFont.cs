@@ -3,11 +3,13 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Wellspring Rod's "Spiritual Font" signature: at each action edge of the +3 wielder
-/// (the actor latch OPENS with weapon id 51 -- a rising edge in KillTracker.LastPlayerWeapons),
-/// IF the wielder's grid position changed since their PREVIOUS action edge, the RUNTIME
-/// restores Tuning.FontHpPct of max HP (LifeSap.NewHp: floor 1, clamp at full, never revive)
-/// and Tuning.FontMpPct of max MP (NewMp: floor 1, clamp at maxMp; never into a corpse).
+/// Umbral Rod's "Spiritual Font" signature. T1 weapons carry no signatures; this was moved
+/// from Wellspring Rod (id 51, tier 1) to Umbral Rod (id 56, tier 3) for that reason.
+/// At each action edge of the +3 wielder (the actor latch OPENS with weapon id 56 -- a
+/// rising edge in KillTracker.LastPlayerWeapons), IF the wielder's grid position changed since
+/// their PREVIOUS action edge, the RUNTIME restores Tuning.FontHpPct of max HP (LifeSap.NewHp:
+/// floor 1, clamp at full, never revive) and Tuning.FontMpPct of max MP (NewMp: floor 1,
+/// clamp at maxMp; never into a corpse).
 ///
 /// TRIGGER HISTORY: three prior designs failed live:
 ///   (1) Global TurnTracker acted-edge -- the active struct at 0x14077D2A0 follows the CURSOR,
@@ -23,7 +25,7 @@ namespace LivingWeapon;
 /// credited at the wielder's NEXT action instead (the position delta accumulates) -- late,
 /// never lost. Documented in items.json and docs/living_weapon_rods.csv.
 ///
-/// MP SAFETY: the band +0x18/+0x1A (mp/maxMp) pair is PROVISIONAL -- never live-verified.
+/// MP SAFETY: the band +0x18/+0x1A (mp/maxMp) pair is LIVE-VERIFIED on screen 2026-06-10.
 /// Every MP write is gated behind a per-battle layout validation (MpLayoutOk, pure + tested):
 /// on the first field tick with >= 2 valid band units, every valid unit's mp/maxMp must read
 /// sane or MP writes stay disabled for the battle (the HP half still fires). Each MP write is
@@ -32,7 +34,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class SpiritualFont
 {
-    private const int WellspringId = 51;
+    private const int UmbralId = 56;
 
     private static readonly LiveMemory Live = new();   // Wielder/Band reads ride IGameMemory; == Mem
 
@@ -41,7 +43,7 @@ internal sealed partial class SpiritualFont
     private readonly KillTracker _tracker;
     private readonly List<int> _hands = new();
     private readonly List<long> _locateAllBuf = new();   // reused buffer for LocateAll calls
-    private bool _latchWasIn;            // was WellspringId in the latch last tick?
+    private bool _latchWasIn;            // was UmbralId in the latch last tick?
     private int _actionEdgeCount;        // edges seen this battle (for logging)
     private bool _posKnown;              // a action-edge position snapshot exists
     private int _lastGx, _lastGy;       // the wielder's tile at their previous action edge
@@ -72,15 +74,15 @@ internal sealed partial class SpiritualFont
     public void Tick(bool onField, bool inLive)
     {
         if (!inLive) return;
-        if (!_meta.TryGetValue(WellspringId, out var m) || m.Signature is null) return;
+        if (!_meta.TryGetValue(UmbralId, out var m) || m.Signature is null) return;
         if (onField && !_mpChecked) ValidateMpLayout();   // band most coherent on field ticks; latches once
-        int tier = Tuning.TierFor(_kills.TryGetValue(WellspringId, out int k) ? k : 0);
+        int tier = Tuning.TierFor(_kills.TryGetValue(UmbralId, out int k) ? k : 0);
         (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolve(Live, WellspringId, out fp, _hands);
+        bool active = IsActive(m.Signature, tier) && Wielder.TryResolve(Live, UmbralId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"font {(active ? "ACTIVE (+3 Wellspring Rod wielded)" : "inactive")}");
+            Log.Info($"font {(active ? "ACTIVE (+3 Umbral Rod wielded)" : "inactive")}");
         }
         if (!active)
         {
@@ -96,19 +98,19 @@ internal sealed partial class SpiritualFont
         {
             _pulseTicks = 0;
             _locateAllBuf.Clear();
-            Wielder.LocateAll(Live, WellspringId, _hands, fp, _locateAllBuf);
+            Wielder.LocateAll(Live, UmbralId, _hands, fp, _locateAllBuf);
             Log.Info($"font: DEV PULSE {(_locateAllBuf.Count == 0 ? "-> wielder UNLOCATED" : "-> forced replenish")}");
             if (_locateAllBuf.Count > 0) ReplenishAll(_locateAllBuf, 0);
             else Wielder.DumpCandidates(Live, _hands, fp);   // name the rejecting predicate
         }
 
-        bool isIn = _tracker.LastPlayerWeapons.Contains(WellspringId);
+        bool isIn = _tracker.LastPlayerWeapons.Contains(UmbralId);
         bool edge = IsLatchEdge(_latchWasIn, isIn);
         _latchWasIn = isIn;
         if (!edge) return;
 
         _locateAllBuf.Clear();
-        Wielder.LocateAll(Live, WellspringId, _hands, fp, _locateAllBuf);
+        Wielder.LocateAll(Live, UmbralId, _hands, fp, _locateAllBuf);
         bool nowLocated = _locateAllBuf.Count > 0;
         if (nowLocated != _wasLocated)
         {

@@ -3,12 +3,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Wellspring Rod's "Spiritual Font" signature -- no memory access.
+/// The pure decisions behind Umbral Rod's "Spiritual Font" signature -- no memory access.
 /// The stateful turn-edge watcher, position snapshots, and guarded writes live in SpiritualFont.cs.
 /// </summary>
 internal sealed partial class SpiritualFont
 {
-    /// <summary>Rising edge on the actor latch: weapon id 51 just appeared in the latched set
+    /// <summary>Rising edge on the actor latch: weapon id 56 just appeared in the latched set
     /// (it was absent last tick). This is "the wielder is starting an action" -- the correct
     /// trigger after CT reads on player units proved dead live (both +0x25 and +0x09 returned
     /// values that never reached the >=90 threshold across full player turns in the watcher).

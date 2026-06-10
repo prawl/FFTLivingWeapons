@@ -5,11 +5,12 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Wellspring Rod's "Spiritual Font" signature, REWORKED: the runtime restores HP AND MP itself
-/// when the actor latch OPENS with weapon id 51 (a rising edge: 51 absent last tick, present now)
-/// AND the wielder's grid position changed since their previous action edge. No CT reads -- live
-/// testing proved both CT bytes (+0x25 and +0x09) never reached the >=90 threshold across full
-/// player turns; the actor latch (KillTracker.LastPlayerWeapons) is the only reliable edge.
+/// Umbral Rod's "Spiritual Font" signature (moved from Wellspring Rod id 51, tier 1 -- T1 weapons
+/// carry no signatures): the runtime restores HP AND MP itself when the actor latch OPENS with
+/// weapon id 56 (a rising edge: 56 absent last tick, present now) AND the wielder's grid position
+/// changed since their previous action edge. No CT reads -- live testing proved both CT bytes
+/// (+0x25 and +0x09) never reached the >=90 threshold across full player turns; the actor latch
+/// (KillTracker.LastPlayerWeapons) is the only reliable edge.
 ///
 /// KNOWN GAP: a move-only turn (unit moves, never acts) raises no latch; its movement is credited
 /// at the wielder's NEXT action instead (the delta accumulates) -- late, never lost.
@@ -22,10 +23,10 @@ namespace LivingWeapon.Tests;
 ///       never revive -- hp==0 skips).
 ///   (4) MP half: NewMp clamps at maxMp; mp 0 still gains (0 MP is not death).
 ///   (5) MpLayoutOk: the PURE per-battle validation gating every MP write -- the +0x18/+0x1A
-///       offsets are PROVISIONAL (never live-verified), so a failed sanity sweep over the
-///       band means HP-only for that battle.
+///       offsets are live-verified 2026-06-10; the guard sweep remains as a per-battle sanity
+///       check.
 ///   (6) WriteMp: guarded little-endian u16 write, neighbors untouched.
-///   (7) IsLatchEdge: rising edge on the actor latch (51 absent -> present).
+///   (7) IsLatchEdge: rising edge on the actor latch (56 absent -> present).
 /// </summary>
 public class SpiritualFontTests
 {
@@ -98,7 +99,7 @@ public class SpiritualFontTests
         Assert.Equal(0, LifeSap.HealAmount(0, Tuning.FontMpPct));     // junk maxMp -> no gain
     }
 
-    // ---- (5) MpLayoutOk: the PURE per-battle gate on the PROVISIONAL +0x18/+0x1A pair ----
+    // ---- (5) MpLayoutOk: the PURE per-battle gate on the +0x18/+0x1A pair (live-verified 2026-06-10) ----
 
     public static TheoryData<(int mp, int maxMp)[], bool> LayoutCases => new()
     {
@@ -139,7 +140,7 @@ public class SpiritualFontTests
         finally { h.Free(); }
     }
 
-    // ---- (7) knobs + the provisional offsets, pinned so a retune is deliberate ----
+    // ---- (7) knobs + the verified offsets, pinned so a retune is deliberate ----
 
     [Fact]
     public void Font_knobs_are_ten_percent_each()
@@ -151,7 +152,7 @@ public class SpiritualFontTests
     [Fact]
     public void Mp_offsets_are_the_u16_pair_right_after_the_hp_pair()
     {
-        Assert.Equal(Offsets.AMaxHp + 2, Offsets.AMp);    // 0x18: provisional, never live-verified
+        Assert.Equal(Offsets.AMaxHp + 2, Offsets.AMp);    // 0x18: live-verified 2026-06-10
         Assert.Equal(Offsets.AMp + 2, Offsets.AMaxMp);    // 0x1A
     }
 
@@ -167,22 +168,22 @@ public class SpiritualFontTests
     public void Mp_half_requires_a_living_wielder_and_a_proven_layout(int hp, bool mpOk, bool expected)
         => Assert.Equal(expected, SpiritualFont.MpHalfAllowed(hp, mpOk));
 
-    // ---- (9) the action edge: weapon 51 appearing in the actor latch (rising edge) --
+    // ---- (9) the action edge: weapon 56 appearing in the actor latch (rising edge) --
     //      NOT CT reads. Live testing proved both CT bytes (+0x25 = ExtraTurn's write
     //      target, +0x09 = ACtTurn) never returned >= 90 across full player turns in the
     //      watcher. The actor latch (KillTracker.LastPlayerWeapons) is the proven signal. ----
 
     [Theory]
-    [InlineData(false, false, false)]   // 51 absent both ticks: no edge
-    [InlineData(true,  true,  false)]   // 51 present both ticks: latch was already open
-    [InlineData(true,  false, false)]   // 51 disappears: falling edge, not a trigger
-    [InlineData(false, true,  true)]    // 51 appears: RISING EDGE -> take the action snapshot
+    [InlineData(false, false, false)]   // 56 absent both ticks: no edge
+    [InlineData(true,  true,  false)]   // 56 present both ticks: latch was already open
+    [InlineData(true,  false, false)]   // 56 disappears: falling edge, not a trigger
+    [InlineData(false, true,  true)]    // 56 appears: RISING EDGE -> take the action snapshot
     public void IsLatchEdge_fires_only_on_rising_edge(bool wasIn, bool isIn, bool expected)
         => Assert.Equal(expected, SpiritualFont.IsLatchEdge(wasIn, isIn));
 
     // ---- (10) KNOWN GAP: move-only turns raise no latch ----
     //      A unit that moves but never opens the action menu (move-only turn) never sets
-    //      the acted flag, so KillTracker never latches weapon 51, so no action edge fires.
+    //      the acted flag, so KillTracker never latches weapon 56, so no action edge fires.
     //      The position delta accumulates: movement is credited at the NEXT action edge.
     //      Late, but never lost. IsLatchEdge is not tested for this path (it is pure);
     //      the gap is a structural property of the trigger source (the acted flag).

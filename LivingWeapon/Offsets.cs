@@ -45,11 +45,11 @@ internal static class Offsets
     public const int AInBattle = 0x12; // u16
     public const int AHp       = 0x14; // u16  (0 == KO'd)
     public const int AMaxHp    = 0x16; // u16
-    public const int AMp       = 0x18; // u16  PROVISIONAL -- never live-verified. The u16 pair right
-                                       //      after HP/MaxHP in the band-entry layout. EVERY MP write
-                                       //      is gated behind SpiritualFont's per-battle layout
-                                       //      validation + a post-write read-back (SET/MISS log).
-    public const int AMaxMp    = 0x1A; // u16  PROVISIONAL (see AMp)
+    public const int AMp       = 0x18; // u16  Live-verified 2026-06-10: MP visibly restored on screen.
+                                       //      The u16 pair right after HP/MaxHP in the band-entry layout.
+                                       //      EVERY MP write is gated behind SpiritualFont's per-battle
+                                       //      layout validation + a post-write read-back (SET/MISS log).
+    public const int AMaxMp    = 0x1A; // u16  (see AMp; same per-battle guard applies)
     public const int AGx       = 0x33; // u8
     public const int AGy       = 0x34; // u8
     /// <summary>u8 band-relative WRITE TARGET: slam this to 100 to inject a scheduler turn
