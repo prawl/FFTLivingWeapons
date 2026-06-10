@@ -259,9 +259,44 @@ def check_grid_sync(items):
         ev = (r.get("parry%") or "").strip().rstrip("%")
         if ev and ev != str(p.get("evade", 0)):
             probs.append(f"evade: grid {ev}% != items {p.get('evade')}%")
+        probs += _check_obtain(it, r)
         if probs:
             violations.append((it, probs))
     return violations
+
+
+# Acquisition vocabulary for the grid's obtain column. Shop is DERIVED (effective
+# ShopAvailability: our shopOverride, else vanilla) and enforced both ways; the rest is
+# design knowledge only a human holds, so any non-Shop token just has to be spelled from
+# this set ("Poaching" rotting next to "Poach" is how sheets die). TBD marks the pending
+# acquisition pass (the shop/poach treatment TODO) and is always accepted.
+_OBTAIN_VOCAB = {"Shop", "Steal", "Poach", "Move-Find", "Join", "TBD"}
+_SOLD = re.compile(r"Chapter|Start", re.I)
+_VANILLA_REF = None
+
+
+def _effective_sold(it):
+    global _VANILLA_REF
+    if _VANILLA_REF is None:
+        ref_path = ROOT / "working" / "ref" / "itemdata.json"
+        _VANILLA_REF = json.loads(ref_path.read_text(encoding="utf-8")) if ref_path.exists() else {}
+    eff = it.get("proposed", {}).get("shopOverride") or _VANILLA_REF.get(str(it["id"]), {}).get("shop", "")
+    return bool(_SOLD.search(eff or ""))
+
+
+def _check_obtain(it, row):
+    cell = (row.get("obtain") or "").strip()
+    if not cell:
+        return ["obtain: empty (use TBD while the acquisition pass is pending)"]
+    toks = [t.strip() for t in cell.split("/") if t.strip()]
+    probs = [f"obtain: unknown token {t!r} (vocabulary: {'/'.join(sorted(_OBTAIN_VOCAB))})"
+             for t in toks if t not in _OBTAIN_VOCAB]
+    sold = _effective_sold(it)
+    if sold and "Shop" not in toks:
+        probs.append("obtain: item is shop-sold but the cell does not say Shop")
+    if not sold and "Shop" in toks:
+        probs.append("obtain: cell says Shop but the item is not shop-sold")
+    return probs
 
 
 def fmt(it, key, nf):
