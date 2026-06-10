@@ -53,26 +53,28 @@ internal sealed partial class GrowthEngine
     }
 
     /// <summary>Hold a weapon's MOVEMENT-bit grants (Wellspring's "Spiritual Font": Lifefont 237 +
-    /// Manafont 238) on the combat struct, once the kill-tier is earned -- OR-in every configured
-    /// bit each hold, never clearing (the struct rebuilds fresh per battle). Movement is normally
+    /// Manafont 238) on the combat struct, once the kill-tier is earned (the pure, tested
+    /// Signatures.ResolveMovementGrant decides what to write) -- OR-in every resolved bit each
+    /// hold, never clearing (the struct rebuilds fresh per battle). Movement is normally
     /// exactly-ONE-effective, so whether the engine honors one font or both when BOTH bits sit in
-    /// the field is an OPEN LIVE QUESTION: every hold reads each bit back and dev-logs the pair
-    /// (VerboseEvents builds) so one test battle answers it. Guarded writes via Signatures.OrBit.</summary>
+    /// the field is an OPEN LIVE QUESTION: every hold dev-logs each bit's verdict (VerboseEvents
+    /// builds) -- HELD = the engine kept it since the last hold, REARMED = the engine cleared it
+    /// and we just re-OR'd it, MISS = the write didn't land -- so one test battle answers it.
+    /// Guarded writes via Signatures.OrBit.</summary>
     private void HoldMovementBits(long s, int weapon, string name, WeaponSignature? sig, int tier)
     {
-        if (sig is null || sig.MoveAbilityIds.Length == 0 || tier < sig.AtTier) return;
+        var grants = Signatures.ResolveMovementGrant(sig, tier);
+        if (grants.Count == 0) return;
         string state = "";
-        foreach (int id in sig.MoveAbilityIds)
+        foreach (var (id, off, mask) in grants)
         {
-            if (!Signatures.ResolveMovement(id, out int off, out byte mask)) continue;
-            bool set = Signatures.OrBit(s + Offsets.CMovement + off, mask);
-            state += $" {id}[{off}]=0x{mask:X2}:{(set ? "SET" : "MISS")}";
+            bool set = Signatures.OrBit(s + Offsets.CMovement + off, mask, out bool wasSet);
+            state += $" {id}[{off}]=0x{mask:X2}:{(!set ? "MISS" : wasSet ? "HELD" : "REARMED")}";
         }
-        if (state.Length == 0) return;
         if (_grantLogged.Add(weapon))
-            Log.Info($"GRANT {name} -> {sig.DisplayLabel} (movement bits @ +0x9C){state}");
+            Log.Info($"GRANT {name} -> {sig!.DisplayLabel} (movement bits @ +0x9C){state}");
         else if (Tuning.VerboseEvents)
-            Log.Info($"font {name}:{state}");   // every-hold read-back: does the engine keep one bit, or both?
+            Log.Info($"font {name}:{state}");   // every-hold verdicts: does the engine keep one bit, or both?
     }
 
     /// <summary>Read a unit's (currentHP, maxHP) from the BAND by its (level,brave,faith)

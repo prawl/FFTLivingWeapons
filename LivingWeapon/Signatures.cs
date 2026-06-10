@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace LivingWeapon;
 
 /// <summary>
@@ -62,14 +64,31 @@ internal static class Signatures
         return true;
     }
 
-    /// <summary>Guarded OR-set of a single bit, returning the read-back (true == the bit reads
-    /// SET afterwards). Never clears anything; fail-safe false on an unwritable page. The
-    /// read-back is the live-test signal for grants whose engine acceptance is unproven.</summary>
-    public static bool OrBit(long addr, byte mask)
+    /// <summary>Resolve a weapon's MOVEMENT-bit grant at the wielder's kill-tier into the
+    /// (id, byteOffset, mask) writes to hold -- empty when there is no signature, no movement
+    /// ids, the tier isn't earned, or every id falls outside the field. The PURE decision the
+    /// live hold consumes (so the tier gate is unit-tested, like ResolveSupport's).</summary>
+    public static List<(int id, int off, byte mask)> ResolveMovementGrant(WeaponSignature? sig, int tier)
     {
+        var grants = new List<(int, int, byte)>();
+        if (sig is null || tier < sig.AtTier) return grants;
+        foreach (int id in sig.MoveAbilityIds)
+            if (ResolveMovement(id, out int off, out byte mask)) grants.Add((id, off, mask));
+        return grants;
+    }
+
+    /// <summary>Guarded OR-set of a single bit, returning the post-write read-back (true == the
+    /// bit reads SET afterwards). Never clears anything; fail-safe false on an unwritable page.
+    /// <paramref name="wasSet"/> is the PRE-write state -- the live-test signal: true means the
+    /// engine KEPT the bit since the last hold, false means it was cleared and we just re-armed
+    /// it (the post-write read-back alone always says SET on a writable page).</summary>
+    public static bool OrBit(long addr, byte mask, out bool wasSet)
+    {
+        wasSet = false;
         if (!Mem.Writable(addr, 1)) return false;
         int cur = Mem.U8(addr);
-        if ((cur & mask) == 0) Mem.W8(addr, (byte)(cur | mask));
+        wasSet = (cur & mask) != 0;
+        if (!wasSet) Mem.W8(addr, (byte)(cur | mask));
         return (Mem.U8(addr) & mask) != 0;
     }
 

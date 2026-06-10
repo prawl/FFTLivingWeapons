@@ -157,6 +157,36 @@ public class SignatureTests
     public void ResolveMovement_rejects_ids_outside_the_field(int id)
         => Assert.False(Signatures.ResolveMovement(id, out _, out _));
 
+    // ResolveMovementGrant: the PURE grant decision (the tier gate lives HERE, tested --
+    // not only inside the untestable live hold). Empty list == hold writes nothing.
+
+    [Fact]
+    public void ResolveMovementGrant_is_empty_below_the_tier()
+    {
+        var sig = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 237, 238 } };
+        Assert.Empty(Signatures.ResolveMovementGrant(sig, tier: 2));
+        Assert.Empty(Signatures.ResolveMovementGrant(sig, tier: 0));
+    }
+
+    [Fact]
+    public void ResolveMovementGrant_yields_both_font_encodings_at_tier()
+    {
+        var sig = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 237, 238 } };
+        var grants = Signatures.ResolveMovementGrant(sig, tier: 3);
+        Assert.Equal(2, grants.Count);
+        Assert.Equal((237, 0, (byte)0x01), grants[0]);   // Lifefont
+        Assert.Equal((238, 1, (byte)0x80), grants[1]);   // Manafont
+    }
+
+    [Fact]
+    public void ResolveMovementGrant_empty_when_null_unconfigured_or_out_of_field()
+    {
+        Assert.Empty(Signatures.ResolveMovementGrant(null, tier: 3));
+        Assert.Empty(Signatures.ResolveMovementGrant(new WeaponSignature { AtTier = 3 }, tier: 3));
+        var bad = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 999 } };
+        Assert.Empty(Signatures.ResolveMovementGrant(bad, tier: 3));
+    }
+
     [Fact]
     public void OrBit_sets_the_bit_preserves_neighbors_and_reads_back()
     {
@@ -166,10 +196,32 @@ public class SignatureTests
         try
         {
             long addr = h.AddrOfPinnedObject().ToInt64() + 3;
-            Assert.True(Signatures.OrBit(addr, 0x01));    // OR-set Lifefont
-            Assert.Equal(0x41, buf[3]);                   // neighbor preserved, bit set
-            Assert.True(Signatures.OrBit(addr, 0x01));    // idempotent re-hold
+            Assert.True(Signatures.OrBit(addr, 0x01, out _));    // OR-set Lifefont
+            Assert.Equal(0x41, buf[3]);                          // neighbor preserved, bit set
+            Assert.True(Signatures.OrBit(addr, 0x01, out _));    // idempotent re-hold
             Assert.Equal(0x41, buf[3]);
+        }
+        finally { h.Free(); }
+    }
+
+    [Fact]
+    public void OrBit_reports_the_pre_write_state()
+    {
+        // The pre-OR state is the LIVE-TEST SIGNAL: a bit found set means the engine KEPT it
+        // since the last hold; a bit found clear means the engine wiped it and we re-armed.
+        // The post-write read-back alone always says SET on a writable page -- degenerate.
+        var buf = new byte[16];
+        var h = System.Runtime.InteropServices.GCHandle.Alloc(buf, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            long addr = h.AddrOfPinnedObject().ToInt64() + 3;
+            Assert.True(Signatures.OrBit(addr, 0x01, out bool wasSet));   // first hold: bit absent
+            Assert.False(wasSet);
+            Assert.True(Signatures.OrBit(addr, 0x01, out wasSet));        // engine kept it -> HELD
+            Assert.True(wasSet);
+            buf[3] = 0;                                                   // engine cleared it between holds
+            Assert.True(Signatures.OrBit(addr, 0x01, out wasSet));        // re-armed -> REARMED
+            Assert.False(wasSet);
         }
         finally { h.Free(); }
     }

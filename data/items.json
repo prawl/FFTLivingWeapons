@@ -956,7 +956,7 @@
       "name": "Materia Blade",
       "noGrowth": true,
       "tier": 6,
-      "identity": "Dark mage-knight capstone — Dark element + absorbs MP every hit (battle-mage fuel). Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
+      "identity": "Dark mage-knight capstone — Dark element on a clean melee blade. Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
       "desc": "The sword belonging to Cloud, the extraplanar wanderer. It was designed for members of SOLDIER, allowing them to fight to their full potential.",
       "baseline": {
         "wp": 10,
@@ -1558,7 +1558,7 @@
         "displayLabel": "Spiritual Font",
         "moveAbilityIds": [237, 238],
         "p3Desc": "Grants Lifefont and Manafont: moving restores the wielder's HP and MP.",
-        "note": "At +3, BOTH movement-ability bits -- Lifefont (237) and Manafont (238) -- are OR-set and HELD on the wielder's combat-struct movement bitfield (+0x9C, base 230, MSB-first: 237 = byte0 0x01, 238 = byte1 0x80), via Signatures.ResolveMovement + OrBit through the GrowthEngine struct walk. Completes the never-run-dry identity: Absorb-MP refuels by poking, the fonts refuel by walking. OPEN LIVE QUESTION: movement is normally exactly-ONE-effective (a Move+N also blocks a font per the grants doc), so whether the engine honors one font or both is unproven -- every hold reads both bits back and dev-logs them (VerboseEvents) so one test battle answers it. RUNTIME: GrowthEngine.Signatures.cs HoldMovementBits."
+        "note": "At +3, BOTH movement-ability bits -- Lifefont (237) and Manafont (238) -- are OR-set and HELD on the wielder's combat-struct movement bitfield (+0x9C, base 230, MSB-first: 237 = byte0 0x01, 238 = byte1 0x80), via Signatures.ResolveMovement + OrBit through the GrowthEngine struct walk. Completes the never-run-dry identity: Absorb-MP refuels by poking, the fonts refuel by walking. OPEN LIVE QUESTION: movement is normally exactly-ONE-effective (a Move+N also blocks a font per the grants doc), so whether the engine honors one font or both is unproven -- every hold dev-logs each bit's PRE-write verdict (VerboseEvents): HELD = the engine kept it since the last hold, REARMED = the engine cleared it and the hold re-OR'd it, MISS = the write didn't land. One test battle answers it. RUNTIME: GrowthEngine.Signatures.cs HoldMovementBits."
       }
     },
     {
