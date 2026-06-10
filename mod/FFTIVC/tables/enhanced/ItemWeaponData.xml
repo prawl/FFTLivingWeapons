@@ -726,7 +726,7 @@
       <Id>78</Id> <!-- Eclipsebolt (was Knightslayer) -->
       <Range>4</Range>
       <AttackFlags>Direct</AttackFlags>
-      <Formula>45</Formula>
+      <Formula>1</Formula>
       <Power>5</Power>
       <Evasion>5</Evasion>
       <Elements>None</Elements>

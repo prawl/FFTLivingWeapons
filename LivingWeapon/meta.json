@@ -573,7 +573,7 @@
     "name": "Eclipsebolt",
     "wp": 5,
     "cat": "Crossbow",
-    "formula": 45,
+    "formula": 1,
     "flavor": "A bolt meant for slaying elites; its quarrel marks a foe, who sees no further dusk.",
     "signature": {
       "abilityId": 0,
