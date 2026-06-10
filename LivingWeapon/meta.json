@@ -643,7 +643,15 @@
     "wp": 5,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "Strung with a wire that hums before it sings, each shaft crackling stormlight to its mark."
+    "flavor": "Strung with a wire that hums before it sings, each shaft crackling stormlight to its mark.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Chain Lightning",
+      "ricochetRadius": 3,
+      "ricochetPct": 50
+    }
   },
   "87": {
     "name": "Skypiercer",

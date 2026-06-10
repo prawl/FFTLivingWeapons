@@ -2625,6 +2625,15 @@
         "formula": 2,
         "range": 7,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      },
+      "signature": {
+        "atTier": 3,
+        "sigName": "Chain Lightning",
+        "displayLabel": "Chain Lightning",
+        "ricochetRadius": 3,
+        "ricochetPct": 50,
+        "p3Desc": "Lightning arcs from its mark to the nearest foe.",
+        "note": "While a +3 Stormarc is equipped and the wielder deals damage to an enemy, the nearest OTHER live enemy within 3 Manhattan tiles takes chip damage = 50% of the original (floor 1, min HP 1). The chip NEVER kills (HP clamped to 1). One bounce per damage event; no chains. RUNTIME: Ricochet.cs -- per-tick HP diff on enemy band slots detects damage during the acted period, PickTarget finds the bounce candidate, ApplyChip writes clamped HP to the authoritative band entry (Mem.Writable guarded). PROVEN pattern mirrors EagleEye/CharmLock enemy band walk. BALANCE OPEN: every-basic-attack may be too strong -- candidate gates: Aim-only (needs the action-id probe), once-per-acted-period, lower pct/radius."
       }
     },
     {

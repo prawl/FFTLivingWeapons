@@ -46,6 +46,11 @@ public sealed class WeaponSignature
     // DOOM-HASTEN aura (Eclipsebolt "Eagle Eye"): while a unit wields this at AtTier, any Doom on an enemy
     // has its countdown forced down to this value (proven: write band +0x59). 0 = not a doom-hasten weapon.
     [JsonProperty("doomCountdownTo")] public int DoomCountdownTo { get; set; }
+    // RICOCHET aura (Stormarc "Arc Lightning"): while a unit wields this at AtTier, each damage event the
+    // wielder deals to an enemy bounces chip damage (RicochetPct % of original, floor 1) to the nearest
+    // OTHER enemy within RicochetRadius Manhattan tiles. Chip never kills (HP floor 1). 0 = not a ricochet weapon.
+    [JsonProperty("ricochetRadius")] public int RicochetRadius { get; set; }
+    [JsonProperty("ricochetPct")] public int RicochetPct { get; set; }
 }
 
 internal static class MetaLoader

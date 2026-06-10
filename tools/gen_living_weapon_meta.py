@@ -69,6 +69,9 @@ def main():
                 entry["signature"]["charmLockTurns"] = int(sig["charmLockTurns"])
             if sig.get("doomCountdownTo"):  # doom-hasten aura (Eclipsebolt "Eagle Eye"): force enemy Doom to this
                 entry["signature"]["doomCountdownTo"] = int(sig["doomCountdownTo"])
+            if sig.get("ricochetRadius"):  # ricochet aura (Stormarc "Arc Lightning"): chip to nearest foe
+                entry["signature"]["ricochetRadius"] = int(sig["ricochetRadius"])
+                entry["signature"]["ricochetPct"] = int(sig.get("ricochetPct", 50))
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")
