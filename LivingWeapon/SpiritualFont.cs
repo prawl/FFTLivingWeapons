@@ -41,6 +41,8 @@ internal sealed partial class SpiritualFont
     private bool _posKnown;            // a turn-edge position snapshot exists
     private int _lastGx, _lastGy;      // the wielder's tile at their previous turn edge
     private bool _wasActive;
+    private bool _wasLocated;          // diagnostic: located-state change is logged once per flip
+    private bool _ctSeenHigh;          // diagnostic: first >=TurnHi sighting logged once per battle
     private bool _mpChecked;           // per-battle MP layout verdict latched?
     private bool _mpOk;
 
@@ -58,6 +60,8 @@ internal sealed partial class SpiritualFont
         _lastDone = 0;
         _posKnown = false;
         _wasActive = false;
+        _wasLocated = false;
+        _ctSeenHigh = false;
         _mpChecked = false;
         _mpOk = false;
     }
@@ -82,14 +86,27 @@ internal sealed partial class SpiritualFont
         }
 
         long e = Wielder.Locate(Live, WellspringId, _hands, fp);
+        if ((e != 0) != _wasLocated)   // diagnostic: a silent-unlocated wielder was invisible in the log
+        {
+            _wasLocated = e != 0;
+            Log.Info($"font: wielder {(_wasLocated ? "located" : "UNLOCATED (clock paused)")}");
+        }
         if (e == 0) return;                                  // unlocated: the CT clock pauses
-        _ct.Observe(Live.U8(e + Offsets.ACtTurn));            // own-CT pull-down = a completed turn
+        int ctRaw = Live.U8(e + Offsets.ACtTurn);
+        if (!_ctSeenHigh && ctRaw >= CtTurns.TurnHi)         // diagnostic: proves the byte ticks at all
+        {
+            _ctSeenHigh = true;
+            Log.Info($"font: CT byte live (read {ctRaw} at +0x{Offsets.ACtTurn:X2})");
+        }
+        _ct.Observe(ctRaw);                                  // own-CT pull-down = a completed turn
         bool edge = _ct.Completed > _lastDone;
         _lastDone = _ct.Completed;
         if (!edge) return;
 
         int gx = Live.U8(e + Offsets.AGx), gy = Live.U8(e + Offsets.AGy);
         bool fire = ShouldFire(_posKnown, _lastGx, _lastGy, gx, gy);
+        Log.Info($"font: turn edge {_ct.Completed} at ({gx},{gy}) " +
+                 (fire ? "moved -> firing" : _posKnown ? "no move -> skip" : "first edge -> baseline"));
         _lastGx = gx; _lastGy = gy; _posKnown = true;                  // snapshot per turn edge
         if (!fire) return;
         Replenish(e, _ct.Completed);
