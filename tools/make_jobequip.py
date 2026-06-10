@@ -30,6 +30,10 @@ STRIP = {"Squire": {"Knife"}, "Orator": {"Knife"}}
 # (which matches story ids 1/2/4/7) never inadvertently loses categories here.
 # id 3 = Gallant Knight: knives are out (signatures make them a distinct identity).
 STORY_STRIP = {3: {"Knife"}}
+# Generic jobs EXCLUDED from the blanket Shield addition. Vanilla gives neither a shield
+# (Ramza's story squire never had one -- generics should match), and Knight's Equip Shield
+# support is the designed path to a shielded Squire/Chemist.
+NO_SHIELD = {"Squire", "Chemist"}
 
 raw = VANILLA.read_text(encoding="utf-8")
 names = {int(m.group(1)): m.group(2).strip() for m in re.finditer(r"<Id>(\d+)</Id>\s*<!--\s*([^/]+?)\s*/", raw)}
@@ -52,7 +56,8 @@ for jid in human:
     job = jobs[jid]
     nm = names.get(jid, "?")
     cur = [c.strip() for c in (job.findtext("EquippableItems") or "").split(",") if c.strip()]
-    additions = [a for a in (list(CROSS.get(nm, [])) + ["Shield"]) if a not in cur] if jid in generic else []
+    shield = [] if nm in NO_SHIELD else ["Shield"]
+    additions = [a for a in (list(CROSS.get(nm, [])) + shield) if a not in cur] if jid in generic else []
     strip = set(REMOVE) | (STRIP.get(nm, set()) if jid in generic else set()) | STORY_STRIP.get(jid, set())   # per-generic-job category strip + id-keyed story-job strips
     final_equip = [c for c in (cur + additions) if c not in strip]
     equip_changed = final_equip != cur
