@@ -66,11 +66,11 @@ internal sealed partial class SpiritualFont
         _mpOk = false;
     }
 
-    public void Tick(bool onField)
+    public void Tick(bool onField, bool inLive)
     {
-        if (!onField) return;
+        if (!inLive) return;
         if (!_meta.TryGetValue(WellspringId, out var m) || m.Signature is null) return;
-        if (!_mpChecked) ValidateMpLayout();
+        if (onField && !_mpChecked) ValidateMpLayout();   // band most coherent on field ticks; latches once
         int tier = Tuning.TierFor(_kills.TryGetValue(WellspringId, out int k) ? k : 0);
         (int lvl, int br, int fa) fp = default;
         bool active = IsActive(m.Signature, tier) && Wielder.TryResolve(Live, WellspringId, out fp, _hands);

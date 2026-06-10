@@ -161,7 +161,7 @@ internal sealed partial class Engine
         _lifeSap.Tick();                      // Umbral +3: a kill restores the wielder 25% of max HP
         _wyrmblood.Tick(onField);             // Dragon Rod +3: wielder turn edge mends self + adjacent allies
         _rapture.Tick(onField);               // Rod of Faith +3: below 30% HP, Master Teleportation for 3 turns
-        _font.Tick(onField);                  // Wellspring +3: a moved turn restores the wielder's HP and MP
+        _font.Tick(onField, CharmLock.InLiveBattle(slot0, battleMode));   // Wellspring +3: a moved turn restores the wielder's HP and MP
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 

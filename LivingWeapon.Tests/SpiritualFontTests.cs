@@ -195,4 +195,29 @@ public class SpiritualFontTests
         t.Observe(50);                  // post-reset low CT: no phantom completed turn
         Assert.Equal(0, t.Completed);
     }
+
+    // ---- (10) inLive vs onField gating: CT observation (and everything downstream) must run
+    //      on ANY genuine live-battle tick (inLive=true), not only onField ticks. MP layout
+    //      validation (ValidateMpLayout) is the only thing gated to onField ticks -- the band
+    //      is most coherent there and the check only needs to latch once per battle.
+    //      This exercises the same CtTurns contract as (9), confirming the clock ticks regardless
+    //      of onField: if inLive=false the CT is never observed and no turns complete; if
+    //      inLive=true and onField=false the CT is observed and turns complete normally. ----
+
+    [Fact]
+    public void Ct_ticks_accumulate_independently_of_onField()
+    {
+        // The CT turn-clock is pure (CtTurns); the gating in Tick should NOT suppress it when
+        // inLive is true even if onField is false (player dwells on target during their own turn).
+        var t = new CtTurns();
+        // Simulate: high CT seen (player's action menu open, battleMode 1 = !onField but inLive)
+        t.Observe(95);
+        Assert.Equal(0, t.Completed);   // not yet -- pull-down hasn't happened
+        // Simulate: CT drops (player executed their action, still under battleMode 1)
+        t.Observe(12);
+        Assert.Equal(1, t.Completed);   // turn completed -- observable without onField
+        // A second inLive-but-not-onField cycle should accumulate again
+        t.Observe(91); t.Observe(8);
+        Assert.Equal(2, t.Completed);
+    }
 }

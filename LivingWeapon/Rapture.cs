@@ -16,6 +16,12 @@ namespace LivingWeapon;
 /// emergency is over -- the next drop below it arms a fresh window), unequip / tier loss /
 /// wielder ambiguity (grant verification), wielder death (3-tick streak), and battle exit.
 /// An unlocated entry holds at the last known copy, SameUnit-guarded. Guarded writes only.
+///
+/// NOTE: Rapture.Tick is intentionally gated to onField ticks for its arm/recovery logic --
+/// HP changes that trigger arm or release occur during active battlefield turns (battleMode
+/// 2/3/4), not during the player's own command menus (battleMode 1/5). This is the deliberate
+/// asymmetry with SpiritualFont, whose CT observation MUST span menu-time (inLive) because
+/// the wielder's own CT high phase sits under battleMode 1/5 while the player selects actions.
 /// </summary>
 internal sealed partial class Rapture
 {
