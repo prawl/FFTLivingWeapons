@@ -40,6 +40,7 @@ internal sealed partial class SpiritualFont
     private readonly Dictionary<int, int> _kills;
     private readonly KillTracker _tracker;
     private readonly List<int> _hands = new();
+    private readonly List<long> _locateAllBuf = new();   // reused buffer for LocateAll calls
     private bool _latchWasIn;            // was WellspringId in the latch last tick?
     private int _actionEdgeCount;        // edges seen this battle (for logging)
     private bool _posKnown;              // a action-edge position snapshot exists
@@ -90,12 +91,14 @@ internal sealed partial class SpiritualFont
         // DEV PULSE: trigger bypass -- force a replenish every ~10s (300 ticks) so the band
         // addressing + HP write + provisional MP pair can be verified ON SCREEN, independent
         // of any edge detection. External RPM probes are Denuvo-walled; this is the instrument.
+        // Verified live 2026-06-10: dev-pulse replenish visibly raised HP, clamped at max.
         if (Tuning.FontDevPulse && ++_pulseTicks >= 300)
         {
             _pulseTicks = 0;
-            long pe = Wielder.Locate(Live, WellspringId, _hands, fp);
-            Log.Info($"font: DEV PULSE {(pe == 0 ? "-> wielder UNLOCATED" : "-> forced replenish")}");
-            if (pe != 0) Replenish(pe, 0);
+            _locateAllBuf.Clear();
+            Wielder.LocateAll(Live, WellspringId, _hands, fp, _locateAllBuf);
+            Log.Info($"font: DEV PULSE {(_locateAllBuf.Count == 0 ? "-> wielder UNLOCATED" : "-> forced replenish")}");
+            if (_locateAllBuf.Count > 0) ReplenishAll(_locateAllBuf, 0);
             else Wielder.DumpCandidates(Live, _hands, fp);   // name the rejecting predicate
         }
 
@@ -104,15 +107,17 @@ internal sealed partial class SpiritualFont
         _latchWasIn = isIn;
         if (!edge) return;
 
-        long e = Wielder.Locate(Live, WellspringId, _hands, fp);
-        bool nowLocated = e != 0;
+        _locateAllBuf.Clear();
+        Wielder.LocateAll(Live, WellspringId, _hands, fp, _locateAllBuf);
+        bool nowLocated = _locateAllBuf.Count > 0;
         if (nowLocated != _wasLocated)
         {
             _wasLocated = nowLocated;
             Log.Info($"font: wielder {(_wasLocated ? "located" : "UNLOCATED (action edge skipped)")}");
         }
-        if (e == 0) return;   // unlocated: skip, position snapshot deferred
+        if (_locateAllBuf.Count == 0) return;   // unlocated: skip, position snapshot deferred
 
+        long e = _locateAllBuf[0];   // read position from the first entry (live or frozen -- same tile)
         _actionEdgeCount++;
         int gx = Live.U8(e + Offsets.AGx), gy = Live.U8(e + Offsets.AGy);
         bool fire = ShouldFire(_posKnown, _lastGx, _lastGy, gx, gy);
@@ -120,25 +125,27 @@ internal sealed partial class SpiritualFont
                  (fire ? "moved -> firing" : _posKnown ? "no move -> skip" : "first action -> baseline"));
         _lastGx = gx; _lastGy = gy; _posKnown = true;   // snapshot per action edge
         if (!fire) return;
-        Replenish(e, _actionEdgeCount);
+        ReplenishAll(_locateAllBuf, _actionEdgeCount);
     }
 
-    /// <summary>One moved-action restore: the HP half always (clamped, never revives), the MP half
-    /// only for a LIVING wielder while this battle's layout validation passed (MpHalfAllowed --
-    /// a corpse gains nothing) -- with a post-write SET/MISS read-back (the live verification
-    /// signal for the provisional offsets).</summary>
-    private void Replenish(long e, int edge)
+    /// <summary>One moved-action restore written to every located twin (idempotent -- the live
+    /// copy takes effect, frozen twins are inert). HP/MP amounts computed once from the first
+    /// entry; HP written to all entries, MP written to all entries but read-back logged on the
+    /// first only (avoids log spam for the frozen copy). HP half always (clamped, never revives);
+    /// MP half only for a LIVING wielder while layout validation passed (MpHalfAllowed).</summary>
+    private void ReplenishAll(List<long> entries, int edge)
     {
-        int hp = Live.U16(e + Offsets.AHp), maxHp = Live.U16(e + Offsets.AMaxHp);
+        long first = entries[0];
+        int hp = Live.U16(first + Offsets.AHp), maxHp = Live.U16(first + Offsets.AMaxHp);
         int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
-        if (newHp != hp) LifeSap.WriteHp(e, newHp);
-        Log.Info($"font: moved -> edge {edge} hp {hp} -> {newHp} (max {maxHp})");
+        Log.Info($"font: moved -> edge {edge} hp {hp} -> {newHp} (max {maxHp}) twins={entries.Count}");
+        foreach (long e in entries) if (newHp != hp) LifeSap.WriteHp(e, newHp);
         if (!MpHalfAllowed(hp, _mpOk)) return;   // layout unproven OR a dead wielder: no MP write
-        int mp = Live.U16(e + Offsets.AMp), maxMp = Live.U16(e + Offsets.AMaxMp);
+        int mp = Live.U16(first + Offsets.AMp), maxMp = Live.U16(first + Offsets.AMaxMp);
         int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
         if (newMp == mp) { Log.Info($"font: mp full ({mp}/{maxMp})"); return; }
-        WriteMp(e, newMp);
-        bool landed = Live.U16(e + Offsets.AMp) == newMp;   // re-read after EVERY MP write
+        foreach (long e in entries) WriteMp(e, newMp);
+        bool landed = Live.U16(first + Offsets.AMp) == newMp;   // read-back on first entry only
         Log.Info($"font: mp {mp} -> {newMp} (max {maxMp}) readback={(landed ? "SET" : "MISS")}");
     }
 

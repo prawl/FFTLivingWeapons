@@ -119,7 +119,9 @@ internal sealed partial class Rapture
 
     /// <summary>Re-write the armed grant image at the last located entry (beats engine
     /// re-assertion). SameUnit-guarded (Maim.Drive's discipline): band slots are fixed addresses
-    /// and units migrate, so a mismatch skips the write -- the turn-expiry clock keeps counting.</summary>
+    /// and units migrate, so a mismatch skips the write -- the turn-expiry clock keeps counting.
+    /// NOTE: Locate's identical-twin tie-break (units standing on tile (0,0), fix 2026-06-10)
+    /// is sufficient here -- save/hold/restore is single-address by design.</summary>
     private void Hold()
     {
         if (_state.Addr == 0 || !SameUnit(Live, _state.Addr, _state.Fp)) return;
