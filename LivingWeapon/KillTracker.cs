@@ -94,16 +94,23 @@ internal sealed partial class KillTracker
             _actedLow = 0;
             if (!_latched)
             {
-                var ws = _resolver.ResolveActingWeapons();
-                if (ws.Count > 0)
+                // A RESOLVED player always replaces the latch -- even with an EMPTY weapon set
+                // (untracked gear like DLC weapons, or unarmed): their kills go honestly
+                // uncredited instead of paying out to the previous actor (live bug: a Throw
+                // Stone kill by a DLC-armed Ramza credited the prior actor's crossbow). Only
+                // an UNRESOLVED acted-period (enemy acting / the Acted-byte flake) leaves the
+                // previous latch sticky.
+                if (_resolver.TryResolveActingPlayer(out var ws))
                 {
                     _latched = true;
                     if (!ActorResolver.SameSet(ws, _lastPlayerWeapons))
                     {
                         _lastPlayerWeapons = ws;
-                        _lastPlayerMainHand = _resolver.ResolveActingMainHand();
+                        _lastPlayerMainHand = ws.Count > 0 ? _resolver.ResolveActingMainHand() : 0;
                         _actorTag = string.Join(",", ws);
-                        Log.Info("turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")));
+                        Log.Info(ws.Count > 0
+                            ? "turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")"))
+                            : "turn: acting player wields no tracked weapon -- this action's kills go uncredited");
                     }
                 }
             }

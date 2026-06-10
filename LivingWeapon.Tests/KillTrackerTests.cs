@@ -141,6 +141,64 @@ public class KillTrackerTests
     }
 
     [Fact]
+    public void Resolved_player_with_untracked_weapon_clears_the_latch()
+    {
+        // Live bug (2026-06-10): Ramza, wielding only the untracked DLC Akademy Blade, killed a
+        // goblin with Throw Stone -- and the kill was credited to the PREVIOUS actor's Scoutbolt
+        // through the stale latch. A RESOLVED player whose hands hold no tracked weapon must
+        // REPLACE the latch with empty (their kills go honestly uncredited, and the stale main
+        // hand stops arming signature modules). The sticky latch survives only for UNRESOLVED
+        // acted-periods (enemy actions / the Acted-byte flake).
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);    // Wilham, tracked rod
+        SetRoster(m, slot: 0, level: 50, brave: 70, faith: 50, weapon: 999);   // "Ramza": untracked DLC blade
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 679, maxHp: 679, level: 50, brave: 70, faith: 50);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);                // Wilham acts
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);                                                             // latch 52
+        Assert.Equal(52, t.LastPlayerMainHand);
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);                // his turn ends
+        Settle(t, KillTracker.UnfreezeTicks);                                  // latch unfreezes
+        SetActive(m, hp: 679, maxHp: 679, level: 50, acted: 1);                // "Ramza" acts, untracked
+        Settle(t);
+
+        Assert.Equal(0, t.LastPlayerMainHand);                                 // stale main hand cleared
+
+        AliveThenDead(m, slot: 0, t);                                          // his stone kills the gobbo
+
+        Assert.False(kills.ContainsKey(52));   // NOT the previous actor's weapon
+        Assert.Empty(kills);                   // nobody credited -- the blade is a museum piece
+    }
+
+    [Fact]
+    public void Enemy_acted_period_keeps_the_latch_sticky()
+    {
+        // The mirror case must NOT regress: an acting unit matching NO roster fingerprint (an
+        // enemy) leaves the previous player's latch in place -- that stickiness is the deliberate
+        // mitigation for the Acted-byte flake and for enemy turns between a player's action and
+        // the corpse landing.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);                // player acts
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);                                                             // latch 52
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        Settle(t, KillTracker.UnfreezeTicks);
+        SetActive(m, hp: 500, maxHp: 500, level: 30, acted: 1);                // an ENEMY acts (no roster match)
+        Settle(t);
+
+        AliveThenDead(m, slot: 0, t);                                          // a corpse lands
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));                          // sticky latch credits the player
+    }
+
+    [Fact]
     public void Credits_the_unit_that_acted_not_a_collision_twin()
     {
         // The bug: Wilham (Time Mage, HP 352, Spark Rod 52) and Ramza (Knight, HP 679,

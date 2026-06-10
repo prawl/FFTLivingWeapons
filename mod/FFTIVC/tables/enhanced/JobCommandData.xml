@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FFTItemOverhaul: zero Equip Axes (id 460) out of every learnable RSM slot.
+     Axes were repurposed into other weapon types; the support ability is dead JP. -->
+<JobCommandTable>
+  <Version>1</Version>
+  <Entries>
+    <JobCommand>
+      <Id>5</Id> <!-- Fundaments: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>25</Id> <!-- Mettle: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>26</Id> <!-- Mettle: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>27</Id> <!-- Mettle: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>28</Id> <!-- Mettle: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>29</Id> <!-- Holy Sword: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>30</Id> <!-- RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>31</Id> <!-- Fundaments: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>32</Id> <!-- Fell Sword: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>33</Id> <!-- Holy Sword: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>34</Id> <!-- Holy Sword: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>36</Id> <!-- Holy Magicks: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>37</Id> <!-- Aimed Shot: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>38</Id> <!-- Aimed Shot: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>39</Id> <!-- Fell Sword: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>40</Id> <!-- Holy Sword: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>41</Id> <!-- Limit: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>42</Id> <!-- Priest Magicks: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>43</Id> <!-- Dragon: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>45</Id> <!-- Sky Mantra: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>46</Id> <!-- Nether Mantra: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>47</Id> <!-- Astrology: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>48</Id> <!-- Holy Sword: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>49</Id> <!-- Holy Magicks: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>50</Id> <!-- Sky Mantra: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>51</Id> <!-- Arts of War: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>54</Id> <!-- Subdual Arts: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>55</Id> <!-- Subdual Arts: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>58</Id> <!-- Holy Sword: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>59</Id> <!-- Sword Spirit: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>60</Id> <!-- Unyielding Blade: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>62</Id> <!-- Sword Spirit: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>64</Id> <!-- Unyielding Blade: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>66</Id> <!-- Unyielding Blade: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>67</Id> <!-- Unyielding Blade: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>68</Id> <!-- Aimed Shot: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>69</Id> <!-- Spellblade: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>70</Id> <!-- Swordsmanship: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>72</Id> <!-- Magick Arts: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>74</Id> <!-- Swordplay: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>76</Id> <!-- Holy Magicks: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>155</Id> <!-- Arts of War: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>156</Id> <!-- Aim: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>157</Id> <!-- Black Magicks: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>158</Id> <!-- Time Magicks: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>159</Id> <!-- Mystic Arts: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+    <JobCommand>
+      <Id>160</Id> <!-- Summon: RSMId2 460->0 -->
+      <ReactionSupportMovementId2>0</ReactionSupportMovementId2>
+    </JobCommand>
+  </Entries>
+</JobCommandTable>
