@@ -142,6 +142,11 @@ internal sealed partial class KillTracker
         }
     }
 
+    /// <summary>The acting player's weapon id(s) from the most recent latched actor.
+    /// Empty at battle start and for any turn where no player actor was resolved.
+    /// Consumers must not cache the reference across ticks (ResetBattle replaces it).</summary>
+    public List<int> LastPlayerWeapons => _lastPlayerWeapons;
+
     internal bool AnyPending()
     {
         for (int s = 0; s < _pending.Length; s++) if (_pending[s]) return true;

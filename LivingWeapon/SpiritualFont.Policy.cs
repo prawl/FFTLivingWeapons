@@ -8,6 +8,13 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class SpiritualFont
 {
+    /// <summary>Rising edge on the actor latch: weapon id 51 just appeared in the latched set
+    /// (it was absent last tick). This is "the wielder is starting an action" -- the correct
+    /// trigger after CT reads on player units proved dead live (both +0x25 and +0x09 returned
+    /// values that never reached the >=90 threshold across full player turns in the watcher).
+    /// </summary>
+    public static bool IsLatchEdge(bool wasIn, bool isIn) => !wasIn && isIn;
+
     /// <summary>True when the signature is configured and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
     {

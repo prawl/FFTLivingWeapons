@@ -65,7 +65,7 @@ internal sealed partial class Engine
         _lifeSap = new LifeSap(meta, _kills);              // Umbral +3: a kill heals the wielder 25% max HP
         _wyrmblood = new Wyrmblood(meta, _kills, _turns);  // Dragon Rod +3: turn-edge regen splash (1 tile)
         _rapture = new Rapture(meta, _kills, _turns);      // Rod of Faith +3: low-HP Master Teleportation window
-        _font = new SpiritualFont(meta, _kills, _turns);   // Wellspring +3: a moved turn restores HP and MP
+        _font = new SpiritualFont(meta, _kills, _tracker);  // Wellspring +3: a moved action restores HP and MP
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }

@@ -6,14 +6,17 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// Wellspring Rod's "Spiritual Font" signature, REWORKED: the runtime restores HP AND MP itself
-/// at the +3 wielder's completed-turn edge (their OWN scheduler CT, CtTurns) IF the wielder's
-/// grid position changed since their previous turn edge. No engine movement passives -- the
-/// live test proved both font bits hold but the engine honors exactly ONE movement passive
-/// (it picked Lifefont; only HP ticked on move), so the bit grant is gone.
+/// when the actor latch OPENS with weapon id 51 (a rising edge: 51 absent last tick, present now)
+/// AND the wielder's grid position changed since their previous action edge. No CT reads -- live
+/// testing proved both CT bytes (+0x25 and +0x09) never reached the >=90 threshold across full
+/// player turns; the actor latch (KillTracker.LastPlayerWeapons) is the only reliable edge.
+///
+/// KNOWN GAP: a move-only turn (unit moves, never acts) raises no latch; its movement is credited
+/// at the wielder's NEXT action instead (the delta accumulates) -- late, never lost.
 ///
 /// Pure jobs in SpiritualFont.Policy.cs:
 ///   (1) IsActive: gates on fontOnMove AND tier >= AtTier.
-///   (2) ShouldFire: position changed since the SNAPSHOTTED previous turn edge; the first
+///   (2) ShouldFire: position changed since the SNAPSHOTTED previous action edge; the first
 ///       edge of a battle (or after a re-equip) only snapshots, never fires.
 ///   (3) HP half: reuses LifeSap.HealAmount (round, floor 1) + LifeSap.NewHp (clamp at max,
 ///       never revive -- hp==0 skips).
@@ -22,6 +25,7 @@ namespace LivingWeapon.Tests;
 ///       offsets are PROVISIONAL (never live-verified), so a failed sanity sweep over the
 ///       band means HP-only for that battle.
 ///   (6) WriteMp: guarded little-endian u16 write, neighbors untouched.
+///   (7) IsLatchEdge: rising edge on the actor latch (51 absent -> present).
 /// </summary>
 public class SpiritualFontTests
 {
@@ -49,7 +53,7 @@ public class SpiritualFontTests
         Assert.True(SpiritualFont.IsActive(FontSig(), tier: 4));
     }
 
-    // ---- (2) ShouldFire: moved since the previous turn edge ----
+    // ---- (2) ShouldFire: moved since the previous action edge ----
 
     [Theory]
     [InlineData(false, 5, 5, 7, 8, false)]   // first edge of a battle: snapshot only, never fire
@@ -95,8 +99,6 @@ public class SpiritualFontTests
     }
 
     // ---- (5) MpLayoutOk: the PURE per-battle gate on the PROVISIONAL +0x18/+0x1A pair ----
-    // Pass needs: >= 2 sampled units, mp <= maxMp AND maxMp <= 999 for ALL of them, and
-    // maxMp >= 1 for at least one. Anything else -> HP-only for the battle.
 
     public static TheoryData<(int mp, int maxMp)[], bool> LayoutCases => new()
     {
@@ -155,7 +157,7 @@ public class SpiritualFontTests
 
     // ---- (8) the corpse gate: a dead wielder gains NOTHING. The HP half already no-ops via
     //      LifeSap.NewHp; the MP half must skip a corpse too (moved, then died before the
-    //      turn edge -- trap tile, counter-kill). mpOk alone is NOT enough. ----
+    //      action edge -- trap tile, counter-kill). mpOk alone is NOT enough. ----
 
     [Theory]
     [InlineData(0, true, false)]    // dead + proven layout: still no MP into a corpse
@@ -165,59 +167,31 @@ public class SpiritualFontTests
     public void Mp_half_requires_a_living_wielder_and_a_proven_layout(int hp, bool mpOk, bool expected)
         => Assert.Equal(expected, SpiritualFont.MpHalfAllowed(hp, mpOk));
 
-    // ---- (9) the turn edge: the wielder's OWN scheduler CT (band +0x25, CtTurns pull-down) --
-    //      NOT the global acted-edge TurnTracker, whose cursor-following active-struct
-    //      attribution mis-credited turns live (it stalled Rapture's expiry the same way). ----
+    // ---- (9) the action edge: weapon 51 appearing in the actor latch (rising edge) --
+    //      NOT CT reads. Live testing proved both CT bytes (+0x25 = ExtraTurn's write
+    //      target, +0x09 = ACtTurn) never returned >= 90 across full player turns in the
+    //      watcher. The actor latch (KillTracker.LastPlayerWeapons) is the proven signal. ----
+
+    [Theory]
+    [InlineData(false, false, false)]   // 51 absent both ticks: no edge
+    [InlineData(true,  true,  false)]   // 51 present both ticks: latch was already open
+    [InlineData(true,  false, false)]   // 51 disappears: falling edge, not a trigger
+    [InlineData(false, true,  true)]    // 51 appears: RISING EDGE -> take the action snapshot
+    public void IsLatchEdge_fires_only_on_rising_edge(bool wasIn, bool isIn, bool expected)
+        => Assert.Equal(expected, SpiritualFont.IsLatchEdge(wasIn, isIn));
+
+    // ---- (10) KNOWN GAP: move-only turns raise no latch ----
+    //      A unit that moves but never opens the action menu (move-only turn) never sets
+    //      the acted flag, so KillTracker never latches weapon 51, so no action edge fires.
+    //      The position delta accumulates: movement is credited at the NEXT action edge.
+    //      Late, but never lost. IsLatchEdge is not tested for this path (it is pure);
+    //      the gap is a structural property of the trigger source (the acted flag).
 
     [Fact]
-    public void Turn_edge_is_the_wielders_own_ct_pull_down()
+    public void IsLatchEdge_is_false_when_wasIn_was_already_set()
     {
-        var t = new CtTurns();
-        t.Observe(95);                  // the turn came (>= TurnHi)...
-        Assert.Equal(0, t.Completed);
-        t.Observe(10);                  // ...and was taken (< TurnLo): one completed turn
-        Assert.Equal(1, t.Completed);
-        t.Observe(80); t.Observe(60);   // mid-band drift: neither a rise nor a fall
-        Assert.Equal(1, t.Completed);
-        t.Observe(91); t.Observe(75);   // rose, but 75 >= TurnLo: not yet completed
-        Assert.Equal(1, t.Completed);
-        t.Observe(69);                  // an unlocated gap lands the edge late, never lost
-        Assert.Equal(2, t.Completed);
-    }
-
-    [Fact]
-    public void Reequip_and_battle_reset_zero_the_ct_clock()
-    {
-        var t = new CtTurns();
-        t.Observe(95); t.Observe(0);
-        Assert.Equal(1, t.Completed);
-        t.Reset();
-        t.Observe(50);                  // post-reset low CT: no phantom completed turn
-        Assert.Equal(0, t.Completed);
-    }
-
-    // ---- (10) inLive vs onField gating: CT observation (and everything downstream) must run
-    //      on ANY genuine live-battle tick (inLive=true), not only onField ticks. MP layout
-    //      validation (ValidateMpLayout) is the only thing gated to onField ticks -- the band
-    //      is most coherent there and the check only needs to latch once per battle.
-    //      This exercises the same CtTurns contract as (9), confirming the clock ticks regardless
-    //      of onField: if inLive=false the CT is never observed and no turns complete; if
-    //      inLive=true and onField=false the CT is observed and turns complete normally. ----
-
-    [Fact]
-    public void Ct_ticks_accumulate_independently_of_onField()
-    {
-        // The CT turn-clock is pure (CtTurns); the gating in Tick should NOT suppress it when
-        // inLive is true even if onField is false (player dwells on target during their own turn).
-        var t = new CtTurns();
-        // Simulate: high CT seen (player's action menu open, battleMode 1 = !onField but inLive)
-        t.Observe(95);
-        Assert.Equal(0, t.Completed);   // not yet -- pull-down hasn't happened
-        // Simulate: CT drops (player executed their action, still under battleMode 1)
-        t.Observe(12);
-        Assert.Equal(1, t.Completed);   // turn completed -- observable without onField
-        // A second inLive-but-not-onField cycle should accumulate again
-        t.Observe(91); t.Observe(8);
-        Assert.Equal(2, t.Completed);
+        // Simulate: wielder held the weapon across two consecutive ticks where the latch shows 51.
+        // This is NOT a new edge -- the action already started.
+        Assert.False(SpiritualFont.IsLatchEdge(wasIn: true, isIn: true));
     }
 }

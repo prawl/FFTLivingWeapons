@@ -3,28 +3,31 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Wellspring Rod's "Spiritual Font" signature, REWORKED: at each of the +3 wielder's
-/// completed-turn edges, IF the wielder's grid position changed since their PREVIOUS turn
-/// edge, the RUNTIME restores Tuning.FontHpPct of max HP (LifeSap.NewHp: floor 1, clamp at
-/// full, never revive) and Tuning.FontMpPct of max MP -- never into a corpse (MpHalfAllowed).
+/// Wellspring Rod's "Spiritual Font" signature: at each action edge of the +3 wielder
+/// (the actor latch OPENS with weapon id 51 -- a rising edge in KillTracker.LastPlayerWeapons),
+/// IF the wielder's grid position changed since their PREVIOUS action edge, the RUNTIME
+/// restores Tuning.FontHpPct of max HP (LifeSap.NewHp: floor 1, clamp at full, never revive)
+/// and Tuning.FontMpPct of max MP (NewMp: floor 1, clamp at maxMp; never into a corpse).
 ///
-/// THE EDGE is the wielder's OWN scheduler CT pull-down (CtTurns, band +0x09 / ACtTurn --
-/// Maim's READ-PROVEN victim-turn byte; NOT +0x25 / ACtSlam which is ExtraTurn's write target
-/// and does not tick reliably for reads), NOT the global acted-edge TurnTracker: the acted edge fingerprints
-/// the active struct at 0x14077D2A0, which follows the CURSOR and mis-credited turns live
-/// (every edge credited one fingerprint -- it stalled Rapture's expiry the same way). An
-/// unlocated wielder simply pauses the clock; a missed pull-down lands late, never lost.
+/// TRIGGER HISTORY: three prior designs failed live:
+///   (1) Global TurnTracker acted-edge -- the active struct at 0x14077D2A0 follows the CURSOR,
+///       not the turn owner; mis-credited every edge to whoever the cursor rested on.
+///   (2) Band +0x25 (ACtSlam) CT read -- that byte is ExtraTurn's write target and never
+///       ticked reliably for reads; zero transitions observed across full player turns.
+///   (3) Band +0x09 (ACtTurn) CT read -- also never reached >= 90 across full player turns
+///       in the watcher, even with sampling extended to all live-battle ticks.
+/// The actor latch (KillTracker.LastPlayerWeapons) is the proven signal: it powers kill
+/// attribution live and logged "active player weapon(s) -> 51" on every wielder action.
 ///
-/// WHY runtime writes, not engine passives: the live test (2026-06-10) proved both Lifefont
-/// (237) and Manafont (238) bits OR-hold perfectly on +0x9C, but the engine honors exactly
-/// ONE movement passive and picked Lifefont -- only HP ticked on move. So the bit grant is
-/// retired and the runtime does the font work itself.
+/// KNOWN GAP: a move-only turn (unit moves but never acts) raises no latch; its movement is
+/// credited at the wielder's NEXT action instead (the position delta accumulates) -- late,
+/// never lost. Documented in items.json and docs/living_weapon_rods.csv.
 ///
 /// MP SAFETY: the band +0x18/+0x1A (mp/maxMp) pair is PROVISIONAL -- never live-verified.
 /// Every MP write is gated behind a per-battle layout validation (MpLayoutOk, pure + tested):
 /// on the first field tick with >= 2 valid band units, every valid unit's mp/maxMp must read
 /// sane or MP writes stay disabled for the battle (the HP half still fires). Each MP write is
-/// re-read and logged SET/MISS. Position snapshots happen ONLY at turn edges; the first edge
+/// re-read and logged SET/MISS. Position snapshots happen ONLY at action edges; the first edge
 /// of a battle (or after a re-equip) snapshots without firing. All writes guarded (Mem).
 /// </summary>
 internal sealed partial class SpiritualFont
@@ -35,33 +38,31 @@ internal sealed partial class SpiritualFont
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
+    private readonly KillTracker _tracker;
     private readonly List<int> _hands = new();
-    private readonly CtTurns _ct = new();   // the wielder's OWN scheduler-CT turn clock
-    private int _lastDone;             // completed turns already consumed off the clock
-    private bool _posKnown;            // a turn-edge position snapshot exists
-    private int _lastGx, _lastGy;      // the wielder's tile at their previous turn edge
+    private bool _latchWasIn;            // was WellspringId in the latch last tick?
+    private int _actionEdgeCount;        // edges seen this battle (for logging)
+    private bool _posKnown;              // a action-edge position snapshot exists
+    private int _lastGx, _lastGy;       // the wielder's tile at their previous action edge
     private bool _wasActive;
-    private bool _wasLocated;          // diagnostic: located-state change is logged once per flip
-    private bool _ctSeenHigh;          // diagnostic: first >=TurnHi sighting logged once per battle
-    private bool _mpChecked;           // per-battle MP layout verdict latched?
+    private bool _wasLocated;            // diagnostic: located-state change is logged once per flip
+    private bool _mpChecked;             // per-battle MP layout verdict latched?
     private bool _mpOk;
 
-    // The TurnTracker parameter is retained for wiring stability (Engine constructs every
-    // subsystem identically) but deliberately unused: the edge is the wielder's own CT.
-    public SpiritualFont(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns)
+    public SpiritualFont(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker)
     {
         _meta = meta;
         _kills = kills;
+        _tracker = tracker;
     }
 
     public void ResetBattle()
     {
-        _ct.Reset();
-        _lastDone = 0;
+        _latchWasIn = false;
+        _actionEdgeCount = 0;
         _posKnown = false;
         _wasActive = false;
         _wasLocated = false;
-        _ctSeenHigh = false;
         _mpChecked = false;
         _mpOk = false;
     }
@@ -81,47 +82,44 @@ internal sealed partial class SpiritualFont
         }
         if (!active)
         {
-            _ct.Reset(); _lastDone = 0; _posKnown = false;   // unequip: re-baseline clock AND tile
+            _latchWasIn = false; _posKnown = false;   // unequip: re-baseline latch AND tile
             return;
         }
 
-        long e = Wielder.Locate(Live, WellspringId, _hands, fp);
-        if ((e != 0) != _wasLocated)   // diagnostic: a silent-unlocated wielder was invisible in the log
-        {
-            _wasLocated = e != 0;
-            Log.Info($"font: wielder {(_wasLocated ? "located" : "UNLOCATED (clock paused)")}");
-        }
-        if (e == 0) return;                                  // unlocated: the CT clock pauses
-        int ctRaw = Live.U8(e + Offsets.ACtTurn);
-        if (!_ctSeenHigh && ctRaw >= CtTurns.TurnHi)         // diagnostic: proves the byte ticks at all
-        {
-            _ctSeenHigh = true;
-            Log.Info($"font: CT byte live (read {ctRaw} at +0x{Offsets.ACtTurn:X2})");
-        }
-        _ct.Observe(ctRaw);                                  // own-CT pull-down = a completed turn
-        bool edge = _ct.Completed > _lastDone;
-        _lastDone = _ct.Completed;
+        bool isIn = _tracker.LastPlayerWeapons.Contains(WellspringId);
+        bool edge = IsLatchEdge(_latchWasIn, isIn);
+        _latchWasIn = isIn;
         if (!edge) return;
 
+        long e = Wielder.Locate(Live, WellspringId, _hands, fp);
+        bool nowLocated = e != 0;
+        if (nowLocated != _wasLocated)
+        {
+            _wasLocated = nowLocated;
+            Log.Info($"font: wielder {(_wasLocated ? "located" : "UNLOCATED (action edge skipped)")}");
+        }
+        if (e == 0) return;   // unlocated: skip, position snapshot deferred
+
+        _actionEdgeCount++;
         int gx = Live.U8(e + Offsets.AGx), gy = Live.U8(e + Offsets.AGy);
         bool fire = ShouldFire(_posKnown, _lastGx, _lastGy, gx, gy);
-        Log.Info($"font: turn edge {_ct.Completed} at ({gx},{gy}) " +
-                 (fire ? "moved -> firing" : _posKnown ? "no move -> skip" : "first edge -> baseline"));
-        _lastGx = gx; _lastGy = gy; _posKnown = true;                  // snapshot per turn edge
+        Log.Info($"font: action edge {_actionEdgeCount} at ({gx},{gy}) " +
+                 (fire ? "moved -> firing" : _posKnown ? "no move -> skip" : "first action -> baseline"));
+        _lastGx = gx; _lastGy = gy; _posKnown = true;   // snapshot per action edge
         if (!fire) return;
-        Replenish(e, _ct.Completed);
+        Replenish(e, _actionEdgeCount);
     }
 
-    /// <summary>One moved-turn restore: the HP half always (clamped, never revives), the MP half
+    /// <summary>One moved-action restore: the HP half always (clamped, never revives), the MP half
     /// only for a LIVING wielder while this battle's layout validation passed (MpHalfAllowed --
     /// a corpse gains nothing) -- with a post-write SET/MISS read-back (the live verification
     /// signal for the provisional offsets).</summary>
-    private void Replenish(long e, int turn)
+    private void Replenish(long e, int edge)
     {
         int hp = Live.U16(e + Offsets.AHp), maxHp = Live.U16(e + Offsets.AMaxHp);
         int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
         if (newHp != hp) LifeSap.WriteHp(e, newHp);
-        Log.Info($"font: moved -> turn {turn} hp {hp} -> {newHp} (max {maxHp})");
+        Log.Info($"font: moved -> edge {edge} hp {hp} -> {newHp} (max {maxHp})");
         if (!MpHalfAllowed(hp, _mpOk)) return;   // layout unproven OR a dead wielder: no MP write
         int mp = Live.U16(e + Offsets.AMp), maxMp = Live.U16(e + Offsets.AMaxMp);
         int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
