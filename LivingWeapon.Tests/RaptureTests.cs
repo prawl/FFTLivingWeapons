@@ -133,6 +133,34 @@ public class RaptureTests
         finally { h.Free(); }
     }
 
+    // ---- (5a) GrantImage: dual-wield coexistence with Spiritual Font ----
+    // Every rod ships TwoSwords, so one unit can wield Rod of Faith AND Wellspring Rod --
+    // and band +0x80 IS combat +0x9C, so Rapture's 3-byte image and the font hold write the
+    // SAME field. The armed image must carry the other hand's EARNED movement-bit grants,
+    // or the two holds oscillate the field tick by tick with a timing-dependent winner.
+
+    [Fact]
+    public void GrantImage_merges_an_earned_other_hand_font_grant()
+    {
+        var font = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 237, 238 } };
+        var f = Rapture.GrantImage(243, new[] { ((WeaponSignature?)font, 3) });
+        Assert.Equal(new byte[] { 0x01, 0x84, 0x00 }, f);   // Lifefont | Manafont+teleport
+    }
+
+    [Fact]
+    public void GrantImage_ignores_unearned_or_absent_other_hand_grants()
+    {
+        var font = new WeaponSignature { AtTier = 3, MoveAbilityIds = new[] { 237, 238 } };
+        Assert.Equal(new byte[] { 0x00, 0x04, 0x00 },
+                     Rapture.GrantImage(243, new[] { ((WeaponSignature?)font, 2) }));   // tier not earned
+        Assert.Equal(new byte[] { 0x00, 0x04, 0x00 },
+                     Rapture.GrantImage(243, new (WeaponSignature?, int)[] { (null, 3) }));
+    }
+
+    [Fact]
+    public void GrantImage_null_for_an_id_outside_the_movement_field()
+        => Assert.Null(Rapture.GrantImage(999, System.Array.Empty<(WeaponSignature?, int)>()));
+
     // ---- (5b) ReadBackSet: the once-per-window live-test signal for the held bit ----
     // RaptureMoveId 243 (Master Teleportation) is CUT content per FOLDABLE_ABILITIES, so the
     // engine honoring its movement bit is unverified -- the arm-time read-back (SET/MISS in
@@ -156,17 +184,20 @@ public class RaptureTests
     {
         var st = new RaptureState();
         Assert.False(st.Held);
-        st.Arm(1000L, new byte[] { 0x80, 0, 0 }, baselineTurns: 2, fp: (30, 65, 70));
+        st.Arm(1000L, new byte[] { 0x80, 0, 0 }, baselineTurns: 2, fp: (30, 65, 70),
+               grant: new byte[] { 0, 0x04, 0 });
         Assert.True(st.Held);
         Assert.Equal(2, st.BaselineTurns);
 
         // A second arm while held must NOT overwrite the saved bytes (they hold the player's
         // movement; re-saving would capture our own teleport bytes).
-        st.Arm(2000L, new byte[] { 0, 0x04, 0 }, baselineTurns: 5, fp: (1, 1, 1));
+        st.Arm(2000L, new byte[] { 0, 0x04, 0 }, baselineTurns: 5, fp: (1, 1, 1),
+               grant: new byte[] { 0xFF, 0xFF, 0xFF });
         Assert.Equal(new byte[] { 0x80, 0, 0 }, st.SavedField);
         Assert.Equal(2, st.BaselineTurns);
         Assert.Equal(1000L, st.Addr);
         Assert.Equal((30, 65, 70), st.Fp);   // the never-re-save invariant covers the fingerprint
+        Assert.Equal(new byte[] { 0, 0x04, 0 }, st.GrantField);   // ...and the grant image
 
         st.Release();
         Assert.False(st.Held);
@@ -177,10 +208,23 @@ public class RaptureTests
     public void State_tracks_the_last_located_address_for_the_restore()
     {
         var st = new RaptureState();
-        st.Arm(1000L, new byte[] { 0, 0, 0 }, baselineTurns: 0, fp: (30, 65, 70));
+        st.Arm(1000L, new byte[] { 0, 0, 0 }, baselineTurns: 0, fp: (30, 65, 70),
+               grant: new byte[] { 0, 0x04, 0 });
         st.Addr = 3000L;   // band entry relocated; restore must target the new copy
         Assert.Equal(3000L, st.Addr);
         Assert.True(st.Held);
+    }
+
+    [Fact]
+    public void State_holds_its_own_copy_of_the_grant_image()
+    {
+        var st = new RaptureState();
+        var grant = new byte[] { 0x01, 0x84, 0x00 };
+        st.Arm(1000L, new byte[] { 0x80, 0, 0 }, baselineTurns: 0, fp: (30, 65, 70), grant: grant);
+        grant[0] = 0xFF;   // a mutating caller buffer must not bend the held image
+        Assert.Equal(new byte[] { 0x01, 0x84, 0x00 }, st.GrantField);
+        st.Release();
+        Assert.Null(st.GrantField);
     }
 
     // ---- (7) SameUnit: the held writes verify the armed wielder still owns the address ----

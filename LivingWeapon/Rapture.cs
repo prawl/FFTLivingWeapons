@@ -97,10 +97,14 @@ internal sealed partial class Rapture
         _rearmReady = CanRearm(_rearmReady, below);
         if (!_rearmReady || !ShouldArm(hp, maxHp, Tuning.RaptureHpPct)) return;
 
+        // The saved capture may include font bits the other hand's hold OR-set (no roster
+        // movement-pick offset exists, so they can't be told from the player's own); restoring
+        // them is accepted -- the font hold re-asserts them anyway while that rod is wielded,
+        // and the struct rebuilds fresh next battle.
         byte[]? saved = ReadField(e);
-        byte[]? grant = FieldFor(Tuning.RaptureMoveId);
+        byte[]? grant = GrantImage(Tuning.RaptureMoveId, OtherHandGrants());
         if (saved is null || grant is null) return;
-        _state.Arm(e, saved, turns, fp);
+        _state.Arm(e, saved, turns, fp, grant);
         _rearmReady = false;
         _deadStreak = 0;
         WriteField(e, grant);
@@ -111,14 +115,27 @@ internal sealed partial class Rapture
                  $"{Tuning.RaptureTurns} turns (saved {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}) readback={readback}");
     }
 
-    /// <summary>Re-write the teleport image at the last located entry (beats engine re-assertion).
-    /// SameUnit-guarded (Maim.Drive's discipline): band slots are fixed addresses and units
-    /// migrate, so a mismatch skips the write -- the turn-expiry clock keeps counting.</summary>
+    /// <summary>The other wielded weapons' (signature, earned tier) -- their movement-bit grants
+    /// ride INSIDE the held image (GrantImage) so Rapture and Spiritual Font never fight over
+    /// the shared movement field (band +0x80 == combat +0x9C) on a dual-wielder.</summary>
+    private List<(WeaponSignature? sig, int tier)> OtherHandGrants()
+    {
+        var others = new List<(WeaponSignature?, int)>();
+        foreach (int hw in _hands)
+        {
+            if (hw == RodOfFaithId || !_meta.TryGetValue(hw, out var hm)) continue;
+            others.Add((hm.Signature, Tuning.TierFor(_kills.TryGetValue(hw, out int k) ? k : 0)));
+        }
+        return others;
+    }
+
+    /// <summary>Re-write the armed grant image at the last located entry (beats engine
+    /// re-assertion). SameUnit-guarded (Maim.Drive's discipline): band slots are fixed addresses
+    /// and units migrate, so a mismatch skips the write -- the turn-expiry clock keeps counting.</summary>
     private void Hold()
     {
         if (_state.Addr == 0 || !SameUnit(Live, _state.Addr, _state.Fp)) return;
-        byte[]? grant = FieldFor(Tuning.RaptureMoveId);
-        if (grant is not null) WriteField(_state.Addr, grant);
+        if (_state.GrantField is { } grant) WriteField(_state.Addr, grant);
     }
 
     /// <summary>Write the saved movement bytes back and close the window. SameUnit-guarded: if a
