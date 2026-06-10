@@ -22,11 +22,11 @@ internal static class Tuning
     public const bool DevSeedAllKills = true;
     /// <summary>DEV: per-tick battle-event timeline (damage/heal/move) in the log.</summary>
     public const bool VerboseEvents = true;
-    /// <summary>DEV: Spiritual Font fires unconditionally every ~10s in battle (trigger bypass)
-    /// -- on-screen proof of the band addressing + HP write + provisional MP pair. External
-    /// probes are Denuvo-walled (RPM reads 0 units while the runtime sees 14), so the DLL is
-    /// the only instrument that can run this experiment.</summary>
-    public const bool FontDevPulse = true;
+    /// <summary>DEV pulse RETIRED 2026-06-10 after it verified the full write path on screen
+    /// (band addressing + HP write + MP pair, watched live). Flip back to true only to re-run
+    /// that experiment -- while true it force-heals every ~10s and drowns out the real trigger.
+    /// External probes are Denuvo-walled, so the DLL remains the only instrument for it.</summary>
+    public const bool FontDevPulse = false;
 #else
     public static readonly int[] KillThresholds = ProdThresholds;
     /// <summary>Production seeds nothing -- the wielder earns every tier.</summary>
