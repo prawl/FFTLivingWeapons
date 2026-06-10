@@ -100,7 +100,7 @@ internal sealed partial class Rapture
         byte[]? saved = ReadField(e);
         byte[]? grant = FieldFor(Tuning.RaptureMoveId);
         if (saved is null || grant is null) return;
-        _state.Arm(e, saved, turns);
+        _state.Arm(e, saved, turns, fp);
         _rearmReady = false;
         _deadStreak = 0;
         WriteField(e, grant);
@@ -108,18 +108,24 @@ internal sealed partial class Rapture
                  $"{Tuning.RaptureTurns} turns (saved {saved[0]:X2} {saved[1]:X2} {saved[2]:X2})");
     }
 
-    /// <summary>Re-write the teleport image at the last located entry (beats engine re-assertion).</summary>
+    /// <summary>Re-write the teleport image at the last located entry (beats engine re-assertion).
+    /// SameUnit-guarded (Maim.Drive's discipline): band slots are fixed addresses and units
+    /// migrate, so a mismatch skips the write -- the turn-expiry clock keeps counting.</summary>
     private void Hold()
     {
+        if (_state.Addr == 0 || !SameUnit(Live, _state.Addr, _state.Fp)) return;
         byte[]? grant = FieldFor(Tuning.RaptureMoveId);
-        if (grant is not null && _state.Addr != 0) WriteField(_state.Addr, grant);
+        if (grant is not null) WriteField(_state.Addr, grant);
     }
 
-    /// <summary>Write the saved movement bytes back and close the window.</summary>
+    /// <summary>Write the saved movement bytes back and close the window. SameUnit-guarded: if a
+    /// stranger now occupies the held address, its movement field is left alone (the wielder's
+    /// own bytes re-assert from the fresh per-battle struct rebuild).</summary>
     private void Restore(string why)
     {
-        if (_state.SavedField is { } saved && _state.Addr != 0) WriteField(_state.Addr, saved);
-        Log.Info($"rapture: released ({why}) -- movement restored");
+        bool same = _state.Addr != 0 && SameUnit(Live, _state.Addr, _state.Fp);
+        if (_state.SavedField is { } saved && same) WriteField(_state.Addr, saved);
+        Log.Info($"rapture: released ({why}) -- movement {(same ? "restored" : "left (unit migrated)")}");
         _state.Release();
         _deadStreak = 0;
     }

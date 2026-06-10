@@ -65,6 +65,16 @@ internal sealed partial class Rapture
         if (!Mem.Writable(a, field.Length)) return;
         for (int i = 0; i < field.Length; i++) Mem.W8(a + i, field[i]);
     }
+
+    /// <summary>True while the band entry at <paramref name="entryAddr"/> still belongs to the
+    /// armed wielder: brave/faith (orig values, stable for the battle) must match the arm-time
+    /// fingerprint. Level is deliberately NOT checked (a mid-window level-up must not break the
+    /// hold). Band slots are FIXED addresses and units migrate between them (the Maim.Drive
+    /// same-unit discipline) -- every held write verifies this first, so a stale Addr can never
+    /// stamp the teleport image (or the restore bytes) onto a stranger. Zeroed/unreadable memory
+    /// reads 0 and safely mismatches.</summary>
+    public static bool SameUnit(IGameMemory mem, long entryAddr, (int lvl, int br, int fa) fp)
+        => mem.U8(entryAddr + Offsets.ABrave) == fp.br && mem.U8(entryAddr + Offsets.AFaith) == fp.fa;
 }
 
 /// <summary>The Rapture window's latch: the saved (pre-grant) movement bytes, the turn count at
@@ -85,14 +95,19 @@ internal sealed class RaptureState
     /// <summary>The last located band-entry address (kept fresh each tick; restore target).</summary>
     public long Addr { get; set; }
 
+    /// <summary>The armed wielder's (level,brave,faith) -- every held write at Addr verifies
+    /// this fingerprint first (Rapture.SameUnit), so a migrated unit is never written.</summary>
+    public (int lvl, int br, int fa) Fp { get; private set; }
+
     /// <summary>Open the window. No-ops while held (never-re-save).</summary>
-    public void Arm(long addr, byte[] savedField, int baselineTurns)
+    public void Arm(long addr, byte[] savedField, int baselineTurns, (int lvl, int br, int fa) fp)
     {
         if (Held) return;
         Held = true;
         SavedField = (byte[])savedField.Clone();
         BaselineTurns = baselineTurns;
         Addr = addr;
+        Fp = fp;
     }
 
     /// <summary>Close the window (after the restore).</summary>
@@ -102,5 +117,6 @@ internal sealed class RaptureState
         SavedField = null;
         BaselineTurns = 0;
         Addr = 0;
+        Fp = default;
     }
 }

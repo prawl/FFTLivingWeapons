@@ -27,6 +27,14 @@ public class RaptureTests
     private static WeaponSignature RapSig(int atTier = 3) =>
         new() { AtTier = atTier, RaptureMove = true, DisplayLabel = "Rapture" };
 
+    private sealed class FakeMemory : IGameMemory
+    {
+        private readonly System.Collections.Generic.Dictionary<long, byte> _bytes = new();
+        public void Set8(long a, byte v) => _bytes[a] = v;
+        public byte U8(long a) => _bytes.TryGetValue(a, out var v) ? v : (byte)0;
+        public ushort U16(long a) => (ushort)(U8(a) | (U8(a + 1) << 8));
+    }
+
     // ---- (1) IsActive ----
 
     [Fact]
@@ -132,16 +140,17 @@ public class RaptureTests
     {
         var st = new RaptureState();
         Assert.False(st.Held);
-        st.Arm(1000L, new byte[] { 0x80, 0, 0 }, baselineTurns: 2);
+        st.Arm(1000L, new byte[] { 0x80, 0, 0 }, baselineTurns: 2, fp: (30, 65, 70));
         Assert.True(st.Held);
         Assert.Equal(2, st.BaselineTurns);
 
         // A second arm while held must NOT overwrite the saved bytes (they hold the player's
         // movement; re-saving would capture our own teleport bytes).
-        st.Arm(2000L, new byte[] { 0, 0x04, 0 }, baselineTurns: 5);
+        st.Arm(2000L, new byte[] { 0, 0x04, 0 }, baselineTurns: 5, fp: (1, 1, 1));
         Assert.Equal(new byte[] { 0x80, 0, 0 }, st.SavedField);
         Assert.Equal(2, st.BaselineTurns);
         Assert.Equal(1000L, st.Addr);
+        Assert.Equal((30, 65, 70), st.Fp);   // the never-re-save invariant covers the fingerprint
 
         st.Release();
         Assert.False(st.Held);
@@ -152,9 +161,26 @@ public class RaptureTests
     public void State_tracks_the_last_located_address_for_the_restore()
     {
         var st = new RaptureState();
-        st.Arm(1000L, new byte[] { 0, 0, 0 }, baselineTurns: 0);
+        st.Arm(1000L, new byte[] { 0, 0, 0 }, baselineTurns: 0, fp: (30, 65, 70));
         st.Addr = 3000L;   // band entry relocated; restore must target the new copy
         Assert.Equal(3000L, st.Addr);
         Assert.True(st.Held);
+    }
+
+    // ---- (7) SameUnit: the held writes verify the armed wielder still owns the address ----
+    // Band slots are FIXED addresses and units migrate between them (the Maim.Drive lesson):
+    // without this check, a stale Addr would stamp the teleport image onto a stranger.
+
+    [Fact]
+    public void SameUnit_matches_only_the_armed_brave_and_faith()
+    {
+        var m = new FakeMemory();
+        long e = 0x5000;
+        m.Set8(e + Offsets.ALevel, 30); m.Set8(e + Offsets.ABrave, 65); m.Set8(e + Offsets.AFaith, 70);
+        Assert.True(Rapture.SameUnit(m, e, (30, 65, 70)));
+        Assert.True(Rapture.SameUnit(m, e, (31, 65, 70)));    // mid-window level-up must not break the hold
+        Assert.False(Rapture.SameUnit(m, e, (30, 66, 70)));   // a stranger now occupies the slot
+        Assert.False(Rapture.SameUnit(m, e, (30, 65, 71)));
+        Assert.False(Rapture.SameUnit(m, 0x6000, (30, 65, 70)));   // unreadable/zeroed -> mismatch
     }
 }
