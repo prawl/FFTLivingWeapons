@@ -22,12 +22,22 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Barrage
 {
+    /// <summary>Generic Thief job id (roster +0x02). A Thief's PRIMARY command is Steal
+    /// (rec 14, a normal executor), so an injected Barrage renders + casts cleanly there --
+    /// the one job proven end-to-end. Barrage is THIEF-ONLY by design (the special-executor
+    /// jobs like Archer/Aim swallow it; see SpecialExecutorJobs). The card states "Thief Only".</summary>
+    public const int ThiefJob = 83;
+
     /// <summary>True when the signature is configured and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
     {
         if (sig is null || sig.GrantCommandAbilityId <= 0) return false;
         return tier >= sig.AtTier;
     }
+
+    /// <summary>Barrage is granted ONLY to a Thief wielder (job 83). Enforces the card's
+    /// "Thief Only" promise in code.</summary>
+    public static bool IsEligibleWielder(int job) => job == ThiefJob;
 
     /// <summary>Jobs whose PRIMARY command is a special-cased executor that silently drops
     /// foreign ability ids at confirm time (the menu label renders, targeting/preview show

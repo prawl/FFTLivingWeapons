@@ -87,6 +87,7 @@ internal sealed partial class Barrage
                 if (Mem.U16(rb + Offsets.RRHand) != YoichiId && Mem.U16(rb + Offsets.ROffHand) != YoichiId) continue;
                 int jobId = Mem.U8(rb + RJobId);
                 if (jobId <= 0) continue;
+                if (!IsEligibleWielder(jobId)) continue;   // THIEF-ONLY (card states it; engine walls every other job)
                 wielderSlot = r;
                 wielderJob = jobId;
                 wielderSecondary = Mem.U8(rb + RSecondary);

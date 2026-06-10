@@ -2632,7 +2632,7 @@
         "displayLabel": "Chain Lightning",
         "ricochetRadius": 3,
         "ricochetPct": 50,
-        "p3Desc": "Lightning arcs from its mark to the nearest foe.",
+        "p3Desc": "Normal attacks also hit an additional unit within 3 tiles at 50% damage.",
         "note": "While a +3 Stormarc is equipped and the wielder deals damage to an enemy, the nearest OTHER live enemy within 3 Manhattan tiles takes chip damage = 50% of the original (floor 1, min HP 1). The chip NEVER kills (HP clamped to 1). One bounce per damage event; no chains. RUNTIME: Ricochet.cs -- per-tick HP diff on enemy band slots detects damage during the acted period, PickTarget finds the bounce candidate, ApplyChip writes clamped HP to the authoritative band entry (Mem.Writable guarded). PROVEN pattern mirrors EagleEye/CharmLock enemy band walk. BALANCE OPEN: every-basic-attack may be too strong -- candidate gates: Aim-only (needs the action-id probe), once-per-acted-period, lower pct/radius."
       }
     },
@@ -2757,10 +2757,10 @@
       },
       "signature": {
         "atTier": 3,
-        "sigName": "Barrage",
+        "sigName": "Barrage (Thief Only)",
         "displayLabel": "Barrage",
         "grantCommandAbilityId": 358,
-        "p3Desc": "Grants its master the Barrage command. Archers need a standard secondary command.",
+        "p3Desc": "A Thief wielder gains the Barrage command: a volley of four swift arrows.",
         "note": "While a +3 Yoichi Bow wielder exists, ability 358 (Barrage, 4-arrow volley at half damage) is injected into a JobCommand record and held each tick (table rebuilds at boot; original 25 bytes saved once, restored on grant end / job or secondary change). Target = the wielder's PRIMARY job record (generic band 74-92: rec = job-69, learned jobIdx = job-74, Dance shares 17) UNLESS the primary is a special-executor command (Aim/Jump/Items/Throw/Arithmeticks -- their executors id-whitelist in CODE and silently drop foreign abilities at confirm; PROVEN for Aim 2026-06-10 with 358/102/146/16) -- then the grant routes to the mounted SECONDARY's record (roster +0x07 = rec id; LIVE-PROVEN: Archer cast Barrage from mounted Steal). Learned bit HELD per tick (menu purchases stale-writeback-wipe external bits), never cleared; residue is inert without the injection. Name/desc/icon ship via cell-merged ability.en.nxd (patch_ability_names.py self-verifies 3 cells). VERIFIED LIVE under Thief primary AND Archer-with-Steal-secondary. RUNTIME: Barrage.cs + Barrage.Policy.cs (51+ tests)."
       }
     },

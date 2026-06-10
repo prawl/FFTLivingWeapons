@@ -46,6 +46,22 @@ public class BarrageTests
     public void IsActive_false_below_tier()
         => Assert.False(Barrage.IsActive(BarrageSig(), tier: 2));
 
+    // ---- THIEF-ONLY gate (card states "Barrage (Thief Only)") ----
+
+    [Fact]
+    public void IsEligibleWielder_true_only_for_thief()
+        => Assert.True(Barrage.IsEligibleWielder(83));
+
+    [Theory]
+    [InlineData(77)]   // Archer (Aim swallows it)
+    [InlineData(74)]   // Squire
+    [InlineData(80)]   // Black Mage
+    [InlineData(87)]   // Dragoon
+    [InlineData(1)]    // Ramza / Mettle
+    [InlineData(0)]    // empty
+    public void IsEligibleWielder_false_for_non_thief(int job)
+        => Assert.False(Barrage.IsEligibleWielder(job));
+
     [Fact]
     public void IsActive_true_at_and_above_tier()
     {
