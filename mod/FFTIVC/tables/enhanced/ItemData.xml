@@ -5,7 +5,7 @@
   <Entries>
     <Item>
       <Id>21</Id> <!-- Riposte (was Iron Sword) -->
-      <EquipBonusId>10</EquipBonusId>
+      <EquipBonusId>17</EquipBonusId>
     </Item>
     <Item>
       <Id>23</Id> <!-- Sanguine Sword (was Blood Sword) -->
@@ -78,7 +78,7 @@
     </Item>
     <Item>
       <Id>64</Id> <!-- Sanctus Staff (was Golden Staff) -->
-      <EquipBonusId>5</EquipBonusId>
+      <EquipBonusId>22</EquipBonusId>
     </Item>
     <Item>
       <Id>65</Id> <!-- Zeus Mace -->

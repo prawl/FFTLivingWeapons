@@ -9,17 +9,17 @@
     "renameTarget": "item.en.nxd (name + description). NXD round-trip mechanism: WIP.",
     "design": "Three lanes run the curve in parallel: RAW (Cutpurse/Argent Dirk/Adamant Fang), AGILE (Quicksilver 25ev / Sanguine Gauche 50ev), UTILITY (Gloomfang Blind / Hushblade Silence / Mortal Coil Doom / Dreamsever Sleep). Non-monotonic WP (5,6,5,6,7,6,9,8,10,12) makes every proc/evade knife undercut WP to pay for its gimmick.",
     "openProcs": "id4 Hushblade Silence onHitAbilityId is unknown — not one of the 9/11/12 procs. Confirm in-game before locking the description.",
-    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible. Each item's proposed.equipBonusId points at a vanilla id OR an id redefined in _equipBonus below. RULE for redefining a vanilla row: every VANILLA item pointing at that row must be repointed by our ItemData, or it silently inherits the new bonus (this corrupted Excalibur via row 3 and Akademy Tunic via row 83 until 2026-06-10). Orphaned rows verified free to claim: 11, 17, 20, 22, 23, 25, 31, 36, 38, 39, 47, 49, 50, 51, 53, 63, 72 (5, 9, 10, 40, 56 already claimed below; 74-79 are empty+unreferenced and claimed). Iconic vanilla rows: Ice shield=15, Flame shield=16, Kaiser-boost=18, Venetian-halve=19, MA+1=12, PA+1=21, PA+2=24, Speed+1=14/23, Move+1=42, Shell=4, StrongElements L/F/I=6/7/8 (the elemental rods'), innate Faith=73."
+    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible. Each item's proposed.equipBonusId points at a vanilla id OR an id redefined in _equipBonus below. RULE for redefining a vanilla row: it must have NO users on EITHER side — every VANILLA item pointing at it must be repointed by our ItemData (row 3 corrupted Excalibur, row 83 the Akademy Tunic), AND no items.json equipBonusId may reuse its vanilla contents (claiming row 10 turned five MA+1 items Atheist, row 5 turned four Regen items Holy-boost — both fixed 2026-06-10 by relocating to 17/22). Audit both: vanilla TableData ItemData.xml pointers + a full-value grep of equipBonusId here. Rows verified free to claim: 25, 31, 36, 38, 39, 47, 49, 50, 51, 53, 63, 72 (9, 17, 22, 40, 56 claimed below; 74-79 claimed). Heavily-reused vanilla stat rows — never claim: MA+2=1, Protect=2(?), Shell=4, Regen=5, StrongElements L/F/I=6/7/8 (elemental rods), MA+2=9 (claimed for Umbral; MA+2 reusers all sit on row 1), MA+1=10/12, Speed+1=14/23, Ice/Flame shield=15/16, Kaiser=18, Venetian=19, PA+1=21, PA+2=24, Move+1=42, innate Faith=73."
   },
   "_equipBonus": {
     "9": {
       "MABonus": 2,
       "StrongElements": "Dark"
     },
-    "5": {
+    "22": {
       "StrongElements": "Holy"
     },
-    "10": {
+    "17": {
       "InnateStatus": "Atheist"
     },
     "74": {
@@ -681,7 +681,7 @@
         "onHitAbilityId": 141,
         "formula": 2,
         "attackFlags": "Striking, TwoSwords, TwoHands",
-        "equipBonusId": 10
+        "equipBonusId": 17
       }
     },
     {
@@ -1962,7 +1962,7 @@
         "formula": 1,
         "range": 1,
         "rider": "boost Holy",
-        "equipBonusId": 5
+        "equipBonusId": 22
       },
       "iconTint": [
         0.13,
