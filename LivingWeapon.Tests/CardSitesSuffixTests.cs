@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
@@ -34,7 +34,7 @@ public class CardSitesSuffixTests
         var site = new CardSites.Site(Id: 1, Enc: 1, SlotAddr: 0x1000 + slotAddr, AnchorAddr: 0x1000 + pos, IsKills: false);
         sites.Add(site);
 
-        int writes = sites.Paint(new[] { site }, id => id == 1 ? 20 : 0);
+        int writes = sites.Paint(new[] { site }, id => id == 1 ? 25 : 0);
         Assert.Equal(1, writes);
 
         bool ok = heap.TryReadBytes(0x1000 + slotAddr, 2, out var painted);

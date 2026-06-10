@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using LivingWeapon;
@@ -17,7 +17,7 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class DisplayTests
 {
-    // ─── Fixture helpers ───────────────────────────────────────────────────────
+    // â”€â”€â”€ Fixture helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private const long StaticsBase = 0x10_0000_0000L;
     private const long SourceBase  = 0x20_0000_0000L;
@@ -129,7 +129,7 @@ public class DisplayTests
         }
     }
 
-    // ─── helper: read back a slot from the FakeHeap source region ─────────────
+    // â”€â”€â”€ helper: read back a slot from the FakeHeap source region â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static string ReadSlot(FakeHeap heap, long pos, int len)
     {
@@ -137,7 +137,7 @@ public class DisplayTests
         return System.Text.Encoding.ASCII.GetString(buf);
     }
 
-    // ─── (a) LIVE-BUG REGRESSION "shared kills" ───────────────────────────────
+    // â”€â”€â”€ (a) LIVE-BUG REGRESSION "shared kills" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public void Shared_kills_regression_each_weapon_gets_its_own_count()
@@ -156,7 +156,7 @@ public class DisplayTests
         Assert.Equal("0   ", ReadSlot(heap, cC.killsSlotPos, 4));
     }
 
-    // ─── (b) LIVE-BUG REGRESSION "tier-0 never painted" ──────────────────────
+    // â”€â”€â”€ (b) LIVE-BUG REGRESSION "tier-0 never painted" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public void Tier_zero_kills_paints_the_count_under_prod_thresholds()
@@ -176,7 +176,7 @@ public class DisplayTests
         Assert.Equal("  ", ReadSlot(heap, cA.suffixPos, 2));
     }
 
-    // ─── (c) Kill mid-session updates without re-equip ────────────────────────
+    // â”€â”€â”€ (c) Kill mid-session updates without re-equip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public void Mid_session_kill_bump_repaints_count()
@@ -200,7 +200,7 @@ public class DisplayTests
         Assert.Equal("8   ", ReadSlot(heap, cA.killsSlotPos, 4));
     }
 
-    // ─── (d) Invalidate then re-populate ──────────────────────────────────────
+    // â”€â”€â”€ (d) Invalidate then re-populate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public void Invalidate_then_tick_repaints_correct_counts()
@@ -228,14 +228,14 @@ public class DisplayTests
         Assert.Equal("2   ", ReadSlot(heap, cA.killsSlotPos, 4));
     }
 
-    // ─── (e) Suffix painting ──────────────────────────────────────────────────
+    // â”€â”€â”€ (e) Suffix painting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public void Suffix_target_weapon_at_tier2_gets_plus2_suffix()
     {
         var meta  = BuildMeta();
         // Prod thresholds {5,20,50}: 20 kills = tier 2 -> "+2"
-        var kills = new Dictionary<int, int> { { 10, 20 }, { 11, 0 }, { 12, 0 } };
+        var kills = new Dictionary<int, int> { { 10, 25 }, { 11, 0 }, { 12, 0 } };
         var clock = new Clock();
         var (heap, _, cA, _, _) = BuildFixture(mirrorId: 10, naturalWp: 12);
         var display = MakeDisplay(meta, kills, heap, clock);
@@ -262,7 +262,7 @@ public class DisplayTests
         Assert.Equal("0   ", ReadSlot(heap, cB.killsSlotPos, 4));
     }
 
-    // ─── (f) WpScratch ────────────────────────────────────────────────────────
+    // â”€â”€â”€ (f) WpScratch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public void WpScratch_written_when_primed_with_natural_wp()
@@ -297,7 +297,7 @@ public class DisplayTests
         Assert.Equal(99, (int)scratched);  // untouched
     }
 
-    // ─── (g) Budget sanity ────────────────────────────────────────────────────
+    // â”€â”€â”€ (g) Budget sanity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     [Fact]
     public void Single_tick_does_not_throw_against_multi_chunk_region()
@@ -338,7 +338,7 @@ public class DisplayTests
     }
 }
 
-// ─── Test helpers ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Test helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /// <summary>IGameMemory adapter that remaps the three Display-static game addresses
 /// (MirrorWeapon, MirrorOffHand, WpScratch) to caller-specified addresses in the

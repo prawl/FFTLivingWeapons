@@ -15,7 +15,7 @@ internal static class Tuning
     /// <summary>Both threshold sets, ALWAYS compiled (so a test can reason about the dev curve even
     /// though tests compile under prod). The active one is selected by the LWDEV flag below.</summary>
     public static readonly int[] DevThresholds = { 1, 2, 3 };    // P3 by the third kill (fast verification)
-    public static readonly int[] ProdThresholds = { 5, 20, 50 }; // escalating: a fast taste at P, an aspirational P3
+    public static readonly int[] ProdThresholds = { 5, 25, 50 }; // escalating: a fast taste at P, an aspirational P3
 #if LWDEV
     public static readonly int[] KillThresholds = DevThresholds;
     /// <summary>DEV: floor every known weapon to <see cref="DevKillSeed"/> kills on load.</summary>
