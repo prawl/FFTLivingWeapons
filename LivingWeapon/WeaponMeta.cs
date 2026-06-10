@@ -57,6 +57,9 @@ public sealed class WeaponSignature
     // BARRAGE (Yoichi "Barrage"): while a unit wields this at AtTier, the wielder gains Barrage (ability 358)
     // injected into their current job's JobCommand record. 0 = not a barrage weapon.
     [JsonProperty("grantCommandAbilityId")] public int GrantCommandAbilityId { get; set; }
+    // LIFE SAP (Umbral Rod "Life Sap"): a kill credited to this weapon at AtTier heals the wielder by
+    // Tuning.LifeSapPct of max HP (clamped; never revives). false = not a life-sap weapon.
+    [JsonProperty("lifeSapOnKill")] public bool LifeSapOnKill { get; set; }
 }
 
 internal static class MetaLoader

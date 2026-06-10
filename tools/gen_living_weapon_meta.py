@@ -76,6 +76,8 @@ def main():
                 entry["signature"]["crippleTurns"] = int(sig["crippleTurns"])
             if sig.get("grantCommandAbilityId"):  # barrage (Yoichi "Barrage"): grant JobCommand ability
                 entry["signature"]["grantCommandAbilityId"] = int(sig["grantCommandAbilityId"])
+            if sig.get("lifeSapOnKill"):  # life sap (Umbral "Life Sap"): a kill heals the wielder
+                entry["signature"]["lifeSapOnKill"] = True
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

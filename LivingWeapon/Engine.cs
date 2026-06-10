@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
@@ -11,9 +10,9 @@ namespace LivingWeapon;
 /// The Living Weapon runtime. One background loop: in battle it counts kills and
 /// applies stat growth; the per-weapon tally persists across sessions. Detection
 /// and growth share the in-memory tally (no IPC). Display painting is layered on
-/// top in a later phase.
+/// top in a later phase. Tally persistence lives in Engine.Tally.cs.
 /// </summary>
-internal sealed class Engine
+internal sealed partial class Engine
 {
     // Poll fast: at fast-forward a death's hp==0 window is brief, and a 100ms loop sailed
     // past it, missing kills. The kill scan is cheap; growth (heavier) runs every Nth tick.
@@ -32,6 +31,7 @@ internal sealed class Engine
     private readonly Ricochet _ricochet;
     private readonly Maim _maim;
     private readonly Barrage _barrage;
+    private readonly LifeSap _lifeSap;
     private readonly Display _display;
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
@@ -59,6 +59,7 @@ internal sealed class Engine
         _ricochet = new Ricochet(meta, _kills, _tracker);  // Stormarc +3: bounce chip to nearest other enemy
         _maim = new Maim(meta, _kills, _tracker);          // Huntress +3: struck enemies lose reactions N turns
         _barrage = new Barrage(meta, _kills);              // Yoichi +3: grant Barrage command to the wielder
+        _lifeSap = new LifeSap(meta, _kills);              // Umbral +3: a kill heals the wielder 25% max HP
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }
@@ -128,6 +129,7 @@ internal sealed class Engine
             _ricochet.ResetBattle();
             _maim.ResetBattle();
             _barrage.ResetBattle();
+            _lifeSap.ResetBattle();
             SaveTally();                 // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
@@ -147,6 +149,7 @@ internal sealed class Engine
         _eagle.Tick();                        // Eclipsebolt +3: force enemy Doom countdowns down to 1
         _ricochet.Tick(onField);              // Stormarc +3: bounce chip to nearest other enemy on damage
         _maim.Tick(onField);                  // Huntress +3: struck enemies lose reactions for N turns
+        _lifeSap.Tick();                      // Umbral +3: a kill restores the wielder 25% of max HP
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 
@@ -156,45 +159,5 @@ internal sealed class Engine
         // the settle window just avoids needless work during a mid-combat battleMode flicker.
         if (battleStatus || (!onField && (now - _lastField).TotalSeconds > FieldSettleSeconds))
             _display.Tick();
-    }
-
-    // ---- tally persistence (atomic + .bak) ----
-    private static Dictionary<int, int> LoadTally(string path)
-    {
-        foreach (var p in new[] { path, path + ".bak" })
-        {
-            try
-            {
-                if (!File.Exists(p)) continue;
-                var d = JsonConvert.DeserializeObject<Dictionary<string, int>>(File.ReadAllText(p));
-                if (d == null) continue;
-                var m = new Dictionary<int, int>(d.Count);
-                foreach (var kv in d) if (int.TryParse(kv.Key, out int id)) m[id] = kv.Value;
-                return m;
-            }
-            catch { }
-        }
-        return new Dictionary<int, int>();
-    }
-
-    private void SaveTally()
-    {
-        try
-        {
-            var outMap = new Dictionary<string, int>(_kills.Count);
-            foreach (var kv in _kills) outMap[kv.Key.ToString()] = kv.Value;
-            var tmp = _tallyPath + ".tmp";
-            File.WriteAllText(tmp, JsonConvert.SerializeObject(outMap));
-            if (File.Exists(_tallyPath)) File.Copy(_tallyPath, _tallyPath + ".bak", true);
-            File.Move(tmp, _tallyPath, true);
-        }
-        catch (Exception ex) { Log.Error("save: " + ex.Message); }
-    }
-
-    private static int Sum(Dictionary<int, int> d)
-    {
-        int s = 0;
-        foreach (var v in d.Values) s += v;
-        return s;
     }
 }

@@ -61,6 +61,10 @@ internal static class Tuning
     /// <summary>tier -> the 2-char name suffix painted on the card ("  " renders as nothing).</summary>
     public static readonly string[] Suffix = { "  ", "+ ", "+2", "+3" };
 
+    /// <summary>Life Sap (Umbral Rod +3): fraction of the wielder's max HP restored when a kill
+    /// is credited to the rod (clamped at full; never revives).</summary>
+    public const double LifeSapPct = 0.25;
+
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 
