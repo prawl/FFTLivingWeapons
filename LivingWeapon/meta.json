@@ -413,7 +413,13 @@
     "wp": 6,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed."
+    "flavor": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed.",
+    "signature": {
+      "abilityId": 226,
+      "slot": "support",
+      "atTier": 3,
+      "displayLabel": "Swiftspell"
+    }
   },
   "56": {
     "name": "Umbral Rod",

@@ -1683,7 +1683,16 @@
         0.28,
         0.8,
         0.85
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "sigName": "Unbroken Chant",
+        "abilityId": 226,
+        "slot": "support",
+        "displayLabel": "Swiftspell",
+        "p3Desc": "Grants Swiftspell: the wielder casts in half the usual time.",
+        "note": "Swiftspell (support 226) OR-set and HELD on the wielder's combat-struct support bitfield (+0x98 byte 3, mask 0x08) via the proven HoldSignature path -- stacks with the player's own support, never hijacks a slot. Deepens the rod's anti-Silence identity: the voice that cannot be hushed chants twice as fast. OPEN LIVE QUESTION: charge time is computed when a cast queues, so the held live bit should halve it, but Swiftspell has never been live-verified as a grant -- the GRANT read-back log (SET/MISS) plus one timed cast settles it. Not marked build-time-only (IsBuildTimeOnly covers Doublehand/Dual Wield/HP Boost only)."
+      }
     },
     {
       "id": 56,

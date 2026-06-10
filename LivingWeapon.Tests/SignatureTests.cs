@@ -83,6 +83,26 @@ public class SignatureTests
         Assert.False(Signatures.ResolveSupport(Sig(id, 3), tier: 2, out _, out _));   // silent below P3
     }
 
+    // --- Unbroken Chant (Hushward Rod): Swiftspell rides the proven support-grant path ---
+
+    [Fact]
+    public void Swiftspell_at_P3_resolves_to_byte3_bit_0x08()
+    {
+        // id 226 - base 198 = pos 28 -> byte 3, mask 0x80 >> 4 = 0x08.
+        Assert.True(Signatures.ResolveSupport(Sig(226, 3), tier: 3, out int off, out byte mask));
+        Assert.Equal(3, off);
+        Assert.Equal(0x08, mask);
+        Assert.False(Signatures.ResolveSupport(Sig(226, 3), tier: 2, out _, out _));   // silent below P3
+    }
+
+    [Fact]
+    public void Swiftspell_is_not_marked_build_time_only()
+    {
+        // Charge time is computed when a cast QUEUES (not at battle build), so a held live bit
+        // plausibly works -- the open live-test question. The grant read-back log must not warn.
+        Assert.False(Signatures.IsBuildTimeOnly(226));
+    }
+
     // --- conditional (HP-gated) signature, e.g. Mortal Coil: Attack Boost while HP < 50% ---
 
     [Fact]
