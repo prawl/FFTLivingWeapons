@@ -1,8 +1,8 @@
-{
+﻿{
   "ModId": "prawl.fft.itemoverhaul",
   "ModName": "FFT Item Overhaul",
   "ModAuthor": "prawl",
-  "ModVersion": "1.1.1",
+  "ModVersion": "2.0.0",
   "ModDescription": "A build-diversity rebalance of every item: gentle power climb, but every item keeps its own identity (evasion / element / on-hit status / niche) so old gear never becomes trash. Bundles the Living Weapon runtime (weapons grow as they kill). Authoritative item mod, so disable other item-rebalance mods (e.g. Regabonds Rebalance, Equipment Replacer).",
   "ModDll": "LivingWeapon.dll",
   "ModIcon": "preview.png",
