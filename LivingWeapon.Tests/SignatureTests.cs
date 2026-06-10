@@ -226,6 +226,36 @@ public class SignatureTests
         finally { h.Free(); }
     }
 
+    // --- unequip release: a granted support bit is AND-cleared when the granting weapon
+    //     leaves the wielder's hands mid-battle (Rend/Steal mutate the roster live), so the
+    //     buff doesn't linger to battle end. The player's own picked support is never stripped.
+
+    [Fact]
+    public void ClearBit_clears_only_the_target_bit_and_reads_back()
+    {
+        var buf = new byte[16];
+        buf[3] = 0x41;   // our granted bit 0x01 + a neighboring support the player owns (0x40)
+        var h = System.Runtime.InteropServices.GCHandle.Alloc(buf, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            long addr = h.AddrOfPinnedObject().ToInt64() + 3;
+            Assert.True(Signatures.ClearBit(addr, 0x01));
+            Assert.Equal(0x40, buf[3]);                    // neighbor untouched
+            Assert.True(Signatures.ClearBit(addr, 0x01));  // idempotent re-clear
+            Assert.Equal(0x40, buf[3]);
+        }
+        finally { h.Free(); }
+    }
+
+    [Theory]
+    [InlineData(true, 0, 226, false)]      // still wielded -> never clear
+    [InlineData(true, 226, 226, false)]
+    [InlineData(false, 226, 226, false)]   // the player's own picked support -> never strip
+    [InlineData(false, 0, 226, true)]      // unequipped, the bit was ours -> clear
+    [InlineData(false, 213, 226, true)]    // a different player pick doesn't shield the grant
+    public void ShouldClearOnUnequip_protects_the_players_pick(bool wielded, int picked, int ability, bool expected)
+        => Assert.Equal(expected, Signatures.ShouldClearOnUnequip(wielded, picked, ability));
+
     // --- KillsSlot: left-aligned digits in a fixed 4-char slot ---
 
     [Theory]

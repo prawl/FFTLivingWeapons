@@ -49,6 +49,7 @@ internal sealed partial class GrowthEngine
         _timedNatural.Clear();
         _structForSlot.Clear();
         _grantLogged.Clear();
+        _heldSupports.Clear();   // no writes: the per-battle struct is gone/rebuilding
         _logged = false;
     }
 
@@ -83,7 +84,7 @@ internal sealed partial class GrowthEngine
                 int hp = 0, maxHp = 0;
                 if (m.Signature != null && m.Signature.HpBelow > 0)        // only conditional sigs read HP
                     (hp, maxHp) = ReadHp(level, brave, faith);
-                HoldSignature(s, weapon, m.Name, m.Signature, tier, hp, maxHp, pickedSupport);   // iconic passive (+ read-back log)
+                HoldSignature(s, r, weapon, m.Name, m.Signature, tier, hp, maxHp, brave, faith, pickedSupport);   // iconic passive (+ read-back log)
                 HoldMovementBits(s, weapon, m.Name, m.Signature, tier);    // movement-bit grants (Spiritual Font)
                 if (m.Signature != null && m.Signature.ForTurns > 0)       // timed flat-stat grant
                     HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
@@ -92,6 +93,7 @@ internal sealed partial class GrowthEngine
             }
             foreach (var kv in plan) Hold(kv.Key, kv.Value);
         }
+        ReleaseUnequipped();   // strip support grants whose weapon left its wielder's hands
     }
 
     /// <summary>Both hands' overhaul weapons (right + dual-wield off-hand at +0x18), deduped.</summary>

@@ -92,6 +92,23 @@ internal static class Signatures
         return (Mem.U8(addr) & mask) != 0;
     }
 
+    /// <summary>Guarded AND-clear of a single bit, returning the read-back (true == the bit reads
+    /// CLEAR afterwards). Touches nothing else in the byte; fail-safe false on an unwritable page.
+    /// The unequip-release counterpart of <see cref="OrBit"/>.</summary>
+    public static bool ClearBit(long addr, byte mask)
+    {
+        if (!Mem.Writable(addr, 1)) return false;
+        int cur = Mem.U8(addr);
+        if ((cur & mask) != 0) Mem.W8(addr, (byte)(cur & ~mask));
+        return (Mem.U8(addr) & mask) == 0;
+    }
+
+    /// <summary>Should a latched support grant be AND-cleared? Only when the granting weapon has
+    /// actually left the wielder's hands AND the bit isn't the player's own picked support
+    /// (stripping a player-chosen Swiftspell because a rod was stolen would be theft squared).</summary>
+    public static bool ShouldClearOnUnequip(bool stillWielded, int pickedSupport, int abilityId)
+        => !stillWielded && pickedSupport != abilityId;
+
     /// <summary>Supports that a LIVE-set bit can't actually grant: their effect is baked at battle
     /// build, not re-read from the bitfield each calculation. HP Boost / MP Boost change a derived
     /// stat (max HP/MP) computed once at build; Doublehand / Dual Wield are equip-time (how the unit

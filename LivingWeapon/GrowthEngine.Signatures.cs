@@ -16,14 +16,21 @@ internal sealed partial class GrowthEngine
     // Grants announced this battle (weapon id), so the read-back log fires once per arm, not every tick.
     private readonly HashSet<int> _grantLogged = new();
 
+    // Support bits held this battle, so a mid-battle unequip (Rend/Steal mutate the roster live)
+    // releases the grant instead of letting it linger to battle end: (roster slot, weapon) ->
+    // (struct base, bit, ability id, the latch-time brave/faith for the same-unit check).
+    private readonly Dictionary<(int slot, int weapon), (long s, int off, byte mask, int abilityId, int brave, int faith)>
+        _heldSupports = new();
+
     /// <summary>Hold this weapon's signature support passive on the combat struct, once its
     /// kill-tier is earned -- OR-in the bit each tick to beat the engine's per-turn normalize,
-    /// exactly as the stat hold does. Guarded write; never clears (kills only climb, and the
-    /// struct is rebuilt fresh each battle, so it re-arms naturally).
+    /// exactly as the stat hold does. Guarded write; the hold itself never clears (kills only
+    /// climb, and the struct is rebuilt fresh each battle) -- ReleaseUnequipped strips the bit
+    /// if the weapon leaves the wielder's hands mid-battle.
     /// pickedSupport: the player's chosen roster support id (Offsets.RSupport); used to emit the
     /// redundancy note when the wielder already has the same support equipped (default 0 = unknown).</summary>
-    private void HoldSignature(long s, int weapon, string name, WeaponSignature? sig, int tier, int hp, int maxHp,
-                                int pickedSupport = 0)
+    private void HoldSignature(long s, int rosterSlot, int weapon, string name, WeaponSignature? sig, int tier,
+                                int hp, int maxHp, int brave, int faith, int pickedSupport = 0)
     {
         if (!Signatures.ResolveSupport(sig, tier, out int off, out byte mask)) return;
         if (!Signatures.ConditionMet(sig, hp, maxHp)) return;   // HP-gate; no-op for always-on signatures
@@ -31,7 +38,41 @@ internal sealed partial class GrowthEngine
         if (!Mem.Writable(addr, 1)) return;
         int cur = Mem.U8(addr);
         if ((cur & mask) == 0) Mem.W8(addr, (byte)(cur | mask));
+        _heldSupports[(rosterSlot, weapon)] = (s, off, mask, sig!.AbilityId, brave, faith);
         LogGrantOnce(weapon, name, sig!, off, mask, addr, pickedSupport);
+    }
+
+    /// <summary>Mid-battle unequip release (the grant-verification half the OR-only hold lacks):
+    /// when a latched weapon no longer sits in its wielder's roster hands, AND-clear the granted
+    /// support bit -- unless it is the player's own picked support (never strip their choice), and
+    /// only while the latched struct still fingerprint-matches (units migrate between fixed slots;
+    /// the Maim.Drive discipline). An unreadable/emptied roster slot keeps the latch (transient or
+    /// battle teardown -- the fresh per-battle struct clears it anyway). MOVEMENT grants stay
+    /// OR-only: no roster movement-pick offset is mapped, so a player-picked font could not be
+    /// told from the grant and clearing would risk stripping the player's choice.</summary>
+    private void ReleaseUnequipped()
+    {
+        if (_heldSupports.Count == 0) return;
+        List<(int slot, int weapon)>? drop = null;
+        foreach (var ((slot, weapon), v) in _heldSupports)
+        {
+            long rb = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
+            if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
+            int level = Mem.U8(rb + Offsets.RLevel);
+            if (level < 1 || level > 99) continue;
+            bool wielded = Mem.U16(rb + Offsets.RRHand) == weapon || Mem.U16(rb + Offsets.ROffHand) == weapon;
+            if (!Signatures.ShouldClearOnUnequip(wielded, Mem.U8(rb + Offsets.RSupport), v.abilityId))
+            {
+                if (!wielded) (drop ??= new()).Add((slot, weapon));   // unequipped, but the pick is the player's own
+                continue;
+            }
+            (drop ??= new()).Add((slot, weapon));
+            if (Mem.U8(v.s + Offsets.CBrave) != v.brave || Mem.U8(v.s + Offsets.CFaith) != v.faith) continue;
+            if (Signatures.ClearBit(v.s + Offsets.CSupport + v.off, v.mask))
+                Log.Info($"GRANT released: weapon {weapon} left roster {slot}'s hands -> support {v.abilityId} bit cleared");
+        }
+        if (drop is not null)
+            foreach (var k in drop) { _heldSupports.Remove(k); _grantLogged.Remove(k.weapon); }   // re-equip re-announces
     }
 
     /// <summary>Read the granted bit back and announce it once per weapon per battle: confirms the
