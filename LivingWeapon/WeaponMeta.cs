@@ -60,6 +60,10 @@ public sealed class WeaponSignature
     // LIFE SAP (Umbral Rod "Life Sap"): a kill credited to this weapon at AtTier heals the wielder by
     // Tuning.LifeSapPct of max HP (clamped; never revives). false = not a life-sap weapon.
     [JsonProperty("lifeSapOnKill")] public bool LifeSapOnKill { get; set; }
+    // WYRMBLOOD (Dragon Rod "Wyrmblood"): at each wielder turn edge, the wielder + allies within this
+    // many Manhattan tiles regen their OWN maxHP/Tuning.WyrmbloodDiv (emulated; the Regen status bit is
+    // unmapped and never touched). 0 = not a regen-splash weapon.
+    [JsonProperty("regenSplashRadius")] public int RegenSplashRadius { get; set; }
 }
 
 internal static class MetaLoader

@@ -32,6 +32,7 @@ internal sealed partial class Engine
     private readonly Maim _maim;
     private readonly Barrage _barrage;
     private readonly LifeSap _lifeSap;
+    private readonly Wyrmblood _wyrmblood;
     private readonly Display _display;
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
@@ -60,6 +61,7 @@ internal sealed partial class Engine
         _maim = new Maim(meta, _kills, _tracker);          // Huntress +3: struck enemies lose reactions N turns
         _barrage = new Barrage(meta, _kills);              // Yoichi +3: grant Barrage command to the wielder
         _lifeSap = new LifeSap(meta, _kills);              // Umbral +3: a kill heals the wielder 25% max HP
+        _wyrmblood = new Wyrmblood(meta, _kills, _turns);  // Dragon Rod +3: turn-edge regen splash (1 tile)
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }
@@ -130,6 +132,7 @@ internal sealed partial class Engine
             _maim.ResetBattle();
             _barrage.ResetBattle();
             _lifeSap.ResetBattle();
+            _wyrmblood.ResetBattle();
             SaveTally();                 // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
@@ -150,6 +153,7 @@ internal sealed partial class Engine
         _ricochet.Tick(onField);              // Stormarc +3: bounce chip to nearest other enemy on damage
         _maim.Tick(onField);                  // Huntress +3: struck enemies lose reactions for N turns
         _lifeSap.Tick();                      // Umbral +3: a kill restores the wielder 25% of max HP
+        _wyrmblood.Tick(onField);             // Dragon Rod +3: wielder turn edge mends self + adjacent allies
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 

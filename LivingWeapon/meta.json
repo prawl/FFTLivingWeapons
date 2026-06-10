@@ -440,7 +440,14 @@
     "wp": 7,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "A rod wielded by a dragon master. Its tip is made from carved dragon bone."
+    "flavor": "A rod wielded by a dragon master. Its tip is made from carved dragon bone.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Wyrmblood",
+      "regenSplashRadius": 1
+    }
   },
   "58": {
     "name": "Rod of Faith",

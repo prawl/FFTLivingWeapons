@@ -1766,7 +1766,15 @@
         0.72,
         0.35,
         0.55
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "sigName": "Wyrmblood",
+        "displayLabel": "Wyrmblood",
+        "regenSplashRadius": 1,
+        "p3Desc": "The wielder regenerates each turn, and the warmth mends adjacent allies.",
+        "note": "At each of the +3 wielder's turn edges (TurnTracker), the wielder AND every ALLY within 1 Manhattan tile heal their OWN maxHP/8 (Tuning.WyrmbloodDiv; the vanilla Regen rate), clamped at full. EMULATED regen -- the Regen status bit is unmapped and never touched; plain guarded HP writes on the authoritative band entries. Allies positively identified (static-array player-slot fingerprints; never enemies); the dead never healed (no accidental revival); one heal per fingerprint per splash (band twins). NAME NOTE: 'Dragonheart' is forbidden -- the game uses it for the Dragoon reaction. RUNTIME: Wyrmblood.cs + Wyrmblood.Policy.cs."
+      }
     },
     {
       "id": 58,

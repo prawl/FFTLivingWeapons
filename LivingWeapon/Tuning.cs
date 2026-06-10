@@ -65,6 +65,10 @@ internal static class Tuning
     /// is credited to the rod (clamped at full; never revives).</summary>
     public const double LifeSapPct = 0.25;
 
+    /// <summary>Wyrmblood (Dragon Rod +3): each splash target mends its OWN maxHP / this divisor
+    /// per wielder turn -- 8 == the vanilla Regen rate.</summary>
+    public const int WyrmbloodDiv = 8;
+
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 

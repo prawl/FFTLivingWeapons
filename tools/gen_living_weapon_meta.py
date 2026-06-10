@@ -78,6 +78,8 @@ def main():
                 entry["signature"]["grantCommandAbilityId"] = int(sig["grantCommandAbilityId"])
             if sig.get("lifeSapOnKill"):  # life sap (Umbral "Life Sap"): a kill heals the wielder
                 entry["signature"]["lifeSapOnKill"] = True
+            if sig.get("regenSplashRadius"):  # wyrmblood (Dragon Rod): turn-edge regen splash to allies
+                entry["signature"]["regenSplashRadius"] = int(sig["regenSplashRadius"])
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")
