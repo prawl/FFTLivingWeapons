@@ -1551,7 +1551,15 @@
         0.0,
         0.0,
         0.7
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "sigName": "Spiritual Font",
+        "displayLabel": "Spiritual Font",
+        "moveAbilityIds": [237, 238],
+        "p3Desc": "Grants Lifefont and Manafont: moving restores the wielder's HP and MP.",
+        "note": "At +3, BOTH movement-ability bits -- Lifefont (237) and Manafont (238) -- are OR-set and HELD on the wielder's combat-struct movement bitfield (+0x9C, base 230, MSB-first: 237 = byte0 0x01, 238 = byte1 0x80), via Signatures.ResolveMovement + OrBit through the GrowthEngine struct walk. Completes the never-run-dry identity: Absorb-MP refuels by poking, the fonts refuel by walking. OPEN LIVE QUESTION: movement is normally exactly-ONE-effective (a Move+N also blocks a font per the grants doc), so whether the engine honors one font or both is unproven -- every hold reads both bits back and dev-logs them (VerboseEvents) so one test battle answers it. RUNTIME: GrowthEngine.Signatures.cs HoldMovementBits."
+      }
     },
     {
       "id": 52,

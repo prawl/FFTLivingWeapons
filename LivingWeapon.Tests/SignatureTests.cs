@@ -132,6 +132,48 @@ public class SignatureTests
         Assert.False(Signatures.ConditionMet(null, hp: 1, maxHp: 100));
     }
 
+    // --- Spiritual Font (Wellspring Rod): movement-bit grants (Lifefont + Manafont) ---
+    // The movement bitfield sits at +0x9C (3 bytes, base id 230, MSB-first -- the same shape
+    // as the support field). Movement is normally exactly-one-effective; OR-setting BOTH font
+    // bits is the open live question the every-hold read-back log answers.
+
+    [Theory]
+    [InlineData(230, 0, 0x80)]   // Move +1: first movement id -> byte 0, top bit
+    [InlineData(237, 0, 0x01)]   // Lifefont
+    [InlineData(238, 1, 0x80)]   // Manafont (crosses into byte 1)
+    [InlineData(242, 1, 0x08)]   // Teleport
+    [InlineData(243, 1, 0x04)]   // Master Teleportation (ability.en key 499)
+    [InlineData(253, 2, 0x01)]   // last id in the 3-byte field
+    public void ResolveMovement_encodes_msb_first(int id, int expectOff, int expectMask)
+    {
+        Assert.True(Signatures.ResolveMovement(id, out int off, out byte mask));
+        Assert.Equal(expectOff, off);
+        Assert.Equal(expectMask, mask);
+    }
+
+    [Theory]
+    [InlineData(229)]   // support band, below the field
+    [InlineData(254)]   // past the 3-byte field
+    public void ResolveMovement_rejects_ids_outside_the_field(int id)
+        => Assert.False(Signatures.ResolveMovement(id, out _, out _));
+
+    [Fact]
+    public void OrBit_sets_the_bit_preserves_neighbors_and_reads_back()
+    {
+        var buf = new byte[16];
+        buf[3] = 0x40;   // a neighboring movement bit the player owns (e.g. Move +2)
+        var h = System.Runtime.InteropServices.GCHandle.Alloc(buf, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
+        {
+            long addr = h.AddrOfPinnedObject().ToInt64() + 3;
+            Assert.True(Signatures.OrBit(addr, 0x01));    // OR-set Lifefont
+            Assert.Equal(0x41, buf[3]);                   // neighbor preserved, bit set
+            Assert.True(Signatures.OrBit(addr, 0x01));    // idempotent re-hold
+            Assert.Equal(0x41, buf[3]);
+        }
+        finally { h.Free(); }
+    }
+
     // --- KillsSlot: left-aligned digits in a fixed 4-char slot ---
 
     [Theory]

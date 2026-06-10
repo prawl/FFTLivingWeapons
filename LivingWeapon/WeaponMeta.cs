@@ -64,6 +64,9 @@ public sealed class WeaponSignature
     // many Manhattan tiles regen their OWN maxHP/Tuning.WyrmbloodDiv (emulated; the Regen status bit is
     // unmapped and never touched). 0 = not a regen-splash weapon.
     [JsonProperty("regenSplashRadius")] public int RegenSplashRadius { get; set; }
+    // SPIRITUAL FONT (Wellspring "Spiritual Font"): movement-ability bits (base 230) OR-set + held on
+    // the wielder at AtTier -- e.g. [237, 238] = Lifefont + Manafont. Empty = no movement grant.
+    [JsonProperty("moveAbilityIds")] public int[] MoveAbilityIds { get; set; } = System.Array.Empty<int>();
 }
 
 internal static class MetaLoader

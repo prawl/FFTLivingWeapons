@@ -84,6 +84,7 @@ internal sealed partial class GrowthEngine
                 if (m.Signature != null && m.Signature.HpBelow > 0)        // only conditional sigs read HP
                     (hp, maxHp) = ReadHp(level, brave, faith);
                 HoldSignature(s, weapon, m.Name, m.Signature, tier, hp, maxHp, pickedSupport);   // iconic passive (+ read-back log)
+                HoldMovementBits(s, weapon, m.Name, m.Signature, tier);    // movement-bit grants (Spiritual Font)
                 if (m.Signature != null && m.Signature.ForTurns > 0)       // timed flat-stat grant
                     HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
                 if (Route(s, m, tier, out long addr, out double factor))

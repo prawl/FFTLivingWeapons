@@ -80,6 +80,8 @@ def main():
                 entry["signature"]["lifeSapOnKill"] = True
             if sig.get("regenSplashRadius"):  # wyrmblood (Dragon Rod): turn-edge regen splash to allies
                 entry["signature"]["regenSplashRadius"] = int(sig["regenSplashRadius"])
+            if sig.get("moveAbilityIds"):  # spiritual font (Wellspring): movement bits OR-set + held
+                entry["signature"]["moveAbilityIds"] = [int(x) for x in sig["moveAbilityIds"]]
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

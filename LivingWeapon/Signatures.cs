@@ -38,6 +38,41 @@ internal static class Signatures
         return true;
     }
 
+    /// <summary>First movement-passive ability id (== bit 0 of the movement bitfield).</summary>
+    public const int MovementBase = 230;
+
+    /// <summary>Width of the movement bitfield in bytes (24 addressable movement ids).</summary>
+    public const int MovementBytes = 3;
+
+    /// <summary>
+    /// Encode a movement-ability id into its (byteOffset, mask) in the 3-byte movement bitfield
+    /// (<see cref="Offsets.CMovement"/> = +0x9C, base id 230, MSB-first -- the same shape as the
+    /// support field). False outside the field. NOTE: unlike supports, movement is normally
+    /// exactly-ONE-effective; OR-setting a pair (Spiritual Font's Lifefont + Manafont) is the
+    /// open live question the every-hold read-back log answers.
+    /// </summary>
+    public static bool ResolveMovement(int abilityId, out int byteOffset, out byte mask)
+    {
+        byteOffset = 0;
+        mask = 0;
+        int pos = abilityId - MovementBase;
+        if (pos < 0 || pos >= MovementBytes * 8) return false;
+        byteOffset = pos / 8;
+        mask = (byte)(0x80 >> (pos % 8));
+        return true;
+    }
+
+    /// <summary>Guarded OR-set of a single bit, returning the read-back (true == the bit reads
+    /// SET afterwards). Never clears anything; fail-safe false on an unwritable page. The
+    /// read-back is the live-test signal for grants whose engine acceptance is unproven.</summary>
+    public static bool OrBit(long addr, byte mask)
+    {
+        if (!Mem.Writable(addr, 1)) return false;
+        int cur = Mem.U8(addr);
+        if ((cur & mask) == 0) Mem.W8(addr, (byte)(cur | mask));
+        return (Mem.U8(addr) & mask) != 0;
+    }
+
     /// <summary>Supports that a LIVE-set bit can't actually grant: their effect is baked at battle
     /// build, not re-read from the bitfield each calculation. HP Boost / MP Boost change a derived
     /// stat (max HP/MP) computed once at build; Doublehand / Dual Wield are equip-time (how the unit

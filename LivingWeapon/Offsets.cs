@@ -83,6 +83,7 @@ internal static class Offsets
     // (3 bytes, base 230); MSB-first. Signatures only ever touch SUPPORT (stacks, no slot hijack).
     public const int CReaction = 0x94;   // 4 bytes; Maim zeroes this to suppress Counter etc.
     public const int CSupport = 0x98;
+    public const int CMovement = 0x9C;   // 3 bytes, base id 230; Spiritual Font OR-sets font bits here
 
     // --- auth band: LIVE unit data (the static array freezes on battle restart; the band stays live).
     //     Entry layout matches the static-array A* offsets. BandEntry = unit-copy offset inside
