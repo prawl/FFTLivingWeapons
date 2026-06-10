@@ -96,6 +96,7 @@ internal sealed partial class SpiritualFont
             long pe = Wielder.Locate(Live, WellspringId, _hands, fp);
             Log.Info($"font: DEV PULSE {(pe == 0 ? "-> wielder UNLOCATED" : "-> forced replenish")}");
             if (pe != 0) Replenish(pe, 0);
+            else Wielder.DumpCandidates(Live, _hands, fp);   // name the rejecting predicate
         }
 
         bool isIn = _tracker.LastPlayerWeapons.Contains(WellspringId);

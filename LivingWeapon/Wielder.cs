@@ -73,4 +73,20 @@ internal static class Wielder
         for (int i = 0; i < hands.Count; i++) if (hands[i] == wid) return true;
         return false;
     }
+
+    /// <summary>DEV diagnostic: when Locate misses, dump every valid band entry's locate-relevant
+    /// fields next to what was wanted -- one log read names the rejecting predicate (weapon field
+    /// content, brave/faith mismatch, or the twin filter). Dev-pulse callers only.</summary>
+    public static void DumpCandidates(IGameMemory mem, IReadOnlyList<int> hands, (int lvl, int br, int fa) fp)
+    {
+        Log.Info($"locate-miss: want wid in [{string.Join(",", hands)}] br={fp.br} fa={fp.fa}");
+        for (int s = 0; s < Offsets.BandSlots; s++)
+        {
+            long e = Band.Entry(s);
+            if (!Band.IsValid(mem, e)) continue;
+            Log.Info($"  cand slot {s}: wid={mem.U16(e + EntryWeapon)} lvl={mem.U8(e + Offsets.ALevel)} " +
+                     $"br={mem.U8(e + Offsets.ABrave)} fa={mem.U8(e + Offsets.AFaith)} " +
+                     $"pos=({mem.U8(e + Offsets.AGx)},{mem.U8(e + Offsets.AGy)})");
+        }
+    }
 }
