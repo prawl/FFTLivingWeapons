@@ -686,7 +686,14 @@
     "wp": 12,
     "cat": "Bow",
     "formula": 1,
-    "flavor": "The bow of a legendary archer. Its great size allows it to generate incredible power."
+    "flavor": "The bow of a legendary archer. Its great size allows it to generate incredible power.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Barrage",
+      "grantCommandAbilityId": 358
+    }
   },
   "91": {
     "name": "Perseus Bow",

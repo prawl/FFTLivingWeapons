@@ -2754,6 +2754,14 @@
         "formula": 1,
         "range": 7,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      },
+      "signature": {
+        "atTier": 3,
+        "sigName": "Barrage",
+        "displayLabel": "Barrage",
+        "grantCommandAbilityId": 358,
+        "p3Desc": "Grants its master the Barrage command: a volley of arrows.",
+        "note": "While a +3 Yoichi Bow wielder exists, ability 358 (Barrage, 4-arrow volley at half damage) is injected into their current job's JobCommand record. Table rebuilds at boot -- re-asserted each tick (idempotent). Original 25-byte record (flags+abilities+RSM) saved ONCE and restored on grant end. Learned bit set permanently (bow teaches): roster +0x32+jobIdx*3 slot10 = byte1 0x40. Blank name (desc UNUSED) -- vanilla 1200 JP in the learn screen while injected. NEEDS-LIVE-VERIFY: (1) generic-job rec index mapping (Ramza job3->rec27 proven; others need barrage_probe.py dump); (2) learned-bit jobIdx == job id assumed (learned_probe.py is oracle). RUNTIME: Barrage.cs + Barrage.Policy.cs."
       }
     },
     {
