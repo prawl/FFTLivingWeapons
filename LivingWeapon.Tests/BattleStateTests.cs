@@ -36,14 +36,19 @@ public class BattleStateTests
 
     // --- IsRealEvent (pure) boundary ---
 
+    // OLD contract (1..399 band) was guesswork; live log on 2026-06-10 showed event 401 during
+    // a mid-battle story dialogue. Real exits read eventId=0xFFFF (65535). Contract: any nonzero
+    // id except 0xFFFF is a real event that suspends the exit timer.
     [Theory]
-    [InlineData(0, false)]        // no event
-    [InlineData(0xFFFF, false)]   // the nameId-alias sentinel, not a real event
+    [InlineData(0, false)]        // no event -- excluded, unknown semantics
+    [InlineData(0xFFFF, false)]   // the 0xFFFF sentinel seen on real battle exits; not a real event
     [InlineData(1, true)]         // first real event id
-    [InlineData(399, true)]       // last real event id
-    [InlineData(400, false)]      // just past the band
+    [InlineData(399, true)]       // previously-last real event id (still valid)
+    [InlineData(400, true)]       // old band boundary -- now also a real event (live bug fix)
+    [InlineData(401, true)]       // live-confirmed event id (2026-06-10 log, event during mid-battle dialogue)
+    [InlineData(65000, true)]     // high id also suspends (old band excluded it, new contract includes it)
     [InlineData(302, true)]       // a story-dialogue id
-    public void IsRealEvent_band_is_1_to_399_excluding_nameId_alias(int e, bool expected)
+    public void IsRealEvent_any_nonzero_non_sentinel_id_suspends_exit_timer(int e, bool expected)
         => Assert.Equal(expected, BattleState.IsRealEvent(e));
 
     // --- Enter edges ---
@@ -144,6 +149,96 @@ public class BattleStateTests
             Assert.True(bs.In);
         }
     }
+
+    // Regression: 2026-06-10 live log -- event 401 fired mid-battle; battleMode read 0 for ~4.7s;
+    // the old 1..399 band did NOT treat 401 as a real event so the exit timer ran and KillTracker
+    // was reset mid-fight, losing a credited kill.
+    [Fact]
+    public void Mid_battle_event_401_suspends_exit_timer_and_does_not_reset_kill_tracker()
+    {
+        // Replay: enter (slot0=0xFF slot9=0xFFFFFFFF mode=1, using mode=2 for enter signal);
+        // feed > ExitDebounceSeconds of mode=0 ticks with eventId=401 -> no Exited edge;
+        // then a live tick -> still In; then mode=0 with eventId=0xFFFF (real exit sentinel)
+        // sustained > debounce -> Exited fires.
+        var bs = new BattleState();
+        var t = T0;
+
+        // Enter (mode=2 is the clearest enter signal matching live state "mode=1" -> debounce is
+        // already in, but mode=2 fires Entered immediately per EnterSignal contract).
+        var edge = bs.Step(0xFF, 0xFFFFFFFF, 2, paused: false, eventId: 0, now: t);
+        Assert.Equal(BattleEdge.Entered, edge);
+        Assert.True(bs.In);
+
+        // ~4.7s of out-of-live with eventId=401 -- must NOT fire Exited.
+        double elapsed = 0;
+        while (elapsed < ExitDebounceSeconds_TestConst + 0.7)
+        {
+            t = t.AddMilliseconds(33);
+            elapsed += 0.033;
+            edge = bs.Step(slot0: 0x66, slot9: 0xFFFFFFFF, battleMode: 0,
+                           paused: false, eventId: 401, now: t);
+            Assert.NotEqual(BattleEdge.Exited, edge);
+            Assert.True(bs.In);
+        }
+
+        // Live tick returns (mode=2) -> still In, accumulator cleared.
+        t = t.AddMilliseconds(33);
+        edge = bs.Step(0x66, 0xFFFFFFFF, battleMode: 2, paused: false, eventId: 0, now: t);
+        Assert.NotEqual(BattleEdge.Exited, edge);
+        Assert.True(bs.In);
+
+        // Real exit: mode=0, eventId=0xFFFF (sentinel seen on every real exit in the log).
+        // Sustain past debounce -> Exited fires.
+        BattleEdge exitEdge = BattleEdge.None;
+        for (int i = 0; i < 200 && exitEdge != BattleEdge.Exited; i++)
+        {
+            t = t.AddMilliseconds(33);
+            exitEdge = bs.Step(0x66, 0xFFFFFFFF, battleMode: 0,
+                               paused: false, eventId: 0xFFFF, now: t);
+        }
+        Assert.Equal(BattleEdge.Exited, exitEdge);
+        Assert.False(bs.In);
+    }
+
+    // eventId 0 does NOT suspend -- zero has unknown semantics and the old behavior is preserved.
+    [Fact]
+    public void EventId_zero_does_not_suspend_exit_timer()
+    {
+        var bs = new BattleState();
+        var t = T0;
+        bs.Step(0, 0, 2, false, 0, t);   // enter
+        BattleEdge exitEdge = BattleEdge.None;
+        for (int i = 0; i < 200 && exitEdge != BattleEdge.Exited; i++)
+        {
+            t = t.AddMilliseconds(33);
+            exitEdge = bs.Step(0, 0, battleMode: 0, paused: false, eventId: 0, now: t);
+        }
+        Assert.Equal(BattleEdge.Exited, exitEdge);
+        Assert.False(bs.In);
+    }
+
+    // Ids 400 and 65000 were excluded by the old band but must now suspend.
+    [Theory]
+    [InlineData(400)]
+    [InlineData(65000)]
+    public void EventIds_above_old_band_also_suspend_exit_timer(int eventId)
+    {
+        var bs = new BattleState();
+        var t = T0;
+        bs.Step(0, 0, 2, false, 0, t);   // enter
+        double elapsed = 0;
+        while (elapsed < ExitDebounceSeconds_TestConst + 0.5)
+        {
+            t = t.AddMilliseconds(33);
+            elapsed += 0.033;
+            var edge = bs.Step(0, 0, battleMode: 0, paused: false, eventId: eventId, now: t);
+            Assert.NotEqual(BattleEdge.Exited, edge);
+            Assert.True(bs.In);
+        }
+    }
+
+    // Constant mirrors BattleState.ExitDebounceSeconds to keep loop bounds correct if the value changes.
+    private const double ExitDebounceSeconds_TestConst = BattleState.ExitDebounceSeconds;
 
     // --- Exit fires on sustained world map ---
 

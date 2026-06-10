@@ -67,7 +67,7 @@ internal sealed partial class GrowthEngine
             (drop ??= new()).Add((slot, weapon));
             if (Mem.U8(v.s + Offsets.CBrave) != v.brave || Mem.U8(v.s + Offsets.CFaith) != v.faith) continue;
             if (Signatures.ClearBit(v.s + Offsets.CSupport + v.off, v.mask))
-                Log.Info($"GRANT released: weapon {weapon} left roster {slot}'s hands -> support {v.abilityId} bit cleared");
+                Log.Info($"GRANT released: {LogNames.Weapon(weapon)} was unequipped from party slot {slot} -- {v.abilityId} support bit cleared");
         }
         if (drop is not null)
             foreach (var k in drop) { _heldSupports.Remove(k); _grantLogged.Remove(k.weapon); }   // re-equip re-announces
@@ -88,7 +88,7 @@ internal sealed partial class GrowthEngine
             : "";
         Log.Info($"GRANT {name} -> {sig.DisplayLabel} (support {sig.AbilityId}) @ +0x98[{off}]=0x{mask:X2} readback={(present ? "SET" : "MISS")}{warn}");
         if (pickedSupport != 0 && pickedSupport == sig.AbilityId)
-            Log.Info($"note: wielder already equips {sig.DisplayLabel} -- the weapon grant adds nothing (pick a different support)");
+            Log.Info($"note: wielder already has {sig.DisplayLabel} equipped as their chosen support -- the weapon grant adds nothing (pick a different support)");
     }
 
     /// <summary>Read a unit's (currentHP, maxHP) from the BAND by its (level,brave,faith)

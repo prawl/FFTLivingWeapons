@@ -59,7 +59,7 @@ internal sealed partial class Maim
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"maim {(active ? "ACTIVE (Huntress acting)" : "inactive")}");
+            Log.Info($"maim {(active ? "ACTIVE -- Huntress wielder is acting, next hit will suppress enemy reactions" : "inactive")}");
         }
 
         int crippleTurns = m.Signature.CrippleTurns;
@@ -96,13 +96,13 @@ internal sealed partial class Maim
                 // First hit: read the LIVE reaction before we zero it.
                 uint saved = ReadReactionField(addr);
                 _state.Latch(addr, fp, saved);
-                Log.Info($"maim: latched slot {s} mhp {mhp} saved reaction=0x{saved:X8}");
+                Log.Info($"maim: struck enemy ({mhp} max HP) loses reaction abilities for {crippleTurns} of its turns (saved reaction field 0x{saved:X8})");
             }
             else
             {
                 // Re-hit: refresh the window (reset turn counter), keep saved bytes intact.
                 _state.Refresh(fp);
-                Log.Info($"maim: refreshed slot {s} mhp {mhp}");
+                Log.Info($"maim: hit an already-Maimed enemy ({mhp} max HP) -- turn window refreshed");
             }
         }
 
@@ -136,7 +136,7 @@ internal sealed partial class Maim
             uint saved = _state.SavedReaction(fp).GetValueOrDefault();
             Restore(addr, saved);
             _state.Release(fp);
-            Log.Info($"maim: expired mhp {fp.mhp} after {crippleTurns} turns; restored reaction=0x{saved:X8}");
+            Log.Info($"maim: suppression lifted on enemy ({fp.mhp} max HP) after {crippleTurns} turns -- reaction abilities restored (0x{saved:X8})");
         }
     }
 

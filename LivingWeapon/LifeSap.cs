@@ -45,7 +45,7 @@ internal sealed partial class LifeSap
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"life-sap {(active ? "ACTIVE (+3 Umbral Rod wielded)" : "inactive")}");
+            Log.Info($"life-sap {(active ? "ACTIVE -- Umbral Rod at +3 is wielded, kills will restore HP" : "inactive")}");
         }
         if (!active) { _lastCount = count; return; }   // keep primed: an inactive-window kill never fires later
 
@@ -54,12 +54,12 @@ internal sealed partial class LifeSap
         if (!fresh) return;
 
         long e = Wielder.Locate(Live, UmbralId, _hands, fp);
-        if (e == 0) { Log.Info("life-sap: kill but wielder unlocated -> no heal"); return; }
+        if (e == 0) { Log.Info("life-sap: kill scored but wielder could not be located this tick -- heal skipped"); return; }
         int hp = Live.U16(e + Offsets.AHp), maxHp = Live.U16(e + Offsets.AMaxHp);
         int heal = HealAmount(maxHp, Tuning.LifeSapPct);
         int newHp = NewHp(hp, maxHp, heal);
-        if (newHp == hp) { Log.Info($"life-sap: kill, nothing to heal (hp {hp}/{maxHp})"); return; }
+        if (newHp == hp) { Log.Info($"life-sap: kill scored but wielder is already at full HP ({hp}/{maxHp}) -- no heal needed"); return; }
         WriteHp(e, newHp);
-        Log.Info($"life-sap: kill -> wielder hp {hp} -> {newHp} (+{newHp - hp} of max {maxHp})");
+        Log.Info($"life-sap: kill restored {newHp - hp} HP to the wielder (25% of max) -- HP {hp}->{newHp} (max {maxHp})");
     }
 }

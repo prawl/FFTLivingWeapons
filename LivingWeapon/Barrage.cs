@@ -98,7 +98,7 @@ internal sealed partial class Barrage
         bool nowActive = wielderSlot >= 0;
         if (!nowActive)
         {
-            if (_wasActive) Log.Info("barrage inactive");
+            if (_wasActive) Log.Info("barrage: Barrage signature no longer active -- no Yoichi Bow wielder with required kills");
             _wasActive = false;
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             return;
@@ -111,7 +111,7 @@ internal sealed partial class Barrage
             if (_lastUnsupportedJob != wielderJob)
             {
                 _lastUnsupportedJob = wielderJob;
-                Log.Info($"barrage: job {wielderJob} sec {wielderSecondary} ungrantable (special-executor/story-unique/monster) -> no grant");
+                Log.Info($"barrage: {LogNames.Job(wielderJob)} (job {wielderJob}) cannot receive Barrage -- job uses a special command executor or is story-unique; no grant (secondary record {wielderSecondary})");
             }
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             _wasActive = false;
@@ -121,7 +121,7 @@ internal sealed partial class Barrage
         if (!_wasActive)
         {
             _wasActive = true;
-            Log.Info($"barrage ACTIVE (Yoichi slot {wielderSlot} job {wielderJob} -> rec {recId} jobIdx {jobIdx}{(viaSecondary ? " via secondary" : "")})");
+            Log.Info($"barrage: ACTIVE -- party slot {wielderSlot} wields Yoichi Bow as a {LogNames.Job(wielderJob)}, Barrage added to the {LogNames.Job(wielderJob)} command list (job {wielderJob}, record {recId}, learn-index {jobIdx}{(viaSecondary ? ", via secondary command" : "")})");
         }
 
         // Job changed mid-session: restore the old record and re-inject for the new job.
@@ -136,14 +136,14 @@ internal sealed partial class Barrage
         long abBase = AbilityBase + (long)recId * RecSize;
 
         // Sane-bounds check before ANY write.
-        if (!Mem.Readable(flagAddr, RecSize)) { Log.Info($"barrage: rec {recId} not readable, no-op"); return; }
+        if (!Mem.Readable(flagAddr, RecSize)) { Log.Info($"barrage: command record {recId} is not readable in memory yet -- skipping this tick"); return; }
 
         // Save the original record ONCE (never-re-save while injected).
         if (!_state.HasSaved(recId))
         {
             byte[] original = Mem.ReadBytes(flagAddr, RecSize);
             _state.Save(recId, original);
-            Log.Info($"barrage: saved original rec {recId}");
+            Log.Info($"barrage: saved original {LogNames.Job(wielderJob)} command list before injecting Barrage (record {recId})");
         }
 
         // Find or verify the injection slot.
@@ -155,10 +155,10 @@ internal sealed partial class Barrage
             var ab = new byte[AbilityCount];
             for (int i = 0; i < AbilityCount; i++) ab[i] = buf[FlagPrefixSize + i];
             int slot1 = FindEmptySlot(ab, extAb);
-            if (slot1 < 0) { Log.Info($"barrage: no empty slot in rec {recId}"); return; }
+            if (slot1 < 0) { Log.Info($"barrage: no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}) -- cannot inject Barrage"); return; }
             slotIdx = slot1 - 1;   // convert to 0-indexed
             _state.SlotIdx = slotIdx;
-            Log.Info($"barrage: picked slot {slot1} (idx {slotIdx}) in rec {recId}");
+            Log.Info($"barrage: picked ability slot {slot1} in the {LogNames.Job(wielderJob)} command list (slot index {slotIdx}, record {recId})");
         }
 
         // Idempotent inject: only write when the slot is not already correct.
@@ -180,7 +180,7 @@ internal sealed partial class Barrage
         long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
         if (!Mem.Writable(flagAddr, RecSize)) return;
         RestoreRecord(flagAddr, saved);
-        Log.Info($"barrage: restored rec {recId}");
+        Log.Info($"barrage: removed Barrage from the command list, back to vanilla (record {recId})");
     }
 
     /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
@@ -196,6 +196,6 @@ internal sealed partial class Barrage
         if ((cur & mask) != 0) return;   // already set -> no write needed
         if (!Mem.Writable(addr, 1)) return;
         Mem.W8(addr, (byte)(cur | mask));
-        Log.Info($"barrage: learned bit held (rosterSlot {rosterSlot} jobIdx {jobIdx} slot {slotIdx1})");
+        Log.Info($"barrage: re-set the learned flag for Barrage in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1}) -- menu write-back cleared it");
     }
 }

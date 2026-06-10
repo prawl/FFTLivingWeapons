@@ -40,6 +40,16 @@ internal static class Mem
         return ReadProcessMemory(Self, (nint)a, buf, (nuint)n, out var got) && (int)got == n;
     }
 
+    /// <summary>
+    /// ReadProcessMemory into a caller-managed buffer. Returns n on a full read, else 0.
+    /// Guards n <= buf.Length; an undersized buffer returns 0 (no allocation, no exception).
+    /// </summary>
+    public static int ReadInto(long a, byte[] buf, int n)
+    {
+        if (n > buf.Length) return 0;
+        return ReadProcessMemory(Self, (nint)a, buf, (nuint)n, out var got) && (int)got == n ? n : 0;
+    }
+
     /// <summary>Best-effort write; a failed write (freed page) is a safe no-op, never a fault.</summary>
     public static void WriteBytes(long a, byte[] data)
         => WriteProcessMemory(Self, (nint)a, data, (nuint)data.Length, out _);

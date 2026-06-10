@@ -55,7 +55,7 @@ internal sealed partial class Ricochet
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"ricochet {(active ? "ACTIVE (Stormarc acting)" : "inactive")}");
+            Log.Info($"ricochet {(active ? "ACTIVE -- Stormarc wielder is acting, chain lightning ready to bounce" : "inactive")}");
         }
 
         var enemyFps = active ? EnemyFingerprints() : null;
@@ -98,7 +98,7 @@ internal sealed partial class Ricochet
             ApplyChip(tAddr, tHp, chip);
             int newHp = ClampHp(tHp, chip);
             _state.Consume(target, newHp);   // our write is NOT a damage event (no chains)
-            Log.Info($"ricochet: {dmg} dmg on slot {vs} ({gx},{gy}) -> chip {chip} to slot {target} hp {tHp}->{newHp}");
+            Log.Info($"ricochet: chip damage bounced to the nearest other enemy -- {chip} damage dealt (source hit was {dmg}, target HP {tHp}->{newHp})");
         }
     }
 

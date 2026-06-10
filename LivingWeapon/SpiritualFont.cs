@@ -82,7 +82,7 @@ internal sealed partial class SpiritualFont
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"font {(active ? "ACTIVE (+3 Umbral Rod wielded)" : "inactive")}");
+            Log.Info($"font {(active ? "ACTIVE -- Umbral Rod at +3 is wielded, move-triggered HP/MP restore is enabled" : "inactive")}");
         }
         if (!active)
         {
@@ -99,7 +99,7 @@ internal sealed partial class SpiritualFont
             _pulseTicks = 0;
             _locateAllBuf.Clear();
             Wielder.LocateAll(Live, UmbralId, _hands, fp, _locateAllBuf);
-            Log.Info($"font: DEV PULSE {(_locateAllBuf.Count == 0 ? "-> wielder UNLOCATED" : "-> forced replenish")}");
+            Log.Info($"font: DEV PULSE -- {(_locateAllBuf.Count == 0 ? "wielder could not be located" : "forcing a replenish to verify HP/MP writes")}");
             if (_locateAllBuf.Count > 0) ReplenishAll(_locateAllBuf, 0);
             else Wielder.DumpCandidates(Live, _hands, fp);   // name the rejecting predicate
         }
@@ -110,18 +110,18 @@ internal sealed partial class SpiritualFont
         if (nowLocated != _wasLocated)
         {
             _wasLocated = nowLocated;
-            Log.Info($"font: wielder {(_wasLocated ? "located" : "UNLOCATED (tick skipped)")}");
+            Log.Info($"font: wielder {(_wasLocated ? "located in memory -- tracking position" : "not found this tick -- skipping")}");
         }
         if (_locateAllBuf.Count == 0) return;   // unlocated: skip; MoveWatch keeps its baseline
 
         long e = _locateAllBuf[0];   // read position from the first entry (live or frozen -- same tile)
         int gx = Live.U8(e + Offsets.AGx), gy = Live.U8(e + Offsets.AGy);
         bool fire = _watch.Observe(gx, gy);
-        if (_watch.IsFresh) Log.Info($"font: position baseline ({gx},{gy})");   // first sighting log
+        if (_watch.IsFresh) Log.Info($"font: position baseline set -- wielder is at ({gx},{gy}), watching for movement");   // first sighting log
         if (!fire) return;
 
         _moveCount++;
-        Log.Info($"font: moved -> firing move #{_moveCount} at ({gx},{gy})");
+        Log.Info($"font: wielder moved to a new tile ({gx},{gy}) -- triggering HP/MP restore (move #{_moveCount} this battle)");
         ReplenishAll(_locateAllBuf, _moveCount);
     }
 
@@ -135,15 +135,15 @@ internal sealed partial class SpiritualFont
         long first = entries[0];
         int hp = Live.U16(first + Offsets.AHp), maxHp = Live.U16(first + Offsets.AMaxHp);
         int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
-        Log.Info($"font: move #{move} hp {hp} -> {newHp} (max {maxHp}) twins={entries.Count}");
+        Log.Info($"font: move #{move} -- restored HP {hp}->{newHp} (max {maxHp}, {entries.Count} band entries updated)");
         foreach (long ent in entries) if (newHp != hp) LifeSap.WriteHp(ent, newHp);
         if (!MpHalfAllowed(hp, _mpOk)) return;   // layout unproven OR a dead wielder: no MP write
         int mp = Live.U16(first + Offsets.AMp), maxMp = Live.U16(first + Offsets.AMaxMp);
         int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
-        if (newMp == mp) { Log.Info($"font: mp full ({mp}/{maxMp})"); return; }
+        if (newMp == mp) { Log.Info($"font: MP already full ({mp}/{maxMp}) -- no MP restore needed"); return; }
         foreach (long ent in entries) WriteMp(ent, newMp);
         bool landed = Live.U16(first + Offsets.AMp) == newMp;   // read-back on first entry only
-        Log.Info($"font: mp {mp} -> {newMp} (max {maxMp}) readback={(landed ? "SET" : "MISS")}");
+        Log.Info($"font: restored MP {mp}->{newMp} (max {maxMp}) {(landed ? "(write verified)" : "(write did NOT stick)")}");
     }
 
     /// <summary>The per-battle gate on the provisional MP offsets: sample every valid band unit's
@@ -161,7 +161,7 @@ internal sealed partial class SpiritualFont
         if (samples.Count < 2) return;   // band not populated yet -- validate on a later tick
         _mpChecked = true;
         _mpOk = MpLayoutOk(samples);
-        Log.Info(_mpOk ? $"font: MP layout OK ({samples.Count} units)"
-                       : "font: MP layout validation FAILED - HP-only this battle");
+        Log.Info(_mpOk ? $"font: MP field layout verified across {samples.Count} units -- MP restores enabled this battle"
+                       : "font: MP field layout check failed -- HP-only restores for this battle");
     }
 }

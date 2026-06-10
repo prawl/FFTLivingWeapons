@@ -50,7 +50,7 @@ internal sealed partial class Engine
         if (Tuning.DevSeedAllKills)   // DEV build: every weapon starts at max tier for fast verification
         {
             Tuning.SeedKills(meta.Keys, _kills, Tuning.DevKillSeed);
-            Log.Info($"DEV: seeded {meta.Count} weapons to >= {Tuning.DevKillSeed} kills (one kill from P3).");
+            Log.Info($"DEV: force-seeded all {meta.Count} weapons to at least {Tuning.DevKillSeed} kills -- every weapon starts with +3 effects active for fast testing.");
         }
         _turns = new TurnTracker(new LiveMemory());
         _tracker = new KillTracker(_kills, new LiveMemory(), new HashSet<int>(meta.Keys),
@@ -66,8 +66,9 @@ internal sealed partial class Engine
         _wyrmblood = new Wyrmblood(meta, _kills, _turns);  // Dragon Rod +3: turn-edge regen splash (1 tile)
         _rapture = new Rapture(meta, _kills, _turns);      // Rod of Faith +3: low-HP Master Teleportation window
         _font = new SpiritualFont(meta, _kills, _tracker);  // Wellspring +3: a moved action restores HP and MP
-        _display = new Display(meta, _kills);
-        Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
+        _display = new Display(meta, _kills, new LiveMemory());
+        LogNames.Init(meta);
+        Log.Info($"loaded {meta.Count} weapon types; {Sum(_kills)} total kills in the tally.");
     }
 
     public void Start()
@@ -113,7 +114,7 @@ internal sealed partial class Engine
         // lock the moment the player dwells on a target. Goes quiet only on the post-battle world map.
         if (CharmLock.InLiveBattle(slot0, battleMode)) _charm.Heartbeat(now);
         if (edge == BattleEdge.Entered)
-            Log.Info($"battle: enter slot0={slot0:X} slot9={slot9:X} mode={battleMode}");
+            Log.Info($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
 
         // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.
         // Open status card = paused submenu in the action-menu context (battleMode 3).
@@ -125,7 +126,7 @@ internal sealed partial class Engine
 
         if (edge == BattleEdge.Exited)
         {
-            Log.Info($"battle: exit slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId}");
+            Log.Info($"battle: ended -- saving kill tally, resetting battle trackers (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
             _tracker.ResetBattle();
             _turns.ResetBattle();
             _growth.ResetBattle();
@@ -147,7 +148,7 @@ internal sealed partial class Engine
         _barrage.Tick();
         if (!nowIn)
         {
-            _display.Tick();   // out of battle (slot9 cleared): keep the equip card painted
+            _display.Tick(false);   // out of battle (slot9 cleared): keep the equip card painted
             return;
         }
 
@@ -170,6 +171,6 @@ internal sealed partial class Engine
         // RPM/WPM make the scan/paint fail-safe, so doing this in a churny menu can't crash;
         // the settle window just avoids needless work during a mid-combat battleMode flicker.
         if (battleStatus || (!onField && (now - _lastField).TotalSeconds > FieldSettleSeconds))
-            _display.Tick();
+            _display.Tick(true);
     }
 }

@@ -43,12 +43,12 @@ internal sealed class BattleLog
         {
             int d = hp - _hp[slot];
             string tag = actor.Length > 0 ? $" [w:{actor}]" : "";
-            _sink($"ev: {(d < 0 ? "dmg" : "heal")} {Math.Abs(d)} slot {slot} ({gx},{gy}) hp {_hp[slot]}->{hp}/{maxHp}{tag}");
+            _sink($"ev: {(d < 0 ? "dmg" : "heal")} {Math.Abs(d)} -- battle slot {slot} at ({gx},{gy}) hp {_hp[slot]}->{hp}/{maxHp}{tag}");
             _hp[slot] = hp;
         }
         if (gx != _gx[slot] || gy != _gy[slot])
         {
-            _sink($"ev: move slot {slot} ({_gx[slot]},{_gy[slot]})->({gx},{gy})");
+            _sink($"ev: move -- battle slot {slot} ({_gx[slot]},{_gy[slot]})->({gx},{gy})");
             _gx[slot] = gx; _gy[slot] = gy;
         }
     }

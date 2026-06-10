@@ -34,10 +34,16 @@ internal sealed class BattleState
         (slot0 == 0xFF && slot9 == 0xFFFFFFFF) || battleMode == 2 || battleMode == 4
         || (battleMode == 3 && slot0 == 0xFF);
 
-    /// <summary>A real story event/cutscene (FFTHandsFree ScreenDetectionLogic): the EventId field
-    /// aliases as the active unit's nameId during combat, so only the 1..399 band -- excluding the
-    /// 0xFFFF nameId-alias sentinel -- counts as a dialogue/cutscene that should suspend the exit timer.</summary>
-    internal static bool IsRealEvent(int e) => e >= 1 && e < 400 && e != 0xFFFF;
+    /// <summary>A real story event/cutscene suspends the exit timer. Contract: any nonzero id except
+    /// 0xFFFF is a real event. The 0xFFFF sentinel is present on every confirmed real battle exit
+    /// (log 2026-06-10: both exits show event=65535); it is NOT a story event. Zero is excluded --
+    /// unknown semantics, preserves existing behavior. The old 1..399 band was guesswork: live
+    /// evidence on 2026-06-10 showed event 401 mid-battle -- with NO visible dialogue, so some
+    /// special screen or animation carries it -- defeating the band, faking an exit, and dropping
+    /// a kill credit. The nameId alias only occurs DURING combat (in-live), which already zeroes
+    /// the accumulator before the event check, so any out-of-live nonzero id that reaches here is
+    /// a genuine event screen of some kind.</summary>
+    internal static bool IsRealEvent(int e) => e >= 1 && e != 0xFFFF;
 
     /// <summary>Step once per engine tick with raw reads; returns the edge that fired this tick.</summary>
     public BattleEdge Step(uint slot0, uint slot9, int battleMode, bool paused, int eventId, DateTime now)

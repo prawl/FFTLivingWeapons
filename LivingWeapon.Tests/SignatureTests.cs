@@ -275,4 +275,23 @@ public class SignatureTests
         foreach (int n in new[] { 0, 1, 9, 10, 99, 100, 999, 1000, 9999, 10000 })
             Assert.Equal(4, Signatures.KillsSlot(n).Length);
     }
+
+    // B3: a corrupt kills.json can produce negative counts. The modulo of a negative in C#
+    // is also negative (-1 % 10000 == -1), producing a result with length > 4 which breaks
+    // the fixed-width invariant. Clamp to non-negative before the modulo.
+
+    [Theory]
+    [InlineData(-1,     "0   ")]   // -1 clamps to 0
+    [InlineData(-12345, "0   ")]   // any negative -> "0   "
+    public void KillsSlot_negative_clamps_to_zero(int count, string expected)
+    {
+        Assert.Equal(expected, Signatures.KillsSlot(count));
+    }
+
+    [Fact]
+    public void KillsSlot_negative_is_always_4_chars()
+    {
+        foreach (int n in new[] { -1, -9, -99, -999, -9999, -10000, -12345 })
+            Assert.Equal(4, Signatures.KillsSlot(n).Length);
+    }
 }

@@ -58,7 +58,7 @@ internal sealed partial class CharmLock
         if ((lockTurns > 0) != _wasActive)
         {
             _wasActive = lockTurns > 0;
-            Log.Info($"charm-lock {(_wasActive ? "ACTIVE (+3 Galewind equipped)" : "inactive")}");
+            Log.Info($"charm-lock {(_wasActive ? "ACTIVE -- Galewind at +3 is equipped, charm holds are now unbreakable" : "inactive")}");
         }
         if (lockTurns > 0 && _tick++ % 6 == 0) Detect();   // band scan is heavy -> ~every 200ms
         Drive(lockTurns);                                   // hold/clear every tick (beats on-hit clear)
@@ -70,7 +70,7 @@ internal sealed partial class CharmLock
         _lock = null;
         _tick = 0;
         _dbg = 0;
-        if (_wasActive) { _wasActive = false; Log.Info("charm-lock inactive (battle ended -- heartbeat lapsed)"); }
+        if (_wasActive) { _wasActive = false; Log.Info("charm-lock: inactive -- battle ended, lock released"); }
     }
 
     /// <summary>charmLockTurns if a +3 Galewind is equipped by any roster unit, else 0.</summary>
@@ -143,7 +143,7 @@ internal sealed partial class CharmLock
         long addr = 0;
         foreach (var c in charmed) if (c.fp.Equals(target)) { addr = c.addr; break; }
         _lock = (addr, target, 0, Mem.U8(addr + CtOff));
-        Log.Info($"charm-lock armed: mhp {target.mhp} lvl {target.lvl} @ {addr:X}{(dropPrevious ? " (dropped previous)" : "")}");
+        Log.Info($"charm-lock: holding Charm on the level-{target.lvl} enemy ({target.mhp} max HP) so it cannot break early (struct at 0x{addr:X}){(dropPrevious ? " -- dropped previous lock" : "")}");
     }
 
     /// <summary>Real enemy fingerprints from the static array; filters phantoms (level 0 / garbage).</summary>
@@ -170,11 +170,11 @@ internal sealed partial class CharmLock
         if (!Valid(L.addr, L.fp)) { _lock = null; return; }   // copy moved/freed -> re-detect later
         int ct = Mem.U8(L.addr + CtOff);
         int counted = L.counted + (IsTurn(L.lastCt, ct) ? 1 : 0);
-        if (_dbg++ % 20 == 0) Log.Info($"charm-lock mhp {L.fp.mhp}: CT {ct} turns {counted}/{lockTurns}");
+        if (_dbg++ % 20 == 0) Log.Info($"charm-lock: locked enemy ({L.fp.mhp} max HP) -- holding for {counted}/{lockTurns} of its turns (CT {ct})");
         bool hold = lockTurns > 0 && counted < lockTurns;
         SetCharm(L.addr, hold);
         if (hold) _lock = (L.addr, L.fp, counted, ct);
-        else { _lock = null; Log.Info($"charm-lock cleared: mhp {L.fp.mhp} after {counted} turns"); }
+        else { _lock = null; Log.Info($"charm-lock: Charm expired on the enemy ({L.fp.mhp} max HP) after {counted} turns -- lock released"); }
     }
 
     private static bool Valid(long b, (int mhp, int lvl, int br, int fa) fp)

@@ -42,7 +42,7 @@ internal sealed class TurnTracker
         {
             int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
             _turns[fp] = n;
-            Log.Info($"turn: {fp.Item1}/{fp.Item2}/{fp.Item3} acted (#{n} this battle)");
+            Log.Info($"turn: unit (level {fp.Item1}, brave {fp.Item2}, faith {fp.Item3}) completed a turn -- #{n} this battle");
         }
         _wasActed = acted;
     }

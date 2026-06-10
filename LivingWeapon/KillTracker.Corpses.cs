@@ -142,7 +142,7 @@ internal sealed partial class KillTracker
             {
                 // unknown identity: guest / player / uncaptured reinforcement -- never credit
                 _deadCredited[s] = true;
-                Log.Info($"corpse slot {s} not a captured enemy -> uncredited");
+                Log.Info($"kill: a unit at battle slot {s} died but it was not a tracked enemy -- no credit given (this is normal for player/guest deaths)");
                 continue;
             }
 
@@ -150,7 +150,7 @@ internal sealed partial class KillTracker
             {
                 // same identity already credited at another slot -- relocated corpse or twin
                 _deadCredited[s] = true;
-                Log.Info($"WARN duplicate corpse identity blocked (slot {s})");
+                Log.Info($"kill: WARN same enemy identity already credited at another slot -- blocking duplicate at battle slot {s}");
                 continue;
             }
 
@@ -165,14 +165,13 @@ internal sealed partial class KillTracker
             else if (!_pending[s])
             {
                 _pending[s] = true; _pendingAge[s] = 0; _pendingFalls[s] = _actedFalls;
-                Log.Info($"enemy corpse slot {s} at ({gx},{gy}) -> pending (awaiting actor)");
+                Log.Info($"kill: enemy down at ({gx},{gy}) -- waiting to see whose attack it was (battle slot {s})");
             }
             // real expiry: two debounced acted-falling edges; backstop: PendingTtl ticks
             else if (_actedFalls - _pendingFalls[s] >= ExpireFalls || ++_pendingAge[s] > PendingTtl)
             {
                 _deadCredited[s] = true; _pending[s] = false;
-                Log.Info($"enemy corpse slot {s} expired -> uncredited " +
-                         $"(age {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} acted-fall edges)");
+                Log.Info($"kill: could not determine who killed the enemy -- no credit (battle slot {s}, waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges passed)");
             }
         }
 
@@ -219,9 +218,9 @@ internal sealed partial class KillTracker
                     _mem.U16(addr + Offsets.AMaxHp) == id.mhp) { seen = true; break; }
             }
             if (seen) found++;
-            else Log.Info($"WARN band coverage miss: identity lvl={id.lvl} br={id.br} fa={id.fa} mhp={id.mhp}");
+            else Log.Info($"kill: WARN identity from the roster snapshot has no match in the live battle band (lvl={id.lvl} br={id.br} fa={id.fa} mhp={id.mhp})");
         }
-        Log.Info($"band coverage {found}/{total}");
+        Log.Info($"kill: identity coverage check -- {found}/{total} enemies matched between roster snapshot and live battle band");
         if (found == total) _coverageDone = true;
     }
 }

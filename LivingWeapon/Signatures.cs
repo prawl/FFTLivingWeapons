@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -128,8 +129,9 @@ internal static class Signatures
 
     /// <summary>The Kills counter fitted to its fixed 4-char slot: left-aligned digits, space-padded
     /// ("0   ", "42  ", "1337"). The card reads naturally ("Kills: 42") while the painted byte width
-    /// never changes. Counts wrap at 10000 (the slot is 4 chars).</summary>
-    public static string KillsSlot(int count) => (count % 10000).ToString().PadRight(4);
+    /// never changes. Counts wrap at 10000 (the slot is 4 chars). Negative counts (corrupt
+    /// kills.json) clamp to 0 before the modulo to preserve the 4-char invariant.</summary>
+    public static string KillsSlot(int count) => (Math.Max(0, count) % 10000).ToString().PadRight(4);
 
     /// <summary>True if this signature's HP condition (if any) is currently met. No condition
     /// (HpBelow &lt;= 0) is always-on. The gate is integer math (hp*100 &lt; maxHp*HpBelow) so it

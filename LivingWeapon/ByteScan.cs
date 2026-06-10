@@ -29,7 +29,7 @@ internal static class ByteScan
     }
 
     /// <summary>True if buf[pos..pos+sw] equals any of the option byte arrays.</summary>
-    public static bool MatchesAny(byte[] buf, int pos, List<byte[]> options, int sw)
+    public static bool MatchesAny(byte[] buf, int pos, IReadOnlyList<byte[]> options, int sw)
     {
         foreach (var o in options)
         {
@@ -79,6 +79,26 @@ internal static class ByteScan
             }
         }
         return true;
+    }
+
+    /// <summary>Find all occurrences of needle in buf within [from, toExclusive), appending
+    /// absolute positions where the match STARTS. The needle itself may extend past toExclusive
+    /// as long as it fits in buf. Empty needle yields no hits.</summary>
+    public static void FindAll(byte[] buf, byte[] needle, int from, int toExclusive,
+                               List<int> hits)
+    {
+        if (needle.Length == 0) return;
+        int pos = from;
+        var span = buf.AsSpan();
+        while (pos <= toExclusive - 1)
+        {
+            int rel = span.Slice(pos).IndexOf(needle.AsSpan());
+            if (rel < 0) break;
+            pos += rel;
+            if (pos < toExclusive && pos + needle.Length <= buf.Length)
+                hits.Add(pos);
+            pos++;
+        }
     }
 
 }

@@ -68,7 +68,7 @@ internal sealed partial class ExtraTurn
         if (freshKill)
         {
             if (_state == GrantState.Idle) Arm(now);
-            else Log.Info($"extra-turn: kill while {_state} -> bonus already owed (no chain)");
+            else Log.Info($"extra-turn: kill landed while bonus is already pending ({_state}) -- chains are not granted");
         }
         if (_state == GrantState.Idle) return;
 
@@ -90,20 +90,20 @@ internal sealed partial class ExtraTurn
             if (cls is { } s)
             {
                 _state = s;
-                Log.Info($"extra-turn: classified -> {s} (ct={ct}; {(s == GrantState.Owed ? "kill-turn running, two" : "kill-turn over, one")} pull-down(s) owed)");
+                Log.Info($"extra-turn: state resolved to {s} (CT {ct}; {(s == GrantState.Owed ? "kill-turn still running -- two" : "kill-turn already over -- one")} pull-down(s) needed to confirm the bonus)");
             }
         }
         else
         {
             (_streak, _took, bool pullDown) = Observe(_streak, _took, ct);
-            if (pullDown) Log.Info($"extra-turn: pull-down #{++_pullDowns} (ct={ct}) in {_state}");
+            if (pullDown) Log.Info($"extra-turn: turn-end #{++_pullDowns} detected (CT {ct}, state {_state})");
             (GrantState next, bool consumed) = Step(_state, pullDown);
             if (consumed) { Release(ReleaseReason.Consumed); return; }
             if (next != _state) { _state = next; _deadline = now.AddSeconds(NoSignalSeconds); }
         }
 
         if (Slams(_state) && _base != 0 && Mem.Writable(_base + CtOff, 1)) Mem.W8(_base + CtOff, SlamCt);
-        if (_dbg++ % 15 == 0) Log.Info($"extra-turn {_state}: @{_base:X} ct={ct} streak={_streak} took={_took}");
+        if (_dbg++ % 15 == 0) Log.Info($"extra-turn: {_state} -- wielder entry at 0x{_base:X}, CT {ct}, streak {_streak}, slam took={_took}");
     }
 
     private void Arm(DateTime now)
@@ -111,13 +111,13 @@ internal sealed partial class ExtraTurn
         _state = GrantState.Arming; _base = 0; _prevCt = -1;
         _streak = 0; _took = false; _pullDowns = 0; _deadStreak = 0; _ambiguityLogged = false;
         _deadline = now.AddSeconds(NoSignalSeconds); _hardStop = now.AddSeconds(AbsoluteCapSeconds);
-        Log.Info($"extra-turn: kill -> arm for wielder {_wielder.lvl}/{_wielder.br}/{_wielder.fa}");
+        Log.Info($"extra-turn: {LogNames.Weapon(ZwillId)} scored a kill -- arming extra-turn grant for the wielder (level {_wielder.lvl}, brave {_wielder.br}, faith {_wielder.fa})");
     }
 
     private void Release(ReleaseReason reason)
     {
         if (RestoreCt(reason) && _base != 0 && Mem.Writable(_base + CtOff, 1)) Mem.W8(_base + CtOff, 0);
-        Log.Info($"extra-turn: release ({reason}) from {_state} after {_pullDowns} pull-down(s)");
+        Log.Info($"extra-turn: grant ended ({reason}) from {_state} after {_pullDowns} turn-end(s) detected");
         _state = GrantState.Idle; _base = 0; _streak = 0; _took = false; _prevCt = -1; _deadStreak = 0;
         _ambiguityLogged = false;
     }
@@ -180,8 +180,8 @@ internal sealed partial class ExtraTurn
         if (matches > 1 && !_ambiguityLogged)
         {
             _ambiguityLogged = true;     // once per grant: a surviving tie is diagnostic gold, not spam
-            Log.Info($"extra-turn: ambiguous locate ({matches} matches: " +
-                     $"{string.Join(", ", cands.ConvertAll(c => c.ToString("X")))}) -> no slam");
+            Log.Info($"extra-turn: wielder location is ambiguous ({matches} matching entries: " +
+                     $"{string.Join(", ", cands.ConvertAll(c => "0x" + c.ToString("X")))}) -- turn gauge not slammed");
         }
         return 0;
     }

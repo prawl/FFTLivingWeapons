@@ -100,7 +100,7 @@ internal sealed partial class KillTracker
                     {
                         _lastPlayerWeapons = ws;
                         _actorTag = string.Join(",", ws);
-                        Log.Info($"active player weapon(s) -> {_actorTag}");
+                        Log.Info("turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")));
                     }
                 }
             }
@@ -138,7 +138,7 @@ internal sealed partial class KillTracker
             _lastPlayerWeapons = ws;
             _actorTag = string.Join(",", ws);
             _fallbackStreak = 0; _fallbackSet = new();
-            Log.Info($"first-kill fallback latch -> {_actorTag}");
+            Log.Info("turn: no actor seen yet -- crediting the only player who has acted (first-kill fallback, weapons: " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + ")");
         }
     }
 
@@ -161,7 +161,7 @@ internal sealed partial class KillTracker
         {
             _kills.TryGetValue(w, out int c);
             _kills[w] = c + 1;
-            Log.Info($"KILL -> weapon {w} now {c + 1} kills (enemy at {gx},{gy})");
+            Log.Info($"kill: {LogNames.Weapon(w)} earns kill #{c + 1} (enemy fell at {gx},{gy})");
             changed = true;
         }
         _pending[s] = false;

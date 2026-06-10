@@ -28,13 +28,13 @@ public class Mod : IMod
             string modDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
                             ?? Environment.CurrentDirectory;
             Log.Init(modDir);
-            Log.Info("starting (in-process).");
+            Log.Info("Living Weapon starting up (running inside FFT_enhanced.exe).");
             _engine = new Engine(modDir);
             _engine.Start();
         }
         catch (Exception ex)
         {
-            try { Log.Error("start failed: " + ex); } catch { }
+            try { Log.Error("startup failed -- Living Weapon will not run: " + ex); } catch { }
         }
     }
 

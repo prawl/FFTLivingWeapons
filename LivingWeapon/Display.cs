@@ -4,155 +4,166 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Paints the equip card: the 2-char name suffix (+/+2/+3) and the per-weapon
-/// "Kills NNNN" counter, plus the equipped-weapon WP number. The scan (DisplayScan.cs)
-/// is cached; painting from the cache is cheap.
+/// Paints the equip card for every weapon in the loaded nxd: the 2-char name suffix
+/// (+/+2/+3), the per-weapon "Kills NNNN" counter, and the equipped-weapon WP number.
 ///
-/// Each weapon paints its OWN count, anchored to its own name. All reads/writes go
-/// through Mem (RPM/WPM-backed), so writing into a UI buffer the game just freed is a
-/// safe no-op, not a crash. Painting is gated out of battle (Engine decides when, via
-/// battleMode) and only repaints on change, so we never hammer churning battlefield
-/// buffers.
+/// Architecture (v2): one <see cref="CardPatterns"/> built at ctor; a byte-budgeted
+/// <see cref="DisplaySweep"/> that walks committed heap memory across Ticks without
+/// freezing the engine loop; a <see cref="CardSites"/> cache that re-verifies ownership
+/// anchors before writing (prevents a freed/reused UI buffer from getting a stale count
+/// stamped into it); and an onChunk callback that discovers and paints sites as the
+/// sweep goes, so a newly-found card is painted within the same generation chunk
+/// rather than waiting for the sweep to complete.
+///
+/// Key invariants:
+/// - Attribution searches ALL weapon flavors (not just the equipped pair) so unequipped
+///   and hovered cards also show correct counts.  The nearest flavor before a "Kills: "
+///   hit is that weapon's own, tying the site to the right id.
+/// - The target set drives suffix painting; the sweep covers kills painting for every id.
+///   An empty target set never returns early: all cards still receive their true counts.
+/// - The sweep is byte-budgeted so a single Tick costs at most budget + one chunk, never
+///   locking the 33ms engine loop the way an unbounded full scan did.
+/// - WpScratch is keyed by the mirror weapon (the card currently on screen), not roster
+///   slot 0, which previously wrote Ramza's boost while viewing another unit.
+/// - All reads and writes go through <see cref="IGameMemory"/> (RPM/WPM-backed in
+///   production), so a freed UI buffer yields a safe miss, never a crash.
 /// </summary>
 internal sealed partial class Display
 {
-    private const double RescanSeconds = 0.25;  // re-find re-rendered card buffers (cheap: heap-only scan)
+    private const long BudgetInBattle    = 8L  * 1024 * 1024;
+    private const long BudgetOutOfBattle = 16L * 1024 * 1024;
+    private const int  RotationSlice     = 8;
 
-    private static readonly string[] ValidSlots = { "  ", "+ ", "+2", "+3" };
-    private static readonly List<byte[]> ValidAscii = ByteScan.Slots(1, ValidSlots);
-    private static readonly List<byte[]> ValidUtf16 = ByteScan.Slots(2, ValidSlots);
+    /// <summary>Cadence for the maintenance PaintAll call that drains dead sites and
+    /// repaints any stale on-screen copy without waiting for a kill-count change.</summary>
+    internal const long MaintenanceMs = 1000;
 
     private readonly Dictionary<int, WeaponMeta> _meta;
-    private readonly Dictionary<int, int> _kills;
-    private readonly Dictionary<int, List<(int enc, long addr)>> _slots = new();       // id -> suffix slots
-    private readonly Dictionary<int, List<(int enc, long addr)>> _killsCache = new();  // id -> "Kills NNNN" digits
-    private HashSet<int> _lastTargets = new();
-    private DateTime _lastScan = DateTime.MinValue;
-    private int _lastPaintSig = int.MinValue;
+    private readonly Dictionary<int, int>        _kills;
+    private readonly IGameMemory                 _mem;
+    internal readonly CardPatterns               _pats;
+    internal readonly DisplaySweep               _sweep;
+    internal readonly CardSites                  _sites;
+    private readonly Func<long>                  _nowMs;
 
-    public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills)
+    private readonly Dictionary<int, int> _lastCounts = new();
+    private HashSet<int> _lastTargets = new();
+
+    // Timestamp of the last maintenance PaintAll; initialised to -1 (before any real clock
+    // value) so the first Tick always triggers the maintenance pass.  Using long.MinValue
+    // would overflow on the subtraction `now - _lastMaintenanceMs` since now >= 0.
+    private long _lastMaintenanceMs = -1;
+
+    // Persistent rotation cursor advanced by the number of non-target ids taken per chunk
+    // so successive chunks and passes cover all ids without waiting for a new generation.
+    internal int _rotCursor = 0;
+
+    // Generation number at the last log line so we log once per completion.
+    private long _lastLoggedGen = -1;
+
+    public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
+                   Func<long>? nowMs = null)
     {
-        _meta = meta;
-        _kills = kills;
+        _meta   = meta;
+        _kills  = kills;
+        _mem    = mem;
+        _nowMs  = nowMs ?? (() => Environment.TickCount64);
+        _pats   = new CardPatterns(meta);
+        _sweep  = new DisplaySweep(mem, _nowMs);
+        _sites  = new CardSites(mem, _pats);
     }
 
-    /// <summary>Drop the cache + force a rescan next tick (call on battle exit, where the
-    /// game reallocates the menu's render buffers).</summary>
+    /// <summary>Drop the site cache and start a new sweep generation on the next Tick.
+    /// Call on battle exit or any event that reallocates the menu's render buffers.</summary>
     public void Invalidate()
     {
-        _slots.Clear();
-        _killsCache.Clear();
+        _sites.Clear();
+        _sweep.Invalidate();
         _lastTargets = new HashSet<int>();
-        _lastScan = DateTime.MinValue;
-        _lastPaintSig = int.MinValue;
     }
 
-    public void Tick()
+    /// <summary>Drive one display cycle. <paramref name="inBattle"/> true shrinks the byte
+    /// budget to avoid competing with the kill-poll path during a live fight.</summary>
+    public void Tick(bool inBattle)
     {
-        // Paint the viewed unit's EQUIPPED weapons. The equip mirror holds its loadout in slot
-        // order: [0]=right hand (0x141870854), [1]=left/off-hand. A dual-wielder's 2nd weapon sits
-        // in [1], so target BOTH hands or the off-hand's card never gets its counter. Still bounded
-        // to two weapons -- NOT the all-weapons paint that once wrote into hundreds of stale render
-        // copies and crashed. Meta-gating drops a shield in [1]; tier-gating drops un-leveled weapons.
-        var targets = new HashSet<int>();
-        AddTarget(targets, Mem.U16(Offsets.MirrorWeapon));
-        AddTarget(targets, Mem.U16(Offsets.MirrorOffHand));
-        if (targets.Count == 0) return;
+        // Gather the weapons whose NAME we actively track for suffix painting:
+        // both mirror slots, filtered to valid tracked ids.  No tier gate -- the old gate
+        // suppressed counts for sub-threshold weapons entirely (live bug: "tier-0 never painted").
+        var targets = BuildTargets();
 
-        int sig = PaintSig(targets);
-        bool changed = !targets.SetEquals(_lastTargets);
-        // A kill/tier-up while the card is open changes the count -> RESCAN (not just repaint):
-        // the game re-renders the name/desc into a fresh buffer on the level-up, so the cached
-        // paint address is stale. Re-finding it lands the new +N / count within a tick (~100ms)
-        // instead of waiting for the idle rescan.
-        bool countChanged = sig != _lastPaintSig;
-        bool stale = (DateTime.Now - _lastScan).TotalSeconds > RescanSeconds;
-        bool scannedNow = changed || countChanged || stale || _slots.Count == 0;
-        if (scannedNow)
+        // Count-change check over ALL meta ids (not just targets) so non-equipped weapons
+        // also trigger a rescan when their kill count changes.
+        bool countsChanged = CheckAndSnapshotCounts();
+        bool targetsChanged = !targets.SetEquals(_lastTargets);
+
+        if (countsChanged || targetsChanged)
         {
-            try { Scan(targets, changed); } catch (Exception ex) { Log.Error("scan: " + ex.Message); }
-            _lastTargets = targets;
-            _lastScan = DateTime.Now;
-            // Paint ONLY the sites this scan just verified hold THIS weapon's flavor+counter.
-            // Painting cached sites every tick stamped a weapon's count onto heap buffers the
-            // game had reused for OTHER cards (every card briefly read the last weapon's count).
-            // Scanning re-confirms the flavor is still there, so a reused buffer is never stamped.
-            Paint();
+            _sweep.RequestRescan();
+            _sites.PaintAll(KillsFor);
         }
-        _lastPaintSig = sig;
+
+        // Maintenance repaint: PaintAll on a clock cadence to drain dead sites and
+        // refresh any stale on-screen copy without waiting for a kill-count change.
+        // skip-if-equal keeps steady-state writes at zero; this is cheap in the common case.
+        long now = _nowMs();
+        if (now - _lastMaintenanceMs >= MaintenanceMs)
+        {
+            _lastMaintenanceMs = now;
+            if (!countsChanged && !targetsChanged)
+                _sites.PaintAll(KillsFor);
+        }
+
+        // Target change means fresh card buffers may have appeared; start a new generation
+        // after the min-gap floor rather than waiting up to GenerationRestMs (90s).
+        if (targetsChanged)
+            _sweep.Invalidate();
+
+        _lastTargets = targets;
+
+        long budget = inBattle ? BudgetInBattle : BudgetOutOfBattle;
+        _sweep.Tick(budget, OnChunk);
+
+        // Log once per generation completion so the log captures each full scan.
+        if (_sweep.IsComplete && _sweep.Generation != _lastLoggedGen)
+        {
+            _lastLoggedGen = _sweep.Generation;
+            Log.Info("display: memory sweep #" + _sweep.Generation + " finished -- maintaining " + _sites.Count + " card-text spots");
+        }
+
+        // WpScratch: keyed by the mirror weapon (the card on screen), NOT roster slot 0.
+        // Roster-slot-0 keying painted Ramza's boost while viewing any other unit.
+        PaintWpScratch();
     }
 
-    private void Paint()
+    // ─── private helpers ──────────────────────────────────────────────────────
+
+    private HashSet<int> BuildTargets()
     {
-        foreach (var kv in _slots)
-        {
-            string suffix = Tuning.Suffix[Tuning.TierFor(_kills.TryGetValue(kv.Key, out int k) ? k : 0)];
-            foreach (var (enc, addr) in kv.Value)
-                if (SlotIntact(addr, enc)) WriteStr(addr, suffix, enc);
-        }
-        foreach (var kv in _killsCache)
-        {
-            string d4 = Signatures.KillsSlot(_kills.TryGetValue(kv.Key, out int k) ? k : 0);
-            foreach (var (enc, addr) in kv.Value)
-                if (KillsIntact(addr, enc)) WriteStr(addr, d4, enc);
-        }
-        // WP number for the weapon in Ramza's hand (guarded; only when the scratch shows his weapon)
-        int rw = Mem.U16(Offsets.RosterBase + Offsets.RRHand);
-        if (_meta.TryGetValue(rw, out var m) && Mem.Readable(Offsets.WpScratch, 1))
-        {
-            int kills = _kills.TryGetValue(rw, out int k) ? k : 0;
-            int boosted = Math.Min(255, (int)Math.Round(m.Wp * (1 + Tuning.Factor[Tuning.TierFor(kills)])));
-            int cur = Mem.U8(Offsets.WpScratch);
-            if ((cur == m.Wp || cur == boosted) && boosted != cur && Mem.Writable(Offsets.WpScratch, 1))
-                Mem.W8(Offsets.WpScratch, (byte)boosted);
-        }
+        var t = new HashSet<int>();
+        AddTarget(t, _mem.U16(Offsets.MirrorWeapon));
+        AddTarget(t, _mem.U16(Offsets.MirrorOffHand));
+        return t;
     }
 
-    /// <summary>Order-independent hash of the tiered weapons' counts, so a kill (count change)
-    /// triggers a repaint without hammering writes every tick.</summary>
-    private int PaintSig(HashSet<int> targets)
-    {
-        int sig = 0;
-        foreach (int id in targets)
-            sig ^= (id * 397) ^ ((_kills.TryGetValue(id, out int k) ? k : 0) + 1);
-        return sig;
-    }
-
-    /// <summary>Add a mirror-slot weapon to the paint targets if it's a tracked, leveled weapon --
-    /// drops empties (0/0xFFFF), a shield in the off-hand slot (not in meta), and tier-0 weapons.</summary>
     private void AddTarget(HashSet<int> targets, int id)
     {
-        if (id > 0 && id < 0xFFFF && _meta.ContainsKey(id)
-            && Tuning.TierFor(_kills.TryGetValue(id, out int k) ? k : 0) > 0)
+        if (id > 0 && id < 0xFFFF && _meta.ContainsKey(id))
             targets.Add(id);
     }
 
-    /// <summary>A cached suffix slot is still ours only if it still holds a valid slot value.</summary>
-    private static bool SlotIntact(long addr, int enc)
+    /// <summary>Compare current kill counts against the last snapshot for all tracked ids.
+    /// Updates the snapshot on any change.  Returns true if any count changed.</summary>
+    private bool CheckAndSnapshotCounts()
     {
-        int sw = 2 * enc;
-        if (!Mem.Readable(addr, sw)) return false;
-        var valid = enc == 1 ? ValidAscii : ValidUtf16;
-        return Mem.TryReadBytes(addr, sw, out var got) && ByteScan.MatchesAny(got, 0, valid, sw);
+        bool changed = false;
+        foreach (int id in _meta.Keys)
+        {
+            int cur = KillsFor(id);
+            _lastCounts.TryGetValue(id, out int last);
+            if (cur != last) { _lastCounts[id] = cur; changed = true; }
+        }
+        return changed;
     }
 
-    /// <summary>A cached Kills digit slot is still ours only if "Kills: " still sits immediately
-    /// before it and the 4-char slot holds a left-aligned digit pattern -- char 0 is a digit,
-    /// chars 1..3 are digits then only spaces (superset of the old all-digits form, so any
-    /// "0042"-era buffer still validates). Rejects recycled/freed buffers.</summary>
-    private static bool KillsIntact(long addr, int enc)
-    {
-        byte[] pre = ByteScan.Enc("Kills: ", enc);
-        int dw = 4 * enc;
-        long preAddr = addr - pre.Length;
-        if (!Mem.TryReadBytes(preAddr, pre.Length + dw, out var got)) return false;
-        for (int j = 0; j < pre.Length; j++) if (got[j] != pre[j]) return false;
-        return ByteScan.KillsDigits(got, pre.Length, enc);
-    }
-
-    private static void WriteStr(long addr, string s, int enc)
-    {
-        byte[] bytes = ByteScan.Enc(s, enc);
-        if (Mem.Writable(addr, bytes.Length)) Mem.WriteBytes(addr, bytes);
-    }
+    internal int KillsFor(int id) => _kills.TryGetValue(id, out int k) ? k : 0;
 }

@@ -117,7 +117,7 @@ internal sealed partial class GrowthEngine
             long s = Offsets.CombatAnchor + (long)n * Offsets.CombatStride;
             if (!Matches(s, brave, faith, hands)) continue;
             _structForSlot[slot] = s;
-            if (!_logged) { _logged = true; Log.Info($"located combat struct for roster {slot} at anchor{(n >= 0 ? "+" : "")}{n}"); }
+            if (!_logged) { _logged = true; Log.Info($"growth: found combat struct for party slot {slot} at array anchor{(n >= 0 ? "+" : "")}{n}"); }
             return s;
         }
         return 0;
