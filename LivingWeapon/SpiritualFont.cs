@@ -45,6 +45,7 @@ internal sealed partial class SpiritualFont
     private bool _posKnown;              // a action-edge position snapshot exists
     private int _lastGx, _lastGy;       // the wielder's tile at their previous action edge
     private bool _wasActive;
+    private int _pulseTicks;             // DEV PULSE clock (Tuning.FontDevPulse; ~10s at 33ms)
     private bool _wasLocated;            // diagnostic: located-state change is logged once per flip
     private bool _mpChecked;             // per-battle MP layout verdict latched?
     private bool _mpOk;
@@ -84,6 +85,17 @@ internal sealed partial class SpiritualFont
         {
             _latchWasIn = false; _posKnown = false;   // unequip: re-baseline latch AND tile
             return;
+        }
+
+        // DEV PULSE: trigger bypass -- force a replenish every ~10s (300 ticks) so the band
+        // addressing + HP write + provisional MP pair can be verified ON SCREEN, independent
+        // of any edge detection. External RPM probes are Denuvo-walled; this is the instrument.
+        if (Tuning.FontDevPulse && ++_pulseTicks >= 300)
+        {
+            _pulseTicks = 0;
+            long pe = Wielder.Locate(Live, WellspringId, _hands, fp);
+            Log.Info($"font: DEV PULSE {(pe == 0 ? "-> wielder UNLOCATED" : "-> forced replenish")}");
+            if (pe != 0) Replenish(pe, 0);
         }
 
         bool isIn = _tracker.LastPlayerWeapons.Contains(WellspringId);
