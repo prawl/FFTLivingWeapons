@@ -72,17 +72,22 @@ public class CharmLockTests
         Assert.Equal(expected, CharmLock.HeartbeatExpired(t0.AddMilliseconds(elapsedMs), t0, 2000));
     }
 
-    [Theory]   // #1 fix: feed the beat through cast/attack targeting so a live lock isn't false-dropped
-    [InlineData(0xFFu, 1, true)]    // cast targeting (battleMode 1) -- slot0==0xFF keeps the beat alive
-    [InlineData(0xFFu, 5, true)]    // cursor on caster's tile during a cast
-    [InlineData(0xFFu, 0, true)]    // in-battle marker present even if battleMode momentarily reads 0
-    [InlineData(0u, 2, true)]       // active move turn
-    [InlineData(0u, 3, true)]       // action menu
-    [InlineData(0u, 4, true)]       // instant targeting
-    [InlineData(0u, 0, false)]      // post-battle world map: no marker + battleMode 0 -> beat stops -> timeout
-    [InlineData(0u, 1, false)]      // battleMode 1 without the marker (doesn't occur live; conservative)
-    public void InLiveBattle_keeps_the_beat_through_targeting_but_stops_on_the_world_map(uint slot0, int battleMode, bool expected)
-        => Assert.Equal(expected, CharmLock.InLiveBattle(slot0, battleMode));
+    [Theory]   // the stuck-sentinel contract: slot0==0xFF alone is NOT proof of a live battle --
+               // QUITTING a battle leaves it stuck at 0xFF on the world map (probe-verified
+               // 2026-06-10; a normal victory clears it to 0x66). The marker only counts when a
+               // mode-0 frame has an excuse: paused, or a real event id (mid-battle dialogue).
+    [InlineData(0xFFu, 1, false, 0xFFFF, true)]    // cast targeting (battleMode 1) with the marker
+    [InlineData(0xFFu, 5, false, 0xFFFF, true)]    // cursor on caster's tile during a cast
+    [InlineData(0xFFu, 0, true, 0xFFFF, true)]     // paused mid-battle dip -- excused
+    [InlineData(0xFFu, 0, false, 401, true)]       // mid-battle dialogue (real event id) -- excused
+    [InlineData(0xFFu, 0, false, 0xFFFF, false)]   // QUIT TRAP: stuck marker, mode 0, no excuse -> not live
+    [InlineData(0u, 2, false, 0xFFFF, true)]       // active move turn
+    [InlineData(0u, 3, false, 0xFFFF, true)]       // action menu
+    [InlineData(0u, 4, false, 0xFFFF, true)]       // instant targeting
+    [InlineData(0u, 0, false, 0xFFFF, false)]      // post-battle world map
+    [InlineData(0u, 1, false, 0xFFFF, false)]      // battleMode 1 without the marker (conservative)
+    public void InLiveBattle_requires_a_live_mode_or_an_excused_marker(uint slot0, int battleMode, bool paused, int eventId, bool expected)
+        => Assert.Equal(expected, CharmLock.InLiveBattle(slot0, battleMode, paused, eventId));
 
     [Fact]
     public void Tick_timeout_drops_the_lock_via_deactivate_leaving_the_held_bytes_untouched()
@@ -96,7 +101,7 @@ public class CharmLockTests
 
             var t0 = new DateTime(2026, 1, 1);
             cl.Heartbeat(t0);
-            cl.Tick(t0.AddMilliseconds(CharmLock.TimeoutMs + 1000));   // no beat for the window -> timeout
+            cl.Tick(t0.AddMilliseconds(CharmLock.TimeoutMs + 1000), inLive: true);   // no beat for the window -> timeout
             Assert.Null(cl.LockedFingerprint);                          // lock dropped, no more spam
 
             // The timeout path (Deactivate) drops tracking WITHOUT touching the held bytes; a fall-through
@@ -194,5 +199,78 @@ public class CharmLockTests
     public void Decide_does_nothing_when_nothing_is_charmed()
     {
         Assert.False(CharmLock.Decide((100, 20, 70, 50), Array.Empty<(int, int, int, int)>(), out _, out _));
+    }
+
+    // --- A2: Tick(now, inLive=false) must be a no-op outside live battle ---
+
+    [Fact]
+    public void Tick_inLive_false_issues_no_writes_when_lock_is_armed()
+    {
+        // An armed lock with a valid heartbeat but inLive=false should write nothing and leave the
+        // held bytes untouched. No Detect, no Drive, no SetCharm calls.
+        var (addr, buf, h) = MappedEnemy((100, 20, 70, 50), charmed: true);
+        try
+        {
+            var cl = New();
+            cl.AdoptOrTransfer(new[] { (addr, (100, 20, 70, 50)) });
+
+            var t0 = new DateTime(2026, 1, 1);
+            cl.Heartbeat(t0);
+            // Tick with fresh heartbeat (timeout not expired) but inLive=false
+            cl.Tick(t0.AddMilliseconds(100), inLive: false);
+
+            // Charm bytes must not have been touched (no Drive write)
+            Assert.NotEqual(0, Charm(buf, CharmLock.CharmStatusOff));
+            Assert.NotEqual(0, Charm(buf, CharmLock.CharmAllegOff));
+            // Lock is still armed (no release)
+            Assert.NotNull(cl.LockedFingerprint);
+        }
+        finally { h.Free(); }
+    }
+
+    [Fact]
+    public void Tick_inLive_false_releases_lock_after_timeout()
+    {
+        // Even with inLive=false the heartbeat-timeout release path must still fire.
+        var (addr, buf, h) = MappedEnemy((100, 20, 70, 50), charmed: true);
+        try
+        {
+            var cl = New();
+            cl.AdoptOrTransfer(new[] { (addr, (100, 20, 70, 50)) });
+
+            var t0 = new DateTime(2026, 1, 1);
+            cl.Heartbeat(t0);
+            // Well past the timeout, inLive=false
+            cl.Tick(t0.AddMilliseconds(CharmLock.TimeoutMs + 1000), inLive: false);
+
+            Assert.Null(cl.LockedFingerprint);
+            // Deactivate path: bytes untouched (not Drive-cleared)
+            Assert.NotEqual(0, Charm(buf, CharmLock.CharmStatusOff));
+        }
+        finally { h.Free(); }
+    }
+
+    [Fact]
+    public void Tick_inLive_true_runs_Drive_and_clears_when_no_lock_turns_active()
+    {
+        // With inLive=true the full pipeline runs (Drive is not skipped). With no Galewind
+        // equipped (empty meta/kills), lockTurns==0, so Drive clears the charm bytes and
+        // releases the lock -- the opposite of what inLive=false does (writes nothing).
+        var (addr, buf, h) = MappedEnemy((100, 20, 70, 50), charmed: true);
+        try
+        {
+            var cl = New();
+            cl.AdoptOrTransfer(new[] { (addr, (100, 20, 70, 50)) });
+            Assert.NotNull(cl.LockedFingerprint);
+
+            var t0 = new DateTime(2026, 1, 1);
+            cl.Heartbeat(t0);
+            // Tick in-live: Drive runs, lockTurns==0 so hold=false, charm bytes cleared
+            cl.Tick(t0.AddMilliseconds(100), inLive: true);
+
+            Assert.Equal(0, Charm(buf, CharmLock.CharmStatusOff));   // Drive cleared it
+            Assert.Null(cl.LockedFingerprint);                        // lock released after 0 turns
+        }
+        finally { h.Free(); }
     }
 }

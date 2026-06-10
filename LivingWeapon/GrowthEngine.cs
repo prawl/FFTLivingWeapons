@@ -33,6 +33,7 @@ internal sealed partial class GrowthEngine
     private readonly Dictionary<long, (int natural, int target, double factor)> _applied = new();
     private readonly Dictionary<long, int> _timedNatural = new();   // timed-grant stat addr -> captured natural
     private readonly Dictionary<int, long> _structForSlot = new();   // roster slot -> combat-struct base
+    private readonly HashSet<int> _ambiguousLogged = new();           // slots whose multi-match was already logged this battle
     private bool _logged;
 
     public GrowthEngine(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns)
@@ -50,6 +51,7 @@ internal sealed partial class GrowthEngine
         _structForSlot.Clear();
         _grantLogged.Clear();
         _heldSupports.Clear();   // no writes: the per-battle struct is gone/rebuilding
+        _ambiguousLogged.Clear();
         _logged = false;
     }
 
@@ -71,22 +73,30 @@ internal sealed partial class GrowthEngine
             var hands = Hands(rb);
             if (hands.Count == 0) continue;                                // unarmed / non-overhaul both hands
 
-            long s = LocateStruct(r, brave, faith, hands);
+            long s = LocateStruct(r, level, brave, faith, hands);
             if (s == 0) continue;
 
             // Signatures are per-weapon (independent fields); stat growth is shared (one PA/MA/Speed),
             // so take the strongest factor per stat across the hands rather than letting them fight.
+            // Signatures (support bits, timed stat grants) fire from the MAIN HAND only. Plain stat
+            // growth (PA/MA/Speed factor hold) applies for weapons in either hand, unchanged.
+            // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
             int pickedSupport = Mem.Readable(rb + Offsets.RSupport, 1) ? Mem.U8(rb + Offsets.RSupport) : 0;
+            int mainHandId = Mem.U16(rb + Offsets.RRHand);
             var plan = new Dictionary<long, double>();
             foreach (var (weapon, m) in hands)
             {
                 int tier = Tuning.TierFor(_kills.TryGetValue(weapon, out int k) ? k : 0);
-                int hp = 0, maxHp = 0;
-                if (m.Signature != null && m.Signature.HpBelow > 0)        // only conditional sigs read HP
-                    (hp, maxHp) = ReadHp(level, brave, faith);
-                HoldSignature(s, r, weapon, m.Name, m.Signature, tier, hp, maxHp, brave, faith, pickedSupport);   // iconic passive (+ read-back log)
-                if (m.Signature != null && m.Signature.ForTurns > 0)       // timed flat-stat grant
-                    HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
+                bool isMainHand = weapon == mainHandId;
+                if (isMainHand)
+                {
+                    int hp = 0, maxHp = 0;
+                    if (m.Signature != null && m.Signature.HpBelow > 0)    // only conditional sigs read HP
+                        (hp, maxHp) = ReadHp(level, brave, faith);
+                    HoldSignature(s, r, weapon, m.Name, m.Signature, tier, hp, maxHp, brave, faith, pickedSupport);
+                    if (m.Signature != null && m.Signature.ForTurns > 0)   // timed flat-stat grant
+                        HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
+                }
                 if (Route(s, m, tier, out long addr, out double factor))
                     if (!plan.TryGetValue(addr, out double ex) || factor > ex) plan[addr] = factor;
             }
@@ -103,36 +113,6 @@ internal sealed partial class GrowthEngine
             if (_meta.TryGetValue(hw, out var hm) && !list.Exists(x => x.Item1 == hw))
                 list.Add((hw, hm));
         return list;
-    }
-
-    /// <summary>Find (and cache) this player's combat struct by fingerprint; guarded reads. The
-    /// struct's weapon field (+0x20) holds ONE of the wielded hands (the right hand for a
-    /// dual-wielder), so we match it against either hand.</summary>
-    private long LocateStruct(int slot, int brave, int faith, List<(int weapon, WeaponMeta m)> hands)
-    {
-        if (_structForSlot.TryGetValue(slot, out long cached) && Matches(cached, brave, faith, hands))
-            return cached;
-        for (int n = -Offsets.CombatSearchSlots; n <= Offsets.CombatSearchSlots; n++)
-        {
-            long s = Offsets.CombatAnchor + (long)n * Offsets.CombatStride;
-            if (!Matches(s, brave, faith, hands)) continue;
-            _structForSlot[slot] = s;
-            if (!_logged) { _logged = true; Log.Info($"growth: found combat struct for party slot {slot} at array anchor{(n >= 0 ? "+" : "")}{n}"); }
-            return s;
-        }
-        return 0;
-    }
-
-    /// <summary>True if S is a readable combat struct matching this unit (brave/faith + its weapon
-    /// field equals either wielded hand + sane PA/MA).</summary>
-    private bool Matches(long s, int brave, int faith, List<(int weapon, WeaponMeta m)> hands)
-    {
-        if (!Mem.Readable(s, StructSpan)) return false;
-        int cw = Mem.U16(s + Offsets.CWeapon);
-        if (!hands.Exists(x => x.weapon == cw)) return false;
-        if (Mem.U8(s + Offsets.CBrave) != brave || Mem.U8(s + Offsets.CFaith) != faith) return false;
-        int pa = Mem.U8(s + Offsets.CPa), ma = Mem.U8(s + Offsets.CMa);
-        return pa >= StatMin && pa <= SigStatHi && ma >= StatMin && ma <= SigStatHi;
     }
 
     /// <summary>Pick the stat address + factor for a weapon, or false to skip.</summary>

@@ -62,6 +62,7 @@ internal static class Wielder
             if (!Band.IsValid(mem, e)) continue;
             int wid = mem.U16(e + EntryWeapon);
             if (!Contains(hands, wid)) continue;
+            if (mem.U8(e + Offsets.ALevel) != fp.lvl) continue;
             if (mem.U8(e + Offsets.ABrave) != fp.br || mem.U8(e + Offsets.AFaith) != fp.fa) continue;
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
@@ -96,9 +97,49 @@ internal static class Wielder
             if (!Band.IsValid(mem, e)) continue;
             int wid = mem.U16(e + EntryWeapon);
             if (!Contains(hands, wid)) continue;
+            if (mem.U8(e + Offsets.ALevel) != fp.lvl) continue;
             if (mem.U8(e + Offsets.ABrave) != fp.br || mem.U8(e + Offsets.AFaith) != fp.fa) continue;
             results.Add(e);
         }
+    }
+
+    /// <summary>Main-hand-only variant of <see cref="TryResolve"/>: resolves only the roster slot
+    /// whose RRHand field equals <paramref name="weaponId"/>. An offhand-only match returns false.
+    /// The <paramref name="hands"/> list is populated with just the main-hand id (exact band-field
+    /// match for <see cref="Locate"/>). A Living Weapon earns kills in any hand, but commands its
+    /// gift only from the main hand.</summary>
+    public static bool TryResolveMainHand(IGameMemory mem, int weaponId,
+                                          out (int lvl, int br, int fa) fp, List<int> hands)
+    {
+        fp = default;
+        hands.Clear();
+        int found = 0;
+        for (int r = 0; r < Offsets.RosterSlots; r++)
+        {
+            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
+            int lvl = mem.U8(rb + Offsets.RLevel);
+            if (lvl < 1 || lvl > 99) continue;                         // empty slot
+            if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;    // main-hand match only
+            if (++found > 1) return false;                              // two main-hand wielders: ambiguous
+            fp = (lvl, mem.U8(rb + Offsets.RBrave), mem.U8(rb + Offsets.RFaith));
+            hands.Clear();
+            hands.Add(weaponId);   // locate set = main-hand id only (exact band-field match)
+        }
+        return found == 1;
+    }
+
+    /// <summary>True when any roster slot's RRHand equals <paramref name="weaponId"/>. Lightweight
+    /// presence check for Barrage, CharmLock, and EagleEye, which only need to know if a main-hand
+    /// wielder exists -- not the full fingerprint. Skips empty slots (level 0).</summary>
+    public static bool HasMainHandWielder(IGameMemory mem, int weaponId)
+    {
+        for (int r = 0; r < Offsets.RosterSlots; r++)
+        {
+            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
+            if (mem.U8(rb + Offsets.RLevel) < 1) continue;
+            if (mem.U16(rb + Offsets.RRHand) == weaponId) return true;
+        }
+        return false;
     }
 
     private static bool Contains(IReadOnlyList<int> hands, int wid)

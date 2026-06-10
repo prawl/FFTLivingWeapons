@@ -78,7 +78,7 @@ internal sealed partial class SpiritualFont
         if (onField && !_mpChecked) ValidateMpLayout();   // band most coherent on field ticks; latches once
         int tier = Tuning.TierFor(_kills.TryGetValue(UmbralId, out int k) ? k : 0);
         (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolve(Live, UmbralId, out fp, _hands);
+        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(Live, UmbralId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;

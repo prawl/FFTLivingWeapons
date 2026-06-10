@@ -41,7 +41,7 @@ internal sealed partial class LifeSap
         int count = _kills.TryGetValue(UmbralId, out int k) ? k : 0;
         (int lvl, int br, int fa) fp = default;
         bool active = IsActive(m.Signature, Tuning.TierFor(count))
-                      && Wielder.TryResolve(Live, UmbralId, out fp, _hands);
+                      && Wielder.TryResolveMainHand(Live, UmbralId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;

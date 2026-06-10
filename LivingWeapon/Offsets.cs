@@ -85,6 +85,9 @@ internal static class Offsets
     public const int CombatStride = 0x200;
     public const int CombatSearchSlots = 24;   // scan +/- this many slots around the anchor
     public const int CWeapon = 0x20;   // u16 equipped weapon id (the self-mapping key)
+    /// <summary>u8 level inside the combat struct frame (== BandEntry+ALevel == 0x1C+0x0D = 0x29).
+    /// Used by GrowthEngine.MatchesEntry to reject enemy slots sharing brave/faith with a player.</summary>
+    public const int CLevel  = 0x29;   // u8  (== BandEntry+ALevel; one byte before CBrave)
     public const int CBrave  = 0x2A;   // u8
     public const int CFaith  = 0x2C;   // u8
     public const int CHp     = 0x30;   // u16 current HP (== the auth-band framing's +0x14)
@@ -97,6 +100,11 @@ internal static class Offsets
     public const int CReaction = 0x94;   // 4 bytes; Maim zeroes this to suppress Counter etc.
     public const int CSupport = 0x98;
     public const int CMovement = 0x9C;   // 3 bytes, base id 230; Rapture holds its teleport image here
+
+    // --- poison status bytes (band-entry relative, proven live 2026-06-09) ---
+    public const int APoison      = 0x48;  // u8 status bitfield byte containing the poison flag
+    public const byte APoisonBit  = 0x80;  // mask: bit 7 of APoison is the "poisoned" flag
+    public const int APoisonTimer = 0x4A;  // u8 poison countdown timer (engine inits to 36; ticks per CT unit)
 
     // --- auth band: LIVE unit data (the static array freezes on battle restart; the band stays live).
     //     Entry layout matches the static-array A* offsets. BandEntry = unit-copy offset inside

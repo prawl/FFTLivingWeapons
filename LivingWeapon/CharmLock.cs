@@ -51,9 +51,12 @@ internal sealed partial class CharmLock
     /// <summary>Engine pings this on every live-battlefield tick; lapsed pings time the lock out.</summary>
     public void Heartbeat(DateTime now) => _lastBeat = now;
 
-    public void Tick(DateTime now)
+    /// <param name="inLive">True on a genuine live-battlefield frame (<see cref="InLiveBattle"/>).
+    /// False: only the heartbeat-timeout release path runs; no Detect, Drive, or writes.</param>
+    public void Tick(DateTime now, bool inLive)
     {
         if (HeartbeatExpired(now, _lastBeat, TimeoutMs)) { Deactivate(); return; }
+        if (!inLive) return;
         int lockTurns = ActiveLockTurns();
         if ((lockTurns > 0) != _wasActive)
         {
@@ -84,7 +87,8 @@ internal sealed partial class CharmLock
         {
             long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
             if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
-            if (Mem.U16(rb + Offsets.RRHand) == GalewindId || Mem.U16(rb + Offsets.ROffHand) == GalewindId)
+            // Signatures fire from the main hand only: an offhand Galewind does not lock charms.
+            if (Mem.U16(rb + Offsets.RRHand) == GalewindId)
                 return m.Signature.CharmLockTurns;
         }
         return 0;

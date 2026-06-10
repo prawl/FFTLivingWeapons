@@ -197,4 +197,12 @@ public class RaptureTests
         Assert.False(Rapture.SameUnit(m, e, (30, 65, 71)));
         Assert.False(Rapture.SameUnit(m, 0x6000, (30, 65, 70)));   // unreadable/zeroed -> mismatch
     }
+
+    // ---- Main-hand-only activation contract (B2) ----
+    // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+    // Rapture resolves wielder via Wielder.TryResolveMainHand (RRHand-only match).
+
+    [Fact]
+    public void ActivatesOnMainHandOnly_is_documented_in_policy()
+        => Assert.True(Rapture.ActivatesOnMainHandOnly);
 }

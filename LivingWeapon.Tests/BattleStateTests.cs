@@ -24,15 +24,24 @@ public class BattleStateTests
     // --- EnterSignal (pure) ---
 
     [Theory]
-    [InlineData(0xFFu, 0xFFFFFFFFu, 0, true)]   // both sentinels armed
-    [InlineData(0u, 0u, 2, true)]               // live battlefield mode 2
-    [InlineData(0u, 0u, 4, true)]               // instant-targeting mode 4
-    [InlineData(0xFFu, 0u, 3, true)]            // mode 3 + the in-battle marker
-    [InlineData(0u, 0u, 3, false)]              // mode 3 alone is NOT a battle (menu cursor class)
-    [InlineData(0u, 0u, 1, false)]              // move-browsing cursor class, not a battle
-    [InlineData(0u, 0u, 0, false)]              // world map
-    public void EnterSignal_only_on_sentinels_or_a_live_mode(uint slot0, uint slot9, int mode, bool expected)
-        => Assert.Equal(expected, BattleState.EnterSignal(slot0, slot9, mode));
+    [InlineData(true, 0u, 0, true)]      // fresh sentinel-pair arm (edge) -- enters even at mode 0
+    [InlineData(false, 0u, 2, true)]     // live battlefield mode 2
+    [InlineData(false, 0u, 4, true)]     // instant-targeting mode 4
+    [InlineData(false, 0xFFu, 3, true)]  // mode 3 + the in-battle marker
+    [InlineData(false, 0u, 3, false)]    // mode 3 alone is NOT a battle (menu cursor class)
+    [InlineData(false, 0u, 1, false)]    // move-browsing cursor class, not a battle
+    [InlineData(false, 0u, 0, false)]    // world map
+    [InlineData(false, 0xFFu, 0, false)] // STUCK pair without an edge must NOT enter (post-quit trap)
+    public void EnterSignal_only_on_a_fresh_pair_arm_or_a_live_mode(bool pairEdge, uint slot0, int mode, bool expected)
+        => Assert.Equal(expected, BattleState.EnterSignal(pairEdge, slot0, mode));
+
+    [Theory]
+    [InlineData(0xFFu, 0xFFFFFFFFu, true)]   // both armed
+    [InlineData(0xFFu, 0u, false)]           // slot9 not armed
+    [InlineData(0u, 0xFFFFFFFFu, false)]     // slot0 not armed
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, false)]  // slot0 reads the full-width sentinel, not the 0xFF marker
+    public void PairArmed_requires_both_sentinels(uint slot0, uint slot9, bool expected)
+        => Assert.Equal(expected, BattleState.PairArmed(slot0, slot9));
 
     // --- IsRealEvent (pure) boundary ---
 
@@ -99,6 +108,127 @@ public class BattleStateTests
             Assert.Equal(BattleEdge.None, StepWorld(bs, t));
             Assert.False(bs.In);
             t = t.AddMilliseconds(33);
+        }
+    }
+
+    // --- Oscillation regression: the stuck sentinel pair must not re-enter after a quit-exit ---
+
+    [Fact]
+    public void Stuck_sentinel_pair_does_not_reenter_after_a_quit_exit()
+    {
+        // Live bug (2026-06-10, after the quit-exit fix): post-quit, BOTH sentinels stay stuck
+        // (slot0=0xFF, slot9=0xFFFFFFFF) with mode 0. The exit fired correctly -- then the
+        // level-triggered pair signal re-entered instantly, producing a 4-second enter/exit
+        // metronome on the world map (tally saves, tracker resets, growth re-locates, forever).
+        // The pair signal must be EDGE-triggered: only a disarmed->armed transition enters.
+        var bs = new BattleState();
+        Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, WM9, 2, false, 0xFFFF, T0));   // real battle
+        var t = T0;
+        BattleEdge last = BattleEdge.None;
+        for (int i = 0; i < 200 && last != BattleEdge.Exited; i++)
+        {
+            t = t.AddMilliseconds(33);
+            last = bs.Step(0xFF, WM9, 0, false, 0xFFFF, t);   // quit: pair stuck, mode 0
+        }
+        Assert.Equal(BattleEdge.Exited, last);
+
+        for (int i = 0; i < 400; i++)   // ~13s of the same stuck world-map state
+        {
+            t = t.AddMilliseconds(33);
+            Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, false, 0xFFFF, t));
+            Assert.False(bs.In);
+        }
+    }
+
+    [Fact]
+    public void Next_real_battle_after_a_quit_enters_via_live_mode()
+    {
+        // With the pair stuck since the quit, the NEXT genuine battle must still enter --
+        // the battlefield mode (2) is a level signal and fires the moment the map loads.
+        var bs = new BattleState();
+        bs.Step(0xFF, WM9, 2, false, 0xFFFF, T0);                       // battle 1
+        var t = T0;
+        BattleEdge last = BattleEdge.None;
+        for (int i = 0; i < 200 && last != BattleEdge.Exited; i++)
+        { t = t.AddMilliseconds(33); last = bs.Step(0xFF, WM9, 0, false, 0xFFFF, t); }
+        Assert.Equal(BattleEdge.Exited, last);
+
+        t = t.AddSeconds(30);                                            // dawdle on the world map
+        Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, false, 0xFFFF, t));
+        t = t.AddMilliseconds(33);
+        Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, WM9, 2, false, 0xFFFF, t));   // battle 2 loads
+        Assert.True(bs.In);
+    }
+
+    [Fact]
+    public void Pair_arming_freshly_still_enters_a_battle()
+    {
+        // Boot -> world map (pair disarmed) -> battle loads and arms the pair: the
+        // disarmed->armed EDGE must enter even before a live mode is read.
+        var bs = new BattleState();
+        Assert.Equal(BattleEdge.None, bs.Step(0, 0, 0, false, 0xFFFF, T0));          // disarmed
+        Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, WM9, 0, false, 0xFFFF, T0.AddMilliseconds(33)));
+    }
+
+    [Fact]
+    public void Pair_armed_during_a_mode_entered_battle_does_not_reenter_after_exit()
+    {
+        // Enter via mode with the pair disarmed; the pair arms mid-battle; after the exit the
+        // still-armed pair must not read as a fresh edge (the stale-baseline variant).
+        var bs = new BattleState();
+        Assert.Equal(BattleEdge.Entered, bs.Step(0, 0, 2, false, 0xFFFF, T0));       // mode enter
+        var t = T0.AddMilliseconds(33);
+        bs.Step(0xFF, WM9, 2, false, 0xFFFF, t);                                      // pair arms mid-battle
+        BattleEdge last = BattleEdge.None;
+        for (int i = 0; i < 200 && last != BattleEdge.Exited; i++)
+        { t = t.AddMilliseconds(33); last = bs.Step(0xFF, WM9, 0, false, 0xFFFF, t); }
+        Assert.Equal(BattleEdge.Exited, last);
+
+        for (int i = 0; i < 100; i++)
+        {
+            t = t.AddMilliseconds(33);
+            Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, false, 0xFFFF, t));
+            Assert.False(bs.In);
+        }
+    }
+
+    // --- Quit-path regression: slot0 sticks at 0xFF after QUITTING a battle ---
+
+    [Fact]
+    public void Quit_battle_with_stuck_slot0_sentinel_exits_after_debounce()
+    {
+        // Live trap (2026-06-10, probe-verified): quitting a battle leaves slot0 STUCK at 0xFF
+        // (a normal victory clears it to 0x66). The post-quit world map reads mode 0, unpaused,
+        // eventId 0xFFFF. Trusting the stuck sentinel alone kept the battle "live" forever --
+        // no exit edge ever fired and charm-lock kept holding/logging indefinitely.
+        var bs = new BattleState();
+        bs.Step(0xFF, WM9, 2, false, 0xFFFF, T0);   // enter
+        var t = T0;
+        BattleEdge last = BattleEdge.None;
+        for (int i = 0; i < 200 && last != BattleEdge.Exited; i++)
+        {
+            t = t.AddMilliseconds(33);
+            last = bs.Step(0xFF, WM9, 0, false, 0xFFFF, t);
+        }
+        Assert.Equal(BattleEdge.Exited, last);
+        Assert.False(bs.In);
+    }
+
+    [Fact]
+    public void Stuck_slot0_with_a_paused_or_event_excuse_never_exits()
+    {
+        // Mid-battle mode-0 dips are excused by pause or a real event id -- the stuck-sentinel
+        // fix must not regress those (the event-401 fake exit was fixed earlier the same day).
+        var bs = new BattleState();
+        bs.Step(0xFF, WM9, 2, false, 0xFFFF, T0);   // enter
+        var t = T0;
+        for (int i = 0; i < 300; i++)   // ~10s alternating paused / dialogue frames
+        {
+            t = t.AddMilliseconds(33);
+            bool paused = i % 2 == 0;
+            int ev = paused ? 0xFFFF : 401;
+            Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, paused, ev, t));
+            Assert.True(bs.In);
         }
     }
 

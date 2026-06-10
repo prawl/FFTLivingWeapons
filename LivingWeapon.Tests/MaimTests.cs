@@ -196,4 +196,19 @@ public class MaimTests
         }
         finally { h.Free(); }
     }
+
+    // ---- Main-hand-only activation gate (B1) ----
+    // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+
+    [Fact]
+    public void IsActingMainHand_true_when_mainHand_is_the_signature_weapon()
+        => Assert.True(Maim.IsActingMainHand(mainHand: 89, weaponId: 89));
+
+    [Fact]
+    public void IsActingMainHand_false_when_mainHand_is_a_different_weapon()
+        => Assert.False(Maim.IsActingMainHand(mainHand: 99, weaponId: 89));
+
+    [Fact]
+    public void IsActingMainHand_false_when_mainHand_is_zero_meaning_no_actor_resolved()
+        => Assert.False(Maim.IsActingMainHand(mainHand: 0, weaponId: 89));
 }

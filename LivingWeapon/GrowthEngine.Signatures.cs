@@ -58,7 +58,8 @@ internal sealed partial class GrowthEngine
             if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
             int level = Mem.U8(rb + Offsets.RLevel);
             if (level < 1 || level > 99) continue;
-            bool wielded = Mem.U16(rb + Offsets.RRHand) == weapon || Mem.U16(rb + Offsets.ROffHand) == weapon;
+            // A grant is only ever held for a main-hand weapon; check main-hand only for release.
+            bool wielded = Mem.U16(rb + Offsets.RRHand) == weapon;
             if (!Signatures.ShouldClearOnUnequip(wielded, Mem.U8(rb + Offsets.RSupport), v.abilityId))
             {
                 if (!wielded) (drop ??= new()).Add((slot, weapon));   // unequipped, but the pick is the player's own

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -30,6 +30,7 @@ internal sealed partial class Engine
     private readonly EagleEye _eagle;
     private readonly Ricochet _ricochet;
     private readonly Maim _maim;
+    private readonly Plague _plague;
     private readonly Barrage _barrage;
     private readonly LifeSap _lifeSap;
     private readonly Wyrmblood _wyrmblood;
@@ -57,10 +58,11 @@ internal sealed partial class Engine
                                    new BattleLog(Tuning.VerboseEvents));
         _growth = new GrowthEngine(meta, _kills, _turns);
         _charm = new CharmLock(meta, _kills);   // counts turns off the target's own CT (not TurnTracker)
-        _extra = new ExtraTurn(_kills);         // Zwill +3: a kill grants the killer an immediate extra turn
+        _extra = new ExtraTurn(_kills, new LiveMemory());   // Zwill +3: a kill grants the killer an immediate extra turn
         _eagle = new EagleEye(meta, _kills);    // Eclipsebolt +3: hasten any enemy Doom to a 1-turn countdown
         _ricochet = new Ricochet(meta, _kills, _tracker);  // Stormarc +3: bounce chip to nearest other enemy
         _maim = new Maim(meta, _kills, _tracker);          // Huntress +3: struck enemies lose reactions N turns
+        _plague = new Plague(meta, _kills, _tracker);      // Venombolt +3: poison never fades, ticks harder
         _barrage = new Barrage(meta, _kills);              // Yoichi +3: grant Barrage command to the wielder
         _lifeSap = new LifeSap(meta, _kills);              // Umbral +3: a kill heals the wielder 25% max HP
         _wyrmblood = new Wyrmblood(meta, _kills, _turns);  // Dragon Rod +3: turn-edge regen splash (1 tile)
@@ -109,10 +111,11 @@ internal sealed partial class Engine
         // menu. battleMode does: 2/3/4 = live battlefield, 0 = world map / menus.
         bool onField = nowIn && (battleMode == 2 || battleMode == 3 || battleMode == 4);
         if (onField) _lastField = now;
-        // Heartbeat on ANY genuine in-battle frame -- slot0==0xFF covers cast/attack targeting
-        // (battleMode 1/5), where gating on {2,3,4} alone starves the beat and false-drops a live
-        // lock the moment the player dwells on a target. Goes quiet only on the post-battle world map.
-        if (CharmLock.InLiveBattle(slot0, battleMode)) _charm.Heartbeat(now);
+        // A genuine in-battle frame: live modes, or the slot0 marker with a paused/event excuse
+        // (the marker alone lies -- it sticks at 0xFF after a battle QUIT). Feeds the heartbeat
+        // and gates every module that writes battle memory.
+        bool inLive = CharmLock.InLiveBattle(slot0, battleMode, paused, eventId);
+        if (inLive) _charm.Heartbeat(now);
         if (edge == BattleEdge.Entered)
             Log.Info($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
 
@@ -135,6 +138,7 @@ internal sealed partial class Engine
             _eagle.ResetBattle();
             _ricochet.ResetBattle();
             _maim.ResetBattle();
+            _plague.ResetBattle();
             _barrage.ResetBattle();
             _lifeSap.ResetBattle();
             _wyrmblood.ResetBattle();
@@ -154,15 +158,16 @@ internal sealed partial class Engine
 
         bool changed = _tracker.Poll(onField);   // every ~33ms tick so fast-forward deaths aren't missed
         _turns.Poll();                        // edge-detect each unit's turns (for timed signatures)
-        _charm.Tick(now);                     // charm-lock: hold/clear each tick to beat the on-hit clear
+        _charm.Tick(now, inLive);   // charm-lock: hold/clear each tick to beat the on-hit clear
         _extra.Tick(now);                     // Zwill +3: on a kill, slam the killer's CT to 100 (extra turn)
         _eagle.Tick();                        // Eclipsebolt +3: force enemy Doom countdowns down to 1
         _ricochet.Tick(onField);              // Stormarc +3: bounce chip to nearest other enemy on damage
         _maim.Tick(onField);                  // Huntress +3: struck enemies lose reactions for N turns
+        _plague.Tick(onField, inLive);   // Venombolt +3: poison never fades, ticks harder
         _lifeSap.Tick();                      // Umbral +3: a kill restores the wielder 25% of max HP
         _wyrmblood.Tick(onField);             // Dragon Rod +3: wielder turn edge mends self + adjacent allies
         _rapture.Tick(onField);               // Rod of Faith +3: below 30% HP, Master Teleportation for 3 turns
-        _font.Tick(onField, CharmLock.InLiveBattle(slot0, battleMode));   // Wellspring +3: a moved turn restores the wielder's HP and MP
+        _font.Tick(onField, inLive);   // Wellspring +3: a moved turn restores the wielder's HP and MP
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 

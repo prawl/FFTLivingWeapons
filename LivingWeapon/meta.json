@@ -193,9 +193,9 @@
   },
   "23": {
     "name": "Sanguine Sword",
-    "wp": 14,
+    "wp": 10,
     "cat": "Sword",
-    "formula": 2,
+    "formula": 6,
     "flavor": "The blade of a sellsword who supped on the lives he felled, till the field claimed him."
   },
   "24": {

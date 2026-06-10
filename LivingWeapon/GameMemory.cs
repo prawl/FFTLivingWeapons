@@ -21,6 +21,9 @@ internal interface IGameMemory
     }
     int ReadInto(long addr, byte[] buf, int len) => 0;
     void WriteBytes(long addr, byte[] data) { }
+    /// <summary>Write a single byte to <paramref name="addr"/>. Default no-op (test fakes
+    /// override; LiveMemory delegates to Mem.W8).</summary>
+    void W8(long addr, byte value) { }
     bool Readable(long addr, int len) => false;
     bool Writable(long addr, int len) => false;
     IEnumerable<(long baseAddr, long size)> Regions() => Array.Empty<(long, long)>();
@@ -33,6 +36,7 @@ internal sealed class LiveMemory : IGameMemory
     public bool TryReadBytes(long addr, int len, out byte[] buf) => Mem.TryReadBytes(addr, len, out buf);
     public int ReadInto(long addr, byte[] buf, int len) => Mem.ReadInto(addr, buf, len);
     public void WriteBytes(long addr, byte[] data) => Mem.WriteBytes(addr, data);
+    public void W8(long addr, byte value) => Mem.W8(addr, value);
     public bool Readable(long addr, int len) => Mem.Readable(addr, len);
     public bool Writable(long addr, int len) => Mem.Writable(addr, len);
     public IEnumerable<(long baseAddr, long size)> Regions() => Mem.Regions();

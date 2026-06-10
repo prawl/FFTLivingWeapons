@@ -28,10 +28,21 @@ internal sealed class BattleState
     private TimeSpan _outAccum = TimeSpan.Zero;   // contiguous out-of-live time (suspended by pause/event)
     private DateTime _lastTick;                    // for the per-tick delta; valid only while In
     private bool _haveLastTick;
+    private bool _pairWasArmed;                    // last observed sentinel-pair state (for the edge)
 
-    /// <summary>Sentinel arm OR a live battleMode -- the instant battle-enter signal.</summary>
-    internal static bool EnterSignal(uint slot0, uint slot9, int battleMode) =>
-        (slot0 == 0xFF && slot9 == 0xFFFFFFFF) || battleMode == 2 || battleMode == 4
+    /// <summary>Both battle sentinels armed at once. A LEVEL read of this pair cannot mean
+    /// "a battle is starting": BOTH sentinels stick on the post-quit world map (slot0 stays
+    /// 0xFF after a battle QUIT, probe-verified 2026-06-10; slot9 always sticks), which made a
+    /// level-triggered pair re-enter instantly after every exit -- a 4-second enter/exit
+    /// metronome. Only the disarmed->armed EDGE of the pair enters; live modes stay level
+    /// signals (a real battle reads mode 2/4 the moment the battlefield loads).</summary>
+    internal static bool PairArmed(uint slot0, uint slot9) =>
+        slot0 == 0xFF && slot9 == 0xFFFFFFFF;
+
+    /// <summary>The instant battle-enter signal: a fresh sentinel-pair arm (edge, computed by
+    /// the caller) OR a live battleMode level.</summary>
+    internal static bool EnterSignal(bool pairRisingEdge, uint slot0, int battleMode) =>
+        pairRisingEdge || battleMode == 2 || battleMode == 4
         || (battleMode == 3 && slot0 == 0xFF);
 
     /// <summary>A real story event/cutscene suspends the exit timer. Contract: any nonzero id except
@@ -50,7 +61,10 @@ internal sealed class BattleState
     {
         if (!In)
         {
-            if (!EnterSignal(slot0, slot9, battleMode)) return BattleEdge.None;
+            bool pairArmed = PairArmed(slot0, slot9);
+            bool pairEdge = pairArmed && !_pairWasArmed;
+            _pairWasArmed = pairArmed;
+            if (!EnterSignal(pairEdge, slot0, battleMode)) return BattleEdge.None;
             In = true;
             _outAccum = TimeSpan.Zero;
             _lastTick = now;
@@ -64,7 +78,7 @@ internal sealed class BattleState
         _lastTick = now;
         _haveLastTick = true;
 
-        if (CharmLock.InLiveBattle(slot0, battleMode))
+        if (CharmLock.InLiveBattle(slot0, battleMode, paused, eventId))
         {
             _outAccum = TimeSpan.Zero;
             return BattleEdge.None;
@@ -74,6 +88,9 @@ internal sealed class BattleState
         {
             In = false;
             _haveLastTick = false;
+            // Snapshot the pair state AT the exit: a pair that armed mid-battle and is still
+            // stuck must not read as a fresh edge on the next out-of-battle tick.
+            _pairWasArmed = PairArmed(slot0, slot9);
             return BattleEdge.Exited;
         }
         return BattleEdge.None;

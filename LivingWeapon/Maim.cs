@@ -54,7 +54,7 @@ internal sealed partial class Maim
         if (!onField) { Drive(); return; }   // Drive holds zeros even when not on the active field
         if (!_meta.TryGetValue(HuntressId, out var m) || m.Signature is null) return;
         int tier = Tuning.TierFor(_kills.TryGetValue(HuntressId, out int k) ? k : 0);
-        bool active = IsActive(m.Signature, tier) && _tracker._lastPlayerWeapons.Contains(HuntressId)
+        bool active = IsActive(m.Signature, tier) && IsActingMainHand(_tracker._lastPlayerMainHand, HuntressId)
                       && Mem.U8(Offsets.Acted) == 1;
         if (active != _wasActive)
         {

@@ -59,7 +59,8 @@ internal sealed partial class EagleEye
         {
             long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
             if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
-            if (Mem.U16(rb + Offsets.RRHand) == EclipseboltId || Mem.U16(rb + Offsets.ROffHand) == EclipseboltId)
+            // Signatures fire from the main hand only: an offhand Eclipsebolt does not hasten Doom.
+            if (Mem.U16(rb + Offsets.RRHand) == EclipseboltId)
                 return target;
         }
         return 0;

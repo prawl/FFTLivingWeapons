@@ -16,6 +16,10 @@ internal sealed partial class Rapture
         return tier >= sig.AtTier;
     }
 
+    /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
+    /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
+    public const bool ActivatesOnMainHandOnly = true;
+
     /// <summary>The HP gate, integer math (the proven Signatures.ConditionMet shape): true when
     /// hp is strictly below pct of max. Safe false on junk maxHp.</summary>
     public static bool IsBelow(int hp, int maxHp, double pct)

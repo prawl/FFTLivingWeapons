@@ -84,13 +84,15 @@ internal sealed partial class Barrage
                 if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
                 int lvl = Mem.U8(rb + Offsets.RLevel);
                 if (lvl < 1 || lvl > 99) continue;
-                if (Mem.U16(rb + Offsets.RRHand) != YoichiId && Mem.U16(rb + Offsets.ROffHand) != YoichiId) continue;
+                // Signatures fire from the main hand only: an offhand Yoichi does not grant Barrage.
+                if (Mem.U16(rb + Offsets.RRHand) != YoichiId) continue;
                 int jobId = Mem.U8(rb + RJobId);
                 if (jobId <= 0) continue;
-                if (!IsEligibleWielder(jobId)) continue;   // THIEF-ONLY (card states it; engine walls every other job)
+                int secRec = Mem.U8(rb + RSecondary);
+                if (!IsEligibleWielder(jobId, secRec)) continue;   // THIEF-ONLY: primary job 83 or secondary record 14
                 wielderSlot = r;
                 wielderJob = jobId;
-                wielderSecondary = Mem.U8(rb + RSecondary);
+                wielderSecondary = secRec;
                 break;
             }
         }
@@ -121,7 +123,10 @@ internal sealed partial class Barrage
         if (!_wasActive)
         {
             _wasActive = true;
-            Log.Info($"barrage: ACTIVE -- party slot {wielderSlot} wields Yoichi Bow as a {LogNames.Job(wielderJob)}, Barrage added to the {LogNames.Job(wielderJob)} command list (job {wielderJob}, record {recId}, learn-index {jobIdx}{(viaSecondary ? ", via secondary command" : "")})");
+            string thiefPath = wielderJob == ThiefJob
+                ? "Thief is the primary job"
+                : "Thief (Steal) is the secondary command";
+            Log.Info($"barrage: ACTIVE -- party slot {wielderSlot} wields Yoichi Bow ({thiefPath}), Barrage added to record {recId} (job {wielderJob}, learn-index {jobIdx}{(viaSecondary ? ", injected via secondary" : "")})");
         }
 
         // Job changed mid-session: restore the old record and re-inject for the new job.
@@ -172,30 +177,4 @@ internal sealed partial class Barrage
         HoldLearnedBit(wielderSlot, jobIdx, slotIdx + 1);   // 1-indexed slot for learned math
     }
 
-    /// <summary>Restore the original record bytes if we have them saved.</summary>
-    private void Restore(int recId)
-    {
-        var saved = _state.GetSaved(recId);
-        if (saved is null) return;
-        long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
-        if (!Mem.Writable(flagAddr, RecSize)) return;
-        RestoreRecord(flagAddr, saved);
-        Log.Info($"barrage: removed Barrage from the command list, back to vanilla (record {recId})");
-    }
-
-    /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
-    /// (jobIdx triple). Re-sets whenever clear -- the learn menu's purchase writeback can wipe
-    /// externally-set bits. Never cleared by us.</summary>
-    private static void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
-    {
-        long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
-        long addr = rb + RLearnedBase + (long)jobIdx * LearnedStride + LearnedByteIndex(slotIdx1);
-        byte mask = LearnedBitMask(slotIdx1);
-        if (!Mem.Readable(addr, 1)) return;
-        byte cur = Mem.U8(addr);
-        if ((cur & mask) != 0) return;   // already set -> no write needed
-        if (!Mem.Writable(addr, 1)) return;
-        Mem.W8(addr, (byte)(cur | mask));
-        Log.Info($"barrage: re-set the learned flag for Barrage in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1}) -- menu write-back cleared it");
-    }
 }

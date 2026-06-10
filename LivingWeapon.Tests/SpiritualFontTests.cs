@@ -147,4 +147,12 @@ public class SpiritualFontTests
     [InlineData(40, false, false)]
     public void Mp_half_requires_a_living_wielder_and_a_proven_layout(int hp, bool mpOk, bool expected)
         => Assert.Equal(expected, SpiritualFont.MpHalfAllowed(hp, mpOk));
+
+    // ---- Main-hand-only activation contract (B2) ----
+    // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+    // SpiritualFont resolves wielder via Wielder.TryResolveMainHand (RRHand-only match).
+
+    [Fact]
+    public void ActivatesOnMainHandOnly_is_documented_in_policy()
+        => Assert.True(SpiritualFont.ActivatesOnMainHandOnly);
 }

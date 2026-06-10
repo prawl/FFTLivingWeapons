@@ -54,9 +54,12 @@ internal sealed partial class Display
     // would overflow on the subtraction `now - _lastMaintenanceMs` since now >= 0.
     private long _lastMaintenanceMs = -1;
 
-    // Persistent rotation cursor advanced by the number of non-target ids taken per chunk
-    // so successive chunks and passes cover all ids without waiting for a new generation.
-    internal int _rotCursor = 0;
+    // Per-ID suffix coverage for the rotation slice. A SET, not a cursor: the old shared
+    // cursor was clamped to each chunk's id count, so a 2-card render buffer rescanned every
+    // 250ms kept resetting the position the 120-card master text was walking and tail ids
+    // were never suffix-painted (live: bows never showed their +3). Ids release for a new
+    // cycle once a chunk's set is exhausted, so fresh buffers wait at most one cycle.
+    internal readonly HashSet<int> _suffixCovered = new();
 
     // Generation number at the last log line so we log once per completion.
     private long _lastLoggedGen = -1;

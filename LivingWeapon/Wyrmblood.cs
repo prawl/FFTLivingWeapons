@@ -54,7 +54,7 @@ internal sealed partial class Wyrmblood
         if (!_meta.TryGetValue(DragonRodId, out var m) || m.Signature is null) return;
         int tier = Tuning.TierFor(_kills.TryGetValue(DragonRodId, out int k) ? k : 0);
         (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolve(Live, DragonRodId, out fp, _hands);
+        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(Live, DragonRodId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;

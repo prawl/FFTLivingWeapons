@@ -63,34 +63,40 @@ internal sealed partial class Display
         }
     }
 
-    /// <summary>Pick a rotation slice of up to RotationSlice ids from the given set,
-    /// advancing the persistent _rotCursor by the number of non-target ids taken so
-    /// each successive chunk/pass covers a different window of ids.</summary>
+    /// <summary>Pick up to RotationSlice non-target ids from this chunk's hit set that have
+    /// not had a suffix search this coverage cycle. Coverage is per-ID (a set), never a shared
+    /// cursor: a cursor clamped to each chunk's id count let a small render-buffer chunk reset
+    /// the position the big master-text chunk was walking, starving tail ids forever (live:
+    /// the bows never got their +3). When every id this chunk offers is already covered, its
+    /// ids are released and a new cycle starts -- so a fresh render buffer of an already-covered
+    /// id waits at most one full cycle, and every id provably gets its turn.</summary>
     private IEnumerable<int> RotationSliceOf(IEnumerable<int> ids)
     {
-        var arr = new List<int>(ids);
-        if (arr.Count == 0) return arr;
-
-        // Keep only non-target ids for the rotation slice (targets are already in suffixIds).
+        // Keep only non-target ids (targets are already in suffixIds unconditionally).
         var nonTargets = new List<int>();
-        foreach (int id in arr)
+        foreach (int id in ids)
             if (!_lastTargets.Contains(id)) nonTargets.Add(id);
+        if (nonTargets.Count == 0) return nonTargets;
 
-        if (nonTargets.Count == 0) return arr;
-
-        int count = nonTargets.Count;
-        if (_rotCursor >= count) _rotCursor = 0;
-
-        var result = new List<int>(RotationSlice);
-        int taken = 0;
-        for (int i = 0; i < count && taken < RotationSlice; i++)
+        var take = new List<int>(RotationSlice);
+        foreach (int id in nonTargets)
         {
-            result.Add(nonTargets[(_rotCursor + i) % count]);
-            taken++;
+            if (_suffixCovered.Contains(id)) continue;
+            take.Add(id);
+            if (take.Count == RotationSlice) break;
         }
-        // Advance cursor by how many non-target ids were taken this pass.
-        _rotCursor = (_rotCursor + taken) % Math.Max(1, count);
-        return result;
+        if (take.Count == 0)
+        {
+            // Cycle complete for this chunk's ids: release them and start the next round.
+            foreach (int id in nonTargets) _suffixCovered.Remove(id);
+            foreach (int id in nonTargets)
+            {
+                take.Add(id);
+                if (take.Count == RotationSlice) break;
+            }
+        }
+        foreach (int id in take) _suffixCovered.Add(id);
+        return take;
     }
 
     /// <summary>Write the boosted WP onto the equip card's scratch byte, guarded: only when

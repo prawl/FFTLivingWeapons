@@ -197,4 +197,135 @@ public class WielderTests
         Wielder.LocateAll(m, Weapon, new[] { Weapon }, (31, 65, 58), results);
         Assert.Empty(results);
     }
+
+    // ---- Enemy level collision guard ----
+    // An enemy sharing weapon + brave + faith but a DIFFERENT level must not be adopted.
+    // These tests will fail until Locate/LocateAll compare fp.lvl.
+
+    [Fact]
+    public void Locate_rejects_enemy_with_same_weapon_brave_faith_but_different_level()
+    {
+        var m = new FakeMemory();
+        // Player fp: lvl=30, br=65, fa=58 -- enemy in the band has same weapon/brave/faith but lvl=25.
+        SeatBand(m, 10, Weapon, lvl: 25, br: 65, fa: 58, gx: 5, gy: 3);
+        long e = Wielder.Locate(m, Weapon, new[] { Weapon }, (30, 65, 58));
+        Assert.Equal(0, e);
+    }
+
+    [Fact]
+    public void Locate_returns_entry_when_level_also_matches()
+    {
+        var m = new FakeMemory();
+        SeatBand(m, 10, Weapon, lvl: 30, br: 65, fa: 58, gx: 5, gy: 3);
+        long e = Wielder.Locate(m, Weapon, new[] { Weapon }, (30, 65, 58));
+        Assert.Equal(Band.Entry(10), e);
+    }
+
+    [Fact]
+    public void LocateAll_rejects_entry_with_same_weapon_brave_faith_but_different_level()
+    {
+        var m = new FakeMemory();
+        SeatBand(m, 10, Weapon, lvl: 25, br: 65, fa: 58, gx: 5, gy: 3);   // level mismatch
+        var results = new List<long>();
+        Wielder.LocateAll(m, Weapon, new[] { Weapon }, (30, 65, 58), results);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void LocateAll_accepts_entry_when_level_also_matches()
+    {
+        var m = new FakeMemory();
+        SeatBand(m, 10, Weapon, lvl: 30, br: 65, fa: 58, gx: 5, gy: 3);
+        var results = new List<long>();
+        Wielder.LocateAll(m, Weapon, new[] { Weapon }, (30, 65, 58), results);
+        Assert.Single(results);
+    }
+
+    // ---- TryResolveMainHand: main-hand-only resolution ----
+
+    [Fact]
+    public void TryResolveMainHand_true_when_weapon_is_in_RRHand()
+    {
+        var m = new FakeMemory();
+        SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
+        var hands = new List<int>();
+        Assert.True(Wielder.TryResolveMainHand(m, Weapon, out var fp, hands));
+        Assert.Equal((31, 65, 58), fp);
+        Assert.Equal(new List<int> { Weapon }, hands);
+    }
+
+    [Fact]
+    public void TryResolveMainHand_false_when_weapon_is_only_in_offhand()
+    {
+        // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+        var m = new FakeMemory();
+        SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon);
+        Assert.False(Wielder.TryResolveMainHand(m, Weapon, out _, new List<int>()));
+    }
+
+    [Fact]
+    public void TryResolveMainHand_hands_list_contains_only_the_main_hand_id()
+    {
+        // The locate set for a main-hand Zwill must only pass the main-hand id so that the
+        // band locate keyed on the main-hand id is an exact field match.
+        var m = new FakeMemory();
+        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon, oh: 99);
+        var hands = new List<int>();
+        Assert.True(Wielder.TryResolveMainHand(m, Weapon, out _, hands));
+        Assert.Equal(new List<int> { Weapon }, hands);
+        Assert.DoesNotContain(99, hands);
+    }
+
+    [Fact]
+    public void TryResolveMainHand_false_when_nobody_wields_it()
+    {
+        var m = new FakeMemory();
+        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
+        Assert.False(Wielder.TryResolveMainHand(m, Weapon, out _, new List<int>()));
+    }
+
+    [Fact]
+    public void TryResolveMainHand_false_when_two_roster_slots_have_it_as_main_hand()
+    {
+        var m = new FakeMemory();
+        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
+        Assert.False(Wielder.TryResolveMainHand(m, Weapon, out _, new List<int>()));
+    }
+
+    // ---- HasMainHandWielder: lightweight presence check for Barrage/CharmLock/EagleEye ----
+    // These modules need only "does anyone hold this weapon as their main hand?"
+
+    [Fact]
+    public void HasMainHandWielder_true_when_weapon_is_RRHand()
+    {
+        var m = new FakeMemory();
+        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        Assert.True(Wielder.HasMainHandWielder(m, Weapon));
+    }
+
+    [Fact]
+    public void HasMainHandWielder_false_when_weapon_is_only_in_offhand()
+    {
+        // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+        var m = new FakeMemory();
+        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1, oh: Weapon);
+        Assert.False(Wielder.HasMainHandWielder(m, Weapon));
+    }
+
+    [Fact]
+    public void HasMainHandWielder_false_when_nobody_has_it()
+    {
+        var m = new FakeMemory();
+        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
+        Assert.False(Wielder.HasMainHandWielder(m, Weapon));
+    }
+
+    [Fact]
+    public void HasMainHandWielder_true_for_any_valid_slot_with_weapon_in_main_hand()
+    {
+        var m = new FakeMemory();
+        SeatRoster(m, 3, lvl: 40, br: 80, fa: 45, rh: Weapon);
+        Assert.True(Wielder.HasMainHandWielder(m, Weapon));
+    }
 }

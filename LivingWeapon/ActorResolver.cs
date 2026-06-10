@@ -105,6 +105,63 @@ internal sealed class ActorResolver
         if (!list.Contains(id)) list.Add(id);        // dedup (same weapon somehow in both hands)
     }
 
+    /// <summary>The acting player's main-hand (RRHand) weapon id, or 0 when the actor is not
+    /// a roster player or the fingerprint is ambiguous. Mirrors <see cref="ResolveActingWeapons"/>
+    /// but returns only the right-hand slot. A Living Weapon earns kills in any hand, but
+    /// commands its gift only from the main hand.</summary>
+    public int ResolveActingMainHand()
+    {
+        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
+        ushort hp    = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
+        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
+        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return 0;
+
+        bool foundReal = false;
+        int mainHand = 0; bool ambiguous = false;
+        for (int s = 0; s < Offsets.BandSlots; s++)
+        {
+            long addr = Band.Entry(s);
+            if (!Band.IsValid(_mem, addr)) continue;
+            if (_mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
+            if (_mem.U16(addr + Offsets.AHp)    != hp)    continue;
+            if (_mem.U8(addr  + Offsets.ALevel) != level) continue;
+
+            bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
+            int rh = MainHandFromRoster(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith));
+            if (rh == 0) continue;
+
+            if (foundReal && !realPos) continue;
+            if (realPos && !foundReal && mainHand != 0)
+            {
+                mainHand = 0; ambiguous = false; foundReal = true;
+            }
+            if (realPos) foundReal = true;
+
+            if (mainHand == 0) mainHand = rh;
+            else if (mainHand != rh) ambiguous = true;
+        }
+        return ambiguous ? 0 : mainHand;
+    }
+
+    /// <summary>RRHand weapon id of the unique roster slot matching (level, brave, faith), or 0
+    /// when not a roster unit / ambiguous / unarmed.</summary>
+    private int MainHandFromRoster(int level, int brave, int faith)
+    {
+        int found = 0; int rh = 0;
+        for (int s = 0; s < Offsets.RosterSlots; s++)
+        {
+            long b = Offsets.RosterBase + (long)s * Offsets.RosterStride;
+            if (_mem.U8(b + Offsets.RLevel) != level) continue;
+            if (_mem.U8(b + Offsets.RBrave) != brave) continue;
+            if (_mem.U8(b + Offsets.RFaith) != faith) continue;
+            int candidate = _mem.U16(b + Offsets.RRHand);
+            if (!_weapons.Contains(candidate)) continue;   // not a real weapon (shield / empty)
+            if (++found > 1) return 0;
+            rh = candidate;
+        }
+        return found == 1 ? rh : 0;
+    }
+
     /// <summary>Order-independent equality for the tiny (&lt;=2) hand-weapon lists.</summary>
     internal static bool SameSet(List<int> a, List<int> b)
     {

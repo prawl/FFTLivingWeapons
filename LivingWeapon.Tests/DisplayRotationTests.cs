@@ -122,6 +122,63 @@ public class DisplayRotationTests
     }
 
     /// <summary>
+    /// Live bug (2026-06-10): the shared rotation cursor was clamped to each chunk's id count
+    /// (cursor >= count -> reset to 0), so a SMALL hot chunk (a 2-card render buffer rescanned
+    /// every 250ms) kept resetting the position the 20-card master-text chunk was walking --
+    /// ids in the tail were NEVER suffix-painted (the player's bows never showed their +3).
+    /// Coverage must be per-ID and immune to chunk interleaving: EVERY id paints, not "most".
+    /// </summary>
+    [Fact]
+    public void Small_hot_chunks_must_not_starve_big_chunk_ids()
+    {
+        var meta = BuildLargeMeta();
+        meta[40] = new WeaponMeta { Name = "Wp40", Flavor = "Flavor text number 40 here", Wp = 10, Cat = "Sword", Formula = 1 };
+        meta[41] = new WeaponMeta { Name = "Wp41", Flavor = "Flavor text number 41 here", Wp = 10, Cat = "Sword", Formula = 1 };
+        var kills = new Dictionary<int, int>();
+        for (int id = 20; id <= 41; id++) kills[id] = 5;
+
+        int cardStride = 120;
+        var big = new byte[cardStride * 20 + 256];
+        for (int i = 0; i < 20; i++)
+            WriteCardToBuffer(big, i * cardStride, $"Wp{20 + i:D2}", $"Flavor text number {20 + i:D2} here");
+        var small = new byte[cardStride * 2 + 256];
+        for (int i = 0; i < 2; i++)
+            WriteCardToBuffer(small, i * cardStride, $"Wp{40 + i:D2}", $"Flavor text number {40 + i:D2} here");
+
+        var statics = new byte[64];
+        statics[0] = 20; statics[1] = 0;   // mirror = id 20 (the lone target)
+
+        const long SmallBase = 0x72_0000_0000L;
+        var heap = new FakeHeap((SourceBase3 + 0x2_0000_0000L, big), (SmallBase, small),
+                                (StaticsBase3 + 0x2_0000_0000L, statics));
+        var wrapped = new OffsetRemapMem(heap,
+            mirrorWeaponAddr:  StaticsBase3 + 0x2_0000_0000L + 0,
+            mirrorOffHandAddr: StaticsBase3 + 0x2_0000_0000L + 2,
+            wpScratchAddr:     StaticsBase3 + 0x2_0000_0000L + 4);
+
+        var clock = new Clock3();
+        var display = new Display(meta, kills, wrapped, clock.Func);
+
+        byte plus = ByteScan.Ascii("+")[0];
+        for (int i = 0; i < 800; i++)
+        {
+            clock.Ms += DisplaySweep.HotRescanMs + 1;
+            display.Tick(false);
+        }
+
+        var starved = new List<int>();
+        for (int i = 0; i < 20; i++)
+        {
+            int nameLen = ByteScan.Ascii($"Wp{20 + i:D2}").Length;
+            if (!heap.TryReadBytes(SourceBase3 + 0x2_0000_0000L + i * cardStride + nameLen, 1, out var slot)
+                || slot[0] != plus)
+                starved.Add(20 + i);
+        }
+        Assert.True(starved.Count == 0,
+            $"every id must get its suffix despite small-chunk interleaving; starved: {string.Join(",", starved)}");
+    }
+
+    /// <summary>
     /// Write count per chunk must not grow proportionally to cached site count --
     /// no full PaintAll on every hit chunk.
     /// </summary>

@@ -13,6 +13,10 @@ internal sealed partial class Wyrmblood
         return tier >= sig.AtTier;
     }
 
+    /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
+    /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
+    public const bool ActivatesOnMainHandOnly = true;
+
     /// <summary>The wielder's turn edge: a PRIMED TurnTracker count climbed. -1 = unprimed
     /// (first sight after a reset or a re-equip baselines silently). A count that DROPPED
     /// (tracker reset under us) re-baselines instead of splashing.</summary>

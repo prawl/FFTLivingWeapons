@@ -22,11 +22,8 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ExtraTurn
 {
-    private const int EntryWeapon = Offsets.CWeapon - Offsets.BandEntry;   // weapon id at +0x04 in the entry frame
-
-    private static readonly LiveMemory BandMem = new();   // Band.IsValid takes IGameMemory; reads == Mem
-
     private readonly Dictionary<int, int> _kills;
+    private readonly IGameMemory _mem;
     private readonly List<int> _hands = new();    // the wielder's real hand item ids (incl. the Zwill)
     private GrantState _state;
     private int _lastCount = -1;
@@ -40,11 +37,13 @@ internal sealed partial class ExtraTurn
     private DateTime _hardStop;                   // absolute per-grant cap
     private int _pullDowns;
     private int _dbg;
-    private bool _ambiguityLogged;                // log a locate tie ONCE per grant, not every 500ms
 
-    public ExtraTurn(Dictionary<int, int> kills) { _kills = kills; }
+    public ExtraTurn(Dictionary<int, int> kills, IGameMemory mem) { _kills = kills; _mem = mem; }
 
     internal GrantState State => _state;
+    /// <summary>The located band entry address; non-zero when the wielder was found this tick.
+    /// Exposed for tests: a non-zero value confirms Locate succeeded (Band.Entry (0,0) twin scenario).</summary>
+    internal long LocatedBase => _base;
 
     public void ResetBattle()
     {
@@ -56,7 +55,8 @@ internal sealed partial class ExtraTurn
     public void Tick(DateTime now)
     {
         int count = _kills.TryGetValue(ZwillId, out int k) ? k : 0;
-        if (Tuning.TierFor(count) < AtTier || !ResolveWielder())
+        // Signatures fire from the main hand only: a Zwill in the off-hand does not arm the grant.
+        if (Tuning.TierFor(count) < AtTier || !Wielder.TryResolveMainHand(_mem, ZwillId, out _wielder, _hands))
         {
             if (_state != GrantState.Idle) Release(ReleaseReason.GateLost);
             _lastCount = count;
@@ -75,7 +75,7 @@ internal sealed partial class ExtraTurn
         if (now >= _hardStop) { Release(ReleaseReason.AbsoluteCap); return; }
         if (now >= _deadline) { Release(ReleaseReason.NoSignal); return; }
 
-        _base = Locate();
+        _base = Wielder.Locate(_mem, ZwillId, _hands, _wielder);
         int ct = ReadCt();
         if (Healthy(ct)) _deadline = now.AddSeconds(NoSignalSeconds);
 
@@ -102,87 +102,26 @@ internal sealed partial class ExtraTurn
             if (next != _state) { _state = next; _deadline = now.AddSeconds(NoSignalSeconds); }
         }
 
-        if (Slams(_state) && _base != 0 && Mem.Writable(_base + CtOff, 1)) Mem.W8(_base + CtOff, SlamCt);
+        if (Slams(_state) && _base != 0 && _mem.Writable(_base + CtOff, 1)) _mem.W8(_base + CtOff, SlamCt);
         if (_dbg++ % 15 == 0) Log.Info($"extra-turn: {_state} -- wielder entry at 0x{_base:X}, CT {ct}, streak {_streak}, slam took={_took}");
     }
 
     private void Arm(DateTime now)
     {
         _state = GrantState.Arming; _base = 0; _prevCt = -1;
-        _streak = 0; _took = false; _pullDowns = 0; _deadStreak = 0; _ambiguityLogged = false;
+        _streak = 0; _took = false; _pullDowns = 0; _deadStreak = 0;
         _deadline = now.AddSeconds(NoSignalSeconds); _hardStop = now.AddSeconds(AbsoluteCapSeconds);
         Log.Info($"extra-turn: {LogNames.Weapon(ZwillId)} scored a kill -- arming extra-turn grant for the wielder (level {_wielder.lvl}, brave {_wielder.br}, faith {_wielder.fa})");
     }
 
     private void Release(ReleaseReason reason)
     {
-        if (RestoreCt(reason) && _base != 0 && Mem.Writable(_base + CtOff, 1)) Mem.W8(_base + CtOff, 0);
+        if (RestoreCt(reason) && _base != 0 && _mem.Writable(_base + CtOff, 1)) _mem.W8(_base + CtOff, 0);
         Log.Info($"extra-turn: grant ended ({reason}) from {_state} after {_pullDowns} turn-end(s) detected");
         _state = GrantState.Idle; _base = 0; _streak = 0; _took = false; _prevCt = -1; _deadStreak = 0;
-        _ambiguityLogged = false;
     }
 
-    private int ReadCt() => _base != 0 && Mem.Readable(_base + CtOff, 1) ? Mem.U8(_base + CtOff) : -1;
-    private int ReadHp() => _base != 0 && Mem.Readable(_base + Offsets.AHp, 2) ? Mem.U16(_base + Offsets.AHp) : -1;
+    private int ReadCt() => _base != 0 && _mem.Readable(_base + CtOff, 1) ? _mem.U8(_base + CtOff) : -1;
+    private int ReadHp() => _base != 0 && _mem.Readable(_base + Offsets.AHp, 2) ? _mem.U16(_base + Offsets.AHp) : -1;
 
-    /// <summary>The Zwill holder's roster fingerprint + hand item ids. False when no roster slot --
-    /// or more than one (ambiguous) -- holds the Zwill in either hand.</summary>
-    private bool ResolveWielder()
-    {
-        int found = 0;
-        for (int r = 0; r < Offsets.RosterSlots; r++)
-        {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
-            int lvl = Mem.U8(rb + Offsets.RLevel);
-            if (lvl < 1 || lvl > 99) continue;
-            int rh = Mem.U16(rb + Offsets.RRHand), lh = Mem.U16(rb + Offsets.RLHand), oh = Mem.U16(rb + Offsets.ROffHand);
-            if (rh != ZwillId && lh != ZwillId && oh != ZwillId) continue;
-            if (++found > 1) return false;          // two Zwill holders: ambiguous, no grant
-            _wielder = (lvl, Mem.U8(rb + Offsets.RBrave), Mem.U8(rb + Offsets.RFaith));
-            _hands.Clear();
-            foreach (int id in new[] { rh, lh, oh })
-                if (id != 0x00FF && id != 0xFFFF && !_hands.Contains(id)) _hands.Add(id);
-        }
-        return found == 1;
-    }
-
-    /// <summary>Per-tick Band walk for the wielder's LIVE entry: the weapon id must be one of their
-    /// hands (the Zwill, or the main weapon when the Zwill rides the off-hand) AND brave/faith must
-    /// match the roster. TWIN FILTER: a real-position match beats a (0,0) one (the frozen roster
-    /// duplicate sits at (0,0) -- the exact tie that killed v7); among survivors an exact Zwill
-    /// match outranks a hand match; a remaining tie means no slam (a miss beats slamming a stranger).
-    /// Relocation needs no special chase: the walk re-finds the entry within one tick.</summary>
-    private long Locate()
-    {
-        long match = 0, exact = 0;
-        int matches = 0, exacts = 0;
-        bool real = false;               // current candidates carry a real position
-        var cands = new List<long>(2);   // tie candidates, for the once-per-grant ambiguity log
-        for (int s = 0; s < Offsets.BandSlots; s++)
-        {
-            long e = Band.Entry(s);
-            if (!Band.IsValid(BandMem, e)) continue;
-            int wid = Mem.U16(e + EntryWeapon);
-            if (!_hands.Contains(wid)) continue;
-            if (Mem.U8(e + Offsets.ABrave) != _wielder.br || Mem.U8(e + Offsets.AFaith) != _wielder.fa) continue;
-            bool realPos = Mem.U8(e + Offsets.AGx) != 0 || Mem.U8(e + Offsets.AGy) != 0;
-            if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
-            if (realPos && !real)                                            // first live match: drop (0,0) ones
-            {
-                real = true; matches = 0; exacts = 0; match = 0; exact = 0; cands.Clear();
-            }
-            matches++; match = e; cands.Add(e);
-            if (wid == ZwillId) { exacts++; exact = e; }
-        }
-        if (exacts == 1) return exact;
-        if (matches == 1) return match;
-        if (matches > 1 && !_ambiguityLogged)
-        {
-            _ambiguityLogged = true;     // once per grant: a surviving tie is diagnostic gold, not spam
-            Log.Info($"extra-turn: wielder location is ambiguous ({matches} matching entries: " +
-                     $"{string.Join(", ", cands.ConvertAll(c => "0x" + c.ToString("X")))}) -- turn gauge not slammed");
-        }
-        return 0;
-    }
 }

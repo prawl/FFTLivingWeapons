@@ -47,20 +47,33 @@ public class BarrageTests
         => Assert.False(Barrage.IsActive(BarrageSig(), tier: 2));
 
     // ---- THIEF-ONLY gate (card states "Barrage (Thief Only)") ----
+    // A wielder qualifies when (primary job == Thief 83) OR (secondary record == Steal 14).
 
     [Fact]
-    public void IsEligibleWielder_true_only_for_thief()
-        => Assert.True(Barrage.IsEligibleWielder(83));
+    public void IsEligibleWielder_true_for_primary_thief()
+        => Assert.True(Barrage.IsEligibleWielder(83, secondaryRecord: 0));
+
+    [Fact]
+    public void IsEligibleWielder_true_for_primary_thief_with_any_secondary()
+        => Assert.True(Barrage.IsEligibleWielder(83, secondaryRecord: 11));
+
+    [Fact]
+    public void IsEligibleWielder_true_for_archer_with_thief_secondary()
+        => Assert.True(Barrage.IsEligibleWielder(77, secondaryRecord: 14));
+
+    [Fact]
+    public void IsEligibleWielder_true_for_story_job_with_thief_secondary()
+        => Assert.True(Barrage.IsEligibleWielder(1, secondaryRecord: 14));
 
     [Theory]
-    [InlineData(77)]   // Archer (Aim swallows it)
-    [InlineData(74)]   // Squire
-    [InlineData(80)]   // Black Mage
-    [InlineData(87)]   // Dragoon
-    [InlineData(1)]    // Ramza / Mettle
-    [InlineData(0)]    // empty
-    public void IsEligibleWielder_false_for_non_thief(int job)
-        => Assert.False(Barrage.IsEligibleWielder(job));
+    [InlineData(77, 10)]   // Archer with some other secondary
+    [InlineData(74, 10)]   // Squire with some other secondary
+    [InlineData(80, 0)]    // Black Mage, no secondary
+    [InlineData(87, 5)]    // Dragoon with Fundaments secondary
+    [InlineData(1, 0)]     // Ramza / Mettle, no secondary
+    [InlineData(0, 0)]     // empty
+    public void IsEligibleWielder_false_when_neither_primary_nor_secondary_is_thief(int job, int sec)
+        => Assert.False(Barrage.IsEligibleWielder(job, sec));
 
     [Fact]
     public void IsActive_true_at_and_above_tier()

@@ -28,6 +28,11 @@ internal sealed partial class Barrage
     /// jobs like Archer/Aim swallow it; see SpecialExecutorJobs). The card states "Thief Only".</summary>
     public const int ThiefJob = 83;
 
+    /// <summary>The JobCommand record id for Steal (Thief's primary command). Used as the
+    /// injection target and as the secondary-slot eligibility check: a unit with Steal mounted
+    /// as a secondary command is also eligible for the grant.</summary>
+    public const int ThiefRecord = 14;
+
     /// <summary>True when the signature is configured and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
     {
@@ -35,9 +40,14 @@ internal sealed partial class Barrage
         return tier >= sig.AtTier;
     }
 
-    /// <summary>Barrage is granted ONLY to a Thief wielder (job 83). Enforces the card's
-    /// "Thief Only" promise in code.</summary>
-    public static bool IsEligibleWielder(int job) => job == ThiefJob;
+    /// <summary>A wielder qualifies for the Barrage grant when Thief is the primary job
+    /// (job 83) OR Steal is the mounted secondary command (secondary record == 14). Injection
+    /// always targets the Steal record (rec 14) regardless of the eligibility path: for a
+    /// Thief primary that IS the primary command slot; for any other primary with Steal mounted
+    /// as a secondary, it is the secondary slot. Eligibility differs; the injection target
+    /// does not. Enforces the card's "Thief Only" promise in code.</summary>
+    public static bool IsEligibleWielder(int job, int secondaryRecord)
+        => job == ThiefJob || secondaryRecord == ThiefRecord;
 
     /// <summary>Jobs whose PRIMARY command is a special-cased executor that silently drops
     /// foreign ability ids at confirm time (the menu label renders, targeting/preview show
@@ -158,38 +168,32 @@ internal sealed partial class Barrage
         if (!Mem.Writable(flagAddr, saved.Length)) return;
         Mem.WriteBytes(flagAddr, saved);
     }
-}
 
-/// <summary>Tracks the saved JobCommand record (never-re-save invariant) and the slot used for
-/// injection. The save is keyed by record id; only the first save is honored (a re-save would
-/// overwrite the original bytes with injected state, making restore restore the injection).</summary>
-internal sealed class BarrageState
-{
-    private readonly Dictionary<int, byte[]> _saved = new();
-    private int _slotIdx = -1;   // 0-indexed slot used for injection (-1 = not injected)
-
-    /// <summary>True if we have saved the original record bytes for this record id.</summary>
-    public bool HasSaved(int recId) => _saved.ContainsKey(recId);
-
-    /// <summary>Save the original record bytes. No-ops if already saved (never-re-save).</summary>
-    public void Save(int recId, byte[] record)
+    /// <summary>Restore the original record bytes for <paramref name="recId"/> if we have them
+    /// saved. Called on grant end or job change.</summary>
+    private void Restore(int recId)
     {
-        if (_saved.ContainsKey(recId)) return;
-        var copy = new byte[record.Length];
-        System.Array.Copy(record, copy, record.Length);
-        _saved[recId] = copy;
+        var saved = _state.GetSaved(recId);
+        if (saved is null) return;
+        long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
+        if (!Mem.Writable(flagAddr, RecSize)) return;
+        RestoreRecord(flagAddr, saved);
+        Log.Info($"barrage: removed Barrage from the command list, back to vanilla (record {recId})");
     }
 
-    /// <summary>The saved bytes for the given record id, or null.</summary>
-    public byte[]? GetSaved(int recId) => _saved.TryGetValue(recId, out var b) ? b : null;
-
-    /// <summary>The 0-indexed slot currently used for injection, or -1.</summary>
-    public int SlotIdx
+    /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
+    /// (jobIdx triple). Re-sets whenever clear -- the learn menu's purchase writeback can wipe
+    /// externally-set bits. Never cleared by us.</summary>
+    private static void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
     {
-        get => _slotIdx;
-        set => _slotIdx = value;
+        long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
+        long addr = rb + RLearnedBase + (long)jobIdx * LearnedStride + LearnedByteIndex(slotIdx1);
+        byte mask = LearnedBitMask(slotIdx1);
+        if (!Mem.Readable(addr, 1)) return;
+        byte cur = Mem.U8(addr);
+        if ((cur & mask) != 0) return;   // already set -> no write needed
+        if (!Mem.Writable(addr, 1)) return;
+        Mem.W8(addr, (byte)(cur | mask));
+        Log.Info($"barrage: re-set the learned flag for Barrage in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1}) -- menu write-back cleared it");
     }
-
-    /// <summary>Clear saved state (on grant end / job change).</summary>
-    public void Clear() { _saved.Clear(); _slotIdx = -1; }
 }

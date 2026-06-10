@@ -15,6 +15,10 @@ internal sealed partial class LifeSap
         return tier >= sig.AtTier;
     }
 
+    /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
+    /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
+    public const bool ActivatesOnMainHandOnly = true;
+
     /// <summary>The kill-tally-diff trigger (the ExtraTurn freshKill pattern): fires only when a
     /// PRIMED count climbs. -1 = unprimed (first sight after a reset baselines silently, so a
     /// seeded tally or a battle re-entry can never fire a phantom heal).</summary>

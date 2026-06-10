@@ -19,6 +19,10 @@ internal sealed partial class Maim
         return tier >= sig.AtTier;
     }
 
+    /// <summary>True when the acting unit's main-hand weapon is the Huntress. A Living Weapon
+    /// earns kills in any hand, but commands its gift only from the main hand.</summary>
+    public static bool IsActingMainHand(int mainHand, int weaponId) => mainHand == weaponId && mainHand != 0;
+
     /// <summary>True when the struck unit is an enemy (never latch allies).</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;
 

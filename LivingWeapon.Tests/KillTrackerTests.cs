@@ -878,4 +878,55 @@ public class KillTrackerTests
 
         Assert.Empty(kills);   // off-field ticks didn't count -> seenAlive never set
     }
+
+    // --- LastPlayerMainHand: main-hand id of the most recent acting player ---
+
+    [Fact]
+    public void LastPlayerMainHand_is_zero_before_any_actor_latches()
+    {
+        var m = new FakeMemory();
+        var t = new KillTracker(new Dictionary<int, int>(), m, Weapons);
+        Assert.Equal(0, t.LastPlayerMainHand);
+    }
+
+    [Fact]
+    public void LastPlayerMainHand_exposes_RRHand_after_a_latch()
+    {
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(new Dictionary<int, int>(), m, Weapons);
+        Settle(t);
+        Assert.Equal(52, t.LastPlayerMainHand);
+    }
+
+    [Fact]
+    public void LastPlayerMainHand_for_dual_wielder_is_RRHand_not_offhand()
+    {
+        // A dual-wielder: both ids appear in LastPlayerWeapons, but LastPlayerMainHand = RRHand only.
+        // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, offhand: 90);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(new Dictionary<int, int>(), m, Weapons);
+        Settle(t);
+        Assert.Equal(2, t.LastPlayerWeapons.Count);   // both hands credited (kill counting unchanged)
+        Assert.Equal(52, t.LastPlayerMainHand);       // main hand is RRHand
+    }
+
+    [Fact]
+    public void LastPlayerMainHand_resets_to_zero_on_ResetBattle()
+    {
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(new Dictionary<int, int>(), m, Weapons);
+        Settle(t);
+        Assert.NotEqual(0, t.LastPlayerMainHand);
+        t.ResetBattle();
+        Assert.Equal(0, t.LastPlayerMainHand);
+    }
 }

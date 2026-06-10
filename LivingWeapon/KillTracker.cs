@@ -38,6 +38,7 @@ internal sealed partial class KillTracker
     internal readonly int[] _pendingAge = new int[Offsets.BandSlots];  // ticks a corpse has waited (backstop)
     internal readonly int[] _pendingFalls = new int[Offsets.BandSlots];// _actedFalls when the corpse went pending
     internal List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
+    internal int _lastPlayerMainHand;                // RRHand id of the last latched actor (0 when none)
     private bool _latched;                           // a player resolved this acted-period -> frozen until it ends
     private int _actedLow;                           // consecutive acted==0 ticks (drift-debounced period end)
     internal int _actedFalls;                        // battle-local count of debounced acted-falling edges
@@ -62,6 +63,7 @@ internal sealed partial class KillTracker
         Array.Clear(_pendingAge, 0, _pendingAge.Length);
         Array.Clear(_pendingFalls, 0, _pendingFalls.Length);
         _lastPlayerWeapons = new();
+        _lastPlayerMainHand = 0;
         _latched = false;
         _actedLow = 0;
         _actedFalls = 0;
@@ -99,6 +101,7 @@ internal sealed partial class KillTracker
                     if (!ActorResolver.SameSet(ws, _lastPlayerWeapons))
                     {
                         _lastPlayerWeapons = ws;
+                        _lastPlayerMainHand = _resolver.ResolveActingMainHand();
                         _actorTag = string.Join(",", ws);
                         Log.Info("turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")));
                     }
@@ -136,6 +139,7 @@ internal sealed partial class KillTracker
         if (_fallbackStreak >= FallbackStreak)
         {
             _lastPlayerWeapons = ws;
+            _lastPlayerMainHand = _resolver.ResolveActingMainHand();
             _actorTag = string.Join(",", ws);
             _fallbackStreak = 0; _fallbackSet = new();
             Log.Info("turn: no actor seen yet -- crediting the only player who has acted (first-kill fallback, weapons: " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + ")");
@@ -146,6 +150,11 @@ internal sealed partial class KillTracker
     /// Empty at battle start and for any turn where no player actor was resolved.
     /// Consumers must not cache the reference across ticks (ResetBattle replaces it).</summary>
     public List<int> LastPlayerWeapons => _lastPlayerWeapons;
+
+    /// <summary>The RRHand weapon id of the most recently latched actor, or 0 when none. A
+    /// Living Weapon earns kills in any hand, but commands its gift only from the main hand --
+    /// signature callers use this to gate activation on the main-hand weapon only.</summary>
+    public int LastPlayerMainHand => _lastPlayerMainHand;
 
     internal bool AnyPending()
     {

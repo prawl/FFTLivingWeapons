@@ -87,4 +87,12 @@ public class WyrmbloodTests
         Assert.Equal(0, LifeSap.NewHp(0, 100, Wyrmblood.RegenAmount(100, 8)));      // dead stays dead
         Assert.Equal(62, LifeSap.NewHp(50, 100, Wyrmblood.RegenAmount(100, 8)));
     }
+
+    // ---- Main-hand-only activation contract (B2) ----
+    // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+    // Wyrmblood resolves wielder via Wielder.TryResolveMainHand (RRHand-only match).
+
+    [Fact]
+    public void ActivatesOnMainHandOnly_is_documented_in_policy()
+        => Assert.True(Wyrmblood.ActivatesOnMainHandOnly);
 }

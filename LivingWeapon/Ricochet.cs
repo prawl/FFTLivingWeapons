@@ -50,7 +50,7 @@ internal sealed partial class Ricochet
         if (!onField) return;
         if (!_meta.TryGetValue(Stormarc, out var m) || m.Signature is null) return;
         int tier = Tuning.TierFor(_kills.TryGetValue(Stormarc, out int k) ? k : 0);
-        bool active = IsActive(m.Signature, tier) && _tracker._lastPlayerWeapons.Contains(Stormarc)
+        bool active = IsActive(m.Signature, tier) && IsActingMainHand(_tracker._lastPlayerMainHand, Stormarc)
                       && Mem.U8(Offsets.Acted) == 1;
         if (active != _wasActive)
         {

@@ -20,6 +20,10 @@ internal sealed partial class Ricochet
         return tier >= sig.AtTier;
     }
 
+    /// <summary>True when the acting unit's main-hand weapon is the Stormarc. A Living Weapon
+    /// earns kills in any hand, but commands its gift only from the main hand.</summary>
+    public static bool IsActingMainHand(int mainHand, int weaponId) => mainHand == weaponId && mainHand != 0;
+
     /// <summary>Chip damage: pct% of the original damage, integer floor. Returns 0 when original is 0.
     /// Returns at least 1 when the original was >= 1 (a real hit always produces at least 1 chip).</summary>
     public static int ChipDamage(int dmg, int pct)

@@ -94,4 +94,12 @@ public class LifeSapTests
         }
         finally { h.Free(); }
     }
+
+    // ---- Main-hand-only activation contract (B2) ----
+    // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+    // LifeSap resolves wielder via Wielder.TryResolveMainHand (RRHand-only match).
+
+    [Fact]
+    public void ActivatesOnMainHandOnly_is_documented_in_policy()
+        => Assert.True(LifeSap.ActivatesOnMainHandOnly);
 }

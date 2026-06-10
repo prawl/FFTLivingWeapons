@@ -15,6 +15,10 @@ internal sealed partial class SpiritualFont
         return tier >= sig.AtTier;
     }
 
+    /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
+    /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
+    public const bool ActivatesOnMainHandOnly = true;
+
     /// <summary>New MP after the gain: clamped at maxMp. UNLIKE the HP half, mp 0 still gains --
     /// an empty pool is not a corpse (HP 0 -&gt; positive is the engine's revival signal; MP has
     /// no such semantics). No-op on junk maxMp or a non-positive gain.</summary>

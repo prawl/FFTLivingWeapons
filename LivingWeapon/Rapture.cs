@@ -57,7 +57,7 @@ internal sealed partial class Rapture
         if (!_meta.TryGetValue(RodOfFaithId, out var m) || m.Signature is null) return;
         int tier = Tuning.TierFor(_kills.TryGetValue(RodOfFaithId, out int k) ? k : 0);
         (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolve(Live, RodOfFaithId, out fp, _hands);
+        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(Live, RodOfFaithId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;

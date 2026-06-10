@@ -85,6 +85,13 @@ internal static class Tuning
     /// ride the band +0x18/+0x1A pair (live-verified 2026-06-10), gated per battle (SpiritualFont.MpLayoutOk).</summary>
     public const double FontMpPct = 0.10;
 
+    /// <summary>Plague (Venombolt +3): how far apart (ms) the poison-bit edge and the wielder's
+    /// acted window may land and still latch. The engine applies poison during attack resolution,
+    /// which can precede the observed window (actor-resolution lag) or trail it (animation tail);
+    /// a strict same-tick overlap missed every proc live (2026-06-10: four open windows, zero
+    /// latches, a chocobo cleansed the "permanent" poison).</summary>
+    public const long PlagueGraceMs = 2000;
+
     /// <summary>Rapture (Rod of Faith +3): the window arms when the wielder's HP drops strictly
     /// below this fraction of max. Held UNTIL RECOVERY (no turn cap -- the 3-turn clock was
     /// retired 2026-06-10: the band CT it read never ticked live, while the recovery release
@@ -107,4 +114,16 @@ internal static class Tuning
 
     /// <summary>Magic-cast weapons (magic guns) scale off Magick Attack.</summary>
     public static bool IsMagicCastFormula(int formula) => formula == 4;
+
+    /// <summary>Plague (Venombolt +3): engine deals mhp/8 per-poison-tick; the runtime adds
+    /// mhp*<see cref="PlagueExtraDamageNum"/>/<see cref="PlagueExtraDamageDen"/> on each
+    /// victim turn, making the effective rate 1.75x (= 1 + 3/4 ≈ 7/8 + 3/32*7). Floored at 1
+    /// so the augment never lands the kill.</summary>
+    public const int PlagueExtraDamageNum = 3;
+    public const int PlagueExtraDamageDen = 32;
+
+    /// <summary>Poison timer initial value written by the engine on application.
+    /// The runtime re-stamps this whenever the timer reads below it, defeating natural expiry
+    /// and cures. Proven live (memory poison-status-bytes): held through a two-healer battle.</summary>
+    public const byte PoisonTimerInit = 36;
 }
