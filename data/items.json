@@ -1989,7 +1989,7 @@
       "name": "Zeus Mace",
       "tier": 5,
       "identity": "Hybrid gish staff (iconic name kept) — the only Lightning staff PLUS an MA+1 rider: element coverage for anti-armor/mech fights stacked with a modest spell-power bump. Treasure-gated (T5); its Lightning element is a good the MA+2 capstone lacks.",
-      "desc": "A staff that increases the might of its user.\nWhile equipped, raises magick attack power.",
+      "desc": "A staff that increases the might of its user.\nMagick Attack +1.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -2021,7 +2021,7 @@
       "name": "Staff of the Magi",
       "tier": 6,
       "identity": "MA-BOOST 'bigger-heals' capstone — top MA+2 rider drives both offense and, because Cure spells scale off Magick Attack, the strongest heals in the line. Highest staff WP (7) and the endgame (T6) gate earn the rider; the pure spell-power pick. (Dropped the old Stop proc so its identity is cleanly MA, not a gimmick.)",
-      "desc": "An ordinary-looking wooden stick with a curious stone embedded in its tip.",
+      "desc": "An ordinary-looking wooden stick with a curious stone embedded in its tip.\nMagick Attack +2.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -4076,7 +4076,7 @@
       "name": "Genji Shield",
       "tier": 5,
       "identity": "Phys-evade apex — poach/steal-gated, with a Speed+1 prize for the rare-drop effort.",
-      "desc": "An unusually shaped, pitch-black shield forged from iron using the techniques of a distant land.",
+      "desc": "An unusually shaped, pitch-black shield forged from iron using the techniques of a distant land.\nSpeed +1.",
       "baseline": {
         "physEv": 45,
         "magEv": 10,
@@ -4464,7 +4464,7 @@
       "name": "Genji Helm",
       "tier": 6,
       "identity": "ICONIC: the legend, finally earning it — rare/steal-gated, granting BOTH innate Protect and Shell (halve ALL incoming damage) on near-apex HP.",
-      "desc": "An unusually shaped, vermilion helm forged from iron using the techniques of a distant land.",
+      "desc": "An unusually shaped, vermilion helm forged from iron using the techniques of a distant land.\nGrants Protect and Shell.",
       "baseline": {
         "hp": 130,
         "mp": 0,
@@ -5248,7 +5248,7 @@
       "name": "Genji Armor",
       "tier": 6,
       "identity": "Samurai/Knight offensive capstone — top-tier HP PLUS PA+2; the rare plate for a damage build, not just a wall. Iconic name preserved.",
-      "desc": "Crimson enameled armor made using the techniques of a distant land. Provides complete protection for torso and hips.",
+      "desc": "Crimson enameled armor made using the techniques of a distant land. Provides complete protection for torso and hips.\nPhysical Attack +2.",
       "baseline": {
         "hp": 150,
         "mp": 0,
@@ -5304,7 +5304,7 @@
       "name": "Maximillian",
       "tier": 6,
       "identity": "HP throne — the single highest body HP in the game (160, well under the 255 cap for headroom), now with innate Shell to blunt the magic raw HP can't dodge; the endgame wall. Iconic name preserved.",
-      "desc": "Top-grade armor made using the finest materials and advanced techniques for unmatched strength.",
+      "desc": "Top-grade armor made using the finest materials and advanced techniques for unmatched strength.\nGrants Shell.",
       "baseline": {
         "hp": 200,
         "mp": 0,
@@ -5640,7 +5640,7 @@
       "name": "Ninja Gear",
       "tier": 6,
       "identity": "ICONIC assassin body (vanilla EB33) — pure agility: +2 Speed and start each battle Invisible, traded for deliberately low HP. End-tier rare for a fast striker who opens from stealth.",
-      "desc": "Lightweight clothing that allows the wearer to blend into their surroundings. Ideal for covert missions.\nWhile equipped, raises speed and grants Invisibility at the start of battle.",
+      "desc": "Lightweight clothing that allows the wearer to blend into their surroundings. Ideal for covert missions.\nSpeed +2. Begins battle Transparent.",
       "baseline": {
         "hp": 20,
         "mp": 0,
@@ -5920,7 +5920,7 @@
       "name": "Lordly Robe",
       "tier": 6,
       "identity": "ICONIC capstone (rare/poach, T6). Top HP & MP of the line PLUS PA+2/MA+1 and innate Protect+Shell (EB41) — the king's robe, best all-round body in the game. Endgame-gated so its raw superiority never dominates the T1-5 robes you wore earlier; tier IS the protecting axis, and every lower robe owns a rider trait Lordly doesn't have.",
-      "desc": "A luxurious robe worn by high-ranking nobles. Enchanted with protective magick.\nWhile equipped, raises physical and magick attack power, and grants Protect and Shell.",
+      "desc": "A luxurious robe worn by high-ranking nobles. Enchanted with protective magick.\nPhysical Attack +2. Magick Attack +1. Grants Protect and Shell.",
       "baseline": {
         "hp": 100,
         "mp": 80,
@@ -6172,7 +6172,7 @@
       "name": "Genji Gloves",
       "tier": 6,
       "identity": "The only dual-stat glove (PA+2/MA+1, magic-knight leaning physical). Less PA than Bracers (3>2), less MA than Magepower (2>1), subset of neither. Wins on breadth + the iconic steal.",
-      "desc": "Vermilion gloves that boost physical and magickal prowess, made using techniques from a distant land.\nWhile equipped, raise physical and magick attack power.",
+      "desc": "Vermilion gloves that boost physical and magickal prowess, made using techniques from a distant land.\nPhysical Attack +2. Magick Attack +1.",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6788,7 +6788,7 @@
       "name": "Septième Sens",
       "tier": 4,
       "identity": "The aggressive caster perfume (female): MA+1 + Haste + opens Invisible. The burst-mage / opener throne. Female-gated, so never dominates a unisex item.",
-      "desc": "A perfume with an otherworldly aroma that grants a sense of unbound celerity.\nWhile equipped, raises magick attack power and grants Haste. Also grants Invisibility at the start of battle.",
+      "desc": "A perfume with an otherworldly aroma that grants a sense of unbound celerity.\nMagick Attack +1. Grants Haste. Begins battle Transparent.",
       "baseline": {
         "hp": 0,
         "mp": 0,
