@@ -104,8 +104,11 @@ internal sealed partial class Rapture
         _rearmReady = false;
         _deadStreak = 0;
         WriteField(e, grant);
+        // Once-per-window read-back: 243 is cut content, so SET/MISS here is the live signal
+        // for whether the engine accepts the bit (MISS -> flip Tuning.RaptureMoveId to 242).
+        string readback = ReadBackSet(Live, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
         Log.Info($"rapture: armed at hp {hp}/{maxHp} -- movement {Tuning.RaptureMoveId} held for " +
-                 $"{Tuning.RaptureTurns} turns (saved {saved[0]:X2} {saved[1]:X2} {saved[2]:X2})");
+                 $"{Tuning.RaptureTurns} turns (saved {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}) readback={readback}");
     }
 
     /// <summary>Re-write the teleport image at the last located entry (beats engine re-assertion).

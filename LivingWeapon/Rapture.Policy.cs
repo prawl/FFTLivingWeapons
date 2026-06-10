@@ -66,6 +66,16 @@ internal sealed partial class Rapture
         for (int i = 0; i < field.Length; i++) Mem.W8(a + i, field[i]);
     }
 
+    /// <summary>Read the granted movement bit back off the band entry -- true == SET. The
+    /// once-per-window live-test signal (Spiritual Font's verdict convention): RaptureMoveId 243
+    /// is CUT content per FOLDABLE_ABILITIES, so whether the engine honors (or zeroes) its bit is
+    /// unverified; one armed window's SET/MISS in the log settles it. False for out-of-field ids.</summary>
+    public static bool ReadBackSet(IGameMemory mem, long entryAddr, int moveAbilityId)
+    {
+        if (!Signatures.ResolveMovement(moveAbilityId, out int off, out byte mask)) return false;
+        return (mem.U8(entryAddr + Offsets.AMovement + off) & mask) != 0;
+    }
+
     /// <summary>True while the band entry at <paramref name="entryAddr"/> still belongs to the
     /// armed wielder: brave/faith (orig values, stable for the battle) must match the arm-time
     /// fingerprint. Level is deliberately NOT checked (a mid-window level-up must not break the

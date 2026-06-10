@@ -77,7 +77,10 @@ internal static class Tuning
     public const int RaptureTurns = 3;
 
     /// <summary>Rapture: the granted movement ability -- 243 = Master Teleportation (ability.en
-    /// key 499; plain Teleport is 242).</summary>
+    /// key 499). CAUTION: FOLDABLE_ABILITIES marks it CUT content, so the engine honoring its
+    /// movement bit is live-unverified; the arm-time read-back in the log (SET/MISS) settles it.
+    /// If it reads MISS (or teleports never fire), flip this to the documented-functional plain
+    /// Teleport, 242 -- a one-line change.</summary>
     public const int RaptureMoveId = 243;
 
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>

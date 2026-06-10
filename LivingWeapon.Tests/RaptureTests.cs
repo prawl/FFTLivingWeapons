@@ -133,6 +133,22 @@ public class RaptureTests
         finally { h.Free(); }
     }
 
+    // ---- (5b) ReadBackSet: the once-per-window live-test signal for the held bit ----
+    // RaptureMoveId 243 (Master Teleportation) is CUT content per FOLDABLE_ABILITIES, so the
+    // engine honoring its movement bit is unverified -- the arm-time read-back (SET/MISS in
+    // the log) settles it in one live battle, mirroring Spiritual Font's verdict convention.
+
+    [Fact]
+    public void ReadBackSet_reports_whether_the_held_bit_survived()
+    {
+        var m = new FakeMemory();
+        long e = 0x5000;
+        Assert.False(Rapture.ReadBackSet(m, e, 243));    // engine zeroed the cut ability's bit -> MISS
+        m.Set8(e + Offsets.AMovement + 1, 0x04);         // byte1 0x04 = Master Teleportation
+        Assert.True(Rapture.ReadBackSet(m, e, 243));     // SET
+        Assert.False(Rapture.ReadBackSet(m, e, 999));    // out-of-field id can never read SET
+    }
+
     // ---- (6) RaptureState: save-once / release ----
 
     [Fact]
