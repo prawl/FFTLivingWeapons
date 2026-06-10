@@ -219,11 +219,11 @@
       <Id>23</Id> <!-- Sanguine Sword (was Blood Sword) -->
       <Range>1</Range>
       <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
-      <Formula>2</Formula>
-      <Power>14</Power>
+      <Formula>6</Formula>
+      <Power>10</Power>
       <Evasion>12</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>45</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>24</Id> <!-- Stormbrand (was Coral Sword) -->
@@ -308,7 +308,7 @@
     <ItemWeapon>
       <Id>32</Id> <!-- Materia Blade -->
       <Range>1</Range>
-      <AttackFlags>Striking, TwoSwords, TwoHands</AttackFlags>
+      <AttackFlags>Throwable, Striking, TwoSwords, TwoHands</AttackFlags>
       <Formula>1</Formula>
       <Power>11</Power>
       <Evasion>12</Evasion>

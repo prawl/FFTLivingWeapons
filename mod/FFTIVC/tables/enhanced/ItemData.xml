@@ -4,10 +4,6 @@
   <Version>1</Version>
   <Entries>
     <Item>
-      <Id>21</Id> <!-- Riposte (was Iron Sword) -->
-      <EquipBonusId>17</EquipBonusId>
-    </Item>
-    <Item>
       <Id>23</Id> <!-- Sanguine Sword (was Blood Sword) -->
       <TypeFlags>Rare, Weapon</TypeFlags>
       <ShopAvailability>Unknown20</ShopAvailability>
@@ -566,22 +562,27 @@
     <Item>
       <Id>246</Id>
       <ShopAvailability>Chapter1_Start</ShopAvailability>
+      <Price>100</Price>
     </Item>
     <Item>
       <Id>247</Id>
       <ShopAvailability>Chapter1_Start</ShopAvailability>
+      <Price>150</Price>
     </Item>
     <Item>
       <Id>248</Id>
       <ShopAvailability>Chapter3_Start</ShopAvailability>
+      <Price>500</Price>
     </Item>
     <Item>
       <Id>249</Id>
       <ShopAvailability>Chapter2_Start</ShopAvailability>
+      <Price>250</Price>
     </Item>
     <Item>
       <Id>250</Id>
       <ShopAvailability>Chapter4_Start</ShopAvailability>
+      <Price>800</Price>
     </Item>
     <Item>
       <Id>252</Id>

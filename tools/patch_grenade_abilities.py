@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# RETIRED / SUPERSEDED by patch_ability_names.py (2026-06-10).
+# That script folds keys 374-378 into its self-verifying PATCHES dict so the
+# grenade names survive a pristine sqlite re-decode without a manual re-run of
+# this file.  Do NOT run this script -- it mutates the pristine sqlite in place
+# and will cause patch_ability_names.py's self-verify to fail with unexpected diffs.
 """Rename the 5 Chemist Item-command USE-abilities to match the grenades.
 
 The grenade rework renamed the ITEMS (Item-en, item.en.nxd via patch_grenades.py) but

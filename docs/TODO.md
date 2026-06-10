@@ -1,17 +1,8 @@
 2.0 Release TODO's
-- Fix the Kill count fluctuating wildly
-- Plauge isn't working
-- Charm-Lock running after battle is finished
-- Verify enemies don't proc any new abilities
-- Dual Wielding the Zwill Straightblade and a Rod did not proc Bloodlust
-- Fix the Materia Blade
-- Fix the Chemist learning the new offensive items
-- Does the Sunderer destroy multiple pieces of gear?
-- Remove Atheist from Reposte
-- Determine how much offensive chemist items should cost
-- Cursed Ring needs the desc to literally say +2 AP
-- Barrage needs to apply to Thief when it's a secondary job as well
-- Should Gallant Knight be able to equip Knives?
+- Update Genji Gloves to show values instead of words
+
+
+
 
 - Determine which weapons need the shop treatment, poaching treatment, etc
 - Thorough sweep of other mods

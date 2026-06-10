@@ -89,7 +89,8 @@ try {
     if (-not (Test-Path "$dest\LivingWeapon.dll")) { $errs += "LivingWeapon.dll missing" }
     if (-not (Test-Path "$dest\meta.json"))        { $errs += "meta.json missing (runtime per-weapon facts)" }
     if (-not (Test-Path "$dest\ModConfig.json"))   { $errs += "ModConfig.json missing" }
-    if (-not (Test-Path "$dest\FFTIVC\data\enhanced\nxd\item.en.nxd")) { $errs += "item.en.nxd missing" }
+    if (-not (Test-Path "$dest\FFTIVC\data\enhanced\nxd\item.en.nxd"))    { $errs += "item.en.nxd missing" }
+    if (-not (Test-Path "$dest\FFTIVC\data\enhanced\nxd\ability.en.nxd")) { $errs += "ability.en.nxd missing" }
     $xmls = @(Get-ChildItem "$dest\FFTIVC\tables\enhanced\*.xml" -ErrorAction SilentlyContinue)
     if ($xmls.Count -lt 6) { $errs += "expected 6 table XMLs, found $($xmls.Count)" }
     $tex = @(Get-ChildItem "$dest\FFTIVC\data\enhanced\ui\ffto\icon" -Filter *.tex -Recurse -ErrorAction SilentlyContinue)

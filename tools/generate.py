@@ -104,21 +104,27 @@ def accessory_entry(it):
 
 
 # Sparse ItemData overrides for items NOT in items.json: the recycled-consumable grenades' shop
-# timing + bumping Remedy to Chapter 1 (it became the only cure). ShopAvailability is honored via
-# ItemData for weapons (confirmed on Sasori); whether it sticks for CONSUMABLES is being verified
-# (their Price is nex-overridden). Price is NOT settable here -- it lives in the base item.nxd.
+# timing + prices + bumping Remedy to Chapter 1 (it became the only cure). ShopAvailability is
+# honored via ItemData for weapons (confirmed on Sasori). Price IS settable here after all: the
+# earlier "Price lives in the base item.nxd" note was a hypothesis -- no item.nxd data table
+# exists anywhere in the game archives (0004.pac enumerated; the modloader has no Item data
+# layout with a Price column), while the ItemData template carries <Price> for all 261 rows and
+# other installed mods set it sparsely with cell-level merge. Prices scale with status power and
+# chapter wealth; cheap enough to actually throw (hoarded consumables are dead consumables).
 EXTRA_ITEMDATA = {
-    246: {"shop": "Chapter1_Start"},  # Venom Flask  (Poison)  - early
-    247: {"shop": "Chapter1_Start"},  # Smoke Bomb   (Blind)   - early
-    249: {"shop": "Chapter2_Start"},  # Oil Flask    (Oil)     - earlier (situational Fire combo)
-    248: {"shop": "Chapter3_Start"},  # Hush Vial    (Silence) - later (more universally useful)
-    250: {"shop": "Chapter4_Start"},  # Sludge Bomb  (Slow)    - late
+    246: {"shop": "Chapter1_Start", "price": 100},  # Venom Flask  (Poison)  - early, spammable
+    247: {"shop": "Chapter1_Start", "price": 150},  # Smoke Bomb   (Blind)   - early, neuters physical units
+    249: {"shop": "Chapter2_Start", "price": 250},  # Oil Flask    (Oil)     - setup item, pays off with Fire
+    248: {"shop": "Chapter3_Start", "price": 500},  # Hush Vial    (Silence) - guaranteed beats the ~65% spell
+    250: {"shop": "Chapter4_Start", "price": 800},  # Sludge Bomb  (Slow)    - stolen turns, late premium
     252: {"shop": "Chapter1_Start"},  # Remedy: now the only cure, must be buyable in Chapter 1
 }
 
 
 def extra_itemdata_entry(iid, fields):
     body = f"      <ShopAvailability>{fields['shop']}</ShopAvailability>\n" if fields.get("shop") else ""
+    if fields.get("price"):
+        body += f"      <Price>{fields['price']}</Price>\n"
     return f"    <Item>\n      <Id>{iid}</Id>\n{body}    </Item>\n"
 
 

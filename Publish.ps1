@@ -367,7 +367,8 @@ function Verify-Package {
             "FFTIVC/tables/enhanced/ItemShieldData.xml",
             "FFTIVC/tables/enhanced/ItemAccessoryData.xml",
             "FFTIVC/tables/enhanced/ItemEquipBonusData.xml",
-            "FFTIVC/data/enhanced/nxd/item.en.nxd"
+            "FFTIVC/data/enhanced/nxd/item.en.nxd",
+            "FFTIVC/data/enhanced/nxd/ability.en.nxd"
         )
 
         foreach ($file in $requiredFiles) {

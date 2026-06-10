@@ -26,6 +26,10 @@ REMOVE = {"Axe", "Flail"}  # emptied categories (all axes/flails repurposed into
 # (story chars keep their loadouts). Keep Knife on Thief/Chemist/Black Mage (+ Ninja, the dual-blade
 # class). Dancer also equips knives in vanilla -- left alone pending a call.
 STRIP = {"Squire": {"Knife"}, "Orator": {"Knife"}}
+# Story-job strips keyed by numeric id, bypassing the name-keyed STRIP path so the name "Squire"
+# (which matches story ids 1/2/4/7) never inadvertently loses categories here.
+# id 3 = Gallant Knight: knives are out (signatures make them a distinct identity).
+STORY_STRIP = {3: {"Knife"}}
 
 raw = VANILLA.read_text(encoding="utf-8")
 names = {int(m.group(1)): m.group(2).strip() for m in re.finditer(r"<Id>(\d+)</Id>\s*<!--\s*([^/]+?)\s*/", raw)}
@@ -49,7 +53,7 @@ for jid in human:
     nm = names.get(jid, "?")
     cur = [c.strip() for c in (job.findtext("EquippableItems") or "").split(",") if c.strip()]
     additions = [a for a in (list(CROSS.get(nm, [])) + ["Shield"]) if a not in cur] if jid in generic else []
-    strip = set(REMOVE) | (STRIP.get(nm, set()) if jid in generic else set())   # per-generic-job category strip
+    strip = set(REMOVE) | (STRIP.get(nm, set()) if jid in generic else set()) | STORY_STRIP.get(jid, set())   # per-generic-job category strip + id-keyed story-job strips
     final_equip = [c for c in (cur + additions) if c not in strip]
     equip_changed = final_equip != cur
     innate = []

@@ -275,7 +275,11 @@ def main():
         # gives the per-weapon counter a stable overwrite target. Same proven loaded-string
         # overwrite the Living Blade MVP used, now armed on all 121 weapons.
         name = clean
-        if SCAFFOLD_LIVING and eff_cat in WEAPON_CATS:
+        # noGrowth weapons (Materia Blade, the bombs) are excluded from the Living Weapon
+        # system (gen_living_weapon_meta.py skips them), so they must not carry the scaffold
+        # either -- a baked "Kills: 0" on a weapon the runtime never paints is a dead counter
+        # lying on the card. Keep this predicate in lockstep with gen_living_weapon_meta.
+        if SCAFFOLD_LIVING and eff_cat in WEAPON_CATS and not it.get("noGrowth"):
             name = clean + "  "
             # p3Desc goes BEFORE the Kills/Grant scaffolding so gameplay prose stays grouped above
             # the tracker lines (the Kills/Grant anchors key on the flavor line + literal prefixes).

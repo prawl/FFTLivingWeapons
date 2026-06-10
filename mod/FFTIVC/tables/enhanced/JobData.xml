@@ -16,8 +16,8 @@
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Sword, Knife, Unarmed</EquippableItems>
     </Job>
     <Job>
-      <Id>3</Id> <!-- Gallant Knight: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, KnightSword, Sword, Knife, Unarmed -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, KnightSword, Sword, Knife, Unarmed</EquippableItems>
+      <Id>3</Id> <!-- Gallant Knight: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, KnightSword, Sword, Unarmed -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, KnightSword, Sword, Unarmed</EquippableItems>
     </Job>
     <Job>
       <Id>4</Id> <!-- Squire: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Sword, Knife, Unarmed; C-EV 5 to 8 -->
