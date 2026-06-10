@@ -93,6 +93,9 @@ internal static class Offsets
     // Band-relative reaction field: CReaction(0x94) - BandEntry(0x1C) = 0x78. 4 bytes.
     // Maim reads/holds/restores this to suppress the victim's Counter/etc. abilities.
     public const int AReaction = 0x78;
+    // Band-relative movement field: CMovement(0x9C) - BandEntry(0x1C) = 0x80. 3 bytes.
+    // Rapture saves/holds/restores this for the Master Teleportation window.
+    public const int AMovement = 0x80;
     public const long BandReadBase = CombatAnchor + BandEntry - 24 * (long)CombatStride;  // n=-24 anchor
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 

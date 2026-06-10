@@ -69,6 +69,17 @@ internal static class Tuning
     /// per wielder turn -- 8 == the vanilla Regen rate.</summary>
     public const int WyrmbloodDiv = 8;
 
+    /// <summary>Rapture (Rod of Faith +3): the window arms when the wielder's HP drops strictly
+    /// below this fraction of max.</summary>
+    public const double RaptureHpPct = 0.30;
+
+    /// <summary>Rapture: the granted movement holds for this many completed wielder turns.</summary>
+    public const int RaptureTurns = 3;
+
+    /// <summary>Rapture: the granted movement ability -- 243 = Master Teleportation (ability.en
+    /// key 499; plain Teleport is 242).</summary>
+    public const int RaptureMoveId = 243;
+
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 

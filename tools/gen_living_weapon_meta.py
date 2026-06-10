@@ -82,6 +82,8 @@ def main():
                 entry["signature"]["regenSplashRadius"] = int(sig["regenSplashRadius"])
             if sig.get("moveAbilityIds"):  # spiritual font (Wellspring): movement bits OR-set + held
                 entry["signature"]["moveAbilityIds"] = [int(x) for x in sig["moveAbilityIds"]]
+            if sig.get("raptureMove"):  # rapture (Rod of Faith): low-HP Master Teleportation window
+                entry["signature"]["raptureMove"] = True
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

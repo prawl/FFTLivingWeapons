@@ -1815,7 +1815,15 @@
         0.13,
         0.45,
         1.1
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "sigName": "Rapture",
+        "displayLabel": "Rapture",
+        "raptureMove": true,
+        "p3Desc": "Below a third health, the wielder gains Master Teleport for three turns.",
+        "note": "When the +3 wielder's HP drops strictly below Tuning.RaptureHpPct (0.30) of max, Master Teleportation (movement 243 = ability.en key 499; Tuning.RaptureMoveId; plain Teleport is 242) REPLACES the wielder's movement field (band +0x80, 3 bytes) for Tuning.RaptureTurns (3) completed wielder turns (TurnTracker), then the saved bytes restore -- the Maim save-once/hold/restore discipline, never-re-save invariant included. Re-arm hysteresis: after a window, HP must recover to/above the threshold before a new drop arms (no perpetual teleport at low HP). Restores on unequip/tier loss, wielder death (3-tick streak), and battle exit. RUNTIME: Rapture.cs + Rapture.Policy.cs."
+      }
     },
     {
       "id": 59,
