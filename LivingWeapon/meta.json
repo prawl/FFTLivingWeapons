@@ -672,7 +672,14 @@
     "wp": 8,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "The mark of a true marksman, balanced so fine that hand and target seem joined in flight."
+    "flavor": "The mark of a true marksman, balanced so fine that hand and target seem joined in flight.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Maim",
+      "crippleTurns": 3
+    }
   },
   "90": {
     "name": "Yoichi Bow",

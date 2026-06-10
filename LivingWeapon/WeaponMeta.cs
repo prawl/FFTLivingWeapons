@@ -51,6 +51,12 @@ public sealed class WeaponSignature
     // OTHER enemy within RicochetRadius Manhattan tiles. Chip never kills (HP floor 1). 0 = not a ricochet weapon.
     [JsonProperty("ricochetRadius")] public int RicochetRadius { get; set; }
     [JsonProperty("ricochetPct")] public int RicochetPct { get; set; }
+    // MAIM (Huntress "Maim"): struck enemies lose their reaction abilities for this many of their turns,
+    // then the saved bits restore. 0 = not a maim weapon.
+    [JsonProperty("crippleTurns")] public int CrippleTurns { get; set; }
+    // BARRAGE (Yoichi "Barrage"): while a unit wields this at AtTier, the wielder gains Barrage (ability 358)
+    // injected into their current job's JobCommand record. 0 = not a barrage weapon.
+    [JsonProperty("grantCommandAbilityId")] public int GrantCommandAbilityId { get; set; }
 }
 
 internal static class MetaLoader

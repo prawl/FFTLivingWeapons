@@ -72,6 +72,10 @@ def main():
             if sig.get("ricochetRadius"):  # ricochet aura (Stormarc "Arc Lightning"): chip to nearest foe
                 entry["signature"]["ricochetRadius"] = int(sig["ricochetRadius"])
                 entry["signature"]["ricochetPct"] = int(sig.get("ricochetPct", 50))
+            if sig.get("crippleTurns"):  # maim (Huntress "Maim"): struck enemies lose reactions N turns
+                entry["signature"]["crippleTurns"] = int(sig["crippleTurns"])
+            if sig.get("grantCommandAbilityId"):  # barrage (Yoichi "Barrage"): grant JobCommand ability
+                entry["signature"]["grantCommandAbilityId"] = int(sig["grantCommandAbilityId"])
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

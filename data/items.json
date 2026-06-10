@@ -2698,7 +2698,7 @@
       "vanillaName": "Artemis Bow",
       "name": "Huntress",
       "tier": 5,
-      "identity": "T5 marksman / mid-evade owner — WP9 + 10 evade, earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla 'Yoichi dominates Artemis'.",
+      "identity": "T5 marksman / mid-evade owner — WP8 + 10 evade + Leg Shot may-cast (Disable), earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla \"Yoichi dominates Artemis\".",
       "flavorOverride": "The mark of a true marksman, balanced so fine that hand and target seem joined in flight.",
       "baseline": {
         "wp": 10,
@@ -2714,10 +2714,18 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "onHitAbilityId": 214,
+        "onHitAbilityId": 213,
         "formula": 2,
         "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
+      },
+      "signature": {
+        "atTier": 3,
+        "sigName": "Maim",
+        "displayLabel": "Maim",
+        "crippleTurns": 3,
+        "p3Desc": "Foes it strikes lose their reactions for 3 turns.",
+        "note": "While the +3 Huntress wielder deals damage to an enemy, that enemy loses its reaction abilities (combat +0x94, band +0x78, 4 bytes) for 3 of its turns, then the saved bits restore. PROVEN live (reaction-suppression-cripple): hold-zero suppressed Counter through 5 hits; one-shot restore revived it. Runtime: Maim.cs -- HP-diff victim detection (Ricochet pattern) + save/hold/restore + per-victim CT turn counting (CharmLock pattern). Allies never latched. Re-hit refreshes the window. Base edit LOCKED: onHitAbilityId 214 Arm Shot -> 213 Leg Shot (T5 pins, T6 Perseus deletes)."
       }
     },
     {

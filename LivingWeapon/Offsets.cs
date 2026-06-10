@@ -81,6 +81,7 @@ internal static class Offsets
     // Passive bitfields on the LIVE combat struct (proven write+holdable mid-battle, 2026-06-08):
     // reaction +0x94 (4 bytes, base id 166), support +0x98 (4 bytes, base 198), movement +0x9C
     // (3 bytes, base 230); MSB-first. Signatures only ever touch SUPPORT (stacks, no slot hijack).
+    public const int CReaction = 0x94;   // 4 bytes; Maim zeroes this to suppress Counter etc.
     public const int CSupport = 0x98;
 
     // --- auth band: LIVE unit data (the static array freezes on battle restart; the band stays live).
@@ -88,6 +89,9 @@ internal static class Offsets
     //     each slot; BandReadBase starts at n=-24 (the lowest valid scan index).
     //     Sources: live probe -- fresh corpse 0/539 only in the band; Ramza real pos only there.
     public const int BandEntry = 0x1C;    // unit copy offset within a combat band slot
+    // Band-relative reaction field: CReaction(0x94) - BandEntry(0x1C) = 0x78. 4 bytes.
+    // Maim reads/holds/restores this to suppress the victim's Counter/etc. abilities.
+    public const int AReaction = 0x78;
     public const long BandReadBase = CombatAnchor + BandEntry - 24 * (long)CombatStride;  // n=-24 anchor
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 

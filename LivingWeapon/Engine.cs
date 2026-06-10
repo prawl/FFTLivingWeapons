@@ -30,6 +30,7 @@ internal sealed class Engine
     private readonly ExtraTurn _extra;
     private readonly EagleEye _eagle;
     private readonly Ricochet _ricochet;
+    private readonly Maim _maim;
     private readonly Display _display;
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
@@ -55,6 +56,7 @@ internal sealed class Engine
         _extra = new ExtraTurn(_kills);         // Zwill +3: a kill grants the killer an immediate extra turn
         _eagle = new EagleEye(meta, _kills);    // Eclipsebolt +3: hasten any enemy Doom to a 1-turn countdown
         _ricochet = new Ricochet(meta, _kills, _tracker);  // Stormarc +3: bounce chip to nearest other enemy
+        _maim = new Maim(meta, _kills, _tracker);          // Huntress +3: struck enemies lose reactions N turns
         _display = new Display(meta, _kills);
         Log.Info($"loaded {meta.Count} weapon metas; {Sum(_kills)} kills in tally.");
     }
@@ -122,6 +124,7 @@ internal sealed class Engine
             _extra.ResetBattle();
             _eagle.ResetBattle();
             _ricochet.ResetBattle();
+            _maim.ResetBattle();
             SaveTally();                 // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
@@ -137,6 +140,7 @@ internal sealed class Engine
         _extra.Tick(now);                     // Zwill +3: on a kill, slam the killer's CT to 100 (extra turn)
         _eagle.Tick();                        // Eclipsebolt +3: force enemy Doom countdowns down to 1
         _ricochet.Tick(onField);              // Stormarc +3: bounce chip to nearest other enemy on damage
+        _maim.Tick(onField);                  // Huntress +3: struck enemies lose reactions for N turns
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         if (changed) SaveTally();
 

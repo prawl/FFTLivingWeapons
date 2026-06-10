@@ -840,7 +840,7 @@
       <Power>8</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>214</OptionsAbilityId>
+      <OptionsAbilityId>213</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>90</Id> <!-- Yoichi Bow -->
