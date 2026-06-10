@@ -133,7 +133,13 @@ function Invoke-BuildDll {
     # and meta.json (copied via the csproj).
     Write-Status "Building Living Weapon DLL into the package..." "Cyan"
 
-    # NO -p:LwDev here: production ships the real escalating thresholds {5,20,50} and seeds no kills.
+    # Force a FULL recompile: MSBuild's incremental up-to-date check shipped a stale Release
+    # DLL with a fresh timestamp on the first 2.0.0 cut (the copy step re-dates the file even
+    # when CoreCompile is skipped; caught by byte-verifying the packaged DLL). Releases are
+    # rare enough that the clean costs nothing and deletes the failure class.
+    Remove-Item -Recurse -Force "LivingWeapon/obj/Release", "LivingWeapon/bin/Release" -ErrorAction SilentlyContinue
+
+    # NO -p:LwDev here: production ships the real escalating thresholds {5,25,50} and seeds no kills.
     # (BuildLinked.ps1 passes -p:LwDev=true for the dev {1,2,3} + auto-P3 testing build.)
     & dotnet publish "LivingWeapon/LivingWeapon.csproj" -c Release -o $BuildOutputPath
     if ($LASTEXITCODE -ne 0) {
