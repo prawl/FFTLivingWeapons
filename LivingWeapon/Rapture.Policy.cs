@@ -86,6 +86,12 @@ internal sealed partial class Rapture
     /// reads 0 and safely mismatches.</summary>
     public static bool SameUnit(IGameMemory mem, long entryAddr, (int lvl, int br, int fa) fp)
         => mem.U8(entryAddr + Offsets.ABrave) == fp.br && mem.U8(entryAddr + Offsets.AFaith) == fp.fa;
+
+    /// <summary>Early release: the wielder is alive and back AT/ABOVE the threshold -- the
+    /// emergency is over, their movement comes back now (and the hysteresis is satisfied by
+    /// definition). False on junk maxHp (a bad read must never release the window).</summary>
+    public static bool HasRecovered(int hp, int maxHp, double pct)
+        => maxHp > 0 && hp > 0 && !IsBelow(hp, maxHp, pct);
 }
 
 /// <summary>The Rapture window's latch: the saved (pre-grant) movement bytes, the turn count at

@@ -7,12 +7,15 @@ namespace LivingWeapon;
 /// of max, Master Teleportation (Tuning.RaptureMoveId) is written and HELD in their movement-
 /// ability field (band +0x80 == combat +0x9C) for RaptureTurns (3) of their turns -- then the
 /// PREVIOUS movement bytes restore. The save-once/hold/restore discipline is Maim's; the turn
-/// window is TurnTracker's; the HP gate is ConditionMet's integer math (Rapture.Policy.cs).
+/// clock is the wielder's OWN scheduler CT (CtTurns -- the global TurnTracker mis-credits under
+/// the cursor-following active struct, which stalled expiry live); the HP gate is ConditionMet's
+/// integer math (Rapture.Policy.cs).
 ///
-/// Releases that restore the player's movement: window expiry (then HP must RECOVER above the
-/// threshold before re-arming -- no perpetual teleport at low HP), unequip / tier loss / wielder
-/// ambiguity (grant verification), wielder death (3-tick streak), and battle exit. An unlocated
-/// entry skips writes but keeps the window (turn expiry still counts). All guarded writes.
+/// Releases that restore the player's movement: HP recovery to/above the threshold (the
+/// emergency is over -- re-arm allowed on the next drop), window expiry (then HP must RECOVER
+/// above the threshold before re-arming -- no perpetual teleport at low HP), unequip / tier
+/// loss / wielder ambiguity (grant verification), wielder death (3-tick streak), and battle
+/// exit. An unlocated entry skips writes and PAUSES the clock (no CT to read). Guarded writes.
 /// </summary>
 internal sealed partial class Rapture
 {
@@ -23,18 +26,19 @@ internal sealed partial class Rapture
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly TurnTracker _turns;
     private readonly List<int> _hands = new();
     private readonly RaptureState _state = new();
+    private readonly CtTurns _ct = new();   // the wielder's own-CT turn clock (owns expiry)
     private bool _wasActive;
     private bool _rearmReady = true;
     private int _deadStreak;
 
+    // The TurnTracker parameter is retained for wiring stability (Engine constructs every
+    // subsystem identically) but deliberately unused: the expiry clock is the wielder's own CT.
     public Rapture(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns)
     {
         _meta = meta;
         _kills = kills;
-        _turns = turns;
     }
 
     public void ResetBattle()
@@ -43,6 +47,7 @@ internal sealed partial class Rapture
         _rearmReady = true;
         _wasActive = false;
         _deadStreak = 0;
+        _ct.Reset();
     }
 
     public void Tick(bool onField)
@@ -72,18 +77,24 @@ internal sealed partial class Rapture
         if (e != 0 && _state.Held) _state.Addr = e;   // entry relocated: retarget the restore
         if (e == 0)
         {
-            if (_state.Held) Hold();   // unlocated: hold at the last known copy; expiry still counts
+            if (_state.Held) Hold();   // unlocated: hold at the last known copy; the CT clock pauses
             return;
         }
 
         int hp = Live.U16(e + Offsets.AHp);
-        int turns = _turns.Turns(fp.lvl, fp.br, fp.fa);
 
         if (_state.Held)
         {
             if (hp == 0 && ++_deadStreak >= DeadNeeded) { Restore("wielder dead"); return; }
             if (hp > 0) _deadStreak = 0;
-            if (IsExpired(turns - _state.BaselineTurns, Tuning.RaptureTurns))
+            _ct.Observe(Live.U8(e + Offsets.ACt));
+            if (HasRecovered(hp, Live.U16(e + Offsets.AMaxHp), Tuning.RaptureHpPct))
+            {
+                Restore("recovered above threshold");
+                _rearmReady = true;   // recovery IS the hysteresis: the next drop may arm again
+                return;
+            }
+            if (IsExpired(_ct.Completed, Tuning.RaptureTurns))
             {
                 Restore($"window over ({Tuning.RaptureTurns} turns)");
                 return;   // _rearmReady stays false: HP must recover above the threshold first
@@ -103,7 +114,8 @@ internal sealed partial class Rapture
         byte[]? saved = ReadField(e);
         byte[]? grant = FieldFor(Tuning.RaptureMoveId);
         if (saved is null || grant is null) return;
-        _state.Arm(e, saved, turns, fp, grant);
+        _state.Arm(e, saved, baselineTurns: 0, fp, grant);   // the CT clock owns expiry now
+        _ct.Reset();
         _rearmReady = false;
         _deadStreak = 0;
         WriteField(e, grant);
