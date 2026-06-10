@@ -143,7 +143,7 @@
         "atTier": 3,
         "displayLabel": "Concentration",
         "note": "Concentration — negates evade so Gloomfang's always-Blind can never miss (the P3 payoff in living_weapon_grid.csv)",
-        "p3Desc": "Concentration: Attacks cannot be evaded. Must be equipped at +3 to take effect."
+        "p3Desc": "Attacks cannot be evaded."
       }
     },
     {
@@ -177,7 +177,7 @@
         "atTier": 3,
         "displayLabel": "Magick Def Boost",
         "note": "Magick Def Boost — anti-caster capstone: it silences spells then shrugs off the ones that land (living_weapon_grid.csv)",
-        "p3Desc": "Magick Def Boost: Reduces magick damage taken. Must be equipped at +3 to take effect."
+        "p3Desc": "Reduces magick damage taken."
       }
     },
     {
@@ -237,7 +237,7 @@
         "atTier": 3,
         "displayLabel": "Defense Boost",
         "note": "Defense Boost — the parrying lifesteal duelist takes less and out-drains the rest. (Was HP Boost, but max HP bakes at battle build, so it can't be granted live; Defense Boost gates a live damage-taken calc.)",
-        "p3Desc": "Defense Boost: Reduces physical damage taken. Must be equipped at +3 to take effect."
+        "p3Desc": "Reduces physical damage taken."
       }
     },
     {
@@ -298,7 +298,7 @@
         "hpBelow": 50,
         "displayLabel": "Attack Boost",
         "note": "Attack Boost while HP < 50% — the cornered executioner hits harder as he bleeds; arm-and-stays for the battle once tripped (living_weapon_grid.csv)",
-        "p3Desc": "Attack Boost: Active while below half HP. Must be equipped at +3 to take effect."
+        "p3Desc": "Active while below half HP."
       }
     },
     {
@@ -332,7 +332,7 @@
         "displayLabel": "Charm holds 3t",
         "charmLockTurns": 3,
         "note": "While a +3 Galewind is equipped, any Charm your party lands is unbreakable for 3 of the target's turns, then force-cleared (the gale sweeps them off their feet). Mechanic: hold authoritative charm bytes +0x49/+0x54 — see memory charm-unbreakable-bytes.md.",
-        "p3Desc": "Infatuation: Charm becomes unbreakable for 3 turns. Must be equipped at +3 to take effect."
+        "p3Desc": "Charm becomes unbreakable for 3 turns."
       }
     },
     {
@@ -365,7 +365,7 @@
         "sigName": "Bloodthirst",
         "displayLabel": "Extra Turn",
         "note": "Extra turn on kill — NOT a passive grant: the runtime slams the killer's scheduler CT (combat struct +0x41, the solved hidden-scheduler field) until the bonus move is consumed (LivingWeapon/ExtraTurn.cs). Label-only signature: the card paints 'Grant Extra Turn' at P3; no abilityId/slot means no support bit is armed. Replaced the Dual Wield fallback (221) once the CT dig landed.",
-        "p3Desc": "Bloodthirst: A kill grants another turn. Must be equipped at +3 to take effect."
+        "p3Desc": "A kill grants another turn."
       }
     },
     {
@@ -2393,7 +2393,7 @@
         "displayLabel": "Eagle Eye",
         "doomCountdownTo": 1,
         "note": "While a +3 Eclipsebolt is equipped, every enemy Doom's countdown is forced down to 1 (band +0x59), so the mark resolves on the victim's next turn. SHIPPED runtime: EagleEye.cs (enemy scan + countdown write, idempotent: only writes a countdown still above 1). Doom bit = +0x49 mask 0x01. Base applies Doom at ~25% (formula 1) -- the gamble; Eagle Eye only fires on the hits that land it. PROVEN LIVE 2026-06-09 (at the 100% test config): wrote the countdown mid-battle, head-counter re-rendered live, victim died on its next turn with a clean engine death. Undead no-op the expiry (engine declines the kill). Aura model (matches CharmLock): hastens any enemy Doom while equipped, not just the wielder's.",
-        "p3Desc": "Eagle Eye: Doom strikes after 1 turn, not 3. Must be equipped at +3 to take effect."
+        "p3Desc": "Doom strikes after 1 turn, not 3."
       }
     },
     {
@@ -2456,7 +2456,7 @@
         "sigName": "Plague",
         "displayLabel": "Plague",
         "note": "Persistent + 1.75x poison. CARD-ONLY for now: the +3 runtime is TODO (latch units poisoned by the +3 wielder, hold poison bit +0x48/0x80 + timer +0x4A, augment each tick to 1.75x in the Engine loop). p3Desc baked so the card states the ability; no abilityId/slot means no support bit is armed.",
-        "p3Desc": "Plague: Poison never fades and is stronger. Must be equipped at +3 to take effect."
+        "p3Desc": "Poison never fades and is stronger."
       }
     },
     {

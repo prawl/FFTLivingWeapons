@@ -282,7 +282,15 @@ def main():
             sig = it.get("signature")
             p3 = sig.get("p3Desc") if sig else None
             if p3:
-                desc = desc.rstrip() + "\n" + p3
+                # Card section for the +N ability: a blank line, then a header that NAMES the
+                # ability ("+3 Ability -- Infatuation"), then the bare effect. The name comes from
+                # sigName (the curated flavor name), falling back to displayLabel (the additive
+                # supports store the granted ability's own name there). The "+N" gate lives in the
+                # header, so the effect line stays a clean sentence -- no "Must be equipped at +3".
+                sname = sig.get("sigName") or sig.get("displayLabel", "")
+                at = sig.get("atTier", 3)
+                header = f"+{at} Ability — {sname}" if sname else f"+{at} Ability"
+                desc = desc.rstrip() + f"\n\n{header}\n{p3}"
             # bake "Kills: 0   " (digit + 3 spaces) as the LAST line of EVERY weapon card -- the
             # counter reads as consistent UI when it always closes the card. The DLL paints
             # left-aligned variable digits into this fixed 4-char slot (KillsSlot helper); the
@@ -290,7 +298,7 @@ def main():
             # "Kills: " literal MUST stay in lockstep with Display/DisplayScan + ByteScan.KillsDigits.
             # (No painted "Grant" line anymore: the baked "While this weapon is equipped at +3, ..."
             # sentence states the ability, and unpainted cards showed the slot as a bare "Grant".)
-            desc = desc.rstrip() + "\nKills: 0   "
+            desc = desc.rstrip() + "\n\nKills: 0   "   # blank line sets the tracker off from the description
         if dry:
             if it["id"] >= 11:  # show the new ones
                 print(f"id{it['id']:>3} {name!r}\n      {desc!r}")

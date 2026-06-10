@@ -118,12 +118,13 @@ def check_slots(items, normal_formulas):
 
 
 FLAVOR_MAX = 90   # authored flavor lines must fit the equip card
-P3DESC_MAX = 90   # signature lines must fit the card too: "Name: effect. Must be equipped at +3 to take effect."
+P3DESC_MAX = 90   # the signature EFFECT line (the card header carries the name + the +N tier)
+SIGNAME_MAX = 24  # the name in the "+{atTier} Ability -- {name}" card header, kept within card width
 
 def check_p3desc(items):
-    """Every signature.p3Desc must fit the card (<= P3DESC_MAX) and follow the
-    'Name: effect. Must be equipped at +3 to take effect.' shape -- a 'Name: '
-    prefix (': ' present) and a '+3' tier-requirement mention."""
+    """Each signature with a p3Desc must resolve a name (sigName, else displayLabel) for the card
+    header '+{atTier} Ability -- {name}', and the p3Desc EFFECT line must fit the card. The card
+    layout is: blank line, the header, the bare effect line (no name prefix, no +N suffix)."""
     bad = []
     for it in items:
         sig = it.get("signature")
@@ -132,7 +133,8 @@ def check_p3desc(items):
         p3 = sig.get("p3Desc")
         if not p3:
             continue
-        if len(p3) > P3DESC_MAX or ": " not in p3 or "+3" not in p3:
+        name = sig.get("sigName") or sig.get("displayLabel", "")
+        if not name or len(name) > SIGNAME_MAX or len(p3) > P3DESC_MAX:
             bad.append((it, p3))
     return bad
 
@@ -228,7 +230,7 @@ def main():
         rc = 1
 
     p3 = check_p3desc(items)
-    print(f"\n--- P3 DESCRIPTION (signature.p3Desc <= {P3DESC_MAX} chars, 'Name: effect ... +3' shape) ---")
+    print(f"\n--- P3 DESCRIPTION (signature effect <= {P3DESC_MAX} chars + a card-header name) ---")
     if not p3:
         print(f"  PASS: every p3Desc is valid.")
     else:
