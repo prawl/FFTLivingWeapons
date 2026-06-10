@@ -1544,7 +1544,8 @@
         "onHit": "Absorb MP",
         "onHitAbilityId": 0,
         "formula": 47,
-        "range": 1
+        "range": 4,
+        "attackFlags": "TwoHands, TwoSwords, Direct"
       },
       "iconTint": [
         0.0,
@@ -1673,7 +1674,8 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1,
+        "range": 4,
+        "attackFlags": "TwoHands, TwoSwords, Direct",
         "rider": "immune Silence",
         "equipBonusId": 26
       },
@@ -1705,7 +1707,8 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1,
+        "range": 4,
+        "attackFlags": "TwoHands, TwoSwords, Direct",
         "rider": "MA+2, boost Dark",
         "equipBonusId": 9
       },
@@ -1737,7 +1740,8 @@
         "onHit": "Silence",
         "onHitAbilityId": 10,
         "formula": 1,
-        "range": 1,
+        "range": 4,
+        "attackFlags": "TwoHands, TwoSwords, Direct",
         "rider": "start Reraise",
         "equipBonusId": 40
       },
@@ -1769,7 +1773,8 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 1,
+        "range": 4,
+        "attackFlags": "TwoHands, TwoSwords, Direct",
         "rider": "innate Faith",
         "equipBonusId": 73
       },

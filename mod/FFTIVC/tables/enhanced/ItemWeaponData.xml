@@ -480,7 +480,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>51</Id> <!-- Wellspring Rod (was Rod) -->
-      <Range>1</Range>
+      <Range>4</Range>
+      <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>47</Formula>
       <Power>5</Power>
       <Evasion>18</Evasion>
@@ -519,7 +520,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>55</Id> <!-- Hushward Rod (was Poison Rod) -->
-      <Range>1</Range>
+      <Range>4</Range>
+      <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>1</Formula>
       <Power>6</Power>
       <Evasion>15</Evasion>
@@ -528,7 +530,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>56</Id> <!-- Umbral Rod (was Wizard's Rod) -->
-      <Range>1</Range>
+      <Range>4</Range>
+      <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>1</Formula>
       <Power>4</Power>
       <Evasion>20</Evasion>
@@ -537,7 +540,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>57</Id> <!-- Dragon Rod -->
-      <Range>1</Range>
+      <Range>4</Range>
+      <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>1</Formula>
       <Power>7</Power>
       <Evasion>10</Evasion>
@@ -546,7 +550,8 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>58</Id> <!-- Rod of Faith -->
-      <Range>1</Range>
+      <Range>4</Range>
+      <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>1</Formula>
       <Power>7</Power>
       <Evasion>15</Evasion>
