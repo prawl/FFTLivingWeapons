@@ -4,29 +4,16 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The pure decisions behind Umbral Rod's "Spiritual Font" signature -- no memory access.
-/// The stateful turn-edge watcher, position snapshots, and guarded writes live in SpiritualFont.cs.
+/// The stateful position-poll watcher and guarded writes live in SpiritualFont.cs.
 /// </summary>
 internal sealed partial class SpiritualFont
 {
-    /// <summary>Rising edge on the actor latch: weapon id 56 just appeared in the latched set
-    /// (it was absent last tick). This is "the wielder is starting an action" -- the correct
-    /// trigger after CT reads on player units proved dead live (both +0x25 and +0x09 returned
-    /// values that never reached the >=90 threshold across full player turns in the watcher).
-    /// </summary>
-    public static bool IsLatchEdge(bool wasIn, bool isIn) => !wasIn && isIn;
-
     /// <summary>True when the signature is configured and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
     {
         if (sig is null || !sig.FontOnMove) return false;
         return tier >= sig.AtTier;
     }
-
-    /// <summary>The font fires only when a SNAPSHOTTED position changed: the first turn edge of
-    /// a battle (or after a re-equip) has no snapshot yet, so it baselines silently -- standing
-    /// still earns nothing.</summary>
-    public static bool ShouldFire(bool posKnown, int lastGx, int lastGy, int gx, int gy)
-        => posKnown && (gx != lastGx || gy != lastGy);
 
     /// <summary>New MP after the gain: clamped at maxMp. UNLIKE the HP half, mp 0 still gains --
     /// an empty pool is not a corpse (HP 0 -&gt; positive is the engine's revival signal; MP has
@@ -70,5 +57,121 @@ internal sealed partial class SpiritualFont
         if (!Mem.Writable(a, 2)) return;
         Mem.W8(a, (byte)(newMp & 0xFF));
         Mem.W8(a + 1, (byte)((newMp >> 8) & 0xFF));
+    }
+
+    // -------------------------------------------------------------------------
+    // MoveWatch: pure position-poll state machine.
+    //
+    // Per tick (in-battle, active, located): caller feeds the current (gx, gy).
+    //   • FIRST sighting / after reset: baselines silently -- never fires.
+    //   • CHANGE detected: must be stable for StabilityTicks consecutive ticks
+    //     before firing -- rides out mid-animation position pulses and the
+    //     documented (0,0)-flicker on the live band.
+    //   • After firing: suppressed for RateCap ticks (~3 s at 33 ms) to give
+    //     one-move-per-turn semantics. Knockback / teleport also pays (intended;
+    //     vanilla fonts pay on any movement).
+    //   • RESET (unequip / battle end): returns to the fresh state.
+    // -------------------------------------------------------------------------
+
+    /// <summary>Consecutive-tick stability required before treating a new position as final.
+    /// Filters the documented mid-animation band-position flicker.</summary>
+    public const int StabilityTicks = 3;
+
+    /// <summary>After a fire, suppress further fires for this many ticks (~3 s at 33 ms).
+    /// One move per turn is the realistic cadence; this also limits knockback spam.</summary>
+    public const int RateCap = 90;
+
+    /// <summary>
+    /// Pure position-poll state machine for the "Spiritual Font" moved-turn trigger.
+    /// No memory access; all state is internal so the caller owns the lifetime.
+    /// </summary>
+    internal sealed class MoveWatch
+    {
+        private enum State { Fresh, Stable, Candidate, Cooldown }
+
+        private State _state = State.Fresh;
+        private int _baseGx, _baseGy;       // the snapshotted (confirmed) position
+        private int _candGx, _candGy;       // the new position being stability-counted
+        private int _stabCount;             // ticks the candidate has been seen consecutively
+        private int _coolTicks;             // ticks remaining in the post-fire cooldown
+
+        /// <summary>Reset to the initial state (unequip or battle end).</summary>
+        public void Reset()
+        {
+            _state = State.Fresh;
+            _baseGx = _baseGy = 0;
+            _candGx = _candGy = 0;
+            _stabCount = 0;
+            _coolTicks = 0;
+        }
+
+        /// <summary>Feed the current tile. Returns true exactly once per completed move
+        /// (after 3 stable ticks on a new tile, outside the post-fire cooldown).</summary>
+        public bool Observe(int gx, int gy)
+        {
+            // Cooldown: tick down; no fire; still accept a stable position as the new baseline.
+            if (_state == State.Cooldown)
+            {
+                if (--_coolTicks <= 0) _state = State.Stable;
+                // While cooling down, keep the snapshot current so a second consecutive move
+                // is detected cleanly once the rate cap expires.
+                AcceptBaseline(gx, gy);
+                return false;
+            }
+
+            if (_state == State.Fresh)
+            {
+                // First sighting: baseline silently.
+                _baseGx = gx; _baseGy = gy;
+                _state = State.Stable;
+                return false;
+            }
+
+            // State.Stable or State.Candidate:
+            if (gx == _baseGx && gy == _baseGy)
+            {
+                // Returned to the baseline (or no movement at all): cancel any candidate.
+                _stabCount = 0;
+                _candGx = _candGy = 0;
+                _state = State.Stable;
+                return false;
+            }
+
+            // New position differs from the baseline.
+            if (_state == State.Stable || (gx != _candGx || gy != _candGy))
+            {
+                // Start (or restart) stability count for this candidate.
+                _candGx = gx; _candGy = gy;
+                _stabCount = 1;
+                _state = State.Candidate;
+                return false;
+            }
+
+            // Continuing stability on the same candidate.
+            _stabCount++;
+            if (_stabCount >= StabilityTicks)
+            {
+                // Stable move confirmed: fire and enter cooldown.
+                _baseGx = gx; _baseGy = gy;
+                _stabCount = 0;
+                _candGx = _candGy = 0;
+                _coolTicks = RateCap;
+                _state = State.Cooldown;
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>Snapshot the current position as the baseline without firing (used
+        /// during cooldown so back-to-back moves are detected correctly afterward).</summary>
+        private void AcceptBaseline(int gx, int gy) { _baseGx = gx; _baseGy = gy; }
+
+        // Exposed for tests only.
+        internal bool IsFresh    => _state == State.Fresh;
+        internal bool IsStable   => _state == State.Stable;
+        internal bool IsCandidate => _state == State.Candidate;
+        internal bool IsCooldown => _state == State.Cooldown;
+        internal int  CoolTicks  => _coolTicks;
+        internal int  StabCount  => _stabCount;
     }
 }

@@ -5,32 +5,35 @@ namespace LivingWeapon;
 /// <summary>
 /// Umbral Rod's "Spiritual Font" signature. T1 weapons carry no signatures; this was moved
 /// from Wellspring Rod (id 51, tier 1) to Umbral Rod (id 56, tier 3) for that reason.
-/// At each action edge of the +3 wielder (the actor latch OPENS with weapon id 56 -- a
-/// rising edge in KillTracker.LastPlayerWeapons), IF the wielder's grid position changed since
-/// their PREVIOUS action edge, the RUNTIME restores Tuning.FontHpPct of max HP (LifeSap.NewHp:
-/// floor 1, clamp at full, never revive) and Tuning.FontMpPct of max MP (NewMp: floor 1,
-/// clamp at maxMp; never into a corpse).
+/// At each tick (inLive, active, located via Wielder.LocateAll): reads the wielder's
+/// current (gx, gy) from the first located band entry and feeds it to a MoveWatch
+/// state machine. When MoveWatch confirms a stable position change (new tile held for
+/// StabilityTicks=3 consecutive ticks), the RUNTIME restores Tuning.FontHpPct of max HP
+/// (LifeSap.NewHp: floor 1, clamp at full, never revive) and Tuning.FontMpPct of max MP
+/// (NewMp: floor 1, clamp at maxMp; never into a corpse). Rate-capped at one fire per
+/// RateCap=90 ticks (~3 s). Move-only turns NOW PAY (the old gap is closed).
 ///
-/// TRIGGER HISTORY: three prior designs failed live:
+/// TRIGGER HISTORY: four prior designs failed live:
 ///   (1) Global TurnTracker acted-edge -- the active struct at 0x14077D2A0 follows the CURSOR,
 ///       not the turn owner; mis-credited every edge to whoever the cursor rested on.
 ///   (2) Band +0x25 (ACtSlam) CT read -- that byte is ExtraTurn's write target and never
 ///       ticked reliably for reads; zero transitions observed across full player turns.
 ///   (3) Band +0x09 (ACtTurn) CT read -- also never reached >= 90 across full player turns
 ///       in the watcher, even with sampling extended to all live-battle ticks.
-/// The actor latch (KillTracker.LastPlayerWeapons) is the proven signal: it powers kill
-/// attribution live and logged "active player weapon(s) -> 51" on every wielder action.
-///
-/// KNOWN GAP: a move-only turn (unit moves but never acts) raises no latch; its movement is
-/// credited at the wielder's NEXT action instead (the position delta accumulates) -- late,
-/// never lost. Documented in items.json and docs/living_weapon_rods.csv.
+///   (4) Actor latch (KillTracker.LastPlayerWeapons) rising edge -- live log showed it fired
+///       for action 1 ("action edge 1 ... baseline") then the SECOND player action produced
+///       NO latch line, NO turn line, NOTHING -- the global Acted flag (0x14077CA8C) pulses
+///       unreliably (the documented condensed-struct-follows-cursor / pulse trap family).
+///       Also cost kill credits when shared with KillTracker. Every engine-bookkeeping signal
+///       has now failed; position-poll needs no engine cooperation.
+/// Position-poll design: the pure MoveWatch class (SpiritualFont.Policy.cs) maintains a
+/// position snapshot and a 3-tick stability gate with a 90-tick rate cap. No engine flags.
 ///
 /// MP SAFETY: the band +0x18/+0x1A (mp/maxMp) pair is LIVE-VERIFIED on screen 2026-06-10.
 /// Every MP write is gated behind a per-battle layout validation (MpLayoutOk, pure + tested):
 /// on the first field tick with >= 2 valid band units, every valid unit's mp/maxMp must read
 /// sane or MP writes stay disabled for the battle (the HP half still fires). Each MP write is
-/// re-read and logged SET/MISS. Position snapshots happen ONLY at action edges; the first edge
-/// of a battle (or after a re-equip) snapshots without firing. All writes guarded (Mem).
+/// re-read and logged SET/MISS. All writes guarded (Mem).
 /// </summary>
 internal sealed partial class SpiritualFont
 {
@@ -40,13 +43,11 @@ internal sealed partial class SpiritualFont
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly KillTracker _tracker;
+    // KillTracker parameter retained for Engine wiring stability (nothing read from it here).
     private readonly List<int> _hands = new();
     private readonly List<long> _locateAllBuf = new();   // reused buffer for LocateAll calls
-    private bool _latchWasIn;            // was UmbralId in the latch last tick?
-    private int _actionEdgeCount;        // edges seen this battle (for logging)
-    private bool _posKnown;              // a action-edge position snapshot exists
-    private int _lastGx, _lastGy;       // the wielder's tile at their previous action edge
+    private readonly MoveWatch _watch = new();
+    private int _moveCount;                // moves fired this battle (for logging)
     private bool _wasActive;
     private int _pulseTicks;             // DEV PULSE clock (Tuning.FontDevPulse; ~10s at 33ms)
     private bool _wasLocated;            // diagnostic: located-state change is logged once per flip
@@ -57,14 +58,13 @@ internal sealed partial class SpiritualFont
     {
         _meta = meta;
         _kills = kills;
-        _tracker = tracker;
+        // tracker not stored: no latch machinery remains. Parameter kept so Engine.cs wires cleanly.
     }
 
     public void ResetBattle()
     {
-        _latchWasIn = false;
-        _actionEdgeCount = 0;
-        _posKnown = false;
+        _watch.Reset();
+        _moveCount = 0;
         _wasActive = false;
         _wasLocated = false;
         _mpChecked = false;
@@ -86,7 +86,7 @@ internal sealed partial class SpiritualFont
         }
         if (!active)
         {
-            _latchWasIn = false; _posKnown = false;   // unequip: re-baseline latch AND tile
+            _watch.Reset();   // unequip: re-baseline the MoveWatch
             return;
         }
 
@@ -104,49 +104,44 @@ internal sealed partial class SpiritualFont
             else Wielder.DumpCandidates(Live, _hands, fp);   // name the rejecting predicate
         }
 
-        bool isIn = _tracker.LastPlayerWeapons.Contains(UmbralId);
-        bool edge = IsLatchEdge(_latchWasIn, isIn);
-        _latchWasIn = isIn;
-        if (!edge) return;
-
         _locateAllBuf.Clear();
         Wielder.LocateAll(Live, UmbralId, _hands, fp, _locateAllBuf);
         bool nowLocated = _locateAllBuf.Count > 0;
         if (nowLocated != _wasLocated)
         {
             _wasLocated = nowLocated;
-            Log.Info($"font: wielder {(_wasLocated ? "located" : "UNLOCATED (action edge skipped)")}");
+            Log.Info($"font: wielder {(_wasLocated ? "located" : "UNLOCATED (tick skipped)")}");
         }
-        if (_locateAllBuf.Count == 0) return;   // unlocated: skip, position snapshot deferred
+        if (_locateAllBuf.Count == 0) return;   // unlocated: skip; MoveWatch keeps its baseline
 
         long e = _locateAllBuf[0];   // read position from the first entry (live or frozen -- same tile)
-        _actionEdgeCount++;
         int gx = Live.U8(e + Offsets.AGx), gy = Live.U8(e + Offsets.AGy);
-        bool fire = ShouldFire(_posKnown, _lastGx, _lastGy, gx, gy);
-        Log.Info($"font: action edge {_actionEdgeCount} at ({gx},{gy}) " +
-                 (fire ? "moved -> firing" : _posKnown ? "no move -> skip" : "first action -> baseline"));
-        _lastGx = gx; _lastGy = gy; _posKnown = true;   // snapshot per action edge
+        bool fire = _watch.Observe(gx, gy);
+        if (_watch.IsFresh) Log.Info($"font: position baseline ({gx},{gy})");   // first sighting log
         if (!fire) return;
-        ReplenishAll(_locateAllBuf, _actionEdgeCount);
+
+        _moveCount++;
+        Log.Info($"font: moved -> firing move #{_moveCount} at ({gx},{gy})");
+        ReplenishAll(_locateAllBuf, _moveCount);
     }
 
-    /// <summary>One moved-action restore written to every located twin (idempotent -- the live
+    /// <summary>One moved-turn restore written to every located twin (idempotent -- the live
     /// copy takes effect, frozen twins are inert). HP/MP amounts computed once from the first
     /// entry; HP written to all entries, MP written to all entries but read-back logged on the
     /// first only (avoids log spam for the frozen copy). HP half always (clamped, never revives);
     /// MP half only for a LIVING wielder while layout validation passed (MpHalfAllowed).</summary>
-    private void ReplenishAll(List<long> entries, int edge)
+    private void ReplenishAll(List<long> entries, int move)
     {
         long first = entries[0];
         int hp = Live.U16(first + Offsets.AHp), maxHp = Live.U16(first + Offsets.AMaxHp);
         int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
-        Log.Info($"font: moved -> edge {edge} hp {hp} -> {newHp} (max {maxHp}) twins={entries.Count}");
-        foreach (long e in entries) if (newHp != hp) LifeSap.WriteHp(e, newHp);
+        Log.Info($"font: move #{move} hp {hp} -> {newHp} (max {maxHp}) twins={entries.Count}");
+        foreach (long ent in entries) if (newHp != hp) LifeSap.WriteHp(ent, newHp);
         if (!MpHalfAllowed(hp, _mpOk)) return;   // layout unproven OR a dead wielder: no MP write
         int mp = Live.U16(first + Offsets.AMp), maxMp = Live.U16(first + Offsets.AMaxMp);
         int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
         if (newMp == mp) { Log.Info($"font: mp full ({mp}/{maxMp})"); return; }
-        foreach (long e in entries) WriteMp(e, newMp);
+        foreach (long ent in entries) WriteMp(ent, newMp);
         bool landed = Live.U16(first + Offsets.AMp) == newMp;   // read-back on first entry only
         Log.Info($"font: mp {mp} -> {newMp} (max {maxMp}) readback={(landed ? "SET" : "MISS")}");
     }
@@ -159,9 +154,9 @@ internal sealed partial class SpiritualFont
         var samples = new List<(int mp, int maxMp)>();
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            long e = Band.Entry(s);
-            if (!Band.IsValid(Live, e)) continue;
-            samples.Add((Live.U16(e + Offsets.AMp), Live.U16(e + Offsets.AMaxMp)));
+            long ent = Band.Entry(s);
+            if (!Band.IsValid(Live, ent)) continue;
+            samples.Add((Live.U16(ent + Offsets.AMp), Live.U16(ent + Offsets.AMaxMp)));
         }
         if (samples.Count < 2) return;   // band not populated yet -- validate on a later tick
         _mpChecked = true;
