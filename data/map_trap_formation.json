@@ -1,0 +1,3008 @@
+{
+  "0": {
+    "name": "Empty/Dummy",
+    "tiles": []
+  },
+  "1": {
+    "name": "Eagrose Castle Gate",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 184,
+        "commonItemId": 242
+      },
+      {
+        "x": 7,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 198,
+        "commonItemId": 244
+      },
+      {
+        "x": 8,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 206,
+        "commonItemId": 252
+      },
+      {
+        "x": 9,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 214,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "2": {
+    "name": "Lesalia Castle Postern",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 193,
+        "commonItemId": 243
+      },
+      {
+        "x": 8,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 224,
+        "commonItemId": 252
+      },
+      {
+        "x": 9,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 11,
+        "commonItemId": 253
+      },
+      {
+        "x": 9,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 25,
+        "commonItemId": 251
+      }
+    ]
+  },
+  "3": {
+    "name": "Mullonde Cathedral Nave",
+    "tiles": [
+      {
+        "x": 4,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 252
+      },
+      {
+        "x": 4,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 4,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 242
+      }
+    ]
+  },
+  "4": {
+    "name": "Lesalia Castle Study",
+    "tiles": []
+  },
+  "5": {
+    "name": "Riovanes Castle Roof",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 225,
+        "commonItemId": 249
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 232,
+        "commonItemId": 253
+      },
+      {
+        "x": 7,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 7,
+        "commonItemId": 240
+      },
+      {
+        "x": 7,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 13,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "6": {
+    "name": "Riovanes Castle Gate",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 123,
+        "commonItemId": 240
+      },
+      {
+        "x": 3,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 136,
+        "commonItemId": 241
+      },
+      {
+        "x": 7,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 151,
+        "commonItemId": 243
+      },
+      {
+        "x": 11,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 164,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "7": {
+    "name": "Riovanes Castle Keep",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 179,
+        "commonItemId": 240
+      },
+      {
+        "x": 2,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 194,
+        "commonItemId": 241
+      },
+      {
+        "x": 5,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 203,
+        "commonItemId": 243
+      },
+      {
+        "x": 7,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 210,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "8": {
+    "name": "Riovanes Castle",
+    "tiles": []
+  },
+  "9": {
+    "name": "Eagrose Castle Solar",
+    "tiles": []
+  },
+  "10": {
+    "name": "Eagrose Castle Keep",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 234,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 168,
+        "commonItemId": 242
+      },
+      {
+        "x": 6,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 23,
+        "commonItemId": 244
+      },
+      {
+        "x": 7,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 61,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "11": {
+    "name": "Eagrose Castle Solar",
+    "tiles": []
+  },
+  "12": {
+    "name": "Lionel Castle Gate",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 178,
+        "commonItemId": 240
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 192,
+        "commonItemId": 241
+      },
+      {
+        "x": 2,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 202,
+        "commonItemId": 243
+      },
+      {
+        "x": 3,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 211,
+        "commonItemId": 248
+      }
+    ]
+  },
+  "13": {
+    "name": "Lionel Castle Oratory",
+    "tiles": [
+      {
+        "x": 3,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 220,
+        "commonItemId": 240
+      },
+      {
+        "x": 3,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 228,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 231,
+        "commonItemId": 243
+      },
+      {
+        "x": 4,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 40,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "14": {
+    "name": "Lionel Castle Parlor",
+    "tiles": []
+  },
+  "15": {
+    "name": "Limberry Castle Gate",
+    "tiles": []
+  },
+  "16": {
+    "name": "Limberry Castle Keep",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 233,
+        "commonItemId": 240
+      },
+      {
+        "x": 3,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 15,
+        "commonItemId": 241
+      },
+      {
+        "x": 6,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 29,
+        "commonItemId": 243
+      },
+      {
+        "x": 9,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 44,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "17": {
+    "name": "Limberry Castle Undercroft",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 82,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 103,
+        "commonItemId": 242
+      },
+      {
+        "x": 4,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 113,
+        "commonItemId": 244
+      },
+      {
+        "x": 5,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 118,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "18": {
+    "name": "Limberry Castle Parlor",
+    "tiles": []
+  },
+  "19": {
+    "name": "Limberry Castle Gate",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 196,
+        "commonItemId": 243
+      },
+      {
+        "x": 3,
+        "y": 13,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 205,
+        "commonItemId": 252
+      },
+      {
+        "x": 7,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 213,
+        "commonItemId": 249
+      },
+      {
+        "x": 7,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 218,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "20": {
+    "name": "Zeltennia Castle Keep",
+    "tiles": []
+  },
+  "21": {
+    "name": "Zeltennia Castle",
+    "tiles": []
+  },
+  "22": {
+    "name": "Gariland",
+    "tiles": []
+  },
+  "23": {
+    "name": "The Beoulve Manse",
+    "tiles": []
+  },
+  "24": {
+    "name": "The Royal Military Akademy",
+    "tiles": []
+  },
+  "25": {
+    "name": "Yardrow",
+    "tiles": [
+      {
+        "x": 4,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 50,
+        "commonItemId": 253
+      },
+      {
+        "x": 4,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 68,
+        "commonItemId": 251
+      },
+      {
+        "x": 9,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 72,
+        "commonItemId": 240
+      },
+      {
+        "x": 9,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 81,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "26": {
+    "name": "Yardrow Armory",
+    "tiles": []
+  },
+  "27": {
+    "name": "Gollund",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 63,
+        "commonItemId": 253
+      },
+      {
+        "x": 4,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 67,
+        "commonItemId": 251
+      },
+      {
+        "x": 4,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 100,
+        "commonItemId": 240
+      },
+      {
+        "x": 7,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 150,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "28": {
+    "name": "Gollund Colliery Ridge",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 2,
+        "commonItemId": 250
+      },
+      {
+        "x": 2,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 22,
+        "commonItemId": 250
+      },
+      {
+        "x": 4,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 72,
+        "commonItemId": 250
+      },
+      {
+        "x": 9,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 88,
+        "commonItemId": 250
+      }
+    ]
+  },
+  "29": {
+    "name": "Gollund Colliery Slope",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 132,
+        "commonItemId": 250
+      },
+      {
+        "x": 6,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 148,
+        "commonItemId": 250
+      },
+      {
+        "x": 10,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 176,
+        "commonItemId": 250
+      },
+      {
+        "x": 10,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 190,
+        "commonItemId": 250
+      }
+    ]
+  },
+  "30": {
+    "name": "Gollund Colliery Floor",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 2,
+        "commonItemId": 250
+      },
+      {
+        "x": 3,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 22,
+        "commonItemId": 250
+      },
+      {
+        "x": 9,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 72,
+        "commonItemId": 250
+      },
+      {
+        "x": 10,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 88,
+        "commonItemId": 250
+      }
+    ]
+  },
+  "31": {
+    "name": "Dorter",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 85,
+        "commonItemId": 240
+      },
+      {
+        "x": 2,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 122,
+        "commonItemId": 241
+      },
+      {
+        "x": 8,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 131,
+        "commonItemId": 243
+      },
+      {
+        "x": 8,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 147,
+        "commonItemId": 248
+      }
+    ]
+  },
+  "32": {
+    "name": "Dorter Slums",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 172,
+        "commonItemId": 246
+      },
+      {
+        "x": 4,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 186,
+        "commonItemId": 247
+      },
+      {
+        "x": 6,
+        "y": 14,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 2,
+        "commonItemId": 248
+      },
+      {
+        "x": 7,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 20,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "33": {
+    "name": "Slum Infirmary",
+    "tiles": []
+  },
+  "34": {
+    "name": "The Sand Rat's Sietch",
+    "tiles": [
+      {
+        "x": 5,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 145,
+        "commonItemId": 240
+      },
+      {
+        "x": 6,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 158,
+        "commonItemId": 241
+      },
+      {
+        "x": 10,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 173,
+        "commonItemId": 246
+      },
+      {
+        "x": 10,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 187,
+        "commonItemId": 247
+      }
+    ]
+  },
+  "35": {
+    "name": "Zaland",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 62,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 107,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 132,
+        "commonItemId": 243
+      },
+      {
+        "x": 7,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 148,
+        "commonItemId": 248
+      }
+    ]
+  },
+  "36": {
+    "name": "Outlying Church",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 204,
+        "commonItemId": 243
+      },
+      {
+        "x": 4,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 221,
+        "commonItemId": 252
+      },
+      {
+        "x": 4,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 226,
+        "commonItemId": 249
+      },
+      {
+        "x": 7,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 8,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "37": {
+    "name": "Zaland Outskirts",
+    "tiles": []
+  },
+  "38": {
+    "name": "Goug",
+    "tiles": []
+  },
+  "39": {
+    "name": "Gollund Colliery Shaft",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 132,
+        "commonItemId": 252
+      },
+      {
+        "x": 2,
+        "y": 15,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 148,
+        "commonItemId": 252
+      },
+      {
+        "x": 4,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 176,
+        "commonItemId": 252
+      },
+      {
+        "x": 5,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 190,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "40": {
+    "name": "Goug Lowtown",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 79,
+        "commonItemId": 240
+      },
+      {
+        "x": 2,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 86,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 92,
+        "commonItemId": 243
+      },
+      {
+        "x": 10,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 95,
+        "commonItemId": 248
+      }
+    ]
+  },
+  "41": {
+    "name": "Bunansa Residence",
+    "tiles": []
+  },
+  "42": {
+    "name": "Warjilis",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 14,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 38,
+        "commonItemId": 240
+      },
+      {
+        "x": 5,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 39,
+        "commonItemId": 241
+      },
+      {
+        "x": 8,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 40,
+        "commonItemId": 242
+      },
+      {
+        "x": 9,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 41,
+        "commonItemId": 243
+      }
+    ]
+  },
+  "43": {
+    "name": "Warjilis Harbor",
+    "tiles": []
+  },
+  "44": {
+    "name": "Bervenia",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 93,
+        "commonItemId": 240
+      },
+      {
+        "x": 5,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 97,
+        "commonItemId": 241
+      },
+      {
+        "x": 7,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 102,
+        "commonItemId": 243
+      },
+      {
+        "x": 9,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 111,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "45": {
+    "name": "Zeltennia Castle - Chapel Ruins",
+    "tiles": []
+  },
+  "46": {
+    "name": "The Tomb of Barbaneth Beoulve",
+    "tiles": []
+  },
+  "47": {
+    "name": "Sal Ghidos",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 219,
+        "commonItemId": 250
+      },
+      {
+        "x": 0,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 220,
+        "commonItemId": 251
+      },
+      {
+        "x": 0,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 221,
+        "commonItemId": 252
+      },
+      {
+        "x": 9,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 223,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "48": {
+    "name": "Sal Ghidos Slumtown",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 224,
+        "commonItemId": 240
+      },
+      {
+        "x": 2,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 225,
+        "commonItemId": 241
+      },
+      {
+        "x": 7,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 226,
+        "commonItemId": 242
+      },
+      {
+        "x": 9,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 227,
+        "commonItemId": 243
+      }
+    ]
+  },
+  "49": {
+    "name": "Ziekden Fortress",
+    "tiles": [
+      {
+        "x": 3,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 130,
+        "commonItemId": 240
+      },
+      {
+        "x": 2,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 175,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 189,
+        "commonItemId": 246
+      },
+      {
+        "x": 8,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 201,
+        "commonItemId": 247
+      }
+    ]
+  },
+  "50": {
+    "name": "Mullonde Cathedral",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 0,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 241
+      },
+      {
+        "x": 6,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 242
+      },
+      {
+        "x": 7,
+        "y": 13,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 244
+      }
+    ]
+  },
+  "51": {
+    "name": "Mullonde Cathedral",
+    "tiles": []
+  },
+  "52": {
+    "name": "Mullonde Cathedral Sanctuary",
+    "tiles": []
+  },
+  "53": {
+    "name": "The Imperial Capitoline",
+    "tiles": []
+  },
+  "54": {
+    "name": "Lost Halidom",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 4,
+        "y": 13,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 5,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 7,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      }
+    ]
+  },
+  "55": {
+    "name": "Airship Graveyard",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 0,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 14,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 15,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      }
+    ]
+  },
+  "56": {
+    "name": "Orbonne Monastery",
+    "tiles": []
+  },
+  "57": {
+    "name": "Monastery Vaults - First Level",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 212,
+        "commonItemId": 243
+      },
+      {
+        "x": 2,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 217,
+        "commonItemId": 252
+      },
+      {
+        "x": 6,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 219,
+        "commonItemId": 253
+      },
+      {
+        "x": 8,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 227,
+        "commonItemId": 251
+      }
+    ]
+  },
+  "58": {
+    "name": "Monastery Vaults - Second Level",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 41,
+        "commonItemId": 240
+      },
+      {
+        "x": 4,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 80,
+        "commonItemId": 241
+      },
+      {
+        "x": 5,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 88,
+        "commonItemId": 243
+      },
+      {
+        "x": 9,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 109,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "59": {
+    "name": "Monastery Vaults - Third Level",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 115,
+        "commonItemId": 253
+      },
+      {
+        "x": 5,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 134,
+        "commonItemId": 251
+      },
+      {
+        "x": 9,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 135,
+        "commonItemId": 240
+      },
+      {
+        "x": 11,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 163,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "60": {
+    "name": "Monastery Vaults - Fourth Level",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 2,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 11,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 15,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      }
+    ]
+  },
+  "61": {
+    "name": "Monastery Vaults - Fifth Level",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 14,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 5,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 6,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 11,
+        "y": 14,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      }
+    ]
+  },
+  "62": {
+    "name": "Orbonne Monastery",
+    "tiles": []
+  },
+  "63": {
+    "name": "Golgollada Gallows",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 127,
+        "commonItemId": 243
+      },
+      {
+        "x": 4,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 133,
+        "commonItemId": 248
+      },
+      {
+        "x": 7,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 149,
+        "commonItemId": 250
+      },
+      {
+        "x": 7,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 162,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "64": {
+    "name": "Fort Besselat Sluice",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 139,
+        "commonItemId": 244
+      },
+      {
+        "x": 5,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 154,
+        "commonItemId": 252
+      },
+      {
+        "x": 8,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 167,
+        "commonItemId": 253
+      },
+      {
+        "x": 11,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 182,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "65": {
+    "name": "Fort Besselat Granary",
+    "tiles": []
+  },
+  "66": {
+    "name": "Fort Besselat - South Wall",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 124,
+        "commonItemId": 253
+      },
+      {
+        "x": 2,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 138,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 166,
+        "commonItemId": 242
+      },
+      {
+        "x": 7,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 181,
+        "commonItemId": 244
+      }
+    ]
+  },
+  "67": {
+    "name": "Fort Besselat - North Wall",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 223,
+        "commonItemId": 252
+      },
+      {
+        "x": 3,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 9,
+        "commonItemId": 253
+      },
+      {
+        "x": 10,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 30,
+        "commonItemId": 241
+      },
+      {
+        "x": 11,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 45,
+        "commonItemId": 242
+      }
+    ]
+  },
+  "68": {
+    "name": "Fort Besselat",
+    "tiles": []
+  },
+  "69": {
+    "name": "The Necrohol of Mullonde",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 0,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 3,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      },
+      {
+        "x": 4,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 245
+      }
+    ]
+  },
+  "70": {
+    "name": "Nelveska Temple",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 143,
+        "commonItemId": 128
+      },
+      {
+        "x": 1,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 16,
+        "commonItemId": 245
+      },
+      {
+        "x": 3,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 31,
+        "commonItemId": 245
+      },
+      {
+        "x": 5,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 106,
+        "commonItemId": 99
+      }
+    ]
+  },
+  "71": {
+    "name": "Dorvauldar Marsh",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 245,
+        "commonItemId": 240
+      },
+      {
+        "x": 2,
+        "y": 7,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 245,
+        "commonItemId": 240
+      },
+      {
+        "x": 3,
+        "y": 0,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 245,
+        "commonItemId": 240
+      },
+      {
+        "x": 12,
+        "y": 7,
+        "trapFlags": "Degenerator",
+        "rareItemId": 245,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "72": {
+    "name": "Fovoham Windflats",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 8,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 22,
+        "commonItemId": 246
+      },
+      {
+        "x": 1,
+        "y": 11,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 48,
+        "commonItemId": 247
+      },
+      {
+        "x": 4,
+        "y": 2,
+        "trapFlags": "Degenerator",
+        "rareItemId": 78,
+        "commonItemId": 248
+      },
+      {
+        "x": 6,
+        "y": 13,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 84,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "73": {
+    "name": "Mill Interior",
+    "tiles": []
+  },
+  "74": {
+    "name": "The Siedge Weald",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 77,
+        "commonItemId": 248
+      },
+      {
+        "x": 1,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 128,
+        "commonItemId": 253
+      },
+      {
+        "x": 5,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 144,
+        "commonItemId": 240
+      },
+      {
+        "x": 6,
+        "y": 6,
+        "trapFlags": "None",
+        "rareItemId": 157,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "75": {
+    "name": "Mount Bervenia",
+    "tiles": [
+      {
+        "x": 3,
+        "y": 10,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 125,
+        "commonItemId": 242
+      },
+      {
+        "x": 4,
+        "y": 11,
+        "trapFlags": "Degenerator",
+        "rareItemId": 125,
+        "commonItemId": 242
+      },
+      {
+        "x": 5,
+        "y": 1,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 125,
+        "commonItemId": 242
+      },
+      {
+        "x": 8,
+        "y": 9,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 256,
+        "commonItemId": 256
+      }
+    ]
+  },
+  "76": {
+    "name": "Zeklaus Desert",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 6,
+        "trapFlags": "Degenerator",
+        "rareItemId": 208,
+        "commonItemId": 248
+      },
+      {
+        "x": 2,
+        "y": 10,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 3,
+        "commonItemId": 253
+      },
+      {
+        "x": 6,
+        "y": 2,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 21,
+        "commonItemId": 240
+      },
+      {
+        "x": 6,
+        "y": 9,
+        "trapFlags": "Degenerator, DisableTrap",
+        "rareItemId": 52,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "77": {
+    "name": "Lenalian Plateau",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 129,
+        "commonItemId": 240
+      },
+      {
+        "x": 4,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 146,
+        "commonItemId": 241
+      },
+      {
+        "x": 5,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 159,
+        "commonItemId": 246
+      },
+      {
+        "x": 10,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 174,
+        "commonItemId": 247
+      }
+    ]
+  },
+  "78": {
+    "name": "Tchigolith Fenlands",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 38,
+        "commonItemId": 243
+      },
+      {
+        "x": 4,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 39,
+        "commonItemId": 248
+      },
+      {
+        "x": 6,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 49,
+        "commonItemId": 250
+      },
+      {
+        "x": 11,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 71,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "79": {
+    "name": "The Yuguewood",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 96,
+        "commonItemId": 243
+      },
+      {
+        "x": 4,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 101,
+        "commonItemId": 252
+      },
+      {
+        "x": 7,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 110,
+        "commonItemId": 253
+      },
+      {
+        "x": 9,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 119,
+        "commonItemId": 251
+      }
+    ]
+  },
+  "80": {
+    "name": "Araguay Woods",
+    "tiles": [
+      {
+        "x": 3,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 160,
+        "commonItemId": 250
+      },
+      {
+        "x": 4,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 176,
+        "commonItemId": 253
+      },
+      {
+        "x": 8,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 190,
+        "commonItemId": 240
+      },
+      {
+        "x": 11,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 209,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "81": {
+    "name": "Grogh Heights",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 6,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 12,
+        "commonItemId": 241
+      },
+      {
+        "x": 9,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 26,
+        "commonItemId": 243
+      },
+      {
+        "x": 9,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 42,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "82": {
+    "name": "Beddha Sandwaste",
+    "tiles": [
+      {
+        "x": 3,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 124,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 124,
+        "commonItemId": 241
+      },
+      {
+        "x": 8,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 124,
+        "commonItemId": 241
+      },
+      {
+        "x": 8,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 124,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "83": {
+    "name": "Zeirchele Falls",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 230,
+        "commonItemId": 243
+      },
+      {
+        "x": 5,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 5,
+        "commonItemId": 248
+      },
+      {
+        "x": 7,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 24,
+        "commonItemId": 250
+      },
+      {
+        "x": 8,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 55,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "84": {
+    "name": "Balias Tor",
+    "tiles": [
+      {
+        "x": 3,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 161,
+        "commonItemId": 250
+      },
+      {
+        "x": 8,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 177,
+        "commonItemId": 253
+      },
+      {
+        "x": 11,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 191,
+        "commonItemId": 240
+      },
+      {
+        "x": 13,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 215,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "85": {
+    "name": "Mandalia Plain",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 1,
+        "commonItemId": 240
+      },
+      {
+        "x": 4,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 19,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 51,
+        "commonItemId": 246
+      },
+      {
+        "x": 8,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 59,
+        "commonItemId": 247
+      }
+    ]
+  },
+  "86": {
+    "name": "Dugeura Pass",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 28,
+        "commonItemId": 243
+      },
+      {
+        "x": 5,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 56,
+        "commonItemId": 252
+      },
+      {
+        "x": 6,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 64,
+        "commonItemId": 249
+      },
+      {
+        "x": 9,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 87,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "87": {
+    "name": "Balias Swale",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 99,
+        "commonItemId": 250
+      },
+      {
+        "x": 1,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 108,
+        "commonItemId": 253
+      },
+      {
+        "x": 11,
+        "y": 7,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 125,
+        "commonItemId": 240
+      },
+      {
+        "x": 11,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 126,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "88": {
+    "name": "Finnath Creek",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 117,
+        "commonItemId": 249
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 137,
+        "commonItemId": 253
+      },
+      {
+        "x": 3,
+        "y": 14,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 165,
+        "commonItemId": 240
+      },
+      {
+        "x": 9,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 195,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "89": {
+    "name": "Lake Poescas",
+    "tiles": [
+      {
+        "x": 3,
+        "y": 13,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 120,
+        "commonItemId": 249
+      },
+      {
+        "x": 5,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 152,
+        "commonItemId": 253
+      },
+      {
+        "x": 6,
+        "y": 5,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 153,
+        "commonItemId": 240
+      },
+      {
+        "x": 8,
+        "y": 13,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 180,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "90": {
+    "name": "Mount Germinas",
+    "tiles": [
+      {
+        "x": 3,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 14,
+        "commonItemId": 240
+      },
+      {
+        "x": 3,
+        "y": 11,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 27,
+        "commonItemId": 241
+      },
+      {
+        "x": 4,
+        "y": 6,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 235,
+        "commonItemId": 243
+      },
+      {
+        "x": 7,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 69,
+        "commonItemId": 252
+      }
+    ]
+  },
+  "91": {
+    "name": "Brigands' Den",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 53,
+        "commonItemId": 246
+      },
+      {
+        "x": 2,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 54,
+        "commonItemId": 247
+      },
+      {
+        "x": 5,
+        "y": 9,
+        "trapFlags": "None",
+        "rareItemId": 60,
+        "commonItemId": 248
+      },
+      {
+        "x": 9,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 83,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "92": {
+    "name": "Eagrose - The Beoulve Manse",
+    "tiles": []
+  },
+  "93": {
+    "name": "Rooftops - Wood",
+    "tiles": []
+  },
+  "94": {
+    "name": "Rooftops - Stone",
+    "tiles": []
+  },
+  "95": {
+    "name": "Church",
+    "tiles": []
+  },
+  "96": {
+    "name": "Tavern",
+    "tiles": []
+  },
+  "97": {
+    "name": "(Unused?) Lesalia Castle - Inner Court",
+    "tiles": []
+  },
+  "98": {
+    "name": "(Unused?) Lesalia Castle Perimeter",
+    "tiles": []
+  },
+  "99": {
+    "name": "(Unused?) Lesalia Thoroughfare",
+    "tiles": []
+  },
+  "100": {
+    "name": "Cemetery",
+    "tiles": []
+  },
+  "101": {
+    "name": "Tutorial 1",
+    "tiles": []
+  },
+  "102": {
+    "name": "Tutorial 2",
+    "tiles": []
+  },
+  "103": {
+    "name": "Windflat Mill",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 9,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 188,
+        "commonItemId": 248
+      },
+      {
+        "x": 3,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 200,
+        "commonItemId": 253
+      },
+      {
+        "x": 5,
+        "y": 8,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 229,
+        "commonItemId": 240
+      },
+      {
+        "x": 6,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 4,
+        "commonItemId": 241
+      }
+    ]
+  },
+  "104": {
+    "name": "The Beoulve Manse: In the waning days of the Fifty Years' War",
+    "tiles": []
+  },
+  "105": {
+    "name": "TERMINATION",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 4,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 1,
+        "y": 8,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 34,
+        "commonItemId": 253
+      },
+      {
+        "x": 7,
+        "y": 2,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 23,
+        "commonItemId": 253
+      },
+      {
+        "x": 10,
+        "y": 6,
+        "trapFlags": "Degenerator, Deathtrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "106": {
+    "name": "DELTA",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 2,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 6,
+        "y": 7,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 90,
+        "commonItemId": 253
+      },
+      {
+        "x": 9,
+        "y": 1,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 65,
+        "commonItemId": 253
+      },
+      {
+        "x": 12,
+        "y": 5,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "107": {
+    "name": "NOISSIM",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 6,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 0,
+        "y": 9,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 75,
+        "commonItemId": 253
+      },
+      {
+        "x": 2,
+        "y": 2,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 74,
+        "commonItemId": 253
+      },
+      {
+        "x": 9,
+        "y": 4,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 43,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "108": {
+    "name": "VOYAGE",
+    "tiles": [
+      {
+        "x": 2,
+        "y": 10,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 3,
+        "y": 8,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 36,
+        "commonItemId": 253
+      },
+      {
+        "x": 6,
+        "y": 7,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 207,
+        "commonItemId": 253
+      },
+      {
+        "x": 8,
+        "y": 6,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 91,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "109": {
+    "name": "BRIDGE",
+    "tiles": [
+      {
+        "x": 4,
+        "y": 4,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 10,
+        "y": 4,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 66,
+        "commonItemId": 253
+      },
+      {
+        "x": 12,
+        "y": 4,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 18,
+        "commonItemId": 253
+      },
+      {
+        "x": 14,
+        "y": 4,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "110": {
+    "name": "VALKYRIES",
+    "tiles": [
+      {
+        "x": 4,
+        "y": 2,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 58,
+        "commonItemId": 253
+      },
+      {
+        "x": 5,
+        "y": 0,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 141,
+        "commonItemId": 253
+      },
+      {
+        "x": 5,
+        "y": 1,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 94,
+        "commonItemId": 253
+      },
+      {
+        "x": 12,
+        "y": 8,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "111": {
+    "name": "YROTCIV",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 0,
+        "y": 11,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 17,
+        "commonItemId": 253
+      },
+      {
+        "x": 2,
+        "y": 8,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 35,
+        "commonItemId": 253
+      },
+      {
+        "x": 6,
+        "y": 11,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "112": {
+    "name": "TIGER",
+    "tiles": [
+      {
+        "x": 9,
+        "y": 8,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 222,
+        "commonItemId": 253
+      },
+      {
+        "x": 9,
+        "y": 9,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 197,
+        "commonItemId": 253
+      },
+      {
+        "x": 10,
+        "y": 8,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 76,
+        "commonItemId": 253
+      },
+      {
+        "x": 10,
+        "y": 9,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "113": {
+    "name": "HORROR",
+    "tiles": [
+      {
+        "x": 1,
+        "y": 3,
+        "trapFlags": "SteelNeedle",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 2,
+        "y": 0,
+        "trapFlags": "SleepingGas",
+        "rareItemId": 185,
+        "commonItemId": 253
+      },
+      {
+        "x": 8,
+        "y": 4,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 156,
+        "commonItemId": 253
+      },
+      {
+        "x": 8,
+        "y": 5,
+        "trapFlags": "Deathtrap",
+        "rareItemId": 142,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "114": {
+    "name": "END",
+    "tiles": [
+      {
+        "x": 5,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      },
+      {
+        "x": 5,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 47,
+        "commonItemId": 253
+      },
+      {
+        "x": 7,
+        "y": 10,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 37,
+        "commonItemId": 253
+      },
+      {
+        "x": 7,
+        "y": 12,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 245,
+        "commonItemId": 253
+      }
+    ]
+  },
+  "115": {
+    "name": "(Unused?) Abandoned Watchtower",
+    "tiles": []
+  },
+  "116": {
+    "name": "(No name) - Battle Arena",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "117": {
+    "name": "(No name) - Checkerboard Wall",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "118": {
+    "name": "(No name) - Checkerboard Wall ???",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "119": {
+    "name": "(No name) - Checkerboard Wall Waterland",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "120": {
+    "name": "(Garbled name) - Sloped Checkerboard",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "121": {
+    "name": "Unused",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "122": {
+    "name": "Unused",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "123": {
+    "name": "Unused",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "124": {
+    "name": "Unused",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "125": {
+    "name": "Unused",
+    "tiles": [
+      {
+        "x": 14,
+        "y": 1,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 1,
+        "commonItemId": 2
+      },
+      {
+        "x": 14,
+        "y": 2,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 150,
+        "commonItemId": 240
+      },
+      {
+        "x": 14,
+        "y": 3,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 129,
+        "commonItemId": 200
+      },
+      {
+        "x": 14,
+        "y": 4,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 25,
+        "commonItemId": 20
+      }
+    ]
+  },
+  "126": {
+    "name": "Zeltennia Castle Postern",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 240,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 240,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 240,
+        "commonItemId": 240
+      }
+    ]
+  },
+  "127": {
+    "name": "Limberry Castle: Inner Court",
+    "tiles": [
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 241,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 240,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 240,
+        "commonItemId": 240
+      },
+      {
+        "x": 0,
+        "y": 0,
+        "trapFlags": "DisableTrap",
+        "rareItemId": 240,
+        "commonItemId": 240
+      }
+    ]
+  }
+}
