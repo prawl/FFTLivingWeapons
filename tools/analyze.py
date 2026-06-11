@@ -281,11 +281,19 @@ _VANILLA_REF = None
 
 
 def _effective_sold(it):
+    # Vanilla ShopAvailability lives in data/vanilla_shop.json -- a TRACKED extract of the
+    # gitignored working/ref/itemdata.json decode, because this is a GATE input: reading the
+    # untracked cache made the obtain check silently judge everything "not sold" on a fresh
+    # checkout (CI failed with 87 phantom DRIFTs the first time main ran the gate). Missing
+    # file = loud failure, never a silent pass. Regenerate after a vanilla re-decode with:
+    #   python -c "import json,pathlib; r=json.loads(pathlib.Path('working/ref/itemdata.json').read_text(encoding='utf-8')); pathlib.Path('data/vanilla_shop.json').write_text(json.dumps({k:v.get('shop','') for k,v in sorted(r.items(), key=lambda kv:int(kv[0]))}, indent=1)+chr(10), encoding='utf-8')"
     global _VANILLA_REF
     if _VANILLA_REF is None:
-        ref_path = ROOT / "working" / "ref" / "itemdata.json"
-        _VANILLA_REF = json.loads(ref_path.read_text(encoding="utf-8")) if ref_path.exists() else {}
-    eff = it.get("proposed", {}).get("shopOverride") or _VANILLA_REF.get(str(it["id"]), {}).get("shop", "")
+        ref_path = ROOT / "data" / "vanilla_shop.json"
+        if not ref_path.exists():
+            raise SystemExit(f"GATE INPUT MISSING: {ref_path} (vanilla shop reference; see _effective_sold)")
+        _VANILLA_REF = json.loads(ref_path.read_text(encoding="utf-8"))
+    eff = it.get("proposed", {}).get("shopOverride") or _VANILLA_REF.get(str(it["id"]), "")
     return bool(_SOLD.search(eff or ""))
 
 

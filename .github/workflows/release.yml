@@ -23,6 +23,10 @@ env:
   PUBLISH_GITHUB_PATH: .
   PUBLISH_CHANGELOG_PATH: ./Publish/Changelog.md
 
+  # Item names carry accents (Envoutement, Septieme Sens); without this the Windows
+  # runner's legacy codepage turns analyze.py's console output into mojibake in the log.
+  PYTHONUTF8: "1"
+
   # Determine if this is a release (tag push)
   IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/') }}
   RELEASE_TAG: ${{ github.ref_name }}
