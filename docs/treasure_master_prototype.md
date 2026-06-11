@@ -36,14 +36,30 @@ Auto-mark trap/treasure tiles in battle, using the game's OWN native tile mark.
 | — | Leather Hat (PSX panel 1) | ABSENT in IC — guide wrong |
 | ? | (panel 2 Leather Helmet) | unchecked |
 
+## Claim-toggle result (2026-06-11): the table does NOT change on claim
+
+Claiming the Scoutbolt at (0,1) gained inventory id 77 (`0x1411A17C0 + 77` went 0->1,
+confirming the item) — but NO byte holding id 77 cleared anywhere, and the 50 "clear-to-0"
+candidates were all the claiming unit's combat record (`0x14187c38e` auth-band) and
+float/effect buffers (`0x142ec5000`, holds `00 00 80 3f` = 1.0f), not a treasure table.
+Conclusion: the hidden-item table is STATIC — FFT tracks "already claimed" separately, the
+table itself stays put. So a claim-toggle can't find it, and a structural scan for the
+id (77 = `0x4d`) next to the tile coords is too noisy (64-400 hits, `0x4d` is common).
+
+INPUT now has two real paths:
+- **(a) memory table** — needs a hardware breakpoint on the per-tile item-check read
+  (FFTHandsFree has `HwBreakpointHandlers`) or a fresh-map-load vs played comparison.
+  Deep RE, separate session.
+- **(b) manual database** — verify each map in-game once (hover-confirm tiles, like we did
+  for Sledge Weald). Tedious but certain and IC-accurate; FFT has a finite map count. This
+  is the pragmatic path to a shippable prototype while (a) stays a stretch goal.
+
 ## Next session
 
-1. Locate the game's hidden-item table. CAVEAT: claiming a Move-Find item clears that
-   tile for the current battle, so a CLAIMED treasure tile reads like a blank — compare
-   only UNCLAIMED tiles (fresh battle). Better: claiming-clears-the-flag is itself a
-   TOGGLE — toggle-scan a treasure tile by claiming it (snap before/after the grab) and
-   keep the byte that clears. Same technique that cracked the mark. Reading this table =
-   INPUT solved, guide retired, auto-detection on every map.
+1. Decide INPUT path (a memory hunt vs b manual DB). For a working prototype, (b) + the
+   proven mark output is enough.
+2. Per-tile flag ADDRESSING for the output (open): mark two known tiles, toggle-scan each,
+   derive base+stride; resolve the heap base per battle via pointer chain / AoB.
 2. Per-tile flag addressing: derive tile→flag-address mapping; resolve the heap base each
    battle via pointer chain / AoB rather than hardcoding.
 3. Then: DLL holds `0x80` on each treasure tile's flag every tick → tiles auto-mark.
