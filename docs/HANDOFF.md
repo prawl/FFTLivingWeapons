@@ -1,101 +1,85 @@
-# Session Handoff — Living Weapon state of the world (2026-06-10, post rod pass)
+# Session Handoff — the 2.0 playtest day (2026-06-10, evening)
 
-Everything below is COMMITTED and PUSHED on `living-weapon` and deployed as a DEV build
-(LwDev=true: thresholds {1,2,3}, every weapon seeded to P3 on load, verbose `ev:` log). The arc
-of the day: the ROD PASS shipped end to end — data layer (all eight rods turned into ranged
-artillery) plus two player-verified +3 signatures — while the debugging burned through four
-trigger designs, exposed a Denuvo probing wall, and uncovered (and fixed) a family of
-EquipBonus-row corruptions that had been silently rewriting unrelated items.
+Everything below is COMMITTED and PUSHED (`living-weapon` == `main` @ 5607c5a). The arc of the
+day: the kills-card display was rewritten end to end (Display v2), the full QoL punch list
+shipped, and then a long live playtest with Patrick at the controls flushed out — and fixed —
+an entire bestiary of identification bugs. Suite: 464 → **766 tests**, gates: 5 → **7**.
+**2.0 is NOT released**: the `v2.0.0` tag sits ~9 commits behind tip and the zip in Downloads
+is stale; tomorrow's first decision is retag-vs-2.0.1, then re-cut via `Publish.ps1`.
 
-## What ships now (player-verified unless noted)
+## The live install (IMPORTANT — non-standard state)
 
-- **Rod data layer**: all 8 rods attack at RANGE 4 with the `Direct` flag — bare `<Range>` is
-  IGNORED on `Striking`-class weapons; the projectile flag (`Direct` gun-style / `Arc` bow-style)
-  is what unlocks ranged targeting (`Lunging` is the separate 2-tile spear reach). The
-  Spark/Ember/Frost trio also regained Strengthens-element +25% via vanilla EquipBonus rows
-  6/7/8. Dragon Rod's card states its Silence proc and "Begins battle with Reraise." again (the
-  MECHANIC never left — row 40 always shipped it; the desc-rewrite commit had eaten the card
-  line). Rod of Faith now points at the REAL innate-Faith row (73; it had been pointing at a
-  squatted row). Materia Blade stays melee — the legendary map-length swing came from the
-  (disabled) WotL equipment-replacer mod's id-31 entry (Range 8 + Direct), kept as the recipe.
-- **Rod of Faith "Rapture" (+3) — VERIFIED ("works flawlessly")**: below 30% HP, Master
-  Teleportation (movement 243 — marked cut content, but the engine HONORS it) replaces the
-  wielder's movement and HOLDS UNTIL RECOVERY to/above the threshold. The 3-turn cap is RETIRED
-  (its clock never ticked live; recovery-release was player-verified the same session, and
-  recovery doubles as the re-arm hysteresis). If parked-low perma-teleport ever proves
-  degenerate, the nerf lever is ONCE-PER-BATTLE ARMING — never a turn timer (see trap ledger).
-- **Umbral Rod "Spiritual Font" (+3) — VERIFIED ("twerks like a charm")**: MOVED from the
-  Wellspring (rule: no T1 weapon carries a signature anywhere in the mod). Trigger = direct
-  POSITION POLLING (`MoveWatch`: a new tile must hold 3 consecutive ticks, then ~3s rate cap);
-  on a settled move, +10% maxHP and +10% maxMP are written through EVERY located twin
-  (`Wielder.LocateAll` + idempotent `ReplenishAll` — covers the (0,0)-corner twin tie). The MP
-  pair (band +0x18/+0x1A) is LIVE-VERIFIED on screen; the per-battle layout validation stays as
-  a guard. Move-only turns and knockback PAY (intended; it's the Lifefont fantasy).
-- **Shelved on branch `shelved-rod-signatures` (@1c3e9c0, pushed)** — configs removed, runtime
-  code dormant and tested on living-weapon; revival = a config block + a working trigger:
-  Hushward **Unbroken Chant** (Swiftspell 226 grant; live-bit question still open), Umbral
-  **Life Sap** (kill → 25% heal; BLOCKED on the kill-attribution flake below), Dragon Rod
-  **Wyrmblood** (turn-edge splash regen; its TurnTracker edge has the same disease as below).
-- Housekeeping: dev seed floor is now 3 (every signature live on equip); `FontDevPulse`
-  (Tuning, LWDEV) force-fires the font every ~10s for on-screen write-path proof — retired to
-  `false`, flip it for debugging. The rods working sheet was folded into
-  `docs/living_weapon_grid.csv` (rows 51–58; 56/58 carry `Verified Live? = Yes`) and deleted.
+The Reloaded mod folder holds a **PROD-flavored build** (thresholds {5,25,50}, no seeding),
+NOT the usual BuildLinked dev deploy — Patrick is release-testing on his real save. It was
+placed by `Publish.ps1` + copying `Publish/prawl.fft.itemoverhaul` over the mod folder
+(preserving `kills.json`), with later table changes hot-copied in. **Running `BuildLinked.ps1`
+will stomp it with a dev build** (dev seeds every weapon to 3 kills and POLLUTES the tally —
+this happened once; the tally was repaired by dropping exact-3 entries). A `-Prod` switch for
+BuildLinked is a standing offer. Current tally carries 3 phantom credits (Scoutbolt +2,
+Wellspring Rod's entire 1) from since-fixed bugs; surgery offer open.
 
-## EquipBonus row corruptions (found live, all fixed)
+## What shipped today (compressed)
 
-Redefining a vanilla EquipBonus row via `_equipBonus` rewrites EVERY item still pointing at it —
-on BOTH sides: vanilla items not repointed by our ItemData (row 3 had corrupted Excalibur's
-Haste/AbsorbHoly kit, row 83 the Akademy Tunic's Shell) AND our own items.json reusers of the
-row's vanilla contents (claiming row 10 turned five MA+1 items — Arcanist Cap, Zeus Mace,
-Mage's Wrap, Acolyte Robe, Runecloak — innately ATHEIST; row 5 turned four Regen items into
-Holy-boost). The audit rule + verified-free row list now live in items.json `_meta.equipBonus`
-(claimed: 9/17/22/40/56/74-79). OPEN: Riposte (id 21) carries an undocumented innate Atheist
-(row 17) — feature or fossil? Patrick's call.
+- **Display v2**: budgeted resumable heap sweep, all-flavors attribution, ownership re-verified
+  at paint, per-id suffix coverage, site-cache prune + 1s maintenance. Fixes: shared counts,
+  re-equip-only updates, startup pop-in, the 9s engine-loop freeze. See memory display-v2.
+- **Kill credit hardened end to end**: status-deaths detected (Dead bit +0x45/0x20 — Phoenix
+  Down on undead), per-down credit on alive→dead edges (undead re-kills count, frozen twins
+  still credit once), resolved-but-untracked players CLEAR the actor latch (DLC-armed Ramza /
+  item users no longer pay the previous actor), and **mid-battle level-ups no longer break any
+  roster-keyed identification** (`Band.LevelMatchesRoster`, one-sided drift ≤9 — this was the
+  adversarial review's "uncertain" item, confirmed live and closed).
+- **Battle-state sentinels**: event-id band widened (401 fake exit), slot0 sticks at 0xFF after
+  a battle QUIT (probe-proven), sentinel-pair enter is edge-triggered (no more 4s metronome).
+- **Plague (Venombolt +3) BUILT** (was card-only) + grace-window latch (engine applies poison
+  off-tick from the acted window). Main-hand rule everywhere: kills+growth both hands,
+  signatures main-hand only. Barrage works from secondary Thief. Charm/Plague gated on live
+  frames. Locators require level (drift-aware) + player-side-first.
+- **Data/balance from the playtest**: Scoutbolt wp4/r4 (was outranged by Throw Stone), the
+  cheap-Regen quartet broken up (Mendsteel→immune Poison row 17, Studded→hp36 plain,
+  Penitent's→immune Blind row 25; Nocturne/Chantage keep theirs), shields off generic
+  Squire/Chemist/Black Mage, Equip Axes removed from ALL 47 skillsets carrying it
+  (make_jobcommand.py), grenade prices shipped via ItemData `<Price>` (the "base item.nxd"
+  comment was folklore — no such table exists), Sanguine Sword reverted to innate drain
+  (formula 6, wp10), Materia Blade exonerated (FFTHandsFree's cap-break auto-arm was the
+  culprit — disarmed in THAT repo, verb-only now), 15 lying cards fixed (Genji set etc.).
+- **Gates 6+7**: RIDER PROSE (verbatim descs must state every rider clause; numerics in exact
+  house voice) and GRID SYNC (living_weapon_grid.csv ↔ items.json on id/name/type/tier/WP/
+  parry; obtain column Shop-token enforced both ways). Grid restructured: sigNote column
+  ARCHIVED to docs/living_weapon_signotes.csv (draft signature ideas live there), new `type`
+  and `obtain` columns (32 obtain cells = TBD, Patrick's acquisition worksheet).
+- **Logs humanized** ([FFTItemOverhaul] prefix, LogNames id→name); prod build byte-verified
+  after the publish pipeline shipped a stale DLL once (clean-rebuild now forced in Publish).
 
-## The trap ledger (today's tuition — read before building any trigger)
+## New trap ledger entries (memories carry detail)
 
-1. **Wielder-side triggers: poll the unit's OWN observable state.** Four trigger corpses in one
-   day: TurnTracker (the condensed struct follows the CURSOR), band entry+0x25 (`ACtSlam` — the
-   scheduler-CT WRITE target ExtraTurn slams; never ticks for reads), band entry+0x09
-   (`ACtTurn` — Maim's victim-turn byte, fine for ENEMIES, never reads ≥90 for player units),
-   and the actor latch (the global Acted byte 0x14077CA8C SKIPS player actions — the same flake
-   that eats kill credits). The position-poll MoveWatch is the survivor; copy it.
-2. **The (0,0) twin tie**: a unit standing at the origin tile is indistinguishable from its
-   frozen band twin; `Wielder.Locate` now tie-breaks identical twins (same weapon/brave/faith =
-   one unit), and `LocateAll` + idempotent write-through is the robust write pattern.
-3. **External RPM probes are Denuvo-walled** — python probes read zero units while the
-   in-process runtime sees everything. Instrument the DLL instead (the dev-pulse +
-   `Wielder.DumpCandidates` pattern); `%TEMP%\fft_probes\*` still work for module-static data,
-   not unit structs.
-4. **The engine honors exactly ONE movement passive** — both font bits held perfectly on +0x9C
-   and only Lifefont applied. Multi-font = runtime writes, not bit grants.
-5. **HandsFree cross-reference recipe**: its kill cheat re-discovers the unit table by scanning
-   0x141800000–0x141900000 for (hp,maxHp) pairs each run — the relocation-tolerant locate
-   pattern if fixed anchors ever go stale for real.
+1. **JobCommandData sparse overrides**: every record MUST include
+   `ExtendReactionSupportMovementIdFlagBits` ordered BEFORE any `ReactionSupportMovementIdN`
+   (the model's setters deref it; absence = whole table dropped, YAXPropertyCannotBeAssignedTo)
+   — and NO inline XML comments inside entries. make_jobcommand.py encodes both rules.
+2. **slot0 sticks at 0xFF after battle QUIT** (victory clears to 0x66); sentinel probe at
+   `%TEMP%\fft_probes\sentinel_probe.py` (module statics readable externally despite Denuvo).
+3. **Roster level is pre-battle**; live structs update mid-battle — always compare via
+   `Band.LevelMatchesRoster`, never `==`.
+4. **EquipBonus rows emit FULL rows** (generate.py fills defaults) — claiming a row replaces
+   its vanilla content entirely; ledger in items.json `_meta.equipBonus` (17, 25 claimed today).
 
-## Open threads (none blocking)
+## Tomorrow / release checklist
 
-1. **Kill-attribution flake** — a magic kill credited nobody this morning (the
-   "corpse slot 24 not a captured enemy" line was a red herring: that was the player's own dead
-   archer, correctly refused). Root cause family: the Acted byte skips player actions. Gates
-   Life Sap's revival; consider attribution via per-unit observable state (the font-pivot
-   lesson) instead of the acted latch.
-2. **Staff pass NEXT**: Triage (revive an ally → +33% max HP back) is designed,
-   feasibility-cleared, and waiting — revival-edge detection already exists in Corpses.cs. The
-   TODO's healing-amplifier ideas live there too.
-3. Grid hygiene: bow row 90 sigNote still says "Fan-Splitter PROPOSAL" (Barrage shipped
-   instead); a stale-sigNote sweep is cheap.
-4. Dual-wield range bleed: pairing a melee blade with a ranged Direct weapon makes Attack
-   target at the ranged hand's reach — observed live, accepted as vanilla-legal for now.
-5. Pre-release checklist unchanged: `Publish.ps1` (prod thresholds {5,20,50}, no seeding, no
-   FontDevPulse), TODO.md's 2.0 items (DLC restore, icon colors, changelog, P3 descs...).
+- Decide: move `v2.0.0` tag to tip or christen 2.0.1 → `Publish.ps1` re-cut (clean compile is
+  now forced; byte-verify thresholds {5,25,50} out of habit).
+- Patrick's remaining verify: main-hand Bloodlust (Zwill main hand → extra turn; offhand →
+  polite log line), Plague cure-test (latch line then survive an Esuna), Equip Axes gone from
+  the learn screens, the Regen-pair shop check.
+- TODO.md still open: Sunderer multi-break question, chemist targeting-tag stale name, icon
+  colors (Later), changelog + FAQ (offer stands — half-written in session transcripts).
+- Open design threads: enemy-Thief Barrage spawn roll (needs live probe), story-progress
+  address probe (would unlock chapter-gating anything), DLC weapons into the P system?,
+  offhand signatures (2.x: twin-slam + the 100-vs-105 queue-jump probe), tally surgery offer.
 
-## Dev harness facts
+## Dev harness facts (unchanged)
 
-- Deploy = kill FFT_enhanced.exe, `.\BuildLinked.ps1`. Tables/nxd apply on game RESTART; the
-  DLL on next launch. Suite: 464 green; both gates enforced by BuildLinked/Publish/CI.
-- Diagnostics in `livingweapon.log` (mod folder): `font:` (baseline/moved/mp readback),
-  `rapture:` (armed/released + SET/MISS), `locate-miss` + `cand slot` dumps on pulse misses,
-  `ev:` timeline (dev). The log is wiped on each deploy.
-- items.json `_meta.equipBonus` = the row-claim rule + audited free rows. The vanilla table
-  dumps live at `...\Reloaded\Mods\FFTIVC_Mod_Loader\TableData\*.xml`.
+Deploy dev = kill FFT_enhanced.exe, `.\BuildLinked.ps1` (BUT see live-install note above).
+Tables/nxd apply on game RESTART; the DLL on next launch. Diagnostics in `livingweapon.log`
+(rotates to `.prev` per launch): `kill:`, `turn:`, `plague:`, `display:`, `battle:` prefixes —
+all plain-language now. Both gates + tests enforced by BuildLinked/Publish/CI.
