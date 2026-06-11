@@ -46,3 +46,6 @@ Thumbs.db
 # filesystem. Re-include the equip icons so they stay tracked regardless:
 !mod/FFTIVC/data/enhanced/ui/ffto/icon/
 !mod/FFTIVC/data/enhanced/ui/ffto/icon/**
+
+# Local-only: third-party Move-Find FAQ (copyright; referenced by docs/treasure_master_prototype.md)
+treasure.txt
