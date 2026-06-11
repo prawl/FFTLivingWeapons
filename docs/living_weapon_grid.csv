@@ -103,7 +103,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRi
 103,4,Obelisk,Tombspire,Polearm,Shop,11,missing-HP (f69),10%,—,May inflict Immobilize,—,—,—,med,
 104,5,Holy Lance,Holy Lance,Polearm,Poach (Sekhret),12,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,low,
 105,6,Dragon Whisker,Dragon Whisker,Polearm,"Poach (Red Dragon, rare 1/8)",15,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,high,
-106,6,Javelin,Wyrmpike,Polearm,"Move-Find (Nelveska Temple, rare)",13,PA x WP,10%,PA,May inflict Doom,PA +10%,PA +20%,PA +30%,high,
+106,6,Javelin II,Wyrmpike,Polearm,"Move-Find (Nelveska Temple, rare)",13,PA x WP,10%,PA,May inflict Doom,PA +10%,PA +20%,PA +30%,high,
 107,1,Cypress Pole,Greenwood Pole,Pole,Shop,6,MA x WP,20%,PA,—,PA +10%,PA +20%,PA +30%,low,
 108,2,Battle Bamboo,Ironreed Pole,Pole,Shop,8,MA x WP,20%,PA,—,PA +10%,PA +20%,PA +30%,med,
 109,3,Musk Pole,Slumber Rod,Pole,Shop,8,MA x WP,20%,PA,Sleep,PA +10%,PA +20%,PA +30%,med,

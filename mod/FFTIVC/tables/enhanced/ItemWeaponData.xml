@@ -997,7 +997,7 @@
       <OptionsAbilityId>249</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>106</Id> <!-- Wyrmpike (was Javelin) -->
+      <Id>106</Id> <!-- Wyrmpike (was Javelin II) -->
       <Range>2</Range>
       <AttackFlags>Throwable, TwoHands, Lunging, ForcedTwoHands</AttackFlags>
       <Formula>1</Formula>
