@@ -44,6 +44,11 @@ internal static class Tuning
     /// <summary>kills -> tier (0..3) against the active thresholds, checked high to low.</summary>
     public static int TierFor(int kills) => TierForIn(kills, KillThresholds);
 
+    /// <summary>The weapon's current tier straight off the shared kill tally (0 when untallied).
+    /// The one lookup every signature module and the growth router key on.</summary>
+    public static int TierOf(Dictionary<int, int> kills, int weaponId) =>
+        TierFor(kills.TryGetValue(weaponId, out int k) ? k : 0);
+
     /// <summary>kills -> tier (0..3) against a given threshold set (lets tests check the dev curve).</summary>
     public static int TierForIn(int kills, int[] thresholds) =>
         kills >= thresholds[2] ? 3 : kills >= thresholds[1] ? 2 : kills >= thresholds[0] ? 1 : 0;

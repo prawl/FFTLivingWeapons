@@ -1,5 +1,4 @@
-using System.Runtime.InteropServices;
-using LivingWeapon;
+﻿using LivingWeapon;
 using Xunit;
 
 namespace LivingWeapon.Tests;
@@ -25,6 +24,10 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class MaimTests
 {
+    // Pinned buffers are committed addresses in our own process, so the production adapter's
+    // RPM/WPM reads work on them for real -- the guard path is exercised, not faked.
+    private static readonly LiveMemory Live = new();
+
     private static WeaponSignature MaimSig(int crippleTurns = 3, int atTier = 3) =>
         new() { AtTier = atTier, CrippleTurns = crippleTurns, DisplayLabel = "Maim" };
 
@@ -60,7 +63,7 @@ public class MaimTests
         => Assert.False(Maim.ShouldLatch(isEnemy: false));
 
     // ---- (3) IsTurn: per-target turn counting off CT ----
-    // Reuses CharmLock.IsTurn logic — a turn = CT was near-full and has since reset notably lower.
+    // Reuses CharmLock.IsTurn logic â€” a turn = CT was near-full and has since reset notably lower.
 
     [Theory]
     [InlineData(100, 10, true)]
@@ -71,7 +74,7 @@ public class MaimTests
     [InlineData(100, 100, false)] // still full
     [InlineData(0, 0, false)]
     public void IsTurn_detects_a_CT_reset_from_full(int last, int cur, bool expected)
-        => Assert.Equal(expected, Maim.IsTurn(last, cur));
+        => Assert.Equal(expected, CtTurns.IsTurn(last, cur));
 
     // ---- (4) Never-re-save trap ----
 
@@ -80,31 +83,26 @@ public class MaimTests
     {
         // Arrange: a pinned buffer holding a real reaction value.
         // Latch the victim, then immediately try to latch again with zeros held.
-        var buf = new byte[256];
-        buf[Maim.ReactionBandOff]     = 0xAB;
-        buf[Maim.ReactionBandOff + 1] = 0xCD;
-        buf[Maim.ReactionBandOff + 2] = 0xEF;
-        buf[Maim.ReactionBandOff + 3] = 0x01;
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        long addr = h.AddrOfPinnedObject().ToInt64();
-        try
-        {
-            var fp = (mhp: 100, lvl: 20, br: 50, fa: 50);
-            var state = new MaimState();
+        using var unit = PinnedBuf.Of(256);
+        unit.Bytes[Maim.ReactionBandOff]     = 0xAB;
+        unit.Bytes[Maim.ReactionBandOff + 1] = 0xCD;
+        unit.Bytes[Maim.ReactionBandOff + 2] = 0xEF;
+        unit.Bytes[Maim.ReactionBandOff + 3] = 0x01;
 
-            // First latch: saves 0xAB_CD_EF_01.
-            state.Latch(addr, fp, savedReaction: 0xABCDEF01u);
-            uint firstSaved = state.SavedReaction(fp).GetValueOrDefault();
+        var fp = (mhp: 100, lvl: 20, br: 50, fa: 50);
+        var state = new MaimState();
 
-            // Simulate what a "re-latch while held" would do: try to latch with zeros.
-            // ShouldResave must return false when the victim is already held.
-            bool resave = Maim.ShouldResave(state.IsHeld(fp));
-            Assert.False(resave);
+        // First latch: saves 0xAB_CD_EF_01.
+        state.Latch(unit.Addr, fp, savedReaction: 0xABCDEF01u);
+        uint firstSaved = state.SavedReaction(fp).GetValueOrDefault();
 
-            // The saved bytes must still be the original (not zeros).
-            Assert.Equal(0xABCDEF01u, firstSaved);
-        }
-        finally { h.Free(); }
+        // Simulate what a "re-latch while held" would do: try to latch with zeros.
+        // ShouldResave must return false when the victim is already held.
+        bool resave = Maim.ShouldResave(state.IsHeld(fp));
+        Assert.False(resave);
+
+        // The saved bytes must still be the original (not zeros).
+        Assert.Equal(0xABCDEF01u, firstSaved);
     }
 
     // ---- (5) Refresh: re-hit while held resets turn counter, keeps saved bytes ----
@@ -147,15 +145,14 @@ public class MaimTests
 
     // ---- Guarded reaction write (in-process buffer stands in for the band entry) ----
 
-    private static (long addr, byte[] buf, GCHandle h) MakeUnit(uint reaction)
+    private static PinnedBuf MakeUnit(uint reaction)
     {
-        var buf = new byte[256];
-        buf[Maim.ReactionBandOff]     = (byte)(reaction & 0xFF);
-        buf[Maim.ReactionBandOff + 1] = (byte)((reaction >> 8) & 0xFF);
-        buf[Maim.ReactionBandOff + 2] = (byte)((reaction >> 16) & 0xFF);
-        buf[Maim.ReactionBandOff + 3] = (byte)(reaction >> 24);
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        return (h.AddrOfPinnedObject().ToInt64(), buf, h);
+        var unit = PinnedBuf.Of(256);
+        unit.Bytes[Maim.ReactionBandOff]     = (byte)(reaction & 0xFF);
+        unit.Bytes[Maim.ReactionBandOff + 1] = (byte)((reaction >> 8) & 0xFF);
+        unit.Bytes[Maim.ReactionBandOff + 2] = (byte)((reaction >> 16) & 0xFF);
+        unit.Bytes[Maim.ReactionBandOff + 3] = (byte)(reaction >> 24);
+        return unit;
     }
 
     private static uint ReadReaction(byte[] buf)
@@ -165,36 +162,24 @@ public class MaimTests
     [Fact]
     public void HoldZero_writes_zeros_to_reaction_field()
     {
-        var (addr, buf, h) = MakeUnit(0xDEADBEEFu);
-        try
-        {
-            Maim.HoldZero(addr);
-            Assert.Equal(0u, ReadReaction(buf));
-        }
-        finally { h.Free(); }
+        using var unit = MakeUnit(0xDEADBEEFu);
+        Maim.HoldZero(Live, unit.Addr);
+        Assert.Equal(0u, ReadReaction(unit.Bytes));
     }
 
     [Fact]
     public void Restore_writes_back_the_saved_reaction_bytes()
     {
-        var (addr, buf, h) = MakeUnit(0u);  // currently zeroed
-        try
-        {
-            Maim.Restore(addr, 0xABCD1234u);
-            Assert.Equal(0xABCD1234u, ReadReaction(buf));
-        }
-        finally { h.Free(); }
+        using var unit = MakeUnit(0u);  // currently zeroed
+        Maim.Restore(Live, unit.Addr, 0xABCD1234u);
+        Assert.Equal(0xABCD1234u, ReadReaction(unit.Bytes));
     }
 
     [Fact]
     public void ReadReactionField_reads_4_bytes_little_endian()
     {
-        var (addr, buf, h) = MakeUnit(0x12345678u);
-        try
-        {
-            Assert.Equal(0x12345678u, Maim.ReadReactionField(addr));
-        }
-        finally { h.Free(); }
+        using var unit = MakeUnit(0x12345678u);
+        Assert.Equal(0x12345678u, Maim.ReadReactionField(Live, unit.Addr));
     }
 
     // ---- Main-hand-only activation gate (B1) ----
@@ -202,13 +187,13 @@ public class MaimTests
 
     [Fact]
     public void IsActingMainHand_true_when_mainHand_is_the_signature_weapon()
-        => Assert.True(Maim.IsActingMainHand(mainHand: 89, weaponId: 89));
+        => Assert.True(Signatures.IsActingMainHand(mainHand: 89, weaponId: 89));
 
     [Fact]
     public void IsActingMainHand_false_when_mainHand_is_a_different_weapon()
-        => Assert.False(Maim.IsActingMainHand(mainHand: 99, weaponId: 89));
+        => Assert.False(Signatures.IsActingMainHand(mainHand: 99, weaponId: 89));
 
     [Fact]
     public void IsActingMainHand_false_when_mainHand_is_zero_meaning_no_actor_resolved()
-        => Assert.False(Maim.IsActingMainHand(mainHand: 0, weaponId: 89));
+        => Assert.False(Signatures.IsActingMainHand(mainHand: 0, weaponId: 89));
 }

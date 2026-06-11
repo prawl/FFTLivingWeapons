@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -19,11 +19,14 @@ namespace LivingWeapon;
 /// BATTLE EXIT: restore all latches and clear (mirrors CharmLock / Ricochet).
 /// All reads/writes are VirtualQuery-guarded.
 /// </summary>
-internal sealed partial class Maim
+internal sealed partial class Maim : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
     private const int HuntressId = 89;
     private const int CtOff = 0x25;          // combat-struct CT; band-relative = 0x25 - 0x1C = 0x09
     private const int BandCtOff = 0x09;
+
+    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -32,8 +35,10 @@ internal sealed partial class Maim
     private readonly RicochetState _hpState;   // HP-diff tracking (same pattern as Ricochet)
     private bool _wasActive;
 
-    public Maim(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker)
+    public Maim(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker,
+                IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
         _tracker = tracker;
@@ -53,9 +58,9 @@ internal sealed partial class Maim
     {
         if (!onField) { Drive(); return; }   // Drive holds zeros even when not on the active field
         if (!_meta.TryGetValue(HuntressId, out var m) || m.Signature is null) return;
-        int tier = Tuning.TierFor(_kills.TryGetValue(HuntressId, out int k) ? k : 0);
-        bool active = IsActive(m.Signature, tier) && IsActingMainHand(_tracker._lastPlayerMainHand, HuntressId)
-                      && Mem.U8(Offsets.Acted) == 1;
+        int tier = Tuning.TierOf(_kills, HuntressId);
+        bool active = IsActive(m.Signature, tier) && Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, HuntressId)
+                      && _mem.U8(Offsets.Acted) == 1;
         if (active != _wasActive)
         {
             _wasActive = active;
@@ -63,18 +68,18 @@ internal sealed partial class Maim
         }
 
         int crippleTurns = m.Signature.CrippleTurns;
-        var enemyFps = active ? EnemyFingerprints() : null;
+        var enemyFps = active ? Band.EnemyFingerprints(_mem) : null;
 
         // Scan band: observe HP diffs + update CT for held victims.
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long addr = Band.Entry(s);
-            if (!Mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            int mhp = Mem.U16(addr + Offsets.AMaxHp), lvl = Mem.U8(addr + Offsets.ALevel);
+            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
+            int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
             if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
-            int br = Mem.U8(addr + Offsets.ABrave), fa = Mem.U8(addr + Offsets.AFaith);
+            int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
             if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
-            int hp = Mem.Readable(addr + Offsets.AHp, 2) ? Mem.U16(addr + Offsets.AHp) : 0;
+            int hp = _mem.Readable(addr + Offsets.AHp, 2) ? _mem.U16(addr + Offsets.AHp) : 0;
 
             int dmg = _hpState.Observe(s, hp);
 
@@ -82,8 +87,8 @@ internal sealed partial class Maim
             var fp = (mhp, lvl, br, fa);
             if (_state.IsHeld(fp))
             {
-                int ct = Mem.U8(addr + BandCtOff);
-                if (Maim.IsTurn(_state.LastCt(fp), ct)) _state.CountTurn(fp);
+                int ct = _mem.U8(addr + BandCtOff);
+                if (CtTurns.IsTurn(_state.LastCt(fp), ct)) _state.CountTurn(fp);
                 _state.UpdateCt(fp, ct);
             }
 
@@ -94,7 +99,7 @@ internal sealed partial class Maim
             if (!_state.IsHeld(fp))
             {
                 // First hit: read the LIVE reaction before we zero it.
-                uint saved = ReadReactionField(addr);
+                uint saved = ReadReactionField(_mem, addr);
                 _state.Latch(addr, fp, saved);
                 Log.Info($"maim: struck enemy ({mhp} max HP) loses reaction abilities for {crippleTurns} of its turns (saved reaction field 0x{saved:X8})");
             }
@@ -116,11 +121,11 @@ internal sealed partial class Maim
         foreach (var fp in _state.Held)
         {
             long addr = _state.HeldAddr(fp);
-            if (!Mem.Readable(addr + Offsets.AMaxHp, 2)) continue;   // copy moved/freed
+            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;   // copy moved/freed
             // Verify it's still the same unit (fingerprint match).
-            if (Mem.U16(addr + Offsets.AMaxHp) != fp.mhp || Mem.U8(addr + Offsets.ALevel) != fp.lvl
-                || Mem.U8(addr + Offsets.ABrave) != fp.br || Mem.U8(addr + Offsets.AFaith) != fp.fa) continue;
-            HoldZero(addr);
+            if (_mem.U16(addr + Offsets.AMaxHp) != fp.mhp || _mem.U8(addr + Offsets.ALevel) != fp.lvl
+                || _mem.U8(addr + Offsets.ABrave) != fp.br || _mem.U8(addr + Offsets.AFaith) != fp.fa) continue;
+            HoldZero(_mem, addr);
         }
     }
 
@@ -134,7 +139,7 @@ internal sealed partial class Maim
         {
             long addr = _state.HeldAddr(fp);
             uint saved = _state.SavedReaction(fp).GetValueOrDefault();
-            Restore(addr, saved);
+            Restore(_mem, addr, saved);
             _state.Release(fp);
             Log.Info($"maim: suppression lifted on enemy ({fp.mhp} max HP) after {crippleTurns} turns -- reaction abilities restored (0x{saved:X8})");
         }
@@ -146,23 +151,8 @@ internal sealed partial class Maim
         foreach (var fp in _state.Held)
         {
             uint saved = _state.SavedReaction(fp).GetValueOrDefault();
-            Restore(_state.HeldAddr(fp), saved);
+            Restore(_mem, _state.HeldAddr(fp), saved);
         }
     }
 
-    /// <summary>Enemy fingerprints from the static array (mirrors EagleEye / Ricochet).</summary>
-    private System.Collections.Generic.HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints()
-    {
-        var set = new System.Collections.Generic.HashSet<(int, int, int, int)>();
-        for (int s = 0; s <= Offsets.EnemySlotMax; s++)
-        {
-            long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
-            if (!Mem.Readable(slot + Offsets.AMaxHp, 2)) continue;
-            int mhp = Mem.U16(slot + Offsets.AMaxHp), lvl = Mem.U8(slot + Offsets.ALevel);
-            int br = Mem.U8(slot + Offsets.ABrave), fa = Mem.U8(slot + Offsets.AFaith);
-            if (mhp < 1 || mhp > 2000 || lvl < 1 || lvl > 99 || br > 100 || fa > 100) continue;
-            set.Add((mhp, lvl, br, fa));
-        }
-        return set;
-    }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace LivingWeapon;
 
@@ -16,26 +15,25 @@ namespace LivingWeapon;
 /// (cursor-based, self-healing when the address space shifts). A complete generation does
 /// NOT restart until GenerationRestMs has elapsed after COMPLETION (not after start).
 ///
-/// Hot-chunk lifetime: every MarkHot refreshes the chunk's timestamp; chunks not re-marked
-/// within HotTtlMs are silently dropped so a region that stops yielding hits drains out of
-/// the hot set automatically.
+/// Hot-chunk lifetime (cap, TTL, cadence, rotation) lives in <see cref="HotChunkSet"/>;
+/// chunk reads and the per-Tick region snapshot live in <see cref="ChunkReader"/>.
 /// </summary>
-internal sealed partial class DisplaySweep
+internal sealed class DisplaySweep
 {
     public delegate void ChunkHandler(byte[] buf, int lookback, int searchable, long bufBaseAddr);
 
-    public const int ChunkSize           = 4 * 1024 * 1024;
-    public const int Lookback            = 4096;
-    public const int TrailSlack          = 64;
-    public const long HotRescanMs        = 250;
+    public const int ChunkSize           = ChunkReader.ChunkSize;
+    public const int Lookback            = ChunkReader.Lookback;
+    public const int TrailSlack          = ChunkReader.TrailSlack;
+    public const long HotRescanMs        = HotChunkSet.HotRescanMs;
     public const long GenerationRestMs   = 90_000;
     public const long GenerationMinGapMs = 5_000;
-    public const int MaxHotChunks        = 64;
-    public const long HotTtlMs           = 10_000;
+    public const int MaxHotChunks        = HotChunkSet.MaxHotChunks;
+    public const long HotTtlMs           = HotChunkSet.HotTtlMs;
 
-    private readonly IGameMemory _mem;
     private readonly Func<long> _nowMs;
-    private readonly byte[] _buf = new byte[Lookback + ChunkSize + TrailSlack];
+    private readonly ChunkReader _reader;
+    private readonly HotChunkSet _hot = new();
 
     // generation state
     private long _generation;
@@ -47,25 +45,10 @@ internal sealed partial class DisplaySweep
     // background walk cursor
     private long _cursor = 0;
 
-    // region snapshot reused each Tick to avoid one VirtualQueryEx walk per hot chunk
-    internal readonly List<(long rbase, long rsize)> _regionSnap = new();
-
-    // hot chunks: chunk-aligned address -> last MarkHot timestamp (ms)
-    // Eviction is LRU (oldest lastMarked) when count exceeds MaxHotChunks.
-    private readonly Dictionary<long, long> _hotChunks = new();
-
-    // rotation cursor: index into the hot-chunk list at which the hot pass resumes
-    // so no chunk is permanently starved when the budget allows fewer than MaxHotChunks.
-    private int _hotCursor = 0;
-
-    // hot phase timing -- sentinel far enough back to be "overdue" at t=0
-    private long _lastHotPassMs = long.MinValue / 2;
-    private bool _rescanRequested = false;
-
     public DisplaySweep(IGameMemory mem, Func<long> nowMs)
     {
-        _mem   = mem;
-        _nowMs = nowMs;
+        _reader = new ChunkReader(mem);
+        _nowMs  = nowMs;
         StartGeneration(nowMs());
     }
 
@@ -78,25 +61,10 @@ internal sealed partial class DisplaySweep
     /// <summary>Record that a chunk at the given address yielded paint sites; keep it in
     /// the hot set and refresh its TTL so live chunks never expire.
     /// Resets the hot-rescan countdown so the consumer gets HotRescanMs before the next pass.</summary>
-    public void MarkHot(long chunkStart)
-    {
-        bool wasEmpty = _hotChunks.Count == 0;
-        long now = _nowMs();
-        _hotChunks[chunkStart] = now;
-
-        // Evict the chunk with the oldest lastMarked timestamp when over the cap.
-        while (_hotChunks.Count > MaxHotChunks)
-        {
-            long oldest = _hotChunks.MinBy(kv => kv.Value).Key;
-            _hotChunks.Remove(oldest);
-        }
-
-        // Start the countdown from this mark so caller gets a full HotRescanMs before re-offer.
-        if (wasEmpty) _lastHotPassMs = now;
-    }
+    public void MarkHot(long chunkStart) => _hot.Mark(chunkStart, _nowMs());
 
     /// <summary>A count or target change: rescan hot chunks on the next Tick regardless of clock.</summary>
-    public void RequestRescan() => _rescanRequested = true;
+    public void RequestRescan() => _hot.RequestRescan();
 
     /// <summary>Menu buffers reallocated: start a new generation ASAP (respecting GenerationMinGapMs).
     /// Hot chunks are retained (the new arena likely contains the same text).</summary>
@@ -113,8 +81,7 @@ internal sealed partial class DisplaySweep
         long remaining = budgetBytes;
 
         // Snapshot regions once -- reused for both phases to avoid repeated VirtualQueryEx walks.
-        _regionSnap.Clear();
-        foreach (var r in _mem.Regions()) _regionSnap.Add(r);
+        _reader.Snapshot();
 
         remaining = RunHotPhase(now, remaining, onChunk);
 
@@ -136,7 +103,7 @@ internal sealed partial class DisplaySweep
         }
 
         bool firstChunk = true;
-        foreach (var (rbase, rsize) in _regionSnap)
+        foreach (var (rbase, rsize) in _reader.Regions)
         {
             long rend = rbase + rsize;
             if (rend <= _cursor) continue; // region entirely before cursor
@@ -147,10 +114,10 @@ internal sealed partial class DisplaySweep
                 if (!firstChunk && remaining <= 0) { _cursor = chunkStart; return; }
                 firstChunk = false;
 
-                int read = ReadChunkInRegion(chunkStart, rbase, rend, out int lookback, out int searchable);
+                int read = _reader.ReadInRegion(chunkStart, rbase, rend, out int lookback, out int searchable);
                 if (read == 0) { chunkStart += ChunkSize; continue; }
 
-                onChunk(_buf, lookback, searchable, chunkStart - lookback);
+                onChunk(_reader.Buf, lookback, searchable, chunkStart - lookback);
                 remaining -= read;
                 chunkStart += ChunkSize;
             }
@@ -160,6 +127,49 @@ internal sealed partial class DisplaySweep
         _cursor          = 0;
         _genComplete     = true;
         _genCompleteTime = now;
+    }
+
+    /// <summary>
+    /// Execute the hot phase: re-offer chunks that previously yielded paint sites.
+    /// Budget is shared with the background phase; after the first chunk the loop stops
+    /// when remaining bytes reach zero. A rotation cursor ensures no chunk is permanently
+    /// starved when the budget is tight. TTL-expired chunks are evicted before the pass.
+    /// Returns the remaining budget after the hot phase completes.
+    /// </summary>
+    private long RunHotPhase(long now, long remaining, ChunkHandler onChunk)
+    {
+        if (!_hot.TryBeginPass(now)) return remaining;
+
+        // Evict TTL-expired chunks before iterating.
+        _hot.EvictExpired(now);
+        if (_hot.Count == 0) return remaining;
+
+        var hotList = _hot.SortedSnapshot();
+        int count   = hotList.Count;
+        int start   = _hot.Cursor;
+        bool didOne = false;
+        var removeAfter = new List<long>();
+
+        for (int i = 0; i < count; i++)
+        {
+            // After the first chunk honour the budget so hot-phase doesn't
+            // consume all of remaining (worst case: 64 chunks × ~4 MB = 268 MB).
+            if (didOne && remaining <= 0) break;
+
+            int idx        = (start + i) % count;
+            long chunkStart = hotList[idx];
+            int read = _reader.Read(chunkStart, out int lookback, out int searchable);
+            if (read == 0) { removeAfter.Add(chunkStart); continue; }
+
+            onChunk(_reader.Buf, lookback, searchable, chunkStart - lookback);
+            remaining -= read;
+            didOne     = true;
+            // Advance the rotation cursor so the next pass picks up where this one left off.
+            _hot.NoteProcessed(idx, count);
+        }
+
+        foreach (long addr in removeAfter) _hot.Remove(addr);
+        return remaining;
     }
 
     private void StartGeneration(long now)

@@ -11,10 +11,10 @@ public class DisplaySweepBudgetTests
     [Fact]
     public void Budget_limits_first_tick_to_roughly_one_chunk()
     {
-        var heap = DisplaySweepTestBase.OneRegion(0x1_0000_0000L, 12 * 1024 * 1024);
+        var heap = DisplaySweepFixtures.OneRegion(0x1_0000_0000L, 12 * 1024 * 1024);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
         sw.Tick(DisplaySweep.ChunkSize, cap.Handler);
 
@@ -30,12 +30,12 @@ public class DisplaySweepBudgetTests
     {
         int regionSize = 10 * 1024 * 1024;
         long regionBase = 0x2_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, regionSize);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, regionSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
-        DisplaySweepTestBase.DrainRegion(sw, ref now, cap, regionBase, regionSize);
+        DisplaySweepFixtures.DrainRegion(sw, ref now, cap, regionBase, regionSize);
 
         var windows = new System.Collections.Generic.List<(long start, long end)>();
         foreach (var (cs, _, s) in cap.Chunks)

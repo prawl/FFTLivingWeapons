@@ -12,23 +12,12 @@ internal sealed partial class Maim
     /// Derived: CReaction(0x94) - BandEntry(0x1C) = 0x78. Proven live (memory reaction-suppression-cripple).</summary>
     public const int ReactionBandOff = Offsets.AReaction;
 
-    /// <summary>True when the signature is configured and the kill tier is earned.</summary>
+    /// <summary>True when the signature is configured (CrippleTurns set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
-    {
-        if (sig is null || sig.CrippleTurns <= 0) return false;
-        return tier >= sig.AtTier;
-    }
-
-    /// <summary>True when the acting unit's main-hand weapon is the Huntress. A Living Weapon
-    /// earns kills in any hand, but commands its gift only from the main hand.</summary>
-    public static bool IsActingMainHand(int mainHand, int weaponId) => mainHand == weaponId && mainHand != 0;
+        => Signatures.Earned(sig, tier) && sig!.CrippleTurns > 0;
 
     /// <summary>True when the struck unit is an enemy (never latch allies).</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;
-
-    /// <summary>A completed turn = the victim's CT was near-full and has since reset notably lower.
-    /// Mirrors CharmLock.IsTurn exactly (same probe proven for both use cases).</summary>
-    public static bool IsTurn(int lastCt, int curCt) => lastCt >= 90 && curCt < 70;
 
     /// <summary>True when the held victim should have its saved bytes re-fetched on a new hit.
     /// The trap: if already held, the reaction field is ZEROED -- re-reading it would save zeros
@@ -36,34 +25,34 @@ internal sealed partial class Maim
     public static bool ShouldResave(bool isHeld) => !isHeld;
 
     /// <summary>Write zeros to the victim's reaction field -- all 4 bytes. VirtualQuery-guarded.</summary>
-    public static void HoldZero(long addr)
+    public static void HoldZero(IGameMemory mem, long addr)
     {
         long ra = addr + ReactionBandOff;
-        if (!Mem.Writable(ra, 4)) return;
-        Mem.W8(ra,     0);
-        Mem.W8(ra + 1, 0);
-        Mem.W8(ra + 2, 0);
-        Mem.W8(ra + 3, 0);
+        if (!mem.Writable(ra, 4)) return;
+        mem.W8(ra,     0);
+        mem.W8(ra + 1, 0);
+        mem.W8(ra + 2, 0);
+        mem.W8(ra + 3, 0);
     }
 
     /// <summary>Write the original reaction bytes back. VirtualQuery-guarded.</summary>
-    public static void Restore(long addr, uint saved)
+    public static void Restore(IGameMemory mem, long addr, uint saved)
     {
         long ra = addr + ReactionBandOff;
-        if (!Mem.Writable(ra, 4)) return;
-        Mem.W8(ra,     (byte)(saved & 0xFF));
-        Mem.W8(ra + 1, (byte)((saved >> 8) & 0xFF));
-        Mem.W8(ra + 2, (byte)((saved >> 16) & 0xFF));
-        Mem.W8(ra + 3, (byte)(saved >> 24));
+        if (!mem.Writable(ra, 4)) return;
+        mem.W8(ra,     (byte)(saved & 0xFF));
+        mem.W8(ra + 1, (byte)((saved >> 8) & 0xFF));
+        mem.W8(ra + 2, (byte)((saved >> 16) & 0xFF));
+        mem.W8(ra + 3, (byte)(saved >> 24));
     }
 
     /// <summary>Read the 4-byte reaction field at <paramref name="addr"/> (little-endian).
     /// Returns 0 if the address is not readable.</summary>
-    public static uint ReadReactionField(long addr)
+    public static uint ReadReactionField(IGameMemory mem, long addr)
     {
         long ra = addr + ReactionBandOff;
-        if (!Mem.Readable(ra, 4)) return 0;
-        byte b0 = Mem.U8(ra), b1 = Mem.U8(ra + 1), b2 = Mem.U8(ra + 2), b3 = Mem.U8(ra + 3);
+        if (!mem.Readable(ra, 4)) return 0;
+        byte b0 = mem.U8(ra), b1 = mem.U8(ra + 1), b2 = mem.U8(ra + 2), b3 = mem.U8(ra + 3);
         return (uint)(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24));
     }
 }

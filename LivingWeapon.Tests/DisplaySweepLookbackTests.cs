@@ -12,10 +12,10 @@ public class DisplaySweepLookbackTests
     public void Lookback_first_chunk_of_region_has_zero_lookback()
     {
         long regionBase = 0x3_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, DisplaySweep.ChunkSize + 1024);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, DisplaySweep.ChunkSize + 1024);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
         sw.Tick(long.MaxValue, cap.Handler);
 
@@ -29,10 +29,10 @@ public class DisplaySweepLookbackTests
     {
         int chunkSize = DisplaySweep.ChunkSize;
         long regionBase = 0x4_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, chunkSize * 2 + 1024);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, chunkSize * 2 + 1024);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
         int limit = 20;
         while (cap.Chunks.Count < 2 && limit-- > 0)

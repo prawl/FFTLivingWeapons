@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using LivingWeapon;
 using Xunit;
 
@@ -23,16 +22,12 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class RaptureTests
 {
+    // Pinned buffers are committed addresses in our own process, so the production adapter's
+    // RPM/WPM reads work on them for real -- the guard path is exercised, not faked.
+    private static readonly LiveMemory Live = new();
+
     private static WeaponSignature RapSig(int atTier = 3) =>
         new() { AtTier = atTier, RaptureMove = true, DisplayLabel = "Rapture" };
-
-    private sealed class FakeMemory : IGameMemory
-    {
-        private readonly System.Collections.Generic.Dictionary<long, byte> _bytes = new();
-        public void Set8(long a, byte v) => _bytes[a] = v;
-        public byte U8(long a) => _bytes.TryGetValue(a, out var v) ? v : (byte)0;
-        public ushort U16(long a) => (ushort)(U8(a) | (U8(a + 1) << 8));
-    }
 
     // ---- (1) IsActive ----
 
@@ -95,24 +90,18 @@ public class RaptureTests
     [Fact]
     public void WriteField_replaces_and_restore_brings_back_the_saved_movement()
     {
-        var buf = new byte[256];
-        buf[Offsets.AMovement] = 0x80;   // the player's own Move +1 (movement id 230)
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        try
-        {
-            long addr = h.AddrOfPinnedObject().ToInt64();
-            byte[]? saved = Rapture.ReadField(addr);
-            Assert.Equal(new byte[] { 0x80, 0x00, 0x00 }, saved);
+        using var entry = PinnedBuf.Of(256);
+        entry.Bytes[Offsets.AMovement] = 0x80;   // the player's own Move +1 (movement id 230)
+        byte[]? saved = Rapture.ReadField(Live, entry.Addr);
+        Assert.Equal(new byte[] { 0x80, 0x00, 0x00 }, saved);
 
-            Rapture.WriteField(addr, Rapture.FieldFor(243)!);   // the grant REPLACES the field
-            Assert.Equal(0x00, buf[Offsets.AMovement]);
-            Assert.Equal(0x04, buf[Offsets.AMovement + 1]);
+        Rapture.WriteField(Live, entry.Addr, Rapture.FieldFor(243)!);   // the grant REPLACES the field
+        Assert.Equal(0x00, entry.Bytes[Offsets.AMovement]);
+        Assert.Equal(0x04, entry.Bytes[Offsets.AMovement + 1]);
 
-            Rapture.WriteField(addr, saved!);                   // restore the player's pick
-            Assert.Equal(0x80, buf[Offsets.AMovement]);
-            Assert.Equal(0x00, buf[Offsets.AMovement + 1]);
-        }
-        finally { h.Free(); }
+        Rapture.WriteField(Live, entry.Addr, saved!);                   // restore the player's pick
+        Assert.Equal(0x80, entry.Bytes[Offsets.AMovement]);
+        Assert.Equal(0x00, entry.Bytes[Offsets.AMovement + 1]);
     }
 
     // ---- (5b) ReadBackSet: the once-per-window live-test signal for the held bit ----
@@ -123,10 +112,10 @@ public class RaptureTests
     [Fact]
     public void ReadBackSet_reports_whether_the_held_bit_survived()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         long e = 0x5000;
         Assert.False(Rapture.ReadBackSet(m, e, 243));    // engine zeroed the cut ability's bit -> MISS
-        m.Set8(e + Offsets.AMovement + 1, 0x04);         // byte1 0x04 = Master Teleportation
+        m.U8s[e + Offsets.AMovement + 1] = 0x04;         // byte1 0x04 = Master Teleportation
         Assert.True(Rapture.ReadBackSet(m, e, 243));     // SET
         Assert.False(Rapture.ReadBackSet(m, e, 999));    // out-of-field id can never read SET
     }
@@ -188,9 +177,9 @@ public class RaptureTests
     [Fact]
     public void SameUnit_matches_only_the_armed_brave_and_faith()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         long e = 0x5000;
-        m.Set8(e + Offsets.ALevel, 30); m.Set8(e + Offsets.ABrave, 65); m.Set8(e + Offsets.AFaith, 70);
+        m.U8s[e + Offsets.ALevel] = 30; m.U8s[e + Offsets.ABrave] = 65; m.U8s[e + Offsets.AFaith] = 70;
         Assert.True(Rapture.SameUnit(m, e, (30, 65, 70)));
         Assert.True(Rapture.SameUnit(m, e, (31, 65, 70)));    // mid-window level-up must not break the hold
         Assert.False(Rapture.SameUnit(m, e, (30, 66, 70)));   // a stranger now occupies the slot

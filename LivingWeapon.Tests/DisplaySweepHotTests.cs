@@ -12,12 +12,12 @@ public class DisplaySweepHotTests
     public void Hot_before_rescan_interval_does_not_reoffer()
     {
         long regionBase = 0x5_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
-        DisplaySweepTestBase.DrainRegion(sw, ref now, cap, regionBase, DisplaySweep.ChunkSize);
+        DisplaySweepFixtures.DrainRegion(sw, ref now, cap, regionBase, DisplaySweep.ChunkSize);
         sw.MarkHot(regionBase);
         cap.Chunks.Clear();
 
@@ -31,12 +31,12 @@ public class DisplaySweepHotTests
     public void Hot_after_rescan_interval_reoffers_chunk()
     {
         long regionBase = 0x5_1000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
-        DisplaySweepTestBase.DrainRegion(sw, ref now, cap, regionBase, DisplaySweep.ChunkSize);
+        DisplaySweepFixtures.DrainRegion(sw, ref now, cap, regionBase, DisplaySweep.ChunkSize);
         sw.MarkHot(regionBase);
         cap.Chunks.Clear();
 
@@ -51,12 +51,12 @@ public class DisplaySweepHotTests
     public void Hot_request_rescan_forces_hot_pass_before_clock()
     {
         long regionBase = 0x6_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
-        DisplaySweepTestBase.DrainRegion(sw, ref now, cap, regionBase, DisplaySweep.ChunkSize);
+        DisplaySweepFixtures.DrainRegion(sw, ref now, cap, regionBase, DisplaySweep.ChunkSize);
         sw.MarkHot(regionBase);
         cap.Chunks.Clear();
 
@@ -71,12 +71,12 @@ public class DisplaySweepHotTests
     public void Hot_chunk_removed_from_regions_is_dropped_after_failed_pass()
     {
         long regionBase = 0x7_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
-        DisplaySweepTestBase.DrainRegion(sw, ref now, cap, regionBase, DisplaySweep.ChunkSize);
+        DisplaySweepFixtures.DrainRegion(sw, ref now, cap, regionBase, DisplaySweep.ChunkSize);
         sw.MarkHot(regionBase);
 
         heap.RemoveRegion(regionBase);

@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
 using LivingWeapon;
 using Xunit;
 
@@ -29,6 +28,10 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class BarrageTests
 {
+    // Pinned buffers are committed addresses in our own process, so the production adapter's
+    // RPM/WPM reads work on them for real -- the guard path is exercised, not faked.
+    private static readonly LiveMemory Live = new();
+
     private static WeaponSignature BarrageSig(int grantAbility = 358, int atTier = 3) =>
         new() { AtTier = atTier, GrantCommandAbilityId = grantAbility, DisplayLabel = "Barrage" };
 
@@ -334,53 +337,37 @@ public class BarrageTests
     public void Inject_writes_ability_byte_and_per_byte_extend_bit()
     {
         // A 28-byte buffer: [extAb_b0][extAb_b1][extRSM][ab0..15][rsm0..5]
-        var buf = new byte[28];
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        long flagAddr = h.AddrOfPinnedObject().ToInt64();   // base = flag bytes
+        using var rec = PinnedBuf.Of(28);
+        long flagAddr = rec.Addr;                            // base = flag bytes
         long abBase = flagAddr + 3;                          // ability bytes
-        try
-        {
-            // Inject ability 358 into slotIdx 8 (slot 9 -- the Archer shape).
-            Barrage.InjectSlot(flagAddr, abBase, slotIdx: 8, abilityId: 358);
 
-            Assert.Equal((byte)102, buf[3 + 8]);     // ability byte
-            Assert.Equal((byte)0x80, buf[1]);        // byte1 bit7 = slot 9 extend
-            Assert.Equal((byte)0x00, buf[0]);        // byte0 untouched
-        }
-        finally { h.Free(); }
+        // Inject ability 358 into slotIdx 8 (slot 9 -- the Archer shape).
+        Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358);
+
+        Assert.Equal((byte)102, rec.Bytes[3 + 8]);   // ability byte
+        Assert.Equal((byte)0x80, rec.Bytes[1]);      // byte1 bit7 = slot 9 extend
+        Assert.Equal((byte)0x00, rec.Bytes[0]);      // byte0 untouched
     }
 
     [Fact]
     public void Inject_slot1_uses_byte0_bit7()
     {
-        var buf = new byte[28];
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        long flagAddr = h.AddrOfPinnedObject().ToInt64();
-        try
-        {
-            Barrage.InjectSlot(flagAddr, flagAddr + 3, slotIdx: 0, abilityId: 358);
-            Assert.Equal((byte)102, buf[3]);
-            Assert.Equal((byte)0x80, buf[0]);        // byte0 bit7 = slot 1 extend
-            Assert.Equal((byte)0x00, buf[1]);
-        }
-        finally { h.Free(); }
+        using var rec = PinnedBuf.Of(28);
+        Barrage.InjectSlot(Live, rec.Addr, rec.Addr + 3, slotIdx: 0, abilityId: 358);
+        Assert.Equal((byte)102, rec.Bytes[3]);
+        Assert.Equal((byte)0x80, rec.Bytes[0]);      // byte0 bit7 = slot 1 extend
+        Assert.Equal((byte)0x00, rec.Bytes[1]);
     }
 
     [Fact]
     public void Inject_preserves_existing_extend_bits()
     {
         // Archer rec 8: byte0 = 0xFF (Aim+N extends) must survive a slot-9 inject.
-        var buf = new byte[28];
-        buf[0] = 0xFF;
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        long flagAddr = h.AddrOfPinnedObject().ToInt64();
-        try
-        {
-            Barrage.InjectSlot(flagAddr, flagAddr + 3, slotIdx: 8, abilityId: 358);
-            Assert.Equal((byte)0xFF, buf[0]);
-            Assert.Equal((byte)0x80, buf[1]);
-        }
-        finally { h.Free(); }
+        using var rec = PinnedBuf.Of(28);
+        rec.Bytes[0] = 0xFF;
+        Barrage.InjectSlot(Live, rec.Addr, rec.Addr + 3, slotIdx: 8, abilityId: 358);
+        Assert.Equal((byte)0xFF, rec.Bytes[0]);
+        Assert.Equal((byte)0x80, rec.Bytes[1]);
     }
 
     [Fact]
@@ -388,14 +375,8 @@ public class BarrageTests
     {
         var original = new byte[25];
         for (int i = 0; i < 25; i++) original[i] = (byte)(i + 10);
-        var buf = new byte[25];
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        long flagAddr = h.AddrOfPinnedObject().ToInt64();
-        try
-        {
-            Barrage.RestoreRecord(flagAddr, original);
-            Assert.Equal(original, buf);
-        }
-        finally { h.Free(); }
+        using var rec = PinnedBuf.Of(25);
+        Barrage.RestoreRecord(Live, rec.Addr, original);
+        Assert.Equal(original, rec.Bytes);
     }
 }

@@ -45,6 +45,39 @@ internal sealed class BattleState
         pairRisingEdge || battleMode == 2 || battleMode == 4
         || (battleMode == 3 && slot0 == 0xFF);
 
+    /// <summary>A genuine in-battle frame, for feeding the charm heartbeat and gating every module
+    /// that writes battle memory. battleMode 2/3/4 covers active-turn frames. The slot0==0xFF
+    /// in-battle marker stays set through cast/attack targeting (battleMode 1/5) where gating on
+    /// {2,3,4} alone starves the beat -- but the marker CANNOT be trusted alone: QUITTING a battle
+    /// leaves slot0 STUCK at 0xFF on the world map (probe-verified 2026-06-10; a normal victory
+    /// clears it to 0x66), which kept battles "live" forever -- no exit edge, endless charm holds.
+    /// So a marker-only frame counts as live only with an EXCUSE for battleMode reading 0:
+    /// targeting modes 1/5, the pause flag, or a real event id (mid-battle dialogue).</summary>
+    public static bool InLiveBattle(uint slot0, int battleMode, bool paused, int eventId) =>
+        battleMode == 2 || battleMode == 3 || battleMode == 4
+        || (slot0 == 0xFF && (battleMode == 1 || battleMode == 5
+                              || paused || IsRealEvent(eventId)));
+
+    /// <summary>On the live battlefield: in battle AND a live mode. slot9 stays stuck on the
+    /// world-map party menu, so it can't tell combat from a menu; battleMode can (2/3/4 = live
+    /// battlefield, 0 = world map / menus).</summary>
+    public static bool OnField(bool inBattle, int battleMode) =>
+        inBattle && (battleMode == 2 || battleMode == 3 || battleMode == 4);
+
+    /// <summary>The in-battle "Status" card (a paused, stable menu) is open -- the equip card
+    /// with the Kills line, safe to paint mid-battle. Open status card = paused submenu in the
+    /// action-menu context (battleMode 3). menuCursor is the card's own cursor once open (not 3),
+    /// so don't gate on it.</summary>
+    public static bool StatusCardOpen(bool inBattle, int battleMode, bool paused, bool submenuOpen) =>
+        inBattle && battleMode == 3 && paused && submenuOpen;
+
+    /// <summary>Paint the equip card this tick? Either the in-battle status card is open, or we
+    /// have been OFF the live battlefield for the settle window (battleMode 0 = world-map party
+    /// menu / post-battle). RPM/WPM make the scan/paint fail-safe, so painting in a churny menu
+    /// can't crash; the settle window just avoids needless work during a mid-combat flicker.</summary>
+    public static bool ShouldPaintCard(bool statusCardOpen, bool onField, double secondsOffField, double settleSeconds) =>
+        statusCardOpen || (!onField && secondsOffField > settleSeconds);
+
     /// <summary>A real story event/cutscene suspends the exit timer. Contract: any nonzero id except
     /// 0xFFFF is a real event. The 0xFFFF sentinel is present on every confirmed real battle exit
     /// (log 2026-06-10: both exits show event=65535); it is NOT a story event. Zero is excluded --
@@ -78,7 +111,7 @@ internal sealed class BattleState
         _lastTick = now;
         _haveLastTick = true;
 
-        if (CharmLock.InLiveBattle(slot0, battleMode, paused, eventId))
+        if (InLiveBattle(slot0, battleMode, paused, eventId))
         {
             _outAccum = TimeSpan.Zero;
             return BattleEdge.None;

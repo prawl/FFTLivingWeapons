@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -11,11 +11,12 @@ namespace LivingWeapon;
 /// detector. WIELDER: roster resolve + band walk with the twin filter (Wielder.cs). The HP
 /// write lands on the authoritative band entry (the field Ricochet's chip writes), guarded.
 /// </summary>
-internal sealed partial class LifeSap
+internal sealed partial class LifeSap : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick();
     private const int UmbralId = 56;
 
-    private static readonly LiveMemory Live = new();   // Wielder reads ride IGameMemory; == Mem
+    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -23,8 +24,9 @@ internal sealed partial class LifeSap
     private int _lastCount = -1;
     private bool _wasActive;
 
-    public LifeSap(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills)
+    public LifeSap(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
     }
@@ -41,7 +43,7 @@ internal sealed partial class LifeSap
         int count = _kills.TryGetValue(UmbralId, out int k) ? k : 0;
         (int lvl, int br, int fa) fp = default;
         bool active = IsActive(m.Signature, Tuning.TierFor(count))
-                      && Wielder.TryResolveMainHand(Live, UmbralId, out fp, _hands);
+                      && Wielder.TryResolveMainHand(_mem, UmbralId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;
@@ -49,17 +51,17 @@ internal sealed partial class LifeSap
         }
         if (!active) { _lastCount = count; return; }   // keep primed: an inactive-window kill never fires later
 
-        bool fresh = FreshKill(_lastCount, count);
+        bool fresh = Signatures.FreshKill(_lastCount, count);
         _lastCount = count;
         if (!fresh) return;
 
-        long e = Wielder.Locate(Live, UmbralId, _hands, fp);
+        long e = Wielder.Locate(_mem, UmbralId, _hands, fp);
         if (e == 0) { Log.Info("life-sap: kill scored but wielder could not be located this tick -- heal skipped"); return; }
-        int hp = Live.U16(e + Offsets.AHp), maxHp = Live.U16(e + Offsets.AMaxHp);
+        int hp = _mem.U16(e + Offsets.AHp), maxHp = _mem.U16(e + Offsets.AMaxHp);
         int heal = HealAmount(maxHp, Tuning.LifeSapPct);
         int newHp = NewHp(hp, maxHp, heal);
         if (newHp == hp) { Log.Info($"life-sap: kill scored but wielder is already at full HP ({hp}/{maxHp}) -- no heal needed"); return; }
-        WriteHp(e, newHp);
+        WriteHp(_mem, e, newHp);
         Log.Info($"life-sap: kill restored {newHp - hp} HP to the wielder (25% of max) -- HP {hp}->{newHp} (max {maxHp})");
     }
 }

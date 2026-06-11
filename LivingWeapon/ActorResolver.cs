@@ -175,7 +175,9 @@ internal sealed class ActorResolver
         for (int s = 0; s < Offsets.RosterSlots; s++)
         {
             long b = Offsets.RosterBase + (long)s * Offsets.RosterStride;
-            if (_mem.U8(b + Offsets.RLevel) != level) continue;
+            // level is the LIVE value; the roster keeps the pre-battle level (level-drift rule --
+            // exact equality here silently disarmed main-hand signatures after a mid-battle level-up).
+            if (!Band.LevelMatchesRoster(_mem.U8(b + Offsets.RLevel), level)) continue;
             if (_mem.U8(b + Offsets.RBrave) != brave) continue;
             if (_mem.U8(b + Offsets.RFaith) != faith) continue;
             int candidate = _mem.U16(b + Offsets.RRHand);

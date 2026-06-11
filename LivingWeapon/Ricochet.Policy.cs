@@ -13,16 +13,9 @@ internal sealed partial class Ricochet
     /// is enemy-side (static-array fingerprint match). Only enemies are valid bounce targets.</summary>
     internal readonly record struct SlotInfo(int Slot, int Gx, int Gy, int Hp, bool Enemy);
 
-    /// <summary>True when the signature is configured and the kill tier is earned.</summary>
+    /// <summary>True when the signature is configured (RicochetRadius set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
-    {
-        if (sig is null || sig.RicochetRadius <= 0) return false;
-        return tier >= sig.AtTier;
-    }
-
-    /// <summary>True when the acting unit's main-hand weapon is the Stormarc. A Living Weapon
-    /// earns kills in any hand, but commands its gift only from the main hand.</summary>
-    public static bool IsActingMainHand(int mainHand, int weaponId) => mainHand == weaponId && mainHand != 0;
+        => Signatures.Earned(sig, tier) && sig!.RicochetRadius > 0;
 
     /// <summary>Chip damage: pct% of the original damage, integer floor. Returns 0 when original is 0.
     /// Returns at least 1 when the original was >= 1 (a real hit always produces at least 1 chip).</summary>
@@ -65,14 +58,14 @@ internal sealed partial class Ricochet
 
     /// <summary>Write the clamped HP to the authoritative band entry. Both bytes written
     /// little-endian. No-ops if not writable (fail-safe) or if HP is already at the floor.</summary>
-    public static void ApplyChip(long addr, int currentHp, int chip)
+    public static void ApplyChip(IGameMemory mem, long addr, int currentHp, int chip)
     {
         int newHp = ClampHp(currentHp, chip);
         if (newHp == currentHp) return;   // already at floor (hp was 1) or chip is 0
         long hpAddr = addr + Offsets.AHp;
-        if (!Mem.Writable(hpAddr, 2)) return;
-        Mem.W8(hpAddr,     (byte)(newHp & 0xFF));
-        Mem.W8(hpAddr + 1, (byte)((newHp >> 8) & 0xFF));
+        if (!mem.Writable(hpAddr, 2)) return;
+        mem.W8(hpAddr,     (byte)(newHp & 0xFF));
+        mem.W8(hpAddr + 1, (byte)((newHp >> 8) & 0xFF));
     }
 }
 

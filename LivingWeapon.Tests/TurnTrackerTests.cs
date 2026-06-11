@@ -11,17 +11,9 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class TurnTrackerTests
 {
-    private sealed class FakeMemory : IGameMemory
-    {
-        public readonly System.Collections.Generic.Dictionary<long, ushort> U16s = new();
-        public readonly System.Collections.Generic.Dictionary<long, byte> U8s = new();
-        public byte U8(long a) => U8s.TryGetValue(a, out var v) ? v : (byte)0;
-        public ushort U16(long a) => U16s.TryGetValue(a, out var v) ? v : (ushort)0;
-    }
-
     /// <summary>Seat a unit in BAND slot <paramref name="bandIdx"/> AND make it the active (turn-queue) unit.
     /// TurnTracker now resolves the active unit via the band (not the static array).</summary>
-    private static void SetActive(FakeMemory m, int bandIdx, int hp, int maxHp, int level, int brave, int faith)
+    private static void SetActive(FakeSparseMemory m, int bandIdx, int hp, int maxHp, int level, int brave, int faith)
     {
         long slot = Offsets.BandReadBase + (long)bandIdx * Offsets.CombatStride;
         m.U16s[slot + Offsets.AMaxHp] = (ushort)maxHp;
@@ -34,12 +26,12 @@ public class TurnTrackerTests
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
     }
 
-    private static void Acted(FakeMemory m, int v) => m.U8s[Offsets.Acted] = (byte)v;
+    private static void Acted(FakeSparseMemory m, int v) => m.U8s[Offsets.Acted] = (byte)v;
 
     [Fact]
     public void Counts_one_turn_per_acted_rising_edge()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         var t = new TurnTracker(m);
         SetActive(m, 5, hp: 100, maxHp: 100, level: 20, brave: 70, faith: 50);
         Acted(m, 0); t.Poll();
@@ -56,7 +48,7 @@ public class TurnTrackerTests
     [Fact]
     public void Tracks_turns_per_unit_independently()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         var t = new TurnTracker(m);
         SetActive(m, 5, 100, 100, 20, 70, 50); Acted(m, 1); t.Poll();
         Acted(m, 0); t.Poll();
@@ -69,7 +61,7 @@ public class TurnTrackerTests
     [Fact]
     public void ResetBattle_clears_counts()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         var t = new TurnTracker(m);
         SetActive(m, 5, 100, 100, 20, 70, 50); Acted(m, 1); t.Poll();
         Assert.Equal(1, t.Turns(20, 70, 50));
@@ -80,7 +72,7 @@ public class TurnTrackerTests
     [Fact]
     public void Unresolvable_active_unit_counts_nothing()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         var t = new TurnTracker(m);
         // Active unit named in the turn queue, but NO matching band entry.
         m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
@@ -96,7 +88,7 @@ public class TurnTrackerTests
     {
         // Two band entries match the turn-queue HP/MaxHP/level but have DIFFERENT (lvl,brave,faith)
         // fingerprints -- ambiguous actor -> no turn credited (miss beats mis-credit).
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         var t = new TurnTracker(m);
         // Two units, same HP/MaxHP/level, different brave/faith.
         long s1 = Offsets.BandReadBase + (long)5 * Offsets.CombatStride;

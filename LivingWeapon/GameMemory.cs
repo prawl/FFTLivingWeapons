@@ -19,6 +19,11 @@ internal interface IGameMemory
         buf = new byte[len];
         return false;
     }
+    /// <summary>Read len bytes, throwing on a failed/partial read (Mem.ReadBytes' contract;
+    /// callers that scan catch it). Default routes through TryReadBytes so fakes inherit the
+    /// same throw-on-failure shape; LiveMemory delegates to Mem.ReadBytes.</summary>
+    byte[] ReadBytes(long addr, int len)
+        => TryReadBytes(addr, len, out var buf) ? buf : throw new InvalidOperationException("ReadProcessMemory failed");
     int ReadInto(long addr, byte[] buf, int len) => 0;
     void WriteBytes(long addr, byte[] data) { }
     /// <summary>Write a single byte to <paramref name="addr"/>. Default no-op (test fakes
@@ -34,6 +39,7 @@ internal sealed class LiveMemory : IGameMemory
     public byte U8(long addr) => Mem.U8(addr);
     public ushort U16(long addr) => Mem.U16(addr);
     public bool TryReadBytes(long addr, int len, out byte[] buf) => Mem.TryReadBytes(addr, len, out buf);
+    public byte[] ReadBytes(long addr, int len) => Mem.ReadBytes(addr, len);
     public int ReadInto(long addr, byte[] buf, int len) => Mem.ReadInto(addr, buf, len);
     public void WriteBytes(long addr, byte[] data) => Mem.WriteBytes(addr, data);
     public void W8(long addr, byte value) => Mem.W8(addr, value);

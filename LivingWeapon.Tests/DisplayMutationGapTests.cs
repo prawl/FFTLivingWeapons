@@ -17,13 +17,6 @@ public class DisplayMutationGapTests
     private const long StaticsBase = 0x80_0000_0000L;
     private const long SourceBase  = 0x81_0000_0000L;
 
-    /// <summary>Mutable clock shared across test helpers.</summary>
-    private sealed class Clock
-    {
-        public long Ms;
-        public Func<long> Func => () => Ms;
-    }
-
     /// <summary>Build a 3-weapon meta dict (ids 10, 11, 12) with unique names, flavors,
     /// and nonzero kill counts so no assertion is vacuous against the baked "0   "
     /// placeholder (fixes the zero-count-assertions-vacuous gap).</summary>
@@ -33,57 +26,6 @@ public class DisplayMutationGapTests
         { 11, new WeaponMeta { Name = "BladeB", Flavor = "Tempered in salt and fury", Wp = 14, Cat = "Sword", Formula = 1 } },
         { 12, new WeaponMeta { Name = "BladeC", Flavor = "Old iron knows no mercy",  Wp = 10, Cat = "Sword", Formula = 1 } },
     };
-
-    /// <summary>Encode a single ASCII card block at pos in buf.
-    /// Layout: Name + "  " (suffix slot) + "   " pad + Flavor + "\n\nKills: " + "0   " (kills slot).
-    /// Returns (suffixPos, flavorPos, killsSlotPos) all buf-relative.</summary>
-    private static (int suffixPos, int flavorPos, int killsSlotPos) WriteCard(
-        byte[] buf, int pos, string name, string flavor)
-    {
-        byte[] nameB   = ByteScan.Ascii(name);
-        byte[] sufB    = ByteScan.Ascii("  ");
-        byte[] padB    = ByteScan.Ascii("   ");
-        byte[] flvB    = ByteScan.Ascii(flavor);
-        byte[] nnB     = ByteScan.Ascii("\n\nKills: ");
-        byte[] kB      = ByteScan.Ascii("0   ");
-
-        int at = pos;
-        Array.Copy(nameB, 0, buf, at, nameB.Length); at += nameB.Length;
-        int suffixPos = at;
-        Array.Copy(sufB,  0, buf, at, sufB.Length);  at += sufB.Length;
-        Array.Copy(padB,  0, buf, at, padB.Length);  at += padB.Length;
-        int flavorPos = at;
-        Array.Copy(flvB,  0, buf, at, flvB.Length);  at += flvB.Length;
-        Array.Copy(nnB,   0, buf, at, nnB.Length);   at += nnB.Length;
-        int killsSlotPos = at;
-        Array.Copy(kB,    0, buf, at, kB.Length);
-        return (suffixPos, flavorPos, killsSlotPos);
-    }
-
-    /// <summary>Build a Display wired to a FakeHeap via OffsetRemapMem.</summary>
-    private static Display MakeDisplay(Dictionary<int, WeaponMeta> meta,
-                                       Dictionary<int, int> kills,
-                                       FakeHeap heap,
-                                       long staticsBase,
-                                       Clock clock)
-    {
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  staticsBase,
-            mirrorOffHandAddr: staticsBase + 2,
-            wpScratchAddr:     staticsBase + 4);
-        return new Display(meta, kills, wrapped, clock.Func);
-    }
-
-    /// <summary>Advance the clock and call Tick until the generation is complete or maxTicks
-    /// is reached. Advances by HotRescanMs+1 per tick to keep hot chunks live.</summary>
-    private static void DrainGeneration(Display display, Clock clock, int maxTicks = 600)
-    {
-        for (int i = 0; i < maxTicks; i++)
-        {
-            clock.Ms += DisplaySweep.HotRescanMs + 1;
-            display.Tick(false);
-        }
-    }
 
     private static string ReadSlot(FakeHeap heap, long baseAddr, int pos, int len)
     {
@@ -102,12 +44,12 @@ public class DisplayMutationGapTests
         var meta  = BuildMeta();
         // Distinct nonzero counts so asserted values differ from the baked "0   ".
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 13 }, { 12, 5 } };
-        var clock = new Clock();
+        var clock = new TestClock();
 
         var src = new byte[512];
-        var cA = WriteCard(src, 0,   "BladeA", "Forged under winter stars");
-        var cB = WriteCard(src, 150, "BladeB", "Tempered in salt and fury");
-        var cC = WriteCard(src, 300, "BladeC", "Old iron knows no mercy");
+        var cA = CardFixtures.WriteCard(src, 0,   "BladeA", "Forged under winter stars");
+        var cB = CardFixtures.WriteCard(src, 150, "BladeB", "Tempered in salt and fury");
+        var cC = CardFixtures.WriteCard(src, 300, "BladeC", "Old iron knows no mercy");
 
         // Both mirror slots empty: MirrorWeapon=0, MirrorOffHand=0xFFFF
         var statics = new byte[64];
@@ -116,9 +58,9 @@ public class DisplayMutationGapTests
         statics[4] = 10;
 
         var heap = new FakeHeap((SourceBase, src), (StaticsBase, statics));
-        var display = MakeDisplay(meta, kills, heap, StaticsBase, clock);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock);
 
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 600);
 
         // Kills slots must be painted with actual counts, not the initial "0   ".
         Assert.Equal("7   ", ReadSlot(heap, SourceBase, cA.killsSlotPos, 4));
@@ -137,7 +79,7 @@ public class DisplayMutationGapTests
     {
         var meta  = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 0 }, { 12, 0 } };
-        var clock = new Clock();
+        var clock = new TestClock();
 
         // Budget = 16 MB out-of-battle; make a region 3x that so the last chunk is unreachable
         // in one tick.  Use ChunkSize (4 MB) per chunk so we have a predictable layout.
@@ -151,7 +93,7 @@ public class DisplayMutationGapTests
 
         // Place a valid card for id 10 in the LAST chunk.
         long lastChunkOffset = (long)(regionChunks - 1) * ChunkSize;
-        WriteCard(bigData, (int)lastChunkOffset, "BladeA", "Forged under winter stars");
+        CardFixtures.WriteCard(bigData, (int)lastChunkOffset, "BladeA", "Forged under winter stars");
         // Also plant the "Kills: 0   " literal that WriteCard already writes (already there).
 
         var statics = new byte[64];
@@ -207,7 +149,7 @@ public class DisplayMutationGapTests
     {
         var meta  = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 9 }, { 11, 0 }, { 12, 0 } };
-        var clock = new Clock();
+        var clock = new TestClock();
 
         // Build a UTF-16 card for weapon 10.
         var cardParts = new List<byte>();
@@ -236,7 +178,7 @@ public class DisplayMutationGapTests
             wpScratchAddr:     staticsAddr + 4);
         var display = new Display(meta, kills, wrapped, clock.Func);
 
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 600);
 
         // Read the painted slot (8 bytes = 4 UTF-16 chars).
         bool ok = heap.TryReadBytes(utf16Base + killsSlotByteOffset, 8, out var painted);
@@ -259,27 +201,27 @@ public class DisplayMutationGapTests
     {
         var meta  = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 0 }, { 12, 0 } };
-        var clock = new Clock();
+        var clock = new TestClock();
 
         // Initial source: card for id 10 at SourceBase.
         var src = new byte[512];
-        WriteCard(src, 0, "BladeA", "Forged under winter stars");
+        CardFixtures.WriteCard(src, 0, "BladeA", "Forged under winter stars");
 
         var statics = new byte[64];
         statics[0] = 10; statics[1] = 0;
         statics[4] = 12;
 
         var heap = new FakeHeap((SourceBase, src), (StaticsBase, statics));
-        var display = MakeDisplay(meta, kills, heap, StaticsBase, clock);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock);
 
         // Complete the initial generation.
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 600);
 
         // Remove the original region; add a replacement at a completely different address.
         heap.RemoveRegion(SourceBase);
         long newBase = 0x84_0000_0000L;
         var newSrc = new byte[512];
-        var newCard = WriteCard(newSrc, 0, "BladeA", "Forged under winter stars");
+        var newCard = CardFixtures.WriteCard(newSrc, 0, "BladeA", "Forged under winter stars");
         heap.AddRegion(newBase, newSrc, writable: true);
 
         // Call Display.Invalidate and advance past GenerationMinGapMs.
@@ -331,7 +273,7 @@ public class DisplayMutationGapTests
         for (int i = 0; i < 20; i++)
         {
             int id = 20 + i;
-            var (sp, _, ks) = WriteCard(src, i * CardStride, $"Wep{id:D2}", $"Flavor for weapon number {id:D2} goes here");
+            var (sp, _, ks) = CardFixtures.WriteCard(src, i * CardStride, $"Wep{id:D2}", $"Flavor for weapon number {id:D2} goes here");
             cardMeta[i] = (sp, ks);
         }
 
@@ -345,7 +287,7 @@ public class DisplayMutationGapTests
             mirrorWeaponAddr:  statBase,
             mirrorOffHandAddr: statBase + 2,
             wpScratchAddr:     statBase + 4);
-        var clock = new Clock();
+        var clock = new TestClock();
         var display = new Display(meta, kills, wrapped, clock.Func);
 
         // Run bounded Ticks.
@@ -375,12 +317,12 @@ public class DisplayMutationGapTests
         var meta  = BuildMeta();
         // Distinct nonzero counts so none assert against the baked "0   ".
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 13 }, { 12, 5 } };
-        var clock = new Clock();
+        var clock = new TestClock();
 
         var src = new byte[512];
-        var cA = WriteCard(src, 0,   "BladeA", "Forged under winter stars");
-        var cB = WriteCard(src, 150, "BladeB", "Tempered in salt and fury");
-        var cC = WriteCard(src, 300, "BladeC", "Old iron knows no mercy");
+        var cA = CardFixtures.WriteCard(src, 0,   "BladeA", "Forged under winter stars");
+        var cB = CardFixtures.WriteCard(src, 150, "BladeB", "Tempered in salt and fury");
+        var cC = CardFixtures.WriteCard(src, 300, "BladeC", "Old iron knows no mercy");
 
         // Prod threshold[1] = 20; kills < 20 → tier 0; suffix = "  ".
         var statics = new byte[64];
@@ -394,7 +336,7 @@ public class DisplayMutationGapTests
             mirrorOffHandAddr: StaticsBase + 0x10_0000_0000L + 2,
             wpScratchAddr:     StaticsBase + 0x10_0000_0000L + 4);
         var display = new Display(meta, kills, wrapped, clock.Func);
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 600);
 
         display.Invalidate();
 
@@ -408,7 +350,7 @@ public class DisplayMutationGapTests
         heap.WriteBytes(srcAddr + cC.suffixPos, ByteScan.Ascii("  "));
 
         clock.Ms += DisplaySweep.GenerationMinGapMs + 1;
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 600);
 
         // Assert ALL three kill slots repainted with their distinct nonzero counts.
         Assert.Equal("7   ", ReadSlot(heap, srcAddr, cA.killsSlotPos, 4));
@@ -426,10 +368,10 @@ public class DisplayMutationGapTests
         var meta  = BuildMeta();
         // 3 kills < prod threshold[0]=5 → tier 0; kills slot must show "3   "; suffix "  ".
         var kills = new Dictionary<int, int> { { 10, 3 }, { 11, 0 }, { 12, 0 } };
-        var clock = new Clock();
+        var clock = new TestClock();
 
         var src = new byte[512];
-        var cA = WriteCard(src, 0, "BladeA", "Forged under winter stars");
+        var cA = CardFixtures.WriteCard(src, 0, "BladeA", "Forged under winter stars");
 
         var statics = new byte[64];
         statics[0] = 10; statics[1] = 0;
@@ -443,7 +385,7 @@ public class DisplayMutationGapTests
             mirrorOffHandAddr: statBase + 2,
             wpScratchAddr:     statBase + 4);
         var display = new Display(meta, kills, wrapped, clock.Func);
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 600);
 
         // Count slot must show "3   " (nonzero, so assertion is non-vacuous).
         Assert.Equal("3   ", ReadSlot(heap, srcBase, cA.killsSlotPos, 4));
@@ -460,7 +402,7 @@ public class DisplayMutationGapTests
         // This is a pure CardScanner test (no Display), but the gap is in the conditional
         // assertion structure.  Build a flavor that's within FlavorWindow and assert
         // unconditionally.
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "Sharp"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "Sharp"));
         var pats = new CardPatterns(meta);
 
         var parts = new List<byte>();
@@ -577,7 +519,7 @@ public class DisplayMutationGapTests
         // Three-chunk region so the background walk takes multiple Ticks.
         long regionBase = 0x60_0000_0000L;
         int regionSize = DisplaySweep.ChunkSize * 3;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, regionSize);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, regionSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
 
@@ -639,7 +581,7 @@ public class DisplayMutationGapTests
     {
         var meta  = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 11 }, { 11, 0 }, { 12, 0 } };
-        var clock = new Clock();
+        var clock = new TestClock();
 
         // Build a two-chunk region where the card straddles the chunk boundary.
         // ChunkSize = 4 MB.  We want flavor to end just before offset ChunkSize,
@@ -695,7 +637,7 @@ public class DisplayMutationGapTests
         var display = new Display(meta, kills, wrapped, clock.Func);
 
         // Drive Display.Tick for enough Ticks to cover both chunks.
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 600);
 
         // The kills slot lives at regionBase + killsSlotOff in the heap.
         heap.TryReadBytes(regionBase + killsSlotOff, 4, out var painted);

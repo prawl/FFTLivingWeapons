@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -23,12 +23,13 @@ namespace LivingWeapon;
 /// asymmetry with SpiritualFont, whose CT observation MUST span menu-time (inLive) because
 /// the wielder's own CT high phase sits under battleMode 1/5 while the player selects actions.
 /// </summary>
-internal sealed partial class Rapture
+internal sealed partial class Rapture : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
     private const int RodOfFaithId = 58;
     private const int DeadNeeded = 3;   // consecutive hp==0 reads before the death release
 
-    private static readonly LiveMemory Live = new();   // Wielder/Band reads ride IGameMemory; == Mem
+    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -39,8 +40,9 @@ internal sealed partial class Rapture
 
     // The TurnTracker parameter is retained for wiring stability (Engine constructs every
     // subsystem identically) but deliberately unused: the expiry clock is the wielder's own CT.
-    public Rapture(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns)
+    public Rapture(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns, IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
     }
@@ -55,9 +57,9 @@ internal sealed partial class Rapture
     public void Tick(bool onField)
     {
         if (!_meta.TryGetValue(RodOfFaithId, out var m) || m.Signature is null) return;
-        int tier = Tuning.TierFor(_kills.TryGetValue(RodOfFaithId, out int k) ? k : 0);
+        int tier = Tuning.TierOf(_kills, RodOfFaithId);
         (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(Live, RodOfFaithId, out fp, _hands);
+        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(_mem, RodOfFaithId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;
@@ -75,7 +77,7 @@ internal sealed partial class Rapture
             return;
         }
 
-        long e = Wielder.Locate(Live, RodOfFaithId, _hands, fp);
+        long e = Wielder.Locate(_mem, RodOfFaithId, _hands, fp);
         if (e != 0 && _state.Held) _state.Addr = e;   // entry relocated: retarget the restore
         if (e == 0)
         {
@@ -83,13 +85,13 @@ internal sealed partial class Rapture
             return;
         }
 
-        int hp = Live.U16(e + Offsets.AHp);
+        int hp = _mem.U16(e + Offsets.AHp);
 
         if (_state.Held)
         {
             if (hp == 0 && ++_deadStreak >= DeadNeeded) { Restore("wielder dead"); return; }
             if (hp > 0) _deadStreak = 0;
-            if (HasRecovered(hp, Live.U16(e + Offsets.AMaxHp), Tuning.RaptureHpPct))
+            if (HasRecovered(hp, _mem.U16(e + Offsets.AMaxHp), Tuning.RaptureHpPct))
             {
                 Restore("recovered above threshold");
                 return;
@@ -98,21 +100,21 @@ internal sealed partial class Rapture
             return;
         }
 
-        int maxHp = Live.U16(e + Offsets.AMaxHp);
+        int maxHp = _mem.U16(e + Offsets.AMaxHp);
         if (!ShouldArm(hp, maxHp, Tuning.RaptureHpPct)) return;
 
         // The saved bytes are the player's own movement pick; the grant image carries ONLY the
         // teleport bit (no other movement-bit writer exists -- Spiritual Font restores HP/MP via
         // runtime writes now, never the movement field).
-        byte[]? saved = ReadField(e);
+        byte[]? saved = ReadField(_mem, e);
         byte[]? grant = FieldFor(Tuning.RaptureMoveId);
         if (saved is null || grant is null) return;
         _state.Arm(e, saved, baselineTurns: 0, fp, grant);
         _deadStreak = 0;
-        WriteField(e, grant);
+        WriteField(_mem, e, grant);
         // Once-per-window read-back: 243 is proven live (player teleported, 2026-06-10); SET/MISS
         // still logged as a sanity signal (if MISS, flip Tuning.RaptureMoveId to 242).
-        string readback = ReadBackSet(Live, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
+        string readback = ReadBackSet(_mem, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
         Log.Info($"rapture: wielder dropped below 30% HP ({hp}/{maxHp}) -- Master Teleportation (move id {Tuning.RaptureMoveId}) granted until they recover " +
                  $"(original movement saved as {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}) {(readback == "SET" ? "(write verified)" : "(write did NOT stick)")}");
     }
@@ -124,8 +126,8 @@ internal sealed partial class Rapture
     /// is sufficient here -- save/hold/restore is single-address by design.</summary>
     private void Hold()
     {
-        if (_state.Addr == 0 || !SameUnit(Live, _state.Addr, _state.Fp)) return;
-        if (_state.GrantField is { } grant) WriteField(_state.Addr, grant);
+        if (_state.Addr == 0 || !SameUnit(_mem, _state.Addr, _state.Fp)) return;
+        if (_state.GrantField is { } grant) WriteField(_mem, _state.Addr, grant);
     }
 
     /// <summary>Write the saved movement bytes back and close the window. SameUnit-guarded: if a
@@ -133,8 +135,8 @@ internal sealed partial class Rapture
     /// own bytes re-assert from the fresh per-battle struct rebuild).</summary>
     private void Restore(string why)
     {
-        bool same = _state.Addr != 0 && SameUnit(Live, _state.Addr, _state.Fp);
-        if (_state.SavedField is { } saved && same) WriteField(_state.Addr, saved);
+        bool same = _state.Addr != 0 && SameUnit(_mem, _state.Addr, _state.Fp);
+        if (_state.SavedField is { } saved && same) WriteField(_mem, _state.Addr, saved);
         Log.Info($"rapture: wielder recovered ({why}) -- {(same ? "normal movement restored" : "movement left unchanged (unit entry migrated)")}");
         _state.Release();
         _deadStreak = 0;

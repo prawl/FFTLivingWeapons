@@ -8,11 +8,11 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The Living Weapon runtime. One background loop: in battle it counts kills and
-/// applies stat growth; the per-weapon tally persists across sessions. Detection
-/// and growth share the in-memory tally (no IPC). Display painting is layered on
-/// top in a later phase. Tally persistence lives in Engine.Tally.cs.
+/// applies stat growth; the per-weapon tally (<see cref="KillTally"/>) persists
+/// across sessions. Detection and growth share the in-memory tally (no IPC).
+/// Display painting is layered on top.
 /// </summary>
-internal sealed partial class Engine
+internal sealed class Engine
 {
     // Poll fast: at fast-forward a death's hp==0 window is brief, and a 100ms loop sailed
     // past it, missing kills. The kill scan is cheap; growth (heavier) runs every Nth tick.
@@ -20,22 +20,15 @@ internal sealed partial class Engine
     private const int GrowthEveryNTicks = 3;   // ~100ms; stat-hold doesn't need 33ms
     private int _tick;
 
-    private readonly string _tallyPath;
+    private readonly KillTally _tally;
     private readonly Dictionary<int, int> _kills;
     private readonly KillTracker _tracker;
     private readonly TurnTracker _turns;
     private readonly GrowthEngine _growth;
-    private readonly CharmLock _charm;
-    private readonly ExtraTurn _extra;
-    private readonly EagleEye _eagle;
-    private readonly Ricochet _ricochet;
-    private readonly Maim _maim;
-    private readonly Plague _plague;
-    private readonly Barrage _barrage;
-    private readonly LifeSap _lifeSap;
-    private readonly Wyrmblood _wyrmblood;
-    private readonly Rapture _rapture;
-    private readonly SpiritualFont _font;
+    private readonly CharmLock _charm;     // named: Heartbeat is engine-driven, outside the module contract
+    private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
+    private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
+    private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
     private readonly Display _display;
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
@@ -45,32 +38,38 @@ internal sealed partial class Engine
 
     public Engine(string modDir)
     {
-        _tallyPath = Path.Combine(modDir, "kills.json");
-        _kills = LoadTally(_tallyPath);
+        _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
+        _kills = _tally.Kills;
         var meta = MetaLoader.Load(modDir);
         if (Tuning.DevSeedAllKills)   // DEV build: every weapon starts at max tier for fast verification
         {
             Tuning.SeedKills(meta.Keys, _kills, Tuning.DevKillSeed);
             Log.Info($"DEV: force-seeded all {meta.Count} weapons to at least {Tuning.DevKillSeed} kills -- every weapon starts with +3 effects active for fast testing.");
         }
-        _turns = new TurnTracker(new LiveMemory());
-        _tracker = new KillTracker(_kills, new LiveMemory(), new HashSet<int>(meta.Keys),
+        var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
+        _turns = new TurnTracker(live);
+        _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(Tuning.VerboseEvents));
-        _growth = new GrowthEngine(meta, _kills, _turns);
-        _charm = new CharmLock(meta, _kills);   // counts turns off the target's own CT (not TurnTracker)
-        _extra = new ExtraTurn(_kills, new LiveMemory());   // Zwill +3: a kill grants the killer an immediate extra turn
-        _eagle = new EagleEye(meta, _kills);    // Eclipsebolt +3: hasten any enemy Doom to a 1-turn countdown
-        _ricochet = new Ricochet(meta, _kills, _tracker);  // Stormarc +3: bounce chip to nearest other enemy
-        _maim = new Maim(meta, _kills, _tracker);          // Huntress +3: struck enemies lose reactions N turns
-        _plague = new Plague(meta, _kills, _tracker);      // Venombolt +3: poison never fades, ticks harder
-        _barrage = new Barrage(meta, _kills);              // Yoichi +3: grant Barrage command to the wielder
-        _lifeSap = new LifeSap(meta, _kills);              // Umbral +3: a kill heals the wielder 25% max HP
-        _wyrmblood = new Wyrmblood(meta, _kills, _turns);  // Dragon Rod +3: turn-edge regen splash (1 tile)
-        _rapture = new Rapture(meta, _kills, _turns);      // Rod of Faith +3: low-HP Master Teleportation window
-        _font = new SpiritualFont(meta, _kills, _tracker);  // Wellspring +3: a moved action restores HP and MP
-        _display = new Display(meta, _kills, new LiveMemory());
+        _growth = new GrowthEngine(meta, _kills, _turns, live);
+        _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
+        _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
+        var extra = new ExtraTurn(_kills, live);                    // Zwill +3: a kill grants the killer an immediate extra turn
+        var eagle = new EagleEye(meta, _kills, live);               // Eclipsebolt +3: hasten any enemy Doom to a 1-turn countdown
+        var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3: bounce chip to nearest other enemy
+        var maim = new Maim(meta, _kills, _tracker, live);          // Huntress +3: struck enemies lose reactions N turns
+        var plague = new Plague(meta, _kills, _tracker, mem: live); // Venombolt +3: poison never fades, ticks harder
+        var lifeSap = new LifeSap(meta, _kills, mem: live);         // Umbral +3: a kill heals the wielder 25% max HP
+        var wyrmblood = new Wyrmblood(meta, _kills, _turns, live);  // Dragon Rod +3: turn-edge regen splash (1 tile)
+        var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
+        var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
+        // Both orders are load-bearing and preserved verbatim from the hand-wired era:
+        // reset runs charm..font with Barrage between Plague and LifeSap; the in-battle tick
+        // excludes Barrage (it ticks before the !nowIn early-return, learn screens included).
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, _barrage, lifeSap, wyrmblood, rapture, font };
+        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, lifeSap, wyrmblood, rapture, font };
+        _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
-        Log.Info($"loaded {meta.Count} weapon types; {Sum(_kills)} total kills in the tally.");
+        Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
     }
 
     public void Start()
@@ -107,23 +106,19 @@ internal sealed partial class Engine
         // through mid-battle dips, flipping only on the debounced edges.
         BattleEdge edge = _battle.Step(slot0, slot9, battleMode, paused, eventId, now);
         bool nowIn = _battle.In;
-        // slot9 stays stuck on the world-map party menu, so it can't tell combat from a
-        // menu. battleMode does: 2/3/4 = live battlefield, 0 = world map / menus.
-        bool onField = nowIn && (battleMode == 2 || battleMode == 3 || battleMode == 4);
+        bool onField = BattleState.OnField(nowIn, battleMode);
         if (onField) _lastField = now;
         // A genuine in-battle frame: live modes, or the slot0 marker with a paused/event excuse
         // (the marker alone lies -- it sticks at 0xFF after a battle QUIT). Feeds the heartbeat
         // and gates every module that writes battle memory.
-        bool inLive = CharmLock.InLiveBattle(slot0, battleMode, paused, eventId);
+        bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
         if (inLive) _charm.Heartbeat(now);
         if (edge == BattleEdge.Entered)
             Log.Info($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
 
         // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.
-        // Open status card = paused submenu in the action-menu context (battleMode 3).
-        // menuCursor is the card's own cursor once open (not 3), so don't gate on it.
-        bool battleStatus = nowIn && battleMode == 3
-                            && Mem.U8(Offsets.PauseFlag) == 1 && Mem.U8(Offsets.SubmenuFlag) == 1;
+        bool battleStatus = BattleState.StatusCardOpen(nowIn, battleMode,
+                                                       Mem.U8(Offsets.PauseFlag) == 1, Mem.U8(Offsets.SubmenuFlag) == 1);
         if (battleStatus && !_lastBattleStatus) _display.Invalidate();   // re-find the card's fresh buffers
         _lastBattleStatus = battleStatus;
 
@@ -133,18 +128,8 @@ internal sealed partial class Engine
             _tracker.ResetBattle();
             _turns.ResetBattle();
             _growth.ResetBattle();
-            _charm.ResetBattle();
-            _extra.ResetBattle();
-            _eagle.ResetBattle();
-            _ricochet.ResetBattle();
-            _maim.ResetBattle();
-            _plague.ResetBattle();
-            _barrage.ResetBattle();
-            _lifeSap.ResetBattle();
-            _wyrmblood.ResetBattle();
-            _rapture.ResetBattle();
-            _font.ResetBattle();
-            SaveTally();                 // flush on battle end
+            foreach (var sig in _signatures) sig.ResetBattle();
+            _tally.Save();               // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
         // Barrage runs in AND out of battle: the learn screen / pre-battle menus read the
@@ -158,24 +143,14 @@ internal sealed partial class Engine
 
         bool changed = _tracker.Poll(onField);   // every ~33ms tick so fast-forward deaths aren't missed
         _turns.Poll();                        // edge-detect each unit's turns (for timed signatures)
-        _charm.Tick(now, inLive);   // charm-lock: hold/clear each tick to beat the on-hit clear
-        _extra.Tick(now);                     // Zwill +3: on a kill, slam the killer's CT to 100 (extra turn)
-        _eagle.Tick();                        // Eclipsebolt +3: force enemy Doom countdowns down to 1
-        _ricochet.Tick(onField);              // Stormarc +3: bounce chip to nearest other enemy on damage
-        _maim.Tick(onField);                  // Huntress +3: struck enemies lose reactions for N turns
-        _plague.Tick(onField, inLive);   // Venombolt +3: poison never fades, ticks harder
-        _lifeSap.Tick();                      // Umbral +3: a kill restores the wielder 25% of max HP
-        _wyrmblood.Tick(onField);             // Dragon Rod +3: wielder turn edge mends self + adjacent allies
-        _rapture.Tick(onField);               // Rod of Faith +3: below 30% HP, Master Teleportation for 3 turns
-        _font.Tick(onField, inLive);   // Wellspring +3: a moved turn restores the wielder's HP and MP
+        var ctx = new TickContext(now, onField, inLive);
+        foreach (var sig in _fieldSignatures) sig.Tick(in ctx);
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
-        if (changed) SaveTally();
+        if (changed) _tally.Save();
 
         // slot9 is still the battle sentinel, but once we've been OFF the live battlefield
         // for a beat (battleMode 0 = world-map party menu / post-battle), paint the card.
-        // RPM/WPM make the scan/paint fail-safe, so doing this in a churny menu can't crash;
-        // the settle window just avoids needless work during a mid-combat battleMode flicker.
-        if (battleStatus || (!onField && (now - _lastField).TotalSeconds > FieldSettleSeconds))
+        if (BattleState.ShouldPaintCard(battleStatus, onField, (now - _lastField).TotalSeconds, FieldSettleSeconds))
             _display.Tick(true);
     }
 }

@@ -15,9 +15,9 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_regression_two_contiguous_cards_ascii_ties_each_to_its_own_flavor()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "A sharp blade"), (2, "Staff", "B holy relic"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "A sharp blade"), (2, "Staff", "B holy relic"));
         var pats = new CardPatterns(meta);
-        byte[] buf = CardScannerTestBase.BuildTwoCards("Sword", "A sharp blade", "Staff", "B holy relic", 1);
+        byte[] buf = CardScannerFixtures.BuildTwoCards("Sword", "A sharp blade", "Staff", "B holy relic", 1);
 
         var hits = new List<CardScanner.KillsHit>();
         int lookback = 0;
@@ -33,9 +33,9 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_regression_two_contiguous_cards_utf16_ties_each_to_its_own_flavor()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "A sharp blade"), (2, "Staff", "B holy relic"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "A sharp blade"), (2, "Staff", "B holy relic"));
         var pats = new CardPatterns(meta);
-        byte[] buf = CardScannerTestBase.BuildTwoCards("Sword", "A sharp blade", "Staff", "B holy relic", 2);
+        byte[] buf = CardScannerFixtures.BuildTwoCards("Sword", "A sharp blade", "Staff", "B holy relic", 2);
 
         var hits = new List<CardScanner.KillsHit>();
         int lookback = 0;
@@ -50,7 +50,7 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_no_flavor_in_window_drops_the_hit()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "A sharp blade"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "A sharp blade"));
         var pats = new CardPatterns(meta);
 
         var parts = new List<byte>();
@@ -71,7 +71,7 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_lookback_regression_flavor_entirely_in_lookback_prefix()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "Sharp"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "Sharp"));
         var pats = new CardPatterns(meta);
 
         var parts = new List<byte>();
@@ -103,7 +103,7 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_hit_starting_before_lookback_not_emitted()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "Sharp"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "Sharp"));
         var pats = new CardPatterns(meta);
 
         var parts = new List<byte>();
@@ -130,7 +130,7 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_hit_starting_after_searchable_window_not_emitted()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "Sharp"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "Sharp"));
         var pats = new CardPatterns(meta);
 
         var parts = new List<byte>();
@@ -156,7 +156,7 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_slot_validation_rejects_non_digit_first_char()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "Sharp"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "Sharp"));
         var pats = new CardPatterns(meta);
 
         var parts = new List<byte>();
@@ -179,7 +179,7 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_slot_validation_accepts_left_aligned_digits()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", "Sharp"));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "Sharp"));
         var pats = new CardPatterns(meta);
 
         foreach (var slot in new[] { "0   ", "42  ", "137 ", "1337" })

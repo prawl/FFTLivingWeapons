@@ -9,12 +9,9 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Rapture
 {
-    /// <summary>True when the signature is configured and the kill tier is earned.</summary>
+    /// <summary>True when the signature is configured (RaptureMove set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
-    {
-        if (sig is null || !sig.RaptureMove) return false;
-        return tier >= sig.AtTier;
-    }
+        => Signatures.Earned(sig, tier) && sig!.RaptureMove;
 
     /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
     /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
@@ -45,22 +42,22 @@ internal sealed partial class Rapture
 
     /// <summary>Read the wielder's current 3-byte movement field off its band entry
     /// (+<see cref="Offsets.AMovement"/>). Null when unreadable (entry moved/freed).</summary>
-    public static byte[]? ReadField(long entryAddr)
+    public static byte[]? ReadField(IGameMemory mem, long entryAddr)
     {
         long a = entryAddr + Offsets.AMovement;
-        if (!Mem.Readable(a, Signatures.MovementBytes)) return null;
+        if (!mem.Readable(a, Signatures.MovementBytes)) return null;
         var f = new byte[Signatures.MovementBytes];
-        for (int i = 0; i < f.Length; i++) f[i] = Mem.U8(a + i);
+        for (int i = 0; i < f.Length; i++) f[i] = mem.U8(a + i);
         return f;
     }
 
     /// <summary>Guarded write of a 3-byte movement field image to the band entry. Used for both
     /// the hold (teleport image) and the restore (saved image); fail-safe no-op.</summary>
-    public static void WriteField(long entryAddr, byte[] field)
+    public static void WriteField(IGameMemory mem, long entryAddr, byte[] field)
     {
         long a = entryAddr + Offsets.AMovement;
-        if (!Mem.Writable(a, field.Length)) return;
-        for (int i = 0; i < field.Length; i++) Mem.W8(a + i, field[i]);
+        if (!mem.Writable(a, field.Length)) return;
+        for (int i = 0; i < field.Length; i++) mem.W8(a + i, field[i]);
     }
 
     /// <summary>Read the granted movement bit back off the band entry -- true == SET. The

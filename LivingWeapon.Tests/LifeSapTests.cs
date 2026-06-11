@@ -1,5 +1,4 @@
-using System.Runtime.InteropServices;
-using LivingWeapon;
+﻿using LivingWeapon;
 using Xunit;
 
 namespace LivingWeapon.Tests;
@@ -19,6 +18,10 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class LifeSapTests
 {
+    // Pinned buffers are committed addresses in our own process, so the production adapter's
+    // RPM/WPM reads work on them for real -- the guard path is exercised, not faked.
+    private static readonly LiveMemory Live = new();
+
     private static WeaponSignature SapSig(int atTier = 3) =>
         new() { AtTier = atTier, LifeSapOnKill = true, DisplayLabel = "Life Sap" };
 
@@ -53,7 +56,7 @@ public class LifeSapTests
     [InlineData(5, 5, false)]    // no change
     [InlineData(5, 4, false)]    // tally can only climb; a drop is not a kill
     public void FreshKill_fires_only_on_a_primed_increment(int last, int now, bool expected)
-        => Assert.Equal(expected, LifeSap.FreshKill(last, now));
+        => Assert.Equal(expected, Signatures.FreshKill(last, now));
 
     // ---- (3) HealAmount: 25% of max, floor 1 ----
 
@@ -83,16 +86,10 @@ public class LifeSapTests
     [Fact]
     public void WriteHp_writes_the_u16_little_endian()
     {
-        var buf = new byte[256];
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        try
-        {
-            long addr = h.AddrOfPinnedObject().ToInt64();
-            LifeSap.WriteHp(addr, 0x1234);
-            Assert.Equal(0x34, buf[Offsets.AHp]);
-            Assert.Equal(0x12, buf[Offsets.AHp + 1]);
-        }
-        finally { h.Free(); }
+        using var band = PinnedBuf.Of(256);
+        LifeSap.WriteHp(Live, band.Addr, 0x1234);
+        Assert.Equal(0x34, band.Bytes[Offsets.AHp]);
+        Assert.Equal(0x12, band.Bytes[Offsets.AHp + 1]);
     }
 
     // ---- Main-hand-only activation contract (B2) ----

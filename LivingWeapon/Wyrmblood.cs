@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -22,11 +22,12 @@ namespace LivingWeapon;
 /// revival), and each fingerprint is healed once per splash (band twins). Wielder location =
 /// the shared roster resolve + band twin-filter walk (Wielder.cs).
 /// </summary>
-internal sealed partial class Wyrmblood
+internal sealed partial class Wyrmblood : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
     private const int DragonRodId = 57;
 
-    private static readonly LiveMemory Live = new();   // Wielder/Band reads ride IGameMemory; == Mem
+    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -35,8 +36,9 @@ internal sealed partial class Wyrmblood
     private int _lastTurns = -1;
     private bool _wasActive;
 
-    public Wyrmblood(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns)
+    public Wyrmblood(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns, IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
         _turns = turns;
@@ -52,9 +54,9 @@ internal sealed partial class Wyrmblood
     {
         if (!onField) return;
         if (!_meta.TryGetValue(DragonRodId, out var m) || m.Signature is null) return;
-        int tier = Tuning.TierFor(_kills.TryGetValue(DragonRodId, out int k) ? k : 0);
+        int tier = Tuning.TierOf(_kills, DragonRodId);
         (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(Live, DragonRodId, out fp, _hands);
+        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(_mem, DragonRodId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;
@@ -67,52 +69,35 @@ internal sealed partial class Wyrmblood
         _lastTurns = turns;
         if (!edge) return;
 
-        long w = Wielder.Locate(Live, DragonRodId, _hands, fp);
+        long w = Wielder.Locate(_mem, DragonRodId, _hands, fp);
         if (w == 0) { Log.Info("wyrmblood: turn ended but wielder could not be located this tick -- regen splash skipped"); return; }
-        Splash(Live.U8(w + Offsets.AGx), Live.U8(w + Offsets.AGy), m.Signature.RegenSplashRadius, turns);
+        Splash(_mem.U8(w + Offsets.AGx), _mem.U8(w + Offsets.AGy), m.Signature.RegenSplashRadius, turns);
     }
 
     /// <summary>One splash: heal every live ALLY band entry within the radius (the wielder is
     /// its own ally at distance 0) by its OWN maxHp/WyrmbloodDiv, once per fingerprint.</summary>
     private void Splash(int wgx, int wgy, int radius, int turn)
     {
-        var allies = AllyFingerprints();
+        var allies = Band.AllyFingerprints(_mem);
         var healed = new HashSet<(int mhp, int lvl, int br, int fa)>();
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long e = Band.Entry(s);
-            if (!Band.IsValid(Live, e)) continue;
-            int gx = Live.U8(e + Offsets.AGx), gy = Live.U8(e + Offsets.AGy);
+            if (!Band.IsValid(_mem, e)) continue;
+            int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
             if (!InSplash(wgx, wgy, gx, gy, radius)) continue;
-            var fp = (mhp: (int)Live.U16(e + Offsets.AMaxHp), lvl: (int)Live.U8(e + Offsets.ALevel),
-                      br: (int)Live.U8(e + Offsets.ABrave), fa: (int)Live.U8(e + Offsets.AFaith));
+            var fp = (mhp: (int)_mem.U16(e + Offsets.AMaxHp), lvl: (int)_mem.U8(e + Offsets.ALevel),
+                      br: (int)_mem.U8(e + Offsets.ABrave), fa: (int)_mem.U8(e + Offsets.AFaith));
             if (!allies.Contains(fp)) continue;      // never enemies (positive ally match only)
             if (healed.Contains(fp)) continue;       // band twin: one heal per unit
-            int hp = Live.U16(e + Offsets.AHp);
+            int hp = _mem.U16(e + Offsets.AHp);
             int newHp = LifeSap.NewHp(hp, fp.mhp, RegenAmount(fp.mhp, Tuning.WyrmbloodDiv));
             if (newHp == hp) continue;               // full, or dead (never revive)
-            LifeSap.WriteHp(e, newHp);
+            LifeSap.WriteHp(_mem, e, newHp);
             healed.Add(fp);
             Log.Info($"wyrmblood: turn-edge regen -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
         }
         if (healed.Count == 0) Log.Info($"wyrmblood: turn-edge regen -- no allies were in range to mend");
     }
 
-    /// <summary>PLAYER-side fingerprints from the static array (slots above EnemySlotMax) --
-    /// the positive ally oracle, mirroring the enemy filter EagleEye/Ricochet/Maim use.
-    /// Same caveat: the array freezes on battle restart (capture already happened).</summary>
-    private HashSet<(int mhp, int lvl, int br, int fa)> AllyFingerprints()
-    {
-        var set = new HashSet<(int, int, int, int)>();
-        for (int s = Offsets.EnemySlotMax + 1; s < Offsets.NSlots; s++)
-        {
-            long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
-            if (!Mem.Readable(slot + Offsets.AMaxHp, 2)) continue;
-            int mhp = Mem.U16(slot + Offsets.AMaxHp), lvl = Mem.U8(slot + Offsets.ALevel);
-            int br = Mem.U8(slot + Offsets.ABrave), fa = Mem.U8(slot + Offsets.AFaith);
-            if (mhp < 1 || mhp > 2000 || lvl < 1 || lvl > 99 || br > 100 || fa > 100) continue;
-            set.Add((mhp, lvl, br, fa));
-        }
-        return set;
-    }
 }

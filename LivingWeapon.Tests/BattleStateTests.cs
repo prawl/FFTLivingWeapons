@@ -43,6 +43,56 @@ public class BattleStateTests
     public void PairArmed_requires_both_sentinels(uint slot0, uint slot9, bool expected)
         => Assert.Equal(expected, BattleState.PairArmed(slot0, slot9));
 
+    // --- InLiveBattle (pure): the stuck-sentinel contract -- slot0==0xFF alone is NOT proof of a
+    //     live battle. QUITTING a battle leaves it stuck at 0xFF on the world map (probe-verified
+    //     2026-06-10; a normal victory clears it to 0x66). The marker only counts when a mode-0
+    //     frame has an excuse: paused, or a real event id (mid-battle dialogue). ---
+
+    [Theory]
+    [InlineData(0xFFu, 1, false, 0xFFFF, true)]    // cast targeting (battleMode 1) with the marker
+    [InlineData(0xFFu, 5, false, 0xFFFF, true)]    // cursor on caster's tile during a cast
+    [InlineData(0xFFu, 0, true, 0xFFFF, true)]     // paused mid-battle dip -- excused
+    [InlineData(0xFFu, 0, false, 401, true)]       // mid-battle dialogue (real event id) -- excused
+    [InlineData(0xFFu, 0, false, 0xFFFF, false)]   // QUIT TRAP: stuck marker, mode 0, no excuse -> not live
+    [InlineData(0u, 2, false, 0xFFFF, true)]       // active move turn
+    [InlineData(0u, 3, false, 0xFFFF, true)]       // action menu
+    [InlineData(0u, 4, false, 0xFFFF, true)]       // instant targeting
+    [InlineData(0u, 0, false, 0xFFFF, false)]      // post-battle world map
+    [InlineData(0u, 1, false, 0xFFFF, false)]      // battleMode 1 without the marker (conservative)
+    public void InLiveBattle_requires_a_live_mode_or_an_excused_marker(uint slot0, int battleMode, bool paused, int eventId, bool expected)
+        => Assert.Equal(expected, BattleState.InLiveBattle(slot0, battleMode, paused, eventId));
+
+    // --- the engine's per-tick frame gates (pure) ---
+
+    [Theory]
+    [InlineData(true, 2, true)]
+    [InlineData(true, 3, true)]
+    [InlineData(true, 4, true)]
+    [InlineData(true, 0, false)]    // in battle but mode 0: world-map party menu / paused dip
+    [InlineData(true, 1, false)]    // move-browsing cursor class is not the live field
+    [InlineData(false, 2, false)]   // a live mode while not In (pre-enter flicker) is not on-field
+    public void OnField_needs_both_the_battle_and_a_live_mode(bool inBattle, int mode, bool expected)
+        => Assert.Equal(expected, BattleState.OnField(inBattle, mode));
+
+    [Theory]
+    [InlineData(true, 3, true, true, true)]      // the open status card: paused submenu in mode 3
+    [InlineData(true, 3, true, false, false)]    // paused action menu without the submenu
+    [InlineData(true, 3, false, true, false)]    // submenu but not paused (transient)
+    [InlineData(true, 2, true, true, false)]     // wrong mode
+    [InlineData(false, 3, true, true, false)]    // not in battle
+    public void StatusCardOpen_is_the_paused_submenu_in_the_action_menu_context(
+        bool inBattle, int mode, bool paused, bool submenu, bool expected)
+        => Assert.Equal(expected, BattleState.StatusCardOpen(inBattle, mode, paused, submenu));
+
+    [Theory]
+    [InlineData(true, true, 0.0, true)]     // status card open paints even on-field
+    [InlineData(false, true, 99.0, false)]  // on-field never paints without the card
+    [InlineData(false, false, 1.4, false)]  // off-field but inside the settle window
+    [InlineData(false, false, 1.6, true)]   // off-field past the settle window
+    public void ShouldPaintCard_paints_on_the_status_card_or_a_settled_off_field(
+        bool statusCard, bool onField, double offFieldSeconds, bool expected)
+        => Assert.Equal(expected, BattleState.ShouldPaintCard(statusCard, onField, offFieldSeconds, 1.5));
+
     // --- IsRealEvent (pure) boundary ---
 
     // OLD contract (1..399 band) was guesswork; live log on 2026-06-10 showed event 401 during

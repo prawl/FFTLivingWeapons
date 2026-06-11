@@ -6,7 +6,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// Shared fixture helpers for CardSites tests.
 /// </summary>
-internal static class CardSitesTestBase
+internal static class CardSitesFixtures
 {
     internal static Dictionary<int, WeaponMeta> BuildMeta()
     {

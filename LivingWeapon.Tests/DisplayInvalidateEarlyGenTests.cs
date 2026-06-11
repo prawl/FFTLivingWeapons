@@ -41,12 +41,6 @@ public class DisplayInvalidateEarlyGenTests
         return buf;
     }
 
-    private sealed class Clock2
-    {
-        public long Ms;
-        public Func<long> Func => () => Ms;
-    }
-
     /// <summary>
     /// After a completed generation, add a new region with a card, change the mirror
     /// target, and advance past GenerationMinGapMs (but far short of GenerationRestMs).
@@ -57,7 +51,7 @@ public class DisplayInvalidateEarlyGenTests
     {
         var meta  = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 0 } };
-        var clock = new Clock2();
+        var clock = new TestClock();
 
         // Initial source region: card for id 10
         var src = EncodeCard("BowX", "Fletched with regret");

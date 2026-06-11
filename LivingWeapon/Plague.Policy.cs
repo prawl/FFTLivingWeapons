@@ -8,17 +8,6 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Plague
 {
-    /// <summary>True when the signature is configured and the kill tier is earned.</summary>
-    public static bool IsActive(WeaponSignature? sig, int tier)
-    {
-        if (sig is null) return false;
-        return tier >= sig.AtTier;
-    }
-
-    /// <summary>True when the acting unit's main-hand weapon is the Venombolt. A Living Weapon
-    /// earns kills in any hand, but commands its gift only from the main hand.</summary>
-    public static bool IsActingMainHand(int mainHand, int weaponId) => mainHand == weaponId && mainHand != 0;
-
     /// <summary>True when the struck/detected unit is an enemy (never latch allies).</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;
 
@@ -66,46 +55,46 @@ internal sealed partial class Plague
     /// before invoking; mismatches are handled in the main tick loop.
     /// When <paramref name="inLive"/> is false, all writes are suppressed.
     /// Exposed for pinned-buffer unit tests.</summary>
-    public static void DriveOne(long addr, (int mhp, int lvl, int br, int fa) fp, PlagueState state,
-                                bool inLive = true)
+    public static void DriveOne(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp,
+                                PlagueState state, bool inLive = true)
     {
         // Verify fingerprint at the stored address before writing.
-        if (!Mem.Readable(addr + Offsets.AMaxHp, 2)) return;
-        if (Mem.U16(addr + Offsets.AMaxHp) != fp.mhp || Mem.U8(addr + Offsets.ALevel) != fp.lvl
-            || Mem.U8(addr + Offsets.ABrave) != fp.br || Mem.U8(addr + Offsets.AFaith) != fp.fa) return;
+        if (!mem.Readable(addr + Offsets.AMaxHp, 2)) return;
+        if (mem.U16(addr + Offsets.AMaxHp) != fp.mhp || mem.U8(addr + Offsets.ALevel) != fp.lvl
+            || mem.U8(addr + Offsets.ABrave) != fp.br || mem.U8(addr + Offsets.AFaith) != fp.fa) return;
 
         if (!inLive) return;   // A3: no writes during debounce tail / post-battle
 
         // Re-OR the poison bit.
         long poisonAddr = addr + Offsets.APoison;
-        if (Mem.Writable(poisonAddr, 1))
+        if (mem.Writable(poisonAddr, 1))
         {
-            int cur = Mem.U8(poisonAddr);
+            int cur = mem.U8(poisonAddr);
             if ((cur & Offsets.APoisonBit) == 0)
-                Mem.W8(poisonAddr, (byte)(cur | Offsets.APoisonBit));
+                mem.W8(poisonAddr, (byte)(cur | Offsets.APoisonBit));
         }
 
         // Re-pin the timer if it has decayed below init.
         long timerAddr = addr + Offsets.APoisonTimer;
-        if (Mem.Readable(timerAddr, 1) && ShouldRepin(Mem.U8(timerAddr), Tuning.PoisonTimerInit))
+        if (mem.Readable(timerAddr, 1) && ShouldRepin(mem.U8(timerAddr), Tuning.PoisonTimerInit))
         {
-            if (Mem.Writable(timerAddr, 1))
-                Mem.W8(timerAddr, Tuning.PoisonTimerInit);
+            if (mem.Writable(timerAddr, 1))
+                mem.W8(timerAddr, Tuning.PoisonTimerInit);
         }
     }
 
     /// <summary>Write the augment damage to +HP as a single 2-byte little-endian WriteBytes so
     /// the engine can never read a torn (partially-written) HP value. The augment NEVER kills.
     /// Exposed for pinned-buffer unit tests.</summary>
-    public static void ApplyAugment(long addr, (int mhp, int lvl, int br, int fa) fp)
+    public static void ApplyAugment(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp)
     {
         long hpAddr = addr + Offsets.AHp;
-        if (!Mem.Readable(hpAddr, 2)) return;
-        int hp = Mem.U16(hpAddr);
+        if (!mem.Readable(hpAddr, 2)) return;
+        int hp = mem.U16(hpAddr);
         if (hp <= 0) return;   // already dead / KO'd; don't touch
         int next = AugmentDamage(fp.mhp, hp);
-        if (!Mem.Writable(hpAddr, 2)) return;
-        Mem.WriteBytes(hpAddr, new byte[] { (byte)(next & 0xFF), (byte)((next >> 8) & 0xFF) });
+        if (!mem.Writable(hpAddr, 2)) return;
+        mem.WriteBytes(hpAddr, new byte[] { (byte)(next & 0xFF), (byte)((next >> 8) & 0xFF) });
     }
 }
 

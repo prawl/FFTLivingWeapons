@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -25,8 +25,9 @@ namespace LivingWeapon;
 ///
 /// All reads/writes are VirtualQuery-guarded (Mem.Writable/Readable).
 /// </summary>
-internal sealed partial class Barrage
+internal sealed partial class Barrage : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick();
     // ABILITY_BASE: record 0's AbilityId1 byte. Flags sit at ABILITY_BASE + rec*25 - 3.
     // From barrage_probe.py: ABILITY_BASE = 0x140679436 - 27*25.
     private const long AbilityBase = 0x140679436L - 27L * 25;
@@ -45,6 +46,8 @@ internal sealed partial class Barrage
     private const int YoichiId = 90;
     private const int BarrageAbilityId = 358;
 
+    private readonly IGameMemory _mem;    // injected (LiveMemory in production; fakes in tests)
+
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly BarrageState _state;
@@ -52,8 +55,9 @@ internal sealed partial class Barrage
     private int _lastRecId = -1;          // record id currently injected (-1 = none)
     private int _lastUnsupportedJob = -1; // log-once guard for unmapped jobs
 
-    public Barrage(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills)
+    public Barrage(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
         _state = new BarrageState();
@@ -69,7 +73,7 @@ internal sealed partial class Barrage
     public void Tick()
     {
         if (!_meta.TryGetValue(YoichiId, out var m) || m.Signature is null) return;
-        int tier = Tuning.TierFor(_kills.TryGetValue(YoichiId, out int k) ? k : 0);
+        int tier = Tuning.TierOf(_kills, YoichiId);
         bool active = IsActive(m.Signature, tier);
 
         // Find the wielder's roster slot (any slot holding the Yoichi Bow).
@@ -81,14 +85,14 @@ internal sealed partial class Barrage
             for (int r = 0; r < Offsets.RosterSlots; r++)
             {
                 long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-                if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
-                int lvl = Mem.U8(rb + Offsets.RLevel);
+                if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;
+                int lvl = _mem.U8(rb + Offsets.RLevel);
                 if (lvl < 1 || lvl > 99) continue;
                 // Signatures fire from the main hand only: an offhand Yoichi does not grant Barrage.
-                if (Mem.U16(rb + Offsets.RRHand) != YoichiId) continue;
-                int jobId = Mem.U8(rb + RJobId);
+                if (_mem.U16(rb + Offsets.RRHand) != YoichiId) continue;
+                int jobId = _mem.U8(rb + RJobId);
                 if (jobId <= 0) continue;
-                int secRec = Mem.U8(rb + RSecondary);
+                int secRec = _mem.U8(rb + RSecondary);
                 if (!IsEligibleWielder(jobId, secRec)) continue;   // THIEF-ONLY: primary job 83 or secondary record 14
                 wielderSlot = r;
                 wielderJob = jobId;
@@ -141,12 +145,12 @@ internal sealed partial class Barrage
         long abBase = AbilityBase + (long)recId * RecSize;
 
         // Sane-bounds check before ANY write.
-        if (!Mem.Readable(flagAddr, RecSize)) { Log.Info($"barrage: command record {recId} is not readable in memory yet -- skipping this tick"); return; }
+        if (!_mem.Readable(flagAddr, RecSize)) { Log.Info($"barrage: command record {recId} is not readable in memory yet -- skipping this tick"); return; }
 
         // Save the original record ONCE (never-re-save while injected).
         if (!_state.HasSaved(recId))
         {
-            byte[] original = Mem.ReadBytes(flagAddr, RecSize);
+            byte[] original = _mem.ReadBytes(flagAddr, RecSize);
             _state.Save(recId, original);
             Log.Info($"barrage: saved original {LogNames.Job(wielderJob)} command list before injecting Barrage (record {recId})");
         }
@@ -155,7 +159,7 @@ internal sealed partial class Barrage
         int slotIdx = _state.SlotIdx;
         if (slotIdx < 0)
         {
-            if (!Mem.TryReadBytes(flagAddr, RecSize, out byte[] buf)) return;
+            if (!_mem.TryReadBytes(flagAddr, RecSize, out byte[] buf)) return;
             ushort extAb = (ushort)(buf[0] | (buf[1] << 8));
             var ab = new byte[AbilityCount];
             for (int i = 0; i < AbilityCount; i++) ab[i] = buf[FlagPrefixSize + i];
@@ -167,11 +171,11 @@ internal sealed partial class Barrage
         }
 
         // Idempotent inject: only write when the slot is not already correct.
-        if (!Mem.TryReadBytes(flagAddr, RecSize, out byte[] cur)) return;
+        if (!_mem.TryReadBytes(flagAddr, RecSize, out byte[] cur)) return;
         ushort curExt = (ushort)(cur[0] | (cur[1] << 8));
         byte curByte = cur[FlagPrefixSize + slotIdx];
         if (NeedsInject(curByte, curExt, slotIdx))
-            InjectSlot(flagAddr, abBase, slotIdx, BarrageAbilityId);
+            InjectSlot(_mem, flagAddr, abBase, slotIdx, BarrageAbilityId);
 
         // Hold the learned bit (re-set whenever clear; NEVER cleared by us).
         HoldLearnedBit(wielderSlot, jobIdx, slotIdx + 1);   // 1-indexed slot for learned math

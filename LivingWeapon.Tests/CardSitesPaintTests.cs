@@ -13,24 +13,12 @@ public class CardSitesPaintTests
     [Fact]
     public void Paints_the_owners_count_into_its_slot()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
-        string flavor = "A fine blade";
-        string killsPrefix = "Kills: ";
-        string killsSlot = "0   ";
-
         int pos = 10;
-        var flavorBytes = ByteScan.Ascii(flavor);
-        var prefixBytes = ByteScan.Ascii(killsPrefix);
-        var currentSlotBytes = ByteScan.Ascii(killsSlot);
-
-        Array.Copy(flavorBytes, 0, buf, pos, flavorBytes.Length);
-        int killsAddr = pos + flavorBytes.Length + 50;
-        Array.Copy(prefixBytes, 0, buf, killsAddr, prefixBytes.Length);
-        int slotAddr = killsAddr + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slotAddr, currentSlotBytes.Length);
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, pos, "A fine blade", gap: 50);
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);
@@ -52,24 +40,13 @@ public class CardSitesPaintTests
     [Fact]
     public void Buffer_reuse_regression_skips_paint_when_anchor_changed()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
-        string flavor1 = "A fine blade";
-        string killsPrefix = "Kills: ";
-        string killsSlot = "0   ";
-
         int pos1 = 10;
-        var flavorBytes1 = ByteScan.Ascii(flavor1);
-        var prefixBytes = ByteScan.Ascii(killsPrefix);
-        var currentSlotBytes = ByteScan.Ascii(killsSlot);
-
-        Array.Copy(flavorBytes1, 0, buf, pos1, flavorBytes1.Length);
-        int killsAddr = pos1 + flavorBytes1.Length + 50;
-        Array.Copy(prefixBytes, 0, buf, killsAddr, prefixBytes.Length);
-        int slotAddr = killsAddr + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slotAddr, currentSlotBytes.Length);
+        var flavorBytes1 = ByteScan.Ascii("A fine blade");
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, pos1, "A fine blade", gap: 50);
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);
@@ -92,24 +69,12 @@ public class CardSitesPaintTests
     [Fact]
     public void Skip_if_equal_paints_only_once()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
-        string flavor = "A fine blade";
-        string killsPrefix = "Kills: ";
-        string killsSlot = "42  ";
-
         int pos = 10;
-        var flavorBytes = ByteScan.Ascii(flavor);
-        var prefixBytes = ByteScan.Ascii(killsPrefix);
-        var currentSlotBytes = ByteScan.Ascii(killsSlot);
-
-        Array.Copy(flavorBytes, 0, buf, pos, flavorBytes.Length);
-        int killsAddr = pos + flavorBytes.Length + 50;
-        Array.Copy(prefixBytes, 0, buf, killsAddr, prefixBytes.Length);
-        int slotAddr = killsAddr + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slotAddr, currentSlotBytes.Length);
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, pos, "A fine blade", gap: 50, slot: "42  ");
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);

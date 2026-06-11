@@ -8,12 +8,9 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class SpiritualFont
 {
-    /// <summary>True when the signature is configured and the kill tier is earned.</summary>
+    /// <summary>True when the signature is configured (FontOnMove set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
-    {
-        if (sig is null || !sig.FontOnMove) return false;
-        return tier >= sig.AtTier;
-    }
+        => Signatures.Earned(sig, tier) && sig!.FontOnMove;
 
     /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
     /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
@@ -55,12 +52,12 @@ internal sealed partial class SpiritualFont
     /// <summary>Guarded little-endian u16 write of the wielder's MP on its band entry (the
     /// provisional +0x18). Fail-safe no-op when the page isn't writable -- LifeSap.WriteHp's
     /// shape. The caller re-reads afterwards and logs SET/MISS.</summary>
-    public static void WriteMp(long entryAddr, int newMp)
+    public static void WriteMp(IGameMemory mem, long entryAddr, int newMp)
     {
         long a = entryAddr + Offsets.AMp;
-        if (!Mem.Writable(a, 2)) return;
-        Mem.W8(a, (byte)(newMp & 0xFF));
-        Mem.W8(a + 1, (byte)((newMp >> 8) & 0xFF));
+        if (!mem.Writable(a, 2)) return;
+        mem.W8(a, (byte)(newMp & 0xFF));
+        mem.W8(a + 1, (byte)((newMp >> 8) & 0xFF));
     }
 
     // -------------------------------------------------------------------------

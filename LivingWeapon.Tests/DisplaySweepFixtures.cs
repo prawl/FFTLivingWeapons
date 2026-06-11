@@ -6,7 +6,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// Shared fixture helpers for DisplaySweep tests.
 /// </summary>
-internal static class DisplaySweepTestBase
+internal static class DisplaySweepFixtures
 {
     internal sealed class Capture
     {

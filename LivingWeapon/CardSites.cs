@@ -33,8 +33,6 @@ internal sealed class CardSites
     private readonly IGameMemory _mem;
     private readonly CardPatterns _pats;
     private readonly List<Site> _sites = new();
-    private readonly IReadOnlyList<byte[]> _slotsAscii;
-    private readonly IReadOnlyList<byte[]> _slotsUtf16;
 
     // Prune-rate-limit state.
     private int _refusalsAtCap;
@@ -43,8 +41,6 @@ internal sealed class CardSites
     public CardSites(IGameMemory mem, CardPatterns pats)
     {
         _mem = mem;  _pats = pats;
-        _slotsAscii = pats.Slots(1);
-        _slotsUtf16 = pats.Slots(2);
     }
 
     /// <summary>Number of sites in the cache.</summary>
@@ -154,8 +150,8 @@ internal sealed class CardSites
         if (s.IsKills) { if (!ByteScan.KillsDigits(cur, 0, s.Enc)) return PaintResult.NoWrite; }
         else
         {
-            var slots = s.Enc == 1 ? _slotsAscii : _slotsUtf16;
-            if (!ByteScan.MatchesAny(cur, 0, slots, desired.Length)) return PaintResult.NoWrite;
+            // Slots(enc) returns the list CardPatterns built once at ctor -- no copy per call.
+            if (!ByteScan.MatchesAny(cur, 0, _pats.Slots(s.Enc), desired.Length)) return PaintResult.NoWrite;
         }
 
         if (ByteEq(cur, desired)) return PaintResult.NoWrite; // skip-if-equal

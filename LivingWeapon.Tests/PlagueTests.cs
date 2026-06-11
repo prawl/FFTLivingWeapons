@@ -1,5 +1,4 @@
-using System.Runtime.InteropServices;
-using LivingWeapon;
+﻿using LivingWeapon;
 using Xunit;
 
 namespace LivingWeapon.Tests;
@@ -36,23 +35,27 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class PlagueTests
 {
+    // Pinned buffers are committed addresses in our own process, so the production adapter's
+    // RPM/WPM reads work on them for real -- the guard path is exercised, not faked.
+    private static readonly LiveMemory Live = new();
+
     private static WeaponSignature PlagueSig(int atTier = 3)
         => new() { AtTier = atTier, DisplayLabel = "Plague" };
 
     // ------------------------------------------------------------------ (1) IsActive
     [Fact]
     public void IsActive_false_when_no_signature()
-        => Assert.False(Plague.IsActive(null, tier: 3));
+        => Assert.False(Signatures.Earned(null, tier: 3));
 
     [Fact]
     public void IsActive_false_below_tier()
-        => Assert.False(Plague.IsActive(PlagueSig(), tier: 2));
+        => Assert.False(Signatures.Earned(PlagueSig(), tier: 2));
 
     [Fact]
     public void IsActive_true_at_and_above_tier()
     {
-        Assert.True(Plague.IsActive(PlagueSig(atTier: 3), tier: 3));
-        Assert.True(Plague.IsActive(PlagueSig(atTier: 3), tier: 4));
+        Assert.True(Signatures.Earned(PlagueSig(atTier: 3), tier: 3));
+        Assert.True(Signatures.Earned(PlagueSig(atTier: 3), tier: 4));
     }
 
     // ------------------------------------------------------------------ (2) ShouldLatch
@@ -103,7 +106,7 @@ public class PlagueTests
     [InlineData(100, 100, false)] // still full
     [InlineData(0, 0, false)]
     public void IsTurn_detects_a_CT_reset_from_full(int last, int cur, bool expected)
-        => Assert.Equal(expected, Plague.IsTurn(last, cur));
+        => Assert.Equal(expected, CtTurns.IsTurn(last, cur));
 
     // ------------------------------------------------------------------ (5) ShouldRepin
     [Theory]
@@ -118,14 +121,15 @@ public class PlagueTests
 
     /// <summary>Lay out a minimal band-entry buffer around base+0 with the correct fingerprint and
     /// optionally the poison bit. PoisonTimer and ACtTurn are separate offsets from the same base.</summary>
-    private static (long addr, byte[] buf, GCHandle h) MakeBandEntry(
+    private static PinnedBuf MakeBandEntry(
         (int mhp, int lvl, int br, int fa) fp,
         bool poisoned = false,
         byte timer = Tuning.PoisonTimerInit,
         byte ct = 0,
         byte hp = 100)
     {
-        var buf = new byte[256];
+        var entry = PinnedBuf.Of(256);
+        var buf = entry.Bytes;
         // AHp (+0x14), AMaxHp (+0x16), ALevel (+0x0D), ABrave (+0x0E), AFaith (+0x10)
         buf[Offsets.AHp]       = hp;
         buf[Offsets.AHp + 1]   = 0;
@@ -137,8 +141,7 @@ public class PlagueTests
         buf[Offsets.APoison]   = poisoned ? (byte)(buf[Offsets.APoison] | Offsets.APoisonBit) : (byte)0;
         buf[Offsets.APoisonTimer] = timer;
         buf[Offsets.ACtTurn]   = ct;
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        return (h.AddrOfPinnedObject().ToInt64(), buf, h);
+        return entry;
     }
 
     private static bool IsPoisoned(byte[] buf) => (buf[Offsets.APoison] & Offsets.APoisonBit) != 0;
@@ -148,22 +151,18 @@ public class PlagueTests
     public void Drive_resets_poison_bit_when_cleared_by_cure()
     {
         var fp = (mhp: 200, lvl: 10, br: 50, fa: 50);
-        var (addr, buf, h) = MakeBandEntry(fp, poisoned: true);
-        try
-        {
-            var state = new PlagueState();
-            state.Latch(addr, fp);
-            Assert.True(state.IsHeld(fp));
+        using var entry = MakeBandEntry(fp, poisoned: true);
+        var state = new PlagueState();
+        state.Latch(entry.Addr, fp);
+        Assert.True(state.IsHeld(fp));
 
-            // Simulate a cure: engine clears the poison bit.
-            buf[Offsets.APoison] &= unchecked((byte)~Offsets.APoisonBit);
-            Assert.False(IsPoisoned(buf));
+        // Simulate a cure: engine clears the poison bit.
+        entry.Bytes[Offsets.APoison] &= unchecked((byte)~Offsets.APoisonBit);
+        Assert.False(IsPoisoned(entry.Bytes));
 
-            // Drive should re-OR the bit.
-            Plague.DriveOne(addr, fp, state);
-            Assert.True(IsPoisoned(buf));
-        }
-        finally { h.Free(); }
+        // Drive should re-OR the bit.
+        Plague.DriveOne(Live, entry.Addr, fp, state);
+        Assert.True(IsPoisoned(entry.Bytes));
     }
 
     // ------------------------------------------------------------------ (7) Timer re-pin
@@ -171,32 +170,24 @@ public class PlagueTests
     public void Drive_repins_timer_when_below_init()
     {
         var fp = (mhp: 200, lvl: 10, br: 50, fa: 50);
-        var (addr, buf, h) = MakeBandEntry(fp, poisoned: true, timer: 10);
-        try
-        {
-            var state = new PlagueState();
-            state.Latch(addr, fp);
+        using var entry = MakeBandEntry(fp, poisoned: true, timer: 10);
+        var state = new PlagueState();
+        state.Latch(entry.Addr, fp);
 
-            Plague.DriveOne(addr, fp, state);
-            Assert.Equal(Tuning.PoisonTimerInit, buf[Offsets.APoisonTimer]);
-        }
-        finally { h.Free(); }
+        Plague.DriveOne(Live, entry.Addr, fp, state);
+        Assert.Equal(Tuning.PoisonTimerInit, entry.Bytes[Offsets.APoisonTimer]);
     }
 
     [Fact]
     public void Drive_does_not_repin_timer_at_init()
     {
         var fp = (mhp: 200, lvl: 10, br: 50, fa: 50);
-        var (addr, buf, h) = MakeBandEntry(fp, poisoned: true, timer: Tuning.PoisonTimerInit);
-        try
-        {
-            var state = new PlagueState();
-            state.Latch(addr, fp);
+        using var entry = MakeBandEntry(fp, poisoned: true, timer: Tuning.PoisonTimerInit);
+        var state = new PlagueState();
+        state.Latch(entry.Addr, fp);
 
-            Plague.DriveOne(addr, fp, state);
-            Assert.Equal(Tuning.PoisonTimerInit, buf[Offsets.APoisonTimer]);
-        }
-        finally { h.Free(); }
+        Plague.DriveOne(Live, entry.Addr, fp, state);
+        Assert.Equal(Tuning.PoisonTimerInit, entry.Bytes[Offsets.APoisonTimer]);
     }
 
     // ------------------------------------------------------------------ (8) Augment math + floor
@@ -217,18 +208,14 @@ public class PlagueTests
     {
         var fp = (mhp: 200, lvl: 10, br: 50, fa: 50);
         var wrongFp = (mhp: 200, lvl: 11, br: 50, fa: 50);   // different level
-        var (addr, buf, h) = MakeBandEntry(fp, poisoned: false);
-        try
-        {
-            var state = new PlagueState();
-            state.Latch(addr, wrongFp);   // latched as wrong fingerprint
+        using var entry = MakeBandEntry(fp, poisoned: false);
+        var state = new PlagueState();
+        state.Latch(entry.Addr, wrongFp);   // latched as wrong fingerprint
 
-            // The drive call is for `wrongFp` but the buffer has `fp` layout; mismatch -> no write.
-            Plague.DriveOne(addr, wrongFp, state);
-            // buf still has the same (unpoisoned) bytes; nothing was written.
-            Assert.False(IsPoisoned(buf));
-        }
-        finally { h.Free(); }
+        // The drive call is for `wrongFp` but the buffer has `fp` layout; mismatch -> no write.
+        Plague.DriveOne(Live, entry.Addr, wrongFp, state);
+        // buf still has the same (unpoisoned) bytes; nothing was written.
+        Assert.False(IsPoisoned(entry.Bytes));
     }
 
     // ------------------------------------------------------------------ (10) ResetBattle clears latches
@@ -305,7 +292,7 @@ public class PlagueTests
 
         // Simulate CT climbs to 95, then drops to 10 (= one turn).
         state.UpdateCt(fp, 95);
-        bool edge = Plague.IsTurn(state.LastCt(fp), 10);
+        bool edge = CtTurns.IsTurn(state.LastCt(fp), 10);
         state.UpdateCt(fp, 10);
         Assert.True(edge);
     }
@@ -374,8 +361,8 @@ public class PlagueTests
         Assert.Equal(20, state.LastCtAt(addr2));
 
         // CT edge on addr1 only (95 -> 10 = edge); addr2 has lastCt=20 (no edge).
-        Assert.True(Plague.IsTurn(state.LastCtAt(addr1), 10));
-        Assert.False(Plague.IsTurn(state.LastCtAt(addr2), 10));
+        Assert.True(CtTurns.IsTurn(state.LastCtAt(addr1), 10));
+        Assert.False(CtTurns.IsTurn(state.LastCtAt(addr2), 10));
     }
 
     // ------------------------------------------------------------------ (19) A4 phantom augment: first tick after latch -> no augment
@@ -392,10 +379,10 @@ public class PlagueTests
         state.Latch(addr, fp, seedCt: 50);
 
         // First tick after latch: CT is still 50 (no change). IsTurn(50, 50) must be false.
-        Assert.False(Plague.IsTurn(state.LastCtAt(addr), 50));
+        Assert.False(CtTurns.IsTurn(state.LastCtAt(addr), 50));
 
         // A curCt < 70 right after latch should also not fire (lastCt 50 < 90).
-        Assert.False(Plague.IsTurn(state.LastCtAt(addr), 40));
+        Assert.False(CtTurns.IsTurn(state.LastCtAt(addr), 40));
     }
 
     // ------------------------------------------------------------------ (20) A3: inLive=false -> no writes
@@ -403,20 +390,16 @@ public class PlagueTests
     public void DriveOne_no_write_when_inLive_false()
     {
         var fp = (mhp: 200, lvl: 10, br: 50, fa: 50);
-        var (addr, buf, h) = MakeBandEntry(fp, poisoned: false, timer: 0);
-        try
-        {
-            var state = new PlagueState();
-            state.Latch(addr, fp);
+        using var entry = MakeBandEntry(fp, poisoned: false, timer: 0);
+        var state = new PlagueState();
+        state.Latch(entry.Addr, fp);
 
-            // With inLive=false, DriveOne must not write anything.
-            Plague.DriveOne(addr, fp, state, inLive: false);
+        // With inLive=false, DriveOne must not write anything.
+        Plague.DriveOne(Live, entry.Addr, fp, state, inLive: false);
 
-            // Poison bit should remain off; timer should remain 0.
-            Assert.False(IsPoisoned(buf));
-            Assert.Equal(0, buf[Offsets.APoisonTimer]);
-        }
-        finally { h.Free(); }
+        // Poison bit should remain off; timer should remain 0.
+        Assert.False(IsPoisoned(entry.Bytes));
+        Assert.Equal(0, entry.Bytes[Offsets.APoisonTimer]);
     }
 
     // ------------------------------------------------------------------ (21) A4 unequip release: Release via fp, no latches remain
@@ -455,16 +438,12 @@ public class PlagueTests
         // ApplyAugment should write HP as a single WriteBytes(addr, 2-byte LE) so the engine
         // cannot read a torn intermediate. We verify both bytes land correctly in the buffer.
         var fp = (mhp: 320, lvl: 10, br: 50, fa: 50);   // augment = 320*3/32 = 30
-        var (addr, buf, h) = MakeBandEntry(fp, poisoned: true, hp: 50);
-        try
-        {
-            // Expected new HP: 50 - 30 = 20 (0x0014)
-            Plague.ApplyAugment(addr, fp);
+        using var entry = MakeBandEntry(fp, poisoned: true, hp: 50);
+        // Expected new HP: 50 - 30 = 20 (0x0014)
+        Plague.ApplyAugment(Live, entry.Addr, fp);
 
-            int newHp = buf[Offsets.AHp] | (buf[Offsets.AHp + 1] << 8);
-            Assert.Equal(20, newHp);
-        }
-        finally { h.Free(); }
+        int newHp = entry.Bytes[Offsets.AHp] | (entry.Bytes[Offsets.AHp + 1] << 8);
+        Assert.Equal(20, newHp);
     }
 
     // ------------------------------------------------------------------ (23) A4 mhp bound: exclusive > 2000 in band loop
@@ -483,13 +462,13 @@ public class PlagueTests
 
     [Fact]
     public void IsActingMainHand_true_when_mainHand_is_the_signature_weapon()
-        => Assert.True(Plague.IsActingMainHand(mainHand: 80, weaponId: 80));
+        => Assert.True(Signatures.IsActingMainHand(mainHand: 80, weaponId: 80));
 
     [Fact]
     public void IsActingMainHand_false_when_mainHand_is_a_different_weapon()
-        => Assert.False(Plague.IsActingMainHand(mainHand: 99, weaponId: 80));
+        => Assert.False(Signatures.IsActingMainHand(mainHand: 99, weaponId: 80));
 
     [Fact]
     public void IsActingMainHand_false_when_mainHand_is_zero_meaning_no_actor_resolved()
-        => Assert.False(Plague.IsActingMainHand(mainHand: 0, weaponId: 80));
+        => Assert.False(Signatures.IsActingMainHand(mainHand: 0, weaponId: 80));
 }

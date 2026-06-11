@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -17,20 +17,23 @@ namespace LivingWeapon;
 /// are scanned (a Doomed ally is never sped up). Mirrors CharmLock's enemy-scan + auth-copy read.
 /// Every read/write is VirtualQuery-guarded.
 /// </summary>
-internal sealed partial class EagleEye
+internal sealed partial class EagleEye : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick();
     internal const int DoomStatusOff = 0x49, DoomCountdownOff = 0x59;   // base-relative (tests assert via Policy)
     internal const byte DoomBit = 0x01;                                  // shares +0x49 with Charm (0x20), different bit
     private const int EclipseboltId = 78;
-    private const long BandRadius = 0x100000;   // +/-1MB around the combat anchor
+
+    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private bool _wasActive;
     private int _tick, _hastened;
 
-    public EagleEye(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills)
+    public EagleEye(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
     }
@@ -53,77 +56,37 @@ internal sealed partial class EagleEye
     private int ActiveTarget()
     {
         if (!_meta.TryGetValue(EclipseboltId, out var m)) return 0;
-        int target = AuraTarget(m.Signature, Tuning.TierFor(_kills.TryGetValue(EclipseboltId, out int k) ? k : 0));
+        int target = AuraTarget(m.Signature, Tuning.TierOf(_kills, EclipseboltId));
         if (target <= 0) return 0;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
             long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
+            if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;
             // Signatures fire from the main hand only: an offhand Eclipsebolt does not hasten Doom.
-            if (Mem.U16(rb + Offsets.RRHand) == EclipseboltId)
+            if (_mem.U16(rb + Offsets.RRHand) == EclipseboltId)
                 return target;
         }
         return 0;
     }
 
-    /// <summary>One band pass: every real enemy showing Doom live on its authoritative copy, whose
-    /// countdown is still above the target, gets that countdown written down to the target.</summary>
+    /// <summary>One band pass (the shared BandSweep): every real enemy showing Doom live on its
+    /// authoritative copy, whose countdown is still above the target, gets that countdown
+    /// written down to the target.</summary>
     private void Hasten(int target)
     {
-        var byMhp = new Dictionary<int, List<(int mhp, int lvl, int br, int fa)>>();
-        foreach (var fp in Enemies())
+        BandSweep.ForEachFingerprintHit(_mem, Band.EnemyFingerprints(_mem), (addr, buf, b, fp) =>
         {
-            if (!byMhp.TryGetValue(fp.mhp, out var l)) byMhp[fp.mhp] = l = new();
-            l.Add(fp);
-        }
-        if (byMhp.Count == 0) return;
-        long lo = Offsets.CombatAnchor - BandRadius, total = BandRadius * 2;
-        const int chunk = 0x40000;
-        for (long off = 0; off < total; off += chunk)
-        {
-            int n = (int)Math.Min(chunk + 0x80, total - off);
-            if (!Mem.TryReadBytes(lo + off, n, out byte[] buf)) continue;   // RPM reads across regions
-            int lim = Math.Min(chunk, buf.Length - 0x80);
-            for (int i = Offsets.AMaxHp; i < lim; i++)
+            bool doomed = (buf[b + DoomStatusOff] & DoomBit) != 0;
+            int cd = buf[b + DoomCountdownOff];
+            if (!ShouldHasten(doomed, cd, target)) return;
+            long cdAddr = addr + DoomCountdownOff;
+            // re-read under the write guard (the buffered cd can be stale by now); only ever WRITE DOWN.
+            if (_mem.Writable(cdAddr, 1) && _mem.U8(cdAddr) > target)
             {
-                int mhp = buf[i] | (buf[i + 1] << 8);
-                if (!byMhp.TryGetValue(mhp, out var cands)) continue;
-                int b = i - Offsets.AMaxHp;
-                foreach (var fp in cands)
-                {
-                    if (buf[b + Offsets.ALevel] != fp.lvl || buf[b + Offsets.ABrave] != fp.br || buf[b + Offsets.AFaith] != fp.fa) continue;
-                    bool doomed = (buf[b + DoomStatusOff] & DoomBit) != 0;
-                    int cd = buf[b + DoomCountdownOff];
-                    if (ShouldHasten(doomed, cd, target))
-                    {
-                        long addr = lo + off + b + DoomCountdownOff;
-                        // re-read under the write guard (the buffered cd can be stale by now); only ever WRITE DOWN.
-                        if (Mem.Writable(addr, 1) && Mem.U8(addr) > target)
-                        {
-                            Mem.W8(addr, (byte)target);
-                            Log.Info($"eagle-eye: enemy Doom countdown forced to {target} (was {cd}) -- level-{fp.lvl} enemy ({fp.mhp} max HP) [{++_hastened} this battle]");
-                        }
-                    }
-                    break;
-                }
+                _mem.W8(cdAddr, (byte)target);
+                Log.Info($"eagle-eye: enemy Doom countdown forced to {target} (was {cd}) -- level-{fp.lvl} enemy ({fp.mhp} max HP) [{++_hastened} this battle]");
             }
-        }
+        });
     }
 
-    /// <summary>Real ENEMY fingerprints from the static array; filters phantoms (level 0 / garbage).</summary>
-    private List<(int mhp, int lvl, int br, int fa)> Enemies()
-    {
-        var list = new List<(int, int, int, int)>();
-        for (int s = 0; s <= Offsets.EnemySlotMax; s++)
-        {
-            long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
-            if (!Mem.Readable(slot + Offsets.AMaxHp, 2)) continue;
-            int mhp = Mem.U16(slot + Offsets.AMaxHp), lvl = Mem.U8(slot + Offsets.ALevel);
-            int br = Mem.U8(slot + Offsets.ABrave), fa = Mem.U8(slot + Offsets.AFaith);
-            if (mhp < 1 || mhp > 2000 || lvl < 1 || lvl > 99 || br > 100 || fa > 100) continue;
-            var fp = (mhp, lvl, br, fa);
-            if (!list.Contains(fp)) list.Add(fp);
-        }
-        return list;
-    }
 }

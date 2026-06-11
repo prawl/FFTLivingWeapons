@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -30,17 +30,20 @@ internal sealed partial class GrowthEngine
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly TurnTracker _turns;
+    private readonly IGameMemory _mem;
     private readonly Dictionary<long, (int natural, int target, double factor)> _applied = new();
     private readonly Dictionary<long, int> _timedNatural = new();   // timed-grant stat addr -> captured natural
     private readonly Dictionary<int, long> _structForSlot = new();   // roster slot -> combat-struct base
     private readonly HashSet<int> _ambiguousLogged = new();           // slots whose multi-match was already logged this battle
     private bool _logged;
 
-    public GrowthEngine(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns)
+    public GrowthEngine(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns,
+                        IGameMemory? mem = null)
     {
         _meta = meta;
         _kills = kills;
         _turns = turns;
+        _mem = mem ?? new LiveMemory();
     }
 
     /// <summary>Forget captured naturals + struct locations. Call on battle exit.</summary>
@@ -61,11 +64,11 @@ internal sealed partial class GrowthEngine
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
             long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;          // roster slot mapped?
-            int level = Mem.U8(rb + Offsets.RLevel);
+            if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;          // roster slot mapped?
+            int level = _mem.U8(rb + Offsets.RLevel);
             if (level < 1 || level > 99) continue;                         // empty slot
-            int brave = Mem.U8(rb + Offsets.RBrave);
-            int faith = Mem.U8(rb + Offsets.RFaith);
+            int brave = _mem.U8(rb + Offsets.RBrave);
+            int faith = _mem.U8(rb + Offsets.RFaith);
 
             // BOTH hands: a dual-wielder's OFF-HAND weapon grows + grants its signature too (KillTracker
             // already credits both blades; growth previously read only the right hand, so an off-hand
@@ -81,12 +84,14 @@ internal sealed partial class GrowthEngine
             // Signatures (support bits, timed stat grants) fire from the MAIN HAND only. Plain stat
             // growth (PA/MA/Speed factor hold) applies for weapons in either hand, unchanged.
             // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
-            int pickedSupport = Mem.Readable(rb + Offsets.RSupport, 1) ? Mem.U8(rb + Offsets.RSupport) : 0;
-            int mainHandId = Mem.U16(rb + Offsets.RRHand);
+            int pickedSupport = _mem.Readable(rb + Offsets.RSupport, 1) ? _mem.U8(rb + Offsets.RSupport) : 0;
+            // ONE RRHand snapshot per slot: re-reading per hand could let a mid-battle gear
+            // mutation land between the reads and treat both hands as main-hand for a tick.
+            int mainHandId = _mem.U16(rb + Offsets.RRHand);
             var plan = new Dictionary<long, double>();
             foreach (var (weapon, m) in hands)
             {
-                int tier = Tuning.TierFor(_kills.TryGetValue(weapon, out int k) ? k : 0);
+                int tier = Tuning.TierOf(_kills, weapon);
                 bool isMainHand = weapon == mainHandId;
                 if (isMainHand)
                 {
@@ -109,7 +114,7 @@ internal sealed partial class GrowthEngine
     private List<(int weapon, WeaponMeta m)> Hands(long rb)
     {
         var list = new List<(int, WeaponMeta)>(2);
-        foreach (int hw in new[] { Mem.U16(rb + Offsets.RRHand), Mem.U16(rb + Offsets.ROffHand) })
+        foreach (int hw in new[] { _mem.U16(rb + Offsets.RRHand), _mem.U16(rb + Offsets.ROffHand) })
             if (_meta.TryGetValue(hw, out var hm) && !list.Exists(x => x.Item1 == hw))
                 list.Add((hw, hm));
         return list;
@@ -129,8 +134,8 @@ internal sealed partial class GrowthEngine
     /// unexpected value (buff/debuff/transient) is left alone rather than re-baselined.</summary>
     private void Hold(long addr, double factor)
     {
-        if (!Mem.Writable(addr, 1)) return;
-        int cur = Mem.U8(addr);
+        if (!_mem.Writable(addr, 1)) return;
+        int cur = _mem.U8(addr);
         if (_applied.TryGetValue(addr, out var e))
         {
             if (cur == e.target) { if (factor != e.factor) WriteTarget(addr, e.natural, factor); return; }
@@ -145,7 +150,7 @@ internal sealed partial class GrowthEngine
         int target = (int)Math.Round(natural * (1 + factor));
         if (target < StatMin) target = StatMin;
         if (target > StatMax) target = StatMax;
-        if (Mem.U8(addr) != target) Mem.W8(addr, (byte)target);
+        if (_mem.U8(addr) != target) _mem.W8(addr, (byte)target);
         _applied[addr] = (natural, target, factor);
     }
 }

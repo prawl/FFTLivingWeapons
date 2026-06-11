@@ -51,12 +51,6 @@ public class DisplayRotationTests
         return buf;
     }
 
-    private sealed class Clock3
-    {
-        public long Ms;
-        public Func<long> Func => () => Ms;
-    }
-
     /// <summary>
     /// A region with 20 cards and 1 target: within a bounded number of Ticks every
     /// card id must receive its suffix painted (rotation coverage). Also checks that
@@ -89,7 +83,7 @@ public class DisplayRotationTests
             mirrorOffHandAddr: StaticsBase3 + 2,
             wpScratchAddr:     StaticsBase3 + 4);
 
-        var clock = new Clock3();
+        var clock = new TestClock();
         var display = new Display(meta, kills, wrapped, clock.Func);
 
         // Run bounded Ticks and count how many distinct ids get their suffix painted
@@ -156,7 +150,7 @@ public class DisplayRotationTests
             mirrorOffHandAddr: StaticsBase3 + 0x2_0000_0000L + 2,
             wpScratchAddr:     StaticsBase3 + 0x2_0000_0000L + 4);
 
-        var clock = new Clock3();
+        var clock = new TestClock();
         var display = new Display(meta, kills, wrapped, clock.Func);
 
         byte plus = ByteScan.Ascii("+")[0];
@@ -207,7 +201,7 @@ public class DisplayRotationTests
             mirrorOffHandAddr: StaticsBase3 + 0x1_0000_0000L + 2,
             wpScratchAddr:     StaticsBase3 + 0x1_0000_0000L + 4);
 
-        var clock = new Clock3();
+        var clock = new TestClock();
         var display = new Display(meta, kills, wrapped, clock.Func);
 
         // Discovery pass

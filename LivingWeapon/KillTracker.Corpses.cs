@@ -4,8 +4,9 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Band corpse scan and alive-edge belt. Partial class split from KillTracker.cs to stay
-/// under the 200-line limit. Enemy-identity capture lives in KillTracker.Coverage.cs.
+/// Band corpse scan and alive-edge belt -- the per-slot death state machine half of
+/// KillTracker (the actor latch lives in KillTracker.cs; the enemy-side identity set is
+/// <see cref="EnemyOracle"/>).
 ///
 /// DEAD DETECTION: hp==0 OR Dead status bit (+0x45/0x20, proven from Doom research). A
 /// status-death (e.g. Phoenix Down on undead) fires the bit without HP ever reaching zero.
@@ -43,19 +44,14 @@ internal sealed partial class KillTracker
         Array.Clear(_deadStreak, 0, _deadStreak.Length);
         Array.Clear(_slotId, 0, _slotId.Length);
         _identityAlive.Clear();
-        ResetBattleCoverage();   // _enemyIds, coverage tick/flag (KillTracker.Coverage.cs)
+        _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
     }
 
     /// <summary>Band corpse scan + identity capture. Returns true if the tally changed.</summary>
     private bool ScanCorpses(bool onField)
     {
         bool changed = false;
-        if (onField) CaptureEnemyIds();
-        if (onField && !_coverageDone && --_coveragePollsLeft <= 0)
-        {
-            CheckCoverage();
-            _coveragePollsLeft = CoverageInterval;
-        }
+        if (onField) _oracle.TickField();   // capture enemy identities + the once-per-battle coverage log
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
@@ -112,7 +108,7 @@ internal sealed partial class KillTracker
             if (_deadStreak[s] < DeadNeeded) continue;
 
             var id = (lvl, br, fa, mhp);
-            if (!_enemyIds.Contains(id))
+            if (!_oracle.Contains(id))
             {
                 _deadCredited[s] = true;
                 Log.Info($"kill: a unit at battle slot {s} died but it was not a tracked enemy -- no credit given (this is normal for player/guest deaths)");

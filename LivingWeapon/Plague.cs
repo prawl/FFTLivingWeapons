@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -25,9 +25,12 @@ namespace LivingWeapon;
 /// ResetBattle still clears them at the debounced exit).
 /// All reads/writes VirtualQuery-guarded.
 /// </summary>
-internal sealed partial class Plague
+internal sealed partial class Plague : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField, ctx.InLive);
     private const int VenomboltId = 80;
+
+    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -39,8 +42,9 @@ internal sealed partial class Plague
     private bool _wasActive;
 
     public Plague(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker,
-                  System.Func<long>? nowMs = null)
+                  System.Func<long>? nowMs = null, IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
         _tracker = tracker;
@@ -61,10 +65,10 @@ internal sealed partial class Plague
     {
         if (!onField) { Drive(inLive); return; }
         if (!_meta.TryGetValue(VenomboltId, out var m) || m.Signature is null) return;
-        int tier = Tuning.TierFor(_kills.TryGetValue(VenomboltId, out int k) ? k : 0);
-        bool active = IsActive(m.Signature, tier) && IsEquipped()
-                      && IsActingMainHand(_tracker._lastPlayerMainHand, VenomboltId)
-                      && Mem.U8(Offsets.Acted) == 1;
+        int tier = Tuning.TierOf(_kills, VenomboltId);
+        bool active = Signatures.Earned(m.Signature, tier) && IsEquipped()
+                      && Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, VenomboltId)
+                      && _mem.U8(Offsets.Acted) == 1;
         long now = _nowMs();
         if (active) _lastActiveMs = now;
         bool windowRecent = WithinGrace(_lastActiveMs, now, Tuning.PlagueGraceMs);
@@ -83,15 +87,15 @@ internal sealed partial class Plague
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long addr = Band.Entry(s);
-            if (!Mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            int mhp = Mem.U16(addr + Offsets.AMaxHp), lvl = Mem.U8(addr + Offsets.ALevel);
+            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
+            int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
             if (mhp < 1 || mhp > 2000 || lvl < 1 || lvl > 99) continue;
-            int br = Mem.U8(addr + Offsets.ABrave), fa = Mem.U8(addr + Offsets.AFaith);
+            int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
             if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
 
             var fp = (mhp, lvl, br, fa);
-            bool poisoned = Mem.Readable(addr + Offsets.APoison, 1)
-                            && (Mem.U8(addr + Offsets.APoison) & Offsets.APoisonBit) != 0;
+            bool poisoned = _mem.Readable(addr + Offsets.APoison, 1)
+                            && (_mem.U8(addr + Offsets.APoison) & Offsets.APoisonBit) != 0;
 
             // A1: update baseline EVERY tick, BEFORE the latch decision (stamps edge times).
             _baseline.Update(addr, fp, poisoned, now);
@@ -101,8 +105,8 @@ internal sealed partial class Plague
                 // Verify the slot still holds the same unit; drop on fingerprint mismatch.
                 if (!_state.FpAt(addr).Equals(fp)) { _state.ReleaseAt(addr); continue; }
 
-                int ct = Mem.Readable(addr + Offsets.ACtTurn, 1) ? Mem.U8(addr + Offsets.ACtTurn) : 0;
-                if (IsTurn(_state.LastCtAt(addr), ct)) ApplyAugment(addr, fp);
+                int ct = _mem.Readable(addr + Offsets.ACtTurn, 1) ? _mem.U8(addr + Offsets.ACtTurn) : 0;
+                if (CtTurns.IsTurn(_state.LastCtAt(addr), ct)) ApplyAugment(_mem, addr, fp);
                 _state.UpdateCtAt(addr, ct);
             }
 
@@ -115,7 +119,7 @@ internal sealed partial class Plague
             if (ShouldLatchNow(enemy, _state.IsHeldAt(addr), _baseline.LastEdgeMs(addr, fp),
                                _lastActiveMs, now, Tuning.PlagueGraceMs))
             {
-                int seedCt = Mem.Readable(addr + Offsets.ACtTurn, 1) ? Mem.U8(addr + Offsets.ACtTurn) : 0;
+                int seedCt = _mem.Readable(addr + Offsets.ACtTurn, 1) ? _mem.U8(addr + Offsets.ACtTurn) : 0;
                 _state.Latch(addr, fp, seedCt);
                 Log.Info($"plague: latched enemy ({mhp} max HP, lv {lvl}) -- poison will never fade and ticks harder");
             }
@@ -132,28 +136,30 @@ internal sealed partial class Plague
         foreach (long addr in _state.HeldAddrs)
         {
             var fp = _state.FpAt(addr);
-            DriveOne(addr, fp, _state, inLive);
+            DriveOne(_mem, addr, fp, _state, inLive);
             // Drop the latch if the fingerprint no longer matches (unit left / battle reset).
-            if (!Mem.Readable(addr + Offsets.AMaxHp, 2)
-                || Mem.U16(addr + Offsets.AMaxHp) != fp.mhp
-                || Mem.U8(addr + Offsets.ALevel)  != fp.lvl
-                || Mem.U8(addr + Offsets.ABrave)  != fp.br
-                || Mem.U8(addr + Offsets.AFaith)  != fp.fa)
+            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)
+                || _mem.U16(addr + Offsets.AMaxHp) != fp.mhp
+                || _mem.U8(addr + Offsets.ALevel)  != fp.lvl
+                || _mem.U8(addr + Offsets.ABrave)  != fp.br
+                || _mem.U8(addr + Offsets.AFaith)  != fp.fa)
                 toDrop.Add(addr);
         }
         foreach (long addr in toDrop) _state.ReleaseAt(addr);
     }
 
-    /// <summary>Enemy fingerprints from the static array (mirrors Maim / EagleEye).</summary>
-    private static System.Collections.Generic.HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints()
+    /// <summary>Enemy fingerprints from the static array (mirrors Maim / EagleEye).
+    /// NOT Band.EnemyFingerprints: this scan's mhp bound (IsValidEnemyMhp, &lt;= 1999) is
+    /// deliberately quarantined from the inclusive-2000 bound the other modules share.</summary>
+    private System.Collections.Generic.HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints()
     {
         var set = new System.Collections.Generic.HashSet<(int, int, int, int)>();
         for (int s = 0; s <= Offsets.EnemySlotMax; s++)
         {
             long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
-            if (!Mem.Readable(slot + Offsets.AMaxHp, 2)) continue;
-            int mhp = Mem.U16(slot + Offsets.AMaxHp), lvl = Mem.U8(slot + Offsets.ALevel);
-            int br = Mem.U8(slot + Offsets.ABrave), fa = Mem.U8(slot + Offsets.AFaith);
+            if (!_mem.Readable(slot + Offsets.AMaxHp, 2)) continue;
+            int mhp = _mem.U16(slot + Offsets.AMaxHp), lvl = _mem.U8(slot + Offsets.ALevel);
+            int br = _mem.U8(slot + Offsets.ABrave), fa = _mem.U8(slot + Offsets.AFaith);
             if (!IsValidEnemyMhp(mhp) || lvl < 1 || lvl > 99 || br > 100 || fa > 100) continue;
             set.Add((mhp, lvl, br, fa));
         }
@@ -161,13 +167,13 @@ internal sealed partial class Plague
     }
 
     /// <summary>True when any roster slot holds Venombolt (id 80) in either hand.</summary>
-    private static bool IsEquipped()
+    private bool IsEquipped()
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
             long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            if (!Mem.Readable(rb + Offsets.RNameId, 2)) continue;
-            if (Mem.U16(rb + Offsets.RRHand) == VenomboltId || Mem.U16(rb + Offsets.ROffHand) == VenomboltId)
+            if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;
+            if (_mem.U16(rb + Offsets.RRHand) == VenomboltId || _mem.U16(rb + Offsets.ROffHand) == VenomboltId)
                 return true;
         }
         return false;

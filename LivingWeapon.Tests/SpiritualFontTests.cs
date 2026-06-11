@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using LivingWeapon;
 using Xunit;
 
@@ -25,6 +24,10 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class SpiritualFontTests
 {
+    // Pinned buffers are committed addresses in our own process, so the production adapter's
+    // RPM/WPM reads work on them for real -- the guard path is exercised, not faked.
+    private static readonly LiveMemory Live = new();
+
     private static WeaponSignature FontSig(int atTier = 3) =>
         new() { AtTier = atTier, FontOnMove = true, DisplayLabel = "Spiritual Font" };
 
@@ -106,20 +109,14 @@ public class SpiritualFontTests
     [Fact]
     public void WriteMp_writes_little_endian_and_preserves_neighbors()
     {
-        var buf = new byte[64];
-        buf[Offsets.AMp - 1] = 0x77;
-        buf[Offsets.AMaxMp] = 0x99;
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        try
-        {
-            long entry = h.AddrOfPinnedObject().ToInt64();
-            SpiritualFont.WriteMp(entry, 0x0234);
-            Assert.Equal(0x34, buf[Offsets.AMp]);
-            Assert.Equal(0x02, buf[Offsets.AMp + 1]);
-            Assert.Equal(0x77, buf[Offsets.AMp - 1]);
-            Assert.Equal(0x99, buf[Offsets.AMaxMp]);
-        }
-        finally { h.Free(); }
+        using var entry = PinnedBuf.Of(64);
+        entry.Bytes[Offsets.AMp - 1] = 0x77;
+        entry.Bytes[Offsets.AMaxMp] = 0x99;
+        SpiritualFont.WriteMp(Live, entry.Addr, 0x0234);
+        Assert.Equal(0x34, entry.Bytes[Offsets.AMp]);
+        Assert.Equal(0x02, entry.Bytes[Offsets.AMp + 1]);
+        Assert.Equal(0x77, entry.Bytes[Offsets.AMp - 1]);
+        Assert.Equal(0x99, entry.Bytes[Offsets.AMaxMp]);
     }
 
     // ---- knobs + verified offsets ----

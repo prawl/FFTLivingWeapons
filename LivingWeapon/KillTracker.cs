@@ -18,7 +18,8 @@ namespace LivingWeapon;
 ///     hands, so one kill credits both blades; a hand holding a shield is never credited.
 ///
 /// Memory access is injected (IGameMemory) so the attribution logic is unit-testable.
-/// Corpse scan and belt/coverage live in KillTracker.Corpses.cs (partial class, 200-line split).
+/// The band corpse scan + alive-edge belt live in KillTracker.Corpses.cs; the enemy-side
+/// identity set is <see cref="EnemyOracle"/>.
 /// </summary>
 internal sealed partial class KillTracker
 {
@@ -34,6 +35,7 @@ internal sealed partial class KillTracker
     private readonly Dictionary<int, int> _kills;            // weapon id -> kill count
     internal readonly IGameMemory _mem;
     private readonly ActorResolver _resolver;
+    private readonly EnemyOracle _oracle;                    // which identities are enemy-side (creditable)
     internal readonly bool[] _pending = new bool[Offsets.BandSlots];   // corpse seen, awaiting an actor latch
     internal readonly int[] _pendingAge = new int[Offsets.BandSlots];  // ticks a corpse has waited (backstop)
     internal readonly int[] _pendingFalls = new int[Offsets.BandSlots];// _actedFalls when the corpse went pending
@@ -52,6 +54,7 @@ internal sealed partial class KillTracker
         _kills = kills;
         _mem = mem;
         _resolver = new ActorResolver(mem, weapons);
+        _oracle = new EnemyOracle(mem);
         _events = events;
     }
 

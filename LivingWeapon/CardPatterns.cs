@@ -13,7 +13,7 @@ internal sealed class CardPatterns
 {
     /// <summary>
     /// An (id, enc) -> (Name, Flavor) pattern pair. Name and Flavor are the
-    /// encoded byte sequences for ByteScan.FindIn.
+    /// encoded byte sequences CardScanner searches for via ByteScan.FindAll.
     /// </summary>
     internal readonly record struct Entry(int Id, int Enc, byte[] Name, byte[] Flavor);
 
@@ -91,7 +91,17 @@ internal sealed class CardPatterns
     /// <summary>
     /// The maximum BYTE length over all encoded Name and Flavor arrays (both
     /// enc=1 and enc=2). UTF-16LE doubles every char, so UTF-16 patterns are
-    /// the largest and this value drives ByteScan window sizing correctly.
+    /// the largest. Display's startup invariant checks this against the sweep
+    /// lookback (via <see cref="FitsLookback"/>) so every anchor + slot fits
+    /// the chunk-boundary prefix.
     /// </summary>
     public int MaxAnchorLen => _maxAnchorLen;
+
+    /// <summary>True when the given sweep lookback fits the longest anchor plus the widest
+    /// slot (the UTF-16 "Kills: " literal + 4-char counter outweighs the 2-char suffix).</summary>
+    public bool FitsLookback(int lookback)
+    {
+        int widestSlot = Math.Max(Kills(2).Length + 4 * 2, 2 * 2);
+        return lookback >= _maxAnchorLen + widestSlot;
+    }
 }

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -35,11 +35,12 @@ namespace LivingWeapon;
 /// sane or MP writes stay disabled for the battle (the HP half still fires). Each MP write is
 /// re-read and logged SET/MISS. All writes guarded (Mem).
 /// </summary>
-internal sealed partial class SpiritualFont
+internal sealed partial class SpiritualFont : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField, ctx.InLive);
     private const int UmbralId = 56;
 
-    private static readonly LiveMemory Live = new();   // Wielder/Band reads ride IGameMemory; == Mem
+    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -54,8 +55,9 @@ internal sealed partial class SpiritualFont
     private bool _mpChecked;             // per-battle MP layout verdict latched?
     private bool _mpOk;
 
-    public SpiritualFont(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker)
+    public SpiritualFont(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker, IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
         // tracker not stored: no latch machinery remains. Parameter kept so Engine.cs wires cleanly.
@@ -76,9 +78,9 @@ internal sealed partial class SpiritualFont
         if (!inLive) return;
         if (!_meta.TryGetValue(UmbralId, out var m) || m.Signature is null) return;
         if (onField && !_mpChecked) ValidateMpLayout();   // band most coherent on field ticks; latches once
-        int tier = Tuning.TierFor(_kills.TryGetValue(UmbralId, out int k) ? k : 0);
+        int tier = Tuning.TierOf(_kills, UmbralId);
         (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(Live, UmbralId, out fp, _hands);
+        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(_mem, UmbralId, out fp, _hands);
         if (active != _wasActive)
         {
             _wasActive = active;
@@ -98,14 +100,14 @@ internal sealed partial class SpiritualFont
         {
             _pulseTicks = 0;
             _locateAllBuf.Clear();
-            Wielder.LocateAll(Live, UmbralId, _hands, fp, _locateAllBuf);
+            Wielder.LocateAll(_mem, UmbralId, _hands, fp, _locateAllBuf);
             Log.Info($"font: DEV PULSE -- {(_locateAllBuf.Count == 0 ? "wielder could not be located" : "forcing a replenish to verify HP/MP writes")}");
             if (_locateAllBuf.Count > 0) ReplenishAll(_locateAllBuf, 0);
-            else Wielder.DumpCandidates(Live, _hands, fp);   // name the rejecting predicate
+            else Wielder.DumpCandidates(_mem, _hands, fp);   // name the rejecting predicate
         }
 
         _locateAllBuf.Clear();
-        Wielder.LocateAll(Live, UmbralId, _hands, fp, _locateAllBuf);
+        Wielder.LocateAll(_mem, UmbralId, _hands, fp, _locateAllBuf);
         bool nowLocated = _locateAllBuf.Count > 0;
         if (nowLocated != _wasLocated)
         {
@@ -115,7 +117,7 @@ internal sealed partial class SpiritualFont
         if (_locateAllBuf.Count == 0) return;   // unlocated: skip; MoveWatch keeps its baseline
 
         long e = _locateAllBuf[0];   // read position from the first entry (live or frozen -- same tile)
-        int gx = Live.U8(e + Offsets.AGx), gy = Live.U8(e + Offsets.AGy);
+        int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
         bool fire = _watch.Observe(gx, gy);
         if (_watch.IsFresh) Log.Info($"font: position baseline set -- wielder is at ({gx},{gy}), watching for movement");   // first sighting log
         if (!fire) return;
@@ -133,16 +135,16 @@ internal sealed partial class SpiritualFont
     private void ReplenishAll(List<long> entries, int move)
     {
         long first = entries[0];
-        int hp = Live.U16(first + Offsets.AHp), maxHp = Live.U16(first + Offsets.AMaxHp);
+        int hp = _mem.U16(first + Offsets.AHp), maxHp = _mem.U16(first + Offsets.AMaxHp);
         int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
         Log.Info($"font: move #{move} -- restored HP {hp}->{newHp} (max {maxHp}, {entries.Count} band entries updated)");
-        foreach (long ent in entries) if (newHp != hp) LifeSap.WriteHp(ent, newHp);
+        foreach (long ent in entries) if (newHp != hp) LifeSap.WriteHp(_mem, ent, newHp);
         if (!MpHalfAllowed(hp, _mpOk)) return;   // layout unproven OR a dead wielder: no MP write
-        int mp = Live.U16(first + Offsets.AMp), maxMp = Live.U16(first + Offsets.AMaxMp);
+        int mp = _mem.U16(first + Offsets.AMp), maxMp = _mem.U16(first + Offsets.AMaxMp);
         int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
         if (newMp == mp) { Log.Info($"font: MP already full ({mp}/{maxMp}) -- no MP restore needed"); return; }
-        foreach (long ent in entries) WriteMp(ent, newMp);
-        bool landed = Live.U16(first + Offsets.AMp) == newMp;   // read-back on first entry only
+        foreach (long ent in entries) WriteMp(_mem, ent, newMp);
+        bool landed = _mem.U16(first + Offsets.AMp) == newMp;   // read-back on first entry only
         Log.Info($"font: restored MP {mp}->{newMp} (max {maxMp}) {(landed ? "(write verified)" : "(write did NOT stick)")}");
     }
 
@@ -155,8 +157,8 @@ internal sealed partial class SpiritualFont
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long ent = Band.Entry(s);
-            if (!Band.IsValid(Live, ent)) continue;
-            samples.Add((Live.U16(ent + Offsets.AMp), Live.U16(ent + Offsets.AMaxMp)));
+            if (!Band.IsValid(_mem, ent)) continue;
+            samples.Add((_mem.U16(ent + Offsets.AMp), _mem.U16(ent + Offsets.AMaxMp)));
         }
         if (samples.Count < 2) return;   // band not populated yet -- validate on a later tick
         _mpChecked = true;

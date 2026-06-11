@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using LivingWeapon;
 
-namespace LivingWeapon;
+namespace LivingWeapon.Tests;
 
 /// <summary>
 /// A region-backed IGameMemory fake for display tests. Manages multiple in-memory
@@ -92,6 +93,8 @@ internal sealed class FakeHeap : IGameMemory
         Array.Copy(data, 0, r.Data, (int)offset, data.Length);
         Writes++;
     }
+
+    public void W8(long addr, byte value) => WriteBytes(addr, new[] { value });
 
     public bool Readable(long addr, int len) => FindRegion(addr, len) != null;
 

@@ -7,9 +7,9 @@ namespace LivingWeapon.Tests;
 /// Shared fixture builders for CardScanner tests.
 /// Reduces duplication across CardScanner test files.
 /// </summary>
-internal static class CardScannerTestBase
+internal static class CardScannerFixtures
 {
-    internal static WeaponMeta BuildMeta(int id, string name, string flavor)
+    internal static WeaponMeta BuildMeta(string name, string flavor)
     {
         return new WeaponMeta { Name = name, Flavor = flavor };
     }
@@ -18,34 +18,26 @@ internal static class CardScannerTestBase
     {
         var map = new Dictionary<int, WeaponMeta>();
         foreach (var (id, name, flavor) in items)
-            map[id] = BuildMeta(id, name, flavor);
+            map[id] = BuildMeta(name, flavor);
         return map;
     }
 
     /// <summary>
     /// Build a full card buffer: name + 2-char suffix slot + description.
     /// Description = flavor + " filler." + "\n\nKills: NNNN" (where NNNN is a 4-char slot).
+    /// Thin wrapper over CardFixtures.WriteCard (no pad between suffix and flavor; the
+    /// " filler." rides between flavor and the kills literal -- this suite's exact layout).
     /// </summary>
     internal static byte[] BuildCard(string name, string flavor, int enc)
     {
-        var parts = new List<byte>();
-        var nameB = ByteScan.Enc(name, enc);
-        var suffixB = ByteScan.Enc("  ", enc);   // 2-char slot (2 spaces)
-        var flavorB = ByteScan.Enc(flavor, enc);
-        var fillerB = ByteScan.Enc(" filler.", enc);
-        var newlineB = ByteScan.Enc("\n\n", enc);
-        var killsB = ByteScan.Enc("Kills: ", enc);
-        var killsSlotB = ByteScan.Enc("0   ", enc);   // 4-char slot (left-aligned digit + spaces)
-
-        parts.AddRange(nameB);
-        parts.AddRange(suffixB);
-        parts.AddRange(flavorB);
-        parts.AddRange(fillerB);
-        parts.AddRange(newlineB);
-        parts.AddRange(killsB);
-        parts.AddRange(killsSlotB);
-
-        return parts.ToArray();
+        // Generous scratch: UTF-16 doubles every byte; the fixed parts total well under 64 chars.
+        var buf = new byte[(name.Length + flavor.Length + 64) * 2];
+        var (_, _, killsSlotPos) = CardFixtures.WriteCard(buf, 0, name, flavor, enc,
+                                                          pad: "", filler: " filler.");
+        int end = killsSlotPos + ByteScan.Enc("0   ", enc).Length;
+        var card = new byte[end];
+        System.Array.Copy(buf, card, end);
+        return card;
     }
 
     /// <summary>

@@ -22,7 +22,7 @@ public class DisplaySweepMultiRegionTests
             (base3, new byte[sz]));
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
 
         sw.Tick(long.MaxValue, cap.Handler);
 
@@ -41,7 +41,7 @@ public class DisplaySweepMultiRegionTests
     [Fact]
     public void Zero_result_pass_does_not_restart_before_rest_gap()
     {
-        var heap = DisplaySweepTestBase.OneRegion(0xD_0000_0000L, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(0xD_0000_0000L, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
         long gen0 = sw.Generation;

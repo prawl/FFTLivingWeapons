@@ -1,5 +1,4 @@
-using System;
-using System.Runtime.InteropServices;
+﻿using System;
 using LivingWeapon;
 using Xunit;
 
@@ -26,6 +25,10 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class RicochetTests
 {
+    // Pinned buffers are committed addresses in our own process, so the production adapter's
+    // RPM/WPM reads work on them for real -- the guard path is exercised, not faked.
+    private static readonly LiveMemory Live = new();
+
     // ---- (1) IsActive ----
 
     private static WeaponSignature RicochetSig(int radius = 3, int pct = 50, int atTier = 3) =>
@@ -229,10 +232,11 @@ public class RicochetTests
 
     // ---- Guarded HP write (in-process buffer stands in for the band entry) ----
 
-    private static (long addr, byte[] buf, GCHandle h) MakeUnit(int hp, int maxHp, int gx, int gy,
-                                                                 int lvl = 20, int br = 50, int fa = 50)
+    private static PinnedBuf MakeUnit(int hp, int maxHp, int gx, int gy,
+                                      int lvl = 20, int br = 50, int fa = 50)
     {
-        var buf = new byte[256];
+        var unit = PinnedBuf.Of(256);
+        var buf = unit.Bytes;
         buf[Offsets.ALevel] = (byte)lvl;
         buf[Offsets.ABrave] = (byte)br;
         buf[Offsets.AFaith] = (byte)fa;
@@ -242,8 +246,7 @@ public class RicochetTests
         buf[Offsets.AHp + 1] = (byte)((hp >> 8) & 0xFF);
         buf[Offsets.AGx] = (byte)gx;
         buf[Offsets.AGy] = (byte)gy;
-        var h = GCHandle.Alloc(buf, GCHandleType.Pinned);
-        return (h.AddrOfPinnedObject().ToInt64(), buf, h);
+        return unit;
     }
 
     private static int ReadHp(byte[] buf) => buf[Offsets.AHp] | (buf[Offsets.AHp + 1] << 8);
@@ -251,37 +254,25 @@ public class RicochetTests
     [Fact]
     public void ApplyChip_writes_clamped_hp_and_never_kills()
     {
-        var (addr, buf, h) = MakeUnit(hp: 3, maxHp: 100, gx: 5, gy: 5);
-        try
-        {
-            Ricochet.ApplyChip(addr, currentHp: 3, chip: 10);
-            Assert.Equal(1, ReadHp(buf));
-        }
-        finally { h.Free(); }
+        using var unit = MakeUnit(hp: 3, maxHp: 100, gx: 5, gy: 5);
+        Ricochet.ApplyChip(Live, unit.Addr, currentHp: 3, chip: 10);
+        Assert.Equal(1, ReadHp(unit.Bytes));
     }
 
     [Fact]
     public void ApplyChip_writes_normal_chip_when_target_survives()
     {
-        var (addr, buf, h) = MakeUnit(hp: 50, maxHp: 100, gx: 5, gy: 5);
-        try
-        {
-            Ricochet.ApplyChip(addr, currentHp: 50, chip: 20);
-            Assert.Equal(30, ReadHp(buf));
-        }
-        finally { h.Free(); }
+        using var unit = MakeUnit(hp: 50, maxHp: 100, gx: 5, gy: 5);
+        Ricochet.ApplyChip(Live, unit.Addr, currentHp: 50, chip: 20);
+        Assert.Equal(30, ReadHp(unit.Bytes));
     }
 
     [Fact]
     public void ApplyChip_is_no_op_when_target_already_at_1()
     {
-        var (addr, buf, h) = MakeUnit(hp: 1, maxHp: 100, gx: 5, gy: 5);
-        try
-        {
-            Ricochet.ApplyChip(addr, currentHp: 1, chip: 5);
-            Assert.Equal(1, ReadHp(buf));
-        }
-        finally { h.Free(); }
+        using var unit = MakeUnit(hp: 1, maxHp: 100, gx: 5, gy: 5);
+        Ricochet.ApplyChip(Live, unit.Addr, currentHp: 1, chip: 5);
+        Assert.Equal(1, ReadHp(unit.Bytes));
     }
 
     // ---- Main-hand-only activation gate (B1) ----
@@ -289,13 +280,13 @@ public class RicochetTests
 
     [Fact]
     public void IsActingMainHand_true_when_mainHand_is_the_signature_weapon()
-        => Assert.True(Ricochet.IsActingMainHand(mainHand: 86, weaponId: 86));
+        => Assert.True(Signatures.IsActingMainHand(mainHand: 86, weaponId: 86));
 
     [Fact]
     public void IsActingMainHand_false_when_mainHand_is_a_different_weapon()
-        => Assert.False(Ricochet.IsActingMainHand(mainHand: 99, weaponId: 86));
+        => Assert.False(Signatures.IsActingMainHand(mainHand: 99, weaponId: 86));
 
     [Fact]
     public void IsActingMainHand_false_when_mainHand_is_zero_meaning_no_actor_resolved()
-        => Assert.False(Ricochet.IsActingMainHand(mainHand: 0, weaponId: 86));
+        => Assert.False(Signatures.IsActingMainHand(mainHand: 0, weaponId: 86));
 }

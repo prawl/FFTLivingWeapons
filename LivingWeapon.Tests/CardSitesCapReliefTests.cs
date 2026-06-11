@@ -22,21 +22,13 @@ public class CardSitesCapReliefTests
     /// </summary>
     private static (FakeHeap heap, CardSites.Site site) BuildLiveSite(int id, int bufSize = 512)
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[bufSize];
         string flavor = id == 1 ? "A fine blade" : "A hefty tool";
-        byte[] flavorBytes  = ByteScan.Ascii(flavor);
-        byte[] prefixBytes  = ByteScan.Ascii("Kills: ");
-        byte[] slotBytes    = ByteScan.Ascii("0   ");
-
         int anchorPos = 10;
-        Array.Copy(flavorBytes,  0, buf, anchorPos, flavorBytes.Length);
-        int prefixPos = anchorPos + flavorBytes.Length + 20;
-        Array.Copy(prefixBytes,  0, buf, prefixPos,  prefixBytes.Length);
-        int slotPos = prefixPos + prefixBytes.Length;
-        Array.Copy(slotBytes,    0, buf, slotPos,    slotBytes.Length);
+        int slotPos = CardFixtures.WriteKillsBlock(buf, anchorPos, flavor, gap: 20);
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var site = new CardSites.Site(id, 1, 0x1000 + slotPos, 0x1000 + anchorPos, IsKills: true);
@@ -53,21 +45,14 @@ public class CardSitesCapReliefTests
     [Fact]
     public void Stale_status_card_count_at_cap_dead_sites_evicted_new_admitted()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         // One heap region with a live anchor for the NEW site only.
         // Dead-site anchors will point into a region that does NOT exist so TryReadBytes fails.
         var liveBuf = new byte[512];
-        byte[] flavorBytes = ByteScan.Ascii("A fine blade");
-        byte[] prefixBytes = ByteScan.Ascii("Kills: ");
-        byte[] slotBytes   = ByteScan.Ascii("0   ");
         int anchorPos = 10;
-        Array.Copy(flavorBytes, 0, liveBuf, anchorPos, flavorBytes.Length);
-        int prefixPos = anchorPos + flavorBytes.Length + 20;
-        Array.Copy(prefixBytes, 0, liveBuf, prefixPos, prefixBytes.Length);
-        int slotPos = prefixPos + prefixBytes.Length;
-        Array.Copy(slotBytes,   0, liveBuf, slotPos,   slotBytes.Length);
+        int slotPos = CardFixtures.WriteKillsBlock(liveBuf, anchorPos, "A fine blade", gap: 20);
 
         var heap = new FakeHeap((0x1000L, liveBuf, writable: true));
         var sites = new CardSites(heap, pats);
@@ -103,7 +88,7 @@ public class CardSitesCapReliefTests
     [Fact]
     public void Cap_full_of_live_sites_refused_and_prune_is_rate_limited()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         // Build enough heap so all MaxSites anchors are readable (live).
@@ -178,20 +163,12 @@ public class CardSitesCapReliefTests
     [Fact]
     public void First_cap_hit_after_successful_prune_prunes_immediately()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[8192];
-        byte[] flavorBytes = ByteScan.Ascii("A fine blade");
-        byte[] prefixBytes = ByteScan.Ascii("Kills: ");
-        byte[] slotBytes   = ByteScan.Ascii("0   ");
-
         // Write one live anchor block at offset 0 for all "live" sites.
-        Array.Copy(flavorBytes, 0, buf, 0, flavorBytes.Length);
-        int prefixOff = flavorBytes.Length + 20;
-        Array.Copy(prefixBytes, 0, buf, prefixOff, prefixBytes.Length);
-        int slotOff = prefixOff + prefixBytes.Length;
-        Array.Copy(slotBytes, 0, buf, slotOff, slotBytes.Length);
+        int slotOff = CardFixtures.WriteKillsBlock(buf, 0, "A fine blade", gap: 20);
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);

@@ -125,6 +125,29 @@ public class FakeHeapTests
     }
 
     [Fact]
+    public void W8_in_writable_region_writes_and_counts()
+    {
+        var data = new byte[4];
+        var heap = new FakeHeap((0x1000, data, writable: true));
+        heap.W8(0x1002, 0xCC);
+        var regionData = heap.RegionBytes(0x1000);
+        Assert.NotNull(regionData);
+        Assert.Equal(0xCC, regionData![2]);
+        Assert.Equal(1, heap.Writes);
+    }
+
+    [Fact]
+    public void W8_in_readonly_or_unmapped_region_is_no_op()
+    {
+        var data = new byte[4];
+        var heap = new FakeHeap((0x1000, data, writable: false));
+        heap.W8(0x1000, 0xCC);    // readonly region
+        heap.W8(0x2000, 0xCC);    // outside all regions
+        Assert.Equal(0, heap.RegionBytes(0x1000)![0]);
+        Assert.Equal(0, heap.Writes);
+    }
+
+    [Fact]
     public void Readable_checks_region_bounds()
     {
         var data = new byte[10];

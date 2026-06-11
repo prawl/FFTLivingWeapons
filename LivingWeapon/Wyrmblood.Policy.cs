@@ -6,12 +6,9 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Wyrmblood
 {
-    /// <summary>True when the signature is configured and the kill tier is earned.</summary>
+    /// <summary>True when the signature is configured (RegenSplashRadius set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
-    {
-        if (sig is null || sig.RegenSplashRadius <= 0) return false;
-        return tier >= sig.AtTier;
-    }
+        => Signatures.Earned(sig, tier) && sig!.RegenSplashRadius > 0;
 
     /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
     /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>

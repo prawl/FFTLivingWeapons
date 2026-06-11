@@ -19,19 +19,10 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class KillTrackerTests
 {
-    /// <summary>Address -> value, for the reads KillTracker does.</summary>
-    private sealed class FakeMemory : IGameMemory
-    {
-        public readonly Dictionary<long, ushort> U16s = new();
-        public readonly Dictionary<long, byte> U8s = new();
-        public byte U8(long a) => U8s.TryGetValue(a, out var v) ? v : (byte)0;
-        public ushort U16(long a) => U16s.TryGetValue(a, out var v) ? v : (ushort)0;
-    }
-
     /// <summary>The active (condensed) struct: which unit's turn it is, by HP/MaxHP/level.
     /// `acted` is the action-complete flag (0x14077CA8C): the latch only captures when it is 1,
     /// so the inter-turn flicker of the struct (acted=0) can't steal credit.</summary>
-    private static void SetActive(FakeMemory m, int hp, int maxHp, int level, int team = 0, int acted = 1)
+    private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level, int team = 0, int acted = 1)
     {
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;
         m.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
@@ -43,23 +34,15 @@ public class KillTrackerTests
     /// <summary>Write a unit into the BAND entry at band slot <paramref name="slot"/>.
     /// This is the live source for corpse detection and actor resolution.
     /// Pass level/brave/faith to make it matchable as the actor (ActorResolver reads the band).</summary>
-    private static void SetUnit(FakeMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
+    private static void SetUnit(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
                                 int level = 10, int brave = 50, int faith = 50)
-    {
-        long s = Offsets.BandReadBase + (long)slot * Offsets.CombatStride;
-        m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
-        m.U16s[s + Offsets.AHp] = (ushort)hp;
-        m.U8s[s + Offsets.AGx] = (byte)gx;
-        m.U8s[s + Offsets.AGy] = (byte)gy;
-        m.U8s[s + Offsets.ALevel] = (byte)level;
-        m.U8s[s + Offsets.ABrave] = (byte)brave;
-        m.U8s[s + Offsets.AFaith] = (byte)faith;
-    }
+        => MemSeats.SeatBand(m, slot, weapon: 0, lvl: level, br: brave, fa: faith,
+                             gx: gx, gy: gy, hp: hp, maxHp: maxHp);
 
     /// <summary>Write identity fields into the STATIC ARRAY slot so the capture oracle can
     /// classify this as a known enemy. inb defaults to 1 but is NOT required by the capture --
     /// live, the flag pulses 0/1 per unit mid-battle (it is not a membership marker).</summary>
-    private static void SetArrayEnemy(FakeMemory m, int slot, int level, int brave, int faith, int maxHp,
+    private static void SetArrayEnemy(FakeSparseMemory m, int slot, int level, int brave, int faith, int maxHp,
                                       int inb = 1)
     {
         long s = Offsets.ArrayReadBase + (long)slot * Offsets.ArrayStride;
@@ -72,7 +55,7 @@ public class KillTrackerTests
 
     /// <summary>Convenience: write BOTH the band entry (liveness) and the static array slot
     /// (identity capture). Enemies in tests must have their identity captured to earn credit.</summary>
-    private static void SetEnemy(FakeMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
+    private static void SetEnemy(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
                                  int level = 10, int brave = 50, int faith = 50)
     {
         SetUnit(m, slot, hp, maxHp, gx, gy, level, brave, faith);
@@ -80,18 +63,11 @@ public class KillTrackerTests
             SetArrayEnemy(m, slot, level, brave, faith, maxHp);
     }
 
-    /// <summary>A roster slot keyed by the (level,brave,faith) fingerprint -> its R-hand weapon.</summary>
-    private static void SetRoster(FakeMemory m, int slot, int level, int brave, int faith, int weapon,
+    /// <summary>A roster slot keyed by the (level,brave,faith) fingerprint -> its R-hand weapon.
+    /// ROffHand (+0x18) is where the live dual-wield off-hand actually sits.</summary>
+    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon,
                                   int lhand = 0xFFFF, int offhand = 0xFFFF)
-    {
-        long b = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
-        m.U8s[b + Offsets.RLevel] = (byte)level;
-        m.U8s[b + Offsets.RBrave] = (byte)brave;
-        m.U8s[b + Offsets.RFaith] = (byte)faith;
-        m.U16s[b + Offsets.RRHand] = (ushort)weapon;
-        m.U16s[b + Offsets.RLHand] = (ushort)lhand;
-        m.U16s[b + Offsets.ROffHand] = (ushort)offhand;   // +0x18: where the live dual-wield off-hand actually sits
-    }
+        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, lhand, offhand);
 
     // Band slot indices for player-side units (arbitrary; just need to be non-enemy for clarity).
     // Enemy band slots can be anywhere in 0..BandSlots-1; slot 0 is a convenient enemy slot.
@@ -108,7 +84,7 @@ public class KillTrackerTests
 
     /// <summary>Set a band slot alive (hp>0), settle 3 ticks (seenAlive), then set it dead and
     /// settle 3 ticks (deadStreak). Leaves it ready for credit. Returns tracker for fluent use.</summary>
-    private static void AliveThenDead(FakeMemory m, int slot, KillTracker t,
+    private static void AliveThenDead(FakeSparseMemory m, int slot, KillTracker t,
                                       int hp = 300, int maxHp = 400, int level = 10, int brave = 50, int faith = 50)
     {
         SetEnemy(m, slot, hp, maxHp, level: level, brave: brave, faith: faith);
@@ -121,7 +97,7 @@ public class KillTrackerTests
     public void Credits_the_acting_players_weapon()
     {
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
@@ -150,7 +126,7 @@ public class KillTrackerTests
         // hand stops arming signature modules). The sticky latch survives only for UNRESOLVED
         // acted-periods (enemy actions / the Acted-byte flake).
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);    // Wilham, tracked rod
         SetRoster(m, slot: 0, level: 50, brave: 70, faith: 50, weapon: 999);   // "Ramza": untracked DLC blade
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
@@ -183,7 +159,7 @@ public class KillTrackerTests
         // paid out to the Wellspring Rod's wielder. Live level may exceed roster level by a
         // bounded drift (you level up, never down).
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 5, brave: 89, faith: 76, weapon: 52);   // roster: still level 5
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 6, brave: 89, faith: 76);   // live: leveled to 6
         SetActive(m, hp: 352, maxHp: 352, level: 6, acted: 1);               // acting at level 6
@@ -196,13 +172,32 @@ public class KillTrackerTests
     }
 
     [Fact]
+    public void Actor_who_leveled_up_mid_battle_still_arms_main_hand_signatures()
+    {
+        // The OTHER half of the level-drift closure: kill credit goes through FingerprintPlayer
+        // (drift-aware), but the MAIN-HAND resolve goes through MainHandFromRoster -- if that
+        // walk demands exact level equality, a freshly-leveled wielder keeps earning kills while
+        // every main-hand signature (Plague window, Maim, Ricochet...) silently disarms for the
+        // rest of the battle. Same scenario as above; the assertion is the main-hand latch.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 5, brave: 89, faith: 76, weapon: 52);          // roster: still level 5
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 6, brave: 89, faith: 76);    // live: leveled to 6
+        SetActive(m, hp: 352, maxHp: 352, level: 6, acted: 1);                      // acting at level 6
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        Assert.Equal(52, t.LastPlayerMainHand);   // signatures stay armed through the level-up
+    }
+
+    [Fact]
     public void Level_drift_only_tolerates_upward_and_bounded()
     {
         // A live level BELOW the roster level (impossible for a level-up) or absurdly far above
         // it must NOT match -- the drift window cannot reopen the enemy-collision hole the
         // level checks were added to close.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 10, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 9, brave: 89, faith: 76);   // BELOW roster
         SetActive(m, hp: 352, maxHp: 352, level: 9, acted: 1);
@@ -220,7 +215,7 @@ public class KillTrackerTests
         // mitigation for the Acted-byte flake and for enemy turns between a player's action and
         // the corpse landing.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);                // player acts
@@ -244,7 +239,7 @@ public class KillTrackerTests
         // Stoneshooter 73) collided on the condensed +0x04 index, so Wilham's kills were
         // credited to Ramza's gun. HP+fingerprint resolution must tell them apart.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 73);   // Ramza
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);   // Wilham
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
@@ -263,7 +258,7 @@ public class KillTrackerTests
     public void Does_not_double_credit_the_same_corpse()
     {
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
@@ -281,7 +276,7 @@ public class KillTrackerTests
     public void Ignores_player_corpses()
     {
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
@@ -305,7 +300,7 @@ public class KillTrackerTests
         // with acted==0. Without the acted gate the latch followed the flicker, so an archer's
         // kill credited whatever weapon was showing at corpse-detection (e.g. a mage's staff).
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);   // archer (Yoichi Bow)
         SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // mage (Blazing Staff)
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);  // archer struct
@@ -329,7 +324,7 @@ public class KillTrackerTests
         // the REST of the turn after the action -- so hovering an ally while picking a post-act move
         // resolves THAT ally. The latch must freeze on the first resolve of the acted-period.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);   // archer: the actor
         SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // mage: hovered later
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
@@ -351,7 +346,7 @@ public class KillTrackerTests
         // The acted byte transiently reads 0 after a confirmed action (FFTHandsFree's documented
         // byte-drift). A 1-tick dip must NOT end the acted-period and let a hovered ally re-latch.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);
         SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
@@ -375,7 +370,7 @@ public class KillTrackerTests
         // The freeze is per acted-period: once acted stays low long enough (a real turn end), the
         // next actor must latch normally.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);   // archer, turn 1
         SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // mage, turn 2
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
@@ -399,7 +394,7 @@ public class KillTrackerTests
         // (often 3 in a battle entered straight from a save load). The roster fingerprint -- not
         // team -- decides whether the actor is a player, so the capture must NOT gate on team.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, team: 3, acted: 1);   // team reads 3, not 0
@@ -417,7 +412,7 @@ public class KillTrackerTests
         // An enemy's turn: the active struct shows the ENEMY, whose HP/level/fingerprint match no
         // roster player -> resolve returns -1 -> nothing latches (that, not team, is the guard).
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);   // a player on the field
         SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 1);   // an ENEMY active (no roster match)
@@ -435,7 +430,7 @@ public class KillTrackerTests
         // Two players at 352/352 lvl99 with different fingerprints -> different weapons.
         // An ambiguous actor must NOT latch -- a missed kill beats a mis-credited one.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 73);
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
@@ -456,7 +451,7 @@ public class KillTrackerTests
         // death registers). On the 100ms loop the corpse is often noticed in that gap; it must
         // WAIT for the actor, not be permanently dropped.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // actor has NOT acted yet
@@ -485,7 +480,7 @@ public class KillTrackerTests
         // latch can't inherit it. The killer's own action would have latched during its acted
         // period BEFORE its fall, so two falls with no latch means this was never a player kill.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);   // a player on field
         SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 0);   // an ENEMY active (no roster match)
@@ -520,7 +515,7 @@ public class KillTrackerTests
         // Backstop: with NO acted-falling edges at all (a frozen/softlocked scene), the corpse still
         // expires after PendingTtl ticks so it can't dangle forever.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 0);   // an enemy active, never acts
@@ -548,7 +543,7 @@ public class KillTrackerTests
         // A reset (battle enter, or a quick-load) must not let a pre-existing corpse credit -- the
         // seen-alive guard means a pre-existing corpse (never seen alive this battle) is ineligible.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);   // a player would otherwise be latched
@@ -565,7 +560,7 @@ public class KillTrackerTests
     {
         // The baseline only protects corpses present at reset; a unit that dies AFTER counts normally.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -587,7 +582,7 @@ public class KillTrackerTests
         // corpse, with no prior latch. While a corpse is pending and no latch exists, resolve the
         // actor WITHOUT the acted gate -- accept only after 3 consecutive identical non-empty resolves.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // actor present, acted NOT set
@@ -618,7 +613,7 @@ public class KillTrackerTests
         // A hover that flickers between two units (A,B,A) over the streak window must NOT latch --
         // any disagreement resets the stability streak.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);   // unit A
         SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // unit B
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
@@ -647,7 +642,7 @@ public class KillTrackerTests
         // Once a real (acted-gated) latch exists, a HOVER over an ally must not steal it via the
         // fallback path -- the fallback only runs while _lastPlayerWeapons is empty.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 90);   // archer: the real actor
         SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 63);   // mage: hovered later
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
@@ -670,7 +665,7 @@ public class KillTrackerTests
         // The TTL is ticks of the 33ms engine loop. 60 ticks ~ a 2s animation before the actor's
         // acted flag latches -- a realistic wait that the old 100ms-era constant (30) expired at ~1s.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
@@ -694,7 +689,7 @@ public class KillTrackerTests
     {
         // A dual-wielding unit (a weapon in EACH hand) earns a kill on BOTH blades at once.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, lhand: 90);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
@@ -712,7 +707,7 @@ public class KillTrackerTests
     {
         // Normal loadout: weapon in the right hand, SHIELD in the left. Only the weapon counts.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, lhand: Shield);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
@@ -731,7 +726,7 @@ public class KillTrackerTests
         // The degenerate loadout: SHIELD in the right hand, weapon in the left. Trust the item,
         // not the slot -- the weapon counts wherever it sits, the shield never does.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: Shield, lhand: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
@@ -750,7 +745,7 @@ public class KillTrackerTests
         // Two copies of the SAME blade dual-wielded (id 52 in both hands) share one kill counter
         // -- a single kill is +1 for that weapon, NOT +2 (ActorResolver dedups the hand list).
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, lhand: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
@@ -769,7 +764,7 @@ public class KillTrackerTests
         // FFTHandsFree labels "reserved" -- NOT +0x16 (which stayed empty). Shields go to +0x1A.
         // This is the real-game path; reading only +0x14/+0x16 credited just the right hand.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, offhand: 90);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
@@ -790,7 +785,7 @@ public class KillTrackerTests
         // A unit seen alive fewer than 3 consecutive ticks then dead never earns credit --
         // the seenAlive guard defeats phantom kills from load-transient memory noise.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -811,7 +806,7 @@ public class KillTrackerTests
         // If a slot's (level,brave,faith) identity changes while alive, the slot-reuse path
         // resets seenAlive -- the new unit must build its own 3-tick streak from scratch.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -837,7 +832,7 @@ public class KillTrackerTests
         // Belt eviction: when a credited identity is seen alive again (revive), it leaves the
         // belt so a subsequent kill counts normally -- a genuine rekill earns full credit.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -868,7 +863,7 @@ public class KillTrackerTests
         // slot 1 earns a kill. (Compare with the frozen-twin test, where the twin is never seen
         // alive at all -- that case still credits only once.)
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -895,7 +890,7 @@ public class KillTrackerTests
         // A band corpse whose identity was NEVER captured in the static array (inb==1) never
         // credits -- the capture is the team oracle (only known enemies count as kills).
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -920,7 +915,7 @@ public class KillTrackerTests
         // identity fields in an enemy-side slot, NOT the flag, or those enemies' kills are
         // refused as "not a captured enemy" (the restart-and-first-kill refusal Patrick hit).
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -942,7 +937,7 @@ public class KillTrackerTests
         // An enemy whose (lvl,brave,faith) matches a roster unit's fingerprint STILL earns a
         // kill credit when captured in the static array -- capture beats roster coincidence.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         // Roster player: same level/brave/faith as the enemy below.
         SetRoster(m, slot: 3, level: 10, brave: 50, faith: 50, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 10, brave: 50, faith: 50);
@@ -962,7 +957,7 @@ public class KillTrackerTests
         // Alive ticks with onField=false don't build the seenAlive streak; dead ticks also
         // don't build the dead streak. Latch logic still runs (it's not field-gated).
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -985,7 +980,7 @@ public class KillTrackerTests
     [Fact]
     public void LastPlayerMainHand_is_zero_before_any_actor_latches()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         var t = new KillTracker(new Dictionary<int, int>(), m, Weapons);
         Assert.Equal(0, t.LastPlayerMainHand);
     }
@@ -993,7 +988,7 @@ public class KillTrackerTests
     [Fact]
     public void LastPlayerMainHand_exposes_RRHand_after_a_latch()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -1007,7 +1002,7 @@ public class KillTrackerTests
     {
         // A dual-wielder: both ids appear in LastPlayerWeapons, but LastPlayerMainHand = RRHand only.
         // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, offhand: 90);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -1020,7 +1015,7 @@ public class KillTrackerTests
     [Fact]
     public void LastPlayerMainHand_resets_to_zero_on_ResetBattle()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -1035,7 +1030,7 @@ public class KillTrackerTests
 
     /// <summary>Set the Dead status bit on a band entry at the given slot without touching HP.
     /// When <paramref name="set"/> is false, clears the bit (alive again).</summary>
-    private static void SetDeadBit(FakeMemory m, int slot, bool set = true)
+    private static void SetDeadBit(FakeSparseMemory m, int slot, bool set = true)
     {
         long s = Offsets.BandReadBase + (long)slot * Offsets.CombatStride;
         byte cur = m.U8s.TryGetValue(s + Offsets.ADeadStatus, out var v) ? v : (byte)0;
@@ -1050,7 +1045,7 @@ public class KillTrackerTests
         // Root bug: Phoenix Down on undead kills with a status transition -- HP stays nonzero
         // but the Dead bit fires. The corpse must enter pending and be credited normally.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -1073,7 +1068,7 @@ public class KillTrackerTests
     {
         // The attribution path must be the same as the HP==0 path -- the acting weapon earns it.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -1094,7 +1089,7 @@ public class KillTrackerTests
     {
         // Regression pin: plain hp==0 death (no Dead bit) still credits normally.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -1112,7 +1107,7 @@ public class KillTrackerTests
         // Design ruling: per-down credit. An undead that dies (status or HP), revives, then dies
         // again earns a credit EACH time. The duplicate-identity guard must not block the second death.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -1145,7 +1140,7 @@ public class KillTrackerTests
         // appears dead at slot 1 (a frozen copy from a restart -- never seen alive at slot 1).
         // The twin copy never reads alive in between, so the belt blocks the second attempt.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
@@ -1169,18 +1164,18 @@ public class KillTrackerTests
     public void Dead_bit_read_unreadable_hp_path_still_works()
     {
         // If the memory guard on the Dead-bit read fails (returns 0 -- mem is already
-        // zeroing unregistered addresses in FakeMemory), the hp==0 path must still credit.
-        // This is implicitly covered by the FakeMemory returning 0 for unknown addresses --
+        // zeroing unregistered addresses in FakeSparseMemory), the hp==0 path must still credit.
+        // This is implicitly covered by the FakeSparseMemory returning 0 for unknown addresses --
         // unregistered status bytes return 0, so bit tests return false and only hp decides.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
         var t = new KillTracker(kills, m, Weapons);
         Settle(t);
 
-        // The status byte is NOT written for this unit (FakeMemory returns 0 -> Dead bit = 0).
+        // The status byte is NOT written for this unit (FakeSparseMemory returns 0 -> Dead bit = 0).
         AliveThenDead(m, slot: 0, t);   // only hp==0 drives death detection
 
         Assert.Equal(1, kills.GetValueOrDefault(52));
@@ -1191,7 +1186,7 @@ public class KillTrackerTests
     {
         // An ally whose Dead bit is set (knocked out) must never earn a kill credit.
         var kills = new Dictionary<int, int>();
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);

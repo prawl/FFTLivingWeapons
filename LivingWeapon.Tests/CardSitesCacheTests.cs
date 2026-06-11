@@ -13,24 +13,12 @@ public class CardSitesCacheTests
     [Fact]
     public void Read_only_region_issues_no_write()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
-        string flavor = "A fine blade";
-        string killsPrefix = "Kills: ";
-        string killsSlot = "0   ";
-
         int pos = 10;
-        var flavorBytes = ByteScan.Ascii(flavor);
-        var prefixBytes = ByteScan.Ascii(killsPrefix);
-        var currentSlotBytes = ByteScan.Ascii(killsSlot);
-
-        Array.Copy(flavorBytes, 0, buf, pos, flavorBytes.Length);
-        int killsAddr = pos + flavorBytes.Length + 50;
-        Array.Copy(prefixBytes, 0, buf, killsAddr, prefixBytes.Length);
-        int slotAddr = killsAddr + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slotAddr, currentSlotBytes.Length);
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, pos, "A fine blade", gap: 50);
 
         var heap = new FakeHeap((0x1000L, buf, writable: false));
         var sites = new CardSites(heap, pats);
@@ -45,7 +33,7 @@ public class CardSitesCacheTests
     [Fact]
     public void Dedup_same_id_slot_enc_iskills_drops_duplicate()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
@@ -68,7 +56,7 @@ public class CardSitesCacheTests
         // B1: buffer reuse -- the game reused the UI buffer for a DIFFERENT weapon card.
         // The new weapon has the same SlotAddr but a different Id. The old site stays until
         // its anchor verify evicts it; the new owner site MUST be admitted so it can paint.
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
@@ -89,7 +77,7 @@ public class CardSitesCacheTests
     [Fact]
     public void Dedup_different_enc_same_slot_is_NOT_dropped()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
@@ -110,35 +98,17 @@ public class CardSitesCacheTests
         // B1: a stale site (buffer was reused for a different card) is evicted when its
         // anchor verification fails during PaintAll. The new owner paints normally;
         // only the stale site is removed (Count decreases by exactly 1).
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         // Build a buffer with weapon 1's flavor and kills slot.
         var buf = new byte[300];
-        string flavor1 = "A fine blade";
-        string killsPrefix = "Kills: ";
-        string killsSlot = "0   ";
-
         int anchorPos = 10;
-        var flavorBytes1 = ByteScan.Ascii(flavor1);
-        var prefixBytes = ByteScan.Ascii(killsPrefix);
-        var currentSlotBytes = ByteScan.Ascii(killsSlot);
-
-        Array.Copy(flavorBytes1, 0, buf, anchorPos, flavorBytes1.Length);
-        int killsAddr = anchorPos + flavorBytes1.Length + 20;
-        Array.Copy(prefixBytes, 0, buf, killsAddr, prefixBytes.Length);
-        int slotAddr = killsAddr + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slotAddr, currentSlotBytes.Length);
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, anchorPos, "A fine blade", gap: 20);
 
         // Add a second weapon (id=2) with its own anchor somewhere else in the buffer.
-        string flavor2 = "A hefty tool";
         int anchor2Pos = 200;
-        var flavorBytes2 = ByteScan.Ascii(flavor2);
-        Array.Copy(flavorBytes2, 0, buf, anchor2Pos, flavorBytes2.Length);
-        int kills2Addr = anchor2Pos + flavorBytes2.Length + 10;
-        Array.Copy(prefixBytes, 0, buf, kills2Addr, prefixBytes.Length);
-        int slot2Addr = kills2Addr + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slot2Addr, currentSlotBytes.Length);
+        int slot2Addr = CardFixtures.WriteKillsBlock(buf, anchor2Pos, "A hefty tool", gap: 10);
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);
@@ -166,24 +136,13 @@ public class CardSitesCacheTests
     {
         // B1: skip-if-equal returns false (no write) but must NOT evict the site.
         // The anchor is valid and the slot already holds the correct value.
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
-        string flavor = "A fine blade";
-        string killsPrefix = "Kills: ";
-        string killsSlot = "42  ";   // already the target value for kills=42
-
         int anchorPos = 10;
-        var flavorBytes = ByteScan.Ascii(flavor);
-        var prefixBytes = ByteScan.Ascii(killsPrefix);
-        var slotBytes = ByteScan.Ascii(killsSlot);
-
-        Array.Copy(flavorBytes, 0, buf, anchorPos, flavorBytes.Length);
-        int killsAddr = anchorPos + flavorBytes.Length + 20;
-        Array.Copy(prefixBytes, 0, buf, killsAddr, prefixBytes.Length);
-        int slotAddr = killsAddr + prefixBytes.Length;
-        Array.Copy(slotBytes, 0, buf, slotAddr, slotBytes.Length);
+        // Slot already holds the target value for kills=42.
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, anchorPos, "A fine blade", gap: 20, slot: "42  ");
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);
@@ -208,14 +167,14 @@ public class CardSitesCacheTests
         // LIVE (readable anchor that matches), prune finds nothing to evict and the cap
         // still refuses the new site.  This verifies that MaxSites is the true upper bound
         // on the number of simultaneously-live cached sites.
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         int cap = CardSites.MaxSites;
 
         // Build a buffer large enough for cap distinct anchor positions (IsKills=false: only
         // the weapon NAME is checked, no kills-literal read needed).
-        // The meta id=1 has Name = "Sword" (5 bytes via CardSitesTestBase).
+        // The meta id=1 has Name = "Sword" (5 bytes via CardSitesFixtures).
         byte[] nameBytes   = ByteScan.Ascii("Sword"); // Name for id=1
         int    anchorStride = nameBytes.Length + 4;   // stride > name length
         int    bufSize      = cap * anchorStride + 256;
@@ -248,7 +207,7 @@ public class CardSitesCacheTests
     [Fact]
     public void Clear_empties_the_cache()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];

@@ -8,21 +8,13 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class LifeSap
 {
-    /// <summary>True when the signature is configured and the kill tier is earned.</summary>
+    /// <summary>True when the signature is configured (LifeSapOnKill set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
-    {
-        if (sig is null || !sig.LifeSapOnKill) return false;
-        return tier >= sig.AtTier;
-    }
+        => Signatures.Earned(sig, tier) && sig!.LifeSapOnKill;
 
     /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
     /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
-
-    /// <summary>The kill-tally-diff trigger (the ExtraTurn freshKill pattern): fires only when a
-    /// PRIMED count climbs. -1 = unprimed (first sight after a reset baselines silently, so a
-    /// seeded tally or a battle re-entry can never fire a phantom heal).</summary>
-    public static bool FreshKill(int lastCount, int count) => lastCount >= 0 && count > lastCount;
 
     /// <summary>The heal: round(maxHp * pct) away from zero, floor 1 for any positive maxHp
     /// (a sub-1 rounding would silently dead the grant on tiny units). 0 when maxHp is junk.</summary>
@@ -45,11 +37,11 @@ internal sealed partial class LifeSap
     /// <summary>Guarded little-endian u16 write of the wielder's HP on its band entry
     /// (the authoritative copy -- the same field Ricochet's chip writes). Fail-safe no-op
     /// when the page isn't writable.</summary>
-    public static void WriteHp(long entryAddr, int newHp)
+    public static void WriteHp(IGameMemory mem, long entryAddr, int newHp)
     {
         long a = entryAddr + Offsets.AHp;
-        if (!Mem.Writable(a, 2)) return;
-        Mem.W8(a, (byte)(newHp & 0xFF));
-        Mem.W8(a + 1, (byte)((newHp >> 8) & 0xFF));
+        if (!mem.Writable(a, 2)) return;
+        mem.W8(a, (byte)(newHp & 0xFF));
+        mem.W8(a + 1, (byte)((newHp >> 8) & 0xFF));
     }
 }

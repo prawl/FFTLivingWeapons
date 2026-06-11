@@ -10,7 +10,7 @@ namespace LivingWeapon.Tests;
 /// support-ability id into its bit in the combat struct's 4-byte support bitfield
 /// (+0x98, base id 198, MSB-first). GrowthEngine does the guarded write+hold from this.
 /// </summary>
-public class SignatureTests
+public class SignaturesTests
 {
     private static WeaponSignature Sig(int id, int atTier, string slot = "support") =>
         new() { AbilityId = id, Slot = slot, AtTier = atTier };
@@ -186,65 +186,9 @@ public class SignatureTests
         Assert.Empty(Signatures.ResolveMovementGrant(new[] { 999 }, atTier: 3, tier: 3));
     }
 
-    [Fact]
-    public void OrBit_sets_the_bit_preserves_neighbors_and_reads_back()
-    {
-        var buf = new byte[16];
-        buf[3] = 0x40;   // a neighboring movement bit the player owns (e.g. Move +2)
-        var h = System.Runtime.InteropServices.GCHandle.Alloc(buf, System.Runtime.InteropServices.GCHandleType.Pinned);
-        try
-        {
-            long addr = h.AddrOfPinnedObject().ToInt64() + 3;
-            Assert.True(Signatures.OrBit(addr, 0x01, out _));    // OR-set Lifefont
-            Assert.Equal(0x41, buf[3]);                          // neighbor preserved, bit set
-            Assert.True(Signatures.OrBit(addr, 0x01, out _));    // idempotent re-hold
-            Assert.Equal(0x41, buf[3]);
-        }
-        finally { h.Free(); }
-    }
-
-    [Fact]
-    public void OrBit_reports_the_pre_write_state()
-    {
-        // The pre-OR state is the LIVE-TEST SIGNAL: a bit found set means the engine KEPT it
-        // since the last hold; a bit found clear means the engine wiped it and we re-armed.
-        // The post-write read-back alone always says SET on a writable page -- degenerate.
-        var buf = new byte[16];
-        var h = System.Runtime.InteropServices.GCHandle.Alloc(buf, System.Runtime.InteropServices.GCHandleType.Pinned);
-        try
-        {
-            long addr = h.AddrOfPinnedObject().ToInt64() + 3;
-            Assert.True(Signatures.OrBit(addr, 0x01, out bool wasSet));   // first hold: bit absent
-            Assert.False(wasSet);
-            Assert.True(Signatures.OrBit(addr, 0x01, out wasSet));        // engine kept it -> HELD
-            Assert.True(wasSet);
-            buf[3] = 0;                                                   // engine cleared it between holds
-            Assert.True(Signatures.OrBit(addr, 0x01, out wasSet));        // re-armed -> REARMED
-            Assert.False(wasSet);
-        }
-        finally { h.Free(); }
-    }
-
     // --- unequip release: a granted support bit is AND-cleared when the granting weapon
     //     leaves the wielder's hands mid-battle (Rend/Steal mutate the roster live), so the
     //     buff doesn't linger to battle end. The player's own picked support is never stripped.
-
-    [Fact]
-    public void ClearBit_clears_only_the_target_bit_and_reads_back()
-    {
-        var buf = new byte[16];
-        buf[3] = 0x41;   // our granted bit 0x01 + a neighboring support the player owns (0x40)
-        var h = System.Runtime.InteropServices.GCHandle.Alloc(buf, System.Runtime.InteropServices.GCHandleType.Pinned);
-        try
-        {
-            long addr = h.AddrOfPinnedObject().ToInt64() + 3;
-            Assert.True(Signatures.ClearBit(addr, 0x01));
-            Assert.Equal(0x40, buf[3]);                    // neighbor untouched
-            Assert.True(Signatures.ClearBit(addr, 0x01));  // idempotent re-clear
-            Assert.Equal(0x40, buf[3]);
-        }
-        finally { h.Free(); }
-    }
 
     [Theory]
     [InlineData(true, 0, 226, false)]      // still wielded -> never clear

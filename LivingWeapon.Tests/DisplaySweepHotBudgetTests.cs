@@ -32,7 +32,7 @@ public class DisplaySweepHotBudgetTests
         var sw = new DisplaySweep(heap, () => now);
 
         // Drain the background generation first, then mark all four chunks hot
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
         now += DisplaySweep.GenerationRestMs + 1;
         sw.Tick(long.MaxValue, cap.Handler);
         foreach (long b in bases) sw.MarkHot(b);
@@ -64,7 +64,7 @@ public class DisplaySweepHotBudgetTests
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
 
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
         now += DisplaySweep.GenerationRestMs + 1;
         sw.Tick(long.MaxValue, cap.Handler);
         foreach (long b in bases) sw.MarkHot(b);
@@ -76,7 +76,7 @@ public class DisplaySweepHotBudgetTests
         for (int tick = 0; tick < 20; tick++)
         {
             now += DisplaySweep.HotRescanMs + 1;
-            var pass = new DisplaySweepTestBase.Capture();
+            var pass = new DisplaySweepFixtures.Capture();
             sw.Tick(oneChunk, pass.Handler);
             foreach (var (cs, _, _) in pass.Chunks)
                 seen.Add(cs);
@@ -97,11 +97,11 @@ public class DisplaySweepHotBudgetTests
     public void Hot_chunk_not_remarked_is_dropped_after_ttl()
     {
         long regionBase = 0x30_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
 
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
         now += DisplaySweep.GenerationRestMs + 1;
         sw.Tick(long.MaxValue, cap.Handler);
         sw.MarkHot(regionBase);
@@ -122,11 +122,11 @@ public class DisplaySweepHotBudgetTests
     public void Hot_chunk_remarked_before_ttl_is_still_offered()
     {
         long regionBase = 0x31_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
 
-        var cap = new DisplaySweepTestBase.Capture();
+        var cap = new DisplaySweepFixtures.Capture();
         now += DisplaySweep.GenerationRestMs + 1;
         sw.Tick(long.MaxValue, cap.Handler);
         sw.MarkHot(regionBase);

@@ -128,20 +128,6 @@ internal static class Wielder
         return found == 1;
     }
 
-    /// <summary>True when any roster slot's RRHand equals <paramref name="weaponId"/>. Lightweight
-    /// presence check for Barrage, CharmLock, and EagleEye, which only need to know if a main-hand
-    /// wielder exists -- not the full fingerprint. Skips empty slots (level 0).</summary>
-    public static bool HasMainHandWielder(IGameMemory mem, int weaponId)
-    {
-        for (int r = 0; r < Offsets.RosterSlots; r++)
-        {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            if (mem.U8(rb + Offsets.RLevel) < 1) continue;
-            if (mem.U16(rb + Offsets.RRHand) == weaponId) return true;
-        }
-        return false;
-    }
-
     private static bool Contains(IReadOnlyList<int> hands, int wid)
     {
         for (int i = 0; i < hands.Count; i++) if (hands[i] == wid) return true;

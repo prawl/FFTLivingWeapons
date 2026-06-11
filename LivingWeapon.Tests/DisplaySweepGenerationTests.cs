@@ -11,7 +11,7 @@ public class DisplaySweepGenerationTests
     [Fact]
     public void Generation_no_background_rewalk_until_rest_gap_elapses()
     {
-        var heap = DisplaySweepTestBase.OneRegion(0x8_0000_0000L, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(0x8_0000_0000L, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
         int bgOffers = 0;
@@ -32,7 +32,7 @@ public class DisplaySweepGenerationTests
     [Fact]
     public void Generation_new_pass_starts_after_rest_gap()
     {
-        var heap = DisplaySweepTestBase.OneRegion(0x9_0000_0000L, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(0x9_0000_0000L, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
         long gen0 = sw.Generation;
@@ -52,7 +52,7 @@ public class DisplaySweepGenerationTests
     [Fact]
     public void Invalidate_starts_new_pass_after_min_gap_not_before()
     {
-        var heap = DisplaySweepTestBase.OneRegion(0xA_0000_0000L, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(0xA_0000_0000L, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
         long gen0 = sw.Generation;
@@ -76,7 +76,7 @@ public class DisplaySweepGenerationTests
     [Fact]
     public void Generation_counter_increments_per_pass_start()
     {
-        var heap = DisplaySweepTestBase.OneRegion(0xB_0000_0000L, DisplaySweep.ChunkSize);
+        var heap = DisplaySweepFixtures.OneRegion(0xB_0000_0000L, DisplaySweep.ChunkSize);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
         long gen0 = sw.Generation;

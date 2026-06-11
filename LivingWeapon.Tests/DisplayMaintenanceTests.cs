@@ -22,40 +22,15 @@ public class DisplayMaintenanceTests
         { 10, new WeaponMeta { Name = "SwordA", Flavor = "Bright edge of dawn", Wp = 12, Cat = "Sword", Formula = 1 } },
     };
 
-    private static (int suffixPos, int flavorPos, int killsSlotPos) WriteCard(
-        byte[] buf, int pos, string name, string flavor)
-    {
-        byte[] nameBytes   = ByteScan.Ascii(name);
-        byte[] suffixBytes = ByteScan.Ascii("  ");
-        byte[] padBytes    = ByteScan.Ascii("   ");
-        byte[] flavorBytes = ByteScan.Ascii(flavor);
-        byte[] nnBytes     = ByteScan.Ascii("\n\nKills: ");
-        byte[] killsBytes  = ByteScan.Ascii("0   ");
-
-        int at = pos;
-        Array.Copy(nameBytes,   0, buf, at, nameBytes.Length);   at += nameBytes.Length;
-        int suffixPos = at;
-        Array.Copy(suffixBytes, 0, buf, at, suffixBytes.Length); at += suffixBytes.Length;
-        Array.Copy(padBytes,    0, buf, at, padBytes.Length);    at += padBytes.Length;
-        int flavorPos = at;
-        Array.Copy(flavorBytes, 0, buf, at, flavorBytes.Length); at += flavorBytes.Length;
-        Array.Copy(nnBytes,     0, buf, at, nnBytes.Length);     at += nnBytes.Length;
-        int killsSlotPos = at;
-        Array.Copy(killsBytes,  0, buf, at, killsBytes.Length);
-        return (suffixPos, flavorPos, killsSlotPos);
-    }
-
-    private sealed class Clock { public long Ms; public Func<long> Func => () => Ms; }
-
     private static (FakeHeap heap,
                     (int suffixPos, int flavorPos, int killsSlotPos) card,
                     Display display,
-                    Clock clock)
+                    TestClock clock)
         BuildFixture(Dictionary<int, int> kills, int mirrorId = 10)
     {
         var meta = BuildMeta();
         var src  = new byte[512];
-        var card = WriteCard(src, 0, "SwordA", "Bright edge of dawn");
+        var card = CardFixtures.WriteCard(src, 0, "SwordA", "Bright edge of dawn");
 
         var statics = new byte[16];
         statics[0] = (byte)(mirrorId & 0xFF);
@@ -63,13 +38,8 @@ public class DisplayMaintenanceTests
         statics[4] = 12; // WpScratch natural
 
         var heap = new FakeHeap((SourceBase, src), (StaticsBase, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase + 0,
-            mirrorOffHandAddr: StaticsBase + 2,
-            wpScratchAddr:     StaticsBase + 4);
-
-        var clock   = new Clock();
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var clock   = new TestClock();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock);
         return (heap, card, display, clock);
     }
 
@@ -77,15 +47,6 @@ public class DisplayMaintenanceTests
     {
         heap.TryReadBytes(SourceBase + pos, len, out var buf);
         return System.Text.Encoding.ASCII.GetString(buf);
-    }
-
-    private static void DrainGeneration(Display display, Clock clock, int maxTicks = 500)
-    {
-        for (int i = 0; i < maxTicks; i++)
-        {
-            clock.Ms += DisplaySweep.HotRescanMs + 1;
-            display.Tick(false);
-        }
     }
 
     // ─── T3: maintenance repaint within MaintenanceMs, cadence respected ──────
@@ -102,7 +63,7 @@ public class DisplayMaintenanceTests
         var (heap, card, display, clock) = BuildFixture(kills);
 
         // Drain until the card is discovered and painted (count=9 -> "9   ").
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 500);
         Assert.Equal("9   ", ReadSlot(heap, card.killsSlotPos, 4));
         Assert.True(display._sites.Count > 0, "sweep must register sites");
 
@@ -146,7 +107,7 @@ public class DisplayMaintenanceTests
         var (heap, card, display, clock) = BuildFixture(kills);
 
         // Drain until the card is discovered (may register enc=1 + enc=2 sites).
-        DrainGeneration(display, clock);
+        CardFixtures.DrainGeneration(display, clock, 500);
         int countBeforeRemoval = display._sites.Count;
         Assert.True(countBeforeRemoval > 0, "at least one site must be registered");
 

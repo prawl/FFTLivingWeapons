@@ -28,11 +28,10 @@ namespace LivingWeapon;
 /// - All reads and writes go through <see cref="IGameMemory"/> (RPM/WPM-backed in
 ///   production), so a freed UI buffer yields a safe miss, never a crash.
 /// </summary>
-internal sealed partial class Display
+internal sealed class Display
 {
     private const long BudgetInBattle    = 8L  * 1024 * 1024;
     private const long BudgetOutOfBattle = 16L * 1024 * 1024;
-    private const int  RotationSlice     = 8;
 
     /// <summary>Cadence for the maintenance PaintAll call that drains dead sites and
     /// repaints any stale on-screen copy without waiting for a kill-count change.</summary>
@@ -41,12 +40,14 @@ internal sealed partial class Display
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int>        _kills;
     private readonly IGameMemory                 _mem;
-    internal readonly CardPatterns               _pats;
-    internal readonly DisplaySweep               _sweep;
-    internal readonly CardSites                  _sites;
+    private readonly CardPatterns                _pats;
+    private readonly DisplaySweep                _sweep;
+    internal readonly CardSites                  _sites;  // DisplayMaintenanceTests reads Count
+    private readonly WpScratchPainter            _wpScratch;
     private readonly Func<long>                  _nowMs;
 
     private readonly Dictionary<int, int> _lastCounts = new();
+    private readonly SuffixRotation       _rotation = new();
     private HashSet<int> _lastTargets = new();
 
     // Timestamp of the last maintenance PaintAll; initialised to -1 (before any real clock
@@ -54,26 +55,28 @@ internal sealed partial class Display
     // would overflow on the subtraction `now - _lastMaintenanceMs` since now >= 0.
     private long _lastMaintenanceMs = -1;
 
-    // Per-ID suffix coverage for the rotation slice. A SET, not a cursor: the old shared
-    // cursor was clamped to each chunk's id count, so a 2-card render buffer rescanned every
-    // 250ms kept resetting the position the 120-card master text was walking and tail ids
-    // were never suffix-painted (live: bows never showed their +3). Ids release for a new
-    // cycle once a chunk's set is exhausted, so fresh buffers wait at most one cycle.
-    internal readonly HashSet<int> _suffixCovered = new();
-
     // Generation number at the last log line so we log once per completion.
     private long _lastLoggedGen = -1;
 
     public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
                    Func<long>? nowMs = null)
     {
-        _meta   = meta;
-        _kills  = kills;
-        _mem    = mem;
-        _nowMs  = nowMs ?? (() => Environment.TickCount64);
-        _pats   = new CardPatterns(meta);
-        _sweep  = new DisplaySweep(mem, _nowMs);
-        _sites  = new CardSites(mem, _pats);
+        _meta      = meta;
+        _kills     = kills;
+        _mem       = mem;
+        _nowMs     = nowMs ?? (() => Environment.TickCount64);
+        _pats      = new CardPatterns(meta);
+        _sweep     = new DisplaySweep(mem, _nowMs);
+        _sites     = new CardSites(mem, _pats);
+        _wpScratch = new WpScratchPainter(mem, meta, KillsFor);
+
+        // Startup invariant: the sweep's lookback prefix must hold the longest anchor plus
+        // the widest painted slot, or a card straddling a chunk boundary could surface its
+        // slot with the anchor cut off and never verify. Log-and-continue -- a too-long
+        // name only degrades painting, while a throw here would take the game with it.
+        if (!_pats.FitsLookback(DisplaySweep.Lookback))
+            Log.Error("display: sweep lookback " + DisplaySweep.Lookback + " < max anchor "
+                      + _pats.MaxAnchorLen + " + slot; boundary-straddling cards may not paint");
     }
 
     /// <summary>Drop the site cache and start a new sweep generation on the next Tick.
@@ -135,10 +138,67 @@ internal sealed partial class Display
 
         // WpScratch: keyed by the mirror weapon (the card on screen), NOT roster slot 0.
         // Roster-slot-0 keying painted Ramza's boost while viewing any other unit.
-        PaintWpScratch();
+        _wpScratch.Paint();
     }
 
     // ─── private helpers ──────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by the sweep for every offered chunk.  Discovers kills and suffix sites,
+    /// registers them, then paints ONLY the newly-registered sites (not the full cache)
+    /// to avoid an O(all-sites) verify storm on every hit chunk.  PaintAll is reserved
+    /// for the count-change path in Tick where a known stale value must be pushed everywhere.
+    ///
+    /// Suffix coverage: the target set is always included; a rotation slice of ids that had
+    /// kills hits in this chunk is added on top (see <see cref="SuffixRotation"/> for the
+    /// per-ID coverage-cycle policy) so successive chunks and passes cycle through all ids
+    /// -- no chunk has to wait for a new generation.
+    /// </summary>
+    private void OnChunk(byte[] buf, int lookback, int searchable, long bufBaseAddr)
+    {
+        var killsHits = new List<CardScanner.KillsHit>();
+        CardScanner.FindKills(buf, lookback, searchable, _pats, killsHits);
+
+        // Gather ids that got kills hits in this chunk for the rotation slice.
+        var hitIds = new HashSet<int>();
+        foreach (var h in killsHits) hitIds.Add(h.Id);
+
+        // Suffix pass: targets UNION a rotation slice of ids that had kills hits.
+        var suffixIds = new HashSet<int>(_lastTargets);
+        if (hitIds.Count > 0)
+            suffixIds.UnionWith(_rotation.Take(hitIds, _lastTargets));
+
+        var suffixHits = new List<CardScanner.SuffixHit>();
+        CardScanner.FindSuffixes(buf, lookback, searchable, _pats, suffixIds, suffixHits);
+
+        // Collect newly-registered sites so we paint only those, not the whole cache.
+        var newSites = new List<CardSites.Site>();
+
+        foreach (var h in killsHits)
+        {
+            long slotAddr   = bufBaseAddr + h.SlotPos;
+            long anchorAddr = h.FlavorPos >= 0 ? bufBaseAddr + h.FlavorPos : slotAddr;
+            var site = new CardSites.Site(h.Id, h.Enc, slotAddr, anchorAddr, IsKills: true);
+            if (_sites.Add(site)) newSites.Add(site);
+        }
+
+        foreach (var h in suffixHits)
+        {
+            long slotAddr   = bufBaseAddr + h.SlotPos;
+            long anchorAddr = bufBaseAddr + h.NamePos;
+            var site = new CardSites.Site(h.Id, h.Enc, slotAddr, anchorAddr, IsKills: false);
+            if (_sites.Add(site)) newSites.Add(site);
+        }
+
+        if (newSites.Count > 0)
+        {
+            // Paint only the new sites from this chunk (not the full 512-site cache).
+            _sites.Paint(newSites, KillsFor);
+            // Mark chunk as hot so it gets priority on the next HotRescanMs interval.
+            long chunkStart = bufBaseAddr + lookback;
+            _sweep.MarkHot(chunkStart);
+        }
+    }
 
     private HashSet<int> BuildTargets()
     {

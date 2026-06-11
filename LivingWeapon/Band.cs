@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace LivingWeapon;
 
 /// <summary>
@@ -42,5 +44,37 @@ internal static class Band
         int gx = mem.U8(addr + Offsets.AGx);
         int gy = mem.U8(addr + Offsets.AGy);
         return gx <= 30 && gy <= 30;
+    }
+
+    /// <summary>ENEMY fingerprints from the static array (slots 0..EnemySlotMax) -- the shared
+    /// enemy-side oracle behind CharmLock/EagleEye/Maim/Ricochet. Shared caveat: the static
+    /// array FREEZES on battle restart (capture already happened).
+    /// NOTE: the mhp bound here is 2000 INCLUSIVE -- the bound every live-proven scan shipped
+    /// with -- and deliberately differs from <see cref="IsValid"/>'s exclusive (&gt;= 2000)
+    /// band-entry bound. Documented drift; do not align it without a live probe.</summary>
+    public static HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints(IGameMemory mem)
+        => Fingerprints(mem, 0, Offsets.EnemySlotMax);
+
+    /// <summary>PLAYER-side fingerprints from the static array (slots above EnemySlotMax) --
+    /// the positive ally oracle (Wyrmblood's splash filter). Same freeze caveat and the same
+    /// inclusive-2000 mhp bound as <see cref="EnemyFingerprints"/>.</summary>
+    public static HashSet<(int mhp, int lvl, int br, int fa)> AllyFingerprints(IGameMemory mem)
+        => Fingerprints(mem, Offsets.EnemySlotMax + 1, Offsets.NSlots - 1);
+
+    /// <summary>One static-array sweep: every slot in [first..last] with a sane fingerprint
+    /// (filters phantoms -- level 0 / garbage). HashSet = one entry per unit.</summary>
+    private static HashSet<(int mhp, int lvl, int br, int fa)> Fingerprints(IGameMemory mem, int first, int last)
+    {
+        var set = new HashSet<(int, int, int, int)>();
+        for (int s = first; s <= last; s++)
+        {
+            long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
+            if (!mem.Readable(slot + Offsets.AMaxHp, 2)) continue;
+            int mhp = mem.U16(slot + Offsets.AMaxHp), lvl = mem.U8(slot + Offsets.ALevel);
+            int br = mem.U8(slot + Offsets.ABrave), fa = mem.U8(slot + Offsets.AFaith);
+            if (mhp < 1 || mhp > 2000 || lvl < 1 || lvl > 99 || br > 100 || fa > 100) continue;
+            set.Add((mhp, lvl, br, fa));
+        }
+        return set;
     }
 }

@@ -42,14 +42,6 @@ internal static class ByteScan
         return false;
     }
 
-    /// <summary>Index of needle within buf[start..end), or -1.</summary>
-    public static int FindIn(byte[] buf, byte[] needle, int start, int end)
-    {
-        if (needle.Length == 0 || end - start < needle.Length) return -1;
-        int rel = buf.AsSpan(start, end - start).IndexOf(needle.AsSpan());
-        return rel < 0 ? -1 : start + rel;
-    }
-
     /// <summary>Slot validator for the "Kills NNNN" counter: left-aligned digits padded with spaces.
     /// Char 0 must be an ASCII digit; chars 1..3 are digits until the first space, then only spaces
     /// (a digit after a space = not our slot). This is a strict superset of the old all-digits form

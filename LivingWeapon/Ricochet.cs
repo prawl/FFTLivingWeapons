@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -14,15 +14,18 @@ namespace LivingWeapon;
 /// list (so higher band slots are reachable) and then Consume()s its own write, which is what
 /// makes the no-chain guarantee real: our chip is never read back as a fresh event.
 ///
-/// ATTRIBUTION: the acting player is identified by KillTracker._lastPlayerWeapons (the same
+/// ATTRIBUTION: the acting player is identified by KillTracker.LastPlayerWeapons (the same
 /// latch used for kill attribution). Events are processed only while that set contains the
 /// Stormarc id and the acted flag is high. While inactive, pass 1 still baselines, so damage
 /// dealt outside the wielder's action can never be mis-attributed when it next activates.
 /// Every write is VirtualQuery-guarded (Mem.Writable). No raw pointer derefs.
 /// </summary>
-internal sealed partial class Ricochet
+internal sealed partial class Ricochet : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
     private const int Stormarc = 86;
+
+    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -30,8 +33,10 @@ internal sealed partial class Ricochet
     private readonly RicochetState _state;
     private bool _wasActive;
 
-    public Ricochet(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker)
+    public Ricochet(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker,
+                    IGameMemory? mem = null)
     {
+        _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
         _tracker = tracker;
@@ -49,16 +54,16 @@ internal sealed partial class Ricochet
     {
         if (!onField) return;
         if (!_meta.TryGetValue(Stormarc, out var m) || m.Signature is null) return;
-        int tier = Tuning.TierFor(_kills.TryGetValue(Stormarc, out int k) ? k : 0);
-        bool active = IsActive(m.Signature, tier) && IsActingMainHand(_tracker._lastPlayerMainHand, Stormarc)
-                      && Mem.U8(Offsets.Acted) == 1;
+        int tier = Tuning.TierOf(_kills, Stormarc);
+        bool active = IsActive(m.Signature, tier) && Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, Stormarc)
+                      && _mem.U8(Offsets.Acted) == 1;
         if (active != _wasActive)
         {
             _wasActive = active;
             Log.Info($"ricochet {(active ? "ACTIVE -- Stormarc wielder is acting, chain lightning ready to bounce" : "inactive")}");
         }
 
-        var enemyFps = active ? EnemyFingerprints() : null;
+        var enemyFps = active ? Band.EnemyFingerprints(_mem) : null;
         var slots = new List<SlotInfo>(Offsets.BandSlots);
         var events = new List<(int Slot, int Gx, int Gy, int Dmg)>(2);
 
@@ -66,14 +71,14 @@ internal sealed partial class Ricochet
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long addr = Band.Entry(s);
-            if (!Mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            int mhp = Mem.U16(addr + Offsets.AMaxHp), lvl = Mem.U8(addr + Offsets.ALevel);
+            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
+            int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
             if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
-            int br = Mem.U8(addr + Offsets.ABrave), fa = Mem.U8(addr + Offsets.AFaith);
+            int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
             if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
-            int gx = Mem.U8(addr + Offsets.AGx), gy = Mem.U8(addr + Offsets.AGy);
+            int gx = _mem.U8(addr + Offsets.AGx), gy = _mem.U8(addr + Offsets.AGy);
             if (gx > 30 || gy > 30) continue;
-            int hp = Mem.Readable(addr + Offsets.AHp, 2) ? Mem.U16(addr + Offsets.AHp) : 0;
+            int hp = _mem.Readable(addr + Offsets.AHp, 2) ? _mem.U16(addr + Offsets.AHp) : 0;
 
             int dmg = _state.Observe(s, hp);   // always observe: baselining while inactive
             if (!active) continue;
@@ -90,32 +95,16 @@ internal sealed partial class Ricochet
             int target = PickTarget(vs, gx, gy, m.Signature.RicochetRadius, slots);
             if (target < 0) continue;
             long tAddr = Band.Entry(target);
-            if (!Mem.Readable(tAddr + Offsets.AHp, 2)) continue;
-            int tHp = Mem.U16(tAddr + Offsets.AHp);
+            if (!_mem.Readable(tAddr + Offsets.AHp, 2)) continue;
+            int tHp = _mem.U16(tAddr + Offsets.AHp);
             if (tHp <= 0) continue;   // died since pass 1
 
             int chip = ChipDamage(dmg, m.Signature.RicochetPct);
-            ApplyChip(tAddr, tHp, chip);
+            ApplyChip(_mem, tAddr, tHp, chip);
             int newHp = ClampHp(tHp, chip);
             _state.Consume(target, newHp);   // our write is NOT a damage event (no chains)
             Log.Info($"ricochet: chip damage bounced to the nearest other enemy -- {chip} damage dealt (source hit was {dmg}, target HP {tHp}->{newHp})");
         }
     }
 
-    /// <summary>Enemy fingerprints from the static array (slots 0..EnemySlotMax), the EagleEye
-    /// filter. Caveat shared with EagleEye: the static array FREEZES on battle restart.</summary>
-    private HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints()
-    {
-        var set = new HashSet<(int, int, int, int)>();
-        for (int s = 0; s <= Offsets.EnemySlotMax; s++)
-        {
-            long slot = Offsets.ArrayReadBase + (long)s * Offsets.ArrayStride;
-            if (!Mem.Readable(slot + Offsets.AMaxHp, 2)) continue;
-            int mhp = Mem.U16(slot + Offsets.AMaxHp), lvl = Mem.U8(slot + Offsets.ALevel);
-            int br = Mem.U8(slot + Offsets.ABrave), fa = Mem.U8(slot + Offsets.AFaith);
-            if (mhp < 1 || mhp > 2000 || lvl < 1 || lvl > 99 || br > 100 || fa > 100) continue;
-            set.Add((mhp, lvl, br, fa));
-        }
-        return set;
-    }
 }

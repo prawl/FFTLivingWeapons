@@ -12,48 +12,19 @@ public class WielderTests
 {
     private const int Weapon = 56;   // any catalogued id; tests use the Umbral Rod's
 
-    private sealed class FakeMemory : IGameMemory
-    {
-        public readonly Dictionary<long, ushort> U16s = new();
-        public readonly Dictionary<long, byte> U8s = new();
-        public byte U8(long a) => U8s.TryGetValue(a, out var v) ? v : (byte)0;
-        public ushort U16(long a) => U16s.TryGetValue(a, out var v) ? v : (ushort)0;
-    }
-
-    private static void SeatRoster(FakeMemory m, int slot, int lvl, int br, int fa,
-                                   int rh, int lh = 0xFFFF, int oh = 0xFFFF)
-    {
-        long rb = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
-        m.U8s[rb + Offsets.RLevel] = (byte)lvl; m.U8s[rb + Offsets.RBrave] = (byte)br;
-        m.U8s[rb + Offsets.RFaith] = (byte)fa;
-        m.U16s[rb + Offsets.RRHand] = (ushort)rh; m.U16s[rb + Offsets.RLHand] = (ushort)lh;
-        m.U16s[rb + Offsets.ROffHand] = (ushort)oh;
-    }
-
-    private static void SeatBand(FakeMemory m, int bandIdx, int weapon, int lvl, int br, int fa,
-                                 int gx, int gy, int hp = 100, int maxHp = 100)
-    {
-        long e = Band.Entry(bandIdx);
-        m.U16s[e + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)weapon;
-        m.U8s[e + Offsets.ALevel] = (byte)lvl; m.U8s[e + Offsets.ABrave] = (byte)br;
-        m.U8s[e + Offsets.AFaith] = (byte)fa;
-        m.U8s[e + Offsets.AGx] = (byte)gx; m.U8s[e + Offsets.AGy] = (byte)gy;
-        m.U16s[e + Offsets.AHp] = (ushort)hp; m.U16s[e + Offsets.AMaxHp] = (ushort)maxHp;
-    }
-
     // ---- TryResolve ----
 
     [Fact]
     public void TryResolve_false_when_nobody_wields_the_weapon()
     {
-        var m = new FakeMemory(); SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
+        var m = new FakeSparseMemory(); MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
         Assert.False(Wielder.TryResolve(m, Weapon, out _, new List<int>()));
     }
 
     [Fact]
     public void TryResolve_finds_the_single_wielder_fingerprint_and_hands()
     {
-        var m = new FakeMemory(); SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
+        var m = new FakeSparseMemory(); MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
         var hands = new List<int>();
         Assert.True(Wielder.TryResolve(m, Weapon, out var fp, hands));
         Assert.Equal((31, 65, 58), fp);
@@ -63,23 +34,23 @@ public class WielderTests
     [Fact]
     public void TryResolve_false_when_two_units_wield_it()
     {
-        var m = new FakeMemory();
-        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
-        SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        MemSeats.SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
         Assert.False(Wielder.TryResolve(m, Weapon, out _, new List<int>()));
     }
 
     [Fact]
     public void TryResolve_skips_empty_roster_slots()
     {
-        var m = new FakeMemory(); SeatRoster(m, 0, lvl: 0, br: 70, fa: 50, rh: Weapon);
+        var m = new FakeSparseMemory(); MemSeats.SeatRoster(m, 0, lvl: 0, br: 70, fa: 50, rh: Weapon);
         Assert.False(Wielder.TryResolve(m, Weapon, out _, new List<int>()));
     }
 
     [Fact]
     public void TryResolve_finds_an_offhand_wielder()
     {
-        var m = new FakeMemory(); SeatRoster(m, 3, lvl: 40, br: 80, fa: 45, rh: 1, oh: Weapon);
+        var m = new FakeSparseMemory(); MemSeats.SeatRoster(m, 3, lvl: 40, br: 80, fa: 45, rh: 1, oh: Weapon);
         var hands = new List<int>();
         Assert.True(Wielder.TryResolve(m, Weapon, out var fp, hands));
         Assert.Equal((40, 80, 45), fp); Assert.Contains(Weapon, hands); Assert.Contains(1, hands);
@@ -90,39 +61,39 @@ public class WielderTests
     [Fact]
     public void Locate_finds_the_band_entry_by_weapon_and_fingerprint()
     {
-        var m = new FakeMemory(); SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        var m = new FakeSparseMemory(); MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
         Assert.Equal(Band.Entry(5), Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
     }
 
     [Fact]
     public void Locate_prefers_the_real_position_over_the_frozen_origin_twin()
     {
-        var m = new FakeMemory();
-        SeatBand(m, 3, Weapon, lvl: 31, br: 65, fa: 58, gx: 0, gy: 0);
-        SeatBand(m, 9, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 3, Weapon, lvl: 31, br: 65, fa: 58, gx: 0, gy: 0);
+        MemSeats.SeatBand(m, 9, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);
         Assert.Equal(Band.Entry(9), Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
     }
 
     [Fact]
     public void Locate_returns_zero_on_a_surviving_tie()
     {
-        var m = new FakeMemory();
-        SeatBand(m, 3, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 4);
-        SeatBand(m, 9, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 3, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 4);
+        MemSeats.SeatBand(m, 9, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);
         Assert.Equal(0, Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
     }
 
     [Fact]
     public void Locate_rejects_a_fingerprint_mismatch()
     {
-        var m = new FakeMemory(); SeatBand(m, 5, Weapon, lvl: 31, br: 66, fa: 58, gx: 4, gy: 7);
+        var m = new FakeSparseMemory(); MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 66, fa: 58, gx: 4, gy: 7);
         Assert.Equal(0, Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
     }
 
     [Fact]
     public void Locate_matches_the_other_hand_when_the_weapon_rides_offhand()
     {
-        var m = new FakeMemory(); SeatBand(m, 7, 1, lvl: 40, br: 80, fa: 45, gx: 3, gy: 3);
+        var m = new FakeSparseMemory(); MemSeats.SeatBand(m, 7, 1, lvl: 40, br: 80, fa: 45, gx: 3, gy: 3);
         Assert.Equal(Band.Entry(7), Wielder.Locate(m, Weapon, new[] { 1, Weapon }, (40, 80, 45)));
     }
 
@@ -132,9 +103,9 @@ public class WielderTests
     public void Locate_returns_one_when_two_candidates_are_identical_twins_both_at_origin()
     {
         // Same identity tuple, both at (0,0): unit on the corner tile -- return one, not 0.
-        var m = new FakeMemory();
-        SeatBand(m, 25, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
-        SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 25, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        MemSeats.SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
         long e = Wielder.Locate(m, Weapon, new[] { Weapon }, (99, 89, 76));
         Assert.NotEqual(0, e);
         Assert.True(e == Band.Entry(25) || e == Band.Entry(28));
@@ -145,9 +116,9 @@ public class WielderTests
     {
         // Dual-wield: exact-match rank resolves before the twin-tie path fires.
         const int Other = Weapon + 1;
-        var m = new FakeMemory();
-        SeatBand(m, 25, Other,  lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
-        SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 25, Other,  lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        MemSeats.SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
         long e = Wielder.Locate(m, Weapon, new[] { Weapon, Other }, (99, 89, 76));
         Assert.Equal(Band.Entry(28), e);
     }
@@ -156,9 +127,9 @@ public class WielderTests
     public void Locate_twin_tie_prefers_real_position_candidate_when_one_is_off_origin()
     {
         // One twin at (0,0), one at a real position: real-position wins (existing behavior).
-        var m = new FakeMemory();
-        SeatBand(m, 25, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
-        SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 3, gy: 5);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 25, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        MemSeats.SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 3, gy: 5);
         long e = Wielder.Locate(m, Weapon, new[] { Weapon }, (99, 89, 76));
         Assert.Equal(Band.Entry(28), e);
     }
@@ -167,9 +138,9 @@ public class WielderTests
     [Fact]
     public void LocateAll_returns_both_twins_regardless_of_position()
     {
-        var m = new FakeMemory();
-        SeatBand(m, 25, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
-        SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 25, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        MemSeats.SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
         var results = new List<long>();
         Wielder.LocateAll(m, Weapon, new[] { Weapon }, (99, 89, 76), results);
         Assert.Equal(2, results.Count);
@@ -180,8 +151,8 @@ public class WielderTests
     [Fact]
     public void LocateAll_returns_single_entry_when_no_twin()
     {
-        var m = new FakeMemory();
-        SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
         var results = new List<long>();
         Wielder.LocateAll(m, Weapon, new[] { Weapon }, (31, 65, 58), results);
         Assert.Single(results);
@@ -191,8 +162,8 @@ public class WielderTests
     [Fact]
     public void LocateAll_returns_empty_when_no_match()
     {
-        var m = new FakeMemory();
-        SeatBand(m, 5, Weapon, lvl: 31, br: 66, fa: 58, gx: 4, gy: 7);   // brave mismatch
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 66, fa: 58, gx: 4, gy: 7);   // brave mismatch
         var results = new List<long>();
         Wielder.LocateAll(m, Weapon, new[] { Weapon }, (31, 65, 58), results);
         Assert.Empty(results);
@@ -205,9 +176,9 @@ public class WielderTests
     [Fact]
     public void Locate_rejects_enemy_with_same_weapon_brave_faith_but_different_level()
     {
-        var m = new FakeMemory();
+        var m = new FakeSparseMemory();
         // Player fp: lvl=30, br=65, fa=58 -- enemy in the band has same weapon/brave/faith but lvl=25.
-        SeatBand(m, 10, Weapon, lvl: 25, br: 65, fa: 58, gx: 5, gy: 3);
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 25, br: 65, fa: 58, gx: 5, gy: 3);
         long e = Wielder.Locate(m, Weapon, new[] { Weapon }, (30, 65, 58));
         Assert.Equal(0, e);
     }
@@ -215,8 +186,8 @@ public class WielderTests
     [Fact]
     public void Locate_returns_entry_when_level_also_matches()
     {
-        var m = new FakeMemory();
-        SeatBand(m, 10, Weapon, lvl: 30, br: 65, fa: 58, gx: 5, gy: 3);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 30, br: 65, fa: 58, gx: 5, gy: 3);
         long e = Wielder.Locate(m, Weapon, new[] { Weapon }, (30, 65, 58));
         Assert.Equal(Band.Entry(10), e);
     }
@@ -224,8 +195,8 @@ public class WielderTests
     [Fact]
     public void LocateAll_rejects_entry_with_same_weapon_brave_faith_but_different_level()
     {
-        var m = new FakeMemory();
-        SeatBand(m, 10, Weapon, lvl: 25, br: 65, fa: 58, gx: 5, gy: 3);   // level mismatch
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 25, br: 65, fa: 58, gx: 5, gy: 3);   // level mismatch
         var results = new List<long>();
         Wielder.LocateAll(m, Weapon, new[] { Weapon }, (30, 65, 58), results);
         Assert.Empty(results);
@@ -234,8 +205,8 @@ public class WielderTests
     [Fact]
     public void LocateAll_accepts_entry_when_level_also_matches()
     {
-        var m = new FakeMemory();
-        SeatBand(m, 10, Weapon, lvl: 30, br: 65, fa: 58, gx: 5, gy: 3);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 30, br: 65, fa: 58, gx: 5, gy: 3);
         var results = new List<long>();
         Wielder.LocateAll(m, Weapon, new[] { Weapon }, (30, 65, 58), results);
         Assert.Single(results);
@@ -246,8 +217,8 @@ public class WielderTests
     [Fact]
     public void TryResolveMainHand_true_when_weapon_is_in_RRHand()
     {
-        var m = new FakeMemory();
-        SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
         var hands = new List<int>();
         Assert.True(Wielder.TryResolveMainHand(m, Weapon, out var fp, hands));
         Assert.Equal((31, 65, 58), fp);
@@ -258,8 +229,8 @@ public class WielderTests
     public void TryResolveMainHand_false_when_weapon_is_only_in_offhand()
     {
         // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
-        var m = new FakeMemory();
-        SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon);
         Assert.False(Wielder.TryResolveMainHand(m, Weapon, out _, new List<int>()));
     }
 
@@ -268,8 +239,8 @@ public class WielderTests
     {
         // The locate set for a main-hand Zwill must only pass the main-hand id so that the
         // band locate keyed on the main-hand id is an exact field match.
-        var m = new FakeMemory();
-        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon, oh: 99);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon, oh: 99);
         var hands = new List<int>();
         Assert.True(Wielder.TryResolveMainHand(m, Weapon, out _, hands));
         Assert.Equal(new List<int> { Weapon }, hands);
@@ -279,53 +250,18 @@ public class WielderTests
     [Fact]
     public void TryResolveMainHand_false_when_nobody_wields_it()
     {
-        var m = new FakeMemory();
-        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
         Assert.False(Wielder.TryResolveMainHand(m, Weapon, out _, new List<int>()));
     }
 
     [Fact]
     public void TryResolveMainHand_false_when_two_roster_slots_have_it_as_main_hand()
     {
-        var m = new FakeMemory();
-        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
-        SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        MemSeats.SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
         Assert.False(Wielder.TryResolveMainHand(m, Weapon, out _, new List<int>()));
     }
 
-    // ---- HasMainHandWielder: lightweight presence check for Barrage/CharmLock/EagleEye ----
-    // These modules need only "does anyone hold this weapon as their main hand?"
-
-    [Fact]
-    public void HasMainHandWielder_true_when_weapon_is_RRHand()
-    {
-        var m = new FakeMemory();
-        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
-        Assert.True(Wielder.HasMainHandWielder(m, Weapon));
-    }
-
-    [Fact]
-    public void HasMainHandWielder_false_when_weapon_is_only_in_offhand()
-    {
-        // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
-        var m = new FakeMemory();
-        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1, oh: Weapon);
-        Assert.False(Wielder.HasMainHandWielder(m, Weapon));
-    }
-
-    [Fact]
-    public void HasMainHandWielder_false_when_nobody_has_it()
-    {
-        var m = new FakeMemory();
-        SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
-        Assert.False(Wielder.HasMainHandWielder(m, Weapon));
-    }
-
-    [Fact]
-    public void HasMainHandWielder_true_for_any_valid_slot_with_weapon_in_main_hand()
-    {
-        var m = new FakeMemory();
-        SeatRoster(m, 3, lvl: 40, br: 80, fa: 45, rh: Weapon);
-        Assert.True(Wielder.HasMainHandWielder(m, Weapon));
-    }
 }

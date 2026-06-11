@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
@@ -13,7 +13,7 @@ public class CardSitesSuffixTests
     [Fact]
     public void Suffix_site_paints_tier_suffix()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[200];
@@ -46,7 +46,7 @@ public class CardSitesSuffixTests
     [Fact]
     public void Suffix_site_tier_zero_paints_spaces_utf16()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[400];

@@ -33,12 +33,9 @@ internal sealed partial class Barrage
     /// as a secondary command is also eligible for the grant.</summary>
     public const int ThiefRecord = 14;
 
-    /// <summary>True when the signature is configured and the kill tier is earned.</summary>
+    /// <summary>True when the signature is configured (GrantCommandAbilityId set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
-    {
-        if (sig is null || sig.GrantCommandAbilityId <= 0) return false;
-        return tier >= sig.AtTier;
-    }
+        => Signatures.Earned(sig, tier) && sig!.GrantCommandAbilityId > 0;
 
     /// <summary>A wielder qualifies for the Barrage grant when Thief is the primary job
     /// (job 83) OR Steal is the mounted secondary command (secondary record == 14). Injection
@@ -146,27 +143,27 @@ internal sealed partial class Barrage
     /// <paramref name="flagAddr"/> = start of the 3-byte flag prefix (ExtAb b0, ExtAb b1, ExtRSM).
     /// <paramref name="abBase"/> = start of the 16 ability bytes (flagAddr + 3).
     /// ORs the slot's extend bit, preserving the record's other extend bits. VirtualQuery-guarded.</summary>
-    public static void InjectSlot(long flagAddr, long abBase, int slotIdx, int abilityId)
+    public static void InjectSlot(IGameMemory mem, long flagAddr, long abBase, int slotIdx, int abilityId)
     {
         long byteAddr = abBase + slotIdx;
-        if (!Mem.Writable(byteAddr, 1)) return;
-        Mem.W8(byteAddr, SlotByte(abilityId));
+        if (!mem.Writable(byteAddr, 1)) return;
+        mem.W8(byteAddr, SlotByte(abilityId));
 
-        if (!Mem.Readable(flagAddr, 2)) return;
-        ushort extAb = (ushort)(Mem.U8(flagAddr) | (Mem.U8(flagAddr + 1) << 8));
+        if (!mem.Readable(flagAddr, 2)) return;
+        ushort extAb = (ushort)(mem.U8(flagAddr) | (mem.U8(flagAddr + 1) << 8));
         ushort bit = ExtendBit(slotIdx);
         if (abilityId >= 256) extAb |= bit; else extAb = (ushort)(extAb & ~bit);
-        if (!Mem.Writable(flagAddr, 2)) return;
-        Mem.W8(flagAddr, (byte)(extAb & 0xFF));
-        Mem.W8(flagAddr + 1, (byte)(extAb >> 8));
+        if (!mem.Writable(flagAddr, 2)) return;
+        mem.W8(flagAddr, (byte)(extAb & 0xFF));
+        mem.W8(flagAddr + 1, (byte)(extAb >> 8));
     }
 
     /// <summary>Write the 25 saved bytes (flags + ability + RSM) back to the record.
     /// <paramref name="flagAddr"/> = start of the 3-byte flag prefix. VirtualQuery-guarded.</summary>
-    public static void RestoreRecord(long flagAddr, byte[] saved)
+    public static void RestoreRecord(IGameMemory mem, long flagAddr, byte[] saved)
     {
-        if (!Mem.Writable(flagAddr, saved.Length)) return;
-        Mem.WriteBytes(flagAddr, saved);
+        if (!mem.Writable(flagAddr, saved.Length)) return;
+        mem.WriteBytes(flagAddr, saved);
     }
 
     /// <summary>Restore the original record bytes for <paramref name="recId"/> if we have them
@@ -176,24 +173,24 @@ internal sealed partial class Barrage
         var saved = _state.GetSaved(recId);
         if (saved is null) return;
         long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
-        if (!Mem.Writable(flagAddr, RecSize)) return;
-        RestoreRecord(flagAddr, saved);
+        if (!_mem.Writable(flagAddr, RecSize)) return;
+        RestoreRecord(_mem, flagAddr, saved);
         Log.Info($"barrage: removed Barrage from the command list, back to vanilla (record {recId})");
     }
 
     /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
     /// (jobIdx triple). Re-sets whenever clear -- the learn menu's purchase writeback can wipe
     /// externally-set bits. Never cleared by us.</summary>
-    private static void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
+    private void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
     {
         long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
         long addr = rb + RLearnedBase + (long)jobIdx * LearnedStride + LearnedByteIndex(slotIdx1);
         byte mask = LearnedBitMask(slotIdx1);
-        if (!Mem.Readable(addr, 1)) return;
-        byte cur = Mem.U8(addr);
+        if (!_mem.Readable(addr, 1)) return;
+        byte cur = _mem.U8(addr);
         if ((cur & mask) != 0) return;   // already set -> no write needed
-        if (!Mem.Writable(addr, 1)) return;
-        Mem.W8(addr, (byte)(cur | mask));
+        if (!_mem.Writable(addr, 1)) return;
+        _mem.W8(addr, (byte)(cur | mask));
         Log.Info($"barrage: re-set the learned flag for Barrage in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1}) -- menu write-back cleared it");
     }
 }

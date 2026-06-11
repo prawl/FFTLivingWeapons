@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -20,8 +20,9 @@ namespace LivingWeapon;
 /// and every non-consumed release restores CT=0 so a parked slam can never ghost-grant a turn.
 /// Every read/write is VirtualQuery-guarded (Mem). Hardcoded weapon/tier for the prototype.
 /// </summary>
-internal sealed partial class ExtraTurn
+internal sealed partial class ExtraTurn : ISignature
 {
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.Now);
     private readonly Dictionary<int, int> _kills;
     private readonly IGameMemory _mem;
     private readonly List<int> _hands = new();    // the wielder's real hand item ids (incl. the Zwill)
@@ -63,7 +64,7 @@ internal sealed partial class ExtraTurn
             return;
         }
 
-        bool freshKill = _lastCount >= 0 && count > _lastCount;
+        bool freshKill = Signatures.FreshKill(_lastCount, count);
         _lastCount = count;
         if (freshKill)
         {

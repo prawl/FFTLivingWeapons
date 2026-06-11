@@ -13,24 +13,12 @@ public class CardSitesRoundTripTests
     [Fact]
     public void Utf16_site_round_trip()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[400];
-        string flavor = "A fine blade";
-        string killsPrefix = "Kills: ";
-        string killsSlot = "0   ";
-
         int pos = 20;
-        var flavorBytes = ByteScan.Utf16(flavor);
-        var prefixBytes = ByteScan.Utf16(killsPrefix);
-        var currentSlotBytes = ByteScan.Utf16(killsSlot);
-
-        Array.Copy(flavorBytes, 0, buf, pos, flavorBytes.Length);
-        int killsAddr = pos + flavorBytes.Length + 100;
-        Array.Copy(prefixBytes, 0, buf, killsAddr, prefixBytes.Length);
-        int slotAddr = killsAddr + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slotAddr, currentSlotBytes.Length);
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, pos, "A fine blade", gap: 100, enc: 2);
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);
@@ -50,33 +38,15 @@ public class CardSitesRoundTripTests
     [Fact]
     public void PaintAll_paints_all_cached_sites()
     {
-        var meta = CardSitesTestBase.BuildMeta();
+        var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
         var buf = new byte[400];
-        string flavor1 = "A fine blade";
-        string flavor2 = "A hefty tool";
-        string killsPrefix = "Kills: ";
-        string killsSlot = "0   ";
-
         int pos1 = 10;
-        var flavorBytes1 = ByteScan.Ascii(flavor1);
-        var prefixBytes = ByteScan.Ascii(killsPrefix);
-        var currentSlotBytes = ByteScan.Ascii(killsSlot);
-
-        Array.Copy(flavorBytes1, 0, buf, pos1, flavorBytes1.Length);
-        int killsAddr1 = pos1 + flavorBytes1.Length + 30;
-        Array.Copy(prefixBytes, 0, buf, killsAddr1, prefixBytes.Length);
-        int slotAddr1 = killsAddr1 + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slotAddr1, currentSlotBytes.Length);
+        int slotAddr1 = CardFixtures.WriteKillsBlock(buf, pos1, "A fine blade", gap: 30);
 
         int pos2 = 150;
-        var flavorBytes2 = ByteScan.Ascii(flavor2);
-        Array.Copy(flavorBytes2, 0, buf, pos2, flavorBytes2.Length);
-        int killsAddr2 = pos2 + flavorBytes2.Length + 30;
-        Array.Copy(prefixBytes, 0, buf, killsAddr2, prefixBytes.Length);
-        int slotAddr2 = killsAddr2 + prefixBytes.Length;
-        Array.Copy(currentSlotBytes, 0, buf, slotAddr2, currentSlotBytes.Length);
+        int slotAddr2 = CardFixtures.WriteKillsBlock(buf, pos2, "A hefty tool", gap: 30);
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);

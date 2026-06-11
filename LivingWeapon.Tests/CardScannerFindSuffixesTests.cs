@@ -13,7 +13,7 @@ public class CardScannerFindSuffixesTests
     [Fact]
     public void FindSuffixes_ascii_finds_name_and_valid_slot()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", ""));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", ""));
         var pats = new CardPatterns(meta);
         var nameIds = new List<int> { 1 };
 
@@ -36,7 +36,7 @@ public class CardScannerFindSuffixesTests
     [Fact]
     public void FindSuffixes_utf16_finds_name_and_valid_slot()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", ""));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", ""));
         var pats = new CardPatterns(meta);
         var nameIds = new List<int> { 1 };
 
@@ -59,7 +59,7 @@ public class CardScannerFindSuffixesTests
     [Fact]
     public void FindSuffixes_skips_id_not_in_nameids()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", ""), (2, "Staff", ""));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", ""), (2, "Staff", ""));
         var pats = new CardPatterns(meta);
         var nameIds = new List<int> { 1 };
 
@@ -85,7 +85,7 @@ public class CardScannerFindSuffixesTests
     [Fact]
     public void FindSuffixes_name_slot_extends_past_searchable_but_within_buf_still_reported()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", ""));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", ""));
         var pats = new CardPatterns(meta);
         var nameIds = new List<int> { 1 };
 
@@ -109,7 +109,7 @@ public class CardScannerFindSuffixesTests
     [Fact]
     public void FindSuffixes_invalid_slot_not_reported()
     {
-        var meta = CardScannerTestBase.BuildMetaMap((1, "Sword", ""));
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", ""));
         var pats = new CardPatterns(meta);
         var nameIds = new List<int> { 1 };
 

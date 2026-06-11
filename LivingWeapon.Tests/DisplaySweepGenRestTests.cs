@@ -17,7 +17,7 @@ public class DisplaySweepGenRestTests
     public void Rest_measured_from_completion_not_start()
     {
         long regionBase = 0x50_0000_0000L;
-        var heap = DisplaySweepTestBase.OneRegion(regionBase, DisplaySweep.ChunkSize * 2);
+        var heap = DisplaySweepFixtures.OneRegion(regionBase, DisplaySweep.ChunkSize * 2);
         long now = 0;
         var sw = new DisplaySweep(heap, () => now);
 

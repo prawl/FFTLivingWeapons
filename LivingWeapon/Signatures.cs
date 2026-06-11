@@ -80,31 +80,19 @@ internal static class Signatures
         return grants;
     }
 
-    /// <summary>Guarded OR-set of a single bit, returning the post-write read-back (true == the
-    /// bit reads SET afterwards). Never clears anything; fail-safe false on an unwritable page.
-    /// <paramref name="wasSet"/> is the PRE-write state -- the live-test signal: true means the
-    /// engine KEPT the bit since the last hold, false means it was cleared and we just re-armed
-    /// it (the post-write read-back alone always says SET on a writable page).</summary>
-    public static bool OrBit(long addr, byte mask, out bool wasSet)
-    {
-        wasSet = false;
-        if (!Mem.Writable(addr, 1)) return false;
-        int cur = Mem.U8(addr);
-        wasSet = (cur & mask) != 0;
-        if (!wasSet) Mem.W8(addr, (byte)(cur | mask));
-        return (Mem.U8(addr) & mask) != 0;
-    }
+    /// <summary>The shared half of every signature's activation gate: a signature exists and its
+    /// kill-tier is earned. Each feature ANDs this with its own payload check (CrippleTurns &gt; 0,
+    /// RaptureMove, ...), which is real per-feature knowledge -- the tier math lives only here.</summary>
+    public static bool Earned(WeaponSignature? sig, int tier) => sig is not null && tier >= sig.AtTier;
 
-    /// <summary>Guarded AND-clear of a single bit, returning the read-back (true == the bit reads
-    /// CLEAR afterwards). Touches nothing else in the byte; fail-safe false on an unwritable page.
-    /// The unequip-release counterpart of <see cref="OrBit"/>.</summary>
-    public static bool ClearBit(long addr, byte mask)
-    {
-        if (!Mem.Writable(addr, 1)) return false;
-        int cur = Mem.U8(addr);
-        if ((cur & mask) != 0) Mem.W8(addr, (byte)(cur & ~mask));
-        return (Mem.U8(addr) & mask) == 0;
-    }
+    /// <summary>True when the acting unit's main-hand weapon is this weapon. A Living Weapon
+    /// earns kills in any hand, but commands its gift only from the main hand.</summary>
+    public static bool IsActingMainHand(int mainHand, int weaponId) => mainHand == weaponId && mainHand != 0;
+
+    /// <summary>A fresh kill landed on the tally since the last look: the diff that lets a
+    /// signature ride the proven KillTracker credit instead of running a second death detector.
+    /// lastCount &lt; 0 = unprimed (first look of a battle) -- never fresh.</summary>
+    public static bool FreshKill(int lastCount, int count) => lastCount >= 0 && count > lastCount;
 
     /// <summary>Should a latched support grant be AND-cleared? Only when the granting weapon has
     /// actually left the wielder's hands AND the bit isn't the player's own picked support
