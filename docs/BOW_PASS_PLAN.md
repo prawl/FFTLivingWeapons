@@ -1,7 +1,7 @@
 # Bow Pass — Implementation Plan (drafted 2026-06-09, end of the four-mechanics session)
 
-Design truth: `docs/living_weapon_grid.csv` rows 83–91 (mirrored in `docs/living_weapon_bows.csv`
-for the working pass — merge back like the knives/crossbows sheets when the pass ships).
+Design truth: `docs/living_weapon_grid.csv` rows 83–91 (the working-pass mirror sheet was
+merged back and retired 2026-06-11, like the knives/crossbows sheets before it).
 Data truth: `data/items.json` only; everything else regenerates. TDD per house rules; both
 gates must be green at every step.
 
