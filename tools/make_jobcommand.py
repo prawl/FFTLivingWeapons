@@ -38,7 +38,7 @@ labels = {int(m.group(1)): m.group(2).strip()
 
 root = ET.parse(VANILLA).getroot()
 
-affected = []  # list of (record_id, [(slot_index, old_value), ...])
+affected = []  # list of (record_id, flag_text, [(slot_index, old_value), ...])
 for entry in root.iter("JobCommand"):
     rec_id = int(entry.findtext("Id"))
     hits   = []
@@ -47,7 +47,14 @@ for entry in root.iter("JobCommand"):
         if val_text and int(val_text) == EQUIP_AXES:
             hits.append((i, int(val_text)))
     if hits:
-        affected.append((rec_id, hits))
+        # The RSMIdN property SETTERS in the modloader model recompute the matching bit of
+        # ExtendReactionSupportMovementIdFlagBits on every assignment -- by dereferencing it
+        # (`...FlagBits!.Value`). A sparse record WITHOUT that element leaves it null, the
+        # setter throws, and the whole table is dropped (live YAXPropertyCannotBeAssignedTo,
+        # 2026-06-10). So every record must carry the vanilla flag text, ORDERED BEFORE the
+        # RSM elements; assigning the zeroed slot then auto-clears its own extend bit.
+        flag_text = " ".join((entry.findtext("ExtendReactionSupportMovementIdFlagBits") or "0").split())
+        affected.append((rec_id, flag_text, hits))
 
 if not affected:
     raise SystemExit("no records carrying Equip Axes found -- check VANILLA path or ability id")
@@ -61,14 +68,12 @@ out = [
     "  <Entries>",
 ]
 
-# NO inline comments inside the entries: this table's deserializer is stricter than the
-# Item tables' -- a comment node between elements gets read as the NEXT element's value
-# ("Fundaments: RSMId2 460->0" is not an int), and the whole table is dropped with
-# YAXPropertyCannotBeAssignedTo (live failure, 2026-06-10). Provenance lives in the header
-# comment above the root, where the vanilla dump also keeps its prose.
-for rec_id, hits in sorted(affected):
+# No inline comments inside the entries (kept out since the first repair attempt); the real
+# load-bearing detail is the flag element ORDER -- see the comment where flag_text is captured.
+for rec_id, flag_text, hits in sorted(affected):
     out.append(f"    <JobCommand>")
     out.append(f"      <Id>{rec_id}</Id>")
+    out.append(f"      <ExtendReactionSupportMovementIdFlagBits>{flag_text}</ExtendReactionSupportMovementIdFlagBits>")
     for i, _old in hits:
         out.append(f"      <ReactionSupportMovementId{i}>0</ReactionSupportMovementId{i}>")
     out.append(f"    </JobCommand>")
@@ -85,5 +90,5 @@ OUT.write_text(text, encoding="utf-8")
 
 print(
     f"Wrote JobCommandData.xml: {len(affected)} records patched, "
-    f"{sum(len(h) for _, h in affected)} RSM slot(s) zeroed (Equip Axes id {EQUIP_AXES})"
+    f"{sum(len(h) for _, _, h in affected)} RSM slot(s) zeroed (Equip Axes id {EQUIP_AXES})"
 )
