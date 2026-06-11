@@ -178,6 +178,43 @@ elif cmd == "diff":
     if len(runs) > 120:
         print(f"  ... {len(runs) - 120} more in the json")
 
+elif cmd == "togglefind":
+    # Differential toggle scan: given several OFF snapshots and several ON snapshots
+    # (toggle the SAME thing on/off/on/off, snapping each state), keep only byte
+    # addresses where every OFF agrees, every ON agrees, and OFF != ON. Render churn
+    # never lands on the same value twice across cycles, so it filters itself out.
+    #   togglefind off:a,b,c on:x,y
+    off_names = sys.argv[2].split(":", 1)[1].split(",")
+    on_names = sys.argv[3].split(":", 1)[1].split(",")
+    offs = [load_snap(n) for n in off_names]
+    ons = [load_snap(n) for n in on_names]
+    bases = set(offs[0])
+    for s in offs[1:] + ons:
+        bases &= set(s)
+    runs, cur = [], None
+    for base in sorted(bases):
+        arrs_off = [s[base] for s in offs]
+        arrs_on = [s[base] for s in ons]
+        n = min(len(a) for a in arrs_off + arrs_on)
+        for i in range(n):
+            voff = arrs_off[0][i]
+            von = arrs_on[0][i]
+            if (voff != von
+                    and all(a[i] == voff for a in arrs_off)
+                    and all(a[i] == von for a in arrs_on)):
+                addr = base + i
+                if cur and addr == cur[1]:
+                    cur = (cur[0], addr + 1, cur[2] + bytes([voff]), cur[3] + bytes([von]))
+                else:
+                    if cur:
+                        runs.append(cur)
+                    cur = (addr, addr + 1, bytes([voff]), bytes([von]))
+    if cur:
+        runs.append(cur)
+    print(f"toggled in lockstep across {len(offs)} OFF + {len(ons)} ON states: {len(runs)} runs")
+    for a, end, voff, von in runs:
+        print(f"  {a:#x}  OFF={voff.hex()}  ON={von.hex()}")
+
 elif cmd == "intersect":
     sets = []
     for name in sys.argv[2:]:
@@ -223,6 +260,42 @@ elif cmd == "find":
 elif cmd == "poke":
     addr, data = int(sys.argv[2], 0), bytes.fromhex(sys.argv[3])
     print("OK" if wpm(addr, data) else "WRITE FAILED")
+
+elif cmd == "hold":
+    # Continuously re-write bytes to beat the engine's per-frame normalize (the DLL's
+    # write+hold pattern). Saves the original, holds for <secs>, then restores.
+    #   hold <addr> <hexbytes> [secs]
+    addr, data = int(sys.argv[2], 0), bytes.fromhex(sys.argv[3])
+    secs = float(sys.argv[4]) if len(sys.argv) > 4 else 8.0
+    orig = rpm(addr, len(data))
+    print(f"holding {len(data)} bytes at {addr:#x} for {secs}s (orig {orig.hex() if orig else '??'} -> {data.hex()})")
+    t0, writes = time.time(), 0
+    while time.time() - t0 < secs:
+        wpm(addr, data)
+        writes += 1
+    if orig:
+        wpm(addr, orig)
+    print(f"done: {writes} writes, restored original.")
+
+elif cmd == "holdmany":
+    # Hold several (addr, bytes) regions at once -- for write+holding the highlight
+    # gate AND a custom tile list together.   holdmany <secs> <addr1> <hex1> <addr2> <hex2> ...
+    secs = float(sys.argv[2])
+    targets = []
+    for i in range(3, len(sys.argv), 2):
+        a, data = int(sys.argv[i], 0), bytes.fromhex(sys.argv[i + 1])
+        targets.append((a, data, rpm(a, len(data))))
+    for a, data, orig in targets:
+        print(f"  hold {a:#x}: {orig.hex() if orig else '??'} -> {data.hex()}")
+    t0, writes = time.time(), 0
+    while time.time() - t0 < secs:
+        for a, data, _ in targets:
+            wpm(a, data)
+        writes += 1
+    for a, _, orig in targets:
+        if orig:
+            wpm(a, orig)
+    print(f"done: {writes} loops, all originals restored.")
 
 else:
     print(__doc__)
