@@ -28,7 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="meta.json" CopyToOutputDirectory="PreserveNewest" Condition="Exists('meta.json')" />
+    <None Include="meta.json"      CopyToOutputDirectory="PreserveNewest" Condition="Exists('meta.json')" />
+    <None Include="treasure.json"  CopyToOutputDirectory="PreserveNewest" Condition="Exists('treasure.json')" />
   </ItemGroup>
 
 </Project>

@@ -29,6 +29,7 @@ $RequiredModFiles = @(
     "LivingWeapon.deps.json",
     "Newtonsoft.Json.dll",
     "meta.json",
+    "treasure.json",
     "FFTIVC/tables/enhanced/ItemData.xml",
     "FFTIVC/tables/enhanced/ItemWeaponData.xml",
     "FFTIVC/tables/enhanced/ItemArmorData.xml",
@@ -73,6 +74,14 @@ function Invoke-TablePipeline {
     & python "$PipelineRepoRoot\tools\gen_living_weapon_meta.py"
     if ($LASTEXITCODE -ne 0) {
         throw "REFUSING TO ${FailVerb}: meta-gen failed (exit $LASTEXITCODE)."
+    }
+
+    # Bake the treasure tile address dataset.  Exit 1 from the gate (bad addr, coord
+    # mismatch, off-byte violation) refuses deploy/package like analyze.py does.
+    Write-Host "  -> tools/gen_treasure_db.py (treasure_addrs.json + map_trap_formation.json -> treasure.json)..."
+    & python "$PipelineRepoRoot\tools\gen_treasure_db.py"
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: treasure-db gen failed (exit $LASTEXITCODE)."
     }
 
     Write-Host "  -> Generated + gated + meta baked OK." -ForegroundColor Green

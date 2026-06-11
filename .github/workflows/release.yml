@@ -110,14 +110,18 @@ jobs:
         if ($sizeKB -lt 50) { throw "Zip suspiciously small ($sizeKB KB); data package (xml/nxd/tex) should be larger" }
         Add-Type -Assembly System.IO.Compression.FileSystem
         $z = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipName))
-        $hasWeaponXml = $z.Entries | Where-Object { $_.Name -eq 'ItemWeaponData.xml' } | Select-Object -First 1
-        $hasItemNxd   = $z.Entries | Where-Object { $_.Name -eq 'item.en.nxd' } | Select-Object -First 1
-        $hasDll       = $z.Entries | Where-Object { $_.Name -eq 'LivingWeapon.dll' } | Select-Object -First 1
+        $hasWeaponXml  = $z.Entries | Where-Object { $_.Name -eq 'ItemWeaponData.xml' } | Select-Object -First 1
+        $hasItemNxd    = $z.Entries | Where-Object { $_.Name -eq 'item.en.nxd' } | Select-Object -First 1
+        $hasDll        = $z.Entries | Where-Object { $_.Name -eq 'LivingWeapon.dll' } | Select-Object -First 1
+        $hasMetaJson   = $z.Entries | Where-Object { $_.Name -eq 'meta.json' } | Select-Object -First 1
+        $hasTreasureJson = $z.Entries | Where-Object { $_.Name -eq 'treasure.json' } | Select-Object -First 1
         $z.Dispose()
-        if (-not $hasWeaponXml) { throw "ItemWeaponData.xml missing from $zipName" }
-        if (-not $hasItemNxd)   { throw "item.en.nxd missing from $zipName" }
-        if (-not $hasDll)       { throw "LivingWeapon.dll missing from $zipName (ModConfig declares it)" }
-        Write-Host "OK: $zipName ($sizeKB KB) contains ItemWeaponData.xml + item.en.nxd + LivingWeapon.dll"
+        if (-not $hasWeaponXml)    { throw "ItemWeaponData.xml missing from $zipName" }
+        if (-not $hasItemNxd)      { throw "item.en.nxd missing from $zipName" }
+        if (-not $hasDll)          { throw "LivingWeapon.dll missing from $zipName (ModConfig declares it)" }
+        if (-not $hasMetaJson)     { throw "meta.json missing from $zipName (Living Weapon runtime requires it)" }
+        if (-not $hasTreasureJson) { throw "treasure.json missing from $zipName (TreasureMaster requires it)" }
+        Write-Host "OK: $zipName ($sizeKB KB) contains ItemWeaponData.xml + item.en.nxd + LivingWeapon.dll + meta.json + treasure.json"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
