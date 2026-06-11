@@ -227,8 +227,9 @@ def check_rider_desc(items):
 def check_grid_sync(items):
     """docs/living_weapon_grid.csv is the DESIGN SOURCE OF TRUTH for the living weapons and must
     never drift from items.json. Mechanically-checkable columns are enforced: every living weapon
-    (weapon category, not noGrowth) has exactly one grid row, and the row's name / tier / WP /
-    parry% match items.json. Prose columns (sigNote, onHit) and 'Verified Live?' are NOT checked --
+    (weapon category, not noGrowth) has exactly one grid row, and the row's name / Prev Name
+    (the vanilla weapon it was converted from) / tier / WP / parry% match items.json. Prose
+    columns (sigNote, onHit) and 'Verified Live?' are NOT checked --
     the verified flag is flipped by a human only."""
     grid_path = ROOT / "docs" / "living_weapon_grid.csv"
     violations = []
@@ -254,6 +255,8 @@ def check_grid_sync(items):
         it, r, p, probs = lw[iid], rows[iid], lw[iid]["proposed"], []
         if (r.get("name") or "").strip() != it.get("name"):
             probs.append(f"name: grid {r.get('name')!r} != items {it.get('name')!r}")
+        if (r.get("Prev Name") or "").strip() != (it.get("vanillaName") or ""):
+            probs.append(f"Prev Name: grid {r.get('Prev Name')!r} != items vanillaName {it.get('vanillaName')!r}")
         want_type = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", it.get("category") or "")
         if (r.get("type") or "").strip() != want_type:
             probs.append(f"type: grid {r.get('type')!r} != items {want_type!r}")
@@ -270,7 +273,10 @@ def check_grid_sync(items):
     return violations
 
 
-# Acquisition vocabulary for the grid's obtain column. Shop is DERIVED (effective
+# Acquisition vocabulary for the grid's obtain column. Tokens may carry a parenthetical
+# detail -- "Poach (Plague Horror)", "Move-Find (Midlight's Deep DELTA)" -- which the
+# check strips before validating; the detail is the human-facing where/from-whom and the
+# token is the contract. Shop is DERIVED (effective
 # ShopAvailability: our shopOverride, else vanilla) and enforced both ways; the rest is
 # design knowledge only a human holds, so any non-Shop token just has to be spelled from
 # this set ("Poaching" rotting next to "Poach" is how sheets die). TBD marks the pending
@@ -297,11 +303,29 @@ def _effective_sold(it):
     return bool(_SOLD.search(eff or ""))
 
 
+def _split_obtain(cell):
+    """Token separator is '/' OUTSIDE parentheses only -- details may carry slashes
+    ("Poach (Wild Boar, rare 1/8)"). Returns the tokens with details stripped."""
+    parts, depth, cur = [], 0, []
+    for ch in cell:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+        elif ch == "/" and depth == 0:
+            parts.append("".join(cur))
+            cur = []
+            continue
+        cur.append(ch)
+    parts.append("".join(cur))
+    return [t for t in (re.sub(r"\s*\([^)]*\)", "", p).strip() for p in parts) if t]
+
+
 def _check_obtain(it, row):
     cell = (row.get("obtain") or "").strip()
     if not cell:
         return ["obtain: empty (use TBD while the acquisition pass is pending)"]
-    toks = [t.strip() for t in cell.split("/") if t.strip()]
+    toks = _split_obtain(cell)
     probs = [f"obtain: unknown token {t!r} (vocabulary: {'/'.join(sorted(_OBTAIN_VOCAB))})"
              for t in toks if t not in _OBTAIN_VOCAB]
     sold = _effective_sold(it)
