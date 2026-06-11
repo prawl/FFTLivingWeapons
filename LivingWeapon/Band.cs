@@ -8,6 +8,21 @@ namespace LivingWeapon;
 /// </summary>
 internal static class Band
 {
+    /// <summary>How far a LIVE level may exceed the ROSTER level and still identify the same
+    /// unit. The roster keeps the pre-battle level until battle end while live structs update
+    /// on a mid-battle level-up -- exact equality made freshly-leveled units invisible to
+    /// every roster-keyed identification (live 2026-06-10: a Phoenix Down kill by a leveled-up
+    /// Ramza paid out to the Wellspring Rod through the stale actor latch, and a leveled
+    /// wielder silently dropped their growth and signatures). Levels only go UP mid-battle,
+    /// so the window is one-sided; 9 bounds even an absurd grinding session within a battle
+    /// without reopening the enemy-collision hole the level checks exist to close.</summary>
+    public const int MaxLevelDrift = 9;
+
+    /// <summary>True when a LIVE level is consistent with a unit whose ROSTER level was
+    /// recorded pre-battle: equal, or above by at most <see cref="MaxLevelDrift"/>.</summary>
+    public static bool LevelMatchesRoster(int rosterLevel, int liveLevel)
+        => liveLevel >= rosterLevel && liveLevel - rosterLevel <= MaxLevelDrift;
+
     /// <summary>Base address for band slot s (s = 0..BandSlots-1, mapping n=-24..+24).</summary>
     public static long Entry(int s) => Offsets.BandReadBase + (long)s * Offsets.CombatStride;
 

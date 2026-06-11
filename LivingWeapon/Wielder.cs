@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -62,7 +62,7 @@ internal static class Wielder
             if (!Band.IsValid(mem, e)) continue;
             int wid = mem.U16(e + EntryWeapon);
             if (!Contains(hands, wid)) continue;
-            if (mem.U8(e + Offsets.ALevel) != fp.lvl) continue;
+            if (!Band.LevelMatchesRoster(fp.lvl, mem.U8(e + Offsets.ALevel))) continue;   // fp.lvl is the pre-battle roster level
             if (mem.U8(e + Offsets.ABrave) != fp.br || mem.U8(e + Offsets.AFaith) != fp.fa) continue;
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
@@ -97,7 +97,7 @@ internal static class Wielder
             if (!Band.IsValid(mem, e)) continue;
             int wid = mem.U16(e + EntryWeapon);
             if (!Contains(hands, wid)) continue;
-            if (mem.U8(e + Offsets.ALevel) != fp.lvl) continue;
+            if (!Band.LevelMatchesRoster(fp.lvl, mem.U8(e + Offsets.ALevel))) continue;   // fp.lvl is the pre-battle roster level
             if (mem.U8(e + Offsets.ABrave) != fp.br || mem.U8(e + Offsets.AFaith) != fp.fa) continue;
             results.Add(e);
         }

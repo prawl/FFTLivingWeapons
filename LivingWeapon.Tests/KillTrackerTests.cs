@@ -174,6 +174,45 @@ public class KillTrackerTests
     }
 
     [Fact]
+    public void Actor_who_leveled_up_mid_battle_still_resolves()
+    {
+        // Live bug (2026-06-10, the adversarial review's "uncertain" watch item, confirmed):
+        // the roster holds a unit's PRE-BATTLE level until battle end, but the live structs
+        // update on a mid-battle level-up -- so every action by a freshly-leveled unit failed
+        // roster identification, the stale latch survived, and a Phoenix Down kill by Ramza
+        // paid out to the Wellspring Rod's wielder. Live level may exceed roster level by a
+        // bounded drift (you level up, never down).
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 5, brave: 89, faith: 76, weapon: 52);   // roster: still level 5
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 6, brave: 89, faith: 76);   // live: leveled to 6
+        SetActive(m, hp: 352, maxHp: 352, level: 6, acted: 1);               // acting at level 6
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // resolved despite the level drift
+    }
+
+    [Fact]
+    public void Level_drift_only_tolerates_upward_and_bounded()
+    {
+        // A live level BELOW the roster level (impossible for a level-up) or absurdly far above
+        // it must NOT match -- the drift window cannot reopen the enemy-collision hole the
+        // level checks were added to close.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeMemory();
+        SetRoster(m, slot: 3, level: 10, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 9, brave: 89, faith: 76);   // BELOW roster
+        SetActive(m, hp: 352, maxHp: 352, level: 9, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
+        Assert.Empty(kills);                            // below-roster level never matches
+    }
+
+    [Fact]
     public void Enemy_acted_period_keeps_the_latch_sticky()
     {
         // The mirror case must NOT regress: an acting unit matching NO roster fingerprint (an

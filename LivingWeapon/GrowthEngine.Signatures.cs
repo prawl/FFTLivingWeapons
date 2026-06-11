@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -105,7 +105,7 @@ internal sealed partial class GrowthEngine
         {
             long addr = Offsets.BandReadBase + (long)s * Offsets.CombatStride;
             if (!Mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            if (Mem.U8(addr + Offsets.ALevel) != level) continue;
+            if (!Band.LevelMatchesRoster(level, Mem.U8(addr + Offsets.ALevel))) continue;   // level = pre-battle roster value
             if (Mem.U8(addr + Offsets.ABrave) != brave) continue;
             if (Mem.U8(addr + Offsets.AFaith) != faith) continue;
             bool realPos = Mem.U8(addr + Offsets.AGx) != 0 || Mem.U8(addr + Offsets.AGy) != 0;

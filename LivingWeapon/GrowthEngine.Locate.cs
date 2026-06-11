@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -90,7 +90,7 @@ internal sealed partial class GrowthEngine
         if (!Mem.Readable(s, StructSpan)) return false;
         int cw = Mem.U16(s + Offsets.CWeapon);
         if (!hands.Exists(x => x.weapon == cw)) return false;
-        if (Mem.U8(s + Offsets.CLevel) != level) return false;
+        if (!Band.LevelMatchesRoster(level, Mem.U8(s + Offsets.CLevel))) return false;   // level = pre-battle roster value
         if (Mem.U8(s + Offsets.CBrave) != brave || Mem.U8(s + Offsets.CFaith) != faith) return false;
         int pa = Mem.U8(s + Offsets.CPa), ma = Mem.U8(s + Offsets.CMa);
         return pa >= StatMin && pa <= SigStatHi && ma >= StatMin && ma <= SigStatHi;
