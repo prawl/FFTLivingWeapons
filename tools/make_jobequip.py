@@ -7,10 +7,14 @@ Skips monsters and the Lucavi boss forms. Parse-checks before writing (the modlo
 drops a table whose XML comment contains a double hyphen). Load after other job mods."""
 import xml.etree.ElementTree as ET
 import re
+import sys
 from pathlib import Path
 
-VANILLA = Path(r"C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods\FFTIVC_Mod_Loader\TableData\JobData.xml")
-OUT = Path(__file__).resolve().parent.parent / "mod" / "FFTIVC" / "tables" / "enhanced" / "JobData.xml"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.paths import TABLE_DATA, MOD_TABLES
+
+VANILLA = TABLE_DATA / "JobData.xml"
+OUT = MOD_TABLES / "JobData.xml"
 
 # weapon cross-equips by job name, applied to GENERIC player jobs only (don't rewrite story-char loadouts)
 CROSS = {

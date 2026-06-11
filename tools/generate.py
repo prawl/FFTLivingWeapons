@@ -14,16 +14,17 @@ Armor/shield riders REUSE existing vanilla EquipBonus rows where possible; only 
 the 8 free slots (0,40,74-79). See docs/DESIGN.md.
 """
 import json, sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "data" / "items.json"
-MOD_TABLES = ROOT / "mod" / "FFTIVC" / "tables" / "enhanced"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.categories import WEAPON_TABLE_CATS   # the 18 wieldable cats + Throwing/Bomb (table rows, no growth)
+from lib.items import load_items, display_name
+from lib.paths import ROOT, MOD_TABLES
+
+ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 else None   # default: data/items.json (lib.paths)
 OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "out"
 
-WEAPON_CATEGORIES = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff",
-                     "Flail", "Gun", "Crossbow", "Bow", "Instrument", "Book", "Polearm", "Pole", "Bag", "Cloth",
-                     "Throwing", "Bomb"}  # Throwing/Bomb = the ninja's Throw-command projectiles (damage = Speed x WP)
 SHIELD_CATEGORIES = {"Shield"}
 SHIELD_DATA_BASE = 128  # shield item id 128 -> ItemShieldData row 0
 ARMOR_CATEGORIES = {"Helmet", "Hat", "HairAdornment", "Armor", "Clothing", "Robe"}      # -> ItemArmorData (HP/MP)
@@ -58,8 +59,16 @@ def hdr(table):
 
 
 def name_comment(it):
-    name = it.get("name") if it.get("name") not in (None, "TBD") else it["vanillaName"]
-    return name + (f" (was {it['vanillaName']})" if name != it["vanillaName"] else "")
+    name = display_name(it)
+    text = name + (f" (was {it['vanillaName']})" if name != it["vanillaName"] else "")
+    # '--' is illegal inside an XML comment; the modloader SILENTLY drops the whole table
+    # over it (same guard as make_jobequip.py). write_table's parse-check is the backstop.
+    return text.replace("--", "-")
+
+
+def write_table(path, text):
+    ET.fromstring(text)  # parse-check before shipping (raises on malformed XML the modloader would silently drop)
+    path.write_text(text, encoding="utf-8")
 
 
 def weapon_entry(it):
@@ -148,34 +157,34 @@ def equipbonus_entry(eid, fields):
 
 
 def main():
-    doc = json.loads(ITEMS.read_text(encoding="utf-8"))
+    doc = load_items(ITEMS)
     items = sorted(doc["items"], key=lambda x: x["id"])
     new_eb = doc.get("_equipBonus", {})
     OUT.mkdir(parents=True, exist_ok=True)
     MOD_TABLES.mkdir(parents=True, exist_ok=True)
     wrote = []
 
-    weapons = [it for it in items if it["category"] in WEAPON_CATEGORIES]
-    (MOD_TABLES / "ItemWeaponData.xml").write_text(
-        hdr("ItemWeaponTable") + "".join(weapon_entry(it) for it in weapons) + "  </Entries>\n</ItemWeaponTable>\n", encoding="utf-8")
+    weapons = [it for it in items if it["category"] in WEAPON_TABLE_CATS]
+    write_table(MOD_TABLES / "ItemWeaponData.xml",
+                hdr("ItemWeaponTable") + "".join(weapon_entry(it) for it in weapons) + "  </Entries>\n</ItemWeaponTable>\n")
     wrote.append(f"ItemWeaponData.xml ({len(weapons)} weapons)")
 
     shields = [it for it in items if it["category"] in SHIELD_CATEGORIES]
     if shields:
-        (MOD_TABLES / "ItemShieldData.xml").write_text(
-            hdr("ItemShieldTable") + "".join(shield_entry(it) for it in shields) + "  </Entries>\n</ItemShieldTable>\n", encoding="utf-8")
+        write_table(MOD_TABLES / "ItemShieldData.xml",
+                    hdr("ItemShieldTable") + "".join(shield_entry(it) for it in shields) + "  </Entries>\n</ItemShieldTable>\n")
         wrote.append(f"ItemShieldData.xml ({len(shields)} shields)")
 
     armor = [it for it in items if it["category"] in ARMOR_CATEGORIES]
     if armor:
-        (MOD_TABLES / "ItemArmorData.xml").write_text(
-            hdr("ItemArmorTable") + "".join(armor_entry(it) for it in armor) + "  </Entries>\n</ItemArmorTable>\n", encoding="utf-8")
+        write_table(MOD_TABLES / "ItemArmorData.xml",
+                    hdr("ItemArmorTable") + "".join(armor_entry(it) for it in armor) + "  </Entries>\n</ItemArmorTable>\n")
         wrote.append(f"ItemArmorData.xml ({len(armor)} armor)")
 
     accessories = [it for it in items if it["category"] in ACCESSORY_CATEGORIES]
     if accessories:
-        (MOD_TABLES / "ItemAccessoryData.xml").write_text(
-            hdr("ItemAccessoryTable") + "".join(accessory_entry(it) for it in accessories) + "  </Entries>\n</ItemAccessoryTable>\n", encoding="utf-8")
+        write_table(MOD_TABLES / "ItemAccessoryData.xml",
+                    hdr("ItemAccessoryTable") + "".join(accessory_entry(it) for it in accessories) + "  </Entries>\n</ItemAccessoryTable>\n")
         wrote.append(f"ItemAccessoryData.xml ({len(accessories)} accessories)")
 
     # ItemData: every item that sets an equipBonusId (shields + any weapon w/ a rider, e.g. Arcanum MA+2)
@@ -183,14 +192,14 @@ def main():
     if data_items or EXTRA_ITEMDATA:
         body = "".join(itemdata_entry(it) for it in data_items)
         body += "".join(extra_itemdata_entry(i, f) for i, f in sorted(EXTRA_ITEMDATA.items()))
-        (MOD_TABLES / "ItemData.xml").write_text(
-            hdr("ItemTable") + body + "  </Entries>\n</ItemTable>\n", encoding="utf-8")
+        write_table(MOD_TABLES / "ItemData.xml",
+                    hdr("ItemTable") + body + "  </Entries>\n</ItemTable>\n")
         wrote.append(f"ItemData.xml ({len(data_items)} entries + {len(EXTRA_ITEMDATA)} consumable shop overrides)")
 
     if new_eb:
         rows = "".join(equipbonus_entry(int(k), v) for k, v in sorted(new_eb.items(), key=lambda kv: int(kv[0])))
-        (MOD_TABLES / "ItemEquipBonusData.xml").write_text(
-            hdr("ItemEquipBonusTable") + rows + "  </Entries>\n</ItemEquipBonusTable>\n", encoding="utf-8")
+        write_table(MOD_TABLES / "ItemEquipBonusData.xml",
+                    hdr("ItemEquipBonusTable") + rows + "  </Entries>\n</ItemEquipBonusTable>\n")
         wrote.append(f"ItemEquipBonusData.xml ({len(new_eb)} new rows: {sorted(int(k) for k in new_eb)})")
 
     names = {str(it["id"]): {"name": it.get("name"), "vanillaName": it["vanillaName"]}

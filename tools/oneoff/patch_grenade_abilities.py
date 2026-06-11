@@ -16,14 +16,17 @@ Full-table round-trip (edit 5 rows, re-encode whole nxd) -- same pattern as patc
 Modloader falls back to vanilla if the nxd is malformed. Reversible: delete the deployed
 ability.en.nxd + restart.
 """
-import sqlite3, subprocess, shutil
+import sqlite3
+import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from lib.nxd import encode_sqlite_to_nxd, deploy_nxd
+from lib.paths import ROOT, MOD_ABILITY_NXD, RELOADED_MODS
+
 SQLITE = ROOT / "working" / "nxd_ability" / "ability.sqlite"
-FF16 = Path(r"C:\Users\ptyRa\Downloads\FF16Tools.CLI-1.13.2-win-x64\win-x64\FF16Tools.CLI.exe")
-MOD_NXD = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "nxd" / "ability.en.nxd"
-LIVE_NXD = Path(r"C:\Program Files (x86)\Steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods\prawl.fft.itemoverhaul\FFTIVC\data\enhanced\nxd\ability.en.nxd")
+LIVE_NXD = (RELOADED_MODS / "prawl.fft.itemoverhaul" / "FFTIVC" / "data"
+            / "enhanced" / "nxd" / "ability.en.nxd")
 ENC_DIR = ROOT / "working" / "nxd_out_ability"
 
 # ability Key -> (name, description). Mirrors patch_grenades.py items 246-250.
@@ -47,22 +50,16 @@ def main():
     con.close()
     print(f"Ability-en total rows: {nrows}  (sanity: should be the full table, ~450)")
 
-    ENC_DIR.mkdir(parents=True, exist_ok=True)
-    r = subprocess.run([str(FF16), "sqlite-to-nxd", "-i", str(SQLITE), "-o", str(ENC_DIR), "-g", "fft"],
-                       capture_output=True, text=True)
-    out = ENC_DIR / "ability.en.nxd"
-    if not out.exists():
-        print("ENCODE FAILED:\n" + r.stdout + r.stderr); raise SystemExit(1)
+    out = encode_sqlite_to_nxd(SQLITE, ENC_DIR, "ability.en.nxd")
     sz = out.stat().st_size
     print(f"encoded ability.en.nxd: {sz} bytes")
     if sz < 1000:
         print("REFUSING to deploy: encoded nxd suspiciously small"); raise SystemExit(1)
 
-    MOD_NXD.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy(out, MOD_NXD)
-    print(f"staged source: {MOD_NXD}")
+    deploy_nxd(out, MOD_ABILITY_NXD)
+    print(f"staged source: {MOD_ABILITY_NXD}")
     if LIVE_NXD.parent.exists():
-        shutil.copy(out, LIVE_NXD)
+        deploy_nxd(out, LIVE_NXD)
         print(f"deployed live: {LIVE_NXD}")
     else:
         print(f"LIVE nxd dir missing (not deployed): {LIVE_NXD.parent}")

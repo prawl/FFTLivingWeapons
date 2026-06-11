@@ -11,16 +11,15 @@ Outputs:
 
 Also prints a report: the EquipBonus effect index, which EB ids are REFERENCED by a vanilla
 item (=> not free) and which are FREE to repurpose, so riders can be snapped to existing rows.
-
-The EquipBonus resolver (resolve_rider) is importable by other tools: given a structured rider
-spec (subset of EB fields), it returns an existing EB id with that exact effect, or None.
 """
-import json, re
+import json, re, sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-TPL = Path(r"C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods\FFTIVC_Mod_Loader\TableData")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.paths import ROOT, TABLE_DATA
+
+TPL = TABLE_DATA
 REF = ROOT / "working" / "ref"
 
 EB_NUM = ["PABonus", "MABonus", "SpeedBonus", "MoveBonus", "JumpBonus"]
@@ -33,15 +32,8 @@ def _text(node, tag, default=""):
     return el.text.strip() if el is not None and el.text else default
 
 
-def _setify(s):
-    """'Ice, Lightning, Fire' -> frozenset({'Ice','Lightning','Fire'}); 'None'/'' -> empty."""
-    if not s or s.strip().lower() == "none":
-        return frozenset()
-    return frozenset(p.strip() for p in s.split(",") if p.strip())
-
-
 def parse_eb():
-    """id -> raw dict (all 14 fields) ; plus a canonical form for matching."""
+    """id -> raw dict (all 14 fields)."""
     root = ET.parse(TPL / "ItemEquipBonusData.xml").getroot()
     rows = {}
     for n in root.iter("ItemEquipBonus"):
@@ -54,14 +46,6 @@ def parse_eb():
         row["BoostJP"] = _text(n, "BoostJP", "false").lower() == "true"
         rows[i] = row
     return rows
-
-
-def canon(row):
-    """Canonical comparable signature of an EB row (order-insensitive for lists)."""
-    sig = tuple(row[f] for f in EB_NUM)
-    statuses = tuple(_setify(row[f]) for f in EB_STATUS)
-    elems = tuple(_setify(row[f]) for f in EB_ELEM)
-    return (sig, statuses, elems, bool(row.get("BoostJP", False)))
 
 
 def parse_itemdata():
@@ -99,37 +83,6 @@ def parse_simple(fname, tag, fields):
         if i in out:
             out[i]["name"] = m.group(2).strip()
     return out
-
-
-# importable resolver
-_EB_CACHE = None
-
-def _eb():
-    global _EB_CACHE
-    if _EB_CACHE is None:
-        _EB_CACHE = parse_eb()
-    return _EB_CACHE
-
-
-def resolve_rider(query):
-    """query: dict with any subset of EB fields (others assumed default). Returns existing EB id or None.
-    Lists may be given as 'A, B' strings or python lists/sets."""
-    norm = {f: 0 for f in EB_NUM}
-    for f in EB_STATUS + EB_ELEM:
-        norm[f] = "None"
-    norm["BoostJP"] = False
-    for k, v in query.items():
-        if k in EB_NUM:
-            norm[k] = int(v)
-        elif k in EB_STATUS + EB_ELEM:
-            norm[k] = ", ".join(v) if isinstance(v, (list, set, tuple)) else str(v)
-        elif k == "BoostJP":
-            norm[k] = bool(v)
-    target = canon(norm)
-    for i, row in sorted(_eb().items()):
-        if canon(row) == target:
-            return i
-    return None
 
 
 def main():

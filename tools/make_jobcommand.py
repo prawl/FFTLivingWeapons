@@ -16,17 +16,14 @@ sparse output only needs to ship the zeroed slot; no manual flag manipulation re
 Parse-checked before writing (modloader silently drops tables whose XML comments contain '--')."""
 import xml.etree.ElementTree as ET
 import re
+import sys
 from pathlib import Path
 
-VANILLA = Path(
-    r"C:\program files (x86)\steam\steamapps\common"
-    r"\FINAL FANTASY TACTICS - The Ivalice Chronicles"
-    r"\Reloaded\Mods\FFTIVC_Mod_Loader\TableData\JobCommandData.xml"
-)
-OUT = (
-    Path(__file__).resolve().parent.parent
-    / "mod" / "FFTIVC" / "tables" / "enhanced" / "JobCommandData.xml"
-)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.paths import TABLE_DATA, MOD_TABLES
+
+VANILLA = TABLE_DATA / "JobCommandData.xml"
+OUT = MOD_TABLES / "JobCommandData.xml"
 
 EQUIP_AXES = 460  # Ability-en Key 460 = "Equip Axes"
 RSM_SLOTS  = 6    # ReactionSupportMovementId1 .. 6

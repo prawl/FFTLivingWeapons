@@ -13,28 +13,20 @@ so the runtime can find each weapon's own counter by the nearest flavor before a
 separate UI buffer far from the description copy).
 """
 import json
+import sys
 from pathlib import Path
-from patch_names import flavor   # same deterministic flavor() the descriptions are baked from
 
-ROOT = Path(__file__).resolve().parent.parent
-ITEMS = ROOT / "data" / "items.json"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.categories import WEAPON_CATS
+from lib.flavor import flavor_anchor   # same deterministic flavor() the descriptions are baked from
+from lib.items import load_items
+from lib.paths import ROOT
+
 OUT = ROOT / "LivingWeapon" / "meta.json"
-
-WEAPON_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff",
-               "Flail", "Gun", "Crossbow", "Bow", "Instrument", "Book", "Polearm", "Pole", "Bag", "Cloth"}
-
-
-def flavor_anchor(it):
-    """The exact flavor line that leads this weapon's rendered description -- mirrors
-    patch_names: a custom `desc` uses its first line; otherwise flavorOverride or flavor()."""
-    custom = it.get("desc")
-    if custom:
-        return custom.split("\n", 1)[0]
-    return it.get("flavorOverride") or flavor(it)
 
 
 def main():
-    doc = json.loads(ITEMS.read_text(encoding="utf-8"))
+    doc = load_items()
     meta = {}
     for it in doc["items"]:
         p = it.get("proposed", {}) or {}

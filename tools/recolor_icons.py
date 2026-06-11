@@ -14,8 +14,10 @@ import subprocess, shutil, colorsys, sys
 from pathlib import Path
 from PIL import Image
 
-ROOT = Path(__file__).resolve().parent.parent
-FF16 = Path(r"C:\Users\ptyRa\Downloads\FF16Tools.CLI-1.13.2-win-x64\win-x64\FF16Tools.CLI.exe")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.items import load_items
+from lib.paths import ROOT, FF16
+
 VANILLA = Path(r"C:\Users\ptyRa\OneDrive\Desktop\Pac Files\0008\ui\ffto\icon")
 WORK = ROOT / "working" / "icons"
 MOD = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "ui" / "ffto" / "icon"
@@ -90,9 +92,8 @@ ICON_TINTS = {
 }
 
 # Merge per-item tints from data/items.json (source for the new categories).
-import json as _json
 SRC = {}  # item id -> vanilla icon id to source from, for repurposed weapons that need a different shape
-for _it in _json.loads((ROOT / "data" / "items.json").read_text(encoding="utf-8"))["items"]:
+for _it in load_items()["items"]:
     if _it.get("iconTint"):
         ICON_TINTS[_it["id"]] = tuple(_it["iconTint"])
     if _it.get("iconSource"):

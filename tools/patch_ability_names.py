@@ -30,13 +30,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.nxd import encode_sqlite_to_nxd, deploy_nxd
+from lib.paths import ROOT, FF16, MOD_ABILITY_NXD
+
 PRISTINE = ROOT / "working" / "nxd_ability" / "ability.sqlite"   # vanilla decode (do not mutate)
 BUILD = ROOT / "working" / "nxd_out_ability" / "ability_build.sqlite"
 ENC_DIR = ROOT / "working" / "nxd_out_ability"
 DEC_DIR = ROOT / "working" / "nxd_out_ability" / "verify_decode"
-FF16 = Path(r"C:\Users\ptyRa\Downloads\FF16Tools.CLI-1.13.2-win-x64\win-x64\FF16Tools.CLI.exe")
-MOD_NXD = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "nxd" / "ability.en.nxd"
 
 # Key -> {column: value}. IconId 32 = the standard action-ability icon (Aurablast/Rush use it).
 # Keys 374-378: Chemist grenade use-abilities -- learn menu must match the renamed items
@@ -136,17 +137,10 @@ def main() -> None:
     ENC_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy(PRISTINE, BUILD)
     apply_patches(BUILD)
-    r = subprocess.run([str(FF16), "sqlite-to-nxd", "-i", str(BUILD), "-o", str(ENC_DIR), "-g", "fft"],
-                       capture_output=True, text=True)
-    if r.returncode != 0:
-        sys.exit(f"FAIL: encode failed:\n{r.stdout}\n{r.stderr}")
-    out_nxd = ENC_DIR / "ability.en.nxd"
-    if not out_nxd.exists():
-        found = list(ENC_DIR.glob("*.nxd"))
-        sys.exit(f"FAIL: expected ability.en.nxd, encoder produced: {[f.name for f in found]}")
+    out_nxd = encode_sqlite_to_nxd(BUILD, ENC_DIR, "ability.en.nxd")
     verify(out_nxd)
-    shutil.copy(out_nxd, MOD_NXD)
-    print(f"deployed -> {MOD_NXD}")
+    deploy_nxd(out_nxd, MOD_ABILITY_NXD)
+    print(f"deployed -> {MOD_ABILITY_NXD}")
 
 
 if __name__ == "__main__":

@@ -15,11 +15,13 @@ import csv, json, re, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from gen_living_weapon_meta import flavor_anchor, WEAPON_CATS   # the exact flavor line each item renders with
-from patch_names import rider_text   # the house-voice prose each rider bakes onto its card
+from lib.categories import WEAPON_CATS
+from lib.flavor import flavor_anchor, rider_text   # the exact flavor line each item renders with
+                                                   # + the house-voice prose each rider bakes onto its card
+from lib.items import load_items, display_name
+from lib.paths import ROOT, ITEMS as ITEMS_DEFAULT
 
-ROOT = Path(__file__).resolve().parent.parent
-ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else ROOT / "data" / "items.json"
+ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else ITEMS_DEFAULT
 CHECK_BASELINE = "--baseline" in sys.argv
 
 # "more is better" numeric axes across all item types. default = neutral (range melee=1, rest 0).
@@ -87,6 +89,9 @@ def check(items, key, normal_formulas):
     # upgrade rungs are unobtainable except via growth. Exempt from the gate
     # (both as dominatee and dominator) so they neither trip nor mask it.
     items = [it for it in items if not it.get("livingWeapon")]
+    # Rows added by the mod (the Throwing/Bomb consumables, ids 122-127) have no
+    # vanilla numbers, so a --baseline pass has nothing to judge them against.
+    items = [it for it in items if key in it]
     by_cat = {}
     for it in items:
         by_cat.setdefault(it["category"], []).append(it)
@@ -304,12 +309,11 @@ def fmt(it, key, nf):
     axes = " ".join(f"{ax}{s[ax]}" for ax in NUMERIC_AXES if ax in s)
     rid = riders(s, nf)
     extra = (" " + " ".join(sorted(rid))) if rid else ""
-    name = it.get("name") if it.get("name") not in (None, "TBD") else it["vanillaName"]
-    return f"id{it['id']:>3} {name:18} T{it.get('tier','?')} {axes}{extra}"
+    return f"id{it['id']:>3} {display_name(it):18} T{it.get('tier','?')} {axes}{extra}"
 
 
 def main():
-    doc = json.loads(ITEMS.read_text(encoding="utf-8"))
+    doc = load_items(ITEMS)
     nf = set(doc["_meta"].get("normalFormulaIds", [1]))
     items = doc["items"]
     print(f"=== {ITEMS.name}: {len(items)} items ===\n")
@@ -323,8 +327,7 @@ def main():
             print("  PASS: no item is strictly dominated. Build-diversity invariant holds.")
         else:
             for a, doms in v:
-                an = a.get("name") if a.get("name") not in (None, "TBD") else a["vanillaName"]
-                print(f"  DOMINATED: id{a['id']} {an}, beaten by {', '.join('id'+str(b['id']) for b in doms)}")
+                print(f"  DOMINATED: id{a['id']} {display_name(a)}, beaten by {', '.join('id'+str(b['id']) for b in doms)}")
             if label == "PROPOSED":
                 rc = 1
     sv = check_slots(items, nf)
@@ -333,8 +336,7 @@ def main():
         print("  PASS: no item is dominated within its equip slot.")
     else:
         for a, doms in sv:
-            an = a.get("name") if a.get("name") not in (None, "TBD") else a["vanillaName"]
-            print(f"  DOMINATED id{a['id']} {an} ({a['category']}), beaten by "
+            print(f"  DOMINATED id{a['id']} {display_name(a)} ({a['category']}), beaten by "
                   + ", ".join(f"id{b['id']} {b.get('name')}({b['category']})" for b in doms))
         rc = 1
 

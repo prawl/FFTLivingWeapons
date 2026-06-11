@@ -9,12 +9,13 @@ as a fallback), tiles them in id order (which groups by category), saves working
 Run: python tools/make_header.py [cols] [tile] [--hue]
   --hue  sort tiles by dominant hue (rainbow) instead of id order (category groups)
 """
-import json, subprocess, shutil, sys, colorsys
+import subprocess, shutil, sys, colorsys
 from pathlib import Path
 from PIL import Image, ImageFilter
 
-ROOT = Path(__file__).resolve().parent.parent
-FF16 = Path(r"C:\Users\ptyRa\Downloads\FF16Tools.CLI-1.13.2-win-x64\win-x64\FF16Tools.CLI.exe")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.items import load_items
+from lib.paths import ROOT, FF16
 MODICON = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "ui" / "ffto" / "icon" / "equip_item" / "texture"
 CACHE = ROOT / "working" / "icons"
 WORK = ROOT / "working" / "header"
@@ -54,8 +55,7 @@ def dom_hue(im):
 
 def main():
     WORK.mkdir(parents=True, exist_ok=True)
-    doc = json.loads((ROOT / "data" / "items.json").read_text(encoding="utf-8"))
-    ids = sorted(it["id"] for it in doc["items"])
+    ids = sorted(it["id"] for it in load_items()["items"])
     icons = []
     for i in ids:
         im = load_icon(i)

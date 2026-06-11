@@ -8,14 +8,16 @@ collide and that ours should load after them. See docs/DESIGN.md.
 
 Usage: python tools/scan_conflicts.py [data/items.json] [reloaded_mods_dir]
 """
-import json, sys, re
+import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-ROOT = Path(__file__).resolve().parent.parent
-ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "data" / "items.json"
-MODS = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(
-    r"C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods")
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.items import load_items
+from lib.paths import MOD_TABLES, RELOADED_MODS
+
+ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 else None   # default: data/items.json (lib.paths)
+MODS = Path(sys.argv[2]) if len(sys.argv) > 2 else RELOADED_MODS
 
 OUR_MOD_ID = "prawl.fft.itemoverhaul"
 ITEM_TABLES = ["ItemData", "ItemWeaponData", "ItemArmorData", "ItemAccessoryData",
@@ -32,10 +34,11 @@ def ids_in_xml(path):
 
 
 def main():
-    doc = json.loads(ITEMS.read_text(encoding="utf-8"))
+    doc = load_items(ITEMS)
     our_ids = {it["id"] for it in doc["items"]}
-    # which tables WE touch (pilot: weapons only, but generalize by category later)
-    our_tables = {"ItemWeaponData"}
+    # which tables WE touch: derived from the table XMLs actually shipped in the mod tree
+    # (was a hardcoded pilot-era {"ItemWeaponData"} that silently understated the overlap)
+    our_tables = {p.stem for p in MOD_TABLES.glob("*.xml")}
     print(f"Our mod edits {len(our_ids)} ids in {sorted(our_tables)}: {sorted(our_ids)}\n")
 
     if not MODS.exists():
