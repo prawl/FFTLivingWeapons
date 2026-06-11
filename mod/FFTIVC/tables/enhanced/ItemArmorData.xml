@@ -150,7 +150,7 @@
     </ItemArmor>
     <ItemArmor>
       <Id>29</Id> <!-- Studded Mail (was Linen Cuirass) -->
-      <HPBonus>22</HPBonus>
+      <HPBonus>36</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>

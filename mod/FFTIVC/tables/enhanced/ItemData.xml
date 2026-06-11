@@ -177,7 +177,7 @@
     </Item>
     <Item>
       <Id>145</Id> <!-- Mendsteel Helm (was Bronze Helm) -->
-      <EquipBonusId>5</EquipBonusId>
+      <EquipBonusId>17</EquipBonusId>
     </Item>
     <Item>
       <Id>146</Id> <!-- Aegis Helm (was Iron Helm) -->
@@ -286,10 +286,6 @@
     <Item>
       <Id>172</Id> <!-- Roughhide Mail (was Leather Armor) -->
       <EquipBonusId>0</EquipBonusId>
-    </Item>
-    <Item>
-      <Id>173</Id> <!-- Studded Mail (was Linen Cuirass) -->
-      <EquipBonusId>5</EquipBonusId>
     </Item>
     <Item>
       <Id>174</Id> <!-- Reaver Mail (was Bronze Armor) -->
