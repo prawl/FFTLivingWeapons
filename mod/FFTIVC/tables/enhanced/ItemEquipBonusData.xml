@@ -55,6 +55,23 @@
       <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>
+      <Id>25</Id>
+      <PABonus>0</PABonus>
+      <MABonus>0</MABonus>
+      <SpeedBonus>0</SpeedBonus>
+      <MoveBonus>0</MoveBonus>
+      <JumpBonus>0</JumpBonus>
+      <InnateStatus>None</InnateStatus>
+      <ImmuneStatus>Blind</ImmuneStatus>
+      <StartingStatus>None</StartingStatus>
+      <AbsorbElements>None</AbsorbElements>
+      <NullifyElements>None</NullifyElements>
+      <HalveElements>None</HalveElements>
+      <WeakElements>None</WeakElements>
+      <StrongElements>None</StrongElements>
+      <BoostJP>false</BoostJP>
+    </ItemEquipBonus>
+    <ItemEquipBonus>
       <Id>40</Id>
       <PABonus>0</PABonus>
       <MABonus>0</MABonus>

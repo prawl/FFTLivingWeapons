@@ -393,7 +393,7 @@
     </Item>
     <Item>
       <Id>200</Id> <!-- Penitent's Robe (was Hempen Robe) -->
-      <EquipBonusId>5</EquipBonusId>
+      <EquipBonusId>25</EquipBonusId>
     </Item>
     <Item>
       <Id>201</Id> <!-- Acolyte Robe (was Silken Robe) -->

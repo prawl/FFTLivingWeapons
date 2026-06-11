@@ -9,7 +9,7 @@
     "renameTarget": "item.en.nxd (name + description). NXD round-trip mechanism: WIP.",
     "design": "Three lanes run the curve in parallel: RAW (Cutpurse/Argent Dirk/Adamant Fang), AGILE (Quicksilver 25ev / Sanguine Gauche 50ev), UTILITY (Gloomfang Blind / Hushblade Silence / Mortal Coil Doom / Dreamsever Sleep). Non-monotonic WP (5,6,5,6,7,6,9,8,10,12) makes every proc/evade knife undercut WP to pay for its gimmick.",
     "openProcs": "id4 Hushblade Silence onHitAbilityId is unknown — not one of the 9/11/12 procs. Confirm in-game before locking the description.",
-    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible. Each item's proposed.equipBonusId points at a vanilla id OR an id redefined in _equipBonus below. RULE for redefining a vanilla row: it must have NO users on EITHER side — every VANILLA item pointing at it must be repointed by our ItemData (row 3 corrupted Excalibur, row 83 the Akademy Tunic), AND no items.json equipBonusId may reuse its vanilla contents (claiming row 10 turned five MA+1 items Atheist, row 5 turned four Regen items Holy-boost — both fixed 2026-06-10 by relocating to 17/22). Audit both: vanilla TableData ItemData.xml pointers + a full-value grep of equipBonusId here. Rows verified free to claim: 25, 31, 36, 38, 39, 47, 49, 50, 51, 53, 63, 72 (9, 17, 22, 40, 56 claimed below; 74-79 claimed). Row 17 CLAIMED 2026-06-10 as immune-Poison (Mendsteel Helm) — safe because vanilla item 136 (Aegis Shield) points at it and our ItemData repoints 136 -> 79; it sat unused after Riposte's Atheist was removed earlier the same day. Row-22 hazard: vanilla item 161 (Wizard's Hat -> our Arcanist Cap) natively points at row 22 (our Holy-boost redefinition) and is protected only by our 161 -> 10 repoint — never drop that repoint. Heavily-reused vanilla stat rows — never claim: MA+2=1, Protect=2(?), Shell=4, Regen=5, StrongElements L/F/I=6/7/8 (elemental rods), MA+2=9 (claimed for Umbral; MA+2 reusers all sit on row 1), MA+1=10/12, Speed+1=14/23, Ice/Flame shield=15/16, Kaiser=18, Venetian=19, PA+1=21, PA+2=24, Move+1=42, innate Faith=73."
+    "equipBonus": "Armor/shield RIDERS reuse existing vanilla EquipBonus rows where possible. Each item's proposed.equipBonusId points at a vanilla id OR an id redefined in _equipBonus below. RULE for redefining a vanilla row: it must have NO users on EITHER side — every VANILLA item pointing at it must be repointed by our ItemData (row 3 corrupted Excalibur, row 83 the Akademy Tunic), AND no items.json equipBonusId may reuse its vanilla contents (claiming row 10 turned five MA+1 items Atheist, row 5 turned four Regen items Holy-boost — both fixed 2026-06-10 by relocating to 17/22). Audit both: vanilla TableData ItemData.xml pointers + a full-value grep of equipBonusId here. Rows verified free to claim: 31, 36, 38, 39, 47, 49, 50, 51, 53, 63, 72 (9, 17, 22, 25, 40, 56 claimed below; 74-79 claimed). Row 25 CLAIMED 2026-06-10 as immune-Blind (Penitent's Robe, the last of the four cheap-Regen items reworked). Row 17 CLAIMED 2026-06-10 as immune-Poison (Mendsteel Helm) — safe because vanilla item 136 (Aegis Shield) points at it and our ItemData repoints 136 -> 79; it sat unused after Riposte's Atheist was removed earlier the same day. Row-22 hazard: vanilla item 161 (Wizard's Hat -> our Arcanist Cap) natively points at row 22 (our Holy-boost redefinition) and is protected only by our 161 -> 10 repoint — never drop that repoint. Heavily-reused vanilla stat rows — never claim: MA+2=1, Protect=2(?), Shell=4, Regen=5, StrongElements L/F/I=6/7/8 (elemental rods), MA+2=9 (claimed for Umbral; MA+2 reusers all sit on row 1), MA+1=10/12, Speed+1=14/23, Ice/Flame shield=15/16, Kaiser=18, Venetian=19, PA+1=21, PA+2=24, Move+1=42, innate Faith=73."
   },
   "_equipBonus": {
     "9": {
@@ -18,6 +18,9 @@
     },
     "17": {
       "ImmuneStatus": "Poison"
+    },
+    "25": {
+      "ImmuneStatus": "Blind"
     },
     "22": {
       "StrongElements": "Holy"
@@ -5726,7 +5729,7 @@
       "name": "Penitent's Robe",
       "tier": 1,
       "identity": "T1 starter caster body — cheapest, earliest robe. Lowest HP/MP in the line but the ONLY robe with innate Regen (EB5): heals every turn. The budget attrition mage that out-sustains a plain riderless stat-stick in early poke wars.",
-      "flavorOverride": "A penitent's coarse robe, mending grace woven in; the faithful endure where proud fall.",
+      "flavorOverride": "A penitent's coarse robe; by grace the faithful see where the proud go blind.",
       "baseline": {
         "hp": 10,
         "mp": 10,
@@ -5738,8 +5741,8 @@
         "mp": 14,
         "physEv": 0,
         "magEv": 0,
-        "rider": "innate Regen",
-        "equipBonusId": 5
+        "rider": "immune Blind",
+        "equipBonusId": 25
       },
       "iconTint": [
         0.58,
