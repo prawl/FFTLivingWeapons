@@ -1,0 +1,31 @@
+{
+  "_meta": {
+    "schemaVersion": 1,
+    "purpose": "Per-tile mark-flag addresses for TreasureMaster.  Captured via in-game toggle scan.",
+    "schema": "maps[mapId].tiles[i].addrs = [[addr_hex, off_hex], ...]  where off is the resting byte value (pre-mark).  status: verified=eyeball-confirmed, partial=<4 hits or unconfirmed, bad=trust-gate failed."
+  },
+  "maps": {
+    "74": {
+      "name": "The Siedge Weald",
+      "fpLen": 448,
+      "fpHash": null,
+      "capturedBuild": null,
+      "capturedAt": null,
+      "tiles": [
+        {
+          "x": 0,
+          "y": 1,
+          "addrs": [
+            ["0x140de1ea7", "0x01"],
+            ["0x140de1f37", "0x01"],
+            ["0x140f9560f", "0x01"],
+            ["0x140f9569f", "0x01"],
+            ["0x141166117", "0x01"],
+            ["0x14116612f", "0x01"]
+          ],
+          "status": "partial"
+        }
+      ]
+    }
+  }
+}
