@@ -30,10 +30,11 @@ STRIP = {"Squire": {"Knife"}, "Orator": {"Knife"}}
 # (which matches story ids 1/2/4/7) never inadvertently loses categories here.
 # id 3 = Gallant Knight: knives are out (signatures make them a distinct identity).
 STORY_STRIP = {3: {"Knife"}}
-# Generic jobs EXCLUDED from the blanket Shield addition. Vanilla gives neither a shield
-# (Ramza's story squire never had one -- generics should match), and Knight's Equip Shield
-# support is the designed path to a shielded Squire/Chemist.
-NO_SHIELD = {"Squire", "Chemist"}
+# Generic jobs EXCLUDED from the blanket Shield addition. Vanilla gives none of these a
+# shield: the Squire/Chemist exclusion matches Ramza's shieldless story squire, and Black
+# Mage came off after live play showed a shielded BLM too durable for its damage output
+# (2026-06-10). Knight's Equip Shield support is the designed path for all three.
+NO_SHIELD = {"Squire", "Chemist", "Black Mage"}
 
 raw = VANILLA.read_text(encoding="utf-8")
 names = {int(m.group(1)): m.group(2).strip() for m in re.finditer(r"<Id>(\d+)</Id>\s*<!--\s*([^/]+?)\s*/", raw)}

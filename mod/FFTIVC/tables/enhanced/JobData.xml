@@ -77,8 +77,8 @@
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Bow, Crossbow, Unarmed, Gun</EquippableItems>
     </Job>
     <Job>
-      <Id>66</Id> <!-- Black Mage: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife, Shield; C-EV 5 to 8 -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife, Shield</EquippableItems>
+      <Id>66</Id> <!-- Black Mage: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife; C-EV 5 to 8 -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife</EquippableItems>
       <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
@@ -119,8 +119,8 @@
       <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>80</Id> <!-- Black Mage: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife, Shield; C-EV 5 to 8 -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife, Shield</EquippableItems>
+      <Id>80</Id> <!-- Black Mage: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife; C-EV 5 to 8 -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Rod, Unarmed, Knife</EquippableItems>
       <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
