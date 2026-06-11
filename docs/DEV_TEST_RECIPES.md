@@ -2,6 +2,15 @@
 
 Throwaway conveniences for testing this mod live. None of this ships — it's harness only.
 
+## Step zero for unexplainable game weirdness: bisect the mod list FIRST
+
+Before any code archaeology on a "this mod corrupted X" report: disable the OTHER Reloaded
+mods and re-test. The Materia Blade+ gun-range corruption cost a day of staring at this
+repo's tables — the culprit was FFTHandsFree auto-arming its parked 261-cap hooks on every
+boot. If the weirdness involves item stats/visuals that this mod's tables don't even touch,
+the prior is another mod, not us. Toggle in Reloaded-II's UI; one launch per suspect; THEN
+open the hood.
+
 ## Give 99 of every item (inventory cheat)
 
 **Canonical script lives in the sibling repo:** [`FFTHandsFree/lib/fft/shop.sh`](../../FFTHandsFree/lib/fft/shop.sh)
@@ -36,10 +45,13 @@ Edit `data/items.json` → the item's `proposed.wp` (NOT `baseline`) → `BuildL
 (table changes are restart-only). The dominance gate exempts earlier-tier items, so bumping a tier-6 weapon
 (e.g. Zwill id 10) usually passes. **Revert before any real release.**
 
-## Live memory probe
+## Live memory probes
 
-`%TEMP%\fft_probes\ct_probe.py` — RPM/WPM (can't crash the game) watch/dump/hold of the battle structs. Modes:
-`dump`, `watch [s] [hz]`, `hold combat|static|cond <val> <mhp> <lvl> [s]`. Used to find the scheduler CT.
+The RE instruments live in **`tools/probes/`** (rescued from `%TEMP%\fft_probes\`, which the
+OS may clean — see its README for the curated index). The workhorse is `ct_probe.py` — RPM/WPM
+(can't crash the game) watch/dump/hold of the battle structs. Modes: `dump`, `watch [s] [hz]`,
+`hold combat|static|cond <val> <mhp> <lvl> [s]`. Used to find the scheduler CT. A probe result
+that settles a mechanism claim belongs in `docs/LIVE_LEDGER.md`.
 
 ## Verify a signature grant is ACTIVE
 
