@@ -48,6 +48,14 @@ Needs Exploration
 - Make the target flee in terror (disable all abilities?)
 - Master Treasure Hunter: Use the in game tile marking feature to mark all of the traps and treasure automatically
 
+2.X feature: Treasure Master (auto-mark trap/treasure tiles in battle)
+- Native-mark hijack is WALLED (see docs/LIVE_LEDGER.md) -- the mark has no writable store.
+- Buildable architecture: (1) author trap_treasure_tiles.json per map (122 maps, fixed
+  placements, guide-documented -- a data pass like the obtain column); (2) detect the live
+  map (FFTHandsFree DetectMap fingerprinting is done); (3) display via the DLL's own paint
+  (the kills-card painter) keyed off cursor/tile-index addresses in the ledger.
+- Probe + findings: tools/probes/mark_probe.py; cursor (x,y)=0x140C64A54/0x140C6496C proven.
+
 Open offers (standing, dated — so they stop rotting in handoff prose)
 - (2026-06-10) Tally surgery: kills.json on the live install carries 3 phantom credits from
   since-fixed bugs (Scoutbolt +2, Wellspring Rod's entire 1). Say the word and they're removed.

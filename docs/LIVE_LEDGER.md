@@ -32,6 +32,8 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 | Frozen (0,0) twins in the band | real-position match outranks the (0,0) duplicate | slots 25+28 same identity live; Zwill locate v7→v8 | 2026-06-10 |
 | Plague needs a grace window | poison-bit edge and acted window land up to ~2s apart, either order | four open windows, zero latches, chocobo cleansed the "permanent" poison | 2026-06-10 |
 | inb flag (`+0x12`) pulses mid-battle | filter by sane field bounds + slot sign, never the flag | half the live enemies read 0 at any instant | 2026-06-09 |
+| Cursor tile (x,y) addresses | cursor X = `0x140C64A54`, cursor Y = `0x140C6496C`, linear idx = `0x140C64E7C` (all u8) | live diff (Y tracked 5→11 on hover) + FFTHandsFree CommandWatcher reads the same | 2026-06-11 |
+| Battle tile structures cluster at `0x140C6xxxx` | terrain grid `0x140C65000` (7 bytes/tile, 9×8 window, STATIC map data — marking never wrote here); move-tile list `0x140C66315` | FFTHandsFree CommandWatcher.cs + mark_probe diffs | 2026-06-11 |
 
 ## Contradicted — probe before building on these
 
@@ -47,5 +49,6 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 | Crit-hit chance settable | no data field, no per-unit byte to hold, engine byte Denuvo-walled | full search, same wall as proc-rate 0x32 |
 | Guest/Traitor allegiance flip | engine pool-relocation, not a holdable byte | +0x46/+0x02/+0x1B/+0x23/+0x1DD all dead via same-unit Entice heap diff |
 | Guaranteed Knockback via gx/gy writes | engine-authoritative but renderer never re-derives → compounding sprite desync | `probes/knockback_probe.py` |
+| Treasure Master via the NATIVE tile mark | The hover-+-2 mark has no writable logical store: NOT a coord list (3.8 GB scanned, 0 adjacency hits for marked tiles as (x,y) pairs, any order), NOT a per-tile flag in the terrain grid (`0x140C65000` untouched by marking), NOT a compact struct the camera-pan subtraction could isolate — it renders as billboard ENTITIES, so authoring one = an engine spawn call (Denuvo wall). `probes/mark_probe.py` (snap/diff/find/poke). **PIVOT, not dead:** build Treasure Master as a static `trap_treasure_tiles.json` (per-map, fixed, guide-documented — a DATA pass like the obtain column) + our OWN overlay (the DLL already paints the kills card), riding FFTHandsFree's `DetectMap()` + the cursor/tile-index addresses above. More robust than the native mark anyway. |
 | >261 items displayable | display wall is a boot-built registry; page-guard hook crashes | `ITEM_CAP_261_BREAK_JOURNEY.md` |
 | External probes on engine code | Denuvo; module statics ARE readable externally | the DLL is the only instrument for code-adjacent experiments |
