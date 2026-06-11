@@ -14,7 +14,8 @@
     ModId and zips it with a single top-level wrapper folder so Reloaded-II /
     Nexus / Vortex extract to the expected path.
 
-    The generate + gate + meta + DLL-build steps mirror BuildLinked.ps1 so a local
+    The generate + gate + meta + test + DLL-build steps are SHARED with
+    BuildLinked.ps1 (dot-sourced from tools/pipeline.ps1) so a local
     `.\Publish.ps1` produces the same vetted artifacts a deploy would. NOTE:
     generate.py emits the 6 table XMLs only; item.en.nxd is produced separately by
     tools/patch_names.py (needs FF16Tools) and is shipped from its committed copy
@@ -76,6 +77,9 @@ if (-not $OutputPath) {
     }
 }
 
+## => Shared pipeline (generate/gate/meta, test gate, DLL publish, $RequiredModFiles) <= ##
+. "$PSScriptRoot\tools\pipeline.ps1"
+
 ## => Functions <= ##
 function Write-Status {
     param($Message, $Color = "Green")
@@ -83,75 +87,12 @@ function Write-Status {
 }
 
 function Write-ErrorMessage {
+    # Throws instead of `exit 1`: exit unwound into the script's `finally`,
+    # whose `exit $exitCode` then ran with $exitCode unset on early failures --
+    # a red gate exited 0 (probe-confirmed). The main catch prints the message
+    # and owns the exit code.
     param($Message)
-    Write-Host "`n[ERROR] $Message" -ForegroundColor Red
-    exit 1
-}
-
-function Invoke-GenerateAndGate {
-    # Mirror deploy.ps1: regenerate tables from items.json, then refuse to
-    # package if any item is strictly dominated. Skipped under -SkipGenerate or
-    # when python is unavailable (then we package the committed tree as-is).
-    Write-Status "Regenerating tables + build-diversity gate..." "Cyan"
-
-    $python = (Get-Command python -ErrorAction SilentlyContinue)
-    if (-not $python) {
-        Write-Host "  -> python not found; packaging committed tables as-is (skipping generate + gate)." -ForegroundColor Yellow
-        return
-    }
-
-    Write-Host "  -> tools/generate.py (items.json -> table XMLs)..."
-    & python "tools/generate.py"
-    if ($LASTEXITCODE -ne 0) {
-        Write-ErrorMessage "generate.py failed (exit $LASTEXITCODE)."
-    }
-
-    Write-Host "  -> tools/analyze.py (no item may be strictly dominated)..."
-    & python "tools/analyze.py"
-    if ($LASTEXITCODE -ne 0) {
-        Write-ErrorMessage "REFUSING TO PACKAGE: at least one item is strictly dominated (see above)."
-    }
-
-    # Bake the runtime's per-weapon facts so the DLL build picks up a fresh
-    # meta.json (copied into the package via the csproj).
-    Write-Host "  -> tools/gen_living_weapon_meta.py (items.json -> meta.json)..."
-    & python "tools/gen_living_weapon_meta.py"
-    if ($LASTEXITCODE -ne 0) {
-        Write-ErrorMessage "meta-gen failed (exit $LASTEXITCODE)."
-    }
-
-    Write-Host "  -> Generated + gated + meta baked OK." -ForegroundColor Green
-}
-
-function Invoke-BuildDll {
-    # Build the Living Weapon runtime straight into the package folder so the
-    # release zip contains the DLL + its deps + meta.json. ModConfig.json declares
-    # "ModDll": "LivingWeapon.dll", so a package without it is a broken mod (this
-    # was the gap: the old data-only Publish shipped a manifest pointing at a DLL
-    # it never included). The framework-dependent publish emits LivingWeapon.dll,
-    # Newtonsoft.Json.dll, the *.deps.json / *.runtimeconfig.json the loader needs,
-    # and meta.json (copied via the csproj).
-    Write-Status "Building Living Weapon DLL into the package..." "Cyan"
-
-    # Force a FULL recompile: MSBuild's incremental up-to-date check shipped a stale Release
-    # DLL with a fresh timestamp on the first 2.0.0 cut (the copy step re-dates the file even
-    # when CoreCompile is skipped; caught by byte-verifying the packaged DLL). Releases are
-    # rare enough that the clean costs nothing and deletes the failure class.
-    Remove-Item -Recurse -Force "LivingWeapon/obj/Release", "LivingWeapon/bin/Release" -ErrorAction SilentlyContinue
-
-    # NO -p:LwDev here: production ships the real escalating thresholds {5,25,50} and seeds no kills.
-    # (BuildLinked.ps1 passes -p:LwDev=true for the dev {1,2,3} + auto-P3 testing build.)
-    & dotnet publish "LivingWeapon/LivingWeapon.csproj" -c Release -o $BuildOutputPath
-    if ($LASTEXITCODE -ne 0) {
-        Write-ErrorMessage "dotnet publish failed (exit $LASTEXITCODE)."
-    }
-
-    # Drop debug symbols from the package root (users don't need them; keep the
-    # deps.json / runtimeconfig.json the Reloaded loader relies on).
-    Get-ChildItem $BuildOutputPath -Filter *.pdb -File -ErrorAction SilentlyContinue |
-        Remove-Item -Force -ErrorAction SilentlyContinue
-
-    Write-Host "  -> DLL build complete." -ForegroundColor Green
+    throw $Message
 }
 
 function Get-ModVersion {
@@ -268,7 +209,6 @@ function Create-Package {
     # Ensure build directory exists
     if (-not (Test-Path $BuildOutputPath)) {
         Write-ErrorMessage "Build output directory not found: $BuildOutputPath"
-        return $null
     }
 
     # Load assembly properly
@@ -310,7 +250,6 @@ function Create-Package {
         }
         else {
             Write-ErrorMessage "Package was not created at: $absolutePackagePath"
-            return $null
         }
     }
     catch {
@@ -356,26 +295,12 @@ function Verify-Package {
             Write-Host "  -> Wrapper folder: $wrapper" -ForegroundColor Gray
         }
 
-        # Required individual files: mod manifest, icon, the Living Weapon runtime
-        # (DLL + its JSON dep + baked meta), all 6 sparse table XMLs, and the
-        # full-table item nxd. ModConfig.json declares "ModDll": "LivingWeapon.dll",
-        # so the DLL is non-optional — shipping the manifest without it is the bug
-        # this guard exists to catch.
-        $requiredFiles = @(
-            "ModConfig.json",
-            "preview.png",
-            "LivingWeapon.dll",
-            "Newtonsoft.Json.dll",
-            "meta.json",
-            "FFTIVC/tables/enhanced/ItemData.xml",
-            "FFTIVC/tables/enhanced/ItemWeaponData.xml",
-            "FFTIVC/tables/enhanced/ItemArmorData.xml",
-            "FFTIVC/tables/enhanced/ItemShieldData.xml",
-            "FFTIVC/tables/enhanced/ItemAccessoryData.xml",
-            "FFTIVC/tables/enhanced/ItemEquipBonusData.xml",
-            "FFTIVC/data/enhanced/nxd/item.en.nxd",
-            "FFTIVC/data/enhanced/nxd/ability.en.nxd"
-        )
+        # Required entries: the shared $RequiredModFiles manifest (tools/
+        # pipeline.ps1 -- BuildLinked's deploy verification checks the same
+        # list, so deploy and package can't drift) plus preview.png, which only
+        # the package hard-requires (it's the ModIcon; BuildLinked deploys it
+        # best-effort).
+        $requiredFiles = $RequiredModFiles + @("preview.png")
 
         foreach ($file in $requiredFiles) {
             if ($entryPaths -contains $file) {
@@ -423,27 +348,49 @@ $originalLocation = Get-Location
 Split-Path $MyInvocation.MyCommand.Path | Push-Location
 [Environment]::CurrentDirectory = $PWD
 
+# Default to FAILURE. The finally below always runs `exit $exitCode`, and an
+# `exit` from inside a function unwinds through it -- which is how a red gate
+# used to exit 0 ($exitCode was only assigned on the success/late-failure
+# paths). Now every failure either throws into the catch or leaves this as-is.
+$exitCode = 1
+
 try {
     # Step 1: Resolve version (from -Version, else ModConfig.json, never hardcoded)
     $finalVersion = Get-ModVersion -RequestedVersion $Version
 
-    # Step 2: Regenerate tables + build-diversity gate (unless -SkipGenerate)
+    # Step 2: Regenerate tables + build-diversity gate + bake meta.json (the
+    # shared pipeline; throws on a red step OR on missing python -- packaging an
+    # ungated tree is never silent; -SkipGenerate is the only intentional skip).
     if (-not $SkipGenerate) {
-        Invoke-GenerateAndGate
+        Write-Status "Regenerating tables + build-diversity gate..." "Cyan"
+        Invoke-TablePipeline -FailVerb PACKAGE
     } else {
         Write-Host "  -> -SkipGenerate set; packaging committed tables as-is." -ForegroundColor Yellow
     }
 
-    # Step 3: Unit tests (TDD gate; refuse to package on a red test)
+    # Step 3: Unit tests (TDD gate; runs AFTER meta-gen because the tests read
+    # LivingWeapon/meta.json)
     Write-Status "Running unit tests (LivingWeapon.Tests)..." "Cyan"
-    & dotnet test "LivingWeapon.Tests/LivingWeapon.Tests.csproj" --nologo -v q
-    if ($LASTEXITCODE -ne 0) { Write-ErrorMessage "REFUSING TO PACKAGE: unit tests failed (see above)." }
+    Invoke-UnitTestGate -FailVerb PACKAGE
 
     # Step 4: Clean build directory
     Clean-BuildDirectories
 
-    # Step 5: Build the Living Weapon DLL into the package folder
-    Invoke-BuildDll
+    # Step 5: Build the Living Weapon DLL into the package folder so the release
+    # zip contains the DLL + deps + meta.json. ModConfig.json declares
+    # "ModDll": "LivingWeapon.dll", so a package without it is a broken mod (the
+    # old data-only Publish shipped a manifest pointing at a DLL it never
+    # included). NO -Dev here: production ships the real escalating thresholds
+    # {5,25,50} and seeds no kills. -CleanFirst is the stale-DLL incident guard
+    # (see tools/pipeline.ps1).
+    Write-Status "Building Living Weapon DLL into the package..." "Cyan"
+    Invoke-LivingWeaponPublish -OutDir $BuildOutputPath -CleanFirst
+
+    # Drop debug symbols from the package root (users don't need them; keep
+    # LivingWeapon.deps.json -- the Reloaded loader reads it).
+    Get-ChildItem $BuildOutputPath -Filter *.pdb -File -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+    Write-Host "  -> DLL build complete." -ForegroundColor Green
 
     # Step 6: Stage deliverables into Publish/<ModId>/ (ModConfig copied here wins)
     Copy-ModAssets
@@ -483,7 +430,9 @@ try {
     }
 }
 catch {
-    Write-Host "`n[ERROR] An unexpected error occurred: $_" -ForegroundColor Red
+    # Expected gate refusals (Write-ErrorMessage / pipeline throws) and genuine
+    # surprises both land here; either way the exit code is nonzero.
+    Write-Host "`n[ERROR] $_" -ForegroundColor Red
     Write-Host "Stack Trace: $($_.ScriptStackTrace)" -ForegroundColor Red
     $exitCode = 1
 }

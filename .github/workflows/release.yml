@@ -73,20 +73,22 @@ jobs:
 
     # Regenerate the modloader tables from data/items.json so the package
     # always reflects the committed design source, not a stale checkout.
+    # Publish.ps1 re-runs this itself; the step stays because python is cheap
+    # and a failure here names itself in the workflow UI.
     - name: Generate Tables
       run: python tools/generate.py
 
-    # The build-diversity gate. This is our equivalent of "run tests":
-    # analyze.py exits 1 if ANY item is strictly dominated. A red gate
-    # here means the design regressed and the release must not ship.
+    # The build-diversity gate: analyze.py exits 1 if ANY item is strictly
+    # dominated. A red gate here means the design regressed and the release
+    # must not ship.
     - name: Build-Diversity Gate (analyze.py)
       run: python tools/analyze.py
 
-    # Unit tests for the Living Weapon runtime (kill attribution, etc.). A red test
-    # blocks the release -- same TDD gate as the local BuildLinked/Publish scripts.
-    - name: Unit Tests (LivingWeapon.Tests)
-      run: dotnet test LivingWeapon.Tests/LivingWeapon.Tests.csproj --nologo
-
+    # Runs the WHOLE gated pipeline (generate -> dominance gate -> meta ->
+    # unit tests -> DLL publish), then stages, zips, and verifies the package.
+    # The unit-test gate runs INSIDE Publish.ps1 (tools/pipeline.ps1, exit code
+    # honored) -- no separate test step, which doubled the dotnet
+    # restore+build+test cost on every push.
     - name: Build and Package
       id: publish
       run: ./Publish.ps1
