@@ -84,6 +84,7 @@ TREASURE_JSON_SRC = REPO / "LivingWeapon" / "treasure.json"
 # Live Reloaded mod folder.  Derived from paths.py so there is one canonical source.
 sys.path.insert(0, str(REPO / "tools"))
 from lib.paths import RELOADED_MODS as _RELOADED_MODS
+from lib.treasure import is_treasure as _lib_is_treasure
 LIVE_MOD_DIR = _RELOADED_MODS / "prawl.fft.itemoverhaul"
 
 # ---------------------------------------------------------------------------
@@ -479,7 +480,9 @@ def _load_map_trap() -> dict[str, dict]:
 
 
 def _is_treasure(tile: dict) -> bool:
-    return tile.get("trapFlags") == "DisableTrap"
+    # Single source of truth: lib.treasure (every Move-Find tile is treasure; the trap is a
+    # property, so Midlight's Deep trapped-treasure tiles are included).
+    return _lib_is_treasure(tile)
 
 
 def _treasure_tiles(map_entry: dict) -> list[dict]:
