@@ -1356,4 +1356,150 @@ public class TreasureMasterTests
 
         Assert.Empty(mem.Written);
     }
+
+    // ── FastHold tests ────────────────────────────────────────────────────────────
+    // No real threads are spawned (Start/StartFastHold never called).
+    // All tests drive HoldOnce() directly -- the thread-safe property is argued by
+    // construction: TileHolder is stateless and OR-only, so concurrent callers are safe.
+
+    /// <summary>
+    /// FastHold.HoldOnce with a published map writes 0x80 to the tile addresses via
+    /// the underlying TileHolder (same fake-memory path as the normal tick).
+    /// </summary>
+    [Fact]
+    public void FastHold_HoldOnce_with_published_map_writes_tile_addresses()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addrs = new[] { TileAddr(200), TileAddr(201) };
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: addrs.Select(a => (a, (byte)0x00)));
+        var mem = BuildMem(74, terrain, addrs, initialByte: 0x00);
+
+        var holder = new TileHolder(mem);
+        var fh = new FastHold(holder, intervalMs: 8);
+
+        // Null published: HoldOnce writes nothing.
+        fh.HoldOnce();
+        Assert.Empty(mem.Written);
+
+        // Publish a map: HoldOnce writes 0x80 to each resting addr.
+        var map = db.Maps[0];
+        fh.Publish(map);
+        fh.HoldOnce();
+
+        Assert.True(mem.Written.ContainsKey(addrs[0]));
+        Assert.True(mem.Written.ContainsKey(addrs[1]));
+        Assert.Equal(0x80, mem.Written[addrs[0]]);
+        Assert.Equal(0x80, mem.Written[addrs[1]]);
+    }
+
+    /// <summary>
+    /// FastHold.HoldOnce with null published writes nothing even after a map was
+    /// previously published (Publish(null) clears the held reference).
+    /// </summary>
+    [Fact]
+    public void FastHold_HoldOnce_with_null_published_writes_nothing()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addrs = new[] { TileAddr(202), TileAddr(203) };
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: addrs.Select(a => (a, (byte)0x00)));
+        var mem = BuildMem(74, terrain, addrs, initialByte: 0x00);
+
+        var holder = new TileHolder(mem);
+        var fh = new FastHold(holder, intervalMs: 8);
+
+        // Publish then clear.
+        fh.Publish(db.Maps[0]);
+        fh.Publish(null);
+
+        fh.HoldOnce();
+        Assert.Empty(mem.Written);
+    }
+
+    /// <summary>
+    /// Once ARMED, FastHold.HoldOnce writes the tile addresses (the map was published
+    /// by TreasureMaster's Tick path on transition to Phase.Armed).
+    /// </summary>
+    [Fact]
+    public void FastHold_armed_state_HoldOnce_writes_tile_addresses()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addrs = new[] { TileAddr(210), TileAddr(211) };
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: addrs.Select(a => (a, (byte)0x00)));
+        var mem = BuildMem(74, terrain, addrs, initialByte: 0x00);
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+
+        // Clear written log so only HoldOnce writes are counted.
+        mem.Written.Clear();
+        // Reset addrs so they look Resting again (engine cleared the mark).
+        foreach (var a in addrs) mem.U8s[a] = 0x00;
+
+        tm.FastHold.HoldOnce();
+
+        Assert.True(mem.Written.ContainsKey(addrs[0]),
+            "FastHold.HoldOnce should write addr[0] when phase is Armed");
+        Assert.True(mem.Written.ContainsKey(addrs[1]),
+            "FastHold.HoldOnce should write addr[1] when phase is Armed");
+    }
+
+    /// <summary>
+    /// After ResetBattle(), FastHold.HoldOnce writes nothing (null was published
+    /// by ResetBattle on the battle-exit edge).
+    /// </summary>
+    [Fact]
+    public void FastHold_after_ResetBattle_HoldOnce_writes_nothing()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addrs = new[] { TileAddr(212), TileAddr(213) };
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: addrs.Select(a => (a, (byte)0x00)));
+        var mem = BuildMem(74, terrain, addrs, initialByte: 0x00);
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+
+        tm.ResetBattle();
+        mem.Written.Clear();
+        foreach (var a in addrs) mem.U8s[a] = 0x00;
+
+        tm.FastHold.HoldOnce();
+
+        Assert.Empty(mem.Written);
+    }
+
+    /// <summary>
+    /// After a !inLive tick, FastHold.HoldOnce writes nothing (null was published
+    /// by the !inLive early return in Tick).
+    /// </summary>
+    [Fact]
+    public void FastHold_after_inLive_false_tick_HoldOnce_writes_nothing()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addrs = new[] { TileAddr(214), TileAddr(215) };
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: addrs.Select(a => (a, (byte)0x00)));
+        var mem = BuildMem(74, terrain, addrs, initialByte: 0x00);
+
+        var tm = Make(db, mem);
+        // Arm the module in live battle.
+        StabilizeAndArm(tm);
+
+        // Now tick with inLive=false.
+        tm.Tick(DateTime.Now, inLive: false);
+        mem.Written.Clear();
+        foreach (var a in addrs) mem.U8s[a] = 0x00;
+
+        tm.FastHold.HoldOnce();
+
+        Assert.Empty(mem.Written);
+    }
 }

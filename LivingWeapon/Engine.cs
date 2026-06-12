@@ -69,6 +69,7 @@ internal sealed class Engine
             datasetStamp: () => { try { return File.GetLastWriteTimeUtc(treasureJson); }
                                   catch { return null; } },
             mem: live);
+        _treasure.StartFastHold();
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
         // reset runs charm..font with Barrage between Plague and LifeSap; the in-battle tick
         // excludes Barrage (it ticks before the !nowIn early-return, learn screens included).

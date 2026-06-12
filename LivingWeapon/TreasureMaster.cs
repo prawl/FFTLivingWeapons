@@ -39,6 +39,7 @@ internal sealed partial class TreasureMaster : ISignature
     private readonly TileHolder   _holder;
 
     private readonly bool _alwaysOn;
+    private readonly FastHold _fastHold;
 
     private Phase     _phase          = Phase.Disarmed;
     private TreasureMap? _map         = null;    // the active map, null when none found
@@ -82,7 +83,15 @@ internal sealed partial class TreasureMaster : ISignature
         _audit        = new ArmAudit(_mem);
         _holder       = new TileHolder(_mem);
         _alwaysOn     = alwaysOn ?? Tuning.TreasureAlwaysOn;
+        _fastHold     = new FastHold(_holder, Tuning.TreasureFastHoldMs);
+        // Thread not started here -- tests must not spawn OS threads; Engine calls StartFastHold().
     }
+
+    /// <summary>Starts the fast-hold background thread. Called by Engine after construction.</summary>
+    public void StartFastHold() => _fastHold.Start();
+
+    /// <summary>Exposes the fast-hold instance so tests can drive HoldOnce without a thread.</summary>
+    internal FastHold FastHold => _fastHold;
 
     // ── ISignature ────────────────────────────────────────────────────────────────
 
@@ -100,6 +109,7 @@ internal sealed partial class TreasureMaster : ISignature
         _foreignLoggedThisBattle    = false;
         _flapLoggedThisBattle       = false;
         // _globalIdle and _globalIdleChecked persist -- the L0 check is startup-once.
+        _fastHold.Publish(null);    // immediacy on battle-exit: stop holding before Tick runs again
     }
 
     // ── entry point ───────────────────────────────────────────────────────────────
@@ -139,12 +149,17 @@ internal sealed partial class TreasureMaster : ISignature
         // L0: one-time global idle check (dataset empty, AlwaysOn false, or key mismatch).
         // If CheckGlobalIdle defers (PE header not yet readable), _globalIdleChecked resets
         // to false -- return immediately so the phase switch cannot run before L0 resolves.
-        if (!_globalIdleChecked) { CheckGlobalIdle(); if (!_globalIdleChecked) return; }
-        if (_globalIdle) return;
+        if (!_globalIdleChecked)
+        {
+            CheckGlobalIdle();
+            if (!_globalIdleChecked) { _fastHold.Publish(null); return; }
+        }
+        if (_globalIdle) { _fastHold.Publish(null); return; }
 
         if (!inLive)
         {
             _stableTicks = 0;   // stability counter resets when not in live battle
+            _fastHold.Publish(null);
             return;
         }
 
@@ -155,6 +170,9 @@ internal sealed partial class TreasureMaster : ISignature
             case Phase.Armed:         TickArmed();    break;
             case Phase.BattleDisarmed: break;         // inert until ResetBattle
         }
+
+        // Single publish point: hold exactly when phase==Armed AND inLive.
+        _fastHold.Publish(_phase == Phase.Armed ? _map : null);
     }
 
     // ── L0 global-idle check (once at first tick) ─────────────────────────────────

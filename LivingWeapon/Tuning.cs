@@ -147,6 +147,10 @@ internal static class Tuning
     /// reload + state reset so the next arm cycle uses fresh data.</summary>
     public const int TreasureStampCheckTicks = 30;
 
+    /// <summary>FastHold re-stamp interval in ms (~2× per 60 fps animation frame ≈ 16 ms).
+    /// Out-paces the running-water wipe that clears 0x80 between 33 ms loop re-stamps.</summary>
+    public const int TreasureFastHoldMs = 8;
+
     /// <summary>Missing-HP formulas ignore every stat -> no growth lever.</summary>
     public static bool SkipFormula(int formula) => formula == 67 || formula == 69;
 
