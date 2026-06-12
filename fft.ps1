@@ -17,3 +17,20 @@ function give_move([int]$ability = 243) {
 function kill_all {
     python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") kill_all
 }
+
+# Treasure capture campaign (treasure_flags.py wrappers)
+function treasure {
+    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") session
+}
+
+function tstatus {
+    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") status
+}
+
+function tmapid {
+    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") mapid
+}
+
+function trefp([int]$mapId) {
+    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") refp $mapId
+}

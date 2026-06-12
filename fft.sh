@@ -19,3 +19,20 @@ give_move() {
 kill_all() {
   python "$_FFT_REPO/tools/probes/battle_cheats.py" kill_all
 }
+
+# Treasure capture campaign (treasure_flags.py wrappers)
+treasure() {
+  python "$_FFT_REPO/tools/probes/treasure_flags.py" session
+}
+
+tstatus() {
+  python "$_FFT_REPO/tools/probes/treasure_flags.py" status
+}
+
+tmapid() {
+  python "$_FFT_REPO/tools/probes/treasure_flags.py" mapid
+}
+
+trefp() {
+  python "$_FFT_REPO/tools/probes/treasure_flags.py" refp "$1"
+}
