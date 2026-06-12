@@ -111,6 +111,32 @@ internal static class Tuning
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 
+    // ── Treasure Master knobs ────────────────────────────────────────────────────
+
+    /// <summary>DEV: always-on without the ring gate; PROD: requires Scholar's Ring (id 260)
+    /// in any deployed unit's accessory slot. Until the accessory-slot offset is probe-confirmed
+    /// the ring DETECTOR is not wired; prod with AlwaysOn=false simply never arms (safe default).
+    /// Log: "treasure: ring gate pending -- module idle"</summary>
+#if LWDEV
+    public const bool TreasureAlwaysOn = true;
+#else
+    public const bool TreasureAlwaysOn = false;
+#endif
+
+    /// <summary>Consecutive same-map-id ticks required before arming begins (~1s at 33ms).</summary>
+    public const int TreasureArmStableTicks = 30;
+
+    /// <summary>Ticks between full fingerprint revalidations while ARMED.</summary>
+    public const int TreasureRevalidateEveryNTicks = 30;
+
+    /// <summary>Maximum arming attempts before giving up for the battle.</summary>
+    public const int TreasureArmAttemptCap = 60;
+
+    /// <summary>Consecutive bad-map-id ticks while ARMED before a full state reset
+    /// back to DISARMED. The map-id change IS the battle boundary for chained story battles
+    /// (the debounced exit edge may never fire in those cases).</summary>
+    public const int TreasureMapIdBadTicksToReset = 3;
+
     /// <summary>Missing-HP formulas ignore every stat -> no growth lever.</summary>
     public static bool SkipFormula(int formula) => formula == 67 || formula == 69;
 

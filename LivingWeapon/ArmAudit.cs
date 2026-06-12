@@ -1,0 +1,117 @@
+namespace LivingWeapon;
+
+/// <summary>
+/// Stateless gate evaluator for the Treasure Master module. Injected IGameMemory so it is
+/// testable without a live process. Performs three evaluations:
+///
+///   ReadPeBuildKey  -- reads e_lfanew then TimeDateStamp + SizeOfImage from the PE header of the
+///                      mapped game image (base 0x140000000). Returns null on any failed read.
+///   FingerprintMatches -- TryReadBytes fpLen bytes at TerrainGrid; FNV-1a64 vs map.FpHash.
+///   AuditAddrs      -- reads each tile address, classifies via TreasureMaster.ClassifyAddr,
+///                      tallies ok/foreign/unreadable, calls TreasureMaster.DecideArm.
+///
+/// SEAM NOTE: this is NOT a TreasureMaster partial. A partial holding gate logic would be the
+/// same-state-machine-in-two-files evasion the house bans (see project rules). The state
+/// lives entirely in TreasureMaster.cs; ArmAudit is pure evaluation with no state of its own.
+/// </summary>
+internal sealed class ArmAudit
+{
+    private const long ModuleBase = 0x140000000L;
+    private const long ELfanewOff = 0x3C;
+    private const long TimeDateStampOff = 8;
+    private const long SizeOfImageOff   = 0x50;
+
+    private readonly IGameMemory _mem;
+
+    public ArmAudit(IGameMemory mem) => _mem = mem;
+
+    // ── PE build key ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reads the PE header fields from the mapped game image.
+    /// Layout: e_lfanew (U32) @ base+0x3C; TimeDateStamp (U32) @ base+e_lfanew+8;
+    /// SizeOfImage (U32) @ base+e_lfanew+0x50. All reads are Readable-guarded.
+    /// Returns null if any read is not Readable (e.g., memory not yet mapped or wrong base).
+    /// </summary>
+    public (uint TimeDateStamp, uint SizeOfImage)? ReadPeBuildKey()
+    {
+        long elfanewAddr = ModuleBase + ELfanewOff;
+        if (!_mem.Readable(elfanewAddr, 4)) return null;
+        uint eLfanew = ReadU32(_mem, elfanewAddr);
+
+        long tsAddr = ModuleBase + eLfanew + TimeDateStampOff;
+        if (!_mem.Readable(tsAddr, 4)) return null;
+
+        long szAddr = ModuleBase + eLfanew + SizeOfImageOff;
+        if (!_mem.Readable(szAddr, 4)) return null;
+
+        return (ReadU32(_mem, tsAddr), ReadU32(_mem, szAddr));
+    }
+
+    // ── map-id read ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Gate evaluation for the map-id byte: Readable guard, U8 read, and MapIdValid check.
+    /// Returns false on any failed guard or invalid value.
+    /// Centralised here because both TickDisarmed and TickArmed use this same gate sequence.
+    /// </summary>
+    public bool TryReadMapId(out byte id)
+    {
+        id = 0;
+        if (!_mem.Readable(Offsets.LiveBattleMapId, 1)) return false;
+        id = _mem.U8(Offsets.LiveBattleMapId);
+        return TreasureMaster.MapIdValid(id);
+    }
+
+    // ── fingerprint ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reads <see cref="TreasureMap.FpLen"/> bytes at <see cref="Offsets.TerrainGrid"/> and
+    /// compares FNV-1a64 to <see cref="TreasureMap.FpHash"/>. Returns false on read failure
+    /// (caller retries up to TreasureArmAttemptCap).
+    /// A null FpLen or FpHash means the map is a stub (no fingerprint captured); returns false
+    /// so the caller treats it as not-armable (stub maps have no tiles anyway).
+    /// </summary>
+    public bool FingerprintMatches(TreasureMap map)
+    {
+        if (map.FpLen is not { } fpLen || map.FpHash is not { } expected)
+            return false;
+
+        if (!_mem.TryReadBytes(Offsets.TerrainGrid, fpLen, out var buf))
+            return false;
+
+        return TreasureMaster.Fnv1a64(buf) == expected;
+    }
+
+    // ── per-address audit ─────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Reads each tile address across all tiles, classifies each byte via
+    /// <see cref="TreasureMaster.ClassifyAddr"/>, tallies ok/foreign/unreadable, and
+    /// calls <see cref="TreasureMaster.DecideArm"/>. Returns the verdict + the foreign
+    /// count so the caller can log on first occurrence.
+    /// </summary>
+    public (TreasureMaster.ArmVerdict Verdict, int ForeignCount) AuditAddrs(
+        TreasureMap map, int attempt, int attemptCap)
+    {
+        int okCount = 0, foreignCount = 0, unreadableCount = 0;
+        foreach (var tile in map.Tiles)
+        {
+            foreach (var (addr, _) in tile.Addrs)
+            {
+                if (!_mem.Readable(addr, 1)) { unreadableCount++; continue; }
+                var state = TreasureMaster.ClassifyAddr(_mem.U8(addr));
+                if      (state == TreasureMaster.AddrState.Foreign) foreignCount++;
+                else                                                 okCount++;
+            }
+        }
+        return (TreasureMaster.DecideArm(okCount, foreignCount, unreadableCount,
+                                          attempt, attemptCap), foreignCount);
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────────
+
+    /// <summary>Little-endian U32 from four U8 reads. Caller ensures Readable before calling.</summary>
+    private static uint ReadU32(IGameMemory mem, long addr)
+        => (uint)(mem.U8(addr) | (mem.U8(addr + 1) << 8) | (mem.U8(addr + 2) << 16) | (mem.U8(addr + 3) << 24));
+}

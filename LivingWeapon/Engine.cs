@@ -27,6 +27,7 @@ internal sealed class Engine
     private readonly GrowthEngine _growth;
     private readonly CharmLock _charm;     // named: Heartbeat is engine-driven, outside the module contract
     private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
+    private readonly TreasureMaster _treasure;
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
     private readonly Display _display;
@@ -62,11 +63,13 @@ internal sealed class Engine
         var wyrmblood = new Wyrmblood(meta, _kills, _turns, live);  // Dragon Rod +3: turn-edge regen splash (1 tile)
         var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
+        _treasure = new TreasureMaster(TreasureDb.Load(modDir), live);
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
         // reset runs charm..font with Barrage between Plague and LifeSap; the in-battle tick
         // excludes Barrage (it ticks before the !nowIn early-return, learn screens included).
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, _barrage, lifeSap, wyrmblood, rapture, font };
-        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, lifeSap, wyrmblood, rapture, font };
+        // TreasureMaster is tail-appended to both arrays (order is load-bearing -- append only).
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, _barrage, lifeSap, wyrmblood, rapture, font, _treasure };
+        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, lifeSap, wyrmblood, rapture, font, _treasure };
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");

@@ -152,4 +152,16 @@ internal static class Offsets
     //     Verified in FFTHandsFree (CommandWatcher.cs, 2026-04-15). Two synced copies. ---
     public const long MirrorWeapon = 0x141870854;
     public const long MirrorOffHand = 0x141870856;   // mirror[1]: the viewed unit's off-hand (dual-wield 2nd weapon, or a shield)
+
+    // --- Treasure Master: map identity + terrain grid ---
+    // u8, current battle's map id; valid 1..127 (FFTHandsFree LiveBattleMapId contract).
+    // Ported from FFTHandsFree GameBridge/LiveBattleMapId.cs; found 2026-04-19 via
+    // snapshot/diff; verified on 3 maps (Dugeura=86, Beddha=82, Araguay=80) + across restart.
+    // STALE out of battle: only read when InLiveBattle is true.
+    public const long LiveBattleMapId = 0x14077D83C;
+
+    // Static per-map terrain records, 7 bytes/tile; used read-only as the map-identity
+    // fingerprint source (FNV-1a64 over a fixed-length prefix).
+    // Source: LIVE_LEDGER row "Battle tile structures" (0x140C65000).
+    public const long TerrainGrid = 0x140C65000;
 }
