@@ -635,9 +635,11 @@ def cmd_session() -> None:
         for addr, ob, nb in final:
             print(f"    {addr:#x}  off={ob:#04x}  on={nb:#04x}")
 
-        status = "verified" if len(final) >= 4 else "partial"
-        if len(final) < 4:
-            print(f"  Only {len(final)} hits (<4) -- saving as 'partial'.  Re-capture on the next session.")
+        # 3 singles (one per buffer family) paint fine -- the pair byte does not always
+        # toggle (Mandalia Plain, live 2026-06-11). Below 3 = a family went uncovered.
+        status = "verified" if len(final) >= 3 else "partial"
+        if len(final) < 3:
+            print(f"  Only {len(final)} hits (<3) -- saving as 'partial'.  Re-capture on the next session.")
 
         if not final:
             print("  No hits.  Did the cursor move during the cycle, or the mark not toggle cleanly?")

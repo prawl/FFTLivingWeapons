@@ -45,9 +45,12 @@ UI_ARENA_HI = 0x140CC5000   # exclusive
 # cutoff is a volatile lockstep coincidence, never a stable flag byte.
 VOLATILE_BASE = 0x142000000
 
-# A capture normally yields ~6 copies (3 buffer families x a 2-byte pair). Fewer than 4
-# clean copies after drops means the capture is too thin to trust on its own.
-MIN_ADDRS_TO_SHIP = 4
+# A capture normally yields ~6 copies (3 buffer families x a 2-byte pair), but the pair
+# byte does not always toggle: Mandalia Plain captured 3 tiles at exactly 3 clean singles
+# (one per family) and the in-session hold-test PAINTED on all of them (2026-06-11 live).
+# The eyeball trust gate is the real quality bar; this floor only rejects captures too
+# thin to have covered the families at all.
+MIN_ADDRS_TO_SHIP = 3
 
 # Terrain grid: 208 records x 7 bytes each.  The v2 fingerprint reads the full window
 # (1456 raw bytes) but hashes only field-0 (offset i*7 for record i).
