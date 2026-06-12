@@ -113,15 +113,13 @@ internal static class Tuning
 
     // ── Treasure Master knobs ────────────────────────────────────────────────────
 
-    /// <summary>DEV: always-on without the ring gate; PROD: requires Scholar's Ring (id 260)
-    /// in any deployed unit's accessory slot. Until the accessory-slot offset is probe-confirmed
-    /// the ring DETECTOR is not wired; prod with AlwaysOn=false simply never arms (safe default).
-    /// Log: "treasure: ring gate pending -- module idle"</summary>
-#if LWDEV
+    /// <summary>Ship intent: PROD requires Scholar's Ring (id 260) in a deployed unit's
+    /// accessory slot. The accessory-slot offset is not probe-confirmed yet, so the ring
+    /// DETECTOR is not wired -- always-on in BOTH flavors until it lands (treasure marks
+    /// are cosmetic, OR-only, and touch no save data, so a prod test build is safe).
+    /// Restore the ring gate on the prod branch when the detector ships.
+    /// Idle log when false: "treasure: ring gate pending -- module idle"</summary>
     public const bool TreasureAlwaysOn = true;
-#else
-    public const bool TreasureAlwaysOn = false;
-#endif
 
     /// <summary>Consecutive same-map-id ticks required before arming begins (~1s at 33ms).</summary>
     public const int TreasureArmStableTicks = 30;
