@@ -3,9 +3,14 @@
 Gate rules (exit 1 on violation):
   (a) Only ship addresses for tiles with status "verified" AND non-null fpHash + capturedBuild.
   (b) Every shipped (x,y) must be a treasure tile (is_treasure) in the snapshot.
-  (c) Off bytes must be 0x00 or 0x01.
+  (c) Off bytes must be 0x00 or 0x01 -- other values are WARNED and the single address is
+      DROPPED (a lockstep coincidence, not a flag byte). Same for addresses at or above
+      0x142000000: the 0x142e detail-store family relocates between runs (see the prototype
+      doc) and must never ship. A tile ships only if >= 4 clean addresses remain after drops.
   (d) Addrs must be in the module span 0x140000000..0x143000000 (exclusive high) and outside
-      the UI render arena 0x140C63000..0x140CC5000 (exclusive high). No duplicates within a map.
+      the UI render arena 0x140C63000..0x140CC5000 (exclusive high). No duplicates within a
+      map. These are hard failures: a legit capture cannot produce them, so they mean
+      corrupt data.
   (e) Build-key policy: dataset key = newest capturedBuild timeDateStamp. Maps captured under an
       older key are warned and dropped (never hard-fail -- would brick deploys post-patch).
   (f) Emit stub entries {mapId, name, tileCount, tiles:[]} for every populated treasure map with
@@ -30,6 +35,15 @@ MODULE_BASE = 0x140000000
 MODULE_END  = 0x143000000   # exclusive
 UI_ARENA_LO = 0x140C63000
 UI_ARENA_HI = 0x140CC5000   # exclusive
+
+# The 0x142e detail-store family relocates between runs (prototype doc: observed at
+# 0x142eca../0x142ec4../0x142ebed.. on successive captures). Anything at or above this
+# cutoff is a volatile lockstep coincidence, never a stable flag byte.
+VOLATILE_BASE = 0x142000000
+
+# A capture normally yields ~6 copies (3 buffer families x a 2-byte pair). Fewer than 4
+# clean copies after drops means the capture is too thin to trust on its own.
+MIN_ADDRS_TO_SHIP = 4
 
 ADDRS_JSON = ROOT / "data" / "treasure_addrs.json"
 TRAP_JSON  = ROOT / "data" / "map_trap_formation.json"
@@ -77,6 +91,23 @@ def _self_test() -> bool:
             ok = False
     if ok:
         print(f"  self-test: map74 join fixture OK (treasure tiles: {treasure_tiles})")
+
+    # Drop-rule fixture: clean pairs ship, lockstep coincidences are dropped.
+    drop_cases = [
+        (0x140de1ea7, 0x01, False),  # genuine flag byte
+        (0x140de1ea7, 0x00, False),  # genuine flag byte, 0x00 rest
+        (0x142eb9ba8, 0x40, True),   # the live 0x142e stray from the first Sledge session
+        (0x140de1ea7, 0x40, True),   # bad off even at a stable address
+        (0x142eb9ba8, 0x01, True),   # volatile family even with a clean off
+    ]
+    for addr, off, want_drop in drop_cases:
+        dropped = pair_drop_reason(addr, off) is not None
+        if dropped != want_drop:
+            print(f"SELF-TEST FAIL: pair_drop_reason(0x{addr:x}, 0x{off:02x}) "
+                  f"dropped={dropped}, expected {want_drop}")
+            ok = False
+    if ok:
+        print("  self-test: pair drop rules OK")
     return ok
 
 # ── parsing helpers ───────────────────────────────────────────────────────────
@@ -90,6 +121,15 @@ def addr_valid(addr: int) -> bool:
     if UI_ARENA_LO <= addr < UI_ARENA_HI:
         return False
     return True
+
+def pair_drop_reason(addr: int, off: int) -> str | None:
+    """Non-fatal drop reasons for a captured (addr, off) pair: lockstep coincidences
+    that a legitimate capture CAN produce but that must never ship. None = keep."""
+    if off not in (0x00, 0x01):
+        return f"off 0x{off:02x} is not a flag resting value"
+    if addr >= VOLATILE_BASE:
+        return f"volatile family >= 0x{VOLATILE_BASE:x} (relocates between runs)"
+    return None
 
 # ── main bake ─────────────────────────────────────────────────────────────────
 
@@ -139,6 +179,7 @@ def main() -> int:
 
     # ── gate + bake ───────────────────────────────────────────────────────────
     gate_failures: list[str] = []
+    warnings: list[str] = []
     shippable_count = 0
     stub_count      = 0
     dropped_count   = 0
@@ -224,13 +265,12 @@ def main() -> int:
                     tile_ok = False
                     break
 
-                # (c) off must be 0x00 or 0x01
-                if off not in (0x00, 0x01):
-                    gate_failures.append(
-                        f"map {mid} tile ({tx},{ty}): off byte 0x{off:02x} not 0x00 or 0x01"
+                # (c) lockstep coincidences: warn + drop the single pair, keep the tile.
+                if (reason := pair_drop_reason(addr, off)) is not None:
+                    warnings.append(
+                        f"map {mid} tile ({tx},{ty}): dropped addr {addr_str} ({reason})"
                     )
-                    tile_ok = False
-                    break
+                    continue
 
                 # (d) module span + UI arena + no duplicates
                 if not addr_valid(addr):
@@ -249,6 +289,13 @@ def main() -> int:
 
                 seen_addrs.add(addr)
                 valid_addrs.append([addr_str, off_str])
+
+            if tile_ok and valid_addrs and len(valid_addrs) < MIN_ADDRS_TO_SHIP:
+                warnings.append(
+                    f"map {mid} tile ({tx},{ty}): only {len(valid_addrs)} clean addr(s) "
+                    f"after drops -- not shipping this tile, re-capture it"
+                )
+                valid_addrs = []
 
             if tile_ok and valid_addrs:
                 shippable_tiles.append({"x": tx, "y": ty, "addrs": valid_addrs})
@@ -274,6 +321,11 @@ def main() -> int:
                 "fpHash":    None,
                 "tiles":     [],
             })
+
+    if warnings:
+        print("\nWARNINGS (addresses/tiles dropped, non-fatal):")
+        for w in warnings:
+            print(f"  {w}")
 
     if gate_failures:
         print("\nGATE FAILURES:")
