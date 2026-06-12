@@ -7,8 +7,8 @@
   "maps": {
     "74": {
       "name": "The Siedge Weald",
-      "fpLen": 448,
-      "fpHash": "0x160c5f77cce7d6e7",
+      "fpLen": 1456,
+      "fpHash": "0x896dd81755a32f6b",
       "capturedBuild": {
         "timeDateStamp": 1762398825,
         "sizeOfImage": 359432192
@@ -112,7 +112,8 @@
           ],
           "status": "verified"
         }
-      ]
+      ],
+      "fpVer": 2
     }
   }
 }
