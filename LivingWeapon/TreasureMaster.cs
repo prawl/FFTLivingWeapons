@@ -248,17 +248,25 @@ internal sealed partial class TreasureMaster : ISignature
     private void TickArming()
     {
         var map = _map!;
-        if (!_audit.FingerprintMatches(map))
+
+        // L2 fingerprint gate: skipped for map-id-only maps (water/lava: terrain animates
+        // on every re-entry; no stable hash is possible across instances).
+        if (!map.IsMapIdOnly)
         {
-            _armAttempts++;
-            if (_armAttempts >= Tuning.TreasureArmAttemptCap && !_capLoggedThisBattle)
+            if (!_audit.FingerprintMatches(map))
             {
-                _capLoggedThisBattle = true;
-                Log.Info($"treasure: map {map.MapId} fingerprint mismatch -- " +
-                         $"disarmed for battle (unknown variant or game patch)");
-                _phase = Phase.BattleDisarmed;
+                _armAttempts++;
+                if (_armAttempts >= Tuning.TreasureArmAttemptCap && !_capLoggedThisBattle)
+                {
+                    _capLoggedThisBattle = true;
+                    var d = _audit.FingerprintDiag(map);
+                    Log.Info($"treasure: map {map.MapId} fingerprint mismatch -- " +
+                             $"disarmed for battle (readOk={d.ReadOk} fpVer={d.FpVer} len={d.Len} " +
+                             $"got={d.Got:X} want={d.Expected:X})");
+                    _phase = Phase.BattleDisarmed;
+                }
+                return;
             }
-            return;
         }
 
         var (verdict, _) = _audit.AuditAddrs(map, Tuning.TreasureMinPlausibleAddrs);
@@ -269,7 +277,8 @@ internal sealed partial class TreasureMaster : ISignature
                 _phase          = Phase.Armed;
                 _revalidateTick = 0;
                 Log.Info($"treasure: map {map.MapId} {map.Name} armed -- " +
-                         $"{map.Tiles.Count} tile(s)");
+                         $"{map.Tiles.Count} tile(s)" +
+                         (map.IsMapIdOnly ? " (map-id-only)" : ""));
                 _holder.Hold(map);
                 break;
 
@@ -307,25 +316,29 @@ internal sealed partial class TreasureMaster : ISignature
         }
         _badMapTicks = 0;
 
-        // Periodic fingerprint revalidation.
-        _revalidateTick++;
-        if (_revalidateTick >= Tuning.TreasureRevalidateEveryNTicks)
+        // Periodic fingerprint revalidation: skipped for map-id-only maps.
+        // Water/lava maps have no fingerprint; the map-id re-check above is the only guard.
+        if (!map.IsMapIdOnly)
         {
-            _revalidateTick = 0;
-            if (!_audit.FingerprintMatches(map))
+            _revalidateTick++;
+            if (_revalidateTick >= Tuning.TreasureRevalidateEveryNTicks)
             {
-                // Transition back to ARMING rather than permanent BattleDisarmed.
-                // TickArming will re-prove: fingerprint match + quorum re-arms normally;
-                // persistent mismatch past the attempt cap -> BattleDisarmed once + log.
-                _armAttempts        = 0;
-                _capLoggedThisBattle = false;   // let arming re-use the cap log slot
-                _phase              = Phase.Arming;
-                if (!_flapLoggedThisBattle)
+                _revalidateTick = 0;
+                if (!_audit.FingerprintMatches(map))
                 {
-                    _flapLoggedThisBattle = true;
-                    Log.Info($"treasure: map {map.MapId} fingerprint flap -- re-proving before holding again");
+                    // Transition back to ARMING rather than permanent BattleDisarmed.
+                    // TickArming will re-prove: fingerprint match + quorum re-arms normally;
+                    // persistent mismatch past the attempt cap -> BattleDisarmed once + log.
+                    _armAttempts        = 0;
+                    _capLoggedThisBattle = false;   // let arming re-use the cap log slot
+                    _phase              = Phase.Arming;
+                    if (!_flapLoggedThisBattle)
+                    {
+                        _flapLoggedThisBattle = true;
+                        Log.Info($"treasure: map {map.MapId} fingerprint flap -- re-proving before holding again");
+                    }
+                    return;
                 }
-                return;
             }
         }
 

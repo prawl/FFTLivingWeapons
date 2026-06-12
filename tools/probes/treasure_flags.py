@@ -27,6 +27,19 @@ Verbs
       if the stability check fails.  Atomic save.  Use this to upgrade an existing
       capture from v1 or v2 to v3 without re-capturing all tile addresses.
       On success, automatically runs pushlive.
+      Hint: if marks still flicker out after re-entering this map, it is water/lava
+      and no fingerprint will ever be stable -- run: nofp <mapId>
+
+  python tools\\probes\\treasure_flags.py nofp <mapId>
+      Set a map to map-id-only mode: for a map already in data/treasure_addrs.json,
+      clear the terrain fingerprint fields (fpVer=0, fpHash=null, fpLen=null) so the
+      runtime arms on map-id + address quorum alone, with no terrain fingerprint gate.
+      Use this for water/lava maps whose terrain grid animates on every re-entry (e.g.
+      Zeirchele Falls, map 83) where no hash remains stable across battle instances.
+      Refuses if the live map-id byte does not match <mapId>.
+      Stamps capturedBuild from the live PE header if absent.
+      Atomic save, then runs pushlive.
+      Print: "map <id> set to map-id-only (water/lava: no terrain fingerprint) -- retry the battle"
 
   python tools\\probes\\treasure_flags.py status
       Dashboard: verified / partial / missing tile counts per map, plus totals.
@@ -846,6 +859,75 @@ def cmd_refp(map_id_str: str) -> None:
     print(f"  fpHash: {old_hash!r} -> {hex(fp)}")
     print(f"  fingerprint v3 stable (fields 2-5)")
     print(f"  Saved -> {DB_PATH.name}")
+    print(f"  Hint: if marks still flicker out after re-entering this map, it is water/lava"
+          f" -- run: nofp {map_id}")
+    print()
+    cmd_pushlive()
+
+
+# ---------------------------------------------------------------------------
+# Verb: nofp
+# ---------------------------------------------------------------------------
+def cmd_nofp(map_id_str: str) -> None:
+    """Set a map to map-id-only mode: clear terrain fingerprint fields so the
+    runtime arms on map-id + address quorum alone, with no terrain fingerprint gate.
+
+    Use for water/lava maps whose terrain grid animates on every re-entry (e.g.
+    Zeirchele Falls, map 83) where no fingerprint is stable across instances.
+    Refuses if the live map-id byte does not match <map_id_str>.
+    Stamps capturedBuild from the live PE header if absent or stale.
+    Atomic save, then runs pushlive.
+    """
+    _require_game()
+
+    try:
+        map_id = int(map_id_str)
+    except ValueError:
+        print(f"Invalid map id: {map_id_str!r} (must be an integer)")
+        sys.exit(1)
+
+    db = _load_db()
+    maps_db = db.get("maps", {})
+    rec = maps_db.get(map_id_str)
+    if rec is None:
+        print(f"Map {map_id_str} not in the DB.  Run 'session' first to capture tile addresses.")
+        sys.exit(1)
+
+    # Verify the live map id matches.
+    live_id = ru8(MAP_ID_ADDR)
+    if live_id is None:
+        print("Map id unreadable (RPM failed).  Are you in a battle?")
+        sys.exit(1)
+    if live_id != map_id:
+        print(f"Live map id is {live_id}, but nofp was asked for map {map_id}.  "
+              f"Enter the correct battle first.")
+        sys.exit(1)
+
+    old_ver  = rec.get("fpVer")
+    old_hash = rec.get("fpHash")
+    old_len  = rec.get("fpLen")
+
+    rec["fpVer"]  = 0
+    rec["fpHash"] = None
+    rec["fpLen"]  = None
+
+    # Ensure capturedBuild is present and current.
+    bk = read_build_key()
+    stored_bk = rec.get("capturedBuild")
+    if bk is not None and bk != stored_bk:
+        rec["capturedBuild"] = bk
+        print(f"Build key stamped/updated: {bk}")
+    elif bk is None and stored_bk is None:
+        print("WARNING: could not read PE build key -- capturedBuild left absent.")
+
+    _save_db(db)
+    name = rec.get("name", "")
+    print(f"Map {map_id} ({name}): set to map-id-only (water/lava: no terrain fingerprint)")
+    print(f"  fpVer:  {old_ver!r} -> 0")
+    print(f"  fpHash: {old_hash!r} -> null")
+    print(f"  fpLen:  {old_len!r} -> null")
+    print(f"  Saved -> {DB_PATH.name}")
+    print(f"  Retry the battle -- the module will arm on map-id + address quorum alone.")
     print()
     cmd_pushlive()
 
@@ -1138,6 +1220,65 @@ def _selftest() -> bool:
     test_db_path.unlink(missing_ok=True)
     tmp_dir.rmdir()
 
+    # Map-id-only schema round-trip: a map with fpVer=0, fpHash=null, fpLen=null loads
+    # cleanly and is distinguishable from a stub (fpVer=null) and a fingerprinted map.
+    tmp_mio_dir = pathlib.Path(tempfile.mkdtemp())
+    mio_db_path = tmp_mio_dir / "mio_test.json"
+    mio_db = {
+        "_meta": {"schemaVersion": 1, "purpose": "test", "schema": "test"},
+        "maps": {
+            "83": {
+                "name": "Zeirchele Falls",
+                "fpVer": 0,
+                "fpLen": None,
+                "fpHash": None,
+                "capturedBuild": {"timeDateStamp": 99999, "sizeOfImage": 11111},
+                "tiles": [
+                    {"x": 1, "y": 6, "addrs": [["0x140200000", "0x00"]], "status": "verified"},
+                ],
+            },
+            "74": {
+                "name": "The Siedge Weald",
+                "fpVer": None,
+                "fpLen": None,
+                "fpHash": None,
+                "capturedBuild": None,
+                "tiles": [],
+            },
+        },
+    }
+    mio_tmp = mio_db_path.with_suffix(".json.tmp")
+    mio_tmp.write_text(json.dumps(mio_db, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    os.replace(mio_tmp, mio_db_path)
+    mio_loaded = json.loads(mio_db_path.read_text(encoding="utf-8"))
+    m83 = mio_loaded["maps"]["83"]
+    m74 = mio_loaded["maps"]["74"]
+    mio_ok = (
+        m83["fpVer"] == 0
+        and m83["fpHash"] is None
+        and m83["fpLen"] is None
+        and len(m83["tiles"]) == 1
+        and m74["fpVer"] is None   # stub: fpVer null, not 0
+        and m74["tiles"] == []
+    )
+    if mio_ok:
+        print("  map-id-only schema round-trip: OK")
+    else:
+        print(f"  map-id-only schema round-trip: FAIL  m83={m83!r}  m74={m74!r}")
+        ok = False
+    mio_db_path.unlink(missing_ok=True)
+    mio_db_path.with_suffix(".json.bak").unlink(missing_ok=True)
+    mio_tmp.unlink(missing_ok=True)
+    try:
+        mio_tmp_dir = mio_tmp.parent
+        mio_tmp_dir.rmdir()
+    except OSError:
+        pass
+    try:
+        tmp_mio_dir.rmdir()
+    except OSError:
+        pass
+
     # PE-offset math on a synthetic buffer
     # Simulate: e_lfanew=0x80, TimeDateStamp @ 0x88, SizeOfImage @ 0xD0
     pe_buf = bytearray(0x200)
@@ -1230,6 +1371,13 @@ def main() -> None:
             print("Usage: refp <mapId>")
             sys.exit(2)
         cmd_refp(args[1])
+        return
+
+    if args[0] == "nofp":
+        if len(args) < 2:
+            print("Usage: nofp <mapId>")
+            sys.exit(2)
+        cmd_nofp(args[1])
         return
 
     if args[0] == "status":

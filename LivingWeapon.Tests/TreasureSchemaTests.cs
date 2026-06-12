@@ -99,9 +99,24 @@ public class TreasureSchemaTests
     public void Stub_maps_have_empty_tiles()
     {
         var db = TreasureDb.Load(Path.GetDirectoryName(RepoTreasurePath())!);
-        // A stub map has no fpHash (null).  It must have no tiles.
-        foreach (var map in db.Maps.Where(m => m.FpHash is null))
+        // A stub map has null fpHash AND is NOT map-id-only.  It must have no tiles.
+        // Map-id-only maps (fpVer=0, fpHash null) legitimately carry tile addresses.
+        foreach (var map in db.Maps.Where(m => m.FpHash is null && !m.IsMapIdOnly))
             Assert.Empty(map.Tiles);
+    }
+
+    [Fact]
+    public void MapIdOnly_maps_have_fpVer_0_null_fpHash_and_tiles()
+    {
+        var db = TreasureDb.Load(Path.GetDirectoryName(RepoTreasurePath())!);
+        // All map-id-only entries must have fpVer=0, null fpHash, null fpLen, and tiles present.
+        foreach (var map in db.Maps.Where(m => m.IsMapIdOnly))
+        {
+            Assert.Equal(0, map.FpVer);
+            Assert.Null(map.FpHash);
+            Assert.Null(map.FpLen);
+            Assert.NotEmpty(map.Tiles);
+        }
     }
 }
 

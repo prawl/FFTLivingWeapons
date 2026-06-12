@@ -98,6 +98,26 @@ internal sealed class ArmAudit
         return got == expected;
     }
 
+    /// <summary>
+    /// Diagnostic snapshot of the fingerprint comparison for one-shot mismatch logging:
+    /// whether the terrain read succeeded, the computed hash, the expected hash, fpVer,
+    /// and how many bytes were read. Pure read, no side effects.
+    /// </summary>
+    public (bool ReadOk, ulong Got, ulong Expected, int? FpVer, int Len) FingerprintDiag(TreasureMap map)
+    {
+        ulong expected = map.FpHash ?? 0;
+        int fpLen = map.FpLen ?? 0;
+        if (fpLen == 0 || !_mem.TryReadBytes(Offsets.TerrainGrid, fpLen, out var buf))
+            return (false, 0, expected, map.FpVer, 0);
+        ulong got = map.FpVer switch
+        {
+            3 => TreasureMaster.MaskedTerrainHashV3(buf),
+            2 => TreasureMaster.MaskedTerrainHash(buf),
+            _ => TreasureMaster.Fnv1a64(buf),
+        };
+        return (true, got, expected, map.FpVer, buf.Length);
+    }
+
     // ── per-address audit ─────────────────────────────────────────────────────────
 
     /// <summary>

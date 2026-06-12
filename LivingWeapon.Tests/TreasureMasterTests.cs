@@ -1170,4 +1170,190 @@ public class TreasureMasterTests
         Assert.False(mem.ReadCount.TryGetValue(addr, out _),
             "flag address should never be read when build key mismatches");
     }
+
+    // ── map-id-only mode (water/lava maps) ────────────────────────────────────
+    // A map whose stored fpHash is null and fpVer is 0 is a map-id-only map.
+    // The terrain fingerprint gate is entirely absent: it arms on map-id + address
+    // quorum alone, and never disarms on terrain change.
+    //
+    // Invariant matrix:
+    //   (MIO-1) Arms without fingerprint match, even when the live terrain hash is garbage.
+    //   (MIO-2) Does NOT disarm on terrain change mid-battle (the water regression).
+    //   (MIO-3) A map-id flip still disarms a map-id-only map (live wrong-map guard stays).
+    //   (MIO-4) A fingerprinted map still requires the fingerprint (unchanged path).
+    //   (MIO-5) Bake: a map-id-only map (verified tiles, null fpHash) ships alongside a
+    //            fingerprinted map; both appear in the output.
+
+    /// <summary>Build a map-id-only db (fpVer=0, fpHash=null, no fpLen).</summary>
+    private static TreasureDb BuildMapIdOnlyDb(
+        string dir, int mapId = 83, string name = "Zeirchele Falls",
+        int tileX = 2, int tileY = 3,
+        IEnumerable<(long addr, byte off)>? addrs = null)
+    {
+        var addrList = addrs?.ToList() ?? new List<(long, byte)>
+            { (TileAddr(100), 0x00), (TileAddr(101), 0x00), (TileAddr(102), 0x00) };
+        string tilesJson = $@"[{{
+            ""x"": {tileX}, ""y"": {tileY},
+            ""addrs"": [{string.Join(", ", addrList.Select(a => AddrJson(a.addr, a.off)))}]
+        }}]";
+        string json = $@"{{
+            ""buildKey"": null,
+            ""maps"": [{{
+                ""mapId"": {mapId}, ""name"": ""{name}"", ""tileCount"": 1,
+                ""fpVer"": 0,
+                ""tiles"": {tilesJson}
+            }}]
+        }}";
+        File.WriteAllText(Path.Combine(dir, "treasure.json"), json);
+        return TreasureDb.Load(dir);
+    }
+
+    /// <summary>
+    /// (MIO-1) A map-id-only map arms WITHOUT a fingerprint match, even when the live
+    /// terrain is garbage/changing (simulating Zeirchele Falls water animation).
+    /// The module must reach ARMED and write its tile addresses.
+    /// </summary>
+    [Fact]
+    public void MapIdOnly_arms_without_fingerprint_match_even_with_garbage_terrain()
+    {
+        var dir  = TempDir();
+        var addrs = new[] { TileAddr(100), TileAddr(101), TileAddr(102) };
+        var db = BuildMapIdOnlyDb(dir,
+            addrs: addrs.Select(a => (a, (byte)0x00)));
+
+        // Terrain is random garbage -- no valid fingerprint can ever match.
+        var garbageTerrain = new byte[] { 0xDE, 0xAD, 0xBE, 0xEF, 0x12, 0x34, 0x56 };
+        var mem = new FakeSparseMemory();
+        mem.U8s[Offsets.LiveBattleMapId] = 83;
+        mem.ReadableAddrs.Add(Offsets.LiveBattleMapId);
+        mem.TerrainBlocks[Offsets.TerrainGrid] = garbageTerrain;
+        foreach (var a in addrs)
+        {
+            mem.U8s[a] = 0x00;
+            mem.ReadableAddrs.Add(a);
+            mem.WritableAddrs.Add(a);
+        }
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+
+        // Must have written to all three addresses despite garbage terrain.
+        foreach (var a in addrs)
+        {
+            Assert.True(mem.Written.ContainsKey(a),
+                $"map-id-only: addr {a:x} should be written even with garbage terrain");
+            Assert.Equal(0x80, mem.Written[a]);
+        }
+    }
+
+    /// <summary>
+    /// (MIO-2) A map-id-only map that is already ARMED must NOT disarm on terrain change
+    /// mid-battle.  This is the exact water regression: fields {0,1,6} animate every frame,
+    /// but the map-id-only path has no terrain revalidation loop at all.
+    /// </summary>
+    [Fact]
+    public void MapIdOnly_does_not_disarm_on_terrain_change_mid_battle()
+    {
+        var dir  = TempDir();
+        var addrs = new[] { TileAddr(103), TileAddr(104), TileAddr(105) };
+        var db = BuildMapIdOnlyDb(dir, mapId: 83, tileX: 2, tileY: 3,
+            addrs: addrs.Select(a => (a, (byte)0x00)));
+
+        var terrain = new byte[] { 0x10, 0x00, 0x05, 0x06, 0x07, 0x08, 0x01 };
+        var mem = new FakeSparseMemory();
+        mem.U8s[Offsets.LiveBattleMapId] = 83;
+        mem.ReadableAddrs.Add(Offsets.LiveBattleMapId);
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        foreach (var a in addrs)
+        {
+            mem.U8s[a] = 0x00;
+            mem.ReadableAddrs.Add(a);
+            mem.WritableAddrs.Add(a);
+        }
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+        Assert.NotEmpty(mem.Written);
+
+        // Continuously mutate the terrain (water animation cycling all fields).
+        for (int cycle = 0; cycle < 5; cycle++)
+        {
+            terrain[0] = (byte)(0x10 + cycle);
+            terrain[1] = (byte)(0xAA + cycle);
+            terrain[6] = (byte)(0xFF - cycle);
+            mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+            // Engine clears the mark between cycles.
+            foreach (var a in addrs) mem.U8s[a] = 0x00;
+            mem.Written.Clear();
+
+            TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+
+            foreach (var a in addrs)
+                Assert.True(mem.Written.ContainsKey(a),
+                    $"cycle {cycle}: map-id-only map should stay armed despite terrain animation");
+        }
+    }
+
+    /// <summary>
+    /// (MIO-3) Even though there is no terrain gate, the live wrong-map guard (map-id
+    /// check every tick) still disarms a map-id-only map when the map id changes.
+    /// </summary>
+    [Fact]
+    public void MapIdOnly_map_id_flip_still_disarms()
+    {
+        var dir  = TempDir();
+        var addrs = new[] { TileAddr(106), TileAddr(107), TileAddr(108) };
+        var db = BuildMapIdOnlyDb(dir, mapId: 83,
+            addrs: addrs.Select(a => (a, (byte)0x00)));
+
+        var terrain = new byte[] { 0x10, 0x00, 0x05, 0x06, 0x07, 0x08, 0x01 };
+        var mem = new FakeSparseMemory();
+        mem.U8s[Offsets.LiveBattleMapId] = 83;
+        mem.ReadableAddrs.Add(Offsets.LiveBattleMapId);
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        foreach (var a in addrs)
+        {
+            mem.U8s[a] = 0x00;
+            mem.ReadableAddrs.Add(a);
+            mem.WritableAddrs.Add(a);
+        }
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+        mem.Written.Clear();
+
+        // Flip to an unknown map id.
+        mem.U8s[Offsets.LiveBattleMapId] = 77;
+
+        // Run through the bad-tick threshold -- must stop writing.
+        TickN(tm, Tuning.TreasureMapIdBadTicksToReset + 2);
+
+        Assert.Empty(mem.Written);
+    }
+
+    /// <summary>
+    /// (MIO-4) A fingerprinted map (fpHash not null) still requires the fingerprint.
+    /// A mismatch at arm time must still block arming -- the map-id-only shortcut
+    /// must NOT affect the existing fingerprinted code path.
+    /// </summary>
+    [Fact]
+    public void Fingerprinted_map_still_requires_fingerprint_unaffected_by_mapidonly()
+    {
+        var dir  = TempDir();
+        var realTerrain  = new byte[] { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 };
+        var wrongTerrain = new byte[] { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00 };
+        var addr = TileAddr(109);
+        // Explicitly a fingerprinted (non-map-id-only) map.
+        var db = BuildDb(dir, mapId: 74, fpLen: realTerrain.Length,
+            fpHash: TerrainFpHash(realTerrain),
+            addrs: new[] { (addr, (byte)0x00) });
+
+        // Memory has the wrong terrain -- fingerprint mismatch.
+        var mem = BuildMem(74, wrongTerrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        TickN(tm, Tuning.TreasureArmStableTicks + Tuning.TreasureArmAttemptCap + 10);
+
+        Assert.Empty(mem.Written);
+    }
 }

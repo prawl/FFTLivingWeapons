@@ -1,7 +1,12 @@
 """Bake data/treasure_addrs.json + data/map_trap_formation.json -> LivingWeapon/treasure.json.
 
 Gate rules (exit 1 on violation):
-  (a) Only ship addresses for tiles with status "verified" AND non-null fpHash + capturedBuild.
+  (a) Ship addresses for verified tiles that satisfy ONE of two modes:
+        Fingerprinted mode: non-null fpHash AND capturedBuild present.
+        Map-id-only mode:   fpVer == 0 AND fpHash is null/absent -- for water/lava maps
+          whose terrain grid animates on every re-entry (no stable fingerprint possible).
+          capturedBuild must still be present and current (L0 PE key check is NOT bypassed).
+      Tiles that match neither mode are skipped.
   (b) Every shipped (x,y) must be a treasure tile (is_treasure) in the snapshot.
   (c) Off bytes must be 0x00 or 0x01 -- other values are WARNED and the single address is
       DROPPED (a lockstep coincidence, not a flag byte). Same for addresses at or above
@@ -13,16 +18,21 @@ Gate rules (exit 1 on violation):
       corrupt data.
   (e) Build-key policy: dataset key = newest capturedBuild timeDateStamp. Maps captured under an
       older key are warned and dropped (never hard-fail -- would brick deploys post-patch).
+      Map-id-only maps are NOT exempt from this: capturedBuild must be present and current.
   (f) Emit stub entries {mapId, name, tileCount, tiles:[]} for every populated treasure map with
       no shippable tiles (runtime nag needs names/counts).
   (g) Self-test on every invocation: 3 pinned FNV-1a64 vectors + join fixture + masked-hash
       pinned vector.  Exit 1 on fail.
   (h) Print coverage summary: shippable maps / stub maps / dropped.
-  (i) Fingerprint version policy: maps with fpVer 2 or 3 are shipped; anything else is WARNED
-      and demoted to stub (re-fingerprint needed via 'refp' verb in treasure_flags.py).
+  (i) Fingerprint version policy: maps with fpVer 2 or 3 are shipped as fingerprinted maps;
+      maps with fpVer 0 are shipped as map-id-only (water/lava, no terrain gate); anything
+      else is WARNED and demoted to stub (re-fingerprint needed via 'refp' or set map-id-only
+      via 'nofp' in treasure_flags.py).
       fpVer=2: dry-land maps (field-0 hash, immune to field-1/6 churn).
-      fpVer=3: water/lava maps (fields {2,3,4,5} hash, immune to field-0/1/6 animation).
-      Both are shipped with fpLen == TERRAIN_RAW_LEN (1456); the runtime dispatches on fpVer.
+      fpVer=3: water/lava maps that DO have a stable v3 hash (fields {2,3,4,5}).
+      fpVer=0: map-id-only mode (no fingerprint at all -- see rule (a) above).
+      Both fpVer=2 and fpVer=3 are shipped with fpLen == TERRAIN_RAW_LEN (1456); the runtime
+      dispatches on fpVer.  Map-id-only maps are emitted with fpVer=0, fpHash=null, fpLen=null.
 
 Populated = at least one is_treasure tile in map_trap_formation.json (mapIds 1-127).
 """
@@ -291,12 +301,15 @@ def main() -> int:
         fp_ver     = cmap.get("fpVer")
         cap_build  = cmap.get("capturedBuild")
 
-        # Fingerprint version policy: ship maps with fpVer 2 or 3; anything else is
-        # demoted to stub (re-fingerprint needed via 'refp' in treasure_flags.py).
-        # fpVer=2: dry-land maps (field-0 only hash); fpVer=3: water/lava maps (fields {2,3,4,5}).
-        if fp_ver not in (2, 3):
-            print(f"  WARN: map {mid} ({name}) fpVer={fp_ver!r} (not 2 or 3) -- "
-                  f"needs 'refp' re-fingerprint before shipping; emitting stub")
+        # Determine arm mode for this map.
+        # map-id-only: fpVer == 0 and fpHash absent/null -- water/lava maps.
+        # fingerprinted: fpVer 2 or 3 with a non-null fpHash.
+        # Anything else: demote to stub (needs 'refp' or 'nofp').
+        is_map_id_only = (fp_ver == 0 and not fp_hash)
+
+        if not is_map_id_only and fp_ver not in (2, 3):
+            print(f"  WARN: map {mid} ({name}) fpVer={fp_ver!r} (not 0, 2, or 3) -- "
+                  f"needs 'refp' re-fingerprint or 'nofp' for water/lava; emitting stub")
             stub_count += 1
             out_maps.append({
                 "mapId":     mid,
@@ -309,7 +322,7 @@ def main() -> int:
             })
             continue
 
-        # Build-key staleness check.
+        # Build-key staleness check.  Map-id-only maps are NOT exempt (L0 still guards).
         if newest_build and cap_build and isinstance(cap_build, dict):
             cap_ts = cap_build.get("timeDateStamp", 0)
             new_ts = newest_build.get("timeDateStamp", 0)
@@ -336,10 +349,14 @@ def main() -> int:
             status = tile.get("status", "")
             tx, ty = tile.get("x"), tile.get("y")
 
-            # (a) Only ship verified tiles with a non-null fpHash + capturedBuild.
+            # (a) Only ship verified tiles.
+            # Fingerprinted mode: requires non-null fpHash + capturedBuild.
+            # Map-id-only mode:   requires capturedBuild (fpHash is intentionally null).
             if status != "verified":
                 continue
-            if not fp_hash or not cap_build:
+            if not cap_build:
+                continue
+            if not is_map_id_only and not fp_hash:
                 continue
 
             # (b) Coord must be a treasure tile in the snapshot.
@@ -400,16 +417,28 @@ def main() -> int:
 
         if shippable_tiles:
             shippable_count += 1
-            fp_hash_hex = f"0x{int(fp_hash, 16):016x}" if fp_hash else None
-            out_maps.append({
-                "mapId":     mid,
-                "name":      name,
-                "tileCount": tile_count,
-                "fpVer":     fp_ver,         # preserve the actual version (2 or 3)
-                "fpLen":     TERRAIN_RAW_LEN,
-                "fpHash":    fp_hash_hex,
-                "tiles":     shippable_tiles,
-            })
+            if is_map_id_only:
+                # Map-id-only: no fingerprint fields.
+                out_maps.append({
+                    "mapId":     mid,
+                    "name":      name,
+                    "tileCount": tile_count,
+                    "fpVer":     0,
+                    "fpLen":     None,
+                    "fpHash":    None,
+                    "tiles":     shippable_tiles,
+                })
+            else:
+                fp_hash_hex = f"0x{int(fp_hash, 16):016x}" if fp_hash else None
+                out_maps.append({
+                    "mapId":     mid,
+                    "name":      name,
+                    "tileCount": tile_count,
+                    "fpVer":     fp_ver,         # preserve the actual version (2 or 3)
+                    "fpLen":     TERRAIN_RAW_LEN,
+                    "fpHash":    fp_hash_hex,
+                    "tiles":     shippable_tiles,
+                })
         else:
             stub_count += 1
             out_maps.append({

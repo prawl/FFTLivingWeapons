@@ -1271,9 +1271,9 @@
       "mapId": 83,
       "name": "Zeirchele Falls",
       "tileCount": 4,
-      "fpVer": 2,
+      "fpVer": 3,
       "fpLen": 1456,
-      "fpHash": "0x834b5e4da53de799",
+      "fpHash": "0x9782d73ecee65d0c",
       "tiles": [
         {
           "x": 1,

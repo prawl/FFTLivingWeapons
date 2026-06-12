@@ -71,6 +71,19 @@ internal sealed class TreasureMap
         FpHashHex is { } s && ulong.TryParse(s.AsSpan(s.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? 2 : 0),
                                               NumberStyles.HexNumber, null, out ulong v)
             ? v : (ulong?)null;
+
+    /// <summary>
+    /// True when this map is in map-id-only mode: <see cref="FpHash"/> is null and
+    /// <see cref="FpVer"/> is exactly 0.  The runtime arms on map-id + address quorum
+    /// alone, with no terrain fingerprint gate and no periodic terrain revalidation.
+    /// Used for water/lava maps whose terrain grid fields animate on every re-entry and
+    /// cannot produce a stable hash across instances.
+    ///
+    /// Stub maps (uncaptured) have <see cref="FpVer"/> null, not 0, so they do NOT satisfy
+    /// this predicate.  Dry maps keep their v2/v3 fingerprint; map-id-only is an explicit
+    /// per-map decision made via the 'nofp' verb in the capture tool.
+    /// </summary>
+    public bool IsMapIdOnly => FpHash is null && FpVer == 0;
 }
 
 // ── raw deserialization root ──────────────────────────────────────────────────
