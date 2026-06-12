@@ -340,18 +340,25 @@ def _poll_cursor_stable(target_x: int, target_y: int, stable_secs: float = 1.0,
     print(f"  Waiting for cursor at ({target_x}, {target_y}) -- hover the tile in-game ...")
     deadline = time.time() + timeout_secs
     stable_since = None
+    last_shown = None
     while time.time() < deadline:
         cx, cy = read_cursor()
+        # Live readout on one console line -- navigation aid while walking the cursor.
+        if (cx, cy) != last_shown:
+            dx, dy = target_x - (cx or 0), target_y - (cy or 0)
+            print(f"\r  cursor ({cx},{cy})  ->  target ({target_x},{target_y})"
+                  f"  [dx {dx:+d}, dy {dy:+d}]   ", end="", flush=True)
+            last_shown = (cx, cy)
         if cx == target_x and cy == target_y:
             if stable_since is None:
                 stable_since = time.time()
             elif time.time() - stable_since >= stable_secs:
-                print(f"  Cursor locked at ({target_x}, {target_y}).")
+                print(f"\r  Cursor locked at ({target_x}, {target_y}).                              ")
                 return True
         else:
             stable_since = None
         time.sleep(0.05)
-    print(f"  Timed out waiting for cursor at ({target_x}, {target_y}).")
+    print(f"\n  Timed out waiting for cursor at ({target_x}, {target_y}).")
     return False
 
 
