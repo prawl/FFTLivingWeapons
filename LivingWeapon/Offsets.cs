@@ -65,6 +65,11 @@ internal static class Offsets
     public const long RosterBase = 0x1411A18D0;
     public const int RosterStride = 0x258;
     public const int RosterSlots = 20;
+    public const int RAccessory = 0x12; // u16 equipped accessory item id.
+                                       //   Probe-confirmed 2026-06-12: Scholar's Ring (id 260) at
+                                       //   RosterBase + slot*RosterStride + 0x12 for the equipping slot;
+                                       //   sibling accessories 218/224/226/232 confirmed in adjacent slots.
+                                       //   Empty slot reads 255 or 0, never 260.
     public const int RRHand  = 0x14;   // u16 right-hand weapon id (FFTPatcher-canonical, == items.json id)
     public const int RLHand  = 0x16;   // u16 left-hand weapon id; 0xFF/0xFFFF when empty (kept for safety; live it stays empty)
     public const int ROffHand = 0x18;  // u16 dual-wield OFF-HAND weapon. FFTHandsFree mislabels this "reserved" --

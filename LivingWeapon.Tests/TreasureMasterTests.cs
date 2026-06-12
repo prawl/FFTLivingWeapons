@@ -1635,4 +1635,200 @@ public class TreasureMasterTests
         Assert.NotEmpty(mem.Written);
         Assert.Equal(0x80, mem.Written[addr]);
     }
+
+    // ── RingGate.ScholarRingEquipped detector ────────────────────────────────────
+    // Pure static: reads roster slots 0..RosterSlots-1, returns true on the first
+    // slot whose accessory u16 == ScholarRingItemId (260).
+
+    /// <summary>Seed a single roster slot's accessory field (u16 at RosterBase + slot*stride + RAccessory).</summary>
+    private static void SeedAccessory(FakeSparseMemory mem, int slot, ushort itemId)
+    {
+        long rb   = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
+        long addr = rb + Offsets.RAccessory;
+        mem.U16s[addr]       = itemId;
+        mem.ReadableAddrs.Add(addr);
+    }
+
+    [Fact]
+    public void RingGate_RingInSlot0_ReturnsTrue()
+    {
+        var mem = new FakeSparseMemory();
+        SeedAccessory(mem, 0, (ushort)Offsets.ScholarRingItemId);
+
+        Assert.True(RingGate.ScholarRingEquipped(mem));
+    }
+
+    [Fact]
+    public void RingGate_RingInHighSlot_ReturnsTrue()
+    {
+        var mem = new FakeSparseMemory();
+        // Only seed a high slot -- all others unseeded (Readable returns false for them).
+        SeedAccessory(mem, Offsets.RosterSlots - 1, (ushort)Offsets.ScholarRingItemId);
+
+        Assert.True(RingGate.ScholarRingEquipped(mem));
+    }
+
+    [Fact]
+    public void RingGate_NoRingOnlyOtherAccessories_ReturnsFalse()
+    {
+        var mem = new FakeSparseMemory();
+        // Accessories that are real items but not the ring.
+        SeedAccessory(mem, 0, 218);
+        SeedAccessory(mem, 1, 255);
+        SeedAccessory(mem, 2, 224);
+        SeedAccessory(mem, 3, 226);
+
+        Assert.False(RingGate.ScholarRingEquipped(mem));
+    }
+
+    [Fact]
+    public void RingGate_AllSlotsUnreadable_ReturnsFalse()
+    {
+        // FakeSparseMemory.Readable() returns false for all unseeded addrs.
+        var mem = new FakeSparseMemory();
+        Assert.False(RingGate.ScholarRingEquipped(mem));
+    }
+
+    [Fact]
+    public void RingGate_EmptyAccessory255_ReturnsFalse()
+    {
+        var mem = new FakeSparseMemory();
+        // 255 = "empty" accessory slot; must not be confused with the ring.
+        SeedAccessory(mem, 0, 255);
+        SeedAccessory(mem, 1, 0);
+
+        Assert.False(RingGate.ScholarRingEquipped(mem));
+    }
+
+    // ── TreasureMaster ring-gate integration ─────────────────────────────────────
+    // alwaysOn=false + ring equipped  => arms + writes.
+    // alwaysOn=false + no ring        => never arms, zero writes, logs idle once.
+    // alwaysOn=true  + no ring        => arms (override path, ring not read).
+
+    /// <summary>
+    /// Build a standard TreasureMaster mem seeded for a known map, optionally with
+    /// the Scholar's Ring in a roster slot.
+    /// </summary>
+    private static (TreasureDb db, FakeSparseMemory mem, long addr) BuildRingGateScenario(
+        bool ringEquipped, int rosterSlot = 0)
+    {
+        var dir     = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr    = TileAddr(300);
+        var db      = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+                         addrs: new[] { (addr, (byte)0x00) });
+        var mem     = BuildMem(74, terrain, new[] { addr });
+
+        if (ringEquipped)
+            SeedAccessory(mem, rosterSlot, (ushort)Offsets.ScholarRingItemId);
+        // Not equipped: leave all roster accessory slots unseeded (Readable = false -> returns false).
+
+        return (db, mem, addr);
+    }
+
+    [Fact]
+    public void RingGate_AlwaysOff_RingEquipped_ArmsAndWrites()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: true);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+        StabilizeAndArm(tm);
+
+        Assert.True(mem.Written.ContainsKey(addr),
+            "alwaysOn=false + ring equipped should arm and write tile");
+        Assert.Equal(0x80, mem.Written[addr]);
+    }
+
+    [Fact]
+    public void RingGate_AlwaysOff_NoRing_NeverArms_ZeroWrites()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+        TickN(tm, Tuning.TreasureArmStableTicks + 20);
+
+        Assert.Empty(mem.Written);
+    }
+
+    [Fact]
+    public void RingGate_AlwaysOff_NoRing_FastHold_PublishesNull()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+        TickN(tm, Tuning.TreasureArmStableTicks + 5);
+
+        // HoldOnce on a null-published FastHold must write nothing.
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+        tm.FastHold.HoldOnce();
+
+        Assert.Empty(mem.Written);
+    }
+
+    [Fact]
+    public void RingGate_AlwaysOn_NoRing_ArmsAnyway()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: true);
+        StabilizeAndArm(tm);
+
+        Assert.True(mem.Written.ContainsKey(addr),
+            "alwaysOn=true must arm even with no ring");
+    }
+
+    [Fact]
+    public void RingGate_RingCheckedOncePerBattle_CachedResultSurvivesRingRemoval()
+    {
+        // Once the ring check latches for a battle, the cached result persists even
+        // if the ring is removed from memory mid-battle (i.e., the check is not re-run
+        // on each tick while ARMED).  Verified behaviorally: arm with ring, remove ring
+        // from mem, continue ARMED ticks -> writes continue (cached enabled=true).
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: true, rosterSlot: 0);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+
+        // Arm with ring present.
+        StabilizeAndArm(tm);
+        Assert.True(mem.Written.ContainsKey(addr), "should have armed with ring present");
+
+        // Remove the ring from memory mid-battle (as if unequipped -- but gate already latched).
+        long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
+        mem.U16s[accessorAddr] = 0;   // ring gone from memory
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;         // engine cleared mark
+
+        // ARMED ticks should still write (cached enabled=true, no re-read of ring).
+        TickN(tm, 5);
+        Assert.True(mem.Written.ContainsKey(addr),
+            "ARMED ticks should continue writing when ring gate is cached; re-reading ring mid-battle would break this");
+    }
+
+    [Fact]
+    public void RingGate_ResetBattle_RecheckOnNextBattle()
+    {
+        // Ring absent on battle 1 -> no arm.  ResetBattle.  Ring appears -> battle 2 arms.
+        var dir     = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr    = TileAddr(301);
+        var db      = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+                         addrs: new[] { (addr, (byte)0x00) });
+        var mem     = BuildMem(74, terrain, new[] { addr });
+
+        // Battle 1: no ring.
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+        TickN(tm, Tuning.TreasureArmStableTicks + 20);
+        Assert.Empty(mem.Written);
+
+        // Between battles: equip the ring.
+        tm.ResetBattle();
+        SeedAccessory(mem, 0, (ushort)Offsets.ScholarRingItemId);
+        mem.U8s[addr] = 0x00;
+
+        // Battle 2: ring present -> should arm and write.
+        TickN(tm, Tuning.TreasureArmStableTicks + 10);
+        Assert.True(mem.Written.ContainsKey(addr),
+            "after ResetBattle ring appears -> should arm on next battle");
+    }
 }

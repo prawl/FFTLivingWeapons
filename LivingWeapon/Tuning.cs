@@ -115,10 +115,11 @@ internal static class Tuning
 
     /// <summary>Documented default for Config.TreasureAlwaysOn (the runtime value flows from
     /// LivingWeapon.Configuration.Config, loaded by Mod.cs at startup; this constant is the
-    /// fallback when the config file can't be read).  Default OFF: treasure marks are opt-in
-    /// via the Reloaded config toggle.  Ship intent is eventual ring-gating (Scholar's Ring,
-    /// id 260) once the accessory-slot detector is probe-confirmed and wired.
-    /// Idle log when false: "treasure: ring gate pending -- module idle"</summary>
+    /// fallback when the config file can't be read).  Default OFF -- the Scholar's Ring
+    /// (item id 260, RAccessory offset +0x12, probe-confirmed 2026-06-12) is the NORMAL gate:
+    /// TreasureMaster arms each battle iff any roster slot's accessory reads 260 via RingGate.
+    /// TreasureAlwaysOn=true is a force-on OVERRIDE that bypasses the ring check entirely
+    /// (roster is not read).  Ship with the default false; only toggle for dev testing.</summary>
     public const bool TreasureAlwaysOn = false;
 
     /// <summary>Consecutive same-map-id ticks required before arming begins (~1s at 33ms).</summary>

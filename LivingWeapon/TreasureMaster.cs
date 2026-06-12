@@ -54,6 +54,9 @@ internal sealed partial class TreasureMaster : ISignature
     private bool      _capLoggedThisBattle = false;
     private bool      _foreignLoggedThisBattle = false; // armed off-screen log once per battle
     private bool      _flapLoggedThisBattle = false;    // fingerprint-flap re-prove log once per battle
+    private bool      _ringCheckedThisBattle = false;   // true once the ring check has run for this battle
+    private bool      _enabledThisBattle = false;       // cached ring-gate result for this battle
+    private bool      _ringIdleLoggedThisBattle = false; // idle nag logged once per battle
 
     private int       _stampCheckCountdown = 0;   // ticks until the next stamp comparison
     private DateTime? _lastStamp = null;           // stamp seen at the last check (null = not yet checked)
@@ -108,6 +111,9 @@ internal sealed partial class TreasureMaster : ISignature
         _capLoggedThisBattle        = false;
         _foreignLoggedThisBattle    = false;
         _flapLoggedThisBattle       = false;
+        _ringCheckedThisBattle      = false;
+        _enabledThisBattle          = false;
+        _ringIdleLoggedThisBattle   = false;
         // _globalIdle and _globalIdleChecked persist -- the L0 check is startup-once.
         _fastHold.Publish(null);    // immediacy on battle-exit: stop holding before Tick runs again
     }
@@ -187,13 +193,6 @@ internal sealed partial class TreasureMaster : ISignature
             return;   // silent: no dataset, no output
         }
 
-        if (!_alwaysOn)
-        {
-            _globalIdle = true;
-            Log.Info("treasure: ring gate pending -- module idle");
-            return;
-        }
-
         // If the dataset has a build key, compare it to the live PE header.
         if (_db.BuildKey is { } bk)
         {
@@ -255,7 +254,25 @@ internal sealed partial class TreasureMaster : ISignature
             return;
         }
 
-        // Has tiles: transition to ARMING.
+        // Per-battle ring gate: check once, cache result for this battle.
+        // alwaysOn bypasses the roster read entirely (force-on override).
+        if (!_ringCheckedThisBattle)
+        {
+            _ringCheckedThisBattle = true;
+            _enabledThisBattle     = _alwaysOn || RingGate.ScholarRingEquipped(_mem);
+        }
+        if (!_enabledThisBattle)
+        {
+            if (!_ringIdleLoggedThisBattle)
+            {
+                _ringIdleLoggedThisBattle = true;
+                Log.Info("treasure: no Scholar's Ring equipped -- module idle " +
+                         "(equip the Scholar's Ring to enable treasure marks)");
+            }
+            return;
+        }
+
+        // Has tiles + ring gate open: transition to ARMING.
         _map         = found;
         _armAttempts = 0;
         _phase       = Phase.Arming;
