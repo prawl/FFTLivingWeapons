@@ -34,3 +34,8 @@ function tmapid {
 function trefp([int]$mapId) {
     python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") refp $mapId
 }
+
+# Water/lava maps: convert to map-id-only mode (no terrain fingerprint).
+function tnofp([int]$mapId) {
+    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") nofp $mapId
+}

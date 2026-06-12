@@ -36,3 +36,8 @@ tmapid() {
 trefp() {
   python "$_FFT_REPO/tools/probes/treasure_flags.py" refp "$1"
 }
+
+# Water/lava maps: convert to map-id-only mode (no terrain fingerprint).
+tnofp() {
+  python "$_FFT_REPO/tools/probes/treasure_flags.py" nofp "$1"
+}
