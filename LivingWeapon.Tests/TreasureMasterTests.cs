@@ -1502,4 +1502,137 @@ public class TreasureMasterTests
 
         Assert.Empty(mem.Written);
     }
+
+    // ── (18) battleDisplayed gate: formation / enemy-turn coverage ────────────────
+    // The Treasure Master module gates on a single bool from the Engine. Prior to this
+    // fix the Engine passed InLiveBattle, which flickered false during enemy turns and
+    // animations (battleMode==1 without slot0==0xFF). This kept resetting _stableTicks
+    // and prevented arming mid-battle. The Engine now passes BattleDisplayed instead:
+    // slot9==0xFFFFFFFF && battleMode!=0. Formation and enemy turns both satisfy that,
+    // so the module receives a stable true throughout the battle.
+    //
+    // The module's Tick(DateTime, bool) interface is unchanged; these tests drive it
+    // directly with the semantically correct gate value.
+
+    /// <summary>
+    /// Continuous gate=true (formation or any battle mode) arms in exactly
+    /// TreasureArmStableTicks ticks -- no flicker resets the counter.
+    /// </summary>
+    [Fact]
+    public void BattleDisplayed_continuous_true_arms_in_stable_ticks()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(220);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: new[] { (addr, (byte)0x00) });
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+
+        // Exactly TreasureArmStableTicks - 1 ticks: not yet armed.
+        TickN(tm, Tuning.TreasureArmStableTicks - 1, inLive: true);
+        Assert.Empty(mem.Written);
+
+        // One more tick tips past the threshold -- now armed + write.
+        TickN(tm, 6, inLive: true);
+        Assert.NotEmpty(mem.Written);
+        Assert.Equal(0x80, mem.Written[addr]);
+    }
+
+    /// <summary>
+    /// Gate=false (world map) resets stability and publishes null -- no writes and
+    /// FastHold stops holding.
+    /// </summary>
+    [Fact]
+    public void BattleDisplayed_false_resets_stability_and_publishes_null()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(221);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: new[] { (addr, (byte)0x00) });
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+
+        // Arm the module.
+        StabilizeAndArm(tm);
+        Assert.NotEmpty(mem.Written);
+
+        // Transition to world map (battleDisplayed=false).
+        tm.Tick(DateTime.Now, inLive: false);
+
+        // Clear and verify: no further writes; HoldOnce produces nothing (null published).
+        mem.Written.Clear();
+        foreach (var a in new[] { addr }) mem.U8s[a] = 0x00;
+
+        tm.FastHold.HoldOnce();
+        Assert.Empty(mem.Written);
+    }
+
+    /// <summary>
+    /// After gate goes false (world map) then true again (new battle / formation),
+    /// the module re-arms from scratch -- the stability counter was reset.
+    /// </summary>
+    [Fact]
+    public void BattleDisplayed_false_then_true_rearms_from_scratch()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(222);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: new[] { (addr, (byte)0x00) });
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+
+        // First battle: arm.
+        StabilizeAndArm(tm);
+        Assert.NotEmpty(mem.Written);
+
+        // World map: gate=false resets state.
+        tm.Tick(DateTime.Now, inLive: false);
+        tm.ResetBattle();
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+
+        // Not yet armed on the very next true tick (stability counter was zeroed).
+        tm.Tick(DateTime.Now, inLive: true);
+        Assert.Empty(mem.Written);
+
+        // Full stability window passes -> arms and writes again.
+        TickN(tm, Tuning.TreasureArmStableTicks + 5, inLive: true);
+        Assert.NotEmpty(mem.Written);
+        Assert.Equal(0x80, mem.Written[addr]);
+    }
+
+    /// <summary>
+    /// Simulates the pre-fix flicker: the gate alternates false/true repeatedly
+    /// (battleMode==1 without excuse each odd tick, like an enemy turn without slot0==0xFF).
+    /// With the old InLiveBattle gate this reset _stableTicks on every odd tick.
+    /// With the new battleDisplayed gate (always true while the map is displayed),
+    /// the module receives continuous true and arms normally.
+    /// This test drives Tick with continuous true -- asserting it arms in <= stableTicks + overhead.
+    /// </summary>
+    [Fact]
+    public void BattleDisplayed_stable_gate_arms_despite_what_inLive_would_have_been()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(223);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: new[] { (addr, (byte)0x00) });
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+
+        // Drive with continuous gate=true (what battleDisplayed produces during a battle).
+        // With inLive this would alternately be false on enemy turns, resetting _stableTicks.
+        // With battleDisplayed the counter accumulates uninterrupted.
+        TickN(tm, Tuning.TreasureArmStableTicks + 10, inLive: true);
+
+        Assert.NotEmpty(mem.Written);
+        Assert.Equal(0x80, mem.Written[addr]);
+    }
 }

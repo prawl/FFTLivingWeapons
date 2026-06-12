@@ -490,4 +490,22 @@ public class BattleStateTests
         Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, WM9, 2, false, 0, t));
         Assert.True(bs.In);
     }
+
+    // --- BattleDisplayed (pure): the broad gate used by the Treasure Master module ---
+    // A battle map is on screen when slot9 == 0xFFFFFFFF AND battleMode != 0. This covers
+    // the formation/unit-placement screen (mode 1, slot9 armed) and all in-battle modes
+    // (2/3/4) while excluding the world map and menus (mode 0, regardless of slot9).
+
+    [Theory]
+    [InlineData(0xFFFFFFFFu, 1, true)]   // formation / enemy turn (mode 1, slot9 armed)
+    [InlineData(0xFFFFFFFFu, 2, true)]   // player move turn
+    [InlineData(0xFFFFFFFFu, 3, true)]   // action menu
+    [InlineData(0xFFFFFFFFu, 4, true)]   // instant targeting
+    [InlineData(0xFFFFFFFFu, 5, true)]   // cast / ability targeting
+    [InlineData(0xFFFFFFFFu, 0, false)]  // world map: mode 0 trumps the stuck slot9
+    [InlineData(0u, 2, false)]           // slot9 not armed (pre-battle menu)
+    [InlineData(0xDEADBEEFu, 2, false)]  // slot9 not the expected sentinel
+    public void BattleDisplayed_true_when_slot9_armed_and_mode_nonzero(
+        uint slot9, int battleMode, bool expected)
+        => Assert.Equal(expected, BattleState.BattleDisplayed(slot9, battleMode));
 }

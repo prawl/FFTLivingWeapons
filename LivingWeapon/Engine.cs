@@ -84,10 +84,12 @@ internal sealed class Engine
         _treasure.StartFastHold();
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
         // reset runs charm..font with Barrage between Plague and LifeSap; the in-battle tick
-        // excludes Barrage (it ticks before the !nowIn early-return, learn screens included).
-        // TreasureMaster is tail-appended to both arrays (order is load-bearing -- append only).
+        // excludes Barrage (ticks before the !nowIn early-return, learn screens included) and
+        // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
+        // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
+        // so ResetBattle still fires on the debounced battle-exit edge.
         _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, _barrage, lifeSap, wyrmblood, rapture, font, _treasure };
-        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, lifeSap, wyrmblood, rapture, font, _treasure };
+        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, lifeSap, wyrmblood, rapture, font };
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
@@ -156,6 +158,13 @@ internal sealed class Engine
         // Barrage runs in AND out of battle: the learn screen / pre-battle menus read the
         // JobCommand table live, and the learned bit needs its hold against menu writebacks.
         _barrage.Tick();
+        // Treasure Master gates on "a battle map is on screen" (slot9 armed + mode != 0) rather
+        // than strict InLiveBattle.  This makes it stable through formation, enemy turns, and
+        // cast animations (all mode 1 with slot9 stuck) while still excluding the world map
+        // (mode 0).  It ticks here -- before the !nowIn early-return -- so it fires on
+        // formation and enemy turns that nowIn might not cover.
+        bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
+        _treasure.Tick(now, battleDisplayed);
         if (!nowIn)
         {
             // Scholar's Ring: ensure the player always has at least one (idempotent).
