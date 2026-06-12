@@ -78,6 +78,13 @@ A_GY       = 0x34   # u8
 A_DEAD_STATUS = 0x45  # u8 -- bit 0x20 = Dead, bit 0x10 = Undead
 A_DEAD_BIT    = 0x20
 
+# Allegiance: combat+0x54, the byte CharmLock holds (with bit 0x20) to make a
+# charmed enemy fight for the player.  Band entry = combat+0x1C, so band-relative
+# the byte sits at 0x54 - 0x1C = 0x38.  Guests/escorts (Ovelia) spawn in
+# enemy-SIDE slots but carry the player bit -- kill_all must never touch them.
+A_ALLEG          = 0x38   # u8, band-relative (== combat+0x54)
+ALLEG_PLAYER_BIT = 0x20
+
 # Band-relative movement field (Offsets.AMovement = CMovement - BandEntry = 0x9C - 0x1C = 0x80)
 A_MOVEMENT = 0x80   # 3 bytes, base ability id 230, MSB-first
 MOVEMENT_BASE    = 230
@@ -384,11 +391,13 @@ def cmd_kill_all() -> None:
     """
     _require_game()
 
-    killed = 0
     skipped_player = 0
     skipped_dead = 0
     skipped_invalid = 0
+    spared_allied = []
+    targets = []
 
+    # Phase 1: enumerate -- no writes yet.
     for s in range(BAND_SLOTS):
         e = _band_entry_addr(s)
         if not _is_valid_entry(e):
@@ -402,9 +411,7 @@ def cmd_kill_all() -> None:
             skipped_invalid += 1
             continue
 
-        is_player = (s >= PLAYER_SLOT_THRESHOLD)
-
-        if is_player:
+        if s >= PLAYER_SLOT_THRESHOLD:
             skipped_player += 1
             continue
 
@@ -412,33 +419,90 @@ def cmd_kill_all() -> None:
             skipped_dead += 1
             continue
 
-        # Write HP=0 at band+A_HP
-        hp_ok = wu16(e + A_HP, 0)
+        lvl = ru8(e + A_LEVEL)
+        gx  = ru8(e + A_GX)
+        gy  = ru8(e + A_GY)
+        alleg = ru8(e + A_ALLEG)
 
-        # Write dead-bit at band+A_DEAD_STATUS  (read-modify-write to preserve other bits)
+        # Allegiance guard: guests/escorts (Ovelia!) and charmed units occupy
+        # enemy-side slots but fight FOR the player -- bit 0x20 at combat+0x54
+        # (the byte CharmLock holds to flip a charmed enemy allied). Never kill them.
+        if alleg is not None and (alleg & ALLEG_PLAYER_BIT):
+            spared_allied.append((s, lvl, hp, gx, gy, alleg))
+            continue
+
+        targets.append((s, e, hp, lvl, gx, gy, alleg))
+
+    for s, lvl, hp, gx, gy, alleg in spared_allied:
+        print(f"  SPARED slot s={s:02d}: lvl={lvl} hp={hp} pos=({gx},{gy}) "
+              f"alleg=0x{alleg:02X} (fights for the player)")
+
+    if not targets:
+        print("\nNo enemies found.  Are you in a live battle?")
+        return
+
+    print(f"\nAbout to KO {len(targets)} unit(s):")
+    for s, e, hp, lvl, gx, gy, alleg in targets:
+        a = f"0x{alleg:02X}" if alleg is not None else "??"
+        print(f"  slot s={s:02d} (n={s-24:+d})  lvl={lvl} hp={hp} pos=({gx},{gy}) alleg={a}")
+    print("If a guest/escort unit appears in this list, answer n and run the 'teams' verb.")
+    if input("KO these units? [y/n] ").strip().lower() not in ("y", "yes"):
+        print("Aborted -- nothing written.")
+        return
+
+    # Phase 2: write.
+    killed = 0
+    for s, e, hp, lvl, gx, gy, alleg in targets:
+        hp_ok = wu16(e + A_HP, 0)
         db = ru8(e + A_DEAD_STATUS)
         dead_byte = (db | A_DEAD_BIT) if db is not None else A_DEAD_BIT
         db_ok = wu8(e + A_DEAD_STATUS, dead_byte)
-
-        lvl = ru8(e + A_LEVEL)
-        br  = ru8(e + A_BRAVE)
-        fa  = ru8(e + A_FAITH)
-        gx  = ru8(e + A_GX)
-        gy  = ru8(e + A_GY)
-        print(f"  slot s={s:02d} (n={s-24:+d})  0x{e:X}  "
-              f"lvl={lvl} br={br} fa={fa} pos=({gx},{gy})  "
-              f"hp {hp}->{0}  dead_byte=0x{dead_byte:02X}  "
+        print(f"  slot s={s:02d}  0x{e:X}  hp {hp}->0  dead_byte=0x{dead_byte:02X}  "
               f"hp_ok={hp_ok} db_ok={db_ok}")
         killed += 1
 
-    print(f"\nkill_all: {killed} enemies killed, "
+    print(f"\nkill_all: {killed} enemies killed, {len(spared_allied)} allied spared, "
           f"{skipped_player} player slots skipped, "
           f"{skipped_dead} already dead, "
           f"{skipped_invalid} invalid/empty slots")
-    if killed > 0:
-        print("End the current turn to see victory.")
-    else:
-        print("No enemies found.  Are you in a live battle?")
+    print("End the current turn to see victory.")
+
+
+# ---------------------------------------------------------------------------
+# Verb: teams  (diagnostic -- who would kill_all touch, and why)
+# ---------------------------------------------------------------------------
+def cmd_teams() -> None:
+    """Dump every live band slot with its side classification and allegiance byte.
+    Run this when a battle has guests/escorts to verify kill_all's filter before
+    trusting it -- a guest must show alleg bit 0x20 to be spared."""
+    _require_game()
+    print(f"{'slot':>4} {'side':<7} {'lvl':>3} {'hp':>5}/{'mhp':<5} {'pos':<9} "
+          f"{'alleg':<6} kill_all?")
+    for s in range(BAND_SLOTS):
+        e = _band_entry_addr(s)
+        if not _is_valid_entry(e):
+            continue
+        mhp = ru16(e + A_MAXHP)
+        if mhp is None or mhp <= 0:
+            continue
+        hp    = ru16(e + A_HP)
+        lvl   = ru8(e + A_LEVEL)
+        gx    = ru8(e + A_GX)
+        gy    = ru8(e + A_GY)
+        alleg = ru8(e + A_ALLEG)
+        side  = "player" if s >= PLAYER_SLOT_THRESHOLD else "enemy"
+        allied = alleg is not None and (alleg & ALLEG_PLAYER_BIT)
+        if s >= PLAYER_SLOT_THRESHOLD:
+            verdict = "no (player side)"
+        elif allied:
+            verdict = "SPARED (allied bit)"
+        elif hp is None or hp <= 0:
+            verdict = "no (dead)"
+        else:
+            verdict = "TARGET"
+        a = f"0x{alleg:02X}" if alleg is not None else "??"
+        print(f"{s:>4} {side:<7} {lvl!s:>3} {hp!s:>5}/{mhp!s:<5} ({gx},{gy})    "
+              f"{a:<6} {verdict}")
 
 
 # ---------------------------------------------------------------------------
@@ -550,6 +614,10 @@ def main() -> None:
 
     if args[0] == "kill_all":
         cmd_kill_all()
+        return
+
+    if args[0] == "teams":
+        cmd_teams()
         return
 
     print(f"Unknown verb: {args[0]!r}")
