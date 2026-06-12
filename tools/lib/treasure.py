@@ -28,17 +28,22 @@ load_trap_table(path=None) -> dict
     with "tiles": [].
 
 is_treasure(tile_dict) -> bool
-    True when the tile is a pure treasure (no active trap hazard).
-    Definition: TrapFlags == "DisableTrap" exactly.
-    "DisableTrap" means the trap mechanism is disabled -- it is a safe loot tile.
-    Any other value (None, Deathtrap, SleepingGas, SteelNeedle, Degenerator, or any
-    combo containing those) indicates an active hazard; do not mark those.
+    True when the tile holds a findable Move-Find treasure -- i.e. it has a rare item.
+    EVERY tile in the table carries a rare item (verified: 344/344, zero pure-trap tiles),
+    so this is effectively "any tile in the table".  The TrapFlags field is NOT a separate
+    tile class -- it only says whether claiming the item ALSO springs a trap.  Midlight's
+    Deep (maps 105-113) is entirely trapped treasure: you grab the item and the tile turns
+    into a trap.  So treasure = the item; the trap is a property of the same tile.
+
+is_trapped(tile_dict) -> bool
+    True when claiming this tile also springs a trap (TrapFlags != "DisableTrap").  Use to
+    warn / style trapped marks distinctly if a future indicator supports it.
 
 Pinned fixture (Id 74, The Siedge Weald) -- ground-truth from live probe + hand hover:
-    (0,1)  rareItemId=77   TrapFlags=DisableTrap -> is_treasure=True
-    (1,9)  rareItemId=128  TrapFlags=DisableTrap -> is_treasure=True
-    (5,11) rareItemId=144  TrapFlags=DisableTrap -> is_treasure=True
-    (6,6)  rareItemId=157  TrapFlags=None        -> is_treasure=False  (live trap)
+    (0,1)  rareItemId=77   TrapFlags=DisableTrap -> treasure, untrapped
+    (1,9)  rareItemId=128  TrapFlags=DisableTrap -> treasure, untrapped
+    (5,11) rareItemId=144  TrapFlags=DisableTrap -> treasure, untrapped
+    (6,6)  rareItemId=157  TrapFlags=None        -> treasure, TRAPPED
 """
 import re
 import xml.etree.ElementTree as ET
@@ -149,14 +154,20 @@ def load_trap_table(path: Path | None = None) -> dict[int, dict]:
 
 
 def is_treasure(tile: dict) -> bool:
-    """True when a tile is a pure loot tile with no active trap hazard.
+    """True when a tile holds a findable Move-Find treasure (a rare item).
 
-    DisableTrap means the trap is disabled -- safe to step on, safe to mark.
-    Any other TrapFlags value (None, Deathtrap, SleepingGas, SteelNeedle,
-    Degenerator, or any combo containing those) = active hazard; do not mark.
-
-    Pinned by Id-74 ground truth:
-      (0,1) DisableTrap -> True   (1,9) DisableTrap -> True
-      (6,6) None        -> False
+    Every tile in MapTrapFormationData carries a rare item (344/344) -- there are NO
+    pure-trap tiles.  The TrapFlags field only says whether claiming the item ALSO springs
+    a trap; it does not make the tile "not treasure".  Midlight's Deep (105-113) is entirely
+    trapped treasure -- excluding trapped tiles would drop all of it.  So: treasure = has a
+    rare item.  Call is_trapped() to know whether a marked tile is also hazardous.
     """
-    return tile["trapFlags"] == "DisableTrap"
+    return tile.get("rareItemId", 0) > 0
+
+
+def is_trapped(tile: dict) -> bool:
+    """True when claiming this tile's treasure also springs a trap -- any TrapFlags value
+    other than exactly 'DisableTrap' (None, Deathtrap, SleepingGas, SteelNeedle, Degenerator,
+    or a combo).  The native mark can't distinguish these from safe treasure; this exists for
+    a future warn/style hook."""
+    return tile.get("trapFlags") != "DisableTrap"

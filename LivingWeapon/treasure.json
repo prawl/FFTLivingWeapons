@@ -1863,19 +1863,277 @@
       "mapId": 28,
       "name": "Gollund Colliery Ridge",
       "tileCount": 4,
-      "fpVer": null,
-      "fpLen": null,
-      "fpHash": null,
-      "tiles": []
+      "fpVer": 3,
+      "fpLen": 1456,
+      "fpHash": "0x99d41320fb979895",
+      "tiles": [
+        {
+          "x": 1,
+          "y": 0,
+          "addrs": [
+            [
+              "0x140de5807",
+              "0x1"
+            ],
+            [
+              "0x140de5897",
+              "0x1"
+            ],
+            [
+              "0x140f98f6f",
+              "0x1"
+            ],
+            [
+              "0x140f98fff",
+              "0x1"
+            ],
+            [
+              "0x141166aa7",
+              "0x1"
+            ],
+            [
+              "0x141166abf",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 2,
+          "y": 5,
+          "addrs": [
+            [
+              "0x140de2b07",
+              "0x1"
+            ],
+            [
+              "0x140de2b97",
+              "0x1"
+            ],
+            [
+              "0x140f8fdd4",
+              "0x0"
+            ],
+            [
+              "0x140f8fde4",
+              "0x0"
+            ],
+            [
+              "0x140f9626f",
+              "0x1"
+            ],
+            [
+              "0x140f962ff",
+              "0x1"
+            ],
+            [
+              "0x14114353c",
+              "0x0"
+            ],
+            [
+              "0x14114354c",
+              "0x0"
+            ],
+            [
+              "0x141166327",
+              "0x1"
+            ],
+            [
+              "0x14116633f",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 4,
+          "y": 2,
+          "addrs": [
+            [
+              "0x140deb8c7",
+              "0x1"
+            ],
+            [
+              "0x140deb957",
+              "0x1"
+            ],
+            [
+              "0x140f9f02f",
+              "0x1"
+            ],
+            [
+              "0x140f9f0bf",
+              "0x1"
+            ],
+            [
+              "0x141167ac7",
+              "0x1"
+            ],
+            [
+              "0x141167adf",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 9,
+          "y": 6,
+          "addrs": [
+            [
+              "0x140de81a7",
+              "0x1"
+            ],
+            [
+              "0x140de8237",
+              "0x1"
+            ],
+            [
+              "0x140f9b90f",
+              "0x1"
+            ],
+            [
+              "0x140f9b99f",
+              "0x1"
+            ],
+            [
+              "0x141167197",
+              "0x1"
+            ],
+            [
+              "0x1411671af",
+              "0x1"
+            ]
+          ]
+        }
+      ]
     },
     {
       "mapId": 29,
       "name": "Gollund Colliery Slope",
       "tileCount": 4,
-      "fpVer": null,
-      "fpLen": null,
-      "fpHash": null,
-      "tiles": []
+      "fpVer": 3,
+      "fpLen": 1456,
+      "fpHash": "0x99d41320fb979895",
+      "tiles": [
+        {
+          "x": 2,
+          "y": 1,
+          "addrs": [
+            [
+              "0x140debb07",
+              "0x1"
+            ],
+            [
+              "0x140debb97",
+              "0x1"
+            ],
+            [
+              "0x140f9f26f",
+              "0x1"
+            ],
+            [
+              "0x140f9f2ff",
+              "0x1"
+            ],
+            [
+              "0x141167b27",
+              "0x1"
+            ],
+            [
+              "0x141167b3f",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 6,
+          "y": 10,
+          "addrs": [
+            [
+              "0x140de5027",
+              "0x1"
+            ],
+            [
+              "0x140de50b7",
+              "0x1"
+            ],
+            [
+              "0x140f9878f",
+              "0x1"
+            ],
+            [
+              "0x140f9881f",
+              "0x1"
+            ],
+            [
+              "0x141166957",
+              "0x1"
+            ],
+            [
+              "0x14116696f",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 10,
+          "y": 5,
+          "addrs": [
+            [
+              "0x140de2207",
+              "0x1"
+            ],
+            [
+              "0x140de2297",
+              "0x1"
+            ],
+            [
+              "0x140f9596f",
+              "0x1"
+            ],
+            [
+              "0x140f959ff",
+              "0x1"
+            ],
+            [
+              "0x1411661a7",
+              "0x1"
+            ],
+            [
+              "0x1411661bf",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 10,
+          "y": 12,
+          "addrs": [
+            [
+              "0x140de3647",
+              "0x1"
+            ],
+            [
+              "0x140de36d7",
+              "0x1"
+            ],
+            [
+              "0x140f96daf",
+              "0x1"
+            ],
+            [
+              "0x140f96e3f",
+              "0x1"
+            ],
+            [
+              "0x141166507",
+              "0x1"
+            ],
+            [
+              "0x14116651f",
+              "0x1"
+            ]
+          ]
+        }
+      ]
     },
     {
       "mapId": 30,
@@ -2825,10 +3083,155 @@
       "mapId": 39,
       "name": "Gollund Colliery Shaft",
       "tileCount": 4,
-      "fpVer": null,
-      "fpLen": null,
-      "fpHash": null,
-      "tiles": []
+      "fpVer": 3,
+      "fpLen": 1456,
+      "fpHash": "0x6deca3967741f7b9",
+      "tiles": [
+        {
+          "x": 1,
+          "y": 3,
+          "addrs": [
+            [
+              "0x140de6d67",
+              "0x1"
+            ],
+            [
+              "0x140de6df7",
+              "0x1"
+            ],
+            [
+              "0x140f9a4cf",
+              "0x1"
+            ],
+            [
+              "0x140f9a55f",
+              "0x1"
+            ],
+            [
+              "0x141166e37",
+              "0x1"
+            ],
+            [
+              "0x141166e4f",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 2,
+          "y": 15,
+          "addrs": [
+            [
+              "0x140de2cb7",
+              "0x1"
+            ],
+            [
+              "0x140de2d47",
+              "0x1"
+            ],
+            [
+              "0x140de2dd7",
+              "0x1"
+            ],
+            [
+              "0x140de2e67",
+              "0x1"
+            ],
+            [
+              "0x140f9641f",
+              "0x1"
+            ],
+            [
+              "0x140f964af",
+              "0x1"
+            ],
+            [
+              "0x140f9653f",
+              "0x1"
+            ],
+            [
+              "0x140f965cf",
+              "0x1"
+            ],
+            [
+              "0x14116636f",
+              "0x1"
+            ],
+            [
+              "0x141166387",
+              "0x1"
+            ],
+            [
+              "0x14116639f",
+              "0x1"
+            ],
+            [
+              "0x1411663b7",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 4,
+          "y": 7,
+          "addrs": [
+            [
+              "0x140de9167",
+              "0x1"
+            ],
+            [
+              "0x140de91f7",
+              "0x1"
+            ],
+            [
+              "0x140f9c8cf",
+              "0x1"
+            ],
+            [
+              "0x140f9c95f",
+              "0x1"
+            ],
+            [
+              "0x141167437",
+              "0x1"
+            ],
+            [
+              "0x14116744f",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 5,
+          "y": 0,
+          "addrs": [
+            [
+              "0x140de7547",
+              "0x1"
+            ],
+            [
+              "0x140de75d7",
+              "0x1"
+            ],
+            [
+              "0x140f9acaf",
+              "0x1"
+            ],
+            [
+              "0x140f9ad3f",
+              "0x1"
+            ],
+            [
+              "0x141166f87",
+              "0x1"
+            ],
+            [
+              "0x141166f9f",
+              "0x1"
+            ]
+          ]
+        }
+      ]
     },
     {
       "mapId": 40,
@@ -3079,10 +3482,107 @@
       "mapId": 47,
       "name": "Sal Ghidos",
       "tileCount": 4,
-      "fpVer": null,
-      "fpLen": null,
-      "fpHash": null,
-      "tiles": []
+      "fpVer": 3,
+      "fpLen": 1456,
+      "fpHash": "0x2a4199f105a6dfb5",
+      "tiles": [
+        {
+          "x": 0,
+          "y": 2,
+          "addrs": [
+            [
+              "0x140e7eedb",
+              "0x1"
+            ],
+            [
+              "0x141032643",
+              "0x1"
+            ],
+            [
+              "0x1411805e7",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 0,
+          "y": 9,
+          "addrs": [
+            [
+              "0x140e80243",
+              "0x1"
+            ],
+            [
+              "0x1410339ab",
+              "0x1"
+            ],
+            [
+              "0x141180947",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 0,
+          "y": 10,
+          "addrs": [
+            [
+              "0x140e7f8eb",
+              "0x1"
+            ],
+            [
+              "0x141033053",
+              "0x1"
+            ],
+            [
+              "0x1411807a7",
+              "0x1"
+            ],
+            [
+              "0x14157d180",
+              "0x0"
+            ],
+            [
+              "0x14157d1a0",
+              "0x0"
+            ],
+            [
+              "0x14157d1f0",
+              "0x0"
+            ],
+            [
+              "0x14157d210",
+              "0x0"
+            ]
+          ]
+        },
+        {
+          "x": 9,
+          "y": 12,
+          "addrs": [
+            [
+              "0x140e8212b",
+              "0x1"
+            ],
+            [
+              "0x141035893",
+              "0x1"
+            ],
+            [
+              "0x141180ea7",
+              "0x1"
+            ],
+            [
+              "0x14157d184",
+              "0x0"
+            ],
+            [
+              "0x14157d1f4",
+              "0x0"
+            ]
+          ]
+        }
+      ]
     },
     {
       "mapId": 48,
@@ -4012,6 +4512,97 @@
       "mapId": 70,
       "name": "Nelveska Temple",
       "tileCount": 4,
+      "fpVer": 3,
+      "fpLen": 1456,
+      "fpHash": "0xc7fadc6b2f3050af",
+      "tiles": [
+        {
+          "x": 1,
+          "y": 2,
+          "addrs": [
+            [
+              "0x140e803b3",
+              "0x1"
+            ],
+            [
+              "0x141033b1b",
+              "0x1"
+            ],
+            [
+              "0x141180987",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 1,
+          "y": 10,
+          "addrs": [
+            [
+              "0x140e7d443",
+              "0x1"
+            ],
+            [
+              "0x141030bab",
+              "0x1"
+            ],
+            [
+              "0x141180147",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 3,
+          "y": 8,
+          "addrs": [
+            [
+              "0x140e7e2a3",
+              "0x1"
+            ],
+            [
+              "0x141031a0b",
+              "0x1"
+            ],
+            [
+              "0x1411803c7",
+              "0x1"
+            ]
+          ]
+        },
+        {
+          "x": 5,
+          "y": 2,
+          "addrs": [
+            [
+              "0x140e8046b",
+              "0x1"
+            ],
+            [
+              "0x141033bd3",
+              "0x1"
+            ],
+            [
+              "0x1411809a7",
+              "0x1"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "mapId": 71,
+      "name": "Dorvauldar Marsh",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 72,
+      "name": "Fovoham Windflats",
+      "tileCount": 4,
       "fpVer": null,
       "fpLen": null,
       "fpHash": null,
@@ -4020,7 +4611,7 @@
     {
       "mapId": 74,
       "name": "The Siedge Weald",
-      "tileCount": 3,
+      "tileCount": 4,
       "fpVer": 2,
       "fpLen": 1456,
       "fpHash": "0x896dd81755a32f6b",
@@ -4116,6 +4707,24 @@
           ]
         }
       ]
+    },
+    {
+      "mapId": 75,
+      "name": "Mount Bervenia",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 76,
+      "name": "Zeklaus Desert",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
     },
     {
       "mapId": 77,
@@ -5864,7 +6473,7 @@
     {
       "mapId": 91,
       "name": "Brigands' Den",
-      "tileCount": 3,
+      "tileCount": 4,
       "fpVer": 2,
       "fpLen": 1456,
       "fpHash": "0x54cad0a090b1aaf5",
@@ -6050,6 +6659,87 @@
           ]
         }
       ]
+    },
+    {
+      "mapId": 105,
+      "name": "TERMINATION",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 106,
+      "name": "DELTA",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 107,
+      "name": "NOISSIM",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 108,
+      "name": "VOYAGE",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 109,
+      "name": "BRIDGE",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 110,
+      "name": "VALKYRIES",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 111,
+      "name": "YROTCIV",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 112,
+      "name": "TIGER",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
+    },
+    {
+      "mapId": 113,
+      "name": "HORROR",
+      "tileCount": 4,
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
     },
     {
       "mapId": 114,

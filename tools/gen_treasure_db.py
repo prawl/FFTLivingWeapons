@@ -171,12 +171,12 @@ def _self_test() -> bool:
     else:
         print(f"  self-test: masked_terrain_hash_v3(vector) = 0x{got_mhv3:016x}  OK")
 
-    # Join fixture: a known-good map entry from map_trap_formation.json (map 74, tile 0) is
-    # the is_treasure tile (0,1) DisableTrap.  Verify the lookup works end-to-end.
+    # Join fixture: map 74 (The Siedge Weald). All four of its tiles carry a rare item, so
+    # all four are treasure -- (6,6) is TRAPPED treasure (None flag), not a non-treasure.
     trap_data = json.loads(TRAP_JSON.read_text(encoding="utf-8"))
     m74 = trap_data.get("74", {})
     treasure_tiles = [(t["x"], t["y"]) for t in m74.get("tiles", []) if is_treasure(t)]
-    expected_treasures = [(0, 1), (1, 9), (5, 11)]  # (6,6) is a live trap
+    expected_treasures = [(0, 1), (1, 9), (5, 11), (6, 6)]  # (6,6) = trapped treasure, still treasure
     for xy in expected_treasures:
         if xy not in treasure_tiles:
             print(f"SELF-TEST FAIL: map 74 tile {xy} not found in is_treasure set {treasure_tiles}")
