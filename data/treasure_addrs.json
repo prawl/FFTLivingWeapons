@@ -8,7 +8,7 @@
     "74": {
       "name": "The Siedge Weald",
       "fpLen": 1456,
-      "fpHash": "0x896dd81755a32f6b",
+      "fpHash": "0xa9b8f51113401aa5",
       "capturedBuild": {
         "timeDateStamp": 1762398825,
         "sizeOfImage": 359432192
@@ -144,7 +144,7 @@
           "status": "verified"
         }
       ],
-      "fpVer": 2
+      "fpVer": 3
     },
     "85": {
       "name": "Mandalia Plain",
