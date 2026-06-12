@@ -325,4 +325,120 @@ public class TreasureMasterPolicyTests
             TreasureMaster.MaskedTerrainHash(raw1),
             TreasureMaster.MaskedTerrainHash(raw2));
     }
+
+    // ---- (8) MaskedTerrainHashV3 -- pinned cross-language vector ----
+    // Grid: 208 records x 7 bytes each.  V3 hashes fields {2,3,4,5} (the static fields)
+    // per record -- immune to field-0 (height), field-1 (slope), and field-6 (flow) which
+    // all animate on water/lava maps.
+    //
+    // Pinned test vector: 14-byte synthetic buffer (2 records of 7 bytes):
+    //   record 0: 01 02 03 04 05 06 07
+    //   record 1: 11 12 13 14 15 16 17
+    // fields {2,3,4,5} bytes = [03 04 05 06 13 14 15 16]
+    //   (i%7 in {2,3,4,5}: indices 2,3,4,5,9,10,11,12)
+    // result = Fnv1a64([03 04 05 06 13 14 15 16]) = 0x05708f90b5f5fac5
+    // The Python self-test and gen_treasure_db.py use the same constant (never let them drift).
+
+    private const ulong MaskedHashV3Vector = 0x05708f90b5f5fac5UL;
+
+    [Fact]
+    public void MaskedTerrainHashV3_pinned_two_record_vector()
+    {
+        var raw = new byte[]
+        {
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,   // record 0
+            0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,   // record 1
+        };
+        Assert.Equal(MaskedHashV3Vector, TreasureMaster.MaskedTerrainHashV3(raw));
+    }
+
+    [Fact]
+    public void MaskedTerrainHashV3_equals_Fnv1a64_over_fields2345_bytes_only()
+    {
+        // Explicit: v3 masks to fields {2,3,4,5} per record; only those bytes feed the hash.
+        var raw = new byte[]
+        {
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        };
+        // Fields {2,3,4,5} of record 0: 0x03,0x04,0x05,0x06
+        // Fields {2,3,4,5} of record 1: 0x13,0x14,0x15,0x16
+        byte[] staticBytes = { 0x03, 0x04, 0x05, 0x06, 0x13, 0x14, 0x15, 0x16 };
+        ulong expected = TreasureMaster.Fnv1a64(staticBytes);
+        Assert.Equal(expected, TreasureMaster.MaskedTerrainHashV3(raw));
+    }
+
+    [Fact]
+    public void MaskedTerrainHashV3_field0_mutation_does_not_change_hash()
+    {
+        // The water-map incident: field-0 (height) animates; v3 must be immune to it.
+        var raw1 = new byte[]
+        {
+            0x05, 0x00, 0x01, 0x02, 0x03, 0x04, 0x00,   // record 0: field-0=0x05
+            0x07, 0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x00,   // record 1: field-0=0x07
+        };
+        var raw2 = new byte[]
+        {
+            0x99, 0x00, 0x01, 0x02, 0x03, 0x04, 0x00,   // field-0 changed (height animated)
+            0xAB, 0x00, 0x0A, 0x0B, 0x0C, 0x0D, 0x00,   // field-0 changed
+        };
+        Assert.Equal(
+            TreasureMaster.MaskedTerrainHashV3(raw1),
+            TreasureMaster.MaskedTerrainHashV3(raw2));
+    }
+
+    [Fact]
+    public void MaskedTerrainHashV3_field1_mutation_does_not_change_hash()
+    {
+        // Field-1 (slope) also animates on water maps; v3 must be immune.
+        var raw1 = new byte[]
+        {
+            0x05, 0x10, 0x01, 0x02, 0x03, 0x04, 0x00,
+        };
+        var raw2 = new byte[]
+        {
+            0x05, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x00,   // field-1 changed
+        };
+        Assert.Equal(
+            TreasureMaster.MaskedTerrainHashV3(raw1),
+            TreasureMaster.MaskedTerrainHashV3(raw2));
+    }
+
+    [Fact]
+    public void MaskedTerrainHashV3_field6_mutation_does_not_change_hash()
+    {
+        // Field-6 (flow) animates on water maps; v3 must be immune.
+        var raw1 = new byte[]
+        {
+            0x05, 0x00, 0x01, 0x02, 0x03, 0x04, 0x10,
+        };
+        var raw2 = new byte[]
+        {
+            0x05, 0x00, 0x01, 0x02, 0x03, 0x04, 0xFF,   // field-6 changed (flow animated)
+        };
+        Assert.Equal(
+            TreasureMaster.MaskedTerrainHashV3(raw1),
+            TreasureMaster.MaskedTerrainHashV3(raw2));
+    }
+
+    [Fact]
+    public void MaskedTerrainHashV3_field3_mutation_changes_hash()
+    {
+        // Fields {2,3,4,5} are static geometry -- a change means a genuinely different map.
+        var raw1 = new byte[]
+        {
+            0x05, 0x00, 0x01, 0x02, 0x03, 0x04, 0x00,
+        };
+        var raw2 = new byte[]
+        {
+            0x05, 0x00, 0x01, 0xAA, 0x03, 0x04, 0x00,   // field-3 changed
+        };
+        Assert.NotEqual(
+            TreasureMaster.MaskedTerrainHashV3(raw1),
+            TreasureMaster.MaskedTerrainHashV3(raw2));
+    }
+
+    // ---- (9) FingerprintMatches dispatch: fpVer 2 -> v2, fpVer 3 -> v3 ----
+    // (These are integration-level tests against ArmAudit; the heavy state-machine
+    // tests that exercise the water-map regression live in TreasureMasterTests.cs.)
 }

@@ -18,9 +18,11 @@ Gate rules (exit 1 on violation):
   (g) Self-test on every invocation: 3 pinned FNV-1a64 vectors + join fixture + masked-hash
       pinned vector.  Exit 1 on fail.
   (h) Print coverage summary: shippable maps / stub maps / dropped.
-  (i) Fingerprint v2 policy: maps with fpVer != 2 (or missing) are WARNED and demoted to stub
-      (re-fingerprint needed via 'refp' verb in treasure_flags.py). Maps with fpVer == 2 are
-      shipped with fpLen == TERRAIN_RAW_LEN (1456) and the masked hash.
+  (i) Fingerprint version policy: maps with fpVer 2 or 3 are shipped; anything else is WARNED
+      and demoted to stub (re-fingerprint needed via 'refp' verb in treasure_flags.py).
+      fpVer=2: dry-land maps (field-0 hash, immune to field-1/6 churn).
+      fpVer=3: water/lava maps (fields {2,3,4,5} hash, immune to field-0/1/6 animation).
+      Both are shipped with fpLen == TERRAIN_RAW_LEN (1456); the runtime dispatches on fpVer.
 
 Populated = at least one is_treasure tile in map_trap_formation.json (mapIds 1-127).
 """
@@ -83,10 +85,28 @@ def masked_terrain_hash(raw: bytes) -> int:
       raw = 01 02 03 04 05 06 07  11 12 13 14 15 16 17  (2 records)
       field-0 bytes = [0x01, 0x11]
       result = fnv1a64([0x01, 0x11]) = 0x082f3307b4e8a9a7
+
+    Kept for dual-version support: dry-land maps with fpVer=2 continue to use this.
     """
     num_records = len(raw) // TERRAIN_RECORD_LEN
     field0 = bytes(raw[i * TERRAIN_RECORD_LEN] for i in range(num_records))
     return fnv1a64(field0)
+
+
+def masked_terrain_hash_v3(raw: bytes) -> int:
+    """Fingerprint v3: FNV-1a64 over bytes at positions where (i % 7) in {2,3,4,5}.
+
+    Fields {2,3,4,5} are static geometry; fields {0,1,6} (height, slope, flow) animate
+    on water/lava maps and are excluded.
+
+    Pinned test vector (shared with C# MaskedTerrainHashV3 and treasure_flags.py):
+      raw = 01 02 03 04 05 06 07  11 12 13 14 15 16 17  (2 records)
+      fields {2,3,4,5} bytes = [03 04 05 06 13 14 15 16]
+        (indices 2,3,4,5 from record 0; indices 9,10,11,12 from record 1)
+      result = fnv1a64([03 04 05 06 13 14 15 16]) = 0x05708f90b5f5fac5
+    """
+    static_bytes = bytes(raw[i] for i in range(len(raw)) if (i % TERRAIN_RECORD_LEN) in (2, 3, 4, 5))
+    return fnv1a64(static_bytes)
 
 # ── self-test ─────────────────────────────────────────────────────────────────
 
@@ -106,7 +126,7 @@ def _self_test() -> bool:
         else:
             print(f"  self-test: fnv1a64({data!r}) = 0x{got:016x}  OK")
 
-    # Pinned masked-hash vector (shared with C# MaskedTerrainHash and treasure_flags.py):
+    # Pinned masked-hash v2 vector (shared with C# MaskedTerrainHash and treasure_flags.py):
     # 14-byte buf = records [01 02 03 04 05 06 07] + [11 12 13 14 15 16 17]
     # field-0 bytes = [0x01, 0x11] => 0x082f3307b4e8a9a7
     _MASKED_HASH_VECTOR = 0x082f3307b4e8a9a7
@@ -119,6 +139,22 @@ def _self_test() -> bool:
         ok = False
     else:
         print(f"  self-test: masked_terrain_hash(vector) = 0x{got_mhv:016x}  OK")
+
+    # Pinned masked-hash v3 vector (shared with C# MaskedTerrainHashV3 and treasure_flags.py):
+    # 14-byte buf = records [01 02 03 04 05 06 07] + [11 12 13 14 15 16 17]
+    # fields {2,3,4,5} bytes (i%7 in {2,3,4,5}):
+    #   indices 2,3,4,5 -> 0x03,0x04,0x05,0x06; indices 9,10,11,12 -> 0x13,0x14,0x15,0x16
+    # result = fnv1a64([03 04 05 06 13 14 15 16]) = 0x05708f90b5f5fac5
+    _MASKED_HASH_V3_VECTOR = 0x05708f90b5f5fac5
+    _mhv3_raw = bytes([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                       0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17])
+    got_mhv3 = masked_terrain_hash_v3(_mhv3_raw)
+    if got_mhv3 != _MASKED_HASH_V3_VECTOR:
+        print(f"SELF-TEST FAIL: masked_terrain_hash_v3(vector) = 0x{got_mhv3:016x}, "
+              f"expected 0x{_MASKED_HASH_V3_VECTOR:016x}")
+        ok = False
+    else:
+        print(f"  self-test: masked_terrain_hash_v3(vector) = 0x{got_mhv3:016x}  OK")
 
     # Join fixture: a known-good map entry from map_trap_formation.json (map 74, tile 0) is
     # the is_treasure tile (0,1) DisableTrap.  Verify the lookup works end-to-end.
@@ -255,10 +291,11 @@ def main() -> int:
         fp_ver     = cmap.get("fpVer")
         cap_build  = cmap.get("capturedBuild")
 
-        # Fingerprint v2 policy: maps not yet re-fingerprinted with the v2 masked hash
-        # are demoted to stub (re-fingerprint needed via 'refp' in treasure_flags.py).
-        if fp_ver != 2:
-            print(f"  WARN: map {mid} ({name}) fpVer={fp_ver!r} (not 2) -- "
+        # Fingerprint version policy: ship maps with fpVer 2 or 3; anything else is
+        # demoted to stub (re-fingerprint needed via 'refp' in treasure_flags.py).
+        # fpVer=2: dry-land maps (field-0 only hash); fpVer=3: water/lava maps (fields {2,3,4,5}).
+        if fp_ver not in (2, 3):
+            print(f"  WARN: map {mid} ({name}) fpVer={fp_ver!r} (not 2 or 3) -- "
                   f"needs 'refp' re-fingerprint before shipping; emitting stub")
             stub_count += 1
             out_maps.append({
@@ -368,7 +405,7 @@ def main() -> int:
                 "mapId":     mid,
                 "name":      name,
                 "tileCount": tile_count,
-                "fpVer":     2,
+                "fpVer":     fp_ver,         # preserve the actual version (2 or 3)
                 "fpLen":     TERRAIN_RAW_LEN,
                 "fpHash":    fp_hash_hex,
                 "tiles":     shippable_tiles,

@@ -805,6 +805,191 @@ public class TreasureMasterTests
             "after re-arm from ARMING, should write again; BattleDisarmed would block this forever");
     }
 
+    // ── (17) v3 fingerprint: water-map regression ────────────────────────────────
+    // LIVE INCIDENT #3 (Zeirchele Falls, map 83): fields {0,1,6} animate on water maps;
+    // a v2 fingerprint (field-0 only) cycles with the animation and triggers spurious
+    // disarm/re-arm.  A v3 fingerprint (fields {2,3,4,5}) is immune because those
+    // fields are static geometry on all map types.
+
+    /// <summary>Compute the v3 masked hash of terrain to seed fpHash for a v3 map.</summary>
+    private static string TerrainFpHashV3(byte[] terrain)
+        => TreasureMaster.MaskedTerrainHashV3(terrain).ToString("x");
+
+    /// <summary>
+    /// A v3 map whose field-0 (height) bytes mutate every tick (water animation) while
+    /// fields {2,3,4,5} hold still MUST STAY ARMED -- this is the exact water-map regression.
+    /// </summary>
+    [Fact]
+    public void V3_field0_animates_fields2345_static_stays_armed()
+    {
+        var dir = TempDir();
+        // 7-byte record: field-0 will animate; fields 2-5 are static geometry.
+        var terrain = new byte[]
+        {
+            0x10, 0x00, 0x05, 0x06, 0x07, 0x08, 0x00,  // record 0: field-0=0x10 (will change)
+        };
+        var addr = TileAddr(70);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHashV3(terrain),
+            addrs: new[] { (addr, (byte)0x00) }, fpVer: 3);
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+        Assert.NotEmpty(mem.Written);
+
+        // Animate field-0 repeatedly (water height cycle) -- fields 2-5 are untouched
+        for (int cycle = 0; cycle < 5; cycle++)
+        {
+            terrain[0] = (byte)(0x10 + cycle);  // field-0 changes every frame
+            mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+            mem.U8s[addr] = 0x00;   // engine cleared mark
+            mem.Written.Clear();
+
+            // Advance past a revalidate period -- v3 hash must still match
+            TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+
+            Assert.True(mem.Written.ContainsKey(addr),
+                $"cycle {cycle}: v3 should stay armed when only field-0 animates");
+        }
+    }
+
+    /// <summary>
+    /// A v3 map whose field-6 (flow) bytes animate stays armed (same root cause as field-0).
+    /// </summary>
+    [Fact]
+    public void V3_field6_animates_fields2345_static_stays_armed()
+    {
+        var dir = TempDir();
+        var terrain = new byte[]
+        {
+            0x10, 0x00, 0x05, 0x06, 0x07, 0x08, 0x01,  // record 0: field-6=0x01 (will animate)
+        };
+        var addr = TileAddr(71);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHashV3(terrain),
+            addrs: new[] { (addr, (byte)0x00) }, fpVer: 3);
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+        Assert.NotEmpty(mem.Written);
+
+        // Animate field-6 (flow) -- stays armed
+        terrain[6] = 0xFF;
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        mem.U8s[addr] = 0x00;
+        mem.Written.Clear();
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+
+        Assert.True(mem.Written.ContainsKey(addr),
+            "v3 should stay armed when only field-6 (flow) animates");
+    }
+
+    /// <summary>
+    /// A v3 map whose field-3 (static geometry) mutates triggers re-prove then disarms
+    /// at the attempt cap -- this is a genuinely different map (or data corruption).
+    /// </summary>
+    [Fact]
+    public void V3_field3_mutates_reproves_then_disarms_at_cap()
+    {
+        var dir = TempDir();
+        var terrain = new byte[]
+        {
+            0x10, 0x00, 0x05, 0x06, 0x07, 0x08, 0x00,  // record 0: field-3=0x06
+        };
+        var addr = TileAddr(72);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHashV3(terrain),
+            addrs: new[] { (addr, (byte)0x00) }, fpVer: 3);
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+        Assert.NotEmpty(mem.Written);
+
+        // Mutate field-3 -- genuine geometry change, hash changes
+        terrain[3] = 0xAA;  // field-3 changed
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        mem.Written.Clear();
+
+        // Advance past revalidate period to trigger fingerprint check -> back to ARMING
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+        Assert.Empty(mem.Written);  // suspended during re-prove
+
+        // Advance past the arm attempt cap without fixing the terrain -> BattleDisarmed
+        TickN(tm, Tuning.TreasureArmAttemptCap + 10);
+
+        // Even after more ticks, still no writes (BattleDisarmed until ResetBattle)
+        mem.Written.Clear();
+        TickN(tm, 10);
+        Assert.Empty(mem.Written);
+    }
+
+    /// <summary>
+    /// FingerprintMatches dispatches on fpVer: a v2 map uses v2 hash (MaskedTerrainHash),
+    /// a v3 map uses v3 hash (MaskedTerrainHashV3).  A v3 map with a v2-computed fpHash
+    /// does NOT match, and vice versa (the two hashes are different for the same raw bytes).
+    /// </summary>
+    [Fact]
+    public void FingerprintMatches_dispatch_v2_vs_v3()
+    {
+        var dir = TempDir();
+        // Same terrain; v2 and v3 hashes will differ for this buffer
+        var terrain = new byte[]
+        {
+            0x10, 0xAA, 0x05, 0x06, 0x07, 0x08, 0xBB,
+        };
+
+        var addrV2 = TileAddr(73);
+        var addrV3 = TileAddr(74);
+
+        // v2 map: fpVer=2, fpHash from v2 formula
+        var dbV2 = BuildDb(dir, mapId: 74, fpLen: terrain.Length,
+            fpHash: TerrainFpHashV2(terrain),
+            addrs: new[] { (addrV2, (byte)0x00) }, fpVer: 2);
+
+        var memV2 = BuildMem(74, terrain, new[] { addrV2 });
+        var tmV2 = Make(dbV2, memV2);
+        StabilizeAndArm(tmV2);
+        Assert.True(memV2.Written.ContainsKey(addrV2),
+            "v2 map with v2 hash should arm");
+
+        var dir3 = TempDir();
+        // v3 map: fpVer=3, fpHash from v3 formula
+        var dbV3 = BuildDb(dir3, mapId: 74, fpLen: terrain.Length,
+            fpHash: TerrainFpHashV3(terrain),
+            addrs: new[] { (addrV3, (byte)0x00) }, fpVer: 3);
+
+        var memV3 = BuildMem(74, terrain, new[] { addrV3 });
+        var tmV3 = Make(dbV3, memV3);
+        StabilizeAndArm(tmV3);
+        Assert.True(memV3.Written.ContainsKey(addrV3),
+            "v3 map with v3 hash should arm");
+    }
+
+    /// <summary>
+    /// A v3 map with a v2-computed fpHash does NOT arm (wrong version's hash in the db).
+    /// This guards against accidentally storing the wrong hash for a v3 map.
+    /// </summary>
+    [Fact]
+    public void FingerprintMatches_v3_map_with_v2_hash_does_not_arm()
+    {
+        var dir = TempDir();
+        var terrain = new byte[]
+        {
+            0x10, 0xAA, 0x05, 0x06, 0x07, 0x08, 0xBB,
+        };
+        var addr = TileAddr(75);
+        // fpVer=3 but fpHash is computed with v2 formula -> mismatch at arm time
+        var db = BuildDb(dir, fpLen: terrain.Length,
+            fpHash: TerrainFpHashV2(terrain),   // wrong hash for v3
+            addrs: new[] { (addr, (byte)0x00) }, fpVer: 3);
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        TickN(tm, Tuning.TreasureArmStableTicks + Tuning.TreasureArmAttemptCap + 10);
+
+        Assert.Empty(mem.Written);
+    }
+
     // ── PinnedBuf fact: 0x80 lands at target, neighbors untouched ─────────────────
 
     /// <summary>

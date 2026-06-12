@@ -75,6 +75,8 @@ internal sealed class ArmAudit
     /// so the caller treats it as not-armable (stub maps have no tiles anyway).
     ///
     /// Fingerprint version dispatch:
+    ///   fpVer == 3: MaskedTerrainHashV3 (fields {2,3,4,5} per record; immune to field-0/1/6
+    ///               animation on water/lava maps -- LIVE INCIDENT #3).
     ///   fpVer == 2: MaskedTerrainHash (field-0 only per record; immune to field-1/6 churn).
     ///   anything else (legacy v1 or null): plain Fnv1a64 over the raw bytes.
     /// </summary>
@@ -86,9 +88,12 @@ internal sealed class ArmAudit
         if (!_mem.TryReadBytes(Offsets.TerrainGrid, fpLen, out var buf))
             return false;
 
-        ulong got = map.FpVer == 2
-            ? TreasureMaster.MaskedTerrainHash(buf)
-            : TreasureMaster.Fnv1a64(buf);
+        ulong got = map.FpVer switch
+        {
+            3 => TreasureMaster.MaskedTerrainHashV3(buf),
+            2 => TreasureMaster.MaskedTerrainHash(buf),
+            _ => TreasureMaster.Fnv1a64(buf),
+        };
 
         return got == expected;
     }

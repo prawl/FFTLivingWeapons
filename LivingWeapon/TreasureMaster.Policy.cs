@@ -149,13 +149,18 @@ internal sealed partial class TreasureMaster
         uint liveTimeDateStamp, uint liveSizeOfImage) =>
         dsTimeDateStamp == liveTimeDateStamp && dsSizeOfImage == liveSizeOfImage;
 
-    // ---- #7 MaskedTerrainHash (fingerprint v2) ----
+    // ---- #7 MaskedTerrainHash (fingerprint v2) and MaskedTerrainHashV3 ----
 
     // Grid layout: 208 records x 7 bytes each.  Field 1 and field 6 are live state
     // (change during play); field 0 (tile height) is pure map geometry.  The v1
     // fingerprint hashed all 1456 raw bytes and falsely detected changes when field 1
     // or field 6 mutated mid-battle (LIVE INCIDENT #2).  V2 hashes only field 0 of
     // every record, making the fingerprint immune to in-battle field mutations.
+    //
+    // LIVE INCIDENT #3 (Zeirchele Falls, map 83, water map): field 0 (height), field 1
+    // (slope), and field 6 (flow) ALL animate on water/lava maps, so v2 (field-0 only)
+    // cycles with the animation and triggers spurious disarm/re-arm.  V3 hashes fields
+    // {2,3,4,5} only -- those are static geometry on all map types.
     private const int TerrainRecordLen = 7;   // bytes per terrain record
 
     /// <summary>
@@ -167,6 +172,9 @@ internal sealed partial class TreasureMaster
     ///   raw = [ 01 02 03 04 05 06 07 | 11 12 13 14 15 16 17 ]  (2 records)
     ///   field-0 bytes = [0x01, 0x11]
     ///   result = Fnv1a64([0x01, 0x11]) = 0x082f3307b4e8a9a7
+    ///
+    /// Kept for dual-version support: 10 dry-land maps captured with fpVer=2 continue to use this.
+    /// Water/lava maps use MaskedTerrainHashV3 instead.
     /// </summary>
     internal static ulong MaskedTerrainHash(ReadOnlySpan<byte> raw)
     {
@@ -177,6 +185,32 @@ internal sealed partial class TreasureMaster
             byte b = raw[i * TerrainRecordLen];  // field 0 only
             h ^= b;
             h *= FnvPrime;
+        }
+        return h;
+    }
+
+    /// <summary>
+    /// Fingerprint v3: FNV-1a64 over bytes at positions where (pos % 7) is in {2,3,4,5}
+    /// -- i.e. fields {2,3,4,5} of each record.  These are the static geometry fields;
+    /// fields {0,1,6} (height, slope, flow) animate on water/lava maps and are excluded.
+    ///
+    /// Pinned test vector (shared with the Python self-test and gen_treasure_db.py):
+    ///   raw = [ 01 02 03 04 05 06 07 | 11 12 13 14 15 16 17 ]  (2 records)
+    ///   fields {2,3,4,5} bytes = [03 04 05 06 13 14 15 16]
+    ///     (indices 2,3,4,5 from record 0; indices 9,10,11,12 from record 1)
+    ///   result = Fnv1a64([03 04 05 06 13 14 15 16]) = 0x05708f90b5f5fac5
+    /// </summary>
+    internal static ulong MaskedTerrainHashV3(ReadOnlySpan<byte> raw)
+    {
+        ulong h = FnvBasis;
+        for (int i = 0; i < raw.Length; i++)
+        {
+            int fieldOff = i % TerrainRecordLen;
+            if (fieldOff >= 2 && fieldOff <= 5)
+            {
+                h ^= raw[i];
+                h *= FnvPrime;
+            }
         }
         return h;
     }

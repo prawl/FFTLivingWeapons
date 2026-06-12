@@ -14,15 +14,18 @@ Verbs
       Guided per-tile capture for the current battle map.  Reads the map id,
       confirms the name with you, then walks each uncaptured treasure tile.
       Per tile: cursor lock -> toggle scan -> trust gate -> atomic DB save.
-      Stamps fpVer=2, fpLen=1456, fpHash=masked-v2 on save.
+      Stamps fpVer=3, fpLen=1456, fpHash=masked-v3 (fields {2,3,4,5}) on save.
+      Runs a stability check across ~1s before stamping; warns and skips the stamp
+      if the static fields are not stable (but keeps tile captures).
       On any new verified tile or re-stamp, automatically runs pushlive.
 
   python tools\\probes\\treasure_flags.py refp <mapId>
       Re-fingerprint: for a map already in data/treasure_addrs.json, re-read the live
-      terrain grid (0x140C65000, 1456 bytes), compute the v2 masked hash, and stamp
-      fpVer=2 / fpLen=1456 / fpHash into the DB record.  Refuses if the live map-id
-      byte does not match <mapId>.  Atomic save.  Use this to upgrade an existing
-      capture from v1 to v2 without re-capturing all tile addresses.
+      terrain grid (0x140C65000, 1456 bytes), run a stability check across ~1s, compute
+      the v3 masked hash (fields {2,3,4,5}), and stamp fpVer=3 / fpLen=1456 / fpHash
+      into the DB record.  Refuses if the live map-id byte does not match <mapId> or
+      if the stability check fails.  Atomic save.  Use this to upgrade an existing
+      capture from v1 or v2 to v3 without re-capturing all tile addresses.
       On success, automatically runs pushlive.
 
   python tools\\probes\\treasure_flags.py status
@@ -128,10 +131,28 @@ def masked_terrain_hash(raw: bytes) -> int:
       raw = 01 02 03 04 05 06 07  11 12 13 14 15 16 17  (2 records)
       field-0 bytes = [0x01, 0x11]
       result = 0x082f3307b4e8a9a7
+
+    Kept for dual-version support: dry-land maps captured with fpVer=2 continue to use this.
     """
     num_records = len(raw) // TERRAIN_RECORD_LEN
     field0 = bytes(raw[i * TERRAIN_RECORD_LEN] for i in range(num_records))
     return fnv1a64(field0)
+
+
+def masked_terrain_hash_v3(raw: bytes) -> int:
+    """Fingerprint v3: FNV-1a64 over bytes at positions where (i % 7) in {2,3,4,5}.
+
+    These are the static geometry fields; fields {0,1,6} (height, slope, flow) animate
+    on water/lava maps and are excluded.
+
+    Pinned test vector (shared with C# MaskedTerrainHashV3 and gen_treasure_db.py):
+      raw = 01 02 03 04 05 06 07  11 12 13 14 15 16 17  (2 records)
+      fields {2,3,4,5} bytes = [03 04 05 06 13 14 15 16]
+        (indices 2,3,4,5 from record 0; indices 9,10,11,12 from record 1)
+      result = Fnv1a64([03 04 05 06 13 14 15 16]) = 0x05708f90b5f5fac5
+    """
+    static_bytes = bytes(raw[i] for i in range(len(raw)) if (i % TERRAIN_RECORD_LEN) in (2, 3, 4, 5))
+    return fnv1a64(static_bytes)
 
 
 # ---------------------------------------------------------------------------
@@ -306,12 +327,53 @@ def _addr_byte(snap: dict[int, bytes], addr: int) -> int | None:
 # Fingerprint + build key
 # ---------------------------------------------------------------------------
 def terrain_fingerprint() -> int | None:
-    """Fingerprint v2: masked hash over TERRAIN_FP_LEN raw bytes at TERRAIN_FP_ADDR.
-    Reads 1456 bytes (208 records x 7 bytes), hashes only field-0 per record."""
+    """Fingerprint v3: masked hash over TERRAIN_FP_LEN raw bytes at TERRAIN_FP_ADDR.
+    Reads 1456 bytes (208 records x 7 bytes), hashes only fields {2,3,4,5} per record.
+    Immune to field-0 (height), field-1 (slope), and field-6 (flow) animation on
+    water/lava maps."""
     data = rpm(TERRAIN_FP_ADDR, TERRAIN_FP_LEN)
     if data is None:
         return None
-    return masked_terrain_hash(data)
+    return masked_terrain_hash_v3(data)
+
+
+def _terrain_fingerprint_stable_check(
+        samples: int = 8, interval: float = 0.125) -> tuple[bool, bytes | None]:
+    """Sample the live terrain grid ~samples times over ~(samples*interval) seconds.
+    Return (stable, raw_bytes) where stable=True means fields {2,3,4,5} are identical
+    across all samples.  On instability, prints a warning listing which byte positions
+    moved.  raw_bytes is from the first sample (None on read failure).
+    """
+    readings = []
+    for _ in range(samples):
+        data = rpm(TERRAIN_FP_ADDR, TERRAIN_FP_LEN)
+        if data is None:
+            print("WARNING: could not read terrain grid during stability check.")
+            return False, None
+        readings.append(data)
+        time.sleep(interval)
+
+    first = readings[0]
+    # Collect only the static-field positions
+    static_positions = [i for i in range(TERRAIN_FP_LEN)
+                        if (i % TERRAIN_RECORD_LEN) in (2, 3, 4, 5)]
+    unstable = set()
+    for later in readings[1:]:
+        for pos in static_positions:
+            if later[pos] != first[pos]:
+                unstable.add(pos)
+
+    if unstable:
+        print(f"\nWARNING: fingerprint v3 stability check FAILED!")
+        print(f"  {len(unstable)} byte position(s) in fields {{2,3,4,5}} moved across {samples} samples:")
+        for pos in sorted(unstable):
+            record_idx = pos // TERRAIN_RECORD_LEN
+            field_idx  = pos %  TERRAIN_RECORD_LEN
+            print(f"    pos {pos}: record {record_idx}, field {field_idx}")
+        print("  DO NOT stamp this map -- the static fields are not stable.  Investigate first.")
+        return False, first
+
+    return True, first
 
 
 def read_build_key() -> dict | None:
@@ -516,8 +578,10 @@ def cmd_session() -> None:
     # Track whether any DB change worth pushing live occurred this session.
     _db_changed = False
 
-    # Step 5: capture or update fingerprint (v2 masked hash) + build key
-    fp = terrain_fingerprint()
+    # Step 5: capture or update fingerprint (v3 masked hash) + build key
+    print("\nStability check: sampling terrain fields {2,3,4,5} across ~1s ...")
+    stable, raw_terrain = _terrain_fingerprint_stable_check()
+    fp = masked_terrain_hash_v3(raw_terrain) if (stable and raw_terrain is not None) else None
     bk = read_build_key()
 
     stored_fp   = map_rec.get("fpHash")
@@ -525,28 +589,30 @@ def cmd_session() -> None:
 
     if stored_fp is None:
         if fp is not None:
-            map_rec["fpVer"]  = 2
+            map_rec["fpVer"]  = 3
             map_rec["fpLen"]  = TERRAIN_FP_LEN
             map_rec["fpHash"] = hex(fp)
             _db_changed = True
-            print(f"\nFingerprint v2 captured: {hex(fp)}")
+            print(f"Fingerprint v3 stable (fields 2-5): {hex(fp)}")
+        elif raw_terrain is not None:
+            print("Fingerprint v3 skipped -- stability check failed (see warning above).")
         else:
-            print("\nWarning: could not read terrain fingerprint.")
+            print("Warning: could not read terrain fingerprint.")
     else:
         stored_ver = map_rec.get("fpVer")
         if fp is not None and hex(fp) != stored_fp:
             print(f"\nWARNING: terrain fingerprint mismatch!  Stored={stored_fp}, live={hex(fp)}")
             print("The map data may be stale.  Proceed carefully.")
         elif fp is not None:
-            if stored_ver != 2:
-                # Upgrade the stored fingerprint to v2 in-place.
-                map_rec["fpVer"]  = 2
+            if stored_ver != 3:
+                # Upgrade the stored fingerprint to v3 in-place.
+                map_rec["fpVer"]  = 3
                 map_rec["fpLen"]  = TERRAIN_FP_LEN
                 map_rec["fpHash"] = hex(fp)
                 _db_changed = True
-                print(f"\nFingerprint upgraded to v2: {hex(fp)}")
+                print(f"Fingerprint upgraded to v3 (fields 2-5 stable): {hex(fp)}")
             else:
-                print(f"\nFingerprint v2 matches stored ({stored_fp}) -- OK")
+                print(f"Fingerprint v3 matches stored ({stored_fp}) -- OK")
 
     if stored_bk is None:
         if bk is not None:
@@ -715,12 +781,14 @@ def cmd_session() -> None:
 # Verb: refp
 # ---------------------------------------------------------------------------
 def cmd_refp(map_id_str: str) -> None:
-    """Re-fingerprint an existing map entry with the v2 masked hash.
+    """Re-fingerprint an existing map entry with the v3 masked hash.
 
     Reads the live terrain grid (TERRAIN_FP_ADDR, TERRAIN_FP_LEN=1456 bytes),
-    computes the v2 masked hash, and stamps fpVer=2 / fpLen / fpHash into the
-    DB record.  Refuses if the live map-id byte does not match <map_id_str>.
-    Atomic save.
+    runs a stability check across ~1s to confirm fields {2,3,4,5} are not animating,
+    and stamps fpVer=3 / fpLen / fpHash into the DB record.  Refuses if the live
+    map-id byte does not match <map_id_str> or if the stability check fails.
+    Atomic save.  Use this to re-stamp an existing capture (v1 or v2) to v3 without
+    re-capturing all tile addresses.
     """
     _require_game()
 
@@ -747,15 +815,19 @@ def cmd_refp(map_id_str: str) -> None:
               f"Enter the correct battle first.")
         sys.exit(1)
 
-    # Read and hash the terrain grid.
-    fp = terrain_fingerprint()
-    if fp is None:
-        print(f"Could not read terrain grid at {TERRAIN_FP_ADDR:#x} (RPM failed).")
+    # Stability check: sample fields {2,3,4,5} ~8 times; only stamp if they're stable.
+    print("Stability check: sampling terrain fields {2,3,4,5} across ~1s ...")
+    stable, raw_terrain = _terrain_fingerprint_stable_check()
+    if not stable or raw_terrain is None:
+        print(f"Stability check failed -- NOT stamping map {map_id}.")
+        print("Tile captures are preserved.  Fix the instability and retry.")
         sys.exit(1)
+
+    fp = masked_terrain_hash_v3(raw_terrain)
 
     old_ver  = rec.get("fpVer")
     old_hash = rec.get("fpHash")
-    rec["fpVer"]  = 2
+    rec["fpVer"]  = 3
     rec["fpLen"]  = TERRAIN_FP_LEN
     rec["fpHash"] = hex(fp)
 
@@ -769,9 +841,10 @@ def cmd_refp(map_id_str: str) -> None:
     _save_db(db)
     name = rec.get("name", "")
     print(f"Map {map_id} ({name}): re-fingerprinted")
-    print(f"  fpVer: {old_ver!r} -> 2")
+    print(f"  fpVer: {old_ver!r} -> 3")
     print(f"  fpLen: {TERRAIN_FP_LEN}")
     print(f"  fpHash: {old_hash!r} -> {hex(fp)}")
+    print(f"  fingerprint v3 stable (fields 2-5)")
     print(f"  Saved -> {DB_PATH.name}")
     print()
     cmd_pushlive()
@@ -966,6 +1039,40 @@ def _selftest() -> bool:
         print(f"  masked_terrain_hash(vector): {got_mhv:#018x}  OK")
     else:
         print(f"  masked_terrain_hash(vector): FAIL  expected {_MASKED_HASH_VECTOR:#018x}  got {got_mhv:#018x}")
+        ok = False
+
+    # Masked-hash v3 pinned vector (shared with C# MaskedTerrainHashV3 and gen_treasure_db.py):
+    # 14-byte buf = [01 02 03 04 05 06 07 | 11 12 13 14 15 16 17] (2 records of 7 bytes)
+    # fields {2,3,4,5} bytes (i%7 in {2,3,4,5}):
+    #   indices 2,3,4,5 from record 0 = 0x03,0x04,0x05,0x06
+    #   indices 9,10,11,12 from record 1 = 0x13,0x14,0x15,0x16
+    #   => Fnv1a64([03 04 05 06 13 14 15 16]) = 0x05708f90b5f5fac5
+    _MASKED_HASH_V3_VECTOR = 0x05708F90B5F5FAC5
+    _mhv3_raw = bytes([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                       0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17])
+    got_mhv3 = masked_terrain_hash_v3(_mhv3_raw)
+    if got_mhv3 == _MASKED_HASH_V3_VECTOR:
+        print(f"  masked_terrain_hash_v3(vector): {got_mhv3:#018x}  OK")
+    else:
+        print(f"  masked_terrain_hash_v3(vector): FAIL  expected {_MASKED_HASH_V3_VECTOR:#018x}  got {got_mhv3:#018x}")
+        ok = False
+
+    # v3 stability: mutating fields {0,1,6} must not change the v3 hash.
+    _v3_base = bytes([0x10, 0x20, 0x03, 0x04, 0x05, 0x06, 0x30])  # 1 record
+    _v3_mutated = bytes([0xFF, 0xFF, 0x03, 0x04, 0x05, 0x06, 0xFF])  # fields 0,1,6 changed
+    if masked_terrain_hash_v3(_v3_base) == masked_terrain_hash_v3(_v3_mutated):
+        print(f"  masked_terrain_hash_v3 field-0/1/6 immunity: OK")
+    else:
+        print(f"  masked_terrain_hash_v3 field-0/1/6 immunity: FAIL")
+        ok = False
+
+    # v3: mutating a static field (field 3) MUST change the hash.
+    _v3_base2   = bytes([0x10, 0x20, 0x03, 0x04, 0x05, 0x06, 0x30])
+    _v3_changed = bytes([0x10, 0x20, 0x03, 0xAA, 0x05, 0x06, 0x30])  # field 3 changed
+    if masked_terrain_hash_v3(_v3_base2) != masked_terrain_hash_v3(_v3_changed):
+        print(f"  masked_terrain_hash_v3 field-3 sensitivity: OK")
+    else:
+        print(f"  masked_terrain_hash_v3 field-3 sensitivity: FAIL")
         ok = False
 
     # Clean filter logic
