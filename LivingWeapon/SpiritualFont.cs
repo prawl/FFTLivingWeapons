@@ -77,7 +77,6 @@ internal sealed partial class SpiritualFont : ISignature
     {
         if (!inLive) return;
         if (!_meta.TryGetValue(UmbralId, out var m) || m.Signature is null) return;
-        if (onField && !_mpChecked) ValidateMpLayout();   // band most coherent on field ticks; latches once
         int tier = Tuning.TierOf(_kills, UmbralId);
         (int lvl, int br, int fa) fp = default;
         bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(_mem, UmbralId, out fp, _hands);
@@ -91,6 +90,10 @@ internal sealed partial class SpiritualFont : ISignature
             _watch.Reset();   // unequip: re-baseline the MoveWatch
             return;
         }
+
+        // Validate the MP-write offsets ONCE per battle -- but only now that a rod-wielder is
+        // confirmed, so a battle with no Umbral Rod equipped does no band sampling and stays silent.
+        if (onField && !_mpChecked) ValidateMpLayout();   // band most coherent on field ticks; latches once
 
         // DEV PULSE: trigger bypass -- force a replenish every ~10s (300 ticks) so the band
         // addressing + HP write + provisional MP pair can be verified ON SCREEN, independent
