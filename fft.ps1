@@ -18,6 +18,15 @@ function kill_all {
     python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") kill_all
 }
 
+# Hold the party at full HP so a boss alpha-strike can't kill them. Start BEFORE the battle.
+function godmode([int]$hpFloor = 999) {
+    python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") godmode $hpFloor
+}
+
+function revive {
+    python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") revive
+}
+
 # Treasure capture campaign (treasure_flags.py wrappers)
 function treasure {
     python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") session

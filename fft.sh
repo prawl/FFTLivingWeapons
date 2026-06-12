@@ -41,3 +41,12 @@ trefp() {
 tnofp() {
   python "$_FFT_REPO/tools/probes/treasure_flags.py" nofp "$1"
 }
+
+# Hold the party at full HP so a boss alpha-strike can't kill them. Start BEFORE the battle.
+godmode() {
+  python "$_FFT_REPO/tools/probes/battle_cheats.py" godmode "${1:-999}"
+}
+
+revive() {
+  python "$_FFT_REPO/tools/probes/battle_cheats.py" revive
+}

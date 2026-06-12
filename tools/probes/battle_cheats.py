@@ -521,6 +521,60 @@ def cmd_revive() -> None:
     print("Done.  Note: if the turn already ended, the engine may have committed the KO.")
 
 
+# ---------------------------------------------------------------------------
+# Verb: godmode  (survive a boss alpha-strike)
+# ---------------------------------------------------------------------------
+def cmd_godmode(hp_floor: int = 999) -> None:
+    """Hold every player-side unit at full HP (MaxHP raised to >= hp_floor) every ~10ms so
+    a boss that acts first and one-shots the party cannot kill it.
+
+    START THIS BEFORE entering the battle (on the formation / world-map screen). The band
+    is empty pre-battle; the loop engages the instant units load -- before the boss can act
+    -- so no in-battle pause is needed. Bumping MaxHP means the hit never reaches 0 (cleaner
+    than reviving a corpse). Ctrl+C restores each unit's real MaxHP and stops.
+
+    Level-99 does NOT work for this: FFT derives HP from level at battle start, so changing
+    level mid-battle does not recompute stats. Holding HP directly is the reliable path."""
+    _require_game()
+    print(f"GODMODE armed: player HP held full, MaxHP floor {hp_floor}.  Ctrl+C to stop.")
+    print("Start this BEFORE entering the boss battle -- it engages the moment units load.")
+    orig_maxhp: dict[int, int] = {}   # slot -> real MaxHP, saved on first sighting (pre-bump)
+    seeded = False
+    try:
+        while True:
+            for s in range(PLAYER_SLOT_THRESHOLD, BAND_SLOTS):
+                e = _band_entry_addr(s)
+                if not _is_valid_entry(e):
+                    continue
+                mhp = ru16(e + A_MAXHP)
+                if mhp is None or mhp <= 0 or mhp > 60000:
+                    continue
+                if s not in orig_maxhp:
+                    orig_maxhp[s] = mhp           # remember the real max before bumping
+                    if not seeded:
+                        print("  units detected -- holding.")
+                        seeded = True
+                target = max(orig_maxhp[s], hp_floor)
+                if mhp != target:
+                    wu16(e + A_MAXHP, target)
+                wu16(e + A_HP, target)            # full heal every pass
+                ds = ru8(e + A_DEAD_STATUS)
+                if ds is not None and (ds & A_DEAD_BIT):
+                    wu8(e + A_DEAD_STATUS, ds & ~A_DEAD_BIT & 0xFF)   # un-kill if it slipped through
+            time.sleep(0.01)
+    except KeyboardInterrupt:
+        print("\nStopping godmode -- restoring real MaxHP ...")
+        for s, omhp in orig_maxhp.items():
+            e = _band_entry_addr(s)
+            if not _is_valid_entry(e):
+                continue
+            wu16(e + A_MAXHP, omhp)
+            cur = ru16(e + A_HP)
+            if cur is not None and cur > omhp:
+                wu16(e + A_HP, omhp)              # clamp HP back down to the real max
+        print(f"Restored MaxHP on {len(orig_maxhp)} unit(s).")
+
+
 def cmd_teams() -> None:
     """Dump every live band slot with its side and the kill_all verdict.
     Every live enemy-side unit is a TARGET; guests/escorts also sit enemy-side and
@@ -671,6 +725,11 @@ def main() -> None:
 
     if args[0] == "teams":
         cmd_teams()
+        return
+
+    if args[0] == "godmode":
+        floor = int(args[1]) if len(args) > 1 else 999
+        cmd_godmode(floor)
         return
 
     print(f"Unknown verb: {args[0]!r}")
