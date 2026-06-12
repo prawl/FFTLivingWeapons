@@ -28,6 +28,11 @@ function pa99([int]$value = 99) {
     python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") pa99 $value
 }
 
+# Dominate the turn order: party Speed 99, enemies Speed 1 + CT reset (re-run after restart).
+function myturn {
+    python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") myturn
+}
+
 function revive {
     python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") revive
 }

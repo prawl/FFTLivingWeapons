@@ -90,6 +90,11 @@ A_ALLEG = 0x38   # u8, band-relative (== combat+0x54)
 # within a battle (a battle restart resets it -- re-run the verb).
 A_PA = 0x22   # u8, band-relative (== combat+0x3E)
 
+# Speed (CT charge rate) at combat+0x40 (Offsets.CSpeed) -> band-relative 0x40-0x1C = 0x24.
+# CT / "slam" byte at combat+0x41 (Offsets.CtOff, what ExtraTurn writes) -> band 0x41-0x1C = 0x25.
+A_SPEED = 0x24   # u8, band-relative (== combat+0x40)
+A_CT    = 0x25   # u8, band-relative (== combat+0x41, the ACtSlam write byte)
+
 # Band-relative movement field (Offsets.AMovement = CMovement - BandEntry = 0x9C - 0x1C = 0x80)
 A_MOVEMENT = 0x80   # 3 bytes, base ability id 230, MSB-first
 MOVEMENT_BASE    = 230
@@ -607,6 +612,32 @@ def cmd_pa99(value: int = 99) -> None:
     print("Re-run after a battle restart (it resets stats).")
 
 
+def cmd_myturn() -> None:
+    """Dominate the turn order: set every player-side unit's Speed to 99 and every enemy-side
+    unit's Speed to 1, and reset enemy CT to 0 so any enemy about to act is pushed back. The
+    player then charges to a turn ~99x faster than the enemies -- effectively every turn. CT
+    is charge-rate based (same system ExtraTurn uses). One-shot -- re-run after a restart."""
+    _require_game()
+    players = enemies = 0
+    for s in range(BAND_SLOTS):
+        e = _band_entry_addr(s)
+        if not _is_valid_entry(e):
+            continue
+        mhp = ru16(e + A_MAXHP)
+        if not mhp or mhp <= 0:
+            continue
+        hp = ru16(e + A_HP)
+        if s >= PLAYER_SLOT_THRESHOLD:
+            wu8(e + A_SPEED, 99)
+            players += 1
+        elif hp and hp > 0:
+            wu8(e + A_SPEED, 1)
+            wu8(e + A_CT, 0)       # reset any charged enemy back to the start
+            enemies += 1
+    print(f"myturn: {players} player unit(s) -> Speed 99, {enemies} enemy unit(s) -> Speed 1 + CT reset.")
+    print("You now charge ~99x faster than the enemies.  Re-run after a battle restart.")
+
+
 def cmd_teams() -> None:
     """Dump every live band slot with its side and the kill_all verdict.
     Every live enemy-side unit is a TARGET; guests/escorts also sit enemy-side and
@@ -758,6 +789,10 @@ def main() -> None:
     if args[0] == "pa99":
         val = int(args[1]) if len(args) > 1 else 99
         cmd_pa99(val)
+        return
+
+    if args[0] == "myturn":
+        cmd_myturn()
         return
 
     if args[0] == "teams":

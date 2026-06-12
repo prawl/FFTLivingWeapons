@@ -55,3 +55,8 @@ revive() {
 pa99() {
   python "$_FFT_REPO/tools/probes/battle_cheats.py" pa99 "${1:-99}"
 }
+
+# Dominate the turn order: party Speed 99, enemies Speed 1 + CT reset (re-run after restart).
+myturn() {
+  python "$_FFT_REPO/tools/probes/battle_cheats.py" myturn
+}
