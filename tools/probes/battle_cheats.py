@@ -612,6 +612,25 @@ def cmd_pa99(value: int = 99) -> None:
     print("Re-run after a battle restart (it resets stats).")
 
 
+def cmd_sentinels() -> None:
+    """Print the battle-state sentinels the treasure module gates on. Run this on the
+    formation/placement screen, or in a two-phase boss fight's second phase, so the
+    treasure gate (battleDisplayed = slot9==0xFFFFFFFF and battleMode != 0) can be checked."""
+    _require_game()
+    def ru32(a):
+        b = rpm(a, 4)
+        return int.from_bytes(b, "little") if b else None
+    slot0 = ru32(0x14077CA30)
+    slot9 = ru32(0x14077CA54)
+    mode  = ru8(0x140900650)
+    mapid = ru8(0x14077D83C)
+    pause = ru8(0x140C64A5C)
+    disp  = (slot9 == 0xFFFFFFFF) and (mode not in (None, 0))
+    print(f"slot0={slot0:#x} slot9={slot9:#x} battleMode={mode} mapId={mapid} pauseFlag={pause}")
+    print(f"battleDisplayed (slot9==FFFFFFFF and mode!=0) = {disp}  "
+          f"-> treasure {'CAN' if disp else 'will NOT'} arm here")
+
+
 def cmd_myturn() -> None:
     """Dominate the turn order: set every player-side unit's Speed to 99 and every enemy-side
     unit's Speed to 1, and reset enemy CT to 0 so any enemy about to act is pushed back. The
@@ -793,6 +812,10 @@ def main() -> None:
 
     if args[0] == "myturn":
         cmd_myturn()
+        return
+
+    if args[0] == "sentinels":
+        cmd_sentinels()
         return
 
     if args[0] == "teams":
