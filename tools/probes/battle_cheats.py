@@ -1,0 +1,561 @@
+"""Battle cheats probe for live in-game testing.
+
+Verbs
+-----
+  python tools\\probes\\battle_cheats.py give_move [abilityId]
+      Grant a movement passive to the unit hovered by the cursor.  Default ability
+      id is 243 (Master Teleportation, same as Rapture's proven RaptureMoveId).
+
+      Flow:
+        1. Hover a unit in-game (the condensed struct at 0x14077D2A0 mirrors whoever
+           the cursor is on -- the "follows hover" trap documented in the repo, but
+           PERFECT for selection UX).
+        2. Press Enter at this prompt.
+        3. The probe reads HP/MaxHP/Level from the condensed struct, fingerprint-
+           matches into the authoritative band (0x14184xxxx family, same walk as
+           the DLL's Wielder.Locate), and writes the movement byte at band+0x80 (+3
+           bytes, base id 230, MSB-first -- same encoding as Rapture.WriteField).
+        4. Reports SET (read-back matched) or MISS, then HOLDS every ~200ms until
+           Ctrl+C.  On exit, restores the original bytes.
+
+  python tools\\probes\\battle_cheats.py kill_all
+      KO every enemy in the current battle.  Enumerates the authoritative band
+      (BandReadBase, 49 slots, stride 0x200), classifies each valid entry as
+      player-side (slot index >= 24, corresponding to n >= 0 around the anchor)
+      or enemy-side (slot index < 24, n < 0), and on enemy entries with HP > 0
+      writes HP=0 + dead-bit (band +0x45 | 0x20).
+
+      Filtering mirrors KillEnemiesPlanner.Plan (FFTHandsFree CheatHandlers.cs):
+        - Skip IsPlayer
+        - Skip MaxHp <= 0 (empty slot)
+        - Skip Hp <= 0 (already dead)
+        - Dead-bit mask: 0x20 at band+0x45 (ADeadStatus from Offsets.cs)
+
+  python tools\\probes\\battle_cheats.py --selftest
+      Offline self-test.  No game required.  Validates movement-bit encoding
+      math, dead-bit constant, and band-address arithmetic.
+"""
+import ctypes
+import ctypes.wintypes as w
+import struct
+import sys
+import time
+
+# ---------------------------------------------------------------------------
+# Process / memory constants  (all from LivingWeapon/Offsets.cs)
+# ---------------------------------------------------------------------------
+PROCESS_VM_READ       = 0x0010
+PROCESS_VM_WRITE      = 0x0020
+PROCESS_VM_OPERATION  = 0x0008
+PROCESS_QUERY_INFORMATION = 0x0400
+
+# Condensed struct: unit under the CURSOR (TurnQueue in Offsets.cs -- named for its battle
+# role but documented as "follows hover" in the trap memory).
+CONDENSED_BASE = 0x14077D2A0
+TQ_LEVEL  = 0x00   # u16
+TQ_HP     = 0x0C   # u16
+TQ_MAXHP  = 0x10   # u16
+
+# Band (authoritative live structs; static array freezes on restart)
+# BandReadBase = CombatAnchor + BandEntry - 24*CombatStride
+#             = 0x14184F890 + 0x1C - 24*0x200 = 0x14184F8AC - 0x3000 = 0x141840000 + ...
+COMBAT_ANCHOR  = 0x14184F890
+BAND_ENTRY     = 0x1C          # unit copy sits 0x1C into each combat-band slot
+COMBAT_STRIDE  = 0x200
+BAND_SLOTS     = 49            # n = -24 .. +24 around the anchor
+BAND_READ_BASE = COMBAT_ANCHOR + BAND_ENTRY - 24 * COMBAT_STRIDE
+# Slot s=24 => n=0 => the anchor slot.  s < 24 => enemy-side (n < 0).
+PLAYER_SLOT_THRESHOLD = 24     # slots >= this are player-side (n >= 0)
+
+# Band entry field offsets (matching Offsets.cs A* constants)
+A_LEVEL    = 0x0D   # u8
+A_BRAVE    = 0x0E   # u8
+A_FAITH    = 0x10   # u8
+A_HP       = 0x14   # u16
+A_MAXHP    = 0x16   # u16
+A_GX       = 0x33   # u8
+A_GY       = 0x34   # u8
+A_DEAD_STATUS = 0x45  # u8 -- bit 0x20 = Dead, bit 0x10 = Undead
+A_DEAD_BIT    = 0x20
+
+# Band-relative movement field (Offsets.AMovement = CMovement - BandEntry = 0x9C - 0x1C = 0x80)
+A_MOVEMENT = 0x80   # 3 bytes, base ability id 230, MSB-first
+MOVEMENT_BASE    = 230
+MOVEMENT_BYTES   = 3
+
+# Level drift: live level may exceed roster level by up to this (Band.MaxLevelDrift)
+MAX_LEVEL_DRIFT = 9
+
+# ---------------------------------------------------------------------------
+# Process handle (lazy, fail-gracefully)
+# ---------------------------------------------------------------------------
+k32   = ctypes.windll.kernel32
+psapi = ctypes.windll.psapi
+
+_HANDLE = None
+
+
+def _open_process(name="fft_enhanced.exe"):
+    arr = (w.DWORD * 4096)()
+    needed = w.DWORD()
+    psapi.EnumProcesses(ctypes.byref(arr), ctypes.sizeof(arr), ctypes.byref(needed))
+    want = PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_VM_WRITE | PROCESS_VM_OPERATION
+    for i in range(needed.value // ctypes.sizeof(w.DWORD)):
+        h = k32.OpenProcess(want, False, arr[i])
+        if not h:
+            continue
+        buf = ctypes.create_unicode_buffer(260)
+        if psapi.GetModuleBaseNameW(h, None, buf, 260) and buf.value.lower() == name.lower():
+            return h
+        k32.CloseHandle(h)
+    return None
+
+
+def _handle():
+    global _HANDLE
+    if _HANDLE is None:
+        _HANDLE = _open_process()
+    return _HANDLE
+
+
+def _require_game():
+    h = _handle()
+    if not h:
+        print("process not found (fft_enhanced.exe not running)")
+        sys.exit(1)
+    return h
+
+
+# ---------------------------------------------------------------------------
+# RPM / WPM helpers  (same pattern as treasure_flags.py)
+# ---------------------------------------------------------------------------
+def rpm(addr: int, n: int) -> bytes | None:
+    h = _handle()
+    if not h:
+        return None
+    buf = ctypes.create_string_buffer(n)
+    got = ctypes.c_size_t()
+    ok = k32.ReadProcessMemory(h, ctypes.c_void_p(addr), buf, n, ctypes.byref(got))
+    if not ok or got.value != n:
+        return None
+    return buf.raw
+
+
+def wpm(addr: int, data: bytes) -> bool:
+    h = _handle()
+    if not h:
+        return False
+    n = ctypes.c_size_t()
+    ok = k32.WriteProcessMemory(h, ctypes.c_void_p(addr), data, len(data), ctypes.byref(n))
+    return bool(ok) and n.value == len(data)
+
+
+def ru8(addr: int) -> int | None:
+    b = rpm(addr, 1)
+    return b[0] if b is not None else None
+
+
+def ru16(addr: int) -> int | None:
+    b = rpm(addr, 2)
+    return struct.unpack_from("<H", b)[0] if b is not None else None
+
+
+def wu8(addr: int, val: int) -> bool:
+    return wpm(addr, bytes([val & 0xFF]))
+
+
+def wu16(addr: int, val: int) -> bool:
+    return wpm(addr, struct.pack("<H", val & 0xFFFF))
+
+
+# ---------------------------------------------------------------------------
+# Band entry validation  (mirrors Band.IsValid in Band.cs)
+# ---------------------------------------------------------------------------
+def _band_entry_addr(slot: int) -> int:
+    """Address of band entry for slot s (0..BAND_SLOTS-1)."""
+    return BAND_READ_BASE + slot * COMBAT_STRIDE
+
+
+def _is_valid_entry(addr: int) -> bool:
+    lvl = ru8(addr + A_LEVEL)
+    if lvl is None or lvl < 1 or lvl > 99:
+        return False
+    br = ru8(addr + A_BRAVE)
+    if br is None or br < 1 or br > 100:
+        return False
+    fa = ru8(addr + A_FAITH)
+    if fa is None or fa < 1 or fa > 100:
+        return False
+    mhp = ru16(addr + A_MAXHP)
+    if mhp is None or mhp < 1 or mhp >= 2000:
+        return False
+    gx = ru8(addr + A_GX)
+    gy = ru8(addr + A_GY)
+    if gx is None or gy is None:
+        return False
+    return gx <= 30 and gy <= 30
+
+
+def _level_matches(roster_lvl: int, live_lvl: int) -> bool:
+    """Band.LevelMatchesRoster: live may exceed roster by up to MAX_LEVEL_DRIFT."""
+    return live_lvl >= roster_lvl and (live_lvl - roster_lvl) <= MAX_LEVEL_DRIFT
+
+
+# ---------------------------------------------------------------------------
+# Movement encoding  (mirrors Signatures.ResolveMovement)
+# ---------------------------------------------------------------------------
+def movement_bit(ability_id: int):
+    """Return (byte_offset, mask) for a movement ability id, or None if out of range."""
+    pos = ability_id - MOVEMENT_BASE
+    if pos < 0 or pos >= MOVEMENT_BYTES * 8:
+        return None
+    return pos // 8, 0x80 >> (pos % 8)
+
+
+def read_movement_field(entry_addr: int) -> bytes | None:
+    """Read the 3-byte movement field at band entry + A_MOVEMENT."""
+    return rpm(entry_addr + A_MOVEMENT, MOVEMENT_BYTES)
+
+
+def write_movement_field(entry_addr: int, field: bytes) -> bool:
+    """Write the 3-byte movement field.  Guarded: read-verify the address is live first."""
+    if rpm(entry_addr + A_MOVEMENT, MOVEMENT_BYTES) is None:
+        return False
+    return wpm(entry_addr + A_MOVEMENT, field)
+
+
+def build_grant_field(ability_id: int) -> bytes | None:
+    """Build a 3-byte field image with only the granted ability's bit set."""
+    enc = movement_bit(ability_id)
+    if enc is None:
+        return None
+    off, mask = enc
+    field = bytearray(MOVEMENT_BYTES)
+    field[off] = mask
+    return bytes(field)
+
+
+# ---------------------------------------------------------------------------
+# Verb: give_move
+# ---------------------------------------------------------------------------
+def cmd_give_move(ability_id: int) -> None:
+    _require_game()
+
+    enc = movement_bit(ability_id)
+    if enc is None:
+        print(f"ability id {ability_id} is outside the movement field "
+              f"(valid range: {MOVEMENT_BASE}..{MOVEMENT_BASE + MOVEMENT_BYTES * 8 - 1})")
+        sys.exit(1)
+
+    grant_field = build_grant_field(ability_id)
+    assert grant_field is not None
+
+    print(f"give_move: ability {ability_id} -> byte offset {enc[0]}, mask 0x{enc[1]:02X}")
+    print("Hover the target unit in-game, then press Enter ...")
+    try:
+        input()
+    except (EOFError, KeyboardInterrupt):
+        print("\naborted.")
+        return
+
+    # Step 1: read the condensed struct (cursor-hover mirror)
+    c_level = ru16(CONDENSED_BASE + TQ_LEVEL)
+    c_hp    = ru16(CONDENSED_BASE + TQ_HP)
+    c_maxhp = ru16(CONDENSED_BASE + TQ_MAXHP)
+
+    if c_maxhp is None or c_maxhp == 0 or c_maxhp >= 2000:
+        print(f"condensed struct looks invalid (maxhp={c_maxhp}) -- are you in a battle?")
+        return
+    if c_level is None or c_level < 1 or c_level > 99:
+        print(f"condensed level looks invalid (level={c_level})")
+        return
+
+    print(f"condensed: level={c_level} hp={c_hp} maxhp={c_maxhp}")
+
+    # Step 2: fingerprint-match into the authoritative band
+    # Match: valid entry, hp+maxhp match the condensed readings, level drift ok.
+    # Twin filter: prefer real-position (gx/gy != 0,0) over frozen (0,0) copy.
+    match_addr = 0
+    match_real = False
+
+    for s in range(BAND_SLOTS):
+        e = _band_entry_addr(s)
+        if not _is_valid_entry(e):
+            continue
+        e_mhp = ru16(e + A_MAXHP)
+        e_hp  = ru16(e + A_HP)
+        e_lvl = ru8(e + A_LEVEL)
+        if e_mhp != c_maxhp or e_hp != c_hp:
+            continue
+        if not _level_matches(c_level, e_lvl):
+            continue
+        gx = ru8(e + A_GX)
+        gy = ru8(e + A_GY)
+        real_pos = (gx != 0 or gy != 0)
+        if match_real and not real_pos:
+            continue   # existing real match beats a (0,0) twin
+        if real_pos and not match_real and match_addr != 0:
+            # new real beats old (0,0): discard and restart
+            match_addr = 0
+            match_real = True
+        if real_pos:
+            match_real = True
+        match_addr = e
+
+    if match_addr == 0:
+        print("locate MISS: no band entry matched the hovered unit's HP/MaxHP/Level")
+        print("  Try: hover while in a live battle, not in menus")
+        return
+
+    e_br = ru8(match_addr + A_BRAVE)
+    e_fa = ru8(match_addr + A_FAITH)
+    print(f"located band entry: 0x{match_addr:X}  brave={e_br} faith={e_fa}")
+
+    # Step 3: save current movement field
+    saved = read_movement_field(match_addr)
+    if saved is None:
+        print("could not read movement field -- entry may have moved")
+        return
+    print(f"saved movement: {saved.hex().upper()}")
+
+    # Step 4: write the grant
+    if not write_movement_field(match_addr, grant_field):
+        print("write FAILED (page not writable?)")
+        return
+
+    # Step 5: read-back verification
+    rb = read_movement_field(match_addr)
+    off, mask = enc
+    if rb is not None and (rb[off] & mask) != 0:
+        print(f"SET  ability {ability_id} granted (read-back confirmed)")
+    else:
+        print(f"MISS ability {ability_id}: write did not stick (rb={rb.hex().upper() if rb else 'None'})")
+
+    # Step 6: hold loop -- re-assert every ~200ms until Ctrl+C
+    print("Holding grant.  Ctrl+C to stop and restore.")
+    try:
+        while True:
+            # SameUnit check: brave/faith must still match (Rapture.SameUnit discipline)
+            br_now = ru8(match_addr + A_BRAVE)
+            fa_now = ru8(match_addr + A_FAITH)
+            if br_now != e_br or fa_now != e_fa:
+                print(f"  unit migrated (brave/faith changed: was {e_br}/{e_fa}, now {br_now}/{fa_now}) -- stopped holding")
+                break
+            write_movement_field(match_addr, grant_field)
+            time.sleep(0.2)
+    except KeyboardInterrupt:
+        print()
+
+    # Restore
+    print(f"Restoring movement to {saved.hex().upper()} ...")
+    if not write_movement_field(match_addr, saved):
+        print("  WARN: restore write failed (entry may have migrated)")
+    else:
+        rb2 = read_movement_field(match_addr)
+        if rb2 == saved:
+            print("  restored OK")
+        else:
+            print(f"  restore read-back: {rb2.hex().upper() if rb2 else 'None'} (expected {saved.hex().upper()})")
+
+
+# ---------------------------------------------------------------------------
+# Verb: kill_all
+# ---------------------------------------------------------------------------
+def cmd_kill_all() -> None:
+    """KO every enemy in the current battle via the authoritative band.
+
+    Port of FFTHandsFree CheatHandlers.cs / KillEnemiesPlanner.Plan, adapted for
+    external RPM/WPM access.  The original in-process handler runs a runtime HP-table
+    discovery scan (searching 0x141800000..0x141900000 using scan-state player
+    fingerprints from the bridge).  This port uses the fixed-address band directly
+    (BandReadBase, 49 slots), which is what the DLL always uses -- no scan state needed.
+
+    Classification: slot index s < PLAYER_SLOT_THRESHOLD (24) = enemy-side (n < 0 around
+    the anchor); s >= 24 = player-side (n >= 0).  This matches the GrowthEngine scan-
+    order logic (player-side pass first) and the static-array EnemySlotMax convention.
+
+    Per-enemy kill writes (KillEnemiesPlanner.Plan recipe, verified live session 49):
+      band+0x14 (A_HP)  u16 = 0x0000
+      band+0x45 (A_DEAD_STATUS) u8 |= 0x20  (ADeadBit)
+    The Reraise-clear (battle-array +0x47 bit 0x20) from the original handler is NOT
+    ported here: it requires cross-referencing the static battle array by HP fingerprint.
+    For teleport-recon purposes, enemies dead without Reraise-clear revive on the same
+    turn if they have Reraise equipped.  kill_enemies_hard (kill twice) is the workaround.
+    """
+    _require_game()
+
+    killed = 0
+    skipped_player = 0
+    skipped_dead = 0
+    skipped_invalid = 0
+
+    for s in range(BAND_SLOTS):
+        e = _band_entry_addr(s)
+        if not _is_valid_entry(e):
+            skipped_invalid += 1
+            continue
+
+        hp   = ru16(e + A_HP)
+        mhp  = ru16(e + A_MAXHP)
+
+        if mhp is None or mhp <= 0:
+            skipped_invalid += 1
+            continue
+
+        is_player = (s >= PLAYER_SLOT_THRESHOLD)
+
+        if is_player:
+            skipped_player += 1
+            continue
+
+        if hp is None or hp <= 0:
+            skipped_dead += 1
+            continue
+
+        # Write HP=0 at band+A_HP
+        hp_ok = wu16(e + A_HP, 0)
+
+        # Write dead-bit at band+A_DEAD_STATUS  (read-modify-write to preserve other bits)
+        db = ru8(e + A_DEAD_STATUS)
+        dead_byte = (db | A_DEAD_BIT) if db is not None else A_DEAD_BIT
+        db_ok = wu8(e + A_DEAD_STATUS, dead_byte)
+
+        lvl = ru8(e + A_LEVEL)
+        br  = ru8(e + A_BRAVE)
+        fa  = ru8(e + A_FAITH)
+        gx  = ru8(e + A_GX)
+        gy  = ru8(e + A_GY)
+        print(f"  slot s={s:02d} (n={s-24:+d})  0x{e:X}  "
+              f"lvl={lvl} br={br} fa={fa} pos=({gx},{gy})  "
+              f"hp {hp}->{0}  dead_byte=0x{dead_byte:02X}  "
+              f"hp_ok={hp_ok} db_ok={db_ok}")
+        killed += 1
+
+    print(f"\nkill_all: {killed} enemies killed, "
+          f"{skipped_player} player slots skipped, "
+          f"{skipped_dead} already dead, "
+          f"{skipped_invalid} invalid/empty slots")
+    if killed > 0:
+        print("End the current turn to see victory.")
+    else:
+        print("No enemies found.  Are you in a live battle?")
+
+
+# ---------------------------------------------------------------------------
+# Self-test  (no game required)
+# ---------------------------------------------------------------------------
+def _selftest() -> bool:
+    ok = True
+
+    # Movement-bit encoding: ability 243 (Master Teleportation = RaptureMoveId)
+    # pos = 243 - 230 = 13  =>  byte_off = 13//8 = 1, bit_off = 13%8 = 5
+    # mask = 0x80 >> 5 = 0x04
+    enc = movement_bit(243)
+    if enc == (1, 0x04):
+        print("  movement_bit(243): off=1 mask=0x04  OK")
+    else:
+        print(f"  movement_bit(243): FAIL expected (1, 0x04) got {enc}")
+        ok = False
+
+    # Boundary: ability 230 = first bit (offset 0, mask 0x80)
+    enc230 = movement_bit(230)
+    if enc230 == (0, 0x80):
+        print("  movement_bit(230): off=0 mask=0x80  OK")
+    else:
+        print(f"  movement_bit(230): FAIL expected (0, 0x80) got {enc230}")
+        ok = False
+
+    # Out-of-range: 253 = 230 + 23 (last valid), 254 = 230+24 out
+    enc253 = movement_bit(253)
+    enc254 = movement_bit(254)
+    enc229 = movement_bit(229)
+    if enc253 is not None and enc254 is None and enc229 is None:
+        print("  movement_bit range guard: OK")
+    else:
+        print(f"  movement_bit range guard: FAIL enc253={enc253} enc254={enc254} enc229={enc229}")
+        ok = False
+
+    # Grant field: ability 243 => only byte 1 bit 0x04 set, rest 0
+    field = build_grant_field(243)
+    if field == bytes([0x00, 0x04, 0x00]):
+        print("  build_grant_field(243): [00 04 00]  OK")
+    else:
+        print(f"  build_grant_field(243): FAIL expected [00 04 00] got {list(field) if field else None}")
+        ok = False
+
+    # Dead-bit constant matches Offsets.cs ADeadBit
+    if A_DEAD_BIT == 0x20:
+        print("  A_DEAD_BIT == 0x20  OK")
+    else:
+        print(f"  A_DEAD_BIT: FAIL expected 0x20 got 0x{A_DEAD_BIT:02X}")
+        ok = False
+
+    # Band address arithmetic: slot 0 => n=-24, slot 24 => n=0 (anchor), slot 48 => n=+24
+    slot0  = _band_entry_addr(0)
+    slot24 = _band_entry_addr(24)
+    slot48 = _band_entry_addr(48)
+    expected0  = COMBAT_ANCHOR + BAND_ENTRY - 24 * COMBAT_STRIDE
+    expected24 = COMBAT_ANCHOR + BAND_ENTRY
+    expected48 = COMBAT_ANCHOR + BAND_ENTRY + 24 * COMBAT_STRIDE
+    if slot0 == expected0 and slot24 == expected24 and slot48 == expected48:
+        print(f"  band address arithmetic: slot0=0x{slot0:X} slot24=0x{slot24:X}  OK")
+    else:
+        print(f"  band address arithmetic: FAIL")
+        print(f"    slot0:  got 0x{slot0:X}  want 0x{expected0:X}")
+        print(f"    slot24: got 0x{slot24:X}  want 0x{expected24:X}")
+        print(f"    slot48: got 0x{slot48:X}  want 0x{expected48:X}")
+        ok = False
+
+    # Player threshold: slot 24 is player-side (n=0), slot 23 is enemy-side (n=-1)
+    if PLAYER_SLOT_THRESHOLD == 24:
+        print("  PLAYER_SLOT_THRESHOLD == 24  OK")
+    else:
+        print(f"  PLAYER_SLOT_THRESHOLD: FAIL expected 24 got {PLAYER_SLOT_THRESHOLD}")
+        ok = False
+
+    # Level drift: live=50, roster=42 => ok (diff=8<=9); live=50, roster=40 => fail (diff=10)
+    if _level_matches(42, 50) and not _level_matches(40, 50):
+        print("  level drift guard: OK")
+    else:
+        print(f"  level drift guard: FAIL (42->50={_level_matches(42,50)}, 40->50={_level_matches(40,50)})")
+        ok = False
+
+    return ok
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+def main() -> None:
+    args = sys.argv[1:]
+
+    if not args or args[0] in ("-h", "--help", "help"):
+        print(__doc__)
+        return
+
+    if args[0] == "--selftest":
+        print("Running self-test (no game required) ...")
+        passed = _selftest()
+        if passed:
+            print("\nAll self-tests PASSED.")
+            sys.exit(0)
+        else:
+            print("\nSelf-test FAILED.")
+            sys.exit(1)
+
+    if args[0] == "give_move":
+        ability_id = int(args[1]) if len(args) > 1 else 243
+        cmd_give_move(ability_id)
+        return
+
+    if args[0] == "kill_all":
+        cmd_kill_all()
+        return
+
+    print(f"Unknown verb: {args[0]!r}")
+    print(__doc__)
+    sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

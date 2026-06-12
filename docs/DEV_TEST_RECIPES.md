@@ -53,6 +53,40 @@ OS may clean — see its README for the curated index). The workhorse is `ct_pro
 `hold combat|static|cond <val> <mhp> <lvl> [s]`. Used to find the scheduler CT. A probe result
 that settles a mechanism claim belongs in `docs/LIVE_LEDGER.md`.
 
+## Battle cheats (give_move / kill_all)
+
+Two external probes in `tools/probes/battle_cheats.py`.  The game must be running; no
+in-process mod required (pure RPM/WPM).
+
+```bash
+# Shell helpers (mirror FFTHandsFree/fft.sh structure)
+source ./fft.sh
+give_move          # grant Master Teleportation (ability 243) to the hovered unit
+give_move 242      # plain Teleport instead
+kill_all           # KO all enemies in the current battle
+
+# Or call the probe directly
+python tools\probes\battle_cheats.py give_move [abilityId]
+python tools\probes\battle_cheats.py kill_all
+python tools\probes\battle_cheats.py --selftest   # no game required
+```
+
+**give_move**: hover the target unit in-game (the condensed struct at `0x14077D2A0` mirrors
+whoever the cursor is on), press Enter, and the probe fingerprint-matches via HP/MaxHP/Level
+into the authoritative band (`BandReadBase`, same walk as `Wielder.Locate`), then writes the
+3-byte movement bitfield at `band+0x80` (`AMovement = CMovement - BandEntry = 0x9C - 0x1C`).
+Holds the grant every ~200ms until Ctrl+C (same as the DLL — engine can normalize passives
+per turn), then restores the original bytes.  Default ability 243 = Master Teleportation
+(proven live by Rapture, 2026-06-10).
+
+**kill_all**: enumerates the 49-slot band (slots 0–23 = enemy-side n < 0; slots 24–48 = player-
+side n ≥ 0), skips player slots and already-dead entries, and writes `HP=0` + `dead-bit (0x20)`
+at `band+0x45` for each live enemy.  This is the external port of FFTHandsFree's
+`CheatKillEnemiesHandler` / `KillEnemiesPlanner.Plan`.  **Porting difference**: the original
+in-process handler also clears Reraise (battle-array `+0x47` bit `0x20`), which requires
+cross-referencing the static battle array by HP fingerprint — not ported here because the band
+alone is enough for the quick-clear use case.  If enemies revive (Reraise/undead), run twice.
+
 ## Verify a signature grant is ACTIVE
 
 **1. The once-per-battle log is the primary check.**
