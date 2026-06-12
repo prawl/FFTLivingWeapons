@@ -1,21 +1,26 @@
 """Bake data/treasure_addrs.json + data/map_trap_formation.json -> LivingWeapon/treasure.json.
 
-Gate rules (exit 1 on violation):
+The ONLY hard gate is the cross-language self-test (g). Every per-tile / per-address
+problem WARNS and drops just that tile or address -- one messy capture must never block
+deploying every other map (the campaign accretes captures over weeks; a single dirty
+tile bricking the whole bake would stall it). The quality bars are: verified status, the
+in-session eyeball hold-test, and the >= MIN_ADDRS_TO_SHIP clean-copy floor.
+
+Bake rules:
   (a) Ship addresses for verified tiles that satisfy ONE of two modes:
         Fingerprinted mode: non-null fpHash AND capturedBuild present.
         Map-id-only mode:   fpVer == 0 AND fpHash is null/absent -- for water/lava maps
           whose terrain grid animates on every re-entry (no stable fingerprint possible).
           capturedBuild must still be present and current (L0 PE key check is NOT bypassed).
       Tiles that match neither mode are skipped.
-  (b) Every shipped (x,y) must be a treasure tile (is_treasure) in the snapshot.
-  (c) Off bytes must be 0x00 or 0x01 -- other values are WARNED and the single address is
-      DROPPED (a lockstep coincidence, not a flag byte). Same for addresses at or above
-      0x142000000: the 0x142e detail-store family relocates between runs (see the prototype
-      doc) and must never ship. A tile ships only if >= 4 clean addresses remain after drops.
-  (d) Addrs must be in the module span 0x140000000..0x143000000 (exclusive high) and outside
-      the UI render arena 0x140C63000..0x140CC5000 (exclusive high). No duplicates within a
-      map. These are hard failures: a legit capture cannot produce them, so they mean
-      corrupt data.
+  (b) Every shipped (x,y) must be a treasure tile (is_treasure) in the snapshot; a tile
+      whose coord is absent from the snapshot is warned and skipped.
+  (c) Per-address drops (warn + drop the single pair, keep the tile): off byte not 0x00/0x01
+      (a lockstep coincidence, not a flag byte); the volatile 0x142e detail-store family
+      (>= 0x142000000, relocates between runs); an address outside the module span
+      0x140000000..0x143000000 or inside the UI render arena 0x140C63000..0x140CC5000;
+      a duplicate of an address already claimed in this map; an unparseable pair. A tile
+      ships only if >= MIN_ADDRS_TO_SHIP clean addresses remain after drops.
   (e) Build-key policy: dataset key = newest capturedBuild timeDateStamp. Maps captured under an
       older key are warned and dropped (never hard-fail -- would brick deploys post-patch).
       Map-id-only maps are NOT exempt from this: capturedBuild must be present and current.
@@ -359,60 +364,64 @@ def main() -> int:
             if not is_map_id_only and not fp_hash:
                 continue
 
-            # (b) Coord must be a treasure tile in the snapshot.
+            # (b) Coord must be a treasure tile in the snapshot. Warn + skip the tile
+            # (a capture that does not match the table should not ship, but must not
+            # brick the whole deploy).
             if (tx, ty) not in treasure_xy:
-                gate_failures.append(
-                    f"map {mid} tile ({tx},{ty}): not a treasure tile in snapshot"
+                warnings.append(
+                    f"map {mid} tile ({tx},{ty}): not a treasure tile in snapshot -- tile skipped"
                 )
                 continue
 
+            # Every per-address problem below WARNS and DROPS the single pair, never a
+            # hard failure: capture artifacts (lockstep strays, the volatile 0x142e family,
+            # duplicate copies, the rare out-of-span hit) are expected on real captures and
+            # must not block deploying every other map. The >= MIN_ADDRS_TO_SHIP floor plus
+            # the in-session eyeball hold-test are the quality bars; the only hard gate is
+            # the cross-language self-test.
             valid_addrs: list[list[str]] = []
-            tile_ok = True
             for pair in tile.get("addrs", []):
                 addr_str, off_str = pair[0], pair[1]
                 try:
                     addr = parse_hex(addr_str)
                     off  = parse_hex(off_str)
-                except ValueError:
-                    gate_failures.append(
-                        f"map {mid} tile ({tx},{ty}): unparseable addr/off {pair}"
+                except (ValueError, IndexError, TypeError):
+                    warnings.append(
+                        f"map {mid} tile ({tx},{ty}): dropped unparseable addr/off {pair}"
                     )
-                    tile_ok = False
-                    break
+                    continue
 
-                # (c) lockstep coincidences: warn + drop the single pair, keep the tile.
                 if (reason := pair_drop_reason(addr, off)) is not None:
                     warnings.append(
                         f"map {mid} tile ({tx},{ty}): dropped addr {addr_str} ({reason})"
                     )
                     continue
 
-                # (d) module span + UI arena + no duplicates
                 if not addr_valid(addr):
-                    gate_failures.append(
-                        f"map {mid} tile ({tx},{ty}): addr 0x{addr:x} fails module span or UI arena check"
+                    warnings.append(
+                        f"map {mid} tile ({tx},{ty}): dropped addr {addr_str} "
+                        f"(outside module span / inside UI arena)"
                     )
-                    tile_ok = False
-                    break
+                    continue
 
                 if addr in seen_addrs:
-                    gate_failures.append(
-                        f"map {mid}: duplicate addr 0x{addr:x} in tile ({tx},{ty})"
+                    warnings.append(
+                        f"map {mid} tile ({tx},{ty}): dropped duplicate addr {addr_str} "
+                        f"(already claimed in this map)"
                     )
-                    tile_ok = False
-                    break
+                    continue
 
                 seen_addrs.add(addr)
                 valid_addrs.append([addr_str, off_str])
 
-            if tile_ok and valid_addrs and len(valid_addrs) < MIN_ADDRS_TO_SHIP:
+            if valid_addrs and len(valid_addrs) < MIN_ADDRS_TO_SHIP:
                 warnings.append(
                     f"map {mid} tile ({tx},{ty}): only {len(valid_addrs)} clean addr(s) "
                     f"after drops -- not shipping this tile, re-capture it"
                 )
                 valid_addrs = []
 
-            if tile_ok and valid_addrs:
+            if valid_addrs:
                 shippable_tiles.append({"x": tx, "y": ty, "addrs": valid_addrs})
 
         if shippable_tiles:
