@@ -9,9 +9,8 @@ namespace LivingWeapon.Configuration;
 public class Config : Configurable<Config>
 {
     [DisplayName("Treasure Master Always On")]
-    [Description("Treasure Master highlights the battlefield tiles that hide treasure " +
-                 "(Move-Find items) so you can see where to search. Turn this on to enable " +
-                 "it on every map. Default: off.")]
+    [Description("Treasure Master (auto-marks the battle tiles that hide Move-Find treasure). " +
+                 "Turn this on to enable it on every map. Default: off.")]
     [DefaultValue(false)]
     public bool TreasureAlwaysOn { get; set; } = false;
 }
