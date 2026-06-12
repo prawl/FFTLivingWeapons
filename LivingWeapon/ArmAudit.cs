@@ -1,3 +1,5 @@
+using System;
+
 namespace LivingWeapon;
 
 /// <summary>
@@ -90,23 +92,29 @@ internal sealed class ArmAudit
     /// <see cref="TreasureMaster.ClassifyAddr"/>, tallies ok/foreign/unreadable, and
     /// calls <see cref="TreasureMaster.DecideArm"/>. Returns the verdict + the foreign
     /// count so the caller can log on first occurrence.
+    /// Foreign addresses contribute to the foreign tally but do not produce a Disarm verdict;
+    /// the quorum check (<paramref name="minPlausible"/>) is the sole arm gate.
     /// </summary>
     public (TreasureMaster.ArmVerdict Verdict, int ForeignCount) AuditAddrs(
-        TreasureMap map, int attempt, int attemptCap)
+        TreasureMap map, int minPlausible)
     {
+        int totalAddrs = 0;
         int okCount = 0, foreignCount = 0, unreadableCount = 0;
         foreach (var tile in map.Tiles)
         {
             foreach (var (addr, _) in tile.Addrs)
             {
+                totalAddrs++;
                 if (!_mem.Readable(addr, 1)) { unreadableCount++; continue; }
                 var state = TreasureMaster.ClassifyAddr(_mem.U8(addr));
                 if      (state == TreasureMaster.AddrState.Foreign) foreignCount++;
                 else                                                 okCount++;
             }
         }
+        // Clamp the quorum to the actual address count so small maps can still arm.
+        int effectiveMin = Math.Min(minPlausible, totalAddrs);
         return (TreasureMaster.DecideArm(okCount, foreignCount, unreadableCount,
-                                          attempt, attemptCap), foreignCount);
+                                          effectiveMin), foreignCount);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────────

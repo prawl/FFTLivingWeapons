@@ -22,9 +22,10 @@ namespace LivingWeapon.Tests;
 /// (4) WantWrite -- OR-only invariant: cur | 0x80 always has bit 0x80 set; no other bits are
 ///     ever cleared.
 ///
-/// (5) DecideArm -- three-path disarm logic: all-ok -> Arm; any Foreign -> immediate Disarm;
-///     unreadables only -> Retry with grace until attemptCap then Disarm. Matrix covers all
-///     transition edges.
+/// (5) DecideArm -- two-outcome arm gate: okCount >= minPlausible -> Arm; otherwise -> Retry.
+///     Foreign bytes are NOT a disarm at arm time (they are off-screen render bytes and will
+///     return to Resting when the tile scrolls back into view). Matrix covers quorum edges
+///     and mixed foreign+ok counts.
 ///
 /// (6) BuildKeyMatches -- exact equality on both TimeDateStamp and SizeOfImage; a single field
 ///     mismatch is a hard disarm.
@@ -124,70 +125,88 @@ public class TreasureMasterPolicyTests
     }
 
     // ---- (5) DecideArm -- matrix ----
+    // Foreign bytes no longer trigger a Disarm: they are off-screen render bytes that return
+    // to Resting when the camera pans back. The only outcomes are Arm and Retry.
+    // Quorum: okCount >= minPlausible -> Arm; anything else -> Retry (infinite patience).
 
     [Fact]
-    public void DecideArm_all_ok_returns_Arm()
+    public void DecideArm_ok_at_or_above_minPlausible_returns_Arm()
     {
         Assert.Equal(TreasureMaster.ArmVerdict.Arm,
             TreasureMaster.DecideArm(okCount: 6, foreignCount: 0, unreadableCount: 0,
-                attempt: 0, attemptCap: 5));
+                minPlausible: 4));
+    }
+
+    [Fact]
+    public void DecideArm_ok_exactly_minPlausible_returns_Arm()
+    {
+        Assert.Equal(TreasureMaster.ArmVerdict.Arm,
+            TreasureMaster.DecideArm(okCount: 4, foreignCount: 0, unreadableCount: 0,
+                minPlausible: 4));
+    }
+
+    [Fact]
+    public void DecideArm_ok_below_minPlausible_returns_Retry()
+    {
+        Assert.Equal(TreasureMaster.ArmVerdict.Retry,
+            TreasureMaster.DecideArm(okCount: 3, foreignCount: 0, unreadableCount: 0,
+                minPlausible: 4));
     }
 
     [Theory]
-    [InlineData(1)]   // one Foreign is enough
+    [InlineData(1)]   // one Foreign with enough ok -> still Arms (foreign ignored for verdict)
     [InlineData(3)]
-    public void DecideArm_any_Foreign_returns_immediate_Disarm(int foreignCount)
+    public void DecideArm_Foreign_with_ok_above_quorum_arms(int foreignCount)
     {
-        Assert.Equal(TreasureMaster.ArmVerdict.Disarm,
+        Assert.Equal(TreasureMaster.ArmVerdict.Arm,
             TreasureMaster.DecideArm(okCount: 4, foreignCount: foreignCount,
-                unreadableCount: 0, attempt: 0, attemptCap: 5));
-    }
-
-    [Fact]
-    public void DecideArm_Foreign_disarms_even_at_attempt_zero()
-    {
-        Assert.Equal(TreasureMaster.ArmVerdict.Disarm,
-            TreasureMaster.DecideArm(okCount: 0, foreignCount: 1,
-                unreadableCount: 0, attempt: 0, attemptCap: 10));
+                unreadableCount: 0, minPlausible: 4));
     }
 
     [Theory]
-    [InlineData(0, 5)]    // attempt 0 of cap 5 -> Retry
-    [InlineData(3, 5)]    // attempt 3 of cap 5 -> Retry
-    [InlineData(4, 5)]    // attempt 4 of cap 5 -> Retry (< cap, not yet disarmed)
-    public void DecideArm_unreadable_only_retries_before_cap(int attempt, int attemptCap)
+    [InlineData(1)]
+    [InlineData(3)]
+    public void DecideArm_Foreign_with_ok_below_quorum_retries(int foreignCount)
     {
+        // Foreign bytes don't disarm; quorum not met -> Retry
         Assert.Equal(TreasureMaster.ArmVerdict.Retry,
-            TreasureMaster.DecideArm(okCount: 0, foreignCount: 0,
-                unreadableCount: 3, attempt: attempt, attemptCap: attemptCap));
-    }
-
-    [Theory]
-    [InlineData(5, 5)]    // attempt == cap -> Disarm
-    [InlineData(6, 5)]    // attempt > cap -> Disarm
-    public void DecideArm_unreadable_only_disarms_at_or_past_cap(int attempt, int attemptCap)
-    {
-        Assert.Equal(TreasureMaster.ArmVerdict.Disarm,
-            TreasureMaster.DecideArm(okCount: 0, foreignCount: 0,
-                unreadableCount: 3, attempt: attempt, attemptCap: attemptCap));
+            TreasureMaster.DecideArm(okCount: 2, foreignCount: foreignCount,
+                unreadableCount: 0, minPlausible: 4));
     }
 
     [Fact]
-    public void DecideArm_Foreign_beats_unreadable_for_immediate_Disarm()
+    public void DecideArm_all_foreign_no_ok_retries_not_disarms()
     {
-        // Even one foreign with unreadables present -> Disarm, not Retry
-        Assert.Equal(TreasureMaster.ArmVerdict.Disarm,
-            TreasureMaster.DecideArm(okCount: 0, foreignCount: 1,
-                unreadableCount: 5, attempt: 0, attemptCap: 10));
+        // All tiles off-screen at battle start: should wait, not permanently disarm.
+        Assert.Equal(TreasureMaster.ArmVerdict.Retry,
+            TreasureMaster.DecideArm(okCount: 0, foreignCount: 5,
+                unreadableCount: 0, minPlausible: 4));
     }
 
     [Fact]
-    public void DecideArm_ok_plus_unreadable_with_no_foreign_retries()
+    public void DecideArm_unreadable_only_retries()
     {
-        // Mix of ok + unreadable but no foreign -> Retry (unread may clear on next tick)
         Assert.Equal(TreasureMaster.ArmVerdict.Retry,
-            TreasureMaster.DecideArm(okCount: 3, foreignCount: 0,
-                unreadableCount: 2, attempt: 1, attemptCap: 5));
+            TreasureMaster.DecideArm(okCount: 0, foreignCount: 0,
+                unreadableCount: 3, minPlausible: 4));
+    }
+
+    [Fact]
+    public void DecideArm_ok_plus_unreadable_with_quorum_arms()
+    {
+        // Enough ok addrs even with some unreadable -> Arm
+        Assert.Equal(TreasureMaster.ArmVerdict.Arm,
+            TreasureMaster.DecideArm(okCount: 5, foreignCount: 0,
+                unreadableCount: 2, minPlausible: 4));
+    }
+
+    [Fact]
+    public void DecideArm_ok_plus_foreign_plus_unreadable_below_quorum_retries()
+    {
+        // No disarm path: below quorum with foreign present -> Retry
+        Assert.Equal(TreasureMaster.ArmVerdict.Retry,
+            TreasureMaster.DecideArm(okCount: 1, foreignCount: 3,
+                unreadableCount: 2, minPlausible: 4));
     }
 
     // ---- (6) BuildKeyMatches ----

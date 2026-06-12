@@ -20,9 +20,13 @@ namespace LivingWeapon;
 ///   4. WantWrite       -- OR-only by construction: cur | 0x80. No Clear path exists in this
 ///                         module.
 ///   5. ArmVerdict /
-///      DecideArm       -- three-outcome arm gate: all ok -> Arm; any Foreign -> immediate
-///                         Disarm; unreadables only -> Retry with grace window (the Plague
-///                         grace-window lesson), Disarm after attemptCap.
+///      DecideArm       -- two-outcome arm gate: okCount >= minPlausible -> Arm;
+///                         otherwise -> Retry (infinite patience). Foreign bytes are NOT a
+///                         veto -- they are off-screen render bytes (camera pan / action
+///                         camera) that return to Resting when the tile scrolls back. Per-
+///                         write gating in TileHolder (L3) guarantees they are never written.
+///                         The Disarm verdict is reserved for fingerprint mismatches only
+///                         (handled in TreasureMaster.TickArming, not DecideArm).
 ///   6. BuildKeyMatches -- exact equality on both PE header fields (TimeDateStamp +
 ///                         SizeOfImage); a single-field mismatch is a hard global disarm
 ///                         until re-capture.
@@ -40,7 +44,10 @@ internal sealed partial class TreasureMaster
 
     // ---- #5 arm verdict ----
 
-    /// <summary>Outcome of a per-tick address audit.</summary>
+    /// <summary>Outcome of a per-tick address audit.
+    /// <see cref="Disarm"/> is no longer returned by <see cref="DecideArm"/> (foreign bytes
+    /// at arm time are off-screen render bytes, not a signal to disarm). It remains in the enum
+    /// for the fingerprint-mismatch path in <see cref="TickArming"/>, which bypasses DecideArm.</summary>
     internal enum ArmVerdict { Arm, Retry, Disarm }
 
     // ---- #1 MapIdValid ----
@@ -111,28 +118,23 @@ internal sealed partial class TreasureMaster
     /// <summary>
     /// Per-tick arm decision from an address audit summary.
     /// <list type="bullet">
-    ///   <item>Any <paramref name="foreignCount"/> > 0 -> <see cref="ArmVerdict.Disarm"/>
-    ///     immediately (wrong map or shifted buffers -- do not write).</item>
-    ///   <item>All addresses ok, none unreadable -> <see cref="ArmVerdict.Arm"/>.</item>
-    ///   <item>Unreadable addresses only (load-race grace window) -> <see cref="ArmVerdict.Retry"/>
-    ///     while <paramref name="attempt"/> &lt; <paramref name="attemptCap"/>, then
-    ///     <see cref="ArmVerdict.Disarm"/>.</item>
+    ///   <item><paramref name="okCount"/> &gt;= <paramref name="minPlausible"/> ->
+    ///     <see cref="ArmVerdict.Arm"/>. Foreign bytes are not a veto: they are off-screen
+    ///     render bytes (camera pan, action camera) that return to Resting when the tile
+    ///     scrolls back into view. Per-write gating in <see cref="TileHolder.Hold"/> ensures
+    ///     they are never written.</item>
+    ///   <item>Otherwise -> <see cref="ArmVerdict.Retry"/>. The module polls until enough
+    ///     tiles are on-screen. The caller logs once when attempts pass
+    ///     <see cref="Tuning.TreasureArmAttemptCap"/>.</item>
     /// </list>
-    /// Modeled on the Plague grace-window lesson: transient read failures suspend writes
-    /// immediately but disarm only after a finite grace.
+    /// Never returns <see cref="ArmVerdict.Disarm"/> -- that path lives in
+    /// <see cref="TickArming"/> for fingerprint mismatches only.
     /// </summary>
     internal static ArmVerdict DecideArm(
         int okCount, int foreignCount, int unreadableCount,
-        int attempt, int attemptCap)
+        int minPlausible)
     {
-        if (foreignCount > 0)
-            return ArmVerdict.Disarm;
-
-        if (unreadableCount == 0)
-            return ArmVerdict.Arm;
-
-        // Unreadables only -- grace window.
-        return attempt < attemptCap ? ArmVerdict.Retry : ArmVerdict.Disarm;
+        return okCount >= minPlausible ? ArmVerdict.Arm : ArmVerdict.Retry;
     }
 
     // ---- #6 BuildKeyMatches ----

@@ -7,10 +7,13 @@ namespace LivingWeapon;
 /// keeping treasure tiles lit on the battlefield map while the Scholar's Ring is equipped.
 ///
 /// Four-layer containment -- no write until ALL pass:
-///   L0 build key: dataset PE key vs live header (global disarm on mismatch).
-///   L1 map id:    guarded U8 @ LiveBattleMapId, valid 1..127, present in the dataset.
-///   L2 identity:  FNV-1a64 over a fixed-length terrain prefix must match the captured hash.
-///   L3 per-addr:  every tile address must be Resting or Held (Foreign -> instant Disarm).
+///   L0 build key:  dataset PE key vs live header (global disarm on mismatch).
+///   L1 map id:     guarded U8 @ LiveBattleMapId, valid 1..127, present in the dataset.
+///   L2 identity:   FNV-1a64 over a fixed-length terrain prefix must match the captured hash.
+///   L3 per-write:  per-addr Writable guard + ClassifyAddr check; Foreign bytes (off-screen
+///                  render bytes from camera pan / action camera) are never written. At arm
+///                  time, a quorum of TreasureMinPlausibleAddrs ok addrs is required; below
+///                  quorum the module polls indefinitely rather than disarming permanently.
 ///
 /// OR-only by construction: the module has no Clear path. Release = stop writing; the
 /// engine clears marks itself (LIVE_LEDGER). Writes are CharmLock.Force-idiom: Writable
@@ -46,6 +49,7 @@ internal sealed partial class TreasureMaster : ISignature
     private bool      _globalIdleChecked = false;
     private bool      _naggedThisBattle  = false; // stub/missing nag once per battle
     private bool      _capLoggedThisBattle = false;
+    private bool      _foreignLoggedThisBattle = false; // armed off-screen log once per battle
 
     /// <param name="alwaysOn">Override for the AlwaysOn gate; null = use Tuning.TreasureAlwaysOn.
     /// Tests pass true directly so the ring-gate branch does not idle the module in prod builds.</param>
@@ -69,8 +73,9 @@ internal sealed partial class TreasureMaster : ISignature
         _armAttempts     = 0;
         _revalidateTick  = 0;
         _badMapTicks     = 0;
-        _naggedThisBattle    = false;
-        _capLoggedThisBattle = false;
+        _naggedThisBattle           = false;
+        _capLoggedThisBattle        = false;
+        _foreignLoggedThisBattle    = false;
         // _globalIdle and _globalIdleChecked persist -- the L0 check is startup-once.
     }
 
@@ -203,7 +208,7 @@ internal sealed partial class TreasureMaster : ISignature
             return;
         }
 
-        var (verdict, foreignCount) = _audit.AuditAddrs(map, _armAttempts, Tuning.TreasureArmAttemptCap);
+        var (verdict, _) = _audit.AuditAddrs(map, Tuning.TreasureMinPlausibleAddrs);
 
         switch (verdict)
         {
@@ -215,14 +220,14 @@ internal sealed partial class TreasureMaster : ISignature
                 _holder.Hold(map);
                 break;
 
-            case ArmVerdict.Disarm:
-                _phase = Phase.BattleDisarmed;
-                Log.Info($"treasure: map {map.MapId} arm audit: {foreignCount} foreign " +
-                         $"byte(s) -- disarmed for battle");
-                break;
-
             case ArmVerdict.Retry:
                 _armAttempts++;
+                if (_armAttempts >= Tuning.TreasureArmAttemptCap && !_capLoggedThisBattle)
+                {
+                    _capLoggedThisBattle = true;
+                    Log.Info($"treasure: map {map.MapId} waiting to arm -- " +
+                             $"flag bytes not in rest state (tiles off-screen?)");
+                }
                 break;
         }
     }
@@ -263,20 +268,14 @@ internal sealed partial class TreasureMaster : ISignature
         }
 
         // Hold loop: per addr, OR in 0x80 only on a Resting byte.
-        // If more than one third of the map's addresses are Foreign mid-battle (buffers may
-        // have shifted), disarm without writing anything this tick.
-        int totalAddrs = 0;
-        foreach (var tile in map.Tiles) totalAddrs += tile.Addrs.Count;
-
-        int foreign = _holder.CountForeign(map);
-        if (foreign * 3 > totalAddrs)
+        // Foreign bytes (off-screen tiles: camera pan, action camera) are skipped by the
+        // per-addr ClassifyAddr check inside TileHolder.Hold -- no separate veto needed.
+        var (_, foreign) = _holder.Hold(map);
+        if (foreign > 0 && !_foreignLoggedThisBattle)
         {
-            _phase = Phase.BattleDisarmed;
-            Log.Info($"treasure: map {map.MapId} {foreign} foreign byte(s) mid-battle " +
-                     $"-- disarmed (buffers shifted?)");
-            return;
+            _foreignLoggedThisBattle = true;
+            Log.Info($"treasure: map {map.MapId} {foreign} byte(s) off-flag (tiles off-screen?) " +
+                     $"-- skipping those, holding the rest");
         }
-
-        _holder.Hold(map);
     }
 }

@@ -25,11 +25,15 @@ namespace LivingWeapon.Tests;
 ///        revalidate tick): writes stop after the bad fingerprint is seen.
 ///   (8)  Map-id flip mid-ARMED: no writes on that tick; full re-arm cycle against the
 ///        new map after the bad-tick threshold.
-///   (9)  Foreign byte (e.g. 0x42) at arm: Disarm, zero writes.
+///   (9)  Foreign addrs at arm: foreign addrs are simply skipped; arms when >= minPlausible
+///        ok addrs exist; foreign addrs are never written.
 ///   (10) Unwritable addr skipped while siblings still written.
 ///   (11) ResetBattle clears state, writes nothing, fresh battle re-arms.
 ///   (12) Stub map (no tiles): no writes, exactly zero tile-addr writes.
 ///   (13) Build-key mismatch: zero flag-address reads/writes ever.
+///   (14) Foreign bytes while ARMED (e.g. camera pan): module stays ARMED, skips the
+///        foreign addrs, holds the rest; resumes writing foreign addrs when they return
+///        to Resting (camera-pan round-trip).
 ///
 /// Plus one PinnedBuf fact through LiveMemory: hold a 6-byte tile against pinned
 /// process memory, assert 0x80 lands at the target offset and neighbors are untouched.
@@ -359,10 +363,46 @@ public class TreasureMasterTests
         Assert.Empty(mem.Written);
     }
 
-    // ── (9) Foreign byte at arm: Disarm, zero writes ─────────────────────────────
+    // ── (9) Foreign addrs at arm: foreign addrs never written; arms when quorum met ──
 
+    /// <summary>
+    /// A foreign addr at arm time (e.g. tile off-screen when the battle starts) is simply
+    /// never written -- the module arms once TreasureMinPlausibleAddrs ok addrs are visible.
+    /// Key assertion: the foreign addr is never written; the resting siblings ARE written.
+    /// </summary>
     [Fact]
-    public void Foreign_byte_at_arm_disarms_and_zero_writes()
+    public void Foreign_addr_at_arm_is_skipped_and_resting_sibling_is_written()
+    {
+        var dir  = TempDir();
+        var terrain = new byte[] { 0xAA, 0xBB, 0xCC, 0x11, 0x22, 0x33, 0x44 };
+        var addrForeign = TileAddr(8);
+        // Build a map with enough ok addrs to meet quorum (minPlausible=4 default, but we
+        // use a multi-addr layout -- provide TreasureMinPlausibleAddrs ok addrs + 1 foreign).
+        var okAddrs = Enumerable.Range(0, Tuning.TreasureMinPlausibleAddrs)
+            .Select(i => TileAddr(40 + i))
+            .ToArray();
+        var allAddrs = okAddrs.Concat(new[] { addrForeign }).ToArray();
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: allAddrs.Select(a => (a, (byte)0x00)));
+        var mem = BuildMem(74, terrain, allAddrs, initialByte: 0x00);
+        // Flip the foreign addr to 0x42 AFTER seeding (BuildMem seeds all as 0x00)
+        mem.U8s[addrForeign] = 0x42;
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+
+        // Foreign addr is never written
+        Assert.False(mem.Written.ContainsKey(addrForeign));
+        // At least one ok addr IS written
+        Assert.True(okAddrs.Any(a => mem.Written.ContainsKey(a)));
+    }
+
+    /// <summary>
+    /// Below quorum: all addrs foreign at arm time -> module stays ARMING, zero writes.
+    /// It will eventually arm once tiles scroll back into view.
+    /// </summary>
+    [Fact]
+    public void Foreign_all_addrs_at_arm_stays_arming_zero_writes()
     {
         var dir  = TempDir();
         var terrain = new byte[] { 0xAA, 0xBB, 0xCC, 0x11, 0x22, 0x33, 0x44 };
@@ -373,7 +413,8 @@ public class TreasureMasterTests
         var mem = BuildMem(74, terrain, new[] { addr }, initialByte: 0x42);
 
         var tm = Make(db, mem);
-        StabilizeAndArm(tm);
+        // Arm stable ticks + many extra -- still ARMING (quorum not met)
+        TickN(tm, Tuning.TreasureArmStableTicks + Tuning.TreasureArmAttemptCap + 10);
 
         Assert.Empty(mem.Written);
     }
@@ -554,19 +595,18 @@ public class TreasureMasterTests
         Assert.Equal(0x80, mem.Written[addr]);
     }
 
-    // ── FIX 3: Foreign bytes >1/3 while ARMED → BattleDisarmed + log ─────────────
+    // ── (14) Foreign bytes while ARMED: stay armed, skip foreign, resume on return ──
 
     /// <summary>
-    /// After arming cleanly, if more than 1/3 of the map's tile addresses return Foreign
-    /// bytes, the module must transition to BattleDisarmed on that tick, log once, and
-    /// stop writing on all subsequent ticks.
+    /// After arming cleanly, if tile addresses return Foreign bytes (camera pan, action camera),
+    /// the module must stay ARMED, skip those foreign addrs on that tick, and continue
+    /// writing the non-foreign addrs.  No disarm on any number of foreign bytes.
     /// </summary>
     [Fact]
-    public void Armed_foreign_bytes_over_threshold_disarms_and_stops_writes()
+    public void Armed_foreign_bytes_stays_armed_and_skips_foreign_addrs()
     {
         var dir = TempDir();
         var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
-        // Three addrs: mutating 2 of 3 (>1/3) should trigger disarm.
         var addrs = new[] { TileAddr(30), TileAddr(31), TileAddr(32) };
         var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
             addrs: addrs.Select(a => (a, (byte)0x00)));
@@ -576,29 +616,36 @@ public class TreasureMasterTests
         StabilizeAndArm(tm);
         Assert.NotEmpty(mem.Written);
 
-        // Mutate 2 of 3 addrs to Foreign (0x42), and reset addrs[2] to Resting so it
-        // WOULD be written if the module stayed armed (proving disarm is what stops it).
+        // Mutate 2 of 3 addrs to Foreign (camera panned away), reset addrs[2] to Resting
         mem.U8s[addrs[0]] = 0x42;
         mem.U8s[addrs[1]] = 0x42;
-        mem.U8s[addrs[2]] = 0x00;   // Resting -- would be written if still armed
+        mem.U8s[addrs[2]] = 0x00;
         mem.Written.Clear();
 
-        // One tick: should see >1/3 foreign, disarm, and write nothing (not even addrs[2]).
+        // One tick: foreign addrs skipped, non-foreign Resting addr IS written -- still ARMED
         tm.Tick(DateTime.Now, inLive: true);
 
-        Assert.Empty(mem.Written);
+        Assert.False(mem.Written.ContainsKey(addrs[0]));
+        Assert.False(mem.Written.ContainsKey(addrs[1]));
+        Assert.True(mem.Written.ContainsKey(addrs[2]));
 
-        // Subsequent ticks: stays disarmed, no writes even though addrs[2] is still Resting.
-        TickN(tm, 5);
-        Assert.Empty(mem.Written);
+        // Subsequent ticks: stays armed, continues writing addrs[2]
+        mem.U8s[addrs[2]] = 0x00;
+        mem.Written.Clear();
+        TickN(tm, 3);
+        Assert.True(mem.Written.ContainsKey(addrs[2]));
     }
 
+    /// <summary>
+    /// Camera-pan round-trip: bytes go Foreign (0x42) while off-screen -> skipped, stays ARMED;
+    /// then return to Resting (0x00) when camera pans back -> written again.
+    /// Proves no permanent state is set by the off-screen interval.
+    /// </summary>
     [Fact]
-    public void Armed_foreign_bytes_at_or_below_threshold_stays_armed()
+    public void Armed_camera_pan_roundtrip_bytes_return_resting_are_written_again()
     {
         var dir = TempDir();
         var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
-        // Three addrs: mutating exactly 1 of 3 (=1/3, not OVER 1/3) should NOT disarm.
         var addrs = new[] { TileAddr(33), TileAddr(34), TileAddr(35) };
         var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
             addrs: addrs.Select(a => (a, (byte)0x00)));
@@ -606,22 +653,21 @@ public class TreasureMasterTests
 
         var tm = Make(db, mem);
         StabilizeAndArm(tm);
+
+        // Phase 1: all addrs go Foreign (off-screen) -- module stays armed, zero writes
+        foreach (var a in addrs) mem.U8s[a] = 0x42;
         mem.Written.Clear();
+        TickN(tm, 5);
+        Assert.Empty(mem.Written);  // all foreign, all skipped; module still ARMED
 
-        // Mutate exactly 1 of 3 to Foreign (at threshold, not over).
-        mem.U8s[addrs[0]] = 0x42;
-
-        // One tick: should NOT disarm; the two non-foreign addrs still get written/held.
-        tm.Tick(DateTime.Now, inLive: true);
-
-        // addrs[1] and addrs[2] are Resting (already written, then re-read as 0x80 = Held).
-        // The key assertion: module is still writing, not disarmed.
-        // (The two still-resting bytes, if cleared, would get written.)
-        mem.U8s[addrs[1]] = 0x00;
-        mem.U8s[addrs[2]] = 0x00;
+        // Phase 2: camera pans back, bytes return to Resting (engine cleared 0x80 too)
+        foreach (var a in addrs) mem.U8s[a] = 0x00;
         mem.Written.Clear();
         tm.Tick(DateTime.Now, inLive: true);
-        Assert.True(mem.Written.ContainsKey(addrs[1]) || mem.Written.ContainsKey(addrs[2]));
+
+        // All addrs now Resting -> all written again
+        foreach (var a in addrs)
+            Assert.True(mem.Written.ContainsKey(a), $"addr {a:x} should be written after camera pan back");
     }
 
     // ── PinnedBuf fact: 0x80 lands at target, neighbors untouched ─────────────────

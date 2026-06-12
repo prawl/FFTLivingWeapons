@@ -127,8 +127,15 @@ internal static class Tuning
     /// <summary>Ticks between full fingerprint revalidations while ARMED.</summary>
     public const int TreasureRevalidateEveryNTicks = 30;
 
-    /// <summary>Maximum arming attempts before giving up for the battle.</summary>
+    /// <summary>Maximum arming attempts before logging "waiting to arm" once per battle.
+    /// Arming continues indefinitely after the cap -- the log is informational only.</summary>
     public const int TreasureArmAttemptCap = 60;
+
+    /// <summary>Minimum number of Resting or Held ("ok") tile addresses required at arm time
+    /// to proceed with arming. Below this quorum the module stays ARMING (cheap polling) until
+    /// enough tiles scroll into view. Protects against a battle start where most tiles are
+    /// off-screen (action camera / narrow view) without permanently disarming.</summary>
+    public const int TreasureMinPlausibleAddrs = 4;
 
     /// <summary>Consecutive bad-map-id ticks while ARMED before a full state reset
     /// back to DISARMED. The map-id change IS the battle boundary for chained story battles

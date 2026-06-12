@@ -10,10 +10,11 @@ namespace LivingWeapon;
 ///   U8 read        -- classify via <see cref="TreasureMaster.ClassifyAddr"/>.
 ///   Resting        -- W8(WantWrite) if cur differs.
 ///   Held           -- already marked, nothing to do.
-///   Foreign        -- counted but never written.
+///   Foreign        -- counted but never written (off-screen render bytes from camera pan
+///                     or action camera; they return to Resting when the tile scrolls back).
 ///
-/// Returns (written, foreign) so the caller can decide whether the foreign count
-/// exceeds the disarm threshold without needing to re-read memory.
+/// Returns (written, foreign) so the caller can log on first occurrence of foreign bytes
+/// without needing to re-read memory.
 /// </summary>
 internal sealed class TileHolder
 {
@@ -52,18 +53,5 @@ internal sealed class TileHolder
         return (written, foreign);
     }
 
-    /// <summary>
-    /// Read-only pass: counts foreign addresses without writing anything.
-    /// Used to evaluate the disarm threshold before deciding whether to write.
-    /// </summary>
-    internal int CountForeign(TreasureMap map)
-    {
-        int foreign = 0;
-        foreach (var tile in map.Tiles)
-            foreach (var (addr, _) in tile.Addrs)
-                if (_mem.Readable(addr, 1) &&
-                    TreasureMaster.ClassifyAddr(_mem.U8(addr)) == TreasureMaster.AddrState.Foreign)
-                    foreign++;
-        return foreign;
-    }
+
 }
