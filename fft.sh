@@ -50,3 +50,8 @@ godmode() {
 revive() {
   python "$_FFT_REPO/tools/probes/battle_cheats.py" revive
 }
+
+# Set the whole party's Physical Attack to 99 (re-run after a battle restart).
+pa99() {
+  python "$_FFT_REPO/tools/probes/battle_cheats.py" pa99 "${1:-99}"
+}

@@ -23,6 +23,11 @@ function godmode([int]$hpFloor = 999) {
     python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") godmode $hpFloor
 }
 
+# Set the whole party's Physical Attack to 99 (re-run after a battle restart).
+function pa99([int]$value = 99) {
+    python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") pa99 $value
+}
+
 function revive {
     python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") revive
 }

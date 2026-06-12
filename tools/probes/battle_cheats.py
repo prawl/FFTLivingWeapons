@@ -84,6 +84,12 @@ A_DEAD_BIT    = 0x20
 # kill_all spares any enemy-side unit whose allegiance differs from the hostile majority.
 A_ALLEG = 0x38   # u8, band-relative (== combat+0x54)
 
+# Physical Attack stat at combat+0x3E (Offsets.CPa); band entry = combat+0x1C, so
+# band-relative the byte sits at 0x3E - 0x1C = 0x22.  Drives physical (formula 2/etc.)
+# damage.  The GrowthEngine leaves "unexpected" values alone, so a direct write sticks
+# within a battle (a battle restart resets it -- re-run the verb).
+A_PA = 0x22   # u8, band-relative (== combat+0x3E)
+
 # Band-relative movement field (Offsets.AMovement = CMovement - BandEntry = 0x9C - 0x1C = 0x80)
 A_MOVEMENT = 0x80   # 3 bytes, base ability id 230, MSB-first
 MOVEMENT_BASE    = 230
@@ -575,6 +581,32 @@ def cmd_godmode(hp_floor: int = 999) -> None:
         print(f"Restored MaxHP on {len(orig_maxhp)} unit(s).")
 
 
+def cmd_pa99(value: int = 99) -> None:
+    """Set every live player-side unit's Physical Attack to <value> (default 99) so a weak
+    party hits hard. One-shot -- a battle restart resets stats, so re-run after restarting.
+    PA drives formula-2 (basic melee) damage; it does NOT affect gun damage (WP-squared)."""
+    _require_game()
+    value = max(1, min(255, value))
+    done = []
+    for s in range(PLAYER_SLOT_THRESHOLD, BAND_SLOTS):
+        e = _band_entry_addr(s)
+        if not _is_valid_entry(e):
+            continue
+        mhp = ru16(e + A_MAXHP)
+        if not mhp or mhp <= 0:
+            continue
+        old = ru8(e + A_PA)
+        wu8(e + A_PA, value)
+        done.append((s, ru8(e + A_LEVEL), old, ru8(e + A_PA)))
+    if not done:
+        print("No live player-side units found.  Are you in a battle?")
+        return
+    print(f"PA set to {value} on {len(done)} unit(s):")
+    for s, lvl, o, n in done:
+        print(f"  slot {s:02d} lvl {lvl}: PA {o} -> {n}")
+    print("Re-run after a battle restart (it resets stats).")
+
+
 def cmd_teams() -> None:
     """Dump every live band slot with its side and the kill_all verdict.
     Every live enemy-side unit is a TARGET; guests/escorts also sit enemy-side and
@@ -721,6 +753,11 @@ def main() -> None:
 
     if args[0] == "revive":
         cmd_revive()
+        return
+
+    if args[0] == "pa99":
+        val = int(args[1]) if len(args) > 1 else 99
+        cmd_pa99(val)
         return
 
     if args[0] == "teams":
