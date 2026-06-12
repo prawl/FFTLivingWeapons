@@ -46,6 +46,12 @@ Needs Exploration
 - Increases throwing damage by X for Y turns
 - Swap HP with a Target
 - Make the target flee in terror (disable all abilities?)
+- Feign Death: a unit reads as DEAD (death animation/position + the dead bit at +0x45/0x20)
+  yet keeps its turn and can still act -- enemies treat it as a corpse until it springs up.
+  Discovered 2026-06-12 by accident: godmode (HP-hold + dead-bit clear every ~10ms) fought
+  the engine's death over a self-killed ally, so it stood up, acted, and flopped back to the
+  dead pose every turn. Mechanism to chase: hold a unit in the dead visual state while keeping
+  it alive in the scheduler. Possible signature/move -- a true "play dead" that drops enemy aggro.
 - Master Treasure Hunter: Use the in game tile marking feature to mark all of the traps and treasure automatically
 
 2.X feature: Treasure Master (auto-mark trap/treasure tiles in battle)
