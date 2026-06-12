@@ -37,7 +37,17 @@ internal sealed class Engine
     private const double FieldSettleSeconds = 1.5;      // wait this long off-field before painting
     private bool _lastBattleStatus;                     // edge-detect entering the in-battle status card
 
-    public Engine(string modDir)
+    // Scholar's Ring grant: throttled to ~1 s (every 30 ticks at 33 ms) and only
+    // runs out of battle.  A separate counter avoids coupling to _tick (which only
+    // advances in-battle).
+    private int _ringThrottleTick;
+    private const int RingThrottleEveryNTicks = 30;
+    private IGameMemory _live = null!;   // assigned in ctor, used by Tick
+
+    /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
+    /// <param name="treasureAlwaysOn">Override for the Treasure Master AlwaysOn gate, read from
+    /// Config.TreasureAlwaysOn at startup.  Null falls back to Tuning.TreasureAlwaysOn.</param>
+    public Engine(string modDir, bool? treasureAlwaysOn = null)
     {
         _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
         _kills = _tally.Kills;
@@ -48,6 +58,7 @@ internal sealed class Engine
             Log.Info($"DEV: force-seeded all {meta.Count} weapons to at least {Tuning.DevKillSeed} kills -- every weapon starts with +3 effects active for fast testing.");
         }
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
+        _live = live;
         _turns = new TurnTracker(live);
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(Tuning.VerboseEvents));
@@ -68,7 +79,8 @@ internal sealed class Engine
             load:         () => TreasureDb.Load(modDir),
             datasetStamp: () => { try { return File.GetLastWriteTimeUtc(treasureJson); }
                                   catch { return null; } },
-            mem: live);
+            mem:      live,
+            alwaysOn: treasureAlwaysOn);
         _treasure.StartFastHold();
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
         // reset runs charm..font with Barrage between Plague and LifeSap; the in-battle tick
@@ -146,6 +158,13 @@ internal sealed class Engine
         _barrage.Tick();
         if (!nowIn)
         {
+            // Scholar's Ring: ensure the player always has at least one (idempotent).
+            // Throttled to ~1 s -- no need to hammer inventory every 33 ms.
+            if (++_ringThrottleTick >= RingThrottleEveryNTicks)
+            {
+                _ringThrottleTick = 0;
+                ScholarRing.Grant(_live);
+            }
             _display.Tick(false);   // out of battle (slot9 cleared): keep the equip card painted
             return;
         }

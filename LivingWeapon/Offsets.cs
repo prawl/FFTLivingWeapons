@@ -153,6 +153,16 @@ internal static class Offsets
     public const long MirrorWeapon = 0x141870854;
     public const long MirrorOffHand = 0x141870856;   // mirror[1]: the viewed unit's off-hand (dual-wield 2nd weapon, or a shield)
 
+    // --- inventory item count array ---
+    // Source: docs/DEV_TEST_RECIPES.md (inventory-give recipe, give_all_items probe).
+    // count[itemId] = u8 @ InventoryCountBase + itemId.  Read/write via IGameMemory so
+    // the seam is testable.  Do NOT read or write mid-battle (gated by Engine.Tick !nowIn).
+    public const long InventoryCountBase = 0x1411A17C0;
+    /// <summary>Scholar's Ring item id.  Treasure Master needs this in a deployed unit's
+    /// accessory slot to enable tile-highlight; ring-grant ensures the player always has at
+    /// least one available.</summary>
+    public const int ScholarRingItemId = 260;
+
     // --- Treasure Master: map identity + terrain grid ---
     // u8, current battle's map id; valid 1..127 (FFTHandsFree LiveBattleMapId contract).
     // Ported from FFTHandsFree GameBridge/LiveBattleMapId.cs; found 2026-04-19 via
