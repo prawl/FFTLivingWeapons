@@ -78,12 +78,11 @@ A_GY       = 0x34   # u8
 A_DEAD_STATUS = 0x45  # u8 -- bit 0x20 = Dead, bit 0x10 = Undead
 A_DEAD_BIT    = 0x20
 
-# Allegiance: combat+0x54, the byte CharmLock holds (with bit 0x20) to make a
-# charmed enemy fight for the player.  Band entry = combat+0x1C, so band-relative
-# the byte sits at 0x54 - 0x1C = 0x38.  Guests/escorts (Ovelia) spawn in
-# enemy-SIDE slots but carry the player bit -- kill_all must never touch them.
-A_ALLEG          = 0x38   # u8, band-relative (== combat+0x54)
-ALLEG_PLAYER_BIT = 0x20
+# Allegiance / team byte at combat+0x54.  Band entry = combat+0x1C, so band-relative
+# the byte sits at 0x54 - 0x1C = 0x38.  Live-proven 2026-06-11 (Olivia escort battle):
+# every hostile unit shares one value (0x1B that battle) while the guest read 0x06.
+# kill_all spares any enemy-side unit whose allegiance differs from the hostile majority.
+A_ALLEG = 0x38   # u8, band-relative (== combat+0x54)
 
 # Band-relative movement field (Offsets.AMovement = CMovement - BandEntry = 0x9C - 0x1C = 0x80)
 A_MOVEMENT = 0x80   # 3 bytes, base ability id 230, MSB-first
@@ -394,10 +393,9 @@ def cmd_kill_all() -> None:
     skipped_player = 0
     skipped_dead = 0
     skipped_invalid = 0
-    spared_allied = []
-    targets = []
 
-    # Phase 1: enumerate -- no writes yet.
+    # Phase 1: enumerate every live enemy-side unit -- no writes yet.
+    candidates = []   # (s, e, hp, lvl, gx, gy, alleg)
     for s in range(BAND_SLOTS):
         e = _band_entry_addr(s)
         if not _is_valid_entry(e):
@@ -419,19 +417,25 @@ def cmd_kill_all() -> None:
             skipped_dead += 1
             continue
 
-        lvl = ru8(e + A_LEVEL)
-        gx  = ru8(e + A_GX)
-        gy  = ru8(e + A_GY)
+        lvl   = ru8(e + A_LEVEL)
+        gx    = ru8(e + A_GX)
+        gy    = ru8(e + A_GY)
         alleg = ru8(e + A_ALLEG)
+        candidates.append((s, e, hp, lvl, gx, gy, alleg))
 
-        # Allegiance guard: guests/escorts (Ovelia!) and charmed units occupy
-        # enemy-side slots but fight FOR the player -- bit 0x20 at combat+0x54
-        # (the byte CharmLock holds to flip a charmed enemy allied). Never kill them.
-        if alleg is not None and (alleg & ALLEG_PLAYER_BIT):
+    # Allegiance-majority guest guard.  Live-proven 2026-06-11: real enemies share one
+    # allegiance value at combat+0x54 (e.g. 0x1B) while a guest/escort (Olivia) in an
+    # enemy-side slot reads a DIFFERENT value (0x06).  The hostile team is the mode; any
+    # enemy-side unit whose allegiance differs is fighting for the player -- never kill it.
+    # Hardcoding a single hostile value would break across maps; the majority is robust.
+    hostile_alleg = _majority_alleg([a for *_, a in candidates if a is not None])
+    targets = []
+    spared_allied = []
+    for s, e, hp, lvl, gx, gy, alleg in candidates:
+        if hostile_alleg is not None and alleg is not None and alleg != hostile_alleg:
             spared_allied.append((s, lvl, hp, gx, gy, alleg))
-            continue
-
-        targets.append((s, e, hp, lvl, gx, gy, alleg))
+        else:
+            targets.append((s, e, hp, lvl, gx, gy, alleg))
 
     for s, lvl, hp, gx, gy, alleg in spared_allied:
         print(f"  SPARED slot s={s:02d}: lvl={lvl} hp={hp} pos=({gx},{gy}) "
@@ -441,12 +445,19 @@ def cmd_kill_all() -> None:
         print("\nNo enemies found.  Are you in a live battle?")
         return
 
-    print(f"\nAbout to KO {len(targets)} unit(s):")
+    if spared_allied:
+        for s, lvl, hp, gx, gy, alleg in spared_allied:
+            a = f"0x{alleg:02X}" if alleg is not None else "??"
+            print(f"  AUTO-SPARED slot s={s:02d}: lvl={lvl} hp={hp} pos=({gx},{gy}) "
+                  f"alleg={a} (not the hostile team)")
+
+    hostile = f"0x{hostile_alleg:02X}" if hostile_alleg is not None else "??"
+    print(f"\nAbout to KO {len(targets)} unit(s) (hostile allegiance {hostile}):")
     for s, e, hp, lvl, gx, gy, alleg in targets:
         a = f"0x{alleg:02X}" if alleg is not None else "??"
         print(f"  slot s={s:02d} (n={s-24:+d})  lvl={lvl} hp={hp} pos=({gx},{gy}) alleg={a}")
-    print("If a guest/escort unit appears in this list, exclude it: 'x 9' (slot numbers),")
-    print("or answer n and run the 'teams' verb to investigate.")
+    print("Guests are auto-spared by allegiance.  If one still appears, exclude it:")
+    print("'x 9' (slot numbers), or answer n and run the 'teams' verb to investigate.")
     ans = input("KO these units? [y / n / x <slots>] ").strip().lower()
     if ans.startswith("x"):
         try:
@@ -487,13 +498,25 @@ def cmd_kill_all() -> None:
 # ---------------------------------------------------------------------------
 # Verb: teams  (diagnostic -- who would kill_all touch, and why)
 # ---------------------------------------------------------------------------
+def _majority_alleg(allegs):
+    """The most common allegiance value among live enemy-side units = the hostile team.
+    Returns None on an empty list. Ties resolve to the smallest value (deterministic)."""
+    if not allegs:
+        return None
+    counts = {}
+    for a in allegs:
+        counts[a] = counts.get(a, 0) + 1
+    best = max(counts.values())
+    return min(a for a, c in counts.items() if c == best)
+
+
 def cmd_teams() -> None:
-    """Dump every live band slot with its side classification and allegiance byte.
-    Run this when a battle has guests/escorts to verify kill_all's filter before
-    trusting it -- a guest must show alleg bit 0x20 to be spared."""
+    """Dump every live band slot with its side, allegiance byte, and kill_all verdict.
+    Real enemies share the hostile-majority allegiance; an enemy-side unit whose
+    allegiance differs is a guest/escort and is auto-spared."""
     _require_game()
-    print(f"{'slot':>4} {'side':<7} {'lvl':>3} {'hp':>5}/{'mhp':<5} {'pos':<9} "
-          f"{'alleg':<6} kill_all?")
+    rows = []
+    enemy_allegs = []
     for s in range(BAND_SLOTS):
         e = _band_entry_addr(s)
         if not _is_valid_entry(e):
@@ -506,30 +529,27 @@ def cmd_teams() -> None:
         gx    = ru8(e + A_GX)
         gy    = ru8(e + A_GY)
         alleg = ru8(e + A_ALLEG)
-        side  = "player" if s >= PLAYER_SLOT_THRESHOLD else "enemy"
-        allied = alleg is not None and (alleg & ALLEG_PLAYER_BIT)
+        rows.append((s, hp, mhp, lvl, gx, gy, alleg))
+        if s < PLAYER_SLOT_THRESHOLD and hp and hp > 0 and alleg is not None:
+            enemy_allegs.append(alleg)
+
+    hostile = _majority_alleg(enemy_allegs)
+    hs = f"0x{hostile:02X}" if hostile is not None else "??"
+    print(f"hostile-majority allegiance = {hs}")
+    print(f"{'slot':>4} {'side':<7} {'lvl':>3} {'hp':>5}/{'mhp':<5} {'pos':<9} "
+          f"{'alleg':<6} kill_all?")
+    for s, hp, mhp, lvl, gx, gy, alleg in rows:
         if s >= PLAYER_SLOT_THRESHOLD:
             verdict = "no (player side)"
-        elif allied:
-            verdict = "SPARED (allied bit)"
         elif hp is None or hp <= 0:
             verdict = "no (dead)"
+        elif hostile is not None and alleg is not None and alleg != hostile:
+            verdict = "SPARED (guest -- off-team allegiance)"
         else:
             verdict = "TARGET"
         a = f"0x{alleg:02X}" if alleg is not None else "??"
-        print(f"{s:>4} {side:<7} {lvl!s:>3} {hp!s:>5}/{mhp!s:<5} ({gx},{gy})    "
-              f"{a:<6} {verdict}")
-        # Raw candidate windows for the guest-discriminator hunt (combat-relative;
-        # combat base = band entry - 0x1C).  Window A: +0x00..+0x08 (the entice-hunt
-        # +0x02 candidate).  Window B: +0x40..+0x58 (status +0x49/0x45-as-+0x29?,
-        # allegiance +0x54 region -- includes the 0x08 bit seen on Ovelia's +0x45).
-        c = e - 0x1C
-        wa = rpm(c, 9)
-        wb = rpm(c + 0x40, 0x19)
-        ha = wa.hex(" ") if wa else "??"
-        hb = wb.hex(" ") if wb else "??"
-        print(f"       c+00: {ha}")
-        print(f"       c+40: {hb}")
+        print(f"{s:>4} {('player' if s>=PLAYER_SLOT_THRESHOLD else 'enemy'):<7} "
+              f"{lvl!s:>3} {hp!s:>5}/{mhp!s:<5} ({gx},{gy})    {a:<6} {verdict}")
 
 
 # ---------------------------------------------------------------------------
@@ -579,6 +599,15 @@ def _selftest() -> bool:
         print("  A_DEAD_BIT == 0x20  OK")
     else:
         print(f"  A_DEAD_BIT: FAIL expected 0x20 got 0x{A_DEAD_BIT:02X}")
+        ok = False
+
+    # Allegiance majority: the Olivia battle -- 10 enemies at 0x1B, one guest at 0x06.
+    if (_majority_alleg([0x1B] * 10 + [0x06]) == 0x1B
+            and _majority_alleg([0x06]) == 0x06
+            and _majority_alleg([]) is None):
+        print("  _majority_alleg (guest guard): OK")
+    else:
+        print(f"  _majority_alleg: FAIL got {_majority_alleg([0x1B]*10 + [0x06])}")
         ok = False
 
     # Band address arithmetic: slot 0 => n=-24, slot 24 => n=0 (anchor), slot 48 => n=+24
