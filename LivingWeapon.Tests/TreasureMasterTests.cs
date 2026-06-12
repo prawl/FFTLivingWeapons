@@ -67,7 +67,8 @@ public class TreasureMasterTests
         IEnumerable<(long addr, byte off)>? addrs = null,
         int? fpLen = null, string? fpHash = null,
         TreasureBuildKey? buildKey = null,
-        bool stub = false)
+        bool stub = false,
+        int? fpVer = null)
     {
         var addrList = addrs?.ToList() ?? new List<(long, byte)>
             { (TileAddr(0), 0x00), (TileAddr(1), 0x00) };
@@ -77,6 +78,7 @@ public class TreasureMasterTests
             ""addrs"": [{string.Join(", ", addrList.Select(a => AddrJson(a.addr, a.off)))}]
         }}]";
 
+        string fpVerStr   = fpVer  is {} ver ? $@"""fpVer"": {ver},"   : "";
         string fpLenStr   = fpLen  is {} l ? $@"""fpLen"": {l},"   : "";
         string fpHashStr  = fpHash is {} h ? $@"""fpHash"": ""{h}"","  : "";
         string bkStr      = buildKey is null ? "null" :
@@ -86,6 +88,7 @@ public class TreasureMasterTests
             ""buildKey"": {bkStr},
             ""maps"": [{{
                 ""mapId"": {mapId}, ""name"": ""{name}"", ""tileCount"": {(stub ? 2 : addrList.Count)},
+                {fpVerStr}
                 {fpLenStr}
                 {fpHashStr}
                 ""tiles"": {tilesJson}
@@ -97,9 +100,13 @@ public class TreasureMasterTests
 
     // ── terrain-fingerprint helpers ──────────────────────────────────────────────
 
-    /// <summary>Compute the FNV-1a64 hash of <paramref name="terrain"/> to seed fpHash.</summary>
+    /// <summary>Compute the v1 FNV-1a64 hash of <paramref name="terrain"/> to seed fpHash.</summary>
     private static string TerrainFpHash(byte[] terrain)
         => TreasureMaster.Fnv1a64(terrain).ToString("x");
+
+    /// <summary>Compute the v2 masked hash of <paramref name="terrain"/> to seed fpHash.</summary>
+    private static string TerrainFpHashV2(byte[] terrain)
+        => TreasureMaster.MaskedTerrainHash(terrain).ToString("x");
 
     // ── fake-memory builder ──────────────────────────────────────────────────────
 
@@ -334,7 +341,7 @@ public class TreasureMasterTests
         // Advance past revalidate period so the fingerprint check fires
         TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
 
-        // After the fingerprint fails, no new tile writes (module goes BATTLE_DISARMED)
+        // After the fingerprint fails, no new tile writes (module goes back to ARMING)
         Assert.Empty(mem.Written);
     }
 
@@ -668,6 +675,134 @@ public class TreasureMasterTests
         // All addrs now Resting -> all written again
         foreach (var a in addrs)
             Assert.True(mem.Written.ContainsKey(a), $"addr {a:x} should be written after camera pan back");
+    }
+
+    // ── (15) Non-field-0 terrain mutation: hash unchanged -> stays armed ────────────
+    // This is the structural fix for LIVE INCIDENT #2.
+    // v2 MaskedTerrainHash ignores fields 1-6; mutating only those bytes must not
+    // trigger any disarm or re-arm cycle -- the module stays ARMED with no gap in writes.
+
+    /// <summary>
+    /// Non-field-0 bytes mutate (field 1 and field 6, the incident pattern) while
+    /// field-0 bytes hold still.  The v2 masked hash is unchanged -> module stays
+    /// ARMED, writes continue without interruption.
+    /// </summary>
+    [Fact]
+    public void Armed_non_field0_terrain_mutation_hash_unchanged_stays_armed()
+    {
+        var dir = TempDir();
+        // 7-byte record: field 0 = 0x05; fields 1-6 = some initial values
+        var terrain = new byte[]
+        {
+            0x05, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00,  // record 0
+        };
+        var addr = TileAddr(50);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHashV2(terrain),
+            addrs: new[] { (addr, (byte)0x00) }, fpVer: 2);
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+        Assert.NotEmpty(mem.Written);
+
+        // Mutate field 1 and field 6 (the incident pattern) -- field 0 unchanged
+        terrain[1] = 0x11;  // field 1 changed
+        terrain[6] = 0xFF;  // field 6 changed
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;  // engine cleared mark
+
+        // Advance past revalidate period: hash must still match -> stays ARMED, writes resume
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+
+        // Still writing -- module did NOT disarm or re-arm
+        Assert.True(mem.Written.ContainsKey(addr),
+            "non-field-0 mutation should not change masked hash; module should stay armed");
+    }
+
+    /// <summary>
+    /// Field-0 byte mutates mid-battle (tile height actually changed -- shouldn't happen
+    /// in practice but must be handled gracefully).  The masked hash changes -> module
+    /// transitions back to ARMING, suspends writes.  Once the field-0 byte reverts to the
+    /// original value the hash matches again and the module re-arms, resuming writes.
+    /// </summary>
+    [Fact]
+    public void Armed_field0_terrain_mutation_re_proves_then_rearms_on_revert()
+    {
+        var dir = TempDir();
+        var terrain = new byte[]
+        {
+            0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // record 0: field-0=0x05
+        };
+        var addr = TileAddr(51);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHashV2(terrain),
+            addrs: new[] { (addr, (byte)0x00) }, fpVer: 2);
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+        Assert.NotEmpty(mem.Written);
+
+        // Mutate field-0 -> hash changes -> fingerprint mismatch on revalidation
+        terrain[0] = 0x09;
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        mem.Written.Clear();
+
+        // Advance past revalidate period to trigger the fingerprint check
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+
+        // While re-proving, zero tile writes (module is ARMING again)
+        Assert.Empty(mem.Written);
+
+        // Revert field-0 back to original -> hash matches again -> re-arms
+        terrain[0] = 0x05;
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        mem.U8s[addr] = 0x00;
+
+        // Enough ticks to re-arm: fingerprint matches + addr quorum
+        TickN(tm, Tuning.TreasureArmStableTicks + 10);
+
+        Assert.True(mem.Written.ContainsKey(addr),
+            "after field-0 reverts, fingerprint matches again -> should re-arm and write");
+    }
+
+    /// <summary>
+    /// Re-proving after a fingerprint flap must log "flap" message once per battle,
+    /// NOT "fingerprint changed mid-battle -- disarmed" (the old behavior that triggered
+    /// the live incident complaint).
+    /// </summary>
+    [Fact]
+    public void Armed_field0_mutation_transitions_to_Arming_not_BattleDisarmed()
+    {
+        var dir = TempDir();
+        var terrain = new byte[]
+        {
+            0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        };
+        var addr = TileAddr(52);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHashV2(terrain),
+            addrs: new[] { (addr, (byte)0x00) }, fpVer: 2);
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+
+        // Corrupt field-0 -> revalidation fires -> must go to ARMING (not BattleDisarmed)
+        terrain[0] = 0xFF;
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        mem.Written.Clear();
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+        Assert.Empty(mem.Written);  // suspended during re-prove
+
+        // Now restore AND advance past stability window
+        terrain[0] = 0x07;
+        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        mem.U8s[addr] = 0x00;
+        TickN(tm, Tuning.TreasureArmStableTicks + 10);
+
+        // If BattleDisarmed (old bug), nothing would EVER write again; re-arm proves ARMING
+        Assert.True(mem.Written.ContainsKey(addr),
+            "after re-arm from ARMING, should write again; BattleDisarmed would block this forever");
     }
 
     // ── PinnedBuf fact: 0x80 lands at target, neighbors untouched ─────────────────

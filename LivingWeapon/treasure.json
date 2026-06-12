@@ -8,6 +8,7 @@
       "mapId": 1,
       "name": "Eagrose Castle Gate",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -16,6 +17,7 @@
       "mapId": 2,
       "name": "Lesalia Castle Postern",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -24,6 +26,7 @@
       "mapId": 3,
       "name": "Mullonde Cathedral Nave",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -32,6 +35,7 @@
       "mapId": 5,
       "name": "Riovanes Castle Roof",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -40,6 +44,7 @@
       "mapId": 6,
       "name": "Riovanes Castle Gate",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -48,6 +53,7 @@
       "mapId": 7,
       "name": "Riovanes Castle Keep",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -56,6 +62,7 @@
       "mapId": 10,
       "name": "Eagrose Castle Keep",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -64,6 +71,7 @@
       "mapId": 12,
       "name": "Lionel Castle Gate",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -72,6 +80,7 @@
       "mapId": 13,
       "name": "Lionel Castle Oratory",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -80,6 +89,7 @@
       "mapId": 16,
       "name": "Limberry Castle Keep",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -88,6 +98,7 @@
       "mapId": 17,
       "name": "Limberry Castle Undercroft",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -96,6 +107,7 @@
       "mapId": 19,
       "name": "Limberry Castle Gate",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -104,6 +116,7 @@
       "mapId": 25,
       "name": "Yardrow",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -112,6 +125,7 @@
       "mapId": 27,
       "name": "Gollund",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -120,6 +134,7 @@
       "mapId": 28,
       "name": "Gollund Colliery Ridge",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -128,6 +143,7 @@
       "mapId": 29,
       "name": "Gollund Colliery Slope",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -136,6 +152,7 @@
       "mapId": 30,
       "name": "Gollund Colliery Floor",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -144,6 +161,7 @@
       "mapId": 31,
       "name": "Dorter",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -152,6 +170,7 @@
       "mapId": 32,
       "name": "Dorter Slums",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -160,6 +179,7 @@
       "mapId": 34,
       "name": "The Sand Rat's Sietch",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -168,6 +188,7 @@
       "mapId": 35,
       "name": "Zaland",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -176,6 +197,7 @@
       "mapId": 36,
       "name": "Outlying Church",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -184,6 +206,7 @@
       "mapId": 39,
       "name": "Gollund Colliery Shaft",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -192,6 +215,7 @@
       "mapId": 40,
       "name": "Goug Lowtown",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -200,6 +224,7 @@
       "mapId": 42,
       "name": "Warjilis",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -208,6 +233,7 @@
       "mapId": 44,
       "name": "Bervenia",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -216,6 +242,7 @@
       "mapId": 47,
       "name": "Sal Ghidos",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -224,6 +251,7 @@
       "mapId": 48,
       "name": "Sal Ghidos Slumtown",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -232,6 +260,7 @@
       "mapId": 49,
       "name": "Ziekden Fortress",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -240,6 +269,7 @@
       "mapId": 50,
       "name": "Mullonde Cathedral",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -248,6 +278,7 @@
       "mapId": 54,
       "name": "Lost Halidom",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -256,6 +287,7 @@
       "mapId": 55,
       "name": "Airship Graveyard",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -264,6 +296,7 @@
       "mapId": 57,
       "name": "Monastery Vaults - First Level",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -272,6 +305,7 @@
       "mapId": 58,
       "name": "Monastery Vaults - Second Level",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -280,6 +314,7 @@
       "mapId": 59,
       "name": "Monastery Vaults - Third Level",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -288,6 +323,7 @@
       "mapId": 60,
       "name": "Monastery Vaults - Fourth Level",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -296,6 +332,7 @@
       "mapId": 61,
       "name": "Monastery Vaults - Fifth Level",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -304,6 +341,7 @@
       "mapId": 63,
       "name": "Golgollada Gallows",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -312,6 +350,7 @@
       "mapId": 64,
       "name": "Fort Besselat Sluice",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -320,6 +359,7 @@
       "mapId": 66,
       "name": "Fort Besselat - South Wall",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -328,6 +368,7 @@
       "mapId": 67,
       "name": "Fort Besselat - North Wall",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -336,6 +377,7 @@
       "mapId": 69,
       "name": "The Necrohol of Mullonde",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -344,6 +386,7 @@
       "mapId": 70,
       "name": "Nelveska Temple",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -352,105 +395,16 @@
       "mapId": 74,
       "name": "The Siedge Weald",
       "tileCount": 3,
-      "fpLen": 448,
-      "fpHash": "0x160c5f77cce7d6e7",
-      "tiles": [
-        {
-          "x": 0,
-          "y": 1,
-          "addrs": [
-            [
-              "0x140de1ea7",
-              "0x1"
-            ],
-            [
-              "0x140de1f37",
-              "0x1"
-            ],
-            [
-              "0x140f9560f",
-              "0x1"
-            ],
-            [
-              "0x140f9569f",
-              "0x1"
-            ],
-            [
-              "0x141166117",
-              "0x1"
-            ],
-            [
-              "0x14116612f",
-              "0x1"
-            ]
-          ]
-        },
-        {
-          "x": 1,
-          "y": 9,
-          "addrs": [
-            [
-              "0x140de5027",
-              "0x1"
-            ],
-            [
-              "0x140de50b7",
-              "0x1"
-            ],
-            [
-              "0x140f9878f",
-              "0x1"
-            ],
-            [
-              "0x140f9881f",
-              "0x1"
-            ],
-            [
-              "0x141166957",
-              "0x1"
-            ],
-            [
-              "0x14116696f",
-              "0x1"
-            ]
-          ]
-        },
-        {
-          "x": 5,
-          "y": 11,
-          "addrs": [
-            [
-              "0x140de2f87",
-              "0x1"
-            ],
-            [
-              "0x140de3017",
-              "0x1"
-            ],
-            [
-              "0x140f966ef",
-              "0x1"
-            ],
-            [
-              "0x140f9677f",
-              "0x1"
-            ],
-            [
-              "0x1411663e7",
-              "0x1"
-            ],
-            [
-              "0x1411663ff",
-              "0x1"
-            ]
-          ]
-        }
-      ]
+      "fpVer": null,
+      "fpLen": null,
+      "fpHash": null,
+      "tiles": []
     },
     {
       "mapId": 77,
       "name": "Lenalian Plateau",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -459,6 +413,7 @@
       "mapId": 78,
       "name": "Tchigolith Fenlands",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -467,6 +422,7 @@
       "mapId": 79,
       "name": "The Yuguewood",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -475,6 +431,7 @@
       "mapId": 80,
       "name": "Araguay Woods",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -483,6 +440,7 @@
       "mapId": 81,
       "name": "Grogh Heights",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -491,6 +449,7 @@
       "mapId": 82,
       "name": "Beddha Sandwaste",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -499,6 +458,7 @@
       "mapId": 83,
       "name": "Zeirchele Falls",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -507,6 +467,7 @@
       "mapId": 84,
       "name": "Balias Tor",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -515,6 +476,7 @@
       "mapId": 85,
       "name": "Mandalia Plain",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -523,6 +485,7 @@
       "mapId": 86,
       "name": "Dugeura Pass",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -531,6 +494,7 @@
       "mapId": 87,
       "name": "Balias Swale",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -539,6 +503,7 @@
       "mapId": 88,
       "name": "Finnath Creek",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -547,6 +512,7 @@
       "mapId": 89,
       "name": "Lake Poescas",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -555,6 +521,7 @@
       "mapId": 90,
       "name": "Mount Germinas",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -563,6 +530,7 @@
       "mapId": 91,
       "name": "Brigands' Den",
       "tileCount": 3,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -571,6 +539,7 @@
       "mapId": 103,
       "name": "Windflat Mill",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -579,6 +548,7 @@
       "mapId": 114,
       "name": "END",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -587,6 +557,7 @@
       "mapId": 116,
       "name": "(No name) - Battle Arena",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -595,6 +566,7 @@
       "mapId": 117,
       "name": "(No name) - Checkerboard Wall",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -603,6 +575,7 @@
       "mapId": 118,
       "name": "(No name) - Checkerboard Wall ???",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -611,6 +584,7 @@
       "mapId": 119,
       "name": "(No name) - Checkerboard Wall Waterland",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -619,6 +593,7 @@
       "mapId": 120,
       "name": "(Garbled name) - Sloped Checkerboard",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -627,6 +602,7 @@
       "mapId": 121,
       "name": "Unused",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -635,6 +611,7 @@
       "mapId": 122,
       "name": "Unused",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -643,6 +620,7 @@
       "mapId": 123,
       "name": "Unused",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -651,6 +629,7 @@
       "mapId": 124,
       "name": "Unused",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -659,6 +638,7 @@
       "mapId": 125,
       "name": "Unused",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -667,6 +647,7 @@
       "mapId": 126,
       "name": "Zeltennia Castle Postern",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []
@@ -675,6 +656,7 @@
       "mapId": 127,
       "name": "Limberry Castle: Inner Court",
       "tileCount": 4,
+      "fpVer": null,
       "fpLen": null,
       "fpHash": null,
       "tiles": []

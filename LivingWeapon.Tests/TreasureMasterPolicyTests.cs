@@ -249,4 +249,80 @@ public class TreasureMasterPolicyTests
         // degenerate / uninitialized -> both zero still matches (boundary sanity)
         Assert.True(TreasureMaster.BuildKeyMatches(0, 0, 0, 0));
     }
+
+    // ---- (7) MaskedTerrainHash -- pinned cross-language vector ----
+    // Grid: 208 records x 7 bytes each.  The masked hash is FNV-1a64 over
+    // field-0 bytes only (byte at offset i*7 for i in 0..207).
+    //
+    // Pinned test vector: 14-byte synthetic buffer (2 records of 7 bytes):
+    //   record 0: 01 02 03 04 05 06 07
+    //   record 1: 11 12 13 14 15 16 17
+    // field-0 bytes = [0x01, 0x11] => Fnv1a64([0x01, 0x11]) = 0x082f3307b4e8a9a7
+    // The Python self-test uses the same constant (never let the two drift).
+
+    private const ulong MaskedHashVector = 0x082f3307b4e8a9a7UL;
+
+    [Fact]
+    public void MaskedTerrainHash_pinned_two_record_vector()
+    {
+        var raw = new byte[]
+        {
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,   // record 0
+            0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,   // record 1
+        };
+        Assert.Equal(MaskedHashVector, TreasureMaster.MaskedTerrainHash(raw));
+    }
+
+    [Fact]
+    public void MaskedTerrainHash_equals_Fnv1a64_over_field0_bytes_only()
+    {
+        // Explicit: masking strips fields 1-6; only field-0 bytes feed the hash.
+        var raw = new byte[]
+        {
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
+        };
+        byte[] field0 = { 0x01, 0x11 };
+        ulong expected = TreasureMaster.Fnv1a64(field0);
+        Assert.Equal(expected, TreasureMaster.MaskedTerrainHash(raw));
+    }
+
+    [Fact]
+    public void MaskedTerrainHash_non_field0_mutation_does_not_change_hash()
+    {
+        // The actual incident: field 1 and field 6 change mid-battle, field 0 holds still.
+        // v2 fingerprint must be immune to those changes.
+        var raw1 = new byte[]
+        {
+            0x05, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00,   // record 0: field-0=0x05, fields 1-6=AA/0..
+            0x03, 0xBB, 0x00, 0x00, 0x00, 0x00, 0xFF,   // record 1: field-0=0x03
+        };
+        var raw2 = new byte[]
+        {
+            0x05, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66,   // field-0 unchanged, fields 1-6 mutated
+            0x03, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0x00,
+        };
+        Assert.Equal(
+            TreasureMaster.MaskedTerrainHash(raw1),
+            TreasureMaster.MaskedTerrainHash(raw2));
+    }
+
+    [Fact]
+    public void MaskedTerrainHash_field0_mutation_changes_hash()
+    {
+        // Opposite case: if field-0 does change (true map geometry change), the hash changes.
+        var raw1 = new byte[]
+        {
+            0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        };
+        var raw2 = new byte[]
+        {
+            0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   // field-0 changed
+            0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        };
+        Assert.NotEqual(
+            TreasureMaster.MaskedTerrainHash(raw1),
+            TreasureMaster.MaskedTerrainHash(raw2));
+    }
 }

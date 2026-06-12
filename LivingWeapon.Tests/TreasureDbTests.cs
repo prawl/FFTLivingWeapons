@@ -230,4 +230,46 @@ public class TreasureDbTests
         Assert.Equal(0x140de1f37L, addrs[1].Addr);
         Assert.Equal(0x01, addrs[1].Off);
     }
+
+    // ── fpVer field ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public void FpVer_field_is_loaded_from_json()
+    {
+        var dir = TempDir();
+        File.WriteAllText(Path.Combine(dir, "treasure.json"), """
+            {
+              "buildKey": null,
+              "maps": [{
+                "mapId": 74, "name": "The Siedge Weald", "tileCount": 4,
+                "fpVer": 2, "fpLen": 1456, "fpHash": "0xcbf29ce484222325",
+                "tiles": [{"x": 0, "y": 1, "addrs": [["0x140de1ea7", "0x01"]]}]
+              }]
+            }
+            """);
+        var db = TreasureDb.Load(dir);
+        Assert.Single(db.Maps);
+        var m = db.Maps[0];
+        Assert.Equal(2, m.FpVer);
+        Assert.Equal(1456, m.FpLen);
+    }
+
+    [Fact]
+    public void FpVer_null_loads_without_error()
+    {
+        var dir = TempDir();
+        File.WriteAllText(Path.Combine(dir, "treasure.json"), """
+            {
+              "buildKey": null,
+              "maps": [{
+                "mapId": 74, "name": "x", "tileCount": 1,
+                "fpLen": null, "fpHash": null,
+                "tiles": []
+              }]
+            }
+            """);
+        var db = TreasureDb.Load(dir);
+        Assert.Single(db.Maps);
+        Assert.Null(db.Maps[0].FpVer);
+    }
 }

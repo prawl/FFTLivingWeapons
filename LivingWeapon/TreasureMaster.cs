@@ -50,6 +50,7 @@ internal sealed partial class TreasureMaster : ISignature
     private bool      _naggedThisBattle  = false; // stub/missing nag once per battle
     private bool      _capLoggedThisBattle = false;
     private bool      _foreignLoggedThisBattle = false; // armed off-screen log once per battle
+    private bool      _flapLoggedThisBattle = false;    // fingerprint-flap re-prove log once per battle
 
     /// <param name="alwaysOn">Override for the AlwaysOn gate; null = use Tuning.TreasureAlwaysOn.
     /// Tests pass true directly so the ring-gate branch does not idle the module in prod builds.</param>
@@ -76,6 +77,7 @@ internal sealed partial class TreasureMaster : ISignature
         _naggedThisBattle           = false;
         _capLoggedThisBattle        = false;
         _foreignLoggedThisBattle    = false;
+        _flapLoggedThisBattle       = false;
         // _globalIdle and _globalIdleChecked persist -- the L0 check is startup-once.
     }
 
@@ -261,8 +263,17 @@ internal sealed partial class TreasureMaster : ISignature
             _revalidateTick = 0;
             if (!_audit.FingerprintMatches(map))
             {
-                _phase = Phase.BattleDisarmed;
-                Log.Info($"treasure: map {map.MapId} fingerprint changed mid-battle -- disarmed");
+                // Transition back to ARMING rather than permanent BattleDisarmed.
+                // TickArming will re-prove: fingerprint match + quorum re-arms normally;
+                // persistent mismatch past the attempt cap -> BattleDisarmed once + log.
+                _armAttempts        = 0;
+                _capLoggedThisBattle = false;   // let arming re-use the cap log slot
+                _phase              = Phase.Arming;
+                if (!_flapLoggedThisBattle)
+                {
+                    _flapLoggedThisBattle = true;
+                    Log.Info($"treasure: map {map.MapId} fingerprint flap -- re-proving before holding again");
+                }
                 return;
             }
         }

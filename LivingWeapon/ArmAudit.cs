@@ -68,11 +68,15 @@ internal sealed class ArmAudit
     // ── fingerprint ───────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Reads <see cref="TreasureMap.FpLen"/> bytes at <see cref="Offsets.TerrainGrid"/> and
-    /// compares FNV-1a64 to <see cref="TreasureMap.FpHash"/>. Returns false on read failure
+    /// Reads <see cref="TreasureMap.FpLen"/> raw bytes at <see cref="Offsets.TerrainGrid"/> and
+    /// compares the fingerprint to <see cref="TreasureMap.FpHash"/>. Returns false on read failure
     /// (caller retries up to TreasureArmAttemptCap).
     /// A null FpLen or FpHash means the map is a stub (no fingerprint captured); returns false
     /// so the caller treats it as not-armable (stub maps have no tiles anyway).
+    ///
+    /// Fingerprint version dispatch:
+    ///   fpVer == 2: MaskedTerrainHash (field-0 only per record; immune to field-1/6 churn).
+    ///   anything else (legacy v1 or null): plain Fnv1a64 over the raw bytes.
     /// </summary>
     public bool FingerprintMatches(TreasureMap map)
     {
@@ -82,7 +86,11 @@ internal sealed class ArmAudit
         if (!_mem.TryReadBytes(Offsets.TerrainGrid, fpLen, out var buf))
             return false;
 
-        return TreasureMaster.Fnv1a64(buf) == expected;
+        ulong got = map.FpVer == 2
+            ? TreasureMaster.MaskedTerrainHash(buf)
+            : TreasureMaster.Fnv1a64(buf);
+
+        return got == expected;
     }
 
     // ── per-address audit ─────────────────────────────────────────────────────────

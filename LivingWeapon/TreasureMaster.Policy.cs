@@ -148,4 +148,36 @@ internal sealed partial class TreasureMaster
         uint dsTimeDateStamp, uint dsSizeOfImage,
         uint liveTimeDateStamp, uint liveSizeOfImage) =>
         dsTimeDateStamp == liveTimeDateStamp && dsSizeOfImage == liveSizeOfImage;
+
+    // ---- #7 MaskedTerrainHash (fingerprint v2) ----
+
+    // Grid layout: 208 records x 7 bytes each.  Field 1 and field 6 are live state
+    // (change during play); field 0 (tile height) is pure map geometry.  The v1
+    // fingerprint hashed all 1456 raw bytes and falsely detected changes when field 1
+    // or field 6 mutated mid-battle (LIVE INCIDENT #2).  V2 hashes only field 0 of
+    // every record, making the fingerprint immune to in-battle field mutations.
+    private const int TerrainRecordLen = 7;   // bytes per terrain record
+
+    /// <summary>
+    /// Fingerprint v2: FNV-1a64 over field-0 bytes only (byte at offset i*7) extracted
+    /// from the raw terrain window.  Records beyond the buffer length are silently skipped
+    /// (partial reads are handled by the caller returning false before this is reached).
+    ///
+    /// Pinned test vector (shared with the Python self-test -- never let them drift):
+    ///   raw = [ 01 02 03 04 05 06 07 | 11 12 13 14 15 16 17 ]  (2 records)
+    ///   field-0 bytes = [0x01, 0x11]
+    ///   result = Fnv1a64([0x01, 0x11]) = 0x082f3307b4e8a9a7
+    /// </summary>
+    internal static ulong MaskedTerrainHash(ReadOnlySpan<byte> raw)
+    {
+        int numRecords = raw.Length / TerrainRecordLen;
+        ulong h = FnvBasis;
+        for (int i = 0; i < numRecords; i++)
+        {
+            byte b = raw[i * TerrainRecordLen];  // field 0 only
+            h ^= b;
+            h *= FnvPrime;
+        }
+        return h;
+    }
 }

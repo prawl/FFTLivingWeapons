@@ -49,6 +49,7 @@ internal sealed class TreasureMapJson
     [JsonProperty("mapId")]     public int              MapId     { get; set; }
     [JsonProperty("name")]      public string           Name      { get; set; } = "";
     [JsonProperty("tileCount")] public int              TileCount { get; set; }
+    [JsonProperty("fpVer")]     public int?             FpVer     { get; set; }
     [JsonProperty("fpLen")]     public int?             FpLen     { get; set; }
     [JsonProperty("fpHash")]    public string?          FpHashHex { get; set; }
     [JsonProperty("tiles")]     public List<TreasureTileJson> Tiles { get; set; } = new();
@@ -60,6 +61,7 @@ internal sealed class TreasureMap
     public int     MapId     { get; internal set; }
     public string  Name      { get; internal set; } = "";
     public int     TileCount { get; internal set; }
+    public int?    FpVer     { get; internal set; }
     public int?    FpLen     { get; internal set; }
     public string? FpHashHex { get; internal set; }
     public List<TreasureTile> Tiles { get; internal set; } = new();
@@ -149,6 +151,7 @@ internal sealed class TreasureDb
                     MapId     = mj.MapId,
                     Name      = mj.Name,
                     TileCount = mj.TileCount,
+                    FpVer     = mj.FpVer,
                     FpLen     = mj.FpLen,
                     FpHashHex = mj.FpHashHex,
                     Tiles     = validTiles,

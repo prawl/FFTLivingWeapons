@@ -14,6 +14,14 @@ Verbs
       Guided per-tile capture for the current battle map.  Reads the map id,
       confirms the name with you, then walks each uncaptured treasure tile.
       Per tile: cursor lock -> toggle scan -> trust gate -> atomic DB save.
+      Stamps fpVer=2, fpLen=1456, fpHash=masked-v2 on save.
+
+  python tools\\probes\\treasure_flags.py refp <mapId>
+      Re-fingerprint: for a map already in data/treasure_addrs.json, re-read the live
+      terrain grid (0x140C65000, 1456 bytes), compute the v2 masked hash, and stamp
+      fpVer=2 / fpLen=1456 / fpHash into the DB record.  Refuses if the live map-id
+      byte does not match <mapId>.  Atomic save.  Use this to upgrade an existing
+      capture from v1 to v2 without re-capturing all tile addresses.
 
   python tools\\probes\\treasure_flags.py status
       Dashboard: verified / partial / missing tile counts per map, plus totals.
@@ -23,8 +31,8 @@ Verbs
       each captured address into resting / held / foreign.
 
   python tools\\probes\\treasure_flags.py --selftest
-      Offline self-test (no game required).  Validates FNV-1a64 vectors, the clean
-      filter, DB schema round-trip, and PE-offset byte math.
+      Offline self-test (no game required).  Validates FNV-1a64 vectors, the masked-hash
+      pinned vector, the clean filter, DB schema round-trip, and PE-offset byte math.
 """
 import ctypes
 import ctypes.wintypes as w
@@ -68,8 +76,10 @@ CURSOR_Y_ADDR = 0x140C6496C   # u8
 
 MAP_ID_ADDR   = 0x14077D83C   # u8 -- live battle map id (stale outside battle)
 
-TERRAIN_FP_ADDR = 0x140C65000  # fixed start of the terrain grid
-TERRAIN_FP_LEN  = 448          # bytes hashed for the fingerprint (fixed prefix)
+TERRAIN_FP_ADDR    = 0x140C65000  # fixed start of the terrain grid
+TERRAIN_RECORD_LEN = 7            # bytes per terrain record
+TERRAIN_NUM_RECORDS = 208         # total records in the grid window
+TERRAIN_FP_LEN  = TERRAIN_RECORD_LEN * TERRAIN_NUM_RECORDS  # 1456 raw bytes
 
 # PE header offsets
 PE_E_LFANEW_OFF    = 0x3C   # u32 @ imageBase + 0x3C
@@ -90,6 +100,20 @@ def fnv1a64(data: bytes) -> int:
         h ^= b
         h = (h * FNV_PRIME) & FNV_MASK
     return h
+
+
+def masked_terrain_hash(raw: bytes) -> int:
+    """Fingerprint v2: FNV-1a64 over field-0 bytes only (offset i*7 per record).
+    Immune to changes in fields 1-6 which are live state that changes during play.
+
+    Pinned test vector (shared with C# MaskedTerrainHash and gen_treasure_db.py):
+      raw = 01 02 03 04 05 06 07  11 12 13 14 15 16 17  (2 records)
+      field-0 bytes = [0x01, 0x11]
+      result = 0x082f3307b4e8a9a7
+    """
+    num_records = len(raw) // TERRAIN_RECORD_LEN
+    field0 = bytes(raw[i * TERRAIN_RECORD_LEN] for i in range(num_records))
+    return fnv1a64(field0)
 
 
 # ---------------------------------------------------------------------------
@@ -264,11 +288,12 @@ def _addr_byte(snap: dict[int, bytes], addr: int) -> int | None:
 # Fingerprint + build key
 # ---------------------------------------------------------------------------
 def terrain_fingerprint() -> int | None:
-    """FNV-1a64 over TERRAIN_FP_LEN bytes at TERRAIN_FP_ADDR."""
+    """Fingerprint v2: masked hash over TERRAIN_FP_LEN raw bytes at TERRAIN_FP_ADDR.
+    Reads 1456 bytes (208 records x 7 bytes), hashes only field-0 per record."""
     data = rpm(TERRAIN_FP_ADDR, TERRAIN_FP_LEN)
     if data is None:
         return None
-    return fnv1a64(data)
+    return masked_terrain_hash(data)
 
 
 def read_build_key() -> dict | None:
@@ -443,6 +468,7 @@ def cmd_session() -> None:
     maps_db = db.setdefault("maps", {})
     map_rec = maps_db.setdefault(map_id_str, {
         "name": map_name,
+        "fpVer": None,
         "fpLen": TERRAIN_FP_LEN,
         "fpHash": None,
         "capturedBuild": None,
@@ -462,7 +488,7 @@ def cmd_session() -> None:
     for t in pending:
         print(f"  ({t['x']},{t['y']})")
 
-    # Step 5: capture or update fingerprint + build key
+    # Step 5: capture or update fingerprint (v2 masked hash) + build key
     fp = terrain_fingerprint()
     bk = read_build_key()
 
@@ -471,16 +497,26 @@ def cmd_session() -> None:
 
     if stored_fp is None:
         if fp is not None:
+            map_rec["fpVer"]  = 2
+            map_rec["fpLen"]  = TERRAIN_FP_LEN
             map_rec["fpHash"] = hex(fp)
-            print(f"\nFingerprint captured: {hex(fp)}")
+            print(f"\nFingerprint v2 captured: {hex(fp)}")
         else:
             print("\nWarning: could not read terrain fingerprint.")
     else:
+        stored_ver = map_rec.get("fpVer")
         if fp is not None and hex(fp) != stored_fp:
             print(f"\nWARNING: terrain fingerprint mismatch!  Stored={stored_fp}, live={hex(fp)}")
             print("The map data may be stale.  Proceed carefully.")
         elif fp is not None:
-            print(f"\nFingerprint matches stored ({stored_fp}) -- OK")
+            if stored_ver != 2:
+                # Upgrade the stored fingerprint to v2 in-place.
+                map_rec["fpVer"]  = 2
+                map_rec["fpLen"]  = TERRAIN_FP_LEN
+                map_rec["fpHash"] = hex(fp)
+                print(f"\nFingerprint upgraded to v2: {hex(fp)}")
+            else:
+                print(f"\nFingerprint v2 matches stored ({stored_fp}) -- OK")
 
     if stored_bk is None:
         if bk is not None:
@@ -638,6 +674,70 @@ def cmd_session() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Verb: refp
+# ---------------------------------------------------------------------------
+def cmd_refp(map_id_str: str) -> None:
+    """Re-fingerprint an existing map entry with the v2 masked hash.
+
+    Reads the live terrain grid (TERRAIN_FP_ADDR, TERRAIN_FP_LEN=1456 bytes),
+    computes the v2 masked hash, and stamps fpVer=2 / fpLen / fpHash into the
+    DB record.  Refuses if the live map-id byte does not match <map_id_str>.
+    Atomic save.
+    """
+    _require_game()
+
+    try:
+        map_id = int(map_id_str)
+    except ValueError:
+        print(f"Invalid map id: {map_id_str!r} (must be an integer)")
+        sys.exit(1)
+
+    db = _load_db()
+    maps_db = db.get("maps", {})
+    rec = maps_db.get(map_id_str)
+    if rec is None:
+        print(f"Map {map_id_str} not in the DB.  Run 'session' first to capture tile addresses.")
+        sys.exit(1)
+
+    # Verify the live map id matches.
+    live_id = ru8(MAP_ID_ADDR)
+    if live_id is None:
+        print("Map id unreadable (RPM failed).  Are you in a battle?")
+        sys.exit(1)
+    if live_id != map_id:
+        print(f"Live map id is {live_id}, but refp was asked for map {map_id}.  "
+              f"Enter the correct battle first.")
+        sys.exit(1)
+
+    # Read and hash the terrain grid.
+    fp = terrain_fingerprint()
+    if fp is None:
+        print(f"Could not read terrain grid at {TERRAIN_FP_ADDR:#x} (RPM failed).")
+        sys.exit(1)
+
+    old_ver  = rec.get("fpVer")
+    old_hash = rec.get("fpHash")
+    rec["fpVer"]  = 2
+    rec["fpLen"]  = TERRAIN_FP_LEN
+    rec["fpHash"] = hex(fp)
+
+    # Also update build key if it has changed.
+    bk = read_build_key()
+    stored_bk = rec.get("capturedBuild")
+    if bk is not None and bk != stored_bk:
+        rec["capturedBuild"] = bk
+        print(f"Build key updated: {bk}")
+
+    _save_db(db)
+    name = rec.get("name", "")
+    print(f"Map {map_id} ({name}): re-fingerprinted")
+    print(f"  fpVer: {old_ver!r} -> 2")
+    print(f"  fpLen: {TERRAIN_FP_LEN}")
+    print(f"  fpHash: {old_hash!r} -> {hex(fp)}")
+    print(f"  Saved -> {DB_PATH.name}")
+
+
+# ---------------------------------------------------------------------------
 # Verb: status
 # ---------------------------------------------------------------------------
 def cmd_status() -> None:
@@ -761,6 +861,19 @@ def _selftest() -> bool:
             print(f"  FNV-1a64({data!r}): FAIL  expected {expected:#018x}  got {got:#018x}")
             ok = False
 
+    # Masked-hash v2 pinned vector (shared with C# MaskedTerrainHash and gen_treasure_db.py):
+    # 14-byte buf = [01 02 03 04 05 06 07 | 11 12 13 14 15 16 17] (2 records of 7 bytes)
+    # field-0 bytes = [0x01, 0x11] => Fnv1a64([0x01, 0x11]) = 0x082f3307b4e8a9a7
+    _MASKED_HASH_VECTOR = 0x082F3307B4E8A9A7
+    _mhv_raw = bytes([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+                      0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17])
+    got_mhv = masked_terrain_hash(_mhv_raw)
+    if got_mhv == _MASKED_HASH_VECTOR:
+        print(f"  masked_terrain_hash(vector): {got_mhv:#018x}  OK")
+    else:
+        print(f"  masked_terrain_hash(vector): FAIL  expected {_MASKED_HASH_VECTOR:#018x}  got {got_mhv:#018x}")
+        ok = False
+
     # Clean filter logic
     # Byte 0x01 -> 0x81: should pass
     off_snap = {0x141000000: bytes([0x01, 0x81, 0x01, 0x00])}
@@ -790,7 +903,8 @@ def _selftest() -> bool:
         "maps": {
             "74": {
                 "name": "The Siedge Weald",
-                "fpLen": 448,
+                "fpVer": 2,
+                "fpLen": TERRAIN_FP_LEN,
                 "fpHash": "0xdeadbeefcafe1234",
                 "capturedBuild": {"timeDateStamp": 12345, "sizeOfImage": 67890},
                 "capturedAt": "2026-06-11T00:00:00Z",
@@ -813,7 +927,8 @@ def _selftest() -> bool:
             and tile["x"] == 0 and tile["y"] == 1
             and tile["addrs"] == [["0x140de1ea7", "0x01"]]
             and tile["status"] == "verified"
-            and loaded["maps"]["74"]["fpLen"] == 448):
+            and loaded["maps"]["74"]["fpVer"] == 2
+            and loaded["maps"]["74"]["fpLen"] == TERRAIN_FP_LEN):
         print("  DB schema round-trip: OK")
     else:
         print(f"  DB schema round-trip: FAIL  loaded={loaded}")
@@ -869,6 +984,13 @@ def main() -> None:
 
     if args[0] == "session":
         cmd_session()
+        return
+
+    if args[0] == "refp":
+        if len(args) < 2:
+            print("Usage: refp <mapId>")
+            sys.exit(2)
+        cmd_refp(args[1])
         return
 
     if args[0] == "status":
