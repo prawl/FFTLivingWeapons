@@ -423,19 +423,13 @@ def cmd_kill_all() -> None:
         alleg = ru8(e + A_ALLEG)
         candidates.append((s, e, hp, lvl, gx, gy, alleg))
 
-    # Allegiance-majority guest guard.  Live-proven 2026-06-11: real enemies share one
-    # allegiance value at combat+0x54 (e.g. 0x1B) while a guest/escort (Olivia) in an
-    # enemy-side slot reads a DIFFERENT value (0x06).  The hostile team is the mode; any
-    # enemy-side unit whose allegiance differs is fighting for the player -- never kill it.
-    # Hardcoding a single hostile value would break across maps; the majority is robust.
-    hostile_alleg = _majority_alleg([a for *_, a in candidates if a is not None])
-    targets = []
+    # NO reliable guest auto-discriminator.  The +0x54 byte is NOT a clean team id:
+    # across battles the same value (0x06) was a guest once and a killed enemy another
+    # time, values split 3-way within one battle (0x06/0x16/0x1B), and the charm bit
+    # 0x20 is unset on everyone.  So target ALL live enemy-side units and rely on the
+    # y/n/x confirm: a guest is excluded by hand (its allegiance is shown to spot it).
+    targets = [(s, e, hp, lvl, gx, gy, alleg) for s, e, hp, lvl, gx, gy, alleg in candidates]
     spared_allied = []
-    for s, e, hp, lvl, gx, gy, alleg in candidates:
-        if hostile_alleg is not None and alleg is not None and alleg != hostile_alleg:
-            spared_allied.append((s, lvl, hp, gx, gy, alleg))
-        else:
-            targets.append((s, e, hp, lvl, gx, gy, alleg))
 
     for s, lvl, hp, gx, gy, alleg in spared_allied:
         print(f"  SPARED slot s={s:02d}: lvl={lvl} hp={hp} pos=({gx},{gy}) "
@@ -445,19 +439,12 @@ def cmd_kill_all() -> None:
         print("\nNo enemies found.  Are you in a live battle?")
         return
 
-    if spared_allied:
-        for s, lvl, hp, gx, gy, alleg in spared_allied:
-            a = f"0x{alleg:02X}" if alleg is not None else "??"
-            print(f"  AUTO-SPARED slot s={s:02d}: lvl={lvl} hp={hp} pos=({gx},{gy}) "
-                  f"alleg={a} (not the hostile team)")
-
-    hostile = f"0x{hostile_alleg:02X}" if hostile_alleg is not None else "??"
-    print(f"\nAbout to KO {len(targets)} unit(s) (hostile allegiance {hostile}):")
+    print(f"\nAbout to KO {len(targets)} enemy-side unit(s):")
     for s, e, hp, lvl, gx, gy, alleg in targets:
-        a = f"0x{alleg:02X}" if alleg is not None else "??"
-        print(f"  slot s={s:02d} (n={s-24:+d})  lvl={lvl} hp={hp} pos=({gx},{gy}) alleg={a}")
-    print("Guests are auto-spared by allegiance.  If one still appears, exclude it:")
-    print("'x 9' (slot numbers), or answer n and run the 'teams' verb to investigate.")
+        print(f"  slot s={s:02d} (n={s-24:+d})  lvl={lvl} hp={hp} pos=({gx},{gy})")
+    print("GUESTS ARE NOT AUTO-DETECTED -- they sit in enemy-side slots and there is no")
+    print("reliable team byte.  Exclude any guest/escort by slot, e.g. 'x 8 11', BEFORE")
+    print("confirming.  Identify them by HP/position in the list above.")
     ans = input("KO these units? [y / n / x <slots>] ").strip().lower()
     if ans.startswith("x"):
         try:
@@ -498,25 +485,51 @@ def cmd_kill_all() -> None:
 # ---------------------------------------------------------------------------
 # Verb: teams  (diagnostic -- who would kill_all touch, and why)
 # ---------------------------------------------------------------------------
-def _majority_alleg(allegs):
-    """The most common allegiance value among live enemy-side units = the hostile team.
-    Returns None on an empty list. Ties resolve to the smallest value (deterministic)."""
-    if not allegs:
-        return None
-    counts = {}
-    for a in allegs:
-        counts[a] = counts.get(a, 0) + 1
-    best = max(counts.values())
-    return min(a for a, c in counts.items() if c == best)
+def cmd_revive() -> None:
+    """Undo an accidental KO: for every enemy-side unit at hp=0 with the dead bit set,
+    clear dead bit 0x20 at +0x45 and restore hp to maxHp.  Confirms before writing.
+    Use right after a kill_all that caught a guest (Mustadio/Agrias) -- before the
+    turn ends and the engine commits the death."""
+    _require_game()
+    downed = []
+    for s in range(BAND_SLOTS):
+        e = _band_entry_addr(s)
+        if not _is_valid_entry(e):
+            continue
+        mhp = ru16(e + A_MAXHP)
+        if mhp is None or mhp <= 0 or s >= PLAYER_SLOT_THRESHOLD:
+            continue
+        hp = ru16(e + A_HP)
+        ds = ru8(e + A_DEAD_STATUS)
+        if hp == 0 and ds is not None and (ds & A_DEAD_BIT):
+            downed.append((s, e, mhp, ru8(e + A_GX), ru8(e + A_GY)))
+
+    if not downed:
+        print("No downed enemy-side units to revive.")
+        return
+    print(f"Revive {len(downed)} downed unit(s) to full HP:")
+    for s, e, mhp, gx, gy in downed:
+        print(f"  slot s={s:02d} pos=({gx},{gy}) -> hp {mhp}")
+    if input("Revive these? [y/n] ").strip().lower() not in ("y", "yes"):
+        print("Aborted -- nothing written.")
+        return
+    for s, e, mhp, gx, gy in downed:
+        ds = ru8(e + A_DEAD_STATUS)
+        wu8(e + A_DEAD_STATUS, (ds & ~A_DEAD_BIT) & 0xFF if ds is not None else 0)
+        wu16(e + A_HP, mhp)
+        print(f"  slot s={s:02d} revived to {mhp} hp")
+    print("Done.  Note: if the turn already ended, the engine may have committed the KO.")
 
 
 def cmd_teams() -> None:
-    """Dump every live band slot with its side, allegiance byte, and kill_all verdict.
-    Real enemies share the hostile-majority allegiance; an enemy-side unit whose
-    allegiance differs is a guest/escort and is auto-spared."""
+    """Dump every live band slot with its side and the kill_all verdict.
+    Every live enemy-side unit is a TARGET; guests/escorts also sit enemy-side and
+    are NOT distinguishable by any team byte (the +0x54 allegiance value is shown for
+    reference only -- it does not separate guests from enemies).  Exclude guests by
+    slot in kill_all."""
     _require_game()
-    rows = []
-    enemy_allegs = []
+    print(f"{'slot':>4} {'side':<7} {'lvl':>3} {'hp':>5}/{'mhp':<5} {'pos':<9} "
+          f"{'alleg':<6} kill_all?")
     for s in range(BAND_SLOTS):
         e = _band_entry_addr(s)
         if not _is_valid_entry(e):
@@ -529,24 +542,12 @@ def cmd_teams() -> None:
         gx    = ru8(e + A_GX)
         gy    = ru8(e + A_GY)
         alleg = ru8(e + A_ALLEG)
-        rows.append((s, hp, mhp, lvl, gx, gy, alleg))
-        if s < PLAYER_SLOT_THRESHOLD and hp and hp > 0 and alleg is not None:
-            enemy_allegs.append(alleg)
-
-    hostile = _majority_alleg(enemy_allegs)
-    hs = f"0x{hostile:02X}" if hostile is not None else "??"
-    print(f"hostile-majority allegiance = {hs}")
-    print(f"{'slot':>4} {'side':<7} {'lvl':>3} {'hp':>5}/{'mhp':<5} {'pos':<9} "
-          f"{'alleg':<6} kill_all?")
-    for s, hp, mhp, lvl, gx, gy, alleg in rows:
         if s >= PLAYER_SLOT_THRESHOLD:
             verdict = "no (player side)"
         elif hp is None or hp <= 0:
             verdict = "no (dead)"
-        elif hostile is not None and alleg is not None and alleg != hostile:
-            verdict = "SPARED (guest -- off-team allegiance)"
         else:
-            verdict = "TARGET"
+            verdict = "TARGET (exclude by slot if guest)"
         a = f"0x{alleg:02X}" if alleg is not None else "??"
         print(f"{s:>4} {('player' if s>=PLAYER_SLOT_THRESHOLD else 'enemy'):<7} "
               f"{lvl!s:>3} {hp!s:>5}/{mhp!s:<5} ({gx},{gy})    {a:<6} {verdict}")
@@ -601,14 +602,6 @@ def _selftest() -> bool:
         print(f"  A_DEAD_BIT: FAIL expected 0x20 got 0x{A_DEAD_BIT:02X}")
         ok = False
 
-    # Allegiance majority: the Olivia battle -- 10 enemies at 0x1B, one guest at 0x06.
-    if (_majority_alleg([0x1B] * 10 + [0x06]) == 0x1B
-            and _majority_alleg([0x06]) == 0x06
-            and _majority_alleg([]) is None):
-        print("  _majority_alleg (guest guard): OK")
-    else:
-        print(f"  _majority_alleg: FAIL got {_majority_alleg([0x1B]*10 + [0x06])}")
-        ok = False
 
     # Band address arithmetic: slot 0 => n=-24, slot 24 => n=0 (anchor), slot 48 => n=+24
     slot0  = _band_entry_addr(0)
@@ -670,6 +663,10 @@ def main() -> None:
 
     if args[0] == "kill_all":
         cmd_kill_all()
+        return
+
+    if args[0] == "revive":
+        cmd_revive()
         return
 
     if args[0] == "teams":
