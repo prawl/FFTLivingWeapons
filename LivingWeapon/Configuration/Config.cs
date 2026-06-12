@@ -9,9 +9,9 @@ namespace LivingWeapon.Configuration;
 public class Config : Configurable<Config>
 {
     [DisplayName("Treasure Master Always On")]
-    [Description("When enabled, treasure tiles are highlighted on every map without " +
-                 "requiring a Scholar's Ring to be equipped. Default: on. Turn off only " +
-                 "if you want the vanilla ring-gated experience.")]
-    [DefaultValue(true)]
-    public bool TreasureAlwaysOn { get; set; } = true;
+    [Description("Treasure Master highlights the battlefield tiles that hide treasure " +
+                 "(Move-Find items) so you can see where to search. Turn this on to enable " +
+                 "it on every map. Default: off.")]
+    [DefaultValue(false)]
+    public bool TreasureAlwaysOn { get; set; } = false;
 }

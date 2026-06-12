@@ -113,17 +113,13 @@ internal static class Tuning
 
     // ── Treasure Master knobs ────────────────────────────────────────────────────
 
-    /// <summary>Documented default for Config.TreasureAlwaysOn.  The RUNTIME value flows
-    /// from LivingWeapon.Configuration.Config, loaded by Mod.cs at startup.  This constant
-    /// is the fallback when the config file can't be read.
-    ///
-    /// Ship intent: PROD requires Scholar's Ring (id 260) in a deployed unit's accessory slot.
-    /// The accessory-slot offset is not probe-confirmed yet, so the ring DETECTOR is not wired
-    /// -- always-on in BOTH flavors until it lands (treasure marks are cosmetic, OR-only, and
-    /// touch no save data, so a prod test build is safe).  Restore the ring gate on the prod
-    /// branch when the detector ships.
+    /// <summary>Documented default for Config.TreasureAlwaysOn (the runtime value flows from
+    /// LivingWeapon.Configuration.Config, loaded by Mod.cs at startup; this constant is the
+    /// fallback when the config file can't be read).  Default OFF: treasure marks are opt-in
+    /// via the Reloaded config toggle.  Ship intent is eventual ring-gating (Scholar's Ring,
+    /// id 260) once the accessory-slot detector is probe-confirmed and wired.
     /// Idle log when false: "treasure: ring gate pending -- module idle"</summary>
-    public const bool TreasureAlwaysOn = true;
+    public const bool TreasureAlwaysOn = false;
 
     /// <summary>Consecutive same-map-id ticks required before arming begins (~1s at 33ms).</summary>
     public const int TreasureArmStableTicks = 30;

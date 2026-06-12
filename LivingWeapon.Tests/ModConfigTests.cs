@@ -10,8 +10,8 @@ namespace LivingWeapon.Tests;
 /// Configurable&lt;Config&gt;.FromFile, and assert TreasureAlwaysOn survives the round-trip.
 ///
 /// Invariants:
-///   (1) Default Config has TreasureAlwaysOn == true.
-///   (2) FromFile on a missing path creates a new Config with the default value.
+///   (1) Default Config has TreasureAlwaysOn == false (opt-in via the config toggle).
+///   (2) FromFile on a missing path creates a new Config with the default value (false).
 ///   (3) A Config.json written with TreasureAlwaysOn=false round-trips back as false.
 ///   (4) A Config.json written with TreasureAlwaysOn=true  round-trips back as true.
 ///   (5) FromFile on a corrupt JSON silently returns a default Config (no throw).
@@ -26,19 +26,19 @@ public class ModConfigTests
     }
 
     [Fact]
-    public void DefaultConfig_TreasureAlwaysOnIsTrue()
+    public void DefaultConfig_TreasureAlwaysOnIsFalse()
     {
         var c = new Config();
-        Assert.True(c.TreasureAlwaysOn);
+        Assert.False(c.TreasureAlwaysOn);
     }
 
     [Fact]
-    public void FromFile_MissingPath_ReturnsDefaultTrue()
+    public void FromFile_MissingPath_ReturnsDefaultFalse()
     {
         var dir  = TempDir();
         var path = Path.Combine(dir, "Config.json");
         var c    = Configurable<Config>.FromFile(path, "Test");
-        Assert.True(c.TreasureAlwaysOn);
+        Assert.False(c.TreasureAlwaysOn);
     }
 
     [Fact]
@@ -81,8 +81,8 @@ public class ModConfigTests
         var ex = Record.Exception(() =>
         {
             var c = Configurable<Config>.FromFile(path, "Test");
-            // corrupt load falls back to default (true)
-            Assert.True(c.TreasureAlwaysOn);
+            // corrupt load falls back to default (false)
+            Assert.False(c.TreasureAlwaysOn);
         });
         Assert.Null(ex);
     }
