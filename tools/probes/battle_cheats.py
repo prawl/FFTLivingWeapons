@@ -445,8 +445,24 @@ def cmd_kill_all() -> None:
     for s, e, hp, lvl, gx, gy, alleg in targets:
         a = f"0x{alleg:02X}" if alleg is not None else "??"
         print(f"  slot s={s:02d} (n={s-24:+d})  lvl={lvl} hp={hp} pos=({gx},{gy}) alleg={a}")
-    print("If a guest/escort unit appears in this list, answer n and run the 'teams' verb.")
-    if input("KO these units? [y/n] ").strip().lower() not in ("y", "yes"):
+    print("If a guest/escort unit appears in this list, exclude it: 'x 9' (slot numbers),")
+    print("or answer n and run the 'teams' verb to investigate.")
+    ans = input("KO these units? [y / n / x <slots>] ").strip().lower()
+    if ans.startswith("x"):
+        try:
+            excl = {int(t) for t in ans[1:].split()}
+        except ValueError:
+            print("Could not parse slot numbers -- aborted, nothing written.")
+            return
+        spared = [t for t in targets if t[0] in excl]
+        targets = [t for t in targets if t[0] not in excl]
+        for s, e, hp, lvl, gx, gy, alleg in spared:
+            print(f"  excluded slot s={s:02d} (lvl={lvl} hp={hp})")
+        if not targets:
+            print("Nothing left to KO -- aborted.")
+            return
+        print(f"Proceeding with the remaining {len(targets)} unit(s).")
+    elif ans not in ("y", "yes"):
         print("Aborted -- nothing written.")
         return
 
@@ -503,6 +519,17 @@ def cmd_teams() -> None:
         a = f"0x{alleg:02X}" if alleg is not None else "??"
         print(f"{s:>4} {side:<7} {lvl!s:>3} {hp!s:>5}/{mhp!s:<5} ({gx},{gy})    "
               f"{a:<6} {verdict}")
+        # Raw candidate windows for the guest-discriminator hunt (combat-relative;
+        # combat base = band entry - 0x1C).  Window A: +0x00..+0x08 (the entice-hunt
+        # +0x02 candidate).  Window B: +0x40..+0x58 (status +0x49/0x45-as-+0x29?,
+        # allegiance +0x54 region -- includes the 0x08 bit seen on Ovelia's +0x45).
+        c = e - 0x1C
+        wa = rpm(c, 9)
+        wb = rpm(c + 0x40, 0x19)
+        ha = wa.hex(" ") if wa else "??"
+        hb = wb.hex(" ") if wb else "??"
+        print(f"       c+00: {ha}")
+        print(f"       c+40: {hb}")
 
 
 # ---------------------------------------------------------------------------
