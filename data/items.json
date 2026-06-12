@@ -6849,7 +6849,7 @@
       "name": "Scholar's Ring",
       "tier": 2,
       "identity": "Doubles JP earned. Zero combat value - a pure progression item; swap on while grinding, off for fights. Owns its lane outright.",
-      "flavorOverride": "A scholar's modest band that sharpens each skirmish's lessons; a won fight teaches twice.",
+      "flavorOverride": "Treasure Master: a scholar's eye marks where treasure lies hidden on the field.",
       "baseline": {
         "hp": 0,
         "mp": 0,
