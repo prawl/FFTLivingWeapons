@@ -837,4 +837,152 @@ public class TreasureMasterTests
         Assert.Equal(0x00, pin.Bytes[4]);
         Assert.Equal(0x55, pin.Bytes[5]);
     }
+
+    // ── (16) Hot-reload seam tests ────────────────────────────────────────────
+
+    /// <summary>Stamp unchanged across TreasureStampCheckTicks ticks -> load never re-invoked.</summary>
+    [Fact]
+    public void Reload_stamp_unchanged_load_not_reinvoked()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(60);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: new[] { (addr, (byte)0x00) });
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        int loadCount = 0;
+        DateTime? stamp = DateTime.UtcNow;
+        var tm = new TreasureMaster(
+            load: () => { loadCount++; return db; },
+            datasetStamp: () => stamp,
+            mem: mem,
+            alwaysOn: true);
+
+        // Run well past the check interval; stamp never changes.
+        TickN(tm, Tuning.TreasureStampCheckTicks * 3);
+
+        // Initial load counts as 1 (eager at first tick).
+        Assert.Equal(1, loadCount);
+    }
+
+    /// <summary>Stamp changes -> load re-invoked, state cleared, new map arms.</summary>
+    [Fact]
+    public void Reload_stamp_change_triggers_reload_and_state_cleared()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(61);
+        var db = BuildDb(dir, mapId: 74, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: new[] { (addr, (byte)0x00) });
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        int loadCount = 0;
+        DateTime? stamp = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var tm = new TreasureMaster(
+            load: () => { loadCount++; return db; },
+            datasetStamp: () => stamp,
+            mem: mem,
+            alwaysOn: true);
+
+        // Stabilize and arm on the initial dataset.
+        StabilizeAndArm(tm);
+        Assert.Equal(1, loadCount);
+        Assert.NotEmpty(mem.Written);
+
+        // Advance stamp -> triggers reload.
+        stamp = new DateTime(2026, 1, 1, 0, 1, 0, DateTimeKind.Utc);
+        // Clear written log so we can observe the re-arm writes separately.
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+
+        // Run enough ticks to cross the check interval AND re-stabilize + arm.
+        TickN(tm, Tuning.TreasureStampCheckTicks + Tuning.TreasureArmStableTicks + 10);
+
+        Assert.Equal(2, loadCount);
+        // After reload + re-arm, writes resume.
+        Assert.NotEmpty(mem.Written);
+    }
+
+    /// <summary>
+    /// Empty dataset at boot (load returns empty db), then stamp changes to a populated
+    /// dataset -> module un-idles and arms on the same map id.
+    /// </summary>
+    [Fact]
+    public void Reload_empty_at_boot_then_populated_dataset_un_idles_and_arms()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(62);
+
+        // Two distinct db instances: empty, then populated.
+        var emptyDb = TreasureDb.MakeEmpty();
+        var populatedDb = BuildDb(dir, mapId: 74, fpLen: terrain.Length,
+            fpHash: TerrainFpHash(terrain), addrs: new[] { (addr, (byte)0x00) });
+
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        int loadCount = 0;
+        DateTime? stamp = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        bool returnPopulated = false;
+
+        var tm = new TreasureMaster(
+            load: () => { loadCount++; return returnPopulated ? populatedDb : emptyDb; },
+            datasetStamp: () => stamp,
+            mem: mem,
+            alwaysOn: true);
+
+        // Many ticks with empty dataset: module stays idle (globally), no writes.
+        TickN(tm, Tuning.TreasureStampCheckTicks + 10);
+        Assert.Empty(mem.Written);
+
+        // Now switch to populated and bump stamp.
+        returnPopulated = true;
+        stamp = new DateTime(2026, 1, 1, 0, 1, 0, DateTimeKind.Utc);
+
+        // Run enough ticks to detect stamp change, reload, un-idle, stabilize + arm.
+        TickN(tm, Tuning.TreasureStampCheckTicks + Tuning.TreasureArmStableTicks + 10);
+
+        Assert.True(loadCount >= 2, $"Expected at least 2 loads, got {loadCount}");
+        Assert.NotEmpty(mem.Written);
+    }
+
+    /// <summary>
+    /// Reload with a mismatched build key -> global disarm re-evaluated (module stays/re-idles).
+    /// </summary>
+    [Fact]
+    public void Reload_mismatched_build_key_re_idles_module()
+    {
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(63);
+
+        // Dataset whose build key does NOT match the PE header in mem.
+        var mismatchDb = BuildDb(dir, mapId: 74, fpLen: terrain.Length,
+            fpHash: TerrainFpHash(terrain), addrs: new[] { (addr, (byte)0x00) },
+            buildKey: new TreasureBuildKey { TimeDateStamp = 0x1111, SizeOfImage = 0x2222 });
+
+        var mem = BuildMem(74, terrain, new[] { addr });
+        // Seed PE header with DIFFERENT values -> mismatch.
+        SeedPeHeader(mem, timeDateStamp: 0xAAAA, sizeOfImage: 0xBBBB);
+
+        int loadCount = 0;
+        DateTime? stamp = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+        var tm = new TreasureMaster(
+            load: () => { loadCount++; return mismatchDb; },
+            datasetStamp: () => stamp,
+            mem: mem,
+            alwaysOn: true);
+
+        // Run enough to detect stamp changes and reload multiple times; key always mismatches.
+        TickN(tm, Tuning.TreasureStampCheckTicks + Tuning.TreasureArmStableTicks + 10);
+        stamp = new DateTime(2026, 1, 1, 0, 1, 0, DateTimeKind.Utc);
+        TickN(tm, Tuning.TreasureStampCheckTicks + Tuning.TreasureArmStableTicks + 10);
+
+        // Key always mismatches -> zero flag-address writes ever.
+        Assert.Empty(mem.Written);
+        Assert.False(mem.ReadCount.TryGetValue(addr, out _),
+            "flag address should never be read when build key mismatches");
+    }
 }

@@ -142,6 +142,11 @@ internal static class Tuning
     /// (the debounced exit edge may never fire in those cases).</summary>
     public const int TreasureMapIdBadTicksToReset = 3;
 
+    /// <summary>How many Tick() calls between dataset-stamp checks (applies regardless of
+    /// phase or inLive). 30 ticks ≈ 1 s at the 33 ms loop. A changed stamp triggers a full
+    /// reload + state reset so the next arm cycle uses fresh data.</summary>
+    public const int TreasureStampCheckTicks = 30;
+
     /// <summary>Missing-HP formulas ignore every stat -> no growth lever.</summary>
     public static bool SkipFormula(int formula) => formula == 67 || formula == 69;
 

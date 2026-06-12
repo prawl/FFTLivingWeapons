@@ -169,6 +169,10 @@ internal sealed class TreasureDb
 
     private static TreasureDb Empty() => new(null, new List<TreasureMap>());
 
+    /// <summary>Returns an empty dataset. Exposed for tests that need to inject an
+    /// initially-empty db and swap it out via the reload seam.</summary>
+    internal static TreasureDb MakeEmpty() => Empty();
+
     private static bool TryParseHex(string? s, out long result)
     {
         result = 0;

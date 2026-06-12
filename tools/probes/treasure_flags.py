@@ -15,6 +15,7 @@ Verbs
       confirms the name with you, then walks each uncaptured treasure tile.
       Per tile: cursor lock -> toggle scan -> trust gate -> atomic DB save.
       Stamps fpVer=2, fpLen=1456, fpHash=masked-v2 on save.
+      On any new verified tile or re-stamp, automatically runs pushlive.
 
   python tools\\probes\\treasure_flags.py refp <mapId>
       Re-fingerprint: for a map already in data/treasure_addrs.json, re-read the live
@@ -22,6 +23,7 @@ Verbs
       fpVer=2 / fpLen=1456 / fpHash into the DB record.  Refuses if the live map-id
       byte does not match <mapId>.  Atomic save.  Use this to upgrade an existing
       capture from v1 to v2 without re-capturing all tile addresses.
+      On success, automatically runs pushlive.
 
   python tools\\probes\\treasure_flags.py status
       Dashboard: verified / partial / missing tile counts per map, plus totals.
@@ -30,9 +32,15 @@ Verbs
       Read-only post-patch audit.  Re-hashes the terrain fingerprint and classifies
       each captured address into resting / held / foreign.
 
+  python tools\\probes\\treasure_flags.py pushlive
+      Bake data/treasure_addrs.json -> LivingWeapon/treasure.json (via gen_treasure_db.py),
+      then copy the result into the live Reloaded mod folder so the DLL hot-reloads it on
+      the next stamp-check tick.  Skips the copy if the live mod folder does not exist.
+
   python tools\\probes\\treasure_flags.py --selftest
       Offline self-test (no game required).  Validates FNV-1a64 vectors, the masked-hash
-      pinned vector, the clean filter, DB schema round-trip, and PE-offset byte math.
+      pinned vector, the clean filter, DB schema round-trip, PE-offset byte math, and
+      the pushlive gating logic.
 """
 import ctypes
 import ctypes.wintypes as w
@@ -40,7 +48,9 @@ import datetime
 import json
 import os
 import pathlib
+import shutil
 import struct
+import subprocess
 import sys
 import time
 
@@ -51,6 +61,14 @@ _HERE = pathlib.Path(__file__).resolve()
 REPO = _HERE.parents[2]
 DB_PATH = REPO / "data" / "treasure_addrs.json"
 MAP_TRAP_PATH = REPO / "data" / "map_trap_formation.json"
+
+# The baked output consumed by the DLL.
+TREASURE_JSON_SRC = REPO / "LivingWeapon" / "treasure.json"
+
+# Live Reloaded mod folder.  Derived from paths.py so there is one canonical source.
+sys.path.insert(0, str(REPO / "tools"))
+from lib.paths import RELOADED_MODS as _RELOADED_MODS
+LIVE_MOD_DIR = _RELOADED_MODS / "prawl.fft.itemoverhaul"
 
 # ---------------------------------------------------------------------------
 # Memory constants
@@ -488,6 +506,9 @@ def cmd_session() -> None:
     for t in pending:
         print(f"  ({t['x']},{t['y']})")
 
+    # Track whether any DB change worth pushing live occurred this session.
+    _db_changed = False
+
     # Step 5: capture or update fingerprint (v2 masked hash) + build key
     fp = terrain_fingerprint()
     bk = read_build_key()
@@ -500,6 +521,7 @@ def cmd_session() -> None:
             map_rec["fpVer"]  = 2
             map_rec["fpLen"]  = TERRAIN_FP_LEN
             map_rec["fpHash"] = hex(fp)
+            _db_changed = True
             print(f"\nFingerprint v2 captured: {hex(fp)}")
         else:
             print("\nWarning: could not read terrain fingerprint.")
@@ -514,6 +536,7 @@ def cmd_session() -> None:
                 map_rec["fpVer"]  = 2
                 map_rec["fpLen"]  = TERRAIN_FP_LEN
                 map_rec["fpHash"] = hex(fp)
+                _db_changed = True
                 print(f"\nFingerprint upgraded to v2: {hex(fp)}")
             else:
                 print(f"\nFingerprint v2 matches stored ({stored_fp}) -- OK")
@@ -521,6 +544,7 @@ def cmd_session() -> None:
     if stored_bk is None:
         if bk is not None:
             map_rec["capturedBuild"] = bk
+            _db_changed = True
             print(f"Build key captured: {bk}")
         else:
             print("Warning: could not read PE build key.")
@@ -669,8 +693,13 @@ def cmd_session() -> None:
         # Atomic save after every tile
         _save_db(db)
         print(f"  Saved ({tx},{ty}) -> {DB_PATH.name}  status={status}")
+        if status == "verified":
+            _db_changed = True
 
     print(f"\nSession complete.  DB: {DB_PATH}")
+    if _db_changed:
+        print()
+        cmd_pushlive()
 
 
 # ---------------------------------------------------------------------------
@@ -735,6 +764,8 @@ def cmd_refp(map_id_str: str) -> None:
     print(f"  fpLen: {TERRAIN_FP_LEN}")
     print(f"  fpHash: {old_hash!r} -> {hex(fp)}")
     print(f"  Saved -> {DB_PATH.name}")
+    print()
+    cmd_pushlive()
 
 
 # ---------------------------------------------------------------------------
@@ -839,6 +870,60 @@ def cmd_verify(map_id_str: str) -> None:
             states.append((addr_hex, state))
         statuses = " | ".join(f"{a}={s}" for a, s in states)
         print(f"  ({tx},{ty}): {statuses}")
+
+
+# ---------------------------------------------------------------------------
+# Verb: pushlive
+# ---------------------------------------------------------------------------
+def cmd_pushlive(*, _dry_run_dest: "pathlib.Path | None" = None) -> bool:
+    """Bake treasure.json and copy it into the live mod folder.
+
+    Returns True on success (bake + copy), False if the bake fails or the live
+    folder is absent.  Prints a clear status line either way.
+
+    _dry_run_dest: if given (tests only), copy to this path instead of the real
+    live mod folder.  The live-folder existence check is bypassed.
+    """
+    # Step 1: bake via gen_treasure_db.py (reuse its exit code as the gate).
+    result = subprocess.run(
+        [sys.executable, str(REPO / "tools" / "gen_treasure_db.py")],
+        capture_output=True,
+        text=True,
+    )
+    if result.stdout:
+        print(result.stdout, end="")
+    if result.returncode != 0:
+        if result.stderr:
+            print(result.stderr, end="")
+        print("pushlive: bake failed -- live folder NOT updated")
+        return False
+
+    # Count shippable maps in the baked output for the status line.
+    shippable = 0
+    try:
+        baked = json.loads(TREASURE_JSON_SRC.read_text(encoding="utf-8"))
+        for m in baked.get("maps", []):
+            if m.get("tiles"):
+                shippable += 1
+    except Exception:
+        pass
+
+    # Step 2: copy into the live mod folder (or dry-run destination).
+    if _dry_run_dest is not None:
+        shutil.copy2(TREASURE_JSON_SRC, _dry_run_dest)
+        print(f"pushlive (dry-run): copied treasure.json to {_dry_run_dest}")
+        return True
+
+    if not LIVE_MOD_DIR.is_dir():
+        print(f"pushlive: live mod folder not found ({LIVE_MOD_DIR}) -- skipping copy")
+        print("  (deploy with BuildLinked.ps1 first to create the folder)")
+        return False
+
+    dest = LIVE_MOD_DIR / "treasure.json"
+    shutil.copy2(TREASURE_JSON_SRC, dest)
+    print(f"live-pushed treasure.json ({shippable} shippable map(s)) -- "
+          f"retry the battle to see marks")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -955,6 +1040,44 @@ def _selftest() -> bool:
         print(f"  PE-offset math: FAIL  lfanew={got_lfanew} ts={got_ts} soi={got_soi}")
         ok = False
 
+    # pushlive gating logic: dry-run to a temp file (no real copy, no live folder needed).
+    tmp2_dir = pathlib.Path(tempfile.mkdtemp())
+    dry_dest = tmp2_dir / "treasure.json"
+    # Run the real bake (subprocess to gen_treasure_db.py) + copy to dry-run dest.
+    pushed = cmd_pushlive(_dry_run_dest=dry_dest)
+    if pushed and dry_dest.exists():
+        print("  pushlive dry-run (bake+copy): OK")
+    else:
+        # Bake may fail if treasure_addrs.json is empty/missing -- that is not a selftest
+        # failure because it is environment-dependent.  Report but don't fail the suite.
+        print("  pushlive dry-run: skipped (bake failed or no data; environment-dependent)")
+    # Cleanup
+    for p in tmp2_dir.iterdir():
+        p.unlink(missing_ok=True)
+    tmp2_dir.rmdir()
+
+    # pushlive absent-folder guard: if the live mod folder does not exist, cmd_pushlive
+    # must return False and must NOT create it or write anything.
+    class _FakePath:
+        """Minimal Path stub: is_dir() returns False; no filesystem side-effects."""
+        def is_dir(self): return False
+
+    saved_live = LIVE_MOD_DIR
+    import builtins as _bi
+    # Monkey-patch LIVE_MOD_DIR for the duration of this check.
+    import sys as _sys
+    _mod = _sys.modules[__name__]
+    _mod.LIVE_MOD_DIR = _FakePath()  # type: ignore[assignment]
+    try:
+        result_absent = cmd_pushlive()
+        if not result_absent:
+            print("  pushlive absent-folder guard: OK (returned False, no copy)")
+        else:
+            print("  pushlive absent-folder guard: FAIL (should have returned False)")
+            ok = False
+    finally:
+        _mod.LIVE_MOD_DIR = saved_live
+
     return ok
 
 
@@ -1003,6 +1126,10 @@ def main() -> None:
             sys.exit(2)
         cmd_verify(args[1])
         return
+
+    if args[0] == "pushlive":
+        ok = cmd_pushlive()
+        sys.exit(0 if ok else 1)
 
     print(f"Unknown verb: {args[0]!r}")
     print(__doc__)

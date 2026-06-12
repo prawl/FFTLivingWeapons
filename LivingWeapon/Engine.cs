@@ -63,7 +63,12 @@ internal sealed class Engine
         var wyrmblood = new Wyrmblood(meta, _kills, _turns, live);  // Dragon Rod +3: turn-edge regen splash (1 tile)
         var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
-        _treasure = new TreasureMaster(TreasureDb.Load(modDir), live);
+        var treasureJson = Path.Combine(modDir, "treasure.json");
+        _treasure = new TreasureMaster(
+            load:         () => TreasureDb.Load(modDir),
+            datasetStamp: () => { try { return File.GetLastWriteTimeUtc(treasureJson); }
+                                  catch { return null; } },
+            mem: live);
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
         // reset runs charm..font with Barrage between Plague and LifeSap; the in-battle tick
         // excludes Barrage (it ticks before the !nowIn early-return, learn screens included).

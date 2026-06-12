@@ -31,7 +31,9 @@ internal sealed partial class TreasureMaster : ISignature
 
     private enum Phase { Disarmed, Arming, Armed, BattleDisarmed }
 
-    private readonly TreasureDb   _db;
+    private TreasureDb            _db;
+    private readonly Func<TreasureDb>    _load;
+    private readonly Func<DateTime?>     _datasetStamp;
     private readonly IGameMemory  _mem;
     private readonly ArmAudit     _audit;
     private readonly TileHolder   _holder;
@@ -52,15 +54,34 @@ internal sealed partial class TreasureMaster : ISignature
     private bool      _foreignLoggedThisBattle = false; // armed off-screen log once per battle
     private bool      _flapLoggedThisBattle = false;    // fingerprint-flap re-prove log once per battle
 
+    private int       _stampCheckCountdown = 0;   // ticks until the next stamp comparison
+    private DateTime? _lastStamp = null;           // stamp seen at the last check (null = not yet checked)
+    private bool      _stampInitialized = false;   // false until the first load has run
+
     /// <param name="alwaysOn">Override for the AlwaysOn gate; null = use Tuning.TreasureAlwaysOn.
     /// Tests pass true directly so the ring-gate branch does not idle the module in prod builds.</param>
     public TreasureMaster(TreasureDb db, IGameMemory? mem = null, bool? alwaysOn = null)
+        : this(load: () => db, datasetStamp: () => null, mem: mem, alwaysOn: alwaysOn) { }
+
+    /// <summary>
+    /// Injectable seam ctor used by tests and Engine alike.
+    /// <paramref name="load"/> is called eagerly on the first Tick and again whenever
+    /// <paramref name="datasetStamp"/> returns a value that differs from the last seen stamp.
+    /// The stamp returning null is treated as "unchanged" (no-reload).
+    /// </summary>
+    public TreasureMaster(
+        Func<TreasureDb> load,
+        Func<DateTime?> datasetStamp,
+        IGameMemory? mem = null,
+        bool? alwaysOn = null)
     {
-        _db       = db;
-        _mem      = mem ?? new LiveMemory();
-        _audit    = new ArmAudit(_mem);
-        _holder   = new TileHolder(_mem);
-        _alwaysOn = alwaysOn ?? Tuning.TreasureAlwaysOn;
+        _load         = load;
+        _datasetStamp = datasetStamp;
+        _db           = TreasureDb.MakeEmpty();   // placeholder; replaced on first Tick
+        _mem          = mem ?? new LiveMemory();
+        _audit        = new ArmAudit(_mem);
+        _holder       = new TileHolder(_mem);
+        _alwaysOn     = alwaysOn ?? Tuning.TreasureAlwaysOn;
     }
 
     // ── ISignature ────────────────────────────────────────────────────────────────
@@ -85,6 +106,36 @@ internal sealed partial class TreasureMaster : ISignature
 
     public void Tick(DateTime now, bool inLive)
     {
+        // Eager initial load + periodic stamp-change hot-reload (runs regardless of phase or inLive).
+        if (!_stampInitialized)
+        {
+            _db               = _load();
+            _stampInitialized = true;
+            _lastStamp        = _datasetStamp();
+            _stampCheckCountdown = Tuning.TreasureStampCheckTicks;
+        }
+        else
+        {
+            if (--_stampCheckCountdown <= 0)
+            {
+                _stampCheckCountdown = Tuning.TreasureStampCheckTicks;
+                var current = _datasetStamp();
+                if (current.HasValue && current != _lastStamp)
+                {
+                    _lastStamp = current;
+                    _db = _load();
+                    // Full state reset so L0 re-evaluates against the new dataset.
+                    _globalIdle        = false;
+                    _globalIdleChecked = false;
+                    ResetBattle();
+                    var mapCount = 0;
+                    foreach (var m in _db.Maps)
+                        if (m.Tiles.Count > 0) mapCount++;
+                    Log.Info($"treasure: dataset reloaded -- {mapCount} map(s) with addresses");
+                }
+            }
+        }
+
         // L0: one-time global idle check (dataset empty, AlwaysOn false, or key mismatch).
         // If CheckGlobalIdle defers (PE header not yet readable), _globalIdleChecked resets
         // to false -- return immediately so the phase switch cannot run before L0 resolves.
