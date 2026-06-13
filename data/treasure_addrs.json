@@ -7,8 +7,8 @@
   "maps": {
     "74": {
       "name": "The Siedge Weald",
-      "fpLen": 1456,
-      "fpHash": "0xa9b8f51113401aa5",
+      "fpLen": null,
+      "fpHash": null,
       "capturedBuild": {
         "timeDateStamp": 1762398825,
         "sizeOfImage": 359432192
@@ -144,7 +144,7 @@
           "status": "verified"
         }
       ],
-      "fpVer": 3
+      "fpVer": 0
     },
     "85": {
       "name": "Mandalia Plain",
@@ -3235,9 +3235,9 @@
     },
     "81": {
       "name": "Grogh Heights",
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0x818a1f41acd293ad",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "capturedBuild": {
         "timeDateStamp": 1762398825,
         "sizeOfImage": 359432192
@@ -3489,9 +3489,9 @@
     },
     "79": {
       "name": "The Yuguewood",
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0x818a1f41acd293ad",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "capturedBuild": {
         "timeDateStamp": 1762398825,
         "sizeOfImage": 359432192
@@ -9124,9 +9124,9 @@
     },
     "72": {
       "name": "Fovoham Windflats",
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0xa9b8f51113401aa5",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "capturedBuild": {
         "timeDateStamp": 1762398825,
         "sizeOfImage": 359432192
@@ -9261,9 +9261,9 @@
     },
     "76": {
       "name": "Zeklaus Desert",
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0xa9b8f51113401aa5",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "capturedBuild": {
         "timeDateStamp": 1762398825,
         "sizeOfImage": 359432192

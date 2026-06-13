@@ -5209,9 +5209,9 @@
       "mapId": 72,
       "name": "Fovoham Windflats",
       "tileCount": 4,
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0xa9b8f51113401aa5",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "tiles": [
         {
           "x": 0,
@@ -5339,9 +5339,9 @@
       "mapId": 74,
       "name": "The Siedge Weald",
       "tileCount": 4,
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0xa9b8f51113401aa5",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "tiles": [
         {
           "x": 0,
@@ -5551,9 +5551,9 @@
       "mapId": 76,
       "name": "Zeklaus Desert",
       "tileCount": 4,
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0xa9b8f51113401aa5",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "tiles": [
         {
           "x": 0,
@@ -5953,9 +5953,9 @@
       "mapId": 79,
       "name": "The Yuguewood",
       "tileCount": 4,
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0x818a1f41acd293ad",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "tiles": [
         {
           "x": 0,
@@ -6141,9 +6141,9 @@
       "mapId": 81,
       "name": "Grogh Heights",
       "tileCount": 4,
-      "fpVer": 3,
-      "fpLen": 1456,
-      "fpHash": "0x818a1f41acd293ad",
+      "fpVer": 0,
+      "fpLen": null,
+      "fpHash": null,
       "tiles": [
         {
           "x": 0,
