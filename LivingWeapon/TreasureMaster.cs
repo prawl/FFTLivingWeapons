@@ -54,9 +54,9 @@ internal sealed partial class TreasureMaster : ISignature
     private bool      _capLoggedThisBattle = false;
     private bool      _foreignLoggedThisBattle = false; // armed off-screen log once per battle
     private bool      _flapLoggedThisBattle = false;    // fingerprint-flap re-prove log once per battle
-    private bool      _ringCheckedThisBattle = false;   // true once the ring check has run for this battle
-    private bool      _enabledThisBattle = false;       // cached ring-gate result for this battle
-    private bool      _ringIdleLoggedThisBattle = false; // idle nag logged once per battle
+    private int       _ringRecheckCountdown = 0;        // ticks until the next ring re-read
+    private bool      _ringEquipped = false;            // last read result from RingGate
+    private bool      _ringIdleLoggedThisOffPeriod = false; // idle nag logged once per off-period
 
     private int       _stampCheckCountdown = 0;   // ticks until the next stamp comparison
     private DateTime? _lastStamp = null;           // stamp seen at the last check (null = not yet checked)
@@ -111,9 +111,9 @@ internal sealed partial class TreasureMaster : ISignature
         _capLoggedThisBattle        = false;
         _foreignLoggedThisBattle    = false;
         _flapLoggedThisBattle       = false;
-        _ringCheckedThisBattle      = false;
-        _enabledThisBattle          = false;
-        _ringIdleLoggedThisBattle   = false;
+        _ringRecheckCountdown       = 0;     // re-read the ring immediately on the first tick
+        _ringEquipped               = false;
+        _ringIdleLoggedThisOffPeriod = false;
         // _globalIdle and _globalIdleChecked persist -- the L0 check is startup-once.
         _fastHold.Publish(null);    // immediacy on battle-exit: stop holding before Tick runs again
     }
@@ -167,6 +167,18 @@ internal sealed partial class TreasureMaster : ISignature
             _stableTicks = 0;   // stability counter resets when not in live battle
             _fastHold.Publish(null);
             return;
+        }
+
+        // Per-tick ring countdown: refreshes _ringEquipped at most once per
+        // TreasureRingRecheckTicks ticks (~1 s).  Skipped when alwaysOn (roster never read).
+        if (!_alwaysOn && --_ringRecheckCountdown <= 0)
+        {
+            _ringRecheckCountdown = Tuning.TreasureRingRecheckTicks;
+            bool wasEnabled = _ringEquipped;
+            _ringEquipped = RingGate.ScholarRingEquipped(_mem);
+            // Reset idle-log latch on off->on transition so each off-period logs exactly once.
+            if (_ringEquipped && !wasEnabled)
+                _ringIdleLoggedThisOffPeriod = false;
         }
 
         switch (_phase)
@@ -254,23 +266,9 @@ internal sealed partial class TreasureMaster : ISignature
             return;
         }
 
-        // Per-battle ring gate: check once, cache result for this battle.
-        // alwaysOn bypasses the roster read entirely (force-on override).
-        if (!_ringCheckedThisBattle)
-        {
-            _ringCheckedThisBattle = true;
-            _enabledThisBattle     = _alwaysOn || RingGate.ScholarRingEquipped(_mem);
-        }
-        if (!_enabledThisBattle)
-        {
-            if (!_ringIdleLoggedThisBattle)
-            {
-                _ringIdleLoggedThisBattle = true;
-                Log.Info("treasure: no Scholar's Ring equipped -- module idle " +
-                         "(equip the Scholar's Ring to enable treasure marks)");
-            }
-            return;
-        }
+        // Live ring gate: re-read the roster on a cadence (~1 s) rather than once per battle.
+        // alwaysOn bypasses the roster read entirely and always returns true.
+        if (!EnabledNow()) return;
 
         // Has tiles + ring gate open: transition to ARMING.
         _map         = found;
@@ -351,29 +349,40 @@ internal sealed partial class TreasureMaster : ISignature
         }
         _badMapTicks = 0;
 
+        // Ring gate: checked every ARMED tick (EnabledNow reads cached _ringEquipped,
+        // refreshed by the per-tick countdown in Tick -- no extra roster I/O here).
+        // alwaysOn=true: EnabledNow short-circuits immediately, no roster read ever.
+        if (!EnabledNow())
+        {
+            Log.Info("treasure: Scholar's Ring removed -- treasure marks off " +
+                     "(re-equip to restore)");
+            _stableTicks = 0;   // force re-accumulation so DISARMED re-arms cleanly
+            _phase       = Phase.Disarmed;
+            _fastHold.Publish(null);
+            return;
+        }
+
         // Periodic fingerprint revalidation: skipped for map-id-only maps.
         // Water/lava maps have no fingerprint; the map-id re-check above is the only guard.
-        if (!map.IsMapIdOnly)
+        _revalidateTick++;
+        if (_revalidateTick >= Tuning.TreasureRevalidateEveryNTicks)
         {
-            _revalidateTick++;
-            if (_revalidateTick >= Tuning.TreasureRevalidateEveryNTicks)
+            _revalidateTick = 0;
+
+            if (!map.IsMapIdOnly && !_audit.FingerprintMatches(map))
             {
-                _revalidateTick = 0;
-                if (!_audit.FingerprintMatches(map))
+                // Transition back to ARMING rather than permanent BattleDisarmed.
+                // TickArming will re-prove: fingerprint match + quorum re-arms normally;
+                // persistent mismatch past the attempt cap -> BattleDisarmed once + log.
+                _armAttempts         = 0;
+                _capLoggedThisBattle = false;   // let arming re-use the cap log slot
+                _phase               = Phase.Arming;
+                if (!_flapLoggedThisBattle)
                 {
-                    // Transition back to ARMING rather than permanent BattleDisarmed.
-                    // TickArming will re-prove: fingerprint match + quorum re-arms normally;
-                    // persistent mismatch past the attempt cap -> BattleDisarmed once + log.
-                    _armAttempts        = 0;
-                    _capLoggedThisBattle = false;   // let arming re-use the cap log slot
-                    _phase              = Phase.Arming;
-                    if (!_flapLoggedThisBattle)
-                    {
-                        _flapLoggedThisBattle = true;
-                        Log.Info($"treasure: map {map.MapId} fingerprint flap -- re-proving before holding again");
-                    }
-                    return;
+                    _flapLoggedThisBattle = true;
+                    Log.Info($"treasure: map {map.MapId} fingerprint flap -- re-proving before holding again");
                 }
+                return;
             }
         }
 
@@ -387,5 +396,35 @@ internal sealed partial class TreasureMaster : ISignature
             Log.Info($"treasure: map {map.MapId} {foreign} byte(s) off-flag (tiles off-screen?) " +
                      $"-- skipping those, holding the rest");
         }
+    }
+
+    // ── ring gate helper ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Returns true if the module should be active based on the Scholar's Ring gate.
+    ///
+    /// When <see cref="_alwaysOn"/> is true, returns true immediately; the roster is
+    /// never read in this path.
+    ///
+    /// Otherwise reads <see cref="_ringEquipped"/>, which is refreshed by the per-tick
+    /// countdown in <see cref="Tick"/> at most once per
+    /// <see cref="Tuning.TreasureRingRecheckTicks"/> (~1 s).  Logs the idle message
+    /// once per off-period (latch reset on the next off→on transition in Tick).
+    /// </summary>
+    private bool EnabledNow()
+    {
+        if (_alwaysOn) return true;
+
+        if (!_ringEquipped)
+        {
+            if (!_ringIdleLoggedThisOffPeriod)
+            {
+                _ringIdleLoggedThisOffPeriod = true;
+                Log.Info("treasure: no Scholar's Ring equipped -- module idle " +
+                         "(equip the Scholar's Ring to enable treasure marks)");
+            }
+            return false;
+        }
+        return true;
     }
 }

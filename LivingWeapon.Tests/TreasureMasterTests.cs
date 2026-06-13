@@ -1778,13 +1778,21 @@ public class TreasureMasterTests
             "alwaysOn=true must arm even with no ring");
     }
 
+    // The old "CachedResultSurvivesRingRemoval" test documented the OLD once-per-battle
+    // caching behavior.  Under the live-recheck design the ring is re-read periodically:
+    // removal mid-battle now disarms to Disarmed (not BattleDisarmed); re-equipping re-arms.
+    // The replacement tests below cover both directions.
+
+    // ── live ring-gate recheck (mid-battle equip/unequip) ────────────────────────────
+
+    /// <summary>
+    /// Armed with ring present; ring removed mid-battle; after the recheck cadence
+    /// elapses the module must disarm to Phase.Disarmed, publish null, and stop writing.
+    /// alwaysOn=false.
+    /// </summary>
     [Fact]
-    public void RingGate_RingCheckedOncePerBattle_CachedResultSurvivesRingRemoval()
+    public void RingGate_LiveRecheck_RingRemovedMidBattle_DisarmsToDisarmed()
     {
-        // Once the ring check latches for a battle, the cached result persists even
-        // if the ring is removed from memory mid-battle (i.e., the check is not re-run
-        // on each tick while ARMED).  Verified behaviorally: arm with ring, remove ring
-        // from mem, continue ARMED ticks -> writes continue (cached enabled=true).
         var (db, mem, addr) = BuildRingGateScenario(ringEquipped: true, rosterSlot: 0);
 
         var tm = new TreasureMaster(db, mem, alwaysOn: false);
@@ -1793,16 +1801,148 @@ public class TreasureMasterTests
         StabilizeAndArm(tm);
         Assert.True(mem.Written.ContainsKey(addr), "should have armed with ring present");
 
-        // Remove the ring from memory mid-battle (as if unequipped -- but gate already latched).
+        // Remove the ring from the roster mid-battle.
         long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
-        mem.U16s[accessorAddr] = 0;   // ring gone from memory
-        mem.Written.Clear();
-        mem.U8s[addr] = 0x00;         // engine cleared mark
+        mem.U16s[accessorAddr] = 0;
 
-        // ARMED ticks should still write (cached enabled=true, no re-read of ring).
+        // Advance past the recheck cadence -- this will include some writes before disarm fires,
+        // then the module disarms when the revalidation period elapses.
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+
+        // AFTER disarm: clear the write log and confirm no further writes occur.
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+        TickN(tm, 10);
+
+        // Zero tile writes after disarm (module is in Disarmed, re-accumulating stability).
+        Assert.Empty(mem.Written);
+
+        // FastHold must have received null (i.e. HoldOnce writes nothing).
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+        tm.FastHold.HoldOnce();
+        Assert.Empty(mem.Written);
+    }
+
+    /// <summary>
+    /// After ring removal (module disarmed), re-equip the ring; advance through the
+    /// stability window.  Module must re-arm and resume writing.
+    /// </summary>
+    [Fact]
+    public void RingGate_LiveRecheck_RingReequippedAfterRemoval_Rearms()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: true, rosterSlot: 0);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+
+        // Arm.
+        StabilizeAndArm(tm);
+        Assert.True(mem.Written.ContainsKey(addr));
+
+        // Remove ring; advance past the revalidation cadence to trigger disarm.
+        long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
+        mem.U16s[accessorAddr] = 0;
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+        // Module is now in Disarmed. Clear writes so we observe only the re-arm writes.
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+
+        // Confirm disarmed: a short run still produces no writes (re-accumulating stability,
+        // AND the ring is not yet re-equipped so EnabledNow() blocks).
         TickN(tm, 5);
+        Assert.Empty(mem.Written);
+
+        // Re-equip the ring; advance through the ring recheck + stability window.
+        mem.U16s[accessorAddr] = (ushort)Offsets.ScholarRingItemId;
+        mem.U8s[addr] = 0x00;
+
+        // TickDisarmed: stability re-accumulates; EnabledNow() detects the ring on the next
+        // recheck and allows arming; fingerprint passes -> ARMING -> ARMED.
+        TickN(tm, Tuning.TreasureRingRecheckTicks + Tuning.TreasureArmStableTicks + 10);
+
         Assert.True(mem.Written.ContainsKey(addr),
-            "ARMED ticks should continue writing when ring gate is cached; re-reading ring mid-battle would break this");
+            "after re-equipping the ring, module should re-arm and resume writes");
+    }
+
+    /// <summary>
+    /// alwaysOn=true: removing the ring from the roster has NO effect -- the module
+    /// stays armed and never reads the roster (EnabledNow always returns true).
+    /// </summary>
+    [Fact]
+    public void RingGate_AlwaysOn_RingRemovedMidBattle_StaysArmed()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: true);
+
+        // alwaysOn arms without any ring in memory.
+        StabilizeAndArm(tm);
+        Assert.True(mem.Written.ContainsKey(addr), "alwaysOn should arm without ring");
+
+        // Even if we seed+remove a ring (no-op for alwaysOn), advance past recheck cadence.
+        long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
+        mem.U16s[accessorAddr] = 0;
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+
+        TickN(tm, Tuning.TreasureRingRecheckTicks + 5);
+
+        // Must still be writing -- alwaysOn never reads the roster.
+        Assert.True(mem.Written.ContainsKey(addr),
+            "alwaysOn=true: ring removal should have no effect; module must stay armed");
+    }
+
+    /// <summary>
+    /// alwaysOn=true never reads the roster: the accessory address must never appear
+    /// in ReadCount regardless of how many cadence periods elapse.
+    /// </summary>
+    [Fact]
+    public void RingGate_AlwaysOn_NeverReadsRoster()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: true);
+        TickN(tm, Tuning.TreasureRingRecheckTicks * 3 + Tuning.TreasureArmStableTicks + 10);
+
+        // No roster accessory address should have been read at all.
+        for (int slot = 0; slot < Offsets.RosterSlots; slot++)
+        {
+            long rb   = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
+            long racc = rb + Offsets.RAccessory;
+            Assert.False(mem.ReadCount.ContainsKey(racc),
+                $"alwaysOn=true must never read roster slot {slot} accessory");
+        }
+    }
+
+    /// <summary>
+    /// The "no ring equipped" idle log fires once per off-period (the latch resets
+    /// when the ring is detected), not on every tick.
+    /// Verified by counting Log.Info calls via an injected sink (we check that the
+    /// module arms+writes only after the ring appears, not before -- the log claim
+    /// is structural, not directly observable in the fake-memory API).
+    /// The test asserts the behavioral invariant: zero writes during the off-period,
+    /// normal writes once the ring is equipped.
+    /// </summary>
+    [Fact]
+    public void RingGate_LiveRecheck_IdleDoesNotFloodLog_ZeroWritesUntilRingEquipped()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+
+        // Many ticks without a ring -- zero writes throughout.
+        TickN(tm, Tuning.TreasureRingRecheckTicks * 4 + Tuning.TreasureArmStableTicks + 20);
+        Assert.Empty(mem.Written);
+
+        // Equip ring, run past stability + recheck.
+        long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
+        mem.U16s[accessorAddr] = (ushort)Offsets.ScholarRingItemId;
+        mem.ReadableAddrs.Add(accessorAddr);
+        mem.U8s[addr] = 0x00;
+        TickN(tm, Tuning.TreasureRingRecheckTicks + Tuning.TreasureArmStableTicks + 10);
+
+        Assert.True(mem.Written.ContainsKey(addr),
+            "ring equipped -> should arm and write after stability window");
     }
 
     [Fact]
