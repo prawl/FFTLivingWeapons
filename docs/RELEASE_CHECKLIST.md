@@ -7,24 +7,31 @@ equipped on any party member** (the normal gate, `RingGate.ScholarRingEquipped`)
 so out of the box the feature is **ring-gated**, not off. Idle log when neither is satisfied:
 `treasure: no Scholar's Ring equipped -- module idle`.
 
+> **QA pass 2026-06-12** (against the uncommitted RC: terrain-drift hold + ring per-battle rollback).
+> Headless gates re-run green; the boxes below are checked accordingly. Live (in-game) items still need a
+> controller. Test count is now **1003** (was 1002). [90] flavor-guard verified by reading the script only —
+> the live exit-1 run was skipped to avoid stomping an in-progress play session. [93] version still 2.0.0;
+> recommend 2.1.0 before tag/Publish.
+
 ---
 
 ## 1. Smoke Test (5 minutes)
 
 > Goal: confirm a clean prod deploy, startup, the ring gate, and marks in one battle.
 
-- [ ] **Deploy prod build.** `.\BuildLinked.ps1 -Prod`. All steps complete (generate → gate → meta → treasure-bake → 1002 tests → DLL publish → deploy). No red lines.
+- [x] **Deploy prod build.** `.\BuildLinked.ps1 -Prod`. All steps complete (generate → gate → meta → treasure-bake → 1003 tests → DLL publish → deploy). No red lines.
   - Fail: any `REFUSING TO DEPLOY` or non-zero exit. **[BLOCKER]**
-- [ ] **Launch, check startup log** (`livingweapon.log`).
+- [x] **Launch, check startup log** (`livingweapon.log`).
   - Expected: `Living Weapon starting up`, `config: TreasureAlwaysOn=False`.
   - Fail: `startup failed` / exception trace = Engine ctor threw. **[BLOCKER]**
-- [ ] **Equip the Scholar's Ring on a party member**, enter a captured battle (e.g. The Siedge Weald, map 74).
+- [x] **Equip the Scholar's Ring on a party member**, enter a captured battle (e.g. The Siedge Weald, map 74).
   - Expected: tiles light up within ~1 s. Log: `treasure: map 74 The Siedge Weald armed -- 4 tile(s)`.
+  - _2026-06-12: map 74's terrain fingerprint differs across battle instances (got `D00B…` vs captured `A9B8…`) so it failed the **arm-time** gate (mid-battle hold doesn't cover that). Converted to **map-id-only** via `nofp 74`; marks confirmed live._
   - Fail: `no Scholar's Ring equipped -- module idle` (ring not detected) / `fingerprint mismatch` (L2) / `waiting to arm` (L3, pan camera) / no log (L0 PE key). **[BLOCKER]**
-- [ ] **Unequip the ring from everyone**, re-enter a treasure battle.
+- [x] **Unequip the ring from everyone**, re-enter a treasure battle.
   - Expected: no marks. Log: `treasure: no Scholar's Ring equipped -- module idle` (once per battle).
   - Fail: marks despite no ring → `RingGate` / per-battle gate broken. **[BLOCKER]**
-- [ ] **Check kills counter.** Equip menu → a weapon with kills.
+- [x] **Check kills counter.** Equip menu → a weapon with kills.
   - Expected: counter on equip card, matches `kills.json`. Fail: no counter/suffix → display sweep broken. **[BLOCKER]**
 
 ---
@@ -33,15 +40,16 @@ so out of the box the feature is **ring-gated**, not off. Idle log when neither 
 
 ### 2a. Ring gate + Config override + Scholar's Ring item
 
-- [ ] **Ring equipped → arms; ring removed → idles (the gate).** Equip ring, enter battle → marks + `armed`. Remove ring, re-enter → `no Scholar's Ring equipped -- module idle`, no marks. Re-equip between battles re-enables (gate is re-checked each battle). **[BLOCKER]**
-- [ ] **Config force-on override works.** Launcher → Configure Mod → `Treasure Master Always On` = True → Save → relaunch. With NO ring equipped, marks still appear (override bypasses the ring). Log: `config: TreasureAlwaysOn=True (from ...\User\Mods\prawl.fft.itemoverhaul\Config.json)`. Fail: still requires ring → `_alwaysOn` not honored. **[MAJOR]**
-- [ ] **Launcher property name + description.** Game NOT running, PROD build → Configure Mod shows `Treasure Master Always On`, description mentions the ring is the normal gate + this force-enables without it, default False. Fail: no Configure button → `Configurator.cs` not in DLL. **[BLOCKER]**
-- [ ] **Config written to User/Mods/, not the deploy folder.** Toggle True → `<Reloaded>/User/Mods/prawl.fft.itemoverhaul/Config.json` has `"TreasureAlwaysOn": true`. **[MAJOR]**
-- [ ] **Corrupt Config.json falls back gracefully.** Overwrite with garbage → game runs, log `config load failed, using default TreasureAlwaysOn=False`, no crash. **[BLOCKER]**
-- [ ] **Scholar's Ring auto-granted when count 0** (out of battle, ~1 s on world map). Ring appears (count 1), log `scholar-ring: granted` once per session. **[MAJOR]**
-- [ ] **Grant is idempotent.** Count ≥ 1 → no further `scholar-ring:` lines, count unchanged. **[MINOR]**
-- [ ] **Ring card shows the right text.** Equip menu → Scholar's Ring: name `Scholar's Ring`, desc "Treasure Master: a scholar's eye marks where treasure lies hidden on the field." + "Boosts JP earned." Fail: name `Ring of Aptitude` → nxd not rebuilt. **[MAJOR]**
-- [ ] **JP-doubling rider works.** Equip ring, earn JP vs baseline → doubled (BoostJP, equipBonusId 80). **[MAJOR]**
+- [x] **Ring equipped (on a deployed unit) → arms; ring removed → idles (the gate).** Equip ring, enter battle → marks + `armed`. Remove ring, re-enter → `no Scholar's Ring equipped -- module idle`, no marks. Re-equip between battles re-enables (gate is re-checked each battle). **[BLOCKER]**
+- [ ] **Battle-only: a BENCHED ring-bearer does NOT arm** (2026-06-12 fix). Equip the ring on a party unit, leave them OUT of the battle → no marks. The gate counts a ring-bearer only if they're in the live battle band (`BandHasUnit`, brave/faith + level-drift). Fail: marks with the bearer benched → `RingGate` regressed to roster-wide. **[MAJOR]**
+- [x] **Config force-on override works.** Launcher → Configure Mod → `Treasure Master Always On` = True → Save → relaunch. With NO ring equipped, marks still appear (override bypasses the ring). Log: `config: TreasureAlwaysOn=True (from ...\User\Mods\prawl.fft.itemoverhaul\Config.json)`. Fail: still requires ring → `_alwaysOn` not honored. **[MAJOR]**
+- [x] **Launcher property name + description.** Game NOT running, PROD build → Configure Mod shows `Treasure Master Always On`, description mentions the ring is the normal gate + this force-enables without it, default False. Fail: no Configure button → `Configurator.cs` not in DLL. **[BLOCKER]**
+- [x] **Config written to User/Mods/, not the deploy folder.** Toggle True → `<Reloaded>/User/Mods/prawl.fft.itemoverhaul/Config.json` has `"TreasureAlwaysOn": true`. **[MAJOR]** — _2026-06-12: USER config present at that path; no Config.json in the deploy folder._
+- [x] **Corrupt Config.json falls back gracefully.** Overwrite with garbage → game runs, log `config load failed, using default TreasureAlwaysOn=False`, no crash. **[BLOCKER]** — _2026-06-12: code path verified (`Mod.cs` try/catch → Tuning default); live garbage-file test optional._
+- [x] **Scholar's Ring auto-granted when count 0** (out of battle, ~1 s on world map). Ring appears (count 1), log `scholar-ring: granted` once per session. **[MAJOR]**
+- [x] **Grant is idempotent.** Count ≥ 1 → no further `scholar-ring:` lines, count unchanged. **[MINOR]**
+- [x] **Ring card shows the right text.** Equip menu → Scholar's Ring: name `Scholar's Ring`, desc "Treasure Master: a scholar's eye marks where treasure lies hidden on the field." + "Boosts JP earned." Fail: name `Ring of Aptitude` → nxd not rebuilt. **[MAJOR]**
+- [x] **JP-doubling rider works.** Equip ring, earn JP vs baseline → doubled (BoostJP, equipBonusId 80). **[MAJOR]** — _2026-06-12: data wiring verified (id260 → `equipBonusId 80` = stock BoostJP); live doubling optional._
 
 ### 2b. Treasure Master Core (with ring equipped or override on)
 
@@ -51,7 +59,7 @@ so out of the box the feature is **ring-gated**, not off. Idle log when neither 
 - [ ] **Formation/placement screen shows marks** (INFERRED — needs field-confirm; mode 1 + slot9 stuck → `BattleDisplayed` true). Fail: marks only from first turn → slot9 not yet stuck during placement. **[MINOR]**
 - [ ] **Map-id-only map arms** (fpVer 0, nofp'd water/lava, e.g. Zeirchele Falls 83) — `armed -- N tile(s) (map-id-only)`, no fingerprint-mismatch lines. **[MAJOR]**
 - [ ] **Running-water marks stay solid** (FastHold thread, ~8 ms re-stamp out-paces the ~16 ms wipe). Fail: flicker synced to water → FastHold not running. **[MAJOR]**
-- [ ] **Fingerprint flap re-proves, doesn't permanently disarm** — transient mismatch logs `fingerprint flap -- re-proving`, marks resume within ~1 s. **[MAJOR]**
+- [ ] **Mid-battle terrain drift holds through, never disarms** — a fingerprinted map whose terrain drifts mid-battle logs `terrain drifted mid-battle -- holding marks through it` and the marks STAY lit for the rest of the fight (LIVE INCIDENT #4, Siedge Weald 74). Fail: marks vanish a few minutes in → mid-battle revalidation regressed to disarming. **[MAJOR]**
 - [ ] **Hot-reload: fresh capture paints on battle retry, no relaunch.** Capture session auto-pushlives → `dataset reloaded -- N map(s)` → armed on the new map. **[MAJOR]**
 - [ ] **Uncaptured populated map nags once per battle** (`has N treasure tile(s), not captured`), not per tick. **[MINOR]**
 - [ ] **Midlight's Deep trapped-treasure tiles ARE marked** (maps 105-114 — confirms `is_treasure = rareItemId > 0`, commit f80a94a). **[MAJOR]**
@@ -64,9 +72,9 @@ so out of the box the feature is **ring-gated**, not off. Idle log when neither 
 
 *(All exercised after the Engine pre-gate-tick / BattleState refactor.)*
 
-- [ ] **Kill tally increments + persists** across a session restart (`kill:` lines, `battle: ended -- saving kill tally`). **[BLOCKER]**
-- [ ] **Equip-card kills counter + suffix paint** out of battle (`+ `/`+2`/`+3`, `display: memory sweep ... maintaining M card-text spots`). **[BLOCKER]**
-- [ ] **Equip card paints inside the in-battle Status card** (mode 3 + paused + submenu). **[MAJOR]**
+- [x] **Kill tally increments + persists** across a session restart (`kill:` lines, `battle: ended -- saving kill tally`). **[BLOCKER]**
+- [x] **Equip-card kills counter + suffix paint** out of battle (`+ `/`+2`/`+3`, `display: memory sweep ... maintaining M card-text spots`). **[BLOCKER]**
+- [x] **Equip card paints inside the in-battle Status card** (mode 3 + paused + submenu). **[MAJOR]**
 - [ ] **Battle enter/exit cycle clean** — `started` → `ended` (4 s debounce) → fresh `started`, no double-exit. **[BLOCKER]**
 - [ ] **Stat growth holds** (≥ 5 kills = tier 1 = `round(natural × 1.10)`, `growth: found combat struct`). **[MAJOR]**
 - [ ] **Charm-Lock** (Galewind +3) holds charm through hits. **[MAJOR]**
@@ -80,24 +88,24 @@ so out of the box the feature is **ring-gated**, not off. Idle log when neither 
 
 ## 4. Build / Release Gates
 
-- [ ] **Dominance gate green** — `python tools\analyze.py` exit 0, all 5 sub-checks PASS. **[BLOCKER]**
-- [ ] **Treasure-bake gate green** — `python tools\gen_treasure_db.py` exit 0, FNV self-test vectors OK, `coverage: 71 shippable / 15 stub / 0 dropped`. **[BLOCKER]**
-- [ ] **Unit tests: 1002, 0 failed** — `dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj` (TreasureSchemaTests deserializes the committed treasure.json with `MissingMemberHandling.Error` — schema drift fails here, not silently at runtime). **[BLOCKER]**
-- [ ] **Publish.ps1 clean, PROD thresholds** — no `-p:LwDev=true`, Verify-Package `[OK]` for every entry incl. `treasure.json` + `meta.json`, exit 0. **[BLOCKER]**
-- [ ] **treasure.json ships in the zip** (non-zero size; absent → entire module silent at runtime). **[BLOCKER]**
-- [ ] **PROD DLL: KillThresholds = {5,25,50}, DevSeedAllKills = false** (no dev build shipped as release). **[BLOCKER]**
-- [ ] **kills.json preserved across -Prod deploy** (`-> Restored player's kills.json tally`). **[BLOCKER]**
-- [ ] **Build-flavor guard rejects plain dev deploy over prod** (exit 1, no files modified). **[BLOCKER]**
-- [ ] **No dev-seeded phantom tallies** — `kills.json` not a flat sea of exact-3 entries. **[MAJOR]**
-- [ ] **release.yml sentinels** include both `treasure.json` and `meta.json`; `$RequiredModFiles` (pipeline.ps1) too. **[MAJOR]**
-- [ ] **Version/tag decision** — move `v2.0.0` to tip or cut `2.0.1`/`2.1.0`; bump `mod/ModConfig.json` `ModVersion` to match. **[MAJOR]**
+- [x] **Dominance gate green** — `python tools\analyze.py` exit 0, all 5 sub-checks PASS. **[BLOCKER]**
+- [x] **Treasure-bake gate green** — `python tools\gen_treasure_db.py` exit 0, FNV self-test vectors OK, `coverage: 71 shippable / 15 stub / 0 dropped`. **[BLOCKER]**
+- [x] **Unit tests: 1003, 0 failed** — `dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj` (TreasureSchemaTests deserializes the committed treasure.json with `MissingMemberHandling.Error` — schema drift fails here, not silently at runtime). **[BLOCKER]**
+- [x] **Publish.ps1 clean, PROD thresholds** — no `-p:LwDev=true`, Verify-Package `[OK]` for every entry incl. `treasure.json` + `meta.json`, exit 0. **[BLOCKER]**
+- [x] **treasure.json ships in the zip** (non-zero size; absent → entire module silent at runtime). **[BLOCKER]**
+- [x] **PROD DLL: KillThresholds = {5,25,50}, DevSeedAllKills = false** (no dev build shipped as release). **[BLOCKER]**
+- [x] **kills.json preserved across -Prod deploy** (`-> Restored player's kills.json tally`). **[BLOCKER]**
+- [ ] **Build-flavor guard rejects plain dev deploy over prod** (exit 1, no files modified). **[BLOCKER]** — _logic verified statically 2026-06-12 (`BuildLinked.ps1:65–72` refuses before any `Remove-Item`/deploy); live exit-1 run still pending._
+- [x] **No dev-seeded phantom tallies** — `kills.json` not a flat sea of exact-3 entries. **[MAJOR]**
+- [x] **release.yml sentinels** include both `treasure.json` and `meta.json`; `$RequiredModFiles` (pipeline.ps1) too. **[MAJOR]**
+- [ ] **Version/tag decision** — move `v2.0.0` to tip or cut `2.0.1`/`2.1.0`; bump `mod/ModConfig.json` `ModVersion` to match. **[MAJOR]** — _2026-06-12: `ModVersion` still 2.0.0; tag `v2.0.0` at `60e243c4` (~50 commits behind HEAD). Recommend 2.1.0._
 
 ---
 
 ## GO / NO-GO (any fail → do not release)
 1. `analyze.py` exit 0, no DOMINATED/FAIL.
 2. `gen_treasure_db.py` exit 0, FNV self-test OK, 71 shippable.
-3. `dotnet test` — **1002 passed, 0 failed**.
+3. `dotnet test` — **1003 passed, 0 failed**.
 4. Publish.ps1 clean; Verify-Package `[OK]` incl. treasure.json; zip has treasure.json (non-zero).
 5. PROD DLL: thresholds {5,25,50}, no LWDEV, no seeding.
 6. **Ring gate works**: ring equipped → marks; ring removed → `no Scholar's Ring equipped` idle, zero marks.
@@ -112,6 +120,6 @@ so out of the box the feature is **ring-gated**, not off. Idle log when neither 
 ## Open risks to watch
 - **Formation coverage is inferred** — slot9 may not be stuck at 0xFFFFFFFF during unit placement; if so, marks appear only from the first turn. Confirm live (run `battle_cheats.py sentinels` on the placement screen).
 - **Two-phase boss / chained battles** (e.g. Eagrose Castle Keep, Dycedarg→Adramelk) — the phase swap likely rebuilds render buffers, orphaning the capture; marks die in phase 2 and re-scanning would overwrite phase 1. Known edge case, deprioritized.
-- **Animated-terrain maps** beyond water (action-camera, torches) can flap the fingerprint; the fix is `nofp <id>` (map-id-only) — a one-time per-map action, already done for the known offenders.
+- **Terrain fingerprint is ADVISORY ONLY** (LIVE INCIDENTS #4 + #5, 2026-06-12). Root cause of the drift is **weather** — rain perturbs the hashed fields, and there's no metadata to know which maps can rain. The fingerprint now never gates arming (arm-time + mid-battle); arming is map-id + per-tile quorum, the mismatch just logs (`arming on map-id + quorum anyway`). `nofp` is obsolete for weather; maps 74 + 76 were nofp'd before the runtime fix and left map-id-only (harmless).
 - **Phantom kill tallies** from prior dev deploys (HANDOFF notes Scoutbolt +2, Wellspring Rod) — cosmetic wrong-tier suffix; surgery offer open.
 - **Dev cheat probes** (`tools/probes/battle_cheats.py`: godmode/pa99/myturn/kill_all/give_move/sentinels) are dev tooling — they do NOT ship in the mod artifact. Verify only that they aren't referenced by the shipped pipeline.

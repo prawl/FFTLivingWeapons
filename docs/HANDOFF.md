@@ -37,9 +37,12 @@ gate). A `BuildLinked.ps1` (no `-Prod`) over this install REFUSES without `-Prod
   auto-`pushlive`s → marks appear on battle retry with **no relaunch**.
 - **Scholar's Ring gate** (`RingGate.cs`): the equipped accessory id lives at **roster `+0x12` (u16)**
   (probe-confirmed: RosterBase 0x1411A18D0 + slot*0x258 + 0x12; ring=260, siblings 218/224/226/232).
-  Gate = `config alwaysOn || any roster slot's accessory == 260`, **re-checked live every ~1s** so removing
-  the ring mid-battle (Re-equip) fades the marks and re-equipping restores them. `alwaysOn` is a force-on
-  override that never reads the roster.
+  Gate = `config alwaysOn || a roster ring-bearer is DEPLOYED in the battle`. **Battle-only** (2026-06-12): a
+  ring-bearer found in the roster only counts if that unit is present in the live battle band — matched by
+  (brave,faith) + level-drift (the band stores no accessory id). A **benched** ring-bearer is ignored, like
+  any equipped effect on a unit not on the field (`BandHasUnit`). **Checked once per battle** (read when the
+  module first arms, cached; mid-battle unequip doesn't drop marks; re-read next battle via ResetBattle). The
+  live ~1s re-check was rolled back the same day. `alwaysOn` is a force-on override that never reads roster/band.
 - **Scholar's Ring item (id 260)**: description leads with "Treasure Master: a scholar's eye marks where
   treasure lies hidden on the field." + "Boosts JP earned." (nxd rebuilt); **auto-granted** when the player
   has zero (`ScholarRing.cs`, out-of-battle, idempotent). The JP-doubling rider is unchanged.
@@ -83,8 +86,14 @@ Live verification + 11 GO/NO-GO blockers + open risks. Next steps:
 2. **Two-phase boss maps** (Dycedarg→Adramelk, Eagrose Castle Keep 10): the Lucavi swap rebuilds the render
    buffers → the phase-1 capture is orphaned in phase 2; re-scanning would overwrite phase 1. Known edge
    case, deprioritized.
-3. **Animated-terrain maps** beyond water can flap the fingerprint → `nofp <id>` (one-time). Map 74 was the
-   last v2 holdout (refp'd to v3 this session).
+3. **Terrain fingerprint is now ADVISORY ONLY — FIXED 2026-06-12 (LIVE INCIDENTS #4 + #5).** The v1→v2→v3
+   fingerprint kept drifting: first mid-battle (#4, Siedge Weald), then traced to **weather** (#5) — rain
+   perturbs the hashed fields, so a map captured clear fails the *arm-time* gate in a rainy instance (found on
+   74/76/79/81, all raining; no weather metadata exists to enumerate them, so per-map `nofp` is unwinnable —
+   a clear-captured map silently shows no tiles in rain). Fix: the fingerprint **never gates arming** (arm-time
+   + mid-battle both advisory; logs `fingerprint mismatch -- arming ... anyway`). Containment = build-key (L0)
+   + per-tick map-id (L1, unique per map) + per-tile resting quorum (L3); `BattleDisarmed` removed; `nofp`
+   obsolete for weather. Maps 74 + 76 were nofp'd before the runtime fix (harmless; left map-id-only).
 4. **Story bosses** ignore band HP=0 writes (scripted death) — kill_all KOs grunts, not story bosses; drop
    the boss to 1 HP and land a real hit, or fight it with godmode+pa99.
 5. **Phantom kill tallies** (HANDOFF history: Scoutbolt +2, Wellspring Rod) — cosmetic wrong-tier suffix;
