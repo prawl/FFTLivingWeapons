@@ -3,7 +3,7 @@
 Everything below is COMMITTED on branch **`treasure-master`** (~50 commits ahead of `main`, **1006 tests
 green**, both gates green, **NOT merged**). This session built the entire **Treasure Master** feature from
 the plan in `docs/TREASURE_MASTER_PLAN.md` to a deployed, ring-gated, fully-captured release candidate — plus
-a dev cheat kit that grew out of one brutal boss fight. The release runbook is `docs/RELEASE_CHECKLIST.md`;
+a dev cheat kit that grew out of one brutal boss fight. The release runbook is `docs/2.0_RELEASE_CHECKLIST.md`;
 the next decision is **verify → tag → merge → Publish**.
 
 ## The live install (IMPORTANT — current state)
@@ -69,7 +69,7 @@ team byte, guests share enemy slots), **revive**, **give_move** (243=Master Tele
 **sentinels** (battle-state dump for the formation gate). Capture tooling: `treasure_flags.py`
 (session/mapid/status/verify/refp/**nofp**/pushlive) + `gen_treasure_db.py` (the bake gate).
 
-## Release checklist — `docs/RELEASE_CHECKLIST.md`
+## Release checklist — `docs/2.0_RELEASE_CHECKLIST.md`
 
 Live verification + 11 GO/NO-GO blockers + open risks. Next steps:
 - Work the smoke test + per-feature + regression + build/release sections (the ring gate, fingerprinted +
