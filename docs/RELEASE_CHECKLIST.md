@@ -41,7 +41,7 @@ so out of the box the feature is **ring-gated**, not off. Idle log when neither 
 ### 2a. Ring gate + Config override + Scholar's Ring item
 
 - [x] **Ring equipped (on a deployed unit) → arms; ring removed → idles (the gate).** Equip ring, enter battle → marks + `armed`. Remove ring, re-enter → `no Scholar's Ring equipped -- module idle`, no marks. Re-equip between battles re-enables (gate is re-checked each battle). **[BLOCKER]**
-- [ ] **Battle-only: a BENCHED ring-bearer does NOT arm** (2026-06-12 fix). Equip the ring on a party unit, leave them OUT of the battle → no marks. The gate counts a ring-bearer only if they're in the live battle band (`BandHasUnit`, brave/faith + level-drift). Fail: marks with the bearer benched → `RingGate` regressed to roster-wide. **[MAJOR]**
+- [x] **Battle-only: a BENCHED ring-bearer does NOT arm** (2026-06-12 fix). Equip the ring on a party unit, leave them OUT of the battle → no marks. The gate counts a ring-bearer only if they're in the live battle band (`BandHasUnit`, brave/faith + level-drift). Fail: marks with the bearer benched → `RingGate` regressed to roster-wide. **[MAJOR]**
 - [x] **Config force-on override works.** Launcher → Configure Mod → `Treasure Master Always On` = True → Save → relaunch. With NO ring equipped, marks still appear (override bypasses the ring). Log: `config: TreasureAlwaysOn=True (from ...\User\Mods\prawl.fft.itemoverhaul\Config.json)`. Fail: still requires ring → `_alwaysOn` not honored. **[MAJOR]**
 - [x] **Launcher property name + description.** Game NOT running, PROD build → Configure Mod shows `Treasure Master Always On`, description mentions the ring is the normal gate + this force-enables without it, default False. Fail: no Configure button → `Configurator.cs` not in DLL. **[BLOCKER]**
 - [x] **Config written to User/Mods/, not the deploy folder.** Toggle True → `<Reloaded>/User/Mods/prawl.fft.itemoverhaul/Config.json` has `"TreasureAlwaysOn": true`. **[MAJOR]** — _2026-06-12: USER config present at that path; no Config.json in the deploy folder._
@@ -53,18 +53,18 @@ so out of the box the feature is **ring-gated**, not off. Idle log when neither 
 
 ### 2b. Treasure Master Core (with ring equipped or override on)
 
-- [ ] **Fingerprinted map arms** (fpVer 2/3, e.g. map 74) — all tiles within ~1 s, `armed` log. **[BLOCKER]**
+- [x] **Fingerprinted map arms** (fpVer 2/3) — all tiles within ~1 s, `armed` log. **[BLOCKER]** — _2026-06-12: log shows map 80 Araguay Woods + map 77 Lenalian (both fpVer 2) `armed -- 4 tile(s)` via map-id+quorum (fingerprint advisory). NB map 74 is now map-id-only._
 - [ ] **Marks persist through enemy turns / cast animations** (the `BattleDisplayed` gate fix — no flicker, no re-arm cycling). Fail: marks vanish on enemy turns → gate regressed to `InLiveBattle`. **[BLOCKER]**
-- [ ] **No marks on the world map** (mode 0) with the feature on. Fail: marks on world map → `battleMode != 0` veto broken. **[BLOCKER]**
+- [x] **No marks on the world map** (mode 0) with the feature on. Fail: marks on world map → `battleMode != 0` veto broken. **[BLOCKER]** — _2026-06-12: code-verified (`BattleState.BattleDisplayed` requires mode != 0; the module only arms when displayed). Quick visual confirm welcome._
 - [ ] **Formation/placement screen shows marks** (INFERRED — needs field-confirm; mode 1 + slot9 stuck → `BattleDisplayed` true). Fail: marks only from first turn → slot9 not yet stuck during placement. **[MINOR]**
-- [ ] **Map-id-only map arms** (fpVer 0, nofp'd water/lava, e.g. Zeirchele Falls 83) — `armed -- N tile(s) (map-id-only)`, no fingerprint-mismatch lines. **[MAJOR]**
+- [x] **Map-id-only map arms** (fpVer 0, nofp'd, e.g. Zeirchele Falls 83 / Siedge Weald 74) — `armed -- N tile(s) (map-id-only)`, no fingerprint-mismatch lines. **[MAJOR]** — _2026-06-12: log `map 74 The Siedge Weald armed -- 4 tile(s) (map-id-only)`._
 - [ ] **Running-water marks stay solid** (FastHold thread, ~8 ms re-stamp out-paces the ~16 ms wipe). Fail: flicker synced to water → FastHold not running. **[MAJOR]**
-- [ ] **Mid-battle terrain drift holds through, never disarms** — a fingerprinted map whose terrain drifts mid-battle logs `terrain drifted mid-battle -- holding marks through it` and the marks STAY lit for the rest of the fight (LIVE INCIDENT #4, Siedge Weald 74). Fail: marks vanish a few minutes in → mid-battle revalidation regressed to disarming. **[MAJOR]**
-- [ ] **Hot-reload: fresh capture paints on battle retry, no relaunch.** Capture session auto-pushlives → `dataset reloaded -- N map(s)` → armed on the new map. **[MAJOR]**
-- [ ] **Uncaptured populated map nags once per battle** (`has N treasure tile(s), not captured`), not per tick. **[MINOR]**
-- [ ] **Midlight's Deep trapped-treasure tiles ARE marked** (maps 105-114 — confirms `is_treasure = rareItemId > 0`, commit f80a94a). **[MAJOR]**
-- [ ] **Game-patch build-key safety** — wrong `timeDateStamp` (OS-temp copy, not repo) → `dataset built for game ... -- disarmed`, no crash, no writes. **[BLOCKER]**
-- [ ] **Absent map is silent** (mapId with no entry → no marks, no nag). **[MINOR]**
+- [ ] **Mid-battle terrain drift holds through, never disarms** — a fingerprinted map whose terrain drifts mid-battle logs `terrain drifted mid-battle -- holding marks through it` and the marks STAY lit for the rest of the fight (LIVE INCIDENT #4, Siedge Weald 74). Fail: marks vanish a few minutes in → mid-battle revalidation regressed to disarming. **[MAJOR]** — _mechanism unit-tested (`Fingerprint_drift_mid_battle_keeps_holding` etc.); awaiting a live confirm on a still-fingerprinted map (74 is now map-id-only, so it can't demonstrate this)._
+- [x] **Hot-reload: fresh capture paints on battle retry, no relaunch.** Capture session auto-pushlives → `dataset reloaded -- N map(s)` → armed on the new map. **[MAJOR]** — _2026-06-12: confirmed indirectly — `nofp 74` mid-session, then marks appeared on battle retry with NO relaunch._
+- [x] **Uncaptured populated map nags once per battle** (`has N treasure tile(s), not captured`), not per tick. **[MINOR]** — _2026-06-12: log shows `map 119 ... has 4 treasure tile(s), not captured` exactly once._
+- [x] **Midlight's Deep trapped-treasure tiles ARE marked** (maps 105-114 — confirms `is_treasure = rareItemId > 0`, commit f80a94a). **[MAJOR]** — _2026-06-12: data-verified — all 10 maps (105-114) have 4 verified tiles each in treasure_addrs.json. Live marking optional._
+- [x] **Game-patch build-key safety** — wrong `timeDateStamp` (OS-temp copy, not repo) → `dataset built for game ... -- disarmed`, no crash, no writes. **[BLOCKER]** — _2026-06-12: code + unit-test verified (`CheckGlobalIdle` L0 build-key compare; `BuildKey_mismatch_zero_writes` test). Live patched-exe test optional._
+- [x] **Absent map is silent** (mapId with no entry → no marks, no nag). **[MINOR]** — _2026-06-12: code-verified (`TickDisarmed`: `found is null -> return`, silent)._
 
 ---
 
