@@ -128,14 +128,6 @@ internal static class Tuning
     /// <summary>Ticks between full fingerprint revalidations while ARMED.</summary>
     public const int TreasureRevalidateEveryNTicks = 30;
 
-    /// <summary>Ticks between live re-reads of the Scholar's Ring roster slot.
-    /// Applies both in DISARMED (EnabledNow cadence before arming) and ARMED
-    /// (on the revalidation pass: if the ring has been removed the module drops
-    /// back to Disarmed so marks fade and re-equipping can re-arm).
-    /// 30 ticks ≈ 1 s at the 33 ms loop -- fast enough to feel responsive without
-    /// reading 20 U16s on every tick.</summary>
-    public const int TreasureRingRecheckTicks = 30;
-
     /// <summary>Maximum arming attempts before logging "waiting to arm" once per battle.
     /// Arming continues indefinitely after the cap -- the log is informational only.</summary>
     public const int TreasureArmAttemptCap = 60;

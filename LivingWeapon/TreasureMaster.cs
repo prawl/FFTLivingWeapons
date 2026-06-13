@@ -6,10 +6,11 @@ namespace LivingWeapon;
 /// Treasure Master: auto-holds bit 0x80 on each treasure tile's render-flag bytes,
 /// keeping treasure tiles lit on the battlefield map while the Scholar's Ring is equipped.
 ///
-/// Four-layer containment -- no write until ALL pass:
+/// Containment -- L0/L1/L3 gate writes; L2 is ADVISORY (LIVE INCIDENT #5):
 ///   L0 build key:  dataset PE key vs live header (global disarm on mismatch).
 ///   L1 map id:     guarded U8 @ LiveBattleMapId, valid 1..127, present in the dataset.
-///   L2 identity:   FNV-1a64 over a fixed-length terrain prefix must match the captured hash.
+///   L2 identity:   ADVISORY ONLY -- FNV-1a64 over the terrain prefix is logged on mismatch
+///                  (per-battle weather perturbs the hashed fields) but never blocks arming.
 ///   L3 per-write:  per-addr Writable guard + ClassifyAddr check; Foreign bytes (off-screen
 ///                  render bytes from camera pan / action camera) are never written. At arm
 ///                  time, a quorum of TreasureMinPlausibleAddrs ok addrs is required; below
@@ -29,7 +30,7 @@ internal sealed partial class TreasureMaster : ISignature
 
     // ── internal state ────────────────────────────────────────────────────────────
 
-    private enum Phase { Disarmed, Arming, Armed, BattleDisarmed }
+    private enum Phase { Disarmed, Arming, Armed }
 
     private TreasureDb            _db;
     private readonly Func<TreasureDb>    _load;
@@ -53,10 +54,9 @@ internal sealed partial class TreasureMaster : ISignature
     private bool      _naggedThisBattle  = false; // stub/missing nag once per battle
     private bool      _capLoggedThisBattle = false;
     private bool      _foreignLoggedThisBattle = false; // armed off-screen log once per battle
-    private bool      _flapLoggedThisBattle = false;    // fingerprint-flap re-prove log once per battle
-    private int       _ringRecheckCountdown = 0;        // ticks until the next ring re-read
-    private bool      _ringEquipped = false;            // last read result from RingGate
-    private bool      _ringIdleLoggedThisOffPeriod = false; // idle nag logged once per off-period
+    private bool      _flapLoggedThisBattle = false;    // fingerprint-mismatch log once per battle (arm or mid-battle)
+    private bool      _enabledThisBattle = false;       // cached ring-gate result (cached only once TRUE)
+    private bool      _ringIdleLoggedThisBattle = false; // idle nag logged once per battle
 
     private int       _stampCheckCountdown = 0;   // ticks until the next stamp comparison
     private DateTime? _lastStamp = null;           // stamp seen at the last check (null = not yet checked)
@@ -111,9 +111,8 @@ internal sealed partial class TreasureMaster : ISignature
         _capLoggedThisBattle        = false;
         _foreignLoggedThisBattle    = false;
         _flapLoggedThisBattle       = false;
-        _ringRecheckCountdown       = 0;     // re-read the ring immediately on the first tick
-        _ringEquipped               = false;
-        _ringIdleLoggedThisOffPeriod = false;
+        _enabledThisBattle          = false;
+        _ringIdleLoggedThisBattle   = false;
         // _globalIdle and _globalIdleChecked persist -- the L0 check is startup-once.
         _fastHold.Publish(null);    // immediacy on battle-exit: stop holding before Tick runs again
     }
@@ -169,24 +168,11 @@ internal sealed partial class TreasureMaster : ISignature
             return;
         }
 
-        // Per-tick ring countdown: refreshes _ringEquipped at most once per
-        // TreasureRingRecheckTicks ticks (~1 s).  Skipped when alwaysOn (roster never read).
-        if (!_alwaysOn && --_ringRecheckCountdown <= 0)
-        {
-            _ringRecheckCountdown = Tuning.TreasureRingRecheckTicks;
-            bool wasEnabled = _ringEquipped;
-            _ringEquipped = RingGate.ScholarRingEquipped(_mem);
-            // Reset idle-log latch on off->on transition so each off-period logs exactly once.
-            if (_ringEquipped && !wasEnabled)
-                _ringIdleLoggedThisOffPeriod = false;
-        }
-
         switch (_phase)
         {
             case Phase.Disarmed:      TickDisarmed(); break;
             case Phase.Arming:        TickArming();   break;
             case Phase.Armed:         TickArmed();    break;
-            case Phase.BattleDisarmed: break;         // inert until ResetBattle
         }
 
         // Single publish point: hold exactly when phase==Armed AND inLive.
@@ -266,9 +252,29 @@ internal sealed partial class TreasureMaster : ISignature
             return;
         }
 
-        // Live ring gate: re-read the roster on a cadence (~1 s) rather than once per battle.
-        // alwaysOn bypasses the roster read entirely and always returns true.
-        if (!EnabledNow()) return;
+        // Per-battle ring gate: re-evaluate each disarmed tick until enabled, then cache for the
+        // battle. Re-checking (not caching the first result) is load-bearing: on a fresh battle
+        // LOAD the map id stabilises before the live band finishes populating, so caching a
+        // premature "no" stranded a deployed ring-bearer's marks for the whole battle (live
+        // 2026-06-12). Once enabled the result sticks, so a mid-battle unequip doesn't drop marks.
+        // alwaysOn bypasses the roster/band read entirely (force-on override).
+        if (!_enabledThisBattle)
+        {
+            _enabledThisBattle = _alwaysOn || RingGate.ScholarRingEquipped(_mem);
+            if (!_enabledThisBattle)
+            {
+                // Nag once ONLY when there's no ring in the party at all. A ring on a benched
+                // unit -- or one whose band entry is still loading -- stays silent, not a "no
+                // ring" error (the band cross-check just hasn't found a deployed bearer yet).
+                if (!_ringIdleLoggedThisBattle && !_alwaysOn && !RingGate.ScholarRingInRoster(_mem))
+                {
+                    _ringIdleLoggedThisBattle = true;
+                    Log.Info("treasure: no Scholar's Ring equipped -- module idle " +
+                             "(equip the Scholar's Ring on a unit in this battle to enable treasure marks)");
+                }
+                return;
+            }
+        }
 
         // Has tiles + ring gate open: transition to ARMING.
         _map         = found;
@@ -282,24 +288,19 @@ internal sealed partial class TreasureMaster : ISignature
     {
         var map = _map!;
 
-        // L2 fingerprint gate: skipped for map-id-only maps (water/lava: terrain animates
-        // on every re-entry; no stable hash is possible across instances).
-        if (!map.IsMapIdOnly)
+        // Advisory fingerprint check -- TELEMETRY ONLY, never blocks arming (LIVE INCIDENT #5).
+        // Terrain fingerprints proved unreliable as a gate: per-battle weather (rain) perturbs
+        // the hashed terrain fields, so a map captured in one weather state fails to match in
+        // another -- and there is no data to know which maps can weather. Containment is carried
+        // by the build key (L0), the per-tick map-id match (L1, unique per map) and the per-tile
+        // resting-byte audit + quorum below (L3). A mismatch is logged once per battle as a drift
+        // census but does NOT disarm. Map-id-only maps have no fingerprint to check.
+        if (!map.IsMapIdOnly && !_flapLoggedThisBattle && !_audit.FingerprintMatches(map))
         {
-            if (!_audit.FingerprintMatches(map))
-            {
-                _armAttempts++;
-                if (_armAttempts >= Tuning.TreasureArmAttemptCap && !_capLoggedThisBattle)
-                {
-                    _capLoggedThisBattle = true;
-                    var d = _audit.FingerprintDiag(map);
-                    Log.Info($"treasure: map {map.MapId} fingerprint mismatch -- " +
-                             $"disarmed for battle (readOk={d.ReadOk} fpVer={d.FpVer} len={d.Len} " +
-                             $"got={d.Got:X} want={d.Expected:X})");
-                    _phase = Phase.BattleDisarmed;
-                }
-                return;
-            }
+            _flapLoggedThisBattle = true;
+            var d = _audit.FingerprintDiag(map);
+            Log.Info($"treasure: map {map.MapId} fingerprint mismatch -- arming on map-id + quorum anyway " +
+                     $"(weather/terrain drift; readOk={d.ReadOk} fpVer={d.FpVer} got={d.Got:X} want={d.Expected:X})");
         }
 
         var (verdict, _) = _audit.AuditAddrs(map, Tuning.TreasureMinPlausibleAddrs);
@@ -349,40 +350,26 @@ internal sealed partial class TreasureMaster : ISignature
         }
         _badMapTicks = 0;
 
-        // Ring gate: checked every ARMED tick (EnabledNow reads cached _ringEquipped,
-        // refreshed by the per-tick countdown in Tick -- no extra roster I/O here).
-        // alwaysOn=true: EnabledNow short-circuits immediately, no roster read ever.
-        if (!EnabledNow())
-        {
-            Log.Info("treasure: Scholar's Ring removed -- treasure marks off " +
-                     "(re-equip to restore)");
-            _stableTicks = 0;   // force re-accumulation so DISARMED re-arms cleanly
-            _phase       = Phase.Disarmed;
-            _fastHold.Publish(null);
-            return;
-        }
-
-        // Periodic fingerprint revalidation: skipped for map-id-only maps.
-        // Water/lava maps have no fingerprint; the map-id re-check above is the only guard.
-        _revalidateTick++;
-        if (_revalidateTick >= Tuning.TreasureRevalidateEveryNTicks)
+        // Mid-battle fingerprint check -- INFORMATIONAL ONLY (skipped for map-id-only maps,
+        // and once the first drift has been logged this battle).
+        //
+        // Terrain identity was already proven at ARM time (TickArming); the per-tick map-id
+        // re-check above is the live "still in this battle" guard, and the per-addr ClassifyAddr
+        // gate in the hold loop backstops stray writes. A fingerprinted map whose "static"
+        // terrain fields drift mid-battle (LIVE INCIDENT #4: Siedge Weald map 74 -- fields
+        // {2,3,4,5} changed ~26 s into the SAME battle) must NOT disarm: the old behavior
+        // dropped to ARMING, stopped holding, and -- when the new terrain state persisted --
+        // permanently disarmed for the battle, killing the marks for the rest of the fight. We
+        // log the first drift per battle (a free in-the-wild drift census) and keep holding.
+        if (!map.IsMapIdOnly && !_flapLoggedThisBattle
+                && ++_revalidateTick >= Tuning.TreasureRevalidateEveryNTicks)
         {
             _revalidateTick = 0;
-
-            if (!map.IsMapIdOnly && !_audit.FingerprintMatches(map))
+            if (!_audit.FingerprintMatches(map))
             {
-                // Transition back to ARMING rather than permanent BattleDisarmed.
-                // TickArming will re-prove: fingerprint match + quorum re-arms normally;
-                // persistent mismatch past the attempt cap -> BattleDisarmed once + log.
-                _armAttempts         = 0;
-                _capLoggedThisBattle = false;   // let arming re-use the cap log slot
-                _phase               = Phase.Arming;
-                if (!_flapLoggedThisBattle)
-                {
-                    _flapLoggedThisBattle = true;
-                    Log.Info($"treasure: map {map.MapId} fingerprint flap -- re-proving before holding again");
-                }
-                return;
+                _flapLoggedThisBattle = true;
+                Log.Info($"treasure: map {map.MapId} terrain drifted mid-battle -- " +
+                         $"holding marks through it (fingerprint no longer matches; not a disarm)");
             }
         }
 
@@ -396,35 +383,5 @@ internal sealed partial class TreasureMaster : ISignature
             Log.Info($"treasure: map {map.MapId} {foreign} byte(s) off-flag (tiles off-screen?) " +
                      $"-- skipping those, holding the rest");
         }
-    }
-
-    // ── ring gate helper ──────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Returns true if the module should be active based on the Scholar's Ring gate.
-    ///
-    /// When <see cref="_alwaysOn"/> is true, returns true immediately; the roster is
-    /// never read in this path.
-    ///
-    /// Otherwise reads <see cref="_ringEquipped"/>, which is refreshed by the per-tick
-    /// countdown in <see cref="Tick"/> at most once per
-    /// <see cref="Tuning.TreasureRingRecheckTicks"/> (~1 s).  Logs the idle message
-    /// once per off-period (latch reset on the next off→on transition in Tick).
-    /// </summary>
-    private bool EnabledNow()
-    {
-        if (_alwaysOn) return true;
-
-        if (!_ringEquipped)
-        {
-            if (!_ringIdleLoggedThisOffPeriod)
-            {
-                _ringIdleLoggedThisOffPeriod = true;
-                Log.Info("treasure: no Scholar's Ring equipped -- module idle " +
-                         "(equip the Scholar's Ring to enable treasure marks)");
-            }
-            return false;
-        }
-        return true;
     }
 }

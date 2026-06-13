@@ -21,8 +21,9 @@ namespace LivingWeapon.Tests;
 ///   (4)  Pre-marked 0x81 byte (Held): never written at all.
 ///   (5)  OR-only structural assert: every value in Written has bit 0x80 set.
 ///   (6)  Fingerprint mismatch at arm: zero writes ever + once log.
-///   (7)  Fingerprint corrupted mid-battle (mutate terrain bytes, advance past the
-///        revalidate tick): writes stop after the bad fingerprint is seen.
+///   (7)  Fingerprint drift mid-battle (mutate terrain bytes, advance past the revalidate
+///        tick): writes CONTINUE -- identity is proven at ARM time, so a mid-battle drift is
+///        informational only and never disarms (LIVE INCIDENT #4, Siedge Weald map 74).
 ///   (8)  Map-id flip mid-ARMED: no writes on that tick; full re-arm cycle against the
 ///        new map after the bad-tick threshold.
 ///   (9)  Foreign addrs at arm: foreign addrs are simply skipped; arms when >= minPlausible
@@ -295,31 +296,44 @@ public class TreasureMasterTests
             Assert.NotEqual(0, kv.Value & 0x80);
     }
 
-    // ── (6) Fingerprint mismatch at arm: zero writes ──────────────────────────────
+    // ── (6) Fingerprint mismatch at arm: ARMS ANYWAY (advisory fingerprint) ────────
+    // LIVE INCIDENT #5: terrain fingerprints are advisory only. Per-battle weather (rain)
+    // perturbs the hashed terrain fields, so a captured hash won't match a differently-
+    // weathered instance -- and there is no data to know which maps can weather. Arming is
+    // gated by the per-tile resting-byte quorum (L3), not the fingerprint, so a mismatch
+    // still arms; the mismatch is logged once per battle as telemetry.
 
     [Fact]
-    public void Fingerprint_mismatch_at_arm_zero_writes()
+    public void Fingerprint_mismatch_at_arm_arms_anyway()
     {
         var dir  = TempDir();
         var realTerrain  = new byte[] { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 };
         var wrongTerrain = new byte[] { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00 };
         var addr = TileAddr(5);
-        // DB stores hash for realTerrain, but memory has wrongTerrain
+        // DB stores hash for realTerrain, but memory has wrongTerrain (e.g. it's raining).
         var db = BuildDb(dir, fpLen: realTerrain.Length, fpHash: TerrainFpHash(realTerrain),
             addrs: new[] { (addr, (byte)0x00) });
         var mem = BuildMem(74, wrongTerrain, new[] { addr });
 
         var tm = Make(db, mem);
-        // Arm cap ticks -- none should write
-        TickN(tm, Tuning.TreasureArmStableTicks + Tuning.TreasureArmAttemptCap + 10);
+        StabilizeAndArm(tm);
 
-        Assert.Empty(mem.Written);
+        // The resting tile addr meets quorum, so the module arms and holds despite the
+        // fingerprint mismatch.
+        Assert.True(mem.Written.ContainsKey(addr));
+        Assert.Equal(0x80, mem.Written[addr]);
     }
 
-    // ── (7) Fingerprint corrupted mid-battle ─────────────────────────────────────
+    // ── (7) Fingerprint drift mid-battle: KEEP HOLDING (no disarm) ────────────────
+    // LIVE INCIDENT #4 (Siedge Weald, map 74): a fingerprinted map's "static" terrain
+    // fields drifted ~26 s into the same battle, and the old periodic-revalidation path
+    // permanently disarmed -- killing the marks for the rest of the fight. The mid-battle
+    // fingerprint check is now informational only: identity is proven at ARM time and the
+    // per-tick map-id check guards chained battles, so a mid-battle drift must NOT stop
+    // holding.
 
     [Fact]
-    public void Fingerprint_corrupted_mid_battle_stops_writes()
+    public void Fingerprint_drift_mid_battle_keeps_holding()
     {
         var dir  = TempDir();
         var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
@@ -332,17 +346,25 @@ public class TreasureMasterTests
         StabilizeAndArm(tm);
         Assert.NotEmpty(mem.Written);
 
-        // Corrupt the terrain bytes in memory
+        // Drift the terrain bytes in memory (static fields no longer match the captured hash).
         for (int i = 0; i < terrain.Length; i++)
             terrain[i] ^= 0xFF;
         mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
         mem.Written.Clear();
+        mem.U8s[addr] = 0x00;   // engine cleared the mark
 
-        // Advance past revalidate period so the fingerprint check fires
-        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
+        // Let the old revalidation path fully run its course (revalidate boundary + arm
+        // cap): under the OLD contract the module would now be permanently BattleDisarmed.
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + Tuning.TreasureArmAttemptCap + 10);
 
-        // After the fingerprint fails, no new tile writes (module goes back to ARMING)
-        Assert.Empty(mem.Written);
+        // Clear and prove the module is STILL holding (old behavior: zero writes here).
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+        TickN(tm, 5);
+
+        Assert.True(mem.Written.ContainsKey(addr),
+            "mid-battle fingerprint drift must keep holding, not disarm");
+        Assert.Equal(0x80, mem.Written[addr]);
     }
 
     // ── (8) Map-id flip mid-ARMED ─────────────────────────────────────────────────
@@ -721,18 +743,17 @@ public class TreasureMasterTests
     }
 
     /// <summary>
-    /// Field-0 byte mutates mid-battle (tile height actually changed -- shouldn't happen
-    /// in practice but must be handled gracefully).  The masked hash changes -> module
-    /// transitions back to ARMING, suspends writes.  Once the field-0 byte reverts to the
-    /// original value the hash matches again and the module re-arms, resuming writes.
+    /// v2 map: the hashed field (field-0) drifts mid-battle.  Under the informational-only
+    /// mid-battle check the module KEEPS HOLDING -- it does not suspend or disarm, even past
+    /// the arm attempt cap (the old behavior re-proved, suspended, and eventually disarmed).
     /// </summary>
     [Fact]
-    public void Armed_field0_terrain_mutation_re_proves_then_rearms_on_revert()
+    public void Armed_v2_field0_drift_mid_battle_keeps_holding()
     {
         var dir = TempDir();
         var terrain = new byte[]
         {
-            0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // record 0: field-0=0x05
+            0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // record 0: field-0=0x05 (v2-hashed)
         };
         var addr = TileAddr(51);
         var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHashV2(terrain),
@@ -743,36 +764,30 @@ public class TreasureMasterTests
         StabilizeAndArm(tm);
         Assert.NotEmpty(mem.Written);
 
-        // Mutate field-0 -> hash changes -> fingerprint mismatch on revalidation
+        // Drift field-0 (the v2-hashed field) -> hash no longer matches.
         terrain[0] = 0x09;
         mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+
+        // Let the old revalidation path fully run (boundary + arm cap -> old: BattleDisarmed).
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + Tuning.TreasureArmAttemptCap + 10);
+
+        // Clear and prove it is STILL holding.
         mem.Written.Clear();
-
-        // Advance past revalidate period to trigger the fingerprint check
-        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
-
-        // While re-proving, zero tile writes (module is ARMING again)
-        Assert.Empty(mem.Written);
-
-        // Revert field-0 back to original -> hash matches again -> re-arms
-        terrain[0] = 0x05;
-        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
         mem.U8s[addr] = 0x00;
-
-        // Enough ticks to re-arm: fingerprint matches + addr quorum
-        TickN(tm, Tuning.TreasureArmStableTicks + 10);
+        TickN(tm, 5);
 
         Assert.True(mem.Written.ContainsKey(addr),
-            "after field-0 reverts, fingerprint matches again -> should re-arm and write");
+            "v2 field-0 drift must keep holding (informational check, no disarm)");
     }
 
     /// <summary>
-    /// Re-proving after a fingerprint flap must log "flap" message once per battle,
-    /// NOT "fingerprint changed mid-battle -- disarmed" (the old behavior that triggered
-    /// the live incident complaint).
+    /// A mid-battle drift on the hashed field must not even briefly suspend holding: the
+    /// ticks straight across the revalidate boundary still write.  The old behavior dropped
+    /// to ARMING and published null while it "re-proved", which is what made the marks
+    /// visibly vanish (LIVE INCIDENT #4).
     /// </summary>
     [Fact]
-    public void Armed_field0_mutation_transitions_to_Arming_not_BattleDisarmed()
+    public void Armed_drift_does_not_suspend_holding_across_revalidate_boundary()
     {
         var dir = TempDir();
         var terrain = new byte[]
@@ -787,22 +802,20 @@ public class TreasureMasterTests
         var tm = Make(db, mem);
         StabilizeAndArm(tm);
 
-        // Corrupt field-0 -> revalidation fires -> must go to ARMING (not BattleDisarmed)
+        // Drift field-0, then tick just past the first revalidate boundary -- the exact
+        // point where the old code dropped to ARMING and published null.
         terrain[0] = 0xFF;
         mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 3);
+
+        // Clear what happened during the crossing; the NEXT ticks must still hold (old code
+        // would be re-proving in ARMING here and write nothing).
         mem.Written.Clear();
-        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
-        Assert.Empty(mem.Written);  // suspended during re-prove
-
-        // Now restore AND advance past stability window
-        terrain[0] = 0x07;
-        mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
         mem.U8s[addr] = 0x00;
-        TickN(tm, Tuning.TreasureArmStableTicks + 10);
+        TickN(tm, 3);
 
-        // If BattleDisarmed (old bug), nothing would EVER write again; re-arm proves ARMING
         Assert.True(mem.Written.ContainsKey(addr),
-            "after re-arm from ARMING, should write again; BattleDisarmed would block this forever");
+            "holding must not suspend across the mid-battle drift boundary");
     }
 
     // ── (17) v3 fingerprint: water-map regression ────────────────────────────────
@@ -885,16 +898,20 @@ public class TreasureMasterTests
     }
 
     /// <summary>
-    /// A v3 map whose field-3 (static geometry) mutates triggers re-prove then disarms
-    /// at the attempt cap -- this is a genuinely different map (or data corruption).
+    /// A v3 map whose field-3 (a hashed "static geometry" field) drifts mid-battle KEEPS
+    /// HOLDING.  LIVE INCIDENT #4 proved these fields are not always battle-invariant
+    /// (Siedge Weald, map 74: fields {2,3,4,5} changed ~26 s into the same battle); a
+    /// mid-battle drift is no longer treated as a different map.  The arm-time fingerprint
+    /// gate still proves identity before the first hold; only the mid-battle re-check is
+    /// downgraded to informational.
     /// </summary>
     [Fact]
-    public void V3_field3_mutates_reproves_then_disarms_at_cap()
+    public void V3_static_field_drift_mid_battle_keeps_holding()
     {
         var dir = TempDir();
         var terrain = new byte[]
         {
-            0x10, 0x00, 0x05, 0x06, 0x07, 0x08, 0x00,  // record 0: field-3=0x06
+            0x10, 0x00, 0x05, 0x06, 0x07, 0x08, 0x00,  // record 0: field-3=0x06 (v3-hashed)
         };
         var addr = TileAddr(72);
         var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHashV3(terrain),
@@ -905,22 +922,21 @@ public class TreasureMasterTests
         StabilizeAndArm(tm);
         Assert.NotEmpty(mem.Written);
 
-        // Mutate field-3 -- genuine geometry change, hash changes
-        terrain[3] = 0xAA;  // field-3 changed
+        // Drift field-3 (a v3-hashed field) -- the exact live-incident pattern.
+        terrain[3] = 0xAA;
         mem.TerrainBlocks[Offsets.TerrainGrid] = terrain;
+
+        // Let the old revalidation path fully run (boundary + arm cap -> old: BattleDisarmed).
+        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + Tuning.TreasureArmAttemptCap + 10);
+
+        // Clear and prove it is STILL holding.
         mem.Written.Clear();
+        mem.U8s[addr] = 0x00;
+        TickN(tm, 5);
 
-        // Advance past revalidate period to trigger fingerprint check -> back to ARMING
-        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
-        Assert.Empty(mem.Written);  // suspended during re-prove
-
-        // Advance past the arm attempt cap without fixing the terrain -> BattleDisarmed
-        TickN(tm, Tuning.TreasureArmAttemptCap + 10);
-
-        // Even after more ticks, still no writes (BattleDisarmed until ResetBattle)
-        mem.Written.Clear();
-        TickN(tm, 10);
-        Assert.Empty(mem.Written);
+        Assert.True(mem.Written.ContainsKey(addr),
+            "v3 static-field drift mid-battle must keep holding (LIVE INCIDENT #4)");
+        Assert.Equal(0x80, mem.Written[addr]);
     }
 
     /// <summary>
@@ -966,11 +982,12 @@ public class TreasureMasterTests
     }
 
     /// <summary>
-    /// A v3 map with a v2-computed fpHash does NOT arm (wrong version's hash in the db).
-    /// This guards against accidentally storing the wrong hash for a v3 map.
+    /// A v3 map with a v2-computed fpHash (wrong version's hash) ARMS ANYWAY -- the
+    /// fingerprint is advisory, so a hash mismatch (wrong version or weather drift) no longer
+    /// blocks arming; the per-tile quorum is the gate.
     /// </summary>
     [Fact]
-    public void FingerprintMatches_v3_map_with_v2_hash_does_not_arm()
+    public void FingerprintMatches_v3_map_with_v2_hash_arms_anyway()
     {
         var dir = TempDir();
         var terrain = new byte[]
@@ -978,16 +995,17 @@ public class TreasureMasterTests
             0x10, 0xAA, 0x05, 0x06, 0x07, 0x08, 0xBB,
         };
         var addr = TileAddr(75);
-        // fpVer=3 but fpHash is computed with v2 formula -> mismatch at arm time
+        // fpVer=3 but fpHash is computed with v2 formula -> mismatch (advisory only now).
         var db = BuildDb(dir, fpLen: terrain.Length,
             fpHash: TerrainFpHashV2(terrain),   // wrong hash for v3
             addrs: new[] { (addr, (byte)0x00) }, fpVer: 3);
         var mem = BuildMem(74, terrain, new[] { addr });
 
         var tm = Make(db, mem);
-        TickN(tm, Tuning.TreasureArmStableTicks + Tuning.TreasureArmAttemptCap + 10);
+        StabilizeAndArm(tm);
 
-        Assert.Empty(mem.Written);
+        Assert.True(mem.Written.ContainsKey(addr));
+        Assert.Equal(0x80, mem.Written[addr]);
     }
 
     // ── PinnedBuf fact: 0x80 lands at target, neighbors untouched ─────────────────
@@ -1180,7 +1198,7 @@ public class TreasureMasterTests
     //   (MIO-1) Arms without fingerprint match, even when the live terrain hash is garbage.
     //   (MIO-2) Does NOT disarm on terrain change mid-battle (the water regression).
     //   (MIO-3) A map-id flip still disarms a map-id-only map (live wrong-map guard stays).
-    //   (MIO-4) A fingerprinted map still requires the fingerprint (unchanged path).
+    //   (MIO-4) A fingerprinted map ARMS ANYWAY on a fingerprint mismatch (advisory only).
     //   (MIO-5) Bake: a map-id-only map (verified tiles, null fpHash) ships alongside a
     //            fingerprinted map; both appear in the output.
 
@@ -1332,12 +1350,13 @@ public class TreasureMasterTests
     }
 
     /// <summary>
-    /// (MIO-4) A fingerprinted map (fpHash not null) still requires the fingerprint.
-    /// A mismatch at arm time must still block arming -- the map-id-only shortcut
-    /// must NOT affect the existing fingerprinted code path.
+    /// (MIO-4) A fingerprinted map (fpHash not null) ARMS ANYWAY on a fingerprint mismatch,
+    /// exactly like a map-id-only map: the fingerprint is advisory, so the only gate is the
+    /// per-tile resting quorum. A fingerprinted map and a map-id-only map now behave the same
+    /// at arm time when their terrain doesn't match the captured hash (weather drift).
     /// </summary>
     [Fact]
-    public void Fingerprinted_map_still_requires_fingerprint_unaffected_by_mapidonly()
+    public void Fingerprinted_map_arms_despite_fingerprint_mismatch_like_mapidonly()
     {
         var dir  = TempDir();
         var realTerrain  = new byte[] { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77 };
@@ -1348,13 +1367,14 @@ public class TreasureMasterTests
             fpHash: TerrainFpHash(realTerrain),
             addrs: new[] { (addr, (byte)0x00) });
 
-        // Memory has the wrong terrain -- fingerprint mismatch.
+        // Memory has the wrong terrain -- fingerprint mismatch (e.g. it's raining).
         var mem = BuildMem(74, wrongTerrain, new[] { addr });
 
         var tm = Make(db, mem);
-        TickN(tm, Tuning.TreasureArmStableTicks + Tuning.TreasureArmAttemptCap + 10);
+        StabilizeAndArm(tm);
 
-        Assert.Empty(mem.Written);
+        Assert.True(mem.Written.ContainsKey(addr));
+        Assert.Equal(0x80, mem.Written[addr]);
     }
 
     // ── FastHold tests ────────────────────────────────────────────────────────────
@@ -1636,9 +1656,10 @@ public class TreasureMasterTests
         Assert.Equal(0x80, mem.Written[addr]);
     }
 
-    // ── RingGate.ScholarRingEquipped detector ────────────────────────────────────
-    // Pure static: reads roster slots 0..RosterSlots-1, returns true on the first
-    // slot whose accessory u16 == ScholarRingItemId (260).
+    // ── RingGate.ScholarRingEquipped detector (BATTLE-ONLY) ──────────────────────
+    // The gate opens iff a roster slot wears the Scholar's Ring (260) AND that unit is
+    // DEPLOYED in the live battle band (matched by brave/faith + level drift). A benched
+    // ring-bearer never opens the gate -- equipment on a unit not on the field has no effect.
 
     /// <summary>Seed a single roster slot's accessory field (u16 at RosterBase + slot*stride + RAccessory).</summary>
     private static void SeedAccessory(FakeSparseMemory mem, int slot, ushort itemId)
@@ -1649,23 +1670,99 @@ public class TreasureMasterTests
         mem.ReadableAddrs.Add(addr);
     }
 
+    /// <summary>Seed a band entry (Band.Entry(bandSlot)) as a valid deployed unit with the given
+    /// fingerprint so Band.IsValid passes and RingGate's band cross-check finds it.</summary>
+    private static void SeedBandUnit(FakeSparseMemory mem, int bandSlot,
+        byte level, byte brave, byte faith, ushort mhp = 500, byte gx = 5, byte gy = 5)
+    {
+        long a = Band.Entry(bandSlot);
+        mem.U8s[a + Offsets.ALevel] = level;  mem.ReadableAddrs.Add(a + Offsets.ALevel);
+        mem.U8s[a + Offsets.ABrave] = brave;  mem.ReadableAddrs.Add(a + Offsets.ABrave);
+        mem.U8s[a + Offsets.AFaith] = faith;  mem.ReadableAddrs.Add(a + Offsets.AFaith);
+        mem.U16s[a + Offsets.AMaxHp] = mhp;   mem.ReadableAddrs.Add(a + Offsets.AMaxHp);
+        mem.U8s[a + Offsets.AGx] = gx;        mem.ReadableAddrs.Add(a + Offsets.AGx);
+        mem.U8s[a + Offsets.AGy] = gy;        mem.ReadableAddrs.Add(a + Offsets.AGy);
+    }
+
+    /// <summary>Seed a roster slot wearing the Scholar's Ring with a valid (level,brave,faith)
+    /// fingerprint. When <paramref name="deployed"/>, also seed a matching band entry so the unit
+    /// is "on the field"; benched leaves the band empty so RingGate sees no deployed bearer.</summary>
+    private static void SeedRingBearer(FakeSparseMemory mem, int rosterSlot, bool deployed,
+        int bandSlot = 0, byte level = 50, byte brave = 70, byte faith = 70)
+    {
+        long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
+        mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId;
+        mem.ReadableAddrs.Add(rb + Offsets.RAccessory);
+        mem.U8s[rb + Offsets.RLevel] = level;  mem.ReadableAddrs.Add(rb + Offsets.RLevel);
+        mem.U8s[rb + Offsets.RBrave] = brave;  mem.ReadableAddrs.Add(rb + Offsets.RBrave);
+        mem.U8s[rb + Offsets.RFaith] = faith;  mem.ReadableAddrs.Add(rb + Offsets.RFaith);
+        if (deployed) SeedBandUnit(mem, bandSlot, level, brave, faith);
+    }
+
     [Fact]
-    public void RingGate_RingInSlot0_ReturnsTrue()
+    public void RingGate_RingDeployedInSlot0_ReturnsTrue()
     {
         var mem = new FakeSparseMemory();
-        SeedAccessory(mem, 0, (ushort)Offsets.ScholarRingItemId);
+        SeedRingBearer(mem, rosterSlot: 0, deployed: true);
 
         Assert.True(RingGate.ScholarRingEquipped(mem));
     }
 
     [Fact]
-    public void RingGate_RingInHighSlot_ReturnsTrue()
+    public void RingGate_RingDeployedInHighSlot_ReturnsTrue()
     {
         var mem = new FakeSparseMemory();
-        // Only seed a high slot -- all others unseeded (Readable returns false for them).
-        SeedAccessory(mem, Offsets.RosterSlots - 1, (ushort)Offsets.ScholarRingItemId);
+        SeedRingBearer(mem, rosterSlot: Offsets.RosterSlots - 1, deployed: true);
 
         Assert.True(RingGate.ScholarRingEquipped(mem));
+    }
+
+    /// <summary>Battle-only core contract: a ring-bearer who is NOT in the live battle band
+    /// (benched) does not open the gate -- equipment on a benched unit has no effect.</summary>
+    [Fact]
+    public void RingGate_RingBearerBenched_ReturnsFalse()
+    {
+        var mem = new FakeSparseMemory();
+        SeedRingBearer(mem, rosterSlot: 0, deployed: false);   // ring in roster, no band entry
+
+        Assert.False(RingGate.ScholarRingEquipped(mem));
+    }
+
+    /// <summary>A deployed bearer whose live band level drifted UP from a mid-battle level-up
+    /// (within Band.MaxLevelDrift) still matches -- the roster keeps the pre-battle level.</summary>
+    [Fact]
+    public void RingGate_DeployedBearerLevelDrift_ReturnsTrue()
+    {
+        var mem = new FakeSparseMemory();
+        long rb = Offsets.RosterBase;   // slot 0
+        mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId; mem.ReadableAddrs.Add(rb + Offsets.RAccessory);
+        mem.U8s[rb + Offsets.RLevel] = 50; mem.ReadableAddrs.Add(rb + Offsets.RLevel);
+        mem.U8s[rb + Offsets.RBrave] = 70; mem.ReadableAddrs.Add(rb + Offsets.RBrave);
+        mem.U8s[rb + Offsets.RFaith] = 70; mem.ReadableAddrs.Add(rb + Offsets.RFaith);
+        SeedBandUnit(mem, bandSlot: 0, level: 55, brave: 70, faith: 70);   // +5 live drift
+
+        Assert.True(RingGate.ScholarRingEquipped(mem));
+    }
+
+    /// <summary>ScholarRingInRoster is true whenever the ring is in the party, deployed or not --
+    /// it gates the "no ring" nag so a benched/still-loading bearer isn't called "no ring".</summary>
+    [Fact]
+    public void RingGate_ScholarRingInRoster_TrueEvenIfBenched()
+    {
+        var mem = new FakeSparseMemory();
+        SeedRingBearer(mem, rosterSlot: 2, deployed: false);   // ring in roster, not deployed
+
+        Assert.True(RingGate.ScholarRingInRoster(mem));     // it IS in the party...
+        Assert.False(RingGate.ScholarRingEquipped(mem));    // ...but not deployed -> gate stays closed
+    }
+
+    [Fact]
+    public void RingGate_ScholarRingInRoster_FalseWhenNoRing()
+    {
+        var mem = new FakeSparseMemory();
+        SeedAccessory(mem, 0, 218);   // some other accessory, no Scholar's Ring anywhere
+
+        Assert.False(RingGate.ScholarRingInRoster(mem));
     }
 
     [Fact]
@@ -1710,7 +1807,7 @@ public class TreasureMasterTests
     /// the Scholar's Ring in a roster slot.
     /// </summary>
     private static (TreasureDb db, FakeSparseMemory mem, long addr) BuildRingGateScenario(
-        bool ringEquipped, int rosterSlot = 0)
+        bool ringEquipped, int rosterSlot = 0, bool deployed = true)
     {
         var dir     = TempDir();
         var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
@@ -1720,7 +1817,7 @@ public class TreasureMasterTests
         var mem     = BuildMem(74, terrain, new[] { addr });
 
         if (ringEquipped)
-            SeedAccessory(mem, rosterSlot, (ushort)Offsets.ScholarRingItemId);
+            SeedRingBearer(mem, rosterSlot, deployed);   // deployed=true also seeds the band entry
         // Not equipped: leave all roster accessory slots unseeded (Readable = false -> returns false).
 
         return (db, mem, addr);
@@ -1748,6 +1845,54 @@ public class TreasureMasterTests
         TickN(tm, Tuning.TreasureArmStableTicks + 20);
 
         Assert.Empty(mem.Written);
+    }
+
+    /// <summary>Battle-only at the integration level: the ring is equipped on a roster unit who
+    /// is BENCHED (not in the live battle band), so the module never arms -- no marks.</summary>
+    [Fact]
+    public void RingGate_AlwaysOff_RingBenched_NeverArms()
+    {
+        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: true, deployed: false);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+        TickN(tm, Tuning.TreasureArmStableTicks + 20);
+
+        Assert.Empty(mem.Written);
+    }
+
+    /// <summary>The live battle band can finish populating a beat AFTER the map id stabilises
+    /// (fresh battle load). A ring-bearer in the roster whose band entry appears LATE must still
+    /// arm -- the gate re-checks while disarmed rather than caching the first "no". (Live
+    /// 2026-06-12: a deployed mage wearing the ring got "module idle" + no marks all battle.)</summary>
+    [Fact]
+    public void RingGate_DeployedBearerAppearsLate_StillArms()
+    {
+        var dir     = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr    = TileAddr(305);
+        var db      = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+                         addrs: new[] { (addr, (byte)0x00) });
+        var mem     = BuildMem(74, terrain, new[] { addr });
+
+        // Ring is in the roster from the start, but the unit's band entry is NOT there yet.
+        long rb = Offsets.RosterBase;
+        mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId; mem.ReadableAddrs.Add(rb + Offsets.RAccessory);
+        mem.U8s[rb + Offsets.RLevel] = 50; mem.ReadableAddrs.Add(rb + Offsets.RLevel);
+        mem.U8s[rb + Offsets.RBrave] = 70; mem.ReadableAddrs.Add(rb + Offsets.RBrave);
+        mem.U8s[rb + Offsets.RFaith] = 70; mem.ReadableAddrs.Add(rb + Offsets.RFaith);
+
+        var tm = new TreasureMaster(db, mem, alwaysOn: false);
+        // Past stability with NO band entry yet -> not armed (bearer looks benched for now).
+        TickN(tm, Tuning.TreasureArmStableTicks + 5);
+        Assert.Empty(mem.Written);
+
+        // The band populates the bearer mid-disarm.
+        SeedBandUnit(mem, bandSlot: 0, level: 50, brave: 70, faith: 70);
+        TickN(tm, 5);
+
+        // Re-check finds the now-deployed bearer -> arms and writes (cache-once would never arm).
+        Assert.True(mem.Written.ContainsKey(addr),
+            "a late-appearing deployed bearer must arm -- the gate must re-check, not cache the first 'no'");
     }
 
     [Fact]
@@ -1778,20 +1923,20 @@ public class TreasureMasterTests
             "alwaysOn=true must arm even with no ring");
     }
 
-    // The old "CachedResultSurvivesRingRemoval" test documented the OLD once-per-battle
-    // caching behavior.  Under the live-recheck design the ring is re-read periodically:
-    // removal mid-battle now disarms to Disarmed (not BattleDisarmed); re-equipping re-arms.
-    // The replacement tests below cover both directions.
-
-    // ── live ring-gate recheck (mid-battle equip/unequip) ────────────────────────────
+    // Per-battle ring gate (rolled back from the live-recheck design on 2026-06-12): the ring
+    // is read ONCE when the module first arms and cached for the battle. Removing or adding the
+    // ring mid-battle has no effect until the next battle (ResetBattle re-reads). This is the
+    // simpler, robust contract -- the live mid-battle recheck had a re-equip-never-restores
+    // failure on real hardware.
 
     /// <summary>
-    /// Armed with ring present; ring removed mid-battle; after the recheck cadence
-    /// elapses the module must disarm to Phase.Disarmed, publish null, and stop writing.
-    /// alwaysOn=false.
+    /// Per-battle ring gate: once the check latches for a battle, the cached result persists
+    /// even if the ring is removed from the roster mid-battle (the gate is not re-read while
+    /// ARMED). Removing the ring mid-battle therefore does NOT drop the marks; the next battle
+    /// re-reads (see RingGate_ResetBattle_RecheckOnNextBattle).
     /// </summary>
     [Fact]
-    public void RingGate_LiveRecheck_RingRemovedMidBattle_DisarmsToDisarmed()
+    public void RingGate_RingCheckedOncePerBattle_CachedResultSurvivesRingRemoval()
     {
         var (db, mem, addr) = BuildRingGateScenario(ringEquipped: true, rosterSlot: 0);
 
@@ -1801,100 +1946,25 @@ public class TreasureMasterTests
         StabilizeAndArm(tm);
         Assert.True(mem.Written.ContainsKey(addr), "should have armed with ring present");
 
-        // Remove the ring from the roster mid-battle.
+        // Remove the ring from the roster mid-battle (gate already latched for this battle),
+        // then tick WELL past any plausible recheck cadence. The OLD live-recheck design would
+        // re-read the roster here, see the ring gone, and disarm; per-battle must not.
         long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
-        mem.U16s[accessorAddr] = 0;
+        mem.U16s[accessorAddr] = 0;   // ring gone from memory
+        TickN(tm, Tuning.TreasureArmStableTicks * 2 + 30);
 
-        // Advance past the recheck cadence -- this will include some writes before disarm fires,
-        // then the module disarms when the revalidation period elapses.
-        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
-
-        // AFTER disarm: clear the write log and confirm no further writes occur.
         mem.Written.Clear();
-        mem.U8s[addr] = 0x00;
-        TickN(tm, 10);
+        mem.U8s[addr] = 0x00;         // engine cleared mark
 
-        // Zero tile writes after disarm (module is in Disarmed, re-accumulating stability).
-        Assert.Empty(mem.Written);
-
-        // FastHold must have received null (i.e. HoldOnce writes nothing).
-        mem.Written.Clear();
-        mem.U8s[addr] = 0x00;
-        tm.FastHold.HoldOnce();
-        Assert.Empty(mem.Written);
-    }
-
-    /// <summary>
-    /// After ring removal (module disarmed), re-equip the ring; advance through the
-    /// stability window.  Module must re-arm and resume writing.
-    /// </summary>
-    [Fact]
-    public void RingGate_LiveRecheck_RingReequippedAfterRemoval_Rearms()
-    {
-        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: true, rosterSlot: 0);
-
-        var tm = new TreasureMaster(db, mem, alwaysOn: false);
-
-        // Arm.
-        StabilizeAndArm(tm);
-        Assert.True(mem.Written.ContainsKey(addr));
-
-        // Remove ring; advance past the revalidation cadence to trigger disarm.
-        long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
-        mem.U16s[accessorAddr] = 0;
-        TickN(tm, Tuning.TreasureRevalidateEveryNTicks + 5);
-        // Module is now in Disarmed. Clear writes so we observe only the re-arm writes.
-        mem.Written.Clear();
-        mem.U8s[addr] = 0x00;
-
-        // Confirm disarmed: a short run still produces no writes (re-accumulating stability,
-        // AND the ring is not yet re-equipped so EnabledNow() blocks).
+        // Still ARMED and writing -- the ring gate is cached for the battle, never re-read.
         TickN(tm, 5);
-        Assert.Empty(mem.Written);
-
-        // Re-equip the ring; advance through the ring recheck + stability window.
-        mem.U16s[accessorAddr] = (ushort)Offsets.ScholarRingItemId;
-        mem.U8s[addr] = 0x00;
-
-        // TickDisarmed: stability re-accumulates; EnabledNow() detects the ring on the next
-        // recheck and allows arming; fingerprint passes -> ARMING -> ARMED.
-        TickN(tm, Tuning.TreasureRingRecheckTicks + Tuning.TreasureArmStableTicks + 10);
-
         Assert.True(mem.Written.ContainsKey(addr),
-            "after re-equipping the ring, module should re-arm and resume writes");
+            "ARMED ticks should keep writing -- the ring gate is cached per battle");
     }
 
     /// <summary>
-    /// alwaysOn=true: removing the ring from the roster has NO effect -- the module
-    /// stays armed and never reads the roster (EnabledNow always returns true).
-    /// </summary>
-    [Fact]
-    public void RingGate_AlwaysOn_RingRemovedMidBattle_StaysArmed()
-    {
-        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
-
-        var tm = new TreasureMaster(db, mem, alwaysOn: true);
-
-        // alwaysOn arms without any ring in memory.
-        StabilizeAndArm(tm);
-        Assert.True(mem.Written.ContainsKey(addr), "alwaysOn should arm without ring");
-
-        // Even if we seed+remove a ring (no-op for alwaysOn), advance past recheck cadence.
-        long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
-        mem.U16s[accessorAddr] = 0;
-        mem.Written.Clear();
-        mem.U8s[addr] = 0x00;
-
-        TickN(tm, Tuning.TreasureRingRecheckTicks + 5);
-
-        // Must still be writing -- alwaysOn never reads the roster.
-        Assert.True(mem.Written.ContainsKey(addr),
-            "alwaysOn=true: ring removal should have no effect; module must stay armed");
-    }
-
-    /// <summary>
-    /// alwaysOn=true never reads the roster: the accessory address must never appear
-    /// in ReadCount regardless of how many cadence periods elapse.
+    /// alwaysOn=true never reads the roster: the accessory address must never appear in
+    /// ReadCount regardless of how many ticks elapse (the gate short-circuits on alwaysOn).
     /// </summary>
     [Fact]
     public void RingGate_AlwaysOn_NeverReadsRoster()
@@ -1902,7 +1972,7 @@ public class TreasureMasterTests
         var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
 
         var tm = new TreasureMaster(db, mem, alwaysOn: true);
-        TickN(tm, Tuning.TreasureRingRecheckTicks * 3 + Tuning.TreasureArmStableTicks + 10);
+        TickN(tm, Tuning.TreasureArmStableTicks * 3 + 30);
 
         // No roster accessory address should have been read at all.
         for (int slot = 0; slot < Offsets.RosterSlots; slot++)
@@ -1912,37 +1982,6 @@ public class TreasureMasterTests
             Assert.False(mem.ReadCount.ContainsKey(racc),
                 $"alwaysOn=true must never read roster slot {slot} accessory");
         }
-    }
-
-    /// <summary>
-    /// The "no ring equipped" idle log fires once per off-period (the latch resets
-    /// when the ring is detected), not on every tick.
-    /// Verified by counting Log.Info calls via an injected sink (we check that the
-    /// module arms+writes only after the ring appears, not before -- the log claim
-    /// is structural, not directly observable in the fake-memory API).
-    /// The test asserts the behavioral invariant: zero writes during the off-period,
-    /// normal writes once the ring is equipped.
-    /// </summary>
-    [Fact]
-    public void RingGate_LiveRecheck_IdleDoesNotFloodLog_ZeroWritesUntilRingEquipped()
-    {
-        var (db, mem, addr) = BuildRingGateScenario(ringEquipped: false);
-
-        var tm = new TreasureMaster(db, mem, alwaysOn: false);
-
-        // Many ticks without a ring -- zero writes throughout.
-        TickN(tm, Tuning.TreasureRingRecheckTicks * 4 + Tuning.TreasureArmStableTicks + 20);
-        Assert.Empty(mem.Written);
-
-        // Equip ring, run past stability + recheck.
-        long accessorAddr = Offsets.RosterBase + (long)0 * Offsets.RosterStride + Offsets.RAccessory;
-        mem.U16s[accessorAddr] = (ushort)Offsets.ScholarRingItemId;
-        mem.ReadableAddrs.Add(accessorAddr);
-        mem.U8s[addr] = 0x00;
-        TickN(tm, Tuning.TreasureRingRecheckTicks + Tuning.TreasureArmStableTicks + 10);
-
-        Assert.True(mem.Written.ContainsKey(addr),
-            "ring equipped -> should arm and write after stability window");
     }
 
     [Fact]
@@ -1961,12 +2000,12 @@ public class TreasureMasterTests
         TickN(tm, Tuning.TreasureArmStableTicks + 20);
         Assert.Empty(mem.Written);
 
-        // Between battles: equip the ring.
+        // Between battles: equip the ring on a unit who is deployed in battle 2.
         tm.ResetBattle();
-        SeedAccessory(mem, 0, (ushort)Offsets.ScholarRingItemId);
+        SeedRingBearer(mem, rosterSlot: 0, deployed: true);
         mem.U8s[addr] = 0x00;
 
-        // Battle 2: ring present -> should arm and write.
+        // Battle 2: deployed ring-bearer -> should arm and write.
         TickN(tm, Tuning.TreasureArmStableTicks + 10);
         Assert.True(mem.Written.ContainsKey(addr),
             "after ResetBattle ring appears -> should arm on next battle");
