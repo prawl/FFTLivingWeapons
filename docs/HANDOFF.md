@@ -1,85 +1,100 @@
-# Session Handoff — the 2.0 playtest day (2026-06-10, evening)
+# Session Handoff — Treasure Master shipped end-to-end (2026-06-12)
 
-Everything below is COMMITTED and PUSHED (`living-weapon` == `main` @ 5607c5a). The arc of the
-day: the kills-card display was rewritten end to end (Display v2), the full QoL punch list
-shipped, and then a long live playtest with Patrick at the controls flushed out — and fixed —
-an entire bestiary of identification bugs. Suite: 464 → **766 tests**, gates: 5 → **7**.
-**2.0 is NOT released**: the `v2.0.0` tag sits ~9 commits behind tip and the zip in Downloads
-is stale; tomorrow's first decision is retag-vs-2.0.1, then re-cut via `Publish.ps1`.
+Everything below is COMMITTED on branch **`treasure-master`** (~50 commits ahead of `main`, **1006 tests
+green**, both gates green, **NOT merged**). This session built the entire **Treasure Master** feature from
+the plan in `docs/TREASURE_MASTER_PLAN.md` to a deployed, ring-gated, fully-captured release candidate — plus
+a dev cheat kit that grew out of one brutal boss fight. The release runbook is `docs/RELEASE_CHECKLIST.md`;
+the next decision is **verify → tag → merge → Publish**.
 
-## The live install (IMPORTANT — non-standard state)
+## The live install (IMPORTANT — current state)
 
-The Reloaded mod folder holds a **PROD-flavored build** (thresholds {5,25,50}, no seeding),
-NOT the usual BuildLinked dev deploy — Patrick is release-testing on his real save. It was
-placed by `Publish.ps1` + copying `Publish/prawl.fft.itemoverhaul` over the mod folder
-(preserving `kills.json`), with later table changes hot-copied in. **Running `BuildLinked.ps1`
-will stomp it with a dev build** (dev seeds every weapon to 3 kills and POLLUTES the tally —
-this happened once; the tally was repaired by dropping exact-3 entries). A `-Prod` switch for
-BuildLinked is a standing offer. Current tally carries 3 phantom credits (Scoutbolt +2,
-Wellspring Rod's entire 1) from since-fixed bugs; surgery offer open.
+The Reloaded mod folder holds the **latest PROD build** (`BuildLinked.ps1 -Prod`, thresholds {5,25,50}, no
+seeding, kills.json preserved). The Reloaded **config `Treasure Master Always On` defaults OFF**, so the
+feature is **ring-gated**, not off — equip the **Scholar's Ring (id 260)** on any party member and marks
+turn on. The user's `…/Reloaded/User/Mods/prawl.fft.itemoverhaul/Config.json` is set to `false` (ring is the
+gate). A `BuildLinked.ps1` (no `-Prod`) over this install REFUSES without `-Prod`/`-Force` (dev-seed guard).
 
-## What shipped today (compressed)
+## What shipped (Treasure Master — complete)
 
-- **Display v2**: budgeted resumable heap sweep, all-flavors attribution, ownership re-verified
-  at paint, per-id suffix coverage, site-cache prune + 1s maintenance. Fixes: shared counts,
-  re-equip-only updates, startup pop-in, the 9s engine-loop freeze. See memory display-v2.
-- **Kill credit hardened end to end**: status-deaths detected (Dead bit +0x45/0x20 — Phoenix
-  Down on undead), per-down credit on alive→dead edges (undead re-kills count, frozen twins
-  still credit once), resolved-but-untracked players CLEAR the actor latch (DLC-armed Ramza /
-  item users no longer pay the previous actor), and **mid-battle level-ups no longer break any
-  roster-keyed identification** (`Band.LevelMatchesRoster`, one-sided drift ≤9 — this was the
-  adversarial review's "uncertain" item, confirmed live and closed).
-- **Battle-state sentinels**: event-id band widened (401 fake exit), slot0 sticks at 0xFF after
-  a battle QUIT (probe-proven), sentinel-pair enter is edge-triggered (no more 4s metronome).
-- **Plague (Venombolt +3) BUILT** (was card-only) + grace-window latch (engine applies poison
-  off-tick from the acted window). Main-hand rule everywhere: kills+growth both hands,
-  signatures main-hand only. Barrage works from secondary Thief. Charm/Plague gated on live
-  frames. Locators require level (drift-aware) + player-side-first.
-- **Data/balance from the playtest**: Scoutbolt wp4/r4 (was outranged by Throw Stone), the
-  cheap-Regen quartet broken up (Mendsteel→immune Poison row 17, Studded→hp36 plain,
-  Penitent's→immune Blind row 25; Nocturne/Chantage keep theirs), shields off generic
-  Squire/Chemist/Black Mage, Equip Axes removed from ALL 47 skillsets carrying it
-  (make_jobcommand.py), grenade prices shipped via ItemData `<Price>` (the "base item.nxd"
-  comment was folklore — no such table exists), Sanguine Sword reverted to innate drain
-  (formula 6, wp10), Materia Blade exonerated (FFTHandsFree's cap-break auto-arm was the
-  culprit — disarmed in THAT repo, verb-only now), 15 lying cards fixed (Genji set etc.).
-- **Gates 6+7**: RIDER PROSE (verbatim descs must state every rider clause; numerics in exact
-  house voice) and GRID SYNC (living_weapon_grid.csv ↔ items.json on id/name/type/tier/WP/
-  parry; obtain column Shop-token enforced both ways). Grid restructured: sigNote column
-  ARCHIVED to docs/living_weapon_signotes.csv (draft signature ideas live there), new `type`
-  and `obtain` columns (32 obtain cells = TBD, Patrick's acquisition worksheet).
-- **Logs humanized** ([FFTItemOverhaul] prefix, LogNames id→name); prod build byte-verified
-  after the publish pipeline shipped a stale DLL once (clean-rebuild now forced in Publish).
+- **Mechanism**: a `TreasureMaster` ISignature holds bit `0x80` on each treasure tile's per-map
+  module-static render-flag bytes every tick → the engine paints its own native tile mark. Read path
+  `ArmAudit.cs`, write path `TileHolder.cs`, decisions `TreasureMaster.Policy.cs`, fail-soft loader
+  `TreasureDb.cs`, hot-reload + fast-hold below.
+- **Four-layer write containment** (no write until all pass): L0 PE build key (game-patch self-disable),
+  L1 map-id byte `0x14077D83C`, L2 terrain fingerprint, L3 per-address resting audit. OR-only, no clear path.
+- **Fingerprint saga (load-bearing)**: the terrain grid `0x140C65000` (7 B/record) is partially DYNAMIC —
+  fields 0(height)/1(slope)/6(flow) animate on water/lava. v1=raw (failed), v2=field-0 (failed on water),
+  **v3=fields {2,3,4,5}** (current). Some maps animate even those / differ across battle instances →
+  **map-id-only mode** (`nofp <id>`: fpVer 0, no fingerprint, arms on map-id + addr quorum). `refp <id>`
+  upgrades a stale fingerprint to v3. **Both are one-time per-map fixes** stored in the DB.
+- **`BattleDisplayed` gate** (`slot9==0xFFFFFFFF && battleMode!=0`): treasure ticks PRE-GATE (like Barrage),
+  so marks survive enemy turns / cast animations (mode-1 frames the old `InLiveBattle` flickered off) and
+  show on the formation screen; dark only on the world map (mode 0). **Formation coverage is INFERRED** —
+  confirm with `battle_cheats.py sentinels` on a placement screen.
+- **FastHold** (`FastHold.cs`): a dedicated ~8ms background thread re-stamps armed addresses so running-water
+  animation (~60fps wipe) can't flicker the marks.
+- **Hot-reload**: the DLL watches `treasure.json`'s write stamp (~1s) and reloads; a capture session
+  auto-`pushlive`s → marks appear on battle retry with **no relaunch**.
+- **Scholar's Ring gate** (`RingGate.cs`): the equipped accessory id lives at **roster `+0x12` (u16)**
+  (probe-confirmed: RosterBase 0x1411A18D0 + slot*0x258 + 0x12; ring=260, siblings 218/224/226/232).
+  Gate = `config alwaysOn || any roster slot's accessory == 260`, **re-checked live every ~1s** so removing
+  the ring mid-battle (Re-equip) fades the marks and re-equipping restores them. `alwaysOn` is a force-on
+  override that never reads the roster.
+- **Scholar's Ring item (id 260)**: description leads with "Treasure Master: a scholar's eye marks where
+  treasure lies hidden on the field." + "Boosts JP earned." (nxd rebuilt); **auto-granted** when the player
+  has zero (`ScholarRing.cs`, out-of-battle, idempotent). The JP-doubling rider is unchanged.
+- **Reloaded config**: `Config.cs`/`Configurator.cs`/`Configurable.cs` (mirrors FFTColorCustomizer). Mod.cs
+  reads the USER config (`…/User/Mods/<id>/Config.json`) with a modDir fallback; fail-soft (corrupt → default).
+- **SpiritualFont fix**: the "MP field layout verified" log/sampling now only runs when an Umbral Rod is
+  actually wielded (no spurious log when none equipped).
 
-## New trap ledger entries (memories carry detail)
+## Capture campaign — DONE
 
-1. **JobCommandData sparse overrides**: every record MUST include
-   `ExtendReactionSupportMovementIdFlagBits` ordered BEFORE any `ReactionSupportMovementIdN`
-   (the model's setters deref it; absence = whole table dropped, YAXPropertyCannotBeAssignedTo)
-   — and NO inline XML comments inside entries. make_jobcommand.py encodes both rules.
-2. **slot0 sticks at 0xFF after battle QUIT** (victory clears to 0x66); sentinel probe at
-   `%TEMP%\fft_probes\sentinel_probe.py` (module statics readable externally despite Denuvo).
-3. **Roster level is pre-battle**; live structs update mid-battle — always compare via
-   `Band.LevelMatchesRoster`, never `==`.
-4. **EquipBonus rows emit FULL rows** (generate.py fills defaults) — claiming a row replaces
-   its vanilla content entirely; ledger in items.json `_meta.equipBonus` (17, 25 claimed today).
+**71 shippable maps** (every reachable campaign treasure map, including all 10 Midlight's Deep floors). The
+~15 stubs are cutscene/town/test maps (Eagrose Gate, Warjilis, 116–125 Checkerboard/Unused) that never
+battle — not capturable, leave them. **`is_treasure` = `rareItemId > 0`**: every Move-Find tile has a rare
+item (344/344, zero pure-trap tiles), so the trap is a *property* (`is_trapped`), not a separate class —
+this is why Midlight's Deep (trapped-treasure tiles) is marked. The native mark can't distinguish trapped
+from safe; a mark there means "loot here, expect a trap."
 
-## Tomorrow / release checklist
+## Dev cheat kit (tools/probes — does NOT ship in the mod)
 
-- Decide: move `v2.0.0` tag to tip or christen 2.0.1 → `Publish.ps1` re-cut (clean compile is
-  now forced; byte-verify thresholds {5,25,50} out of habit).
-- Patrick's remaining verify: main-hand Bloodlust (Zwill main hand → extra turn; offhand →
-  polite log line), Plague cure-test (latch line then survive an Esuna), Equip Axes gone from
-  the learn screens, the Regen-pair shop check.
-- TODO.md still open: Sunderer multi-break question, chemist targeting-tag stale name, icon
-  colors (Later), changelog + FAQ (offer stands — half-written in session transcripts).
-- Open design threads: enemy-Thief Barrage spawn roll (needs live probe), story-progress
-  address probe (would unlock chapter-gating anything), DLC weapons into the P system?,
-  offhand signatures (2.x: twin-slam + the 100-vs-105 queue-jump probe), tally surgery offer.
+`tools/probes/battle_cheats.py` + `fft.ps1`/`fft.sh` (`source`/dot-source then call): **godmode** (hold
+party HP — start before the battle), **pa99** (party Physical Attack=99), **myturn** (party Speed 99 /
+enemies 1 + CT reset = take ~every turn), **kill_all** (KO enemies; `x <slot>` to spare guests — there is NO
+team byte, guests share enemy slots), **revive**, **give_move** (243=Master Teleport, hover-pick),
+**sentinels** (battle-state dump for the formation gate). Capture tooling: `treasure_flags.py`
+(session/mapid/status/verify/refp/**nofp**/pushlive) + `gen_treasure_db.py` (the bake gate).
 
-## Dev harness facts (unchanged)
+## Release checklist — `docs/RELEASE_CHECKLIST.md`
 
-Deploy dev = kill FFT_enhanced.exe, `.\BuildLinked.ps1` (BUT see live-install note above).
-Tables/nxd apply on game RESTART; the DLL on next launch. Diagnostics in `livingweapon.log`
-(rotates to `.prev` per launch): `kill:`, `turn:`, `plague:`, `display:`, `battle:` prefixes —
-all plain-language now. Both gates + tests enforced by BuildLinked/Publish/CI.
+Live verification + 11 GO/NO-GO blockers + open risks. Next steps:
+- Work the smoke test + per-feature + regression + build/release sections (the ring gate, fingerprinted +
+  map-id-only maps, and Siedge Weald v3 are already confirmed live).
+- **Build/release gates** (section 4) can be dry-run without the game — offer stands to run them.
+- **Version/tag**: `v2.0.0` sits behind; decide retag vs 2.x; bump `mod/ModConfig.json` ModVersion; then
+  `Publish.ps1` (clean compile forced; byte-verify thresholds {5,25,50}).
+- **Merge** `treasure-master` → `main` after review (one commit per green-gated stage already on the branch).
+
+## Open risks / watches
+
+1. **Formation marks are INFERRED** (slot9 may not be stuck during unit placement) — confirm with
+   `battle_cheats.py sentinels` on a placement screen; if it arms only on the first turn, that's why.
+2. **Two-phase boss maps** (Dycedarg→Adramelk, Eagrose Castle Keep 10): the Lucavi swap rebuilds the render
+   buffers → the phase-1 capture is orphaned in phase 2; re-scanning would overwrite phase 1. Known edge
+   case, deprioritized.
+3. **Animated-terrain maps** beyond water can flap the fingerprint → `nofp <id>` (one-time). Map 74 was the
+   last v2 holdout (refp'd to v3 this session).
+4. **Story bosses** ignore band HP=0 writes (scripted death) — kill_all KOs grunts, not story bosses; drop
+   the boss to 1 HP and land a real hit, or fight it with godmode+pa99.
+5. **Phantom kill tallies** (HANDOFF history: Scoutbolt +2, Wellspring Rod) — cosmetic wrong-tier suffix;
+   surgery offer open.
+
+## Dev harness facts
+
+Deploy = kill `FFT_enhanced.exe`, `.\BuildLinked.ps1 -Prod` (the install is prod-flavored — a plain run
+refuses). Tables/nxd apply on game RESTART; the DLL on next launch; `treasure.json` hot-reloads live. Both
+gates (`analyze.py` + `dotnet test`, 1006) enforced by BuildLinked/Publish/CI. Diagnostics in
+`livingweapon.log` (`treasure:`, `font:`, `kill:`, `battle:` prefixes; the ring-idle and arm/disarm lines
+name their reason). The session memory store carries the per-mechanism detail
+(treasure-master-architecture-plan is the index for this arc).
