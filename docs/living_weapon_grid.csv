@@ -25,7 +25,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRi
 24,3,Coral Sword,Stormbrand,Sword,Shop,8,PA x WP,5%,PA,Casts Thunder on hit,PA +10%,PA +20%,PA +30%,low,
 25,3,Ancient Sword,Tanglethorn,Sword,Shop,7,PA x WP,5%,PA,Immobilize,PA +10%,PA +20%,PA +30%,med,
 26,3,Sleep Blade,Flamberge,Sword,Shop,8,PA x WP,5%,PA,—,PA +10%,PA +20%,PA +30%,low,
-27,4,Platinum Sword,Wrathblade,Sword,Shop,12,missing-HP (f67),4%,—,—,—,—,—,high,
+27,4,Platinum Sword,Wrathblade,Sword,Shop,12,missing-HP (f67),4%,—,—,—,—,Feign Death (plays dead through a lethal blow; self-revives at low HP once per battle),high,
 28,4,Diamond Sword,Swiftedge,Sword,Shop,8,Speed-scaled (f99),10%,Speed,—,Speed +5%,Speed +10%,Speed +15%,med,
 29,5,Icebrand,Graviton,Sword,Shop,12,PA x WP,14%,PA,Casts Gravity on hit,PA +10%,PA +20%,PA +30%,med,
 30,5,Runeblade,Arcanum,Sword,Shop,14,PA x WP,8%,PA,May strip buffs,PA +10%,PA +20%,PA +30%,med,
