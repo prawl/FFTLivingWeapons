@@ -238,7 +238,14 @@
     "wp": 8,
     "cat": "Sword",
     "formula": 99,
-    "flavor": "A keen blade that answers the swift hand alone, biting harder the quicker its bearer goes."
+    "flavor": "A keen blade that answers the swift hand alone, biting harder the quicker its bearer goes.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Afterimage",
+      "afterimage": true
+    }
   },
   "29": {
     "name": "Graviton",

@@ -136,6 +136,15 @@ internal static class Tuning
     /// 2026-06-14.</summary>
     public const double FeignRecoverSeconds = 3.0;
 
+    /// <summary>Afterimage (Swiftedge +3): flat Speed gained per completed wielder turn while the
+    /// ramp is intact. Swiftedge's damage is Speed x WP (formula 99), so each stack is +1xWP damage;
+    /// a legible flat number beats a percentage on a card.</summary>
+    public const int AfterimageSpeedPerTurn = 1;
+
+    /// <summary>Afterimage: the most stacks the ramp can hold (turns' worth). Caps the Speed swing at
+    /// AfterimageSpeedPerTurn x this -- 5 keeps a fully-ramped Swiftedge fast but not unbounded.</summary>
+    public const int AfterimageSpeedCap = 5;
+
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 

@@ -77,6 +77,11 @@ public sealed class WeaponSignature
     // real death (an AI-ignored corpse) that the engine auto-revives, animated, at ~10% HP. ONCE
     // per battle (the bit is dropped the instant the revive is seen). false = not a feign-death weapon.
     [JsonProperty("feignDeath")] public bool FeignDeath { get; set; }
+    // AFTERIMAGE (Swiftedge "Afterimage"): at AtTier the wielder's Speed ramps by
+    // Tuning.AfterimageSpeedPerTurn for each completed turn (capped at Tuning.AfterimageSpeedCap
+    // turns' worth) and resets to 0 when the wielder takes damage. Swiftedge's damage is Speed x WP
+    // (formula 99), so the ramp accelerates its damage. false = not an afterimage weapon.
+    [JsonProperty("afterimage")] public bool Afterimage { get; set; }
 }
 
 internal static class MetaLoader

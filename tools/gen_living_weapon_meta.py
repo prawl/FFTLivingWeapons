@@ -78,6 +78,8 @@ def main():
                 entry["signature"]["raptureMove"] = True
             if sig.get("feignDeath"):  # feign death (Wrathblade): hold Reraise -> play dead -> animated auto-revive
                 entry["signature"]["feignDeath"] = True
+            if sig.get("afterimage"):  # afterimage (Swiftedge): Speed ramps each turn, resets on a hit
+                entry["signature"]["afterimage"] = True
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

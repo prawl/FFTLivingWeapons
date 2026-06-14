@@ -876,6 +876,13 @@
         "onHitAbilityId": 0,
         "formula": 99,
         "attackFlags": "Striking, TwoSwords, TwoHands"
+      },
+      "signature": {
+        "atTier": 3,
+        "afterimage": true,
+        "displayLabel": "Afterimage",
+        "note": "Afterimage -- the wielder's Speed ramps +AfterimageSpeedPerTurn (1) per completed turn, capped at AfterimageSpeedCap (5) turns' worth, and resets to 0 on any hit. Swiftedge's damage is Speed x WP (formula 99), so the ramp accelerates its damage. Runtime: GrowthEngine.HoldAfterimage owns the speed lane (Route yields it), capture-natural + re-apply against the per-turn normalize (HoldTimedStat idiom); turns via TurnTracker, hit via a ReadHp drop. LOGIC + TESTS shipped (Afterimage.Policy.cs / AfterimageTests.cs); PENDING LIVE VERIFY -- the speed-write path is the GrowthEngine all-party live-test-pending caveat.",
+        "p3Desc": "Each turn the wielder acts, Speed +1 (to +5); taking a hit resets it."
       }
     },
     {
