@@ -72,6 +72,11 @@ public sealed class WeaponSignature
     // (Tuning.RaptureMoveId) replaces the wielder's movement for Tuning.RaptureTurns turns, then the
     // saved movement restores. false = not a rapture weapon.
     [JsonProperty("raptureMove")] public bool RaptureMove { get; set; }
+    // FEIGN DEATH (Wrathblade "Feign Death"): at AtTier the wielder is held with Reraise (band
+    // +0x47/0x20) -- re-applied through the death that clears it -- so a lethal hit plays out as a
+    // real death (an AI-ignored corpse) that the engine auto-revives, animated, at ~10% HP. ONCE
+    // per battle (the bit is dropped the instant the revive is seen). false = not a feign-death weapon.
+    [JsonProperty("feignDeath")] public bool FeignDeath { get; set; }
 }
 
 internal static class MetaLoader

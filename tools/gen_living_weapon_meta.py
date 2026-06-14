@@ -76,6 +76,8 @@ def main():
                 entry["signature"]["fontOnMove"] = True
             if sig.get("raptureMove"):  # rapture (Rod of Faith): low-HP Master Teleportation window
                 entry["signature"]["raptureMove"] = True
+            if sig.get("feignDeath"):  # feign death (Wrathblade): hold Reraise -> play dead -> animated auto-revive
+                entry["signature"]["feignDeath"] = True
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

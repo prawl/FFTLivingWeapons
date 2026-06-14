@@ -224,7 +224,14 @@
     "wp": 12,
     "cat": "Sword",
     "formula": 67,
-    "flavor": "Forged for the cornered and bleeding; nearer to ruin, the hungrier its edge grows."
+    "flavor": "Forged for the cornered and bleeding; nearer to ruin, the hungrier its edge grows.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Feign Death",
+      "feignDeath": true
+    }
   },
   "28": {
     "name": "Swiftedge",

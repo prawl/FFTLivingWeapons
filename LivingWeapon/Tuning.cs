@@ -108,6 +108,34 @@ internal static class Tuning
     /// Fallback: flip to 242 (plain Teleport) if the arm-time read-back ever logs MISS.</summary>
     public const int RaptureMoveId = 243;
 
+    /// <summary>Feign Death (Wrathblade +3): how many of the wielder's OWN turns the played-dead
+    /// window lasts, counted off its live CT at band +0x25 (CharmLock's byte). PROVEN 2026-06-14: a
+    /// shadow count tracked active turns cleanly (1@16s, 2@22s, 3@31s). The wielder's +0x09 reads flat
+    /// 0 (the Rapture wall); +0x25 reads clean during ACTIVE play and only freezes when the player
+    /// sits idle -- which a real battle never does mid-turn.</summary>
+    public const int FeignPossumTurns = 2;
+
+    /// <summary>Feign Death: the wielder's CT (+0x25) at which it counts as "up next in the queue" --
+    /// climbed toward its turn, another unit still active. The finishing blow waits for this so the
+    /// force-killed corpse is dead-and-scheduled for only a bounded climb before its turn fires the
+    /// Reraise (a 90-step dead-climb from CT ~10 CRASHED the engine 2026-06-14; an 8-step from CT 92
+    /// revived cleanly). The wielder's climbing CT reads noisy/variable (peaks seen 55-92), so a HIGH
+    /// threshold (75) skips low-reading climbs -> the wielder burns several alive turns before the
+    /// strike lands. 50 strikes on the FIRST climb toward turn 3 (~50-step dead-climb) -- the bet is
+    /// that window is still short enough to dodge the crash. Tune up if it crashes, down if too slow.</summary>
+    public const int FeignUpNextCt = 50;
+
+    /// <summary>Feign Death: wall-clock SAFETY CAP on the played-dead window -- only fires if the CT
+    /// stops advancing (the player idles), so the possum can never last forever. The turn count
+    /// (<see cref="FeignPossumTurns"/>) is the real lever.</summary>
+    public const double FeignPossumSeconds = 90.0;
+
+    /// <summary>Feign Death: after the engine raises the wielder (Reraise fires at CT 100), hold the
+    /// dead/KO bit CLEARED for this long so the stand-up leaves no corpse head-marker (hearts) and no
+    /// skipped turn -- the bit-clear must out-last the engine's revive bookkeeping. 3s proven live
+    /// 2026-06-14.</summary>
+    public const double FeignRecoverSeconds = 3.0;
+
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 

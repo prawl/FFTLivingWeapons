@@ -54,7 +54,13 @@ internal static class Offsets
     public const int AGy       = 0x34; // u8
     /// <summary>u8 band-relative WRITE TARGET: slam this to 100 to inject a scheduler turn
     /// (ExtraTurn.CtOff). Matches combat base+0x41. Do NOT read this for turn counting --
-    /// a live watcher saw zero transitions; the write takes, but reads don't tick reliably.</summary>
+    /// a live watcher saw zero transitions; the write takes, but reads don't tick reliably.
+    /// NOTE 2026-06-14 (ct_watch / finish_watch probes): for a PLAYER unit this byte CAN read and
+    /// climb to 100 (+0x09 stays flat 0, the Rapture wall), and CharmLock reads it cleanly for ENEMY
+    /// turns -- but on the player's OWN actively-managed unit it read INCONSISTENTLY (clean 100 in one
+    /// probe, but stale/frozen ~85 during the unit's own input menu in the live DLL). So counting the
+    /// player wielder's OWN turns off it proved unreliable; FeignDeath uses a wall clock instead.
+    /// Treat as: write target always; clean enemy-turn read; do NOT trust for the player's own turns.</summary>
     public const int ACtSlam   = 0x25;
     /// <summary>u8 band-relative READ byte for counting a unit's completed turns: CT seen
     /// at/above 90, then falls below 70 = one turn taken. Live-proven by Maim (victim-turn
@@ -118,6 +124,23 @@ internal static class Offsets
     public const int APoison      = 0x48;  // u8 status bitfield byte containing the poison flag
     public const byte APoisonBit  = 0x80;  // mask: bit 7 of APoison is the "poisoned" flag
     public const int APoisonTimer = 0x4A;  // u8 poison countdown timer (engine inits to 36; ticks per CT unit)
+
+    // --- reraise (auto-revive) status byte (band-entry relative, PROVEN LIVE 2026-06-14) ---
+    // Held re-applied through the death that clears it == the engine's OWN animated Reraise: a
+    // lethal hit becomes a played-dead corpse the engine raises back at ~10% HP when its CT next
+    // reaches 100. This is the FUNCTIONAL half of an item's "Permanent: Reraise" -- the status-page
+    // text is equipment-derived UI, but the auto-revive itself is this single bit. Feign Death holds
+    // it on the wielder (FeignDeath.cs); the death-commit clears it once, the hold re-stamps it.
+    public const int AReraise     = 0x47;  // u8 status bitfield byte containing the Reraise flag
+    public const byte AReraiseBit = 0x20;  // mask: bit 5 of AReraise is the "reraise" flag
+
+    // --- invisible (transparent) status byte (band-entry relative, PROVEN LIVE 2026-06-14) ---
+    // Shares +0x47 with Reraise; bit 4 (0x10). Held re-applied (it breaks the moment the unit acts),
+    // it makes the AI ignore the unit -- single-target enemies skip it; AoE splash can still reach it.
+    // Feign Death sets it through the played-dead window so the prone wielder acts unmolested, then
+    // drops it for the finishing blow.
+    public const int AInvisible     = 0x47;  // u8 status bitfield byte containing the Invisible flag
+    public const byte AInvisibleBit = 0x10;  // mask: bit 4 of AInvisible is the "invisible" flag
 
     // --- auth band: LIVE unit data (the static array freezes on battle restart; the band stays live).
     //     Entry layout matches the static-array A* offsets. BandEntry = unit-copy offset inside

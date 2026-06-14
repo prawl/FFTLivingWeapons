@@ -74,6 +74,7 @@ internal sealed class Engine
         var wyrmblood = new Wyrmblood(meta, _kills, _turns, live);  // Dragon Rod +3: turn-edge regen splash (1 tile)
         var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
+        var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
         var treasureJson = Path.Combine(modDir, "treasure.json");
         _treasure = new TreasureMaster(
             load:         () => TreasureDb.Load(modDir),
@@ -88,8 +89,8 @@ internal sealed class Engine
         // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
         // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, _barrage, lifeSap, wyrmblood, rapture, font, _treasure };
-        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, lifeSap, wyrmblood, rapture, font };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, _barrage, lifeSap, wyrmblood, rapture, font, feign, _treasure };
+        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, plague, lifeSap, wyrmblood, rapture, font, feign };
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");

@@ -843,6 +843,13 @@
         "onHitAbilityId": 0,
         "formula": 67,
         "attackFlags": "Striking, TwoSwords, TwoHands"
+      },
+      "signature": {
+        "atTier": 3,
+        "feignDeath": true,
+        "displayLabel": "Feign Death",
+        "note": "Feign Death -- hold Reraise (band +0x47/0x20) re-applied through the death that clears it: a lethal hit becomes a played-dead corpse (AI-ignored for free) the engine auto-revives, animated, at ~10% HP, once per battle. SYNERGY: revives at 10% HP = ~90% missing = near-max Wrathblade (missing-HP, formula 67) damage. PROVEN live 2026-06-14 (held bit == an item's Permanent: Reraise in function).",
+        "p3Desc": "Plays dead through a lethal blow once per battle, then springs back at low HP."
       }
     },
     {
