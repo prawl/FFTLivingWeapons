@@ -66,8 +66,10 @@ def main():
                 entry["signature"]["ricochetPct"] = int(sig.get("ricochetPct", 50))
             if sig.get("crippleTurns"):  # maim (Huntress "Maim"): struck enemies lose reactions N turns
                 entry["signature"]["crippleTurns"] = int(sig["crippleTurns"])
-            if sig.get("grantCommandAbilityId"):  # barrage (Yoichi "Barrage"): grant JobCommand ability
+            if sig.get("grantCommandAbilityId"):  # command grant (Yoichi "Barrage" / Sanguine "Night Sword")
                 entry["signature"]["grantCommandAbilityId"] = int(sig["grantCommandAbilityId"])
+            if sig.get("larcenyTurns"):  # larceny (Arcanum): steal the struck foe's holdable buff onto the wielder
+                entry["signature"]["larcenyTurns"] = int(sig["larcenyTurns"])
             if sig.get("lifeSapOnKill"):  # life sap (Umbral "Life Sap"): a kill heals the wielder
                 entry["signature"]["lifeSapOnKill"] = True
             if sig.get("regenSplashRadius"):  # wyrmblood (Dragon Rod): turn-edge regen splash to allies

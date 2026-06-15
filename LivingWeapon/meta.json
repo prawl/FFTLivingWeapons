@@ -196,7 +196,14 @@
     "wp": 10,
     "cat": "Sword",
     "formula": 6,
-    "flavor": "The blade of a sellsword who supped on the lives he felled, till the field claimed him."
+    "flavor": "The blade of a sellsword who supped on the lives he felled, till the field claimed him.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Night Sword",
+      "grantCommandAbilityId": 165
+    }
   },
   "24": {
     "name": "Stormbrand",
@@ -259,7 +266,14 @@
     "wp": 14,
     "cat": "Sword",
     "formula": 1,
-    "flavor": "Runes crawl its fuller, and at a touch unwind whatever wards a foe wraps about itself."
+    "flavor": "Runes crawl its fuller, and at a touch unwind whatever wards a foe wraps about itself.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Larceny",
+      "larcenyTurns": 3
+    }
   },
   "31": {
     "name": "Lightbringer",

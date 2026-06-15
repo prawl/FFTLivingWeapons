@@ -97,4 +97,50 @@ public class LarcenyTests
         st.Clear();
         Assert.Empty(st.Held);
     }
+
+    // ── Guarded bit ops through the real RPM/WPM path (pinned in-process buffers stand in for the
+    //    enemy/wielder band entries, exactly like MaimTests). ──
+    private static readonly LiveMemory Live = new();
+
+    [Fact]
+    public void HasBitReadsTheStatusBit()
+    {
+        using var unit = PinnedBuf.Of(256);
+        Assert.False(LarcenyPolicy.HasBit(Live, unit.Addr, Offsets.AReraise, Offsets.AReraiseBit));
+        unit.Bytes[Offsets.AReraise] = Offsets.AReraiseBit;
+        Assert.True(LarcenyPolicy.HasBit(Live, unit.Addr, Offsets.AReraise, Offsets.AReraiseBit));
+    }
+
+    [Fact]
+    public void SetBitOrsTheBitInWithoutClobberingNeighbours()
+    {
+        using var unit = PinnedBuf.Of(256);
+        unit.Bytes[Offsets.AReraise] = Offsets.AInvisibleBit;   // a different bit in the same byte is already set
+        LarcenyPolicy.SetBit(Live, unit.Addr, Offsets.AReraise, Offsets.AReraiseBit);
+        Assert.Equal((byte)(Offsets.AReraiseBit | Offsets.AInvisibleBit), unit.Bytes[Offsets.AReraise]);
+    }
+
+    [Fact]
+    public void ClearBitClearsOnlyItsOwnBit()
+    {
+        using var unit = PinnedBuf.Of(256);
+        unit.Bytes[Offsets.AReraise] = (byte)(Offsets.AReraiseBit | Offsets.AInvisibleBit);
+        LarcenyPolicy.ClearBit(Live, unit.Addr, Offsets.AReraise, Offsets.AReraiseBit);
+        Assert.Equal(Offsets.AInvisibleBit, unit.Bytes[Offsets.AReraise]);   // Invisible survives
+    }
+
+    [Fact]
+    public void StealTransfersTheBitFromFoeToWielder()
+    {
+        // The end-to-end transfer: strip the foe's bit, grant it to the wielder.
+        using var foe = PinnedBuf.Of(256);
+        using var wielder = PinnedBuf.Of(256);
+        foe.Bytes[Offsets.AReraise] = Offsets.AReraiseBit;   // the foe has Reraise
+
+        LarcenyPolicy.ClearBit(Live, foe.Addr, Offsets.AReraise, Offsets.AReraiseBit);
+        LarcenyPolicy.SetBit(Live, wielder.Addr, Offsets.AReraise, Offsets.AReraiseBit);
+
+        Assert.Equal(0, foe.Bytes[Offsets.AReraise]);                       // taken from the foe
+        Assert.Equal(Offsets.AReraiseBit, wielder.Bytes[Offsets.AReraise]); // worn by the wielder
+    }
 }

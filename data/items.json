@@ -739,6 +739,13 @@
         "attackFlags": "Striking, TwoSwords, TwoHands",
         "typeFlagsOverride": "Rare, Weapon",
         "shopOverride": "Unknown20"
+      },
+      "signature": {
+        "atTier": 3,
+        "grantCommandAbilityId": 165,
+        "displayLabel": "Night Sword",
+        "note": "Night Sword -- grant Shadowblade (ability 165, Gaffgarion's HP-draining dark sword strike) into the wielder's JobCommand menu via the proven Barrage injection (NightSword.cs reuses Barrage's primitives; the shipped Barrage module is untouched). Open eligibility (any normal-executor job, not Thief-only). BUILT + tests; PENDING LIVE VERIFY -- does the granted command render its real menu NAME, and do non-Thief jobs execute it (the special-executor swallow)?",
+        "p3Desc": "Grants Night Sword: a ranged strike that drains the foe's HP to the wielder."
       }
     },
     {
@@ -937,6 +944,13 @@
         "rider": "MA+2",
         "equipBonusId": 1,
         "attackFlags": "Striking, TwoSwords, TwoHands"
+      },
+      "signature": {
+        "atTier": 3,
+        "larcenyTurns": 3,
+        "displayLabel": "Larceny",
+        "note": "Larceny -- a hit STEALS the struck foe's highest-priority holdable buff: stripped from the foe, held on the wielder for larcenyTurns of the wielder's turns, then dropped (Larceny.cs, Maim-shaped, wielder-side hold; wielder-already-has safety so it never strips the wielder's own; expiry counts wielder turns via TurnTracker since the player CT reads flat 0). BUILT + tests. COVERAGE LIVE-PENDING: only the proven Reraise/Invisible bits (+0x47) are wired; map Haste/Protect/Shell/... via poison_probe.py diff+holdbit and add rows to LarcenyPolicy.Stealable.",
+        "p3Desc": "Strikes steal a foe's enchantment for the wielder to wear a few turns."
       }
     },
     {

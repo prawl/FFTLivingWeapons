@@ -30,18 +30,21 @@ internal sealed partial class Barrage : ISignature
     void ISignature.Tick(in TickContext ctx) => Tick();
     // ABILITY_BASE: record 0's AbilityId1 byte. Flags sit at ABILITY_BASE + rec*25 - 3.
     // From barrage_probe.py: ABILITY_BASE = 0x140679436 - 27*25.
-    private const long AbilityBase = 0x140679436L - 27L * 25;
-    private const int RecSize = 25;         // bytes per record (3 flags + 16 abilities + 6 RSM)
-    private const int FlagPrefixSize = 3;   // ExtAb u16 + ExtRSM u8
-    private const int AbilityCount = 16;
+    // internal (not private): NightSword reuses these table-layout constants + the static helpers
+    // below to grant Shadowblade through the same proven JobCommand injection -- the Barrage logic
+    // itself is untouched. (The shared inject/restore core is a future extraction, see NightSword.cs.)
+    internal const long AbilityBase = 0x140679436L - 27L * 25;
+    internal const int RecSize = 25;         // bytes per record (3 flags + 16 abilities + 6 RSM)
+    internal const int FlagPrefixSize = 3;   // ExtAb u16 + ExtRSM u8
+    internal const int AbilityCount = 16;
 
     // Roster job id at +0x02 (FFTHandsFree UNIT_DATA_STRUCTURE.md; live-read 77 = Archer).
-    private const int RJobId = 0x02;
+    internal const int RJobId = 0x02;
     // Roster secondary command at +0x07 = the JobCommand rec id (live-read 14 = Steal).
-    private const int RSecondary = 0x07;
+    internal const int RSecondary = 0x07;
     // Roster learned bitfield at +0x32 + jobIdx*3 (jobIdx from TryResolveJob, NOT the job id).
-    private const int RLearnedBase = 0x32;
-    private const int LearnedStride = 3;
+    internal const int RLearnedBase = 0x32;
+    internal const int LearnedStride = 3;
 
     private const int YoichiId = 90;
     private const int BarrageAbilityId = 358;

@@ -53,6 +53,34 @@ internal static class LarcenyPolicy
     /// wielder's own completed turns since the steal).</summary>
     public static bool IsExpired(int wielderTurnsNow, int baselineTurns, int larcenyTurns)
         => wielderTurnsNow - baselineTurns >= larcenyTurns;
+
+    // ── Guarded bit ops on a unit's band status byte (injected mem, so tests drive them with a
+    //    fake or a pinned buffer; mirrors Maim.HoldZero/Restore). Every one pre-filters with
+    //    Readable/Writable; the worst a wrong offset can do is leave a status bit set for one
+    //    battle (the fresh per-battle struct clears it). ──
+
+    /// <summary>True when the unit at <paramref name="addr"/> currently has the bit set.</summary>
+    public static bool HasBit(IGameMemory mem, long addr, int off, byte mask)
+        => mem.Readable(addr + off, 1) && (mem.U8(addr + off) & mask) != 0;
+
+    /// <summary>OR the bit on (grant/hold the stolen buff on the wielder). No-op if already set.</summary>
+    public static void SetBit(IGameMemory mem, long addr, int off, byte mask)
+    {
+        long a = addr + off;
+        if (!mem.Readable(a, 1) || !mem.Writable(a, 1)) return;
+        byte cur = mem.U8(a);
+        if ((cur & mask) == 0) mem.W8(a, (byte)(cur | mask));
+    }
+
+    /// <summary>AND-clear the bit (strip the buff from the foe, or drop the faded buff off the
+    /// wielder). No-op if already clear.</summary>
+    public static void ClearBit(IGameMemory mem, long addr, int off, byte mask)
+    {
+        long a = addr + off;
+        if (!mem.Readable(a, 1) || !mem.Writable(a, 1)) return;
+        byte cur = mem.U8(a);
+        if ((cur & mask) != 0) mem.W8(a, (byte)(cur & ~mask));
+    }
 }
 
 /// <summary>The active steals: each holdable buff the wielder has lifted, keyed by its (offset,mask),
