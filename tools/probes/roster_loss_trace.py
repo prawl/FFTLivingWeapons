@@ -77,7 +77,8 @@ def read_roster():
     for s in range(ROSTER_SLOTS):
         o = s * ROSTER_STRIDE
         out.append({"lvl": blob[o + RLEVEL], "name": _u16(blob, o + RNAME),
-                    "eq": {nm: _u16(blob, o + off) for off, nm in EQUIP_FIELDS}})
+                    "eq": {nm: _u16(blob, o + off) for off, nm in EQUIP_FIELDS},
+                    "raw": bytes(blob[o:o + ROSTER_STRIDE])})
     return out
 
 
@@ -164,6 +165,15 @@ def main():
                         if a["eq"][nm] != b["eq"][nm]:
                             diffs.append(f"{nm} {a['eq'][nm]:#06x}->{b['eq'][nm]:#06x}")
                     if not diffs:
+                        # Crystallization may zero a field we don't name. Out of battle (low churn),
+                        # log ANY full-slot change so the removal marker can't hide from us.
+                        if mode == 0 and a["raw"] != b["raw"]:
+                            offs = [i for i in range(min(len(a["raw"]), len(b["raw"])))
+                                    if a["raw"][i] != b["raw"][i]]
+                            shown = ", ".join(f"+0x{i:03x}:{a['raw'][i]:#04x}->{b['raw'][i]:#04x}"
+                                              for i in offs[:12])
+                            print(f"[{now:7.2f}s | {mode_label(mode):13}] [ROSTER*] s{s} "
+                                  f"(nameId={a['name']}): non-watched change ({len(offs)}B) {shown}")
                         continue
                     tag = ""
                     if b["lvl"] == 0 and a["lvl"] != 0:
