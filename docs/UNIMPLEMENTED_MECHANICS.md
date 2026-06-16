@@ -193,3 +193,48 @@ Arcanum grants MA+2 today; PA+1=row 21, PA+2=row 24 exist). Two shapes:
   10. Multiple living weapons at once: watcher already tallies per-id; (A) needs a tier-id set per weapon.
       [scope to ONE for v1]
   11. Companion-off behavior: plain weapon, no growth (graceful degradation) [confirmed acceptable].
+
+
+## SPAWN A NEW UNIT mid-battle — INVESTIGATED, WALLED at the render layer (2026-06-16)
+
+Goal: drop a brand-new combatant into a live battle by memory writes (the "Summon a friendly
+companion" wish, `TODO.md`). Verdict: **the scheduler half works; the render half is walled**
+without debugger-level RE. Probes: `tools/probes/formation_diff.py` (region snapshot/diff over
+band/static-array/roster) + `tools/probes/clone_probe.py` (clone a donor slot → target slot,
+poll the engine reaction; `enrolldiff` = whole-span before/after with a churn-subtraction control).
+
+What we PROVED:
+  1. Empty band slots are RESIDENT and the engine fills them IN PLACE at unit creation — no
+     relocation/realloc. formation_diff captured the full ~0x200 instantiation recipe (level
+     `+0x0D`, brave `+0x0E`, faith `+0x10`, HP/MaxHP `+0x14/16`, MP/MaxMP `+0x18/1A`, weapon
+     `+0x04`, PA/MA/Speed `+0x22/23/24`, gx/gy `+0x33/34`, team `+0x38`, plus battle-init bytes
+     inBattle `+0x12`=1, CT `+0x25`, `+0x1a2`=1, `+0x1ce`=100).
+  2. Cloning a live donor's full 0x200 slot into an EMPTY player-range slot (seats ~16–27) gets
+     the unit ADOPTED by the CT scheduler — it appears in the Combat Timeline turn order. Seats
+     below 16 don't enroll; 27 is the last (~28-unit array cap).
+  3. The Combat Timeline is a 4-byte-record array at ~`0x140d3a04c`; injecting inserts a record
+     at the head and shifts the rest down (byte0 = CT, byte1 = a locator matching the clone's gx).
+
+The WALL:
+  4. The injected unit renders BLANK (no portrait/sprite) and the timeline-detail view AVs (null
+     graphic deref). A byte-identical clone of a RENDERING donor still renders blank → the
+     drawable identity is NOT in the 0x200 slot; it is an external, battle-init-built,
+     IDENTITY-keyed graphic object (a scene-graph node + double-buffered float geometry at
+     `0x140f8c…` / `0x141140…` / `0x142eb…`).
+  5. Overwriting a corpse's or a live unit's identity DE-SYNCS its face (the UI drops the
+     portrait/info) instead of re-binding — the graphic is welded to identity and built once at init.
+  6. `enrolldiff` (churn-subtracted) shows injection churns scene-graph node pointers (intra-buffer
+     links) + float geometry — NO clean slot-indexed sprite-pointer table to forge.
+
+Why walled for write-and-hold: the face binding isn't one copyable pointer; it's a render node the
+engine constructs at unit-activation. Forging it by hand = reconstructing geometry + scene-graph
+links = debugger territory, not a memory poke. ONLY clean path left: attach a debugger (x64dbg /
+Cheat Engine), breakpoint the timeline-detail render that AVs, follow the faulting pointer chain to
+the sprite-sheet table. Separate toolset, separate session. (Consistent with the sibling project:
+only IN-PLACE conversion of a live unit — which keeps its own graphic — ever worked.)
+
+FEASIBLE ALTERNATIVE (ship this instead) — **Reanimate the fallen**: raise a downed ALLY using its
+OWN already-built graphic (clear Dead bit + hold HP>0 + held Reraise — the proven FeignDeath/Reraise
+path, see `LIVE_LEDGER.md`). Delivers the "summon a companion" fantasy with proven mechanics and no
+render forging. Team-flip is separately walled (entice/traitor → [[entice-traitor-structural-wall]]),
+so you raise allies on your side, not enemies onto it.
