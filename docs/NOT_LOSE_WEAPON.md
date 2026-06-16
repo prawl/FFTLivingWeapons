@@ -94,6 +94,18 @@ identically, so this silently returns *stolen* gear too. Probably desired, but o
 **Verdict: needs reverse-engineering for the "ideal" path; a low-risk path exists today.** The obvious move —
 pinning the death counter — is the trap.
 
+> **UPDATE 2026-06-16 — the counter is now MAPPED, and the safe path's premise FAILED.** Two live findings
+> (`tools/probes/crystal_counter_probe.py`, `tools/probes/roster_loss_trace.py`):
+> 1. **The "3 hearts" counter = combat-slot base `+0x07`** (band entry −0x15). A diff of a KO'd unit's live
+>    slot caught it stepping `3→2→1→0` in sync with the on-screen hearts (once per the dead unit's turn). So
+>    the counter-pin path is no longer blocked on the unmapped offset — what remains is the *gating* test:
+>    does holding it ≥1 actually prevent crystallization (`crystal_counter_probe.py pin`)?
+> 2. **The recommended "post-battle roster-restore" premise is FALSE here.** Crystallization does NOT touch
+>    the stat-roster `0x1411A18D0` at all (watched every byte for 6.5 min incl. a 116 s out-of-battle window),
+>    yet the unit IS gone from Organize → party membership lives in a *separate* structure we haven't located.
+>    So the safe restore needs a new target (find the membership list), OR we lean on the now-mapped counter-pin
+>    if the gating test greens. Ramza still needs a separate HP-floor regardless.
+
 **Recommended primary: post-battle roster-restore (same snapshot infra). NOT counter-pin, NOT HP-floor.**
 
 Why counter-pinning (hold the death timer at 3 every tick so it never hits 0) is the wrong lead:
