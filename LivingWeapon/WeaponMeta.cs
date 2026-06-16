@@ -89,6 +89,11 @@ public sealed class WeaponSignature
     // larceny weapon. (Runtime + the marquee buff-bit map are live-pending; only the proven
     // Reraise/Invisible bits are wired so far -- see Larceny.Policy.cs.)
     [JsonProperty("larcenyTurns")] public int LarcenyTurns { get; set; }
+    // ULTIMA (Materia Blade): always-on PA-scaling by the wielder's current HP% --
+    // round(naturalPA × UltimaMul[tier][hpBand]). Owns the PA lane (Route declines it).
+    // Faithful to FF7's Ultima Weapon: damage swells with the wielder's current HP.
+    // Tier only RAISES the whole curve (no flip); the blade is never a death trap when hurt.
+    [JsonProperty("ultima")] public bool Ultima { get; set; }
 }
 
 internal static class MetaLoader

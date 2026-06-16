@@ -312,7 +312,7 @@
       <Formula>1</Formula>
       <Power>11</Power>
       <Evasion>12</Evasion>
-      <Elements>Dark</Elements>
+      <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>

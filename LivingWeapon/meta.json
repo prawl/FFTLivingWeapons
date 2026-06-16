@@ -282,6 +282,20 @@
     "formula": 2,
     "flavor": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away."
   },
+  "32": {
+    "name": "Materia Blade",
+    "wp": 11,
+    "cat": "Sword",
+    "formula": 1,
+    "flavor": "Cloud's sword, made for SOLDIER's elite to fight to their full potential.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 0,
+      "displayLabel": "Ultima",
+      "ultima": true
+    }
+  },
   "33": {
     "name": "Defender",
     "wp": 16,

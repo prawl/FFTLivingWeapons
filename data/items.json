@@ -986,10 +986,18 @@
       "category": "Sword",
       "vanillaName": "Materia Blade",
       "name": "Materia Blade",
-      "noGrowth": true,
+      "noGrowth": false,
+      "livingWeapon": true,
       "tier": 6,
-      "identity": "Dark mage-knight capstone — Dark element on a clean melee blade. Solid WP11/Ev12. Still item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
-      "desc": "The sword belonging to Cloud, the extraplanar wanderer. It was designed for members of SOLDIER, allowing them to fight to their full potential.",
+      "identity": "Ultima living blade — HP%-scaled PA on a clean elementless melee blade. WP11/Ev12. item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
+      "desc": "Cloud's sword, made for SOLDIER's elite to fight to their full potential.\n\nFull HP: 115% dmg (130% at +3)\nNear death: 50% dmg (60% at +3)",
+      "signature": {
+        "atTier": 0,
+        "ultima": true,
+        "displayLabel": "Ultima",
+        "sigName": "Ultima",
+        "note": "Ultima -- the FF7 Ultima Weapon's signature: PA scales with the wielder's current HP% (round(naturalPA × UltimaMul[tier][band])). Strong at full HP, weak when bleeding; the inverse of Wrathblade. Always-on from +0; the kill tier only raises the whole curve. Runtime: GrowthEngine.HoldUltima owns the PA lane (Route declines PA via OwnsPa), capture-natural + re-apply against the per-turn normalize (Afterimage idiom); HP% via ReadHp. CAVEAT (accepted by user): holding PA scales ALL the wielder's physical damage incl. Cloud's PA-based Limits -- no per-action hook exists in this engine. LOGIC+TESTS shipped; PENDING LIVE VERIFY."
+      },
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -1001,7 +1009,7 @@
       "proposed": {
         "wp": 11,
         "evade": 12,
-        "element": "Dark",
+        "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,

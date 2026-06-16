@@ -196,6 +196,18 @@ internal static class Tuning
     /// Out-paces the running-water wipe that clears 0x80 between 33 ms loop re-stamps.</summary>
     public const int TreasureFastHoldMs = 8;
 
+    /// <summary>Ultima (Materia Blade): tier (row 0..3) × HP% band (col 100 / 75-99 / 50-74 / 25-49 /
+    /// &lt;25) -> PA multiplier PERCENT. round(naturalPA × pct/100) is the held PA. Always-on (every
+    /// tier); the kill tier only RAISES the whole curve so a +3 blade isn't a death trap when hurt.
+    /// Faithful to FF7's Ultima Weapon: damage swells with the wielder's current HP.</summary>
+    public static readonly int[][] UltimaMul =
+    {
+        new[] { 115, 110, 80, 70, 50 },  // +0  (0-4 kills)
+        new[] { 120, 113, 83, 73, 53 },  // +1  (5-24)
+        new[] { 125, 116, 86, 76, 56 },  // +2  (25-49)
+        new[] { 130, 120, 90, 80, 60 },  // +3  (50+)
+    };
+
     /// <summary>Missing-HP formulas ignore every stat -> no growth lever.</summary>
     public static bool SkipFormula(int formula) => formula == 67 || formula == 69;
 

@@ -82,6 +82,8 @@ def main():
                 entry["signature"]["feignDeath"] = True
             if sig.get("afterimage"):  # afterimage (Swiftedge): Speed ramps each turn, resets on a hit
                 entry["signature"]["afterimage"] = True
+            if sig.get("ultima"):   # ultima (Materia Blade): always-on HP%-scaled PA hold
+                entry["signature"]["ultima"] = True
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

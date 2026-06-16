@@ -30,6 +30,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRi
 29,5,Icebrand,Graviton,Sword,Shop,12,PA x WP,14%,PA,Casts Gravity on hit,PA +10%,PA +20%,PA +30%,med,
 30,5,Runeblade,Arcanum,Sword,Shop,14,PA x WP,8%,PA,May strip buffs,PA +10%,PA +20%,PA +30% + Larceny (steal a foe's buff),med,
 31,5,Nagrarok,Lightbringer,Sword,Poach (Swine),14,PA x WP,12%,PA,—,PA +10%,PA +20%,PA +30%,low,
+32,6,Materia Blade,Materia Blade,Sword,TBD,11,PA x WP × HP% (Ultima),12%,PA (HP%-scaled),—,Ultima (PA ×HP%),Ultima (curve up),Ultima (curve up),med,
 33,4,Defender,Defender,Knight Sword,Poach (Elder Treant),16,PA x Br/100 x WP,60%,PA,—,PA +10%,PA +20%,PA +30%,low,
 34,5,Save the Queen,Save the Queen,Knight Sword,Move-Find (Midlight's Deep)/Join (Meliadoul),18,PA x Br/100 x WP,45%,PA,—,PA +10%,PA +20%,PA +30%,med,
 35,6,Excalibur,Excalibur,Knight Sword,Move-Find (Midlight's Deep)/Join (Orlandeau),21,PA x Br/100 x WP,35%,PA,—,PA +10%,PA +20%,PA +30%,high,

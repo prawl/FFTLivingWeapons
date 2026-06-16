@@ -52,6 +52,7 @@ internal sealed partial class GrowthEngine
         _applied.Clear();
         _timedNatural.Clear();
         _afterimage.Clear();
+        _ultima.Clear();
         _structForSlot.Clear();
         _grantLogged.Clear();
         _heldSupports.Clear();   // no writes: the per-battle struct is gone/rebuilding
@@ -103,6 +104,7 @@ internal sealed partial class GrowthEngine
                     if (m.Signature != null && m.Signature.ForTurns > 0)   // timed flat-stat grant
                         HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
                     HoldAfterimage(s, m, tier, level, brave, faith);       // Swiftedge: ramping Speed (owns the speed lane)
+                    HoldUltima(s, m, tier, level, brave, faith);           // Materia Blade: HP%-scaled PA hold (owns PA lane)
                 }
                 if (Route(s, m, tier, out long addr, out double factor))
                     if (!plan.TryGetValue(addr, out double ex) || factor > ex) plan[addr] = factor;
@@ -127,6 +129,7 @@ internal sealed partial class GrowthEngine
     {
         if (Tuning.SkipFormula(m.Formula)) { addr = 0; factor = 0; return false; }
         if (OwnsSpeed(m)) { addr = 0; factor = 0; return false; }   // Afterimage owns Speed (HoldAfterimage)
+        if (OwnsPa(m)) { addr = 0; factor = 0; return false; }     // Ultima owns PA (HoldUltima)
         if (Tuning.IsSpeedFormula(m.Formula)) { addr = s + Offsets.CSpeed; factor = Tuning.SpeedFactor[tier]; return true; }
         if (Tuning.IsCaster(m.Cat) || Tuning.IsMagicCastFormula(m.Formula)) { addr = s + Offsets.CMa; factor = Tuning.Factor[tier]; return true; }
         addr = s + Offsets.CPa; factor = Tuning.Factor[tier]; return true;
