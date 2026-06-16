@@ -3,7 +3,6 @@ Release TODO's
 - Replace the Stormbrand (it's sorta lame)
 
 - Thorough sweep of other mods
-- When using the new chemist items there's a tag that still says the old items name when you're targeting a tile to use.
 - Ramza's Squire cannot equip Shields but normal squires can?
 - Fix the coloring on all icons
 
