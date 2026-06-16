@@ -4,6 +4,7 @@ Release TODO's
 - Sanctus Staff test potions and Regen
 - Ramza's Squire cannot equip Shields but normal squires can?
 - Larcency keeps popped up in the logs despite not being equipped
+- BUG: enemy Knights cast Shadow Blade without the Sanguine Sword. The Shadow Blade grant (Sanguine Sword id 23, ability 165) is injected into the Knight/Squire/Gallant Knight JobCommand record, which is JOB-global, so every unit of those jobs shows Shadow Blade as Learned regardless of equipped weapon (enemies included). Seen live: enemy Knight "Dyana" holding the Arcanum used Shadow Blade. Same class as the Barrage enemy-Thief leak, but Knights are a common enemy job so it is far more visible. Fix: gate the injected command to the actual wielder (per-unit), or restrict the grant to rare/unused enemy jobs, or remove the command-grant and use a different signature.
 
 
 
@@ -25,7 +26,10 @@ Ideas:
 Discipline: Compare Bra between your unit and the enemy you just hit, taking the higher of the two as your own.
 Retain broken equipment
 
+Retain the last ability used on you.
+
 Needs Exploration
+- Weapon that unlocks a job early?
 - Steal Identity: Copy the enemies stats in battle
 Guardian's Oath 🛡️ — when an ally next to the wielder takes a lethal hit, redirect it to the wielder (hold the ally's HP up, drop yours). HP-holds + position reads + death detection, all proven. The bodyguard blade.
 Unlock Potental: Add a random ability to an allied neighbor
