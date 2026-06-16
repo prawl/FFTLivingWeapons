@@ -232,4 +232,8 @@ internal static class Tuning
     /// The runtime re-stamps this whenever the timer reads below it, defeating natural expiry
     /// and cures. Proven live (memory poison-status-bytes): held through a two-healer battle.</summary>
     public const byte PoisonTimerInit = 36;
+
+    /// <summary>Sanctuary (Staff of the Magi +3): the value held in the crystal counter (band -0x15
+    /// / combat +0x07) while the bearer is alive -- keeps fallen allies permanently revivable.</summary>
+    public const byte SanctuaryHearts = 3;
 }

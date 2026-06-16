@@ -2105,7 +2105,15 @@
         0.77,
         0.55,
         0.95
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "antiCrystallize": true,
+        "sigName": "Sanctuary",
+        "displayLabel": "Sanctuary",
+        "p3Desc": "While the bearer lives, no fallen ally crystallizes -- the revive window stays open.",
+        "note": "Per-tick pin of the crystal counter (combat +0x07 / band -0x15) to 3 while a +3 Staff of the Magi bearer is alive; dead-streak guarded (3 consecutive fallen ticks before pinning); guarded W8 (Writable check); gated on bearer alive each tick ('save the priest'). Sanctuary.cs."
+      }
     },
     {
       "id": 67,

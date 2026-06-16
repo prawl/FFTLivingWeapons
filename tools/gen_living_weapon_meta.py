@@ -88,6 +88,8 @@ def main():
                 entry["signature"]["ultima"] = True
             if sig.get("healBoostPct"):  # benediction (Sanctus Staff): ally HP-rise boost on wielder action window
                 entry["signature"]["healBoostPct"] = int(sig["healBoostPct"])
+            if sig.get("antiCrystallize"):  # sanctuary (Staff of the Magi): hold fallen allies' crystal counter while the bearer lives
+                entry["signature"]["antiCrystallize"] = True
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

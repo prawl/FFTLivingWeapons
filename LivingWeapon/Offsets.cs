@@ -112,6 +112,13 @@ internal static class Offsets
     public const int CSupport = 0x98;
     public const int CMovement = 0x9C;   // 3 bytes, base id 230; Rapture holds its teleport image here
 
+    // --- crystal counter (band-entry relative, found live 2026-06-16) ---
+    // Offset from the band entry base address. A KO'd unit's "3 hearts" crystallization countdown:
+    // the engine steps 3->2->1->0 once per the dead unit's scheduled turn; 0 = unit crystallizes
+    // (permanent loss). Equivalent to combat base +0x07. Holding it at SanctuaryHearts (3) stops
+    // crystallization while the bearer lives. Found and pin-gating confirmed live this session.
+    public const int ACrystalHearts = -0x15; // band entry -0x15 == combat base +0x07
+
     // --- dead / undead status bytes (band-entry relative) ---
     // Proven layout from Doom research (doom-status-bytes memory): Dead +0x45/0x20, Undead +0x45/0x10.
     // A unit is structurally dead when this bit is set regardless of HP -- the Phoenix-Down undead

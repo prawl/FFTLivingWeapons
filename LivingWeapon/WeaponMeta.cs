@@ -103,6 +103,10 @@ public sealed class WeaponSignature
     // period after) is boosted by this percentage. Computed on the observed restored HP (not the
     // spell's nominal output), so an overheal yields no bonus. 0 = not a benediction weapon.
     [JsonProperty("healBoostPct")] public int HealBoostPct { get; set; }
+    // SANCTUARY (Staff of the Magi "Sanctuary"): while a +3 Staff of the Magi bearer is alive,
+    // every fallen ALLY's crystal counter (combat +0x07 / band -0x15) is held at SanctuaryHearts
+    // (3) each tick -- the revive window never closes. false = not a sanctuary weapon.
+    [JsonProperty("antiCrystallize")] public bool AntiCrystallize { get; set; }
 }
 
 internal static class MetaLoader
