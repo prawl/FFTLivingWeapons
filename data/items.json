@@ -48,10 +48,11 @@
     },
     "56": {
       "PABonus": 2,
-      "MABonus": 1,
+      "MABonus": 2,
       "SpeedBonus": 2,
       "MoveBonus": 1,
       "JumpBonus": 1,
+      "InnateStatus": "Undead, Float",
       "AbsorbElements": "Dark",
       "WeakElements": "Holy"
     },
@@ -404,8 +405,8 @@
       "vanillaName": "Kunai",
       "name": "Mistedge",
       "tier": 3,
-      "identity": "REACH outlier — the only Range-2 melee in the line (throwing-knife fantasy). Hits from a tile back without melee retaliation; pays with line-min evade for its tier. Iconic name kept.",
-      "flavorOverride": "A throwing blade balanced for the long cast, finding its mark a pace beyond a foe's reach.",
+      "identity": "Blinding blade — the only ninja blade that blinds (mist fouls the foe's aim). Trades the old (non-functional) reach for a to-hit debuff; immune to Frost Kodachi domination via the proc.",
+      "flavorOverride": "A blade veiled in cold mist that stings the eyes of all it cuts.",
       "baseline": {
         "wp": 9,
         "evade": 5,
@@ -417,10 +418,10 @@
         "wp": 9,
         "evade": 10,
         "element": "None",
-        "onHit": "Reach 2 (strike from a tile back)",
-        "onHitAbilityId": 0,
+        "onHit": "May inflict Blind",
+        "onHitAbilityId": 9,
         "formula": 1,
-        "range": 2
+        "range": 1
       },
       "iconTint": [
         0.58,
@@ -834,7 +835,7 @@
       "name": "Wrathblade",
       "tier": 4,
       "identity": "Berserker sword: damage equals the wielder's missing HP. Zero at full health, devastating near death. WP and evade are cosmetic for damage. The widely-equippable desperation blade.",
-      "flavorOverride": "Forged for the cornered and bleeding; nearer to ruin, the hungrier its edge grows.",
+      "flavorOverride": "A blade for the cornered and bleeding; nearer ruin, the hungrier its edge.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -857,7 +858,7 @@
         "feignDeath": true,
         "displayLabel": "Feign Death",
         "note": "Feign Death -- hold Reraise (band +0x47/0x20) re-applied through the death that clears it: a lethal hit becomes a played-dead corpse (AI-ignored for free) the engine auto-revives, animated, at ~10% HP, once per battle. SYNERGY: revives at 10% HP = ~90% missing = near-max Wrathblade (missing-HP, formula 67) damage. PROVEN live 2026-06-14 (held bit == an item's Permanent: Reraise in function).",
-        "p3Desc": "Plays dead at a lethal blow, 1/battle: ignored by foes 2 turns, then springs back low HP."
+        "p3Desc": "At a lethal blow, plays dead once per battle, unseen by foes, then revives at low HP."
       }
     },
     {
@@ -2781,7 +2782,7 @@
         "sigName": "Maim",
         "displayLabel": "Maim",
         "crippleTurns": 3,
-        "p3Desc": "Foes it strikes lose their reactions for 3 turns.",
+        "p3Desc": "Foes it strikes lose their reactions (e.g. Counter) for 3 turns.",
         "note": "While the +3 Huntress wielder deals damage to an enemy, that enemy loses its reaction abilities (combat +0x94, band +0x78, 4 bytes) for 3 of its turns, then the saved bits restore. PROVEN live (reaction-suppression-cripple): hold-zero suppressed Counter through 5 hits; one-shot restore revived it. Runtime: Maim.cs -- HP-diff victim detection (Ricochet pattern) + save/hold/restore + per-victim CT turn counting (CharmLock pattern). Allies never latched. Re-hit refreshes the window. Base edit LOCKED: onHitAbilityId 214 Arm Shot -> 213 Leg Shot (T5 pins, T6 Perseus deletes)."
       }
     },
@@ -2817,7 +2818,7 @@
         "sigName": "Barrage (Thief Only)",
         "displayLabel": "Barrage",
         "grantCommandAbilityId": 358,
-        "p3Desc": "A Thief wielder gains the Barrage command: a volley of four swift arrows.",
+        "p3Desc": "A Thief wielder gains Barrage: 4 swift attacks, each at half the usual damage.",
         "note": "While a +3 Yoichi Bow wielder exists, ability 358 (Barrage, 4-arrow volley at half damage) is injected into a JobCommand record and held each tick (table rebuilds at boot; original 25 bytes saved once, restored on grant end / job or secondary change). Target = the wielder's PRIMARY job record (generic band 74-92: rec = job-69, learned jobIdx = job-74, Dance shares 17) UNLESS the primary is a special-executor command (Aim/Jump/Items/Throw/Arithmeticks -- their executors id-whitelist in CODE and silently drop foreign abilities at confirm; PROVEN for Aim 2026-06-10 with 358/102/146/16) -- then the grant routes to the mounted SECONDARY's record (roster +0x07 = rec id; LIVE-PROVEN: Archer cast Barrage from mounted Steal). Learned bit HELD per tick (menu purchases stale-writeback-wipe external bits), never cleared; residue is inert without the injection. Name/desc/icon ship via cell-merged ability.en.nxd (patch_ability_names.py self-verifies 3 cells). VERIFIED LIVE under Thief primary AND Archer-with-Steal-secondary. RUNTIME: Barrage.cs + Barrage.Policy.cs (51+ tests)."
       }
     },
@@ -6373,8 +6374,8 @@
       "vanillaName": "Cursed Ring",
       "name": "Cursed Ring",
       "tier": 5,
-      "identity": "Dark Pact ring (unique): a loaded PA+2/MA+1/Speed+2/Move+1/Jump+1 stat bundle that absorbs Dark, paid for with a Holy weakness. High risk/reward build-around (community-requested buff).",
-      "desc": "A ring inhabited by evil spirits that imparts great power, but transforms the wearer into the living dead.\nPhysical Attack +2. Magick Attack +1. Speed +2. Move +1. Jump +1. Absorbs Dark damage. Weak to Holy (takes extra damage).",
+      "identity": "Dark Pact ring (unique): PA+2/MA+2/Speed+2/Move+1/Jump+1, innate Undead+Float, absorbs Dark, weak Holy — high risk/reward build-around (community-requested buff).",
+      "desc": "A ring inhabited by evil spirits that imparts great power, but binds its wearer to the living dead.\nPhysical Attack +2. Magick Attack +2. Speed +2. Move +1. Jump +1. Innate Undead and Float. Absorbs Dark damage. Weak to Holy (takes extra damage).",
       "baseline": {
         "hp": 0,
         "mp": 0,
@@ -6386,7 +6387,7 @@
         "mp": 0,
         "physEv": 0,
         "magEv": 0,
-        "rider": "PA+2, MA+1, Speed+2, Move+1, Jump+1, absorb Dark, weak Holy",
+        "rider": "PA+2, MA+2, Speed+2, Move+1, Jump+1, innate Undead and Float, absorb Dark, weak Holy",
         "equipBonusId": 56
       },
       "iconTint": [

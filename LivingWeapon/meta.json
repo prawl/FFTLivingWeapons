@@ -119,7 +119,7 @@
     "wp": 9,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "A throwing blade balanced for the long cast, finding its mark a pace beyond a foe's reach."
+    "flavor": "A blade veiled in cold mist that stings the eyes of all it cuts."
   },
   "13": {
     "name": "Frost Kodachi",
@@ -231,7 +231,7 @@
     "wp": 12,
     "cat": "Sword",
     "formula": 67,
-    "flavor": "Forged for the cornered and bleeding; nearer to ruin, the hungrier its edge grows.",
+    "flavor": "A blade for the cornered and bleeding; nearer ruin, the hungrier its edge.",
     "signature": {
       "abilityId": 0,
       "slot": "",

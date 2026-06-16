@@ -114,12 +114,12 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>12</Id> <!-- Mistedge (was Kunai) -->
-      <Range>2</Range>
+      <Range>1</Range>
       <Formula>1</Formula>
       <Power>9</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
+      <OptionsAbilityId>9</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>13</Id> <!-- Frost Kodachi (was Kodachi) -->

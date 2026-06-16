@@ -91,11 +91,11 @@
     <ItemEquipBonus>
       <Id>56</Id>
       <PABonus>2</PABonus>
-      <MABonus>1</MABonus>
+      <MABonus>2</MABonus>
       <SpeedBonus>2</SpeedBonus>
       <MoveBonus>1</MoveBonus>
       <JumpBonus>1</JumpBonus>
-      <InnateStatus>None</InnateStatus>
+      <InnateStatus>Undead, Float</InnateStatus>
       <ImmuneStatus>None</ImmuneStatus>
       <StartingStatus>None</StartingStatus>
       <AbsorbElements>Dark</AbsorbElements>

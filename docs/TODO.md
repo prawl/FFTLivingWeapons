@@ -1,10 +1,5 @@
 Release TODO's
-- Mistedge says two tiles but it's only one
-- Huntress update desc to include (e.g. counter)
-- Update Yoichi Bow desc to make Barrage match the actual command desc
-- Update the cursed ring
 - Fix the battle with Oran (user rported it was too difficult)
-- Update the Wrathblade+3 Desc
 - Replace the Stormbrand (it's sorta lame)
 
 - Thorough sweep of other mods
@@ -38,7 +33,6 @@ Needs Exploration
 - Defeating enemies with Magic will restore some life
 - Makes Spell Casting Instant for X turns
 - Swap Mana with a Target
-- Steal a buff from an enemy
 - On Successful Parry gain X (mana/health)
 - Reduce the targets level on hit
 - Doing something temporarily increases evasion by % for X turns
