@@ -1,9 +1,15 @@
-2.0 Release TODO's
+Release TODO's
+- Arcanum needs thorough testing (does it need the "Removes"?)
+- Mistedge says two tiles but it's only one
+- Huntress update desc to include (e.g. counter)
+- Update Yoichi Bow desc to make Barrage match the actual command desc
+- 
+- Fix the battle with Oran (user rported it was too difficult)
+- Update the Wrathblade+3 Desc
+- Replace the Stormbrand (it's sorta lame)
+
 - Thorough sweep of other mods
 - When using the new chemist items there's a tag that still says the old items name when you're targeting a tile to use.
-
-
-TODO's
 - Ramza's Squire cannot equip Shields but normal squires can?
 - Fix the coloring on all icons
 
@@ -46,28 +52,6 @@ Needs Exploration
 - Increases throwing damage by X for Y turns
 - Swap HP with a Target
 - Make the target flee in terror (disable all abilities?)
-- Feign Death: a unit reads as DEAD (death animation/position + the dead bit at +0x45/0x20)
-  yet keeps its turn and can still act -- enemies treat it as a corpse until it springs up.
-  Discovered 2026-06-12 by accident: godmode (HP-hold + dead-bit clear every ~10ms) fought
-  the engine's death over a self-killed ally, so it stood up, acted, and flopped back to the
-  dead pose every turn. Mechanism to chase: hold a unit in the dead visual state while keeping
-  it alive in the scheduler. Possible signature/move -- a true "play dead" that drops enemy aggro.
-- Master Treasure Hunter: Use the in game tile marking feature to mark all of the traps and treasure automatically
-
-2.X feature: Treasure Master (auto-mark trap/treasure tiles in battle)
-- Native-mark hijack is WALLED (see docs/LIVE_LEDGER.md) -- the mark has no writable store.
-- Buildable architecture: (1) author trap_treasure_tiles.json per map (122 maps, fixed
-  placements, guide-documented -- a data pass like the obtain column); (2) detect the live
-  map (FFTHandsFree DetectMap fingerprinting is done); (3) display via the DLL's own paint
-  (the kills-card painter) keyed off cursor/tile-index addresses in the ledger.
-- Probe + findings: tools/probes/mark_probe.py; cursor (x,y)=0x140C64A54/0x140C6496C proven.
-
-Open offers (standing, dated — so they stop rotting in handoff prose)
-- (2026-06-10) Tally surgery: kills.json on the live install carries 3 phantom credits from
-  since-fixed bugs (Scoutbolt +2, Wellspring Rod's entire 1). Say the word and they're removed.
-- (2026-06-10) Changelog + FAQ for the 2.0 release — half-written in session transcripts already.
-- (2026-06-11) CharmLock CT-expiry probe: watchspan a locked enemy's auth-copy +0x25 across its
-  turns to settle the contradiction in docs/LIVE_LEDGER.md (is the N-turn unlock dead code?).
 
 Scrapped
 2. PROVEN: Give two counter abilities we know work together.

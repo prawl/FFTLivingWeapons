@@ -70,6 +70,33 @@ public class TurnTrackerTests
     }
 
     [Fact]
+    public void GlobalTurns_ticks_on_every_acted_edge_even_when_the_actor_is_unresolvable()
+    {
+        // The attribution-FREE clock: a turn-edge bumps GlobalTurns whether or not we can fingerprint
+        // who acted. This is what lets a buff timer (Larceny) be immune to a parked wielder -- the
+        // world's turns keep coming even when the held unit's own turn never does.
+        var m = new FakeSparseMemory();
+        var t = new TurnTracker(m);
+        // Active unit named in the turn queue, but NO matching band entry (attribution fails).
+        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 20;
+
+        Assert.Equal(0, t.GlobalTurns);
+        Acted(m, 1); t.Poll();                 // rising edge, unresolvable actor
+        Assert.Equal(1, t.GlobalTurns);         // global clock advances anyway...
+        Assert.Equal(0, t.Turns(20, 70, 50));   // ...while no per-unit turn is credited
+        t.Poll();                               // no new edge -> no change
+        Assert.Equal(1, t.GlobalTurns);
+        Acted(m, 0); t.Poll();
+        Acted(m, 1); t.Poll();                  // another edge
+        Assert.Equal(2, t.GlobalTurns);
+
+        t.ResetBattle();
+        Assert.Equal(0, t.GlobalTurns);         // cleared on the battle boundary
+    }
+
+    [Fact]
     public void Unresolvable_active_unit_counts_nothing()
     {
         var m = new FakeSparseMemory();

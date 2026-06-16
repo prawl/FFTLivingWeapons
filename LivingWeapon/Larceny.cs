@@ -9,8 +9,11 @@ namespace LivingWeapon;
 ///
 /// DETECTION mirrors Maim/Ricochet: per-tick HP drops on enemy band slots during the wielder's
 /// acted period (enemy-fingerprint filtered). WIELDER LOCATION is the Rapture/SpiritualFont path
-/// (Wielder.TryResolveMainHand + Locate). EXPIRY counts the WIELDER's turns off TurnTracker (the
-/// player's own band CT reads flat 0 -- the Rapture wall -- so it cannot be used here). The
+/// (Wielder.TryResolveMainHand + Locate). EXPIRY counts GLOBAL turns -- any unit's turn, off
+/// TurnTracker.GlobalTurns -- because counting the WIELDER's own turns let a parked unit hold the
+/// buff forever (it never takes a turn; observed live 2026-06-14, held through 6 sat-out turns) and
+/// wall-clock bled down in menus and ignored battle pace. The world's turn clock keeps ticking no
+/// matter what the wielder does, so the theft is always temporary (Tuning.LarcenyHoldTurns turns). The
 /// SAFETY: the buff is only granted+held on the wielder if the wielder did NOT already have it, so
 /// expiry never strips the wielder's own enchantment; the foe's bit is always stripped (a dispel
 /// at worst). All reads/writes are VirtualQuery-guarded (LarcenyPolicy.SetBit/ClearBit).
@@ -29,9 +32,10 @@ internal sealed class Larceny : ISignature
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly KillTracker _tracker;
-    private readonly TurnTracker _turns;
+    private readonly TurnTracker _turns;              // the global-turn clock the stolen-buff expiry rides
     private readonly LarcenyState _state;
     private readonly RicochetState _hpState;
+    private readonly LarcenyPolicy.Buff?[] _preHit;   // per-slot holdable-buff snapshot (pre-hit memory)
     private readonly List<int> _hands = new();
     private long _wielderAddr;
     private (int lvl, int br, int fa) _wielderFp;
@@ -47,6 +51,7 @@ internal sealed class Larceny : ISignature
         _turns = turns;
         _state = new LarcenyState();
         _hpState = new RicochetState(Offsets.BandSlots);
+        _preHit = new LarcenyPolicy.Buff?[Offsets.BandSlots];
     }
 
     public void ResetBattle()
@@ -54,16 +59,14 @@ internal sealed class Larceny : ISignature
         ReleaseAll();   // drop any stolen bits off the wielder before forgetting them
         _state.Clear();
         _hpState.ResetBattle();
+        System.Array.Clear(_preHit, 0, _preHit.Length);
         _wielderAddr = 0;
         _wasActive = false;
     }
 
     public void Tick(bool onField)
     {
-        if (!onField) { Drive(); return; }   // keep holding stolen bits off the live field; NOTE expiry
-                                             // runs on the on-field branch only -- it relies on the
-                                             // wielder being locatable during on-field ticks (battle
-                                             // exit's ReleaseAll is the backstop, so this never leaks)
+        if (!onField) { Drive(); ExpireAll(); return; }   // hold + age stolen buffs off the live field too
         if (!_meta.TryGetValue(ArcanumId, out var m) || m.Signature is null) return;
         int tier = Tuning.TierOf(_kills, ArcanumId);
 
@@ -80,15 +83,6 @@ internal sealed class Larceny : ISignature
             Log.Info($"larceny {(active ? "ACTIVE -- Arcanum wielder is acting; the next struck foe loses a buff" : "inactive")}");
         }
 
-        int larcenyTurns = m.Signature.LarcenyTurns;
-        // Count the wielder's turns off the LIVE band level -- TurnTracker keys by live level, while
-        // _wielderFp.lvl is the roster level that freezes for the battle; a mid-battle level-up would
-        // otherwise desync the lookup and the buff would never expire. (A level-up DURING a held
-        // window can still glitch the count by one tier -- the shared TurnTracker level-keying caveat
-        // also affecting Wyrmblood/HoldTimedStat; the buff then holds to battle exit where ReleaseAll
-        // clears it, never a leak.)
-        int wielderLvl = _wielderAddr != 0 ? _mem.U8(_wielderAddr + Offsets.ALevel) : _wielderFp.lvl;
-        int wielderTurns = _turns.Turns(wielderLvl, _wielderFp.br, _wielderFp.fa);
         var enemyFps = active ? Band.EnemyFingerprints(_mem) : null;
 
         for (int s = 0; s < Offsets.BandSlots; s++)
@@ -102,25 +96,36 @@ internal sealed class Larceny : ISignature
             int hp = _mem.Readable(addr + Offsets.AHp, 2) ? _mem.U16(addr + Offsets.AHp) : 0;
 
             int dmg = _hpState.Observe(s, hp);
+            // Snapshot this slot's holdable buff EVERY tick. The steal uses the PRE-hit snapshot:
+            // Arcanum's base strip-proc (onHit 55) clears the buff during the hit, a beat before our
+            // post-hit scan, so reading it at damage time finds nothing (proven live 2026-06-14).
+            var nowBuff = LarcenyPolicy.Pick(off => _mem.Readable(addr + off, 1) ? _mem.U8(addr + off) : (byte)0);
+            var preHit = _preHit[s];
+            _preHit[s] = nowBuff;
+
             if (!active || dmg <= 0 || enemyFps is null) continue;
             if (!LarcenyPolicy.ShouldLatch(enemyFps.Contains((mhp, lvl, br, fa)))) continue;
 
-            var buff = LarcenyPolicy.Pick(off => _mem.Readable(addr + off, 1) ? _mem.U8(addr + off) : (byte)0);
+            var buff = preHit ?? nowBuff;   // the buff the foe had BEFORE the hit (the live one may be gone)
             if (buff is null) continue;
             var key = (buff.Value.Off, buff.Value.Mask);
-            if (_state.IsHeld(key)) continue;   // already wearing this buff -- leave the foe's for a later steal
 
-            // Always strip it from the foe; grant+hold on the wielder only if they lack it (so the
-            // expiry clear never strips the wielder's OWN enchantment).
-            // LIMITATION: if the wielder LATER gains this same buff from another source while the
-            // stolen copy is still held, expiry's bit-clear strips that one too -- bit-keyed status
-            // can't tell the copies apart. Low frequency; accepted.
-            LarcenyPolicy.ClearBit(_mem, addr, key.Item1, key.Item2);
-            if (!LarcenyPolicy.HasBit(_mem, _wielderAddr, key.Item1, key.Item2))
+            // One decision per struck foe -- so a single action that hits SEVERAL buffed enemies steals
+            // each buff from only one of them, dispels duplicates the wielder already owns, and never
+            // strips a copy it has already stolen (LarcenyPolicy.Decide).
+            // LIMITATION: if the wielder LATER gains this same buff from another source while the stolen
+            // copy is still held, expiry's bit-clear strips that one too -- bit-keyed status can't tell
+            // the copies apart. Low frequency; accepted.
+            var action = LarcenyPolicy.Decide(_state.IsHeld(key),
+                                              LarcenyPolicy.HasBit(_mem, _wielderAddr, key.Item1, key.Item2));
+            if (action == LarcenyAction.Skip) continue;   // already wearing this buff -- leave the foe's copy
+
+            LarcenyPolicy.ClearBit(_mem, addr, key.Item1, key.Item2);   // strip the foe (Dispel + Steal)
+            if (action == LarcenyAction.Steal)
             {
                 LarcenyPolicy.SetBit(_mem, _wielderAddr, key.Item1, key.Item2);
-                _state.Steal(key, wielderTurns);
-                Log.Info($"larceny: stole {buff.Value.Name} from an enemy ({mhp} max HP) -- the wielder wears it for {larcenyTurns} of its turns");
+                _state.Steal(key, _turns.GlobalTurns);
+                Log.Info($"larceny: stole {buff.Value.Name} from an enemy ({mhp} max HP) -- the wielder wears it for ~{Tuning.LarcenyHoldTurns} turns");
             }
             else
             {
@@ -129,7 +134,7 @@ internal sealed class Larceny : ISignature
         }
 
         Drive();
-        ExpireAll(larcenyTurns, wielderTurns);
+        ExpireAll();
     }
 
     /// <summary>Re-assert every held stolen bit on the wielder (beats the engine's per-turn
@@ -141,20 +146,23 @@ internal sealed class Larceny : ISignature
             LarcenyPolicy.SetBit(_mem, _wielderAddr, off, mask);
     }
 
-    /// <summary>Drop stolen buffs whose term has elapsed (counted in the wielder's own turns).</summary>
-    private void ExpireAll(int larcenyTurns, int wielderTurns)
+    /// <summary>Drop stolen buffs whose global-turn term has elapsed. Gated on SameWielder so a buff is
+    /// only released once we can actually clear its bit -- if the wielder isn't locatable this tick we
+    /// retry next tick (and battle exit's ReleaseAll is the backstop), so a faded buff never lingers.</summary>
+    private void ExpireAll()
     {
-        if (_wielderAddr == 0) return;
+        if (!SameWielder()) return;
+        int turn = _turns.GlobalTurns;
         List<(int off, byte mask)>? drop = null;
         foreach (var key in _state.Held)
-            if (LarcenyPolicy.IsExpired(wielderTurns, _state.BaselineTurns(key), larcenyTurns))
+            if (LarcenyPolicy.IsExpired(turn, _state.StolenAt(key), Tuning.LarcenyHoldTurns))
                 (drop ??= new()).Add(key);
         if (drop is null) return;
         foreach (var key in drop)
         {
-            if (SameWielder()) LarcenyPolicy.ClearBit(_mem, _wielderAddr, key.off, key.mask);
+            LarcenyPolicy.ClearBit(_mem, _wielderAddr, key.off, key.mask);
             _state.Release(key);
-            Log.Info($"larceny: a stolen buff faded from the wielder after {larcenyTurns} turns");
+            Log.Info($"larceny: a stolen buff faded from the wielder after ~{Tuning.LarcenyHoldTurns} turns");
         }
     }
 

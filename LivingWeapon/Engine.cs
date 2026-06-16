@@ -27,7 +27,7 @@ internal sealed class Engine
     private readonly GrowthEngine _growth;
     private readonly CharmLock _charm;     // named: Heartbeat is engine-driven, outside the module contract
     private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
-    private readonly NightSword _nightSword; // named: ticks pre-gate like Barrage (JobCommand grant of Shadowblade)
+    private readonly ShadowBlade _shadowBlade; // named: ticks pre-gate like Barrage (JobCommand grant of Shadow Blade)
     private readonly TreasureMaster _treasure;
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
@@ -66,7 +66,7 @@ internal sealed class Engine
         _growth = new GrowthEngine(meta, _kills, _turns, live);
         _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
-        _nightSword = new NightSword(meta, _kills, live);           // Sanguine +3: grant Shadowblade (HP-draining dark strike)
+        _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3: grant Shadow Blade (HP-draining dark strike)
         var extra = new ExtraTurn(_kills, live);                    // Zwill +3: a kill grants the killer an immediate extra turn
         var eagle = new EagleEye(meta, _kills, live);               // Eclipsebolt +3: hasten any enemy Doom to a 1-turn countdown
         var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3: bounce chip to nearest other enemy
@@ -77,7 +77,7 @@ internal sealed class Engine
         var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
         var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
-        var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder
+        var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N global turns)
         var treasureJson = Path.Combine(modDir, "treasure.json");
         _treasure = new TreasureMaster(
             load:         () => TreasureDb.Load(modDir),
@@ -92,7 +92,7 @@ internal sealed class Engine
         // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
         // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _nightSword, lifeSap, wyrmblood, rapture, font, feign, _treasure };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, rapture, font, feign, _treasure };
         _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, rapture, font, feign };
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
@@ -162,7 +162,7 @@ internal sealed class Engine
         // Barrage runs in AND out of battle: the learn screen / pre-battle menus read the
         // JobCommand table live, and the learned bit needs its hold against menu writebacks.
         _barrage.Tick();
-        _nightSword.Tick();   // pre-gate like Barrage: the learn screen / menus read the JobCommand table live
+        _shadowBlade.Tick();   // pre-gate like Barrage: the learn screen / menus read the JobCommand table live
         // Treasure Master gates on "a battle map is on screen" (slot9 armed + mode != 0) rather
         // than strict InLiveBattle.  This makes it stable through formation, enemy turns, and
         // cast animations (all mode 1 with slot9 stuck) while still excluding the world map

@@ -125,7 +125,9 @@ def check_slots(items, normal_formulas):
 
 FLAVOR_MAX = 90   # authored flavor lines must fit the equip card
 P3DESC_MAX = 90   # the signature EFFECT line (the card header carries the name + the +N tier)
-SIGNAME_MAX = 24  # the name in the "+{atTier} Ability -- {name}" card header, kept within card width
+SIGNAME_MAX = 60  # the name in the "+{atTier} Ability -- {name}" card header. May carry a class-restriction
+                  # note (e.g. "Shadow Blade (Squire, Gallant Knight, Knight only)"); the full header line
+                  # ("+3 Ability -- " + name) still fits within the ~90-char card width the flavor lines use.
 
 def check_p3desc(items):
     """Each signature with a p3Desc must resolve a name (sigName, else displayLabel) for the card

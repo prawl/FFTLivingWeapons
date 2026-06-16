@@ -82,10 +82,12 @@ public sealed class WeaponSignature
     // turns' worth) and resets to 0 when the wielder takes damage. Swiftedge's damage is Speed x WP
     // (formula 99), so the ramp accelerates its damage. false = not an afterimage weapon.
     [JsonProperty("afterimage")] public bool Afterimage { get; set; }
-    // LARCENY (Arcanum "Larceny"): at AtTier a hit STEALS the struck enemy's highest-priority
-    // holdable buff -- cleared on the target, held on the wielder for this many of the wielder's
-    // turns, then faded. 0 = not a larceny weapon. (Runtime + the marquee buff-bit map are
-    // live-pending; only the proven Reraise/Invisible bits are wired so far -- see Larceny.Policy.cs.)
+    // LARCENY (Arcanum "Larceny"): at AtTier a hit STEALS the struck enemy's highest-priority holdable
+    // buff -- cleared on the target, held on the wielder, then faded after Tuning.LarcenyHoldTurns
+    // GLOBAL turns. >0 = a larceny weapon (the enable gate; the hold duration is the global-turn knob in
+    // Tuning, not this number -- the wielder's own turn count is gameable by parking the unit). 0 = not a
+    // larceny weapon. (Runtime + the marquee buff-bit map are live-pending; only the proven
+    // Reraise/Invisible bits are wired so far -- see Larceny.Policy.cs.)
     [JsonProperty("larcenyTurns")] public int LarcenyTurns { get; set; }
 }
 

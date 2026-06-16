@@ -30,9 +30,9 @@ internal sealed partial class Barrage : ISignature
     void ISignature.Tick(in TickContext ctx) => Tick();
     // ABILITY_BASE: record 0's AbilityId1 byte. Flags sit at ABILITY_BASE + rec*25 - 3.
     // From barrage_probe.py: ABILITY_BASE = 0x140679436 - 27*25.
-    // internal (not private): NightSword reuses these table-layout constants + the static helpers
-    // below to grant Shadowblade through the same proven JobCommand injection -- the Barrage logic
-    // itself is untouched. (The shared inject/restore core is a future extraction, see NightSword.cs.)
+    // internal (not private): ShadowBlade reuses these table-layout constants + the static helpers
+    // below to grant Shadow Blade through the same proven JobCommand injection -- the Barrage logic
+    // itself is untouched. (The shared inject/restore core is a future extraction, see ShadowBlade.cs.)
     internal const long AbilityBase = 0x140679436L - 27L * 25;
     internal const int RecSize = 25;         // bytes per record (3 flags + 16 abilities + 6 RSM)
     internal const int FlagPrefixSize = 3;   // ExtAb u16 + ExtRSM u8

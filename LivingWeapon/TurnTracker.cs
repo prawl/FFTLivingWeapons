@@ -3,15 +3,21 @@ namespace LivingWeapon;
 using System.Collections.Generic;
 
 /// <summary>
-/// Counts each unit's completed turns in the current battle, for TIMED signatures (e.g.
-/// Galewind's Speed +3 for the wielder's first 3 turns). On every rising edge of the global
-/// "acted" flag (0x14077CA8C) it credits one turn to the ACTIVE unit, identified the same way
-/// KillTracker attributes a kill: the turn-queue HP/MaxHP/level -> BAND entry (live source;
-/// the static array freezes on battle restart) -> (level,brave,faith) fingerprint.
+/// Counts completed turns in the current battle for TIMED signatures. On every rising edge of the
+/// global "acted" flag (0x14077CA8C) it advances TWO clocks:
+///   * <see cref="GlobalTurns"/> -- the attribution-FREE count of turns taken by ANYONE. Bumped on
+///     the edge whether or not the actor can be fingerprinted, so a buff timer riding it (Larceny's
+///     stolen-buff expiry) is immune to a parked wielder -- the world's turns keep coming even when
+///     the held unit's own turn never does.
+///   * the PER-UNIT count -- credits one turn to the ACTIVE unit (e.g. Galewind's Speed +3 for the
+///     wielder's first 3 turns), identified the same way KillTracker attributes a kill: the
+///     turn-queue HP/MaxHP/level -> BAND entry (live source; the static array freezes on battle
+///     restart) -> (level,brave,faith) fingerprint.
 ///
 /// Ambiguity bail: if multiple BAND entries match the turn-queue HP/MaxHP/level but have
-/// DIFFERENT (level,brave,faith) fingerprints, no turn is credited (miss beats mis-credit).
-/// Same-fingerprint multiples (twin) are fine -- both entries resolve to the same unit.
+/// DIFFERENT (level,brave,faith) fingerprints, no PER-UNIT turn is credited (miss beats mis-credit).
+/// GlobalTurns still advances -- it never needs to know who acted. Same-fingerprint multiples (twin)
+/// are fine -- both entries resolve to the same unit.
 ///
 /// Memory access is injected (IGameMemory) so the counting is unit-testable with no live game.
 /// </summary>
@@ -23,26 +29,36 @@ internal sealed class TurnTracker
 
     public TurnTracker(IGameMemory mem) => _mem = mem;
 
+    /// <summary>Turns taken by ANY unit this battle -- the attribution-free clock buff timers ride
+    /// (it never stalls on a unit we can't fingerprint, nor on one the player parks).</summary>
+    public int GlobalTurns { get; private set; }
+
     /// <summary>Forget all turn counts. Call on battle enter and exit.</summary>
     public void ResetBattle()
     {
         _turns.Clear();
         _wasActed = false;
+        GlobalTurns = 0;
     }
 
     /// <summary>Completed turns this battle for the unit with this fingerprint (0 if none).</summary>
     public int Turns(int level, int brave, int faith) =>
         _turns.TryGetValue((level, brave, faith), out int t) ? t : 0;
 
-    /// <summary>One tick. On the rising edge of the acted flag, credit a turn to the active unit.</summary>
+    /// <summary>One tick. On the rising edge of the acted flag, advance the global clock (always) and
+    /// credit a turn to the active unit (when it can be fingerprinted).</summary>
     public void Poll()
     {
         bool acted = _mem.U8(Offsets.Acted) == 1;
-        if (acted && !_wasActed && TryActiveFingerprint(out var fp))
+        if (acted && !_wasActed)
         {
-            int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
-            _turns[fp] = n;
-            Log.Info($"turn: unit (level {fp.Item1}, brave {fp.Item2}, faith {fp.Item3}) completed a turn -- #{n} this battle");
+            GlobalTurns++;   // SOMEONE acted -- bump the attribution-free clock before we try to name them
+            if (TryActiveFingerprint(out var fp))
+            {
+                int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
+                _turns[fp] = n;
+                Log.Info($"turn: unit (level {fp.Item1}, brave {fp.Item2}, faith {fp.Item3}) completed a turn -- #{n} this battle");
+            }
         }
         _wasActed = acted;
     }

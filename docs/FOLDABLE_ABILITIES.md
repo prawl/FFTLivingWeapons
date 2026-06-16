@@ -28,7 +28,7 @@ Every fold still shows **greyed until JP-learned** (or set innate).
 | 269 | **Choco Cure** | Chocobo | heal self + adjacent allies |
 | 168 | **Celestial Stasis** | Orran/Olan | hits ALL enemies on the field with Stop + Immobilize + Disable |
 | 162 | **Crush Weapon** | Meliadoul | ranged — destroys target's weapon outright, NO Brave roll (unlike Rend) |
-| 165 | **Shadowblade** | Gaffgarion | ranged dark strike that absorbs HP to heal the user |
+| 165 | **Shadow Blade** | Gaffgarion | ranged dark strike that absorbs HP to heal the user (in-game menu name: Shadow Blade) |
 | 159 | **Divine Ruination** | Agrias/Orlandeau | holy line-attack at range, chance to Confuse |
 | 157 | **Northswain's Strike** | Agrias/Orlandeau | ranged holy wave, chance of instant Dead |
 | 183 | **Suffocate** | Assassins (Celia/Lede) | flat instant-KO on an adjacent unit |

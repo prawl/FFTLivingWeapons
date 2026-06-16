@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
@@ -6,8 +7,8 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// The pure Larceny decisions: active-gating, enemy-only latching, highest-priority buff selection
-/// against the band status bytes, expiry counting, and the per-wielder steal ledger. The buff
-/// transfer itself is exercised through the proven Reraise/Invisible bits so extending coverage to
+/// against the band status bytes, global-turn expiry counting, and the per-wielder steal ledger. The
+/// buff transfer itself is exercised through the proven Reraise/Invisible bits so extending coverage to
 /// the marquee buffs is purely adding table rows once they're mapped live.
 /// </summary>
 public class LarcenyTests
@@ -55,29 +56,34 @@ public class LarcenyTests
         Assert.Equal("Reraise", buff!.Value.Name);
     }
 
-    [Theory]
-    [InlineData(0, 0, 3, false)]   // just stolen
-    [InlineData(2, 0, 3, false)]   // two wielder turns later, not yet
-    [InlineData(3, 0, 3, true)]    // third turn -> fades
-    [InlineData(7, 4, 3, true)]    // baseline 4, now 7 -> 3 turns elapsed
-    public void ExpiryCountsTheWieldersOwnTurns(int now, int baseline, int turns, bool expired)
+    [Fact]
+    public void ExpiryIsGlobalTurnsSinceTheSteal()
     {
-        Assert.Equal(expired, LarcenyPolicy.IsExpired(now, baseline, turns));
+        // The stolen buff fades after N GLOBAL turn-edges (any unit's turn -- TurnTracker.GlobalTurns),
+        // NOT the wielder's own turns and NOT wall-clock: the player can park the wielder so its turns
+        // never come (a buff held through 6 sat-out turns, live 2026-06-14), but the world's turn clock
+        // keeps ticking, so the theft is always temporary.
+        Assert.False(LarcenyPolicy.IsExpired(currentTurn: 0, stolenTurn: 0, turns: 3));   // just stolen
+        Assert.False(LarcenyPolicy.IsExpired(2, 0, 3));   // 2 turns elapsed -- not yet
+        Assert.True(LarcenyPolicy.IsExpired(3, 0, 3));     // term reached
+        Assert.True(LarcenyPolicy.IsExpired(9, 0, 3));     // well past
+        Assert.False(LarcenyPolicy.IsExpired(5, 4, 3));   // stolen mid-battle at turn 4: 1 elapsed
+        Assert.True(LarcenyPolicy.IsExpired(7, 4, 3));     // stolen at 4, now 7: 3 elapsed -> faded
     }
 
     [Fact]
-    public void StealLedgerHoldsBaselineAndNeverResetsAnActiveHold()
+    public void StealLedgerHoldsTheStealTurnAndNeverResetsAnActiveHold()
     {
         var st = new LarcenyState();
         var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
         Assert.False(st.IsHeld(reraise));
 
-        st.Steal(reraise, wielderTurns: 5);
+        st.Steal(reraise, stolenTurn: 5);
         Assert.True(st.IsHeld(reraise));
-        Assert.Equal(5, st.BaselineTurns(reraise));
+        Assert.Equal(5, st.StolenAt(reraise));
 
-        st.Steal(reraise, wielderTurns: 9);          // re-steal while held: baseline must NOT move
-        Assert.Equal(5, st.BaselineTurns(reraise));
+        st.Steal(reraise, stolenTurn: 12);   // re-steal while held: the baseline must NOT move
+        Assert.Equal(5, st.StolenAt(reraise));
     }
 
     [Fact]
@@ -86,8 +92,8 @@ public class LarcenyTests
         var st = new LarcenyState();
         var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
         var invis = (Offsets.AInvisible, Offsets.AInvisibleBit);
-        st.Steal(reraise, 1);
-        st.Steal(invis, 2);
+        st.Steal(reraise, stolenTurn: 3);
+        st.Steal(invis, stolenTurn: 4);
         Assert.Equal(2, st.Held.Count);
 
         st.Release(reraise);
@@ -142,5 +148,102 @@ public class LarcenyTests
 
         Assert.Equal(0, foe.Bytes[Offsets.AReraise]);                       // taken from the foe
         Assert.Equal(Offsets.AReraiseBit, wielder.Bytes[Offsets.AReraise]); // worn by the wielder
+    }
+
+    // ── Multi-target sweep: one action damages several buffed foes. The runtime applies Decide once
+    //    per struck foe, latching on Steal -- so these lock the DECISION SEQUENCE across the sweep.
+    //    (The byte-level strip/grant of a single transfer is locked above; one byte-level sweep test
+    //    below confirms a skipped duplicate is genuinely left unstripped.) ──
+
+    [Fact]
+    public void DecideMapsHeldAndWielderHasToTheStruckFoeAction()
+    {
+        // already stole this buff -> leave duplicate foes' copies alone (Skip); "held" wins even if
+        // the bit somehow reads clear (defensive).
+        Assert.Equal(LarcenyAction.Skip,   LarcenyPolicy.Decide(alreadyHeld: true,  wielderHasBuff: true));
+        Assert.Equal(LarcenyAction.Skip,   LarcenyPolicy.Decide(alreadyHeld: true,  wielderHasBuff: false));
+        // the wielder already owns it (its OWN buff) -> strip the foe but never latch (Dispel).
+        Assert.Equal(LarcenyAction.Dispel, LarcenyPolicy.Decide(alreadyHeld: false, wielderHasBuff: true));
+        // a free buff -> strip the foe + grant + latch on the wielder (Steal).
+        Assert.Equal(LarcenyAction.Steal,  LarcenyPolicy.Decide(alreadyHeld: false, wielderHasBuff: false));
+    }
+
+    [Fact]
+    public void SweepOfTwoFoesWithTheSameBuffStealsOnlyOneAndSkipsTheRest()
+    {
+        var ledger = new LarcenyState();
+        var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
+        bool wielderHas = false;   // the wielder starts without the buff
+
+        // Foe 1: not held + wielder lacks it -> Steal (the steal grants the bit and latches it).
+        Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(ledger.IsHeld(reraise), wielderHas));
+        ledger.Steal(reraise, stolenTurn: 0); wielderHas = true;
+
+        // Foes 2 and 3 in the SAME sweep carry the SAME buff -> already held -> Skip each.
+        Assert.Equal(LarcenyAction.Skip, LarcenyPolicy.Decide(ledger.IsHeld(reraise), wielderHas));
+        Assert.Equal(LarcenyAction.Skip, LarcenyPolicy.Decide(ledger.IsHeld(reraise), wielderHas));
+        Assert.Single(ledger.Held);   // exactly one buff lifted from the whole sweep
+    }
+
+    [Fact]
+    public void SweepOfTwoFoesWithDifferentBuffsStealsBoth()
+    {
+        var ledger = new LarcenyState();
+        var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
+        var invis   = (Offsets.AInvisible, Offsets.AInvisibleBit);
+
+        // Foe 1 has Reraise -> Steal.
+        Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(ledger.IsHeld(reraise), wielderHasBuff: false));
+        ledger.Steal(reraise, stolenTurn: 0);
+        // Foe 2 has a DIFFERENT buff -> independent ledger key -> also a Steal.
+        Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(ledger.IsHeld(invis), wielderHasBuff: false));
+        ledger.Steal(invis, stolenTurn: 0);
+
+        Assert.Equal(2, ledger.Held.Count);   // the wielder wears both stolen buffs at once
+    }
+
+    [Fact]
+    public void SweepDispelsEveryDuplicateWhenTheWielderAlreadyOwnsTheBuff()
+    {
+        // The wielder has its OWN Reraise (never stolen -> never in the ledger). Every struck Reraise
+        // foe is DISPELLED: its bit is stripped but nothing is latched, so expiry can never clear the
+        // wielder's own enchantment.
+        var ledger = new LarcenyState();
+        var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
+        const bool wielderHas = true;
+
+        Assert.Equal(LarcenyAction.Dispel, LarcenyPolicy.Decide(ledger.IsHeld(reraise), wielderHas));
+        Assert.Equal(LarcenyAction.Dispel, LarcenyPolicy.Decide(ledger.IsHeld(reraise), wielderHas));  // foe 2: also dispelled
+        Assert.Empty(ledger.Held);   // nothing stolen -> nothing to fade off the wielder
+    }
+
+    [Fact]
+    public void SweepLeavesTheSecondSameBuffFoeUnstrippedAtTheByteLevel()
+    {
+        // Two foes both carry Reraise; the wielder has none. The sweep steals from the FIRST and,
+        // finding the buff already held, leaves the SECOND foe's Reraise untouched (Skip == no strip).
+        using var foe1 = PinnedBuf.Of(256);
+        using var foe2 = PinnedBuf.Of(256);
+        using var wielder = PinnedBuf.Of(256);
+        foe1.Bytes[Offsets.AReraise] = Offsets.AReraiseBit;
+        foe2.Bytes[Offsets.AReraise] = Offsets.AReraiseBit;
+        var ledger = new LarcenyState();
+        var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
+
+        // Foe 1 -> Steal: strip foe 1, grant + latch on the wielder.
+        Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(ledger.IsHeld(reraise),
+            LarcenyPolicy.HasBit(Live, wielder.Addr, Offsets.AReraise, Offsets.AReraiseBit)));
+        LarcenyPolicy.ClearBit(Live, foe1.Addr, Offsets.AReraise, Offsets.AReraiseBit);
+        LarcenyPolicy.SetBit(Live, wielder.Addr, Offsets.AReraise, Offsets.AReraiseBit);
+        ledger.Steal(reraise, stolenTurn: 0);
+
+        // Foe 2 -> Skip: the buff is already held, so the loop's `continue` means NO strip.
+        Assert.Equal(LarcenyAction.Skip, LarcenyPolicy.Decide(ledger.IsHeld(reraise),
+            LarcenyPolicy.HasBit(Live, wielder.Addr, Offsets.AReraise, Offsets.AReraiseBit)));
+
+        Assert.Equal(0, foe1.Bytes[Offsets.AReraise]);                       // foe 1 lost it
+        Assert.Equal(Offsets.AReraiseBit, foe2.Bytes[Offsets.AReraise]);     // foe 2 KEEPS it
+        Assert.Equal(Offsets.AReraiseBit, wielder.Bytes[Offsets.AReraise]);  // the wielder wears one copy
+        Assert.Single(ledger.Held);
     }
 }

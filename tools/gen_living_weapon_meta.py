@@ -66,7 +66,7 @@ def main():
                 entry["signature"]["ricochetPct"] = int(sig.get("ricochetPct", 50))
             if sig.get("crippleTurns"):  # maim (Huntress "Maim"): struck enemies lose reactions N turns
                 entry["signature"]["crippleTurns"] = int(sig["crippleTurns"])
-            if sig.get("grantCommandAbilityId"):  # command grant (Yoichi "Barrage" / Sanguine "Night Sword")
+            if sig.get("grantCommandAbilityId"):  # command grant (Yoichi "Barrage" / Sanguine "Shadow Blade")
                 entry["signature"]["grantCommandAbilityId"] = int(sig["grantCommandAbilityId"])
             if sig.get("larcenyTurns"):  # larceny (Arcanum): steal the struck foe's holdable buff onto the wielder
                 entry["signature"]["larcenyTurns"] = int(sig["larcenyTurns"])

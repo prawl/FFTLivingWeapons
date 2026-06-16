@@ -743,9 +743,10 @@
       "signature": {
         "atTier": 3,
         "grantCommandAbilityId": 165,
-        "displayLabel": "Night Sword",
-        "note": "Night Sword -- grant Shadowblade (ability 165, Gaffgarion's HP-draining dark sword strike) into the wielder's JobCommand menu via the proven Barrage injection (NightSword.cs reuses Barrage's primitives; the shipped Barrage module is untouched). Open eligibility (any normal-executor job, not Thief-only). BUILT + tests; PENDING LIVE VERIFY -- does the granted command render its real menu NAME, and do non-Thief jobs execute it (the special-executor swallow)?",
-        "p3Desc": "Grants Night Sword: a ranged strike that drains the foe's HP to the wielder."
+        "displayLabel": "Shadow Blade",
+        "sigName": "Shadow Blade (Squire, Gallant Knight, Knight only)",
+        "note": "Shadow Blade -- grant the real ability (id 165, Gaffgarion's HP-draining dark sword strike) into the wielder's JobCommand menu via the proven Barrage injection (ShadowBlade.cs reuses Barrage's primitives; the shipped Barrage module is untouched). WHITELISTED to the Squire/Knight sword skill-sets (records 5/7), reached via the primary job OR a mounted secondary command (ShadowBladePolicy.TryResolveGrant) -- e.g. a Dragoon with Knight's Battle Skill as secondary lands it there; keeps Barrage's secondary fallback but only into a sword set. Samurai dropped (can't equip swords in IC). PLUS Ramza's story-unique sword forms (Gallant Knight job-byte 3 -> Mettle rec 27; Squire variants 1/2/4 -> 25/26/28) mapped via ShadowBladePolicy.RamzaSwordJobs -- authoritative JobData.JobCommandId, criterion = a Mettle command (Mettle is Ramza-only), all learned-index 0. VERIFIED LIVE 2026-06-15: renders with its real menu name and casts from Ramza's Mettle command.",
+        "p3Desc": "Grants Shadow Blade: Employs the power of darkness to absorb a distant unit's HP."
       }
     },
     {
@@ -949,8 +950,8 @@
         "atTier": 3,
         "larcenyTurns": 3,
         "displayLabel": "Larceny",
-        "note": "Larceny -- a hit STEALS the struck foe's highest-priority holdable buff: stripped from the foe, held on the wielder for larcenyTurns of the wielder's turns, then dropped (Larceny.cs, Maim-shaped, wielder-side hold; wielder-already-has safety so it never strips the wielder's own; expiry counts wielder turns via TurnTracker since the player CT reads flat 0). BUILT + tests. COVERAGE LIVE-PENDING: only the proven Reraise/Invisible bits (+0x47) are wired; map Haste/Protect/Shell/... via poison_probe.py diff+holdbit and add rows to LarcenyPolicy.Stealable.",
-        "p3Desc": "Strikes steal a foe's enchantment for the wielder to wear a few turns."
+        "note": "Larceny -- a hit STEALS ONE of the struck foe's holdable buffs (the highest-priority one): stripped from the foe, held on the wielder for ~Tuning.LarcenySeconds (30s WALL-CLOCK), then dropped. VERIFIED LIVE 2026-06-14: the steal fires + transfers. Two findings baked in: (1) the pre-hit snapshot -- Arcanum's base strip-proc (onHit 55) clears the live bit during the hit, so Larceny remembers the buff from the tick before; (2) expiry is WALL-CLOCK, not the wielder's turn count -- a parked wielder's acted-turn count never advances, so the buff would never fade (held through 6 sat-out turns live). larcenyTurns is now just the enable flag (value ignored). COVERAGE LIVE-PENDING: only the proven Reraise/Invisible bits (+0x47) are wired; map Haste/Protect/Shell/... via poison_probe.py diff+holdbit and add rows to LarcenyPolicy.Stealable.",
+        "p3Desc": "Strikes steal 1 enchantment from a foe for the wielder to wear a few turns."
       }
     },
     {
