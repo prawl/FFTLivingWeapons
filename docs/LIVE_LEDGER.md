@@ -46,6 +46,7 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 | Player-injectable band range is seats ~16–27 | clones below seat 16 don't enroll; 16–27 do; 27 is the last (≈28-unit array cap) | Patrick's slot sweep | 2026-06-16 |
 | Combat Timeline is a 4-byte-record array at ~`0x140d3a04c` | injecting a unit inserts a record at the head and shifts the rest down; record byte0 = CT (`0x64`=100), byte1 = a locator (matched the clone's gx) | `enrolldiff --wide`, the visible insert-shift | 2026-06-16 |
 | Formation places a unit by filling a RESIDENT zeroed band slot IN PLACE | no relocation/realloc; full ~0x200 recipe written from zero — fields mapped (weapon `+0x04`, PA/MA/Speed `+0x22/23/24`, init bytes inBattle `+0x12`, CT `+0x25`, `+0x1ce`=100) | `probes/formation_diff.py` place_before→after + prebattle→inbattle diffs | 2026-06-16 |
+| Broken/stolen gear commits to the PERSISTENT roster OUT of battle, not mid-battle | an enemy break empties the in-battle copy live, but the roster slot stays until `battleMode=0` (Ramza body `0x00b7→0x00ff` at the post-battle party-menu reconcile). Empty sentinel = `0x00FF`. A QUIT reverts it entirely → only a *won* battle commits. Unblocks Bait-n-Switch (snapshot-on-enter / restore-on-exit after the commit). | `probes/roster_loss_trace.py` dual-watch | 2026-06-16 |
 
 ## Contradicted — probe before building on these
 

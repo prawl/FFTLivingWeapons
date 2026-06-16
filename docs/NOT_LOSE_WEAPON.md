@@ -35,6 +35,15 @@ write `GrowthEngine` already performs and that persists to save.
 
 **Verdict: likely feasible (medium confidence).** The whole bet rides on one battle-end timing question.
 
+> **TESTED LIVE 2026-06-16 (`tools/probes/roster_loss_trace.py`, dual-watch roster + in-battle band):**
+> the timing resolves IN OUR FAVOR. An enemy break empties the *in-battle* unit copy immediately, but
+> the **persistent roster slot does NOT change mid-battle** — it goes empty (Ramza body `0x00b7 → 0x00ff`)
+> only once **out of battle** (`battleMode=0`, ~13 s after the exit edge, at the party-menu reconcile).
+> So restore-on-exit / verify-then-write lands cleanly *after* the commit. Two gotchas confirmed:
+> **(a) the empty/broken sentinel is `0x00FF`, not `0xFFFF`**; **(b) QUITTING a battle reverts the break
+> entirely** — only a *completed* battle commits the loss. Crystallization timing (Feature 2) is still
+> untested (the `[SLOT CLEARED]` path is wired in the probe, just needs a generic left to crystallize).
+
 **Approach — snapshot-and-restore on the persistent roster** (`0x1411A18D0`, stride `0x258`):
 
 - **Battle ENTER:** snapshot every populated player roster unit's 7 equipment `u16`s, keyed by
