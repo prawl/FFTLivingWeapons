@@ -104,7 +104,11 @@ pinning the death counter — is the trap.
 >    the stat-roster `0x1411A18D0` at all (watched every byte for 6.5 min incl. a 116 s out-of-battle window),
 >    yet the unit IS gone from Organize → party membership lives in a *separate* structure we haven't located.
 >    So the safe restore needs a new target (find the membership list), OR we lean on the now-mapped counter-pin
->    if the gating test greens. Ramza still needs a separate HP-floor regardless.
+>    — which **GATING-TESTED GREEN 2026-06-16 (Patrick, live): holding `+0x07` at 3 keeps the unit at 3 hearts
+>    and it does not crystallize.** Counter-pin is now the recommended Divine Intervention.
+> 3. **Ramza is NOT special in IC** (Patrick, live 2026-06-16): he counts down the 3-heart counter like every
+>    other unit — his KO is **not** an instant game-over. So the pin covers Ramza too; no Ramza-only HP-floor.
+>    The "Ramza caveat" further down was a PSX-wiki assumption and does NOT hold for The Ivalice Chronicles.
 
 **Recommended primary: post-battle roster-restore (same snapshot infra). NOT counter-pin, NOT HP-floor.**
 
@@ -120,7 +124,8 @@ Why counter-pinning (hold the death timer at 3 every tick so it never hits 0) is
   a permanently deleted party member. The blast radius dwarfs anything the runtime does today. The loop is
   `Task.Delay(100)` (not frame-locked), and the `Display` ByteScan on the same thread can stall it well past
   100ms — if a stall coincides with the KO'd unit's turn, the pin misses.
-- It does **nothing for Ramza** (his KO is a direct game-over, no counter).
+- ~~It does nothing for Ramza (his KO is a direct game-over, no counter).~~ **WRONG for IC — corrected
+  2026-06-16 (Patrick, live): Ramza counts down the 3-heart counter like everyone, so the pin covers him too.**
 
 The alternatives, ranked:
 
@@ -135,10 +140,12 @@ The alternatives, ranked:
 - **Counter-pin:** only if the empirical test proves the byte exists, is poll-pinnable, and gates the event —
   and even then keep post-battle-restore as the safety net.
 
-**Ramza caveat (unavoidable, state it plainly):** Ramza crystallizing = *instant Game Over mid-battle*, which
-fires before any battle-exit restore can run. Post-battle restore cannot save a Ramza in-battle Game Over. The
-only thing that covers him is a **narrow HP-floor on Ramza specifically**. So full coverage =
-party post-battle-restore **+** a Ramza-only HP floor. Keep counter-pin away from Ramza entirely.
+**~~Ramza caveat (unavoidable, state it plainly):~~ CORRECTED 2026-06-16 (Patrick, live) — does NOT apply to IC.**
+The claim below (Ramza KO = instant Game Over, no counter) came from the FFTHandsFree PSX-era wiki. In The
+Ivalice Chronicles, **Ramza counts down the 3-heart counter exactly like every other unit** — so the counter-pin
+covers him with no special-casing, and no Ramza-only HP-floor is needed. ~~Ramza crystallizing = instant Game
+Over mid-battle; the only thing that covers him is a narrow HP-floor on Ramza specifically; keep counter-pin
+away from Ramza entirely.~~
 
 **The gating unknown (could kill Feature 2):** *when* does the game zero the persistent roster slot on
 crystallize — mid-battle, or at battle-end copy-back? If mid-battle, there is nothing left to restore on exit
