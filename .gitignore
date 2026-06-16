@@ -49,3 +49,6 @@ Thumbs.db
 
 # Local-only: third-party Move-Find FAQ (copyright; referenced by docs/treasure_master_prototype.md)
 treasure.txt
+
+# Local-only: rolling session handoff doc (rewritten each session; not part of the repo)
+docs/HANDOFF.md
