@@ -1,143 +1,80 @@
-# Session Handoff — Larceny expiry reworked to a global-turn clock + multi-target tests (2026-06-15)
+# Session Handoff — Larceny shipped: live steal, Haste proven, wielder-turn expiry (2026-06-16)
 
-This session reworked **Arcanum's "Larceny" (+3) expiry** from the wall-clock stopgap to a proper
-**global-turn clock**, and added the multi-target test coverage that was missing. Everything is on
-**`main`** and **uncommitted** (held until Larceny's expiry is finally watched live — see below). Both
-gates are green: `analyze.py` PASS, `dotnet test` **1085 passing**.
+The whole **Larceny / Arcanum (+3) buff-steal** arc is **COMMITTED and verified live**. This session
+proved Haste functional, reworked the expiry to the wielder's own turns, and fixed the wielder-locate.
 
-The full Sword +3 slate (unchanged from last session except Larceny's expiry guts):
+```
+053735a  Land Larceny buff-steal: live steal, mapped buffs, wielder-turn expiry   (last commit)
+d900bc1  Add Shadow Blade sword signature; rework Larceny expiry to global turns
+```
 
-| Sword | +3 Signature | State |
+Both gates green: `analyze.py` PASS, `dotnet test` **1094 passing**. The deployed Reloaded folder is a
+**DEV build** (thresholds {1,2,3}, every weapon force-seeded to +3).
+
+## What landed (053735a)
+
+- **Steal works live** — strike a buffed foe with a +3 Arcanum → its highest-priority holdable buff is
+  stripped and worn by the wielder, then fades. Transfer + expiry + the multi-target sweep all confirmed.
+- **Haste is FUNCTIONAL** (proven this session). Haste has **no walk animation** — its whole effect is
+  +50% CT. `tools/probes/haste_ct_probe.py` measured the hasted wielder gaining **+16 CT/tick vs +11**
+  for same-Speed allies = the 1.5× multiplier, on both a real cast and a Larceny-stolen bit. The
+  "icon-but-no-animation" fear was a phantom.
+- **Expiry = 3 of the WIELDER's own completed turns** (`TurnTracker.Turns` for the wielder's
+  fingerprint — the proven acted-edge counter). Replaced the global-turn clock (didn't fade in a normal
+  fight) and a 60s wall-clock cap (fired during deliberation). No backstop needed: a deployed wielder
+  always takes turns (you can't bench mid-battle).
+- **Wielder locate** = the single DEPLOYED Arcanum main-hand holder (`Wielder.ResolveDeployedMainHand`).
+- **Innate strip-proc removed** (onHit 55); card = `+3 Ability — Larceny — Any attack steals 1 buff from
+  the foe for the wielder to wear 3 turns`.
+
+### Buff functional status (THE key table)
+| Buff | Bit | Functional? |
 |---|---|---|
-| Wrathblade (27) | **Feign Death** | shipped + verified live (committed) |
-| Swiftedge (28) | **Afterimage** | built + VERIFIED LIVE (doc flips uncommitted) |
-| Sanguine Sword (23) | **Night Sword** | built + VERIFIED LIVE on a Knight (doc flips uncommitted) |
-| Arcanum (30) | **Larceny** | built; steal **VERIFIED LIVE**; **expiry now global-turn, logic-verified, NOT yet watched fade live** ← the one open item |
+| Reraise | +0x47/0x20 | **YES** (FeignDeath-proven) |
+| Regen   | +0x48/0x40 | **YES** (heals each turn — live) |
+| Reflect | +0x49/0x02 | **YES** (bounces magic — live) |
+| Haste   | +0x48/0x08 | **YES** (+50% CT — proven 2026-06-16) |
+| Protect | +0x48/0x20 | **PENDING** functional test |
+| Shell   | +0x48/0x10 | **PENDING** functional test |
+| Float / Invisible | +0x47/0x40, /0x10 | **DROPPED** (cosmetic / player-only) |
 
-T1/T2 swords deliberately have no signature.
+Precedence (`LarcenyPolicy.Stealable`): Reraise > Haste > Protect > Shell > Reflect > Regen.
 
-## What changed this session — Larceny expiry: wall-clock → global turns
+## THE OPEN ITEMS
 
-The earlier turn-count expiry counted the **wielder's own** turns, which never advance if the player
-parks that unit (a stolen buff held through 6 sat-out turns, observed live 2026-06-14). The stopgap fix
-was wall-clock (`LarcenySeconds=30`), but that bled down in menus and ignored battle pace. This session
-swapped it for an **attribution-free global-turn clock** — it can't be frozen by parking the wielder,
-and it tracks battle tempo:
+1. **Multi-wielder (the big one, deferred by Patrick to next).** Two DEPLOYED Arcanum wielders make
+   `ResolveDeployedMainHand` bail as ambiguous → **no steal at all** (diagnosed live: Ramza br97/fa75 +
+   a BLM br89/fa76 both armed). Single-wielder works today (unequip duplicates). FIX = per-wielder
+   ledgers attributed to the ACTING attacker (KillTracker already resolves who acted). Today Larceny is
+   one `_state`/`_wielderAddr`; this needs a `Dictionary<wielderFp, state>` and pushes `Larceny.cs` over
+   200 → a seam split. In `docs/TODO.md`.
+2. **Functionally test Protect / Shell.** Wired + live but icon≠effect. Use
+   `tools/probes/give_enemy_buffs.py`, steal each, confirm reduced damage — drop any cosmetic like Float.
+3. **Before release: re-Prod** (`BuildLinked.ps1 -Prod` / `Publish.ps1`). The dev build seeds +3, and the
+   `give_enemy_buffs` / `myturn` probes mutated live state. Eyeball `kills.json` for dev-seed pollution.
+4. **`docs/LIVE_LEDGER.md`** — the Haste-functional finding is ready to log (Patrick owns PROVEN flips).
 
-- **`TurnTracker.GlobalTurns`** (NEW): a count of turns taken by *anyone*, bumped on every rising edge
-  of the acted flag (`0x14077CA8C`) **before** the per-unit fingerprinting — so it advances even when
-  the actor is unresolvable or isn't the wielder. Reset on the battle boundary. Per-unit `Turns(...)`
-  is unchanged.
-- **`Tuning.LarcenyHoldTurns = 12`** replaces `LarcenySeconds`. ~12 global turns ≈ a round and a half in
-  a typical fight; the clock runs *faster* the more units are on the field (it counts enemy turns too).
-  **This is THE live-tune knob** — one int.
-- **`LarcenyPolicy.IsExpired(currentTurn, stolenTurn, turns)`** is now `currentTurn - stolenTurn >= turns`;
-  `LarcenyState` stamps the **global-turn index** at steal time (was a `DateTime`).
-- **`Larceny.cs`** takes a `TurnTracker` again (the arg dropped at the wall-clock swap) and reads
-  `_turns.GlobalTurns` for both the steal stamp and expiry. Off-field it still ages on the (then-frozen)
-  clock, so nothing fades during menus.
-- `items.json` `larcenyTurns: 3` stays a pure **on/off gate** (as the wall-clock version already treated
-  it); the duration is the compiled `Tuning.LarcenyHoldTurns`. **No meta regen needed for the mechanic.**
+## Testing gotchas (cost real time this session)
+- **`battle_cheats.py myturn` sets EVERY player's Speed to 99**, so turns rotate through the whole party —
+  "3 turns" of mashing is NOT 3 of the wielder's turns. To test the wielder-turn expiry, act with the
+  wielder **specifically** 3 times (watch the `unit (level .. brave .. faith ..) completed a turn` line
+  for the wielder's fingerprint), or play without the cheat.
+- **A display bit is NOT the effect** (Float lesson). Haste passed; test Protect/Shell the same way.
+- **`haste_ct_probe.py`**: read the single-tick CT step ÷ Speed (~1.5 = Haste works). Player CT byte
+  `+0x25` reads between menus; `+0x09` is flat 0 for players (the documented wall).
 
-### Multi-target seam + tests (NEW)
-The per-struck-foe decision was inline + untestable, so the multi-enemy behavior (one action splashing
-several buffed foes) had zero coverage. Extracted it to a pure **`LarcenyPolicy.Decide(alreadyHeld,
-wielderHasBuff) → Skip | Dispel | Steal`** (zero behavior change) and added tests at the Maim/Ricochet
-altitude (policy + ledger + guarded writes; the live-band scan stays a live-verify, not a unit test):
+## New probes (`tools/probes/`)
+`status_probe.py` (decode any band unit's statuses), `haste_ct_probe.py` (CT-rate Haste functional test),
+`larceny_locate_probe.py` (roster Arcanum slots vs band entries), `give_enemy_buffs.py` (arm enemies for
+steal tests).
 
-- the `Decide` 4-way matrix;
-- **same buff on N foes** → steal from one, **Skip** the rest (only one copy lifted per term);
-- **different buffs on N foes** → **steal both** (independent ledger keys; wielder wears both);
-- **wielder already owns the buff** → every duplicate **Dispelled** (stripped, never latched, so expiry
-  can't clear the wielder's own enchantment);
-- byte-level: a skipped duplicate's bit genuinely **survives** (foe #1 stripped, foe #2 retains it).
-
-## Git state — all on `main`, UNCOMMITTED
-
-```
-5011667 Build Larceny + Night Sword runtimes, wire and card them      (last commit)
-961772f Add Night Sword + Larceny signature logic and tests
-058d95a Build Afterimage signature (Swiftedge +3): logic + tests
-```
-
-Uncommitted working tree, in two groups:
-
-**A. This session — Larceny global-turn expiry + multi-target seam** (commit once expiry is live-confirmed):
-`LivingWeapon/TurnTracker.cs` (GlobalTurns), `Larceny.cs`, `Larceny.Policy.cs` (IsExpired turns, the
-`LarcenyState` int stamp, `Decide`/`LarcenyAction`), `Tuning.cs` (`LarcenyHoldTurns`), `Engine.cs`
-(passes `_turns`), `WeaponMeta.cs` (doc), `LivingWeapon.Tests/LarcenyTests.cs` +
-`TurnTrackerTests.cs`.
-
-**B. Carried from last session** (verified-live doc flips + card text, still uncommitted):
-`docs/LIVE_LEDGER.md` (Afterimage + Night Sword PROVEN rows), `docs/living_weapon_grid.csv` +
-`living_weapon_signotes.csv` (`Verified Live? = Yes` for 23 + 28), `data/items.json` (Larceny p3Desc
-*"Strikes steal 1 enchantment from a foe for the wielder to wear a few turns."* + curator note),
-`GrowthEngine.Afterimage.cs` (a keeper ramp log line). `docs/TODO.md`, `docs/NEXUS_PAGE.md` (untracked)
-were dirty before this work.
-
-**Before committing group B:** regenerate `item.en.nxd` (`python tools/patch_names.py`) — the committed
-nxd still carries Larceny's OLD card text; the new wording is only in items.json.
-
-## THE ONE OPEN ITEM — Larceny expiry, watch it fade live
-
-Larceny's **steal is proven live** ("Boom it works"); the **global-turn expiry is logic-verified (tests)
-but never watched fade in-game.** It uses the same guarded `ClearBit` the steal already exercises live, so
-it's low-risk — but it's the last unverified link.
-
-**Why this is now *easier* to verify than the wall-clock version was:** GlobalTurns counts *everyone's*
-turns, including enemy AI turns. So you no longer need to cycle the **wielder's** turn (the thing the
-FFTHandsFree bridge couldn't drive — `battle_wait` hung last session). Just let the battle run.
-
-**To finish:** in a battle with an Arcanum wielder, give an enemy a holdable buff it lacks (Reraise via
-the probe), have **that wielder attack** the buffed enemy (watch `larceny: stole Reraise ... wears it for
-~12 turns` + the wielder's band `+0x47` flip on), then let **~12 turns of combat pass** (any units' — the
-wielder can sit out) and watch for `larceny: a stolen buff faded from the wielder after ~12 turns` with
-`+0x47` dropping to 0. **Tune `Tuning.LarcenyHoldTurns` if 12 feels off.**
-
-## Load-bearing Larceny findings (baked into the code/comments)
-
-1. **Pre-hit snapshot.** Arcanum's BASE "may strip buffs" proc (onHit 55) clears the foe's buff *during*
-   the hit, a tick before Larceny's per-tick scan — so a post-hit read finds nothing. Fix: snapshot each
-   enemy's holdable buff every tick and steal the **pre-hit** snapshot (proven live 2026-06-14).
-2. **Global turns, not wielder turns, not wall-clock** (above). The expiry clock must keep ticking no
-   matter what the held unit does.
-3. **Buff-bit map — still the big gate.** Only the PROVEN-holdable bits are wired: **Reraise `+0x47/0x20`**
-   and **Invisible `+0x47/0x10`** (the FeignDeath pair; Reraise confirmed live on enemy and wielder). The
-   **marquee buffs (Haste/Protect/Shell/Reflect/Regen/Float) are UNMAPPED** — map each with
-   `tools/probes/poison_probe.py diff <mhp> <lvl>` (apply the buff, watch the bit flip in `+0x44..+0x4C`)
-   + `holdbit` (confirm a held bit takes effect, not cosmetic), then add a row to
-   `LarcenyPolicy.Stealable`. The transfer mechanism + the multi-target `Decide` already work for any row.
-   NOTE: equipment "Always: X" buffs aren't cleanly stealable (gear re-asserts them); cast buffs are.
-   Invisible makes a unit untargetable, so it's a poor test vehicle.
-
-## Night Sword caveat
-
-Verified live granting Shadowblade (ability 165) on a **Knight** (job 76) — renders + casts. The grant
-only resolves for the generic-job band (74-92) minus special-executor jobs; **story-unique jobs (Ramza's
-Squire) can't receive it** (logs "cannot receive Shadowblade"). Reuses every Barrage primitive; the
-shipped Barrage module is untouched (its table consts were just widened to `internal`).
-
-## Live install + release
-
-The Reloaded folder holds a **DEV build** (BuildLinked, thresholds {1,2,3}, every weapon force-seeded to
-+3). **Re-Prod before release** (`BuildLinked.ps1 -Prod` or `Publish.ps1`); eyeball `kills.json` for
-dev-seed pollution. The deployed DLL still has the OLD wall-clock Larceny — **redeploy** to test the
-global-turn expiry.
-
-## Test recipes
-
-- **Drive the game**: `source FFTHandsFree/fft.sh`; `screen`, `execute_action <validPath>`, `battle_attack
-  <x> <y>`, `scan`/`fft_full`. Screenshot: `FFTHandsFree/screenshot_crop.ps1` → `~/Downloads/fftwin_*.png`.
-  Launch: `reloaded-ii.exe --launch FFT_enhanced.exe`. The bridge's turn-cycle is flaky (`battle_wait`
-  hung last session) — but the global-turn expiry no longer needs it (let enemy AI turns tick the clock).
-- **Probe — give enemies a buff (clean locate, NOT a broad band scan — that hit garbage once)**: use
-  `poison_probe.scan_static_union` (slot<1 = enemy) + `scan_auth` for band addrs, OR set `+0x47 |= 0x20`.
-  Roster offsets: base `0x1411A18D0`, stride `0x258`, RRHand `+0x14`, RLevel `+0x1D`, RBrave `+0x1E`,
-  RFaith `+0x1F`. Band: gx/gy `+0x33/+0x34`, status `+0x47`. Active unit: TurnQueue `0x14077D2A0`
-  (maxHp `+0x10`, level `+0x00`). Acted flag (drives GlobalTurns): `0x14077CA8C`.
+## Load-bearing findings (baked into code/comments)
+- **Expiry counts the WIELDER's own turns via `TurnTracker.Turns`** — the acted-edge per-unit counter,
+  hover-resistant. NOT the active-unit/CT poll (the TurnQueue follows the cursor) and NOT wall-clock
+  (fires during deliberation).
+- **Larceny holds on the DEPLOYED wielder**, not "the one roster wielder."
+- **Per-battle state resets on battle ENTER**, not only EXIT (a restart skips a clean Exit).
 
 ## Pre-existing open items (unchanged)
-
-Siren's Lyre charm bug (`sirens-lyre-charm-bug`), phantom kill tallies, Treasure Master release runbook
-(`docs/2.0_RELEASE_CHECKLIST.md`). The other 13 weapon categories still carry DRAFT signotes (only Knives,
-Bows, Rods, and Swords are curated/shipped).
+Siren's Lyre charm bug, phantom kill tallies, Treasure Master release runbook. ~13 weapon categories
+still carry DRAFT signotes (only Knives, Bows, Rods, and Swords are curated/shipped).
