@@ -14,16 +14,12 @@ internal enum LarcenyAction { Skip, Dispel, Steal }
 /// fades. The stateful latch/hold/restore runtime (Larceny.cs) is Maim-shaped but holds on the
 /// WIELDER, and is GATED on the buff-bit map below being completed live.
 ///
-/// THE LIVE-PENDING PART -- the buff table. Only the buffs PROVEN holdable today are wired:
-/// Reraise (+0x47/0x20) and Invisible (+0x47/0x10), the FeignDeath pair (a held bit there is
-/// honored by the engine). The MARQUEE buffs -- Haste / Protect / Shell / Reflect / Regen / Float --
-/// have UNMAPPED bits, and even once mapped a held bit might be cosmetic-only (the Plague green-tint
-/// seam). The locked STEAL PRECEDENCE (which one a multi-buff foe loses) lives on <see cref="Stealable"/>:
-/// Reraise &gt; Haste &gt; Protect &gt; Shell &gt; Reflect &gt; Regen &gt; Float, with Invisible last. Map each with
-/// `tools/probes/poison_probe.py diff &lt;mhp&gt; &lt;lvl&gt;` (apply the buff, watch which bit in +0x44..+0x4C
-/// flips on) and confirm effect with its `holdbit` mode, then INSERT its row at the ranked position.
-/// The whole transfer mechanism is exercised in tests against the proven Reraise bit, so extending
-/// coverage is purely adding table rows.
+/// THE BUFF TABLE. WIRED: Reraise (+0x47/0x20, FUNCTIONAL -- FeignDeath proves the engine honors a held
+/// bit) + Regen (+0x48/0x40, bit transfers; functional heal pending live confirm). Haste/Protect/Shell/
+/// Reflect have bit-CONFIRMED offsets (the FFT status map, six cross-checks) but sit commented in
+/// <see cref="Stealable"/> pending a FUNCTIONAL live test each. Float was DROPPED 2026-06-15: its bit
+/// only paints the icon, the unit doesn't actually float (cosmetic-only -- a display bit is not the
+/// effect). Invisible dropped earlier (player-only buff). See Stealable for the precedence + the lesson.
 /// </summary>
 internal static class LarcenyPolicy
 {
@@ -52,27 +48,32 @@ internal static class LarcenyPolicy
     public readonly record struct Buff(string Name, int Off, byte Mask);
 
     /// <summary>Priority order -- the first buff the target actually has is the one stolen, so the
-    /// ARRAY ORDER *is* the steal precedence. Locked design ranking (highest steal-value first):
-    ///   1. Reraise   -- a free auto-revive; deny it AND wear it = the biggest swing.   [PROVEN +0x47/0x20]
-    ///   2. Haste     -- +50% turn frequency, the strongest combat buff in the game.    [TODO -- map]
-    ///   3. Protect   -- halves physical damage (great on a melee wielder).             [TODO -- map]
-    ///   4. Shell     -- halves magic damage.                                           [TODO -- map]
-    ///   5. Reflect   -- bounces single-target magic.                                   [TODO -- map]
-    ///   6. Regen     -- HP regained each turn.                                         [TODO -- map]
-    ///   7. Float     -- earth/trap immunity (situational).                             [TODO -- map]
-    ///   last. Invisible -- pops the instant the wielder attacks, so it's a weak HELD buff; ranked
-    ///         below every marquee buff (stripping it off a foe is still worth it -- makes them
-    ///         targetable again).                                                       [PROVEN +0x47/0x10]
-    /// Only the PROVEN-holdable bits are wired today; map each TODO with `poison_probe.py diff
-    /// &lt;mhp&gt; &lt;lvl&gt;` (watch the bit flip in +0x44..+0x4C) + `holdbit` (confirm the held bit is
-    /// honored, not cosmetic), then INSERT its row at the ranked position below. The transfer
-    /// mechanism and the multi-target Decide already work for any row.</summary>
+    /// ARRAY ORDER *is* the steal precedence (highest steal-value first):
+    ///   Reraise &gt; Haste &gt; Protect &gt; Shell &gt; Reflect &gt; Regen   (Float dropped, see below).
+    ///   1. Reraise -- free auto-revive; deny it AND wear it = the biggest swing.   [+0x47/0x20]
+    ///   2. Haste   -- +50% turn frequency, the strongest combat buff.              [+0x48/0x08]
+    ///   3. Protect -- halves physical damage (great on a melee wielder).           [+0x48/0x20]
+    ///   4. Shell   -- halves magic damage.                                         [+0x48/0x10]
+    ///   5. Reflect -- bounces single-target magic.                                 [+0x49/0x02]
+    ///   6. Regen   -- HP regained each turn.                                       [+0x48/0x40]
+    /// WIRED (all six): Reraise + Regen are FUNCTIONAL (proven live). Haste/Protect/Shell/Reflect are
+    /// wired and UNDER live functional test 2026-06-15 -- the bits transfer; whether the EFFECT applies
+    /// is the open question (drop any that prove cosmetic, like Float). THE HARD LESSON (Float, 2026-06-15):
+    /// setting a display bit does NOT guarantee the effect -- Float painted the icon but the unit didn't
+    /// float (its hover/earth-immunity lives in engine state the bit doesn't touch). So every new row
+    /// needs a FUNCTIONAL live test, not just a bit transfer. Invisible is also absent (player-only
+    /// buff). The transfer mechanism + the multi-target Decide already work for any row.</summary>
     public static readonly Buff[] Stealable =
     {
-        new("Reraise",   Offsets.AReraise,   Offsets.AReraiseBit),     // 1 -- +0x47/0x20, proven (FeignDeath holds it live)
-        // 2-7 insert here once mapped, IN THIS ORDER (each gated on poison_probe diff+holdbit):
-        //   Haste, Protect, Shell, Reflect, Regen, Float.
-        new("Invisible", Offsets.AInvisible, Offsets.AInvisibleBit),   // last -- +0x47/0x10, proven; breaks on the wielder's own attack
+        new("Reraise", Offsets.AReraise, Offsets.AReraiseBit),   // 1 -- +0x47/0x20, FUNCTIONAL (FeignDeath proves the engine honors a held bit)
+        new("Haste",   Offsets.AHaste,   Offsets.AHasteBit),     // 2 -- +0x48/0x08, functional steal UNDER TEST 2026-06-15
+        new("Protect", Offsets.AProtect, Offsets.AProtectBit),   // 3 -- +0x48/0x20, functional steal UNDER TEST 2026-06-15
+        new("Shell",   Offsets.AShell,   Offsets.AShellBit),     // 4 -- +0x48/0x10, functional steal UNDER TEST 2026-06-15
+        new("Reflect", Offsets.AReflect, Offsets.AReflectBit),   // 5 -- +0x49/0x02, functional steal UNDER TEST 2026-06-15
+        new("Regen", Offsets.ARegen, Offsets.ARegenBit),         // 6 -- +0x48/0x40, FUNCTIONAL (heals each turn -- proven live 2026-06-15)
+        // Float (+0x47/0x40) DROPPED 2026-06-15: setting the bit shows the icon but does NOT make the unit
+        //   float -- the hover/earth-immunity effect lives in engine state the display bit doesn't touch
+        //   (the cosmetic-only seam, proven live). Lowest-value buff anyway, so not worth chasing the path.
     };
 
     /// <summary>Pick the highest-priority buff the target currently has set, or null when it has
@@ -84,12 +85,16 @@ internal static class LarcenyPolicy
         return null;
     }
 
-    /// <summary>True once a stolen buff has been worn its full term -- counted in GLOBAL turns (any
-    /// unit's turn, off TurnTracker.GlobalTurns) elapsed since the steal. NOT the wielder's own turn
-    /// count, which never advances while the player parks the unit (the buff held through 6 sat-out
-    /// turns, live 2026-06-14), and NOT wall-clock (it bled down in menus and ignored battle pace).</summary>
+    /// <summary>True once a stolen buff has been worn its full term -- counted in the WIELDER's OWN
+    /// completed turns (TurnTracker.Turns for the wielder's fingerprint -- the acted-edge counter that
+    /// reliably tallies a player unit's turns, unlike the noisy active-unit/CT reads). The GLOBAL-turn
+    /// clock this replaced did not expire the buff in a normal fight (2026-06-16); a deployed wielder
+    /// always takes turns (you can't bench mid-battle), so the per-unit count always advances -- no
+    /// wall-clock backstop is needed. Also true when the count sits BELOW the steal baseline -- a new
+    /// battle reset it under a ledger entry carried over from the prior fight: drop it rather than wait
+    /// out a term that can never be reached (battle-restart carryover guard).</summary>
     public static bool IsExpired(int currentTurn, int stolenTurn, int turns)
-        => currentTurn - stolenTurn >= turns;
+        => currentTurn - stolenTurn >= turns || currentTurn < stolenTurn;
 
     // ── Guarded bit ops on a unit's band status byte (injected mem, so tests drive them with a
     //    fake or a pinned buffer; mirrors Maim.HoldZero/Restore). Every one pre-filters with
@@ -121,9 +126,10 @@ internal static class LarcenyPolicy
 }
 
 /// <summary>The active steals: each holdable buff the wielder has lifted, keyed by its (offset,mask),
-/// with the GLOBAL-turn index of the theft (the expiry baseline -- TurnTracker.GlobalTurns at steal
-/// time). The wielder can hold several different stolen buffs at once; each fades independently
-/// Tuning.LarcenyHoldTurns global turns after it was stolen. Reset on battle exit (Larceny.ResetBattle).</summary>
+/// with the WIELDER-TURN index of the theft (the expiry baseline -- TurnTracker.Turns for the wielder
+/// at steal time). The wielder can hold several different stolen buffs at once; each fades independently
+/// Tuning.LarcenyHoldTurns of the wielder's own turns after it was stolen. Reset on battle exit
+/// (Larceny.ResetBattle).</summary>
 internal sealed class LarcenyState
 {
     private readonly Dictionary<(int off, byte mask), int> _held = new();
@@ -137,7 +143,7 @@ internal sealed class LarcenyState
         if (!_held.ContainsKey(buff)) _held[buff] = stolenTurn;
     }
 
-    /// <summary>The global-turn index at which this buff was stolen (the expiry baseline).</summary>
+    /// <summary>The wielder-turn index at which this buff was stolen (the expiry baseline).</summary>
     public int StolenAt((int off, byte mask) buff)
         => _held.TryGetValue(buff, out var t) ? t : 0;
 

@@ -7,9 +7,9 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// The pure Larceny decisions: active-gating, enemy-only latching, highest-priority buff selection
-/// against the band status bytes, global-turn expiry counting, and the per-wielder steal ledger. The
-/// buff transfer itself is exercised through the proven Reraise/Invisible bits so extending coverage to
-/// the marquee buffs is purely adding table rows once they're mapped live.
+/// against the band status bytes, wielder-turn expiry counting, and the per-wielder steal ledger. The
+/// buff transfer itself is exercised through the proven Reraise/Invisible bits so
+/// extending coverage to the marquee buffs is purely adding table rows once they're mapped live.
 /// </summary>
 public class LarcenyTests
 {
@@ -39,36 +39,44 @@ public class LarcenyTests
     [Fact]
     public void PickFindsAStealableBuffByItsBit()
     {
-        // Only the +0x47 Invisible bit set -> Invisible is picked.
-        var buff = LarcenyPolicy.Pick(off => off == Offsets.AInvisible ? Offsets.AInvisibleBit : (byte)0);
+        // Only the +0x48/0x40 Regen bit set -> Regen is picked.
+        var buff = LarcenyPolicy.Pick(off => off == Offsets.ARegen ? Offsets.ARegenBit : (byte)0);
         Assert.NotNull(buff);
-        Assert.Equal("Invisible", buff!.Value.Name);
-        Assert.Equal(Offsets.AInvisible, buff.Value.Off);
-        Assert.Equal(Offsets.AInvisibleBit, buff.Value.Mask);
+        Assert.Equal("Regen", buff!.Value.Name);
+        Assert.Equal(Offsets.ARegen, buff.Value.Off);
+        Assert.Equal(Offsets.ARegenBit, buff.Value.Mask);
     }
 
     [Fact]
     public void PickHonoursPriorityOrderWhenSeveralAreSet()
     {
-        // Reraise (0x20) and Invisible (0x10) share +0x47; Reraise is listed first -> wins.
-        var buff = LarcenyPolicy.Pick(off =>
-            off == Offsets.AReraise ? (byte)(Offsets.AReraiseBit | Offsets.AInvisibleBit) : (byte)0);
-        Assert.Equal("Reraise", buff!.Value.Name);
+        // Reraise outranks Regen (listed first wins) even when both bits are set.
+        var top = LarcenyPolicy.Pick(off =>
+            off == Offsets.AReraise ? Offsets.AReraiseBit
+          : off == Offsets.ARegen ? Offsets.ARegenBit : (byte)0);
+        Assert.Equal("Reraise", top!.Value.Name);
+
+        // With no Reraise, Regen is picked.
+        var mid = LarcenyPolicy.Pick(off => off == Offsets.ARegen ? Offsets.ARegenBit : (byte)0);
+        Assert.Equal("Regen", mid!.Value.Name);
     }
 
     [Fact]
-    public void ExpiryIsGlobalTurnsSinceTheSteal()
+    public void ExpiryIsWielderTurnsSinceTheSteal()
     {
-        // The stolen buff fades after N GLOBAL turn-edges (any unit's turn -- TurnTracker.GlobalTurns),
-        // NOT the wielder's own turns and NOT wall-clock: the player can park the wielder so its turns
-        // never come (a buff held through 6 sat-out turns, live 2026-06-14), but the world's turn clock
-        // keeps ticking, so the theft is always temporary.
+        // The stolen buff fades after N of the WIELDER's OWN completed turns (TurnTracker.Turns for the
+        // wielder's fingerprint -- the proven acted-edge counter; the global-turn clock it replaced did
+        // not expire the buff in a normal fight). A deployed wielder always takes turns, so the count
+        // always advances -- no wall-clock backstop.
         Assert.False(LarcenyPolicy.IsExpired(currentTurn: 0, stolenTurn: 0, turns: 3));   // just stolen
         Assert.False(LarcenyPolicy.IsExpired(2, 0, 3));   // 2 turns elapsed -- not yet
         Assert.True(LarcenyPolicy.IsExpired(3, 0, 3));     // term reached
         Assert.True(LarcenyPolicy.IsExpired(9, 0, 3));     // well past
         Assert.False(LarcenyPolicy.IsExpired(5, 4, 3));   // stolen mid-battle at turn 4: 1 elapsed
         Assert.True(LarcenyPolicy.IsExpired(7, 4, 3));     // stolen at 4, now 7: 3 elapsed -> faded
+        // Stale baseline: a new battle reset the wielder-turn count to 0 under a buff stolen at turn 7
+        // in the prior fight -> drop it immediately (the carryover would never expire otherwise).
+        Assert.True(LarcenyPolicy.IsExpired(currentTurn: 0, stolenTurn: 7, turns: 3));
     }
 
     [Fact]
@@ -91,14 +99,14 @@ public class LarcenyTests
     {
         var st = new LarcenyState();
         var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
-        var invis = (Offsets.AInvisible, Offsets.AInvisibleBit);
+        var regen = (Offsets.ARegen, Offsets.ARegenBit);
         st.Steal(reraise, stolenTurn: 3);
-        st.Steal(invis, stolenTurn: 4);
+        st.Steal(regen, stolenTurn: 4);
         Assert.Equal(2, st.Held.Count);
 
         st.Release(reraise);
         Assert.False(st.IsHeld(reraise));
-        Assert.True(st.IsHeld(invis));
+        Assert.True(st.IsHeld(regen));
 
         st.Clear();
         Assert.Empty(st.Held);
@@ -190,14 +198,14 @@ public class LarcenyTests
     {
         var ledger = new LarcenyState();
         var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
-        var invis   = (Offsets.AInvisible, Offsets.AInvisibleBit);
+        var regen   = (Offsets.ARegen, Offsets.ARegenBit);
 
         // Foe 1 has Reraise -> Steal.
         Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(ledger.IsHeld(reraise), wielderHasBuff: false));
         ledger.Steal(reraise, stolenTurn: 0);
         // Foe 2 has a DIFFERENT buff -> independent ledger key -> also a Steal.
-        Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(ledger.IsHeld(invis), wielderHasBuff: false));
-        ledger.Steal(invis, stolenTurn: 0);
+        Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(ledger.IsHeld(regen), wielderHasBuff: false));
+        ledger.Steal(regen, stolenTurn: 0);
 
         Assert.Equal(2, ledger.Held.Count);   // the wielder wears both stolen buffs at once
     }

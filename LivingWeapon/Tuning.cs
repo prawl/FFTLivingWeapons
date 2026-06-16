@@ -145,15 +145,12 @@ internal static class Tuning
     /// AfterimageSpeedPerTurn x this -- 5 keeps a fully-ramped Swiftedge fast but not unbounded.</summary>
     public const int AfterimageSpeedCap = 5;
 
-    /// <summary>Larceny (Arcanum +3): how many GLOBAL turn-edges (any unit's turn -- the attribution-free
-    /// clock on <see cref="TurnTracker.GlobalTurns"/>) a stolen buff is worn before it fades. NOT the
-    /// wielder's own turns: the player can park the wielder so its turns never come (observed live
-    /// 2026-06-14 -- a stolen buff held through 6 sat-out turns), and NOT wall-clock (it bled down in
-    /// menus and ignored battle pace). The world's turn clock keeps ticking no matter what the wielder
-    /// does, so the theft is always temporary. ~12 ≈ a round and a half in a typical fight (the wielder
-    /// gets 1-2 of its own turns to spend the buff); the clock runs faster the more units are on the
-    /// field. THE live-tune knob -- adjust if it feels off.</summary>
-    public const int LarcenyHoldTurns = 12;
+    /// <summary>Larceny (Arcanum +3): how many of the WIELDER's OWN completed turns a stolen buff is
+    /// worn before it fades -- counted by TurnTracker.Turns for the wielder's fingerprint (the proven
+    /// acted-edge per-unit counter). The GLOBAL-turn clock this replaced did not expire the buff in a
+    /// normal fight (haste hung on, 2026-06-16); a deployed wielder always takes turns, so no wall-clock
+    /// backstop is needed. 3 matches the card text ("wear 3 turns"). THE live-tune knob.</summary>
+    public const int LarcenyHoldTurns = 3;
 
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";

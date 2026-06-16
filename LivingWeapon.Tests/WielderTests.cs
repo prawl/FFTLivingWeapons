@@ -264,4 +264,58 @@ public class WielderTests
         Assert.False(Wielder.TryResolveMainHand(m, Weapon, out _, new List<int>()));
     }
 
+    // ---- ResolveDeployedMainHand: a benched reserve duplicate no longer freezes the steal ----
+
+    [Fact]
+    public void ResolveDeployedMainHand_returns_the_deployed_wielder_ignoring_a_reserve_duplicate()
+    {
+        // Two roster slots hold the weapon in the main hand, but only slot 0 is DEPLOYED (has a band
+        // entry). Slot 3 is a benched reserve (no band entry). The reserve must NOT create ambiguity
+        // -- the exact bug that froze Larceny when the dev give-all armed a reserve with Arcanum.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 97, fa: 75, rh: Weapon);
+        MemSeats.SeatRoster(m, 3, lvl: 99, br: 89, fa: 76, rh: Weapon);   // reserve: no band entry
+        MemSeats.SeatBand(m, 12, Weapon, lvl: 99, br: 97, fa: 75, gx: 3, gy: 5);
+        Assert.Equal(Band.Entry(12), Wielder.ResolveDeployedMainHand(m, Weapon, out var fp));
+        Assert.Equal((99, 97, 75), fp);
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHand_returns_the_single_deployed_wielder()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        Assert.Equal(Band.Entry(5), Wielder.ResolveDeployedMainHand(m, Weapon, out var fp));
+        Assert.Equal((31, 65, 58), fp);
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHand_zero_when_the_wielder_is_in_the_roster_but_not_deployed()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);   // no band entry
+        Assert.Equal(0, Wielder.ResolveDeployedMainHand(m, Weapon, out _));
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHand_zero_when_two_wielders_are_both_deployed()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        MemSeats.SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
+        MemSeats.SeatBand(m, 4, Weapon, lvl: 20, br: 70, fa: 50, gx: 2, gy: 2);   // both on the field
+        MemSeats.SeatBand(m, 8, Weapon, lvl: 25, br: 60, fa: 40, gx: 6, gy: 6);
+        Assert.Equal(0, Wielder.ResolveDeployedMainHand(m, Weapon, out _));   // genuinely ambiguous
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHand_ignores_an_offhand_only_wielder()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon);   // weapon in the OFF hand
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        Assert.Equal(0, Wielder.ResolveDeployedMainHand(m, Weapon, out _));   // main-hand only
+    }
+
 }

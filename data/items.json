@@ -925,7 +925,7 @@
       "vanillaName": "Runeblade",
       "name": "Arcanum",
       "tier": 5,
-      "identity": "Arcane dispel sword: chance to strip the target's buffs on hit (Protect/Shell/Haste/Reflect/etc.). The melee answer to buffed foes; Omnilex is the ranged version.",
+      "identity": "Arcane buff-thief: at +3 the Larceny signature makes a strike STEAL one of the foe's buffs (Reraise > Haste > Protect > Shell > Reflect > Regen) for the wielder to wear ~3 turns -- the melee answer to buffed foes (Omnilex is the ranged version). Innate strip-proc (ability 55) removed 2026-06-15: Larceny does the stripping at +3, so Arcanum is a plain sword until it grows in.",
       "flavorOverride": "Runes crawl its fuller, and at a touch unwind whatever wards a foe wraps about itself.",
       "baseline": {
         "wp": 14,
@@ -939,8 +939,8 @@
         "wp": 14,
         "evade": 8,
         "element": "None",
-        "onHit": "May strip buffs",
-        "onHitAbilityId": 55,
+        "onHit": "None",
+        "onHitAbilityId": 0,
         "formula": 1,
         "rider": "MA+2",
         "equipBonusId": 1,
@@ -950,8 +950,8 @@
         "atTier": 3,
         "larcenyTurns": 3,
         "displayLabel": "Larceny",
-        "note": "Larceny -- a hit STEALS ONE of the struck foe's holdable buffs (the highest-priority one): stripped from the foe, held on the wielder for ~Tuning.LarcenySeconds (30s WALL-CLOCK), then dropped. VERIFIED LIVE 2026-06-14: the steal fires + transfers. Two findings baked in: (1) the pre-hit snapshot -- Arcanum's base strip-proc (onHit 55) clears the live bit during the hit, so Larceny remembers the buff from the tick before; (2) expiry is WALL-CLOCK, not the wielder's turn count -- a parked wielder's acted-turn count never advances, so the buff would never fade (held through 6 sat-out turns live). larcenyTurns is now just the enable flag (value ignored). COVERAGE LIVE-PENDING: only the proven Reraise/Invisible bits (+0x47) are wired; map Haste/Protect/Shell/... via poison_probe.py diff+holdbit and add rows to LarcenyPolicy.Stealable.",
-        "p3Desc": "Strikes steal 1 enchantment from a foe for the wielder to wear a few turns."
+        "note": "Larceny -- a hit STEALS ONE of the struck foe's holdable buffs (the highest-priority one): stripped from the foe, held on the wielder for larcenyTurns (3) of the WIELDER'S OWN turns, then dropped. VERIFIED LIVE 2026-06-14: the steal fires + transfers; Haste functional-tested live 2026-06-16 (+50% CT, the icon-only fear was a phantom -- haste has no walk animation). EXPIRY (2026-06-16): the wielder's own turns, counted off the engine's active-unit edge (FeignDeath-style), with a wall-clock cap (Tuning.LarcenyHoldSecondsCap) as the parked-wielder backstop. This replaced a GLOBAL-turn clock that did not expire the buff in a normal fight, which itself replaced a pure 30s wall-clock. The pre-hit snapshot stays: Arcanum's old strip-proc (onHit 55, removed 2026-06-15) cleared the live bit mid-hit, so Larceny remembers the buff from the tick before. COVERAGE: Reraise/Regen/Reflect/Haste functional live; Protect/Shell bit-wired, functional test pending; Float dropped (cosmetic-only).",
+        "p3Desc": "Any attack steals 1 buff from the foe for the wielder to wear 3 turns."
       }
     },
     {

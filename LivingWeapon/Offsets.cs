@@ -142,6 +142,22 @@ internal static class Offsets
     public const int AInvisible     = 0x47;  // u8 status bitfield byte containing the Invisible flag
     public const byte AInvisibleBit = 0x10;  // mask: bit 4 of AInvisible is the "invisible" flag
 
+    // --- marquee buff status bits (band-entry relative). The band status bytes equal the PSX
+    //     current-status 5-byte field (byte N = +0x45+N), confirmed by six cross-checks against the
+    //     proven bits (Dead/Undead +0x45, Reraise/Transparent +0x47, Poison +0x48, Doom +0x49) and a
+    //     LIVE probe 2026-06-15 (Float +0x47/0x40 and Regen +0x48/0x40 set on real enemy units; one
+    //     unit Float-only). Full bit map = FFTHandsFree StatusDecoder. Larceny steals these
+    //     (LarcenyPolicy.Stealable); Regen is wired, Haste/Protect/Shell/Reflect are bit-confirmed.
+    //     FLOAT is COSMETIC-ONLY when set via the bit (icon shows, the unit doesn't float -- its hover
+    //     state lives elsewhere; proven live 2026-06-15), so Larceny does NOT steal it; AFloat stays
+    //     for reference / status_probe. ---
+    public const int AFloat   = 0x47;  public const byte AFloatBit   = 0x40;
+    public const int ARegen   = 0x48;  public const byte ARegenBit   = 0x40;
+    public const int AProtect = 0x48;  public const byte AProtectBit = 0x20;
+    public const int AShell   = 0x48;  public const byte AShellBit   = 0x10;
+    public const int AHaste   = 0x48;  public const byte AHasteBit   = 0x08;
+    public const int AReflect = 0x49;  public const byte AReflectBit = 0x02;
+
     // --- auth band: LIVE unit data (the static array freezes on battle restart; the band stays live).
     //     Entry layout matches the static-array A* offsets. BandEntry = unit-copy offset inside
     //     each slot; BandReadBase starts at n=-24 (the lowest valid scan index).

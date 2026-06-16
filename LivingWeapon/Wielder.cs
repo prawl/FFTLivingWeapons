@@ -128,6 +128,35 @@ internal static class Wielder
         return found == 1;
     }
 
+    /// <summary>The single DEPLOYED main-hand wielder of <paramref name="weaponId"/>: scan the roster
+    /// for every slot holding it in the main hand, LOCATE each in the live band, and return the one
+    /// actually on the battlefield. A benched reserve (no band entry) or an enemy copy the dev give-all
+    /// armed is skipped, so a duplicate that isn't in THIS battle no longer creates the false ambiguity
+    /// that froze Larceny (<see cref="TryResolveMainHand"/> bailed on the raw roster count). Returns the
+    /// wielder's live band entry + its fingerprint, or 0 when zero or MORE THAN ONE deployed wielder is
+    /// found (two on-field wielders are still genuinely ambiguous -- rare; refine to the acting one later).</summary>
+    public static long ResolveDeployedMainHand(IGameMemory mem, int weaponId, out (int lvl, int br, int fa) fp)
+    {
+        fp = default;
+        var hand = new List<int> { weaponId };
+        long wielder = 0;
+        int deployed = 0;
+        for (int r = 0; r < Offsets.RosterSlots; r++)
+        {
+            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
+            int lvl = mem.U8(rb + Offsets.RLevel);
+            if (lvl < 1 || lvl > 99) continue;                        // empty slot
+            if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;   // main-hand match only
+            var candFp = (lvl, (int)mem.U8(rb + Offsets.RBrave), (int)mem.U8(rb + Offsets.RFaith));
+            long addr = Locate(mem, weaponId, hand, candFp);
+            if (addr == 0) continue;                                  // benched / not in this battle -> skip
+            if (++deployed > 1) { fp = default; return 0; }           // two DEPLOYED wielders -> ambiguous
+            wielder = addr;
+            fp = candFp;
+        }
+        return deployed == 1 ? wielder : 0;
+    }
+
     private static bool Contains(IReadOnlyList<int> hands, int wid)
     {
         for (int i = 0; i < hands.Count; i++) if (hands[i] == wid) return true;

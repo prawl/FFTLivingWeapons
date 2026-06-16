@@ -1,9 +1,10 @@
 Release TODO's
+- Larceny multi-wielder (2026-06-16): two deployed Arcanum holders make ResolveDeployedMainHand bail as ambiguous (no steal). Refactor to per-wielder ledgers so several Arcanum units each steal+hold independently, attributed to the acting attacker. Single-wielder works today (unequip duplicates).
 - Arcanum needs thorough testing (does it need the "Removes"?)
 - Mistedge says two tiles but it's only one
 - Huntress update desc to include (e.g. counter)
 - Update Yoichi Bow desc to make Barrage match the actual command desc
-- 
+- Update the cursed ring
 - Fix the battle with Oran (user rported it was too difficult)
 - Update the Wrathblade+3 Desc
 - Replace the Stormbrand (it's sorta lame)
@@ -29,6 +30,7 @@ New Buffs Exploration
 
 
 Needs Exploration
+- The next attack is buffed for one turn
 - When reviving an ally heal % amount of health back on revival
 - When hit with an element, gain resistance to that element for x turns
 - Health gain from healing spells increased by X%

@@ -53,6 +53,7 @@ internal sealed class TurnTracker
         if (acted && !_wasActed)
         {
             GlobalTurns++;   // SOMEONE acted -- bump the attribution-free clock before we try to name them
+            Log.Info($"turn: GLOBAL turn {GlobalTurns} (someone acted) -- the clock Larceny's stolen-buff expiry rides");
             if (TryActiveFingerprint(out var fp))
             {
                 int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;

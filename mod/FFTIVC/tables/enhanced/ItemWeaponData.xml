@@ -293,7 +293,7 @@
       <Power>14</Power>
       <Evasion>8</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>55</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>31</Id> <!-- Lightbringer (was Nagrarok) -->

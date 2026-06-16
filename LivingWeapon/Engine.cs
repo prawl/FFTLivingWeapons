@@ -77,7 +77,7 @@ internal sealed class Engine
         var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
         var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
-        var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N global turns)
+        var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N of the wielder's own turns)
         var treasureJson = Path.Combine(modDir, "treasure.json");
         _treasure = new TreasureMaster(
             load:         () => TreasureDb.Load(modDir),
@@ -121,6 +121,18 @@ internal sealed class Engine
         _cts = null;
     }
 
+    /// <summary>Clear all per-battle state -- kill tracker, turn clocks, growth holds, and every
+    /// signature's hold/ledger. Fired on BOTH the battle-enter and battle-exit edges so a restart that
+    /// skips a clean Exit still starts the new battle clean (fixes the Larceny stolen-buff carryover,
+    /// 2026-06-15). Idempotent: a normal Exit->Enter double-resets harmlessly.</summary>
+    private void ResetBattleState()
+    {
+        _tracker.ResetBattle();
+        _turns.ResetBattle();
+        _growth.ResetBattle();
+        foreach (var sig in _signatures) sig.ResetBattle();
+    }
+
     private void Tick()
     {
         uint slot0 = Mem.U32(Offsets.Slot0);
@@ -141,7 +153,15 @@ internal sealed class Engine
         bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
         if (inLive) _charm.Heartbeat(now);
         if (edge == BattleEdge.Entered)
+        {
             Log.Info($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
+            // Reset per-battle state on ENTER too. A battle RESTART can re-enter WITHOUT a clean Exit
+            // (the slot0/slot9 sentinels stick -- slot0-quit-stick-trap), which left Larceny's stolen-buff
+            // ledger alive into the new battle: the engine wipes statuses at battle start, but Larceny's
+            // per-tick Drive re-applied them from the stale ledger, so they carried over and never faded.
+            // Resetting here makes a fresh battle start clean however the prior one ended (2026-06-15).
+            ResetBattleState();
+        }
 
         // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.
         bool battleStatus = BattleState.StatusCardOpen(nowIn, battleMode,
@@ -152,10 +172,7 @@ internal sealed class Engine
         if (edge == BattleEdge.Exited)
         {
             Log.Info($"battle: ended -- saving kill tally, resetting battle trackers (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
-            _tracker.ResetBattle();
-            _turns.ResetBattle();
-            _growth.ResetBattle();
-            foreach (var sig in _signatures) sig.ResetBattle();
+            ResetBattleState();
             _tally.Save();               // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
