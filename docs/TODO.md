@@ -1,10 +1,11 @@
 Release TODO's
 - Fix the battle with Oran (user rported it was too difficult)
 - Replace the Stormbrand (it's sorta lame)
-
+- Sanctus Staff test potions and Regen
 - Thorough sweep of other mods
 - Ramza's Squire cannot equip Shields but normal squires can?
 - Fix the coloring on all icons
+
 
 
 
@@ -21,7 +22,14 @@ New Buffs Exploration
 10 PROVEN Give Spiritual Font: Lifefont and Manafont to a single character
 
 
+
+Discipline: Compare Bra between your unit and the enemy you just hit, taking the higher of the two as your own.
+
 Needs Exploration
+- Steal Identity: Copy the enemies stats in battle
+Guardian's Oath 🛡️ — when an ally next to the wielder takes a lethal hit, redirect it to the wielder (hold the ally's HP up, drop yours). HP-holds + position reads + death detection, all proven. The bodyguard blade.
+Unlock Potental: Add a random ability to an allied neighbor
+Increase damage by how high a character is in the game
 - The next attack is buffed for one turn
 - When reviving an ally heal % amount of health back on revival
 - When hit with an element, gain resistance to that element for x turns
@@ -43,7 +51,7 @@ Needs Exploration
   (its own face), proven FeignDeath/Reraise path.
 - While "wet" or the map is raining gain strength
 - Attacking an enemy from behind does X at %
-- While Standing Next to a Friendly Unit Gain X
+- While Standing Next to a Friendly Unit Gain 
 - Soul Link: Taking Damage also hurts X enemy for Y turns
 - Soul Link: Healing also heals X player for Y turns.
 - Increases throwing damage by X for Y turns
