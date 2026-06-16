@@ -2,9 +2,8 @@ Release TODO's
 - Fix the battle with Oran (user rported it was too difficult)
 - Replace the Stormbrand (it's sorta lame)
 - Sanctus Staff test potions and Regen
-- Thorough sweep of other mods
 - Ramza's Squire cannot equip Shields but normal squires can?
-- Fix the coloring on all icons
+- Larcency keeps popped up in the logs despite not being equipped
 
 
 
@@ -21,9 +20,10 @@ New Buffs Exploration
 9. PROVEN Barrage: parked on two decisions (job-wide vs per-unit, and the blank-name problem).
 10 PROVEN Give Spiritual Font: Lifefont and Manafont to a single character
 
-
+Ideas:
 
 Discipline: Compare Bra between your unit and the enemy you just hit, taking the higher of the two as your own.
+Retain broken equipment
 
 Needs Exploration
 - Steal Identity: Copy the enemies stats in battle
