@@ -94,6 +94,11 @@ public sealed class WeaponSignature
     // Faithful to FF7's Ultima Weapon: damage swells with the wielder's current HP.
     // Tier only RAISES the whole curve (no flip); the blade is never a death trap when hurt.
     [JsonProperty("ultima")] public bool Ultima { get; set; }
+    // BENEDICTION (Sanctus Staff "Benediction"): while a +3 Sanctus Staff wielder is the acting
+    // unit, any HP rise on a live ALLY during the wielder's action window (or within the grace
+    // period after) is boosted by this percentage. Computed on the observed restored HP (not the
+    // spell's nominal output), so an overheal yields no bonus. 0 = not a benediction weapon.
+    [JsonProperty("healBoostPct")] public int HealBoostPct { get; set; }
 }
 
 internal static class MetaLoader

@@ -84,6 +84,8 @@ def main():
                 entry["signature"]["afterimage"] = True
             if sig.get("ultima"):   # ultima (Materia Blade): always-on HP%-scaled PA hold
                 entry["signature"]["ultima"] = True
+            if sig.get("healBoostPct"):  # benediction (Sanctus Staff): ally HP-rise boost on wielder action window
+                entry["signature"]["healBoostPct"] = int(sig["healBoostPct"])
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

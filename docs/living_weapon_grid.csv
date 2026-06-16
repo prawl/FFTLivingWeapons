@@ -62,7 +62,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRi
 61,3,Healing Staff,Mending Staff,Staff,Shop,4,MA x WP,15%,MA,Attack heals target's HP (damages Undead),MA +10%,MA +20%,MA +30%,med,
 62,3,Serpent Staff,Warding Staff,Staff,Shop,4,MA x WP,15%,MA,May inflict Immobilize,MA +10%,MA +20%,MA +30%,low,
 63,3,Mage's Staff,Blazing Staff,Staff,Shop,6,Faith spell (f4),12%,MA,—,MA +10%,MA +20%,MA +30%,low,
-64,4,Golden Staff,Sanctus Staff,Staff,Shop,5,MA x WP,15%,MA,—,MA +10%,MA +20%,MA +30%,med,
+64,4,Golden Staff,Sanctus Staff,Staff,Shop,5,MA x WP,15%,MA,—,MA +10%,MA +20%,MA +30% + Benediction (ally heals +30%),med,
 65,5,Zeus Mace,Zeus Mace,Staff,Move-Find (Midlight's Deep DELTA),6,MA x WP,15%,MA,—,MA +10%,MA +20%,MA +30%,med,
 66,6,Staff of the Magi,Staff of the Magi,Staff,Move-Find (Midlight's Deep BRIDGE),7,MA x WP,15%,MA,May Stop,MA +10%,MA +20%,MA +30%,low,
 67,5,Iron Flail,Warbrand,Sword,Shop,15,PA x WP,0%,PA,—,PA +10%,PA +20%,PA +30%,high,

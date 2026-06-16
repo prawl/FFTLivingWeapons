@@ -532,7 +532,14 @@
     "wp": 5,
     "cat": "Staff",
     "formula": 1,
-    "flavor": "A gilded stave that gathers sacred light and gives it back tenfold to those who pray."
+    "flavor": "A gilded stave that gathers sacred light and gives it back tenfold to those who pray.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Benediction",
+      "healBoostPct": 30
+    }
   },
   "65": {
     "name": "Zeus Mace",

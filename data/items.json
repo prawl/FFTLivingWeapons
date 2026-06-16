@@ -2000,7 +2000,7 @@
       "vanillaName": "Golden Staff",
       "name": "Sanctus Staff",
       "tier": 4,
-      "identity": "STRONGELEMENTS specialist staff — the +25%-Holy-spell line: a white/holy mage's nuke amplifier (boosts Holy, Holy Explosion, etc.), plus Holy element on the swing for anti-Undead matchups. The specialist whose niche is spell amplification, not stats.",
+      "identity": "STRONGELEMENTS specialist staff — the +25%-Holy-spell line: a white/holy mage's nuke amplifier (boosts Holy, Holy Explosion, etc.), plus Holy element on the swing for anti-Undead matchups. At +3 the Benediction aura boosts the wielder's healing by 30% (runtime HP-rise detect on allies during the wielder's action window), making the healer-nuke hybrid a literal force multiplier.",
       "flavorOverride": "A gilded stave that gathers sacred light and gives it back tenfold to those who pray.",
       "baseline": {
         "wp": 6,
@@ -2019,6 +2019,15 @@
         "range": 1,
         "rider": "boost Holy",
         "equipBonusId": 22
+      },
+      "signature": {
+        "abilityId": 0,
+        "slot": "",
+        "atTier": 3,
+        "displayLabel": "Benediction",
+        "healBoostPct": 30,
+        "p3Desc": "The wielder's healing restores 30% more HP.",
+        "note": "BENEDICTION: while a +3 Sanctus Staff is the acting wielder's main hand, any HP rise on a live ALLY during the action window (2-second grace, mirrors Plague) is boosted by 30%. Computed on observed restored HP (not nominal spell output); an overheal yields no bonus. Mechanism: HealState (RicochetState mirror for positive deltas), Larceny-pattern wielder gate (LastActorFingerprint + Wielder.Locate, NOT bare main-hand latch), LifeSap.NewHp clamp + LifeSap.WriteHp. Gate is NOT livingWeapon-exempt: id 64 stays dominance-checked; the gate stays GREEN because all stats/riders are UNCHANGED."
       },
       "iconTint": [
         0.13,
