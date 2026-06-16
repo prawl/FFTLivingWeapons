@@ -81,6 +81,7 @@ internal sealed class Engine
         var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N of the wielder's own turns)
         var benediction = new Benediction(meta, _kills, _tracker, live); // Sanctus Staff +3: ally HP rises boosted 30% while a Sanctus Staff is the last player to act (sticky latch -- survives the charged-heal resolve gap)
         var sanctuary = new Sanctuary(meta, _kills, live);               // Staff of the Magi +3: while the bearer lives, fallen allies are held from crystallizing
+        var choir = new Choir(meta, _kills, live);                       // Warlock's Staff +3: adjacent allies cast magick instantly (Non-charge aura)
         var treasureJson = Path.Combine(modDir, "treasure.json");
         _treasure = new TreasureMaster(
             load:         () => TreasureDb.Load(modDir),
@@ -95,8 +96,8 @@ internal sealed class Engine
         // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
         // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, _treasure };
-        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
+        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");

@@ -176,6 +176,7 @@ internal static class Offsets
     // Band-relative movement field: CMovement(0x9C) - BandEntry(0x1C) = 0x80. 3 bytes.
     // Rapture saves/holds/restores this for the Master Teleportation window.
     public const int AMovement = 0x80;
+    public const int ASupport = 0x7C;   // 4 bytes, base id 198, MSB-first; == CSupport(0x98) - BandEntry(0x1C). Choir OR-sets the Non-charge bit here.
     public const long BandReadBase = CombatAnchor + BandEntry - 24 * (long)CombatStride;  // n=-24 anchor
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 

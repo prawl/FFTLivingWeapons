@@ -21,6 +21,20 @@ internal static class Signatures
     /// <summary>Width of the support bitfield in bytes (so 32 addressable support ids).</summary>
     public const int SupportBytes = 4;
 
+    /// <summary>Encode a support-ability id into its (byteOffset, mask) in the 4-byte support bitfield
+    /// (base id 198, MSB-first). False (and zeroed outs) when the id falls outside the field. The pure
+    /// encoder shared by ResolveSupport and any direct support-bit consumer (Choir).</summary>
+    public static bool SupportBit(int abilityId, out int byteOffset, out byte mask)
+    {
+        byteOffset = 0;
+        mask = 0;
+        int pos = abilityId - SupportBase;
+        if (pos < 0 || pos >= SupportBytes * 8) return false;
+        byteOffset = pos / 8;
+        mask = (byte)(0x80 >> (pos % 8));
+        return true;
+    }
+
     /// <summary>
     /// Resolve a weapon's signature at the wielder's current kill-tier into the support-bit
     /// write to hold, or false to write nothing. False when: no signature, not a support
@@ -33,12 +47,7 @@ internal static class Signatures
         if (sig is null) return false;
         if (sig.Slot != "support") return false;   // additive-only: reactions/movement hijack a slot
         if (tier < sig.AtTier) return false;        // not earned yet
-
-        int pos = sig.AbilityId - SupportBase;
-        if (pos < 0 || pos >= SupportBytes * 8) return false;
-        byteOffset = pos / 8;
-        mask = (byte)(0x80 >> (pos % 8));
-        return true;
+        return SupportBit(sig.AbilityId, out byteOffset, out mask);
     }
 
     /// <summary>First movement-passive ability id (== bit 0 of the movement bitfield).</summary>

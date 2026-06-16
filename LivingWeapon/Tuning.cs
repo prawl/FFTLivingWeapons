@@ -236,4 +236,12 @@ internal static class Tuning
     /// <summary>Sanctuary (Staff of the Magi +3): the value held in the crystal counter (band -0x15
     /// / combat +0x07) while the bearer is alive -- keeps fallen allies permanently revivable.</summary>
     public const byte SanctuaryHearts = 3;
+
+    /// <summary>Choir (Warlock's Staff +3): the support ability OR-set on adjacent allies so their magick casts instantly -- 227 = Non-charge (ability.en key 483), live-proven calc-gated. Swiftspell (226, half-charge) is the milder alt.</summary>
+    public const int InstantCastSupportId = 227;
+
+    /// <summary>Choir (Warlock's Staff +3): the most UNITS (nearest by Chebyshev distance, the bearer
+    /// included at distance 0) that receive the instant-cast grant each tick -- a duet, not a full-party
+    /// blowout. THE live-tune knob: drop to 1 for a solo, raise for a bigger choir.</summary>
+    public const int ChoirMaxBeneficiaries = 2;
 }

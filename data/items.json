@@ -1899,7 +1899,15 @@
         0.0,
         0.0,
         1.0
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "instantCastRadius": 1,
+        "sigName": "Choir",
+        "displayLabel": "Choir",
+        "p3Desc": "At +3, the bearer and their nearest ally cast magick instantly -- no charge needed.",
+        "note": "CHOIR: while a +3 Warlock's Staff bearer is alive and main-hand-wielding it, the nearest Tuning.ChoirMaxBeneficiaries (2) LIVING units -- the bearer (distance 0) and its single nearest ally -- within Chebyshev radius 1 (8 adjacent tiles incl. diagonals) get the Non-charge support bit (id 227, band +0x7F mask 0x04) OR-set per tick (instant magick); cleared on leaving the radius / death / bearer-down / being bumped by a nearer ally (per-entry, band-twin-safe); a unit whose own picked support is Non-charge is never touched. Choir.cs/Choir.Policy.cs."
+      }
     },
     {
       "id": 61,

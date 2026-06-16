@@ -103,6 +103,31 @@ public class SignaturesTests
         Assert.False(Signatures.IsBuildTimeOnly(226));
     }
 
+    // --- SupportBit: the pure encoder shared by ResolveSupport and Choir ---
+
+    [Fact]
+    public void SupportBit_NonCharge_encodes_byte3_mask0x04()
+    {
+        // id 227 - base 198 = pos 29 -> byte 3, mask 0x80 >> 5 = 0x04.
+        Assert.True(Signatures.SupportBit(227, out int off, out byte mask));
+        Assert.Equal(3, off);
+        Assert.Equal(0x04, mask);
+    }
+
+    [Fact]
+    public void SupportBit_id_198_encodes_byte0_mask0x80()
+    {
+        Assert.True(Signatures.SupportBit(198, out int off, out byte mask));
+        Assert.Equal(0, off);
+        Assert.Equal(0x80, mask);
+    }
+
+    [Theory]
+    [InlineData(197)]   // below the support field
+    [InlineData(230)]   // movement base, outside the field
+    public void SupportBit_out_of_field_returns_false(int id)
+        => Assert.False(Signatures.SupportBit(id, out _, out _));
+
     // --- conditional (HP-gated) signature, e.g. Mortal Coil: Attack Boost while HP < 50% ---
 
     [Fact]

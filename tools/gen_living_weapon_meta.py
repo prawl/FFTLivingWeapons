@@ -90,6 +90,8 @@ def main():
                 entry["signature"]["healBoostPct"] = int(sig["healBoostPct"])
             if sig.get("antiCrystallize"):  # sanctuary (Staff of the Magi): hold fallen allies' crystal counter while the bearer lives
                 entry["signature"]["antiCrystallize"] = True
+            if sig.get("instantCastRadius"):  # choir (Warlock's Staff): adjacent allies cast magick instantly (Non-charge aura)
+                entry["signature"]["instantCastRadius"] = int(sig["instantCastRadius"])
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

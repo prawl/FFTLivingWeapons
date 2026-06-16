@@ -504,7 +504,14 @@
     "wp": 3,
     "cat": "Staff",
     "formula": 1,
-    "flavor": "Bound with a warlock's hex, it turns hostile spells back upon the throats that spoke them."
+    "flavor": "Bound with a warlock's hex, it turns hostile spells back upon the throats that spoke them.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Choir",
+      "instantCastRadius": 1
+    }
   },
   "61": {
     "name": "Mending Staff",
