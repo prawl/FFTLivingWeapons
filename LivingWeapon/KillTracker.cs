@@ -41,6 +41,7 @@ internal sealed partial class KillTracker
     internal readonly int[] _pendingFalls = new int[Offsets.BandSlots];// _actedFalls when the corpse went pending
     internal List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
     internal int _lastPlayerMainHand;                // RRHand id of the last latched actor (0 when none)
+    internal (int lvl, int br, int fa) _lastActorFp; // fingerprint of the unit latched this acted-period
     private bool _latched;                           // a player resolved this acted-period -> frozen until it ends
     private int _actedLow;                           // consecutive acted==0 ticks (drift-debounced period end)
     internal int _actedFalls;                        // battle-local count of debounced acted-falling edges
@@ -67,6 +68,7 @@ internal sealed partial class KillTracker
         Array.Clear(_pendingFalls, 0, _pendingFalls.Length);
         _lastPlayerWeapons = new();
         _lastPlayerMainHand = 0;
+        _lastActorFp = default;
         _latched = false;
         _actedLow = 0;
         _actedFalls = 0;
@@ -106,6 +108,11 @@ internal sealed partial class KillTracker
                 if (_resolver.TryResolveActingPlayer(out var ws))
                 {
                     _latched = true;
+                    // Refresh the acting fingerprint once per acted-period (on the latch edge).
+                    // MUST be outside the !SameSet guard: two Arcanum holders share weapon set {30},
+                    // so SameSet is true between them -- if gated inside, switching between two
+                    // same-weapon wielders would never update the fingerprint (the Larceny bug).
+                    _lastActorFp = _resolver.TryResolveActingFingerprint(out var afp) ? afp : default;
                     if (!ActorResolver.SameSet(ws, _lastPlayerWeapons))
                     {
                         _lastPlayerWeapons = ws;
@@ -155,6 +162,10 @@ internal sealed partial class KillTracker
             Log.Info("turn: no actor seen yet -- crediting the only player who has acted (first-kill fallback, weapons: " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + ")");
         }
     }
+
+    /// <summary>The (level,brave,faith) of the unit latched this acted-period, or default when
+    /// none/ambiguous. Consumers must not cache across ticks.</summary>
+    public (int lvl, int br, int fa) LastActorFingerprint => _lastActorFp;
 
     /// <summary>The acting player's weapon id(s) from the most recent latched actor.
     /// Empty at battle start and for any turn where no player actor was resolved.

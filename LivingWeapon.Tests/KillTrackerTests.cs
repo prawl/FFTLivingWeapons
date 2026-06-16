@@ -1203,4 +1203,85 @@ public class KillTrackerTests
 
         Assert.False(kills.ContainsKey(52));   // ally death is never a weapon's kill
     }
+
+    // --- LastActorFingerprint: per-wielder attribution for same-weapon signatures (Larceny) ---
+
+    // Two Arcanum holders share weapon set {30}: we add 30 to the tracked weapons for these tests.
+    private static readonly HashSet<int> WeaponsWithArcanum = new() { 30, 52, 63, 73, 90 };
+
+    [Fact]
+    public void LastActorFingerprint_latches_the_acting_players_fingerprint()
+    {
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 30);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(new Dictionary<int, int>(), m, WeaponsWithArcanum);
+        Settle(t);
+
+        Assert.Equal((99, 89, 76), t.LastActorFingerprint);
+    }
+
+    [Fact]
+    public void LastActorFingerprint_refreshes_when_second_same_weapon_wielder_acts()
+    {
+        // THE REGRESSION GUARD: two players both hold only weapon id 30 (same weapon set);
+        // SameSet is true between them. Despite that, LastActorFingerprint must refresh to
+        // the SECOND actor's fingerprint when they act in the next acted-period.
+        var m = new FakeSparseMemory();
+        // Player A: level 99, brave 89, faith 76.
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 30);
+        // Player B: level 50, brave 60, faith 55 -- different fingerprint, same weapon.
+        SetRoster(m, slot: 4, level: 50, brave: 60, faith: 55, weapon: 30);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza,  hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+
+        // Player A acts first.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(new Dictionary<int, int>(), m, WeaponsWithArcanum);
+        Settle(t);
+        Assert.Equal((99, 89, 76), t.LastActorFingerprint);   // latched to A
+
+        // End A's acted-period (debounced fall).
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        Settle(t, KillTracker.UnfreezeTicks);
+
+        // Player B now acts. B has same weapon set {30} as A (SameSet returns true).
+        // LastActorFingerprint must still refresh to B's fingerprint.
+        SetActive(m, hp: 400, maxHp: 400, level: 50, acted: 1);
+        Settle(t);
+
+        Assert.Equal((50, 60, 55), t.LastActorFingerprint);   // updated to B despite SameSet
+    }
+
+    [Fact]
+    public void LastActorFingerprint_resets_to_default_on_ResetBattle()
+    {
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 30);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(new Dictionary<int, int>(), m, WeaponsWithArcanum);
+        Settle(t);
+        Assert.NotEqual(default, t.LastActorFingerprint);
+
+        t.ResetBattle();
+        Assert.Equal(default, t.LastActorFingerprint);
+    }
+
+    [Fact]
+    public void LastActorFingerprint_is_default_when_acting_unit_is_an_enemy()
+    {
+        // An enemy's acted-period: the actor resolves to no roster player; fingerprint stays default.
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 30);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        // Active unit: an enemy (no roster match).
+        SetActive(m, hp: 681, maxHp: 681, level: 93, acted: 1);
+        var t = new KillTracker(new Dictionary<int, int>(), m, WeaponsWithArcanum);
+        Settle(t);
+
+        // TryResolveActingPlayer returns false for enemies -> _latched is never set -> fp stays default.
+        Assert.Equal(default, t.LastActorFingerprint);
+    }
 }

@@ -188,6 +188,54 @@ internal sealed class ActorResolver
         return found == 1 ? rh : 0;
     }
 
+    /// <summary>
+    /// The acting unit's (level,brave,faith) fingerprint, resolved by the same band walk as
+    /// <see cref="ResolveActingMainHand"/> and <see cref="TurnTracker.TryActiveFingerprint"/>.
+    /// Used by <see cref="KillTracker"/> to attribute a per-wielder signature (e.g. Larceny) to
+    /// the specific acting unit when two wielders share the same weapon set and SameSet alone
+    /// cannot distinguish them.
+    ///
+    /// Reads turn-queue TqMaxHp/TqHp/TqLevel; rejects if maxHp==0 || maxHp>=2000 || level outside
+    /// 1..99. Walks band slots 0..BandSlots-1, applies Band.IsValid, matches AMaxHp/AHp/ALevel;
+    /// applies the twin filter (prefer real-position gx/gy != 0,0; restart on first real match).
+    /// Returns false (default fp) if two surviving candidates have DIFFERENT fingerprints
+    /// (ambiguous); true with the resolved fingerprint otherwise. Does NOT require the candidate to
+    /// be a roster player -- KillTracker only calls this after confirming the actor is a player.
+    /// </summary>
+    public bool TryResolveActingFingerprint(out (int lvl, int br, int fa) fp)
+    {
+        fp = default;
+        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
+        ushort hp    = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
+        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
+        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return false;
+
+        (int, int, int) found = default;
+        bool haveFp    = false;
+        bool foundReal = false;
+
+        for (int s = 0; s < Offsets.BandSlots; s++)
+        {
+            long addr = Band.Entry(s);
+            if (!Band.IsValid(_mem, addr)) continue;
+            if (_mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
+            if (_mem.U16(addr + Offsets.AHp)    != hp)    continue;
+            if (_mem.U8(addr  + Offsets.ALevel) != level) continue;
+
+            bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
+            if (foundReal && !realPos) continue;
+            if (realPos && !foundReal && haveFp) { found = default; haveFp = false; foundReal = true; }
+            if (realPos) foundReal = true;
+
+            var candidate = ((int)level, (int)_mem.U8(addr + Offsets.ABrave), (int)_mem.U8(addr + Offsets.AFaith));
+            if (!haveFp) { found = candidate; haveFp = true; }
+            else if (found != candidate) return false;   // distinct fingerprints -> ambiguous
+        }
+        if (!haveFp) return false;
+        fp = found;
+        return true;
+    }
+
     /// <summary>Order-independent equality for the tiny (&lt;=2) hand-weapon lists.</summary>
     internal static bool SameSet(List<int> a, List<int> b)
     {
