@@ -59,7 +59,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRi
 58,5,Rod of Faith,Rod of Faith,Rod,"Move-Find (Midlight's Deep VALKYRIES, rare)",7,PA x WP,15%,MA,—,MA +10%,MA +20%,MA +30% + Rapture,med,Yes
 59,1,Oak Staff,Birchwood Staff,Staff,Shop,3,MA x WP,20%,MA,—,MA +10%,MA +20%,MA +30%,low,
 60,2,White Staff,Warlock's Staff,Staff,Shop,3,MA x WP,15%,MA,May inflict Sleep,MA +10%,MA +20%,MA +30%,med,
-61,3,Healing Staff,Mending Staff,Staff,Shop,4,MA x WP,15%,MA,Attack heals target's HP (damages Undead),MA +10%,MA +20%,MA +30%,med,
+61,3,Healing Staff,Mending Staff,Staff,Shop,4,MA x WP,15%,MA,Attack heals target's HP (damages Undead),MA +10%,MA +20%,"MA +30% + Renewal (turn-edge regen aura, adjacent allies)",med,
 62,3,Serpent Staff,Warding Staff,Staff,Shop,4,MA x WP,15%,MA,May inflict Immobilize,MA +10%,MA +20%,MA +30%,low,
 63,3,Mage's Staff,Blazing Staff,Staff,Shop,6,Faith spell (f4),12%,MA,—,MA +10%,MA +20%,MA +30%,low,
 64,4,Golden Staff,Sanctus Staff,Staff,Shop,5,MA x WP,15%,MA,—,MA +10%,MA +20%,MA +30% + Benediction (ally heals +30%),med,

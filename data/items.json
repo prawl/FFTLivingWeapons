@@ -1929,7 +1929,15 @@
         0.33,
         0.45,
         1.05
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "regenAuraRadius": 1,
+        "sigName": "Renewal",
+        "displayLabel": "Renewal",
+        "p3Desc": "Each turn, mends the bearer and adjacent allies for a tenth of their max HP.",
+        "note": "RENEWAL: at the +3 wielder's each completed-turn edge, the wielder AND every ALLY within 1 Chebyshev tile are healed for round(maxHP * 0.10) of their own max HP (clamped; never revives the dead). Chebyshev radius 1 covers all 8 surrounding tiles including diagonals -- broader than Wyrmblood's Manhattan splash. Mechanism: Renewal.cs + Renewal.Policy.cs. Silent band +0x14 HP write (no status icon, no floating number -- proven impossible without engine hooks). TurnTracker completed-turn edge is the trigger (same as Wyrmblood)."
+      }
     },
     {
       "id": 62,

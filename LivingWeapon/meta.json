@@ -511,7 +511,14 @@
     "wp": 4,
     "cat": "Staff",
     "formula": 7,
-    "flavor": "White-lacquered and consecrated, its touch knits living flesh and withers the dead."
+    "flavor": "White-lacquered and consecrated, its touch knits living flesh and withers the dead.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Renewal",
+      "regenAuraRadius": 1
+    }
   },
   "62": {
     "name": "Warding Staff",

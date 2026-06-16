@@ -64,6 +64,10 @@ public sealed class WeaponSignature
     // many Manhattan tiles regen their OWN maxHP/Tuning.WyrmbloodDiv (emulated; the Regen status bit is
     // unmapped and never touched). 0 = not a regen-splash weapon.
     [JsonProperty("regenSplashRadius")] public int RegenSplashRadius { get; set; }
+    // RENEWAL (Mending Staff "Renewal"): at each wielder turn edge, the wielder + allies within this
+    // many Chebyshev tiles are healed for round(maxHP * Tuning.RenewalPct) each. Silent band write.
+    // 0 = not a renewal weapon.
+    [JsonProperty("regenAuraRadius")] public int RegenAuraRadius { get; set; }
     // SPIRITUAL FONT (Wellspring "Spiritual Font"): at AtTier, a completed wielder turn whose grid
     // position changed since their previous turn restores Tuning.FontHpPct of max HP and FontMpPct of
     // max MP -- written by the RUNTIME, not via engine movement passives (the engine honors only one).

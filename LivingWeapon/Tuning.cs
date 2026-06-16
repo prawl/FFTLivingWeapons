@@ -81,6 +81,10 @@ internal static class Tuning
     /// per wielder turn -- 8 == the vanilla Regen rate.</summary>
     public const int WyrmbloodDiv = 8;
 
+    /// <summary>Renewal (Mending Staff +3): fraction of max HP each ally within the aura is
+    /// healed per wielder turn edge (round away-from-zero, floor 1).</summary>
+    public const double RenewalPct = 0.10;
+
     /// <summary>Spiritual Font (Umbral Rod +3): fraction of max HP the wielder regains at a
     /// completed-turn edge where their grid position changed (the runtime writes the restore
     /// itself -- the engine honors only ONE movement passive, so the font bits are retired).</summary>

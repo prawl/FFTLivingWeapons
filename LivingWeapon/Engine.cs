@@ -74,6 +74,7 @@ internal sealed class Engine
         var plague = new Plague(meta, _kills, _tracker, mem: live); // Venombolt +3: poison never fades, ticks harder
         var lifeSap = new LifeSap(meta, _kills, mem: live);         // Umbral +3: a kill heals the wielder 25% max HP
         var wyrmblood = new Wyrmblood(meta, _kills, _turns, live);  // Dragon Rod +3: turn-edge regen splash (1 tile)
+        var renewal = new Renewal(meta, _kills, _turns, live);     // Mending Staff +3: turn-edge regen aura to allies within 1 tile (Chebyshev)
         var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
         var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
@@ -93,8 +94,8 @@ internal sealed class Engine
         // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
         // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, rapture, font, feign, benediction, _treasure };
-        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, rapture, font, feign, benediction };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, _treasure };
+        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction };
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
