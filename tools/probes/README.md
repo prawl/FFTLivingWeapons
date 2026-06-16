@@ -17,6 +17,7 @@ why the DLL is the only instrument for some experiments.
 | `sentinel_probe.py` | battle sentinels (slot0/slot9/battleMode/event) over time — proved the slot0 quit-stick (0xFF after QUIT, 0x66 after victory). |
 | `poison_probe.py` | the **watchspan recipe** — diff a unit's full struct across a status application. Generalizes to mapping any status byte (found poison +0x48/0x80 + timer +0x4A). |
 | `cripple_probe.py` | reaction-field suppression (combat +0x94 hold-zero) — Maim's proven primitive. |
+| `noncharge_probe.py` | live grant of the Non-charge support (combat +0x98 OR-set bit 227) — twin of `cripple_probe`. Feasibility test for the 4th-staff "instant cast" signature: does the engine honor a live support grant at charge-time? **Run pending** (judge by cast behavior, not the menu). |
 | `barrage_probe.py` | JobCommand record decode. **CAVEAT: its `msb` flag is whole-u16 order and WRONG** — the live layout is MSB-first *per byte* (see `docs/` + Barrage.Policy.cs). Kept for the record decode, not the bit math. |
 | `barrage_undo.json` | restore bytes for the pre-runtime Barrage injection prototype (the shipped DLL now saves/restores itself). |
 | `oracle_probe.py` | static-array enemy-identity capture validation (the EnemyOracle's filter). |
