@@ -1,5 +1,4 @@
 Release TODO's
-- Fix the battle with Oran (user rported it was too difficult)
 - Replace the Stormbrand (it's sorta lame)
 - Sanctus Staff test potions and Regen
 - Ramza's Squire cannot equip Shields but normal squires can?

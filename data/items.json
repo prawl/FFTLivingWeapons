@@ -2722,7 +2722,7 @@
         "onHit": "None",
         "onHitAbilityId": 20,
         "formula": 2,
-        "range": 7,
+        "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
       "signature": {
@@ -2730,9 +2730,9 @@
         "sigName": "Chain Lightning",
         "displayLabel": "Chain Lightning",
         "ricochetRadius": 3,
-        "ricochetPct": 50,
-        "p3Desc": "Normal attacks also hit an additional unit within 3 tiles at 50% damage.",
-        "note": "While a +3 Stormarc is equipped and the wielder deals damage to an enemy, the nearest OTHER live enemy within 3 Manhattan tiles takes chip damage = 50% of the original (floor 1, min HP 1). The chip NEVER kills (HP clamped to 1). One bounce per damage event; no chains. RUNTIME: Ricochet.cs -- per-tick HP diff on enemy band slots detects damage during the acted period, PickTarget finds the bounce candidate, ApplyChip writes clamped HP to the authoritative band entry (Mem.Writable guarded). PROVEN pattern mirrors EagleEye/CharmLock enemy band walk. BALANCE OPEN: every-basic-attack may be too strong -- candidate gates: Aim-only (needs the action-id probe), once-per-acted-period, lower pct/radius."
+        "ricochetPct": 60,
+        "p3Desc": "Arcs through up to 3 foes within 3 tiles; 60% damage, decaying each hop.",
+        "note": "While a +3 Stormarc is equipped and the wielder deals damage to an enemy, the bolt arcs through up to RicochetMaxHops=3 further live enemies (Tuning.cs). Greedy nearest-unhit selection re-centers on each struck unit; never revisits. First hop = ricochetPct=60% of original damage; each later hop = RicochetHopDecayPct=60% of the previous hop chip. All chips floor at 1 and HP is clamped to 1 -- the chain NEVER kills. Tick-wide struck set: no unit is double-hit in one tick; real-hit victims are never chain targets. Consume() per struck slot so no chip write re-triggers. RUNTIME: Ricochet.cs two-pass per tick -- pass 1 observes every valid band slot (full candidate list); pass 2 runs PickChain per enemy damage event and applies ChipForHop per hop via ApplyChip (Mem.Writable guarded). Pure logic in Ricochet.Policy.cs; stateful memory I/O in Ricochet.cs."
       }
     },
     {
@@ -2759,7 +2759,7 @@
         "onHit": "None",
         "onHitAbilityId": 131,
         "formula": 2,
-        "range": 8,
+        "range": 7,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       }
     },
@@ -2851,7 +2851,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 7,
+        "range": 6,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       },
       "signature": {
@@ -2869,7 +2869,7 @@
       "vanillaName": "Perseus Bow",
       "name": "Perseus Bow",
       "tier": 6,
-      "identity": "T6 raw+reach capstone — max WP (16) + max range (9) + innate Holy (anti-Undead), with a chance to inflict Don't Act to lock a key target down from across the map. 0 evade = pure glass cannon.",
+      "identity": "T6 raw+reach capstone — max WP (16) + long range (7) + innate Holy (anti-Undead), with a chance to inflict Don't Act to lock a key target down from afar. 0 evade = pure glass cannon.",
       "desc": "The bow of a mythical hero. It is constructed entirely of metal and requires great strength to draw.",
       "baseline": {
         "wp": 16,
@@ -2887,7 +2887,7 @@
         "onHit": "May disable",
         "onHitAbilityId": 13,
         "formula": 1,
-        "range": 9,
+        "range": 7,
         "attackFlags": "ForcedTwoHands, TwoHands, Arc"
       }
     },

@@ -26,27 +26,61 @@ internal sealed partial class Ricochet
         return chip < 1 ? 1 : chip;
     }
 
+    /// <summary>Nearest live enemy within <paramref name="radius"/> Manhattan tiles of
+    /// (<paramref name="cx"/>, <paramref name="cy"/>) not in <paramref name="excluded"/>.
+    /// Tie-break: lowest band slot. Returns null if no candidate.</summary>
+    private static SlotInfo? NearestEnemyExcluding(int cx, int cy, int radius,
+        IReadOnlyList<SlotInfo> slots, ISet<int> excluded)
+    {
+        SlotInfo? best = null; int bestDist = int.MaxValue;
+        foreach (var s in slots)
+        {
+            if (!s.Enemy || s.Hp <= 0 || excluded.Contains(s.Slot)) continue;
+            int d = Manhattan(cx, cy, s.Gx, s.Gy);
+            if (d > radius) continue;
+            if (d < bestDist || (d == bestDist && (best is null || s.Slot < best.Value.Slot)))
+            { bestDist = d; best = s; }
+        }
+        return best;
+    }
+
     /// <summary>Pick the best bounce target: nearest live OTHER enemy within <paramref name="radius"/>
     /// Manhattan tiles of the victim. Allies are never targets. Tie-break: lower band slot.
     /// Returns -1 if no candidate.</summary>
     public static int PickTarget(int victimSlot, int victimGx, int victimGy, int radius,
                                   IReadOnlyList<SlotInfo> slots)
+        => NearestEnemyExcluding(victimGx, victimGy, radius, slots,
+                                  new HashSet<int> { victimSlot })?.Slot ?? -1;
+
+    /// <summary>Greedy chain selector: re-centers on each struck unit, never revisits a slot in
+    /// <paramref name="excluded"/> (the caller passes the victim and any already-struck slots).
+    /// Returns ordered target slots, at most <paramref name="maxHops"/>. Pure -- never mutates
+    /// the caller's excluded set.</summary>
+    public static IReadOnlyList<int> PickChain(int startGx, int startGy, int radius, int maxHops,
+        IReadOnlyList<SlotInfo> slots, ISet<int> excluded)
     {
-        int bestSlot = -1, bestDist = int.MaxValue;
-        foreach (var s in slots)
+        var chain = new List<int>();
+        var seen = new HashSet<int>(excluded);
+        int cx = startGx, cy = startGy;
+        while (chain.Count < maxHops)
         {
-            if (!s.Enemy) continue;
-            if (s.Slot == victimSlot) continue;
-            if (s.Hp <= 0) continue;
-            int d = Manhattan(victimGx, victimGy, s.Gx, s.Gy);
-            if (d > radius) continue;
-            if (d < bestDist || (d == bestDist && s.Slot < bestSlot))
-            {
-                bestDist = d;
-                bestSlot = s.Slot;
-            }
+            var next = NearestEnemyExcluding(cx, cy, radius, slots, seen);
+            if (next is null) break;
+            chain.Add(next.Value.Slot);
+            seen.Add(next.Value.Slot);
+            cx = next.Value.Gx; cy = next.Value.Gy;
         }
-        return bestSlot;
+        return chain;
+    }
+
+    /// <summary>Chip for a given hop index in the chain. Hop 0 = basePct% of origDmg; each
+    /// subsequent hop = decayPct% of the previous hop's chip. Floored at 1 for positive damage,
+    /// 0 when origDmg is 0.</summary>
+    public static int ChipForHop(int origDmg, int basePct, int decayPct, int hopIndex)
+    {
+        int chip = ChipDamage(origDmg, basePct);
+        for (int i = 0; i < hopIndex; i++) chip = ChipDamage(chip, decayPct);
+        return chip;
     }
 
     /// <summary>Manhattan (taxicab) distance between two grid cells.</summary>

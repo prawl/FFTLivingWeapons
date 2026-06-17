@@ -734,7 +734,7 @@
       "atTier": 3,
       "displayLabel": "Chain Lightning",
       "ricochetRadius": 3,
-      "ricochetPct": 50
+      "ricochetPct": 60
     }
   },
   "87": {

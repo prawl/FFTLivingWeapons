@@ -4,15 +4,16 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Stormarc's "Chain Lightning" signature: while a +3 Stormarc is equipped and the wielder's
-/// action deals damage to an ENEMY, the nearest OTHER live enemy within 3 Manhattan-distance
-/// tiles of the victim takes chip damage = 50% of the original (floor 1), clamped so the
-/// bounce target's HP never reaches 0 (the chip NEVER kills -- keeps kill-credit clean).
+/// action deals damage to an ENEMY, the bolt arcs through up to RicochetMaxHops further live
+/// enemies -- each hop re-centers on the last struck unit and picks the nearest unhit enemy
+/// within RicochetRadius tiles. First hop = ricochetPct% of the original damage; each later
+/// hop = RicochetHopDecayPct% of the previous hop's chip (floor 1, min HP 1 -- never kills).
 ///
 /// DETECTION: two passes per tick. Pass 1 observes every valid band entry (HP diff) and tags
 /// each with enemy-side membership (static-array fingerprints -- the EagleEye filter, same
-/// frozen-on-restart caveat). Pass 2 bounces each ENEMY damage event off the COMPLETE candidate
-/// list (so higher band slots are reachable) and then Consume()s its own write, which is what
-/// makes the no-chain guarantee real: our chip is never read back as a fresh event.
+/// frozen-on-restart caveat). Pass 2 runs a chain per enemy damage event, using a tick-wide
+/// struck set to guarantee no unit is chipped twice and no real-hit victim is a chain target.
+/// Consume() is called per struck slot so the chip write is never read back as a fresh event.
 ///
 /// ATTRIBUTION: the acting player is identified by KillTracker.LastPlayerWeapons (the same
 /// latch used for kill attribution). Events are processed only while that set contains the
@@ -89,21 +90,31 @@ internal sealed partial class Ricochet : ISignature
         }
         if (!active) return;
 
-        // Pass 2: bounce each enemy damage event off the full list; consume our own write.
+        // Pass 2: chain each enemy damage event; tick-wide struck set prevents double-hits.
+        var struck = new HashSet<int>();
+        foreach (var ev in events) struck.Add(ev.Slot);   // real-hit victims are never chip targets
         foreach (var (vs, gx, gy, dmg) in events)
         {
-            int target = PickTarget(vs, gx, gy, m.Signature.RicochetRadius, slots);
-            if (target < 0) continue;
-            long tAddr = Band.Entry(target);
-            if (!_mem.Readable(tAddr + Offsets.AHp, 2)) continue;
-            int tHp = _mem.U16(tAddr + Offsets.AHp);
-            if (tHp <= 0) continue;   // died since pass 1
-
-            int chip = ChipDamage(dmg, m.Signature.RicochetPct);
-            ApplyChip(_mem, tAddr, tHp, chip);
-            int newHp = ClampHp(tHp, chip);
-            _state.Consume(target, newHp);   // our write is NOT a damage event (no chains)
-            Log.Info($"ricochet: chip damage bounced to the nearest other enemy -- {chip} damage dealt (source hit was {dmg}, target HP {tHp}->{newHp})");
+            var chain = PickChain(gx, gy, m.Signature.RicochetRadius, Tuning.RicochetMaxHops, slots, struck);
+            int hopIndex = 0;
+            foreach (int target in chain)
+            {
+                struck.Add(target);
+                long tAddr = Band.Entry(target);
+                if (_mem.Readable(tAddr + Offsets.AHp, 2))
+                {
+                    int tHp = _mem.U16(tAddr + Offsets.AHp);
+                    if (tHp > 0)
+                    {
+                        int chip = ChipForHop(dmg, m.Signature.RicochetPct, Tuning.RicochetHopDecayPct, hopIndex);
+                        ApplyChip(_mem, tAddr, tHp, chip);
+                        int newHp = ClampHp(tHp, chip);
+                        _state.Consume(target, newHp);
+                        Log.Info($"ricochet: chain lightning hop {hopIndex + 1} -- {chip} chip to slot {target} (source hit {dmg}, HP {tHp}->{newHp})");
+                    }
+                }
+                hopIndex++;
+            }
         }
     }
 

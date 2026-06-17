@@ -812,7 +812,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>86</Id> <!-- Stormarc (was Lightning Bow) -->
-      <Range>7</Range>
+      <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>2</Formula>
       <Power>5</Power>
@@ -822,7 +822,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>87</Id> <!-- Skypiercer (was Windslash Bow) -->
-      <Range>8</Range>
+      <Range>7</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>2</Formula>
       <Power>7</Power>
@@ -852,7 +852,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>90</Id> <!-- Yoichi Bow -->
-      <Range>7</Range>
+      <Range>6</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
       <Power>12</Power>
@@ -862,7 +862,7 @@
     </ItemWeapon>
     <ItemWeapon>
       <Id>91</Id> <!-- Perseus Bow -->
-      <Range>9</Range>
+      <Range>7</Range>
       <AttackFlags>ForcedTwoHands, TwoHands, Arc</AttackFlags>
       <Formula>1</Formula>
       <Power>16</Power>

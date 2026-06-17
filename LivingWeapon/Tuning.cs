@@ -7,8 +7,8 @@ namespace LivingWeapon;
 ///
 /// Kill thresholds are build-gated: a DEV build (BuildLinked.ps1 passes -p:LwDev=true, which
 /// defines LWDEV) uses {1,2,3} so a weapon hits P3 in three kills, AND pre-seeds every weapon
-/// to P2 on load -- one kill short of P3 -- so a single kill flips the P3 grant on, live. A
-/// PRODUCTION build (Publish.ps1, no flag) uses the real curve {5,20,50} and seeds nothing.
+/// to DevKillSeed (3 == P3) on load -- so every +3 signature is live the moment the weapon is
+/// equipped. A PRODUCTION build (Publish.ps1, no flag) uses the real curve {5,25,50} and seeds nothing.
 /// </summary>
 internal static class Tuning
 {
@@ -244,4 +244,12 @@ internal static class Tuning
     /// included at distance 0) that receive the instant-cast grant each tick -- a duet, not a full-party
     /// blowout. THE live-tune knob: drop to 1 for a solo, raise for a bigger choir.</summary>
     public const int ChoirMaxBeneficiaries = 2;
+
+    /// <summary>Chain Lightning (Stormarc +3): maximum units the bolt arcs through after the
+    /// primary hit. Each hop re-centers on the struck unit and picks the nearest unhit enemy.</summary>
+    public const int RicochetMaxHops = 3;
+
+    /// <summary>Chain Lightning (Stormarc +3): each hop deals this percent of the PREVIOUS
+    /// hop's chip damage. Applies after the base ricochetPct, so damage decays each arc.</summary>
+    public const int RicochetHopDecayPct = 60;
 }

@@ -289,4 +289,123 @@ public class RicochetTests
     [Fact]
     public void IsActingMainHand_false_when_mainHand_is_zero_meaning_no_actor_resolved()
         => Assert.False(Signatures.IsActingMainHand(mainHand: 0, weaponId: 86));
+
+    // ---- PickChain: greedy nearest-unhit multi-hop chain ----
+
+    /// <summary>Load-bearing re-centering test: slot1 is within radius of the victim (5,5),
+    /// slot2 is out of radius from victim but within radius of slot1. Only a re-centering
+    /// implementation reaches slot2.</summary>
+    [Fact]
+    public void PickChain_recenters_each_hop_reaching_beyond_victim_radius()
+    {
+        // victim at (5,5); slot1 at (5,8) = dist 3; slot2 at (5,11) = dist 6 from victim, dist 3 from slot1
+        var slots = new[] { S(1, 5, 8), S(2, 5, 11) };
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3, slots: slots,
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0 });
+        Assert.Equal(new[] { 1, 2 }, result);
+    }
+
+    [Fact]
+    public void PickChain_single_hop_when_only_one_in_radius()
+    {
+        var slots = new[] { S(1, 6, 5) };
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3, slots: slots,
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0 });
+        Assert.Equal(new[] { 1 }, result);
+    }
+
+    [Fact]
+    public void PickChain_respects_maxHops_cap()
+    {
+        // line of enemies: slot1 at dist1, slot2 at dist2, slot3 at dist3, slot4 at dist4 (all reachable hopping)
+        var slots = new[] { S(1, 6, 5), S(2, 7, 5), S(3, 8, 5), S(4, 9, 5) };
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3, slots: slots,
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0 });
+        Assert.Equal(new[] { 1, 2, 3 }, result);
+    }
+
+    [Fact]
+    public void PickChain_stops_when_next_hop_out_of_radius()
+    {
+        // slot1 at dist3 from victim; slot2 at dist4 from slot1 (out of radius 3)
+        var slots = new[] { S(1, 8, 5), S(2, 12, 5) };
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3, slots: slots,
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0 });
+        Assert.Equal(new[] { 1 }, result);
+    }
+
+    [Fact]
+    public void PickChain_never_targets_allies_or_dead()
+    {
+        var slots = new[] { S(1, 6, 5, enemy: false), S(2, 7, 5, hp: 0), S(3, 5, 7) };
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3, slots: slots,
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0 });
+        Assert.Equal(new[] { 3 }, result);
+    }
+
+    [Fact]
+    public void PickChain_skips_slots_in_the_excluded_set()
+    {
+        // slot1 would be nearest but is already struck this tick; slot2 is next
+        var slots = new[] { S(1, 6, 5), S(2, 5, 6) };
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3, slots: slots,
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0, 1 });
+        Assert.Equal(new[] { 2 }, result);
+    }
+
+    [Fact]
+    public void PickChain_empty_when_no_candidates()
+    {
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3,
+                                        slots: System.Array.Empty<Ricochet.SlotInfo>(),
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0 });
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void PickChain_tiebreak_lower_slot_when_lower_iterated_first()
+    {
+        // Both at dist 1; lower slot (2) comes first in array -- must still win
+        var slots = new[] { S(2, 6, 5), S(5, 5, 6) };
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3, slots: slots,
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0 });
+        Assert.Equal(2, result[0]);
+    }
+
+    [Fact]
+    public void PickChain_tiebreak_lower_slot_when_lower_iterated_last()
+    {
+        // Both at dist 1; lower slot (2) comes LAST in array -- must still win
+        var slots = new[] { S(5, 6, 5), S(2, 5, 6) };
+        var result = Ricochet.PickChain(startGx: 5, startGy: 5, radius: 3, maxHops: 3, slots: slots,
+                                        excluded: new System.Collections.Generic.HashSet<int> { 0 });
+        Assert.Equal(2, result[0]);
+    }
+
+    // ---- ChipForHop: decaying chip per hop ----
+
+    [Theory]
+    [InlineData(100, 60, 60, 0, 60)]   // hop 0: 60% of 100 = 60
+    [InlineData(100, 60, 60, 1, 36)]   // hop 1: 60% of 60 = 36
+    [InlineData(100, 60, 60, 2, 21)]   // hop 2: 60% of 36 = 21 (floor)
+    public void ChipForHop_decays_each_hop(int origDmg, int basePct, int decayPct, int hopIndex, int expected)
+        => Assert.Equal(expected, Ricochet.ChipForHop(origDmg, basePct, decayPct, hopIndex));
+
+    [Fact]
+    public void ChipForHop_floors_at_1_for_positive_damage()
+        => Assert.Equal(1, Ricochet.ChipForHop(3, 60, 60, 2));
+
+    [Fact]
+    public void ChipForHop_zero_when_original_zero()
+        => Assert.Equal(0, Ricochet.ChipForHop(0, 60, 60, 1));
+
+    // ---- PickTarget determinism regression (tie-break fix) ----
+
+    [Fact]
+    public void PickTarget_tiebreak_lower_slot_when_lower_iterated_first()
+    {
+        // slot 2 and slot 5 are both dist 1; lower slot (2) first in array
+        var slots = new[] { S(2, 6, 5), S(5, 5, 6) };
+        Assert.Equal(2, Ricochet.PickTarget(victimSlot: 0, victimGx: 5, victimGy: 5, radius: 3, slots: slots));
+    }
 }
