@@ -17,6 +17,74 @@ corner case, verify if reachable in a real battle.
 
 ---
 
+## 0. Static pre-verification (2026-06-16) -- done from code/data, NOT live
+
+> Everything below was confirmed without the game running, to de-risk the live pass. These are the
+> INPUTS to the live checks; they do NOT replace a live observation of engine behavior, but where an
+> input is sound the live run only has to confirm the in-game effect, not chase a data/code bug.
+
+**Gates (GO/NO-GO #1): GREEN.** `analyze.py` 7/7 (dominance, slot-wide, desc-uniqueness, flavor-len,
+p3Desc, rider-prose, grid-sync). `dotnet test` 1233/1233.
+
+**Build flavor: DEV** (`build_flavor.txt=dev`; log confirms "force-seeded all 121 weapons"). Correct for
+the mechanic pass (every weapon +3 on equip). GO/NO-GO #2 and every PROD-curve box still need a re-Prod
+(`Publish.ps1` / `BuildLinked.ps1 -Prod`) on a fresh `kills.json` before release. No battle has been
+fought since the last deploy, so there is NO live signature history in `livingweapon.log` yet.
+
+**Deploy is complete & current:** `item.en.nxd` (59 KB) + **478** menu-icon `.tex` + all 9 enhanced tables
+present. Backs every "card reads X" / "Kills line paints" check at the data level (rendering still needs eyes).
+
+**Data inputs -- all sword/staff/knife claims MATCH items.json:** Cleaver 147/Knockback(f2), Stormbrand
+Lightning+Thunder(20)/f2, Flamberge Fire(16)/f2, Tanglethorn Immobilize(14), Graviton Gravity(42)/f2,
+Wrathblade f67 (SkipFormula), Swiftedge f99 (Speed lane), Sanguine f6 innate-drain (no proc), Arcanum
+no-proc (strip-proc removed), Ragnarok Dark+Silence(10), Chaos Petrify(17), Excalibur Holy, Ravager
+KnightSword-override+Confuse(23), Sunderer KnightSword-override+f46, Warbrand Sword-override/f15,
+Claymore flags Throwable/TwoHands/Lunging/ForcedTwoHands + evade 0. KnightSwords 33-37 all f1.
+
+**onHitAbilityId byte-safety: PASS** -- every item <=255 (max 249), so no silent `ItemWeaponData` reject.
+
+**JobData equip flags: MATCH** -- Squires 1/2/4/7 = `Sword` only (KnightSword stays Knight-restricted),
+band 53-55 = both, Gallant Knight 3 = both, Black Mage 66/80 = `Knife`, Thief 83 = `Bow`+`Crossbow`.
+
+**Choir collision BLOCKER (#237 / #305 / #306): STATICALLY CLEARED.** Encoder (`Signatures.SupportBit`,
+base 198, MSB-first) puts Non-charge 227 in support byte 3 (band **+0x7F** mask 0x04) and the knife/ninja
+supports 209-213 in byte 1 (band **+0x7D**) -- different bytes. `MemBits`/`LarcenyPolicy.SetBit`/`ClearBit`
+are strictly single-bit masked ops (`cur|mask` / `cur&~mask`), so there is no byte-clobber path even within
+a byte. Choir's revert clears ONLY its own `_ncMask`; protected self-pickers (roster RSupport==227) are
+skipped entirely and never enter `_granted`. Live test only needs to confirm the engine HONORS both bits.
+
+**Reset-on-both-edges (#335): VERIFIED** -- `Engine.cs` calls `ResetBattleState()` on the Entered edge
+(line 167, the Larceny-carryover fix) AND the Exited edge (line 179). Barrage/ShadowBlade/Treasure tick
+pre-gate (185-193) before the `!nowIn` early-return, matching the array-order box's design.
+
+**Array order (Section 5 static box): VERIFIED & marked** -- `Engine.cs:99-100` match verbatim.
+
+### Findings (not blockers unless noted)
+- **Local-only:** your `Reloaded/User/Mods/.../Config.json` sets `TreasureAlwaysOn: true`, which BYPASSES
+  the Scholar's Ring gate. Source default is `false` and the release zip ships no Config.json, so it is NOT
+  a release issue -- but flip it to `false` before running the TreasureMaster ring-gate boxes (Sec 3 #232,
+  Sec 4 #246) or they will falsely stay armed.
+- **Confirmed TODO:** "Ramza's Squire cannot equip Shields" -- real data asymmetry: job 1 lacks
+  `Shield`/`Armor`/`Helmet`; job 2 has all three.
+- **Carried known issue:** Siren's Lyre (id 92) still ships `onHit 201` with "Confuses" prose = the
+  Charm/Confusion mismatch (fix = Ability-en Key 243).
+- **Fixed this pass:** stale doc-comment in `Tuning.cs` (had "seeds to P2" / ProdThresholds "{5,20,50}";
+  now reads seed=3==P3 / "{5,25,50}").
+- **Wyrmblood (Dragon Rod id 57) is DORMANT** -- no `signature` block on id 57, so `Wyrmblood.cs` bails
+  and the feature cannot fire in-game (matches `rod-signature-pass`: shelved). The plan's Wyrmblood live
+  check (Sec 3) is annotated; the cross-signature boxes that say "Renewal OR Wyrmblood" (Sec 5 #318/#319)
+  are still testable via Renewal alone. Decision needed: drop, or un-shelve by re-adding a signature.
+- **LifeSap (Umbral Rod id 56) is ALSO DORMANT** -- id 56's signature carries `fontOnMove` (Spiritual
+  Font) but NOT `lifeSapOnKill`, and `LifeSap.cs` requires `LifeSapOnKill`. So on the Umbral Rod, Spiritual
+  Font is LIVE and Life Sap is shelved -- matching `rod-signature-pass`. The plan's LifeSap box (Sec 3) is
+  annotated; SpiritualFont (Sec 3) is valid. **Full gate audit done: every other listed signature is LIVE**
+  (its required signature flag is present in meta.json + tier-gated).
+- **meta.json == deployed meta.json** (deploy is current); all 22 signature blocks present and matching the
+  plan: Shadow Blade ab165, Barrage ab358 (16-bit JobCommand inject, not the byte-width proc), Ricochet
+  r3/50%, Eagle Eye doom->1, Benediction +30%, Ultima atTier 0 (always-on), Choir radius 1, supports 209-213.
+
+---
+
 ## 1. Swords
 
 > Scope: every `category=="Sword"` item (ids 19-32, plus repurposed swords on non-sword vanilla
@@ -225,10 +293,10 @@ corner case, verify if reachable in a real battle.
 - [ ] **EagleEye -- Eclipsebolt (Crossbow, id 78).** Equip a +3 Eclipsebolt, Doom an enemy. Expected: `eagle-eye ACTIVE -- Eclipsebolt at +3 ...`, then `eagle-eye: enemy Doom countdown forced to 1 (was 3) ...`; the mark resolves on the victim's next turn. Note the item ACCESS tier is 2 but the signature is kill-tier-3-gated -- on PROD it needs 50 kills, not just owning it. Fail: Doom still 3-turn -> EagleEye.Hasten or +0x59 write. **[MAJOR]**
 - [ ] **Ricochet (Chain Lightning) -- Stormarc (Bow, id 86).** Equip a +3 Stormarc, hit an enemy that has another live enemy within 3 tiles. Expected: `ricochet ACTIVE -- Stormarc wielder is acting ...` then `ricochet: chip damage bounced to the nearest other enemy -- C damage ... target HP X->Y`; the chip never kills (clamped to >=1 HP). Fail: no bounce / bounce chains -> Ricochet pass-2 PickTarget or the self-write Consume. **[MAJOR]**
 - [ ] **Maim -- Huntress (Bow, id 89).** Equip a +3 Huntress, hit an enemy that has a reaction (e.g. Counter). Expected: `maim ACTIVE ...` then `maim: struck enemy (... max HP) loses reaction abilities for 3 of its turns (saved reaction field 0x........)`; the enemy stops countering; after 3 of its turns `maim: suppression lifted ... reaction abilities restored`. Fail: enemy still counters / reactions never restored -> Maim +0x78 hold-zero or CT turn-count. **[MAJOR]**
-- [ ] **LifeSap -- Umbral Rod (Rod, id 56).** Equip a +3 Umbral Rod on a hurt mage, land a kill with it. Expected: `life-sap ACTIVE -- Umbral Rod at +3 ...` then `life-sap: kill restored H HP to the wielder (25% of max) -- HP a->b`; at full HP instead `... already at full HP ... no heal needed`; never revives a 0-HP wielder. Fail: no heal on kill -> LifeSap freshKill diff or Wielder.Locate. **[MAJOR]**
+- [ ] **LifeSap -- Umbral Rod (Rod, id 56). >> DORMANT / SHELVED (static-verified 2026-06-16):** id 56's signature has `fontOnMove` (Spiritual Font) but NOT `lifeSapOnKill`, and `LifeSap.Policy.cs` requires `LifeSapOnKill` -- so **Life Sap CANNOT fire as shipped** (Spiritual Font, the next box, IS live on this same rod). Matches memory `rod-signature-pass`. Skip unless un-shelving (add `lifeSapOnKill` to id 56). Equip a +3 Umbral Rod on a hurt mage, land a kill with it. Expected: `life-sap ACTIVE -- Umbral Rod at +3 ...` then `life-sap: kill restored H HP to the wielder (25% of max) -- HP a->b`; at full HP instead `... already at full HP ... no heal needed`; never revives a 0-HP wielder. Fail: no heal on kill -> LifeSap freshKill diff or Wielder.Locate. **[MAJOR]**
 - [ ] **SpiritualFont -- Umbral Rod (Rod, id 56).** With the same +3 Umbral Rod wielded, MOVE the mage to a new tile and complete the turn. Expected: `font ACTIVE -- Umbral Rod at +3 ...`, `font: wielder moved to a new tile (x,y) -- triggering HP/MP restore`, then `font: restored MP ... (write verified)` (or HP-only if `MP field layout check failed`). With NO Umbral Rod equipped: ZERO `font:` lines all battle. Fail: `font:` lines fire with no rod / no restore on move -> Font MoveWatch or the !active early-return. **[MAJOR]**
 - [ ] **Rapture -- Rod of Faith (Rod, id 58).** Equip a +3 Rod of Faith, drop the wielder below 30% HP. Expected: `rapture ACTIVE ...` then `rapture: wielder dropped below 30% HP (h/m) -- Master Teleportation (move id 243) granted until they recover (... write verified)`; Master Teleportation is usable; on heal-up `rapture: wielder recovered (recovered above threshold) -- normal movement restored`. Fail: no teleport / movement never restored -> Rapture arm gate (`RaptureHpPct`) or the +0x80 save/hold/restore. **[MAJOR]**
-- [ ] **Wyrmblood -- Dragon Rod (Rod, id 57).** Equip a +3 Dragon Rod, end the wielder's turn next to a hurt ally. Expected: `wyrmblood ACTIVE -- Dragon Rod at +3 ...` then `wyrmblood: turn-edge regen -- ally at (x,y) mended H HP ...` for each ally within 1 tile (self included); none in range logs `... no allies were in range to mend`; never heals enemies or the dead. Fail: no regen at turn edge -> Wyrmblood TurnTracker edge or `Band.AllyFingerprints`. **[MAJOR]**
+- [ ] **Wyrmblood -- Dragon Rod (Rod, id 57). >> DORMANT / SHELVED (static-verified 2026-06-16):** items.json id 57 has NO `signature` block (its shipped identity is the "start Reraise" rider), so meta.json carries none and `Wyrmblood.cs:56` bails every tick -- **this signature CANNOT fire in-game as shipped.** Matches memory `rod-signature-pass` ("shelved Wyrmblood"). Code + unit tests exist but the host item never activates it. DECISION NEEDED: drop this box, or re-add a signature to id 57 to un-shelve. Skip the live check below unless un-shelving. Equip a +3 Dragon Rod, end the wielder's turn next to a hurt ally. Expected: `wyrmblood ACTIVE -- Dragon Rod at +3 ...` then `wyrmblood: turn-edge regen -- ally at (x,y) mended H HP ...` for each ally within 1 tile (self included); none in range logs `... no allies were in range to mend`; never heals enemies or the dead. Fail: no regen at turn edge -> Wyrmblood TurnTracker edge or `Band.AllyFingerprints`. **[MAJOR]**
 - [ ] **TreasureMaster + ring gate.** Equip the Scholar's Ring (id 260) on a DEPLOYED unit, enter a captured treasure map. Expected: tiles light within ~1 s, `treasure: map M <Name> armed -- N tile(s)`. Unequip the ring from everyone, re-enter: `treasure: no Scholar's Ring equipped -- module idle`, no marks. Fail: marks with no ring -> `RingGate.ScholarRingEquipped`; no marks with ring -> arm gate / fingerprint quorum. **[MAJOR]**
 
 ### Choir / SupportBit refactor -- the explicit collision risk
@@ -331,7 +399,7 @@ corner case, verify if reachable in a real battle.
 
 ### Load-bearing array order (Engine.cs `_signatures` / `_fieldSignatures`)
 
-- [ ] **Documented array order is intact (static check before the live session).** Before testing, confirm `Engine.cs` line ~99-100 still reads `_signatures = { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure }` and `_fieldSignatures = { _charm, extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir }` -- both orders are "load-bearing and preserved verbatim from the hand-wired era." Expected: `_fieldSignatures` EXCLUDES `_barrage`, `_shadowBlade`, and `_treasure` (they tick pre-gate in `Tick()` instead), and `_treasure` stays in `_signatures` ONLY so its `ResetBattle` fires on the debounced exit edge. Fail: Barrage/ShadowBlade/Treasure appear in `_fieldSignatures` -> they would tick AFTER the `!nowIn` early-return is bypassed and lose their out-of-battle (learn-screen) hold; OR Treasure dropped from `_signatures` -> its battle-exit ResetBattle never fires. **[MAJOR]**
+- [x] **Documented array order is intact (static check before the live session).** *(VERIFIED 2026-06-16, static -- Engine.cs:99-100 match verbatim; `_fieldSignatures` excludes `_barrage`/`_shadowBlade`/`_treasure`; `_treasure` in `_signatures` only.)* Before testing, confirm `Engine.cs` line ~99-100 still reads `_signatures = { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure }` and `_fieldSignatures = { _charm, extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir }` -- both orders are "load-bearing and preserved verbatim from the hand-wired era." Expected: `_fieldSignatures` EXCLUDES `_barrage`, `_shadowBlade`, and `_treasure` (they tick pre-gate in `Tick()` instead), and `_treasure` stays in `_signatures` ONLY so its `ResetBattle` fires on the debounced exit edge. Fail: Barrage/ShadowBlade/Treasure appear in `_fieldSignatures` -> they would tick AFTER the `!nowIn` early-return is bypassed and lose their out-of-battle (learn-screen) hold; OR Treasure dropped from `_signatures` -> its battle-exit ResetBattle never fires. **[MAJOR]**
 - [ ] **Reset fires on BOTH battle-enter and battle-exit (the Larceny carryover fix).** Start a battle, steal a buff with Arcanum, then RESTART the battle (not a clean exit -- the slot0/slot9 sentinels stick). Expected: `ResetBattleState()` runs on the ENTER edge too (Engine.cs ~159-168), so Larceny's stolen-buff ledger, Maim's held reactions, Choir's `_granted`, every signature's `ResetBattle()` clears, and the new battle starts clean. Log: `battle: started ...` followed by no carried-over `larceny`/`maim`/`choir` holds from the prior battle. Fail: a stolen buff or suppressed reaction persists into the restarted battle -> the enter-edge reset regressed. **[MAJOR]**
 
 ### Kill attribution with multiple signed weapons in play
