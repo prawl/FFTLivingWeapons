@@ -66,6 +66,22 @@ Fingerprint used: Ramza -- LVL 99, BR 97, F 75, HP 486/486, weapon 80 (Venombolt
 | `EventId` | 0x140782A94 | +0x6000 | read = 401 (unverified) |
 | `MirrorWeapon` | 0x141876CA4 | +0x6450 | read 0 (no card open); verify with a status card up showing weapon 80 |
 
+## Display card re-find -- IN PROGRESS (2026-06-17)
+The in-battle Kills card does not repaint. Gate is `StatusCardOpen = inBattle && battleMode==3 &&
+paused && submenuOpen` (BattleState.cs) -- `MenuCursor` is NOT used (code comment: "don't gate on it").
+Live card open/close differential (intersected over 2 full cycles):
+- `battleMode==3` when card open -- CONFIRMED (0x1409069A0 reads 3).
+- `SubmenuFlag` -> **0x140D4085E** (was 0x140D3A10C, +0x6752) -- found, clean (1 open / 0 closed, isolated).
+- `PauseFlag` -> **0x140C80199** CANDIDATE (was 0x140C64A5C) -- by-elimination only; NOT confidence-locked.
+  Wire + live-verify (does the card repaint?) before trusting. Single open/close diff is swamped by
+  live-battle noise; needs multi-cycle intersection or a quieter capture.
+- `MirrorWeapon` (which weapon's count to show): +0x6450 prediction 0x141876CA4 read 0 -- WRONG. Re-find
+  via a card-open fingerprint (a u16 holding the viewed unit's weapon id) -- the 0x14187 region was OUTSIDE
+  the captured snapshot range, so it needs its own capture. ShouldPaintCard out-of-battle branch uses
+  OnField (works), so the equip-screen card may already repaint once MirrorWeapon is correct.
+NOTE: shifts are NON-MONOTONIC (SubmenuFlag +0x6752 > the higher-address +0x644x regions) -- do not
+predict display addrs by interpolation; differential each.
+
 ## NOT yet found (next session)
 - `Acted`/existence-array exact marker (behavioral watch). NOTE: kill attribution works anyway (the
   damage-event resolves the acting weapon, e.g. `[w:37]`); `actorFp=(0,0,0)` only blocks Larceny's
