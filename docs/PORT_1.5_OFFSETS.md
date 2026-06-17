@@ -107,6 +107,34 @@ dev DLL would *corrupt* that region the instant a +3 Yoichi Bow Thief / Sanguine
 equipped. Wired into `Barrage.cs` + `barrage_probe.py`; pinned by
 `BarrageTests.AbilityBase_is_pinned_to_the_verified_1_5_table_base`. Gates green (dotnet 1249, analyze 7/7).
 
+## Treasure Master -- REVIVED on 1.5 + LIVE-VERIFIED 2026-06-17 (rebase, not re-capture)
+TM auto-disarmed on 1.5 (build-key mismatch). Revived WITHOUT re-hovering all ~284 tiles, via a
+per-region address REBASE of the captured flag data, plus two runtime anchors.
+
+**Runtime anchors (wired into `Offsets.cs`):**
+| const | new (1.5) | delta | method |
+|---|---|---|---|
+| `LiveBattleMapId` | 0x140784478 | +0x6C3C | two-map differential (reads 76 Zeklaus / 80 Araguay; unique) |
+| `TerrainGrid` | 0x140C6B440 | +0x6440 | wide scan for the 1456-byte block whose v2 hash == map 80's STORED fp -> exact start; **proves terrain DATA unchanged on 1.5** so all stored fpHashes stay valid |
+
+**Capture-tool anchors (re-found live; `capture_treasure.py` + `treasure_flags.py`):**
+`CURSOR_X 0x140C6AFB8`, `CURSOR_Y 0x140C6ADAC` (diff3 + watchall), `MAP_ID_ADDR 0x140784478`,
+`TERRAIN_FP_ADDR 0x140C6B440`. Added `TM_MAP_OVERRIDE` env to capture a known map before MAP_ID was found.
+
+**The rebase (tools/treasure_rebase.py):** the recompile shifted each ~1MB flag-data region by a uniform
+delta -- regions 0x140d/0x140e/0x140f/0x141000 = +0x61D0, region 0x141100 = +0x6450. Measured from 2
+freshly re-captured ground-truth maps (74 Siedge Weald, 76 Zeklaus) and applied to the other 69. Verified
+by a 5-lens adversarial workflow (independent re-derivation, a 100% holdout where map 74's deltas predict
+map 76's real addresses, candidate integrity, logic review, bake compat -- all PASS) and then LIVE: marks
+paint on Araguay Woods (a REBASED map we never captured). 1518 addresses rebased; 9 sparse addrs (regions
+0x140c/0x141500, maps 16/47 only) dropped via --drop-uncovered. Maps 74/76 set map-id-only (their capture
+read the stale terrain and stamped a bogus fp). 71 maps ship / 15 stub (pre-existing never-captured gap).
+
+**Open TM follow-ups:** maps 16 (Limberry Keep) + 47 (Sal Ghidos) sit at the 3-addr floor (sparse regions
+dropped) -- a direct re-capture restores their margin + the 9 dropped addrs. The 15 stub maps were never
+captured. A v3-fingerprinted rebased map's arming is implied by the terrain-unchanged proof but only a v2
+map (Araguay) was watched -- spot-check a v3 map opportunistically.
+
 ## NOT yet found (next session)
 - `Acted`/existence-array exact marker (behavioral watch). NOTE: kill attribution works anyway (the
   damage-event resolves the acting weapon, e.g. `[w:37]`); `actorFp=(0,0,0)` only blocks Larceny's

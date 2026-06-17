@@ -232,10 +232,12 @@ internal static class Offsets
     // Ported from FFTHandsFree GameBridge/LiveBattleMapId.cs; found 2026-04-19 via
     // snapshot/diff; verified on 3 maps (Dugeura=86, Beddha=82, Araguay=80) + across restart.
     // STALE out of battle: only read when InLiveBattle is true.
-    public const long LiveBattleMapId = 0x14078383C;   // 1.5 PREDICTED +0x6000 (was 0x14077D83C); TreasureMaster auto-disarmed on 1.5 anyway
+    public const long LiveBattleMapId = 0x140784478;   // 1.5 RE-FOUND 2026-06-17 +0x6C3C (was 0x14077D83C): two-map differential (reads 76 on Zeklaus, 80 on Araguay, unique hit)
 
     // Static per-map terrain records, 7 bytes/tile; used read-only as the map-identity
     // fingerprint source (FNV-1a64 over a fixed-length prefix).
-    // Source: LIVE_LEDGER row "Battle tile structures" (0x140C65000).
-    public const long TerrainGrid = 0x140C65000;
+    // 1.5 RE-FOUND 2026-06-17 +0x6440 (was 0x140C65000): the live v2 hash at this start matched
+    // map 80 (Araguay)'s STORED pre-1.5 fingerprint exactly -- proving the terrain DATA is unchanged
+    // on 1.5, so every captured map's stored fpHash stays valid (no re-fingerprint needed).
+    public const long TerrainGrid = 0x140C6B440;
 }

@@ -37,8 +37,8 @@ import time
 PROCESS_VM_READ = 0x0010
 PROCESS_QUERY_INFORMATION = 0x0400
 
-CURSOR_X = 0x140C64A54      # u8, module-static, validated vs the on-screen coord display
-CURSOR_Y = 0x140C6496C      # u8
+CURSOR_X = 0x140C6AFB8      # 1.5 RE-FOUND 2026-06-17 (was 0x140C64A54); live diff3 + watchall.
+CURSOR_Y = 0x140C6ADAC      # 1.5 RE-FOUND 2026-06-17 (was 0x140C6496C). VERIFY X/Y orientation via 'watch'.
 
 DB_PATH = pathlib.Path(__file__).resolve().parents[2] / "data" / "trap_treasure_tiles.json"
 

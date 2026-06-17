@@ -106,12 +106,13 @@ MARK_BIT   = 0x80
 # The UI render arena: cursor + billboard region.  Flag bytes are NOT here.
 UI_ARENA = (0x140C63000, 0x140CC5000)
 
-CURSOR_X_ADDR = 0x140C64A54   # u8
-CURSOR_Y_ADDR = 0x140C6496C   # u8
+CURSOR_X_ADDR = 0x140C6AFB8   # 1.5 RE-FOUND 2026-06-17 (was 0x140C64A54); live diff3 + watchall
+CURSOR_Y_ADDR = 0x140C6ADAC   # 1.5 RE-FOUND 2026-06-17 (was 0x140C6496C)
 
-MAP_ID_ADDR   = 0x14077D83C   # u8 -- live battle map id (stale outside battle)
+MAP_ID_ADDR   = 0x140784478   # 1.5 RE-FOUND 2026-06-17 +0x6C3C (was 0x14077D83C): two-map differential
+                              # (76 Zeklaus / 80 Araguay). TM_MAP_OVERRIDE still works to force a known map.
 
-TERRAIN_FP_ADDR    = 0x140C65000  # fixed start of the terrain grid
+TERRAIN_FP_ADDR    = 0x140C6B440  # 1.5 RE-FOUND 2026-06-17 +0x6440 (was 0x140C65000); v2 hash matched a stored fp
 TERRAIN_RECORD_LEN = 7            # bytes per terrain record
 TERRAIN_NUM_RECORDS = 208         # total records in the grid window
 TERRAIN_FP_LEN  = TERRAIN_RECORD_LEN * TERRAIN_NUM_RECORDS  # 1456 raw bytes
@@ -409,6 +410,16 @@ def read_cursor() -> tuple[int | None, int | None]:
     return ru8(CURSOR_X_ADDR), ru8(CURSOR_Y_ADDR)
 
 
+def _live_map_id() -> int | None:
+    """Live battle map id, or the TM_MAP_OVERRIDE env value when set (1.5: the MAP_ID_ADDR
+    is not yet re-anchored, so a known-map sample capture passes the id in by hand)."""
+    ov = os.environ.get("TM_MAP_OVERRIDE")
+    if ov is not None and ov.strip():
+        print(f"  [TM_MAP_OVERRIDE] using map id {ov.strip()} (MAP_ID_ADDR bypassed)")
+        return int(ov.strip())
+    return ru8(MAP_ID_ADDR)
+
+
 def _poll_cursor_stable(target_x: int, target_y: int, stable_secs: float = 1.0,
                         timeout_secs: float = 120.0) -> bool:
     """Block until the cursor sits on (target_x, target_y) continuously for stable_secs."""
@@ -537,8 +548,8 @@ def _yesno(msg: str) -> bool:
 def cmd_session() -> None:
     _require_game()
 
-    # Step 1: read map id
-    map_id_val = ru8(MAP_ID_ADDR)
+    # Step 1: read map id (or TM_MAP_OVERRIDE on 1.5 until MAP_ID_ADDR is re-anchored)
+    map_id_val = _live_map_id()
     if map_id_val is None:
         print("Map id unreadable.  Are you in a battle?")
         return
