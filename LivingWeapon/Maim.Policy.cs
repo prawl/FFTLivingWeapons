@@ -68,11 +68,13 @@ internal sealed class MaimState
     /// <summary>True when this fingerprint is currently being held.</summary>
     public bool IsHeld((int mhp, int lvl, int br, int fa) fp) => _held.ContainsKey(fp);
 
-    /// <summary>Latch a newly maimed victim. No-ops if the fingerprint is already held (never-re-save).</summary>
-    public void Latch(long addr, (int mhp, int lvl, int br, int fa) fp, uint savedReaction)
+    /// <summary>Latch a newly maimed victim. No-ops if the fingerprint is already held (never-re-save).
+    /// <paramref name="seedCt"/> is the victim's CURRENT charge-time at latch: seeding LastCt with it
+    /// (rather than a sentinel like 255) stops the first CT sample from registering a phantom turn.</summary>
+    public void Latch(long addr, (int mhp, int lvl, int br, int fa) fp, uint savedReaction, int seedCt = 0)
     {
         if (_held.ContainsKey(fp)) return;   // never overwrite while a hold is active
-        _held[fp] = new MaimEntry(Addr: addr, SavedReaction: savedReaction, TurnCount: 0, LastCt: 255);
+        _held[fp] = new MaimEntry(Addr: addr, SavedReaction: savedReaction, TurnCount: 0, LastCt: seedCt);
     }
 
     /// <summary>The saved (pre-maim) reaction value for a held fingerprint, or null.</summary>
