@@ -318,4 +318,55 @@ public class WielderTests
         Assert.Equal(0, Wielder.ResolveDeployedMainHand(m, Weapon, out _));   // main-hand only
     }
 
+    // ---- AnyDeployedMainHand: "is this weapon even in play?" (gates unequipped gate-log spam) ----
+
+    [Fact]
+    public void AnyDeployedMainHand_false_when_nobody_holds_it()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
+        Assert.False(Wielder.AnyDeployedMainHand(m, Weapon));
+    }
+
+    [Fact]
+    public void AnyDeployedMainHand_true_when_a_deployed_unit_holds_it_mainhand()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        Assert.True(Wielder.AnyDeployedMainHand(m, Weapon));
+    }
+
+    [Fact]
+    public void AnyDeployedMainHand_false_when_held_but_benched()
+    {
+        // Roster main-hand wielder with NO band entry -- equipped in the menu but not in this
+        // battle. This is the exact case that spammed the gate log: a seeded/give-all reserve.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);   // no band entry
+        Assert.False(Wielder.AnyDeployedMainHand(m, Weapon));
+    }
+
+    [Fact]
+    public void AnyDeployedMainHand_false_when_only_offhand()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        Assert.False(Wielder.AnyDeployedMainHand(m, Weapon));   // main-hand only
+    }
+
+    [Fact]
+    public void AnyDeployedMainHand_true_with_two_deployed_wielders()
+    {
+        // Unlike ResolveDeployedMainHand it does NOT bail on ambiguity -- the question is only
+        // "is the weapon in play", so two deployed wielders still answer true.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        MemSeats.SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
+        MemSeats.SeatBand(m, 4, Weapon, lvl: 20, br: 70, fa: 50, gx: 2, gy: 2);
+        MemSeats.SeatBand(m, 8, Weapon, lvl: 25, br: 60, fa: 40, gx: 6, gy: 6);
+        Assert.True(Wielder.AnyDeployedMainHand(m, Weapon));
+    }
+
 }

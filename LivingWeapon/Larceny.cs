@@ -80,13 +80,20 @@ internal sealed class Larceny : ISignature
         long actingAddr = (tierOk && actingMain && actedByte == 1 && actorFp != default) ? Locate(actorFp) : 0;
         bool active = tierOk && actingMain && actedByte == 1 && actingAddr != 0;
 
-        string reason = active
-            ? "ACTIVE -- the next struck foe loses a buff"
-            : $"inactive [tier(t{tier})={tierOk} actingMainHand={actingMain}(lastActed mainHand id={_tracker.LastPlayerMainHand}) actedFlag={actedByte} actingWielderLocated={actingAddr != 0} actorFp=({actorFp.lvl},{actorFp.br},{actorFp.fa})]";
-        if (reason != _lastGateReason)
+        // Only log the gate when a +3 Arcanum is actually FIELDED this battle. A weapon that merely
+        // banked kills reads tier-eligible (tier(t3)=True) and otherwise churns the gate reason every
+        // turn -- spamming the log for a weapon nobody is holding. `active` already implies a deployed
+        // wielder, so short-circuit past the roster scan when it is true.
+        if (active || Wielder.AnyDeployedMainHand(_mem, ArcanumId))
         {
-            _lastGateReason = reason;
-            Log.Info($"larceny gate: {reason}");
+            string reason = active
+                ? "ACTIVE -- the next struck foe loses a buff"
+                : $"inactive [tier(t{tier})={tierOk} actingMainHand={actingMain}(lastActed mainHand id={_tracker.LastPlayerMainHand}) actedFlag={actedByte} actingWielderLocated={actingAddr != 0} actorFp=({actorFp.lvl},{actorFp.br},{actorFp.fa})]";
+            if (reason != _lastGateReason)
+            {
+                _lastGateReason = reason;
+                Log.Info($"larceny gate: {reason}");
+            }
         }
 
         var enemyFps = active ? Band.EnemyFingerprints(_mem) : null;

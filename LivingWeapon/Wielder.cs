@@ -157,6 +157,27 @@ internal static class Wielder
         return deployed == 1 ? wielder : 0;
     }
 
+    /// <summary>True when AT LEAST ONE deployed unit holds <paramref name="weaponId"/> as its main
+    /// hand (a roster main-hand wielder that also has a live band entry this battle). Unlike
+    /// <see cref="ResolveDeployedMainHand"/> it does NOT bail on two wielders -- the question is only
+    /// "is this weapon in play", so a main-hand signature can suppress its gate logging for a weapon
+    /// nobody is fielding (a seeded/give-all reserve banks kills -> looks tier-eligible -> spams the
+    /// gate every turn even though it is benched).</summary>
+    public static bool AnyDeployedMainHand(IGameMemory mem, int weaponId)
+    {
+        var hand = new List<int> { weaponId };
+        for (int r = 0; r < Offsets.RosterSlots; r++)
+        {
+            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
+            int lvl = mem.U8(rb + Offsets.RLevel);
+            if (lvl < 1 || lvl > 99) continue;                        // empty slot
+            if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;   // main-hand match only
+            var candFp = (lvl, (int)mem.U8(rb + Offsets.RBrave), (int)mem.U8(rb + Offsets.RFaith));
+            if (Locate(mem, weaponId, hand, candFp) != 0) return true;   // deployed in this battle
+        }
+        return false;
+    }
+
     private static bool Contains(IReadOnlyList<int> hands, int wid)
     {
         for (int i = 0; i < hands.Count; i++) if (hands[i] == wid) return true;
