@@ -10,10 +10,10 @@ namespace LivingWeapon;
 internal static class Offsets
 {
     // --- in-battle flags ---
-    public const long Slot0 = 0x14077CA30;   // u32 == 0xFF        when in battle
-    public const long Slot9 = 0x14077CA54;   // u32 == 0xFFFFFFFF  when in battle (sticky indicator)
-    public const long Acted = 0x14077CA8C;   // u8  acting unit has acted this turn
-    public const long EventId = 0x14077CA94; // u16 event file number during cutscenes/dialogue; ALIASES as
+    public const long Slot0 = 0x140782A30;   // 1.5 PREDICTED +0x6000 (was 0x14077CA30) -- VERIFY (read 0x10, existence marker may differ in 1.5)
+    public const long Slot9 = 0x140782A54;   // 1.5 PREDICTED +0x6000 (was 0x14077CA54); read 0xFFFFFFFF (terminator plausible)
+    public const long Acted = 0x140782A8C;   // 1.5 PREDICTED +0x6000 (was 0x14077CA8C) -- VERIFY by watching 0->1 on an action
+    public const long EventId = 0x140782A94; // 1.5 PREDICTED +0x6000 (was 0x14077CA94). u16 event file number during cutscenes/dialogue; ALIASES as
                                              //   the active unit's nameId during combat animations -- only
                                              //   meaningful while out of live battle (dialogue/cutscene gate)
 
@@ -23,7 +23,7 @@ internal static class Offsets
     //     level/brave/faith FINGERPRINT -- NOT by +0x04. TqNameId (+0x04) is a SEQUENTIAL
     //     battle index, not the roster nameId: a Time Mage's index 1 collides with Ramza's
     //     roster nameId 1, which mis-credited everyone's kills to Ramza. Do not resolve by it. ---
-    public const long TurnQueue = 0x14077D2A0;
+    public const long TurnQueue = 0x1407832A0;   // 1.5 CONFIRMED +0x6000 (was 0x14077D2A0): fingerprint team=0/nameId=1/hp=486/486
     public const int TqLevel = 0x00;   // u16
     public const int TqTeam  = 0x02;   // u16  0 = player, 1 = enemy
     public const int TqNameId = 0x04;  // u16  SEQUENTIAL battle index (NOT roster nameId -- a trap)
@@ -31,7 +31,7 @@ internal static class Offsets
     public const int TqMaxHp = 0x10;   // u16  active unit's MaxHP (fingerprint key)
 
     // --- static unit array ---
-    public const long ArrayBase = 0x140893C00;
+    public const long ArrayBase = 0x140899F50;   // 1.5 CONFIRMED +0x6350 (was 0x140893C00): verified captures 11 enemies (slots 4-14), excludes Ramza (slot 20)
     public const int ArrayStride = 0x200;
     public const int SlotsBack = 20;   // enemy slots, at array offsets <= 0
     public const int SlotsFwd  = 10;   // player slots, at array offsets >= 1
@@ -68,7 +68,7 @@ internal static class Offsets
     public const int ACtTurn   = 0x09;
 
     // --- roster (nameId -> equipped right hand) ---
-    public const long RosterBase = 0x1411A18D0;
+    public const long RosterBase = 0x1411A7D10;   // 1.5 CONFIRMED +0x6440 (was 0x1411A18D0): slot0=Ramza (lvl99/rhand80/nameId1), slots +1..+7 = real party
     public const int RosterStride = 0x258;
     public const int RosterSlots = 20;
     public const int RAccessory = 0x12; // u16 equipped accessory item id.
@@ -92,7 +92,7 @@ internal static class Offsets
     // Party units sit at +/- n*stride. We self-map each via its weapon id at +0x20 --
     // no need for the exact slot-0 base -- and only WRITE where a full combat-struct
     // signature checks out, so a wrong layout guess can never corrupt memory.
-    public const long CombatAnchor = 0x14184F890;
+    public const long CombatAnchor = 0x141855CE0;   // 1.5 CONFIRMED +0x6450 (was 0x14184F890): Ramza weapon80/lvl99/hp486/pa18, twin at +0x800
     public const int CombatStride = 0x200;
     public const int CombatSearchSlots = 24;   // scan +/- this many slots around the anchor
     public const int CWeapon = 0x20;   // u16 equipped weapon id (the self-mapping key)
@@ -181,14 +181,14 @@ internal static class Offsets
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
-    public const long WpScratch = 0x141870836;
+    public const long WpScratch = 0x141876C86;   // 1.5 PREDICTED +0x6450 (was 0x141870836) -- VERIFY
 
     // --- battlefield discriminator: 0 = OUT of battle (world map / menus -- even when
     //     slot9 is still the stuck 0xFFFFFFFF sentinel), 2/3/4 = on the live battlefield.
     //     Verified in FFTHandsFree (CommandWatcher.cs). slot9 alone can't tell the
     //     world-map party menu from combat; this can, so the card paints there instead
     //     of only at game boot (the old "kills update only after restart" bug). ---
-    public const long BattleMode = 0x140900650;
+    public const long BattleMode = 0x1409069A0;   // 1.5 CONFIRMED +0x6350 (was 0x140900650): u8 3-in-battle/0-on-map, tracked across 3 transitions
 
     // --- in-battle "BattleStatus" card: checking a unit's status mid-battle opens the
     //     equip card (with the Kills line). Detected (per FFTHandsFree ScreenDetectionLogic)
@@ -202,14 +202,14 @@ internal static class Offsets
     //     [Weapon, LHand, Helm, Body, Accessory] as u16. Mirror[0] = the weapon whose
     //     card is on screen, so the in-card Kills counter knows WHICH weapon to show.
     //     Verified in FFTHandsFree (CommandWatcher.cs, 2026-04-15). Two synced copies. ---
-    public const long MirrorWeapon = 0x141870854;
-    public const long MirrorOffHand = 0x141870856;   // mirror[1]: the viewed unit's off-hand (dual-wield 2nd weapon, or a shield)
+    public const long MirrorWeapon = 0x141876CA4;   // 1.5 PREDICTED +0x6450 (was 0x141870854) -- VERIFY with a status card open
+    public const long MirrorOffHand = 0x141876CA6;   // 1.5 PREDICTED +0x6450 (was 0x141870856). mirror[1]: viewed off-hand (dual-wield 2nd weapon, or shield)
 
     // --- inventory item count array ---
     // Source: docs/DEV_TEST_RECIPES.md (inventory-give recipe, give_all_items probe).
     // count[itemId] = u8 @ InventoryCountBase + itemId.  Read/write via IGameMemory so
     // the seam is testable.  Do NOT read or write mid-battle (gated by Engine.Tick !nowIn).
-    public const long InventoryCountBase = 0x1411A17C0;
+    public const long InventoryCountBase = 0x1411A7C00;   // 1.5 CONFIRMED +0x6440 (was 0x1411A17C0): dev give-all inventory present at predicted addr
     /// <summary>Scholar's Ring item id.  Treasure Master needs this in a deployed unit's
     /// accessory slot to enable tile-highlight; ring-grant ensures the player always has at
     /// least one available.</summary>
@@ -220,7 +220,7 @@ internal static class Offsets
     // Ported from FFTHandsFree GameBridge/LiveBattleMapId.cs; found 2026-04-19 via
     // snapshot/diff; verified on 3 maps (Dugeura=86, Beddha=82, Araguay=80) + across restart.
     // STALE out of battle: only read when InLiveBattle is true.
-    public const long LiveBattleMapId = 0x14077D83C;
+    public const long LiveBattleMapId = 0x14078383C;   // 1.5 PREDICTED +0x6000 (was 0x14077D83C); TreasureMaster auto-disarmed on 1.5 anyway
 
     // Static per-map terrain records, 7 bytes/tile; used read-only as the map-identity
     // fingerprint source (FNV-1a64 over a fixed-length prefix).

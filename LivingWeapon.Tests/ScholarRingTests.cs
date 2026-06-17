@@ -7,13 +7,13 @@ namespace LivingWeapon.Tests;
 /// ScholarRing.Grant() behaviour via FakeSparseMemory.
 ///
 /// Invariants:
-///   (1) count[260]==0 and address is Readable+Writable  -> writes 1 to 0x1411A17C0+260.
+///   (1) count[260]==0 and address is Readable+Writable  -> writes 1 to 0x1411A7C00+260.
 ///   (2) count[260]==1 (already owned)                  -> no write (idempotent).
 ///   (3) count[260]==5 (many)                           -> no write (idempotent).
 ///   (4) address not Readable                           -> no crash, no write.
 ///   (5) address Readable but not Writable              -> no crash, no write.
 ///   (6) address is Readable+Writable+count==0          -> written value is exactly 1.
-///   (7) written address is exactly 0x1411A17C0+260.
+///   (7) written address is exactly 0x1411A7C00+260.
 /// </summary>
 public class ScholarRingTests
 {
@@ -47,7 +47,7 @@ public class ScholarRingTests
         // exactly one address written, and it is the ring address
         Assert.Single(m.Written);
         Assert.True(m.Written.ContainsKey(RingAddr));
-        Assert.Equal(0x1411A17C0L + 260, RingAddr);
+        Assert.Equal(0x1411A7C00L + 260, RingAddr);
     }
 
     [Fact]
