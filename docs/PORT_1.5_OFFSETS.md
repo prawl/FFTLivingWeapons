@@ -90,13 +90,27 @@ KEY LESSONS this round:
 - Shifts are NON-MONOTONIC: SubmenuFlag +0x6752, the 0x14187 mirror region +0x6660, both ABOVE the
   higher-address roster/band +0x644x. Differential each; never interpolate.
 
+## JobCommand table base -- RE-FOUND + LIVE-VERIFIED 2026-06-17
+The dangerous one. `Barrage.AbilityBase` (rec 0's AbilityId1; ShadowBlade reuses it verbatim).
+LIVE-VERIFIED 2026-06-17 (Patrick at the controls): Barrage renders + casts from a +3 Yoichi Bow
+Thief's command menu, and Shadow Blade from a Sanguine Sword Squire/Knight. Committed.
+
+| const | pre-1.5 | NEW (1.5) | delta | method / evidence |
+|---|---|---|---|---|
+| `Barrage.AbilityBase` | 0x140679193 | **0x14067E213** | +0x5080 | signature scan: rec 8 Aim (bytes 150-157) + rec 9 Martial Arts (bytes 100-107) exactly 25 bytes apart -- UNIQUE hit; whole table then read coherently (Steal rec 14 = 108-115, Black Magicks rec 11, Iaido rec 19, Machinist rec 37 = 213-215, black-magic subset rec 163). |
+
+Tool: `tools/probes/jobcommand_find_probe.py` (READ-ONLY; `find` = locate+verify, `dump <base> <lo> <hi>`).
+Delta +0x5080 is NON-MONOTONIC vs the 0x14077 region's +0x6000 (lower address slid less) -- found by
+signature, NOT interpolated. **STALE-BUT-VALID confirmed:** the pre-1.5 base 0x140679193 is still
+*mapped* on 1.5 and reads as unrelated structured data (other ability records), so the not-yet-redeployed
+dev DLL would *corrupt* that region the instant a +3 Yoichi Bow Thief / Sanguine Sword Squire-Knight is
+equipped. Wired into `Barrage.cs` + `barrage_probe.py`; pinned by
+`BarrageTests.AbilityBase_is_pinned_to_the_verified_1_5_table_base`. Gates green (dotnet 1249, analyze 7/7).
+
 ## NOT yet found (next session)
 - `Acted`/existence-array exact marker (behavioral watch). NOTE: kill attribution works anyway (the
   damage-event resolves the acting weapon, e.g. `[w:37]`); `actorFp=(0,0,0)` only blocks Larceny's
   own actor check. Confirm whether anything beyond Larceny needs `Acted` re-found.
-- `JobCommand AbilityBase` ~0x140679436 (Barrage/ShadowBlade inject -- the dangerous WRITE; needs the
-  25-byte record signature; region delta likely < +0x6000). Local const in `Barrage.cs`, reused by
-  `ShadowBlade.cs`.
 - Display: DONE -- `MirrorWeapon`/`MirrorOffHand`/`WpScratch`/`PauseFlag`/`SubmenuFlag` all found + wired
   (see the Display section below). `MenuCursor` left at pre-1.5 -- StatusCardOpen does not use it (unused).
 - Status/CT/Dead-bit RELATIVE offsets (band `+0xNN`) -- expected to SURVIVE (no struct change in 1.5);

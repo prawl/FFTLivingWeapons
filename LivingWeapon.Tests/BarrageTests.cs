@@ -379,4 +379,17 @@ public class BarrageTests
         Barrage.RestoreRecord(Live, rec.Addr, original);
         Assert.Equal(original, rec.Bytes);
     }
+
+    // ---- (9) JobCommand table base re-anchor tripwire (the most dangerous WRITE in the port) ----
+    // AbilityBase points at record 0's AbilityId1 in the live JobCommand table; ShadowBlade reuses
+    // it verbatim. A stale-but-valid address here corrupts a REAL command list, so the verified
+    // literal is pinned independently of the const -- an unintended edit trips this test (the same
+    // tripwire shape ScholarRingTests uses for InventoryCountBase). 1.5 value re-found live
+    // 2026-06-17 by tools/probes/jobcommand_find_probe.py: signature = rec 8 Aim bytes 150-157 +
+    // rec 9 Martial Arts bytes 100-107, exactly 25 bytes apart; the WHOLE table then read coherently
+    // at this base (Steal rec 14 = 108-115, Iaido rec 19, Machinist rec 37 = 213-215). Unique hit.
+    // Delta +0x5080 from the pre-1.5 base 0x140679193 (non-monotonic gradient -- found, not predicted).
+    [Fact]
+    public void AbilityBase_is_pinned_to_the_verified_1_5_table_base()
+        => Assert.Equal(0x14067E213L, Barrage.AbilityBase);
 }

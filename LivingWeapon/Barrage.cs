@@ -29,11 +29,18 @@ internal sealed partial class Barrage : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick();
     // ABILITY_BASE: record 0's AbilityId1 byte. Flags sit at ABILITY_BASE + rec*25 - 3.
-    // From barrage_probe.py: ABILITY_BASE = 0x140679436 - 27*25.
+    // 1.5 RE-FOUND LIVE 2026-06-17 (tools/probes/jobcommand_find_probe.py, READ-ONLY): the
+    // recompile moved the JobCommand table +0x5080 (the most dangerous WRITE anchor in the port).
+    // Located by the rec 8 Aim (bytes 150-157) + rec 9 Martial Arts (bytes 100-107) signature,
+    // 25 bytes apart -- UNIQUE hit; the whole table then read coherently (Steal rec 14 = 108-115,
+    // Iaido rec 19, Machinist rec 37 = 213-215), so "stale-but-valid" is ruled out. Delta is
+    // NON-MONOTONIC vs the +0x6000 of the 0x14077 region -- found by signature, NOT interpolated.
+    // Pinned by BarrageTests.AbilityBase_is_pinned_to_the_verified_1_5_table_base.
+    // (was 0x140679436 - 27*25 = 0x140679193 pre-1.5.)
     // internal (not private): ShadowBlade reuses these table-layout constants + the static helpers
     // below to grant Shadow Blade through the same proven JobCommand injection -- the Barrage logic
     // itself is untouched. (The shared inject/restore core is a future extraction, see ShadowBlade.cs.)
-    internal const long AbilityBase = 0x140679436L - 27L * 25;
+    internal const long AbilityBase = 0x14067E213L;
     internal const int RecSize = 25;         // bytes per record (3 flags + 16 abilities + 6 RSM)
     internal const int FlagPrefixSize = 3;   // ExtAb u16 + ExtRSM u8
     internal const int AbilityCount = 16;

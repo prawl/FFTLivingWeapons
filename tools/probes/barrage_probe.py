@@ -28,7 +28,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV_W, find_pid, k32, rd, wr
 
-ABILITY_BASE = 0x140679436 - 27 * 25
+ABILITY_BASE = 0x14067E213          # 1.5 re-found +0x5080 (was 0x140679436 - 27*25 = 0x140679193);
+#                                     re-find via jobcommand_find_probe.py after any exe recompile.
 REC = 25
 NREC = 200
 UNDO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "barrage_undo.json")
