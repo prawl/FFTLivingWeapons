@@ -64,23 +64,31 @@ Fingerprint used: Ramza -- LVL 99, BR 97, F 75, HP 486/486, weapon 80 (Venombolt
 | `Slot9` | 0x140782A54 | +0x6000 | read = 0xffffffff (terminator plausible) |
 | `Acted` | 0x140782A8C | +0x6000 | watch it flip 0->1 when a unit acts |
 | `EventId` | 0x140782A94 | +0x6000 | read = 401 (unverified) |
-| `MirrorWeapon` | 0x141876CA4 | +0x6450 | read 0 (no card open); verify with a status card up showing weapon 80 |
+| ~~`MirrorWeapon`~~ | ~~0x141876CA4~~ | -- | SUPERSEDED -- found live at 0x141876EB4 (+0x6660); see the Display section below |
 
-## Display card re-find -- IN PROGRESS (2026-06-17)
-The in-battle Kills card does not repaint. Gate is `StatusCardOpen = inBattle && battleMode==3 &&
+## Display card re-find -- ALL 5 ADDRS FOUND + WIRED + DEPLOYED 2026-06-17 (live card-repaint verify pending)
+The in-battle Kills card did not repaint. Gate is `StatusCardOpen = inBattle && battleMode==3 &&
 paused && submenuOpen` (BattleState.cs) -- `MenuCursor` is NOT used (code comment: "don't gate on it").
-Live card open/close differential (intersected over 2 full cycles):
-- `battleMode==3` when card open -- CONFIRMED (0x1409069A0 reads 3).
-- `SubmenuFlag` -> **0x140D4085E** (was 0x140D3A10C, +0x6752) -- found, clean (1 open / 0 closed, isolated).
-- `PauseFlag` -> **0x140C80199** CANDIDATE (was 0x140C64A5C) -- by-elimination only; NOT confidence-locked.
-  Wire + live-verify (does the card repaint?) before trusting. Single open/close diff is swamped by
-  live-battle noise; needs multi-cycle intersection or a quieter capture.
-- `MirrorWeapon` (which weapon's count to show): +0x6450 prediction 0x141876CA4 read 0 -- WRONG. Re-find
-  via a card-open fingerprint (a u16 holding the viewed unit's weapon id) -- the 0x14187 region was OUTSIDE
-  the captured snapshot range, so it needs its own capture. ShouldPaintCard out-of-battle branch uses
-  OnField (works), so the equip-screen card may already repaint once MirrorWeapon is correct.
-NOTE: shifts are NON-MONOTONIC (SubmenuFlag +0x6752 > the higher-address +0x644x regions) -- do not
-predict display addrs by interpolation; differential each.
+All five build-pinned display addrs re-anchored via `tools/probes/display_probe.py` (read-only):
+
+| Offsets.cs const | NEW (1.5) | delta | method / evidence |
+|---|---|---|---|
+| `BattleMode` | 0x1409069A0 | +0x6350 | (already wired) reads 3 when card open |
+| `SubmenuFlag` | **0x140D4085E** | +0x6752 | 3-state solve (live/menu/card): ==1 in card ONLY (0 on enemy turn AND plain command menu). Reconfirmed across 3 captures + last session |
+| `PauseFlag` | **0x140C6B1C8** | +0x676C | consistency-sample (10Hz constant-1-paused / constant-0-running) then watch: flipped 0->1->0 on a live card open/close. Two synced copies (0x140C6B1C8 / 0x140C6B307), using the lower |
+| `MirrorWeapon` | **0x141876EB4** | +0x6660 | two-card differential: read 80 on Ramza's card, 56 on the Umbral Rod card -- the ONLY u16 tracking both |
+| `MirrorOffHand` | **0x141876EB6** | +0x6660 | MirrorWeapon +2 (read 143 = Ramza's shield) |
+| `WpScratch` | **0x141876E96** | +0x6660 | MirrorWeapon -0x1E; read 6 = Venombolt's WP with Ramza's card up |
+
+KEY LESSONS this round:
+- A 3-frame open/closed diff for `PauseFlag` is USELESS -- the action menu already pauses (pause holds
+  1 across the whole player turn, even cursor-on-map mode 1), and animated UI bytes swamp the diff. The
+  win was a HIGH-FREQUENCY CONSISTENCY SAMPLE: bytes that stayed constant-1 the entire time a menu was
+  held vs constant-0 the entire enemy turn. That cut ~80 noisy candidates to 2.
+- `battleMode==3` is NOT "menu open" -- it reads 3 for the whole player turn (idle + menu + card) and
+  even flickers to 3 transiently during enemy turns. `pause` + `submenu` are the real discriminators.
+- Shifts are NON-MONOTONIC: SubmenuFlag +0x6752, the 0x14187 mirror region +0x6660, both ABOVE the
+  higher-address roster/band +0x644x. Differential each; never interpolate.
 
 ## NOT yet found (next session)
 - `Acted`/existence-array exact marker (behavioral watch). NOTE: kill attribution works anyway (the
@@ -89,7 +97,8 @@ predict display addrs by interpolation; differential each.
 - `JobCommand AbilityBase` ~0x140679436 (Barrage/ShadowBlade inject -- the dangerous WRITE; needs the
   25-byte record signature; region delta likely < +0x6000). Local const in `Barrage.cs`, reused by
   `ShadowBlade.cs`.
-- Display mirrors `MirrorOffHand`/`WpScratch`, `PauseFlag`/`SubmenuFlag`/`MenuCursor`
+- Display: DONE -- `MirrorWeapon`/`MirrorOffHand`/`WpScratch`/`PauseFlag`/`SubmenuFlag` all found + wired
+  (see the Display section below). `MenuCursor` left at pre-1.5 -- StatusCardOpen does not use it (unused).
 - Status/CT/Dead-bit RELATIVE offsets (band `+0xNN`) -- expected to SURVIVE (no struct change in 1.5);
   spot-check after the foundation rebuild.
 

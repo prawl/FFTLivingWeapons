@@ -181,7 +181,8 @@ internal static class Offsets
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
-    public const long WpScratch = 0x141876C86;   // 1.5 PREDICTED +0x6450 (was 0x141870836) -- VERIFY
+    // 1.5 CONFIRMED LIVE 2026-06-17: MirrorWeapon - 0x1E; read 6 = Venombolt's WP with Ramza's card up.
+    public const long WpScratch = 0x141876E96;   // 1.5 CONFIRMED +0x6660 (was 0x141870836)
 
     // --- battlefield discriminator: 0 = OUT of battle (world map / menus -- even when
     //     slot9 is still the stuck 0xFFFFFFFF sentinel), 2/3/4 = on the live battlefield.
@@ -194,16 +195,27 @@ internal static class Offsets
     //     equip card (with the Kills line). Detected (per FFTHandsFree ScreenDetectionLogic)
     //     as pauseFlag==1 && menuCursor==3 (the Status action-menu slot) && submenuFlag==1.
     //     Lets the counter paint there too -- safe because it's a paused, stable menu. ---
-    public const long PauseFlag = 0x140C64A5C;
-    public const long MenuCursor = 0x1407FC620;
-    public const long SubmenuFlag = 0x140D3A10C;
+    // 1.5 CONFIRMED LIVE 2026-06-17 (display_probe consistency-sample + watch): the pause byte
+    // reads 1 while a menu/Status card is open, 0 on the free battlefield / enemy turns. Found via
+    // a 10Hz constant-1-while-paused / constant-0-while-running intersection (a 3-frame diff was
+    // swamped by animated UI bytes), then confirmed flipping 0->1->0 on a live card open/close.
+    // Two synced copies at 0x140C6B1C8 / 0x140C6B307; using the lower. (was 0x140C64A5C, +0x676C)
+    public const long PauseFlag = 0x140C6B1C8;
+    public const long MenuCursor = 0x1407FC620;   // 1.5 PRE-1.5/UNUSED: StatusCardOpen does not gate on it ("the card's own cursor once open")
+    // 1.5 CONFIRMED LIVE 2026-06-17: u8 == 1 only when the Status card is open (0 on the free
+    // battlefield, enemy turns, AND the plain command menu). Found by 3-state solve (live/menu/card)
+    // and reconfirmed across sessions; isolated. (was 0x140D3A10C, +0x6752)
+    public const long SubmenuFlag = 0x140D4085E;
 
     // --- equip-screen "mirror": the VIEWED unit's equipped gear in UI row order,
     //     [Weapon, LHand, Helm, Body, Accessory] as u16. Mirror[0] = the weapon whose
     //     card is on screen, so the in-card Kills counter knows WHICH weapon to show.
     //     Verified in FFTHandsFree (CommandWatcher.cs, 2026-04-15). Two synced copies. ---
-    public const long MirrorWeapon = 0x141876CA4;   // 1.5 PREDICTED +0x6450 (was 0x141870854) -- VERIFY with a status card open
-    public const long MirrorOffHand = 0x141876CA6;   // 1.5 PREDICTED +0x6450 (was 0x141870856). mirror[1]: viewed off-hand (dual-wield 2nd weapon, or shield)
+    // 1.5 CONFIRMED LIVE 2026-06-17 (two-card differential): the u16 read 80 on Ramza's card and 56
+    // on the Umbral Rod card -- the only addr that tracked both. Delta +0x6660, NOT the predicted
+    // +0x6450 (the 0x14187 region slid further than the combat band -- shifts are non-monotonic).
+    public const long MirrorWeapon = 0x141876EB4;   // 1.5 CONFIRMED +0x6660 (was 0x141870854)
+    public const long MirrorOffHand = 0x141876EB6;   // 1.5 CONFIRMED +0x6660 (was 0x141870856). mirror[1]: viewed off-hand; read 143 (Ramza's shield)
 
     // --- inventory item count array ---
     // Source: docs/DEV_TEST_RECIPES.md (inventory-give recipe, give_all_items probe).
