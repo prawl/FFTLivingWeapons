@@ -51,15 +51,17 @@ PROCESS_QUERY_INFORMATION = 0x0400
 
 # Condensed struct: unit under the CURSOR (TurnQueue in Offsets.cs -- named for its battle
 # role but documented as "follows hover" in the trap memory).
-CONDENSED_BASE = 0x14077D2A0
+# 1.5 re-anchor 2026-06-17: +0x6000 (was 0x14077D2A0). Matches Offsets.TurnQueue.
+CONDENSED_BASE = 0x1407832A0
 TQ_LEVEL  = 0x00   # u16
 TQ_HP     = 0x0C   # u16
 TQ_MAXHP  = 0x10   # u16
 
 # Band (authoritative live structs; static array freezes on restart)
 # BandReadBase = CombatAnchor + BandEntry - 24*CombatStride
-#             = 0x14184F890 + 0x1C - 24*0x200 = 0x14184F8AC - 0x3000 = 0x141840000 + ...
-COMBAT_ANCHOR  = 0x14184F890
+# 1.5 re-anchor 2026-06-17: CombatAnchor moved +0x6450 (was 0x14184F890). Matches
+# Offsets.CombatAnchor -- the band-RELATIVE A* offsets below are unchanged on 1.5.
+COMBAT_ANCHOR  = 0x141855CE0
 BAND_ENTRY     = 0x1C          # unit copy sits 0x1C into each combat-band slot
 COMBAT_STRIDE  = 0x200
 BAND_SLOTS     = 49            # n = -24 .. +24 around the anchor
@@ -545,7 +547,18 @@ def cmd_godmode(hp_floor: int = 999) -> None:
     than reviving a corpse). Ctrl+C restores each unit's real MaxHP and stops.
 
     Level-99 does NOT work for this: FFT derives HP from level at battle start, so changing
-    level mid-battle does not recompute stats. Holding HP directly is the reliable path."""
+    level mid-battle does not recompute stats. Holding HP directly is the reliable path.
+
+    DISTINCT per-slot target (do NOT collapse to a flat floor): the Living Weapon actor
+    resolver IDs the acting unit by matching the condensed struct's (maxHp, hp, level)
+    against the battle band. A flat 999 floor equalizes every party member's MaxHP/HP, so
+    that key collides -> the resolve goes ambiguous -> (0,0,0) -> the actor latch goes
+    stale and every hit mis-credits the last cleanly-resolved weapon (live: everything
+    tagged [w:89]). Stepping each slot DOWN from the floor (999, 998, 997, ...) keeps every
+    player's (maxHp,hp) UNIQUE so the resolver stays unambiguous. We step DOWN, not up:
+    999 is the HP ceiling, so a target above it risks the engine re-clamping back to 999
+    (re-collapsing the values) or a UI glitch. 999-24 = 975 is still full-godmode HP held
+    every 10ms -- survives any alpha strike. This is why the target is per-slot, not flat."""
     _require_game()
     print(f"GODMODE armed: player HP held full, MaxHP floor {hp_floor}.  Ctrl+C to stop.")
     print("Start this BEFORE entering the boss battle -- it engages the moment units load.")
@@ -565,7 +578,10 @@ def cmd_godmode(hp_floor: int = 999) -> None:
                     if not seeded:
                         print("  units detected -- holding.")
                         seeded = True
-                target = max(orig_maxhp[s], hp_floor)
+                # Step DOWN from the floor by the slot offset so each player's (maxHp,hp)
+                # stays UNIQUE (keeps the actor resolver unambiguous -- see the docstring).
+                # Stay at/under 999 (the HP ceiling) so the engine can't re-clamp the value.
+                target = max(hp_floor - (s - PLAYER_SLOT_THRESHOLD), 1)
                 if mhp != target:
                     wu16(e + A_MAXHP, target)
                 wu16(e + A_HP, target)            # full heal every pass
@@ -620,11 +636,13 @@ def cmd_sentinels() -> None:
     def ru32(a):
         b = rpm(a, 4)
         return int.from_bytes(b, "little") if b else None
-    slot0 = ru32(0x14077CA30)
-    slot9 = ru32(0x14077CA54)
-    mode  = ru8(0x140900650)
-    mapid = ru8(0x14077D83C)
-    pause = ru8(0x140C64A5C)
+    # 1.5 re-anchored (Offsets.cs): Slot0/Slot9 +0x6000, BattleMode +0x6350,
+    # LiveBattleMapId +0x6C3C, PauseFlag.
+    slot0 = ru32(0x140782A30)
+    slot9 = ru32(0x140782A54)
+    mode  = ru8(0x1409069A0)
+    mapid = ru8(0x140784478)
+    pause = ru8(0x140C6B1C8)
     disp  = (slot9 == 0xFFFFFFFF) and (mode not in (None, 0))
     print(f"slot0={slot0:#x} slot9={slot9:#x} battleMode={mode} mapId={mapid} pauseFlag={pause}")
     print(f"battleDisplayed (slot9==FFFFFFFF and mode!=0) = {disp}  "
