@@ -1,21 +1,26 @@
 # FFT Living Weapons
 
-**Every item in Final Fantasy Tactics: The Ivalice Chronicles, rebalanced so old gear never becomes vendor trash.**
+**Your weapon is a character. It grows as it kills -- and the gear around it is rebalanced so it never becomes vendor trash.**
 
-A pure-data rebalance of all **234** equippable items (every weapon, shield, head/body armor, and accessory), aimed at one thing: build diversity. Weapon Power and HP climb gently across the chapters, and each item earns its own identity in the stats that actually shape a build: evasion, element, on-hit status, stat and equip riders, range, and how early you can get it. A newer weapon is rarely a flat upgrade. It's a sidegrade with a different reason to run it.
+A Reloaded-II mod for Final Fantasy Tactics: The Ivalice Chronicles, with two layers that build and ship together over Nenkai's `fftivc.utility.modloader`:
 
-Pure-data Reloaded-II mod (no DLL) over Nenkai's `fftivc.utility.modloader`.
+- **Living Weapons (DLL).** Every weapon counts its own kills and lifts the wielder's stats as the tally climbs; the iconic weapons awaken unique signature abilities -- Charm-on-hit, Barrage, extra turns, doom, life-steal, healing auras, and more. The running count is painted right onto the equip card.
+- **The item rebalance (data).** All 234 equippable items reworked into sidegrades instead of a tier ladder, with a programmatic gate that proves no item is ever strictly dominated.
 
 See [`docs/DESIGN.md`](docs/DESIGN.md) for the full design rationale.
 
 ## Thesis
 
-Vanilla loot is a strict tier ladder. Each shop tier beats the last, so old gear is dead weight the moment you can afford the next thing. This mod flattens the power curve and moves the interesting differences out of Weapon Power and into everything else. Every item has to answer one question: "when would I pick this?" The answer is always a niche, a tradeoff, or an availability window.
+A weapon you pour dozens of kills into should matter -- and it can't, if the next shop tier turns it into vendor trash. So the two layers are one idea: **the living weapon is what grows; the rebalance is the soil that keeps it worth growing.**
 
-This pays off harder the more the rest of your install ramps up. Under enemy-buffing mods (Level Scaling, Strong Monsters) or free-ability mods (All-Skills-Cost-0), strict-tier vanilla gear collapses into "just equip the newest thing". Sidegrades stay relevant because the reason to run them was never raw power. Enemies equip from these same tables too, so it applies to both sides.
+Vanilla loot is a strict tier ladder. Each shop tier beats the last, so old gear is dead weight the moment you can afford the next thing. This mod flattens the power curve and moves the interesting differences out of Weapon Power and into everything else. Every item has to answer one question: "when would I pick this?" The answer is always a niche, a tradeoff, or an availability window -- never "it's just bigger." That is what lets a weapon you've invested kills into stay a real choice all game.
+
+This pays off harder the more the rest of your install ramps up. Under enemy-buffing mods (Level Scaling, Strong Monsters) or free-ability mods (All-Skills-Cost-0), strict-tier vanilla gear collapses into "just equip the newest thing". Sidegrades -- and a weapon that has grown with you -- stay relevant because the reason to run them was never raw power. Enemies equip from these same tables too, so it applies to both sides.
 
 ## Features
 
+- **Living weapons that grow as they kill.** Each weapon tracks its own kills, lifts the wielder's PA/MA/Speed as the tally climbs, and shows the count on the equip card. Iconic weapons gain signature on-hit and aura effects (Charm, Barrage, extra turns, doom, life-steal, healing auras, and more) -- so the weapon you commit to becomes uniquely yours.
+- **Treasure Master.** Equip the Scholar's Ring to reveal hidden treasure tiles on the battlefield.
 - **All 234 equippable items reworked** across every category:
   - **Weapons: 121** (Sword 14, Knife 10, Katana 10, Bow 9, Ninja Blade 8, Rod 8, Staff 8, Polearm 8, Pole 8, Gun 6, Crossbow 6, Knight Sword 5, Flail 4, Book 4, Bag 4, Axe 3, Instrument 3, Cloth 3)
   - **Shields: 16**

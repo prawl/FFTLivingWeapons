@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Build-diversity invariant checker for the FFT item overhaul.
+Build-diversity invariant checker for the FFT Living Weapons item rebalance.
 
 Core rule: within a category, NO item may be strictly dominated by another. B dominates A iff B is >= A on
 every "more is better" numeric axis it has (weapons: WP/evade/range; shields: physEv/magEv; head gear:

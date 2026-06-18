@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "note": "Source of truth for the FFT:IVC item OVERHAUL. baseline = REAL vanilla/IVC values (Game8). proposed = the build-diversity rebalance values, emitted to the modloader ItemWeaponData XML by tools/generate.py. name = NEW overhaul name (-> item.en.nxd); vanillaName kept for reference. tier = availability rank (1=earliest .. 6=poach/endgame) — a valid 'pick this' axis, enforced by analyze.py.",
+    "note": "Source of truth for the FFT Living Weapons item rebalance (the data layer). baseline = REAL vanilla/IVC values (Game8). proposed = the build-diversity rebalance values, emitted to the modloader ItemWeaponData XML by tools/generate.py. name = NEW rebalanced name (-> item.en.nxd); vanillaName kept for reference. tier = availability rank (1=earliest .. 6=poach/endgame) -- a valid 'pick this' axis, enforced by analyze.py.",
     "knifeFormula": "(PA + Speed) / 2 * WP  — speed-scaling; knives own the fast/agile/utility niche",
     "normalFormulaIds": [
       1,

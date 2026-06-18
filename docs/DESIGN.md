@@ -1,15 +1,26 @@
-# FFT:IVC Item Overhaul: Design Doc (living draft)
+# FFT Living Weapons: Design Doc (living draft)
 
-**Status:** design discussion, pre-build. Working title TBD.
-**Date:** 2026-05-29
-**Goal (user-set):** Rebalance **all** items in Final Fantasy Tactics: The Ivalice Chronicles for
-**build diversity**. Every item should have a reason to exist; new gear should not auto-obsolete old gear.
-**Mechanism:** pure-data mod over Nenkai's `fftivc.utility.modloader` (no DLL), same channel as the
-"WotL Equipment Replacer / Treasure Hunt" and `FFT.Regabonds.Rebalance`.
+**Status:** shipped (v2.x); living draft. Started life as a pure-data item rebalance ("Item Overhaul");
+the project's center of gravity is now the **Living Weapon**, with the rebalance as its foundation.
+**Date:** 2026-05-29 (thesis reframed 2026-06-17)
+**Goal:** Make each weapon a character that **grows as it kills** -- and rebalance **all** items so the
+weapon you invest in never becomes vendor trash. Every item should have a reason to exist; new gear
+should not auto-obsolete old gear.
+**Mechanism:** two layers shipped as one Reloaded mod -- an in-process C# DLL (`LivingWeapon/`) for the
+growth + per-weapon signature runtime, layered over a pure-data item rebalance on Nenkai's
+`fftivc.utility.modloader` (same channel as "WotL Equipment Replacer / Treasure Hunt" and
+`FFT.Regabonds.Rebalance`).
 
 ---
 
 ## 1. The thesis (the spine of the whole mod)
+
+> **A weapon is a character: it grows as it kills, and the iconic weapons awaken signature abilities.
+> For that to mean anything, the gear around it can never become vendor trash -- so the item rebalance
+> below is the foundation, not a side feature.**
+
+The growth runtime is the headline; the rest of this section is the rebalance that keeps a grown weapon
+worth keeping. The rebalance rule:
 
 > **Let Weapon Power (and HP) climb gently and predictably across chapters, but load every item's
 > *longevity and interest* into its non-WP dimensions** (evasion, element, on-hit status, stat bonus,
