@@ -18,6 +18,25 @@ Verbs
         4. Reports SET (read-back matched) or MISS, then HOLDS every ~200ms until
            Ctrl+C.  On exit, restores the original bytes.
 
+  python tools\\probes\\battle_cheats.py buff_enemies [name]
+      Plant a stealable buff on EVERY live enemy so Arcanum's Larceny (+3) has a
+      target on the next damaging hit.  No hover/targeting -- it sweeps the whole band.
+      With NO name it deals the six buffs round-robin (reraise, haste, protect, shell,
+      reflect, regen, repeat) so the steal log varies and exercises the precedence.
+      Pass a name (reraise / haste / protect / shell / reflect / regen) to force that
+      one buff on everybody.  Offsets are the six LarcenyPolicy.Stealable rows, band-
+      relative, straight from Offsets.cs.  (Alias: buff_enemy.)
+
+      Flow:
+        1. Equip a +3 Arcanum (sword id 30) on a player; enter a battle (a DEV build
+           seeds every weapon to +3, so just equipping it is enough).
+        2. Run this verb -> a buff bit is SET on every enemy's band entry.
+        3. Attack any buffed enemy with the Arcanum wielder.
+        4. The probe READ-watches the bits (it does NOT re-assert, so it never fights
+           the DLL) and prints STRIPPED + which buff for each enemy as Larceny clears
+           it.  Watch livingweapon.log for 'larceny: STOLE <buff>' + the icon on the wielder.
+        NOTE: any enemy dealt reraise auto-revives once -- pass e.g. 'protect' to avoid that.
+
   python tools\\probes\\battle_cheats.py kill_all
       KO every enemy in the current battle.  Enumerates the authoritative band
       (BandReadBase, 49 slots, stride 0x200), classifies each valid entry as
@@ -96,6 +115,18 @@ A_PA = 0x22   # u8, band-relative (== combat+0x3E)
 # CT / "slam" byte at combat+0x41 (Offsets.CtOff, what ExtraTurn writes) -> band 0x41-0x1C = 0x25.
 A_SPEED = 0x24   # u8, band-relative (== combat+0x40)
 A_CT    = 0x25   # u8, band-relative (== combat+0x41, the ACtSlam write byte)
+
+# Stealable-buff bits (band-relative) -- mirrors LarcenyPolicy.Stealable + Offsets.cs exactly.
+# Order = Larceny's steal precedence (highest-value first); the first one the foe actually has
+# is the one Arcanum lifts.  buff_enemy plants whichever the caller names (default reraise).
+STEALABLE_BUFFS = {
+    "reraise": (0x47, 0x20),
+    "haste":   (0x48, 0x08),
+    "protect": (0x48, 0x20),
+    "shell":   (0x48, 0x10),
+    "reflect": (0x49, 0x02),
+    "regen":   (0x48, 0x40),
+}
 
 # Band-relative movement field (Offsets.AMovement = CMovement - BandEntry = 0x9C - 0x1C = 0x80)
 A_MOVEMENT = 0x80   # 3 bytes, base ability id 230, MSB-first
@@ -375,6 +406,85 @@ def cmd_give_move(ability_id: int) -> None:
             print("  restored OK")
         else:
             print(f"  restore read-back: {rb2.hex().upper() if rb2 else 'None'} (expected {saved.hex().upper()})")
+
+
+# ---------------------------------------------------------------------------
+# Verb: buff_enemies  (plant a stealable buff on EVERY enemy so Larceny has targets)
+# ---------------------------------------------------------------------------
+def cmd_buff_enemies(name: str | None = None) -> None:
+    """Plant a stealable buff on EVERY live enemy-side unit, then READ-watch the bits and report
+    each one as Larceny strips it (or Ctrl+C). No hover/targeting -- it sweeps the whole band.
+
+    By default the SIX buffs are dealt round-robin across the enemies (reraise, haste, protect,
+    shell, reflect, regen, then repeat) so the steal log shows variety and exercises Larceny's
+    precedence. Pass a name to force that one buff on everybody instead.
+
+    The probe never re-asserts a bit, so it cannot fight the DLL's steal: a bit going clear IS the
+    signal that hit's steal fired. See the module docstring for the full flow."""
+    _require_game()
+    if name is not None:
+        name = name.lower()
+        if name not in STEALABLE_BUFFS:
+            print(f"unknown buff {name!r}; choose one of: {', '.join(STEALABLE_BUFFS)}")
+            sys.exit(1)
+    cycle = list(STEALABLE_BUFFS.items())   # [(name, (off, mask)), ...] in precedence order
+    mode = name if name is not None else "varied (round-robin all 6)"
+    print(f"buff_enemies: {mode}")
+
+    targets = []   # (s, addr, br, fa, bname, off, mask)
+    idx = 0
+    for s in range(BAND_SLOTS):
+        e = _band_entry_addr(s)
+        if not _is_valid_entry(e) or s >= PLAYER_SLOT_THRESHOLD:
+            continue                                   # invalid / player-side
+        mhp = ru16(e + A_MAXHP)
+        hp = ru16(e + A_HP)
+        if not mhp or mhp <= 0 or not hp or hp <= 0:
+            continue                                   # empty / dead
+        if name is not None:
+            bname, (off, mask) = name, STEALABLE_BUFFS[name]
+        else:
+            bname, (off, mask) = cycle[idx % len(cycle)]
+            idx += 1
+        cur = ru8(e + off)
+        if cur is None:
+            continue
+        already = (cur & mask) != 0
+        wu8(e + off, cur | mask)
+        rb = ru8(e + off)
+        if rb is None:
+            print(f"  slot s={s:02d} 0x{e:X}  {bname} MISS (read-back failed)")
+            continue
+        ok = (rb & mask) != 0
+        note = " (already had it)" if already else ""
+        print(f"  slot s={s:02d} 0x{e:X}  {bname:<7} {'SET' if ok else 'MISS'} "
+              f"(0x{cur:02X}->0x{rb:02X}){note}")
+        targets.append((s, e, ru8(e + A_BRAVE), ru8(e + A_FAITH), bname, off, mask))
+
+    if not targets:
+        print("no live enemy-side units found -- are you in a battle (and is it loaded)?")
+        return
+    print(f"Buffed {len(targets)} enemy(ies). Now HIT them with the Arcanum wielder.")
+    print("Watching the bits (no re-assert).  Ctrl+C to stop.")
+
+    stripped = set()
+    try:
+        while len(stripped) < len(targets):
+            for s, e, br, fa, bname, off, mask in targets:
+                if s in stripped:
+                    continue
+                if ru8(e + A_BRAVE) != br or ru8(e + A_FAITH) != fa:
+                    stripped.add(s)                    # slot reused/migrated -- stop tracking it
+                    continue
+                v = ru8(e + off)
+                if v is None or (v & mask) == 0:
+                    stripped.add(s)
+                    print(f"  STRIPPED slot s={s:02d} -- Larceny cleared {bname} (a steal fired on this enemy).")
+            time.sleep(0.2)
+        print("All planted buffs gone. Confirm in livingweapon.log: "
+              "'larceny: STOLE' + the buff icon on the wielder.")
+    except KeyboardInterrupt:
+        print()
 
 
 # ---------------------------------------------------------------------------
@@ -749,6 +859,15 @@ def _selftest() -> bool:
         print(f"  build_grant_field(243): FAIL expected [00 04 00] got {list(field) if field else None}")
         ok = False
 
+    # Stealable-buff table matches LarcenyPolicy.Stealable / Offsets.cs (band-relative).
+    want_buffs = {"reraise": (0x47, 0x20), "haste": (0x48, 0x08), "protect": (0x48, 0x20),
+                  "shell": (0x48, 0x10), "reflect": (0x49, 0x02), "regen": (0x48, 0x40)}
+    if STEALABLE_BUFFS == want_buffs:
+        print("  STEALABLE_BUFFS offsets match Offsets.cs  OK")
+    else:
+        print(f"  STEALABLE_BUFFS: FAIL got {STEALABLE_BUFFS}")
+        ok = False
+
     # Dead-bit constant matches Offsets.cs ADeadBit
     if A_DEAD_BIT == 0x20:
         print("  A_DEAD_BIT == 0x20  OK")
@@ -813,6 +932,11 @@ def main() -> None:
     if args[0] == "give_move":
         ability_id = int(args[1]) if len(args) > 1 else 243
         cmd_give_move(ability_id)
+        return
+
+    if args[0] in ("buff_enemies", "buff_enemy"):
+        name = args[1] if len(args) > 1 else None   # None -> varied round-robin
+        cmd_buff_enemies(name)
         return
 
     if args[0] == "kill_all":
