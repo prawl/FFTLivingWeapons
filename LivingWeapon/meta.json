@@ -90,8 +90,8 @@
       "abilityId": 0,
       "slot": "",
       "atTier": 3,
-      "displayLabel": "Charm holds 3t",
-      "charmLockTurns": 3
+      "displayLabel": "Puppeteer",
+      "puppeteerTurns": 1
     }
   },
   "10": {

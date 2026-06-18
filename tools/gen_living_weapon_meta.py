@@ -59,6 +59,8 @@ def main():
                 entry["signature"]["forTurns"] = int(sig["forTurns"])
             if sig.get("charmLockTurns"):  # charm-lock aura (Galewind): landed Charm unbreakable N turns
                 entry["signature"]["charmLockTurns"] = int(sig["charmLockTurns"])
+            if sig.get("puppeteerTurns"):  # puppeteer (Galewind): dominate the struck enemy for N of its turns (replaces charm-lock)
+                entry["signature"]["puppeteerTurns"] = int(sig["puppeteerTurns"])
             if sig.get("doomCountdownTo"):  # doom-hasten aura (Eclipsebolt "Eagle Eye"): force enemy Doom to this
                 entry["signature"]["doomCountdownTo"] = int(sig["doomCountdownTo"])
             if sig.get("ricochetRadius"):  # ricochet aura (Stormarc "Arc Lightning"): chip to nearest foe

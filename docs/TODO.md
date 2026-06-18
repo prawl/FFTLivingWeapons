@@ -4,6 +4,7 @@ Release TODO's
 - Ramza's Squire cannot equip Shields but normal squires can?
 - Larcency keeps popped up in the logs despite not being equipped
 - BUG: enemy Knights cast Shadow Blade without the Sanguine Sword. The Shadow Blade grant (Sanguine Sword id 23, ability 165) is injected into the Knight/Squire/Gallant Knight JobCommand record, which is JOB-global, so every unit of those jobs shows Shadow Blade as Learned regardless of equipped weapon (enemies included). Seen live: enemy Knight "Dyana" holding the Arcanum used Shadow Blade. Same class as the Barrage enemy-Thief leak, but Knights are a common enemy job so it is far more visible. Fix: gate the injected command to the actual wielder (per-unit), or restrict the grant to rare/unused enemy jobs, or remove the command-grant and use a different signature.
+- PUPPETEER (#11) LUCAVI/BOSS CARVE-OUT: the gate is currently ALLOW-EVERYONE (`IsDominatable => true`, by user request) — so bosses/Lucavi ARE dominatable by design. We do NOT want Lucavi dominatable. The `maxHp >= 2000` latch-loop cap does NOT exclude them (a live Lucavi read 999 max HP), and it's only a garbage-read sanity cap anyway — do not lean on it. Need a real carve-out keyed to job-id band and/or name-id (the long-standing "Lucavi carve-out" — IC Lucavi/boss job ids still need mapping). Costs in-game testing time to identify the ids; deferred until we can spare it. Until then, allow-everyone ships and a Lucavi CAN be puppeted.
 
 
 
@@ -13,12 +14,13 @@ New Buffs Exploration
 3. PROVEN: Add a new ability (e.g. Sanguine Sword) to a weapon.
 4. PROVEN: Can change movement from Move to Teleport mid-battle for a limited duration.  On X give the unit M Teleportation for x turns. 
 5. PROVEN: Adrenaline — drop below 30% HP → Attack Boost + Move+2 for 3 turns (a desperation surge).
-6 PROVEN: Charm-Lock - Casting charm does not break for 3 turns
+6 PROVEN: Charm-Lock - Casting charm does not break for 3 turns  → REPLACE with Puppeteer (#11); current charm is broken
 6 PROVEN: Take another turn now.  When killing a unit, immediately take another turn.
 7 PROVEN the enemies Reactions
 8. PROVEN Ricochet  Stormarc id 86 hosts it as "Arc Lightning" — on a damage event from the +3 wielder's action, chip the nearest other enemy within 3 tiles for 50% of the
 9. PROVEN Barrage: parked on two decisions (job-wide vs per-unit, and the blank-name problem).
 10 PROVEN Give Spiritual Font: Lifefont and Manafont to a single character
+11. PUPPETEER (signature; victim status "Puppet") — REPLACES Charm-Lock/Galewind (#6; vanilla charm is broken, this is strictly better: real menu control vs flaky charm-AI). Enemy-control PROVEN LIVE 2026-06-18. LOCKED DESIGN: reliable on a +3 weapon hit (NO rng) → puppet the struck enemy for its NEXT turn (full move + skillset), revert to AI at the turn boundary; ONE puppet at a time + 3-turn cooldown (counts the WIELDER's own turns); target gate = NO bosses/special/monster-class (job-id gate); NO hp gate, NO level gate (silent level-fail = bad UX); +/+2 = stat growth only (only +3 carries the ability). Class Puppeteer.cs + Puppeteer.Policy.cs. Build order: START with the boss/monster job-id gate as a pure policy + tests. Also the multiplayer primitive (see Dev/FFTMultiplayer). On hit by the +3 wielder, set bit 0x08 at the struck enemy's combat struct +0x05 → full MENU control of that enemy: move + its ENTIRE skillset (verified live casting Fire on its own allies; unit stays team-1 so it can turn on its own line). One write PERSISTS across turns (authoritative struct holds itself — no per-tick fight). Build as a CharmLock/Maim clone: on latch save the original +0x05 byte, own it, then RELEASE after N of the victim's turns (CtTurns off +0x09) by writing the saved byte back → AI (permanent variant = never release; battle-exit struct-rebuild cleans up). Flag: combat +0x05 bit 0x08 (SET=human / CLEAR=AI). CombatAnchor 0x141855CE0, stride 0x200; locate the victim via the usual lvl(+0x29)/brave(+0x2A)/faith(+0x2C)/weapon(+0x20) fingerprint. Mechanism found via Dicene's `fftivc.handsfree` mod (does the INVERSE — clears 0x08 to AI-ify the player team — and SIGSCANS the struct, so it's 1.5-proof; decompiled source in Downloads/FFT_-_HandsFree1.0.0/decompiled).
 
 Ideas:
 

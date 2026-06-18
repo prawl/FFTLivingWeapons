@@ -43,6 +43,11 @@ public sealed class WeaponSignature
     // CHARM-LOCK aura: while a unit wields this at AtTier, any Charm the party lands is held unbreakable
     // for this many of the target's turns, then force-cleared (Galewind). 0 = not a charm-lock weapon.
     [JsonProperty("charmLockTurns")] public int CharmLockTurns { get; set; }
+    // PUPPETEER (Galewind "Puppeteer", replaces Charm-Lock): a hit by the +3 wielder dominates the
+    // struck enemy for this many of ITS OWN turns -- the player controls its move + full skillset (the
+    // agency bit, combat +0x05 / 0x08, held set each tick), then it reverts to AI. One puppet at a time,
+    // on a Tuning.PuppeteerCooldownTurns cooldown (the wielder's own turns). 0 = not a puppeteer weapon.
+    [JsonProperty("puppeteerTurns")] public int PuppeteerTurns { get; set; }
     // DOOM-HASTEN aura (Eclipsebolt "Eagle Eye"): while a unit wields this at AtTier, any Doom on an enemy
     // has its countdown forced down to this value (proven: write band +0x59). 0 = not a doom-hasten weapon.
     [JsonProperty("doomCountdownTo")] public int DoomCountdownTo { get; set; }

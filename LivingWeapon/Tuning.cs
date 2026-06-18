@@ -156,6 +156,19 @@ internal static class Tuning
     /// backstop is needed. 3 matches the card text ("wear 3 turns"). THE live-tune knob.</summary>
     public const int LarcenyHoldTurns = 3;
 
+    /// <summary>Puppeteer (Galewind +3): after a puppet is applied, the wielder cannot dominate another
+    /// enemy until this many GLOBAL turns (any unit's turn -- TurnTracker.GlobalTurns) have passed since
+    /// the dominate. At 4: the dominate turn, then 3 turns where it cannot fire, then it re-arms on the
+    /// 4th turn. The anti-snowball cap. (Global turns, NOT the wielder's own turns -- the acting
+    /// fingerprint flickered to the puppet, so a wielder-keyed cooldown ran backwards.)</summary>
+    public const int PuppeteerCooldownTurns = 4;
+
+    /// <summary>Puppeteer (Galewind +3): fallback release clock when the acting wielder could not be
+    /// fingerprinted at dominate time (LastActorFingerprint was default). In that rare case the
+    /// wielder-turn clock has no fp to ride, so the possession expires after this many GLOBAL turns
+    /// (~one full round). Bounds the possession safely without a per-unit clock.</summary>
+    public const int PuppeteerWielderlessFallbackTurns = 12;
+
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 

@@ -329,11 +329,11 @@
       },
       "signature": {
         "atTier": 3,
-        "sigName": "Infatuation",
-        "displayLabel": "Charm holds 3t",
-        "charmLockTurns": 3,
-        "note": "While a +3 Galewind is equipped, any Charm your party lands is unbreakable for 3 of the target's turns, then force-cleared (the gale sweeps them off their feet). Mechanic: hold authoritative charm bytes +0x49/+0x54 — see memory charm-unbreakable-bytes.md.",
-        "p3Desc": "Charm becomes unbreakable for 3 turns."
+        "sigName": "Puppeteer",
+        "displayLabel": "Puppeteer",
+        "puppeteerTurns": 1,
+        "note": "Replaces Charm-Lock. On a +3 Galewind hit, the struck enemy is dominated -- the player controls its move + full skillset (agency bit combat +0x05/0x08, band -0x17, held set each tick) for its FULL turn, released when the GALEWIND WIELDER takes its next turn (TurnTracker.Turns(wfp) baseline, Larceny's clock; GlobalTurns fallback if the wielder was unresolved at dominate), then it reverts to AI. ONE puppet at a time + a cooldown of Tuning.PuppeteerCooldownTurns=4 GLOBAL turns (3 turns blocked, re-arms on the 4th). Target gate: ALLOW-EVERYONE (2026-06-18, user request 'control everyone') -- IsDominatable returns true for every job id; the job byte is no unit filter (a live boss read job 37). The enemy + fingerprint gates in Puppeteer.cs are the real filter. Revert to a narrow gate by restoring IsDominatable to IsGenericHumanJob || IsMonsterJob. Runtime LivingWeapon/Puppeteer.cs. Offsets proven live 2026-06-18: agency +0x05/0x08 and job-read (JobOff == combat +0x03). ⚠ CARD/CODE MISMATCH: the p3Desc promises '(no Lucavi)' but the Lucavi carve-out is NOT implemented (still allow-everyone) -- see docs/TODO.md; the card overpromises until the carve-out lands.",
+        "p3Desc": "A struck enemy (no Lucavi) is your puppet for its full turn (3-turn cooldown)."
       }
     },
     {

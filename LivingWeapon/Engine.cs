@@ -79,6 +79,7 @@ internal sealed class Engine
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
         var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
         var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N of the wielder's own turns)
+        var puppeteer = new Puppeteer(meta, _kills, _tracker, _turns, live);  // Galewind +3: dominate a struck enemy for N of its turns (Puppeteer; replaces Charm-Lock -- _charm goes dormant once Galewind's meta carries puppeteerTurns)
         var benediction = new Benediction(meta, _kills, _tracker, live); // Sanctus Staff +3: ally HP rises boosted 30% while a Sanctus Staff is the last player to act (sticky latch -- survives the charged-heal resolve gap)
         var sanctuary = new Sanctuary(meta, _kills, live);               // Staff of the Magi +3: while the bearer lives, fallen allies are held from crystallizing
         var choir = new Choir(meta, _kills, live);                       // Warlock's Staff +3: adjacent allies cast magick instantly (Non-charge aura)
@@ -98,8 +99,8 @@ internal sealed class Engine
         // pre-gate on battleDisplayed like TreasureMaster, so a held charm is not dropped
         // mid-combat between turns). Both TreasureMaster and CharmLock stay in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
-        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, puppeteer, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
+        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
