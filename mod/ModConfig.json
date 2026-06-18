@@ -2,7 +2,7 @@
   "ModId": "prawl.fft.livingweapons",
   "ModName": "FFT Living Weapons",
   "ModAuthor": "prawl",
-  "ModVersion": "2.1.0",
+  "ModVersion": "2.2.0",
   "ModDescription": "Weapons grow as they kill -- each weapon counts its kills, lifts the wielder's stats, and the iconic weapons awaken signature abilities, with the running tally shown on the equip card. Bundles a full item rebalance (so a weapon you invest in never becomes vendor trash) and Treasure Master (equip the Scholar's Ring to reveal hidden treasure on the battlefield). Authoritative item mod, so disable other item-rebalance mods (e.g. Regabonds Rebalance, Equipment Replacer).",
   "ModDll": "LivingWeapon.dll",
   "ModIcon": "preview.png",
