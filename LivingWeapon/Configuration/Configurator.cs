@@ -5,7 +5,7 @@ using Reloaded.Mod.Interfaces;
 namespace LivingWeapon.Configuration;
 
 /// <summary>
-/// Reloaded-II configurator for FFT Item Overhaul.  Implements IConfiguratorV3 so the
+/// Reloaded-II configurator for FFT Living Weapons.  Implements IConfiguratorV3 so the
 /// launcher shows a "Configure Mod" button that opens the built-in property grid for
 /// <see cref="Config"/>.  TryRunCustomConfiguration returns false, delegating UI to the
 /// Reloaded property grid (no WinForms dependency needed).

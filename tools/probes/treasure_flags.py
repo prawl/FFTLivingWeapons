@@ -85,7 +85,7 @@ TREASURE_JSON_SRC = REPO / "LivingWeapon" / "treasure.json"
 sys.path.insert(0, str(REPO / "tools"))
 from lib.paths import RELOADED_MODS as _RELOADED_MODS
 from lib.treasure import is_treasure as _lib_is_treasure
-LIVE_MOD_DIR = _RELOADED_MODS / "prawl.fft.itemoverhaul"
+LIVE_MOD_DIR = _RELOADED_MODS / "prawl.fft.livingweapons"
 
 # ---------------------------------------------------------------------------
 # Memory constants

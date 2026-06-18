@@ -23,7 +23,7 @@ FFT_GIVE_ITEMS_DELAY=200 give_all_items 99   # slower if writes drift
 ```
 
 - Requires the **FFTHandsFree mod loaded** in the running game (it drives the `fft` command→`command.json`
-  bridge). Both `FFTHandsFree` and `prawl.fft.itemoverhaul` can be loaded at once.
+  bridge). Both `FFTHandsFree` and `prawl.fft.livingweapons` can be loaded at once.
 - **Run on a safe screen** (WorldMap / TravelList / battle). NOT while PartyMenu is open — roster-adjacent
   writes get clobbered. Close + reopen the inventory afterward to refresh the menu.
 

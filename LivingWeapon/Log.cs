@@ -22,8 +22,8 @@ internal static class Log
         catch { }
     }
 
-    public static void Info(string m) => Write("[FFTItemOverhaul] " + m);
-    public static void Error(string m) => Write("[FFTItemOverhaul] ERROR: " + m);
+    public static void Info(string m) => Write("[FFTLivingWeapons] " + m);
+    public static void Error(string m) => Write("[FFTLivingWeapons] ERROR: " + m);
 
     private static void Write(string m)
     {

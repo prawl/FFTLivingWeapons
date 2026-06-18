@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FFTItemOverhaul: zero Equip Axes (id 460) out of every learnable RSM slot.
+<!-- FFTLivingWeapons: zero Equip Axes (id 460) out of every learnable RSM slot.
      Axes were repurposed into other weapon types; the support ability is dead JP. -->
 <JobCommandTable>
   <Version>1</Version>

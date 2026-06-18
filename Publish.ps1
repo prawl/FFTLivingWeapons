@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Packages FFT Item Overhaul (data tables + Living Weapon DLL) for release.
+    Packages FFT Living Weapons (data tables + Living Weapon DLL) for release.
 .DESCRIPTION
     Production counterpart to BuildLinked.ps1 (which deploys straight into the
     live Reloaded Mods folder). Mirrors the sibling FFTColorCustomizer's
@@ -58,7 +58,7 @@ param (
 # FFT IC extension treats a zip with files-at-root as malformed and falls back
 # to fabricating a fake wrapper, which double-nests the install. Naming this
 # folder after our ModId makes the zip extract to the expected layout.
-$ModId            = "prawl.fft.itemoverhaul"
+$ModId            = "prawl.fft.livingweapons"
 $SourceModPath    = "mod"
 $BuildOutputPath  = "Publish/$ModId"
 $SourceModConfig  = "$SourceModPath/ModConfig.json"
@@ -180,17 +180,17 @@ function Create-Package {
 
     Write-Status "Creating ZIP package..." "Green"
 
-    # Default: a STABLE name (FFTItemOverhaul-<version>.zip) so re-cutting a tag overwrites the
+    # Default: a STABLE name (FFTLivingWeapons-<version>.zip) so re-cutting a tag overwrites the
     # release asset in place instead of piling up timestamped copies. With -NexusModId set, switch to
     # the Nexus convention (<ModName>-<NexusModId>-<version-dashed>-<unix-timestamp>.zip) that Vortex
     # parses for version + mod ID (without which the mod shows a "!" with no version when hand-installed).
     $versionDashed = $ModVersion -replace '\.', '-'
     if ($NexusModId -gt 0) {
         $unixTimestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
-        $packageName = "FFTItemOverhaul-$NexusModId-$versionDashed-$unixTimestamp.zip"
+        $packageName = "FFTLivingWeapons-$NexusModId-$versionDashed-$unixTimestamp.zip"
     } else {
         Write-Host "  -> Stable name (no -NexusModId); pass -NexusModId for the Vortex-parseable name before a Nexus upload." -ForegroundColor Yellow
-        $packageName = "FFTItemOverhaul-$ModVersion.zip"
+        $packageName = "FFTLivingWeapons-$ModVersion.zip"
     }
     $packagePath = Join-Path $OutputPath $packageName
 
@@ -229,7 +229,7 @@ function Create-Package {
         Write-Host "  -> Target: $absolutePackagePath"
 
         # includeBaseDirectory: $true wraps zip contents in a folder named after
-        # the build folder (prawl.fft.itemoverhaul). Vortex's FFT IC extension
+        # the build folder (prawl.fft.livingweapons). Vortex's FFT IC extension
         # installer treats this as the proper structure and avoids creating a
         # fake wrapper folder (which would double-nest the install).
         [System.IO.Compression.ZipFile]::CreateFromDirectory(
@@ -340,7 +340,7 @@ function Verify-Package {
 ## => Main Script <= ##
 
 Write-Host "`n=====================================" -ForegroundColor Magenta
-Write-Host "    FFT Item Overhaul - Publisher    " -ForegroundColor Magenta
+Write-Host "    FFT Living Weapons - Publisher    " -ForegroundColor Magenta
 Write-Host "=====================================" -ForegroundColor Magenta
 
 # Save current directory and change to script directory

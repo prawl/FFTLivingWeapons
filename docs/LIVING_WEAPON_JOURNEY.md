@@ -2,7 +2,7 @@
 
 Building the **Living Blade** — a sword that counts its own kills, displays the tally on itself, and
 physically evolves as you fight with it. Prototyped in **FFTHandsFree** (a live companion DLL + Python),
-data shipped in **FFTItemOverhaul** (pure-data mod). FFT: The Ivalice Chronicles (Denuvo, UE5, fixed base
+data shipped in **FFTLivingWeapons** (pure-data mod). FFT: The Ivalice Chronicles (Denuvo, UE5, fixed base
 `0x140000000`).
 
 > Session journal, 2026-06-05. The MVP works END-TO-END live: kill with the blade equipped → counter ticks
@@ -181,7 +181,7 @@ Optional polish (none blocks the feature):
 - Hide id 29 from shops/drops so the +1 isn't separately obtainable.
 - Move-Find / treasure placement for the base (id 31) so a real playthrough finds it.
 - More tiers (+2/+3): each needs one more sacrificed sword id (no free slots).
-- Port the finished mechanic into FFTItemOverhaul proper; then the rest of the Living Set
+- Port the finished mechanic into FFTLivingWeapons proper; then the rest of the Living Set
   (armor→hits→HP, ring→magic-dmg→MA).
 
 ---

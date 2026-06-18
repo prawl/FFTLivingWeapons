@@ -40,7 +40,7 @@ public class Mod : IMod
             try
             {
                 var configPath = ResolveConfigPath(modDir);
-                var cfg        = Configurable<Config>.FromFile(configPath, "FFT Item Overhaul Configuration");
+                var cfg        = Configurable<Config>.FromFile(configPath, "FFT Living Weapons Configuration");
                 treasureAlwaysOn = cfg.TreasureAlwaysOn;
                 Log.Info($"config: TreasureAlwaysOn={treasureAlwaysOn} (from {configPath})");
             }
@@ -59,7 +59,7 @@ public class Mod : IMod
     }
 
     /// <summary>The mod namespace -- the folder name under both Mods/ and User/Mods/.</summary>
-    private const string ModId = "prawl.fft.itemoverhaul";
+    private const string ModId = "prawl.fft.livingweapons";
 
     /// <summary>
     /// The config the DLL should read. The Reloaded launcher saves user edits to

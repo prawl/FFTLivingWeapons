@@ -10,7 +10,7 @@ import csv
 import json
 import sys
 
-REPO = r"C:\Users\ptyRa\Dev\FFTItemOverhaul"
+REPO = r"C:\Users\ptyRa\Dev\FFTLivingWeapons"
 
 CAT_DMG = {
     "Knife": "(PA+Sp)/2 x WP",

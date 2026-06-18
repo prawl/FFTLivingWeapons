@@ -1,6 +1,6 @@
 ﻿{
-  "ModId": "prawl.fft.itemoverhaul",
-  "ModName": "FFT Item Overhaul",
+  "ModId": "prawl.fft.livingweapons",
+  "ModName": "FFT Living Weapons",
   "ModAuthor": "prawl",
   "ModVersion": "2.1.0",
   "ModDescription": "Every piece of gear and some items rebalanced so nothing ever becomes vendor trash. Bundles the Living Weapon runtime (weapons grow as they kill) and Treasure Master (equip the Scholar's Ring to reveal hidden treasure on the battlefield). Authoritative item mod, so disable other item-rebalance mods (e.g. Regabonds Rebalance, Equipment Replacer).",

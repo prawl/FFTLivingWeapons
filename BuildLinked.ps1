@@ -1,4 +1,4 @@
-# BuildLinked.ps1 - local build + deploy of prawl.fft.itemoverhaul into Reloaded-II.
+# BuildLinked.ps1 - local build + deploy of prawl.fft.livingweapons into Reloaded-II.
 #
 # Local-dev counterpart to Publish.ps1 (which builds the production release zip).
 # Mirrors the sibling FFTColorCustomizer's BuildLinked / Publish split:
@@ -31,7 +31,7 @@ $flavor = "DEV"
 if ($Prod) { $flavor = "PROD" }
 
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "   FFT Item Overhaul - $flavor BUILD (linked)" -ForegroundColor Cyan
+Write-Host "   FFT Living Weapons - $flavor BUILD (linked)" -ForegroundColor Cyan
 if ($Prod) {
     Write-Host "   (production thresholds, no kill seeding)" -ForegroundColor Cyan
 }
@@ -39,7 +39,7 @@ Write-Host "============================================" -ForegroundColor Cyan
 
 try {
     $root    = $PSScriptRoot
-    $modId   = "prawl.fft.itemoverhaul"
+    $modId   = "prawl.fft.livingweapons"
     $modsDir = $env:RELOADEDIIMODS
     if (-not $modsDir) {
         $modsDir = "C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods"

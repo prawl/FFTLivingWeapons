@@ -4,8 +4,8 @@ replace the grid's rows with ids 51-58 by the rods sheet's data rows (in id orde
 at the position of the grid's first rod row). Everything else round-trips untouched."""
 import io
 
-GRID = r"C:\Users\ptyRa\Dev\FFTItemOverhaul\docs\living_weapon_grid.csv"
-RODS = r"C:\Users\ptyRa\Dev\FFTItemOverhaul\docs\living_weapon_rods.csv"
+GRID = r"C:\Users\ptyRa\Dev\FFTLivingWeapons\docs\living_weapon_grid.csv"
+RODS = r"C:\Users\ptyRa\Dev\FFTLivingWeapons\docs\living_weapon_rods.csv"
 ROD_IDS = {str(i) for i in range(51, 59)}
 
 

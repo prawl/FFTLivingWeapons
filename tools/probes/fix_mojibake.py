@@ -3,8 +3,8 @@ transform (encode cp1252 -> decode utf-8) succeeds and changes the text, apply i
 import io
 
 PATHS = [
-    r"C:\Users\ptyRa\Dev\FFTItemOverhaul\docs\HANDOFF.md",
-    r"C:\Users\ptyRa\Dev\FFTItemOverhaul\docs\DEV_TEST_RECIPES.md",
+    r"C:\Users\ptyRa\Dev\FFTLivingWeapons\docs\HANDOFF.md",
+    r"C:\Users\ptyRa\Dev\FFTLivingWeapons\docs\DEV_TEST_RECIPES.md",
 ]
 
 for p in PATHS:

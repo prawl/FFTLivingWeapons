@@ -1,4 +1,4 @@
-# FFT Item Overhaul
+# FFT Living Weapons
 
 **Every item in Final Fantasy Tactics: The Ivalice Chronicles, rebalanced so old gear never becomes vendor trash.**
 
@@ -35,9 +35,9 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 ## Install
 
 1. Install Reloaded-II and the FFT:IVC modloader (above).
-2. Download the latest `FFTItemOverhaul-*.zip` from [Releases](../../releases).
+2. Download the latest `FFTLivingWeapons-*.zip` from [Releases](../../releases).
 3. In Reloaded-II, drag the zip onto the mod list (or extract it into your `Reloaded/Mods` folder).
-4. Enable **FFT Item Overhaul** in the mod list. The modloader dependency will be fetched automatically if missing.
+4. Enable **FFT Living Weapons** in the mod list. The modloader dependency will be fetched automatically if missing.
 5. **Restart the game.** This is a data-only mod; changes take effect on launch, not live.
 
 ## Compatibility: disable conflicting item mods

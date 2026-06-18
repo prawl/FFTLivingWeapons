@@ -9,7 +9,7 @@ import csv
 import json
 from pathlib import Path
 
-ROOT = Path(r"C:\Users\ptyRa\Dev\FFTItemOverhaul")
+ROOT = Path(r"C:\Users\ptyRa\Dev\FFTLivingWeapons")
 GRID = ROOT / "docs" / "living_weapon_grid.csv"
 KNIVES = ROOT / "docs" / "living_weapon_knives.csv"
 ITEMS = ROOT / "data" / "items.json"

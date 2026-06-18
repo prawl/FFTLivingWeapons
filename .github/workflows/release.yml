@@ -1,4 +1,4 @@
-# GitHub Actions workflow for FFT Item Overhaul
+# GitHub Actions workflow for FFT Living Weapons
 # Builds and publishes the Reloaded-II mod (data tables + Living Weapon DLL).
 # Mirrors the sibling color mod's release pipeline.
 #
@@ -7,7 +7,7 @@
 #   - GitHub Release (on tag push: vX.Y.Z)
 #   - Automatic changelog generation
 
-name: Build and Publish FFT Item Overhaul
+name: Build and Publish FFT Living Weapons
 
 on:
   push:
@@ -126,7 +126,7 @@ jobs:
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: FFTItemOverhaul-${{ github.sha }}
+        name: FFTLivingWeapons-${{ github.sha }}
         path: ${{ steps.publish.outputs.zip }}
         retention-days: 30
 
@@ -141,7 +141,7 @@ jobs:
       uses: softprops/action-gh-release@v2
       if: env.IS_RELEASE == 'true'
       with:
-        name: FFT Item Overhaul ${{ env.RELEASE_TAG }}
+        name: FFT Living Weapons ${{ env.RELEASE_TAG }}
         body_path: ${{ env.PUBLISH_CHANGELOG_PATH }}
         files: ${{ steps.publish.outputs.zip }}
         draft: false

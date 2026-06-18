@@ -13,7 +13,7 @@ public class ConfiguratorMixinBase
     public virtual IUpdatableConfigurable[] MakeConfigurations(string configFolder)
     {
         var path   = Path.Combine(configFolder, "Config.json");
-        var config = Configurable<Config>.FromFile(path, "FFT Item Overhaul Configuration");
+        var config = Configurable<Config>.FromFile(path, "FFT Living Weapons Configuration");
         return new IUpdatableConfigurable[] { config };
     }
 }

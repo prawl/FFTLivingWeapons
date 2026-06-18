@@ -33,7 +33,7 @@ from ct_probe import PROC, PV, find_pid, k32, rd
 
 REC = 25
 PRE15_BASE = 0x140679436 - 27 * 25            # = 0x140679193 (pre-1.5 rec0 AbilityId1)
-ABILITY_DB = r"C:\Users\ptyRa\Dev\FFTItemOverhaul\working\nxd_ability\ability.sqlite"
+ABILITY_DB = r"C:\Users\ptyRa\Dev\FFTLivingWeapons\working\nxd_ability\ability.sqlite"
 
 # scan window (main module: base 0x140000000, 1.5 SizeOfImage 0x190EB000)
 SCAN_LO = 0x140000000

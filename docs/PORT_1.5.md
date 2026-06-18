@@ -1,6 +1,6 @@
-# Porting FFTItemOverhaul to FFT:IC 1.5 (New Game+)
+# Porting FFTLivingWeapons to FFT:IC 1.5 (New Game+)
 
-> This is the resume-from-cold guide for porting `prawl.fft.itemoverhaul` to the FFT:IC 1.5
+> This is the resume-from-cold guide for porting `prawl.fft.livingweapons` to the FFT:IC 1.5
 > content patch. It assumes you are picking this up weeks after the patch dropped and have
 > forgotten the details. Read sections 1-2 first, then work sections 4-5. Everything you need
 > to start cleanly is here; the appendices are the concrete checklists.

@@ -16,7 +16,7 @@ from lib.paths import ROOT, MOD_ITEM_NXD, RELOADED_MODS
 
 SQLITE = ROOT / "working" / "pilot_item.sqlite"
 ENC_DIR = ROOT / "working" / "nxd_out"
-DEPLOY_NXD = (RELOADED_MODS / "prawl.fft.itemoverhaul" / "FFTIVC" / "data"
+DEPLOY_NXD = (RELOADED_MODS / "prawl.fft.livingweapons" / "FFTIVC" / "data"
               / "enhanced" / "nxd" / "item.en.nxd")
 
 c = sqlite3.connect(SQLITE)

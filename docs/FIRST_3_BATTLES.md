@@ -5,7 +5,7 @@ This covers the Section 6 GO/NO-GO. Skip every [EDGE] box for now. Don't touch W
 
 **Watch the log live first** (paste into PowerShell, leave it running in a side window):
 ```powershell
-Get-Content "C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods\prawl.fft.itemoverhaul\livingweapon.log" -Wait -Tail 40
+Get-Content "C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods\prawl.fft.livingweapons\livingweapon.log" -Wait -Tail 40
 ```
 **Whole-session PASS rule:** you NEVER see a line starting `tick:` (a signature threw), and every fight ends
 with exactly one `battle: ended`. That alone is GO/NO-GO #8.

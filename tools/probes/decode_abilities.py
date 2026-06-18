@@ -1,6 +1,6 @@
 import sqlite3, glob, os
 
-os.chdir(r"C:\Users\ptyRa\Dev\FFTItemOverhaul")
+os.chdir(r"C:\Users\ptyRa\Dev\FFTLivingWeapons")
 for db in glob.glob("working/**/*.sqlite", recursive=True):
     con = sqlite3.connect(db)
     try:

@@ -19,7 +19,7 @@ from lib.paths import MOD_TABLES, RELOADED_MODS
 ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 else None   # default: data/items.json (lib.paths)
 MODS = Path(sys.argv[2]) if len(sys.argv) > 2 else RELOADED_MODS
 
-OUR_MOD_ID = "prawl.fft.itemoverhaul"
+OUR_MOD_ID = "prawl.fft.livingweapons"
 ITEM_TABLES = ["ItemData", "ItemWeaponData", "ItemArmorData", "ItemAccessoryData",
                "ItemShieldData", "ItemEquipBonusData", "ItemShopsData", "MapTrapFormationData"]
 

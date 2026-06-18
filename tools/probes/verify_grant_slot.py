@@ -1,7 +1,7 @@
 """Assert every signature weapon's baked Grant line carries its 16-space slot."""
 import sqlite3
 
-con = sqlite3.connect(r"C:\Users\ptyRa\Dev\FFTItemOverhaul\working\pilot_item.sqlite")
+con = sqlite3.connect(r"C:\Users\ptyRa\Dev\FFTLivingWeapons\working\pilot_item.sqlite")
 ok = True
 for key in [3, 4, 6, 8, 9, 10]:
     (desc,) = con.execute('SELECT Description FROM "Item-en" WHERE Key=?', (key,)).fetchone()

@@ -33,7 +33,7 @@ ABILITY_BASE = 0x14067E213          # 1.5 re-found +0x5080 (was 0x140679436 - 27
 REC = 25
 NREC = 200
 UNDO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "barrage_undo.json")
-ABILITY_DB = r"C:\Users\ptyRa\Dev\FFTItemOverhaul\working\nxd_ability\ability.sqlite"
+ABILITY_DB = r"C:\Users\ptyRa\Dev\FFTLivingWeapons\working\nxd_ability\ability.sqlite"
 
 _names = None
 

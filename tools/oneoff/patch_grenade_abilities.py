@@ -25,7 +25,7 @@ from lib.nxd import encode_sqlite_to_nxd, deploy_nxd
 from lib.paths import ROOT, MOD_ABILITY_NXD, RELOADED_MODS
 
 SQLITE = ROOT / "working" / "nxd_ability" / "ability.sqlite"
-LIVE_NXD = (RELOADED_MODS / "prawl.fft.itemoverhaul" / "FFTIVC" / "data"
+LIVE_NXD = (RELOADED_MODS / "prawl.fft.livingweapons" / "FFTIVC" / "data"
             / "enhanced" / "nxd" / "ability.en.nxd")
 ENC_DIR = ROOT / "working" / "nxd_out_ability"
 

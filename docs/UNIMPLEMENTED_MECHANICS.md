@@ -19,7 +19,7 @@ NOT SOLD YET -- open issues:
 DECISIONS TO MAKE: (1) embrace the Dispose look ("construct-shard" flavor) / hunt an alt self-cost formula /
 drop the self-cost entirely; (2) final Y (power) + X (recoil ratio) tuning.
 REVERT: items.json id37 was {formula:1, onHitAbilityId:17 (petrify), identity Doom-on-hit}; live nxd backups
-at .../prawl.fft.itemoverhaul/FFTIVC/data/enhanced/nxd/*.prebloodpact_bak; ability slot 219 was "Crushing Blow".
+at .../prawl.fft.livingweapons/FFTIVC/data/enhanced/nxd/*.prebloodpact_bak; ability slot 219 was "Crushing Blow".
 
 
  1. Living Weapons (evolve from how you fight). A plain starter blade that grows by use. The companion logs
@@ -84,7 +84,7 @@ COST/RISKS: needs FFTHandsFree running as a LIVE COMPANION (not a drop-in data m
 HW breakpoints) -> we POLL (poll on turn transitions, tolerate the rare miss for a flavor counter). Edge cases
 to rule on: AoE multi-kills, counter-kills (enemy-turn kills via Reaction), assist credit.
 PLAN: prototype the whole loop in FFTHandsFree (Python via the bridge first, for fast iteration), then xfer
-the finished mechanic to FFTItemOverhaul once happy.
+the finished mechanic to FFTLivingWeapons once happy.
 FIRST PROVE-OUT: a bare kill-WATCHER that just LOGS "unit X w/ weapon#Y killed enemy#Z" in a live battle. If
 that log is accurate, the counter + growth are downhill.
 

@@ -1,4 +1,4 @@
-# .gitignore for prawl.fft.itemoverhaul
+# .gitignore for prawl.fft.livingweapons
 #
 # Self-contained: this repo does NOT rely on ~/.gitignore_global. Every rule the
 # project needs lives here so a fresh clone on any machine ignores the right

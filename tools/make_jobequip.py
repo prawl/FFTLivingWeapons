@@ -54,7 +54,7 @@ generic = {jid for jid in range(61, 94) if is_human(jid)}   # equippability targ
 human = [jid for jid in sorted(jobs) if is_human(jid)]      # dodge-dial targets (every human job)
 
 out = ['<?xml version="1.0" encoding="utf-8"?>',
-       '<!-- FFTItemOverhaul: widened generic-job equip + shields, and a class-evade floor on every human job. Load after other job mods. -->',
+       '<!-- FFTLivingWeapons: widened generic-job equip + shields, and a class-evade floor on every human job. Load after other job mods. -->',
        '<JobTable>', '  <Version>1</Version>', '  <Entries>']
 log = []
 for jid in human:
