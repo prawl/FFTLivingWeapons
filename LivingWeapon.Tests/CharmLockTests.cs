@@ -11,10 +11,11 @@ namespace LivingWeapon.Tests;
 /// reads/writes (find the copy, hold the bytes) are integration; this nails the count + clear timing.
 ///
 /// Also covers the anti-cheese invariant (only ONE enemy is ever charm-LOCKED -- newest charm wins,
-/// the previous is dropped) and the heartbeat timeout (the lock deactivates when no live-battlefield
-/// heartbeat has arrived for a while, so it stops spamming after a battle ends). The lock bookkeeping
-/// is exercised directly: Mem reads/writes against unmapped addresses are safe no-ops in the test
-/// process (RPM/WPM return false), so AdoptOrTransfer's state transitions are observable.
+/// the previous is dropped) and the LIVENESS model (no heartbeat: an inLive=false tick -- world map
+/// or a between-turn mode-0 lull -- simply IDLES and preserves the lock; teardown is ResetBattle on
+/// the battle-exit edge). The lock bookkeeping is exercised directly: Mem reads/writes against
+/// unmapped addresses are safe no-ops in the test process (RPM/WPM return false), so AdoptOrTransfer's
+/// state transitions are observable.
 /// </summary>
 public class CharmLockTests
 {
@@ -57,37 +58,23 @@ public class CharmLockTests
         Assert.Equal(expected, CtTurns.IsTurn(last, cur));
     }
 
-    // --- #7 heartbeat timeout: no live-battlefield beat for the timeout window -> deactivate ---
-
-    [Theory]
-    [InlineData(0, false)]
-    [InlineData(1999, false)]
-    [InlineData(2000, false)]    // exactly the timeout is not yet PAST it
-    [InlineData(2001, true)]
-    [InlineData(9000, true)]
-    public void HeartbeatExpired_trips_only_after_the_timeout(int elapsedMs, bool expected)
-    {
-        var t0 = new DateTime(2026, 1, 1);
-        Assert.Equal(expected, CharmLock.HeartbeatExpired(t0.AddMilliseconds(elapsedMs), t0, 2000));
-    }
+    // --- liveness: a long inLive=false lull must NOT drop the lock (no heartbeat timeout) ---
 
     [Fact]
-    public void Tick_timeout_drops_the_lock_via_deactivate_leaving_the_held_bytes_untouched()
+    public void Tick_long_inLive_false_lull_preserves_the_lock_no_heartbeat_timeout()
     {
+        // REGRESSION (the live charm-break): the old 2s heartbeat timed the lock out during the
+        // between-turn mode-0 lulls (~4s on 1.5), dropping the charm mid-combat so the next hit broke
+        // it. There is no heartbeat now -- an inLive=false stretch of ANY length just idles and
+        // PRESERVES the lock and its held bytes; only ResetBattle (battle-exit edge) tears it down.
         using var enemy = MappedEnemy((100, 20, 70, 50), charmed: true);
         var cl = New();
         cl.AdoptOrTransfer(new[] { (enemy.Addr, (100, 20, 70, 50)) });
-        Assert.NotNull(cl.LockedFingerprint);
-
         var t0 = new DateTime(2026, 1, 1);
-        cl.Heartbeat(t0);
-        cl.Tick(t0.AddMilliseconds(CharmLock.TimeoutMs + 1000), inLive: true);   // no beat for the window -> timeout
-        Assert.Null(cl.LockedFingerprint);                          // lock dropped, no more spam
-
-        // The timeout path (Deactivate) drops tracking WITHOUT touching the held bytes; a fall-through
-        // to Drive WOULD force-clear the charm bit. A still-set bit proves it was the timeout branch --
-        // delete that branch and Drive(0) clears the bit, failing this assert.
-        Assert.NotEqual(0, Charm(enemy.Bytes, CharmLock.CharmStatusOff));
+        for (int s = 0; s < 30; s++) cl.Tick(t0.AddSeconds(s), inLive: false);   // 30s of mode-0 lull
+        Assert.NotNull(cl.LockedFingerprint);                                     // lock survived the lull
+        Assert.NotEqual(0, Charm(enemy.Bytes, CharmLock.CharmStatusOff));         // status byte untouched
+        Assert.NotEqual(0, Charm(enemy.Bytes, CharmLock.CharmAllegOff));          // control byte untouched
     }
 
     // --- #1 anti-cheese: exactly one enemy locked, newest charm wins, previous dropped ---
@@ -140,8 +127,8 @@ public class CharmLockTests
         cl.AdoptOrTransfer(new[] { (enemyB.Addr, (120, 25, 60, 40)) });   // charm B -> transfer, drop A
 
         Assert.Equal((120, 25, 60, 40), cl.LockedFingerprint!.Value);
-        Assert.Equal(0, Charm(enemyA.Bytes, CharmLock.CharmStatusOff));   // A's charm dropped
-        Assert.Equal(0, Charm(enemyA.Bytes, CharmLock.CharmAllegOff));    // and its allegiance flag
+        Assert.Equal(0, Charm(enemyA.Bytes, CharmLock.CharmStatusOff));   // A's charm status dropped
+        Assert.Equal(0, Charm(enemyA.Bytes, CharmLock.CharmAllegOff));    // and its AI-control/allegiance bit
         Assert.NotEqual(0, Charm(enemyB.Bytes, CharmLock.CharmStatusOff));// B untouched -> still charmed
     }
 
@@ -180,15 +167,14 @@ public class CharmLockTests
     [Fact]
     public void Tick_inLive_false_issues_no_writes_when_lock_is_armed()
     {
-        // An armed lock with a valid heartbeat but inLive=false should write nothing and leave the
-        // held bytes untouched. No Detect, no Drive, no SetCharm calls.
+        // An armed lock ticked with inLive=false (world map / mode-0 lull) writes nothing and leaves
+        // the held bytes untouched. No Detect, no Drive, no SetCharm calls -- it idles, and the lock
+        // stays armed (only ResetBattle releases it).
         using var enemy = MappedEnemy((100, 20, 70, 50), charmed: true);
         var cl = New();
         cl.AdoptOrTransfer(new[] { (enemy.Addr, (100, 20, 70, 50)) });
 
         var t0 = new DateTime(2026, 1, 1);
-        cl.Heartbeat(t0);
-        // Tick with fresh heartbeat (timeout not expired) but inLive=false
         cl.Tick(t0.AddMilliseconds(100), inLive: false);
 
         // Charm bytes must not have been touched (no Drive write)
@@ -199,21 +185,21 @@ public class CharmLockTests
     }
 
     [Fact]
-    public void Tick_inLive_false_releases_lock_after_timeout()
+    public void Drive_hold_restamps_both_the_charm_status_and_the_control_byte()
     {
-        // Even with inLive=false the heartbeat-timeout release path must still fire.
-        using var enemy = MappedEnemy((100, 20, 70, 50), charmed: true);
+        // FIX 1 (revert of the wrong fix-2): charm is TWO pieces of state on the authoritative copy --
+        // +0x49 bit 0x20 = status/icon, +0x54 bit 0x20 = AI control/allegiance. The breaking hit clears
+        // BOTH, so the hold must re-stamp BOTH. +0x54's low bits drift like an engine counter; Force ORs
+        // ONLY the 0x20 bit, leaving them intact. Seed +0x54 = 0x1D (control bit CLEAR, counter = 0x1D --
+        // a real value the live probe saw it drift to): after the hold it must read 0x3D (0x1D | 0x20),
+        // proving the control bit was OR-set while the drifting counter bits were preserved.
+        using var enemy = MappedEnemy((100, 20, 70, 50), charmed: false);
+        enemy.Bytes[CharmLock.CharmAllegOff] = 0x1D;
         var cl = New();
         cl.AdoptOrTransfer(new[] { (enemy.Addr, (100, 20, 70, 50)) });
-
-        var t0 = new DateTime(2026, 1, 1);
-        cl.Heartbeat(t0);
-        // Well past the timeout, inLive=false
-        cl.Tick(t0.AddMilliseconds(CharmLock.TimeoutMs + 1000), inLive: false);
-
-        Assert.Null(cl.LockedFingerprint);
-        // Deactivate path: bytes untouched (not Drive-cleared)
-        Assert.NotEqual(0, Charm(enemy.Bytes, CharmLock.CharmStatusOff));
+        cl.Drive(3);   // hold: counted(0) < lockTurns(3) -> SetCharm(addr, hold:true)
+        Assert.NotEqual(0, Charm(enemy.Bytes, CharmLock.CharmStatusOff));  // +0x49 status held
+        Assert.Equal(0x3D, enemy.Bytes[CharmLock.CharmAllegOff]);          // +0x54 control bit OR-set, counter kept
     }
 
     [Fact]
@@ -228,7 +214,6 @@ public class CharmLockTests
         Assert.NotNull(cl.LockedFingerprint);
 
         var t0 = new DateTime(2026, 1, 1);
-        cl.Heartbeat(t0);
         // Tick in-live: Drive runs, lockTurns==0 so hold=false, charm bytes cleared
         cl.Tick(t0.AddMilliseconds(100), inLive: true);
 

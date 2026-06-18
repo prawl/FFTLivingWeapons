@@ -6,9 +6,15 @@ namespace LivingWeapon;
 /// <summary>
 /// Galewind's signature: while a +3 Galewind is equipped, ONE charm the party lands on an enemy is
 /// held UNBREAKABLE for N of that enemy's turns, then force-cleared. Mechanism PROVEN live (memory
-/// charm-unbreakable-bytes): the AUTHORITATIVE unit copy (0x14184xxxx, static-array layout) carries
-/// charm at base+0x49 (status, mask 0x20) and an allegiance flag at base+0x54 (0x20). Re-stamping
-/// both each tick beats the engine's on-hit clear; zeroing them after N turns ends it cleanly.
+/// charm-unbreakable-bytes): on the AUTHORITATIVE unit copy (0x14184xxxx, static-array layout) charm
+/// is TWO separate pieces of state, and the breaking hit clears BOTH --
+///   * base+0x49 bit 0x20 = charm STATUS / ICON (a memory probe can see this one).
+///   * base+0x54 bit 0x20 = charm AI CONTROL / ALLEGIANCE -- who the unit fights for. A probe CANNOT
+///     see this (it's AI behaviour, not a visible flag); the live trap was reading the icon persist
+///     and assuming the control bit was irrelevant. It is multi-purpose: its low bits drift like an
+///     engine counter, so the hold ORs ONLY the 0x20 bit and leaves the counter alone.
+/// So the hold re-stamps BOTH bytes each tick to beat the engine's on-hit clear; zeroing BOTH after
+/// N turns ends it cleanly (drop only +0x49 and the AI reverts to hostile even with the icon gone).
 ///
 /// ANTI-CHEESE: only ONE enemy is ever locked (else you charm-lock the whole field and win). The
 /// lock is newest-wins -- landing a charm on a new enemy drops the previous one and moves the lock
@@ -17,8 +23,12 @@ namespace LivingWeapon;
 /// DETECTION: enumerate REAL enemies from the static array (sane filter -> no phantoms), then in one
 /// band pass match each one's fingerprint and read its charm bit LIVE off the authoritative copy.
 /// TURN COUNT: off the locked enemy's own CT (+0x25) -- full during its turn, resets when it acts.
-/// HEARTBEAT: the engine pings on every live-battlefield tick; if pings lapse (battle ended even
-/// though the sticky sentinel lies) the lock deactivates and goes quiet. Every read/write is guarded.
+/// LIVENESS: no heartbeat. The engine gates Tick on BattleState.BattleDisplayed (mode != 0): on the
+/// world map / party menu (mode 0) Tick idles, so the lock goes quiet post-battle. Critically, the
+/// between-turn mode-0 LULLS also idle Tick -- it does NOT time the lock out, so the lock survives
+/// the lulls and resumes holding when the map redraws. The lock drops itself when the locked enemy's
+/// copy stops matching its fingerprint (<see cref="Valid"/>), and is torn down on the debounced
+/// battle-exit edge via <see cref="ResetBattle"/>. Every read/write is guarded.
 /// </summary>
 internal sealed partial class CharmLock : ISignature
 {
@@ -36,7 +46,6 @@ internal sealed partial class CharmLock : ISignature
     // The single charm-locked enemy (anti-cheese): authoritative-copy address, its fingerprint,
     // turns counted, and the last CT seen. null = nothing locked.
     private (long addr, (int mhp, int lvl, int br, int fa) fp, int counted, int lastCt)? _lock;
-    private DateTime _lastBeat;
     private bool _wasActive;
     private int _tick, _dbg;
 
@@ -47,20 +56,19 @@ internal sealed partial class CharmLock : ISignature
         _kills = kills;
     }
 
-    public void ResetBattle() { _lock = null; _wasActive = false; _tick = 0; _dbg = 0; _lastBeat = default; }
+    public void ResetBattle() { _lock = null; _wasActive = false; _tick = 0; _dbg = 0; }
 
     /// <summary>The fingerprint of the one locked enemy, or null (exposed for tests).</summary>
     internal (int mhp, int lvl, int br, int fa)? LockedFingerprint => _lock?.fp;
 
-    /// <summary>Engine pings this on every live-battlefield tick; lapsed pings time the lock out.</summary>
-    public void Heartbeat(DateTime now) => _lastBeat = now;
-
-    /// <param name="inLive">True on a genuine live-battlefield frame (<see cref="BattleState.InLiveBattle"/>).
-    /// False: only the heartbeat-timeout release path runs; no Detect, Drive, or writes.</param>
+    /// <param name="inLive">The engine passes <see cref="BattleState.BattleDisplayed"/> here (true on
+    /// battle-map frames, mode != 0). False on the world map AND during the between-turn mode-0 lulls:
+    /// Tick then no-ops, PRESERVING the lock (there is no heartbeat to time it out), so the lock
+    /// survives the lulls and resumes holding when the map redraws. <see cref="ResetBattle"/> tears
+    /// the lock down on the real battle-exit edge.</param>
     public void Tick(DateTime now, bool inLive)
     {
-        if (HeartbeatExpired(now, _lastBeat, TimeoutMs)) { Deactivate(); return; }
-        if (!inLive) return;
+        if (!inLive) return;   // world map or a between-turn mode-0 lull: idle, PRESERVING the lock
         int lockTurns = ActiveLockTurns();
         if ((lockTurns > 0) != _wasActive)
         {
@@ -69,15 +77,6 @@ internal sealed partial class CharmLock : ISignature
         }
         if (lockTurns > 0 && _tick++ % 6 == 0) Detect();   // band scan is heavy -> ~every 200ms
         Drive(lockTurns);                                   // hold/clear every tick (beats on-hit clear)
-    }
-
-    /// <summary>Heartbeat lapsed (battle ended). Drop the lock and go quiet; log the edge once.</summary>
-    private void Deactivate()
-    {
-        _lock = null;
-        _tick = 0;
-        _dbg = 0;
-        if (_wasActive) { _wasActive = false; Log.Info("charm-lock: inactive -- battle ended, lock released"); }
     }
 
     /// <summary>charmLockTurns if a +3 Galewind is equipped by any roster unit, else 0.</summary>
@@ -133,7 +132,8 @@ internal sealed partial class CharmLock : ISignature
     }
 
     /// <summary>Hold the charm bytes on the locked enemy, counting its turns off CT; clear after N.</summary>
-    private void Drive(int lockTurns)
+    // internal for test reach: the hold path is unreachable via Tick (needs a live Galewind roster).
+    internal void Drive(int lockTurns)
     {
         if (_lock is not { } L) return;
         if (!Valid(L.addr, L.fp)) { _lock = null; return; }   // copy moved/freed -> re-detect later
@@ -153,6 +153,9 @@ internal sealed partial class CharmLock : ISignature
             && _mem.U8(b + Offsets.ABrave) == fp.br && _mem.U8(b + Offsets.AFaith) == fp.fa;
     }
 
+    // Charm is two pieces of state and the on-hit clear wipes BOTH: +0x49 = status/icon (probe-visible),
+    // +0x54 = AI control/allegiance (probe-INvisible). Hold/clear both. Force ORs/ANDs only the 0x20 bit,
+    // leaving +0x54's drifting low counter bits untouched.
     private void SetCharm(long b, bool on) { Force(b + CharmStatusOff, on); Force(b + CharmAllegOff, on); }
 
     private void Force(long addr, bool on)

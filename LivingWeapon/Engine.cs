@@ -25,7 +25,7 @@ internal sealed class Engine
     private readonly KillTracker _tracker;
     private readonly TurnTracker _turns;
     private readonly GrowthEngine _growth;
-    private readonly CharmLock _charm;     // named: Heartbeat is engine-driven, outside the module contract
+    private readonly CharmLock _charm;     // named: ticked pre-gate on battleDisplayed, outside the field-signature order
     private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
     private readonly ShadowBlade _shadowBlade; // named: ticks pre-gate like Barrage (JobCommand grant of Shadow Blade)
     private readonly TreasureMaster _treasure;
@@ -92,12 +92,14 @@ internal sealed class Engine
         _treasure.StartFastHold();
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
         // reset runs charm..font with Barrage between Plague and LifeSap; the in-battle tick
-        // excludes Barrage (ticks before the !nowIn early-return, learn screens included) and
+        // excludes Barrage (ticks before the !nowIn early-return, learn screens included),
         // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
-        // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
+        // and enemy turns are included; world map excluded), and excludes CharmLock (ticks
+        // pre-gate on battleDisplayed like TreasureMaster, so a held charm is not dropped
+        // mid-combat between turns). Both TreasureMaster and CharmLock stay in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
         _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
-        _fieldSignatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
+        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, larceny, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
@@ -152,10 +154,10 @@ internal sealed class Engine
         bool onField = BattleState.OnField(nowIn, battleMode);
         if (onField) _lastField = now;
         // A genuine in-battle frame: live modes, or the slot0 marker with a paused/event excuse
-        // (the marker alone lies -- it sticks at 0xFF after a battle QUIT). Feeds the heartbeat
-        // and gates every module that writes battle memory.
+        // (the marker alone lies -- it sticks at 0xFF after a battle QUIT). Gates every module that
+        // writes battle memory.
         bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
-        if (inLive) _charm.Heartbeat(now);
+        bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
         if (edge == BattleEdge.Entered)
         {
             Log.Info($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
@@ -189,8 +191,12 @@ internal sealed class Engine
         // cast animations (all mode 1 with slot9 stuck) while still excluding the world map
         // (mode 0).  It ticks here -- before the !nowIn early-return -- so it fires on
         // formation and enemy turns that nowIn might not cover.
-        bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
         _treasure.Tick(now, battleDisplayed);
+        // CharmLock gates on battleDisplayed (mode != 0), not strict InLiveBattle. A held charm survives
+        // the between-turn mode-0 lulls because Tick merely IDLES when battleDisplayed is false (it does
+        // NOT time the lock out -- there is no heartbeat), then resumes holding when the map redraws.
+        // ResetBattle (battle-exit edge, via _signatures) is the teardown. Same pre-gate slot as TreasureMaster.
+        _charm.Tick(now, battleDisplayed);
         if (!nowIn)
         {
             // Scholar's Ring: ensure the player always has at least one (idempotent).

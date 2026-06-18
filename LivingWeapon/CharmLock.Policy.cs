@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -9,15 +8,6 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class CharmLock
 {
-    /// <summary>No live-battlefield heartbeat for this long => the lock deactivates. The in-battle
-    /// sentinel (slot9) goes sticky on the world map, so a battle can "end" while the engine still
-    /// thinks it's running; without this the lock would scan + log forever post-battle.</summary>
-    public const double TimeoutMs = 2000;
-
-    /// <summary>True once it's been longer than <paramref name="timeoutMs"/> since the last heartbeat.</summary>
-    public static bool HeartbeatExpired(DateTime now, DateTime lastBeat, double timeoutMs) =>
-        (now - lastBeat).TotalMilliseconds > timeoutMs;
-
     /// <summary>
     /// Newest-wins single-lock decision (anti-cheese: only ever ONE enemy is held). Given the
     /// currently-locked enemy (or null) and the enemies found charmed this scan, pick the lock
