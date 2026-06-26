@@ -21,10 +21,33 @@ New Buffs Exploration
 9. PROVEN Barrage: parked on two decisions (job-wide vs per-unit, and the blank-name problem).
 10 PROVEN Give Spiritual Font: Lifefont and Manafont to a single character
 11. PUPPETEER (signature; victim status "Puppet") — REPLACES Charm-Lock/Galewind (#6; vanilla charm is broken, this is strictly better: real menu control vs flaky charm-AI). Enemy-control PROVEN LIVE 2026-06-18. LOCKED DESIGN: reliable on a +3 weapon hit (NO rng) → puppet the struck enemy for its NEXT turn (full move + skillset), revert to AI at the turn boundary; ONE puppet at a time + 3-turn cooldown (counts the WIELDER's own turns); target gate = NO bosses/special/monster-class (job-id gate); NO hp gate, NO level gate (silent level-fail = bad UX); +/+2 = stat growth only (only +3 carries the ability). Class Puppeteer.cs + Puppeteer.Policy.cs. Build order: START with the boss/monster job-id gate as a pure policy + tests. Also the multiplayer primitive (see Dev/FFTMultiplayer). On hit by the +3 wielder, set bit 0x08 at the struck enemy's combat struct +0x05 → full MENU control of that enemy: move + its ENTIRE skillset (verified live casting Fire on its own allies; unit stays team-1 so it can turn on its own line). One write PERSISTS across turns (authoritative struct holds itself — no per-tick fight). Build as a CharmLock/Maim clone: on latch save the original +0x05 byte, own it, then RELEASE after N of the victim's turns (CtTurns off +0x09) by writing the saved byte back → AI (permanent variant = never release; battle-exit struct-rebuild cleans up). Flag: combat +0x05 bit 0x08 (SET=human / CLEAR=AI). CombatAnchor 0x141855CE0, stride 0x200; locate the victim via the usual lvl(+0x29)/brave(+0x2A)/faith(+0x2C)/weapon(+0x20) fingerprint. Mechanism found via Dicene's `fftivc.handsfree` mod (does the INVERSE — clears 0x08 to AI-ify the player team — and SIGSCANS the struct, so it's 1.5-proof; decompiled source in Downloads/FFT_-_HandsFree1.0.0/decompiled).
+12. PROVEN LIVE 2026-06-21: GUN SLINGER (+3 signature) -- force-equips a SECOND gun in the off-hand so the
+   wielder dual-wields and a basic Attack FIRES TWICE (two ranged shots, each rolls its own hit/damage; mix
+   elements, e.g. Stoneshooter Earth + Glacial Ice in one action). Verified live on Ramza (Stoneshooter 73
+   main + Glacial Gun 74 off-hand -- both fired). Mechanism: write a gun id into the roster OFF-HAND slot
+   +0x18 (base 0x1411A7D10, locate the unit by nameId +0x230; equip block = +0x14 main / +0x16 lhand /
+   +0x18 off-hand / +0x1A shield; IDS ARE items.json ids -- guns 71-76, 73=Stoneshooter, 67=Warbrand,
+   NOT vanilla FFTPatcher). REQUIRES the wielder to have Dual Wield (Two Swords) support equipped -- that
+   gate is what makes the engine render + fire the off-hand gun. Equip is construction-bound (no proven
+   mid-battle weapon swap), so ship as a between-battles roster-prep: +3 awakened -> write the off-hand gun
+   -> materializes on next battle entry. Do NOT write while the PartyMenu is open (it clobbers the slot --
+   bit us live, off-hand read back garbage). Probe: tools/probes/dualgun_probe.py (find_pid now targets the
+   largest-working-set process; a duplicate FFT_enhanced instance silently ate every write for ~10 turns).
+   See memory dual-gun-equip-write-proven. OVERTURNS the earlier "guns dual-wield-ineligible / construction-
+   welded" pessimism.
 
 Ideas:
 
-Discipline: Compare Bra between your unit and the enemy you just hit, taking the higher of the two as your own.
+Kobu (Samurai sword / Katana signature) -- "rousing courage." On the wielder's melee hit, compare Brave
+  between the wielder and the struck enemy; if the enemy's is higher, raise the wielder's Brave to match
+  (only ever climbs, never lowers). Thematic AND mechanical bullseye on a Katana: katana damage =
+  PA x Br/100 x WP, so every clash with a braver foe (battle-scoped) permanently sharpens the blade's own
+  bite. Feasible as write+hold per-unit state: on the hit event read victim Brave and own Brave, write
+  max() to the wielder's CURRENT Brave (combat struct +0x2B -- the displayed/effective copy; +0x2A re-
+  normalizes and never displays, charm-style decoy one byte over). Battle-scoped climb (resets on battle-
+  exit struct rebuild); an across-saves permanent variant would need the save-side Brave, not this byte.
+  Name alternatives: Funki (rousing oneself to action), Yuuki (courage), Buyu (valor). Supersedes the old
+  unnamed "Discipline" idea.
 Retain broken equipment
 
 Retain the last ability used on you.
@@ -66,4 +89,62 @@ Increase damage by how high a character is in the game
 Scrapped
 2. PROVEN: Give two counter abilities we know work together.
 3. Knockback probe (same session): write a victim's gx/gy one tile, see if the engine accepts.
+
+
+Signature Idea Bank -- creativity pass drafted 2026-06-22 (tagged by tech-distance). BUILDABLE = proven
+write+hold / CT levers today; PROBE = needs one byte confirmed; MOONSHOT = needs tech we don't have yet
+(persistent terrain state, blank-render spawn, allegiance flip). See memory dual-gun-equip-write-proven +
+the proven-lever menu before building.
+
+BUILDABLE NOW:
+- Soul Ledger (Knight sword) -- each kill this battle stacks +1 PA (+1 Speed per 3rd soul, capped); the
+  blade snowballs off corpses. Wires our own kill-tally into a live within-battle power gauge.
+- Doppelgleam (Ninja blade) -- each strike borrows the max of own-vs-target PA/MA/Speed; you fight the
+  strong foe with the strong foe's stats. StatHold reuse, sourced from the victim's bytes.
+- Beast Within (Knuckles/Godhand) -- after a melee act, Beast Form: Brave ~97 + extra PA + Speed +2 +
+  injected Counter/Hamedo. A werewolf with no sprite swap (pure write+hold + JobCommand reaction grant).
+- Loaded Dice (Knife) -- hold current Brave/Faith at a high floor so every reaction/Brave/Faith roll skews
+  good. The legal way to load the dice the walled crit-roll won't let us touch.
+- Worst Omen (execution tome / Murasame) -- curse a struck foe to roll worst-case 3 turns: zeroed Brave +
+  held Blind/Slow. Inverse of Loaded Dice; composes Cripple's Brave-hold with a status-bit hold.
+- Sovereign's Decree (Knight sword) -- on a kill, charm every enemy within 2 tiles for its next turn so the
+  cluster turns on itself. Charm bit + agency hold, area'd by adjacency reads.
+- Preemption (Crossbow/gun) -- spike CT at battle-enter so the wielder takes the literal first turn
+  regardless of Speed. Declares initiative (distinct from kill-gated Bloodthirst).
+- Twin Star Covenant (Katana pair) -- link to one ally: when you act, their CT fills so they act back-to-
+  back with you, but their Brave averages with yours. First signature to drive a SECOND unit's tempo.
+
+PROBE (one byte to confirm):
+- Frozen Cadence (time rod) -- hold Stop + pin the victim's CT at zero every tick = true single-target
+  time-stop. Probe: can we keep CT pinned so the scheduler never ticks past it?
+- Exile From the Hour (Ninja blade) -- hold victim CT massively negative; alive + targetable but never
+  seated again. Non-lethal on-hit banish. Probe: does sustained-negative CT durably bench (no clamp)?
+- Reaper's Tithe (scythe-pole) -- brand a target; below a HP threshold stamp Dead + HP-zero to execute,
+  then the mark hops to a new victim. Probe: does forcing Dead+HP0 mid-frame kill cleanly (no re-raise)?
+- Tithe of Wards (rod/stick) -- strip one buff (Haste/Protect/Regen/Reraise) off a foe and WEAR it
+  yourself. Buff theft, not dispel. Probe: map positive-status bits + confirm clear-here/set-there holds.
+- Last Word (gun) -- record the last ability an enemy used on you, re-cast it back at them. Probe: does the
+  recent-action field capture the attacker's ABILITY id? Reflects physical skills true Reflect can't.
+- Bloodpact Tether (Blood Sword) -- soul-link to an ally; damage to either splits across both HP pools; if
+  either hits 0, both fall. Probe: per-tick read-both / split / write+hold racing the engine's damage write.
+- Phylactery Oath (Chaos Blade/Ragnarok) -- first KO seeds a 3-turn timer, then snap back at full HP (later
+  kills grow at half rate). Probe: can a unit be held KO'd-but-in-roster N turns without engine eviction?
+
+MOONSHOT (needs new tech; each names the wall to break):
+- Scorched Earth (Axe) -- the killing blow ignites your tile + 4 neighbors 3 turns, and the blaze creeps
+  toward the nearest enemy. Needs persistent terrain-hazard / live ground state (FFT has none).
+- Tidewarden (Pole) -- low tiles flood one step higher each turn, drowning + Slowing grounded foes while
+  your team gains Waterwalk. Needs the static height map to move as a live clock.
+- Glacier's Verdict (Knight sword) -- the kill ices every tile: movers SLIDE until they hit a wall
+  (collision damage), reactions off, CT halved for all but the wielder. Terrain transform + sliding physics.
+- Grave Conscript (bone staff) -- slain enemies rise as undead thralls on your side. Agency bit + Undead
+  proven; the ALLEGIANCE FLIP is the walled grail (engine pool-relocation) this names. Holy grail of the lens.
+- Banner of the Slain (Spear, Holy Lance/Gungnir) -- plant the spear as a conjured totem that taunts
+  adjacent foes (Berserk) + radiates Protect/Shell. Needs the blank-render wall broken (enroll already works).
+- The Long Game (grimoire) -- every kill is a hidden move; at a secret threshold the tome resolves a board-
+  wide cataclysm whose flavor matches HOW you fought (magick kills -> Silence-storm; melee -> halve all PA).
+  Needs a playstyle read layered over kill-tracking + mass holds.
+- World Ender (Flail) -- on a kill, 3-turn Judgment: enemy tiles crack to impassable damage, gravity reels
+  their line toward you, sky-chip on anyone not adjacent, foes dying spawn spectral allies. Kitchen-sink
+  north star (terrain destruction + forced movement + field damage + visible summons, all walled).
 
