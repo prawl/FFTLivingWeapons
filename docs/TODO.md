@@ -10,6 +10,18 @@ Release TODO's
 - Ramza's Squire cannot equip Shields but normal squires can?
 - Larcency keeps popped up in the logs despite not being equipped
 - BUG: enemy Knights cast Shadow Blade without the Sanguine Sword. The Shadow Blade grant (Sanguine Sword id 23, ability 165) is injected into the Knight/Squire/Gallant Knight JobCommand record, which is JOB-global, so every unit of those jobs shows Shadow Blade as Learned regardless of equipped weapon (enemies included). Seen live: enemy Knight "Dyana" holding the Arcanum used Shadow Blade. Same class as the Barrage enemy-Thief leak, but Knights are a common enemy job so it is far more visible. Fix: gate the injected command to the actual wielder (per-unit), or restrict the grant to rare/unused enemy jobs, or remove the command-grant and use a different signature.
+- BUG: counterattack kills credit the last player who took a real turn, not the counter-attacker.
+  Witnessed live 2026-06-26: Reis (Hexweave Bag id 118) Jumped/acted and wounded an enemy; enemy took
+  its turn and hit Melioudoul; Mel COUNTERED and killed it during the enemy's turn -- credit went to Reis
+  (log: `kill: Hexweave Bag earns kill #12` at 4,10). Root cause = same family as the Jump delayed-action
+  bug but UNCOVERED by that fix. Kill credit pulls from `_lastPlayerWeapons` (KillTracker.cs:98-128),
+  stamped at the alive->dead edge (KillTracker.Corpses.cs:116-117,140). Enemies never latch (resolve
+  empty -> previous player's latch stays sticky), and a counterattacker never enters its own acted-period
+  so it never latches either. `KillTracker.Delayed.cs` only re-arms the latched actor's OWN delayed action
+  (Jump/Charge); a counter is a THIRD party (Mel) that never latched, so ConsumeDelayedCulprit returns
+  null and it falls through to the stale latch (Reis). There is currently no code path that can credit a
+  counter-attacker at all. Note: BattleLog `[w:N]` tags are just the sticky latch (BattleLog.cs:33-46), so
+  the log cannot show who really dealt each blow. Fix TBD.
 - PUPPETEER (#11) LUCAVI/BOSS CARVE-OUT: the gate is currently ALLOW-EVERYONE (`IsDominatable => true`, by user request) — so bosses/Lucavi ARE dominatable by design. We do NOT want Lucavi dominatable. The `maxHp >= 2000` latch-loop cap does NOT exclude them (a live Lucavi read 999 max HP), and it's only a garbage-read sanity cap anyway — do not lean on it. Need a real carve-out keyed to job-id band and/or name-id (the long-standing "Lucavi carve-out" — IC Lucavi/boss job ids still need mapping). Costs in-game testing time to identify the ids; deferred until we can spare it. Until then, allow-everyone ships and a Lucavi CAN be puppeted.
 
 
