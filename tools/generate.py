@@ -140,6 +140,13 @@ def extra_itemdata_entry(iid, fields):
 def itemdata_entry(it):
     s = it["proposed"]
     body = ""
+    # SpriteID (ItemData byte 0x01) picks the drawn weapon graphic, independent of
+    # ItemCategory (byte 0x05, which drives equip class + attack animation). A
+    # categoryOverride that crosses graphic families (e.g. Iron Flail's flail art
+    # forced into a Sword animation) renders the weapon offset mid-swing unless the
+    # sprite is repointed to match. 0 is a valid id (Nothing Equipped) -> test "is not None".
+    if s.get("spriteIdOverride") is not None:
+        body += f"      <SpriteID>{s['spriteIdOverride']}</SpriteID>\n"
     if "equipBonusId" in s:
         body += f"      <EquipBonusId>{s['equipBonusId']}</EquipBonusId>\n"
     if s.get("categoryOverride"):
@@ -188,7 +195,7 @@ def main():
         wrote.append(f"ItemAccessoryData.xml ({len(accessories)} accessories)")
 
     # ItemData: every item that sets an equipBonusId (shields + any weapon w/ a rider, e.g. Arcanum MA+2)
-    data_items = [it for it in items if "equipBonusId" in it["proposed"] or it["proposed"].get("categoryOverride") or it["proposed"].get("typeFlagsOverride") or it["proposed"].get("shopOverride")]
+    data_items = [it for it in items if "equipBonusId" in it["proposed"] or it["proposed"].get("categoryOverride") or it["proposed"].get("typeFlagsOverride") or it["proposed"].get("shopOverride") or it["proposed"].get("spriteIdOverride") is not None]
     if data_items or EXTRA_ITEMDATA:
         body = "".join(itemdata_entry(it) for it in data_items)
         body += "".join(extra_itemdata_entry(i, f) for i, f in sorted(EXTRA_ITEMDATA.items()))

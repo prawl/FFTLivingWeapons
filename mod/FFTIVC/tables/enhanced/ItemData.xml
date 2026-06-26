@@ -86,6 +86,7 @@
     </Item>
     <Item>
       <Id>67</Id> <!-- Warbrand (was Iron Flail) -->
+      <SpriteID>1</SpriteID>
       <ItemCategory>Sword</ItemCategory>
       <ShopAvailability>Chapter3_Start</ShopAvailability>
     </Item>
