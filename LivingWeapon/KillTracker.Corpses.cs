@@ -30,6 +30,9 @@ internal sealed partial class KillTracker
     private readonly int[] _aliveStreak = new int[Offsets.BandSlots];
     private readonly int[] _deadStreak = new int[Offsets.BandSlots];
     private readonly (byte lvl, byte br, byte fa)[] _slotId = new (byte, byte, byte)[Offsets.BandSlots];
+    // Weapon set latched when this slot's dead-streak started (alive->dead transition); null = not yet stamped.
+    // Copied from _lastPlayerWeapons at deadStreak 0->1 so a later re-latch cannot steal the credit.
+    private readonly List<int>?[] _lethalActor = new List<int>?[Offsets.BandSlots];
 
     // Alive-edge belt: true = identity last observed alive (creditable); false = last observed dead.
     // Set true on seenAlive and on revive; set false on credit or expiry-without-actor.
@@ -43,6 +46,7 @@ internal sealed partial class KillTracker
         Array.Clear(_aliveStreak, 0, _aliveStreak.Length);
         Array.Clear(_deadStreak, 0, _deadStreak.Length);
         Array.Clear(_slotId, 0, _slotId.Length);
+        Array.Clear(_lethalActor, 0, _lethalActor.Length);
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
     }
@@ -79,6 +83,7 @@ internal sealed partial class KillTracker
                 {
                     _seenAlive[s] = false; _aliveStreak[s] = 0;
                     _deadCredited[s] = false; _pending[s] = false;
+                    _lethalActor[s] = null;
                     continue;
                 }
                 _aliveStreak[s]++;
@@ -94,6 +99,7 @@ internal sealed partial class KillTracker
                     if (_deadCredited[s]) _identityAlive[(lvl, br, fa, mhp)] = true;
                     _deadCredited[s] = false;
                     _pending[s] = false;
+                    _lethalActor[s] = null;
                 }
                 continue;
             }
@@ -105,6 +111,11 @@ internal sealed partial class KillTracker
             if (!onField) continue;
 
             _deadStreak[s]++;
+            // Stamp the acting weapon set at the alive->dead edge (deadStreak 0->1).
+            // A copy is taken so a later re-latch cannot replace the stamped reference.
+            if (_deadStreak[s] == 1 && _lastPlayerWeapons.Count > 0)
+                _lethalActor[s] = new List<int>(_lastPlayerWeapons);
+
             if (_deadStreak[s] < DeadNeeded) continue;
 
             var id = (lvl, br, fa, mhp);
@@ -123,11 +134,17 @@ internal sealed partial class KillTracker
                 continue;
             }
 
+            // Use the stamp captured at the dead-streak edge when available; fall back to the live
+            // latch only if no stamp was taken (actor latched after the streak started).
+            var culprit = _lethalActor[s] ?? _lastPlayerWeapons;
+
             string statusNote = deadBit && hp > 0
                 ? " -- killed by status effect, waiting to see whose attack it was" : "";
-            if (_lastPlayerWeapons.Count > 0)
+            if (culprit.Count > 0)
             {
-                bool c = CreditKill(s, gx, gy);
+                if (_lethalActor[s] != null && !ActorResolver.SameSet(_lethalActor[s]!, _lastPlayerWeapons))
+                    Log.Info($"kill: crediting lethal-damage actor [{string.Join(",", culprit)}] over live latch [{string.Join(",", _lastPlayerWeapons)}] at slot {s} (deadStreak={_deadStreak[s]})");
+                bool c = CreditKill(s, gx, gy, culprit);
                 _deadCredited[s] = true;
                 _identityAlive[id] = false;   // dead now; no re-credit until revived
                 if (c) changed = true;
@@ -140,6 +157,7 @@ internal sealed partial class KillTracker
             else if (_actedFalls - _pendingFalls[s] >= ExpireFalls || ++_pendingAge[s] > PendingTtl)
             {
                 _deadCredited[s] = true; _pending[s] = false;
+                _lethalActor[s] = null;
                 _identityAlive[id] = false;
                 Log.Info($"kill: could not determine who killed the enemy -- no credit (battle slot {s}, waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges passed)");
             }

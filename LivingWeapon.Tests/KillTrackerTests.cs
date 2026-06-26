@@ -1284,4 +1284,63 @@ public class KillTrackerTests
         // TryResolveActingPlayer returns false for enemies -> _latched is never set -> fp stays default.
         Assert.Equal(default, t.LastActorFingerprint);
     }
+
+    // --- lethal-actor stamp: kill credit goes to the actor latched at the dead-streak EDGE ---
+
+    [Fact]
+    public void Lethal_actor_stamp_wins_over_a_re_latched_weapon_at_confirmation()
+    {
+        // Bug: a spell-kill (e.g. staff) can confirm dead (deadStreak >= DeadNeeded) AFTER a
+        // faster subsequent unit (e.g. bow) re-latched, stealing the credit. Fix: stamp the
+        // acting weapon at the dead-streak START (alive->dead transition, deadStreak 0->1) and
+        // credit THAT stamp at confirmation, ignoring any later re-latch.
+        //
+        // Construction via onField=false: the dead branch exits before _deadStreak++ when
+        // !onField, so off-field polls freeze the streak. This lets us advance the latch to a
+        // second weapon between the stamp edge and the confirmation, constructing the race in
+        // unit-test time without needing a 4-tick UnfreezeTicks cycle on-field.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+
+        // Actor 1 (staff, weapon 52): the genuine killer; latches first.
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        // Actor 2 (bow, weapon 90): a faster unit that re-latches before confirmation.
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 90);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 99, brave: 70, faith: 50);
+
+        // Actor 1 acts (staff), latch weapon 52.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t);
+        Assert.Equal(new List<int> { 52 }, t.LastPlayerWeapons);
+
+        // Enemy alive for 3 on-field ticks (seenAlive).
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t);
+
+        // Enemy dies: one on-field dead tick advances deadStreak to 1 -- stamp fires here.
+        SetUnit(m, slot: 0, hp: 0);
+        t.Poll(true);   // deadStreak = 1, stamp = {52}
+
+        // Now switch to off-field polls (streak frozen) and cycle the latch to actor 2 (bow).
+        // End actor 1's acted-period (debounced fall needs UnfreezeTicks off-field ticks with acted=0).
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        for (int i = 0; i < KillTracker.UnfreezeTicks; i++) t.Poll(false);   // fall debounce, off-field
+
+        // Actor 2 (bow) now acts -- new acted-period latches weapon 90.
+        SetActive(m, hp: 400, maxHp: 400, level: 99, acted: 1);
+        t.Poll(false);   // latch re-assigns to 90, still off-field (streak still 1)
+        Assert.Equal(new List<int> { 90 }, t.LastPlayerWeapons);   // live latch is now the bow
+
+        // Finish the death confirmation on-field (2 more dead ticks to reach DeadNeeded=3).
+        bool changed = t.Poll(true);    // deadStreak = 2
+        Assert.False(changed);
+        changed = t.Poll(true);         // deadStreak = 3 -> credit fires
+
+        Assert.True(changed);
+        // The STAMP (weapon 52, the actual killer) must be credited, not the re-latched bow.
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+        Assert.False(kills.ContainsKey(90));
+    }
 }

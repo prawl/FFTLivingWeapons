@@ -183,11 +183,11 @@ internal sealed partial class KillTracker
         return false;
     }
 
-    /// <summary>Credit all _lastPlayerWeapons for a kill at band slot s (position gx,gy).</summary>
-    internal bool CreditKill(int s, int gx, int gy)
+    /// <summary>Credit the given weapon set for a kill at band slot s (position gx,gy).</summary>
+    internal bool CreditKill(int s, int gx, int gy, List<int> weapons)
     {
         bool changed = false;
-        foreach (int w in _lastPlayerWeapons)
+        foreach (int w in weapons)
         {
             _kills.TryGetValue(w, out int c);
             _kills[w] = c + 1;
