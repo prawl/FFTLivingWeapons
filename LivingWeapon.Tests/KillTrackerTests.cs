@@ -33,10 +33,12 @@ public class KillTrackerTests
 
     /// <summary>Write a unit into the BAND entry at band slot <paramref name="slot"/>.
     /// This is the live source for corpse detection and actor resolution.
-    /// Pass level/brave/faith to make it matchable as the actor (ActorResolver reads the band).</summary>
+    /// Pass level/brave/faith to make it matchable as the actor (ActorResolver reads the band).
+    /// Pass weapon to seat the actor's equipped item at band+AWeapon (used by the
+    /// weapon-disambiguation path in FingerprintPlayer / MainHandFromRoster).</summary>
     private static void SetUnit(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                int level = 10, int brave = 50, int faith = 50)
-        => MemSeats.SeatBand(m, slot, weapon: 0, lvl: level, br: brave, fa: faith,
+                                int level = 10, int brave = 50, int faith = 50, int weapon = 0)
+        => MemSeats.SeatBand(m, slot, weapon: weapon, lvl: level, br: brave, fa: faith,
                              gx: gx, gy: gy, hp: hp, maxHp: maxHp);
 
     /// <summary>Write identity fields into the STATIC ARRAY slot so the capture oracle can
@@ -1342,5 +1344,112 @@ public class KillTrackerTests
         // The STAMP (weapon 52, the actual killer) must be credited, not the re-latched bow.
         Assert.Equal(1, kills.GetValueOrDefault(52));
         Assert.False(kills.ContainsKey(90));
+    }
+
+    // --- brave-pinned disambiguation: band weapon breaks same-fingerprint roster collision ---
+
+    [Fact]
+    public void Brave_pinned_roster_credits_the_weapon_actually_held()
+    {
+        // Live symptom: 37/38 roster units shared brave=90; multiple armed slots collapsed to
+        // the same (level,brave,faith) fingerprint with DIFFERENT weapons. Old code returned
+        // false at the first armed disagreement -> no credit. New code reads the band actor's
+        // own weapon and prefers the roster slot whose hand set contains it.
+        const int W = 52, V = 63;   // W = held by the acting unit; V = the colliding roster slot
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 80, brave: 90, faith: 65, weapon: W);
+        SetRoster(m, slot: 1, level: 80, brave: 90, faith: 65, weapon: V);
+        SetUnit(m, Wilham, hp: 350, maxHp: 350, level: 80, brave: 90, faith: 65, weapon: W);
+        SetActive(m, hp: 350, maxHp: 350, level: 80);
+        var t = new KillTracker(kills, m, Weapons);
+
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(W));
+        Assert.False(kills.ContainsKey(V));
+    }
+
+    [Fact]
+    public void Brave_pinned_roster_untracked_weapon_still_bails()
+    {
+        // Guard: same fingerprint collision but the band actor carries weapon=0 (untracked).
+        // weaponTracked=false -> weapon-matched path skipped -> legacy armedAmbiguous bail ->
+        // no credit. "A miss beats a mis-credit" survives the restructure.
+        const int W = 52, V = 63;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 80, brave: 90, faith: 65, weapon: W);
+        SetRoster(m, slot: 1, level: 80, brave: 90, faith: 65, weapon: V);
+        SetUnit(m, Wilham, hp: 350, maxHp: 350, level: 80, brave: 90, faith: 65, weapon: 0);
+        SetActive(m, hp: 350, maxHp: 350, level: 80);
+        var t = new KillTracker(kills, m, Weapons);
+
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Empty(kills);
+    }
+
+    [Fact]
+    public void Weapon_disambiguation_preserves_dual_wield()
+    {
+        // Guard: a single roster slot holds two weapons (RRHand=W, ROffHand=X); no fingerprint
+        // collision. Band actor weapon=W. Both hands must still be credited -- disambiguation
+        // must not discard the off-hand weapon from the resolved set.
+        const int W = 52, X = 90;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 80, brave: 90, faith: 65, weapon: W, offhand: X);
+        SetUnit(m, Wilham, hp: 350, maxHp: 350, level: 80, brave: 90, faith: 65, weapon: W);
+        SetActive(m, hp: 350, maxHp: 350, level: 80);
+        var t = new KillTracker(kills, m, Weapons);
+
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(W));
+        Assert.Equal(1, kills.GetValueOrDefault(X));
+    }
+
+    [Fact]
+    public void Brave_pinned_roster_arms_main_hand_of_held_weapon()
+    {
+        // Guard: the same fingerprint collision must also resolve main-hand (LastPlayerMainHand).
+        // Old code: ++found>1 -> return 0, so signature modules silently disarmed. New code:
+        // band weapon matched at RRHand slot -> return that weapon id.
+        const int W = 52, V = 63;
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 80, brave: 90, faith: 65, weapon: W);
+        SetRoster(m, slot: 1, level: 80, brave: 90, faith: 65, weapon: V);
+        SetUnit(m, Wilham, hp: 350, maxHp: 350, level: 80, brave: 90, faith: 65, weapon: W);
+        SetActive(m, hp: 350, maxHp: 350, level: 80);
+        var t = new KillTracker(new Dictionary<int, int>(), m, Weapons);
+
+        Settle(t);
+
+        Assert.Equal(W, t.LastPlayerMainHand);
+    }
+
+    [Fact]
+    public void Two_same_main_weapon_but_different_sets_still_bail()
+    {
+        // Reviewer BLOCKER-1 pin (hardest case): band weapon=W; slot A hands={W}, slot B
+        // hands={W,X}. Both contain W, so weaponAmbiguous fires (sets differ). Falls through
+        // to the armed path, which is also armedAmbiguous. Conservative bail: no credit.
+        const int W = 52, X = 90;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 80, brave: 90, faith: 65, weapon: W);             // hands = {W}
+        SetRoster(m, slot: 1, level: 80, brave: 90, faith: 65, weapon: W, offhand: X); // hands = {W, X}
+        SetUnit(m, Wilham, hp: 350, maxHp: 350, level: 80, brave: 90, faith: 65, weapon: W);
+        SetActive(m, hp: 350, maxHp: 350, level: 80);
+        var t = new KillTracker(kills, m, Weapons);
+
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Empty(kills);
     }
 }

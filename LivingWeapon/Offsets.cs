@@ -177,6 +177,12 @@ internal static class Offsets
     //     each slot; BandReadBase starts at n=-24 (the lowest valid scan index).
     //     Sources: live probe -- fresh corpse 0/539 only in the band; Ramza real pos only there.
     public const int BandEntry = 0x1C;    // unit copy offset within a combat band slot
+    /// <summary>Band-relative u16 equipped weapon id (= CWeapon - BandEntry = 0x04). The same
+    /// byte GrowthEngine reads via mem.U16(addr + CWeapon) on the combat struct (n = s - 24),
+    /// and SeatBand writes at e + (CWeapon - BandEntry). Algebraic identity:
+    /// Band.Entry(s) + AWeapon = BandReadBase + s*CombatStride + AWeapon
+    ///                         = CombatAnchor + (s-24)*CombatStride + CWeapon.</summary>
+    public const int AWeapon = CWeapon - BandEntry;   // == 0x04
     // Band-relative reaction field: CReaction(0x94) - BandEntry(0x1C) = 0x78. 4 bytes.
     // Maim reads/holds/restores this to suppress the victim's Counter/etc. abilities.
     public const int AReaction = 0x78;

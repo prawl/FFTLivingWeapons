@@ -64,7 +64,8 @@ internal sealed class ActorResolver
             if (_mem.U8(addr + Offsets.ALevel) != level) continue;
 
             bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
-            if (!FingerprintPlayer(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith), out var w))
+            int actorWeapon = _mem.U16(addr + Offsets.AWeapon);
+            if (!FingerprintPlayer(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith), actorWeapon, out var w))
                 continue;   // not a roster unit -> enemy entry
 
             // Twin filter: if we already have a real-position match, skip (0,0) entries.
@@ -86,16 +87,26 @@ internal sealed class ActorResolver
         return true;
     }
 
-    /// <summary>Roster slot whose (level,brave,faith) matches. True when a PLAYER matched;
-    /// <paramref name="hands"/> = their tracked weapons, possibly EMPTY (untracked/unarmed --
-    /// still a player). Armed matches outrank empty-handed same-fingerprint matches (the old
-    /// behavior for player-vs-monster fingerprint collisions); two armed slots with different
-    /// sets are ambiguous and resolve false.</summary>
-    private bool FingerprintPlayer(int level, int brave, int faith, out List<int> hands)
+    /// <summary>Roster slot whose (level,brave,faith) matches, using the band actor's equipped
+    /// weapon to break same-fingerprint collisions. Two priority tracks run in parallel:
+    /// (1) weapon-matched: slots whose hand set contains <paramref name="actorWeapon"/>; takes
+    /// priority over the legacy path when unambiguous. (2) legacy armed: any armed match; used
+    /// when the weapon path produces no candidate or the weapon is untracked. Returns false only
+    /// when the armed path is ambiguous (two armed slots disagree on set). <paramref name="hands"/>
+    /// is possibly empty (untracked / unarmed player -- still a real player turn).
+    /// NOTE: the roster-walk here is duplicated in <see cref="MainHandFromRoster"/> (their
+    /// ambiguity semantics differ: set equality here vs RRHand identity there); a shared helper
+    /// is a follow-up seam.</summary>
+    private bool FingerprintPlayer(int level, int brave, int faith, int actorWeapon, out List<int> hands)
     {
         hands = Empty;
-        List<int>? armed = null;
+        bool weaponTracked = actorWeapon != 0 && actorWeapon != 0xFFFF && _weapons.Contains(actorWeapon);
+        List<int>? weaponSet = null;    // hand-set of the first slot that contains actorWeapon
+        bool weaponAmbiguous = false;   // two weapon-matched slots disagree on their full set
+        List<int>? armed = null;        // first armed match (legacy path)
+        bool armedAmbiguous = false;    // legacy: two armed slots disagree on set
         bool emptyMatch = false;
+
         for (int s = 0; s < Offsets.RosterSlots; s++)
         {
             long b = Offsets.RosterBase + (long)s * Offsets.RosterStride;
@@ -104,12 +115,20 @@ internal sealed class ActorResolver
             if (_mem.U8(b + Offsets.RBrave) != brave) continue;
             if (_mem.U8(b + Offsets.RFaith) != faith) continue;
             var h = Hands(b);
-            if (h.Count == 0) { emptyMatch = true; continue; }   // a player, just no tracked weapon
+            if (h.Count == 0) { emptyMatch = true; continue; }
+            if (weaponTracked && h.Contains(actorWeapon))
+            {
+                if (weaponSet == null) weaponSet = h;
+                else if (!SameSet(weaponSet, h)) weaponAmbiguous = true;
+            }
             if (armed == null) armed = h;
-            else if (!SameSet(armed, h)) return false;           // two armed slots disagree -> ambiguous
+            else if (!SameSet(armed, h)) armedAmbiguous = true;
         }
-        if (armed != null) { hands = armed; return true; }
-        return emptyMatch;
+        // Resolution order matters: weapon-matched path wins when unambiguous.
+        if (weaponSet != null && !weaponAmbiguous) { hands = weaponSet; return true; }  // weapon disambiguated
+        if (armed != null && !armedAmbiguous)      { hands = armed;     return true; }  // legacy unique armed
+        if (armed != null)                          return false;                       // exact legacy bail
+        return emptyMatch;                                                               // player, no tracked weapon
     }
 
     /// <summary>Both hands of a roster slot, keeping only ids that are real weapons (deduped).</summary>
@@ -151,7 +170,8 @@ internal sealed class ActorResolver
             if (_mem.U8(addr  + Offsets.ALevel) != level) continue;
 
             bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
-            int rh = MainHandFromRoster(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith));
+            int actorWeapon = _mem.U16(addr + Offsets.AWeapon);
+            int rh = MainHandFromRoster(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith), actorWeapon);
             if (rh == 0) continue;
 
             if (foundReal && !realPos) continue;
@@ -167,10 +187,17 @@ internal sealed class ActorResolver
         return ambiguous ? 0 : mainHand;
     }
 
-    /// <summary>RRHand weapon id of the unique roster slot matching (level, brave, faith), or 0
-    /// when not a roster unit / ambiguous / unarmed.</summary>
-    private int MainHandFromRoster(int level, int brave, int faith)
+    /// <summary>RRHand weapon id of the acting unit's roster slot, or 0 when not a roster
+    /// unit / ambiguous / unarmed. If <paramref name="actorWeapon"/> is tracked and any
+    /// matching roster slot has RRHand equal to it, returns that weapon (band-confirmed main
+    /// hand). Otherwise falls back to the legacy unique-match: exactly one armed slot -> its
+    /// RRHand; else 0 (ambiguous or unarmed).
+    /// NOTE: the roster-walk here is duplicated from <see cref="FingerprintPlayer"/> (their
+    /// ambiguity semantics differ: RRHand identity here vs set equality there); a shared helper
+    /// is a follow-up seam.</summary>
+    private int MainHandFromRoster(int level, int brave, int faith, int actorWeapon)
     {
+        bool weaponTracked = actorWeapon != 0 && actorWeapon != 0xFFFF && _weapons.Contains(actorWeapon);
         int found = 0; int rh = 0;
         for (int s = 0; s < Offsets.RosterSlots; s++)
         {
@@ -182,8 +209,9 @@ internal sealed class ActorResolver
             if (_mem.U8(b + Offsets.RFaith) != faith) continue;
             int candidate = _mem.U16(b + Offsets.RRHand);
             if (!_weapons.Contains(candidate)) continue;   // not a real weapon (shield / empty)
-            if (++found > 1) return 0;
-            rh = candidate;
+            if (weaponTracked && candidate == actorWeapon) return actorWeapon;   // band-confirmed main hand
+            if (found == 0) rh = candidate;
+            found++;
         }
         return found == 1 ? rh : 0;
     }
