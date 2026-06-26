@@ -499,20 +499,203 @@ public class ChoirTests
             "player's own Non-charge support must never be cleared by Choir");
     }
 
-    // ---- (14) Multi-bearer: two roster slots hold id 60 -> inactive ----
+    // ---- (14) Benched second staff does not block the deployed bearer ----
 
     [Fact]
-    public void Tick_no_set_when_two_roster_slots_hold_the_staff()
+    public void Tick_benched_second_staff_does_not_block_the_deployed_bearer()
     {
+        // Two roster slots hold id 60 in main hand, but ONLY slot 0 has a band entry (slot 1
+        // is benched -- no band entry). Under the new multi-bearer logic the deployed bearer's
+        // aura must still work; the benched copy must neither project nor block.
         var (choir, mem, _, allyEntry) = BuildActive();
-        // Add a second roster slot also holding id 60 in main hand
+        // Add a second roster slot also holding id 60 in main hand -- NO band entry seeded for it
         SeedRosterSlot(mem, 1, lvl: 28, br: 70, fa: 65, mainHandId: WarlockStaffId);
 
         choir.Tick(onField: true);
 
-        Assert.False(mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                     (mem.Written[allyEntry + NcBandOff] & NcMask) != 0,
-            "two roster wielders -> ambiguous -> no grant");
+        Assert.True(mem.Written.ContainsKey(allyEntry + NcBandOff) &&
+                    (mem.Written[allyEntry + NcBandOff] & NcMask) != 0,
+            "benched second staff must not block the deployed bearer's aura");
+    }
+
+    // ---- (NEW-A) LOAD-BEARING: two DEPLOYED bearers each project their own aura ----
+
+    [Fact]
+    public void Tick_two_deployed_bearers_each_grant_their_own_adjacent_ally()
+    {
+        // LOAD-BEARING: fails on current code because TryResolveMainHand bails with two roster
+        // wielders (active=false -> zero grants). The new multi-bearer path must activate for
+        // each deployed bearer independently and grant all four fps (2 bearers + 2 allies).
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [WarlockStaffId] = new WeaponMeta
+            {
+                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Flavor = "Bound with a warlock's hex",
+                Signature = ChoirSig()
+            }
+        };
+        var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
+
+        // Bearer A: roster slot 0, distinct br/fa
+        SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId);
+        long bearerA = Band.Entry(30);
+        SeedBandEntry(mem, bearerA, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60,
+                      gx: 3, gy: 3);
+        mem.U16s[bearerA + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        // Bearer B: roster slot 1, DISTINCT br/fa so fingerprints differ
+        SeedRosterSlot(mem, 1, lvl: 30, br: 70, fa: 68, mainHandId: WarlockStaffId);
+        long bearerB = Band.Entry(28);
+        SeedBandEntry(mem, bearerB, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68,
+                      gx: 8, gy: 8);
+        mem.U16s[bearerB + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        // Ally A: adjacent to bearer A (dist 1 from 3,3)
+        long allyA = Band.Entry(26);
+        SeedBandEntry(mem, allyA, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55,
+                      gx: 4, gy: 3);
+
+        // Ally B: adjacent to bearer B (dist 1 from 8,8)
+        long allyB = Band.Entry(24);
+        SeedBandEntry(mem, allyB, hp: 140, maxHp: 140, lvl: 22, br: 52, fa: 57,
+                      gx: 9, gy: 8);
+
+        // Register all four fps in the static ally array (slots EnemySlotMax+1..+4)
+        // Bearer A fp (mhp=300, lvl=35, br=65, fa=60)
+        SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
+        // Bearer B fp (mhp=250, lvl=30, br=70, fa=68)
+        SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
+        // Ally A fp (mhp=150, lvl=20, br=50, fa=55)
+        SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
+        // Ally B fp (mhp=140, lvl=22, br=52, fa=57)
+        SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
+
+        var choir = new Choir(meta, kills, mem: mem);
+        choir.Tick(onField: true);
+
+        // All four entries must have the Non-charge bit set
+        Assert.True(IsSet(mem, bearerA), "bearer A must get the bit (distance 0 from itself)");
+        Assert.True(IsSet(mem, bearerB), "bearer B must get the bit (distance 0 from itself)");
+        Assert.True(IsSet(mem, allyA),   "ally adjacent to bearer A must get the bit");
+        Assert.True(IsSet(mem, allyB),   "ally adjacent to bearer B must get the bit");
+    }
+
+    // ---- (NEW-B) Two-bearer revert: one bearer unequips, its ally loses the bit ----
+
+    [Fact]
+    public void Tick_unequipped_bearer_aura_reverts_other_bearer_unchanged()
+    {
+        // Two deployed bearers, each with a distinct adjacent ally. Both auras active on tick 1.
+        // On tick 2, bearer B's roster RRHand changes to something else (unequipped). Bearer B
+        // is no longer a center; its ally B must have its bit cleared. Bearer A and ally A stay.
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [WarlockStaffId] = new WeaponMeta
+            {
+                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Flavor = "Bound with a warlock's hex",
+                Signature = ChoirSig()
+            }
+        };
+        var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
+
+        SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId);
+        long bearerA = Band.Entry(30);
+        SeedBandEntry(mem, bearerA, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60, gx: 2, gy: 2);
+        mem.U16s[bearerA + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        SeedRosterSlot(mem, 1, lvl: 30, br: 70, fa: 68, mainHandId: WarlockStaffId);
+        long bearerB = Band.Entry(28);
+        SeedBandEntry(mem, bearerB, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68, gx: 8, gy: 8);
+        mem.U16s[bearerB + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        long allyA = Band.Entry(26);
+        SeedBandEntry(mem, allyA, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55, gx: 3, gy: 2);
+        long allyB = Band.Entry(24);
+        SeedBandEntry(mem, allyB, hp: 140, maxHp: 140, lvl: 22, br: 52, fa: 57, gx: 9, gy: 8);
+
+        SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
+        SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
+        SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
+        SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
+
+        var choir = new Choir(meta, kills, mem: mem);
+
+        // Tick 1: both auras active
+        choir.Tick(onField: true);
+        Assert.True(IsSet(mem, allyA), "tick 1: ally A must have the bit");
+        Assert.True(IsSet(mem, allyB), "tick 1: ally B must have the bit");
+
+        // Bearer B unequips: change roster slot 1 RRHand to something else
+        long rb1 = Offsets.RosterBase + 1L * Offsets.RosterStride;
+        mem.U16s[rb1 + Offsets.RRHand] = 99;   // no longer WarlockStaffId
+
+        // Pre-seed ally B's bit so ClearBit can observe it and write a clear.
+        // Reset ally A's byte to 0 so SetBit fires and lands in Written (idempotent skip would
+        // leave Written empty for ally A, making IsSet return false incorrectly).
+        mem.U8s[allyB + NcBandOff] = NcMask;
+        mem.U8s[allyA + NcBandOff] = 0;
+        mem.Written.Clear();
+
+        // Tick 2: only bearer A is a center
+        choir.Tick(onField: true);
+
+        Assert.True(IsSet(mem, allyA), "tick 2: ally A still in bearer A's aura -> bit stays set");
+        Assert.True(IsCleared(mem, allyB), "tick 2: ally B no longer in any aura -> bit cleared");
+    }
+
+    // ---- (NEW-C) Total-count pin: two staves, two allies -> exactly 4 winners ----
+
+    [Fact]
+    public void Tick_two_bearers_produce_exactly_four_winners()
+    {
+        // Two deployed bearers (ChoirMaxBeneficiaries=2 each), each with one adjacent ally and no
+        // overlap between auras. Should yield exactly 4 unique fps in _granted after the tick.
+        // We verify this by counting the Set writes (4 entries means 4 winners).
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [WarlockStaffId] = new WeaponMeta
+            {
+                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Flavor = "Bound with a warlock's hex",
+                Signature = ChoirSig()
+            }
+        };
+        var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
+
+        SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId);
+        long bearerA = Band.Entry(30);
+        SeedBandEntry(mem, bearerA, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60, gx: 2, gy: 2);
+        mem.U16s[bearerA + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        SeedRosterSlot(mem, 1, lvl: 30, br: 70, fa: 68, mainHandId: WarlockStaffId);
+        long bearerB = Band.Entry(28);
+        SeedBandEntry(mem, bearerB, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68, gx: 9, gy: 9);
+        mem.U16s[bearerB + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        long allyA = Band.Entry(26);
+        SeedBandEntry(mem, allyA, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55, gx: 3, gy: 2);
+        long allyB = Band.Entry(24);
+        SeedBandEntry(mem, allyB, hp: 140, maxHp: 140, lvl: 22, br: 52, fa: 57, gx: 10, gy: 9);
+
+        SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
+        SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
+        SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
+        SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
+
+        var choir = new Choir(meta, kills, mem: mem);
+        choir.Tick(onField: true);
+
+        // Count entries whose NcBandOff byte had the bit SET (4 expected: 2 bearers + 2 allies)
+        int setCount = 0;
+        foreach (long entry in new[] { bearerA, bearerB, allyA, allyB })
+            if (IsSet(mem, entry)) setCount++;
+
+        Assert.True(setCount == 4, $"two staves -> expected 4 winners (2 bearers + 2 allies, per-bearer cap = 2), got {setCount}");
     }
 
     // ---- (15) ResetBattle clears tracking ----

@@ -3,12 +3,13 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Warlock's Staff's "Choir" signature: while a +3 Warlock's Staff is held in the MAIN HAND
-/// and its bearer is alive and on the field, the nearest Tuning.ChoirMaxBeneficiaries (2) LIVING
-/// units -- the bearer (distance 0) and its single nearest ally -- within Chebyshev radius 1
-/// (the 8 adjacent tiles incl. diagonals) get the Non-charge support bit (id 227, band +0x7F mask
-/// 0x04) OR-set each tick, so their magick casts instantly. The cap is a duet, not a full-party
-/// blowout: a third adjacent ally gets nothing until a closer beneficiary leaves.
+/// Warlock's Staff's "Choir" signature: each DEPLOYED bearer projects its own duet (bearer +
+/// nearest ally); auras union. While a +3 Warlock's Staff is held in the MAIN HAND and at least
+/// one bearer is alive and on the field, each live bearer independently grants the Non-charge
+/// support bit (id 227, band +0x7F mask 0x04) to the nearest Tuning.ChoirMaxBeneficiaries (2)
+/// LIVING units within Chebyshev radius 1 -- itself at distance 0 plus its single nearest ally.
+/// Winners from all bearers are unioned, so two staves grant up to four instant-cast units.
+/// A benched copy (no band entry) neither projects nor blocks a deployed bearer.
 ///
 /// POSITIONAL AURA WITH DETERMINISTIC REVERT: when an ally leaves the radius, dies, or the
 /// bearer dies/unequips/battle ends, the bit Choir set is CLEARED. Choir NEVER touches a unit
@@ -34,7 +35,7 @@ internal sealed partial class Choir : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly List<int> _hands = new();
+    private readonly List<(long entry, (int lvl, int br, int fa) fp)> _bearers = new();
     private bool _wasActive;
 
     // Fingerprints of units whose Non-charge bit Choir granted this battle (NOT units who picked
@@ -67,11 +68,14 @@ internal sealed partial class Choir : ISignature
 
         int tier = Tuning.TierOf(_kills, WarlockStaffId);
 
-        // Resolve the single roster slot holding id 60 in main hand; ambiguity = inactive.
-        bool resolved = Wielder.TryResolveMainHand(_mem, WarlockStaffId, out var fp, _hands);
-        long bearer = resolved ? Wielder.Locate(_mem, WarlockStaffId, _hands, fp) : 0;
-        bool bearerAlive = bearer != 0 && _mem.U16(bearer + Offsets.AHp) > 0;
-        bool active = IsActive(m.Signature, tier) && bearerAlive;
+        // Collect every deployed main-hand bearer; filter to those alive (a dead bearer must not project).
+        Wielder.ResolveDeployedMainHandAll(_mem, WarlockStaffId, _bearers);
+        var centers = new List<(int gx, int gy)>();
+        foreach (var (entry, _) in _bearers)
+            if (_mem.U16(entry + Offsets.AHp) > 0)
+                centers.Add((_mem.U8(entry + Offsets.AGx), _mem.U8(entry + Offsets.AGy)));
+
+        bool active = IsActive(m.Signature, tier) && centers.Count > 0;
 
         if (active != _wasActive)
         {
@@ -99,9 +103,6 @@ internal sealed partial class Choir : ISignature
             return;
         }
 
-        // Active: read aura center from the bearer's band entry
-        int wgx    = _mem.U8(bearer + Offsets.AGx);
-        int wgy    = _mem.U8(bearer + Offsets.AGy);
         int radius = m.Signature.InstantCastRadius;
 
         var allies = Band.AllyFingerprints(_mem);
@@ -117,10 +118,9 @@ internal sealed partial class Choir : ISignature
                 protectedBF.Add((_mem.U8(rb + Offsets.RBrave), _mem.U8(rb + Offsets.RFaith)));
         }
 
-        // Pass 1: gather every valid, ally, non-protected band entry; flag the in-aura LIVING ones as
-        // cap candidates (each with its distance). The bearer is its own ally at distance 0.
-        var entries = new List<(long e, (int mhp, int lvl, int br, int fa) fp, bool candidate)>();
-        var candidates = new List<((int mhp, int lvl, int br, int fa) fp, int dist)>();
+        // Gather every valid, ally, non-protected band entry ONCE. Each entry records its own
+        // position and HP for the per-bearer distance calculations below.
+        var entries = new List<(long e, (int mhp, int lvl, int br, int fa) fp4, int gx, int gy, int hp)>();
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long e = Band.Entry(s);
@@ -130,32 +130,50 @@ internal sealed partial class Choir : ISignature
             int lvl = _mem.U8(e + Offsets.ALevel);
             int br  = _mem.U8(e + Offsets.ABrave);
             int fa  = _mem.U8(e + Offsets.AFaith);
-            var entryFp = (mhp, lvl, br, fa);
+            var fp4 = (mhp, lvl, br, fa);
 
-            if (!allies.Contains(entryFp)) continue;          // positive ally match only
-            if (protectedBF.Contains((br, fa))) continue;     // player's own Non-charge pick -- never touch
+            if (!allies.Contains(fp4)) continue;           // positive ally match only
+            if (protectedBF.Contains((br, fa))) continue;  // player's own Non-charge pick -- never touch
 
-            int hp   = _mem.U16(e + Offsets.AHp);
-            int dist = Chebyshev(wgx, wgy, _mem.U8(e + Offsets.AGx), _mem.U8(e + Offsets.AGy));
-            bool candidate = hp > 0 && dist <= radius;
-            entries.Add((e, entryFp, candidate));
-            if (candidate) candidates.Add((entryFp, dist));
+            int hp = _mem.U16(e + Offsets.AHp);
+            int gx = _mem.U8(e + Offsets.AGx);
+            int gy = _mem.U8(e + Offsets.AGy);
+            entries.Add((e, fp4, gx, gy, hp));
         }
 
-        // Cap: at most ChoirMaxBeneficiaries nearest UNIQUE units win the grant (a duet, not a choir).
-        var winners = SelectNearest(candidates, Tuning.ChoirMaxBeneficiaries);
-
-        // Pass 2: set the bit on each WINNING in-aura entry; clear any entry Choir previously owned
-        // that is no longer a winning in-aura entry (left the radius, died, or got bumped by a nearer
-        // ally). Per-ENTRY, so band twins / fingerprint collisions resolve by their own address.
-        foreach (var (e, efp, candidate) in entries)
+        // Winners = UNION of each bearer's per-bearer cap (ChoirMaxBeneficiaries nearest LIVING units).
+        // A bearer is always distance 0 from itself and wins its own slot first (test 6 / spec pin (a)).
+        var winners = new HashSet<(int mhp, int lvl, int br, int fa)>();
+        foreach (var center in centers)
         {
-            if (candidate && winners.Contains(efp))
+            var cand = new List<((int mhp, int lvl, int br, int fa) fp, int dist)>();
+            foreach (var (_, fp4, gx, gy, hp) in entries)
+            {
+                if (hp <= 0) continue;
+                int dist = Chebyshev(center.gx, center.gy, gx, gy);
+                if (dist <= radius) cand.Add((fp4, dist));
+            }
+            winners.UnionWith(SelectNearest(cand, Tuning.ChoirMaxBeneficiaries));
+        }
+
+        // Pass 2: per-ENTRY -- set bit on winning in-aura entries; clear stale Choir-owned entries.
+        // inAuraOfAny is recomputed per entry against ALL live centers (spec pin (b)).
+        foreach (var (e, fp4, gx, gy, hp) in entries)
+        {
+            bool inAuraOfAny = hp > 0 && IsInAnyCenter(centers, gx, gy, radius);
+            if (inAuraOfAny && winners.Contains(fp4))
                 LarcenyPolicy.SetBit(_mem, e, Offsets.ASupport + _ncByteOff, _ncMask);
-            else if (_granted.Contains(efp))
+            else if (_granted.Contains(fp4))
                 LarcenyPolicy.ClearBit(_mem, e, Offsets.ASupport + _ncByteOff, _ncMask);
         }
         _granted.Clear();
         _granted.UnionWith(winners);
+    }
+
+    private static bool IsInAnyCenter(List<(int gx, int gy)> centers, int gx, int gy, int radius)
+    {
+        foreach (var c in centers)
+            if (Chebyshev(c.gx, c.gy, gx, gy) <= radius) return true;
+        return false;
     }
 }

@@ -254,8 +254,9 @@ internal static class Tuning
     public const int InstantCastSupportId = 227;
 
     /// <summary>Choir (Warlock's Staff +3): the most UNITS (nearest by Chebyshev distance, the bearer
-    /// included at distance 0) that receive the instant-cast grant each tick -- a duet, not a full-party
-    /// blowout. THE live-tune knob: drop to 1 for a solo, raise for a bigger choir.</summary>
+    /// included at distance 0) each DEPLOYED bearer grants per tick -- a duet per staff. Two staves
+    /// = up to four instant-cast units (2 per bearer, unioned). THE live-tune knob: drop to 1 for a
+    /// solo, raise for a bigger choir.</summary>
     public const int ChoirMaxBeneficiaries = 2;
 
     /// <summary>Chain Lightning (Stormarc +3): maximum units the bolt arcs through after the

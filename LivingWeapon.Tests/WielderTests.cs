@@ -369,4 +369,85 @@ public class WielderTests
         Assert.True(Wielder.AnyDeployedMainHand(m, Weapon));
     }
 
+    // ---- ResolveDeployedMainHandAll ----
+
+    [Fact]
+    public void ResolveDeployedMainHandAll_empty_when_nobody_holds_it()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
+        var results = new List<(long, (int, int, int))>();
+        Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHandAll_one_result_for_single_deployed_wielder()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        var results = new List<(long, (int, int, int))>();
+        Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
+        Assert.Single(results);
+        Assert.Equal(Band.Entry(5), results[0].Item1);
+        Assert.Equal((31, 65, 58), results[0].Item2);
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHandAll_two_results_for_two_deployed_wielders()
+    {
+        // Key invariant: does NOT bail when two roster slots are both deployed -- returns both.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        MemSeats.SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
+        MemSeats.SeatBand(m, 4, Weapon, lvl: 20, br: 70, fa: 50, gx: 2, gy: 2);
+        MemSeats.SeatBand(m, 8, Weapon, lvl: 25, br: 60, fa: 40, gx: 6, gy: 6);
+        var results = new List<(long, (int, int, int))>();
+        Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
+        Assert.Equal(2, results.Count);
+        Assert.Contains(results, r => r.Item1 == Band.Entry(4));
+        Assert.Contains(results, r => r.Item1 == Band.Entry(8));
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHandAll_skips_benched_roster_slot()
+    {
+        // Roster slot 0 deployed (has band entry), slot 1 benched (no band entry) -> only slot 0 returned.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 97, fa: 75, rh: Weapon);
+        MemSeats.SeatRoster(m, 1, lvl: 99, br: 89, fa: 76, rh: Weapon);   // benched
+        MemSeats.SeatBand(m, 12, Weapon, lvl: 99, br: 97, fa: 75, gx: 3, gy: 5);
+        var results = new List<(long, (int, int, int))>();
+        Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
+        Assert.Single(results);
+        Assert.Equal(Band.Entry(12), results[0].Item1);
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHandAll_clears_results_before_populating()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        var results = new List<(long, (int, int, int))>();
+        results.Add((9999L, (0, 0, 0)));   // stale entry
+        Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
+        Assert.Single(results);
+        Assert.Equal(Band.Entry(5), results[0].Item1);
+    }
+
+    [Fact]
+    public void ResolveDeployedMainHand_still_zero_when_two_wielders_are_both_deployed_after_refactor()
+    {
+        // Regression: ResolveDeployedMainHand's existing single-bearer contract must hold after
+        // the refactor to delegate to ResolveDeployedMainHandAll.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        MemSeats.SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
+        MemSeats.SeatBand(m, 4, Weapon, lvl: 20, br: 70, fa: 50, gx: 2, gy: 2);
+        MemSeats.SeatBand(m, 8, Weapon, lvl: 25, br: 60, fa: 40, gx: 6, gy: 6);
+        Assert.Equal(0, Wielder.ResolveDeployedMainHand(m, Weapon, out _));
+    }
+
 }
