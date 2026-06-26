@@ -53,7 +53,9 @@ internal sealed class TurnTracker
         if (acted && !_wasActed)
         {
             GlobalTurns++;   // SOMEONE acted -- bump the attribution-free clock before we try to name them
-            Log.Info($"turn: GLOBAL turn {GlobalTurns} (someone acted) -- the clock Larceny's stolen-buff expiry rides");
+            // (No per-turn log here: this clock fires every turn of every battle and is shared infra, so a
+            // line naming Larceny read as "Larceny spam" even with no Arcanum fielded. The per-unit turn
+            // line below is generic and only logs when an actor is fingerprinted.)
             if (TryActiveFingerprint(out var fp))
             {
                 int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
