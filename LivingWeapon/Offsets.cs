@@ -126,6 +126,13 @@ internal static class Offsets
     public const int ADeadStatus  = 0x45;  // u8 status bitfield byte shared by Dead and Undead flags
     public const byte ADeadBit    = 0x20;  // mask: bit 5 of ADeadStatus is the Dead flag
     public const byte AUndeadBit  = 0x10;  // mask: bit 4 of ADeadStatus is the Undead flag
+    // Delayed-action bits on the same status byte (tools/probes/status_probe.py decode map;
+    // confirmed via actor_attrib_probe.py watchweapon trace 2026-06-26):
+    //   Jump 0x04 -- PROVEN LIVE: status[45] 00->04 at jump-commit, 04->00 at landing (~8.6s later).
+    //   Charging 0x08 -- same mechanism (committed charge spells / Charge skill); live-UNVERIFIED as of 2026-06-26.
+    public const byte AJumpBit          = 0x04;
+    public const byte AChargingBit      = 0x08;
+    public const byte ADelayedActionMask = 0x0C;  // Jump | Charging
 
     // --- poison status bytes (band-entry relative, proven live 2026-06-09) ---
     public const int APoison      = 0x48;  // u8 status bitfield byte containing the poison flag

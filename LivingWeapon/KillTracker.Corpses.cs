@@ -134,15 +134,18 @@ internal sealed partial class KillTracker
                 continue;
             }
 
-            // Use the stamp captured at the dead-streak edge when available; fall back to the live
-            // latch only if no stamp was taken (actor latched after the streak started).
-            var culprit = _lethalActor[s] ?? _lastPlayerWeapons;
+            // Prefer the delayed actor (snapshotted at commit, armed at landing) when available.
+            // Fall back to the dead-streak stamp, then the live latch.
+            var delayed = ConsumeDelayedCulprit();
+            var culprit = delayed ?? _lethalActor[s] ?? _lastPlayerWeapons;
 
             string statusNote = deadBit && hp > 0
                 ? " -- killed by status effect, waiting to see whose attack it was" : "";
             if (culprit.Count > 0)
             {
-                if (_lethalActor[s] != null && !ActorResolver.SameSet(_lethalActor[s]!, _lastPlayerWeapons))
+                if (delayed != null)
+                    Log.Info($"kill: delayed-action override slot {s}: delayed=[{string.Join(",", delayed)}] stamp=[{string.Join(",", _lethalActor[s] as IEnumerable<int> ?? Array.Empty<int>())}] live=[{string.Join(",", _lastPlayerWeapons)}]");
+                else if (_lethalActor[s] != null && !ActorResolver.SameSet(_lethalActor[s]!, _lastPlayerWeapons))
                     Log.Info($"kill: crediting lethal-damage actor [{string.Join(",", culprit)}] over live latch [{string.Join(",", _lastPlayerWeapons)}] at slot {s} (deadStreak={_deadStreak[s]})");
                 bool c = CreditKill(s, gx, gy, culprit);
                 _deadCredited[s] = true;

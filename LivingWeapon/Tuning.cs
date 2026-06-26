@@ -41,6 +41,12 @@ internal static class Tuning
     /// thresholds) so every +3 signature is live the moment the weapon is equipped.</summary>
     public const int DevKillSeed = 3;
 
+    /// <summary>Ticks an armed delayed actor (Dragoon Jump / charged action) survives before it
+    /// decays. The bit-clear == kill-lands; credit fires at deadStreak >= DeadNeeded (3), so ~3-4
+    /// ticks of margin covers the gap between landing and corpse confirmation. Kept TIGHT (12 ticks
+    /// ~400ms at 33ms) so an unrelated later kill cannot consume the armed actor.</summary>
+    public const int DelayedActorWindow = 12;
+
     /// <summary>kills -> tier (0..3) against the active thresholds, checked high to low.</summary>
     public static int TierFor(int kills) => TierForIn(kills, KillThresholds);
 

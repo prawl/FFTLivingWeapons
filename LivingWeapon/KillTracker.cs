@@ -77,6 +77,7 @@ internal sealed partial class KillTracker
         _fallbackStreak = 0;
         _events?.ResetBattle();
         ResetBattleCorpses();   // clear per-battle band-scan state (Corpses.cs)
+        ResetDelayed();         // clear delayed-action snapshot/arm state (Delayed.cs)
     }
 
     /// <summary>One in-battle tick. <paramref name="onField"/> gates streak accumulation --
@@ -130,6 +131,8 @@ internal sealed partial class KillTracker
         else if (_actedLow < UnfreezeTicks && ++_actedLow >= UnfreezeTicks) { _latched = false; _actedFalls++; }
 
         FirstKillFallback();   // no prior latch + a corpse waiting -> resolve the actor without the acted gate
+
+        TrackDelayed(onField);   // snapshot/arm the committer of a delayed action (Delayed.cs)
 
         changed = ScanCorpses(onField);   // band corpse scan + identity capture (Corpses.cs)
 
