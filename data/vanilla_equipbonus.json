@@ -1,0 +1,597 @@
+{
+ "0": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "1": {
+  "PABonus": 0,
+  "MABonus": 2,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "2": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "3": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "4": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "5": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "6": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "7": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "8": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "9": {
+  "PABonus": 0,
+  "MABonus": 2,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "10": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "11": {
+  "PABonus": 2,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "12": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "13": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "14": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 1,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "15": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "16": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "17": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "18": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "19": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "20": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "21": {
+  "PABonus": 1,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "22": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "23": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 1,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "24": {
+  "PABonus": 2,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "25": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "26": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "27": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 1,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "28": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 2,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "29": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "30": {
+  "PABonus": 1,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "31": {
+  "PABonus": 2,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "32": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "33": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 2,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "34": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "35": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "36": {
+  "PABonus": 0,
+  "MABonus": 2,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "37": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "38": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "39": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "40": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "41": {
+  "PABonus": 2,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "42": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 1,
+  "JumpBonus": 0
+ },
+ "43": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 1
+ },
+ "44": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 1,
+  "JumpBonus": 1
+ },
+ "45": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "46": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "47": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 1,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "48": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 1,
+  "JumpBonus": 0
+ },
+ "49": {
+  "PABonus": 1,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "50": {
+  "PABonus": 2,
+  "MABonus": 2,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "51": {
+  "PABonus": 0,
+  "MABonus": 2,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "52": {
+  "PABonus": 3,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "53": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "54": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "55": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "56": {
+  "PABonus": 1,
+  "MABonus": 1,
+  "SpeedBonus": 1,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "57": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "58": {
+  "PABonus": 1,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "59": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "60": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "61": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "62": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "63": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "64": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "65": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "66": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "67": {
+  "PABonus": 0,
+  "MABonus": 1,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "68": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "69": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "70": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "71": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "72": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "73": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "74": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "75": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "76": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "77": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "78": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "79": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "80": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "81": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 1,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "82": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "83": {
+  "PABonus": 0,
+  "MABonus": 0,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ },
+ "84": {
+  "PABonus": 0,
+  "MABonus": 4,
+  "SpeedBonus": 0,
+  "MoveBonus": 0,
+  "JumpBonus": 0
+ }
+}

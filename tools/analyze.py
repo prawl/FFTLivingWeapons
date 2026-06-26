@@ -20,6 +20,7 @@ from lib.flavor import flavor_anchor, rider_text   # the exact flavor line each 
                                                    # + the house-voice prose each rider bakes onto its card
 from lib.items import load_items, display_name
 from lib.paths import ROOT, ITEMS as ITEMS_DEFAULT
+from lib.riders import parse_rider   # rider prose -> claimed EquipBonus fields (for the payload gate)
 
 ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else ITEMS_DEFAULT
 CHECK_BASELINE = "--baseline" in sys.argv
@@ -226,6 +227,53 @@ def check_rider_desc(items):
     return violations
 
 
+_RIDER_STATS = ["PABonus", "MABonus", "SpeedBonus", "MoveBonus", "JumpBonus"]
+_VANILLA_EB = None
+
+
+def _eb_stats(eid, new_eb):
+    """Numeric (PA/MA/Speed/Move/Jump) bonuses an equipBonusId actually grants. New rows (items.json
+    _equipBonus) win over the committed vanilla extract. data/vanilla_equipbonus.json is a TRACKED
+    extract of the gitignored working/ref/equipbonus.json decode (same gate-input pattern as
+    data/vanilla_shop.json -- a missing file is a loud failure, never a silent pass). Regenerate after a
+    vanilla re-decode with:
+      python -c "import json,pathlib; r=json.loads(pathlib.Path('working/ref/equipbonus.json').read_text(encoding='utf-8')); F=['PABonus','MABonus','SpeedBonus','MoveBonus','JumpBonus']; pathlib.Path('data/vanilla_equipbonus.json').write_text(json.dumps({k:{f:v.get(f,0) for f in F} for k,v in sorted(r.items(), key=lambda kv:int(kv[0]))}, indent=1)+chr(10), encoding='utf-8')"
+    """
+    global _VANILLA_EB
+    if _VANILLA_EB is None:
+        p = ROOT / "data" / "vanilla_equipbonus.json"
+        if not p.exists():
+            raise SystemExit(f"GATE INPUT MISSING: {p} (vanilla EquipBonus reference; see _eb_stats)")
+        _VANILLA_EB = json.loads(p.read_text(encoding="utf-8"))
+    src = new_eb.get(str(eid), _VANILLA_EB.get(str(eid), {}))
+    return {f: int(src.get(f, 0)) for f in _RIDER_STATS}
+
+
+def check_rider_payload(items, new_eb):
+    """The NUMERIC half of a rider's prose must match the EquipBonus row the item actually emits. The
+    live bug this gate exists for: Blazing Staff (id 63) shipped rider 'MA+1' while its equipBonusId
+    pointed at the Move+1 row -- the card advertised a stat the item never granted (and hid the one it
+    did). Gate the stat bonuses (PA/MA/Speed/Move/Jump) BOTH ways: every stat the rider claims must be
+    in the row, and every stat the row grants must be named by the rider. Element/status clauses are
+    deliberately summarized ('absorb Ice' on a shield that also halves Fire) and parsed loosely, so they
+    are left to check_rider_desc; only the unambiguous numeric stats are enforced here."""
+    violations = []
+    for it in items:
+        p = it.get("proposed", {})
+        rider, eid = p.get("rider"), p.get("equipBonusId")
+        if not rider or rider in ("None", "-"):
+            continue
+        claimed = parse_rider(rider) or {}
+        # eid None -> a zero row, so a numeric rider with no EquipBonus at all (advertises a stat nothing
+        # grants) is caught too, not silently skipped.
+        row = _eb_stats(eid, new_eb) if eid is not None else dict.fromkeys(_RIDER_STATS, 0)
+        diffs = [f"{f.replace('Bonus', '')}: rider says +{claimed.get(f, 0)}, row grants +{row[f]}"
+                 for f in _RIDER_STATS if claimed.get(f, 0) != row[f]]
+        if diffs:
+            violations.append((it, eid, diffs))
+    return violations
+
+
 def check_grid_sync(items):
     """docs/living_weapon_grid.csv is the DESIGN SOURCE OF TRUTH for the living weapons and must
     never drift from items.json. Mechanically-checkable columns are enforced: every living weapon
@@ -409,6 +457,15 @@ def main():
     else:
         for a, missing in rd:
             print(f"  UNSTATED id{a['id']} {a.get('name')}: desc is missing {missing}")
+        rc = 1
+
+    rp = check_rider_payload(items, doc.get("_equipBonus", {}))
+    print("\n--- RIDER PAYLOAD (numeric rider stat matches the emitted EquipBonus row) ---")
+    if not rp:
+        print("  PASS: every numeric rider matches its EquipBonus row.")
+    else:
+        for a, eid, diffs in rp:
+            print(f"  MISMATCH id{a['id']} {a.get('name')} (equipBonusId {eid}): " + "; ".join(diffs))
         rc = 1
 
     gs = check_grid_sync(items)

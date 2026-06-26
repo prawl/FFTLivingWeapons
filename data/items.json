@@ -2001,7 +2001,7 @@
         "onHitAbilityId": 0,
         "formula": 4,
         "range": 1,
-        "rider": "MA+1",
+        "rider": "Move+1",
         "equipBonusId": 42
       },
       "iconTint": [
