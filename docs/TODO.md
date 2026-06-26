@@ -1,6 +1,12 @@
 Release TODO's
 - Replace the Stormbrand (it's sorta lame)
 - Sanctus Staff test potions and Regen
+- Gate gap (low pri): analyze.py `check_rider_payload` only cross-checks NUMERIC rider stats
+  (PA/MA/Speed/Move/Jump) against the emitted EquipBonus row. ELEMENT/STATUS mismaps (e.g. rider
+  "absorb Fire" but equipBonusId points at an absorb-Holy row) are NOT row-checked -- only that the
+  desc text mentions the tokens (check_rider_desc). Extend the payload gate to element/status if a
+  mismap surfaces (needs data/vanilla_equipbonus.json to also carry those fields). Same family as the
+  Blazing Staff id63 numeric bug fixed 2026-06-26.
 - Ramza's Squire cannot equip Shields but normal squires can?
 - Larcency keeps popped up in the logs despite not being equipped
 - BUG: enemy Knights cast Shadow Blade without the Sanguine Sword. The Shadow Blade grant (Sanguine Sword id 23, ability 165) is injected into the Knight/Squire/Gallant Knight JobCommand record, which is JOB-global, so every unit of those jobs shows Shadow Blade as Learned regardless of equipped weapon (enemies included). Seen live: enemy Knight "Dyana" holding the Arcanum used Shadow Blade. Same class as the Barrage enemy-Thief leak, but Knights are a common enemy job so it is far more visible. Fix: gate the injected command to the actual wielder (per-unit), or restrict the grant to rare/unused enemy jobs, or remove the command-grant and use a different signature.
@@ -37,6 +43,18 @@ New Buffs Exploration
    welded" pessimism.
 
 Ideas:
+
+MONK ACCESSORY-IN-HAND (new equip mechanic, discovered live 2026-06-26). Writing an accessory id into a
+  unit's HAND slot is ACCEPTED by the engine: the unit attacks bare-fisted (a normal Monk punch), so an
+  accessory in hand does NOT break the basic attack -- it just rides along, presumably granting its
+  bonuses with no weapon. Verified live: Cursed Ring (id 222) placed in Ramza's main hand -> he punched
+  normally. (Quirk: a monster ROAR sound fired on the swing -- the accessory's nonexistent "weapon graphic"
+  indexes junk audio; cosmetic only, harmless.) DESIGN: give the Monk job a SECOND accessory slot by way of
+  the hand slot -- a Monk-only perk (they don't use weapons anyway), trading the unused weapon slot for a
+  2nd ring/armlet. Likely via JobData equip flags (let the Monk hand slot accept the Accessory class) or a
+  runtime equip-write. TODO: confirm the accessory's stats actually STACK with the off-hand accessory (not
+  just cosmetically equipped), decide the slot-rule implementation, and check the ROAR sound isn't tied to
+  anything load-bearing. Pairs with the dual-gun off-hand equip-write recipe (item 12 above).
 
 Kobu (Samurai sword / Katana signature) -- "rousing courage." On the wielder's melee hit, compare Brave
   between the wielder and the struck enemy; if the enemy's is higher, raise the wielder's Brave to match

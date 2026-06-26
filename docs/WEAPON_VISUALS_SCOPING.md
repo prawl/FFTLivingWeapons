@@ -48,3 +48,46 @@ chocobo-pipeline win the scoping hoped — it's uncharted. **Shelved.**
 - Ask A's `<SpriteID>` model/size swap is independent of color and still a cheap one-item test.
 
 See also memory: `project_fft_weapon_visuals`, `project_chocobo_color_pipeline`.
+
+---
+
+## Ask C -- recategorized weapon SWING ART (TABLED 2026-06-26)
+
+The rebalance retypes axe/flail items into sword-family types via `categoryOverride` (ItemData byte
+0x05 Item Type). In battle these weapons SWING WITH THE WRONG BLADE ART -- a sword that animates with
+the old flail/axe graphic (Bug B/D in `handoff.md`). Full live RE this session settled it: **the blade
+model is bound to the item id and is WALLED.** Chain of proof (probes in `tools/probes/`):
+
+1. **Item-type override LANDS (functional half FIXED).** `item_type_probe.py` reads the live ItemData
+   table (located by AOB; byte 0x05 = Item Type, `03=Sword 04=KnightSword 06=Axe 09=Flail`). Warbrand
+   id 67 reads `Sword`, Ravager/Sunderer read `KnightSword`, etc. -> equip-class, weapon-skill access,
+   and swing MOTION are correct (confirmed live: Orlandeau uses sword skills with Warbrand).
+2. **ItemData byte 0x01 `SpriteID` is INERT for the swing.** Set Warbrand's live SpriteID to a sword
+   value (15); the swing stayed busted. It is the menu icon, not the battle blade. (So the session's
+   `spriteIdOverride` edits were reverted as confirmed no-ops -- do NOT re-add them.)
+3. **The legacy FFHacktics "weapon battle sprite + palette" 2-byte table is VESTIGIAL in IC.** Located
+   at VA `0x140785CF2` (`weapon_sprite_probe.py`), indexed by item id, byte0 palette / byte1 Graphic
+   ID; its section map decodes perfectly (Sword 0/2/4/6, KnightSword 12/14, Katana 16/18, Axe/Flail
+   22/24, ...). But writing BOTH copies (the .rdata original AND a heap copy) changed NOTHING, and CE
+   "find what accesses" the heap copy fired ZERO times during a swing/re-equip. IC's HD renderer never
+   reads it. (`weapon_sprite_writetest.py` does the guarded VirtualProtect write.)
+4. **The blade model DOES follow the live combat-struct `CWeapon` (+0x20) field -- but so do the
+   stats.** Freezing CWeapon at a sword id rendered a clean sword swing (`combat_struct_diff.py` area).
+   BUT the same field drives the combat math: Warbrand attack 304 -> 121 when CWeapon held at Cleaver.
+   So CWeapon binds model AND weapon together; there is NO render-only lever -- holding it neuters the
+   weapon. The engine also re-asserts CWeapon from the roster every tick.
+5. **No data/asset redirect exists** (parallel research, two workflows): the whole install has two
+   `.mdl` files (neither a weapon); the battle art is the shared 2D atlas (`fftpack/unit/
+   battle_wep_spr.bin` + `_shp`/`_seq`), index-addressed per visual-class with no per-item slot; the
+   `ffto` nex layout set (245 tables) has no weapon-model/skin column; Nenkai's modloader exposes no
+   weapon-graphic struct. This also CORRECTS Ask B's theory: the nex `Item` table has no palette column
+   at all -- the HD render simply never reads `ItemData.Palette`.
+
+**Verdict:** the swing art is item-id-asset-bound through an unlocated construction-time model resolver.
+A real fix needs EITHER (a) relocating each retyped item onto a vanilla item id whose asset already
+matches the new type (data rework -- how Sanguine Sword id 23 was moved off the Giant's Axe slot; limited
+by available matching ids), OR (b) an RE spike to find a writable item-id->graphic indirection or a
+construction hook that rewrites the resolved model handle independent of CWeapon. Not worth it for a
+cosmetic. **TABLED.** The functional half (type/equip/skills/animation) is fixed and ships; the 7
+retyped weapons (48 Terrastaff / 49 Ravager / 50 Sunderer / 67 Warbrand / 68 Bloodlash / 69 Climhazzard
+/ 70 Sasori) swing their old axe/flail/morning-star art, harmlessly.
