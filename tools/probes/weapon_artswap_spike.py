@@ -219,6 +219,66 @@ def setcw(addr, value):
         print(f"WRITE FAILED @ 0x{addr:X}")
 
 
+def disasm(addr, count):
+    """Disassemble `count` instructions forward from addr (x86-64). Reads code bytes
+    via RPM (EXE image pages are readable) and decodes with capstone. Forward-only:
+    addr must be a real instruction boundary (e.g. an opcode from CE find-what-accesses)."""
+    try:
+        from capstone import Cs, CS_ARCH_X86, CS_MODE_64
+    except ImportError:
+        print("capstone not installed (pip install capstone)"); return
+    n = max(16, count * 15)
+    blob = rpm(addr, n)
+    if blob is None:
+        print(f"0x{addr:X} unreadable"); return
+    md = Cs(CS_ARCH_X86, CS_MODE_64)
+    md.detail = False
+    shown = 0
+    for ins in md.disasm(blob, addr):
+        print(f"  0x{ins.address:X}  {ins.mnemonic:<7} {ins.op_str}")
+        shown += 1
+        if shown >= count:
+            break
+
+
+def _ru(addr, size):
+    d = rpm(addr, size)
+    return int.from_bytes(d, "little") if d else None
+
+
+def vistable(probe_ids):
+    """Walk the weapon-visual container located 2026-06-27 and report its bounds + the
+    record pointer for each probe id. SAFE (read-only). The resolver 0x1401edc50 loads
+    its container from the global singleton at (0x1401EDC61 + 0x3AEC687), then
+    0x1403d3b7c does: if (low <= id <= high) return array[(id-low)] else null, with
+    low=[c+0x44], high=[c+0x48], array=[c+0x18], type=[c+0x38] (1 = bounded-array branch)."""
+    g1ptr = 0x1401EDC61 + 0x3AEC687          # rip-relative target of the singleton load
+    g1 = _ru(g1ptr, 8)
+    print(f"singleton ptr @ 0x{g1ptr:X} -> container G1 = 0x{g1:X}" if g1 else
+          f"singleton @ 0x{g1ptr:X} unreadable/null")
+    if not g1:
+        return
+    typ  = _ru(g1 + 0x38, 4)
+    low  = _ru(g1 + 0x44, 4)
+    high = _ru(g1 + 0x48, 4)
+    arr  = _ru(g1 + 0x18, 8)
+    flag41 = _ru(g1 + 0x41, 1)
+    map28  = _ru(g1 + 0x28, 8)   # map branch: bucket/storage ptr
+    map10  = _ru(g1 + 0x10, 8)   # map branch: other ptr (rcx for the hashed lookup)
+    print(f"  type(+0x38)={typ}  flag(+0x41)={flag41}  low(+0x44)={low}  high(+0x48)={high}")
+    print(f"  array(+0x18)=0x{arr or 0:X}  map28(+0x28)=0x{map28 or 0:X}  map10(+0x10)=0x{map10 or 0:X}")
+    for iid in probe_ids:
+        if arr:                                  # flat-array branch
+            if low is not None and low <= iid <= high:
+                rec = _ru(arr + (iid - low) * 8, 8)
+                print(f"  id {iid:>4}: array[{iid-low}] = 0x{rec or 0:X}" + ("  (record)" if rec else "  (NULL)"))
+            else:
+                print(f"  id {iid:>4}: OUT OF BOUNDS [{low},{high}] -> NULL -> empty model")
+        else:
+            inb = (low is not None and low <= iid <= high)
+            print(f"  id {iid:>4}: array NULL -> HASH-MAP branch; bound-range [{low},{high}] {'includes' if inb else 'EXCLUDES'} it")
+
+
 def watchw(addr):
     print(f"watching u16 @ 0x{addr:X} for 30s (every 0.5s) ...")
     last = None
@@ -247,6 +307,11 @@ def main():
         set_main(int(argv[1]), int(argv[2]))
     elif argv and argv[0] == "read":
         read_slot(int(argv[1]))
+    elif argv and argv[0] == "disasm":
+        disasm(int(argv[1], 16), int(argv[2]))
+    elif argv and argv[0] == "vistable":
+        ids = [int(x) for x in argv[1:]] or [37, 67, 260, 261]
+        vistable(ids)
     elif argv and argv[0] == "findcw":
         findcw(int(argv[1]))
     elif argv and argv[0] == "getcw":
