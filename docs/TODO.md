@@ -1,105 +1,5 @@
-Release TODO's
-- Replace the Stormbrand (it's sorta lame)
-- Sanctus Staff test potions and Regen
-- Gate gap (low pri): analyze.py `check_rider_payload` only cross-checks NUMERIC rider stats
-  (PA/MA/Speed/Move/Jump) against the emitted EquipBonus row. ELEMENT/STATUS mismaps (e.g. rider
-  "absorb Fire" but equipBonusId points at an absorb-Holy row) are NOT row-checked -- only that the
-  desc text mentions the tokens (check_rider_desc). Extend the payload gate to element/status if a
-  mismap surfaces (needs data/vanilla_equipbonus.json to also carry those fields). Same family as the
-  Blazing Staff id63 numeric bug fixed 2026-06-26.
-- Ramza's Squire cannot equip Shields but normal squires can?
-- Larcency keeps popped up in the logs despite not being equipped
-  DEFERRED 2026-06-27 (needs a live livingweapon.log to confirm which line is firing -- none on disk; the
-  log is written into the Reloaded Mods deploy dir only during a play session). Code analysis narrowed it
-  to two candidate sources, both in Larceny: (1) the `larceny gate:` line (Larceny.cs:95) -- gated on
-  `active || Wielder.AnyDeployedMainHand(Arcanum id 30)`, and the "inactive [...]" reason string embeds
-  actorFp + actedFlag, which CHURN every turn, so a DEPLOYED-but-not-acting Arcanum spams a fresh line each
-  turn (note: this path still requires a roster main-hand Arcanum that LOCATES live -- so "not equipped" may
-  mean equipped on a unit Patrick forgot, or a dev give-all reserve that got deployed); (2) the
-  `larceny: a stolen buff FADED` line (LarcenyHoldings.cs:71) from `Expire`, which runs UNCONDITIONALLY each
-  tick incl. the off-field branch (Larceny.cs:69) -- a stale `_holdings` ledger would log a phantom fade,
-  but ResetBattleState clears it on both battle ENTER and EXIT (Engine.cs:170,182), so a stale ledger
-  should not survive. NEXT: capture livingweapon.log during a session where the line appears, read the exact
-  text + surrounding battle/gate lines, then it is likely a one-line gate-throttle tightening (a /build-lite).
-- BUG (DEFERRED 2026-06-27 -- not worth the lift now; it IS fixable, see below): enemy Knights cast Shadow
-  Blade without the Sanguine Sword. The Shadow Blade grant (Sanguine Sword id 23, ability 165) is injected
-  into the Knight/Squire/Gallant Knight JobCommand record, which is JOB-global, so every unit of those jobs
-  shows Shadow Blade as Learned regardless of equipped weapon (enemies included). Seen live: enemy Knight
-  "Dyana" holding the Arcanum used Shadow Blade. Same class as the Barrage enemy-Thief leak, but Knights are
-  a common enemy job so it is far more visible.
-  INVESTIGATED 2026-06-27 (no code written): the record is provably JOB-GLOBAL, NOT per-unit (LIVE_LEDGER
-  row 46 "Per-record (job-global), not per-unit"), so there is NO per-unit gate at the record level -- a
-  same-job enemy reads the exact cell the player's wielder does. The per-unit learned bit is held only on
-  the wielder, but enemies do not need it (they cast from the job command list directly). Two viable fixes,
-  each a real gameplay tradeoff (why it was deferred to Patrick's call):
-    (A) TURN-TEAM GATE -- keep Shadow Blade for ALL eligible sword wielders, but REMOVE it from the record
-        whenever it is an enemy/ally AI turn so only the player's turn ever sees it. Field = turn-team u16
-        at TurnQueue+0x02 (Offsets.TurnQueue 0x1407832A0 -> 0x1407832A2; 0=player,1=enemy,2=ally, STABLE
-        across a whole turn, does NOT follow cursor-hover; fail-safe read team!=1&&team!=2 => treat as
-        player so a garbage frame never strips the player's ability). Reuses ShadowBlade.cs's existing
-        Restore + BarrageState save/slot machinery (Restore writes saved bytes back WITHOUT clearing
-        _state; re-inject on the next player turn reuses the saved slot). NOTE: LIVE_LEDGER row 45 already
-        says the turn-team field is "Used by the Shadow Blade turn-gate" (validated 2026-06-16) but the
-        gate was NEVER wired into the shipped code (commit d900bc1). Risk: relies on the 33ms poll
-        restoring before the enemy AI enumerates its abilities -- the enemy turn-start sequence (camera
-        pan, highlight, pathing) gives many poll cycles of slack, but it MUST be live-verified (deploy,
-        watch an enemy Knight no longer cast it while the player still can).
-    (B) RAMZA-ONLY (Mettle records) -- restrict TryResolveGrant to Ramza's story-unique Mettle records
-        (ShadowBladePolicy.RamzaSwordJobs, recs 25-28), which no enemy or generic unit ever uses ->
-        STRUCTURALLY zero leak, no timing risk, already proven live (Shadow Blade casts from Ramza's
-        Mettle). Cost: a generic Knight/Squire wielding the Sanguine Sword gets stat growth but no Shadow
-        Blade signature -- narrows the feature to Ramza. Thematically tight (Gaffgarion's blade).
-  Lower-value third option: drop the command-grant and design a new per-unit write+hold +3 signature (the
-  sword already has its innate HP-drain formula 6 at baseline).
-- RESOLVED 2026-06-26 (summoner kill mis-attribution): a summoner with no living weapon casts a CHARGED
-  summon that lands CROSS-TURN (after its acted-period ends) and the kill leaked to the next armed unit to
-  latch (live: Chaos Blade id 37, surfacing as the sticky `[w:37]` BattleLog tag). The original
-  "adjacent armed mage" triage (a (level,brave,faith) resolver collision) turned out NOT to be the live
-  mechanism -- live verification showed the cross-turn charged-summon leak. SHIPPED three COMPOSING layers,
-  all live-proven: (1) ActorResolver band-confirmed-UNARMED guard (`actorUnarmed && emptyMatch` -> Empty,
-  never borrow a colliding armed neighbor); (2) in-period `_lethalUntracked` stamp (summon kills DURING the
-  caster's own turn -> no credit); (3) cross-turn untracked-delayed arm (Charging bit `0x08` snapshot at
-  cast + arm on the landing edge -> `_lethalUntracked` no-credit, `Tuning.UntrackedDelayedWindow`).
-  Tracked-delayed (Jump) still wins via the `delayed == null` guard. Live: summon kills no-credited on band
-  slots 10 (x2) and 8; Chaos Blade's own Phoenix-Down kill still credited (no over-suppression). See
-  LIVE_LEDGER. Tests: ActorResolverUnarmedTests, SummonerAttributionTests, CrossTurnSummonTests.
-  KNOWN V1 residuals: a concurrent tracked Jump overlapping a summon keeps the Jump credit even if the
-  summon dealt the blow; an unrelated armed kill maturing within the ~45-tick window can be a rare
-  no-credit MISS (never a mis-credit). The counterattack-kill bug above is a SEPARATE third-party-latch
-  problem, still open.
-- RESOLVED 2026-06-27 (Choir dial-back to HOLDER-ONLY): the Warlock's Staff (id 60) +3 "Choir" signature
-  no longer grants the adjacent-ally instant-cast aura -- ONLY the deployed +3 bearer(s) get the Non-charge
-  bit (band +0x7F mask 0x04). Implemented as an ADDRESS-DIRECT set on each bearer's resolved live band
-  entry (Wielder.ResolveDeployedMainHandAll), recording the BAND-read fingerprint so the clear/revert path
-  survives mid-battle level drift; the whole positional-aura branch was deleted (Chebyshev/InAura/
-  SelectNearest in Choir.Policy.cs + Tuning.ChoirMaxBeneficiaries). NOTE: instantCastRadius stays 1 (the
-  "enabled" sentinel) -- 0 would DISABLE the signature, so the handoff's "instantCastRadius 0" hint was
-  wrong. Adversarial review caught two bugs that bite-tests now guard: a roster-keyed-fingerprint stuck-bit
-  under level drift, and a fingerprint-collision SET that leaked the bit to an enemy. p3Desc updated ("the
-  bearer casts magick instantly") + item.en.nxd regenerated. 1320 tests green; analyze.py green.
-  LIVE-VERIFIED 2026-06-27 (log: "choir ACTIVE -- ...the bearer casts magick instantly"; bearer instant-
-  cast, adjacent ally kept normal charge). Tests: ChoirTests holder-only set + LEVEL-DRIFT + FP-COLLISION.
-- PUPPETEER (#11) LUCAVI/BOSS CARVE-OUT: the gate is currently ALLOW-EVERYONE (`IsDominatable => true`, by user request) — so bosses/Lucavi ARE dominatable by design. We do NOT want Lucavi dominatable. The `maxHp >= 2000` latch-loop cap does NOT exclude them (a live Lucavi read 999 max HP), and it's only a garbage-read sanity cap anyway — do not lean on it. Need a real carve-out keyed to job-id band and/or name-id (the long-standing "Lucavi carve-out" — IC Lucavi/boss job ids still need mapping). Costs in-game testing time to identify the ids; deferred until we can spare it. Until then, allow-everyone ships and a Lucavi CAN be puppeted.
-- PARTIAL FIX SHIPPED 2026-06-27 (v2.2.2): the counterattack MIS-CREDIT is suppressed -- a kill whose
-  alive->dead edge falls during a confirmed non-player turn (TqTeam 1=enemy / 2=ally) now NO-CREDITS the
-  stale player latch instead of paying it out (KillTracker.Corpses.cs deadStreak==1 stamp gated on the
-  proven TqTeam field, fail-safe toward crediting on a 0/garbage read; tracked Jump/charge still wins via
-  the delayed `ConsumeDelayedCulprit` check). The counter-attacker (Mel) goes honestly UNCREDITED -- "miss
-  beats mis-credit". Tests: CounterAttributionTests (headline non-vacuous + team==0 control + delayed-wins +
-  garbage-team fail-safe); 1324 green; analyze.py green. NOT live-verified (Patrick trusted the logic gate).
-  STILL OPEN (deferred probe-first RE spike): actually CREDITING the counter-attacker. Witnessed live
-  2026-06-26: Reis (Hexweave Bag id 118) Jumped/acted and wounded an enemy; enemy took its turn and hit
-  Melioudoul; Mel COUNTERED and killed it during the enemy's turn -- credit went to Reis (log:
-  `kill: Hexweave Bag earns kill #12` at 4,10). The turn-queue struct points at the enemy turn-owner, not
-  Mel, and a counterattacker never enters its own acted-period so it never latches; `KillTracker.Delayed.cs`
-  only re-arms the latched actor's OWN delayed action (Jump/Charge), so ConsumeDelayedCulprit returns null
-  for a THIRD-party counter. There is NO mapped field that names the counter-dealer -- crediting Mel needs a
-  live probe to find a "who dealt the last/counter damage" field (may not exist holdably). BattleLog `[w:N]`
-  tags are just the sticky latch (BattleLog.cs), so the log cannot show who really dealt each blow.
-
-
-
 Ideas:
+- If you wait your turn without moving or acting gain a buff +1
 
 MONK ACCESSORY-IN-HAND (new equip mechanic, discovered live 2026-06-26). Writing an accessory id into a
   unit's HAND slot is ACCEPTED by the engine: the unit attacks bare-fisted (a normal Monk punch), so an
@@ -252,3 +152,103 @@ New Buffs Exploration
    largest-working-set process; a duplicate FFT_enhanced instance silently ate every write for ~10 turns).
    See memory dual-gun-equip-write-proven. OVERTURNS the earlier "guns dual-wield-ineligible / construction-
    welded" pessimism.
+
+Release TODO's
+- Replace the Stormbrand (it's sorta lame)
+- Sanctus Staff test potions and Regen
+- Gate gap (low pri): analyze.py `check_rider_payload` only cross-checks NUMERIC rider stats
+  (PA/MA/Speed/Move/Jump) against the emitted EquipBonus row. ELEMENT/STATUS mismaps (e.g. rider
+  "absorb Fire" but equipBonusId points at an absorb-Holy row) are NOT row-checked -- only that the
+  desc text mentions the tokens (check_rider_desc). Extend the payload gate to element/status if a
+  mismap surfaces (needs data/vanilla_equipbonus.json to also carry those fields). Same family as the
+  Blazing Staff id63 numeric bug fixed 2026-06-26.
+- Ramza's Squire cannot equip Shields but normal squires can?
+- Larcency keeps popped up in the logs despite not being equipped
+  DEFERRED 2026-06-27 (needs a live livingweapon.log to confirm which line is firing -- none on disk; the
+  log is written into the Reloaded Mods deploy dir only during a play session). Code analysis narrowed it
+  to two candidate sources, both in Larceny: (1) the `larceny gate:` line (Larceny.cs:95) -- gated on
+  `active || Wielder.AnyDeployedMainHand(Arcanum id 30)`, and the "inactive [...]" reason string embeds
+  actorFp + actedFlag, which CHURN every turn, so a DEPLOYED-but-not-acting Arcanum spams a fresh line each
+  turn (note: this path still requires a roster main-hand Arcanum that LOCATES live -- so "not equipped" may
+  mean equipped on a unit Patrick forgot, or a dev give-all reserve that got deployed); (2) the
+  `larceny: a stolen buff FADED` line (LarcenyHoldings.cs:71) from `Expire`, which runs UNCONDITIONALLY each
+  tick incl. the off-field branch (Larceny.cs:69) -- a stale `_holdings` ledger would log a phantom fade,
+  but ResetBattleState clears it on both battle ENTER and EXIT (Engine.cs:170,182), so a stale ledger
+  should not survive. NEXT: capture livingweapon.log during a session where the line appears, read the exact
+  text + surrounding battle/gate lines, then it is likely a one-line gate-throttle tightening (a /build-lite).
+- BUG (DEFERRED 2026-06-27 -- not worth the lift now; it IS fixable, see below): enemy Knights cast Shadow
+  Blade without the Sanguine Sword. The Shadow Blade grant (Sanguine Sword id 23, ability 165) is injected
+  into the Knight/Squire/Gallant Knight JobCommand record, which is JOB-global, so every unit of those jobs
+  shows Shadow Blade as Learned regardless of equipped weapon (enemies included). Seen live: enemy Knight
+  "Dyana" holding the Arcanum used Shadow Blade. Same class as the Barrage enemy-Thief leak, but Knights are
+  a common enemy job so it is far more visible.
+  INVESTIGATED 2026-06-27 (no code written): the record is provably JOB-GLOBAL, NOT per-unit (LIVE_LEDGER
+  row 46 "Per-record (job-global), not per-unit"), so there is NO per-unit gate at the record level -- a
+  same-job enemy reads the exact cell the player's wielder does. The per-unit learned bit is held only on
+  the wielder, but enemies do not need it (they cast from the job command list directly). Two viable fixes,
+  each a real gameplay tradeoff (why it was deferred to Patrick's call):
+    (A) TURN-TEAM GATE -- keep Shadow Blade for ALL eligible sword wielders, but REMOVE it from the record
+        whenever it is an enemy/ally AI turn so only the player's turn ever sees it. Field = turn-team u16
+        at TurnQueue+0x02 (Offsets.TurnQueue 0x1407832A0 -> 0x1407832A2; 0=player,1=enemy,2=ally, STABLE
+        across a whole turn, does NOT follow cursor-hover; fail-safe read team!=1&&team!=2 => treat as
+        player so a garbage frame never strips the player's ability). Reuses ShadowBlade.cs's existing
+        Restore + BarrageState save/slot machinery (Restore writes saved bytes back WITHOUT clearing
+        _state; re-inject on the next player turn reuses the saved slot). NOTE: LIVE_LEDGER row 45 already
+        says the turn-team field is "Used by the Shadow Blade turn-gate" (validated 2026-06-16) but the
+        gate was NEVER wired into the shipped code (commit d900bc1). Risk: relies on the 33ms poll
+        restoring before the enemy AI enumerates its abilities -- the enemy turn-start sequence (camera
+        pan, highlight, pathing) gives many poll cycles of slack, but it MUST be live-verified (deploy,
+        watch an enemy Knight no longer cast it while the player still can).
+    (B) RAMZA-ONLY (Mettle records) -- restrict TryResolveGrant to Ramza's story-unique Mettle records
+        (ShadowBladePolicy.RamzaSwordJobs, recs 25-28), which no enemy or generic unit ever uses ->
+        STRUCTURALLY zero leak, no timing risk, already proven live (Shadow Blade casts from Ramza's
+        Mettle). Cost: a generic Knight/Squire wielding the Sanguine Sword gets stat growth but no Shadow
+        Blade signature -- narrows the feature to Ramza. Thematically tight (Gaffgarion's blade).
+  Lower-value third option: drop the command-grant and design a new per-unit write+hold +3 signature (the
+  sword already has its innate HP-drain formula 6 at baseline).
+- RESOLVED 2026-06-26 (summoner kill mis-attribution): a summoner with no living weapon casts a CHARGED
+  summon that lands CROSS-TURN (after its acted-period ends) and the kill leaked to the next armed unit to
+  latch (live: Chaos Blade id 37, surfacing as the sticky `[w:37]` BattleLog tag). The original
+  "adjacent armed mage" triage (a (level,brave,faith) resolver collision) turned out NOT to be the live
+  mechanism -- live verification showed the cross-turn charged-summon leak. SHIPPED three COMPOSING layers,
+  all live-proven: (1) ActorResolver band-confirmed-UNARMED guard (`actorUnarmed && emptyMatch` -> Empty,
+  never borrow a colliding armed neighbor); (2) in-period `_lethalUntracked` stamp (summon kills DURING the
+  caster's own turn -> no credit); (3) cross-turn untracked-delayed arm (Charging bit `0x08` snapshot at
+  cast + arm on the landing edge -> `_lethalUntracked` no-credit, `Tuning.UntrackedDelayedWindow`).
+  Tracked-delayed (Jump) still wins via the `delayed == null` guard. Live: summon kills no-credited on band
+  slots 10 (x2) and 8; Chaos Blade's own Phoenix-Down kill still credited (no over-suppression). See
+  LIVE_LEDGER. Tests: ActorResolverUnarmedTests, SummonerAttributionTests, CrossTurnSummonTests.
+  KNOWN V1 residuals: a concurrent tracked Jump overlapping a summon keeps the Jump credit even if the
+  summon dealt the blow; an unrelated armed kill maturing within the ~45-tick window can be a rare
+  no-credit MISS (never a mis-credit). The counterattack-kill bug above is a SEPARATE third-party-latch
+  problem, still open.
+- RESOLVED 2026-06-27 (Choir dial-back to HOLDER-ONLY): the Warlock's Staff (id 60) +3 "Choir" signature
+  no longer grants the adjacent-ally instant-cast aura -- ONLY the deployed +3 bearer(s) get the Non-charge
+  bit (band +0x7F mask 0x04). Implemented as an ADDRESS-DIRECT set on each bearer's resolved live band
+  entry (Wielder.ResolveDeployedMainHandAll), recording the BAND-read fingerprint so the clear/revert path
+  survives mid-battle level drift; the whole positional-aura branch was deleted (Chebyshev/InAura/
+  SelectNearest in Choir.Policy.cs + Tuning.ChoirMaxBeneficiaries). NOTE: instantCastRadius stays 1 (the
+  "enabled" sentinel) -- 0 would DISABLE the signature, so the handoff's "instantCastRadius 0" hint was
+  wrong. Adversarial review caught two bugs that bite-tests now guard: a roster-keyed-fingerprint stuck-bit
+  under level drift, and a fingerprint-collision SET that leaked the bit to an enemy. p3Desc updated ("the
+  bearer casts magick instantly") + item.en.nxd regenerated. 1320 tests green; analyze.py green.
+  LIVE-VERIFIED 2026-06-27 (log: "choir ACTIVE -- ...the bearer casts magick instantly"; bearer instant-
+  cast, adjacent ally kept normal charge). Tests: ChoirTests holder-only set + LEVEL-DRIFT + FP-COLLISION.
+- PUPPETEER (#11) LUCAVI/BOSS CARVE-OUT: the gate is currently ALLOW-EVERYONE (`IsDominatable => true`, by user request) — so bosses/Lucavi ARE dominatable by design. We do NOT want Lucavi dominatable. The `maxHp >= 2000` latch-loop cap does NOT exclude them (a live Lucavi read 999 max HP), and it's only a garbage-read sanity cap anyway — do not lean on it. Need a real carve-out keyed to job-id band and/or name-id (the long-standing "Lucavi carve-out" — IC Lucavi/boss job ids still need mapping). Costs in-game testing time to identify the ids; deferred until we can spare it. Until then, allow-everyone ships and a Lucavi CAN be puppeted.
+- PARTIAL FIX SHIPPED 2026-06-27 (v2.2.2): the counterattack MIS-CREDIT is suppressed -- a kill whose
+  alive->dead edge falls during a confirmed non-player turn (TqTeam 1=enemy / 2=ally) now NO-CREDITS the
+  stale player latch instead of paying it out (KillTracker.Corpses.cs deadStreak==1 stamp gated on the
+  proven TqTeam field, fail-safe toward crediting on a 0/garbage read; tracked Jump/charge still wins via
+  the delayed `ConsumeDelayedCulprit` check). The counter-attacker (Mel) goes honestly UNCREDITED -- "miss
+  beats mis-credit". Tests: CounterAttributionTests (headline non-vacuous + team==0 control + delayed-wins +
+  garbage-team fail-safe); 1324 green; analyze.py green. NOT live-verified (Patrick trusted the logic gate).
+  STILL OPEN (deferred probe-first RE spike): actually CREDITING the counter-attacker. Witnessed live
+  2026-06-26: Reis (Hexweave Bag id 118) Jumped/acted and wounded an enemy; enemy took its turn and hit
+  Melioudoul; Mel COUNTERED and killed it during the enemy's turn -- credit went to Reis (log:
+  `kill: Hexweave Bag earns kill #12` at 4,10). The turn-queue struct points at the enemy turn-owner, not
+  Mel, and a counterattacker never enters its own acted-period so it never latches; `KillTracker.Delayed.cs`
+  only re-arms the latched actor's OWN delayed action (Jump/Charge), so ConsumeDelayedCulprit returns null
+  for a THIRD-party counter. There is NO mapped field that names the counter-dealer -- crediting Mel needs a
+  live probe to find a "who dealt the last/counter damage" field (may not exist holdably). BattleLog `[w:N]`
+  tags are just the sticky latch (BattleLog.cs), so the log cannot show who really dealt each blow.
+
