@@ -275,4 +275,10 @@ internal static class Tuning
     /// <summary>Chain Lightning (Stormarc +3): each hop deals this percent of the PREVIOUS
     /// hop's chip damage. Applies after the base ricochetPct, so damage decays each arc.</summary>
     public const int RicochetHopDecayPct = 60;
+
+    /// <summary>Kobu (Kiyomori +3): ceiling for the wielder's current brave (band +0x0F).
+    /// 97 keeps it below the engine's Pray/Steel hard cap (100) while still out-braving
+    /// nearly any foe -- a unit at 98-100 is unbeatably brave but Kobu won't fully match
+    /// it (acceptable: the blade is never fully "bought" by one ultra-brave target).</summary>
+    public const int KobuBraveCap = 97;
 }

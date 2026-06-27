@@ -40,7 +40,14 @@ internal static class Offsets
     public const long ArrayReadBase = ArrayBase - (SlotsBack - 1) * ArrayStride;
     public const int EnemySlotMax = SlotsBack - 1;   // slots 0..19 are enemy-side
     public const int ALevel    = 0x0D; // u8   (roster-match fingerprint)
-    public const int ABrave    = 0x0E; // u8   origBrave (roster-match fingerprint)
+    public const int ABrave    = 0x0E; // u8   origBrave (roster-match fingerprint; re-normalizes, never displays; the locate fingerprint for Wielder -- NEVER write this)
+    /// <summary>u8 band-relative CURRENT brave (= CBraveCurrent 0x2B - BandEntry 0x1C = 0x0F).
+    /// Effective + displayed brave; the band-entry byte Kobu reads (enemy) and write-holds (wielder).
+    /// ABrave 0x0E is the orig/decoy: it re-normalizes, never displays, and is the locate fingerprint.
+    /// DO NOT confuse with CBraveCurrent (0x2B, combat-struct-relative): band_entry+0x2B = combat+0x47
+    /// = the Reraise/Invisible/Float STATUS bitfield (AReraise), NOT brave.
+    /// Proven layout: brave-faith-current-vs-orig-offsets (FFTMultiplayer 2026-06-20).</summary>
+    public const int ABraveCurrent = 0x0F;
     public const int AFaith    = 0x10; // u8   origFaith (roster-match fingerprint)
     public const int AInBattle = 0x12; // u16
     public const int AHp       = 0x14; // u16  (0 == KO'd)

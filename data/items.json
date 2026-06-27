@@ -1346,7 +1346,14 @@
         0.27,
         0.62,
         0.86
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "braveOneUp": true,
+        "displayLabel": "Kobu",
+        "note": "Brave one-up: on a melee hit the wielder lands (acting-main-hand gate, mirrors Maim), if the struck foe's CURRENT brave (band +0x0F) exceeds the wielder's accumulated max, raise the wielder's current brave to match (climb-only, cap Tuning.KobuBraveCap, battle-scoped). Katana damage = PA x Brave/100 x WP so braver blade hits harder. Wielder located via Wielder.ResolveDeployedMainHand; struck foe detected via Maim HP-diff scan; NEVER writes orig brave (band +0x0E, the locate fingerprint/decoy). LIVE-VERIFIED 2026-06-27: livingweapon.log 'kobu: struck enemy (orig brave 46, current brave 99) -- wielder brave ceiling raised 85 -> 97' and the 97 rendered on the wielder card (current-brave write per brave-faith-current-vs-orig-offsets).",
+        "p3Desc": "Striking a foe with a higher Brave will raise your Brave to match."
+      }
     },
     {
       "id": 44,

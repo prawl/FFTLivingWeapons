@@ -121,6 +121,11 @@ public sealed class WeaponSignature
     // every fallen ALLY's crystal counter (combat +0x07 / band -0x15) is held at SanctuaryHearts
     // (3) each tick -- the revive window never closes. false = not a sanctuary weapon.
     [JsonProperty("antiCrystallize")] public bool AntiCrystallize { get; set; }
+    // KOBU (Kiyomori "Kobu"): on a melee hit the wielder lands (acting-main-hand gate, mirrors Maim),
+    // if the struck foe's CURRENT brave (band +0x0F) exceeds the wielder's accumulated max, raise the
+    // wielder's current brave to match (climb-only, cap Tuning.KobuBraveCap, battle-scoped).
+    // Katana formula 1: PA x Brave/100 x WP -- more brave = sharper blade. false = not a kobu weapon.
+    [JsonProperty("braveOneUp")] public bool BraveOneUp { get; set; }
 }
 
 internal static class MetaLoader

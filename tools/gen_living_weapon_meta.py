@@ -97,6 +97,8 @@ def main():
                 entry["signature"]["antiCrystallize"] = True
             if sig.get("instantCastRadius"):  # choir (Warlock's Staff): adjacent allies cast magick instantly (Non-charge aura)
                 entry["signature"]["instantCastRadius"] = int(sig["instantCastRadius"])
+            if sig.get("braveOneUp"):  # Kobu (Kiyomori): on a melee hit the wielder lands, if struck foe's CURRENT brave (band +0x0F) exceeds the wielder's, raise wielder's current brave to match
+                entry["signature"]["braveOneUp"] = True
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

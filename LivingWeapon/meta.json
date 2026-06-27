@@ -371,7 +371,14 @@
     "wp": 11,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This exquisitely crafted katana has a beautifully patterned blade and an incredible cutting edge."
+    "flavor": "This exquisitely crafted katana has a beautifully patterned blade and an incredible cutting edge.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Kobu",
+      "braveOneUp": true
+    }
   },
   "44": {
     "name": "Muramasa",
