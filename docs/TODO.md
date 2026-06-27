@@ -10,18 +10,6 @@ Release TODO's
 - Ramza's Squire cannot equip Shields but normal squires can?
 - Larcency keeps popped up in the logs despite not being equipped
 - BUG: enemy Knights cast Shadow Blade without the Sanguine Sword. The Shadow Blade grant (Sanguine Sword id 23, ability 165) is injected into the Knight/Squire/Gallant Knight JobCommand record, which is JOB-global, so every unit of those jobs shows Shadow Blade as Learned regardless of equipped weapon (enemies included). Seen live: enemy Knight "Dyana" holding the Arcanum used Shadow Blade. Same class as the Barrage enemy-Thief leak, but Knights are a common enemy job so it is far more visible. Fix: gate the injected command to the actual wielder (per-unit), or restrict the grant to rare/unused enemy jobs, or remove the command-grant and use a different signature.
-- BUG: counterattack kills credit the last player who took a real turn, not the counter-attacker.
-  Witnessed live 2026-06-26: Reis (Hexweave Bag id 118) Jumped/acted and wounded an enemy; enemy took
-  its turn and hit Melioudoul; Mel COUNTERED and killed it during the enemy's turn -- credit went to Reis
-  (log: `kill: Hexweave Bag earns kill #12` at 4,10). Root cause = same family as the Jump delayed-action
-  bug but UNCOVERED by that fix. Kill credit pulls from `_lastPlayerWeapons` (KillTracker.cs:98-128),
-  stamped at the alive->dead edge (KillTracker.Corpses.cs:116-117,140). Enemies never latch (resolve
-  empty -> previous player's latch stays sticky), and a counterattacker never enters its own acted-period
-  so it never latches either. `KillTracker.Delayed.cs` only re-arms the latched actor's OWN delayed action
-  (Jump/Charge); a counter is a THIRD party (Mel) that never latched, so ConsumeDelayedCulprit returns
-  null and it falls through to the stale latch (Reis). There is currently no code path that can credit a
-  counter-attacker at all. Note: BattleLog `[w:N]` tags are just the sticky latch (BattleLog.cs:33-46), so
-  the log cannot show who really dealt each blow. Fix TBD.
 - RESOLVED 2026-06-26 (summoner kill mis-attribution): a summoner with no living weapon casts a CHARGED
   summon that lands CROSS-TURN (after its acted-period ends) and the kill leaked to the next armed unit to
   latch (live: Chaos Blade id 37, surfacing as the sticky `[w:37]` BattleLog tag). The original
@@ -38,45 +26,34 @@ Release TODO's
   summon dealt the blow; an unrelated armed kill maturing within the ~45-tick window can be a rare
   no-credit MISS (never a mis-credit). The counterattack-kill bug above is a SEPARATE third-party-latch
   problem, still open.
-- DESIGN CHANGE (decided 2026-06-26, not a bug): dial the Warlock's Staff +3 "Choir" instant-cast
-  signature back to HOLDER-ONLY -- remove the adjacent-ally aura. Rationale: the staff is buyable, so
-  the ally aura double-dips (one +3 staff buffs two casters); equip a second staff for a second
-  instant caster instead. Restrict the grant to the bearer(s) (ChoirMaxBeneficiaries=1 or
-  instantCastRadius 0 for id 60 in items.json), update ChoirTests + Choir.cs docs. Living-weapon
-  signature -> no gate impact. Spec in handoff.md "NEXT #2". NOTE: the prior observation that an
-  adjacent no-weapon summoner did NOT get instant cast was WORKS-AS-INTENDED (the per-bearer cap of
-  self + 1 nearest ally), not a bug -- this change removes the ally branch entirely.
+- RESOLVED 2026-06-27 (Choir dial-back to HOLDER-ONLY): the Warlock's Staff (id 60) +3 "Choir" signature
+  no longer grants the adjacent-ally instant-cast aura -- ONLY the deployed +3 bearer(s) get the Non-charge
+  bit (band +0x7F mask 0x04). Implemented as an ADDRESS-DIRECT set on each bearer's resolved live band
+  entry (Wielder.ResolveDeployedMainHandAll), recording the BAND-read fingerprint so the clear/revert path
+  survives mid-battle level drift; the whole positional-aura branch was deleted (Chebyshev/InAura/
+  SelectNearest in Choir.Policy.cs + Tuning.ChoirMaxBeneficiaries). NOTE: instantCastRadius stays 1 (the
+  "enabled" sentinel) -- 0 would DISABLE the signature, so the handoff's "instantCastRadius 0" hint was
+  wrong. Adversarial review caught two bugs that bite-tests now guard: a roster-keyed-fingerprint stuck-bit
+  under level drift, and a fingerprint-collision SET that leaked the bit to an enemy. p3Desc updated ("the
+  bearer casts magick instantly") + item.en.nxd regenerated. 1320 tests green; analyze.py green.
+  LIVE-VERIFIED 2026-06-27 (log: "choir ACTIVE -- ...the bearer casts magick instantly"; bearer instant-
+  cast, adjacent ally kept normal charge). Tests: ChoirTests holder-only set + LEVEL-DRIFT + FP-COLLISION.
 - PUPPETEER (#11) LUCAVI/BOSS CARVE-OUT: the gate is currently ALLOW-EVERYONE (`IsDominatable => true`, by user request) — so bosses/Lucavi ARE dominatable by design. We do NOT want Lucavi dominatable. The `maxHp >= 2000` latch-loop cap does NOT exclude them (a live Lucavi read 999 max HP), and it's only a garbage-read sanity cap anyway — do not lean on it. Need a real carve-out keyed to job-id band and/or name-id (the long-standing "Lucavi carve-out" — IC Lucavi/boss job ids still need mapping). Costs in-game testing time to identify the ids; deferred until we can spare it. Until then, allow-everyone ships and a Lucavi CAN be puppeted.
+- BUG (DEPRIORITIZED -- PROBE FIRST, real RE spike): counterattack kills credit the last player who took a
+  real turn, not the counter-attacker.
+  Witnessed live 2026-06-26: Reis (Hexweave Bag id 118) Jumped/acted and wounded an enemy; enemy took
+  its turn and hit Melioudoul; Mel COUNTERED and killed it during the enemy's turn -- credit went to Reis
+  (log: `kill: Hexweave Bag earns kill #12` at 4,10). Root cause = same family as the Jump delayed-action
+  bug but UNCOVERED by that fix. Kill credit pulls from `_lastPlayerWeapons` (KillTracker.cs:98-128),
+  stamped at the alive->dead edge (KillTracker.Corpses.cs:116-117,140). Enemies never latch (resolve
+  empty -> previous player's latch stays sticky), and a counterattacker never enters its own acted-period
+  so it never latches either. `KillTracker.Delayed.cs` only re-arms the latched actor's OWN delayed action
+  (Jump/Charge); a counter is a THIRD party (Mel) that never latched, so ConsumeDelayedCulprit returns
+  null and it falls through to the stale latch (Reis). There is currently no code path that can credit a
+  counter-attacker at all. Note: BattleLog `[w:N]` tags are just the sticky latch (BattleLog.cs:33-46), so
+  the log cannot show who really dealt each blow. Fix TBD.
 
 
-
-
-New Buffs Exploration
-1. PROVEN: Can add two support abilities 
-3. PROVEN: Add a new ability (e.g. Sanguine Sword) to a weapon.
-4. PROVEN: Can change movement from Move to Teleport mid-battle for a limited duration.  On X give the unit M Teleportation for x turns. 
-5. PROVEN: Adrenaline — drop below 30% HP → Attack Boost + Move+2 for 3 turns (a desperation surge).
-6 PROVEN: Charm-Lock - Casting charm does not break for 3 turns  → REPLACE with Puppeteer (#11); current charm is broken
-6 PROVEN: Take another turn now.  When killing a unit, immediately take another turn.
-7 PROVEN the enemies Reactions
-8. PROVEN Ricochet  Stormarc id 86 hosts it as "Arc Lightning" — on a damage event from the +3 wielder's action, chip the nearest other enemy within 3 tiles for 50% of the
-9. PROVEN Barrage: parked on two decisions (job-wide vs per-unit, and the blank-name problem).
-10 PROVEN Give Spiritual Font: Lifefont and Manafont to a single character
-11. PUPPETEER (signature; victim status "Puppet") — REPLACES Charm-Lock/Galewind (#6; vanilla charm is broken, this is strictly better: real menu control vs flaky charm-AI). Enemy-control PROVEN LIVE 2026-06-18. LOCKED DESIGN: reliable on a +3 weapon hit (NO rng) → puppet the struck enemy for its NEXT turn (full move + skillset), revert to AI at the turn boundary; ONE puppet at a time + 3-turn cooldown (counts the WIELDER's own turns); target gate = NO bosses/special/monster-class (job-id gate); NO hp gate, NO level gate (silent level-fail = bad UX); +/+2 = stat growth only (only +3 carries the ability). Class Puppeteer.cs + Puppeteer.Policy.cs. Build order: START with the boss/monster job-id gate as a pure policy + tests. Also the multiplayer primitive (see Dev/FFTMultiplayer). On hit by the +3 wielder, set bit 0x08 at the struck enemy's combat struct +0x05 → full MENU control of that enemy: move + its ENTIRE skillset (verified live casting Fire on its own allies; unit stays team-1 so it can turn on its own line). One write PERSISTS across turns (authoritative struct holds itself — no per-tick fight). Build as a CharmLock/Maim clone: on latch save the original +0x05 byte, own it, then RELEASE after N of the victim's turns (CtTurns off +0x09) by writing the saved byte back → AI (permanent variant = never release; battle-exit struct-rebuild cleans up). Flag: combat +0x05 bit 0x08 (SET=human / CLEAR=AI). CombatAnchor 0x141855CE0, stride 0x200; locate the victim via the usual lvl(+0x29)/brave(+0x2A)/faith(+0x2C)/weapon(+0x20) fingerprint. Mechanism found via Dicene's `fftivc.handsfree` mod (does the INVERSE — clears 0x08 to AI-ify the player team — and SIGSCANS the struct, so it's 1.5-proof; decompiled source in Downloads/FFT_-_HandsFree1.0.0/decompiled).
-12. PROVEN LIVE 2026-06-21: GUN SLINGER (+3 signature) -- force-equips a SECOND gun in the off-hand so the
-   wielder dual-wields and a basic Attack FIRES TWICE (two ranged shots, each rolls its own hit/damage; mix
-   elements, e.g. Stoneshooter Earth + Glacial Ice in one action). Verified live on Ramza (Stoneshooter 73
-   main + Glacial Gun 74 off-hand -- both fired). Mechanism: write a gun id into the roster OFF-HAND slot
-   +0x18 (base 0x1411A7D10, locate the unit by nameId +0x230; equip block = +0x14 main / +0x16 lhand /
-   +0x18 off-hand / +0x1A shield; IDS ARE items.json ids -- guns 71-76, 73=Stoneshooter, 67=Warbrand,
-   NOT vanilla FFTPatcher). REQUIRES the wielder to have Dual Wield (Two Swords) support equipped -- that
-   gate is what makes the engine render + fire the off-hand gun. Equip is construction-bound (no proven
-   mid-battle weapon swap), so ship as a between-battles roster-prep: +3 awakened -> write the off-hand gun
-   -> materializes on next battle entry. Do NOT write while the PartyMenu is open (it clobbers the slot --
-   bit us live, off-hand read back garbage). Probe: tools/probes/dualgun_probe.py (find_pid now targets the
-   largest-working-set process; a duplicate FFT_enhanced instance silently ate every write for ~10 turns).
-   See memory dual-gun-equip-write-proven. OVERTURNS the earlier "guns dual-wield-ineligible / construction-
-   welded" pessimism.
 
 Ideas:
 
@@ -107,6 +84,8 @@ Retain broken equipment
 Retain the last ability used on you.
 
 Needs Exploration
++3 can turn you into a super unit but only while mounted. While mounted only you either get mutiple skills such as, att boost, def boost and mag def boost, or doubling some of its stats such as its att and def to act as 2 units since it will be taking 2 unit spots. Att could be near warbrands at 16 or higher?
+speed could be increased alongside it too
 - Weapon that unlocks a job early?
 - Steal Identity: Copy the enemies stats in battle
 Guardian's Oath 🛡️ — when an ally next to the wielder takes a lethal hit, redirect it to the wielder (hold the ally's HP up, drop yours). HP-holds + position reads + death detection, all proven. The bodyguard blade.
@@ -120,7 +99,6 @@ Increase damage by how high a character is in the game
 - Buffed Regen, it heals the unit and others around them
 - Damaging enemies with Wands will restore mana
 - Defeating enemies with Magic will restore some life
-- Makes Spell Casting Instant for X turns
 - Swap Mana with a Target
 - On Successful Parry gain X (mana/health)
 - Reduce the targets level on hit
@@ -202,3 +180,31 @@ MOONSHOT (needs new tech; each names the wall to break):
   their line toward you, sky-chip on anyone not adjacent, foes dying spawn spectral allies. Kitchen-sink
   north star (terrain destruction + forced movement + field damage + visible summons, all walled).
 
+
+
+New Buffs Exploration
+1. PROVEN: Can add two support abilities 
+3. PROVEN: Add a new ability (e.g. Sanguine Sword) to a weapon.
+4. PROVEN: Can change movement from Move to Teleport mid-battle for a limited duration.  On X give the unit M Teleportation for x turns. 
+5. PROVEN: Adrenaline — drop below 30% HP → Attack Boost + Move+2 for 3 turns (a desperation surge).
+6 PROVEN: Charm-Lock - Casting charm does not break for 3 turns  → REPLACE with Puppeteer (#11); current charm is broken
+6 PROVEN: Take another turn now.  When killing a unit, immediately take another turn.
+7 PROVEN the enemies Reactions
+8. PROVEN Ricochet  Stormarc id 86 hosts it as "Arc Lightning" — on a damage event from the +3 wielder's action, chip the nearest other enemy within 3 tiles for 50% of the
+9. PROVEN Barrage: parked on two decisions (job-wide vs per-unit, and the blank-name problem).
+10 PROVEN Give Spiritual Font: Lifefont and Manafont to a single character
+11. PUPPETEER (signature; victim status "Puppet") — REPLACES Charm-Lock/Galewind (#6; vanilla charm is broken, this is strictly better: real menu control vs flaky charm-AI). Enemy-control PROVEN LIVE 2026-06-18. LOCKED DESIGN: reliable on a +3 weapon hit (NO rng) → puppet the struck enemy for its NEXT turn (full move + skillset), revert to AI at the turn boundary; ONE puppet at a time + 3-turn cooldown (counts the WIELDER's own turns); target gate = NO bosses/special/monster-class (job-id gate); NO hp gate, NO level gate (silent level-fail = bad UX); +/+2 = stat growth only (only +3 carries the ability). Class Puppeteer.cs + Puppeteer.Policy.cs. Build order: START with the boss/monster job-id gate as a pure policy + tests. Also the multiplayer primitive (see Dev/FFTMultiplayer). On hit by the +3 wielder, set bit 0x08 at the struck enemy's combat struct +0x05 → full MENU control of that enemy: move + its ENTIRE skillset (verified live casting Fire on its own allies; unit stays team-1 so it can turn on its own line). One write PERSISTS across turns (authoritative struct holds itself — no per-tick fight). Build as a CharmLock/Maim clone: on latch save the original +0x05 byte, own it, then RELEASE after N of the victim's turns (CtTurns off +0x09) by writing the saved byte back → AI (permanent variant = never release; battle-exit struct-rebuild cleans up). Flag: combat +0x05 bit 0x08 (SET=human / CLEAR=AI). CombatAnchor 0x141855CE0, stride 0x200; locate the victim via the usual lvl(+0x29)/brave(+0x2A)/faith(+0x2C)/weapon(+0x20) fingerprint. Mechanism found via Dicene's `fftivc.handsfree` mod (does the INVERSE — clears 0x08 to AI-ify the player team — and SIGSCANS the struct, so it's 1.5-proof; decompiled source in Downloads/FFT_-_HandsFree1.0.0/decompiled).
+12. PROVEN LIVE 2026-06-21: GUN SLINGER (+3 signature) -- force-equips a SECOND gun in the off-hand so the
+   wielder dual-wields and a basic Attack FIRES TWICE (two ranged shots, each rolls its own hit/damage; mix
+   elements, e.g. Stoneshooter Earth + Glacial Ice in one action). Verified live on Ramza (Stoneshooter 73
+   main + Glacial Gun 74 off-hand -- both fired). Mechanism: write a gun id into the roster OFF-HAND slot
+   +0x18 (base 0x1411A7D10, locate the unit by nameId +0x230; equip block = +0x14 main / +0x16 lhand /
+   +0x18 off-hand / +0x1A shield; IDS ARE items.json ids -- guns 71-76, 73=Stoneshooter, 67=Warbrand,
+   NOT vanilla FFTPatcher). REQUIRES the wielder to have Dual Wield (Two Swords) support equipped -- that
+   gate is what makes the engine render + fire the off-hand gun. Equip is construction-bound (no proven
+   mid-battle weapon swap), so ship as a between-battles roster-prep: +3 awakened -> write the off-hand gun
+   -> materializes on next battle entry. Do NOT write while the PartyMenu is open (it clobbers the slot --
+   bit us live, off-hand read back garbage). Probe: tools/probes/dualgun_probe.py (find_pid now targets the
+   largest-working-set process; a duplicate FFT_enhanced instance silently ate every write for ~10 turns).
+   See memory dual-gun-equip-write-proven. OVERTURNS the earlier "guns dual-wield-ineligible / construction-
+   welded" pessimism.

@@ -268,12 +268,6 @@ internal static class Tuning
     /// <summary>Choir (Warlock's Staff +3): the support ability OR-set on adjacent allies so their magick casts instantly -- 227 = Non-charge (ability.en key 483), live-proven calc-gated. Swiftspell (226, half-charge) is the milder alt.</summary>
     public const int InstantCastSupportId = 227;
 
-    /// <summary>Choir (Warlock's Staff +3): the most UNITS (nearest by Chebyshev distance, the bearer
-    /// included at distance 0) each DEPLOYED bearer grants per tick -- a duet per staff. Two staves
-    /// = up to four instant-cast units (2 per bearer, unioned). THE live-tune knob: drop to 1 for a
-    /// solo, raise for a bigger choir.</summary>
-    public const int ChoirMaxBeneficiaries = 2;
-
     /// <summary>Chain Lightning (Stormarc +3): maximum units the bolt arcs through after the
     /// primary hit. Each hop re-centers on the struck unit and picks the nearest unhit enemy.</summary>
     public const int RicochetMaxHops = 3;

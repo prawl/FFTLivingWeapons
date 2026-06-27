@@ -73,7 +73,10 @@ public sealed class WeaponSignature
     // many Chebyshev tiles are healed for round(maxHP * Tuning.RenewalPct) each. Silent band write.
     // 0 = not a renewal weapon.
     [JsonProperty("regenAuraRadius")] public int RegenAuraRadius { get; set; }
-    // CHOIR (Warlock's Staff "Choir"): while a +3 bearer is alive, every LIVING ALLY within this many Chebyshev tiles (and the bearer) gets the Non-charge support bit (instant magick), held per tick and cleared on leave/death. 0 = not a choir weapon.
+    // CHOIR (Warlock's Staff "Choir"): holder-only. While a +3 bearer is alive and main-hand-wielding
+    // the staff, that bearer (and every other deployed +3 bearer) gets the Non-charge support bit
+    // (instant magick), held per tick and cleared on death/unequip/below-tier/battle-end. There is no
+    // adjacent-ally aura -- this is just the enabled sentinel (>0 = on). 0 = not a choir weapon.
     [JsonProperty("instantCastRadius")] public int InstantCastRadius { get; set; }
     // SPIRITUAL FONT (Wellspring "Spiritual Font"): at AtTier, a completed wielder turn whose grid
     // position changed since their previous turn restores Tuning.FontHpPct of max HP and FontMpPct of

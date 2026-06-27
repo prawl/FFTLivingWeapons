@@ -5,41 +5,37 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Warlock's Staff "Choir" signature. While a +3 Warlock's Staff is held in the MAIN HAND
-/// and its bearer is alive and on the field: every LIVING ALLY within Chebyshev radius 1
-/// (8 adjacent tiles incl. diagonals) AND the wielder itself (distance 0) get the Non-charge
-/// support bit (id 227, band +0x7F mask 0x04) OR-set each tick so their magick casts instantly.
-/// Deterministic revert: when an ally leaves the radius, dies, or the bearer dies/unequips/
-/// battle ends, the bit Choir set is CLEARED. A unit whose own picked support is Non-charge
-/// (id 227) is NEVER touched.
+/// Warlock's Staff "Choir" signature -- HOLDER-ONLY.
+/// While a +3 Warlock's Staff is held in the MAIN HAND and its bearer is alive:
+/// ONLY the bearer's live band entry gets the Non-charge support bit (id 227, band +0x7F
+/// mask 0x04) OR-set each tick so their magick casts instantly. No adjacent-ally aura.
 ///
 /// Key design decisions tested here:
 ///   (1) IsActive: null/radius-0/below-tier -> false; at/above tier with radius -> true.
-///   (2) InAura Chebyshev: diagonals are distance 1; self is distance 0; 2 tiles away is false.
-///   (3) SupportBit pins: id 227 -> (3, 0x04); constant relationship Offsets.ASupport + 3 == Offsets.CSupport - Offsets.BandEntry.
-///   (4) LOAD-BEARING: in-aura ally gets +0x7F bit set; out-of-aura (2 tiles) ally does NOT.
-///   (5) Neighbor-bit OR -- a pre-existing bit (Swiftspell 0x08) is preserved: result is 0x0C.
-///   (6) Bearer self: the bearer's own band entry at distance 0 gets the bit.
+///   (3) SupportBit pins: id 227 -> (3, 0x04); constant relationship ASupport+3 == CSupport-BandEntry.
+///   (4) LOAD-BEARING: bearer gets the bit; adjacent alive ally does NOT.
+///   (5) Neighbor-bit OR -- a pre-existing bit (Swiftspell 0x08) is preserved on the bearer: result is 0x0C.
+///   (6) Bearer self: bearer's own band entry gets the bit.
 ///   (7) Bearer-alive gate: HP 0 -> no set (with non-vacuous twin: HP > 0 -> set).
-///   (8) Tier gate: below atTier -> no set.
-///   (9) Ally filter: enemy fp not in AllyFingerprints -> not set.
-///   (10) Writable/Readable guard: not in WritableAddrs or ReadableAddrs -> no set.
-///   (11) Revert-on-leave: ally granted, then moves out of range -> bit cleared.
-///   (12) Wielder-moves revert: bearer moves so the ally is now out of range -> bit clears.
-///   (13) Never-strip-player's-own Non-charge (B2.1 regression).
-///   (14) Multi-bearer: two roster slots hold id 60 in main hand -> inactive -> no set.
+///   (8) Tier gate: below atTier -> no set; at tier -> bearer IS set.
+///   (9) Enemy filter: enemy fp not in AllyFingerprints -> not set.
+///   (10) Writable/Readable guard: bearer's support addr not in Writable/ReadableAddrs -> no set.
+///   (13) Never-strip bearer's own Non-charge support (B2.1 regression).
+///   (14) Benched second staff does not block the deployed bearer.
 ///   (15) ResetBattle clears tracking state.
-///   (16) Band-twin: same fp, different slots, one in-aura one out -> per-entry correctness.
+///   LEVEL-DRIFT: band lvl != roster lvl; clear path still works (_granted is band-keyed).
+///   FP-COLLISION: a non-bearer entry with same (mhp,lvl,br,fa) must NOT get the bit.
+///   NEW-A: two deployed bearers each get their own bit; adjacent allies do NOT.
+///   NEW-B: two deployed bearers, one unequips -> that bearer's bit cleared, other stays.
+///   NEW-C: two staves -> exactly 2 winners (the two bearers).
 /// </summary>
 public class ChoirTests
 {
     private const int WarlockStaffId = 60;
-    private const int NonChargeId    = 227;  // id 227 -> byte 3 (ASupport+3 = band +0x7F), mask 0x04
+    private const int NonChargeId    = 227;
 
-    // Byte offset within ASupport for Non-charge (id 227, base 198 -> pos 29 -> byte 3, mask 0x80>>5 = 0x04)
     private const int NcByteOff = 3;
     private const byte NcMask   = 0x04;
-    // Band write address offset from entry base: ASupport + NcByteOff = 0x7C + 3 = 0x7F
     private const int NcBandOff = Offsets.ASupport + NcByteOff;  // == 0x7F
 
     private static WeaponSignature ChoirSig(int atTier = 3, int radius = 1) =>
@@ -65,16 +61,6 @@ public class ChoirTests
         Assert.True(Choir.IsActive(ChoirSig(atTier: 3), tier: 3));
         Assert.True(Choir.IsActive(ChoirSig(atTier: 3), tier: 4));
     }
-
-    // ---- (2) InAura Chebyshev ----
-
-    [Theory]
-    [InlineData(5, 5, 6, 6, true)]   // diagonal -> distance 1 -> in aura
-    [InlineData(5, 5, 7, 5, false)]  // 2 tiles away -> out
-    [InlineData(5, 5, 5, 5, true)]   // self -> distance 0 -> in aura
-    [InlineData(5, 5, 7, 7, false)]  // 2 diagonal -> distance 2 -> out
-    public void InAura_chebyshev_at_radius_1(int wx, int wy, int x, int y, bool expected)
-        => Assert.Equal(expected, Choir.InAura(wx, wy, x, y, radius: 1));
 
     // ---- (3) SupportBit pins and constant relationships ----
 
@@ -177,12 +163,16 @@ public class ChoirTests
         mem.U8s[rb + Offsets.RSupport] = (byte)rsupport;
     }
 
-    /// <summary>Build a standard active scenario: bearer alive (band slot 30), one in-aura
-    /// ally (band slot 28, adjacent to bearer), kills >= atTier so active.</summary>
+    /// <summary>Build a standard active scenario: bearer alive (band slot 30), one adjacent
+    /// ally (band slot 28, adjacent to bearer by default), kills >= atTier so active.
+    /// Under holder-only, the ally is seeded as a real candidate (adjacent, alive, writable)
+    /// so a regression to the old aura behavior would set the ally's bit and fail test (4).
+    /// writableBearerSupport=false excludes the bearer's support addr from Writable/ReadableAddrs
+    /// (for the guard tests (10)). writableAllySupport is retained for completeness.</summary>
     private static (Choir choir, FakeSparseMemory mem, long bearerEntry, long allyEntry)
         BuildActive(int tier = 3, int bearerHp = 200, int bearerGx = 5, int bearerGy = 5,
                     int allyGx = 6, int allyGy = 6, bool writableAllySupport = true,
-                    int rSupport = 0)
+                    bool writableBearerSupport = true, int rSupport = 0)
     {
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
@@ -196,24 +186,24 @@ public class ChoirTests
         };
         var kills = new Dictionary<int, int>
         {
-            [WarlockStaffId] = tier >= 1 ? Tuning.ProdThresholds[Math.Min(tier, 3) - 1] : 0
+            [WarlockStaffId] = tier >= 1 ? Tuning.ProdThresholds[Math_Min(tier, 3) - 1] : 0
         };
 
         // Roster slot 0 = bearer
         SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId, rsupport: rSupport);
 
-        // Bearer band entry (band slot 30) -- weapon field at entry+0x04 (CWeapon-BandEntry) for Wielder.Locate
+        // Bearer band entry (band slot 30): weapon field for Wielder.Locate
         long bearerEntry = Band.Entry(30);
         SeedBandEntry(mem, bearerEntry, bearerHp, maxHp: 300, lvl: 35, br: 65, fa: 60,
-                      gx: bearerGx, gy: bearerGy, writableSupport: true);
+                      gx: bearerGx, gy: bearerGy, writableSupport: writableBearerSupport);
         mem.U16s[bearerEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
 
-        // Ally band entry (band slot 28, adjacent by default)
+        // Ally band entry (band slot 28): adjacent by default; alive, in AllyFingerprints, writable.
+        // Under holder-only, Choir must NOT set the ally's bit -- kept as a real candidate so a
+        // regression to ally-aura would set it and be caught by test (4).
         long allyEntry = Band.Entry(28);
         SeedBandEntry(mem, allyEntry, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55,
                       gx: allyGx, gy: allyGy, writableSupport: writableAllySupport);
-
-        // Register ally fingerprint in the static array
         SeedAllyFp(mem, mhp: 150, lvl: 20, br: 50, fa: 55);
 
         var choir = new Choir(meta, kills, mem: mem);
@@ -222,52 +212,33 @@ public class ChoirTests
 
     private static int Math_Min(int a, int b) => a < b ? a : b;
 
-    // ---- (4) LOAD-BEARING: in-aura ally gets the bit; far ally does NOT ----
+    // ---- (4) LOAD-BEARING: bearer gets the bit; adjacent alive ally does NOT ----
 
     [Fact]
-    public void Tick_sets_noncharge_on_inAura_ally_and_not_on_far_ally()
+    public void Tick_sets_noncharge_on_bearer_and_not_on_adjacent_ally()
     {
+        // Ally is adjacent (distance 1), alive, writable -- everything the old aura logic
+        // would have granted it. Under holder-only it must NOT receive the bit.
         var (choir, mem, bearerEntry, allyEntry) = BuildActive(bearerGx: 5, bearerGy: 5,
-                                                               allyGx: 6, allyGy: 6);  // distance 1 -> in aura
-
-        // Add a FAR ally at distance 2 (different slot, different fp)
-        // Use array slot EnemySlotMax+2 so we don't overwrite the in-aura ally's fp at slot EnemySlotMax+1
-        long farEntry = Band.Entry(25);
-        SeedBandEntry(mem, farEntry, hp: 120, maxHp: 120, lvl: 22, br: 52, fa: 57,
-                      gx: 7, gy: 5, writableSupport: true);   // 2 tiles from bearer (5,5)
-        long farFpSlot = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + 2) * Offsets.ArrayStride;
-        mem.ReadableAddrs.Add(farFpSlot + Offsets.AMaxHp);
-        mem.U16s[farFpSlot + Offsets.AMaxHp] = 120;
-        mem.U8s[farFpSlot + Offsets.ALevel]  = 22;
-        mem.U8s[farFpSlot + Offsets.ABrave]  = 52;
-        mem.U8s[farFpSlot + Offsets.AFaith]  = 57;
-
+                                                               allyGx: 6, allyGy: 6);
         choir.Tick(onField: true);
 
-        long inAuraAddr  = allyEntry + NcBandOff;
-        long farAddr     = farEntry  + NcBandOff;
+        // Bearer MUST have the bit
+        Assert.True(IsSet(mem, bearerEntry), "bearer must get the Non-charge bit (holder-only)");
 
-        // In-aura ally MUST have the bit set
-        Assert.True(mem.Written.ContainsKey(inAuraAddr),
-            "in-aura ally's +0x7F must be written");
-        Assert.Equal(NcMask, (byte)(mem.Written[inAuraAddr] & NcMask));
-
-        // Far ally must NOT have the bit set
-        Assert.False(mem.Written.ContainsKey(farAddr) && (mem.Written[farAddr] & NcMask) != 0,
-            "far ally's +0x7F must NOT have the Non-charge bit set");
+        // Adjacent alive ally must NOT have the bit (holder-only; aura regression would fail here)
+        Assert.False(IsSet(mem, allyEntry),
+            "adjacent ally must NOT get the bit -- Choir is holder-only; aura regression fails this arm");
     }
 
-    // VACUITY TWIN: an always-set impl (broken) would pass the in-aura check but fail the far check
-    // The test above is genuinely non-vacuous because it asserts BOTH arms of the OR-set decision.
-
-    // ---- (5) Neighbor-bit preserved (OR not clobber) ----
+    // ---- (5) Neighbor-bit preserved (OR not clobber) on the BEARER ----
 
     [Fact]
     public void Tick_ORs_bit_not_clobbers_existing_neighbor_bit()
     {
-        var (choir, mem, _, allyEntry) = BuildActive();
-        long supportAddr = allyEntry + NcBandOff;
-        // Pre-seed Swiftspell bit (0x08) -- the neighbor bit that must survive
+        var (choir, mem, bearerEntry, _) = BuildActive();
+        long supportAddr = bearerEntry + NcBandOff;
+        // Pre-seed Swiftspell bit (0x08) on the BEARER -- must survive the OR-set
         mem.U8s[supportAddr] = 0x08;
 
         choir.Tick(onField: true);
@@ -282,9 +253,8 @@ public class ChoirTests
     public void Tick_sets_bit_on_bearer_self()
     {
         var (choir, mem, bearerEntry, _) = BuildActive();
-        // Bearer is at (5,5), radius 1 -- the bearer itself is distance 0
-        // Register bearer fingerprint in a SECOND static array slot (EnemySlotMax+2) so it
-        // doesn't overwrite the ally fp seeded by BuildActive in slot EnemySlotMax+1
+        // Register bearer fingerprint in a second static array slot so it doesn't overwrite
+        // the ally fp seeded by BuildActive at slot EnemySlotMax+1
         long slot2 = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + 2) * Offsets.ArrayStride;
         mem.ReadableAddrs.Add(slot2 + Offsets.AMaxHp);
         mem.U16s[slot2 + Offsets.AMaxHp] = 300;
@@ -296,7 +266,7 @@ public class ChoirTests
 
         long bearerSupportAddr = bearerEntry + NcBandOff;
         Assert.True(mem.Written.ContainsKey(bearerSupportAddr),
-            "bearer's own +0x7F must be written (self is distance 0 from itself)");
+            "bearer's own +0x7F must be written");
         Assert.Equal(NcMask, (byte)(mem.Written[bearerSupportAddr] & NcMask));
     }
 
@@ -305,25 +275,21 @@ public class ChoirTests
     [Fact]
     public void Tick_no_set_when_bearer_hp_is_zero()
     {
-        var (choir, mem, _, allyEntry) = BuildActive(bearerHp: 0);
+        var (choir, mem, bearerEntry, _) = BuildActive(bearerHp: 0);
 
         choir.Tick(onField: true);
 
-        Assert.False(mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                     (mem.Written[allyEntry + NcBandOff] & NcMask) != 0,
-            "bearer dead -> no Non-charge bit set");
+        Assert.False(IsSet(mem, bearerEntry), "bearer dead -> bearer's own bit must NOT be set");
     }
 
     [Fact]
     public void Tick_sets_bit_when_bearer_is_alive_vacuity_twin()
     {
-        // Identical scenario but bearer HP > 0
-        var (choir, mem, _, allyEntry) = BuildActive(bearerHp: 200);
+        var (choir, mem, bearerEntry, _) = BuildActive(bearerHp: 200);
 
         choir.Tick(onField: true);
 
-        Assert.True(mem.Written.ContainsKey(allyEntry + NcBandOff),
-            "bearer alive -> Non-charge bit must be set on in-aura ally");
+        Assert.True(IsSet(mem, bearerEntry), "bearer alive -> bearer's own bit must be set");
     }
 
     // ---- (8) Tier gate ----
@@ -331,124 +297,76 @@ public class ChoirTests
     [Fact]
     public void Tick_no_set_when_tier_below_atTier()
     {
-        var (choir, mem, _, allyEntry) = BuildActive(tier: 2);   // 2 < atTier 3
+        var (choir, mem, bearerEntry, _) = BuildActive(tier: 2);   // 2 < atTier 3
 
         choir.Tick(onField: true);
 
-        Assert.False(mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                     (mem.Written[allyEntry + NcBandOff] & NcMask) != 0);
+        Assert.False(IsSet(mem, bearerEntry), "below tier -> bearer bit must NOT be set");
     }
 
-    // ---- (9) Ally filter: enemy fp not in AllyFingerprints -> not set ----
+    [Fact]
+    public void Tick_sets_bit_at_tier()
+    {
+        var (choir, mem, bearerEntry, _) = BuildActive(tier: 3);
+
+        choir.Tick(onField: true);
+
+        Assert.True(IsSet(mem, bearerEntry), "at tier -> bearer bit must be set");
+    }
+
+    // ---- (9) Enemy filter: enemy fp not in AllyFingerprints -> not set ----
 
     [Fact]
     public void Tick_does_not_set_bit_on_enemy()
     {
         var (choir, mem, _, _) = BuildActive();
 
-        // Seed an enemy-only band entry at an adjacent tile (not in ally fp set)
+        // Enemy-only band entry at an adjacent tile (not in ally fp set, not a roster wielder)
         long enemyEntry = Band.Entry(20);
         SeedBandEntry(mem, enemyEntry, hp: 100, maxHp: 100, lvl: 18, br: 60, fa: 50,
                       gx: 6, gy: 5, writableSupport: true);
-        // Do NOT add to ally fingerprints
+        // Not added to ally fingerprints
 
         choir.Tick(onField: true);
 
-        Assert.False(mem.Written.ContainsKey(enemyEntry + NcBandOff) &&
-                     (mem.Written[enemyEntry + NcBandOff] & NcMask) != 0,
-            "enemy units must not get the Non-charge bit");
+        Assert.False(IsSet(mem, enemyEntry), "enemy units must not get the Non-charge bit");
     }
 
-    // ---- (10) Writable/Readable guard ----
+    // ---- (10) Writable/Readable guard -- gated on the BEARER's support address ----
 
     [Fact]
-    public void Tick_no_set_when_support_addr_not_writable()
+    public void Tick_no_set_when_bearer_support_addr_not_writable()
     {
-        var (choir, mem, _, allyEntry) = BuildActive(writableAllySupport: false);
+        var (choir, mem, bearerEntry, _) = BuildActive(writableBearerSupport: false);
 
         choir.Tick(onField: true);
 
-        // The bit must not be written
-        Assert.False(mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                     (mem.Written[allyEntry + NcBandOff] & NcMask) != 0);
+        Assert.False(IsSet(mem, bearerEntry),
+            "non-writable bearer support addr -> bit must not be written");
     }
 
     [Fact]
-    public void Tick_no_set_when_support_addr_not_readable()
+    public void Tick_no_set_when_bearer_support_addr_not_readable()
     {
-        // Build without the support address in ReadableAddrs (but add writable only)
-        var (choir, mem, _, allyEntry) = BuildActive(writableAllySupport: false);
+        var (choir, mem, bearerEntry, _) = BuildActive(writableBearerSupport: false);
         // Add writable but NOT readable
-        mem.WritableAddrs.Add(allyEntry + NcBandOff);
+        mem.WritableAddrs.Add(bearerEntry + NcBandOff);
         // ReadableAddrs does NOT have it
 
         choir.Tick(onField: true);
 
-        Assert.False(mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                     (mem.Written[allyEntry + NcBandOff] & NcMask) != 0,
-            "not-readable support addr must not be written");
+        Assert.False(IsSet(mem, bearerEntry),
+            "non-readable bearer support addr -> bit must not be written");
     }
 
-    // ---- (11) Revert-on-leave ----
+    // ---- (13) Never-strip bearer's own Non-charge support ----
 
     [Fact]
-    public void Tick_clears_bit_when_ally_moves_out_of_range()
+    public void Tick_never_strips_bearers_own_NonCharge_support()
     {
-        var (choir, mem, _, allyEntry) = BuildActive(allyGx: 6, allyGy: 6);  // adjacent -> in aura
-
-        // First tick: ally is in aura -> bit set, added to _granted
-        choir.Tick(onField: true);
-        Assert.True(mem.Written.ContainsKey(allyEntry + NcBandOff));
-
-        // Move ally out of range (2 tiles from bearer at 5,5)
-        mem.U8s[allyEntry + Offsets.AGx] = 7;
-        mem.U8s[allyEntry + Offsets.AGy] = 5;
-        // Reset Written so we can observe the second tick's ClearBit
-        mem.Written.Clear();
-        // Pre-seed the byte as having 0x04 so ClearBit sees it set and writes the clear
-        mem.U8s[allyEntry + NcBandOff] = NcMask;
-
-        choir.Tick(onField: true);
-
-        // The bit must be cleared
-        bool cleared = mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                       (mem.Written[allyEntry + NcBandOff] & NcMask) == 0;
-        Assert.True(cleared, "moved-out ally's Non-charge bit must be cleared");
-    }
-
-    // ---- (12) Wielder-moves revert ----
-
-    [Fact]
-    public void Tick_clears_bit_when_bearer_moves_so_ally_leaves_radius()
-    {
-        var (choir, mem, bearerEntry, allyEntry) = BuildActive(
-            bearerGx: 5, bearerGy: 5, allyGx: 6, allyGy: 6);  // ally adjacent
-
-        // First tick -> bit granted
-        choir.Tick(onField: true);
-        Assert.True(mem.Written.ContainsKey(allyEntry + NcBandOff));
-
-        // Move the BEARER so ally is now 3 tiles away (out of range)
-        mem.U8s[bearerEntry + Offsets.AGx] = 9;
-        mem.U8s[bearerEntry + Offsets.AGy] = 9;
-        mem.Written.Clear();
-        mem.U8s[allyEntry + NcBandOff] = NcMask;
-
-        choir.Tick(onField: true);
-
-        bool cleared = mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                       (mem.Written[allyEntry + NcBandOff] & NcMask) == 0;
-        Assert.True(cleared, "ally outside moved-bearer's radius must get the bit cleared");
-    }
-
-    // ---- (13) Never-strip player's own Non-charge (B2.1 regression) ----
-
-    [Fact]
-    public void Tick_never_strips_players_own_NonCharge_support()
-    {
-        // Ally's ROSTER slot has RSupport == 227 (Non-charge is their own pick)
-        // Their band entry is in-aura and has +0x7F 0x04 already set.
-        // Choir must NOT add them to _granted; moving them out must NOT clear the bit.
+        // The protected bearer's OWN roster RSupport == 227 -> protectedBF excludes them from
+        // winners. Choir must never set OR clear their innate bit. A canary bearer (slot 1,
+        // RSupport=0) confirms Choir IS running at tier 3.
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
@@ -461,42 +379,47 @@ public class ChoirTests
         };
         var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
 
-        // Roster slot 0 = bearer
-        SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId, rsupport: 0);
-        long bearerEntry = Band.Entry(30);
-        SeedBandEntry(mem, bearerEntry, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60,
+        // Protected bearer: roster RSupport=227 -> (br=65,fa=60) lands in protectedBF
+        SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId, rsupport: NonChargeId);
+        long protectedEntry = Band.Entry(30);
+        SeedBandEntry(mem, protectedEntry, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60,
                       gx: 5, gy: 5, writableSupport: true);
-        mem.U16s[bearerEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+        mem.U16s[protectedEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+        // Pre-set their innate Non-charge bit
+        mem.U8s[protectedEntry + NcBandOff] = NcMask;
 
-        // Ally with own Non-charge pick (RSupport == 227)
-        // Their brave+faith fingerprint: br=52, fa=58
-        SeedRosterSlot(mem, 1, lvl: 22, br: 52, fa: 58, mainHandId: 0, rsupport: NonChargeId);
-        long allyEntry = Band.Entry(28);
-        SeedBandEntry(mem, allyEntry, hp: 150, maxHp: 150, lvl: 22, br: 52, fa: 58,
-                      gx: 6, gy: 6, writableSupport: true);  // adjacent to bearer (in aura)
-        // Pre-set their bit (they already have it from their own picked support)
-        mem.U8s[allyEntry + NcBandOff] = NcMask;
-        SeedAllyFp(mem, mhp: 150, lvl: 22, br: 52, fa: 58);
+        // Canary bearer: RSupport=0, also wielding the staff; confirms Choir is active
+        SeedRosterSlot(mem, 1, lvl: 30, br: 70, fa: 68, mainHandId: WarlockStaffId, rsupport: 0);
+        long canaryEntry = Band.Entry(28);
+        SeedBandEntry(mem, canaryEntry, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68,
+                      gx: 6, gy: 6, writableSupport: true);
+        mem.U16s[canaryEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
+        SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
 
         var choir = new Choir(meta, kills, mem: mem);
 
-        // Tick while in aura -- must NOT add to _granted
+        // Tick 1: Choir is active (canary bearer alive); protected bearer excluded from winners
         choir.Tick(onField: true);
 
-        // Move ally out of aura
-        mem.U8s[allyEntry + Offsets.AGx] = 7;
-        mem.U8s[allyEntry + Offsets.AGy] = 5;
+        // Canary got the bit (proves Choir ran)
+        Assert.True(IsSet(mem, canaryEntry), "canary bearer must get the bit (Choir is running)");
+        // Protected bearer: Choir must not overwrite their innate bit via SET
+        Assert.False(mem.Written.ContainsKey(protectedEntry + NcBandOff) &&
+                     (mem.Written[protectedEntry + NcBandOff] & NcMask) != 0,
+            "protected bearer's innate Non-charge must not be overwritten by Choir SET");
+
+        // Tick 2: protected bearer "dies"; their innate bit must NOT be cleared
+        mem.U16s[protectedEntry + Offsets.AHp] = 0;
+        mem.U8s[protectedEntry + NcBandOff] = NcMask;   // still set from their own pick
+        mem.U8s[canaryEntry + NcBandOff]    = 0;        // canary: let SetBit write so IsSet works
         mem.Written.Clear();
-        // bit still set from their own pick
-        mem.U8s[allyEntry + NcBandOff] = NcMask;
 
         choir.Tick(onField: true);
 
-        // The bit must STILL be 0x04 (not cleared by Choir)
-        bool cleared = mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                       (mem.Written[allyEntry + NcBandOff] & NcMask) == 0;
-        Assert.False(cleared,
-            "player's own Non-charge support must never be cleared by Choir");
+        Assert.False(IsCleared(mem, protectedEntry),
+            "protected bearer's innate Non-charge must never be cleared by Choir -- not in _granted");
     }
 
     // ---- (14) Benched second staff does not block the deployed bearer ----
@@ -504,28 +427,62 @@ public class ChoirTests
     [Fact]
     public void Tick_benched_second_staff_does_not_block_the_deployed_bearer()
     {
-        // Two roster slots hold id 60 in main hand, but ONLY slot 0 has a band entry (slot 1
-        // is benched -- no band entry). Under the new multi-bearer logic the deployed bearer's
-        // aura must still work; the benched copy must neither project nor block.
-        var (choir, mem, _, allyEntry) = BuildActive();
-        // Add a second roster slot also holding id 60 in main hand -- NO band entry seeded for it
+        var (choir, mem, bearerEntry, _) = BuildActive();
+        // Second roster slot holds id 60 in main hand -- NO band entry (benched)
         SeedRosterSlot(mem, 1, lvl: 28, br: 70, fa: 65, mainHandId: WarlockStaffId);
 
         choir.Tick(onField: true);
 
-        Assert.True(mem.Written.ContainsKey(allyEntry + NcBandOff) &&
-                    (mem.Written[allyEntry + NcBandOff] & NcMask) != 0,
-            "benched second staff must not block the deployed bearer's aura");
+        Assert.True(IsSet(mem, bearerEntry),
+            "benched second staff must not block the deployed bearer from getting the bit");
     }
 
-    // ---- (NEW-A) LOAD-BEARING: two DEPLOYED bearers each project their own aura ----
+    // ---- (15) ResetBattle clears tracking ----
 
     [Fact]
-    public void Tick_two_deployed_bearers_each_grant_their_own_adjacent_ally()
+    public void ResetBattle_clears_granted_state_so_revert_does_not_fire_next_battle()
     {
-        // LOAD-BEARING: fails on current code because TryResolveMainHand bails with two roster
-        // wielders (active=false -> zero grants). The new multi-bearer path must activate for
-        // each deployed bearer independently and grant all four fps (2 bearers + 2 allies).
+        var (choir, mem, bearerEntry, _) = BuildActive();
+
+        // Grant the bit on the bearer
+        choir.Tick(onField: true);
+        Assert.True(IsSet(mem, bearerEntry));
+
+        // Reset (simulates battle exit)
+        choir.ResetBattle();
+
+        // Simulate a new inactive Choir (tier 0 -> inactive); pre-seed the bearer's bit so
+        // ClearBit WOULD fire if _granted weren't clear.
+        mem.U8s[bearerEntry + NcBandOff] = NcMask;
+        mem.Written.Clear();
+
+        var metaInactive = new Dictionary<int, WeaponMeta>
+        {
+            [WarlockStaffId] = new WeaponMeta
+            {
+                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Flavor = "Bound with a warlock's hex",
+                Signature = ChoirSig()
+            }
+        };
+        var killsZero = new Dictionary<int, int> { [WarlockStaffId] = 0 };  // tier 0 -> inactive
+        var choirFresh = new Choir(metaInactive, killsZero, mem: mem);
+        choirFresh.Tick(onField: true);
+
+        Assert.False(mem.Written.ContainsKey(bearerEntry + NcBandOff),
+            "after ResetBattle, _granted is clear so no stale ClearBit fires on the bearer");
+    }
+
+    // ---- LEVEL-DRIFT bite test ----
+
+    [Fact]
+    public void Tick_clears_bit_under_band_level_drift()
+    {
+        // Bearer roster lvl=20; band entry lvl=23 (mid-battle level-up drift, within MaxLevelDrift=9).
+        // Locate tolerates the drift (LevelMatchesRoster). _granted must record the BAND-read fp
+        // (mhp, lvl=23, br, fa), NOT the roster lvl=20. On tick 2 the bearer unequips; the clear
+        // scan reads the band entry's lvl=23 and must find it in _granted -> ClearBit fires.
+        // A roster-keyed _granted (lvl=20) would miss the band fp(23) -> stuck bit -> test fails.
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
@@ -538,58 +495,130 @@ public class ChoirTests
         };
         var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
 
-        // Bearer A: roster slot 0, distinct br/fa
+        // Roster: lvl=20
+        SeedRosterSlot(mem, 0, lvl: 20, br: 65, fa: 60, mainHandId: WarlockStaffId);
+        // Band entry: SAME br/fa, but lvl=23 (drifted up mid-battle)
+        long bearerEntry = Band.Entry(30);
+        SeedBandEntry(mem, bearerEntry, hp: 200, maxHp: 300, lvl: 23, br: 65, fa: 60,
+                      gx: 5, gy: 5, writableSupport: true);
+        mem.U16s[bearerEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        var choir = new Choir(meta, kills, mem: mem);
+
+        // Tick 1: Locate uses LevelMatchesRoster(20, 23)=true -> finds the bearer -> bit set
+        choir.Tick(onField: true);
+        Assert.True(IsSet(mem, bearerEntry),
+            "tick 1: bearer must get the bit despite roster/band lvl mismatch (Locate tolerates drift)");
+
+        // Tick 2: bearer unequips (RRHand -> 0) -> leaves _bearers; stale band entry still exists
+        mem.U16s[Offsets.RosterBase + Offsets.RRHand] = 0;
+        mem.U8s[bearerEntry + NcBandOff] = NcMask;   // bit still set in memory
+        mem.Written.Clear();
+
+        choir.Tick(onField: true);
+
+        // _granted was {(300, 23, 65, 60)} from tick 1 (band-read lvl=23).
+        // Clear scan reads band entry lvl=23 -> fp4=(300,23,65,60) -> matches _granted -> clear fires.
+        // Roster-keyed _granted (lvl=20) would miss -> stuck bit -> this assertion fails.
+        Assert.True(IsCleared(mem, bearerEntry),
+            "tick 2: unequipped bearer's bit must be cleared; _granted must be band-keyed (lvl=23, not roster lvl=20)");
+    }
+
+    // ---- FP-COLLISION bite test ----
+
+    [Fact]
+    public void Tick_fp_collision_non_bearer_does_not_get_the_bit()
+    {
+        // A non-bearer band entry shares the bearer's exact (mhp, lvl, br, fa). Under
+        // holder-only / address-direct SET, only the entry returned by
+        // ResolveDeployedMainHandAll gets the bit -- the collision entry does NOT.
+        // A fingerprint-keyed SET would write to every matching entry, failing the far arm.
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [WarlockStaffId] = new WeaponMeta
+            {
+                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Flavor = "Bound with a warlock's hex",
+                Signature = ChoirSig()
+            }
+        };
+        var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
+
+        SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId);
+        long bearerEntry = Band.Entry(30);
+        SeedBandEntry(mem, bearerEntry, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60,
+                      gx: 5, gy: 5, writableSupport: true);
+        mem.U16s[bearerEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
+
+        // Collision entry: same (mhp=300, lvl=35, br=65, fa=60) but no weapon field set
+        // (Locate skips it: wid=0 not in hands=[60]) and no matching roster slot
+        long collisionEntry = Band.Entry(20);
+        SeedBandEntry(mem, collisionEntry, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60,
+                      gx: 7, gy: 7, writableSupport: true);
+        // Do NOT seed weapon at collisionEntry (stays 0 -> Locate skips it)
+
+        var choir = new Choir(meta, kills, mem: mem);
+        choir.Tick(onField: true);
+
+        Assert.True(IsSet(mem, bearerEntry),
+            "the resolved bearer entry must get the bit");
+        Assert.False(IsSet(mem, collisionEntry),
+            "a fingerprint-collision entry must NOT get the bit -- SET is address-direct, not fp-keyed");
+    }
+
+    // ---- NEW-A: two deployed bearers each get their own bit; adjacent allies do NOT ----
+
+    [Fact]
+    public void Tick_two_deployed_bearers_each_get_own_bit_allies_excluded()
+    {
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [WarlockStaffId] = new WeaponMeta
+            {
+                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Flavor = "Bound with a warlock's hex",
+                Signature = ChoirSig()
+            }
+        };
+        var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
+
         SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId);
         long bearerA = Band.Entry(30);
-        SeedBandEntry(mem, bearerA, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60,
-                      gx: 3, gy: 3);
+        SeedBandEntry(mem, bearerA, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60, gx: 3, gy: 3);
         mem.U16s[bearerA + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
 
-        // Bearer B: roster slot 1, DISTINCT br/fa so fingerprints differ
         SeedRosterSlot(mem, 1, lvl: 30, br: 70, fa: 68, mainHandId: WarlockStaffId);
         long bearerB = Band.Entry(28);
-        SeedBandEntry(mem, bearerB, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68,
-                      gx: 8, gy: 8);
+        SeedBandEntry(mem, bearerB, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68, gx: 8, gy: 8);
         mem.U16s[bearerB + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
 
-        // Ally A: adjacent to bearer A (dist 1 from 3,3)
+        // Adjacent allies -- alive, writable; under holder-only must NOT get the bit
         long allyA = Band.Entry(26);
-        SeedBandEntry(mem, allyA, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55,
-                      gx: 4, gy: 3);
-
-        // Ally B: adjacent to bearer B (dist 1 from 8,8)
+        SeedBandEntry(mem, allyA, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55, gx: 4, gy: 3);
         long allyB = Band.Entry(24);
-        SeedBandEntry(mem, allyB, hp: 140, maxHp: 140, lvl: 22, br: 52, fa: 57,
-                      gx: 9, gy: 8);
+        SeedBandEntry(mem, allyB, hp: 140, maxHp: 140, lvl: 22, br: 52, fa: 57, gx: 9, gy: 8);
 
-        // Register all four fps in the static ally array (slots EnemySlotMax+1..+4)
-        // Bearer A fp (mhp=300, lvl=35, br=65, fa=60)
         SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
-        // Bearer B fp (mhp=250, lvl=30, br=70, fa=68)
         SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
-        // Ally A fp (mhp=150, lvl=20, br=50, fa=55)
         SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
-        // Ally B fp (mhp=140, lvl=22, br=52, fa=57)
         SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
 
         var choir = new Choir(meta, kills, mem: mem);
         choir.Tick(onField: true);
 
-        // All four entries must have the Non-charge bit set
-        Assert.True(IsSet(mem, bearerA), "bearer A must get the bit (distance 0 from itself)");
-        Assert.True(IsSet(mem, bearerB), "bearer B must get the bit (distance 0 from itself)");
-        Assert.True(IsSet(mem, allyA),   "ally adjacent to bearer A must get the bit");
-        Assert.True(IsSet(mem, allyB),   "ally adjacent to bearer B must get the bit");
+        Assert.True(IsSet(mem, bearerA), "bearer A must get the bit");
+        Assert.True(IsSet(mem, bearerB), "bearer B must get the bit");
+        Assert.False(IsSet(mem, allyA),  "ally adjacent to bearer A must NOT get the bit (holder-only)");
+        Assert.False(IsSet(mem, allyB),  "ally adjacent to bearer B must NOT get the bit (holder-only)");
     }
 
-    // ---- (NEW-B) Two-bearer revert: one bearer unequips, its ally loses the bit ----
+    // ---- NEW-B: two deployed bearers, one unequips -> that bearer's bit cleared, other stays ----
 
     [Fact]
-    public void Tick_unequipped_bearer_aura_reverts_other_bearer_unchanged()
+    public void Tick_unequipped_bearer_bit_cleared_other_bearer_unchanged()
     {
-        // Two deployed bearers, each with a distinct adjacent ally. Both auras active on tick 1.
-        // On tick 2, bearer B's roster RRHand changes to something else (unequipped). Bearer B
-        // is no longer a center; its ally B must have its bit cleared. Bearer A and ally A stay.
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
@@ -612,49 +641,35 @@ public class ChoirTests
         SeedBandEntry(mem, bearerB, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68, gx: 8, gy: 8);
         mem.U16s[bearerB + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
 
-        long allyA = Band.Entry(26);
-        SeedBandEntry(mem, allyA, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55, gx: 3, gy: 2);
-        long allyB = Band.Entry(24);
-        SeedBandEntry(mem, allyB, hp: 140, maxHp: 140, lvl: 22, br: 52, fa: 57, gx: 9, gy: 8);
-
         SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
         SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
-        SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
-        SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
 
         var choir = new Choir(meta, kills, mem: mem);
 
-        // Tick 1: both auras active
+        // Tick 1: both bearers active
         choir.Tick(onField: true);
-        Assert.True(IsSet(mem, allyA), "tick 1: ally A must have the bit");
-        Assert.True(IsSet(mem, allyB), "tick 1: ally B must have the bit");
+        Assert.True(IsSet(mem, bearerA), "tick 1: bearer A must have the bit");
+        Assert.True(IsSet(mem, bearerB), "tick 1: bearer B must have the bit");
 
-        // Bearer B unequips: change roster slot 1 RRHand to something else
+        // Bearer B unequips
         long rb1 = Offsets.RosterBase + 1L * Offsets.RosterStride;
         mem.U16s[rb1 + Offsets.RRHand] = 99;   // no longer WarlockStaffId
-
-        // Pre-seed ally B's bit so ClearBit can observe it and write a clear.
-        // Reset ally A's byte to 0 so SetBit fires and lands in Written (idempotent skip would
-        // leave Written empty for ally A, making IsSet return false incorrectly).
-        mem.U8s[allyB + NcBandOff] = NcMask;
-        mem.U8s[allyA + NcBandOff] = 0;
+        mem.U8s[bearerB + NcBandOff] = NcMask;  // pre-seed so ClearBit can observe
+        mem.U8s[bearerA + NcBandOff] = 0;       // reset so SetBit fires and lands in Written
         mem.Written.Clear();
 
-        // Tick 2: only bearer A is a center
+        // Tick 2: only bearer A remains
         choir.Tick(onField: true);
 
-        Assert.True(IsSet(mem, allyA), "tick 2: ally A still in bearer A's aura -> bit stays set");
-        Assert.True(IsCleared(mem, allyB), "tick 2: ally B no longer in any aura -> bit cleared");
+        Assert.True(IsSet(mem, bearerA),      "tick 2: bearer A still holds staff -> bit stays set");
+        Assert.True(IsCleared(mem, bearerB),  "tick 2: bearer B unequipped -> bit must be cleared");
     }
 
-    // ---- (NEW-C) Total-count pin: two staves, two allies -> exactly 4 winners ----
+    // ---- NEW-C: two staves -> exactly 2 winners (the two bearers) ----
 
     [Fact]
-    public void Tick_two_bearers_produce_exactly_four_winners()
+    public void Tick_two_bearers_produce_exactly_two_winners()
     {
-        // Two deployed bearers (ChoirMaxBeneficiaries=2 each), each with one adjacent ally and no
-        // overlap between auras. Should yield exactly 4 unique fps in _granted after the tick.
-        // We verify this by counting the Set writes (4 entries means 4 winners).
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
@@ -677,6 +692,7 @@ public class ChoirTests
         SeedBandEntry(mem, bearerB, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68, gx: 9, gy: 9);
         mem.U16s[bearerB + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
 
+        // Adjacent allies present but must NOT count as winners
         long allyA = Band.Entry(26);
         SeedBandEntry(mem, allyA, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55, gx: 3, gy: 2);
         long allyB = Band.Entry(24);
@@ -690,253 +706,13 @@ public class ChoirTests
         var choir = new Choir(meta, kills, mem: mem);
         choir.Tick(onField: true);
 
-        // Count entries whose NcBandOff byte had the bit SET (4 expected: 2 bearers + 2 allies)
+        // Exactly the two bearer entries must have the bit set; allies must not
         int setCount = 0;
         foreach (long entry in new[] { bearerA, bearerB, allyA, allyB })
             if (IsSet(mem, entry)) setCount++;
 
-        Assert.True(setCount == 4, $"two staves -> expected 4 winners (2 bearers + 2 allies, per-bearer cap = 2), got {setCount}");
-    }
-
-    // ---- (15) ResetBattle clears tracking ----
-
-    [Fact]
-    public void ResetBattle_clears_granted_state_so_revert_does_not_fire_next_battle()
-    {
-        var (choir, mem, _, allyEntry) = BuildActive(allyGx: 6, allyGy: 6);
-
-        // Grant the bit
-        choir.Tick(onField: true);
-        Assert.True(mem.Written.ContainsKey(allyEntry + NcBandOff));
-
-        // Reset (simulates battle exit)
-        choir.ResetBattle();
-
-        // After reset: ally moves out of range and we tick -- _granted is cleared, so no ClearBit fires
-        mem.U8s[allyEntry + Offsets.AGx] = 8;
-        mem.U8s[allyEntry + Offsets.AGy] = 5;
-        mem.Written.Clear();
-        mem.U8s[allyEntry + NcBandOff] = NcMask;
-
-        // Now make the staff tier drop so Choir is inactive (simulating new battle start state)
-        // In a real scenario, a fresh battle = fresh _granted, so no stale revert.
-        // We verify _granted.Clear() happened by making Choir inactive (tier=0) on the next tick
-        // and checking no ClearBit fires (because _granted is empty).
-        var metaInactive = new Dictionary<int, WeaponMeta>
-        {
-            [WarlockStaffId] = new WeaponMeta
-            {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
-                Flavor = "Bound with a warlock's hex",
-                Signature = ChoirSig()
-            }
-        };
-        var killsZero = new Dictionary<int, int> { [WarlockStaffId] = 0 };  // tier 0 -> inactive
-        var choirFresh = new Choir(metaInactive, killsZero, mem: mem);
-        choirFresh.Tick(onField: true);
-
-        Assert.False(mem.Written.ContainsKey(allyEntry + NcBandOff),
-            "after ResetBattle, _granted is clear so no stale ClearBit fires");
-    }
-
-    // ---- (16) Band-twin correctness ----
-
-    [Fact]
-    public void Tick_band_twin_inAura_set_outAura_cleared_per_entry()
-    {
-        // Two allies with identical fingerprints (band twins). Both start in aura (tick 1 -> both granted).
-        // Then twin B moves out of range (tick 2 -> A still set, B cleared per its entry address).
-        // This proves per-entry correctness: same fp, different band slot addresses, different outcomes.
-        var mem = new FakeSparseMemory();
-        var meta = new Dictionary<int, WeaponMeta>
-        {
-            [WarlockStaffId] = new WeaponMeta
-            {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
-                Flavor = "Bound with a warlock's hex",
-                Signature = ChoirSig()
-            }
-        };
-        var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
-
-        // Roster: bearer at slot 0
-        SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId);
-        long bearerEntry = Band.Entry(30);
-        SeedBandEntry(mem, bearerEntry, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60,
-                      gx: 5, gy: 5, writableSupport: true);
-        mem.U16s[bearerEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
-
-        // Twin ally A: same fp (mhp=150,lvl=20,br=50,fa=55), adjacent (6,6) -- stays in aura
-        long twinAEntry = Band.Entry(27);
-        SeedBandEntry(mem, twinAEntry, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55,
-                      gx: 6, gy: 6, writableSupport: true);
-
-        // Twin ally B: SAME fp, also adjacent at (6,5) -- will move out next tick
-        long twinBEntry = Band.Entry(26);
-        SeedBandEntry(mem, twinBEntry, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55,
-                      gx: 6, gy: 5, writableSupport: true);
-
-        SeedAllyFp(mem, mhp: 150, lvl: 20, br: 50, fa: 55);
-
-        var choir = new Choir(meta, kills, mem: mem);
-
-        // Tick 1: both twins are in aura -> both get the bit; fp added to _granted
-        choir.Tick(onField: true);
-        Assert.True(mem.Written.ContainsKey(twinAEntry + NcBandOff) &&
-                    (mem.Written[twinAEntry + NcBandOff] & NcMask) != 0,
-            "tick 1: twin A must have the bit set");
-        Assert.True(mem.Written.ContainsKey(twinBEntry + NcBandOff) &&
-                    (mem.Written[twinBEntry + NcBandOff] & NcMask) != 0,
-            "tick 1: twin B must have the bit set");
-
-        // Move twin B out of range (distance 3)
-        mem.U8s[twinBEntry + Offsets.AGx] = 8;
-        mem.U8s[twinBEntry + Offsets.AGy] = 8;
-        mem.Written.Clear();
-        // Pre-seed B's byte so ClearBit can observe and write the clear
-        mem.U8s[twinBEntry + NcBandOff] = NcMask;
-        // A's byte stays set
-        mem.U8s[twinAEntry + NcBandOff] = NcMask;
-
-        // Tick 2: A stays in aura (SetBit idempotent, may not write if already set),
-        // B out of aura and fp in _granted -> ClearBit fires on B's address
-        choir.Tick(onField: true);
-
-        long addrB = twinBEntry + NcBandOff;
-        Assert.True(mem.Written.ContainsKey(addrB) && (mem.Written[addrB] & NcMask) == 0,
-            "tick 2: out-of-aura twin B must have the bit cleared at its own band address");
-
-        // A must NOT have had its bit cleared
-        bool aCleared = mem.Written.ContainsKey(twinAEntry + NcBandOff) &&
-                        (mem.Written[twinAEntry + NcBandOff] & NcMask) == 0;
-        Assert.False(aCleared, "tick 2: in-aura twin A must not have its bit cleared");
-    }
-
-    // ---- (17) SelectNearest: the pure cap selector ----
-
-    [Fact]
-    public void SelectNearest_empty_or_nonpositive_max_is_empty()
-    {
-        Assert.Empty(Choir.SelectNearest(new List<((int, int, int, int) fp, int dist)>(), 2));
-        Assert.Empty(Choir.SelectNearest(
-            new List<((int, int, int, int) fp, int dist)> { ((1, 1, 1, 1), 0) }, 0));
-    }
-
-    [Fact]
-    public void SelectNearest_takes_the_two_nearest_distinct_units()
-    {
-        var c = new List<((int, int, int, int) fp, int dist)>
-        {
-            ((3, 3, 3, 3), 3), ((1, 1, 1, 1), 1), ((2, 2, 2, 2), 2),
-        };
-        var w = Choir.SelectNearest(c, 2);
-        Assert.Equal(2, w.Count);
-        Assert.Contains((1, 1, 1, 1), w);
-        Assert.Contains((2, 2, 2, 2), w);
-        Assert.DoesNotContain((3, 3, 3, 3), w);   // the farthest is capped out
-    }
-
-    [Fact]
-    public void SelectNearest_dedupes_a_twin_so_it_does_not_consume_a_second_slot()
-    {
-        // Two entries of the SAME unit at d1, plus a distinct unit at d3. max 2.
-        var c = new List<((int, int, int, int) fp, int dist)>
-        {
-            ((1, 1, 1, 1), 1), ((1, 1, 1, 1), 1), ((2, 2, 2, 2), 3),
-        };
-        var w = Choir.SelectNearest(c, 2);
-        Assert.Equal(2, w.Count);
-        Assert.Contains((1, 1, 1, 1), w);
-        Assert.Contains((2, 2, 2, 2), w);   // the twin did NOT eat the second slot
-    }
-
-    [Fact]
-    public void SelectNearest_breaks_distance_ties_by_input_order()
-    {
-        var c = new List<((int, int, int, int) fp, int dist)>
-        {
-            ((1, 1, 1, 1), 1), ((2, 2, 2, 2), 1), ((3, 3, 3, 3), 1),
-        };
-        var w = Choir.SelectNearest(c, 2);
-        Assert.Contains((1, 1, 1, 1), w);
-        Assert.Contains((2, 2, 2, 2), w);
-        Assert.DoesNotContain((3, 3, 3, 3), w);
-    }
-
-    // ---- (18) CAP integration: only the nearest two units get the bit ----
-
-    /// <summary>Build a bearer + three distinct allies at Chebyshev distances 1/2/3 (radius 3 so all
-    /// are in-aura), so the cap (2) has to drop the farthest. Bearer is NOT seeded as an ally
-    /// fingerprint, so the three allies are the only candidates -- isolating the cap on allies.</summary>
-    private static (Choir choir, FakeSparseMemory mem, long d1, long d2, long d3)
-        BuildThreeAllies(int radius = 3)
-    {
-        var mem = new FakeSparseMemory();
-        var meta = new Dictionary<int, WeaponMeta>
-        {
-            [WarlockStaffId] = new WeaponMeta
-            {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
-                Flavor = "Bound with a warlock's hex",
-                Signature = ChoirSig(radius: radius)
-            }
-        };
-        var kills = new Dictionary<int, int> { [WarlockStaffId] = Tuning.ProdThresholds[2] };
-
-        SeedRosterSlot(mem, 0, lvl: 35, br: 65, fa: 60, mainHandId: WarlockStaffId);
-        long bearerEntry = Band.Entry(30);
-        SeedBandEntry(mem, bearerEntry, hp: 200, maxHp: 300, lvl: 35, br: 65, fa: 60,
-                      gx: 5, gy: 5, writableSupport: true);
-        mem.U16s[bearerEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
-
-        long d1 = Band.Entry(28), d2 = Band.Entry(27), d3 = Band.Entry(26);
-        SeedBandEntry(mem, d1, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55, gx: 6, gy: 5, writableSupport: true);
-        SeedBandEntry(mem, d2, hp: 151, maxHp: 151, lvl: 21, br: 51, fa: 56, gx: 7, gy: 5, writableSupport: true);
-        SeedBandEntry(mem, d3, hp: 152, maxHp: 152, lvl: 22, br: 52, fa: 57, gx: 8, gy: 5, writableSupport: true);
-        SeedAllyFpAt(mem, 1, 150, 20, 50, 55);
-        SeedAllyFpAt(mem, 2, 151, 21, 51, 56);
-        SeedAllyFpAt(mem, 3, 152, 22, 52, 57);
-
-        return (new Choir(meta, kills, mem: mem), mem, d1, d2, d3);
-    }
-
-    [Fact]
-    public void Tick_caps_grant_to_the_two_nearest_units()
-    {
-        var (choir, mem, d1, d2, d3) = BuildThreeAllies();
-        choir.Tick(onField: true);
-
-        Assert.True(IsSet(mem, d1), "nearest (d1) ally must get the bit");
-        Assert.True(IsSet(mem, d2), "second-nearest (d2) ally must get the bit");
-        Assert.False(IsSet(mem, d3), "third (d3) ally must NOT get the bit -- the cap is 2");
-    }
-
-    [Fact]
-    public void Tick_bumps_the_farthest_winner_when_a_nearer_ally_arrives()
-    {
-        // tick1: d3 is OUT of aura (placed far), so candidates are d1 + d2 -> both win (cap 2).
-        var (choir, mem, d1, d2, d3) = BuildThreeAllies();
-        mem.U8s[d3 + Offsets.AGx] = 20;   // park d3 far away for tick 1
-        mem.U8s[d3 + Offsets.AGy] = 20;
-
-        choir.Tick(onField: true);
-        Assert.True(IsSet(mem, d1));
-        Assert.True(IsSet(mem, d2));
-
-        // tick2: d3 walks in to distance 3 -- still farther than d1/d2, so it must NOT bump them.
-        // Instead, move d2 OUT and bring d3 to d2's old spot so d3 becomes a winner and d2 is bumped.
-        mem.U8s[d2 + Offsets.AGx] = 20;   // d2 leaves
-        mem.U8s[d2 + Offsets.AGy] = 20;
-        mem.U8s[d3 + Offsets.AGx] = 7;    // d3 takes the d2 slot (distance 2)
-        mem.U8s[d3 + Offsets.AGy] = 5;
-        mem.Written.Clear();
-        mem.U8s[d2 + NcBandOff] = NcMask;   // d2 still carries the bit from tick 1
-        mem.U8s[d3 + NcBandOff] = 0;
-
-        choir.Tick(onField: true);
-
-        Assert.True(IsCleared(mem, d2), "bumped/left ally (d2) must have its bit cleared");
-        Assert.True(IsSet(mem, d3), "newly-nearest ally (d3) must get the bit");
-        Assert.False(IsCleared(mem, d1), "still-winning d1 must not be cleared");
+        Assert.Equal(2, setCount);
+        Assert.True(IsSet(mem, bearerA), "bearer A must be one of the two winners");
+        Assert.True(IsSet(mem, bearerB), "bearer B must be one of the two winners");
     }
 }
