@@ -104,7 +104,7 @@ MSB-first → slot 10 = byte1 `0x40`; FFTHandsFree UNIT_DATA_STRUCTURE.md), curr
      generic-job rec mapping + the learned-bit offset (learned_probe.py is the oracle).
 2. **The blank name: ACCEPTED.** Ships nameless (desc "UNUSED") — documented in sigNote +
    handoff; cheap player fix = co-install Serbagz's ability-name mod. Revisiting
-   ability.en.nxd stays parked (read `UNIMPLEMENTED_MECHANICS.md` before ever attempting).
+   ability.en.nxd stays parked (read `MECHANICS.md` (Bloodpact bullet) before ever attempting).
 3. **Known accepted quirk (document, don't fix):** while injected, OTHER units of the same
    job see the blank entry in their learn screen and could buy it (vanilla 1200 JP). It
    goes inert when the record isn't injected.

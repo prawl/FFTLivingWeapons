@@ -21,7 +21,7 @@ tool twice over:
 
 - This mod's ability tables (`ability.en.nxd` / `overrideabilityactiondata.nxd`) are **parked** because
   editing them corrupted unrelated abilities (Fire range, Red Mage wipe, new-game crash) — see
-  `docs/UNIMPLEMENTED_MECHANICS.md`. Reviving them for this is high-risk.
+  `docs/MECHANICS.md` (Bloodpact bullet). Reviving them for this is high-risk.
 - A table edit can only disable break *entirely* or do nothing. It cannot express "lost for this battle,
   returned after." Only a runtime restore can.
 

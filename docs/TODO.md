@@ -151,7 +151,7 @@ Increase damage by how high a character is in the game
 - Summon a friendly companion (I really want this to work) — INVESTIGATED 2026-06-16: the scheduler
   ADOPTS a hand-written unit (it enrolls in the Combat Timeline, seats 16–27) but it renders FACELESS —
   the drawable identity is an external init-built graphic object, not a forgeable pointer. WALLED without
-  a debugger (see UNIMPLEMENTED_MECHANICS.md + LIVE_LEDGER.md). Feasible alt: reanimate a fallen ALLY
+  a debugger (see MECHANICS.md + LIVE_LEDGER.md). Feasible alt: reanimate a fallen ALLY
   (its own face), proven FeignDeath/Reraise path.
 - While "wet" or the map is raining gain strength
 - Attacking an enemy from behind does X at %
