@@ -129,7 +129,8 @@ internal static class Offsets
     // Delayed-action bits on the same status byte (tools/probes/status_probe.py decode map;
     // confirmed via actor_attrib_probe.py watchweapon trace 2026-06-26):
     //   Jump 0x04 -- PROVEN LIVE: status[45] 00->04 at jump-commit, 04->00 at landing (~8.6s later).
-    //   Charging 0x08 -- same mechanism (committed charge spells / Charge skill); live-UNVERIFIED as of 2026-06-26.
+    //   Charging 0x08 -- same mechanism. PROVEN LIVE 2026-06-26: SET observed (charging_probe.py); the
+    //   untracked-arm cross-turn summon no-credit fires in-game (which requires the 1->0 landing edge). See LIVE_LEDGER.
     public const byte AJumpBit          = 0x04;
     public const byte AChargingBit      = 0x08;
     public const byte ADelayedActionMask = 0x0C;  // Jump | Charging

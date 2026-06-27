@@ -47,6 +47,15 @@ internal static class Tuning
     /// ~400ms at 33ms) so an unrelated later kill cannot consume the armed actor.</summary>
     public const int DelayedActorWindow = 12;
 
+    /// <summary>Arm window (ticks) for the UNTRACKED cross-turn charge (summoner's summon) no-credit
+    /// stamp. DELIBERATELY wider than DelayedActorWindow: the untracked arm only ever sets the
+    /// no-credit verdict (it never credits a weapon), so a wide window can at worst MISS an unrelated
+    /// armed kill that matures inside it -- never mis-credit. Wider hedges the unproven gap between the
+    /// summon's Charging-bit clear and the lethal-damage HP->0 edge (the Jump window is tuned tight
+    /// against over-CREDIT, which does not apply here). TUNE from the live charging_probe.py measurement
+    /// of the bit-clear -> death gap.</summary>
+    public const int UntrackedDelayedWindow = 45;   // ~1.5s at the 33ms tick
+
     /// <summary>kills -> tier (0..3) against the active thresholds, checked high to low.</summary>
     public static int TierFor(int kills) => TierForIn(kills, KillThresholds);
 

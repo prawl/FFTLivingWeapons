@@ -101,6 +101,7 @@ internal sealed class ActorResolver
     {
         hands = Empty;
         bool weaponTracked = actorWeapon != 0 && actorWeapon != 0xFFFF && _weapons.Contains(actorWeapon);
+        bool actorUnarmed = actorWeapon == 0 || actorWeapon == 0x00FF || actorWeapon == 0xFFFF;
         List<int>? weaponSet = null;    // hand-set of the first slot that contains actorWeapon
         bool weaponAmbiguous = false;   // two weapon-matched slots disagree on their full set
         List<int>? armed = null;        // first armed match (legacy path)
@@ -126,6 +127,15 @@ internal sealed class ActorResolver
         }
         // Resolution order matters: weapon-matched path wins when unambiguous.
         if (weaponSet != null && !weaponAmbiguous) { hands = weaponSet; return true; }  // weapon disambiguated
+        // Band-confirmed UNARMED (mirror of the armed weapon track above, for the b42f77a-symmetric case):
+        // a no-weapon actor (band +0x04 reads the unarmed sentinel) that ALSO has its own empty-hands roster
+        // slot resolves to EMPTY rather than borrowing a (level,brave,faith)-colliding armed neighbor's weapon.
+        // Resolving Empty (resolved-but-untracked) routes the kill to KillTracker's _lethalUntracked no-credit
+        // path. NOTE: for an unarmed actor this also supersedes the legacy `armedAmbiguous -> return false`
+        // sticky-latch fallthrough below -- crediting nobody beats falling through to a stale latch; still
+        // "miss, never mis-credit". Strictly gated on emptyMatch so a genuinely-armed unit whose band field is
+        // merely unpopulated (no unarmed lookalike) still uses the armed path.
+        if (actorUnarmed && emptyMatch) { hands = Empty; return true; }
         if (armed != null && !armedAmbiguous)      { hands = armed;     return true; }  // legacy unique armed
         if (armed != null)                          return false;                       // exact legacy bail
         return emptyMatch;                                                               // player, no tracked weapon
@@ -192,12 +202,17 @@ internal sealed class ActorResolver
     /// matching roster slot has RRHand equal to it, returns that weapon (band-confirmed main
     /// hand). Otherwise falls back to the legacy unique-match: exactly one armed slot -> its
     /// RRHand; else 0 (ambiguous or unarmed).
+    /// A band-confirmed unarmed actor (sentinel weapon) that has its own empty-hands roster
+    /// slot returns 0 (no main hand to command from) rather than borrowing a
+    /// fingerprint-colliding armed slot's RRHand.
     /// NOTE: the roster-walk here is duplicated from <see cref="FingerprintPlayer"/> (their
     /// ambiguity semantics differ: RRHand identity here vs set equality there); a shared helper
     /// is a follow-up seam.</summary>
     private int MainHandFromRoster(int level, int brave, int faith, int actorWeapon)
     {
         bool weaponTracked = actorWeapon != 0 && actorWeapon != 0xFFFF && _weapons.Contains(actorWeapon);
+        bool actorUnarmed = actorWeapon == 0 || actorWeapon == 0x00FF || actorWeapon == 0xFFFF;
+        bool emptyMatch = false;
         int found = 0; int rh = 0;
         for (int s = 0; s < Offsets.RosterSlots; s++)
         {
@@ -208,11 +223,15 @@ internal sealed class ActorResolver
             if (_mem.U8(b + Offsets.RBrave) != brave) continue;
             if (_mem.U8(b + Offsets.RFaith) != faith) continue;
             int candidate = _mem.U16(b + Offsets.RRHand);
-            if (!_weapons.Contains(candidate)) continue;   // not a real weapon (shield / empty)
+            if (!_weapons.Contains(candidate)) { emptyMatch = true; continue; }   // empty / shield main hand
             if (weaponTracked && candidate == actorWeapon) return actorWeapon;   // band-confirmed main hand
             if (found == 0) rh = candidate;
             found++;
         }
+        // Band-confirmed unarmed actor with its own empty-hands slot: no main-hand weapon to command a
+        // signature from (mirror of the FingerprintPlayer unarmed guard). Worst case = a signature misses,
+        // never a mis-credit. Gated on actorUnarmed so armed actors are unaffected.
+        if (actorUnarmed && emptyMatch) return 0;
         return found == 1 ? rh : 0;
     }
 

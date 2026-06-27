@@ -22,6 +22,30 @@ Release TODO's
   null and it falls through to the stale latch (Reis). There is currently no code path that can credit a
   counter-attacker at all. Note: BattleLog `[w:N]` tags are just the sticky latch (BattleLog.cs:33-46), so
   the log cannot show who really dealt each blow. Fix TBD.
+- RESOLVED 2026-06-26 (summoner kill mis-attribution): a summoner with no living weapon casts a CHARGED
+  summon that lands CROSS-TURN (after its acted-period ends) and the kill leaked to the next armed unit to
+  latch (live: Chaos Blade id 37, surfacing as the sticky `[w:37]` BattleLog tag). The original
+  "adjacent armed mage" triage (a (level,brave,faith) resolver collision) turned out NOT to be the live
+  mechanism -- live verification showed the cross-turn charged-summon leak. SHIPPED three COMPOSING layers,
+  all live-proven: (1) ActorResolver band-confirmed-UNARMED guard (`actorUnarmed && emptyMatch` -> Empty,
+  never borrow a colliding armed neighbor); (2) in-period `_lethalUntracked` stamp (summon kills DURING the
+  caster's own turn -> no credit); (3) cross-turn untracked-delayed arm (Charging bit `0x08` snapshot at
+  cast + arm on the landing edge -> `_lethalUntracked` no-credit, `Tuning.UntrackedDelayedWindow`).
+  Tracked-delayed (Jump) still wins via the `delayed == null` guard. Live: summon kills no-credited on band
+  slots 10 (x2) and 8; Chaos Blade's own Phoenix-Down kill still credited (no over-suppression). See
+  LIVE_LEDGER. Tests: ActorResolverUnarmedTests, SummonerAttributionTests, CrossTurnSummonTests.
+  KNOWN V1 residuals: a concurrent tracked Jump overlapping a summon keeps the Jump credit even if the
+  summon dealt the blow; an unrelated armed kill maturing within the ~45-tick window can be a rare
+  no-credit MISS (never a mis-credit). The counterattack-kill bug above is a SEPARATE third-party-latch
+  problem, still open.
+- DESIGN CHANGE (decided 2026-06-26, not a bug): dial the Warlock's Staff +3 "Choir" instant-cast
+  signature back to HOLDER-ONLY -- remove the adjacent-ally aura. Rationale: the staff is buyable, so
+  the ally aura double-dips (one +3 staff buffs two casters); equip a second staff for a second
+  instant caster instead. Restrict the grant to the bearer(s) (ChoirMaxBeneficiaries=1 or
+  instantCastRadius 0 for id 60 in items.json), update ChoirTests + Choir.cs docs. Living-weapon
+  signature -> no gate impact. Spec in handoff.md "NEXT #2". NOTE: the prior observation that an
+  adjacent no-weapon summoner did NOT get instant cast was WORKS-AS-INTENDED (the per-bearer cap of
+  self + 1 nearest ally), not a bug -- this change removes the ally branch entirely.
 - PUPPETEER (#11) LUCAVI/BOSS CARVE-OUT: the gate is currently ALLOW-EVERYONE (`IsDominatable => true`, by user request) — so bosses/Lucavi ARE dominatable by design. We do NOT want Lucavi dominatable. The `maxHp >= 2000` latch-loop cap does NOT exclude them (a live Lucavi read 999 max HP), and it's only a garbage-read sanity cap anyway — do not lean on it. Need a real carve-out keyed to job-id band and/or name-id (the long-standing "Lucavi carve-out" — IC Lucavi/boss job ids still need mapping). Costs in-game testing time to identify the ids; deferred until we can spare it. Until then, allow-everyone ships and a Lucavi CAN be puppeted.
 
 

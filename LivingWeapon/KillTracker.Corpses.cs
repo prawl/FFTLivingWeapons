@@ -33,6 +33,18 @@ internal sealed partial class KillTracker
     // Weapon set latched when this slot's dead-streak started (alive->dead transition); null = not yet stamped.
     // Copied from _lastPlayerWeapons at deadStreak 0->1 so a later re-latch cannot steal the credit.
     private readonly List<int>?[] _lethalActor = new List<int>?[Offsets.BandSlots];
+    // Alive->dead edge fell during a resolved-but-untracked actor's LIVE acted-period -- credit nobody.
+    // Stamped at deadStreak 0->1 when _latchResolvedEmpty && _latched (the actor was identified as a roster
+    // player but held no living weapon). The && _latched guard is LOAD-BEARING: it prevents a false stamp
+    // in the sticky interval after an untracked turn ends but before the next armed actor latches
+    // (a corpse dying in that gap is from an unknown killer and must go pending, not be silently buried).
+    //
+    // NOTE: the in-period stamp (_latchResolvedEmpty && _latched) covers summons that resolve during
+    // the caster's own acted-period (the witnessed IC case: damage at cast completion, acted==1). The
+    // cross-turn case (kill matures after _latched falls) is handled by KillTracker.Delayed.cs via
+    // _untrackedArmedTicks: the arm fires at Charging-bit clear (landing) and sets _lethalUntracked at
+    // deadStreak==1 AHEAD of the Count>0 branch, so a live armed latch cannot absorb the summon's kill.
+    private readonly bool[] _lethalUntracked = new bool[Offsets.BandSlots];
 
     // Alive-edge belt: true = identity last observed alive (creditable); false = last observed dead.
     // Set true on seenAlive and on revive; set false on credit or expiry-without-actor.
@@ -47,6 +59,7 @@ internal sealed partial class KillTracker
         Array.Clear(_deadStreak, 0, _deadStreak.Length);
         Array.Clear(_slotId, 0, _slotId.Length);
         Array.Clear(_lethalActor, 0, _lethalActor.Length);
+        Array.Clear(_lethalUntracked, 0, _lethalUntracked.Length);
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
     }
@@ -83,7 +96,7 @@ internal sealed partial class KillTracker
                 {
                     _seenAlive[s] = false; _aliveStreak[s] = 0;
                     _deadCredited[s] = false; _pending[s] = false;
-                    _lethalActor[s] = null;
+                    _lethalActor[s] = null; _lethalUntracked[s] = false;
                     continue;
                 }
                 _aliveStreak[s]++;
@@ -99,7 +112,7 @@ internal sealed partial class KillTracker
                     if (_deadCredited[s]) _identityAlive[(lvl, br, fa, mhp)] = true;
                     _deadCredited[s] = false;
                     _pending[s] = false;
-                    _lethalActor[s] = null;
+                    _lethalActor[s] = null; _lethalUntracked[s] = false;
                 }
                 continue;
             }
@@ -111,10 +124,37 @@ internal sealed partial class KillTracker
             if (!onField) continue;
 
             _deadStreak[s]++;
-            // Stamp the acting weapon set at the alive->dead edge (deadStreak 0->1).
-            // A copy is taken so a later re-latch cannot replace the stamped reference.
-            if (_deadStreak[s] == 1 && _lastPlayerWeapons.Count > 0)
-                _lethalActor[s] = new List<int>(_lastPlayerWeapons);
+            // Stamp the actor at the alive->dead edge (deadStreak 0->1).
+            // Only one branch fires per edge; both are mutually exclusive on _lastPlayerWeapons.Count.
+            if (_deadStreak[s] == 1)
+            {
+                if (_untrackedArmedTicks > 0)
+                {
+                    // A cross-turn UNTRACKED charged action (a summoner's summon) is landing within its
+                    // arm window: bury the kill regardless of the current live latch. FIRST (ahead of the
+                    // Count>0 branch) so an armed ally that acted BETWEEN the cast and the landing cannot
+                    // absorb the summon's kill (doctrine: miss beats mis-credit -- an unrelated armed kill
+                    // inside the tight window degrades to a no-credit MISS, never a mis-credit). The arm is
+                    // NOT consumed here, so every AoE victim maturing in the window is stamped; the window
+                    // timer expires it. A real TRACKED delayed action still wins at credit time via the
+                    // `delayed == null` guard below (the untracked arm only buries when nothing tracked claims it).
+                    _lethalUntracked[s] = true;
+                }
+                else if (_lastPlayerWeapons.Count > 0)
+                {
+                    // Tracked actor latched: copy weapons so a later re-latch cannot steal the credit.
+                    _lethalActor[s] = new List<int>(_lastPlayerWeapons);
+                }
+                else if (_latchResolvedEmpty && _latched)
+                {
+                    // Kill edge fell during a resolved-but-untracked actor's LIVE acted-period
+                    // (summoner/dancer/item-user, no living weapon): credit nobody.
+                    // _latched gates out the inverse race -- a DIFFERENT armed unit that acted
+                    // before its own acted edge while the empty latch is still sticky (that case
+                    // must keep crediting the armed unit via the pending path, not be buried here).
+                    _lethalUntracked[s] = true;
+                }
+            }
 
             if (_deadStreak[s] < DeadNeeded) continue;
 
@@ -135,12 +175,23 @@ internal sealed partial class KillTracker
             }
 
             // Prefer the delayed actor (snapshotted at commit, armed at landing) when available.
-            // Fall back to the dead-streak stamp, then the live latch.
+            // The explicit `delayed == null` guard on the no-credit branch below is what orders
+            // delayed BEFORE _lethalUntracked: a tracked Jump/charge committer whose kill matures
+            // while an untracked unit is latched still wins. The two CAN coexist on the same slot
+            // (delayed is armed separately via TrackDelayed, not stamped at deadStreak==1), so the
+            // guard -- not mutual exclusion -- is the load-bearing ordering (T4 pins it).
             var delayed = ConsumeDelayedCulprit();
-            var culprit = delayed ?? _lethalActor[s] ?? _lastPlayerWeapons;
-
             string statusNote = deadBit && hp > 0
                 ? " -- killed by status effect, waiting to see whose attack it was" : "";
+            if (delayed == null && _lethalUntracked[s])
+            {
+                // Killing edge was stamped during a roster player's turn with no tracked weapon.
+                // Credit nobody: the summoner/dancer/item-user's AoE kill is intentionally uncredited.
+                _deadCredited[s] = true; _pending[s] = false; _identityAlive[id] = false;
+                Log.Info($"kill: enemy at battle slot {s} was killed by a unit holding no tracked weapon -- no credit (uncredited as designed)");
+                continue;
+            }
+            var culprit = delayed ?? _lethalActor[s] ?? _lastPlayerWeapons;
             if (culprit.Count > 0)
             {
                 if (delayed != null)
@@ -160,7 +211,7 @@ internal sealed partial class KillTracker
             else if (_actedFalls - _pendingFalls[s] >= ExpireFalls || ++_pendingAge[s] > PendingTtl)
             {
                 _deadCredited[s] = true; _pending[s] = false;
-                _lethalActor[s] = null;
+                _lethalActor[s] = null; _lethalUntracked[s] = false;
                 _identityAlive[id] = false;
                 Log.Info($"kill: could not determine who killed the enemy -- no credit (battle slot {s}, waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges passed)");
             }

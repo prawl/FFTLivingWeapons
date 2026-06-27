@@ -43,6 +43,12 @@ internal sealed partial class KillTracker
     internal int _lastPlayerMainHand;                // RRHand id of the last latched actor (0 when none)
     internal (int lvl, int br, int fa) _lastActorFp; // fingerprint of the unit latched this acted-period
     private bool _latched;                           // a player resolved this acted-period -> frozen until it ends
+    internal bool _latchResolvedEmpty;              // most recent SUCCESSFUL resolve produced an EMPTY weapon set
+                                                    //   (resolved-but-untracked actor: summoner/dancer/item-user
+                                                    //   with no living weapon). Drives the FirstKillFallback bail +
+                                                    //   the untracked corpse stamp. Sticky until the next successful
+                                                    //   resolve so a later corpse stamped while untracked is correctly
+                                                    //   blocked even if the active struct drifts between turns.
     private int _actedLow;                           // consecutive acted==0 ticks (drift-debounced period end)
     internal int _actedFalls;                        // battle-local count of debounced acted-falling edges
     private string _actorTag = "";                   // cached "10,52" form of the latch, for event lines
@@ -70,6 +76,7 @@ internal sealed partial class KillTracker
         _lastPlayerMainHand = 0;
         _lastActorFp = default;
         _latched = false;
+        _latchResolvedEmpty = false;   // battle start = never-resolved; genuine first kill still uses the fallback
         _actedLow = 0;
         _actedFalls = 0;
         _actorTag = "";
@@ -109,6 +116,12 @@ internal sealed partial class KillTracker
                 if (_resolver.TryResolveActingPlayer(out var ws))
                 {
                     _latched = true;
+                    // Track whether the resolved actor holds any tracked weapon. Must be OUTSIDE the
+                    // !SameSet guard (same placement rationale as the _lastActorFp refresh): two
+                    // consecutive untracked actors share an empty set, so SameSet is true between
+                    // them -- if gated inside, the second untracked actor would not refresh the flag
+                    // and a following corpse would lose the sticky "untracked" verdict.
+                    _latchResolvedEmpty = ws.Count == 0;
                     // Refresh the acting fingerprint once per acted-period (on the latch edge).
                     // MUST be outside the !SameSet guard: two Arcanum holders share weapon set {30},
                     // so SameSet is true between them -- if gated inside, switching between two
@@ -147,7 +160,7 @@ internal sealed partial class KillTracker
     /// post-act ally hover can never steal credit.</summary>
     private void FirstKillFallback()
     {
-        if (_lastPlayerWeapons.Count > 0 || !AnyPending() || _mem.U8(Offsets.PauseFlag) != 0)
+        if (_lastPlayerWeapons.Count > 0 || _latchResolvedEmpty || !AnyPending() || _mem.U8(Offsets.PauseFlag) != 0)
         {
             _fallbackStreak = 0; _fallbackSet = new();
             return;
