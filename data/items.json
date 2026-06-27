@@ -3258,7 +3258,7 @@
       "vanillaName": "Holy Lance",
       "name": "Holy Lance",
       "tier": 5,
-      "identity": "ICONIC. T5 only Holy spear — innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated.",
+      "identity": "ICONIC. T5 only Holy spear — innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated. +3 Cavalier's Charge: Speed +3 while riding a chocobo (a crusader's mounted charge).",
       "desc": "This sacred weapon shines with a pure and brilliant light.\nWhen attacking, has a chance of casting Holy.",
       "baseline": {
         "wp": 14,
@@ -3280,7 +3280,17 @@
         0.13,
         0.25,
         1.1
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "mounted": true,
+        "stat": "Speed",
+        "statBonus": 3,
+        "sigName": "Cavalier's Charge",
+        "displayLabel": "Cavalier's Charge",
+        "note": "Mounted Speed grant: while the Holy Lance wielder is riding a chocobo (combat +0x1B4 bit 0x80, proven 2026-06-26), hold Speed at natural+3. Reuses GrowthEngine.HoldTimedStat (the Afterimage Speed-lane machinery) with the forTurns gate replaced by the mount-bit check; a Polearm is PA-formula so growth never touches CSpeed -- no Route conflict. Reverts on dismount/battle-exit.",
+        "p3Desc": "While riding a chocobo, Speed +3."
+      }
     },
     {
       "id": 105,
@@ -3551,17 +3561,7 @@
         0.3,
         0.75,
         0.7
-      ],
-      "signature": {
-        "atTier": 3,
-        "mounted": true,
-        "stat": "Speed",
-        "statBonus": 3,
-        "sigName": "Cavalier's Charge",
-        "displayLabel": "Cavalier's Charge",
-        "note": "Mounted Speed grant: while the Eight-Fluted Pole wielder is riding a chocobo (combat +0x1B4 bit 0x80, proven 2026-06-26), hold Speed at natural+3. Reuses GrowthEngine.HoldTimedStat (the Afterimage Speed-lane machinery) with the forTurns gate replaced by the mount-bit check; a Pole is PA-formula so growth never touches CSpeed -- no Route conflict. Reverts on dismount/battle-exit.",
-        "p3Desc": "While riding a chocobo, Speed +3."
-      }
+      ]
     },
     {
       "id": 114,
