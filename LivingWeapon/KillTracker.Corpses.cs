@@ -128,6 +128,15 @@ internal sealed partial class KillTracker
             // Only one branch fires per edge; both are mutually exclusive on _lastPlayerWeapons.Count.
             if (_deadStreak[s] == 1)
             {
+                // Read TqTeam at the death EDGE so it captures the team at the moment of death
+                // (it may flip a few ticks later). Divert ONLY on a confident non-player team
+                // (1=enemy, 2=ally/guest) -- any other value (0=player, garbage, or unreadable
+                // defaulting to 0) takes the normal credit path: a bad read must never suppress
+                // a legit player kill (docs/LIVE_LEDGER.md row 45, TqTeam fail-safe rule). The
+                // tracked-delayed path still wins: ConsumeDelayedCulprit() is checked first at
+                // credit time and the no-credit branch is gated `delayed == null && _lethalUntracked[s]`.
+                int team = _mem.Readable(Offsets.TurnQueue + Offsets.TqTeam, 2) ? _mem.U16(Offsets.TurnQueue + Offsets.TqTeam) : 0;
+                bool nonPlayerTurn = team == 1 || team == 2;   // 1=enemy, 2=ally/guest; both are AI turns
                 if (_untrackedArmedTicks > 0)
                 {
                     // A cross-turn UNTRACKED charged action (a summoner's summon) is landing within its
@@ -142,8 +151,11 @@ internal sealed partial class KillTracker
                 }
                 else if (_lastPlayerWeapons.Count > 0)
                 {
-                    // Tracked actor latched: copy weapons so a later re-latch cannot steal the credit.
-                    _lethalActor[s] = new List<int>(_lastPlayerWeapons);
+                    if (nonPlayerTurn)
+                        _lethalUntracked[s] = true;   // counter/reaction during a non-player turn: the stale player latch did NOT deal this blow -- no-credit (miss beats mis-credit)
+                    else
+                        // Tracked actor latched on a player turn: copy weapons so a later re-latch cannot steal the credit.
+                        _lethalActor[s] = new List<int>(_lastPlayerWeapons);
                 }
                 else if (_latchResolvedEmpty && _latched)
                 {
