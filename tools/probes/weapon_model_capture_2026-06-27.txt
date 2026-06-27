@@ -1,0 +1,286 @@
+pid 11016
+
+===== stat-caller fn (calls stat thunk 0x1402b8ce8) -- does it also call a mesh accessor?  @0x14F4CA751 (60 insns) =====
+  0x14F4CA751  cmove    ax, word ptr [rcx + 0x20]
+  0x14F4CA756  lea      ecx, [rdx + 6]
+  0x14F4CA759  cmp      ax, dx
+  0x14F4CA75C  je       0x14f4ca763
+  0x14F4CA75E  cmp      cx, ax
+  0x14F4CA761  ja       0x14f4ca775
+  0x14F4CA763  movzx    eax, word ptr [r11 + 0x24]
+  0x14F4CA768  cmp      ax, dx
+  0x14F4CA76B  je       0x14f4ca772
+  0x14F4CA76D  cmp      cx, ax
+  0x14F4CA770  ja       0x14f4ca775
+  0x14F4CA772  movzx    eax, bp
+  0x14F4CA775  movzx    ecx, ax
+  0x14F4CA778  call     0x1402b8ce8
+  0x14F4CA77D  test     rax, rax
+  0x14F4CA780  jne      0x14f4ca795
+  0x14F4CA782  xor      ecx, ecx
+  0x14F4CA784  call     0x1402b8ce8
+  0x14F4CA789  mov      ecx, dword ptr [rip - 0xaeba125]
+  0x14F4CA78F  and      byte ptr [rip + 0x9271d57], cl
+  0x14F4CA795  mov      r9b, byte ptr [rax]
+  0x14F4CA798  lea      rdx, [rbx + rbx*4]
+  0x14F4CA79C  mov      r8b, byte ptr [rax + 1]
+  0x14F4CA7A0  mov      eax, ebx
+  0x14F4CA7A2  lea      rbx, [rip - 0xdcca2c9]
+  0x14F4CA7A9  lea      ecx, [r9 + 1]
+  0x14F4CA7AD  mov      byte ptr [rdx + rbx], cl
+  0x14F4CA7B0  lea      rax, [rax + rax*4]
+  0x14F4CA7B4  mov      byte ptr [rax + rbx + 0x500], cl
+  0x14F4CA7BB  mov      byte ptr [rdx + rbx + 1], 1
+  0x14F4CA7C0  test     r8b, 0xc0
+  0x14F4CA7C4  je       0x14f4ca7d3
+  0x14F4CA7C6  mov      dl, r8b
+  0x14F4CA7C9  mov      rcx, r11
+  0x14F4CA7CC  call     0x14027f148
+  0x14F4CA7D1  jmp      0x14f4ca7f7
+  0x14F4CA7D3  test     r8b, 0x20
+  0x14F4CA7D7  je       0x14f4ca7ec
+  0x14F4CA7D9  mov      cl, r9b
+  0x14F4CA7DC  call     0x14027ec70
+  0x14F4CA7E1  mov      edx, edi
+  0x14F4CA7E3  mov      ecx, esi
+  0x14F4CA7E5  call     0x14027ebb8
+  0x14F4CA7EA  jmp      0x14f4ca7f7
+  0x14F4CA7EC  mov      dl, r9b
+  0x14F4CA7EF  mov      rcx, r11
+  0x14F4CA7F2  call     0x14027eeb8
+  0x14F4CA7F7  lea      rax, [rip - 0xe73cb48]
+  0x14F4CA7FE  test     byte ptr [rax], 2
+  0x14F4CA801  je       0x14f4ca806
+  0x14F4CA803  mov      byte ptr [rbx], bpl
+  0x14F4CA806  add      rax, 8
+  0x14F4CA80A  lea      rcx, [rip - 0xe73bb5b]
+  0x14F4CA811  add      rbx, 5
+  0x14F4CA815  cmp      rax, rcx
+  0x14F4CA818  jl       0x14f4ca7fe
+  0x14F4CA81A  mov      rbx, qword ptr [rsp + 0x30]
+  0x14F4CA81F  mov      rbp, qword ptr [rsp + 0x38]
+  0x14F4CA824  mov      rsi, qword ptr [rsp + 0x40]
+  0x14F4CA829  add      rsp, 0x20
+
+===== publisher pub2 -- trace past the global writes for a mesh load  @0x14F5891FC (60 insns) =====
+  0x14F5891FC  movzx    eax, word ptr [rbx + 0x20]
+  0x14F589200  mov      word ptr [rip - 0xedd8aa3], ax
+  0x14F589207  movzx    ecx, word ptr [rbx + 0x24]
+  0x14F58920B  mov      word ptr [rip - 0xedd8aac], cx
+  0x14F589212  cmp      ax, bp
+  0x14F589215  je       0x14f58921d
+  0x14F589217  cmp      r14w, ax
+  0x14F58921B  ja       0x14f589231
+  0x14F58921D  movzx    eax, word ptr [rbx + 0x24]
+  0x14F589221  mov      ecx, ebp
+  0x14F589223  mov      word ptr [rip - 0xedd8ac6], ax
+  0x14F58922A  mov      word ptr [rip - 0xedd8acb], cx
+  0x14F589231  mov      r15d, dword ptr [rip + 0x63927b8]
+  0x14F589238  add      r15d, 0xb8000002
+  0x14F58923F  cmp      dil, r15b
+  0x14F589242  jne      0x14f589257
+  0x14F589244  movzx    eax, word ptr [rbx + 0x1a8]
+  0x14F58924B  mov      word ptr [rip - 0xedd8aee], ax
+  0x14F589252  jmp      0x14f58940d
+  0x14F589257  movsx    r9d, word ptr [rbx + 0x1a2]
+  0x14F58925F  mov      r10d, dword ptr [rip - 0x2bf03c1]
+  0x14F589266  sub      r10d, 0x49cb27e4
+  0x14F58926D  cmp      r9w, r10w
+  0x14F589271  je       0x14f589394
+  0x14F589277  test     dil, dil
+  0x14F58927A  je       0x14f589286
+  0x14F58927C  cmp      dil, 6
+  0x14F589280  jne      0x14f589394
+  0x14F589286  mov      ecx, r9d
+  0x14F589289  call     0x1402bb0d4
+  0x14F58928E  mov      r8b, byte ptr [rax + 3]
+  0x14F589292  mov      dl, byte ptr [rax + 8]
+  0x14F589295  mov      cl, byte ptr [rax + 9]
+  0x14F589298  mov      byte ptr [rip - 0xc59cd74], r8b
+  0x14F58929F  lea      eax, [rdx - 0x1e]
+  0x14F5892A2  cmp      al, 1
+  0x14F5892A4  ja       0x14f58935d
+  0x14F5892AA  cmp      dword ptr [rip - 0xdd1e330], esi
+  0x14F5892B0  mov      byte ptr [rip - 0xaf78c69], sil
+  0x14F5892B7  jne      0x14f58935d
+  0x14F5892BD  mov      eax, dword ptr [rip - 0xeca32f7]
+  0x14F5892C3  lea      r9, [rip - 0xec828fa]
+  0x14F5892CA  mov      edx, dword ptr [rip - 0xeca3308]
+  0x14F5892D0  mov      r8d, 0x809f
+  0x14F5892D6  sub      r8d, dword ptr [rip - 0x6ef6a9a]
+  0x14F5892DD  shl      edx, 0xb
+  0x14F5892E0  xor      edx, dword ptr [rip - 0xeca331e]
+  0x14F5892E6  mov      dword ptr [rip - 0xeca3324], eax
+  0x14F5892EC  mov      eax, dword ptr [rip - 0xeca3322]
+  0x14F5892F2  mov      dword ptr [rip - 0xeca332c], eax
+  0x14F5892F8  mov      eax, dword ptr [rip - 0xeca332a]
+  0x14F5892FE  mov      ecx, eax
+  0x14F589300  shr      ecx, 0xb
+  0x14F589303  xor      ecx, edx
+  0x14F589305  mov      dword ptr [rip - 0xeca333b], eax
+  0x14F58930B  shr      ecx, 8
+  0x14F58930E  xor      ecx, eax
+  0x14F589310  xor      ecx, edx
+  0x14F589312  mov      dword ptr [rip - 0xeca3344], ecx
+  0x14F589318  and      ecx, r8d
+
+===== publisher pub3  @0x150C5DF89 (30 insns) =====
+  0x150C5DF89  movzx    eax, word ptr [rbx + 0x20]
+  0x150C5DF8D  mov      word ptr [rip - 0xf3f2ff2], ax
+  0x150C5DF94  movzx    eax, word ptr [rbx + 0x24]
+  0x150C5DF98  mov      word ptr [rip - 0xf3f2ffb], ax
+  0x150C5DF9F  mov      byte ptr [rip - 0xf3f3005], 1
+  0x150C5DFA6  mov      rbx, qword ptr [rsp + 0x30]
+  0x150C5DFAB  mov      rsi, qword ptr [rsp + 0x38]
+  0x150C5DFB0  add      rsp, 0x20
+  0x150C5DFB4  pop      rdi
+  0x150C5DFB5  ret      
+  0x150C5DFB6  int3     
+  0x150C5DFB7  nop      dword ptr [rax + rax]
+  0x150C5DFBC  jmp      0x1403d8db0
+  0x150C5DFC1  mov      r15, 0x85a76b9
+  0x150C5DFC8  lea      r15, [rsp + r15]
+  0x150C5DFCC  lea      r14, [r15 - 0x44b866ef]
+  0x150C5DFD3  mov      r15, qword ptr [rsp]
+  0x150C5DFD7  lea      rsp, [r14 + 0x3c5df03e]
+  0x150C5DFDE  mov      r14, qword ptr [rsp]
+  0x150C5DFE2  mov      qword ptr [rsp], r15
+  0x150C5DFE6  lea      r15, [rip + 0xc8b0f15]
+  0x150C5DFED  sub      r15, 0x97de8e8
+  0x150C5DFF4  xchg     qword ptr [rsp], r15
+  0x150C5DFF8  sub      qword ptr [rsp], -0x268e2a6
+  0x150C5E000  ret      
+  0x150C5E001  lea      r13, [r15 + 0xa0]
+  0x150C5E008  mov      qword ptr [r13], rbp
+  0x150C5E00C  mov      r13, qword ptr [rsp]
+  0x150C5E010  add      rsp, 8
+  0x150C5E014  xor      r11d, r11d
+
+===== stat-table read 1402802DD  @0x1402802DD (30 insns) =====
+  0x1402802DD  movzx    eax, word ptr [r14 + r11 + 0x1853d00]
+  0x1402802E6  cmovne   cx, bx
+  0x1402802EA  cmp      ax, si
+  0x1402802ED  je       0x1402802f7
+  0x1402802EF  mov      edx, ebx
+  0x1402802F1  cmp      r8w, ax
+  0x1402802F5  ja       0x1402802fa
+  0x1402802F7  mov      edx, r15d
+  0x1402802FA  test     edx, edx
+  0x1402802FC  cmovne   ax, cx
+  0x140280300  test     byte ptr [r14 + r11 + 0x1853d43], 2
+  0x140280309  jne      0x140280321
+  0x14028030B  test     byte ptr [r14 + r11 + 0x1853ce6], 0x20
+  0x140280314  jne      0x140280321
+  0x140280316  cmp      ax, si
+  0x140280319  je       0x140280321
+  0x14028031B  cmp      r8w, ax
+  0x14028031F  ja       0x140280323
+  0x140280321  mov      eax, ebx
+  0x140280323  movzx    ecx, ax
+  0x140280326  call     0x1402b8ce8
+  0x14028032B  test     rax, rax
+  0x14028032E  je       0x140280527
+  0x140280334  mov      r13b, byte ptr [rax + 1]
+  0x140280338  movsx    edx, word ptr [r14 + r11 + 0x1853e90]
+  0x140280341  lea      rax, [r14 + 0x1853e8c]
+  0x140280348  movsx    r8d, word ptr [r14 + r11 + 0x1853e8e]
+  0x140280351  add      rax, r11
+  0x140280354  xor      r9d, r9d
+  0x140280357  mov      qword ptr [rbp - 0x30], rax
+
+===== catalog accessor thunk  @0x1402B8CB8 (8 insns) =====
+  0x1402B8CB8  movzx    eax, cx
+  0x1402B8CBB  mov      edx, 0x100
+  0x1402B8CC0  cmp      cx, dx
+  0x1402B8CC3  lea      rcx, [rip - 0x2b8cca]
+  0x1402B8CCA  lea      rax, [rax + rax*2]
+  0x1402B8CCE  jae      0x1402b8cda
+  0x1402B8CD0  lea      rax, [rax*4 + 0x80ea90]
+  0x1402B8CD8  jmp      0x1402b8ce2
+
+===== weapon-stat accessor thunk  @0x1402B8CE8 (8 insns) =====
+  0x1402B8CE8  jmp      0x1500df9f8
+  0x1402B8CED  or       byte ptr [rdi + rcx + 0x1f10308a], 0
+  0x1402B8CF5  test     byte ptr [rdi], cl
+  0x1402B8CF7  lea      edx, [rsi - 0x160019ce]
+  0x1402B8CFD  clc      
+  0x1402B8CFE  rcl      dword ptr [rip + 0xa55da00], 0xa0
+  0x1402B8D05  out      0xff, eax
+  0x1402B8D08  jnp      0x140399afd
+
+===== validity accessor thunk  @0x1402B8F30 (8 insns) =====
+  0x1402B8F30  jmp      0x1501484e0
+  0x1402B8F35  jns      0x1402b8f03
+  0x1402B8F37  mov      edi, 0xaae5e9e1
+  0x1402B8F3C  and      byte ptr [rax], al
+  0x1402B8F3E  in       eax, 0x2f
+  0x1402B8F40  sbb      eax, 0xf1508fa4
+  0x1402B8F45  in       eax, 0x74
+  0x1402B8F47  sbb      cl, byte ptr [rax + 0xe]
+
+===== thunk-band scan 0x1402B8C00..0x1402B9100 for jmp stubs =====
+  0x1402B8C40: E9 jmp 0x1500A6E60
+  0x1402B8C52: E9 jmp 0x1401A0D05
+  0x1402B8C65: E9 jmp 0x13FF764C7
+  0x1402B8C80: E9 jmp 0x1500DDEA0
+  0x1402B8C86: E9 jmp 0x1402F52B9
+  0x1402B8C95: E9 jmp 0x14030D484
+  0x1402B8C9B: E9 jmp 0x14040F84D
+  0x1402B8CE8: E9 jmp 0x1500DF9F8
+  0x1402B8CFC: E9 jmp 0x140414EF9
+  0x1402B8D0E: E9 jmp 0x1403B8919
+  0x1402B8D3D: E9 jmp 0x1400D0B73
+  0x1402B8D48: E9 jmp 0x1500F1080
+  0x1402B8D63: E9 jmp 0x170147681
+  0x1402B8D6A: E9 jmp 0x140392723
+  0x1402B8D8A: E9 jmp 0x1403CA0B9
+  0x1402B8DA4: E9 jmp 0x10CF85A75
+  0x1402B8DB0: E9 jmp 0x1500F3C30
+  0x1402B8DC2: E9 jmp 0x1403F048D
+  0x1402B8DEB: E9 jmp 0x1404D8A36
+  0x1402B8E14: E9 jmp 0x1500F41A1
+  0x1402B8E2F: E9 jmp 0x140437051
+  0x1402B8E42: E9 jmp 0x140432F05
+  0x1402B8E51: E9 jmp 0x14032EBD2
+  0x1402B8E56: E9 jmp 0x1404BBA29
+  0x1402B8E5B: E9 jmp 0x140366E86
+  0x1402B8E6A: E9 jmp 0x10C3E8D1D
+  0x1402B8E78: E9 jmp 0x15012AF80
+  0x1402B8E89: E9 jmp 0x140470367
+  0x1402B8E9D: E9 jmp 0x1402DE80B
+  0x1402B8ED4: E9 jmp 0x15013749F
+  0x1402B8EDA: E9 jmp 0x14017DD79
+  0x1402B8EF4: E9 jmp 0x14044A381
+  0x1402B8EFA: E9 jmp 0x140548C16
+  0x1402B8F0A: E9 jmp 0x140539BAD
+  0x1402B8F30: E9 jmp 0x1501484E0
+  0x1402B8F39: E9 jmp 0x1404C3A23
+  0x1402B8F5C: E9 jmp 0x150151F14
+  0x1402B8F62: E9 jmp 0x1402FA3E1
+  0x1402B8F6B: E9 jmp 0x1404E2F3B
+  0x1402B8F72: E9 jmp 0x140311865
+  0x1402B8F8C: E9 jmp 0x150161499
+  0x1402B8FA0: E9 jmp 0x14056487E
+  0x1402B8FA7: E9 jmp 0x140075023
+  0x1402B8FAC: E9 jmp 0x1401E63AD
+
+============================================================
+★ BREAKTHROUGH (live-verified 2026-06-27): SWING-ART LEVER
+============================================================
+THE LEVER:  0x1407B0764  (u16)  = battlefield weapon-MODEL id the renderer reads.
+PUBLISHER:  0x14F5891FC (pub2) reads CWeapon+0x20, CLAMPS ids >=~261 to the empty
+            +0x24 off-hand fallback, writes it to 0x1407B0764 -> no mesh -> FIST.
+
+  0x14F589200  mov [0x1407B0764], ax     ; main id (261) written first
+  0x14F589212  cmp ax, bp                ; \ clamp: id out of [bp, r14w]...
+  0x14F589217  cmp r14w, ax              ;  } ...(261 is out)
+  0x14F58921B  ja  0x14f589231           ; / valid -> skip; else fall through
+  0x14F58921D  movzx eax, [rbx+0x24]     ; FALLBACK = off-hand (255 = empty)
+  0x14F589223  mov [0x1407B0764], ax     ; OVERWRITE lever with empty -> FIST
+
+PROVEN FIX: hold 0x1407B0764 = 37 -> Ramza (id261 Moonblade, 323 dmg = Warbrand
+            stats, CWeapon+0x20 left 261) swung the CHAOS BLADE animation.
+MOD PATHS:  (A) hook pub2 clamp 261+ -> art-id at 0x14F58921D (5th clone, register-safe)
+            (B) wielder-gated background hold of 0x1407B0764 (shared "current render" global)
+KILLED (armed, unconfounded): container 0x1403d3b7c (record[261]:=record[37] -> fist);
+            pub3 0x14186AFA2; shotgun-hold of all 237 live u16 copies of 261.
