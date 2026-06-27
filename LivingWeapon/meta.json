@@ -938,7 +938,16 @@
     "wp": 14,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won."
+    "flavor": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Cavalier's Charge",
+      "stat": "Speed",
+      "statBonus": 3,
+      "mounted": true
+    }
   },
   "114": {
     "name": "Whale Whisker",

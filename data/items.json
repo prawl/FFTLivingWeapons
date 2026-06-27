@@ -3551,7 +3551,17 @@
         0.3,
         0.75,
         0.7
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "mounted": true,
+        "stat": "Speed",
+        "statBonus": 3,
+        "sigName": "Cavalier's Charge",
+        "displayLabel": "Cavalier's Charge",
+        "note": "Mounted Speed grant: while the Eight-Fluted Pole wielder is riding a chocobo (combat +0x1B4 bit 0x80, proven 2026-06-26), hold Speed at natural+3. Reuses GrowthEngine.HoldTimedStat (the Afterimage Speed-lane machinery) with the forTurns gate replaced by the mount-bit check; a Pole is PA-formula so growth never touches CSpeed -- no Route conflict. Reverts on dismount/battle-exit.",
+        "p3Desc": "While riding a chocobo, Speed +3."
+      }
     },
     {
       "id": 114,

@@ -40,6 +40,10 @@ public sealed class WeaponSignature
     [JsonProperty("stat")] public string Stat { get; set; } = "";
     [JsonProperty("statBonus")] public int StatBonus { get; set; }
     [JsonProperty("forTurns")] public int ForTurns { get; set; }
+    // MOUNT-GATED stat grant: flat StatBonus to Stat while the wielder is riding a chocobo
+    // (combat +0x1B4 bit 0x80, proven live 2026-06-26). Reverts on dismount/battle-exit.
+    // Replaces the forTurns gate in HoldTimedStat; Speed is the only wired stat today.
+    [JsonProperty("mounted")] public bool Mounted { get; set; }
     // CHARM-LOCK aura: while a unit wields this at AtTier, any Charm the party lands is held unbreakable
     // for this many of the target's turns, then force-cleared (Galewind). 0 = not a charm-lock weapon.
     [JsonProperty("charmLockTurns")] public int CharmLockTurns { get; set; }

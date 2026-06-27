@@ -101,7 +101,7 @@ internal sealed partial class GrowthEngine
                     if (m.Signature != null && m.Signature.HpBelow > 0)    // only conditional sigs read HP
                         (hp, maxHp) = ReadHp(level, brave, faith);
                     HoldSignature(s, r, weapon, m.Name, m.Signature, tier, hp, maxHp, brave, faith, pickedSupport);
-                    if (m.Signature != null && m.Signature.ForTurns > 0)   // timed flat-stat grant
+                    if (m.Signature != null && (m.Signature.ForTurns > 0 || m.Signature.Mounted))   // flat stat grant (timed or mount-gated)
                         HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
                     HoldAfterimage(s, m, tier, level, brave, faith);       // Swiftedge: ramping Speed (owns the speed lane)
                     HoldUltima(s, m, tier, level, brave, faith);           // Materia Blade: HP%-scaled PA hold (owns PA lane)

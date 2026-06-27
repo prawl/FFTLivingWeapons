@@ -53,10 +53,13 @@ def main():
             }
             if sig.get("hpBelow"):   # conditional HP-gate (e.g. Mortal Coil: Attack Boost while HP < 50%)
                 entry["signature"]["hpBelow"] = int(sig["hpBelow"])
-            if sig.get("forTurns"):  # timed stat grant (e.g. Galewind: Speed +3 for the first 3 turns)
+            if sig.get("forTurns") or sig.get("mounted"):   # flat stat grant (timed OR mount-gated)
                 entry["signature"]["stat"] = sig.get("stat", "")
                 entry["signature"]["statBonus"] = int(sig.get("statBonus", 0))
+            if sig.get("forTurns"):  # timed stat grant (e.g. Galewind: Speed +3 for the first 3 turns)
                 entry["signature"]["forTurns"] = int(sig["forTurns"])
+            if sig.get("mounted"):   # mount-gated flat stat grant (Cavalier's Charge): Speed while riding a chocobo
+                entry["signature"]["mounted"] = True
             if sig.get("charmLockTurns"):  # charm-lock aura (Galewind): landed Charm unbreakable N turns
                 entry["signature"]["charmLockTurns"] = int(sig["charmLockTurns"])
             if sig.get("puppeteerTurns"):  # puppeteer (Galewind): dominate the struck enemy for N of its turns (replaces charm-lock)

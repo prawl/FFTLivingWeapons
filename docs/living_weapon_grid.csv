@@ -111,7 +111,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRi
 110,3,Iron Fan,Hushfan,Pole,Shop,9,MA x WP,25%,PA,Silence,PA +10%,PA +20%,PA +30%,med,
 111,5,Gokuu's Pole,Sage's Pole,Pole,Shop,12,MA x WP,20%,PA,May slow,PA +10%,PA +20%,PA +30%,med,
 112,4,Ivory Pole,Ivory Pole,Pole,"Poach (Sekhret, rare)",10,MA x WP,20%,PA,Blind,PA +10%,PA +20%,PA +30%,med,
-113,6,Eight-fluted Pole,Eight-Fluted Pole,Pole,Shop,14,MA x WP,20%,PA,Poison,PA +10%,PA +20%,PA +30%,low,
+113,6,Eight-fluted Pole,Eight-Fluted Pole,Pole,Shop,14,MA x WP,20%,PA,Poison,PA +10%,PA +20%,PA +30% + Cavalier's Charge (Speed +3 mounted),low,
 114,6,Whale Whisker,Whale Whisker,Pole,Poach (Tiamat),14,MA x WP,20%,PA,—,PA +10%,PA +20%,PA +30%,low,
 115,2,Catskin Bag,Sandman Satchel,Bag,Shop,10,Rand(1..PA) x WP,0%,PA,Add: Sleep,PA +10%,PA +20%,PA +30%,med,
 116,5,Fallingstar Bag,Fallingstar Bag,Bag,"Poach (Wild Boar, rare 1/8)",18,Rand(1..PA) x WP,0%,PA,—,PA +10%,PA +20%,PA +30%,low,

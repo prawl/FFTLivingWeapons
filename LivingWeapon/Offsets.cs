@@ -108,6 +108,8 @@ internal static class Offsets
     // Passive bitfields on the LIVE combat struct (proven write+holdable mid-battle, 2026-06-08):
     // reaction +0x94 (4 bytes, base id 166), support +0x98 (4 bytes, base 198), movement +0x9C
     // (3 bytes, base 230); MSB-first. Signatures only ever touch SUPPORT (stacks, no slot hijack).
+    public const int CMount         = 0x1B4;   // u8 Mount Info; bit 0x80 = this unit is riding (chocobo). Proven live 2026-06-26 (mount_probe.py / chocobo-mount-bytes).
+    public const byte CMountRidingBit = 0x80;
     public const int CReaction = 0x94;   // 4 bytes; Maim zeroes this to suppress Counter etc.
     public const int CSupport = 0x98;
     public const int CMovement = 0x9C;   // 3 bytes, base id 230; Rapture holds its teleport image here
