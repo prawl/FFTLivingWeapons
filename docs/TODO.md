@@ -8,6 +8,15 @@ Release TODO's
   mismap surfaces (needs data/vanilla_equipbonus.json to also carry those fields). Same family as the
   Blazing Staff id63 numeric bug fixed 2026-06-26.
 - Ramza's Squire cannot equip Shields but normal squires can?
+- COMPAT (SHELVED 2026-06-30): mod-added story/guest characters (Deep Brave Story: Alma, Simon, Delita, ...)
+  get NO Living Weapon effects -- not the stat growth AND not the signatures (live: Alma could not use the +3
+  Warlock Staff / Choir). Root cause: the runtime IDs "your" units by matching the player roster, and it only
+  scans slots 0..19 (Offsets.RosterSlots = 20); these units sit past slot 20 or off the roster entirely, so
+  Band.AllyFingerprints never includes them -> invisible to growth + every ally/wielder locate. Diagnostic
+  parked: tools roster-dump (scans 48 slots) needs one of these chars in the active party, and Patrick has none
+  in any save right now. Fix forks once diagnosable: (a) they live at slot >=20 -> bump RosterSlots (cheap);
+  (b) they are true guest/ENTD units off the roster -> teach the runtime to recognize non-roster allies (team
+  byte + broader band scan, riskier). Or just document as a known cross-mod incompatibility.
 - Larcency keeps popped up in the logs despite not being equipped
   DEFERRED 2026-06-27 (needs a live livingweapon.log to confirm which line is firing -- none on disk; the
   log is written into the Reloaded Mods deploy dir only during a play session). Code analysis narrowed it
