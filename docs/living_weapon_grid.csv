@@ -69,7 +69,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRi
 68,3,Flail of Flame,Bloodlash,Knife,Shop,8,(PA+Sp)/2 x WP,15%,PA,Poison (always),PA +10%,PA +20%,PA +30%,—,Yes
 69,4,Morning Star,Climhazzard,Ninja Blade,Shop,5,missing-HP (f69),20%,—,—,—,—,—,high,
 70,5,Scorpion Tail,Sasori,Katana,Shop,11,PA x Br/100 x WP,10%,PA,May inflict Doom,PA +10%,PA +20%,PA +30%,high,
-71,1,Romandan Pistol,Outrider Pistol,Gun,Shop,7,WP x WP (no stats),5%,PA,—,PA +10%,PA +20%,PA +30%,low,
+71,1,Romandan Pistol,Outrider Pistol,Gun,Shop,7,WP x WP (no stats),5%,PA,—,PA +10%,PA +20%,PA +30% + Gun Slinger (dual-wield twin),low,
 72,2,Mythril Gun,Ironclad Repeater,Gun,Shop,9,WP x WP (no stats),5%,PA,—,PA +10%,PA +20%,PA +30%,low,
 73,4,Stoneshooter,Stoneshooter,Gun,"Poach (Dark Behemoth, rare 1/8)",16,WP x WP (no stats),5%,PA,—,PA +10%,PA +20%,PA +30%,high,
 74,3,Glacial Gun,Glacial Gun,Gun,"Move-Find (Midlight's Deep NOISSIM, rare)/Steal",12,Faith spell (f4),5%,MA,—,MA +10%,MA +20%,MA +30%,med,

@@ -99,6 +99,8 @@ def main():
                 entry["signature"]["instantCastRadius"] = int(sig["instantCastRadius"])
             if sig.get("braveOneUp"):  # Kobu (Kiyomori): on a melee hit the wielder lands, if struck foe's CURRENT brave (band +0x0F) exceeds the wielder's, raise wielder's current brave to match
                 entry["signature"]["braveOneUp"] = True
+            if sig.get("gunSlinger"):  # Gun Slinger (Blaster): roster off-hand twin + Dual Wield between battles
+                entry["signature"]["gunSlinger"] = True
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")

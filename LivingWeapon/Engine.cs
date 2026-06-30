@@ -43,6 +43,9 @@ internal sealed class Engine
     // advances in-battle).
     private int _ringThrottleTick;
     private const int RingThrottleEveryNTicks = 30;
+    private GunSlinger _gunSlinger = null!;
+    private int _gunSlingerThrottleTick;
+    private const int GunSlingerThrottleEveryNTicks = 30;
     private IGameMemory _live = null!;   // assigned in ctor, used by Tick
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -102,6 +105,7 @@ internal sealed class Engine
         // so ResetBattle still fires on the debounced battle-exit edge.
         _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, larceny, puppeteer, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
+        _gunSlinger = new GunSlinger(meta, _kills, modDir, live);
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
@@ -207,6 +211,14 @@ internal sealed class Engine
             {
                 _ringThrottleTick = 0;
                 ScholarRing.Grant(_live);
+            }
+            // Gun Slinger: keep the twin Blaster + Dual Wield in the wielder's roster
+            // slots between battles. Throttled to ~1 s (snapshot+restore logic is
+            // idempotent; hammering it every 33 ms is wasteful).
+            if (++_gunSlingerThrottleTick >= GunSlingerThrottleEveryNTicks)
+            {
+                _gunSlingerThrottleTick = 0;
+                _gunSlinger.PrepRoster();
             }
             _display.Tick(false);   // out of battle (slot9 cleared): keep the equip card painted
             return;

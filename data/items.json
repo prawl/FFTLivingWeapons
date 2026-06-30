@@ -2286,7 +2286,13 @@
         0.09,
         0.4,
         0.88
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "gunSlinger": true,
+        "displayLabel": "Gun Slinger",
+        "p3Desc": "Awakens dual-wield: a second pistol loads into the off-hand, Attack fires twice."
+      }
     },
     {
       "id": 72,

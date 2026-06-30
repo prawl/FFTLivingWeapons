@@ -61,6 +61,14 @@ internal static class Mem
         WriteProcessMemory(Self, (nint)a, s, 1, out _);
     }
 
+    public static void W16(long a, ushort v)
+    {
+        var s = _scratch ??= new byte[8];
+        s[0] = (byte)(v & 0xFF);
+        s[1] = (byte)(v >> 8);
+        WriteProcessMemory(Self, (nint)a, s, 2, out _);
+    }
+
     // scalar reads reuse a per-thread buffer (the engine loop is single-threaded);
     // a failed/freed read returns 0 rather than faulting.
     private static bool ReadScalar(long a, int n)

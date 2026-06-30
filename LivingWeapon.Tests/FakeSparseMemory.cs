@@ -23,6 +23,7 @@ internal sealed class FakeSparseMemory : IGameMemory
     public readonly Dictionary<long, byte>   U8s  = new();
     public readonly HashSet<long> WritableAddrs   = new();
     public readonly Dictionary<long, byte>   Written = new();
+    public readonly Dictionary<long, ushort> WrittenU16 = new();
 
     // TreasureMaster extensions
     public readonly HashSet<long>             ReadableAddrs  = new();
@@ -41,6 +42,7 @@ internal sealed class FakeSparseMemory : IGameMemory
     public bool Readable(long a, int n) => ReadableAddrs.Contains(a);
     public bool Writable(long a, int n) => WritableAddrs.Contains(a);
     public void W8(long a, byte v) { Written[a] = v; U8s[a] = v; }
+    public void W16(long a, ushort v) { WrittenU16[a] = v; U16s[a] = v; }
 
     // U32 support: ArmAudit reads 4-byte PE fields as two U16 reads, or via U8x4.
     // We override TryReadBytes so the fingerprint path works, and expose U8 for U32
