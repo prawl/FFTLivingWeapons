@@ -8,15 +8,20 @@ Release TODO's
   mismap surfaces (needs data/vanilla_equipbonus.json to also carry those fields). Same family as the
   Blazing Staff id63 numeric bug fixed 2026-06-26.
 - Ramza's Squire cannot equip Shields but normal squires can?
-- COMPAT (SHELVED 2026-06-30): mod-added story/guest characters (Deep Brave Story: Alma, Simon, Delita, ...)
-  get NO Living Weapon effects -- not the stat growth AND not the signatures (live: Alma could not use the +3
-  Warlock Staff / Choir). Root cause: the runtime IDs "your" units by matching the player roster, and it only
-  scans slots 0..19 (Offsets.RosterSlots = 20); these units sit past slot 20 or off the roster entirely, so
-  Band.AllyFingerprints never includes them -> invisible to growth + every ally/wielder locate. Diagnostic
-  parked: tools roster-dump (scans 48 slots) needs one of these chars in the active party, and Patrick has none
-  in any save right now. Fix forks once diagnosable: (a) they live at slot >=20 -> bump RosterSlots (cheap);
-  (b) they are true guest/ENTD units off the roster -> teach the runtime to recognize non-roster allies (team
-  byte + broader band scan, riskier). Or just document as a known cross-mod incompatibility.
+- COMPAT (CONFIRMED LIVE 2026-06-30, NOT a priority): mod-added story/guest characters (Deep Brave Story: Alma,
+  Simon, Delita, ...) get NO Living Weapon effects -- not the stat growth, not the kill credit, not the
+  signatures (live: Alma could not use the +3 Warlock Staff / Choir). Root cause: the runtime IDs "your" units
+  by matching the player roster (Offsets.RosterSlots = 20 -> Band.AllyFingerprints); guests fall outside it.
+  CONFIRMED 2026-06-30 in a Delita/Algus story battle (probe tools-temp guest_probe.py: roster dump + band
+  cross-check): the guests are NOT in the roster AT ALL -- not slots 0..19, not 20+. Found two player-side combat
+  units with no roster fingerprint (lvl3 br73/fa55 wpn19 knife; lvl4 br73/fa59 unarmed); the 3 real party units
+  matched fine. So fork (a) "bump RosterSlots" is DEAD -- there is nothing to read. The only fix is to recognize
+  player units straight from the combat struct (team byte +0x04 == 0, weapon +0x20) instead of the roster -- a
+  real RE project touching kill attribution, growth, AND every signature, and risky because the in-battle
+  team/flag bytes are documented traps (array-inb-flag-pulses, condensed-struct-follows-hover); the roster is the
+  deliberate durable ally signal. DEPRIORITIZED: guests are temporary (they leave after the story battle), so the
+  payoff (a few battles) does not justify destabilizing ally-ID. Treat as a known cross-mod limitation unless
+  guest support is specifically wanted.
 - Larcency keeps popped up in the logs despite not being equipped
   DEFERRED 2026-06-27 (needs a live livingweapon.log to confirm which line is firing -- none on disk; the
   log is written into the Reloaded Mods deploy dir only during a play session). Code analysis narrowed it
