@@ -30,7 +30,6 @@ internal static class GunSlingerPolicy
 {
     private const ushort EmptyOffH1 = 0x00FF;   // 255
     private const ushort EmptyOffH2 = 0xFFFF;   // 65535
-    private const byte EmptySupp = 0xFF;         // 255
     private const int MaxItemId = 315;
 
     /// <summary>True when an off-hand read value is a recognised EMPTY sentinel.</summary>

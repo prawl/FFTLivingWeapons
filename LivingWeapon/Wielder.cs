@@ -66,7 +66,7 @@ internal static class Wielder
             if (mem.U8(e + Offsets.ABrave) != fp.br || mem.U8(e + Offsets.AFaith) != fp.fa) continue;
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
-            if (realPos && !real) { real = true; matches = 0; exacts = 0; match = 0; exact = 0;
+            if (realPos && !real) { real = true; matches = 0; exacts = 0; exact = 0;   // match reset omitted: reassigned unconditionally below
                                     firstMatch = 0; firstExact = 0; tieWid = -1; tieHomogenous = true; }
             matches++; match = e; if (firstMatch == 0) firstMatch = e;
             if (wid == weaponId) { exacts++; exact = e; if (firstExact == 0) firstExact = e; }

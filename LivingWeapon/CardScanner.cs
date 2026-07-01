@@ -43,8 +43,7 @@ internal static class CardScanner
                 int ownerId = FindNearestFlavor(buf, killsPos, enc, pats);
                 if (ownerId < 0) continue;
 
-                var entry = default(CardPatterns.Entry);
-                if (!pats.TryGet(ownerId, enc, out entry)) continue;
+                if (!pats.TryGet(ownerId, enc, out var entry)) continue;
 
                 int flavorPos = -1;
                 if (entry.Flavor.Length > 0)

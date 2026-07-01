@@ -22,7 +22,7 @@ internal sealed class CardPatterns
     private readonly byte[] _killsUtf16;
     private readonly List<byte[]> _slotsAscii;
     private readonly List<byte[]> _slotsUtf16;
-    private int _maxAnchorLen;
+    private readonly int _maxAnchorLen;
 
     public IReadOnlyList<Entry> Entries { get; }
 

@@ -116,7 +116,7 @@ internal static class Mem
     public static IEnumerable<(long baseAddr, long size)> Regions()
     {
         long addr = 0;
-        var mbi = new MEMORY_BASIC_INFORMATION();
+        MEMORY_BASIC_INFORMATION mbi;   // first touched via `out mbi` below; no initializer needed
         int mbiSize = Marshal.SizeOf<MEMORY_BASIC_INFORMATION>();
         while (addr < 0x7FFF_FFFF_0000)
         {

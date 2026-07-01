@@ -43,10 +43,10 @@ internal sealed class Engine
     // advances in-battle).
     private int _ringThrottleTick;
     private const int RingThrottleEveryNTicks = 30;
-    private GunSlinger _gunSlinger = null!;
+    private readonly GunSlinger _gunSlinger = null!;
     private int _gunSlingerThrottleTick;
     private const int GunSlingerThrottleEveryNTicks = 30;
-    private IGameMemory _live = null!;   // assigned in ctor, used by Tick
+    private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
     /// <param name="treasureAlwaysOn">Override for the Treasure Master AlwaysOn gate, read from
@@ -56,11 +56,16 @@ internal sealed class Engine
         _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
         _kills = _tally.Kills;
         var meta = MetaLoader.Load(modDir);
-        if (Tuning.DevSeedAllKills)   // DEV build: every weapon starts at max tier for fast verification
+#if LWDEV
+        // DEV build only: seed every weapon to max tier for fast verification. Compiled out of
+        // Release entirely (Tuning.DevSeedAllKills is a const false there, so a runtime `if` would
+        // leave provably-unreachable code -- CS0162).
+        if (Tuning.DevSeedAllKills)
         {
             Tuning.SeedKills(meta.Keys, _kills, Tuning.DevKillSeed);
             Log.Info($"DEV: force-seeded all {meta.Count} weapons to at least {Tuning.DevKillSeed} kills -- every weapon starts with +3 effects active for fast testing.");
         }
+#endif
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
         _live = live;
         _turns = new TurnTracker(live);
