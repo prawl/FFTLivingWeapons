@@ -41,9 +41,10 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 
 ### Buildable now (levers proven; the signature itself is not yet built or verified)
 
+- Give Monks' Poles and make Claw weapons
+- Turn the JP points into HP or a shield buff for HP
 - Soul Ledger (Knight sword): each kill this battle stacks +1 PA (+1 Speed per 3rd soul, capped) -- our own kill-tally driving a live within-battle power gauge.
 - Doppelgleam (Ninja blade): each strike borrows the max of own-vs-target PA/MA/Speed (StatHold sourced from the victim's bytes).
-- Beast Within (Knuckles/Godhand): after a melee act, enter Beast Form -- Brave ~97 + extra PA + Speed+2 + injected Counter/Hamedo (a werewolf with no sprite swap).
 - Loaded Dice (Knife): hold Brave/Faith at a high floor so every reaction/Brave/Faith roll skews good (the legal stand-in for the walled crit roll).
 - Worst Omen (execution tome / Murasame): curse a struck foe for 3 turns -- zeroed Brave + held Blind/Slow (inverse of Loaded Dice).
 - Sovereign's Decree (Knight sword): on a kill, charm every enemy within 2 tiles for its next turn so the cluster turns on itself.

@@ -15,7 +15,7 @@ creating_mods_fft docs), so a vanilla-faithful rebuild with only our rows change
 coexists with other installed ability.en.nxd mods (e.g. GenericJobs).
 
 History note: the 2026-06-05 "Bloodpact" ability-table ship corrupted unrelated
-abilities and was parked (docs/UNIMPLEMENTED_MECHANICS.md). This script therefore
+abilities and was parked (docs/MECHANICS.md, Bloodpact bullet). This script therefore
 VERIFIES its own output: it decodes the freshly-built nxd back to sqlite and asserts
 that exactly the intended rows/cells differ from the pristine vanilla decode. A red
 verify refuses to deploy the file.
