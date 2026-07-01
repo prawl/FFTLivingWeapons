@@ -73,4 +73,13 @@ internal sealed class FakeSparseMemory : IGameMemory
         ReadableAddrs.Add(addr + 2);
         ReadableAddrs.Add(addr + 3);
     }
+
+    /// <summary>Seed a U64 value as 8 little-endian bytes at <paramref name="addr"/> (mirrors
+    /// SeedU32) so IGameMemory's default U64 (eight composed U8 reads) returns the expected
+    /// value. Used to seed Offsets.ActorPtr in TurnTracker/Iai tests.</summary>
+    public void SeedU64(long addr, ulong value)
+    {
+        for (int i = 0; i < 8; i++)
+            U8s[addr + i] = (byte)((value >> (i * 8)) & 0xFF);
+    }
 }

@@ -82,6 +82,17 @@ internal static class Mem
     public static uint U32(long a) => ReadScalar(a, 4)
         ? (uint)(_scratch![0] | (_scratch[1] << 8) | (_scratch[2] << 16) | (_scratch[3] << 24)) : 0u;
 
+    /// <summary>One atomic 8-byte RPM read (_scratch is byte[8], so ReadScalar(a,8) is safe).
+    /// Used for engine pointer globals (Offsets.ActorPtr) where a torn 8x1-byte composite could
+    /// mix two pointer values mid-transition.</summary>
+    public static ulong U64(long a)
+    {
+        if (!ReadScalar(a, 8)) return 0UL;
+        ulong v = 0;
+        for (int i = 0; i < 8; i++) v |= (ulong)_scratch![i] << (i * 8);
+        return v;
+    }
+
     // little-endian parsers over a byte[] buffer (used by the region scan)
     public static ushort U16(byte[] b, int o) => (ushort)(b[o] | (b[o + 1] << 8));
     public static uint U32(byte[] b, int o) => (uint)(b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24));

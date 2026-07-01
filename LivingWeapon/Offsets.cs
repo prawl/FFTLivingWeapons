@@ -12,10 +12,24 @@ internal static class Offsets
     // --- in-battle flags ---
     public const long Slot0 = 0x140782A30;   // 1.5 PREDICTED +0x6000 (was 0x14077CA30) -- VERIFY (read 0x10, existence marker may differ in 1.5)
     public const long Slot9 = 0x140782A54;   // 1.5 PREDICTED +0x6000 (was 0x14077CA54); read 0xFFFFFFFF (terminator plausible)
-    public const long Acted = 0x140782A8C;   // 1.5 PREDICTED +0x6000 (was 0x14077CA8C) -- VERIFY by watching 0->1 on an action
+    public const long Acted = 0x140782A8C;   // 1.5 CONFIRMED (was 0x14077CA8C): rising edge = an action completed.
+                                             //   Production-proven -- TurnTracker/KillTracker ship on it; live log 2026-07-01.
     public const long EventId = 0x140782A94; // 1.5 PREDICTED +0x6000 (was 0x14077CA94). u16 event file number during cutscenes/dialogue; ALIASES as
                                              //   the active unit's nameId during combat animations -- only
                                              //   meaningful while out of live battle (dialogue/cutscene gate)
+
+    /// <summary>Engine global holding a POINTER to the ACTING unit's combat FRAME base (see
+    /// <see cref="FrameReadBase"/>; frame + <see cref="BandEntry"/> = that unit's band entry).
+    /// Found via FFTMultiplayer's action_record_probe / doaction-target-redirect memory; live-proven
+    /// 2026-07-01 by tools/probes/unitid_probe.py "watch": during a 2x id-42 repro it named each
+    /// acting wielder's own seat + weapon 42 at the exact instant the turn-queue stat fingerprint
+    /// (<see cref="TurnQueue"/>) was ambiguous, and named enemy seats on enemy turns. Reads 0x0 at
+    /// battle-open idle (observed once); may name the REACTOR during a reaction (FFTMultiplayer
+    /// caveat, unverified here). NOTE: the sibling FFTMultiplayer/doaction formula divides from base
+    /// 0x141853CE0 -- a DIFFERENT slot-origin convention (their 16-slot array base == our seat 8's
+    /// frame), NOT a contradiction; the seat math here uses <see cref="FrameReadBase"/> 0x141852CE0
+    /// (probe-validated independently).</summary>
+    public const long ActorPtr = 0x14186AF68;
 
     // --- condensed active-unit struct = the unit whose turn it is (FFTHandsFree
     //     NavigationActions.Scan "AddrCondensedBase"). The acting player is identified by
@@ -67,7 +81,9 @@ internal static class Offsets
     /// turns -- but on the player's OWN actively-managed unit it read INCONSISTENTLY (clean 100 in one
     /// probe, but stale/frozen ~85 during the unit's own input menu in the live DLL). So counting the
     /// player wielder's OWN turns off it proved unreliable; FeignDeath uses a wall clock instead.
-    /// Treat as: write target always; clean enemy-turn read; do NOT trust for the player's own turns.</summary>
+    /// Treat as: write target always; clean enemy-turn read; do NOT trust for the player's own turns.
+    /// NOTE 2026-07-01: Iai no longer reads this for its release signal (rebuilt on ActorPtr); still
+    /// live for ExtraTurn's write and Maim/CharmLock/FeignDeath/SpiritualFont/Plague/Rapture reads.</summary>
     public const int ACtSlam   = 0x25;
     /// <summary>u8 band-relative READ byte for counting a unit's completed turns: CT seen
     /// at/above 90, then falls below 70 = one turn taken. Live-proven by Maim (victim-turn
@@ -102,6 +118,12 @@ internal static class Offsets
     public const long CombatAnchor = 0x141855CE0;   // 1.5 CONFIRMED +0x6450 (was 0x14184F890): Ramza weapon80/lvl99/hp486/pa18, twin at +0x800
     public const int CombatStride = 0x200;
     public const int CombatSearchSlots = 24;   // scan +/- this many slots around the anchor
+    /// <summary>Base address for combat-FRAME index i=0 (i.e. i*CombatStride below CombatAnchor's own
+    /// slot n=24). Algebraic identity: FrameReadBase == BandReadBase - BandEntry (both anchor on the
+    /// same n=-24 slot; a frame is a band entry minus the 0x1C band offset). Matches the probe's
+    /// FRAME_BASE0 0x141852CE0 (tools/probes/unitid_probe.py, RE-checked 2026-07-01). Used to turn an
+    /// <see cref="ActorPtr"/> read into a band seat: seat = (ptr - FrameReadBase) / CombatStride.</summary>
+    public const long FrameReadBase = CombatAnchor - 24 * (long)CombatStride;
     public const int CWeapon = 0x20;   // u16 equipped weapon id (the self-mapping key)
     /// <summary>u8 level inside the combat struct frame (== BandEntry+ALevel == 0x1C+0x0D = 0x29).
     /// Used by GrowthEngine.MatchesEntry to reject enemy slots sharing brave/faith with a player.</summary>
@@ -193,6 +215,23 @@ internal static class Offsets
     /// Band.Entry(s) + AWeapon = BandReadBase + s*CombatStride + AWeapon
     ///                         = CombatAnchor + (s-24)*CombatStride + CWeapon.</summary>
     public const int AWeapon = CWeapon - BandEntry;   // == 0x04
+    /// <summary>u8 band-relative Speed byte: CSpeed(0x40) - BandEntry(0x1C) = 0x24.
+    /// LIVE-VERIFIED 2026-07-01: write-50 to entry+0x24 -> displayed Speed 50 + unit goes first.
+    /// LIVE_LEDGER band +0x22/0x23/0x24 = PA/MA/Speed. Use this (not CSpeed) on a band entry.</summary>
+    public const int ASpeed = CSpeed - BandEntry;   // == 0x24
+    /// <summary>u16 band-entry-relative roster-nameId back-reference: the frame +0x1FC field
+    /// (0x1FC - BandEntry(0x1C) = 0x1E0) mirrors that unit's roster nameId (<see cref="RNameId"/>,
+    /// roster +0x230). Found + live-proven 2026-07-01 by tools/probes/unitid_probe.py "find"
+    /// SCAN-A across TWO separately-loaded battles: player seats exact-match roster nameId
+    /// (Ramza 1, Samurai 298, Ninja 271, both battles); enemy seats read DISTINCT sane values
+    /// (918, 992, 1008, 830, 874, 966, 838, 1014, 747, 516, 366, 1003). A revolving engine MIRROR
+    /// frame (band seat 28, observed cloning different real units over time) carries the mirrored
+    /// unit's nameId too (298, later 271) -- nameId does NOT distinguish the original seat from a
+    /// mirror copy. But the ACTOR POINTER (<see cref="ActorPtr"/>, via Band.ActorEntry) always
+    /// names the REAL frame, so identity-matching the pointer target's nameId against a captured
+    /// roster nameId is unambiguous for Iai's release even when Wielder.Locate ambiguity-bails on
+    /// a churning mirror. Arm-time capture source: Wielder.RosterNameId (roster +0x230).</summary>
+    public const int ANameId = 0x1E0;
     // Band-relative reaction field: CReaction(0x94) - BandEntry(0x1C) = 0x78. 4 bytes.
     // Maim reads/holds/restores this to suppress the victim's Counter/etc. abilities.
     public const int AReaction = 0x78;

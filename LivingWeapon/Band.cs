@@ -28,6 +28,26 @@ internal static class Band
     /// <summary>Base address for band slot s (s = 0..BandSlots-1, mapping n=-24..+24).</summary>
     public static long Entry(int s) => Offsets.BandReadBase + (long)s * Offsets.CombatStride;
 
+    /// <summary>Resolve the engine's own ActorPtr global (Offsets.ActorPtr) to the acting unit's
+    /// band entry address, or 0 when the pointer is invalid: zero, below FrameReadBase, not
+    /// stride-aligned to a whole seat, or naming a seat outside BandSlots. Live-proven
+    /// 2026-07-01 (tools/probes/unitid_probe.py "watch"): the pointer named each acting wielder's
+    /// own seat during a 2x id-42 repro at the exact instant the turn-queue fingerprint was
+    /// ambiguous. Callers apply their own <see cref="IsValid"/> where they need field sanity --
+    /// this only validates the POINTER shape, not the pointed-to entry's contents.</summary>
+    public static long ActorEntry(IGameMemory mem)
+    {
+        ulong ptr = mem.U64(Offsets.ActorPtr);
+        if (ptr == 0) return 0;
+        long frame = (long)ptr;
+        if (frame < Offsets.FrameReadBase) return 0;
+        long delta = frame - Offsets.FrameReadBase;
+        if (delta % Offsets.CombatStride != 0) return 0;
+        long seat = delta / Offsets.CombatStride;
+        if (seat >= Offsets.BandSlots) return 0;
+        return frame + Offsets.BandEntry;
+    }
+
     /// <summary>True iff the band entry at <paramref name="addr"/> has sane field values.
     /// brave/faith reach 100 via Praise/Steel -- the upper bound is 100, not 99.
     /// AInBattle (+0x12) reads 0 for live enemies: do NOT gate on it in the band.</summary>

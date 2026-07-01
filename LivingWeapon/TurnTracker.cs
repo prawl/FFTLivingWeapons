@@ -4,20 +4,29 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Counts completed turns in the current battle for TIMED signatures. On every rising edge of the
-/// global "acted" flag (0x14077CA8C) it advances TWO clocks:
+/// global "acted" flag (Offsets.Acted) it advances TWO clocks:
 ///   * <see cref="GlobalTurns"/> -- the attribution-FREE count of turns taken by ANYONE. Bumped on
-///     the edge whether or not the actor can be fingerprinted, so a buff timer riding it (Larceny's
+///     the edge whether or not the actor can be identified, so a buff timer riding it (Larceny's
 ///     stolen-buff expiry) is immune to a parked wielder -- the world's turns keep coming even when
 ///     the held unit's own turn never does.
 ///   * the PER-UNIT count -- credits one turn to the ACTIVE unit (e.g. Galewind's Speed +3 for the
-///     wielder's first 3 turns), identified the same way KillTracker attributes a kill: the
-///     turn-queue HP/MaxHP/level -> BAND entry (live source; the static array freezes on battle
-///     restart) -> (level,brave,faith) fingerprint.
+///     wielder's first 3 turns), resolved POINTER-FIRST: the engine's own ActorPtr global names the
+///     acting unit's band entry directly (Band.ActorEntry), live-proven 2026-07-01
+///     (tools/probes/unitid_probe.py "watch") to name the right seat at the exact instant the old
+///     turn-queue fingerprint was ambiguous. When the pointer is invalid (0 / unaligned / out of
+///     range / entry fails Band.IsValid) this falls back to the prior path: turn-queue
+///     HP/MaxHP/level -> BAND entry -> (level,brave,faith) fingerprint.
 ///
-/// Ambiguity bail: if multiple BAND entries match the turn-queue HP/MaxHP/level but have
+/// Fallback ambiguity bail: if multiple BAND entries match the turn-queue HP/MaxHP/level but have
 /// DIFFERENT (level,brave,faith) fingerprints, no PER-UNIT turn is credited (miss beats mis-credit).
 /// GlobalTurns still advances -- it never needs to know who acted. Same-fingerprint multiples (twin)
-/// are fine -- both entries resolve to the same unit.
+/// are fine -- both entries resolve to the same unit. HONEST CAVEAT (F1): the fallback is NOT
+/// "never mis-credit" -- it bails only on an AMBIGUOUS match; a TQ tuple that unambiguously matches
+/// the WRONG unit IS credited (this condensed struct has separately been observed tracking the
+/// CURSOR rather than the turn owner in some frames -- a distinct, pre-existing exposure of this
+/// same struct). That is exactly today's status-quo exposure, so retaining the fallback is
+/// strictly-no-worse than before this fix -- it only ever runs when the pointer itself is
+/// unresolvable.
 ///
 /// Memory access is injected (IGameMemory) so the counting is unit-testable with no live game.
 /// </summary>
@@ -55,15 +64,29 @@ internal sealed class TurnTracker
             GlobalTurns++;   // SOMEONE acted -- bump the attribution-free clock before we try to name them
             // (No per-turn log here: this clock fires every turn of every battle and is shared infra, so a
             // line naming Larceny read as "Larceny spam" even with no Arcanum fielded. The per-unit turn
-            // line below is generic and only logs when an actor is fingerprinted.)
-            if (TryActiveFingerprint(out var fp))
+            // line below is generic and only logs when an actor is identified.)
+            bool viaPointer = TryActiveViaPointer(out var fp);
+            if (viaPointer || TryActiveFingerprint(out fp))
             {
                 int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
                 _turns[fp] = n;
-                Log.Info($"turn: unit (level {fp.Item1}, brave {fp.Item2}, faith {fp.Item3}) completed a turn -- #{n} this battle");
+                string src = viaPointer ? "actor-ptr" : "tq-fallback";
+                Log.Info($"turn: unit (level {fp.Item1}, brave {fp.Item2}, faith {fp.Item3}) completed a turn -- #{n} this battle [{src}]");
             }
         }
         _wasActed = acted;
+    }
+
+    /// <summary>The active unit's (level,brave,faith) via the engine's own ActorPtr global
+    /// (Band.ActorEntry). Returns false when the pointer is invalid or the pointed-to entry
+    /// fails Band.IsValid -- callers fall back to <see cref="TryActiveFingerprint"/>.</summary>
+    private bool TryActiveViaPointer(out (int, int, int) fp)
+    {
+        fp = default;
+        long addr = Band.ActorEntry(_mem);
+        if (addr == 0 || !Band.IsValid(_mem, addr)) return false;
+        fp = (_mem.U8(addr + Offsets.ALevel), _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith));
+        return true;
     }
 
     /// <summary>The active (turn-queue) unit's (level,brave,faith), via a band walk. Returns false

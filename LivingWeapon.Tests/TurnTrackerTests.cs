@@ -4,10 +4,12 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Per-unit turn counting behind the IGameMemory fake (no live game). The tracker credits a
-/// completed turn to the ACTIVE unit (resolved by the turn-queue HP/MaxHP/level -> BAND entry
-/// -> level/brave/faith fingerprint) on each rising edge of the global "acted" flag.
-/// Drives timed signatures like Galewind's Speed +3 for the wielder's first 3 turns.
+/// Per-unit turn counting behind the IGameMemory fake (no live game). On each rising edge of
+/// the global "acted" flag the tracker credits a completed turn to the ACTIVE unit -- resolved
+/// POINTER-FIRST (the engine actor pointer at Offsets.ActorPtr -> band entry, seeded here via
+/// SeedU64 with a FRAME base address), falling back to the legacy turn-queue HP/MaxHP/level ->
+/// band-entry fingerprint match when the pointer is absent/invalid (the unseeded default in
+/// these tests). Drives timed signatures like Galewind's Speed +3 for the wielder's first 3 turns.
 /// </summary>
 public class TurnTrackerTests
 {
@@ -27,6 +29,11 @@ public class TurnTrackerTests
     }
 
     private static void Acted(FakeSparseMemory m, int v) => m.U8s[Offsets.Acted] = (byte)v;
+
+    /// <summary>Point Offsets.ActorPtr at band slot <paramref name="bandIdx"/>'s combat FRAME base
+    /// (== FrameReadBase + bandIdx*CombatStride, i.e. Band.Entry(bandIdx) - BandEntry).</summary>
+    private static void PointAt(FakeSparseMemory m, int bandIdx) =>
+        m.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (long)bandIdx * Offsets.CombatStride));
 
     [Fact]
     public void Counts_one_turn_per_acted_rising_edge()
@@ -131,5 +138,124 @@ public class TurnTrackerTests
 
         Assert.Equal(0, t.Turns(20, 70, 50));   // ambiguous -> nothing credited
         Assert.Equal(0, t.Turns(20, 60, 40));
+    }
+
+    // ---- Pointer-first attribution (T1-T5) ----
+
+    [Fact]
+    public void Pointer_resolves_ambiguous_actor()
+    {
+        // T1 LOAD-BEARING: the EXACT setup of Ambiguous_distinct_fingerprints_credits_nothing
+        // (two band entries, same mhp/hp/lvl, different br/fa -- the TQ-fingerprint path bails)
+        // PLUS the engine actor pointer naming s1's frame. Non-vacuity: the sibling test above
+        // proves this exact setup credits NOTHING without the pointer.
+        var m = new FakeSparseMemory();
+        var t = new TurnTracker(m);
+        long s1 = Offsets.BandReadBase + (long)5 * Offsets.CombatStride;
+        long s2 = Offsets.BandReadBase + (long)6 * Offsets.CombatStride;
+        m.U16s[s1 + Offsets.AMaxHp] = 100; m.U16s[s1 + Offsets.AHp] = 100;
+        m.U8s[s1 + Offsets.ALevel] = 20; m.U8s[s1 + Offsets.ABrave] = 70; m.U8s[s1 + Offsets.AFaith] = 50;
+        m.U16s[s2 + Offsets.AMaxHp] = 100; m.U16s[s2 + Offsets.AHp] = 100;
+        m.U8s[s2 + Offsets.ALevel] = 20; m.U8s[s2 + Offsets.ABrave] = 60; m.U8s[s2 + Offsets.AFaith] = 40;
+        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 20;
+        PointAt(m, 5);   // engine names s1 as the actor -- resolves the ambiguity
+        Acted(m, 1); t.Poll();
+
+        Assert.Equal(1, t.Turns(20, 70, 50));
+        Assert.Equal(0, t.Turns(20, 60, 40));
+    }
+
+    [Fact]
+    public void Pointer_wins_over_disagreeing_fingerprint()
+    {
+        // Pointer names s1; the TQ tuple unambiguously matches s2 (different maxHp) -> the
+        // pointer path wins (D1: pointer wins when both would resolve).
+        var m = new FakeSparseMemory();
+        var t = new TurnTracker(m);
+        long s1 = Offsets.BandReadBase + (long)5 * Offsets.CombatStride;
+        long s2 = Offsets.BandReadBase + (long)6 * Offsets.CombatStride;
+        m.U16s[s1 + Offsets.AMaxHp] = 300; m.U16s[s1 + Offsets.AHp] = 300;
+        m.U8s[s1 + Offsets.ALevel] = 30; m.U8s[s1 + Offsets.ABrave] = 65; m.U8s[s1 + Offsets.AFaith] = 60;
+        m.U16s[s2 + Offsets.AMaxHp] = 100; m.U16s[s2 + Offsets.AHp] = 100;
+        m.U8s[s2 + Offsets.ALevel] = 20; m.U8s[s2 + Offsets.ABrave] = 60; m.U8s[s2 + Offsets.AFaith] = 40;
+        // TQ tuple unambiguously matches s2 only.
+        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 20;
+        PointAt(m, 5);   // engine names s1 -- must win over the s2 TQ match
+        Acted(m, 1); t.Poll();
+
+        Assert.Equal(1, t.Turns(30, 65, 60));   // s1 credited
+        Assert.Equal(0, t.Turns(20, 60, 40));   // s2 NOT credited
+    }
+
+    [Fact]
+    public void Garbage_pointer_falls_back()
+    {
+        // Unaligned pointer -> falls back to the TQ path.
+        var m1 = new FakeSparseMemory();
+        var t1 = new TurnTracker(m1);
+        SetActive(m1, 5, hp: 100, maxHp: 100, level: 20, brave: 70, faith: 50);
+        m1.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + 0x123));   // unaligned
+        Acted(m1, 1); t1.Poll();
+        Assert.Equal(1, t1.Turns(20, 70, 50));
+
+        // Below FrameReadBase -> falls back.
+        var m2 = new FakeSparseMemory();
+        var t2 = new TurnTracker(m2);
+        SetActive(m2, 5, hp: 100, maxHp: 100, level: 20, brave: 70, faith: 50);
+        m2.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase - Offsets.CombatStride));
+        Acted(m2, 1); t2.Poll();
+        Assert.Equal(1, t2.Turns(20, 70, 50));
+
+        // Seat >= BandSlots -> falls back.
+        var m3 = new FakeSparseMemory();
+        var t3 = new TurnTracker(m3);
+        SetActive(m3, 5, hp: 100, maxHp: 100, level: 20, brave: 70, faith: 50);
+        m3.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (long)Offsets.BandSlots * Offsets.CombatStride));
+        Acted(m3, 1); t3.Poll();
+        Assert.Equal(1, t3.Turns(20, 70, 50));
+
+        // Garbage pointer AND no TQ match -> nothing credited, no throw.
+        var m4 = new FakeSparseMemory();
+        var t4 = new TurnTracker(m4);
+        m4.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + 0x123));
+        Acted(m4, 1); t4.Poll();
+        Assert.Equal(0, t4.Turns(20, 70, 50));
+    }
+
+    [Fact]
+    public void Pointer_to_invalid_entry_falls_back()
+    {
+        // Aligned, in-range pointer, but the pointed-to entry fails Band.IsValid (lvl 0) ->
+        // falls back to the TQ path (seeded with a clean unambiguous match).
+        var m = new FakeSparseMemory();
+        var t = new TurnTracker(m);
+        SetActive(m, 5, hp: 100, maxHp: 100, level: 20, brave: 70, faith: 50);
+        PointAt(m, 7);   // slot 7 is aligned + in-range but never seeded -> lvl reads 0 -> IsValid fails
+        Acted(m, 1); t.Poll();
+        Assert.Equal(1, t.Turns(20, 70, 50));
+    }
+
+    [Fact]
+    public void Pointer_credits_despite_garbage_turn_queue()
+    {
+        // Pointer names s1; the TQ level is seeded 199 (the observed +100 flake, live 2026-07-01)
+        // which the fingerprint path would reject outright (level > 99) -- the pointer path
+        // does not depend on the TQ tuple at all, so s1 is still credited.
+        var m = new FakeSparseMemory();
+        var t = new TurnTracker(m);
+        long s1 = Offsets.BandReadBase + (long)5 * Offsets.CombatStride;
+        m.U16s[s1 + Offsets.AMaxHp] = 100; m.U16s[s1 + Offsets.AHp] = 100;
+        m.U8s[s1 + Offsets.ALevel] = 20; m.U8s[s1 + Offsets.ABrave] = 70; m.U8s[s1 + Offsets.AFaith] = 50;
+        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 199;   // the +100 flake
+        PointAt(m, 5);
+        Acted(m, 1); t.Poll();
+
+        Assert.Equal(1, t.Turns(20, 70, 50));
     }
 }
