@@ -1,4 +1,6 @@
 Release TODO's
+- Fix the swords art when swinging
+- Tune the Rods to not be as strong
 - Replace the Stormbrand (it's sorta lame)
 - Sanctus Staff test potions and Regen
 - Gate gap (low pri): analyze.py `check_rider_payload` only cross-checks NUMERIC rider stats
