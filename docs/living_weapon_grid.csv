@@ -40,7 +40,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRi
 39,1,Kotetsu,Kotetsu,Katana,Shop,8,PA x Br/100 x WP,18%,PA,Blind,PA +10%,PA +20%,PA +30%,low,
 40,2,Bizen Osafune,Bizen Osafune,Katana,Shop,9,PA x Br/100 x WP,12%,PA,Absorb MP,PA +10%,PA +20%,PA +30%,med,
 41,2,Murasame,Murasame,Katana,Shop,9,PA x Br/100 x WP,15%,PA,Slow,PA +10%,PA +20%,PA +30%,med,
-42,3,Ame-no-Murakumo,Ame-no-Murakumo,Katana,Shop,10,PA x Br/100 x WP,10%,PA,Silence,PA +10%,PA +20%,PA +30%,med,
+42,3,Ame-no-Murakumo,Ame-no-Murakumo,Katana,Shop,10,PA x Br/100 x WP,10%,PA,Silence,PA +10%,PA +20%,PA +30% + Iai (acts first each battle),med,
 43,3,Kiyomori,Kiyomori,Katana,Shop,11,PA x Br/100 x WP,20%,PA,Poison,PA +10%,PA +20%,PA +30% + Kobu (match braver foe's Brave),low,
 44,4,Muramasa,Muramasa,Katana,Shop,13,missing-HP (f67),8%,—,—,—,—,—,high,
 45,4,Kiku-ichimonji,Kiku-ichimonji,Katana,Shop,13,PA x Br/100 x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,med,

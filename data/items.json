@@ -1316,7 +1316,14 @@
         0.45,
         0.62,
         1.06
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "iai": true,
+        "displayLabel": "Iai",
+        "note": "Iai (quick-draw) -- every deployed main-hand wielder's Speed (band +0x24) is held at field-max+1 from battle-open so it takes the opening turn (turn order = Speed, ties lose; LIVE-VERIFIED 2026-07-01). Released when the engine's own actor pointer (Offsets.ActorPtr, 0x14186AF68) names the acting unit whose frame nameId back-reference (Offsets.ANameId, frame+0x1FC) matches the wielder's roster nameId captured at arm time -- either an arrival transition or an Acted-edge match while already pointing there -- backstopped by a 90s wall-clock cap (address-matching stays as a fallback if the nameId capture fails). Identity-matched (not just positional), so two wielders release independently even with identical stats, and the release survives a revolving engine mirror frame that can make address-only resolution ambiguity-bail mid-hold. Mechanism proven by tools/probes/unitid_probe.py 2026-07-01; see docs/LIVE_LEDGER.md. LIVE-VERIFY PENDING (of this identity-match rebuild specifically).",
+        "p3Desc": "The quick draw. At battle start always be the first one to act."
+      }
     },
     {
       "id": 43,
@@ -1352,7 +1359,7 @@
         "braveOneUp": true,
         "displayLabel": "Kobu",
         "note": "Brave one-up: on a melee hit the wielder lands (acting-main-hand gate, mirrors Maim), if the struck foe's CURRENT brave (band +0x0F) exceeds the wielder's accumulated max, raise the wielder's current brave to match (climb-only, cap Tuning.KobuBraveCap, battle-scoped). Katana damage = PA x Brave/100 x WP so braver blade hits harder. Wielder located via Wielder.ResolveDeployedMainHand; struck foe detected via Maim HP-diff scan; NEVER writes orig brave (band +0x0E, the locate fingerprint/decoy). LIVE-VERIFIED 2026-06-27: livingweapon.log 'kobu: struck enemy (orig brave 46, current brave 99) -- wielder brave ceiling raised 85 -> 97' and the 97 rendered on the wielder card (current-brave write per brave-faith-current-vs-orig-offsets).",
-        "p3Desc": "Striking a foe with a higher Brave will raise your Brave to match."
+        "p3Desc": "Rousing courage. Strike a foe braver than you and gain their Brave."
       }
     },
     {

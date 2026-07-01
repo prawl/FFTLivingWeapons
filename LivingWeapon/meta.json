@@ -364,7 +364,14 @@
     "wp": 10,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This katana's design was inspired by a legendary blade said to have been plucked from the tail of a dragon that marauded eastern lands."
+    "flavor": "This katana's design was inspired by a legendary blade said to have been plucked from the tail of a dragon that marauded eastern lands.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Iai",
+      "iai": true
+    }
   },
   "43": {
     "name": "Kiyomori",

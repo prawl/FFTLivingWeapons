@@ -188,6 +188,32 @@ internal static class Wielder
         return false;
     }
 
+    /// <summary>The arm-time identity capture for Iai's mirror-churn-proof release (rebuilt
+    /// 2026-07-01): scan the roster for the slot(s) whose main hand holds
+    /// <paramref name="weaponId"/> AND whose (level,brave,faith) match <paramref name="fp"/>,
+    /// and return that slot's roster nameId (Offsets.RNameId). Returns -1 when NO slot matches,
+    /// or when more than one matching slot carries a DISTINCT nameId (ambiguous capture) -- a
+    /// single matching slot whose nameId reads 0 (unseeded/invalid) is returned AS 0, not -1; the
+    /// caller's guard is "holdNameId &gt; 0", so both -1 and 0 mean "capture failed, fall back to
+    /// address matching" without conflating the two failure shapes in this helper.</summary>
+    public static int RosterNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp)
+    {
+        int found = -1;
+        bool any = false;
+        for (int r = 0; r < Offsets.RosterSlots; r++)
+        {
+            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
+            int lvl = mem.U8(rb + Offsets.RLevel);
+            if (lvl < 1 || lvl > 99) continue;                        // empty slot
+            if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;    // main-hand match only
+            if (lvl != fp.lvl || mem.U8(rb + Offsets.RBrave) != fp.br || mem.U8(rb + Offsets.RFaith) != fp.fa) continue;
+            int nameId = mem.U16(rb + Offsets.RNameId);
+            if (!any) { found = nameId; any = true; }
+            else if (found != nameId) return -1;                       // distinct nameIds: ambiguous
+        }
+        return any ? found : -1;
+    }
+
     private static bool Contains(IReadOnlyList<int> hands, int wid)
     {
         for (int i = 0; i < hands.Count; i++) if (hands[i] == wid) return true;

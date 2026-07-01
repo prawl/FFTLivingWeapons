@@ -126,6 +126,10 @@ public sealed class WeaponSignature
     // wielder's current brave to match (climb-only, cap Tuning.KobuBraveCap, battle-scoped).
     // Katana formula 1: PA x Brave/100 x WP -- more brave = sharper blade. false = not a kobu weapon.
     [JsonProperty("braveOneUp")] public bool BraveOneUp { get; set; }
+    // IAI (Ame-no-Murakumo "Iai"): at AtTier, each deployed main-hand wielder's scheduler CT
+    // (band +0x25) is held at 100 every tick from battle open until the wielder's first turn ends
+    // (CT pull-down detection, per-wielder; keyed on the roster fingerprint). false = not an iai weapon.
+    [JsonProperty("iai")] public bool Iai { get; set; }
     // GUN SLINGER (Blaster "Gun Slinger"): at +3 with the Blaster equipped as the main hand,
     // writes a twin Blaster into the wielder's roster off-hand (ROffHand +0x18, u16) and Dual Wield
     // (support 221) into the roster support slot (RSupport +0x0A, u8) between battles, with

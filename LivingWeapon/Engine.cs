@@ -80,6 +80,7 @@ internal sealed class Engine
         var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3: bounce chip to nearest other enemy
         var maim = new Maim(meta, _kills, _tracker, live);          // Huntress +3: struck enemies lose reactions N turns
         var kobu = new Kobu(meta, _kills, _tracker, live);          // Kiyomori +3: on a melee hit, if foe's brave exceeds wielder's, raise wielder's current brave to match
+        var iai = new Iai(meta, _kills, live);                       // Ame-no-Murakumo +3: hold every deployed wielder's Speed above the field max for the opening turn, released by the engine actor pointer (arrival or acted-edge match) naming the wielder's own band entry
         var plague = new Plague(meta, _kills, _tracker, mem: live); // Venombolt +3: poison never fades, ticks harder
         var lifeSap = new LifeSap(meta, _kills, mem: live);         // Umbral +3: a kill heals the wielder 25% max HP
         var wyrmblood = new Wyrmblood(meta, _kills, _turns, live);  // Dragon Rod +3: turn-edge regen splash (1 tile)
@@ -108,8 +109,8 @@ internal sealed class Engine
         // pre-gate on battleDisplayed like TreasureMaster, so a held charm is not dropped
         // mid-combat between turns). Both TreasureMaster and CharmLock stay in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, larceny, puppeteer, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
-        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, larceny, puppeteer, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
+        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         _gunSlinger = new GunSlinger(meta, _kills, modDir, live);
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);

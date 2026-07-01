@@ -12,7 +12,7 @@ namespace LivingWeapon.Tests;
 internal static class MemSeats
 {
     internal static void SeatRoster(FakeSparseMemory m, int slot, int lvl, int br, int fa,
-                                    int rh, int lh = 0xFFFF, int oh = 0xFFFF)
+                                    int rh, int lh = 0xFFFF, int oh = 0xFFFF, int nameId = 0)
     {
         long rb = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
         m.U8s[rb + Offsets.RLevel] = (byte)lvl;
@@ -21,10 +21,22 @@ internal static class MemSeats
         m.U16s[rb + Offsets.RRHand]   = (ushort)rh;
         m.U16s[rb + Offsets.RLHand]   = (ushort)lh;
         m.U16s[rb + Offsets.ROffHand] = (ushort)oh;
+        m.U16s[rb + Offsets.RNameId]  = (ushort)nameId;   // default 0 == old unseeded-read behavior
+    }
+
+    /// <summary>Seed a band entry's frame nameId back-reference (Offsets.ANameId, band-entry-
+    /// relative == frame +0x1FC). Test seam for Iai's identity-match release: the arm-time
+    /// capture reads the ROSTER copy (SeatRoster's nameId), this seeds the FRAME copy the acting
+    /// pointer's read observes.</summary>
+    internal static void SeatFrameNameId(FakeSparseMemory m, int bandIdx, int nameId)
+    {
+        long e = Band.Entry(bandIdx);
+        m.U16s[e + Offsets.ANameId] = (ushort)nameId;
     }
 
     internal static void SeatBand(FakeSparseMemory m, int bandIdx, int weapon, int lvl, int br, int fa,
-                                  int gx, int gy, int hp = 100, int maxHp = 100, int ctTurn = 0)
+                                  int gx, int gy, int hp = 100, int maxHp = 100, int ctTurn = 0,
+                                  int speed = 0)
     {
         long e = Band.Entry(bandIdx);
         m.U16s[e + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)weapon;
@@ -36,5 +48,6 @@ internal static class MemSeats
         m.U16s[e + Offsets.AHp]    = (ushort)hp;
         m.U16s[e + Offsets.AMaxHp] = (ushort)maxHp;
         m.U8s[e + Offsets.ACtTurn] = (byte)ctTurn;
+        m.U8s[e + Offsets.ASpeed]  = (byte)speed;
     }
 }

@@ -1,0 +1,12 @@
+id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRisk,Verified Live?,notes
+38,1,Ashura,Ashura,Katana,Shop,6,PA x Br/100 x WP,25%,PA,—,PA +10%,PA +20%,PA +30%,low,,OFF-LIMITS (lowest); native katana art
+39,1,Kotetsu,Kotetsu,Katana,Shop,8,PA x Br/100 x WP,18%,PA,Blind,PA +10%,PA +20%,PA +30%,low,,OFF-LIMITS (2nd lowest); native katana art
+40,2,Bizen Osafune,Bizen Osafune,Katana,Shop,9,PA x Br/100 x WP,12%,PA,Absorb MP,PA +10%,PA +20%,PA +30%,med,,eligible; native katana art; Absorb-MP on-hit
+41,2,Murasame,Murasame,Katana,Shop,9,PA x Br/100 x WP,15%,PA,Slow,PA +10%,PA +20%,PA +30%,med,,eligible; native katana art; Slow on-hit
+42,3,Ame-no-Murakumo,Ame-no-Murakumo,Katana,Shop,10,PA x Br/100 x WP,10%,PA,Silence,PA +10%,PA +20%,PA +30% + Iai (Speed held at field-max+1 for opening turn; reverts after wielder acts),med,,TAKEN = Iai (+3); native katana art; Silence on-hit; Speed hold LIVE-VERIFIED 2026-07-01 (entry+0x24=ASpeed)
+43,3,Kiyomori,Kiyomori,Katana,Shop,11,PA x Br/100 x WP,20%,PA,Poison,PA +10%,PA +20%,PA +30% + Kobu (match braver foe's Brave),low,,TAKEN = Kobu (+3); native katana art
+44,4,Muramasa,Muramasa,Katana,Shop,13,missing-HP (f67),8%,—,—,—,—,—,high,,missing-HP formula (f67) -> no PA lever; native katana art
+45,4,Kiku-ichimonji,Kiku-ichimonji,Katana,Shop,13,PA x Br/100 x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,med,,"OPEN, no on-hit rider (clean identity); native katana art -- MUKURO candidate"
+46,5,Masamune,Masamune,Katana,"Steal (Elmdore, Ch.4)",16,PA x Br/100 x WP,18%,PA,Sleep,PA +10%,PA +20%,PA +30%,low,,"EARMARKED = Mushin (+3, parked pending probe); native katana art"
+47,6,Chirijiraden,Chirijiraden,Katana,Move-Find (Midlight's Deep),20,PA x Br/100 x WP,12%,PA,Immobilize,PA +10%,PA +20%,PA +30%,high,,OFF-LIMITS (highest); native katana art
+70,5,Scorpion Tail,Sasori,Katana,Shop,11,PA x Br/100 x WP,10%,PA,May inflict Doom,PA +10%,PA +20%,PA +30%,high,,"RECAT FLAIL (vanilla Scorpion Tail) -> FLAIL art wall, not a true katana on screen; Doom on-hit"

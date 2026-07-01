@@ -155,6 +155,25 @@ internal static class Tuning
     /// 2026-06-14.</summary>
     public const double FeignRecoverSeconds = 3.0;
 
+    /// <summary>Iai (Ame-no-Murakumo +3): how far above the field-max Speed to hold the wielder's
+    /// Speed at battle-open. 1 = strictly above (ties lose; +1 secures the opening turn) while
+    /// keeping the post-turn refill rate slow enough for the 33 ms poll to safely revert before
+    /// a second turn is granted (flat 99 makes the refill race unwinnable at ~30 ms/refill).</summary>
+    public const int IaiSpeedMargin = 1;
+
+    /// <summary>Iai: upper sane bound for Speed reads and write targets. Reads above this from the
+    /// field-max scan are discarded (one garbage-high read cannot pin the wielder to the clamp).
+    /// Write targets are clamped to 1..IaiSpeedSaneMax before every guarded W8 call.</summary>
+    public const int IaiSpeedSaneMax = 99;
+
+    /// <summary>Iai (Ame-no-Murakumo +3): wall-clock safety cap on the opening-turn Speed hold.
+    /// Backstops the pointer-based release (Iai.Policy.ReleaseSignal, rebuilt 2026-07-01): the
+    /// stale-equal+wait-only double-corner (neither an arrival nor an acted-edge ever fires) and
+    /// a twin-address mismatch (Wielder.Locate resolved a frozen (0,0) copy) both leave the
+    /// pointer never matching the wielder's entry -- this cap guarantees the hold terminates
+    /// anyway rather than pinning the wielder fastest for the whole battle.</summary>
+    public const double IaiHoldCapSeconds = 90.0;
+
     /// <summary>Afterimage (Swiftedge +3): flat Speed gained per completed wielder turn while the
     /// ramp is intact. Swiftedge's damage is Speed x WP (formula 99), so each stack is +1xWP damage;
     /// a legible flat number beats a percentage on a card.</summary>
