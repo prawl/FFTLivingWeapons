@@ -137,4 +137,13 @@ internal sealed class RicochetState
     {
         if (_seen[slot]) _prevHp[slot] = newHp;
     }
+
+    /// <summary>Roll a slot's baseline back to <paramref name="priorHp"/> so the NEXT Observe
+    /// re-returns the same drop. The un-consume half of the non-lossy event contract (Kobu):
+    /// when a detected drop's evaluation is blocked by a DETECTABLY-transient read (a fail-safe
+    /// zero, an unwritable target, an unlocatable wielder), the caller rearms with hp + dmg and
+    /// retries next tick instead of permanently discarding the one-shot event. Functionally
+    /// identical to <see cref="Consume"/> -- kept as a delegating alias so intent reads at the
+    /// call site and the two cannot drift.</summary>
+    public void Rearm(int slot, int priorHp) => Consume(slot, priorHp);
 }

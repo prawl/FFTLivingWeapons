@@ -122,9 +122,9 @@ public sealed class WeaponSignature
     // (3) each tick -- the revive window never closes. false = not a sanctuary weapon.
     [JsonProperty("antiCrystallize")] public bool AntiCrystallize { get; set; }
     // KOBU (Kiyomori "Kobu"): on a melee hit the wielder lands (acting-main-hand gate, mirrors Maim),
-    // if the struck foe's CURRENT brave (band +0x0F) exceeds the wielder's accumulated max, raise the
-    // wielder's current brave to match (climb-only, cap Tuning.KobuBraveCap, battle-scoped).
-    // Katana formula 1: PA x Brave/100 x WP -- more brave = sharper blade. false = not a kobu weapon.
+    // if the struck foe's CURRENT brave (band +0x0F) exceeds the wielder's LIVE current brave, raise
+    // the wielder's current brave ONCE to match (cap Tuning.KobuBraveCap); no hold, no ceiling --
+    // brave falls freely between strikes. Katana formula 1: PA x Brave/100 x WP. false = not a kobu weapon.
     [JsonProperty("braveOneUp")] public bool BraveOneUp { get; set; }
     // IAI (Ame-no-Murakumo "Iai"): at AtTier, each deployed main-hand wielder's scheduler CT
     // (band +0x25) is held at 100 every tick from battle open until the wielder's first turn ends

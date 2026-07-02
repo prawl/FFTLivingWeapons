@@ -7,9 +7,12 @@ trips it, so this lowers the Samurai's Brave below the enemies.
 WRITE RECIPE (proven in FFTMultiplayer StatHold, 2026-06-20): the EFFECTIVE + DISPLAYED brave
 is the CURRENT byte combat +0x2B (faith +0x2D); orig +0x2A/+0x2C is a re-derived snapshot the
 engine recomputes per turn and the display ignores. StatHold holds current forever against that
-re-normalize. We CAN'T hold here (the hold would fight Kobu's own raise), and a current-only
-one-shot gets re-normalized back up from orig on the unit's next turn -- so `set` writes all
-THREE consistently (roster +0x1E, combat orig +0x2A, combat current +0x2B) to the same value:
+re-normalize. CONTRADICTED 2026-07-02 (brave_oneshot_probe.py): a one-shot current-only write on
+a PLAYER unit does NOT get re-normalized back up from orig -- it held across several rounds
+including the unit's own turns (see LIVE_LEDGER.md). Kobu was reworked off the hold onto a
+one-shot raise on that finding. This recipe's `set` still writes all THREE consistently (roster
++0x1E, combat orig +0x2A, combat current +0x2B) to the same value, which remains fine for its
+original reason -- fingerprint consistency, not re-normalize avoidance:
   - keeping orig == roster keeps Kobu's Wielder.Locate fingerprint valid (it matches combat +0x2A
     against roster +0x1E -- see Wielder.Locate / Offsets.ABrave),
   - orig == current means the per-turn re-normalize settles to the LOW value (no hold needed),
