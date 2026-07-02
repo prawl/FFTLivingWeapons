@@ -242,6 +242,17 @@ internal static class Offsets
     public const long BandReadBase = CombatAnchor + BandEntry - 24 * (long)CombatStride;  // n=-24 anchor
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 
+    // --- AREC kill diagnostic (band-entry-relative; D4 of the kill-attribution plan) ---
+    /// <summary>u8-array-relative per-unit ACTION RECORD, DIAGNOSTIC ONLY (the credit path never
+    /// consults this): = frame-relative FR_AREC (0x1A0) - BandEntry (0x1C) = 0x184. Sub-offsets
+    /// (relative to AArec): +0x0 idx (engine index == seat-8, SOLID), +0x2 abil u16 (ability id),
+    /// +0xA kind (5=performing/6=receiving, PROBABLE), +0xB xref (candidate victim&lt;-&gt;attacker
+    /// cross-reference, UNPROVEN -- one observation each direction). Provenance: the 17:57
+    /// all-seat capture, tools/probes/unitid_probe.py "watch", 2026-07-01; docs/LIVE_LEDGER.md's
+    /// Uncertain AREC row is the durable evidence home. Guarded read (Readable) at CreditKill time;
+    /// skip silently when unreadable.</summary>
+    public const int AArec = 0x184;
+
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
     // 1.5 CONFIRMED LIVE 2026-06-17: MirrorWeapon - 0x1E; read 6 = Venombolt's WP with Ramza's card up.
     public const long WpScratch = 0x141876E96;   // 1.5 CONFIRMED +0x6660 (was 0x141870836)

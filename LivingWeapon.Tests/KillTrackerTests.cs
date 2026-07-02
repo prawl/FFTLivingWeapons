@@ -66,10 +66,22 @@ public class KillTrackerTests
     }
 
     /// <summary>A roster slot keyed by the (level,brave,faith) fingerprint -> its R-hand weapon.
-    /// ROffHand (+0x18) is where the live dual-wield off-hand actually sits.</summary>
+    /// ROffHand (+0x18) is where the live dual-wield off-hand actually sits. nameId defaults to 0
+    /// (old unseeded-read behavior); the register-path tests seed it explicitly to bridge a pointer
+    /// arrival's frame nameId back to this slot.</summary>
     private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon,
-                                  int lhand = 0xFFFF, int offhand = 0xFFFF)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, lhand, offhand);
+                                  int lhand = 0xFFFF, int offhand = 0xFFFF, int nameId = 0)
+        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, lhand, offhand, nameId);
+
+    /// <summary>Point Offsets.ActorPtr at band slot <paramref name="bandIdx"/>'s combat FRAME base
+    /// (mirrors TurnTrackerTests.PointAt).</summary>
+    private static void PointAt(FakeSparseMemory m, int bandIdx) =>
+        m.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (long)bandIdx * Offsets.CombatStride));
+
+    /// <summary>Bridge a band slot's frame nameId to a roster slot's nameId (MemSeats.SeatFrameNameId
+    /// wrapper) so the register's roster bridge resolves that pointer arrival to a specific player.</summary>
+    private static void SetFrameNameId(FakeSparseMemory m, int bandIdx, int nameId) =>
+        MemSeats.SeatFrameNameId(m, bandIdx, nameId);
 
     // Band slot indices for player-side units (arbitrary; just need to be non-enemy for clarity).
     // Enemy band slots can be anywhere in 0..BandSlots-1; slot 0 is a convenient enemy slot.
@@ -1451,5 +1463,624 @@ public class KillTrackerTests
         AliveThenDead(m, slot: 0, t);
 
         Assert.Empty(kills);
+    }
+
+    // ============================================================================================
+    // Register-first attribution (kill-attribution plan, 2026-07-01). The six pre-existing test
+    // files above (this file's ~50 tests included) seed only the turn-queue -- they are the
+    // fallback harness and must keep passing byte-for-byte unchanged. Everything below seeds the
+    // engine actor pointer (PointAt) + the frame<->roster nameId bridge (SetFrameNameId) on top of
+    // that same harness to exercise ActorResolver's register-first preamble.
+    // ============================================================================================
+
+    [Fact]
+    public void Pointer_stable_owner_credits_over_ambiguous_fingerprint()
+    {
+        // P1 LOAD-BEARING (restaged per REVISION v2/V3): the EXACT
+        // Bails_when_two_units_share_hp_but_resolve_to_different_weapons fixture (two band units
+        // share (mhp,hp,lvl), different weapon sets -- the TQ-fingerprint path bails) PLUS the
+        // actor pointer parked on the killer's entry on a STRICTLY EARLIER tick than the Acted
+        // edge (V3's strict same-tick guard demands the arrival predates the period) and the
+        // frame<->roster nameId bridge seeded. Non-vacuity: the sibling bail test above proves
+        // this exact fixture credits nothing without the register path.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: 73);
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, nameId: 501);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 352, maxHp: 352, level: 99, brave: 70, faith: 50);   // same HP as Wilham!
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);                            // tick1: register priming (pointer unseeded)
+        SetFrameNameId(m, Wilham, 501);
+        PointAt(m, Wilham);
+        t.Poll(true);                            // tick2: observed arrival on Wilham -- BEFORE the edge
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99);   // tick3+: acted=1 -- period begins after the arrival
+        Settle(t);
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));    // the pointer-named unit's weapon
+        Assert.False(kills.ContainsKey(73));             // NOT the ambiguous fingerprint's other candidate
+    }
+
+    [Fact]
+    public void Ownership_churn_after_period_start_falls_back()
+    {
+        // P2: the pointer's first trusted arrival lands AFTER the acted-period already began
+        // (never "stable since before the period") -> the register path stays permanently closed
+        // for the rest of THIS period -> the TQ-fingerprint fallback governs the eventual latch.
+        const int wb = 90, wq = 52;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 5, level: 40, brave: 45, faith: 48, weapon: wb, nameId: 777);   // B: churn target
+        SetUnit(m, Ramza, hp: 380, maxHp: 380, level: 40, brave: 45, faith: 48);
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: wq);                // Q: eventual TQ latch
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);   // tick1: register priming
+
+        // Period begins with the TQ tuple UNRESOLVABLE (garbage maxHp) -- both paths fail.
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 1);
+        t.Poll(true);   // tick2: BeginActedPeriod(2); register untrusted, TQ garbage -> stays unlatched
+
+        // The pointer's FIRST trusted arrival happens now -- strictly AFTER period start (tick2).
+        SetFrameNameId(m, Ramza, 777);
+        PointAt(m, Ramza);
+        t.Poll(true);   // tick3: arrival at B, ArrivalTick=3 -- NOT < periodStartTick(2) -> gate stays closed
+
+        // TQ now resolves unambiguously to Q -- the fallback governs.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        t.Poll(true);   // tick4: TQ resolves Q -> latches wq
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(wq));    // TQ fallback's actor
+        Assert.False(kills.ContainsKey(wb));             // NOT the churned pointer target
+    }
+
+    [Fact]
+    public void Stable_enemy_owner_keeps_latch_sticky()
+    {
+        // P3: the pointer stably parks on an ENEMY entry (nameId genuinely unmatched, not just
+        // the 0==0 trap) through a whole acted-period -> register Bridge=Enemy -> resolve returns
+        // false authoritatively -> the previous player latch stays sticky, same semantics as the
+        // pre-existing Enemy_acted_period_keeps_the_latch_sticky test, now via the register path.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, nameId: 501);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);
+        SetFrameNameId(m, Wilham, 501);
+        PointAt(m, Wilham);
+        t.Poll(true);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t);
+        Assert.Equal(52, t.LastPlayerMainHand);
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        Settle(t, KillTracker.UnfreezeTicks);
+
+        // An enemy's period: pointer stably parks on Ramza's slot, whose nameId (918) matches NO
+        // roster slot -- register bridge classifies Enemy (authoritative, not TQ-ambiguous).
+        SetUnit(m, Ramza, hp: 500, maxHp: 500, level: 30, brave: 20, faith: 20);
+        SetFrameNameId(m, Ramza, 918);
+        PointAt(m, Ramza);
+        t.Poll(true);   // arrival on Ramza, strictly before the coming edge
+        SetActive(m, hp: 500, maxHp: 500, level: 30, acted: 1);
+        Settle(t);
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // sticky latch credits Wilham's weapon
+    }
+
+    [Fact]
+    public void Zero_pointer_falls_back()
+    {
+        // P4 (explicit): the actor pointer is never seeded (reads 0 the whole battle) -- the
+        // register never trusts an arrival (CurrentEntry stays 0), so every resolve falls
+        // straight through to the unchanged TQ-fingerprint body. A plain kill credits normally.
+        // (The implicit harness for this fact is the full pre-existing suite passing unchanged.)
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void NameId_zero_never_bridges()
+    {
+        // P5: the pointer stably arrives on Wilham's entry, but the frame nameId back-reference
+        // reads 0 (unseeded) -- and so does his own roster slot's nameId. The 0==0 trap must NOT
+        // fabricate a Player match from this, but per V5 a nameId capture failure classifies
+        // Unknown (not the confident "Enemy" a positively-read-but-unmatched nameId would), so
+        // the gate falls through to the TQ-fingerprint body, which resolves Wilham normally --
+        // the trap must not strand a genuine actor.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);   // nameId left at 0
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);   // frame nameId also 0
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);                 // tick1: priming
+        PointAt(m, Wilham);
+        t.Poll(true);                 // tick2: arrival -- nameId 0==0 -> Unknown, NOT Player
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t);                    // register Unknown -> falls through to TQ -> resolves Wilham
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // TQ fallback correctly credits him despite the trap
+    }
+
+    [Fact]
+    public void Kill_diag_line_emitted_under_verbose()
+    {
+        // P7: the AREC kill-diagnostic line routes through the BattleLog seam (V7) -- verbose-
+        // gated, zero behavioral coupling. The same credit with events=null must produce an
+        // identical tally (asserted below via a second, event-less run of the same fixture).
+        var lines = new List<string>();
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+
+        long arec = Band.Entry(0) + Offsets.AArec;
+        m.ReadableAddrs.Add(arec);
+        m.U8s[arec + 0x0] = 8;      // idx
+        m.U16s[arec + 0x2] = 441;   // abil
+        m.U8s[arec + 0xA] = 5;      // kind
+        m.U8s[arec + 0xB] = 8;      // xref
+
+        var events = new BattleLog(true, s => lines.Add(s));
+        var t = new KillTracker(kills, m, Weapons, events);
+        Settle(t);
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+        Assert.Contains(lines, l => l.StartsWith("kill-diag: corpse AREC idx=8 abil=441 kind=5 xref?=8"));
+
+        // Behavior-independence: the SAME credit with events=null yields an identical tally.
+        var kills2 = new Dictionary<int, int>();
+        var m2 = new FakeSparseMemory();
+        SetRoster(m2, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m2, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m2, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t2 = new KillTracker(kills2, m2, Weapons, events: null);
+        Settle(t2);
+        AliveThenDead(m2, slot: 0, t2);
+
+        Assert.Equal(kills.GetValueOrDefault(52), kills2.GetValueOrDefault(52));
+    }
+
+    [Fact]
+    public void Resolved_player_untracked_via_pointer_clears_latch()
+    {
+        // P8: the exact Resolved_player_with_untracked_weapon_clears_the_latch scenario, but the
+        // untracked actor's turn is resolved via a STABLE register owner instead of TQ. A
+        // resolved player with EMPTY hands must still clear the stale main hand (sticky-untracked
+        // semantics preserved through the register path) -- guards the 2026-06-10 Throw Stone
+        // regression class.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, nameId: 501);    // Wilham: tracked rod
+        SetRoster(m, slot: 0, level: 50, brave: 70, faith: 50, weapon: 999, nameId: 502);   // "Ramza": untracked
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 679, maxHp: 679, level: 50, brave: 70, faith: 50);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);
+        SetFrameNameId(m, Wilham, 501);
+        PointAt(m, Wilham);
+        t.Poll(true);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t);
+        Assert.Equal(52, t.LastPlayerMainHand);
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        Settle(t, KillTracker.UnfreezeTicks);
+
+        // "Ramza" acts (untracked): pointer stably arrives at his entry BEFORE the edge.
+        SetFrameNameId(m, Ramza, 502);
+        PointAt(m, Ramza);
+        t.Poll(true);
+        SetActive(m, hp: 679, maxHp: 679, level: 50, acted: 1);
+        Settle(t);
+
+        Assert.Equal(0, t.LastPlayerMainHand);   // resolved-EMPTY via the register clears the stale main hand
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.False(kills.ContainsKey(52));   // NOT the previous actor's weapon
+        Assert.Empty(kills);                   // nobody credited -- register-resolved-empty, same as TQ
+    }
+
+    [Fact]
+    public void Register_path_resolves_main_hand_when_tracked()
+    {
+        // P9: ResolveActingMainHand's register-path variant when the owner's RRHand IS tracked.
+        // (The untracked-0 half is P8 above.)
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, nameId: 501);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);
+        SetFrameNameId(m, Wilham, 501);
+        PointAt(m, Wilham);
+        t.Poll(true);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t);
+
+        Assert.Equal(52, t.LastPlayerMainHand);
+    }
+
+    [Fact]
+    public void Register_path_resolves_fingerprint_for_any_stable_owner()
+    {
+        // P10: TryResolveActingFingerprint's register-path variant -- CurrentFp returned for ANY
+        // stable owner once TryResolveActingPlayer already confirmed a player this period.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, nameId: 501);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);
+        SetFrameNameId(m, Wilham, 501);
+        PointAt(m, Wilham);
+        t.Poll(true);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t);
+
+        Assert.Equal((99, 89, 76), t.LastActorFingerprint);
+    }
+
+    [Fact]
+    public void Fingerprint_falls_back_to_tq_when_ownership_churns_after_period_start()
+    {
+        // P10 (churn half): the pointer arrives on an unrelated seat BEFORE the period, then
+        // churns to Wilham strictly at/after the period start -- TryResolveActingFingerprint's
+        // gate closes right alongside TryResolveActingPlayer's (they share periodStartTick), so
+        // both fall through to the unchanged TQ band walk, which still resolves Wilham correctly.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);   // an irrelevant prior owner
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);                 // tick1: priming
+        PointAt(m, Ramza);
+        t.Poll(true);                 // tick2: trusted arrival on Ramza (ArrivalTick=2)
+
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 1);
+        t.Poll(true);                 // tick3: BeginActedPeriod(3); TQ garbage -> unlatched
+
+        PointAt(m, Wilham);
+        t.Poll(true);                 // tick4: churn to Wilham -- ArrivalTick=4, NOT < periodStartTick(3)
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        t.Poll(true);                 // tick5: TQ now resolves Wilham unambiguously
+
+        Assert.Equal((99, 89, 76), t.LastActorFingerprint);   // via TQ, not the churned register owner
+    }
+
+    // --- V11: review-added blocker pins (both must be non-vacuous against a v1/v2-less gate) ---
+
+    [Fact]
+    public void Lagged_edge_after_ownership_change_does_not_credit_new_owner()
+    {
+        // V11 blocker (pins B1/V1 -- the corpse anchor). A kills -> corpse goes pending UN-
+        // LATCHED (deadStreak matures while nobody has acted yet) -> the pointer arrives at B
+        // (B's turn starts) -> A's LAGGED Acted edge finally fires with the TQ tuple STILL
+        // showing A (the turn-queue struct and the actor pointer are separate engine globals that
+        // can desync: the pointer updates eagerly at turn start, the TQ/Acted pairing lags). A
+        // gate with periodStartTick+StableSince alone (no corpse anchor) would see B "stable
+        // since before the period" and credit B -- a live REGRESSION versus today's TQ-only path,
+        // which correctly credits A. The corpse-anchor veto refuses the register path here
+        // because the pending corpse is OLDER than B's ownership.
+        const int wa = 52, wb = 90;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: wa);              // A: the true killer
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetRoster(m, slot: 5, level: 40, brave: 45, faith: 48, weapon: wb, nameId: 777); // B: the wrong owner
+        SetUnit(m, Ramza, hp: 380, maxHp: 380, level: 40, brave: 45, faith: 48);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);   // tick1: priming (pointer unseeded)
+
+        // Nobody has acted yet (acted=0): the enemy is seen alive then dies while un-latched.
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);   // seenAlive
+        SetUnit(m, slot: 0, hp: 0);
+        Settle(t, 3);   // deadStreak matures while _lastPlayerWeapons is STILL empty -> corpse goes PENDING
+
+        // A couple of ticks pass with the corpse pending and nobody latched.
+        t.Poll(true);
+        t.Poll(true);
+
+        // The pointer NOW arrives at B (B's turn starts) -- strictly BEFORE A's lagged edge fires.
+        SetFrameNameId(m, Ramza, 777);
+        PointAt(m, Ramza);
+        t.Poll(true);   // trusted arrival on B
+
+        // A couple more ticks pass (B's ownership accrues, but the corpse is STILL older than it).
+        t.Poll(true);
+        t.Poll(true);
+
+        // A's LAGGED Acted edge finally fires -- the TQ tuple STILL shows A (a separate, lagging signal).
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        t.Poll(true);
+
+        Assert.Equal(1, kills.GetValueOrDefault(wa));   // TQ-resolved A -- the corpse-anchor refused B
+        Assert.False(kills.ContainsKey(wb));
+    }
+
+    [Fact]
+    public void Offfield_polls_do_not_reopen_the_register_path()
+    {
+        // Fix-round pin (mismatched tick currencies): same shape as
+        // Lagged_edge_after_ownership_change_does_not_credit_new_owner, but a run of OFF-FIELD
+        // Polls (mid-battle dialogue/pause) sits between the corpse going pending and B's arrival.
+        // ActorRegister.Tick (and thus ArrivalTick) advances on EVERY Poll, onField or not
+        // (Update() runs unconditionally) -- but the superseded _pendingAge backstop only advances
+        // on onField Polls (KillTracker.Corpses.cs bails `if (!onField) continue;` before the
+        // increment). A duration comparison built from the two (_pendingAge vs OwnershipAge) is
+        // therefore apples-to-oranges: the off-field stretch inflates the owner's apparent
+        // "youth" relative to the corpse, and the old strict `>` check wrongly passes the register
+        // path once the (deflated) pendingAge duration catches down to the ownership duration. The
+        // register-tick birth stamp (_pendingBirthTick) is immune -- it advances in the SAME
+        // currency as ArrivalTick regardless of onField, so the veto still fires correctly.
+        const int wa = 52, wb = 90;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: wa);              // A: the true killer
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetRoster(m, slot: 5, level: 40, brave: 45, faith: 48, weapon: wb, nameId: 777); // B: the wrong owner
+        SetUnit(m, Ramza, hp: 380, maxHp: 380, level: 40, brave: 45, faith: 48);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);   // tick1: priming (pointer unseeded)
+
+        // Nobody has acted yet (acted=0): the enemy is seen alive then dies while un-latched.
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);   // seenAlive
+        SetUnit(m, slot: 0, hp: 0);
+        Settle(t, 3);   // deadStreak matures while _lastPlayerWeapons is STILL empty -> corpse goes PENDING
+
+        // A long run of OFF-FIELD Polls (mid-battle dialogue/pause): the register clock keeps
+        // advancing but the corpse's onField-only backstop counters are frozen.
+        for (int i = 0; i < 10; i++) t.Poll(false);
+
+        // The pointer NOW arrives at B (B's turn starts) -- strictly BEFORE A's lagged edge fires.
+        SetFrameNameId(m, Ramza, 777);
+        PointAt(m, Ramza);
+        t.Poll(true);   // trusted arrival on B
+
+        // A couple more onField ticks pass (B's ownership accrues).
+        t.Poll(true);
+        t.Poll(true);
+
+        // A's LAGGED Acted edge finally fires -- the TQ tuple STILL shows A.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        t.Poll(true);
+
+        Assert.Equal(1, kills.GetValueOrDefault(wa));   // TQ-resolved A -- the corpse-anchor refused B
+        Assert.False(kills.ContainsKey(wb));
+    }
+
+    [Fact]
+    public void Simultaneous_pending_and_arrival_tick_is_refused_not_admitted()
+    {
+        // Fix-round pin (equality boundary): the corpse's register-tick birth stamp lands on the
+        // SAME register tick as B's ownership arrival (the tightest possible gap -- birth tick ==
+        // ArrivalTick). "A killer's turn must CONTAIN the death": an owner who arrives on the exact
+        // tick a corpse matures to pending has not been in the seat before that death, so must
+        // still be refused. A `<` comparison (birth STRICTLY before arrival) would wrongly ADMIT
+        // this case; only `<=` closes it -- this test is non-vacuous specifically against `<`.
+        const int wa = 52, wb = 90;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: wa);              // A: the true killer
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetRoster(m, slot: 5, level: 40, brave: 45, faith: 48, weapon: wb, nameId: 777); // B: the wrong owner
+        SetUnit(m, Ramza, hp: 380, maxHp: 380, level: 40, brave: 45, faith: 48);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);   // tick1: priming (pointer unseeded)
+
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);   // seenAlive
+        SetUnit(m, slot: 0, hp: 0);
+        t.Poll(true);   // deadStreak 1
+        t.Poll(true);   // deadStreak 2
+
+        // Seat B's arrival in memory now, but do not Poll yet -- the NEXT Poll call is the one
+        // where BOTH register.Update() (B's arrival) and ScanCorpses (the corpse's 3rd dead tick,
+        // maturing it to pending) fire, in that order, within the same tick.
+        SetFrameNameId(m, Ramza, 777);
+        PointAt(m, Ramza);
+        t.Poll(true);   // arrival tick == the corpse's pending-set tick
+
+        // One more Poll for UpdateCorpseAnchor to observe _pending[0]==true and stamp the birth
+        // tick -- _register.Tick - 1 recovers the exact tick just established above.
+        t.Poll(true);
+
+        // A's LAGGED Acted edge finally fires -- the TQ tuple STILL shows A.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        t.Poll(true);
+
+        Assert.Equal(1, kills.GetValueOrDefault(wa));   // TQ-resolved A -- the corpse-anchor refused B
+        Assert.False(kills.ContainsKey(wb));
+    }
+
+    [Fact]
+    public void Stale_pointer_after_reset_never_trusted()
+    {
+        // V11 blocker (pins B2/V2 -- priming). The pointer is STILL parked on a stale entry from
+        // BEFORE ResetBattle when the new battle starts. Priming means the FIRST post-reset
+        // Update() observes it WITHOUT stamping a trusted arrival -- there's no way to know how
+        // old that ownership really is -- and here the pointer never moves again, so the register
+        // never trusts it this battle. The acted edge fires on a LATER tick than the reset (not
+        // the same tick as the priming read), so a naive trust-immediately implementation WOULD
+        // satisfy the strict same-tick guard here and wrongly engage the register path; only the
+        // priming rule specifically closes it.
+        const int wa = 52, wStale = 90;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: wa);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        // The stale pointer target: a DIFFERENT unit whose weapon must NOT be credited.
+        SetRoster(m, slot: 5, level: 40, brave: 45, faith: 48, weapon: wStale, nameId: 777);
+        SetUnit(m, Ramza, hp: 380, maxHp: 380, level: 40, brave: 45, faith: 48);
+        SetFrameNameId(m, Ramza, 777);
+        PointAt(m, Ramza);   // parked BEFORE the tracker's own ResetBattle
+
+        var t = new KillTracker(kills, m, Weapons);
+        t.ResetBattle();   // the register's own ResetBattle re-primes -- the stale pointer must not launder
+
+        t.Poll(true);   // tick1 post-reset: priming read of the STILL-parked stale pointer -- untrusted
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        t.Poll(true);   // tick2: BeginActedPeriod(2); pointer unchanged since tick1 -> no transition ->
+                        // register never trusted -> falls through to TQ -> resolves A normally
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(wa));     // TQ governs
+        Assert.False(kills.ContainsKey(wStale));          // the stale pointer target never credited
+    }
+
+    [Fact]
+    public void Drift_dip_does_not_reopen_the_actor_period()
+    {
+        // V10: Period Begin is EDGE-GUARDED -- a sub-UnfreezeTicks Acted drift dip must NOT
+        // re-Begin/refresh periodStartTick mid-period. If it did, a pointer arrival that landed
+        // DURING the dip (genuinely AFTER the TRUE period start) would wrongly pass StableSince
+        // against the REFRESHED (later) periodStartTick.
+        const int wa = 52, wb = 90;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: wa);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetRoster(m, slot: 5, level: 40, brave: 45, faith: 48, weapon: wb, nameId: 777);
+        SetUnit(m, Ramza, hp: 380, maxHp: 380, level: 40, brave: 45, faith: 48);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);   // tick1: priming
+
+        // Period begins with an unresolvable TQ tuple -- stays unlatched.
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 1);
+        t.Poll(true);   // tick2: BeginActedPeriod(2) [the TRUE period start]
+
+        // One-tick drift dip -- acted reads 0 for a single tick (< UnfreezeTicks). The pointer
+        // arrives at B DURING the dip -- genuinely AFTER the true period start (tick2).
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 0);
+        SetFrameNameId(m, Ramza, 777);
+        PointAt(m, Ramza);
+        t.Poll(true);   // tick3: dip tick (acted low for 1 tick only); B's arrival ArrivalTick=3
+
+        // Dip resolves; acted rises again. If Begin were wrongly re-fired here, periodStartTick
+        // would become 4 and B's tick-3 arrival would wrongly pass StableSince(4).
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 1);
+        t.Poll(true);   // tick4: acted rises again -- Begin must NOT re-fire (periodStartTick stays 2)
+
+        // TQ now resolves A unambiguously -- the correct governing path.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        t.Poll(true);   // tick5
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(wa));
+        Assert.False(kills.ContainsKey(wb));
+    }
+
+    // --- V8: FirstKillFallback inherits the register preamble (gated only by latch/pending/pause) ---
+
+    [Fact]
+    public void FirstKillFallback_inherits_the_register_path_during_an_open_period()
+    {
+        // V8 pin 1: FirstKillFallback calls the SAME gated resolve methods as the main latch, so
+        // it inherits the register-first preamble whenever a period is open -- not just the
+        // "battle's first kill, no period at all" case D2 originally (wrongly) described. The TQ
+        // tuple stays PERMANENTLY unresolvable (garbage) here, so a pure-TQ path could never
+        // succeed; the only way this credits is via the register (whichever code path -- main
+        // latch or fallback -- happens to consult it, since both share the identical gate).
+        const int wa = 52;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: wa, nameId: 501);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);   // tick1: priming
+        SetFrameNameId(m, Wilham, 501);
+        PointAt(m, Wilham);
+        t.Poll(true);   // tick2: trusted arrival on Wilham
+
+        // Period begins with a PERMANENTLY unresolvable TQ tuple -- TQ alone could never latch.
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 1);
+        t.Poll(true);   // tick3: BeginActedPeriod(3); register stable since tick2 -> resolves via register
+
+        Assert.Equal(wa, t.LastPlayerMainHand);   // credited via the register -- TQ never could have
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(wa));
+    }
+
+    [Fact]
+    public void FirstKillFallback_falls_back_to_pure_TQ_outside_any_period()
+    {
+        // V8 pin 2: with NO acted edge having EVER fired this battle (_periodStartTick stays -1
+        // in the resolver), the register gate is closed by construction -- FirstKillFallback's
+        // calls fall straight through to the unchanged, acted-gate-free TQ walk, exactly as
+        // before this build. Seed a STABLE, correctly-bridged register owner (so the register
+        // WOULD answer immediately if it were consulted) but leave acted at 0 throughout; the
+        // credit still requires the full 3-tick stability streak, proving it came from TQ, not
+        // an instant register-sourced credit -- mirrors
+        // First_kill_fallback_latches_a_stable_actor_with_acted_zero's fixture shape.
+        const int wa = 52;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: wa, nameId: 501);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);   // actor present, acted NEVER set to 1
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);
+        SetFrameNameId(m, Wilham, 501);
+        PointAt(m, Wilham);
+        t.Poll(true);   // register is stable+bridged from here on, but acted never rises -> no period
+
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t, 3);
+        SetUnit(m, slot: 0, hp: 0);
+        Assert.False(t.Poll(true));   // dead tick 1 -> pending
+        Assert.False(t.Poll(true));   // dead tick 2
+        Assert.False(t.Poll(true));   // dead tick 3 -> pending, fallback streak 1
+        Assert.False(t.Poll(true));   // fallback streak 2
+        Assert.False(t.Poll(true));   // fallback streak 3 -> latch accepted (via TQ -- register never opened)
+
+        bool credited = t.Poll(true);
+
+        Assert.True(credited);
+        Assert.Equal(1, kills.GetValueOrDefault(wa));
     }
 }

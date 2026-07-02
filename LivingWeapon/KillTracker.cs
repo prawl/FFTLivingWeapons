@@ -35,14 +35,25 @@ internal sealed partial class KillTracker
     private readonly Dictionary<int, int> _kills;            // weapon id -> kill count
     internal readonly IGameMemory _mem;
     private readonly ActorResolver _resolver;
+    private readonly ActorRegister _register;                // engine actor-pointer ownership tracker (register-first resolve)
     private readonly EnemyOracle _oracle;                    // which identities are enemy-side (creditable)
     internal readonly bool[] _pending = new bool[Offsets.BandSlots];   // corpse seen, awaiting an actor latch
     internal readonly int[] _pendingAge = new int[Offsets.BandSlots];  // ticks a corpse has waited (backstop)
     internal readonly int[] _pendingFalls = new int[Offsets.BandSlots];// _actedFalls when the corpse went pending
+    // Register-tick birth stamp for a pending corpse (0 = not pending / not yet stamped). SAME
+    // CURRENCY as ActorRegister.Tick/ArrivalTick -- unlike _pendingAge (which only advances on
+    // onField Polls, KillTracker.Corpses.cs), this advances in lockstep with the register clock
+    // (ActorRegister.Update runs every Poll, onField or not), so it is a valid comparand against
+    // ArrivalTick even across off-field stretches (mid-battle dialogue/pause). Stamped/cleared in
+    // UpdateCorpseAnchor -- see its doc comment for why it can't be stamped from Corpses.cs.
+    internal readonly long[] _pendingBirthTick = new long[Offsets.BandSlots];
     internal List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
     internal int _lastPlayerMainHand;                // RRHand id of the last latched actor (0 when none)
     internal (int lvl, int br, int fa) _lastActorFp; // fingerprint of the unit latched this acted-period
     private bool _latched;                           // a player resolved this acted-period -> frozen until it ends
+    private bool _periodOpen;                        // an acted-period is open (EDGE-GUARDED: set once per rise,
+                                                      //   cleared only on the debounced fall -- distinct from _latched,
+                                                      //   which stays false through a whole period of failed resolves)
     internal bool _latchResolvedEmpty;              // most recent SUCCESSFUL resolve produced an EMPTY weapon set
                                                     //   (resolved-but-untracked actor: summoner/dancer/item-user
                                                     //   with no living weapon). Drives the FirstKillFallback bail +
@@ -60,7 +71,8 @@ internal sealed partial class KillTracker
     {
         _kills = kills;
         _mem = mem;
-        _resolver = new ActorResolver(mem, weapons);
+        _register = new ActorRegister(mem);
+        _resolver = new ActorResolver(mem, weapons, _register);
         _oracle = new EnemyOracle(mem);
         _events = events;
     }
@@ -72,10 +84,14 @@ internal sealed partial class KillTracker
         Array.Clear(_pending, 0, _pending.Length);
         Array.Clear(_pendingAge, 0, _pendingAge.Length);
         Array.Clear(_pendingFalls, 0, _pendingFalls.Length);
+        Array.Clear(_pendingBirthTick, 0, _pendingBirthTick.Length);
         _lastPlayerWeapons = new();
         _lastPlayerMainHand = 0;
         _lastActorFp = default;
         _latched = false;
+        _periodOpen = false;
+        _register.ResetBattle();
+        _resolver.EndActedPeriod();
         _latchResolvedEmpty = false;   // battle start = never-resolved; genuine first kill still uses the fallback
         _actedLow = 0;
         _actedFalls = 0;
@@ -94,6 +110,9 @@ internal sealed partial class KillTracker
     {
         bool changed = false;
 
+        _register.Update();       // ownership tracker: one read of the engine actor pointer per tick
+        UpdateCorpseAnchor();     // V1 corpse-anchor veto, pushed to the resolver for this tick's resolves
+
         // Latch the acting player's weapon(s) ONCE per acted-period. acted==1 marks an action
         // complete, but the condensed struct follows the CURSOR (BATTLE_COORDINATES.md) and acted
         // stays 1 for the rest of the turn -- so re-resolving every tick let a post-act hover over
@@ -105,6 +124,15 @@ internal sealed partial class KillTracker
         if (_mem.U8(Offsets.Acted) == 1)
         {
             _actedLow = 0;
+            // Period Begin is EDGE-GUARDED: fires once on the first acted==1 tick of the period
+            // (regardless of whether a resolve succeeds that tick), never re-fires mid-period --
+            // a sub-UnfreezeTicks Acted drift dip never reaches the End branch below, so _periodOpen
+            // stays true and this can't refresh the resolver's periodStartTick out from under it.
+            if (!_periodOpen)
+            {
+                _periodOpen = true;
+                _resolver.BeginActedPeriod(_register.Tick);
+            }
             if (!_latched)
             {
                 // A RESOLVED player always replaces the latch -- even with an EMPTY weapon set
@@ -132,16 +160,25 @@ internal sealed partial class KillTracker
                         _lastPlayerWeapons = ws;
                         _lastPlayerMainHand = ws.Count > 0 ? _resolver.ResolveActingMainHand() : 0;
                         _actorTag = string.Join(",", ws);
+                        // Source tag mirrors TurnTracker's shipped [actor-ptr]/[tq-fallback] pair;
+                        // no test asserts on these strings (inventory confirmed).
+                        string src = _resolver.LastResolveViaRegister ? "actor-ptr" : "tq-fallback";
                         Log.Info(ws.Count > 0
-                            ? "turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")"))
-                            : "turn: acting player wields no tracked weapon -- this action's kills go uncredited");
+                            ? "turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + $" [{src}]"
+                            : $"turn: acting player wields no tracked weapon -- this action's kills go uncredited [{src}]");
                     }
                 }
             }
         }
         // The debounced acted-falling edge (acted low for UnfreezeTicks) is one turn-end event: count it
         // once per period (drives the two-edge pending expiry below) as the latch unfreezes.
-        else if (_actedLow < UnfreezeTicks && ++_actedLow >= UnfreezeTicks) { _latched = false; _actedFalls++; }
+        else if (_actedLow < UnfreezeTicks && ++_actedLow >= UnfreezeTicks)
+        {
+            _latched = false;
+            _actedFalls++;
+            _periodOpen = false;
+            _resolver.EndActedPeriod();
+        }
 
         FirstKillFallback();   // no prior latch + a corpse waiting -> resolve the actor without the acted gate
 
@@ -199,10 +236,49 @@ internal sealed partial class KillTracker
         return false;
     }
 
+    /// <summary>V1 corpse-anchor veto: refuses the register path (for every resolve this tick)
+    /// whenever any pending corpse's REGISTER-TICK birth stamp is AT OR AFTER the register's
+    /// current owner's arrival -- a killer's turn must CONTAIN the death, so an owner who arrived
+    /// at/after a corpse went pending cannot be its killer.
+    ///
+    /// Compares same-currency register ticks (<see cref="_pendingBirthTick"/> vs
+    /// <see cref="ActorRegister.ArrivalTick"/>), NOT the superseded _pendingAge/OwnershipAge pair:
+    /// _pendingAge only advances on onField Polls (KillTracker.Corpses.cs bails `if (!onField)
+    /// continue;` before it), while ActorRegister.Tick (and thus OwnershipAge) advances on every
+    /// Poll including off-field ones (Update() runs unconditionally) -- so during an off-field
+    /// stretch (mid-battle dialogue/pause) the old duration comparison under-counted the corpse's
+    /// true age and could wrongly admit a new owner. The strict `>` it used also let the exact
+    /// equality case escape; the `&lt;=` below closes that too.
+    ///
+    /// _pendingBirthTick can't be stamped from Corpses.cs (a pending flag transitions false->true
+    /// there, but that file is a fixed plan boundary for this fix) -- so it is stamped HERE, the
+    /// first Poll after a slot goes pending. Poll order is Update() -> UpdateCorpseAnchor() ->
+    /// ... -> ScanCorpses() (KillTracker.cs), so the earliest this method can OBSERVE
+    /// _pending[s]==true is the Poll immediately after ScanCorpses set it -- one register tick
+    /// later than the true birth tick, which `_register.Tick - 1` exactly recovers.</summary>
+    private void UpdateCorpseAnchor()
+    {
+        bool ok = true;
+        for (int s = 0; s < _pending.Length; s++)
+        {
+            if (_pending[s])
+            {
+                if (_pendingBirthTick[s] == 0) _pendingBirthTick[s] = _register.Tick - 1;
+                if (_pendingBirthTick[s] != 0 && _pendingBirthTick[s] <= _register.ArrivalTick) ok = false;
+            }
+            else
+            {
+                _pendingBirthTick[s] = 0;
+            }
+        }
+        _resolver.SetCorpseAnchorOk(ok);
+    }
+
     /// <summary>Credit the given weapon set for a kill at band slot s (position gx,gy).</summary>
     internal bool CreditKill(int s, int gx, int gy, List<int> weapons)
     {
         bool changed = false;
+        LogKillDiag(s, weapons);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
         foreach (int w in weapons)
         {
             _kills.TryGetValue(w, out int c);
@@ -212,5 +288,23 @@ internal sealed partial class KillTracker
         }
         _pending[s] = false;
         return changed;
+    }
+
+    /// <summary>D4 -- AREC kill diagnostic (evidence accumulator, ZERO behavioral dependence): read
+    /// the corpse's action record (Offsets.AArec, band-entry-relative) and log one line through the
+    /// dev BattleLog sink. Guarded read; skips silently when unreadable or when no BattleLog is
+    /// wired (production is compiled with VerboseEvents=false, so this is inert there too). +0xB is
+    /// logged as a HYPOTHESIS (xref?=) -- see docs/LIVE_LEDGER.md's Uncertain AREC row. The credit
+    /// path in CreditKill above never consults this.</summary>
+    private void LogKillDiag(int s, List<int> weapons)
+    {
+        if (_events == null) return;
+        long addr = Band.Entry(s) + Offsets.AArec;
+        if (!_mem.Readable(addr, 0xC)) return;
+        int idx = _mem.U8(addr);
+        int abil = _mem.U16(addr + 0x2);
+        int kind = _mem.U8(addr + 0xA);
+        int xref = _mem.U8(addr + 0xB);
+        _events.KillDiag($"kill-diag: corpse AREC idx={idx} abil={abil} kind={kind} xref?={xref} -- credited [w:{string.Join(",", weapons)}]");
     }
 }

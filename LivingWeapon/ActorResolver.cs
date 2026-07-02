@@ -16,18 +16,65 @@ namespace LivingWeapon;
 /// Twin filter: when matches include both a real-position entry (gx/gy != 0,0) and a (0,0)
 /// frozen twin (roster unit's mirror in the band), prefer the real-position entry to avoid
 /// reading stale HP from the twin.
+///
+/// REGISTER-FIRST (kill-attribution plan, 2026-07-01): each of the three public resolve methods
+/// now opens with a preamble that answers off <see cref="ActorRegister"/> (the engine's own actor
+/// pointer) INSTEAD of the turn-queue fingerprint walk below, but ONLY when the register's current
+/// owner has been stable since STRICTLY BEFORE the current acted-period began
+/// (<see cref="ActorRegister.StableSince"/>) AND no pending corpse outdates that ownership (the
+/// corpse-anchor veto KillTracker pushes via <see cref="SetCorpseAnchorOk"/>). Ownership churn
+/// after the period started, an unsatisfied gate, or a null/absent register (the four
+/// <c>ActorResolverUnarmedTests</c> call sites) all fall straight through to the UNCHANGED
+/// turn-queue body below -- this is the single hinge the whole pre-existing suite pins byte-for-
+/// byte. HONESTY (carried over from the TurnTracker rebuild): the turn-queue fallback still
+/// retains today's hover-trap and level+100-flake exposure -- the register narrows, it does not
+/// eliminate, the ambiguity window.
 /// </summary>
 internal sealed class ActorResolver
 {
     private static readonly List<int> Empty = new();
     private readonly IGameMemory _mem;
     private readonly ISet<int> _weapons;   // ids that are real weapons (meta keys)
+    private readonly ActorRegister? _register;
+    private int _periodStartTick = -1;     // -1 = not currently inside an acted-period
+    private bool _corpseAnchorOk = true;   // KillTracker's per-tick corpse-anchor veto (V1)
 
-    public ActorResolver(IGameMemory mem, ISet<int> weapons)
+    /// <summary>True when the most recent <see cref="TryResolveActingPlayer"/> credit-worthy
+    /// answer (a resolved player, tracked or not) came from the register path rather than the
+    /// turn-queue fallback -- feeds the latch log line's [actor-ptr]/[tq-fallback] source tag.
+    /// Not asserted on by any test (inventory confirmed); diagnostic only.</summary>
+    public bool LastResolveViaRegister { get; private set; }
+
+    public ActorResolver(IGameMemory mem, ISet<int> weapons, ActorRegister? register = null)
     {
         _mem = mem;
         _weapons = weapons;
+        _register = register;
     }
+
+    /// <summary>Marks the start of a fresh acted-period at register tick
+    /// <paramref name="tick"/>. Called by KillTracker on the edge-guarded first acted==1 tick
+    /// following a debounced fall (or battle start) -- never re-called mid-period, so a
+    /// sub-UnfreezeTicks Acted drift dip cannot refresh the gate.</summary>
+    public void BeginActedPeriod(int tick) => _periodStartTick = tick;
+
+    /// <summary>Marks the end of the current acted-period (the debounced falling edge). The
+    /// register path is inert (falls through to the turn-queue body) outside any period.</summary>
+    public void EndActedPeriod() => _periodStartTick = -1;
+
+    /// <summary>KillTracker's per-tick corpse-anchor veto (V1 of the kill-attribution plan):
+    /// refuses the register path when any pending corpse is at least as old as the current
+    /// ownership (pending-birth stamp &lt;= arrival tick, register-tick currency) -- a killer's
+    /// turn must CONTAIN the death, so an ownership arriving at or after a corpse's first
+    /// pending sight cannot be its killer. Computed in KillTracker.cs (it owns the per-slot
+    /// pending-birth stamps); pushed here once per Poll tick.</summary>
+    public void SetCorpseAnchorOk(bool ok) => _corpseAnchorOk = ok;
+
+    /// <summary>True iff the register path is eligible to answer THIS resolve call: a period is
+    /// open, no pending corpse outdates the current ownership, and that ownership has been stable
+    /// since strictly before the period began.</summary>
+    private bool RegisterPathOpen =>
+        _register != null && _periodStartTick >= 0 && _corpseAnchorOk && _register.StableSince(_periodStartTick);
 
     /// <summary>The acting player's weapon ids (0, 1, or 2), or empty if unresolved/ambiguous
     /// OR the resolved player holds no tracked weapon (callers needing the distinction use
@@ -45,6 +92,20 @@ internal sealed class ActorResolver
     public bool TryResolveActingPlayer(out List<int> weapons)
     {
         weapons = Empty;
+        LastResolveViaRegister = false;
+        if (RegisterPathOpen)
+        {
+            var bridge = _register!.CurrentBridge;
+            if (bridge == RosterBridge.Player)
+            {
+                weapons = Hands(_register.CurrentRosterBase);
+                LastResolveViaRegister = true;
+                return true;
+            }
+            if (bridge == RosterBridge.Enemy) return false;
+            // Unknown (duplicated roster identities) -> fall through to the turn-queue body.
+        }
+
         ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
         ushort hp = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
         ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
@@ -164,6 +225,18 @@ internal sealed class ActorResolver
     /// commands its gift only from the main hand.</summary>
     public int ResolveActingMainHand()
     {
+        if (RegisterPathOpen)
+        {
+            var bridge = _register!.CurrentBridge;
+            if (bridge == RosterBridge.Player)
+            {
+                ushort rrHand = _mem.U16(_register.CurrentRosterBase + Offsets.RRHand);
+                return _weapons.Contains(rrHand) ? rrHand : 0;
+            }
+            if (bridge == RosterBridge.Enemy) return 0;
+            // Unknown -> fall through to the turn-queue body.
+        }
+
         ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
         ushort hp    = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
         ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
@@ -252,6 +325,15 @@ internal sealed class ActorResolver
     public bool TryResolveActingFingerprint(out (int lvl, int br, int fa) fp)
     {
         fp = default;
+        if (RegisterPathOpen && _register!.CurrentEntry != 0)
+        {
+            // The method's contract does not require a roster player -- KillTracker only calls
+            // this after TryResolveActingPlayer already confirmed one, so any stable owner here
+            // IS that same player. Return its fingerprint regardless of bridge classification.
+            fp = _register.CurrentFp;
+            return true;
+        }
+
         ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
         ushort hp    = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
         ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);

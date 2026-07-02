@@ -28,6 +28,15 @@ internal sealed class BattleLog
     /// <summary>Forget every baseline. Call on battle enter and exit.</summary>
     public void ResetBattle() => Array.Clear(_seen, 0, _seen.Length);
 
+    /// <summary>One pre-formatted diagnostic line (verbose-gated, same as <see cref="Observe"/>).
+    /// KillTracker's D4 AREC kill diagnostic routes through here rather than owning its own sink,
+    /// so it stays zero-coupled to the credit path -- see KillTracker.CreditKill.</summary>
+    public void KillDiag(string line)
+    {
+        if (!_verbose) return;
+        _sink(line);
+    }
+
     /// <summary>One valid slot reading per tick. The first sighting of a slot baselines silently;
     /// after that, any HP or position change is one event line.</summary>
     public void Observe(int slot, int hp, int maxHp, int gx, int gy, string actor)

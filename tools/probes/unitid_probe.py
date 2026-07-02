@@ -68,10 +68,16 @@ FRAME_BASE0 = BAND_BASE - BAND_ENTRY                     # 0x141852CE0; frame(i)
 BAND_SLOTS = 49
 A_WEAPON, A_LEVEL, A_BRAVE, A_FAITH, A_HP, A_MAXHP, A_GX, A_GY = 0x04, 0x0D, 0x0E, 0x10, 0x14, 0x16, 0x33, 0x34
 A_SPEED = 0x24            # band-relative Speed (frame +0x40) -- watch the Iai hold/release live
-FR_AREC = 0x1A0           # frame-relative per-unit ACTION RECORD (FFTMultiplayer reaction-builder find):
-FR_AREC_LEN = 12          #   +0x1A2 u16 ability id, +0x1AA kind tag, +0x1AB seq counter. HYPOTHESIS under
-                          #   test: this fires on the unit's OWN frame when IT acts -- a per-unit turn
-                          #   signal that works even for units the global actor pointer skips (seat 25).
+FR_AREC = 0x1A0           # frame-relative per-unit ACTION RECORD (FFTMultiplayer reaction-builder find).
+FR_AREC_LEN = 12          # CORRECTED DECODE (17:57 all-seat capture, 2026-07-01 -- see docs/LIVE_LEDGER.md's
+                          #   Uncertain AREC row for the full evidence dump): rec[0] = engine index == this
+                          #   unit's own seat-8-relative index, SOLID (not a "global action counter" -- that
+                          #   was the STALE pre-correction read); +0x2 u16 ability id; +0xA kind tag
+                          #   (5 == performing / 6 == receiving, PROBABLE); +0xB candidate victim<->attacker
+                          #   CROSS-REFERENCE (xref), UNPROVEN -- one observation each direction so far (not
+                          #   a "seq counter" -- that was also the stale pre-correction read). This fires on
+                          #   the unit's OWN frame when IT acts -- a per-unit turn signal that works even for
+                          #   units the global actor pointer skips (seat 25).
 FR_NAMEID = 0x1FC         # frame-relative roster-nameId back-reference (SCAN-A hit 2026-07-01, all player seats)
 
 # --- roster (ground truth for SCAN-A) ---
@@ -202,10 +208,12 @@ def tq_ambiguous(h, mhp, hp, lvl):
     return len(seen)
 
 
-def snapshot_players(h):
-    """Every valid PLAYER seat (n >= 0): (i, speed, action-record bytes, nameId@+0x1FC, hp)."""
+def snapshot_seats(h):
+    """Every valid seat, BOTH teams: (i, speed, action-record bytes, nameId@+0x1FC, hp, brv, fa).
+    AREC characterization needs enemy coverage too (does the record fire on enemy actions?
+    on REACTIONS, on the reactor's own frame?)."""
     out = {}
-    for i in range(24, BAND_SLOTS):
+    for i in range(BAND_SLOTS):
         frame = FRAME_BASE0 + i * STRIDE
         band = frame + BAND_ENTRY
         u = band_valid(h, band)
@@ -219,14 +227,25 @@ def snapshot_players(h):
 
 
 def fmt_rec(rec):
-    return "-" if rec is None else " ".join(f"{b:02X}" for b in rec)
+    if rec is None:
+        return "-"
+    # CORRECTED decode (17:57 all-seat capture, 2026-07-01; see docs/LIVE_LEDGER.md's Uncertain
+    # AREC row): [0]=engine index == seat-8, SOLID (not a "global action counter"); +0x2 u16
+    # ability id; +0xA kind tag (5=performing/6=receiving, PROBABLE); +0xB candidate victim<->
+    # attacker cross-reference (xref), UNPROVEN (not a "seq counter" -- both were the stale
+    # pre-correction read this comment used to carry).
+    raw = " ".join(f"{b:02X}" for b in rec)
+    abil = rec[2] | (rec[3] << 8)
+    return f"{raw}  [idx={rec[0]:d} abil={abil} kind={rec[0xA]:d} xref?={rec[0xB]:d}]"
 
 
 def watch(h, seconds, hz):
-    print(f"WATCH actor pointer 0x{G_ACTOR:X} + Acted 0x{ACTED:X} + PER-SEAT action records for {seconds}s at {hz}Hz.")
-    print("Start this on the FORMATION screen, then play the opening turns. Events fire on: pointer")
-    print("move, Acted edge, any player seat's Speed change (Iai hold/release), or any player seat's")
-    print("action-record (+0x1A0) change -- the per-unit turn-signal hypothesis for pointer-skipped units.\n")
+    print(f"WATCH actor pointer 0x{G_ACTOR:X} + Acted 0x{ACTED:X} + ALL-SEAT action records for {seconds}s at {hz}Hz.")
+    print("Start on the FORMATION screen. Events fire on: pointer move, Acted edge, any seat's Speed")
+    print("change, or any seat's action-record (+0x1A0) change -- BOTH teams watched.")
+    print("AREC characterization beats to hit in the battle: (1) a normal player attack, (2) a pure")
+    print("move+WAIT turn (no action), (3) bait an enemy COUNTER if you can, (4) kill an enemy,")
+    print("(5) let a couple of enemies take their turns. Each answers one design question.\n")
     period = 1.0 / hz
     end = time.time() + seconds
     prev_acted, prev_ptr = None, None
@@ -236,7 +255,7 @@ def watch(h, seconds, hz):
         ptr = u64(h, G_ACTOR)
         rising = acted == 1 and prev_acted == 0
         moved = ptr != prev_ptr
-        seats = snapshot_players(h)
+        seats = snapshot_seats(h)
         changes = []
         for i, cur in seats.items():
             old = prev_seats.get(i)
