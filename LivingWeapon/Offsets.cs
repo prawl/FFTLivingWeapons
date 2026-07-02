@@ -230,7 +230,11 @@ internal static class Offsets
     /// mirror copy. But the ACTOR POINTER (<see cref="ActorPtr"/>, via Band.ActorEntry) always
     /// names the REAL frame, so identity-matching the pointer target's nameId against a captured
     /// roster nameId is unambiguous for Iai's release even when Wielder.Locate ambiguity-bails on
-    /// a churning mirror. Arm-time capture source: Wielder.RosterNameId (roster +0x230).</summary>
+    /// a churning mirror. Arm-time capture source: Wielder.RosterNameId (roster +0x230).
+    /// Consumed by the LOCATE LAYER (Plan v2 D1/D2/D5/D7): Wielder.Locate/LocateAll,
+    /// GrowthEngine.LocateIn/ScanEntries/MatchesEntry/ReadHp, and RingGate.BandHasUnit all read
+    /// this field as their tier-1 exact-match predicate and their tier-2 veto (a foreign nonzero
+    /// value excludes an fp-colliding entry; 0/unreadable never blocks a match).</summary>
     public const int ANameId = 0x1E0;
     // Band-relative reaction field: CReaction(0x94) - BandEntry(0x1C) = 0x78. 4 bytes.
     // Maim reads/holds/restores this to suppress the victim's Counter/etc. abilities.

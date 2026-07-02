@@ -1671,9 +1671,11 @@ public class TreasureMasterTests
     }
 
     /// <summary>Seed a band entry (Band.Entry(bandSlot)) as a valid deployed unit with the given
-    /// fingerprint so Band.IsValid passes and RingGate's band cross-check finds it.</summary>
+    /// fingerprint so Band.IsValid passes and RingGate's band cross-check finds it. nameId seeds
+    /// the frame's roster-nameId back-reference (Offsets.ANameId) that RingGate's tier-1/tier-2
+    /// veto locate reads (D2/D7); default 0 matches the pre-nameId unseeded contract byte-for-byte.</summary>
     private static void SeedBandUnit(FakeSparseMemory mem, int bandSlot,
-        byte level, byte brave, byte faith, ushort mhp = 500, byte gx = 5, byte gy = 5)
+        byte level, byte brave, byte faith, ushort mhp = 500, byte gx = 5, byte gy = 5, int nameId = 0)
     {
         long a = Band.Entry(bandSlot);
         mem.U8s[a + Offsets.ALevel] = level;  mem.ReadableAddrs.Add(a + Offsets.ALevel);
@@ -1682,13 +1684,20 @@ public class TreasureMasterTests
         mem.U16s[a + Offsets.AMaxHp] = mhp;   mem.ReadableAddrs.Add(a + Offsets.AMaxHp);
         mem.U8s[a + Offsets.AGx] = gx;        mem.ReadableAddrs.Add(a + Offsets.AGx);
         mem.U8s[a + Offsets.AGy] = gy;        mem.ReadableAddrs.Add(a + Offsets.AGy);
+        mem.U16s[a + Offsets.ANameId] = (ushort)nameId;   // unguarded fail-safe read (Iai/RingGate pattern, D8)
     }
 
     /// <summary>Seed a roster slot wearing the Scholar's Ring with a valid (level,brave,faith)
     /// fingerprint. When <paramref name="deployed"/>, also seed a matching band entry so the unit
-    /// is "on the field"; benched leaves the band empty so RingGate sees no deployed bearer.</summary>
+    /// is "on the field"; benched leaves the band empty so RingGate sees no deployed bearer.
+    /// nameId, when nonzero, seeds this slot's roster nameId (Offsets.RNameId) AND marks it
+    /// Readable -- RingGate's caller-side capture (D7, guarded like GrowthEngine.Apply's); left at
+    /// 0 (unseeded, unreadable) reproduces "roster nameId capture unavailable" for the tier-2-
+    /// inert-veto parity tests. A deployed band entry carries the SAME nameId by default (the
+    /// real, identity-verified match) -- tests that need a colliding foreign nameId seed the band
+    /// entry separately.</summary>
     private static void SeedRingBearer(FakeSparseMemory mem, int rosterSlot, bool deployed,
-        int bandSlot = 0, byte level = 50, byte brave = 70, byte faith = 70)
+        int bandSlot = 0, byte level = 50, byte brave = 70, byte faith = 70, int nameId = 0)
     {
         long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
         mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId;
@@ -1696,7 +1705,12 @@ public class TreasureMasterTests
         mem.U8s[rb + Offsets.RLevel] = level;  mem.ReadableAddrs.Add(rb + Offsets.RLevel);
         mem.U8s[rb + Offsets.RBrave] = brave;  mem.ReadableAddrs.Add(rb + Offsets.RBrave);
         mem.U8s[rb + Offsets.RFaith] = faith;  mem.ReadableAddrs.Add(rb + Offsets.RFaith);
-        if (deployed) SeedBandUnit(mem, bandSlot, level, brave, faith);
+        if (nameId != 0)
+        {
+            mem.U16s[rb + Offsets.RNameId] = (ushort)nameId;
+            mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        }
+        if (deployed) SeedBandUnit(mem, bandSlot, level, brave, faith, nameId: nameId);
     }
 
     [Fact]
@@ -1795,6 +1809,46 @@ public class TreasureMasterTests
         SeedAccessory(mem, 1, 0);
 
         Assert.False(RingGate.ScholarRingEquipped(mem));
+    }
+
+    // ── RingGate nameId two-tier-with-veto locate (Plan v2 D2/D7, TDD item 13) ───────────────
+    // BandHasUnit gains the same two-tier-with-veto locate as Wielder.Locate/GrowthEngine.ReadHp:
+    // a band entry sharing the ring-bearer's (level,brave,faith) but carrying a DIFFERENT, foreign
+    // nonzero frame nameId is an fp-collider (an unrelated unit, enemy or ally) -- the old
+    // fingerprint-only match falsely counted it as "the ring-bearer is deployed".
+
+    /// <summary>[LOAD-BEARING, TDD item 13a] The ring-bearer's roster nameId (100) is known, but
+    /// the only band entry sharing its (level,brave,faith) carries a DIFFERENT, foreign nonzero
+    /// frame nameId (918) -- an fp-collider, not the ring-bearer's own entry. Tier 1 excludes it
+    /// (918 != 100) and tier 2's veto excludes it too (foreign nonzero nameId), so the gate must
+    /// NOT report the ring-bearer as deployed. Non-vacuity: before this fix BandHasUnit had no
+    /// nameId awareness at all and matched on fp alone, so this assertion fails against the old
+    /// implementation.</summary>
+    [Fact]
+    public void RingGate_ForeignNameIdCollider_KnownRosterNameId_VetoExcludes_ReturnsFalse()
+    {
+        var mem = new FakeSparseMemory();
+        SeedRingBearer(mem, rosterSlot: 0, deployed: false, nameId: 100);   // roster nameId known; bearer itself never got a band entry
+        SeedBandUnit(mem, bandSlot: 10, level: 50, brave: 70, faith: 70, nameId: 918);   // fp-colliding foreign unit
+
+        Assert.False(RingGate.ScholarRingEquipped(mem),
+            "a foreign-nameId fp-collider must not count as the ring-bearer's deployed match");
+    }
+
+    /// <summary>[TDD item 13b] Roster nameId capture is unavailable (RNameId never seeded/
+    /// unreadable, the pre-nameId default) -- tier 2's veto is inert at rosterNameId &lt;= 0, so a
+    /// band entry sharing the bearer's fp still counts as deployed regardless of its OWN frame
+    /// nameId. This is the fallback-parity property: every pre-nameId RingGate test above (none
+    /// of which seed RNameId) exercises this exact path unchanged.</summary>
+    [Fact]
+    public void RingGate_BandEntryCarriesForeignNameId_RosterNameIdUnavailable_StillDeploys()
+    {
+        var mem = new FakeSparseMemory();
+        SeedRingBearer(mem, rosterSlot: 0, deployed: false);   // RNameId left unseeded -> capture unavailable
+        SeedBandUnit(mem, bandSlot: 0, level: 50, brave: 70, faith: 70, nameId: 918);   // entry's own nameId irrelevant when the veto is inert
+
+        Assert.True(RingGate.ScholarRingEquipped(mem),
+            "roster nameId unavailable -> tier 2's veto is inert, an fp-matching entry still counts as deployed");
     }
 
     // ── TreasureMaster ring-gate integration ─────────────────────────────────────
