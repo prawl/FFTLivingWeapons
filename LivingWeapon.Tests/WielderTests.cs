@@ -77,6 +77,10 @@ public class WielderTests
     [Fact]
     public void Locate_returns_zero_on_a_surviving_tie()
     {
+        // Why this still bails post-nameId-locate (do not "fix" it): no roster slot is seeded
+        // here, so Wielder.ResolveAnyHandNameId resolves -1 (zero matching roster slots) and
+        // Locate's rosterNameId parameter comes in <= 0 -- tier 1 never runs, and tier 2's veto
+        // is inert at rosterNameId <= 0, so this is byte-for-byte the pre-nameId fp tie-break bail.
         var m = new FakeSparseMemory();
         MemSeats.SeatBand(m, 3, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 4);
         MemSeats.SeatBand(m, 9, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);
@@ -210,6 +214,168 @@ public class WielderTests
         var results = new List<long>();
         Wielder.LocateAll(m, Weapon, new[] { Weapon }, (30, 65, 58), results);
         Assert.Single(results);
+    }
+
+    // ---- Locate: nameId-primary two-tier locate (Plan v2 D1-D4) ----
+    // Roster nameId 298 identifies the real wielder; a band-only "enemy" sharing weapon+fp but
+    // carrying a DIFFERENT frame nameId (918) is the fp-collider the fingerprint-only algorithm
+    // used to hand out by accident.
+
+    [Fact]
+    public void Locate_prefers_the_nameId_verified_wielder_over_an_fp_colliding_enemy()
+    {
+        // [LOAD-BEARING, TDD item 1a] Both the real wielder (nameId 298, matching the roster)
+        // and an enemy fp-collider (nameId 918) are present -- tier 1 only ever sees the wielder
+        // as a candidate (the collider's nameId never equals rosterNameId), so it resolves
+        // cleanly instead of the old fp-only algorithm's tie-bail.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 298);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        MemSeats.SeatFrameNameId(m, 5, 298);
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);   // enemy fp-collider
+        MemSeats.SeatFrameNameId(m, 10, 918);
+        Assert.Equal(Band.Entry(5), Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void Locate_returns_zero_when_only_the_fp_colliding_enemy_is_deployed()
+    {
+        // [LOAD-BEARING, TDD item 1b] The wielder never got a band entry this battle; only the
+        // enemy fp-collider exists. The old fp-only algorithm handed out the ENEMY's address here
+        // (the wrong-unit write hazard) -- the tier-2 veto now excludes a foreign nonzero nameId
+        // even when it is the only fp match left, so Locate returns 0 instead.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 298);
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);   // enemy fp-collider only
+        MemSeats.SeatFrameNameId(m, 10, 918);
+        Assert.Equal(0, Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void Locate_returns_a_deterministic_pick_when_two_real_position_entries_share_the_nameId()
+    {
+        // [TDD item 2, the Iai-starvation generalization] A revolving mirror clone can carry a
+        // REAL grid position, unlike the frozen-(0,0) twin the old tie-break already handled.
+        // Two real-position entries verified by the SAME frame nameId are known copies of ONE
+        // identified unit -- tier 1 now returns a deterministic pick instead of bailing.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 89, fa: 76, rh: Weapon, nameId: 298);
+        MemSeats.SeatBand(m, 20, Weapon, lvl: 99, br: 89, fa: 76, gx: 9, gy: 9);
+        MemSeats.SeatFrameNameId(m, 20, 298);
+        MemSeats.SeatBand(m, 24, Weapon, lvl: 99, br: 89, fa: 76, gx: 2, gy: 2);
+        MemSeats.SeatFrameNameId(m, 24, 298);
+        long e = Wielder.Locate(m, Weapon, new[] { Weapon }, (99, 89, 76));
+        Assert.NotEqual(0, e);
+        Assert.True(e == Band.Entry(20) || e == Band.Entry(24));
+    }
+
+    [Fact]
+    public void Locate_rejects_a_nameId_match_whose_brave_faith_dont_match_the_fingerprint()
+    {
+        // [TDD item 3, pool-overlap guard] A nameId match alone is not enough -- D1's stat
+        // cross-check exists because the enemy/player nameId pool overlap is unproven. An entry
+        // carrying the SAME nameId but the WRONG brave/faith is not a tier-1 candidate (and fails
+        // the identical base predicate in tier 2 too, so this is a flat reject, not a fallback).
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 298);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 70, fa: 40, gx: 4, gy: 7);   // wrong brave/faith
+        MemSeats.SeatFrameNameId(m, 5, 298);
+        Assert.Equal(0, Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void Locate_roster_nameId_zero_is_not_a_zero_equals_zero_trap()
+    {
+        // [TDD item 4, the 0-trap] Roster nameId unseeded (0) must be treated as "capture failed",
+        // NOT as a valid identity of 0 -- so an entry whose OWN frame nameId also reads 0 (equally
+        // unseeded) must not be accepted via a 0==0 tier-1 match. rosterNameId <= 0 skips tier 1
+        // entirely; this locates via tier 2's ordinary fp match (veto inert), same as before.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon);            // nameId defaults 0
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);    // frame nameId also unseeded (0)
+        Assert.Equal(Band.Entry(5), Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void Locate_falls_back_to_tier_two_when_no_entry_carries_the_roster_nameId()
+    {
+        // [TDD item 5, tier-2 trigger] The roster nameId capture succeeds (298), but no band
+        // entry's own frame nameId was ever seeded (reads 0) -- tier 1 finds zero candidates, so
+        // Locate falls to tier 2, whose veto explicitly passes a nameId-0 entry.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 298);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);   // frame nameId unseeded (0)
+        Assert.Equal(Band.Entry(5), Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void ResolveAnyHandNameId_returns_minus_one_when_two_roster_slots_match_with_distinct_nameIds()
+    {
+        // [TDD item 6(i)] Two roster slots both hold the weapon (one main hand, one off hand)
+        // with the SAME fp but DISTINCT nameIds -- ambiguous capture, -1 (routes Locate to tier 2).
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 100);
+        MemSeats.SeatRoster(m, 1, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon, nameId: 200);
+        Assert.Equal(-1, Wielder.ResolveAnyHandNameId(m, Weapon, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void ResolveAnyHandNameId_returns_minus_one_when_two_roster_slots_match_with_the_same_nameId()
+    {
+        // [TDD item 6(ii), B2 pin] Unlike RosterNameId (main-hand, distinct-nameId contract that
+        // Iai depends on unchanged), this any-hand sibling refuses on ANY multi-slot match -- even
+        // when both slots happen to carry nameId 100 -- because a locate write must never pick
+        // between two units.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 100);
+        MemSeats.SeatRoster(m, 1, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon, nameId: 100);
+        Assert.Equal(-1, Wielder.ResolveAnyHandNameId(m, Weapon, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void Locate_tier_two_veto_prefers_the_nameId_zero_entry_over_a_foreign_nameId_collider()
+    {
+        // [TDD item 7, B1 pin] Tier 1 is empty (neither entry carries nameId 298). Tier 2 must
+        // discriminate: the nameId-0 (unseeded) entry passes the veto, the foreign-nameId (401)
+        // collider is excluded -- so Locate returns the nameId-0 entry, never the collider.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 298);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);    // nameId unseeded (0)
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);   // foreign nameId
+        MemSeats.SeatFrameNameId(m, 10, 401);
+        Assert.Equal(Band.Entry(5), Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void LocateAll_tier_one_collects_only_nameId_matching_copies()
+    {
+        // [TDD item 8a] Both twins carry the roster-matching nameId -- tier 1 collects both,
+        // same as the plain fp-based LocateAll twin behavior (LocateAll_returns_both_twins_...).
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 89, fa: 76, rh: Weapon, nameId: 298);
+        MemSeats.SeatBand(m, 25, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        MemSeats.SeatFrameNameId(m, 25, 298);
+        MemSeats.SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        MemSeats.SeatFrameNameId(m, 28, 298);
+        var results = new List<long>();
+        Wielder.LocateAll(m, Weapon, new[] { Weapon }, (99, 89, 76), results);
+        Assert.Equal(2, results.Count);
+        Assert.Contains(Band.Entry(25), results);
+        Assert.Contains(Band.Entry(28), results);
+    }
+
+    [Fact]
+    public void LocateAll_veto_leaves_results_empty_when_only_the_foreign_nameId_collider_is_present()
+    {
+        // [TDD item 8b] SpiritualFont writes MP through LocateAll -- with only the collider
+        // present, the veto must leave results EMPTY rather than handing out the enemy's entry.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 89, fa: 76, rh: Weapon, nameId: 298);
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 99, br: 89, fa: 76, gx: 6, gy: 2);
+        MemSeats.SeatFrameNameId(m, 10, 918);
+        var results = new List<long>();
+        Wielder.LocateAll(m, Weapon, new[] { Weapon }, (99, 89, 76), results);
+        Assert.Empty(results);
     }
 
     // ---- TryResolveMainHand: main-hand-only resolution ----

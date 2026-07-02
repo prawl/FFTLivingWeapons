@@ -65,7 +65,11 @@ internal static partial class Wielder
     /// <paramref name="results"/> (cleared first). Each result is the live band entry address
     /// paired with the bearer's (lvl,br,fa) fingerprint. A benched reserve (no band entry) is
     /// silently skipped; two deployed bearers both appear. Intended for Choir, which projects a
-    /// separate aura per bearer rather than bailing on ambiguity.</summary>
+    /// separate aura per bearer rather than bailing on ambiguity.
+    /// D6: this loop already has each slot's OWN roster nameId in hand (rb + RNameId) -- read it
+    /// directly and pass it to the explicit-nameId Locate overload rather than re-resolving it
+    /// through the any-hand scan (no re-resolve round trip). Two same-fp deployed bearers stay
+    /// disambiguated per-slot (Choir's pinned two-bearer behavior).</summary>
     public static void ResolveDeployedMainHandAll(IGameMemory mem, int weaponId,
         List<(long entry, (int lvl, int br, int fa) fp)> results)
     {
@@ -78,7 +82,8 @@ internal static partial class Wielder
             if (lvl < 1 || lvl > 99) continue;                        // empty slot
             if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;   // main-hand match only
             var candFp = (lvl, (int)mem.U8(rb + Offsets.RBrave), (int)mem.U8(rb + Offsets.RFaith));
-            long addr = Locate(mem, weaponId, hand, candFp);
+            int rosterNameId = mem.U16(rb + Offsets.RNameId);          // this slot's own back-reference (u16, fail-safe)
+            long addr = Locate(mem, weaponId, hand, candFp, rosterNameId);
             if (addr == 0) continue;                                   // benched / not in this battle -> skip
             results.Add((addr, candFp));
         }
@@ -105,7 +110,8 @@ internal static partial class Wielder
     /// <see cref="ResolveDeployedMainHand"/> it does NOT bail on two wielders -- the question is only
     /// "is this weapon in play", so a main-hand signature can suppress its gate logging for a weapon
     /// nobody is fielding (a seeded/give-all reserve banks kills -> looks tier-eligible -> spams the
-    /// gate every turn even though it is benched).</summary>
+    /// gate every turn even though it is benched). D6: reads each slot's own nameId directly, same as
+    /// <see cref="ResolveDeployedMainHandAll"/> -- no re-resolve round trip.</summary>
     public static bool AnyDeployedMainHand(IGameMemory mem, int weaponId)
     {
         var hand = new List<int> { weaponId };
@@ -116,7 +122,8 @@ internal static partial class Wielder
             if (lvl < 1 || lvl > 99) continue;                        // empty slot
             if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;   // main-hand match only
             var candFp = (lvl, (int)mem.U8(rb + Offsets.RBrave), (int)mem.U8(rb + Offsets.RFaith));
-            if (Locate(mem, weaponId, hand, candFp) != 0) return true;   // deployed in this battle
+            int rosterNameId = mem.U16(rb + Offsets.RNameId);
+            if (Locate(mem, weaponId, hand, candFp, rosterNameId) != 0) return true;   // deployed in this battle
         }
         return false;
     }
@@ -131,19 +138,54 @@ internal static partial class Wielder
     /// address matching" without conflating the two failure shapes in this helper.</summary>
     public static int RosterNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp)
     {
-        int found = -1;
-        bool any = false;
+        ScanNameIdMatches(mem, weaponId, fp, mainHandOnly: true, out int count, out int first, out bool allSame);
+        if (count == 0) return -1;
+        return allSame ? first : -1;                                   // distinct nameIds among matches: ambiguous
+    }
+
+    /// <summary>D4's any-hand sibling of <see cref="RosterNameId"/>, used by <see cref="Locate"/>'s
+    /// public (implicit-resolve) overload: match roster slots by weaponId in EITHER hand (rh/lh/oh)
+    /// AND fp equality. Returns the nameId iff EXACTLY ONE roster slot matched; returns -1 on ZERO
+    /// or MORE THAN ONE matching slot -- UNLIKE <see cref="RosterNameId"/>, this refuses even when
+    /// every matching slot carries the SAME nameId (duplicated roster nameIds are a documented live
+    /// corner, Iai.cs:74-77; a locate write must never pick between two units). RosterNameId's own
+    /// main-hand/distinct-nameId contract is UNCHANGED -- Iai's arm-time capture depends on it.</summary>
+    internal static int ResolveAnyHandNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp)
+    {
+        ScanNameIdMatches(mem, weaponId, fp, mainHandOnly: false, out int count, out int first, out _);
+        return count == 1 ? first : -1;                                 // >1 slot: refuse regardless of nameId equality
+    }
+
+    /// <summary>Shared roster walk behind <see cref="RosterNameId"/> and <see cref="ResolveAnyHandNameId"/>
+    /// (D4 -- no duplicated roster scan): count every roster slot holding <paramref name="weaponId"/>
+    /// (main hand only, or any of rh/lh/oh per <paramref name="mainHandOnly"/>) whose (level,brave,faith)
+    /// equals <paramref name="fp"/>, and report the first match's nameId plus whether every match shares
+    /// that same nameId. The two callers interpret <paramref name="count"/>/<paramref name="allSameNameId"/>
+    /// under DIFFERENT multi-match policies -- see each method's own doc comment.</summary>
+    private static void ScanNameIdMatches(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,
+        bool mainHandOnly, out int count, out int firstNameId, out bool allSameNameId)
+    {
+        count = 0; firstNameId = -1; allSameNameId = true;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
             long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
             int lvl = mem.U8(rb + Offsets.RLevel);
             if (lvl < 1 || lvl > 99) continue;                        // empty slot
-            if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;    // main-hand match only
+            int rh = mem.U16(rb + Offsets.RRHand);
+            if (mainHandOnly)
+            {
+                if (rh != weaponId) continue;                          // main-hand match only
+            }
+            else
+            {
+                int lh = mem.U16(rb + Offsets.RLHand), oh = mem.U16(rb + Offsets.ROffHand);
+                if (rh != weaponId && lh != weaponId && oh != weaponId) continue;   // any hand
+            }
             if (lvl != fp.lvl || mem.U8(rb + Offsets.RBrave) != fp.br || mem.U8(rb + Offsets.RFaith) != fp.fa) continue;
             int nameId = mem.U16(rb + Offsets.RNameId);
-            if (!any) { found = nameId; any = true; }
-            else if (found != nameId) return -1;                       // distinct nameIds: ambiguous
+            if (count == 0) firstNameId = nameId;
+            else if (nameId != firstNameId) allSameNameId = false;
+            count++;
         }
-        return any ? found : -1;
     }
 }
