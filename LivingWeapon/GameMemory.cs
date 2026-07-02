@@ -14,6 +14,9 @@ internal interface IGameMemory
 {
     byte U8(long addr);
     ushort U16(long addr);
+    /// <summary>Read a 4-byte little-endian value composed from two U16 reads -- fine for a
+    /// single-threaded test fake. LiveMemory overrides with the atomic Mem.U32 (one RPM call).</summary>
+    uint U32(long addr) => (uint)(U16(addr) | (U16(addr + 2) << 16));
     /// <summary>Read an 8-byte little-endian value (used for engine pointer globals, e.g.
     /// Offsets.ActorPtr). Default composes eight U8 reads -- fine for a single-threaded test fake
     /// (no tearing risk). LiveMemory overrides with one atomic Mem.U64 (a single RPM call): an
@@ -49,6 +52,7 @@ internal sealed class LiveMemory : IGameMemory
 {
     public byte U8(long addr) => Mem.U8(addr);
     public ushort U16(long addr) => Mem.U16(addr);
+    public uint U32(long addr) => Mem.U32(addr);
     public ulong U64(long addr) => Mem.U64(addr);
     public bool TryReadBytes(long addr, int len, out byte[] buf) => Mem.TryReadBytes(addr, len, out buf);
     public byte[] ReadBytes(long addr, int len) => Mem.ReadBytes(addr, len);

@@ -217,6 +217,13 @@ internal static class Tuning
     /// (roster is not read).  Ship with the default false; only toggle for dev testing.</summary>
     public const bool TreasureAlwaysOn = false;
 
+    /// <summary>Documented default for Config.BannerToasts (the runtime value flows from
+    /// LivingWeapon.Configuration.Config, loaded by Mod.cs at startup; this constant is the
+    /// fallback when the config file can't be read). Default ON -- the tier-up callout toast
+    /// (BannerToast.cs) is the headline feature; a corrupt/missing config must fail open to it,
+    /// not silently disable it.</summary>
+    public const bool BannerToasts = true;
+
     /// <summary>Consecutive same-map-id ticks required before arming begins (~1s at 33ms).</summary>
     public const int TreasureArmStableTicks = 30;
 

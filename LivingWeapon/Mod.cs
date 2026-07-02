@@ -37,19 +37,21 @@ public class Mod : IMod
             // FFTColorCustomizer.GetUserConfigPath), falling back to modDir/Config.json (the shipped
             // default) before the user has opened the config UI.
             bool treasureAlwaysOn = Tuning.TreasureAlwaysOn;   // documented default
+            bool bannerToasts     = Tuning.BannerToasts;       // documented default
             try
             {
                 var configPath = ResolveConfigPath(modDir);
                 var cfg        = Configurable<Config>.FromFile(configPath, "FFT Living Weapons Configuration");
                 treasureAlwaysOn = cfg.TreasureAlwaysOn;
-                Log.Info($"config: TreasureAlwaysOn={treasureAlwaysOn} (from {configPath})");
+                bannerToasts     = cfg.BannerToasts;
+                Log.Info($"config: TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} (from {configPath})");
             }
             catch (Exception cfgEx)
             {
-                Log.Error($"config load failed, using default TreasureAlwaysOn={treasureAlwaysOn}: {cfgEx.Message}");
+                Log.Error($"config load failed, using defaults TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts}: {cfgEx.Message}");
             }
 
-            _engine = new Engine(modDir, treasureAlwaysOn);
+            _engine = new Engine(modDir, treasureAlwaysOn, bannerToasts);
             _engine.Start();
         }
         catch (Exception ex)

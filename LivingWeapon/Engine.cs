@@ -47,15 +47,15 @@ internal sealed class Engine
     private int _gunSlingerThrottleTick;
     private const int GunSlingerThrottleEveryNTicks = 30;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
-#if LWDEV
-    // Dev-only banner call experiment (BannerSpike.cs) -- fires once per battle, compiled out of prod.
-    private readonly BannerSpike _bannerSpike = new();
-#endif
+    private readonly BannerToast _toast;
+    private readonly BannerPipe _bannerPipe;
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
     /// <param name="treasureAlwaysOn">Override for the Treasure Master AlwaysOn gate, read from
     /// Config.TreasureAlwaysOn at startup.  Null falls back to Tuning.TreasureAlwaysOn.</param>
-    public Engine(string modDir, bool? treasureAlwaysOn = null)
+    /// <param name="bannerToasts">Override for the tier-up callout toast, read from
+    /// Config.BannerToasts at startup.  Null falls back to Tuning.BannerToasts.</param>
+    public Engine(string modDir, bool? treasureAlwaysOn = null, bool? bannerToasts = null)
     {
         _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
         _kills = _tally.Kills;
@@ -72,6 +72,8 @@ internal sealed class Engine
 #endif
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
         _live = live;
+        _bannerPipe = new BannerPipe(live);
+        _toast = new BannerToast(meta, _kills, _bannerPipe, bannerToasts ?? Tuning.BannerToasts, live);
         _turns = new TurnTracker(live);
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(Tuning.VerboseEvents));
@@ -153,9 +155,8 @@ internal sealed class Engine
         _turns.ResetBattle();
         _growth.ResetBattle();
         foreach (var sig in _signatures) sig.ResetBattle();
-#if LWDEV
-        _bannerSpike.ResetBattle();
-#endif
+        _toast.ResetBattle();
+        _bannerPipe.ResetBattle();
     }
 
     private void Tick()
@@ -242,9 +243,10 @@ internal sealed class Engine
         var ctx = new TickContext(now, onField, inLive);
         foreach (var sig in _fieldSignatures) sig.Tick(in ctx);
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
-#if LWDEV
-        _bannerSpike.Tick();   // dev banner experiment: every in-battle tick (the callout shows during mode-1 animation frames)
-#endif
+        // NOT onField-gated: the callout shows during the mode-1 cast-animation frames (BannerToast's
+        // class doc / the migrated BannerSpike lesson) -- gating on onField would sleep through it.
+        _bannerPipe.Tick();
+        _toast.Tick(changed);
         if (changed) _tally.Save();
 
         // slot9 is still the battle sentinel, but once we've been OFF the live battlefield

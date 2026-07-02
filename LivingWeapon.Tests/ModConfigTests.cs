@@ -86,4 +86,65 @@ public class ModConfigTests
         });
         Assert.Null(ex);
     }
+
+    // ---- BannerToasts: mirrors TreasureAlwaysOn's round-trip, but defaults TRUE (opt-out, not opt-in) ----
+
+    [Fact]
+    public void DefaultConfig_BannerToastsIsTrue()
+    {
+        var c = new Config();
+        Assert.True(c.BannerToasts);
+    }
+
+    [Fact]
+    public void FromFile_MissingPath_BannerToastsDefaultsTrue()
+    {
+        var dir  = TempDir();
+        var path = Path.Combine(dir, "Config.json");
+        var c    = Configurable<Config>.FromFile(path, "Test");
+        Assert.True(c.BannerToasts);
+    }
+
+    [Fact]
+    public void RoundTrip_BannerToastsFalseValue()
+    {
+        var dir  = TempDir();
+        var path = Path.Combine(dir, "Config.json");
+
+        var written = Configurable<Config>.FromFile(path, "Test");
+        written.BannerToasts = false;
+        written.Save();
+
+        var loaded = Configurable<Config>.FromFile(path, "Test");
+        Assert.False(loaded.BannerToasts);
+    }
+
+    [Fact]
+    public void RoundTrip_BannerToastsTrueValue()
+    {
+        var dir  = TempDir();
+        var path = Path.Combine(dir, "Config.json");
+
+        var written = Configurable<Config>.FromFile(path, "Test");
+        written.BannerToasts = true;
+        written.Save();
+
+        var loaded = Configurable<Config>.FromFile(path, "Test");
+        Assert.True(loaded.BannerToasts);
+    }
+
+    [Fact]
+    public void FromFile_CorruptJson_BannerToastsDefaultsTrueNoThrow()
+    {
+        var dir  = TempDir();
+        var path = Path.Combine(dir, "Config.json");
+        File.WriteAllText(path, "{ this is not valid json !!!");
+
+        var ex = Record.Exception(() =>
+        {
+            var c = Configurable<Config>.FromFile(path, "Test");
+            Assert.True(c.BannerToasts);
+        });
+        Assert.Null(ex);
+    }
 }
