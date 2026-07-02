@@ -43,4 +43,34 @@ internal sealed partial class BannerToast
     /// Returns 0 (no toast) when newTier has not advanced past prevTier.</summary>
     public static int CrossedTier(int prevTier, int newTier)
         => newTier > prevTier ? newTier : 0;
+
+    /// <summary>Weapon Chronicle kill-count milestones, DESCENDING so the scan below finds the
+    /// HIGHEST crossed milestone first. 1 is first blood.</summary>
+    private static readonly int[] Milestones = { 1000, 500, 250, 100, 1 };
+
+    /// <summary>A crossing fires ONE toast at the HIGHEST milestone crossed -- mirrors
+    /// CrossedTier's jump semantics: a tally jump that skips a milestone announces only the
+    /// highest, never one toast per skipped milestone. First blood (1) only fires from a true
+    /// zero start -- the construction prime baselines already-loaded tallies, and the dev-seed
+    /// floor (Tuning.DevKillSeed, 3) sits above 1, so a seeded weapon never announces first
+    /// blood. Returns 0 (no toast) when no milestone was crossed.</summary>
+    public static int CrossedMilestone(int prevKills, int newKills)
+    {
+        foreach (int m in Milestones)
+            if (prevKills < m && newKills >= m) return m;
+        return 0;
+    }
+
+    /// <summary>The locked Weapon Chronicle milestone wording (cite: weapon-chronicle-design,
+    /// 2026-07-02). The default arm is unreachable against the fixed Milestones table above --
+    /// kept as a safe fallback rather than an exception.</summary>
+    public static string MilestonePayload(string name, int milestone) => milestone switch
+    {
+        1 => $"{name} draws first blood!",
+        100 => $"{name} claims its 100th soul!",
+        250 => $"{name} has felled 250 foes!",
+        500 => $"500 souls rest upon {name}'s edge!",
+        1000 => $"{name}, slayer of a thousand!",
+        _ => $"{name} has felled {milestone} foes!",
+    };
 }

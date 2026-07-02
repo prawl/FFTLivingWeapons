@@ -66,7 +66,10 @@ public class BannerToastTests
     public void Crossing_enqueues_once_with_locked_wording()
     {
         var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Zwill Straightblade") };
-        var kills = new Dictionary<int, int> { [1] = 0 };
+        // Primed already-blooded (1, not 0) so this isolates the TIER crossing from the
+        // orthogonal Weapon Chronicle first-blood milestone (a true zero start also crosses
+        // milestone 1 -- see First_blood_fires_once_and_rides_the_pipe).
+        var kills = new Dictionary<int, int> { [1] = 1 };
         var pipe = new RecordingPipe();
         var bt = new BannerToast(meta, kills, pipe, enabled: true, mem: new FakeSparseMemory());
 
@@ -83,7 +86,8 @@ public class BannerToastTests
     public void Multi_tier_jump_produces_one_toast_at_highest_tier()
     {
         var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Warblade") };
-        var kills = new Dictionary<int, int> { [1] = 0 };
+        // Primed already-blooded (1, not 0) -- see the comment in Crossing_enqueues_once_with_locked_wording.
+        var kills = new Dictionary<int, int> { [1] = 1 };
         var pipe = new RecordingPipe();
         var bt = new BannerToast(meta, kills, pipe, enabled: true, mem: new FakeSparseMemory());
 
@@ -144,7 +148,8 @@ public class BannerToastTests
     public void Two_queued_toasts_commit_FIFO_exactly_once_per_show_edge()
     {
         var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha"), [2] = Meta("Beta") };
-        var kills = new Dictionary<int, int> { [1] = 0, [2] = 0 };
+        // Primed already-blooded (1, not 0) -- see the comment in Crossing_enqueues_once_with_locked_wording.
+        var kills = new Dictionary<int, int> { [1] = 1, [2] = 1 };
         var pipe = new RecordingPipe();
         var mem = new FakeSparseMemory();
         long holder = 0x2000;
@@ -201,7 +206,8 @@ public class BannerToastTests
     public void Queue_survives_ResetBattle_and_edges_rearm()
     {
         var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha") };
-        var kills = new Dictionary<int, int> { [1] = 0 };
+        // Primed already-blooded (1, not 0) -- see the comment in Crossing_enqueues_once_with_locked_wording.
+        var kills = new Dictionary<int, int> { [1] = 1 };
         var pipe = new RecordingPipe();
         var mem = new FakeSparseMemory();
         long holder = 0x4000;
@@ -238,7 +244,11 @@ public class BannerToastTests
     public void Dedupe_by_queue_membership_under_rollback()
     {
         var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha") };
-        var kills = new Dictionary<int, int> { [1] = 0 };
+        // Primed already-blooded (1, not 0), and every "rollback below threshold" below targets 1,
+        // not 0 -- this test is scoped to TIER dedupe under rollback; a literal-zero rollback would
+        // also legitimately re-arm the orthogonal Weapon Chronicle first-blood milestone (see
+        // Milestone_dedupe_by_queue_membership).
+        var kills = new Dictionary<int, int> { [1] = 1 };
         var pipe = new RecordingPipe();
         var mem = new FakeSparseMemory();
         long holder = 0x5000;
@@ -249,7 +259,7 @@ public class BannerToastTests
         bt.Tick(true);                 // crosses tier 1 -- queued
         Assert.Single(bt._queue);
 
-        kills[1] = 0;                  // rollback below threshold
+        kills[1] = 1;                  // rollback below threshold
         bt.Tick(true);                 // snapshot follows down; no new entry
         Assert.Single(bt._queue);
 
@@ -265,7 +275,7 @@ public class BannerToastTests
 
         // A fresh cross after the commit is a LEGIT re-toast (the queue no longer holds it).
         mem.U8s[holder + 0x88] = 0;
-        kills[1] = 0;
+        kills[1] = 1;
         bt.Tick(true);
         kills[1] = Tuning.ProdThresholds[0];
         bt.Tick(true);
@@ -327,7 +337,8 @@ public class BannerToastTests
     public void No_candidates_is_inert()
     {
         var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha") };
-        var kills = new Dictionary<int, int> { [1] = 0 };
+        // Primed already-blooded (1, not 0) -- see the comment in Crossing_enqueues_once_with_locked_wording.
+        var kills = new Dictionary<int, int> { [1] = 1 };
         var pipe = new RecordingPipe();   // Members left empty -- BannerPipe never located
         var bt = new BannerToast(meta, kills, pipe, enabled: true, mem: new FakeSparseMemory());
 
@@ -411,5 +422,144 @@ public class BannerToastTests
         pipe.ResetBattle();
 
         Assert.Empty(pipe.Candidates());
+    }
+
+    // ---- (15) Weapon Chronicle: locked milestone wording ----
+
+    [Theory]
+    [InlineData(1, "Kiyomori draws first blood!")]
+    [InlineData(100, "Kiyomori claims its 100th soul!")]
+    [InlineData(250, "Kiyomori has felled 250 foes!")]
+    [InlineData(500, "500 souls rest upon Kiyomori's edge!")]
+    [InlineData(1000, "Kiyomori, slayer of a thousand!")]
+    public void MilestonePayloads_match_locked_wording(int milestone, string expected)
+        => Assert.Equal(expected, BannerToast.MilestonePayload("Kiyomori", milestone));
+
+    // ---- (16) CrossedMilestone: pure policy ----
+
+    [Theory]
+    [InlineData(0, 1, 1)]
+    [InlineData(0, 105, 100)]
+    [InlineData(99, 260, 250)]
+    [InlineData(999, 1000, 1000)]
+    [InlineData(100, 100, 0)]
+    [InlineData(250, 999, 500)]
+    [InlineData(3, 50, 0)]
+    [InlineData(1, 99, 0)]
+    [InlineData(3, 4, 0)]
+    public void CrossedMilestone_semantics(int prevKills, int newKills, int expected)
+        => Assert.Equal(expected, BannerToast.CrossedMilestone(prevKills, newKills));
+
+    // ---- (17) Prime-at-construction swallows a milestone already behind a preloaded tally ----
+
+    [Fact]
+    public void Prime_swallows_milestones_on_preloaded_tally()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Kiyomori") };
+        var kills = new Dictionary<int, int> { [1] = 150 };
+        var pipe = new RecordingPipe();
+        var bt = new BannerToast(meta, kills, pipe, enabled: true, mem: new FakeSparseMemory());
+
+        bt.Tick(tallyChanged: true);
+        Assert.Empty(bt._queue);
+
+        kills[1] = 250;
+        bt.Tick(tallyChanged: true);
+
+        Assert.Single(bt._queue);
+        Assert.Equal(BannerToast.MilestonePayload("Kiyomori", 250), bt._queue[0].payload);
+    }
+
+    // ---- (18) LOAD-BEARING: first blood fires once and rides the callout pipe ----
+
+    [Fact]
+    public void First_blood_fires_once_and_rides_the_pipe()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Kiyomori") };
+        var kills = new Dictionary<int, int> { [1] = 0 };
+        var pipe = new RecordingPipe();
+        var mem = new FakeSparseMemory();
+        long holder = 0x7000;
+        pipe.Members.Add(holder);
+        var bt = new BannerToast(meta, kills, pipe, enabled: true, mem: mem);
+
+        kills[1] = 1;
+        bt.Tick(tallyChanged: true);
+
+        Assert.Single(bt._queue);
+        Assert.Equal("Kiyomori draws first blood!", bt._queue[0].payload);
+
+        mem.U8s[holder + 0x88] = 1;
+        bt.Tick(tallyChanged: false);   // rising edge: commit
+
+        Assert.Single(pipe.Commits);
+        Assert.Equal("Kiyomori draws first blood!", pipe.Commits[0].payload);
+        Assert.Empty(bt._queue);
+
+        mem.U8s[holder + 0x88] = 0;
+        bt.Tick(tallyChanged: false);   // falling edge
+        mem.U8s[holder + 0x88] = 1;
+        bt.Tick(tallyChanged: false);   // rising edge again, but the queue is empty
+
+        Assert.Single(pipe.Commits);
+    }
+
+    // ---- (19) A same-jump tier crossing enqueues BEFORE the milestone (FIFO shows tier first) ----
+
+    [Fact]
+    public void Tier_and_milestone_same_jump_enqueue_tier_first()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Kiyomori") };
+        var kills = new Dictionary<int, int> { [1] = 0 };
+        var pipe = new RecordingPipe();
+        var bt = new BannerToast(meta, kills, pipe, enabled: true, mem: new FakeSparseMemory());
+
+        kills[1] = 105;   // crosses tier 3 (ProdThresholds[2]=50) AND milestone 100
+        bt.Tick(tallyChanged: true);
+
+        Assert.Equal(2, bt._queue.Count);
+        Assert.Equal(3, bt._queue[0].tier);
+        Assert.Equal(-100, bt._queue[1].tier);
+        string ord = BannerToast.OrdinalSuffix(105);
+        Assert.Equal($"Kiyomori has gained its 105{ord} kill and has grown to +3!", bt._queue[0].payload);
+        Assert.Equal("Kiyomori claims its 100th soul!", bt._queue[1].payload);
+    }
+
+    // ---- (20) Milestone dedupe is queue-membership, same as tier ----
+
+    [Fact]
+    public void Milestone_dedupe_by_queue_membership()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Kiyomori") };
+        var kills = new Dictionary<int, int> { [1] = 0 };
+        var pipe = new RecordingPipe();
+        var bt = new BannerToast(meta, kills, pipe, enabled: true, mem: new FakeSparseMemory());
+
+        kills[1] = 100;
+        bt.Tick(tallyChanged: true);   // crosses tier 3 AND milestone 100 -- both queued
+        Assert.Single(bt._queue.FindAll(q => q.tier == -100));
+
+        kills[1] = 60;                 // roll back below the milestone (still tier 3)
+        bt.Tick(tallyChanged: true);
+        kills[1] = 100;                // re-cross 100 while the first milestone toast is still queued
+        bt.Tick(tallyChanged: true);
+
+        Assert.Single(bt._queue.FindAll(q => q.tier == -100));
+    }
+
+    // ---- (21) The dev-seed floor (3) is below every milestone, so a seeded weapon never first-bloods ----
+
+    [Fact]
+    public void Dev_seed_floor_never_first_bloods()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Kiyomori") };
+        var kills = new Dictionary<int, int> { [1] = Tuning.DevKillSeed };
+        var pipe = new RecordingPipe();
+        var bt = new BannerToast(meta, kills, pipe, enabled: true, mem: new FakeSparseMemory());
+
+        kills[1] = Tuning.DevKillSeed + 1;
+        bt.Tick(tallyChanged: true);
+
+        Assert.Empty(bt._queue);
     }
 }

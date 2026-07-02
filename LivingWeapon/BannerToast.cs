@@ -43,14 +43,19 @@ internal sealed partial class BannerToast
     private readonly IGameMemory _mem;
 
     private readonly Dictionary<int, int> _tiers = new();
+    private readonly Dictionary<int, int> _counts = new();
+    // EVENT-KEY CONVENTION: the tuple's tier slot doubles as the queue-dedupe event key. Tier
+    // crossings use the real tier (1..3); Weapon Chronicle milestone crossings use the NEGATED
+    // milestone (-1, -100, -250, -500, -1000) so the two kinds of event can never collide.
     internal readonly List<(int weaponId, int tier, string payload)> _queue = new();
     private readonly Dictionary<long, bool> _edge = new();
 
     /// <param name="enabled">Config.BannerToasts (or Tuning.BannerToasts fallback).</param>
     /// <remarks>PRIME AT CONSTRUCTION: Engine constructs this AFTER its LWDEV dev-seed block has
-    /// already floored every weapon's tally, so snapshotting _tiers here from the CURRENT kills
-    /// baselines the seeded tallies immediately -- a dev build's floor-every-weapon-to-P3 seed
-    /// never fires a toast (Prime_never_fires_on_seeded_tally).</remarks>
+    /// already floored every weapon's tally, so snapshotting _tiers/_counts here from the CURRENT
+    /// kills baselines the seeded tallies immediately -- a dev build's floor-every-weapon-to-P3
+    /// seed never fires a tier toast (Prime_never_fires_on_seeded_tally) or a milestone toast
+    /// (Prime_swallows_milestones_on_preloaded_tally).</remarks>
     public BannerToast(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, ICalloutPipe pipe,
                         bool enabled, IGameMemory? mem = null)
     {
@@ -59,7 +64,11 @@ internal sealed partial class BannerToast
         _pipe = pipe;
         _enabled = enabled;
         _mem = mem ?? new LiveMemory();
-        foreach (int id in meta.Keys) _tiers[id] = Tuning.TierOf(kills, id);
+        foreach (int id in meta.Keys)
+        {
+            _tiers[id] = Tuning.TierOf(kills, id);
+            _counts[id] = kills.TryGetValue(id, out int k) ? k : 0;
+        }
     }
 
     public void Tick(bool tallyChanged)
@@ -82,11 +91,21 @@ internal sealed partial class BannerToast
             // The snapshot follows the tally BOTH ways -- a tally rollback silently lowers the
             // baseline so a legit later re-cross toasts again (Dedupe_by_queue_membership_under_rollback).
             _tiers[id] = newTier;
-            if (crossed == 0) continue;
-            if (_queue.Exists(q => q.weaponId == id && q.tier == crossed)) continue;   // dedupe: queue membership
-            var meta = _meta[id];
-            string? sigLabel = crossed == 3 ? meta.Signature?.DisplayLabel : null;
-            Enqueue(id, crossed, Payload(meta.Name, crossed, _kills[id], sigLabel));
+            if (crossed != 0 && !_queue.Exists(q => q.weaponId == id && q.tier == crossed))   // dedupe: queue membership
+            {
+                var meta = _meta[id];
+                string? sigLabel = crossed == 3 ? meta.Signature?.DisplayLabel : null;
+                Enqueue(id, crossed, Payload(meta.Name, crossed, _kills[id], sigLabel));
+            }
+
+            // Weapon Chronicle: milestone check AFTER the tier block above, for EVERY weapon (not
+            // just a crossing one) -- a same-jump crossing enqueues the tier toast first, so FIFO
+            // shows tier before milestone.
+            int newKills = _kills.TryGetValue(id, out int k2) ? k2 : 0;
+            int milestone = CrossedMilestone(_counts[id], newKills);
+            _counts[id] = newKills;
+            if (milestone != 0 && !_queue.Exists(q => q.weaponId == id && q.tier == -milestone))
+                Enqueue(id, -milestone, MilestonePayload(_meta[id].Name, milestone));
         }
     }
 
@@ -150,23 +169,24 @@ internal sealed partial class BannerToast
     private int _f2Cycle;
 
     /// <summary>DEV on-demand test key: each F2 press queues the next payload in a cycle of the
-    /// REAL wording shapes (max-length heap-path stress, tier-1 bare-plus, tier-3 signature) so
-    /// every variant can be seen and screenshotted on a live callout without engineering kills.
-    /// Distinct synthetic weaponIds (0/-1/-2) keep the cycle out of the dedupe's way; pressing
-    /// F2 twice on the SAME variant while it is still queued dedupes by design. GetAsyncKeyState
-    /// is a global key-state query, safe from the loop thread; the tick only runs in-battle so
-    /// out-of-battle presses are naturally inert.</summary>
+    /// REAL wording shapes (max-length heap-path stress, tier-1 bare-plus, tier-3 signature,
+    /// Weapon Chronicle milestone) so every variant can be seen and screenshotted on a live
+    /// callout without engineering kills. Distinct synthetic weaponIds (0/-1/-2/-3) keep the
+    /// cycle out of the dedupe's way; pressing F2 twice on the SAME variant while it is still
+    /// queued dedupes by design. GetAsyncKeyState is a global key-state query, safe from the
+    /// loop thread; the tick only runs in-battle so out-of-battle presses are naturally inert.</summary>
     private void DevTestKey()
     {
         bool down = (GetAsyncKeyState(VkF2) & 0x8000) != 0;
         bool pressed = down && !_f2Was;
         _f2Was = down;
         if (!pressed) return;
-        var (id, tier, payload) = (_f2Cycle++ % 3) switch
+        var (id, tier, payload) = (_f2Cycle++ % 4) switch
         {
             0 => (0, 3, "Zwill Straightblade has gained its 999th kill and has unlocked Testfire!"),
             1 => (-1, 1, Payload("Kiyomori", 1, 5, null)),
-            _ => (-2, 3, Payload("Kiyomori", 3, 50, "Kobu")),
+            2 => (-2, 3, Payload("Kiyomori", 3, 50, "Kobu")),
+            _ => (-3, -1000, MilestonePayload("Kiyomori", 1000)),
         };
         if (_queue.Exists(q => q.weaponId == id && q.tier == tier)) return;
         Enqueue(id, tier, payload);
