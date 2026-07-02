@@ -1,0 +1,9 @@
+id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,opRisk,Verified Live?,notes
+99,1,Javelin,Skewer,Polearm,Shop,7,PA x WP,15%,PA,—,PA +10%,PA +20%,PA +30%,low,,"T1 -- growth only per design; promoted to R2 (the family identity -- vanilla R1 was a trap); line-best 15% evade"
+100,2,Spear,Footman's Spear,Polearm,Shop,9,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,low,,T2 -- growth only per design; raw-stat baseline the rest of the line is measured against
+101,3,Mythril Spear,Frostpoint,Polearm,Shop,8,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,med,,"eligible; innate Ice (only Ice spear, WP tied to Footman's); sig OPEN"
+102,3,Partisan,Stormpike,Polearm,Shop,9,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,med,,"eligible; innate Lightning (only Lightning spear, +25% in rain); sig OPEN"
+103,4,Obelisk,Tombspire,Polearm,Shop,11,missing-HP (f69),10%,—,May inflict Immobilize,—,—,—,med,,"missing-HP formula (f69) -> no PA lever (same wall as Muramasa); reach executioner -- pin at range 2, Jump the finisher"
+104,5,Holy Lance,Holy Lance,Polearm,Poach (Sekhret),12,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30% + Cavalier's Charge (Speed +3 mounted),low,,"TAKEN = Cavalier's Charge (+3): Speed held at natural+3 while riding a chocobo (mount bit +0x1B4 & 0x80 + the Afterimage Speed-lane hold); ledger LIVE 2026-06-27 (DEV); innate Holy"
+105,6,Dragon Whisker,Dragon Whisker,Polearm,"Poach (Red Dragon, rare 1/8)",15,PA x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,high,,"iconic capstone -- strictly-highest spear WP, the ultimate Jump platform; pays with zero utility; sig OPEN"
+106,6,Javelin II,Wyrmpike,Polearm,"Move-Find (Nelveska Temple, rare)",13,PA x WP,10%,PA,May inflict Doom,PA +10%,PA +20%,PA +30%,high,,"T6 split-apex -- only Wind spear + on-hit Doom, two-handed (trades the shield); wins element/Doom where Dragon Whisker wins WP; sig OPEN"
