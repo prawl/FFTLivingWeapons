@@ -34,8 +34,9 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Hold the Materia Blade wielder's PA at round(naturalPA × UltimaMul[tier][hpBand]).
     /// Always-on (no tier gate); tier only indexes UltimaMul to raise the whole curve.
-    /// Main-hand only (the gift commands from the main hand), guarded, fail-safe no-op.</summary>
-    private void HoldUltima(long s, WeaponMeta m, int tier, int level, int brave, int faith)
+    /// Main-hand only (the gift commands from the main hand), guarded, fail-safe no-op.
+    /// rosterNameId (D7) threads through to ReadHp's two-tier-with-veto locate.</summary>
+    private void HoldUltima(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
     {
         if (!OwnsPa(m)) return;
         long addr = s + Offsets.CPa;
@@ -48,7 +49,7 @@ internal sealed partial class GrowthEngine
             rec = (cur0, cur0);                                 // first sight: own the byte at natural
         }
 
-        var (hp, maxHp) = ReadHp(level, brave, faith);   // (0,0) when no band match -> policy leaves PA natural
+        var (hp, maxHp) = ReadHp(_mem, level, brave, faith, rosterNameId);   // (0,0) when no band match -> policy leaves PA natural
         int target = Clamp(UltimaPolicy.PaHeld(rec.natural, hp, maxHp, tier, Tuning.UltimaMul));
 
         int cur = _mem.U8(addr);

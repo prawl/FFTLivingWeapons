@@ -97,24 +97,57 @@ internal sealed partial class GrowthEngine
     /// fingerprint -- the combat struct doesn't carry HP, and the static array freezes on
     /// battle restart (stale HP breaks the HP-gated guard after a restart). Returns (0,0)
     /// if no band slot matches. Only called for conditional (HP-gated) signatures.
-    /// Prefers real-position entries over (0,0) twins.</summary>
-    private (int hp, int maxHp) ReadHp(int level, int brave, int faith)
+    /// Prefers real-position entries over (0,0) twins.
+    /// TWO-TIER (D7): tier 1 (rosterNameId &gt; 0) requires an exact band-entry nameId match;
+    /// a miss falls back to tier 2 (today's plain fingerprint scan, veto-hardened -- an entry
+    /// whose nameId reads NONZERO and differs from rosterNameId is excluded). Per D8, the
+    /// nameId read is UNGUARDED (the shipped Iai/Wielder pattern): Mem's U16 fail-safes to 0 on
+    /// an unreadable address, and a guarded Readable pre-filter would make tier 1 permanently
+    /// dead against FakeSparseMemory's allowlist-true-only fake in every test.</summary>
+    internal static (int hp, int maxHp) ReadHp(IGameMemory mem, int level, int brave, int faith, int rosterNameId = 0)
+    {
+        if (rosterNameId > 0)
+        {
+            var (found1, hp1, maxHp1) = ReadHpScan(mem, level, brave, faith, rosterNameId, exact: true);
+            if (found1) return (hp1, maxHp1);
+        }
+        var (_, hp2, maxHp2) = ReadHpScan(mem, level, brave, faith, rosterNameId, exact: false);
+        return (hp2, maxHp2);
+    }
+
+    /// <summary>One full band pass under either mode: <paramref name="exact"/> = tier 1 (requires
+    /// the band entry's nameId == rosterNameId, unguarded read; only called with rosterNameId
+    /// &gt; 0); !exact = tier 2 (today's fingerprint match, plus the D2 veto when rosterNameId
+    /// &gt; 0 -- a foreign nonzero nameId excludes the entry, 0/unseeded passes).</summary>
+    private static (bool found, int hp, int maxHp) ReadHpScan(IGameMemory mem, int level, int brave, int faith,
+                                                              int rosterNameId, bool exact)
     {
         (int hp, int maxHp) result = (0, 0);
-        bool foundReal = false;
+        bool foundReal = false, found = false;
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long addr = Offsets.BandReadBase + (long)s * Offsets.CombatStride;
-            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            if (!Band.LevelMatchesRoster(level, _mem.U8(addr + Offsets.ALevel))) continue;   // level = pre-battle roster value
-            if (_mem.U8(addr + Offsets.ABrave) != brave) continue;
-            if (_mem.U8(addr + Offsets.AFaith) != faith) continue;
-            bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
+            if (!mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
+            if (!Band.LevelMatchesRoster(level, mem.U8(addr + Offsets.ALevel))) continue;   // level = pre-battle roster value
+            if (mem.U8(addr + Offsets.ABrave) != brave) continue;
+            if (mem.U8(addr + Offsets.AFaith) != faith) continue;
+            if (exact)
+            {
+                int entryNameId = mem.U16(addr + Offsets.ANameId);   // unguarded fail-safe read (Iai pattern, D8)
+                if (entryNameId != rosterNameId) continue;
+            }
+            else if (rosterNameId > 0)
+            {
+                int entryNameId = mem.U16(addr + Offsets.ANameId);
+                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // D2 veto
+            }
+            bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
             if (foundReal && !realPos) continue;   // prefer real over twin
-            result = (_mem.U16(addr + Offsets.AHp), _mem.U16(addr + Offsets.AMaxHp));
+            result = (mem.U16(addr + Offsets.AHp), mem.U16(addr + Offsets.AMaxHp));
+            found = true;
             if (realPos) foundReal = true;
         }
-        return result;
+        return (found, result.hp, result.maxHp);
     }
 
     /// <summary>Hold a TIMED flat stat bonus (Galewind's Speed +3 for the wielder's first ForTurns

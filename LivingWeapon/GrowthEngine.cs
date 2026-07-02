@@ -33,8 +33,12 @@ internal sealed partial class GrowthEngine
     private readonly IGameMemory _mem;
     private readonly Dictionary<long, (int natural, int target, double factor)> _applied = new();
     private readonly Dictionary<long, int> _timedNatural = new();   // timed-grant stat addr -> captured natural
-    private readonly Dictionary<int, long> _structForSlot = new();   // roster slot -> combat-struct base
+    // roster slot -> (combat-struct base, tier it was located at: 1 = nameId-exact, 2 = fingerprint
+    // fallback). The tier travels with the cache so LocateStruct's revalidate uses the SAME
+    // predicate that found it (D5/S4) -- a tier-2 struct never gets held to tier-1's stricter bar.
+    private readonly Dictionary<int, (long addr, int tier)> _structForSlot = new();
     private readonly HashSet<int> _ambiguousLogged = new();           // slots whose multi-match was already logged this battle
+    private readonly HashSet<int> _fallbackLogged = new();            // slots whose tier-2 fallback was already logged this battle
     private bool _logged;
 
     public GrowthEngine(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns,
@@ -57,6 +61,7 @@ internal sealed partial class GrowthEngine
         _grantLogged.Clear();
         _heldSupports.Clear();   // no writes: the per-battle struct is gone/rebuilding
         _ambiguousLogged.Clear();
+        _fallbackLogged.Clear();
         _logged = false;
     }
 
@@ -67,6 +72,7 @@ internal sealed partial class GrowthEngine
         {
             long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
             if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;          // roster slot mapped?
+            int rosterNameId = _mem.U16(rb + Offsets.RNameId);              // this slot's roster nameId (D5)
             int level = _mem.U8(rb + Offsets.RLevel);
             if (level < 1 || level > 99) continue;                         // empty slot
             int brave = _mem.U8(rb + Offsets.RBrave);
@@ -78,7 +84,7 @@ internal sealed partial class GrowthEngine
             var hands = Hands(rb);
             if (hands.Count == 0) continue;                                // unarmed / non-overhaul both hands
 
-            long s = LocateStruct(r, level, brave, faith, hands);
+            long s = LocateStruct(r, level, brave, faith, hands, rosterNameId);
             if (s == 0) continue;
 
             // Signatures are per-weapon (independent fields); stat growth is shared (one PA/MA/Speed),
@@ -99,12 +105,12 @@ internal sealed partial class GrowthEngine
                 {
                     int hp = 0, maxHp = 0;
                     if (m.Signature != null && m.Signature.HpBelow > 0)    // only conditional sigs read HP
-                        (hp, maxHp) = ReadHp(level, brave, faith);
+                        (hp, maxHp) = ReadHp(_mem, level, brave, faith, rosterNameId);
                     HoldSignature(s, r, weapon, m.Name, m.Signature, tier, hp, maxHp, brave, faith, pickedSupport);
                     if (m.Signature != null && (m.Signature.ForTurns > 0 || m.Signature.Mounted))   // flat stat grant (timed or mount-gated)
                         HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
-                    HoldAfterimage(s, m, tier, level, brave, faith);       // Swiftedge: ramping Speed (owns the speed lane)
-                    HoldUltima(s, m, tier, level, brave, faith);           // Materia Blade: HP%-scaled PA hold (owns PA lane)
+                    HoldAfterimage(s, m, tier, level, brave, faith, rosterNameId);   // Swiftedge: ramping Speed (owns the speed lane)
+                    HoldUltima(s, m, tier, level, brave, faith, rosterNameId);       // Materia Blade: HP%-scaled PA hold (owns PA lane)
                 }
                 if (Route(s, m, tier, out long addr, out double factor))
                     if (!plan.TryGetValue(addr, out double ex) || factor > ex) plan[addr] = factor;

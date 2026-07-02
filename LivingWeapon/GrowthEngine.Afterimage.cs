@@ -28,8 +28,9 @@ internal sealed partial class GrowthEngine
     internal static bool OwnsSpeed(WeaponMeta m) => m.Signature is { Afterimage: true };
 
     /// <summary>Hold Swiftedge's Speed: tier growth at every tier, plus the +3 Afterimage ramp on
-    /// top. Main-hand only (the gift commands from the main hand), guarded, fail-safe no-op.</summary>
-    private void HoldAfterimage(long s, WeaponMeta m, int tier, int level, int brave, int faith)
+    /// top. Main-hand only (the gift commands from the main hand), guarded, fail-safe no-op.
+    /// rosterNameId (D7) threads through to ReadHp's two-tier-with-veto locate.</summary>
+    private void HoldAfterimage(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
     {
         if (!OwnsSpeed(m)) return;
         long addr = s + Offsets.CSpeed;
@@ -46,7 +47,7 @@ internal sealed partial class GrowthEngine
         if (AfterimagePolicy.IsActive(m.Signature, tier))
         {
             int turns = _turns.Turns(level, brave, faith);
-            int hp = ReadHp(level, brave, faith).hp;             // 0 if no band match -> policy treats as unreadable
+            int hp = ReadHp(_mem, level, brave, faith, rosterNameId).hp;   // 0 if no band match -> policy treats as unreadable
             next = AfterimagePolicy.Step(rec.st, turns, hp, Tuning.AfterimageSpeedCap);
         }
         else next = AfterimageState.Empty;                       // below +3: ramp dormant, growth only
