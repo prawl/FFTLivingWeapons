@@ -219,15 +219,246 @@ def poke(h, addr):
               "every new attempt (each rise burns the queued toast).")
 
 
+# --- stamp mode: rung 3.5, force the BANNER OBJECT's show-state machine by pure writes ---
+# Vector captured live 2026-07-02 17:27 (struct_watch 0x436B4435A0 across a natural Focus
+# callout, t=+49.975 show / t=+51.083 hide): flags +0x1A0=1 +0x1A5=0 +0x1DC=1 +0x232=1,
+# state byte +0x280 idle 0x0B -> 1 (appearing) -> 2 (showing); anchor coord u16s at
+# +0x148/+0x150/+0x158 (left stale on purpose -- bubble reuses the last natural anchor).
+# The show CALL (0x140409A00) executed from the DLL renders nothing (V1/V2 blank), so the
+# hypothesis is a poll-driven state machine: write the state, let the engine's own update
+# animate it. Class identity guard: [obj+0x218] == 0xD (the orchestrator's own check).
+S_FLAGS = {0x1A0: 1, 0x1A5: 0, 0x1DC: 1, 0x232: 1}
+S_STATE = 0x280
+S_SHOW, S_IDLE = 1, 0x0B
+
+
+def stamp(h, addr):
+    if rd(h, addr, 0x290) is None:
+        sys.exit("banner object unreadable -- NOT stamping")
+    b = rd(h, addr, 0x290)
+    if int.from_bytes(b[0x218:0x21C], "little") != 0xD:
+        sys.exit(f"[obj+0x218] = {int.from_bytes(b[0x218:0x21C], 'little'):#x} != 0xD -- wrong object, NOT stamping")
+    state = b[S_STATE]
+    # 1 = actively appearing; 2 is the post-show RESTING state (live capture 2026-07-02:
+    # 0x0B -> 1 -> 2 and stays 2 after the hide flags drop) -- 2 is safe to stamp over.
+    if state == 1:
+        sys.exit(f"state byte +0x280 = {state} (mid-show) -- retry at a quiet moment")
+    pre = {off: b[off] for off in S_FLAGS}
+    pre[S_STATE] = state
+    print(f"pre-stamp: state {state:#x} flags " +
+          " ".join(f"+{o:03x}={b[o]}" for o in S_FLAGS))
+    for off, val in S_FLAGS.items():
+        if not wr(h, addr + off, bytes([val])):
+            sys.exit(f"WPM failed at +{off:03x} -- aborting (nothing else written)")
+    if not wr(h, addr + S_STATE, bytes([S_SHOW])):
+        sys.exit("WPM failed on the state byte")
+    print("vector stamped, state -> 1. WATCH THE SCREEN.")
+    t0 = time.perf_counter()
+    last = S_SHOW
+    engaged = False
+    while time.perf_counter() - t0 < POKE_TRACE_SECS:
+        time.sleep(0.05)
+        cur = rd(h, addr + S_STATE, 1)
+        if cur is None:
+            continue
+        if cur[0] != last:
+            t = time.perf_counter() - t0
+            print(f"t=+{t:5.2f}s state {last:#x} -> {cur[0]:#x}")
+            engaged = True
+            last = cur[0]
+    if engaged:
+        print("state machine ADVANCED -- the engine consumed our state (even with no bubble, "
+              "that is a live mechanism; bisect flags/coords next).")
+    else:
+        for off, val in pre.items():
+            wr(h, addr + off, bytes([val]))
+        print("state byte never moved in 5s -- engine ignored the stamp; pre-state restored. "
+              "The update path likely keys off something outside this object.")
+
+
+# --- stamp2: the FULL show vector -- banner object AND its child animation tracks ---
+# Evidence 2026-07-02 18:03 (CE access-watch on child#2+0x6D): the child tracks are polled
+# per-frame by REAL in-module code (0x140409ADB, 55 hits/s) and armed by a real setter
+# (0x1404099E3) -- the VM only does banner-level bookkeeping. The all-children struct_watch
+# (17:44, natural Focus at t=+28.84) gives the exact arm vector:
+#   child#2 (appear): +0x68/+0x69/+0x6A = 1 (0x6A is a 1-frame pulse), +0x6D = 1,
+#                     lifetime floats +0x4C = 0.0715f / +0x50 = +0x54 = 4.2896f
+#   child#7 (loop):   +0x68/+0x69/+0x6A = 1, same floats
+# then the banner-object flags (stamp's vector). stamp (banner only) failed because the
+# poller saw dead child tracks; this stamps children FIRST, banner flags after.
+C_APPEAR_IDX, C_LOOP_IDX = 1, 6            # 0-based slots in the child vector (+0x268)
+C_FLOATS = {0x4C: 0x3D926B19, 0x50: 0x40894467, 0x54: 0x40894467}
+C_ARM = (0x68, 0x69, 0x6A, 0x6D)
+
+
+def stamp2(h, addr):
+    b = rd(h, addr, 0x290)
+    if b is None or int.from_bytes(b[0x218:0x21C], "little") != 0xD:
+        sys.exit("banner object failed the +0x218==0xD check -- NOT stamping")
+    if b[S_STATE] == 1:
+        sys.exit("state byte +0x280 = 1 (mid-show) -- retry at a quiet moment")
+    vec = rd(h, addr + 0x268, 16)
+    base = int.from_bytes(vec[0:8], "little")
+    count = (int.from_bytes(vec[8:16], "little") - base) // 8
+    if count != 12:
+        sys.exit(f"child vector has {count} entries (expected 12) -- layout drift, NOT stamping")
+    ptrs = rd(h, base, 96)
+    kids = [int.from_bytes(ptrs[i * 8:i * 8 + 8], "little") for i in range(12)]
+    c2, c7 = kids[C_APPEAR_IDX], kids[C_LOOP_IDX]
+    pre = {}
+    for kid, arm in ((c2, C_ARM), (c7, (0x68, 0x69, 0x6A))):
+        kb = rd(h, kid, 0x70)
+        if kb is None:
+            sys.exit(f"child 0x{kid:X} unreadable -- NOT stamping")
+        for off in list(C_FLOATS) + list(arm):
+            pre[(kid, off, 4 if off in C_FLOATS else 1)] = kb[off:off + (4 if off in C_FLOATS else 1)]
+    ob = rd(h, addr, 0x290)
+    for off in list(S_FLAGS) + [S_STATE]:
+        pre[(addr, off, 1)] = ob[off:off + 1]
+    print(f"children: appear 0x{c2:X} loop 0x{c7:X} -- stamping full vector")
+    for kid, arm in ((c2, C_ARM), (c7, (0x68, 0x69, 0x6A))):
+        for off, val in C_FLOATS.items():
+            wr(h, kid + off, val.to_bytes(4, "little"))
+        for off in arm:
+            wr(h, kid + off, b"\x01")
+    for off, val in S_FLAGS.items():
+        wr(h, addr + off, bytes([val]))
+    wr(h, addr + S_STATE, bytes([S_SHOW]))
+    print("stamped. WATCH THE SCREEN.")
+    t0 = time.perf_counter()
+    lastf = C_FLOATS[0x50].to_bytes(4, "little")
+    engaged = []
+    while time.perf_counter() - t0 < POKE_TRACE_SECS:
+        time.sleep(0.05)
+        f = rd(h, c2 + 0x50, 4)
+        s = rd(h, addr + S_STATE, 1)
+        if f is not None and f != lastf:
+            engaged.append(f"t=+{time.perf_counter() - t0:5.2f}s child#2 timer {lastf.hex()} -> {f.hex()}")
+            lastf = f
+        if s is not None and s[0] not in (S_SHOW,):
+            engaged.append(f"t=+{time.perf_counter() - t0:5.2f}s obj state -> {s[0]:#x}")
+            break
+    for line in engaged[:10]:
+        print(line)
+    if engaged:
+        print("ENGINE ENGAGED the stamped tracks (fields moving on their own).")
+    else:
+        for (tgt, off, n), val in pre.items():
+            wr(h, tgt + off, val)
+        print("nothing moved in 5s -- vector restored; the poller keys on more than these fields.")
+
+
+# --- stamp3: the 3-byte widget test -- force the TEXT WIDGET itself to its shown state ---
+# Widget-neighborhood watch 2026-07-02 18:11 (natural Focus at t=+50.08): the text widget's
+# rest state differs from its fully-shown state in exactly THREE bytes -- +0x95 suppress
+# latch (1 at rest, 0 shown), +0xC7 alpha (ramps to 0xFF), +0xCC active (1 shown). The
+# color/alpha-mult floats animate during the fade but SETTLE at their rest values. If the
+# renderer draws from widget state, these three bytes are the whole show (text only -- the
+# bubble frame is a sibling widget, same trick later). Restores after the trace window.
+W_SUPPRESS, W_ALPHA, W_ACTIVE = 0x95, 0xC7, 0xCC
+
+
+def stamp3(h, addr):
+    b = rd(h, addr, 0xD0)
+    if b is None:
+        sys.exit("widget unreadable -- NOT stamping")
+    # +0x95 is a first-show/reset latch: 1 only before the widget's FIRST show, 0 ever
+    # after (live read 18:20 -- post-show rest is 0/0). Only +0xCC discriminates mid-show.
+    if b[W_ACTIVE] != 0:
+        sys.exit(f"widget mid-show (+0xCC={b[W_ACTIVE]}) -- retry at a quiet moment")
+    pre_alpha, pre_sup = b[W_ALPHA], b[W_SUPPRESS]
+    print(f"pre-stamp: +0x95={pre_sup} +0xC7={pre_alpha:#04x} +0xCC=0 -- writing shown state")
+    wr(h, addr + W_SUPPRESS, b"\x00")
+    wr(h, addr + W_ALPHA, b"\xff")
+    wr(h, addr + W_ACTIVE, b"\x01")
+    print("stamped 3 bytes. WATCH THE SCREEN -- text should be visible NOW if this is the layer.")
+    time.sleep(POKE_TRACE_SECS)
+    cur = rd(h, addr, 0xD0)
+    if cur is not None:
+        print(f"after 5s: +0x95={cur[W_SUPPRESS]} +0xC7={cur[W_ALPHA]:#04x} +0xCC={cur[W_ACTIVE]}"
+              " (engine rewrites here mean the show/hide path noticed us)")
+    wr(h, addr + W_SUPPRESS, bytes([pre_sup]))
+    wr(h, addr + W_ALPHA, bytes([pre_alpha]))
+    wr(h, addr + W_ACTIVE, b"\x00")
+    print("restored rest state.")
+
+
+# --- stamp4: the FULL CHAIN -- banner flags + child tracks + text-widget bytes at once ---
+# Rationale (18:25): every layer stamped alone held or engaged yet drew nothing -- the
+# scene-graph hypothesis: parent visibility gates child rendering, so the chain only draws
+# when banner object AND animation tracks AND widget are all in shown state simultaneously.
+# Usage: stamp4 <bannerObjHex> <widgetHex>. Restores everything at the end of the window.
+def stamp4(h, obj, widget):
+    b = rd(h, obj, 0x290)
+    if b is None or int.from_bytes(b[0x218:0x21C], "little") != 0xD:
+        sys.exit("banner object failed the +0x218==0xD check -- NOT stamping")
+    wbytes = rd(h, widget, 0xD0)
+    if wbytes is None:
+        sys.exit("widget unreadable -- NOT stamping")
+    if wbytes[W_ACTIVE] != 0 or b[S_STATE] == 1:
+        sys.exit("mid-show somewhere (widget +0xCC or obj +0x280) -- retry at a quiet moment")
+    vec = rd(h, obj + 0x268, 16)
+    base = int.from_bytes(vec[0:8], "little")
+    if (int.from_bytes(vec[8:16], "little") - base) // 8 != 12:
+        sys.exit("child vector layout drift -- NOT stamping")
+    ptrs = rd(h, base, 96)
+    kids = [int.from_bytes(ptrs[i * 8:i * 8 + 8], "little") for i in range(12)]
+    c2, c7 = kids[C_APPEAR_IDX], kids[C_LOOP_IDX]
+    pre_alpha, pre_sup = wbytes[W_ALPHA], wbytes[W_SUPPRESS]
+    pre_state = b[S_STATE]
+    print(f"full chain: obj 0x{obj:X} kids 0x{c2:X}/0x{c7:X} widget 0x{widget:X}")
+    for kid, arm in ((c2, C_ARM), (c7, (0x68, 0x69, 0x6A))):
+        for off, val in C_FLOATS.items():
+            wr(h, kid + off, val.to_bytes(4, "little"))
+        for off in arm:
+            wr(h, kid + off, b"\x01")
+    wr(h, widget + W_SUPPRESS, b"\x00")
+    wr(h, widget + W_ALPHA, b"\xff")
+    wr(h, widget + W_ACTIVE, b"\x01")
+    for off, val in S_FLAGS.items():
+        wr(h, obj + off, bytes([val]))
+    wr(h, obj + S_STATE, bytes([S_SHOW]))
+    print("FULL CHAIN STAMPED. WATCH THE SCREEN.")
+    time.sleep(POKE_TRACE_SECS)
+    cur = rd(h, widget, 0xD0)
+    curo = rd(h, obj, 0x290)
+    if cur is not None and curo is not None:
+        print(f"after 5s: widget alpha {cur[W_ALPHA]:#04x} active {cur[W_ACTIVE]} | "
+              f"obj state {curo[S_STATE]:#x} act {curo[0x1A0]}")
+    # full restore: children flags+floats, widget, obj flags, state back to pre
+    for kid, arm in ((c2, C_ARM), (c7, (0x68, 0x69, 0x6A))):
+        for off in C_FLOATS:
+            wr(h, kid + off, b"\x00\x00\x00\x00")
+        for off in arm:
+            wr(h, kid + off, b"\x00")
+    wr(h, widget + W_SUPPRESS, bytes([pre_sup]))
+    wr(h, widget + W_ALPHA, bytes([pre_alpha]))
+    wr(h, widget + W_ACTIVE, b"\x00")
+    for off in S_FLAGS:
+        wr(h, obj + off, b"\x00")
+    wr(h, obj + S_STATE, bytes([pre_state]))
+    print("restored.")
+
+
 def main():
-    if len(sys.argv) < 3 or sys.argv[1] not in ("info", "watch", "poke"):
+    if len(sys.argv) < 3 or sys.argv[1] not in ("info", "watch", "poke", "stamp", "stamp2", "stamp3", "stamp4"):
         sys.exit(__doc__)
     mode, addr = sys.argv[1], int(sys.argv[2], 16)
-    h = open_game(write=(mode == "poke"))
+    h = open_game(write=(mode in ("poke", "stamp", "stamp2", "stamp3", "stamp4")))
     if mode == "info":
         info(h, addr)
     elif mode == "watch":
         watch(h, addr, float(sys.argv[3]) if len(sys.argv) > 3 else 30.0)
+    elif mode == "stamp":
+        stamp(h, addr)
+    elif mode == "stamp2":
+        stamp2(h, addr)
+    elif mode == "stamp3":
+        stamp3(h, addr)
+    elif mode == "stamp4":
+        if len(sys.argv) < 4:
+            sys.exit("stamp4 needs <bannerObjHex> <widgetHex>")
+        stamp4(h, addr, int(sys.argv[3], 16))
     else:
         poke(h, addr)
 
