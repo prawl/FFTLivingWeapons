@@ -47,6 +47,10 @@ internal sealed class Engine
     private int _gunSlingerThrottleTick;
     private const int GunSlingerThrottleEveryNTicks = 30;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
+#if LWDEV
+    // Dev-only banner call experiment (BannerSpike.cs) -- fires once per battle, compiled out of prod.
+    private readonly BannerSpike _bannerSpike = new();
+#endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
     /// <param name="treasureAlwaysOn">Override for the Treasure Master AlwaysOn gate, read from
@@ -149,6 +153,9 @@ internal sealed class Engine
         _turns.ResetBattle();
         _growth.ResetBattle();
         foreach (var sig in _signatures) sig.ResetBattle();
+#if LWDEV
+        _bannerSpike.ResetBattle();
+#endif
     }
 
     private void Tick()
@@ -235,6 +242,9 @@ internal sealed class Engine
         var ctx = new TickContext(now, onField, inLive);
         foreach (var sig in _fieldSignatures) sig.Tick(in ctx);
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
+#if LWDEV
+        _bannerSpike.Tick();   // dev banner experiment: every in-battle tick (the callout shows during mode-1 animation frames)
+#endif
         if (changed) _tally.Save();
 
         // slot9 is still the battle sentinel, but once we've been OFF the live battlefield
