@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -48,14 +48,22 @@ internal sealed class Engine
     private const int GunSlingerThrottleEveryNTicks = 30;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
     private readonly BannerToast _toast;
-    private readonly BannerPipe _bannerPipe;
+    private readonly bool _bannerToastsEnabled;
+    private readonly PromptSwap _promptSwap;
+    private readonly PromptSwapHook _promptSwapHook;
+#if LWDEV
+    private readonly ShowSpike _showSpike;   // F8 chase instrument, dev-only scaffolding
+#endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
     /// <param name="treasureAlwaysOn">Override for the Treasure Master AlwaysOn gate, read from
     /// Config.TreasureAlwaysOn at startup.  Null falls back to Tuning.TreasureAlwaysOn.</param>
     /// <param name="bannerToasts">Override for the tier-up callout toast, read from
     /// Config.BannerToasts at startup.  Null falls back to Tuning.BannerToasts.</param>
-    public Engine(string modDir, bool? treasureAlwaysOn = null, bool? bannerToasts = null)
+    /// <param name="devSeedKills">Override for Config.DevSeedKills, read at startup. DEV builds
+    /// only (compiled out of Release entirely): null/true seeds every weapon's kill tally as
+    /// before; false starts every tally untouched so tiers are earned naturally.</param>
+    public Engine(string modDir, bool? treasureAlwaysOn = null, bool? bannerToasts = null, bool? devSeedKills = null)
     {
         _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
         _kills = _tally.Kills;
@@ -63,8 +71,9 @@ internal sealed class Engine
 #if LWDEV
         // DEV build only: seed every weapon to max tier for fast verification. Compiled out of
         // Release entirely (Tuning.DevSeedAllKills is a const false there, so a runtime `if` would
-        // leave provably-unreachable code -- CS0162).
-        if (Tuning.DevSeedAllKills)
+        // leave provably-unreachable code -- CS0162). devSeedKills lets a dev disable the seed
+        // (Config.DevSeedKills=false) to start every weapon at 0 kills and earn tiers naturally.
+        if (Tuning.DevSeedAllKills && devSeedKills != false)
         {
             Tuning.SeedKills(meta.Keys, _kills, Tuning.DevKillSeed);
             Log.Info($"DEV: force-seeded all {meta.Count} weapons to at least {Tuning.DevKillSeed} kills -- every weapon starts with +3 effects active for fast testing.");
@@ -72,8 +81,13 @@ internal sealed class Engine
 #endif
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
         _live = live;
-        _bannerPipe = new BannerPipe(live);
-        _toast = new BannerToast(meta, _kills, _bannerPipe, bannerToasts ?? Tuning.BannerToasts, live);
+        _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
+        _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
+        _promptSwap = new PromptSwap(_toast, live);
+        _promptSwapHook = new PromptSwapHook(_promptSwap);
+#if LWDEV
+        _showSpike = new ShowSpike(live);
+#endif
         _turns = new TurnTracker(live);
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(Tuning.VerboseEvents));
@@ -123,6 +137,19 @@ internal sealed class Engine
         Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
     }
 
+    /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves
+    /// reloaded.sharedlib.hooks (controllers are not resolvable at construction time).
+    /// Production arms the facing-prompt swap here (gated on Config.BannerToasts, AC4: disabled =
+    /// never armed); the LWDEV ShowSpike tap instrument arms unconditionally after it (dev-only
+    /// scaffolding, hook-stacking on the same address is standard Reloaded behavior).</summary>
+    public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks hooks)
+    {
+        if (_bannerToastsEnabled) _promptSwapHook.Arm(hooks);
+#if LWDEV
+        _showSpike.Arm(hooks);
+#endif
+    }
+
     public void Start()
     {
         _cts = new CancellationTokenSource();
@@ -155,8 +182,8 @@ internal sealed class Engine
         _turns.ResetBattle();
         _growth.ResetBattle();
         foreach (var sig in _signatures) sig.ResetBattle();
-        _toast.ResetBattle();
-        _bannerPipe.ResetBattle();
+        // The toast QUEUE deliberately survives battle edges (Patrick-confirmed ruling A) --
+        // PromptSwap is stateless (no per-battle state to reset).
     }
 
     private void Tick()
@@ -243,10 +270,14 @@ internal sealed class Engine
         var ctx = new TickContext(now, onField, inLive);
         foreach (var sig in _fieldSignatures) sig.Tick(in ctx);
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
-        // NOT onField-gated: the callout shows during the mode-1 cast-animation frames (BannerToast's
-        // class doc / the migrated BannerSpike lesson) -- gating on onField would sleep through it.
-        _bannerPipe.Tick();
+        // NOT onField-gated: the facing prompt this queues into can render during the mode-1
+        // cast-animation frames too (BannerToast's class doc / the migrated BannerSpike lesson) --
+        // gating on onField would sleep through it. Delivery itself needs no Tick: PromptSwapHook
+        // fires from the game's own SetTextString call, not from this loop.
         _toast.Tick(changed);
+#if LWDEV
+        _showSpike.Tick();
+#endif
         if (changed) _tally.Save();
 
         // slot9 is still the battle sentinel, but once we've been OFF the live battlefield

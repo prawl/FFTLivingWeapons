@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Reflection;
 using LivingWeapon.Configuration;
+using Reloaded.Hooks.Definitions;
 using Reloaded.Mod.Interfaces;
+using Reloaded.Mod.Interfaces.Internal;
 
 namespace LivingWeapon;
 
@@ -18,7 +20,43 @@ public class Mod : IMod
 
     public Mod() => StartEngine();
 
-    public void Start(IModLoader? modLoader) => StartEngine();
+    public void Start(IModLoader? modLoader)
+    {
+        StartEngine();
+        InjectReloadedHooks(modLoader);
+    }
+
+    /// <summary>IModV2 route: Reloaded-II 2.4.0 prefers StartEx when present; controllers
+    /// (IReloadedHooks from reloaded.sharedlib.hooks) are only resolvable here, never in the
+    /// constructor (mirrors FFTHandsFree.Mod). Fail-soft: without hooks the production
+    /// banner-toast callout delivery (and the dev-only ShowSpike chase instrument) degrade;
+    /// everything else runs.</summary>
+    public void StartEx(IModLoaderV1 loaderApi, IModConfigV1 modConfig)
+    {
+        StartEngine();
+        InjectReloadedHooks(loaderApi);
+    }
+
+    private void InjectReloadedHooks(IModLoaderV1? loader)
+    {
+        try
+        {
+            var hooksRef = loader?.GetController<IReloadedHooks>();
+            if (hooksRef != null && hooksRef.TryGetTarget(out var hooks) && hooks != null)
+            {
+                _engine?.InjectHooks(hooks);
+                Log.Info("IReloadedHooks resolved and injected");
+            }
+            else
+            {
+                Log.Info("IReloadedHooks controller not available -- is reloaded.sharedlib.hooks loaded?");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("IReloadedHooks injection failed -- " + ex.Message);
+        }
+    }
 
     private void StartEngine()
     {
@@ -38,20 +76,22 @@ public class Mod : IMod
             // default) before the user has opened the config UI.
             bool treasureAlwaysOn = Tuning.TreasureAlwaysOn;   // documented default
             bool bannerToasts     = Tuning.BannerToasts;       // documented default
+            bool devSeedKills     = true;                      // documented default (dev builds only)
             try
             {
                 var configPath = ResolveConfigPath(modDir);
                 var cfg        = Configurable<Config>.FromFile(configPath, "FFT Living Weapons Configuration");
                 treasureAlwaysOn = cfg.TreasureAlwaysOn;
                 bannerToasts     = cfg.BannerToasts;
-                Log.Info($"config: TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} (from {configPath})");
+                devSeedKills     = cfg.DevSeedKills;
+                Log.Info($"config: TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} (from {configPath})");
             }
             catch (Exception cfgEx)
             {
-                Log.Error($"config load failed, using defaults TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts}: {cfgEx.Message}");
+                Log.Error($"config load failed, using defaults TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills}: {cfgEx.Message}");
             }
 
-            _engine = new Engine(modDir, treasureAlwaysOn, bannerToasts);
+            _engine = new Engine(modDir, treasureAlwaysOn, bannerToasts, devSeedKills);
             _engine.Start();
         }
         catch (Exception ex)

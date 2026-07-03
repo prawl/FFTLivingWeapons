@@ -58,4 +58,29 @@ public class FakeSparseMemoryTests
         Assert.True(m.Writable(0x5000, 1));
         Assert.False(m.Writable(0x5001, 1));
     }
+
+    [Fact]
+    public void WriteBytes_records_into_WrittenBytes_and_invokes_OnWrite()
+    {
+        var m = new FakeSparseMemory();
+        var hookCalls = new System.Collections.Generic.List<(long addr, byte[] bytes)>();
+        m.OnWrite = (addr, bytes) => hookCalls.Add((addr, bytes));
+
+        m.WriteBytes(0x6000, new byte[] { 1, 2, 3, 4 });
+
+        Assert.Single(m.WrittenBytes);
+        Assert.Equal(0x6000, m.WrittenBytes[0].addr);
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, m.WrittenBytes[0].bytes);
+        Assert.Single(hookCalls);
+        Assert.Equal(0x6000, hookCalls[0].addr);
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, hookCalls[0].bytes);
+    }
+
+    [Fact]
+    public void WriteBytes_works_without_OnWrite_hook_wired()
+    {
+        var m = new FakeSparseMemory();
+        m.WriteBytes(0x7000, new byte[] { 9 });
+        Assert.Single(m.WrittenBytes);
+    }
 }

@@ -32,7 +32,8 @@
   },
   "IsUniversalMod": false,
   "ModDependencies": [
-    "fftivc.utility.modloader"
+    "fftivc.utility.modloader",
+    "reloaded.sharedlib.hooks"
   ],
   "OptionalDependencies": [],
   "SupportedAppId": [

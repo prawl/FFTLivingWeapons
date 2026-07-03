@@ -3,52 +3,33 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Native surface a BannerToast drives to hijack the game's own battle-callout bubble.
-/// Candidates() returns the located callout holder(s) -- empty until BannerPipe's locate
-/// succeeds; Commit swaps a validated payload into the holder's next in-flight show. Kept as a
-/// seam so BannerToast is fully unit-testable without the native call: BannerPipe is the sole
-/// production implementer, RecordingPipe (BannerToastTests) is the test double.</summary>
-internal interface ICalloutPipe
-{
-    IReadOnlyList<long> Candidates();
-    void Commit(long holder, string payload);
-}
-
 /// <summary>
-/// Tier-up announcement via the live-proven battle-callout hijack (migrated from the dev spike
-/// BannerSpike.cs into production 2026-07-02 -- see docs/LIVE_LEDGER.md Uncertain). A kill tally
-/// crossing a tier queues a toast; the poll below re-commits the head of that queue onto the
-/// game's own callout bubble the next time it naturally shows.
+/// Tier-up / Weapon Chronicle milestone toast QUEUE. A kill tally crossing a tier or milestone
+/// enqueues a toast; delivery is owned by PromptSwap (swaps the toast into the Wait-state facing
+/// prompt the next time one renders -- a player-held UI slot, no scheduling contention), which
+/// dequeues the head via TryTake once the facing-prompt text has matched. This class decides only
+/// WHAT to say and WHEN it qualifies -- wording policy lives in BannerToast.Policy.cs.
 ///
-/// The poll is NEVER onField-gated: the spike's hard-won lesson (v6, 2026-07-02) is that the
-/// callout shows during the ability-cast animation, when battleMode drops to 1 and onField reads
-/// false -- an onField-gated poll sleeps through the exact window the show flag pulses, which is
-/// how the spike's first live run missed every banner.
-///
-/// The native surface lives behind ICalloutPipe (BannerPipe in production) so this class never
-/// touches game memory directly -- every path here is exercised by BannerToastTests against a
-/// RecordingPipe test double.
+/// The queue is cross-thread-safe (loop-thread enqueue via DetectCrossings/the LWDEV DevProbe/
+/// DevTestKey; PromptSwap.TryPrepareSwap dequeues from the game's own text-setter thread), so every
+/// touch point routes through the three locked members below (_lock) so the queue stays safe
+/// regardless of which thread reaches it.
 /// </summary>
 internal sealed partial class BannerToast
 {
-    // holder+0x88: pulses 1 for the banner's ~1s life, proven by a controller struct-diff during
-    // a natural cast (BannerSpike provenance, 2026-07-02).
-    private const long ShowFlagOffset = 0x88;
     private const int QueueCap = 8;
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly ICalloutPipe _pipe;
     private readonly bool _enabled;
-    private readonly IGameMemory _mem;
 
     private readonly Dictionary<int, int> _tiers = new();
     private readonly Dictionary<int, int> _counts = new();
+    private readonly object _lock = new();
     // EVENT-KEY CONVENTION: the tuple's tier slot doubles as the queue-dedupe event key. Tier
     // crossings use the real tier (1..3); Weapon Chronicle milestone crossings use the NEGATED
     // milestone (-1, -100, -250, -500, -1000) so the two kinds of event can never collide.
     internal readonly List<(int weaponId, int tier, string payload)> _queue = new();
-    private readonly Dictionary<long, bool> _edge = new();
 
     /// <param name="enabled">Config.BannerToasts (or Tuning.BannerToasts fallback).</param>
     /// <remarks>PRIME AT CONSTRUCTION: Engine constructs this AFTER its LWDEV dev-seed block has
@@ -56,14 +37,11 @@ internal sealed partial class BannerToast
     /// kills baselines the seeded tallies immediately -- a dev build's floor-every-weapon-to-P3
     /// seed never fires a tier toast (Prime_never_fires_on_seeded_tally) or a milestone toast
     /// (Prime_swallows_milestones_on_preloaded_tally).</remarks>
-    public BannerToast(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, ICalloutPipe pipe,
-                        bool enabled, IGameMemory? mem = null)
+    public BannerToast(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, bool enabled)
     {
         _meta = meta;
         _kills = kills;
-        _pipe = pipe;
         _enabled = enabled;
-        _mem = mem ?? new LiveMemory();
         foreach (int id in meta.Keys)
         {
             _tiers[id] = Tuning.TierOf(kills, id);
@@ -79,70 +57,96 @@ internal sealed partial class BannerToast
         DevTestKey();
 #endif
         if (tallyChanged) DetectCrossings();
-        Poll();
     }
 
     private void DetectCrossings()
     {
         foreach (int id in _meta.Keys)
         {
+            var meta = _meta[id];
             int newTier = Tuning.TierOf(_kills, id);
             int crossed = CrossedTier(_tiers[id], newTier);
             // The snapshot follows the tally BOTH ways -- a tally rollback silently lowers the
             // baseline so a legit later re-cross toasts again (Dedupe_by_queue_membership_under_rollback).
             _tiers[id] = newTier;
-            if (crossed != 0 && !_queue.Exists(q => q.weaponId == id && q.tier == crossed))   // dedupe: queue membership
+
+            // Weapon Chronicle milestone check runs every pass (not just a tier-crossing one) so a
+            // milestone-only jump still fires. Computed here, ahead of the merge decision below, so
+            // both crossed AND milestone reflect the SAME tally jump.
+            int newKills = _kills.TryGetValue(id, out int k2) ? k2 : 0;
+            int milestone = CrossedMilestone(_counts[id], newKills);
+            _counts[id] = newKills;
+
+            if (crossed != 0 && milestone == 1)
             {
-                var meta = _meta[id];
+                // First blood landing on the SAME kill that crosses a tier: ONE merged toast,
+                // keyed on the tier crossing (not the milestone's negated key) -- the milestone-1
+                // side is intentionally never separately enqueued. Higher milestones (100+) can
+                // never coincide with a fresh weapon's very first kill, so they always fall
+                // through to the two-toasts path below.
+                if (!Contains(id, crossed))
+                {
+                    string? sigLabel = crossed == 3 ? meta.Signature?.DisplayLabel : null;
+                    Enqueue(id, crossed, FirstBloodTierPayload(meta.Name, crossed, sigLabel));
+                }
+                continue;
+            }
+
+            if (crossed != 0 && !Contains(id, crossed))   // dedupe: queue membership
+            {
                 string? sigLabel = crossed == 3 ? meta.Signature?.DisplayLabel : null;
                 Enqueue(id, crossed, Payload(meta.Name, crossed, _kills[id], sigLabel));
             }
 
-            // Weapon Chronicle: milestone check AFTER the tier block above, for EVERY weapon (not
-            // just a crossing one) -- a same-jump crossing enqueues the tier toast first, so FIFO
-            // shows tier before milestone.
-            int newKills = _kills.TryGetValue(id, out int k2) ? k2 : 0;
-            int milestone = CrossedMilestone(_counts[id], newKills);
-            _counts[id] = newKills;
-            if (milestone != 0 && !_queue.Exists(q => q.weaponId == id && q.tier == -milestone))
-                Enqueue(id, -milestone, MilestonePayload(_meta[id].Name, milestone));
+            // FIFO: a same-jump tier crossing enqueues before the milestone toast.
+            if (milestone != 0 && !Contains(id, -milestone))
+                Enqueue(id, -milestone, MilestonePayload(meta.Name, milestone));
         }
     }
 
-    private void Enqueue(int weaponId, int tier, string payload)
+    /// <summary>Locked membership check -- both DetectCrossings' dedupe checks and DevTestKey's
+    /// cycle guard route through here so no queue read happens outside the lock.</summary>
+    private bool Contains(int weaponId, int tier)
     {
-        _queue.Add((weaponId, tier, payload));
-        if (_queue.Count <= QueueCap) return;
-        // Stale news loses: an overflowing queue drops the OLDEST toast, not the newest.
-        var dropped = _queue[0];
-        _queue.RemoveAt(0);
-        Log.Info($"banner-toast: queue at cap ({QueueCap}) -- dropped stale toast for weapon {dropped.weaponId} tier {dropped.tier}");
+        lock (_lock) return _queue.Exists(q => q.weaponId == weaponId && q.tier == tier);
     }
 
-    private void Poll()
+    /// <summary>Locked enqueue. Internal: also the concurrency-hammer test seam
+    /// (Concurrent_enqueue_and_drain_is_safe), so DevProbe/DevTestKey inherit thread safety for
+    /// free. QueueCap drop-oldest stays inside the lock.</summary>
+    internal void Enqueue(int weaponId, int tier, string payload)
     {
-        foreach (long addr in _pipe.Candidates())
+        lock (_lock)
         {
-            bool up = _mem.U8(addr + ShowFlagOffset) == 1;
-            // Two-sample edge: the FIRST observation of an address -- a freshly-located
-            // candidate, or the first poll right after ResetBattle wiped _edge -- only baselines
-            // and never fires, even if already high. Without this, a show flag held true across
-            // a battle boundary would misread as a brand-new rise the instant the module
-            // re-arms (Queue_survives_ResetBattle_and_edges_rearm).
-            bool hasBaseline = _edge.TryGetValue(addr, out bool last);
-            if (hasBaseline && up && !last && _queue.Count > 0)
-            {
-                _pipe.Commit(addr, _queue[0].payload);
-                _queue.RemoveAt(0);
-            }
-            _edge[addr] = up;
+            _queue.Add((weaponId, tier, payload));
+            if (_queue.Count <= QueueCap) return;
+            // Stale news loses: an overflowing queue drops the OLDEST toast, not the newest.
+            var dropped = _queue[0];
+            _queue.RemoveAt(0);
+            Log.Info($"banner-toast: queue at cap ({QueueCap}) -- dropped stale toast for weapon {dropped.weaponId} tier {dropped.tier}");
         }
     }
 
-    /// <summary>Re-arm for the next battle. The queue SURVIVES (user-locked carry policy: a
-    /// battle-winning tier-up kill toasts next battle rather than being lost) -- only the
-    /// per-candidate edge state resets, so a stale held-high flag can't misfire (see Poll).</summary>
-    public void ResetBattle() => _edge.Clear();
+    /// <summary>Locked non-empty check, kept as a general-purpose queue-state read so no caller
+    /// ever reaches into _queue outside _lock.</summary>
+    internal bool HasPending
+    {
+        get { lock (_lock) return _queue.Count > 0; }
+    }
+
+    /// <summary>Locked dequeue -- PromptSwap's delivery seam (TryPrepareSwap, once the facing-
+    /// prompt prefix has matched). Empty queue is a fast no-op (false); no PutBack -- the prefix
+    /// match gates every call, so a mismatched prompt never touches the queue.</summary>
+    internal bool TryTake(out (int weaponId, int tier, string payload) toast)
+    {
+        lock (_lock)
+        {
+            if (_queue.Count == 0) { toast = default; return false; }
+            toast = _queue[0];
+            _queue.RemoveAt(0);
+            return true;
+        }
+    }
 
 #if LWDEV
     private const int ProbeAfterTicks = 300;
@@ -188,7 +192,7 @@ internal sealed partial class BannerToast
             2 => (-2, 3, Payload("Kiyomori", 3, 50, "Kobu")),
             _ => (-3, -1000, MilestonePayload("Kiyomori", 1000)),
         };
-        if (_queue.Exists(q => q.weaponId == id && q.tier == tier)) return;
+        if (Contains(id, tier)) return;
         Enqueue(id, tier, payload);
         Log.Info($"banner-toast: DEV F2 test toast queued -- \"{payload}\"");
     }

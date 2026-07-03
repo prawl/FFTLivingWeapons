@@ -30,6 +30,9 @@
   <ItemGroup>
     <PackageReference Include="Reloaded.Mod.Interfaces" Version="2.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- Interface-only package; the IReloadedHooks instance is injected by the loader from the
+         reloaded.sharedlib.hooks mod (declared in ModConfig.json), mirroring FFTHandsFree. -->
+    <PackageReference Include="Reloaded.Hooks.Definitions" Version="1.11.0" />
   </ItemGroup>
 
   <ItemGroup>

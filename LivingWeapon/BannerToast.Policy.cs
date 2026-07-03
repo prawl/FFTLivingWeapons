@@ -73,4 +73,16 @@ internal sealed partial class BannerToast
         1000 => $"{name}, slayer of a thousand!",
         _ => $"{name} has felled {milestone} foes!",
     };
+
+    /// <summary>The locked wording for a first-blood kill that ALSO crosses a tier in the same
+    /// DetectCrossings pass -- the two events merge into one toast rather than queuing twice
+    /// (only possible for milestone 1; higher milestones can never coincide with a fresh weapon's
+    /// first kill). Mirrors Payload's tier-3-signature-unlock arm.</summary>
+    public static string FirstBloodTierPayload(string name, int tier, string? sigLabel)
+    {
+        int t = Math.Clamp(tier, 1, 3);
+        if (t == 3 && !string.IsNullOrEmpty(sigLabel))
+            return $"{name} draws first blood and has unlocked {sigLabel}!";
+        return $"{name} draws first blood and has grown to {Tuning.Suffix[t].Trim()}!";
+    }
 }

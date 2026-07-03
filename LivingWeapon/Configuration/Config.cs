@@ -21,4 +21,11 @@ public class Config : Configurable<Config>
                  "to disable the announcement entirely (growth itself is unaffected). Default: on.")]
     [DefaultValue(true)]
     public bool BannerToasts { get; set; } = true;
+
+    [DisplayName("Dev: Seed All Kill Tallies")]
+    [Description("DEV builds only: pre-seed every weapon's kill tally to +3 on load for fast testing. " +
+                 "Turn off to start every weapon at 0 kills so tiers are earned naturally. Has no " +
+                 "effect in release builds (seeding is compiled out).")]
+    [DefaultValue(true)]
+    public bool DevSeedKills { get; set; } = true;
 }

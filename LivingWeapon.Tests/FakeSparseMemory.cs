@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LivingWeapon;
 
@@ -16,6 +17,12 @@ namespace LivingWeapon.Tests;
 ///   TerrainBlocks  -- TryReadBytes serves a block registered here (keyed by base addr).
 ///   U32s           -- for PE header reads (U32 = two U16 reads combined).
 ///   ReadCount      -- counts how many times each address has been read via U8.
+///
+/// Extended for the (now-retired) callout on-demand suites: the default IGameMemory.WriteBytes is
+/// a silent no-op, which left a multi-byte write (e.g. a linger-arm dword) unobservable.
+/// WriteBytes now records into WrittenBytes AND invokes the optional OnWrite hook so a test can
+/// fold memory writes into the same ordered op log as native calls -- kept as a generic harness
+/// for any future suite that needs write-order assertions, even with its original consumer gone.
 /// </summary>
 internal sealed class FakeSparseMemory : IGameMemory
 {
@@ -24,6 +31,8 @@ internal sealed class FakeSparseMemory : IGameMemory
     public readonly HashSet<long> WritableAddrs   = new();
     public readonly Dictionary<long, byte>   Written = new();
     public readonly Dictionary<long, ushort> WrittenU16 = new();
+    public readonly List<(long addr, byte[] bytes)> WrittenBytes = new();
+    public Action<long, byte[]>? OnWrite;
 
     // TreasureMaster extensions
     public readonly HashSet<long>             ReadableAddrs  = new();
@@ -43,6 +52,12 @@ internal sealed class FakeSparseMemory : IGameMemory
     public bool Writable(long a, int n) => WritableAddrs.Contains(a);
     public void W8(long a, byte v) { Written[a] = v; U8s[a] = v; }
     public void W16(long a, ushort v) { WrittenU16[a] = v; U16s[a] = v; }
+
+    public void WriteBytes(long addr, byte[] data)
+    {
+        WrittenBytes.Add((addr, (byte[])data.Clone()));
+        OnWrite?.Invoke(addr, data);
+    }
 
     // U32 support: ArmAudit reads 4-byte PE fields as two U16 reads, or via U8x4.
     // We override TryReadBytes so the fingerprint path works, and expose U8 for U32
