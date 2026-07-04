@@ -281,6 +281,7 @@ public class FlightRecorderTests
                 Flight.RequestFlush("error");
                 Flight.DrainPending();
                 Flight.FlushBattleEnd();
+                Flight.FlushBattleStart();
             });
             Assert.Null(ex);   // pure no-ops, nothing throws, nothing queued anywhere
 
@@ -295,8 +296,36 @@ public class FlightRecorderTests
             Assert.Null(ex2);
             var flightDir = Path.Combine(dir, "flight");
             Assert.True(Directory.Exists(flightDir));
-            Assert.Single(Directory.GetFiles(flightDir, "flight_*.jsonl"));
+            var files = Directory.GetFiles(flightDir, "flight_*.jsonl");
+            Assert.Single(files);
+            // NO-ACCUMULATION pin (stage-2 verifier follow-up): the pre-Init record must NOT have
+            // been buffered and replayed into the post-Init flush -- only "after-init" may appear.
+            string body = File.ReadAllText(files[0]);
+            Assert.Contains("after-init", body);
+            Assert.DoesNotContain("before-init", body);
         }
         finally { Flight.Reset(); }   // never leak a live recorder into a later test
+    }
+
+    // ---- (10) battle-START flush: archives the prior ring on the enter edge. Live-motivated:
+    // three straight sessions produced ZERO archives because every one ended in a process kill
+    // before any battle-EXIT edge fired (the documented hard-crash loss mode) -- the enter edge
+    // of the NEXT battle is the reliable moment the previous ring can still be saved. ----
+    [Fact]
+    public void FlushBattleStart_archives_the_prior_ring_on_the_enter_edge()
+    {
+        Flight.Reset();
+        try
+        {
+            var dir = TempDir();
+            Flight.Init(dir);
+            Flight.Record("t", "between-battles");
+            Flight.FlushBattleStart();
+            var files = Directory.GetFiles(Path.Combine(dir, "flight"), "flight_*.jsonl");
+            Assert.Single(files);
+            Assert.Contains("battle-start", files[0]);          // trigger named in the filename
+            Assert.Contains("between-battles", File.ReadAllText(files[0]));
+        }
+        finally { Flight.Reset(); }
     }
 }

@@ -222,6 +222,11 @@ internal sealed class Engine
         if (edge == BattleEdge.Entered)
         {
             ModLogger.Log($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
+            // Archive the ring BEFORE the new battle's events pour in: sessions ending in a process
+            // kill (deploys, crashes) never fire the exit-edge flush, so the enter edge is the
+            // reliable rescue point for the PREVIOUS battle's tail (live-observed 2026-07-04: three
+            // sessions, zero archives, all ended by kills). Loop thread -- synchronous is the norm here.
+            Flight.FlushBattleStart();
             // Reset per-battle state on ENTER too. A battle RESTART can re-enter WITHOUT a clean Exit
             // (the slot0/slot9 sentinels stick -- slot0-quit-stick-trap), which left Larceny's stolen-buff
             // ledger alive into the new battle: the engine wipes statuses at battle start, but Larceny's

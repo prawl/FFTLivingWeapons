@@ -43,6 +43,13 @@ internal static class Flight
     /// KillTally.Save() (S2), never from the game's SetTextString thread.</summary>
     public static void FlushBattleEnd() => _core?.Flush("battle-exit");
 
+    /// <summary>Synchronous battle-ENTER flush -- archives whatever the ring accumulated since the
+    /// last flush (the previous battle's tail + inter-battle events). Live-motivated 2026-07-04:
+    /// three straight sessions produced no archives because each ended in a process kill before any
+    /// exit edge fired; the NEXT battle's enter edge is the reliable moment that data can still be
+    /// saved. Same loop-thread-only contract as <see cref="FlushBattleEnd"/>.</summary>
+    public static void FlushBattleStart() => _core?.Flush("battle-start");
+
     /// <summary>Test-only: drop the current core so a later <see cref="Init"/> starts fresh, and
     /// so a test that called Init doesn't leak a live recorder (with a real modDir/flight folder)
     /// into every later test in the assembly. Mirrors ModLogger.Reset().</summary>
