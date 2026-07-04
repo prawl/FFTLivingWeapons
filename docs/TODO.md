@@ -1,12 +1,11 @@
 TODO's
-- Galewind doesn't work
-- Outrider pistol only works outside of battles
 - Finish the Samurai Swords
 - Tune the Rods to not be as strong
 - Replace the Stormbrand (it's sorta lame)
 - Fix the swords art when swinging
 - Claymore is being held in two hands but not benefitting from doublehand
 - Address all user feedback
+- Galewind doesn't work
 - Give the mod a flight recorder.
 - Figure out how to make the mod work in French
 - Migrate the remaining lossy-detection siblings (CharmLock/EagleEye/Larceny/Maim/Ricochet) to the cache + rearm
