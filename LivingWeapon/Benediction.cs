@@ -91,7 +91,7 @@ internal sealed partial class Benediction : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info(active
+            ModLogger.Log(active
                 ? $"benediction ACTIVE -- Sanctus Staff is the last player to act (tier {tier}); ally HP rises boosted +{m.Signature.HealBoostPct}%"
                 : $"benediction inactive -- another unit now holds the last-actor latch (last player main-hand id {_tracker.LastPlayerMainHand})");
         }
@@ -127,14 +127,14 @@ internal sealed partial class Benediction : ISignature
             if (newHp == hp)
             {
                 // overheal / already at max (LifeSap.NewHp also guards hp <= 0 -> a dead ally is never revived)
-                Log.Info($"benediction: ally heal +{rise} not boosted -- band slot {s} already at/near max ({hp}/{mhp})");
+                ModLogger.LogDebug($"benediction: ally heal +{rise} not boosted -- band slot {s} already at/near max ({hp}/{mhp})");
                 continue;
             }
 
             LifeSap.WriteHp(_mem, addr, newHp);
             _state.Consume(s, newHp);   // our write is not a heal event (no re-boost)
             boosted!.Add(fp);
-            Log.Info($"benediction: ally heal +{rise} boosted by {bonus} ({m.Signature.HealBoostPct}% of {rise}) -- band slot {s} HP {hp}->{newHp}/{mhp}");
+            ModLogger.Log($"benediction: ally heal +{rise} boosted by {bonus} ({m.Signature.HealBoostPct}% of {rise}) -- band slot {s} HP {hp}->{newHp}/{mhp}");
         }
     }
 }

@@ -197,7 +197,9 @@ hypothesis:
 Instrument lessons: `F3`, `F7`, and `F9` are eaten below `GetAsyncKeyState` on this box (LL keyboard
 hook); `F2`/`F4`/`F6`/`F8` work. One-key-one-experiment (a multi-mode F6 cycle caused double-armed
 casts). Hook-canary
-discipline: a natural callout bubble with no "orch CALLED" log line = Denuvo dead-hook launch, restart.
+discipline (post logging-overhaul: "orch CALLED" demoted to Debug-tier, file-only by default) -- a
+natural callout bubble with no "show-spike: orch hook ALIVE" line EVER logged this launch = Denuvo
+dead-hook launch, restart. (Enable Config.VerboseLog to see "orch CALLED" itself on the console.)
 
 ## Operational gotchas
 

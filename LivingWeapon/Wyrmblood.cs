@@ -60,7 +60,7 @@ internal sealed partial class Wyrmblood : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"wyrmblood {(active ? "ACTIVE -- Dragon Rod at +3 is wielded, turn-edge regen splash is enabled" : "inactive")}");
+            ModLogger.Log($"wyrmblood {(active ? "ACTIVE -- Dragon Rod at +3 is wielded, turn-edge regen splash is enabled" : "inactive")}");
         }
         if (!active) { _lastTurns = -1; return; }   // re-baseline on re-equip (no stale-diff splash)
 
@@ -70,7 +70,7 @@ internal sealed partial class Wyrmblood : ISignature
         if (!edge) return;
 
         long w = Wielder.Locate(_mem, DragonRodId, _hands, fp);
-        if (w == 0) { Log.Info("wyrmblood: turn ended but wielder could not be located this tick -- regen splash skipped"); return; }
+        if (w == 0) { ModLogger.Log("wyrmblood: turn ended but the wielder could not be found in memory this tick -- regen splash skipped [locate miss]"); return; }
         Splash(_mem.U8(w + Offsets.AGx), _mem.U8(w + Offsets.AGy), m.Signature.RegenSplashRadius, turns);
     }
 
@@ -95,9 +95,9 @@ internal sealed partial class Wyrmblood : ISignature
             if (newHp == hp) continue;               // full, or dead (never revive)
             LifeSap.WriteHp(_mem, e, newHp);
             healed.Add(fp);
-            Log.Info($"wyrmblood: turn-edge regen -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
+            ModLogger.Log($"wyrmblood: turn-edge regen -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
         }
-        if (healed.Count == 0) Log.Info($"wyrmblood: turn-edge regen -- no allies were in range to mend");
+        if (healed.Count == 0) ModLogger.LogDebug($"wyrmblood: turn-edge regen -- no allies were in range to mend");
     }
 
 }

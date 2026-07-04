@@ -163,7 +163,7 @@ internal sealed partial class KillTracker
                         // Source tag mirrors TurnTracker's shipped [actor-ptr]/[tq-fallback] pair;
                         // no test asserts on these strings (inventory confirmed).
                         string src = _resolver.LastResolveViaRegister ? "actor-ptr" : "tq-fallback";
-                        Log.Info(ws.Count > 0
+                        ModLogger.Log(ws.Count > 0
                             ? "turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + $" [{src}]"
                             : $"turn: acting player wields no tracked weapon -- this action's kills go uncredited [{src}]");
                     }
@@ -212,7 +212,7 @@ internal sealed partial class KillTracker
             _lastPlayerMainHand = _resolver.ResolveActingMainHand();
             _actorTag = string.Join(",", ws);
             _fallbackStreak = 0; _fallbackSet = new();
-            Log.Info("turn: no actor seen yet -- crediting the only player who has acted (first-kill fallback, weapons: " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + ")");
+            ModLogger.Log("turn: no actor seen yet -- crediting the only player who has acted (first-kill fallback, weapons: " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + ")");
         }
     }
 
@@ -283,7 +283,7 @@ internal sealed partial class KillTracker
         {
             _kills.TryGetValue(w, out int c);
             _kills[w] = c + 1;
-            Log.Info($"kill: {LogNames.Weapon(w)} earns kill #{c + 1} (enemy fell at {gx},{gy})");
+            ModLogger.Log($"kill: {LogNames.Weapon(w)} earns kill #{c + 1} (enemy fell at {gx},{gy})");
             changed = true;
         }
         _pending[s] = false;
@@ -293,7 +293,8 @@ internal sealed partial class KillTracker
     /// <summary>D4 -- AREC kill diagnostic (evidence accumulator, ZERO behavioral dependence): read
     /// the corpse's action record (Offsets.AArec, band-entry-relative) and log one line through the
     /// dev BattleLog sink. Guarded read; skips silently when unreadable or when no BattleLog is
-    /// wired (production is compiled with VerboseEvents=false, so this is inert there too). +0xB is
+    /// wired (BattleLog now runs in every build flavor, Debug-tier: file-always, console only
+    /// under the VerboseLog knob). +0xB is
     /// logged as a HYPOTHESIS (xref?=) -- see docs/LIVE_LEDGER.md's Uncertain AREC row. The credit
     /// path in CreditKill above never consults this.</summary>
     private void LogKillDiag(int s, List<int> weapons)

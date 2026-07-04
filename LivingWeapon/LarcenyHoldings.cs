@@ -68,7 +68,7 @@ internal sealed class LarcenyHoldings
                 {
                     LarcenyPolicy.ClearBit(_mem, a, key.off, key.mask);
                     st.Release(key);
-                    Log.Info($"larceny: a stolen buff FADED from a wielder (after {holdTurns} of its turns)");
+                    ModLogger.Log($"larceny: a stolen buff FADED from a wielder (after {holdTurns} of its turns)");
                 }
             if (st.Held.Count == 0) (empties ??= new()).Add(fp);
         }

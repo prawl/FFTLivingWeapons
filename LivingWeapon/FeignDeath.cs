@@ -78,7 +78,7 @@ internal sealed partial class FeignDeath : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"feign-death {(active ? "ACTIVE -- Wrathblade at +3 is wielded; a lethal hit becomes a played-dead corpse that acts for ~2 turns (ignored), then springs up at ~10% HP (once per battle)" : "inactive")}");
+            ModLogger.Log($"feign-death {(active ? "ACTIVE -- Wrathblade at +3 is wielded; a lethal hit becomes a played-dead corpse that acts for ~2 turns (ignored), then springs up at ~10% HP (once per battle)" : "inactive")}");
         }
         if (!active || !inLive) return;
 
@@ -96,7 +96,7 @@ internal sealed partial class FeignDeath : ISignature
             if (ShouldRearm(_spent, hp, _mem.U16(e + Offsets.AMaxHp), dead))
             {
                 _phase = Phase.Watching; _spent = false; _finishKilled = false; _finishWasDead = false;
-                Log.Info("feign-death: the wielder is back at full HP (battle restart or full heal) -- the feign is re-armed");
+                ModLogger.Log("feign-death: the wielder is back at full HP (battle restart or full heal) -- the feign is re-armed");
             }
             else return;
         }
@@ -112,7 +112,7 @@ internal sealed partial class FeignDeath : ISignature
             if (TurnEnded(_wasActiveWielder, nowActive))
             {
                 _possumTurnCount++;
-                Log.Info($"feign-death: played-dead turn {_possumTurnCount}/{Tuning.FeignPossumTurns}");
+                ModLogger.Log($"feign-death: played-dead turn {_possumTurnCount}/{Tuning.FeignPossumTurns}");
             }
             _wasActiveWielder = nowActive;
             possumDone = _possumTurnCount >= Tuning.FeignPossumTurns
@@ -138,14 +138,14 @@ internal sealed partial class FeignDeath : ISignature
         if (act.Hp == HpAction.ForceKill) ForceKill(_mem, e);
         else if (act.Hp == HpAction.HoldAlive) HoldAlive(_mem, e);
 
-        if (act.MarkKilled) { _finishKilled = true; Log.Info("feign-death: the wielder is up next -- finishing blow now; its imminent turn raises it (brief dead state)"); }
+        if (act.MarkKilled) { _finishKilled = true; ModLogger.Log("feign-death: the wielder is up next -- finishing blow now; its imminent turn raises it (brief dead state)"); }
         if (act.MarkWasDead) _finishWasDead = true;
 
         if (act.Next != _phase) EnterPhase(act.Next, now, hp);
         if (act.Spent)
         {
             _spent = true;
-            Log.Info(_phase == Phase.Finish
+            ModLogger.Log(_phase == Phase.Finish
                 ? "feign-death: last party member standing -- skipped the finishing blow; the wielder survives the feign at 1 HP (no party wipe)"
                 : "feign-death: the played-dead cycle is complete -- spent for this battle");
         }
@@ -198,14 +198,14 @@ internal sealed partial class FeignDeath : ISignature
         {
             case Phase.Possum:
                 _possumStart = now; _wasActiveWielder = false; _possumTurnCount = 0;
-                Log.Info($"feign-death: lethal hit -- the wielder flops as a corpse and plays dead (acting while the AI ignores it) for {Tuning.FeignPossumTurns} of its turns");
+                ModLogger.Log($"feign-death: lethal hit -- the wielder flops as a corpse and plays dead (acting while the AI ignores it) for {Tuning.FeignPossumTurns} of its turns");
                 break;
             case Phase.Finish:
-                Log.Info("feign-death: played-dead window over -- staying down until the wielder is up next, then the finishing blow");
+                ModLogger.Log("feign-death: played-dead window over -- staying down until the wielder is up next, then the finishing blow");
                 break;
             case Phase.Recover:
                 _recoverStart = now;
-                Log.Info($"feign-death: the engine raised the wielder at {hp} HP -- clearing the KO state");
+                ModLogger.Log($"feign-death: the engine raised the wielder at {hp} HP -- clearing the KO state");
                 break;
         }
         _phase = next;

@@ -41,6 +41,7 @@ internal sealed class ShadowBlade : ISignature
     private bool _wasActive;
     private int _lastRecId = -1;
     private int _lastUnsupportedJob = -1;
+    private bool _noSlotLogged;   // Signatures.StuckEdge latch: no empty slot nag
 
     public ShadowBlade(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
     {
@@ -49,7 +50,11 @@ internal sealed class ShadowBlade : ISignature
         _kills = kills;
     }
 
-    public void ResetBattle() => _wasActive = false;   // session-long grant; saved record persists across battles
+    public void ResetBattle()
+    {
+        _wasActive = false;   // session-long grant; saved record persists across battles
+        _noSlotLogged = false;
+    }
 
     public void Tick()
     {
@@ -80,7 +85,7 @@ internal sealed class ShadowBlade : ISignature
 
         if (wielderSlot < 0)
         {
-            if (_wasActive) Log.Info("shadow blade: signature no longer active -- no eligible Sanguine Sword wielder");
+            if (_wasActive) ModLogger.Log("shadow blade: signature no longer active -- no eligible Sanguine Sword wielder");
             _wasActive = false;
             // Clear the ledger too (not just _lastRecId): eligibility is OPEN, so the NEXT grant can
             // resolve to a DIFFERENT record. A stale SlotIdx would inject there without re-finding an
@@ -95,7 +100,7 @@ internal sealed class ShadowBlade : ISignature
             if (_lastUnsupportedJob != wielderJob)
             {
                 _lastUnsupportedJob = wielderJob;
-                Log.Info($"shadow blade: {LogNames.Job(wielderJob)} (job {wielderJob}) has no whitelisted sword skill-set for Shadow Blade -- needs Squire/Knight as the primary job or the mounted secondary command (secondary record {wielderSecondary})");
+                ModLogger.Log($"shadow blade: {LogNames.Job(wielderJob)} (job {wielderJob}) has no whitelisted sword skill-set for Shadow Blade -- needs Squire/Knight as the primary job or the mounted secondary command (secondary record {wielderSecondary})");
             }
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             _wasActive = false;
@@ -105,7 +110,7 @@ internal sealed class ShadowBlade : ISignature
         if (!_wasActive)
         {
             _wasActive = true;
-            Log.Info($"shadow blade: ACTIVE -- party slot {wielderSlot} wields Sanguine Sword, Shadow Blade ({abilityId}) added to record {recId} (job {wielderJob}, learn-index {jobIdx}{(viaSecondary ? ", via secondary" : "")})");
+            ModLogger.Log($"shadow blade: ACTIVE -- party slot {wielderSlot} wields Sanguine Sword, Shadow Blade ({abilityId}) added to record {recId} (job {wielderJob}, learn-index {jobIdx}{(viaSecondary ? ", via secondary" : "")})");
         }
 
         // Job changed mid-session: restore the old record, re-inject for the new one.
@@ -119,7 +124,7 @@ internal sealed class ShadowBlade : ISignature
         if (!_state.HasSaved(recId))
         {
             _state.Save(recId, _mem.ReadBytes(flagAddr, Barrage.RecSize));
-            Log.Info($"shadow blade: saved original {LogNames.Job(wielderJob)} command list before injecting Shadow Blade (record {recId})");
+            ModLogger.Log($"shadow blade: saved original {LogNames.Job(wielderJob)} command list before injecting Shadow Blade (record {recId})");
         }
 
         int slotIdx = _state.SlotIdx;
@@ -130,10 +135,17 @@ internal sealed class ShadowBlade : ISignature
             var ab = new byte[Barrage.AbilityCount];
             for (int i = 0; i < Barrage.AbilityCount; i++) ab[i] = buf[Barrage.FlagPrefixSize + i];
             int slot1 = Barrage.FindEmptySlot(ab, extAb);
-            if (slot1 < 0) { Log.Info($"shadow blade: no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}) -- cannot inject Shadow Blade"); return; }
+            if (slot1 < 0)
+            {
+                // Debug tier + latch: the condition can hold every tick until a slot frees up.
+                if (Signatures.StuckEdge(ref _noSlotLogged, true))
+                    ModLogger.LogDebug($"shadow blade: no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}) -- cannot inject Shadow Blade");
+                return;
+            }
+            Signatures.StuckEdge(ref _noSlotLogged, false);   // slot found -> re-arm for next time
             slotIdx = slot1 - 1;
             _state.SlotIdx = slotIdx;
-            Log.Info($"shadow blade: picked ability slot {slot1} in the {LogNames.Job(wielderJob)} command list (record {recId})");
+            ModLogger.Log($"shadow blade: picked ability slot {slot1} in the {LogNames.Job(wielderJob)} command list (record {recId})");
         }
 
         if (!_mem.TryReadBytes(flagAddr, Barrage.RecSize, out byte[] cur)) return;
@@ -152,7 +164,7 @@ internal sealed class ShadowBlade : ISignature
         long flagAddr = Barrage.AbilityBase + (long)recId * Barrage.RecSize - Barrage.FlagPrefixSize;
         if (!_mem.Writable(flagAddr, Barrage.RecSize)) return;
         Barrage.RestoreRecord(_mem, flagAddr, saved);
-        Log.Info($"shadow blade: removed Shadow Blade from the command list, back to vanilla (record {recId})");
+        ModLogger.Log($"shadow blade: removed Shadow Blade from the command list, back to vanilla (record {recId})");
     }
 
     private void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
@@ -165,6 +177,6 @@ internal sealed class ShadowBlade : ISignature
         if ((cur & mask) != 0) return;
         if (!_mem.Writable(addr, 1)) return;
         _mem.W8(addr, (byte)(cur | mask));
-        Log.Info($"shadow blade: re-set the learned flag for Shadow Blade in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1})");
+        ModLogger.LogDebug($"shadow blade: re-set the learned flag for Shadow Blade in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1})");
     }
 }

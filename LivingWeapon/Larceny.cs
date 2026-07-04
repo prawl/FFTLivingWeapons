@@ -92,7 +92,7 @@ internal sealed class Larceny : ISignature
             if (reason != _lastGateReason)
             {
                 _lastGateReason = reason;
-                Log.Info($"larceny gate: {reason}");
+                ModLogger.Log($"larceny gate: {reason}");
             }
         }
 
@@ -133,11 +133,11 @@ internal sealed class Larceny : ISignature
             if (action == LarcenyAction.Steal)
             {
                 _holdings.Steal(actorFp, actingAddr, key, Turns(actorFp));
-                Log.Info($"larceny: STOLE {buff.Value.Name} -- held on the wielder for {Tuning.LarcenyHoldTurns} of its turns");
+                ModLogger.Log($"larceny: STOLE {buff.Value.Name} -- held on the wielder for {Tuning.LarcenyHoldTurns} of its turns");
             }
             else
             {
-                Log.Info($"larceny: DISPELLED {buff.Value.Name} from the enemy (wielder already owns it)");
+                ModLogger.Log($"larceny: DISPELLED {buff.Value.Name} from the enemy (wielder already owns it)");
             }
         }
 

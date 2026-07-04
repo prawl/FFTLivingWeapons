@@ -65,7 +65,7 @@ internal sealed partial class Renewal : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"renewal {(active ? "ACTIVE -- Mending Staff at +3 is wielded, turn-edge regen aura is enabled" : "inactive")}");
+            ModLogger.Log($"renewal {(active ? "ACTIVE -- Mending Staff at +3 is wielded, turn-edge regen aura is enabled" : "inactive")}");
         }
         if (!active) { _lastTurns = -1; return; }   // re-baseline on re-equip (no stale-diff aura)
 
@@ -75,7 +75,7 @@ internal sealed partial class Renewal : ISignature
         if (!edge) return;
 
         long w = Wielder.Locate(_mem, MendingStaffId, _hands, fp);
-        if (w == 0) { Log.Info("renewal: turn ended but wielder could not be located this tick -- regen aura skipped"); return; }
+        if (w == 0) { ModLogger.Log("renewal: turn ended but the wielder could not be found in memory this tick -- regen aura skipped [locate miss]"); return; }
         Aura(_mem.U8(w + Offsets.AGx), _mem.U8(w + Offsets.AGy), m.Signature.RegenAuraRadius, turns);
     }
 
@@ -100,9 +100,9 @@ internal sealed partial class Renewal : ISignature
             if (newHp == hp) continue;               // full, or dead (never revive)
             LifeSap.WriteHp(_mem, e, newHp);
             healed.Add(fp);
-            Log.Info($"renewal: turn-edge aura -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
+            ModLogger.Log($"renewal: turn-edge aura -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
         }
-        if (healed.Count == 0) Log.Info($"renewal: turn-edge aura -- no allies were in range to mend");
+        if (healed.Count == 0) ModLogger.LogDebug($"renewal: turn-edge aura -- no allies were in range to mend");
     }
 
 }

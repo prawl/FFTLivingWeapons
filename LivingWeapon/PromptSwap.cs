@@ -129,11 +129,11 @@ internal sealed class PromptSwapHook
         {
             _keepalive = Detour;
             _hook = hooks.CreateHook<SetTextStringFn>(_keepalive, FnSetTextString).Activate();
-            Log.Info("prompt-swap: SetTextString hook installed");
+            ModLogger.Log("prompt-swap: SetTextString hook installed");
         }
         catch (Exception ex)
         {
-            Log.Error("prompt-swap: hook install failed -- " + ex.Message);
+            ModLogger.LogError("prompt-swap: hook install failed -- " + ex.Message);
         }
     }
 
@@ -144,19 +144,19 @@ internal sealed class PromptSwapHook
         if (!_canary)
         {
             _canary = true;
-            Log.Info($"prompt-swap: SetTextString hook ALIVE (thread {GetCurrentThreadId()})");
+            ModLogger.Log($"prompt-swap: SetTextString hook ALIVE (thread {GetCurrentThreadId()})");
         }
         try
         {
             if (_swap.TryPrepareSwap((long)text, out var payload))
             {
                 text = WritePinned(payload);
-                Log.Info($"prompt-swap: delivered \"{payload}\" (holder=0x{(long)holder:X})");
+                ModLogger.Log($"prompt-swap: delivered \"{payload}\" (holder=0x{(long)holder:X})");
             }
         }
         catch (Exception ex)
         {
-            Log.Error("prompt-swap: detour belt -- " + ex.Message);
+            ModLogger.LogError("prompt-swap: detour belt -- " + ex.Message);
         }
         _hook!.OriginalFunction(holder, text, r8, r9);
     }

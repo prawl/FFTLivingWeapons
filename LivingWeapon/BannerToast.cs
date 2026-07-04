@@ -121,7 +121,7 @@ internal sealed partial class BannerToast
             // Stale news loses: an overflowing queue drops the OLDEST toast, not the newest.
             var dropped = _queue[0];
             _queue.RemoveAt(0);
-            Log.Info($"banner-toast: queue at cap ({QueueCap}) -- dropped stale toast for weapon {dropped.weaponId} tier {dropped.tier}");
+            ModLogger.Log($"banner-toast: queue at cap ({QueueCap}) -- dropped stale toast for weapon {dropped.weaponId} tier {dropped.tier}");
         }
     }
 

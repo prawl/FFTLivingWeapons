@@ -71,7 +71,7 @@ internal sealed class TurnTracker
                 int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
                 _turns[fp] = n;
                 string src = viaPointer ? "actor-ptr" : "tq-fallback";
-                Log.Info($"turn: unit (level {fp.Item1}, brave {fp.Item2}, faith {fp.Item3}) completed a turn -- #{n} this battle [{src}]");
+                ModLogger.Log($"turn: a unit finished its turn (#{n} this battle) [id level {fp.Item1} brave {fp.Item2} faith {fp.Item3}, via {src}]");
             }
         }
         _wasActed = acted;

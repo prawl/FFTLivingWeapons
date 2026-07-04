@@ -72,6 +72,6 @@ internal sealed class KillTally
             if (File.Exists(_path)) File.Copy(_path, _path + ".bak", true);
             File.Move(tmp, _path, true);
         }
-        catch (Exception ex) { Log.Error("save: " + ex.Message); }
+        catch (Exception ex) { ModLogger.LogError("save: " + ex.Message); }
     }
 }

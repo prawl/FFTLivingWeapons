@@ -3,12 +3,17 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The dev battle-event timeline. KillTracker already reads every unit slot's HP and grid position
+/// The battle-event timeline. KillTracker already reads every unit slot's HP and grid position
 /// each 33ms tick; this diffs those readings and emits one timestamped line per change (damage,
 /// heal, move), tagged with the latched actor's weapon(s). Makes "what the game did" vs "when we
-/// saw it" comparable at tick granularity. Verbose only in DEV builds (Tuning.VerboseEvents) --
-/// kills, turn edges, and grant transitions stay always-on in their own subsystems. The sink is
-/// injected so tests capture lines without a logger.
+/// saw it" comparable at tick granularity. Kills, turn edges, and grant transitions stay
+/// always-on in their own subsystems. The sink is injected so tests capture lines without a logger.
+///
+/// LOGGING OVERHAUL NOTE: Engine now constructs this with verbose=true unconditionally and
+/// sink=ModLogger.LogDebug -- the ev: timeline is ALWAYS captured to livingweapon.log (Debug tier
+/// writes the file unconditionally), and reaches the console only when Config.VerboseLog is on.
+/// This deliberately turns the timeline ON in every build (it used to be a DEV-only const); the
+/// black-box evidence chain wants the data, the console volume knob keeps it quiet by default.
 /// </summary>
 internal sealed class BattleLog
 {
@@ -22,7 +27,7 @@ internal sealed class BattleLog
     public BattleLog(bool verbose, Action<string>? sink = null)
     {
         _verbose = verbose;
-        _sink = sink ?? Log.Info;
+        _sink = sink ?? ModLogger.Log;
     }
 
     /// <summary>Forget every baseline. Call on battle enter and exit.</summary>

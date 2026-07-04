@@ -63,7 +63,7 @@ internal sealed partial class Rapture : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"rapture {(active ? "ACTIVE -- Rod of Faith at +3 is wielded, emergency teleportation is armed" : "inactive")}");
+            ModLogger.Log($"rapture {(active ? "ACTIVE -- Rod of Faith at +3 is wielded, emergency teleportation is armed" : "inactive")}");
         }
         if (!active)
         {
@@ -115,7 +115,7 @@ internal sealed partial class Rapture : ISignature
         // Once-per-window read-back: 243 is proven live (player teleported, 2026-06-10); SET/MISS
         // still logged as a sanity signal (if MISS, flip Tuning.RaptureMoveId to 242).
         string readback = ReadBackSet(_mem, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
-        Log.Info($"rapture: wielder dropped below 30% HP ({hp}/{maxHp}) -- Master Teleportation (move id {Tuning.RaptureMoveId}) granted until they recover " +
+        ModLogger.Log($"rapture: wielder dropped below 30% HP ({hp}/{maxHp}) -- Master Teleportation (move id {Tuning.RaptureMoveId}) granted until they recover " +
                  $"(original movement saved as {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}) {(readback == "SET" ? "(write verified)" : "(write did NOT stick)")}");
     }
 
@@ -137,7 +137,7 @@ internal sealed partial class Rapture : ISignature
     {
         bool same = _state.Addr != 0 && SameUnit(_mem, _state.Addr, _state.Fp);
         if (_state.SavedField is { } saved && same) WriteField(_mem, _state.Addr, saved);
-        Log.Info($"rapture: wielder recovered ({why}) -- {(same ? "normal movement restored" : "movement left unchanged (unit entry migrated)")}");
+        ModLogger.Log($"rapture: wielder recovered ({why}) -- {(same ? "normal movement restored" : "movement left unchanged (unit entry migrated)")}");
         _state.Release();
         _deadStreak = 0;
     }

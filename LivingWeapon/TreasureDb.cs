@@ -175,7 +175,7 @@ internal sealed class TreasureDb
         }
         catch
         {
-            Log.Info("treasure: treasure.json unreadable -- marks disabled");
+            ModLogger.Log("treasure: treasure.json unreadable -- marks disabled");
             return Empty();
         }
     }

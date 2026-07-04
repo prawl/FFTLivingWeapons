@@ -106,6 +106,6 @@ GRANT Gloomfang -> Concentration (support 213) @ +0x98[1]=0x01 readback=SET
 **3. Redundancy note.**
 If the wielder's job already has the same support picked, the log also emits:
 ```
-note: wielder already equips Concentration -- the weapon grant adds nothing (pick a different support)
+GRANT note: wielder already has Concentration equipped as their chosen support -- the weapon grant adds nothing (pick a different support)
 ```
 The grant writes the same bit that's already set — no stacking is possible (the engine reads a flag, not a count). Switch the equipped support to get value from the weapon grant.

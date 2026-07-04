@@ -86,9 +86,11 @@ internal sealed class EnemyOracle
                     _mem.U16(addr + Offsets.AMaxHp) == id.mhp) { seen = true; break; }
             }
             if (seen) found++;
-            else Log.Info($"kill: WARN identity from the roster snapshot has no match in the live battle band (lvl={id.lvl} br={id.br} fa={id.fa} mhp={id.mhp})");
+            else ModLogger.Log($"kill: WARN an enemy from the pre-battle roster was never seen in the live fight -- its kills may go uncredited [lvl={id.lvl} br={id.br} fa={id.fa} mhp={id.mhp}]");
         }
-        Log.Info($"kill: identity coverage check -- {found}/{total} enemies matched between roster snapshot and live battle band");
+        ModLogger.Log(found == total
+            ? $"kill: all {total} enemies accounted for -- kill credit will be reliable this battle"
+            : $"kill: only {found}/{total} enemies accounted for so far -- kill credit may be unreliable this battle (see the WARN line(s) above)");
         if (found == total) _coverageDone = true;
     }
 }

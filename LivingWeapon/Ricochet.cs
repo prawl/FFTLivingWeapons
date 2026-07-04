@@ -61,7 +61,7 @@ internal sealed partial class Ricochet : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"ricochet {(active ? "ACTIVE -- Stormarc wielder is acting, chain lightning ready to bounce" : "inactive")}");
+            ModLogger.Log($"ricochet {(active ? "ACTIVE -- Stormarc wielder is acting, chain lightning ready to bounce" : "inactive")}");
         }
 
         var enemyFps = active ? Band.EnemyFingerprints(_mem) : null;
@@ -110,7 +110,7 @@ internal sealed partial class Ricochet : ISignature
                         ApplyChip(_mem, tAddr, tHp, chip);
                         int newHp = ClampHp(tHp, chip);
                         _state.Consume(target, newHp);
-                        Log.Info($"ricochet: chain lightning hop {hopIndex + 1} -- {chip} chip to slot {target} (source hit {dmg}, HP {tHp}->{newHp})");
+                        ModLogger.Log($"ricochet: chain lightning hop {hopIndex + 1} -- {chip} chip to slot {target} (source hit {dmg}, HP {tHp}->{newHp})");
                     }
                 }
                 hopIndex++;

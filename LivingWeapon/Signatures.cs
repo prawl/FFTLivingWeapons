@@ -130,6 +130,20 @@ internal static class Signatures
     /// kills.json) clamp to 0 before the modulo to preserve the 4-char invariant.</summary>
     public static string KillsSlot(int count) => (Math.Max(0, count) % 10000).ToString().PadRight(4);
 
+    /// <summary>Once-per-transition latch for a nag condition that can hold true across many
+    /// ticks (e.g. "no empty JobCommand slot", "record not readable yet"): fires (returns true)
+    /// once on the false-&gt;true rising edge, stays silent while the condition remains true, and
+    /// re-arms the next time it clears. Shared by any per-tick "still stuck" diagnostic that must
+    /// not spam its sink every 33ms -- Barrage/ShadowBlade's inject-blocked nags (logging
+    /// overhaul; even a Debug-tier line would otherwise bloat the file for no new information).</summary>
+    public static bool StuckEdge(ref bool latched, bool condition)
+    {
+        if (!condition) { latched = false; return false; }
+        if (latched) return false;
+        latched = true;
+        return true;
+    }
+
     /// <summary>True if this signature's HP condition (if any) is currently met. No condition
     /// (HpBelow &lt;= 0) is always-on. The gate is integer math (hp*100 &lt; maxHp*HpBelow) so it
     /// needs no float; safe (false) when maxHp is non-positive (struct unlocated / unit dead).

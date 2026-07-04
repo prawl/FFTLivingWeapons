@@ -47,7 +47,7 @@ internal sealed partial class LifeSap : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"life-sap {(active ? "ACTIVE -- Umbral Rod at +3 is wielded, kills will restore HP" : "inactive")}");
+            ModLogger.Log($"life-sap {(active ? "ACTIVE -- Umbral Rod at +3 is wielded, kills will restore HP" : "inactive")}");
         }
         if (!active) { _lastCount = count; return; }   // keep primed: an inactive-window kill never fires later
 
@@ -56,12 +56,12 @@ internal sealed partial class LifeSap : ISignature
         if (!fresh) return;
 
         long e = Wielder.Locate(_mem, UmbralId, _hands, fp);
-        if (e == 0) { Log.Info("life-sap: kill scored but wielder could not be located this tick -- heal skipped"); return; }
+        if (e == 0) { ModLogger.Log("life-sap: kill scored but the wielder could not be found in memory this tick -- heal skipped [locate miss]"); return; }
         int hp = _mem.U16(e + Offsets.AHp), maxHp = _mem.U16(e + Offsets.AMaxHp);
         int heal = HealAmount(maxHp, Tuning.LifeSapPct);
         int newHp = NewHp(hp, maxHp, heal);
-        if (newHp == hp) { Log.Info($"life-sap: kill scored but wielder is already at full HP ({hp}/{maxHp}) -- no heal needed"); return; }
+        if (newHp == hp) { ModLogger.LogDebug($"life-sap: kill scored but wielder is already at full HP ({hp}/{maxHp}) -- no heal needed"); return; }
         WriteHp(_mem, e, newHp);
-        Log.Info($"life-sap: kill restored {newHp - hp} HP to the wielder (25% of max) -- HP {hp}->{newHp} (max {maxHp})");
+        ModLogger.Log($"life-sap: kill restored {newHp - hp} HP to the wielder (25% of max) -- HP {hp}->{newHp} (max {maxHp})");
     }
 }

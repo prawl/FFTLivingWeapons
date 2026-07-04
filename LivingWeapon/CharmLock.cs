@@ -73,7 +73,7 @@ internal sealed partial class CharmLock : ISignature
         if ((lockTurns > 0) != _wasActive)
         {
             _wasActive = lockTurns > 0;
-            Log.Info($"charm-lock {(_wasActive ? "ACTIVE -- Galewind at +3 is equipped, charm holds are now unbreakable" : "inactive")}");
+            ModLogger.Log($"charm-lock {(_wasActive ? "ACTIVE -- Galewind at +3 is equipped, charm holds are now unbreakable" : "inactive")}");
         }
         if (lockTurns > 0 && _tick++ % 6 == 0) Detect();   // band scan is heavy -> ~every 200ms
         Drive(lockTurns);                                   // hold/clear every tick (beats on-hit clear)
@@ -128,7 +128,7 @@ internal sealed partial class CharmLock : ISignature
         long addr = 0;
         foreach (var c in charmed) if (c.fp.Equals(target)) { addr = c.addr; break; }
         _lock = (addr, target, 0, _mem.U8(addr + CtOff));
-        Log.Info($"charm-lock: holding Charm on the level-{target.lvl} enemy ({target.mhp} max HP) so it cannot break early (struct at 0x{addr:X}){(dropPrevious ? " -- dropped previous lock" : "")}");
+        ModLogger.Log($"charm-lock: holding Charm on the level-{target.lvl} enemy ({target.mhp} max HP) so it cannot break early{(dropPrevious ? " -- dropped previous lock" : "")} [struct 0x{addr:X}]");
     }
 
     /// <summary>Hold the charm bytes on the locked enemy, counting its turns off CT; clear after N.</summary>
@@ -139,11 +139,11 @@ internal sealed partial class CharmLock : ISignature
         if (!Valid(L.addr, L.fp)) { _lock = null; return; }   // copy moved/freed -> re-detect later
         int ct = _mem.U8(L.addr + CtOff);
         int counted = L.counted + (CtTurns.IsTurn(L.lastCt, ct) ? 1 : 0);
-        if (_dbg++ % 20 == 0) Log.Info($"charm-lock: locked enemy ({L.fp.mhp} max HP) -- holding for {counted}/{lockTurns} of its turns (CT {ct})");
+        if (_dbg++ % 20 == 0) ModLogger.LogDebug($"charm-lock: locked enemy ({L.fp.mhp} max HP) -- holding for {counted}/{lockTurns} of its turns (CT {ct})");
         bool hold = lockTurns > 0 && counted < lockTurns;
         SetCharm(L.addr, hold);
         if (hold) _lock = (L.addr, L.fp, counted, ct);
-        else { _lock = null; Log.Info($"charm-lock: Charm expired on the enemy ({L.fp.mhp} max HP) after {counted} turns -- lock released"); }
+        else { _lock = null; ModLogger.Log($"charm-lock: Charm expired on the enemy ({L.fp.mhp} max HP) after {counted} turns -- lock released"); }
     }
 
     private bool Valid(long b, (int mhp, int lvl, int br, int fa) fp)

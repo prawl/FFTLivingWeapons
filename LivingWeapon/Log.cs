@@ -1,33 +1,14 @@
-using System;
-using System.IO;
-
 namespace LivingWeapon;
 
-/// <summary>Minimal logger: Reloaded console + a file in the mod dir, rotated per launch
-/// (current session in livingweapon.log, the previous one in livingweapon.prev.log -- the old
-/// append-forever file grew without bound). Millisecond timestamps so the 33ms tick events are
-/// orderable against on-screen actions.</summary>
+/// <summary>
+/// TRANSITIONAL shim -- delegates the retired static Log surface to ModLogger so the PRE-REWORK
+/// Puppeteer code still committed at this point in history (it calls Log.Info/Log.Error; its
+/// replacement lands as its own later commit after live verification) compiles against this
+/// commit's tree. The working tree already uses ModLogger everywhere; nothing in it references
+/// this class. DELETE this file in the Puppeteer expiry commit (the rename rides that commit).
+/// </summary>
 internal static class Log
 {
-    private static string? _file;
-
-    public static void Init(string modDir)
-    {
-        try
-        {
-            _file = Path.Combine(modDir, "livingweapon.log");
-            if (File.Exists(_file))
-                File.Move(_file, Path.Combine(modDir, "livingweapon.prev.log"), true);
-        }
-        catch { }
-    }
-
-    public static void Info(string m) => Write("[FFTLivingWeapons] " + m);
-    public static void Error(string m) => Write("[FFTLivingWeapons] ERROR: " + m);
-
-    private static void Write(string m)
-    {
-        try { Console.WriteLine(m); } catch { }
-        try { if (_file != null) File.AppendAllText(_file, DateTime.Now.ToString("HH:mm:ss.fff ") + m + "\n"); } catch { }
-    }
+    public static void Info(string m) => ModLogger.Log(m);
+    public static void Error(string m) => ModLogger.LogError(m);
 }

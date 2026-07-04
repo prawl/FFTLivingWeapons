@@ -32,7 +32,7 @@ internal static class ScholarRing
         if (!_granted)
         {
             _granted = true;
-            Log.Info("scholar-ring: granted (you had none)");
+            ModLogger.Log("scholar-ring: granted (you had none)");
         }
     }
 }

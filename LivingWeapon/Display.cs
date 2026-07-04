@@ -75,7 +75,7 @@ internal sealed class Display
         // slot with the anchor cut off and never verify. Log-and-continue -- a too-long
         // name only degrades painting, while a throw here would take the game with it.
         if (!_pats.FitsLookback(DisplaySweep.Lookback))
-            Log.Error("display: sweep lookback " + DisplaySweep.Lookback + " < max anchor "
+            ModLogger.LogError("display: sweep lookback " + DisplaySweep.Lookback + " < max anchor "
                       + _pats.MaxAnchorLen + " + slot; boundary-straddling cards may not paint");
     }
 
@@ -129,11 +129,17 @@ internal sealed class Display
         long budget = inBattle ? BudgetInBattle : BudgetOutOfBattle;
         _sweep.Tick(budget, OnChunk);
 
-        // Log once per generation completion so the log captures each full scan.
+        // Log once per generation completion so the log captures each full scan. Generation #1
+        // stays Info -- the per-launch "sweep works" canary the release checklists cite
+        // (STAFF_SWORD_TEST_PLAN.md, 2.0_RELEASE_CHECKLIST.md); later generations (~90s re-scans,
+        // or a target/invalidate-driven restart) are Debug -- same fact repeated forever with
+        // nothing new to check once the painter is known-good.
         if (_sweep.IsComplete && _sweep.Generation != _lastLoggedGen)
         {
             _lastLoggedGen = _sweep.Generation;
-            Log.Info("display: memory sweep #" + _sweep.Generation + " finished -- maintaining " + _sites.Count + " card-text spots");
+            string line = "display: memory sweep #" + _sweep.Generation + " finished -- maintaining " + _sites.Count + " card-text spots";
+            if (_sweep.Generation <= 1) ModLogger.Log(line);
+            else ModLogger.LogDebug(line);
         }
 
         // WpScratch: keyed by the mirror weapon (the card on screen), NOT roster slot 0.

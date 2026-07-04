@@ -64,13 +64,13 @@ internal sealed partial class GrowthEngine
             if (tier1 != 0)
             {
                 _structForSlot[slot] = (tier1, 1);
-                if (!_logged) { _logged = true; Log.Info($"growth: found combat struct for party slot {slot}"); }
+                if (!_logged) { _logged = true; ModLogger.Log($"growth: found combat struct for party slot {slot}"); }
                 return tier1;
             }
             if (matchCount1 > 0)   // S6: candidates existed, genuinely ambiguous -- refuse, no tier-2 fallthrough
             {
                 if (_ambiguousLogged.Add(slot))
-                    Log.Info($"growth: ambiguous struct locate for party slot {slot} ({matchCount1} matches) -- skipping");
+                    ModLogger.Log($"growth: party slot {slot} could not be matched to one unique unit ({matchCount1} candidates) -- growth skipped this tick [ambiguous fingerprint locate]");
                 return 0;
             }
         }
@@ -79,15 +79,15 @@ internal sealed partial class GrowthEngine
         if (found != 0)
         {
             _structForSlot[slot] = (found, 2);
-            if (!_logged) { _logged = true; Log.Info($"growth: found combat struct for party slot {slot}"); }
+            if (!_logged) { _logged = true; ModLogger.Log($"growth: found combat struct for party slot {slot}"); }
             // Diagnostic for the "nameId unpopulated battle type" premise (D2): only fires when
             // tier 1 actually ran and came up empty, not on every ordinary tier-2-only battle.
             if (rosterNameId > 0 && _fallbackLogged.Add(slot))
-                Log.Info($"growth: located slot {slot} by fingerprint fallback (frame nameId miss)");
+                ModLogger.Log($"growth: party slot {slot} matched by its stats alone, not by its engine id (the id was blank this battle) [fingerprint fallback, frame nameId miss]");
             return found;
         }
         if (matchCount2 > 1 && _ambiguousLogged.Add(slot))
-            Log.Info($"growth: ambiguous struct locate for party slot {slot} ({matchCount2} matches) -- skipping");
+            ModLogger.Log($"growth: party slot {slot} could not be matched to one unique unit ({matchCount2} candidates) -- growth skipped this tick [ambiguous fingerprint locate]");
         return 0;
     }
 

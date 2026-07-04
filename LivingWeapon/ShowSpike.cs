@@ -259,11 +259,11 @@ internal sealed class ShowSpike
             _commitTapHook = hooks.CreateHook<TextCommitTapFn>(_commitTapKeepalive, FnSetTextCommit).Activate();
             _setTextTapKeepalive = (h, t, r8, r9) => TapDetour(_setTextTapHook!, "SetTextString", h, t, r8, r9);
             _setTextTapHook = hooks.CreateHook<TextCommitTapFn>(_setTextTapKeepalive, FnSetTextString).Activate();
-            Log.Info("show-spike: banner-update + orchestrator + text-setter tap hooks installed -- canaries are the ALIVE lines (a natural callout bubble with no 'orch CALLED' line = dead launch, restart)");
+            ModLogger.Log("show-spike: banner-update + orchestrator + text-setter tap hooks installed -- canaries are the ALIVE lines (a natural callout bubble with no 'orch CALLED' line = dead launch, restart)");
         }
         catch (Exception ex)
         {
-            Log.Error("show-spike: hook install failed -- " + ex.Message);
+            ModLogger.LogError("show-spike: hook install failed -- " + ex.Message);
         }
     }
 
@@ -273,14 +273,14 @@ internal sealed class ShowSpike
     {
         if (++_hbTick % 300 == 0)   // ~10s at 33ms
         {
-            Log.Info($"show-spike: alive (hooks={(_updateHook != null ? "yes" : "NO")}/{(_orchHook != null ? "yes" : "NO")} canaries={_updateCanary}/{_orchCanary} captures={_haveLast}/{_haveName} chase={_chase})");
+            ModLogger.LogDebug($"show-spike: alive (hooks={(_updateHook != null ? "yes" : "NO")}/{(_orchHook != null ? "yes" : "NO")} canaries={_updateCanary}/{_orchCanary} captures={_haveLast}/{_haveName} chase={_chase})");
         }
         // F8 stopped registering on this box 2026-07-03 (worked 2026-07-02 -- keyboard/hook
         // drift); the swap experiment moved to F6 (DISMISS is proven and gave up its key).
         if (Pressed(VkF6, ref _f6Was))
         {
             _promptSwap = true;
-            Log.Info($"show-spike: F6 -- PROMPT SWAP armed (one-shot): the next facing prompt renders \"{PromptSwapText}\" and should STAY until you confirm facing");
+            ModLogger.Log($"show-spike: F6 -- PROMPT SWAP armed (one-shot): the next facing prompt renders \"{PromptSwapText}\" and should STAY until you confirm facing");
         }
         if (Pressed(VkF5, ref _f5Was))
         {
@@ -288,7 +288,7 @@ internal sealed class ShowSpike
             _tapLines = 0;
             System.Threading.Interlocked.Exchange(ref _tapUntilTicks,
                 DateTime.Now.AddSeconds(TapWindowSeconds).Ticks);
-            Log.Info($"show-spike: F5 -- COMMIT TAP armed {TapWindowSeconds}s, deduped (end an action and sit in the facing prompt; hunting its text writer)");
+            ModLogger.Log($"show-spike: F5 -- COMMIT TAP armed {TapWindowSeconds}s, deduped (end an action and sit in the facing prompt; hunting its text writer)");
         }
         // v9: cold spawn runs RIGHT HERE on the loop thread -- the deliberately-wrong context.
         // Spawn PROVEN 2026-07-03 03:17 eyewitness x4; dismiss PROVEN same night ("F6 removes it
@@ -309,19 +309,19 @@ internal sealed class ShowSpike
     {
         if (_updateHook == null)
         {
-            Log.Info("show-spike: key pressed but no hooks installed (IReloadedHooks never arrived)");
+            ModLogger.Log("show-spike: key pressed but no hooks installed (IReloadedHooks never arrived)");
             return;
         }
         if (mode == FireMode.ArmChase)
         {
             _chase = true;
-            Log.Info($"show-spike: {what} -- CHASE armed: id-patched replay fires right after the NEXT natural callout returns (cast something; watch for the WRONG string in the bubble)");
+            ModLogger.Log($"show-spike: {what} -- CHASE armed: id-patched replay fires right after the NEXT natural callout returns (cast something; watch for the WRONG string in the bubble)");
             return;
         }
         // FireMode.ArmMutate -- unreachable via any key today (F7 is eaten, see the class doc),
         // kept as a live-fire experiment for a box where F7 registers.
         _mutate = true;
-        Log.Info($"show-spike: {what} -- MUTATE armed: the NEXT natural callout's own token id gets patched in-flight (cast something; the natural bubble should show the WRONG string)");
+        ModLogger.Log($"show-spike: {what} -- MUTATE armed: the NEXT natural callout's own token id gets patched in-flight (cast something; the natural bubble should show the WRONG string)");
     }
 
     /// <summary>Post-ritual forensics: what did the orchestrator leave bound/armed? Logged
@@ -335,7 +335,7 @@ internal sealed class ShowSpike
         string ws = w != 0
             ? $"widget={w:x} w34={_mem.U32(w + 0x34)} w90={_mem.U8(w + 0x90)} wCC={_mem.U8(w + 0xCC)} alpha={_mem.U8(w + 0xC7):x2}"
             : "widget=NULL";
-        Log.Info($"show-spike: post-ritual: {ws} obj={obj:x} obj218={(obj != 0 ? _mem.U32(obj + 0x218) : 0)} obj280={(obj != 0 ? _mem.U8(obj + 0x280) : 0):x2} holder88={_mem.U8(holder + 0x88)}");
+        ModLogger.LogDebug($"show-spike: post-ritual: {ws} obj={obj:x} obj218={(obj != 0 ? _mem.U32(obj + 0x218) : 0)} obj280={(obj != 0 ? _mem.U8(obj + 0x280) : 0):x2} holder88={_mem.U8(holder + 0x88)}");
     }
 
     /// <summary>Runs at every orchestrator call -- natural or ours. Captures the request
@@ -345,7 +345,7 @@ internal sealed class ShowSpike
         if (!_orchCanary)
         {
             _orchCanary = true;
-            Log.Info($"show-spike: orch hook ALIVE (thread {GetCurrentThreadId()})");
+            ModLogger.Log($"show-spike: orch hook ALIVE (thread {GetCurrentThreadId()})");
         }
         uint type = 0;
         try
@@ -372,11 +372,11 @@ internal sealed class ShowSpike
                         if (FlipId(patched))
                         {
                             _mem.WriteBytes((long)textObj + IdOffset, new[] { patched[IdOffset], patched[IdOffset + 1] });
-                            Log.Info($"show-spike: MUTATE -- patched the natural request's id in-flight ({bytes[IdOffset + 1]:x2}{bytes[IdOffset]:x2} -> {patched[IdOffset + 1]:x2}{patched[IdOffset]:x2}); does the bubble show the WRONG string?");
+                            ModLogger.Log($"show-spike: MUTATE -- patched the natural request's id in-flight ({bytes[IdOffset + 1]:x2}{bytes[IdOffset]:x2} -> {patched[IdOffset + 1]:x2}{patched[IdOffset]:x2}); does the bubble show the WRONG string?");
                         }
                         else
                         {
-                            Log.Info("show-spike: MUTATE skipped -- unrecognized id in the natural stream");
+                            ModLogger.Log("show-spike: MUTATE skipped -- unrecognized id in the natural stream");
                         }
                     }
                 }
@@ -391,7 +391,7 @@ internal sealed class ShowSpike
                 ushort n = RtlCaptureStackBackTrace(0, StackCapFrames, frames, out _);
                 var sb = new System.Text.StringBuilder(n * 12);
                 for (int i = 0; i < n; i++) sb.Append(((long)frames[i]).ToString("x")).Append(' ');
-                Log.Info($"show-spike: STACK type={type} thread={GetCurrentThreadId()} frames[{n}]: {sb.ToString().TrimEnd()}");
+                ModLogger.LogDebug($"show-spike: STACK type={type} thread={GetCurrentThreadId()} frames[{n}]: {sb.ToString().TrimEnd()}");
                 // The unwind walker dies at the managed/Denuvo boundary (frames[1] observed live
                 // 2026-07-03), so ALSO raw-scrape the live stack for return-address-shaped qwords.
                 // This derefs OUR OWN thread's stack between a local and the stack base -- committed
@@ -417,14 +417,14 @@ internal sealed class ShowSpike
                             hits++;
                         }
                     }
-                    Log.Info($"show-spike: STACKSCRAPE type={type} span=0x{span:x} hits[{hits}]: {hitSb.ToString().TrimEnd()}");
+                    ModLogger.LogDebug($"show-spike: STACKSCRAPE type={type} span=0x{span:x} hits[{hits}]: {hitSb.ToString().TrimEnd()}");
                 }
             }
-            Log.Info($"show-spike: orch CALLED{(_firing ? " (OUR replay)" : "")} thread={GetCurrentThreadId()}: ctrl={(long)ctrl:x} type={type} textObj={(long)textObj:x} r8={(long)hasText:x} tokens={tok}");
+            ModLogger.LogDebug($"show-spike: orch CALLED{(_firing ? " (OUR replay)" : "")} thread={GetCurrentThreadId()}: ctrl={(long)ctrl:x} type={type} textObj={(long)textObj:x} r8={(long)hasText:x} tokens={tok}");
         }
         catch (Exception ex)
         {
-            Log.Error("show-spike: orch detour log failed -- " + ex.Message);
+            ModLogger.LogError("show-spike: orch detour log failed -- " + ex.Message);
         }
         _orchHook!.OriginalFunction(ctrl, textObj, hasText, r9);
         try
@@ -433,13 +433,13 @@ internal sealed class ShowSpike
             if (_chase && !_firing)
             {
                 _chase = false;
-                Log.Info("show-spike: CHASE firing -- ritual + custom-text commit in the natural call's own thread/context");
+                ModLogger.Log("show-spike: CHASE firing -- ritual + custom-text commit in the natural call's own thread/context");
                 Fire((long)ctrl, patchId: true);
             }
         }
         catch (Exception ex)
         {
-            Log.Error("show-spike: orch detour post failed -- " + ex.Message);
+            ModLogger.LogError("show-spike: orch detour post failed -- " + ex.Message);
         }
     }
 
@@ -455,7 +455,7 @@ internal sealed class ShowSpike
             if (!_tapCanary)
             {
                 _tapCanary = true;
-                Log.Info($"show-spike: commit-tap hooks ALIVE (first {which}, thread {GetCurrentThreadId()})");
+                ModLogger.Log($"show-spike: commit-tap hooks ALIVE (first {which}, thread {GetCurrentThreadId()})");
             }
             bool tapOpen = DateTime.Now.Ticks < System.Threading.Interlocked.Read(ref _tapUntilTicks)
                            && _tapLines <= TapMaxLines;
@@ -480,19 +480,19 @@ internal sealed class ShowSpike
                     bool fresh;
                     lock (_tapSeen) fresh = _tapSeen.Add($"{which}:{(long)holder:X}:{preview}");
                     if (fresh && System.Threading.Interlocked.Increment(ref _tapLines) <= TapMaxLines)
-                        Log.Info($"commit-tap: {which} holder=0x{(long)holder:X} text=0x{(long)text:X} \"{preview}\" (tid {GetCurrentThreadId()})");
+                        ModLogger.Log($"show-spike: commit-tap {which} holder=0x{(long)holder:X} text=0x{(long)text:X} \"{preview}\" (tid {GetCurrentThreadId()})");
                 }
                 if (swapEligible && preview.StartsWith(FacingPromptPrefix, StringComparison.Ordinal))
                 {
                     _promptSwap = false;   // one-shot: the next facing prompt is vanilla again
                     text = _promptPin.AddrOfPinnedObject();
-                    Log.Info($"show-spike: PROMPT SWAP fired -- holder=0x{(long)holder:X} now carries \"{PromptSwapText}\" (does it render and STAY until confirm?)");
+                    ModLogger.Log($"show-spike: PROMPT SWAP fired -- holder=0x{(long)holder:X} now carries \"{PromptSwapText}\" (does it render and STAY until confirm?)");
                 }
             }
         }
         catch (Exception ex)
         {
-            Log.Error("show-spike: commit-tap log failed -- " + ex.Message);
+            ModLogger.LogError("show-spike: commit-tap log failed -- " + ex.Message);
         }
         hook.OriginalFunction(holder, text, r8, r9);
     }
@@ -505,7 +505,7 @@ internal sealed class ShowSpike
         if (!_updateCanary)
         {
             _updateCanary = true;
-            Log.Info($"show-spike: update hook ALIVE (thread {GetCurrentThreadId()})");
+            ModLogger.Log($"show-spike: update hook ALIVE (thread {GetCurrentThreadId()})");
         }
     }
 
@@ -530,7 +530,7 @@ internal sealed class ShowSpike
     {
         if (!_haveLast)
         {
-            Log.Info("show-spike: no capture yet this launch -- cast something first, then retry");
+            ModLogger.Log("show-spike: no capture yet this launch -- cast something first, then retry");
             return;
         }
         FireStream(ctrl, (byte[])_lastTokens.Clone(), _lastType, patchId, "CHASE",
@@ -552,16 +552,16 @@ internal sealed class ShowSpike
             Marshal.Copy(src, 0, _tokenPin.AddrOfPinnedObject(), TokenLen);
             fire(0, _tokenPin.AddrOfPinnedObject(), 1);
             _firing = false;
-            Log.Info($"show-spike: wrapper fired (mode={mode}{patched} ctrl={ctrl:x} type={type} thread={GetCurrentThreadId()})");
+            ModLogger.Log($"show-spike: wrapper fired (mode={mode}{patched} ctrl={ctrl:x} type={type} thread={GetCurrentThreadId()})");
             // The v7-proven text swap: overwrite whatever the ritual set, synchronously.
             var commit = Marshal.GetDelegateForFunctionPointer<SetTextCommitFn>(unchecked((nint)FnSetTextCommit));
             commit((nint)(ctrl + 0x58), text);
-            Log.Info($"show-spike: custom text committed after the ritual -- does the bubble say '{textLabel}'?");
+            ModLogger.Log($"show-spike: custom text committed after the ritual -- does the bubble say '{textLabel}'?");
         }
         catch (Exception ex)
         {
             _firing = false;
-            Log.Error("show-spike: managed exception in game-thread fire -- " + ex.Message);
+            ModLogger.LogError("show-spike: managed exception in game-thread fire -- " + ex.Message);
         }
     }
 
@@ -587,18 +587,18 @@ internal sealed class ShowSpike
         long ctrl = ResolveCtrl();
         if (ctrl == 0)
         {
-            Log.Info("show-spike: F4 -- controller chain unresolved (enter a battle first)");
+            ModLogger.Log("show-spike: F4 -- controller chain unresolved (enter a battle first)");
             return;
         }
         if (!_haveName)
         {
-            Log.Info("show-spike: F4 -- no type-0 capture yet this launch (do one attack first, then retry)");
+            ModLogger.Log("show-spike: F4 -- no type-0 capture yet this launch (do one attack first, then retry)");
             return;
         }
         try
         {
             uint timer = _mem.U32(ctrl + LingerOffset);
-            Log.Info($"show-spike: F4 COLD SPAWN (loop thread {GetCurrentThreadId()}) -- pre: flag={_mem.U8(ctrl + ShowFlagOffset)} timer={timer}");
+            ModLogger.Log($"show-spike: F4 COLD SPAWN (loop thread {GetCurrentThreadId()}) -- pre: flag={_mem.U8(ctrl + ShowFlagOffset)} timer={timer}");
             var helper = Marshal.GetDelegateForFunctionPointer<HelperFn>(unchecked((nint)FnStreamHelper));
             if (timer > 0)
             {
@@ -610,11 +610,11 @@ internal sealed class ShowSpike
                        _spawnTextPin.AddrOfPinnedObject(), SpawnText);
             helper((nint)ctrl, -2);
             helper((nint)ctrl, 0);
-            Log.Info($"show-spike: F4 sequence complete -- post: flag={_mem.U8(ctrl + ShowFlagOffset)} timer={_mem.U32(ctrl + LingerOffset)} -- IS THERE A BUBBLE?");
+            ModLogger.Log($"show-spike: F4 sequence complete -- post: flag={_mem.U8(ctrl + ShowFlagOffset)} timer={_mem.U32(ctrl + LingerOffset)} -- IS THERE A BUBBLE?");
         }
         catch (Exception ex)
         {
-            Log.Error("show-spike: F4 cold spawn failed -- " + ex.Message);
+            ModLogger.LogError("show-spike: F4 cold spawn failed -- " + ex.Message);
         }
     }
 
@@ -626,7 +626,7 @@ internal sealed class ShowSpike
         long ctrl = ResolveCtrl();
         if (ctrl == 0)
         {
-            Log.Info("show-spike: F6 -- controller chain unresolved (enter a battle first)");
+            ModLogger.Log("show-spike: DISMISS -- controller chain unresolved (enter a battle first)");
             return;
         }
         try
@@ -637,11 +637,11 @@ internal sealed class ShowSpike
                 _mem.WriteBytes(ctrl + LingerOffset, BitConverter.GetBytes(0u));
             var helper = Marshal.GetDelegateForFunctionPointer<HelperFn>(unchecked((nint)FnStreamHelper));
             helper((nint)ctrl, -2);
-            Log.Info($"show-spike: F6 DISMISS fired -- pre flag={flag} timer={timer}, post flag={_mem.U8(ctrl + ShowFlagOffset)} -- did the bubble vanish?");
+            ModLogger.Log($"show-spike: DISMISS fired -- pre flag={flag} timer={timer}, post flag={_mem.U8(ctrl + ShowFlagOffset)} -- did the bubble vanish?");
         }
         catch (Exception ex)
         {
-            Log.Error("show-spike: F6 dismiss failed -- " + ex.Message);
+            ModLogger.LogError("show-spike: DISMISS failed -- " + ex.Message);
         }
     }
 }

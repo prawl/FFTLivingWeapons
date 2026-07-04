@@ -45,16 +45,16 @@ public class Mod : IMod
             if (hooksRef != null && hooksRef.TryGetTarget(out var hooks) && hooks != null)
             {
                 _engine?.InjectHooks(hooks);
-                Log.Info("IReloadedHooks resolved and injected");
+                ModLogger.Log("IReloadedHooks resolved and injected");
             }
             else
             {
-                Log.Info("IReloadedHooks controller not available -- is reloaded.sharedlib.hooks loaded?");
+                ModLogger.Log("IReloadedHooks controller not available -- is reloaded.sharedlib.hooks loaded?");
             }
         }
         catch (Exception ex)
         {
-            Log.Error("IReloadedHooks injection failed -- " + ex.Message);
+            ModLogger.LogError("IReloadedHooks injection failed -- " + ex.Message);
         }
     }
 
@@ -66,8 +66,8 @@ public class Mod : IMod
         {
             string modDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
                             ?? Environment.CurrentDirectory;
-            Log.Init(modDir);
-            Log.Info("Living Weapon starting up (running inside FFT_enhanced.exe).");
+            ModLogger.Init(modDir);
+            ModLogger.Log("Living Weapon starting up (running inside FFT_enhanced.exe).");
 
             // Load mod config fail-soft: any read failure falls back to the Tuning default (true).
             // The Reloaded launcher writes the user's edits to <Reloaded>/User/Mods/<ModId>/Config.json,
@@ -77,26 +77,33 @@ public class Mod : IMod
             bool treasureAlwaysOn = Tuning.TreasureAlwaysOn;   // documented default
             bool bannerToasts     = Tuning.BannerToasts;       // documented default
             bool devSeedKills     = true;                      // documented default (dev builds only)
+            bool verboseLog       = false;                     // documented default (Config.VerboseLog)
+            string configPath     = Path.Combine(modDir, "Config.json");   // overwritten below on success
             try
             {
-                var configPath = ResolveConfigPath(modDir);
-                var cfg        = Configurable<Config>.FromFile(configPath, "FFT Living Weapons Configuration");
+                configPath = ResolveConfigPath(modDir);
+                var cfg    = Configurable<Config>.FromFile(configPath, "FFT Living Weapons Configuration");
                 treasureAlwaysOn = cfg.TreasureAlwaysOn;
                 bannerToasts     = cfg.BannerToasts;
                 devSeedKills     = cfg.DevSeedKills;
-                Log.Info($"config: TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} (from {configPath})");
+                verboseLog       = cfg.VerboseLog;
             }
             catch (Exception cfgEx)
             {
-                Log.Error($"config load failed, using defaults TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills}: {cfgEx.Message}");
+                ModLogger.LogError($"config load failed, using defaults TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} VerboseLog={verboseLog}: {cfgEx.Message}");
             }
+            // Set the console threshold from whatever verboseLog resolved to -- DEFINED whether the
+            // try above succeeded or hit the catch (never skipped), so a config-read failure can't
+            // silently strand the console on whatever the lazily-created default logger picked.
+            ModLogger.LogLevel = verboseLog ? LogLevel.Debug : LogLevel.Info;
+            ModLogger.Log($"config: TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} VerboseLog={verboseLog} LogLevel={ModLogger.LogLevel} (from {configPath})");
 
             _engine = new Engine(modDir, treasureAlwaysOn, bannerToasts, devSeedKills);
             _engine.Start();
         }
         catch (Exception ex)
         {
-            try { Log.Error("startup failed -- Living Weapon will not run: " + ex); } catch { }
+            try { ModLogger.LogError("startup failed -- Living Weapon will not run: " + ex); } catch { }
         }
     }
 

@@ -212,12 +212,12 @@ internal static partial class Wielder
     /// content, brave/faith mismatch, or the twin filter). Dev-pulse callers only.</summary>
     public static void DumpCandidates(IGameMemory mem, IReadOnlyList<int> hands, (int lvl, int br, int fa) fp)
     {
-        Log.Info($"locate-miss: could not find the wielder's combat entry this pulse -- wanted weapon id in [{string.Join(",", hands)}], brave {fp.br}, faith {fp.fa}; candidates listed below");
+        ModLogger.Log($"wielder-search: no unit matched this pulse -- wanted weapon id in [{string.Join(",", hands)}], brave {fp.br}, faith {fp.fa}; candidates listed below [locate miss]");
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long e = Band.Entry(s);
             if (!Band.IsValid(mem, e)) continue;
-            Log.Info($"  cand slot {s}: weapon {mem.U16(e + EntryWeapon)} (wanted one of [{string.Join(",", hands)}]), " +
+            ModLogger.Log($"  cand slot {s}: weapon {mem.U16(e + EntryWeapon)} (wanted one of [{string.Join(",", hands)}]), " +
                      $"level {mem.U8(e + Offsets.ALevel)}, brave {mem.U8(e + Offsets.ABrave)}, faith {mem.U8(e + Offsets.AFaith)}, " +
                      $"position ({mem.U8(e + Offsets.AGx)},{mem.U8(e + Offsets.AGy)})");
         }

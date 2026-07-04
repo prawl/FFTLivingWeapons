@@ -74,7 +74,7 @@ internal sealed partial class Maim : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info($"maim {(active ? "ACTIVE -- Huntress wielder is acting, next hit will suppress enemy reactions" : "inactive")}");
+            ModLogger.Log($"maim {(active ? "ACTIVE -- Huntress wielder is acting, next hit will suppress enemy reactions" : "inactive")}");
         }
 
         int crippleTurns = m.Signature.CrippleTurns;
@@ -109,13 +109,13 @@ internal sealed partial class Maim : ISignature
                     // the victim's CURRENT CT so the first sample is never mistaken for a completed turn.
                     uint saved = ReadReactionField(_mem, addr);
                     _state.Latch(addr, fp, saved, _mem.U8(addr + LiveCtOff));
-                    Log.Info($"maim: struck enemy ({mhp} max HP) loses reaction abilities for {crippleTurns} of its turns (saved reaction field 0x{saved:X8})");
+                    ModLogger.Log($"maim: struck enemy ({mhp} max HP) loses reaction abilities for {crippleTurns} of its turns (saved reaction field 0x{saved:X8})");
                 }
                 else
                 {
                     // Re-hit: refresh the window (reset turn counter), keep saved bytes intact.
                     _state.Refresh(fp);
-                    Log.Info($"maim: hit an already-Maimed enemy ({mhp} max HP) -- turn window refreshed");
+                    ModLogger.Log($"maim: hit an already-Maimed enemy ({mhp} max HP) -- turn window refreshed");
                 }
             }
         }
@@ -158,7 +158,7 @@ internal sealed partial class Maim : ISignature
             uint saved = _state.SavedReaction(fp).GetValueOrDefault();
             Restore(_mem, addr, saved);
             _state.Release(fp);
-            Log.Info($"maim: suppression lifted on enemy ({fp.mhp} max HP) after {crippleTurns} turns -- reaction abilities restored (0x{saved:X8})");
+            ModLogger.Log($"maim: suppression lifted on enemy ({fp.mhp} max HP) after {crippleTurns} turns -- reaction abilities restored (0x{saved:X8})");
         }
     }
 

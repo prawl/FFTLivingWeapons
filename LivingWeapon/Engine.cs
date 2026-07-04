@@ -76,7 +76,7 @@ internal sealed class Engine
         if (Tuning.DevSeedAllKills && devSeedKills != false)
         {
             Tuning.SeedKills(meta.Keys, _kills, Tuning.DevKillSeed);
-            Log.Info($"DEV: force-seeded all {meta.Count} weapons to at least {Tuning.DevKillSeed} kills -- every weapon starts with +3 effects active for fast testing.");
+            ModLogger.Log($"DEV: force-seeded all {meta.Count} weapons to at least {Tuning.DevKillSeed} kills -- every weapon starts with +3 effects active for fast testing.");
         }
 #endif
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
@@ -89,8 +89,12 @@ internal sealed class Engine
         _showSpike = new ShowSpike(live);
 #endif
         _turns = new TurnTracker(live);
+        // verbose: true (was Tuning.VerboseEvents, DEV-only const) -- the ev: timeline is now always
+        // captured to the file via ModLogger.LogDebug (Debug tier writes livingweapon.log
+        // unconditionally); it only reaches the console when Config.VerboseLog is on. Deliberate
+        // Release-behavior change, see BattleLog's class doc.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
-                                   new BattleLog(Tuning.VerboseEvents));
+                                   new BattleLog(verbose: true, sink: ModLogger.LogDebug));
         _growth = new GrowthEngine(meta, _kills, _turns, live);
         _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
@@ -134,7 +138,7 @@ internal sealed class Engine
         _gunSlinger = new GunSlinger(meta, _kills, modDir, live);
         _display = new Display(meta, _kills, live);
         LogNames.Init(meta);
-        Log.Info($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
+        ModLogger.Log($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
     }
 
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves
@@ -156,11 +160,11 @@ internal sealed class Engine
         var token = _cts.Token;
         Task.Run(async () =>
         {
-            Log.Info("runtime loop started.");
+            ModLogger.Log("runtime loop started.");
             while (!token.IsCancellationRequested)
             {
                 try { Tick(); }
-                catch (Exception ex) { Log.Error("tick: " + ex.Message); }
+                catch (Exception ex) { ModLogger.LogError("tick: " + ex.Message); }
                 try { await Task.Delay(PollMs, token); } catch { }
             }
         }, token);
@@ -207,7 +211,7 @@ internal sealed class Engine
         bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
         if (edge == BattleEdge.Entered)
         {
-            Log.Info($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
+            ModLogger.Log($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
             // Reset per-battle state on ENTER too. A battle RESTART can re-enter WITHOUT a clean Exit
             // (the slot0/slot9 sentinels stick -- slot0-quit-stick-trap), which left Larceny's stolen-buff
             // ledger alive into the new battle: the engine wipes statuses at battle start, but Larceny's
@@ -224,7 +228,7 @@ internal sealed class Engine
 
         if (edge == BattleEdge.Exited)
         {
-            Log.Info($"battle: ended -- saving kill tally, resetting battle trackers (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
+            ModLogger.Log($"battle: ended -- saving kill tally, resetting battle trackers (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
             ResetBattleState();
             _tally.Save();               // flush on battle end
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies

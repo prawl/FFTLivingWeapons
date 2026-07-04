@@ -28,4 +28,12 @@ public class Config : Configurable<Config>
                  "effect in release builds (seeding is compiled out).")]
     [DefaultValue(true)]
     public bool DevSeedKills { get; set; } = true;
+
+    [DisplayName("Verbose Diagnostic Log")]
+    [Description("Show Debug-tier diagnostic lines (per-tick battle-event timeline, signature " +
+                 "verdict dumps, etc.) on the Reloaded console too, not just in livingweapon.log. " +
+                 "The log FILE always has this detail regardless of this setting -- this only " +
+                 "controls console noise. Default: off.")]
+    [DefaultValue(false)]
+    public bool VerboseLog { get; set; } = false;
 }

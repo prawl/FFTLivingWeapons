@@ -69,7 +69,7 @@ internal sealed partial class ExtraTurn : ISignature
         if (freshKill)
         {
             if (_state == GrantState.Idle) Arm(now);
-            else Log.Info($"extra-turn: kill landed while bonus is already pending ({_state}) -- chains are not granted");
+            else ModLogger.Log($"extra-turn: kill landed while bonus is already pending ({_state}) -- chains are not granted");
         }
         if (_state == GrantState.Idle) return;
 
@@ -91,20 +91,20 @@ internal sealed partial class ExtraTurn : ISignature
             if (cls is { } s)
             {
                 _state = s;
-                Log.Info($"extra-turn: state resolved to {s} (CT {ct}; {(s == GrantState.Owed ? "kill-turn still running -- two" : "kill-turn already over -- one")} pull-down(s) needed to confirm the bonus)");
+                ModLogger.Log($"extra-turn: state resolved to {s} (CT {ct}; {(s == GrantState.Owed ? "kill-turn still running -- two" : "kill-turn already over -- one")} pull-down(s) needed to confirm the bonus)");
             }
         }
         else
         {
             (_streak, _took, bool pullDown) = Observe(_streak, _took, ct);
-            if (pullDown) Log.Info($"extra-turn: turn-end #{++_pullDowns} detected (CT {ct}, state {_state})");
+            if (pullDown) ModLogger.LogDebug($"extra-turn: turn-end #{++_pullDowns} detected (CT {ct}, state {_state})");
             (GrantState next, bool consumed) = Step(_state, pullDown);
             if (consumed) { Release(ReleaseReason.Consumed); return; }
             if (next != _state) { _state = next; _deadline = now.AddSeconds(NoSignalSeconds); }
         }
 
         if (Slams(_state) && _base != 0 && _mem.Writable(_base + CtOff, 1)) _mem.W8(_base + CtOff, SlamCt);
-        if (_dbg++ % 15 == 0) Log.Info($"extra-turn: {_state} -- wielder entry at 0x{_base:X}, CT {ct}, streak {_streak}, slam took={_took}");
+        if (_dbg++ % 15 == 0) ModLogger.LogDebug($"extra-turn: {_state} -- wielder entry at 0x{_base:X}, CT {ct}, streak {_streak}, slam took={_took}");
     }
 
     private void Arm(DateTime now)
@@ -112,13 +112,13 @@ internal sealed partial class ExtraTurn : ISignature
         _state = GrantState.Arming; _base = 0; _prevCt = -1;
         _streak = 0; _took = false; _pullDowns = 0; _deadStreak = 0;
         _deadline = now.AddSeconds(NoSignalSeconds); _hardStop = now.AddSeconds(AbsoluteCapSeconds);
-        Log.Info($"extra-turn: {LogNames.Weapon(ZwillId)} scored a kill -- arming extra-turn grant for the wielder (level {_wielder.lvl}, brave {_wielder.br}, faith {_wielder.fa})");
+        ModLogger.Log($"extra-turn: {LogNames.Weapon(ZwillId)} scored a kill -- arming extra-turn grant for the wielder (level {_wielder.lvl}, brave {_wielder.br}, faith {_wielder.fa})");
     }
 
     private void Release(ReleaseReason reason)
     {
         if (RestoreCt(reason) && _base != 0 && _mem.Writable(_base + CtOff, 1)) _mem.W8(_base + CtOff, 0);
-        Log.Info($"extra-turn: grant ended ({reason}) from {_state} after {_pullDowns} turn-end(s) detected");
+        ModLogger.Log($"extra-turn: grant ended ({reason}) from {_state} after {_pullDowns} turn-end(s) detected");
         _state = GrantState.Idle; _base = 0; _streak = 0; _took = false; _prevCt = -1; _deadStreak = 0;
     }
 

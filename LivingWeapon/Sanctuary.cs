@@ -73,7 +73,7 @@ internal sealed partial class Sanctuary : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            Log.Info(active
+            ModLogger.Log(active
                 ? "sanctuary ACTIVE -- Staff of the Magi at +3 and its bearer lives; fallen allies are held from crystallizing"
                 : "sanctuary inactive -- the bearer is down or unequipped; divine intervention lifted");
         }
@@ -113,7 +113,7 @@ internal sealed partial class Sanctuary : ISignature
             {
                 int gx = _mem.U8(e + Offsets.AGx);
                 int gy = _mem.U8(e + Offsets.AGy);
-                Log.Info($"sanctuary: divine intervention -- held ally at ({gx},{gy}) at {cur}->{Tuning.SanctuaryHearts} hearts");
+                ModLogger.Log($"sanctuary: divine intervention -- held ally at ({gx},{gy}) at {cur}->{Tuning.SanctuaryHearts} hearts");
             }
             if (_mem.Writable(counterAddr, 1)) _mem.W8(counterAddr, Tuning.SanctuaryHearts);
         }

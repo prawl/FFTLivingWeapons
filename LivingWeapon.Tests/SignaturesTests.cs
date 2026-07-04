@@ -263,4 +263,45 @@ public class SignaturesTests
         foreach (int n in new[] { -1, -9, -99, -999, -9999, -10000, -12345 })
             Assert.Equal(4, Signatures.KillsSlot(n).Length);
     }
+
+    // --- StuckEdge: the once-per-transition latch behind the Barrage/ShadowBlade per-tick nags
+    //     (logging overhaul). A condition that can hold true for MANY consecutive ticks (no empty
+    //     JobCommand slot, a record not readable yet) must fire its diagnostic once on the rising
+    //     edge, stay silent while stuck, and re-arm once the condition clears -- even at Debug tier,
+    //     an every-33ms line would bloat the file for no new information.
+
+    [Fact]
+    public void StuckEdge_fires_once_on_the_rising_edge()
+    {
+        bool latched = false;
+        Assert.True(Signatures.StuckEdge(ref latched, true));    // first stuck tick -> fires
+        Assert.True(latched);
+    }
+
+    [Fact]
+    public void StuckEdge_stays_silent_while_still_stuck()
+    {
+        bool latched = false;
+        Signatures.StuckEdge(ref latched, true);
+        Assert.False(Signatures.StuckEdge(ref latched, true));   // still stuck -> silent
+        Assert.False(Signatures.StuckEdge(ref latched, true));   // still stuck -> silent
+    }
+
+    [Fact]
+    public void StuckEdge_rearms_after_the_condition_clears()
+    {
+        bool latched = false;
+        Signatures.StuckEdge(ref latched, true);     // fires, latches
+        Assert.False(Signatures.StuckEdge(ref latched, false));  // cleared -> silent, re-arms
+        Assert.False(latched);
+        Assert.True(Signatures.StuckEdge(ref latched, true));    // stuck again -> fires again
+    }
+
+    [Fact]
+    public void StuckEdge_never_fires_while_the_condition_never_holds()
+    {
+        bool latched = false;
+        Assert.False(Signatures.StuckEdge(ref latched, false));
+        Assert.False(Signatures.StuckEdge(ref latched, false));
+    }
 }

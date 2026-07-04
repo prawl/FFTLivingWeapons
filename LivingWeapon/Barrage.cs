@@ -64,6 +64,8 @@ internal sealed partial class Barrage : ISignature
     private bool _wasActive;
     private int _lastRecId = -1;          // record id currently injected (-1 = none)
     private int _lastUnsupportedJob = -1; // log-once guard for unmapped jobs
+    private bool _recNotReadableLogged;    // Signatures.StuckEdge latch: record unreadable nag
+    private bool _noSlotLogged;            // Signatures.StuckEdge latch: no empty slot nag
 
     public Barrage(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
     {
@@ -78,6 +80,8 @@ internal sealed partial class Barrage : ISignature
         // No restore on battle exit: the grant is session-long while the bow stays equipped.
         // Saved-record state persists across battles within one session.
         _wasActive = false;
+        _recNotReadableLogged = false;
+        _noSlotLogged = false;
     }
 
     public void Tick()
@@ -114,7 +118,7 @@ internal sealed partial class Barrage : ISignature
         bool nowActive = wielderSlot >= 0;
         if (!nowActive)
         {
-            if (_wasActive) Log.Info("barrage: Barrage signature no longer active -- no Yoichi Bow wielder with required kills");
+            if (_wasActive) ModLogger.Log("barrage: Barrage signature no longer active -- no Yoichi Bow wielder with required kills");
             _wasActive = false;
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             return;
@@ -127,7 +131,7 @@ internal sealed partial class Barrage : ISignature
             if (_lastUnsupportedJob != wielderJob)
             {
                 _lastUnsupportedJob = wielderJob;
-                Log.Info($"barrage: {LogNames.Job(wielderJob)} (job {wielderJob}) cannot receive Barrage -- job uses a special command executor or is story-unique; no grant (secondary record {wielderSecondary})");
+                ModLogger.Log($"barrage: {LogNames.Job(wielderJob)} (job {wielderJob}) cannot receive Barrage -- job uses a special command executor or is story-unique; no grant (secondary record {wielderSecondary})");
             }
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             _wasActive = false;
@@ -140,7 +144,7 @@ internal sealed partial class Barrage : ISignature
             string thiefPath = wielderJob == ThiefJob
                 ? "Thief is the primary job"
                 : "Thief (Steal) is the secondary command";
-            Log.Info($"barrage: ACTIVE -- party slot {wielderSlot} wields Yoichi Bow ({thiefPath}), Barrage added to record {recId} (job {wielderJob}, learn-index {jobIdx}{(viaSecondary ? ", injected via secondary" : "")})");
+            ModLogger.Log($"barrage: ACTIVE -- party slot {wielderSlot} wields Yoichi Bow ({thiefPath}), Barrage added to record {recId} (job {wielderJob}, learn-index {jobIdx}{(viaSecondary ? ", injected via secondary" : "")})");
         }
 
         // Job changed mid-session: restore the old record and re-inject for the new job.
@@ -154,15 +158,20 @@ internal sealed partial class Barrage : ISignature
         long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
         long abBase = AbilityBase + (long)recId * RecSize;
 
-        // Sane-bounds check before ANY write.
-        if (!_mem.Readable(flagAddr, RecSize)) { Log.Info($"barrage: command record {recId} is not readable in memory yet -- skipping this tick"); return; }
+        // Sane-bounds check before ANY write. Debug tier + a once-per-transition latch: this can
+        // hold true for many consecutive ticks while the table is still loading, and even a
+        // file-only line would bloat livingweapon.log at 33ms cadence otherwise.
+        bool recNotReadable = !_mem.Readable(flagAddr, RecSize);
+        if (Signatures.StuckEdge(ref _recNotReadableLogged, recNotReadable))
+            ModLogger.LogDebug($"barrage: command record {recId} is not readable in memory yet -- skipping this tick");
+        if (recNotReadable) return;
 
         // Save the original record ONCE (never-re-save while injected).
         if (!_state.HasSaved(recId))
         {
             byte[] original = _mem.ReadBytes(flagAddr, RecSize);
             _state.Save(recId, original);
-            Log.Info($"barrage: saved original {LogNames.Job(wielderJob)} command list before injecting Barrage (record {recId})");
+            ModLogger.Log($"barrage: saved original {LogNames.Job(wielderJob)} command list before injecting Barrage (record {recId})");
         }
 
         // Find or verify the injection slot.
@@ -174,10 +183,17 @@ internal sealed partial class Barrage : ISignature
             var ab = new byte[AbilityCount];
             for (int i = 0; i < AbilityCount; i++) ab[i] = buf[FlagPrefixSize + i];
             int slot1 = FindEmptySlot(ab, extAb);
-            if (slot1 < 0) { Log.Info($"barrage: no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}) -- cannot inject Barrage"); return; }
+            if (slot1 < 0)
+            {
+                // Debug tier + latch: the condition can hold every tick until a slot frees up.
+                if (Signatures.StuckEdge(ref _noSlotLogged, true))
+                    ModLogger.LogDebug($"barrage: no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}) -- cannot inject Barrage");
+                return;
+            }
+            Signatures.StuckEdge(ref _noSlotLogged, false);   // slot found -> re-arm for next time
             slotIdx = slot1 - 1;   // convert to 0-indexed
             _state.SlotIdx = slotIdx;
-            Log.Info($"barrage: picked ability slot {slot1} in the {LogNames.Job(wielderJob)} command list (slot index {slotIdx}, record {recId})");
+            ModLogger.Log($"barrage: picked ability slot {slot1} in the {LogNames.Job(wielderJob)} command list (slot index {slotIdx}, record {recId})");
         }
 
         // Idempotent inject: only write when the slot is not already correct.

@@ -67,12 +67,6 @@ internal sealed partial class Kobu : ISignature
     private readonly RicochetState _hpState;   // HP-diff per-slot tracking (same pattern as Maim)
     private readonly EnemyFingerprintCache _enemies;
 
-    // A field, not `if (Tuning.VerboseEvents)` inline: VerboseEvents is a const false in Release,
-    // so the compiler proves the branch dead -- CS0162 unreachable code -- and TreatWarningsAsErrors
-    // turns that into a build failure. Reading it through a readonly field (BattleLog's precedent)
-    // keeps the check a runtime bool instead of a compile-time constant.
-    private readonly bool _verbose = Tuning.VerboseEvents;
-
     public Kobu(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker,
                 IGameMemory? mem = null)
     {
@@ -158,10 +152,9 @@ internal sealed partial class Kobu : ISignature
         {
             verdict = "raised";
             _mem.W8(target, (byte)raised);
-            Log.Info($"kobu: struck enemy (current brave {struck}) -- wielder brave raised {live} -> {raised}");
+            ModLogger.Log($"kobu: struck enemy (current brave {struck}) -- wielder brave raised {live} -> {raised}");
         }
         if (rearm) _hpState.Rearm(s, hp + dmg);
-        if (_verbose)
-            Log.Info($"kobu-diag: slot {s} dmg {dmg} verdict={verdict} acted={actedByte} mainHand={mainHand} wielder={wielderEntry != 0} inSet={inSet} struck={struck} live={live} raised={raised}");
+        ModLogger.LogDebug($"kobu-diag: slot {s} dmg {dmg} verdict={verdict} acted={actedByte} mainHand={mainHand} wielder={wielderEntry != 0} inSet={inSet} struck={struck} live={live} raised={raised}");
     }
 }

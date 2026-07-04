@@ -175,7 +175,7 @@ internal sealed partial class Barrage
         long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
         if (!_mem.Writable(flagAddr, RecSize)) return;
         RestoreRecord(_mem, flagAddr, saved);
-        Log.Info($"barrage: removed Barrage from the command list, back to vanilla (record {recId})");
+        ModLogger.Log($"barrage: removed Barrage from the command list, back to vanilla (record {recId})");
     }
 
     /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
@@ -191,6 +191,6 @@ internal sealed partial class Barrage
         if ((cur & mask) != 0) return;   // already set -> no write needed
         if (!_mem.Writable(addr, 1)) return;
         _mem.W8(addr, (byte)(cur | mask));
-        Log.Info($"barrage: re-set the learned flag for Barrage in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1}) -- menu write-back cleared it");
+        ModLogger.LogDebug($"barrage: re-set the learned flag for Barrage in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1}) -- menu write-back cleared it");
     }
 }

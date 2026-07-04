@@ -46,7 +46,7 @@ internal sealed partial class EagleEye : ISignature
         if ((target > 0) != _wasActive)
         {
             _wasActive = target > 0;
-            Log.Info($"eagle-eye {(_wasActive ? "ACTIVE -- Eclipsebolt at +3 is equipped, enemy Doom countdowns are forced to 1" : "inactive")}");
+            ModLogger.Log($"eagle-eye {(_wasActive ? "ACTIVE -- Eclipsebolt at +3 is equipped, enemy Doom countdowns are forced to 1" : "inactive")}");
         }
         if (target > 0 && _tick++ % 6 == 0) Hasten(target);   // band scan is heavy -> ~every 200ms
     }
@@ -84,7 +84,7 @@ internal sealed partial class EagleEye : ISignature
             if (_mem.Writable(cdAddr, 1) && _mem.U8(cdAddr) > target)
             {
                 _mem.W8(cdAddr, (byte)target);
-                Log.Info($"eagle-eye: enemy Doom countdown forced to {target} (was {cd}) -- level-{fp.lvl} enemy ({fp.mhp} max HP) [{++_hastened} this battle]");
+                ModLogger.Log($"eagle-eye: enemy Doom countdown forced to {target} (was {cd}) -- level-{fp.lvl} enemy ({fp.mhp} max HP) [{++_hastened} this battle]");
             }
         });
     }

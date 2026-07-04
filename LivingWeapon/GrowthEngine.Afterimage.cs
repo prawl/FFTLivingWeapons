@@ -59,7 +59,7 @@ internal sealed partial class GrowthEngine
         if (cur == rec.lastTarget || cur == rec.natural)         // we own it (or the engine just normalized)
         {
             if (next.Stacks != rec.st.Stacks)                    // log each ramp STEP (and the hit-reset back to 0)
-                Log.Info($"afterimage: {m.Name} wielder Speed {rec.natural} -> {target} (stacks {next.Stacks}/{Tuning.AfterimageSpeedCap})");
+                ModLogger.Log($"afterimage: {m.Name} wielder Speed {rec.natural} -> {target} (stacks {next.Stacks}/{Tuning.AfterimageSpeedCap})");
             if (cur != target) _mem.W8(addr, (byte)target);
             _afterimage[addr] = (rec.natural, next, target);
         }

@@ -174,7 +174,7 @@ internal sealed partial class KillTracker
             if (!_oracle.Contains(id))
             {
                 _deadCredited[s] = true;
-                Log.Info($"kill: a unit at battle slot {s} died but it was not a tracked enemy -- no credit given (this is normal for player/guest deaths)");
+                ModLogger.Log($"kill: a unit at battle slot {s} died but it was not a tracked enemy -- no credit given (this is normal for player/guest deaths)");
                 continue;
             }
 
@@ -182,7 +182,7 @@ internal sealed partial class KillTracker
             if (!_identityAlive.TryGetValue(id, out bool wasAlive) || !wasAlive)
             {
                 _deadCredited[s] = true;
-                Log.Info($"kill: WARN same enemy identity already credited at another slot -- blocking duplicate at battle slot {s}");
+                ModLogger.Log($"kill: WARN same enemy identity already credited at another slot -- blocking duplicate at battle slot {s}");
                 continue;
             }
 
@@ -200,16 +200,16 @@ internal sealed partial class KillTracker
                 // Killing edge was stamped during a roster player's turn with no tracked weapon.
                 // Credit nobody: the summoner/dancer/item-user's AoE kill is intentionally uncredited.
                 _deadCredited[s] = true; _pending[s] = false; _identityAlive[id] = false;
-                Log.Info($"kill: enemy at battle slot {s} was killed by a unit holding no tracked weapon -- no credit (uncredited as designed)");
+                ModLogger.Log($"kill: enemy at battle slot {s} was killed by a unit holding no tracked weapon -- no credit (uncredited as designed)");
                 continue;
             }
             var culprit = delayed ?? _lethalActor[s] ?? _lastPlayerWeapons;
             if (culprit.Count > 0)
             {
                 if (delayed != null)
-                    Log.Info($"kill: delayed-action override slot {s}: delayed=[{string.Join(",", delayed)}] stamp=[{string.Join(",", _lethalActor[s] as IEnumerable<int> ?? Array.Empty<int>())}] live=[{string.Join(",", _lastPlayerWeapons)}]");
+                    ModLogger.Log($"kill: delayed-action override slot {s}: delayed=[{string.Join(",", delayed)}] stamp=[{string.Join(",", _lethalActor[s] as IEnumerable<int> ?? Array.Empty<int>())}] live=[{string.Join(",", _lastPlayerWeapons)}]");
                 else if (_lethalActor[s] != null && !ActorResolver.SameSet(_lethalActor[s]!, _lastPlayerWeapons))
-                    Log.Info($"kill: crediting lethal-damage actor [{string.Join(",", culprit)}] over live latch [{string.Join(",", _lastPlayerWeapons)}] at slot {s} (deadStreak={_deadStreak[s]})");
+                    ModLogger.Log($"kill: crediting whoever landed the finishing blow, not whoever acted most recently [lethal=[{string.Join(",", culprit)}] vs live-latch=[{string.Join(",", _lastPlayerWeapons)}]] at slot {s} (deadStreak={_deadStreak[s]})");
                 bool c = CreditKill(s, gx, gy, culprit);
                 _deadCredited[s] = true;
                 _identityAlive[id] = false;   // dead now; no re-credit until revived
@@ -218,14 +218,14 @@ internal sealed partial class KillTracker
             else if (!_pending[s])
             {
                 _pending[s] = true; _pendingAge[s] = 0; _pendingFalls[s] = _actedFalls;
-                Log.Info($"kill: enemy down at ({gx},{gy}){statusNote} (battle slot {s})");
+                ModLogger.Log($"kill: enemy down at ({gx},{gy}){statusNote} (battle slot {s})");
             }
             else if (_actedFalls - _pendingFalls[s] >= ExpireFalls || ++_pendingAge[s] > PendingTtl)
             {
                 _deadCredited[s] = true; _pending[s] = false;
                 _lethalActor[s] = null; _lethalUntracked[s] = false;
                 _identityAlive[id] = false;
-                Log.Info($"kill: could not determine who killed the enemy -- no credit (battle slot {s}, waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges passed)");
+                ModLogger.Log($"kill: could not determine who killed the enemy -- no credit (battle slot {s}, waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges passed)");
             }
         }
         return changed;
