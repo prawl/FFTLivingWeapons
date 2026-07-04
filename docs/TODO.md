@@ -9,7 +9,9 @@ TODO's
 - Address all user feedback
 - Give the mod a flight recorder.
 - Figure out how to make the mod work in French
+- Migrate the remaining lossy-detection siblings (CharmLock/EagleEye/Larceny/Maim/Ricochet) to the cache + rearm
+- Kill-tally milestones on the equip card beyond the counter (e.g., suffix flair at high milestones) -- cheap polish
 - Remove Treasure Master
 - Remove Offensive Chemist
-
-- Alter Axes and Flails.  
+- Alter Axes and Flails.
+- Scholar's Ring idle nag repeats mid-battle despite the once-per-battle latch -- confirm ResetBattle double-fire
