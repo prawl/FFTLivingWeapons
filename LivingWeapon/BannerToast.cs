@@ -10,10 +10,13 @@ namespace LivingWeapon;
 /// dequeues the head via TryTake once the facing-prompt text has matched. This class decides only
 /// WHAT to say and WHEN it qualifies -- wording policy lives in BannerToast.Policy.cs.
 ///
-/// The queue is cross-thread-safe (loop-thread enqueue via DetectCrossings/the LWDEV DevProbe/
-/// DevTestKey; PromptSwap.TryPrepareSwap dequeues from the game's own text-setter thread), so every
-/// touch point routes through the three locked members below (_lock) so the queue stays safe
-/// regardless of which thread reaches it.
+/// The queue is cross-thread-safe (loop-thread enqueue via DetectCrossings; PromptSwap's
+/// TryPrepareSwap dequeues from the game's own text-setter thread), so every touch point routes
+/// through the three locked members below (_lock) so the queue stays safe regardless of which
+/// thread reaches it. (The LWDEV DevProbe auto-toast and F2 DevTestKey cycle that verified the
+/// delivery path live are REMOVED -- the fake "Zwill ... 999th kill ... Testfire!" payload kept
+/// firing in normal dev play once per launch; the delivery mechanism is proven and the real
+/// crossing detector is the only enqueuer now.)
 /// </summary>
 internal sealed partial class BannerToast
 {
@@ -52,10 +55,6 @@ internal sealed partial class BannerToast
     public void Tick(bool tallyChanged)
     {
         if (!_enabled) return;
-#if LWDEV
-        DevProbe();
-        DevTestKey();
-#endif
         if (tallyChanged) DetectCrossings();
     }
 
@@ -104,16 +103,15 @@ internal sealed partial class BannerToast
         }
     }
 
-    /// <summary>Locked membership check -- both DetectCrossings' dedupe checks and DevTestKey's
-    /// cycle guard route through here so no queue read happens outside the lock.</summary>
+    /// <summary>Locked membership check -- DetectCrossings' dedupe checks route through here so
+    /// no queue read happens outside the lock.</summary>
     private bool Contains(int weaponId, int tier)
     {
         lock (_lock) return _queue.Exists(q => q.weaponId == weaponId && q.tier == tier);
     }
 
     /// <summary>Locked enqueue. Internal: also the concurrency-hammer test seam
-    /// (Concurrent_enqueue_and_drain_is_safe), so DevProbe/DevTestKey inherit thread safety for
-    /// free. QueueCap drop-oldest stays inside the lock.</summary>
+    /// (Concurrent_enqueue_and_drain_is_safe). QueueCap drop-oldest stays inside the lock.</summary>
     internal void Enqueue(int weaponId, int tier, string payload)
     {
         lock (_lock)
@@ -148,53 +146,4 @@ internal sealed partial class BannerToast
         }
     }
 
-#if LWDEV
-    private const int ProbeAfterTicks = 300;
-    private int _probeTick;
-    private bool _probed;   // never reset -- once per LAUNCH, not once per battle
-
-    /// <summary>DEV verification probe (live review blocker 1): a MAX-LENGTH-SHAPED toast (the
-    /// spike's payload was a 13-char "BUBBA LUVS +3") exercises the game-side heap-alloc string
-    /// path the short spike payload never touched.</summary>
-    private void DevProbe()
-    {
-        if (_probed) return;
-        if (++_probeTick < ProbeAfterTicks) return;
-        _probed = true;
-        Enqueue(0, 3, "Zwill Straightblade has gained its 999th kill and has unlocked Testfire!");
-        Log.Info("banner-toast: DEV probe queued (max-length payload)");
-    }
-
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern short GetAsyncKeyState(int vKey);
-
-    private const int VkF2 = 0x71;
-    private bool _f2Was;
-    private int _f2Cycle;
-
-    /// <summary>DEV on-demand test key: each F2 press queues the next payload in a cycle of the
-    /// REAL wording shapes (max-length heap-path stress, tier-1 bare-plus, tier-3 signature,
-    /// Weapon Chronicle milestone) so every variant can be seen and screenshotted on a live
-    /// callout without engineering kills. Distinct synthetic weaponIds (0/-1/-2/-3) keep the
-    /// cycle out of the dedupe's way; pressing F2 twice on the SAME variant while it is still
-    /// queued dedupes by design. GetAsyncKeyState is a global key-state query, safe from the
-    /// loop thread; the tick only runs in-battle so out-of-battle presses are naturally inert.</summary>
-    private void DevTestKey()
-    {
-        bool down = (GetAsyncKeyState(VkF2) & 0x8000) != 0;
-        bool pressed = down && !_f2Was;
-        _f2Was = down;
-        if (!pressed) return;
-        var (id, tier, payload) = (_f2Cycle++ % 4) switch
-        {
-            0 => (0, 3, "Zwill Straightblade has gained its 999th kill and has unlocked Testfire!"),
-            1 => (-1, 1, Payload("Kiyomori", 1, 5, null)),
-            2 => (-2, 3, Payload("Kiyomori", 3, 50, "Kobu")),
-            _ => (-3, -1000, MilestonePayload("Kiyomori", 1000)),
-        };
-        if (Contains(id, tier)) return;
-        Enqueue(id, tier, payload);
-        Log.Info($"banner-toast: DEV F2 test toast queued -- \"{payload}\"");
-    }
-#endif
 }
