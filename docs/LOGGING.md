@@ -1,7 +1,7 @@
 # Logging model
 
 One page: the tier model, the module-prefix glossary, the lines a player is most likely to see
-(with a plain gloss), and where the flight recorder (stage 2 of the logging overhaul) will slot in.
+(with a plain gloss), and where the flight recorder (stage 2 of the logging overhaul) slots in.
 
 ## Tier model
 
@@ -155,9 +155,14 @@ and the recorder's own elapsedMs at flush, so a file's records can be cross-refe
 `livingweapon.log`'s `HH:mm:ss.fff` timestamps. Every other line is `{"t": <elapsedMs>,
 "e": "<type>", "d": "<payload>"}`.
 
-**Flush triggers:** (a) the battle-EXIT edge only (`Flight.FlushBattleEnd()`, called beside
-`KillTally.Save()` -- NOT hooked to `ResetBattleState()`, which fires on both enter and exit); (b)
-the first `ModLogger.LogError` (well, `FileConsoleLogger.LogError`) of a launch. LogError never
+**Flush triggers:** (a) the battle-ENTER edge (`Flight.FlushBattleStart()`) and (b) the
+battle-EXIT edge (`Flight.FlushBattleEnd()`, called beside `KillTally.Save()`); both flush
+synchronously on Engine's own loop thread, and neither is hooked to `ResetBattleState()` (which
+fires on both enter and exit). The enter-edge flush was added live 2026-07-04: three straight
+sessions produced no archives at all because each ended in a process kill (the kill-and-deploy
+cycle) before any exit edge fired, so the NEXT battle's enter edge is the reliable moment the prior
+battle's tail can still be saved. (c) the first `ModLogger.LogError` (well,
+`FileConsoleLogger.LogError`) of a launch. LogError never
 flushes synchronously -- it only raises a pending flag (`Flight.RequestFlush("error")`); the
 actual serialize+write+retention-prune runs later from `Flight.DrainPending()`, called once per
 Engine tick. This matters because `PromptSwapHook.Detour` calls `Log.Error` on the game's own
@@ -178,8 +183,12 @@ the repo tree and never reads a deployed install's `flight/` folder.
    anchors everything), just not split as cleanly as usual.
 2. **A hard process death loses the in-memory ring.** The mod's `CanUnload()` returns `false` and
    there is no Reloaded unload hook wired, so nothing flushes on process exit -- there is no
-   periodic partial flush in v1. Only records already written by a prior battle-exit or
-   first-error flush survive a crash; whatever was recorded since the last flush is gone.
+   periodic partial flush in v1. Only records already written by a prior flush (battle-enter,
+   battle-exit, or first-error) survive a kill; whatever was recorded since the last flush is gone.
+   The battle-ENTER flush narrows this: within a session, every battle but the last-before-kill is
+   archived at the following battle's enter edge, so a session that ends in the usual kill-and-deploy
+   no longer loses everything -- only the final battle's tail (recorded after its own enter flush,
+   with no later enter/exit edge to catch it) is lost.
 
 **Reading a flight file:** `tools/parse_flight.py <path> [--grep TYPE]` prints a plain-text
 timeline (`+N.NNNs [type] payload`, relative to the header's elapsedMs anchor), optionally
