@@ -12,10 +12,10 @@ namespace LivingWeapon;
 /// a per-tick rebuild, so a one-tick read flap can no longer make an enemy vanish from the
 /// set on the exact damage tick.
 ///
-/// Follow-up: CharmLock, EagleEye, Larceny, Maim, Puppeteer, and Ricochet still rebuild
+/// Follow-up: CharmLock, EagleEye, Larceny, Maim, and Ricochet still rebuild
 /// Band.EnemyFingerprints per tick and can migrate to this cache later (Plague is NOT a
 /// candidate -- it runs its own scan with a different mhp bound); migrating them is out of
-/// scope for this change.
+/// scope for this change. (Puppeteer migrated 2026-07-03 -- Kobu's cache/rearm shape.)
 /// </summary>
 internal sealed class EnemyFingerprintCache
 {

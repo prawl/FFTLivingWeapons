@@ -11,11 +11,12 @@ internal sealed partial class Puppeteer
     // It earned its retirement live -- a real 828-HP enemy (a boss) read job 37 at combat +0x03, BELOW
     // the old GenericJobLo (74) floor, so the floor was refusing to puppet a genuine enemy. The job byte
     // is NOT a reliable unit filter on the IC build (it reads story/special ids well outside the
-    // human/monster bands). The REAL filter is upstream in Puppeteer.cs: ShouldLatch(enemy) restricts to
-    // enemies, and the fingerprint gates (maxHp 1..1999, lvl 1..99, brave/faith 1..100, took damage > 0,
-    // matches the live enemy roster) already prove it's a fielded combatant -- so any struck enemy is a
-    // valid puppet regardless of its job id. The band helpers below (IsGenericHumanJob / IsMonsterJob)
-    // are kept intact so a narrower gate can be reinstated in one line (see IsDominatable).
+    // human/monster bands). The REAL filter is upstream in Puppeteer.cs's verdict chain: the "not-enemy"
+    // verdict (EnemyFingerprintCache.Contains) restricts to enemies, and the fingerprint gates
+    // (maxHp 1..1999, lvl 1..99, brave/faith 1..100, took damage > 0) already prove it's a fielded
+    // combatant -- so any struck enemy is a valid puppet regardless of its job id. (ShouldLatch below
+    // remains the pure hook for that enemy test.) The band helpers below (IsGenericHumanJob /
+    // IsMonsterJob) are kept intact so a narrower gate can be reinstated in one line (see IsDominatable).
 
     /// <summary>Lowest generic-human job id (Squire) on the live IC job byte (roster +0x02 / combat +0x03).</summary>
     public const int GenericJobLo = 74;   // 0x4A
@@ -48,6 +49,34 @@ internal sealed partial class Puppeteer
     /// <summary>True when Puppeteer is configured (PuppeteerTurns set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.PuppeteerTurns > 0;
+
+    /// <summary>D1: the wielder-acting gate is the OR of two independent signals. <paramref
+    /// name="pointerMatch"/> is the engine's own actor pointer naming the wielder's OWN band seat
+    /// (Band.ActorEntry == the deployed main-hand wielder's entry, Wielder.ResolveDeployedMainHand) --
+    /// it does NOT require <paramref name="actedFlag"/>: the pointer itself IS the engine's own
+    /// "whose turn is it" signal (the same precedent TurnTracker.TryActiveViaPointer and Iai's release
+    /// detection both rely on). <paramref name="latchMainHand"/> + <paramref name="actedFlag"/> is
+    /// today's mechanism, preserved verbatim as the fallback for a benched pointer, a two-wielder
+    /// ambiguity (ResolveDeployedMainHand returns 0), or an invalid pointer. Strictly widens the old
+    /// latch-only gate -- no shared latch consumer (Signatures.IsActingMainHand) is narrowed.</summary>
+    public static bool WielderActing(bool pointerMatch, bool latchMainHand, bool actedFlag)
+        => pointerMatch || (latchMainHand && actedFlag);
+
+    /// <summary>D1 REVISED (2026-07-04): identity-based pointer match, no memory access. Plain address
+    /// equality between Band.ActorEntry and Wielder.ResolveDeployedMainHand's entry was LIVE-
+    /// FALSIFIED (2026-07-04 gate log: pointerMatch=False while TurnTracker attributed the same
+    /// actor-ptr in the same window) -- the revolving band MIRROR seat means one unit legitimately
+    /// exists at multiple band addresses, so the two resolvers can each return a DIFFERENT copy of
+    /// the SAME unit and never compare equal by address. NameId identity via the frame back-reference
+    /// (Offsets.ANameId, mirroring the roster nameId Offsets.RNameId -- the same mirror-safe bridge
+    /// Iai's release and Wielder's tier-1 locate already use) is authoritative whenever the wielder's
+    /// OWN roster nameId resolved (<paramref name="wielderNameId"/> &gt; 0): compare <paramref
+    /// name="actorNameId"/> against it instead of the two addresses. Address equality remains ONLY as
+    /// the fallback for the nameId-unavailable case (an unseeded roster nameId, wielderNameId &lt;= 0)
+    /// -- the pre-2026-07-04 behavior, unchanged for every caller that never seeded one.</summary>
+    public static bool PointerNamesWielder(long actorEntry, long wielderEntry, int actorNameId, int wielderNameId)
+        => actorEntry != 0 && wielderEntry != 0
+           && (wielderNameId > 0 ? actorNameId == wielderNameId : actorEntry == wielderEntry);
 
     /// <summary>True when the struck unit is an enemy (never puppet an ally).</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;

@@ -73,6 +73,19 @@ internal static partial class Wielder
     public static void ResolveDeployedMainHandAll(IGameMemory mem, int weaponId,
         List<(long entry, (int lvl, int br, int fa) fp)> results)
     {
+        var full = new List<(long entry, (int lvl, int br, int fa) fp, int nameId)>();
+        ResolveDeployedMainHandAllCore(mem, weaponId, full);
+        results.Clear();
+        foreach (var r in full) results.Add((r.entry, r.fp));
+    }
+
+    /// <summary>D7 (2026-07-04): the shared roster walk behind <see cref="ResolveDeployedMainHandAll"/>
+    /// and the nameId-carrying <see cref="ResolveDeployedMainHand(IGameMemory,int,out (int,int,int),out int)"/>
+    /// overload -- one loop, two result shapes, so the nameId a caller needs (Puppeteer's mirror-safe
+    /// pointer identity match) doesn't require a second roster scan.</summary>
+    private static void ResolveDeployedMainHandAllCore(IGameMemory mem, int weaponId,
+        List<(long entry, (int lvl, int br, int fa) fp, int nameId)> results)
+    {
         results.Clear();
         var hand = new List<int> { weaponId };
         for (int r = 0; r < Offsets.RosterSlots; r++)
@@ -85,7 +98,7 @@ internal static partial class Wielder
             int rosterNameId = mem.U16(rb + Offsets.RNameId);          // this slot's own back-reference (u16, fail-safe)
             long addr = Locate(mem, weaponId, hand, candFp, rosterNameId);
             if (addr == 0) continue;                                   // benched / not in this battle -> skip
-            results.Add((addr, candFp));
+            results.Add((addr, candFp, rosterNameId));
         }
     }
 
@@ -97,11 +110,23 @@ internal static partial class Wielder
     /// wielder's live band entry + its fingerprint, or 0 when zero or MORE THAN ONE deployed wielder is
     /// found (two on-field wielders are still genuinely ambiguous -- rare; refine to the acting one later).</summary>
     public static long ResolveDeployedMainHand(IGameMemory mem, int weaponId, out (int lvl, int br, int fa) fp)
+        => ResolveDeployedMainHand(mem, weaponId, out fp, out _);
+
+    /// <summary>D7 (2026-07-04): nameId-carrying sibling of the 3-arg overload above -- identical
+    /// single/ambiguous-deployed-wielder resolution, but also returns the resolved slot's OWN roster
+    /// nameId (0 when that slot's nameId read is unseeded, same fail-safe convention as every other
+    /// nameId consumer; also 0 on the zero/ambiguous-wielder return). Puppeteer's pointer-path arming
+    /// (2026-07-04 mirror-copy false-negative fix) uses this to compare the acting unit's identity
+    /// against the wielder by nameId rather than by raw band address -- see
+    /// Puppeteer.Policy.PointerNamesWielder.</summary>
+    public static long ResolveDeployedMainHand(IGameMemory mem, int weaponId,
+        out (int lvl, int br, int fa) fp, out int rosterNameId)
     {
-        var list = new List<(long entry, (int lvl, int br, int fa) fp)>();
-        ResolveDeployedMainHandAll(mem, weaponId, list);
-        if (list.Count == 1) { fp = list[0].fp; return list[0].entry; }
+        var list = new List<(long entry, (int lvl, int br, int fa) fp, int nameId)>();
+        ResolveDeployedMainHandAllCore(mem, weaponId, list);
+        if (list.Count == 1) { fp = list[0].fp; rosterNameId = list[0].nameId; return list[0].entry; }
         fp = default;
+        rosterNameId = 0;
         return 0;
     }
 

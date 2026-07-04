@@ -258,6 +258,11 @@ public class PuppeteerTests
     private static bool AgencyBitSet(FakeSparseMemory mem, long victim)
         => (mem.U8(victim + Puppeteer.AgencyOff) & Puppeteer.AgencyBit) != 0;
 
+    /// <summary>Point Offsets.ActorPtr at <paramref name="bandEntry"/>'s combat frame (the inverse
+    /// of Band.ActorEntry: frame = bandEntry - BandEntry). Mirrors IaiTests.PointActorAt.</summary>
+    private static void PointActorAt(FakeSparseMemory mem, long bandEntry) =>
+        mem.SeedU64(Offsets.ActorPtr, (ulong)(bandEntry - Offsets.BandEntry));
+
     /// <summary>Advance a full turn for the unit with fingerprint (mhp, lvl, br, fa) by
     /// toggling the turn queue to that unit and pulsing acted 0->1 + turns.Poll().
     /// Per Phase-2 correction #5: toggles turn-queue ON, calls pup.Tick(), then pulses the
@@ -485,6 +490,215 @@ public class PuppeteerTests
         Assert.True(AgencyBitSet(mem, victim));         // 4 battle-turns elapsed -> off cooldown
     }
 
+    // ---- the actor-pointer arming path (D1): OR'd with the latch path, strictly widening the gate ----
+    // (puppeteer arming/detection rebuild, 2026-07-03: the latch-only gate never fired live -- a stale/
+    // other LastPlayerMainHand + Acted==0 is the exact diagnosed scenario. The engine's own ActorPtr
+    // naming the wielder's own band seat is an independent, additional way to open the gate.)
+
+    [Fact]
+    public void Tick_dominates_via_the_actor_pointer_with_a_stale_latch()
+    {
+        // ---- LOAD-BEARING: the exact live-failure scenario. Must fail on unfixed code (latch-only
+        // gate cannot open here) and pass once the pointer path is wired in. ----
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, tracker, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
+
+        // Stale latch: LastPlayerMainHand names some OTHER weapon (here: none), Acted == 0 -- the
+        // latch path is fully closed, exactly as diagnosed live.
+        tracker._lastPlayerMainHand = 0;
+        mem.U8s[Offsets.Acted] = 0;
+
+        // The engine's own actor pointer names the WIELDER's own frame -- the independent signal.
+        long wielderEntry = Band.Entry(WielderBandSlot);
+        PointActorAt(mem, wielderEntry);
+
+        pup.Tick(onField: true);                 // baseline HP 100 (no damage yet)
+        mem.U16s[victim + Offsets.AHp] = 80;     // the wielder's hit dealt 20
+        pup.Tick(onField: true);
+
+        Assert.True(AgencyBitSet(mem, victim),
+            "FAILED: the pointer path did not open the gate -- with the latch fully closed " +
+            "(stale LastPlayerMainHand, Acted==0) the old latch-only mechanism cannot detect this " +
+            "live scenario even though the engine's own actor pointer names the wielder's own seat.");
+        Assert.NotNull(pup.PuppetFingerprint);
+    }
+
+    [Fact]
+    public void Tick_does_not_dominate_when_pointer_names_a_non_wielder_seat()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, tracker, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
+
+        tracker._lastPlayerMainHand = 0;
+        mem.U8s[Offsets.Acted] = 0;
+
+        // The pointer names the VICTIM's own frame -- not the wielder's. Neither path is open.
+        PointActorAt(mem, victim);
+
+        pup.Tick(onField: true);
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+
+        Assert.False(AgencyBitSet(mem, victim));
+        Assert.Null(pup.PuppetFingerprint);
+    }
+
+    // ---- non-lossy detection: rearm-unwritable is the one detectably-transient block Puppeteer has ----
+
+    [Fact]
+    public void Tick_retries_dominate_when_the_agency_byte_is_transiently_unwritable()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, _, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
+
+        pup.Tick(onField: true);   // baseline HP 100
+
+        mem.WritableAddrs.Remove(victim + Puppeteer.AgencyOff);
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+        Assert.False(AgencyBitSet(mem, victim),
+            "an unwritable agency byte must not dominate, but must rearm the drop for retry");
+        Assert.Null(pup.PuppetFingerprint);
+
+        mem.WritableAddrs.Add(victim + Puppeteer.AgencyOff);
+        pup.Tick(onField: true);   // no further HP change -- the rearmed drop re-detects
+        Assert.True(AgencyBitSet(mem, victim));
+        Assert.NotNull(pup.PuppetFingerprint);
+    }
+
+    // ---- bounded retry: an inactive tick consumes the drop -- reopening the gate must not resurrect it ----
+
+    [Fact]
+    public void Tick_bounded_retry_does_not_resurrect_a_drop_consumed_while_inactive()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, tracker, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
+
+        // Close BOTH paths for the drop tick.
+        tracker._lastPlayerMainHand = 0;
+        mem.U8s[Offsets.Acted] = 0;
+
+        pup.Tick(onField: true);                    // baseline HP 100
+        mem.U16s[victim + Offsets.AHp] = 80;        // HP drop while INACTIVE
+        pup.Tick(onField: true);                    // consumed, verdict "inactive" -- no rearm
+        Assert.False(AgencyBitSet(mem, victim));
+
+        // Reopen the gate (latch path) with NO further HP change.
+        tracker._lastPlayerMainHand = GalewindId;
+        mem.U8s[Offsets.Acted] = 1;
+        pup.Tick(onField: true);
+        Assert.False(AgencyBitSet(mem, victim),
+            "an inactive tick must consume the drop -- reopening the gate must not resurrect it");
+        Assert.Null(pup.PuppetFingerprint);
+    }
+
+    // ---- cache resilience: the additive fingerprint cache survives a one-tick Readable() flap ----
+
+    [Fact]
+    public void Tick_dominates_through_a_transient_static_array_read_flap()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, _, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
+
+        pup.Tick(onField: true);   // tick 1: captures the fp cache (static array readable) + baselines HP
+
+        mem.ReadableAddrs.Remove(Offsets.ArrayReadBase + Offsets.AMaxHp);   // one-tick flap
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+
+        Assert.True(AgencyBitSet(mem, victim),
+            "the cached enemy fingerprint set must survive a Readable flap on the drop tick");
+    }
+
+    // ---- expiry key consistency (D2): the wielder fp captured for the expiry clock MUST be the
+    // BAND-read fingerprint, never ResolveDeployedMainHand's roster-read out param -- TurnTracker.Turns
+    // keys on band-read (level,brave,faith), and a live band level can drift up to Band.MaxLevelDrift
+    // (9) above the roster level on a mid-battle level-up. Without seeding real drift this test would
+    // be vacuous (band fp == roster fp) -- so the wielder's BAND level is deliberately bumped above its
+    // ROSTER level here (still within LevelMatchesRoster's drift tolerance, so Locate still resolves
+    // the same wielder entry).
+
+    [Fact]
+    public void Tick_expiry_uses_the_band_read_wielder_fingerprint_not_the_roster_fp()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, turns, tracker, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
+
+        long wielderEntry = Band.Entry(WielderBandSlot);
+        const int LevelDrift = 4;   // within Band.MaxLevelDrift (9): band-read and roster-read now diverge
+        mem.U8s[wielderEntry + Offsets.ALevel] = (byte)(WielderLevel + LevelDrift);
+
+        // Close the latch; dominate via the POINTER path only.
+        tracker._lastPlayerMainHand = 0;
+        mem.U8s[Offsets.Acted] = 0;
+        PointActorAt(mem, wielderEntry);
+
+        pup.Tick(onField: true);                  // baseline HP 100
+        mem.U16s[victim + Offsets.AHp] = 80;      // the wielder's hit dealt 20
+        pup.Tick(onField: true);                  // dominate via the pointer path
+        Assert.True(AgencyBitSet(mem, victim));
+
+        // Credit ONE wielder turn via the SAME pointer (TurnTracker.TryActiveViaPointer reads the
+        // identical drifted band level) -- the credited key matches the captured WFp iff both sides
+        // are band-read.
+        mem.U8s[Offsets.Acted] = 0; turns.Poll();
+        mem.U8s[Offsets.Acted] = 1; turns.Poll();   // rising edge credits (driftedLevel, br, fa)
+
+        pup.Tick(onField: false);                  // Expire sees the credited turn
+        Assert.False(AgencyBitSet(mem, victim),
+            "an implementation that captures ResolveDeployedMainHand's ROSTER fp (undrifted level) " +
+            "keys the expiry clock differently from the BAND-credited turn and never expires");
+        Assert.Null(pup.PuppetFingerprint);
+    }
+
+    // ---- ResetBattle clears the new cache field (precedent: KobuTests.ResetBattle_clears_the_cached_enemy_fingerprints) ----
+
+    [Fact]
+    public void ResetBattle_clears_the_cached_enemy_fingerprints()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, _, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
+
+        pup.Tick(onField: true);   // captures the fp cache + baselines HP
+        pup.ResetBattle();
+
+        // Nothing left to recapture -- the static-array slot goes unreadable for the new battle.
+        mem.ReadableAddrs.Remove(Offsets.ArrayReadBase + Offsets.AMaxHp);
+
+        pup.Tick(onField: true);   // fresh baseline (HP state also cleared by ResetBattle)
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);   // drop detected, but empty cache -> not-enemy, consumed
+
+        Assert.False(AgencyBitSet(mem, victim),
+            "ResetBattle must clear the cached enemy fingerprints -- an empty cache treats the drop as not-enemy");
+    }
+
+    // ---- victim-dead consume (D3): a kill-strike must not dominate a corpse, and must not burn the cooldown ----
+
+    [Fact]
+    public void Tick_victim_dead_consumes_without_dominating_or_burning_cooldown()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, _, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
+
+        pup.Tick(onField: true);                  // baseline HP 100
+        mem.U16s[victim + Offsets.AHp] = 0;      // the wielder's hit was a kill strike
+        pup.Tick(onField: true);
+        Assert.False(AgencyBitSet(mem, victim), "a kill-strike must not dominate a corpse");
+        Assert.Null(pup.PuppetFingerprint);
+
+        // No wielder turn has elapsed (GlobalTurns unchanged) -- a fresh non-lethal hit on the SAME
+        // enemy must still dominate: if the victim-dead verdict had wrongly stamped the cooldown,
+        // this second dominate would be blocked (0 elapsed wielder-turns < PuppeteerCooldownTurns).
+        mem.U16s[victim + Offsets.AMaxHp] = (ushort)fp.mhp;   // "revived" to full HP
+        mem.U16s[victim + Offsets.AHp] = (ushort)fp.mhp;
+        pup.Tick(onField: true);                              // re-baseline HP at the new value
+        mem.U16s[victim + Offsets.AHp] = 80;                  // a real, non-lethal hit
+        pup.Tick(onField: true);
+
+        Assert.True(AgencyBitSet(mem, victim), "victim-dead must consume WITHOUT burning the cooldown");
+    }
+
     // ---- guarded write path on a real pinned buffer (the production RPM/WPM path) ----
 
     [Fact]
@@ -500,5 +714,122 @@ public class PuppeteerTests
 
         Puppeteer.SetAgency(live, band, on: false);
         Assert.Equal(0x50, unit.Bytes[64 + Puppeteer.AgencyOff]);   // 0x08 cleared, rest intact
+    }
+
+    // ---- D1 REVISED (2026-07-04): identity match survives the revolving band MIRROR seat ----
+    // Live log evidence proved plain address equality false-negatives: the mirror seat means one
+    // unit legitimately exists at multiple band addresses, so Wielder.ResolveDeployedMainHand and
+    // Band.ActorEntry can each return a DIFFERENT copy of the SAME wielder and never compare equal
+    // by address. The frame nameId back-reference (Offsets.ANameId) is the mirror-safe identity
+    // (Puppeteer.Policy.PointerNamesWielder).
+
+    [Fact]
+    public void Tick_dominates_when_the_pointer_names_a_mirror_copy_of_the_wielder()
+    {
+        // ---- LOAD-BEARING: the exact live-falsified scenario. Must fail under plain address-
+        // equality pointerMatch and pass once identity (ANameId) drives the comparison. ----
+        var mem = new FakeSparseMemory();
+        var meta = new System.Collections.Generic.Dictionary<int, WeaponMeta>
+        {
+            [GalewindId] = new WeaponMeta
+            {
+                Name = "Galewind", Wp = 8, Cat = "Knife", Formula = 1, Flavor = "A windswept dagger",
+                Signature = new WeaponSignature { AtTier = 3, PuppeteerTurns = 1, DisplayLabel = "Puppeteer" }
+            }
+        };
+        var kills = new System.Collections.Generic.Dictionary<int, int> { [GalewindId] = Tuning.ProdThresholds[2] };
+        var tracker = new KillTracker(kills, mem, new System.Collections.Generic.HashSet<int> { GalewindId });
+
+        const int nameId = 42;
+        const int wLvl = 60, wBr = 80, wFa = 55, wMhp = 350, wHp = 350;
+        const int FirstCopySlot = 10, SecondCopySlot = 15;   // FirstCopySlot < SecondCopySlot: tier-1's
+                                                              // homogeneous tie-break returns the FIRST.
+
+        MemSeats.SeatRoster(mem, slot: 5, lvl: wLvl, br: wBr, fa: wFa, rh: GalewindId, nameId: nameId);
+
+        // Two band copies of the SAME wielder (real position, matching fp, matching frame nameId) --
+        // the revolving mirror seat's proven shape (MemSeats.SeatFrameNameId, Iai's precedent).
+        MemSeats.SeatBand(mem, FirstCopySlot, weapon: GalewindId, lvl: wLvl, br: wBr, fa: wFa,
+                          gx: 3, gy: 7, hp: wHp, maxHp: wMhp);
+        MemSeats.SeatFrameNameId(mem, FirstCopySlot, nameId);
+        MemSeats.SeatBand(mem, SecondCopySlot, weapon: GalewindId, lvl: wLvl, br: wBr, fa: wFa,
+                          gx: 9, gy: 2, hp: wHp, maxHp: wMhp);
+        MemSeats.SeatFrameNameId(mem, SecondCopySlot, nameId);
+
+        // Latch fully CLOSED: no LastPlayerMainHand match, Acted 0 -- only the pointer path can open.
+        tracker._lastPlayerMainHand = 0;
+        mem.U8s[Offsets.Acted] = 0;
+
+        // The engine's ActorPtr names the SECOND copy -- Wielder.ResolveDeployedMainHand's tier-1
+        // tie-break resolves the FIRST copy's address instead (see FirstCopySlot/SecondCopySlot
+        // above), so plain address equality can never match here.
+        PointActorAt(mem, Band.Entry(SecondCopySlot));
+
+        var turns = new TurnTracker(mem);
+        long victim = Band.Entry(24);
+        var enemyFp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        SeatVictim(mem, victim, enemyFp, hp: 100, job: 76, agency: 0x50);
+        SeatEnemyFp(mem, enemyFp);
+
+        var pup = new Puppeteer(meta, kills, tracker, turns, mem: mem);
+
+        pup.Tick(onField: true);                 // baseline HP 100 (no damage yet)
+        mem.U16s[victim + Offsets.AHp] = 80;     // the wielder's hit dealt 20
+        pup.Tick(onField: true);
+
+        Assert.True(AgencyBitSet(mem, victim),
+            "FAILED: the pointer named a MIRROR copy of the wielder (same identity, different band " +
+            "address) -- address-equality pointerMatch cannot see this; nameId identity must.");
+        Assert.NotNull(pup.PuppetFingerprint);
+    }
+
+    [Fact]
+    public void Tick_does_not_dominate_when_the_pointer_names_a_foreign_actor()
+    {
+        var mem = new FakeSparseMemory();
+        var meta = new System.Collections.Generic.Dictionary<int, WeaponMeta>
+        {
+            [GalewindId] = new WeaponMeta
+            {
+                Name = "Galewind", Wp = 8, Cat = "Knife", Formula = 1, Flavor = "A windswept dagger",
+                Signature = new WeaponSignature { AtTier = 3, PuppeteerTurns = 1, DisplayLabel = "Puppeteer" }
+            }
+        };
+        var kills = new System.Collections.Generic.Dictionary<int, int> { [GalewindId] = Tuning.ProdThresholds[2] };
+        var tracker = new KillTracker(kills, mem, new System.Collections.Generic.HashSet<int> { GalewindId });
+
+        const int nameId = 42, foreignNameId = 7;
+        const int wLvl = 60, wBr = 80, wFa = 55, wMhp = 350, wHp = 350;
+        const int WielderSlot = 25, ForeignSlot = 30;
+
+        MemSeats.SeatRoster(mem, slot: 5, lvl: wLvl, br: wBr, fa: wFa, rh: GalewindId, nameId: nameId);
+        MemSeats.SeatBand(mem, WielderSlot, weapon: GalewindId, lvl: wLvl, br: wBr, fa: wFa,
+                          gx: 3, gy: 7, hp: wHp, maxHp: wMhp);
+        MemSeats.SeatFrameNameId(mem, WielderSlot, nameId);
+
+        // A foreign actor frame -- a different unit entirely -- whose OWN nameId reads 7, not 42.
+        MemSeats.SeatBand(mem, ForeignSlot, weapon: 3, lvl: 40, br: 45, fa: 45, gx: 6, gy: 6, hp: 200, maxHp: 200);
+        MemSeats.SeatFrameNameId(mem, ForeignSlot, foreignNameId);
+
+        tracker._lastPlayerMainHand = 0;
+        mem.U8s[Offsets.Acted] = 0;
+        PointActorAt(mem, Band.Entry(ForeignSlot));
+
+        var turns = new TurnTracker(mem);
+        long victim = Band.Entry(24);
+        var enemyFp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        SeatVictim(mem, victim, enemyFp, hp: 100, job: 76, agency: 0x50);
+        SeatEnemyFp(mem, enemyFp);
+
+        var pup = new Puppeteer(meta, kills, tracker, turns, mem: mem);
+
+        pup.Tick(onField: true);
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+
+        Assert.False(AgencyBitSet(mem, victim),
+            "the pointer names a DIFFERENT unit (foreign nameId 7 vs the wielder's resolved 42) -- " +
+            "must not dominate");
+        Assert.Null(pup.PuppetFingerprint);
     }
 }
