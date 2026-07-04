@@ -266,6 +266,18 @@ internal sealed class Engine
         // NOT time the lock out -- there is no heartbeat), then resumes holding when the map redraws.
         // ResetBattle (battle-exit edge, via _signatures) is the teardown. Same pre-gate slot as TreasureMaster.
         _charm.Tick(now, battleDisplayed);
+        // Gun Slinger runs PRE-GATE (2026-07-04, Barrage's precedent) -- it originally ran only in
+        // the out-of-battle branch and the twin pistol did not hold into combat. It now also runs in
+        // battle (inBattle: nowIn) but RE-ASSERTS ONLY there: it may rewrite a twin it already
+        // snapshotted, never snapshots fresh or restores in battle, so an unreliable mid-battle
+        // roster read can NEVER corrupt the persisted "original gear" store. Snapshot/restore stay
+        // out of battle, where equipment legitimately changes. Live-verified 2026-07-04: the twin
+        // fires twice in battle with this hold. The ~1 s throttle stands.
+        if (++_gunSlingerThrottleTick >= GunSlingerThrottleEveryNTicks)
+        {
+            _gunSlingerThrottleTick = 0;
+            _gunSlinger.PrepRoster(inBattle: nowIn);
+        }
         if (!nowIn)
         {
             // Scholar's Ring: ensure the player always has at least one (idempotent).
@@ -274,14 +286,6 @@ internal sealed class Engine
             {
                 _ringThrottleTick = 0;
                 ScholarRing.Grant(_live);
-            }
-            // Gun Slinger: keep the twin Blaster + Dual Wield in the wielder's roster
-            // slots between battles. Throttled to ~1 s (snapshot+restore logic is
-            // idempotent; hammering it every 33 ms is wasteful).
-            if (++_gunSlingerThrottleTick >= GunSlingerThrottleEveryNTicks)
-            {
-                _gunSlingerThrottleTick = 0;
-                _gunSlinger.PrepRoster();
             }
             _display.Tick(false);   // out of battle (slot9 cleared): keep the equip card painted
             return;

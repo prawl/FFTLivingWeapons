@@ -399,6 +399,91 @@ public class GunSlingerTests
         }
     }
 
+    // ── In-battle RE-ASSERT-ONLY guard (2026-07-04: "twin pistol only works out of battle") ──
+
+    // In battle, a slot the game clobbered back to EMPTY gets the twin RE-WRITTEN (the actual fix).
+    [Fact]
+    public void PrepRoster_inBattle_reasserts_a_clobbered_twin()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var mem = new FakeSparseMemory();
+            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                           off: EmptyU16, supp: EmptyU8);
+            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+            gs.PrepRoster();   // out of battle: snapshot + write twin (snap.HasOff now true)
+
+            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+            mem.U16s[b + Offsets.ROffHand] = EmptyU16;   // the game clobbered the off-hand back to empty
+            mem.WrittenU16.Clear();
+
+            gs.PrepRoster(inBattle: true);   // in battle: re-assert only
+
+            Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+                "in battle, a clobbered twin must be re-written");
+            Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    // LOAD-BEARING SAFETY: in battle, a fresh GunSlinger main-hand with NO snapshot must NOT
+    // snapshot/write -- a mid-battle roster read that flickered could otherwise persist garbage as
+    // the player's "original gear". Fails without the in-battle SnapshotAndWrite suppression.
+    [Fact]
+    public void PrepRoster_inBattle_never_snapshots_fresh()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var mem = new FakeSparseMemory();
+            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                           off: 100, supp: 213);   // a REAL off-hand, no prior snapshot
+            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+
+            gs.PrepRoster(inBattle: true);   // in battle: must leave everything alone
+
+            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+            Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+                "in battle with no snapshot, the off-hand must be left untouched");
+            var snap = gs.StoreForTest().Get(nameId: 1);
+            Assert.False(snap.HasOff);   // NOTHING captured to the persistent store
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
+    // In battle, an unequipped GunSlinger must NOT restore (that touches the store + the real gear).
+    [Fact]
+    public void PrepRoster_inBattle_never_restores()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var mem = new FakeSparseMemory();
+            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                           off: 100, supp: 213);
+            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+            gs.PrepRoster();   // out of battle: snapshot established
+
+            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+            mem.U16s[b + Offsets.RRHand] = 77;   // switched off the Blaster
+            mem.WrittenU16.Clear();
+
+            gs.PrepRoster(inBattle: true);   // in battle: restore is suppressed
+
+            Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+                "in battle, a Restore must be suppressed (the off-hand is left as-is)");
+            Assert.True(gs.StoreForTest().Get(nameId: 1).HasOff);   // snapshot NOT cleared
+        }
+        finally { Directory.Delete(dir, true); }
+    }
+
     // Tier guard: below tier 3 -> no writes even if Blaster is equipped
     [Fact]
     public void PrepRoster_no_writes_when_tier_below_3()
