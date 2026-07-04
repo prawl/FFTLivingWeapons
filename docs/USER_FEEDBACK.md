@@ -36,6 +36,13 @@ player's; parenthetical scope/triage notes are added during capture and not yet 
 ### Living Weapons + Harder Story Battles interaction
 - Loves that enemies also get the Living Weapons system. Wants enemies to **hit harder** and
   to actually **use** the living-weapon benefits if possible.
+  - _Scope note (verified against code 2026-07-04): enemies inherit only the STATIC item rebalance --
+    the reworked weapon/armor stats + riders baked into the item tables, which every equipper gets on
+    restart. They do NOT get the living-weapon RUNTIME: the kill tally, the `+`/`+2`/`+3` stat lift,
+    the awakened +3 signatures, and the Kills card counter are all player-roster-only (KillTracker
+    credits "the acting player's weapon(s)"; GrowthEngine holds only player combat structs). So
+    "enemies actually use the benefits" is a net-new feature -- deferred (see docs/RELEASE_SCOPE.md),
+    not a tuning fix._
 - On **Tactician** difficulty, New Game+ makes the chapel fight an auto-fail: Ramza is locked
   at level 12 while the rest of the field is level 50+ with 50+ living-weapon items. Effectively
   impossible -- had to drop to **Squire** to get past it and continue NG+.
