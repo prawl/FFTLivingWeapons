@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
@@ -237,6 +238,25 @@ public class TurnTrackerTests
         PointAt(m, 7);   // slot 7 is aligned + in-range but never seeded -> lvl reads 0 -> IsValid fails
         Acted(m, 1); t.Poll();
         Assert.Equal(1, t.Turns(20, 70, 50));
+    }
+
+    // ---- flight-recorder tap (optional injected recorder; null default keeps every OTHER test
+    // in this file green unmodified -- that fact is the real assertion for this tap seam) ----
+
+    [Fact]
+    public void Injected_recorder_receives_acted_edges_and_credit()
+    {
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        var t = new TurnTracker(m, (type, payload) => recorded.Add((type, payload)));
+        SetActive(m, 5, hp: 100, maxHp: 100, level: 20, brave: 70, faith: 50);
+
+        Acted(m, 1); t.Poll();
+        Assert.Contains(recorded, r => r.type == "turn" && r.payload.Contains("rising edge"));
+        Assert.Contains(recorded, r => r.type == "turn" && r.payload.StartsWith("credit level=20 brave=70 faith=50 count=1"));
+
+        Acted(m, 0); t.Poll();
+        Assert.Contains(recorded, r => r.type == "turn" && r.payload.Contains("falling edge"));
     }
 
     [Fact]

@@ -120,11 +120,67 @@ What they mean, and when they signal a real problem.
 15. **`startup failed -- Living Weapon will not run: ...`** / any `ERROR:` line -- always worth
     reading; these are the blanket-KEEP Log.Error sites and never demoted.
 
-## Flight recorder (placeholder -- stage 2)
+## Flight recorder (the black box)
 
-A future stage adds `LivingWeapon/FlightRecorder.cs`: an always-on, bounded in-memory ring of
-on-change events (battle edges, turn/kill credit, actor-pointer transitions, signature verdicts,
-toast delivery), flushed to `<modDir>/flight/flight_<timestamp>_<trigger>.jsonl` on a battle-exit
-edge or the first `ModLogger.LogError` of a launch. Purpose: the FIRST live anomaly of a session
-is diagnosable after the fact even if nobody was watching the console at the time. Not yet built;
-this section is a placeholder so LOGGING.md doesn't need a structural rewrite when it lands.
+An always-on, cheap, structured capture of on-change runtime events, surviving deploys and
+launches, so the FIRST live anomaly of a session is diagnosable after the fact even if nobody was
+watching the console at the time.
+
+**Shape:** `LivingWeapon/FlightRecorder.cs` is the testable INSTANCE core -- a bounded ring
+(capacity 4096, oldest-dropped) of `(elapsedMs, type, payload)` records. Every dependency (the
+monotonic clock, the wall-clock provider, the file writer, the retention lister/deleter) is
+injected, so the whole ring/flush/retention contract is unit-tested with no real disk or clock
+(`LivingWeapon.Tests/FlightRecorderTests.cs`). `LivingWeapon/Flight.cs` is a **static null-object
+facade over it, mirroring `ModLogger`'s own swappable-`Instance` idiom**: every call site
+(`Flight.Record`/`RequestFlush`/`DrainPending`/`FlushBattleEnd`) is a silent no-op until
+`Flight.Init(modDir)` builds the real core (called once from `Mod.cs`, right after
+`ModLogger.Init`). That is what lets every pre-existing test keep passing unmodified -- none of
+them call `Flight.Init`, so every `Flight.*` call inside the production code they exercise does
+nothing.
+
+**What gets captured (on-change only -- never a per-tick state dump):** battle enter/exit edges
+and battle-mode changes (Engine); the dev event timeline's `ev:` lines (BattleLog, dual-emitted
+alongside the existing `ModLogger.LogDebug` sink); turn-clock rising/falling edges and per-unit
+turn credit (TurnTracker); the engine actor-pointer's ownership transitions (ActorRegister); the
+acting-player weapon latch and every corpse credit/no-credit verdict (KillTracker); tier-up/
+milestone toast enqueue and drop (BannerToast); and toast delivery into the facing prompt
+(PromptSwap). Deliberately **not** tapped: Puppeteer (carved out, a separate live-verify arc is
+in flight against those exact lines) and Treasure Master / the chemist-grenade paths (both are
+slated for eventual removal -- no new investment there).
+
+**Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl` -- one compact
+JSON object per line (Newtonsoft.Json; no hand-rolled escaping). The first line of every file is
+a header object (`{"hdr": true, "wall": "...", "t": <elapsedMs>}`) carrying the wall-clock time
+and the recorder's own elapsedMs at flush, so a file's records can be cross-referenced against
+`livingweapon.log`'s `HH:mm:ss.fff` timestamps. Every other line is `{"t": <elapsedMs>,
+"e": "<type>", "d": "<payload>"}`.
+
+**Flush triggers:** (a) the battle-EXIT edge only (`Flight.FlushBattleEnd()`, called beside
+`KillTally.Save()` -- NOT hooked to `ResetBattleState()`, which fires on both enter and exit); (b)
+the first `ModLogger.LogError` (well, `FileConsoleLogger.LogError`) of a launch. LogError never
+flushes synchronously -- it only raises a pending flag (`Flight.RequestFlush("error")`); the
+actual serialize+write+retention-prune runs later from `Flight.DrainPending()`, called once per
+Engine tick. This matters because `PromptSwapHook.Detour` calls `Log.Error` on the game's own
+`SetTextString` thread before forwarding -- a synchronous flush there would stall the game's own
+prompt commit. The error trigger is FlushOnce: only the very first error of a launch ever
+produces a flight file, however many `LogError` calls follow.
+
+**Retention:** after every flush, files beyond the 20 newest are deleted (oldest-first).
+`BuildLinked.ps1`'s clean step preserves `<modDir>/flight/` wholesale (added to the
+`Remove-Item -Exclude` list, the same treatment as `kills.json`) -- no TEMP round-trip needed
+since it is just excluded outright. `Publish.ps1` needs no change: it stages the release zip from
+the repo tree and never reads a deployed install's `flight/` folder.
+
+**Two accepted loss modes (v1, by design):**
+1. **Chained story battles can share one file.** If the exit edge never fires between two battles
+   (a scripted battle->battle transition with no clean world-map interstitial), both battles'
+   records land in the same flush file instead of two. Diagnosable (the header timestamp still
+   anchors everything), just not split as cleanly as usual.
+2. **A hard process death loses the in-memory ring.** The mod's `CanUnload()` returns `false` and
+   there is no Reloaded unload hook wired, so nothing flushes on process exit -- there is no
+   periodic partial flush in v1. Only records already written by a prior battle-exit or
+   first-error flush survive a crash; whatever was recorded since the last flush is gone.
+
+**Reading a flight file:** `tools/parse_flight.py <path> [--grep TYPE]` prints a plain-text
+timeline (`+N.NNNs [type] payload`, relative to the header's elapsedMs anchor), optionally
+filtered to one event type. Standalone script, no deploy-script imports.

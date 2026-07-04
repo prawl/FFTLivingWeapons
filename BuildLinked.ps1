@@ -95,8 +95,10 @@ try {
         Copy-Item "$dest\kills.json" $killsBak -Force
     }
     if (Test-Path $dest) {
-        # Keep the Vortex marker so Vortex doesn't treat the folder as orphaned.
-        Remove-Item "$dest\*" -Exclude "__folder_managed_by_vortex" -Recurse -Force -ErrorAction SilentlyContinue
+        # Keep the Vortex marker so Vortex doesn't treat the folder as orphaned. Also keep
+        # flight/ (the flight recorder's black-box archives) -- wholesale directory preservation,
+        # same treatment as kills.json, no TEMP round-trip needed since it's just excluded outright (S6).
+        Remove-Item "$dest\*" -Exclude "__folder_managed_by_vortex", "flight" -Recurse -Force -ErrorAction SilentlyContinue
     } else {
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
     }

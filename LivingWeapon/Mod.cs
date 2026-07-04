@@ -67,6 +67,7 @@ public class Mod : IMod
             string modDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
                             ?? Environment.CurrentDirectory;
             ModLogger.Init(modDir);
+            Flight.Init(modDir);   // the black-box event ring -- must exist before anything else can Record
             ModLogger.Log("Living Weapon starting up (running inside FFT_enhanced.exe).");
 
             // Load mod config fail-soft: any read failure falls back to the Tuning default (true).

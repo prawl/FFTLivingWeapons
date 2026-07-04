@@ -59,6 +59,10 @@ internal sealed class PromptSwap
         payload = toast.payload.Length > MaxPayloadLen
             ? toast.payload.Substring(0, MaxPayloadLen)
             : toast.payload;
+        // Static Flight.Record call (null-object-safe, trivially cheap -- this runs on the game's
+        // own SetTextString thread via PromptSwapHook.Detour, so no lock contention beyond the
+        // recorder's own cheap array-append).
+        Flight.Record("prompt", $"delivered weapon={toast.weaponId} tier={toast.tier} payload=\"{payload}\"");
         return true;
     }
 

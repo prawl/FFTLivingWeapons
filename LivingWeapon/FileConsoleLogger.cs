@@ -55,7 +55,17 @@ internal sealed class FileConsoleLogger : ILogger
 
     public void Log(string message) => Write(LogLevel.Info, "", message);
     public void LogWarning(string message) => Write(LogLevel.Warning, "WARNING: ", message);
-    public void LogError(string message) => Write(LogLevel.Error, "ERROR: ", message);
+
+    /// <summary>Also arms the flight recorder's FlushOnce error trigger (B1) -- a flag-only
+    /// request, no I/O happens on this call/thread. The Engine loop drains it on its next tick
+    /// (Flight.DrainPending), so a LogError fired from the game's own SetTextString thread
+    /// (PromptSwapHook.Detour) never stalls on disk I/O here.</summary>
+    public void LogError(string message)
+    {
+        Write(LogLevel.Error, "ERROR: ", message);
+        Flight.RequestFlush("error");
+    }
+
     public void LogDebug(string message) => Write(LogLevel.Debug, "DBG ", message);
 
     public void LogError(string message, Exception exception)

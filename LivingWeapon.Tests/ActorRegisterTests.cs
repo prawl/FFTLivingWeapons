@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
@@ -57,6 +58,25 @@ public class ActorRegisterTests
 
         Assert.Equal(2, r.ArrivalTick);
         Assert.Equal(4, r.Tick);
+    }
+
+    // --- flight-recorder tap (optional injected recorder; null default keeps every OTHER test in
+    // this file green unmodified -- that fact is the real assertion for this tap seam) ---
+
+    [Fact]
+    public void Injected_recorder_receives_pointer_transitions()
+    {
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        var r = new ActorRegister(m, (type, payload) => recorded.Add((type, payload)));
+        r.Update();          // tick1: priming -- must NOT record (there is no real transition yet)
+        Assert.Empty(recorded);
+
+        PointAt(m, 5);
+        r.Update();          // tick2: observed transition 0 -> seat5's entry
+
+        Assert.Contains(recorded, e => e.type == "actor" && e.payload.Contains("pointer transition")
+                                        && e.payload.Contains("nameId="));
     }
 
     // --- StableSince (V3, strict) ---

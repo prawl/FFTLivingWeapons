@@ -1,5 +1,6 @@
 namespace LivingWeapon;
 
+using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -35,8 +36,16 @@ internal sealed class TurnTracker
     private readonly IGameMemory _mem;
     private readonly Dictionary<(int level, int brave, int faith), int> _turns = new();
     private bool _wasActed;
+    // Flight recorder tap (optional; null/no-op default keeps every existing test green
+    // unmodified). Engine wires this to Flight.Record -- see the injected-BattleLog-sink
+    // precedent in KillTracker's ctor for the same shape.
+    private readonly Action<string, string>? _recorder;
 
-    public TurnTracker(IGameMemory mem) => _mem = mem;
+    public TurnTracker(IGameMemory mem, Action<string, string>? recorder = null)
+    {
+        _mem = mem;
+        _recorder = recorder;
+    }
 
     /// <summary>Turns taken by ANY unit this battle -- the attribution-free clock buff timers ride
     /// (it never stalls on a unit we can't fingerprint, nor on one the player parks).</summary>
@@ -65,6 +74,7 @@ internal sealed class TurnTracker
             // (No per-turn log here: this clock fires every turn of every battle and is shared infra, so a
             // line naming Larceny read as "Larceny spam" even with no Arcanum fielded. The per-unit turn
             // line below is generic and only logs when an actor is identified.)
+            _recorder?.Invoke("turn", $"acted rising edge -- global turn #{GlobalTurns}");
             bool viaPointer = TryActiveViaPointer(out var fp);
             if (viaPointer || TryActiveFingerprint(out fp))
             {
@@ -72,7 +82,12 @@ internal sealed class TurnTracker
                 _turns[fp] = n;
                 string src = viaPointer ? "actor-ptr" : "tq-fallback";
                 ModLogger.Log($"turn: a unit finished its turn (#{n} this battle) [id level {fp.Item1} brave {fp.Item2} faith {fp.Item3}, via {src}]");
+                _recorder?.Invoke("turn", $"credit level={fp.Item1} brave={fp.Item2} faith={fp.Item3} count={n} src={src}");
             }
+        }
+        else if (!acted && _wasActed)
+        {
+            _recorder?.Invoke("turn", "acted falling edge");
         }
         _wasActed = acted;
     }

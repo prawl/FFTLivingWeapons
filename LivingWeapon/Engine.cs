@@ -37,6 +37,7 @@ internal sealed class Engine
     private DateTime _lastField = DateTime.MinValue;   // last tick we were on the live battlefield
     private const double FieldSettleSeconds = 1.5;      // wait this long off-field before painting
     private bool _lastBattleStatus;                     // edge-detect entering the in-battle status card
+    private int _lastMode = int.MinValue;               // edge-detect battleMode changes for the flight recorder (N2)
 
     // Scholar's Ring grant: throttled to ~1 s (every 30 ticks at 33 ms) and only
     // runs out of battle.  A separate counter avoids coupling to _tick (which only
@@ -88,13 +89,16 @@ internal sealed class Engine
 #if LWDEV
         _showSpike = new ShowSpike(live);
 #endif
-        _turns = new TurnTracker(live);
+        _turns = new TurnTracker(live, Flight.Record);
         // verbose: true (was Tuning.VerboseEvents, DEV-only const) -- the ev: timeline is now always
         // captured to the file via ModLogger.LogDebug (Debug tier writes livingweapon.log
         // unconditionally); it only reaches the console when Config.VerboseLog is on. Deliberate
         // Release-behavior change, see BattleLog's class doc.
+        // Dual-emit composes HERE at the composition root (B2): BattleLog itself never references
+        // Flight -- its sink just also records every ev: line into the flight ring.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
-                                   new BattleLog(verbose: true, sink: ModLogger.LogDebug));
+                                   new BattleLog(verbose: true, sink: s => { ModLogger.LogDebug(s); Flight.Record("ev", s); }),
+                                   Flight.Record);
         _growth = new GrowthEngine(meta, _kills, _turns, live);
         _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
@@ -192,9 +196,15 @@ internal sealed class Engine
 
     private void Tick()
     {
+        Flight.DrainPending();   // cheap flag check every tick; the actual I/O (if any is pending) runs here, never on the requester's thread
+
         uint slot0 = Mem.U32(Offsets.Slot0);
         uint slot9 = Mem.U32(Offsets.Slot9);
         int battleMode = Mem.U8(Offsets.BattleMode);
+        // Mode-CHANGE tap (N2): new code -- Engine only edge-detected battle enter/exit before this.
+        // First sighting baselines silently (mirrors BattleLog.Observe); only real changes record.
+        if (_lastMode == int.MinValue) _lastMode = battleMode;
+        else if (battleMode != _lastMode) { Flight.Record("mode", $"battleMode {_lastMode} -> {battleMode}"); _lastMode = battleMode; }
         bool paused = Mem.U8(Offsets.PauseFlag) == 1;
         int eventId = Mem.U16(Offsets.EventId);   // out-of-live: dialogue/cutscene; in-combat: nameId alias
         var now = DateTime.Now;
@@ -231,6 +241,9 @@ internal sealed class Engine
             ModLogger.Log($"battle: ended -- saving kill tally, resetting battle trackers (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
             ResetBattleState();
             _tally.Save();               // flush on battle end
+            // S2: the battle-exit edge ONLY -- ResetBattleState() fires on BOTH edges (enter+exit),
+            // so the flush lives here beside _tally.Save(), not inside that shared method.
+            Flight.FlushBattleEnd();
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         }
         // Barrage runs in AND out of battle: the learn screen / pre-battle menus read the

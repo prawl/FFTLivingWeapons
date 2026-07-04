@@ -1,5 +1,7 @@
 namespace LivingWeapon;
 
+using System;
+
 /// <summary>Tri-state result of matching the current actor-pointer owner against the roster:
 /// <see cref="Player"/> (exactly one nameId+fingerprint match -- a real player unit), <see cref="Enemy"/>
 /// (zero matches -- authoritative "not a player", the same verdict <see cref="ActorResolver.TryResolveActingPlayer"/>
@@ -49,6 +51,9 @@ internal sealed class ActorRegister
     private readonly IGameMemory _mem;
     private bool _primed;
     private long _prevEntry;
+    // Flight recorder tap (optional; null/no-op default keeps every existing test green
+    // unmodified). KillTracker wires this to Flight.Record when it constructs the register.
+    private readonly Action<string, string>? _recorder;
 
     /// <summary>Monotonically-incrementing tick counter, one per <see cref="Update"/> call.</summary>
     public int Tick { get; private set; }
@@ -65,7 +70,11 @@ internal sealed class ActorRegister
     /// <summary>The roster-bridge classification captured at the current owner's arrival.</summary>
     public RosterBridge CurrentBridge { get; private set; } = RosterBridge.Unknown;
 
-    public ActorRegister(IGameMemory mem) => _mem = mem;
+    public ActorRegister(IGameMemory mem, Action<string, string>? recorder = null)
+    {
+        _mem = mem;
+        _recorder = recorder;
+    }
 
     /// <summary>Ticks since the current owner's arrival. NOTE: KillTracker's corpse anchor no
     /// longer consumes this -- a duration built from _pendingAge (onField-only ticks) desynced
@@ -120,6 +129,9 @@ internal sealed class ActorRegister
                 CurrentBridge = RosterBridge.Unknown;
                 CurrentRosterBase = 0;
             }
+            // Pointer-transition tap (on-change only -- Update() only reaches here when the
+            // pointer actually moved): old entry, new entry, and the freshly-resolved nameId.
+            _recorder?.Invoke("actor", $"pointer transition 0x{_prevEntry:X} -> 0x{entry:X} nameId={CurrentNameId} bridge={CurrentBridge}");
         }
         _prevEntry = entry;
     }

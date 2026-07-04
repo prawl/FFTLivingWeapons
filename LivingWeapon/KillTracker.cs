@@ -66,12 +66,18 @@ internal sealed partial class KillTracker
     private List<int> _fallbackSet = new();          // the resolve being stability-counted by the no-actor fallback
     private int _fallbackStreak;                     // consecutive identical non-empty resolves
     internal readonly BattleLog? _events;            // dev event timeline (damage/heal/move); null = off
+    // Flight recorder tap (optional; null/no-op default keeps every existing test green
+    // unmodified). Engine wires this to Flight.Record, and it is threaded down into the
+    // ActorRegister this class constructs so pointer transitions get tapped too.
+    private readonly Action<string, string>? _recorder;
 
-    public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null)
+    public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
+                        Action<string, string>? recorder = null)
     {
         _kills = kills;
         _mem = mem;
-        _register = new ActorRegister(mem);
+        _recorder = recorder;
+        _register = new ActorRegister(mem, recorder);
         _resolver = new ActorResolver(mem, weapons, _register);
         _oracle = new EnemyOracle(mem);
         _events = events;
@@ -166,6 +172,7 @@ internal sealed partial class KillTracker
                         ModLogger.Log(ws.Count > 0
                             ? "turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + $" [{src}]"
                             : $"turn: acting player wields no tracked weapon -- this action's kills go uncredited [{src}]");
+                        _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src={src}");
                     }
                 }
             }
@@ -213,6 +220,7 @@ internal sealed partial class KillTracker
             _actorTag = string.Join(",", ws);
             _fallbackStreak = 0; _fallbackSet = new();
             ModLogger.Log("turn: no actor seen yet -- crediting the only player who has acted (first-kill fallback, weapons: " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + ")");
+            _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src=first-kill-fallback");
         }
     }
 
@@ -284,6 +292,7 @@ internal sealed partial class KillTracker
             _kills.TryGetValue(w, out int c);
             _kills[w] = c + 1;
             ModLogger.Log($"kill: {LogNames.Weapon(w)} earns kill #{c + 1} (enemy fell at {gx},{gy})");
+            _recorder?.Invoke("kill", $"credit weapon={w} count={c + 1} at=({gx},{gy}) slot={s}");
             changed = true;
         }
         _pending[s] = false;

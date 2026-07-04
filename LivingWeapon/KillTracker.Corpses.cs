@@ -175,6 +175,7 @@ internal sealed partial class KillTracker
             {
                 _deadCredited[s] = true;
                 ModLogger.Log($"kill: a unit at battle slot {s} died but it was not a tracked enemy -- no credit given (this is normal for player/guest deaths)");
+                _recorder?.Invoke("kill", $"no-credit slot={s} reason=not-tracked-enemy");
                 continue;
             }
 
@@ -183,6 +184,7 @@ internal sealed partial class KillTracker
             {
                 _deadCredited[s] = true;
                 ModLogger.Log($"kill: WARN same enemy identity already credited at another slot -- blocking duplicate at battle slot {s}");
+                _recorder?.Invoke("kill", $"no-credit slot={s} reason=duplicate-identity-already-credited");
                 continue;
             }
 
@@ -201,6 +203,7 @@ internal sealed partial class KillTracker
                 // Credit nobody: the summoner/dancer/item-user's AoE kill is intentionally uncredited.
                 _deadCredited[s] = true; _pending[s] = false; _identityAlive[id] = false;
                 ModLogger.Log($"kill: enemy at battle slot {s} was killed by a unit holding no tracked weapon -- no credit (uncredited as designed)");
+                _recorder?.Invoke("kill", $"no-credit slot={s} reason=untracked-weapon");
                 continue;
             }
             var culprit = delayed ?? _lethalActor[s] ?? _lastPlayerWeapons;
@@ -226,6 +229,7 @@ internal sealed partial class KillTracker
                 _lethalActor[s] = null; _lethalUntracked[s] = false;
                 _identityAlive[id] = false;
                 ModLogger.Log($"kill: could not determine who killed the enemy -- no credit (battle slot {s}, waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges passed)");
+                _recorder?.Invoke("kill", $"no-credit slot={s} reason=expired-unresolved waited={_pendingAge[s]}ticks");
             }
         }
         return changed;

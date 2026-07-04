@@ -117,11 +117,16 @@ internal sealed partial class BannerToast
         lock (_lock)
         {
             _queue.Add((weaponId, tier, payload));
+            // Static Flight.Record call, per the flight-recorder plan's B2 note: BannerToast is
+            // simple enough (and already a null-object-safe static call) that an injected recorder
+            // seam would be needless ceremony here.
+            Flight.Record("toast", $"enqueued weapon={weaponId} tier={tier} payload=\"{payload}\"");
             if (_queue.Count <= QueueCap) return;
             // Stale news loses: an overflowing queue drops the OLDEST toast, not the newest.
             var dropped = _queue[0];
             _queue.RemoveAt(0);
             ModLogger.Log($"banner-toast: queue at cap ({QueueCap}) -- dropped stale toast for weapon {dropped.weaponId} tier {dropped.tier}");
+            Flight.Record("toast", $"dropped weapon={dropped.weaponId} tier={dropped.tier} (queue at cap {QueueCap})");
         }
     }
 

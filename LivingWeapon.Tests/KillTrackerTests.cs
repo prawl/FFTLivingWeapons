@@ -130,6 +130,30 @@ public class KillTrackerTests
         Assert.Equal(1, kills.GetValueOrDefault(52));
     }
 
+    // ---- flight-recorder tap (optional injected recorder; null default keeps every OTHER test
+    // in this file green unmodified -- that fact is the real assertion for this tap seam) ----
+
+    [Fact]
+    public void Injected_recorder_receives_latch_and_credit_events()
+    {
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99);
+        var t = new KillTracker(kills, m, Weapons, recorder: (type, payload) => recorded.Add((type, payload)));
+
+        Settle(t);
+        SetEnemy(m, slot: 0, hp: 300);
+        Settle(t);
+        SetUnit(m, slot: 0, hp: 0);
+        t.Poll(true); t.Poll(true); t.Poll(true);   // 3rd dead tick -> credit
+
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload.StartsWith("latch weapons=[52]"));
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload.StartsWith("credit weapon=52 count=1"));
+    }
+
     [Fact]
     public void Resolved_player_with_untracked_weapon_clears_the_latch()
     {
