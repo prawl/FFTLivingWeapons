@@ -183,7 +183,7 @@ internal sealed partial class KillTracker
             if (!_identityAlive.TryGetValue(id, out bool wasAlive) || !wasAlive)
             {
                 _deadCredited[s] = true;
-                ModLogger.Log($"kill: WARN same enemy identity already credited at another slot -- blocking duplicate at battle slot {s}");
+                ModLogger.Log($"kill: WARN this enemy was already credited for a kill at another position -- blocking a duplicate credit (battle slot {s})");
                 _recorder?.Invoke("kill", $"no-credit slot={s} reason=duplicate-identity-already-credited");
                 continue;
             }
@@ -210,7 +210,7 @@ internal sealed partial class KillTracker
             if (culprit.Count > 0)
             {
                 if (delayed != null)
-                    ModLogger.Log($"kill: delayed-action override slot {s}: delayed=[{string.Join(",", delayed)}] stamp=[{string.Join(",", _lethalActor[s] as IEnumerable<int> ?? Array.Empty<int>())}] live=[{string.Join(",", _lastPlayerWeapons)}]");
+                    ModLogger.Log($"kill: crediting a charged attack (like a Jump or spellcast) that just landed, ahead of whoever is acting now (battle slot {s}) [delayed=[{string.Join(",", delayed)}] stamped-actor=[{string.Join(",", _lethalActor[s] as IEnumerable<int> ?? Array.Empty<int>())}] current-actor=[{string.Join(",", _lastPlayerWeapons)}]]");
                 else if (_lethalActor[s] != null && !ActorResolver.SameSet(_lethalActor[s]!, _lastPlayerWeapons))
                     ModLogger.Log($"kill: crediting whoever landed the finishing blow, not whoever acted most recently [lethal=[{string.Join(",", culprit)}] vs live-latch=[{string.Join(",", _lastPlayerWeapons)}]] at slot {s} (deadStreak={_deadStreak[s]})");
                 bool c = CreditKill(s, gx, gy, culprit);
@@ -228,7 +228,7 @@ internal sealed partial class KillTracker
                 _deadCredited[s] = true; _pending[s] = false;
                 _lethalActor[s] = null; _lethalUntracked[s] = false;
                 _identityAlive[id] = false;
-                ModLogger.Log($"kill: could not determine who killed the enemy -- no credit (battle slot {s}, waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges passed)");
+                ModLogger.Log($"kill: could not determine who killed the enemy -- no credit (battle slot {s}) [waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges]");
                 _recorder?.Invoke("kill", $"no-credit slot={s} reason=expired-unresolved waited={_pendingAge[s]}ticks");
             }
         }

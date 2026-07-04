@@ -75,8 +75,8 @@ internal sealed class Display
         // slot with the anchor cut off and never verify. Log-and-continue -- a too-long
         // name only degrades painting, while a throw here would take the game with it.
         if (!_pats.FitsLookback(DisplaySweep.Lookback))
-            ModLogger.LogError("display: sweep lookback " + DisplaySweep.Lookback + " < max anchor "
-                      + _pats.MaxAnchorLen + " + slot; boundary-straddling cards may not paint");
+            ModLogger.LogError("display: the equip-card painter is misconfigured and may fail to paint some kill counters [lookback="
+                      + DisplaySweep.Lookback + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot]");
     }
 
     /// <summary>Drop the site cache and start a new sweep generation on the next Tick.

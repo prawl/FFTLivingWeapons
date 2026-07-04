@@ -45,16 +45,16 @@ public class Mod : IMod
             if (hooksRef != null && hooksRef.TryGetTarget(out var hooks) && hooks != null)
             {
                 _engine?.InjectHooks(hooks);
-                ModLogger.Log("IReloadedHooks resolved and injected");
+                ModLogger.Log("connected to the game's rendering hooks -- toast pop-ups can be delivered");
             }
             else
             {
-                ModLogger.Log("IReloadedHooks controller not available -- is reloaded.sharedlib.hooks loaded?");
+                ModLogger.Log("the game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded -- toast pop-ups will not be delivered");
             }
         }
         catch (Exception ex)
         {
-            ModLogger.LogError("IReloadedHooks injection failed -- " + ex.Message);
+            ModLogger.LogError("failed to connect to the game's rendering hooks -- toast pop-ups will not be delivered: " + ex.Message);
         }
     }
 
@@ -91,7 +91,7 @@ public class Mod : IMod
             }
             catch (Exception cfgEx)
             {
-                ModLogger.LogError($"config load failed, using defaults TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} VerboseLog={verboseLog}: {cfgEx.Message}");
+                ModLogger.LogError($"config: could not read your settings, using defaults instead (TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} VerboseLog={verboseLog}) -- {cfgEx.Message}");
             }
             // Set the console threshold from whatever verboseLog resolved to -- DEFINED whether the
             // try above succeeded or hit the catch (never skipped), so a config-read failure can't

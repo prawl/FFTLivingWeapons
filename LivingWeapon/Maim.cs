@@ -109,7 +109,7 @@ internal sealed partial class Maim : ISignature
                     // the victim's CURRENT CT so the first sample is never mistaken for a completed turn.
                     uint saved = ReadReactionField(_mem, addr);
                     _state.Latch(addr, fp, saved, _mem.U8(addr + LiveCtOff));
-                    ModLogger.Log($"maim: struck enemy ({mhp} max HP) loses reaction abilities for {crippleTurns} of its turns (saved reaction field 0x{saved:X8})");
+                    ModLogger.Log($"maim: struck enemy ({mhp} max HP) loses its reaction abilities for {crippleTurns} of its turns [saved reaction bits=0x{saved:X8}]");
                 }
                 else
                 {
@@ -158,7 +158,7 @@ internal sealed partial class Maim : ISignature
             uint saved = _state.SavedReaction(fp).GetValueOrDefault();
             Restore(_mem, addr, saved);
             _state.Release(fp);
-            ModLogger.Log($"maim: suppression lifted on enemy ({fp.mhp} max HP) after {crippleTurns} turns -- reaction abilities restored (0x{saved:X8})");
+            ModLogger.Log($"maim: suppression lifted on enemy ({fp.mhp} max HP) after {crippleTurns} turns -- its reaction abilities are restored [0x{saved:X8}]");
         }
     }
 

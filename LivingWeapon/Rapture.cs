@@ -137,7 +137,7 @@ internal sealed partial class Rapture : ISignature
     {
         bool same = _state.Addr != 0 && SameUnit(_mem, _state.Addr, _state.Fp);
         if (_state.SavedField is { } saved && same) WriteField(_mem, _state.Addr, saved);
-        ModLogger.Log($"rapture: wielder recovered ({why}) -- {(same ? "normal movement restored" : "movement left unchanged (unit entry migrated)")}");
+        ModLogger.Log($"rapture: wielder recovered ({why}) -- {(same ? "normal movement restored" : "movement left unchanged (the wielder could not be re-found in memory)")}");
         _state.Release();
         _deadStreak = 0;
     }

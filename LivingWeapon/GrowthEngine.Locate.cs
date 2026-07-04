@@ -64,7 +64,7 @@ internal sealed partial class GrowthEngine
             if (tier1 != 0)
             {
                 _structForSlot[slot] = (tier1, 1);
-                if (!_logged) { _logged = true; ModLogger.Log($"growth: found combat struct for party slot {slot}"); }
+                if (!_logged) { _logged = true; ModLogger.Log($"growth: party slot {slot} found in memory -- stat growth will apply"); }
                 return tier1;
             }
             if (matchCount1 > 0)   // S6: candidates existed, genuinely ambiguous -- refuse, no tier-2 fallthrough
@@ -79,7 +79,7 @@ internal sealed partial class GrowthEngine
         if (found != 0)
         {
             _structForSlot[slot] = (found, 2);
-            if (!_logged) { _logged = true; ModLogger.Log($"growth: found combat struct for party slot {slot}"); }
+            if (!_logged) { _logged = true; ModLogger.Log($"growth: party slot {slot} found in memory -- stat growth will apply"); }
             // Diagnostic for the "nameId unpopulated battle type" premise (D2): only fires when
             // tier 1 actually ran and came up empty, not on every ordinary tier-2-only battle.
             if (rosterNameId > 0 && _fallbackLogged.Add(slot))

@@ -119,14 +119,14 @@ internal sealed partial class SpiritualFont : ISignature
         if (nowLocated != _wasLocated)
         {
             _wasLocated = nowLocated;
-            ModLogger.Log($"font: wielder {(_wasLocated ? "located in memory -- tracking position" : "not found this tick -- skipping")}");
+            ModLogger.Log($"font: {(_wasLocated ? "wielder found -- tracking its position" : "wielder not found this tick -- skipping")}");
         }
         if (_locateAllBuf.Count == 0) return;   // unlocated: skip; MoveWatch keeps its baseline
 
         long e = _locateAllBuf[0];   // read position from the first entry (live or frozen -- same tile)
         int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
         bool fire = _watch.Observe(gx, gy);
-        if (_watch.IsFresh) ModLogger.Log($"font: position baseline set -- wielder is at ({gx},{gy}), watching for movement");   // first sighting log
+        if (_watch.IsFresh) ModLogger.Log($"font: now watching the wielder's position for movement (currently at ({gx},{gy}))");   // first sighting log
         if (!fire) return;
 
         _moveCount++;
@@ -145,7 +145,7 @@ internal sealed partial class SpiritualFont : ISignature
         long first = entries[0];
         int hp = _mem.U16(first + Offsets.AHp), maxHp = _mem.U16(first + Offsets.AMaxHp);
         int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
-        ModLogger.Log($"font: move #{move} at ({gx},{gy}) -- restored HP {hp}->{newHp} (max {maxHp}, {entries.Count} band entries updated)");
+        ModLogger.Log($"font: move #{move} at ({gx},{gy}) -- restored HP {hp}->{newHp} (max {maxHp}) [{entries.Count} copies updated]");
         foreach (long ent in entries) if (newHp != hp) LifeSap.WriteHp(_mem, ent, newHp);
         if (!MpHalfAllowed(hp, _mpOk)) return;   // layout unproven OR a dead wielder: no MP write
         int mp = _mem.U16(first + Offsets.AMp), maxMp = _mem.U16(first + Offsets.AMaxMp);
@@ -171,7 +171,7 @@ internal sealed partial class SpiritualFont : ISignature
         if (samples.Count < 2) return;   // band not populated yet -- validate on a later tick
         _mpChecked = true;
         _mpOk = MpLayoutOk(samples);
-        ModLogger.Log(_mpOk ? $"font: MP field layout verified across {samples.Count} units -- MP restores enabled this battle"
-                       : "font: MP field layout check failed -- HP-only restores for this battle");
+        ModLogger.Log(_mpOk ? $"font: MP restore confirmed working this battle (checked {samples.Count} units) -- HP and MP will both be restored"
+                       : "font: MP restore could not be confirmed this battle -- only HP will be restored");
     }
 }

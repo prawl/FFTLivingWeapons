@@ -131,7 +131,7 @@ internal sealed partial class Barrage : ISignature
             if (_lastUnsupportedJob != wielderJob)
             {
                 _lastUnsupportedJob = wielderJob;
-                ModLogger.Log($"barrage: {LogNames.Job(wielderJob)} (job {wielderJob}) cannot receive Barrage -- job uses a special command executor or is story-unique; no grant (secondary record {wielderSecondary})");
+                ModLogger.Log($"barrage: {LogNames.Job(wielderJob)} (job {wielderJob}) cannot receive Barrage -- this job's action menu silently drops added abilities, or it's a unique story job [secondary command {wielderSecondary}]");
             }
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             _wasActive = false;
@@ -144,7 +144,7 @@ internal sealed partial class Barrage : ISignature
             string thiefPath = wielderJob == ThiefJob
                 ? "Thief is the primary job"
                 : "Thief (Steal) is the secondary command";
-            ModLogger.Log($"barrage: ACTIVE -- party slot {wielderSlot} wields Yoichi Bow ({thiefPath}), Barrage added to record {recId} (job {wielderJob}, learn-index {jobIdx}{(viaSecondary ? ", injected via secondary" : "")})");
+            ModLogger.Log($"barrage: ACTIVE -- party slot {wielderSlot} wields Yoichi Bow ({thiefPath}), Barrage is now in {LogNames.Job(wielderJob)}'s action list{(viaSecondary ? " (via their secondary command)" : "")} [record {recId}, learn-index {jobIdx}]");
         }
 
         // Job changed mid-session: restore the old record and re-inject for the new job.
@@ -171,7 +171,7 @@ internal sealed partial class Barrage : ISignature
         {
             byte[] original = _mem.ReadBytes(flagAddr, RecSize);
             _state.Save(recId, original);
-            ModLogger.Log($"barrage: saved original {LogNames.Job(wielderJob)} command list before injecting Barrage (record {recId})");
+            ModLogger.Log($"barrage: backed up {LogNames.Job(wielderJob)}'s original action list before adding Barrage [record {recId}]");
         }
 
         // Find or verify the injection slot.
@@ -193,7 +193,7 @@ internal sealed partial class Barrage : ISignature
             Signatures.StuckEdge(ref _noSlotLogged, false);   // slot found -> re-arm for next time
             slotIdx = slot1 - 1;   // convert to 0-indexed
             _state.SlotIdx = slotIdx;
-            ModLogger.Log($"barrage: picked ability slot {slot1} in the {LogNames.Job(wielderJob)} command list (slot index {slotIdx}, record {recId})");
+            ModLogger.Log($"barrage: placed Barrage in ability slot {slot1} of {LogNames.Job(wielderJob)}'s action list [slot index {slotIdx}, record {recId}]");
         }
 
         // Idempotent inject: only write when the slot is not already correct.

@@ -69,7 +69,7 @@ internal sealed partial class GrowthEngine
             (drop ??= new()).Add((slot, weapon));
             if (_mem.U8(v.s + Offsets.CBrave) != v.brave || _mem.U8(v.s + Offsets.CFaith) != v.faith) continue;
             if (MemBits.Clear(v.s + Offsets.CSupport + v.off, v.mask))
-                ModLogger.Log($"GRANT released: {LogNames.Weapon(weapon)} was unequipped from party slot {slot} -- {v.abilityId} support bit cleared");
+                ModLogger.Log($"GRANT released: {LogNames.Weapon(weapon)} was unequipped from party slot {slot} -- its granted ability is now off [ability {v.abilityId}]");
         }
         if (drop is not null)
             foreach (var k in drop) { _heldSupports.Remove(k); _grantLogged.Remove(k.weapon); }   // re-equip re-announces
@@ -88,7 +88,7 @@ internal sealed partial class GrowthEngine
         string warn = Signatures.IsBuildTimeOnly(sig.AbilityId)
             ? "  WARN build-time-only support -- a live bit will NOT take effect"
             : "";
-        ModLogger.Log($"GRANT {name} -> {sig.DisplayLabel} (support {sig.AbilityId}) @ +0x98[{off}]=0x{mask:X2} readback={(present ? "SET" : "MISS")}{warn}");
+        ModLogger.Log($"GRANT {name} -> {sig.DisplayLabel} (support ability {sig.AbilityId}) readback={(present ? "SET" : "MISS")}{warn} [+0x98[{off}]=0x{mask:X2}]");
         if (pickedSupport != 0 && pickedSupport == sig.AbilityId)
             ModLogger.Log($"GRANT note: wielder already has {sig.DisplayLabel} equipped as their chosen support -- the weapon grant adds nothing (pick a different support)");
     }

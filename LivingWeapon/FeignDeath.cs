@@ -138,7 +138,7 @@ internal sealed partial class FeignDeath : ISignature
         if (act.Hp == HpAction.ForceKill) ForceKill(_mem, e);
         else if (act.Hp == HpAction.HoldAlive) HoldAlive(_mem, e);
 
-        if (act.MarkKilled) { _finishKilled = true; ModLogger.Log("feign-death: the wielder is up next -- finishing blow now; its imminent turn raises it (brief dead state)"); }
+        if (act.MarkKilled) { _finishKilled = true; ModLogger.Log("feign-death: the wielder's turn is coming up -- ending the played-dead act now so its own turn revives it (a brief dead flag, not a real death)"); }
         if (act.MarkWasDead) _finishWasDead = true;
 
         if (act.Next != _phase) EnterPhase(act.Next, now, hp);
@@ -201,7 +201,7 @@ internal sealed partial class FeignDeath : ISignature
                 ModLogger.Log($"feign-death: lethal hit -- the wielder flops as a corpse and plays dead (acting while the AI ignores it) for {Tuning.FeignPossumTurns} of its turns");
                 break;
             case Phase.Finish:
-                ModLogger.Log("feign-death: played-dead window over -- staying down until the wielder is up next, then the finishing blow");
+                ModLogger.Log("feign-death: played-dead window over -- staying down until the wielder's own turn comes up, then ending the act");
                 break;
             case Phase.Recover:
                 _recoverStart = now;

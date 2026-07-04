@@ -259,7 +259,7 @@ internal sealed class ShowSpike
             _commitTapHook = hooks.CreateHook<TextCommitTapFn>(_commitTapKeepalive, FnSetTextCommit).Activate();
             _setTextTapKeepalive = (h, t, r8, r9) => TapDetour(_setTextTapHook!, "SetTextString", h, t, r8, r9);
             _setTextTapHook = hooks.CreateHook<TextCommitTapFn>(_setTextTapKeepalive, FnSetTextString).Activate();
-            ModLogger.Log("show-spike: banner-update + orchestrator + text-setter tap hooks installed -- canaries are the ALIVE lines (a natural callout bubble with no 'orch CALLED' line = dead launch, restart)");
+            ModLogger.Log("show-spike: dev research hooks installed (banner-update, orchestrator, text-setter tap) -- healthy hooks announce themselves with ALIVE lines below; a callout bubble appearing on screen with no orchestrator ALIVE line means the hooks are dead this launch, restart the game");
         }
         catch (Exception ex)
         {

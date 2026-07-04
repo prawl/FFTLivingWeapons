@@ -63,7 +63,7 @@ internal sealed partial class GrowthEngine
                 int band = UltimaPolicy.Band(hp, maxHp);
                 int pct = band < 0 ? 100 : Tuning.UltimaMul[tier][band];
                 int hpPct = maxHp > 0 ? (int)(hp * 100L / maxHp) : 0;
-                ModLogger.Log($"ultima: {m.Name} HP {hpPct}% doing {pct}% dmg (PA {rec.natural}->{target}, tier {tier})");
+                ModLogger.Log($"ultima: {m.Name} at {hpPct}% HP deals {pct}% damage (PA {rec.natural}->{target}, tier {tier})");
             }
             if (cur != target) _mem.W8(addr, (byte)target);
             _ultima[addr] = (rec.natural, target);

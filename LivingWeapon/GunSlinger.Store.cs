@@ -47,7 +47,7 @@ internal sealed class GunSlingerStore
             // Keep .bak in sync so the fallback load path always has a good copy.
             File.WriteAllText(_path + ".bak", json);
         }
-        catch (Exception ex) { ModLogger.LogError("gunslinger-store save: " + ex.Message); }
+        catch (Exception ex) { ModLogger.LogError("gunslinger: failed to save its data -- " + ex.Message); }
     }
 
     private static Dictionary<int, GunSlingerSnap> Load(string path)

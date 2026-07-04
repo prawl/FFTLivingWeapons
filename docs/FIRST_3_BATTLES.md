@@ -7,7 +7,7 @@ This covers the Section 6 GO/NO-GO. Skip every [EDGE] box for now. Don't touch W
 ```powershell
 Get-Content "C:\program files (x86)\steam\steamapps\common\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods\prawl.fft.livingweapons\livingweapon.log" -Wait -Tail 40
 ```
-**Whole-session PASS rule:** you NEVER see a line starting `tick:` (a signature threw), and every fight ends
+**Whole-session PASS rule:** you NEVER see a line starting `engine:` (a signature threw), and every fight ends
 with exactly one `battle: ended`. That alone is GO/NO-GO #8.
 
 ---
@@ -43,7 +43,7 @@ Stormarc (86), Huntress (89) on others, Yoichi (90) on a Thief. Just fight a nor
 - `choir ACTIVE` **and** `GRANT Gloomfang -> Concentration (support 213) ... readback=SET`
   *(I cleared this collision on paper -- different bytes. This confirms the engine honors both at once.)*
 - Each non-staff signature fires: `plague:` / `ricochet:` / `maim:` / `barrage: ACTIVE`.
-- PASS = both bits coexist + every signature fires + **zero** `tick:` lines + one clean `battle: ended`.
+- PASS = both bits coexist + every signature fires + **zero** `engine:` lines + one clean `battle: ended`.
 
 ---
 

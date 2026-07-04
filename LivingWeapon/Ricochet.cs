@@ -110,7 +110,7 @@ internal sealed partial class Ricochet : ISignature
                         ApplyChip(_mem, tAddr, tHp, chip);
                         int newHp = ClampHp(tHp, chip);
                         _state.Consume(target, newHp);
-                        ModLogger.Log($"ricochet: chain lightning hop {hopIndex + 1} -- {chip} chip to slot {target} (source hit {dmg}, HP {tHp}->{newHp})");
+                        ModLogger.Log($"ricochet: chain lightning hop {hopIndex + 1} -- {chip} chip to the next enemy in the chain (battle slot {target}), from a {dmg} source hit (HP {tHp}->{newHp})");
                     }
                 }
                 hopIndex++;

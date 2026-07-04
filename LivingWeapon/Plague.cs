@@ -121,7 +121,7 @@ internal sealed partial class Plague : ISignature
             {
                 int seedCt = _mem.Readable(addr + Offsets.ACtTurn, 1) ? _mem.U8(addr + Offsets.ACtTurn) : 0;
                 _state.Latch(addr, fp, seedCt);
-                ModLogger.Log($"plague: latched enemy ({mhp} max HP, lv {lvl}) -- poison will never fade and ticks harder");
+                ModLogger.Log($"plague: locked onto enemy ({mhp} max HP, lv {lvl}) -- its poison will never fade and ticks harder");
             }
         }
 

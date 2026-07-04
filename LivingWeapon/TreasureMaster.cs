@@ -299,8 +299,8 @@ internal sealed partial class TreasureMaster : ISignature
         {
             _flapLoggedThisBattle = true;
             var d = _audit.FingerprintDiag(map);
-            ModLogger.Log($"treasure: map {map.MapId} fingerprint mismatch -- arming on map-id + quorum anyway " +
-                     $"(weather/terrain drift; readOk={d.ReadOk} fpVer={d.FpVer} got={d.Got:X} want={d.Expected:X})");
+            ModLogger.Log($"treasure: map {map.MapId} terrain looks different than expected (likely weather) -- arming the treasure marks anyway " +
+                     $"[readOk={d.ReadOk} fpVer={d.FpVer} got={d.Got:X} want={d.Expected:X}]");
         }
 
         var (verdict, _) = _audit.AuditAddrs(map, Tuning.TreasureMinPlausibleAddrs);
@@ -321,8 +321,8 @@ internal sealed partial class TreasureMaster : ISignature
                 if (_armAttempts >= Tuning.TreasureArmAttemptCap && !_capLoggedThisBattle)
                 {
                     _capLoggedThisBattle = true;
-                    ModLogger.Log($"treasure: map {map.MapId} waiting to arm -- " +
-                             $"flag bytes not in rest state (tiles off-screen?)");
+                    ModLogger.Log($"treasure: map {map.MapId} waiting to arm (tiles off-screen?) " +
+                             $"[flag bytes not yet at rest]");
                 }
                 break;
         }
@@ -369,7 +369,7 @@ internal sealed partial class TreasureMaster : ISignature
             {
                 _flapLoggedThisBattle = true;
                 ModLogger.Log($"treasure: map {map.MapId} terrain drifted mid-battle -- " +
-                         $"holding marks through it (fingerprint no longer matches; not a disarm)");
+                         $"holding the marks through it, not disarming [fingerprint no longer matches]");
             }
         }
 
@@ -380,8 +380,8 @@ internal sealed partial class TreasureMaster : ISignature
         if (foreign > 0 && !_foreignLoggedThisBattle)
         {
             _foreignLoggedThisBattle = true;
-            ModLogger.Log($"treasure: map {map.MapId} {foreign} byte(s) off-flag (tiles off-screen?) " +
-                     $"-- skipping those, holding the rest");
+            ModLogger.Log($"treasure: map {map.MapId} skipped {foreign} tile(s) that look off-screen " +
+                     $"-- holding the rest");
         }
     }
 }

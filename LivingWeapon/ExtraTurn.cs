@@ -69,7 +69,7 @@ internal sealed partial class ExtraTurn : ISignature
         if (freshKill)
         {
             if (_state == GrantState.Idle) Arm(now);
-            else ModLogger.Log($"extra-turn: kill landed while bonus is already pending ({_state}) -- chains are not granted");
+            else ModLogger.Log($"extra-turn: another kill landed while an extra turn is already queued up -- it will not stack [state={_state}]");
         }
         if (_state == GrantState.Idle) return;
 
@@ -91,7 +91,7 @@ internal sealed partial class ExtraTurn : ISignature
             if (cls is { } s)
             {
                 _state = s;
-                ModLogger.Log($"extra-turn: state resolved to {s} (CT {ct}; {(s == GrantState.Owed ? "kill-turn still running -- two" : "kill-turn already over -- one")} pull-down(s) needed to confirm the bonus)");
+                ModLogger.Log($"extra-turn: figuring out timing for the bonus turn -- {(s == GrantState.Owed ? "two" : "one")} more turn-end(s) must pass before it fires [state={s} CT={ct}]");
             }
         }
         else
@@ -112,13 +112,13 @@ internal sealed partial class ExtraTurn : ISignature
         _state = GrantState.Arming; _base = 0; _prevCt = -1;
         _streak = 0; _took = false; _pullDowns = 0; _deadStreak = 0;
         _deadline = now.AddSeconds(NoSignalSeconds); _hardStop = now.AddSeconds(AbsoluteCapSeconds);
-        ModLogger.Log($"extra-turn: {LogNames.Weapon(ZwillId)} scored a kill -- arming extra-turn grant for the wielder (level {_wielder.lvl}, brave {_wielder.br}, faith {_wielder.fa})");
+        ModLogger.Log($"extra-turn: {LogNames.Weapon(ZwillId)} scored a kill -- the wielder will get an extra turn (level {_wielder.lvl}, brave {_wielder.br}, faith {_wielder.fa})");
     }
 
     private void Release(ReleaseReason reason)
     {
         if (RestoreCt(reason) && _base != 0 && _mem.Writable(_base + CtOff, 1)) _mem.W8(_base + CtOff, 0);
-        ModLogger.Log($"extra-turn: grant ended ({reason}) from {_state} after {_pullDowns} turn-end(s) detected");
+        ModLogger.Log($"extra-turn: the extra turn ended ({reason}) after {_pullDowns} turn-end(s) [was in state {_state}]");
         _state = GrantState.Idle; _base = 0; _streak = 0; _took = false; _prevCt = -1; _deadStreak = 0;
     }
 

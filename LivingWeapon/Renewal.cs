@@ -100,7 +100,7 @@ internal sealed partial class Renewal : ISignature
             if (newHp == hp) continue;               // full, or dead (never revive)
             LifeSap.WriteHp(_mem, e, newHp);
             healed.Add(fp);
-            ModLogger.Log($"renewal: turn-edge aura -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
+            ModLogger.Log($"renewal: end-of-turn healing -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
         }
         if (healed.Count == 0) ModLogger.LogDebug($"renewal: turn-edge aura -- no allies were in range to mend");
     }

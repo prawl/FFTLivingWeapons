@@ -92,7 +92,7 @@ alone is enough for the quick-clear use case.  If enemies revive (Reraise/undead
 **1. The once-per-battle log is the primary check.**
 The DLL logs a `GRANT` line when the bit first fires each battle:
 ```
-GRANT Gloomfang -> Concentration (support 213) @ +0x98[1]=0x01 readback=SET
+GRANT Gloomfang -> Concentration (support ability 213) readback=SET [+0x98[1]=0x01]
 ```
 `readback=SET` = write landed; `readback=MISS` = write failed (VirtualQuery guard rejected the address — investigate Mem.Writable).
 `WARN build-time-only support` = the ability id bakes at battle-build, so the live bit can't take effect (design bug in the signature config).

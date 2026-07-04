@@ -134,7 +134,7 @@ internal sealed partial class Benediction : ISignature
             LifeSap.WriteHp(_mem, addr, newHp);
             _state.Consume(s, newHp);   // our write is not a heal event (no re-boost)
             boosted!.Add(fp);
-            ModLogger.Log($"benediction: ally heal +{rise} boosted by {bonus} ({m.Signature.HealBoostPct}% of {rise}) -- band slot {s} HP {hp}->{newHp}/{mhp}");
+            ModLogger.Log($"benediction: ally heal +{rise} boosted by {bonus} ({m.Signature.HealBoostPct}% of {rise}) -- party slot {s} HP {hp}->{newHp}/{mhp}");
         }
     }
 }

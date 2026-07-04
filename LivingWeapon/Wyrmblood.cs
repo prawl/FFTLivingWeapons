@@ -95,7 +95,7 @@ internal sealed partial class Wyrmblood : ISignature
             if (newHp == hp) continue;               // full, or dead (never revive)
             LifeSap.WriteHp(_mem, e, newHp);
             healed.Add(fp);
-            ModLogger.Log($"wyrmblood: turn-edge regen -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
+            ModLogger.Log($"wyrmblood: end-of-turn healing -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
         }
         if (healed.Count == 0) ModLogger.LogDebug($"wyrmblood: turn-edge regen -- no allies were in range to mend");
     }

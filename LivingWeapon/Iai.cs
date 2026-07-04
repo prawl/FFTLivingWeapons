@@ -146,7 +146,7 @@ internal sealed partial class Iai : ISignature
                 state = new HoldState { ArmedAt = now };
                 state.NameId = Wielder.RosterNameId(_mem, AmeNoMurakumoId, fp);
                 _holds[fp] = state;
-                ModLogger.Log($"iai: arming -- holding Speed above field for the opening (wielder lvl{fp.lvl} br{fp.br} fa{fp.fa})");
+                ModLogger.Log($"iai: boosting the wielder's Speed above the whole field so they act first this battle (wielder lvl{fp.lvl} br{fp.br} fa{fp.fa})");
             }
 
             // Refresh the last-known-resolved entry every tick this wielder appears in _wielders,
@@ -200,7 +200,7 @@ internal sealed partial class Iai : ISignature
 
             state.Released = true;
             string why = released ? "actor pointer" : "wall-clock cap";
-            ModLogger.Log($"iai: opening taken -- Speed restored for wielder (lvl{fp.lvl} br{fp.br} fa{fp.fa}) [{why}]");
+            ModLogger.Log($"iai: wielder has taken their opening turn -- Speed boost removed (lvl{fp.lvl} br{fp.br} fa{fp.fa}) [{why}]");
         }
 
         _prevActing = acting;

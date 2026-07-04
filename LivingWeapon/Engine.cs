@@ -168,7 +168,7 @@ internal sealed class Engine
             while (!token.IsCancellationRequested)
             {
                 try { Tick(); }
-                catch (Exception ex) { ModLogger.LogError("tick: " + ex.Message); }
+                catch (Exception ex) { ModLogger.LogError("engine: an internal error occurred and this update was skipped -- " + ex.Message); }
                 try { await Task.Delay(PollMs, token); } catch { }
             }
         }, token);

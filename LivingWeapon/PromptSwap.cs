@@ -133,11 +133,11 @@ internal sealed class PromptSwapHook
         {
             _keepalive = Detour;
             _hook = hooks.CreateHook<SetTextStringFn>(_keepalive, FnSetTextString).Activate();
-            ModLogger.Log("prompt-swap: SetTextString hook installed");
+            ModLogger.Log("prompt-swap: connected to the game's prompt system -- tier-up toasts can now be delivered");
         }
         catch (Exception ex)
         {
-            ModLogger.LogError("prompt-swap: hook install failed -- " + ex.Message);
+            ModLogger.LogError("prompt-swap: could not connect to the game's prompt system -- tier-up toasts will not be delivered: " + ex.Message);
         }
     }
 
@@ -148,7 +148,7 @@ internal sealed class PromptSwapHook
         if (!_canary)
         {
             _canary = true;
-            ModLogger.Log($"prompt-swap: SetTextString hook ALIVE (thread {GetCurrentThreadId()})");
+            ModLogger.Log($"prompt-swap: confirmed working -- intercepted the game's first prompt this session [thread {GetCurrentThreadId()}]");
         }
         try
         {
@@ -160,7 +160,7 @@ internal sealed class PromptSwapHook
         }
         catch (Exception ex)
         {
-            ModLogger.LogError("prompt-swap: detour belt -- " + ex.Message);
+            ModLogger.LogError("prompt-swap: an error occurred while preparing a toast (the original prompt still displayed normally) -- " + ex.Message);
         }
         _hook!.OriginalFunction(holder, text, r8, r9);
     }

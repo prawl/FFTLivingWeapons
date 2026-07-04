@@ -175,7 +175,7 @@ internal sealed partial class Barrage
         long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
         if (!_mem.Writable(flagAddr, RecSize)) return;
         RestoreRecord(_mem, flagAddr, saved);
-        ModLogger.Log($"barrage: removed Barrage from the command list, back to vanilla (record {recId})");
+        ModLogger.Log($"barrage: removed Barrage from the job's action list, restored to vanilla [record {recId}]");
     }
 
     /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
