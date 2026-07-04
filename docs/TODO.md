@@ -15,3 +15,8 @@ TODO's
 - Remove Offensive Chemist
 - Alter Axes and Flails.
 - Scholar's Ring idle nag repeats mid-battle despite the once-per-battle latch -- confirm ResetBattle double-fire
+- Remove the inaccurate turn-detection methods from the repo: pointer-PRESENCE windows are falsified
+  (ActorPtr parks on struck victims for seconds and never sits on human-driven units mid-turn --
+  session logs 2026-07-04). Puppeteer's arrival/departure stepper is being replaced by the turn-credit
+  clock; re-examine Iai's ReleaseSignal arrival (a wielder struck before its opening turn could
+  false-release the Speed hold via the same dwell) and prefer acted-edge/turn-credit sampling everywhere
