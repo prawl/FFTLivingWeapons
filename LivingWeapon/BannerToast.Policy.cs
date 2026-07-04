@@ -26,16 +26,18 @@ internal sealed partial class BannerToast
     }
 
     /// <summary>The locked toast wording. Tier 3 with a signature weapon announces the unlock;
-    /// every other crossing announces the growth suffix -- Tuning.Suffix (the card-painting
-    /// array: "  "/"+ "/"+2"/"+3") trimmed of its padding, so tier 1 reads "grown to +!",
-    /// matching the card's own "+" suffix (user-locked wording, 2026-07-02).</summary>
+    /// every other crossing announces the grown NAME -- the weapon's name plus Tuning.Suffix
+    /// (the card-painting array: "  "/"+ "/"+2"/"+3") trimmed of its padding, so tier 1 reads
+    /// "grown to Ravager+", matching the card's own painted name. No trailing bang on the
+    /// grown-to arm: a suffix followed by "!" read as punctuation soup ("+!") -- user-locked
+    /// wording, 2026-07-04 (supersedes the 2026-07-02 lock).</summary>
     public static string Payload(string name, int tier, int kills, string? sigLabel)
     {
         int t = Math.Clamp(tier, 1, 3);
         string suffix = OrdinalSuffix(kills);
         if (t == 3 && !string.IsNullOrEmpty(sigLabel))
             return $"{name} has gained its {kills}{suffix} kill and has unlocked {sigLabel}!";
-        return $"{name} has gained its {kills}{suffix} kill and has grown to {Tuning.Suffix[t].Trim()}!";
+        return $"{name} has gained its {kills}{suffix} kill and has grown to {name}{Tuning.Suffix[t].Trim()}";
     }
 
     /// <summary>A crossing fires ONE toast at the HIGHEST new tier -- a tally jump (dev seeding,
@@ -83,6 +85,6 @@ internal sealed partial class BannerToast
         int t = Math.Clamp(tier, 1, 3);
         if (t == 3 && !string.IsNullOrEmpty(sigLabel))
             return $"{name} draws first blood and has unlocked {sigLabel}!";
-        return $"{name} draws first blood and has grown to {Tuning.Suffix[t].Trim()}!";
+        return $"{name} draws first blood and has grown to {name}{Tuning.Suffix[t].Trim()}";
     }
 }

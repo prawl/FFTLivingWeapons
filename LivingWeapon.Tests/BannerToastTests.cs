@@ -60,7 +60,7 @@ public class BannerToastTests
         bt.Tick(tallyChanged: true);
 
         Assert.Single(bt._queue);
-        Assert.Equal("Zwill Straightblade has gained its 5th kill and has grown to +!", bt._queue[0].payload);
+        Assert.Equal("Zwill Straightblade has gained its 5th kill and has grown to Zwill Straightblade+", bt._queue[0].payload);
     }
 
     // ---- (3) A multi-tier jump (dev seed / fast-forward) produces ONE toast at the top ----
@@ -106,7 +106,7 @@ public class BannerToastTests
         var growth = bt._queue.Find(q => q.weaponId == 2);
         string ord = BannerToast.OrdinalSuffix(Tuning.ProdThresholds[2]);
         Assert.Equal($"Kiyomori has gained its {Tuning.ProdThresholds[2]}{ord} kill and has unlocked Kobu!", sig.payload);
-        Assert.Equal($"Plainblade has gained its {Tuning.ProdThresholds[2]}{ord} kill and has grown to +3!", growth.payload);
+        Assert.Equal($"Plainblade has gained its {Tuning.ProdThresholds[2]}{ord} kill and has grown to Plainblade+3", growth.payload);
     }
 
     // ---- (5) OrdinalSuffix: pure policy ----
@@ -284,7 +284,7 @@ public class BannerToastTests
         Assert.Equal(3, bt._queue[0].tier);
         Assert.Equal(-100, bt._queue[1].tier);
         string ord = BannerToast.OrdinalSuffix(105);
-        Assert.Equal($"Kiyomori has gained its 105{ord} kill and has grown to +3!", bt._queue[0].payload);
+        Assert.Equal($"Kiyomori has gained its 105{ord} kill and has grown to Kiyomori+3", bt._queue[0].payload);
         Assert.Equal("Kiyomori claims its 100th soul!", bt._queue[1].payload);
     }
 
@@ -380,7 +380,7 @@ public class BannerToastTests
         var (weaponId, tier, payload) = bt._queue[0];
         Assert.Equal(1, weaponId);
         Assert.Equal(1, tier);   // event key = the TIER key, not the milestone's negated key
-        Assert.Equal("Kiyomori draws first blood and has grown to +!", payload);
+        Assert.Equal("Kiyomori draws first blood and has grown to Kiyomori+", payload);
     }
 
     // ---- (25) First blood alone (no tier crossing) still fires the plain milestone wording ----
@@ -423,9 +423,9 @@ public class BannerToastTests
     // ---- (27) FirstBloodTierPayload: direct Policy wording, both arms ----
 
     [Theory]
-    [InlineData(1, null, "Kiyomori draws first blood and has grown to +!")]
-    [InlineData(2, null, "Kiyomori draws first blood and has grown to +2!")]
-    [InlineData(3, null, "Kiyomori draws first blood and has grown to +3!")]
+    [InlineData(1, null, "Kiyomori draws first blood and has grown to Kiyomori+")]
+    [InlineData(2, null, "Kiyomori draws first blood and has grown to Kiyomori+2")]
+    [InlineData(3, null, "Kiyomori draws first blood and has grown to Kiyomori+3")]
     [InlineData(3, "Kobu", "Kiyomori draws first blood and has unlocked Kobu!")]
     public void FirstBloodTierPayload_wording(int tier, string? sigLabel, string expected)
         => Assert.Equal(expected, BannerToast.FirstBloodTierPayload("Kiyomori", tier, sigLabel));
