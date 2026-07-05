@@ -112,22 +112,11 @@ def accessory_entry(it):
             f"      <PhysicalEvasion>{s.get('physEv', 0)}</PhysicalEvasion>\n      <MagicalEvasion>{s.get('magEv', 0)}</MagicalEvasion>\n    </ItemAccessory>\n")
 
 
-# Sparse ItemData overrides for items NOT in items.json: the recycled-consumable grenades' shop
-# timing + prices + bumping Remedy to Chapter 1 (it became the only cure). ShopAvailability is
-# honored via ItemData for weapons (confirmed on Sasori). Price IS settable here after all: the
-# earlier "Price lives in the base item.nxd" note was a hypothesis -- no item.nxd data table
-# exists anywhere in the game archives (0004.pac enumerated; the modloader has no Item data
-# layout with a Price column), while the ItemData template carries <Price> for all 261 rows and
-# other installed mods set it sparsely with cell-level merge. Prices scale with status power and
-# chapter wealth; cheap enough to actually throw (hoarded consumables are dead consumables).
-EXTRA_ITEMDATA = {
-    246: {"shop": "Chapter1_Start", "price": 100},  # Venom Flask  (Poison)  - early, spammable
-    247: {"shop": "Chapter1_Start", "price": 150},  # Smoke Bomb   (Blind)   - early, neuters physical units
-    249: {"shop": "Chapter2_Start", "price": 250},  # Oil Flask    (Oil)     - setup item, pays off with Fire
-    248: {"shop": "Chapter3_Start", "price": 500},  # Hush Vial    (Silence) - guaranteed beats the ~65% spell
-    250: {"shop": "Chapter4_Start", "price": 800},  # Sludge Bomb  (Slow)    - stolen turns, late premium
-    252: {"shop": "Chapter1_Start"},  # Remedy: now the only cure, must be buyable in Chapter 1
-}
+# Sparse ItemData overrides for consumable items NOT in items.json (shop timing / price). Empty
+# since the Offensive Chemist grenades were removed 2026-07-04; kept as the seam for any future
+# consumable override. ShopAvailability + Price are both honored here via cell-level merge (the
+# ItemData template carries <Price> for all 261 rows; there is no separate item.nxd Price table).
+EXTRA_ITEMDATA = {}
 
 
 def extra_itemdata_entry(iid, fields):

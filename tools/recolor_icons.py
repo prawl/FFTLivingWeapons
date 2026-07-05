@@ -83,12 +83,6 @@ ICON_TINTS = {
     141: (0.85, 0.55, 0.95),  # Conduit         magenta (boost)
     142: (0.58, 0.10, 1.15),  # Bastion         platinum (generalist)
     143: (0.60, 0.60, 1.10),  # Aegis Prime     radiant blue (capstone)
-    # --- Offensive Chemist grenades (recycled consumables, items 246-250) ---
-    246: (0.27, 0.95, 0.95),  # Venom Flask    toxic yellow-green (nasty)
-    247: (0.00, 0.00, 0.80),  # Smoke Bomb     ashen grey (Spark Bomb base)
-    248: (0.55, 0.22, 1.05),  # Hush Vial      pale silver-blue (silence)
-    249: (0.09, 0.60, 0.40),  # Oil Flask      dark oily amber
-    250: (0.22, 0.55, 0.45),  # Sludge Bomb    murky olive-brown (Spark Bomb base)
 }
 
 # Merge per-item tints from data/items.json (source for the new categories).
@@ -99,9 +93,7 @@ for _it in load_items()["items"]:
     if _it.get("iconSource"):
         SRC[_it["id"]] = _it["iconSource"]
 
-# Grenade icon sources: the two bombs reuse Spark Bomb (item 127); Hush + Oil flasks reuse the
-# Venom flask shape (item 246). Venom Flask keeps its own ei_246, just recolored.
-SRC.update({247: 127, 248: 246, 249: 246, 250: 127})
+# (Offensive Chemist grenade icon sources removed 2026-07-04 with the feature.)
 
 
 def recolor(im, hue, sat, val_mult):

@@ -46,17 +46,8 @@ GROUP_RANK = {1: 1, 3: 2, 4: 3, 12: 4, 11: 5, 8: 6, 7: 7, 10: 8, 14: 9, 16: 10,
 # lib/flavor.py so analyze.py (the CI gate) and gen_living_weapon_meta.py import them from a
 # library instead of from this deploy script.
 
-# Grenade renames for the 5 recycled cure consumables (ids 246-250) -- folded from the retired
-# patch_grenades.py (tools/oneoff/). These ids are NOT in items.json (their behavior lives in
-# ItemConsumableData.xml + generate.py's EXTRA_ITEMDATA), so before the fold the renames survived
-# only because the mutated working sqlite persisted; now every rename run re-asserts the rows.
-EXTRA_NAMES = {
-    246: ("Venom Flask",     "Distilled toxin in a fragile vial. Inflicts Poison on the target."),
-    247: ("Smoke Bomb",      "A burst of acrid smoke. Inflicts Blind on the target."),
-    248: ("Hush Vial",       "A throat-stilling draught in a fragile vial. Inflicts Silence on the target."),
-    249: ("Oil Flask",       "Clinging oil. Inflicts Oil on the target, doubling the Fire damage they take."),
-    250: ("Sludge Bomb",     "A splash of clinging mire. Inflicts Slow on the target."),
-}
+# (Offensive Chemist grenade renames for ids 246-250 removed 2026-07-04 -- the feature was cut;
+# those ids revert to their vanilla cure-consumable names via the pristine base table.)
 
 
 def main():
@@ -140,14 +131,6 @@ def main():
             con.execute('UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?', (UICAT[eff_cat], it["id"]))
         if it["id"] in sort_map:
             con.execute('UPDATE "Item-en" SET SortOrder=? WHERE Key=?', (sort_map[it["id"]], it["id"]))
-        n += 1
-    # Re-assert the grenade rows (ids 246-250) on every run -- see EXTRA_NAMES above.
-    for iid, (gname, gdesc) in sorted(EXTRA_NAMES.items()):
-        if dry:
-            print(f"id{iid:>3} {gname!r}\n      {gdesc!r}")
-            continue
-        con.execute('UPDATE "Item-en" SET Name=?, NameSingular=?, NamePlural=?, Name2=?, Description=? WHERE Key=?',
-                    (gname, gname.lower(), plural(gname), gname, gdesc, iid))
         n += 1
     if dry:
         con.close(); return

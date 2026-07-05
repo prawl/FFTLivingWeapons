@@ -4,10 +4,6 @@ Patch ability.en.nxd name/description rows.
 
 Covers:
   Key 358  - Barrage (Yoichi bow ability)
-  Keys 374-378 - Chemist grenade learn-menu names (Venom Flask / Smoke Bomb /
-                 Hush Vial / Oil Flask / Sludge Bomb).  Supersedes the retired
-                 patch_grenade_abilities.py, which mutated the pristine sqlite in
-                 place and would silently revert if the sqlite was ever re-decoded.
 
 The modloader merges nxd tables CELL-level against vanilla ("only the actual property
 changes will be tracked so that multiple mods can edit the same table" -- Nenkai's
@@ -40,35 +36,12 @@ ENC_DIR = ROOT / "working" / "nxd_out_ability"
 DEC_DIR = ROOT / "working" / "nxd_out_ability" / "verify_decode"
 
 # Key -> {column: value}. IconId 32 = the standard action-ability icon (Aurablast/Rush use it).
-# Keys 374-378: Chemist grenade use-abilities -- learn menu must match the renamed items
-# (item.en.nxd via patch_names.py).  Formerly handled by the now-retired
-# patch_grenade_abilities.py, which mutated the pristine sqlite directly.
 PATCHES = {
     358: {
         "Name": "Barrage",
         "Description": "Unleash 4 attacks with the emphasis on speed. "
                        "Each strike inflicts half the usual damage.",
         "IconId": 32,
-    },
-    374: {
-        "Name": "Venom Flask",
-        "Description": "Hurl a Venom Flask to inflict Poison on the target.",
-    },
-    375: {
-        "Name": "Smoke Bomb",
-        "Description": "Hurl a Smoke Bomb to inflict Blind on the target.",
-    },
-    376: {
-        "Name": "Hush Vial",
-        "Description": "Hurl a Hush Vial to inflict Silence on the target.",
-    },
-    377: {
-        "Name": "Oil Flask",
-        "Description": "Hurl an Oil Flask to coat the target in Oil, doubling Fire damage taken.",
-    },
-    378: {
-        "Name": "Sludge Bomb",
-        "Description": "Hurl a Sludge Bomb to inflict Slow on the target.",
     },
 }
 
