@@ -72,13 +72,15 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   P3 side-finding (same archive): Zirekile Gafgarion WITHDRAWS at his defeat threshold -- no
   death edge, no victim record, nothing creditable. Withdrawal-style bosses cannot produce a
   Legend credit; the legends table must exclude or special-case them.
-- **BUG: BuildLinked deploys wipe flight/ archives despite the -Exclude** (found 2026-07-05 during
-  the latch-fix plan review: every archive predating the day's deploys is gone; survivors all
-  postdate the last deploy; retention was 8/20 so pruning is innocent). PowerShell `Remove-Item
-  "$dest\*" -Exclude ... -Recurse` -Exclude filtering is notoriously unreliable. It erased the
-  auto-battle attribution tape (flight_20260705_075603). Fix: give flight/ the kills.json-style
-  %TEMP% round-trip (incl. the failure-path restore) instead of trusting -Exclude; same touch as
-  the planned legends.json/gunslinger.json preservation (docs/RELIQUARY_AC.md persist section).
+- ~~**BUG: BuildLinked deploys wipe flight/ archives despite the -Exclude**~~ FIXED (Reliquary
+  Phase 1 stage 1): found 2026-07-05 during the latch-fix plan review (every archive predating
+  the day's deploys was gone; survivors all postdated the last deploy; retention was 8/20 so
+  pruning was innocent). PowerShell `Remove-Item "$dest\*" -Exclude ... -Recurse` -Exclude
+  filtering is notoriously unreliable and erased the auto-battle attribution tape
+  (flight_20260705_075603). Fix landed: flight/ now gets the same named %TEMP% round-trip as
+  kills.json (incl. the failure-path restore-only-when-missing), in the same touch as
+  legends.json/gunslinger.json preservation (tools/pipeline.ps1's $PreservedSaveFiles,
+  BuildLinked.ps1, docs/RELIQUARY_AC.md persist section).
 - **Console QuickEdit blocks the engine loop** (observed 2026-07-05: selecting text in the Reloaded
   console suspended the mod thread ~3 min mid-battle -- kills/growth/toasts all stall; the census
   "hang" was this). With VerboseLog on, the loop does console I/O constantly, so a stray click can
@@ -106,6 +108,10 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   text -- add a total-length gate to analyze.py sized so the worst case (longest signature prose +
   flavor + effect + Kills line) fits the box (the renderer wraps dynamically, so budget rendered
   LINES, not raw chars), then trim the offenders' signature prose to pass it (Sanguine Sword first).
+- **BALANCE: Warbrand (id 67) arrives too early for its power** (owner-noted 2026-07-05):
+  available from early on, overtuned for that acquisition point. NOT addressed this release --
+  candidates when picked up: later availability tier, price bump, or stat trim (re-run analyze.py
+  dominance gate after any change). Independent of the release-scope spriteIdOverride cleanup.
 - Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug -- do not fix that doomed code).
 - Alter Axes and Flails (only cheap slice: Squire/Geomancer equip access on existing sword-typed items).
 - Migrate the remaining lossy-detection siblings (Maim/Larceny/Ricochet) to cache + rearm.
