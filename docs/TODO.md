@@ -84,6 +84,14 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   "hang" was this). With VerboseLog on, the loop does console I/O constantly, so a stray click can
   stall it. Hardening candidate: async/queued console sink in FileConsoleLogger (file sink stays
   synchronous -- it is the evidence chain). Until then: read livingweapon.log, not the console.
+- **BUG: long item descriptions push the equip card off the screen vertically** (user screenshot,
+  2026-07-05: Sanguine Sword, id 23). The assembled description -- flavor line + "Absorbs HP dealt."
+  effect line + the +3 Shadow Blade signature prose + the DLL-painted Kills line -- overflows the
+  card's box; the Kills line clips at the bottom screen edge. Only `flavorOverride` is length-gated
+  today (<=90 chars, analyze.py); the TOTAL description has no budget. Fix: shrink the total allowed
+  text -- add a total-length gate to analyze.py sized so the worst case (longest signature prose +
+  flavor + effect + Kills line) fits the box (the renderer wraps dynamically, so budget rendered
+  LINES, not raw chars), then trim the offenders' signature prose to pass it (Sanguine Sword first).
 - Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug -- do not fix that doomed code).
 - Alter Axes and Flails (only cheap slice: Squire/Geomancer equip access on existing sword-typed items).
 - Migrate the remaining lossy-detection siblings (Maim/Larceny/Ricochet) to cache + rearm.
