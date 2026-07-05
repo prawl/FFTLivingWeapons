@@ -34,10 +34,13 @@ is the in-flight subset, not a mirror of that checklist.
 
 - **[LW-30] Weapon reputation in the attack-targeting pill** (opened 2026-07-05) [QUEUED]
   - Done means: when the acting unit opens Attack targeting with a storied living weapon,
-    PromptSwap prefix-matches the "Select a target" prompt and swaps in the weapon line, tiered:
-    "Name+3, Mark: N felled." / "Name+3: N felled." / boss deed when earned; an unstoried or
-    non-living weapon keeps the vanilla text (which preserves the tutorial line for new
-    players). Compose is a pure tested policy (CardLine/BannerToast style).
+    PromptSwap prefix-matches the "Select a target" prompt and swaps in the OWNER-LOCKED
+    wording (2026-07-05): "Select the target for {Mark}{Name}{suffix}." (title worn as part of
+    the name, one word, e.g. "Mageslayer Outrider Pistol+3"; NO kill count in the pill: the
+    count's home is the menus, LW-27). Genre rule, owner-derived: this pill family speaks
+    instructions or just-happened events, never status plaques. An unstoried or non-living
+    weapon keeps the vanilla text (preserving the tutorial line). Compose is a pure tested
+    policy (CardLine/BannerToast style).
   - Verify: compose policy unit tests green; prompt-swap house rules (owner sees the swap live
     before commit); confirm no bleed into other prompts sharing the pipe.
   - Notes: owner discovered and live-mocked the surface 2026-07-05 (screenshots on file: CE
