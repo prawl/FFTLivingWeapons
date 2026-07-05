@@ -41,14 +41,23 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   dead-hook launch never silently eats a once-per-campaign boss kill.
 
 ## Deferred (post-release backlog)
-- **BUG: auto-battle kill attribution is dead wrong** (owner-reported 2026-07-05). With auto-battle
-  driving the player units, kills credit the wrong weapons. Suspect area: the acted-edge actor latch
-  and the TqTeam nonPlayerTurn divert -- under auto-battle the acting team likely still reads 0
-  (player), so AI-driven actions latch/keep player weapon sets the same way manual turns do
-  (KillTracker.cs Poll latch; KillTracker.Corpses.cs deadStreak==1 stamp). Diagnose from a flight
-  archive of ONE auto-battle (kill latch + credit + victim-probe taps all record). Until fixed:
-  living-weapon probe battles (Reliquary P1-P3) must be fought MANUALLY -- auto-battle attribution
-  noise poisons the evidence.
+- **BUG: auto-battle kill attribution is dead wrong** (owner-reported 2026-07-05; ROOT CAUSE
+  CONFIRMED same day from flight archive flight_20260705_075603_battle-exit.jsonl). Auto-battle
+  chains player actions without the Acted byte resting low for UnfreezeTicks (~400ms), so the
+  acted-period NEVER closes: the once-per-period actor latch (KillTracker.cs Poll) goes stale and
+  every later kill inherits it. Archive proof: after the battle's last latch ([60] Warlock's Staff,
+  T-45s), zero acted edges for the rest of the battle; three kills (T-39.8/-26.1/-17.6) all credited
+  60 while the actor POINTER named Ramza (nameId=1, Chaos Blade, bridge=Player) at each kill instant.
+  Mis-credits cascaded into toasts (staff "first blood" + Choir unlock) and kills.json.
+  **FIX (needs /build + live-verify, attribution core):** close the acted-period on ActorRegister
+  OWNER CHANGE (a new Player-bridged owner = a new turn) in addition to the byte-fall debounce, so
+  the latch re-resolves per real actor; the register's bridge classification already filters the
+  struck-victim pointer dwell. Respect the ledger caveat: the pointer may name the REACTOR during
+  a reaction (unverified) -- the fix must not regress reaction-kill credit. TurnTracker's turn
+  counting collapses the same way under auto-battle (turns #2-#6 all credited one fingerprint,
+  log 07:58) -- the same owner-change edge likely repairs both. Until fixed: living-weapon probe
+  battles (Reliquary P1-P3) must be fought MANUALLY -- auto-battle poisons killer-side evidence
+  (victim-side capture is unaffected).
 - Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug -- do not fix that doomed code).
 - Alter Axes and Flails (only cheap slice: Squire/Geomancer equip access on existing sword-typed items).
 - Migrate the remaining lossy-detection siblings (Maim/Larceny/Ricochet) to cache + rearm.
