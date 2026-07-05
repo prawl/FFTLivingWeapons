@@ -40,9 +40,9 @@ internal sealed class Display
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int>        _kills;
     private readonly IGameMemory                 _mem;
-    private readonly CardPatterns                _pats;
+    internal readonly CardPatterns                _pats;  // FlavorSpike dev-probe accessor (P4)
     private readonly DisplaySweep                _sweep;
-    internal readonly CardSites                  _sites;  // DisplayMaintenanceTests reads Count
+    internal readonly CardSites                  _sites;  // DisplayMaintenanceTests reads Count; FlavorSpike dev-probe accessor (P4)
     private readonly WpScratchPainter            _wpScratch;
     private readonly Func<long>                  _nowMs;
 

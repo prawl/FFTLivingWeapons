@@ -120,7 +120,10 @@ namespace LivingWeapon;
 /// COMMIT TAP for 15s (deduped; the stack-capture recon F5 used to carry is COMPLETE and no
 /// longer key-bound). Eaten/dead keys on this box: F3/F7/F9 (LL-hook eaten) and F8 (stopped
 /// registering 2026-07-03; was fine the day before) -- MUTATE and CHASE are reachable code but
-/// not key-bound today. Working set: F2/F4/F5/F6.
+/// not key-bound today. Working set: F2/F4/F5/F6. (A 2026-07-05 "F2 is dead" verdict was
+/// RETRACTED same day: the probe bound to it was never ticked out of battle -- call-site gate,
+/// not a dead key.) NOTE: F6 is now SHARED with FlavorSpike's P4 probe (deliberate collision --
+/// in battle one press arms the prompt swap AND fires the flavor overwrite).
 ///
 /// Canary discipline (docs/LIVE_LEDGER + denuvo-hook fragility): each detour logs its own
 /// first-entry ALIVE line. A natural callout bubble WITHOUT an "orch CALLED" log line =

@@ -54,6 +54,7 @@ internal sealed class Engine
     private readonly PromptSwapHook _promptSwapHook;
 #if LWDEV
     private readonly ShowSpike _showSpike;   // F8 chase instrument, dev-only scaffolding
+    private readonly FlavorSpike _flavorSpike;   // F6 P4 flavor-render probe, dev-only (key shared with ShowSpike's prompt-swap arm -- deliberate)
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -141,6 +142,11 @@ internal sealed class Engine
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         _gunSlinger = new GunSlinger(meta, _kills, modDir, live);
         _display = new Display(meta, _kills, live);
+#if LWDEV
+        // Constructed here (not beside _showSpike above) because it needs Display's _sites/_pats,
+        // which do not exist until Display itself is built.
+        _flavorSpike = new FlavorSpike(live, _display._sites, _display._pats);
+#endif
         LogNames.Init(meta);
         ModLogger.Log($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
     }
@@ -288,6 +294,13 @@ internal sealed class Engine
                 ScholarRing.Grant(_live);
             }
             _display.Tick(false);   // out of battle (slot9 cleared): keep the equip card painted
+#if LWDEV
+            // The P4 flavor probe targets the EQUIP CARD, which lives in these out-of-battle
+            // menus -- it must poll its key here, ahead of the early return. (The original
+            // battle-path-only Tick below made the probe unreachable where it is actually used;
+            // that gate misdiagnosed the F2 arm key as dead, 2026-07-05.)
+            _flavorSpike.Tick();
+#endif
             return;
         }
 
@@ -303,6 +316,7 @@ internal sealed class Engine
         _toast.Tick(changed);
 #if LWDEV
         _showSpike.Tick();
+        _flavorSpike.Tick();
 #endif
         if (changed) _tally.Save();
 
