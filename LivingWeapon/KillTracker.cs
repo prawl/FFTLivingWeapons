@@ -75,6 +75,10 @@ internal sealed partial class KillTracker
     // so tests can inspect the wired instance's snapshots directly, matching this file's existing
     // convention for test-observable per-slot state (e.g. _pending, _pendingAge above).
     internal readonly VictimProbe _victimProbe;
+    // Reliquary P2 probe instrumentation (docs/RELIQUARY_AC.md) -- once-per-battle both-teams
+    // identity census fired at EnemyOracle's coverage-complete edge; log/flight only, zero
+    // behavioral dependence. See BattleCensus's doc comment.
+    internal readonly BattleCensus _census;
 
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
                         Action<string, string>? recorder = null)
@@ -87,6 +91,7 @@ internal sealed partial class KillTracker
         _oracle = new EnemyOracle(mem);
         _events = events;
         _victimProbe = new VictimProbe(mem, recorder);
+        _census = new BattleCensus(mem, recorder);
     }
 
     /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
@@ -113,6 +118,7 @@ internal sealed partial class KillTracker
         _events?.ResetBattle();
         ResetBattleCorpses();   // clear per-battle band-scan state (Corpses.cs)
         ResetDelayed();         // clear delayed-action snapshot/arm state (Delayed.cs)
+        _census.ResetBattle();  // re-arm the P2 identity-census probe (BattleCensus.cs)
     }
 
     /// <summary>One in-battle tick. <paramref name="onField"/> gates streak accumulation --
@@ -198,6 +204,8 @@ internal sealed partial class KillTracker
         TrackDelayed(onField);   // snapshot/arm the committer of a delayed action (Delayed.cs)
 
         changed = ScanCorpses(onField);   // band corpse scan + identity capture (Corpses.cs)
+
+        _census.Tick(_oracle.CoverageDone);   // P2 probe: fires once, right after the oracle's own tick
 
         return changed;
     }

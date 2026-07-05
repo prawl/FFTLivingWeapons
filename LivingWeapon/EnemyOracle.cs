@@ -33,6 +33,11 @@ internal sealed class EnemyOracle
     /// <summary>True when the identity was captured from an enemy-side array slot.</summary>
     public bool Contains((byte lvl, byte br, byte fa, ushort mhp) id) => _enemyIds.Contains(id);
 
+    /// <summary>True once <see cref="CheckCoverage"/> has confirmed every captured enemy identity
+    /// is visible in the band -- the once-per-battle "kill: all N enemies accounted for" edge.
+    /// Read-only exposure for BattleCensus's fire trigger (docs/RELIQUARY_AC.md P2).</summary>
+    public bool CoverageDone => _coverageDone;
+
     public void ResetBattle()
     {
         _enemyIds.Clear();
