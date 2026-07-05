@@ -85,7 +85,7 @@ internal sealed class ShadowBlade : ISignature
 
         if (wielderSlot < 0)
         {
-            if (_wasActive) ModLogger.Log("shadow blade: signature no longer active -- no eligible Sanguine Sword wielder");
+            if (_wasActive) ModLogger.Event(LogVerb.Grant, "Shadow Blade is no longer granted; no eligible Sanguine Sword wielder remains");
             _wasActive = false;
             // Clear the ledger too (not just _lastRecId): eligibility is OPEN, so the NEXT grant can
             // resolve to a DIFFERENT record. A stale SlotIdx would inject there without re-finding an
@@ -100,7 +100,9 @@ internal sealed class ShadowBlade : ISignature
             if (_lastUnsupportedJob != wielderJob)
             {
                 _lastUnsupportedJob = wielderJob;
-                ModLogger.Log($"shadow blade: {LogNames.Job(wielderJob)} (job {wielderJob}) cannot receive Shadow Blade -- needs Squire or Knight as the primary job, or one of those job's action sets equipped as the secondary command [secondary command {wielderSecondary}]");
+                ModLogger.WarnWithTrace(LogVerb.Grant,
+                    $"{LogNames.Job(wielderJob)} cannot receive Shadow Blade; it needs Squire or Knight as the primary job, or one of their action sets as the secondary command",
+                    $"shadow blade ungrantable (job {wielderJob}, secondary command {wielderSecondary})");
             }
             if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
             _wasActive = false;
@@ -110,7 +112,9 @@ internal sealed class ShadowBlade : ISignature
         if (!_wasActive)
         {
             _wasActive = true;
-            ModLogger.Log($"shadow blade: ACTIVE -- party slot {wielderSlot} wields Sanguine Sword, Shadow Blade is now in {LogNames.Job(wielderJob)}'s action list{(viaSecondary ? " (via their secondary command)" : "")} [ability {abilityId}, record {recId}, learn-index {jobIdx}]");
+            ModLogger.EventWithTrace(LogVerb.Grant,
+                $"The Sanguine Sword wielder now has Shadow Blade in {LogNames.Job(wielderJob)}'s action list{(viaSecondary ? " (via their secondary command)" : "")}",
+                $"shadow blade grant (party slot {wielderSlot}, ability {abilityId}, record {recId}, learn index {jobIdx})");
         }
 
         // Job changed mid-session: restore the old record, re-inject for the new one.
@@ -124,7 +128,7 @@ internal sealed class ShadowBlade : ISignature
         if (!_state.HasSaved(recId))
         {
             _state.Save(recId, _mem.ReadBytes(flagAddr, Barrage.RecSize));
-            ModLogger.Log($"shadow blade: backed up {LogNames.Job(wielderJob)}'s original action list before adding Shadow Blade [record {recId}]");
+            ModLogger.Debug(LogVerb.Grant, $"backed up {LogNames.Job(wielderJob)}'s original action list before adding Shadow Blade (record {recId})");
         }
 
         int slotIdx = _state.SlotIdx;
@@ -139,13 +143,13 @@ internal sealed class ShadowBlade : ISignature
             {
                 // Debug tier + latch: the condition can hold every tick until a slot frees up.
                 if (Signatures.StuckEdge(ref _noSlotLogged, true))
-                    ModLogger.LogDebug($"shadow blade: no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}) -- cannot inject Shadow Blade");
+                    ModLogger.Debug(LogVerb.Grant, $"no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}); cannot inject Shadow Blade");
                 return;
             }
             Signatures.StuckEdge(ref _noSlotLogged, false);   // slot found -> re-arm for next time
             slotIdx = slot1 - 1;
             _state.SlotIdx = slotIdx;
-            ModLogger.Log($"shadow blade: placed Shadow Blade in ability slot {slot1} of {LogNames.Job(wielderJob)}'s action list [record {recId}]");
+            ModLogger.Debug(LogVerb.Grant, $"placed Shadow Blade in ability slot {slot1} of {LogNames.Job(wielderJob)}'s action list (record {recId})");
         }
 
         if (!_mem.TryReadBytes(flagAddr, Barrage.RecSize, out byte[] cur)) return;
@@ -164,7 +168,9 @@ internal sealed class ShadowBlade : ISignature
         long flagAddr = Barrage.AbilityBase + (long)recId * Barrage.RecSize - Barrage.FlagPrefixSize;
         if (!_mem.Writable(flagAddr, Barrage.RecSize)) return;
         Barrage.RestoreRecord(_mem, flagAddr, saved);
-        ModLogger.Log($"shadow blade: removed Shadow Blade from the job's action list, restored to vanilla [record {recId}]");
+        ModLogger.EventWithTrace(LogVerb.Grant,
+            "Shadow Blade was removed from the job's action list; the original abilities are back",
+            $"shadow blade restore (record {recId})");
     }
 
     private void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
@@ -177,6 +183,6 @@ internal sealed class ShadowBlade : ISignature
         if ((cur & mask) != 0) return;
         if (!_mem.Writable(addr, 1)) return;
         _mem.W8(addr, (byte)(cur | mask));
-        ModLogger.LogDebug($"shadow blade: re-set the learned flag for Shadow Blade in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1})");
+        ModLogger.Debug(LogVerb.Grant, $"re-set the learned flag for Shadow Blade in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1})");
     }
 }

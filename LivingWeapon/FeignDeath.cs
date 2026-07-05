@@ -40,6 +40,10 @@ internal sealed partial class FeignDeath : ISignature
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly List<int> _hands = new();
+    // GATE-ON-ARMED (log facelift): TryResolveMainHand is roster-wide, so a benched +3 Wrathblade
+    // arms the active/inactive edge; the scoped logger keeps those lines off the console unless a
+    // deployed unit actually wields it this battle.
+    private readonly ScopedLogger _slog;
     private bool _wasActive;
     private bool _spent;          // once-per-battle: the played-dead cycle has run its course
     private bool _sawAlive;       // the wielder has been seen alive this battle (arm guard)
@@ -58,6 +62,7 @@ internal sealed partial class FeignDeath : ISignature
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
+        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, WrathbladeId));
     }
 
     public void ResetBattle()
@@ -78,7 +83,9 @@ internal sealed partial class FeignDeath : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log($"feign-death {(active ? "ACTIVE -- Wrathblade at +3 is wielded; a lethal hit becomes a played-dead corpse that acts for ~2 turns (ignored), then springs up at ~10% HP (once per battle)" : "inactive")}");
+            _slog.Info(active
+                ? "Wrathblade at tier three is wielded on the field; a lethal hit becomes a played-dead act, once per battle"
+                : "Wrathblade's feign death is no longer active");
         }
         if (!active || !inLive) return;
 
@@ -96,7 +103,7 @@ internal sealed partial class FeignDeath : ISignature
             if (ShouldRearm(_spent, hp, _mem.U16(e + Offsets.AMaxHp), dead))
             {
                 _phase = Phase.Watching; _spent = false; _finishKilled = false; _finishWasDead = false;
-                ModLogger.Log("feign-death: the wielder is back at full HP (battle restart or full heal) -- the feign is re-armed");
+                ModLogger.Event(LogVerb.Signature, "The wielder is back at full HP (battle restart or full heal); the played-dead act is available again");
             }
             else return;
         }
@@ -112,7 +119,7 @@ internal sealed partial class FeignDeath : ISignature
             if (TurnEnded(_wasActiveWielder, nowActive))
             {
                 _possumTurnCount++;
-                ModLogger.Log($"feign-death: played-dead turn {_possumTurnCount}/{Tuning.FeignPossumTurns}");
+                ModLogger.Event(LogVerb.Signature, $"The wielder plays dead: turn {_possumTurnCount} of {Tuning.FeignPossumTurns}");
             }
             _wasActiveWielder = nowActive;
             possumDone = _possumTurnCount >= Tuning.FeignPossumTurns
@@ -138,16 +145,16 @@ internal sealed partial class FeignDeath : ISignature
         if (act.Hp == HpAction.ForceKill) ForceKill(_mem, e);
         else if (act.Hp == HpAction.HoldAlive) HoldAlive(_mem, e);
 
-        if (act.MarkKilled) { _finishKilled = true; ModLogger.Log("feign-death: the wielder's turn is coming up -- ending the played-dead act now so its own turn revives it (a brief dead flag, not a real death)"); }
+        if (act.MarkKilled) { _finishKilled = true; ModLogger.Event(LogVerb.Signature, "The wielder's turn is next; the played-dead act ends now so its own turn revives it (a brief dead flag, not a real death)"); }
         if (act.MarkWasDead) _finishWasDead = true;
 
         if (act.Next != _phase) EnterPhase(act.Next, now, hp);
         if (act.Spent)
         {
             _spent = true;
-            ModLogger.Log(_phase == Phase.Finish
-                ? "feign-death: last party member standing -- skipped the finishing blow; the wielder survives the feign at 1 HP (no party wipe)"
-                : "feign-death: the played-dead cycle is complete -- spent for this battle");
+            ModLogger.Event(LogVerb.Signature, _phase == Phase.Finish
+                ? "The last party member is standing; the finishing blow was skipped and the wielder survives at 1 HP (no party wipe)"
+                : "The played-dead cycle is complete; it is spent for this battle");
         }
     }
 
@@ -198,14 +205,14 @@ internal sealed partial class FeignDeath : ISignature
         {
             case Phase.Possum:
                 _possumStart = now; _wasActiveWielder = false; _possumTurnCount = 0;
-                ModLogger.Log($"feign-death: lethal hit -- the wielder flops as a corpse and plays dead (acting while the AI ignores it) for {Tuning.FeignPossumTurns} of its turns");
+                ModLogger.Event(LogVerb.Signature, $"A lethal hit landed; the wielder flops as a corpse and plays dead for {Tuning.FeignPossumTurns} of its turns while enemies ignore it");
                 break;
             case Phase.Finish:
-                ModLogger.Log("feign-death: played-dead window over -- staying down until the wielder's own turn comes up, then ending the act");
+                ModLogger.Event(LogVerb.Signature, "The played-dead window is over; the wielder stays down until its own turn comes up, then the act ends");
                 break;
             case Phase.Recover:
                 _recoverStart = now;
-                ModLogger.Log($"feign-death: the engine raised the wielder at {hp} HP -- clearing the KO state");
+                ModLogger.Event(LogVerb.Signature, $"The game raised the wielder at {hp} HP; clearing the knocked-out state");
                 break;
         }
         _phase = next;

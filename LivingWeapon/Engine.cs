@@ -23,6 +23,7 @@ internal sealed class Engine
     private readonly KillTally _tally;
     private readonly Dictionary<int, int> _kills;
     private readonly LegendStore _legends;   // Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md)
+    private readonly Reliquary _reliquary;   // promoted from a ctor local: the battle-end summary reads BattleMarks at the exit edge
     private readonly KillTracker _tracker;
     private readonly TurnTracker _turns;
     private readonly GrowthEngine _growth;
@@ -70,7 +71,14 @@ internal sealed class Engine
     {
         _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
         _kills = _tally.Kills;
+        // Launch header L3 (logging facelift): the kill-tally load summary, BEFORE the dev seed
+        // below can inflate the counts -- this line states what the DISK held.
+        ModLogger.Event(LogVerb.Save,
+            $"The kill tally holds {_tally.Total} lifetime kills across {_tally.Kills.Count} weapons (kills.json, {_tally.LoadedFrom}).");
         _legends = LegendStore.Load(modDir);   // Reliquary Phase 1 deed ledger, sibling of kills.json
+        // Launch header L4: the legends load summary.
+        ModLogger.Event(LogVerb.Save,
+            $"The legends hold deeds for {_legends.WeaponCount} weapons and {_legends.TotalMarks} Marks (legends.json, {_legends.LoadedFrom}).");
         var meta = MetaLoader.Load(modDir);
 #if LWDEV
         // DEV build only: seed every weapon to max tier for fast verification. Compiled out of
@@ -80,7 +88,8 @@ internal sealed class Engine
         if (Tuning.DevSeedAllKills && devSeedKills != false)
         {
             Tuning.SeedKills(meta.Keys, _kills, Tuning.DevKillSeed);
-            ModLogger.Log($"DEV: force-seeded all {meta.Count} weapons to at least {Tuning.DevKillSeed} kills -- every weapon starts with +3 effects active for fast testing.");
+            // Launch header L7 (development builds only).
+            ModLogger.Event(LogVerb.Startup, $"Development build: every weapon's tally is seeded to at least {Tuning.DevKillSeed} kills; every weapon starts with its full powers for fast testing.");
         }
 #endif
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
@@ -91,22 +100,22 @@ internal sealed class Engine
         // CreditKill reports every credited kill's captured victim to. Decision 11: a disabled
         // BannerToast config must leave the Mark-announce path fully inert (BannerToast.Enqueue
         // has no _enabled gate of its own), so pass null instead of _toast when disabled.
-        var reliquary = new Reliquary(_legends, _bannerToastsEnabled ? _toast : null, meta, Flight.Record);
+        _reliquary = new Reliquary(_legends, _bannerToastsEnabled ? _toast : null, meta, Flight.Record);
         _promptSwap = new PromptSwap(_toast, live);
         _promptSwapHook = new PromptSwapHook(_promptSwap);
 #if LWDEV
         _showSpike = new ShowSpike(live);
 #endif
         _turns = new TurnTracker(live, Flight.Record);
-        // verbose: true (was Tuning.VerboseEvents, DEV-only const) -- the ev: timeline is now always
-        // captured to the file via ModLogger.LogDebug (Debug tier writes livingweapon.log
-        // unconditionally); it only reaches the console when Config.VerboseLog is on. Deliberate
-        // Release-behavior change, see BattleLog's class doc.
+        // verbose: true (was Tuning.VerboseEvents, DEV-only const) -- the event timeline is now
+        // always captured to the file at Debug tier via the [trace] verb (Debug writes
+        // livingweapon.log unconditionally); it only reaches the console when Config.VerboseLog
+        // is on. Deliberate Release-behavior change, see BattleLog's class doc.
         // Dual-emit composes HERE at the composition root (B2): BattleLog itself never references
         // Flight -- its sink just also records every ev: line into the flight ring.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
-                                   new BattleLog(verbose: true, sink: s => { ModLogger.LogDebug(s); Flight.Record("ev", s); }),
-                                   Flight.Record, deeds: reliquary);
+                                   new BattleLog(verbose: true, sink: s => { ModLogger.Debug(LogVerb.Trace, s); Flight.Record("ev", s); }),
+                                   Flight.Record, deeds: _reliquary);
         _growth = new GrowthEngine(meta, _kills, _turns, live);
         _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
@@ -157,7 +166,8 @@ internal sealed class Engine
         _flavorSpike = new FlavorSpike(live, _display._sites, _display._pats);
 #endif
         LogNames.Init(meta);
-        ModLogger.Log($"loaded {meta.Count} weapon types; {_tally.Total} total kills in the tally.");
+        // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
+        ModLogger.Event(LogVerb.Startup, $"Living Weapons is tracking {meta.Count} weapon types.");
     }
 
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves
@@ -179,11 +189,15 @@ internal sealed class Engine
         var token = _cts.Token;
         Task.Run(async () =>
         {
-            ModLogger.Log("runtime loop started.");
+            // Launch header L6: the liveness canary that closes the header.
+            ModLogger.Event(LogVerb.Startup, "The runtime loop has started.");
             while (!token.IsCancellationRequested)
             {
+                // A persistent fault would repeat every 33ms; the console dedup (C1, keyed on
+                // the rendered content) collapses it to once per battle while the file keeps
+                // every occurrence.
                 try { Tick(); }
-                catch (Exception ex) { ModLogger.LogError("engine: an internal error occurred and this update was skipped -- " + ex.Message); }
+                catch (Exception ex) { ModLogger.Error(LogVerb.Engine, "One engine update was skipped; an internal error occurred: " + ex.Message); }
                 try { await Task.Delay(PollMs, token); } catch { }
             }
         }, token);
@@ -204,6 +218,7 @@ internal sealed class Engine
         _tracker.ResetBattle();
         _turns.ResetBattle();
         _growth.ResetBattle();
+        _reliquary.ResetBattle();   // per-battle Marks ledger (the exit edge composes its summary BEFORE this runs)
         foreach (var sig in _signatures) sig.ResetBattle();
         // The toast QUEUE deliberately survives battle edges (Patrick-confirmed ruling A) --
         // PromptSwap is stateless (no per-battle state to reset).
@@ -236,7 +251,11 @@ internal sealed class Engine
         bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
         if (edge == BattleEdge.Entered)
         {
-            ModLogger.Log($"battle: started (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
+            ModLogger.NoteBattleEdge();   // console-only per-battle dedup reset (C1); file sink unaffected
+            // Console gets the clean edge; the raw hex sentinels ride the [trace] companion
+            // (numeric ids belong in parens on file lines only).
+            ModLogger.EventWithTrace(LogVerb.BattleStart, "Battle started.",
+                $"battle-start sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
             // Archive the ring BEFORE the new battle's events pour in: sessions ending in a process
             // kill (deploys, crashes) never fire the exit-edge flush, so the enter edge is the
             // reliable rescue point for the PREVIOUS battle's tail (live-observed 2026-07-04: three
@@ -258,7 +277,14 @@ internal sealed class Engine
 
         if (edge == BattleEdge.Exited)
         {
-            ModLogger.Log($"battle: ended -- saving kill tally, resetting battle trackers (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
+            // THE match-report summary: composed from the per-battle counters BEFORE
+            // ResetBattleState() wipes them (order is load-bearing). Sentinels ride the trace
+            // companion, same split as the enter edge.
+            string summary = BattleSummary.Compose(
+                _tracker.BattleCredits, _kills, _reliquary.BattleMarks, _tracker.FallbackCredits,
+                _turns.GlobalTurns, LogNames.Weapon, Tuning.TierFor);
+            ModLogger.EventWithTrace(LogVerb.BattleEnd, summary,
+                $"battle-end sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
             ResetBattleState();
             _tally.Save();               // flush on battle end
             _legends.SaveIfDirty();      // Reliquary: mirrors kills.json's battle-exit save timing
@@ -266,6 +292,7 @@ internal sealed class Engine
             // so the flush lives here beside _tally.Save(), not inside that shared method.
             Flight.FlushBattleEnd();
             _display.Invalidate();       // re-find the menu's freshly-allocated render copies
+            ModLogger.NoteBattleEdge();  // console-only per-battle dedup reset (C1); file sink unaffected
         }
         // Barrage runs in AND out of battle: the learn screen / pre-battle menus read the
         // JobCommand table live, and the learned bit needs its hold against menu writebacks.

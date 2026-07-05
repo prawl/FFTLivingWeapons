@@ -43,6 +43,10 @@ internal sealed partial class CharmLock : ISignature
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
+    // GATE-ON-ARMED (log facelift): the active/inactive edge fires off a ROSTER scan, so a benched
+    // +3 Galewind arms it; the scoped logger demotes those console lines to Debug unless a
+    // deployed unit actually wields it this battle.
+    private readonly ScopedLogger _slog;
     // The single charm-locked enemy (anti-cheese): authoritative-copy address, its fingerprint,
     // turns counted, and the last CT seen. null = nothing locked.
     private (long addr, (int mhp, int lvl, int br, int fa) fp, int counted, int lastCt)? _lock;
@@ -54,6 +58,7 @@ internal sealed partial class CharmLock : ISignature
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
+        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, GalewindId));
     }
 
     public void ResetBattle() { _lock = null; _wasActive = false; _tick = 0; _dbg = 0; }
@@ -73,7 +78,9 @@ internal sealed partial class CharmLock : ISignature
         if ((lockTurns > 0) != _wasActive)
         {
             _wasActive = lockTurns > 0;
-            ModLogger.Log($"charm-lock {(_wasActive ? "ACTIVE -- Galewind at +3 is equipped, charm holds are now unbreakable" : "inactive")}");
+            _slog.Info(_wasActive
+                ? "Galewind at tier three is wielded on the field; charms the party lands are held unbreakable"
+                : "Galewind's charm lock is no longer active");
         }
         if (lockTurns > 0 && _tick++ % 6 == 0) Detect();   // band scan is heavy -> ~every 200ms
         Drive(lockTurns);                                   // hold/clear every tick (beats on-hit clear)
@@ -128,7 +135,9 @@ internal sealed partial class CharmLock : ISignature
         long addr = 0;
         foreach (var c in charmed) if (c.fp.Equals(target)) { addr = c.addr; break; }
         _lock = (addr, target, 0, _mem.U8(addr + CtOff));
-        ModLogger.Log($"charm-lock: holding Charm on the level-{target.lvl} enemy ({target.mhp} max HP) so it cannot break early{(dropPrevious ? " -- dropped previous lock" : "")} [struct 0x{addr:X}]");
+        ModLogger.EventWithTrace(LogVerb.Signature,
+            $"Charm is held on the level {target.lvl} enemy ({target.mhp} maximum HP) so it cannot break early{(dropPrevious ? "; the previous lock was dropped" : "")}",
+            $"charm lock adopt (struct 0x{addr:X})");
     }
 
     /// <summary>Hold the charm bytes on the locked enemy, counting its turns off CT; clear after N.</summary>
@@ -139,11 +148,11 @@ internal sealed partial class CharmLock : ISignature
         if (!Valid(L.addr, L.fp)) { _lock = null; return; }   // copy moved/freed -> re-detect later
         int ct = _mem.U8(L.addr + CtOff);
         int counted = L.counted + (CtTurns.IsTurn(L.lastCt, ct) ? 1 : 0);
-        if (_dbg++ % 20 == 0) ModLogger.LogDebug($"charm-lock: locked enemy ({L.fp.mhp} max HP) -- holding for {counted}/{lockTurns} of its turns (CT {ct})");
+        if (_dbg++ % 20 == 0) ModLogger.Debug(LogVerb.Signature, $"charm lock holding: enemy ({L.fp.mhp} maximum HP), {counted}/{lockTurns} of its turns complete (charge time {ct})");
         bool hold = lockTurns > 0 && counted < lockTurns;
         SetCharm(L.addr, hold);
         if (hold) _lock = (L.addr, L.fp, counted, ct);
-        else { _lock = null; ModLogger.Log($"charm-lock: Charm expired on the enemy ({L.fp.mhp} max HP) after {counted} turns -- lock released"); }
+        else { _lock = null; ModLogger.Event(LogVerb.Signature, $"Charm expired on the enemy ({L.fp.mhp} maximum HP) after {counted} of its turns; the lock is released"); }
     }
 
     private bool Valid(long b, (int mhp, int lvl, int br, int fa) fp)

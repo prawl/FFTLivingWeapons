@@ -94,8 +94,11 @@ internal sealed class Display
         // Name/Flavor only), so an earned anchor can never exceed MaxAnchorLen
         // (DisplayLookbackInvariantTests.FitsLookback_with_earned_patterns_registered).
         if (!_pats.FitsLookback(DisplaySweep.Lookback))
-            ModLogger.LogError("display: the equip-card painter is misconfigured and may fail to paint some kill counters [lookback="
-                      + DisplaySweep.Lookback + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot]");
+        {
+            ModLogger.Error(LogVerb.Display, "The equip-card painter is misconfigured and may fail to paint some kill counters.");
+            ModLogger.Debug(LogVerb.Trace, "painter misconfiguration detail (lookback="
+                      + DisplaySweep.Lookback + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot)");
+        }
     }
 
     /// <summary>Drop the site cache and start a new sweep generation on the next Tick.
@@ -155,17 +158,17 @@ internal sealed class Display
         long budget = inBattle ? BudgetInBattle : BudgetOutOfBattle;
         _sweep.Tick(budget, OnChunk);
 
-        // Log once per generation completion so the log captures each full scan. Generation #1
-        // stays Info -- the per-launch "sweep works" canary the release checklists cite
-        // (STAFF_SWORD_TEST_PLAN.md, 2.0_RELEASE_CHECKLIST.md); later generations (~90s re-scans,
-        // or a target/invalidate-driven restart) are Debug -- same fact repeated forever with
-        // nothing new to check once the painter is known-good.
+        // Log once per generation completion so the log captures each full scan. Generation 1
+        // is the per-launch liveness canary and reaches the console at Info; every later
+        // generation stays Debug (file-only): the release checklists that used to cite the
+        // console line now grep the file instead.
         if (_sweep.IsComplete && _sweep.Generation != _lastLoggedGen)
         {
             _lastLoggedGen = _sweep.Generation;
-            string line = "display: memory sweep #" + _sweep.Generation + " finished -- maintaining " + _sites.Count + " card-text spots";
-            if (_sweep.Generation <= 1) ModLogger.Log(line);
-            else ModLogger.LogDebug(line);
+            if (_sweep.Generation == 1)
+                ModLogger.Event(LogVerb.Display, $"The card display sweep completed its first pass, maintaining {_sites.Count} card-text spots.");
+            else
+                ModLogger.Debug(LogVerb.Display, "memory sweep number " + _sweep.Generation + " finished; maintaining " + _sites.Count + " card-text spots");
         }
 
         // WpScratch: keyed by the mirror weapon (the card on screen), NOT roster slot 0.

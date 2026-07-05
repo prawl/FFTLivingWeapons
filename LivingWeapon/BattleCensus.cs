@@ -23,7 +23,7 @@ namespace LivingWeapon;
 ///   ROSTER -- every occupied roster slot (RLevel 1..99 -- the same occupied-check
 ///             ActorRegister.Bridge uses), its RNameId: the player-pool side of the P2 collision
 ///             check.
-/// Logged one ModLogger.LogDebug line per slot (file-only unless VerboseLog is on), plus ONE bounded
+/// Logged one ModLogger.Debug line per slot (file-only unless VerboseLog is on), plus ONE bounded
 /// flight-recorder tap for the whole census -- a per-slot tap would flood the bounded 4096-record
 /// ring for what is fundamentally one event.
 /// </summary>
@@ -80,7 +80,7 @@ internal sealed class BattleCensus
                 int gx = _mem.U8(addr + Offsets.AGx);
                 int gy = _mem.U8(addr + Offsets.AGy);
 
-                ModLogger.LogDebug($"census: slot={s} nameId={nameId} job={job} lvl={lvl} br={br} fa={fa} hp={hp} mhp={mhp} at=({gx},{gy})");
+                ModLogger.Debug(LogVerb.Trace, $"census: slot={s} nameId={nameId} job={job} lvl={lvl} br={br} fa={fa} hp={hp} mhp={mhp} at=({gx},{gy})");
                 bandParts.Add($"s{s}:{nameId}/{job}");
                 bandCount++;
             }
@@ -94,7 +94,7 @@ internal sealed class BattleCensus
                 if (rlvl < 1 || rlvl > 99) continue;   // unoccupied slot
 
                 ushort nameId = _mem.U16(b + Offsets.RNameId);
-                ModLogger.LogDebug($"census: roster slot={s} nameId={nameId}");
+                ModLogger.Debug(LogVerb.Trace, $"census: roster slot={s} nameId={nameId}");
                 rosterParts.Add($"{s}:{nameId}");
                 rosterCount++;
             }
@@ -103,11 +103,13 @@ internal sealed class BattleCensus
             if (payload.Length > MaxPayloadChars) payload = payload.Substring(0, MaxPayloadChars) + "...";
             _recorder?.Invoke("census", payload);
 
-            ModLogger.LogDebug($"census: {bandCount} band units, {rosterCount} roster slots dumped.");
+            ModLogger.Debug(LogVerb.Trace, $"census: {bandCount} band units, {rosterCount} roster slots dumped.");
         }
         catch (Exception ex)
         {
-            ModLogger.LogError("census: failed -- " + ex.Message);
+            // Warning, not Error: a read-only probe failing degrades evidence, it breaks nothing,
+            // and it must not burn the launch's one FlushOnce flight archive.
+            ModLogger.Warn(LogVerb.Trace, "The identity census failed and was skipped: " + ex.Message);
         }
     }
 }

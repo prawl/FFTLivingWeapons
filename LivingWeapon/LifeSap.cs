@@ -21,6 +21,7 @@ internal sealed partial class LifeSap : ISignature
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly List<int> _hands = new();
+    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod must not narrate on console
     private int _lastCount = -1;
     private bool _wasActive;
 
@@ -29,6 +30,7 @@ internal sealed partial class LifeSap : ISignature
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
+        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, UmbralId));
     }
 
     public void ResetBattle()
@@ -47,7 +49,9 @@ internal sealed partial class LifeSap : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log($"life-sap {(active ? "ACTIVE -- Umbral Rod at +3 is wielded, kills will restore HP" : "inactive")}");
+            _slog.Info(active
+                ? "Umbral Rod at tier three is wielded on the field; its kills restore the wielder's HP."
+                : "Life sap is no longer active.");
         }
         if (!active) { _lastCount = count; return; }   // keep primed: an inactive-window kill never fires later
 
@@ -56,12 +60,12 @@ internal sealed partial class LifeSap : ISignature
         if (!fresh) return;
 
         long e = Wielder.Locate(_mem, UmbralId, _hands, fp);
-        if (e == 0) { ModLogger.Log("life-sap: kill scored but the wielder could not be found in memory this tick -- heal skipped [locate miss]"); return; }
+        if (e == 0) { ModLogger.Warn(LogVerb.Signature, "A kill was scored but the wielder could not be found in memory this tick; the heal did not fire."); return; }
         int hp = _mem.U16(e + Offsets.AHp), maxHp = _mem.U16(e + Offsets.AMaxHp);
         int heal = HealAmount(maxHp, Tuning.LifeSapPct);
         int newHp = NewHp(hp, maxHp, heal);
-        if (newHp == hp) { ModLogger.LogDebug($"life-sap: kill scored but wielder is already at full HP ({hp}/{maxHp}) -- no heal needed"); return; }
+        if (newHp == hp) { ModLogger.Debug(LogVerb.Signature, $"life sap kill scored but the wielder is already at full HP ({hp}/{maxHp}); no heal needed"); return; }
         WriteHp(_mem, e, newHp);
-        ModLogger.Log($"life-sap: kill restored {newHp - hp} HP to the wielder (25% of max) -- HP {hp}->{newHp} (max {maxHp})");
+        ModLogger.Event(LogVerb.Signature, $"The kill restored {newHp - hp} HP to the wielder (twenty-five percent of maximum); HP {hp} to {newHp} of {maxHp}.");
     }
 }

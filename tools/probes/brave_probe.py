@@ -164,7 +164,8 @@ def set_brave(weapon, brave):
         print(f"  combat slot {i} @ 0x{base:09X}: origBrave {ob}->{u8(base+C_OBRAVE)}  curBrave {cb}->{u8(base+C_CBRAVE)}")
     if chits == 0:
         print("  (no live combat slot holds it -- on the world map? brave will apply when battle starts)")
-    print(f"\nDone. Strike a foe whose brave > {brave} with Kiyomori at +3 and watch livingweapon.log for 'kobu:'.")
+    print(f"\nDone. Strike a foe whose brave > {brave} with Kiyomori at +3 and watch livingweapon.log for "
+          "'Kiyomori struck a braver enemy' (Info) or 'kobu evaluated' (the Debug instrument line).")
 
 
 def set_enemies(brave):
@@ -191,7 +192,8 @@ def set_enemies(brave):
         print(f"  enemy slot {i:>2} @ 0x{base:09X}: curBrave {cb}->{u8(base+C_CBRAVE)} (orig {ob} left as the fingerprint)")
         n += 1
     print(f"\nSet {n} enemies to current brave {brave}. Hit any one with the Samurai (Kiyomori +3) -> "
-          f"brave climbs toward {brave} (cap {97}). Watch livingweapon.log for 'kobu:'.")
+          f"brave climbs toward {brave} (cap {97}). Watch livingweapon.log for "
+          "'Kiyomori struck a braver enemy' or 'kobu evaluated'.")
 
 
 def main():

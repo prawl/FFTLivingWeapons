@@ -1676,7 +1676,7 @@ public class KillTrackerTests
         AliveThenDead(m, slot: 0, t);
 
         Assert.Equal(1, kills.GetValueOrDefault(52));
-        Assert.Contains(lines, l => l.StartsWith("kill-diag: corpse AREC idx=8 abil=441 kind=5 xref?=8"));
+        Assert.Contains(lines, l => l.StartsWith("kill-diagnostic: corpse action record index=8 ability=441 kind=5 cross-reference?=8"));
 
         // Behavior-independence: the SAME credit with events=null yields an identical tally.
         var kills2 = new Dictionary<int, int>();

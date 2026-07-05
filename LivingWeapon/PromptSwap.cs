@@ -133,11 +133,11 @@ internal sealed class PromptSwapHook
         {
             _keepalive = Detour;
             _hook = hooks.CreateHook<SetTextStringFn>(_keepalive, FnSetTextString).Activate();
-            ModLogger.Log("prompt-swap: connected to the game's prompt system -- tier-up toasts can now be delivered");
+            ModLogger.Event(LogVerb.Toast, "Connected to the game's prompt system; tier-up toasts can now be delivered.");
         }
         catch (Exception ex)
         {
-            ModLogger.LogError("prompt-swap: could not connect to the game's prompt system -- tier-up toasts will not be delivered: " + ex.Message);
+            ModLogger.Error(LogVerb.Toast, "Could not connect to the game's prompt system; tier-up toasts will not be delivered: " + ex.Message);
         }
     }
 
@@ -148,19 +148,24 @@ internal sealed class PromptSwapHook
         if (!_canary)
         {
             _canary = true;
-            ModLogger.Log($"prompt-swap: confirmed working -- intercepted the game's first prompt this session [thread {GetCurrentThreadId()}]");
+            // Stays on console: the ABSENCE of this line is the dead-hook-launch tell
+            // (Denuvo hook launch fragility).
+            ModLogger.EventWithTrace(LogVerb.Toast,
+                "The prompt hook is confirmed working; the game's first prompt this session was intercepted.",
+                $"prompt-hook canary detail (thread {GetCurrentThreadId()})");
         }
         try
         {
             if (_swap.TryPrepareSwap((long)text, out var payload))
             {
                 text = WritePinned(payload);
-                ModLogger.Log($"prompt-swap: delivered \"{payload}\" (holder=0x{(long)holder:X})");
+                ModLogger.EventWithTrace(LogVerb.Toast, $"Delivered the toast \"{payload}\".",
+                    $"toast delivery detail (holder=0x{(long)holder:X})");
             }
         }
         catch (Exception ex)
         {
-            ModLogger.LogError("prompt-swap: an error occurred while preparing a toast (the original prompt still displayed normally) -- " + ex.Message);
+            ModLogger.Error(LogVerb.Toast, "An error occurred while preparing a toast (the original prompt still displayed normally): " + ex.Message);
         }
         _hook!.OriginalFunction(holder, text, r8, r9);
     }

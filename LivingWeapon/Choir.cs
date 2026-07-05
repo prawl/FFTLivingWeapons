@@ -77,9 +77,9 @@ internal sealed partial class Choir : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log(active
-                ? "choir ACTIVE -- Warlock's Staff at +3 and its bearer lives; the bearer casts magick instantly"
-                : "choir inactive -- the bearer is down or unequipped; instant-cast lifted");
+            ModLogger.Event(LogVerb.Signature, active
+                ? "Warlock's Staff at tier three is armed and its bearer lives; the bearer casts magick instantly."
+                : "The Warlock's Staff's bearer is down or unequipped; instant casting ends.");
         }
 
         if (!active)

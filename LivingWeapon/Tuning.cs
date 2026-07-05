@@ -18,6 +18,10 @@ internal static class Tuning
     public static readonly int[] ProdThresholds = { 5, 25, 50 }; // escalating: a fast taste at P, an aspirational P3
 #if LWDEV
     public static readonly int[] KillThresholds = DevThresholds;
+    /// <summary>The binary's own build flavor, for the launch header (logging facelift). A
+    /// compiled const, NOT build_flavor.txt: that file is BuildLinked's deploy-time guard
+    /// marker, absent in a Publish-zip install and possibly stale against the running DLL.</summary>
+    public const string BuildFlavor = "development";
     /// <summary>DEV: floor every known weapon to <see cref="DevKillSeed"/> kills on load.</summary>
     public const bool DevSeedAllKills = true;
     /// <summary>DEV: per-tick battle-event timeline (damage/heal/move) in the log.</summary>
@@ -29,6 +33,8 @@ internal static class Tuning
     public const bool FontDevPulse = false;
 #else
     public static readonly int[] KillThresholds = ProdThresholds;
+    /// <summary>The binary's own build flavor, for the launch header (see the LWDEV twin).</summary>
+    public const string BuildFlavor = "production";
     /// <summary>Production seeds nothing -- the wielder earns every tier.</summary>
     public const bool DevSeedAllKills = false;
     /// <summary>Production logs stay lean: kills/turns/grants only, no per-tick events.</summary>

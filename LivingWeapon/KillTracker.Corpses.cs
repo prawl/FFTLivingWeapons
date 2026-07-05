@@ -4,6 +4,21 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
+/// WHY a corpse's kill was buried as untracked (the per-slot verdict formerly a bare bool).
+/// Widened for the logging facelift's owner-flagged skeleton line: the console no-credit ruling
+/// now names HOW the untracked actor was resolved, so each of the four stamp sites records its
+/// own reason. None (0) doubles as the cleared state (Array.Clear compatible).
+/// </summary>
+internal enum UntrackedReason : byte
+{
+    None = 0,
+    ChargedAction,   // cross-turn untracked charged action landing (the summoner arm window)
+    EnemyTurn,       // death-edge TqTeam read said a non-player turn was in progress
+    ActedLatch,      // the acted-period latch resolved a player with no tracked weapon
+    ActorRegister,   // the actor register named a player with no tracked weapon (Stamp.cs bury)
+}
+
+/// <summary>
 /// Band corpse scan and alive-edge belt -- the per-slot death state machine half of
 /// KillTracker (the actor latch lives in KillTracker.cs; the enemy-side identity set is
 /// <see cref="EnemyOracle"/>).
@@ -41,6 +56,11 @@ internal sealed partial class KillTracker
     // Weapon set latched when this slot's dead-streak started (alive->dead transition); null = not yet stamped.
     // Copied from _lastPlayerWeapons at deadStreak 0->1 so a later re-latch cannot steal the credit.
     private readonly List<int>?[] _lethalActor = new List<int>?[Offsets.BandSlots];
+    // Whether the latch copied into _lethalActor[s] was itself a turn-queue-fallback resolve
+    // (stamped beside _lethalActor in KillTracker.Stamp.cs); feeds the battle-end summary's
+    // fallback-attribution counter at credit time. Register-named stamps are pointer-derived,
+    // so they stamp false.
+    internal readonly bool[] _lethalViaFallback = new bool[Offsets.BandSlots];
     // Alive->dead edge fell during a resolved-but-untracked actor's LIVE acted-period -- credit nobody.
     // Stamped at deadStreak 0->1 when _latchResolvedEmpty && _latched (the actor was identified as a roster
     // player but held no living weapon). The && _latched guard is LOAD-BEARING: it prevents a false stamp
@@ -52,11 +72,26 @@ internal sealed partial class KillTracker
     // cross-turn case (kill matures after _latched falls) is handled by KillTracker.Delayed.cs via
     // _untrackedArmedTicks: the arm fires at Charging-bit clear (landing) and sets _lethalUntracked at
     // deadStreak==1 AHEAD of the Count>0 branch, so a live armed latch cannot absorb the summon's kill.
-    private readonly bool[] _lethalUntracked = new bool[Offsets.BandSlots];
+    // Facelift: widened from bool[] to UntrackedReason[] so the no-credit console line can name the
+    // resolve source; None == the old false, any other value == the old true.
+    private readonly UntrackedReason[] _lethalUntracked = new UntrackedReason[Offsets.BandSlots];
 
     // Alive-edge belt: true = identity last observed alive (creditable); false = last observed dead.
     // Set true on seenAlive and on revive; set false on credit or expiry-without-actor.
     private readonly Dictionary<(byte lvl, byte br, byte fa, ushort mhp), bool> _identityAlive = new();
+
+    /// <summary>The console phrase naming HOW the buried kill's actor was resolved -- the
+    /// owner-flagged skeleton line's "(actor resolved via ...)" clause. One phrase per
+    /// <see cref="UntrackedReason"/> stamp site; None never reaches the line (the no-credit
+    /// branch only fires on a non-None verdict).</summary>
+    internal static string ResolveSourcePhrase(UntrackedReason reason) => reason switch
+    {
+        UntrackedReason.ChargedAction => "a charged-action landing",
+        UntrackedReason.EnemyTurn => "an enemy-turn team read",
+        UntrackedReason.ActedLatch => "the acted-period latch",
+        UntrackedReason.ActorRegister => "the actor register",
+        _ => "an unknown resolve path",
+    };
 
     /// <summary>Reset per-battle band-scan and coverage state. Called from ResetBattle (KillTracker.cs).</summary>
     private void ResetBattleCorpses()
@@ -68,6 +103,7 @@ internal sealed partial class KillTracker
         Array.Clear(_slotId, 0, _slotId.Length);
         Array.Clear(_lethalActor, 0, _lethalActor.Length);
         Array.Clear(_lethalUntracked, 0, _lethalUntracked.Length);
+        Array.Clear(_lethalViaFallback, 0, _lethalViaFallback.Length);
         Array.Clear(_victimAtEdge, 0, _victimAtEdge.Length);   // Reliquary: clear every slot's captured snapshot
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
@@ -106,7 +142,7 @@ internal sealed partial class KillTracker
                 {
                     _seenAlive[s] = false; _aliveStreak[s] = 0;
                     _deadCredited[s] = false; _pending[s] = false;
-                    _lethalActor[s] = null; _lethalUntracked[s] = false;
+                    _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
                     _victimProbe.Reset(s);   // P1 probe: a slot-reuse identity swap invalidates any stale snapshot
                     _victimAtEdge[s] = default;   // Reliquary: same invalidation for the captured snapshot
                     continue;
@@ -124,7 +160,7 @@ internal sealed partial class KillTracker
                     if (_deadCredited[s]) _identityAlive[(lvl, br, fa, mhp)] = true;
                     _deadCredited[s] = false;
                     _pending[s] = false;
-                    _lethalActor[s] = null; _lethalUntracked[s] = false;
+                    _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
                     // P1 probe: a revived victim's OLD dead-edge snapshot is stale -- clear it here,
                     // BEFORE CaptureAlive below repopulates the alive half this same tick (ordering
                     // matters: this runs every seenAlive tick, not only true revives, so the capture
@@ -173,12 +209,12 @@ internal sealed partial class KillTracker
                     // NOT consumed here, so every AoE victim maturing in the window is stamped; the window
                     // timer expires it. A real TRACKED delayed action still wins at credit time via the
                     // `delayed == null` guard below (the untracked arm only buries when nothing tracked claims it).
-                    _lethalUntracked[s] = true;
+                    _lethalUntracked[s] = UntrackedReason.ChargedAction;
                 }
                 else if (_lastPlayerWeapons.Count > 0)
                 {
                     if (nonPlayerTurn)
-                        _lethalUntracked[s] = true;   // counter/reaction during a non-player turn: the stale player latch did NOT deal this blow -- no-credit (miss beats mis-credit)
+                        _lethalUntracked[s] = UntrackedReason.EnemyTurn;   // counter/reaction during a non-player turn: the stale player latch did NOT deal this blow -- no-credit (miss beats mis-credit)
                     else
                         // Tracked actor latched on a player turn: consult the death-edge culprit
                         // stamp (KillTracker.Stamp.cs) -- today's latch unless the register names a
@@ -192,7 +228,7 @@ internal sealed partial class KillTracker
                     // _latched gates out the inverse race -- a DIFFERENT armed unit that acted
                     // before its own acted edge while the empty latch is still sticky (that case
                     // must keep crediting the armed unit via the pending path, not be buried here).
-                    _lethalUntracked[s] = true;
+                    _lethalUntracked[s] = UntrackedReason.ActedLatch;
                 }
                 else if (!nonPlayerTurn)
                 {
@@ -208,7 +244,7 @@ internal sealed partial class KillTracker
             if (!_oracle.Contains(id))
             {
                 _deadCredited[s] = true;
-                ModLogger.Log($"kill: a unit at battle slot {s} died but it was not a tracked enemy -- no credit given (this is normal for player/guest deaths)");
+                ModLogger.Debug(LogVerb.Kill, $"the unit at battle slot {s} died but was not a tracked enemy; no credit given (normal for player and guest deaths)");
                 _recorder?.Invoke("kill", $"no-credit slot={s} reason=not-tracked-enemy");
                 continue;
             }
@@ -217,7 +253,7 @@ internal sealed partial class KillTracker
             if (!_identityAlive.TryGetValue(id, out bool wasAlive) || !wasAlive)
             {
                 _deadCredited[s] = true;
-                ModLogger.Log($"kill: WARN this enemy was already credited for a kill at another position -- blocking a duplicate credit (battle slot {s})");
+                ModLogger.Warn(LogVerb.Kill, $"Blocked a duplicate credit: an enemy with an identity already credited died again at battle slot {s}.");
                 _recorder?.Invoke("kill", $"no-credit slot={s} reason=duplicate-identity-already-credited");
                 continue;
             }
@@ -229,25 +265,34 @@ internal sealed partial class KillTracker
             // (delayed is armed separately via TrackDelayed, not stamped at deadStreak==1), so the
             // guard -- not mutual exclusion -- is the load-bearing ordering (T4 pins it).
             var delayed = ConsumeDelayedCulprit();
-            string statusNote = deadBit && hp > 0
-                ? " -- killed by status effect, waiting to see whose attack it was" : "";
-            if (delayed == null && _lethalUntracked[s])
+            if (delayed == null && _lethalUntracked[s] != UntrackedReason.None)
             {
                 // Killing edge was stamped during a roster player's turn with no tracked weapon.
                 // Credit nobody: the summoner/dancer/item-user's AoE kill is intentionally uncredited.
+                // THE OWNER-FLAGGED LINE: the console ruling names the victim (from the slot's
+                // still-populated dead-edge snapshot) and HOW the untracked actor was resolved.
                 _deadCredited[s] = true; _pending[s] = false; _identityAlive[id] = false;
-                ModLogger.Log($"kill: enemy at battle slot {s} was killed by a unit holding no tracked weapon -- no credit (uncredited as designed)");
-                _recorder?.Invoke("kill", $"no-credit slot={s} reason=untracked-weapon");
+                var vs = _victimAtEdge[s];
+                string fellPhrase = VictimClass.FellPhrase(vs.Has, vs.Job, vs.Undead);
+                string fallenNoun = fellPhrase.StartsWith("an ") ? fellPhrase.Substring(3) : fellPhrase.Substring(2);
+                ModLogger.Event(LogVerb.Kill,
+                    $"The fallen {fallenNoun} at battle slot {s} was slain by a player carrying no Living Weapon; the kill is deliberately left uncredited (actor resolved via {ResolveSourcePhrase(_lethalUntracked[s])}).");
+                _recorder?.Invoke("kill", $"no-credit slot={s} reason=untracked-weapon via={_lethalUntracked[s]}");
                 continue;
             }
             var culprit = delayed ?? _lethalActor[s] ?? _lastPlayerWeapons;
             if (culprit.Count > 0)
             {
                 if (delayed != null)
-                    ModLogger.Log($"kill: crediting a charged attack (like a Jump or spellcast) that just landed, ahead of whoever is acting now (battle slot {s}) [delayed=[{string.Join(",", delayed)}] stamped-actor=[{string.Join(",", _lethalActor[s] as IEnumerable<int> ?? Array.Empty<int>())}] current-actor=[{string.Join(",", _lastPlayerWeapons)}]]");
+                    ModLogger.EventWithTrace(LogVerb.Credit,
+                        $"Crediting the charged attack that just landed (a Jump or a spellcast) to the unit that committed it, wielding {string.Join(", ", delayed.ConvertAll(LogNames.Weapon))}, not the unit acting now.",
+                        $"delayed-credit detail (delayed=[{string.Join(",", delayed)}] stamped=[{string.Join(",", _lethalActor[s] as IEnumerable<int> ?? Array.Empty<int>())}] current=[{string.Join(",", _lastPlayerWeapons)}], battle slot {s})");
                 else if (_lethalActor[s] != null && !ActorResolver.SameSet(_lethalActor[s]!, _lastPlayerWeapons))
-                    ModLogger.Log($"kill: crediting whoever landed the finishing blow, not whoever acted most recently [lethal=[{string.Join(",", culprit)}] vs live-latch=[{string.Join(",", _lastPlayerWeapons)}]] at slot {s} (deadStreak={_deadStreak[s]})");
-                bool c = CreditKill(s, gx, gy, culprit);
+                    ModLogger.EventWithTrace(LogVerb.Credit,
+                        $"Crediting the unit that landed the finishing blow, wielding {string.Join(", ", culprit.ConvertAll(LogNames.Weapon))}, rather than the unit that acted most recently.",
+                        $"finishing-blow detail (lethal=[{string.Join(",", culprit)}] live-latch=[{string.Join(",", _lastPlayerWeapons)}], battle slot {s}, dead-streak {_deadStreak[s]})");
+                bool viaFallback = delayed == null && (_lethalActor[s] != null ? _lethalViaFallback[s] : _latchViaFallback);
+                bool c = CreditKill(s, gx, gy, culprit, viaFallback);
                 _deadCredited[s] = true;
                 _identityAlive[id] = false;   // dead now; no re-credit until revived
                 if (c) changed = true;
@@ -255,15 +300,22 @@ internal sealed partial class KillTracker
             else if (!_pending[s])
             {
                 _pending[s] = true; _pendingAge[s] = 0; _pendingFalls[s] = _actedFalls;
-                ModLogger.Log($"kill: enemy down at ({gx},{gy}){statusNote} (battle slot {s})");
+                var vs = _victimAtEdge[s];
+                string fell = VictimClass.FellPhrase(vs.Has, vs.Job, vs.Undead);
+                string opener = char.ToUpperInvariant(fell[0]) + fell.Substring(1);
+                _klog.Info(deadBit && hp > 0
+                    ? $"{opener} fell at ({gx},{gy}); killed by a status effect, waiting to see whose attack caused it (battle slot {s})."
+                    : $"{opener} fell at ({gx},{gy}); waiting to identify the killer (battle slot {s}).");
+                _recorder?.Invoke("kill", $"pending slot={s} at=({gx},{gy}) status={(deadBit && hp > 0 ? 1 : 0)}");
             }
             else if (_actedFalls - _pendingFalls[s] >= ExpireFalls || ++_pendingAge[s] > PendingTtl)
             {
                 _deadCredited[s] = true; _pending[s] = false;
-                _lethalActor[s] = null; _lethalUntracked[s] = false;
+                _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
                 _victimAtEdge[s] = default;   // Reliquary: this no-credit path never reaches CreditKill's consume
                 _identityAlive[id] = false;
-                ModLogger.Log($"kill: could not determine who killed the enemy -- no credit (battle slot {s}) [waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges]");
+                _klog.Warn($"The killer of the enemy at battle slot {s} could not be determined; the kill goes uncredited.");
+                ModLogger.Debug(LogVerb.Trace, $"kill expiry detail (waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn edges, battle slot {s})");
                 _recorder?.Invoke("kill", $"no-credit slot={s} reason=expired-unresolved waited={_pendingAge[s]}ticks");
             }
         }

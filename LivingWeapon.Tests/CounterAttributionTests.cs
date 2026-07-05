@@ -257,4 +257,43 @@ public class CounterAttributionTests
 
         Assert.Equal(1, kills.GetValueOrDefault(ArmedWeapon));
     }
+
+    // --- Logging facelift: the owner-flagged no-credit line names the resolve source ---
+
+    [Fact]
+    public void Enemy_turn_no_credit_line_names_the_enemy_turn_team_read_as_the_resolve_source()
+    {
+        // Same scenario as T1 (counter kill during an enemy turn buries the kill), but with a
+        // fake logger installed: the console ruling must say the actor was resolved via the
+        // enemy-turn team read (the UntrackedReason.EnemyTurn stamp at the death edge), and it
+        // must be an Info-tier [kill] line, not a bare "no tracked weapon" shrug.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);
+        SetRoster(m, slot: 0, level: 90, brave: 80, faith: 70, weapon: ArmedWeapon);
+        SetUnit(m, ASlot, hp: 352, maxHp: 352, level: 90, brave: 80, faith: 70);
+
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add);
+        try
+        {
+            var t = new KillTracker(kills, m, Weapons);
+            SetActive(m, hp: 352, maxHp: 352, level: 90, acted: 1, team: 0);
+            Settle(t, 3);
+            SetActive(m, hp: 352, maxHp: 352, level: 90, acted: 0, team: 0);
+            Settle(t, KillTracker.UnfreezeTicks);
+            SetEnemy(m, EnemySlot, hp: 300);
+            Settle(t, 3);
+            SetActive(m, hp: 150, maxHp: 250, level: 20, acted: 1, team: 1);
+            SetUnit(m, EnemySlot, hp: 0);
+            t.Poll(true); t.Poll(true); t.Poll(true);   // deadStreak 3 -> no-credit fires
+
+            Assert.Empty(kills);   // the behavioral half stays pinned
+            Assert.Contains(file, l => l.Contains("[kill]")
+                && l.Contains("deliberately left uncredited")
+                && l.Contains("an enemy-turn team read"));
+        }
+        finally { ModLogger.Instance = prior; }
+    }
 }

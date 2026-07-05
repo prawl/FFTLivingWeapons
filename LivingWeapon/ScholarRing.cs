@@ -32,7 +32,7 @@ internal static class ScholarRing
         if (!_granted)
         {
             _granted = true;
-            ModLogger.Log("scholar-ring: granted (you had none)");
+            ModLogger.Event(LogVerb.Treasure, "Granted a Scholar's Ring; you had none.");
         }
     }
 }

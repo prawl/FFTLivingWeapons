@@ -35,6 +35,7 @@ internal sealed partial class Rapture : ISignature
     private readonly Dictionary<int, int> _kills;
     private readonly List<int> _hands = new();
     private readonly RaptureState _state = new();
+    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod must not narrate on console
     private bool _wasActive;
     private int _deadStreak;
 
@@ -45,6 +46,7 @@ internal sealed partial class Rapture : ISignature
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
+        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, RodOfFaithId));
     }
 
     public void ResetBattle()
@@ -63,7 +65,9 @@ internal sealed partial class Rapture : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log($"rapture {(active ? "ACTIVE -- Rod of Faith at +3 is wielded, emergency teleportation is armed" : "inactive")}");
+            _slog.Info(active
+                ? "Rod of Faith at tier three is wielded on the field; emergency teleportation is ready."
+                : "Emergency teleportation is no longer active.");
         }
         if (!active)
         {
@@ -115,8 +119,11 @@ internal sealed partial class Rapture : ISignature
         // Once-per-window read-back: 243 is proven live (player teleported, 2026-06-10); SET/MISS
         // still logged as a sanity signal (if MISS, flip Tuning.RaptureMoveId to 242).
         string readback = ReadBackSet(_mem, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
-        ModLogger.Log($"rapture: wielder dropped below 30% HP ({hp}/{maxHp}) -- Master Teleportation (move id {Tuning.RaptureMoveId}) granted until they recover " +
-                 $"(original movement saved as {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}) {(readback == "SET" ? "(write verified)" : "(write did NOT stick)")}");
+        ModLogger.EventWithTrace(LogVerb.Signature,
+            $"The wielder dropped below thirty percent HP ({hp}/{maxHp}); Master Teleportation is theirs until they recover.",
+            $"rapture grant detail (move id {Tuning.RaptureMoveId}, original movement saved as {saved[0]:X2} {saved[1]:X2} {saved[2]:X2}, readback={readback})");
+        if (readback != "SET")
+            ModLogger.Warn(LogVerb.Signature, "The teleportation write did not stick; the wielder's movement may be unchanged.");
     }
 
     /// <summary>Re-write the armed grant image at the last located entry (beats engine
@@ -137,8 +144,19 @@ internal sealed partial class Rapture : ISignature
     {
         bool same = _state.Addr != 0 && SameUnit(_mem, _state.Addr, _state.Fp);
         if (_state.SavedField is { } saved && same) WriteField(_mem, _state.Addr, saved);
-        ModLogger.Log($"rapture: wielder recovered ({why}) -- {(same ? "normal movement restored" : "movement left unchanged (the wielder could not be re-found in memory)")}");
+        ModLogger.Event(LogVerb.Signature,
+            $"The emergency ended ({WhyInFullWords(why)}); {(same ? "normal movement is back" : "movement was left unchanged (the wielder could not be re-found in memory)")}.");
         _state.Release();
         _deadStreak = 0;
     }
+
+    /// <summary>The release reason codes (Restore's call sites) spelled as console prose.</summary>
+    private static string WhyInFullWords(string why) => why switch
+    {
+        "recovered above threshold" => "the wielder recovered above the threshold",
+        "gate lost" => "the weapon was unequipped or the tier was lost",
+        "wielder dead" => "the wielder died",
+        "battle reset" => "the battle ended",
+        _ => why,
+    };
 }

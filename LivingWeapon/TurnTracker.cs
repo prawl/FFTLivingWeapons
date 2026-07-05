@@ -80,9 +80,11 @@ internal sealed class TurnTracker
             {
                 int n = (_turns.TryGetValue(fp, out int t) ? t : 0) + 1;
                 _turns[fp] = n;
-                string src = viaPointer ? "actor-ptr" : "tq-fallback";
-                ModLogger.Log($"turn: a unit finished its turn (#{n} this battle) [id level {fp.Item1} brave {fp.Item2} faith {fp.Item3}, via {src}]");
-                _recorder?.Invoke("turn", $"credit level={fp.Item1} brave={fp.Item2} faith={fp.Item3} count={n} src={src}");
+                // Facelift: the per-turn heartbeat is black-box evidence, never match report;
+                // demoted off the console (the biggest console-ceiling violation in the audit).
+                ModLogger.Debug(LogVerb.Turn,
+                    $"a unit finished its turn (number {n} this battle) (identity level {fp.Item1} brave {fp.Item2} faith {fp.Item3}, via {(viaPointer ? "the actor pointer" : "the turn-queue fallback")})");
+                _recorder?.Invoke("turn", $"credit level={fp.Item1} brave={fp.Item2} faith={fp.Item3} count={n} src={(viaPointer ? "actor-ptr" : "tq-fallback")}");
             }
         }
         else if (!acted && _wasActed)

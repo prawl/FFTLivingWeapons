@@ -79,7 +79,7 @@ internal sealed class FlavorSpike
             int target = FlavorProbeText.TargetWeapon(snapshot);
             if (target == 0)
             {
-                ModLogger.Log("flavor-spike: no kills sites cached yet -- open the equip card so the sweep finds sites, then press F6 again");
+                ModLogger.Event(LogVerb.Trace, "flavor-spike: no kills sites cached yet; open the equip card so the sweep finds sites, then press F6 again");
                 return;
             }
 
@@ -99,7 +99,7 @@ internal sealed class FlavorSpike
                 // overwritten by an earlier press).
                 if (!_mem.TryReadBytes(site.AnchorAddr, pat.Flavor.Length, out var cur) || !ByteEq(cur, pat.Flavor))
                 {
-                    ModLogger.Log($"flavor-spike: weapon {site.Id} enc {site.Enc} addr=0x{site.AnchorAddr:X} anchor did not verify against the baked pattern -- skipped");
+                    ModLogger.Event(LogVerb.Trace, $"flavor-spike: weapon {site.Id} enc {site.Enc} addr=0x{site.AnchorAddr:X} anchor did not verify against the baked pattern; skipped");
                     skipped++;
                     continue;
                 }
@@ -110,7 +110,7 @@ internal sealed class FlavorSpike
                 {
                     // DEFENSIVE: must never write a mis-sized payload -- would corrupt whatever
                     // buffer content follows the flavor line.
-                    ModLogger.LogError($"flavor-spike: composed payload length {payload.Length} != flavor pattern length {pat.Flavor.Length} for weapon {site.Id} enc {site.Enc} -- skipped");
+                    ModLogger.Error(LogVerb.Trace, $"flavor-spike: composed payload length {payload.Length} != flavor pattern length {pat.Flavor.Length} for weapon {site.Id} enc {site.Enc}; skipped");
                     skipped++;
                     continue;
                 }
@@ -123,14 +123,14 @@ internal sealed class FlavorSpike
 
                 _mem.WriteBytes(site.AnchorAddr, payload);
                 written++;
-                ModLogger.Log($"flavor-spike: wrote weapon {site.Id} enc {site.Enc} addr=0x{site.AnchorAddr:X} chars={line.Length}");
+                ModLogger.Event(LogVerb.Trace, $"flavor-spike: wrote weapon {site.Id} enc {site.Enc} addr=0x{site.AnchorAddr:X} chars={line.Length}");
             }
 
-            ModLogger.Log($"flavor-spike: {written} written / {skipped} skipped for weapon {target} -- this weapon's card sites will be evicted by the painter now -- expected for P4 (render-only probe)");
+            ModLogger.Event(LogVerb.Trace, $"flavor-spike: {written} written / {skipped} skipped for weapon {target}; this weapon's card sites will be evicted by the painter now; expected for P4 (render-only probe)");
         }
         catch (Exception ex)
         {
-            ModLogger.LogError("flavor-spike: OneShot failed -- " + ex.Message);
+            ModLogger.Error(LogVerb.Trace, "flavor-spike: OneShot failed; " + ex.Message);
         }
     }
 

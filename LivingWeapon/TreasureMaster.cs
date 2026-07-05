@@ -146,7 +146,7 @@ internal sealed partial class TreasureMaster : ISignature
                     var mapCount = 0;
                     foreach (var m in _db.Maps)
                         if (m.Tiles.Count > 0) mapCount++;
-                    ModLogger.Log($"treasure: dataset reloaded -- {mapCount} map(s) with addresses");
+                    ModLogger.Debug(LogVerb.Treasure, $"reloaded the treasure dataset; {mapCount} map(s) with addresses");
                 }
             }
         }
@@ -206,9 +206,11 @@ internal sealed partial class TreasureMaster : ISignature
                     live.Value.TimeDateStamp, live.Value.SizeOfImage))
             {
                 _globalIdle = true;
-                ModLogger.Log($"treasure: dataset built for game {bk.TimeDateStamp:X}/{bk.SizeOfImage:X} " +
-                         $"but running {live.Value.TimeDateStamp:X}/{live.Value.SizeOfImage:X} " +
-                         $"-- disarmed, re-capture needed");
+                // Console Warn only when a Ring bearer could actually be affected; without a
+                // ring in the roster (and no AlwaysOn override) the warning demotes to the file.
+                ModLogger.For(LogVerb.Treasure, () => _alwaysOn || RingGate.ScholarRingInRoster(_mem))
+                    .Warn("Treasure marks are disarmed: the dataset was built for a different game build (re-capture needed).");
+                ModLogger.Debug(LogVerb.Trace, $"treasure build-key detail (dataset {bk.TimeDateStamp:X}/{bk.SizeOfImage:X}, running {live.Value.TimeDateStamp:X}/{live.Value.SizeOfImage:X})");
                 return;
             }
         }
@@ -246,8 +248,8 @@ internal sealed partial class TreasureMaster : ISignature
             if (!_naggedThisBattle)
             {
                 _naggedThisBattle = true;
-                ModLogger.LogDebug($"treasure: map {mapId} {found.Name} has {found.TileCount} treasure " +
-                         $"tile(s), not captured -- run treasure_flags.py session");
+                ModLogger.Debug(LogVerb.Treasure, $"skipped map {found.Name}: {found.TileCount} treasure " +
+                         $"tile(s) exist but are not captured; run the treasure_flags.py session (map id {mapId})");
             }
             return;
         }
@@ -269,8 +271,9 @@ internal sealed partial class TreasureMaster : ISignature
                 if (!_ringIdleLoggedThisBattle && !_alwaysOn && !RingGate.ScholarRingInRoster(_mem))
                 {
                     _ringIdleLoggedThisBattle = true;
-                    ModLogger.Log("treasure: no Scholar's Ring equipped -- module idle " +
-                             "(equip the Scholar's Ring on a unit in this battle to enable treasure marks)");
+                    // File-only: an unarmed module never speaks on console (log-facelift ruling).
+                    ModLogger.Debug(LogVerb.Treasure, "idle this battle: no Scholar's Ring is equipped " +
+                             "(equip one on a unit in this battle to enable treasure marks)");
                 }
                 return;
             }
@@ -299,8 +302,9 @@ internal sealed partial class TreasureMaster : ISignature
         {
             _flapLoggedThisBattle = true;
             var d = _audit.FingerprintDiag(map);
-            ModLogger.Log($"treasure: map {map.MapId} terrain looks different than expected (likely weather) -- arming the treasure marks anyway " +
-                     $"[readOk={d.ReadOk} fpVer={d.FpVer} got={d.Got:X} want={d.Expected:X}]");
+            ModLogger.WarnWithTrace(LogVerb.Treasure,
+                $"The terrain on map {map.Name} looks different than expected (likely weather); arming the treasure marks anyway.",
+                $"treasure fingerprint detail (map id {map.MapId}, readOk={d.ReadOk} fpVer={d.FpVer} got={d.Got:X} want={d.Expected:X})");
         }
 
         var (verdict, _) = _audit.AuditAddrs(map, Tuning.TreasureMinPlausibleAddrs);
@@ -310,9 +314,9 @@ internal sealed partial class TreasureMaster : ISignature
             case ArmVerdict.Arm:
                 _phase          = Phase.Armed;
                 _revalidateTick = 0;
-                ModLogger.Log($"treasure: map {map.MapId} {map.Name} armed -- " +
-                         $"{map.Tiles.Count} tile(s)" +
-                         (map.IsMapIdOnly ? " (map-id-only)" : ""));
+                ModLogger.EventWithTrace(LogVerb.Treasure,
+                    $"Treasure marks are armed on map {map.Name}: {map.Tiles.Count} tile(s).",
+                    $"treasure arm detail (map id {map.MapId}{(map.IsMapIdOnly ? ", map-id-only" : "")})");
                 _holder.Hold(map);
                 break;
 
@@ -321,8 +325,9 @@ internal sealed partial class TreasureMaster : ISignature
                 if (_armAttempts >= Tuning.TreasureArmAttemptCap && !_capLoggedThisBattle)
                 {
                     _capLoggedThisBattle = true;
-                    ModLogger.Log($"treasure: map {map.MapId} waiting to arm (tiles off-screen?) " +
-                             $"[flag bytes not yet at rest]");
+                    ModLogger.WarnWithTrace(LogVerb.Treasure,
+                        $"Treasure marks are still waiting to arm on map {map.Name}; the flag bytes are not yet at rest (tiles off-screen?).",
+                        $"treasure arm-wait detail (map id {map.MapId}, attempts {_armAttempts})");
                 }
                 break;
         }
@@ -343,7 +348,7 @@ internal sealed partial class TreasureMaster : ISignature
             if (_badMapTicks >= Tuning.TreasureMapIdBadTicksToReset)
             {
                 // Map changed (chained battle) or something went wrong -- full reset.
-                ModLogger.Log($"treasure: map id changed from {map.MapId} -- resetting for new battle");
+                ModLogger.Debug(LogVerb.Treasure, $"reset treasure for a new battle; the map id changed (from {map.MapId})");
                 ResetBattle();
             }
             return;   // suspend writes this tick
@@ -368,8 +373,9 @@ internal sealed partial class TreasureMaster : ISignature
             if (!_audit.FingerprintMatches(map))
             {
                 _flapLoggedThisBattle = true;
-                ModLogger.Log($"treasure: map {map.MapId} terrain drifted mid-battle -- " +
-                         $"holding the marks through it, not disarming [fingerprint no longer matches]");
+                ModLogger.WarnWithTrace(LogVerb.Treasure,
+                    $"The terrain on map {map.Name} drifted mid-battle; the treasure marks are held through it, not disarmed.",
+                    $"treasure drift detail (map id {map.MapId}, fingerprint no longer matches)");
             }
         }
 
@@ -380,8 +386,9 @@ internal sealed partial class TreasureMaster : ISignature
         if (foreign > 0 && !_foreignLoggedThisBattle)
         {
             _foreignLoggedThisBattle = true;
-            ModLogger.Log($"treasure: map {map.MapId} skipped {foreign} tile(s) that look off-screen " +
-                     $"-- holding the rest");
+            ModLogger.WarnWithTrace(LogVerb.Treasure,
+                $"Skipped {foreign} treasure tile(s) that look off-screen on map {map.Name}; holding the rest.",
+                $"treasure off-screen detail (map id {map.MapId})");
         }
     }
 }

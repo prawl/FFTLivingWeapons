@@ -173,12 +173,12 @@ internal sealed partial class Puppeteer : ISignature
             // AnyDeployedMainHand (a benched/give-all reserve looks tier-eligible but isn't fielded),
             // logged only on a reason change.
             string reason = active
-                ? "ACTIVE -- the next struck enemy becomes your puppet"
+                ? "ACTIVE: the next struck enemy becomes your puppet"
                 : $"inactive [tier(t{tier})={tierOk} pointerMatch={pointerMatch} latchMainHand={latchMainHand} actedByte={actedByte} wielderEntry={wielderEntry != 0} hasPuppet={_state.HasPuppet} offCooldown={_state.CanPuppet(turnNow, Tuning.PuppeteerCooldownTurns)}]";
             if ((active || Wielder.AnyDeployedMainHand(_mem, GalewindId)) && reason != _lastGateReason)
             {
                 _lastGateReason = reason;
-                Log.Info($"puppeteer gate: {reason}");
+                ModLogger.Debug(LogVerb.Signature, $"puppeteer gate: {reason}");
             }
 
             // The HP-diff baseline (Observe) runs on EVERY on-field tick for every sane band slot,
@@ -236,11 +236,15 @@ internal sealed partial class Puppeteer : ISignature
             int wBase = wfp is { } w ? _turns.Turns(w.lvl, w.br, w.fa) : 0;
             _state.Puppet(addr, fp, turnNow, wfp, wBase, _turns.GlobalTurns);
             SetAgency(_mem, addr, true);   // hand control to the player immediately
-            Log.Info($"puppeteer: DOMINATED enemy ({fp.mhp} max HP, job {job}) -- you control it for {puppetTurns} of its turns");
+            ModLogger.EventWithTrace(LogVerb.Signature,
+                $"The Galewind puppets the struck enemy ({fp.mhp} maximum HP); you control it for {puppetTurns} of its turns.",
+                $"puppeteer dominate detail (job {job}, battle slot {s})");
         }
         if (rearm) _hpState.Rearm(s, hp + dmg);
-        if (_verbose)
-            Log.Info($"puppeteer-diag: slot {s} dmg {dmg} verdict={verdict} active={active} inSet={inSet} hp={hp} wielderEntry={wielderEntry != 0} hasPuppet={hasPuppet} offCooldown={offCooldown} job={job}");
+        // GATE-ON-ARMED (the owner-complaint line): with zero Galewinds fielded the verdict chain
+        // still runs, but the per-drop diag must emit NOTHING -- not even to the file.
+        if (_verbose && (wielderEntry != 0 || Wielder.AnyDeployedMainHand(_mem, GalewindId)))
+            ModLogger.Debug(LogVerb.Signature, $"puppeteer evaluated: slot {s} damage {dmg} verdict={verdict} active={active} enemyInSet={inSet} hitPoints={hp} wielderLocated={wielderEntry != 0} holdingPuppet={hasPuppet} offCooldown={offCooldown} (job {job})");
     }
 
     /// <summary>D2: read the expiry clock's wielder fingerprint straight off the wielder's OWN band

@@ -34,7 +34,7 @@ Verbs
         3. Attack any buffed enemy with the Arcanum wielder.
         4. The probe READ-watches the bits (it does NOT re-assert, so it never fights
            the DLL) and prints STRIPPED + which buff for each enemy as Larceny clears
-           it.  Watch livingweapon.log for 'larceny: STOLE <buff>' + the icon on the wielder.
+           it.  Watch livingweapon.log for '<buff> was stolen from the struck enemy' + the icon on the wielder.
         NOTE: any enemy dealt reraise auto-revives once -- pass e.g. 'protect' to avoid that.
 
   python tools\\probes\\battle_cheats.py kill_all
@@ -482,7 +482,7 @@ def cmd_buff_enemies(name: str | None = None) -> None:
                     print(f"  STRIPPED slot s={s:02d} -- Larceny cleared {bname} (a steal fired on this enemy).")
             time.sleep(0.2)
         print("All planted buffs gone. Confirm in livingweapon.log: "
-              "'larceny: STOLE' + the buff icon on the wielder.")
+              "'was stolen from the struck enemy' + the buff icon on the wielder.")
     except KeyboardInterrupt:
         print()
 

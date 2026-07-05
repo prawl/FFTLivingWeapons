@@ -91,19 +91,19 @@ internal sealed class GunSlinger
                 snap.OrigOff = off;
                 snap.HasOff  = true;
                 WriteOffHand(b, (ushort)_twinId);
-                ModLogger.Log("gun-slinger: twin pistol equipped in the wielder's off-hand (their original off-hand gear is remembered and comes back when they unequip the pistol)");
+                ModLogger.Event(LogVerb.Signature, "A twin pistol is equipped in the wielder's off-hand; their original gear is remembered and returns when the pistol comes off.");
                 return true;
             case GunSlingerOffAction.Write:
                 WriteOffHand(b, (ushort)_twinId);
                 // The re-assert IS the clobber instrument: this branch only runs when something
                 // rewrote the slot out from under the hold -- the logged value names the culprit's
                 // leftovers (an EMPTY sentinel = an equip screen normalized the "illegal" twin away).
-                ModLogger.LogDebug($"gun-slinger: re-equipped the twin pistol -- something overwrote the off-hand slot [read {off}]");
+                ModLogger.Debug(LogVerb.Signature, $"re-equipped the twin pistol; something overwrote the off-hand slot (read {off})");
                 return false;   // snap unchanged, no persistence needed
             case GunSlingerOffAction.Restore when !inBattle:
                 WriteOffHand(b, snap.OrigOff);
                 snap.HasOff = false;
-                ModLogger.Log("gun-slinger: twin pistol removed -- the wielder's original off-hand gear is restored");
+                ModLogger.Event(LogVerb.Signature, "The twin pistol is removed; the wielder's original off-hand gear is restored.");
                 return true;
             default:   // Leave, or a SnapshotAndWrite/Restore suppressed in battle
                 return false;
@@ -122,7 +122,7 @@ internal sealed class GunSlinger
                 return true;
             case GunSlingerSuppAction.Write:
                 WriteSupport(b, DualWieldId);
-                ModLogger.LogDebug($"gun-slinger: re-equipped Dual Wield -- something overwrote the support slot [read {supp}]");
+                ModLogger.Debug(LogVerb.Signature, $"re-equipped Dual Wield; something overwrote the support slot (read {supp})");
                 return false;
             case GunSlingerSuppAction.Restore when !inBattle:
                 WriteSupport(b, snap.OrigSupp);

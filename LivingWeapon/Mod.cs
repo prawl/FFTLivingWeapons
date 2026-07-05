@@ -45,16 +45,17 @@ public class Mod : IMod
             if (hooksRef != null && hooksRef.TryGetTarget(out var hooks) && hooks != null)
             {
                 _engine?.InjectHooks(hooks);
-                ModLogger.Log("connected to the game's rendering hooks -- toast pop-ups can be delivered");
+                ModLogger.Event(LogVerb.Startup, "Connected to the game's rendering hooks; toast pop-ups can be delivered.");
             }
             else
             {
-                ModLogger.Log("the game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded -- toast pop-ups will not be delivered");
+                // Degraded but coping (the audit's Warning promotion): toasts die, the mod runs.
+                ModLogger.Warn(LogVerb.Startup, "The game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded; toast pop-ups will not be delivered.");
             }
         }
         catch (Exception ex)
         {
-            ModLogger.LogError("failed to connect to the game's rendering hooks -- toast pop-ups will not be delivered: " + ex.Message);
+            ModLogger.Error(LogVerb.Startup, "Failed to connect to the game's rendering hooks; toast pop-ups will not be delivered: " + ex.Message);
         }
     }
 
@@ -68,7 +69,11 @@ public class Mod : IMod
                             ?? Environment.CurrentDirectory;
             ModLogger.Init(modDir);
             Flight.Init(modDir);   // the black-box event ring -- must exist before anything else can Record
-            ModLogger.Log("Living Weapon starting up (running inside FFT_enhanced.exe).");
+            // Launch header L1 (logging facelift): version from the deployed ModConfig.json
+            // (fail-soft), flavor from the compiled Tuning.BuildFlavor const (the binary's own
+            // truth, never build_flavor.txt).
+            ModLogger.Event(LogVerb.Startup,
+                $"Living Weapons version {ModInfo.ReadVersion(modDir)} ({Tuning.BuildFlavor} build) is starting inside fft_enhanced.exe.");
 
             // Load mod config fail-soft: any read failure falls back to the Tuning default (true).
             // The Reloaded launcher writes the user's edits to <Reloaded>/User/Mods/<ModId>/Config.json,
@@ -91,20 +96,31 @@ public class Mod : IMod
             }
             catch (Exception cfgEx)
             {
-                ModLogger.LogError($"config: could not read your settings, using defaults instead (TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} VerboseLog={verboseLog}) -- {cfgEx.Message}");
+                // Warning, not Error (the audit's demotion): defaults cope, and a mere config
+                // typo must not burn the launch's one FlushOnce flight archive.
+                ModLogger.Warn(LogVerb.Config,
+                    $"Your settings could not be read; using defaults (TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} VerboseLog={verboseLog}): {cfgEx.Message}");
             }
             // Set the console threshold from whatever verboseLog resolved to -- DEFINED whether the
             // try above succeeded or hit the catch (never skipped), so a config-read failure can't
             // silently strand the console on whatever the lazily-created default logger picked.
             ModLogger.LogLevel = verboseLog ? LogLevel.Debug : LogLevel.Info;
-            ModLogger.Log($"config: TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} VerboseLog={verboseLog} LogLevel={ModLogger.LogLevel} (from {configPath})");
+            // Launch header L2. DevSeedKills is echoed only in development builds (the knob does
+            // not exist in production).
+#if LWDEV
+            string devSeedEcho = $" DevSeedKills={devSeedKills}";
+#else
+            string devSeedEcho = "";
+#endif
+            ModLogger.Event(LogVerb.Config,
+                $"Configuration loaded: VerboseLog={verboseLog} BannerToasts={bannerToasts} TreasureAlwaysOn={treasureAlwaysOn}{devSeedEcho} LogLevel={ModLogger.LogLevel} (from {configPath})");
 
             _engine = new Engine(modDir, treasureAlwaysOn, bannerToasts, devSeedKills);
             _engine.Start();
         }
         catch (Exception ex)
         {
-            try { ModLogger.LogError("startup failed -- Living Weapon will not run: " + ex); } catch { }
+            try { ModLogger.Error(LogVerb.Startup, "Startup failed; Living Weapons will not run: " + ex); } catch { }
         }
     }
 

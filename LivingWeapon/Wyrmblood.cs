@@ -33,6 +33,7 @@ internal sealed partial class Wyrmblood : ISignature
     private readonly Dictionary<int, int> _kills;
     private readonly TurnTracker _turns;
     private readonly List<int> _hands = new();
+    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod must not narrate on console
     private int _lastTurns = -1;
     private bool _wasActive;
 
@@ -42,6 +43,7 @@ internal sealed partial class Wyrmblood : ISignature
         _meta = meta;
         _kills = kills;
         _turns = turns;
+        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, DragonRodId));
     }
 
     public void ResetBattle()
@@ -60,7 +62,9 @@ internal sealed partial class Wyrmblood : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log($"wyrmblood {(active ? "ACTIVE -- Dragon Rod at +3 is wielded, turn-edge regen splash is enabled" : "inactive")}");
+            _slog.Info(active
+                ? "Dragon Rod at tier three is wielded on the field; the end-of-turn regeneration splash is active."
+                : "The regeneration splash is no longer active.");
         }
         if (!active) { _lastTurns = -1; return; }   // re-baseline on re-equip (no stale-diff splash)
 
@@ -70,16 +74,19 @@ internal sealed partial class Wyrmblood : ISignature
         if (!edge) return;
 
         long w = Wielder.Locate(_mem, DragonRodId, _hands, fp);
-        if (w == 0) { ModLogger.Log("wyrmblood: turn ended but the wielder could not be found in memory this tick -- regen splash skipped [locate miss]"); return; }
+        if (w == 0) { ModLogger.Warn(LogVerb.Signature, "The wielder's turn ended but they could not be found in memory this tick; the regeneration splash did not fire."); return; }
         Splash(_mem.U8(w + Offsets.AGx), _mem.U8(w + Offsets.AGy), m.Signature.RegenSplashRadius, turns);
     }
 
     /// <summary>One splash: heal every live ALLY band entry within the radius (the wielder is
-    /// its own ally at distance 0) by its OWN maxHp/WyrmbloodDiv, once per fingerprint.</summary>
+    /// its own ally at distance 0) by its OWN maxHp/WyrmbloodDiv, once per fingerprint.
+    /// Console gets ONE aggregated summary per splash; the per-ally tile/HP detail is file-only
+    /// (the old one-Info-line-per-ally shape ate the console ceiling every wielder turn).</summary>
     private void Splash(int wgx, int wgy, int radius, int turn)
     {
         var allies = Band.AllyFingerprints(_mem);
         var healed = new HashSet<(int mhp, int lvl, int br, int fa)>();
+        int totalMended = 0;
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long e = Band.Entry(s);
@@ -95,9 +102,11 @@ internal sealed partial class Wyrmblood : ISignature
             if (newHp == hp) continue;               // full, or dead (never revive)
             LifeSap.WriteHp(_mem, e, newHp);
             healed.Add(fp);
-            ModLogger.Log($"wyrmblood: end-of-turn healing -- ally at ({gx},{gy}) mended {newHp - hp} HP (HP {hp}->{newHp}, max {fp.mhp})");
+            totalMended += newHp - hp;
+            ModLogger.Debug(LogVerb.Signature, $"wyrmblood regenerated the ally at ({gx},{gy}) for {newHp - hp} HP (HP {hp} to {newHp}, maximum {fp.mhp})");
         }
-        if (healed.Count == 0) ModLogger.LogDebug($"wyrmblood: turn-edge regen -- no allies were in range to mend");
+        if (healed.Count == 0) ModLogger.Debug(LogVerb.Signature, "wyrmblood turn-edge regeneration found no allies in range to mend");
+        else ModLogger.Event(LogVerb.Signature, $"{healed.Count} {(healed.Count == 1 ? "ally" : "allies")} regenerated {totalMended} HP at the wielder's turn end.");
     }
 
 }

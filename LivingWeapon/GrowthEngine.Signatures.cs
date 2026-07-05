@@ -69,7 +69,9 @@ internal sealed partial class GrowthEngine
             (drop ??= new()).Add((slot, weapon));
             if (_mem.U8(v.s + Offsets.CBrave) != v.brave || _mem.U8(v.s + Offsets.CFaith) != v.faith) continue;
             if (MemBits.Clear(v.s + Offsets.CSupport + v.off, v.mask))
-                ModLogger.Log($"GRANT released: {LogNames.Weapon(weapon)} was unequipped from party slot {slot} -- its granted ability is now off [ability {v.abilityId}]");
+                ModLogger.EventWithTrace(LogVerb.Grant,
+                    $"{LogNames.Weapon(weapon)} was unequipped; its granted ability is switched off.",
+                    $"grant released (party slot {slot}, ability {v.abilityId})");
         }
         if (drop is not null)
             foreach (var k in drop) { _heldSupports.Remove(k); _grantLogged.Remove(k.weapon); }   // re-equip re-announces
@@ -85,12 +87,15 @@ internal sealed partial class GrowthEngine
     {
         if (!_grantLogged.Add(weapon)) return;
         bool present = (_mem.U8(addr) & mask) != 0;   // read-back: did our write actually land?
-        string warn = Signatures.IsBuildTimeOnly(sig.AbilityId)
-            ? "  WARN build-time-only support -- a live bit will NOT take effect"
-            : "";
-        ModLogger.Log($"GRANT {name} -> {sig.DisplayLabel} (support ability {sig.AbilityId}) readback={(present ? "SET" : "MISS")}{warn} [+0x98[{off}]=0x{mask:X2}]");
+        ModLogger.EventWithTrace(LogVerb.Grant,
+            $"{name} bestows {sig.DisplayLabel} on its wielder.",
+            $"grant detail (support ability {sig.AbilityId}, readback={(present ? "SET" : "MISS")}, +0x98[{off}]=0x{mask:X2})");
+        if (!present)
+            ModLogger.Warn(LogVerb.Grant, $"The {sig.DisplayLabel} grant could not be confirmed by read-back; it may not take effect.");
+        else if (Signatures.IsBuildTimeOnly(sig.AbilityId))
+            ModLogger.Warn(LogVerb.Grant, $"{sig.DisplayLabel} is a build-time-only support; the live grant will not take effect.");
         if (pickedSupport != 0 && pickedSupport == sig.AbilityId)
-            ModLogger.Log($"GRANT note: wielder already has {sig.DisplayLabel} equipped as their chosen support -- the weapon grant adds nothing (pick a different support)");
+            ModLogger.Event(LogVerb.Grant, $"The wielder already chose {sig.DisplayLabel} as their support; the weapon's grant adds nothing (pick a different support to benefit).");
     }
 
     /// <summary>Read a unit's (currentHP, maxHP) from the BAND by its (level,brave,faith)

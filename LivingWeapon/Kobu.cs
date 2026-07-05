@@ -152,9 +152,10 @@ internal sealed partial class Kobu : ISignature
         {
             verdict = "raised";
             _mem.W8(target, (byte)raised);
-            ModLogger.Log($"kobu: struck enemy (current brave {struck}) -- wielder brave raised {live} -> {raised}");
+            ModLogger.Event(LogVerb.Signature, $"Kiyomori struck a braver enemy (its current brave {struck}); the wielder's brave rises {live} to {raised}");
         }
         if (rearm) _hpState.Rearm(s, hp + dmg);
-        ModLogger.LogDebug($"kobu-diag: slot {s} dmg {dmg} verdict={verdict} acted={actedByte} mainHand={mainHand} wielder={wielderEntry != 0} inSet={inSet} struck={struck} live={live} raised={raised}");
+        // The documented transient-loss instrument (kobu-raise-detection-diagnosis): file-only, every event.
+        ModLogger.Debug(LogVerb.Signature, $"kobu evaluated: slot {s} damage {dmg} verdict={verdict} actedFlag={actedByte} mainHandWeapon={mainHand} wielderLocated={wielderEntry != 0} enemyInSet={inSet} struckBrave={struck} wielderBrave={live} raisedTo={raised}");
     }
 }

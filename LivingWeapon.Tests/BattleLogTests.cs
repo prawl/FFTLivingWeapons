@@ -33,9 +33,9 @@ public class BattleLogTests
         log.Observe(3, 120, 200, 5, 5, "10");
         log.Observe(3, 63, 200, 5, 5, "10");
         string ev = Assert.Single(lines);
-        Assert.Contains("dmg 57", ev);
-        Assert.Contains("120->63/200", ev);
-        Assert.Contains("[w:10]", ev);
+        Assert.Contains("damage 57", ev);
+        Assert.Contains("120 -> 63 of 200", ev);
+        Assert.Contains("(weapons: 10)", ev);
     }
 
     [Fact]
@@ -45,8 +45,8 @@ public class BattleLogTests
         log.Observe(3, 63, 200, 5, 5, "");
         log.Observe(3, 100, 200, 5, 5, "");
         string ev = Assert.Single(lines);
-        Assert.Contains("heal 37", ev);
-        Assert.DoesNotContain("[w:", ev);   // no actor tag when nothing is latched
+        Assert.Contains("healing 37", ev);
+        Assert.DoesNotContain("(weapons:", ev);   // no actor tag when nothing is latched
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class BattleLogTests
         log.Observe(7, 100, 100, 2, 9, "");
         log.Observe(7, 100, 100, 4, 8, "");
         string ev = Assert.Single(lines);
-        Assert.Contains("(2,9)->(4,8)", ev);
+        Assert.Contains("from (2,9) to (4,8)", ev);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class BattleLogTests
         var (log, lines) = Make();
         log.Observe(3, 57, 200, 5, 5, "10");
         log.Observe(3, 0, 200, 5, 5, "10");
-        Assert.Contains("57->0/200", Assert.Single(lines));
+        Assert.Contains("57 -> 0 of 200", Assert.Single(lines));
     }
 
     [Fact]
@@ -86,6 +86,6 @@ public class BattleLogTests
         log.Observe(3, 63, 200, 6, 6, "");   // first sighting of the new battle: silent baseline
         Assert.Empty(lines);
         log.Observe(3, 50, 200, 6, 6, "");
-        Assert.Single(lines.Where(l => l.Contains("dmg 13")));
+        Assert.Single(lines.Where(l => l.Contains("damage 13")));
     }
 }

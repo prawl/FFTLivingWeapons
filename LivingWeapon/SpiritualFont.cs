@@ -48,6 +48,7 @@ internal sealed partial class SpiritualFont : ISignature
     private readonly List<int> _hands = new();
     private readonly List<long> _locateAllBuf = new();   // reused buffer for LocateAll calls
     private readonly MoveWatch _watch = new();
+    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod must not narrate on console
     private int _moveCount;                // moves fired this battle (for logging)
     private bool _wasActive;
     private int _pulseTicks;             // DEV PULSE clock (Tuning.FontDevPulse; ~10s at 33ms)
@@ -60,6 +61,7 @@ internal sealed partial class SpiritualFont : ISignature
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
+        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, UmbralId));
         // tracker not stored: no latch machinery remains. Parameter kept so Engine.cs wires cleanly.
     }
 
@@ -83,7 +85,9 @@ internal sealed partial class SpiritualFont : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log($"font {(active ? "ACTIVE -- Umbral Rod at +3 is wielded, move-triggered HP/MP restore is enabled" : "inactive")}");
+            _slog.Info(active
+                ? "Umbral Rod at tier three is wielded on the field; moving restores the wielder's HP and MP."
+                : "The spiritual font is no longer active.");
         }
         if (!active)
         {
@@ -104,7 +108,7 @@ internal sealed partial class SpiritualFont : ISignature
             _pulseTicks = 0;
             _locateAllBuf.Clear();
             Wielder.LocateAll(_mem, UmbralId, _hands, fp, _locateAllBuf);
-            ModLogger.Log($"font: DEV PULSE -- {(_locateAllBuf.Count == 0 ? "wielder could not be located" : "forcing a replenish to verify HP/MP writes")}");
+            ModLogger.Debug(LogVerb.Signature, $"font development pulse {(_locateAllBuf.Count == 0 ? "could not locate the wielder" : "forcing a replenish to verify the writes")}");
             if (_locateAllBuf.Count > 0)
             {
                 long pe = _locateAllBuf[0];   // move #0: no MoveWatch fire, but still worth logging where
@@ -119,14 +123,14 @@ internal sealed partial class SpiritualFont : ISignature
         if (nowLocated != _wasLocated)
         {
             _wasLocated = nowLocated;
-            ModLogger.Log($"font: {(_wasLocated ? "wielder found -- tracking its position" : "wielder not found this tick -- skipping")}");
+            ModLogger.Debug(LogVerb.Signature, $"font wielder {(_wasLocated ? "found; tracking its position" : "not found this tick; skipping")}");
         }
         if (_locateAllBuf.Count == 0) return;   // unlocated: skip; MoveWatch keeps its baseline
 
         long e = _locateAllBuf[0];   // read position from the first entry (live or frozen -- same tile)
         int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
         bool fire = _watch.Observe(gx, gy);
-        if (_watch.IsFresh) ModLogger.Log($"font: now watching the wielder's position for movement (currently at ({gx},{gy}))");   // first sighting log
+        if (_watch.IsFresh) ModLogger.Debug(LogVerb.Signature, $"font is watching the wielder's position for movement (currently at tile ({gx},{gy}))");   // first sighting log
         if (!fire) return;
 
         _moveCount++;
@@ -135,25 +139,34 @@ internal sealed partial class SpiritualFont : ISignature
 
     /// <summary>One moved-turn restore written to every located twin (idempotent -- the live
     /// copy takes effect, frozen twins are inert). HP/MP amounts computed once from the first
-    /// entry; HP written to all entries, MP written to all entries but read-back logged on the
-    /// first only (avoids log spam for the frozen copy). HP half always (clamped, never revives);
-    /// MP half only for a LIVING wielder while layout validation passed (MpHalfAllowed).
-    /// The trigger tile (gx,gy) rides this ONE line -- audit REMOVE: a separate "wielder moved to
-    /// a new tile" line duplicated this same event, so its coords were folded in here instead.</summary>
+    /// entry; HP written to all entries, MP written to all entries but read-back checked on the
+    /// first only (avoids repeat checks on the frozen copy). HP half always (clamped, never
+    /// revives); MP half only for a LIVING wielder while layout validation passed (MpHalfAllowed).
+    /// ONE console line per replenish, HP and MP merged (the old separate MP line doubled the
+    /// console per move); the trigger tile and twin-copy count ride the trace companion.</summary>
     private void ReplenishAll(List<long> entries, int move, int gx, int gy)
     {
         long first = entries[0];
         int hp = _mem.U16(first + Offsets.AHp), maxHp = _mem.U16(first + Offsets.AMaxHp);
         int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
-        ModLogger.Log($"font: move #{move} at ({gx},{gy}) -- restored HP {hp}->{newHp} (max {maxHp}) [{entries.Count} copies updated]");
         foreach (long ent in entries) if (newHp != hp) LifeSap.WriteHp(_mem, ent, newHp);
-        if (!MpHalfAllowed(hp, _mpOk)) return;   // layout unproven OR a dead wielder: no MP write
-        int mp = _mem.U16(first + Offsets.AMp), maxMp = _mem.U16(first + Offsets.AMaxMp);
-        int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
-        if (newMp == mp) { ModLogger.LogDebug($"font: MP already full ({mp}/{maxMp}) -- no MP restore needed"); return; }
-        foreach (long ent in entries) WriteMp(_mem, ent, newMp);
-        bool landed = _mem.U16(first + Offsets.AMp) == newMp;   // read-back on first entry only
-        ModLogger.Log($"font: restored MP {mp}->{newMp} (max {maxMp}) {(landed ? "(write verified)" : "(write did NOT stick)")}");
+        int mpRestored = 0;
+        if (MpHalfAllowed(hp, _mpOk))   // layout unproven OR a dead wielder: no MP write
+        {
+            int mp = _mem.U16(first + Offsets.AMp), maxMp = _mem.U16(first + Offsets.AMaxMp);
+            int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
+            if (newMp == mp) ModLogger.Debug(LogVerb.Signature, $"font MP already full ({mp}/{maxMp}); no MP restore needed");
+            else
+            {
+                foreach (long ent in entries) WriteMp(_mem, ent, newMp);
+                mpRestored = newMp - mp;
+                bool landed = _mem.U16(first + Offsets.AMp) == newMp;   // read-back on first entry only
+                if (!landed) ModLogger.Warn(LogVerb.Signature, "The MP restore write did not stick.");
+            }
+        }
+        ModLogger.EventWithTrace(LogVerb.Signature,
+            $"The wielder moved (move {move}) and was replenished {newHp - hp} HP and {mpRestored} MP (HP {hp} to {newHp} of {maxHp}).",
+            $"font move detail (tile ({gx},{gy}), {entries.Count} copies updated)");
     }
 
     /// <summary>The per-battle gate on the provisional MP offsets: sample every valid band unit's
@@ -171,7 +184,7 @@ internal sealed partial class SpiritualFont : ISignature
         if (samples.Count < 2) return;   // band not populated yet -- validate on a later tick
         _mpChecked = true;
         _mpOk = MpLayoutOk(samples);
-        ModLogger.Log(_mpOk ? $"font: MP restore confirmed working this battle (checked {samples.Count} units) -- HP and MP will both be restored"
-                       : "font: MP restore could not be confirmed this battle -- only HP will be restored");
+        if (_mpOk) ModLogger.Event(LogVerb.Signature, $"MP restore is confirmed for this battle (checked {samples.Count} units); HP and MP will both be restored.");
+        else ModLogger.Warn(LogVerb.Signature, "MP restore could not be confirmed this battle; only HP will be restored.");
     }
 }

@@ -85,6 +85,23 @@ internal static class VictimClass
         return IsMonsterJob(job) ? "beast" : "foe";
     }
 
+    /// <summary>The console kill-report phrase for a captured victim snapshot: "a caster",
+    /// "a human", "a monster", "an undead foe", or "an enemy" when nothing sane was captured
+    /// (or the archetype is Unknown). Used by the [kill] console lines (logging facelift):
+    /// victim identity in words, never a nameId/job number (those ride the [trace] companion).</summary>
+    public static string FellPhrase(bool has, byte job, bool undead)
+    {
+        if (!has) return "an enemy";
+        return Classify(job, undead) switch
+        {
+            Archetype.Caster => "a caster",
+            Archetype.Human => "a human",
+            Archetype.Monster => "a monster",
+            Archetype.Undead => "an undead foe",
+            _ => "an enemy",
+        };
+    }
+
     /// <summary>"a"/"an" by the noun's leading-letter vowel sound (an Archer, an Orator, an
     /// Arithmetician; a Squire, a Knight). ASCII-only, matching this module's display prose.</summary>
     public static string WithArticle(string noun)

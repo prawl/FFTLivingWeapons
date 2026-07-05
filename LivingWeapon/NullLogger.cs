@@ -15,4 +15,10 @@ internal sealed class NullLogger : ILogger
     public void LogError(string message, Exception exception) { }
     public void LogWarning(string message) { }
     public void LogDebug(string message) { }
+    public void Log(LogVerb verb, string message) { }
+    public void LogWarning(LogVerb verb, string message) { }
+    public void LogError(LogVerb verb, string message) { }
+    public void LogError(LogVerb verb, string message, Exception exception) { }
+    public void LogDebug(LogVerb verb, string message) { }
+    public void NoteBattleEdge() { }
 }

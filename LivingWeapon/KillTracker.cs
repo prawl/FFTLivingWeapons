@@ -90,6 +90,28 @@ internal sealed partial class KillTracker
     // every pre-Reliquary test and call site byte-identical -- see CreditKill's doc comment.
     private readonly IDeedSink? _deeds;
 
+    // Logging facelift: the audit's ARMED-GATE flag ("any Living Weapon deployed this battle"),
+    // implemented as the sticky per-battle latch the audit blesses: set the first time any
+    // resolve latches a tracked weapon (the acted-period latch or the first-kill fallback),
+    // cleared in ResetBattle. Gates the console emission of the per-corpse pending/expiry lines
+    // and the EnemyOracle coverage lines, so a battle with no Living Weapon fielded stays quiet
+    // on the console (the file still gets everything, per the two-sink doctrine).
+    internal bool AnyTrackedWeaponThisBattle { get; private set; }
+    // Scoped [kill] logger over that latch; routes the GATE-ON-ARMED corpse lines.
+    private readonly ScopedLogger _klog;
+
+    // Battle-exit match-report counters (logging facelift stage 3):
+    // kills credited per weapon THIS battle (weaponId -> count); cleared in ResetBattle. The
+    // battle-end summary derives tier crossings from this delta against the lifetime tally.
+    internal readonly Dictionary<int, int> BattleCredits = new();
+    // Corpse credits whose culprit latch was resolved via the turn-queue fallback (not the
+    // engine actor pointer) this battle; feeds the summary's fallback-attribution clause.
+    // Cleared in ResetBattle.
+    internal int FallbackCredits { get; private set; }
+    // The most recent successful latch resolve came from the tq fallback (or the first-kill
+    // fallback), not the actor pointer; consulted by CreditKill's viaFallback argument sites.
+    internal bool _latchViaFallback;
+
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
                         Action<string, string>? recorder = null, IDeedSink? deeds = null)
     {
@@ -99,11 +121,12 @@ internal sealed partial class KillTracker
         _register = new ActorRegister(mem, recorder);
         _resolver = new ActorResolver(mem, weapons, _register);
         _killerStamp = new KillerStamp(_register, _resolver.HandsFromRoster);
-        _oracle = new EnemyOracle(mem);
+        _oracle = new EnemyOracle(mem, () => AnyTrackedWeaponThisBattle);
         _events = events;
         _victimProbe = new VictimProbe(mem, recorder);
         _census = new BattleCensus(mem, recorder);
         _deeds = deeds;
+        _klog = ModLogger.For(LogVerb.Kill, () => AnyTrackedWeaponThisBattle);
     }
 
     /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
@@ -129,6 +152,10 @@ internal sealed partial class KillTracker
         _fallbackSet = new();
         _fallbackStreak = 0;
         _events?.ResetBattle();
+        AnyTrackedWeaponThisBattle = false;   // re-quiet the armed gate for the next battle
+        BattleCredits.Clear();                // per-battle match-report counters
+        FallbackCredits = 0;
+        _latchViaFallback = false;
         ResetBattleCorpses();   // clear per-battle band-scan state (Corpses.cs)
         ResetDelayed();         // clear delayed-action snapshot/arm state (Delayed.cs)
         _census.ResetBattle();  // re-arm the P2 identity-census probe (BattleCensus.cs)
@@ -182,6 +209,8 @@ internal sealed partial class KillTracker
                     // them -- if gated inside, the second untracked actor would not refresh the flag
                     // and a following corpse would lose the sticky "untracked" verdict.
                     _latchResolvedEmpty = ws.Count == 0;
+                    if (ws.Count > 0) AnyTrackedWeaponThisBattle = true;   // sticky armed gate (facelift)
+                    _latchViaFallback = !_resolver.LastResolveViaRegister; // fallback-attribution counter feed
                     // Refresh the acting fingerprint once per acted-period (on the latch edge).
                     // MUST be outside the !SameSet guard: two Arcanum holders share weapon set {30},
                     // so SameSet is true between them -- if gated inside, switching between two
@@ -192,13 +221,13 @@ internal sealed partial class KillTracker
                         _lastPlayerWeapons = ws;
                         _lastPlayerMainHand = ws.Count > 0 ? _resolver.ResolveActingMainHand() : 0;
                         _actorTag = string.Join(",", ws);
-                        // Source tag mirrors TurnTracker's shipped [actor-ptr]/[tq-fallback] pair;
+                        // Source tag mirrors TurnTracker's shipped resolve-source pair;
                         // no test asserts on these strings (inventory confirmed).
-                        string src = _resolver.LastResolveViaRegister ? "actor-ptr" : "tq-fallback";
-                        ModLogger.Log(ws.Count > 0
-                            ? "turn: acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + $" [{src}]"
-                            : $"turn: acting player wields no tracked weapon -- this action's kills go uncredited [{src}]");
-                        _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src={src}");
+                        string src = _resolver.LastResolveViaRegister ? "the actor pointer" : "the turn-queue fallback";
+                        ModLogger.Debug(LogVerb.Credit, ws.Count > 0
+                            ? "the acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (weapon id " + id + ")")) + $", resolved via {src}"
+                            : $"the acting player wields no Living Weapon; this action's kills will go uncredited (resolved via {src})");
+                        _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src={(_resolver.LastResolveViaRegister ? "actor-ptr" : "tq-fallback")}");
                     }
                 }
             }
@@ -248,7 +277,11 @@ internal sealed partial class KillTracker
             _actorTag = string.Join(",", ws);
             _lastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
             _fallbackStreak = 0; _fallbackSet = new();
-            ModLogger.Log("turn: no actor seen yet -- crediting the only player who has acted (first-kill fallback, weapons: " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + ")");
+            AnyTrackedWeaponThisBattle = true;   // ws is non-empty here: a tracked weapon is fielded
+            _latchViaFallback = true;            // first-kill fallback is a fallback resolve by definition
+            ModLogger.EventWithTrace(LogVerb.Credit,
+                "No actor had been identified yet; crediting the only player who has acted (first-kill fallback), wielding " + string.Join(", ", ws.ConvertAll(LogNames.Weapon)) + ".",
+                $"first-kill fallback latched (weapon ids {_actorTag})");
             _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src=first-kill-fallback");
         }
     }
@@ -316,8 +349,10 @@ internal sealed partial class KillTracker
     /// _victimAtEdge) to the injected IDeedSink, once, then consumes it -- a missing snapshot
     /// (docs/RELIQUARY_AC.md's missing-snapshot failure mode) still increments the tally exactly
     /// as before, just with a DeedMiss instead of a RecordDeed. Never mutates/retains
-    /// <paramref name="weapons"/> (may alias _lastPlayerWeapons).</summary>
-    internal bool CreditKill(int s, int gx, int gy, List<int> weapons)
+    /// <paramref name="weapons"/> (may alias _lastPlayerWeapons). <paramref name="viaFallback"/>
+    /// marks a credit whose culprit latch came from the turn-queue fallback rather than the
+    /// actor pointer -- it feeds the battle-end summary's fallback-attribution counter.</summary>
+    internal bool CreditKill(int s, int gx, int gy, List<int> weapons, bool viaFallback = false)
     {
         bool changed = false;
         LogKillDiag(s, weapons);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
@@ -328,11 +363,17 @@ internal sealed partial class KillTracker
         else
             _deeds?.DeedMiss(s);
         _victimAtEdge[s] = default;   // consume-once: this slot's next death gets a fresh capture
+        string fell = VictimClass.FellPhrase(snap.Has, snap.Job, snap.Undead);
+        if (viaFallback && weapons.Count > 0) FallbackCredits++;   // one corpse = one fallback credit
         foreach (int w in weapons)
         {
             _kills.TryGetValue(w, out int c);
             _kills[w] = c + 1;
-            ModLogger.Log($"kill: {LogNames.Weapon(w)} earns kill #{c + 1} (enemy fell at {gx},{gy})");
+            BattleCredits.TryGetValue(w, out int bc);
+            BattleCredits[w] = bc + 1;   // the battle-end summary's per-weapon ledger
+            ModLogger.EventWithTrace(LogVerb.Kill,
+                $"{LogNames.Weapon(w)} claims kill number {c + 1}, felling {fell} at ({gx},{gy}).",
+                $"kill credit (weapon id {w}, victim nameId {snap.NameId}, victim job {snap.Job}, battle slot {s})");
             _recorder?.Invoke("kill", $"credit weapon={w} count={c + 1} at=({gx},{gy}) slot={s}");
             changed = true;
         }
@@ -356,6 +397,6 @@ internal sealed partial class KillTracker
         int abil = _mem.U16(addr + 0x2);
         int kind = _mem.U8(addr + 0xA);
         int xref = _mem.U8(addr + 0xB);
-        _events.KillDiag($"kill-diag: corpse AREC idx={idx} abil={abil} kind={kind} xref?={xref} -- credited [w:{string.Join(",", weapons)}]");
+        _events.KillDiag($"kill-diagnostic: corpse action record index={idx} ability={abil} kind={kind} cross-reference?={xref}; credited (weapon ids {string.Join(",", weapons)})");
     }
 }

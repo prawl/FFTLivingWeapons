@@ -28,6 +28,9 @@ internal sealed partial class EagleEye : ISignature
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
+    // GATE-ON-ARMED (log facelift): ActiveTarget scans ROSTER main hands, so a benched +3
+    // Eclipsebolt arms the edge; the scoped logger keeps it off the console unless deployed.
+    private readonly ScopedLogger _slog;
     private bool _wasActive;
     private int _tick, _hastened;
 
@@ -36,6 +39,7 @@ internal sealed partial class EagleEye : ISignature
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
+        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, EclipseboltId));
     }
 
     public void ResetBattle() { _wasActive = false; _tick = 0; _hastened = 0; }
@@ -46,7 +50,9 @@ internal sealed partial class EagleEye : ISignature
         if ((target > 0) != _wasActive)
         {
             _wasActive = target > 0;
-            ModLogger.Log($"eagle-eye {(_wasActive ? "ACTIVE -- Eclipsebolt at +3 is equipped, enemy Doom countdowns are forced to 1" : "inactive")}");
+            _slog.Info(_wasActive
+                ? "Eclipsebolt at tier three is wielded on the field; enemy Doom countdowns are hastened to one"
+                : "Eclipsebolt's Doom hastening is no longer active");
         }
         if (target > 0 && _tick++ % 6 == 0) Hasten(target);   // band scan is heavy -> ~every 200ms
     }
@@ -84,7 +90,7 @@ internal sealed partial class EagleEye : ISignature
             if (_mem.Writable(cdAddr, 1) && _mem.U8(cdAddr) > target)
             {
                 _mem.W8(cdAddr, (byte)target);
-                ModLogger.Log($"eagle-eye: enemy Doom countdown forced to {target} (was {cd}) -- level-{fp.lvl} enemy ({fp.mhp} max HP) [{++_hastened} this battle]");
+                ModLogger.Event(LogVerb.Signature, $"The level {fp.lvl} enemy's Doom countdown is forced to {target} (was {cd}, {fp.mhp} maximum HP); {++_hastened} hastened this battle");
             }
         });
     }

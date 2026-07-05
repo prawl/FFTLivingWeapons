@@ -27,7 +27,7 @@ internal sealed class BattleLog
     public BattleLog(bool verbose, Action<string>? sink = null)
     {
         _verbose = verbose;
-        _sink = sink ?? ModLogger.Log;
+        _sink = sink ?? (s => ModLogger.Debug(LogVerb.Trace, s));
     }
 
     /// <summary>Forget every baseline. Call on battle enter and exit.</summary>
@@ -56,13 +56,13 @@ internal sealed class BattleLog
         if (hp != _hp[slot])
         {
             int d = hp - _hp[slot];
-            string tag = actor.Length > 0 ? $" [w:{actor}]" : "";
-            _sink($"ev: {(d < 0 ? "dmg" : "heal")} {Math.Abs(d)} -- battle slot {slot} at ({gx},{gy}) hp {_hp[slot]}->{hp}/{maxHp}{tag}");
+            string tag = actor.Length > 0 ? $" (weapons: {actor})" : "";
+            _sink($"event: {(d < 0 ? "damage" : "healing")} {Math.Abs(d)}; battle slot {slot} at ({gx},{gy}) hit points {_hp[slot]} -> {hp} of {maxHp}{tag}");
             _hp[slot] = hp;
         }
         if (gx != _gx[slot] || gy != _gy[slot])
         {
-            _sink($"ev: move -- battle slot {slot} ({_gx[slot]},{_gy[slot]})->({gx},{gy})");
+            _sink($"event: move; battle slot {slot} moved from ({_gx[slot]},{_gy[slot]}) to ({gx},{gy})");
             _gx[slot] = gx; _gy[slot] = gy;
         }
     }

@@ -64,13 +64,13 @@ internal sealed partial class GrowthEngine
             if (tier1 != 0)
             {
                 _structForSlot[slot] = (tier1, 1);
-                if (!_logged) { _logged = true; ModLogger.Log($"growth: party slot {slot} found in memory -- stat growth will apply"); }
+                if (!_logged) { _logged = true; ModLogger.Debug(LogVerb.Growth, $"located party slot {slot} in memory; stat growth will apply"); }
                 return tier1;
             }
             if (matchCount1 > 0)   // S6: candidates existed, genuinely ambiguous -- refuse, no tier-2 fallthrough
             {
                 if (_ambiguousLogged.Add(slot))
-                    ModLogger.Log($"growth: party slot {slot} could not be matched to one unique unit ({matchCount1} candidates) -- growth skipped this tick [ambiguous fingerprint locate]");
+                    ModLogger.Warn(LogVerb.Growth, $"Growth is skipped for party slot {slot}; it could not be matched to one unique unit ({matchCount1} candidates, ambiguous fingerprint).");
                 return 0;
             }
         }
@@ -79,15 +79,15 @@ internal sealed partial class GrowthEngine
         if (found != 0)
         {
             _structForSlot[slot] = (found, 2);
-            if (!_logged) { _logged = true; ModLogger.Log($"growth: party slot {slot} found in memory -- stat growth will apply"); }
+            if (!_logged) { _logged = true; ModLogger.Debug(LogVerb.Growth, $"located party slot {slot} in memory; stat growth will apply"); }
             // Diagnostic for the "nameId unpopulated battle type" premise (D2): only fires when
             // tier 1 actually ran and came up empty, not on every ordinary tier-2-only battle.
             if (rosterNameId > 0 && _fallbackLogged.Add(slot))
-                ModLogger.Log($"growth: party slot {slot} matched by its stats alone, not by its engine id (the id was blank this battle) [fingerprint fallback, frame nameId miss]");
+                ModLogger.Debug(LogVerb.Growth, $"matched party slot {slot} by its stats alone, not by its engine id; the id was blank this battle (fingerprint fallback, frame nameId miss)");
             return found;
         }
         if (matchCount2 > 1 && _ambiguousLogged.Add(slot))
-            ModLogger.Log($"growth: party slot {slot} could not be matched to one unique unit ({matchCount2} candidates) -- growth skipped this tick [ambiguous fingerprint locate]");
+            ModLogger.Warn(LogVerb.Growth, $"Growth is skipped for party slot {slot}; it could not be matched to one unique unit ({matchCount2} candidates, ambiguous fingerprint).");
         return 0;
     }
 

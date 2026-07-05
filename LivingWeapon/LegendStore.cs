@@ -43,10 +43,29 @@ internal sealed class LegendStore
     private readonly Dictionary<int, WeaponLegend> _legends;
     private bool _dirty;
 
-    private LegendStore(string path, Dictionary<int, WeaponLegend> legends)
+    /// <summary>Where the load actually came from: "primary", "backup", or "fresh" (no readable
+    /// file). Feeds the launch header's [save] legends line (logging facelift stage 3).</summary>
+    public string LoadedFrom { get; }
+
+    /// <summary>Weapons carrying at least one recorded deed (the launch header's count).</summary>
+    public int WeaponCount => _legends.Count;
+
+    /// <summary>Total Marks earned across all weapons (the launch header's count).</summary>
+    public int TotalMarks
+    {
+        get
+        {
+            int total = 0;
+            foreach (var w in _legends.Values) total += w.Marks.Count;
+            return total;
+        }
+    }
+
+    private LegendStore(string path, Dictionary<int, WeaponLegend> legends, string loadedFrom)
     {
         _path = path;
         _legends = legends;
+        LoadedFrom = loadedFrom;
     }
 
     /// <summary>Load legends.json at modDir, falling back to .bak, then an empty store (fresh
@@ -66,16 +85,16 @@ internal sealed class LegendStore
                 var map = new Dictionary<int, WeaponLegend>(dto.Count);
                 foreach (var kv in dto)
                     if (int.TryParse(kv.Key, out int id)) map[id] = kv.Value.ToLegend();
-                return new LegendStore(path, map);
+                return new LegendStore(path, map, p.EndsWith(".bak") ? "backup" : "primary");
             }
             catch (Exception ex)
             {
                 string which = p.EndsWith(".bak") ? "backup" : "primary";
-                ModLogger.LogWarning($"legend-store: corrupt {which} at {p} -- falling back -- {ex.Message}");
-                Flight.Record("legend-store", $"corrupt-load which={which} path={p} -- {ex.Message}");
+                ModLogger.Warn(LogVerb.Save, $"The legends file's {which} copy at {p} is corrupt; falling back: {ex.Message}");
+                Flight.Record("legend-store", $"corrupt-load which={which} path={p}: {ex.Message}");
             }
         }
-        return new LegendStore(path, new Dictionary<int, WeaponLegend>());
+        return new LegendStore(path, new Dictionary<int, WeaponLegend>(), "fresh");
     }
 
     /// <summary>True if this weapon has ever had a deed recorded.</summary>
@@ -146,7 +165,7 @@ internal sealed class LegendStore
             File.Move(tmp, _path, true);
             _dirty = false;
         }
-        catch (Exception ex) { ModLogger.LogError("legend-store: failed to save deeds to disk -- " + ex.Message); }
+        catch (Exception ex) { ModLogger.Error(LogVerb.Save, "Failed to save weapon legends to disk: " + ex.Message); }
     }
 }
 

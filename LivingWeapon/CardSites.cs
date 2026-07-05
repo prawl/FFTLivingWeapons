@@ -215,7 +215,7 @@ internal sealed class CardSites
         if (ByteEq(cur, current)) return;   // skip-if-equal -- already showing the current line
         if (!_mem.Writable(s.AnchorAddr, current.Length)) return;
         _mem.WriteBytes(s.AnchorAddr, current);
-        ModLogger.LogDebug($"card-sites: repainted weapon {s.Id} enc {s.Enc}'s story line to the current composed text");
+        ModLogger.Debug(LogVerb.Display, $"repainted the story line to the current composed text (weapon {s.Id}, encoding {s.Enc})");
     }
 
     private bool PaintSite(Site s, Func<int, int> killsFor) => PaintSiteWithResult(s, killsFor) == PaintResult.Write;

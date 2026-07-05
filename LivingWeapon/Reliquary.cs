@@ -33,6 +33,16 @@ internal sealed class Reliquary : IDeedSink
     private readonly BannerToast? _toast;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Action<string, string>? _recorder;
+    // Marks earned THIS battle, in earn order -- feeds the battle-end match-report summary
+    // (logging facelift stage 3). Engine reads it at the exit edge (before ResetBattle wipes it).
+    private readonly List<(int weaponId, VictimClass.Archetype mark)> _battleMarks = new();
+
+    /// <summary>Marks earned this battle (earn order). Cleared by <see cref="ResetBattle"/>.</summary>
+    public IReadOnlyList<(int weaponId, VictimClass.Archetype mark)> BattleMarks => _battleMarks;
+
+    /// <summary>Clear the per-battle Marks ledger. Engine calls this from ResetBattleState
+    /// (both battle edges), AFTER the exit edge's summary composed from it.</summary>
+    public void ResetBattle() => _battleMarks.Clear();
 
     /// <param name="toast">Null when BannerToasts is disabled (decision 11): Engine passes
     /// `_bannerToastsEnabled ? _toast : null` so a disabled config leaves the Mark-announce path
@@ -55,8 +65,12 @@ internal sealed class Reliquary : IDeedSink
             var earned = _store.RecordDeed(weaponId, victim);
             foreach (var mark in earned)
             {
+                _battleMarks.Add((weaponId, mark));   // the battle-end summary's Marks ledger
                 string name = _meta.TryGetValue(weaponId, out var m) ? m.Name : $"weapon {weaponId}";
                 string title = VictimClass.MarkTitle(mark);
+                // The console match-report line the audit found MISSING: an earned Mark used to
+                // surface only via flight tap + toast.
+                ModLogger.Event(LogVerb.Mark, $"{name} earns the Mark of the {title}.");
                 _recorder?.Invoke("mark-earned",
                     $"weapon={weaponId} name=\"{name}\" archetype={(int)mark} title=\"{title}\"");
                 // Event-key convention (BannerToast.Policy.MarkPayload's doc comment): Marks own
@@ -64,19 +78,20 @@ internal sealed class Reliquary : IDeedSink
                 _toast?.Enqueue(weaponId, 1000 + (int)mark, BannerToast.MarkPayload(name, title));
             }
         }
-        catch (Exception ex) { ModLogger.LogError("reliquary: RecordDeed failed -- " + ex.Message); }
+        catch (Exception ex) { ModLogger.Error(LogVerb.Mark, "Recording the kill's deed failed: " + ex.Message); }
     }
 
     /// <summary>A kill was credited with no captured victim snapshot -- log-only (mirrors the
-    /// no-credit tap idiom, KillTracker.Corpses.cs:195): one DBG line + one flight record, never
-    /// a deed. Never throws.</summary>
+    /// no-credit tap idiom, KillTracker.Corpses.cs:195): one Warning (a permanent deed was lost
+    /// while the tally still counted -- degraded but coping, and armed by construction since it
+    /// only fires on credited kills) + one flight record, never a deed. Never throws.</summary>
     public void DeedMiss(int slot)
     {
         try
         {
-            ModLogger.LogDebug($"reliquary: kill credited at slot {slot} with no victim snapshot -- no deed recorded");
+            ModLogger.Warn(LogVerb.Mark, $"A kill was credited at battle slot {slot} but no victim snapshot was captured; the deed is lost.");
             _recorder?.Invoke("deed-miss", $"slot={slot}");
         }
-        catch (Exception ex) { ModLogger.LogError("reliquary: DeedMiss failed -- " + ex.Message); }
+        catch (Exception ex) { ModLogger.Error(LogVerb.Mark, "Recording a missed deed failed: " + ex.Message); }
     }
 }

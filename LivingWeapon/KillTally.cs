@@ -22,10 +22,15 @@ internal sealed class KillTally
     /// <summary>The shared id -> kill-count map. Mutate, never replace.</summary>
     public Dictionary<int, int> Kills { get; }
 
-    private KillTally(string path, Dictionary<int, int> kills)
+    /// <summary>Where the load actually came from: "primary", "backup", or "fresh" (no readable
+    /// file). Feeds the launch header's [save] kill-tally line (logging facelift stage 3).</summary>
+    public string LoadedFrom { get; }
+
+    private KillTally(string path, Dictionary<int, int> kills, string loadedFrom)
     {
         _path = path;
         Kills = kills;
+        LoadedFrom = loadedFrom;
     }
 
     /// <summary>Sum of all counts (the log's "total kills" figure).</summary>
@@ -40,7 +45,9 @@ internal sealed class KillTally
     }
 
     /// <summary>Load the tally at <paramref name="path"/>, falling back to its .bak; a missing
-    /// or corrupt pair yields an empty tally (a fresh install), never a crash.</summary>
+    /// or corrupt pair yields an empty tally (a fresh install), never a crash. A backup or fresh
+    /// outcome logs a Warning (the facelift closed KillTally's old silent-catch consistency gap
+    /// against LegendStore.Load, which always reported its corrupt-load fallbacks).</summary>
     public static KillTally Load(string path)
     {
         foreach (var p in new[] { path, path + ".bak" })
@@ -52,11 +59,15 @@ internal sealed class KillTally
                 if (d == null) continue;
                 var m = new Dictionary<int, int>(d.Count);
                 foreach (var kv in d) if (int.TryParse(kv.Key, out int id)) m[id] = kv.Value;
-                return new KillTally(path, m);
+                bool fromBackup = p.EndsWith(".bak");
+                if (fromBackup)
+                    ModLogger.Warn(LogVerb.Save, "The kill tally's primary file was missing or corrupt; it was restored from the backup.");
+                return new KillTally(path, m, fromBackup ? "backup" : "primary");
             }
             catch { }
         }
-        return new KillTally(path, new Dictionary<int, int>());
+        ModLogger.Warn(LogVerb.Save, "No kill tally was found on disk; starting fresh.");
+        return new KillTally(path, new Dictionary<int, int>(), "fresh");
     }
 
     /// <summary>Persist atomically: write a .tmp, back the current file up to .bak, move the
@@ -72,6 +83,6 @@ internal sealed class KillTally
             if (File.Exists(_path)) File.Copy(_path, _path + ".bak", true);
             File.Move(tmp, _path, true);
         }
-        catch (Exception ex) { ModLogger.LogError("kill-tally: failed to save kill counts to disk -- " + ex.Message); }
+        catch (Exception ex) { ModLogger.Error(LogVerb.Save, "Failed to save the kill tally to disk: " + ex.Message); }
     }
 }

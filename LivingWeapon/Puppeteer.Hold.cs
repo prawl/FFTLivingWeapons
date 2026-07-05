@@ -34,7 +34,7 @@ internal sealed partial class Puppeteer
         int wTurns = _state.WielderFp is { } w ? _turns.Turns(w.lvl, w.br, w.fa) : 0;
         if (!_state.IsExpired(wTurns, _turns.GlobalTurns, puppetTurns, Tuning.PuppeteerWielderlessFallbackTurns)) return;
         Release();
-        Log.Info($"puppeteer: control expired (wielder's next turn) -- the enemy reverts to AI");
+        ModLogger.Event(LogVerb.Signature, "Puppet control ended on the wielder's next turn; the enemy reverts to its own side.");
     }
 
     /// <summary>Clear the agency bit on the active puppet (revert to AI) and drop the latch. The cooldown

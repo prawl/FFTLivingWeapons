@@ -68,11 +68,21 @@ internal sealed class LarcenyHoldings
                 {
                     LarcenyPolicy.ClearBit(_mem, a, key.off, key.mask);
                     st.Release(key);
-                    ModLogger.Log($"larceny: a stolen buff FADED from a wielder (after {holdTurns} of its turns)");
+                    ModLogger.Event(LogVerb.Signature, $"The stolen {BuffName(key)} wore off the wielder after {holdTurns} of its turns.");
                 }
             if (st.Held.Count == 0) (empties ??= new()).Add(fp);
         }
         if (empties != null) foreach (var fp in empties) _byWielder.Remove(fp);
+    }
+
+    /// <summary>The stealable buff's display name for the (offset,mask) key, from LarcenyPolicy's
+    /// own table (the steal path picked it from there, so the key always round-trips); "buff" is
+    /// the defensive fallback for a key no longer in the table.</summary>
+    private static string BuffName((int off, byte mask) key)
+    {
+        foreach (var b in LarcenyPolicy.Stealable)
+            if (b.Off == key.off && b.Mask == key.mask) return b.Name;
+        return "buff";
     }
 
     /// <summary>Clear every held bit off every locatable wielder (battle exit).</summary>

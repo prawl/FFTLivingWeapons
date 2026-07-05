@@ -105,16 +105,18 @@ internal sealed class EarnedAnchors
         entry = new Entry();
         if (!_pats.TryGet(weaponId, 1, out var e1) || !_pats.TryGet(weaponId, 2, out var e2))
         {
-            ModLogger.LogError($"earned-anchors: weapon {weaponId} has no baked pattern -- refusing to register an earned line");
+            ModLogger.Error(LogVerb.Display, $"Refused to register an earned line: {LogNames.Weapon(weaponId)} has no baked pattern.");
+            ModLogger.Debug(LogVerb.Trace, $"earned-line refusal detail (weapon id {weaponId}, no baked pattern)");
             return false;
         }
         byte[] ascii = ByteScan.Ascii(line);
         byte[] utf16 = ByteScan.Utf16(line);
         if (ascii.Length != e1.Flavor.Length || utf16.Length != e2.Flavor.Length)
         {
-            ModLogger.LogError("earned-anchors: weapon " + weaponId + "'s composed line length mismatches its baked "
-                + "flavor pattern -- refusing (would desync the painter) [ascii=" + ascii.Length + " vs " + e1.Flavor.Length
-                + ", utf16=" + utf16.Length + " vs " + e2.Flavor.Length + "]");
+            ModLogger.Error(LogVerb.Display, $"Refused to register an earned line: {LogNames.Weapon(weaponId)}'s composed line length mismatches its baked flavor pattern (it would desync the painter).");
+            ModLogger.Debug(LogVerb.Trace, "earned-line refusal detail (weapon id " + weaponId
+                + ", ascii=" + ascii.Length + " vs " + e1.Flavor.Length
+                + ", utf16=" + utf16.Length + " vs " + e2.Flavor.Length + ")");
             return false;
         }
         entry.Line = line;

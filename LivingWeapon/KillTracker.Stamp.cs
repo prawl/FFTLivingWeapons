@@ -40,6 +40,7 @@ internal sealed partial class KillTracker
         if (!_periodOpen)
         {
             _lethalActor[s] = new List<int>(_lastPlayerWeapons);   // today's behavior, byte-identical
+            _lethalViaFallback[s] = _latchViaFallback;
             return;
         }
         bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age);
@@ -47,15 +48,21 @@ internal sealed partial class KillTracker
         {
             case KillerStamp.StampKind.Latch:
                 _lethalActor[s] = new List<int>(_lastPlayerWeapons);
+                _lethalViaFallback[s] = _latchViaFallback;
                 break;
             case KillerStamp.StampKind.Register:
                 _lethalActor[s] = hypW;   // fresh list from HandsFromRoster -- never an alias into register state
-                ModLogger.Log($"kill: death-edge stamp overridden by the actor register -- latch=[{string.Join(",", _lastPlayerWeapons)}] register=[{string.Join(",", hypW)}] (nameId={hypName}, arrival age {age} ticks, slot {s})");
+                _lethalViaFallback[s] = false;   // register-named: pointer-derived, never a fallback resolve
+                ModLogger.EventWithTrace(LogVerb.Credit,
+                    $"Corrected the kill attribution: the actor register names a fresher killer; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))} instead of {string.Join(", ", _lastPlayerWeapons.ConvertAll(LogNames.Weapon))}.",
+                    $"register-override detail (latch=[{string.Join(",", _lastPlayerWeapons)}] register=[{string.Join(",", hypW)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
                 _recorder?.Invoke("kill", $"stamp-override slot={s} latch=[{string.Join(",", _lastPlayerWeapons)}] register=[{string.Join(",", hypW)}] nameId={hypName} age={age}");
                 break;
             case KillerStamp.StampKind.Bury:
-                _lethalUntracked[s] = true;
-                ModLogger.Log($"kill: death-edge stamp -- the register names a player with no tracked weapon; kill goes uncredited (latch=[{string.Join(",", _lastPlayerWeapons)}], nameId={hypName}, slot {s})");
+                _lethalUntracked[s] = UntrackedReason.ActorRegister;
+                ModLogger.EventWithTrace(LogVerb.Kill,
+                    $"The actor register names a player carrying no Living Weapon as the killer; the kill goes uncredited (overriding the stale latch {string.Join(", ", _lastPlayerWeapons.ConvertAll(LogNames.Weapon))}).",
+                    $"register-bury detail (latch=[{string.Join(",", _lastPlayerWeapons)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
                 _recorder?.Invoke("kill", $"stamp-bury slot={s} latch=[{string.Join(",", _lastPlayerWeapons)}] nameId={hypName} age={age}");
                 break;
         }
@@ -71,7 +78,10 @@ internal sealed partial class KillTracker
         if (!_killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age)) return;
         if (hypW.Count == 0) return;
         _lethalActor[s] = hypW;
-        ModLogger.Log($"kill: death-edge stamp from the actor register (no latch) -- register=[{string.Join(",", hypW)}] (nameId={hypName}, arrival age {age} ticks, slot {s})");
+        _lethalViaFallback[s] = false;   // register-named: pointer-derived, never a fallback resolve
+        ModLogger.EventWithTrace(LogVerb.Credit,
+            $"The actor register identified the killer where no actor was latched; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))}.",
+            $"register-no-latch detail (register=[{string.Join(",", hypW)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
         _recorder?.Invoke("kill", $"stamp-register-nolatch slot={s} register=[{string.Join(",", hypW)}] nameId={hypName} age={age}");
     }
 }

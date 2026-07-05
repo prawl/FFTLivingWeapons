@@ -69,7 +69,9 @@ internal sealed partial class ExtraTurn : ISignature
         if (freshKill)
         {
             if (_state == GrantState.Idle) Arm(now);
-            else ModLogger.Log($"extra-turn: another kill landed while an extra turn is already queued up -- it will not stack [state={_state}]");
+            else ModLogger.EventWithTrace(LogVerb.Signature,
+                "Another kill landed while an extra turn is already pending; extra turns do not stack",
+                $"extra-turn queued kill (state={_state})");
         }
         if (_state == GrantState.Idle) return;
 
@@ -91,20 +93,21 @@ internal sealed partial class ExtraTurn : ISignature
             if (cls is { } s)
             {
                 _state = s;
-                ModLogger.Log($"extra-turn: figuring out timing for the bonus turn -- {(s == GrantState.Owed ? "two" : "one")} more turn-end(s) must pass before it fires [state={s} CT={ct}]");
+                // Demoted to Debug (log facelift): an internal state-machine step, not match report.
+                ModLogger.Debug(LogVerb.Signature, $"bonus-turn timing resolved: {(s == GrantState.Owed ? "two" : "one")} more turn ends must pass before it fires (state {s}, charge time {ct})");
             }
         }
         else
         {
             (_streak, _took, bool pullDown) = Observe(_streak, _took, ct);
-            if (pullDown) ModLogger.LogDebug($"extra-turn: turn-end #{++_pullDowns} detected (CT {ct}, state {_state})");
+            if (pullDown) ModLogger.Debug(LogVerb.Signature, $"turn end number {++_pullDowns} detected (charge time {ct}, state {_state})");
             (GrantState next, bool consumed) = Step(_state, pullDown);
             if (consumed) { Release(ReleaseReason.Consumed); return; }
             if (next != _state) { _state = next; _deadline = now.AddSeconds(NoSignalSeconds); }
         }
 
         if (Slams(_state) && _base != 0 && _mem.Writable(_base + CtOff, 1)) _mem.W8(_base + CtOff, SlamCt);
-        if (_dbg++ % 15 == 0) ModLogger.LogDebug($"extra-turn: {_state} -- wielder entry at 0x{_base:X}, CT {ct}, streak {_streak}, slam took={_took}");
+        if (_dbg++ % 15 == 0) ModLogger.Debug(LogVerb.Signature, $"extra-turn heartbeat: state {_state}, wielder entry at 0x{_base:X}, charge time {ct}, read streak {_streak}, slam landed={_took}");
     }
 
     private void Arm(DateTime now)
@@ -112,15 +115,29 @@ internal sealed partial class ExtraTurn : ISignature
         _state = GrantState.Arming; _base = 0; _prevCt = -1;
         _streak = 0; _took = false; _pullDowns = 0; _deadStreak = 0;
         _deadline = now.AddSeconds(NoSignalSeconds); _hardStop = now.AddSeconds(AbsoluteCapSeconds);
-        ModLogger.Log($"extra-turn: {LogNames.Weapon(ZwillId)} scored a kill -- the wielder will get an extra turn (level {_wielder.lvl}, brave {_wielder.br}, faith {_wielder.fa})");
+        ModLogger.Event(LogVerb.Signature, $"{LogNames.Weapon(ZwillId)} scored a kill; its wielder (level {_wielder.lvl}, brave {_wielder.br}, faith {_wielder.fa}) earns an extra turn");
     }
 
     private void Release(ReleaseReason reason)
     {
         if (RestoreCt(reason) && _base != 0 && _mem.Writable(_base + CtOff, 1)) _mem.W8(_base + CtOff, 0);
-        ModLogger.Log($"extra-turn: the extra turn ended ({reason}) after {_pullDowns} turn-end(s) [was in state {_state}]");
+        ModLogger.EventWithTrace(LogVerb.Signature,
+            $"The extra turn finished ({ReasonWords(reason)}) after {_pullDowns} turn ends",
+            $"extra-turn release (was in state {_state})");
         _state = GrantState.Idle; _base = 0; _streak = 0; _took = false; _prevCt = -1; _deadStreak = 0;
     }
+
+    /// <summary>Console wording for a release reason (full words, no state-machine jargon).</summary>
+    private static string ReasonWords(ReleaseReason reason) => reason switch
+    {
+        ReleaseReason.Consumed => "consumed",
+        ReleaseReason.NoSignal => "no signal timeout",
+        ReleaseReason.AbsoluteCap => "the wall-clock cap",
+        ReleaseReason.KillerDead => "the wielder died",
+        ReleaseReason.BattleReset => "the battle reset",
+        ReleaseReason.GateLost => "the weapon was unequipped or lost its tier",
+        _ => reason.ToString(),
+    };
 
     private int ReadCt() => _base != 0 && _mem.Readable(_base + CtOff, 1) ? _mem.U8(_base + CtOff) : -1;
     private int ReadHp() => _base != 0 && _mem.Readable(_base + Offsets.AHp, 2) ? _mem.U16(_base + Offsets.AHp) : -1;

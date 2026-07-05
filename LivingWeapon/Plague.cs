@@ -75,7 +75,9 @@ internal sealed partial class Plague : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log($"plague: {(active ? "window open -- poison landing on the wielder's target will never fade" : "window closed")}");
+            // Demoted to Debug (log facelift): two lines per Venombolt action is acted-window
+            // chatter, evidence rather than match report.
+            ModLogger.Debug(LogVerb.Signature, $"plague window {(active ? "opened: poison landing on the wielder's target during this window latches" : "closed")}");
         }
 
         // Release all latches immediately when Venombolt is unequipped (A4 unequip release).
@@ -121,7 +123,7 @@ internal sealed partial class Plague : ISignature
             {
                 int seedCt = _mem.Readable(addr + Offsets.ACtTurn, 1) ? _mem.U8(addr + Offsets.ACtTurn) : 0;
                 _state.Latch(addr, fp, seedCt);
-                ModLogger.Log($"plague: locked onto enemy ({mhp} max HP, lv {lvl}) -- its poison will never fade and ticks harder");
+                ModLogger.Event(LogVerb.Signature, $"Venombolt locked onto the level {lvl} enemy ({mhp} maximum HP); its poison will never fade and ticks harder");
             }
         }
 

@@ -1,124 +1,202 @@
 # Logging model
 
-One page: the tier model, the module-prefix glossary, the lines a player is most likely to see
-(with a plain gloss), and where the flight recorder (stage 2 of the logging overhaul) slots in.
+One page: the line format, the tier model, the closed event-verb glossary, the launch header and
+the per-battle match report (with worked examples), and where the flight recorder (the black box)
+slots in. This is the post-facelift reference (2026-07-05); `livingweapon.prev.log`-era archives
+predate it and keep the old shape (see "Reading old archives" below).
+
+## Line format
+
+Every line opens with `[Living Weapons]`. Both sinks always carry a millisecond timestamp
+(`[HH:mm:ss.fff]`) and a level bracket (`[INFO]`/`[WARN]`/`[ERROR]`/`[DEBUG]`); the console
+timestamp is load-bearing (it is what lets a player's bug-report console paste be joined back to
+the matching `livingweapon.log` lines), never drop it. Beyond that, the FILE and CONSOLE shapes
+diverge by design (the rendering split):
+
+- **FILE, every line:** `[Living Weapons] [HH:mm:ss.fff] [LEVEL] [verb] description`: five
+  tokens. The `[verb]` bracket names one of the closed event verbs below.
+- **CONSOLE, Info tier:** `[Living Weapons] [HH:mm:ss.fff] [INFO] description`: four tokens, no
+  verb. This is the match report a player actually reads, so its sentences are subject-first prose
+  (see "Subject-first lexical fence" below) rather than a labeled event feed.
+- **CONSOLE, Warning/Error tier:** `[Living Weapons] [HH:mm:ss.fff] [LEVEL] [verb] description`:
+  five tokens, same as the file. A bug-report console paste needs the verb for triage.
+- **CONSOLE, Debug tier (only when VerboseLog is on):** five tokens, verb included; a Debug line
+  reaching the console is a diagnostic request, not curated narrative.
+
+**Full words on console lines** (no `cfg`/`dmg`/`abil`/`lvl` abbreviations), **names not ids**:
+weapon and job names come from `LogNames`; numeric ids, hex addresses, offsets, and read-backs
+live in parentheses on FILE lines only. The standard mechanism is the **two-line id pattern**
+(`ModLogger.EventWithTrace`/`WarnWithTrace`): a clean console sentence plus a `[trace]` Debug
+companion carrying the parenthesized ids. No " -- " separator and no em dash appear in any log
+text (colon/semicolon/comma/parens instead); `LogContractTests` enforces this by source scan.
+
+**Console dedup is a semantic key, not a rendered-string key:** the console suppresses a repeat
+only when the SAME (level, verb, message) triple already appeared this battle (reset on both
+battle edges via `ModLogger.NoteBattleEdge`). Two different verbs sharing the same Info-tier
+sentence render identical console text (the verb is hidden there) but are still two distinct
+events, and both reach the console. The FILE is never deduped.
+
+**Subject-first lexical fence:** every Info/Warning console-eligible message (routed through
+`ModLogger.Event`/`Warn`/`EventWithTrace`/`WarnWithTrace` or a `ScopedLogger`'s `Info`/`Warn`)
+must read as a sentence, not a label. `LogContractTests` enforces a LEXICAL floor (the message
+must open with an uppercase letter or an interpolation hole, and must not open with a bare
+`Word:` leader such as `Armed:`/`Locked:`/`Granted:`), but full subjecthood beyond that lexical
+check is a human review rule, not something a regex can certify. The two `#if LWDEV` dev
+instruments (`ShowSpike.cs`, `FlavorSpike.cs`) are exempt from the fence only: the console is
+that scaffolding's user interface and none of it ships in production.
 
 ## Tier model
 
-The runtime logs through a static facade, `ModLogger` (`LivingWeapon/ModLogger.cs`), backed by an
-`ILogger` (`LivingWeapon/ILogger.cs`) -- the same shape as the sibling FFTColorCustomizer mod's
-ModLogger/ILogger split, ported so both mods share one logging model. The production
-implementation is `FileConsoleLogger` (`LivingWeapon/FileConsoleLogger.cs`).
+The runtime logs through the static `ModLogger` facade (`LivingWeapon/ModLogger.cs`), backed by
+an `ILogger` (`LivingWeapon/ILogger.cs`); production impl is `FileConsoleLogger`, test-only
+swallow is `NullLogger`. Since the facelift the facade surface is TYPED: every call site uses
+`ModLogger.Event(verb, msg)` / `Warn(verb, msg)` / `Error(verb, msg[, ex])` / `Debug(verb, msg)`,
+the two-line helpers `EventWithTrace`/`WarnWithTrace`, or a `ScopedLogger` from
+`ModLogger.For(verb, armed)`. The old free-form `Log`/`LogWarning`/`LogError`/`LogDebug` entry
+points exist only inside the facade's own plumbing; `LogContractTests` fails the build if any
+module calls them raw.
 
 Four tiers, `LogLevel` enum (low = more verbose): `Debug` (0), `Info` (1), `Warning` (2),
-`Error` (3), `None` (4, silences everything).
+`Error` (3), `None` (4, silences the console entirely).
 
 **The two-sink rule (the one thing worth remembering):**
 
-- The **file** (`livingweapon.log`, rotated per launch to `livingweapon.prev.log`, millisecond
-  timestamps) gets **every** message, **Debug tier included, unconditionally** -- regardless of
-  the configured `LogLevel`. Debug-tier file lines carry a `DBG ` tag right after the timestamp so
-  they're easy to grep out. The evidence chain a live diagnosis needs is never thinner than
-  before this overhaul.
+- The **file** (`livingweapon.log`, rotated per launch to `livingweapon.prev.log`) gets **every**
+  message, **Debug tier included, unconditionally**, regardless of the configured `LogLevel`.
+  The evidence chain a live diagnosis needs is never thinner than the console.
 - The **console** (the Reloaded window) only shows a message when its tier is at or above the
-  configured `LogLevel`. Default `LogLevel` is `Info` -- so Debug-tier lines (per-tick diagnostics,
-  the battle-event timeline, signature verdict dumps) are file-only by default and never spam the
-  console.
+  configured `LogLevel` (default `Info`), and dedups repeats per battle (see above).
+
+**Grep-habit break (facelift):** the old file shape was
+`HH:mm:ss.fff [FFTLivingWeapons] DBG message`. The `DBG ` tag is GONE (grep `"[DEBUG]"` now), the
+`WARNING: `/`ERROR: ` tags are gone (grep `"[WARN]"`/`"[ERROR]"`), the tag is `[Living Weapons]`
+(with a space), and the timestamp moved inside brackets AFTER the tag. `livingweapon.prev.log`
+files written before the facelift keep the old shape.
+
+**Tier meanings:** Info = the match report (battle bookends, kill credits with names and victim
+identity, Marks, tier-ups, attribution corrections, signature moments, the startup header).
+Warning = degraded but coping (locate-miss skips, write read-back misses, corrupt-file fallbacks,
+unseen enemies, lost kills). Error = something broke; an Error-tier line ALSO arms the flight
+recorder's FlushOnce trigger (see the flight section: only the FIRST error of a launch produces
+an archive, deliberately). Debug = file-only evidence (heartbeats, gate churn, verdict dumps,
+`[trace]` id companions, the event timeline).
+
+**The relevance gate (armed):** a signature module's Info lines reach the console only while its
+weapon is EQUIPPED BY A DEPLOYED UNIT this battle; unarmed, `ScopedLogger` demotes them to Debug
+(the file keeps everything). Signature modules gate on `Wielder.AnyDeployedMainHand`; the
+attribution lines (pending corpses, kill expiries, coverage) gate on KillTracker's sticky
+per-battle latch ("any tracked weapon resolved this battle"). Modules that deliberately tick OUT
+of battle (Barrage, ShadowBlade, CharmLock's hold path, GunSlinger's roster prep) keep their
+out-of-battle plumbing at Debug rather than inventing an out-of-battle gate; their player-visible
+grant/proc edges are armed by construction (they only fire when a wielder exists).
+
+**The event timeline** (`BattleLog`'s `event: damage/healing/move` lines, per-tick HP/position
+diffs) is always captured to the file at Debug tier under the `[trace]` verb, in every build
+flavor (a deliberate Release-behavior change from the original DEV-only const); the console stays
+quiet via the Debug tier.
 
 **The user-facing knob:** `Config.VerboseLog` (Reloaded launcher, "Verbose Diagnostic Log",
-default off). Setting it true sets `ModLogger.LogLevel = LogLevel.Debug` at startup (see
-`Mod.cs`), so Debug-tier lines also reach the console. It never affects the file -- turning it
-off does not lose any diagnostic detail, it only quiets the console.
+default off) maps to `ModLogger.LogLevel = Debug` at startup (Mod.cs), surfacing Debug lines on
+the console too. It never affects the file.
 
-**Deliberate Release-behavior change:** the dev-event timeline (`BattleLog`'s `ev:` lines --
-per-tick HP/position diffs) used to be a DEV-only compile-time const (`Tuning.VerboseEvents`,
-`false` in Release). It is now always captured to the file (`Engine.cs` constructs
-`new BattleLog(verbose: true, sink: ModLogger.LogDebug)` unconditionally) -- the black-box
-evidence chain wants the data in every build; the console stays quiet via the Debug tier.
+## Event verbs (closed glossary)
 
-## Module-prefix glossary
+The one source of truth for every log line's `[verb]` token. `LogContractTests` parses this
+table and asserts it matches the `LogVerb` enum one-for-one; the doc and the code cannot drift.
+The set is CLOSED: a new subsystem reuses one of these 18 verbs, or this table gets amended
+deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-facelift prefixes so
+`livingweapon.prev.log`-era archives stay readable.
 
-Every log line starts with a module tag. One line each on what that module is:
+| Verb | Legacy prefix(es) | Level discipline |
+|---|---|---|
+| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer only. |
+| `config` | `config:` | Info once per launch; Warning on read failure. |
+| `battle-start` | `battle: started` | Info once per battle; sentinels move to a `[trace]` companion. |
+| `battle-end` | `battle: ended` | Info once per battle; THE match-report summary line. |
+| `kill` | `kill:` credit lines | Info, with wielder weapon NAME + victim identity where known; ids in parens, file-only. |
+| `credit` | `turn:` acting-weapon attribution, `kill:` coverage check, attribution corrections | Info only for corrections and degraded coverage (Warning); routine per-turn credit is Debug. |
+| `mark` | (new: Reliquary RecordDeed earn, previously toast-only) | Info, once per earn. |
+| `tier` | tier crossings (previously buried in GRANT/toast payloads) | Reserved: no per-crossing line is emitted; a crossing surfaces via the `[battle-end]` summary and toast delivery instead. |
+| `grant` | `GRANT`, `barrage:`/`shadow blade:` JobCommand grant + readback lines | Info when armed; a readback MISS stays Warning-worthy. |
+| `signature` | `charm-lock:` `eagle-eye:` `ricochet:` `maim:` `kobu:` `iai:` `plague:` `life-sap:` `wyrmblood:` `renewal:` `rapture:` `font:` `feign-death:` `larceny:` `benediction:` `sanctuary:` `choir:` `ultima:` `afterimage:` `puppeteer:`* | Info only under the relevance gate (a deployed unit wields the weapon this battle); everything else Debug. |
+| `toast` | `banner-toast:` `prompt-swap:` | Info for delivered/dropped; queue internals Debug. |
+| `save` | `kill-tally:` `legend-store:` + the new load summaries | Info for load summaries; Warning for fallback/corrupt; Error for failed saves. |
+| `display` | `display:` | Info once per launch: sweep generation 1 is the liveness canary; every later generation is Debug, file-only. |
+| `growth` | `growth:` locate lines | Debug (file-only at default level); ambiguous-locate refusals are Warning. |
+| `turn` | `turn:` per-unit turn-finished bookkeeping | Debug (file-only): demoted off console per the no-heartbeats rule. |
+| `treasure` | `treasure:` `scholar-ring:` | Info only with the Ring armed (relevance gate); the Scholar's Ring grant keeps its one Info line per session. Module slated for removal; no further investment. |
+| `engine` | `engine:` tick-loop internal errors | Error, console-deduped per battle. |
+| `trace` | `ev:` `wielder-search:` `show-spike:` (dev), scan/dump evidence, id companions | Debug, file-only by default; VerboseLog surfaces it. |
 
-| Prefix | Module |
-|---|---|
-| `battle:` | Battle enter/exit edges (Engine's BattleState). |
-| `turn:` | Per-unit turn-completion / acting-weapon attribution (TurnTracker, KillTracker). |
-| `kill:` | Kill credit and the enemy-identity coverage check (KillTracker, EnemyOracle). |
-| `growth:` | Per-slot combat-struct locate for stat growth (GrowthEngine.Locate). |
-| `GRANT` | A weapon's signature ability/support being granted or released (GrowthEngine.Signatures). |
-| `ultima:` / `afterimage:` | Ultima Weapon's HP-scaled PA, Swiftedge's Speed ramp. |
-| `display:` | The equip-card Kills-counter/suffix memory-sweep painter. |
-| `config:` | The one-time startup echo of the resolved Config values. |
-| `charm-lock:` | Galewind +3 -- held, unbreakable Charm. |
-| `barrage:` | Yoichi Bow +3 -- JobCommand-injected Barrage. |
-| `shadow blade:` | Sanguine Sword +3 -- JobCommand-injected Shadow Blade. |
-| `eagle-eye:` | Eclipsebolt +3 -- hastened enemy Doom. |
-| `ricochet:` | Stormarc +3 -- chain-lightning bounce. |
-| `maim:` | Huntress +3 -- reaction suppression on hit. |
-| `kobu:` | Kiyomori +3 -- one-shot brave match. |
-| `iai:` | Ame-no-Murakumo +3 -- opening-turn Speed hold. |
-| `plague:` | Venombolt +3 -- permanent, harder-ticking poison. |
-| `life-sap:` | Umbral Rod +3 -- kill-triggered HP heal. |
-| `wyrmblood:` / `renewal:` | Dragon Rod / Mending Staff +3 -- turn-edge regen splash/aura. |
-| `rapture:` | Rod of Faith +3 -- low-HP emergency teleport window. |
-| `font:` | Wellspring/Umbral Rod's Spiritual Font -- move-triggered HP/MP restore. |
-| `feign-death:` | Wrathblade +3 -- played-dead corpse, auto-revive. |
-| `larceny:` | Arcanum +3 -- steal/dispel a buff off the struck foe. |
-| `benediction:` | Sanctus Staff +3 -- boosted ally heals. |
-| `sanctuary:` | Staff of the Magi +3 -- fallen allies held from crystallizing. |
-| `choir:` | Warlock's Staff +3 -- adjacent instant-cast aura. |
-| `puppeteer:` / `puppeteer gate:` / `puppeteer-diag:` | Galewind +3 -- dominate a struck enemy (live-verify arc still in flight; its lines were carved out of this overhaul and land with that arc's own commit). |
-| `scholar-ring:` | Auto-grants the Scholar's Ring so Treasure Master always has a gate item. |
-| `treasure:` | Treasure Master -- auto-marks Move-Find treasure tiles. |
-| `prompt-swap:` | Delivers tier-up toasts by swapping the Wait-state facing prompt's text. |
-| `banner-toast:` | The tier-up toast queue (feeds prompt-swap). |
-| `wielder-search:` | DEV-pulse-only diagnostic dump when a signature can't find its wielder (inert in normal play). |
-| `ev:` | The dev battle-event timeline (BattleLog) -- per-tick HP/position diffs, Debug tier. |
-| `show-spike:` | LWDEV-only callout-RE instrument (dev builds only, not shipped in Release). |
+\* Puppeteer's lines adopted the `signature` verb with the facelift conversion; its live-verify
+arc continues separately.
 
-## The ~15 most player-visible lines
+## The launch header
 
-What they mean, and when they signal a real problem.
+Six Info lines at every launch (seven in development builds), then the hooks footer once the
+loader resolves controllers. File shape shown; the console drops the `[verb]` brackets:
 
-1. **`Living Weapon starting up ...`** -- the mod loaded. Missing entirely = the DLL never ran.
-2. **`config: TreasureAlwaysOn=... VerboseLog=... LogLevel=...`** -- the resolved settings for this
-   session. First thing to check in any bug report.
-3. **`battle: started (...)`** / **`battle: ended -- saving kill tally, ...`** -- the battle
-   enter/exit edges. Missing `ended`, or two in a row with no `started` between, means the battle
-   boundary detection is stuck -- kill tallies may not save.
-4. **`turn: a unit finished its turn (#N this battle) [...]`** -- per-turn bookkeeping. Volume-heavy
-   but harmless; only worth reading when diagnosing a specific mis-credit.
-5. **`kill: <Weapon> earns kill #N (enemy fell at x,y)`** -- the actual kill credit. This is the one
-   line to watch when verifying a weapon's tally is climbing correctly.
-6. **`kill: all N enemies accounted for -- kill credit will be reliable this battle`** -- healthy
-   coverage; kills this battle can be trusted. **`kill: only M/N accounted for so far ...`**
-   repeating past the first few seconds of battle is the tell that something is wrong (see the
-   paired `WARN` line above it for which enemy).
-7. **`GRANT <Weapon> -> <Ability> ... readback=SET`** -- a weapon's signature ability successfully
-   armed this battle. `readback=MISS` means the write failed -- the signature is NOT active despite
-   the log line existing; report it. `WARN build-time-only support` means the ability can never
-   work live -- a design bug, not a runtime failure.
-8. **`display: memory sweep #1 finished -- maintaining N card-text spots`** -- the equip-card Kills
-   counter painter is working. This is the per-launch canary; if it never appears, kill counters
-   won't paint on any card. (Later sweep generations are Debug-tier -- turn on VerboseLog to watch
-   them too.)
-9. **`<signature> ACTIVE -- ...`** / **`... inactive`** (charm-lock, barrage, eagle-eye, ricochet,
-   maim, plague, life-sap, wyrmblood, renewal, rapture, font, feign-death, benediction, sanctuary,
-   choir) -- a +3 weapon's signature turning on/off as it's equipped/unequipped or crosses its kill
-   tier. The expected "is my weapon's gift live" check.
-10. **`scholar-ring: granted (you had none)`** -- once per session; explains a Scholar's Ring
-    appearing in inventory unprompted (Treasure Master's gate item).
-11. **`treasure: no Scholar's Ring equipped -- module idle ...`** -- once per battle; Treasure
-    Master's discoverability hint when nobody in the party carries the ring.
-12. **`treasure: map N ... armed -- M tile(s)`** -- Treasure Master found and marked the map's
-    Move-Find tiles.
-13. **`banner-toast: queue at cap (N) -- dropped stale toast ...`** -- rare; a tier-up toast was
-    dropped because too many piled up unseen. Explains a "missing" toast.
-14. **`prompt-swap: delivered "..." (holder=0x...)`** -- a tier-up toast actually rendered in the
-    facing-prompt slot. The player-visible confirmation the toast pipeline fired.
-15. **`startup failed -- Living Weapon will not run: ...`** / any `ERROR:` line -- always worth
-    reading; these are the blanket-KEEP Log.Error sites and never demoted.
+```
+[startup] Living Weapons version 2.2.2 (production build) is starting inside fft_enhanced.exe.
+[config]  Configuration loaded: VerboseLog=False BannerToasts=True TreasureAlwaysOn=False LogLevel=Info (from ...\Config.json)
+[save]    The kill tally holds 63 lifetime kills across 12 weapons (kills.json, primary).
+[save]    The legends hold deeds for 4 weapons and 1 Marks (legends.json, primary).
+[startup] Living Weapons is tracking 118 weapon types.
+[startup] The runtime loop has started.
+[startup] Connected to the game's rendering hooks; toast pop-ups can be delivered.
+```
+
+Facts worth knowing: the version is read fail-soft from the deployed `ModConfig.json`
+("unknown" if unreadable); the flavor is the compiled `Tuning.BuildFlavor` const (never
+`build_flavor.txt`, which is BuildLinked's deploy-guard marker and can be stale/absent); the two
+`[save]` lines state their load SOURCE (`primary`/`backup`/`fresh`), and a backup or fresh load
+also emits a Warning; `DevSeedKills` is echoed in the `[config]` line only in development builds,
+and dev builds add `[startup] Development build: every weapon's tally is seeded...` after the
+tally load line. A missing hooks helper mod turns the footer into a Warning (toasts die, the mod
+runs); the runtime-loop line is the liveness canary that closes the header.
+
+## The match report
+
+What a typical armed battle prints at the default LogLevel (console shape: no verb brackets on
+Info lines). The design ceiling is roughly 15 console lines for a normal battle:
+
+```
+Battle started.
+All 6 enemies are accounted for; kill credit will be reliable this battle.
+Gloomfang bestows Concentration on its wielder.
+Windrunner claims kill number 8, felling an undead foe at (7,6).
+Kiyomori struck a braver enemy (its current brave 75); the wielder's brave rises 60 to 75.
+Windrunner claims kill number 9, felling a caster at (4,9).
+Crediting the unit that landed the finishing blow, wielding Windrunner, rather than the unit that acted most recently.
+Windrunner earns the Mark of the Requiem.
+Delivered the toast "Windrunner has earned its Mark: Requiem!".
+Battle ended: 2 kills credited (Windrunner 2), 1 Mark earned (Windrunner the Requiem), 0 tiers reached; 23 turns; the kill tally and legends are saved.
+```
+
+The moving parts:
+
+- **Kill credits** (`[kill]`) name the weapon and the victim's archetype in words (`a caster` /
+  `a human` / `a monster` / `an undead foe` / `an enemy` when no snapshot was captured); the
+  victim's nameId/job and the weapon id ride the `[trace]` companion in the file.
+- **Attribution corrections** (`[credit]`) stay on the console: the first-kill fallback, the
+  charged-attack (Jump/spellcast) credit, the finishing-blow-over-live-latch credit, and the
+  actor-register overrides. Routine per-turn latching is Debug.
+- **The owner-flagged no-credit ruling**: `The fallen undead foe... was slain by a player carrying
+  no Living Weapon; the kill is deliberately left uncredited (actor resolved via ...)` names the
+  victim AND how the actor was resolved (the acted-period latch / the actor register / a
+  charged-action landing / an enemy-turn team read).
+- **Unarmed battles are silent**: coverage lines, pending corpses, and kill expiries demote to
+  Debug when no Living Weapon is fielded (the relevance gate), so a no-mod-weapons battle prints
+  only the two bookends.
+- **Warnings** that survive to the console (armed): a lost kill (`The killer of the enemy at
+  battle slot N could not be determined...`), an unseen pre-battle enemy, a write read-back MISS,
+  a corrupt save-file fallback.
+- **The `[battle-end]` summary** is composed BEFORE the per-battle counters reset: kills per
+  weapon (with lifetime-derived tier crossings), Marks earned, the optional `, N kills credited
+  by fallback attribution` clause, and the turn count. Zero-kill form: `Battle ended: no kills
+  were credited; N turns; the kill tally and legends are saved.`
+- **Both battle edges** carry their raw sentinels (`slot0`/`slot9`/`mode`/`paused`/`event`) in
+  `[trace]` file companions, not on the console.
 
 ## Flight recorder (the black box)
 
@@ -138,37 +216,52 @@ facade over it, mirroring `ModLogger`'s own swappable-`Instance` idiom**: every 
 them call `Flight.Init`, so every `Flight.*` call inside the production code they exercise does
 nothing.
 
+**The jsonl vocabulary is FROZEN and separate from the console verbs.** The record type strings
+(`"ev"`, `"kill"`, `"turn"`, `"mode"`, `"toast"`, `"legend-store"`, `"census"`, `"victim"`,
+`"mark-earned"`, `"deed-miss"`, ...) are set at the tap sites and were deliberately NOT renamed
+by the logging facelift: `tools/parse_flight.py --grep` filters and every existing archive depend
+on them. The console `[verb]` glossary above is a different namespace; do not "align" them.
+
 **What gets captured (on-change only -- never a per-tick state dump):** battle enter/exit edges
-and battle-mode changes (Engine); the dev event timeline's `ev:` lines (BattleLog, dual-emitted
-alongside the existing `ModLogger.LogDebug` sink); turn-clock rising/falling edges and per-unit
-turn credit (TurnTracker); the engine actor-pointer's ownership transitions (ActorRegister); the
-acting-player weapon latch and every corpse credit/no-credit verdict (KillTracker); tier-up/
-milestone toast enqueue and drop (BannerToast); and toast delivery into the facing prompt
-(PromptSwap). Deliberately **not** tapped: Puppeteer (carved out, a separate live-verify arc is
-in flight against those exact lines) and Treasure Master / the chemist-grenade paths (both are
+and battle-mode changes (Engine); the event timeline (BattleLog's `event: damage/healing/move`
+lines, dual-emitted alongside the `[trace]` file sink under the flight type `"ev"`); turn-clock
+rising/falling edges and per-unit turn credit (TurnTracker); the engine actor-pointer's ownership
+transitions (ActorRegister); the acting-player weapon latch and every corpse credit/no-credit
+verdict, including the pending edge (KillTracker); tier-up/milestone toast enqueue and drop
+(BannerToast); toast delivery into the facing prompt (PromptSwap); and the Reliquary deed taps
+(`mark-earned`/`deed-miss`). Deliberately **not** tapped: Puppeteer (a separate live-verify arc
+is in flight against those exact lines) and Treasure Master / the chemist-grenade paths (both
 slated for eventual removal -- no new investment there).
 
 **Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl` -- one compact
 JSON object per line (Newtonsoft.Json; no hand-rolled escaping). The first line of every file is
 a header object (`{"hdr": true, "wall": "...", "t": <elapsedMs>}`) carrying the wall-clock time
 and the recorder's own elapsedMs at flush, so a file's records can be cross-referenced against
-`livingweapon.log`'s `HH:mm:ss.fff` timestamps. Every other line is `{"t": <elapsedMs>,
-"e": "<type>", "d": "<payload>"}`.
+`livingweapon.log`'s `[HH:mm:ss.fff]` timestamps (millisecond precision was preserved through
+the facelift for exactly this join). Every other line is `{"t": <elapsedMs>, "e": "<type>",
+"d": "<payload>"}`.
 
 **Flush triggers:** (a) the battle-ENTER edge (`Flight.FlushBattleStart()`) and (b) the
 battle-EXIT edge (`Flight.FlushBattleEnd()`, called beside `KillTally.Save()`); both flush
 synchronously on Engine's own loop thread, and neither is hooked to `ResetBattleState()` (which
 fires on both enter and exit). The enter-edge flush was added live 2026-07-04: three straight
 sessions produced no archives at all because each ended in a process kill (the kill-and-deploy
-cycle) before any exit edge fired, so the NEXT battle's enter edge is the reliable moment the prior
-battle's tail can still be saved. (c) the first `ModLogger.LogError` (well,
-`FileConsoleLogger.LogError`) of a launch. LogError never
+cycle) before any exit edge fired, so the NEXT battle's enter edge is the reliable moment the
+prior battle's tail can still be saved. (c) the first Error-tier line of a launch: both the
+legacy `LogError` path and the typed `ModLogger.Error(verb, ...)` path arm it. An Error never
 flushes synchronously -- it only raises a pending flag (`Flight.RequestFlush("error")`); the
 actual serialize+write+retention-prune runs later from `Flight.DrainPending()`, called once per
-Engine tick. This matters because `PromptSwapHook.Detour` calls `Log.Error` on the game's own
+Engine tick. This matters because `PromptSwapHook.Detour` logs errors on the game's own
 `SetTextString` thread before forwarding -- a synchronous flush there would stall the game's own
-prompt commit. The error trigger is FlushOnce: only the very first error of a launch ever
-produces a flight file, however many `LogError` calls follow.
+prompt commit.
+
+**The error trigger is FlushOnce, a documented divergence from "ERROR = broke + flight flush":**
+only the very first error of a launch ever produces a flight file, however many Error lines
+follow; an error storm must not prune the 20-file retention into uselessness. Two invariants
+the facelift deliberately preserved: `FlightRecorder.Flush` NEVER calls back into `ModLogger`
+(the recursion guard: any "archived N records" notice must be emitted by Engine AFTER
+`Flight.FlushBattleEnd()` returns, never from inside the flush), and `Flight.RequestFlush("error")`
+stays inside `FileConsoleLogger`'s Error paths, flag-only and thread-safe.
 
 **Retention:** after every flush, files beyond the 20 newest are deleted (oldest-first).
 `BuildLinked.ps1`'s clean step preserves `<modDir>/flight/` wholesale (added to the
@@ -192,4 +285,12 @@ the repo tree and never reads a deployed install's `flight/` folder.
 
 **Reading a flight file:** `tools/parse_flight.py <path> [--grep TYPE]` prints a plain-text
 timeline (`+N.NNNs [type] payload`, relative to the header's elapsedMs anchor), optionally
-filtered to one event type. Standalone script, no deploy-script imports.
+filtered to one event type (the FROZEN jsonl types above, not the console verbs). Standalone
+script, no deploy-script imports.
+
+## Reading old archives
+
+`livingweapon.prev.log` files and console pastes from before the facelift use the old line shape
+(`HH:mm:ss.fff [FFTLivingWeapons] DBG message`, module prefixes like `kill:`/`charm-lock:`); the
+legacy column in the verb table above maps them onto today's verbs. The flight jsonl shape never
+changed.

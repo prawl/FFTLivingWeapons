@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -27,8 +28,23 @@ internal sealed class EnemyOracle
 
     private int _coveragePollsLeft = CoverageInterval;
     private bool _coverageDone;
+    // Facelift: coverage lines are console-gated on "a Living Weapon is deployed this battle"
+    // (KillTracker's sticky latch); the file still gets everything via ScopedLogger's demotion.
+    private readonly ScopedLogger _slog;
+    // Once-per-identity-per-battle dedup for the unseen-enemy Warning: CheckCoverage re-runs
+    // every ~5 seconds until it passes, so a permanently-missing enemy would otherwise re-log
+    // (console AND file) for the whole battle. Cleared in ResetBattle.
+    private readonly HashSet<(byte lvl, byte br, byte fa, ushort mhp)> _warnedUnseen = new();
+    // The failure variant logs once per battle at Info; retries demote to Debug.
+    private bool _coverageFailLogged;
 
-    public EnemyOracle(IGameMemory mem) => _mem = mem;
+    /// <param name="armed">"Any Living Weapon deployed this battle" (KillTracker's sticky
+    /// latch). Null = always armed (test convenience; production always injects).</param>
+    public EnemyOracle(IGameMemory mem, Func<bool>? armed = null)
+    {
+        _mem = mem;
+        _slog = ModLogger.For(LogVerb.Credit, armed ?? (() => true));
+    }
 
     /// <summary>True when the identity was captured from an enemy-side array slot.</summary>
     public bool Contains((byte lvl, byte br, byte fa, ushort mhp) id) => _enemyIds.Contains(id);
@@ -43,6 +59,8 @@ internal sealed class EnemyOracle
         _enemyIds.Clear();
         _coveragePollsLeft = CoverageInterval;
         _coverageDone = false;
+        _warnedUnseen.Clear();
+        _coverageFailLogged = false;
     }
 
     /// <summary>One onField tick: capture identities, and run the once-per-battle coverage
@@ -91,11 +109,28 @@ internal sealed class EnemyOracle
                     _mem.U16(addr + Offsets.AMaxHp) == id.mhp) { seen = true; break; }
             }
             if (seen) found++;
-            else ModLogger.Log($"kill: WARN an enemy from the pre-battle roster was never seen in the live fight -- its kills may go uncredited [lvl={id.lvl} br={id.br} fa={id.fa} mhp={id.mhp}]");
+            else if (_warnedUnseen.Add(id))
+            {
+                // A real Warning now (was Info with an embedded "WARN" token), deduped to once
+                // per identity per battle; the fingerprint numerics ride a Debug companion.
+                _slog.Warn("An enemy counted before the battle has not appeared on the field; its kills may go uncredited.");
+                ModLogger.Debug(LogVerb.Trace, $"unseen-enemy detail (level={id.lvl} brave={id.br} faith={id.fa} maximum hit points={id.mhp})");
+            }
         }
-        ModLogger.Log(found == total
-            ? $"kill: all {total} enemies accounted for -- kill credit will be reliable this battle"
-            : $"kill: only {found}/{total} enemies accounted for so far -- kill credit may be unreliable this battle (see the WARN line(s) above)");
-        if (found == total) _coverageDone = true;
+        if (found == total)
+        {
+            _slog.Info($"All {total} enemies are accounted for; kill credit will be reliable this battle.");
+            _coverageDone = true;
+        }
+        else if (!_coverageFailLogged)
+        {
+            _coverageFailLogged = true;
+            _slog.Info($"Only {found} of {total} enemies are accounted for so far; kill credit may be unreliable this battle.");
+        }
+        else
+        {
+            // Retry heartbeat: file evidence only, never console (the first failure already spoke).
+            ModLogger.Debug(LogVerb.Credit, $"coverage retry: only {found} of {total} enemies accounted for so far");
+        }
     }
 }

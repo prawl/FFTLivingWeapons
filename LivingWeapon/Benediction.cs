@@ -91,9 +91,9 @@ internal sealed partial class Benediction : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log(active
-                ? $"benediction ACTIVE -- Sanctus Staff is the last player to act (tier {tier}); ally HP rises boosted +{m.Signature.HealBoostPct}%"
-                : $"benediction inactive -- another unit now holds the last-actor latch (last player main-hand id {_tracker.LastPlayerMainHand})");
+            ModLogger.Debug(LogVerb.Signature, active
+                ? $"benediction latch: the Sanctus Staff is the last player to act (tier {tier}); ally HP rises boosted {m.Signature.HealBoostPct} percent"
+                : $"benediction latch: another unit now holds the last-actor latch (last player main-hand weapon id {_tracker.LastPlayerMainHand})");
         }
 
         var allyFps = active ? Band.AllyFingerprints(_mem) : null;
@@ -127,14 +127,16 @@ internal sealed partial class Benediction : ISignature
             if (newHp == hp)
             {
                 // overheal / already at max (LifeSap.NewHp also guards hp <= 0 -> a dead ally is never revived)
-                ModLogger.LogDebug($"benediction: ally heal +{rise} not boosted -- band slot {s} already at/near max ({hp}/{mhp})");
+                ModLogger.Debug(LogVerb.Signature, $"benediction ally heal +{rise} not boosted; band slot {s} already at or near maximum ({hp}/{mhp})");
                 continue;
             }
 
             LifeSap.WriteHp(_mem, addr, newHp);
             _state.Consume(s, newHp);   // our write is not a heal event (no re-boost)
             boosted!.Add(fp);
-            ModLogger.Log($"benediction: ally heal +{rise} boosted by {bonus} ({m.Signature.HealBoostPct}% of {rise}) -- party slot {s} HP {hp}->{newHp}/{mhp}");
+            ModLogger.EventWithTrace(LogVerb.Signature,
+                $"An ally's heal of {rise} was boosted by {bonus} more ({m.Signature.HealBoostPct} percent); their HP {hp} to {newHp} of {mhp}.",
+                $"benediction boost detail (battle slot {s})");
         }
     }
 }

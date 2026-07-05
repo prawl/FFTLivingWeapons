@@ -40,7 +40,7 @@ internal sealed class VictimProbe
     /// <summary>Credit-point capture + log. Takes a FRESH read at CreditKill time (the slot may
     /// have been reused/recycled by the engine since the edge tick -- that is exactly the question
     /// P1 is asking), then logs all three capture points as structurally identical lines through
-    /// ModLogger.LogDebug (so a human can diff them) and fires ONE recorder tap carrying all three
+    /// ModLogger.Debug (so a human can diff them) and fires ONE recorder tap carrying all three
     /// tuples together.</summary>
     internal void LogAtCredit(int s)
     {
@@ -57,7 +57,7 @@ internal sealed class VictimProbe
     }
 
     private static void LogLine(int s, string point, VictimSnapshot snap)
-        => ModLogger.LogDebug($"victim-probe: slot={s} point={point} nameId={snap.NameId} job={snap.Job} undead={(snap.Undead ? 1 : 0)} has={(snap.Has ? 1 : 0)}");
+        => ModLogger.Debug(LogVerb.Trace, $"victim-probe: slot={s} point={point} nameId={snap.NameId} job={snap.Job} undead={(snap.Undead ? 1 : 0)} has={(snap.Has ? 1 : 0)}");
 
     private static string Tuple(VictimSnapshot snap)
         => $"(nameId={snap.NameId},job={snap.Job},undead={(snap.Undead ? 1 : 0)},has={(snap.Has ? 1 : 0)})";

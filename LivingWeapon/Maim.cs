@@ -74,7 +74,7 @@ internal sealed partial class Maim : ISignature
         if (active != _wasActive)
         {
             _wasActive = active;
-            ModLogger.Log($"maim {(active ? "ACTIVE -- Huntress wielder is acting, next hit will suppress enemy reactions" : "inactive")}");
+            ModLogger.Debug(LogVerb.Signature, $"maim window {(active ? "armed for this action; the next hit suppresses enemy reactions" : "closed")}");
         }
 
         int crippleTurns = m.Signature.CrippleTurns;
@@ -109,13 +109,15 @@ internal sealed partial class Maim : ISignature
                     // the victim's CURRENT CT so the first sample is never mistaken for a completed turn.
                     uint saved = ReadReactionField(_mem, addr);
                     _state.Latch(addr, fp, saved, _mem.U8(addr + LiveCtOff));
-                    ModLogger.Log($"maim: struck enemy ({mhp} max HP) loses its reaction abilities for {crippleTurns} of its turns [saved reaction bits=0x{saved:X8}]");
+                    ModLogger.EventWithTrace(LogVerb.Signature,
+                        $"The struck enemy ({mhp} maximum HP) loses its reaction abilities for {crippleTurns} of its turns.",
+                        $"maim latch detail (saved reaction bits=0x{saved:X8})");
                 }
                 else
                 {
                     // Re-hit: refresh the window (reset turn counter), keep saved bytes intact.
                     _state.Refresh(fp);
-                    ModLogger.Log($"maim: hit an already-Maimed enemy ({mhp} max HP) -- turn window refreshed");
+                    ModLogger.Event(LogVerb.Signature, $"An already-maimed enemy ({mhp} maximum HP) was hit again; its suppression window restarts.");
                 }
             }
         }
@@ -158,7 +160,9 @@ internal sealed partial class Maim : ISignature
             uint saved = _state.SavedReaction(fp).GetValueOrDefault();
             Restore(_mem, addr, saved);
             _state.Release(fp);
-            ModLogger.Log($"maim: suppression lifted on enemy ({fp.mhp} max HP) after {crippleTurns} turns -- its reaction abilities are restored [0x{saved:X8}]");
+            ModLogger.EventWithTrace(LogVerb.Signature,
+                $"Suppression ended on the enemy ({fp.mhp} maximum HP) after {crippleTurns} of its turns; its reaction abilities are restored.",
+                $"maim release detail (restored reaction bits=0x{saved:X8})");
         }
     }
 

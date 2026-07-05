@@ -173,7 +173,7 @@ public class LegendStoreTests
         {
             var store = LegendStore.Load(dir);
             Assert.False(store.Has(42));   // no .bak either -- falls back to empty
-            Assert.Contains(lines, l => l.Contains("legend-store") && l.Contains("WARNING"));
+            Assert.Contains(lines, l => l.Contains("[WARN]") && l.Contains("[save]") && l.Contains("legends file"));
         }
         finally { ModLogger.Instance = prior; }
     }

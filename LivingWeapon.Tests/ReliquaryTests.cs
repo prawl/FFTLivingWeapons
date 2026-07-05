@@ -77,4 +77,45 @@ public class ReliquaryTests
         Assert.Contains(recorded, r => r.type == "mark-earned" && r.payload.Contains("weapon=9"));
         Assert.Contains(recorded, r => r.type == "deed-miss" && r.payload.Contains("slot=3"));
     }
+
+    // --- Logging facelift: the per-battle Marks ledger + the [mark] console line ---
+
+    [Fact]
+    public void Marks_earned_accumulate_in_the_battle_ledger_and_reset_clears_it()
+    {
+        var store = LegendStore.Load(TempDir());
+        var meta = new Dictionary<int, WeaponMeta> { [9] = new WeaponMeta { Name = "Kiyomori" } };
+        var reliquary = new Reliquary(store, toast: null, meta);
+
+        int threshold = Tuning.MarkThresholds[0];
+        for (int i = 0; i < threshold; i++)
+            reliquary.RecordDeed(9, Victim((ushort)(100 + i), 77));   // Human every time
+
+        var mark = Assert.Single(reliquary.BattleMarks);
+        Assert.Equal(9, mark.weaponId);
+        Assert.Equal(VictimClass.Archetype.Human, mark.mark);
+
+        reliquary.ResetBattle();
+        Assert.Empty(reliquary.BattleMarks);
+    }
+
+    [Fact]
+    public void An_earned_Mark_logs_the_mark_console_line()
+    {
+        var store = LegendStore.Load(TempDir());
+        var meta = new Dictionary<int, WeaponMeta> { [9] = new WeaponMeta { Name = "Kiyomori" } };
+        var reliquary = new Reliquary(store, toast: null, meta);
+
+        var console = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, _ => { });
+        try
+        {
+            int threshold = Tuning.MarkThresholds[0];
+            for (int i = 0; i < threshold; i++)
+                reliquary.RecordDeed(9, Victim((ushort)(100 + i), 77));
+            Assert.Contains(console, l => l.Contains("[INFO]") && l.Contains("Kiyomori earns the Mark of the Manslayer."));
+        }
+        finally { ModLogger.Instance = prior; }
+    }
 }
