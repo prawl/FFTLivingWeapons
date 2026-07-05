@@ -13,7 +13,7 @@ namespace LivingWeapon;
 /// so a non-facing text commit can never silently drain the queue.
 ///
 /// Mechanism is live-proven, not new: ShowSpike.TapDetour (v10/v11, 2026-07-03 06:14 eyewitness +
-/// log, docs/CALLOUT_BANNER_JOURNEY.md "The Wait-state pivot") showed that hooking SetTextString
+/// log, docs/research/CALLOUT_BANNER_JOURNEY.md "The Wait-state pivot") showed that hooking SetTextString
 /// 0x14028F79C, prefix-matching the incoming text against "Select a facing", and swapping rdx to a
 /// pinned plain-ANSI buffer renders in the prompt slot and STAYS until the player confirms facing
 /// -- exactly the player-held, contention-free surface this class now drives in production.
@@ -68,7 +68,7 @@ internal sealed class PromptSwap
 
     /// <summary>Decodes bytes up to the first NUL as ASCII; any non-printable byte before the NUL
     /// is a hard mismatch (a real prompt's leading bytes are always plain markup-free ASCII per
-    /// the v10 commit-tap capture, docs/CALLOUT_BANNER_JOURNEY.md) rather than a truncated match.</summary>
+    /// the v10 commit-tap capture, docs/research/CALLOUT_BANNER_JOURNEY.md) rather than a truncated match.</summary>
     private static bool TryDecodeAscii(byte[] bytes, out string text)
     {
         var chars = new char[bytes.Length];
@@ -92,7 +92,7 @@ internal sealed class PromptSwap
 /// </summary>
 internal sealed class PromptSwapHook
 {
-    // The orchestrator's token-string setter (docs/CALLOUT_BANNER_JOURNEY.md "v10 -- the COMMIT
+    // The orchestrator's token-string setter (docs/research/CALLOUT_BANNER_JOURNEY.md "v10 -- the COMMIT
     // TAP"): v10 (06:00) found the facing prompt riding this setter, args (holder, char* text, r8,
     // r9) -- r8/r9's true arity is unproven but forwarding them verbatim is free (the ShowSpike
     // OrchFn precedent). v11 (06:14, eyewitness + log) proved swapping rdx to a pinned ANSI buffer

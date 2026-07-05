@@ -62,7 +62,7 @@ internal sealed partial class Rapture
 
     /// <summary>Read the granted movement bit back off the band entry -- true == SET. The
     /// once-per-window live-test signal (Spiritual Font's verdict convention): RaptureMoveId 243
-    /// is CUT content per FOLDABLE_ABILITIES, so whether the engine honors (or zeroes) its bit is
+    /// is CUT content per docs/research/FOLDABLE_ABILITIES.md, so whether the engine honors (or zeroes) its bit is
     /// unverified; one armed window's SET/MISS in the log settles it. False for out-of-field ids.</summary>
     public static bool ReadBackSet(IGameMemory mem, long entryAddr, int moveAbilityId)
     {

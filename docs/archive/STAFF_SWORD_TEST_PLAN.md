@@ -1,4 +1,6 @@
 # FFTLivingWeapons -- Staff + Sword Live Test Plan
+STATUS: ARCHIVED (test plan executed; living recipes are docs/DEV_TEST_RECIPES.md)
+
 *Work top to bottom; blockers surface first. Check each box live. Created 2026-06-16, for the Choir release.*
 
 **Scope.** Deep coverage of the four STAFF signatures (Benediction, Renewal, Sanctuary, Choir) and the

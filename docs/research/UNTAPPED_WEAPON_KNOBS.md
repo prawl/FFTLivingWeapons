@@ -1,5 +1,7 @@
 # Untapped weapon-design knobs (sweep 2026-06-02)
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 Pure-data levers we have NOT shipped yet, found by sweeping the FFHacktics formula table, the
 weapon/EquipBonus fields, and the ItemOptionsData proc pool against our confirmed/dead list.
 Viability rule: a formula works on a weapon only if it scales by WP or a unit stat (PA/Speed/HP/MP/

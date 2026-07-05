@@ -1,5 +1,7 @@
 # Sprite / Identity Swap -- proven recipe + build gap analysis
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 **Status (2026-06-18):** Re-skinning a PLAYER party unit (body + portrait + name + voice, kit
 untouched) is **PROVEN LIVE**. No reverse-engineering walls remain for the player / pre-battle
 case. **Nothing is wired into any mod** -- this doc records the recipe for a future build.

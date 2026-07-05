@@ -1,5 +1,7 @@
 # Speeding up the Kills counter paint -- research + proposal
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 > Research-only findings (2026-06-26). No code changed. Question posed: the per-weapon "Kills: NNNN"
 > counter takes a noticeable beat to appear on the equip/Status card; can we write it somewhere faster --
 > e.g. the in-battle command menu (the "current unit's card" with the unit name + Move/Abilities/Wait/
@@ -60,7 +62,7 @@ Three independent reasons:
    located (no speed win) and shared across the party/status screens (overwriting it corrupts the name
    everywhere, not just the menu).
 
-3. **This exact surface was mapped and SCRAPPED on 2026-06-23 (`docs/UI_GREY_HOLD.md`).** The command-menu
+3. **This exact surface was mapped and SCRAPPED on 2026-06-23 (`docs/research/UI_GREY_HOLD.md`).** The command-menu
    widgets are `0x170`-byte records in a launch-stable heap arena (documented base `0x436BFDE4F0`), each with
    a grey flag at `+0x1C` and a u64 pointer at `+0x20`. Two findings that gut the proposal:
    - The `+0x20` pointer targets the widget's UE4 identity/debug name ("GrayOut#3", "TextTitle#4",
@@ -178,9 +180,9 @@ persists. If it reverts every frame, it is the grey-flag trap again and Option C
   `CardPatterns.cs`, `ByteScan.cs`, `HotChunkSet.cs`, `ChunkReader.cs`; cadence `Engine.cs:19,201-224`,
   predicates `BattleState.cs:64-79`.
 - Instant stable-address exemplar: `LivingWeapon/WpScratchPainter.cs:30-45`; addresses `Offsets.cs:184-218`.
-- Command-menu surface (scrapped): `docs/UI_GREY_HOLD.md`; `docs/LIVE_LEDGER.md` (command-menu Uncertain row,
+- Command-menu surface (scrapped): `docs/research/UI_GREY_HOLD.md`; `docs/LIVE_LEDGER.md` (command-menu Uncertain row,
   Floating-numeral Walled row).
-- Why the sweep exists / history: `docs/LIVING_WEAPON_JOURNEY.md`; `memory/display-v2-architecture.md`,
+- Why the sweep exists / history: `docs/research/LIVING_WEAPON_JOURNEY.md`; `memory/display-v2-architecture.md`,
   `memory/living-weapon-kills-display.md`, `memory/living-weapon-levelup-banner.md`,
   `memory/item-description-uniqueness.md`.
 - Name-render evidence: FFTHandsFree `docs/UNIT_DATA_STRUCTURE.md`, `docs/BATTLE_MEMORY_MAP.md` (sec 7, 16),

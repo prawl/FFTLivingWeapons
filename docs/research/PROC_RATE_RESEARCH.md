@@ -1,5 +1,7 @@
 # Weapon spell-cast proc rate (the "19%") — cracked the mechanic, not yet the address
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 **Question:** can we change the 19% chance that a "May Cast: X" weapon (formula 2) fires its
 spell on hit, and set it to whatever we want?
 

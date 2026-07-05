@@ -3,7 +3,7 @@
 Battle command-menu reader (READ-ONLY). Watch the engine add/remove UI selections (e.g. a chocobo
 mount adds a "Dismount" row) by reading the menu's widget arena.
 
-The command menu is a launch-stable HEAP arena of 0x170-byte widget records (docs/UI_GREY_HOLD.md):
+The command menu is a launch-stable HEAP arena of 0x170-byte widget records (docs/research/UI_GREY_HOLD.md):
     +0x1C  u8   grey/disabled overlay flag
     +0x20  u64  -> a UTF-8 widget IDENTITY name ("RadioButtonBattleMenu#7", "CommandBg#8", "GrayOut#3")
 The identity names self-label the arena (so we can validate/find it); the DISPLAYED label text
@@ -20,7 +20,7 @@ from ctypes import wintypes as W
 import sys
 
 PROC = "FFT_enhanced"
-ARENA = 0x436BFDE4F0     # docs/UI_GREY_HOLD.md; launch-stable, but --base overrides if it moved
+ARENA = 0x436BFDE4F0     # docs/research/UI_GREY_HOLD.md; launch-stable, but --base overrides if it moved
 STRIDE = 0x170
 RECORDS = 16
 GREY = 0x1C

@@ -4,7 +4,7 @@ and live-test duration levers. Two modes, RPM/WPM via the ct_probe scaffolding.
 
 WATCH (default): resolve the callout controller from the static chain
 [[[0x143CD9DA8]+0x10]+0x48]+0x58 (FOUR derefs -- ShowSpike.TryFirePending was normative
-before the trim; docs/CALLOUT_BANNER_JOURNEY.md "The mechanism, fully specified"), then
+before the trim; docs/research/CALLOUT_BANNER_JOURNEY.md "The mechanism, fully specified"), then
 sample three spans every ~10ms:
     ctrl+0x000..0x180   (type +0x50, embedded holder from +0x58, token copies +0x98/+0xC0,
                          SHOW FLAG +0xE0 == holder+0x88)

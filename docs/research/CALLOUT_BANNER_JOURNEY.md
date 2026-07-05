@@ -1,5 +1,7 @@
 # Callout Banner Journey -- on-command battle bubble RE
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 Research/journal log for the "Living Weapon on-command UI" effort: pop the game's black rounded
 callout bubble (the one that names an ability or announces a stat change over the acting unit)
 with OUR text, on command, to announce Living Weapon tier-ups / kill milestones.

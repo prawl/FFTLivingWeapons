@@ -2,7 +2,7 @@
 """
 Display-card re-anchor probe for FFT:IC 1.5 (read-only, cannot crash the game).
 
-Finishes the three display offsets the 1.5 re-anchor left open (PORT_1.5_OFFSETS.md):
+Finishes the three display offsets the 1.5 re-anchor left open (docs/research/PORT_1.5_OFFSETS.md):
   PauseFlag    candidate 0x140C80199  -- WRONG (did not 0->1; pause is held through the menu)
   SubmenuFlag  found     0x140D4085E  -- CONFIRMED 0->1 on the Status card, twice
   MirrorWeapon UNKNOWN   -- the u16 holding the viewed unit's weapon id while a card is open

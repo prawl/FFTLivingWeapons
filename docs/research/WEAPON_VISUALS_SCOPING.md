@@ -1,5 +1,7 @@
 # In-battle weapon visuals — scoping & test results (TABLED)
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 **Date:** 2026-06-01 · **Status:** TABLED. Ask B is BLOCKED (tested in-game). Ask A is UNTESTED (deferred).
 
 Goal: make the weapon a unit holds/swings in battle match the mod's recolored menu icons —

@@ -10,7 +10,7 @@ namespace LivingWeapon.Tests;
 /// production toast-delivery path (BannerToast queue + PromptSwap decision core + PromptSwapHook
 /// native detour), superseding the retired scheduler/spawner stack. No native calls here;
 /// PromptSwapHook (the SetTextString detour) is untestable by construction and exercised only by
-/// hand/eyewitness, mirroring ShowSpike's own v10/v11 tap (docs/CALLOUT_BANNER_JOURNEY.md).
+/// hand/eyewitness, mirroring ShowSpike's own v10/v11 tap (docs/research/CALLOUT_BANNER_JOURNEY.md).
 /// </summary>
 public class PromptSwapTests
 {

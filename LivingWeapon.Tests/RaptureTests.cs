@@ -105,7 +105,7 @@ public class RaptureTests
     }
 
     // ---- (5b) ReadBackSet: the once-per-window live-test signal for the held bit ----
-    // RaptureMoveId 243 (Master Teleportation) is CUT content per FOLDABLE_ABILITIES, so the
+    // RaptureMoveId 243 (Master Teleportation) is CUT content per docs/research/FOLDABLE_ABILITIES.md, so the
     // engine honoring its movement bit is unverified -- the arm-time read-back (SET/MISS in
     // the log) settles it in one live battle, mirroring Spiritual Font's verdict convention.
 

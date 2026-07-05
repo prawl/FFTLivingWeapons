@@ -1,5 +1,7 @@
 # Logging model
 
+STATUS: CONTRACT (logging + flight recorder reference; the verb table is test-gated)
+
 One page: the line format, the tier model, the closed event-verb glossary, the launch header and
 the per-battle match report (with worked examples), and where the flight recorder (the black box)
 slots in. This is the post-facelift reference (2026-07-05); `livingweapon.prev.log`-era archives

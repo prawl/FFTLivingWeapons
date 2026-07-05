@@ -1,5 +1,7 @@
 # Verify Live: committed but not yet watched in-game
 
+STATUS: CONTRACT (the live verification script; owner-only checkbox flips)
+
 These changes pass both gates (analyze.py + LivingWeapon.Tests), but the gates prove logic, not
 engine behavior. Each row needs an in-game confirmation before it counts as proven. Deploy with
 `.\BuildLinked.ps1`, watch it fire, then check the box (and flip the relevant LIVE_LEDGER row if

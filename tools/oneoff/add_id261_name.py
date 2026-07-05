@@ -4,7 +4,7 @@ id257), re-encode item.en.nxd, and copy it to the mod tree + deployed mod folder
 Tests the NXD-name + pre-boot-catalog-seed combo for the 261 cap break.
 
 PARKED (tools/oneoff/): the 261 display wall turned out to be a boot-built registry,
-not a name/catalog problem -- see docs/ITEM_CAP_261_BREAK_JOURNEY.md. WARNING: this
+not a name/catalog problem -- see docs/research/ITEM_CAP_261_BREAK_JOURNEY.md. WARNING: this
 script EXECUTES ON IMPORT and deploys straight into the live Reloaded Mods folder."""
 import sqlite3
 import sys

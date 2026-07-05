@@ -1,5 +1,7 @@
 # Foldable "forbidden" abilities (catalog 2026-06-02)
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 Abilities normally locked away (monster / boss / story-unique / cut) that we can fold into any
 unit's command via `JobCommandData.xml` `AbilityIdN` (confirmed lever — see
 [project_fft_skillset_fold]). `AbilityId` is wider than a byte, so even high ids are addressable.

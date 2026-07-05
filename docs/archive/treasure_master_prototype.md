@@ -1,5 +1,7 @@
 # Treasure Master — HANDOFF (2026-06-11)
 
+STATUS: ARCHIVED (Treasure Master is slated for removal; see docs/TODO.md LW-10)
+
 **Goal:** auto-mark trap/treasure tiles in battle using the game's OWN native tile mark
 (the hover-+-2 marker from the screenshot), driven by the Living Weapon DLL.
 

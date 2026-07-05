@@ -1,5 +1,7 @@
 # FFT Living Weapons: Design Doc (living draft)
 
+STATUS: CONTRACT (the canonical design thesis)
+
 **Status:** shipped (v2.x); living draft. Started life as a pure-data item rebalance ("Item Overhaul");
 the project's center of gravity is now the **Living Weapon**, with the rebalance as its foundation.
 **Date:** 2026-05-29 (thesis reframed 2026-06-17)

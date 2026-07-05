@@ -1,5 +1,7 @@
 # Don't-Lose-The-Weapon: keep broken gear & stop crystallization
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 Feasibility research for two requested Living Weapon features:
 
 1. **Keep broken equipment** — when an enemy Breaks/Rends a weapon, shield, or armor, lose it only for

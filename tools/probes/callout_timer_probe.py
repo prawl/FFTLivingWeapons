@@ -1,6 +1,6 @@
 """READ-ONLY watcher for the callout linger timer + selector surface (Track B dig part 2).
 
-Confirms two disasm-derived claims live (docs/CALLOUT_BANNER_JOURNEY.md, "Track B dig part 2"):
+Confirms two disasm-derived claims live (docs/research/CALLOUT_BANNER_JOURNEY.md, "Track B dig part 2"):
   1. [ctrl+0xE8] (u32) is the LINGER COUNTDOWN -- ShowBubbleCallout 0x1400EF494 arms it to 0x78
      (120 ticks) at show start and a per-tick routine decrements it to auto-dismiss.
   2. The manager singleton's selector I/O block: [mgr+0x3514] (u8 state; 4 = plain bubble,

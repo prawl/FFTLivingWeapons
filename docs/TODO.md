@@ -10,7 +10,7 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-1] Unarmed stale latch eats an armed player's kill (Boco/Phoenix Down)** (opened 2026-07-05) [BUILDING]
+- **[LW-1] Unarmed stale latch eats an armed player's kill (Boco/Phoenix Down)** (opened 2026-07-05) [QUEUED]
   - Done means: the bury branch (KillTracker.Corpses.cs, _latchResolvedEmpty && _latched) consults
     KillerStamp.Decide; a fresh differing ARMED hypothesis becomes a Register override, everything
     else still buries (a dancer/summoner is her own empty hypothesis, so designed no-credits are
@@ -32,7 +32,7 @@ is the in-flight subset, not a mirror of that checklist.
     the console-sink lock).
   - Verify: VERIFY_LIVE.md checkboxes (owner-only flips). Row 8 waits on LW-1.
 
-- **[LW-3] Docs three-tier reorg** (opened 2026-07-05) [QUEUED]
+- **[LW-3] Docs three-tier reorg** (opened 2026-07-05) [BUILDING]
   - Done means: docs/ top level holds living contracts only; closed journals move to
     docs/research/; shipped or dead one-shot plans move to docs/archive/; every doc opens with
     a status line (CONTRACT, JOURNAL, or ARCHIVED with its successor named); plan docs archive

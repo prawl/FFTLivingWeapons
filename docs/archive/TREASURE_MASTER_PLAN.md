@@ -1,8 +1,10 @@
 # Treasure Master — Implementation Plan (2026-06-11)
 
+STATUS: ARCHIVED (Treasure Master is slated for removal; see docs/TODO.md LW-10)
+
 Auto-mark treasure tiles in battle using the game's NATIVE tile mark: hold bit `0x80` on each
 tile's per-map module-static render-flag bytes every tick. Mechanism proven live — see
-`docs/treasure_master_prototype.md` TOP section (everything below its HISTORICAL JOURNEY marker
+`docs/archive/treasure_master_prototype.md` TOP section (everything below its HISTORICAL JOURNEY marker
 is superseded). This doc is the build plan; the prototype doc stays the RE record.
 
 ## Decisions (locked 2026-06-11)

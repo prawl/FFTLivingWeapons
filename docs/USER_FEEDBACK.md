@@ -1,5 +1,7 @@
 # User Feedback
 
+STATUS: CONTRACT (curated player feedback ledger)
+
 Playtest feedback log -- raw observations from real sessions, often with other mods
 loaded (Harder Story Battles, a randomizer, "True Swordsman"). The observations are the
 player's; parenthetical scope/triage notes are added during capture and not yet verified.

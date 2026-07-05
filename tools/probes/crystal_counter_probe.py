@@ -4,7 +4,7 @@ CRYSTAL COUNTER PROBE -- find the "3 hearts" death/crystal countdown byte by dif
 
 Patrick's approach (2026-06-16): rather than hunt the post-battle membership structure, watch a KO'd
 unit's LIVE slot while its on-screen heart counter ticks 3->2->1->0, and find the byte that steps with
-it. That byte IS the crystallization countdown -- the offset docs/NOT_LOSE_WEAPON.md called "unmapped".
+it. That byte IS the crystallization countdown -- the offset docs/research/NOT_LOSE_WEAPON.md called "unmapped".
 If found + pinnable, holding it at 3 is the on-field "never crystallizes" Divine Intervention.
 
 We watch the AUTHORITATIVE band family (0x14184C8AC, stride 0x200) -- the static array 0x140893C00

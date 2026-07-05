@@ -1,5 +1,7 @@
 # First 3 Battles -- Live Test Runsheet
 
+STATUS: ARCHIVED (early test plan, executed)
+
 *The antidote to the 166-box plan. You're on a DEV build, so every weapon is already +3 -- no grinding.
 This covers the Section 6 GO/NO-GO. Skip every [EDGE] box for now. Don't touch Wyrmblood / Life Sap (dormant).*
 

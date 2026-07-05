@@ -1,7 +1,7 @@
 {
   "_meta": {
     "purpose": "Treasure Master: per-map treasure/trap tiles to auto-mark in battle.",
-    "status": "SCAFFOLD -- in-game-verified coordinates only. See docs/treasure_master_prototype.md (HANDOFF).",
+    "status": "SCAFFOLD -- in-game-verified coordinates only. See docs/archive/treasure_master_prototype.md (HANDOFF).",
     "how_coords_are_obtained": "Hover the tile in-game, read the cursor (x,y) -- the game's on-screen coord display is ground truth (matches memory). The PSX Move-Find guide (treasure.txt) says WHICH maps/items to check, but its ASCII orientation != game (x,y) and IC differs from PSX, so every coord must be verified in-game.",
     "schema": "mapName -> { tiles: [ { x, y, kind: 'treasure'|'trap', item?: string, verified: bool } ] }",
     "mapNameSource": "Match FFTHandsFree DetectMap() / LocationNames at runtime; keys here are the IC display names."

@@ -1,6 +1,6 @@
 """Classify stack-scraped qwords as return addresses: is the preceding insn a CALL?
 
-Companion to the ShowSpike F6 STACKSCRAPE (CALLOUT_BANNER_JOURNEY.md): the scrape logs every
+Companion to the ShowSpike F6 STACKSCRAPE (docs/research/CALLOUT_BANNER_JOURNEY.md): the scrape logs every
 in-image qword found on the live stack, but only qwords sitting right after a call instruction
 are real return addresses -- the rest are spilled registers, vtable/function pointers, or data.
 For each candidate address this reads the bytes just before it via RPM and tries to decode a

@@ -1,5 +1,7 @@
 # Slayer's Reliquary -- scope + acceptance criteria
 
+STATUS: CONTRACT (Reliquary acceptance criteria)
+
 Approved 2026-07-05. Design source: docs/RELIQUARY_DESIGN.md. Post-release feature: it does not
 gate the 2.3.0 consolidation release (docs/RELEASE_SCOPE.md); Phase 0 probe work may run ahead of
 the release since it is instrumentation, not ship-gate scope.

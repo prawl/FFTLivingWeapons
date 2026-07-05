@@ -10,7 +10,7 @@ namespace LivingWeapon;
 /// <summary>
 /// DEV-ONLY spike (BannerSpike tradition, uncommitted): the CHASE instrument that proved the
 /// production callout piggyback live before it was productionized (that delivery stack has since been retired for the PromptSwap facing-prompt slot).
-/// Evidence trail (docs/CALLOUT_BANNER_JOURNEY.md has the full RE writeup):
+/// Evidence trail (docs/research/CALLOUT_BANNER_JOURNEY.md has the full RE writeup):
 ///  - v4 (20:03): wrapper fires REACH the orchestrator with byte-identical fresh-capture args
 ///    and draw nothing while natural calls render -- the gap is CONTEXT, not arguments.
 ///  - v4 mapped the natural shape: one player action = TWO orchestrator calls (type=0 tokens
@@ -55,7 +55,7 @@ namespace LivingWeapon;
 /// logic frame). A managed thunk was planted there to fire cold requests at an arbitrary time.
 /// RESULT: the callback fired, but on a sibling worker rather than the action job, and drew
 /// NOTHING -- confirming the render gate is JOB CONTEXT (the natural call's own execution
-/// context), not thread identity or frame timing (docs/CALLOUT_BANNER_JOURNEY.md, "v8" +
+/// context), not thread identity or frame timing (docs/research/CALLOUT_BANNER_JOURNEY.md, "v8" +
 /// "THE WALL, precisely"). A cold portal outside that context is a dead end, so it was removed
 /// entirely -- the plant was also an always-on ambient write on every dev launch (live before
 /// F6 was ever pressed), worth deleting even absent the negative result
@@ -67,7 +67,7 @@ namespace LivingWeapon;
 /// in production; ShowSpike stays as the manually-triggered dev proof/regression instrument.
 ///
 /// v9 = the COLD SPAWN/DISMISS experiment (the amended-AC arc). The 2026-07-03 stack-scrape +
-/// disasm sweep (docs/CALLOUT_BANNER_JOURNEY.md "Track B dig part 2") mapped the native show:
+/// disasm sweep (docs/research/CALLOUT_BANNER_JOURNEY.md "Track B dig part 2") mapped the native show:
 /// ShowBubbleCallout 0x1400EF494 runs dismiss-if-lingering -> arm [ctrl+0xE8]=0x78 ->
 /// orchestrator -> helper(ctrl,-2) -> helper(ctrl,0), where helper = 0x140111B74 (VM springboard
 /// jmp 0x14A20C367 -- the SAME VM body whose instruction 0x14A20C3B6 the CE write-bp caught

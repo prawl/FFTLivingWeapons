@@ -1,7 +1,9 @@
 # FFT:IC 1.5 -- Offset Re-anchor Ledger
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 > Live re-find of `LivingWeapon/Offsets.cs` against the recompiled 1.5 exe. Companion to
-> `PORT_1.5.md` (the strategy). All addresses here were found by EXTERNAL read-only RPM probes
+> `docs/research/PORT_1.5.md` (the strategy). All addresses here were found by EXTERNAL read-only RPM probes
 > against the running 1.5 game (pid varies). **Live-found, not yet wired into `Offsets.cs` or
 > behaviorally re-confirmed in-DLL** unless a row says CONFIRMED. Started 2026-06-16.
 

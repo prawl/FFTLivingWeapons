@@ -26,7 +26,7 @@ namespace LivingWeapon;
 /// </summary>
 internal static class ShadowBladePolicy
 {
-    /// <summary>Shadow Blade -- Gaffgarion's HP-draining dark sword strike (FOLDABLE_ABILITIES id 165).</summary>
+    /// <summary>Shadow Blade -- Gaffgarion's HP-draining dark sword strike (docs/research/FOLDABLE_ABILITIES.md id 165).</summary>
     public const int ShadowBladeAbilityId = 165;
 
     /// <summary>True when the signature is configured (GrantCommandAbilityId set) and the tier earned.</summary>

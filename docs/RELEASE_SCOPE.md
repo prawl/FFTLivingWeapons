@@ -1,5 +1,7 @@
 # Release Scope -- next release (consolidation)
 
+STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release)
+
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
 
 **Identity: "Finish the Samurai Swords + a focused item-balance tuning pass."** A consolidation

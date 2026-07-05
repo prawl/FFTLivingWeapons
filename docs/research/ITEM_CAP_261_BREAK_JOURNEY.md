@@ -1,5 +1,7 @@
 # The 261-Item-Cap Break Journey
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 Final Fantasy Tactics: The Ivalice Chronicles (FFT IVC, Denuvo-protected, UE5,
 preferred base `0x140000000`, no ASLR). Goal: **display & equip items at ids ≥ 261**,
 beyond the engine's hard 261-entry item catalog (ids 0–260).

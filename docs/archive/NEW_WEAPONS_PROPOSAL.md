@@ -1,5 +1,7 @@
 # New-Weapons Expansion -- Proposal (slices)
 
+STATUS: ARCHIVED (proposals landed in data/items.json or were dropped)
+
 Draft 2026-06-26, off the back of the cap-break win (id261 "Moonblade" equips/displays/swings/hits live).
 This is a PLANNING doc, not a build. Specifics (exact ids, stats, names) get nailed per-slice in
 `data/items.json` (the single source) and gated by `analyze.py`.

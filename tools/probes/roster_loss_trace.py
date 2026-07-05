@@ -2,7 +2,7 @@
 """
 ROSTER LOSS TRACE -- the single test that unblocks Bait-n-Switch AND Divine Intervention.
 
-Both features (keep-broken-gear, stop-crystallization -- see docs/NOT_LOSE_WEAPON.md) hinge on ONE
+Both features (keep-broken-gear, stop-crystallization -- see docs/research/NOT_LOSE_WEAPON.md) hinge on ONE
 unknown: WHEN does the game commit a break/crystal loss to the PERSISTENT roster (0x1411A18D0) --
 mid-battle, or only at the battle-end copy-back? This probe watches TWO structures so the answer is
 unambiguous, and writes NOTHING:

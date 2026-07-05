@@ -1,5 +1,7 @@
 # Weapon "May Cast: X" for abilities >255 — relocate the effect into a ≤255 host slot
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 **Question:** A weapon's "May Cast: X" references the ability by id. Monster/boss/cut abilities live at
 ids ≥256. The id slot is one byte (≤255). Can we get a weapon to cast a >255 ability?
 
@@ -32,11 +34,11 @@ There are **two different "ability id" fields**, and only one is byte-limited:
 | Field | Width | >255? | Use |
 |-------|-------|-------|-----|
 | `ItemWeaponData` `OptionsAbilityId` (weapon May-Cast proc) | **8-bit byte** | ❌ no | this doc |
-| `JobCommandData` `AbilityIdN` (command-menu fold) | **16-bit** (+ `ExtendAbilityIdFlagBits` "+256") | ✅ yes | `docs/FOLDABLE_ABILITIES.md` |
+| `JobCommandData` `AbilityIdN` (command-menu fold) | **16-bit** (+ `ExtendAbilityIdFlagBits` "+256") | ✅ yes | `docs/research/FOLDABLE_ABILITIES.md` |
 
 The earlier "we made a >255 ability work" proof was the **menu fold** (Bad Breath 328, Mighty Guard 339,
 Vengeance 256 cast from Ramza's Mettle) — a different code path. It does **not** transfer to the weapon
-proc. Widening the weapon byte itself = a native engine patch, Denuvo-walled (`docs/PROC_RATE_RESEARCH.md`).
+proc. Widening the weapon byte itself = a native engine patch, Denuvo-walled (`docs/research/PROC_RATE_RESEARCH.md`).
 
 ---
 
@@ -119,8 +121,8 @@ on-hit physical "Dispose" strike on the struck enemy. **Live-confirmed.**
 - ✅ Byte wall confirmed three ways; relocation workaround confirmed **live** (Dispose → host 219 → Vagabond).
 - ✅ Reusable: any >255 ability's *effect* can be relocated to a free ≤255 slot (mind the animation caveat).
 - ⛔ True id-level >255 in the weapon field still needs a native engine patch (Denuvo-walled, see
-  `docs/PROC_RATE_RESEARCH.md`).
+  `docs/research/PROC_RATE_RESEARCH.md`).
 
-Related: `docs/FOLDABLE_ABILITIES.md` (the 16-bit menu fold), `docs/PROC_RATE_RESEARCH.md` (the 19% lever +
-Denuvo wall), `docs/UNTAPPED_WEAPON_KNOBS.md`. Origin recipe: FFTColorCustomizer memory
+Related: `docs/research/FOLDABLE_ABILITIES.md` (the 16-bit menu fold), `docs/research/PROC_RATE_RESEARCH.md` (the 19% lever +
+Denuvo wall), `docs/research/UNTAPPED_WEAPON_KNOBS.md`. Origin recipe: FFTColorCustomizer memory
 `project_fft_weapon_cast_abilities`.

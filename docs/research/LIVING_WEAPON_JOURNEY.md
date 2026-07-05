@@ -1,5 +1,7 @@
 # The Living Weapon Journey
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 Building the **Living Blade** — a sword that counts its own kills, displays the tally on itself, and
 physically evolves as you fight with it. Prototyped in **FFTHandsFree** (a live companion DLL + Python),
 data shipped in **FFTLivingWeapons** (pure-data mod). FFT: The Ivalice Chronicles (Denuvo, UE5, fixed base
@@ -67,7 +69,7 @@ can mis-credit. All rare; acceptable for a flavor counter.
 
 ## 2. The data layer — where the weapon lives
 
-**Hard constraints (from the item-cap work, see ITEM_CAP_261_BREAK_JOURNEY.md):**
+**Hard constraints (from the item-cap work, see docs/research/ITEM_CAP_261_BREAK_JOURNEY.md):**
 - **ZERO free item slots.** Ids 0-260 are all used (234 equippables + consumables + 5 DLC reclaims).
 - **Ids > 260 CANNOT be equipped** — weapon stats live in an encrypted, 261-sized table; force-equipping a
   >260 id crashes. This is the genuine Denuvo floor.

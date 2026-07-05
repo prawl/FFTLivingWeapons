@@ -1,5 +1,7 @@
 # Living Weapon Tier-Grant Design
 
+STATUS: ARCHIVED (superseded by the curated grant model; the master grid is docs/living_weapon_grid.csv)
+
 _Generated proposal grid (Hybrid model: stat growth every tier + ability unlocks at milestones). Grid data: living_weapon_grid.csv._
 
 > **Excluded:** the **Throwing** (Shuriken / Fuma Shuriken / Yagyu Darkrood) and **Bomb** (Flameburst / Snowmelt / Spark) categories are **Throw-command consumables**, not persistently wielded weapons — the grow-the-wielded-weapon system has nothing to attach to, so they get no grants. 121 weapons remain.

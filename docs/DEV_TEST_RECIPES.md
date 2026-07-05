@@ -1,5 +1,7 @@
 ﻿# Dev / test recipes
 
+STATUS: CONTRACT (dev harness cheats and probe recipes)
+
 Throwaway conveniences for testing this mod live. None of this ships — it's harness only.
 
 ## Step zero for unexplainable game weirdness: bisect the mod list FIRST

@@ -1,5 +1,7 @@
 # The Slayer's Reliquary -- design notes (NORTH STAR, post-release)
 
+STATUS: CONTRACT (Reliquary design; the post-release north star)
+
 Captured 2026-07-04 from a design conversation. This is the "9/10 -> 10/10" bet: the deepest,
 wall-free instantiation of the mod's thesis. NOT in the current release scope (see
 `docs/RELEASE_SCOPE.md`); it needs probes first. This doc banks the vision + the proven levers so it
@@ -92,7 +94,7 @@ person.
 - **Persistence:** clone the kills.json atomic (tmp + .bak) pattern into a parallel `legends.json`.
 - **Announce:** proven big-banner callout (ShowSpike, eyewitness x4) with PromptSwap toast fallback.
 - **Card paint:** the existing SuffixRotation site, DLL-live (so the French wall does NOT bite).
-- **UNIT NAME read/write is PROVEN** (`docs/SPRITE_SWAP.md`, corrects the earlier "nameId doesn't
+- **UNIT NAME read/write is PROVEN** (`docs/research/SPRITE_SWAP.md`, corrects the earlier "nameId doesn't
   resolve to a string"): roster `+0x230` (u32, "voiceID"/char-identity) drives portrait + on-screen
   NAME + voice via `GetCharNameFromSpecialName(voiceID, +0xDC)`. Unique id -> canon name (Ramza);
   generic id -> the **16-byte writable nickname string at `+0xDC`**. So: read any unit's name;

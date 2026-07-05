@@ -1,5 +1,7 @@
 # Porting FFTLivingWeapons to FFT:IC 1.5 (New Game+)
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 > This is the resume-from-cold guide for porting `prawl.fft.livingweapons` to the FFT:IC 1.5
 > content patch. It assumes you are picking this up weeks after the patch dropped and have
 > forgotten the details. Read sections 1-2 first, then work sections 4-5. Everything you need
@@ -404,7 +406,7 @@ handles 1.5, nothing below that touches nxd/tex can run. Also install 1.5 + the 
   file either truncates new items or is size-rejected. The 261 display wall is a boot-built
   registry/page cache (8+ `cmp ...,261` sites; page-guard crashes) -- if 1.5 raises/moves it, our
   row count + icon id range + additional-data map are all invalidated at once. See
-  `docs/ITEM_CAP_261_BREAK_JOURNEY.md`. Also confirm the HandsFree cap-break auto-arm interaction
+  `docs/research/ITEM_CAP_261_BREAK_JOURNEY.md`. Also confirm the HandsFree cap-break auto-arm interaction
   (which corrupted IC "+" items) is not reintroduced.
 - **FFTHandsFree may take time to update.** It is the in-house oracle and the cheapest path to the
   new offset map, but it is offset-locked to the same 1.x exe and must do its own re-find first. If
@@ -686,4 +688,4 @@ Pillow HSV recolor -> img-conv --no-chunk-compression -> .tex); tints from `ICON
 - Modloader dep: `mod\ModConfig.json`
 - Upstream offset map to re-crib: `c:\Users\ptyRa\Dev\FFTHandsFree\docs\BATTLE_MEMORY_MAP.md`
 - Known-good 1.x exe: `C:\Users\ptyRa\FFT_IC_backup_pre1.5\FFT_enhanced.exe` (SHA256 `6DEDDA923D2D834404C4D513DD21AE77F0A09C35E05C59D612A79BFF65EB9C28`)
-- Wall context: `docs\ITEM_CAP_261_BREAK_JOURNEY.md`
+- Wall context: `docs\research\ITEM_CAP_261_BREAK_JOURNEY.md`

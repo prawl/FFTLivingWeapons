@@ -1,5 +1,7 @@
 # Mechanics
 
+STATUS: CONTRACT (confirmed vs unconfirmed mechanic ledger)
+
 Consolidated mechanics ledger. Folds in the mechanic ideas/implementations from `docs/TODO.md` plus the
 retired `docs/UNIMPLEMENTED_MECHANICS.md` (deleted; its content lives here now).
 One bullet per mechanic. Two buckets: **Confirmed** (proven live and/or shipped) vs **Unconfirmed**

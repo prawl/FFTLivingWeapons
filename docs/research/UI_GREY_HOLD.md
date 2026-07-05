@@ -1,5 +1,7 @@
 # Battle command-menu un-grey hold (BattleMenuGrey) — SCRAPPED
 
+STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md before building on them)
+
 > ⚠ **The `BattleMenuGrey` module described here was SCRAPPED 2026-06-23** — proven a dead end (the UI
 > grey is unholdable; see **RESOLUTION + PARKING-LOT** at the bottom). This file is a findings record
 > only; the code (module, `Config.BattleMenuUngray`, `Offsets.MenuSubState`, `Tuning.BattleMenu*`) no
