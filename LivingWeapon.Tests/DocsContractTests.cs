@@ -228,6 +228,16 @@ public class DocsContractTests
     /// self-referential noise, not a real product/doc reference.</summary>
     private const string SelfFileName = "DocsContractTests.cs";
 
+    /// <summary>Link TARGETS that legitimately exist only on a dev machine (gitignored, absent in
+    /// a clean checkout): a reference to one is skipped rather than resolved, because its
+    /// existence varies by environment and would flip this scan's verdict by machine (resolves
+    /// locally, dangles in CI; the 2026-07-05 push went red exactly this way). The target-side
+    /// twin of DeadLinkScanFiles' HANDOFF source exclusion below.</summary>
+    private static readonly HashSet<string> EnvironmentDependentTargets = new(StringComparer.Ordinal)
+    {
+        "docs/archive/HANDOFF.md",
+    };
+
     /// <summary>True if any path SEGMENT (not just a substring) equals the given directory name --
     /// a bare Contains(Path.Combine("obj", "")) also matches a folder merely ENDING in "obj" (e.g.
     /// "CustomObj\file.cs"), which this segment-aware check does not.</summary>
@@ -289,10 +299,13 @@ public class DocsContractTests
                 string line = lines[lineNo - 1];
                 if (IsCrossRepoMention(line)) continue;
 
+                string forward = refPath.Replace('\\', '/');
+                if (EnvironmentDependentTargets.Contains(forward)) continue;
+
                 string normalized = refPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
                 string full = Path.Combine(repoRoot, normalized);
                 if (!File.Exists(full))
-                    observed.Add((name, refPath.Replace('\\', '/')));
+                    observed.Add((name, forward));
             }
         }
         // Exact-set ratchet (LogContractTests.LegacyCallers' pattern): a fixed dangle that isn't
