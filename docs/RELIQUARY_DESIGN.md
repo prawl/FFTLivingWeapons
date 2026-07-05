@@ -60,7 +60,22 @@ the feeling, not a number).
 
 ## The apex: the UNIT inherits the blade's legend
 A wielder earns a title FROM the weapon's story -- `Ramza, the Demonsbane` -- **but only if loyal to
-one growing weapon.** Weapon-hop every chapter = nameless; carry one blade through the Lucavi = it
+one growing weapon.**
+
+**Preferred surface (Patrick 2026-07-04, CE prototype in progress): the turn-start COMMAND MENU
+HEADER** -- the "Ramza" label above Move/Abilities/Wait -- reworded to "Ramza -- The Oathbreaker".
+Recurring, name-anchored, fires at the moment of agency; separate from the weapon desc so no space
+fight. Likely the same SetTextString text-hook family (0x14028F79C) PromptSwap already rides.
+
+CE POC 2026-07-04 -- surface CONFIRMED (rendered "Kenrick - Oathsmasher" live in the header):
+- Buffer is 8-bit (Unicode=0), **25 chars**, zero-terminated. HARD CAP: `name + " - Title"` must
+  stay <= ~24 chars or it clips; overflow CRASHES the game (observed). Long-named story units
+  (Mustadio Bunansa) may not fit a title -- titles must be terse (<= ~14 incl. separator).
+- The header is a downstream COPY, rebuilt from the source name on refresh -- a data-poke reverts
+  after ~a minute, and the heap addrs are VOLATILE (writing a stale/relocated addr crashed the game).
+  So persistence = a CODE hook (SetTextString 0x14028F79C, or the header builder's caller), never a
+  data write. The generic string-struct populate at 0x140025Cxx is too broad to hook -- find the
+  menu-header-specific caller / confirm it routes through 0x14028F79C. Weapon-hop every chapter = nameless; carry one blade through the Lucavi = it
 makes a legend of you. The sword makes the hero. This is the attachment thesis leveling from item to
 person.
 
