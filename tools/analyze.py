@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
-from lib.flavor import flavor_anchor, rider_text   # the exact flavor line each item renders with
+from lib.flavor import assemble_desc, flavor_anchor, rider_text   # the exact rendered card text
                                                    # + the house-voice prose each rider bakes onto its card
 from lib.items import load_items, display_name
 from lib.paths import ROOT, ITEMS as ITEMS_DEFAULT
@@ -145,6 +145,29 @@ def check_p3desc(items):
         name = sig.get("sigName") or sig.get("displayLabel", "")
         if not name or len(name) > SIGNAME_MAX or len(p3) > P3DESC_MAX:
             bad.append((it, p3))
+    return bad
+
+
+DESC_MAX = 259  # TOTAL assembled card description budget (chars). Calibrated LIVE 2026-07-05
+                # (owner eyewitness on the equip card): 259 chars = exact fit with zero slack
+                # (Rod of Faith AND Swiftedge, different line structures, both fit); 265 chars =
+                # clipped (Sanguine Sword, user screenshot -- the Kills line fell off the box;
+                # Wrathblade 296 confirmed clipped too). Chars are a proxy for the box's
+                # wrapped-line count -- the two 259 fits with different hard-line splits say the
+                # proxy holds at this boundary; recalibrate if the card UI ever changes.
+
+
+def check_desc_budget(items):
+    """The FULL assembled card description (flavor + mechanics + range line + signature block +
+    Kills scaffold -- assemble_desc, the exact patch_names bake) must fit the equip card's box.
+    Overflow pushes the bottom lines (the Kills counter first) off the screen."""
+    bad = []
+    for it in items:
+        if not it.get("name") or it.get("name") == "TBD":
+            continue
+        n = len(assemble_desc(it))
+        if n > DESC_MAX:
+            bad.append((it, n))
     return bad
 
 
@@ -448,6 +471,15 @@ def main():
     else:
         for a, s in p3:
             print(f"  INVALID id{a['id']} {a.get('name')} (len={len(s)}): {s!r}")
+        rc = 1
+
+    db = check_desc_budget(items)
+    print(f"\n--- DESC BUDGET (assembled card text <= {DESC_MAX} chars; overflow clips the box) ---")
+    if not db:
+        print(f"  PASS: every assembled description fits the card.")
+    else:
+        for a, n in db:
+            print(f"  OVERFLOW id{a['id']} {a.get('name')} ({n} chars, {n - DESC_MAX} over)")
         rc = 1
 
     rd = check_rider_desc(items)

@@ -231,7 +231,7 @@
     "wp": 12,
     "cat": "Sword",
     "formula": 67,
-    "flavor": "A blade for the cornered and bleeding; nearer ruin, the hungrier its edge.",
+    "flavor": "A blade for the cornered; nearer ruin, the hungrier its edge.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -748,7 +748,7 @@
     "wp": 5,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "Strung with a wire that hums before it sings, each shaft crackling stormlight to its mark.",
+    "flavor": "Strung with wire that hums before the storm sings.",
     "signature": {
       "abilityId": 0,
       "slot": "",

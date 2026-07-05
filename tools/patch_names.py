@@ -17,7 +17,7 @@ from pathlib import Path
 import sqlite3
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
-from lib.flavor import flavor, mechanics, plural
+from lib.flavor import assemble_desc, is_living, plural
 from lib.items import load_items
 from lib.nxd import encode_sqlite_to_nxd, deploy_nxd
 from lib.paths import ROOT, MOD_ITEM_NXD
@@ -68,57 +68,19 @@ def main():
     con = sqlite3.connect(SQLITE)
     n = 0
     for it in named:
-        custom = it.get("desc")
-        if custom:
-            desc = custom
-        else:
-            # flavorOverride lets an item keep a hand-written flavor line while STILL auto-appending its
-            # mechanics (so the stats stay in sync if we retune them); plain flavor() is the fallback.
-            fl, mech = (it.get("flavorOverride") or flavor(it)), mechanics(it)
-            desc = fl + ("\n" + mech if mech else "")
-        # reach line appended uniformly (custom + generated) so every ranged weapon phrases range identically
-        rng = it["proposed"].get("range", 1) or 1
-        if it["category"] in WEAPON_CATS and rng >= 2:
-            desc = desc.rstrip()
-            if desc and not desc.endswith((".", "!", "?")):
-                desc += "."
-            desc += f" Strikes from up to {rng} tiles away."
+        # Full card text (flavor + mechanics + range line + signature block + Kills scaffold)
+        # comes from the shared assembler so analyze.py's desc-budget gate sees the exact bake.
+        desc = assemble_desc(it, scaffold=SCAFFOLD_LIVING)
         clean = it["name"]
         eff_cat = it["proposed"].get("categoryOverride") or it.get("category")
         # --- Living Weapon display scaffolding (every weapon grows as it kills) ---
         # Two trailing spaces = a 2-char name-suffix SLOT the companion paints +/+2/+3 into
-        # (spaces render as nothing, so tier 0 reads clean). A fixed-width "Kills 0000" line
-        # gives the per-weapon counter a stable overwrite target. Same proven loaded-string
-        # overwrite the Living Blade MVP used, now armed on all 121 weapons.
-        name = clean
-        # noGrowth weapons (Materia Blade, the bombs) are excluded from the Living Weapon
-        # system (gen_living_weapon_meta.py skips them), so they must not carry the scaffold
-        # either -- a baked "Kills: 0" on a weapon the runtime never paints is a dead counter
-        # lying on the card. Keep this predicate in lockstep with gen_living_weapon_meta.
-        if SCAFFOLD_LIVING and eff_cat in WEAPON_CATS and not it.get("noGrowth"):
-            name = clean + "  "
-            # p3Desc goes BEFORE the Kills/Grant scaffolding so gameplay prose stays grouped above
-            # the tracker lines (the Kills/Grant anchors key on the flavor line + literal prefixes).
-            sig = it.get("signature")
-            p3 = sig.get("p3Desc") if sig else None
-            if p3:
-                # Card section for the +N ability: a blank line, then a header that NAMES the
-                # ability ("+3 Ability -- Infatuation"), then the bare effect. The name comes from
-                # sigName (the curated flavor name), falling back to displayLabel (the additive
-                # supports store the granted ability's own name there). The "+N" gate lives in the
-                # header, so the effect line stays a clean sentence -- no "Must be equipped at +3".
-                sname = sig.get("sigName") or sig.get("displayLabel", "")
-                at = sig.get("atTier", 3)
-                header = f"+{at} Ability — {sname}" if sname else f"+{at} Ability"
-                desc = desc.rstrip() + f"\n\n{header}\n{p3}"
-            # bake "Kills: 0   " (digit + 3 spaces) as the LAST line of EVERY weapon card -- the
-            # counter reads as consistent UI when it always closes the card. The DLL paints
-            # left-aligned variable digits into this fixed 4-char slot (KillsSlot helper); the
-            # baked value must match the left-aligned pattern the slot validator accepts. The
-            # "Kills: " literal MUST stay in lockstep with Display/DisplayScan + ByteScan.KillsDigits.
-            # (No painted "Grant" line anymore: the baked "While this weapon is equipped at +3, ..."
-            # sentence states the ability, and unpainted cards showed the slot as a bare "Grant".)
-            desc = desc.rstrip() + "\n\nKills: 0   "   # blank line sets the tracker off from the description
+        # (spaces render as nothing, so tier 0 reads clean). The desc-side scaffold (the "+N
+        # Ability" block and the fixed "Kills: 0   " counter line) is baked by assemble_desc
+        # above -- lib/flavor.py owns that layout now so the analyze.py budget gate cannot
+        # drift from the bake. is_living = the shared noGrowth/category predicate, in lockstep
+        # with gen_living_weapon_meta.
+        name = clean + "  " if (SCAFFOLD_LIVING and is_living(it)) else clean
         if dry:
             if it["id"] >= 11:  # show the new ones
                 print(f"id{it['id']:>3} {name!r}\n      {desc!r}")

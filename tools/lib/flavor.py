@@ -208,6 +208,54 @@ def flavor_anchor(it):
     return it.get("flavorOverride") or flavor(it)
 
 
+def is_living(it):
+    """True when this item carries the Living Weapon card scaffold (the 2-char name-suffix slot
+    and the trailing "Kills: 0" line). The SAME predicate patch_names.py bakes with and
+    gen_living_weapon_meta.py selects on -- keep all three in lockstep."""
+    eff_cat = (it.get("proposed") or {}).get("categoryOverride") or it.get("category")
+    return eff_cat in WEAPON_CATS and not it.get("noGrowth")
+
+
+def assemble_desc(it, scaffold=True):
+    """The COMPLETE rendered card description, byte-for-byte what patch_names.py bakes into
+    item.en.nxd: flavor line (+ generated mechanics), the uniform range sentence, the
+    "+{atTier} Ability" signature block, and the Living Weapon "Kills: 0" scaffold. Extracted
+    here so analyze.py's desc-budget gate and the baker CANNOT drift -- the same lockstep
+    contract flavor_anchor carries for the first line. `scaffold` mirrors patch_names'
+    SCAFFOLD_LIVING switch."""
+    custom = it.get("desc")
+    if custom:
+        desc = custom
+    else:
+        # flavorOverride keeps a hand-written flavor line while STILL auto-appending mechanics
+        # (so the stats stay in sync if retuned); plain flavor() is the fallback.
+        fl = it.get("flavorOverride") or flavor(it)
+        mech = mechanics(it)
+        desc = fl + ("\n" + mech if mech else "")
+    # reach line appended uniformly (custom + generated) so every ranged weapon phrases range identically
+    rng = (it.get("proposed") or {}).get("range", 1) or 1
+    if it.get("category") in WEAPON_CATS and rng >= 2:
+        desc = desc.rstrip()
+        if desc and not desc.endswith((".", "!", "?")):
+            desc += "."
+        desc += f" Strikes from up to {rng} tiles away."
+    if scaffold and is_living(it):
+        # p3Desc goes BEFORE the Kills scaffolding so gameplay prose stays grouped above the
+        # tracker lines (the Kills anchor keys on the flavor line + literal prefixes). Header
+        # names the ability via sigName (curated flavor name) falling back to displayLabel.
+        sig = it.get("signature")
+        p3 = sig.get("p3Desc") if sig else None
+        if p3:
+            sname = sig.get("sigName") or sig.get("displayLabel", "")
+            at = sig.get("atTier", 3)
+            header = f"+{at} Ability — {sname}" if sname else f"+{at} Ability"
+            desc = desc.rstrip() + f"\n\n{header}\n{p3}"
+        # "Kills: 0   " (digit + 3 spaces) as the LAST line -- the DLL paints left-aligned
+        # digits into this fixed 4-char slot; literal MUST stay in lockstep with ByteScan.KillsDigits.
+        desc = desc.rstrip() + "\n\nKills: 0   "
+    return desc
+
+
 def plural(name):
     low = name.lower()
     if low.endswith(("s", "x", "z", "ch", "sh")):
