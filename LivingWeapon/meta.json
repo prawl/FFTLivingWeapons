@@ -189,7 +189,7 @@
     "wp": 7,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "A two-handed greatsword whose reach lets its bearer cut a pace beyond the foe's swing."
+    "flavor": "A heavy greatsword whose reach lets its bearer cut a pace beyond the foe's swing."
   },
   "23": {
     "name": "Sanguine Sword",
@@ -445,21 +445,21 @@
   },
   "52": {
     "name": "Spark Rod",
-    "wp": 8,
+    "wp": 5,
     "cat": "Rod",
     "formula": 4,
     "flavor": "A rod that holds a fistful of caged storm; each blow lets the thunder out for the asking."
   },
   "53": {
     "name": "Ember Rod",
-    "wp": 8,
+    "wp": 5,
     "cat": "Rod",
     "formula": 4,
     "flavor": "Embers smolder in its heart, eager to leap; a touch is enough to set a foe ablaze."
   },
   "54": {
     "name": "Frost Rod",
-    "wp": 8,
+    "wp": 5,
     "cat": "Rod",
     "formula": 4,
     "flavor": "Its tip is sheathed in everlasting rime; where it points, the air turns to killing winter."
