@@ -84,4 +84,37 @@ internal sealed partial class KillTracker
             $"register-no-latch detail (register=[{string.Join(",", hypW)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
         _recorder?.Invoke("kill", $"stamp-register-nolatch slot={s} register=[{string.Join(",", hypW)}] nameId={hypName} age={age}");
     }
+
+    /// <summary>Death-edge culprit stamp (empty-latch path, LW-1): the sibling of <see cref="StampCulprit"/>
+    /// for the callsite where the acted-period latch resolved EMPTY (KillTracker.Corpses.cs's
+    /// _latchResolvedEmpty && _latched branch). _lastPlayerWeapons is empty here by construction
+    /// (the callsite is the else-if after the Count &gt; 0 check), so Policy.Decide degenerates to:
+    /// no hypothesis, bury (today's Latch outcome); a fresh hypothesis that is ALSO empty, bury
+    /// (SameSet of two empties is a Latch outcome too, so a dancer or unarmed guest is her own
+    /// empty hypothesis and stays uncredited by design); a fresh, differing, ARMED hypothesis,
+    /// Register override (the one recovered case: Boco's Phoenix Down kill, live-confirmed
+    /// 2026-07-05). The StampKind.Bury outcome itself is unreachable here (it requires a nonempty
+    /// latch), so every non-Register outcome maps to today's ActedLatch bury, keeping behavior
+    /// byte-identical except for that one recovered case. THE PERIOD GATE mirrors the sibling
+    /// sites exactly: a closed period keeps today's bury. Doctrine: miss beats mis-credit, this
+    /// site can only turn a miss into a credit backed by a strictly fresher register arrival,
+    /// never invent one from stale state.</summary>
+    private void StampCulpritFromEmptyLatch(int s)
+    {
+        if (!_periodOpen) { _lethalUntracked[s] = UntrackedReason.ActedLatch; return; }   // THE PERIOD GATE
+        bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age);
+        if (KillerStamp.Policy.Decide(_lastPlayerWeapons, has, hypW) == KillerStamp.StampKind.Register)
+        {
+            _lethalActor[s] = hypW;   // fresh list from HandsFromRoster, never an alias into register state
+            _lethalViaFallback[s] = false;   // register-named: pointer-derived, never a fallback resolve
+            ModLogger.EventWithTrace(LogVerb.Credit,
+                $"Corrected a burial: the actor register names an armed killer during an unarmed actor's turn; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))} instead of leaving the kill uncredited.",
+                $"register-over-empty-latch detail (register=[{string.Join(",", hypW)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
+            _recorder?.Invoke("kill", $"stamp-override-empty-latch slot={s} register=[{string.Join(",", hypW)}] nameId={hypName} age={age}");
+        }
+        else
+        {
+            _lethalUntracked[s] = UntrackedReason.ActedLatch;
+        }
+    }
 }

@@ -224,11 +224,13 @@ internal sealed partial class KillTracker
                 else if (_latchResolvedEmpty && _latched)
                 {
                     // Kill edge fell during a resolved-but-untracked actor's LIVE acted-period
-                    // (summoner/dancer/item-user, no living weapon): credit nobody.
-                    // _latched gates out the inverse race -- a DIFFERENT armed unit that acted
-                    // before its own acted edge while the empty latch is still sticky (that case
-                    // must keep crediting the armed unit via the pending path, not be buried here).
-                    _lethalUntracked[s] = UntrackedReason.ActedLatch;
+                    // (summoner/dancer/item-user, no living weapon). The && _latched guard is
+                    // LOAD-BEARING: it excludes the inverse race, a DIFFERENT armed unit that
+                    // acted before its own acted edge while the empty latch is still sticky (that
+                    // case must keep crediting the armed unit via the pending path, not be buried
+                    // here). The bury now consults the death-edge culprit hypothesis first
+                    // (KillTracker.Stamp.cs) rather than crediting nobody unconditionally.
+                    StampCulpritFromEmptyLatch(s);
                 }
                 else if (!nonPlayerTurn)
                 {

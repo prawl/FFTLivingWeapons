@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using LivingWeapon;
 using Xunit;
 
@@ -560,5 +561,186 @@ public class KillTrackerStampTests
 
         Assert.Equal(1, kills.GetValueOrDefault(freshWeapon));
         Assert.False(kills.ContainsKey(staleWeapon));
+    }
+
+    // --- LW-1: the empty-latch sibling (StampCulpritFromEmptyLatch, KillTracker.Stamp.cs) ---
+    //
+    // Companion to the tape-replay tests above, but for the OTHER half of the death-edge stamp:
+    // the acted-period latch resolved EMPTY (a roster player with no tracked weapon: the Boco/
+    // Phoenix Down live case, docs/TODO.md LW-1). Before this fix the bury branch
+    // (KillTracker.Corpses.cs's `else if (_latchResolvedEmpty && _latched)`) stamped
+    // UntrackedReason.ActedLatch unconditionally; the fix consults the SAME KillerStamp register
+    // hypothesis the armed-latch sibling already uses, and overrides only on a fresh, disagreeing,
+    // ARMED arrival.
+
+    [Fact]
+    public void EmptyLatch_register_overrides_with_fresh_armed_arrival()
+    {
+        // LOAD-BEARING (LW-1). Boco (P1) is the acting player this acted-period; he holds no
+        // tracked weapon, so the latch resolves EMPTY and freezes (_latchResolvedEmpty &&
+        // _latched). acted then STAYS at 1 (the stuck-period pattern from the live tape), so the
+        // empty latch never re-resolves. The engine actor pointer independently arrives on Ramza
+        // (P2, armed) STRICTLY AFTER the empty latch's own resolve tick. Pre-fix this kill was
+        // buried unconditionally; the fix credits Ramza's weapon instead.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+
+        SetRoster(m, slot: 0, level: 30, brave: 40, faith: 40, weapon: 0xFFFF, nameId: 701);   // P1 Boco: unarmed
+        SetUnit(m, P1, hp: 300, maxHp: 300, level: 30, brave: 40, faith: 40);
+        SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: 53, nameId: 702);        // P2 Ramza: armed
+        SetUnit(m, P2, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        var t = new KillTracker(kills, m, Weapons, recorder: (type, payload) => recorded.Add((type, payload)));
+
+        t.Poll(true);
+        SetFrameNameId(m, P1, 701);
+        PointAt(m, P1);
+        t.Poll(true);                              // arrival on P1: strictly before the edge
+
+        SetActive(m, hp: 300, maxHp: 300, level: 30, acted: 1);
+        t.Poll(true);                              // period begins: Boco resolves EMPTY; latch freezes empty
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);                               // victim seenAlive
+
+        // acted NEVER falls (the stuck-period pattern). The pointer moves on to P2, a fresh,
+        // disagreeing, ARMED hypothesis that postdates Boco's resolve.
+        SetFrameNameId(m, P2, 702);
+        PointAt(m, P2);
+        t.Poll(true);
+
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true);   // deadStreak=1: StampCulpritFromEmptyLatch overrides the empty latch with P2's [53]
+        t.Poll(true);
+        t.Poll(true);   // deadStreak=3 -> credit
+
+        Assert.Equal(1, kills.GetValueOrDefault(53));
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload.StartsWith("stamp-override-empty-latch"));
+    }
+
+    [Fact]
+    public void EmptyLatch_arrival_predating_resolve_stays_buried()
+    {
+        // Companion to the load-bearing test: P2's armed arrival happens well BEFORE Boco's empty
+        // latch resolves (the ordering gate). The pointer then goes idle (entry 0) before Boco's
+        // period begins, so Boco's own resolve runs the ordinary TQ fingerprint path (register
+        // path closed: the idle owner is untrusted) and still lands on empty. P2's stale arrival
+        // must be rejected: the bury holds byte-identical to today.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+
+        SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: 53, nameId: 703);   // P2 Ramza: armed, arrives FIRST
+        SetUnit(m, P2, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        SetRoster(m, slot: 0, level: 30, brave: 40, faith: 40, weapon: 0xFFFF, nameId: 704); // P1 Boco: unarmed
+        SetUnit(m, P1, hp: 300, maxHp: 300, level: 30, brave: 40, faith: 40);
+        var t = new KillTracker(kills, m, Weapons, recorder: (type, payload) => recorded.Add((type, payload)));
+
+        t.Poll(true);                               // priming (pointer unseeded)
+        SetFrameNameId(m, P2, 703);
+        PointAt(m, P2);
+        t.Poll(true);                               // P2 arrives: well before Boco's period
+
+        m.SeedU64(Offsets.ActorPtr, 0);
+        t.Poll(true);                                // pointer goes idle: P2's snapshot stays, untouched
+
+        SetActive(m, hp: 300, maxHp: 300, level: 30, acted: 1);
+        t.Poll(true);                                // period begins: register path closed; TQ resolves Boco EMPTY
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true); t.Poll(true); t.Poll(true);   // deadStreak 1->3: P2's arrival predates the resolve -> bury
+
+        Assert.Empty(kills);
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload.Contains("reason=untracked-weapon") && r.payload.Contains("via=ActedLatch"));
+    }
+
+    [Fact]
+    public void EmptyLatch_fresh_arrival_also_unarmed_stays_buried()
+    {
+        // A fresh, postdating hypothesis that is ITSELF empty (the unarmed actor re-arriving via
+        // the pointer, or an equally unarmed second guest) must stay buried: SameSet of two empty
+        // sets is a Latch outcome, not a Register override. A dancer/summoner/unarmed guest stays
+        // her own uncredited hypothesis, exactly as designed.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+
+        SetRoster(m, slot: 0, level: 30, brave: 40, faith: 40, weapon: 0xFFFF, nameId: 705);   // P1 Boco: unarmed
+        SetUnit(m, P1, hp: 300, maxHp: 300, level: 30, brave: 40, faith: 40);
+        var t = new KillTracker(kills, m, Weapons, recorder: (type, payload) => recorded.Add((type, payload)));
+
+        t.Poll(true);
+        SetActive(m, hp: 300, maxHp: 300, level: 30, acted: 1);
+        t.Poll(true);                                // period begins: Boco resolves EMPTY via TQ (no pointer yet)
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        // acted stays at 1. The pointer now arrives on Boco himself, fresh and postdating, but
+        // still an EMPTY hypothesis (he is his own hypothesis).
+        SetFrameNameId(m, P1, 705);
+        PointAt(m, P1);
+        t.Poll(true);
+
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true); t.Poll(true); t.Poll(true);   // deadStreak 1->3: empty hypothesis -> Latch outcome -> bury
+
+        Assert.Empty(kills);
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload.Contains("reason=untracked-weapon") && r.payload.Contains("via=ActedLatch"));
+    }
+
+    [Fact]
+    public void EmptyLatch_untrusted_register_stays_buried()
+    {
+        // The register never trusts an arrival at all (no ActorPtr ever seeded): TryHypothesis
+        // never fires and the bury holds byte-identical to the pre-fix behavior.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+
+        SetRoster(m, slot: 0, level: 30, brave: 40, faith: 40, weapon: 0xFFFF, nameId: 706);   // P1 Boco: unarmed
+        SetUnit(m, P1, hp: 300, maxHp: 300, level: 30, brave: 40, faith: 40);
+        SetActive(m, hp: 300, maxHp: 300, level: 30, acted: 1);
+        var t = new KillTracker(kills, m, Weapons, recorder: (type, payload) => recorded.Add((type, payload)));
+
+        Settle(t, 3);                                 // Boco's period begins and resolves EMPTY via TQ
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Empty(kills);
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload.Contains("reason=untracked-weapon") && r.payload.Contains("via=ActedLatch"));
+    }
+
+    [Fact]
+    public void EmptyLatch_period_closed_stays_buried_via_private_gate()
+    {
+        // Structural note: _latched and _periodOpen are set/cleared in lockstep everywhere in
+        // KillTracker.cs (both flip together at the debounced acted-falling edge and in
+        // ResetBattle), so the callsite condition (_latchResolvedEmpty && _latched) can never
+        // naturally fire with _periodOpen false through Poll() alone. StampCulpritFromEmptyLatch's
+        // own period gate mirrors the sibling sites defensively regardless; this test pins that
+        // guard directly through the private surface, the only way to exercise it.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: 53, nameId: 707);   // an otherwise-valid armed hypothesis
+        SetUnit(m, P2, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);
+        SetFrameNameId(m, P2, 707);
+        PointAt(m, P2);
+        t.Poll(true);   // a fresh Player arrival exists: would answer Register if the gate were open
+
+        typeof(KillTracker).GetField("_periodOpen", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .SetValue(t, false);
+        var method = typeof(KillTracker).GetMethod("StampCulpritFromEmptyLatch", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        method.Invoke(t, new object[] { 0 });
+
+        var lethalUntracked = (UntrackedReason[])typeof(KillTracker)
+            .GetField("_lethalUntracked", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(t)!;
+        Assert.Equal(UntrackedReason.ActedLatch, lethalUntracked[0]);
     }
 }

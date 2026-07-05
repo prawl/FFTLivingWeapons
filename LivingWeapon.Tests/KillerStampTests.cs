@@ -84,6 +84,29 @@ public class KillerStampTests
         Assert.Equal(KillerStamp.StampKind.Register, result);
     }
 
+    [Fact]
+    public void Decide_no_hypothesis_with_empty_latch_is_latch()
+    {
+        // The empty-latch degeneracy (LW-1's StampCulpritFromEmptyLatch, KillTracker.Stamp.cs):
+        // no hypothesis at all keeps today's bury regardless of the latch itself being empty.
+        var latch = new List<int>();
+        var result = KillerStamp.Policy.Decide(latch, hasHypothesis: false, hypothesisWeapons: new List<int>());
+        Assert.Equal(KillerStamp.StampKind.Latch, result);
+    }
+
+    [Fact]
+    public void Decide_both_empty_is_latch_not_bury()
+    {
+        // The other empty-latch degeneracy: a fresh hypothesis that is ITSELF empty (an unarmed
+        // actor is her own hypothesis) hits the SameSet check first, giving Latch, not Bury.
+        // Distinct from Decide_empty_hypothesis_is_bury above, which pins a NONEMPTY latch against
+        // an empty hypothesis (a real disagreement, hence Bury).
+        var latch = new List<int>();
+        var hyp = new List<int>();
+        var result = KillerStamp.Policy.Decide(latch, hasHypothesis: true, hypothesisWeapons: hyp);
+        Assert.Equal(KillerStamp.StampKind.Latch, result);
+    }
+
     // --- TryHypothesis gates (driven via a real ActorRegister) ---
 
     [Fact]
