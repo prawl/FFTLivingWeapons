@@ -8,6 +8,11 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-1] SHIPPED 1a157f2 2026-07-05: the unarmed stale-latch bury branch ate armed players'
+  kills (Boco/Phoenix Down; two burials taped in one battle the same day). Fixed by consulting
+  the KillerStamp register at the empty-latch bury: only a strictly fresher, disagreeing,
+  ARMED hypothesis converts the bury into a credit; designed no-credits and closed periods
+  stay byte-identical. Owner verified crediting live on the 2026-07-05 deploy.
 - [LW-3] SHIPPED 02eff93 2026-07-05: docs three-tier reorg. Living contracts stay at the docs
   top level, closed journals moved to docs/research/, shipped or dead one-shots to
   docs/archive/, every doc stamped with an opening STATUS line, references swept repo-wide

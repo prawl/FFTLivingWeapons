@@ -10,21 +10,6 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-1] Unarmed stale latch eats an armed player's kill (Boco/Phoenix Down)** (opened 2026-07-05) [BUILDING]
-  - Done means: the bury branch (KillTracker.Corpses.cs, _latchResolvedEmpty && _latched) consults
-    KillerStamp.Decide; a fresh differing ARMED hypothesis becomes a Register override, everything
-    else still buries (a dancer/summoner is her own empty hypothesis, so designed no-credits are
-    unaffected). Recovers both the kill tally and the Reliquary deed (this ate the first undead
-    Requiem test kill).
-  - Verify: KillTracker bury-branch unit tests green; live check is VERIFY_LIVE.md row 8 (the
-    undead Requiem path).
-  - Notes: owner-verified 2026-07-05 13:40, log on file. Boco the chocobo acted, the actor
-    pointer stayed parked on him when Ramza's acted period opened (the known pointer-at-edge
-    lag), so the latch resolved "acting player, no living weapon" and froze; Ramza's Phoenix
-    Down skeleton kill was then buried without consulting the actor register, which by then
-    named Ramza (armed, fresh). The armed-latch sibling of this race is already fixed (the
-    KillerStamp death-edge stamp, f4bf5df).
-
 - **[LW-2] Deploy the shipped batch and run the live verification script** (opened 2026-07-05) [AWAITING-LIVE]
   - Done means: kill fft_enhanced.exe, run BuildLinked.ps1, then docs/VERIFY_LIVE.md rows 6-12
     pass, including the row-11 log-facelift protocol (armed battle 8-14 console lines, unarmed
