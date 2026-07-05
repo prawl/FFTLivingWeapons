@@ -17,16 +17,11 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class VictimProbe
 {
-    /// <summary>One point-in-time read of a victim's three probe fields. Has=false means either
-    /// no capture was ever taken for this slot at this point, or the nameId read was unreadable
-    /// (see <see cref="Read"/> for why nameId alone gates Has).</summary>
-    internal readonly record struct Snapshot(bool Has, ushort NameId, byte Job, bool Undead);
-
     private readonly IGameMemory _mem;
     private readonly Action<string, string>? _recorder;
 
-    private readonly Snapshot[] _alive = new Snapshot[Offsets.BandSlots];
-    private readonly Snapshot[] _edge = new Snapshot[Offsets.BandSlots];
+    private readonly VictimSnapshot[] _alive = new VictimSnapshot[Offsets.BandSlots];
+    private readonly VictimSnapshot[] _edge = new VictimSnapshot[Offsets.BandSlots];
 
     public VictimProbe(IGameMemory mem, Action<string, string>? recorder)
     {
@@ -49,9 +44,9 @@ internal sealed class VictimProbe
     /// tuples together.</summary>
     internal void LogAtCredit(int s)
     {
-        Snapshot credit = Read(Band.Entry(s));
-        Snapshot alive = _alive[s];
-        Snapshot edge = _edge[s];
+        VictimSnapshot credit = VictimReader.Read(_mem, Band.Entry(s));
+        VictimSnapshot alive = _alive[s];
+        VictimSnapshot edge = _edge[s];
 
         LogLine(s, "alive", alive);
         LogLine(s, "edge", edge);
@@ -61,30 +56,20 @@ internal sealed class VictimProbe
             $"slot={s} alive={Tuple(alive)} edge={Tuple(edge)} credit={Tuple(credit)}");
     }
 
-    private static void LogLine(int s, string point, Snapshot snap)
+    private static void LogLine(int s, string point, VictimSnapshot snap)
         => ModLogger.LogDebug($"victim-probe: slot={s} point={point} nameId={snap.NameId} job={snap.Job} undead={(snap.Undead ? 1 : 0)} has={(snap.Has ? 1 : 0)}");
 
-    private static string Tuple(Snapshot snap)
+    private static string Tuple(VictimSnapshot snap)
         => $"(nameId={snap.NameId},job={snap.Job},undead={(snap.Undead ? 1 : 0)},has={(snap.Has ? 1 : 0)})";
 
-    /// <summary>Guarded three-field read (mirrors the Puppeteer.cs:215 idiom: Readable-gated, else
-    /// the zero value). Each field is read independently so a partially-unreadable slot still
-    /// yields whatever WAS readable. Has is true only when the nameId read succeeded -- nameId is
-    /// the field the P1 comparison actually cares about (job/undead are secondary corroboration),
-    /// so a snapshot with a readable job/undead but no nameId is still reported as "nothing sane
-    /// to compare" rather than manufacturing a false positive from a zeroed nameId.</summary>
-    private Snapshot Read(long addr)
-    {
-        bool nameOk = _mem.Readable(addr + Offsets.ANameId, 2);
-        ushort nameId = nameOk ? _mem.U16(addr + Offsets.ANameId) : (ushort)0;
-        byte job = _mem.Readable(addr + Puppeteer.JobOff, 1) ? _mem.U8(addr + Puppeteer.JobOff) : (byte)0;
-        bool undead = _mem.Readable(addr + Offsets.ADeadStatus, 1)
-            && (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.AUndeadBit) != 0;
-        return new Snapshot(nameOk, nameId, job, undead);
-    }
+    /// <summary>Guarded three-field read -- delegates to the shared <see cref="VictimReader"/>
+    /// (extracted from this method; see its doc comment for the guard rationale) so this probe's
+    /// log-only capture and KillTracker.Corpses.cs's Phase 1 behavioral capture never disagree on
+    /// what "a sane read" means.</summary>
+    private VictimSnapshot Read(long addr) => VictimReader.Read(_mem, addr);
 
-    internal Snapshot AliveSnapshot(int s) => _alive[s];
-    internal Snapshot EdgeSnapshot(int s) => _edge[s];
+    internal VictimSnapshot AliveSnapshot(int s) => _alive[s];
+    internal VictimSnapshot EdgeSnapshot(int s) => _edge[s];
 
     /// <summary>Clear both snapshots for one slot -- called on identity change (a new unit reused
     /// the slot) and on revive (the old death's snapshot is stale once the victim is alive again).</summary>

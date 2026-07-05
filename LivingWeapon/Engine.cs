@@ -22,6 +22,7 @@ internal sealed class Engine
 
     private readonly KillTally _tally;
     private readonly Dictionary<int, int> _kills;
+    private readonly LegendStore _legends;   // Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md)
     private readonly KillTracker _tracker;
     private readonly TurnTracker _turns;
     private readonly GrowthEngine _growth;
@@ -69,6 +70,7 @@ internal sealed class Engine
     {
         _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
         _kills = _tally.Kills;
+        _legends = LegendStore.Load(modDir);   // Reliquary Phase 1 deed ledger, sibling of kills.json
         var meta = MetaLoader.Load(modDir);
 #if LWDEV
         // DEV build only: seed every weapon to max tier for fast verification. Compiled out of
@@ -85,6 +87,11 @@ internal sealed class Engine
         _live = live;
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
+        // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the deed-recording seam KillTracker's
+        // CreditKill reports every credited kill's captured victim to. Decision 11: a disabled
+        // BannerToast config must leave the Mark-announce path fully inert (BannerToast.Enqueue
+        // has no _enabled gate of its own), so pass null instead of _toast when disabled.
+        var reliquary = new Reliquary(_legends, _bannerToastsEnabled ? _toast : null, meta, Flight.Record);
         _promptSwap = new PromptSwap(_toast, live);
         _promptSwapHook = new PromptSwapHook(_promptSwap);
 #if LWDEV
@@ -99,7 +106,7 @@ internal sealed class Engine
         // Flight -- its sink just also records every ev: line into the flight ring.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(verbose: true, sink: s => { ModLogger.LogDebug(s); Flight.Record("ev", s); }),
-                                   Flight.Record);
+                                   Flight.Record, deeds: reliquary);
         _growth = new GrowthEngine(meta, _kills, _turns, live);
         _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
@@ -141,7 +148,9 @@ internal sealed class Engine
         _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, larceny, puppeteer, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         _gunSlinger = new GunSlinger(meta, _kills, modDir, live);
-        _display = new Display(meta, _kills, live);
+        // Reliquary Phase 1 (docs/RELIQUARY_AC.md): wiring legends here builds Display's
+        // StoryLines/EarnedAnchors (card-story composing + the three-way anchor, decision 12).
+        _display = new Display(meta, _kills, live, legends: _legends);
 #if LWDEV
         // Constructed here (not beside _showSpike above) because it needs Display's _sites/_pats,
         // which do not exist until Display itself is built.
@@ -252,6 +261,7 @@ internal sealed class Engine
             ModLogger.Log($"battle: ended -- saving kill tally, resetting battle trackers (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
             ResetBattleState();
             _tally.Save();               // flush on battle end
+            _legends.SaveIfDirty();      // Reliquary: mirrors kills.json's battle-exit save timing
             // S2: the battle-exit edge ONLY -- ResetBattleState() fires on BOTH edges (enter+exit),
             // so the flush lives here beside _tally.Save(), not inside that shared method.
             Flight.FlushBattleEnd();
@@ -318,7 +328,11 @@ internal sealed class Engine
         _showSpike.Tick();
         _flavorSpike.Tick();
 #endif
-        if (changed) _tally.Save();
+        if (changed)
+        {
+            _tally.Save();
+            _legends.SaveIfDirty();   // Reliquary: mirrors kills.json's on-change save timing
+        }
 
         // slot9 is still the battle sentinel, but once we've been OFF the live battlefield
         // for a beat (battleMode 0 = world-map party menu / post-battle), paint the card.

@@ -85,9 +85,13 @@ internal sealed partial class KillTracker
     // identity census fired at EnemyOracle's coverage-complete edge; log/flight only, zero
     // behavioral dependence. See BattleCensus's doc comment.
     internal readonly BattleCensus _census;
+    // Reliquary Phase 1 (docs/RELIQUARY_AC.md): optional deed sink CreditKill reports every
+    // credited kill's captured victim to (or a miss, if none was captured). Null default keeps
+    // every pre-Reliquary test and call site byte-identical -- see CreditKill's doc comment.
+    private readonly IDeedSink? _deeds;
 
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
-                        Action<string, string>? recorder = null)
+                        Action<string, string>? recorder = null, IDeedSink? deeds = null)
     {
         _kills = kills;
         _mem = mem;
@@ -99,6 +103,7 @@ internal sealed partial class KillTracker
         _events = events;
         _victimProbe = new VictimProbe(mem, recorder);
         _census = new BattleCensus(mem, recorder);
+        _deeds = deeds;
     }
 
     /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
@@ -306,12 +311,23 @@ internal sealed partial class KillTracker
         _resolver.SetCorpseAnchorOk(ok);
     }
 
-    /// <summary>Credit the given weapon set for a kill at band slot s (position gx,gy).</summary>
+    /// <summary>Credit the given weapon set for a kill at band slot s (position gx,gy). Reliquary
+    /// Phase 1: reports the slot's captured victim snapshot (KillTracker.Corpses.cs's
+    /// _victimAtEdge) to the injected IDeedSink, once, then consumes it -- a missing snapshot
+    /// (docs/RELIQUARY_AC.md's missing-snapshot failure mode) still increments the tally exactly
+    /// as before, just with a DeedMiss instead of a RecordDeed. Never mutates/retains
+    /// <paramref name="weapons"/> (may alias _lastPlayerWeapons).</summary>
     internal bool CreditKill(int s, int gx, int gy, List<int> weapons)
     {
         bool changed = false;
         LogKillDiag(s, weapons);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
         _victimProbe.LogAtCredit(s);   // Reliquary P1 probe: log-only, zero behavioral dependence
+        VictimSnapshot snap = _victimAtEdge[s];
+        if (snap.Has)
+            foreach (int w in weapons) _deeds?.RecordDeed(w, in snap);
+        else
+            _deeds?.DeedMiss(s);
+        _victimAtEdge[s] = default;   // consume-once: this slot's next death gets a fresh capture
         foreach (int w in weapons)
         {
             _kills.TryGetValue(w, out int c);

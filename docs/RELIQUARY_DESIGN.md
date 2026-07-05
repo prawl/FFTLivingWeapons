@@ -44,6 +44,11 @@ the feeling, not a number).
   weapon's blurb becomes what it DID, not what a designer wrote. On-thesis and zero net text growth.
 - The card shows the **proudest** title only (a Lucavi Legend outranks a Goblin Mark); the full roll
   lives in the save file + roomier surfaces.
+- **EN-only caveat:** the toast text and the composed card line are English-only (Reliquary Phase 1
+  shipped, docs/RELIQUARY_AC.md). This is gameplay-neutral in FR -- the French wall
+  (french-nxd-override-recipe) blocks item TEXT, not mechanics, and Reliquary's card line is a
+  DLL-live paint over existing bytes, not a table/nxd change, so it never trips that wall; it just
+  narrates in English regardless of the game's configured language.
 
 **Then EXPAND across surfaces** (the story distributes; the card is one window of ~10):
 1. Equip item card -- weapon deeds + Kills (already ours)

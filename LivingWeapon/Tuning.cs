@@ -41,6 +41,24 @@ internal static class Tuning
     /// thresholds) so every +3 signature is live the moment the weapon is equipped.</summary>
     public const int DevKillSeed = 3;
 
+    /// <summary>Reliquary Phase 1 (docs/RELIQUARY_AC.md): the per-archetype kill count at which a
+    /// weapon earns that archetype's Mark (Slayer title). Both curves ALWAYS compiled (mirrors
+    /// DevThresholds/ProdThresholds above) so a test can reason about the dev curve even though
+    /// tests compile under prod; the active one is selected by LWDEV below. A single-element
+    /// array -- unlike the 3-tier kill curve, a Mark is earned once (no P1/P2/P3 progression).</summary>
+    public static readonly int[] DevMarkThresholds = { 2 };     // fast in-game verification
+    public static readonly int[] ProdMarkThresholds = { 25 };   // PLACEHOLDER -- deferred balance pass
+#if LWDEV
+    public static readonly int[] MarkThresholds = DevMarkThresholds;
+#else
+    public static readonly int[] MarkThresholds = ProdMarkThresholds;
+#endif
+
+    /// <summary>Reliquary Phase 1: headroom for VictimClass.Archetype's non-Unknown count (today
+    /// 4: Caster/Human/Monster/Undead). 6 leaves room for the AC's deferred dragon/species
+    /// archetypes without a re-tune; enforced by a unit test (TuningTests.MaxArchetypes_...).</summary>
+    public const int MaxArchetypes = 6;
+
     /// <summary>Ticks an armed delayed actor (Dragoon Jump / charged action) survives before it
     /// decays. The bit-clear == kill-lands; credit fires at deadStreak >= DeadNeeded (3), so ~3-4
     /// ticks of margin covers the gap between landing and corpse confirmation. Kept TIGHT (12 ticks

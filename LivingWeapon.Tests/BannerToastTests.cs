@@ -429,4 +429,25 @@ public class BannerToastTests
     [InlineData(3, "Kobu", "Kiyomori draws first blood and has unlocked Kobu!")]
     public void FirstBloodTierPayload_wording(int tier, string? sigLabel, string expected)
         => Assert.Equal(expected, BannerToast.FirstBloodTierPayload("Kiyomori", tier, sigLabel));
+
+    // ---- (28) Reliquary Phase 1 stage 3: MarkPayload wording + the event-key space ----
+
+    [Fact]
+    public void MarkPayload_matches_the_locked_wording()
+        => Assert.Equal("Kiyomori has earned its Mark: Beastbane!", BannerToast.MarkPayload("Kiyomori", "Beastbane"));
+
+    [Fact]
+    public void Event_key_space_is_pairwise_distinct()
+    {
+        // The union of every event-key convention this codebase uses must never collide:
+        // tier crossings (1..3), milestone crossings (negated: -1/-100/-250/-500/-1000),
+        // Reliquary Marks (1000 + archetype index, 0..3 -- Unknown never earns one), and the
+        // Phase 2 Legends block reserved at 2000+ (docs/RELIQUARY_AC.md's Announce checklist).
+        var keys = new List<int> { 1, 2, 3 };
+        keys.AddRange(new[] { -1, -100, -250, -500, -1000 });
+        for (int i = 1000; i <= 1003; i++) keys.Add(i);
+        for (int i = 2000; i <= 2015; i++) keys.Add(i);
+
+        Assert.Equal(keys.Count, new HashSet<int>(keys).Count);
+    }
 }

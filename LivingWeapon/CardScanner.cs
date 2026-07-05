@@ -21,9 +21,12 @@ internal static class CardScanner
 
     /// <summary>Find "Kills: " occurrences (both encodings) and tie each to the nearest preceding
     /// flavor (same encoding). Validate the 4-char slot. Emit a hit only if an owner flavor is
-    /// found within FlavorWindow. No hit if the "Kills: " starts outside [lookback, searchable).</summary>
+    /// found within FlavorWindow. No hit if the "Kills: " starts outside [lookback, searchable).
+    /// <paramref name="anchors"/> (Reliquary Phase 1, decision 12) extends the flavor search to
+    /// ANY of a weapon's registered anchors (baked, current, or previous earned line) -- null
+    /// (every pre-Reliquary caller) searches baked flavors only, byte-identical to before.</summary>
     public static void FindKills(byte[] buf, int lookback, int searchable, CardPatterns pats,
-                                 List<KillsHit> hits)
+                                 List<KillsHit> hits, EarnedAnchors? anchors = null)
     {
         int windowEnd = lookback + searchable;
         foreach (int enc in new[] { 1, 2 })
@@ -40,19 +43,10 @@ internal static class CardScanner
                 if (slotPos + slotWidth > buf.Length) continue;
                 if (!ByteScan.KillsDigits(buf, slotPos, enc)) continue;
 
-                int ownerId = FindNearestFlavor(buf, killsPos, enc, pats);
+                int ownerId = FindNearestFlavor(buf, killsPos, enc, pats, anchors);
                 if (ownerId < 0) continue;
 
-                if (!pats.TryGet(ownerId, enc, out var entry)) continue;
-
-                int flavorPos = -1;
-                if (entry.Flavor.Length > 0)
-                {
-                    int searchStart = Math.Max(0, killsPos - FlavorWindow);
-                    int rel = buf.AsSpan(searchStart, killsPos - searchStart)
-                        .LastIndexOf(entry.Flavor.AsSpan());
-                    if (rel >= 0) flavorPos = searchStart + rel;
-                }
+                int flavorPos = NearestAnchorPos(buf, killsPos, AnchorCandidates(ownerId, enc, pats, anchors));
 
                 hits.Add(new KillsHit(ownerId, enc, slotPos, flavorPos));
             }
@@ -91,24 +85,50 @@ internal static class CardScanner
         }
     }
 
-    /// <summary>Find the weapon id whose flavor (same encoding) is nearest and before the
-    /// given position within FlavorWindow, or -1 if none found.</summary>
-    private static int FindNearestFlavor(byte[] buf, int pos, int enc, CardPatterns pats)
+    /// <summary>Find the weapon id whose flavor (same encoding) is nearest and before the given
+    /// position within FlavorWindow, or -1 if none found. <paramref name="anchors"/> extends the
+    /// search to a weapon's registered earned lines too (decision 12) -- null falls back to
+    /// baked-flavor-only, byte-identical to the pre-Reliquary behavior.</summary>
+    private static int FindNearestFlavor(byte[] buf, int pos, int enc, CardPatterns pats, EarnedAnchors? anchors)
     {
         int bestPos = -1, bestId = -1;
-        int searchStart = Math.Max(0, pos - FlavorWindow);
-        if (searchStart >= pos) return -1;
-
         foreach (var entry in pats.Entries)
         {
-            if (entry.Enc != enc || entry.Flavor.Length == 0) continue;
-            var searchSpan = buf.AsSpan(searchStart, pos - searchStart);
-            int rel = searchSpan.LastIndexOf(entry.Flavor.AsSpan());
-            if (rel < 0) continue;
-            int absPos = searchStart + rel;
-            if (absPos > bestPos) { bestPos = absPos; bestId = entry.Id; }
+            if (entry.Enc != enc) continue;
+            int p = NearestAnchorPos(buf, pos, AnchorCandidates(entry.Id, enc, pats, anchors));
+            if (p > bestPos) { bestPos = p; bestId = entry.Id; }
         }
-
         return bestId;
+    }
+
+    /// <summary>The byte patterns to search for weapon id's flavor/story anchor at this
+    /// encoding: EarnedAnchors' full set (baked + current + previous) when wired, else just the
+    /// baked Flavor pattern (possibly empty, in which case NearestAnchorPos correctly finds
+    /// nothing).</summary>
+    private static IReadOnlyList<byte[]> AnchorCandidates(int id, int enc, CardPatterns pats, EarnedAnchors? anchors)
+    {
+        if (anchors != null) return anchors.AnchorsFor(id, enc);
+        return pats.TryGet(id, enc, out var entry) && entry.Flavor.Length > 0
+            ? new[] { entry.Flavor }
+            : Array.Empty<byte[]>();
+    }
+
+    /// <summary>Nearest occurrence (the LARGEST absolute position &lt; pos) of ANY of the given
+    /// candidate byte patterns within [pos-FlavorWindow, pos), or -1 if none found.</summary>
+    private static int NearestAnchorPos(byte[] buf, int pos, IReadOnlyList<byte[]> candidates)
+    {
+        int searchStart = Math.Max(0, pos - FlavorWindow);
+        if (searchStart >= pos || candidates.Count == 0) return -1;
+        var span = buf.AsSpan(searchStart, pos - searchStart);
+        int best = -1;
+        foreach (var cand in candidates)
+        {
+            if (cand.Length == 0) continue;
+            int rel = span.LastIndexOf(cand.AsSpan());
+            if (rel < 0) continue;
+            int abs = searchStart + rel;
+            if (abs > best) best = abs;
+        }
+        return best;
     }
 }

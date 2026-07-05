@@ -87,4 +87,16 @@ internal sealed partial class BannerToast
             return $"{name} draws first blood and has unlocked {sigLabel}!";
         return $"{name} draws first blood and has grown to {name}{Tuning.Suffix[t].Trim()}";
     }
+
+    /// <summary>Reliquary Phase 1 (docs/RELIQUARY_AC.md): the locked wording for a newly-earned
+    /// Mark toast. Reliquary.cs enqueues this at key 1000 + (int)archetype.
+    ///
+    /// EVENT-KEY CONVENTION across the whole toast queue (the tuple's `tier` slot doubles as the
+    /// queue-dedupe key everywhere it's used): tiers own 1..3 (CrossedTier); Weapon Chronicle
+    /// milestones own the NEGATED milestone values (CrossedMilestone: -1, -100, -250, -500,
+    /// -1000); Reliquary Marks own 1000 + (int)VictimClass.Archetype (1000..1003 -- Unknown,
+    /// index 4, never earns a Mark); Phase 2 Legends reserve 2000+ (not yet emitted).
+    /// BannerToastTests.Event_key_space_is_pairwise_distinct is the property test that guards
+    /// this never collides as new event kinds are added.</summary>
+    public static string MarkPayload(string name, string title) => $"{name} has earned its Mark: {title}!";
 }

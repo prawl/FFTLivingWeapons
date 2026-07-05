@@ -45,6 +45,11 @@ internal sealed class Display
     internal readonly CardSites                  _sites;  // DisplayMaintenanceTests reads Count; FlavorSpike dev-probe accessor (P4)
     private readonly WpScratchPainter            _wpScratch;
     private readonly Func<long>                  _nowMs;
+    // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the card-story compose driver. Null when no
+    // LegendStore is wired (every pre-Reliquary caller/test) -- CardSites/CardScanner then fall
+    // back to baked-only anchor verification, byte-identical to before. Internal so integration
+    // tests can drive/inspect it directly (mirrors _pats/_sites's own test-accessor convention).
+    internal readonly StoryLines? _stories;
 
     private readonly Dictionary<int, int> _lastCounts = new();
     private readonly SuffixRotation       _rotation = new();
@@ -58,8 +63,11 @@ internal sealed class Display
     // Generation number at the last log line so we log once per completion.
     private long _lastLoggedGen = -1;
 
+    /// <param name="legends">Reliquary Phase 1's deed ledger (docs/RELIQUARY_AC.md). Null (the
+    /// default) omits card-story composing entirely -- every existing caller/test that doesn't
+    /// pass this behaves byte-identically to pre-Reliquary Display.</param>
     public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
-                   Func<long>? nowMs = null)
+                   Func<long>? nowMs = null, LegendStore? legends = null)
     {
         _meta      = meta;
         _kills     = kills;
@@ -67,13 +75,24 @@ internal sealed class Display
         _nowMs     = nowMs ?? (() => Environment.TickCount64);
         _pats      = new CardPatterns(meta);
         _sweep     = new DisplaySweep(mem, _nowMs);
-        _sites     = new CardSites(mem, _pats);
+        // StoryLines owns EarnedAnchors (the three-way anchor registry, decision 12) -- built
+        // before CardSites so CardSites can be handed its anchors at construction. SeedAtStartup
+        // recomposes every weapon's CURRENT line from persisted deed state and loads PREVIOUS
+        // from the store's "lastPainted", so the very first paint already carries earned lines.
+        _stories   = legends != null ? new StoryLines(legends, meta, kills, _pats) : null;
+        _stories?.SeedAtStartup();
+        _sites     = new CardSites(mem, _pats, _stories?.Anchors);
         _wpScratch = new WpScratchPainter(mem, meta, KillsFor);
 
         // Startup invariant: the sweep's lookback prefix must hold the longest anchor plus
         // the widest painted slot, or a card straddling a chunk boundary could surface its
         // slot with the anchor cut off and never verify. Log-and-continue -- a too-long
         // name only degrades painting, while a throw here would take the game with it.
+        // Reliquary note: this bound stays valid even once earned lines are registered --
+        // EarnedAnchors enforces every earned pattern's encoded byte length EQUAL to its
+        // weapon's baked Flavor pattern (CardPatterns.MaxAnchorLen is computed from baked
+        // Name/Flavor only), so an earned anchor can never exceed MaxAnchorLen
+        // (DisplayLookbackInvariantTests.FitsLookback_with_earned_patterns_registered).
         if (!_pats.FitsLookback(DisplaySweep.Lookback))
             ModLogger.LogError("display: the equip-card painter is misconfigured and may fail to paint some kill counters [lookback="
                       + DisplaySweep.Lookback + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot]");
@@ -98,9 +117,16 @@ internal sealed class Display
         var targets = BuildTargets();
 
         // Count-change check over ALL meta ids (not just targets) so non-equipped weapons
-        // also trigger a rescan when their kill count changes.
-        bool countsChanged = CheckAndSnapshotCounts();
+        // also trigger a rescan when their kill count changes. changedIds feeds StoryLines'
+        // recompose (Reliquary Phase 1) -- a deed can only change alongside a tally increment
+        // (KillTracker.CreditKill), so this is exactly the compose-change edge.
+        var changedIds = new List<int>();
+        bool countsChanged = CheckAndSnapshotCounts(changedIds);
         bool targetsChanged = !targets.SetEquals(_lastTargets);
+
+        // Recompose BEFORE painting so this same Tick's PaintAll repaint-through (CardSites)
+        // sees the fresh current line immediately, rather than lagging a tick behind.
+        if (countsChanged) _stories?.RecomposeChanged(changedIds);
 
         if (countsChanged || targetsChanged)
         {
@@ -163,7 +189,7 @@ internal sealed class Display
     private void OnChunk(byte[] buf, int lookback, int searchable, long bufBaseAddr)
     {
         var killsHits = new List<CardScanner.KillsHit>();
-        CardScanner.FindKills(buf, lookback, searchable, _pats, killsHits);
+        CardScanner.FindKills(buf, lookback, searchable, _pats, killsHits, _stories?.Anchors);
 
         // Gather ids that got kills hits in this chunk for the rotation slice.
         var hitIds = new HashSet<int>();
@@ -221,15 +247,16 @@ internal sealed class Display
     }
 
     /// <summary>Compare current kill counts against the last snapshot for all tracked ids.
-    /// Updates the snapshot on any change.  Returns true if any count changed.</summary>
-    private bool CheckAndSnapshotCounts()
+    /// Updates the snapshot on any change, appending each changed id to <paramref name="changedIds"/>
+    /// (Reliquary Phase 1's StoryLines.RecomposeChanged input). Returns true if any count changed.</summary>
+    private bool CheckAndSnapshotCounts(List<int> changedIds)
     {
         bool changed = false;
         foreach (int id in _meta.Keys)
         {
             int cur = KillsFor(id);
             _lastCounts.TryGetValue(id, out int last);
-            if (cur != last) { _lastCounts[id] = cur; changed = true; }
+            if (cur != last) { _lastCounts[id] = cur; changed = true; changedIds.Add(id); }
         }
         return changed;
     }

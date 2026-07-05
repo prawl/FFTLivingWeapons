@@ -30,6 +30,14 @@ internal sealed partial class KillTracker
     private readonly int[] _aliveStreak = new int[Offsets.BandSlots];
     private readonly int[] _deadStreak = new int[Offsets.BandSlots];
     private readonly (byte lvl, byte br, byte fa)[] _slotId = new (byte, byte, byte)[Offsets.BandSlots];
+    // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the victim identity snapshot captured at THIS
+    // slot's dead-edge (deadStreak 0->1), via the shared VictimReader.Read -- the same guarded
+    // read VictimProbe uses for its log-only capture, so the two can never disagree. Consumed
+    // EXACTLY ONCE at CreditKill (KillTracker.cs), which clears it on BOTH the credited and
+    // no-credit branches. Cleared on all four reset paths that also clear _lethalActor below (a
+    // no-credit death never reaches CreditKill's consume, so the revive/identity-swap/reset/
+    // pending-expiry clears are the only thing preventing a stale snapshot from stranding).
+    internal readonly VictimSnapshot[] _victimAtEdge = new VictimSnapshot[Offsets.BandSlots];
     // Weapon set latched when this slot's dead-streak started (alive->dead transition); null = not yet stamped.
     // Copied from _lastPlayerWeapons at deadStreak 0->1 so a later re-latch cannot steal the credit.
     private readonly List<int>?[] _lethalActor = new List<int>?[Offsets.BandSlots];
@@ -60,6 +68,7 @@ internal sealed partial class KillTracker
         Array.Clear(_slotId, 0, _slotId.Length);
         Array.Clear(_lethalActor, 0, _lethalActor.Length);
         Array.Clear(_lethalUntracked, 0, _lethalUntracked.Length);
+        Array.Clear(_victimAtEdge, 0, _victimAtEdge.Length);   // Reliquary: clear every slot's captured snapshot
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
         _victimProbe.ResetBattle();   // P1 probe: clear every slot's alive/edge snapshots
@@ -99,6 +108,7 @@ internal sealed partial class KillTracker
                     _deadCredited[s] = false; _pending[s] = false;
                     _lethalActor[s] = null; _lethalUntracked[s] = false;
                     _victimProbe.Reset(s);   // P1 probe: a slot-reuse identity swap invalidates any stale snapshot
+                    _victimAtEdge[s] = default;   // Reliquary: same invalidation for the captured snapshot
                     continue;
                 }
                 _aliveStreak[s]++;
@@ -120,6 +130,12 @@ internal sealed partial class KillTracker
                     // matters: this runs every seenAlive tick, not only true revives, so the capture
                     // must come after or it would immediately erase what it just captured).
                     _victimProbe.Reset(s);
+                    // Reliquary: a no-credit death (unknown identity, duplicate, untracked-weapon,
+                    // expired-unresolved) never reaches CreditKill's consume-once, so without this
+                    // clear a revived identity would carry a STALE captured snapshot into its next
+                    // death. Safe to run every seenAlive tick (not just true revives): CreditKill
+                    // already cleared it on any real credit, so this is a no-op then.
+                    _victimAtEdge[s] = default;
                 }
                 _victimProbe.CaptureAlive(s, addr);   // P1 probe: every consistent alive on-field tick
                 continue;
@@ -137,6 +153,7 @@ internal sealed partial class KillTracker
             if (_deadStreak[s] == 1)
             {
                 _victimProbe.CaptureDeadEdge(s, addr);   // P1 probe: log-only, zero behavioral dependence
+                _victimAtEdge[s] = VictimReader.Read(_mem, addr);   // Reliquary: the behavioral capture CreditKill consumes
                 // Read TqTeam at the death EDGE so it captures the team at the moment of death
                 // (it may flip a few ticks later). Divert ONLY on a confident non-player team
                 // (1=enemy, 2=ally/guest) -- any other value (0=player, garbage, or unreadable
@@ -244,6 +261,7 @@ internal sealed partial class KillTracker
             {
                 _deadCredited[s] = true; _pending[s] = false;
                 _lethalActor[s] = null; _lethalUntracked[s] = false;
+                _victimAtEdge[s] = default;   // Reliquary: this no-credit path never reaches CreditKill's consume
                 _identityAlive[id] = false;
                 ModLogger.Log($"kill: could not determine who killed the enemy -- no credit (battle slot {s}) [waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn-edges]");
                 _recorder?.Invoke("kill", $"no-credit slot={s} reason=expired-unresolved waited={_pendingAge[s]}ticks");

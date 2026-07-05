@@ -98,7 +98,15 @@ internal sealed class CardPatterns
     public int MaxAnchorLen => _maxAnchorLen;
 
     /// <summary>True when the given sweep lookback fits the longest anchor plus the widest
-    /// slot (the UTF-16 "Kills: " literal + 4-char counter outweighs the 2-char suffix).</summary>
+    /// slot (the UTF-16 "Kills: " literal + 4-char counter outweighs the 2-char suffix).
+    ///
+    /// Reliquary Phase 1 note (docs/RELIQUARY_AC.md, decision 12): this class stays IMMUTABLE
+    /// and unaware of EarnedAnchors -- an earned/current/previous composed-line pattern is
+    /// enforced (EarnedAnchors.TryEncode) to have the SAME encoded byte length as its weapon's
+    /// baked Flavor pattern here, so MaxAnchorLen (computed once, from baked Name/Flavor only)
+    /// remains a valid upper bound even once earned lines are registered. See Display.cs's ctor
+    /// for where this invariant is exercised at startup, and
+    /// DisplayStoryLineTests.FitsLookback_with_earned_patterns_registered for the test.</summary>
     public bool FitsLookback(int lookback)
     {
         int widestSlot = Math.Max(Kills(2).Length + 4 * 2, 2 * 2);

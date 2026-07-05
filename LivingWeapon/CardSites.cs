@@ -32,15 +32,19 @@ internal sealed class CardSites
 
     private readonly IGameMemory _mem;
     private readonly CardPatterns _pats;
+    // Reliquary Phase 1 (docs/RELIQUARY_AC.md, decision 12): the three-way anchor registry.
+    // Null for every pre-Reliquary caller/test -- kills-site verify falls back to baked-only,
+    // byte-identical to the original behavior.
+    private readonly EarnedAnchors? _anchors;
     private readonly List<Site> _sites = new();
 
     // Prune-rate-limit state.
     private int _refusalsAtCap;
     private bool _pruneImmediately = true; // true after Clear or successful prune
 
-    public CardSites(IGameMemory mem, CardPatterns pats)
+    public CardSites(IGameMemory mem, CardPatterns pats, EarnedAnchors? anchors = null)
     {
-        _mem = mem;  _pats = pats;
+        _mem = mem;  _pats = pats;  _anchors = anchors;
     }
 
     /// <summary>Number of sites in the cache.</summary>
@@ -122,25 +126,59 @@ internal sealed class CardSites
 
     /// <summary>True when the site's anchor bytes (and kills literal for kills sites) are
     /// readable and match the expected pattern.  Shared by PruneDeadSites and
-    /// PaintSiteWithResult so there is no duplicated verify logic.</summary>
+    /// PaintSiteWithResult so there is no duplicated verify logic. Suffix sites verify against
+    /// the weapon NAME only (unchanged by Reliquary). Kills sites verify against ANY registered
+    /// anchor for (id, enc) -- baked, or (when Reliquary's EarnedAnchors is wired) the current
+    /// and previous earned lines too (decision 12): a site holding a stale-but-known line is
+    /// live, never evicted, so its next paint can repaint it forward instead of freezing it.</summary>
     private bool AnchorIsLive(Site s)
     {
         if (!_pats.TryGet(s.Id, s.Enc, out var pat)) return false;
-        byte[] ab = s.IsKills ? pat.Flavor : pat.Name;
-        if (ab.Length == 0) return false;
-        if (!_mem.TryReadBytes(s.AnchorAddr, ab.Length, out var cur)) return false;
-        if (!ByteEq(cur, ab)) return false;
-        if (!s.IsKills) return true;
+
+        if (!s.IsKills)
+        {
+            byte[] ab = pat.Name;
+            if (ab.Length == 0) return false;
+            return _mem.TryReadBytes(s.AnchorAddr, ab.Length, out var cur) && ByteEq(cur, ab);
+        }
+
+        if (!KillsAnchorMatches(s, pat)) return false;
+
         byte[] kl = _pats.Kills(s.Enc);
         long ka = s.SlotAddr - kl.Length;
         if (!_mem.TryReadBytes(ka, kl.Length, out var ck)) return false;
         return ByteEq(ck, kl);
     }
 
-    /// <summary>Paint a single site with eviction signalling.</summary>
+    /// <summary>Kills-site anchor check: baked-only when _anchors is null (every pre-Reliquary
+    /// caller); otherwise ANY of [baked, current, previous] (EarnedAnchors.AnchorsFor -- every
+    /// candidate is enforced equal-length by construction, so one read suffices).</summary>
+    private bool KillsAnchorMatches(Site s, CardPatterns.Entry pat)
+    {
+        if (_anchors == null)
+        {
+            byte[] ab = pat.Flavor;
+            if (ab.Length == 0) return false;
+            return _mem.TryReadBytes(s.AnchorAddr, ab.Length, out var cur) && ByteEq(cur, ab);
+        }
+
+        var candidates = _anchors.AnchorsFor(s.Id, s.Enc);
+        if (candidates.Count == 0) return false;
+        if (!_mem.TryReadBytes(s.AnchorAddr, candidates[0].Length, out var curBytes)) return false;
+        foreach (var cand in candidates)
+            if (cand.Length == curBytes.Length && ByteEq(curBytes, cand)) return true;
+        return false;
+    }
+
+    /// <summary>Paint a single site with eviction signalling. Order is verify -> flavor-sync ->
+    /// slot logic (review pin): the Reliquary repaint-through (SyncFlavorToCurrent) runs right
+    /// after a successful verify, BEFORE any of the slot-write early returns below, so a
+    /// skip-if-equal or invalid-digit NoWrite on the count slot can never suppress it.</summary>
     private PaintResult PaintSiteWithResult(Site s, Func<int, int> killsFor)
     {
         if (!AnchorIsLive(s)) return PaintResult.Evict;
+
+        if (s.IsKills && _anchors != null) SyncFlavorToCurrent(s);
 
         int kills = killsFor(s.Id);
         byte[] desired = s.IsKills
@@ -161,6 +199,23 @@ internal sealed class CardSites
         if (!_mem.Writable(s.SlotAddr, desired.Length)) return PaintResult.NoWrite;
         _mem.WriteBytes(s.SlotAddr, desired);
         return PaintResult.Write;
+    }
+
+    /// <summary>Reliquary decision 12's repaint-through: if a CURRENT earned line is registered
+    /// for this site's weapon and the on-screen anchor bytes don't already match it, overwrite
+    /// them (exact length, Writable-gated, skip-if-equal). This is what lets a site that verified
+    /// via the PREVIOUS anchor (a stale-but-known line) converge to the current story on its very
+    /// next paint, instead of freezing at whatever text it happened to verify against. No store
+    /// writes here -- painting never touches LegendStore.</summary>
+    private void SyncFlavorToCurrent(Site s)
+    {
+        byte[]? current = _anchors!.CurrentFor(s.Id, s.Enc);
+        if (current == null || current.Length == 0) return;
+        if (!_mem.TryReadBytes(s.AnchorAddr, current.Length, out var cur)) return;
+        if (ByteEq(cur, current)) return;   // skip-if-equal -- already showing the current line
+        if (!_mem.Writable(s.AnchorAddr, current.Length)) return;
+        _mem.WriteBytes(s.AnchorAddr, current);
+        ModLogger.LogDebug($"card-sites: repainted weapon {s.Id} enc {s.Enc}'s story line to the current composed text");
     }
 
     private bool PaintSite(Site s, Func<int, int> killsFor) => PaintSiteWithResult(s, killsFor) == PaintResult.Write;

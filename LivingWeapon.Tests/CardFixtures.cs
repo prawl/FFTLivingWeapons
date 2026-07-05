@@ -60,18 +60,21 @@ internal static class CardFixtures
     }
 
     /// <summary>Build a Display wired to a FakeHeap via OffsetRemapMem: the three Display
-    /// statics (MirrorWeapon, MirrorOffHand, WpScratch) live at staticsBase + 0/2/4.</summary>
+    /// statics (MirrorWeapon, MirrorOffHand, WpScratch) live at staticsBase + 0/2/4.
+    /// <paramref name="legends"/> (Reliquary Phase 1) is optional -- null (the default) omits
+    /// card-story composing, matching every pre-Reliquary caller of this fixture.</summary>
     internal static Display MakeDisplay(Dictionary<int, WeaponMeta> meta,
                                         Dictionary<int, int> kills,
                                         FakeHeap heap,
                                         long staticsBase,
-                                        TestClock clock)
+                                        TestClock clock,
+                                        LegendStore? legends = null)
     {
         var wrapped = new OffsetRemapMem(heap,
             mirrorWeaponAddr:  staticsBase,
             mirrorOffHandAddr: staticsBase + 2,
             wpScratchAddr:     staticsBase + 4);
-        return new Display(meta, kills, wrapped, clock.Func);
+        return new Display(meta, kills, wrapped, clock.Func, legends);
     }
 
     /// <summary>Advance the clock and call Tick until the generation is complete or maxTicks

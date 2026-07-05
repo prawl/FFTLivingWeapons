@@ -55,4 +55,25 @@ public class TuningTests
         Assert.Equal(3, kills[20]);    // below the floor -> raised
         Assert.Equal(3, kills[30]);    // absent -> added at the floor
     }
+
+    // ---- Reliquary Phase 1: Mark thresholds + archetype headroom ----
+
+    [Fact]
+    public void Dev_and_prod_mark_thresholds_are_both_always_compiled()
+    {
+        // Tests compile under prod (no LWDEV) and must still be able to reason about the dev
+        // curve directly -- mirrors DevThresholds/ProdThresholds above (Tuning.cs:15-18 idiom).
+        Assert.Equal(2, Tuning.DevMarkThresholds[0]);
+        Assert.Equal(25, Tuning.ProdMarkThresholds[0]);
+    }
+
+    [Fact]
+    public void MaxArchetypes_leaves_headroom_for_every_non_unknown_archetype()
+    {
+        int nonUnknown = 0;
+        foreach (VictimClass.Archetype a in System.Enum.GetValues(typeof(VictimClass.Archetype)))
+            if (a != VictimClass.Archetype.Unknown) nonUnknown++;
+        Assert.True(nonUnknown <= Tuning.MaxArchetypes,
+            $"{nonUnknown} non-Unknown archetypes exceeds MaxArchetypes ({Tuning.MaxArchetypes})");
+    }
 }
