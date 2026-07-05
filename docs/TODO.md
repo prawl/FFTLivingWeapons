@@ -105,6 +105,11 @@ is the in-flight subset, not a mirror of that checklist.
   lines starting with "- [", so a mangled exit line (say "- LW-22 ...") dodges both the grammar
   and the id-uniqueness gates. Scan every top-level "- " line in CHANGELOG.md the way the
   Backlog check does, and tighten NowEntryRegex's greedy title match while in there.
+- [LW-22] 2026-07-05: The launch header (Engine.cs:81) does not pluralize its Marks count, so
+  "1 Marks" prints when TotalMarks is 1, and the LOGGING.md launch-header example faithfully
+  showcases the bad grammar. BattleSummary.Compose pluralizes correctly; only the header
+  emitter was missed. One string plus the doc example; fold into the next round that touches
+  Engine.cs or LOGGING.md.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
