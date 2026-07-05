@@ -19,6 +19,19 @@ is the in-flight subset, not a mirror of that checklist.
   - Notes: owner verified 2026-07-05 during this pass: dual-pistol off-hand equip works, the
     second Outrider Pistol equipped and fired.
 
+- **[LW-27] Marks move to the equipment card's header bar** (opened 2026-07-05) [BUILDING]
+  - Done means: the equipment card's brown "Description" header paints per-weapon (target
+    wording shape: "Kills: 100 - Mageslayer") through the card painter with paint-time
+    ownership verification, in both text encodings, without bleeding onto ability cards or
+    other items' cards; the description body drops the Mark prose (which also relieves LW-26).
+    First stage is a HeaderSpike dev instrument (ShowSpike/FlavorSpike pattern) proving the
+    header spots are locatable, paintable, and hold across card refreshes.
+  - Verify: pure pattern/compose halves unit-tested; owner eyeballs the spike live; the
+    header-spot mechanic gets a LIVE_LEDGER row before the production painter ships.
+  - Notes: owner CE prototype 2026-07-05: plain-string edits take on the ability card but
+    never the equipment card (per-widget copies, encodings, and card-refresh re-sets; see the
+    backlog history in docs/CHANGELOG.md when this exits).
+
 - **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
     Mushin, the parked wait-detection byte hunt); Kiku-ichimonji id45 ships Onryo (Undead brand)
@@ -109,17 +122,6 @@ is the in-flight subset, not a mirror of that checklist.
   (owner eyeball, within the DESC_MAX=259 budget). Trim its prose (items.json flavor or
   signature line), and consider whether the budget needs a safety margin when a Marks line
   is present.
-- [LW-27] 2026-07-05: Relocate the Marks story off the equip card: "Outrider Pistol, Beastbane:
-  3 beasts felled; last a beast" crowds the card (owner direction). Investigate the spike story
-  surface (the big callout banner) or another placement for deed narration; ties into the
-  Reliquary card-story design (LW-6). CANDIDATE DIRECTION (owner prototype, 2026-07-05): the
-  card's brown "Description" HEADER BAR. Owner live-edited the literal string to "Kills: 100";
-  it took on the ability card but not the equipment card because the label is per-widget text
-  (the two cards own separate copies, the same instance multiplicity our Display sweep already
-  maintains hundreds of spots for). Plan sketch: a new card-painter site pattern that owns the
-  equipment card's header spots and paints the Mark line per-weapon (paint-time ownership
-  verify, DLL paint so the French wall does not bite); the description body then drops the
-  Mark prose, which also relieves LW-26.
 - [LW-28] 2026-07-05: A BuildLinked deploy LOST kills.json and legends.json despite the
   preservation round-trip (the 17:54 launch logged "No kill tally was found on disk"; the 82
   kill tally and the Beastbane Mark were gone; the %TEMP% livingweapon_preserve dir no longer
