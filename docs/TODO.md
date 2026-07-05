@@ -84,6 +84,23 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   "hang" was this). With VerboseLog on, the loop does console I/O constantly, so a stray click can
   stall it. Hardening candidate: async/queued console sink in FileConsoleLogger (file sink stays
   synchronous -- it is the evidence chain). Until then: read livingweapon.log, not the console.
+- **BUG: battle-ENDING kills vanish -- no credit, no corpse verdict, no damage event** (found
+  2026-07-05 in the Reliquary P3 Gaffgarion probe, flight_20260705_111400 + livingweapon.log).
+  Lionel Gate (kill-everyone objective): the final action (turn #11, an AoE that finished the
+  last 2+ enemies and satisfied the win condition) left ZERO trace -- slot 9 alive at 77hp and
+  slot 13 alive/moving ~19s before victory, then nothing until "battle: ended". The mode stayed
+  in the live set for ~6s after the killing action (3->2->1->3, exit at -5.4s), so suspect the
+  OnField predicate (not InLiveBattle) going false through the victory overlay: ScanCorpses'
+  dead path bails `if (!onField)`, streaks never mature, ResetBattle wipes on exit. Player
+  lost ~2-5 real tally kills in that one battle (only Gaffgarion's kill credited, Windrunner
+  count=4). DIRECTLY GATES Reliquary P3/Phase 2: a boss whose death ENDS the battle (Queklain)
+  has exactly this shape -- if his credit is eaten, the AC's "supplemental credit path for
+  battle-ending deaths" (RELIQUARY_AC.md P3 FAIL branch) becomes mandatory. Probe first: log
+  OnField/InLiveBattle per tick through one victory transition; the fix likely = a final-scan
+  grace window at the battle-exit edge (scan corpses once with relaxed gates before ResetBattle).
+  ALSO BANKED from the same probe: Gaffgarion's canonical nameId is PER-ENCOUNTER, not global --
+  17/17 at Lionel Gate vs 5 at Zirekile (and an unidentified 30/30 canonical in the 11:08 battle
+  the same session). The legends table must key per-battle-form, not per-character.
 - **BUG: long item descriptions push the equip card off the screen vertically** (user screenshot,
   2026-07-05: Sanguine Sword, id 23). The assembled description -- flavor line + "Absorbs HP dealt."
   effect line + the +3 Shadow Blade signature prose + the DLL-painted Kills line -- overflows the
