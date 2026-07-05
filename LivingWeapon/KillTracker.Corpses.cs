@@ -62,6 +62,7 @@ internal sealed partial class KillTracker
         Array.Clear(_lethalUntracked, 0, _lethalUntracked.Length);
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
+        _victimProbe.ResetBattle();   // P1 probe: clear every slot's alive/edge snapshots
     }
 
     /// <summary>Band corpse scan + identity capture. Returns true if the tally changed.</summary>
@@ -97,6 +98,7 @@ internal sealed partial class KillTracker
                     _seenAlive[s] = false; _aliveStreak[s] = 0;
                     _deadCredited[s] = false; _pending[s] = false;
                     _lethalActor[s] = null; _lethalUntracked[s] = false;
+                    _victimProbe.Reset(s);   // P1 probe: a slot-reuse identity swap invalidates any stale snapshot
                     continue;
                 }
                 _aliveStreak[s]++;
@@ -113,7 +115,13 @@ internal sealed partial class KillTracker
                     _deadCredited[s] = false;
                     _pending[s] = false;
                     _lethalActor[s] = null; _lethalUntracked[s] = false;
+                    // P1 probe: a revived victim's OLD dead-edge snapshot is stale -- clear it here,
+                    // BEFORE CaptureAlive below repopulates the alive half this same tick (ordering
+                    // matters: this runs every seenAlive tick, not only true revives, so the capture
+                    // must come after or it would immediately erase what it just captured).
+                    _victimProbe.Reset(s);
                 }
+                _victimProbe.CaptureAlive(s, addr);   // P1 probe: every consistent alive on-field tick
                 continue;
             }
 
@@ -128,6 +136,7 @@ internal sealed partial class KillTracker
             // Only one branch fires per edge; both are mutually exclusive on _lastPlayerWeapons.Count.
             if (_deadStreak[s] == 1)
             {
+                _victimProbe.CaptureDeadEdge(s, addr);   // P1 probe: log-only, zero behavioral dependence
                 // Read TqTeam at the death EDGE so it captures the team at the moment of death
                 // (it may flip a few ticks later). Divert ONLY on a confident non-player team
                 // (1=enemy, 2=ally/guest) -- any other value (0=player, garbage, or unreadable

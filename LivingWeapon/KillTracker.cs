@@ -70,6 +70,11 @@ internal sealed partial class KillTracker
     // unmodified). Engine wires this to Flight.Record, and it is threaded down into the
     // ActorRegister this class constructs so pointer transitions get tapped too.
     private readonly Action<string, string>? _recorder;
+    // Reliquary P1 probe instrumentation (docs/RELIQUARY_AC.md) -- log-only victim-identity
+    // capture at three lifecycle points; see VictimProbe's doc comment. Internal (not private)
+    // so tests can inspect the wired instance's snapshots directly, matching this file's existing
+    // convention for test-observable per-slot state (e.g. _pending, _pendingAge above).
+    internal readonly VictimProbe _victimProbe;
 
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
                         Action<string, string>? recorder = null)
@@ -81,6 +86,7 @@ internal sealed partial class KillTracker
         _resolver = new ActorResolver(mem, weapons, _register);
         _oracle = new EnemyOracle(mem);
         _events = events;
+        _victimProbe = new VictimProbe(mem, recorder);
     }
 
     /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
@@ -287,6 +293,7 @@ internal sealed partial class KillTracker
     {
         bool changed = false;
         LogKillDiag(s, weapons);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
+        _victimProbe.LogAtCredit(s);   // Reliquary P1 probe: log-only, zero behavioral dependence
         foreach (int w in weapons)
         {
             _kills.TryGetValue(w, out int c);
