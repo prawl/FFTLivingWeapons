@@ -10,7 +10,7 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-1] Unarmed stale latch eats an armed player's kill (Boco/Phoenix Down)** (opened 2026-07-05) [QUEUED]
+- **[LW-1] Unarmed stale latch eats an armed player's kill (Boco/Phoenix Down)** (opened 2026-07-05) [BUILDING]
   - Done means: the bury branch (KillTracker.Corpses.cs, _latchResolvedEmpty && _latched) consults
     KillerStamp.Decide; a fresh differing ARMED hypothesis becomes a Register override, everything
     else still buries (a dancer/summoner is her own empty hypothesis, so designed no-credits are
@@ -109,9 +109,14 @@ is the in-flight subset, not a mirror of that checklist.
   single delivery slot (queued and dropped? overwritten?) and make both deliver in order.
 - [LW-24] 2026-07-05: The tier-up banner delivers a turn late (owner screenshot): the Stormbrand
   wielder's 3rd-kill banner appeared while the NEXT unit (White Mage Collys) was already active.
-  Credit resolves at dead-streak plus latch and delivery waits for the next prompt surface, so
-  some latency is structural; investigate delivering on the killer's own wait prompt, or
-  accepting and documenting the one-turn lag.
+  POLICY LOCKED (owner, 2026-07-05): fire the UI text only during the earning unit's own wait
+  turn; if the credit resolves after that wait window has passed, SWALLOW the message entirely
+  (never deliver on a later unit's turn; the card and tally still record the growth, so a
+  swallowed toast loses nothing durable). Implementation: at delivery time compare the toast's
+  earner to the current turn owner and drop on mismatch; turn-owner detection has known traps
+  (the hover-follower struct is NOT the turn owner), so use the durable turn/register state.
+  Interacts with LW-23: within the correct window, deed and tier-up toasts still need ordered
+  delivery, not mutual starvation.
 - [LW-25] 2026-07-05: The show-spike F5 dev hotkey is still live in DEV builds (owner tripped
   it while testing). Spike research shipped (callout spawn cracked); disable or gate the hotkey
   and its console chatter so a test pass cannot trigger it by accident.
