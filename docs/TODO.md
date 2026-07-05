@@ -25,21 +25,12 @@ is the in-flight subset, not a mirror of that checklist.
     named Ramza (armed, fresh). The armed-latch sibling of this race is already fixed (the
     KillerStamp death-edge stamp, f4bf5df).
 
-- **[LW-2] Deploy the shipped batch and run the live verification script** (opened 2026-07-05) [BLOCKED(owner live session)]
+- **[LW-2] Deploy the shipped batch and run the live verification script** (opened 2026-07-05) [AWAITING-LIVE]
   - Done means: kill fft_enhanced.exe, run BuildLinked.ps1, then docs/VERIFY_LIVE.md rows 6-12
     pass, including the row-11 log-facelift protocol (armed battle 8-14 console lines, unarmed
     battle exactly 2 bookends, file cross-check for evidence thinning, fast-forward soak for
     the console-sink lock).
   - Verify: VERIFY_LIVE.md checkboxes (owner-only flips). Row 8 waits on LW-1.
-
-- **[LW-3] Docs three-tier reorg** (opened 2026-07-05) [BUILDING]
-  - Done means: docs/ top level holds living contracts only; closed journals move to
-    docs/research/; shipped or dead one-shot plans move to docs/archive/; every doc opens with
-    a status line (CONTRACT, JOURNAL, or ARCHIVED with its successor named); plan docs archive
-    in the commit that ships them; executed with git mv plus a sweep of references (code
-    comments, tools, memories cite old paths).
-  - Verify: the docs-map lockstep test lands green; git log with follow shows history preserved
-    on the moved docs.
 
 - **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
@@ -127,6 +118,7 @@ is the in-flight subset, not a mirror of that checklist.
 - Backlog: entry first line `- [LW-<n>] YYYY-MM-DD: <one sentence>`; indented continuation lines
   are free. Capture new items here in the session they surface.
 - IDs are unique across this file and docs/CHANGELOG.md; never reuse a retired ID.
-- Items exit ONLY by moving to docs/CHANGELOG.md, in the very commit that ships or kills them.
+- Items exit ONLY by moving to docs/CHANGELOG.md when they ship or die: in the shipping commit
+  itself, or in the immediately following commit when the exit row cites that commit's own hash.
 - No em dashes and no double-dash separators anywhere in this file or the changelog.
 - AWAITING-LIVE flips and VERIFY_LIVE checkboxes are owner-only.

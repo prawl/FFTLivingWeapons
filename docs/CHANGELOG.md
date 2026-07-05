@@ -8,6 +8,12 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-3] SHIPPED 02eff93 2026-07-05: docs three-tier reorg. Living contracts stay at the docs
+  top level, closed journals moved to docs/research/, shipped or dead one-shots to
+  docs/archive/, every doc stamped with an opening STATUS line, references swept repo-wide
+  (code comments, probes, tools, data, gitignore), history preserved via git renames.
+  DocsContractTests gates the top-level allow-list, the per-tier stamps, and repo-wide
+  doc-link integrity.
 - [LW-16] SHIPPED 58d5c7b 2026-07-05: long item descriptions pushed the equip card off the
   screen (Sanguine Sword id 23, owner screenshot). Fixed with the analyze.py total-description
   budget (DESC_MAX=259, live-calibrated) plus three owner-approved prose trims (Sanguine Sword,
