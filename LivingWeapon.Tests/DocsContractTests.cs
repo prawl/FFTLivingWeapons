@@ -209,8 +209,11 @@ public class DocsContractTests
     /// <summary>Pre-existing dangling doc-path mentions that predate the 3-tier reorg and name no
     /// path this reorg moves: a retired doc whose content was folded into MECHANICS.md, and a
     /// since-folded RELIQUARY_P1_PLAN.md absorbed into RELIQUARY_AC.md/RELIQUARY_DESIGN.md.
-    /// Ratchet, same spirit as LogContractTests.LegacyCallers: do not add to this to hide a NEW
-    /// dangling reference; only fix forward or shrink it.</summary>
+    /// EXACT-SET ratchet, same spirit as LogContractTests.LegacyCallers: the dead-link Fact below
+    /// asserts the observed dangling set SetEquals this list, both directions, enforced by the
+    /// test itself. Fixing one of these entries without removing it here fails the test exactly
+    /// as hard as a brand-new dangling reference does; shrink this list the moment its dangle is
+    /// fixed, and never add an entry to hide a new one.</summary>
     private static readonly HashSet<(string File, string Path)> KnownPreexistingDanglingRefs = new()
     {
         ("EarnedAnchors.cs", "docs/RELIQUARY_AC.md/RELIQUARY_P1_PLAN.md"),
@@ -225,10 +228,17 @@ public class DocsContractTests
     /// self-referential noise, not a real product/doc reference.</summary>
     private const string SelfFileName = "DocsContractTests.cs";
 
+    /// <summary>True if any path SEGMENT (not just a substring) equals the given directory name --
+    /// a bare Contains(Path.Combine("obj", "")) also matches a folder merely ENDING in "obj" (e.g.
+    /// "CustomObj\file.cs"), which this segment-aware check does not.</summary>
+    private static bool HasDirSegment(string path, string segment)
+        => path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+               .Any(part => string.Equals(part, segment, StringComparison.OrdinalIgnoreCase));
+
     private static IEnumerable<string> CsFilesUnder(string root)
         => Directory.Exists(root)
             ? Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
-                .Where(f => !f.Contains(Path.Combine("obj", "")) && !f.Contains(Path.Combine("bin", ""))
+                .Where(f => !HasDirSegment(f, "obj") && !HasDirSegment(f, "bin")
                     && Path.GetFileName(f) != SelfFileName)
             : Enumerable.Empty<string>();
 
@@ -249,7 +259,10 @@ public class DocsContractTests
 
         string docsDir = Path.Combine(repoRoot, "docs");
         if (Directory.Exists(docsDir))
-            files.AddRange(Directory.EnumerateFiles(docsDir, "*.md", SearchOption.AllDirectories));
+            files.AddRange(Directory.EnumerateFiles(docsDir, "*.md", SearchOption.AllDirectories)
+                // Local-only rolling session scratch doc: untracked, gitignored, absent in CI --
+                // an environment-dependent surface that must not vary this scan's result by machine.
+                .Where(f => Path.GetRelativePath(repoRoot, f) != Path.Combine("docs", "archive", "HANDOFF.md")));
 
         string readme = Path.Combine(repoRoot, "README.md");
         if (File.Exists(readme)) files.Add(readme);
@@ -265,7 +278,7 @@ public class DocsContractTests
     public void No_doc_path_reference_in_the_repo_dangles()
     {
         string repoRoot = RepoRoot();
-        var offenders = new List<string>();
+        var observed = new HashSet<(string File, string Path)>();
         foreach (var path in DeadLinkScanFiles(repoRoot))
         {
             string name = Path.GetFileName(path);
@@ -275,14 +288,18 @@ public class DocsContractTests
             {
                 string line = lines[lineNo - 1];
                 if (IsCrossRepoMention(line)) continue;
-                if (KnownPreexistingDanglingRefs.Contains((name, refPath.Replace('\\', '/')))) continue;
 
                 string normalized = refPath.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
                 string full = Path.Combine(repoRoot, normalized);
                 if (!File.Exists(full))
-                    offenders.Add($"{name}:{lineNo}: {refPath}");
+                    observed.Add((name, refPath.Replace('\\', '/')));
             }
         }
-        Assert.True(offenders.Count == 0, "Dangling doc-path references:\n" + string.Join("\n", offenders));
+        // Exact-set ratchet (LogContractTests.LegacyCallers' pattern): a fixed dangle that isn't
+        // shrunk from the list goes red just as hard as a brand-new, undeclared dangle does.
+        Assert.True(observed.SetEquals(KnownPreexistingDanglingRefs),
+            "Dangling doc-path reference set drifted from the declared ratchet list. " +
+            $"newly dangling (fix or declare): [{string.Join(", ", observed.Except(KnownPreexistingDanglingRefs))}]. " +
+            $"no longer dangling (SHRINK the list): [{string.Join(", ", KnownPreexistingDanglingRefs.Except(observed))}].");
     }
 }
