@@ -62,10 +62,16 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   Rod (id 53) credited the slot-13 enemy Knight kill (nameId 450) landed by another unit. Log
   chain: Ember latch 09:19:20, then turn-credits #8-#11 ALL collapsed onto the wielder's
   fingerprint (22/52/71) for 23s with no fresh player latch; the 25s-stale latch took the 09:19:45
-  credit. Zirekile-specific suspect: a GUEST (Agrias/Delita) killing blow -- the TqTeam==2 divert
-  should have buried it and did not fire (or the actual acting player never re-latched). Flight
-  archive of this battle (pending its end) holds the actor transitions to adjudicate. Raises the
-  fix priority: regular manual play mis-credits, not just auto-battle.
+  credit. ADJUDICATED same day (flight_20260705_092548): the CLAYMORE wielder (nameId 451)
+  landed the blow -- the acted rising edge fired ~500ms BEFORE the pointer left the previous
+  actor (588), so turn #34 + the latch resolved 588/[53] and 451's blow 100ms later paid the
+  stale latch (the ledger ActorPtr pointer-at-edge caveat, on tape). FIX IMPLICATION:
+  owner-change period-close alone can RACE a sub-100ms gap; the culprit stamp must consult the
+  ActorRegister at death-edge/credit time (the register held 451 unambiguously by then). Raises
+  the fix priority: regular manual play mis-credits, not just auto-battle.
+  P3 side-finding (same archive): Zirekile Gafgarion WITHDRAWS at his defeat threshold -- no
+  death edge, no victim record, nothing creditable. Withdrawal-style bosses cannot produce a
+  Legend credit; the legends table must exclude or special-case them.
 - Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug -- do not fix that doomed code).
 - Alter Axes and Flails (only cheap slice: Squire/Geomancer equip access on existing sword-typed items).
 - Migrate the remaining lossy-detection siblings (Maim/Larceny/Ricochet) to cache + rearm.
