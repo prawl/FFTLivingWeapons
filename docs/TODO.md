@@ -32,7 +32,19 @@ is the in-flight subset, not a mirror of that checklist.
     never the equipment card (per-widget copies, encodings, and card-refresh re-sets; see the
     backlog history in docs/CHANGELOG.md when this exits).
 
-- **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
+- **[LW-30] Weapon reputation in the attack-targeting pill** (opened 2026-07-05) [QUEUED]
+  - Done means: when the acting unit opens Attack targeting with a storied living weapon,
+    PromptSwap prefix-matches the "Select a target" prompt and swaps in the weapon line, tiered:
+    "Name+3, Mark: N felled." / "Name+3: N felled." / boss deed when earned; an unstoried or
+    non-living weapon keeps the vanilla text (which preserves the tutorial line for new
+    players). Compose is a pure tested policy (CardLine/BannerToast style).
+  - Verify: compose policy unit tests green; prompt-swap house rules (owner sees the swap live
+    before commit); confirm no bleed into other prompts sharing the pipe.
+  - Notes: owner discovered and live-mocked the surface 2026-07-05 (screenshots on file: CE
+    edit rendered "Outrider Pistol+3: 12 Kills" in the pill, which auto-sized to the longer
+    text). Live read of the owner's two CE addresses: twin copies of a NUL-separated fragment
+    table ("Select a target " + "and press" + "<keyicon=ok> to confirm."), so the pill supports
+    markup tokens and the real swap happens at render-call time, unbound by fragment length.
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
     Mushin, the parked wait-detection byte hunt); Kiku-ichimonji id45 ships Onryo (Undead brand)
     or Shura (controllable Berserk on 2nd kill, bit +0x47/0x08). Release blocker 1 of 2
@@ -131,16 +143,6 @@ is the in-flight subset, not a mirror of that checklist.
   session. Investigate both; add a loud post-restore existence check to BuildLinked (a deploy
   that loses a preserved file must fail red, not print success). Owner declined tally
   reconstruction for now (tapes and prev.log carry the counts if ever wanted).
-- [LW-30] 2026-07-05: Weapon reputation in the ATTACK-TARGETING prompt (owner discovery, screenshot
-  on file): the "Select a target and press F to confirm" pill during Attack targeting is writable
-  text in the same prompt family as the Wait-state facing prompt, and the owner's CE edit rendered
-  in it live ("Kills: 100" shown mid-targeting). Feature: PromptSwap gains a "Select a target"
-  prefix match and swaps in the acting unit's weapon line ("Windrunner, Mageslayer: 103 kills"),
-  composed from the turn owner's equipped living weapon; swap ONLY when a living weapon has a
-  story (kills or a Mark), vanilla text otherwise. Renders at the moment of aiming, no timing or
-  hold problems (the game triggers the render, we swap content). Candidate FLAGSHIP placement for
-  the kills+trait surface, ahead of the header bar for in-battle presence; the header bar (LW-27)
-  stays the menu-side surface. Verify per prompt-swap house rules before shipping.
 - [LW-29] 2026-07-05: RELEASE QUESTION: do player save files (kills.json, legends.json,
   gunslinger.json) survive a Reloaded mod UPDATE (2.2.2 to 2.3.0)? If a mod update replaces
   the mod folder, every player loses their tally on upgrade, which is the worst possible bug
