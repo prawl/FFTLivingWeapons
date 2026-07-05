@@ -35,8 +35,7 @@
       "HalveElements": "Lightning"
     },
     "77": {
-      "HalveElements": "Holy",
-      "StrongElements": "Holy"
+      "HalveElements": "Dark"
     },
     "78": {
       "AbsorbElements": "Dark",
@@ -694,7 +693,7 @@
       "name": "Claymore",
       "tier": 2,
       "identity": "REACH SWORD test — the only sword that strikes from 2 tiles, paid for with zero evade + no element/proc",
-      "flavorOverride": "A two-handed greatsword whose reach lets its bearer cut a pace beyond the foe's swing.",
+      "flavorOverride": "A heavy greatsword whose reach lets its bearer cut a pace beyond the foe's swing.",
       "baseline": {
         "wp": 7,
         "evade": 8,
@@ -1613,7 +1612,7 @@
       "vanillaName": "Thunder Rod",
       "name": "Spark Rod",
       "tier": 2,
-      "identity": "Battle-mage nuke rod — the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. Anti-armor/mech. WP 8 + Strengthens Lightning (+25%) — a real battle-mage nuke, every-turn chip rather than burst.",
+      "identity": "Battle-mage nuke rod -- the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. Anti-armor/mech. WP 5, no element amp -- a steady free-cast chip nuke, not a burst weapon.",
       "flavorOverride": "A rod that holds a fistful of caged storm; each blow lets the thunder out for the asking.",
       "baseline": {
         "wp": 3,
@@ -1623,7 +1622,7 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 8,
+        "wp": 5,
         "evade": 20,
         "element": "Lightning",
         "onHit": "Attack casts Thunder (Magick Attack)",
@@ -1631,8 +1630,7 @@
         "formula": 4,
         "range": 4,
         "attackFlags": "TwoHands, TwoSwords, Direct",
-        "rider": "boost Lightning",
-        "equipBonusId": 6
+        "equipBonusId": 0
       },
       "iconTint": [
         0.62,
@@ -1646,7 +1644,7 @@
       "vanillaName": "Flame Rod",
       "name": "Ember Rod",
       "tier": 2,
-      "identity": "Fire nuke battle-mage rod — its Attack strikes as Fire (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. The Fire member of the elemental nuke trio with Spark (Thunder) and Frost (Blizzard); pick by matchup. Anti-Undead, shreds Oiled and Ice-weak foes. WP 8 + Strengthens Fire (+25%) with Spark/Frost so the trio stays symmetric.",
+      "identity": "Fire nuke battle-mage rod -- its Attack strikes as Fire (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. The Fire member of the elemental nuke trio with Spark (Thunder) and Frost (Blizzard); pick by matchup. Anti-Undead, shreds Oiled and Ice-weak foes. WP 5, no element amp -- the trio's power lives in the free cast, not raw damage.",
       "flavorOverride": "Embers smolder in its heart, eager to leap; a touch is enough to set a foe ablaze.",
       "baseline": {
         "wp": 3,
@@ -1656,7 +1654,7 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 8,
+        "wp": 5,
         "evade": 20,
         "element": "Fire",
         "onHit": "Attack casts Fire (Magick Attack)",
@@ -1664,8 +1662,7 @@
         "formula": 4,
         "range": 4,
         "attackFlags": "TwoHands, TwoSwords, Direct",
-        "rider": "boost Fire",
-        "equipBonusId": 7
+        "equipBonusId": 0
       },
       "iconTint": [
         0.05,
@@ -1679,7 +1676,7 @@
       "vanillaName": "Ice Rod",
       "name": "Frost Rod",
       "tier": 2,
-      "identity": "Battle-mage nuke rod — the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental nuke trio at WP 8 + Strengthens Ice (+25%).",
+      "identity": "Battle-mage nuke rod -- the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental nuke trio at WP 5, no element amp.",
       "flavorOverride": "Its tip is sheathed in everlasting rime; where it points, the air turns to killing winter.",
       "baseline": {
         "wp": 3,
@@ -1689,7 +1686,7 @@
         "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
       },
       "proposed": {
-        "wp": 8,
+        "wp": 5,
         "evade": 20,
         "element": "Ice",
         "formula": 4,
@@ -1697,8 +1694,7 @@
         "range": 4,
         "onHit": "Attack casts Blizzard (Magick Attack)",
         "attackFlags": "TwoHands, TwoSwords, Direct",
-        "rider": "boost Ice",
-        "equipBonusId": 8
+        "equipBonusId": 0
       },
       "iconTint": [
         0.5,
@@ -4043,8 +4039,8 @@
       "vanillaName": "Golden Shield",
       "name": "Sanctguard",
       "tier": 3,
-      "identity": "Anti-Holy + Holy-amp — halves incoming Holy AND boosts the wearer's own Holy output.",
-      "flavorOverride": "Consecrated bronze that drinks holy fire and gives it back redoubled through the hand.",
+      "identity": "Anti-Dark consecrated ward -- halves incoming Dark (undead/demon foes deal Dark damage from Ch2-3); the earlier, lesser sibling to Nightward's absorb.",
+      "flavorOverride": "Consecrated bronze whose blessed sheen drinks the dark and lets it die at the wrist.",
       "baseline": {
         "physEv": 20,
         "magEv": 5,
@@ -4053,7 +4049,7 @@
       "proposed": {
         "physEv": 28,
         "magEv": 12,
-        "rider": "halve+boost Holy",
+        "rider": "halve Dark",
         "equipBonusId": 77
       }
     },
@@ -5493,8 +5489,8 @@
       "category": "Clothing",
       "vanillaName": "Leather Plate",
       "name": "Trailwarden Jerkin",
-      "tier": 2,
-      "identity": "Nimble light body — +1 Move for skirmishers and archers. The early mobility pick when positioning beats raw HP.",
+      "tier": 4,
+      "identity": "Nimble light body -- +1 Move for skirmishers and archers. Gated to T4, so it no longer stacks with the T1 Wayfarer Boots for an early +2 Move; a midgame mobility pick once the early curve has passed.",
       "flavorOverride": "A ranger's jerkin cut for long ground, easing the stride of all who must cover it.",
       "baseline": {
         "hp": 18,

@@ -493,7 +493,7 @@
       <Range>4</Range>
       <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>4</Formula>
-      <Power>8</Power>
+      <Power>5</Power>
       <Evasion>20</Evasion>
       <Elements>Lightning</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -503,7 +503,7 @@
       <Range>4</Range>
       <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>4</Formula>
-      <Power>8</Power>
+      <Power>5</Power>
       <Evasion>20</Evasion>
       <Elements>Fire</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
@@ -513,7 +513,7 @@
       <Range>4</Range>
       <AttackFlags>TwoHands, TwoSwords, Direct</AttackFlags>
       <Formula>4</Formula>
-      <Power>8</Power>
+      <Power>5</Power>
       <Evasion>20</Evasion>
       <Elements>Ice</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>

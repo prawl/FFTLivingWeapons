@@ -168,9 +168,9 @@
       <StartingStatus>None</StartingStatus>
       <AbsorbElements>None</AbsorbElements>
       <NullifyElements>None</NullifyElements>
-      <HalveElements>Holy</HalveElements>
+      <HalveElements>Dark</HalveElements>
       <WeakElements>None</WeakElements>
-      <StrongElements>Holy</StrongElements>
+      <StrongElements>None</StrongElements>
       <BoostJP>false</BoostJP>
     </ItemEquipBonus>
     <ItemEquipBonus>

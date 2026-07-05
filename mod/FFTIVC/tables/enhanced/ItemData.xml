@@ -34,15 +34,15 @@
     </Item>
     <Item>
       <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
-      <EquipBonusId>6</EquipBonusId>
+      <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
       <Id>53</Id> <!-- Ember Rod (was Flame Rod) -->
-      <EquipBonusId>7</EquipBonusId>
+      <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
       <Id>54</Id> <!-- Frost Rod (was Ice Rod) -->
-      <EquipBonusId>8</EquipBonusId>
+      <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
       <Id>55</Id> <!-- Hushward Rod (was Poison Rod) -->
