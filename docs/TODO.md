@@ -31,6 +31,8 @@ is the in-flight subset, not a mirror of that checklist.
     battle exactly 2 bookends, file cross-check for evidence thinning, fast-forward soak for
     the console-sink lock).
   - Verify: VERIFY_LIVE.md checkboxes (owner-only flips). Row 8 waits on LW-1.
+  - Notes: owner verified 2026-07-05 during this pass: dual-pistol off-hand equip works, the
+    second Outrider Pistol equipped and fired.
 
 - **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
@@ -101,6 +103,26 @@ is the in-flight subset, not a mirror of that checklist.
   showcases the bad grammar. BattleSummary.Compose pluralizes correctly; only the header
   emitter was missed. One string plus the doc example; fold into the next round that touches
   Engine.cs or LOGGING.md.
+- [LW-23] 2026-07-05: A Mark deed toast starves the tier-up toast on the same kill (owner
+  observed): Ramza's gun earned Beastbane and the deed toast delivered, but the same blow was
+  kill 2 (tier-up to +2) and no tier-up toast ever appeared. Investigate contention on the
+  single delivery slot (queued and dropped? overwritten?) and make both deliver in order.
+- [LW-24] 2026-07-05: The tier-up banner delivers a turn late (owner screenshot): the Stormbrand
+  wielder's 3rd-kill banner appeared while the NEXT unit (White Mage Collys) was already active.
+  Credit resolves at dead-streak plus latch and delivery waits for the next prompt surface, so
+  some latency is structural; investigate delivering on the killer's own wait prompt, or
+  accepting and documenting the one-turn lag.
+- [LW-25] 2026-07-05: The show-spike F5 dev hotkey is still live in DEV builds (owner tripped
+  it while testing). Spike research shipped (callout spawn cracked); disable or gate the hotkey
+  and its console chatter so a test pass cannot trigger it by accident.
+- [LW-26] 2026-07-05: The Outrider Pistol assembled card sits at the visual edge of too long
+  (owner eyeball, within the DESC_MAX=259 budget). Trim its prose (items.json flavor or
+  signature line), and consider whether the budget needs a safety margin when a Marks line
+  is present.
+- [LW-27] 2026-07-05: Relocate the Marks story off the equip card: "Outrider Pistol, Beastbane:
+  3 beasts felled; last a beast" crowds the card (owner direction). Investigate the spike story
+  surface (the big callout banner) or another placement for deed narration; ties into the
+  Reliquary card-story design (LW-6).
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
