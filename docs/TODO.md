@@ -113,6 +113,21 @@ is the in-flight subset, not a mirror of that checklist.
   3 beasts felled; last a beast" crowds the card (owner direction). Investigate the spike story
   surface (the big callout banner) or another placement for deed narration; ties into the
   Reliquary card-story design (LW-6).
+- [LW-28] 2026-07-05: A BuildLinked deploy LOST kills.json and legends.json despite the
+  preservation round-trip (the 17:54 launch logged "No kill tally was found on disk"; the 82
+  kill tally and the Beastbane Mark were gone; the %TEMP% livingweapon_preserve dir no longer
+  exists). The 17:0x deploy preserved the same files fine, so the failure is intermittent.
+  Second anomaly on the same evidence: the 17:1x session flushed exit tapes at 17:37/17:41 but
+  kills.json kept its 13:45 timestamp, so exit-edge tally saves may not have written that
+  session. Investigate both; add a loud post-restore existence check to BuildLinked (a deploy
+  that loses a preserved file must fail red, not print success). Owner declined tally
+  reconstruction for now (tapes and prev.log carry the counts if ever wanted).
+- [LW-29] 2026-07-05: RELEASE QUESTION: do player save files (kills.json, legends.json,
+  gunslinger.json) survive a Reloaded mod UPDATE (2.2.2 to 2.3.0)? If a mod update replaces
+  the mod folder, every player loses their tally on upgrade, which is the worst possible bug
+  for an attachment mod. Check Reloaded's update behavior; if unsafe, relocate the save files
+  outside the mod directory (with a one-time migration read of the old location) BEFORE
+  shipping 2.3.0.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
