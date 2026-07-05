@@ -1,16 +1,70 @@
-# Verify Live -- committed but not yet watched in-game
+# Verify Live: committed but not yet watched in-game
 
-These changes pass both gates (analyze.py + LivingWeapon.Tests) and are committed, but the
-gates prove logic, not engine behavior. Each row needs an in-game confirmation before it counts
-as proven. Deploy with `.\BuildLinked.ps1`, watch it fire, then check the box (and flip the
-relevant LIVE_LEDGER row if it has one -- only Patrick flips PROVEN).
+These changes pass both gates (analyze.py + LivingWeapon.Tests), but the gates prove logic, not
+engine behavior. Each row needs an in-game confirmation before it counts as proven. Deploy with
+`.\BuildLinked.ps1`, watch it fire, then check the box (and flip the relevant LIVE_LEDGER row if
+it has one; only Patrick flips PROVEN). If a verification FAILS, do not silently revert: capture
+what you saw and reopen here.
+
+## Carried rows (pre-2026-07-05)
 
 | # | Commit | Change | How to verify live | Done? |
 |---|--------|--------|--------------------|-------|
-| 1 | e98c2f2 | **Choir multi-bearer** -- two deployed Warlock's Staff +3 bearers each project a duet (bearer + nearest ally, radius 1); winners union. | Deploy two units each with a +3 Warlock's Staff (id 60) in the MAIN hand on the same battle. Confirm BOTH project (up to four instant-cast allies get the Non-charge bit, magick casts resolve instantly) instead of the old "two bearers -> signature goes dark." Also confirm a benched 3rd copy neither projects nor blocks. | [ ] |
-| 2 | b861806 | **KillTracker lethal-actor stamp** -- credit the weapon set latched at the alive->dead edge, not a later re-latch. | Land a lethal blow with weapon A, then have player B act before the enemy's dead-streak matures (DeadNeeded ticks). Confirm the kill credits A, not B. Watch the log line `kill: crediting whoever landed the finishing blow, not whoever acted most recently [lethal=[...] vs live-latch=[...]]` when the two differ. | [ ] |
-| 3 | 279e7b8 | **SpriteID override** -- Warbrand (id 67, category-crossed to Sword) draws the right weapon graphic. | DATA change: takes effect on game **restart**, not live. Restart, equip Warbrand, confirm the held/swung graphic is a sword (not the offset flail art mid-swing). | [ ] |
+| 1 | e98c2f2 | **Choir multi-bearer**: two deployed Warlock's Staff +3 bearers each project a duet. | Two units with +3 Warlock's Staff (id 60) in MAIN hand, same battle. BOTH project (up to four instant-cast allies); a benched third copy neither projects nor blocks. | [ ] |
+| 2 | b861806 | **Lethal-actor stamp** (superseded by the KillerStamp death-edge stamp, f4bf5df). | Superseded: f4bf5df's verification below covers this path and stricter cases. | [x] |
+| 3 | 279e7b8 | **Warbrand spriteIdOverride**. | DEAD: the override never took effect; removal is in the release scope (docs/RELEASE_SCOPE.md doc+hygiene item). No verification possible. | [x] |
+
+## 2026-07-05 batch, already verified live
+
+| # | Commit | Change | Verified | Done? |
+|---|--------|--------|----------|-------|
+| 4 | f4bf5df | **Death-edge culprit stamp** (stale-latch attribution fix). | Four correct stamp-overrides on tape same day: three in the Lionel Gate re-run (manual alternation) + one under auto-battle that corrected the Queklain kill to Ramza's Windrunner, matching eyewitness. Archives flight_20260705_111650 + _113131. | [x] |
+| 5 | a3106d0 | **Deploy preservation round-trip** (save files + flight/). | Sentinels + all 20 archives survived 2 consecutive deploys and 1 lock-induced failed deploy (catch-path restore observed). | [x] |
+
+## 2026-07-05 batch, PENDING live verification
+
+| # | Commit | Change | How to verify live | Done? |
+|---|--------|--------|--------------------|-------|
+| 6 | 061e36c | **Reliquary Phase 1: Mark toasts** (dev threshold: 2 kills per archetype). | Kill 2 humans with one weapon: toast "{weapon} has earned its Mark: Manslayer!". Repeat for casters (Spellbreaker) and monsters (Beastbane). Toast delivers via the facing prompt as before. | [ ] |
+| 7 | 061e36c + 5db7a90 | **Reliquary Phase 1: the card's story line** (Ledger voice, colon separator). | After any kill, the equip card's flavor line reads "{name}: {k} felled; last, a {victim}." After a Mark: "{name}, Manslayer: {n} men felled; last, ...". The Kills counter KEEPS UPDATING across several battles and card opens (the three-way-anchor regression). Weapons with no deeds keep their baked flavor untouched. Sasuke's Blade NEVER narrates (26-char budget, by design). | [ ] |
+| 8 | 061e36c | **Undead classifier / Requiem path** (live-unexercised; the one classifier never fired). | Kill 2 undead (skeleton/ghoul) with one weapon: Requiem toast; card reads "last, a risen one"; legends.json counts index 3 rises. BLOCKED for item kills until row 12 lands; use weapon kills. | [ ] |
+| 9 | 061e36c | **legends.json persistence**. | After an earning battle: legends.json appears beside kills.json (a .bak after the second save); survives a redeploy (row 5's mechanism); deeds/marks intact after game restart. | [ ] |
+| 10 | 58d5c7b | **Desc budget trims** (DATA: takes effect on game RESTART). | Open the cards for Sanguine Sword, Wrathblade, Stormarc: all three fit the box (Kills line visible). Rod of Faith and Swiftedge still exactly fit. | [ ] |
+| 11 | dd37068 | **Log facelift** (tagless subject-first console, armed gating, launch header, battle summary). | See the protocol below the table. | [ ] |
+| 12 | pending build | **Boco fix** (unarmed stale latch eating an armed player's kill). | Repeat the exact failure: Boco (or any unarmed unit) acts, then Ramza (armed, Windrunner) kills with a Phoenix Down or Throw Stone. The kill credits Windrunner and (if the victim is undead) etches the Requiem deed. Log shows the register override, not the "no Living Weapon" burial. | [ ] |
+
+## Row 11 protocol: the log facelift + gate-regression sweep
+
+1. **Launch header** (console, on boot): version + build flavor, settings echo, "kill tally holds
+   N lifetime kills across M weapons", legends summary, tracking count, loop started, hooks
+   footer. No verb brackets on any Info line. A fresh install adds one [WARN] [save] fresh-start
+   line (expected).
+2. **Armed battle** (a Living Weapon main-hand deployed): full match report, expected 8-14 lines:
+   battle started, coverage line, kill credits WITH victim identity ("Windrunner claims kill
+   number 8, felling an undead foe at (7,6)."), signature moments, Mark/toast if earned, the
+   battle-end summary with per-weapon counts and correct singular/plural ("1 Mark").
+   ABSENT noise to confirm gone: per-turn "finished its turn" lines, "died but was not a tracked
+   enemy" on ally deaths, puppeteer/kobu verdict spam, hex sentinel dumps.
+3. **Unarmed battle** (no Living Weapon fielded): console shows EXACTLY the two bookends
+   (started / ended: no kills credited). Anything more = gate false-positive; anything less =
+   worse.
+4. **Gate false-negative check** (the top regression risk): in the ARMED battle, if the console
+   prints only bookends, the armed-predicate is failing (sticky-latch timing or main-hand locate
+   flake). Capture livingweapon.log immediately.
+5. **File cross-check** (evidence-thinning check): pick two events missing from console (a turn
+   line, a signature verdict); both MUST exist in livingweapon.log as [DEBUG] [verb] lines.
+   Missing from the FILE too = report immediately, that is a real regression.
+6. **Dedup**: trigger the same warning twice in one battle (console shows it once); next battle
+   it may show once again.
+7. **WARN/ERROR keep their verb on console** (any warning line shows [WARN] [save]-style tokens).
+8. **Fast-forward soak** (thread-safety): one long auto-battle at max game speed with toasts
+   firing. No crash, no frozen console, log file lines never interleaved/truncated.
+9. **Mid-battle Reequip** (gate flip): if reachable, swap the living weapon off mid-battle;
+   signature console lines stop; the file keeps recording.
 
 ## Notes
-- Rows 1-2 are runtime DLL behavior (live on deploy). Row 3 is a table edit (restart-gated).
-- If a verification FAILS, do not silently revert -- capture what you saw and reopen here.
+- Rows 6-9 + 11-12 are runtime DLL behavior (live on deploy). Row 10 is data (restart-gated).
+- Reliquary AC checkbox flips and LIVE_LEDGER rows remain Patrick-only.
+- The next release's verification doc should start from this file plus docs/RELEASE_SCOPE.md's
+  IN list (Samurai Swords signatures, Galewind fallback, balance pass all need their own rows
+  when built).
