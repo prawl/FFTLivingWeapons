@@ -58,6 +58,14 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   log 07:58) -- the same owner-change edge likely repairs both. Until fixed: living-weapon probe
   battles (Reliquary P1-P3) must be fought MANUALLY -- auto-battle poisons killer-side evidence
   (victim-side capture is unaffected).
+  **NOT auto-battle-exclusive (owner-reported 2026-07-05 09:19, MANUAL Zirekile battle):** Ember
+  Rod (id 53) credited the slot-13 enemy Knight kill (nameId 450) landed by another unit. Log
+  chain: Ember latch 09:19:20, then turn-credits #8-#11 ALL collapsed onto the wielder's
+  fingerprint (22/52/71) for 23s with no fresh player latch; the 25s-stale latch took the 09:19:45
+  credit. Zirekile-specific suspect: a GUEST (Agrias/Delita) killing blow -- the TqTeam==2 divert
+  should have buried it and did not fire (or the actual acting player never re-latched). Flight
+  archive of this battle (pending its end) holds the actor transitions to adjudicate. Raises the
+  fix priority: regular manual play mis-credits, not just auto-battle.
 - Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug -- do not fix that doomed code).
 - Alter Axes and Flails (only cheap slice: Squire/Geomancer equip access on existing sword-typed items).
 - Migrate the remaining lossy-detection siblings (Maim/Larceny/Ricochet) to cache + rearm.
