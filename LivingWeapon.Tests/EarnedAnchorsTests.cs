@@ -42,8 +42,8 @@ public class EarnedAnchorsTests
         var flavor = "A fine blade indeed.";   // 20 chars
         var pats = Patterns(flavor);
         var anchors = new EarnedAnchors(pats);
-        string lineA = "Sword -- 5 felled.  ";   // also 20 chars
-        string lineB = "Sword -- 9 felled.  ";   // also 20 chars
+        string lineA = "Sword: 5 felled.    ";   // also 20 chars
+        string lineB = "Sword: 9 felled.    ";   // also 20 chars
 
         anchors.SetCurrent(Id, lineA);
         var listBefore = anchors.AnchorsFor(Id, 1);
@@ -68,7 +68,7 @@ public class EarnedAnchorsTests
         var flavor = "A fine blade indeed.";
         var pats = Patterns(flavor);
         var anchors = new EarnedAnchors(pats);
-        string line = "Sword -- 5 felled.  ";
+        string line = "Sword: 5 felled.    ";
 
         anchors.SetCurrent(Id, line);
         // Re-composing the SAME content must not manufacture a spurious rotation.
@@ -85,8 +85,8 @@ public class EarnedAnchorsTests
         var flavor = "A fine blade indeed.";
         var pats = Patterns(flavor);
         var anchors = new EarnedAnchors(pats);
-        string lineA = "Sword -- 5 felled.  ";
-        string lineB = "Sword -- 9 felled.  ";
+        string lineA = "Sword: 5 felled.    ";
+        string lineB = "Sword: 9 felled.    ";
 
         anchors.SetCurrent(Id, lineA);
         anchors.SetCurrent(Id, lineB);   // previous=A, current=B
@@ -110,7 +110,7 @@ public class EarnedAnchorsTests
         var flavor = "A fine blade indeed.";
         var pats = Patterns(flavor);
         var anchors = new EarnedAnchors(pats);
-        anchors.SetCurrent(Id, "Sword -- 5 felled.  ");
+        anchors.SetCurrent(Id, "Sword: 5 felled.    ");
 
         var list = anchors.AnchorsFor(Id, 1);
 

@@ -20,8 +20,8 @@ public class CardSitesEarnedAnchorTests
             [1] = new WeaponMeta { Name = "Sword", Flavor = flavor, Wp = 15, Cat = "Sword", Formula = 1 },
         };
 
-    private const string LineA = "Sword -- 5 felled.  ";   // 20 chars
-    private const string LineB = "Sword -- 9 felled.  ";   // 20 chars
+    private const string LineA = "Sword: 5 felled.    ";   // 20 chars
+    private const string LineB = "Sword: 9 felled.    ";   // 20 chars
 
     [Fact]
     public void Stale_anchor_repainted_not_evicted()

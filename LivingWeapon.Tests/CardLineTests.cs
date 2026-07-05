@@ -114,46 +114,51 @@ public class CardLineTests
     [Fact]
     public void Forms_fixed_priority_not_length()
     {
-        // A=60, B=43, C=42, D=25 (Windrunner/Beastbane/340 beasts/a Dragoon/999 kills). Budget 49
-        // fits BOTH B (43) and D (25) -- fixed priority (A,B,C,D) must pick B, the higher-priority
-        // Mark form, never "the shortest that fits" (which would wrongly pick D).
+        // A=58, B=41, C=40, D=23 (Windrunner/Beastbane/340 beasts/a Dragoon/999 kills). Budget 49
+        // fits B (41), C (40), AND D (23) -- fixed priority (A,B,C,D) must pick B, the
+        // higher-priority Mark form, never "the shortest that fits" (which would wrongly pick D).
         var legend = Legend(lastVictimJob: Dragoon, (VictimClass.Archetype.Monster, 340));
 
         string? line = CardLine.Compose("Windrunner", totalKills: 999, legend, budgetChars: 49);
 
         Assert.NotNull(line);
-        Assert.StartsWith("Windrunner, Beastbane -- 340 beasts felled.", line);
+        Assert.StartsWith("Windrunner, Beastbane: 340 beasts felled.", line);
     }
 
     [Fact]
     public void Forms_degrade_by_budget()
     {
-        // Same scenario as Forms_fixed_priority_not_length: A=60, B=43, C=42, D=25.
+        // Same scenario as Forms_fixed_priority_not_length: A=58, B=41, C=40, D=23.
         var legend = Legend(lastVictimJob: Dragoon, (VictimClass.Archetype.Monster, 340));
 
         string? wide = CardLine.Compose("Windrunner", totalKills: 999, legend, budgetChars: 100);
         Assert.NotNull(wide);
-        Assert.StartsWith("Windrunner, Beastbane -- 340 beasts felled; last, a Dragoon.", wide);
+        Assert.StartsWith("Windrunner, Beastbane: 340 beasts felled; last, a Dragoon.", wide);
 
         string? mid = CardLine.Compose("Windrunner", totalKills: 999, legend, budgetChars: 50);
         Assert.NotNull(mid);
-        Assert.StartsWith("Windrunner, Beastbane -- 340 beasts felled.", mid);
+        Assert.StartsWith("Windrunner, Beastbane: 340 beasts felled.", mid);
         Assert.DoesNotContain("last,", mid);
 
         string? narrow = CardLine.Compose("Windrunner", totalKills: 999, legend, budgetChars: 30);
         Assert.NotNull(narrow);
-        Assert.StartsWith("Windrunner -- 999 felled.", narrow);
+        Assert.StartsWith("Windrunner: 999 felled.", narrow);
         Assert.DoesNotContain("Beastbane", narrow);
     }
 
     [Fact]
     public void Sasukes_blade_26_budget_is_always_null()
     {
-        // Real repo data (docs/RELIQUARY_P1_PLAN.md's known data fact): Sasuke's Blade's baked
-        // flavor is 26 chars; even the bare form D ("Sasuke's Blade -- 0 felled.") is 27 -- one
-        // over budget -- so this weapon can NEVER compose, under any deed state.
+        // Real repo data (docs/RELIQUARY_P1_PLAN.md's known data fact, re-derived for the ": "
+        // separator): Sasuke's Blade's baked flavor is 26 chars. Raw form D at 1-2 digit kills
+        // ("Sasuke's Blade: 1 felled." = 25) would now FIT -- but 3+ digits (27) would not,
+        // which is exactly the forbidden digit-rollover window (a non-null -> null transition
+        // strands a stale line; there is no repaint-back-to-baked path). The composer's 5-digit
+        // headroom guard (budget must hold form D at a 5-digit count: name + 15 = 29 > 26) is
+        // what keeps this weapon ALWAYS null, at any kill count, under any deed state.
         var legend = Legend(lastVictimJob: Archer, (VictimClass.Archetype.Human, 999));
         Assert.Null(CardLine.Compose("Sasuke's Blade", totalKills: 1, legend, budgetChars: 26));
+        Assert.Null(CardLine.Compose("Sasuke's Blade", totalKills: 99999, legend, budgetChars: 26));
 
         var noVictim = new WeaponLegend();
         Assert.Null(CardLine.Compose("Sasuke's Blade", totalKills: 1, noVictim, budgetChars: 26));
@@ -197,22 +202,23 @@ public class CardLineTests
     [Fact]
     public void Digit_headroom_property_all_121()
     {
-        // No weapon may sit in the form-D digit-rollover window: either it can NEVER compose form
-        // D (permanently null, like Sasuke's Blade) or it can compose it even at 5 digits worth of
-        // kills (permanently fits) -- never "fits today, goes null after enough kills" (there is no
-        // repaint-back-to-baked path, so that would strand a stale line).
+        // No weapon may sit in the form-D digit-rollover window: a weapon that composes at a
+        // 1-digit kill count must STILL compose at a 5-digit count -- never "fits today, goes
+        // null after enough kills" (there is no repaint-back-to-baked path, so that transition
+        // would strand a stale line). Driven through the COMPOSER itself (not re-derived form
+        // arithmetic) so it exercises the 5-digit headroom guard the composer enforces by
+        // construction -- with the guard, nullness must be IDENTICAL at both kill counts.
         var map = MetaLoader.Load(Path.GetDirectoryName(RepoMetaPath())!);
         int checkedCount = 0;
         foreach (var (id, m) in map)
         {
             if (string.IsNullOrEmpty(m.Flavor)) continue;
             checkedCount++;
-            int fixedLen = m.Name.Length + 12;   // "{name} -- " (4) + " felled." (8) == 12
-            int budget = m.Flavor.Length;
-            bool neverFits = budget < fixedLen + 1;
-            bool fitsAt5Digits = budget >= fixedLen + 5;
-            Assert.True(neverFits || fitsAt5Digits,
-                $"weapon {id} ({m.Name}) sits in the form-D digit-rollover window (budget={budget}, fixed={fixedLen})");
+            var lastVictimOnly = new WeaponLegend { LastVictimJob = Archer, LastVictimCls = (int)VictimClass.Archetype.Human };
+            string? atOne = CardLine.Compose(m.Name, 1, lastVictimOnly, m.Flavor.Length);
+            string? atFiveDigits = CardLine.Compose(m.Name, 99999, lastVictimOnly, m.Flavor.Length);
+            Assert.True((atOne == null) == (atFiveDigits == null),
+                $"weapon {id} ({m.Name}) sits in the digit-rollover window (budget={m.Flavor.Length}): composes at 1 kill ({atOne != null}) but at 99999 ({atFiveDigits != null})");
         }
         Assert.True(checkedCount >= 100, $"expected the full living-weapon set, got {checkedCount}");
     }

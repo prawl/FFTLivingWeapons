@@ -41,7 +41,7 @@ public class StoryLinesTests
         var (meta, pats) = Meta(new string('x', 200));
         var store = LegendStore.Load(TempDir());
         store.RecordDeed(Id, new VictimSnapshot(true, 42, Archer, false));
-        string? expectedPrevious = "Windrunner -- 3 felled; last, an Archer.".PadRight(200);
+        string? expectedPrevious = "Windrunner: 3 felled; last, an Archer.".PadRight(200);
         store.RotatePainted(Id, expectedPrevious);
 
         var kills = new Dictionary<int, int> { [Id] = 5 };
