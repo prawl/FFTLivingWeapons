@@ -72,6 +72,11 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   P3 side-finding (same archive): Zirekile Gafgarion WITHDRAWS at his defeat threshold -- no
   death edge, no victim record, nothing creditable. Withdrawal-style bosses cannot produce a
   Legend credit; the legends table must exclude or special-case them.
+- **Console QuickEdit blocks the engine loop** (observed 2026-07-05: selecting text in the Reloaded
+  console suspended the mod thread ~3 min mid-battle -- kills/growth/toasts all stall; the census
+  "hang" was this). With VerboseLog on, the loop does console I/O constantly, so a stray click can
+  stall it. Hardening candidate: async/queued console sink in FileConsoleLogger (file sink stays
+  synchronous -- it is the evidence chain). Until then: read livingweapon.log, not the console.
 - Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug -- do not fix that doomed code).
 - Alter Axes and Flails (only cheap slice: Squire/Geomancer equip access on existing sword-typed items).
 - Migrate the remaining lossy-detection siblings (Maim/Larceny/Ricochet) to cache + rearm.
