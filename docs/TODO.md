@@ -41,6 +41,14 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   dead-hook launch never silently eats a once-per-campaign boss kill.
 
 ## Deferred (post-release backlog)
+- **BUG: auto-battle kill attribution is dead wrong** (owner-reported 2026-07-05). With auto-battle
+  driving the player units, kills credit the wrong weapons. Suspect area: the acted-edge actor latch
+  and the TqTeam nonPlayerTurn divert -- under auto-battle the acting team likely still reads 0
+  (player), so AI-driven actions latch/keep player weapon sets the same way manual turns do
+  (KillTracker.cs Poll latch; KillTracker.Corpses.cs deadStreak==1 stamp). Diagnose from a flight
+  archive of ONE auto-battle (kill latch + credit + victim-probe taps all record). Until fixed:
+  living-weapon probe battles (Reliquary P1-P3) must be fought MANUALLY -- auto-battle attribution
+  noise poisons the evidence.
 - Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug -- do not fix that doomed code).
 - Alter Axes and Flails (only cheap slice: Squire/Geomancer equip access on existing sword-typed items).
 - Migrate the remaining lossy-detection siblings (Maim/Larceny/Ricochet) to cache + rearm.
