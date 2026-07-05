@@ -45,6 +45,19 @@ internal enum RosterBridge { Player, Enemy, Unknown }
 /// current ownership -- that check needs <c>KillTracker</c>'s per-slot pending state and stays in
 /// <c>KillTracker.cs</c> (see <see cref="ArrivalTick"/>, the comparand its register-tick birth
 /// stamps are checked against).
+///
+/// LAST-PLAYER SNAPSHOT (2026-07-05 death-edge culprit stamp): <see cref="LastPlayerNameId"/>/
+/// <see cref="LastPlayerRosterBase"/>/<see cref="LastPlayerArrivalTick"/> exist for
+/// <c>KillTracker</c>'s death-edge culprit stamp (<c>KillerStamp.cs</c>), which compares this
+/// snapshot's freshness against the acted-edge latch instead of trusting the latch unconditionally.
+/// DOCUMENTED RESIDUAL: a struck PLAYER (an ally hit by a player AoE, or a counter-struck attacker)
+/// parked on by the pointer bridges Player and can overwrite this snapshot in the ~1-3 tick
+/// damage-to-edge gap -- the stamp-time flight tap instruments it. Same residual family: a pointer
+/// bounce X -&gt; idle -&gt; X (or X -&gt; victim -&gt; X) is a fresh Player-bridged transition, so it
+/// RE-STAMPS <see cref="LastPlayerArrivalTick"/> to now -- a re-arrival can therefore pass
+/// KillerStamp's ordering gate without that player having acted since the latch resolve; the
+/// harmful geometry is equally narrow (no tape shows it) and the same stamp-time taps
+/// (nameId + arrival age) instrument it.
 /// </summary>
 internal sealed class ActorRegister
 {
@@ -69,6 +82,17 @@ internal sealed class ActorRegister
     public long CurrentRosterBase { get; private set; }
     /// <summary>The roster-bridge classification captured at the current owner's arrival.</summary>
     public RosterBridge CurrentBridge { get; private set; } = RosterBridge.Unknown;
+
+    /// <summary>The nameId of the most recent Player-bridged arrival (see <see cref="LastPlayerArrivalTick"/>
+    /// for the freshness contract KillerStamp gates on). Untouched by an Enemy-bridged arrival or an
+    /// idle (entry==0) flicker; CLEARED by an Unknown-bridged arrival (an ambiguous non-idle arrival
+    /// invalidates the snapshot -- fail safe to the latch).</summary>
+    public ushort LastPlayerNameId { get; private set; }
+    /// <summary>The roster slot base matched at that arrival; 0 = none this battle (or invalidated).</summary>
+    public long LastPlayerRosterBase { get; private set; }
+    /// <summary>The register tick of that arrival; 0 = none this battle (or invalidated). KillerStamp
+    /// gates its hypothesis on this being STRICTLY newer than the latch's own resolve tick.</summary>
+    public int LastPlayerArrivalTick { get; private set; }
 
     public ActorRegister(IGameMemory mem, Action<string, string>? recorder = null)
     {
@@ -95,6 +119,9 @@ internal sealed class ActorRegister
         CurrentBridge = RosterBridge.Unknown;
         _primed = false;
         _prevEntry = 0;
+        LastPlayerNameId = 0;
+        LastPlayerRosterBase = 0;
+        LastPlayerArrivalTick = 0;
     }
 
     /// <summary>One tick: read the engine's own actor pointer and, on an observed transition past
@@ -122,12 +149,30 @@ internal sealed class ActorRegister
                 CurrentNameId = _mem.U16(entry + Offsets.ANameId);
                 CurrentBridge = Bridge(entry, CurrentNameId, out long rosterBase);
                 CurrentRosterBase = CurrentBridge == RosterBridge.Player ? rosterBase : 0;
+                if (CurrentBridge == RosterBridge.Player)
+                {
+                    // A confident Player arrival -- stamp the last-player snapshot KillerStamp reads.
+                    LastPlayerNameId = CurrentNameId;
+                    LastPlayerRosterBase = rosterBase;
+                    LastPlayerArrivalTick = Tick;
+                }
+                else if (CurrentBridge == RosterBridge.Unknown)
+                {
+                    // An ambiguous non-idle arrival (duplicated roster nameIds) invalidates the
+                    // snapshot -- fail safe to the latch rather than trust a now-uncertain owner.
+                    LastPlayerNameId = 0;
+                    LastPlayerRosterBase = 0;
+                    LastPlayerArrivalTick = 0;
+                }
+                // Enemy: leave the snapshot untouched -- a struck enemy victim's own frame bridges
+                // Enemy (its nameId matches no roster slot) and must not blow away a real snapshot.
             }
             else
             {
                 CurrentNameId = 0;
                 CurrentBridge = RosterBridge.Unknown;
                 CurrentRosterBase = 0;
+                // entry == 0 (idle flicker): leave the last-player snapshot untouched too.
             }
             // Pointer-transition tap (on-change only -- Update() only reaches here when the
             // pointer actually moved): old entry, new entry, and the freshly-resolved nameId.

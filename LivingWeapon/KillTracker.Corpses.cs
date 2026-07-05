@@ -163,8 +163,10 @@ internal sealed partial class KillTracker
                     if (nonPlayerTurn)
                         _lethalUntracked[s] = true;   // counter/reaction during a non-player turn: the stale player latch did NOT deal this blow -- no-credit (miss beats mis-credit)
                     else
-                        // Tracked actor latched on a player turn: copy weapons so a later re-latch cannot steal the credit.
-                        _lethalActor[s] = new List<int>(_lastPlayerWeapons);
+                        // Tracked actor latched on a player turn: consult the death-edge culprit
+                        // stamp (KillTracker.Stamp.cs) -- today's latch unless the register names a
+                        // fresher, disagreeing killer.
+                        StampCulprit(s);
                 }
                 else if (_latchResolvedEmpty && _latched)
                 {
@@ -174,6 +176,12 @@ internal sealed partial class KillTracker
                     // before its own acted edge while the empty latch is still sticky (that case
                     // must keep crediting the armed unit via the pending path, not be buried here).
                     _lethalUntracked[s] = true;
+                }
+                else if (!nonPlayerTurn)
+                {
+                    // Empty latch, no untracked verdict, player turn: the pending-hole extension
+                    // (see StampCulpritFromHypothesisOnly, KillTracker.Stamp.cs).
+                    StampCulpritFromHypothesisOnly(s);
                 }
             }
 

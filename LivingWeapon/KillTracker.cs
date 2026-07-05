@@ -50,6 +50,12 @@ internal sealed partial class KillTracker
     internal List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
     internal int _lastPlayerMainHand;                // RRHand id of the last latched actor (0 when none)
     internal (int lvl, int br, int fa) _lastActorFp; // fingerprint of the unit latched this acted-period
+    // Register tick of the period's most recent SUCCESSFUL latch resolve (stamped at BOTH
+    // latch-confirm sites: the acted==1 TryResolveActingPlayer success below, and
+    // FirstKillFallback's acceptance block). KillerStamp's ordering gate compares a register
+    // arrival against this -- an arrival the latch already knew about (at or before this tick)
+    // cannot outvote it. See KillerStamp.cs.
+    internal int _lastResolveTick;
     private bool _latched;                           // a player resolved this acted-period -> frozen until it ends
     private bool _periodOpen;                        // an acted-period is open (EDGE-GUARDED: set once per rise,
                                                       //   cleared only on the debounced fall -- distinct from _latched,
@@ -88,6 +94,7 @@ internal sealed partial class KillTracker
         _recorder = recorder;
         _register = new ActorRegister(mem, recorder);
         _resolver = new ActorResolver(mem, weapons, _register);
+        _killerStamp = new KillerStamp(_register, _resolver.HandsFromRoster);
         _oracle = new EnemyOracle(mem);
         _events = events;
         _victimProbe = new VictimProbe(mem, recorder);
@@ -105,6 +112,7 @@ internal sealed partial class KillTracker
         _lastPlayerWeapons = new();
         _lastPlayerMainHand = 0;
         _lastActorFp = default;
+        _lastResolveTick = 0;
         _latched = false;
         _periodOpen = false;
         _register.ResetBattle();
@@ -162,6 +170,7 @@ internal sealed partial class KillTracker
                 if (_resolver.TryResolveActingPlayer(out var ws))
                 {
                     _latched = true;
+                    _lastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
                     // Track whether the resolved actor holds any tracked weapon. Must be OUTSIDE the
                     // !SameSet guard (same placement rationale as the _lastActorFp refresh): two
                     // consecutive untracked actors share an empty set, so SameSet is true between
@@ -232,6 +241,7 @@ internal sealed partial class KillTracker
             _lastPlayerWeapons = ws;
             _lastPlayerMainHand = _resolver.ResolveActingMainHand();
             _actorTag = string.Join(",", ws);
+            _lastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
             _fallbackStreak = 0; _fallbackSet = new();
             ModLogger.Log("turn: no actor seen yet -- crediting the only player who has acted (first-kill fallback, weapons: " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (id " + id + ")")) + ")");
             _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src=first-kill-fallback");

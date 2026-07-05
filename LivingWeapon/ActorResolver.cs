@@ -212,6 +212,10 @@ internal sealed class ActorResolver
         return list;
     }
 
+    /// <summary>KillerStamp's roster-&gt;weapons resolve for the death-edge culprit stamp
+    /// (KillTracker.Stamp.cs) -- weapon semantics stay in this class.</summary>
+    internal List<int> HandsFromRoster(long rosterBase) => Hands(rosterBase);
+
     private void Add(List<int> list, ushort id)
     {
         if (id == 0x00FF || id == 0xFFFF) return;   // empty hand

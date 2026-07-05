@@ -56,6 +56,14 @@ internal static class Tuning
     /// of the bit-clear -> death gap.</summary>
     public const int UntrackedDelayedWindow = 45;   // ~1.5s at the 33ms tick
 
+    /// <summary>KillerStamp (death-edge culprit stamp, KillerStamp.cs): coarse staleness BACKSTOP
+    /// for the register hypothesis (register ticks == KillTracker.Poll calls, ~33ms nominal /
+    /// ~130ms effective). The PRIMARY gate is ordering (the arrival must be strictly after the
+    /// latch's own resolve tick); this window is a secondary hedge only. Observed killer
+    /// arrival-&gt;edge gaps were 2-8 ticks across every verified tape kill, so 90 is deliberately
+    /// loose -- tune from the stamp-override flight taps.</summary>
+    public const int RegisterKillWindow = 90;
+
     /// <summary>kills -> tier (0..3) against the active thresholds, checked high to low.</summary>
     public static int TierFor(int kills) => TierForIn(kills, KillThresholds);
 

@@ -1,0 +1,91 @@
+using System;
+using System.Collections.Generic;
+
+namespace LivingWeapon;
+
+/// <summary>
+/// The death-edge culprit hypothesis (register half): consulted by KillTracker.Stamp.cs at the
+/// deadStreak==1 stamp edge (KillTracker.Corpses.cs) instead of trusting the acted-edge weapon
+/// latch (<c>_lastPlayerWeapons</c>) unconditionally.
+///
+/// PROVENANCE: two 2026-07-05 flight tapes taped the engine actor pointer (<see cref="ActorRegister"/>)
+/// naming the real killer while the latch still held the previous actor's weapons, plus the
+/// adversarial review's ordering-gate correction (review finding 1).
+///
+/// THE ORDERING GATE (the load-bearing fix): a hypothesis is valid only when the arrival
+/// STRICTLY POSTDATES the latch's own resolve tick -- an arrival the latch already knew about (at
+/// or before its own resolve) cannot outvote it. The pinned regression test
+/// (KillTrackerTests.Ownership_churn_after_period_start_falls_back) has its arrival at tick 3 and
+/// its resolve at tick 4: the arrival PREdates the resolve, so this gate rejects it and the TQ
+/// fallback governs, exactly as today. Delayed-action pre-emption (<c>ConsumeDelayedCulprit</c>,
+/// KillTracker.Delayed.cs) remains the separate guard for charged kills whose eager next-owner
+/// arrival postdates the resolve -- that path is untouched by this class and is checked FIRST at
+/// credit time (KillTracker.Corpses.cs's <c>culprit = delayed ?? _lethalActor[s] ?? ...</c> chain).
+///
+/// Doctrine: miss beats mis-credit. Every ambiguous case (no hypothesis, or the hypothesis agrees
+/// with the latch) keeps today's behavior byte-identical; only a FRESH, DISAGREEING, non-empty
+/// hypothesis overrides -- and a fresh hypothesis naming a player with NO tracked weapon buries the
+/// kill rather than crediting the stale latch.
+/// </summary>
+internal sealed class KillerStamp
+{
+    private readonly ActorRegister _register;
+    private readonly Func<long, List<int>> _handsFromRoster;
+
+    public KillerStamp(ActorRegister register, Func<long, List<int>> handsFromRoster)
+    {
+        _register = register;
+        _handsFromRoster = handsFromRoster;
+    }
+
+    /// <summary>True iff the register holds a hypothesis FRESHER than the latch's own resolve
+    /// (<paramref name="lastResolveTick"/>): trusted, a player arrival exists, that arrival is
+    /// STRICTLY newer than the latch's resolve (the ordering gate -- the primary correctness
+    /// condition), within the coarse <see cref="Tuning.RegisterKillWindow"/> staleness backstop,
+    /// and the arrival resolved to a real roster slot. On success <paramref name="weapons"/> is a
+    /// FRESH list (never an alias into register state, via <see cref="ActorResolver.HandsFromRoster"/>)
+    /// from the arrival's roster slot; <paramref name="nameId"/> and <paramref name="arrivalAge"/>
+    /// (register ticks since arrival) are diagnostic, logged by the caller.</summary>
+    internal bool TryHypothesis(int lastResolveTick, out List<int> weapons, out ushort nameId, out int arrivalAge)
+    {
+        weapons = new List<int>();
+        nameId = 0;
+        arrivalAge = 0;
+
+        bool valid = _register.Trusted
+            && _register.LastPlayerArrivalTick > 0
+            && _register.LastPlayerArrivalTick > lastResolveTick   // THE ordering gate
+            && (_register.Tick - _register.LastPlayerArrivalTick) <= Tuning.RegisterKillWindow
+            && _register.LastPlayerRosterBase != 0;
+        if (!valid) return false;
+
+        weapons = _handsFromRoster(_register.LastPlayerRosterBase);
+        nameId = _register.LastPlayerNameId;
+        arrivalAge = _register.Tick - _register.LastPlayerArrivalTick;
+        return true;
+    }
+
+    /// <summary>Death-edge culprit stamp outcome: keep today's latch, override with the register's
+    /// named player's weapons, or bury the kill (the register names a player holding nothing
+    /// tracked).</summary>
+    internal enum StampKind { Latch, Register, Bury }
+
+    /// <summary>Pure decision half (the X.cs/X.Policy.cs house seam, nested here at this file's
+    /// size): no memory access, unit-tested directly.</summary>
+    internal static class Policy
+    {
+        /// <summary>No hypothesis, or the hypothesis agrees with the latch (same weapon set,
+        /// order-independent) -&gt; Latch (today's behavior, byte-identical). A fresh, disagreeing,
+        /// EMPTY hypothesis -&gt; Bury (the register names a player holding no tracked weapon --
+        /// miss beats mis-crediting the stale latch). A fresh, disagreeing, non-empty hypothesis
+        /// -&gt; Register (including when the latch itself is empty: the pending-hole extension,
+        /// KillTracker.Stamp.cs's StampCulpritFromHypothesisOnly).</summary>
+        internal static StampKind Decide(List<int> latchWeapons, bool hasHypothesis, List<int> hypothesisWeapons)
+        {
+            if (!hasHypothesis) return StampKind.Latch;
+            if (ActorResolver.SameSet(latchWeapons, hypothesisWeapons)) return StampKind.Latch;
+            if (hypothesisWeapons.Count == 0) return StampKind.Bury;
+            return StampKind.Register;
+        }
+    }
+}
