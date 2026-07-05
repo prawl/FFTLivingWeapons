@@ -1,135 +1,127 @@
 # TODO
 
-**The next release scope is LOCKED in `docs/RELEASE_SCOPE.md`** (consolidation release,
-"Finish the Samurai Swords + a focused balance pass"). Work that file's IN checklist to ship.
-This file is the BACKLOG: what is deferred past that release, and what is walled. Keep it that
-way -- new ideas land here as backlog, not as release scope, until they are pulled into a scope doc.
+STATUS: CONTRACT (machine-checked by TodoContractTests; format grammar at the bottom of this file)
 
-## In the next release (see docs/RELEASE_SCOPE.md)
-- Finish the Samurai Swords -- 4 signatures (Iai + Kobu done; Murasame id41 + Kiku id45 new). BLOCKER.
-- Fix Galewind / Puppeteer expiry -- ship-with-fallback (wielder-clock + card reword). BLOCKER.
-- Item-balance tuning pass -- Rod nerf + added-Move nerf + early-armor rider smell + Claymore card reword.
-- Remove Offensive Chemist (independent of Treasure Master; cheap).
-- Doc + hygiene -- French release-note, USER_FEEDBACK enemy correction, delete falsified
-  pointer-presence turn code, drop dead spriteIdOverride on Warbrand id67.
+The work ledger. "Now" holds what is actively being worked for the current release (hard cap 5,
+each entry carries Done means + Verify). "Backlog" captures everything else at the cheapest
+possible entry cost. Items EXIT this file only through docs/CHANGELOG.md, moved there in the
+commit that ships or kills them. The full release ship gate stays in docs/RELEASE_SCOPE.md; Now
+is the in-flight subset, not a mirror of that checklist.
 
-## The 10/10 swing (post-release headline bet)
-**Full vision + proven levers + open probes: `docs/RELIQUARY_DESIGN.md`.**
+## Now (release: 2.3.0)
 
-**Slayer's Reliquary -- the weapon remembers WHO it killed, not just how many.** When a weapon lands
-the killing blow on a named Ivalice antagonist (Lucavi, Zodiac Brave, story boss), etch that foe onto
-the blade as a growing roll that promotes to an earned canonical card epithet ("Demonsbane -- felled
-Queklain, Velius, Hashmal"), and announce the deed in the moment on the game's own center-screen
-callout banner (PromptSwap fallback). Turns the kill tally from a scoreboard into a trophy wall built
-from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the attachment thesis.
-- **PROBE FIRST (the one research bet):** does the enemy ANameId (already read at the attribution
-  edge, ActorRegister) stably distinguish a named boss from a job-sharing grunt at hp==0? The ledger
-  flags the enemy/player nameId pools "not proven disjoint" -- may need composite job+sprite+level
-  keys. Also confirm a killing-blow edge actually FIRES on marquee bosses (some end the battle /
-  crystallize by cutscene without a normal corpse-death edge). Bounded probe on an already-read field.
-- **Reuses proven levers only:** CreditKill death edge, enemy nameId read, kills.json-style atomic
-  persist (a parallel legends.json), SuffixRotation card paint (DLL-live -- the French wall does NOT
-  bite), and the big-banner callout (ShowSpike, proven live). No weapon art, no new ability, no crit.
-- **Stages, each green-gated:** probe -> curated legends table (Lucavi/Zodiac core + unique-sprite
-  human bosses) + atomic persist -> evolving card epithet -> moment-of-kill PromptSwap toast ->
-  big-banner delivery upgrade. Grafts in "The Awakening" (route the once-ever +3 crossing to the same
-  big banner instead of the whisper-y facing-prompt slot).
-- **Design constraints to respect:** legends are RARE (many weapons earn none -- the durable card
-  epithet, not the rare toast, must carry the everyday payoff; scarcity = meaning); epithets are pure
-  fiction with ZERO stat bonus (the moment carries the feeling, not a number); hard-gate the loud
-  banner to genuine marquee kills so it never becomes noise; keep the PromptSwap fallback so a Denuvo
-  dead-hook launch never silently eats a once-per-campaign boss kill.
+- **[LW-1] Unarmed stale latch eats an armed player's kill (Boco/Phoenix Down)** (opened 2026-07-05) [BUILDING]
+  - Done means: the bury branch (KillTracker.Corpses.cs, _latchResolvedEmpty && _latched) consults
+    KillerStamp.Decide; a fresh differing ARMED hypothesis becomes a Register override, everything
+    else still buries (a dancer/summoner is her own empty hypothesis, so designed no-credits are
+    unaffected). Recovers both the kill tally and the Reliquary deed (this ate the first undead
+    Requiem test kill).
+  - Verify: KillTracker bury-branch unit tests green; live check is VERIFY_LIVE.md row 8 (the
+    undead Requiem path).
+  - Notes: owner-verified 2026-07-05 13:40, log on file. Boco the chocobo acted, the actor
+    pointer stayed parked on him when Ramza's acted period opened (the known pointer-at-edge
+    lag), so the latch resolved "acting player, no living weapon" and froze; Ramza's Phoenix
+    Down skeleton kill was then buried without consulting the actor register, which by then
+    named Ramza (armed, fresh). The armed-latch sibling of this race is already fixed (the
+    KillerStamp death-edge stamp, f4bf5df).
 
-## Deferred (post-release backlog)
-- **BUG: auto-battle kill attribution is dead wrong** (owner-reported 2026-07-05; ROOT CAUSE
-  CONFIRMED same day from flight archive flight_20260705_075603_battle-exit.jsonl). Auto-battle
-  chains player actions without the Acted byte resting low for UnfreezeTicks (~400ms), so the
-  acted-period NEVER closes: the once-per-period actor latch (KillTracker.cs Poll) goes stale and
-  every later kill inherits it. Archive proof: after the battle's last latch ([60] Warlock's Staff,
-  T-45s), zero acted edges for the rest of the battle; three kills (T-39.8/-26.1/-17.6) all credited
-  60 while the actor POINTER named Ramza (nameId=1, Chaos Blade, bridge=Player) at each kill instant.
-  Mis-credits cascaded into toasts (staff "first blood" + Choir unlock) and kills.json.
-  **FIX (needs /build + live-verify, attribution core):** close the acted-period on ActorRegister
-  OWNER CHANGE (a new Player-bridged owner = a new turn) in addition to the byte-fall debounce, so
-  the latch re-resolves per real actor; the register's bridge classification already filters the
-  struck-victim pointer dwell. Respect the ledger caveat: the pointer may name the REACTOR during
-  a reaction (unverified) -- the fix must not regress reaction-kill credit. TurnTracker's turn
-  counting collapses the same way under auto-battle (turns #2-#6 all credited one fingerprint,
-  log 07:58) -- the same owner-change edge likely repairs both. Until fixed: living-weapon probe
-  battles (Reliquary P1-P3) must be fought MANUALLY -- auto-battle poisons killer-side evidence
-  (victim-side capture is unaffected).
-  **NOT auto-battle-exclusive (owner-reported 2026-07-05 09:19, MANUAL Zirekile battle):** Ember
-  Rod (id 53) credited the slot-13 enemy Knight kill (nameId 450) landed by another unit. Log
-  chain: Ember latch 09:19:20, then turn-credits #8-#11 ALL collapsed onto the wielder's
-  fingerprint (22/52/71) for 23s with no fresh player latch; the 25s-stale latch took the 09:19:45
-  credit. ADJUDICATED same day (flight_20260705_092548): the CLAYMORE wielder (nameId 451)
-  landed the blow -- the acted rising edge fired ~500ms BEFORE the pointer left the previous
-  actor (588), so turn #34 + the latch resolved 588/[53] and 451's blow 100ms later paid the
-  stale latch (the ledger ActorPtr pointer-at-edge caveat, on tape). FIX IMPLICATION:
-  owner-change period-close alone can RACE a sub-100ms gap; the culprit stamp must consult the
-  ActorRegister at death-edge/credit time (the register held 451 unambiguously by then). Raises
-  the fix priority: regular manual play mis-credits, not just auto-battle.
-  P3 side-finding (same archive): Zirekile Gafgarion WITHDRAWS at his defeat threshold -- no
-  death edge, no victim record, nothing creditable. Withdrawal-style bosses cannot produce a
-  Legend credit; the legends table must exclude or special-case them.
-- ~~**BUG: BuildLinked deploys wipe flight/ archives despite the -Exclude**~~ FIXED (Reliquary
-  Phase 1 stage 1): found 2026-07-05 during the latch-fix plan review (every archive predating
-  the day's deploys was gone; survivors all postdated the last deploy; retention was 8/20 so
-  pruning was innocent). PowerShell `Remove-Item "$dest\*" -Exclude ... -Recurse` -Exclude
-  filtering is notoriously unreliable and erased the auto-battle attribution tape
-  (flight_20260705_075603). Fix landed: flight/ now gets the same named %TEMP% round-trip as
-  kills.json (incl. the failure-path restore-only-when-missing), in the same touch as
-  legends.json/gunslinger.json preservation (tools/pipeline.ps1's $PreservedSaveFiles,
-  BuildLinked.ps1, docs/RELIQUARY_AC.md persist section).
-- **Console QuickEdit blocks the engine loop** (observed 2026-07-05: selecting text in the Reloaded
-  console suspended the mod thread ~3 min mid-battle -- kills/growth/toasts all stall; the census
-  "hang" was this). With VerboseLog on, the loop does console I/O constantly, so a stray click can
-  stall it. Hardening candidate: async/queued console sink in FileConsoleLogger (file sink stays
-  synchronous -- it is the evidence chain). Until then: read livingweapon.log, not the console.
-- **RETRACTED same day: "battle-ENDING kills vanish" was a false alarm.** The
-  flight_20260705_111400 tape that appeared to end a kill-everyone battle with uncredited final
-  kills was a manual RETRY (owner restarted Lionel Gate to add Concentrate), not a victory --
-  the "missing" enemies were simply still alive. The completed re-run (flight_20260705_111650)
-  credited ALL SEVEN enemy deaths cleanly, including the battle-ending one, and the Queklain
-  battle (flight_20260705_113131) credited a battle-ENDING Lucavi death through its cutscene
-  (Reliquary P3 PASS -- exit flush fired 2m22s after the kill; kill latch + three-point victim
-  capture + CreditKill all on tape). KEPT findings from the same probes:
-  * Canonical boss nameIds are PER-ENCOUNTER, not global: Gaffgarion = 5 at Zirekile vs 17 at
-    Lionel Gate; Queklain = 67; Queklain's three minions ALL read canonical 24/24 (same-form
-    collision -- boss key still unique within the battle). Legends table must key per-battle-form.
-  * Retrying a battle re-earns its kills (kill tally saves at EVERY exit edge, incl. retry
-    exits -- Gaffgarion credited twice across the retry, Windrunner counts 4 and 5). Accepted
-    for the tally; Reliquary legends must dedup by boss key so a retried boss kill etches once.
-- **BUG: long item descriptions push the equip card off the screen vertically** (user screenshot,
-  2026-07-05: Sanguine Sword, id 23). The assembled description -- flavor line + "Absorbs HP dealt."
-  effect line + the +3 Shadow Blade signature prose + the DLL-painted Kills line -- overflows the
-  card's box; the Kills line clips at the bottom screen edge. Only `flavorOverride` is length-gated
-  today (<=90 chars, analyze.py); the TOTAL description has no budget. Fix: shrink the total allowed
-  text -- add a total-length gate to analyze.py sized so the worst case (longest signature prose +
-  flavor + effect + Kills line) fits the box (the renderer wraps dynamically, so budget rendered
-  LINES, not raw chars), then trim the offenders' signature prose to pass it (Sanguine Sword first).
-- **BUG: unarmed stale latch eats an armed player's kill (Boco/Phoenix Down case)** (owner-verified
-  2026-07-05 13:40, log on file): Boco the chocobo acted, the actor pointer stayed parked on him
-  when Ramza's acted period opened (the known pointer-at-edge lag), so the latch resolved
-  "acting player, no living weapon" and froze; Ramza's Phoenix Down then killed a skeleton and the
-  untracked-verdict branch (KillTracker.Corpses.cs, _latchResolvedEmpty && _latched) buried the
-  kill WITHOUT consulting the actor register, which by then named Ramza (armed, fresh). The
-  armed-latch sibling of this race is already fixed (the KillerStamp death-edge stamp); the bury
-  branch is the one uncovered path. FIX (small, reuses the proven mechanism): consult
-  KillerStamp.Decide at the bury branch too; fresh differing ARMED hypothesis = Register override,
-  everything else still buries (a dancer/summoner is her own empty hypothesis, so designed
-  no-credits are unaffected). Costs recovered: the kill tally AND the Reliquary deed (this ate the
-  first undead Requiem test kill). Do after the log facelift lands (same files in flight). (owner-noted 2026-07-05):
-  available from early on, overtuned for that acquisition point. NOT addressed this release --
-  candidates when picked up: later availability tier, price bump, or stat trim (re-run analyze.py
-  dominance gate after any change). Independent of the release-scope spriteIdOverride cleanup.
-- Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug -- do not fix that doomed code).
-- Alter Axes and Flails (only cheap slice: Squire/Geomancer equip access on existing sword-typed items).
-- Migrate the remaining lossy-detection siblings (Maim/Larceny/Ricochet) to cache + rearm.
-- Kill-tally milestones on the equip card beyond the counter (gated on a glyph-render probe).
-- Replace the Stormbrand (do AFTER the Samurai signatures lock, to avoid a Slow/element dupe).
-- Enemies actually USE living-weapon benefits (XL undesigned feature; static rebalance already lands the real want).
+- **[LW-2] Deploy the shipped batch and run the live verification script** (opened 2026-07-05) [BLOCKED(owner live session)]
+  - Done means: kill fft_enhanced.exe, run BuildLinked.ps1, then docs/VERIFY_LIVE.md rows 6-12
+    pass, including the row-11 log-facelift protocol (armed battle 8-14 console lines, unarmed
+    battle exactly 2 bookends, file cross-check for evidence thinning, fast-forward soak for
+    the console-sink lock).
+  - Verify: VERIFY_LIVE.md checkboxes (owner-only flips). Row 8 waits on LW-1.
+
+- **[LW-3] Docs three-tier reorg** (opened 2026-07-05) [QUEUED]
+  - Done means: docs/ top level holds living contracts only; closed journals move to
+    docs/research/; shipped or dead one-shot plans move to docs/archive/; every doc opens with
+    a status line (CONTRACT, JOURNAL, or ARCHIVED with its successor named); plan docs archive
+    in the commit that ships them; executed with git mv plus a sweep of references (code
+    comments, tools, memories cite old paths).
+  - Verify: the docs-map lockstep test lands green; git log with follow shows history preserved
+    on the moved docs.
+
+- **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
+  - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
+    Mushin, the parked wait-detection byte hunt); Kiku-ichimonji id45 ships Onryo (Undead brand)
+    or Shura (controllable Berserk on 2nd kill, bit +0x47/0x08). Release blocker 1 of 2
+    (RELEASE_SCOPE.md section 1).
+  - Verify: items.json block, then gen_living_weapon_meta.py, then xUnit green, then deploy and
+    VERIFY LIVE, then commit and LIVE_LEDGER flip. Clean DEV redeploy before ANY katana live
+    test (an orphaned Zanshin DLL may still be deployed).
+
+- **[LW-5] Galewind / Puppeteer expiry, ship with fallback** (opened 2026-07-04) [QUEUED]
+  - Done means: round-7 AREC recon attempted as a stretch; if a per-puppet-turn release does not
+    crack, keep the committed wielder-clock behavior and reword the card to match. The p3Desc
+    card promises ("no Lucavi", "for its full turn") are fixed either way. The Iai ReleaseSignal
+    bare-arrival false-release is hardened in the same touch (same ActorPtr-dwell trap).
+    Release blocker 2 of 2 (RELEASE_SCOPE.md section 2).
+  - Verify: never commit an expiry change without a live release observed in-game; xUnit green.
+
+## Backlog
+
+- [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
+  it killed). Full design and staged plan: docs/RELIQUARY_DESIGN.md; acceptance:
+  docs/RELIQUARY_AC.md. Phase 0 probes COMPLETE 2026-07-05 (boss key = per-encounter canonical
+  nameId; same-form minions collide; withdrawal bosses like Zirekile Gafgarion produce no death
+  edge and must be excluded or special-cased; a retried boss kill must dedup by key). Phase 1
+  (Marks + card story) SHIPPED 061e36c, awaiting its live pass.
+- [LW-7] 2026-07-05: TurnTracker turn counting collapses under auto-battle (turns #2-#6 all
+  credited one fingerprint, log 07:58). The kill-credit half of the stale-latch bug shipped as
+  the KillerStamp death-edge stamp (f4bf5df); the turn-count half is still live. Candidate fix:
+  close the acted period on ActorRegister OWNER CHANGE in addition to the byte-fall debounce.
+  Must not regress reaction-kill credit (the pointer may name the REACTOR during a reaction,
+  unverified per the ledger caveat).
+- [LW-8] 2026-07-05: Console QuickEdit selection suspends the mod thread (about 3 minutes
+  observed mid-battle; kills, growth, and toasts all stall; the census "hang" was this).
+  Hardening candidate: async/queued console sink in FileConsoleLogger (the file sink stays
+  synchronous, it is the evidence chain). Until then read livingweapon.log, not the console.
+- [LW-9] 2026-07-05: Warbrand (id 67) arrives too early for its power (owner-noted): available
+  from early on, overtuned for that acquisition point. Candidates when picked up: later
+  availability tier, price bump, or stat trim (re-run the analyze.py dominance gate after any
+  change). Independent of the release-scope spriteIdOverride cleanup.
+- [LW-10] 2026-07-04: Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug; do not
+  fix that doomed code). On removal: de-list treasure.json from pipeline.ps1, release.yml, and
+  the csproj together; BattleState.BattleDisplayed is shared with CharmLock and must survive
+  the cut; drop Treasure Master from the ModConfig description.
+- [LW-11] 2026-07-04: Alter Axes and Flails, cheap slice only (Squire/Geomancer equip access on
+  existing sword-typed items). The rest is walled research (type-welded formula, id-welded art,
+  no known flail formula id).
+- [LW-12] 2026-07-04: Migrate the lossy-detection siblings (Maim, Larceny, Ricochet) to cache
+  plus rearm, opportunistically when those files are next touched.
+- [LW-13] 2026-07-04: Kill-tally milestones on the equip card beyond the counter. Gated on an
+  untested glyph-render probe; largely redundant with the shipped milestone toasts.
+- [LW-14] 2026-07-04: Replace the Stormbrand (status procs are low-percent; the real cure is a
+  runtime signature). Pick the theme AFTER the Samurai signatures lock to avoid a Slow/element
+  dupe.
+- [LW-15] 2026-07-04: Enemies actually USE living-weapon benefits (XL undesigned feature; the
+  static rebalance already lands the real player want).
+- [LW-20] 2026-07-05: LoggerTests flake: Two_different_verbs_sharing_the_same_Info_sentence_both_reach_the_console
+  (LoggerTests.cs:148) compares two rendered console lines that embed wall-clock ms timestamps;
+  a millisecond-boundary straddle fails it (observed once in a clean tree, green on rerun).
+  Fix: freeze or strip the timestamp in the assertion. Until then a red suite can be this flake
+  and a green suite can be luck; check here first before blaming a real change.
+- [LW-21] 2026-07-05: Harden TodoContractTests' changelog scan: the grammar check only inspects
+  lines starting with "- [", so a mangled exit line (say "- LW-22 ...") dodges both the grammar
+  and the id-uniqueness gates. Scan every top-level "- " line in CHANGELOG.md the way the
+  Backlog check does, and tighten NowEntryRegex's greedy title match while in there.
 
 ## Walled (blocked by engine / Denuvo / modloader)
+
 - Fix the sword swing-art (art welded to weapon id; the same render node also drives damage).
 - Make item TEXT display in French (game + modloader parser walls; DLL live-paint is the only path).
+
+## Format (enforced by TodoContractTests)
+
+- Sections, in this order and no others: Now (with the release name in the header), Backlog,
+  Walled, Format.
+- Now: at most 5 entries. Entry first line: `- **[LW-<n>] <title>** (opened YYYY-MM-DD) [STATUS]`
+  where STATUS is QUEUED, BUILDING, AWAITING-LIVE, or BLOCKED(reason). Every entry carries a
+  `- Done means:` and a `- Verify:` sub-bullet. Promote from Backlog by filling those in; if Now
+  is at cap, demote something first.
+- Backlog: entry first line `- [LW-<n>] YYYY-MM-DD: <one sentence>`; indented continuation lines
+  are free. Capture new items here in the session they surface.
+- IDs are unique across this file and docs/CHANGELOG.md; never reuse a retired ID.
+- Items exit ONLY by moving to docs/CHANGELOG.md, in the very commit that ships or kills them.
+- No em dashes and no double-dash separators anywhere in this file or the changelog.
+- AWAITING-LIVE flips and VERIFY_LIVE checkboxes are owner-only.
