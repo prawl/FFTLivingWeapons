@@ -72,6 +72,13 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   P3 side-finding (same archive): Zirekile Gafgarion WITHDRAWS at his defeat threshold -- no
   death edge, no victim record, nothing creditable. Withdrawal-style bosses cannot produce a
   Legend credit; the legends table must exclude or special-case them.
+- **BUG: BuildLinked deploys wipe flight/ archives despite the -Exclude** (found 2026-07-05 during
+  the latch-fix plan review: every archive predating the day's deploys is gone; survivors all
+  postdate the last deploy; retention was 8/20 so pruning is innocent). PowerShell `Remove-Item
+  "$dest\*" -Exclude ... -Recurse` -Exclude filtering is notoriously unreliable. It erased the
+  auto-battle attribution tape (flight_20260705_075603). Fix: give flight/ the kills.json-style
+  %TEMP% round-trip (incl. the failure-path restore) instead of trusting -Exclude; same touch as
+  the planned legends.json/gunslinger.json preservation (docs/RELIQUARY_AC.md persist section).
 - **Console QuickEdit blocks the engine loop** (observed 2026-07-05: selecting text in the Reloaded
   console suspended the mod thread ~3 min mid-battle -- kills/growth/toasts all stall; the census
   "hang" was this). With VerboseLog on, the loop does console I/O constantly, so a stray click can
