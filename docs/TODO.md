@@ -108,7 +108,18 @@ from FFT's own rogues' gallery -- the deepest, wall-free instantiation of the at
   text -- add a total-length gate to analyze.py sized so the worst case (longest signature prose +
   flavor + effect + Kills line) fits the box (the renderer wraps dynamically, so budget rendered
   LINES, not raw chars), then trim the offenders' signature prose to pass it (Sanguine Sword first).
-- **BALANCE: Warbrand (id 67) arrives too early for its power** (owner-noted 2026-07-05):
+- **BUG: unarmed stale latch eats an armed player's kill (Boco/Phoenix Down case)** (owner-verified
+  2026-07-05 13:40, log on file): Boco the chocobo acted, the actor pointer stayed parked on him
+  when Ramza's acted period opened (the known pointer-at-edge lag), so the latch resolved
+  "acting player, no living weapon" and froze; Ramza's Phoenix Down then killed a skeleton and the
+  untracked-verdict branch (KillTracker.Corpses.cs, _latchResolvedEmpty && _latched) buried the
+  kill WITHOUT consulting the actor register, which by then named Ramza (armed, fresh). The
+  armed-latch sibling of this race is already fixed (the KillerStamp death-edge stamp); the bury
+  branch is the one uncovered path. FIX (small, reuses the proven mechanism): consult
+  KillerStamp.Decide at the bury branch too; fresh differing ARMED hypothesis = Register override,
+  everything else still buries (a dancer/summoner is her own empty hypothesis, so designed
+  no-credits are unaffected). Costs recovered: the kill tally AND the Reliquary deed (this ate the
+  first undead Requiem test kill). Do after the log facelift lands (same files in flight). (owner-noted 2026-07-05):
   available from early on, overtuned for that acquisition point. NOT addressed this release --
   candidates when picked up: later availability tier, price bump, or stat trim (re-run analyze.py
   dominance gate after any change). Independent of the release-scope spriteIdOverride cleanup.
