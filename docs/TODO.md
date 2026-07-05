@@ -131,6 +131,16 @@ is the in-flight subset, not a mirror of that checklist.
   session. Investigate both; add a loud post-restore existence check to BuildLinked (a deploy
   that loses a preserved file must fail red, not print success). Owner declined tally
   reconstruction for now (tapes and prev.log carry the counts if ever wanted).
+- [LW-30] 2026-07-05: Weapon reputation in the ATTACK-TARGETING prompt (owner discovery, screenshot
+  on file): the "Select a target and press F to confirm" pill during Attack targeting is writable
+  text in the same prompt family as the Wait-state facing prompt, and the owner's CE edit rendered
+  in it live ("Kills: 100" shown mid-targeting). Feature: PromptSwap gains a "Select a target"
+  prefix match and swaps in the acting unit's weapon line ("Windrunner, Mageslayer: 103 kills"),
+  composed from the turn owner's equipped living weapon; swap ONLY when a living weapon has a
+  story (kills or a Mark), vanilla text otherwise. Renders at the moment of aiming, no timing or
+  hold problems (the game triggers the render, we swap content). Candidate FLAGSHIP placement for
+  the kills+trait surface, ahead of the header bar for in-battle presence; the header bar (LW-27)
+  stays the menu-side surface. Verify per prompt-swap house rules before shipping.
 - [LW-29] 2026-07-05: RELEASE QUESTION: do player save files (kills.json, legends.json,
   gunslinger.json) survive a Reloaded mod UPDATE (2.2.2 to 2.3.0)? If a mod update replaces
   the mod folder, every player loses their tally on upgrade, which is the worst possible bug
