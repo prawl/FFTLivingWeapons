@@ -40,6 +40,24 @@ $RequiredModFiles = @(
     "FFTIVC/data/enhanced/nxd/ability.en.nxd"
 )
 
+# Save-adjacent files a deploy must round-trip through %TEMP% rather than wipe: the
+# player's kill tally, the Reliquary deed ledger, and the Gun Slinger holdings snapshot
+# (plus each file's .bak -- KillTally/GunSlingerStore-style saves always produce one).
+# PowerShell's Remove-Item -Exclude against -Recurse is NOT reliable protection -- it
+# silently wiped the flight/ archive directory despite being excluded (1bd87a1) -- so
+# BuildLinked.ps1 backs every entry in this list up into ONE named temp directory before
+# cleaning $dest and restores them after staging (decision 5, docs/RELIQUARY_AC.md persist
+# section). flight/ is a directory, not a file, so it isn't listed here; BuildLinked
+# copies it through the same temp dir alongside this list (one named mechanism, not two).
+$PreservedSaveFiles = @(
+    "kills.json",
+    "kills.json.bak",
+    "legends.json",
+    "legends.json.bak",
+    "gunslinger.json",
+    "gunslinger.json.bak"
+)
+
 function Invoke-TablePipeline {
     # generate -> dominance gate -> meta, with uniform exit-code checks. Throws
     # on any red step; the caller's catch turns that into a nonzero exit.

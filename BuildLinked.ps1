@@ -7,9 +7,10 @@
 #
 # The shared pipeline prefix (generate -> dominance gate -> meta -> unit tests ->
 # DLL publish) lives in tools/pipeline.ps1; this file keeps the deploy-specific
-# half: mods-folder resolution, the build-flavor guard, the kills.json round-trip,
-# the Vortex marker exclusion, and deploy verification. Table/nxd/tex changes take
-# effect on game RESTART; the DLL loads on next game launch.
+# half: mods-folder resolution, the build-flavor guard, the save-file + flight/ archive
+# round-trip (tools/pipeline.ps1's $PreservedSaveFiles), the Vortex marker exclusion, and
+# deploy verification. Table/nxd/tex changes take effect on game RESTART; the DLL loads
+# on next game launch.
 #
 #   -Prod   build with production kill thresholds {5,25,50} and no kill seeding
 #           (omits -p:LwDev=true) -- for release-testing on a real save.
@@ -46,6 +47,11 @@ try {
     }
     $dest   = Join-Path $modsDir $modId
     $marker = Join-Path $dest "build_flavor.txt"
+    # One named temp directory for the save-adjacent round-trip (decision 5):
+    # $PreservedSaveFiles (tools/pipeline.ps1) plus the flight/ archive directory.
+    # Defined here -- before the backup step runs -- so the catch path below can always
+    # Test-Path it, even if the failure happens before stage [3/5] backs anything up.
+    $preserveDir = Join-Path $env:TEMP "livingweapon_preserve"
 
     # --- Guard: a plain (dev) run must not stomp a prod-flavored install ---
     # A DEV build pre-seeds every weapon's tally (LWDEV); deployed over the real
@@ -85,20 +91,27 @@ try {
     Write-Host "[2/5] Running unit tests (LivingWeapon.Tests)..." -ForegroundColor Yellow
     Invoke-UnitTestGate -FailVerb DEPLOY
 
-    # --- [3/5] Clean the live mod folder, preserving the player's kill tally ---
-    # kills.json is the wielder's per-weapon kill count (their progress). Treat it
-    # like ColorCustomizer treats UserThemes: back it up, clean, restore.
-    Write-Host "[3/5] Cleaning $dest (preserving kills.json)..." -ForegroundColor Yellow
-    $killsBak = $null
-    if (Test-Path "$dest\kills.json") {
-        $killsBak = Join-Path $env:TEMP "livingweapon_kills.json.bak"
-        Copy-Item "$dest\kills.json" $killsBak -Force
+    # --- [3/5] Clean the live mod folder, preserving save files + flight/ archives ---
+    # kills.json/legends.json/gunslinger.json are the player's progress; flight/ is the
+    # flight recorder's black-box archive directory. Round-trip all of them through
+    # $preserveDir: -Exclude against -Recurse looked like protection but silently wiped
+    # flight/ anyway (1bd87a1) -- a real backup/clean/restore cycle is the fix.
+    Write-Host "[3/5] Cleaning $dest (preserving save files + flight/ archives)..." -ForegroundColor Yellow
+    if (Test-Path $preserveDir) { Remove-Item $preserveDir -Recurse -Force -ErrorAction SilentlyContinue }
+    New-Item -ItemType Directory -Force -Path $preserveDir | Out-Null
+    foreach ($f in $PreservedSaveFiles) {
+        $src = Join-Path $dest $f
+        if (Test-Path $src) {
+            Copy-Item $src (Join-Path $preserveDir $f) -Force
+        }
+    }
+    if (Test-Path (Join-Path $dest "flight")) {
+        Copy-Item (Join-Path $dest "flight") $preserveDir -Recurse -Force
     }
     if (Test-Path $dest) {
-        # Keep the Vortex marker so Vortex doesn't treat the folder as orphaned. Also keep
-        # flight/ (the flight recorder's black-box archives) -- wholesale directory preservation,
-        # same treatment as kills.json, no TEMP round-trip needed since it's just excluded outright (S6).
-        Remove-Item "$dest\*" -Exclude "__folder_managed_by_vortex", "flight" -Recurse -Force -ErrorAction SilentlyContinue
+        # Keep the Vortex marker so Vortex doesn't treat the folder as orphaned. Everything
+        # else (incl. flight/) is wiped here and restored from $preserveDir below.
+        Remove-Item "$dest\*" -Exclude "__folder_managed_by_vortex" -Recurse -Force -ErrorAction SilentlyContinue
     } else {
         New-Item -ItemType Directory -Force -Path $dest | Out-Null
     }
@@ -110,11 +123,17 @@ try {
     Copy-Item "$root\mod\FFTIVC" $dest -Recurse -Force
     Copy-Item "$root\mod\ModConfig.json" $dest -Force   # our config wins over any published one
     if (Test-Path "$root\mod\preview.png") { Copy-Item "$root\mod\preview.png" $dest -Force }
-    if ($killsBak) {
-        Copy-Item $killsBak "$dest\kills.json" -Force
-        Remove-Item $killsBak -Force -ErrorAction SilentlyContinue
-        Write-Host "  -> Restored player's kills.json tally" -ForegroundColor Green
+    foreach ($f in $PreservedSaveFiles) {
+        $src = Join-Path $preserveDir $f
+        if (Test-Path $src) {
+            Copy-Item $src (Join-Path $dest $f) -Force
+        }
     }
+    if (Test-Path (Join-Path $preserveDir "flight")) {
+        Copy-Item (Join-Path $preserveDir "flight") $dest -Recurse -Force
+    }
+    Remove-Item $preserveDir -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host "  -> Restored preserved save files + flight/ archives" -ForegroundColor Green
     # Record the deployed flavor so the guard above can protect the NEXT run.
     Set-Content -Path $marker -Value $flavor.ToLower() -Encoding Ascii
 
@@ -141,12 +160,25 @@ try {
 catch {
     Write-Host "`n$_" -ForegroundColor Red
     # A failure AFTER the clean step (e.g. dotnet publish hitting a game-locked DLL) has
-    # already deleted the deployed kills.json and build_flavor.txt -- without these
-    # restores the player's tally would be stranded in %TEMP% (and overwritten by the
-    # next run's backup) and the prod guard would fail open on the next plain deploy.
-    if ($killsBak -and (Test-Path $killsBak) -and -not (Test-Path "$dest\kills.json")) {
-        Copy-Item $killsBak "$dest\kills.json" -Force
-        Write-Host "Restored the player's kills.json after the failed deploy." -ForegroundColor Yellow
+    # already wiped $dest's save files + flight/ and build_flavor.txt -- without these
+    # restores the player's tally/legends/flight evidence would be stranded in %TEMP%
+    # (and overwritten by the next run's backup) and the prod guard would fail open on
+    # the next plain deploy. Restore each preserved item ONLY if it's still missing, so
+    # this never clobbers a partial restore a later stage already completed.
+    if ((Test-Path $preserveDir) -and (Test-Path $dest)) {
+        foreach ($f in $PreservedSaveFiles) {
+            $src = Join-Path $preserveDir $f
+            $dst = Join-Path $dest $f
+            if ((Test-Path $src) -and -not (Test-Path $dst)) {
+                Copy-Item $src $dst -Force
+                Write-Host "Restored $f after the failed deploy." -ForegroundColor Yellow
+            }
+        }
+        $flightSrc = Join-Path $preserveDir "flight"
+        if ((Test-Path $flightSrc) -and -not (Test-Path (Join-Path $dest "flight"))) {
+            Copy-Item $flightSrc $dest -Recurse -Force
+            Write-Host "Restored flight/ after the failed deploy." -ForegroundColor Yellow
+        }
     }
     if ($deployed -and (Test-Path $dest) -and -not (Test-Path $marker)) {
         Set-Content -Path $marker -Value $deployed -Encoding Ascii
