@@ -1,4 +1,4 @@
-#if LWDEV
+﻿#if LWDEV
 using System;
 using System.Collections.Generic;
 
@@ -49,7 +49,7 @@ internal sealed class TurnOwnerSpike
     {
         _mem = mem;
         _register = register;
-        ModLogger.Event(LogVerb.Trace,
+        ModLogger.Debug(LogVerb.Trace,
             "turn-owner-probe: armed (passive, no keybind; records band CT, the cursor-follower struct, and the actor register on change, throttled to 4 samples per second)");
     }
 
@@ -86,7 +86,7 @@ internal sealed class TurnOwnerSpike
         string snapshot = TurnOwnerProbe.FormatCtSnapshot(slots, acted);
         if (!TurnOwnerProbe.Changed(_lastCtSnapshot, snapshot)) return;
         _lastCtSnapshot = snapshot;
-        ModLogger.Event(LogVerb.Trace, snapshot);
+        ModLogger.Debug(LogVerb.Trace, snapshot);
     }
 
     /// <summary>Hypothesis 2: the cursor-follower struct, read whole (guarded) rather than
@@ -99,7 +99,7 @@ internal sealed class TurnOwnerSpike
             {
                 _cursorWasReadable = false;
                 _lastCursorBytes = null;   // force a fresh log on recovery, even if bytes end up identical
-                ModLogger.Event(LogVerb.Trace, "turn-owner-probe: cursor struct became unreadable");
+                ModLogger.Debug(LogVerb.Trace, "turn-owner-probe: cursor struct became unreadable");
             }
             return;
         }
@@ -107,7 +107,7 @@ internal sealed class TurnOwnerSpike
 
         if (!TurnOwnerProbe.Changed(_lastCursorBytes, buf)) return;
         _lastCursorBytes = buf;
-        ModLogger.Event(LogVerb.Trace, TurnOwnerProbe.FormatCursorDump(buf));
+        ModLogger.Debug(LogVerb.Trace, TurnOwnerProbe.FormatCursorDump(buf));
     }
 
     /// <summary>The register baseline this instrument watches purely for the correlation tape;
@@ -118,7 +118,7 @@ internal sealed class TurnOwnerSpike
             _register.LastPlayerNameId, _register.LastPlayerArrivalTick, _register.Trusted);
         if (!TurnOwnerProbe.Changed(_lastRegisterSnapshot, snapshot)) return;
         _lastRegisterSnapshot = snapshot;
-        ModLogger.Event(LogVerb.Trace, snapshot);
+        ModLogger.Debug(LogVerb.Trace, snapshot);
     }
 }
 #endif

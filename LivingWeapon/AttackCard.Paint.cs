@@ -20,7 +20,7 @@ internal sealed partial class AttackCard
         if (composed != _current)
         {
             if (composed != null)
-                ModLogger.Event(LogVerb.Display, "The Attack menu's description now carries a Living Weapon's dossier.");
+                ModLogger.Debug(LogVerb.Display, "attack-card desc now carries the acting unit's dossier");
             else
                 ModLogger.Debug(LogVerb.Display, "attack-card desc reverting to vanilla: the acting unit's weapon is unarmed or unstoried");
 
