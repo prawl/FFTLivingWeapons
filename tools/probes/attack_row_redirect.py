@@ -12,10 +12,14 @@ watching, ideally in a throwaway battle; `restore` undoes everything. Verify-bef
 a record is touched only while its label still reads "Attack" and its nameOff holds a
 value this probe expects (vanilla 0x1FC1 or one of its own prior redirects).
 
-  python tools/probes/attack_row_redirect.py status  <label hexaddr ...>
-  python tools/probes/attack_row_redirect.py evasive <label hexaddr ...>   row = "Evasive Stance" (14 chars, proves >6)
-  python tools/probes/attack_row_redirect.py desc    <label hexaddr ...>   row = the 73-char vanilla desc (length stress)
-  python tools/probes/attack_row_redirect.py restore <label hexaddr ...>   row = vanilla "Attack"
+  python tools/probes/attack_row_redirect.py status    <label hexaddr ...>
+  python tools/probes/attack_row_redirect.py evasive   <label hexaddr ...>  row = "Evasive Stance" (14 chars, proves >6)
+  python tools/probes/attack_row_redirect.py desc      <label hexaddr ...>  row = the desc string (length stress)
+  python tools/probes/attack_row_redirect.py descsplit <label hexaddr ...>  the v2 mechanism proof: footprint
+      becomes "Bubba Blade+3\0Kills: 42. Loki approves." with nameOff -> footprint start and
+      descOff -> past the NUL. Row should read the name, hover desc the tail. Proves the
+      descOff half (2026-07-06 plan review blocker: nameOff was proven alone).
+  python tools/probes/attack_row_redirect.py restore   <label hexaddr ...>  vanilla offsets AND vanilla desc text
 
 Label addresses come from `attack_table_scan.py vanilla` (per-launch relocation: re-scan
 every launch).
@@ -28,6 +32,10 @@ import sys
 PROCESS_ALL = 0x0010 | 0x0020 | 0x0008 | 0x0400  # VM_READ | VM_WRITE | VM_OPERATION | QUERY
 GAP = 0x1FC1            # label addr - Attack record base, catalog-layout constant
 VANILLA_NAME_OFF = 0x1FC1
+VANILLA_DESC_OFF = 0x1FC8
+VANILLA_DESC = b"Attacks with the equipped weapon, or bare fists if no weapon is equipped."
+SPLIT_NAME = b"Bubba Blade+3"
+SPLIT_TAIL = b"Kills: 42. Loki approves."
 k32 = ctypes.windll.kernel32
 psapi = ctypes.windll.psapi
 
@@ -54,11 +62,14 @@ def rpm(h, addr, n):
     return buf.raw[:got.value] if ok else None
 
 
-def wpm_u32(h, addr, val):
-    data = struct.pack("<I", val)
+def wpm(h, addr, data):
     wrote = ctypes.c_size_t()
-    ok = k32.WriteProcessMemory(h, ctypes.c_void_p(addr), data, 4, ctypes.byref(wrote))
-    return bool(ok) and wrote.value == 4
+    ok = k32.WriteProcessMemory(h, ctypes.c_void_p(addr), data, len(data), ctypes.byref(wrote))
+    return bool(ok) and wrote.value == len(data)
+
+
+def wpm_u32(h, addr, val):
+    return wpm(h, addr, struct.pack("<I", val))
 
 
 def read_cstr(h, addr, cap=100):
@@ -123,7 +134,23 @@ def main():
                 continue
             cur_name = read_cstr(h, base + f[0], 100)
             if mode == "status":
-                print(f"{label:012X}: record {base:012X} nameOff=0x{f[0]:X} -> {cur_name!r} descOff=0x{f[1]:X}")
+                print(f"{label:012X}: record {base:012X} nameOff=0x{f[0]:X} -> {cur_name!r} descOff=0x{f[1]:X}"
+                      f" -> {read_cstr(h, base + f[1], 100)!r}")
+                continue
+            if mode == "descsplit":
+                # The v2 name-split proof: full footprint image (73 chars + terminator, NUL
+                # padded so no stale bytes survive), then BOTH offsets in one 8-byte write.
+                image = SPLIT_NAME + b"\x00" + SPLIT_TAIL
+                image += b"\x00" * (len(VANILLA_DESC) + 1 - len(image))
+                ok1 = wpm(h, label + 7, image)
+                ok2 = wpm(h, base, struct.pack("<II", VANILLA_DESC_OFF, VANILLA_DESC_OFF + len(SPLIT_NAME) + 1))
+                print(f"{label:012X}: image {'OK' if ok1 else 'REFUSED'}, offsets {'OK' if ok2 else 'REFUSED'};"
+                      f" row should read {SPLIT_NAME!r}, hover desc {SPLIT_TAIL!r}")
+                continue
+            if mode == "restore":
+                ok1 = wpm(h, base, struct.pack("<II", VANILLA_NAME_OFF, VANILLA_DESC_OFF))
+                ok2 = wpm(h, label + 7, VANILLA_DESC + b"\x00")
+                print(f"{label:012X}: offsets {'OK' if ok1 else 'REFUSED'}, vanilla desc {'OK' if ok2 else 'REFUSED'}")
                 continue
             new_off = targets_for(h, base, f, mode)
             if new_off is None:

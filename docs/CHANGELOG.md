@@ -8,6 +8,11 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-33] SHIPPED 18d640d 2026-07-06: the residual footprint-poisoning path in the attack-card
+  painter. SyncHit re-pins the footprint to the vanilla 73 chars on every known-line read
+  (repairing an already-poisoned cache entry instead of only avoiding fresh poisoning), with a
+  test hook proving the repair, and the two overselling test comments were corrected in the
+  same commit. Ledger exit recorded late: the fix itself shipped inside 18d640d's round.
 - [LW-20] SHIPPED 0bf9d65 2026-07-05: the LoggerTests millisecond-timestamp flake (two rendered
   console lines compared with embedded wall-clock stamps could straddle a boundary and fail a
   clean tree). A pure StripTimestamp helper normalizes both lines; a dedup-key sabotage run

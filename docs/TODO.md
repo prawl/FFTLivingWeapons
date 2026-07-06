@@ -1,4 +1,4 @@
-# TODO
+﻿# TODO
 
 STATUS: CONTRACT (machine-checked by TodoContractTests; format grammar at the bottom of this file)
 
@@ -19,21 +19,23 @@ is the in-flight subset, not a mirror of that checklist.
   - Notes: owner verified 2026-07-05 during this pass: dual-pistol off-hand equip works, the
     second Outrider Pistol equipped and fired.
 
-- **[LW-27] The kill count replaces the "Description" header on the equipment card** (opened 2026-07-05) [BUILDING]
-  - Done means: the equipment card's brown header paints the VIEWED weapon's count, exactly
-    "Kills: N" (owner decision 2026-07-05: count only, no Mark; "Kills: 9999" is 11 chars,
-    the same as "Description", so a 4-digit count fits the in-place footprint precisely);
-    non-weapon cards and unstoried weapons show the vanilla "Description"; once shipped, the
-    baked descriptions RETIRE the body's Kills line, refunding budget (relieves LW-26).
-  - Verify: pure compose/pattern halves unit-tested; owner eyeballs live; LIVE_LEDGER rows for
-    the header-write mechanic (spike-proven 2026-07-05: 197 copies stamped, both encodings,
-    writes hold with zero reverts) and for the view-detection signal before shipping.
-  - Notes: REMAINING RESEARCH: view detection. The header copies live in a different memory
-    neighborhood than the card bodies (0x15CC vs 0x4D1B families this launch), so body-proximity
-    anchoring cannot identify the currently viewed item; need a hovered-item-id signal (the
-    unit-hover analogue is a known address, an item twin likely exists; probe it). Header is
-    shared chrome across ALL card types, so the painter must be view-aware and restore vanilla
-    on non-weapon cards.
+- **[LW-36] Re-bake every card description to the locked release grammar** (opened 2026-07-06) [QUEUED]
+  - Done means: (owner direction 2026-07-06, update before release) BOTH card-text deliverables
+    land in one voice. (1) The +3 ability block moves to the new grammar on every card: header
+    "{Name} (+3)" replacing "+3 Ability - {Name}", body "{Verb} {effect}. {Condition, if
+    any.}"; worked example: "Gun Slinger (+3)" then "Loads a second pistol into the off-hand,
+    granting dual-wield. Must equip outside of battle." (2) The equipment card description
+    body becomes flavor text, then a blank line, then the ability block (owner sketch
+    2026-07-06: img + name+suffix, WP and Parry line, Description rule, flavor, blank line,
+    ability block); no Kills line in the body (unified card grammar, the count lives in the
+    header per LW-27/LW-31). Data-layer re-bake: items.json prose assembled by generate.py +
+    patch_names.py, restart-only; confirm item.en.nxd descriptions render an embedded blank
+    line at pickup; the attack-card tail (LW-31) adopts the same ability wording. (3) PINNED
+    (owner 2026-07-06): analyze.py grows a gate check that every +3 ability desc MATCHES the
+    master CSV (docs/living_weapon_grid.csv, the design source of truth); any drift between
+    the baked prose and the CSV goes red and refuses the deploy.
+  - Verify: analyze.py budgets green (DESC_MAX 259, P3DESC_MAX 90, uniqueness) plus the new
+    CSV-match check; xUnit suite green; owner eyeballs the re-baked cards live before release.
 
 - **[LW-31] The battle Abilities menu becomes the weapon funnel** (opened 2026-07-05) [BUILDING]
   - Done means: (owner-consolidated 2026-07-06) in battle, the Attack command row renders the
@@ -95,7 +97,20 @@ is the in-flight subset, not a mirror of that checklist.
     scrolls); the menu caches at build so writes land on the next menu open (turn-open
     timing suffices); restore is the same u32. LIVE_LEDGER row added, awaiting the owner
     flip. The desc body mirror rides the sibling descOff. Instruments:
-    tools/probes/attack_table_scan.py and tools/probes/attack_row_redirect.py.
+    tools/probes/attack_table_scan.py and tools/probes/attack_row_redirect.py. OWNER
+    WORDING LOCKS 2026-07-06 (stage-3 live pass): barehanded row text is "Fists"; the kills
+    clause is a tier-progress meter ("Kills: 1/5 to +", "Kills: 6/25 to +2",
+    "Kills: 34/50 to +3", then "Kills: 55" at max) plus a signature tease while locked
+    ("Unlocks Gun Slinger.") that flips to the armed clause when earned. HEADER-ARC LAYOUT
+    (owner, same session, FORMAT LOCKED): the brown "Description" header bar carries the
+    meter in the 11-char-footprint grammar "Kills 0/5" / "Kills 5/25" / "Kills 25/50" /
+    "Kills 51" (no colon, no tier suffix; every state fits the in-place stamp footprint,
+    LW-27 mechanic, spike-proven 197 copies); view detection = the shipped cursor resolve;
+    once the header carries the meter the BODY drops its meter clause and keeps the
+    signature state ("Unlocks Gun Slinger." locked, "Gun Slinger armed." earned), moving
+    toward the LW-36 ability-block grammar. Shared-chrome caveat accepted by the owner: a
+    mid-battle Status page shows the stamped header until restore. Monsters keep vanilla
+    text on every surface.
 
 - **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
@@ -190,14 +205,6 @@ is the in-flight subset, not a mirror of that checklist.
   doubling the +N system; the record-first architecture defers that question (candidate
   anti-doubling rule on the table: a Mark requires PLURALITY of kills, not raw count).
   Supersedes/absorbs the Phase 1 legends.json shape when picked up; ties to LW-6.
-- [LW-33] 2026-07-05: Close the residual footprint-poisoning path in the attack-card painter
-  (re-verifier R1, non-blocking at 8.5 SHIP): a census chunk read that truncates a known line
-  mid-region caches the short count, and SyncHit's fuller live re-read then trusts it; rare
-  (chunk-boundary window), under-writes only, but it can strand a painted line past the
-  battle-exit restore like F1 did. Fix: apply the same known-line footprint pin inside SyncHit
-  (stronger observation there: the full 73 chars were actually read), plus fix the two
-  slightly-overselling test comments (AttackCardTests.cs boundary test, AttackCardTextTests
-  arithmetic). Fold into the next attack-card round (stage 3 or the dual-wield clause).
 - [LW-35] 2026-07-06: HIDE the Marks feature for this release (owner direction: "we'll finish
   implementing that in a future release"): one flag suppresses every Mark surface: the
   equip-card story narration (Reliquary Phase 1 lines), the Mark deed toasts, and the
@@ -225,6 +232,42 @@ is the in-flight subset, not a mirror of that checklist.
   prefix match on "Select a target"; unstoried weapons keep vanilla text. Every technical
   unknown was answered live 2026-07-05: writable, render-call-time swap (fragment-length
   unbound), pill auto-sizes to viewport width, markup tokens supported ("<keyicon=ok>").
+- [LW-27] 2026-07-06: The kill-count "Kills: N" header for the PARTY-MENU equipment card
+  (demoted from Now when the card re-bake took the slot; the ATTACK-card header ships via
+  LW-31's unified grammar instead). Remaining research is view detection: a hovered-item-id
+  signal (header copies live in a different memory neighborhood than the card bodies, the
+  0x15CC vs 0x4D1B families, so body-proximity anchoring cannot identify the viewed item).
+  The header-write mechanic itself is spike-proven 2026-07-05 (197 copies stamped, both
+  encodings, writes hold, zero reverts); the header is shared chrome across ALL card types,
+  so the painter must be view-aware and restore vanilla on non-weapon cards. Original owner
+  decision 2026-07-05: exactly "Kills: N", count only ("Kills: 9999" is 11 chars, same as
+  "Description", so a 4-digit count fits the in-place footprint precisely).
+- [LW-37] 2026-07-06: A FAST out-of-battle kill-count surface (owner dropped the body's
+  Kills line for paint latency; the body goes fully static). Candidate 1 (recommended): a
+  SetTextString render-time swap (PromptSwap mechanism, shipped+proven) keyed on the card's
+  OWN incoming desc text, which is unique per weapon (analyze.py uniqueness gate), so the
+  swap identifies the viewed weapon for free and stamps the header "Kills: N" at render
+  moment: zero lag, and it solves LW-27's view-detection blocker as a side effect. Needs the
+  Denuvo dead-hook canary and a live check that card text flows through the SetTextString
+  family. Candidate 2: generalize the 2026-07-06 catalog-record discovery to the ITEM-text
+  records and redirect the desc offset at a mod-owned buffer (instant updates, retires the
+  sweep; same tech the attack-card 259-char mirror wants). Kills only change in battle, so
+  battle-exit stamping is never stale; browse latency was the only real enemy.
+- [LW-38] 2026-07-06: The Attack-row rename misses the battle's FIRST turn (owner gripe at the
+  stage-3 live pass): the census rescans the whole heap every battle (~80 ticks at the 48MB
+  budget), so the first menu open beats the first paint. Fix candidates, likely combined:
+  persist the census cache ACROSS battles within a launch (the catalog copies are
+  launch-stable, observed surviving battles all night 2026-07-06; ResetBattle would
+  re-VALIDATE labels instead of rescanning, instant from battle 2 on) and burst the scan
+  budget during battle load for the first battle. Verify with a stopwatch on the
+  census-finished log line vs the first menu open.
+- [LW-39] 2026-07-06: Recover fingerprint-TWIN units for the cursor resolve (owner hit it live:
+  two party units at identical level and hp/maxHp made the resolve refuse, and the register
+  fallback then dressed Ramza's Attack row in the Spark Rod wielder's dossier; the fallback
+  is now removed, so twins simply show vanilla). Fix direction: extend the condensed
+  turn-queue fingerprint with more struct fields; the probe dump shows brave/faith-like u16
+  candidates in the cursor struct needing offset verification (turn-owner-probe lines,
+  livingweapon.log 04:0x). Until then twins fail closed to vanilla by design.
 - [LW-29] 2026-07-05: RELEASE QUESTION: do player save files (kills.json, legends.json,
   gunslinger.json) survive a Reloaded mod UPDATE (2.2.2 to 2.3.0)? If a mod update replaces
   the mod folder, every player loses their tally on upgrade, which is the worst possible bug
