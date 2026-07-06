@@ -88,7 +88,14 @@ is the in-flight subset, not a mirror of that checklist.
     menu time: probe candidates are the scheduler CT ceiling (proven offset, one player at the
     ceiling during their menu?) or the cursor-follower struct (sits on the actor while their
     own menu is open?); both need a live probe before trusting. The painter's conservative
-    null default stays for pre-first-action.
+    null default stays for pre-first-action. STAGE 3 MECHANISM CRACKED 2026-07-06 (owner
+    eyewitness, screenshot on file): the row and hover title rename via ONE u32 offset
+    redirect in the JobCommand text catalog record (id 1, base = label minus 0x1FC1, nameOff
+    and descOff sibling fields); arbitrary length renders (row shrinks to fit, title
+    scrolls); the menu caches at build so writes land on the next menu open (turn-open
+    timing suffices); restore is the same u32. LIVE_LEDGER row added, awaiting the owner
+    flip. The desc body mirror rides the sibling descOff. Instruments:
+    tools/probes/attack_table_scan.py and tools/probes/attack_row_redirect.py.
 
 - **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
