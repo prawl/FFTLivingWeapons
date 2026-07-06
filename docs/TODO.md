@@ -36,10 +36,18 @@ is the in-flight subset, not a mirror of that checklist.
     on non-weapon cards.
 
 - **[LW-31] The battle Abilities menu becomes the weapon funnel** (opened 2026-07-05) [BUILDING]
-  - Done means: in battle, the Attack command row renders the acting unit's living weapon name
-    with its growth suffix ("Save the Queen+"; the row text and the hover card's title share
-    one string, so both update together), and the hover card's Description becomes the kill
-    count's home ("Kills: N" plus Mark info when earned). EMPTY HANDS (owner rule 2026-07-05):
+  - Done means (owner-consolidated 2026-07-06): in battle, the Attack command row renders the
+    acting unit's living weapon name with its growth suffix ("Save the Queen+" / Mettle /
+    Items; the row text and the hover card's title share one string, so both update together);
+    ANY resolve failure falls back to the vanilla "Attack" (explicit owner rule). The hover
+    card becomes a mini equipment card: its brown header reads "Kills: XXXX" (the LW-27
+    treatment; view detection here is the cursor resolve, already shipped), and its
+    description body shows EXACTLY the equipment card's info (flavor line + the "+3 Ability"
+    signature prose), NO Marks (hidden this release, LW-35) and no Kills line in the body (the
+    count lives in the header). CONSTRAINT: the desc's in-place footprint is 73 chars vs equip
+    descriptions up to 259, so the body-mirror needs either a trim policy or the stage-3
+    pointer redirect (the record block above the strings), which is now REQUIRED rather than
+    optional. EMPTY HANDS (owner rule 2026-07-05):
     a unit with no weapon equipped (Monks, barehanded anyone) shows "Fist" in the row, no
     suffix, no tally, vanilla desc. A non-living weapon keeps vanilla text in v1 (naming every
     item would need the full name table baked into meta; noted as a cheap later extension).
@@ -171,6 +179,12 @@ is the in-flight subset, not a mirror of that checklist.
   (stronger observation there: the full 73 chars were actually read), plus fix the two
   slightly-overselling test comments (AttackCardTests.cs boundary test, AttackCardTextTests
   arithmetic). Fold into the next attack-card round (stage 3 or the dual-wield clause).
+- [LW-35] 2026-07-06: HIDE the Marks feature for this release (owner direction: "we'll finish
+  implementing that in a future release"): one flag suppresses every Mark surface: the
+  equip-card story narration (Reliquary Phase 1 lines), the Mark deed toasts, and the
+  attack-card Mark clause. Kill/legends COLLECTION keeps running (the chronicle keeps
+  recording; only the display hides), so the two-wave build (LW-32) re-enables display over
+  history that never stopped accumulating. Release-scoped: pull into Now when a slot frees.
 - [LW-34] 2026-07-05: The coverage line over-counts enemies ("All 8 enemies are accounted for"
   in a 4-enemy battle; owner report, log 22:43). Attribution itself was flawless that battle
   (all 4 kills credited cleanly, correct battle-end summary), so likely the EnemyOracle is
