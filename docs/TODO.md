@@ -125,15 +125,6 @@ is the in-flight subset, not a mirror of that checklist.
   dupe.
 - [LW-15] 2026-07-04: Enemies actually USE living-weapon benefits (XL undesigned feature; the
   static rebalance already lands the real player want).
-- [LW-20] 2026-07-05: LoggerTests flake: Two_different_verbs_sharing_the_same_Info_sentence_both_reach_the_console
-  (LoggerTests.cs:148) compares two rendered console lines that embed wall-clock ms timestamps;
-  a millisecond-boundary straddle fails it (observed once in a clean tree, green on rerun).
-  Fix: freeze or strip the timestamp in the assertion. Until then a red suite can be this flake
-  and a green suite can be luck; check here first before blaming a real change.
-- [LW-21] 2026-07-05: Harden TodoContractTests' changelog scan: the grammar check only inspects
-  lines starting with "- [", so a mangled exit line (say "- LW-22 ...") dodges both the grammar
-  and the id-uniqueness gates. Scan every top-level "- " line in CHANGELOG.md the way the
-  Backlog check does, and tighten NowEntryRegex's greedy title match while in there.
 - [LW-22] 2026-07-05: The launch header (Engine.cs:81) does not pluralize its Marks count, so
   "1 Marks" prints when TotalMarks is 1, and the LOGGING.md launch-header example faithfully
   showcases the bad grammar. BattleSummary.Compose pluralizes correctly; only the header

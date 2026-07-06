@@ -8,6 +8,14 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-20] SHIPPED 0bf9d65 2026-07-05: the LoggerTests millisecond-timestamp flake (two rendered
+  console lines compared with embedded wall-clock stamps could straddle a boundary and fail a
+  clean tree). A pure StripTimestamp helper normalizes both lines; a dedup-key sabotage run
+  proved the test still bites.
+- [LW-21] SHIPPED 0bf9d65 2026-07-05: TodoContractTests hardening: the changelog scan now
+  inspects every top-level list line (a bracketless exit line goes red instead of invisible)
+  and the Now-entry title capture excludes asterisks so a rogue second bold marker cannot be
+  swallowed.
 - [LW-1] SHIPPED 1a157f2 2026-07-05: the unarmed stale-latch bury branch ate armed players'
   kills (Boco/Phoenix Down; two burials taped in one battle the same day). Fixed by consulting
   the KillerStamp register at the empty-latch bury: only a strictly fresher, disagreeing,
