@@ -51,8 +51,13 @@ is the in-flight subset, not a mirror of that checklist.
     (bake the full weapon name table into meta from the data source); the "Kills: XXXX" header
     ships on the ATTACK CARD NOW (view detection = the shipped cursor resolve) and on the
     party-menu cards only after the hovered-item probe (LW-27); Marks hide on EVERY surface
-    (LW-35). OPEN QUESTION: the 73-char fallback policy if the pointer redirect walls (which
-    slice of the equip text wins the squeeze). EMPTY HANDS (owner rule 2026-07-05):
+    (LW-35). SQUEEZE RULE (owner answer 2026-07-06): ability-first: if a footprint forces a
+    cut, the "+3 Ability" info survives and the flavor prose drops. UNIFIED CARD GRAMMAR
+    (owner, with screenshot): the SAME design applies to the party Equipment and Abilities
+    card AND the battle Attack card: header = "Kills: XXXX", body = flavor + mechanics + the
+    ability block, no Marks (LW-35), and the body's old Kills line RETIRES on both (the count
+    moves to the header; the equip-card side means a baked-description re-bake via
+    patch_names.py, restart-only, and frees DESC_MAX budget). EMPTY HANDS (owner rule 2026-07-05):
     a unit with no weapon equipped (Monks, barehanded anyone) shows "Fist" in the row, no
     suffix, no tally, vanilla desc. A non-living weapon keeps vanilla text in v1 (naming every
     item would need the full name table baked into meta; noted as a cheap later extension).
