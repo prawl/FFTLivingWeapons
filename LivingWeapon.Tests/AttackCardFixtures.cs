@@ -30,6 +30,45 @@ internal sealed class AttackCardMemory : IGameMemory
         if (writable) _writable.Add(baseAddr);
     }
 
+    /// <summary>LW-31 stage 3: adds a genuine enc1 "Attack" table copy AND its adjacent 36-byte
+    /// record (LabelAddr - AttackRow.RecordGap) in one call, mirroring how a real live copy always
+    /// has both: the record is not an optional add-on, it is a structural part of the table. For
+    /// enc==2, only the flat table is added (AttackRow's record mechanism is enc1-only; see
+    /// AttackCard.Paint.cs's class doc for the dead-path rationale). Defaults to a VANILLA-shaped
+    /// record over a flat vanilla-style desc string. Pass <paramref name="oursRowNameChars"/> to
+    /// seed an already-painted "Ours" shape instead (tests exercising a mid-battle re-adoption or a
+    /// stale-shape eviction): <paramref name="descText"/> is then split at that char boundary (the
+    /// character there stands in for the split image's own NUL separator) and rebuilt as a REAL
+    /// split image via AttackRow.Policy.BuildImage: a genuine "Ours" copy's footprint bytes are
+    /// name+NUL+tail, never a flat "name tail" run with a space where the NUL belongs.</summary>
+    internal void AddAttackTable(long baseAddr, int enc, string descText, int? oursRowNameChars = null)
+    {
+        if (oursRowNameChars.HasValue && enc == 1)
+        {
+            string rowName = descText.Substring(0, oursRowNameChars.Value);
+            string tail = descText.Substring(oursRowNameChars.Value + 1);
+            byte[] image = AttackRow.BuildImage(rowName, tail);
+            AddHeapRegion(baseAddr, AttackCardTableFixture.BuildSplit(image));
+            long oursRecordAddr = AttackCardTableFixture.Addrs(baseAddr, enc).labelAddr - AttackRow.RecordGap;
+            AddHeapRegion(oursRecordAddr, AttackCardTableFixture.BuildOursRecord(oursRowNameChars.Value));
+            return;
+        }
+
+        AddHeapRegion(baseAddr, AttackCardTableFixture.Build(enc, descText));
+        if (enc != 1) return;
+        var (labelAddr, _) = AttackCardTableFixture.Addrs(baseAddr, enc);
+        long recordAddr = labelAddr - AttackRow.RecordGap;
+        AddHeapRegion(recordAddr, AttackCardTableFixture.BuildVanillaRecord());
+    }
+
+    /// <summary>The record address for a table built at <paramref name="baseAddr"/> (enc1 only):
+    /// LabelAddr - AttackRow.RecordGap.</summary>
+    internal static long RecordAddrFor(long baseAddr, int enc)
+    {
+        var (labelAddr, _) = AttackCardTableFixture.Addrs(baseAddr, enc);
+        return labelAddr - AttackRow.RecordGap;
+    }
+
     /// <summary>Point-in-time copy of one region's current bytes, for assertions.</summary>
     internal byte[] RegionBytes(long baseAddr) => (byte[])_heap[baseAddr].Clone();
 
@@ -124,6 +163,25 @@ internal static class AttackCardTableFixture
         return buf;
     }
 
+    /// <summary>Same packed layout as <see cref="Build"/>, but the desc segment is the RAW bytes of
+    /// <paramref name="image"/> (already including its own embedded NUL + trailing pad) instead of
+    /// an encoded text string; used to seed a genuine split-image footprint (an "Ours" shape's
+    /// actual byte layout), enc1 only.</summary>
+    internal static byte[] BuildSplit(byte[] image)
+    {
+        byte[] lead = new byte[PadBefore];
+        byte[] label = ByteScan.Enc("Attack", 1);
+        byte[] nul1 = new byte[1];
+        byte[] trail = new byte[PadAfter];
+
+        var parts = new[] { lead, label, nul1, image, trail };
+        int total = parts.Sum(p => p.Length);
+        var buf = new byte[total];
+        int at = 0;
+        foreach (var p in parts) { Array.Copy(p, 0, buf, at, p.Length); at += p.Length; }
+        return buf;
+    }
+
     /// <summary>The label address and desc address for a table built by <see cref="Build"/> at
     /// <paramref name="baseAddr"/>.</summary>
     internal static (long labelAddr, long descAddr) Addrs(long baseAddr, int enc)
@@ -131,5 +189,30 @@ internal static class AttackCardTableFixture
         long labelAddr = baseAddr + PadBefore;
         long descAddr = baseAddr + AttackCardProbeText.DescStart(PadBefore, enc);
         return (labelAddr, descAddr);
+    }
+
+    /// <summary>The 36-byte Attack-command record, vanilla-shaped (nameOff/descOff/poolOff/id =
+    /// the census-proven {0x1FC1, 0x1FC8, 0x1FC0, 1}). Bytes past the first 16 (poolHead8Off, three
+    /// zero fields, the per-command ordinal) are left zero: AttackRow.IsVanillaShape/IsOurShape
+    /// never read them.</summary>
+    internal static byte[] BuildVanillaRecord() =>
+        BuildRecord(AttackRow.VanillaNameOff, AttackRow.VanillaDescOff, AttackRow.PoolHeadOff, AttackRow.RecordId);
+
+    /// <summary>The 36-byte record already repointed at a split image whose row name is
+    /// <paramref name="rowNameChars"/> chars long ("Ours" shape).</summary>
+    internal static byte[] BuildOursRecord(int rowNameChars) =>
+        BuildRecord(AttackRow.VanillaDescOff, AttackRow.VanillaDescOff + (uint)(rowNameChars + 1), AttackRow.PoolHeadOff, AttackRow.RecordId);
+
+    /// <summary>A record matching neither shape: a freed/reused pool slot's leftover content.</summary>
+    internal static byte[] BuildForeignRecord() => BuildRecord(0x9999, 0x1234, 0x1FC0, 1);
+
+    private static byte[] BuildRecord(uint nameOff, uint descOff, uint poolOff, uint id)
+    {
+        var buf = new byte[AttackRow.RecordBytes];
+        System.BitConverter.GetBytes(nameOff).CopyTo(buf, 0);
+        System.BitConverter.GetBytes(descOff).CopyTo(buf, 4);
+        System.BitConverter.GetBytes(poolOff).CopyTo(buf, 8);
+        System.BitConverter.GetBytes(id).CopyTo(buf, 12);
+        return buf;
     }
 }

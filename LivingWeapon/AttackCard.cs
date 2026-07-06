@@ -1,44 +1,64 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-31 stage 2's production painter (docs/TODO.md): in battle, the Abilities menu's Attack
-/// hover-card Description becomes the acting unit's weapon dossier (AttackCardText.Compose), or
-/// is restored to the vanilla desc when the acting unit is unarmed/unstoried. Mirrors
-/// AttackCardSpike's proven locate machinery (a budgeted, high-address-first ScanCursor walk over
-/// the "Attack" standalone-string tables) but is driven automatically by battle state rather than
-/// a keypress, and writes the composed dossier line instead of a fixed dev probe payload. Split
-/// by responsibility, the KillTracker.cs/Corpses.cs/Delayed.cs house shape: this file owns
-/// construction/lifecycle; AttackCard.Census.cs is the locate half (finding table copies);
-/// AttackCard.Paint.cs is the compose/write half.
+/// LW-31 stage 3's production painter (docs/TODO.md): in battle, the Abilities menu's Attack
+/// ROW ITSELF renames to the acting unit's living weapon (name + trimmed tier suffix, or "Fists"
+/// for an unarmed human), and the hover-card desc that follows it in the same table copy carries
+/// the tier-progress "Kills: N/T to +..." meter (AttackCardTail.cs, owner decision 2026-07-06).
+/// Mirrors AttackCardSpike's proven locate machinery (a budgeted,
+/// high-address-first ScanCursor walk over the "Attack" standalone-string tables) but is driven
+/// automatically by battle state rather than a keypress. Split by responsibility, the
+/// KillTracker.cs/Corpses.cs/Delayed.cs house shape: this file owns construction/lifecycle;
+/// AttackCard.Census.cs is the locate half (finding table copies); AttackCard.Paint.cs is the
+/// compose/write half (resolve, decide, and drive AttackRow's guarded record I/O).
+///
+/// THE RENAME MECHANISM (live-proven 2026-07-06, owner eyewitness with a screenshot on file; see
+/// AttackRow.Policy.cs's class doc for the full record geometry): the row and its hover-card title
+/// share ONE string, driven by a JobCommand text-catalog record at LabelAddr - 0x1FC1 whose
+/// nameOff/descOff fields normally point at the "Attack" label itself and the vanilla desc right
+/// after it. The rename never touches the label bytes (they stay the race-guard re-verify anchor
+/// forever): it writes a split image "&lt;rowName&gt;\0&lt;tail&gt;" into the SAME desc footprint
+/// stage 2 already wrote flat text into, then repoints nameOff/descOff into that footprint's two
+/// halves. Stage 2's flat-desc write survives as the VANILLA plan's own shape (a "split" of one
+/// name-less half): both plans are 74-byte images, so the three-way anchor below now compares
+/// IMAGES byte-for-byte rather than NUL-terminated strings.
 ///
 /// THREE-WAY ANCHOR (EarnedAnchors/CardSites/StoryLines discipline, generalized to a SINGLE
 /// current/previous slot: the Attack menu is SHARED across every unit, not keyed per weapon
-/// id): at any moment a cached table copy legitimately holds ONE OF the vanilla desc, the
-/// painter's CURRENT composed line, or its PREVIOUS composed line. Rotation (current -&gt;
+/// id): at any moment a cached table copy legitimately holds ONE OF the vanilla image, the
+/// painter's CURRENT composed image, or its PREVIOUS composed image. Rotation (current -&gt;
 /// previous) happens ONLY on a compose-change edge (AttackCard.Paint.cs's RepaintDriver), never
-/// at paint time; a copy holding the previous line is still live and gets repainted FORWARD to
+/// at paint time; a copy holding the previous image is still live and gets repainted FORWARD to
 /// current, never evicted for merely lagging one compose-generation behind. A copy holding
-/// anything else is foreign (a freed/reused buffer) and is left alone: evicted from the cache,
-/// re-censused later (unlike CardSites' rate-limited prune, this cache is tiny, about six
-/// copies per the spike's census, so a full re-census on any eviction is cheap enough not to
-/// need one).
+/// anything else is foreign (a freed/reused buffer, or some OTHER command's row, e.g. a monster
+/// catalog's "Slaps with a webbed hand", which must stay untouched forever) and is left alone:
+/// evicted from the cache, re-censused later (unlike CardSites' rate-limited prune, this cache is
+/// tiny, about six copies per the spike's census, so a full re-census on any eviction is cheap
+/// enough not to need one). enc==2 (UTF16) catalogs never participate in the split-image mechanism
+/// at all (AttackRow's record is enc1-only; live census found zero enc2 "Attack" catalogs, so this
+/// is a dead path kept safe): they only ever get vanilla-restore, never a composed write.
 ///
-/// TURN-OWNER SEAM (LW-31 stage-2 fix, ledger LW-31): CURSOR-FIRST, register-fallback.
-/// AttackCard.Paint.cs's ComposeCurrentLine first tries ActorResolver.TryResolveCursorPlayer (the
-/// condensed turn-queue struct, Offsets.TurnQueue), proven by the 2026-07-05 TurnOwnerSpike tape
-/// to snap to the acting unit at TURN OPEN, before any action, leading the register by seconds,
-/// under strict guards (player team, unambiguous band+nameId bridge; see ActorResolver.Cursor.cs).
-/// Only when those guards don't clear does it fall back to the ORIGINAL seam KillerStamp trusts
-/// (ActorRegister.LastPlayerRosterBase/LastPlayerArrivalTick/Trusted, then
-/// ActorResolver.HandsFromRoster): never ActorRegister.CurrentBridge/CurrentRosterBase, which
-/// can currently be parked on a struck victim rather than the unit about to act. Neither seam
-/// answering, or a resolved player holding no tracked weapon, both mean "restore vanilla": miss
-/// beats mis-showing another unit's dossier. Only the FIRST tracked hand (RRHand-priority, per
-/// ActorResolver.Hands) is dossier'd: a dual-wielder's second blade is credited kills same as
-/// always, just not featured in this single-line hover text.
+/// TURN-OWNER SEAM (CURSOR-ONLY since 2026-07-06; ledger LW-31): AttackCard.Resolve.cs's
+/// ComposeCurrentPlan consults ActorResolver.TryResolveCursorPlayer (the condensed turn-queue
+/// struct, Offsets.TurnQueue), proven by the 2026-07-05 TurnOwnerSpike tape to snap to the acting
+/// unit at TURN OPEN, under strict guards (player team, unambiguous band+nameId bridge; see
+/// ActorResolver.Cursor.cs), and NOTHING ELSE. The register fallback stage 2 kept (the KillerStamp
+/// seam, ActorRegister.LastPlayer*) is GONE from this surface: the owner watched it put ANOTHER
+/// unit's weapon (a Spark Rod) on Ramza's Attack row 2026-07-06 when two party units shared the
+/// (level,hp,maxHp) fingerprint; the cursor correctly refused the ambiguous match, and the
+/// fallback then served the LAST ACTED player's hands, which is the wrong dossier on every turn
+/// the cursor cannot clear. Doctrine: a wrong dossier is worse than vanilla, so no cursor answer
+/// now means "restore vanilla", full stop. (Recovering the shared-fingerprint twins case is a
+/// backlogged fingerprint extension; ActorRegister itself and the KillerStamp attribution seam
+/// elsewhere are untouched.) Once a rosterBase is in hand, the row/tail decision
+/// (AttackRow.Policy.ComposeRow) is driven strictly off the RAW main hand (Offsets.RRHand) and
+/// sprite byte, never the filtered/tracked Hands() set, which cannot distinguish "unarmed" from
+/// "wielding something untracked" and would miss the "Fists" case entirely. Dual wield: only the
+/// main hand is ever shown here (a second blade still earns kills via KillTracker same as always,
+/// just is not featured in this single row/title).
 /// </summary>
 internal sealed partial class AttackCard
 {
@@ -71,12 +91,12 @@ internal sealed partial class AttackCard
 
     private readonly IGameMemory _mem;
     private readonly ChunkReader _reader;
-    private readonly ActorRegister _register;
-    private readonly Func<long, List<int>> _handsFromRoster;
-    private readonly Func<List<int>?> _resolveCursor;
+    private readonly AttackRow _attackRow;
+    private readonly Func<(List<int> Weapons, long RosterBase)?> _resolveCursor;
+    private readonly Func<long, int> _rawMainHand;
+    private readonly Func<long, byte> _spriteOf;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly LegendStore _legends;
     private readonly Func<long> _nowMs;
 
     private readonly List<Hit> _hits = new();
@@ -85,23 +105,28 @@ internal sealed partial class AttackCard
     private List<(long rbase, long rsize)> _regionsDesc = new();
     private RegionCursor _cursor;
 
-    private string? _current;    // null = vanilla is the desired state
-    private string? _previous;   // the last DISTINCT composed line before the current rotation
+    // The vanilla plan's own 74-byte image: the flat vanilla desc, no split, exactly the census's
+    // own footprint (AttackRow.FootprintBytes). Precomputed once (never depends on any resolve).
+    private static readonly byte[] VanillaImage = AttackCardProbeText.EncodeWithTerminator(AttackCardText.VanillaDesc, 1);
+
+    private byte[]? _currentImage;   // null = vanilla is the desired state
+    private int _currentRowChars;    // meaningful only when _currentImage != null
+    private byte[]? _previousImage;  // the last DISTINCT composed image before the current rotation
     private long _lastMaintenanceMs = -1;
 
-    public AttackCard(IGameMemory mem, ActorRegister register, Func<long, List<int>> handsFromRoster,
-                       Func<List<int>?> resolveCursor,
-                       Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, LegendStore legends,
+    public AttackCard(IGameMemory mem, Func<(List<int> Weapons, long RosterBase)?> resolveCursor,
+                       Func<long, int> rawMainHand, Func<long, byte> spriteOf,
+                       Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
                        Func<long>? nowMs = null)
     {
         _mem = mem;
         _reader = new ChunkReader(mem);
-        _register = register;
-        _handsFromRoster = handsFromRoster;
+        _attackRow = new AttackRow(mem);
         _resolveCursor = resolveCursor;
+        _rawMainHand = rawMainHand;
+        _spriteOf = spriteOf;
         _meta = meta;
         _kills = kills;
-        _legends = legends;
         _nowMs = nowMs ?? (() => Environment.TickCount64);
     }
 
@@ -124,8 +149,9 @@ internal sealed partial class AttackCard
         _hits.Clear();
         _scanning = false;
         _needsCensus = true;
-        _current = null;
-        _previous = null;
+        _currentImage = null;
+        _currentRowChars = 0;
+        _previousImage = null;
         _lastMaintenanceMs = -1;
     }
 

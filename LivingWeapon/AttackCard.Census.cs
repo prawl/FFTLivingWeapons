@@ -62,30 +62,33 @@ internal sealed partial class AttackCard
 
             long labelAddr = bufBase + pos;
             int descPos = AttackCardProbeText.DescStart(pos, enc);
-            var (curText, descChars) = AttackCardProbeText.ReadDesc(buf, descPos, enc, DescCapChars);
             long descAddr = bufBase + descPos;
 
-            // Pin the cached footprint to the vanilla desc's own length (73) whenever the desc
-            // ALREADY holds one of the three known lines, instead of trusting whatever length
-            // happens to be live right now. The vanilla case is a direct observation (every
-            // legitimate copy's desc field starts as the census-proven 73-char VanillaDesc,
-            // AttackCardText's class doc). The current/previous case is induction, not
-            // observation: a SHORTER composed line can only be sitting in this exact byte range
-            // because an earlier footprint-checked write (SyncHit, AttackCard.Paint.cs) landed it
-            // there over a buffer that was originally vanilla, so the true footprint is still 73,
-            // never the shorter live length. Without this pin, a mid-battle re-census (any
-            // RepaintAll eviction re-arms one) that finds its OWN already-painted copy would cache
-            // the short length as the footprint, then silently refuse both a longer repaint and
-            // the battle-exit vanilla restore forever (FitsFootprint would never pass again). A
-            // desc matching none of the three stays foreign and uncached exactly as before
-            // (SyncHit below still returns false for it).
-            bool isKnownLine = curText == AttackCardText.VanillaDesc || curText == _current || curText == _previous;
-            int cachedFootprint = isKnownLine ? AttackCardText.DefaultBudgetChars : descChars;
+            // enc1: the split-image mechanism (AttackRow) always targets the vanilla desc's own
+            // 73-char footprint: every image is exactly AttackRow.FootprintBytes by construction
+            // (AttackRow.Policy.BuildImage), so unlike enc2 below there is no OBSERVED length worth
+            // pinning; SyncHit itself does the real (byte-exact, 74-byte) known-image check.
+            //
+            // enc2: dead path (zero live catalogs; AttackCard.Enc2.cs), kept safe with the ORIGINAL
+            // LW-33 pin logic: vanilla-restore is the only write that branch ever attempts, so its
+            // own observed footprint still needs the true-length discipline the pre-stage-3 painter
+            // used (a genuinely truncated region must never be cached with a bogus longer footprint).
+            int cachedFootprint;
+            if (enc == 1)
+            {
+                cachedFootprint = AttackCardText.DefaultBudgetChars;
+            }
+            else
+            {
+                var (curText, descChars) = AttackCardProbeText.ReadDesc(buf, descPos, enc, DescCapChars);
+                cachedFootprint = curText == AttackCardText.VanillaDesc ? AttackCardText.DefaultBudgetChars : descChars;
+            }
 
             var hit = new Hit { LabelAddr = labelAddr, DescAddr = descAddr, Enc = enc, DescChars = cachedFootprint };
-            // Only cache a hit whose desc already holds a KNOWN line (vanilla/current/previous):
-            // a standalone "Attack" label with unrelated prose after it is some OTHER command's
-            // row, not this one, and must never be cached or written (the anchor discipline).
+            // Only cache a hit whose footprint already holds a KNOWN image/line (vanilla/current/
+            // previous for enc1; vanilla only for enc2): a standalone "Attack" label with unrelated
+            // prose after it is some OTHER command's row, not this one, and must never be cached or
+            // written (the anchor discipline). SyncHit performs the real check for both encodings.
             if (SyncHit(hit)) _hits.Add(hit);
         }
     }

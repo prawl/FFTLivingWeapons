@@ -30,16 +30,21 @@ internal sealed partial class ActorResolver
     private const int CursorSpan = Offsets.TqMaxHp + 2;
 
     /// <summary>True (with <paramref name="weapons"/> populated, possibly empty for an
-    /// untracked/unarmed player) only when ALL of: (1) the struct is readable at all; (2) its team
-    /// field is 0, a player's turn (an enemy or ally/guest turn returns false untouched); (3) its
-    /// (level,hp,maxHp) fingerprint matches EXACTLY ONE band entry (twin filter included, mirrors
+    /// untracked/unarmed player, and <paramref name="rosterBase"/> set to the matched roster slot)
+    /// only when ALL of: (1) the struct is readable at all; (2) its team field is 0, a player's turn
+    /// (an enemy or ally/guest turn returns false untouched); (3) its (level,hp,maxHp) fingerprint
+    /// matches EXACTLY ONE band entry (twin filter included, mirrors
     /// <see cref="TryResolveActingPlayer"/>'s own turn-queue body); (4) that band entry's frame
     /// nameId back-reference bridges to EXACTLY ONE roster slot agreeing on (level,brave,faith).
     /// False otherwise (unreadable, non-player turn, ambiguous/absent band match, or the nameId
-    /// bridge failing/ambiguous): the caller falls back rather than trust a guess.</summary>
-    public bool TryResolveCursorPlayer(out List<int> weapons)
+    /// bridge failing/ambiguous), with <paramref name="rosterBase"/> left 0: the caller falls back
+    /// rather than trust a guess. <paramref name="rosterBase"/> (LW-31 stage 3) is the same matched
+    /// slot <see cref="Hands"/> was already read from: AttackCard's row-rename resolve needs the
+    /// slot itself (not just its filtered weapon set) to read the RAW main hand and sprite byte.</summary>
+    public bool TryResolveCursorPlayer(out List<int> weapons, out long rosterBase)
     {
         weapons = Empty;
+        rosterBase = 0;
 
         if (!_mem.Readable(Offsets.TurnQueue, CursorSpan)) return false;
         if (_mem.U16(Offsets.TurnQueue + Offsets.TqTeam) != 0) return false;   // not a player's turn
@@ -56,9 +61,10 @@ internal sealed partial class ActorResolver
 
         byte br = _mem.U8(entry + Offsets.ABrave);
         byte fa = _mem.U8(entry + Offsets.AFaith);
-        if (!TryBridgeCursorToRoster(frameNameId, level, br, fa, out long rosterBase)) return false;
+        if (!TryBridgeCursorToRoster(frameNameId, level, br, fa, out long matchedRosterBase)) return false;
 
-        weapons = Hands(rosterBase);
+        weapons = Hands(matchedRosterBase);
+        rosterBase = matchedRosterBase;
         return true;
     }
 

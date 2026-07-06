@@ -94,6 +94,15 @@ internal static class Offsets
     public const long RosterBase = 0x1411A7D10;   // 1.5 CONFIRMED +0x6440 (was 0x1411A18D0): slot0=Ramza (lvl99/rhand80/nameId1), slots +1..+7 = real party
     public const int RosterStride = 0x258;
     public const int RosterSlots = 20;
+    /// <summary>u8 roster-relative SpriteSet id (Dicene UnitData +0x00): the battle body/model
+    /// selector. LIVE-PROVEN 2026-07-06 (docs/research/SPRITE_SWAP.md + a live roster probe against
+    /// a real party monster): 0x82 confirmed MONSTER; generics 0x80 male / 0x81 female; story bodies
+    /// (0x02 a Ramza/Delita chapter, 0x16 Mustadio, 0x1E Agrias, ...) all read well under 0x80. Guest
+    /// bodies 0xA2 Balthier / 0xA3 Luso / 0xA5 Argath Deathknight also render as ordinary humans.
+    /// AttackRow.Policy.HumanSprite is the gate built on this fact: the Attack row's "Fists"
+    /// treatment (an unarmed HUMAN) must never fire for a monster's empty hand, so it fails CLOSED
+    /// on any value it cannot positively place, never guessing "human".</summary>
+    public const int RSprite = 0x00;
     public const int RAccessory = 0x12; // u16 equipped accessory item id.
                                        //   Probe-confirmed 2026-06-12: Scholar's Ring (id 260) at
                                        //   RosterBase + slot*RosterStride + 0x12 for the equipping slot;

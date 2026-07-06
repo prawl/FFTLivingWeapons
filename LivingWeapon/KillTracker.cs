@@ -130,20 +130,29 @@ internal sealed partial class KillTracker
     }
 
     /// <summary>Read-only exposure of this tracker's own actor-pointer ownership register
-    /// (LW-31, AttackCard.cs): the SAME instance KillerStamp already trusts, not a second
-    /// independent register (two registers ticking the same memory would double the reads for
-    /// no benefit and risk two slightly different in-flight snapshots mid-tick). Callers must
-    /// never mutate it (Update/ResetBattle stay this class's own responsibility).</summary>
+    /// (TurnOwnerSpike under LWDEV; AttackCard no longer consumes it since the 2026-07-06
+    /// cursor-only fix): the SAME instance KillerStamp already trusts, not a second independent
+    /// register (two registers ticking the same memory would double the reads for no benefit and
+    /// risk two slightly different in-flight snapshots mid-tick). Callers must never mutate it
+    /// (Update/ResetBattle stay this class's own responsibility).</summary>
     internal ActorRegister Register => _register;
 
-    /// <summary>This tracker's ActorResolver.HandsFromRoster, exposed for AttackCard's dossier
-    /// resolve: the same roster-&gt;weapons seam KillerStamp already trusts (KillerStamp.cs).</summary>
-    internal Func<long, List<int>> HandsFromRoster => _resolver.HandsFromRoster;
+    /// <summary>LW-31 stage-2 fix (grown in stage 3 to also surface rosterBase; the ONLY resolve
+    /// seam AttackCard consumes since the 2026-07-06 cursor-only fix): this tracker's
+    /// ActorResolver.TryResolveCursorPlayer, exposed for AttackCard's dossier resolve
+    /// (AttackCard.Resolve.cs). Null = no cursor answer (guard failure or ambiguity); non-null
+    /// (weapons possibly empty) = a confident resolve, with rosterBase the matched roster slot
+    /// AttackCard's row-rename resolve reads the RAW main hand and sprite byte from.</summary>
+    internal Func<(List<int> Weapons, long RosterBase)?> ResolveCursorPlayer =>
+        () => _resolver.TryResolveCursorPlayer(out var w, out long rb) ? (w, rb) : ((List<int>, long)?)null;
 
-    /// <summary>LW-31 stage-2 fix: this tracker's ActorResolver.TryResolveCursorPlayer, exposed
-    /// for AttackCard's cursor-first dossier resolve (AttackCard.Paint.cs). Null = no cursor
-    /// answer (guard failure or ambiguity); non-null (possibly empty) = a confident resolve.</summary>
-    internal Func<List<int>?> ResolveCursorPlayer => () => _resolver.TryResolveCursorPlayer(out var w) ? w : null;
+    /// <summary>This tracker's ActorResolver.RawMainHand, exposed for AttackCard's row-rename
+    /// resolve (LW-31 stage 3): the raw, untracked-filter-free RRHand weapon id.</summary>
+    internal Func<long, int> RawMainHand => _resolver.RawMainHand;
+
+    /// <summary>This tracker's ActorResolver.SpriteOf, exposed for AttackCard's row-rename resolve
+    /// (LW-31 stage 3): the roster slot's SpriteSet byte (the human/monster gate).</summary>
+    internal Func<long, byte> SpriteOf => _resolver.SpriteOf;
 
     /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
     /// the seen-alive guard ensures any pre-existing corpse (never seen alive) is ineligible.</summary>

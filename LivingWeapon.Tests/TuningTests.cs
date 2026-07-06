@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
@@ -7,7 +7,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// The growth knobs that detection/growth/display all share. TierFor's kills->tier mapping
 /// must hold at every threshold boundary (regardless of whether the build compiled the dev
-/// {1,2,3} or production {5,20,50} thresholds), and the DEV kill-seed must floor every weapon
+/// {1,2,3} or production {5,25,50} thresholds), and the DEV kill-seed must floor every weapon
 /// to P3 for fast in-game testing without ever clobbering an already-higher count.
 /// </summary>
 public class TuningTests
@@ -24,6 +24,32 @@ public class TuningTests
         Assert.Equal(2, Tuning.TierFor(t[2] - 1));
         Assert.Equal(3, Tuning.TierFor(t[2]));
         Assert.Equal(3, Tuning.TierFor(t[2] + 1000));
+    }
+
+    [Fact]
+    public void NextThresholdFor_returns_the_threshold_for_the_tier_just_ahead()
+    {
+        var t = Tuning.KillThresholds;
+        Assert.Equal(t[0], Tuning.NextThresholdFor(0));
+        Assert.Equal(t[0], Tuning.NextThresholdFor(t[0] - 1));
+        Assert.Equal(t[1], Tuning.NextThresholdFor(t[0]));
+        Assert.Equal(t[1], Tuning.NextThresholdFor(t[1] - 1));
+        Assert.Equal(t[2], Tuning.NextThresholdFor(t[1]));
+        Assert.Equal(t[2], Tuning.NextThresholdFor(t[2] - 1));
+        Assert.Null(Tuning.NextThresholdFor(t[2]));
+        Assert.Null(Tuning.NextThresholdFor(t[2] + 1000));
+    }
+
+    [Fact]
+    public void NextThresholdForIn_degrades_gracefully_under_the_dev_curve()
+    {
+        // Sanity for the Attack card's tier-progress meter under a DEV-flavored compile (LWDEV,
+        // thresholds {1,2,3}): checked against DevThresholds directly, so it's valid even though
+        // tests compile under prod (mirrors Dev_seed_lands_at_P3_under_the_dev_thresholds below).
+        Assert.Equal(1, Tuning.NextThresholdForIn(0, Tuning.DevThresholds));
+        Assert.Equal(2, Tuning.NextThresholdForIn(1, Tuning.DevThresholds));
+        Assert.Equal(3, Tuning.NextThresholdForIn(2, Tuning.DevThresholds));
+        Assert.Null(Tuning.NextThresholdForIn(3, Tuning.DevThresholds));
     }
 
     [Fact]

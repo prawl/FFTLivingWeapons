@@ -12,7 +12,7 @@ namespace LivingWeapon.Tests;
 internal static class MemSeats
 {
     internal static void SeatRoster(FakeSparseMemory m, int slot, int lvl, int br, int fa,
-                                    int rh, int lh = 0xFFFF, int oh = 0xFFFF, int nameId = 0)
+                                    int rh, int lh = 0xFFFF, int oh = 0xFFFF, int nameId = 0, int sprite = 0)
     {
         long rb = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
         m.U8s[rb + Offsets.RLevel] = (byte)lvl;
@@ -22,6 +22,10 @@ internal static class MemSeats
         m.U16s[rb + Offsets.RLHand]   = (ushort)lh;
         m.U16s[rb + Offsets.ROffHand] = (ushort)oh;
         m.U16s[rb + Offsets.RNameId]  = (ushort)nameId;   // default 0 == old unseeded-read behavior
+        // LW-31 stage 3: SpriteSet byte (Offsets.RSprite == roster +0x00). Default 0 is well under
+        // 0x80 (AttackRow.Policy.HumanSprite), matching every pre-existing call site's implicit
+        // "ordinary human" assumption unaffected.
+        m.U8s[rb + Offsets.RSprite]  = (byte)sprite;
     }
 
     /// <summary>Seed a band entry's frame nameId back-reference (Offsets.ANameId, band-entry-

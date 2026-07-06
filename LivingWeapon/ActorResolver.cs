@@ -216,6 +216,18 @@ internal sealed partial class ActorResolver
     /// (KillTracker.Stamp.cs) -- weapon semantics stay in this class.</summary>
     internal List<int> HandsFromRoster(long rosterBase) => Hands(rosterBase);
 
+    /// <summary>LW-31 stage 3: the RAW right-hand weapon id at a roster slot, with NO tracked-weapon
+    /// filter (unlike <see cref="Hands"/>, which drops shields/untracked ids/empty-hand sentinels
+    /// entirely). AttackCard's row-rename resolve needs to see the sentinel itself (0/0xFF/0xFFFF)
+    /// to distinguish "unarmed" from "wielding something untracked": both look identical through
+    /// the filtered Hands() lens, but only the former ever earns the "Fists" row
+    /// (AttackRow.Policy.ComposeRow).</summary>
+    public int RawMainHand(long rosterBase) => _mem.U16(rosterBase + Offsets.RRHand);
+
+    /// <summary>LW-31 stage 3: the roster slot's SpriteSet byte (Offsets.RSprite), the human/monster
+    /// gate an unarmed actor's "Fists" row decision needs (AttackRow.Policy.HumanSprite).</summary>
+    public byte SpriteOf(long rosterBase) => _mem.U8(rosterBase + Offsets.RSprite);
+
     private void Add(List<int> list, ushort id)
     {
         if (id == 0x00FF || id == 0xFFFF) return;   // empty hand

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -99,6 +99,20 @@ internal static class Tuning
     /// <summary>kills -> tier (0..3) against a given threshold set (lets tests check the dev curve).</summary>
     public static int TierForIn(int kills, int[] thresholds) =>
         kills >= thresholds[2] ? 3 : kills >= thresholds[1] ? 2 : kills >= thresholds[0] ? 1 : 0;
+
+    /// <summary>The kill count needed to reach the tier just past <paramref name="kills"/>'s current
+    /// one, against the active thresholds. Null at max tier (3): there is nowhere further to
+    /// climb. Backs the Attack card's tier-progress meter (AttackCardTail.ComposeTail): threading it
+    /// through TierFor's own tier math keeps the meter's "X to next" number from ever drifting out
+    /// of sync with the tier boundaries it displays.</summary>
+    public static int? NextThresholdFor(int kills) => NextThresholdForIn(kills, KillThresholds);
+
+    /// <summary>NextThresholdFor against a given threshold set (lets tests check the dev curve).</summary>
+    public static int? NextThresholdForIn(int kills, int[] thresholds)
+    {
+        int tier = TierForIn(kills, thresholds);
+        return tier >= 3 ? null : thresholds[tier];
+    }
 
     /// <summary>DEV ONLY: floor every known weapon's kill count to <paramref name="floor"/>. Purely
     /// additive -- never lowers an already-higher count (so a weapon that actually climbed past it
@@ -238,7 +252,7 @@ internal static class Tuning
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 
-    // ── Treasure Master knobs ────────────────────────────────────────────────────
+    // â”€â”€ Treasure Master knobs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /// <summary>Documented default for Config.TreasureAlwaysOn (the runtime value flows from
     /// LivingWeapon.Configuration.Config, loaded by Mod.cs at startup; this constant is the
@@ -278,16 +292,16 @@ internal static class Tuning
     public const int TreasureMapIdBadTicksToReset = 3;
 
     /// <summary>How many Tick() calls between dataset-stamp checks (applies regardless of
-    /// phase or inLive). 30 ticks ≈ 1 s at the 33 ms loop. A changed stamp triggers a full
+    /// phase or inLive). 30 ticks â‰ˆ 1 s at the 33 ms loop. A changed stamp triggers a full
     /// reload + state reset so the next arm cycle uses fresh data.</summary>
     public const int TreasureStampCheckTicks = 30;
 
-    /// <summary>FastHold re-stamp interval in ms (~2× per 60 fps animation frame ≈ 16 ms).
+    /// <summary>FastHold re-stamp interval in ms (~2Ã— per 60 fps animation frame â‰ˆ 16 ms).
     /// Out-paces the running-water wipe that clears 0x80 between 33 ms loop re-stamps.</summary>
     public const int TreasureFastHoldMs = 8;
 
-    /// <summary>Ultima (Materia Blade): tier (row 0..3) × HP% band (col 100 / 75-99 / 50-74 / 25-49 /
-    /// &lt;25) -> PA multiplier PERCENT. round(naturalPA × pct/100) is the held PA. Always-on (every
+    /// <summary>Ultima (Materia Blade): tier (row 0..3) Ã— HP% band (col 100 / 75-99 / 50-74 / 25-49 /
+    /// &lt;25) -> PA multiplier PERCENT. round(naturalPA Ã— pct/100) is the held PA. Always-on (every
     /// tier); the kill tier only RAISES the whole curve so a +3 blade isn't a death trap when hurt.
     /// Faithful to FF7's Ultima Weapon: damage swells with the wielder's current HP.</summary>
     public static readonly int[][] UltimaMul =
@@ -309,7 +323,7 @@ internal static class Tuning
 
     /// <summary>Plague (Venombolt +3): engine deals mhp/8 per-poison-tick; the runtime adds
     /// mhp*<see cref="PlagueExtraDamageNum"/>/<see cref="PlagueExtraDamageDen"/> on each
-    /// victim turn, making the effective rate 1.75x (= 1 + 3/4 ≈ 7/8 + 3/32*7). Floored at 1
+    /// victim turn, making the effective rate 1.75x (= 1 + 3/4 â‰ˆ 7/8 + 3/32*7). Floored at 1
     /// so the augment never lands the kill.</summary>
     public const int PlagueExtraDamageNum = 3;
     public const int PlagueExtraDamageDen = 32;

@@ -164,11 +164,12 @@ internal sealed class Engine
         // Reliquary Phase 1 (docs/RELIQUARY_AC.md): wiring legends here builds Display's
         // StoryLines/EarnedAnchors (card-story composing + the three-way anchor, decision 12).
         _display = new Display(meta, _kills, live, legends: _legends);
-        // LW-31 stage 2: the acting unit's Attack-menu dossier. Wired here (not beside _tracker)
-        // because it needs the tracker's own actor register + hands-from-roster seam (the SAME
-        // instance KillerStamp trusts; see AttackCard.cs's class doc for why a second register
-        // is deliberately avoided).
-        _attackCard = new AttackCard(live, _tracker.Register, _tracker.HandsFromRoster, _tracker.ResolveCursorPlayer, meta, _kills, _legends);
+        // LW-31: the acting unit's Attack-menu dossier. Wired here (not beside _tracker) because
+        // it needs the tracker's cursor-resolve + raw-hand/sprite seams. CURSOR-ONLY since
+        // 2026-07-06 (owner-observed wrong-weapon display; see AttackCard.cs's class doc): the
+        // tracker's register no longer feeds this surface at all.
+        _attackCard = new AttackCard(live, _tracker.ResolveCursorPlayer,
+                                      _tracker.RawMainHand, _tracker.SpriteOf, meta, _kills);
 #if LWDEV
         // Constructed here (not beside _showSpike above) because it needs Display's _sites/_pats,
         // which do not exist until Display itself is built.
