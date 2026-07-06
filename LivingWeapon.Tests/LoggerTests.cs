@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using LivingWeapon;
 using Xunit;
 
@@ -134,6 +135,35 @@ public class LoggerTests
         Assert.Contains("[trace]", console[0]);
     }
 
+    // LW-20: both rendered lines below embed a wall-clock "[HH:mm:ss.fff]" timestamp computed on
+    // its own call to DateTime.Now, so a straight string Assert.Equal between two SEPARATE Write
+    // calls can fail on the timestamp alone when the calls straddle a millisecond boundary, even
+    // though the calls are otherwise identical. StripTimestamp normalizes that one segment away
+    // so the comparison proves what it is actually meant to prove (the rest of the line matches)
+    // without being sensitive to wall-clock timing.
+    private static string StripTimestamp(string renderedLine)
+        => Regex.Replace(renderedLine, @"\[\d{2}:\d{2}:\d{2}\.\d{3}\]", "[TS]");
+
+    [Theory]
+    [InlineData(
+        "[Living Weapons] [12:00:00.000] [INFO] all enemies are accounted for",
+        "[Living Weapons] [12:00:00.001] [INFO] all enemies are accounted for",
+        true)]     // differ only by 1ms
+    [InlineData(
+        "[Living Weapons] [12:00:00.999] [INFO] all enemies are accounted for",
+        "[Living Weapons] [12:00:01.000] [INFO] all enemies are accounted for",
+        true)]     // straddles a whole-second rollover
+    [InlineData(
+        "[Living Weapons] [12:00:00.000] [INFO] all enemies are accounted for",
+        "[Living Weapons] [12:00:00.000] [WARN] all enemies are accounted for",
+        false)]    // same timestamp, different level token: must NOT be normalized away
+    [InlineData(
+        "[Living Weapons] [12:00:00.000] [INFO] all enemies are accounted for",
+        "[Living Weapons] [12:00:00.000] [INFO] a different sentence entirely",
+        false)]    // same timestamp, different message content
+    public void StripTimestamp_erases_only_the_millisecond_stamp(string a, string b, bool expectEqual)
+        => Assert.Equal(expectEqual, StripTimestamp(a) == StripTimestamp(b));
+
     [Fact]
     public void Two_different_verbs_sharing_the_same_Info_sentence_both_reach_the_console()
     {
@@ -145,7 +175,10 @@ public class LoggerTests
         log.Log(LogVerb.Kill, "all enemies are accounted for");
         log.Log(LogVerb.Treasure, "all enemies are accounted for");
         Assert.Equal(2, console.Count);
-        Assert.Equal(console[0], console[1]);   // same rendered text, both still present
+        // Same rendered text once the ms timestamp is normalized away (LW-20: a straddled
+        // millisecond boundary between these two separate Write calls must not fail this on the
+        // timestamp alone); both lines are still present.
+        Assert.Equal(StripTimestamp(console[0]), StripTimestamp(console[1]));
     }
 
     // InlineData can't carry the internal LogLevel enum on a public test method signature

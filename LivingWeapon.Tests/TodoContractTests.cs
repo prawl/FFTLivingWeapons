@@ -42,8 +42,12 @@ public class TodoContractTests
 
     private static readonly Regex NowHeaderRegex = new(@"^## Now \(release: (.+)\)$", RegexOptions.Compiled);
 
+    // Title capture excludes '*' outright (rather than relying on '.+?' laziness, which still
+    // swallows a rogue "**[" marker whenever it is the only "** " sequence immediately preceding
+    // " (opened ...)" in the line): a well-formed title never contains an asterisk, and this way
+    // the regex cannot match past a second bold marker accidentally embedded in the title.
     private static readonly Regex NowEntryRegex = new(
-        @"^- \*\*\[LW-(\d+)\] .+\*\* \(opened \d{4}-\d{2}-\d{2}\) \[(QUEUED|BUILDING|AWAITING-LIVE|BLOCKED\([^)]+\))\]$",
+        @"^- \*\*\[LW-(\d+)\] [^*]+\*\* \(opened \d{4}-\d{2}-\d{2}\) \[(QUEUED|BUILDING|AWAITING-LIVE|BLOCKED\([^)]+\))\]$",
         RegexOptions.Compiled);
 
     private static readonly Regex BacklogEntryRegex = new(
@@ -124,6 +128,14 @@ public class TodoContractTests
         return groups;
     }
 
+    /// <summary>LW-21: docs/CHANGELOG.md's entry lines, scanned the same way the Backlog check
+    /// scans TODO.md (every top-level `- ` line via <see cref="GroupTopLevelEntries"/>), rather
+    /// than filtering for the "- [" prefix. The prefix filter let a mangled entry missing its
+    /// opening bracket (say "- LW-22 SHIPPED abc1234 2026-07-05: text") dodge both the grammar
+    /// check and the id-uniqueness check entirely, since it never entered the candidate set.</summary>
+    private static List<string> ChangelogEntryLines(IReadOnlyList<string> lines)
+        => GroupTopLevelEntries(lines).Select(e => e[0]).ToList();
+
     // --- Theory: Now entry-line grammar ---
 
     [Theory]
@@ -136,6 +148,7 @@ public class TodoContractTests
     [InlineData("- **[LW-7] Some title here** (opened 2026-07-05) [BLOCKED]", false)]                 // BLOCKED needs a reason
     [InlineData("- **[LW-8] Some title here** (opened 2026-7-05) [QUEUED]", false)]                   // bad date shape
     [InlineData("- [LW-9] Some title here (opened 2026-07-05) [QUEUED]", false)]                      // missing bold markers
+    [InlineData("- **[LW-10] Title** rogue **[LW-11] second marker** (opened 2026-07-05) [QUEUED]", false)]  // LW-21: greedy title must not swallow a second "**[" marker
     public void IsNowEntryLine_grammar_cases(string line, bool expected)
         => Assert.Equal(expected, IsNowEntryLine(line));
 
@@ -160,8 +173,37 @@ public class TodoContractTests
     [InlineData("- [LW-19] SHIPPED zzzzzzz 2026-07-05: summary text.", false)]   // hash not hex
     [InlineData("- [LW-20] DEFERRED 2026-07-05: summary text.", false)]         // unknown disposition
     [InlineData("- [LW-21] SHIPPED 58d5c7b 2026-7-05: summary text.", false)]    // bad date shape
+    [InlineData("- LW-22 SHIPPED abc1234 2026-07-05: summary text.", false)]     // LW-21: missing the [LW-n] brackets
     public void IsChangelogEntryLine_grammar_cases(string line, bool expected)
         => Assert.Equal(expected, IsChangelogEntryLine(line));
+
+    // --- LW-21: the CHANGELOG scan must see a bracketless entry, not just the grammar regex ---
+
+    [Fact]
+    public void ChangelogEntryLines_catches_a_bracketless_entry_that_a_bracket_prefix_filter_would_miss()
+    {
+        // Mirrors the real docs/CHANGELOG.md shape: a header/preamble, a "## ... cycle" section
+        // header, a well-formed entry, then a mangled entry missing its opening "[" (LW-21's
+        // reported dodge: the old scan filtered on "- [" so this line never entered the
+        // candidate set at all, and so never hit the grammar or id-uniqueness checks).
+        var lines = new[]
+        {
+            "# Changelog (work-ledger exits)",
+            "",
+            "## 2.3.0 cycle",
+            "",
+            "- [LW-1] SHIPPED abc1234 2026-07-05: a well-formed entry.",
+            "  continuation prose for LW-1.",
+            "- LW-22 SHIPPED abc1234 2026-07-05: mangled entry missing its opening bracket.",
+        };
+
+        var scanned = ChangelogEntryLines(lines);
+
+        Assert.Contains(scanned, l => l.Contains("LW-22"));
+        string mangled = scanned.Single(l => l.Contains("LW-22"));
+        Assert.False(IsChangelogEntryLine(mangled),
+            "the scan must present the mangled line to the grammar check, which must reject it");
+    }
 
     // --- A. TODO.md section structure ---
 
@@ -259,7 +301,7 @@ public class TodoContractTests
     {
         string path = Path.Combine(RepoRoot(), "docs", "CHANGELOG.md");
         Assert.True(File.Exists(path), "docs/CHANGELOG.md does not exist");
-        var entryLines = File.ReadAllLines(path).Where(l => l.StartsWith("- [")).ToList();
+        var entryLines = ChangelogEntryLines(File.ReadAllLines(path));
         Assert.NotEmpty(entryLines);
         var badGrammar = entryLines.Where(l => !IsChangelogEntryLine(l)).ToList();
         Assert.True(badGrammar.Count == 0,
@@ -296,7 +338,7 @@ public class TodoContractTests
                 if (id is not null) ids.Add((id, $"TODO.md Backlog: {entry[0]}"));
             }
 
-        foreach (var line in changelogLines.Where(l => l.StartsWith("- [")))
+        foreach (var line in ChangelogEntryLines(changelogLines))
         {
             var id = ChangelogEntryId(line);
             if (id is not null) ids.Add((id, $"CHANGELOG.md: {line}"));
