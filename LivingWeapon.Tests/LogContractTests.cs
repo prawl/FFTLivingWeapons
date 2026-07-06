@@ -243,12 +243,12 @@ public class LogContractTests
 
     /// <summary>Dev-only instrument UI, exempt from the subject-first fence (the audit's ruling:
     /// "the console IS this instrument's user interface and none of it compiles into production;
-    /// exempt from the match-report ceiling as dev scaffolding"). Both files are #if LWDEV
+    /// exempt from the match-report ceiling as dev scaffolding"). All three files are #if LWDEV
     /// wholesale. The double-dash scan still applies to them; only the sentence-shape rule is
     /// waived.</summary>
     private static readonly HashSet<string> FenceExemptDevFiles = new(StringComparer.OrdinalIgnoreCase)
     {
-        "ShowSpike.cs", "FlavorSpike.cs",
+        "ShowSpike.cs", "FlavorSpike.cs", "HeaderSpike.cs", "AttackCardSpike.cs",
     };
 
     private static readonly Regex LeaderPrefixRegex = new(@"^[A-Za-z][A-Za-z-]*:", RegexOptions.Compiled);

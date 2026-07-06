@@ -57,6 +57,8 @@ internal sealed class Engine
 #if LWDEV
     private readonly ShowSpike _showSpike;   // F8 chase instrument, dev-only scaffolding
     private readonly FlavorSpike _flavorSpike;   // F6 P4 flavor-render probe, dev-only (key shared with ShowSpike's prompt-swap arm -- deliberate)
+    private readonly HeaderSpike _headerSpike;   // F8 LW-27 header-repaint research instrument, dev-only
+    private readonly AttackCardSpike _attackCardSpike;   // F6 LW-31 Attack-menu census instrument, dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -164,6 +166,8 @@ internal sealed class Engine
         // Constructed here (not beside _showSpike above) because it needs Display's _sites/_pats,
         // which do not exist until Display itself is built.
         _flavorSpike = new FlavorSpike(live, _display._sites, _display._pats);
+        _headerSpike = new HeaderSpike(live, _display._sites);
+        _attackCardSpike = new AttackCardSpike(live);
 #endif
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
@@ -337,6 +341,8 @@ internal sealed class Engine
             // battle-path-only Tick below made the probe unreachable where it is actually used;
             // that gate misdiagnosed the F2 arm key as dead, 2026-07-05.)
             _flavorSpike.Tick();
+            _headerSpike.Tick();   // LW-27: the header label lives in these same equip-card menus
+            _attackCardSpike.Tick();   // LW-31: harmless out here, the Abilities menu it targets is in-battle
 #endif
             return;
         }
@@ -354,6 +360,8 @@ internal sealed class Engine
 #if LWDEV
         _showSpike.Tick();
         _flavorSpike.Tick();
+        _headerSpike.Tick();
+        _attackCardSpike.Tick();   // LW-31: the Abilities menu lives here, the load-bearing tick site
 #endif
         if (changed)
         {
