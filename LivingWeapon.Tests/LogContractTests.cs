@@ -248,7 +248,7 @@ public class LogContractTests
     /// waived.</summary>
     private static readonly HashSet<string> FenceExemptDevFiles = new(StringComparer.OrdinalIgnoreCase)
     {
-        "ShowSpike.cs", "FlavorSpike.cs", "HeaderSpike.cs", "AttackCardSpike.cs",
+        "ShowSpike.cs", "FlavorSpike.cs", "HeaderSpike.cs", "AttackCardSpike.cs", "TurnOwnerSpike.cs",
     };
 
     private static readonly Regex LeaderPrefixRegex = new(@"^[A-Za-z][A-Za-z-]*:", RegexOptions.Compiled);

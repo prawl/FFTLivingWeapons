@@ -129,6 +129,17 @@ internal sealed partial class KillTracker
         _klog = ModLogger.For(LogVerb.Kill, () => AnyTrackedWeaponThisBattle);
     }
 
+    /// <summary>Read-only exposure of this tracker's own actor-pointer ownership register
+    /// (LW-31, AttackCard.cs): the SAME instance KillerStamp already trusts, not a second
+    /// independent register (two registers ticking the same memory would double the reads for
+    /// no benefit and risk two slightly different in-flight snapshots mid-tick). Callers must
+    /// never mutate it (Update/ResetBattle stay this class's own responsibility).</summary>
+    internal ActorRegister Register => _register;
+
+    /// <summary>This tracker's ActorResolver.HandsFromRoster, exposed for AttackCard's dossier
+    /// resolve: the same roster-&gt;weapons seam KillerStamp already trusts (KillerStamp.cs).</summary>
+    internal Func<long, List<int>> HandsFromRoster => _resolver.HandsFromRoster;
+
     /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
     /// the seen-alive guard ensures any pre-existing corpse (never seen alive) is ineligible.</summary>
     public void ResetBattle()

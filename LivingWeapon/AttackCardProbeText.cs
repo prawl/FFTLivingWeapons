@@ -44,13 +44,20 @@ internal static class AttackCardProbeText
     /// <summary>The probe payload plus one encoded NUL char (1 byte for enc 1, 2 zero bytes for
     /// enc 2): this is what AttackCardSpike actually writes into a desc, since the payload is
     /// SHORTER than the original desc, so the write must re-terminate the string early rather
-    /// than leaving the tail of the old desc dangling after it.</summary>
-    internal static byte[] PayloadWithTerminator(int enc)
+    /// than leaving the tail of the old desc dangling after it. Delegates to the general
+    /// <see cref="EncodeWithTerminator"/> below (promoted for AttackCard.cs's production
+    /// composer, whose written text varies in content/length unlike this fixed dev Payload).</summary>
+    internal static byte[] PayloadWithTerminator(int enc) => EncodeWithTerminator(Payload, enc);
+
+    /// <summary>Encode any string plus one encoded NUL terminator (1 zero byte for enc 1, 2 for
+    /// enc 2). General form of <see cref="PayloadWithTerminator"/>: AttackCard.cs (LW-31's
+    /// production painter) writes an arbitrary composed line here, not the fixed dev Payload.</summary>
+    internal static byte[] EncodeWithTerminator(string s, int enc)
     {
-        byte[] payload = PayloadBytes(enc);
-        var result = new byte[payload.Length + enc];
-        Array.Copy(payload, result, payload.Length);
-        // result[payload.Length .. ] is already zero-initialized: the NUL terminator.
+        byte[] textBytes = ByteScan.Enc(s, enc);
+        var result = new byte[textBytes.Length + enc];
+        Array.Copy(textBytes, result, textBytes.Length);
+        // result[textBytes.Length .. ] is already zero-initialized: the NUL terminator.
         return result;
     }
 
@@ -111,12 +118,17 @@ internal static class AttackCardProbeText
         return (sb.ToString(), count);
     }
 
-    /// <summary>True when the write NEVER exceeds the original desc's own footprint: the
-    /// payload plus its own NUL terminator (Payload.Length + 1 chars) must fit within the
-    /// original desc's char count plus its own terminator (descChars + 1), i.e. descChars must
-    /// be at least Payload.Length. Boundary is inclusive: a desc exactly Payload.Length chars
-    /// long fits exactly.</summary>
-    internal static bool FitsFootprint(int descChars) => descChars >= Payload.Length;
+    /// <summary>General form: true when descChars (the original desc's own char count, found at
+    /// census time) is at least neededChars (the text about to be written, EXCLUDING its own NUL
+    /// terminator): the write can never exceed the original desc's own byte footprint. Boundary
+    /// is inclusive: a desc exactly neededChars long fits exactly. AttackCard.cs (LW-31's
+    /// production composer) checks its own composed line's length here instead of the fixed dev
+    /// Payload.Length the 1-arg overload below fixes.</summary>
+    internal static bool FitsFootprint(int descChars, int neededChars) => descChars >= neededChars;
+
+    /// <summary>True when the write NEVER exceeds the original desc's own footprint, fixed at
+    /// this probe's own Payload.Length. Delegates to the general 2-arg overload above.</summary>
+    internal static bool FitsFootprint(int descChars) => FitsFootprint(descChars, Payload.Length);
 
     /// <summary>A compact printable dump of the bytes in a fixed radius before and after the
     /// hit at pos (hex plus a printable-ASCII gloss), for logging the structural surroundings of

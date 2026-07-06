@@ -34,6 +34,7 @@ internal sealed class Engine
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
     private readonly Display _display;
+    private readonly AttackCard _attackCard;   // LW-31 stage 2: the Attack-menu desc dossier painter
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
     private DateTime _lastField = DateTime.MinValue;   // last tick we were on the live battlefield
@@ -59,6 +60,7 @@ internal sealed class Engine
     private readonly FlavorSpike _flavorSpike;   // F6 P4 flavor-render probe, dev-only (key shared with ShowSpike's prompt-swap arm -- deliberate)
     private readonly HeaderSpike _headerSpike;   // F8 LW-27 header-repaint research instrument, dev-only
     private readonly AttackCardSpike _attackCardSpike;   // F6 LW-31 Attack-menu census instrument, dev-only
+    private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -162,12 +164,20 @@ internal sealed class Engine
         // Reliquary Phase 1 (docs/RELIQUARY_AC.md): wiring legends here builds Display's
         // StoryLines/EarnedAnchors (card-story composing + the three-way anchor, decision 12).
         _display = new Display(meta, _kills, live, legends: _legends);
+        // LW-31 stage 2: the acting unit's Attack-menu dossier. Wired here (not beside _tracker)
+        // because it needs the tracker's own actor register + hands-from-roster seam (the SAME
+        // instance KillerStamp trusts; see AttackCard.cs's class doc for why a second register
+        // is deliberately avoided).
+        _attackCard = new AttackCard(live, _tracker.Register, _tracker.HandsFromRoster, meta, _kills, _legends);
 #if LWDEV
         // Constructed here (not beside _showSpike above) because it needs Display's _sites/_pats,
         // which do not exist until Display itself is built.
         _flavorSpike = new FlavorSpike(live, _display._sites, _display._pats);
         _headerSpike = new HeaderSpike(live, _display._sites);
         _attackCardSpike = new AttackCardSpike(live);
+        // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
+        // class doc for why a second register is deliberately avoided).
+        _turnOwnerSpike = new TurnOwnerSpike(live, _tracker.Register);
 #endif
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
@@ -224,6 +234,7 @@ internal sealed class Engine
         _growth.ResetBattle();
         _reliquary.ResetBattle();   // per-battle Marks ledger (the exit edge composes its summary BEFORE this runs)
         foreach (var sig in _signatures) sig.ResetBattle();
+        _attackCard.ResetBattle();   // LW-31 stage 2: restore vanilla to any live Attack-menu copies, then drop the cache
         // The toast QUEUE deliberately survives battle edges (Patrick-confirmed ruling A) --
         // PromptSwap is stateless (no per-battle state to reset).
     }
@@ -357,11 +368,13 @@ internal sealed class Engine
         // gating on onField would sleep through it. Delivery itself needs no Tick: PromptSwapHook
         // fires from the game's own SetTextString call, not from this loop.
         _toast.Tick(changed);
+        _attackCard.Tick();   // LW-31 stage 2: the Attack-menu desc painter; mirrors the spike's own load-bearing tick site below
 #if LWDEV
         _showSpike.Tick();
         _flavorSpike.Tick();
         _headerSpike.Tick();
         _attackCardSpike.Tick();   // LW-31: the Abilities menu lives here, the load-bearing tick site
+        _turnOwnerSpike.Tick();   // LW-31 stage 2: passive correlation recorder, in-battle only (menus out of battle don't matter here)
 #endif
         if (changed)
         {

@@ -49,19 +49,10 @@ internal static class CardLine
         // The 5-digit headroom guard (see the class-level constants' comment).
         if (budgetChars < weaponName.Length + FormDFixedChars + DigitHeadroom) return null;
 
-        VictimClass.Archetype? bestMark = null;
-        int bestCount = -1;
-        foreach (int idx in legend.Marks)
-        {
-            int count = legend.Counts[idx];
-            // Tie-break by Archetype ENUM ORDER: a strictly higher count always wins; on an exact
-            // tie, only take the new candidate if its enum value is LOWER than the incumbent's.
-            if (count > bestCount || (count == bestCount && bestMark.HasValue && idx < (int)bestMark.Value))
-            {
-                bestMark = (VictimClass.Archetype)idx;
-                bestCount = count;
-            }
-        }
+        // Tie-break by Archetype ENUM ORDER (VictimClass.BestMark's contract): a strictly higher
+        // count always wins; on an exact tie, only the new candidate wins if its enum value is
+        // LOWER than the incumbent's. Shared with AttackCard.cs's dossier compose (LW-31).
+        VictimClass.Archetype? bestMark = VictimClass.BestMark(legend, out int bestCount);
 
         bool undead = legend.LastVictimCls == (int)VictimClass.Archetype.Undead;
         string victimPhrase = VictimClass.WithArticle(VictimClass.VictimNoun(legend.LastVictimJob, undead));

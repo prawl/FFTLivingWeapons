@@ -111,4 +111,27 @@ internal static class VictimClass
         bool vowel = c is 'a' or 'e' or 'i' or 'o' or 'u';
         return (vowel ? "an " : "a ") + noun;
     }
+
+    /// <summary>The highest-count archetype AMONG EARNED MARKS (legend.Marks): a count alone
+    /// never qualifies, only a threshold-crossed entry. Tie-break by enum order: a strictly
+    /// higher count always wins; an exact tie keeps the incumbent unless the challenger's enum
+    /// value is LOWER. Extracted from CardLine.Compose (the equip-card story line) so LW-31's
+    /// Attack-menu dossier (AttackCard.cs) shares the exact same selection rule instead of a
+    /// second hand-rolled copy. Returns null (count -1) when no Mark has been earned yet.</summary>
+    public static Archetype? BestMark(WeaponLegend legend, out int count)
+    {
+        Archetype? best = null;
+        int bestCount = -1;
+        foreach (int idx in legend.Marks)
+        {
+            int c = legend.Counts[idx];
+            if (c > bestCount || (c == bestCount && best.HasValue && idx < (int)best.Value))
+            {
+                best = (Archetype)idx;
+                bestCount = c;
+            }
+        }
+        count = bestCount;
+        return best;
+    }
 }

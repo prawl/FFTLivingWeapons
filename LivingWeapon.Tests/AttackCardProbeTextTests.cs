@@ -50,6 +50,47 @@ public class AttackCardProbeTextTests
             Assert.Equal(0, withNul[payload.Length + i]);
     }
 
+    // ---- EncodeWithTerminator / 2-arg FitsFootprint (LW-31 stage 2: promoted for AttackCard.cs's
+    // production composer, whose written text varies unlike this file's fixed dev Payload) ----
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void EncodeWithTerminator_matches_PayloadWithTerminator_for_the_dev_payload(int enc)
+    {
+        // PayloadWithTerminator now delegates to EncodeWithTerminator, and must be byte-identical.
+        Assert.Equal(AttackCardProbeText.PayloadWithTerminator(enc), AttackCardProbeText.EncodeWithTerminator(AttackCardProbeText.Payload, enc));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void EncodeWithTerminator_encodes_arbitrary_text_plus_one_NUL_char(int enc)
+    {
+        const string text = "Windrunner Kills: 42.";
+        byte[] textBytes = ByteScan.Enc(text, enc);
+        byte[] withNul = AttackCardProbeText.EncodeWithTerminator(text, enc);
+
+        Assert.Equal(textBytes.Length + enc, withNul.Length);
+        for (int i = 0; i < textBytes.Length; i++) Assert.Equal(textBytes[i], withNul[i]);
+        for (int i = 0; i < enc; i++) Assert.Equal(0, withNul[textBytes.Length + i]);
+    }
+
+    [Fact]
+    public void FitsFootprint_two_arg_boundary_is_inclusive()
+    {
+        Assert.True(AttackCardProbeText.FitsFootprint(descChars: 42, neededChars: 42));
+        Assert.False(AttackCardProbeText.FitsFootprint(descChars: 41, neededChars: 42));
+    }
+
+    [Fact]
+    public void FitsFootprint_one_arg_overload_still_fixes_neededChars_to_Payload_length()
+    {
+        Assert.Equal(
+            AttackCardProbeText.FitsFootprint(50, AttackCardProbeText.Payload.Length),
+            AttackCardProbeText.FitsFootprint(50));
+    }
+
     [Fact]
     public void DescStart_matches_the_label_length_plus_its_own_terminator()
     {
