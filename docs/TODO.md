@@ -24,17 +24,17 @@ is the in-flight subset, not a mirror of that checklist.
     land in one voice. (1) The +3 ability block moves to the new grammar on every card: header
     "{Name} (+3)" replacing "+3 Ability - {Name}", body "{Verb} {effect}. {Condition, if
     any.}"; worked example: "Gun Slinger (+3)" then "Loads a second pistol into the off-hand,
-    granting dual-wield. Must equip outside of battle." (2) The equipment card description
-    body becomes flavor text, then a blank line, then the ability block (owner sketch
-    2026-07-06: img + name+suffix, WP and Parry line, Description rule, flavor, blank line,
-    ability block); no Kills line in the body (unified card grammar, the count lives in the
-    header per LW-27/LW-31). Data-layer re-bake: items.json prose assembled by generate.py +
+    granting dual-wield. Must equip outside of battle." (2) The equipment card body LEADS
+    with the Kills tier meter (SHIPPED cd6599e: meter as the first line, verbatim-identical
+    to the Attack card, then a blank line, then flavor + mechanics and the ability block).
+    The count lives in the BODY, not a header: the header arc (LW-27) is CUT (owner
+    2026-07-06), so no "Kills: N" header stamp is built on any surface. Data-layer re-bake: items.json prose assembled by generate.py +
     patch_names.py, restart-only; confirm item.en.nxd descriptions render an embedded blank
     line at pickup; the attack-card tail (LW-31) adopts the same ability wording. (3) PINNED
     (owner 2026-07-06): analyze.py grows a gate check that every +3 ability desc MATCHES the
     master CSV (docs/living_weapon_grid.csv, the design source of truth); any drift between
     the baked prose and the CSV goes red and refuses the deploy.
-  - Verify: analyze.py budgets green (DESC_MAX 259, P3DESC_MAX 90, uniqueness) plus the new
+  - Verify: analyze.py budgets green (DESC_MAX 266, P3DESC_MAX 90, uniqueness) plus the new
     CSV-match check; xUnit suite green; owner eyeballs the re-baked cards live before release.
 
 - **[LW-31] The battle Abilities menu becomes the weapon funnel** (opened 2026-07-05) [BUILDING]
@@ -101,15 +101,13 @@ is the in-flight subset, not a mirror of that checklist.
     WORDING LOCKS 2026-07-06 (stage-3 live pass): barehanded row text is "Fists"; the kills
     clause is a tier-progress meter ("Kills: 1/5 to +", "Kills: 6/25 to +2",
     "Kills: 34/50 to +3", then "Kills: 55" at max) plus a signature tease while locked
-    ("Unlocks Gun Slinger.") that flips to the armed clause when earned. HEADER-ARC LAYOUT
-    (owner, same session, FORMAT LOCKED): the brown "Description" header bar carries the
-    meter in the 11-char-footprint grammar "Kills 0/5" / "Kills 5/25" / "Kills 25/50" /
-    "Kills 51" (no colon, no tier suffix; every state fits the in-place stamp footprint,
-    LW-27 mechanic, spike-proven 197 copies); view detection = the shipped cursor resolve;
-    once the header carries the meter the BODY drops its meter clause and keeps the
-    signature state ("Unlocks Gun Slinger." locked, "Gun Slinger armed." earned), moving
-    toward the LW-36 ability-block grammar. Shared-chrome caveat accepted by the owner: a
-    mid-battle Status page shows the stamped header until restore. Monsters keep vanilla
+    ("Unlocks Gun Slinger.") that flips to the armed clause when earned. HEADER ARC CUT
+    2026-07-06 (owner): the "Kills: XXXX" header stamp is dropped. The Kills count lives in
+    the card BODY as the tier meter, NOT the header (the equip card leads its body with the
+    meter, SHIPPED cd6599e; the attack card already carries the meter in its body). This
+    SUPERSEDES every "brown header reads Kills: XXXX", "count lives in the header", and
+    "body's old Kills line retires" phrasing above; the body keeps its meter plus the
+    signature state ("Unlocks Gun Slinger." locked, "Gun Slinger armed." earned). Monsters keep vanilla
     text on every surface.
 
 - **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
@@ -232,27 +230,14 @@ is the in-flight subset, not a mirror of that checklist.
   prefix match on "Select a target"; unstoried weapons keep vanilla text. Every technical
   unknown was answered live 2026-07-05: writable, render-call-time swap (fragment-length
   unbound), pill auto-sizes to viewport width, markup tokens supported ("<keyicon=ok>").
-- [LW-27] 2026-07-06: The kill-count "Kills: N" header for the PARTY-MENU equipment card
-  (demoted from Now when the card re-bake took the slot; the ATTACK-card header ships via
-  LW-31's unified grammar instead). Remaining research is view detection: a hovered-item-id
-  signal (header copies live in a different memory neighborhood than the card bodies, the
-  0x15CC vs 0x4D1B families, so body-proximity anchoring cannot identify the viewed item).
-  The header-write mechanic itself is spike-proven 2026-07-05 (197 copies stamped, both
-  encodings, writes hold, zero reverts); the header is shared chrome across ALL card types,
-  so the painter must be view-aware and restore vanilla on non-weapon cards. Original owner
-  decision 2026-07-05: exactly "Kills: N", count only ("Kills: 9999" is 11 chars, same as
-  "Description", so a 4-digit count fits the in-place footprint precisely).
-- [LW-37] 2026-07-06: A FAST out-of-battle kill-count surface (owner dropped the body's
-  Kills line for paint latency; the body goes fully static). Candidate 1 (recommended): a
-  SetTextString render-time swap (PromptSwap mechanism, shipped+proven) keyed on the card's
-  OWN incoming desc text, which is unique per weapon (analyze.py uniqueness gate), so the
-  swap identifies the viewed weapon for free and stamps the header "Kills: N" at render
-  moment: zero lag, and it solves LW-27's view-detection blocker as a side effect. Needs the
-  Denuvo dead-hook canary and a live check that card text flows through the SetTextString
-  family. Candidate 2: generalize the 2026-07-06 catalog-record discovery to the ITEM-text
-  records and redirect the desc offset at a mod-owned buffer (instant updates, retires the
-  sweep; same tech the attack-card 259-char mirror wants). Kills only change in battle, so
-  battle-exit stamping is never stale; browse latency was the only real enemy.
+- [LW-37] 2026-07-06: FAST-paint the equip-card BODY Kills meter. The count now ships in the
+  body first line (cd6599e), painted by the slow heap sweep; first-open browse latency is the
+  only enemy, and kills change only in battle so a battle-exit repaint is never stale. The
+  header-stamp candidate is MOOT now the count lives in the body (header arc cut, LW-27
+  retracted). Remaining option: generalize the 2026-07-06 catalog-record discovery to the
+  ITEM-text records and redirect the desc offset at a mod-owned buffer (instant updates,
+  retires the sweep; same tech the attack-card mirror uses). Low priority: the slow sweep
+  works and the owner accepted out-of-battle paint latency.
 - [LW-38] 2026-07-06: The Attack-row rename misses the battle's FIRST turn (owner gripe at the
   stage-3 live pass): the census rescans the whole heap every battle (~80 ticks at the 48MB
   budget), so the first menu open beats the first paint. Fix candidates, likely combined:

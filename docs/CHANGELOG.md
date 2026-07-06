@@ -8,6 +8,7 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-27] RETRACTED 2026-07-06: the party-menu equip-card "Kills: N" header, superseded by the body-first-line Kills meter (cd6599e); the count lives in the card body on every surface, so no header stamp is built.
 - [LW-33] SHIPPED 18d640d 2026-07-06: the residual footprint-poisoning path in the attack-card
   painter. SyncHit re-pins the footprint to the vanilla 73 chars on every known-line read
   (repairing an already-poisoned cache entry instead of only avoiding fresh poisoning), with a
