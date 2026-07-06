@@ -47,7 +47,12 @@ is the in-flight subset, not a mirror of that checklist.
     count lives in the header). CONSTRAINT: the desc's in-place footprint is 73 chars vs equip
     descriptions up to 259, so the body-mirror needs either a trim policy or the stage-3
     pointer redirect (the record block above the strings), which is now REQUIRED rather than
-    optional. EMPTY HANDS (owner rule 2026-07-05):
+    optional. OWNER ANSWERS 2026-07-06: row naming covers ALL weapons, not just living ones
+    (bake the full weapon name table into meta from the data source); the "Kills: XXXX" header
+    ships on the ATTACK CARD NOW (view detection = the shipped cursor resolve) and on the
+    party-menu cards only after the hovered-item probe (LW-27); Marks hide on EVERY surface
+    (LW-35). OPEN QUESTION: the 73-char fallback policy if the pointer redirect walls (which
+    slice of the equip text wins the squeeze). EMPTY HANDS (owner rule 2026-07-05):
     a unit with no weapon equipped (Monks, barehanded anyone) shows "Fist" in the row, no
     suffix, no tally, vanilla desc. A non-living weapon keeps vanilla text in v1 (naming every
     item would need the full name table baked into meta; noted as a cheap later extension).
