@@ -99,6 +99,17 @@ internal sealed class Display
             ModLogger.Debug(LogVerb.Trace, "painter misconfiguration detail (lookback="
                       + DisplaySweep.Lookback + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot)");
         }
+
+        // Forward twin of the check above: the bidirectional attribution search (CardScanner) can
+        // find a weapon's flavor AFTER its "Kills: " hit (the new deployed layout), so the
+        // trailing slack must also fit the widest anchor + literal + slot. Same log-and-continue
+        // posture: a too-short slack only drops boundary-straddling cards, never crashes.
+        if (!_pats.FitsTrailSlack(DisplaySweep.TrailSlack))
+        {
+            ModLogger.Error(LogVerb.Display, "The equip-card painter is misconfigured and may fail to paint kill counters near a chunk boundary.");
+            ModLogger.Debug(LogVerb.Trace, "painter misconfiguration detail (trailSlack="
+                      + DisplaySweep.TrailSlack + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot)");
+        }
     }
 
     /// <summary>Drop the site cache and start a new sweep generation on the next Tick.

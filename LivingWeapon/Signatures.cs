@@ -127,8 +127,47 @@ internal static class Signatures
     /// <summary>The Kills counter fitted to its fixed 4-char slot: left-aligned digits, space-padded
     /// ("0   ", "42  ", "1337"). The card reads naturally ("Kills: 42") while the painted byte width
     /// never changes. Counts wrap at 10000 (the slot is 4 chars). Negative counts (corrupt
-    /// kills.json) clamp to 0 before the modulo to preserve the 4-char invariant.</summary>
+    /// kills.json) clamp to 0 before the modulo to preserve the 4-char invariant.
+    /// SUPERSEDED on the equip card by <see cref="KillsMeterSlot"/> (owner decision 2026-07-06):
+    /// kept, since CardSites moved to the meter slot, this becomes test-only after that move. Left
+    /// intact (its ByteScanTests-adjacent coverage stays green), rather than deleted, since
+    /// nothing forces a rename of a working, still-referenced-by-tests helper.</summary>
     public static string KillsSlot(int count) => (Math.Max(0, count) % 10000).ToString().PadRight(4);
+
+    /// <summary>Width (chars) of the equip card's painted meter-body slot: the widest production
+    /// tier-progress body under Tuning.ProdThresholds {5,25,50} is 11 chars ("49/50 to +3",
+    /// "24/25 to +2", "25/50 to +3", all exactly 11). The SINGLE source of the 11: every C#
+    /// site that paints or validates the meter slot (ByteScan's validator width, CardPatterns'
+    /// widest-slot math, CardScanner's slot width, CardSites' paint width) references this
+    /// constant, never a literal. The Python bake (tools/lib/flavor.py's
+    /// KILLS_SLOT_BODY_CHARS) is pinned to the same number by an analyze.py lockstep check.</summary>
+    public const int KillsMeterSlotChars = 11;
+
+    /// <summary>The equip card's Kills line body, fitted to <see cref="KillsMeterSlotChars"/>:
+    /// VERBATIM-reused from the Attack card's own tier-progress meter
+    /// (<see cref="AttackCardTail.ComposeHead"/>), never a re-implementation of the format
+    /// string. ComposeHead always returns a string starting "Kills: "; this strips that prefix
+    /// and pads (or, only ever reachable above an 11-digit count under prod, see below,
+    /// truncates) the remainder to the fixed slot width so the painted byte width never changes.
+    /// The truncate branch is unreachable under prod thresholds (the widest sub-max body is
+    /// exactly 11 chars, "49/50 to +3"; the max-tier body is a bare count, which only exceeds 11
+    /// chars past a 11-digit kill total), documented rather than asserted-against, since a
+    /// corrupt kills.json could theoretically still produce one, and truncating (never crashing)
+    /// is strictly better than the old KillsSlot's silent %10000 wrap: the max-tier meter now
+    /// shows the RAW count.</summary>
+    public static string KillsMeterSlotIn(int kills, int[] thresholds, string[] suffixes)
+    {
+        string full = AttackCardTail.ComposeHead(kills, thresholds, suffixes);
+        string body = full.Substring("Kills: ".Length);
+        return body.Length >= KillsMeterSlotChars
+            ? body.Substring(0, KillsMeterSlotChars)
+            : body.PadRight(KillsMeterSlotChars);
+    }
+
+    /// <summary>KillsMeterSlotIn driven by the compiled build's own Tuning.KillThresholds/Suffix
+    /// (dev {1,2,3} under LWDEV, prod {5,25,50} otherwise): the call CardSites' paint path
+    /// actually makes.</summary>
+    public static string KillsMeterSlot(int kills) => KillsMeterSlotIn(kills, Tuning.KillThresholds, Tuning.Suffix);
 
     /// <summary>Once-per-transition latch for a nag condition that can hold true across many
     /// ticks (e.g. "no empty JobCommand slot", "record not readable yet"): fires (returns true)

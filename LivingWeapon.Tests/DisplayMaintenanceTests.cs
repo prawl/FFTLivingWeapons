@@ -62,9 +62,12 @@ public class DisplayMaintenanceTests
         var kills  = new Dictionary<int, int> { { 10, 9 } };
         var (heap, card, display, clock) = BuildFixture(kills);
 
-        // Drain until the card is discovered and painted (count=9 -> "9   ").
+        int meterWidth = Signatures.KillsMeterSlotChars;
+        string nine = Signatures.KillsMeterSlot(9);
+
+        // Drain until the card is discovered and painted (count=9).
         CardFixtures.DrainGeneration(display, clock, 500);
-        Assert.Equal("9   ", ReadSlot(heap, card.killsSlotPos, 4));
+        Assert.Equal(nine, ReadSlot(heap, card.killsSlotPos, meterWidth));
         Assert.True(display._sites.Count > 0, "sweep must register sites");
 
         // Force the maintenance clock to a precise epoch: run a tick far enough past
@@ -76,22 +79,22 @@ public class DisplayMaintenanceTests
         display.Tick(false);
         long t0 = clock.Ms; // _lastMaintenanceMs is now exactly t0
 
-        // Slot is still "9   " (maintenance fired -> skip-if-equal).
-        Assert.Equal("9   ", ReadSlot(heap, card.killsSlotPos, 4));
+        // Slot is still 9's meter body (maintenance fired -> skip-if-equal).
+        Assert.Equal(nine, ReadSlot(heap, card.killsSlotPos, meterWidth));
 
-        // Simulate game buffer reset: write "0   " without any count change.
-        heap.WriteBytes(SourceBase + card.killsSlotPos, ByteScan.Ascii("0   "));
+        // Simulate game buffer reset: write the unpainted placeholder without any count change.
+        heap.WriteBytes(SourceBase + card.killsSlotPos, ByteScan.Ascii(Signatures.KillsMeterSlot(0)));
 
         // Half-interval tick: maintenance cadence not yet reached -> no repaint.
         // Use a time strictly less than MaintenanceMs from t0.
         clock.Ms = t0 + Display.MaintenanceMs - 1;
         display.Tick(false);
-        Assert.Equal("0   ", ReadSlot(heap, card.killsSlotPos, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(0), ReadSlot(heap, card.killsSlotPos, meterWidth));
 
         // Full-interval tick: past MaintenanceMs from t0 -> maintenance PaintAll fires.
         clock.Ms = t0 + Display.MaintenanceMs + 1;
         display.Tick(false);
-        Assert.Equal("9   ", ReadSlot(heap, card.killsSlotPos, 4));
+        Assert.Equal(nine, ReadSlot(heap, card.killsSlotPos, meterWidth));
     }
 
     // ─── T4: dead sites evicted by maintenance pass ───────────────────────────

@@ -85,9 +85,9 @@ public class DisplayTests
         CardFixtures.DrainGeneration(display, clock, 500);
 
         // B (id 11) is NOT a mirror target but its count must still be painted correctly
-        Assert.Equal("9   ", ReadSlot(heap, cA.killsSlotPos, 4));
-        Assert.Equal("7   ", ReadSlot(heap, cB.killsSlotPos, 4));
-        Assert.Equal("0   ", ReadSlot(heap, cC.killsSlotPos, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(9), ReadSlot(heap, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(7), ReadSlot(heap, cB.killsSlotPos, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(0), ReadSlot(heap, cC.killsSlotPos, Signatures.KillsMeterSlotChars));
     }
 
     // â”€â”€â”€ (b) LIVE-BUG REGRESSION "tier-0 never painted" â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -105,7 +105,7 @@ public class DisplayTests
 
         CardFixtures.DrainGeneration(display, clock, 500);
 
-        Assert.Equal("3   ", ReadSlot(heap, cA.killsSlotPos, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(3), ReadSlot(heap, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
         // Suffix stays "  " (tier 0 under prod thresholds)
         Assert.Equal("  ", ReadSlot(heap, cA.suffixPos, 2));
     }
@@ -122,7 +122,7 @@ public class DisplayTests
         var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock);
 
         CardFixtures.DrainGeneration(display, clock, 500);
-        Assert.Equal("5   ", ReadSlot(heap, cA.killsSlotPos, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(5), ReadSlot(heap, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
 
         // Bump kills without invalidating or re-equipping
         kills[10] = 8;
@@ -131,7 +131,7 @@ public class DisplayTests
         clock.Ms += DisplaySweep.HotRescanMs + 1;
         display.Tick(false);
 
-        Assert.Equal("8   ", ReadSlot(heap, cA.killsSlotPos, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(8), ReadSlot(heap, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
     }
 
     // â”€â”€â”€ (d) Invalidate then re-populate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -149,17 +149,17 @@ public class DisplayTests
 
         display.Invalidate();
 
-        // Reset the heap kills slots to "0   " to verify they get repainted
-        heap.WriteBytes(SourceBase + cA.killsSlotPos, ByteScan.Ascii("0   "));
-        heap.WriteBytes(SourceBase + cB.killsSlotPos, ByteScan.Ascii("0   "));
-        heap.WriteBytes(SourceBase + cC.killsSlotPos, ByteScan.Ascii("0   "));
+        // Reset the heap kills slots to the unpainted placeholder to verify they get repainted
+        heap.WriteBytes(SourceBase + cA.killsSlotPos, ByteScan.Ascii(Signatures.KillsMeterSlot(0)));
+        heap.WriteBytes(SourceBase + cB.killsSlotPos, ByteScan.Ascii(Signatures.KillsMeterSlot(0)));
+        heap.WriteBytes(SourceBase + cC.killsSlotPos, ByteScan.Ascii(Signatures.KillsMeterSlot(0)));
         heap.WriteBytes(SourceBase + cA.suffixPos, ByteScan.Ascii("  "));
 
         // Must advance past GenerationMinGapMs for Invalidate to take effect
         clock.Ms += DisplaySweep.GenerationMinGapMs + 1;
         CardFixtures.DrainGeneration(display, clock, 500);
 
-        Assert.Equal("2   ", ReadSlot(heap, cA.killsSlotPos, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(2), ReadSlot(heap, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
     }
 
     // â”€â”€â”€ (e) Suffix painting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -193,7 +193,7 @@ public class DisplayTests
         // B (id 11, 0 kills) suffix must be "  " (tier 0 or unchanged)
         Assert.Equal("  ", ReadSlot(heap, cB.suffixPos, 2));
         // B's kills slot must show 0, not A's count
-        Assert.Equal("0   ", ReadSlot(heap, cB.killsSlotPos, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(0), ReadSlot(heap, cB.killsSlotPos, Signatures.KillsMeterSlotChars));
     }
 
     // â”€â”€â”€ (f) WpScratch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

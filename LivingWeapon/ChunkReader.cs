@@ -14,7 +14,18 @@ internal sealed class ChunkReader
 {
     public const int ChunkSize  = 4 * 1024 * 1024;
     public const int Lookback   = 4096;
-    public const int TrailSlack = 64;
+
+    /// <summary>Trailing slack past a chunk's own searchable window, for anchors/slots that
+    /// straddle a chunk boundary FORWARD (CardScanner's bidirectional attribution can now find a
+    /// weapon's flavor AFTER its "Kills: " hit: the Reliquary Phase-2 equip-meter layout). Real
+    /// max living flavor is 152 chars / 304 UTF-16 bytes (Excalibur id35); a hit at the very end
+    /// of the searchable window can need the owner's flavor up to ~344 bytes past chunk end
+    /// (anchor + "Kills: " + the meter slot + the "\n\n" gaps). 4096 (== Lookback) covers that
+    /// with wide margin at a cost of ~4KB on a 4MB buffer. Chunk boundaries are DETERMINISTIC
+    /// per region, so an undersized slack drops that card's site EVERY pass (no self-heal);
+    /// this must be sized, not guessed. See CardPatterns.FitsTrailSlack for the checked bound and
+    /// Display's ctor for where it's exercised at startup.</summary>
+    public const int TrailSlack = 4096;
 
     private readonly IGameMemory _mem;
     private readonly byte[] _buf = new byte[Lookback + ChunkSize + TrailSlack];

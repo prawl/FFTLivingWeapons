@@ -216,13 +216,29 @@ def is_living(it):
     return eff_cat in WEAPON_CATS and not it.get("noGrowth")
 
 
+#: Width (chars) of the equip-card meter-body slot painted after "Kills: ": the widest
+#: production tier-progress body under the shipped kill-tier thresholds {5,25,50} is 11 chars
+#: ("49/50 to +3" / "24/25 to +2" / "25/50 to +3", all exactly 11). Mirrors LivingWeapon's
+#: Signatures.KillsMeterSlotChars byte-for-byte; analyze.py's lockstep check pins the two
+#: together so a C#-side width change can't silently drift out of sync with the baked nxd.
+KILLS_SLOT_BODY_CHARS = 11
+
+#: The unpainted equip-card Kills line, baked as the FIRST line of every living weapon's
+#: description: "Kills: " + the tier-0 meter body ("0/5 to +", 8 chars) padded to
+#: KILLS_SLOT_BODY_CHARS (11) with 3 trailing spaces = 18 chars total. The DLL repaints this
+#: slot in place (CardSites.PaintSiteWithResult) with the real tier-progress meter, VERBATIM
+#: the same format AttackCardTail.ComposeHead renders on the Attack card.
+KILLS_SCAFFOLD = "Kills: 0/5 to +   "
+
+
 def assemble_desc(it, scaffold=True):
     """The COMPLETE rendered card description, byte-for-byte what patch_names.py bakes into
-    item.en.nxd: flavor line (+ generated mechanics), the uniform range sentence, the
-    "+{atTier} Ability" signature block, and the Living Weapon "Kills: 0" scaffold. Extracted
-    here so analyze.py's desc-budget gate and the baker CANNOT drift -- the same lockstep
-    contract flavor_anchor carries for the first line. `scaffold` mirrors patch_names'
-    SCAFFOLD_LIVING switch."""
+    item.en.nxd: the Living Weapon Kills-meter scaffold FIRST (owner decision 2026-07-06, moved
+    off the last line so the counter reads before the flavor prose), then a blank line, then the
+    flavor line (+ generated mechanics), the uniform range sentence, and the "+{atTier} Ability"
+    signature block. Extracted here so analyze.py's desc-budget gate and the baker CANNOT drift:
+    the same lockstep contract flavor_anchor carries for the (now second) flavor line.
+    `scaffold` mirrors patch_names' SCAFFOLD_LIVING switch."""
     custom = it.get("desc")
     if custom:
         desc = custom
@@ -240,9 +256,9 @@ def assemble_desc(it, scaffold=True):
             desc += "."
         desc += f" Strikes from up to {rng} tiles away."
     if scaffold and is_living(it):
-        # p3Desc goes BEFORE the Kills scaffolding so gameplay prose stays grouped above the
-        # tracker lines (the Kills anchor keys on the flavor line + literal prefixes). Header
-        # names the ability via sigName (curated flavor name) falling back to displayLabel.
+        # p3Desc stays grouped with the gameplay prose (BELOW the flavor line, same relative
+        # order as before the Kills-scaffold move). Header names the ability via sigName
+        # (curated flavor name) falling back to displayLabel.
         sig = it.get("signature")
         p3 = sig.get("p3Desc") if sig else None
         if p3:
@@ -250,9 +266,10 @@ def assemble_desc(it, scaffold=True):
             at = sig.get("atTier", 3)
             header = f"+{at} Ability — {sname}" if sname else f"+{at} Ability"
             desc = desc.rstrip() + f"\n\n{header}\n{p3}"
-        # "Kills: 0   " (digit + 3 spaces) as the LAST line -- the DLL paints left-aligned
-        # digits into this fixed 4-char slot; literal MUST stay in lockstep with ByteScan.KillsDigits.
-        desc = desc.rstrip() + "\n\nKills: 0   "
+        # Kills line FIRST, blank line after, then the rest of the body. The DLL paints the
+        # tier-progress meter into the KILLS_SLOT_BODY_CHARS-wide body slot in place; the
+        # literal prefix MUST stay in lockstep with ByteScan.MeterSlotDigits.
+        desc = KILLS_SCAFFOLD + "\n\n" + desc.lstrip("\n")
     return desc
 
 

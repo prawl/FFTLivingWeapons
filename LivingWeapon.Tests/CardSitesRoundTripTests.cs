@@ -29,9 +29,9 @@ public class CardSitesRoundTripTests
         int writes = sites.Paint(new[] { site }, id => id == 1 ? 99 : 0);
         Assert.Equal(1, writes);
 
-        bool ok = heap.TryReadBytes(0x1000 + slotAddr, 8, out var painted);
+        bool ok = heap.TryReadBytes(0x1000 + slotAddr, Signatures.KillsMeterSlotChars * 2, out var painted);
         Assert.True(ok);
-        var expected = ByteScan.Utf16("99  ");
+        var expected = ByteScan.Utf16(Signatures.KillsMeterSlot(99));
         Assert.Equal(expected, painted);
     }
 
@@ -60,12 +60,13 @@ public class CardSitesRoundTripTests
         int writes = sites.PaintAll(id => id == 1 ? 42 : (id == 2 ? 99 : 0));
         Assert.Equal(2, writes);
 
-        bool ok1 = heap.TryReadBytes(0x1000 + slotAddr1, 4, out var painted1);
+        int meterWidth = Signatures.KillsMeterSlotChars;
+        bool ok1 = heap.TryReadBytes(0x1000 + slotAddr1, meterWidth, out var painted1);
         Assert.True(ok1);
-        Assert.Equal(ByteScan.Ascii("42  "), painted1);
+        Assert.Equal(ByteScan.Ascii(Signatures.KillsMeterSlot(42)), painted1);
 
-        bool ok2 = heap.TryReadBytes(0x1000 + slotAddr2, 4, out var painted2);
+        bool ok2 = heap.TryReadBytes(0x1000 + slotAddr2, meterWidth, out var painted2);
         Assert.True(ok2);
-        Assert.Equal(ByteScan.Ascii("99  "), painted2);
+        Assert.Equal(ByteScan.Ascii(Signatures.KillsMeterSlot(99)), painted2);
     }
 }

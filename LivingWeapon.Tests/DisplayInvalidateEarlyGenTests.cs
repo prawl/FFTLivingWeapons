@@ -23,7 +23,7 @@ public class DisplayInvalidateEarlyGenTests
 
     private static byte[] EncodeCard(string name, string flavor)
     {
-        // name + "  " + "   " + flavor + "\n\nKills: " + "0   "
+        // name + "  " + "   " + flavor + "\n\nKills: " + the unpainted meter placeholder
         var parts = new List<byte[]>
         {
             ByteScan.Ascii(name),
@@ -31,7 +31,7 @@ public class DisplayInvalidateEarlyGenTests
             ByteScan.Ascii("   "),
             ByteScan.Ascii(flavor),
             ByteScan.Ascii("\n\nKills: "),
-            ByteScan.Ascii("0   "),
+            ByteScan.Ascii(Signatures.KillsMeterSlot(0)),
         };
         int total = 0;
         foreach (var p in parts) total += p.Length;
@@ -98,30 +98,22 @@ public class DisplayInvalidateEarlyGenTests
 
         // Run Ticks: the new generation must start and paint the new card
         bool painted = false;
+        byte[] expected = ByteScan.Ascii(Signatures.KillsMeterSlot(5));
         for (int i = 0; i < 300 && !painted; i++)
         {
             clock.Ms += DisplaySweep.HotRescanMs + 1;
             display.Tick(false);
 
-            // Check if BowY kills slot is painted
-            if (heap.TryReadBytes(newRegionBase + src.Length - 4, 4, out var slot))
+            // Search the new region for the painted kills=5 meter body.
+            var region = heap.RegionBytes(newRegionBase);
+            if (region != null)
             {
-                // kills slot is the last 4 bytes of the card layout
-                // Actually find it: last part of src2 is "0   "
-                // Search for the painted value "5   "
-                var region = heap.RegionBytes(newRegionBase);
-                if (region != null)
+                for (int j = 0; j <= region.Length - expected.Length; j++)
                 {
-                    var expected = ByteScan.Ascii("5   ");
-                    for (int j = 0; j <= region.Length - 4; j++)
-                    {
-                        if (region[j] == expected[0] && region[j+1] == expected[1] &&
-                            region[j+2] == expected[2] && region[j+3] == expected[3])
-                        {
-                            painted = true;
-                            break;
-                        }
-                    }
+                    bool match = true;
+                    for (int k = 0; k < expected.Length; k++)
+                        if (region[j + k] != expected[k]) { match = false; break; }
+                    if (match) { painted = true; break; }
                 }
             }
         }

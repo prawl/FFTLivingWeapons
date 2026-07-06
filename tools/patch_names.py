@@ -75,8 +75,8 @@ def main():
         eff_cat = it["proposed"].get("categoryOverride") or it.get("category")
         # --- Living Weapon display scaffolding (every weapon grows as it kills) ---
         # Two trailing spaces = a 2-char name-suffix SLOT the companion paints +/+2/+3 into
-        # (spaces render as nothing, so tier 0 reads clean). The desc-side scaffold (the "+N
-        # Ability" block and the fixed "Kills: 0   " counter line) is baked by assemble_desc
+        # (spaces render as nothing, so tier 0 reads clean). The desc-side scaffold (the FIRST
+        # line's Kills tier-progress meter and the "+N Ability" block) is baked by assemble_desc
         # above -- lib/flavor.py owns that layout now so the analyze.py budget gate cannot
         # drift from the bake. is_living = the shared noGrowth/category predicate, in lockstep
         # with gen_living_weapon_meta.

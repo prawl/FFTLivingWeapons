@@ -16,7 +16,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
-from lib.flavor import assemble_desc, flavor_anchor, rider_text   # the exact rendered card text
+from lib.flavor import (assemble_desc, flavor_anchor, rider_text,   # the exact rendered card text
+                         is_living, KILLS_SCAFFOLD, KILLS_SLOT_BODY_CHARS)
                                                    # + the house-voice prose each rider bakes onto its card
 from lib.items import load_items, display_name
 from lib.paths import ROOT, ITEMS as ITEMS_DEFAULT
@@ -148,19 +149,23 @@ def check_p3desc(items):
     return bad
 
 
-DESC_MAX = 259  # TOTAL assembled card description budget (chars). Calibrated LIVE 2026-07-05
-                # (owner eyewitness on the equip card): 259 chars = exact fit with zero slack
-                # (Rod of Faith AND Swiftedge, different line structures, both fit); 265 chars =
-                # clipped (Sanguine Sword, user screenshot -- the Kills line fell off the box;
-                # Wrathblade 296 confirmed clipped too). Chars are a proxy for the box's
-                # wrapped-line count -- the two 259 fits with different hard-line splits say the
-                # proxy holds at this boundary; recalibrate if the card UI ever changes.
+DESC_MAX = 266  # TOTAL assembled card description budget (chars). Calibrated LIVE 2026-07-05
+                # (owner eyewitness on the equip card) at 259 for the OLD trailing "\n\nKills:
+                # 0   " scaffold (13 chars); 259 was the exact zero-slack fit (Rod of Faith AND
+                # Swiftedge, different line structures, both fit) with 265 clipped (Sanguine
+                # Sword / Wrathblade). The 2026-07-06 move (Kills line FIRST, wider tier-progress
+                # meter) replaces that 13-char trailing append with a 20-char leading
+                # "KILLS_SCAFFOLD + \n\n" prepend: a uniform +7 shift (20-13), so 259+7=266 is
+                # the SAME zero-slack boundary: the wrapped-line count is preserved because the
+                # wider Kills line (<=18 chars: "Kills: " + an 11-char body) still box-wraps to
+                # one line same as the old "Kills: 0   " (11 chars) did. Chars are a proxy for
+                # the box's wrapped-line count; recalibrate if the card UI ever changes.
 
 
 def check_desc_budget(items):
-    """The FULL assembled card description (flavor + mechanics + range line + signature block +
-    Kills scaffold -- assemble_desc, the exact patch_names bake) must fit the equip card's box.
-    Overflow pushes the bottom lines (the Kills counter first) off the screen."""
+    """The FULL assembled card description (Kills scaffold + flavor + mechanics + range line +
+    signature block, assemble_desc, the exact patch_names bake) must fit the equip card's box.
+    Overflow pushes the bottom lines off the screen."""
     bad = []
     for it in items:
         if not it.get("name") or it.get("name") == "TBD":
@@ -168,6 +173,30 @@ def check_desc_budget(items):
         n = len(assemble_desc(it))
         if n > DESC_MAX:
             bad.append((it, n))
+    return bad
+
+
+def check_kills_scaffold_lockstep(items):
+    """Pins the Python bake's Kills-scaffold body width to LivingWeapon/Signatures.cs's own
+    KillsMeterSlotChars (11, the single source of truth for the width: see that constant's
+    derivation comment). KILLS_SCAFFOLD's own body must be exactly KILLS_SLOT_BODY_CHARS chars,
+    and every living weapon's baked description must actually lead with
+    "KILLS_SCAFFOLD\\n\\n" (Kills line first, blank line after, body order preserved): a
+    C#-side width change (or a baker regression that drops the prepend) shows up here instead of
+    drifting silently out of sync with the shipped nxd."""
+    bad = []
+    scaffold_body_len = len(KILLS_SCAFFOLD) - len("Kills: ")
+    if scaffold_body_len != KILLS_SLOT_BODY_CHARS:
+        bad.append(("<KILLS_SCAFFOLD constant>", f"body is {scaffold_body_len} chars, expected {KILLS_SLOT_BODY_CHARS}"))
+    prefix = KILLS_SCAFFOLD + "\n\n"
+    for it in items:
+        if not it.get("name") or it.get("name") == "TBD":
+            continue
+        if not is_living(it):
+            continue
+        d = assemble_desc(it)
+        if not d.startswith(prefix):
+            bad.append((it, f"does not lead with the Kills scaffold: {d[:40]!r}"))
     return bad
 
 
@@ -480,6 +509,17 @@ def main():
     else:
         for a, n in db:
             print(f"  OVERFLOW id{a['id']} {a.get('name')} ({n} chars, {n - DESC_MAX} over)")
+        rc = 1
+
+    ksl = check_kills_scaffold_lockstep(items)
+    print(f"\n--- KILLS SCAFFOLD LOCKSTEP (baked meter body == {KILLS_SLOT_BODY_CHARS} chars, Kills line first) ---")
+    if not ksl:
+        print(f"  PASS: KILLS_SCAFFOLD is {KILLS_SLOT_BODY_CHARS} chars and every living weapon leads with it.")
+    else:
+        for a, detail in ksl:
+            name = a.get("name") if isinstance(a, dict) else a
+            aid = a.get("id") if isinstance(a, dict) else "-"
+            print(f"  DRIFT id{aid} {name}: {detail}")
         rc = 1
 
     rd = check_rider_desc(items)

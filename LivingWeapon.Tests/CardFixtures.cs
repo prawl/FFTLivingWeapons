@@ -13,20 +13,29 @@ namespace LivingWeapon.Tests;
 /// </summary>
 internal static class CardFixtures
 {
+    /// <summary>The unpainted equip-meter placeholder every fixture bakes by default: the 11-char
+    /// tier-0 meter body ("0/5 to +   ", Signatures.KillsMeterSlot(0)), NOT a hardcoded literal,
+    /// so a future width/format change to the meter stays in lockstep with these fixtures for
+    /// free. Kept a byte-for-byte call (not a cached field) since it's cheap and self-documenting
+    /// at each call site.</summary>
+    private static string DefaultMeterSlot() => Signatures.KillsMeterSlot(0);
+
     /// <summary>Encode a single card block at pos in buf.
-    /// Layout: Name + "  " (suffix slot) + pad + Flavor + filler + "\n\nKills: " + "0   " (kills slot).
-    /// Returns (suffixPos, flavorPos, killsSlotPos) all buf-relative.</summary>
+    /// Layout: Name + "  " (suffix slot) + pad + Flavor + filler + "\n\nKills: " + the 11-char
+    /// meter slot (default the unpainted tier-0 placeholder). Returns (suffixPos, flavorPos,
+    /// killsSlotPos) all buf-relative.</summary>
     internal static (int suffixPos, int flavorPos, int killsSlotPos) WriteCard(
         byte[] buf, int pos, string name, string flavor, int enc = 1,
-        string pad = "   ", string filler = "")
+        string pad = "   ", string filler = "", string? slot = null)
     {
+        slot ??= DefaultMeterSlot();
         byte[] nameB   = ByteScan.Enc(name, enc);
         byte[] sufB    = ByteScan.Enc("  ", enc);
         byte[] padB    = ByteScan.Enc(pad, enc);
         byte[] flvB    = ByteScan.Enc(flavor, enc);
         byte[] fillB   = ByteScan.Enc(filler, enc);
         byte[] nnB     = ByteScan.Enc("\n\nKills: ", enc);
-        byte[] kB      = ByteScan.Enc("0   ", enc);
+        byte[] kB      = ByteScan.Enc(slot, enc);
 
         int at = pos;
         Array.Copy(nameB, 0, buf, at, nameB.Length); at += nameB.Length;
@@ -43,11 +52,12 @@ internal static class CardFixtures
     }
 
     /// <summary>Write a minimal kills block: flavor anchor at anchorPos, a gap of untouched
-    /// bytes, then "Kills: " + the 4-char slot (default the unpainted "0   " placeholder).
+    /// bytes, then "Kills: " + the 11-char meter slot (default the unpainted tier-0 placeholder).
     /// Returns the buf-relative slot position.</summary>
     internal static int WriteKillsBlock(byte[] buf, int anchorPos, string flavor, int gap,
-                                        int enc = 1, string slot = "0   ")
+                                        int enc = 1, string? slot = null)
     {
+        slot ??= DefaultMeterSlot();
         byte[] flavorB = ByteScan.Enc(flavor, enc);
         byte[] prefixB = ByteScan.Enc("Kills: ", enc);
         byte[] slotB   = ByteScan.Enc(slot, enc);
@@ -57,6 +67,30 @@ internal static class CardFixtures
         int slotPos = killsPos + prefixB.Length;
         Array.Copy(slotB, 0, buf, slotPos, slotB.Length);
         return slotPos;
+    }
+
+    /// <summary>Write a NEW-LAYOUT card block: "Kills: " + the 11-char meter slot + "\n\n" +
+    /// flavor: the post-migration bake order (Kills line FIRST, blank line, then the
+    /// flavor/mechanics body) that CardScanner's bidirectional attribution must resolve via its
+    /// FORWARD half (the owner flavor sits AFTER the "Kills: " hit, not before). Returns
+    /// (killsSlotPos, flavorPos) buf-relative.</summary>
+    internal static (int killsSlotPos, int flavorPos) WriteCardForward(
+        byte[] buf, int pos, string flavor, int enc = 1, string? slot = null)
+    {
+        slot ??= DefaultMeterSlot();
+        byte[] killsB = ByteScan.Enc("Kills: ", enc);
+        byte[] slotB  = ByteScan.Enc(slot, enc);
+        byte[] nnB    = ByteScan.Enc("\n\n", enc);
+        byte[] flvB   = ByteScan.Enc(flavor, enc);
+
+        int at = pos;
+        Array.Copy(killsB, 0, buf, at, killsB.Length); at += killsB.Length;
+        int killsSlotPos = at;
+        Array.Copy(slotB, 0, buf, at, slotB.Length); at += slotB.Length;
+        Array.Copy(nnB, 0, buf, at, nnB.Length); at += nnB.Length;
+        int flavorPos = at;
+        Array.Copy(flvB, 0, buf, at, flvB.Length); at += flvB.Length;
+        return (killsSlotPos, flavorPos);
     }
 
     /// <summary>Build a Display wired to a FakeHeap via OffsetRemapMem: the three Display

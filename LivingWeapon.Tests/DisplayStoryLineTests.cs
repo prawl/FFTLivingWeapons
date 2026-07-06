@@ -63,9 +63,9 @@ public class DisplayStoryLineTests
         // Two independent on-screen "cards" for the SAME weapon, both currently showing L1, in
         // two DIFFERENT source regions (mirrors two menu-scroll buffer copies).
         var srcA = new byte[400];
-        int slotA = CardFixtures.WriteKillsBlock(srcA, 20, l1, gap: 10, slot: "5   ");
+        int slotA = CardFixtures.WriteKillsBlock(srcA, 20, l1, gap: 10, slot: Signatures.KillsMeterSlot(5));
         var srcB = new byte[400];
-        int slotB = CardFixtures.WriteKillsBlock(srcB, 20, l1, gap: 10, slot: "5   ");
+        int slotB = CardFixtures.WriteKillsBlock(srcB, 20, l1, gap: 10, slot: Signatures.KillsMeterSlot(5));
 
         var heap = StaticsHeap(mirrorId: Id);
         heap.AddRegion(SourceBase, srcA);
@@ -92,8 +92,8 @@ public class DisplayStoryLineTests
 
         Assert.Equal(l2, ReadRegion(heap, SourceBase + 20, l2.Length));
         Assert.Equal(l2, ReadRegion(heap, SourceBase + 0x1_0000 + 20, l2.Length));
-        Assert.Equal("6   ", ReadRegion(heap, SourceBase + slotA, 4));
-        Assert.Equal("6   ", ReadRegion(heap, SourceBase + 0x1_0000 + slotB, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(6), ReadRegion(heap, SourceBase + slotA, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(6), ReadRegion(heap, SourceBase + 0x1_0000 + slotB, Signatures.KillsMeterSlotChars));
     }
 
     [Fact]
@@ -109,9 +109,9 @@ public class DisplayStoryLineTests
         string l1 = CardLine.Compose("Windrunner", 5, legends.Get(Id), budget)!;
 
         var srcA = new byte[400];
-        int slotA = CardFixtures.WriteKillsBlock(srcA, 20, l1, gap: 10, slot: "5   ");
+        int slotA = CardFixtures.WriteKillsBlock(srcA, 20, l1, gap: 10, slot: Signatures.KillsMeterSlot(5));
         var srcB = new byte[400];
-        int slotB = CardFixtures.WriteKillsBlock(srcB, 20, l1, gap: 10, slot: "5   ");
+        int slotB = CardFixtures.WriteKillsBlock(srcB, 20, l1, gap: 10, slot: Signatures.KillsMeterSlot(5));
 
         var heap = StaticsHeap(mirrorId: Id);
         heap.AddRegion(SourceBase, srcA);
@@ -158,7 +158,7 @@ public class DisplayStoryLineTests
         string l1 = CardLine.Compose("Windrunner", 5, legends.Get(Id), budget)!;
 
         var src = new byte[400];
-        int slot = CardFixtures.WriteKillsBlock(src, 20, l1, gap: 10, slot: "5   ");
+        int slot = CardFixtures.WriteKillsBlock(src, 20, l1, gap: 10, slot: Signatures.KillsMeterSlot(5));
         var heap = StaticsHeap(mirrorId: Id);
         heap.AddRegion(SourceBase, src);
 
@@ -175,7 +175,7 @@ public class DisplayStoryLineTests
 
         Assert.Equal(1, display._sites.Count);
         Assert.Equal(l2, ReadRegion(heap, SourceBase + 20, l2.Length));
-        Assert.Equal("6   ", ReadRegion(heap, SourceBase + slot, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(6), ReadRegion(heap, SourceBase + slot, Signatures.KillsMeterSlotChars));
     }
 
     [Fact]
@@ -203,7 +203,7 @@ public class DisplayStoryLineTests
 
         Assert.Equal(1, display._sites.Count);
         Assert.Equal(expected, ReadRegion(heap, SourceBase + 20, expected.Length));
-        Assert.Equal("5   ", ReadRegion(heap, SourceBase + slot, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(5), ReadRegion(heap, SourceBase + slot, Signatures.KillsMeterSlotChars));
     }
 
     [Fact]

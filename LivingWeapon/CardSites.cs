@@ -182,13 +182,13 @@ internal sealed class CardSites
 
         int kills = killsFor(s.Id);
         byte[] desired = s.IsKills
-            ? ByteScan.Enc(Signatures.KillsSlot(kills), s.Enc)
+            ? ByteScan.Enc(Signatures.KillsMeterSlot(kills), s.Enc)
             : ByteScan.Enc(Tuning.Suffix[Tuning.TierFor(kills)], s.Enc);
 
         if (!_mem.TryReadBytes(s.SlotAddr, desired.Length, out var cur))
             return PaintResult.NoWrite;
 
-        if (s.IsKills) { if (!ByteScan.KillsDigits(cur, 0, s.Enc)) return PaintResult.NoWrite; }
+        if (s.IsKills) { if (!ByteScan.MeterSlotDigits(cur, 0, s.Enc, Signatures.KillsMeterSlotChars)) return PaintResult.NoWrite; }
         else
         {
             // Slots(enc) returns the list CardPatterns built once at ctor -- no copy per call.

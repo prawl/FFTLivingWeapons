@@ -39,7 +39,7 @@ public class DisplayRotationTests
         byte[] pad     = ByteScan.Ascii("   ");
         byte[] flavorB = ByteScan.Ascii(flavor);
         byte[] nn      = ByteScan.Ascii("\n\nKills: ");
-        byte[] kills   = ByteScan.Ascii("0   ");
+        byte[] kills   = ByteScan.Ascii(Signatures.KillsMeterSlot(0));
 
         int at = pos;
         Array.Copy(nameB,   0, buf, at, nameB.Length);   at += nameB.Length;

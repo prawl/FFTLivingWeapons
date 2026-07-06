@@ -36,9 +36,10 @@ public class DisplayLookbackInvariantTests
     [Fact]
     public void Boundary_anchor_just_inside_the_budget_passes()
     {
-        // Widest slot = UTF-16 "Kills: " (14 bytes) + 4 UTF-16 chars (8 bytes) = 22.
-        // The longest anchor that still fits: (Lookback - 22) / 2 UTF-16 chars.
-        int maxChars = (DisplaySweep.Lookback - 22) / 2;
+        // Widest slot = UTF-16 "Kills: " (14 bytes) + Signatures.KillsMeterSlotChars (11) UTF-16
+        // chars (22 bytes) = 36.
+        // The longest anchor that still fits: (Lookback - 36) / 2 UTF-16 chars.
+        int maxChars = (DisplaySweep.Lookback - 36) / 2;
         Assert.True(new CardPatterns(MetaWithFlavor(new string('y', maxChars))).FitsLookback(DisplaySweep.Lookback));
         Assert.False(new CardPatterns(MetaWithFlavor(new string('y', maxChars + 1))).FitsLookback(DisplaySweep.Lookback));
     }
@@ -53,5 +54,33 @@ public class DisplayLookbackInvariantTests
         var ex = Record.Exception(() => new Display(meta, new Dictionary<int, int>(), heap));
 
         Assert.Null(ex);
+    }
+
+    // --- FitsTrailSlack: the forward-search twin of FitsLookback (LANDMINE 1, TrailSlack). A
+    //     NEW-layout card's flavor can sit AFTER "Kills: ", so the trailing slack (not just the
+    //     leading lookback) must fit the widest anchor + the Kills literal + the meter slot.
+
+    [Fact]
+    public void FitsTrailSlack_true_at_4096()
+    {
+        var pats = new CardPatterns(MetaWithFlavor("Bright edge of dawn"));
+        Assert.True(pats.FitsTrailSlack(4096));
+    }
+
+    [Fact]
+    public void FitsTrailSlack_false_at_64()
+    {
+        var pats = new CardPatterns(MetaWithFlavor("Bright edge of dawn"));
+        Assert.False(pats.FitsTrailSlack(64));
+    }
+
+    [Fact]
+    public void FitsTrailSlack_matches_the_documented_worst_case_formula()
+    {
+        string flavor = "Bright edge of dawn";
+        var pats = new CardPatterns(MetaWithFlavor(flavor));
+        int worstCase = pats.MaxAnchorLen + pats.Kills(2).Length + Signatures.KillsMeterSlotChars * 2 + 4;
+        Assert.True(pats.FitsTrailSlack(worstCase));
+        Assert.False(pats.FitsTrailSlack(worstCase - 1));
     }
 }

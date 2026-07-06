@@ -80,4 +80,66 @@ public class ByteScanTests
         byte[] buf = Utf16Slot(" 42 ");
         Assert.False(ByteScan.KillsDigits(buf, 0, 2));
     }
+
+    // --- MeterSlotDigits: the equip-card meter-body validator (width Signatures.KillsMeterSlotChars,
+    //     alphabet digits + '/' + ' ' + '+' + the two letters of "to"). Additive: KillsDigits
+    //     above is untouched and stays test-only after CardScanner/CardSites move to this one. ---
+
+    private const int MeterWidth = 11; // Signatures.KillsMeterSlotChars; kept a literal here so this
+                                        // suite doesn't itself depend on the production constant.
+
+    [Theory]
+    [InlineData("0/5 to +   ")]    // tier-0 body, padded (11 chars)
+    [InlineData("49/50 to +3")]    // widest sub-max body, no padding needed (11 chars)
+    [InlineData("55         ")]    // max-tier bare count, padded (11 chars)
+    public void MeterSlotDigits_ascii_accepts_valid(string slot)
+    {
+        byte[] buf = Encoding.ASCII.GetBytes(slot);
+        Assert.True(ByteScan.MeterSlotDigits(buf, 0, 1, MeterWidth), $"expected accept for '{slot}'");
+    }
+
+    [Fact]
+    public void MeterSlotDigits_rejects_non_digit_first_char()
+    {
+        byte[] buf = Encoding.ASCII.GetBytes("abcdefghijk");
+        Assert.False(ByteScan.MeterSlotDigits(buf, 0, 1, MeterWidth));
+    }
+
+    [Fact]
+    public void MeterSlotDigits_rejects_a_char_outside_the_meter_alphabet()
+    {
+        // 'x' is not in {digits, '/', ' ', '+', 't', 'o'}.
+        byte[] buf = Encoding.ASCII.GetBytes("0/5 xo +   ");
+        Assert.False(ByteScan.MeterSlotDigits(buf, 0, 1, MeterWidth));
+    }
+
+    [Fact]
+    public void MeterSlotDigits_utf16_rejects_nonzero_high_byte()
+    {
+        byte[] buf = Utf16Slot("49/50 to +3");
+        buf[1] = 0x01; // high byte of '4' set -> not a clean UTF-16 ASCII char
+        Assert.False(ByteScan.MeterSlotDigits(buf, 0, 2, MeterWidth));
+    }
+
+    [Fact]
+    public void MeterSlotDigits_utf16_accepts_valid()
+    {
+        byte[] buf = Utf16Slot("49/50 to +3");
+        Assert.True(ByteScan.MeterSlotDigits(buf, 0, 2, MeterWidth));
+    }
+
+    [Fact]
+    public void MeterSlotDigits_rejects_too_short_buffer()
+    {
+        // Buffer only holds 5 of the required 11 chars.
+        byte[] buf = Encoding.ASCII.GetBytes("0/5 t");
+        Assert.False(ByteScan.MeterSlotDigits(buf, 0, 1, MeterWidth));
+    }
+
+    [Fact]
+    public void MeterSlotDigits_bounds_safe_when_pos_plus_width_overflows_utf16_buffer()
+    {
+        byte[] buf = Utf16Slot("0/5 to +   ");
+        Assert.False(ByteScan.MeterSlotDigits(buf, 4, 2, MeterWidth)); // pos != 0 -> runs past buf.Length
+    }
 }

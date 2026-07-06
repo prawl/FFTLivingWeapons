@@ -62,10 +62,10 @@ public class DisplayMutationGapTests
 
         CardFixtures.DrainGeneration(display, clock, 600);
 
-        // Kills slots must be painted with actual counts, not the initial "0   ".
-        Assert.Equal("7   ", ReadSlot(heap, SourceBase, cA.killsSlotPos, 4));
-        Assert.Equal("13  ", ReadSlot(heap, SourceBase, cB.killsSlotPos, 4));
-        Assert.Equal("5   ", ReadSlot(heap, SourceBase, cC.killsSlotPos, 4));
+        // Kills slots must be painted with actual counts, not the initial unpainted placeholder.
+        Assert.Equal(Signatures.KillsMeterSlot(7),  ReadSlot(heap, SourceBase, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(13), ReadSlot(heap, SourceBase, cB.killsSlotPos, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(5),  ReadSlot(heap, SourceBase, cC.killsSlotPos, Signatures.KillsMeterSlotChars));
     }
 
     // ─── C2: budget wiring is honored (long.MaxValue mutation) ───────────────
@@ -111,14 +111,15 @@ public class DisplayMutationGapTests
         clock.Ms += DisplaySweep.HotRescanMs + 1;
         display.Tick(false);
 
+        int meterWidth = Signatures.KillsMeterSlotChars;
         heap.TryReadBytes(bigBase + lastChunkOffset + (int)ByteScan.Ascii("BladeA").Length
                           + 2 /* suffix */ + 3 /* pad */
                           + (int)ByteScan.Ascii("Forged under winter stars").Length
                           + (int)ByteScan.Ascii("\n\nKills: ").Length,
-                          4, out var afterOneTick);
+                          meterWidth, out var afterOneTick);
         string afterOneTickStr = System.Text.Encoding.ASCII.GetString(afterOneTick);
-        // One Tick must not have reached the last chunk (still "0   ").
-        Assert.Equal("0   ", afterOneTickStr);
+        // One Tick must not have reached the last chunk (still the unpainted placeholder).
+        Assert.Equal(Signatures.KillsMeterSlot(0), afterOneTickStr);
 
         // After enough Ticks the full region is exhausted and the card is painted.
         bool painted = false;
@@ -131,8 +132,8 @@ public class DisplayMutationGapTests
                 + (int)ByteScan.Ascii("BladeA").Length + 2 + 3
                 + (int)ByteScan.Ascii("Forged under winter stars").Length
                 + (int)ByteScan.Ascii("\n\nKills: ").Length;
-            heap.TryReadBytes(bigBase + killsOff, 4, out var slot);
-            if (System.Text.Encoding.ASCII.GetString(slot) == "7   ")
+            heap.TryReadBytes(bigBase + killsOff, meterWidth, out var slot);
+            if (System.Text.Encoding.ASCII.GetString(slot) == Signatures.KillsMeterSlot(7))
                 painted = true;
         }
 
@@ -159,7 +160,7 @@ public class DisplayMutationGapTests
         cardParts.AddRange(ByteScan.Utf16("Forged under winter stars"));
         cardParts.AddRange(ByteScan.Utf16("\n\nKills: "));
         int killsSlotByteOffset = cardParts.Count;
-        cardParts.AddRange(ByteScan.Utf16("0   "));
+        cardParts.AddRange(ByteScan.Utf16(Signatures.KillsMeterSlot(0)));
         byte[] cardBytes = cardParts.ToArray();
 
         long utf16Base = 0x82_0000_0000L;
@@ -180,12 +181,13 @@ public class DisplayMutationGapTests
 
         CardFixtures.DrainGeneration(display, clock, 600);
 
-        // Read the painted slot (8 bytes = 4 UTF-16 chars).
-        bool ok = heap.TryReadBytes(utf16Base + killsSlotByteOffset, 8, out var painted);
+        // Read the painted slot (22 bytes = Signatures.KillsMeterSlotChars UTF-16 chars).
+        int byteWidth = Signatures.KillsMeterSlotChars * 2;
+        bool ok = heap.TryReadBytes(utf16Base + killsSlotByteOffset, byteWidth, out var painted);
         Assert.True(ok, "Must be able to read the kills slot");
 
-        // The UTF-16 encoding of "9   " has high bytes 0x00 interleaved.
-        byte[] expected = ByteScan.Utf16("9   ");
+        // The UTF-16 encoding of the kills=9 meter body has high bytes 0x00 interleaved.
+        byte[] expected = ByteScan.Utf16(Signatures.KillsMeterSlot(9));
         Assert.Equal(expected, painted);
     }
 
@@ -235,8 +237,8 @@ public class DisplayMutationGapTests
             clock.Ms += DisplaySweep.HotRescanMs + 1;
             display.Tick(false);
 
-            heap.TryReadBytes(newBase + newCard.killsSlotPos, 4, out var slot);
-            if (System.Text.Encoding.ASCII.GetString(slot) == "7   ")
+            heap.TryReadBytes(newBase + newCard.killsSlotPos, Signatures.KillsMeterSlotChars, out var slot);
+            if (System.Text.Encoding.ASCII.GetString(slot) == Signatures.KillsMeterSlot(7))
                 painted = true;
         }
 
@@ -340,11 +342,12 @@ public class DisplayMutationGapTests
 
         display.Invalidate();
 
-        // Reset all slots to their initial "0   " and "  " values.
+        // Reset all slots to their initial unpainted placeholder and "  " values.
         long srcAddr = SourceBase + 0x10_0000_0000L;
-        heap.WriteBytes(srcAddr + cA.killsSlotPos, ByteScan.Ascii("0   "));
-        heap.WriteBytes(srcAddr + cB.killsSlotPos, ByteScan.Ascii("0   "));
-        heap.WriteBytes(srcAddr + cC.killsSlotPos, ByteScan.Ascii("0   "));
+        int meterWidth = Signatures.KillsMeterSlotChars;
+        heap.WriteBytes(srcAddr + cA.killsSlotPos, ByteScan.Ascii(Signatures.KillsMeterSlot(0)));
+        heap.WriteBytes(srcAddr + cB.killsSlotPos, ByteScan.Ascii(Signatures.KillsMeterSlot(0)));
+        heap.WriteBytes(srcAddr + cC.killsSlotPos, ByteScan.Ascii(Signatures.KillsMeterSlot(0)));
         heap.WriteBytes(srcAddr + cA.suffixPos, ByteScan.Ascii("  "));
         heap.WriteBytes(srcAddr + cB.suffixPos, ByteScan.Ascii("  "));
         heap.WriteBytes(srcAddr + cC.suffixPos, ByteScan.Ascii("  "));
@@ -353,9 +356,9 @@ public class DisplayMutationGapTests
         CardFixtures.DrainGeneration(display, clock, 600);
 
         // Assert ALL three kill slots repainted with their distinct nonzero counts.
-        Assert.Equal("7   ", ReadSlot(heap, srcAddr, cA.killsSlotPos, 4));
-        Assert.Equal("13  ", ReadSlot(heap, srcAddr, cB.killsSlotPos, 4));
-        Assert.Equal("5   ", ReadSlot(heap, srcAddr, cC.killsSlotPos, 4));
+        Assert.Equal(Signatures.KillsMeterSlot(7),  ReadSlot(heap, srcAddr, cA.killsSlotPos, meterWidth));
+        Assert.Equal(Signatures.KillsMeterSlot(13), ReadSlot(heap, srcAddr, cB.killsSlotPos, meterWidth));
+        Assert.Equal(Signatures.KillsMeterSlot(5),  ReadSlot(heap, srcAddr, cC.killsSlotPos, meterWidth));
         // Target (id 10, 7 kills < prod threshold[0]=5 -- wait, 7 >= 5 → tier 1 = "+").
         Assert.Equal("+ ", ReadSlot(heap, srcAddr, cA.suffixPos, 2));
     }
@@ -387,8 +390,8 @@ public class DisplayMutationGapTests
         var display = new Display(meta, kills, wrapped, clock.Func);
         CardFixtures.DrainGeneration(display, clock, 600);
 
-        // Count slot must show "3   " (nonzero, so assertion is non-vacuous).
-        Assert.Equal("3   ", ReadSlot(heap, srcBase, cA.killsSlotPos, 4));
+        // Count slot must show the kills=3 meter body (nonzero, so assertion is non-vacuous).
+        Assert.Equal(Signatures.KillsMeterSlot(3), ReadSlot(heap, srcBase, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
         // Suffix slot must remain "  " (tier 0, not tier 1's "+" ).
         Assert.Equal("  ", ReadSlot(heap, srcBase, cA.suffixPos, 2));
     }
@@ -409,7 +412,7 @@ public class DisplayMutationGapTests
         var flavorB  = ByteScan.Enc("Sharp", 1);
         var fillerB  = ByteScan.Enc(" stuff\n\n", 1);
         var killsB   = ByteScan.Enc("Kills: ", 1);
-        var slotB    = ByteScan.Enc("0   ", 1);
+        var slotB    = ByteScan.Enc(Signatures.KillsMeterSlot(0), 1);
 
         parts.AddRange(flavorB);
         parts.AddRange(fillerB);
@@ -601,7 +604,7 @@ public class DisplayMutationGapTests
         byte[] padB    = ByteScan.Ascii("   ");
         byte[] flvB    = ByteScan.Ascii(flavor);
         byte[] nnB     = ByteScan.Ascii("\n\nKills: ");
-        byte[] kB      = ByteScan.Ascii("0   ");
+        byte[] kB      = ByteScan.Ascii(Signatures.KillsMeterSlot(0));
 
         // Place flavor so it ends exactly at (chunkSize - 1), i.e. last byte of chunk 0.
         // flvB.Length bytes ending at chunkSize-1 means starting at chunkSize - flvB.Length.
@@ -640,8 +643,8 @@ public class DisplayMutationGapTests
         CardFixtures.DrainGeneration(display, clock, 600);
 
         // The kills slot lives at regionBase + killsSlotOff in the heap.
-        heap.TryReadBytes(regionBase + killsSlotOff, 4, out var painted);
+        heap.TryReadBytes(regionBase + killsSlotOff, Signatures.KillsMeterSlotChars, out var painted);
         string got = System.Text.Encoding.ASCII.GetString(painted);
-        Assert.Equal("11  ", got);
+        Assert.Equal(Signatures.KillsMeterSlot(11), got);
     }
 }

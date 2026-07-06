@@ -31,9 +31,9 @@ public class CardSitesPaintTests
         int writes = sites.Paint(new[] { site }, id => id == 1 ? 42 : 0);
         Assert.Equal(1, writes);
 
-        bool ok = heap.TryReadBytes(0x1000 + slotAddr, 4, out var painted);
+        bool ok = heap.TryReadBytes(0x1000 + slotAddr, Signatures.KillsMeterSlotChars, out var painted);
         Assert.True(ok);
-        var expected = ByteScan.Ascii("42  ");
+        var expected = ByteScan.Ascii(Signatures.KillsMeterSlot(42));
         Assert.Equal(expected, painted);
     }
 
@@ -74,7 +74,7 @@ public class CardSitesPaintTests
 
         var buf = new byte[200];
         int pos = 10;
-        int slotAddr = CardFixtures.WriteKillsBlock(buf, pos, "A fine blade", gap: 50, slot: "42  ");
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, pos, "A fine blade", gap: 50, slot: Signatures.KillsMeterSlot(42));
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);

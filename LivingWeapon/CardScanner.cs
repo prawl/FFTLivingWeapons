@@ -19,12 +19,14 @@ internal static class CardScanner
     internal readonly record struct SuffixHit(int Id, int Enc, int SlotPos, int NamePos);
     internal readonly record struct KillsHit(int Id, int Enc, int SlotPos, int FlavorPos);
 
-    /// <summary>Find "Kills: " occurrences (both encodings) and tie each to the nearest preceding
-    /// flavor (same encoding). Validate the 4-char slot. Emit a hit only if an owner flavor is
-    /// found within FlavorWindow. No hit if the "Kills: " starts outside [lookback, searchable).
-    /// <paramref name="anchors"/> (Reliquary Phase 1, decision 12) extends the flavor search to
-    /// ANY of a weapon's registered anchors (baked, current, or previous earned line) -- null
-    /// (every pre-Reliquary caller) searches baked flavors only, byte-identical to before.</summary>
+    /// <summary>Find "Kills: " occurrences (both encodings) and tie each to the nearest flavor on
+    /// EITHER side (same encoding, bidirectional: see <see cref="NearestAnchorPosBidir"/>).
+    /// Validate the <see cref="Signatures.KillsMeterSlotChars"/>-wide meter slot. Emit a hit only
+    /// if an owner flavor is found within FlavorWindow. No hit if the "Kills: " starts outside
+    /// [lookback, searchable). <paramref name="anchors"/> (Reliquary Phase 1, decision 12) extends
+    /// the flavor search to ANY of a weapon's registered anchors (baked, current, or previous
+    /// earned line); null (every pre-Reliquary caller) searches baked flavors only, byte-identical
+    /// to before.</summary>
     public static void FindKills(byte[] buf, int lookback, int searchable, CardPatterns pats,
                                  List<KillsHit> hits, EarnedAnchors? anchors = null)
     {
@@ -32,7 +34,7 @@ internal static class CardScanner
         foreach (int enc in new[] { 1, 2 })
         {
             byte[] killsPattern = pats.Kills(enc);
-            int slotWidth = 4 * enc;
+            int slotWidth = Signatures.KillsMeterSlotChars * enc;
 
             var killsHits = new List<int>();
             ByteScan.FindAll(buf, killsPattern, lookback, windowEnd, killsHits);
@@ -41,12 +43,12 @@ internal static class CardScanner
             {
                 int slotPos = killsPos + killsPattern.Length;
                 if (slotPos + slotWidth > buf.Length) continue;
-                if (!ByteScan.KillsDigits(buf, slotPos, enc)) continue;
+                if (!ByteScan.MeterSlotDigits(buf, slotPos, enc, Signatures.KillsMeterSlotChars)) continue;
 
                 int ownerId = FindNearestFlavor(buf, killsPos, enc, pats, anchors);
                 if (ownerId < 0) continue;
 
-                int flavorPos = NearestAnchorPos(buf, killsPos, AnchorCandidates(ownerId, enc, pats, anchors));
+                int flavorPos = NearestAnchorPosBidir(buf, killsPos, AnchorCandidates(ownerId, enc, pats, anchors));
 
                 hits.Add(new KillsHit(ownerId, enc, slotPos, flavorPos));
             }
@@ -85,18 +87,29 @@ internal static class CardScanner
         }
     }
 
-    /// <summary>Find the weapon id whose flavor (same encoding) is nearest and before the given
-    /// position within FlavorWindow, or -1 if none found. <paramref name="anchors"/> extends the
-    /// search to a weapon's registered earned lines too (decision 12) -- null falls back to
-    /// baked-flavor-only, byte-identical to the pre-Reliquary behavior.</summary>
+    /// <summary>Find the weapon id whose flavor (same encoding) is NEAREST the given position on
+    /// EITHER side (minimum absolute distance: see <see cref="NearestAnchorPosBidir"/>), or -1
+    /// if none found within FlavorWindow on either side. <paramref name="anchors"/> extends the
+    /// search to a weapon's registered earned lines too (decision 12); null falls back to
+    /// baked-flavor-only, byte-identical to the pre-Reliquary behavior.
+    ///
+    /// KEY DESIGN CHANGE (2026-07-06): this used to pick the LARGEST backward-only position
+    /// (equivalent to the smallest backward distance). Bidirectional is a strict generalization:
+    /// nothing is ever allocated between a card's "Kills: " and its OWN flavor (fixed slot +
+    /// "\n\n"), so the owner's flavor is always the nearest candidate whether it sits above (every
+    /// pre-existing fixture) or below (the new deployed bake). On a flavor-before layout this
+    /// resolves identically to the old backward-only selection (see the class doc + CardScanner
+    /// test suites).</summary>
     private static int FindNearestFlavor(byte[] buf, int pos, int enc, CardPatterns pats, EarnedAnchors? anchors)
     {
-        int bestPos = -1, bestId = -1;
+        int bestDist = int.MaxValue, bestId = -1;
         foreach (var entry in pats.Entries)
         {
             if (entry.Enc != enc) continue;
-            int p = NearestAnchorPos(buf, pos, AnchorCandidates(entry.Id, enc, pats, anchors));
-            if (p > bestPos) { bestPos = p; bestId = entry.Id; }
+            int p = NearestAnchorPosBidir(buf, pos, AnchorCandidates(entry.Id, enc, pats, anchors));
+            if (p < 0) continue;
+            int dist = Math.Abs(p - pos);
+            if (dist < bestDist) { bestDist = dist; bestId = entry.Id; }
         }
         return bestId;
     }
@@ -130,5 +143,43 @@ internal static class CardScanner
             if (abs > best) best = abs;
         }
         return best;
+    }
+
+    /// <summary>Nearest occurrence (the SMALLEST absolute position &gt; pos: the forward twin of
+    /// <see cref="NearestAnchorPos"/>, NOT a copy-paste of its max) of ANY of the given candidate
+    /// byte patterns within (pos, pos+FlavorWindow], or -1 if none found. Backs the new deployed
+    /// equip-meter layout (Kills line first, flavor below).</summary>
+    private static int NearestAnchorPosForward(byte[] buf, int pos, IReadOnlyList<byte[]> candidates)
+    {
+        int searchStart = pos + 1;
+        int searchEnd = Math.Min(buf.Length, pos + FlavorWindow);
+        if (searchStart >= searchEnd || candidates.Count == 0) return -1;
+        var span = buf.AsSpan(searchStart, searchEnd - searchStart);
+        int best = -1;
+        foreach (var cand in candidates)
+        {
+            if (cand.Length == 0) continue;
+            int rel = span.IndexOf(cand.AsSpan());
+            if (rel < 0) continue;
+            int abs = searchStart + rel;
+            if (best < 0 || abs < best) best = abs;
+        }
+        return best;
+    }
+
+    /// <summary>The bidirectional nearest-anchor search (KEY DESIGN CHANGE, plan v2): tries BOTH
+    /// <see cref="NearestAnchorPos"/> (backward, largest pos &lt; pos) and
+    /// <see cref="NearestAnchorPosForward"/> (forward, smallest pos &gt; pos) and returns whichever
+    /// is closer by absolute distance. -1 only if neither direction finds a candidate within
+    /// FlavorWindow. A strict generalization of backward-only: on any flavor-before layout this
+    /// returns the identical position the old backward-only search did (the forward half can only
+    /// ever narrow the answer, never override a legitimately-nearer backward hit).</summary>
+    private static int NearestAnchorPosBidir(byte[] buf, int pos, IReadOnlyList<byte[]> candidates)
+    {
+        int before = NearestAnchorPos(buf, pos, candidates);
+        int after = NearestAnchorPosForward(buf, pos, candidates);
+        if (before < 0) return after;
+        if (after < 0) return before;
+        return (after - pos) < (pos - before) ? after : before;
     }
 }

@@ -141,8 +141,8 @@ public class CardSitesCacheTests
 
         var buf = new byte[200];
         int anchorPos = 10;
-        // Slot already holds the target value for kills=42.
-        int slotAddr = CardFixtures.WriteKillsBlock(buf, anchorPos, "A fine blade", gap: 20, slot: "42  ");
+        // Slot already holds the target meter body for kills=42.
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, anchorPos, "A fine blade", gap: 20, slot: Signatures.KillsMeterSlot(42));
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);

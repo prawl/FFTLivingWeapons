@@ -264,6 +264,74 @@ public class SignaturesTests
             Assert.Equal(4, Signatures.KillsSlot(n).Length);
     }
 
+    // --- KillsMeterSlotIn / KillsMeterSlot: the equip-card meter, VERBATIM-reused from the
+    //     Attack card's own AttackCardTail.ComposeHead (owner decision 2026-07-06). The slot
+    //     body is ComposeHead's return value with the "Kills: " prefix stripped and padded to
+    //     Signatures.KillsMeterSlotChars chars: never a re-implementation of the format string.
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(24)]
+    [InlineData(25)]
+    [InlineData(49)]
+    [InlineData(50)]
+    [InlineData(55)]
+    [InlineData(9999)]
+    [InlineData(10000)]
+    public void KillsMeterSlotIn_reassembles_byte_for_byte_into_ComposeHeads_own_output(int kills)
+    {
+        string reassembled = "Kills: " + Signatures.KillsMeterSlotIn(kills, Tuning.ProdThresholds, Tuning.Suffix).TrimEnd();
+        string composed = AttackCardTail.ComposeHead(kills, Tuning.ProdThresholds, Tuning.Suffix);
+        Assert.Equal(composed, reassembled);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(24)]
+    [InlineData(25)]
+    [InlineData(49)]
+    [InlineData(50)]
+    [InlineData(55)]
+    [InlineData(9999)]
+    [InlineData(10000)]
+    public void KillsMeterSlot_is_always_the_fixed_slot_width(int kills)
+    {
+        Assert.Equal(Signatures.KillsMeterSlotChars, Signatures.KillsMeterSlot(kills).Length);
+    }
+
+    [Fact]
+    public void KillsMeterSlotChars_is_11()
+    {
+        // The single source of the 11 (spec non-negotiable #5): every C# site (ByteScan validator
+        // width, CardPatterns, CardScanner, CardSites) references this constant, never a literal.
+        Assert.Equal(11, Signatures.KillsMeterSlotChars);
+    }
+
+    [Fact]
+    public void KillsMeterSlot_delegates_to_the_compiled_prod_tuning()
+    {
+        // KillsMeterSlot (no explicit thresholds/suffixes) must match KillsMeterSlotIn driven by
+        // the compiled Tuning.KillThresholds/Suffix (prod under a non-LWDEV test compile).
+        foreach (int k in new[] { 0, 5, 25, 50, 55 })
+            Assert.Equal(Signatures.KillsMeterSlotIn(k, Tuning.KillThresholds, Tuning.Suffix), Signatures.KillsMeterSlot(k));
+    }
+
+    [Theory]
+    [InlineData(0, "0/5 to +   ")]     // "0/5 to +" (8 chars) padded to 11
+    [InlineData(5, "5/25 to +2 ")]     // "5/25 to +2" (10 chars) padded to 11
+    [InlineData(24, "24/25 to +2")]    // exactly 11, no padding
+    [InlineData(25, "25/50 to +3")]    // exactly 11, no padding
+    [InlineData(49, "49/50 to +3")]    // exactly 11, no padding (widest prod body)
+    [InlineData(50, "50         ")]    // max tier: plain count, padded to 11
+    public void KillsMeterSlot_worked_examples_under_prod_thresholds(int kills, string expected)
+    {
+        Assert.Equal(expected, Signatures.KillsMeterSlot(kills));
+    }
+
     // --- StuckEdge: the once-per-transition latch behind the Barrage/ShadowBlade per-tick nags
     //     (logging overhaul). A condition that can hold true for MANY consecutive ticks (no empty
     //     JobCommand slot, a record not readable yet) must fire its diagnostic once on the rising

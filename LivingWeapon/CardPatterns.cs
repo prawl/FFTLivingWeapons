@@ -109,7 +109,22 @@ internal sealed class CardPatterns
     /// DisplayStoryLineTests.FitsLookback_with_earned_patterns_registered for the test.</summary>
     public bool FitsLookback(int lookback)
     {
-        int widestSlot = Math.Max(Kills(2).Length + 4 * 2, 2 * 2);
+        int widestSlot = Math.Max(Kills(2).Length + Signatures.KillsMeterSlotChars * 2, 2 * 2);
         return lookback >= _maxAnchorLen + widestSlot;
+    }
+
+    /// <summary>True when the given trailing slack (ChunkReader.TrailSlack / DisplaySweep.TrailSlack)
+    /// fits the worst-case FORWARD reach a new-layout card needs: the bidirectional attribution
+    /// search (CardScanner) can now find a weapon's flavor AFTER its "Kills: " hit (the Reliquary
+    /// Phase-2 equip-meter layout, docs/TODO.md), so the trailing slack (not just the leading
+    /// Lookback prefix FitsLookback guards) must hold the widest anchor plus the Kills literal
+    /// plus the meter slot, all in UTF-16 (the widest encoding), plus the "\n\n" gap between the
+    /// slot and the next card's own leading bytes. Mirrors FitsLookback for the forward direction;
+    /// see Display's ctor for where this is exercised at startup (log-and-continue, same posture
+    /// as FitsLookback: a too-short slack only degrades painting, never crashes).</summary>
+    public bool FitsTrailSlack(int trailSlack)
+    {
+        int worstCase = _maxAnchorLen + Kills(2).Length + Signatures.KillsMeterSlotChars * 2 + 4;
+        return trailSlack >= worstCase;
     }
 }

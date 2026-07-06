@@ -34,7 +34,7 @@ internal static class CardScannerFixtures
         var buf = new byte[(name.Length + flavor.Length + 64) * 2];
         var (_, _, killsSlotPos) = CardFixtures.WriteCard(buf, 0, name, flavor, enc,
                                                           pad: "", filler: " filler.");
-        int end = killsSlotPos + ByteScan.Enc("0   ", enc).Length;
+        int end = killsSlotPos + ByteScan.Enc(Signatures.KillsMeterSlot(0), enc).Length;
         var card = new byte[end];
         System.Array.Copy(buf, card, end);
         return card;
