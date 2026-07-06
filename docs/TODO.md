@@ -39,8 +39,14 @@ is the in-flight subset, not a mirror of that checklist.
   - Done means: in battle, the Attack command row renders the acting unit's living weapon name
     with its growth suffix ("Save the Queen+"; the row text and the hover card's title share
     one string, so both update together), and the hover card's Description becomes the kill
-    count's home ("Kills: N" plus Mark info when earned). A non-living weapon keeps vanilla
-    text. Staged: (1) AttackCardSpike census (HeaderSpike blueprint, F6 co-fire): dump the
+    count's home ("Kills: N" plus Mark info when earned). EMPTY HANDS (owner rule 2026-07-05):
+    a unit with no weapon equipped (Monks, barehanded anyone) shows "Fist" in the row, no
+    suffix, no tally, vanilla desc. A non-living weapon keeps vanilla text in v1 (naming every
+    item would need the full name table baked into meta; noted as a cheap later extension).
+    DUAL WIELD (owner rule 2026-07-05): the row and hover title show the MAIN HAND only; when
+    the off-hand differs and has its own story, the desc gains an off-hand clause ("Koga Blade
+    off-hand: 8.") under the normal clause-drop budget rules; same-weapon pairs are one id and
+    need nothing special. Staged: (1) AttackCardSpike census (HeaderSpike blueprint, F6 co-fire): dump the
     packed "Attack" tables (canonical desc text, copy count, encodings, rebuild cadence), and
     live-test a footprint-safe desc write with a revert watch; (2) ship the desc painter (the
     kills home); (3) crack the row rename, since "Attack" is a 6-char in-place prison:
