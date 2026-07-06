@@ -19,18 +19,21 @@ is the in-flight subset, not a mirror of that checklist.
   - Notes: owner verified 2026-07-05 during this pass: dual-pistol off-hand equip works, the
     second Outrider Pistol equipped and fired.
 
-- **[LW-27] Marks move to the equipment card's header bar** (opened 2026-07-05) [BUILDING]
-  - Done means: the equipment card's brown "Description" header paints per-weapon (target
-    wording shape: "Kills: 100 - Mageslayer") through the card painter with paint-time
-    ownership verification, in both text encodings, without bleeding onto ability cards or
-    other items' cards; the description body drops the Mark prose (which also relieves LW-26).
-    First stage is a HeaderSpike dev instrument (ShowSpike/FlavorSpike pattern) proving the
-    header spots are locatable, paintable, and hold across card refreshes.
-  - Verify: pure pattern/compose halves unit-tested; owner eyeballs the spike live; the
-    header-spot mechanic gets a LIVE_LEDGER row before the production painter ships.
-  - Notes: owner CE prototype 2026-07-05: plain-string edits take on the ability card but
-    never the equipment card (per-widget copies, encodings, and card-refresh re-sets; see the
-    backlog history in docs/CHANGELOG.md when this exits).
+- **[LW-27] The kill count replaces the "Description" header on the equipment card** (opened 2026-07-05) [BUILDING]
+  - Done means: the equipment card's brown header paints the VIEWED weapon's count, exactly
+    "Kills: N" (owner decision 2026-07-05: count only, no Mark; "Kills: 9999" is 11 chars,
+    the same as "Description", so a 4-digit count fits the in-place footprint precisely);
+    non-weapon cards and unstoried weapons show the vanilla "Description"; once shipped, the
+    baked descriptions RETIRE the body's Kills line, refunding budget (relieves LW-26).
+  - Verify: pure compose/pattern halves unit-tested; owner eyeballs live; LIVE_LEDGER rows for
+    the header-write mechanic (spike-proven 2026-07-05: 197 copies stamped, both encodings,
+    writes hold with zero reverts) and for the view-detection signal before shipping.
+  - Notes: REMAINING RESEARCH: view detection. The header copies live in a different memory
+    neighborhood than the card bodies (0x15CC vs 0x4D1B families this launch), so body-proximity
+    anchoring cannot identify the currently viewed item; need a hovered-item-id signal (the
+    unit-hover analogue is a known address, an item twin likely exists; probe it). Header is
+    shared chrome across ALL card types, so the painter must be view-aware and restore vanilla
+    on non-weapon cards.
 
 - **[LW-31] The battle Abilities menu becomes the weapon funnel** (opened 2026-07-05) [BUILDING]
   - Done means: in battle, the Attack command row renders the acting unit's living weapon name
