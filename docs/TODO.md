@@ -53,7 +53,9 @@ is the in-flight subset, not a mirror of that checklist.
     are ONE packed buffer, "Attack" plus NUL then the desc (delta exactly 7); an overlong row
     write ate the NUL and a desc write then truncated it to "Save th4", proving adjacency; the
     row and card title render from the same string; multiple copies exist. Owner: highest
-    priority.
+    priority. LAYOUT VERIFIED 2026-07-05 (owner screenshot): the worst-case name
+    "Zwill Straightblade+3" (21 chars) renders clean and unclipped in both the row and the
+    hover title, so stage 3 needs no truncation policy: full name always.
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
     Mushin, the parked wait-detection byte hunt); Kiku-ichimonji id45 ships Onryo (Undead brand)
     or Shura (controllable Berserk on 2nd kill, bit +0x47/0x08). Release blocker 1 of 2
