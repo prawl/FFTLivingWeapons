@@ -26,14 +26,19 @@ namespace LivingWeapon;
 /// copies per the spike's census, so a full re-census on any eviction is cheap enough not to
 /// need one).
 ///
-/// TURN-OWNER SEAM: resolves the acting unit's weapons via the SAME seam KillerStamp trusts
+/// TURN-OWNER SEAM (LW-31 stage-2 fix, ledger LW-31): CURSOR-FIRST, register-fallback.
+/// AttackCard.Paint.cs's ComposeCurrentLine first tries ActorResolver.TryResolveCursorPlayer (the
+/// condensed turn-queue struct, Offsets.TurnQueue), proven by the 2026-07-05 TurnOwnerSpike tape
+/// to snap to the acting unit at TURN OPEN, before any action, leading the register by seconds,
+/// under strict guards (player team, unambiguous band+nameId bridge; see ActorResolver.Cursor.cs).
+/// Only when those guards don't clear does it fall back to the ORIGINAL seam KillerStamp trusts
 /// (ActorRegister.LastPlayerRosterBase/LastPlayerArrivalTick/Trusted, then
 /// ActorResolver.HandsFromRoster): never ActorRegister.CurrentBridge/CurrentRosterBase, which
-/// can currently be parked on a struck victim rather than the unit about to act. An untrusted or
-/// empty register, or a resolved player holding no tracked weapon, both mean "restore vanilla":
-/// miss beats mis-showing another unit's dossier. Only the FIRST tracked hand (RRHand-priority,
-/// per ActorResolver.Hands) is dossier'd: a dual-wielder's second blade is credited kills same
-/// as always, just not featured in this single-line hover text.
+/// can currently be parked on a struck victim rather than the unit about to act. Neither seam
+/// answering, or a resolved player holding no tracked weapon, both mean "restore vanilla": miss
+/// beats mis-showing another unit's dossier. Only the FIRST tracked hand (RRHand-priority, per
+/// ActorResolver.Hands) is dossier'd: a dual-wielder's second blade is credited kills same as
+/// always, just not featured in this single-line hover text.
 /// </summary>
 internal sealed partial class AttackCard
 {
@@ -68,6 +73,7 @@ internal sealed partial class AttackCard
     private readonly ChunkReader _reader;
     private readonly ActorRegister _register;
     private readonly Func<long, List<int>> _handsFromRoster;
+    private readonly Func<List<int>?> _resolveCursor;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly LegendStore _legends;
@@ -84,6 +90,7 @@ internal sealed partial class AttackCard
     private long _lastMaintenanceMs = -1;
 
     public AttackCard(IGameMemory mem, ActorRegister register, Func<long, List<int>> handsFromRoster,
+                       Func<List<int>?> resolveCursor,
                        Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, LegendStore legends,
                        Func<long>? nowMs = null)
     {
@@ -91,6 +98,7 @@ internal sealed partial class AttackCard
         _reader = new ChunkReader(mem);
         _register = register;
         _handsFromRoster = handsFromRoster;
+        _resolveCursor = resolveCursor;
         _meta = meta;
         _kills = kills;
         _legends = legends;
@@ -130,6 +138,16 @@ internal sealed partial class AttackCard
     /// (a copy still holding a KNOWN line when the census re-inspects it) without fabricating a
     /// foreign-buffer write to provoke a real eviction.</summary>
     internal void ForceRecensusForTests() => _needsCensus = true;
+
+    /// <summary>Test-only hook (mirrors ForceRecensusForTests): directly poisons the first cached
+    /// hit's footprint to a too-small value, the same effect a corrupted/stale cache entry would
+    /// have, without needing to fabricate a live scenario that produces one organically. Exercises
+    /// SyncHit's own repair (LW-33): a full live read confirming a known line re-pins the
+    /// footprint back to the vanilla desc's own 73 chars.</summary>
+    internal void PoisonFirstHitFootprintForTests(int chars)
+    {
+        if (_hits.Count > 0) _hits[0].DescChars = chars;
+    }
 
     private static bool ByteEq(byte[] a, byte[] b)
     {

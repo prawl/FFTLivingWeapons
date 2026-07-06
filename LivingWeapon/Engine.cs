@@ -168,7 +168,7 @@ internal sealed class Engine
         // because it needs the tracker's own actor register + hands-from-roster seam (the SAME
         // instance KillerStamp trusts; see AttackCard.cs's class doc for why a second register
         // is deliberately avoided).
-        _attackCard = new AttackCard(live, _tracker.Register, _tracker.HandsFromRoster, meta, _kills, _legends);
+        _attackCard = new AttackCard(live, _tracker.Register, _tracker.HandsFromRoster, _tracker.ResolveCursorPlayer, meta, _kills, _legends);
 #if LWDEV
         // Constructed here (not beside _showSpike above) because it needs Display's _sites/_pats,
         // which do not exist until Display itself is built.

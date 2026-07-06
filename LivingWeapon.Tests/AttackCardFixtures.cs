@@ -54,6 +54,21 @@ internal sealed class AttackCardMemory : IGameMemory
     public ushort U16(long addr) => _sparse.U16(addr);
     public bool Readable(long addr, int len) => _sparse.Readable(addr, len);
 
+    /// <summary>LW-31 stage-2: plants the condensed turn-queue struct (Offsets.TurnQueue:
+    /// team/level/hp/maxHp) the cursor-first guard tests need, and marks the struct's base
+    /// address Readable (FakeSparseMemory's Readable contract is an exact-address set, see its
+    /// class doc). Unseeded is the default for every OTHER test in this file, so Readable() stays
+    /// false there and the cursor path fails closed exactly like a genuine unreadable struct;
+    /// every pre-existing test is unaffected.</summary>
+    internal void SeatCursor(int team, int level, int hp, int maxHp)
+    {
+        _sparse.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;
+        _sparse.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
+        _sparse.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
+        _sparse.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
+        _sparse.ReadableAddrs.Add(Offsets.TurnQueue);
+    }
+
     // --- concern 2: the Attack-menu table copies ---
     public bool TryReadBytes(long addr, int len, out byte[] buf)
     {

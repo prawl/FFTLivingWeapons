@@ -81,8 +81,8 @@ public class AttackCardTextTests
     [Fact]
     public void Drops_the_sig_clause_when_it_alone_overflows_the_budget()
     {
-        // head+mark = "Windrunner+3 Kills: 42. Beastbane." (35 chars). Adding " Concentration armed."
-        // (21 more = 56) still fits a wide budget but not this narrow one.
+        // head+mark = "Windrunner+3 Kills: 42. Beastbane." (34 chars). Adding " Concentration armed."
+        // (21 more = 55) still fits a wide budget but not this narrow one.
         string headPlusMark = "Windrunner+3 Kills: 42. Beastbane.";
         Assert.Equal(34, headPlusMark.Length);
         string? line = AttackCardText.Compose("Windrunner", "+3", 42, "Beastbane", "Concentration", budgetChars: 40);

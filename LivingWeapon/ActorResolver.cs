@@ -30,7 +30,7 @@ namespace LivingWeapon;
 /// retains today's hover-trap and level+100-flake exposure -- the register narrows, it does not
 /// eliminate, the ambiguity window.
 /// </summary>
-internal sealed class ActorResolver
+internal sealed partial class ActorResolver
 {
     private static readonly List<int> Empty = new();
     private readonly IGameMemory _mem;

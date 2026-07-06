@@ -36,18 +36,20 @@ internal sealed partial class AttackCard
         RepaintAll();
     }
 
-    /// <summary>Resolve the acting unit's dossier line via the KillerStamp seam
-    /// (ActorRegister.LastPlayer* + ActorResolver.HandsFromRoster). Null (restore vanilla) when
-    /// the register holds no trusted player arrival, the resolved player holds no tracked weapon,
-    /// or that weapon's own compose has nothing to show yet (AttackCardText.Compose's decision 8
-    /// mirror).</summary>
+    /// <summary>Resolve the acting unit's dossier line, CURSOR-FIRST with a register fallback
+    /// (LW-31 stage-2 fix, ledger LW-31): tries ActorResolver.TryResolveCursorPlayer (the condensed
+    /// turn-queue struct, which snaps to the unit whose turn just opened, BEFORE any action, per
+    /// the 2026-07-05 TurnOwnerSpike tape) first, falling back to <see cref="RegisterHands"/> (the
+    /// KillerStamp seam this method always trusted) only when the cursor's guards don't clear (an
+    /// enemy/ally turn, the taped flicker, no roster bridge, or an unreadable struct: see
+    /// ActorResolver.Cursor.cs for the full guard list). Null (restore vanilla) when NEITHER seam
+    /// answers, the resolved player holds no tracked weapon, or that weapon's own compose has
+    /// nothing to show yet (AttackCardText.Compose's decision 8 mirror). Doctrine: a wrong dossier
+    /// is worse than vanilla, so any guard failure or ambiguity falls through, never a guess.</summary>
     private string? ComposeCurrentLine()
     {
-        if (!_register.Trusted || _register.LastPlayerArrivalTick <= 0 || _register.LastPlayerRosterBase == 0)
-            return null;
-
-        var hands = _handsFromRoster(_register.LastPlayerRosterBase);
-        if (hands.Count == 0) return null;   // resolved player, no tracked weapon in hand
+        var hands = _resolveCursor() ?? RegisterHands();
+        if (hands == null || hands.Count == 0) return null;   // no answer, or resolved-but-untracked
 
         int weaponId = hands[0];   // RRHand-priority (ActorResolver.Hands): the main/first tracked hand
         if (!_meta.TryGetValue(weaponId, out var m)) return null;
@@ -66,6 +68,17 @@ internal sealed partial class AttackCard
             : null;
 
         return AttackCardText.Compose(m.Name, suffix, kills, markLabel, sigName);
+    }
+
+    /// <summary>The register-only resolve this method used before the LW-31 stage-2 cursor-first
+    /// fix: the KillerStamp seam (ActorRegister.LastPlayerRosterBase/LastPlayerArrivalTick/
+    /// Trusted, then HandsFromRoster). Kept as the fallback for whenever the cursor's guards don't
+    /// clear.</summary>
+    private List<int>? RegisterHands()
+    {
+        if (!_register.Trusted || _register.LastPlayerArrivalTick <= 0 || _register.LastPlayerRosterBase == 0)
+            return null;
+        return _handsFromRoster(_register.LastPlayerRosterBase);
     }
 
     private void RepaintAll()
@@ -98,6 +111,15 @@ internal sealed partial class AttackCard
             ModLogger.Debug(LogVerb.Display, "attack-card desc no longer holds a known line: evicting the cached copy for a later re-census");
             return false;
         }
+
+        // LW-33: this read is a FULL live read (capped at DescCapChars, the same 73-char cap the
+        // census itself uses) that just confirmed curText is one of the three known lines, an even
+        // stronger observation than the census-time pin (AttackCard.Census.cs's FindHits, which
+        // only ever sees a bounded scan window). Re-pin the footprint to the vanilla desc's own
+        // 73 chars every time, repairing a footprint that was somehow poisoned short instead of
+        // merely avoiding poisoning a fresh one: the true footprint can never legitimately be less
+        // than 73 whenever a known line is sitting there (same induction as the census pin).
+        hit.DescChars = AttackCardText.DefaultBudgetChars;
 
         string desired = _current ?? AttackCardText.VanillaDesc;
         if (curText == desired) return true;   // skip-if-equal

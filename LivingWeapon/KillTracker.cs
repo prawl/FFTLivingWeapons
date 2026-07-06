@@ -140,6 +140,11 @@ internal sealed partial class KillTracker
     /// resolve: the same roster-&gt;weapons seam KillerStamp already trusts (KillerStamp.cs).</summary>
     internal Func<long, List<int>> HandsFromRoster => _resolver.HandsFromRoster;
 
+    /// <summary>LW-31 stage-2 fix: this tracker's ActorResolver.TryResolveCursorPlayer, exposed
+    /// for AttackCard's cursor-first dossier resolve (AttackCard.Paint.cs). Null = no cursor
+    /// answer (guard failure or ambiguity); non-null (possibly empty) = a confident resolve.</summary>
+    internal Func<List<int>?> ResolveCursorPlayer => () => _resolver.TryResolveCursorPlayer(out var w) ? w : null;
+
     /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
     /// the seen-alive guard ensures any pre-existing corpse (never seen alive) is ineligible.</summary>
     public void ResetBattle()
