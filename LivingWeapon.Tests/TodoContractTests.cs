@@ -12,8 +12,9 @@ namespace LivingWeapon.Tests;
 /// test-bin-dir idiom as LogContractTests.RepoRoot:
 ///
 /// A. TODO.md's `## ` headers are exactly Now/Backlog/Walled/Format, in that order, no others.
-/// B. Every top-level Now entry matches the bold-title/opened-date/status grammar, and carries a
-///    `- Done means:` and a `- Verify:` continuation line among its indented sub-bullets.
+/// B. Every top-level Now entry matches the bold-title/opened-date/status grammar, and carries
+///    EXACTLY ONE `- Done means:` and EXACTLY ONE `- Verify:` continuation line among its
+///    indented sub-bullets (a stranded second pair means a neighboring entry lost its header line).
 /// C. The Now section holds at most 5 top-level entries (the hard release-focus cap).
 /// D. Every top-level Backlog entry matches the id/date/sentence grammar.
 /// E. Every top-level docs/CHANGELOG.md entry matches the id/disposition/date/summary grammar.
@@ -240,29 +241,31 @@ public class TodoContractTests
     // --- B. Now entry grammar + Done means / Verify continuation lines ---
 
     [Fact]
-    public void Every_Now_entry_matches_the_grammar_and_carries_Done_means_and_Verify()
+    public void Every_Now_entry_matches_the_grammar_and_carries_exactly_one_Done_means_and_one_Verify()
     {
         var now = NowSection(RepoRoot());
         var entries = GroupTopLevelEntries(now.Body);
         Assert.NotEmpty(entries);
 
         var badGrammar = new List<string>();
-        var missingDoneMeans = new List<string>();
-        var missingVerify = new List<string>();
+        var violations = new List<string>();
         foreach (var entry in entries)
         {
             string topLine = entry[0];
             if (!IsNowEntryLine(topLine)) badGrammar.Add(topLine);
-            if (!entry.Skip(1).Any(l => l.Trim().StartsWith("- Done means:"))) missingDoneMeans.Add(topLine);
-            if (!entry.Skip(1).Any(l => l.Trim().StartsWith("- Verify:"))) missingVerify.Add(topLine);
+
+            int doneMeans = entry.Skip(1).Count(l => l.Trim().StartsWith("- Done means:"));
+            int verify = entry.Skip(1).Count(l => l.Trim().StartsWith("- Verify:"));
+            if (doneMeans != 1)
+                violations.Add($"{topLine} has {doneMeans} '- Done means:' sub-bullets (must be exactly 1)");
+            if (verify != 1)
+                violations.Add($"{topLine} has {verify} '- Verify:' sub-bullets (must be exactly 1)");
         }
 
         Assert.True(badGrammar.Count == 0,
             "Now entries failing the entry-line grammar:\n" + string.Join("\n", badGrammar));
-        Assert.True(missingDoneMeans.Count == 0,
-            "Now entries missing a '- Done means:' continuation line:\n" + string.Join("\n", missingDoneMeans));
-        Assert.True(missingVerify.Count == 0,
-            "Now entries missing a '- Verify:' continuation line:\n" + string.Join("\n", missingVerify));
+        Assert.True(violations.Count == 0,
+            "Now entries with the wrong '- Done means:'/'- Verify:' sub-bullet count:\n" + string.Join("\n", violations));
     }
 
     // --- C. Now cap ---

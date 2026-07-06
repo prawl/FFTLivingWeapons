@@ -36,7 +36,7 @@ is the in-flight subset, not a mirror of that checklist.
     on non-weapon cards.
 
 - **[LW-31] The battle Abilities menu becomes the weapon funnel** (opened 2026-07-05) [BUILDING]
-  - Done means (owner-consolidated 2026-07-06): in battle, the Attack command row renders the
+  - Done means: (owner-consolidated 2026-07-06) in battle, the Attack command row renders the
     acting unit's living weapon name with its growth suffix ("Save the Queen+" / Mettle /
     Items; the row text and the hover card's title share one string, so both update together);
     ANY resolve failure falls back to the vanilla "Attack" (explicit owner rule). The hover
@@ -89,6 +89,8 @@ is the in-flight subset, not a mirror of that checklist.
     ceiling during their menu?) or the cursor-follower struct (sits on the actor while their
     own menu is open?); both need a live probe before trusting. The painter's conservative
     null default stays for pre-first-action.
+
+- **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
     Mushin, the parked wait-detection byte hunt); Kiku-ichimonji id45 ships Onryo (Undead brand)
     or Shura (controllable Berserk on 2nd kill, bit +0x47/0x08). Release blocker 1 of 2
