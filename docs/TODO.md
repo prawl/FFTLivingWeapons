@@ -61,7 +61,16 @@ is the in-flight subset, not a mirror of that checklist.
     row and card title render from the same string; multiple copies exist. Owner: highest
     priority. LAYOUT VERIFIED 2026-07-05 (owner screenshot): the worst-case name
     "Zwill Straightblade+3" (21 chars) renders clean and unclipped in both the row and the
-    hover title, so stage 3 needs no truncation policy: full name always.
+    hover title, so stage 3 needs no truncation policy: full name always. STAGE 2 LIVE PASS
+    2026-07-05 22:4x: census/compose/paint/tally/Marks all worked on screen (owner screenshot
+    of the full dossier), but FAILED on attribution timing: the dossier shows the PREVIOUS
+    actor's weapon at menu time, because the actor register only arrives on a unit when it
+    ACTS and the menu is hovered before acting (each unit's card wears the last actor's
+    weapon). Stage 2 stays UNCOMMITTED until fixed. Fix needs a LEADING turn-owner signal at
+    menu time: probe candidates are the scheduler CT ceiling (proven offset, one player at the
+    ceiling during their menu?) or the cursor-follower struct (sits on the actor while their
+    own menu is open?); both need a live probe before trusting. The painter's conservative
+    null default stays for pre-first-action.
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
     Mushin, the parked wait-detection byte hunt); Kiku-ichimonji id45 ships Onryo (Undead brand)
     or Shura (controllable Berserk on 2nd kill, bit +0x47/0x08). Release blocker 1 of 2
@@ -171,6 +180,12 @@ is the in-flight subset, not a mirror of that checklist.
   (stronger observation there: the full 73 chars were actually read), plus fix the two
   slightly-overselling test comments (AttackCardTests.cs boundary test, AttackCardTextTests
   arithmetic). Fold into the next attack-card round (stage 3 or the dual-wield clause).
+- [LW-34] 2026-07-05: The coverage line over-counts enemies ("All 8 enemies are accounted for"
+  in a 4-enemy battle; owner report, log 22:43). Attribution itself was flawless that battle
+  (all 4 kills credited cleanly, correct battle-end summary), so likely the EnemyOracle is
+  counting band MIRROR-seat clones as distinct identities (or hidden/reinforcement units).
+  Investigate: dump the oracle's identity set against the census in one battle; cosmetic
+  unless the count gates something.
 - [LW-28] 2026-07-05: A BuildLinked deploy LOST kills.json and legends.json despite the
   preservation round-trip (the 17:54 launch logged "No kill tally was found on disk"; the 82
   kill tally and the Beastbane Mark were gone; the %TEMP% livingweapon_preserve dir no longer
