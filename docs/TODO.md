@@ -32,22 +32,25 @@ is the in-flight subset, not a mirror of that checklist.
     never the equipment card (per-widget copies, encodings, and card-refresh re-sets; see the
     backlog history in docs/CHANGELOG.md when this exits).
 
-- **[LW-30] Weapon reputation in the attack-targeting pill** (opened 2026-07-05) [QUEUED]
-  - Done means: when the acting unit opens Attack targeting with a storied living weapon,
-    PromptSwap prefix-matches the "Select a target" prompt and swaps in the OWNER-LOCKED
-    wording (2026-07-05): "Select the target for {Mark}{Name}{suffix}." (title worn as part of
-    the name, one word, e.g. "Mageslayer Outrider Pistol+3"; NO kill count in the pill: the
-    count's home is the menus, LW-27). Genre rule, owner-derived: this pill family speaks
-    instructions or just-happened events, never status plaques. An unstoried or non-living
-    weapon keeps the vanilla text (preserving the tutorial line). Compose is a pure tested
-    policy (CardLine/BannerToast style).
-  - Verify: compose policy unit tests green; prompt-swap house rules (owner sees the swap live
-    before commit); confirm no bleed into other prompts sharing the pipe.
-  - Notes: owner discovered and live-mocked the surface 2026-07-05 (screenshots on file: CE
-    edit rendered "Outrider Pistol+3: 12 Kills" in the pill, which auto-sized to the longer
-    text). Live read of the owner's two CE addresses: twin copies of a NUL-separated fragment
-    table ("Select a target " + "and press" + "<keyicon=ok> to confirm."), so the pill supports
-    markup tokens and the real swap happens at render-call time, unbound by fragment length.
+- **[LW-31] The battle Abilities menu becomes the weapon funnel** (opened 2026-07-05) [BUILDING]
+  - Done means: in battle, the Attack command row renders the acting unit's living weapon name
+    with its growth suffix ("Save the Queen+"; the row text and the hover card's title share
+    one string, so both update together), and the hover card's Description becomes the kill
+    count's home ("Kills: N" plus Mark info when earned). A non-living weapon keeps vanilla
+    text. Staged: (1) AttackCardSpike census (HeaderSpike blueprint, F6 co-fire): dump the
+    packed "Attack" tables (canonical desc text, copy count, encodings, rebuild cadence), and
+    live-test a footprint-safe desc write with a revert watch; (2) ship the desc painter (the
+    kills home); (3) crack the row rename, since "Attack" is a 6-char in-place prison:
+    candidates are the SetTextString-family swap (PromptSwap precedent) or the battle-menu
+    ctor inline hook (documented recipe; Denuvo dead-hook canary required); read the
+    battle-menu architecture notes before stage 3.
+  - Verify: pure halves unit-tested per stage; owner eyeballs each stage live before commit;
+    LIVE_LEDGER rows for the new mechanics (menu-table desc write holds; row-rename mechanism).
+  - Notes: owner discovery + CE adjudication 2026-07-05 (screenshots on file): the two CE addrs
+    are ONE packed buffer, "Attack" plus NUL then the desc (delta exactly 7); an overlong row
+    write ate the NUL and a desc write then truncated it to "Save th4", proving adjacency; the
+    row and card title render from the same string; multiple copies exist. Owner: highest
+    priority.
   - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
     Mushin, the parked wait-detection byte hunt); Kiku-ichimonji id45 ships Onryo (Undead brand)
     or Shura (controllable Berserk on 2nd kill, bit +0x47/0x08). Release blocker 1 of 2
@@ -146,6 +149,12 @@ is the in-flight subset, not a mirror of that checklist.
   session. Investigate both; add a loud post-restore existence check to BuildLinked (a deploy
   that loses a preserved file must fail red, not print success). Owner declined tally
   reconstruction for now (tapes and prev.log carry the counts if ever wanted).
+- [LW-30] 2026-07-05: Weapon reputation in the attack-targeting pill (demoted from Now when
+  LW-31 took the slot; the Abilities-menu funnel covers the in-battle identity job). If
+  revived, the locked wording is "Select the target for {Mark}{Name}{suffix}." via a PromptSwap
+  prefix match on "Select a target"; unstoried weapons keep vanilla text. Every technical
+  unknown was answered live 2026-07-05: writable, render-call-time swap (fragment-length
+  unbound), pill auto-sizes to viewport width, markup tokens supported ("<keyicon=ok>").
 - [LW-29] 2026-07-05: RELEASE QUESTION: do player save files (kills.json, legends.json,
   gunslinger.json) survive a Reloaded mod UPDATE (2.2.2 to 2.3.0)? If a mod update replaces
   the mod folder, every player loses their tally on upgrade, which is the worst possible bug
