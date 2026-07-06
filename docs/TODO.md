@@ -151,6 +151,26 @@ is the in-flight subset, not a mirror of that checklist.
   (owner eyeball, within the DESC_MAX=259 budget). Trim its prose (items.json flavor or
   signature line), and consider whether the budget needs a safety margin when a Marks line
   is present.
+- [LW-32] 2026-07-05: Marks in two waves (owner architecture direction): wave 1 = a weapon
+  CHRONICLE store collecting metrics as play happens (aggregate counters per weapon and victim
+  class for scale, plus a notable-events log: first blood, first of each class, boss keys,
+  battle-enders, milestones; the victim snapshot already captured at every credit edge makes
+  collection nearly free; KillTally-pattern persistence, deploy-preserved, raises LW-29's
+  stakes); wave 2 = a pure INTERPRETER turning metrics into Marks/tiers/deeds/card lines
+  (policy only, fully unit-testable, no live risk). The killer property is RETROACTIVITY: new
+  Mark vocabulary or threshold changes award from history already collected, so interpretation
+  can iterate forever without wronging a save. Owner is on the fence about Mark titles
+  doubling the +N system; the record-first architecture defers that question (candidate
+  anti-doubling rule on the table: a Mark requires PLURALITY of kills, not raw count).
+  Supersedes/absorbs the Phase 1 legends.json shape when picked up; ties to LW-6.
+- [LW-33] 2026-07-05: Close the residual footprint-poisoning path in the attack-card painter
+  (re-verifier R1, non-blocking at 8.5 SHIP): a census chunk read that truncates a known line
+  mid-region caches the short count, and SyncHit's fuller live re-read then trusts it; rare
+  (chunk-boundary window), under-writes only, but it can strand a painted line past the
+  battle-exit restore like F1 did. Fix: apply the same known-line footprint pin inside SyncHit
+  (stronger observation there: the full 73 chars were actually read), plus fix the two
+  slightly-overselling test comments (AttackCardTests.cs boundary test, AttackCardTextTests
+  arithmetic). Fold into the next attack-card round (stage 3 or the dual-wield clause).
 - [LW-28] 2026-07-05: A BuildLinked deploy LOST kills.json and legends.json despite the
   preservation round-trip (the 17:54 launch logged "No kill tally was found on disk"; the 82
   kill tally and the Beastbane Mark were gone; the %TEMP% livingweapon_preserve dir no longer
