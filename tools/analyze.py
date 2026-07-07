@@ -149,17 +149,15 @@ def check_p3desc(items):
     return bad
 
 
-DESC_MAX = 266  # TOTAL assembled card description budget (chars). Calibrated LIVE 2026-07-05
-                # (owner eyewitness on the equip card) at 259 for the OLD trailing "\n\nKills:
-                # 0   " scaffold (13 chars); 259 was the exact zero-slack fit (Rod of Faith AND
-                # Swiftedge, different line structures, both fit) with 265 clipped (Sanguine
-                # Sword / Wrathblade). The 2026-07-06 move (Kills line FIRST, wider tier-progress
-                # meter) replaces that 13-char trailing append with a 20-char leading
-                # "KILLS_SCAFFOLD + \n\n" prepend: a uniform +7 shift (20-13), so 259+7=266 is
-                # the SAME zero-slack boundary: the wrapped-line count is preserved because the
-                # wider Kills line (<=18 chars: "Kills: " + an 11-char body) still box-wraps to
-                # one line same as the old "Kills: 0   " (11 chars) did. Chars are a proxy for
-                # the box's wrapped-line count; recalibrate if the card UI ever changes.
+DESC_MAX = 205  # TOTAL assembled card description budget (chars). RECALIBRATED LIVE 2026-07-07
+                # (owner eyewitness, LW-45): the prior 266 was far too loose. A third of the
+                # catalog passed it yet still clipped off the bottom of the equip-card box on
+                # screen. 205 is the observed boundary: Frostarc (204 assembled) fits, Gloomfang
+                # (209) clips. Every over-cap item's flavor line (plus Umbral Rod's +3 prose) was
+                # trimmed to fit. Chars are a proxy for the box's wrapped-line count; recalibrate
+                # if the card UI ever changes. (History: 2026-07-05 calibrated 259 for the old
+                # trailing "Kills:" scaffold, then 266 for the 2026-07-06 leading-scaffold move;
+                # both proved too loose live.)
 
 
 def check_desc_budget(items):

@@ -88,36 +88,36 @@ def mechanics(it):
         f = s.get("formula", 1)
         p = s.get("onHitAbilityId", 0) or 0
         if f == 67:  # CasMaxHP - CasCurHP: damage = the wielder's missing HP, ignores WP
-            return "Deals damage equal to the wielder's missing HP. Harmless at full health, devastating near death."
-        if f == 69:  # TarMaxHP - TarCurHP: damage = the TARGET's missing HP, ignores WP -- an execute
-            return "Deals damage equal to the TARGET's missing HP -- near-nothing against a fresh foe, lethal against a wounded one."
+            return "Damage equals the wielder's missing HP; deadliest near death."
+        if f == 69:  # TarMaxHP - TarCurHP: damage = the TARGET's missing HP, ignores WP (an execute)
+            return "Damage equals the target's missing HP; lethal against the wounded."
         if f == 4 and el not in ("None", None, ""):  # magic gun: attack IS the elemental spell; scales off FAITH (not MA), ignores armor
             spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
-            parts.append(f"Its attack strikes as {spell} at no MP cost; the magic damage scales with the wielder's Faith.")
+            parts.append(f"Fires as {spell} at no MP cost, scaling with Faith.")
         elif el not in ("None", None, ""):
-            parts.append(f"Deals {el}-elemental damage.")
+            parts.append(f"Deals {el} damage.")
         if f == 99:
-            parts.append("Damage scales with the wielder's Speed, not Physical Attack.")
+            parts.append("Damage scales with Speed, not Attack.")
         if f not in (2, 4):  # Formula 2/4 read the opt id as a spell cast, not a status
             if f == 45 and p in PROC:  # formula 0x2D = 100% status (confirmed in-game): always lands
                 parts.append(f"Always inflicts {PROC[p]} on hit.")
             elif p == 55:
-                parts.append("Has a chance to remove the target's buffs on hit.")
+                parts.append("May strip the target's buffs on hit.")
             elif p == 95:
-                parts.append("Has a chance to Stop, petrify, or kill on hit.")
+                parts.append("May Stop, petrify, or kill on hit.")
             elif p == 41:
-                parts.append("Has a chance to instantly kill on hit.")
+                parts.append("May instantly kill on hit.")
             elif p in PROC:
-                parts.append(f"Has a chance to inflict {PROC[p]} on hit.")
+                parts.append(f"May inflict {PROC[p]} on hit.")
         if f in (6, 47, 48):
             parts.append({6: "Absorbs HP dealt.", 47: "Absorbs MP dealt.", 48: "Night Sword: drains HP."}[f])
         if f == 2 and el not in ("None", None, ""):  # vanilla elemental spell-cast on hit
             spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
-            parts.append(f"Has a chance to cast {spell} on hit.")
+            parts.append(f"May cast {spell} on hit.")
         if f == 2 and p == 147:  # Rush = knockback
-            parts.append("Has a chance to knock the target back a tile on hit.")
+            parts.append("May knock the target back a tile.")
         if f == 2 and p in CAST:  # non-elemental ability cast on hit (Sanguine / Ashura / Gravity)
-            parts.append(f"Has a chance to cast {CAST[p]} on hit.")
+            parts.append(f"May cast {CAST[p]} on hit.")
         af = s.get("attackFlags") or ""
         if "ForcedTwoHands" in af and "Arc" not in af:  # melee two-hander; bows (Arc) are obviously 2H, skip
             parts.append("Held in two hands only.")
@@ -254,7 +254,7 @@ def assemble_desc(it, scaffold=True):
         desc = desc.rstrip()
         if desc and not desc.endswith((".", "!", "?")):
             desc += "."
-        desc += f" Strikes from up to {rng} tiles away."
+        desc += f" Reaches {rng} tiles."
     if scaffold and is_living(it):
         # p3Desc stays grouped with the gameplay prose (BELOW the flavor line, same relative
         # order as before the Kills-scaffold move). Header names the ability via sigName

@@ -119,7 +119,7 @@
       "name": "Gloomfang",
       "tier": 2,
       "identity": "Anti-physical debuffer — GUARANTEED Blind on EVERY hit (formula 2D), cripples an enemy bruiser's accuracy for the fight. Melee + low knife damage is the price; only Blind source.",
-      "flavorOverride": "Its edge swims with gloom, and every wound it opens steals the daylight from a foe's eyes.",
+      "flavorOverride": "Its edge swims with gloom; each wound steals a foe's daylight.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -273,7 +273,7 @@
       "name": "Mortal Coil",
       "tier": 4,
       "identity": "Single-target deleter on a clock — Doom countdown then guaranteed KO. WP8 sits UNDER Adamant Fang (pays for the proc).",
-      "flavorOverride": "One graze, and the appointed hour begins its quiet count; what it marks, death collects.",
+      "flavorOverride": "One graze starts a quiet count that death collects.",
       "baseline": {
         "wp": 7,
         "evade": 5,
@@ -308,7 +308,7 @@
       "name": "Galewind",
       "tier": 5,
       "identity": "Elemental main-hand — top flat damage with a Wind exploit (x2 vs Wind-weak). Double-edged: Wind-absorbers heal.",
-      "flavorOverride": "A gust lies coiled in its hollow blade, loosed to harry the foe with every keening stroke.",
+      "flavorOverride": "A coiled gust, loosed with every keening stroke.",
       "baseline": {
         "wp": 10,
         "evade": 5,
@@ -720,7 +720,7 @@
       "name": "Sanguine Sword",
       "tier": 3,
       "identity": "Rare one-handed Sword (not sold, shield-friendly): every hit drains HP, vanilla Blood Sword style (innate absorb formula 6, no proc) — the life-drain of a fell mercenary knight, echoing Gaffgarion. A may-cast variant (formula 2 + proc 45) shipped briefly but read as broken next to the card's Absorbs-HP badge; reverted to the innate drain 2026-06-10, WP trimmed 14->10 since the drain came back. Lives on the NATIVE Blood Sword slot so the card correctly reads Sword (relocated off the Giant's Axe slot, which read Axe).",
-      "flavorOverride": "The blade of a sellsword who supped on the lives he felled, till the field claimed him.",
+      "flavorOverride": "A sellsword who drank the fallen.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -834,7 +834,7 @@
       "name": "Wrathblade",
       "tier": 4,
       "identity": "Berserker sword: damage equals the wielder's missing HP. Zero at full health, devastating near death. WP and evade are cosmetic for damage. The widely-equippable desperation blade.",
-      "flavorOverride": "A blade for the cornered; nearer ruin, the hungrier its edge.",
+      "flavorOverride": "Ruin feeds it.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -867,7 +867,7 @@
       "name": "Swiftedge",
       "tier": 4,
       "identity": "Speed-Knight blade (unique): damage = Speed x WP, not Physical Attack. Mediocre at base, devastating if you stack Speed.",
-      "flavorOverride": "A keen blade that answers the swift hand alone, biting harder the quicker its bearer goes.",
+      "flavorOverride": "Bites harder the faster you strike.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -1083,7 +1083,7 @@
       "name": "Excalibur",
       "tier": 6,
       "identity": "Holy-knight tempo capstone — Holy element (anti-Undead, with its signature Holy absorb) plus EquipBonus rider Haste for extra turns. The build-defining matchup + tempo + survivability blade; the only elemental Knight Sword that also carries a permanent rider. Iconic name kept. Seated at vanilla WP21 (verbatim Game8/Regabonds) mid-ladder.",
-      "desc": "It is said that only the true heir to the throne can wield this legendary knight's sword. The worthy will be granted fleetness of foot and divine might.\nWhen attacking, deals Holy-elemental damage.",
+      "desc": "Only the true heir may wield this legendary sword, granted fleetness of foot and divine might.\nWhen attacking, deals Holy-elemental damage.",
       "baseline": {
         "wp": 21,
         "evade": 35,
@@ -1113,7 +1113,7 @@
       "name": "Ragnarok",
       "tier": 6,
       "identity": "Anti-caster prestige blade — unique Dark element plus Silence-on-hit shuts down enemy mages, with high WP and middling evade. Fixes vanilla's 'squeezed slot' (riderless WP24, dominated by Chaos): now owns the Dark + Silence niche so it is NOT dominated by Chaos Blade. Iconic name kept. The pick versus caster-heavy comps.",
-      "desc": "This knight's sword is mentioned in tales about the end of the world. It provides defense against spellcraft.\nWhen attacking, deals Dark-elemental damage and has a chance of inflicting Silence.",
+      "desc": "A knight's sword named in tales of the world's end. It wards against spellcraft.\nWhen attacking, deals Dark-elemental damage and has a chance of inflicting Silence.",
       "baseline": {
         "wp": 24,
         "evade": 20,
@@ -1294,7 +1294,7 @@
       "name": "Ame-no-Murakumo",
       "tier": 3,
       "identity": "The gathering-storm blade — only Wind katana (x2 vs Wind-weak) AND Silences on hit, choking an enemy mage's spellbook. The anti-caster capstone of the mid line (Heaven's Cloud lore). Trades evade for the storm package.",
-      "desc": "This katana's design was inspired by a legendary blade said to have been plucked from the tail of a dragon that marauded eastern lands.",
+      "desc": "This katana echoes a legendary blade plucked from the tail of a marauding eastern dragon.",
       "baseline": {
         "wp": 11,
         "evade": 15,
@@ -1613,7 +1613,7 @@
       "name": "Spark Rod",
       "tier": 2,
       "identity": "Battle-mage nuke rod -- the Attack itself fires Thunder (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. Anti-armor/mech. WP 5, no element amp -- a steady free-cast chip nuke, not a burst weapon.",
-      "flavorOverride": "A rod that holds a fistful of caged storm; each blow lets the thunder out for the asking.",
+      "flavorOverride": "Caged storm; each blow lets the thunder out.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1645,7 +1645,7 @@
       "name": "Ember Rod",
       "tier": 2,
       "identity": "Fire nuke battle-mage rod -- its Attack strikes as Fire (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. The Fire member of the elemental nuke trio with Spark (Thunder) and Frost (Blizzard); pick by matchup. Anti-Undead, shreds Oiled and Ice-weak foes. WP 5, no element amp -- the trio's power lives in the free cast, not raw damage.",
-      "flavorOverride": "Embers smolder in its heart, eager to leap; a touch is enough to set a foe ablaze.",
+      "flavorOverride": "Embers smolder in its heart, eager to set a foe ablaze.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1677,7 +1677,7 @@
       "name": "Frost Rod",
       "tier": 2,
       "identity": "Battle-mage nuke rod -- the Attack itself fires Blizzard (formula 4): Faith-scaled, MP-free, 4-tile reach, every turn. Anti-fire-creature / anti-dragon. Completes the early elemental nuke trio at WP 5, no element amp.",
-      "flavorOverride": "Its tip is sheathed in everlasting rime; where it points, the air turns to killing winter.",
+      "flavorOverride": "Where it points, the air turns to killing winter.",
       "baseline": {
         "wp": 3,
         "evade": 20,
@@ -1742,7 +1742,7 @@
       "name": "Umbral Rod",
       "tier": 3,
       "identity": "Dark-specialist power stick — MA+2 raw spell power AND StrongElements: Dark (+25% to Dark spells), plus Dark element on the Attack for anti-Holy-creature poke. Only Dark caster weapon and only StrongElements rod.",
-      "flavorOverride": "Nightwood steeped in shadow; the dark answers its bearer.",
+      "flavorOverride": "Dark answers its bearer.",
       "baseline": {
         "wp": 4,
         "evade": 20,
@@ -1772,7 +1772,7 @@
         "sigName": "Spiritual Font",
         "displayLabel": "Spiritual Font",
         "fontOnMove": true,
-        "p3Desc": "Restores the wielder's HP and MP each time they move.",
+        "p3Desc": "Restores HP and MP on each move.",
         "note": "At +3, the RUNTIME restores the wielder on every completed MOVE (position-poll design). T1 weapons carry no signatures; Wellspring is a growth-only starter. TRIGGER HISTORY (4 failures): (1) Global TurnTracker acted-edge -- cursor-following struct mis-credited edges. (2) Band +0x25 ACtSlam CT read -- write-only byte; zero transitions observed live. (3) Band +0x09 ACtTurn CT read -- never reached >=90 across full player turns. (4) Actor latch rising edge -- fired for action 1, then the second player action produced NO latch line, NO turn line, NOTHING -- global Acted flag pulses unreliably (documented trap). CURRENT TRIGGER: position-poll via MoveWatch (SpiritualFont.Policy.cs). Each tick (inLive, active, located), read gx/gy from the first located band entry. First sighting baselines silently. A new tile must be stable for 3 consecutive ticks (filters mid-animation flicker and documented (0,0)-band-position pulses). After firing: rate-capped for 90 ticks (~3 s). Move-only turns NOW PAY (old actor-latch gap closed). Knockback/teleport also pays (intended; vanilla fonts pay on any movement). TWIN WRITE-THROUGH: Wielder.LocateAll + ReplenishAll write HP and MP to every located twin (live copy and frozen band copies) -- idempotent, live copy always takes effect. On fire: HP += round(maxHP*FontHpPct) (LifeSap.NewHp: floor 1, clamp, NEVER revive); MP += round(maxMP*FontMpPct) (floor 1, clamp; never into a corpse). Band +0x18/+0x1A (AMp/AMaxMp) LIVE-VERIFIED 2026-06-10. Per-battle layout validation (>=2 valid band units, mp<=maxMp, maxMp<=999, at least one maxMp>=1) retained as sanity guard. Knobs: Tuning.FontHpPct/FontMpPct = 0.10. RUNTIME: SpiritualFont.cs + SpiritualFont.Policy.cs."
       }
     },
@@ -1816,7 +1816,7 @@
       "name": "Rod of Faith",
       "tier": 5,
       "identity": "Faith-zealot rod — InnateStatus: Faith pins the wielder at max Faith, so every spell cast (and cast AT them) lands at peak potency: a glass-cannon nuker. Holy element on the Attack smites undead. Only innate-Faith weapon.",
-      "desc": "This rod purges doubt from those it touches, turning them into pillars of faith.\nWhile equipped, grants Faith.",
+      "desc": "It purges doubt, leaving only faith.\nWhile equipped, grants Faith.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -2027,7 +2027,7 @@
       "name": "Sanctus Staff",
       "tier": 4,
       "identity": "STRONGELEMENTS specialist staff — the +25%-Holy-spell line: a white/holy mage's nuke amplifier (boosts Holy, Holy Explosion, etc.), plus Holy element on the swing for anti-Undead matchups. At +3 the Benediction aura boosts the wielder's healing by 30% (runtime HP-rise detect on allies during the wielder's action window), making the healer-nuke hybrid a literal force multiplier.",
-      "flavorOverride": "A gilded stave that gathers sacred light and gives it back tenfold to those who pray.",
+      "flavorOverride": "A gilded stave that gathers sacred light and gives it back tenfold.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -2204,7 +2204,7 @@
       "name": "Climhazzard",
       "tier": 4,
       "identity": "T4 agile dual-wield executioner — the ninja's mercy stroke. Damage = the TARGET's missing HP (formula 69), useless on a fresh foe, lethal on a wounded one. Dual-wieldable = two missing-HP strikes per turn; WP barely matters so the budget goes to evade.",
-      "flavorOverride": "A merciful stroke for the dying; it glances off the hale yet guts the already-bleeding.",
+      "flavorOverride": "A mercy for the dying: it glances off the hale, guts the bleeding.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2268,7 +2268,7 @@
       "name": "Outrider Pistol",
       "tier": 1,
       "identity": "Tier-1 starter and the LONGEST reach in the game (R9). Plain WP*WP (49 flat) ignoring PA/Speed/evade, no element to whiff or be absorbed, no drawback, earliest/cheapest gun. The out-range-everything pick that never retires; reach + availability ARE the niche.",
-      "flavorOverride": "A plain wheel-lock that throws its shot farther than any, asking nothing of the hand.",
+      "flavorOverride": "A wheel-lock that throws its shot farthest.",
       "baseline": {
         "wp": 6,
         "evade": 5,
@@ -2483,7 +2483,7 @@
       "name": "Eclipsebolt",
       "tier": 2,
       "identity": "Assassin's bolt — marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead — a countdown to a certain KO. Only Doom crossbow. Applies Doom at ~25% (formula 1); when the mark lands, the +3 Eagle Eye signature makes it resolve in 1 turn — a gamble with a lethal payoff.",
-      "flavorOverride": "A bolt meant for slaying elites; its quarrel marks a foe, who sees no further dusk.",
+      "flavorOverride": "Its quarrel marks a foe who sees no dusk.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2547,7 +2547,7 @@
       "name": "Venombolt",
       "tier": 3,
       "identity": "Attrition tool — only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Inflicts Poison at 100% (formula 2D, like Bloodlash).",
-      "flavorOverride": "Its quarrels glisten with a slow venom that creeps the wound long after the bolt is drawn.",
+      "flavorOverride": "Its quarrels creep with a slow, festering venom.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2722,7 +2722,7 @@
       "name": "Stormarc",
       "tier": 3,
       "identity": "T3 elemental — attacks deal Lightning (anti-armor/robotic; Lightning-absorbers heal it). +1 WP over Frostarc, different element coverage.",
-      "flavorOverride": "Strung with wire that hums before the storm sings.",
+      "flavorOverride": "Storm-wired.",
       "baseline": {
         "wp": 6,
         "evade": 0,
@@ -2787,7 +2787,7 @@
       "name": "Tidecaller",
       "tier": 3,
       "identity": "T3 caster-lock / control bow — Silence on hit shuts enemy mages at range. WP7 + 10 evade. Renamed from filler Mythril Bow. Inflicts Silence (proc 10).",
-      "flavorOverride": "A bow whose shaft hisses like surf and stills the throat it finds, drowning words mid-cry.",
+      "flavorOverride": "A bow that hisses like surf and stills the throat it finds.",
       "baseline": {
         "wp": 7,
         "evade": 0,
@@ -2815,7 +2815,7 @@
       "name": "Huntress",
       "tier": 5,
       "identity": "T5 marksman / mid-evade owner — WP8 + 10 evade + Leg Shot may-cast (Disable), earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla \"Yoichi dominates Artemis\".",
-      "flavorOverride": "The mark of a true marksman, balanced so fine that hand and target seem joined in flight.",
+      "flavorOverride": "Balanced so fine that hand and target seem joined in flight.",
       "baseline": {
         "wp": 10,
         "evade": 0,
@@ -2851,7 +2851,7 @@
       "name": "Yoichi Bow",
       "tier": 6,
       "identity": "T6 AGILE capstone — top sustained WP (12) that STILL keeps 5 evade: heavy damage on light feet. The speed-build DPS capstone vs Seraph's glass cannon.",
-      "desc": "The bow of a legendary archer. Its great size allows it to generate incredible power.",
+      "desc": "The bow of a legendary archer, drawn for great power.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -3185,7 +3185,7 @@
       "name": "Frostpoint",
       "tier": 3,
       "identity": "T3 only Ice spear — innate Ice melee, WP tied to Footman's (zero raw paid for the matchup tool). Shreds Fire-creatures/Ice-weak; Ice-absorbers heal (cost).",
-      "flavorOverride": "Ice rimes the spearhead and clings, so a deep thrust leaves frost glittering in the wound.",
+      "flavorOverride": "Ice clings to its head; a deep thrust leaves frost in the wound.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -3215,7 +3215,7 @@
       "name": "Stormpike",
       "tier": 3,
       "identity": "T3 only Lightning spear — innate Bolt melee, +1 WP over Frostpoint (sidegrade, different element). Anti-armor/Lightning-weak; +25% in rain.",
-      "flavorOverride": "A charged partisan that hums before it strikes, calling a bolt down as steel meets flesh.",
+      "flavorOverride": "A charged partisan that calls a bolt down as steel meets flesh.",
       "baseline": {
         "wp": 11,
         "evade": 10,
@@ -3245,7 +3245,7 @@
       "name": "Tombspire",
       "tier": 4,
       "identity": "T4 reach executioner — the Dragoon-Jump finisher. Range-2 + on-hit Immobilize pins a wounded target a tile away, then the Lancer Jumps the killing blow. Damage = the TARGET's missing HP (formula 69), a softener's mercy stroke, not an opener.",
-      "flavorOverride": "Grave-marker carved and far of reach; it spares the hale, but pins the bleeding to finish.",
+      "flavorOverride": "Spares the hale; pins the bleeding.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -3275,7 +3275,7 @@
       "name": "Holy Lance",
       "tier": 5,
       "identity": "ICONIC. T5 only Holy spear — innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated. +3 Cavalier's Charge: Speed +3 while riding a chocobo (a crusader's mounted charge).",
-      "desc": "This sacred weapon shines with a pure and brilliant light.\nWhen attacking, has a chance of casting Holy.",
+      "desc": "A sacred lance clad in light.\nWhen attacking, has a chance of casting Holy.",
       "baseline": {
         "wp": 14,
         "evade": 10,
@@ -3345,7 +3345,7 @@
       "name": "Wyrmpike",
       "tier": 6,
       "identity": "T6 split-apex (Nelveska treasure) — only Wind spear + on-hit Doom (11), two-handed (trades the shield for the package). Tag a boss from two tiles back. Wins element/Doom where Dragon Whisker wins WP; neither dominates.",
-      "flavorOverride": "A two-handed pike light as a squall; it tags a far mark, then doom gathers like wind.",
+      "flavorOverride": "A far-tagging pike, light as a squall; then doom gathers.",
       "baseline": {
         "wp": 30,
         "evade": 10,
@@ -3796,7 +3796,7 @@
       "name": "Gravesilk Veil",
       "tier": 6,
       "identity": "T6 capstone caster rag — chance to cast Gravity/Demi on hit (formula 2), chunking a flat share of the target's current HP regardless of defenses. The only Gravity source mod-wide; %HP scaling IGNORES the dancer's low PA, the rare offense vector that works despite her stat sheet. Keeps the 50% evade fortress.",
-      "flavorOverride": "Funeral silk falling with the weight of a tomb; beneath its hem the mighty buckle and sag.",
+      "flavorOverride": "Funeral silk heavy as a tomb; beneath it the mighty sag.",
       "baseline": {
         "wp": 15,
         "evade": 50,
@@ -6443,7 +6443,7 @@
       "name": "Cursed Ring",
       "tier": 5,
       "identity": "Dark Pact ring (unique): PA+2/MA+2/Speed+2/Move+1/Jump+1, innate Undead+Float, absorbs Dark, weak Holy — high risk/reward build-around (community-requested buff).",
-      "desc": "A ring inhabited by evil spirits that imparts great power, but binds its wearer to the living dead.\nPhysical Attack +2. Magick Attack +2. Speed +2. Move +1. Jump +1. Innate Undead and Float. Absorbs Dark damage. Weak to Holy (takes extra damage).",
+      "desc": "Evil spirits grant power, but bind you to the dead.\nPhysical Attack +2. Magick Attack +2. Speed +2. Move +1. Jump +1. Innate Undead and Float. Absorbs Dark damage. Weak to Holy (takes extra damage).",
       "baseline": {
         "hp": 0,
         "mp": 0,

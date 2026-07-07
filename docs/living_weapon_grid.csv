@@ -54,7 +54,7 @@ id,tier,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,+3 a
 53,2,Flame Rod,Ember Rod,Rod,Shop,5,Faith spell (f4),20%,MA,Attack casts Fire (Magick Attack),MA +10%,MA +20%,MA +30%,,low,
 54,2,Ice Rod,Frost Rod,Rod,Shop,5,Faith spell (f4),20%,MA,Attack casts Blizzard (Magick Attack),MA +10%,MA +20%,MA +30%,,low,
 55,2,Poison Rod,Hushward Rod,Rod,Shop,6,PA x WP,15%,MA,—,MA +10%,MA +20%,MA +30%,,med,
-56,3,Wizard's Rod,Umbral Rod,Rod,Shop,4,PA x WP,20%,MA,—,MA +10%,MA +20%,MA +30% + Spiritual Font,Restores the wielder's HP and MP each time they move.,low,Yes
+56,3,Wizard's Rod,Umbral Rod,Rod,Shop,4,PA x WP,20%,MA,—,MA +10%,MA +20%,MA +30% + Spiritual Font,Restores HP and MP on each move.,low,Yes
 57,4,Dragon Rod,Dragon Rod,Rod,Steal (Cletienne; Mullonde summoners),7,PA x WP,10%,MA,Silence,MA +10%,MA +20%,MA +30%,,med,
 58,5,Rod of Faith,Rod of Faith,Rod,"Move-Find (Midlight's Deep VALKYRIES, rare)",7,PA x WP,15%,MA,—,MA +10%,MA +20%,MA +30% + Rapture,Grants Master Teleportation while the wielder is below a third HP.,med,Yes
 59,1,Oak Staff,Birchwood Staff,Staff,Shop,3,MA x WP,20%,MA,—,MA +10%,MA +20%,MA +30%,,low,

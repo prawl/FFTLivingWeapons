@@ -18,7 +18,7 @@
     "wp": 5,
     "cat": "Knife",
     "formula": 45,
-    "flavor": "Its edge swims with gloom, and every wound it opens steals the daylight from a foe's eyes.",
+    "flavor": "Its edge swims with gloom; each wound steals a foe's daylight.",
     "signature": {
       "abilityId": 213,
       "slot": "support",
@@ -71,7 +71,7 @@
     "wp": 8,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "One graze, and the appointed hour begins its quiet count; what it marks, death collects.",
+    "flavor": "One graze starts a quiet count that death collects.",
     "signature": {
       "abilityId": 209,
       "slot": "support",
@@ -85,7 +85,7 @@
     "wp": 10,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "A gust lies coiled in its hollow blade, loosed to harry the foe with every keening stroke.",
+    "flavor": "A coiled gust, loosed with every keening stroke.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -196,7 +196,7 @@
     "wp": 10,
     "cat": "Sword",
     "formula": 6,
-    "flavor": "The blade of a sellsword who supped on the lives he felled, till the field claimed him.",
+    "flavor": "A sellsword who drank the fallen.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -231,7 +231,7 @@
     "wp": 12,
     "cat": "Sword",
     "formula": 67,
-    "flavor": "A blade for the cornered; nearer ruin, the hungrier its edge.",
+    "flavor": "Ruin feeds it.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -245,7 +245,7 @@
     "wp": 8,
     "cat": "Sword",
     "formula": 99,
-    "flavor": "A keen blade that answers the swift hand alone, biting harder the quicker its bearer goes.",
+    "flavor": "Bites harder the faster you strike.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -315,14 +315,14 @@
     "wp": 21,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "It is said that only the true heir to the throne can wield this legendary knight's sword. The worthy will be granted fleetness of foot and divine might."
+    "flavor": "Only the true heir may wield this legendary sword, granted fleetness of foot and divine might."
   },
   "36": {
     "name": "Ragnarok",
     "wp": 24,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "This knight's sword is mentioned in tales about the end of the world. It provides defense against spellcraft."
+    "flavor": "A knight's sword named in tales of the world's end. It wards against spellcraft."
   },
   "37": {
     "name": "Chaos Blade",
@@ -364,7 +364,7 @@
     "wp": 10,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This katana's design was inspired by a legendary blade said to have been plucked from the tail of a dragon that marauded eastern lands.",
+    "flavor": "This katana echoes a legendary blade plucked from the tail of a marauding eastern dragon.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -448,21 +448,21 @@
     "wp": 5,
     "cat": "Rod",
     "formula": 4,
-    "flavor": "A rod that holds a fistful of caged storm; each blow lets the thunder out for the asking."
+    "flavor": "Caged storm; each blow lets the thunder out."
   },
   "53": {
     "name": "Ember Rod",
     "wp": 5,
     "cat": "Rod",
     "formula": 4,
-    "flavor": "Embers smolder in its heart, eager to leap; a touch is enough to set a foe ablaze."
+    "flavor": "Embers smolder in its heart, eager to set a foe ablaze."
   },
   "54": {
     "name": "Frost Rod",
     "wp": 5,
     "cat": "Rod",
     "formula": 4,
-    "flavor": "Its tip is sheathed in everlasting rime; where it points, the air turns to killing winter."
+    "flavor": "Where it points, the air turns to killing winter."
   },
   "55": {
     "name": "Hushward Rod",
@@ -476,7 +476,7 @@
     "wp": 4,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "Nightwood steeped in shadow; the dark answers its bearer.",
+    "flavor": "Dark answers its bearer.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -497,7 +497,7 @@
     "wp": 7,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "This rod purges doubt from those it touches, turning them into pillars of faith.",
+    "flavor": "It purges doubt, leaving only faith.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -560,7 +560,7 @@
     "wp": 5,
     "cat": "Staff",
     "formula": 1,
-    "flavor": "A gilded stave that gathers sacred light and gives it back tenfold to those who pray.",
+    "flavor": "A gilded stave that gathers sacred light and gives it back tenfold.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -609,7 +609,7 @@
     "wp": 5,
     "cat": "NinjaBlade",
     "formula": 69,
-    "flavor": "A merciful stroke for the dying; it glances off the hale yet guts the already-bleeding."
+    "flavor": "A mercy for the dying: it glances off the hale, guts the bleeding."
   },
   "70": {
     "name": "Sasori",
@@ -623,7 +623,7 @@
     "wp": 7,
     "cat": "Gun",
     "formula": 3,
-    "flavor": "A plain wheel-lock that throws its shot farther than any, asking nothing of the hand.",
+    "flavor": "A wheel-lock that throws its shot farthest.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -679,7 +679,7 @@
     "wp": 5,
     "cat": "Crossbow",
     "formula": 1,
-    "flavor": "A bolt meant for slaying elites; its quarrel marks a foe, who sees no further dusk.",
+    "flavor": "Its quarrel marks a foe who sees no dusk.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -700,7 +700,7 @@
     "wp": 6,
     "cat": "Crossbow",
     "formula": 45,
-    "flavor": "Its quarrels glisten with a slow venom that creeps the wound long after the bolt is drawn.",
+    "flavor": "Its quarrels creep with a slow, festering venom.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -748,7 +748,7 @@
     "wp": 5,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "Strung with wire that hums before the storm sings.",
+    "flavor": "Storm-wired.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -770,14 +770,14 @@
     "wp": 6,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "A bow whose shaft hisses like surf and stills the throat it finds, drowning words mid-cry."
+    "flavor": "A bow that hisses like surf and stills the throat it finds."
   },
   "89": {
     "name": "Huntress",
     "wp": 8,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "The mark of a true marksman, balanced so fine that hand and target seem joined in flight.",
+    "flavor": "Balanced so fine that hand and target seem joined in flight.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -791,7 +791,7 @@
     "wp": 12,
     "cat": "Bow",
     "formula": 1,
-    "flavor": "The bow of a legendary archer. Its great size allows it to generate incredible power.",
+    "flavor": "The bow of a legendary archer, drawn for great power.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -875,28 +875,28 @@
     "wp": 8,
     "cat": "Polearm",
     "formula": 2,
-    "flavor": "Ice rimes the spearhead and clings, so a deep thrust leaves frost glittering in the wound."
+    "flavor": "Ice clings to its head; a deep thrust leaves frost in the wound."
   },
   "102": {
     "name": "Stormpike",
     "wp": 9,
     "cat": "Polearm",
     "formula": 2,
-    "flavor": "A charged partisan that hums before it strikes, calling a bolt down as steel meets flesh."
+    "flavor": "A charged partisan that calls a bolt down as steel meets flesh."
   },
   "103": {
     "name": "Tombspire",
     "wp": 11,
     "cat": "Polearm",
     "formula": 69,
-    "flavor": "Grave-marker carved and far of reach; it spares the hale, but pins the bleeding to finish."
+    "flavor": "Spares the hale; pins the bleeding."
   },
   "104": {
     "name": "Holy Lance",
     "wp": 12,
     "cat": "Polearm",
     "formula": 2,
-    "flavor": "This sacred weapon shines with a pure and brilliant light.",
+    "flavor": "A sacred lance clad in light.",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -919,7 +919,7 @@
     "wp": 13,
     "cat": "Polearm",
     "formula": 1,
-    "flavor": "A two-handed pike light as a squall; it tags a far mark, then doom gathers like wind."
+    "flavor": "A far-tagging pike, light as a squall; then doom gathers."
   },
   "107": {
     "name": "Greenwood Pole",
@@ -1024,6 +1024,6 @@
     "wp": 9,
     "cat": "Cloth",
     "formula": 2,
-    "flavor": "Funeral silk falling with the weight of a tomb; beneath its hem the mighty buckle and sag."
+    "flavor": "Funeral silk heavy as a tomb; beneath it the mighty sag."
   }
 }
