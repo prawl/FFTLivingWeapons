@@ -261,6 +261,11 @@ is the in-flight subset, not a mirror of that checklist.
   0xFF and are therefore dead in 1.5, so a long cast or animation at mode 1/5 could accumulate the
   exit debounce and false-exit mid-battle (resetting the kill tracker). Verify live with a slow
   cast, then re-anchor the marker value.
+- [LW-43] 2026-07-07: Gun Slinger (Outrider Pistol id 71) dual-wield off-hand equip is SLOW to
+  apply to a SECOND wielder when it is already in effect on a first (it DOES eventually equip; owner
+  saw the lag live 2026-07-07, not a correctness bug). Suspect the per-wielder locate/write cadence
+  serializes or throttles when more than one unit carries the pistol: check the Gun Slinger
+  signature's tick loop and whether its locate stops at the first wielder per tick.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
