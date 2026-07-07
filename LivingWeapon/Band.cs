@@ -66,6 +66,55 @@ internal static class Band
         return gx <= 30 && gy <= 30;
     }
 
+    /// <summary>The active (TurnQueue) unit's full identity: its (level,brave,faith) fingerprint
+    /// and the winning REAL-position band-entry address, from a single band walk matching the
+    /// condensed active-unit struct's maxHp+hp+level (Offsets.TurnQueue). Never resolves by
+    /// nameId (TqNameId is a sequential battle index, a collision trap, see Offsets.TurnQueue's
+    /// doc comment). Twin-filtered: a frozen (0,0) duplicate loses to any real-position match.
+    /// Returns false when the queue itself is garbage (maxHp 0 or &gt;= 2000, level outside
+    /// 1..99), no band entry matches, or the match is genuinely AMBIGUOUS (surviving candidates
+    /// carry DISTINCT fingerprints, miss beats mis-credit). Twin entries sharing the SAME
+    /// fingerprint are fine. Ported verbatim from TurnTracker.TryActiveFingerprint (which now
+    /// delegates here) so every own-turn-detecting signature (FeignDeath, Puppeteer, Mushin,
+    /// TurnTracker itself) shares one walk.</summary>
+    public static bool ActiveOwner(IGameMemory mem, out (int lvl, int br, int fa) fp, out long entry)
+    {
+        fp = default;
+        entry = 0;
+        ushort maxHp = mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
+        ushort hp = mem.U16(Offsets.TurnQueue + Offsets.TqHp);
+        ushort level = mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
+        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return false;
+
+        (int, int, int) found = default;
+        long foundEntry = 0;
+        bool haveFp = false;
+        bool foundReal = false;   // twin filter: prefer real-position entries
+
+        for (int s = 0; s < Offsets.BandSlots; s++)
+        {
+            long addr = Entry(s);
+            if (!IsValid(mem, addr)) continue;
+            if (mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
+            if (mem.U16(addr + Offsets.AHp) != hp) continue;
+            if (mem.U8(addr + Offsets.ALevel) != level) continue;
+
+            bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
+            // twin filter: skip (0,0) entries if we already have a real-position match
+            if (foundReal && !realPos) continue;
+            if (realPos && !foundReal && haveFp) { found = default; foundEntry = 0; haveFp = false; foundReal = true; }
+            if (realPos) foundReal = true;
+
+            var candidate = (level, (int)mem.U8(addr + Offsets.ABrave), (int)mem.U8(addr + Offsets.AFaith));
+            if (!haveFp) { found = candidate; foundEntry = addr; haveFp = true; }
+            else if (found != candidate) return false;   // distinct fingerprints -> ambiguous
+        }
+        if (!haveFp) return false;
+        fp = found;
+        entry = foundEntry;
+        return true;
+    }
+
     /// <summary>ENEMY fingerprints from the static array (slots 0..EnemySlotMax) -- the shared
     /// enemy-side oracle behind CharmLock/EagleEye/Maim/Ricochet. Shared caveat: the static
     /// array FREEZES on battle restart (capture already happened).

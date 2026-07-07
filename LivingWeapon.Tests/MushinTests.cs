@@ -9,22 +9,20 @@ namespace LivingWeapon.Tests;
 /// (up to Tuning.MushinMaxStacks); the wielder's next attack spends every banked stack in one
 /// boosted hit, then the buff clears.
 ///
-/// Turn-window apparatus mirrors Iai.cs's proven ActorPtr arrival/departure (Band.ActorEntry),
-/// HARDENED (2026-07-07) the same way Iai's v2 rebuild was: arrival, departure, and the own-
-/// acted-edge all identity-match the acting entry's frame nameId (Offsets.ANameId) against each
-/// wielder's roster-nameId capture (Wielder.RosterNameId, taken once when a wielder's window is
-/// first created) INSTEAD OF comparing the located wielder's band-entry ADDRESS. This fixes two
-/// live glitches the address compare was exposed to (the engine mirrors a wielder at a second
-/// identical combat slot, confirmed live at slots 24/28): a wait sometimes false-consuming the
-/// buff, and an attack sometimes failing to consume it. A wielder whose nameId capture fails
-/// (Wielder.RosterNameId returns &lt;= 0) falls back to the original address compare, degraded
-/// like Iai's fallback, never worse. The armed dictionary lives SHARED with GrowthEngine
-/// (constructor-injected here, exactly as production wires it in Engine.cs), keyed by wielder
-/// fingerprint (lvl,br,fa), and now holds a STACK COUNT (0..3) instead of a bool.
+/// HYBRID (2026-07-07): the ARM WINDOW (turn-start snapshot, move sampling, the falling-edge arm
+/// decision) rides Offsets.ActorPtr's full fingerprint (Band.ActorEntry), so these tests drive it
+/// with PointActorAt/PointActorNowhere (the Iai/Puppeteer pattern). ACT + CONSUME still rides the
+/// TurnQueue fingerprint (Band.ActiveOwner), so those tests keep seeding it with SeatActive/
+/// SeatActiveNobody (the CounterAttributionTests.SetActive pattern). Live testing on the prior
+/// TurnQueue-only window (2026-07-07) showed the arm lagging turns behind: Band.ActiveOwner
+/// follows the cursor and bails on ambiguity (two same-level units), which starves a turn-span
+/// window but is fine for the instant of an action.
 ///
-/// LOAD-BEARING tests: MoveOnlyTurn_doesNotArm / AttackTurn_doesNotArm (the stacking negatives),
-/// Stacking_ThreeWaits_CapsAtThree_OneAttackSpendsAll (the AC itself), and the two
-/// MirrorChurn_* tests (the nameId-hardening rebuild -- address-only code fails both).
+/// LOAD-BEARING tests: Arm_banksViaActorPtr_whenTurnQueueCannotResolveWielder (proves the arm now
+/// rides ActorPtr, not TurnQueue: it banks 0 on the pre-fix code and 1 after), MoveOnlyTurn_doesNotArm
+/// / AttackTurn_doesNotArm (the stacking negatives), Stacking_ThreeWaits_CapsAtThree_OneAttackSpendsAll
+/// (the AC itself), and Consume_survives_whenCollidingNameIdEnemyActs (the TurnQueue consume must
+/// still ignore a nameId-colliding enemy).
 /// </summary>
 public class MushinTests
 {
@@ -53,19 +51,37 @@ public class MushinTests
         MemSeats.SeatRoster(mem, 0, lvl: fp.lvl, br: fp.br, fa: fp.fa, rh: KikuId, nameId: nameId);
         MemSeats.SeatBand(mem, wielderSlot, weapon: KikuId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
                           gx: gx, gy: gy, hp: 200, maxHp: 300);
-        if (nameId != 0) MemSeats.SeatFrameNameId(mem, wielderSlot, nameId);
 
         var armed = new Dictionary<(int lvl, int br, int fa), int>();
         var mushin = new Mushin(meta, killDict, armed, mem);
         return (mushin, mem, wielder, fp, armed);
     }
 
-    /// <summary>Point Offsets.ActorPtr at <paramref name="bandEntry"/>'s combat frame (the
-    /// inverse of Band.ActorEntry: frame = bandEntry - BandEntry).</summary>
-    private static void PointActorAt(FakeSparseMemory mem, long bandEntry) =>
-        mem.SeedU64(Offsets.ActorPtr, (ulong)(bandEntry - Offsets.BandEntry));
+    /// <summary>Seat the TurnQueue as naming a unit with this maxHp/hp/level as the active owner
+    /// (the CounterAttributionTests.SetActive pattern). Band.ActiveOwner also needs a band entry
+    /// whose OWN maxHp/hp/level match (MemSeats.SeatBand), so this only names units already
+    /// seated that way; the Build() wielder is seated hp:200 maxHp:300.</summary>
+    private static void SeatActive(FakeSparseMemory mem, int hp, int maxHp, int level, int team = 0)
+    {
+        mem.U16s[Offsets.TurnQueue + Offsets.TqTeam]  = (ushort)team;
+        mem.U16s[Offsets.TurnQueue + Offsets.TqHp]    = (ushort)hp;
+        mem.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
+        mem.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
+    }
 
-    private static void PointActorNowhere(FakeSparseMemory mem) => mem.SeedU64(Offsets.ActorPtr, 0);
+    /// <summary>Un-name every unit as active: Band.ActiveOwner's own garbage guard (maxHp 0)
+    /// closes every wielder's window, the TurnQueue analog of pointing ActorPtr nowhere.</summary>
+    private static void SeatActiveNobody(FakeSparseMemory mem) =>
+        mem.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 0;
+
+    /// <summary>Point Offsets.ActorPtr at <paramref name="entry"/>'s combat frame (the inverse of
+    /// Band.ActorEntry: frame = entry - BandEntry). Drives the ARM WINDOW (Iai/Puppeteer pattern).</summary>
+    private static void PointActorAt(FakeSparseMemory mem, long entry) =>
+        mem.SeedU64(Offsets.ActorPtr, (ulong)(entry - Offsets.BandEntry));
+
+    /// <summary>Clear the pointer so Band.ActorEntry resolves to nothing, closing every window.</summary>
+    private static void PointActorNowhere(FakeSparseMemory mem) =>
+        mem.SeedU64(Offsets.ActorPtr, 0);
 
     private static void SetActed(FakeSparseMemory mem, int v) => mem.U8s[Offsets.Acted] = (byte)v;
 
@@ -133,18 +149,17 @@ public class MushinTests
     [Fact]
     public void FirstTick_staleEqual_doesNotFalseArmOrConsume()
     {
-        // The pointer already equals the wielder's entry on the VERY FIRST evaluated tick (no
-        // arrival transition ever observed). A naive implementation that doesn't prime prevActing
-        // would treat this as an immediate "departure never happened yet" no-op, but ALSO risks a
-        // false decision if prevActed isn't primed together (Iai's I2b bug). Prove neither fires.
+        // Both signals already name the wielder on the VERY FIRST evaluated tick (no arrival
+        // transition ever observed for either). Prove neither an arm nor a consume fires.
         var (mushin, mem, wielder, fp, armed) = Build();
         PointActorAt(mem, wielder);
+        SeatActive(mem, hp: 200, maxHp: 300, level: fp.lvl);
         SetActed(mem, 1);
 
         mushin.Tick(onField: true);   // priming tick: must not decide anything
         Assert.Equal(0, StacksOf(armed, fp));
 
-        mushin.Tick(onField: true);   // still no edge (pointer stayed equal, Acted stayed 1)
+        mushin.Tick(onField: true);   // still no edge (both signals unchanged, Acted stayed 1)
         Assert.Equal(0, StacksOf(armed, fp));
     }
 
@@ -155,7 +170,7 @@ public class MushinTests
     {
         var (mushin, mem, wielder, fp, armed) = Build(gx: 2, gy: 2);
 
-        mushin.Tick(onField: true);           // prime (pointer unseeded -> 0)
+        mushin.Tick(onField: true);           // prime (ActorPtr unseeded -> resolves nowhere)
         PointActorAt(mem, wielder);            // arrival: turn start
         mushin.Tick(onField: true);
         mushin.Tick(onField: true);            // idle tick: no move, no act
@@ -189,11 +204,13 @@ public class MushinTests
         var (mushin, mem, wielder, fp, armed) = Build();
 
         mushin.Tick(onField: true);           // prime
-        PointActorAt(mem, wielder);            // arrival
+        PointActorAt(mem, wielder);            // ActorPtr window opens
+        SeatActive(mem, hp: 200, maxHp: 300, level: fp.lvl);   // TurnQueue also names the wielder
         mushin.Tick(onField: true);
         SetActed(mem, 1);                       // the wielder's own acted edge: an attack
         mushin.Tick(onField: true);
         PointActorNowhere(mem);                 // departure
+        SeatActiveNobody(mem);                  // the TurnQueue moves on too
         mushin.Tick(onField: true);
 
         Assert.Equal(0, StacksOf(armed, fp));
@@ -245,6 +262,7 @@ public class MushinTests
 
         // ONE attack spends every banked stack in a single hit.
         PointActorAt(mem, wielder);
+        SeatActive(mem, hp: 200, maxHp: 300, level: fp.lvl);
         mushin.Tick(onField: true);
         SetActed(mem, 1);
         mushin.Tick(onField: true);
@@ -259,8 +277,8 @@ public class MushinTests
         var (mushin, mem, wielder, fp, armed) = Build();
         armed[fp] = 1;   // pre-armed, as if a prior full-wait turn charged it
 
-        mushin.Tick(onField: true);           // prime (pointer unseeded -> 0)
-        PointActorAt(mem, wielder);            // the wielder's next turn begins
+        mushin.Tick(onField: true);           // prime
+        SeatActive(mem, hp: 200, maxHp: 300, level: fp.lvl);   // the wielder's next turn begins
         mushin.Tick(onField: true);
         SetActed(mem, 1);                       // the attack lands: own acted edge inside the window
         mushin.Tick(onField: true);
@@ -271,33 +289,17 @@ public class MushinTests
     [Fact]
     public void Armed_SurvivesActedEdgeOnAnEnemyTurn()
     {
-        // Negative consume: an Acted edge that fires while the pointer names a DIFFERENT unit
-        // (an enemy's turn, or the wielder merely reacting) must NOT consume the buff.
-        var mem = new FakeSparseMemory();
-        var meta = new Dictionary<int, WeaponMeta>
-        {
-            [KikuId] = new WeaponMeta
-            {
-                Name = "Kiku-ichimonji", Wp = 13, Cat = "Katana", Formula = 2,
-                Signature = new WeaponSignature { AtTier = Tuning.MushinAtTier, Mushin = true, DisplayLabel = "Mushin" }
-            }
-        };
-        var kills = new Dictionary<int, int> { [KikuId] = Tuning.ProdThresholds[2] };
-        var fp = (lvl: 30, br: 65, fa: 60);
+        // Negative consume: an Acted edge that fires while the TurnQueue names a DIFFERENT unit
+        // (an enemy's turn) must NOT consume the buff.
+        var (mushin, mem, wielder, fp, armed) = Build();
+        armed[fp] = 2;
 
-        MemSeats.SeatRoster(mem, 0, lvl: fp.lvl, br: fp.br, fa: fp.fa, rh: KikuId);
-        MemSeats.SeatBand(mem, 24, weapon: KikuId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
-                          gx: 2, gy: 2, hp: 200, maxHp: 300);
-        long enemyEntry = Band.Entry(0);
         MemSeats.SeatBand(mem, 0, weapon: OtherWeaponId, lvl: 20, br: 50, fa: 50,
                           gx: 5, gy: 5, hp: 100, maxHp: 100);
 
-        var armed = new Dictionary<(int lvl, int br, int fa), int> { [fp] = 2 };
-        var mushin = new Mushin(meta, kills, armed, mem);
-
-        mushin.Tick(onField: true);           // prime (pointer unseeded -> 0)
-        PointActorAt(mem, enemyEntry);         // an enemy's turn
-        SetActed(mem, 1);                       // acted edge fires while the pointer names the ENEMY
+        mushin.Tick(onField: true);           // prime
+        SeatActive(mem, hp: 100, maxHp: 100, level: 20, team: 1);   // an enemy's turn
+        SetActed(mem, 1);                       // acted edge fires while the TurnQueue names the ENEMY
         mushin.Tick(onField: true);
 
         Assert.True(armed[fp] == 2, "an acted edge outside the wielder's own turn window must not consume");
@@ -334,9 +336,9 @@ public class MushinTests
         var fp = (lvl: 30, br: 65, fa: 60);
 
         MemSeats.SeatRoster(mem, 0, lvl: fp.lvl, br: fp.br, fa: fp.fa, rh: OtherWeaponId, oh: KikuId);
-        long wielder = Band.Entry(24);
         MemSeats.SeatBand(mem, 24, weapon: OtherWeaponId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
                           gx: 2, gy: 2, hp: 200, maxHp: 300);
+        long wielder = Band.Entry(24);
 
         var armed = new Dictionary<(int lvl, int br, int fa), int>();
         var mushin = new Mushin(meta, kills, armed, mem);
@@ -350,107 +352,111 @@ public class MushinTests
         Assert.True(StacksOf(armed, fp) == 0, "offhand-only wielder must never arm Mushin");
     }
 
-    // ---- MIRROR CHURN (nameId identity hardening, the two LOAD-BEARING tests for change 2) ----
-    //
-    // Root cause (per the rework spec, matching Iai's proven mirror-churn diagnosis): the engine
-    // mirrors a wielder at a second identical combat slot. Wielder.Locate's deterministic tie-
-    // break (both candidates share the same frame nameId) returns whichever slot is scanned
-    // FIRST -- here the MIRROR at a lower slot index -- while the real ActorPtr always names the
-    // REAL frame. An address compare (acting == entry) then never matches even during the
-    // wielder's own turn: arrival never opens the window, so neither the arm nor the consume edge
-    // can ever fire. Identity-matching the acting frame's nameId against the wielder's captured
-    // roster nameId sidesteps the address mismatch entirely.
-
-    private static (FakeSparseMemory mem, long realEntry, long mirrorEntry, (int lvl, int br, int fa) fp,
-                    Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills)
-        BuildMirrored(int nameId = 298)
-    {
-        var mem = new FakeSparseMemory();
-        var meta = new Dictionary<int, WeaponMeta>
-        {
-            [KikuId] = new WeaponMeta
-            {
-                Name = "Kiku-ichimonji", Wp = 13, Cat = "Katana", Formula = 2,
-                Signature = new WeaponSignature { AtTier = Tuning.MushinAtTier, Mushin = true, DisplayLabel = "Mushin" }
-            }
-        };
-        var kills = new Dictionary<int, int> { [KikuId] = Tuning.ProdThresholds[2] };
-        var fp = (lvl: 30, br: 65, fa: 60);
-
-        MemSeats.SeatRoster(mem, 0, lvl: fp.lvl, br: fp.br, fa: fp.fa, rh: KikuId, nameId: nameId);
-
-        // The REAL wielder: band slot 24 (the actor pointer will name this frame).
-        long realEntry = Band.Entry(24);
-        MemSeats.SeatBand(mem, 24, weapon: KikuId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
-                          gx: 2, gy: 2, hp: 200, maxHp: 300);
-        MemSeats.SeatFrameNameId(mem, 24, nameId);
-
-        // A MIRROR at a LOWER slot index (scanned first by Wielder.Locate), same weapon/fp/nameId,
-        // a real position -- Locate's homogeneous tie-break deterministically returns THIS one.
-        long mirrorEntry = Band.Entry(20);
-        MemSeats.SeatBand(mem, 20, weapon: KikuId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
-                          gx: 9, gy: 9, hp: 200, maxHp: 300);
-        MemSeats.SeatFrameNameId(mem, 20, nameId);
-
-        return (mem, realEntry, mirrorEntry, fp, meta, kills);
-    }
+    // ---- NON-VACUITY: load-bearing tests for the ActorPtr-window / TurnQueue-consume split ----
 
     [Fact]
-    public void MirrorChurn_arrivalAndDeparture_stillArmViaIdentity()
+    public void Arm_banksViaActorPtr_whenTurnQueueCannotResolveWielder()
     {
-        var (mem, realEntry, mirrorEntry, fp, meta, kills) = BuildMirrored();
-        var armed = new Dictionary<(int lvl, int br, int fa), int>();
-        var mushin = new Mushin(meta, kills, armed, mem);
+        // THE LOAD-BEARING TEST for this change. Reproduce the live bug directly: a second
+        // real-position band entry shares the wielder's maxHp+hp+level but a DIFFERENT
+        // brave/faith, so Band.ActiveOwner's ambiguity guard bails (distinct fingerprints;
+        // "miss beats mis-credit") even while the TurnQueue is actively trying to name the
+        // wielder's own turn. On the pre-fix TurnQueue-gated window this leaves namesWielder
+        // false for the whole turn, so the window never opens and a full wait banks 0. The
+        // ActorPtr window sidesteps Band.ActiveOwner entirely, so the same full wait banks 1
+        // once the arm rides ActorPtr instead.
+        var (mushin, mem, wielder, fp, armed) = Build();
+        MemSeats.SeatBand(mem, 0, weapon: OtherWeaponId, lvl: fp.lvl, br: 70, fa: 70,
+                          gx: 5, gy: 5, hp: 200, maxHp: 300);
 
-        mushin.Tick(onField: true);   // prime (Wielder.Locate resolves the located entry to the MIRROR)
-
-        // The actor pointer arrives at the REAL frame -- NOT the mirror's address.
-        //
-        // NON-VACUITY: an address-only implementation compares acting(realEntry) == entry
-        // (mirrorEntry), which never matches -- the window never opens, so this never arms.
-        PointActorAt(mem, realEntry);
-        mushin.Tick(onField: true);
-        mushin.Tick(onField: true);   // idle tick: no move, no act
-
-        PointActorNowhere(mem);       // departure
+        mushin.Tick(onField: true);           // prime
+        PointActorAt(mem, wielder);            // arrival, purely via ActorPtr
+        SeatActive(mem, hp: 200, maxHp: 300, level: fp.lvl);   // the TurnQueue tries to name the wielder...
+        mushin.Tick(onField: true);            // ...and bails (ambiguous), so tqNamesWielder is false
+        mushin.Tick(onField: true);            // idle tick: no move, no act
+        PointActorNowhere(mem);                 // departure, purely via ActorPtr
         mushin.Tick(onField: true);
 
         Assert.Equal(1, StacksOf(armed, fp));
     }
 
     [Fact]
-    public void MirrorChurn_consume_stillFiresViaIdentity()
+    public void Consume_survives_whenCollidingNameIdEnemyActs()
     {
-        var (mem, realEntry, mirrorEntry, fp, meta, kills) = BuildMirrored();
-        var armed = new Dictionary<(int lvl, int br, int fa), int> { [fp] = 1 };   // pre-banked
-        var mushin = new Mushin(meta, kills, armed, mem);
+        // An enemy that SHARES the wielder's roster nameId (the old actingNameId == w.NameId
+        // check's exact collision class: generic units reuse small nameId values) but carries a
+        // DIFFERENT maxHp/level. Band.ActiveOwner never looks at nameId at all, so naming this
+        // enemy as the TurnQueue's active owner must leave the wielder's banked stacks untouched.
+        // (The old nameId-identity code consumed here.)
+        var (mushin, mem, wielder, fp, armed) = Build(nameId: 1);
+        armed[fp] = 2;   // pre-banked
 
-        mushin.Tick(onField: true);   // prime
-        PointActorAt(mem, realEntry);  // the wielder's turn begins at the REAL frame
-        mushin.Tick(onField: true);
-        SetActed(mem, 1);               // the attack lands
+        MemSeats.SeatBand(mem, 0, weapon: OtherWeaponId, lvl: 20, br: 50, fa: 50,
+                          gx: 5, gy: 5, hp: 100, maxHp: 100);
+        MemSeats.SeatFrameNameId(mem, 0, 1);   // same nameId as the wielder: decorative, irrelevant to the new trigger
+
+        mushin.Tick(onField: true);           // prime
+        SeatActive(mem, hp: 100, maxHp: 100, level: 20, team: 1);   // the TurnQueue names the ENEMY
+        SetActed(mem, 1);                       // acted edge fires while the enemy is the active owner
         mushin.Tick(onField: true);
 
-        // NON-VACUITY: an address-only implementation's ownActedEdge check (acting == entry) never
-        // matches (mirrorEntry != realEntry), so the charge would survive the attack -- this is
-        // exactly the "an attack sometimes did not consume" live bug the rework fixes.
-        Assert.True(StacksOf(armed, fp) == 0, "the wielder's own attack must consume via identity even though Locate resolved the mirror's address");
+        Assert.True(armed[fp] == 2, "an acted edge naming a colliding-nameId ENEMY must not consume the wielder's stacks");
     }
 
     [Fact]
-    public void FailedNameIdCapture_fallsBackToAddressCompare()
+    public void Consume_survives_whenSameMaxHpLevelDifferentFpUnitActs()
     {
-        // Roster nameId left UNSEEDED (0): Wielder.RosterNameId's single matching slot returns the
-        // raw read (0), which fails the "> 0" guard -- this wielder degrades to the original
-        // address-compare behavior, same as every pre-existing (nameId: 0) test above.
-        var (mushin, mem, wielder, fp, armed) = Build(nameId: 0);
+        // A second unit deployed alongside the wielder sharing the SAME maxHp/hp/level (so the
+        // TurnQueue fingerprint alone cannot tell them apart) but a DIFFERENT brave/faith:
+        // Band.ActiveOwner must bail as ambiguous rather than guess, so nobody's window is named
+        // and the wielder's banked stacks survive.
+        var (mushin, mem, wielder, fp, armed) = Build();
+        armed[fp] = 1;   // pre-banked
+
+        MemSeats.SeatBand(mem, 0, weapon: OtherWeaponId, lvl: fp.lvl, br: 70, fa: 70,
+                          gx: 5, gy: 5, hp: 200, maxHp: 300);
 
         mushin.Tick(onField: true);           // prime
-        PointActorAt(mem, wielder);            // arrival via address fallback
+        SeatActive(mem, hp: 200, maxHp: 300, level: fp.lvl);   // ambiguous: two real entries match
+        SetActed(mem, 1);
         mushin.Tick(onField: true);
-        mushin.Tick(onField: true);            // idle tick
-        PointActorNowhere(mem);                 // departure via address fallback
+
+        Assert.True(armed[fp] == 1, "an ambiguous TurnQueue match must bail rather than guess, leaving banked stacks untouched");
+    }
+
+    [Fact]
+    public void MirrorChurn_consumeFiltersTwinViaTurnQueue_armStillBanksViaActorPtr()
+    {
+        // A frozen (0,0) twin at another slot, sharing the wielder's exact fingerprint and
+        // maxHp/hp: Band.ActiveOwner's twin filter must prefer the REAL wielder entry, so the
+        // TurnQueue consume edge still fires correctly. The ActorPtr window never needed to
+        // disambiguate the twin at all (it addresses one specific entry directly), so a genuine
+        // full-wait arm afterward still banks regardless of the twin's presence.
+        var (mushin, mem, wielder, fp, armed) = Build();
+        MemSeats.SeatBand(mem, 20, weapon: KikuId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
+                          gx: 0, gy: 0, hp: 200, maxHp: 300);
+
+        armed[fp] = 1;   // pre-banked, so this pass exercises the consume edge first
+
+        mushin.Tick(onField: true);           // prime
+        SeatActive(mem, hp: 200, maxHp: 300, level: fp.lvl);   // the twin filter resolves the REAL entry
         mushin.Tick(onField: true);
+        SetActed(mem, 1);                       // the attack lands
+        mushin.Tick(onField: true);
+
+        Assert.True(StacksOf(armed, fp) == 0, "the twin filter must resolve the REAL entry so the attack still consumes");
+
+        // Close the attacking turn, then run a genuine full-wait turn purely via ActorPtr.
+        PointActorNowhere(mem);
+        SeatActiveNobody(mem);                  // the TurnQueue moves on too
+        mushin.Tick(onField: true);            // no window was open, so this is a no-op
+        Assert.Equal(0, StacksOf(armed, fp));
+
+        PointActorAt(mem, wielder);
+        mushin.Tick(onField: true);            // arrival
+        mushin.Tick(onField: true);            // idle: no move, no act
+        PointActorNowhere(mem);
+        mushin.Tick(onField: true);            // departure: full wait banks a stack
 
         Assert.Equal(1, StacksOf(armed, fp));
     }

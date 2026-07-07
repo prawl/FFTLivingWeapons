@@ -2,8 +2,9 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Pure decisions for Kiku-ichimonji's "Mushin" STACKING power boost: no memory access,
-/// unit-tested directly. The stateful trigger (turn-window tracking via ActorPtr/nameId
-/// arrival/departure, movement + acted-edge sampling) lives in Mushin.cs; GrowthEngine.Mushin.cs
+/// unit-tested directly. The stateful trigger (turn-window tracking via the ActorPtr fingerprint;
+/// act and consume via the TurnQueue fingerprint (Band.ActiveOwner); movement sampling) lives in
+/// Mushin.cs; GrowthEngine.Mushin.cs
 /// reads the shared stack-count dictionary Mushin.cs writes and applies <see cref="PaHeld"/> to
 /// the PA lane.
 ///

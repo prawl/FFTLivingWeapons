@@ -106,41 +106,11 @@ internal sealed class TurnTracker
         return true;
     }
 
-    /// <summary>The active (turn-queue) unit's (level,brave,faith), via a band walk. Returns false
-    /// if the queue is empty/garbage, no band entry matches, or the match is ambiguous (distinct
-    /// fingerprints -- miss beats mis-credit). Twin entries (same fingerprint) are fine.</summary>
+    /// <summary>The active (turn-queue) unit's (level,brave,faith), delegated to Band.ActiveOwner
+    /// (the shared band walk every own-turn-detecting signature now uses: FeignDeath, Puppeteer,
+    /// Mushin, and this tracker). See its doc comment for the ambiguity-bail and twin-filter
+    /// contract; this pure extraction changed no behavior (every existing test above stays
+    /// green, proving parity).</summary>
     private bool TryActiveFingerprint(out (int, int, int) fp)
-    {
-        fp = default;
-        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
-        ushort hp = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
-        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
-        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return false;
-
-        (int, int, int) found = default;
-        bool haveFp = false;
-        bool foundReal = false;   // twin filter: prefer real-position entries
-
-        for (int s = 0; s < Offsets.BandSlots; s++)
-        {
-            long addr = Band.Entry(s);
-            if (!Band.IsValid(_mem, addr)) continue;
-            if (_mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
-            if (_mem.U16(addr + Offsets.AHp) != hp) continue;
-            if (_mem.U8(addr + Offsets.ALevel) != level) continue;
-
-            bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
-            // twin filter: skip (0,0) entries if we already have a real-position match
-            if (foundReal && !realPos) continue;
-            if (realPos && !foundReal && haveFp) { found = default; haveFp = false; foundReal = true; }
-            if (realPos) foundReal = true;
-
-            var candidate = (level, (int)_mem.U8(addr + Offsets.ABrave), (int)_mem.U8(addr + Offsets.AFaith));
-            if (!haveFp) { found = candidate; haveFp = true; }
-            else if (found != candidate) return false;   // distinct fingerprints -> ambiguous
-        }
-        if (!haveFp) return false;
-        fp = found;
-        return true;
-    }
+        => Band.ActiveOwner(_mem, out fp, out _);
 }
