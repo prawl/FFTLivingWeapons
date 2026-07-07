@@ -10,14 +10,15 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-4] Samurai Sword signatures: Murasame + Kiku-ichimonji** (opened 2026-07-04) [QUEUED]
-  - Done means: Murasame id41 ships Masamune's Mercy (brave-gated heal, proven lever; AVOID
-    Mushin, the parked wait-detection byte hunt); Kiku-ichimonji id45 ships Onryo (Undead brand)
-    or Shura (controllable Berserk on 2nd kill, bit +0x47/0x08). Release blocker 1 of 2
-    (RELEASE_SCOPE.md section 1).
-  - Verify: items.json block, then gen_living_weapon_meta.py, then xUnit green, then deploy and
-    VERIFY LIVE, then commit and LIVE_LEDGER flip. Clean DEV redeploy before ANY katana live
-    test (an orphaned Zanshin DLL may still be deployed).
+- **[LW-4] Samurai Sword signature: Kiku-ichimonji Mushin** (opened 2026-07-04) [QUEUED]
+  - Done means: Kiku-ichimonji id45 ships Mushin: a full WAIT (no move, no act) banks a buff so the
+    wielder's next hit lands harder. Buff-hold is proven (StatHold, Iai's sibling pattern); the open
+    risk is detecting a full wait live (tools/probes/acted_moved_watch.py, candidate combat +0x1BB),
+    which gets a live probe BEFORE the build. Murasame id41's signature is deferred out of 2.3.0
+    (LW-47). Release blocker (RELEASE_SCOPE.md section 1).
+  - Verify: probe the wait signal live first, then items.json block, gen_living_weapon_meta.py, xUnit
+    green, deploy and VERIFY LIVE, commit and LIVE_LEDGER flip. Clean DEV redeploy before ANY katana
+    live test (an orphaned Zanshin DLL may still be deployed).
 
 ## Backlog
 
@@ -152,6 +153,8 @@ is the in-flight subset, not a mirror of that checklist.
   (no carve-out), so the card overpromises. Spun out of LW-5 (the expiry, shipped e882799, made the
   "for its full turn" clause accurate). Either drop the "No Lucavi" clause from items.json p3Desc and
   re-bake, or implement a Lucavi job carve-out in IsDominatable. Owner decision open.
+- [LW-47] 2026-07-07: Murasame id41's living-weapon signature is deferred out of 2.3.0 (Kiku-ichimonji
+  took the one samurai signature slot with Mushin); pick a proven lever and build it when revived.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

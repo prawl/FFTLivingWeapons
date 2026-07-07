@@ -13,21 +13,23 @@ Two owner decisions set the stopping line:
 - **Galewind expiry: SHIP WITH FALLBACK.** Try the round-7 AREC recon as a stretch; if a per-puppet-
   turn release does not crack, keep the committed wielder-clock behavior and reword the card to match.
   The release is never held hostage to an RE breakthrough.
-- **Samurai "finished" = 4 signatures:** Iai + Kobu (done) + 2 new (Murasame id41, Kiku id45).
-  Capstones (Masamune id46 / Chirijiraden id47 / Sasori id70) stay pure-growth.
+- **Samurai "finished" = 3 signatures:** Iai + Kobu (done) + Mushin (Kiku id45). Murasame id41's
+  signature is deferred out of this release. Capstones (Masamune id46 / Chirijiraden id47 / Sasori
+  id70) stay pure-growth.
 
 ---
 
 ## IN -- ship gate (every box green = ship)
 
-### 1. Samurai Swords (BLOCKER) -- finish = 4 signatures
-Tuning is DONE and analyze.py-green; the work is the two open signature slots.
-- [ ] **Murasame id41** signature -- **Masamune's Mercy** (brave-gated heal, proven lever). AVOID
-      Mushin (parked +0x1BB wait-detection byte hunt).
-- [ ] **Kiku-ichimonji id45** signature -- **Onryo** (Undead brand) OR **Shura** (controllable
-      Berserk on 2nd kill, bit +0x47/0x08). If Kusanagi's Reach is ever picked instead, run a
-      memory Doom-reap probe FIRST.
-- [ ] Each signature: items.json block -> gen_living_weapon_meta.py -> xUnit tests -> deploy ->
+### 1. Samurai Swords (BLOCKER): finish = 3 signatures
+Tuning is DONE and analyze.py-green; the work is the one open signature slot (Kiku's Mushin).
+- [ ] **Kiku-ichimonji id45** signature = **Mushin**: a full WAIT (no move, no act) banks a buff so
+      the wielder's next hit lands harder. Buff-hold is proven (StatHold, Iai's sibling pattern); the
+      OPEN piece is detecting a full wait live (tools/probes/acted_moved_watch.py, candidate combat
+      +0x1BB). Probe that signal BEFORE building.
+- [ ] **Murasame id41** signature is DEFERRED out of 2.3.0 (backlog LW-47); its capstone stays
+      pure-growth for now.
+- [ ] The signature: items.json block -> gen_living_weapon_meta.py -> xUnit tests -> deploy ->
       **VERIFY LIVE** -> commit -> LIVE_LEDGER flip. Live-verify is non-negotiable (Zanshin
       graveyard: built green, LIVE-FAILED on the damage-intercept wall, reverted).
 - [ ] Clean DEV redeploy before ANY katana live test (orphaned Zanshin DLL may still be deployed).

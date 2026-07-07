@@ -48,10 +48,8 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 - Soul Ledger (Knight sword): each kill this battle stacks +1 PA (+1 Speed per 3rd soul, capped) -- our own kill-tally driving a live within-battle power gauge.
 - Doppelgleam (Ninja blade): each strike borrows the max of own-vs-target PA/MA/Speed (StatHold sourced from the victim's bytes).
 - Loaded Dice (Knife): hold Brave/Faith at a high floor so every reaction/Brave/Faith roll skews good (the legal stand-in for the walled crit roll).
-- Worst Omen (execution tome / Murasame): curse a struck foe for 3 turns -- zeroed Brave + held Blind/Slow (inverse of Loaded Dice).
 - Sovereign's Decree (Knight sword): on a kill, charm every enemy within 2 tiles for its next turn so the cluster turns on itself.
 - Preemption (Crossbow/gun): spike CT at battle-enter so the wielder takes the literal first turn regardless of Speed.
-- Twin Star Covenant (Katana pair): link to one ally -- when you act, their CT fills so they act back-to-back with you, but their Brave averages with yours.
 - Guardian's Oath (bodyguard blade): redirect an adjacent ally's lethal hit to the wielder (hold the ally's HP up, drop yours) -- HP-holds + position reads + death detection are all proven.
 - Kobu (Katana, "rousing courage"): on a melee hit against a braver foe, raise the wielder's CURRENT Brave (+0x2B) to match (only climbs, never lowers; battle-scoped). Alt names Funki/Yuuki/Buyu; supersedes the old "Discipline" idea.
 - Monk accessory-in-hand: give the Monk a 2nd accessory slot via the hand slot -- the engine ACCEPTS an accessory in the hand and the unit punches bare-fisted (confirmed live: Cursed Ring on Ramza), but stat-stacking with the off-hand accessory is NOT yet confirmed (harmless ROAR-sound quirk on the swing).
@@ -199,14 +197,10 @@ BUILDABLE NOW:
   injected Counter/Hamedo. A werewolf with no sprite swap (pure write+hold + JobCommand reaction grant).
 - Loaded Dice (Knife) -- hold current Brave/Faith at a high floor so every reaction/Brave/Faith roll skews
   good. The legal way to load the dice the walled crit-roll won't let us touch.
-- Worst Omen (execution tome / Murasame) -- curse a struck foe to roll worst-case 3 turns: zeroed Brave +
-  held Blind/Slow. Inverse of Loaded Dice; composes Cripple's Brave-hold with a status-bit hold.
 - Sovereign's Decree (Knight sword) -- on a kill, charm every enemy within 2 tiles for its next turn so the
   cluster turns on itself. Charm bit + agency hold, area'd by adjacency reads.
 - Preemption (Crossbow/gun) -- spike CT at battle-enter so the wielder takes the literal first turn
   regardless of Speed. Declares initiative (distinct from kill-gated Bloodthirst).
-- Twin Star Covenant (Katana pair) -- link to one ally: when you act, their CT fills so they act back-to-
-  back with you, but their Brave averages with yours. First signature to drive a SECOND unit's tempo.
 
 PROBE (one byte to confirm):
 - Frozen Cadence (time rod) -- hold Stop + pin the victim's CT at zero every tick = true single-target
