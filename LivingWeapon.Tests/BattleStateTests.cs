@@ -24,16 +24,15 @@ public class BattleStateTests
     // --- EnterSignal (pure) ---
 
     [Theory]
-    [InlineData(true, 0u, 0, true)]      // fresh sentinel-pair arm (edge) -- enters even at mode 0
-    [InlineData(false, 0u, 2, true)]     // live battlefield mode 2
-    [InlineData(false, 0u, 4, true)]     // instant-targeting mode 4
-    [InlineData(false, 0xFFu, 3, true)]  // mode 3 + the in-battle marker
-    [InlineData(false, 0u, 3, false)]    // mode 3 alone is NOT a battle (menu cursor class)
-    [InlineData(false, 0u, 1, false)]    // move-browsing cursor class, not a battle
-    [InlineData(false, 0u, 0, false)]    // world map
-    [InlineData(false, 0xFFu, 0, false)] // STUCK pair without an edge must NOT enter (post-quit trap)
-    public void EnterSignal_only_on_a_fresh_pair_arm_or_a_live_mode(bool pairEdge, uint slot0, int mode, bool expected)
-        => Assert.Equal(expected, BattleState.EnterSignal(pairEdge, slot0, mode));
+    [InlineData(true, 0, true)]     // fresh sentinel-pair arm (edge): enters even at mode 0
+    [InlineData(false, 2, true)]    // live battlefield mode 2
+    [InlineData(false, 3, true)]    // live action-menu mode 3 (1.5: mode 3 IS in-battle, no marker needed)
+    [InlineData(false, 4, true)]    // instant-targeting mode 4
+    [InlineData(false, 1, false)]   // move-browsing cursor class, not a battle
+    [InlineData(false, 5, false)]   // cast-targeting cursor class is not an enter trigger on its own
+    [InlineData(false, 0, false)]   // world map / menus (battleMode 0)
+    public void EnterSignal_on_a_fresh_pair_arm_or_any_live_mode(bool pairEdge, int mode, bool expected)
+        => Assert.Equal(expected, BattleState.EnterSignal(pairEdge, mode));
 
     [Theory]
     [InlineData(0xFFu, 0xFFFFFFFFu, true)]   // both armed
@@ -139,13 +138,18 @@ public class BattleStateTests
     }
 
     [Fact]
-    public void Mode_3_alone_does_not_enter_but_mode_3_with_marker_does()
+    public void Mode_3_enters_regardless_of_the_slot0_marker()
     {
-        var bs = new BattleState();
-        Assert.Equal(BattleEdge.None, bs.Step(0, 0, 3, false, 0, T0));   // mode 3, no marker
-        Assert.False(bs.In);
-        Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, 0, 3, false, 0, T0));  // marker present
-        Assert.True(bs.In);
+        // 1.5: battleMode 3 is a live battlefield mode (InLiveBattle already trusts it), so it
+        // enters on its own; the 1.0-era slot0==0xFF gate was dropped after the world-map re-enter
+        // miss (LW-40, live-proven 2026-07-07). A marker-absent and a marker-present frame both enter.
+        var noMarker = new BattleState();
+        Assert.Equal(BattleEdge.Entered, noMarker.Step(0, 0, 3, false, 0, T0));   // mode 3, no marker, no pair
+        Assert.True(noMarker.In);
+
+        var withMarker = new BattleState();
+        Assert.Equal(BattleEdge.Entered, withMarker.Step(0xFF, 0, 3, false, 0, T0));  // marker present
+        Assert.True(withMarker.In);
     }
 
     [Fact]
@@ -328,6 +332,27 @@ public class BattleStateTests
             Assert.Equal(BattleEdge.None, bs.Step(0, 0, 0, paused: false, eventId: 302, now: t));
             Assert.True(bs.In);
         }
+    }
+
+    // Regression (LW-40, live-proven 2026-07-07 with the owner holding the repro): re-entering a
+    // battle from the world map presents battleMode=3 with the 1.5 slot0 marker reading 0x10, never
+    // the 1.0-era 0xFF. The old EnterSignal gated mode 3 behind slot0==0xFF, so this enter edge was
+    // silently dropped and the whole battle subsystem (Attack-row rename, growth, kill-tracking)
+    // stayed dormant, leaving a vanilla "Attack" row on Ramza. Enter must fire on the first live
+    // mode-3 frame regardless of the slot0 value.
+    [Fact]
+    public void Reentering_a_battle_at_mode_3_enters_without_the_legacy_marker()
+    {
+        var bs = new BattleState();
+        var t = T0;
+        // Cleanly Out on the world map first (mode 0, no pending pair edge).
+        Assert.Equal(BattleEdge.None, StepWorld(bs, t));
+        // Battle re-enters: mode 3, slot0 = the 1.5 marker 0x10, slot9 stuck, event 401 aliasing.
+        t = t.AddMilliseconds(33);
+        var edge = bs.Step(slot0: 0x10, slot9: 0xFFFFFFFF, battleMode: 3,
+                           paused: false, eventId: 401, now: t);
+        Assert.Equal(BattleEdge.Entered, edge);
+        Assert.True(bs.In);
     }
 
     // Regression: 2026-06-10 live log -- event 401 fired mid-battle; battleMode read 0 for ~4.7s;

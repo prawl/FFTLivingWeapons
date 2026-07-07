@@ -40,10 +40,16 @@ internal sealed class BattleState
         slot0 == 0xFF && slot9 == 0xFFFFFFFF;
 
     /// <summary>The instant battle-enter signal: a fresh sentinel-pair arm (edge, computed by
-    /// the caller) OR a live battleMode level.</summary>
-    internal static bool EnterSignal(bool pairRisingEdge, uint slot0, int battleMode) =>
-        pairRisingEdge || battleMode == 2 || battleMode == 4
-        || (battleMode == 3 && slot0 == 0xFF);
+    /// the caller) OR any live battlefield mode. battleMode reads 0 on the world map / menus and
+    /// 2/3/4 on a live battlefield (Offsets.BattleMode, "3-in-battle / 0-on-map"), so a live mode
+    /// is a safe enter trigger with no world-map false positive. This mirrors InLiveBattle's own
+    /// live-mode set: a frame InLiveBattle already calls in-battle must also be able to ENTER the
+    /// battle. The former "mode 3 only enters when slot0==0xFF" qualifier was a 1.0-era guard whose
+    /// 0xFF marker never appears in 1.5 (the marker reads 0x10), so it silently dropped the enter
+    /// edge whenever a battle re-entered from the world map at mode 3 (LW-40, live-proven
+    /// 2026-07-07: probe read slot0=0x10 / mode=3, InLiveBattle true but EnterSignal false).</summary>
+    internal static bool EnterSignal(bool pairRisingEdge, int battleMode) =>
+        pairRisingEdge || battleMode == 2 || battleMode == 3 || battleMode == 4;
 
     /// <summary>A genuine in-battle frame, for feeding the charm heartbeat and gating every module
     /// that writes battle memory. battleMode 2/3/4 covers active-turn frames. The slot0==0xFF
@@ -107,7 +113,7 @@ internal sealed class BattleState
             bool pairArmed = PairArmed(slot0, slot9);
             bool pairEdge = pairArmed && !_pairWasArmed;
             _pairWasArmed = pairArmed;
-            if (!EnterSignal(pairEdge, slot0, battleMode)) return BattleEdge.None;
+            if (!EnterSignal(pairEdge, battleMode)) return BattleEdge.None;
             In = true;
             _outAccum = TimeSpan.Zero;
             _lastTick = now;
