@@ -264,7 +264,7 @@ def assemble_desc(it, scaffold=True):
         if p3:
             sname = sig.get("sigName") or sig.get("displayLabel", "")
             at = sig.get("atTier", 3)
-            header = f"+{at} Ability — {sname}" if sname else f"+{at} Ability"
+            header = f"{sname} (+{at})" if sname else f"(+{at})"
             desc = desc.rstrip() + f"\n\n{header}\n{p3}"
         # Kills line FIRST, blank line after, then the rest of the body. The DLL paints the
         # tier-progress meter into the KILLS_SLOT_BODY_CHARS-wide body slot in place; the

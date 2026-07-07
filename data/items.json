@@ -143,7 +143,7 @@
         "atTier": 3,
         "displayLabel": "Concentration",
         "note": "Concentration — negates evade so Gloomfang's always-Blind can never miss (the P3 payoff in living_weapon_grid.csv)",
-        "p3Desc": "Attacks cannot be evaded."
+        "p3Desc": "Makes the wielder's attacks impossible to evade."
       }
     },
     {
@@ -298,7 +298,7 @@
         "hpBelow": 50,
         "displayLabel": "Attack Boost",
         "note": "Attack Boost while HP < 50% — the cornered executioner hits harder as he bleeds; arm-and-stays for the battle once tripped (living_weapon_grid.csv)",
-        "p3Desc": "Active while below half HP."
+        "p3Desc": "Raises physical attack while the wielder is below half HP."
       }
     },
     {
@@ -332,7 +332,7 @@
         "displayLabel": "Puppeteer",
         "puppeteerTurns": 1,
         "note": "Replaces Charm-Lock. Arms via EITHER the engine's own actor pointer (Band.ActorEntry names the wielder's own deployed main-hand band seat, Wielder.ResolveDeployedMainHand) OR the latch fallback (LastPlayerMainHand==Galewind && Acted==1) -- rebuilt 2026-07-03 after the latch-only gate never fired live. Detection is non-lossy: a per-battle additive enemy-fingerprint cache (EnemyFingerprintCache) plus a Kobu-style verdict chain (inactive/not-enemy/victim-dead/holding/cooldown/gated-out/rearm-unwritable/dominated) replaces the old per-tick rebuild -- a kill-strike (victim HP now 0) can no longer dominate a corpse. On a qualifying hit the struck enemy is dominated -- the player controls its move + full skillset (agency bit combat +0x05/0x08, band -0x17, held set each tick) until the GALEWIND WIELDER's own next turn (TurnTracker.Turns keyed off the wielder's BAND-read fingerprint captured at dominate time, Larceny's clock; GlobalTurns fallback if the wielder was unresolved), then it reverts to AI. ONE puppet at a time + a cooldown of Tuning.PuppeteerCooldownTurns=4 GLOBAL turns (3 turns blocked, re-arms on the 4th). Target gate: ALLOW-EVERYONE (2026-06-18, user request 'control everyone') -- IsDominatable returns true for every job id; the job byte is no unit filter (a live boss read job 37). The enemy + fingerprint gates in Puppeteer.cs are the real filter. Revert to a narrow gate by restoring IsDominatable to IsGenericHumanJob || IsMonsterJob. Runtime LivingWeapon/Puppeteer.cs + Puppeteer.Hold.cs. Offsets proven live 2026-06-18: agency +0x05/0x08 and job-read (JobOff == combat +0x03). CARD/CODE MISMATCH: the p3Desc promises '(no Lucavi)' but the Lucavi carve-out is NOT implemented (still allow-everyone) -- see docs/TODO.md; the card overpromises until the carve-out lands.",
-        "p3Desc": "A struck enemy (no Lucavi) is your puppet for its full turn (3-turn cooldown)."
+        "p3Desc": "Turns a struck enemy into your puppet for its full turn. No Lucavi; 3-turn cooldown."
       }
     },
     {
@@ -365,7 +365,7 @@
         "sigName": "Bloodthirst",
         "displayLabel": "Extra Turn",
         "note": "Extra turn on kill — NOT a passive grant: the runtime slams the killer's scheduler CT (combat struct +0x41, the solved hidden-scheduler field) until the bonus move is consumed (LivingWeapon/ExtraTurn.cs). Label-only signature: the card paints 'Grant Extra Turn' at P3; no abilityId/slot means no support bit is armed. Replaced the Dual Wield fallback (221) once the CT dig landed.",
-        "p3Desc": "A kill grants another turn."
+        "p3Desc": "Grants another turn whenever the wielder scores a kill."
       }
     },
     {
@@ -746,7 +746,7 @@
         "displayLabel": "Shadow Blade",
         "sigName": "Shadow Blade (Knight jobs only)",
         "note": "Shadow Blade -- grant the real ability (id 165, Gaffgarion's HP-draining dark sword strike) into the wielder's JobCommand menu via the proven Barrage injection (ShadowBlade.cs reuses Barrage's primitives; the shipped Barrage module is untouched). WHITELISTED to the Squire/Knight sword skill-sets (records 5/7), reached via the primary job OR a mounted secondary command (ShadowBladePolicy.TryResolveGrant) -- e.g. a Dragoon with Knight's Battle Skill as secondary lands it there; keeps Barrage's secondary fallback but only into a sword set. Samurai dropped (can't equip swords in IC). PLUS Ramza's story-unique sword forms (Gallant Knight job-byte 3 -> Mettle rec 27; Squire variants 1/2/4 -> 25/26/28) mapped via ShadowBladePolicy.RamzaSwordJobs -- authoritative JobData.JobCommandId, criterion = a Mettle command (Mettle is Ramza-only), all learned-index 0. VERIFIED LIVE 2026-06-15: renders with its real menu name and casts from Ramza's Mettle command.",
-        "p3Desc": "Grants Shadow Blade: Employs the power of darkness to absorb a distant unit's HP."
+        "p3Desc": "Grants Shadow Blade: drains a distant unit's HP with dark power. Knight jobs only."
       }
     },
     {
@@ -890,7 +890,7 @@
         "afterimage": true,
         "displayLabel": "Afterimage",
         "note": "Afterimage -- the wielder's Speed ramps +AfterimageSpeedPerTurn (1) per completed turn, capped at AfterimageSpeedCap (5) turns' worth, and resets to 0 on any hit. Swiftedge's damage is Speed x WP (formula 99), so the ramp accelerates its damage. Runtime: GrowthEngine.HoldAfterimage owns the speed lane (Route yields it), capture-natural + re-apply against the per-turn normalize (HoldTimedStat idiom); turns via TurnTracker, hit via a ReadHp drop. LOGIC + TESTS shipped (Afterimage.Policy.cs / AfterimageTests.cs); PENDING LIVE VERIFY -- the speed-write path is the GrowthEngine all-party live-test-pending caveat.",
-        "p3Desc": "Each turn the wielder acts, Speed +1 (to +5); taking a hit resets it."
+        "p3Desc": "Builds Speed +1 each turn the wielder acts, up to +5. A hit resets it."
       }
     },
     {
@@ -951,7 +951,7 @@
         "larcenyTurns": 3,
         "displayLabel": "Larceny",
         "note": "Larceny -- a hit STEALS ONE of the struck foe's holdable buffs (the highest-priority one): stripped from the foe, held on the wielder for larcenyTurns (3) of the WIELDER'S OWN turns, then dropped. VERIFIED LIVE 2026-06-14: the steal fires + transfers; Haste functional-tested live 2026-06-16 (+50% CT, the icon-only fear was a phantom -- haste has no walk animation). EXPIRY (2026-06-16): the wielder's own turns, counted off the engine's active-unit edge (FeignDeath-style), with a wall-clock cap (Tuning.LarcenyHoldSecondsCap) as the parked-wielder backstop. This replaced a GLOBAL-turn clock that did not expire the buff in a normal fight, which itself replaced a pure 30s wall-clock. The pre-hit snapshot stays: Arcanum's old strip-proc (onHit 55, removed 2026-06-15) cleared the live bit mid-hit, so Larceny remembers the buff from the tick before. COVERAGE: Reraise/Regen/Reflect/Haste functional live; Protect/Shell bit-wired, functional test pending; Float dropped (cosmetic-only).",
-        "p3Desc": "Any attack steals 1 buff from the foe for the wielder to wear 3 turns."
+        "p3Desc": "Steals one buff from a struck foe for the wielder to wear 3 turns."
       }
     },
     {
@@ -1321,7 +1321,7 @@
         "iai": true,
         "displayLabel": "Iai",
         "note": "Iai (quick-draw) -- every deployed main-hand wielder's Speed (band +0x24) is held at field-max+1 from battle-open so it takes the opening turn (turn order = Speed, ties lose; LIVE-VERIFIED 2026-07-01). Released when the engine's own actor pointer (Offsets.ActorPtr, 0x14186AF68) names the acting unit whose frame nameId back-reference (Offsets.ANameId, frame+0x1FC) matches the wielder's roster nameId captured at arm time -- either an arrival transition or an Acted-edge match while already pointing there -- backstopped by a 90s wall-clock cap (address-matching stays as a fallback if the nameId capture fails). Identity-matched (not just positional), so two wielders release independently even with identical stats, and the release survives a revolving engine mirror frame that can make address-only resolution ambiguity-bail mid-hold. Mechanism proven by tools/probes/unitid_probe.py 2026-07-01; see docs/LIVE_LEDGER.md. LIVE-VERIFY PENDING (of this identity-match rebuild specifically).",
-        "p3Desc": "The quick draw. At battle start always be the first one to act."
+        "p3Desc": "Makes the wielder act first at battle start (the quick draw)."
       }
     },
     {
@@ -1358,7 +1358,7 @@
         "braveOneUp": true,
         "displayLabel": "Kobu",
         "note": "Brave one-up: on a melee hit the wielder lands (acting-main-hand gate, mirrors Maim), if the struck foe's CURRENT brave (band +0x0F) exceeds the wielder's accumulated max, raise the wielder's current brave to match (climb-only, cap Tuning.KobuBraveCap, battle-scoped). Katana damage = PA x Brave/100 x WP so braver blade hits harder. Wielder located via Wielder.ResolveDeployedMainHand; struck foe detected via Maim HP-diff scan; NEVER writes orig brave (band +0x0E, the locate fingerprint/decoy). LIVE-VERIFIED 2026-06-27: livingweapon.log 'kobu: struck enemy (orig brave 46, current brave 99) -- wielder brave ceiling raised 85 -> 97' and the 97 rendered on the wielder card (current-brave write per brave-faith-current-vs-orig-offsets).",
-        "p3Desc": "Rousing courage. Strike a foe braver than you and gain their Brave."
+        "p3Desc": "Steals Brave from a struck foe braver than the wielder."
       }
     },
     {
@@ -1772,7 +1772,7 @@
         "sigName": "Spiritual Font",
         "displayLabel": "Spiritual Font",
         "fontOnMove": true,
-        "p3Desc": "Moving restores the wielder's HP and MP.",
+        "p3Desc": "Restores the wielder's HP and MP each time they move.",
         "note": "At +3, the RUNTIME restores the wielder on every completed MOVE (position-poll design). T1 weapons carry no signatures; Wellspring is a growth-only starter. TRIGGER HISTORY (4 failures): (1) Global TurnTracker acted-edge -- cursor-following struct mis-credited edges. (2) Band +0x25 ACtSlam CT read -- write-only byte; zero transitions observed live. (3) Band +0x09 ACtTurn CT read -- never reached >=90 across full player turns. (4) Actor latch rising edge -- fired for action 1, then the second player action produced NO latch line, NO turn line, NOTHING -- global Acted flag pulses unreliably (documented trap). CURRENT TRIGGER: position-poll via MoveWatch (SpiritualFont.Policy.cs). Each tick (inLive, active, located), read gx/gy from the first located band entry. First sighting baselines silently. A new tile must be stable for 3 consecutive ticks (filters mid-animation flicker and documented (0,0)-band-position pulses). After firing: rate-capped for 90 ticks (~3 s). Move-only turns NOW PAY (old actor-latch gap closed). Knockback/teleport also pays (intended; vanilla fonts pay on any movement). TWIN WRITE-THROUGH: Wielder.LocateAll + ReplenishAll write HP and MP to every located twin (live copy and frozen band copies) -- idempotent, live copy always takes effect. On fire: HP += round(maxHP*FontHpPct) (LifeSap.NewHp: floor 1, clamp, NEVER revive); MP += round(maxMP*FontMpPct) (floor 1, clamp; never into a corpse). Band +0x18/+0x1A (AMp/AMaxMp) LIVE-VERIFIED 2026-06-10. Per-battle layout validation (>=2 valid band units, mp<=maxMp, maxMp<=999, at least one maxMp>=1) retained as sanity guard. Knobs: Tuning.FontHpPct/FontMpPct = 0.10. RUNTIME: SpiritualFont.cs + SpiritualFont.Policy.cs."
       }
     },
@@ -1846,7 +1846,7 @@
         "sigName": "Rapture",
         "displayLabel": "Rapture",
         "raptureMove": true,
-        "p3Desc": "Below a third health, the wielder gains Master Teleportation until they recover.",
+        "p3Desc": "Grants Master Teleportation while the wielder is below a third HP.",
         "note": "When the +3 wielder's HP drops strictly below Tuning.RaptureHpPct (0.30) of max, Master Teleportation (movement 243 = ability.en key 499; Tuning.RaptureMoveId; plain Teleport is 242) REPLACES the wielder's movement field (band +0x80, 3 bytes) and is HELD until the wielder recovers to/above the threshold -- no turn cap. The 3-turn clock was retired 2026-06-10: the band CT it read (band +0x25 = ExtraTurn's WRITE target) never ticked live, while the recovery release was player-verified the same session. The Maim save-once/hold/restore discipline and never-re-save invariant are intact. Re-arm: a recovery IS the hysteresis; the next HP drop arms a fresh window. Restores on unequip/tier loss, wielder death (3-tick streak), and battle exit. DUAL-WIELD: rods are TwoSwords and band +0x80 == combat +0x9C, so the held image merges the other hand's earned movement-bit grants (e.g. Wellspring's fonts) -- Rapture and Spiritual Font never fight over the field. MOVEMENT 243 CONFIRMED LIVE 2026-06-10: the player teleported; arm-time read-back (SET/MISS) still logged. Fallback: flip Tuning.RaptureMoveId to 242 if read-back ever logs MISS. RUNTIME: Rapture.cs + Rapture.Policy.cs."
       }
     },
@@ -1915,7 +1915,7 @@
         "instantCastRadius": 1,
         "sigName": "Choir",
         "displayLabel": "Choir",
-        "p3Desc": "At +3, the bearer casts magick instantly -- no charge needed.",
+        "p3Desc": "Casts magick instantly, with no charge time.",
         "note": "CHOIR (holder-only): while a +3 Warlock's Staff bearer is alive and main-hand-wielding it, that bearer gets the Non-charge support bit (id 227, band +0x7F mask 0x04) OR-set per tick (instant magick), written address-direct onto the bearer's live band entry. Every deployed +3 bearer is its own instant-caster; there is NO adjacent-ally aura (dialed back 2026-06-26 -- the staff is buyable, so an ally aura double-dipped). Cleared on bearer death / unequip / below-tier / battle-end; a unit whose own picked support is Non-charge is never touched. Choir.cs/Choir.Policy.cs."
       }
     },
@@ -1953,7 +1953,7 @@
         "regenAuraRadius": 1,
         "sigName": "Renewal",
         "displayLabel": "Renewal",
-        "p3Desc": "Each turn, mends the bearer and adjacent allies for a tenth of their max HP.",
+        "p3Desc": "Mends the bearer and adjacent allies for a tenth of max HP each turn.",
         "note": "RENEWAL: at the +3 wielder's each completed-turn edge, the wielder AND every ALLY within 1 Chebyshev tile are healed for round(maxHP * 0.10) of their own max HP (clamped; never revives the dead). Chebyshev radius 1 covers all 8 surrounding tiles including diagonals -- broader than Wyrmblood's Manhattan splash. Mechanism: Renewal.cs + Renewal.Policy.cs. Silent band +0x14 HP write (no status icon, no floating number -- proven impossible without engine hooks). TurnTracker completed-turn edge is the trigger (same as Wyrmblood)."
       }
     },
@@ -2052,7 +2052,7 @@
         "atTier": 3,
         "displayLabel": "Benediction",
         "healBoostPct": 30,
-        "p3Desc": "The wielder's healing restores 30% more HP.",
+        "p3Desc": "Boosts the wielder's healing by 30%.",
         "note": "BENEDICTION: while a +3 Sanctus Staff is the acting wielder's main hand, any HP rise on a live ALLY during the action window (2-second grace, mirrors Plague) is boosted by 30%. Computed on observed restored HP (not nominal spell output); an overheal yields no bonus. Mechanism: HealState (RicochetState mirror for positive deltas), Larceny-pattern wielder gate (LastActorFingerprint + Wielder.Locate, NOT bare main-hand latch), LifeSap.NewHp clamp + LifeSap.WriteHp. Gate is NOT livingWeapon-exempt: id 64 stays dominance-checked; the gate stays GREEN because all stats/riders are UNCHANGED."
       },
       "iconTint": [
@@ -2129,7 +2129,7 @@
         "antiCrystallize": true,
         "sigName": "Sanctuary",
         "displayLabel": "Sanctuary",
-        "p3Desc": "While the bearer lives, no fallen ally crystallizes -- the revive window stays open.",
+        "p3Desc": "Stops any fallen ally from crystallizing while the bearer lives.",
         "note": "Per-tick pin of the crystal counter (combat +0x07 / band -0x15) to 3 while a +3 Staff of the Magi bearer is alive; dead-streak guarded (3 consecutive fallen ticks before pinning); guarded W8 (Writable check); gated on bearer alive each tick ('save the priest'). Sanctuary.cs."
       }
     },
@@ -2294,7 +2294,7 @@
         "atTier": 3,
         "gunSlinger": true,
         "displayLabel": "Gun Slinger",
-        "p3Desc": "Awakens dual-wield: a second pistol loads into the off-hand. (Equip out of battle.)"
+        "p3Desc": "Loads a second pistol into the off-hand, granting dual-wield. Must equip out of battle."
       }
     },
     {
@@ -2509,7 +2509,7 @@
         "displayLabel": "Eagle Eye",
         "doomCountdownTo": 1,
         "note": "While a +3 Eclipsebolt is equipped, every enemy Doom's countdown is forced down to 1 (band +0x59), so the mark resolves on the victim's next turn. SHIPPED runtime: EagleEye.cs (enemy scan + countdown write, idempotent: only writes a countdown still above 1). Doom bit = +0x49 mask 0x01. Base applies Doom at ~25% (formula 1) -- the gamble; Eagle Eye only fires on the hits that land it. PROVEN LIVE 2026-06-09 (at the 100% test config): wrote the countdown mid-battle, head-counter re-rendered live, victim died on its next turn with a clean engine death. Undead no-op the expiry (engine declines the kill). Aura model (matches CharmLock): hastens any enemy Doom while equipped, not just the wielder's.",
-        "p3Desc": "Doom strikes after 1 turn, not 3."
+        "p3Desc": "Shortens Doom's countdown to 1 turn instead of 3."
       }
     },
     {
@@ -2572,7 +2572,7 @@
         "sigName": "Plague",
         "displayLabel": "Plague",
         "note": "Persistent + 1.75x poison. Runtime shipped in LivingWeapon/Plague.cs: latch enemies poisoned during the +3 wielder's acted window, hold bit +0x48/0x80 + re-pin timer +0x4A to 36 each tick (defeats expiry and cures), apply mhp*3/32 extra damage on each victim turn edge (floored at 1 -- augment never kills). p3Desc baked so the card states the ability; no abilityId/slot means no support bit is armed.",
-        "p3Desc": "Poison never fades and is stronger."
+        "p3Desc": "Strengthens poison and stops it from ever fading."
       }
     },
     {
@@ -2748,7 +2748,7 @@
         "displayLabel": "Chain Lightning",
         "ricochetRadius": 3,
         "ricochetPct": 60,
-        "p3Desc": "Arcs to 3 nearby foes at decaying damage.",
+        "p3Desc": "Arcs to three nearby foes at decaying damage.",
         "note": "While a +3 Stormarc is equipped and the wielder deals damage to an enemy, the bolt arcs through up to RicochetMaxHops=3 further live enemies (Tuning.cs). Greedy nearest-unhit selection re-centers on each struck unit; never revisits. First hop = ricochetPct=60% of original damage; each later hop = RicochetHopDecayPct=60% of the previous hop chip. All chips floor at 1 and HP is clamped to 1 -- the chain NEVER kills. Tick-wide struck set: no unit is double-hit in one tick; real-hit victims are never chain targets. Consume() per struck slot so no chip write re-triggers. RUNTIME: Ricochet.cs two-pass per tick -- pass 1 observes every valid band slot (full candidate list); pass 2 runs PickChain per enemy damage event and applies ChipForHop per hop via ApplyChip (Mem.Writable guarded). Pure logic in Ricochet.Policy.cs; stateful memory I/O in Ricochet.cs."
       }
     },
@@ -2840,7 +2840,7 @@
         "sigName": "Maim",
         "displayLabel": "Maim",
         "crippleTurns": 3,
-        "p3Desc": "Foes it strikes lose their reactions (e.g. Counter) for 3 turns.",
+        "p3Desc": "Strips reactions like Counter from struck foes for 3 turns.",
         "note": "While the +3 Huntress wielder deals damage to an enemy, that enemy loses its reaction abilities (combat +0x94, band +0x78, 4 bytes) for 3 of its turns, then the saved bits restore. PROVEN live (reaction-suppression-cripple): hold-zero suppressed Counter through 5 hits; one-shot restore revived it. Runtime: Maim.cs -- HP-diff victim detection (Ricochet pattern) + save/hold/restore + per-victim CT turn counting (CharmLock pattern). Allies never latched. Re-hit refreshes the window. Base edit LOCKED: onHitAbilityId 214 Arm Shot -> 213 Leg Shot (T5 pins, T6 Perseus deletes)."
       }
     },
@@ -2876,7 +2876,7 @@
         "sigName": "Barrage (Thief Only)",
         "displayLabel": "Barrage",
         "grantCommandAbilityId": 358,
-        "p3Desc": "A Thief wielder gains Barrage: 4 swift attacks, each at half the usual damage.",
+        "p3Desc": "Grants Barrage: four swift attacks, each at half damage. Thief only.",
         "note": "While a +3 Yoichi Bow wielder exists, ability 358 (Barrage, 4-arrow volley at half damage) is injected into a JobCommand record and held each tick (table rebuilds at boot; original 25 bytes saved once, restored on grant end / job or secondary change). Target = the wielder's PRIMARY job record (generic band 74-92: rec = job-69, learned jobIdx = job-74, Dance shares 17) UNLESS the primary is a special-executor command (Aim/Jump/Items/Throw/Arithmeticks -- their executors id-whitelist in CODE and silently drop foreign abilities at confirm; PROVEN for Aim 2026-06-10 with 358/102/146/16) -- then the grant routes to the mounted SECONDARY's record (roster +0x07 = rec id; LIVE-PROVEN: Archer cast Barrage from mounted Steal). Learned bit HELD per tick (menu purchases stale-writeback-wipe external bits), never cleared; residue is inert without the injection. Name/desc/icon ship via cell-merged ability.en.nxd (patch_ability_names.py self-verifies 3 cells). VERIFIED LIVE under Thief primary AND Archer-with-Steal-secondary. RUNTIME: Barrage.cs + Barrage.Policy.cs (51+ tests)."
       }
     },
@@ -3305,7 +3305,7 @@
         "sigName": "Cavalier's Charge",
         "displayLabel": "Cavalier's Charge",
         "note": "Mounted Speed grant: while the Holy Lance wielder is riding a chocobo (combat +0x1B4 bit 0x80, proven 2026-06-26), hold Speed at natural+3. Reuses GrowthEngine.HoldTimedStat (the Afterimage Speed-lane machinery) with the forTurns gate replaced by the mount-bit check; a Polearm is PA-formula so growth never touches CSpeed -- no Route conflict. Reverts on dismount/battle-exit.",
-        "p3Desc": "While riding a chocobo, Speed +3."
+        "p3Desc": "Adds Speed +3 while the wielder rides a chocobo."
       }
     },
     {

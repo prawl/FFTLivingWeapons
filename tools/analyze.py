@@ -127,13 +127,13 @@ def check_slots(items, normal_formulas):
 
 FLAVOR_MAX = 90   # authored flavor lines must fit the equip card
 P3DESC_MAX = 90   # the signature EFFECT line (the card header carries the name + the +N tier)
-SIGNAME_MAX = 60  # the name in the "+{atTier} Ability -- {name}" card header. May carry a class-restriction
+SIGNAME_MAX = 60  # the name in the "{name} (+{atTier})" card header. May carry a class-restriction
                   # note (e.g. "Shadow Blade (Squire, Gallant Knight, Knight only)"); the full header line
-                  # ("+3 Ability -- " + name) still fits within the ~90-char card width the flavor lines use.
+                  # (name + " (+3)") still fits within the ~90-char card width the flavor lines use.
 
 def check_p3desc(items):
     """Each signature with a p3Desc must resolve a name (sigName, else displayLabel) for the card
-    header '+{atTier} Ability -- {name}', and the p3Desc EFFECT line must fit the card. The card
+    header '{name} (+{atTier})', and the p3Desc EFFECT line must fit the card. The card
     layout is: blank line, the header, the bare effect line (no name prefix, no +N suffix)."""
     bad = []
     for it in items:
@@ -375,6 +375,45 @@ def check_grid_sync(items):
     return violations
 
 
+def check_p3_grid_lockstep(items):
+    """docs/living_weapon_grid.csv's '+3 ability' column must never drift from items.json's
+    signature.p3Desc (owner requirement, LW-36 part 3): the CSV is the design source of truth
+    (see check_grid_sync), so the effect text a human edits there and the text the card actually
+    renders (baked from p3Desc, see lib/flavor.assemble_desc) must stay byte-identical. Every item
+    whose signature carries a p3Desc must have a grid row whose '+3 ability' cell matches it
+    exactly. A signature with NO p3Desc (id 32, Materia Blade/Ultima, whose curve is conveyed by
+    the item's own desc, not a card-header effect line) must have an EMPTY cell, so a stray value
+    can't creep in unnoticed."""
+    grid_path = ROOT / "docs" / "living_weapon_grid.csv"
+    if not grid_path.exists():
+        return [({"id": 0, "name": "living_weapon_grid.csv"}, ["grid file missing"])]
+    rows = {}
+    for r in csv.DictReader(grid_path.open(encoding="utf-8-sig")):
+        try:
+            rid = int(r["id"])
+        except (KeyError, ValueError):
+            continue
+        rows[rid] = r
+    violations = []
+    for it in items:
+        sig = it.get("signature")
+        if not sig:
+            continue
+        p3, iid = sig.get("p3Desc"), it["id"]
+        row = rows.get(iid)
+        if row is None:
+            if p3:
+                violations.append((it, [f"+3 ability: no grid row for id{iid} (items.json has p3Desc)"]))
+            continue
+        cell = (row.get("+3 ability") or "").strip()
+        if p3:
+            if cell != p3:
+                violations.append((it, [f"+3 ability: grid {cell!r} != items.json p3Desc {p3!r}"]))
+        elif cell:
+            violations.append((it, [f"+3 ability: grid has {cell!r} but items.json has no p3Desc"]))
+    return violations
+
+
 # Acquisition vocabulary for the grid's obtain column. Tokens may carry a parenthetical
 # detail -- "Poach (Plague Horror)", "Move-Find (Midlight's Deep DELTA)" -- which the
 # check strips before validating; the detail is the human-facing where/from-whom and the
@@ -546,6 +585,16 @@ def main():
         print("  PASS: the living weapon grid matches items.json.")
     else:
         for a, probs in gs:
+            for prob in probs:
+                print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
+        rc = 1
+
+    p3g = check_p3_grid_lockstep(items)
+    print("\n--- P3 ABILITY GRID LOCKSTEP (items.json p3Desc == grid CSV '+3 ability') ---")
+    if not p3g:
+        print("  PASS: every grid '+3 ability' cell matches items.json's signature p3Desc.")
+    else:
+        for a, probs in p3g:
             for prob in probs:
                 print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
         rc = 1
