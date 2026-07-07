@@ -238,14 +238,6 @@ is the in-flight subset, not a mirror of that checklist.
   ITEM-text records and redirect the desc offset at a mod-owned buffer (instant updates,
   retires the sweep; same tech the attack-card mirror uses). Low priority: the slow sweep
   works and the owner accepted out-of-battle paint latency.
-- [LW-38] 2026-07-06: The Attack-row rename misses the battle's FIRST turn (owner gripe at the
-  stage-3 live pass): the census rescans the whole heap every battle (~80 ticks at the 48MB
-  budget), so the first menu open beats the first paint. Fix candidates, likely combined:
-  persist the census cache ACROSS battles within a launch (the catalog copies are
-  launch-stable, observed surviving battles all night 2026-07-06; ResetBattle would
-  re-VALIDATE labels instead of rescanning, instant from battle 2 on) and burst the scan
-  budget during battle load for the first battle. Verify with a stopwatch on the
-  census-finished log line vs the first menu open.
 - [LW-39] 2026-07-06: Recover fingerprint-TWIN units for the cursor resolve (owner hit it live:
   two party units at identical level and hp/maxHp made the resolve refuse, and the register
   fallback then dressed Ramza's Attack row in the Spark Rod wielder's dossier; the fallback

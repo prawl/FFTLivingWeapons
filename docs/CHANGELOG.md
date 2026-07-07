@@ -8,6 +8,13 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-38] SHIPPED 3bcdadc 2026-07-07: the Attack-row rename missed the battle's first turn
+  (owner gripe: the whole-heap census took dozens of ticks per battle, so the first Abilities
+  menu open beat the first paint). ResetBattle now keeps the cached table copies warm across
+  the battle edge; the next battle's first RepaintAll re-verifies each copy (label bytes plus
+  footprint image) and evicts anything stale, re-arming a full census only when the cache is
+  empty. Owner live-verified: the weapon loads in place of "Attack" on the first turn of the
+  second battle, no rescan wait.
 - [LW-27] RETRACTED 2026-07-06: the party-menu equip-card "Kills: N" header, superseded by the body-first-line Kills meter (cd6599e); the count lives in the card body on every surface, so no header stamp is built.
 - [LW-33] SHIPPED 18d640d 2026-07-06: the residual footprint-poisoning path in the attack-card
   painter. SyncHit re-pins the footprint to the vanilla 73 chars on every known-line read
