@@ -185,12 +185,6 @@ is the in-flight subset, not a mirror of that checklist.
   doubling the +N system; the record-first architecture defers that question (candidate
   anti-doubling rule on the table: a Mark requires PLURALITY of kills, not raw count).
   Supersedes/absorbs the Phase 1 legends.json shape when picked up; ties to LW-6.
-- [LW-35] 2026-07-06: HIDE the Marks feature for this release (owner direction: "we'll finish
-  implementing that in a future release"): one flag suppresses every Mark surface: the
-  equip-card story narration (Reliquary Phase 1 lines), the Mark deed toasts, and the
-  attack-card Mark clause. Kill/legends COLLECTION keeps running (the chronicle keeps
-  recording; only the display hides), so the two-wave build (LW-32) re-enables display over
-  history that never stopped accumulating. Release-scoped: pull into Now when a slot frees.
 - [LW-34] 2026-07-05: The coverage line over-counts enemies ("All 8 enemies are accounted for"
   in a 4-enemy battle; owner report, log 22:43). Attribution itself was flawless that battle
   (all 4 kills credited cleanly, correct battle-end summary), so likely the EnemyOracle is

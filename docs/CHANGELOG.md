@@ -8,6 +8,14 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-35] SHIPPED 672e8f4 2026-07-07: release-hide the Marks feature on every card surface (owner
+  direction; the display returns with the two-wave Chronicle build, LW-32). The equip-card story
+  narration (Display legends:null, 65f7f77) and the attack-card Mark clause (AttackCard
+  markLabel=null) were already dark; this closes the last surface by passing null for Reliquary's
+  toast, so an earned Mark never enqueues a deed toast even when BannerToasts is enabled. Milestone
+  and unlock toasts on the shared BannerToast are unaffected. Collection is untouched: the
+  LegendStore still records every deed and Mark (proven inert by
+  ReliquaryTests.Disabled_toasts_stay_fully_inert), so re-enabling paints over unbroken history.
 - [LW-36] SHIPPED 5bf180d 2026-07-07: reworded every +3 ability card block to the locked grammar
   (header "{Name} (+{tier})", a verb-first "{Verb} {effect}. {Condition}" body for all 25
   signatures within the 90-char budget, job gates moved into the body), and added the
