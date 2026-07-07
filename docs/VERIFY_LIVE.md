@@ -23,17 +23,26 @@ what you saw and reopen here.
 | 4 | f4bf5df | **Death-edge culprit stamp** (stale-latch attribution fix). | Four correct stamp-overrides on tape same day: three in the Lionel Gate re-run (manual alternation) + one under auto-battle that corrected the Queklain kill to Ramza's Windrunner, matching eyewitness. Archives flight_20260705_111650 + _113131. | [x] |
 | 5 | a3106d0 | **Deploy preservation round-trip** (save files + flight/). | Sentinels + all 20 archives survived 2 consecutive deploys and 1 lock-induced failed deploy (catch-path restore observed). | [x] |
 
-## 2026-07-05 batch, PENDING live verification
+## 2026-07-05 batch, verified live 2026-07-07 (owner)
 
-| # | Commit | Change | How to verify live | Done? |
-|---|--------|--------|--------------------|-------|
-| 6 | 061e36c | **Reliquary Phase 1: Mark toasts** (dev threshold: 2 kills per archetype). | Kill 2 humans with one weapon: toast "{weapon} has earned its Mark: Manslayer!". Repeat for casters (Spellbreaker) and monsters (Beastbane). Toast delivers via the facing prompt as before. | [ ] |
-| 7 | 061e36c + 5db7a90 | **Reliquary Phase 1: the card's story line** (Ledger voice, colon separator). | After any kill, the equip card's flavor line reads "{name}: {k} felled; last, a {victim}." After a Mark: "{name}, Manslayer: {n} men felled; last, ...". The Kills counter KEEPS UPDATING across several battles and card opens (the three-way-anchor regression). Weapons with no deeds keep their baked flavor untouched. Sasuke's Blade NEVER narrates (26-char budget, by design). | [ ] |
-| 8 | 061e36c | **Undead classifier / Requiem path** (live-unexercised; the one classifier never fired). | Kill 2 undead (skeleton/ghoul) with one weapon: Requiem toast; card reads "last, a risen one"; legends.json counts index 3 rises. BLOCKED for item kills until row 12 lands; use weapon kills. | [ ] |
-| 9 | 061e36c | **legends.json persistence**. | After an earning battle: legends.json appears beside kills.json (a .bak after the second save); survives a redeploy (row 5's mechanism); deeds/marks intact after game restart. | [ ] |
-| 10 | 58d5c7b | **Desc budget trims** (DATA: takes effect on game RESTART). | Open the cards for Sanguine Sword, Wrathblade, Stormarc: all three fit the box (Kills line visible). Rod of Faith and Swiftedge still exactly fit. | [ ] |
-| 11 | dd37068 | **Log facelift** (tagless subject-first console, armed gating, launch header, battle summary). | See the protocol below the table. | [ ] |
-| 12 | pending build | **Boco fix** (unarmed stale latch eating an armed player's kill). | Repeat the exact failure: Boco (or any unarmed unit) acts, then Ramza (armed, Windrunner) kills with a Phoenix Down or Throw Stone. The kill credits Windrunner and (if the victim is undead) etches the Requiem deed. Log shows the register override, not the "no Living Weapon" burial. | [ ] |
+| # | Commit | Change | Verified | Done? |
+|---|--------|--------|----------|-------|
+| 10 | 58d5c7b | **Desc budget trims** (DATA: takes effect on game RESTART). | Sanguine Sword, Wrathblade, Stormarc all fit the box with the Kills line visible; Rod of Faith and Swiftedge still fit. | [x] |
+| 11 | dd37068 | **Log facelift** (tagless subject-first console, armed gating, launch header, battle summary). | The row-11 protocol below passed live. | [x] |
+| 12 | pending build | **Boco fix** (unarmed stale latch eating an armed player's kill). | Unarmed unit acts, then an armed player kills with an item/throw: the kill credits the armed weapon, not the "no Living Weapon" burial. | [x] |
+
+## 2026-07-05 batch, DEFERRED to a later patch
+
+Reliquary Phase 1's live pass (Marks + card story + undead/legends) is pushed past 2.3.0. These
+rows ride backlog LW-6 ("Phase 1 SHIPPED 061e36c, awaiting its live pass"); recreate them in the
+next release's verification doc when the Reliquary live pass is scheduled.
+
+| # | Commit | Change | How to verify live (when revived) |
+|---|--------|--------|-----------------------------------|
+| 6 | 061e36c | **Reliquary Phase 1: Mark toasts** (dev threshold: 2 kills per archetype). | Kill 2 humans with one weapon: toast "{weapon} has earned its Mark: Manslayer!". Repeat for casters (Spellbreaker) and monsters (Beastbane). Toast delivers via the facing prompt as before. |
+| 7 | 061e36c + 5db7a90 | **Reliquary Phase 1: the card's story line** (Ledger voice, colon separator). | After any kill, the equip card's flavor line reads "{name}: {k} felled; last, a {victim}." After a Mark: "{name}, Manslayer: {n} men felled; last, ...". The Kills counter KEEPS UPDATING across several battles and card opens (the three-way-anchor regression). Weapons with no deeds keep their baked flavor untouched. Sasuke's Blade NEVER narrates (26-char budget, by design). |
+| 8 | 061e36c | **Undead classifier / Requiem path** (live-unexercised; the one classifier never fired). | Kill 2 undead (skeleton/ghoul) with one weapon: Requiem toast; card reads "last, a risen one"; legends.json counts index 3 rises. Use weapon kills. |
+| 9 | 061e36c | **legends.json persistence**. | After an earning battle: legends.json appears beside kills.json (a .bak after the second save); survives a redeploy (row 5's mechanism); deeds/marks intact after game restart. |
 
 ## Row 11 protocol: the log facelift + gate-regression sweep
 
@@ -65,7 +74,8 @@ what you saw and reopen here.
    signature console lines stop; the file keeps recording.
 
 ## Notes
-- Rows 6-9 + 11-12 are runtime DLL behavior (live on deploy). Row 10 is data (restart-gated).
+- Rows 10-12 verified live 2026-07-07 (owner), closing LW-2's release-verify scope. Rows 6-9
+  (Reliquary Phase 1 live pass) are deferred past 2.3.0 and tracked under backlog LW-6.
 - Reliquary AC checkbox flips and LIVE_LEDGER rows remain Patrick-only.
 - The next release's verification doc should start from this file plus docs/RELEASE_SCOPE.md's
   IN list (Samurai Swords signatures, Galewind fallback, balance pass all need their own rows
