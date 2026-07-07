@@ -412,6 +412,44 @@ def check_p3_grid_lockstep(items):
     return violations
 
 
+def check_p3_signame_grid(items):
+    """docs/living_weapon_grid.csv's 'P3' column carries the +3 growth line PLUS the signature's
+    card NAME (e.g. 'PA +30% + Puppeteer'), and that name must match the ability name the equip
+    card actually shows. The card header is '{sigName else displayLabel} (+{atTier})' (see
+    lib.flavor.assemble_desc), so for every signature that renders a card block (has a p3Desc) the
+    card name -- any '(Knight jobs only)'-style restriction stripped -- must appear in the P3 cell.
+    Companion to check_p3_grid_lockstep (which pins the EFFECT line): together they keep both halves
+    of the card's signature block in lockstep with the design sheet. This gate exists for the
+    stale-name drift it was added to catch: Galewind read 'Infatuation' long after the Puppeteer
+    rework, and Yoichi read 'Fan-Splitter' after the signature shipped as Barrage. Signatures with
+    no p3Desc render no card block (id 32, Materia Blade/Ultima) and are skipped, same as the card."""
+    grid_path = ROOT / "docs" / "living_weapon_grid.csv"
+    if not grid_path.exists():
+        return [({"id": 0, "name": "living_weapon_grid.csv"}, ["grid file missing"])]
+    rows = {}
+    for r in csv.DictReader(grid_path.open(encoding="utf-8-sig")):
+        try:
+            rid = int(r["id"])
+        except (KeyError, ValueError):
+            continue
+        rows[rid] = r
+    violations = []
+    for it in items:
+        sig = it.get("signature")
+        if not sig or not sig.get("p3Desc"):
+            continue
+        name = sig.get("sigName") or sig.get("displayLabel", "")
+        base = re.sub(r"\s*\([^)]*\)", "", name).strip()  # drop a trailing class-restriction note
+        row = rows.get(it["id"])
+        if row is None:
+            violations.append((it, [f"P3: no grid row for id{it['id']}"]))
+            continue
+        cell = (row.get("P3") or "").strip()
+        if base and base not in cell:
+            violations.append((it, [f"P3: card name {base!r} not present in grid P3 {cell!r}"]))
+    return violations
+
+
 # Acquisition vocabulary for the grid's obtain column. Tokens may carry a parenthetical
 # detail -- "Poach (Plague Horror)", "Move-Find (Midlight's Deep DELTA)" -- which the
 # check strips before validating; the detail is the human-facing where/from-whom and the
@@ -593,6 +631,16 @@ def main():
         print("  PASS: every grid '+3 ability' cell matches items.json's signature p3Desc.")
     else:
         for a, probs in p3g:
+            for prob in probs:
+                print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
+        rc = 1
+
+    p3n = check_p3_signame_grid(items)
+    print("\n--- P3 SIGNATURE NAME (grid CSV 'P3' cell carries the card's signature name) ---")
+    if not p3n:
+        print("  PASS: every grid 'P3' cell names the ability the card shows.")
+    else:
+        for a, probs in p3n:
             for prob in probs:
                 print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
         rc = 1
