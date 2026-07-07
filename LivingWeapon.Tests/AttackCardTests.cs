@@ -322,7 +322,7 @@ public class AttackCardTests
     }
 
     [Fact]
-    public void ResetBattle_restores_vanilla_and_drops_the_cache()
+    public void ResetBattle_restores_vanilla_and_keeps_the_warm_cache()
     {
         var rig = Build();
         long copy = 0x7000000000;
@@ -335,9 +335,89 @@ public class AttackCardTests
 
         rig.Card.ResetBattle();
 
-        Assert.Equal(0, rig.Card.HitCountForTests);
+        Assert.Equal(1, rig.Card.HitCountForTests);
         Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
         Assert.Equal(AttackRow.VanillaOffsetBytes, rig.Mem.RegionBytes(AttackCardMemory.RecordAddrFor(copy, 1))[..8]);
+    }
+
+    [Fact]
+    public void Warm_cache_survives_ResetBattle_and_repaints_on_the_first_tick_of_the_next_battle()
+    {
+        // LW-38: the cache stays warm across ResetBattle, so the next battle's first repaint is an
+        // instant SyncHit re-validate off the existing cache entry, never a fresh multi-tick census.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        Settle(rig.Card);
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+
+        rig.Card.ResetBattle();
+
+        Assert.Equal(1, rig.Card.HitCountForTests);
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+
+        // Battle 2: Windrunner's turn opens again. A SINGLE tick, no census slack at all, is
+        // enough to repaint the row, proving the cache from battle 1 was never dropped.
+        OpenTurn(rig, level: 50);
+        rig.Card.Tick();
+
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Equal(1, rig.Card.HitCountForTests);
+    }
+
+    [Fact]
+    public void Stale_cached_copy_evicts_and_re_arms_a_full_census_on_the_next_battle()
+    {
+        // Battle 1 caches copyA and ResetBattle keeps it warm. Before battle 2 gets a chance to
+        // re-validate it, the underlying buffer itself went stale (a freed/reused allocation, the
+        // same real-world shape SyncHit's label re-verify already guards against). A second,
+        // genuinely live copy (copyB) exists by the time battle 2's first repaint runs.
+        var rig = Build();
+        long copyA = 0x7000000000;
+        long copyB = 0x7000100000;
+        rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+        Assert.Equal(1, rig.Card.HitCountForTests);
+
+        rig.Card.ResetBattle();
+        Assert.Equal(1, rig.Card.HitCountForTests);   // the warm cache survives the reset
+
+        var (labelAddr, _) = AttackCardTableFixture.Addrs(copyA, 1);
+        rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
+        rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);     // battle 2's own live copy
+        // No player turn open yet at battle 2's start (an enemy's turn, same "no cursor answer"
+        // convention as Enemy_team_cursor_composes_vanilla): the desired plan stays vanilla, so
+        // the eviction and re-census below are the ONLY things happening this pass.
+        rig.Mem.SeatCursor(team: 1, level: 50, hp: 100, maxHp: 100);
+        int writesBefore = rig.Mem.WrittenAddrs.Count;
+
+        Settle(rig.Card);
+
+        Assert.Equal(1, rig.Card.HitCountForTests);                    // copyA evicted, copyB found and cached
+        Assert.Equal(writesBefore, rig.Mem.WrittenAddrs.Count);        // eviction + fresh vanilla census: zero writes
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copyB), 1));   // the re-census located it
+    }
+
+    [Fact]
+    public void ResetBattle_with_an_empty_cache_re_arms_the_census()
+    {
+        var rig = Build();
+        Settle(rig.Card);   // an empty first census: no table exists yet, so the cache stays empty
+        Assert.Equal(0, rig.Card.HitCountForTests);
+
+        rig.Card.ResetBattle();
+
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+        Settle(rig.Card);
+
+        Assert.Equal(1, rig.Card.HitCountForTests);
     }
 
     // LW-31: CURSOR-ONLY resolve (owner-observed wrong-weapon display 2026-07-06). The register

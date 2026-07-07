@@ -141,14 +141,19 @@ internal sealed partial class AttackCard
     }
 
     /// <summary>Battle-enter AND battle-exit edge (Engine.ResetBattleState fires on both):
-    /// restore vanilla to every live cached copy best-effort, then drop the cache and re-arm a
-    /// fresh census for the next battle. Idempotent, mirrors KillTracker/Display's own reset shape.</summary>
+    /// restore vanilla to every live cached copy best-effort, then reset compose state for the
+    /// next battle. LW-38: unlike KillTracker/Display's own reset shape, the copy cache itself is
+    /// KEPT warm across the edge rather than dropped, so the next battle's first repaint does not
+    /// have to wait out a fresh multi-tick committed-heap census before the Attack row can be
+    /// renamed again. This is safe for free: RepaintAll's very next pass runs SyncHit over every
+    /// cached copy, which fully re-verifies the "Attack" label bytes and the footprint image from
+    /// scratch, evicting (and re-arming a census for) anything that went stale in the meantime.
+    /// Only an empty cache re-arms a full census here, since there is nothing left to re-validate.</summary>
     public void ResetBattle()
     {
         RestoreVanillaBestEffort();
-        _hits.Clear();
         _scanning = false;
-        _needsCensus = true;
+        _needsCensus = _hits.Count == 0;
         _currentImage = null;
         _currentRowChars = 0;
         _previousImage = null;
