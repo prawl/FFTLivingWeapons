@@ -56,8 +56,7 @@ internal sealed class Engine
     private readonly PromptSwap _promptSwap;
     private readonly PromptSwapHook _promptSwapHook;
 #if LWDEV
-    private readonly ShowSpike _showSpike;   // F8 chase instrument, dev-only scaffolding
-    private readonly FlavorSpike _flavorSpike;   // F6 P4 flavor-render probe, dev-only (key shared with ShowSpike's prompt-swap arm -- deliberate)
+    private readonly FlavorSpike _flavorSpike;   // F6 P4 flavor-render probe, dev-only
     private readonly HeaderSpike _headerSpike;   // F8 LW-27 header-repaint research instrument, dev-only
     private readonly AttackCardSpike _attackCardSpike;   // F6 LW-31 Attack-menu census instrument, dev-only
     private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
@@ -112,9 +111,6 @@ internal sealed class Engine
         _reliquary = new Reliquary(_legends, null, meta, Flight.Record);
         _promptSwap = new PromptSwap(_toast, live);
         _promptSwapHook = new PromptSwapHook(_promptSwap);
-#if LWDEV
-        _showSpike = new ShowSpike(live);
-#endif
         _turns = new TurnTracker(live, Flight.Record);
         // verbose: true (was Tuning.VerboseEvents, DEV-only const) -- the event timeline is now
         // always captured to the file at Debug tier via the [trace] verb (Debug writes
@@ -197,14 +193,10 @@ internal sealed class Engine
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves
     /// reloaded.sharedlib.hooks (controllers are not resolvable at construction time).
     /// Production arms the facing-prompt swap here (gated on Config.BannerToasts, AC4: disabled =
-    /// never armed); the LWDEV ShowSpike tap instrument arms unconditionally after it (dev-only
-    /// scaffolding, hook-stacking on the same address is standard Reloaded behavior).</summary>
+    /// never armed).</summary>
     public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks hooks)
     {
         if (_bannerToastsEnabled) _promptSwapHook.Arm(hooks);
-#if LWDEV
-        _showSpike.Arm(hooks);
-#endif
     }
 
     public void Start()
@@ -380,7 +372,6 @@ internal sealed class Engine
         _toast.Tick(changed);
         _attackCard.Tick();   // LW-31 stage 2: the Attack-menu desc painter; mirrors the spike's own load-bearing tick site below
 #if LWDEV
-        _showSpike.Tick();
         _flavorSpike.Tick();
         _headerSpike.Tick();
         _attackCardSpike.Tick();   // LW-31: the Abilities menu lives here, the load-bearing tick site
