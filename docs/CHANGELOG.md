@@ -8,6 +8,20 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-5] SHIPPED e882799 2026-07-07: Galewind Puppeteer releases the puppet after IT takes its own
+  turn, not on the wielder's clock. The shipped wielder-clock rode TurnTracker.Turns(wielderFp),
+  which LW-7 collapses onto the wielder, so the puppet released on the next turn after dominate
+  regardless of whose it was (premature when the puppet was not the next actor, late when it was
+  fast, per the 2026-07-07 tapes). Release now fires when the engine turn-owner queue
+  (Offsets.TurnQueue, the struct TurnTracker.TryActiveFingerprint matches) names the puppet across an
+  acted rising..falling edge, read directly so it is immune to the LW-7 credit collapse (the CT byte
+  and actor pointer both read dead for a human-driven puppet). A GlobalTurns cap backstops the case
+  where the queue signal never fires, bounding a puppet to at most N global turns, never to battle
+  exit. Live-verified: held through three other units' turns, then released reason=own-turn on its own
+  turn, corroborated by the queue, AREC performing stamp, and actor pointer all naming the puppet at
+  once. The card's "for its full turn" is now accurate; the unimplemented "No Lucavi" clause spins out
+  to LW-46. The recon instrument that cracked the signal was retired; the dominate/release flight taps
+  are kept.
 - [LW-35] SHIPPED 672e8f4 2026-07-07: release-hide the Marks feature on every card surface (owner
   direction; the display returns with the two-wave Chronicle build, LW-32). The equip-card story
   narration (Display legends:null, 65f7f77) and the attack-card Mark clause (AttackCard

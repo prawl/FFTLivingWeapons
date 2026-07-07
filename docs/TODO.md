@@ -101,14 +101,6 @@ is the in-flight subset, not a mirror of that checklist.
     VERIFY LIVE, then commit and LIVE_LEDGER flip. Clean DEV redeploy before ANY katana live
     test (an orphaned Zanshin DLL may still be deployed).
 
-- **[LW-5] Galewind / Puppeteer expiry, ship with fallback** (opened 2026-07-04) [QUEUED]
-  - Done means: round-7 AREC recon attempted as a stretch; if a per-puppet-turn release does not
-    crack, keep the committed wielder-clock behavior and reword the card to match. The p3Desc
-    card promises ("no Lucavi", "for its full turn") are fixed either way. The Iai ReleaseSignal
-    bare-arrival false-release is hardened in the same touch (same ActorPtr-dwell trap).
-    Release blocker 2 of 2 (RELEASE_SCOPE.md section 2).
-  - Verify: never commit an expiry change without a live release observed in-game; xUnit green.
-
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
@@ -242,6 +234,16 @@ is the in-flight subset, not a mirror of that checklist.
   saw the lag live 2026-07-07, not a correctness bug). Suspect the per-wielder locate/write cadence
   serializes or throttles when more than one unit carries the pistol: check the Gun Slinger
   signature's tick loop and whether its locate stops at the first wielder per tick.
+- [LW-45] 2026-07-07: Item card descriptions run off the bottom of the screen for Umbral Rod (id 56),
+  Rod of Faith (id 58), Stormarc (id 86), and Huntress (id 89) (owner screenshots 2026-07-07). The
+  assembled card passes the analyze.py DESC budget yet still overflows on screen, so the cap is
+  calibrated too high: lower the DESC budget to the real on-screen limit AND trim these items' prose
+  (flavor or signature line), then re-bake item.en.nxd via patch_names.py (restart-only). Extends
+  LW-26 (the Outrider Pistol was already at the visual edge); recalibrate the budget once for all.
+- [LW-46] 2026-07-07: Galewind's p3Desc still claims "No Lucavi" but IsDominatable is allow-everyone
+  (no carve-out), so the card overpromises. Spun out of LW-5 (the expiry, shipped e882799, made the
+  "for its full turn" clause accurate). Either drop the "No Lucavi" clause from items.json p3Desc and
+  re-bake, or implement a Lucavi job carve-out in IsDominatable. Owner decision open.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
