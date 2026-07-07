@@ -143,7 +143,7 @@ internal sealed class Engine
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
         var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
         var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N of the wielder's own turns)
-        var puppeteer = new Puppeteer(meta, _kills, _tracker, _turns, live);  // Galewind +3: dominate a struck enemy for N of its turns (Puppeteer; replaces Charm-Lock -- _charm goes dormant once Galewind's meta carries puppeteerTurns)
+        var puppeteer = new Puppeteer(meta, _kills, _tracker, _turns, live, Flight.Record);  // Galewind +3: dominate a struck enemy for N of its turns (Puppeteer; replaces Charm-Lock -- _charm goes dormant once Galewind's meta carries puppeteerTurns). Flight.Record = the LW-5 recon tap (puppet-turn signals).
         var benediction = new Benediction(meta, _kills, _tracker, live); // Sanctus Staff +3: ally HP rises boosted 30% while a Sanctus Staff is the last player to act (sticky latch -- survives the charged-heal resolve gap)
         var sanctuary = new Sanctuary(meta, _kills, live);               // Staff of the Magi +3: while the bearer lives, fallen allies are held from crystallizing
         var choir = new Choir(meta, _kills, live);                       // Warlock's Staff +3: adjacent allies cast magick instantly (Non-charge aura)

@@ -120,11 +120,12 @@ internal sealed partial class Puppeteer
 /// battle-turn stamp of the last puppet (the cooldown clock). Mirrors CharmLock's single-lock shape,
 /// not Maim's dictionary -- only one enemy is dominated at a time. No memory access.
 ///
-/// EXPIRY CLOCK: mirrors Larceny's proven "N of the wielder's own turns" mechanism. At dominate,
-/// the wielder's (lvl,br,fa) fingerprint and its current TurnTracker.Turns baseline are captured.
-/// Release fires when Turns(wfp) - wBaseline >= puppetTurns -- the wielder's NEXT turn, strictly
-/// after the puppet's full move+act+wait. If the wielder couldn't be fingerprinted at dominate,
-/// GlobalTurns fallback: release when GlobalTurns - globalBaseline >= PuppeteerWielderlessFallbackTurns.
+/// RELEASE: the puppet is held until it takes its OWN turn, detected LIVE in Puppeteer.Hold.cs by
+/// the turn queue naming the puppet at an acted turn boundary (the LW-5 round-2/3 tape, 2026-07-07:
+/// the shipped wielder-clock released on the wrong unit's turn, early or late, because LW-7 dumps
+/// turn credit onto the wielder). This state only holds the CAP: release no later than
+/// PuppeteerWielderlessFallbackTurns GlobalTurns after dominate (IsCapped), the backstop in case the
+/// queue signal never fires live.
 /// </summary>
 internal sealed class PuppeteerState
 {
@@ -140,10 +141,6 @@ internal sealed class PuppeteerState
     /// <summary>The active puppet's band address, or 0.</summary>
     public long Addr => _puppet?.Addr ?? 0;
 
-    /// <summary>The wielder's (lvl,br,fa) fingerprint captured at dominate, or null when it
-    /// couldn't be resolved (GlobalTurns fallback applies).</summary>
-    public (int lvl, int br, int fa)? WielderFp => _puppet?.WFp;
-
     /// <summary>The battle-turn stamp of the last puppet, or null if none yet (the cooldown clock).</summary>
     public int? LastPuppetWielderTurn => _lastPuppetWielderTurn;
 
@@ -154,23 +151,21 @@ internal sealed class PuppeteerState
            && (_lastPuppetWielderTurn is not int last
                || Puppeteer.OffCooldown(currentWielderTurn, last, cooldownTurns));
 
-    /// <summary>Dominate a new victim. Captures the wielder fingerprint and baseline turn counts for
-    /// the "wielder's next turn" expiry clock (mirrors Larceny's per-fingerprint steal baseline).
-    /// Stamps the cooldown clock with the current GlobalTurns.</summary>
+    /// <summary>Dominate a new victim. Stamps the GlobalTurns baseline (for the release CAP) and the
+    /// cooldown clock (also GlobalTurns).</summary>
     public void Puppet(long addr, (int mhp, int lvl, int br, int fa) fp, int currentWielderTurn,
-                       (int lvl, int br, int fa)? wfp, int wBaseline, int globalBaseline)
+                       int globalBaseline)
     {
-        _puppet = new PuppeteerEntry(addr, fp, WFp: wfp, WBaseline: wBaseline, GlobalBaseline: globalBaseline);
+        _puppet = new PuppeteerEntry(addr, fp, GlobalBaseline: globalBaseline);
         _lastPuppetWielderTurn = currentWielderTurn;
     }
 
-    /// <summary>True when the puppet has expired: either the wielder's own turn-count advanced past
-    /// its baseline by puppetTurns (the normal wielder-clock path), or the GlobalTurns fallback
-    /// threshold was reached (wielder unresolved at dominate time).</summary>
-    public bool IsExpired(int wielderTurnsNow, int globalTurnsNow, int puppetTurns, int wielderlessFallbackTurns)
-        => _puppet is { } p && (p.WFp is not null
-               ? wielderTurnsNow - p.WBaseline >= puppetTurns
-               : globalTurnsNow - p.GlobalBaseline >= wielderlessFallbackTurns);
+    /// <summary>The LW-5 safety CAP: true once GlobalTurns has advanced <paramref name="capTurns"/>
+    /// past the dominate baseline. The sole time-based release, a backstop for the case where the
+    /// live turn-queue "own turn" signal never fires (Puppeteer.Hold.cs owns the normal release).
+    /// Bounds a puppet to at most capTurns global turns, never to battle exit.</summary>
+    public bool IsCapped(int globalTurnsNow, int capTurns)
+        => _puppet is { } p && globalTurnsNow - p.GlobalBaseline >= capTurns;
 
     /// <summary>Release the active puppet (after the agency bit is cleared). The cooldown clock stays
     /// set, so a new puppet is blocked until the cooldown elapses.</summary>
@@ -180,6 +175,5 @@ internal sealed class PuppeteerState
     public void Clear() { _puppet = null; _lastPuppetWielderTurn = null; }
 
     private readonly record struct PuppeteerEntry(
-        long Addr, (int mhp, int lvl, int br, int fa) Fp,
-        (int lvl, int br, int fa)? WFp, int WBaseline, int GlobalBaseline);
+        long Addr, (int mhp, int lvl, int br, int fa) Fp, int GlobalBaseline);
 }

@@ -82,7 +82,9 @@ public class PuppeteerTests
     public void OffCooldown_requires_cooldown_wielder_turns(int current, int last, int cd, bool expected)
         => Assert.Equal(expected, Puppeteer.OffCooldown(current, last, cd));
 
-    // ---- PuppeteerState: ONE puppet at a time + expiry after the WIELDER's next turn + cooldown ----
+    // ---- PuppeteerState: ONE puppet at a time + the GlobalTurns release CAP + cooldown ----
+    // The NORMAL release -- after the puppet's own turn -- is detected live in Puppeteer.Hold.cs and
+    // is exercised by the Tick integration tests below; this state only owns the cap + cooldown.
 
     [Fact]
     public void State_can_puppet_initially_then_blocks_while_active()
@@ -90,54 +92,29 @@ public class PuppeteerTests
         var st = new PuppeteerState();
         Assert.True(st.CanPuppet(currentWielderTurn: 0, cooldownTurns: 3));   // never puppeted -> allowed
 
-        st.Puppet(addr: 1000L, fp: (600, 50, 70, 50), currentWielderTurn: 0,
-                  wfp: null, wBaseline: 0, globalBaseline: 0);
+        st.Puppet(addr: 1000L, fp: (600, 50, 70, 50), currentWielderTurn: 0, globalBaseline: 0);
         Assert.True(st.HasPuppet);
         Assert.False(st.CanPuppet(currentWielderTurn: 1, cooldownTurns: 3));  // one-at-a-time -> blocked while active
     }
 
-    [Fact]
-    public void State_expires_on_the_wielders_next_turn()
-    {
-        var st = new PuppeteerState();
-        st.Puppet(1000L, (600, 50, 70, 50), currentWielderTurn: 0,
-                  wfp: (60, 70, 50), wBaseline: 4, globalBaseline: 0);
-
-        // Wielder hasn't taken another turn yet (wielderTurnsNow == wBaseline == 4): not expired.
-        Assert.False(st.IsExpired(wielderTurnsNow: 4, globalTurnsNow: 0, puppetTurns: 1, wielderlessFallbackTurns: 12));
-        // Wielder took one more turn (wielderTurnsNow == 5 = baseline+1 >= baseline+puppetTurns=5): expired.
-        Assert.True(st.IsExpired(wielderTurnsNow: 5, globalTurnsNow: 0, puppetTurns: 1, wielderlessFallbackTurns: 12));
-    }
+    // ---- SAFETY CAP (LW-5): the puppet is bounded to at most capTurns GlobalTurns after dominate --
+    // the backstop should the live "own turn" queue signal never fire. Never a hold to battle exit. ----
 
     [Fact]
-    public void State_multi_turn_needs_N_wielder_turns()
+    public void State_caps_release_at_the_global_turn_backstop()
     {
         var st = new PuppeteerState();
-        st.Puppet(1000L, (600, 50, 70, 50), currentWielderTurn: 0,
-                  wfp: (60, 70, 50), wBaseline: 2, globalBaseline: 0);
+        st.Puppet(1000L, (600, 50, 70, 50), currentWielderTurn: 0, globalBaseline: 0);
 
-        // puppetTurns: 2 -- need wBaseline+2 == 4 wielder turns elapsed.
-        Assert.False(st.IsExpired(wielderTurnsNow: 3, globalTurnsNow: 0, puppetTurns: 2, wielderlessFallbackTurns: 12));
-        Assert.True(st.IsExpired(wielderTurnsNow: 4, globalTurnsNow: 0, puppetTurns: 2, wielderlessFallbackTurns: 12));
-    }
-
-    [Fact]
-    public void State_wielderless_falls_back_to_global_turns()
-    {
-        var st = new PuppeteerState();
-        st.Puppet(1000L, (600, 50, 70, 50), currentWielderTurn: 0,
-                  wfp: null, wBaseline: 0, globalBaseline: 0);
-
-        Assert.False(st.IsExpired(wielderTurnsNow: 0, globalTurnsNow: 11, puppetTurns: 1, wielderlessFallbackTurns: 12));
-        Assert.True(st.IsExpired(wielderTurnsNow: 0, globalTurnsNow: 12, puppetTurns: 1, wielderlessFallbackTurns: 12));
+        Assert.False(st.IsCapped(globalTurnsNow: 11, capTurns: 12));
+        Assert.True(st.IsCapped(globalTurnsNow: 12, capTurns: 12));
     }
 
     [Fact]
     public void State_cooldown_blocks_new_puppet_for_three_wielder_turns_after_release()
     {
         var st = new PuppeteerState();
-        st.Puppet(1000L, (600, 50, 70, 50), currentWielderTurn: 4,
-                  wfp: null, wBaseline: 0, globalBaseline: 0);
+        st.Puppet(1000L, (600, 50, 70, 50), currentWielderTurn: 4, globalBaseline: 0);
         st.Release();                   // reverted to AI; cooldown clock keeps running
         Assert.False(st.HasPuppet);
 
@@ -150,8 +127,7 @@ public class PuppeteerTests
     public void State_clear_resets_puppet_and_cooldown()
     {
         var st = new PuppeteerState();
-        st.Puppet(1000L, (600, 50, 70, 50), currentWielderTurn: 4,
-                  wfp: null, wBaseline: 0, globalBaseline: 0);
+        st.Puppet(1000L, (600, 50, 70, 50), currentWielderTurn: 4, globalBaseline: 0);
         st.Release();
         st.Clear();                     // battle exit
         Assert.False(st.HasPuppet);
@@ -182,7 +158,8 @@ public class PuppeteerTests
     /// - turn queue pointed at the WIELDER so LastActorFingerprint resolves to the wielder
     /// - acted=1 so the wielder is acting</summary>
     private static (Puppeteer pup, FakeSparseMemory mem, TurnTracker turns, KillTracker tracker, long victim)
-        BuildPuppet((int mhp, int lvl, int br, int fa) fp, int job = 76, int bandSlot = 24, int puppetTurns = 1)
+        BuildPuppet((int mhp, int lvl, int br, int fa) fp, int job = 76, int bandSlot = 24, int puppetTurns = 1,
+                    System.Collections.Generic.List<(string type, string payload)>? rec = null)
     {
         var mem = new FakeSparseMemory();
         var meta = new System.Collections.Generic.Dictionary<int, WeaponMeta>
@@ -222,7 +199,8 @@ public class PuppeteerTests
         SeatVictim(mem, victim, fp, hp: 100, job: job, agency: 0x50);   // 0x50 = enemy (0x08 clear)
         SeatEnemyFp(mem, fp);
 
-        var pup = new Puppeteer(meta, kills, tracker, turns, mem: mem);
+        var pup = new Puppeteer(meta, kills, tracker, turns, mem: mem,
+                                recorder: rec is null ? null : (t, p) => rec.Add((t, p)));
         return (pup, mem, turns, tracker, victim);
     }
 
@@ -263,74 +241,57 @@ public class PuppeteerTests
     private static void PointActorAt(FakeSparseMemory mem, long bandEntry) =>
         mem.SeedU64(Offsets.ActorPtr, (ulong)(bandEntry - Offsets.BandEntry));
 
-    /// <summary>Advance a full turn for the unit with fingerprint (mhp, lvl, br, fa) by
-    /// toggling the turn queue to that unit and pulsing acted 0->1 + turns.Poll().
-    /// Per Phase-2 correction #5: toggles turn-queue ON, calls pup.Tick(), then pulses the
-    /// acted edge WITH the unit still in the queue (so TryActiveFingerprint credits it),
-    /// then hands off the queue, then calls pup.Tick() again -- exercising both the Drive path
-    /// and the Expire wielder-clock check.</summary>
+    /// <summary>Drive one full turn for the unit with fingerprint (mhp, lvl, br, fa): the turn queue
+    /// names it across an acted rising..falling edge, ticking the Puppeteer through BOTH edges so its
+    /// own-turn detector (Puppeteer.Hold.cs) sees the queue naming the puppet during the action.
+    /// QueueNamesPuppet is true iff (mhp,lvl) match the puppet's fp, so calling this with the PUPPET's
+    /// fp completes an own-turn (release), and with any OTHER unit's fp does not. Also pulses
+    /// TurnTracker (GlobalTurns/credit) exactly as a real turn would.</summary>
     private static void UnitTakesATurn(FakeSparseMemory mem, Puppeteer pup, TurnTracker turns,
         int mhp, int lvl, int br, int fa, int hp)
     {
-        // Step 1: queue points at this unit (active).
         mem.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)mhp;
         mem.U16s[Offsets.TurnQueue + Offsets.TqHp]    = (ushort)hp;
         mem.U16s[Offsets.TurnQueue + Offsets.TqLevel]  = (ushort)lvl;
-        pup.Tick(onField: false);   // tick while it is the active unit
 
-        // Step 2: acted 0->1 edge fires WHILE the queue still names this unit --
-        // TryActiveFingerprint finds the band match and credits Turns(fp).
-        mem.U8s[Offsets.Acted] = 0; turns.Poll();
-        mem.U8s[Offsets.Acted] = 1; turns.Poll();   // rising edge: credits this unit's turn
-        mem.U8s[Offsets.Acted] = 0;
+        mem.U8s[Offsets.Acted] = 0; pup.Tick(onField: false);               // pre-turn: acted low, queue named
+        mem.U8s[Offsets.Acted] = 1; turns.Poll(); pup.Tick(onField: false);  // acted RISING: credit + own-turn opens (puppet only)
+        mem.U8s[Offsets.Acted] = 0; turns.Poll(); pup.Tick(onField: false);  // acted FALLING: own-turn completes (puppet only)
 
-        // Step 3: queue hands off to someone else (queue no longer matches this unit).
-        mem.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)(mhp + 1);   // different mhp = another unit
-
-        pup.Tick(onField: false);   // Expire now sees Turns(fp) advanced; releases if wielder clock hit
+        // Queue hands off to someone else.
+        mem.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)(mhp + 1);
+        pup.Tick(onField: false);
     }
 
-    // ---- LOAD-BEARING test ----
-    // This test MUST fail under the old ObserveActive mechanism (the turn-queue hand-off fires
-    // after the puppet moves, releasing control mid-turn) and pass under the new wielder-clock.
+    // ---- LOAD-BEARING test (LW-5, the 2026-07-07 fix) ----
+    // Encodes BOTH failure modes the fix removes: (1) control must HOLD through a NON-puppet unit's
+    // turn (the premature drop the old wielder-clock caused when the puppet was not the next actor),
+    // and (2) control must RELEASE after the PUPPET's OWN turn (detected by the turn queue naming it).
 
     [Fact]
-    public void Tick_holds_control_through_the_puppets_full_turn_then_releases_on_the_wielders_next_turn()
+    public void Tick_holds_until_the_puppet_takes_its_own_turn_then_releases()
     {
         // The victim's fp is DISTINCT from the wielder's fp (different mhp/lvl/br/fa).
         var puppetFp = (mhp: 600, lvl: 50, br: 70, fa: 50);
-        var (pup, mem, turns, tracker, victim) = BuildPuppet(puppetFp, job: 76, bandSlot: 24, puppetTurns: 1);
+        var (pup, mem, turns, _, victim) = BuildPuppet(puppetFp, job: 76, bandSlot: 24, puppetTurns: 1);
 
-        // --- Step 1: DOMINATE ---
+        // --- DOMINATE ---
         pup.Tick(onField: true);                        // baseline HP 100 (no damage yet)
-        mem.U16s[victim + Offsets.AHp] = 80;            // wielder's hit dealt 20
+        mem.U16s[victim + Offsets.AHp] = 80;            // the wielder's hit dealt 20
         pup.Tick(onField: true);
-
-        Assert.True(AgencyBitSet(mem, victim));          // agency bit SET -- player control granted
-        Assert.NotNull(pup.PuppetFingerprint);           // puppet is latched
-
-        // --- Step 2: PUPPET takes its FULL turn (queue -> puppet -> hand-off + acted edge) ---
-        // This is the exact sequence the OLD ObserveActive saw; it would have released here.
-        // Under the new mechanism, control MUST STILL BE HELD after this step.
-        UnitTakesATurn(mem, pup, turns,
-                       puppetFp.mhp, puppetFp.lvl, puppetFp.br, puppetFp.fa, hp: 80);
-
-        // THE NON-VACUOUS ASSERTION: old code released here, new code must not.
-        Assert.True(AgencyBitSet(mem, victim),
-            "FAILED: agency bit was cleared after the puppet's turn -- the old mid-turn revert. " +
-            "The fix did not take effect.");
+        Assert.True(AgencyBitSet(mem, victim));
         Assert.NotNull(pup.PuppetFingerprint);
 
-        // --- Step 3: WIELDER takes its next turn (advances Turns(wielderFp) past baseline) ---
-        // Settle the tracker so the wielder is latched as the acting unit again.
-        mem.U8s[Offsets.Acted] = 1;
-        for (int i = 0; i < 3; i++) tracker.Poll(true);   // re-latch wielder fp
+        // --- A NON-puppet unit (the wielder) takes a turn: the queue never names the puppet, so
+        // control MUST HOLD. This is the exact premature-drop the old wielder-clock got wrong. ---
+        UnitTakesATurn(mem, pup, turns, WielderMaxHp, WielderLevel, WielderBrave, WielderFaith, hp: WielderHp);
+        Assert.True(AgencyBitSet(mem, victim),
+            "FAILED: control dropped on a NON-puppet unit's turn -- the premature release the fix removes.");
+        Assert.NotNull(pup.PuppetFingerprint);
 
-        UnitTakesATurn(mem, pup, turns,
-                       WielderMaxHp, WielderLevel, WielderBrave, WielderFaith, hp: WielderHp);
-
-        // After the WIELDER's turn: the wielder-turn clock advances past baseline -> released.
-        Assert.False(AgencyBitSet(mem, victim));         // agency bit CLEARED -- reverted to AI
+        // --- The PUPPET takes its OWN turn (queue names it across an acted edge) -> release. ---
+        UnitTakesATurn(mem, pup, turns, puppetFp.mhp, puppetFp.lvl, puppetFp.br, puppetFp.fa, hp: 80);
+        Assert.False(AgencyBitSet(mem, victim), "the puppet took its own turn -- control must revert to AI");
         Assert.Null(pup.PuppetFingerprint);
     }
 
@@ -397,20 +358,15 @@ public class PuppeteerTests
     [Fact]
     public void Tick_reverts_to_AI_after_the_puppet_completes_one_full_turn()
     {
-        // Verify revert happens: dominate, then the WIELDER takes a turn -> release.
+        // Verify revert happens: dominate, then the PUPPET takes its own turn -> release.
         var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
-        var (pup, mem, turns, tracker, victim) = BuildPuppet(fp, puppetTurns: 1);
+        var (pup, mem, turns, _, victim) = BuildPuppet(fp, puppetTurns: 1);
         pup.Tick(onField: true);
-        mem.U16s[victim + Offsets.AHp] = 80;            // wielder's hit -> latch
+        mem.U16s[victim + Offsets.AHp] = 80;            // the wielder's hit -> latch
         pup.Tick(onField: true);
         Assert.True(AgencyBitSet(mem, victim));
 
-        // Re-latch wielder fp in the KillTracker and advance the wielder's turn clock.
-        mem.U8s[Offsets.Acted] = 1;
-        for (int i = 0; i < 3; i++) tracker.Poll(true);   // re-latch wielder fp
-
-        UnitTakesATurn(mem, pup, turns,
-                       WielderMaxHp, WielderLevel, WielderBrave, WielderFaith, hp: WielderHp);
+        UnitTakesATurn(mem, pup, turns, fp.mhp, fp.lvl, fp.br, fp.fa, hp: 80);   // the puppet's own turn
 
         Assert.False(AgencyBitSet(mem, victim));        // reverted to AI
         Assert.Null(pup.PuppetFingerprint);
@@ -454,18 +410,15 @@ public class PuppeteerTests
     public void Tick_cooldown_blocks_re_puppet_until_the_cooldown_turns_pass()
     {
         var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);   // Tuning.PuppeteerCooldownTurns == 4 (3 turns blocked, fire on the 4th)
-        var (pup, mem, turns, tracker, victim) = BuildPuppet(fp, puppetTurns: 1);
+        var (pup, mem, turns, _, victim) = BuildPuppet(fp, puppetTurns: 1);
 
         pup.Tick(onField: true);                        // baseline (GlobalTurns 0)
         mem.U16s[victim + Offsets.AHp] = 80;
         pup.Tick(onField: true);                        // dominate (cooldown stamp = GlobalTurns 0)
         Assert.True(AgencyBitSet(mem, victim));
 
-        // Advance the wielder's turn so the puppet expires.
-        mem.U8s[Offsets.Acted] = 1;
-        for (int i = 0; i < 3; i++) tracker.Poll(true);
-        UnitTakesATurn(mem, pup, turns,
-                       WielderMaxHp, WielderLevel, WielderBrave, WielderFaith, hp: WielderHp);
+        // The puppet takes its OWN turn -> expires (GlobalTurns -> 1; the cooldown stamp was 0).
+        UnitTakesATurn(mem, pup, turns, fp.mhp, fp.lvl, fp.br, fp.fa, hp: 80);
         Assert.False(AgencyBitSet(mem, victim));        // puppet expired
 
         // Re-hit the now-AI enemy 1 battle-turn later: still on cooldown (1 < 4) -> NOT re-dominated.
@@ -608,47 +561,6 @@ public class PuppeteerTests
 
         Assert.True(AgencyBitSet(mem, victim),
             "the cached enemy fingerprint set must survive a Readable flap on the drop tick");
-    }
-
-    // ---- expiry key consistency (D2): the wielder fp captured for the expiry clock MUST be the
-    // BAND-read fingerprint, never ResolveDeployedMainHand's roster-read out param -- TurnTracker.Turns
-    // keys on band-read (level,brave,faith), and a live band level can drift up to Band.MaxLevelDrift
-    // (9) above the roster level on a mid-battle level-up. Without seeding real drift this test would
-    // be vacuous (band fp == roster fp) -- so the wielder's BAND level is deliberately bumped above its
-    // ROSTER level here (still within LevelMatchesRoster's drift tolerance, so Locate still resolves
-    // the same wielder entry).
-
-    [Fact]
-    public void Tick_expiry_uses_the_band_read_wielder_fingerprint_not_the_roster_fp()
-    {
-        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
-        var (pup, mem, turns, tracker, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1);
-
-        long wielderEntry = Band.Entry(WielderBandSlot);
-        const int LevelDrift = 4;   // within Band.MaxLevelDrift (9): band-read and roster-read now diverge
-        mem.U8s[wielderEntry + Offsets.ALevel] = (byte)(WielderLevel + LevelDrift);
-
-        // Close the latch; dominate via the POINTER path only.
-        tracker._lastPlayerMainHand = 0;
-        mem.U8s[Offsets.Acted] = 0;
-        PointActorAt(mem, wielderEntry);
-
-        pup.Tick(onField: true);                  // baseline HP 100
-        mem.U16s[victim + Offsets.AHp] = 80;      // the wielder's hit dealt 20
-        pup.Tick(onField: true);                  // dominate via the pointer path
-        Assert.True(AgencyBitSet(mem, victim));
-
-        // Credit ONE wielder turn via the SAME pointer (TurnTracker.TryActiveViaPointer reads the
-        // identical drifted band level) -- the credited key matches the captured WFp iff both sides
-        // are band-read.
-        mem.U8s[Offsets.Acted] = 0; turns.Poll();
-        mem.U8s[Offsets.Acted] = 1; turns.Poll();   // rising edge credits (driftedLevel, br, fa)
-
-        pup.Tick(onField: false);                  // Expire sees the credited turn
-        Assert.False(AgencyBitSet(mem, victim),
-            "an implementation that captures ResolveDeployedMainHand's ROSTER fp (undrifted level) " +
-            "keys the expiry clock differently from the BAND-credited turn and never expires");
-        Assert.Null(pup.PuppetFingerprint);
     }
 
     // ---- ResetBattle clears the new cache field (precedent: KobuTests.ResetBattle_clears_the_cached_enemy_fingerprints) ----
@@ -831,5 +743,25 @@ public class PuppeteerTests
             "the pointer names a DIFFERENT unit (foreign nameId 7 vs the wielder's resolved 42) -- " +
             "must not dominate");
         Assert.Null(pup.PuppetFingerprint);
+    }
+
+    // ---- flight taps: the dominate + release brackets are the kept diagnostic. (The per-tick recon
+    // trace that cracked the release signal was retired once the fix landed -- LW-5, 2026-07-07.) ----
+
+    [Fact]
+    public void Flight_taps_dominate_then_release_own_turn()
+    {
+        var rec = new System.Collections.Generic.List<(string type, string payload)>();
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, turns, _, victim) = BuildPuppet(fp, job: 76, bandSlot: 24, puppetTurns: 1, rec: rec);
+
+        pup.Tick(onField: true);                 // baseline HP 100
+        mem.U16s[victim + Offsets.AHp] = 80;     // the wielder's hit dealt 20 -> dominate
+        pup.Tick(onField: true);
+        Assert.Contains(rec, r => r.type == "pup" && r.payload.StartsWith("dominate"));
+
+        UnitTakesATurn(mem, pup, turns, fp.mhp, fp.lvl, fp.br, fp.fa, hp: 80);   // the puppet's own turn
+        Assert.False(AgencyBitSet(mem, victim));
+        Assert.Contains(rec, r => r.type == "pup" && r.payload.StartsWith("release reason=own-turn"));
     }
 }

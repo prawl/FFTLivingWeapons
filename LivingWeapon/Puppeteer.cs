@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -111,8 +112,17 @@ internal sealed partial class Puppeteer : ISignature
     private readonly PuppeteerState _state;
     private readonly RicochetState _hpState;   // HP-diff baseline (same pattern as Maim/Ricochet)
     private readonly EnemyFingerprintCache _enemies;
+    private readonly Action<string, string>? _recorder;   // flight tap: dominate + release brackets (reason=own-turn/cap); null in tests/before Flight.Init
     private string _lastGateReason = "";       // gate-edge log throttle (Larceny's pattern: log on
                                                 // reason change, not every 33ms tick)
+
+    // Own-turn release edge state (LW-5, Puppeteer.Hold.cs): the puppet is held until it takes its
+    // OWN turn -- the turn queue names it (Offsets.TurnQueue) across an acted rising..falling edge.
+    // _pWasActed = last-tick acted flag (edge detect); _pTurnActive = a queue-named acted period is
+    // open; _puppetOwnTurns = completed own-turns this possession. Reset per possession.
+    private bool _pWasActed;
+    private bool _pTurnActive;
+    private int _puppetOwnTurns;
 
     // A field, not `if (Tuning.VerboseEvents)` inline: VerboseEvents is a const false in Release, so
     // the compiler proves the branch dead -- CS0162 unreachable code -- and TreatWarningsAsErrors
@@ -121,13 +131,14 @@ internal sealed partial class Puppeteer : ISignature
     private readonly bool _verbose = Tuning.VerboseEvents;
 
     public Puppeteer(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker,
-                     TurnTracker turns, IGameMemory? mem = null)
+                     TurnTracker turns, IGameMemory? mem = null, Action<string, string>? recorder = null)
     {
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
         _tracker = tracker;
         _turns = turns;
+        _recorder = recorder;
         _state = new PuppeteerState();
         _hpState = new RicochetState(Offsets.BandSlots);
         _enemies = new EnemyFingerprintCache(_mem);
@@ -140,6 +151,7 @@ internal sealed partial class Puppeteer : ISignature
         _lastGateReason = "";
         _hpState.ResetBattle();
         _enemies.ResetBattle();
+        ResetPossession();
     }
 
     public void Tick(bool onField)
@@ -232,13 +244,13 @@ internal sealed partial class Puppeteer : ISignature
         else
         {
             verdict = "dominated";
-            var wfp = CaptureWielderFingerprint(wielderEntry);
-            int wBase = wfp is { } w ? _turns.Turns(w.lvl, w.br, w.fa) : 0;
-            _state.Puppet(addr, fp, turnNow, wfp, wBase, _turns.GlobalTurns);
+            _state.Puppet(addr, fp, turnNow, _turns.GlobalTurns);
+            ResetPossession();   // fresh own-turn edge state + recon span (t=0)
             SetAgency(_mem, addr, true);   // hand control to the player immediately
             ModLogger.EventWithTrace(LogVerb.Signature,
                 $"The Galewind puppets the struck enemy ({fp.mhp} maximum HP); you control it for {puppetTurns} of its turns.",
                 $"puppeteer dominate detail (job {job}, battle slot {s})");
+            _recorder?.Invoke("pup", $"dominate seat=0x{addr:X} nameId={(_mem.Readable(addr + Offsets.ANameId, 2) ? _mem.U16(addr + Offsets.ANameId) : 0)} mhp={fp.mhp} slot={s} job={job} gturn={_turns.GlobalTurns}");
         }
         if (rearm) _hpState.Rearm(s, hp + dmg);
         // GATE-ON-ARMED (the owner-complaint line): with zero Galewinds fielded the verdict chain
@@ -247,17 +259,12 @@ internal sealed partial class Puppeteer : ISignature
             ModLogger.Debug(LogVerb.Signature, $"puppeteer evaluated: slot {s} damage {dmg} verdict={verdict} active={active} enemyInSet={inSet} hitPoints={hp} wielderLocated={wielderEntry != 0} holdingPuppet={hasPuppet} offCooldown={offCooldown} (job {job})");
     }
 
-    /// <summary>D2: read the expiry clock's wielder fingerprint straight off the wielder's OWN band
-    /// entry (never ResolveDeployedMainHand's roster-read out param -- see the class doc). Falls back
-    /// to KillTracker.LastActorFingerprint (also band-read) when the pointer path didn't resolve the
-    /// wielder this tick; a null result falls back further to PuppeteerState.IsExpired's existing
-    /// GlobalTurns branch.</summary>
-    private (int lvl, int br, int fa)? CaptureWielderFingerprint(long wielderEntry)
+    /// <summary>Start a fresh possession: clear the own-turn edge state (Puppeteer.Hold.cs's release
+    /// signal). Called at every dominate and at battle reset.</summary>
+    private void ResetPossession()
     {
-        if (wielderEntry != 0)
-            return (_mem.U8(wielderEntry + Offsets.ALevel), _mem.U8(wielderEntry + Offsets.ABrave),
-                    _mem.U8(wielderEntry + Offsets.AFaith));
-        var raw = _tracker.LastActorFingerprint;
-        return raw != default ? raw : null;
+        _pWasActed = false;
+        _pTurnActive = false;
+        _puppetOwnTurns = 0;
     }
 }
