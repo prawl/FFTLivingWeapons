@@ -20,6 +20,27 @@ is the in-flight subset, not a mirror of that checklist.
     green, deploy and VERIFY LIVE, commit and LIVE_LEDGER flip. Clean DEV redeploy before ANY katana
     live test (an orphaned Zanshin DLL may still be deployed).
 
+- **[LW-50] Startup fingerprint guard: stand down on a version mismatch** (opened 2026-07-07) [QUEUED]
+  - Done means: at launch, before any write arms, verify memory landmarks (module base, a code-bytes
+    hash at a known offset, Ramza's roster row at RosterBase); on ANY mismatch set a global disarmed
+    flag that gates every write path (growth, signatures, display, tally) and log one loud "offsets do
+    not match this game build, standing down, the mod likely needs updating" line. RPM/WPM prevent AV
+    crashes but NOT semantic corruption at a valid-but-wrong address after a game patch; this catches
+    "the exe changed under me." The single biggest save-corruption risk reducer.
+  - Verify: unit-test the pure check (all landmarks match, armed; any mismatch, disarmed); live,
+    confirm a normal launch arms and writes fire, then force a mismatch and confirm zero writes plus
+    the loud stand-down line.
+
+- **[LW-51] Kill-tally scoping and mod-update survival** (opened 2026-07-07) [QUEUED]
+  - Done means: DECIDE global-forever vs per-playthrough (owner call; recommend per-playthrough for
+    the growth fantasy). If per-playthrough, key kills.json / legends.json / gunslinger.json to a save
+    identity with a one-time migration of the existing global file, so a NEW GAME no longer starts
+    pre-maxed and two playthroughs never cross-contaminate. Same pass covers the LW-29 question: a
+    Reloaded mod UPDATE (2.2.2 to 2.3.0) must not wipe the tally (relocate the save files outside the
+    mod dir if an update replaces the folder).
+  - Verify: unit-test the save-identity keying + migration; live, a new game starts fresh, a second
+    playthrough keeps its own tally, and a simulated mod-folder replace preserves the tally.
+
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO

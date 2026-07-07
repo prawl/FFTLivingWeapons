@@ -77,6 +77,16 @@ behavior; the guaranteed-shippable path is a card match.
 - [ ] Publish.ps1 clean, PROD thresholds {5,25,50}, no LWDEV / no seeding.
 - [ ] Bump ModVersion (-> 2.3.0) + cut the matching tag.
 
+### 7. Save-integrity + patch-safety hardening (BLOCKER)
+- [ ] **Startup fingerprint guard (LW-50)**: verify module base + a code-bytes hash + Ramza's roster
+      row at launch; on any mismatch disarm every write and log loudly. Turns a future game patch from
+      silent save corruption into a clean "needs updating." RPM/WPM guard crashes, not semantic
+      corruption at a valid-but-wrong address.
+- [ ] **Kill-tally scoping (LW-51, covers LW-29)**: decide global-forever vs per-playthrough; if
+      per-playthrough, key the save files to a save identity (one-time migration) so a new game is not
+      pre-maxed and playthroughs do not cross-contaminate; ensure a Reloaded mod UPDATE does not wipe
+      the tally.
+
 ---
 
 ## DEFERRED (post-release backlog)
