@@ -8,6 +8,19 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-45] SHIPPED c132edd 2026-07-07: equip-card descriptions ran off the bottom of the screen. The
+  real constraint is the box's wrapped-LINE count, not char count, so the old 266-char budget was far
+  too loose (a third of the catalog passed it yet clipped); living weapons with a +3 signature block
+  stacked Kills line + flavor + mechanics + the +3 block past the box height. Fixed by three
+  owner-eyeballed levers: compressed the generated mechanics prose across every card ("Deals X
+  damage", "May cast Y on hit", "Reaches N tiles"), collapsing the fattest wrapped block and fixing
+  the elemental/ranged weapons; trimmed 30 over-long flavor lines (each only as much as needed); and
+  trimmed Umbral Rod's +3 prose (content-dense enough that flavor alone could not fit it) in lockstep
+  with the grid CSV. DESC_MAX tightened 266 -> 205 as a rough char guard (the true constraint is
+  wrapped lines; recalibrate on the card UI). Owner confirmed the cards fit.
+- [LW-26] SHIPPED c132edd 2026-07-07: the Outrider Pistol's over-long card, folded into the LW-45
+  catalog-wide desc-fit pass (trimmed in the same batch, and the Marks-line margin concern is moot
+  now that Marks are release-hidden, LW-35).
 - [LW-5] SHIPPED e882799 2026-07-07: Galewind Puppeteer releases the puppet after IT takes its own
   turn, not on the wielder's clock. The shipped wielder-clock rode TurnTracker.Turns(wielderFp),
   which LW-7 collapses onto the wielder, so the puppet released on the next turn after dominate
