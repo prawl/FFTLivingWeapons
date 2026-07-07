@@ -157,6 +157,7 @@ function Copy-ModAssets {
         $SourceFFTIVC,
         $destFFTIVC,
         "/E",     # Copy subdirectories including empty ones
+        "/XF", $ParkedArtifactFilter,   # never package parked repo artifacts ($ParkedArtifactFilter, tools/pipeline.ps1)
         "/NFL",   # No file list
         "/NDL",   # No directory list
         "/NJH",   # No job header
@@ -318,6 +319,16 @@ function Verify-Package {
             Write-Host "  [OK] $iconRoot (with $($texEntries.Count) .tex files)" -ForegroundColor Green
         } else {
             Write-Host "  [MISSING] $iconRoot (expected .tex icon files, found 0)" -ForegroundColor Red
+            $missingCount++
+        }
+
+        # Forbidden entries: parked repo artifacts must never ship (see $ParkedArtifactFilter
+        # in tools/pipeline.ps1; the modloader warns on every unrecognized nex table it finds).
+        $parkedEntries = @($entryPaths | Where-Object { $_.EndsWith('.bloodpact_parked') })
+        if ($parkedEntries.Count -eq 0) {
+            Write-Host "  [OK] no parked artifacts packaged" -ForegroundColor Green
+        } else {
+            Write-Host "  [FORBIDDEN] $($parkedEntries.Count) parked artifact(s) packaged: $($parkedEntries -join ', ')" -ForegroundColor Red
             $missingCount++
         }
 

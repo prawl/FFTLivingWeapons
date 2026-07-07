@@ -121,6 +121,10 @@ try {
     Invoke-LivingWeaponPublish -OutDir $dest -Dev:(-not $Prod) -CleanFirst
 
     Copy-Item "$root\mod\FFTIVC" $dest -Recurse -Force
+    # Prune parked repo artifacts from the staged tree ($ParkedArtifactFilter, tools/pipeline.ps1):
+    # Copy-Item -Exclude is unreliable against -Recurse, so stage everything and delete the parked
+    # files deterministically. The [5/5] verification below fails red if any survive.
+    Get-ChildItem "$dest\FFTIVC" -Recurse -Filter $ParkedArtifactFilter -ErrorAction SilentlyContinue | Remove-Item -Force
     Copy-Item "$root\mod\ModConfig.json" $dest -Force   # our config wins over any published one
     if (Test-Path "$root\mod\preview.png") { Copy-Item "$root\mod\preview.png" $dest -Force }
     foreach ($f in $PreservedSaveFiles) {
@@ -144,6 +148,8 @@ try {
     foreach ($file in $RequiredModFiles) {
         if (-not (Test-Path (Join-Path $dest $file))) { $errs += "$file missing" }
     }
+    $parkedDeployed = @(Get-ChildItem "$dest\FFTIVC" -Recurse -Filter $ParkedArtifactFilter -ErrorAction SilentlyContinue)
+    if ($parkedDeployed.Count -gt 0) { $errs += "$($parkedDeployed.Count) parked artifact(s) ($ParkedArtifactFilter) deployed" }
     $xmls = @(Get-ChildItem "$dest\FFTIVC\tables\enhanced\*.xml" -ErrorAction SilentlyContinue)
     $tex  = @(Get-ChildItem "$dest\FFTIVC\data\enhanced\ui\ffto\icon" -Filter *.tex -Recurse -ErrorAction SilentlyContinue)
     if ($tex.Count -lt 1) { $errs += "no .tex icon files deployed" }

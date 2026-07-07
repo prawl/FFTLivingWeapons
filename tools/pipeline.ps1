@@ -58,6 +58,14 @@ $PreservedSaveFiles = @(
     "gunslinger.json.bak"
 )
 
+# Parked repo artifacts that must never ship. The two bloodpact nxd tables stay in the repo
+# tree for provenance (renamed *.bloodpact_parked so the game never loads them), but the
+# modloader scans every file under FFTIVC and logs a per-file "edits nex table ... which is
+# unrecognized" warning on launch (owner-observed 2026-07-07). Both ship paths exclude this
+# pattern (BuildLinked prunes after its stage copy; Publish excludes via robocopy /XF), and
+# both verification steps fail red if one slips through, so the exclusion cannot drift.
+$ParkedArtifactFilter = "*.bloodpact_parked"
+
 function Invoke-TablePipeline {
     # generate -> dominance gate -> meta, with uniform exit-code checks. Throws
     # on any red step; the caller's catch turns that into a nonzero exit.
