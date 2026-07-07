@@ -152,6 +152,10 @@ is the in-flight subset, not a mirror of that checklist.
   re-bake, or implement a Lucavi job carve-out in IsDominatable. Owner decision open.
 - [LW-47] 2026-07-07: Murasame id41's living-weapon signature is deferred out of 2.3.0 (Kiku-ichimonji
   took the one samurai signature slot with Mushin); pick a proven lever and build it when revived.
+- [LW-48] 2026-07-07: Append "Modded by prawl" to the in-battle "View Battlefield" UI label so it
+  reads "View Battlefield - Modded by prawl" during a battle (a subtle mod-attribution touch). Likely
+  mechanism: a SetTextString-family tap/prefix-match swap (PromptSwap precedent) or the text-catalog
+  offset redirect (AttackCard/AttackRow precedent); find the "View Battlefield" string source first.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
