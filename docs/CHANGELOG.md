@@ -8,6 +8,17 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-36] SHIPPED 5bf180d 2026-07-07: reworded every +3 ability card block to the locked grammar
+  (header "{Name} (+{tier})", a verb-first "{Verb} {effect}. {Condition}" body for all 25
+  signatures within the 90-char budget, job gates moved into the body), and added the
+  check_p3_grid_lockstep gate that makes the grid CSV's "+3 ability" column the design source of
+  truth and refuses any drift from items.json's p3Desc. The equip-card body meter (part 2) shipped
+  earlier in cd6599e; the attack-card tail no longer carries the ability line (superseded by LW-44).
+  Owner live-verified the baked cards.
+- [LW-44] SHIPPED 8d145bf 2026-07-07: removed the battle Attack card's signature tease ("Unlocks
+  {ability}" / "{ability} armed") for now (owner request). ComposeTail composes the Kills meter
+  only; the sigLabel/sigEarned params and the caller are retained so re-enabling is a one-line
+  revert. Owner live-verified: no tease on the Attack card.
 - [LW-40] SHIPPED 08980f2 2026-07-07: re-entering a battle from the world map silently failed to
   register as a battle, so the Attack row (and growth, and kill-tracking) stayed dormant and the
   Abilities menu read the game's vanilla "Attack" (owner repro: leave to the world map, restart the

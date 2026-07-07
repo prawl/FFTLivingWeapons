@@ -19,24 +19,6 @@ is the in-flight subset, not a mirror of that checklist.
   - Notes: owner verified 2026-07-05 during this pass: dual-pistol off-hand equip works, the
     second Outrider Pistol equipped and fired.
 
-- **[LW-36] Re-bake every card description to the locked release grammar** (opened 2026-07-06) [QUEUED]
-  - Done means: (owner direction 2026-07-06, update before release) BOTH card-text deliverables
-    land in one voice. (1) The +3 ability block moves to the new grammar on every card: header
-    "{Name} (+3)" replacing "+3 Ability - {Name}", body "{Verb} {effect}. {Condition, if
-    any.}"; worked example: "Gun Slinger (+3)" then "Loads a second pistol into the off-hand,
-    granting dual-wield. Must equip outside of battle." (2) The equipment card body LEADS
-    with the Kills tier meter (SHIPPED cd6599e: meter as the first line, verbatim-identical
-    to the Attack card, then a blank line, then flavor + mechanics and the ability block).
-    The count lives in the BODY, not a header: the header arc (LW-27) is CUT (owner
-    2026-07-06), so no "Kills: N" header stamp is built on any surface. Data-layer re-bake: items.json prose assembled by generate.py +
-    patch_names.py, restart-only; confirm item.en.nxd descriptions render an embedded blank
-    line at pickup; the attack-card tail (LW-31) adopts the same ability wording. (3) PINNED
-    (owner 2026-07-06): analyze.py grows a gate check that every +3 ability desc MATCHES the
-    master CSV (docs/living_weapon_grid.csv, the design source of truth); any drift between
-    the baked prose and the CSV goes red and refuses the deploy.
-  - Verify: analyze.py budgets green (DESC_MAX 266, P3DESC_MAX 90, uniqueness) plus the new
-    CSV-match check; xUnit suite green; owner eyeballs the re-baked cards live before release.
-
 - **[LW-31] The battle Abilities menu becomes the weapon funnel** (opened 2026-07-05) [BUILDING]
   - Done means: (owner-consolidated 2026-07-06) in battle, the Attack command row renders the
     acting unit's living weapon name with its growth suffix ("Save the Queen+" / Mettle /
