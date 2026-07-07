@@ -20,17 +20,6 @@ is the in-flight subset, not a mirror of that checklist.
     green, deploy and VERIFY LIVE, commit and LIVE_LEDGER flip. Clean DEV redeploy before ANY katana
     live test (an orphaned Zanshin DLL may still be deployed).
 
-- **[LW-50] Startup fingerprint guard: stand down on a version mismatch** (opened 2026-07-07) [QUEUED]
-  - Done means: at launch, before any write arms, verify memory landmarks (module base, a code-bytes
-    hash at a known offset, Ramza's roster row at RosterBase); on ANY mismatch set a global disarmed
-    flag that gates every write path (growth, signatures, display, tally) and log one loud "offsets do
-    not match this game build, standing down, the mod likely needs updating" line. RPM/WPM prevent AV
-    crashes but NOT semantic corruption at a valid-but-wrong address after a game patch; this catches
-    "the exe changed under me." The single biggest save-corruption risk reducer.
-  - Verify: unit-test the pure check (all landmarks match, armed; any mismatch, disarmed); live,
-    confirm a normal launch arms and writes fire, then force a mismatch and confirm zero writes plus
-    the loud stand-down line.
-
 - **[LW-51] Kill-tally scoping and mod-update survival** (opened 2026-07-07) [QUEUED]
   - Done means: DECIDE global-forever vs per-playthrough (owner call; recommend per-playthrough for
     the growth fantasy). If per-playthrough, key kills.json / legends.json / gunslinger.json to a save
@@ -40,6 +29,28 @@ is the in-flight subset, not a mirror of that checklist.
     mod dir if an update replaces the folder).
   - Verify: unit-test the save-identity keying + migration; live, a new game starts fresh, a second
     playthrough keeps its own tally, and a simulated mod-folder replace preserves the tally.
+
+- **[LW-37] Fast-paint the equip-card Kills meter via the item-text catalog redirect** (opened 2026-07-06) [QUEUED]
+  - Done means: generalize the LW-31 catalog-record redirect (the attack-card mirror tech) to the
+    ITEM-text records: census the item catalog, locate the viewed weapon's desc record, compose the
+    body (the Kills meter first line) into a mod-owned buffer image, and repoint descOff at it under
+    the same three-way anchor discipline (vanilla/current/previous, rotation only on a compose-change
+    edge, foreign records refused). The equip card then updates instantly on first open and the slow
+    heap sweep stops being that surface's paint path. Pulled into 2.3.0 by the owner 2026-07-07
+    (RELEASE_SCOPE.md section 8).
+  - Verify: unit-test the record decode and compose policy halves; live, first-open browse shows the
+    correct Kills line with no latency, a battle-exit kill shows updated on re-open instantly,
+    another item's vanilla desc stays untouched, and the in-battle Attack card surface is unaffected.
+
+- **[LW-52] Remove the remaining player-facing configuration options** (opened 2026-07-07) [QUEUED]
+  - Done means: strip the Reloaded config surface so players cannot toggle away designed behavior
+    (the LW-50 force-mismatch knob removal set the precedent): remove TreasureAlwaysOn (Treasure
+    Master itself is slated for removal, LW-10), BannerToasts (toasts become always on),
+    DevSeedKills (dev builds move to an environment variable or a compiled default), and VerboseLog
+    (console volume moves to an environment variable; the log FILE already carries every line
+    unconditionally). Owner may spare individual options during the build; the default is remove.
+  - Verify: xUnit green; live, the Reloaded launcher exposes no player-visible configuration for
+    the mod and toasts, Treasure Master gating, and logging all behave at their designed defaults.
 
 ## Backlog
 
@@ -131,14 +142,6 @@ is the in-flight subset, not a mirror of that checklist.
   prefix match on "Select a target"; unstoried weapons keep vanilla text. Every technical
   unknown was answered live 2026-07-05: writable, render-call-time swap (fragment-length
   unbound), pill auto-sizes to viewport width, markup tokens supported ("<keyicon=ok>").
-- [LW-37] 2026-07-06: FAST-paint the equip-card BODY Kills meter. The count now ships in the
-  body first line (cd6599e), painted by the slow heap sweep; first-open browse latency is the
-  only enemy, and kills change only in battle so a battle-exit repaint is never stale. The
-  header-stamp candidate is MOOT now the count lives in the body (header arc cut, LW-27
-  retracted). Remaining option: generalize the 2026-07-06 catalog-record discovery to the
-  ITEM-text records and redirect the desc offset at a mod-owned buffer (instant updates,
-  retires the sweep; same tech the attack-card mirror uses). Low priority: the slow sweep
-  works and the owner accepted out-of-battle paint latency.
 - [LW-39] 2026-07-06: Recover fingerprint-TWIN units for the cursor resolve (owner hit it live:
   two party units at identical level and hp/maxHp made the resolve refuse, and the register
   fallback then dressed Ramza's Attack row in the Spark Rod wielder's dossier; the fallback

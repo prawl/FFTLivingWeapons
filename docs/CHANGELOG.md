@@ -8,6 +8,19 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-50] SHIPPED 0152cf9 2026-07-07: the startup fingerprint guard. Before any game-memory write
+  arms, the runtime verifies three data-only landmarks (the PE build key, the JobCommand table's
+  rec 8/rec 9 ability-byte signature gated on a populated roster, and Ramza's roster-row shape at
+  RosterBase slot 0) with retry-until-decidable arming and a 30-tick consecutive-mismatch
+  debounce. A confirmed mismatch permanently disarms every write path for the session (a volatile
+  Mem.WritesEnabled gate inside the WriteBytes/W8/W16 funnel, an Engine tick gate, and a deferred
+  lock-protected PromptSwapHook arm handshake), logs one loud stand-down line, and raises a
+  once-per-session OS message box (StandDownNotice.cs) with plain-language guidance and the
+  support email. FingerprintGuard.cs is the dependency-free portable core (copy the file to adopt
+  in sibling mods). The player-facing force-mismatch config knob was removed in 81fcb79; the dev
+  drill is the LW_FORCE_FINGERPRINT_MISMATCH environment variable in DEV builds. Live-verified by
+  the owner 2026-07-07: a normal launch arms after save load, the forced mismatch stands down
+  with zero writes through a full battle, and the box renders exactly once.
 - [LW-25] SHIPPED c842ba1 2026-07-07: the DEV-only ShowSpike research instrument still armed its
   commit-tap in dev builds, spamming a "show-spike: commit-tap ..." line on every text commit when
   its F5 window was tripped (owner hit it mid-testing). Its tap mechanism already graduated into the

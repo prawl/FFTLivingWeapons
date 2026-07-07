@@ -78,14 +78,28 @@ behavior; the guaranteed-shippable path is a card match.
 - [ ] Bump ModVersion (-> 2.3.0) + cut the matching tag.
 
 ### 7. Save-integrity + patch-safety hardening (BLOCKER)
-- [ ] **Startup fingerprint guard (LW-50)**: verify module base + a code-bytes hash + Ramza's roster
-      row at launch; on any mismatch disarm every write and log loudly. Turns a future game patch from
+- [ ] **Startup fingerprint guard (LW-50)**: verify three DATA-ONLY landmarks at launch (the PE build
+      key, the JobCommand table's rec 8/rec 9 ability-byte signature, and Ramza's roster row shape);
+      on a debounced mismatch disarm every write and log loudly. Turns a future game patch from
       silent save corruption into a clean "needs updating." RPM/WPM guard crashes, not semantic
       corruption at a valid-but-wrong address.
 - [ ] **Kill-tally scoping (LW-51, covers LW-29)**: decide global-forever vs per-playthrough; if
       per-playthrough, key the save files to a save identity (one-time migration) so a new game is not
       pre-maxed and playthroughs do not cross-contaminate; ensure a Reloaded mod UPDATE does not wipe
       the tally.
+
+### 8. Equip-card fast paint (SHOULD, pulled in by the owner 2026-07-07)
+- [ ] **Fast Kills meter (LW-37)**: generalize the attack-card catalog-record redirect to the
+      ITEM-text records (repoint the viewed weapon's descOff at a mod-owned buffer image) so the
+      equip card's Kills line updates instantly on first open and the slow heap sweep retires for
+      that surface. Same three-way anchor discipline as the Attack row; foreign records refused;
+      unit tests plus a live first-open latency check.
+
+### 9. Configuration surface removal (SHOULD, pulled in by the owner 2026-07-07)
+- [ ] **Remove the remaining config options (LW-52)**: strip TreasureAlwaysOn, BannerToasts,
+      DevSeedKills, and VerboseLog from the Reloaded config surface so players cannot toggle away
+      designed behavior (the LW-50 force-mismatch knob removal set the precedent; dev levers move
+      to environment variables). Owner may spare individual options during the build.
 
 ---
 
