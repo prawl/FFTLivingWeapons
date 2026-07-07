@@ -161,9 +161,13 @@ internal sealed class Engine
         _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, larceny, puppeteer, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         _gunSlinger = new GunSlinger(meta, _kills, modDir, live);
-        // Reliquary Phase 1 (docs/RELIQUARY_AC.md): wiring legends here builds Display's
-        // StoryLines/EarnedAnchors (card-story composing + the three-way anchor, decision 12).
-        _display = new Display(meta, _kills, live, legends: _legends);
+        // LW-35 (owner direction): Marks are release-hidden on EVERY card surface. The Attack card
+        // already stopped consuming the deed ledger (AttackCard.Resolve sets markLabel=null); the
+        // equip card stops the same way, by NOT wiring legends into Display's StoryLines. The
+        // LegendStore keeps recording (the Reliquary above still writes and saves _legends); only
+        // this DISPLAY surface stops painting the story line. Pass legends: _legends to re-enable
+        // (Reliquary Phase 2), which rebuilds StoryLines/EarnedAnchors (the three-way anchor, decision 12).
+        _display = new Display(meta, _kills, live, legends: null);
         // LW-31: the acting unit's Attack-menu dossier. Wired here (not beside _tracker) because
         // it needs the tracker's cursor-resolve + raw-hand/sprite seams. CURSOR-ONLY since
         // 2026-07-06 (owner-observed wrong-weapon display; see AttackCard.cs's class doc): the
