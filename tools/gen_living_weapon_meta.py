@@ -102,6 +102,8 @@ def main():
                 entry["signature"]["braveOneUp"] = True
             if sig.get("iai"):  # Iai (Ame-no-Murakumo): at battle start, hold the wielder's Speed above the field so it takes the opening turn, then revert after that turn
                 entry["signature"]["iai"] = True
+            if sig.get("mushin"):  # Mushin (Kiku-ichimonji): a full WAIT turn (no move, no act) arms a one-hit PA boost, spent on the wielder's next attack
+                entry["signature"]["mushin"] = True
             if sig.get("gunSlinger"):  # Gun Slinger (Blaster): roster off-hand twin + Dual Wield between battles
                 entry["signature"]["gunSlinger"] = True
         meta[str(it["id"])] = entry

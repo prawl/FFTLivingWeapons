@@ -1420,7 +1420,14 @@
         0.52,
         0.2,
         1.12
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "mushin": true,
+        "displayLabel": "Mushin",
+        "note": "Mushin (no-mind): a full WAIT turn (no move AND no attack/action) arms a one-hit PA boost; the wielder's next attack deals boosted damage (band +0x3E, the same CPa byte katana damage already scales from), then the buff clears. One wait = one charged hit, no stacking (a single armed bool, not a counter). Trigger mirrors Iai's proven ActorPtr apparatus: Band.ActorEntry arrival/departure marks the wielder's own turn window; Offsets.AGx/AGy diff detects a move; the global Acted byte (Offsets.Acted) rising 0->1 while the pointer still names the wielder's entry detects an action (own-turn scoped, so a reaction/enemy-turn Acted edge neither arms nor consumes). Owns the PA lane at every tier (GrowthEngine.Mushin.cs, OwnsMushin) so growth stays byte-identical to the plain Factor[tier] formula below tier 3 or between charges. Does NOT touch formula 2 / onHitAbilityId 83.",
+        "p3Desc": "Standing perfectly still arms the next strike to hit devastatingly hard."
+      }
     },
     {
       "id": 46,

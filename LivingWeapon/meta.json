@@ -399,7 +399,14 @@
     "wp": 13,
     "cat": "Katana",
     "formula": 2,
-    "flavor": "A katana with a hilt in the shape of a chrysanthemum."
+    "flavor": "A katana with a hilt in the shape of a chrysanthemum.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Mushin",
+      "mushin": true
+    }
   },
   "46": {
     "name": "Masamune",

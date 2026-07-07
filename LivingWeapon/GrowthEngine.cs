@@ -40,14 +40,21 @@ internal sealed partial class GrowthEngine
     private readonly HashSet<int> _ambiguousLogged = new();           // slots whose multi-match was already logged this battle
     private readonly HashSet<int> _fallbackLogged = new();            // slots whose tier-2 fallback was already logged this battle
     private bool _logged;
+    // Kiku-ichimonji's Mushin stack count: SHARED with Mushin.cs (Engine.cs constructs one
+    // dictionary and passes it to both), keyed by wielder fingerprint (lvl,br,fa), value 0..
+    // Tuning.MushinMaxStacks. Defaults to a fresh (empty, so always effectively 0 stacks)
+    // dictionary when a caller doesn't wire one, so every pre-existing positional
+    // GrowthEngine(...) call site stays untouched.
+    private readonly Dictionary<(int lvl, int br, int fa), int> _mushinArmed;
 
     public GrowthEngine(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns,
-                        IGameMemory? mem = null)
+                        IGameMemory? mem = null, Dictionary<(int lvl, int br, int fa), int>? mushinArmed = null)
     {
         _meta = meta;
         _kills = kills;
         _turns = turns;
         _mem = mem ?? new LiveMemory();
+        _mushinArmed = mushinArmed ?? new Dictionary<(int, int, int), int>();
     }
 
     /// <summary>Forget captured naturals + struct locations. Call on battle exit.</summary>
@@ -57,6 +64,7 @@ internal sealed partial class GrowthEngine
         _timedNatural.Clear();
         _afterimage.Clear();
         _ultima.Clear();
+        _mushin.Clear();
         _structForSlot.Clear();
         _grantLogged.Clear();
         _heldSupports.Clear();   // no writes: the per-battle struct is gone/rebuilding
@@ -111,6 +119,7 @@ internal sealed partial class GrowthEngine
                         HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
                     HoldAfterimage(s, m, tier, level, brave, faith, rosterNameId);   // Swiftedge: ramping Speed (owns the speed lane)
                     HoldUltima(s, m, tier, level, brave, faith, rosterNameId);       // Materia Blade: HP%-scaled PA hold (owns PA lane)
+                    HoldMushin(s, m, tier, level, brave, faith);                     // Kiku-ichimonji: one-hit charged-PA hold (owns PA lane)
                 }
                 if (Route(s, m, tier, out long addr, out double factor))
                     if (!plan.TryGetValue(addr, out double ex) || factor > ex) plan[addr] = factor;
@@ -136,6 +145,7 @@ internal sealed partial class GrowthEngine
         if (Tuning.SkipFormula(m.Formula)) { addr = 0; factor = 0; return false; }
         if (OwnsSpeed(m)) { addr = 0; factor = 0; return false; }   // Afterimage owns Speed (HoldAfterimage)
         if (OwnsPa(m)) { addr = 0; factor = 0; return false; }     // Ultima owns PA (HoldUltima)
+        if (OwnsMushin(m)) { addr = 0; factor = 0; return false; } // Mushin owns PA (HoldMushin)
         if (Tuning.IsSpeedFormula(m.Formula)) { addr = s + Offsets.CSpeed; factor = Tuning.SpeedFactor[tier]; return true; }
         if (Tuning.IsCaster(m.Cat) || Tuning.IsMagicCastFormula(m.Formula)) { addr = s + Offsets.CMa; factor = Tuning.Factor[tier]; return true; }
         addr = s + Offsets.CPa; factor = Tuning.Factor[tier]; return true;

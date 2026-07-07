@@ -348,6 +348,24 @@ internal static class Tuning
     /// hop's chip damage. Applies after the base ricochetPct, so damage decays each arc.</summary>
     public const int RicochetHopDecayPct = 60;
 
+    /// <summary>Mushin (Kiku-ichimonji +3): the PER-STACK PA-factor bonus added on top of the
+    /// wielder's tier factor for the charged hit after one or more full-wait turns (up to
+    /// <see cref="MushinMaxStacks"/> stacks, each stacking additively: N stacks add N x this).
+    /// 0.75 (raised from the one-shot design's 0.5) because stacking now costs multiple whole
+    /// turns of tempo to bank the full payoff, not just one -- the per-stack rate stays the same
+    /// investment-mechanic bias as <see cref="Factor"/> (easier to buff up than claw back an
+    /// earned mechanic), just re-tuned for the new multi-turn cost.</summary>
+    public const double MushinBonus = 0.75;
+
+    /// <summary>Mushin (Kiku-ichimonji +3): the most stacks the charge can bank before a full-wait
+    /// turn stops adding another (idempotent at the cap, not an error). A single attack always
+    /// spends every banked stack in one hit, whatever the count.</summary>
+    public const int MushinMaxStacks = 3;
+
+    /// <summary>Mushin (Kiku-ichimonji +3): the kill tier at which the full-wait charge unlocks.
+    /// Matches every other Living Weapon capstone signature (Iai, Kobu, ...), the tier-3 payoff.</summary>
+    public const int MushinAtTier = 3;
+
     /// <summary>Kobu (Kiyomori +3): ceiling for the wielder's current brave (band +0x0F).
     /// 97 keeps it below the engine's Pray/Steel hard cap (100) while still out-braving
     /// nearly any foe -- a unit at 98-100 is unbeatably brave but Kobu won't fully match
