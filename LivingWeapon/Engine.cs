@@ -101,10 +101,15 @@ internal sealed class Engine
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
         // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the deed-recording seam KillTracker's
-        // CreditKill reports every credited kill's captured victim to. Decision 11: a disabled
-        // BannerToast config must leave the Mark-announce path fully inert (BannerToast.Enqueue
-        // has no _enabled gate of its own), so pass null instead of _toast when disabled.
-        _reliquary = new Reliquary(_legends, _bannerToastsEnabled ? _toast : null, meta, Flight.Record);
+        // CreditKill reports every credited kill's captured victim to. LW-35 (owner direction):
+        // Marks are release-hidden on EVERY surface, the deed toast included, so pass null for
+        // Reliquary's toast. A null toast leaves the Mark-announce path fully inert (proven by
+        // ReliquaryTests.Disabled_toasts_stay_fully_inert; BannerToast.Enqueue has no _enabled
+        // gate of its own), while the LegendStore still records every deed and the milestone /
+        // unlock toasts on _toast (via BannerToast.Tick) are untouched. Pass
+        // `_bannerToastsEnabled ? _toast : null` to re-enable (Reliquary Phase 2), matching the
+        // equip-card `legends:` re-enable below.
+        _reliquary = new Reliquary(_legends, null, meta, Flight.Record);
         _promptSwap = new PromptSwap(_toast, live);
         _promptSwapHook = new PromptSwapHook(_promptSwap);
 #if LWDEV
