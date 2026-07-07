@@ -1,12 +1,12 @@
 ﻿id,tier,opRisk,Prev Name,name,type,obtain,WP,dmgScaling,parry%,grows,onHit,P,P2,P3,+3 ability,Additional Notes
 1,1,—,Dagger,Cutpurse,Knife,Shop,5,(PA+Sp)/2 x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,,
 2,2,—,Mythril Knife,Quicksilver,Knife,Shop,6,(PA+Sp)/2 x WP,25%,PA,—,PA +10%,PA +20%,PA +30%,,
-3,2,med,Blind Knife,Gloomfang,Knife,Shop,5,(PA+Sp)/2 x WP,15%,PA,Blind (always),PA +10%,PA +20%,PA +30% + Concentration,Makes the wielder's attacks impossible to evade.,
-4,2,low,Mage Masher,Hushblade,Knife,Shop,6,(PA+Sp)/2 x WP,15%,PA,Silence (always),PA +10%,PA +20%,PA +30% + Magick Def Boost,Reduces magick damage taken.,
+3,2,med,Blind Knife,Gloomfang,Knife,Shop,5,(PA+Sp)/2 x WP,15%,PA,Blind (always),PA +10%,PA +20%,PA +30% + Concentration,Makes the wielder's attacks impossible to evade.,Forces the Concentration support ability into the wielder's support-ability slot.
+4,2,low,Mage Masher,Hushblade,Knife,Shop,6,(PA+Sp)/2 x WP,15%,PA,Silence (always),PA +10%,PA +20%,PA +30% + Magick Def Boost,Reduces magick damage taken.,Forces the Magick Def Boost support ability into the wielder's support-ability slot.
 5,3,—,Platinum Dagger,Argent Dirk,Knife,Shop,7,(PA+Sp)/2 x WP,16%,PA,—,PA +10%,PA +20%,PA +30%,,
-6,3,low,Main Gauche,Sanguine Gauche,Knife,Shop,6,(PA+Sp)/2 x WP,50%,PA,Absorb HP (drain),PA +10%,PA +20%,PA +30% + Defense Boost,Reduces physical damage taken.,
+6,3,low,Main Gauche,Sanguine Gauche,Knife,Shop,6,(PA+Sp)/2 x WP,50%,PA,Absorb HP (drain),PA +10%,PA +20%,PA +30% + Defense Boost,Reduces physical damage taken.,Forces the Defense Boost support ability into the wielder's support-ability slot.
 7,4,—,Orichalcum Dirk,Adamant Fang,Knife,Shop,12,(PA+Sp)/2 x WP,5%,PA,—,PA +10%,PA +20%,PA +30%,,
-8,4,low,Assassin's Dagger,Mortal Coil,Knife,Shop,8,(PA+Sp)/2 x WP,15%,PA,May inflict Doom,PA +10%,PA +20%,PA +30% + Attack Boost,Raises physical attack while the wielder is below half HP.,
+8,4,low,Assassin's Dagger,Mortal Coil,Knife,Shop,8,(PA+Sp)/2 x WP,15%,PA,May inflict Doom,PA +10%,PA +20%,PA +30% + Attack Boost,Raises physical attack while the wielder is below half HP.,Forces the Attack Boost support ability into the wielder's support-ability slot.
 9,5,high,Air Knife,Galewind,Knife,Shop,10,(PA+Sp)/2 x WP,5%,PA,—,PA +10%,PA +20%,PA +30% + Puppeteer,Turns a struck enemy into your puppet for its full turn. No Lucavi; 3-turn cooldown.,
 10,6,high,Zwill Straightblade,Zwill Straightblade,Knife,Poach (Plague Horror),12,(PA+Sp)/2 x WP,10%,PA,May inflict Sleep,PA +10%,PA +20%,PA +30% + Bloodthirst,Grants another turn whenever the wielder scores a kill.,
 11,2,low,Ninja Blade,Swiftfang,Ninja Blade,Shop,4,Speed-scaled (f99),15%,Speed,—,Speed +5%,Speed +10%,Speed +15%,,
@@ -21,7 +21,7 @@
 20,1,low,Longsword,Cleaver,Sword,Shop,6,PA x WP,5%,PA,Knockback (Rush),PA +10%,PA +20%,PA +30%,,
 21,2,med,Iron Sword,Riposte,Sword,Shop,6,PA x WP,16%,PA,—,PA +10%,PA +20%,PA +30%,,
 22,2,med,Mythril Sword,Claymore,Sword,Shop,7,PA x WP,0%,PA,—,PA +10%,PA +20%,PA +30%,,
-23,3,med,Blood Sword,Sanguine Sword,Sword,Steal (Gaffgarion)/Move-Find,10,PA x WP,12%,PA,—,PA +10%,PA +20%,PA +30% + Shadow Blade,Grants Shadow Blade: drains a distant unit's HP with dark power. Knight jobs only.,
+23,3,med,Blood Sword,Sanguine Sword,Sword,Steal (Gaffgarion)/Move-Find,10,PA x WP,12%,PA,—,PA +10%,PA +20%,PA +30% + Shadow Blade,Grants Shadow Blade: drains a distant unit's HP with dark power. Knight jobs only.,Adds Shadow Blade to the bottom of the Knight's ability list (open the Knight's Abilities menu and scroll to the bottom). KNOWN BUG: enemies currently receive it too and should be excluded.
 24,3,low,Coral Sword,Stormbrand,Sword,Shop,8,PA x WP,5%,PA,May cast Thunder,PA +10%,PA +20%,PA +30%,,
 25,3,med,Ancient Sword,Tanglethorn,Sword,Shop,7,PA x WP,5%,PA,May inflict Immobilize,PA +10%,PA +20%,PA +30%,,
 26,3,low,Sleep Blade,Flamberge,Sword,Shop,8,PA x WP,5%,PA,—,PA +10%,PA +20%,PA +30%,,
@@ -30,7 +30,7 @@
 29,5,med,Icebrand,Graviton,Sword,Shop,12,PA x WP,14%,PA,May cast Gravity,PA +10%,PA +20%,PA +30%,,
 30,5,med,Runeblade,Arcanum,Sword,Shop,14,PA x WP,8%,PA,—,PA +10%,PA +20%,PA +30% + Larceny,Steals one buff from a struck foe for the wielder to wear 3 turns.,
 31,5,low,Nagrarok,Lightbringer,Sword,Poach (Swine),14,PA x WP,12%,PA,—,PA +10%,PA +20%,PA +30%,,
-32,6,med,Materia Blade,Materia Blade,Sword,TBD,11,PA x WP × HP% (Ultima),12%,PA (HP%-scaled),—,Ultima (PA ×HP%),Ultima (curve up),Ultima,,"Materia Blade is the only living weapon on a unique (non-PA%) growth curve, mimicking FF7: power scales with the wielder's CURRENT HP (hardest at full life, weakest when badly hurt) and the whole curve rises with kill tier. Base WP is +1 over vanilla. Damage scaling by tier then current-HP band [100% / 75-99% / 50-74% / 25-49% / <25%]: +0 = 115/110/80/70/50; +1 (5 kills) = 120/113/83/73/53; +2 (25) = 125/116/86/76/56; +3 (50) = 130/120/90/80/60."
+32,6,med,Materia Blade,Materia Blade,Sword,"Join (Cloud, with it equipped)",11,PA x WP × HP% (Ultima),12%,PA (HP%-scaled),—,Ultima (PA ×HP%),Ultima (curve up),Ultima,,"Materia Blade is the only living weapon on a unique (non-PA%) growth curve, mimicking FF7: power scales with the wielder's CURRENT HP (hardest at full life, weakest when badly hurt) and the whole curve rises with kill tier. Base WP is +1 over vanilla. Damage scaling by tier then current-HP band [100% / 75-99% / 50-74% / 25-49% / <25%]: +0 = 115/110/80/70/50; +1 (5 kills) = 120/113/83/73/53; +2 (25) = 125/116/86/76/56; +3 (50) = 130/120/90/80/60."
 33,4,low,Defender,Defender,Knight Sword,Poach (Elder Treant),16,PA x Br/100 x WP,60%,PA,—,PA +10%,PA +20%,PA +30%,,
 34,5,med,Save the Queen,Save the Queen,Knight Sword,Move-Find (Midlight's Deep)/Join (Meliadoul),18,PA x Br/100 x WP,45%,PA,—,PA +10%,PA +20%,PA +30%,,
 35,6,high,Excalibur,Excalibur,Knight Sword,Move-Find (Midlight's Deep)/Join (Orlandeau),21,PA x Br/100 x WP,35%,PA,—,PA +10%,PA +20%,PA +30%,,
@@ -54,15 +54,15 @@
 53,2,low,Flame Rod,Ember Rod,Rod,Shop,5,Faith spell (f4),20%,MA,Attack casts Fire (Magick Attack),MA +10%,MA +20%,MA +30%,,
 54,2,low,Ice Rod,Frost Rod,Rod,Shop,5,Faith spell (f4),20%,MA,Attack casts Blizzard (Magick Attack),MA +10%,MA +20%,MA +30%,,
 55,2,med,Poison Rod,Hushward Rod,Rod,Shop,6,PA x WP,15%,MA,—,MA +10%,MA +20%,MA +30%,,
-56,3,low,Wizard's Rod,Umbral Rod,Rod,Shop,4,PA x WP,20%,MA,—,MA +10%,MA +20%,MA +30% + Spiritual Font,Restores HP and MP on each move.,
+56,3,low,Wizard's Rod,Umbral Rod,Rod,Shop,4,PA x WP,20%,MA,—,MA +10%,MA +20%,MA +30% + Spiritual Font,Restores HP and MP on each move.,Restores HP and MP silently in the background: no animation or numbers are shown. Should add an animation.
 57,4,med,Dragon Rod,Dragon Rod,Rod,Steal (Cletienne; Mullonde summoners),7,PA x WP,10%,MA,May inflict Silence,MA +10%,MA +20%,MA +30%,,
 58,5,med,Rod of Faith,Rod of Faith,Rod,"Move-Find (Midlight's Deep VALKYRIES, rare)",7,PA x WP,15%,MA,—,MA +10%,MA +20%,MA +30% + Rapture,Grants Master Teleportation while the wielder is below a third HP.,
 59,1,low,Oak Staff,Birchwood Staff,Staff,Shop,3,MA x WP,20%,MA,—,MA +10%,MA +20%,MA +30%,,
 60,2,med,White Staff,Warlock's Staff,Staff,Shop,3,MA x WP,15%,MA,May inflict Sleep,MA +10%,MA +20%,MA +30% + Choir,"Casts magick instantly, with no charge time.",
-61,3,med,Healing Staff,Mending Staff,Staff,Shop,4,MA x WP,15%,MA,Attack heals target's HP (damages Undead),MA +10%,MA +20%,MA +30% + Renewal,Mends the bearer and adjacent allies for a tenth of max HP each turn.,
+61,3,med,Healing Staff,Mending Staff,Staff,Shop,4,MA x WP,15%,MA,Attack heals target's HP (damages Undead),MA +10%,MA +20%,MA +30% + Renewal,Mends the bearer and adjacent allies for a tenth of max HP each turn.,"Heals silently in the background, like Spiritual Font: no animation or numbers are shown. Should add an animation."
 62,3,low,Serpent Staff,Warding Staff,Staff,Shop,4,MA x WP,15%,MA,May inflict Immobilize,MA +10%,MA +20%,MA +30%,,
 63,3,low,Mage's Staff,Blazing Staff,Staff,Shop,6,Faith spell (f4),12%,MA,—,MA +10%,MA +20%,MA +30%,,
-64,4,med,Golden Staff,Sanctus Staff,Staff,Shop,5,MA x WP,15%,MA,—,MA +10%,MA +20%,MA +30% + Benediction,Boosts the wielder's healing by 30%.,
+64,4,med,Golden Staff,Sanctus Staff,Staff,Shop,5,MA x WP,15%,MA,—,MA +10%,MA +20%,MA +30% + Benediction,Boosts the wielder's healing by 30%.,Applies the healing boost silently: no animation or numbers are shown. Should add an animation.
 65,5,med,Zeus Mace,Zeus Mace,Staff,Move-Find (Midlight's Deep DELTA),6,MA x WP,15%,MA,—,MA +10%,MA +20%,MA +30%,,
 66,6,low,Staff of the Magi,Staff of the Magi,Staff,Move-Find (Midlight's Deep BRIDGE),7,MA x WP,15%,MA,May inflict Stop,MA +10%,MA +20%,MA +30% + Sanctuary,Stops any fallen ally from crystallizing while the bearer lives.,
 67,5,high,Iron Flail,Warbrand,Sword,Shop,15,PA x WP,0%,PA,—,PA +10%,PA +20%,PA +30%,,
@@ -84,11 +84,11 @@
 83,1,low,Longbow,Skirmisher,Bow,Shop,4,(PA+Sp)/2 x WP,20%,PA,—,PA +10%,PA +20%,PA +30%,,
 84,2,low,Silver Bow,Windrunner,Bow,Shop,5,(PA+Sp)/2 x WP,15%,PA,—,PA +10%,PA +20%,PA +30%,,
 85,2,med,Ice Bow,Frostarc,Bow,Shop,4,(PA+Sp)/2 x WP,5%,PA,May cast Blizzard,PA +10%,PA +20%,PA +30%,,
-86,3,med,Lightning Bow,Stormarc,Bow,Shop,5,(PA+Sp)/2 x WP,5%,PA,May cast Thunder,PA +10%,PA +20%,PA +30% + Chain Lightning,Arcs to three nearby foes at decaying damage.,
+86,3,med,Lightning Bow,Stormarc,Bow,Shop,5,(PA+Sp)/2 x WP,5%,PA,May cast Thunder,PA +10%,PA +20%,PA +30% + Chain Lightning,Arcs to three nearby foes at decaying damage.,Applies the arc chip damage silently: no animation or numbers are shown. Should add an animation.
 87,4,med,Windslash Bow,Skypiercer,Bow,Shop,7,(PA+Sp)/2 x WP,0%,PA,May cast Wind Slash,PA +10%,PA +20%,PA +30%,,
 88,3,med,Mythril Bow,Tidecaller,Bow,Shop,6,(PA+Sp)/2 x WP,10%,PA,May cast Torrent,PA +10%,PA +20%,PA +30%,,
 89,5,low,Artemis Bow,Huntress,Bow,Shop,8,(PA+Sp)/2 x WP,10%,PA,May cast Arm Shot (Disable),PA +10%,PA +20%,PA +30% + Maim,Strips reactions like Counter from struck foes for 3 turns.,
-90,6,med,Yoichi Bow,Yoichi Bow,Bow,Move-Find (Midlight's Deep DELTA),12,(PA+Sp)/2 x WP,5%,PA,—,PA +10%,PA +20%,PA +30% + Barrage,"Grants Barrage: four swift attacks, each at half damage. Thief only.",
+90,6,med,Yoichi Bow,Yoichi Bow,Bow,Move-Find (Midlight's Deep DELTA),12,(PA+Sp)/2 x WP,5%,PA,—,PA +10%,PA +20%,PA +30% + Barrage,"Grants Barrage: four swift attacks, each at half damage. Thief only.","Adds Barrage to the bottom of the Thief's ability list (open the Thief's Abilities menu and scroll to the bottom), the same mechanism as Shadow Blade."
 91,6,low,Perseus Bow,Perseus Bow,Bow,"Move-Find (Midlight's Deep VOYAGE, rare, trap tile)",16,(PA+Sp)/2 x WP,0%,PA,May inflict Don't Act,PA +10%,PA +20%,PA +30%,,
 92,2,low,Lamia's Harp,Siren's Lyre,Instrument,Shop,6,(PA+MA)/2 x WP,10%,PA,May inflict Confuse,PA +10%,PA +20%,PA +30%,,
 93,3,low,Bloodstring Harp,Duskstring Harp,Instrument,Shop,7,(PA+MA)/2 x WP,10%,PA,May inflict Blind,PA +10%,PA +20%,PA +30%,,
