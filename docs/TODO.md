@@ -10,15 +10,6 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-2] Deploy the shipped batch and run the live verification script** (opened 2026-07-05) [AWAITING-LIVE]
-  - Done means: kill fft_enhanced.exe, run BuildLinked.ps1, then docs/VERIFY_LIVE.md rows 6-12
-    pass, including the row-11 log-facelift protocol (armed battle 8-14 console lines, unarmed
-    battle exactly 2 bookends, file cross-check for evidence thinning, fast-forward soak for
-    the console-sink lock).
-  - Verify: VERIFY_LIVE.md checkboxes (owner-only flips). Row 8 waits on LW-1.
-  - Notes: owner verified 2026-07-05 during this pass: dual-pistol off-hand equip works, the
-    second Outrider Pistol equipped and fired.
-
 - **[LW-31] The battle Abilities menu becomes the weapon funnel** (opened 2026-07-05) [BUILDING]
   - Done means: (owner-consolidated 2026-07-06) in battle, the Attack command row renders the
     acting unit's living weapon name with its growth suffix ("Save the Queen+" / Mettle /

@@ -8,6 +8,12 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-2] SHIPPED 10161db 2026-07-07: deploy-and-live-verify pass for the 2026-07-05 shipped batch.
+  Rows 10 (desc budget trims), 11 (log facelift, full row-11 protocol), and 12 (Boco unarmed
+  stale-latch fix) all verified live by the owner 2026-07-07, closing the release-verify scope. The
+  Reliquary Phase 1 rows (6-9: Mark toasts, card story line, undead/Requiem classifier,
+  legends.json persistence) are deferred past 2.3.0 and now ride backlog LW-6; VERIFY_LIVE.md keeps
+  their revival instructions in a dedicated deferred section.
 - [LW-45] SHIPPED c132edd 2026-07-07: equip-card descriptions ran off the bottom of the screen. The
   real constraint is the box's wrapped-LINE count, not char count, so the old 266-char budget was far
   too loose (a third of the catalog passed it yet clipped); living weapons with a +3 signature block
