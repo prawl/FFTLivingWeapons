@@ -8,6 +8,20 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-31] SHIPPED 2b2f5b4 2026-07-07: the battle Abilities menu is the weapon funnel. In battle the
+  "Attack" command row renames to the acting unit's living weapon (name + trimmed tier suffix, or
+  "Fists" for an unarmed human), and its hover card becomes a mini equip card (flavor + the "+3
+  ability" prose + the "Kills: N/T to +" tier meter, no Marks). Row text and hover title share one
+  string, driven by a JobCommand text-catalog record: the rename never touches the "Attack" label
+  bytes (kept as the race-guard anchor), it writes a split image into the desc footprint after the
+  label and repoints nameOff/descOff into its two halves, restore is the mirror. A budgeted heap
+  census finds the table copies; a three-way anchor (vanilla / current / previous image) leaves
+  foreign records untouched. Turn-owner resolve is cursor-only (Offsets.TurnQueue, snaps at turn
+  open); any resolve failure restores vanilla (a wrong dossier is worse than none). Delivered
+  incrementally through cdfcc60 (dossier painter) and 2b2f5b4 (row rename) plus its already-exited
+  sub-ids LW-33/LW-36/LW-38/LW-40/LW-44 (LW-27 retracted). RESIDUAL: fingerprint-twin units
+  (identical level+hp+maxHp) fail closed to vanilla by design, carried as backlog LW-39; the
+  row-rename LIVE_LEDGER row stays owner-flip-only.
 - [LW-2] SHIPPED 10161db 2026-07-07: deploy-and-live-verify pass for the 2026-07-05 shipped batch.
   Rows 10 (desc budget trims), 11 (log facelift, full row-11 protocol), and 12 (Boco unarmed
   stale-latch fix) all verified live by the owner 2026-07-07, closing the release-verify scope. The
