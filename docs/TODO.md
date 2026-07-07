@@ -77,9 +77,6 @@ is the in-flight subset, not a mirror of that checklist.
   (the hover-follower struct is NOT the turn owner), so use the durable turn/register state.
   Interacts with LW-23: within the correct window, deed and tier-up toasts still need ordered
   delivery, not mutual starvation.
-- [LW-25] 2026-07-05: The show-spike F5 dev hotkey is still live in DEV builds (owner tripped
-  it while testing). Spike research shipped (callout spawn cracked); disable or gate the hotkey
-  and its console chatter so a test pass cannot trigger it by accident.
 - [LW-32] 2026-07-05: Marks in two waves (owner architecture direction): wave 1 = a weapon
   CHRONICLE store collecting metrics as play happens (aggregate counters per weapon and victim
   class for scale, plus a notable-events log: first blood, first of each class, boss keys,

@@ -8,6 +8,13 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-25] SHIPPED c842ba1 2026-07-07: the DEV-only ShowSpike research instrument still armed its
+  commit-tap in dev builds, spamming a "show-spike: commit-tap ..." line on every text commit when
+  its F5 window was tripped (owner hit it mid-testing). Its tap mechanism already graduated into the
+  shipped PromptSwap (facing-prompt toast delivery, its own independent hook), so ShowSpike was pure
+  redundant noise. Unwired it from Engine (field, construction, Arm, Tick); PromptSwap's production
+  delivery is untouched. ShowSpike.cs retained unreferenced (still on the LogContractTests dev-spike
+  file list).
 - [LW-31] SHIPPED 2b2f5b4 2026-07-07: the battle Abilities menu is the weapon funnel. In battle the
   "Attack" command row renames to the acting unit's living weapon (name + trimmed tier suffix, or
   "Fists" for an unarmed human), and its hover card becomes a mini equip card (flavor + the "+3
