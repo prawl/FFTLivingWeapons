@@ -84,7 +84,6 @@ public class Mod : IMod
             bool bannerToasts     = Tuning.BannerToasts;       // documented default
             bool devSeedKills     = true;                      // documented default (dev builds only)
             bool verboseLog       = false;                     // documented default (Config.VerboseLog)
-            bool cfgDevForceFingerprintMismatch = false;        // documented default (dev builds only, LW-50)
             string configPath     = Path.Combine(modDir, "Config.json");   // overwritten below on success
             try
             {
@@ -94,7 +93,6 @@ public class Mod : IMod
                 bannerToasts     = cfg.BannerToasts;
                 devSeedKills     = cfg.DevSeedKills;
                 verboseLog       = cfg.VerboseLog;
-                cfgDevForceFingerprintMismatch = cfg.DevForceFingerprintMismatch;
             }
             catch (Exception cfgEx)
             {
@@ -107,15 +105,19 @@ public class Mod : IMod
             // try above succeeded or hit the catch (never skipped), so a config-read failure can't
             // silently strand the console on whatever the lazily-created default logger picked.
             ModLogger.LogLevel = verboseLog ? LogLevel.Debug : LogLevel.Info;
-            // Launch header L2. DevSeedKills and DevForceFingerprintMismatch (LW-50) are echoed
-            // only in development builds (neither knob exists in production); the Engine ctor arg
-            // itself is a plain bool (review blocker 2: force-mismatch stays always-compiled), so
-            // only THIS wire-up point is #if LWDEV.
+            // Launch header L2. DevSeedKills is echoed only in development builds (the knob does
+            // not exist in production); the Engine ctor arg itself is a plain bool (review
+            // blocker 2: force-mismatch stays always-compiled), so only THIS wire-up point is
+            // #if LWDEV.
+            // LW-50 stand-down drill, dev builds only: the config knob was removed 2026-07-07 so
+            // players cannot trigger a stand-down from the launcher UI. Set the environment
+            // variable LW_FORCE_FINGERPRINT_MISMATCH to 1 before launching a DEV build to force
+            // the mismatch.
 #if LWDEV
-            bool devForceFingerprintMismatch = cfgDevForceFingerprintMismatch;
-            string devSeedEcho = $" DevSeedKills={devSeedKills} DevForceFingerprintMismatch={devForceFingerprintMismatch}";
+            bool devForceFingerprintMismatch = Environment.GetEnvironmentVariable("LW_FORCE_FINGERPRINT_MISMATCH") == "1";
+            string devSeedEcho = $" DevSeedKills={devSeedKills}";
 #else
-            const bool devForceFingerprintMismatch = false;   // knob is dev-only
+            const bool devForceFingerprintMismatch = false;
             string devSeedEcho = "";
 #endif
             ModLogger.Event(LogVerb.Config,
