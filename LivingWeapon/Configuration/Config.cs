@@ -36,4 +36,11 @@ public class Config : Configurable<Config>
                  "controls console noise. Default: off.")]
     [DefaultValue(false)]
     public bool VerboseLog { get; set; } = false;
+
+    [DisplayName("Dev: Force Fingerprint Mismatch")]
+    [Description("DEV builds only: makes the mod stand down at launch as if the game had been " +
+                 "patched, to test the startup fingerprint guard's loud stand-down path without a " +
+                 "real game patch. Has no effect in release builds (the knob does not exist there).")]
+    [DefaultValue(false)]
+    public bool DevForceFingerprintMismatch { get; set; } = false;
 }

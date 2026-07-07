@@ -84,6 +84,7 @@ public class Mod : IMod
             bool bannerToasts     = Tuning.BannerToasts;       // documented default
             bool devSeedKills     = true;                      // documented default (dev builds only)
             bool verboseLog       = false;                     // documented default (Config.VerboseLog)
+            bool cfgDevForceFingerprintMismatch = false;        // documented default (dev builds only, LW-50)
             string configPath     = Path.Combine(modDir, "Config.json");   // overwritten below on success
             try
             {
@@ -93,6 +94,7 @@ public class Mod : IMod
                 bannerToasts     = cfg.BannerToasts;
                 devSeedKills     = cfg.DevSeedKills;
                 verboseLog       = cfg.VerboseLog;
+                cfgDevForceFingerprintMismatch = cfg.DevForceFingerprintMismatch;
             }
             catch (Exception cfgEx)
             {
@@ -105,17 +107,25 @@ public class Mod : IMod
             // try above succeeded or hit the catch (never skipped), so a config-read failure can't
             // silently strand the console on whatever the lazily-created default logger picked.
             ModLogger.LogLevel = verboseLog ? LogLevel.Debug : LogLevel.Info;
-            // Launch header L2. DevSeedKills is echoed only in development builds (the knob does
-            // not exist in production).
+            // Launch header L2. DevSeedKills and DevForceFingerprintMismatch (LW-50) are echoed
+            // only in development builds (neither knob exists in production); the Engine ctor arg
+            // itself is a plain bool (review blocker 2: force-mismatch stays always-compiled), so
+            // only THIS wire-up point is #if LWDEV.
 #if LWDEV
-            string devSeedEcho = $" DevSeedKills={devSeedKills}";
+            bool devForceFingerprintMismatch = cfgDevForceFingerprintMismatch;
+            string devSeedEcho = $" DevSeedKills={devSeedKills} DevForceFingerprintMismatch={devForceFingerprintMismatch}";
 #else
+            const bool devForceFingerprintMismatch = false;   // knob is dev-only
             string devSeedEcho = "";
 #endif
             ModLogger.Event(LogVerb.Config,
                 $"Configuration loaded: VerboseLog={verboseLog} BannerToasts={bannerToasts} TreasureAlwaysOn={treasureAlwaysOn}{devSeedEcho} LogLevel={ModLogger.LogLevel} (from {configPath})");
 
-            _engine = new Engine(modDir, treasureAlwaysOn, bannerToasts, devSeedKills);
+            // LW-50: born disarmed, before the Engine (and its FastHold background thread) exists.
+            // Only LaunchGuard's Armed edge (inside Engine.Tick, via the guard's onArmed callback)
+            // flips this back true.
+            Mem.WritesEnabled = false;
+            _engine = new Engine(modDir, treasureAlwaysOn, bannerToasts, devSeedKills, devForceFingerprintMismatch);
             _engine.Start();
         }
         catch (Exception ex)

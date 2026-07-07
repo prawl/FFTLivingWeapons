@@ -22,6 +22,16 @@ namespace LivingWeapon;
 /// </summary>
 internal static class Mem
 {
+    /// <summary>LW-50 write gate: production flips this FALSE in Mod.StartEngine, before the
+    /// Engine (and its FastHold thread) is constructed, and only LaunchGuard's Armed edge flips it
+    /// back true. Default TRUE keeps every existing pinned-buffer suite unchanged: the whole test
+    /// assembly already runs serialized ([assembly: CollectionBehavior(DisableTestParallelization
+    /// = true)], TestLoggingSetup.cs:12), so a test that flips this false restores it in a
+    /// finally. Volatile: read on the engine's background loop thread, written from the same
+    /// thread's LaunchGuard.Step edge in production, but the field is shared state, not
+    /// thread-confined by construction.</summary>
+    internal static volatile bool WritesEnabled = true;
+
     private static readonly nint Self = GetCurrentProcess();
     [ThreadStatic] private static byte[]? _scratch;
 
@@ -52,10 +62,14 @@ internal static class Mem
 
     /// <summary>Best-effort write; a failed write (freed page) is a safe no-op, never a fault.</summary>
     public static void WriteBytes(long a, byte[] data)
-        => WriteProcessMemory(Self, (nint)a, data, (nuint)data.Length, out _);
+    {
+        if (!WritesEnabled) return;
+        WriteProcessMemory(Self, (nint)a, data, (nuint)data.Length, out _);
+    }
 
     public static void W8(long a, byte v)
     {
+        if (!WritesEnabled) return;
         var s = _scratch ??= new byte[8];
         s[0] = v;
         WriteProcessMemory(Self, (nint)a, s, 1, out _);
@@ -63,6 +77,7 @@ internal static class Mem
 
     public static void W16(long a, ushort v)
     {
+        if (!WritesEnabled) return;
         var s = _scratch ??= new byte[8];
         s[0] = (byte)(v & 0xFF);
         s[1] = (byte)(v >> 8);

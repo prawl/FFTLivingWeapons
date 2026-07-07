@@ -51,6 +51,7 @@ internal sealed class Engine
     private int _gunSlingerThrottleTick;
     private const int GunSlingerThrottleEveryNTicks = 30;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
+    private readonly LaunchGuard _launchGuard;   // LW-50: gates every write until landmarks verify
     private readonly BannerToast _toast;
     private readonly bool _bannerToastsEnabled;
     private readonly PromptSwap _promptSwap;
@@ -70,7 +71,12 @@ internal sealed class Engine
     /// <param name="devSeedKills">Override for Config.DevSeedKills, read at startup. DEV builds
     /// only (compiled out of Release entirely): null/true seeds every weapon's kill tally as
     /// before; false starts every tally untouched so tiers are earned naturally.</param>
-    public Engine(string modDir, bool? treasureAlwaysOn = null, bool? bannerToasts = null, bool? devSeedKills = null)
+    /// <param name="devForceFingerprintMismatch">LW-50 dev-only test knob (compiled always, wired
+    /// only under #if LWDEV at the Mod.cs call site): true perturbs the expected PE build key so
+    /// LaunchGuard stands down as if the game had been patched, even though memory truly matches.
+    /// Null/false is the normal path.</param>
+    public Engine(string modDir, bool? treasureAlwaysOn = null, bool? bannerToasts = null, bool? devSeedKills = null,
+        bool? devForceFingerprintMismatch = null)
     {
         _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
         _kills = _tally.Kills;
@@ -97,6 +103,9 @@ internal sealed class Engine
 #endif
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
         _live = live;
+        // LW-50: born disarmed (Mod.StartEngine already set Mem.WritesEnabled = false before this
+        // ctor ran); Tick() below holds every subsystem off until the landmarks verify.
+        _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: StandDownNotice.Show);
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
         // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the deed-recording seam KillTracker's
@@ -196,7 +205,10 @@ internal sealed class Engine
     /// never armed).</summary>
     public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks hooks)
     {
-        if (_bannerToastsEnabled) _promptSwapHook.Arm(hooks);
+        // LW-50: the arm is deferred through LaunchGuard's hook handshake so a hook installed
+        // before the fingerprint guard decides anything waits for the Armed edge (or never fires
+        // at all if the guard stands down).
+        if (_bannerToastsEnabled) _launchGuard.OfferHookArm(() => _promptSwapHook.Arm(hooks));
     }
 
     public void Start()
@@ -244,6 +256,10 @@ internal sealed class Engine
     private void Tick()
     {
         Flight.DrainPending();   // cheap flag check every tick; the actual I/O (if any is pending) runs here, never on the requester's thread
+
+        // LW-50: before any landmark verifies, only retry the guard and do nothing else this
+        // tick. Once armed, this check is a single cheap bool read (Step is never called again).
+        if (!_launchGuard.Armed) { _launchGuard.Step(); return; }
 
         uint slot0 = Mem.U32(Offsets.Slot0);
         uint slot9 = Mem.U32(Offsets.Slot9);
