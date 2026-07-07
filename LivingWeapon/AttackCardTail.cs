@@ -12,7 +12,11 @@ namespace LivingWeapon;
 /// "Kills: {kills}" (nowhere further to climb). Zero kills is no longer special for a living
 /// (named) weapon: the meter renders from kill zero exactly like any other below-max count.
 ///
-/// THE SIGNATURE CLAUSE (owner decision 2026-07-06, same day) is one slot with two mutually
+/// THE SIGNATURE CLAUSE IS TEMPORARILY DISABLED (owner decision 2026-07-07): the clause described
+/// below never renders right now, regardless of <paramref name="sigLabel"/>/<paramref
+/// name="sigEarned"/>; <see cref="ComposeTail"/> forces it null unconditionally. The params are
+/// retained (and still validated by tests) purely so re-enabling is a one-line revert. Historical
+/// shape, kept for that revert (owner decision 2026-07-06, same day): one slot with two mutually
 /// exclusive faces, keyed off the same Signatures.Earned check the old sig clause used: earned
 /// renders "{sigLabel} armed" exactly as before; LOCKED (a real signature the wielder hasn't
 /// reached the tier for yet) renders a tease, "Unlocks {sigLabel}", instead. No signature at all
@@ -64,9 +68,8 @@ internal static class AttackCardTail
         string head = ComposeHead(kills, Tuning.KillThresholds, Tuning.Suffix);
         if (head.Length > budgetChars) return GenericTail;   // not even the mandatory head fits
 
-        string? sigClause = sigLabel == null ? null
-            : sigEarned ? $"{sigLabel} armed"
-            : $"Unlocks {sigLabel}";
+        // signature clause disabled for now (owner 2026-07-07); restore the earned/locked faces to re-enable
+        string? sigClause = null;
 
         string withMark = markLabel != null ? head + ClauseSep + markLabel : head;
         string withSig = sigClause != null ? withMark + ClauseSep + sigClause : withMark;

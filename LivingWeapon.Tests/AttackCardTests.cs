@@ -772,13 +772,17 @@ public class AttackCardTests
     }
 
     // ---- CHANGE 3 (owner decision 2026-07-06): the signature tease clause, wired end to end ----
+    // DISABLED 2026-07-07 (owner): AttackCard.Resolve.cs still computes sigLabel/sigEarned
+    // unchanged (a one-line revert away from re-enabling), but AttackCardTail.ComposeTail never
+    // renders the clause now, so these two assert the plain meter head reaches the card.
 
     [Fact]
     public void A_weapon_with_a_locked_signature_shows_the_unlocks_tease_on_the_card()
     {
         // Matches the owner's own worked "locked" example (CHANGE 3, 2026-07-06): Peacemaker's
         // Signature.AtTier is 3 (Tuning.ProdThresholds[2] == 50); 34 kills sits at tier 2
-        // (25 <= 34 < 50), short of it, so the tease renders instead of "armed".
+        // (25 <= 34 < 50), short of it. The tease clause is disabled (owner 2026-07-07), so only
+        // the meter head reaches the card now.
         var rig = Build(kills: new Dictionary<int, int> { [PeacemakerId] = 34 });
         long copy = 0x7000000000;
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
@@ -788,13 +792,14 @@ public class AttackCardTests
         Settle(rig.Card);
 
         Assert.Equal("Peacemaker+2", RowOf(rig.Mem.RegionBytes(copy), 1));
-        Assert.Equal("Kills: 34/50 to +3. Unlocks Gun Slinger",
+        Assert.Equal("Kills: 34/50 to +3",
             TailOf(rig.Mem.RegionBytes(copy), 1, "Peacemaker+2".Length));
     }
 
     [Fact]
     public void A_weapon_with_an_earned_signature_shows_it_armed_on_the_card()
     {
+        // The armed clause is disabled (owner 2026-07-07), so only the meter head reaches the card.
         var rig = Build(kills: new Dictionary<int, int> { [PeacemakerId] = 55 });   // past tier 3
         long copy = 0x7000000000;
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
@@ -804,7 +809,7 @@ public class AttackCardTests
         Settle(rig.Card);
 
         Assert.Equal("Peacemaker+3", RowOf(rig.Mem.RegionBytes(copy), 1));
-        Assert.Equal("Kills: 55. Gun Slinger armed",
+        Assert.Equal("Kills: 55",
             TailOf(rig.Mem.RegionBytes(copy), 1, "Peacemaker+3".Length));
     }
 }
