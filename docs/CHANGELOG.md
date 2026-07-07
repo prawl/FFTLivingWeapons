@@ -8,6 +8,13 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-40] SHIPPED 08980f2 2026-07-07: re-entering a battle from the world map silently failed to
+  register as a battle, so the Attack row (and growth, and kill-tracking) stayed dormant and the
+  Abilities menu read the game's vanilla "Attack" (owner repro: leave to the world map, restart the
+  battle). Root cause: the 1.5 re-enter presents battleMode=3 with the slot0 marker reading 0x10,
+  but EnterSignal gated mode 3 behind the 1.0-era slot0==0xFF. EnterSignal now enters on any live
+  battle mode (2/3/4), matching InLiveBattle; battleMode reads 0 on the world map so it cannot
+  false-enter. Live-verified by the owner the same day.
 - [LW-38] SHIPPED 3bcdadc 2026-07-07: the Attack-row rename missed the battle's first turn
   (owner gripe: the whole-heap census took dozens of ticks per battle, so the first Abilities
   menu open beat the first paint). ResetBattle now keeps the cached table copies warm across

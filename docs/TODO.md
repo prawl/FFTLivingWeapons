@@ -251,6 +251,16 @@ is the in-flight subset, not a mirror of that checklist.
   for an attachment mod. Check Reloaded's update behavior; if unsafe, relocate the save files
   outside the mod directory (with a one-time migration read of the old location) BEFORE
   shipping 2.3.0.
+- [LW-41] 2026-07-07: Re-anchor tools/probes/sentinel_probe.py (and audit sibling probes) to the
+  1.5 offsets; it still reads the pre-1.5 addresses and fed garbage sentinels (battleMode=0,
+  slot9=0x1) during the LW-40 live incident, nearly misdirecting the diagnosis. Source the
+  addresses from LivingWeapon/Offsets.cs.
+- [LW-42] 2026-07-07: Audit the remaining slot0==0xFF marker checks for 1.5, where the in-battle
+  marker reads 0x10 (Offsets.Slot0 note; live probe 2026-07-07 read slot0=0x10 on a mode-3 turn).
+  InLiveBattle's cast-targeting / paused / event excuse (modes 1 and 5) and PairArmed both test
+  0xFF and are therefore dead in 1.5, so a long cast or animation at mode 1/5 could accumulate the
+  exit debounce and false-exit mid-battle (resetting the kill tracker). Verify live with a slow
+  cast, then re-anchor the marker value.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
