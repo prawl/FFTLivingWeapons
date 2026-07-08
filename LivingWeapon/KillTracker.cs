@@ -410,7 +410,7 @@ internal sealed partial class KillTracker
     /// the corpse's action record (Offsets.AArec, band-entry-relative) and log one line through the
     /// dev BattleLog sink. Guarded read; skips silently when unreadable or when no BattleLog is
     /// wired (BattleLog now runs in every build flavor, Debug-tier: file-always, console only
-    /// under the VerboseLog knob). +0xB is
+    /// when the console level is raised to Debug). +0xB is
     /// logged as a HYPOTHESIS (xref?=) -- see docs/LIVE_LEDGER.md's Uncertain AREC row. The credit
     /// path in CreditKill above never consults this.</summary>
     private void LogKillDiag(int s, List<int> weapons)

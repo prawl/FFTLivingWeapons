@@ -34,7 +34,8 @@ internal sealed partial class BannerToast
     // milestone (-1, -100, -250, -500, -1000) so the two kinds of event can never collide.
     internal readonly List<(int weaponId, int tier, string payload)> _queue = new();
 
-    /// <param name="enabled">Config.BannerToasts (or Tuning.BannerToasts fallback).</param>
+    /// <param name="enabled">Toasts on/off. Always on since LW-52 removed the toggle (Engine passes
+    /// Tuning.BannerToasts); kept as a parameter for the enabled-gate tests.</param>
     /// <remarks>PRIME AT CONSTRUCTION: Engine constructs this AFTER its LWDEV dev-seed block has
     /// already floored every weapon's tally, so snapshotting _tiers/_counts here from the CURRENT
     /// kills baselines the seeded tallies immediately -- a dev build's floor-every-weapon-to-P3

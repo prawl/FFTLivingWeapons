@@ -122,8 +122,8 @@ internal sealed class PromptSwapHook
         _payloadPin = GCHandle.Alloc(_payloadBuf, GCHandleType.Pinned);
     }
 
-    /// <summary>Install the detour. Idempotent; called from Engine.InjectHooks only when
-    /// Config.BannerToasts is enabled. Dev builds also run ShowSpike's own tap on the same address
+    /// <summary>Install the detour. Idempotent; called from Engine.InjectHooks (toasts are always
+    /// on since LW-52 removed the BannerToasts toggle). Dev builds also run ShowSpike's own tap on the same address
     /// (standard Reloaded hook stacking) -- production wins the race only if its hook installs
     /// innermost, a dev-build curiosity, not a correctness concern.</summary>
     public void Arm(IReloadedHooks hooks)

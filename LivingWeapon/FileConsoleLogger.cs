@@ -20,7 +20,7 @@ namespace LivingWeapon;
 /// "[verb] " segment at Info tier only, rendering subject-first prose for the match report a
 /// player actually reads: <c>[Living Weapons] [HH:mm:ss.fff] [LEVEL] description</c>. Warning and
 /// Error console lines keep the verb (a bug-report console paste needs it for triage), and so
-/// does a Debug line that reaches the console under VerboseLog (a diagnostic tier, not curated
+/// does a Debug line that reaches the console when the level is raised to Debug (a diagnostic tier, not curated
 /// narrative). Legacy verb-less callers (<see cref="Log"/>/<see cref="LogWarning"/>/
 /// <see cref="LogError"/>/<see cref="LogDebug"/>, mid-migration call sites ratcheted to zero by
 /// LogContractTests) render identically on both sinks, exactly as before this split.

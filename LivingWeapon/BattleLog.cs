@@ -11,9 +11,10 @@ namespace LivingWeapon;
 ///
 /// LOGGING OVERHAUL NOTE: Engine now constructs this with verbose=true unconditionally and
 /// sink=ModLogger.LogDebug -- the ev: timeline is ALWAYS captured to livingweapon.log (Debug tier
-/// writes the file unconditionally), and reaches the console only when Config.VerboseLog is on.
-/// This deliberately turns the timeline ON in every build (it used to be a DEV-only const); the
-/// black-box evidence chain wants the data, the console volume knob keeps it quiet by default.
+/// writes the file unconditionally), and never reaches the console (LW-52 removed the VerboseLog
+/// knob; the console is fixed at Info). This deliberately turns the timeline ON in every build (it
+/// used to be a DEV-only const); the black-box evidence chain wants the data, the Debug tier keeps
+/// it off the console by default.
 /// </summary>
 internal sealed class BattleLog
 {

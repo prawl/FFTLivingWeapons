@@ -23,7 +23,7 @@ namespace LivingWeapon;
 ///   ROSTER -- every occupied roster slot (RLevel 1..99 -- the same occupied-check
 ///             ActorRegister.Bridge uses), its RNameId: the player-pool side of the P2 collision
 ///             check.
-/// Logged one ModLogger.Debug line per slot (file-only unless VerboseLog is on), plus ONE bounded
+/// Logged one ModLogger.Debug line per slot (file-only unless the console level is raised to Debug), plus ONE bounded
 /// flight-recorder tap for the whole census -- a per-slot tap would flood the bounded 4096-record
 /// ring for what is fundamentally one event.
 /// </summary>

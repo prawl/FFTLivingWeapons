@@ -80,54 +80,47 @@ public class Mod : IMod
             // NOT to the deployed mod folder -- so we must read the user file when it exists (mirrors
             // FFTColorCustomizer.GetUserConfigPath), falling back to modDir/Config.json (the shipped
             // default) before the user has opened the config UI.
+            // LW-52: TreasureAlwaysOn is the only player-facing toggle left. Toasts (always on),
+            // dev-seeding (the LWDEV compile flag), and console verbosity (Info) are no longer
+            // config-driven: the Engine ctor takes its Tuning defaults for the first two, and the
+            // console is pinned to Info below (the log FILE always carries every line regardless).
             bool treasureAlwaysOn = Tuning.TreasureAlwaysOn;   // documented default
-            bool bannerToasts     = Tuning.BannerToasts;       // documented default
-            bool devSeedKills     = true;                      // documented default (dev builds only)
-            bool verboseLog       = false;                     // documented default (Config.VerboseLog)
             string configPath     = Path.Combine(modDir, "Config.json");   // overwritten below on success
             try
             {
                 configPath = ResolveConfigPath(modDir);
                 var cfg    = Configurable<Config>.FromFile(configPath, "FFT Living Weapons Configuration");
                 treasureAlwaysOn = cfg.TreasureAlwaysOn;
-                bannerToasts     = cfg.BannerToasts;
-                devSeedKills     = cfg.DevSeedKills;
-                verboseLog       = cfg.VerboseLog;
             }
             catch (Exception cfgEx)
             {
                 // Warning, not Error (the audit's demotion): defaults cope, and a mere config
                 // typo must not burn the launch's one FlushOnce flight archive.
                 ModLogger.Warn(LogVerb.Config,
-                    $"Your settings could not be read; using defaults (TreasureAlwaysOn={treasureAlwaysOn} BannerToasts={bannerToasts} DevSeedKills={devSeedKills} VerboseLog={verboseLog}): {cfgEx.Message}");
+                    $"Your settings could not be read; using defaults (TreasureAlwaysOn={treasureAlwaysOn}): {cfgEx.Message}");
             }
-            // Set the console threshold from whatever verboseLog resolved to -- DEFINED whether the
-            // try above succeeded or hit the catch (never skipped), so a config-read failure can't
-            // silently strand the console on whatever the lazily-created default logger picked.
-            ModLogger.LogLevel = verboseLog ? LogLevel.Debug : LogLevel.Info;
-            // Launch header L2. DevSeedKills is echoed only in development builds (the knob does
-            // not exist in production); the Engine ctor arg itself is a plain bool (review
-            // blocker 2: force-mismatch stays always-compiled), so only THIS wire-up point is
-            // #if LWDEV.
+            // Console at Info; the log FILE always carries every line unconditionally (docs/LOGGING.md).
+            // DEFINED whether the try above succeeded or hit the catch (never skipped), so a
+            // config-read failure can't strand the console on the lazily-created default logger.
+            ModLogger.LogLevel = LogLevel.Info;
             // LW-50 stand-down drill, dev builds only: the config knob was removed 2026-07-07 so
-            // players cannot trigger a stand-down from the launcher UI. Set the environment
-            // variable LW_FORCE_FINGERPRINT_MISMATCH to 1 before launching a DEV build to force
-            // the mismatch.
+            // players cannot trigger a stand-down from the launcher UI. Set the environment variable
+            // LW_FORCE_FINGERPRINT_MISMATCH to 1 before launching a DEV build to force the mismatch.
 #if LWDEV
             bool devForceFingerprintMismatch = Environment.GetEnvironmentVariable("LW_FORCE_FINGERPRINT_MISMATCH") == "1";
-            string devSeedEcho = $" DevSeedKills={devSeedKills}";
 #else
             const bool devForceFingerprintMismatch = false;
-            string devSeedEcho = "";
 #endif
             ModLogger.Event(LogVerb.Config,
-                $"Configuration loaded: VerboseLog={verboseLog} BannerToasts={bannerToasts} TreasureAlwaysOn={treasureAlwaysOn}{devSeedEcho} LogLevel={ModLogger.LogLevel} (from {configPath})");
+                $"Configuration loaded: TreasureAlwaysOn={treasureAlwaysOn} LogLevel={ModLogger.LogLevel} (from {configPath})");
 
             // LW-50: born disarmed, before the Engine (and its FastHold background thread) exists.
             // Only LaunchGuard's Armed edge (inside Engine.Tick, via the guard's onArmed callback)
             // flips this back true.
             Mem.WritesEnabled = false;
-            _engine = new Engine(modDir, treasureAlwaysOn, bannerToasts, devSeedKills, devForceFingerprintMismatch);
+            // LW-52: bannerToasts and devSeedKills are no longer config-driven; omitting them lets
+            // the Engine ctor fall back to its Tuning defaults (toasts on; dev-seed under LWDEV).
+            _engine = new Engine(modDir, treasureAlwaysOn, devForceFingerprintMismatch: devForceFingerprintMismatch);
             _engine.Start();
         }
         catch (Exception ex)

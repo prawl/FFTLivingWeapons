@@ -94,7 +94,7 @@ alone is enough for the quick-clear use case.  If enemies revive (Reraise/undead
 **1. The once-per-battle log is the primary check.**
 The DLL logs a `[grant]` line when the bit first fires each battle. In `livingweapon.log` (the
 console shows the same Info sentence without the `[grant]` bracket, and never the `[trace]`
-companion unless VerboseLog is on):
+companion since the console is Info-only):
 ```
 [Living Weapons] [12:34:56.789] [INFO] [grant] Gloomfang bestows Concentration on its wielder.
 [Living Weapons] [12:34:56.789] [DEBUG] [trace] grant detail (support ability 213, readback=SET, +0x98[1]=0x01)

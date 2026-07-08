@@ -8,8 +8,8 @@ namespace LivingWeapon;
 /// logging shape. <see cref="ModLogger"/> is the static facade every call site uses;
 /// <see cref="FileConsoleLogger"/> is the production implementation and <see cref="NullLogger"/>
 /// the test-only swallow-everything one. LogLevel is the programmatic "turn a whole tier on/off"
-/// control; Config.VerboseLog (Configuration/Config.cs) is the simple user-facing knob that maps
-/// onto it once at startup (see Mod.cs).
+/// control; Mod.cs pins it to Info at startup (LW-52 removed the VerboseLog launcher knob), and a
+/// dev raises it to Debug there when a live diagnosis needs Debug on the console.
 /// </summary>
 internal interface ILogger
 {
@@ -53,8 +53,8 @@ internal interface ILogger
     /// <summary>Error-tier, verb-aware, with exception detail appended. Both sinks carry "[verb] ".</summary>
     void LogError(LogVerb verb, string message, Exception exception);
 
-    /// <summary>Debug-tier, verb-aware. File always carries "[verb] "; when VerboseLog surfaces a
-    /// Debug line to the console, the verb rides along too (a diagnostic tier, not the curated
+    /// <summary>Debug-tier, verb-aware. File always carries "[verb] "; when the console is raised to
+    /// Debug and surfaces a Debug line, the verb rides along too (a diagnostic tier, not the curated
     /// match-report narrative the Info/console split is for).</summary>
     void LogDebug(LogVerb verb, string message);
 

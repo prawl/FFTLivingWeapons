@@ -22,7 +22,7 @@ diverge by design (the rendering split):
   (see "Subject-first lexical fence" below) rather than a labeled event feed.
 - **CONSOLE, Warning/Error tier:** `[Living Weapons] [HH:mm:ss.fff] [LEVEL] [verb] description`:
   five tokens, same as the file. A bug-report console paste needs the verb for triage.
-- **CONSOLE, Debug tier (only when VerboseLog is on):** five tokens, verb included; a Debug line
+- **CONSOLE, Debug tier (only when the console level is raised to Debug in Mod.cs):** five tokens, verb included; a Debug line
   reaching the console is a diagnostic request, not curated narrative.
 
 **Full words on console lines** (no `cfg`/`dmg`/`abil`/`lvl` abbreviations), **names not ids**:
@@ -97,9 +97,10 @@ diffs) is always captured to the file at Debug tier under the `[trace]` verb, in
 flavor (a deliberate Release-behavior change from the original DEV-only const); the console stays
 quiet via the Debug tier.
 
-**The user-facing knob:** `Config.VerboseLog` (Reloaded launcher, "Verbose Diagnostic Log",
-default off) maps to `ModLogger.LogLevel = Debug` at startup (Mod.cs), surfacing Debug lines on
-the console too. It never affects the file.
+**Console verbosity:** fixed at Info. LW-52 removed the `VerboseLog` launcher knob and did not
+replace it, so Debug lines no longer reach the console; the log FILE still records every line
+including Debug, unconditionally, so no diagnostic evidence is lost. A dev who needs Debug on the
+console raises `ModLogger.LogLevel` in Mod.cs.
 
 ## Event verbs (closed glossary)
 
@@ -128,7 +129,7 @@ deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-face
 | `turn` | `turn:` per-unit turn-finished bookkeeping | Debug (file-only): demoted off console per the no-heartbeats rule. |
 | `treasure` | `treasure:` `scholar-ring:` | Info only with the Ring armed (relevance gate); the Scholar's Ring grant keeps its one Info line per session. Module slated for removal; no further investment. |
 | `engine` | `engine:` tick-loop internal errors | Error, console-deduped per battle. |
-| `trace` | `ev:` `wielder-search:` `show-spike:` (dev), scan/dump evidence, id companions | Debug, file-only by default; VerboseLog surfaces it. |
+| `trace` | `ev:` `wielder-search:` `show-spike:` (dev), scan/dump evidence, id companions | Debug, file-only (the console is Info-only since LW-52). |
 
 \* Puppeteer's lines adopted the `signature` verb with the facelift conversion; its live-verify
 arc continues separately.
@@ -140,7 +141,7 @@ loader resolves controllers. File shape shown; the console drops the `[verb]` br
 
 ```
 [startup] Living Weapons version 2.2.2 (production build) is starting inside fft_enhanced.exe.
-[config]  Configuration loaded: VerboseLog=False BannerToasts=True TreasureAlwaysOn=False LogLevel=Info (from ...\Config.json)
+[config]  Configuration loaded: TreasureAlwaysOn=False LogLevel=Info (from ...\Config.json)
 [save]    The kill tally holds 63 lifetime kills across 12 weapons (kills.json, primary).
 [save]    The legends hold deeds for 4 weapons and 1 Marks (legends.json, primary).
 [startup] Living Weapons is tracking 118 weapon types.
@@ -152,9 +153,8 @@ Facts worth knowing: the version is read fail-soft from the deployed `ModConfig.
 ("unknown" if unreadable); the flavor is the compiled `Tuning.BuildFlavor` const (never
 `build_flavor.txt`, which is BuildLinked's deploy-guard marker and can be stale/absent); the two
 `[save]` lines state their load SOURCE (`primary`/`backup`/`fresh`), and a backup or fresh load
-also emits a Warning; `DevSeedKills` is echoed in the `[config]` line only in development builds,
-and dev builds add `[startup] Development build: every weapon's tally is seeded...` after the
-tally load line. A missing hooks helper mod turns the footer into a Warning (toasts die, the mod
+also emits a Warning; dev builds add `[startup] Development build: every weapon's tally is
+seeded...` after the tally load line. A missing hooks helper mod turns the footer into a Warning (toasts die, the mod
 runs); the runtime-loop line is the liveness canary that closes the header.
 
 ## The match report

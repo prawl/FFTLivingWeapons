@@ -66,11 +66,12 @@ internal sealed class Engine
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
     /// <param name="treasureAlwaysOn">Override for the Treasure Master AlwaysOn gate, read from
     /// Config.TreasureAlwaysOn at startup.  Null falls back to Tuning.TreasureAlwaysOn.</param>
-    /// <param name="bannerToasts">Override for the tier-up callout toast, read from
-    /// Config.BannerToasts at startup.  Null falls back to Tuning.BannerToasts.</param>
-    /// <param name="devSeedKills">Override for Config.DevSeedKills, read at startup. DEV builds
-    /// only (compiled out of Release entirely): null/true seeds every weapon's kill tally as
-    /// before; false starts every tally untouched so tiers are earned naturally.</param>
+    /// <param name="bannerToasts">Tier-up callout toast gate. LW-52 removed the launcher toggle, so
+    /// Mod.cs no longer passes this; null falls back to Tuning.BannerToasts (toasts always on). Kept
+    /// as a parameter for the BannerToast enabled-gate tests.</param>
+    /// <param name="devSeedKills">Dev kill-tally seeding gate. DEV builds only (compiled out of
+    /// Release entirely). LW-52 removed the launcher toggle, so Mod.cs no longer passes this; null
+    /// seeds every weapon's tally as before (false would start every tally untouched).</param>
     /// <param name="devForceFingerprintMismatch">LW-50 dev-only test knob (compiled always, wired
     /// only under #if LWDEV at the Mod.cs call site): true perturbs the expected PE build key so
     /// LaunchGuard stands down as if the game had been patched, even though memory truly matches.
@@ -92,8 +93,9 @@ internal sealed class Engine
 #if LWDEV
         // DEV build only: seed every weapon to max tier for fast verification. Compiled out of
         // Release entirely (Tuning.DevSeedAllKills is a const false there, so a runtime `if` would
-        // leave provably-unreachable code -- CS0162). devSeedKills lets a dev disable the seed
-        // (Config.DevSeedKills=false) to start every weapon at 0 kills and earn tiers naturally.
+        // leave provably-unreachable code -- CS0162). LW-52 removed the launcher toggle, so
+        // devSeedKills is always null here (Mod.cs omits it) and DEV always seeds; the param and its
+        // != false guard are kept so a future caller could still opt out.
         if (Tuning.DevSeedAllKills && devSeedKills != false)
         {
             Tuning.SeedKills(meta.Keys, _kills, Tuning.DevKillSeed);
@@ -123,8 +125,8 @@ internal sealed class Engine
         _turns = new TurnTracker(live, Flight.Record);
         // verbose: true (was Tuning.VerboseEvents, DEV-only const) -- the event timeline is now
         // always captured to the file at Debug tier via the [trace] verb (Debug writes
-        // livingweapon.log unconditionally); it only reaches the console when Config.VerboseLog
-        // is on. Deliberate Release-behavior change, see BattleLog's class doc.
+        // livingweapon.log unconditionally); it never reaches the console since LW-52 pinned the
+        // console to Info. Deliberate Release-behavior change, see BattleLog's class doc.
         // Dual-emit composes HERE at the composition root (B2): BattleLog itself never references
         // Flight -- its sink just also records every ev: line into the flight ring.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
@@ -206,8 +208,8 @@ internal sealed class Engine
 
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves
     /// reloaded.sharedlib.hooks (controllers are not resolvable at construction time).
-    /// Production arms the facing-prompt swap here (gated on Config.BannerToasts, AC4: disabled =
-    /// never armed).</summary>
+    /// Production arms the facing-prompt swap here (gated on the compiled BannerToasts default,
+    /// always on since LW-52 removed the launcher toggle).</summary>
     public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks hooks)
     {
         // LW-50: the arm is deferred through LaunchGuard's hook handshake so a hook installed
