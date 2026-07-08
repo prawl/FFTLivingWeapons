@@ -194,14 +194,6 @@ is the in-flight subset, not a mirror of that checklist.
   reads "View Battlefield - Modded by prawl" during a battle (a subtle mod-attribution touch). Likely
   mechanism: a SetTextString-family tap/prefix-match swap (PromptSwap precedent) or the text-catalog
   offset redirect (AttackCard/AttackRow precedent); find the "View Battlefield" string source first.
-- [LW-54] 2026-07-07: Add a post-live-run log scanner (a verify-time step, NOT a build gate) that
-  fails when livingweapon.log shows runtime errors. Greps the newest livingweapon.log (and
-  optionally the latest flight/*.jsonl) for [ERROR]/LogError lines and a fingerprint-guard
-  stand-down or not-armed state, exiting nonzero so a verify recipe can hard-fail. Explicitly not a
-  build gate: the build never runs the game, so at build time the log is a stale runtime artifact
-  (wiped on deploy), and build-time failures are already caught by generate/analyze/test/compile.
-  Surfaced 2026-07-07 while hand-grepping the Mushin live logs all session; wire into the
-  live-verify flow.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

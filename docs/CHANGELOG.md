@@ -8,6 +8,17 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-54] SHIPPED 2d8f2b9 2026-07-07: the verify-time log scanner (tools/scan_logs.py). Reads the
+  newest livingweapon.log from the deployed mod folder (resolved like BuildLinked) and exits
+  nonzero on runtime trouble: any [ERROR] line, a fingerprint-guard stand-down, or a
+  played-a-battle-but-never-armed state; WARN never fails it. Flags: --mod-dir, --flight,
+  --require-battle, --allow, --quiet, --selftest (36 self-test cases, the repo idiom since there is
+  no pytest). NOT a build gate (the build never runs the game): BuildLinked runs it before each
+  deploy as a non-blocking report on the outgoing session's log, captured before the clean wipe and
+  printed from the finally block so a dirty session is the last thing on screen; VERIFY_LIVE.md
+  documents the manual run as a live-verify session's closing hard-fail gate. Hardened by a
+  five-lens adversarial pass (empty --allow no longer blanket-suppresses, --quiet is silent on a
+  clean scan, a line-one UTF-8 BOM no longer hides a first-line error).
 - [LW-50] SHIPPED 0152cf9 2026-07-07: the startup fingerprint guard. Before any game-memory write
   arms, the runtime verifies three data-only landmarks (the PE build key, the JobCommand table's
   rec 8/rec 9 ability-byte signature gated on a populated roster, and Ramza's roster-row shape at
