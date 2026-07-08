@@ -53,6 +53,24 @@ try {
     # Test-Path it, even if the failure happens before stage [3/5] backs anything up.
     $preserveDir = Join-Path $env:TEMP "livingweapon_preserve"
 
+    # --- Pre-deploy: scan the OUTGOING session's log (LW-54, docs/VERIFY_LIVE.md) ---
+    # This is the one moment in the dev loop where livingweapon.log is both COMPLETE (you killed
+    # the game before deploying, and the file sink appends per line, so a kill loses nothing from
+    # the FILE) and about to be DESTROYED (the [3/5] clean wipes it). CAPTURE the verdict here,
+    # before the wipe; the finally block REPORTS it LAST so a dirty prior session cannot scroll
+    # away under the deploy output and get missed (the failure lines are captured now because the
+    # log is gone by the time we report). Deliberately a REPORT, NOT A GATE (LW-54): a dirty log
+    # never blocks the deploy (you are usually deploying the fix for the very error it caught), and
+    # a native nonzero exit does not trip $ErrorActionPreference='Stop'.
+    $scanExit = $null
+    $scanFindings = @()
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        Write-Host "`nPre-deploy: scanning the previous session's livingweapon.log..." -ForegroundColor Yellow
+        # --quiet: stdout carries only the [FAIL] lines (captured), nothing on a clean scan.
+        $scanFindings = @(& python "$root\tools\scan_logs.py" --mod-dir $dest --quiet)
+        $scanExit = $LASTEXITCODE
+    }
+
     # --- Guard: a plain (dev) run must not stomp a prod-flavored install ---
     # A DEV build pre-seeds every weapon's tally (LWDEV); deployed over the real
     # prod install once and polluted the player's kills.json. build_flavor.txt
@@ -193,5 +211,20 @@ catch {
     exit 1
 }
 finally {
+    # Report the pre-deploy log scan LAST (captured before the [3/5] wipe), so a dirty prior
+    # session is the final thing on screen instead of buried under the deploy output. Prints on
+    # both the success and the failure path. Non-blocking by design (LW-54): a report, not a gate.
+    if ($null -ne $scanExit) {
+        Write-Host "`n---- Previous session's log scan (LW-54) ----" -ForegroundColor Cyan
+        switch ($scanExit) {
+            0 { Write-Host "  CLEAN: no runtime errors in the session you just played." -ForegroundColor Green }
+            2 { Write-Host "  No previous session log to scan (game not launched since the last deploy)." -ForegroundColor DarkGray }
+            default {
+                Write-Host "  RUNTIME ERRORS in the session you just played (its log is now wiped by this deploy):" -ForegroundColor Red
+                foreach ($ln in $scanFindings) { Write-Host "    $ln" -ForegroundColor Red }
+                Write-Host "  Report only, not a gate (LW-54). Investigate before you flip a VERIFY_LIVE row." -ForegroundColor Red
+            }
+        }
+    }
     Pop-Location
 }

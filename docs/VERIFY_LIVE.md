@@ -73,7 +73,30 @@ next release's verification doc when the Reliquary live pass is scheduled.
 9. **Mid-battle Reequip** (gate flip): if reachable, swap the living weapon off mid-battle;
    signature console lines stop; the file keeps recording.
 
+## Automated log scan (LW-54)
+
+Every live-verify session ends with one mechanical gate: after the deploy and the battles above,
+run the log scanner. It reads the newest `livingweapon.log` straight from the deployed mod folder
+(resolved like BuildLinked: `$RELOADEDIIMODS/prawl.fft.livingweapons`, else the default Steam
+path) and hard-fails on runtime trouble a human eyeball tends to skim past.
+
+```
+python tools/scan_logs.py            # exit 0 = clean, 1 = runtime failure(s), 2 = could not run
+python tools/scan_logs.py --flight   # also inspect the newest flight/*.jsonl archive
+python tools/scan_logs.py --require-battle   # also fail if no battle ran in this log
+```
+
+It fails (exit 1) on any `[ERROR]` line, a fingerprint-guard stand-down (the mod switched itself
+off), or a "played a battle but never armed" state (writes stayed disabled). `[WARN]` lines never
+fail it (they are the "degraded but coping" tier); a fresh-install save notice is expected. Exit 2
+means no log was found (deploy and play a battle first) or a bad argument. This is a VERIFY step,
+NOT a build gate: the build never runs the game, so at build time the log is a stale artifact and
+build failures are already caught by generate/analyze/test/compile. Confirm the tool itself with
+`python tools/scan_logs.py --selftest`.
+
 ## Notes
+- A green `tools/scan_logs.py` run is the closing gate of any live-verify session; capture its
+  output alongside the row you are flipping.
 - Rows 10-12 verified live 2026-07-07 (owner), closing LW-2's release-verify scope. Rows 6-9
   (Reliquary Phase 1 live pass) are deferred past 2.3.0 and tracked under backlog LW-6.
 - Reliquary AC checkbox flips and LIVE_LEDGER rows remain Patrick-only.
