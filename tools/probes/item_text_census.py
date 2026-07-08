@@ -68,6 +68,11 @@ PAGE_READWRITE = 0x04
 PAGE_GUARD = 0x100
 PAGE_NOACCESS = 0x01
 READABLE = {0x02, 0x04, 0x08, 0x20, 0x40, 0x80}
+WRITABLE_PROT = {0x04, 0x08, 0x40, 0x80}
+PAGE_NAMES = {0x01: "NOACCESS", 0x02: "READONLY", 0x04: "READWRITE", 0x08: "WRITECOPY",
+              0x10: "EXECUTE", 0x20: "EXECUTE_READ", 0x40: "EXECUTE_READWRITE", 0x80: "EXECUTE_WRITECOPY"}
+STATE_NAMES = {0x1000: "COMMIT", 0x2000: "RESERVE", 0x10000: "FREE"}
+TYPE_NAMES = {0x20000: "PRIVATE", 0x40000: "MAPPED", 0x1000000: "IMAGE"}
 
 CHUNK = 4 * 1024 * 1024
 OVERLAP = 0x400            # keeps an 8-byte pointer whole across a chunk seam
@@ -133,6 +138,32 @@ def regions(h):
         if nxt <= addr:
             break
         addr = nxt
+
+
+def region_info(h, addr):
+    """(mbi, State, Type, Protect, writable, private) for the region containing addr, or None.
+    writable/private encode the EXACT Mem.Regions() contract (COMMIT + PRIVATE + a writable,
+    non-guard protection) so premise #9 (is the pool paintable by the mod) reads off directly."""
+    mbi = MBI()
+    if not k32.VirtualQueryEx(h, ctypes.c_void_p(addr), ctypes.byref(mbi), ctypes.sizeof(mbi)):
+        return None
+    prot = mbi.Protect & 0xFF
+    guard = bool(mbi.Protect & PAGE_GUARD)
+    writable = (mbi.State == MEM_COMMIT and prot in WRITABLE_PROT
+                and not guard and not (mbi.Protect & PAGE_NOACCESS))
+    private = mbi.Type == 0x20000
+    prot_name = PAGE_NAMES.get(prot, hex(prot)) + ("+GUARD" if guard else "")
+    return (mbi, STATE_NAMES.get(mbi.State, hex(mbi.State)),
+            TYPE_NAMES.get(mbi.Type, hex(mbi.Type)), prot_name, writable, private)
+
+
+def region_tag(h, addr):
+    """Compact per-hit region annotation for the find header."""
+    info = region_info(h, addr)
+    if not info:
+        return " [unmapped]"
+    _, st, ty, prot, writable, private = info
+    return f" [{st} {ty} {prot} {'MEM.REGIONS-YES' if writable and private else 'MEM.REGIONS-NO'}]"
 
 
 def chunks(h, base, size):
@@ -270,7 +301,7 @@ def cmd_find(h, text, enc_arg):
     print(f"\n{len(hits)} hit(s)")
     for addr, enc in hits:
         text_full, n = read_cstr(h, addr, enc)
-        print(f"\n=== {addr:012X} enc{enc} ({n} chars) {text_full[:90]!r} ===")
+        print(f"\n=== {addr:012X} enc{enc} ({n} chars) {text_full[:90]!r} ==={region_tag(h, addr)}")
         hexdump(h, addr)
         qword_gloss(h, addr, region_list)
     if hits:
@@ -326,6 +357,26 @@ def cmd_dump(h, addrs, lead, tail):
     for addr in addrs:
         print(f"=== {addr:012X} ===")
         hexdump(h, addr, lead=lead, tail=tail)
+
+
+def cmd_protect(h, addrs):
+    """READ-ONLY. Report the region protection for each address so premise #9 (is the pool in
+    Mem.Regions() as writable) reads off directly, without inferring from paint behavior."""
+    for addr in addrs:
+        info = region_info(h, addr)
+        if not info:
+            print(f"{addr:012X}: VirtualQueryEx failed (unmapped / free)")
+            continue
+        mbi, st, ty, prot, writable, private = info
+        print(f"{addr:012X}: base={mbi.BaseAddress:012X} size={mbi.RegionSize:#x} "
+              f"State={st} Type={ty} Protect={prot}")
+        yields = writable and private
+        print(f"    -> Mem.Regions() would {'YIELD' if yields else 'SKIP'} this region "
+              f"(it yields only COMMIT + PRIVATE + writable, non-guard); Mem.Writable="
+              f"{'true' if writable else 'false'}.")
+        if not yields:
+            print("       The mod's PoolPaint will NOT locate/paint here; it correctly falls back "
+                  "to the sweep (LW-37 premise #9 would be UNMET for this region).")
 
 
 def cmd_poke(h, slot, text, enc, hold_ms):
@@ -481,6 +532,12 @@ def main():
         elif mode == "dump":
             addrs = [int(a, 16) for a in rest if "=" not in a]
             cmd_dump(h, addrs, parse_kv(rest, "lead", 0x80), parse_kv(rest, "tail", 0x80))
+        elif mode == "protect":
+            addrs = [int(a, 16) for a in rest if "=" not in a]
+            if not addrs:
+                print("usage: protect <hexaddr> [...]")
+                return 2
+            cmd_protect(h, addrs)
         elif mode == "poke":
             if len(rest) < 2:
                 print("usage: poke <slot hexaddr> \"<new text>\" [enc=1] [hold=200]")
