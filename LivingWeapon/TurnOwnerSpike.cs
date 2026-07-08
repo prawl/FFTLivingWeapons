@@ -70,7 +70,7 @@ internal sealed class TurnOwnerSpike
     private void SampleBandCt()
     {
         int acted = _mem.U8(Offsets.Acted);
-        var slots = new List<(int slot, int lvl, int br, int fa, int ct)>();
+        var slots = new List<(int slot, int lvl, int br, int fa, int slam, int turn, int kind, int idx)>();
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long addr = Band.Entry(s);
@@ -79,8 +79,11 @@ internal sealed class TurnOwnerSpike
             int lvl = _mem.U8(addr + Offsets.ALevel);
             int br = _mem.U8(addr + Offsets.ABrave);
             int fa = _mem.U8(addr + Offsets.AFaith);
-            int ct = _mem.U8(addr + Offsets.ACtSlam);
-            slots.Add((s, lvl, br, fa, ct));
+            int slam = _mem.U8(addr + Offsets.ACtSlam);           // hypothesis 1: scheduler CT (0x25), player-unreliable
+            int turn = _mem.U8(addr + Offsets.ACtTurn);           // hypothesis 3: per-unit completed-turn CT (0x09)
+            int kind = _mem.U8(addr + Offsets.AArec + 0xA);       // hypothesis 4: AArec kind (5=performing/6=receiving)
+            int idx = _mem.U8(addr + Offsets.AArec);              // AArec idx (== seat-8): which unit the record is for
+            slots.Add((s, lvl, br, fa, slam, turn, kind, idx));
         }
 
         string snapshot = TurnOwnerProbe.FormatCtSnapshot(slots, acted);

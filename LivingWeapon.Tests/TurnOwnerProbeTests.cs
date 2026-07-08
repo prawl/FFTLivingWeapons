@@ -56,19 +56,19 @@ public class TurnOwnerProbeTests
     [Fact]
     public void FormatCtSnapshot_renders_one_line_per_valid_slot_with_the_shared_acted_value()
     {
-        var slots = new List<(int slot, int lvl, int br, int fa, int ct)>
+        var slots = new List<(int slot, int lvl, int br, int fa, int slam, int turn, int kind, int idx)>
         {
-            (0, 12, 34, 56, 78),
-            (3, 99, 1, 1, 100),
+            (0, 12, 34, 56, 78, 9, 5, 8),
+            (3, 99, 1, 1, 100, 3, 6, 11),
         };
         string line = TurnOwnerProbe.FormatCtSnapshot(slots, acted: 1);
-        Assert.Equal("turn-owner-probe: ct slots=[s0:12/34/56 ct=78 acted=1, s3:99/1/1 ct=100 acted=1]", line);
+        Assert.Equal("turn-owner-probe: ct slots=[s0:12/34/56 slam=78 turn=9 k=5 idx=8 acted=1, s3:99/1/1 slam=100 turn=3 k=6 idx=11 acted=1]", line);
     }
 
     [Fact]
     public void FormatCtSnapshot_renders_an_empty_bracket_when_no_slot_is_valid()
         => Assert.Equal("turn-owner-probe: ct slots=[]",
-            TurnOwnerProbe.FormatCtSnapshot(new List<(int slot, int lvl, int br, int fa, int ct)>(), acted: 0));
+            TurnOwnerProbe.FormatCtSnapshot(new List<(int slot, int lvl, int br, int fa, int slam, int turn, int kind, int idx)>(), acted: 0));
 
     [Fact]
     public void FormatRegisterSnapshot_renders_the_three_watched_fields()

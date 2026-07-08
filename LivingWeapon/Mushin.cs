@@ -8,55 +8,53 @@ namespace LivingWeapon;
 /// banked stack in one boosted hit, then the buff clears (MushinPolicy.NextStacks / ShouldConsume,
 /// see their doc comments).
 ///
-/// HYBRID (2026-07-07): the ARM WINDOW (turn-start snapshot, move sampling, the falling-edge arm
-/// decision, w.Active) rides Offsets.ActorPtr's full fingerprint via Band.ActorEntry, while ACT +
-/// CONSUME still rides the TurnQueue fingerprint (Band.ActiveOwner). Live testing the prior
-/// TurnQueue-only window (same day) showed the arm lagging: Band.ActiveOwner follows the cursor
-/// and BAILS (returns false) whenever two deployed units share maxHp+hp+level, so a wielder seated
-/// beside a same-level ally could sit through its whole own turn with Band.ActiveOwner never
-/// naming it, arming stacks ~2 turns late. ActorPtr always names whichever entry the engine is
-/// CURRENTLY acting on, which is exactly what a turn's SPAN needs, and its identity check here
-/// uses the full fingerprint (lvl,br,fa) read off the ActorPtr entry, not nameId, so it stays
-/// collision-safe and never confuses a frozen (0,0) mirror twin for the real entry (an address
-/// match can only ever name one specific frame). ActorPtr can still DWELL on a struck victim for a
-/// beat past the real turn end (the same residual the pre-2026-07-07 ActorPtr design carried), so
-/// act/consume identity deliberately stays on Band.ActiveOwner: correct for the INSTANT of an
-/// action even though it bails too often to track the window around it.
-///
-/// Per tick, for each deployed main-hand wielder (Wielder.ResolveDeployedMainHandAll), this
-/// module asks two questions: does the ActorPtr entry's fingerprint equal this wielder's
-/// fingerprint right now ("actorNamesWielder", drives the window), and does Band.ActiveOwner's
-/// fingerprint equal it ("tqNamesWielder", drives act/consume)? Between an actorNamesWielder
-/// rising and falling edge it samples:
-///   - MOVE: the wielder's grid position, read off the ActorPtr entry, diffed from its turn-start
-///     snapshot.
-///   - ACT: the global Acted byte (Offsets.Acted) rising 0 to 1 while tqNamesWielder holds,
-///     independent of whether the ActorPtr window is currently open. An Acted edge observed while
-///     Band.ActiveOwner names a DIFFERENT unit (an enemy's turn) never satisfies this, so it
-///     neither arms nor consumes (own-turn scoping).
-/// At the falling edge (actorNamesWielder goes false while the window was open), MushinPolicy.
-/// NextStacks decides whether the just-closed turn banks a stack (neither MOVE nor ACT happened).
-/// An ACT edge observed during the window also offers an immediate consume (MushinPolicy.
-/// ShouldConsume) when at least one stack is already banked: an attack spends every stack the
-/// instant it lands, not at the end of that attacking turn. The consume runs BEFORE the window-END
-/// read of w.Acted, so an attack that also closes the window on the same tick still suppresses
-/// that turn's bank.
+/// CT-DRIVEN (2026-07-07, replaces the ActorPtr/TurnQueue hybrid): live testing showed the
+/// ActorPtr arm window flickering on/off the wielder (spurious banks) while the TurnQueue consume
+/// false-fired on cursor-follow: both structs track the CURSOR/UI, not the true turn owner.
+/// This module now drives turn detection off the wielder's OWN scheduler CT (Offsets.ACtSlam,
+/// band +0x25), the same byte Maim/CharmLock already read cleanly for enemy turns (CtTurns.
+/// TurnHi/TurnLo): CT climbs to a ceiling then resets low exactly once per turn. Per deployed
+/// main-hand wielder (Wielder.ResolveDeployedMainHandAll, twin-filtered so a frozen (0,0) mirror
+/// never wins over the real seat), a small state machine tracks Idle -> Active -> Settling:
+///   - Idle: waiting. CT reaching CtCeiling means this wielder's turn has begun; snapshot its
+///     grid position and go Active.
+///   - Active: sample MOVE (grid position diffed from the snapshot) and ACT (the global Acted
+///     byte rising while this wielder is the one sitting at the CT ceiling; cursor-independent,
+///     since only the truly active unit's CT sits up there). CT falling below CtFloor is the
+///     scheduler's own reset, so go Settling.
+///   - Settling: keep sampling MOVE/ACT for SettleTicks more ticks (~0.2s grace so an action edge
+///     landing right at/after the reset is still caught; live evidence: SPENT fired the instant
+///     the CT read 8). If CT climbs back to the ceiling first, the reset was a blip inside the
+///     same turn, so return to Active without deciding. Otherwise, once the grace runs out, decide
+///     once: an own-turn ACT consumes every banked stack; otherwise a turn with neither MOVE nor
+///     ACT banks one (MushinPolicy.ShouldArm/NextStacks); either way the phase returns to Idle.
 ///
 /// The stack-count dictionary lives SHARED with GrowthEngine (constructed once in Engine.cs,
 /// passed to both), keyed by wielder fingerprint (lvl,br,fa), NOT weapon-id-keyed, so two
 /// Kiku-ichimonji wielders never cross-arm each other.
 ///
-/// SIMPLER than Iai deliberately: no field-max scan, no wall-clock cap. A window that never
-/// closes (a wielder resolve-misses on the exact departure tick, or the ActorPtr entry never
-/// validates) just skips that turn's stack evaluation (self-healing next turn), and no live
-/// memory write is ever left dangling (unlike Iai's Speed hold) because this module never writes
-/// game memory itself; only the shared stack-count dictionary GrowthEngine.Mushin.cs reads on its
-/// own guarded write path.</summary>
+/// A wielder that resolve-misses a tick (Wielder.Locate ambiguity-bails, e.g. mirror churn) is
+/// simply skipped that tick; its phase/snapshot sit frozen until it resolves again next tick
+/// (self-healing; no live memory write is ever left dangling because this module never writes
+/// game memory itself, only the shared stack-count dictionary GrowthEngine.Mushin.cs reads on its
+/// own guarded write path).
+/// </summary>
 internal sealed class Mushin : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
 
     private const int KikuIchimonjiId = 45;
+
+    /// <summary>CT (Offsets.ACtSlam) at/above this means the wielder's turn is active. Live-proven
+    /// pattern (Maim/CharmLock, CtTurns.TurnHi): the scheduler climbs to ~96 on a unit's turn.</summary>
+    internal const int CtCeiling = 90;
+    /// <summary>CT below this, after having reached CtCeiling, confirms the scheduler's reset --
+    /// one turn taken (CtTurns.TurnLo). Between 70 and 90 is dead zone, never a phase edge.</summary>
+    internal const int CtFloor = 70;
+    /// <summary>Ticks of grace after the CT reset before deciding, so an action edge landing right
+    /// at/just after the reset (live evidence: SPENT fired the instant the CT read 8, i.e. AT the
+    /// reset) is still caught. ~0.2s at the 33ms battle poll.</summary>
+    internal const int SettleTicks = 6;
 
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
@@ -95,93 +93,102 @@ internal sealed class Mushin : ISignature
 
         Wielder.ResolveDeployedMainHandAll(_mem, KikuIchimonjiId, _wielders);
 
-        // Two identity resolves + one Acted read per tick (not per wielder: the engine has ONE
-        // acting entry at a time): the ActorPtr entry drives the arm window, Band.ActiveOwner
-        // (TurnQueue) drives act/consume. See the class doc comment for why they must split.
-        long acting = Band.ActorEntry(_mem);
-        bool actorValid = acting != 0 && Band.IsValid(_mem, acting);
-        (int lvl, int br, int fa) actorFp = actorValid
-            ? (_mem.U8(acting + Offsets.ALevel), _mem.U8(acting + Offsets.ABrave), _mem.U8(acting + Offsets.AFaith))
-            : default;
-        bool tqResolved = Band.ActiveOwner(_mem, out var tqFp, out _);
+        // One Acted read per tick (not per wielder: the engine has ONE acting entry at a time).
         bool actedNow = _mem.U8(Offsets.Acted) == 1;
         bool evaluate = _primed;
         if (!_primed) { _prevActed = actedNow; _primed = true; }
         bool actedEdge = evaluate && actedNow && !_prevActed;
 
-        foreach (var (_, fp) in _wielders)
+        foreach (var (entry, fp) in _wielders)
         {
             if (!_windows.TryGetValue(fp, out var w)) { w = new Window(); _windows[fp] = w; }
             if (!_armed.ContainsKey(fp)) _armed[fp] = 0;
 
-            bool actorNamesWielder = actorValid && actorFp == fp;   // ARM WINDOW (prompt, ActorPtr)
-            bool tqNamesWielder = tqResolved && tqFp == fp;         // ACT + CONSUME (reliable, TurnQueue)
+            int ct = _mem.U8(entry + Offsets.ACtSlam);
+            int gx = _mem.U8(entry + Offsets.AGx), gy = _mem.U8(entry + Offsets.AGy);
 
-            if (!evaluate) { w.Active = actorNamesWielder; continue; }   // priming: seed state, decide nothing
-
-            if (actorNamesWielder && !w.Active)
+            if (!evaluate)
             {
-                w.StartGx = _mem.U8(acting + Offsets.AGx);
-                w.StartGy = _mem.U8(acting + Offsets.AGy);
-                w.Moved = false;
-                w.Acted = false;
-                ModLogger.Debug(LogVerb.Trace,
-                    $"mushin window OPEN (lvl {fp.lvl} br {fp.br} fa {fp.fa}) at ({w.StartGx},{w.StartGy})");
+                // Priming: seed this wielder's phase from its CURRENT CT without deciding anything.
+                w.Phase = ct >= CtCeiling ? Phase.Active : Phase.Idle;
+                w.StartGx = gx; w.StartGy = gy; w.Moved = false; w.Acted = false;
+                continue;
             }
 
-            if (actorNamesWielder)
+            switch (w.Phase)
             {
-                int gx = _mem.U8(acting + Offsets.AGx), gy = _mem.U8(acting + Offsets.AGy);
-                if (gx != w.StartGx || gy != w.StartGy) w.Moved = true;
-            }
+                case Phase.Idle:
+                    if (ct >= CtCeiling)
+                    {
+                        w.Phase = Phase.Active;
+                        w.StartGx = gx; w.StartGy = gy; w.Moved = false; w.Acted = false;
+                        ModLogger.Debug(LogVerb.Trace,
+                            $"mushin turn ACTIVE (lvl {fp.lvl} br {fp.br} fa {fp.fa}) ct={ct} at ({gx},{gy})");
+                    }
+                    break;
 
-            // ACT + CONSUME (TurnQueue): independent of the ActorPtr window, so it must run
-            // BEFORE the window-END read of w.Acted below (an attack that also closes the window
-            // this same tick must still suppress that turn's bank).
-            bool wielderActed = actedEdge && tqNamesWielder;
-            if (wielderActed)
-            {
-                w.Acted = true;
-                int spent = _armed[fp];
-                if (MushinPolicy.ShouldConsume(spent, wielderActed))
-                {
-                    _armed[fp] = 0;
-                    ModLogger.Event(LogVerb.Signature,
-                        $"The Kiku-ichimonji wielder's charged strike lands; Mushin's boost is spent ({spent} stack(s); level {fp.lvl}, brave {fp.br}, faith {fp.fa}).");
-                }
-            }
+                case Phase.Active:
+                    if (gx != w.StartGx || gy != w.StartGy) w.Moved = true;
+                    if (actedEdge) w.Acted = true;
+                    if (ct < CtFloor)
+                    {
+                        w.Phase = Phase.Settling;
+                        w.SettleLeft = SettleTicks;
+                        ModLogger.Debug(LogVerb.Trace,
+                            $"mushin turn RESET ct={ct} (was high) (lvl {fp.lvl} br {fp.br} fa {fp.fa})");
+                    }
+                    break;
 
-            if (!actorNamesWielder && w.Active)
-            {
-                bool shouldArm = MushinPolicy.ShouldArm(turnEnded: true, w.Moved, w.Acted);
-                int before = _armed[fp];
-                int next = MushinPolicy.NextStacks(before, shouldArm, Tuning.MushinMaxStacks);
-                if (next != before)
-                {
-                    _armed[fp] = next;
-                    ModLogger.Event(LogVerb.Signature,
-                        $"The Kiku-ichimonji wielder stands perfectly still and banks a Mushin charge ({next} of {Tuning.MushinMaxStacks}) (level {fp.lvl}, brave {fp.br}, faith {fp.fa}).");
-                }
-                ModLogger.Debug(LogVerb.Trace,
-                    $"mushin window CLOSE (lvl {fp.lvl} br {fp.br} fa {fp.fa}): moved={w.Moved} acted={w.Acted} -> {(shouldArm ? "BANK" : "no bank")}");
-            }
+                case Phase.Settling:
+                    if (gx != w.StartGx || gy != w.StartGy) w.Moved = true;
+                    if (actedEdge) w.Acted = true;
+                    if (ct >= CtCeiling) { w.Phase = Phase.Active; break; }   // defensive: still this turn
+                    if (--w.SettleLeft > 0) break;
 
-            w.Active = actorNamesWielder;
+                    string verdict = "idle";
+                    if (w.Acted)
+                    {
+                        int spent = _armed[fp];
+                        if (MushinPolicy.ShouldConsume(spent, ownTurnActedEdge: true))
+                        {
+                            _armed[fp] = 0;
+                            verdict = $"SPENT({spent})";
+                            ModLogger.Event(LogVerb.Signature,
+                                $"The Kiku-ichimonji wielder's charged strike lands; Mushin's boost is spent ({spent} stack(s); level {fp.lvl}, brave {fp.br}, faith {fp.fa}).");
+                        }
+                    }
+                    else if (MushinPolicy.ShouldArm(turnEnded: true, w.Moved, w.Acted))
+                    {
+                        int before = _armed[fp];
+                        int next = MushinPolicy.NextStacks(before, shouldArm: true, Tuning.MushinMaxStacks);
+                        if (next != before)
+                        {
+                            _armed[fp] = next;
+                            verdict = $"BANK({next})";
+                            ModLogger.Event(LogVerb.Signature,
+                                $"The Kiku-ichimonji wielder stands perfectly still and banks a Mushin charge ({next} of {Tuning.MushinMaxStacks}) (level {fp.lvl}, brave {fp.br}, faith {fp.fa}).");
+                        }
+                    }
+                    ModLogger.Debug(LogVerb.Trace,
+                        $"mushin turn DONE: moved={w.Moved} acted={w.Acted} ct={ct} -> {verdict}");
+                    w.Phase = Phase.Idle;
+                    break;
+            }
         }
 
         _prevActed = actedNow;
     }
 
-    /// <summary>Mutable per-wielder turn-window state, keyed by roster fingerprint in
+    private enum Phase { Idle, Active, Settling }
+
+    /// <summary>Mutable per-wielder turn state, keyed by roster fingerprint in
     /// <see cref="_windows"/>. A reference type so Tick mutates the SAME instance across ticks.</summary>
     private sealed class Window
     {
-        /// <summary>True while the ActorPtr entry's fingerprint names this wielder: the window is
-        /// "open" for MOVE sampling. Also doubles as last tick's actorNamesWielder value so a
-        /// rising/falling edge can be detected without a second stored field.</summary>
-        public bool Active;
+        public Phase Phase;
         public int StartGx, StartGy;
         public bool Moved;
         public bool Acted;
+        public int SettleLeft;
     }
 }

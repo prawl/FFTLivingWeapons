@@ -65,9 +65,13 @@ internal static class TurnOwnerProbe
     /// the single global acted byte (Offsets.Acted has no per-slot analog: it is one engine
     /// global, not a band-entry field, so it is repeated against every slot's entry here purely
     /// so a reader can eyeball CT-versus-acted for the same tick without cross-referencing a
-    /// second log line). Format: "turn-owner-probe: ct slots=[s0:lvl/br/fa ct=NN acted=N,
+    /// second log line). Per slot, four turn-owner candidate fields are logged: slam (ACtSlam
+    /// 0x25, hypothesis 1), turn (ACtTurn 0x09, hypothesis 3: the per-unit completed-turn CT),
+    /// k (AArec kind, hypothesis 4: 5=performing/6=receiving), idx (AArec owner seat, == seat-8).
+    /// Format: "turn-owner-probe: ct slots=[s0:lvl/br/fa slam=NN turn=NN k=N idx=N acted=N,
     /// ...]".</summary>
-    internal static string FormatCtSnapshot(IReadOnlyList<(int slot, int lvl, int br, int fa, int ct)> slots, int acted)
+    internal static string FormatCtSnapshot(
+        IReadOnlyList<(int slot, int lvl, int br, int fa, int slam, int turn, int kind, int idx)> slots, int acted)
     {
         var sb = new StringBuilder("turn-owner-probe: ct slots=[");
         for (int i = 0; i < slots.Count; i++)
@@ -75,7 +79,8 @@ internal static class TurnOwnerProbe
             if (i > 0) sb.Append(", ");
             var e = slots[i];
             sb.Append('s').Append(e.slot).Append(':').Append(e.lvl).Append('/').Append(e.br).Append('/').Append(e.fa)
-              .Append(" ct=").Append(e.ct).Append(" acted=").Append(acted);
+              .Append(" slam=").Append(e.slam).Append(" turn=").Append(e.turn)
+              .Append(" k=").Append(e.kind).Append(" idx=").Append(e.idx).Append(" acted=").Append(acted);
         }
         sb.Append(']');
         return sb.ToString();
