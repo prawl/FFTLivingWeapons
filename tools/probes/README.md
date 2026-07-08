@@ -22,6 +22,7 @@ why the DLL is the only instrument for some experiments.
 | `barrage_undo.json` | restore bytes for the pre-runtime Barrage injection prototype (the shipped DLL now saves/restores itself). |
 | `oracle_probe.py` | static-array enemy-identity capture validation (the EnemyOracle's filter). |
 | `knockback_probe.py` | gx/gy position writes — proved the renderer desync that PARKED guaranteed-Knockback. |
+| `item_text_census.py` | LW-37 feasibility recon: is the equip-card item DESCRIPTION reached via a redirectable indirection (an absolute {name,desc} pointer pair, or a record-relative u32 offset like the Attack catalog), or a flat inline string? `find` locates the on-screen text, `refs` hunts both indirection styles and prints a verdict, gated `poke` confirms live. Decides whether the LW-31 redirect generalizes (else LW-37 as specced is off, fallback is a faster targeted in-place paint). `--selftest` covers the matchers. **Run pending** (needs a live equip-card open). |
 
 ## Session one-shots (kept for reference)
 

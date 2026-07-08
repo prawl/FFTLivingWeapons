@@ -30,17 +30,20 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: unit-test the save-identity keying + migration; live, a new game starts fresh, a second
     playthrough keeps its own tally, and a simulated mod-folder replace preserves the tally.
 
-- **[LW-37] Fast-paint the equip-card Kills meter via the item-text catalog redirect** (opened 2026-07-06) [QUEUED]
-  - Done means: generalize the LW-31 catalog-record redirect (the attack-card mirror tech) to the
-    ITEM-text records: census the item catalog, locate the viewed weapon's desc record, compose the
-    body (the Kills meter first line) into a mod-owned buffer image, and repoint descOff at it under
-    the same three-way anchor discipline (vanilla/current/previous, rotation only on a compose-change
-    edge, foreign records refused). The equip card then updates instantly on first open and the slow
-    heap sweep stops being that surface's paint path. Pulled into 2.3.0 by the owner 2026-07-07
-    (RELEASE_SCOPE.md section 8).
-  - Verify: unit-test the record decode and compose policy halves; live, first-open browse shows the
-    correct Kills line with no latency, a battle-exit kill shows updated on re-open instantly,
-    another item's vanilla desc stays untouched, and the in-battle Attack card surface is unaffected.
+- **[LW-37] Fast-paint the equip-card Kills meter via a pool-anchored in-place write** (opened 2026-07-06) [QUEUED]
+  - Done means: retire the whole-heap Display sweep for the equip-card Kills meter. LIVE RECON
+    2026-07-07 (tools/probes/item_text_census.py) proved the mechanism: the equip card re-materializes
+    its description from a STABLE packed string pool on every open, and overwriting the "Kills:" field
+    IN PLACE in that pool (same-length, within its padded width) shows on the card (owner-verified,
+    "LOKI WAS HERE" replaced Gloomfang's Kills line). The LW-31 catalog-record REDIRECT is walled here
+    (the FString descriptors are transient, rebuilt from the pool each open), so build the pool write
+    instead: cheap stable-substring anchor to the viewed weapon's pool entry, locate its "Kills:"
+    field, compose "Kills: N/T to +", overwrite in place. Confirm pool copy count and the exact field
+    width during the build. Pulled into 2.3.0 by the owner 2026-07-07 (RELEASE_SCOPE.md section 8).
+  - Verify: unit-test the pure halves (compose the Kills string, the field-locate/anchor math);
+    live, first-open browse shows the correct Kills line with no heap-sweep latency, a battle-exit
+    kill shows updated on re-open, another item's flavor stays untouched, and the in-battle Attack
+    card surface is unaffected.
 
 - **[LW-53] Flight archive for a fingerprint-guard stand-down** (opened 2026-07-07) [QUEUED]
   - Done means: a stand-down leaves a durable black-box archive, not just the livingweapon.log line.

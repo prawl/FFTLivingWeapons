@@ -89,11 +89,14 @@ behavior; the guaranteed-shippable path is a card match.
       the tally.
 
 ### 8. Equip-card fast paint (SHOULD, pulled in by the owner 2026-07-07)
-- [ ] **Fast Kills meter (LW-37)**: generalize the attack-card catalog-record redirect to the
-      ITEM-text records (repoint the viewed weapon's descOff at a mod-owned buffer image) so the
-      equip card's Kills line updates instantly on first open and the slow heap sweep retires for
-      that surface. Same three-way anchor discipline as the Attack row; foreign records refused;
-      unit tests plus a live first-open latency check.
+- [ ] **Fast Kills meter (LW-37)**: retire the slow whole-heap Display sweep for the equip-card
+      Kills meter. The LW-31 catalog-record REDIRECT is walled here (live recon 2026-07-07,
+      tools/probes/item_text_census.py: the card re-materializes its description from a stable string
+      pool each open; the FString descriptors are transient). PROVEN alternative (owner-verified
+      live): overwrite the "Kills:" field IN PLACE in that pool (same-length, within its padded
+      width) and the card re-materializes our bytes on open. Build the pool-anchored write: a cheap
+      stable-substring anchor to the viewed weapon's pool entry, locate the Kills field, compose
+      "Kills: N/T to +", overwrite. Unit tests for the pure halves plus a live first-open latency check.
 
 ### 9. Configuration surface removal (SHOULD, pulled in by the owner 2026-07-07)
 - [ ] **Remove the remaining config options (LW-52)**: strip TreasureAlwaysOn, BannerToasts,
