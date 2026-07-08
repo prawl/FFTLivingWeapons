@@ -44,14 +44,12 @@ internal sealed class PoolLocator
         if (_cached.Count > 0 && AllCachedStillPool()) return _cached;
 
         _cached.Clear();
-        int scanned = 0;
         foreach (var (rbase, rsize) in _mem.Regions())
-        {
-            scanned++;
             if (ScanRegion(rbase, rsize).isPool) _cached.Add((rbase, rsize));
-        }
+#if LWDEV
         var bases = _cached.ConvertAll(r => "0x" + r.baseAddr.ToString("X"));
-        ModLogger.Debug(LogVerb.Display, $"LW37 locate: {scanned} regions, {_cached.Count} named-pool region(s) at [{string.Join(", ", bases)}]");
+        ModLogger.Debug(LogVerb.Display, $"LW37 locate: {_cached.Count} named-pool region(s) at [{string.Join(", ", bases)}]");
+#endif
         return _cached;
     }
 

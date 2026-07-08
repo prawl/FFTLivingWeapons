@@ -26,7 +26,9 @@ internal sealed partial class Display
         var regions = _poolLocator.LocateAll();
         if (regions.Count == 0)
         {
+#if LWDEV
             ModLogger.Debug(LogVerb.Display, "LW37 paint: no named-pool region located; sweep fallback");
+#endif
             return false;
         }
 
@@ -34,10 +36,12 @@ internal sealed partial class Display
         // is no static signature for which, so covering them all guarantees the read source is painted.
         foreach (var (rbase, rsize) in regions) ScanPoolRegion(rbase, rsize);
 
+        _poolCovered = CoversAllMeta();
+#if LWDEV
         int killsIds = 0;
         foreach (var s in _sites.Snapshot()) if (s.IsKills) killsIds++;
-        _poolCovered = CoversAllMeta();
         ModLogger.Debug(LogVerb.Display, $"LW37 paint: {regions.Count} region(s), kills sites={killsIds}, meta ids={_meta.Count}, coverage={_poolCovered}");
+#endif
         return _poolCovered;
     }
 
