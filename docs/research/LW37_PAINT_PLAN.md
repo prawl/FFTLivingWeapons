@@ -1,56 +1,72 @@
-# LW-37 build plan: pool-anchored in-place Kills paint
+# LW-37 build plan v2: pool-anchored in-place Kills paint
 
-STATUS: PLAN (mechanism proven live 2026-07-07; build not started). See memory
-`lw37-equip-card-redirect-walled` and the probe `tools/probes/item_text_census.py`.
+STATUS: JOURNAL (build plan v2, code-map grounded 2026-07-07; supersedes v1). Mechanism proven live 2026-07-07.
+Memory `lw37-equip-card-redirect-walled`. Probe `tools/probes/item_text_census.py`.
+
+SHIPPED + LIVE-VERIFIED 2026-07-08. Two live-only refinements past this plan (see the memory for
+detail): the region discriminator requires the owner weapon's NAME adjacent to its "Kills:" hit
+(a name-less render copy is not the pool), and PoolLocator paints EVERY name-bearing baked region
+(`LocateAll`), not a single "best" one, because the process holds several baked copies with no
+static signature for which the card materializes from.
 
 ## Goal
-Retire the `Display.cs` whole-heap sweep for the equip-card Kills meter. Replace "crawl gigabytes
-each paint to find widget copies" with "write the `Kills:` field in the stable string pool; the card
-re-materializes it on open."
+Retire the per-paint whole-heap `DisplaySweep` for the equip-card Kills meter. The equip card
+re-materializes its description from a STABLE UE string pool on every open; write the pool's
+space-padded `Kills:` field in place and the card shows the current count on open WITHOUT chasing
+transient widget copies each paint.
 
-## Mechanism (proven live, owner-verified)
-The equip card renders `pool -> transient FString descriptors -> materialized widget`. The pointer
-REDIRECT is walled (descriptors are throwaway scratch, rebuilt from the pool each open, so a repoint
-loses the materialize race). But the POOL is stable across reopen, and overwriting its space-padded
-`Kills: N          ` field IN PLACE (same-length) shows on the next open. Confirmed by
-`item_text_census.py write` at the pool "Kills:" address: "LOKI WAS HERE" replaced Gloomfang's Kills
-line, flavor + Concentration block intact, survived reopen.
+## What the code map SETTLES (v1 "recon unknowns" that are already answered in-repo)
+- FIELD WIDTH is a baked, gated constant, not a live unknown. The pool field is `"Kills: 0/5 to +   "`
+  = 18 bytes (7-char `"Kills: "` literal + 11-char body). `Signatures.KillsMeterSlotChars = 11`
+  (Signatures.cs:144), lockstep-pinned to `flavor.py` `KILLS_SLOT_BODY_CHARS` by `analyze.py:177`.
+- COMPOSE exists: `Signatures.KillsMeterSlot(kills)` -> the 11-char body; `AttackCardTail.ComposeHead`
+  -> the full `"Kills: N/T to +X"` line. No new compose.
+- SCAN + ATTRIBUTE + WRITE-DISCIPLINE exist and are tested. `CardScanner.FindKills` + nearest-flavor
+  attribution (`CardScanner.NearestAnchorPos`, `FlavorWindow` 2048). `CardSites.PaintSiteWithResult`
+  (CardSites.cs:177) already does the exact in-place, same-width, foreign-refused (`ByteScan.
+  MeterSlotDigits`), `Writable`-gated, skip-if-equal body write. A `Site` holds `AnchorAddr` (flavor)
+  + `SlotAddr` (body). The `CardSites` cache already persists located sites and re-verifies each
+  `PaintAll`; transient widget sites evict (`AnchorIsLive` fails), a stable pool site persists.
 
-Pool layout per item (contiguous NUL-terminated strings): `displayName+tier`, lowercase key, plural
-key, `Kills: N          \n\n`, flavor+mechanic. The `Kills:` line is its own space-padded field.
+=> The ONE genuinely new piece is reaching + caching the STABLE POOL region so the sweep can retire,
+instead of re-walking the heap every paint to re-find transient widget copies.
 
-## Components
-1. **PoolLocator (cache-once).** Find the pool arena via a cheap stable anchor (a distinctive baked
-   flavor/name substring from `WeaponMeta`), NOT a whole-heap sweep. Cache the region per session;
-   re-find lazily on a read miss (per-launch relocation).
-2. **KillsFieldLocator (per weapon).** Within the cached pool, anchor on the weapon's flavor/name,
-   then find its `Kills:` field at the fixed offset before the flavor. Return field address + padded
-   width.
-3. **KillsLine compose (pure).** `"Kills: N/T to +"` from the tally + tier thresholds (reuse the
-   existing compose). Must fit the measured padded width.
-4. **PoolWrite (in-place, guarded).** Same-length-or-shorter overwrite (space-pad remainder), only if
-   the field currently reads as a `Kills:` line (anchor discipline, foreign refused), the AttackRow
-   fail-closed rule.
-5. **Trigger.** Update every tracked weapon's pool `Kills:` field on tally-change (battle-exit / kill
-   credit) so any card open re-materializes the current count. Fallback if the pool is on-demand: a
-   per-open write of the viewed weapon.
-6. **Retire the sweep** for this surface behind a flag until live-verified.
+## The live fact that CALIBRATES (owner ~10-min recon, item_text_census.py) -- does NOT block the build
+Does the current `DisplaySweep` region source (`Mem.Regions()`: committed/PRIVATE/writable) already
+include the pool region (proof addr ~0x004CDBxxx)?
+- `find "<a distinctive baked flavor substring>"` -> note the pool hit address; `dump <addr>` to
+  confirm the contiguous baked layout (name+tier, keys, `"Kills: N   \n\n"`, flavor). Check the
+  address against the `Mem.Regions()` PRIVATE+writable filter.
+- Browse weapon A, then WITHOUT opening B, `find "B"` -> is B's pool entry present? (complete vs
+  on-demand -> the per-open verify below covers on-demand regardless).
+The "reach + cache the pool, retire the sweep to a gated fallback" design below is correct in BOTH
+outcomes; the recon just confirms the anchor/region live and whether the sweep can be dropped fully
+or kept as a rare fallback.
 
-## Recon to lock first (via item_text_census.py, ~10 min live)
-- Pool copy count (`find` a weapon: how many pool-shaped hits vs widget hits).
-- Complete vs on-demand: browse weapon A, then WITHOUT opening B, `find "B"`; is B's entry present?
-  (Decides the trigger model.)
-- Exact padded field width of `Kills: N          ` before `\n\n` (caps compose length).
-- Stablest cheap anchor (flavor substring vs name+tier) and the narrowest arena to search.
+## Build (pure-first, reuse-heavy; 200-line seam split)
+1. **PoolLocator** (new; pure matching + cache; mirror `GrowthEngine.Locate`): given a distinctive
+   baked anchor, scan committed readable regions, identify the pool entry span, cache the region
+   base, re-find lazily on a read miss (per-launch relocation). Pure -> `FakeHeap`-testable.
+2. **PoolPaint** (new; thin orchestrator): on trigger, ensure the viewed/changed weapons' pool Kills
+   sites are registered into `CardSites` via `PoolLocator`, then `PaintAll`. Reuses `CardScanner`
+   attribution + `CardSites` write discipline verbatim.
+3. **Trigger:** mirror `Display.CheckAndSnapshotCounts` (self-snapshot per meta id) on the
+   tally-change edge (Engine.cs:386/403) + a per-out-of-battle-tick verify of the viewed weapon
+   (`Offsets.MirrorWeapon`/`MirrorOffHand` 0x141876EB4/6). No per-frame heap crawl.
+4. **Retire the sweep behind a flag:** gate `DisplaySweep`'s full walk; keep it as the fallback
+   discovery path until live-verified; `PoolPaint` + `CardSites.PaintAll` is the fast path.
+5. **File split:** `PoolPaint.cs` (memory/wiring) + `PoolPaint.Policy.cs` (pure locate/attribution/
+   guard), <=200 lines each. Add an `analyze.py` lockstep if any new constant is introduced.
 
-## Test split
-- Unit (xUnit + IGameMemory fake): compose (width-bounded), field-locate offset math, the
-  same-length / anchor-discipline write guard, foreign refusal. All pure.
-- Live (probe + in-game): pool locate on a real session, write lands + re-materializes, a
-  battle-exit kill shows updated on reopen, another item's flavor untouched, Attack card unaffected,
-  no latency.
+## Tests
+- Unit (xUnit + `FakeHeap`): PoolLocator cache seed/hit/miss/stale-drop + pool-region identify;
+  pool-entry span math; reuse the `CardScanner`/`ByteScan` foreign-refusal + same-width guards
+  (mirror `CardScannerFindKillsTests` / `CardSitesPaintTests`).
+- Live (owner + probe): the recon above; pool write lands + re-materializes on reopen; a battle-exit
+  kill shows updated on reopen; another item's flavor untouched; Attack card unaffected; the sweep
+  quiesces (no per-paint gigabyte crawl); no latency.
 
-## Risks
-Per-launch relocation (re-find, never hardcode addresses); pool-on-demand timing (trigger model);
-same-length ceiling (compose must fit the padded width); tight field bounds + anchor discipline so
-name / flavor / other surfaces are never disturbed.
+## Risks (all already enforced by the reused `CardSites` path)
+Per-launch relocation (re-find, never hardcode); pool-on-demand timing (the per-open verify covers
+it); same-width ceiling (compose fits the gated 11-char body); anchor discipline (foreign refusal so
+name/flavor/other surfaces are never disturbed).

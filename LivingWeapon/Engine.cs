@@ -184,7 +184,7 @@ internal sealed class Engine
         // LegendStore keeps recording (the Reliquary above still writes and saves _legends); only
         // this DISPLAY surface stops painting the story line. Pass legends: _legends to re-enable
         // (Reliquary Phase 2), which rebuilds StoryLines/EarnedAnchors (the three-way anchor, decision 12).
-        _display = new Display(meta, _kills, live, legends: null);
+        _display = new Display(meta, _kills, live, legends: null, poolPaint: Tuning.PoolPaintEnabled);
         // LW-31: the acting unit's Attack-menu dossier. Wired here (not beside _tracker) because
         // it needs the tracker's cursor-resolve + raw-hand/sprite seams. CURSOR-ONLY since
         // 2026-07-06 (owner-observed wrong-weapon display; see AttackCard.cs's class doc): the

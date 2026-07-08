@@ -104,8 +104,11 @@ internal sealed class FakeHeap : IGameMemory
         return r != null && r.Writable;
     }
 
+    /// <summary>Mirrors production Mem.Regions()'s own contract: committed/PRIVATE/writable
+    /// only. A read-only region is never yielded (LW-37's PoolLocator relies on this: a
+    /// located region is writable BY CONSTRUCTION because it can only ever come from here).</summary>
     public IEnumerable<(long baseAddr, long size)> Regions()
-        => _regions.Select(r => (r.BaseAddr, (long)r.Data.Length));
+        => _regions.Where(r => r.Writable).Select(r => (r.BaseAddr, (long)r.Data.Length));
 
     public byte[]? RegionBytes(long baseAddr)
     {

@@ -28,7 +28,7 @@ namespace LivingWeapon;
 /// - All reads and writes go through <see cref="IGameMemory"/> (RPM/WPM-backed in
 ///   production), so a freed UI buffer yields a safe miss, never a crash.
 /// </summary>
-internal sealed class Display
+internal sealed partial class Display
 {
     private const long BudgetInBattle    = 8L  * 1024 * 1024;
     private const long BudgetOutOfBattle = 16L * 1024 * 1024;
@@ -41,7 +41,7 @@ internal sealed class Display
     private readonly Dictionary<int, int>        _kills;
     private readonly IGameMemory                 _mem;
     internal readonly CardPatterns                _pats;  // FlavorSpike dev-probe accessor (P4)
-    private readonly DisplaySweep                _sweep;
+    internal readonly DisplaySweep                _sweep;  // DisplayPoolPaintTests reads Generation/IsComplete (LW-37 skip proof)
     internal readonly CardSites                  _sites;  // DisplayMaintenanceTests reads Count; FlavorSpike dev-probe accessor (P4)
     private readonly WpScratchPainter            _wpScratch;
     private readonly Func<long>                  _nowMs;
@@ -66,14 +66,20 @@ internal sealed class Display
     /// <param name="legends">Reliquary Phase 1's deed ledger (docs/RELIQUARY_AC.md). Null (the
     /// default) omits card-story composing entirely -- every existing caller/test that doesn't
     /// pass this behaves byte-identically to pre-Reliquary Display.</param>
+    /// <param name="poolPaint">LW-37 gate: null (the default) is FALSE, the whole-heap sweep path,
+    /// so every test defaults to deterministic sweep behavior INDEPENDENT of the release flag.
+    /// PRODUCTION (Engine) passes Tuning.PoolPaintEnabled explicitly; a test injects true to
+    /// exercise the pool-paint path.</param>
     public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
-                   Func<long>? nowMs = null, LegendStore? legends = null)
+                   Func<long>? nowMs = null, LegendStore? legends = null, bool? poolPaint = null)
     {
         _meta      = meta;
         _kills     = kills;
         _mem       = mem;
         _nowMs     = nowMs ?? (() => Environment.TickCount64);
         _pats      = new CardPatterns(meta);
+        _poolPaint   = poolPaint ?? false;
+        _poolLocator = new PoolLocator(mem, _pats);
         _sweep     = new DisplaySweep(mem, _nowMs);
         // StoryLines owns EarnedAnchors (the three-way anchor registry, decision 12) -- built
         // before CardSites so CardSites can be handed its anchors at construction. SeedAtStartup
@@ -119,6 +125,8 @@ internal sealed class Display
         _sites.Clear();
         _sweep.Invalidate();
         _lastTargets = new HashSet<int>();
+        _poolCovered = false;
+        _poolLocator.Invalidate();
     }
 
     /// <summary>Drive one display cycle. <paramref name="inBattle"/> true shrinks the byte
@@ -166,8 +174,11 @@ internal sealed class Display
 
         _lastTargets = targets;
 
-        long budget = inBattle ? BudgetInBattle : BudgetOutOfBattle;
-        _sweep.Tick(budget, OnChunk);
+        if (!(_poolPaint && MaybePoolPaint()))
+        {
+            long budget = inBattle ? BudgetInBattle : BudgetOutOfBattle;
+            _sweep.Tick(budget, OnChunk);
+        }
 
         // Log once per generation completion so the log captures each full scan. Generation 1
         // is the per-launch liveness canary and reaches the console at Info; every later
