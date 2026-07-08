@@ -42,16 +42,6 @@ is the in-flight subset, not a mirror of that checklist.
     correct Kills line with no latency, a battle-exit kill shows updated on re-open instantly,
     another item's vanilla desc stays untouched, and the in-battle Attack card surface is unaffected.
 
-- **[LW-52] Remove the remaining player-facing configuration options** (opened 2026-07-07) [QUEUED]
-  - Done means: strip the Reloaded config surface so players cannot toggle away designed behavior
-    (the LW-50 force-mismatch knob removal set the precedent): remove TreasureAlwaysOn (Treasure
-    Master itself is slated for removal, LW-10), BannerToasts (toasts become always on),
-    DevSeedKills (dev builds move to an environment variable or a compiled default), and VerboseLog
-    (console volume moves to an environment variable; the log FILE already carries every line
-    unconditionally). Owner may spare individual options during the build; the default is remove.
-  - Verify: xUnit green; live, the Reloaded launcher exposes no player-visible configuration for
-    the mod and toasts, Treasure Master gating, and logging all behave at their designed defaults.
-
 - **[LW-53] Flight archive for a fingerprint-guard stand-down** (opened 2026-07-07) [QUEUED]
   - Done means: a stand-down leaves a durable black-box archive, not just the livingweapon.log line.
     Observed 2026-07-07 (forced-mismatch launch): the loud ERROR armed FlushOnce but no

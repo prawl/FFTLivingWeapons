@@ -8,6 +8,15 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-52] SHIPPED 50ae6b3 2026-07-07: removed the player-facing config toggles. The Reloaded
+  launcher now exposes only Treasure Master Always On; BannerToasts, DevSeedKills, and VerboseLog
+  were deleted from Config.cs so players cannot switch off designed behavior. Their runtime keeps
+  its compiled defaults: toasts always on (Engine falls back to Tuning.BannerToasts), dev-seeding
+  governed by the LWDEV compile flag, and the console pinned to Info (the log FILE still records
+  every line; a dev raises ModLogger.LogLevel in Mod.cs for Debug on the console). A reflection
+  guard (ConfigSurface_IsExactlyTreasureAlwaysOn_LW52) fails if any removed toggle reappears. Owner
+  spared TreasureAlwaysOn per direction; live-verified 2026-07-07 (the launcher shows the single
+  toggle). Suite 2213 green, both build flavors clean.
 - [LW-54] SHIPPED 2d8f2b9 2026-07-07: the verify-time log scanner (tools/scan_logs.py). Reads the
   newest livingweapon.log from the deployed mod folder (resolved like BuildLinked) and exits
   nonzero on runtime trouble: any [ERROR] line, a fingerprint-guard stand-down, or a
