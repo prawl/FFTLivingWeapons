@@ -24,6 +24,13 @@ internal static class Tuning
     public const string BuildFlavor = "development";
     /// <summary>DEV: floor every known weapon to <see cref="DevKillSeed"/> kills on load.</summary>
     public const bool DevSeedAllKills = true;
+    /// <summary>DEV: pool-anchored in-place equip-card Kills paint (LW-37). Once the writable
+    /// UE string pool is located and fully covers every tracked weapon id, the per-paint
+    /// whole-heap DisplaySweep is skipped. Mechanism proven live 2026-07-07 (memory
+    /// lw37-equip-card-redirect-walled) AND live-verified 2026-07-08 through this exact code path
+    /// (card reads the live count, sweep retired, foreign surfaces untouched). Enabled in both
+    /// build flavors; Engine reads this flag, tests default to the sweep path independent of it.</summary>
+    public const bool PoolPaintEnabled = true;
     /// <summary>DEV: per-tick battle-event timeline (damage/heal/move) in the log.</summary>
     public const bool VerboseEvents = true;
     /// <summary>DEV pulse RETIRED 2026-06-10 after it verified the full write path on screen
@@ -37,6 +44,10 @@ internal static class Tuning
     public const string BuildFlavor = "production";
     /// <summary>Production seeds nothing -- the wielder earns every tier.</summary>
     public const bool DevSeedAllKills = false;
+    /// <summary>Pool paint replaces the whole-heap DisplaySweep for the equip-card Kills meter.
+    /// Live-verified 2026-07-08 in a DEV build (card reads the live count, sweep retired, foreign
+    /// surfaces untouched); enabled in release too (see the LWDEV twin).</summary>
+    public const bool PoolPaintEnabled = true;
     /// <summary>Production logs stay lean: kills/turns/grants only, no per-tick events.</summary>
     public const bool VerboseEvents = false;
     /// <summary>Never in production.</summary>

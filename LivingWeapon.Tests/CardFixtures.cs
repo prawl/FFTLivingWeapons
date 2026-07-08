@@ -93,6 +93,35 @@ internal static class CardFixtures
         return (killsSlotPos, flavorPos);
     }
 
+    /// <summary>Write a NEW-LAYOUT card block that ALSO carries the weapon's Name + 2-char
+    /// suffix slot ahead of the Kills line (the realistic pool geometry, LW-37: name -> ... ->
+    /// Kills -> flavor), so a single fixture can drive both kills AND suffix attribution
+    /// through the same forward-flavor pool scan. Returns (suffixPos, killsSlotPos, flavorPos)
+    /// buf-relative.</summary>
+    internal static (int suffixPos, int killsSlotPos, int flavorPos) WriteCardForwardWithName(
+        byte[] buf, int pos, string name, string flavor, int enc = 1, string? slot = null)
+    {
+        slot ??= DefaultMeterSlot();
+        byte[] nameB  = ByteScan.Enc(name, enc);
+        byte[] sufB   = ByteScan.Enc("  ", enc);
+        byte[] nnkB   = ByteScan.Enc("\n\nKills: ", enc);
+        byte[] slotB  = ByteScan.Enc(slot, enc);
+        byte[] nnB    = ByteScan.Enc("\n\n", enc);
+        byte[] flvB   = ByteScan.Enc(flavor, enc);
+
+        int at = pos;
+        Array.Copy(nameB, 0, buf, at, nameB.Length); at += nameB.Length;
+        int suffixPos = at;
+        Array.Copy(sufB, 0, buf, at, sufB.Length); at += sufB.Length;
+        Array.Copy(nnkB, 0, buf, at, nnkB.Length); at += nnkB.Length;
+        int killsSlotPos = at;
+        Array.Copy(slotB, 0, buf, at, slotB.Length); at += slotB.Length;
+        Array.Copy(nnB, 0, buf, at, nnB.Length); at += nnB.Length;
+        int flavorPos = at;
+        Array.Copy(flvB, 0, buf, at, flvB.Length); at += flvB.Length;
+        return (suffixPos, killsSlotPos, flavorPos);
+    }
+
     /// <summary>Build a Display wired to a FakeHeap via OffsetRemapMem: the three Display
     /// statics (MirrorWeapon, MirrorOffHand, WpScratch) live at staticsBase + 0/2/4.
     /// <paramref name="legends"/> (Reliquary Phase 1) is optional -- null (the default) omits
@@ -102,13 +131,14 @@ internal static class CardFixtures
                                         FakeHeap heap,
                                         long staticsBase,
                                         TestClock clock,
-                                        LegendStore? legends = null)
+                                        LegendStore? legends = null,
+                                        bool? poolPaint = null)
     {
         var wrapped = new OffsetRemapMem(heap,
             mirrorWeaponAddr:  staticsBase,
             mirrorOffHandAddr: staticsBase + 2,
             wpScratchAddr:     staticsBase + 4);
-        return new Display(meta, kills, wrapped, clock.Func, legends);
+        return new Display(meta, kills, wrapped, clock.Func, legends, poolPaint);
     }
 
     /// <summary>Advance the clock and call Tick until the generation is complete or maxTicks
