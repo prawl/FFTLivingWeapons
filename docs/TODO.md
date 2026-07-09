@@ -11,14 +11,18 @@ is the in-flight subset, not a mirror of that checklist.
 ## Now (release: 2.3.0)
 
 - **[LW-4] Samurai Sword signature: Kiku-ichimonji Mushin** (opened 2026-07-04) [QUEUED]
-  - Done means: Kiku-ichimonji id45 ships Mushin: a full WAIT (no move, no act) banks a buff so the
-    wielder's next hit lands harder. Buff-hold is proven (StatHold, Iai's sibling pattern); the open
-    risk is detecting a full wait live (tools/probes/acted_moved_watch.py, candidate combat +0x1BB),
-    which gets a live probe BEFORE the build. Murasame id41's signature is deferred out of 2.3.0
-    (LW-47). Release blocker (RELEASE_SCOPE.md section 1).
-  - Verify: probe the wait signal live first, then items.json block, gen_living_weapon_meta.py, xUnit
-    green, deploy and VERIFY LIVE, commit and LIVE_LEDGER flip. Clean DEV redeploy before ANY katana
-    live test (an orphaned Zanshin DLL may still be deployed).
+  - Done means: Kiku-ichimonji id45 ships the one-shot Mushin stillness charge: a full round with
+    no move and no act arms one PA-boosted hit, spent on the wielder's next attack. The wait moment
+    itself is invisible (probe-proven 2026-07-09, tools/probes/mushin_wait_probe.py: combat +0x1BB
+    is an action-record byte, not a wait signal), so detection composes three proven signals
+    instead: KillTracker's real acted-period player latch (via a new PlayerActSeq counter), band
+    position stillness, and the median of completed-turn deltas over every currently-living other
+    unit (TurnTracker.UnitTurns), zeros included. Murasame id41's signature stays deferred out of
+    2.3.0 (LW-47). Release blocker (RELEASE_SCOPE.md section 1).
+  - Verify: xUnit green (KillTracker, TurnTracker, Mushin, and MushinPolicy suites), items.json
+    block, gen_living_weapon_meta.py (empty diff expected), deploy and VERIFY LIVE, commit and
+    LIVE_LEDGER flip. Clean DEV redeploy before ANY katana live test (an orphaned Zanshin DLL may
+    still be deployed).
 
 - **[LW-51] Kill-tally scoping and mod-update survival** (opened 2026-07-07) [QUEUED]
   - Done means: DECIDE global-forever vs per-playthrough (owner call; recommend per-playthrough for
@@ -58,6 +62,16 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: unit-test that a stand-down records a ring entry and a pending flush drains it to a file;
     live, force a mismatch (LW_FORCE_FINGERPRINT_MISMATCH=1) and confirm a flight_*_error.jsonl
     archive appears beside the loud line, with zero game-memory writes through a battle.
+
+- **[LW-55] Attack card shows a wrong kill count that disagrees with the equip card** (opened 2026-07-08) [QUEUED]
+  - Done means: the Attack-menu card's Kills line matches the equip card for the same weapon. Observed
+    in Ramza's first battle of a new game: the Attack card read 100 kills while the equip card correctly
+    read 8 for the same weapon (and the Attack card may show the generic "Attack" label rather than the
+    weapon name). The tally itself is correct (equip card and kills.json agree at 8), so the fault is the
+    Attack-card attribution or read path (LW-31 surface, AttackCard.Resolve), NOT the tally; distinct
+    from LW-51 scoping.
+  - Verify: in a battle, the acting unit's Attack-card Kills line equals the equip-card Kills line for
+    that weapon (no spurious high count) and names the correct weapon; confirmed live.
 
 ## Backlog
 
@@ -133,7 +147,8 @@ is the in-flight subset, not a mirror of that checklist.
   (all 4 kills credited cleanly, correct battle-end summary), so likely the EnemyOracle is
   counting band MIRROR-seat clones as distinct identities (or hidden/reinforcement units).
   Investigate: dump the oracle's identity set against the census in one battle; cosmetic
-  unless the count gates something.
+  unless the count gates something. Escalated 2026-07-09 (owner report): the count is wrong in
+  EVERY battle (e.g. "All 11 enemies are accounted for"), so this is systematic, not a one-off.
 - [LW-28] 2026-07-05: A BuildLinked deploy LOST kills.json and legends.json despite the
   preservation round-trip (the 17:54 launch logged "No kill tally was found on disk"; the 82
   kill tally and the Beastbane Mark were gone; the %TEMP% livingweapon_preserve dir no longer
@@ -162,6 +177,12 @@ is the in-flight subset, not a mirror of that checklist.
   for an attachment mod. Check Reloaded's update behavior; if unsafe, relocate the save files
   outside the mod directory (with a one-time migration read of the old location) BEFORE
   shipping 2.3.0.
+- [LW-57] 2026-07-09: On battle load the Attack command keeps its generic "Attack" label instead
+  of the wielder's weapon name, generally correcting only after the first turn (owner report).
+  The swap works from then on, so the fault is first-open readiness on the LW-31 Attack-card
+  surface: the actor resolve likely lacks its turn-state inputs until the first acted edge primes
+  them. The generic-label symptom noted inside LW-55 and LW-56 is this same surface; this entry
+  tracks the general first-turn latency in every battle.
 - [LW-41] 2026-07-07: Re-anchor tools/probes/sentinel_probe.py (and audit sibling probes) to the
   1.5 offsets; it still reads the pre-1.5 addresses and fed garbage sentinels (battleMode=0,
   slot9=0x1) during the LW-40 live incident, nearly misdirecting the diagnosis. Source the
@@ -187,6 +208,23 @@ is the in-flight subset, not a mirror of that checklist.
   reads "View Battlefield - Modded by prawl" during a battle (a subtle mod-attribution touch). Likely
   mechanism: a SetTextString-family tap/prefix-match swap (PromptSwap precedent) or the text-catalog
   offset redirect (AttackCard/AttackRow precedent); find the "View Battlefield" string source first.
+- [LW-56] 2026-07-08: On a new game's first battle (the Orbonne opener), kills are NOT credited to the
+  wielder's weapon and NOTHING lands in livingweapon.log, so KillTracker.CreditKill never fired. The
+  Attack-menu card also shows the generic "Attack" label instead of the weapon name. The LW-51 Tier-1
+  count reset itself is verified correct, so this is not the reset. DISTINCT from LW-55: that one is a
+  DISPLAY bug (tally correct, the Attack card shows a wrong count); this is a genuine CREDITING failure
+  (no increment at all, no log line). They share the opening-battle attribution surface. Triage in
+  order: (1) SCOPE FIRST, does crediting work in a normal non-scripted battle? Kill credit was
+  extensively live-proven (KillerStamp death-edge, actor attribution), so a global regression is
+  unlikely but must be ruled out before anything else; if it only fails in the scripted Orbonne opener
+  it is a narrow edge. (2) Did the managed player Ramza land the killing blow, or a guest/NPC (the
+  opener fields guests, whose kills correctly earn nothing)? (3) The opening weapon IS a recognized
+  living weapon (its equip card shows a per-weapon count), so "not a living weapon" is not the cause.
+  (4) Rule out any interaction with the just-fired Tier-1 reset leaving the tracker non-crediting (low
+  probability: Clear preserves the by-reference Kills instance, test-pinned, and the "Attack not weapon
+  name" symptom points at actor/weapon identity, not the dict). Likely surface: the Orbonne story
+  battle (EventId 4) is scripted with guests, where the actor and kill-detection path may not engage
+  the same way as a normal battle.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
