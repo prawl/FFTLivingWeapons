@@ -208,6 +208,25 @@ is the in-flight subset, not a mirror of that checklist.
   reads "View Battlefield - Modded by prawl" during a battle (a subtle mod-attribution touch). Likely
   mechanism: a SetTextString-family tap/prefix-match swap (PromptSwap precedent) or the text-catalog
   offset redirect (AttackCard/AttackRow precedent); find the "View Battlefield" string source first.
+- [LW-58] 2026-07-09: Body Double feasibility probe (plan.md): can a pre-loaded dormant unit slot be
+  activated mid-battle so the ENGINE constructs its sprite (the despawn-probe principle in reverse)?
+  Build tools/probes/spawn_probe.py (list / activate / selftest) on battle_cheats.py; classify
+  dormant-populated slots, hunt the live presence byte (taunt research's band ENTD mirror at
+  +0x17A..0x181 is the first candidate region), then the raw-flag flip test on a throwaway save.
+  Expected outcome per LIVE_LEDGER (the walled write-and-hold spawn row): flag-flip fails to render
+  and the real primitive is the engine's mid-battle-join activation routine; a clean negative is a
+  successful probe. Research probe only, nothing wired into the DLL.
+  2026-07-09 live: raw-flag path CONFIRMED DEAD by a stronger test: the chest revert re-enrolled
+  timeline/hearts/revival but the model stayed a chest (SpriteSet +0x00 never changed at the pop,
+  the model swap is scene-graph-side) and the unit's own turn soft-locked. Treasure-pop signature
+  decoded (+0x45/+0x46 plus the +0x18E mirrors); see the new LIVE_LEDGER row. Next: CE what-writes
+  on band +0x46 at a pop (spawn_probe addr prints addresses); untested variant: frog-cast in the
+  post-revert turn window.
+  2026-07-09 later: status system decoded (three 5-byte layers; apply engine 0x150BF66DC;
+  dispatch 0x1401FB064; treasure = status id 15; see the LIVE_LEDGER status-system row).
+  External pending-field writes are consumed but ignored (3 tapes), so ALL external-write
+  spawn/model lanes are closed; the next lever is an in-process cold-call spike (DLL, LWDEV)
+  or the event-script AddUnit/Draw layer.
 - [LW-56] 2026-07-08: On a new game's first battle (the Orbonne opener), kills are NOT credited to the
   wielder's weapon and NOTHING lands in livingweapon.log, so KillTracker.CreditKill never fired. The
   Attack-menu card also shows the generic "Attack" label instead of the weapon name. The LW-51 Tier-1
