@@ -11,10 +11,10 @@ namespace LivingWeapon.Tests;
 /// scratchpad/psxflags_watch.log) and the retired rounds' one-line history.
 ///
 /// This suite drives the trigger DIRECTLY on the three band-relative turn-flag bytes (local test
-/// consts mirroring Mushin.cs's own private consts, since they are private and Offsets.cs is
-/// forbidden this round): TURN FLAG (band +0x19C, the falling edge that decides), MOVED
-/// (+0x19D), ACTED (+0x19E). No KillTracker, no TurnTracker, no CT clocks, no static-array
-/// oracle: Mushin's round-5 ctor no longer even takes a KillTracker.
+/// consts aliasing Offsets.ATurnFlag/AMoved/AActed since LW-55 stage 1 promoted them out of
+/// Mushin.cs): TURN FLAG (band +0x19C, the falling edge that decides), MOVED (+0x19D), ACTED
+/// (+0x19E). No KillTracker, no TurnTracker, no CT clocks, no static-array oracle: Mushin's
+/// round-5 ctor no longer even takes a KillTracker.
 ///
 /// LOAD-BEARING: L-1 (a genuine full wait arms) and L-6 (nothing else matters: the module reads
 /// none of rounds 2-4's signals) are the two tests written FIRST and confirmed RED against the
@@ -27,13 +27,12 @@ public class MushinTests
     private const int KikuId = 45;
     private const int OtherWeaponId = 56;
 
-    // Local mirrors of Mushin.cs's private band-relative offsets (see that file's class doc for
-    // the PSX -> frame -> band provenance chain; duplicated here as literals for the same reason
-    // MushinPolicyTests duplicates Tuning.Factor as LockedFactor: catch drift, and Offsets.cs is
-    // forbidden to touch this round).
-    private const int TurnFlagOffset = 0x19C;
-    private const int MovedOffset = 0x19D;
-    private const int ActedOffset = 0x19E;
+    // LW-55 stage 1 promoted these to Offsets.cs (ATurnFlag/AMoved/AActed; see that file for the
+    // full PSX -> frame -> band provenance chain). Local aliases kept so this suite's own naming
+    // is unchanged from round 5.
+    private const int TurnFlagOffset = Offsets.ATurnFlag;
+    private const int MovedOffset = Offsets.AMoved;
+    private const int ActedOffset = Offsets.AActed;
 
     private static void SetFlags(FakeSparseMemory mem, long entry, int turnFlag, int moved, int acted)
     {

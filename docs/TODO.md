@@ -35,7 +35,7 @@ is the in-flight subset, not a mirror of that checklist.
     kill shows updated on re-open, another item's flavor stays untouched, and the in-battle Attack
     card surface is unaffected.
 
-- **[LW-55] Attack card shows a wrong kill count that disagrees with the equip card** (opened 2026-07-08) [QUEUED]
+- **[LW-55] Attack card shows a wrong kill count that disagrees with the equip card** (opened 2026-07-08) [BUILDING]
   - Done means: the Attack-menu card's Kills line matches the equip card for the same weapon. Observed
     in Ramza's first battle of a new game: the Attack card read 100 kills while the equip card correctly
     read 8 for the same weapon (and the Attack card may show the generic "Attack" label rather than the

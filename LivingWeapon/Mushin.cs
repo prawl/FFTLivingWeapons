@@ -50,9 +50,10 @@ namespace LivingWeapon;
 /// PlayerActSeq, no action-record confirm, no global Acted byte. Every read is per-wielder-entry
 /// only, guarded (Readable pre-filter).
 ///
-/// OFFSETS.CS FORBIDDEN THIS ROUND (it carries uncommitted LW-51 work): the three band-relative
-/// offsets below are LOCAL consts; promoting them to Offsets.cs is deferred to a later
-/// commit-staging round.
+/// OFFSETS.CS PROMOTION (LW-55 stage 1): round 5 originally kept the three band-relative offsets
+/// below as LOCAL consts (Offsets.cs carried uncommitted LW-51 work that round, so touching it was
+/// deferred). That staging concern is moot since bf351db; the trio now lives in Offsets.cs
+/// (ATurnFlag/AMoved/AActed) with the full PSX provenance, and this class simply reads it.
 ///
 /// RESIDUALS (accepted, documented, not fixed tonight):
 ///   (1) a reaction by the wielder DURING its own open menu window (e.g. an enemy's charged spell
@@ -74,12 +75,12 @@ internal sealed partial class Mushin : ISignature
 
     private const int KikuIchimonjiId = 45;
 
-    /// <summary>Band-relative turn-flag offsets (round 5; LOCAL consts, see this class's own doc
-    /// comment for why Offsets.cs is forbidden this round). frame +0x1B8/+0x1B9/+0x1BA minus
-    /// Offsets.BandEntry (0x1C) = band +0x19C/+0x19D/+0x19E.</summary>
-    private const int TurnFlagOffset = 0x19C;
-    private const int MovedOffset = 0x19D;
-    private const int ActedOffset = 0x19E;
+    /// <summary>Local aliases onto the Offsets.cs trio (LW-55 stage 1 promoted them out of this
+    /// class; see Offsets.cs for the full PSX provenance). Kept as names here rather than inlined
+    /// at every call site below, unchanged from round 5's own shape.</summary>
+    private const int TurnFlagOffset = Offsets.ATurnFlag;
+    private const int MovedOffset = Offsets.AMoved;
+    private const int ActedOffset = Offsets.AActed;
 
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
