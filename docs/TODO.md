@@ -213,6 +213,18 @@ is the in-flight subset, not a mirror of that checklist.
   External pending-field writes are consumed but ignored (3 tapes), so ALL external-write
   spawn/model lanes are closed; the next lever is an in-process cold-call spike (DLL, LWDEV)
   or the event-script AddUnit/Draw layer.
+  RESOLVED 2026-07-10 (dev-spike proven, not shipped): a mid-battle DUPLICATE of a live donor is a
+  real, drawn, named, controllable, AI-FIGHTING unit that descends from the heavens; the render weld
+  is beaten via the node builder 0x14026EBEC + a data-only AI enroll whose one-byte key is the
+  AI-roster index 0x141873038[slot]. Battle-scoped (temporary summon; permanent recruit = a
+  save-roster entry, unbuilt). Also cracked this arc: full unit TELEPORT/SWAP + visual FLOAT (render
+  node world transform), DESPAWN (node +0x12C mode-2 + engine sweeper), RESURRECT, and the animation
+  request register (node +0x10). Full records: MECHANICS.md breakthrough block, five LIVE_LEDGER
+  Uncertain rows + two overturned walls, memories body-double-spawn-arc / position-write-desync /
+  unit-despawn-resurrect-recipe / anim-request-register. BodyDoubleSpike Canary 1-9 (dev-only,
+  worktree feature/body-double-spawn). Open polish: AI-passivity (behavior row), decoy-hold default,
+  and shipping any of it as a real player mechanic (LW-64 Mirror Image / LW-65 teleport / LW-66
+  remove-restore track the shippable slices).
 - [LW-56] 2026-07-08: On a new game's first battle (the Orbonne opener), kills are NOT credited to the
   wielder's weapon and NOTHING lands in livingweapon.log, so KillTracker.CreditKill never fired. The
   Attack-menu card also shows the generic "Attack" label instead of the weapon name. The LW-51 Tier-1
