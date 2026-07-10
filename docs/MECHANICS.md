@@ -12,6 +12,73 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 
 ## Confirmed (proven live and/or shipped)
 
+### The 2026-07-10 breakthrough block (unit manipulation, all proven live that night)
+
+- MOVE ANY UNIT ANYWHERE mid-battle (full teleport + two-unit position swap) -- PROVEN LIVE:
+  the render position was the missing layer for a month (the Knockback wall); a coherent
+  triple-write of combat +0x4F/+0x50 (logic tile, +0x51 bit7 layer), the render node's AI tile
+  key +0x88/89/8A, and the node's world coords +0x4C/+0x4E/+0x50 (X=28x+14, Y=28y+14,
+  Z=-12*(height +1 if Float); node via list head 0x140D3A410, +0x148 combat backref) moves a
+  unit completely: it hovers, paths, and acts from the new tile, and the engine re-adopts every
+  layer after its first real move. A live Ramza-with-enemy FULL SWAP (each keeping own facing)
+  executed flawlessly, twice (tools/probes/swap_units.py). Only remaining guard for a shipped
+  mechanic: a tile-occupancy check (co-tiled units = slot-order target shadowing + movement
+  lock, proven live).
+- FLOAT'S HOVER IS DATA / free visual levitation -- PROVEN LIVE: Float's hover offset is one
+  height unit (-12) in the node's world Z, not an animation; poking Z granted a hover to a
+  non-Float unit and stripped it from him live, and a real Float unit rendered flat carrying a
+  grounded Z (status intact). Transform ownership: idle = unowned (pokes stick), walking = the
+  mover lerps per frame (pokes lose), turn-open/move-end = one-shot re-stamp from logic. A
+  shipped hover should grant the real Float STATUS and let the engine draw it; Z pokes are for
+  teleports and comedy. Purely visual: all combat math reads the logic layers.
+- SPAWN A REAL AI FIGHTER MID-BATTLE (LW-58 Body Double, COMPLETE) -- PROVEN LIVE 2026-07-10:
+  DUPLICATE any hovered unit into a real, drawn, named, controllable combatant that DESCENDS FROM
+  THE HEAVENS and FIGHTS AS A REAL AI UNIT with no crash. The data-only enroll chain (all live-
+  proven): copy the donor's combat struct into a vacant same-region slot at a FREE tile; clone the
+  donor's battle-keyed AI registry object re-keyed to the host slot (+ count bump); cold-build the
+  render node with the DESTINATION TILE as the build args (the node tile key is the AI's subject
+  lookup) + scene-bind + own animB + donor identity stamps (+0x191/2 = name + control); AND THE
+  ONE-BYTE COEXISTENCE KEY: the per-slot AI-ROSTER INDEX 0x141873038[hostSlot] = next free index
+  (real units hold 0..7; an un-indexed clone reads 0xFF and the AI-subject arm skips it -> the
+  facing code 0x150E74A5D null-derefs = the auto-battle crash). Baked as Canary 9 in the worktree
+  BodyDoubleSpike. The clone is battle-scoped (does NOT persist: the desired temporary-summon
+  semantic; a permanent recruit needs a save-roster entry, unbuilt). Two knowns to polish: it is
+  AI-PASSIVE (steps + waits; its behavior row 0x1411A7D10+idx*0x258 is the donor's shadow -- give
+  it a real AI-data row for aggression) and the decoy CT-hold must be released for it to get turns.
+  Dev-spike only.
+- DESPAWN ANY UNIT, SPRITE AND ALL (the reverse door) -- PROVEN LIVE: ONE guarded byte
+  (node +0x12C = mode 2) and the engine's own sweeper (0x14026E20C) removed a live enemy
+  completely on its next unpaused frame, every predicted side effect byte-perfect (combat
+  +0x01=FF, present +0x1B5=0x80, node done-marked 0x30, pool slot freed, list unlinked); the
+  same primitive vanilla crystallization uses. Dev spike Ctrl+F5 wraps it (hover-fingerprint or
+  ghost-orphan resolve, current-actor refused, timeout auto-revert); the per-id byte at
+  0x140C6CFE0+id*9 is the "engine engaged" (hover/menu) marker, NOT a busy gate.
+  Open: does the victory check stay sane after a removal (owner test pending).
+- RESURRECT A REMOVED UNIT (the re-add; the arc's grail via the reverse door) -- PROVEN LIVE,
+  DATA-ONLY, same night: the despawned Knight was brought back mid-battle by (1) re-enrolling
+  him in the AI registry (clone a living same-team object, re-key +0x2C to his slot, append at
+  table[count], bump counts last), (2) reviving his intact node (element in-use dword = 1,
+  clear the +0x12C done-mark, re-splice at the list head), (3) present = 1 then gate LAST, with
+  a sky-descent flourish (world Z stepped -600 -> ground). The removal drops AI enrollment, so
+  step 1 MUST precede visibility or the LW-58 freeze fires. Full byte recipe in the
+  unit-despawn-resurrect memory. Together with the despawn this is MID-BATTLE REMOVE + RESTORE
+  = the summon/reinforcement mechanic family (park a reserve, materialize on command).
+- HIDE / REVEAL a unit's LOGIC live (the ghost-statue toggle) -- PROVEN LIVE repeatedly: gate
+  combat +0x01 = 0xFF removes the unit from every logic walk (untargetable, unhoverable, no
+  turns, AI ignores it) while the render weld leaves its sprite standing; writing the model id
+  back restores it whole. Reversible, instant, and the substrate of the Mirror Image idea. TRAP:
+  a mid-hide autosave persists the hidden state into resumes.
+- PLAY ANY ANIMATION ON ANY UNIT (the request register) -- DECODED byte-for-byte, one live poke
+  from proven: node+0x10 u16 is the game's own animation-request API; one write plays any
+  sequence from the enumerated vocabulary (idle, flinch, chant, crouch 0x35, stand-up, weapon
+  swings, die) and LATCHES with no hold. The earlier failed pokes were all decoder OUTPUTS
+  (node+0x420 block re-stamps per frame); this is the INPUT. Recipe + vocabulary in the
+  anim-request-register memory.
+- DOUBLE A UNIT'S IDENTITY (name + control) -- PROVEN LIVE: the roster-identity backref pair
+  combat +0x191/+0x192 routes field NAME resolution and controller ownership; copying a donor's
+  pair makes another unit a literal double of it (a second "Ramza" on the field, owner-witnessed).
+  The defeat check is NOT keyed on it (falsified live).
+
 ### Proven levers and buffs
 
 - Add two support abilities to one unit -- PROVEN.
@@ -43,6 +110,18 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 
 ### Buildable now (levers proven; the signature itself is not yet built or verified)
 
+- TRANSPOSITION / the displacement family (owner priority 2026-07-10; built on the proven
+  full-teleport triple-write above): swap self with the target (Transposition strike), guaranteed
+  Knockback/pull (shove the victim a real tile, sprite and all), reposition an ally (Rescue
+  Throw). Cast wrapper = the JobCommand-injection lane + an action-record watch; the occupancy
+  check is the one guard to build first.
+- Mirror Image (owner concept, ledger LW-64; core premise PROVEN 2026-07-10): flip the unit's
+  hide gate (+0x01 = FF) so a locked-on action WHIFFS at resolution (proven live: a mid-cast Slow
+  resolved into nothing) while the render weld leaves the sprite standing = an untargetable
+  after-image for a turn. Hazards mapped: restore-tile occupancy (solvable with the teleport
+  primitive), autosave persists the hidden state (needs a battle-enter un-strand sweep), hidden
+  units get no turns (external restore trigger); one side effect to chase (the whiff displaced
+  the hidden unit one tile).
 - Give Monks' Poles and make Claw weapons
 - Turn the JP points into HP or a shield buff for HP
 - Soul Ledger (Knight sword): each kill this battle stacks +1 PA (+1 Speed per 3rd soul, capped) -- our own kill-tally driving a live within-battle power gauge.
@@ -66,7 +145,9 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 - Last Word ("retain the last ability used on you", gun): record the last ability an enemy used on you and re-cast it back at them (reflects physical skills true Reflect can't). Probe: does the recent-action field capture the attacker's ABILITY id?
 - Bloodpact Tether (Blood Sword): soul-link to an ally; damage to either splits across both HP pools; if either hits 0, both fall. Probe: per-tick read-both / split / write+hold racing the engine's damage write.
 - Phylactery Oath (Chaos Blade/Ragnarok): the first KO seeds a 3-turn timer, then snap back at full HP (later kills grow at half rate). Probe: can a unit be held KO'd-but-in-roster N turns without engine eviction?
-- Knockback: write a victim's gx/gy one tile to shove it. PARKED (effectively walled): band gx/gy writes are engine-authoritative (AI paths from them) but the renderer never re-derives -> compounding sprite desync.
+- Knockback: write a victim's gx/gy one tile to shove it. UN-PARKED 2026-07-10: the old wall
+  (renderer never re-derives from gx/gy) is beaten by the full-teleport triple-write (see the
+  Confirmed lever at the top); absorbed into the Transposition/displacement family above.
 
 ### Moonshot (needs tech we do not have yet; each names its wall)
 

@@ -193,6 +193,18 @@ is the in-flight subset, not a mirror of that checklist.
   External pending-field writes are consumed but ignored (3 tapes), so ALL external-write
   spawn/model lanes are closed; the next lever is an in-process cold-call spike (DLL, LWDEV)
   or the event-script AddUnit/Draw layer.
+  RESOLVED 2026-07-10 (dev-spike proven, not shipped): a mid-battle DUPLICATE of a live donor is a
+  real, drawn, named, controllable, AI-FIGHTING unit that descends from the heavens; the render weld
+  is beaten via the node builder 0x14026EBEC + a data-only AI enroll whose one-byte key is the
+  AI-roster index 0x141873038[slot]. Battle-scoped (temporary summon; permanent recruit = a
+  save-roster entry, unbuilt). Also cracked this arc: full unit TELEPORT/SWAP + visual FLOAT (render
+  node world transform), DESPAWN (node +0x12C mode-2 + engine sweeper), RESURRECT, and the animation
+  request register (node +0x10). Full records: MECHANICS.md breakthrough block, five LIVE_LEDGER
+  Uncertain rows + two overturned walls, memories body-double-spawn-arc / position-write-desync /
+  unit-despawn-resurrect-recipe / anim-request-register. BodyDoubleSpike Canary 1-9 (dev-only,
+  worktree feature/body-double-spawn). Open polish: AI-passivity (behavior row), decoy-hold default,
+  and shipping any of it as a real player mechanic (LW-64 Mirror Image / LW-65 teleport / LW-66
+  remove-restore track the shippable slices).
 - [LW-59] 2026-07-10: A stale kill count survives the in-session new-game tally reset on the
   equip-card surface: in the reset opener the owner read 3 kills for Ramza's Claymore while the
   tally was provably empty (the LW-51 reset had archived kills.2.json, and the battle's first
@@ -239,6 +251,47 @@ is the in-flight subset, not a mirror of that checklist.
   playthroughs still share one kills.json (the shipped Tier-1 reset only archives on a detected
   NEW GAME, bf351db), so key the tally files to a save identity if cross-contamination proves a
   real problem in play; deliberately deferred out of LW-51.
+- [LW-64] 2026-07-10: Mirror Image ability concept (owner): flip a unit's hide gate (combat +0x01
+  to 0xFF) to phase it out of logic while the render weld leaves its sprite standing, dodging
+  locked-on spells for a turn; every primitive live-proven in the LW-58 gate-toggle session.
+  DECISIVE UNKNOWN first: does a CHARGED spell whiff when its target is hidden at resolution
+  (cheap CE test: bait a charge, gate-FF the target pre-resolve, watch)? Known hazards to guard:
+  restoring onto an occupied tile co-tiles into the movement soft-lock (proven live); a mid-hide
+  autosave persists the hidden state into resumes (proven live, needs a battle-enter un-strand
+  sweep); hidden units get no scheduler turns, so the restore trigger must be external (other
+  units' acted edges, or the dodged action resolving). Castable wrapper when built: JobCommand
+  injection plus an action-record watch (the Barrage lane).
+  2026-07-10 later: THE DECISIVE TEST PASSED (owner live): a mid-cast Slow whiffed entirely when
+  the target was gate-hidden during the cast animation, so hide-at-resolution defeats locked-on
+  actions and the core fantasy is proven. New side effect to chase before any build: the whiffed
+  resolution DISPLACED the hidden unit one tile (unexplained; possibly target-snap bookkeeping
+  applying to a unit the effect could not find).
+
+- [LW-65] 2026-07-10: Unit TELEPORT is proven live (LW-58 session): the render
+  position was the missing layer (render node +0x4C/+0x50 u16 world X/Y = 28*tile + 14; node via
+  list head 0x140D3A410, +0x148 combat backref), and a coherent triple-write (combat +0x4F/+0x50
+  logic, node +0x88/+0x89 AI tile key, node +0x4C/+0x50 world) moved a real enemy who then
+  hovered correctly and took a normal AI turn from the new tile, after which the engine re-stamps
+  every layer itself. Un-parks the Knockback family (position-write-desync memory updated) and
+  gives Mirror Image its restore-displacement primitive. Same night: the Z formula was solved
+  (node +0x4E = -12 x height, +1 height unit when the unit has FLOAT: the hover offset is pure
+  node data, owner-witnessed granted to a non-Float unit and stripped from it by Z pokes alone;
+  full set X=28x+14, Y=28y+14, Z=-12h with the Float rider) and a complete TWO-UNIT
+  POSITION SWAP (Ramza and a live enemy, all layers, own facing kept) executed flawlessly with
+  both units acting normally after. Open before any shipped mechanic: a tile-occupancy check
+  (co-tile = target shadowing + movement lock) and a LIVE_LEDGER row (owner flip).
+
+- [LW-66] 2026-07-10: Mid-battle unit REMOVE + RESTORE are both proven live and DATA-ONLY (the
+  LW-58 session finale): despawn = one mode-2 byte on the render node (engine sweeper tears down
+  unit + sprite, byte-perfect); resurrect = AI-registry re-enroll (clone + re-key a living
+  object) + node revival (in-use flag, done-mark clear, list re-splice) + present/gate reopen,
+  with a sky-descent flourish; the removal drops AI enrollment, so re-enroll MUST precede
+  visibility (else the LW-58 freeze). Full byte recipe in the unit-despawn-resurrect memory;
+  MECHANICS.md breakthrough block has the summary. This unlocks the summon/reinforcement
+  mechanic family (park-and-summon variant needs no despawn at all: gate FF + render Z below
+  floor = invisible reserve). Open: victory-check sanity after a removal; whether a legitimate
+  registry rebuild evicts the hand-cloned object; Ctrl+F5 despawn spike fix (hover-marker
+  refusal removed) awaits its next deploy.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

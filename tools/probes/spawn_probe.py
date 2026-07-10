@@ -122,8 +122,54 @@ on a half-activated unit (null-sprite AV precedent, clone_probe).
         # committed region for pointers to the slot's combat base / band entry: any IC
         # equivalent struct should hold one. Read-only. Run on a LIVE unit first (control),
         # then on the chest slot; diff the two candidates' surroundings.
+    python tools\\probes\\spawn_probe.py drawstate <slot>
+        # read-only: print the init-loop (0x140270D5C) draw-state bytes for one slot and the
+        # verdict: is a blob-rendering unit constructed-but-DISABLED (data-layer fix: clear
+        # the source+3 bit 0x10) or built by a different loader (blob is a render-bind fault)?
+        # This is the decisive Frank check: present marker combat +0x1B5 discriminates
+        # FF vacant / 00 disabled / 01 drawn (construction-pipeline decode 2026-07-10).
+    python tools\\probes\\spawn_probe.py banddiff <slotA> <slotB>
+        # read-only: byte-diff two seats' FULL combat structs (0x200 each) with every known
+        # field annotated, plus an always-printed AI-visibility suspect table. THE
+        # Kerrich-vs-real-NPC instrument (Canary 3 falsified the turn-stall hypothesis: Frank
+        # held turnless and the AI STILL waited, so the AI planner chokes on his half-state;
+        # the fields it reads are what this diff surfaces). Run paused in battle 435 AFTER the
+        # F5 bind: A = Frank's seat (s15), B = a real AI unit (an enemy s8..s14), and also
+        # diff B vs another real enemy as the noise CONTROL.
+    python tools\\probes\\spawn_probe.py aicensus
+        # read-only LW-58 AI-FREEZE census (run paused, Kerrich bound): (A1) the cached AI unit
+        # count byte vs the planner-visible combat slots; (A4) the AI-object registry 0x141800F50
+        # cross-matched BOTH directions against the planner's own key (abort-loop disasm
+        # 2026-07-10: the resolve loop 0x1402078F9 walks the 21 combat slots off a scan base
+        # 0x141853CE1 = UnitsBase+1, skips slots whose combat +0x01 reads FF, and compares combat
+        # +0x02 BYTE zero-extended vs aiObj word +0x2C; a miss leaves -1 and exits the bare
+        # epilogue 0x140207A8A = the silent Wait; the first hunt synthesis had the key right at
+        # +0x02); (A2) the render-node list walk (is Kerrich drawn?). Predict with Kerrich bound:
+        # count == visible-1, registry membership ABSENT, node present. Rerun after the spike's
+        # SHIFT+F5 (Canary 5 refresh): a count bump + membership = the fix candidate is live.
+    python tools\\probes\\spawn_probe.py peek <hex-addr> [more...]   # read-only hexdump
+    python tools\\probes\\spawn_probe.py poke <hex-addr> <hex-byte>  # guarded 1-byte write (throwaway save)
     python tools\\probes\\spawn_probe.py --selftest
-        # offline: constants arithmetic + classifier/fill-plan logic. No game required.
+        # offline: constants arithmetic + classifier/fill-plan/verdict logic. No game required.
+
+CONSTRUCTION PIPELINE (static ic_disasm map 2026-07-10; supersedes the "0x140275F80 model builder"
+handoff line, which was a mid-prologue address into a STAT-PREVIEW helper, not the live constructor):
+  The real per-unit live-slot builder is the battle-init loop 0x140270D5C (5 units/call, combat
+  slots {0-4} or {16-20}; called 0x1403047D5/0x140304B7B/0x140304B85 over the pre-digested 8-byte
+  deploy table [0x14078DE38]). Per unit it: writes combat +0x01 = model id (NOT 0xFF); runs the
+  stat constructor 0x14EF1F570 -> 0x14EF0F185 (twin of preview 0x140275F6C); THEN tests source+3
+  bit 0x10: if SET, forces +0x01=0xFF, +0x1B5=0, and SKIPS the draw-bind (build-then-disable);
+  if CLEAR, does sprite-resolve 0x14F1D391E + draw-cmd enqueue 0x15076D158 + draw-state init
+  0x14F1BC33B + sets +0x1B5=1. THE draw gate is combat +0x01 (0xFF = do-not-draw). The render NODE
+  a unit needs to actually draw is a SEPARATE structure (linked list [0x140D3A410], 0x548-stride
+  nodes) bound by scene-build 0x1401D513A off combat +0x54 (a node index the init loop never
+  writes); 0x15076D158's table 0x141856720 is only a 16-entry per-frame draw-command QUEUE, NOT the
+  node list (disjoint xrefs). AddUnit-EVENT path is DEAD: the alleged {44} Draw dispatch 0x1401EBDEE
+  is a UI name resolver, not a PSX opcode table. FRANK: stats present + turn seat + +0x01=0xFF blob
+  == the build-then-disable fingerprint IF he passed through 0x140270D5C, but that loop owns only
+  slots {0-4}/{16-20}, so `drawstate` on his slot settles it: +0x1B5==0 => data-fix viable (clear
+  the disable bit, traced via a CE write-bp on [0x14078DE38] to name the nxd column); +0x1B5==0xFF
+  => built elsewhere, disable bit is NOT the cause; +0x1B5==1 => downstream render-bind fault.
 
 LIVE RESULTS (owner-run sessions 2026-07-09):
   Census: ACTIVE units read P1 mostly 0x01 with 0x00/0xFF exceptions on frozen/mirror-suspect
@@ -190,9 +236,49 @@ A_INBATTLE = 0x12        # INB: combat +0x2E low byte, pulsing trap, read-only r
 A_X18_ECHO = 0x172       # X18: ENTD 0x18 linear extrapolation, low confidence, read-only
 A_LOAD_ECHO = 0x15B      # LOAD: ENTD 0x01 linear extrapolation, low confidence, read-only
 A_CT_TURN = 0x09         # band +0x09 = combat +0x25 (Offsets.ACtTurn): the proven turn-count
+# Draw-state bytes from the construction-pipeline decode (2026-07-10). All band-entry-relative:
+# combat +C == band entry + (C - 0x1C), the same convention as A_COUNTER (combat +0x07 = -0x15).
+A_MODEL_ID = -0x1B       # combat +0x01: the DRAW GATE (0xFF = do-not-draw); init loop 0x140270D5C
+A_NODEBIND = 0x1A0       # combat +0x1BC: bind id stamped by scene-build 0x1401D513A (node match key)
+A_DISABLE_MIRROR = 0x35  # combat +0x51: low 7 bits mirror deploy-table source+3; bit 0x10 = disable
+A_NODE_INDEX = 0x38      # combat +0x54: node-pool index scene-build keys on (init loop never writes)
+# NOTE: A_PRESENT (0x199) == combat +0x1B5, the init-loop present marker: 0xFF vacant/bad-template/
+# blanked, 0x00 constructed-but-disabled (build-then-disable), 0x01 constructed-and-draw-bound.
                          # READ. The harness A_CT (band +0x25) is the ExtraTurn slam WRITE
                          # byte; its reads are documented unreliable (Offsets.ACtSlam), so
                          # activate samples it only as a secondary signal.
+
+# LW-58 AI-FREEZE CENSUS (overnight static hunt + abort-loop disasm, 2026-07-10). The IC engine
+# keeps a per-unit AI-object REGISTRY (the PSX AI Data block 0x8019f3c4's port; the PSX itself had
+# NO registry, every AI loop was a fixed 21-slot sweep, so this layer is IC re-architecture) that
+# the spawn recipe never enrolls Kerrich in:
+#   AI_REGISTRY    56 qword slots -> per-unit AI objects. No static writer: populated ONLY by the
+#                  builder 0x140284FE4; consumers deref unguarded.
+#   AI_COUNT_BYTE  the cached unit count. Written ONLY as the byte-exact discrete-event sequence
+#                  `call 0x140284FE4(ecx=0, r8d=0); mov [count], al; call 0x140284738` at
+#                  0x1402EF397/0x1402EF8F6 (0x140284738 has NO other callers, so the pair IS the
+#                  refresh event; nearby sites 0x1402EF4B5/0x1402EF5DC store the count with a
+#                  nonzero r8d mode filter and no paired call).
+#   THE MATCH KEY  planner resolve loop 0x1402078F9..0x14020792F, disasm-verified: the scan base
+#                  lea at 0x1402078ED resolves to 0x141853CE1 = UnitsBase(0x141853CE0) + 1, and the
+#                  loop walks it +0x200/slot over the 21 combat slots. So it skips slots whose
+#                  combat +0x01 reads FF (the hide gate) and compares combat +0x02 BYTE
+#                  zero-extended vs aiObj word +0x2C (cmove keeps the slot). A full-loop miss
+#                  leaves -1 and 0x140207934 exits through the bare epilogue 0x140207A8A = the
+#                  silent abort = Wait. NOTE: the FIRST hunt synthesis had the key right (+0x02);
+#                  the +1 base is what makes skip=+0x01, key=+0x02 (the result-arithmetic lea at
+#                  0x14020793E uses the true base +0, confirming the scan pointer's pre-increment).
+AI_COUNT_BYTE = 0x140D407BB
+AI_REGISTRY = 0x141800F50
+AI_REGISTRY_SLOTS = 0x38
+AI_OBJ_MATCH_OFF = 0x2C
+AI_PLANNER_IDX = 0x141811428   # word: the registry index the abort loop's deref is fed with
+NODE_LIST_HEAD = 0x140D3A410   # render list: +0x00 next; combat backref candidates below
+NODE_LINK_OFFS = (0x148, 0x150)  # 0x148 = the hunt's backref; 0x150 = the spike's stage-2 link
+NODE_WALK_MAX = 64
+COMBAT_BASE = 0x141853CE0      # BattleUnitsBase (== _band_entry_addr(8) - 0x1C, selftested)
+COMBAT_SLOTS = 21
+FRANK_SLOT = 7                 # battle 435's inserted unit (combat base 0x141854AE0)
 
 # Unit-to-treasure conversion signature, decoded from the owner's deathdiff tape 2026-07-09
 # (s15 corpse -> chest pop, all edges in one 100ms frame): dead +0x45 bit 0x20 CLEARS (0x40
@@ -239,6 +325,12 @@ HEX_WINDOWS = ((0x190, 0x18), (0x158, 0x30))
 
 def _u16(core, off):
     return struct.unpack_from("<H", core, off)[0]
+
+
+def _ru64(addr):
+    """None-safe guarded u64 read (rpm-backed, like ru8/ru16)."""
+    b = rpm(addr, 8)
+    return None if b is None else struct.unpack("<Q", b)[0]
 
 
 def _classify(valid, core):
@@ -304,6 +396,133 @@ def _has_identity_anchor(lvl, mhp):
     plausible level or maxHP. Neither valid means there is nothing to activate; filling every
     field by hand would FABRICATE a unit (the known-dead write-and-hold path)."""
     return (lvl is not None and 1 <= lvl <= 99) or (mhp is not None and 1 <= mhp < 2000)
+
+
+def _drawstate_verdict(model_id, present, disable_bit=None):
+    """Pure: classify a slot's draw state from combat +0x01 (model id / draw gate), combat
+    +0x1B5 (the present marker), and combat +0x51 & 0x10 (the loop-0x140270D5C disable-bit
+    mirror; True set / False clear / None unread), per the construction decode (2026-07-10).
+    Returns (code, message). The disable bit splits the two ways a unit ends up present==0x00:
+      DRAWN         present 0x01 + a real (non-0xFF) model id: constructed AND draw-bound.
+      ANOMALY       present 0x01 but model id 0xFF: draw-bind ran yet the gate is closed ->
+                    a downstream render-bind fault.
+      DISABLED-BIT  present 0x00 AND +0x51 bit 0x10 SET: the loop-0x140270D5C build-then-disable
+                    path. Fix is DATA-LAYER: clear the deploy-table source+3 bit 0x10.
+      HIDDEN        present 0x00 AND +0x51 bit 0x10 CLEAR: constructed but hidden by a DIFFERENT
+                    loader (this loop's disable bit is NOT the cause): the loaded-but-not-
+                    displayed state a {44} Draw / reveal flips. Fix = the roster loader's ENTD
+                    presence flag (data-layer) or the reveal routine (cold-call), NOT that bit.
+      DISABLED     present 0x00, disable-bit unread: constructed but not drawn, cause unresolved.
+      VACANT       present 0xFF: vacant / bad-template / blanked, built by another loader.
+    """
+    if present is None or model_id is None:
+        return "UNREADABLE", "slot bytes unreadable (not in battle, or wrong slot)"
+    if present == 0x01:
+        if model_id == 0xFF:
+            return "ANOMALY", ("draw-bind ran (present=1) but the +0x01 gate is 0xFF: a downstream "
+                               "render-bind fault, not the disable bit")
+        return "DRAWN", "constructed and draw-bound; this slot should render normally"
+    if present == 0x00:
+        if disable_bit is True:
+            return "DISABLED-BIT", ("loop-0x140270D5C build-then-disable: DATA-LAYER fix, clear "
+                                    "the deploy-table source+3 bit 0x10 (combat +0x51 & 0x10)")
+        if disable_bit is False:
+            return "HIDDEN", ("constructed but hidden by a DIFFERENT loader: the +0x51 disable bit "
+                              "is already CLEAR, so that loop is NOT the cause. This is the loaded-"
+                              "but-not-displayed state a reveal / {44} Draw flips: fix = the roster "
+                              "loader's ENTD presence flag or the reveal routine, NOT that bit")
+        return "DISABLED", "constructed but not drawn (present=00); disable-bit read unavailable"
+    if present == 0xFF:
+        return "VACANT", ("vacant / bad-template / blanked by this init loop: stats came from a "
+                          "different loader, so its disable bit is NOT this blob's cause")
+    return "UNKNOWN", f"present marker 0x{present:02X} is not a recognized value"
+
+
+# banddiff annotations, keyed COMBAT-relative (combat +C == band + (C - 0x1C)). The two SUSPECT
+# rows are the pre-registered candidates from the ENTD insert session (band +0x175 read FE, the
+# unassigned-id shape; band +0x1A2 read 00 where every real unit reads 01) for the Canary 3
+# finding that the AI planner idles with Kerrich enrolled even while he is held turnless.
+BANDDIFF_ANNOT = {
+    0x01: "model id / draw gate",
+    0x03: "job",
+    0x05: "team color",
+    0x07: "crystal/heart counter",
+    0x25: "turn count (band +0x09)",
+    0x2E: "inb pulse (reads unreliable)",
+    0x41: "CT slam byte (band +0x25)",
+    0x51: "deploy disable mirror",
+    0x54: "node index (scene-build key)",
+    0x57: "innate status, 5B (band +0x3B..)",
+    0x61: "composed status, 5B (band +0x45..; Dead = +0x61 bit 0x20)",
+    0x66: "poison timer (band +0x4A)",
+    0x191: "SUSPECT: unassigned-id shape (band +0x175; FE on Frank)",
+    0x196: "ENTD AI mirror, 8B (band +0x17A..0x181; +0x199 = AI Flags1, +0x19A = Target UID)",
+    0x1B5: "present marker",
+    0x1B8: "PSX turn flags, 4B (turn/moved/acted/outcome)",
+    0x1BC: "bind id (node match key)",
+    0x1BE: "SUSPECT: real-unit marker (band +0x1A2; 00 on Frank, 01 on real units)",
+    0x1DB: "pending status-add, 5B",
+    0x1EF: "inflicted status, 5B (band +0x1D3..)",
+}
+BANDDIFF_SPANS = {0x57: 5, 0x61: 5, 0x196: 8, 0x1B8: 4, 0x1DB: 5, 0x1EF: 5}
+
+
+def _banddiff_annot(start, end):
+    """Pure: annotations whose field span overlaps the combat-relative range [start, end)."""
+    notes = []
+    for off in sorted(BANDDIFF_ANNOT):
+        span = BANDDIFF_SPANS.get(off, 1)
+        if start < off + span and off < end:
+            notes.append(f"+0x{off:03X} {BANDDIFF_ANNOT[off]}")
+    return "; ".join(notes)
+
+
+def _diff_byte_ranges(a, b):
+    """Pure: contiguous [start, end) ranges where a and b differ."""
+    out, start = [], None
+    for i in range(min(len(a), len(b))):
+        if a[i] != b[i]:
+            if start is None:
+                start = i
+        elif start is not None:
+            out.append((start, i))
+            start = None
+    if start is not None:
+        out.append((start, min(len(a), len(b))))
+    return out
+
+
+def _combat_slot_of(ptr):
+    """Pure: combat slot index if ptr is exactly a combat slot BASE, else None."""
+    if ptr is None:
+        return None
+    off = ptr - COMBAT_BASE
+    if 0 <= off < COMBAT_SLOTS * 0x200 and off % 0x200 == 0:
+        return off // 0x200
+    return None
+
+
+def _ai_cross_match(reg, slots):
+    """Pure: bidirectional orphan analysis between the AI registry and the combat slots,
+    replicating the planner's own match (skip combat +0x01 == FF; combat +0x02 byte vs obj word
+    +0x2C). reg: {registry idx: match word or None}; slots: {slot: (+0x01 gate, +0x02 key)}, Nones ok.
+    Returns (matches, orphan_objs, orphan_slots): matches [(idx, slot)]; orphan_objs = registry
+    entries whose word matches NO planner-visible slot (each is forward-abort fuel); orphan_slots
+    = planner-visible drawn slots no registry object matches (the predicted Kerrich class: a
+    planner pass that needs one of these resolves nothing and aborts to Wait). VISIBILITY is the
+    planner's OWN rule: skip only on gate +0x01 == FF (the hide byte). A key of 0xFF is NOT
+    skipped: it is the unassigned-id sentinel, and a drawn unit carrying it (proven live: Kerrich
+    reads +0x02 == FF) is exactly the unregistered case, so it MUST stay visible and surface as an
+    orphan slot. Only a None key (read failure) drops a slot, since it cannot be reasoned about."""
+    visible = {s: m for s, (b0, m) in slots.items()
+               if b0 is not None and b0 != 0xFF and m is not None}
+    matches = [(i, s) for i, w in reg.items() if w is not None
+               for s, m in visible.items() if w == m]
+    matched_objs = {i for i, _ in matches}
+    matched_slots = {s for _, s in matches}
+    orphan_objs = sorted(i for i, w in reg.items() if w is not None and i not in matched_objs)
+    orphan_slots = sorted(s for s in visible if s not in matched_slots)
+    return matches, orphan_objs, orphan_slots
 
 
 def _state(s):
@@ -621,6 +840,202 @@ def cmd_peek(addrs, length=0x100):
             mark = " <-- hit" if start + row <= addr < start + row + 0x10 else ""
             print(f"{start + row:012X}: "
                   + " ".join("%02X" % b for b in buf[row:row + 0x10]) + mark)
+
+
+def cmd_poke(addr, val):
+    """Guarded single-byte poke at an absolute address, with read-back (for chasing display
+    levers like combat +0x01 model id). THROWAWAY SAVE ONLY; announces old -> new -> readback."""
+    _require_game()
+    old = ru8(addr)
+    ok = wu8(addr, val & 0xFF)
+    back = ru8(addr)
+    print(f"poke 0x{addr:012X}: {_hx(old)} -> {_hx(val & 0xFF)} "
+          f"write={'OK' if ok else 'FAIL'} readback={_hx(back)}")
+
+
+def cmd_drawstate(slot):
+    """Read-only: print the init-loop (0x140270D5C) draw-state bytes for one slot plus the
+    verdict. THE decisive Frank check; see _drawstate_verdict for the branch meanings."""
+    _require_game()
+    if not (0 <= slot < BAND_SLOTS):
+        print(f"slot must be 0..{BAND_SLOTS - 1}")
+        sys.exit(2)
+    e = _band_entry_addr(slot)
+    model = ru8(e + A_MODEL_ID)
+    present = ru8(e + A_PRESENT)
+    dismir = ru8(e + A_DISABLE_MIRROR)
+    nodebind = ru8(e + A_NODEBIND)
+    nodeidx = ru8(e + A_NODE_INDEX)
+    core = rpm(e, CORE_LEN)
+    lvl = core[A_LEVEL] if core is not None else None
+    mhp = _u16(core, A_MAXHP) if core is not None else None
+    disable_bit = None if dismir is None else bool(dismir & 0x10)
+    dbit = "?" if disable_bit is None else "set" if disable_bit else "clear"
+    code, msg = _drawstate_verdict(model, present, disable_bit)
+    print(f"s{slot} (n={slot - 24:+d})  combat base 0x{e - 0x1C:012X}")
+    print(f"  +0x01  model id (draw gate)   {_hx(model)}   "
+          f"({'SKIP-DRAW' if model == 0xFF else 'drawable'})")
+    print(f"  +0x1B5 present marker         {_hx(present)}   (FF vacant / 00 disabled / 01 drawn)")
+    print(f"  +0x51  disable mirror         {_hx(dismir)}   (bit 0x10 = {dbit})")
+    print(f"  +0x1BC bind id                {_hx(nodebind)}")
+    print(f"  +0x54  node index             {_hx(nodeidx)}")
+    print(f"  level / maxhp                 {_n(lvl)} / {_n(mhp)}   "
+          f"(stats present = {'yes' if _has_identity_anchor(lvl, mhp) else 'no'})")
+    print(f"\n  VERDICT [{code}]: {msg}")
+
+
+def cmd_banddiff(sa, sb):
+    """Read-only: byte-diff two seats' full combat structs (0x200 each) with annotations, plus
+    the always-printed AI-visibility suspect table (equal values are evidence too). Long ranges
+    truncate to 16 bytes per side; use peek on the printed bases for the full window."""
+    _require_game()
+    for s in (sa, sb):
+        if not (0 <= s < BAND_SLOTS):
+            print(f"slot must be 0..{BAND_SLOTS - 1}")
+            sys.exit(2)
+    bases = [_band_entry_addr(s) - 0x1C for s in (sa, sb)]
+    bufs = [rpm(base, COMBAT_SLOT_LEN) for base in bases]
+    for s, base, buf in zip((sa, sb), bases, bufs):
+        if buf is None:
+            print(f"s{s} combat 0x{base:012X}: unreadable (in battle? game running?)")
+            sys.exit(1)
+
+    def hx(buf, st, en):
+        s16 = " ".join("%02X" % x for x in buf[st:min(en, st + 16)])
+        return s16 + (" .." if en - st > 16 else "")
+
+    print(f"banddiff s{sa} (combat 0x{bases[0]:012X}) vs s{sb} (combat 0x{bases[1]:012X}), "
+          f"{COMBAT_SLOT_LEN} bytes each; offsets are combat-relative (band = combat - 0x1C)")
+    ranges = _diff_byte_ranges(bufs[0], bufs[1])
+    print(f"\n{len(ranges)} differing range(s), {sum(e - s for s, e in ranges)} byte(s) total:")
+    for st, en in ranges:
+        note = _banddiff_annot(st, en)
+        print(f"  +0x{st:03X}..+0x{en - 1:03X} ({en - st:3d}B)  s{sa}: {hx(bufs[0], st, en)}  "
+              f"s{sb}: {hx(bufs[1], st, en)}" + (f"   <- {note}" if note else ""))
+    print("\nAI-visibility suspects (always shown):")
+    for off in sorted(BANDDIFF_ANNOT):
+        span = BANDDIFF_SPANS.get(off, 1)
+        va = " ".join("%02X" % x for x in bufs[0][off:off + span])
+        vb = " ".join("%02X" % x for x in bufs[1][off:off + span])
+        flag = "  DIFF" if bufs[0][off:off + span] != bufs[1][off:off + span] else ""
+        print(f"  combat +0x{off:03X}  s{sa}: {va:<24} s{sb}: {vb:<24} {BANDDIFF_ANNOT[off]}{flag}")
+
+
+def cmd_aicensus():
+    """Read-only LW-58 AI-freeze census: cached count vs drawn slots (A1), registry cross-match
+    by the planner's own disasm-verified key (A4), render-node list walk (A2). Run once with
+    Kerrich bound (predict: unregistered) and again after the spike's SHIFT+F5 Canary 5 refresh.
+    Planner key (abort-loop disasm 2026-07-10, base lea 0x1402078ED = UnitsBase+1): skip a slot
+    whose combat +0x01 reads FF, match combat +0x02 BYTE vs registry object word +0x2C."""
+    _require_game()
+    frank = COMBAT_BASE + FRANK_SLOT * 0x200
+
+    print("=== combat slots (the planner's fixed 21-slot walk; vacant seats omitted) ===")
+    slots = {}
+    for slot in range(COMBAT_SLOTS):
+        base = COMBAT_BASE + slot * 0x200
+        gate, key = ru8(base + 0x01), ru8(base + 0x02)   # planner skip byte, planner match key
+        job, present = ru8(base + 0x03), ru8(base + 0x1B5)
+        id1, id2 = ru8(base + 0x191), ru8(base + 0x192)
+        slots[slot] = (gate, key)
+        if gate in (None, 0xFF) and job in (None, 0x00):
+            continue
+        tag = "   <- FRANK/Kerrich" if base == frank else ""
+        print(f"  slot {slot:2d} 0x{base:012X}: +01 gate {_hx(gate)} +02 key {_hx(key)} "
+              f"job {_hx(job)} present {_hx(present)} identity {_hx(id1)} {_hx(id2)}{tag}")
+
+    cnt = ru8(AI_COUNT_BYTE)
+    drawn = sum(1 for gate, key in slots.values() if gate not in (None, 0xFF))
+    print(f"\nA1 cached AI unit count 0x{AI_COUNT_BYTE:X} = {_n(cnt)} vs planner-visible slots "
+          f"(+0x01 != FF) = {drawn}")
+    print("   (Kerrich bound and never refreshed predicts cached == visible - 1)")
+
+    print(f"\nA4 AI-object registry 0x{AI_REGISTRY:X} (planner match: obj word +0x2C == combat +0x02):")
+    # Planner-visible slots: gate +0x01 != FF AND key +0x02 readable. A key of 0xFF stays visible
+    # (it is the unassigned-id sentinel; proven live: Kerrich reads +0x02 == FF), so it surfaces as
+    # an orphan slot rather than being hidden. The per-row match and the summary cross-match must
+    # both key on exactly this set (finding: the two must not disagree).
+    visible = {s: k for s, (g, k) in slots.items()
+               if g not in (None, 0xFF) and k is not None}
+    reg = {}
+    for i in range(AI_REGISTRY_SLOTS):
+        q = _ru64(AI_REGISTRY + i * 8)
+        if not q:
+            continue
+        w = ru16(q + AI_OBJ_MATCH_OFF)
+        reg[i] = w
+        if w is None:
+            suffix = "  (word unreadable; excluded from orphan analysis)"
+        else:
+            s = next((s for s, k in visible.items() if k == w), None)
+            suffix = f"  = slot {s}" if s is not None else "  = NO SLOT (forward-abort fuel)"
+        word = f"{w:04X}" if w is not None else "????"
+        print(f"  [{i:2d}] obj 0x{q:012X} +0x2C {word}{suffix}")
+    matches, orphan_objs, orphan_slots = _ai_cross_match(reg, slots)
+    frank_matched = FRANK_SLOT in {s for _, s in matches}
+    frank_visible = FRANK_SLOT in visible
+    print(f"  planner idx word 0x{AI_PLANNER_IDX:X} = {_n(ru16(AI_PLANNER_IDX))}")
+    print(f"  {len(reg)} object(s), {len(matches)} match(es); orphan objects: "
+          f"{orphan_objs or 'none'}; unregistered drawn slots: {orphan_slots or 'none'}")
+    frank_key = slots.get(FRANK_SLOT, (None, None))[1]
+    if FRANK_SLOT in orphan_slots:
+        keynote = " (the 0xFF unassigned-id sentinel)" if frank_key == 0xFF else ""
+        print(f"  >>> KERRICH IS UNREGISTERED: drawn + planner-visible, his +0x02 key {_hx(frank_key)}"
+              f"{keynote}"
+              "\n      matches no registry object. This is the freeze fingerprint, but the SHIFT+F5"
+              "\n      bulk-rebuild refresh is FALSIFIED (it corrupted the count to a nonsense value"
+              "\n      and spawned phantom objects, and did NOT enroll him). The open lever is the"
+              "\n      per-unit ENROLLMENT routine that writes his +0x02 id + a matching registry"
+              "\n      +0x2C object. NOTE the Ramza datum: a real unit on auto-battle also Waits, so"
+              "\n      confirm the isolation test (bind, NO refresh, Ramza auto-battle) first.")
+    elif frank_matched:
+        print("  >>> Kerrich IS registered (a registry object matches his +0x02 key): pair with what"
+              "\n      the enemy AI does. Caveat: +0x02 is not proven unique, so a coincidental key"
+              "\n      collision could false-positive; the enemy-AI eyeball is the primary signal.")
+    elif slots.get(FRANK_SLOT, (None, None))[0] not in (None, 0xFF):
+        print("  >>> Kerrich's +0x01 gate is drawable but his +0x02 key read FAILED (None): the"
+              "\n      census could not classify his registry state. Re-run paused on a settled frame.")
+
+    print(f"\nA2 render-node walk from [0x{NODE_LIST_HEAD:X}] (+0x00 next; combat backrefs at "
+          + ", ".join(f"+0x{o:X}" for o in NODE_LINK_OFFS) + "):")
+    head = _ru64(NODE_LIST_HEAD)
+    ptr = head
+    seen = set()
+    frank_drawn = False
+    truncated = False
+    while ptr and ptr not in seen and len(seen) < NODE_WALK_MAX:
+        seen.add(ptr)
+        links = []
+        for off in NODE_LINK_OFFS:
+            s = _combat_slot_of(_ru64(ptr + off))
+            if s is not None:
+                frank_drawn |= s == FRANK_SLOT
+                links.append(f"+0x{off:X} -> slot {s}" + (" FRANK" if s == FRANK_SLOT else ""))
+        print(f"  node 0x{ptr:012X}  " + ("; ".join(links) if links else "no combat backref"))
+        ptr = _ru64(ptr)
+        if ptr is None:
+            truncated = True
+            break
+    complete = True
+    if head is None:
+        print("  (list head unreadable; NO walk performed)")
+        complete = False
+    elif truncated:
+        print("  (next pointer unreadable; walk TRUNCATED, absence NOT proven)")
+        complete = False
+    elif ptr and ptr in seen:
+        print("  (list cycles back; walk complete)")
+    elif len(seen) >= NODE_WALK_MAX:
+        print(f"  (stopped at the {NODE_WALK_MAX}-node safety bound; absence NOT proven)")
+        complete = False
+    # else ptr == 0: clean NULL terminator, walk complete.
+    if frank_drawn:
+        verdict = "YES"
+    elif complete:
+        verdict = "no (walk completed)"
+    else:
+        verdict = "UNKNOWN (walk did not complete; see the note above)"
+    print(f"  {len(seen)} node(s); Kerrich present in the render list: {verdict}")
 
 
 def cmd_addr(slot):
@@ -968,8 +1383,61 @@ def _selftest():
     check("X18 = ENTD 0x18 + echo delta 0x15A", A_X18_ECHO, 0x18 + 0x15A)
     check("LOAD = ENTD 0x01 + echo delta 0x15A", A_LOAD_ECHO, 0x01 + 0x15A)
     check("CT-turn read = combat 0x25 - band 0x1C", A_CT_TURN, 0x25 - 0x1C)
+    # banddiff: the pure differ + annotation overlap (Canary 3 AI-visibility instrument).
+    check("banddiff: identical buffers diff empty", _diff_byte_ranges(b"\x00" * 8, b"\x00" * 8), [])
+    check("banddiff: two ranges found",
+          _diff_byte_ranges(b"\x00\x01\x02\x03\x04", b"\x00\xFF\x02\x03\xEE"), [(1, 2), (4, 5)])
+    check("banddiff: trailing run closes", _diff_byte_ranges(b"\xAA\xBB", b"\xAA\xCC"), [(1, 2)])
+    check("banddiff: suspect 0x191 annotated",
+          "unassigned-id" in _banddiff_annot(0x191, 0x192), True)
+    check("banddiff: multi-byte span overlap (turn flags tail)",
+          "turn flags" in _banddiff_annot(0x1BB, 0x1BD), True)
+    check("banddiff: suspect 0x1BE annotated via same range",
+          "real-unit marker" in _banddiff_annot(0x1BB, 0x1BF), True)
+    check("banddiff: unannotated gap is empty", _banddiff_annot(0x100, 0x110), "")
+    # Draw-state offsets (construction-pipeline decode 2026-07-10; combat +C = band +(C-0x1C)).
+    check("model id = combat 0x01 - band 0x1C", A_MODEL_ID, 0x01 - 0x1C)
+    check("present marker = combat 0x1B5 - band 0x1C", A_PRESENT, 0x1B5 - 0x1C)
+    check("bind id = combat 0x1BC - band 0x1C", A_NODEBIND, 0x1BC - 0x1C)
+    check("disable mirror = combat 0x51 - band 0x1C", A_DISABLE_MIRROR, 0x51 - 0x1C)
+    check("node index = combat 0x54 - band 0x1C", A_NODE_INDEX, 0x54 - 0x1C)
+    # Draw-state verdict branches (the Frank decision tree; disable bit splits present==0).
+    check("verdict: present 1 + real model = DRAWN", _drawstate_verdict(0x02, 0x01)[0], "DRAWN")
+    check("verdict: present 1 + model FF = ANOMALY", _drawstate_verdict(0xFF, 0x01)[0], "ANOMALY")
+    check("verdict: present 0 + bit set = DISABLED-BIT",
+          _drawstate_verdict(0xFF, 0x00, True)[0], "DISABLED-BIT")
+    check("verdict: present 0 + bit clear = HIDDEN (Frank)",
+          _drawstate_verdict(0xFF, 0x00, False)[0], "HIDDEN")
+    check("verdict: present 0 + bit unread = DISABLED",
+          _drawstate_verdict(0xFF, 0x00, None)[0], "DISABLED")
+    check("verdict: present FF = VACANT", _drawstate_verdict(0x02, 0xFF)[0], "VACANT")
+    check("verdict: unreadable read = UNREADABLE", _drawstate_verdict(None, None)[0], "UNREADABLE")
+    check("verdict: odd marker = UNKNOWN", _drawstate_verdict(0x02, 0x07)[0], "UNKNOWN")
     check("band stride", _band_entry_addr(24) - _band_entry_addr(23), 0x200)
     check("player threshold", PLAYER_SLOT_THRESHOLD, 24)
+
+    # LW-58 AI-freeze census (abort-loop disasm 2026-07-10): constants + the pure cross-match.
+    check("census: combat base == band seat 8 base", _band_entry_addr(8) - 0x1C, COMBAT_BASE)
+    check("census: Frank slot 7 combat base", COMBAT_BASE + FRANK_SLOT * 0x200, 0x141854AE0)
+    check("census: slot-of maps Frank's base", _combat_slot_of(0x141854AE0), 7)
+    check("census: slot-of rejects an interior pointer", _combat_slot_of(0x141854AE1), None)
+    check("census: slot-of rejects past-the-array", _combat_slot_of(COMBAT_BASE + 21 * 0x200), None)
+    check("census: slot-of rejects None", _combat_slot_of(None), None)
+    # Cross-match fixtures are (gate=+0x01, key=+0x02) per slot: slot 3 is registered (matches reg
+    # obj 0), slot 7 is drawn + unregistered with a normal key, slot 9 is drawn + unregistered with
+    # the 0xFF unassigned sentinel (the REAL Kerrich case: it must stay VISIBLE and surface as an
+    # orphan, not be hidden), slot 8's gate FF is planner-skipped (its key 9 must NOT rescue reg obj
+    # 1), slot 10's gate is unreadable.
+    cm_reg = {0: 3, 1: 9, 2: None}
+    cm_slots = {3: (0x01, 3), 7: (0x01, 7), 8: (0xFF, 9), 9: (0x01, 0xFF), 10: (None, None)}
+    cm_m, cm_oo, cm_os = _ai_cross_match(cm_reg, cm_slots)
+    check("census: match pairs registry entry to slot", cm_m, [(0, 3)])
+    check("census: stale object is a forward orphan (slot 8 gate FF is +0x01-skipped)", cm_oo, [1])
+    check("census: both unregistered drawn slots surface (7 normal key, 9 the 0xFF sentinel)",
+          cm_os, [7, 9])
+    check("census: the 0xFF-key sentinel slot IS an orphan (Kerrich stays visible)", 9 in cm_os, True)
+    check("census: gate-FF and unreadable slots never orphan",
+          [s for s in (8, 10) if s in cm_os], [])
 
     # Classifier logic.
     check("classify valid", _classify(True, None), "ACTIVE")
@@ -1085,11 +1553,36 @@ def main():
             sys.exit(2)
         cmd_findrender(int(args[1]))
         return
+    if args[0] == "poke":
+        if len(args) < 3:
+            print("usage: poke <hex-addr> <hex-byte>")
+            sys.exit(2)
+        try:
+            cmd_poke(int(args[1], 16), int(args[2], 16))
+        except ValueError:
+            print("usage: poke <hex-addr> <hex-byte>")
+            sys.exit(2)
+        return
     if args[0] == "addr":
         if len(args) < 2 or not args[1].lstrip("-").isdigit():
             print("usage: addr <slot>")
             sys.exit(2)
         cmd_addr(int(args[1]))
+        return
+    if args[0] == "drawstate":
+        if len(args) < 2 or not args[1].lstrip("-").isdigit():
+            print("usage: drawstate <slot>")
+            sys.exit(2)
+        cmd_drawstate(int(args[1]))
+        return
+    if args[0] == "banddiff":
+        if len(args) < 3 or not args[1].lstrip("-").isdigit() or not args[2].lstrip("-").isdigit():
+            print("usage: banddiff <slotA> <slotB>")
+            sys.exit(2)
+        cmd_banddiff(int(args[1]), int(args[2]))
+        return
+    if args[0] == "aicensus":
+        cmd_aicensus()
         return
     if args[0] == "inflict":
         nums = [x for x in args[1:3] if x.lstrip("-").isdigit()]
