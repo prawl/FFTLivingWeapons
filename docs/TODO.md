@@ -231,6 +231,34 @@ is the in-flight subset, not a mirror of that checklist.
   battle (EventId 4) is scripted with guests, where the actor and kill-detection path may not engage
   the same way as a normal battle.
 
+- [LW-64] 2026-07-10: Mirror Image ability concept (owner): flip a unit's hide gate (combat +0x01
+  to 0xFF) to phase it out of logic while the render weld leaves its sprite standing, dodging
+  locked-on spells for a turn; every primitive live-proven in the LW-58 gate-toggle session.
+  DECISIVE UNKNOWN first: does a CHARGED spell whiff when its target is hidden at resolution
+  (cheap CE test: bait a charge, gate-FF the target pre-resolve, watch)? Known hazards to guard:
+  restoring onto an occupied tile co-tiles into the movement soft-lock (proven live); a mid-hide
+  autosave persists the hidden state into resumes (proven live, needs a battle-enter un-strand
+  sweep); hidden units get no scheduler turns, so the restore trigger must be external (other
+  units' acted edges, or the dodged action resolving). Castable wrapper when built: JobCommand
+  injection plus an action-record watch (the Barrage lane).
+  2026-07-10 later: THE DECISIVE TEST PASSED (owner live): a mid-cast Slow whiffed entirely when
+  the target was gate-hidden during the cast animation, so hide-at-resolution defeats locked-on
+  actions and the core fantasy is proven. New side effect to chase before any build: the whiffed
+  resolution DISPLACED the hidden unit one tile (unexplained; possibly target-snap bookkeeping
+  applying to a unit the effect could not find).
+
+- [LW-65] 2026-07-10: Unit TELEPORT is proven live (LW-58 session): the render
+  position was the missing layer (render node +0x4C/+0x50 u16 world X/Y = 28*tile + 14; node via
+  list head 0x140D3A410, +0x148 combat backref), and a coherent triple-write (combat +0x4F/+0x50
+  logic, node +0x88/+0x89 AI tile key, node +0x4C/+0x50 world) moved a real enemy who then
+  hovered correctly and took a normal AI turn from the new tile, after which the engine re-stamps
+  every layer itself. Un-parks the Knockback family (position-write-desync memory updated) and
+  gives Mirror Image its restore-displacement primitive. Same night: the Z formula was solved
+  (node +0x4E = -12 x height; full set X=28x+14, Y=28y+14, Z=-12h) and a complete TWO-UNIT
+  POSITION SWAP (Ramza and a live enemy, all layers, own facing kept) executed flawlessly with
+  both units acting normally after. Open before any shipped mechanic: a tile-occupancy check
+  (co-tile = target shadowing + movement lock) and a LIVE_LEDGER row (owner flip).
+
 ## Walled (blocked by engine / Denuvo / modloader)
 
 - Fix the sword swing-art (art welded to weapon id; the same render node also drives damage).

@@ -14,6 +14,15 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 
 ### Proven levers and buffs
 
+- MOVE ANY UNIT ANYWHERE mid-battle (full teleport + two-unit position swap) -- PROVEN LIVE
+  2026-07-10: the render position was the missing layer for a month (the Knockback wall); a
+  coherent triple-write of combat +0x4F/+0x50 (logic tile, +0x51 bit7 layer), the render node's
+  AI tile key +0x88/89/8A, and the node's world coords +0x4C/+0x4E/+0x50 (X=28x+14, Y=28y+14,
+  Z=-12*height; node via list head 0x140D3A410, +0x148 combat backref) moves a unit completely:
+  it hovers, paths, and acts from the new tile, and the engine re-adopts every layer after its
+  first real move. A live Ramza-with-enemy FULL SWAP (each keeping own facing) executed
+  flawlessly. Only remaining guard for a shipped mechanic: a tile-occupancy check (co-tiled
+  units = slot-order target shadowing + movement lock, proven live).
 - Add two support abilities to one unit -- PROVEN.
 - Add a new castable ability to a weapon via JobCommand injection -- PROVEN/shipped (Sanguine Sword -> Shadow Blade, ability 165); the record is JOB-GLOBAL, so same-job enemies cast it too (known leak; fixes = turn-team gate at TurnQueue+0x02, restrict the grant to Ramza's Mettle records, or drop the command-grant entirely for a new per-unit write+hold +3 signature since the sword keeps its innate HP-drain Formula 6).
 - Two counter (reaction) abilities can coexist on one unit -- PROVEN (the "give two counters that work together" idea; scrapped as a standalone signature).
@@ -43,6 +52,18 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 
 ### Buildable now (levers proven; the signature itself is not yet built or verified)
 
+- TRANSPOSITION / the displacement family (owner priority 2026-07-10; built on the proven
+  full-teleport triple-write above): swap self with the target (Transposition strike), guaranteed
+  Knockback/pull (shove the victim a real tile, sprite and all), reposition an ally (Rescue
+  Throw). Cast wrapper = the JobCommand-injection lane + an action-record watch; the occupancy
+  check is the one guard to build first.
+- Mirror Image (owner concept, ledger LW-64; core premise PROVEN 2026-07-10): flip the unit's
+  hide gate (+0x01 = FF) so a locked-on action WHIFFS at resolution (proven live: a mid-cast Slow
+  resolved into nothing) while the render weld leaves the sprite standing = an untargetable
+  after-image for a turn. Hazards mapped: restore-tile occupancy (solvable with the teleport
+  primitive), autosave persists the hidden state (needs a battle-enter un-strand sweep), hidden
+  units get no turns (external restore trigger); one side effect to chase (the whiff displaced
+  the hidden unit one tile).
 - Give Monks' Poles and make Claw weapons
 - Turn the JP points into HP or a shield buff for HP
 - Soul Ledger (Knight sword): each kill this battle stacks +1 PA (+1 Speed per 3rd soul, capped) -- our own kill-tally driving a live within-battle power gauge.
@@ -66,7 +87,9 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 - Last Word ("retain the last ability used on you", gun): record the last ability an enemy used on you and re-cast it back at them (reflects physical skills true Reflect can't). Probe: does the recent-action field capture the attacker's ABILITY id?
 - Bloodpact Tether (Blood Sword): soul-link to an ally; damage to either splits across both HP pools; if either hits 0, both fall. Probe: per-tick read-both / split / write+hold racing the engine's damage write.
 - Phylactery Oath (Chaos Blade/Ragnarok): the first KO seeds a 3-turn timer, then snap back at full HP (later kills grow at half rate). Probe: can a unit be held KO'd-but-in-roster N turns without engine eviction?
-- Knockback: write a victim's gx/gy one tile to shove it. PARKED (effectively walled): band gx/gy writes are engine-authoritative (AI paths from them) but the renderer never re-derives -> compounding sprite desync.
+- Knockback: write a victim's gx/gy one tile to shove it. UN-PARKED 2026-07-10: the old wall
+  (renderer never re-derives from gx/gy) is beaten by the full-teleport triple-write (see the
+  Confirmed lever at the top); absorbed into the Transposition/displacement family above.
 
 ### Moonshot (needs tech we do not have yet; each names its wall)
 
