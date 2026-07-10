@@ -122,8 +122,43 @@ on a half-activated unit (null-sprite AV precedent, clone_probe).
         # committed region for pointers to the slot's combat base / band entry: any IC
         # equivalent struct should hold one. Read-only. Run on a LIVE unit first (control),
         # then on the chest slot; diff the two candidates' surroundings.
+    python tools\\probes\\spawn_probe.py drawstate <slot>
+        # read-only: print the init-loop (0x140270D5C) draw-state bytes for one slot and the
+        # verdict: is a blob-rendering unit constructed-but-DISABLED (data-layer fix: clear
+        # the source+3 bit 0x10) or built by a different loader (blob is a render-bind fault)?
+        # This is the decisive Frank check: present marker combat +0x1B5 discriminates
+        # FF vacant / 00 disabled / 01 drawn (construction-pipeline decode 2026-07-10).
+    python tools\\probes\\spawn_probe.py banddiff <slotA> <slotB>
+        # read-only: byte-diff two seats' FULL combat structs (0x200 each) with every known
+        # field annotated, plus an always-printed AI-visibility suspect table. THE
+        # Kerrich-vs-real-NPC instrument (Canary 3 falsified the turn-stall hypothesis: Frank
+        # held turnless and the AI STILL waited, so the AI planner chokes on his half-state;
+        # the fields it reads are what this diff surfaces). Run paused in battle 435 AFTER the
+        # F5 bind: A = Frank's seat (s15), B = a real AI unit (an enemy s8..s14), and also
+        # diff B vs another real enemy as the noise CONTROL.
+    python tools\\probes\\spawn_probe.py peek <hex-addr> [more...]   # read-only hexdump
+    python tools\\probes\\spawn_probe.py poke <hex-addr> <hex-byte>  # guarded 1-byte write (throwaway save)
     python tools\\probes\\spawn_probe.py --selftest
-        # offline: constants arithmetic + classifier/fill-plan logic. No game required.
+        # offline: constants arithmetic + classifier/fill-plan/verdict logic. No game required.
+
+CONSTRUCTION PIPELINE (static ic_disasm map 2026-07-10; supersedes the "0x140275F80 model builder"
+handoff line, which was a mid-prologue address into a STAT-PREVIEW helper, not the live constructor):
+  The real per-unit live-slot builder is the battle-init loop 0x140270D5C (5 units/call, combat
+  slots {0-4} or {16-20}; called 0x1403047D5/0x140304B7B/0x140304B85 over the pre-digested 8-byte
+  deploy table [0x14078DE38]). Per unit it: writes combat +0x01 = model id (NOT 0xFF); runs the
+  stat constructor 0x14EF1F570 -> 0x14EF0F185 (twin of preview 0x140275F6C); THEN tests source+3
+  bit 0x10: if SET, forces +0x01=0xFF, +0x1B5=0, and SKIPS the draw-bind (build-then-disable);
+  if CLEAR, does sprite-resolve 0x14F1D391E + draw-cmd enqueue 0x15076D158 + draw-state init
+  0x14F1BC33B + sets +0x1B5=1. THE draw gate is combat +0x01 (0xFF = do-not-draw). The render NODE
+  a unit needs to actually draw is a SEPARATE structure (linked list [0x140D3A410], 0x548-stride
+  nodes) bound by scene-build 0x1401D513A off combat +0x54 (a node index the init loop never
+  writes); 0x15076D158's table 0x141856720 is only a 16-entry per-frame draw-command QUEUE, NOT the
+  node list (disjoint xrefs). AddUnit-EVENT path is DEAD: the alleged {44} Draw dispatch 0x1401EBDEE
+  is a UI name resolver, not a PSX opcode table. FRANK: stats present + turn seat + +0x01=0xFF blob
+  == the build-then-disable fingerprint IF he passed through 0x140270D5C, but that loop owns only
+  slots {0-4}/{16-20}, so `drawstate` on his slot settles it: +0x1B5==0 => data-fix viable (clear
+  the disable bit, traced via a CE write-bp on [0x14078DE38] to name the nxd column); +0x1B5==0xFF
+  => built elsewhere, disable bit is NOT the cause; +0x1B5==1 => downstream render-bind fault.
 
 LIVE RESULTS (owner-run sessions 2026-07-09):
   Census: ACTIVE units read P1 mostly 0x01 with 0x00/0xFF exceptions on frozen/mirror-suspect
@@ -190,6 +225,14 @@ A_INBATTLE = 0x12        # INB: combat +0x2E low byte, pulsing trap, read-only r
 A_X18_ECHO = 0x172       # X18: ENTD 0x18 linear extrapolation, low confidence, read-only
 A_LOAD_ECHO = 0x15B      # LOAD: ENTD 0x01 linear extrapolation, low confidence, read-only
 A_CT_TURN = 0x09         # band +0x09 = combat +0x25 (Offsets.ACtTurn): the proven turn-count
+# Draw-state bytes from the construction-pipeline decode (2026-07-10). All band-entry-relative:
+# combat +C == band entry + (C - 0x1C), the same convention as A_COUNTER (combat +0x07 = -0x15).
+A_MODEL_ID = -0x1B       # combat +0x01: the DRAW GATE (0xFF = do-not-draw); init loop 0x140270D5C
+A_NODEBIND = 0x1A0       # combat +0x1BC: bind id stamped by scene-build 0x1401D513A (node match key)
+A_DISABLE_MIRROR = 0x35  # combat +0x51: low 7 bits mirror deploy-table source+3; bit 0x10 = disable
+A_NODE_INDEX = 0x38      # combat +0x54: node-pool index scene-build keys on (init loop never writes)
+# NOTE: A_PRESENT (0x199) == combat +0x1B5, the init-loop present marker: 0xFF vacant/bad-template/
+# blanked, 0x00 constructed-but-disabled (build-then-disable), 0x01 constructed-and-draw-bound.
                          # READ. The harness A_CT (band +0x25) is the ExtraTurn slam WRITE
                          # byte; its reads are documented unreliable (Offsets.ACtSlam), so
                          # activate samples it only as a secondary signal.
@@ -304,6 +347,100 @@ def _has_identity_anchor(lvl, mhp):
     plausible level or maxHP. Neither valid means there is nothing to activate; filling every
     field by hand would FABRICATE a unit (the known-dead write-and-hold path)."""
     return (lvl is not None and 1 <= lvl <= 99) or (mhp is not None and 1 <= mhp < 2000)
+
+
+def _drawstate_verdict(model_id, present, disable_bit=None):
+    """Pure: classify a slot's draw state from combat +0x01 (model id / draw gate), combat
+    +0x1B5 (the present marker), and combat +0x51 & 0x10 (the loop-0x140270D5C disable-bit
+    mirror; True set / False clear / None unread), per the construction decode (2026-07-10).
+    Returns (code, message). The disable bit splits the two ways a unit ends up present==0x00:
+      DRAWN         present 0x01 + a real (non-0xFF) model id: constructed AND draw-bound.
+      ANOMALY       present 0x01 but model id 0xFF: draw-bind ran yet the gate is closed ->
+                    a downstream render-bind fault.
+      DISABLED-BIT  present 0x00 AND +0x51 bit 0x10 SET: the loop-0x140270D5C build-then-disable
+                    path. Fix is DATA-LAYER: clear the deploy-table source+3 bit 0x10.
+      HIDDEN        present 0x00 AND +0x51 bit 0x10 CLEAR: constructed but hidden by a DIFFERENT
+                    loader (this loop's disable bit is NOT the cause): the loaded-but-not-
+                    displayed state a {44} Draw / reveal flips. Fix = the roster loader's ENTD
+                    presence flag (data-layer) or the reveal routine (cold-call), NOT that bit.
+      DISABLED     present 0x00, disable-bit unread: constructed but not drawn, cause unresolved.
+      VACANT       present 0xFF: vacant / bad-template / blanked, built by another loader.
+    """
+    if present is None or model_id is None:
+        return "UNREADABLE", "slot bytes unreadable (not in battle, or wrong slot)"
+    if present == 0x01:
+        if model_id == 0xFF:
+            return "ANOMALY", ("draw-bind ran (present=1) but the +0x01 gate is 0xFF: a downstream "
+                               "render-bind fault, not the disable bit")
+        return "DRAWN", "constructed and draw-bound; this slot should render normally"
+    if present == 0x00:
+        if disable_bit is True:
+            return "DISABLED-BIT", ("loop-0x140270D5C build-then-disable: DATA-LAYER fix, clear "
+                                    "the deploy-table source+3 bit 0x10 (combat +0x51 & 0x10)")
+        if disable_bit is False:
+            return "HIDDEN", ("constructed but hidden by a DIFFERENT loader: the +0x51 disable bit "
+                              "is already CLEAR, so that loop is NOT the cause. This is the loaded-"
+                              "but-not-displayed state a reveal / {44} Draw flips: fix = the roster "
+                              "loader's ENTD presence flag or the reveal routine, NOT that bit")
+        return "DISABLED", "constructed but not drawn (present=00); disable-bit read unavailable"
+    if present == 0xFF:
+        return "VACANT", ("vacant / bad-template / blanked by this init loop: stats came from a "
+                          "different loader, so its disable bit is NOT this blob's cause")
+    return "UNKNOWN", f"present marker 0x{present:02X} is not a recognized value"
+
+
+# banddiff annotations, keyed COMBAT-relative (combat +C == band + (C - 0x1C)). The two SUSPECT
+# rows are the pre-registered candidates from the ENTD insert session (band +0x175 read FE, the
+# unassigned-id shape; band +0x1A2 read 00 where every real unit reads 01) for the Canary 3
+# finding that the AI planner idles with Kerrich enrolled even while he is held turnless.
+BANDDIFF_ANNOT = {
+    0x01: "model id / draw gate",
+    0x03: "job",
+    0x05: "team color",
+    0x07: "crystal/heart counter",
+    0x25: "turn count (band +0x09)",
+    0x2E: "inb pulse (reads unreliable)",
+    0x41: "CT slam byte (band +0x25)",
+    0x51: "deploy disable mirror",
+    0x54: "node index (scene-build key)",
+    0x57: "innate status, 5B (band +0x3B..)",
+    0x61: "composed status, 5B (band +0x45..; Dead = +0x61 bit 0x20)",
+    0x66: "poison timer (band +0x4A)",
+    0x191: "SUSPECT: unassigned-id shape (band +0x175; FE on Frank)",
+    0x196: "ENTD AI mirror, 8B (band +0x17A..0x181; +0x199 = AI Flags1, +0x19A = Target UID)",
+    0x1B5: "present marker",
+    0x1B8: "PSX turn flags, 4B (turn/moved/acted/outcome)",
+    0x1BC: "bind id (node match key)",
+    0x1BE: "SUSPECT: real-unit marker (band +0x1A2; 00 on Frank, 01 on real units)",
+    0x1DB: "pending status-add, 5B",
+    0x1EF: "inflicted status, 5B (band +0x1D3..)",
+}
+BANDDIFF_SPANS = {0x57: 5, 0x61: 5, 0x196: 8, 0x1B8: 4, 0x1DB: 5, 0x1EF: 5}
+
+
+def _banddiff_annot(start, end):
+    """Pure: annotations whose field span overlaps the combat-relative range [start, end)."""
+    notes = []
+    for off in sorted(BANDDIFF_ANNOT):
+        span = BANDDIFF_SPANS.get(off, 1)
+        if start < off + span and off < end:
+            notes.append(f"+0x{off:03X} {BANDDIFF_ANNOT[off]}")
+    return "; ".join(notes)
+
+
+def _diff_byte_ranges(a, b):
+    """Pure: contiguous [start, end) ranges where a and b differ."""
+    out, start = [], None
+    for i in range(min(len(a), len(b))):
+        if a[i] != b[i]:
+            if start is None:
+                start = i
+        elif start is not None:
+            out.append((start, i))
+            start = None
+    if start is not None:
+        out.append((start, min(len(a), len(b))))
+    return out
 
 
 def _state(s):
@@ -621,6 +758,85 @@ def cmd_peek(addrs, length=0x100):
             mark = " <-- hit" if start + row <= addr < start + row + 0x10 else ""
             print(f"{start + row:012X}: "
                   + " ".join("%02X" % b for b in buf[row:row + 0x10]) + mark)
+
+
+def cmd_poke(addr, val):
+    """Guarded single-byte poke at an absolute address, with read-back (for chasing display
+    levers like combat +0x01 model id). THROWAWAY SAVE ONLY; announces old -> new -> readback."""
+    _require_game()
+    old = ru8(addr)
+    ok = wu8(addr, val & 0xFF)
+    back = ru8(addr)
+    print(f"poke 0x{addr:012X}: {_hx(old)} -> {_hx(val & 0xFF)} "
+          f"write={'OK' if ok else 'FAIL'} readback={_hx(back)}")
+
+
+def cmd_drawstate(slot):
+    """Read-only: print the init-loop (0x140270D5C) draw-state bytes for one slot plus the
+    verdict. THE decisive Frank check; see _drawstate_verdict for the branch meanings."""
+    _require_game()
+    if not (0 <= slot < BAND_SLOTS):
+        print(f"slot must be 0..{BAND_SLOTS - 1}")
+        sys.exit(2)
+    e = _band_entry_addr(slot)
+    model = ru8(e + A_MODEL_ID)
+    present = ru8(e + A_PRESENT)
+    dismir = ru8(e + A_DISABLE_MIRROR)
+    nodebind = ru8(e + A_NODEBIND)
+    nodeidx = ru8(e + A_NODE_INDEX)
+    core = rpm(e, CORE_LEN)
+    lvl = core[A_LEVEL] if core is not None else None
+    mhp = _u16(core, A_MAXHP) if core is not None else None
+    disable_bit = None if dismir is None else bool(dismir & 0x10)
+    dbit = "?" if disable_bit is None else "set" if disable_bit else "clear"
+    code, msg = _drawstate_verdict(model, present, disable_bit)
+    print(f"s{slot} (n={slot - 24:+d})  combat base 0x{e - 0x1C:012X}")
+    print(f"  +0x01  model id (draw gate)   {_hx(model)}   "
+          f"({'SKIP-DRAW' if model == 0xFF else 'drawable'})")
+    print(f"  +0x1B5 present marker         {_hx(present)}   (FF vacant / 00 disabled / 01 drawn)")
+    print(f"  +0x51  disable mirror         {_hx(dismir)}   (bit 0x10 = {dbit})")
+    print(f"  +0x1BC bind id                {_hx(nodebind)}")
+    print(f"  +0x54  node index             {_hx(nodeidx)}")
+    print(f"  level / maxhp                 {_n(lvl)} / {_n(mhp)}   "
+          f"(stats present = {'yes' if _has_identity_anchor(lvl, mhp) else 'no'})")
+    print(f"\n  VERDICT [{code}]: {msg}")
+
+
+def cmd_banddiff(sa, sb):
+    """Read-only: byte-diff two seats' full combat structs (0x200 each) with annotations, plus
+    the always-printed AI-visibility suspect table (equal values are evidence too). Long ranges
+    truncate to 16 bytes per side; use peek on the printed bases for the full window."""
+    _require_game()
+    for s in (sa, sb):
+        if not (0 <= s < BAND_SLOTS):
+            print(f"slot must be 0..{BAND_SLOTS - 1}")
+            sys.exit(2)
+    bases = [_band_entry_addr(s) - 0x1C for s in (sa, sb)]
+    bufs = [rpm(base, COMBAT_SLOT_LEN) for base in bases]
+    for s, base, buf in zip((sa, sb), bases, bufs):
+        if buf is None:
+            print(f"s{s} combat 0x{base:012X}: unreadable (in battle? game running?)")
+            sys.exit(1)
+
+    def hx(buf, st, en):
+        s16 = " ".join("%02X" % x for x in buf[st:min(en, st + 16)])
+        return s16 + (" .." if en - st > 16 else "")
+
+    print(f"banddiff s{sa} (combat 0x{bases[0]:012X}) vs s{sb} (combat 0x{bases[1]:012X}), "
+          f"{COMBAT_SLOT_LEN} bytes each; offsets are combat-relative (band = combat - 0x1C)")
+    ranges = _diff_byte_ranges(bufs[0], bufs[1])
+    print(f"\n{len(ranges)} differing range(s), {sum(e - s for s, e in ranges)} byte(s) total:")
+    for st, en in ranges:
+        note = _banddiff_annot(st, en)
+        print(f"  +0x{st:03X}..+0x{en - 1:03X} ({en - st:3d}B)  s{sa}: {hx(bufs[0], st, en)}  "
+              f"s{sb}: {hx(bufs[1], st, en)}" + (f"   <- {note}" if note else ""))
+    print("\nAI-visibility suspects (always shown):")
+    for off in sorted(BANDDIFF_ANNOT):
+        span = BANDDIFF_SPANS.get(off, 1)
+        va = " ".join("%02X" % x for x in bufs[0][off:off + span])
+        vb = " ".join("%02X" % x for x in bufs[1][off:off + span])
+        flag = "  DIFF" if bufs[0][off:off + span] != bufs[1][off:off + span] else ""
+        print(f"  combat +0x{off:03X}  s{sa}: {va:<24} s{sb}: {vb:<24} {BANDDIFF_ANNOT[off]}{flag}")
 
 
 def cmd_addr(slot):
@@ -968,6 +1184,36 @@ def _selftest():
     check("X18 = ENTD 0x18 + echo delta 0x15A", A_X18_ECHO, 0x18 + 0x15A)
     check("LOAD = ENTD 0x01 + echo delta 0x15A", A_LOAD_ECHO, 0x01 + 0x15A)
     check("CT-turn read = combat 0x25 - band 0x1C", A_CT_TURN, 0x25 - 0x1C)
+    # banddiff: the pure differ + annotation overlap (Canary 3 AI-visibility instrument).
+    check("banddiff: identical buffers diff empty", _diff_byte_ranges(b"\x00" * 8, b"\x00" * 8), [])
+    check("banddiff: two ranges found",
+          _diff_byte_ranges(b"\x00\x01\x02\x03\x04", b"\x00\xFF\x02\x03\xEE"), [(1, 2), (4, 5)])
+    check("banddiff: trailing run closes", _diff_byte_ranges(b"\xAA\xBB", b"\xAA\xCC"), [(1, 2)])
+    check("banddiff: suspect 0x191 annotated",
+          "unassigned-id" in _banddiff_annot(0x191, 0x192), True)
+    check("banddiff: multi-byte span overlap (turn flags tail)",
+          "turn flags" in _banddiff_annot(0x1BB, 0x1BD), True)
+    check("banddiff: suspect 0x1BE annotated via same range",
+          "real-unit marker" in _banddiff_annot(0x1BB, 0x1BF), True)
+    check("banddiff: unannotated gap is empty", _banddiff_annot(0x100, 0x110), "")
+    # Draw-state offsets (construction-pipeline decode 2026-07-10; combat +C = band +(C-0x1C)).
+    check("model id = combat 0x01 - band 0x1C", A_MODEL_ID, 0x01 - 0x1C)
+    check("present marker = combat 0x1B5 - band 0x1C", A_PRESENT, 0x1B5 - 0x1C)
+    check("bind id = combat 0x1BC - band 0x1C", A_NODEBIND, 0x1BC - 0x1C)
+    check("disable mirror = combat 0x51 - band 0x1C", A_DISABLE_MIRROR, 0x51 - 0x1C)
+    check("node index = combat 0x54 - band 0x1C", A_NODE_INDEX, 0x54 - 0x1C)
+    # Draw-state verdict branches (the Frank decision tree; disable bit splits present==0).
+    check("verdict: present 1 + real model = DRAWN", _drawstate_verdict(0x02, 0x01)[0], "DRAWN")
+    check("verdict: present 1 + model FF = ANOMALY", _drawstate_verdict(0xFF, 0x01)[0], "ANOMALY")
+    check("verdict: present 0 + bit set = DISABLED-BIT",
+          _drawstate_verdict(0xFF, 0x00, True)[0], "DISABLED-BIT")
+    check("verdict: present 0 + bit clear = HIDDEN (Frank)",
+          _drawstate_verdict(0xFF, 0x00, False)[0], "HIDDEN")
+    check("verdict: present 0 + bit unread = DISABLED",
+          _drawstate_verdict(0xFF, 0x00, None)[0], "DISABLED")
+    check("verdict: present FF = VACANT", _drawstate_verdict(0x02, 0xFF)[0], "VACANT")
+    check("verdict: unreadable read = UNREADABLE", _drawstate_verdict(None, None)[0], "UNREADABLE")
+    check("verdict: odd marker = UNKNOWN", _drawstate_verdict(0x02, 0x07)[0], "UNKNOWN")
     check("band stride", _band_entry_addr(24) - _band_entry_addr(23), 0x200)
     check("player threshold", PLAYER_SLOT_THRESHOLD, 24)
 
@@ -1085,11 +1331,33 @@ def main():
             sys.exit(2)
         cmd_findrender(int(args[1]))
         return
+    if args[0] == "poke":
+        if len(args) < 3:
+            print("usage: poke <hex-addr> <hex-byte>")
+            sys.exit(2)
+        try:
+            cmd_poke(int(args[1], 16), int(args[2], 16))
+        except ValueError:
+            print("usage: poke <hex-addr> <hex-byte>")
+            sys.exit(2)
+        return
     if args[0] == "addr":
         if len(args) < 2 or not args[1].lstrip("-").isdigit():
             print("usage: addr <slot>")
             sys.exit(2)
         cmd_addr(int(args[1]))
+        return
+    if args[0] == "drawstate":
+        if len(args) < 2 or not args[1].lstrip("-").isdigit():
+            print("usage: drawstate <slot>")
+            sys.exit(2)
+        cmd_drawstate(int(args[1]))
+        return
+    if args[0] == "banddiff":
+        if len(args) < 3 or not args[1].lstrip("-").isdigit() or not args[2].lstrip("-").isdigit():
+            print("usage: banddiff <slotA> <slotB>")
+            sys.exit(2)
+        cmd_banddiff(int(args[1]), int(args[2]))
         return
     if args[0] == "inflict":
         nums = [x for x in args[1:3] if x.lstrip("-").isdigit()]
