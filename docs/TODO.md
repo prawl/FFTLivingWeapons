@@ -10,30 +10,25 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-51] Kill-tally scoping and mod-update survival** (opened 2026-07-07) [QUEUED]
-  - Done means: DECIDE global-forever vs per-playthrough (owner call; recommend per-playthrough for
-    the growth fantasy). If per-playthrough, key kills.json / legends.json / gunslinger.json to a save
-    identity with a one-time migration of the existing global file, so a NEW GAME no longer starts
-    pre-maxed and two playthroughs never cross-contaminate. Same pass covers the LW-29 question: a
-    Reloaded mod UPDATE (2.2.2 to 2.3.0) must not wipe the tally (relocate the save files outside the
-    mod dir if an update replaces the folder).
-  - Verify: unit-test the save-identity keying + migration; live, a new game starts fresh, a second
-    playthrough keeps its own tally, and a simulated mod-folder replace preserves the tally.
-
-- **[LW-37] Fast-paint the equip-card Kills meter via a pool-anchored in-place write** (opened 2026-07-06) [QUEUED]
-  - Done means: retire the whole-heap Display sweep for the equip-card Kills meter. LIVE RECON
-    2026-07-07 (tools/probes/item_text_census.py) proved the mechanism: the equip card re-materializes
-    its description from a STABLE packed string pool on every open, and overwriting the "Kills:" field
-    IN PLACE in that pool (same-length, within its padded width) shows on the card (owner-verified,
-    "LOKI WAS HERE" replaced Gloomfang's Kills line). The LW-31 catalog-record REDIRECT is walled here
-    (the FString descriptors are transient, rebuilt from the pool each open), so build the pool write
-    instead: cheap stable-substring anchor to the viewed weapon's pool entry, locate its "Kills:"
-    field, compose "Kills: N/T to +", overwrite in place. Confirm pool copy count and the exact field
-    width during the build. Pulled into 2.3.0 by the owner 2026-07-07 (RELEASE_SCOPE.md section 8).
-  - Verify: unit-test the pure halves (compose the Kills string, the field-locate/anchor math);
-    live, first-open browse shows the correct Kills line with no heap-sweep latency, a battle-exit
-    kill shows updated on re-open, another item's flavor stays untouched, and the in-battle Attack
-    card surface is unaffected.
+- **[LW-56] New-game opener kills mis-credited or dropped** (opened 2026-07-08) [BUILDING]
+  - Done means: kill crediting survives an in-session new game and the scripted Orbonne opener.
+    Two faults from the 2026-07-10 opener tape (livingweapon.log 02:44-02:47) both die:
+    (1) MIS-CREDIT: kill number 1 went to Kiku-ichimonji id 45 (victim nameId 125, job 77,
+    battle slot 14), a weapon no new-game unit wields (the pre-new-game session that launch
+    fielded a Kiku wielder, so a stale roster-row or register-latch identity bridged the
+    in-session new game; the battle-exit flight tape of that run carries the kill latch
+    records). Flush every per-launch identity
+    latch on the new-game reset edge and verify the credited weapon against battle truth before
+    the tally write (the LW-55 wrong-key class, still ungated on crediting; narrowing-only,
+    refuse rather than guess). (2) DROPPED CREDITS: four opener kills were refused with the
+    logged reason "actor resolved via an enemy-turn team read"; make the resolve engage on the
+    opener's scripted/guest turn shape without weakening enemy-kill exclusion. The LW-55 display
+    gates held throughout that tape, so the fault is isolated to the crediting chain
+    (ActorResolver / KillTracker / KillerStamp).
+  - Verify: unit tests pin the reset-edge latch flush and the credit-time weapon-agreement gate
+    (IGameMemory fake, non-vacuity by break-and-restore); live, an in-session new game's Orbonne
+    opener credits Ramza's Claymore kills with no phantom weapon appearing in kills.json, and a
+    normal battle's crediting still lands every player kill (tape shows no newly refused credits).
 
 ## Backlog
 
@@ -133,12 +128,6 @@ is the in-flight subset, not a mirror of that checklist.
   turn-queue fingerprint with more struct fields; the probe dump shows brave/faith-like u16
   candidates in the cursor struct needing offset verification (turn-owner-probe lines,
   livingweapon.log 04:0x). Until then twins fail closed to vanilla by design.
-- [LW-29] 2026-07-05: RELEASE QUESTION: do player save files (kills.json, legends.json,
-  gunslinger.json) survive a Reloaded mod UPDATE (2.2.2 to 2.3.0)? If a mod update replaces
-  the mod folder, every player loses their tally on upgrade, which is the worst possible bug
-  for an attachment mod. Check Reloaded's update behavior; if unsafe, relocate the save files
-  outside the mod directory (with a one-time migration read of the old location) BEFORE
-  shipping 2.3.0.
 - [LW-57] 2026-07-09: On battle load the Attack command keeps its generic "Attack" label instead
   of the wielder's weapon name, generally correcting only after the first turn (owner report).
   The swap works from then on, so the fault is first-open readiness on the LW-31 Attack-card
@@ -189,32 +178,6 @@ is the in-flight subset, not a mirror of that checklist.
   External pending-field writes are consumed but ignored (3 tapes), so ALL external-write
   spawn/model lanes are closed; the next lever is an in-process cold-call spike (DLL, LWDEV)
   or the event-script AddUnit/Draw layer.
-- [LW-56] 2026-07-08: On a new game's first battle (the Orbonne opener), kills are NOT credited to the
-  wielder's weapon and NOTHING lands in livingweapon.log, so KillTracker.CreditKill never fired. The
-  Attack-menu card also shows the generic "Attack" label instead of the weapon name. The LW-51 Tier-1
-  count reset itself is verified correct, so this is not the reset. DISTINCT from LW-55: that one is a
-  DISPLAY bug (tally correct, the Attack card shows a wrong count); this is a genuine CREDITING failure
-  (no increment at all, no log line). They share the opening-battle attribution surface. Triage in
-  order: (1) SCOPE FIRST, does crediting work in a normal non-scripted battle? Kill credit was
-  extensively live-proven (KillerStamp death-edge, actor attribution), so a global regression is
-  unlikely but must be ruled out before anything else; if it only fails in the scripted Orbonne opener
-  it is a narrow edge. (2) Did the managed player Ramza land the killing blow, or a guest/NPC (the
-  opener fields guests, whose kills correctly earn nothing)? (3) The opening weapon IS a recognized
-  living weapon (its equip card shows a per-weapon count), so "not a living weapon" is not the cause.
-  (4) Rule out any interaction with the just-fired Tier-1 reset leaving the tracker non-crediting (low
-  probability: Clear preserves the by-reference Kills instance, test-pinned, and the "Attack not weapon
-  name" symptom points at actor/weapon identity, not the dict). Likely surface: the Orbonne story
-  battle (EventId 4) is scripted with guests, where the actor and kill-detection path may not engage
-  the same way as a normal battle.
-  2026-07-10 live evidence (the LW-55 ship session, livingweapon.log 02:44-02:47): post-LW-51 the
-  opener DOES credit, but wrongly: the first kill logged as "Kiku-ichimonji claims kill number 1"
-  (weapon id 45, victim nameId 125, job 77, battle slot 14) when no new-game unit wields a Kiku;
-  the pre-new-game session that same launch had fielded a Kiku wielder, so a stale identity
-  (roster row or register latch) bridged across the in-session new game. Four other opener kills
-  were left uncredited with the logged reason "actor resolved via an enemy-turn team read". The
-  LW-55 display gates held throughout (the Attack card named the true Claymore, zero card
-  tripwire records), so the fault is isolated to the crediting resolve chain; the battle-exit
-  flight tape of that run carries the kill latch records.
 - [LW-59] 2026-07-10: A stale kill count survives the in-session new-game tally reset on the
   equip-card surface: in the reset opener the owner read 3 kills for Ramza's Claymore while the
   tally was provably empty (the LW-51 reset had archived kills.2.json, and the battle's first
@@ -223,6 +186,15 @@ is the in-flight subset, not a mirror of that checklist.
   reset. The LW-37 pool repaint ran post-reset (02:45:01, 701 sites) yet the viewed card still
   read 3; determine which painter holds the stale text and make PlaythroughReset force a repaint
   of every kill-count surface.
+- [LW-60] 2026-07-10: Author the 2.3.0 release Smoke Test Plan: one owner live pass gathering
+  every deferred check before ship (the LW-55 auto-battle gate-B premise, the LW-51 Tier-1 reset
+  eyeball on a real cold-launch New Game, the Reliquary Phase 1 live pass, plus whatever
+  VERIFY_LIVE.md still holds open), run after the release's task list closes so nothing rides on
+  memory at ship time.
+- [LW-61] 2026-07-10: LW-51 Tier-2, per-save-identity tally isolation: two ALTERNATING
+  playthroughs still share one kills.json (the shipped Tier-1 reset only archives on a detected
+  NEW GAME, bf351db), so key the tally files to a save identity if cross-contamination proves a
+  real problem in play; deliberately deferred out of LW-51.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

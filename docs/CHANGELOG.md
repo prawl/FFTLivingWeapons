@@ -47,6 +47,35 @@ with a date and no hash.
   retired; their forensics live in the Mushin.cs provenance doc and the memory ledger. Owner
   live-verified (BANK on a still wait, SPENT on the strike); card text rebaked into item.en.nxd
   (052bb12); suite 2277 green.
+- [LW-51] SHIPPED bf351db 2026-07-09: kill-tally scoping and mod-update survival. The save files
+  (kills.json, legends.json, gunslinger.json) moved out of the deploy mod dir into the update-safe
+  Reloaded User/Mods/[ModId] folder (the directory Config.json already lives in, which a mod
+  update never touches) via SaveLocation's one-time copy-only migration of each legacy file (never
+  delete, never overwrite, fail-soft). A NEW GAME now resets the tally: PlaythroughReset detects
+  the Orbonne opening dialogue held for a sustained tick window (a one-frame EventId dip from a
+  Continue load can never trip it), archives the current kills.json, and clears the shared
+  KillTally instance in place, so a fresh playthrough no longer starts pre-maxed. Owner waived the
+  formal live pass (relocation proven incidentally across a dozen deploys); the reset then proved
+  itself on the 2026-07-10 opener tape (kills.2.json archived, the battle's first credit logged as
+  kill number 1). A real cold-launch New Game eyeball rides the LW-60 smoke test; Tier-2
+  per-save-identity isolation (two ALTERNATING playthroughs still share one tally) is deliberately
+  deferred to LW-61.
+- [LW-29] SHIPPED bf351db 2026-07-09: the release question is answered by removal: player save
+  files no longer live in the mod folder at all, so a Reloaded mod UPDATE (2.2.2 to 2.3.0)
+  replacing that folder cannot wipe the tally. The relocation ships with a one-time
+  non-destructive migration read of the old location, exactly this entry's ask (mechanism detail
+  on the LW-51 row above).
+- [LW-37] SHIPPED 7830def 2026-07-08: the equip-card Kills meter is painted by a pool-anchored
+  in-place write instead of the whole-heap Display sweep. The card re-materializes its description
+  from stable UE string-pool regions, so PoolLocator finds every writable region holding a baked
+  entry (a "Kills:" hit with the owner weapon's name adjacent) and PoolPaint writes the live count
+  in place through the existing OnChunk/CardSites path, then skips the sweep once every tracked
+  weapon is covered. Each write is name-gated, foreign-refused, and Writable-checked (the
+  transient render copies are excluded; painting a non-source baked copy is harmless), gated by
+  Tuning.PoolPaintEnabled; CardScanner, ChunkReader, and CardSites are reused verbatim. Merged as
+  4afce70; live-verified 2026-07-08 in a DEV build, and the 2026-07-10 opener tape shows the
+  repaint running post-reset (701 sites). The stale-count question on this surface (a painted 3
+  outliving the LW-51 reset) is tracked as LW-59.
 - [LW-52] SHIPPED 50ae6b3 2026-07-07: removed the player-facing config toggles. The Reloaded
   launcher now exposes only Treasure Master Always On; BannerToasts, DevSeedKills, and VerboseLog
   were deleted from Config.cs so players cannot switch off designed behavior. Their runtime keeps
