@@ -137,18 +137,15 @@ internal sealed partial class KillTracker
     /// (Update/ResetBattle stay this class's own responsibility).</summary>
     internal ActorRegister Register => _register;
 
-    /// <summary>LW-31 stage-2 fix (grown in stage 3 to also surface rosterBase; the ONLY resolve
-    /// seam AttackCard consumes since the 2026-07-06 cursor-only fix): this tracker's
+    /// <summary>LW-31 stage-2 fix (grown in stage 3 to also surface rosterBase; retyped LW-55 to
+    /// hand back the raw <see cref="CursorAnswer"/> instead of a filtered weapon list; the ONLY
+    /// resolve seam AttackCard consumes since the 2026-07-06 cursor-only fix): this tracker's
     /// ActorResolver.TryResolveCursorPlayer, exposed for AttackCard's dossier resolve
-    /// (AttackCard.Resolve.cs). Null = no cursor answer (guard failure or ambiguity); non-null
-    /// (weapons possibly empty) = a confident resolve, with rosterBase the matched roster slot
-    /// AttackCard's row-rename resolve reads the RAW main hand and sprite byte from.</summary>
-    internal Func<(List<int> Weapons, long RosterBase)?> ResolveCursorPlayer =>
-        () => _resolver.TryResolveCursorPlayer(out var w, out long rb) ? (w, rb) : ((List<int>, long)?)null;
-
-    /// <summary>This tracker's ActorResolver.RawMainHand, exposed for AttackCard's row-rename
-    /// resolve (LW-31 stage 3): the raw, untracked-filter-free RRHand weapon id.</summary>
-    internal Func<long, int> RawMainHand => _resolver.RawMainHand;
+    /// (AttackCard.Resolve.cs). Null = no cursor answer (guard failure or ambiguity); non-null =
+    /// a confident resolve, with the raw roster/band facts AttackCard.Resolve.cs's CursorGate.Decide
+    /// judges before any composing happens.</summary>
+    internal Func<CursorAnswer?> ResolveCursorPlayer =>
+        () => _resolver.TryResolveCursorPlayer(out var answer) ? answer : (CursorAnswer?)null;
 
     /// <summary>This tracker's ActorResolver.SpriteOf, exposed for AttackCard's row-rename resolve
     /// (LW-31 stage 3): the roster slot's SpriteSet byte (the human/monster gate).</summary>

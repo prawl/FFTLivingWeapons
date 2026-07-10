@@ -1,9 +1,13 @@
-﻿namespace LivingWeapon;
+﻿using System.Collections.Generic;
+
+namespace LivingWeapon;
 
 /// <summary>
 /// AttackCard's resolve/decide half, split out of AttackCard.Paint.cs to keep that file (the
 /// verify/write half) under the 200-line refactor trigger: a real seam, this file answers "what
 /// should the row/tail say right now" while AttackCard.Paint.cs answers "make the live copies say it".
+/// LW-55 folded the cursor-answer's narrowing-only gate check into this same seam: judging the
+/// raw facts is part of "what should the row say", not the write half's concern.
 /// </summary>
 internal sealed partial class AttackCard
 {
@@ -12,26 +16,44 @@ internal sealed partial class AttackCard
     /// by AttackRow.Policy.OffsetBytes' descOff math on every write).</summary>
     private readonly record struct ComposedPlan(byte[] Image, int RowNameChars);
 
+    /// <summary>LW-55's tripwire dedup set: a (refusal kind, roster hand, band weapon) triple that
+    /// has already logged/recorded once this battle is never reported again, so a stuck hover does
+    /// not spam either the log or the flight ring every tick. Cleared in AttackCard.cs's
+    /// ResetBattle. Lives here (not AttackCard.cs, already at the 200-line trigger) because
+    /// reporting a refusal is part of the resolve/decide half's own job.</summary>
+    private readonly HashSet<(CursorRefusal Kind, int RosterHand, int BandWeapon)> _reportedRefusals = new();
+
     /// <summary>Resolve the acting unit's row+tail plan, CURSOR-ONLY (owner decision 2026-07-06;
     /// see AttackCard.cs's class doc for the full account): when the cursor resolve does not
     /// answer, the plan is null (restore vanilla), full stop. The register fallback stage 2 kept
     /// here served the LAST ACTED player's weapon on another unit's turn whenever the cursor
     /// refused an ambiguous fingerprint (the owner watched Ramza's row carry a Spark Rod), so it
-    /// is gone from this surface. The Note half names the evidence for AttackCard.Paint.cs's
-    /// compose-change Debug lines: which weapon/provenance a plan carries, or exactly WHY the plan
-    /// is vanilla ("no cursor answer" vs "cursor resolved but the row composes vanilla"). Once a
-    /// rosterBase is in hand, the decision is AttackRow.Policy.ComposeRow's alone, driven off the
-    /// RAW main hand + sprite byte, never the filtered/tracked Hands() set (which cannot tell
-    /// "unarmed" from "wielding something untracked", and would miss the "Fists" case entirely).
-    /// Doctrine unchanged: a wrong dossier is worse than vanilla, so any guard failure or
-    /// ambiguity falls through, never a guess.</summary>
+    /// is gone from this surface. LW-55 adds a second refusal source on TOP of "no cursor answer
+    /// at all": even a confident cursor answer is judged by <see cref="CursorGate.Decide"/> before
+    /// it may compose anything, since the cursor resolve's raw roster-hand/band-weapon facts can
+    /// disagree (a stale roster row, a not-yet-the-turn-owner hover) in ways the resolver itself
+    /// cannot see. The Note half names the evidence for AttackCard.Paint.cs's compose-change Debug
+    /// lines: which weapon/provenance a plan carries, or exactly WHY the plan is vanilla. Once the
+    /// gate clears, the decision is AttackRow.Policy.ComposeRow's alone, driven off the RAW main
+    /// hand + sprite byte, never the filtered/tracked Hands() set (which cannot tell "unarmed"
+    /// from "wielding something untracked", and would miss the "Fists" case entirely). Doctrine
+    /// unchanged: a wrong dossier is worse than vanilla, so any guard or gate failure falls
+    /// through, never a guess.</summary>
     private (ComposedPlan? Plan, string Note) ComposeCurrentPlan()
     {
         var resolved = _resolveCursor();
         if (resolved == null) return (null, "no cursor answer");
 
-        long rosterBase = resolved.Value.RosterBase;
-        int rawMainHand = _rawMainHand(rosterBase);
+        var answer = resolved.Value;
+        var refusal = CursorGate.Decide(answer.RosterHand, answer.BandWeapon, answer.TurnFlag);
+        if (refusal != CursorRefusal.None)
+        {
+            ReportRefusal(refusal, answer);
+            return (null, $"cursor unit refused: {refusal} rosterHand={answer.RosterHand} bandWeapon={answer.BandWeapon} slot={answer.BandSlot}");
+        }
+
+        long rosterBase = answer.RosterBase;
+        int rawMainHand = answer.RosterHand;
         byte sprite = _spriteOf(rosterBase);
         string? metaName = _meta.TryGetValue(rawMainHand, out var m) ? m.Name : null;
         int kills = _kills.TryGetValue(rawMainHand, out int k) ? k : 0;
@@ -47,6 +69,27 @@ internal sealed partial class AttackCard
             default:
                 return (null, $"cursor resolved raw hand {rawMainHand} but the row composes vanilla (untracked weapon, or unarmed non-human)");
         }
+    }
+
+    /// <summary>LW-55's tiered tripwire: <see cref="CursorRefusal.WeaponMismatch"/> is the genuine
+    /// anomaly this whole fix exists to catch (a wrong dossier was one tick from painting) and
+    /// gets a Warn plus a flight record; <see cref="CursorRefusal.NotTurnOwner"/> is routine hover
+    /// behavior (targeting/reticle sweeps over allies and guests every tick) and gets Debug plus a
+    /// flight record only, never a Warn (that would be noise, not signal). Deduped to ONE report
+    /// per (kind, rosterHand, bandWeapon) key per battle via <see cref="_reportedRefusals"/>.</summary>
+    private void ReportRefusal(CursorRefusal refusal, CursorAnswer answer)
+    {
+        var key = (refusal, answer.RosterHand, answer.BandWeapon);
+        if (!_reportedRefusals.Add(key)) return;
+
+        string detail = $"rosterHand={answer.RosterHand} bandWeapon={answer.BandWeapon} slot={answer.BandSlot}";
+        if (refusal == CursorRefusal.WeaponMismatch)
+            ModLogger.Warn(LogVerb.Display,
+                $"The Attack card's cursor unit disagrees on weapon ({detail}); the row composes vanilla instead of a wrong dossier.");
+        else
+            ModLogger.Debug(LogVerb.Display,
+                $"The Attack card's cursor unit is not the turn owner ({detail}); the row composes vanilla.");
+        _recorder?.Invoke("card", $"{refusal} {detail}");
     }
 
     /// <summary>Builds the Named-row plan: the tail's budget is whatever the row name leaves behind

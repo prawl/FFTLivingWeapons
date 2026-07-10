@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace LivingWeapon;
 
 /// <summary>
@@ -22,29 +20,37 @@ namespace LivingWeapon;
 /// entry's own frame nameId back-reference (<see cref="Offsets.ANameId"/>), bridged to roster
 /// exactly like <see cref="ActorRegister"/>'s own Bridge method (nameId narrows, level+brave+faith
 /// confirms). Any guard failure or ambiguity returns false, meaning "no cursor answer", never a
-/// guess; the caller (AttackCard.Paint.cs) falls back to its existing register-based resolve.
+/// guess.
+///
+/// RAW FACTS ONLY (LW-55): a successful resolve returns a <see cref="CursorAnswer"/> carrying the
+/// matched roster slot's raw right-hand weapon id, that SAME unit's own equipped weapon read off
+/// its band entry (<see cref="Offsets.AWeapon"/>) and turn-open flag (<see cref="Offsets.ATurnFlag"/>),
+/// and the matched band entry's own slot index: exactly what was read, no doctrine applied here.
+/// <see cref="CursorGate.Decide"/> (consulted by AttackCard.Resolve.cs, never by this class) is
+/// the only place those facts are judged. There is no register-based fallback: that path was
+/// removed 2026-07-06, and a refused resolve since then composes vanilla, full stop.
 /// </summary>
 internal sealed partial class ActorResolver
 {
     // The struct span this resolve reads: TqTeam(0x02)..TqMaxHp(0x10)+2 bytes.
     private const int CursorSpan = Offsets.TqMaxHp + 2;
 
-    /// <summary>True (with <paramref name="weapons"/> populated, possibly empty for an
-    /// untracked/unarmed player, and <paramref name="rosterBase"/> set to the matched roster slot)
-    /// only when ALL of: (1) the struct is readable at all; (2) its team field is 0, a player's turn
-    /// (an enemy or ally/guest turn returns false untouched); (3) its (level,hp,maxHp) fingerprint
-    /// matches EXACTLY ONE band entry (twin filter included, mirrors
-    /// <see cref="TryResolveActingPlayer"/>'s own turn-queue body); (4) that band entry's frame
-    /// nameId back-reference bridges to EXACTLY ONE roster slot agreeing on (level,brave,faith).
-    /// False otherwise (unreadable, non-player turn, ambiguous/absent band match, or the nameId
-    /// bridge failing/ambiguous), with <paramref name="rosterBase"/> left 0: the caller falls back
-    /// rather than trust a guess. <paramref name="rosterBase"/> (LW-31 stage 3) is the same matched
-    /// slot <see cref="Hands"/> was already read from: AttackCard's row-rename resolve needs the
-    /// slot itself (not just its filtered weapon set) to read the RAW main hand and sprite byte.</summary>
-    public bool TryResolveCursorPlayer(out List<int> weapons, out long rosterBase)
+    /// <summary>True (with <paramref name="answer"/> populated) only when ALL of: (1) the struct
+    /// is readable at all; (2) its team field is 0, a player's turn (an enemy or ally/guest turn
+    /// returns false untouched); (3) its (level,hp,maxHp) fingerprint matches EXACTLY ONE band
+    /// entry (twin filter included, mirrors <see cref="TryResolveActingPlayer"/>'s own turn-queue
+    /// body); (4) that band entry's frame nameId back-reference bridges to EXACTLY ONE roster slot
+    /// agreeing on (level,brave,faith). False otherwise (unreadable, non-player turn,
+    /// ambiguous/absent band match, or the nameId bridge failing/ambiguous), with
+    /// <paramref name="answer"/> left default: the caller (AttackCard.Resolve.cs) composes vanilla
+    /// rather than trust a guess. The two new band reads inside <paramref name="answer"/>
+    /// (<see cref="CursorAnswer.BandWeapon"/>, <see cref="CursorAnswer.TurnFlag"/>) are UNGUARDED
+    /// fail-safe reads, this class's own idiom: only the TurnQueue head above is Readable-guarded;
+    /// <c>Mem</c> fail-safes an unreadable address to 0, and 0 reads as sentinel/flag-down, which
+    /// <see cref="CursorGate.Decide"/> refuses anyway, so no explicit guard is needed here.</summary>
+    public bool TryResolveCursorPlayer(out CursorAnswer answer)
     {
-        weapons = Empty;
-        rosterBase = 0;
+        answer = default;
 
         if (!_mem.Readable(Offsets.TurnQueue, CursorSpan)) return false;
         if (_mem.U16(Offsets.TurnQueue + Offsets.TqTeam) != 0) return false;   // not a player's turn
@@ -54,7 +60,7 @@ internal sealed partial class ActorResolver
         ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
         if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return false;
 
-        if (!TryFindCursorBandEntry(maxHp, hp, level, out long entry)) return false;
+        if (!TryFindCursorBandEntry(maxHp, hp, level, out long entry, out int bandSlot)) return false;
 
         ushort frameNameId = _mem.U16(entry + Offsets.ANameId);
         if (frameNameId == 0) return false;   // capture failure: fail closed, never a guess
@@ -63,17 +69,22 @@ internal sealed partial class ActorResolver
         byte fa = _mem.U8(entry + Offsets.AFaith);
         if (!TryBridgeCursorToRoster(frameNameId, level, br, fa, out long matchedRosterBase)) return false;
 
-        weapons = Hands(matchedRosterBase);
-        rosterBase = matchedRosterBase;
+        int rosterHand = RawMainHand(matchedRosterBase);
+        int bandWeapon = _mem.U16(entry + Offsets.AWeapon);
+        byte turnFlag = _mem.U8(entry + Offsets.ATurnFlag);
+        answer = new CursorAnswer(matchedRosterBase, rosterHand, bandWeapon, turnFlag, bandSlot);
         return true;
     }
 
     /// <summary>Band walk fingerprint-matching (maxHp,hp,level), twin filter included: the SAME
     /// shape as <see cref="TryResolveActingPlayer"/>'s own turn-queue body, factored out here so
-    /// this cursor resolve does not duplicate the twin-filter logic inline.</summary>
-    private bool TryFindCursorBandEntry(ushort maxHp, ushort hp, ushort level, out long matched)
+    /// this cursor resolve does not duplicate the twin-filter logic inline. <paramref name="matchedSlot"/>
+    /// is the winning entry's own band slot index (LW-55: carried into <see cref="CursorAnswer.BandSlot"/>
+    /// for the tripwire's evidence trail), -1 when nothing matched.</summary>
+    private bool TryFindCursorBandEntry(ushort maxHp, ushort hp, ushort level, out long matched, out int matchedSlot)
     {
         matched = 0;
+        matchedSlot = -1;
         bool found = false, foundReal = false;
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
@@ -88,7 +99,7 @@ internal sealed partial class ActorResolver
             if (realPos && !foundReal && found) { found = false; foundReal = true; }
             if (realPos) foundReal = true;
 
-            if (!found) { matched = addr; found = true; }
+            if (!found) { matched = addr; matchedSlot = s; found = true; }
             else if (matched != addr) return false;   // ambiguous band match
         }
         return found;

@@ -220,9 +220,10 @@ nothing.
 
 **The jsonl vocabulary is FROZEN and separate from the console verbs.** The record type strings
 (`"ev"`, `"kill"`, `"turn"`, `"mode"`, `"toast"`, `"legend-store"`, `"census"`, `"victim"`,
-`"mark-earned"`, `"deed-miss"`, `"guard"`, ...) are set at the tap sites and were deliberately NOT renamed
-by the logging facelift: `tools/parse_flight.py --grep` filters and every existing archive depend
-on them. The console `[verb]` glossary above is a different namespace; do not "align" them.
+`"mark-earned"`, `"deed-miss"`, `"guard"`, `"card"`, ...) are set at the tap sites and were
+deliberately NOT renamed by the logging facelift: `tools/parse_flight.py --grep` filters and every
+existing archive depend on them. The console `[verb]` glossary above is a different namespace; do
+not "align" them.
 
 **What gets captured (on-change only -- never a per-tick state dump):** battle enter/exit edges
 and battle-mode changes (Engine); the event timeline (BattleLog's `event: damage/healing/move`
@@ -231,11 +232,15 @@ rising/falling edges and per-unit turn credit (TurnTracker); the engine actor-po
 transitions (ActorRegister); the acting-player weapon latch and every corpse credit/no-credit
 verdict, including the pending edge (KillTracker); tier-up/milestone toast enqueue and drop
 (BannerToast); toast delivery into the facing prompt (PromptSwap); the Reliquary deed taps
-(`mark-earned`/`deed-miss`); and the fingerprint guard's own lifecycle (`"guard"`, LaunchGuard):
+(`mark-earned`/`deed-miss`); the fingerprint guard's own lifecycle (`"guard"`, LaunchGuard):
 the armed edge and a stand-down's landmark diag, so a stand-down archive is self-contained
-(LW-53). Deliberately **not** tapped: Puppeteer (a separate live-verify arc is in flight against
-those exact lines) and Treasure Master / the chemist-grenade paths (both slated for eventual
-removal -- no new investment there).
+(LW-53); and the Attack card's cursor-gate tripwire (`"card"`, AttackCard.Resolve.cs, LW-55):
+one record per refused cursor answer (roster/band weapon disagreement, or a hover that is not
+yet the turn owner), deduped to once per refusal key per battle, naming the refusal kind and
+both weapon ids so a live "wrong dossier" report can be diagnosed after the fact. Deliberately
+**not** tapped: Puppeteer (a separate live-verify arc is in flight against those exact lines)
+and Treasure Master / the chemist-grenade paths (both slated for eventual removal, no new
+investment there).
 
 **Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl` -- one compact
 JSON object per line (Newtonsoft.Json; no hand-rolled escaping). The first line of every file is
