@@ -218,6 +218,18 @@ internal sealed class BodyDoubleSpike
     // includes the new object). The id-map 0x143741530 write is deliberately SKIPPED in v1 (its
     // key/value semantics are murky in the disasm and the subject-select walk matches obj +0x2C
     // directly; add it in 6c only if 6b alone does not un-freeze).
+    // CANARY 9 (the coexistence fix; LIVE-PROVEN 2026-07-10 on the slot-19 clone: ONE byte turned
+    // a drawing-but-crashing clone into a real AI fighter). The AI-turn orchestrator's early gate
+    // (0x151086AE8 `cmp byte [0x141873038+slot], 0x10`) reads a per-slot AI-ROSTER INDEX table that
+    // the registry/node/combat enroll never touched: real units hold sequential indices 0x00..0x07,
+    // an un-enrolled clone holds 0xFF, so the arm path skips it, the AI-subject pointer [0x141872EA0]
+    // never arms, and the facing code 0x150E74A5D derefs the null = the auto-battle crash. Writing
+    // the host slot the next free index (count of already-enrolled slots) closes it: the clone was
+    // then evaluated cleanly and took a real turn (membership +0x02 and node id 0 did NOT matter;
+    // the roster index alone was the fix). Data-only, no cold call.
+    private const long AiRosterTable  = 0x141873038; // per-slot AI-roster index; 0xFF = not enrolled
+    private const byte AiRosterCap    = 0x10;         // the orchestrator's gate constant (indices are < this)
+
     private const long FnScratchFill  = 0x140275CE8; // thunk -> 0x14EF1F570; (rcx=&scratch, edx=rowId, r8d=mode) -> eax (-1 fail)
     private const long FnObjPopulate  = 0x140284A80; // (rcx=&scratch, rdx=objPtr, r8=rowPtr); memsets + fills the object
     private const long AiObjPool      = 0x1437415A0; // AI objects, stride 0x280 (56 capacity)
@@ -1202,8 +1214,21 @@ internal sealed class BodyDoubleSpike
         _mem.WriteBytes(AiRegistry + count * 8L, BitConverter.GetBytes(dst));
         _mem.WriteBytes(AiObjCountWord, BitConverter.GetBytes((ushort)(_mem.U16(AiObjCountWord) + 1)));
         _mem.WriteBytes(AiCountByte, new[] { (byte)(count + 1) });
+
+        // CANARY 9: assign the host the next free AI-ROSTER INDEX (the one byte that made the clone
+        // a real AI fighter, live-proven). Next index = the count of slots already carrying a valid
+        // index (< the gate cap); the reals are 0..N-1 sequential, so that count IS the next slot.
+        int nextIdx = 0;
+        for (int s = 0; s < Slots; s++)
+            if (_mem.U8(AiRosterTable + s) < AiRosterCap) nextIdx++;
+        if (nextIdx >= AiRosterCap)
+        {
+            ModLogger.Event(LogVerb.Trace, $"body-double: AI-roster table is full ({nextIdx} indices); the clone cannot become an AI subject. Registry enroll stands, but expect the auto-battle crash.");
+            return false;
+        }
+        _mem.WriteBytes(AiRosterTable + hostSlot, new[] { (byte)nextIdx });
         ModLogger.Event(LogVerb.Trace,
-            $"body-double: registry enroll: donor obj cloned -> 0x{dst:X} keyed slot {hostSlot}, table[{count}], count -> {count + 1}. The clone is AI-resolvable before it is visible.");
+            $"body-double: registry enroll: donor obj cloned -> 0x{dst:X} keyed slot {hostSlot}, table[{count}], count -> {count + 1}; AI-roster index 0x141873038+{hostSlot} = {nextIdx:X2}. The clone is a FULL AI subject (the coexistence fix, live-proven).");
         return true;
     }
 

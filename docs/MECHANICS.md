@@ -31,15 +31,21 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
   mover lerps per frame (pokes lose), turn-open/move-end = one-shot re-stamp from logic. A
   shipped hover should grant the real Float STATUS and let the engine draw it; Z pokes are for
   teleports and comedy. Purely visual: all combat math reads the logic layers.
-- SPAWN AN ADDED UNIT MID-BATTLE (the render weld broken; LW-58 Body Double) -- PROVEN LIVE
-  with one caveat: a cold-called node build (0x14026EBEC, sibling-cribbed args) + scene-bind
-  replication + donor completeness stamps produces a DRAWN, NAMED, LISTED, player-CONTROLLABLE
-  unit with a full lifecycle (turns, attacks, death, chest/crystal). THE CAVEAT: a board-visible
-  unit whose render-node tile key / registry key / gate disagree stalls the AI decision pipeline
-  (walk-in-place freeze) or crashes it (null AI-subject); the decoded fix is CONSISTENCY (node
-  tile bytes = the real tile, registry key = the slot, gate = model), unbuilt (Canary 8). Also:
-  the double's crystal REMOVAL game-overed battle 435 twice (cause unknown, identity-independent);
-  DeathWatch pins the corpse counter as mitigation. Dev-spike only (worktree BodyDoubleSpike).
+- SPAWN A REAL AI FIGHTER MID-BATTLE (LW-58 Body Double, COMPLETE) -- PROVEN LIVE 2026-07-10:
+  DUPLICATE any hovered unit into a real, drawn, named, controllable combatant that DESCENDS FROM
+  THE HEAVENS and FIGHTS AS A REAL AI UNIT with no crash. The data-only enroll chain (all live-
+  proven): copy the donor's combat struct into a vacant same-region slot at a FREE tile; clone the
+  donor's battle-keyed AI registry object re-keyed to the host slot (+ count bump); cold-build the
+  render node with the DESTINATION TILE as the build args (the node tile key is the AI's subject
+  lookup) + scene-bind + own animB + donor identity stamps (+0x191/2 = name + control); AND THE
+  ONE-BYTE COEXISTENCE KEY: the per-slot AI-ROSTER INDEX 0x141873038[hostSlot] = next free index
+  (real units hold 0..7; an un-indexed clone reads 0xFF and the AI-subject arm skips it -> the
+  facing code 0x150E74A5D null-derefs = the auto-battle crash). Baked as Canary 9 in the worktree
+  BodyDoubleSpike. The clone is battle-scoped (does NOT persist: the desired temporary-summon
+  semantic; a permanent recruit needs a save-roster entry, unbuilt). Two knowns to polish: it is
+  AI-PASSIVE (steps + waits; its behavior row 0x1411A7D10+idx*0x258 is the donor's shadow -- give
+  it a real AI-data row for aggression) and the decoy CT-hold must be released for it to get turns.
+  Dev-spike only.
 - DESPAWN ANY UNIT, SPRITE AND ALL (the reverse door) -- PROVEN LIVE: ONE guarded byte
   (node +0x12C = mode 2) and the engine's own sweeper (0x14026E20C) removed a live enemy
   completely on its next unpaused frame, every predicted side effect byte-perfect (combat
