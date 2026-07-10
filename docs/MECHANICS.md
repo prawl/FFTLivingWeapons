@@ -18,7 +18,7 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
   2026-07-10: the render position was the missing layer for a month (the Knockback wall); a
   coherent triple-write of combat +0x4F/+0x50 (logic tile, +0x51 bit7 layer), the render node's
   AI tile key +0x88/89/8A, and the node's world coords +0x4C/+0x4E/+0x50 (X=28x+14, Y=28y+14,
-  Z=-12*height; node via list head 0x140D3A410, +0x148 combat backref) moves a unit completely:
+  Z=-12*(height +1 if Float); node via list head 0x140D3A410, +0x148 combat backref) moves a unit completely:
   it hovers, paths, and acts from the new tile, and the engine re-adopts every layer after its
   first real move. A live Ramza-with-enemy FULL SWAP (each keeping own facing) executed
   flawlessly. Only remaining guard for a shipped mechanic: a tile-occupancy check (co-tiled

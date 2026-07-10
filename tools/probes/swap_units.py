@@ -5,7 +5,8 @@ The complete teleport recipe = write all THREE position layers coherently, then 
 re-adopts every layer after the unit's first real move:
   combat +0x4F/+0x50 (logic tile; +0x51 bit7 = upper-layer, low nibble = facing, kept per unit)
   node   +0x88/+0x89/+0x8A (the AI decision pipeline's tile-lookup key)
-  node   +0x4C/+0x4E/+0x50 u16 (render world X/Z/Y; X=28x+14, Y=28y+14, Z=-12*height)
+  node   +0x4C/+0x4E/+0x50 u16 (render world X/Z/Y; X=28x+14, Y=28y+14, Z=-12*(height, +1 if
+  the unit has FLOAT: the hover offset is pure node data, grantable/strippable by Z alone))
 The +0x2E u16 rides along (per-tile, meaning unidentified). TRAPS: never leave two units
 co-tiled (slot-order target shadowing + a movement soft-lock, both proven live); swap avoids
 that by construction. THROWAWAY SAVE; interactive y/n confirm; guarded writes.

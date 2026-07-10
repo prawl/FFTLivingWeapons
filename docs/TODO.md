@@ -254,7 +254,9 @@ is the in-flight subset, not a mirror of that checklist.
   hovered correctly and took a normal AI turn from the new tile, after which the engine re-stamps
   every layer itself. Un-parks the Knockback family (position-write-desync memory updated) and
   gives Mirror Image its restore-displacement primitive. Same night: the Z formula was solved
-  (node +0x4E = -12 x height; full set X=28x+14, Y=28y+14, Z=-12h) and a complete TWO-UNIT
+  (node +0x4E = -12 x height, +1 height unit when the unit has FLOAT: the hover offset is pure
+  node data, owner-witnessed granted to a non-Float unit and stripped from it by Z pokes alone;
+  full set X=28x+14, Y=28y+14, Z=-12h with the Float rider) and a complete TWO-UNIT
   POSITION SWAP (Ramza and a live enemy, all layers, own facing kept) executed flawlessly with
   both units acting normally after. Open before any shipped mechanic: a tile-occupancy check
   (co-tile = target shadowing + movement lock) and a LIVE_LEDGER row (owner flip).
