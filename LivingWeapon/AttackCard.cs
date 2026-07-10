@@ -58,7 +58,8 @@ namespace LivingWeapon;
 /// sprite byte, never the filtered/tracked Hands() set, which cannot distinguish "unarmed" from
 /// "wielding something untracked" and would miss the "Fists" case entirely. Dual wield: only the
 /// main hand is ever shown here (a second blade still earns kills via KillTracker same as always,
-/// just is not featured in this single row/title).
+/// just is not featured in this single row/title). LW-55 adds a narrowing-only gate on top of the
+/// cursor answer itself (CursorGate.Decide, see CursorGate.cs and AttackCard.Resolve.cs).
 /// </summary>
 internal sealed partial class AttackCard
 {
@@ -92,11 +93,11 @@ internal sealed partial class AttackCard
     private readonly IGameMemory _mem;
     private readonly ChunkReader _reader;
     private readonly AttackRow _attackRow;
-    private readonly Func<(List<int> Weapons, long RosterBase)?> _resolveCursor;
-    private readonly Func<long, int> _rawMainHand;
+    private readonly Func<CursorAnswer?> _resolveCursor;
     private readonly Func<long, byte> _spriteOf;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
+    private readonly Action<string, string>? _recorder;   // LW-55: flight tap for the tripwire, Flight.Record's idiom
     private readonly Func<long> _nowMs;
 
     private readonly List<Hit> _hits = new();
@@ -114,19 +115,19 @@ internal sealed partial class AttackCard
     private byte[]? _previousImage;  // the last DISTINCT composed image before the current rotation
     private long _lastMaintenanceMs = -1;
 
-    public AttackCard(IGameMemory mem, Func<(List<int> Weapons, long RosterBase)?> resolveCursor,
-                       Func<long, int> rawMainHand, Func<long, byte> spriteOf,
+    public AttackCard(IGameMemory mem, Func<CursorAnswer?> resolveCursor,
+                       Func<long, byte> spriteOf,
                        Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
-                       Func<long>? nowMs = null)
+                       Action<string, string>? recorder = null, Func<long>? nowMs = null)
     {
         _mem = mem;
         _reader = new ChunkReader(mem);
         _attackRow = new AttackRow(mem);
         _resolveCursor = resolveCursor;
-        _rawMainHand = rawMainHand;
         _spriteOf = spriteOf;
         _meta = meta;
         _kills = kills;
+        _recorder = recorder;
         _nowMs = nowMs ?? (() => Environment.TickCount64);
     }
 
@@ -158,6 +159,7 @@ internal sealed partial class AttackCard
         _currentRowChars = 0;
         _previousImage = null;
         _lastMaintenanceMs = -1;
+        _reportedRefusals.Clear();   // LW-55: the per-battle tripwire dedup set (AttackCard.Resolve.cs)
     }
 
     /// <summary>Test accessor (mirrors CardSites.Count/Display._sites): the number of table

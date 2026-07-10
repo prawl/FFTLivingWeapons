@@ -202,11 +202,12 @@ internal sealed class Engine
         // (Reliquary Phase 2), which rebuilds StoryLines/EarnedAnchors (the three-way anchor, decision 12).
         _display = new Display(meta, _kills, live, legends: null, poolPaint: Tuning.PoolPaintEnabled);
         // LW-31: the acting unit's Attack-menu dossier. Wired here (not beside _tracker) because
-        // it needs the tracker's cursor-resolve + raw-hand/sprite seams. CURSOR-ONLY since
-        // 2026-07-06 (owner-observed wrong-weapon display; see AttackCard.cs's class doc): the
-        // tracker's register no longer feeds this surface at all.
+        // it needs the tracker's cursor-resolve + sprite seam. CURSOR-ONLY since 2026-07-06
+        // (owner-observed wrong-weapon display; see AttackCard.cs's class doc): the tracker's
+        // register no longer feeds this surface at all. LW-55: Flight.Record is the tripwire's
+        // recorder tap (the KillTracker/LaunchGuard idiom above), a no-op until Flight.Init runs.
         _attackCard = new AttackCard(live, _tracker.ResolveCursorPlayer,
-                                      _tracker.RawMainHand, _tracker.SpriteOf, meta, _kills);
+                                      _tracker.SpriteOf, meta, _kills, Flight.Record);
 #if LWDEV
         // Constructed here (not beside _showSpike above) because it needs Display's _sites/_pats,
         // which do not exist until Display itself is built.

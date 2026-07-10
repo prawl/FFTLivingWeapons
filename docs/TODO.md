@@ -35,16 +35,6 @@ is the in-flight subset, not a mirror of that checklist.
     kill shows updated on re-open, another item's flavor stays untouched, and the in-battle Attack
     card surface is unaffected.
 
-- **[LW-55] Attack card shows a wrong kill count that disagrees with the equip card** (opened 2026-07-08) [QUEUED]
-  - Done means: the Attack-menu card's Kills line matches the equip card for the same weapon. Observed
-    in Ramza's first battle of a new game: the Attack card read 100 kills while the equip card correctly
-    read 8 for the same weapon (and the Attack card may show the generic "Attack" label rather than the
-    weapon name). The tally itself is correct (equip card and kills.json agree at 8), so the fault is the
-    Attack-card attribution or read path (LW-31 surface, AttackCard.Resolve), NOT the tally; distinct
-    from LW-51 scoping.
-  - Verify: in a battle, the acting unit's Attack-card Kills line equals the equip-card Kills line for
-    that weapon (no spurious high count) and names the correct weapon; confirmed live.
-
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
@@ -216,6 +206,23 @@ is the in-flight subset, not a mirror of that checklist.
   name" symptom points at actor/weapon identity, not the dict). Likely surface: the Orbonne story
   battle (EventId 4) is scripted with guests, where the actor and kill-detection path may not engage
   the same way as a normal battle.
+  2026-07-10 live evidence (the LW-55 ship session, livingweapon.log 02:44-02:47): post-LW-51 the
+  opener DOES credit, but wrongly: the first kill logged as "Kiku-ichimonji claims kill number 1"
+  (weapon id 45, victim nameId 125, job 77, battle slot 14) when no new-game unit wields a Kiku;
+  the pre-new-game session that same launch had fielded a Kiku wielder, so a stale identity
+  (roster row or register latch) bridged across the in-session new game. Four other opener kills
+  were left uncredited with the logged reason "actor resolved via an enemy-turn team read". The
+  LW-55 display gates held throughout (the Attack card named the true Claymore, zero card
+  tripwire records), so the fault is isolated to the crediting resolve chain; the battle-exit
+  flight tape of that run carries the kill latch records.
+- [LW-59] 2026-07-10: A stale kill count survives the in-session new-game tally reset on the
+  equip-card surface: in the reset opener the owner read 3 kills for Ramza's Claymore while the
+  tally was provably empty (the LW-51 reset had archived kills.2.json, and the battle's first
+  credit logged as kill number 1), and 3 is exactly the pre-reset DEV seed floor, so a painted
+  line (the equip-card Kills meter, the LW-37 pool text, or the +N name suffix) outlived the
+  reset. The LW-37 pool repaint ran post-reset (02:45:01, 701 sites) yet the viewed card still
+  read 3; determine which painter holds the stale text and make PlaythroughReset force a repaint
+  of every kill-count surface.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

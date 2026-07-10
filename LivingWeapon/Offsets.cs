@@ -255,6 +255,27 @@ internal static class Offsets
     // Rapture saves/holds/restores this for the Master Teleportation window.
     public const int AMovement = 0x80;
     public const int ASupport = 0x7C;   // 4 bytes, base id 198, MSB-first; == CSupport(0x98) - BandEntry(0x1C). Choir OR-sets the Non-charge bit here.
+
+    // --- per-unit turn/moved/acted flags (band-entry-relative; PROVEN LIVE 2026-07-09) ---
+    // Source: docs/LIVE_LEDGER.md's "Per-unit turn/moved/acted flags (the full-wait read)" row
+    // (owner live-verified 2026-07-09: Mushin BANK on a still wait, SPENT on the strike);
+    // FFHacktics PSX struct 0x186-0x189, mapped live by tools/probes/mushin_wait_probe.py
+    // (scratchpad/psxflags_watch.log). PSX offset + 0x32 = frame offset; frame offset -
+    // BandEntry(0x1C) = band offset, the same AArec/ANameId convention every other frame-window
+    // field in this codebase already uses. Promoted from Mushin.cs's own local consts (LW-55
+    // stage 1; Mushin's round-5 doc originally forbade the promotion mid-commit-staging, moot now).
+    /// <summary>1 while the unit's move/act/wait menu is open; 0-&gt;1 at turn open, 1-&gt;0 at turn
+    /// end. The falling edge (1-&gt;0) is the turn-end decision point Mushin's trigger reads, and
+    /// LW-55's CursorGate reads it as gate B (turn-ownership) for the Attack card's cursor resolve.</summary>
+    public const int ATurnFlag = 0x19C;   // u8
+    /// <summary>0-&gt;1 at the unit's move. Reset to 0 by the ENGINE at that unit's NEXT turn open.</summary>
+    public const int AMoved    = 0x19D;   // u8
+    /// <summary>0-&gt;1 at the unit's action. Same engine reset-at-open as <see cref="AMoved"/>.
+    /// PSX 0x189 (frame +0x1BB, band +0x19F, "Ability Outcome": 0x02 hit-by-ability, 0x01
+    /// turn-ended) is documented on the LIVE_LEDGER row but not promoted here: nothing in this
+    /// codebase consumes it.</summary>
+    public const int AActed    = 0x19E;   // u8
+
     public const long BandReadBase = CombatAnchor + BandEntry - 24 * (long)CombatStride;  // n=-24 anchor
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 

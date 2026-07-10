@@ -27,13 +27,18 @@ public class AttackCardTests
 
     /// <summary>Seat a player: a roster slot (main-hand weaponId) plus its matching band entry
     /// and frame nameId, at a distinct (level,brave,faith) fingerprint per slot/bandIdx pair.
-    /// <paramref name="sprite"/> defaults to 0 (an ordinary human, AttackRow.Policy.HumanSprite).</summary>
+    /// <paramref name="sprite"/> defaults to 0 (an ordinary human, AttackRow.Policy.HumanSprite).
+    /// LW-55: also seats the band's own turn-flag byte (Offsets.ATurnFlag) at 1, the genuine
+    /// turn-owner value CursorGate's gate B requires before ANY dossier composes (mirrors
+    /// MushinTests.SetFlags' own seating of the same byte); MemSeats.SeatBand itself is NOT given
+    /// a default (shared suite; MushinTests drives that byte through its own helper).</summary>
     private static void SeatPlayer(FakeSparseMemory m, int rosterSlot, int bandIdx, int weaponId,
                                    int lvl, int br, int fa, int nameId, int sprite = 0)
     {
         MemSeats.SeatRoster(m, rosterSlot, lvl, br, fa, rh: weaponId, nameId: nameId, sprite: sprite);
         MemSeats.SeatBand(m, bandIdx, weapon: weaponId, lvl: lvl, br: br, fa: fa, gx: bandIdx, gy: bandIdx);
         MemSeats.SeatFrameNameId(m, bandIdx, nameId);
+        m.U8s[Band.Entry(bandIdx) + Offsets.ATurnFlag] = 1;
     }
 
     private static Dictionary<int, WeaponMeta> Meta() => new()
@@ -84,6 +89,9 @@ public class AttackCardTests
         public ActorResolver Resolver = null!;
         public AttackCard Card = null!;
         public Dictionary<int, int> Kills = null!;
+        // LW-55: every recorder call the tripwire makes (AttackCard.Resolve.cs's ReportRefusal),
+        // in order, so tests can assert on flight-record content/count directly.
+        public List<(string Type, string Payload)> Recorded = null!;
     }
 
     private static Rig Build(Dictionary<int, int>? kills = null)
@@ -97,11 +105,12 @@ public class AttackCardTests
         // trimmed-away suffix) unless a test overrides it; the tier-suffix mechanism itself is
         // AttackRow.Policy's own concern (AttackRowPolicyTests), not this runtime suite's.
         var k = kills ?? new Dictionary<int, int> { [WindrunnerId] = 3, [StormcallerId] = 4 };
-        Func<(List<int>, long)?> resolveCursor = () =>
-            resolver.TryResolveCursorPlayer(out var w, out long rb) ? (w, rb) : ((List<int>, long)?)null;
-        var card = new AttackCard(mem, resolveCursor,
-                                   resolver.RawMainHand, resolver.SpriteOf, meta, k);
-        return new Rig { Mem = mem, Register = register, Resolver = resolver, Card = card, Kills = k };
+        Func<CursorAnswer?> resolveCursor = () =>
+            resolver.TryResolveCursorPlayer(out var answer) ? answer : (CursorAnswer?)null;
+        var recorded = new List<(string Type, string Payload)>();
+        var card = new AttackCard(mem, resolveCursor, resolver.SpriteOf, meta, k,
+                                   recorder: (t, p) => recorded.Add((t, p)));
+        return new Rig { Mem = mem, Register = register, Resolver = resolver, Card = card, Kills = k, Recorded = recorded };
     }
 
     /// <summary>Drive Arm + StepScan to completion (tiny test regions always finish within a
@@ -265,10 +274,12 @@ public class AttackCardTests
 
         // A second player, band-confirmed UNARMED (RRHand = the empty-hand sentinel) on an ordinary
         // human sprite (default 0): a real player turn with no weapon at all earns "Fists", not a
-        // vanilla restore (goal rule: unarmed HUMAN -> "Fists").
+        // vanilla restore (goal rule: unarmed HUMAN -> "Fists"). Both sides sentinel-agree as
+        // unarmed (LW-55 gate A: None) and the turn flag is seated 1 (gate B: None).
         MemSeats.SeatRoster(rig.Mem.Sparse, slot: 4, lvl: 45, br: 40, fa: 50, rh: 0xFFFF, nameId: 44, sprite: 0x80);
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 7, weapon: 0xFFFF, lvl: 45, br: 40, fa: 50, gx: 7, gy: 7);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 7, nameId: 44);
+        rig.Mem.Sparse.U8s[Band.Entry(7) + Offsets.ATurnFlag] = 1;
         OpenTurn(rig, level: 45);       // the unarmed unit's turn opens
         Settle(rig.Card, ticks: 1);
 
@@ -811,5 +822,165 @@ public class AttackCardTests
         Assert.Equal("Peacemaker+3", RowOf(rig.Mem.RegionBytes(copy), 1));
         Assert.Equal("Kills: 55",
             TailOf(rig.Mem.RegionBytes(copy), 1, "Peacemaker+3".Length));
+    }
+
+    // ==================== LW-55: CursorGate narrowing (turn-flag + weapon-agreement) ====================
+    // Two NARROWING-ONLY cross-checks the cursor resolve now passes through CursorGate.Decide
+    // before ANY dossier composes: gate B (turn ownership, Offsets.ATurnFlag) then gate A (roster
+    // right-hand weapon vs the SAME unit's own band-equipped weapon, Offsets.AWeapon). A refusal
+    // composes vanilla, doctrine unchanged (a wrong dossier is worse than vanilla). See
+    // CursorGate.cs's own class doc for the full gate-order/sentinel rationale.
+
+    /// <summary>Installs a fake FileConsoleLogger at Info tier (mirrors ModLoggerFacadeTests'
+    /// own Install helper): AttackCard's production paths never log at Info, so the console list
+    /// captures ONLY Warn/Error lines, letting these tests assert Warn presence/absence precisely
+    /// without Debug-tier noise (RepaintDriver/SyncHit log plenty of Debug lines every tick).</summary>
+    private static List<string> InstallWarnOnlyConsole()
+    {
+        var console = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(console.Add, _ => { }) { LogLevel = LogLevel.Info };
+        return console;
+    }
+
+    [Fact]
+    public void LW55_gate_A_roster_and_band_weapon_disagree_refuses_to_vanilla_with_one_Warn_and_one_card_record()
+    {
+        // THE load-bearing negative: both ids are meta-registered and TRACKED (an untracked id
+        // would compose vanilla even pre-fix, making the test vacuous). Pre-fix, this painted
+        // Windrunner's row with the roster's own 100-kill tally under Windrunner's name while the
+        // unit's actual band loadout (Stormcaller, 8 kills) was never cross-checked: the live bug.
+        var console = InstallWarnOnlyConsole();
+        try
+        {
+            var rig = Build(kills: new Dictionary<int, int> { [WindrunnerId] = 100, [StormcallerId] = 8 });
+            long copy = 0x7000000000;
+            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+            // Roster says Windrunner (100 kills, the wrong dossier); the SAME unit's own band entry
+            // says Stormcaller is actually equipped: a real live split (a stale roster row / a
+            // scripted ENTD opener). The bridge is unambiguous and the turn flag is genuinely open
+            // (gate B alone would pass): gate A is the only thing that can refuse here.
+            MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
+            MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: StormcallerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+            MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+            rig.Mem.Sparse.U8s[Band.Entry(5) + Offsets.ATurnFlag] = 1;
+            OpenTurn(rig, level: 50);
+
+            Settle(rig.Card);
+
+            Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+            Assert.Single(console);
+            Assert.Contains("[WARN]", console[0]);
+            Assert.Single(rig.Recorded);
+            Assert.Equal("card", rig.Recorded[0].Type);
+            Assert.Contains("WeaponMismatch", rig.Recorded[0].Payload);
+            Assert.Contains($"rosterHand={WindrunnerId}", rig.Recorded[0].Payload);
+            Assert.Contains($"bandWeapon={StormcallerId}", rig.Recorded[0].Payload);
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    [Fact]
+    public void LW55_gate_B_turn_flag_not_open_refuses_to_vanilla_with_no_Warn_ever()
+    {
+        var console = InstallWarnOnlyConsole();
+        try
+        {
+            var rig = Build();
+            long copy = 0x7000000000;
+            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+            // Roster and band AGREE on Windrunner (zero gate-A anomaly), but the band's own turn
+            // flag is never seated (defaults to 0, the unguarded fail-safe read): routine hover
+            // behavior (targeting/reticle sweeps over allies and guests every tick) must never be
+            // mistaken for a weapon anomaly, so this refuses via gate B alone.
+            MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
+            MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: WindrunnerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+            MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+            OpenTurn(rig, level: 50);
+
+            Settle(rig.Card);
+
+            Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+            Assert.Empty(console);   // NEVER a Warn for the routine hover case
+            Assert.Single(rig.Recorded);
+            Assert.Equal("card", rig.Recorded[0].Type);
+            Assert.Contains("NotTurnOwner", rig.Recorded[0].Payload);
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    [Fact]
+    public void LW55_gate_agreement_control_matching_weapon_and_open_flag_composes_named_never_the_tripwire()
+    {
+        // Over-refusal pin: agreement (the overwhelming common case, every turn a player takes)
+        // must never trip either gate. Reuses the plain compose shape already covered elsewhere in
+        // this file, plus the explicit tripwire-silence assertion LW-55 adds.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Equal("Kills: 3/5 to +", TailOf(rig.Mem.RegionBytes(copy), 1, "Windrunner".Length));
+        Assert.Empty(rig.Recorded);
+    }
+
+    [Fact]
+    public void LW55_mismatch_tripwire_dedups_per_battle_and_ResetBattle_clears_it()
+    {
+        var rig = Build(kills: new Dictionary<int, int> { [WindrunnerId] = 100, [StormcallerId] = 8 });
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: StormcallerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+        rig.Mem.Sparse.U8s[Band.Entry(5) + Offsets.ATurnFlag] = 1;
+        OpenTurn(rig, level: 50);
+
+        Settle(rig.Card, ticks: 10);   // many repeated ticks against the SAME mismatch
+
+        Assert.Single(rig.Recorded);   // deduped to exactly one record for the whole battle
+
+        rig.Card.ResetBattle();
+        Settle(rig.Card, ticks: 3);    // the identical mismatch persists into the next battle
+
+        Assert.Equal(2, rig.Recorded.Count);   // ResetBattle cleared the dedup set: the same key records again
+    }
+
+    [Fact]
+    public void LW55_a_second_distinct_mismatch_key_records_again_within_the_same_battle()
+    {
+        // The dedup set keys per (kind, rosterHand, bandWeapon), NOT once-per-battle: a first
+        // refusal must never latch the tripwire shut against a genuinely DIFFERENT anomaly
+        // arriving later in the same battle (no ResetBattle between the two).
+        var rig = Build(kills: new Dictionary<int, int> { [WindrunnerId] = 100, [StormcallerId] = 8, [ZwillId] = 12 });
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: StormcallerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+        rig.Mem.Sparse.U8s[Band.Entry(5) + Offsets.ATurnFlag] = 1;
+        OpenTurn(rig, level: 50);
+
+        Settle(rig.Card, ticks: 5);    // first mismatch key: (WeaponMismatch, Windrunner, Stormcaller)
+
+        Assert.Single(rig.Recorded);
+        Assert.Contains($"rosterHand={WindrunnerId}", rig.Recorded[0].Payload);
+
+        // The SAME unit's roster hand changes mid-battle to another meta-tracked id (a re-equip
+        // shape); the band still says Stormcaller: a DISTINCT key (WeaponMismatch, Zwill,
+        // Stormcaller), so the tripwire must fire again despite the earlier report.
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: ZwillId, nameId: 42);
+        Settle(rig.Card, ticks: 5);
+
+        Assert.Equal(2, rig.Recorded.Count);
+        Assert.Contains($"rosterHand={ZwillId}", rig.Recorded[1].Payload);
+        Assert.NotEqual(rig.Recorded[0].Payload, rig.Recorded[1].Payload);   // two distinct evidence trails
     }
 }
