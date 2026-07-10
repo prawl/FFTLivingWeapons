@@ -21,8 +21,10 @@ namespace LivingWeapon;
 ///   BAND   -- every valid band slot (<see cref="Band.IsValid"/>), both teams as the live auth-band
 ///             frames stand this tick: nameId, job byte, level/brave/faith, hp/maxHp, grid position.
 ///   ROSTER -- every occupied roster slot (RLevel 1..99 -- the same occupied-check
-///             ActorRegister.Bridge uses), its RNameId: the player-pool side of the P2 collision
-///             check.
+///             ActorRegister.Bridge uses), its RNameId and its level (LW-56: "{slot}:{nameId}L{level}",
+///             e.g. "0:1L99"): the player-pool side of the P2 collision check, with level riding
+///             alongside nameId so a stale roster (a battle-exit edge that never fired) is visible
+///             on tape by both fields together.
 /// Logged one ModLogger.Debug line per slot (file-only unless the console level is raised to Debug), plus ONE bounded
 /// flight-recorder tap for the whole census -- a per-slot tap would flood the bounded 4096-record
 /// ring for what is fundamentally one event.
@@ -94,8 +96,11 @@ internal sealed class BattleCensus
                 if (rlvl < 1 || rlvl > 99) continue;   // unoccupied slot
 
                 ushort nameId = _mem.U16(b + Offsets.RNameId);
-                ModLogger.Debug(LogVerb.Trace, $"census: roster slot={s} nameId={nameId}");
-                rosterParts.Add($"{s}:{nameId}");
+                ModLogger.Debug(LogVerb.Trace, $"census: roster slot={s} nameId={nameId} level={rlvl}");
+                // LW-56: level rides alongside nameId so a stale roster is visible on tape (a
+                // battle-exit edge that never fired would show a leftover level 99 where a fresh
+                // opener roster shows level 1).
+                rosterParts.Add($"{s}:{nameId}L{rlvl}");
                 rosterCount++;
             }
 

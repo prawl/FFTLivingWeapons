@@ -82,6 +82,26 @@ public class BattleCensusTests
     }
 
     [Fact]
+    public void Census_roster_pool_entries_carry_the_slots_level()
+    {
+        // LW-56: a stale roster is visible on tape by nameId AND level together (the incident's
+        // stale roster would show slot0 level 99 where a fresh opener roster shows level 1).
+        var m = new FakeSparseMemory();
+        string? payload = null;
+        var census = new BattleCensus(m, (type, p) => { if (type == "census") payload = p; });
+
+        MemSeats.SeatRoster(m, slot: 0, lvl: 99, br: 89, fa: 76, rh: 80, nameId: 1);
+
+        census.Tick(true);
+
+        Assert.NotNull(payload);
+        int idx = payload!.IndexOf(" | roster ");
+        Assert.True(idx >= 0, "payload must contain the ' | roster ' separator");
+        string rosterPart = payload.Substring(idx + " | roster ".Length);
+        Assert.Contains("0:1L99", rosterPart);
+    }
+
+    [Fact]
     public void ResetBattle_rearms()
     {
         var m = new FakeSparseMemory();

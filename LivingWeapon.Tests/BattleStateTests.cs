@@ -533,4 +533,88 @@ public class BattleStateTests
     public void BattleDisplayed_true_when_slot9_armed_and_mode_nonzero(
         uint slot9, int battleMode, bool expected)
         => Assert.Equal(expected, BattleState.BattleDisplayed(slot9, battleMode));
+
+    // --- LW-56: forced exit (the new-game-detection hook) ---
+    // The one production caller is PlaythroughReset's own detection edge (Engine.Tick), gated
+    // !inLive by PlaythroughResetPolicy.IsOpeningOutOfBattle. An in-session New Game never fires
+    // an ordinary battle-exit edge (real events suspend the exit debounce), so forceExit is the
+    // dedicated bypass that flushes stale per-battle attribution state on the same tick a new
+    // game qualifies.
+
+    [Fact]
+    public void Force_exit_while_In_exits_on_the_same_call_no_debounce_time_needed()
+    {
+        var bs = new BattleState();
+        bs.Step(0xFF, WM9, 2, false, 0, T0);   // enter
+        Assert.True(bs.In);
+
+        // Same clock tick as the enter call: no elapsed time at all, proving the debounce is
+        // bypassed entirely rather than merely satisfied early.
+        var edge = bs.Step(0xFF, WM9, 2, false, 0, T0, forceExit: true);
+
+        Assert.Equal(BattleEdge.Exited, edge);
+        Assert.False(bs.In);
+    }
+
+    [Fact]
+    public void Force_exit_wins_even_when_this_ticks_own_reads_are_in_live()
+    {
+        // PRECEDENCE PIN: kills any implementation that checks InLiveBattle (or EnterSignal)
+        // before honoring forceExit.
+        var bs = new BattleState();
+        bs.Step(0xFF, WM9, 2, false, 0, T0);   // enter
+
+        var edge = bs.Step(0xFF, WM9, 3, false, 0, T0, forceExit: true);   // mode 3 reads in-live
+
+        Assert.Equal(BattleEdge.Exited, edge);
+        Assert.False(bs.In);
+    }
+
+    [Fact]
+    public void Force_exit_snapshots_a_stuck_armed_pair_so_the_next_tick_does_not_reenter()
+    {
+        var bs = new BattleState();
+        bs.Step(0, 0, 2, false, 0, T0);   // enter via mode, pair disarmed
+        var t = T0.AddMilliseconds(33);
+
+        // The force-exit tick itself reads the stuck-armed pair (slot0=0xFF, slot9=0xFFFFFFFF).
+        var edge = bs.Step(0xFF, WM9, 0, false, 0, t, forceExit: true);
+        Assert.Equal(BattleEdge.Exited, edge);
+
+        // The NEXT tick sees the same stuck pair at a non-live mode; without the exit-time
+        // snapshot this would misread as a fresh disarmed->armed edge and re-enter.
+        t = t.AddMilliseconds(33);
+        Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, false, 0, t));
+        Assert.False(bs.In);
+    }
+
+    [Fact]
+    public void Force_exit_while_not_In_is_a_no_op()
+    {
+        var bs = new BattleState();
+        Assert.False(bs.In);
+
+        var edge = bs.Step(0, 0, 0, false, 0, T0, forceExit: true);
+
+        Assert.Equal(BattleEdge.None, edge);
+        Assert.False(bs.In);
+    }
+
+    // Regression: forceExit defaults to false, so every pre-existing debounce/suspend scenario
+    // above (In_while_paused_out_of_live_never_exits, Mid_battle_event_401_suspends_exit_timer,
+    // etc.) already re-asserts the unchanged default behavior by compiling unmodified against the
+    // new trailing optional parameter. One is repeated explicitly here as a named pin.
+    [Fact]
+    public void ForceExit_defaulting_false_preserves_the_existing_debounce()
+    {
+        var bs = new BattleState();
+        bs.Step(0, 0, 2, false, 0, T0);   // enter
+        var t = T0;
+        for (int i = 0; i < 91; i++)   // ~3s out of live, under the 4s debounce
+        {
+            t = t.AddMilliseconds(33);
+            Assert.Equal(BattleEdge.None, StepWorld(bs, t, slot9: WM9));
+            Assert.True(bs.In);
+        }
+    }
 }

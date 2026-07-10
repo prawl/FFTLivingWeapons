@@ -153,6 +153,40 @@ internal static partial class Wielder
         return false;
     }
 
+    /// <summary>LW-56: true when AT LEAST ONE roster row holding <paramref name="weaponId"/> in
+    /// ANY hand (right, left, or off) has a live band entry backing it right now: the credit
+    /// gate's existence check (does this weapon have a deployed wielder on the field at all).
+    /// Unlike <see cref="AnyDeployedMainHand"/> (main-hand only, used by the console relevance
+    /// gate), this scans all three hand fields: a corpse credit's culprit list can name a
+    /// dual-wielder's OFF-hand blade, whose live band entry's own weapon field mirrors the MAIN
+    /// hand, not the queried id, so the row's full hand set (sentinel-filtered, mirroring
+    /// <see cref="TryResolve"/>) is what gets passed to <see cref="Locate"/> rather than just
+    /// weaponId itself.
+    /// NO ambiguity bail of any kind (the reviewed blocker): an existence check does not care how
+    /// many roster rows hold the weapon, so this exhausts every occupied slot and returns true on
+    /// the FIRST slot whose Locate call finds a live band entry, rather than bailing when more
+    /// than one roster row holds the weapon (a benched duplicate copy must never poison the
+    /// answer for a genuinely deployed copy). The credit gate (<see cref="CreditGate"/>, wired
+    /// through KillTracker.CreditKill) is this method's only consumer.</summary>
+    public static bool HasLiveWielder(IGameMemory mem, int weaponId)
+    {
+        for (int r = 0; r < Offsets.RosterSlots; r++)
+        {
+            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
+            int lvl = mem.U8(rb + Offsets.RLevel);
+            if (lvl < 1 || lvl > 99) continue;   // empty slot
+            int rh = mem.U16(rb + Offsets.RRHand), lh = mem.U16(rb + Offsets.RLHand), oh = mem.U16(rb + Offsets.ROffHand);
+            if (rh != weaponId && lh != weaponId && oh != weaponId) continue;   // this row doesn't hold it at all
+            var fp = (lvl, (int)mem.U8(rb + Offsets.RBrave), (int)mem.U8(rb + Offsets.RFaith));
+            var hands = new List<int>();
+            foreach (int id in new[] { rh, lh, oh })
+                if (id != 0x00FF && id != 0xFFFF && !hands.Contains(id)) hands.Add(id);
+            int rosterNameId = mem.U16(rb + Offsets.RNameId);
+            if (Locate(mem, weaponId, hands, fp, rosterNameId) != 0) return true;   // deployed: done
+        }
+        return false;
+    }
+
     /// <summary>The arm-time identity capture for Iai's mirror-churn-proof release (rebuilt
     /// 2026-07-01): scan the roster for the slot(s) whose main hand holds
     /// <paramref name="weaponId"/> AND whose (level,brave,faith) match <paramref name="fp"/>,

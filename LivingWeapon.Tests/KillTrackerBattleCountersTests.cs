@@ -22,6 +22,137 @@ public class KillTrackerBattleCountersTests
         return new KillTracker(kills, new FakeSparseMemory(), Weapons);
     }
 
+    // --- LW-56: the credit-time live-wielder gate, wired with the PRODUCTION HasLiveWielder
+    // delegate over a shared FakeSparseMemory (not a lambda constant), matching how Engine wires
+    // it in production (Wielder.HasLiveWielder over the same live memory every other consumer
+    // uses). ---
+
+    private sealed class FakeDeedSink : IDeedSink
+    {
+        public readonly List<(int weaponId, VictimSnapshot victim)> Deeds = new();
+        public readonly List<int> Misses = new();
+        public void RecordDeed(int weaponId, in VictimSnapshot victim) => Deeds.Add((weaponId, victim));
+        public void DeedMiss(int slot) => Misses.Add(slot);
+    }
+
+    private static KillTracker MakeGated(out Dictionary<int, int> kills, out FakeSparseMemory mem,
+                                          out List<(string type, string payload)> recorded,
+                                          out FakeDeedSink deeds)
+    {
+        kills = new Dictionary<int, int>();
+        var fake = new FakeSparseMemory();
+        mem = fake;
+        var rec = new List<(string, string)>();
+        recorded = rec;
+        var sink = new FakeDeedSink();
+        deeds = sink;
+        return new KillTracker(kills, fake, Weapons, recorder: (t, p) => rec.Add((t, p)), deeds: sink,
+                                hasLiveWielder: id => Wielder.HasLiveWielder(fake, id));
+    }
+
+    [Fact]
+    public void LW56_stale_latch_weapon_with_no_live_wielder_is_refused_at_credit_time()
+    {
+        // No roster row anywhere holds weapon 9: a stale latch naming it (e.g. surviving a
+        // mis-timed New Game) has no live wielder to credit. This test must fail if the
+        // CreditGate call in CreditKill is removed.
+        var t = MakeGated(out var kills, out _, out var recorded, out var deeds);
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add);
+        try
+        {
+            bool changed = t.CreditKill(0, 5, 5, new List<int> { 9 });
+
+            Assert.False(changed);
+            Assert.False(kills.ContainsKey(9));
+            Assert.Empty(deeds.Deeds);
+            Assert.Contains(recorded, r => r.type == "kill" && r.payload == "no-credit slot=0 reason=no-live-wielder weapon=9");
+            Assert.Contains(file, l => l.Contains("[kill]") && l.Contains("stale attribution"));
+        }
+        finally { ModLogger.Instance = prior; }
+    }
+
+    [Fact]
+    public void LW56_weapon_with_a_live_wielder_credits_normally_through_the_gate()
+    {
+        // Over-refusal control: identical geometry to the load-bearing test above, but this time
+        // the weapon IS on a deployed roster row backed by a band entry.
+        var t = MakeGated(out var kills, out var mem, out var recorded, out var deeds);
+        MemSeats.SeatRoster(mem, slot: 0, lvl: 50, br: 60, fa: 70, rh: 9);
+        MemSeats.SeatBand(mem, bandIdx: 0, weapon: 9, lvl: 50, br: 60, fa: 70, gx: 3, gy: 3);
+        t._victimAtEdge[0] = new VictimSnapshot(true, 405, 82, false);
+
+        bool changed = t.CreditKill(0, 5, 5, new List<int> { 9 });
+
+        Assert.True(changed);
+        Assert.Equal(1, kills[9]);
+        Assert.Equal(1, t.BattleCredits[9]);
+        Assert.Single(deeds.Deeds);
+        Assert.DoesNotContain(recorded, r => r.payload.Contains("no-live-wielder"));
+    }
+
+    [Fact]
+    public void LW56_dual_wield_offhand_culprit_still_credits_through_the_gate()
+    {
+        // Dual-wield off-hand pin: the culprit id lives in ROffHand of a deployed roster row,
+        // whose band entry's own weapon field mirrors a DIFFERENT main-hand id. Kills any
+        // band-only truth source.
+        var t = MakeGated(out var kills, out var mem, out _, out _);
+        MemSeats.SeatRoster(mem, slot: 2, lvl: 31, br: 65, fa: 58, rh: 1, oh: 9);
+        MemSeats.SeatBand(mem, bandIdx: 5, weapon: 1, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+
+        bool changed = t.CreditKill(3, 4, 7, new List<int> { 9 });
+
+        Assert.True(changed);
+        Assert.Equal(1, kills[9]);
+    }
+
+    [Fact]
+    public void LW56_duplicate_roster_copy_does_not_poison_the_deployed_copys_credit()
+    {
+        // Duplicate-copy pin (the reviewed blocker): two roster rows hold the weapon id, only one
+        // is deployed. Kills any TryResolve-based implementation with a found>1 bail.
+        var t = MakeGated(out var kills, out var mem, out _, out _);
+        MemSeats.SeatRoster(mem, slot: 0, lvl: 99, br: 97, fa: 75, rh: 9);   // deployed
+        MemSeats.SeatRoster(mem, slot: 3, lvl: 99, br: 89, fa: 76, rh: 9);   // benched duplicate
+        MemSeats.SeatBand(mem, bandIdx: 12, weapon: 9, lvl: 99, br: 97, fa: 75, gx: 3, gy: 5);
+
+        bool changed = t.CreditKill(1, 3, 5, new List<int> { 9 });
+
+        Assert.True(changed);
+        Assert.Equal(1, kills[9]);
+    }
+
+    [Fact]
+    public void LW56_mixed_partition_credits_the_survivor_and_refuses_the_other()
+    {
+        var t = MakeGated(out var kills, out var mem, out var recorded, out _);
+        MemSeats.SeatRoster(mem, slot: 0, lvl: 50, br: 60, fa: 70, rh: 9);   // deployed
+        MemSeats.SeatBand(mem, bandIdx: 0, weapon: 9, lvl: 50, br: 60, fa: 70, gx: 3, gy: 3);
+        // weapon 52: no roster row holds it at all.
+
+        bool changed = t.CreditKill(2, 4, 4, new List<int> { 9, 52 });
+
+        Assert.True(changed);
+        Assert.Equal(1, kills[9]);
+        Assert.False(kills.ContainsKey(52));
+        Assert.Equal(1, t.BattleCredits[9]);
+        Assert.False(t.BattleCredits.ContainsKey(52));
+        Assert.Single(recorded, r => r.type == "kill" && r.payload.Contains("no-live-wielder") && r.payload.Contains("weapon=52"));
+    }
+
+    [Fact]
+    public void Null_hasLiveWielder_delegate_credits_regardless_of_live_wielder_state()
+    {
+        // Regression: a KillTracker constructed without the new parameter (every pre-LW-56 call
+        // site) credits exactly as before, gate off.
+        var t = Make(out var kills);
+        bool changed = t.CreditKill(0, 5, 5, new List<int> { 9 });
+        Assert.True(changed);
+        Assert.Equal(1, kills[9]);
+    }
+
     [Fact]
     public void CreditKill_increments_the_per_battle_credit_ledger()
     {

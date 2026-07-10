@@ -111,9 +111,16 @@ internal sealed partial class KillTracker
     // The most recent successful latch resolve came from the tq fallback (or the first-kill
     // fallback), not the actor pointer; consulted by CreditKill's viaFallback argument sites.
     internal bool _latchViaFallback;
+    // LW-56: the credit-time live-wielder gate's truth source (CreditGate.Decide's predicate).
+    // Null (every pre-LW-56 call site, and every test that omits it) means the gate is OFF: every
+    // culprit id survives, byte-identical to the pre-LW-56 behavior. Production wires this to
+    // Wielder.HasLiveWielder over the same live memory every other roster/band consumer uses
+    // (Engine.cs).
+    private readonly Func<int, bool>? _hasLiveWielder;
 
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
-                        Action<string, string>? recorder = null, IDeedSink? deeds = null)
+                        Action<string, string>? recorder = null, IDeedSink? deeds = null,
+                        Func<int, bool>? hasLiveWielder = null)
     {
         _kills = kills;
         _mem = mem;
@@ -126,6 +133,7 @@ internal sealed partial class KillTracker
         _victimProbe = new VictimProbe(mem, recorder);
         _census = new BattleCensus(mem, recorder);
         _deeds = deeds;
+        _hasLiveWielder = hasLiveWielder;
         _klog = ModLogger.For(LogVerb.Kill, () => AnyTrackedWeaponThisBattle);
     }
 
@@ -366,7 +374,14 @@ internal sealed partial class KillTracker
         _resolver.SetCorpseAnchorOk(ok);
     }
 
-    /// <summary>Credit the given weapon set for a kill at band slot s (position gx,gy). Reliquary
+    /// <summary>Credit the given weapon set for a kill at band slot s (position gx,gy). LW-56:
+    /// when a live-wielder gate is wired (<see cref="_hasLiveWielder"/> non-null), the incoming
+    /// culprit list is partitioned FIRST via <see cref="CreditGate.Decide"/> into survivors
+    /// (credited normally) and refused (a stale attribution latch naming a weapon nobody on the
+    /// field currently wields, e.g. one that survived a mis-timed New Game): everything below,
+    /// the deed sink, the tally, BattleCredits, FallbackCredits, and the credit log, operates on
+    /// survivors only. A refusal never throws away the corpse silently: each refused id gets one
+    /// flight no-credit record plus one console/file ruling naming every refused weapon. Reliquary
     /// Phase 1: reports the slot's captured victim snapshot (KillTracker.Corpses.cs's
     /// _victimAtEdge) to the injected IDeedSink, once, then consumes it -- a missing snapshot
     /// (docs/RELIQUARY_AC.md's missing-snapshot failure mode) still increments the tally exactly
@@ -377,17 +392,32 @@ internal sealed partial class KillTracker
     internal bool CreditKill(int s, int gx, int gy, List<int> weapons, bool viaFallback = false)
     {
         bool changed = false;
-        LogKillDiag(s, weapons);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
+        List<int> credited = weapons;
+        if (_hasLiveWielder != null)
+        {
+            var (survivors, refused) = CreditGate.Decide(weapons, _hasLiveWielder);
+            credited = survivors;
+            if (refused.Count > 0)
+            {
+                string names = string.Join(", ", refused.ConvertAll(LogNames.Weapon));
+                string itThem = refused.Count == 1 ? "it" : "them";
+                ModLogger.Event(LogVerb.Kill,
+                    $"The kill at battle slot {s} names {names}, but no unit on the field wields {itThem}; the credit is deliberately refused (stale attribution).");
+                foreach (int w in refused)
+                    _recorder?.Invoke("kill", $"no-credit slot={s} reason=no-live-wielder weapon={w}");
+            }
+        }
+        LogKillDiag(s, credited);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
         _victimProbe.LogAtCredit(s);   // Reliquary P1 probe: log-only, zero behavioral dependence
         VictimSnapshot snap = _victimAtEdge[s];
         if (snap.Has)
-            foreach (int w in weapons) _deeds?.RecordDeed(w, in snap);
+            foreach (int w in credited) _deeds?.RecordDeed(w, in snap);
         else
             _deeds?.DeedMiss(s);
         _victimAtEdge[s] = default;   // consume-once: this slot's next death gets a fresh capture
         string fell = VictimClass.FellPhrase(snap.Has, snap.Job, snap.Undead);
-        if (viaFallback && weapons.Count > 0) FallbackCredits++;   // one corpse = one fallback credit
-        foreach (int w in weapons)
+        if (viaFallback && credited.Count > 0) FallbackCredits++;   // one corpse = one fallback credit
+        foreach (int w in credited)
         {
             _kills.TryGetValue(w, out int c);
             _kills[w] = c + 1;

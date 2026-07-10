@@ -187,6 +187,14 @@ The moving parts:
   no Living Weapon; the kill is deliberately left uncredited (actor resolved via ...)` names the
   victim AND how the actor was resolved (the acted-period latch / the actor register / a
   charged-action landing / an enemy-turn team read).
+- **The credit-time live-wielder refusal (LW-56)**: `The kill at battle slot N names <weapon(s)>,
+  but no unit on the field wields it/them; the credit is deliberately refused (stale attribution)`
+  fires when a culprit weapon's latch survives with no live wielder actually deployed (the closed
+  incident: an in-session New Game that never fires an ordinary battle-exit edge, so a stale
+  per-battle attribution latch could otherwise carry a credit into the next battle). Flight taps
+  it per refused weapon as `"kill"` type, `reason=no-live-wielder weapon=<id>`, alongside the
+  existing `not-tracked-enemy` / `duplicate-identity-already-credited` / `untracked-weapon` /
+  `expired-unresolved` no-credit reasons (KillTracker.Corpses.cs).
 - **Unarmed battles are silent**: coverage lines, pending corpses, and kill expiries demote to
   Debug when no Living Weapon is fielded (the relevance gate), so a no-mod-weapons battle prints
   only the two bookends.
@@ -230,9 +238,14 @@ and battle-mode changes (Engine); the event timeline (BattleLog's `event: damage
 lines, dual-emitted alongside the `[trace]` file sink under the flight type `"ev"`); turn-clock
 rising/falling edges and per-unit turn credit (TurnTracker); the engine actor-pointer's ownership
 transitions (ActorRegister); the acting-player weapon latch and every corpse credit/no-credit
-verdict, including the pending edge (KillTracker); tier-up/milestone toast enqueue and drop
-(BannerToast); toast delivery into the facing prompt (PromptSwap); the Reliquary deed taps
-(`mark-earned`/`deed-miss`); the fingerprint guard's own lifecycle (`"guard"`, LaunchGuard):
+verdict, including the pending edge, and (LW-56) a stale attribution latch refused for having no
+live wielder on the field (`reason=no-live-wielder`) (KillTracker); the once-per-battle band+roster
+identity census (`"census"`, BattleCensus, Reliquary P2 probe): band entries as
+`s{slot}:{nameId}/{job}`, roster entries as `{slot}:{nameId}L{level}` (e.g. `0:1L99`; LW-56 added
+the level so a stale roster is visible on tape by both fields together, not nameId alone);
+tier-up/milestone toast enqueue and drop (BannerToast); toast delivery into the facing prompt
+(PromptSwap); the Reliquary deed taps (`mark-earned`/`deed-miss`); the fingerprint guard's own
+lifecycle (`"guard"`, LaunchGuard):
 the armed edge and a stand-down's landmark diag, so a stand-down archive is self-contained
 (LW-53); and the Attack card's cursor-gate tripwire (`"card"`, AttackCard.Resolve.cs, LW-55):
 one record per refused cursor answer (roster/band weapon disagreement, or a hover that is not

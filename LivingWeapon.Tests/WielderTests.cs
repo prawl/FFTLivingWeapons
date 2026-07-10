@@ -535,6 +535,71 @@ public class WielderTests
         Assert.True(Wielder.AnyDeployedMainHand(m, Weapon));
     }
 
+    // ---- HasLiveWielder: any-hand existence check for the LW-56 credit gate ----
+
+    [Fact]
+    public void HasLiveWielder_false_when_nobody_holds_it()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
+        Assert.False(Wielder.HasLiveWielder(m, Weapon));
+    }
+
+    [Fact]
+    public void HasLiveWielder_true_when_a_deployed_main_hand_row_holds_it()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        Assert.True(Wielder.HasLiveWielder(m, Weapon));
+    }
+
+    [Fact]
+    public void HasLiveWielder_false_when_held_but_benched()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);   // no band entry
+        Assert.False(Wielder.HasLiveWielder(m, Weapon));
+    }
+
+    [Fact]
+    public void HasLiveWielder_true_for_an_offhand_holder_even_though_the_bands_own_weapon_field_is_the_main_hand()
+    {
+        // Dual-wield off-hand pin: the culprit id lives in ROffHand; the deployed band entry's own
+        // weapon field mirrors the MAIN hand (a different id). Kills any implementation that checks
+        // the band's weapon field directly against weaponId instead of via the roster-hand lookup.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon);
+        MemSeats.SeatBand(m, 5, 1, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);   // band weapon field == 1, not Weapon
+        Assert.True(Wielder.HasLiveWielder(m, Weapon));
+    }
+
+    [Fact]
+    public void HasLiveWielder_true_when_one_of_two_roster_copies_is_benched_and_the_other_deployed()
+    {
+        // Duplicate-copy pin (the reviewed blocker): a benched reserve sharing the weapon id must
+        // not poison the answer for a genuinely deployed copy. Kills any TryResolve-based
+        // implementation (found > 1 bails ambiguous regardless of deployment).
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 97, fa: 75, rh: Weapon);   // deployed
+        MemSeats.SeatRoster(m, 3, lvl: 99, br: 89, fa: 76, rh: Weapon);   // benched reserve duplicate
+        MemSeats.SeatBand(m, 12, Weapon, lvl: 99, br: 97, fa: 75, gx: 3, gy: 5);
+        Assert.True(Wielder.HasLiveWielder(m, Weapon));
+    }
+
+    [Fact]
+    public void HasLiveWielder_true_with_two_deployed_wielders_no_ambiguity_bail()
+    {
+        // Unlike ResolveDeployedMainHand, an existence check does not care how many roster rows
+        // hold the weapon: two deployed wielders still answer true, never a bail.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: Weapon);
+        MemSeats.SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
+        MemSeats.SeatBand(m, 4, Weapon, lvl: 20, br: 70, fa: 50, gx: 2, gy: 2);
+        MemSeats.SeatBand(m, 8, Weapon, lvl: 25, br: 60, fa: 40, gx: 6, gy: 6);
+        Assert.True(Wielder.HasLiveWielder(m, Weapon));
+    }
+
     // ---- ResolveDeployedMainHandAll ----
 
     [Fact]
