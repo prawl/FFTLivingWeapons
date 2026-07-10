@@ -23,10 +23,14 @@ Two owner decisions set the stopping line:
 
 ### 1. Samurai Swords (BLOCKER): finish = 3 signatures
 Tuning is DONE and analyze.py-green; the work is the one open signature slot (Kiku's Mushin).
-- [ ] **Kiku-ichimonji id45** signature = **Mushin**: a full WAIT (no move, no act) banks a buff so
-      the wielder's next hit lands harder. Buff-hold is proven (StatHold, Iai's sibling pattern); the
-      OPEN piece is detecting a full wait live (tools/probes/acted_moved_watch.py, candidate combat
-      +0x1BB). Probe that signal BEFORE building.
+- [ ] **Kiku-ichimonji id45** signature = **Mushin**: a full WAIT turn (no move, no act) arms one
+      PA-boosted hit, spent on the wielder's next own action. Buff-hold is proven (StatHold, Iai's
+      sibling pattern); the OPEN piece (detecting a full wait live) is CLOSED by the 2026-07-09
+      mapping (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log): the engine's own
+      per-unit turn-open flag (band +0x19C) and its moved/acted latches (band +0x19D/+0x19E, both
+      PSX-struct-derived) give a direct read of the wait, no aggregation over other units needed.
+      Earlier same-day designs built on other units' CT cycling and KillTracker's action-latch
+      machinery are retired in favor of this literal read.
 - [ ] **Murasame id41** signature is DEFERRED out of 2.3.0 (backlog LW-47); its capstone stays
       pure-growth for now.
 - [ ] The signature: items.json block -> gen_living_weapon_meta.py -> xUnit tests -> deploy ->

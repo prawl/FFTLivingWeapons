@@ -11,16 +11,16 @@ is the in-flight subset, not a mirror of that checklist.
 ## Now (release: 2.3.0)
 
 - **[LW-4] Samurai Sword signature: Kiku-ichimonji Mushin** (opened 2026-07-04) [QUEUED]
-  - Done means: Kiku-ichimonji id45 ships the one-shot Mushin stillness charge: a full round with
-    no move and no act arms one PA-boosted hit, spent on the wielder's next attack. The wait moment
-    itself is invisible (probe-proven 2026-07-09, tools/probes/mushin_wait_probe.py: combat +0x1BB
-    is an action-record byte, not a wait signal), so detection composes three proven signals
-    instead: KillTracker's real acted-period player latch (via a new PlayerActSeq counter), band
-    position stillness, and the median of completed-turn deltas over every currently-living other
-    unit (TurnTracker.UnitTurns), zeros included. Murasame id41's signature stays deferred out of
-    2.3.0 (LW-47). Release blocker (RELEASE_SCOPE.md section 1).
-  - Verify: xUnit green (KillTracker, TurnTracker, Mushin, and MushinPolicy suites), items.json
-    block, gen_living_weapon_meta.py (empty diff expected), deploy and VERIFY LIVE, commit and
+  - Done means: Kiku-ichimonji id45 ships the one-shot Mushin stillness charge: a full WAIT turn
+    with no move and no act arms one PA-boosted hit, spent on the wielder's next own action. The
+    wait is detected off the engine's own per-unit turn bookkeeping, live-mapped 2026-07-09
+    (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log): band +0x19C (the unit's
+    move/act/wait menu open flag) falling edge decides, reading band +0x19D (moved) and +0x19E
+    (acted) at that tick, both reset by the engine at the next turn's open. No KillTracker, turn
+    tracking, or other-unit reads involved. Murasame id41's signature stays deferred out of 2.3.0
+    (LW-47). Release blocker (RELEASE_SCOPE.md section 1).
+  - Verify: xUnit green (Mushin and MushinPolicy suites), items.json block,
+    gen_living_weapon_meta.py (empty diff expected), deploy and VERIFY LIVE, commit and
     LIVE_LEDGER flip. Clean DEV redeploy before ANY katana live test (an orphaned Zanshin DLL may
     still be deployed).
 
