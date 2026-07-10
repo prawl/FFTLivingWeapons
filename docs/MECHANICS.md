@@ -12,17 +12,51 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 
 ## Confirmed (proven live and/or shipped)
 
+### The 2026-07-10 breakthrough block (unit manipulation, all proven live that night)
+
+- MOVE ANY UNIT ANYWHERE mid-battle (full teleport + two-unit position swap) -- PROVEN LIVE:
+  the render position was the missing layer for a month (the Knockback wall); a coherent
+  triple-write of combat +0x4F/+0x50 (logic tile, +0x51 bit7 layer), the render node's AI tile
+  key +0x88/89/8A, and the node's world coords +0x4C/+0x4E/+0x50 (X=28x+14, Y=28y+14,
+  Z=-12*(height +1 if Float); node via list head 0x140D3A410, +0x148 combat backref) moves a
+  unit completely: it hovers, paths, and acts from the new tile, and the engine re-adopts every
+  layer after its first real move. A live Ramza-with-enemy FULL SWAP (each keeping own facing)
+  executed flawlessly, twice (tools/probes/swap_units.py). Only remaining guard for a shipped
+  mechanic: a tile-occupancy check (co-tiled units = slot-order target shadowing + movement
+  lock, proven live).
+- FLOAT'S HOVER IS DATA / free visual levitation -- PROVEN LIVE: Float's hover offset is one
+  height unit (-12) in the node's world Z, not an animation; poking Z granted a hover to a
+  non-Float unit and stripped it from him live, and a real Float unit rendered flat carrying a
+  grounded Z (status intact). Transform ownership: idle = unowned (pokes stick), walking = the
+  mover lerps per frame (pokes lose), turn-open/move-end = one-shot re-stamp from logic. A
+  shipped hover should grant the real Float STATUS and let the engine draw it; Z pokes are for
+  teleports and comedy. Purely visual: all combat math reads the logic layers.
+- SPAWN AN ADDED UNIT MID-BATTLE (the render weld broken; LW-58 Body Double) -- PROVEN LIVE
+  with one caveat: a cold-called node build (0x14026EBEC, sibling-cribbed args) + scene-bind
+  replication + donor completeness stamps produces a DRAWN, NAMED, LISTED, player-CONTROLLABLE
+  unit with a full lifecycle (turns, attacks, death, chest/crystal). THE CAVEAT: a board-visible
+  unit whose render-node tile key / registry key / gate disagree stalls the AI decision pipeline
+  (walk-in-place freeze) or crashes it (null AI-subject); the decoded fix is CONSISTENCY (node
+  tile bytes = the real tile, registry key = the slot, gate = model), unbuilt (Canary 8). Also:
+  the double's crystal REMOVAL game-overed battle 435 twice (cause unknown, identity-independent);
+  DeathWatch pins the corpse counter as mitigation. Dev-spike only (worktree BodyDoubleSpike).
+- DESPAWN ANY UNIT, SPRITE AND ALL (the reverse door) -- MECHANISM DECODED + BUILT, first live
+  pull pending: ONE guarded byte (node +0x12C = mode 2) and the engine's own sweeper
+  (0x14026E20C) removes unit + render node + list entry on its next unpaused frame; the same
+  primitive vanilla crystallization uses. Shipped as the dev spike's Ctrl+F5 (hover-fingerprint
+  or ghost-orphan target resolve, Ramza/acting-unit refused, timeout auto-revert). ONE-WAY.
+- HIDE / REVEAL a unit's LOGIC live (the ghost-statue toggle) -- PROVEN LIVE repeatedly: gate
+  combat +0x01 = 0xFF removes the unit from every logic walk (untargetable, unhoverable, no
+  turns, AI ignores it) while the render weld leaves its sprite standing; writing the model id
+  back restores it whole. Reversible, instant, and the substrate of the Mirror Image idea. TRAP:
+  a mid-hide autosave persists the hidden state into resumes.
+- DOUBLE A UNIT'S IDENTITY (name + control) -- PROVEN LIVE: the roster-identity backref pair
+  combat +0x191/+0x192 routes field NAME resolution and controller ownership; copying a donor's
+  pair makes another unit a literal double of it (a second "Ramza" on the field, owner-witnessed).
+  The defeat check is NOT keyed on it (falsified live).
+
 ### Proven levers and buffs
 
-- MOVE ANY UNIT ANYWHERE mid-battle (full teleport + two-unit position swap) -- PROVEN LIVE
-  2026-07-10: the render position was the missing layer for a month (the Knockback wall); a
-  coherent triple-write of combat +0x4F/+0x50 (logic tile, +0x51 bit7 layer), the render node's
-  AI tile key +0x88/89/8A, and the node's world coords +0x4C/+0x4E/+0x50 (X=28x+14, Y=28y+14,
-  Z=-12*(height +1 if Float); node via list head 0x140D3A410, +0x148 combat backref) moves a unit completely:
-  it hovers, paths, and acts from the new tile, and the engine re-adopts every layer after its
-  first real move. A live Ramza-with-enemy FULL SWAP (each keeping own facing) executed
-  flawlessly. Only remaining guard for a shipped mechanic: a tile-occupancy check (co-tiled
-  units = slot-order target shadowing + movement lock, proven live).
 - Add two support abilities to one unit -- PROVEN.
 - Add a new castable ability to a weapon via JobCommand injection -- PROVEN/shipped (Sanguine Sword -> Shadow Blade, ability 165); the record is JOB-GLOBAL, so same-job enemies cast it too (known leak; fixes = turn-team gate at TurnQueue+0x02, restrict the grant to Ramza's Mettle records, or drop the command-grant entirely for a new per-unit write+hold +3 signature since the sword keeps its innate HP-drain Formula 6).
 - Two counter (reaction) abilities can coexist on one unit -- PROVEN (the "give two counters that work together" idea; scrapped as a standalone signature).
