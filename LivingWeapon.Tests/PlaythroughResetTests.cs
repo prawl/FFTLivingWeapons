@@ -181,4 +181,67 @@ public class PlaythroughResetTests
         Assert.False(Directory.Exists(ArchiveDir(save)));
         Assert.Equal(5, tally.Kills[1]);
     }
+
+    // --- LW-56: Observe's return value is the "a new game just qualified" detection edge,
+    // consumed by Engine to force BattleState's exit. Deliberately decoupled from the archive
+    // action's own non-empty-tally gate below: a zero-credit battle followed by a new game still
+    // needs the forced exit (state hygiene), even though there is nothing to archive. ---
+
+    [Fact]
+    public void Observe_returns_true_only_on_the_exact_HoldTicks_th_qualifying_tick()
+    {
+        var (save, tally) = SeededTally();
+        var reset = new PlaythroughReset(save, tally);
+
+        for (int i = 0; i < PlaythroughResetPolicy.HoldTicks; i++)
+        {
+            bool fired = reset.Observe(2, 0, false);
+            bool expectedFinalTick = i == PlaythroughResetPolicy.HoldTicks - 1;
+            Assert.Equal(expectedFinalTick, fired);
+        }
+    }
+
+    [Fact]
+    public void Observe_returns_false_the_tick_after_the_threshold_even_while_still_held()
+    {
+        var (save, tally) = SeededTally();
+        var reset = new PlaythroughReset(save, tally);
+
+        for (int i = 0; i < PlaythroughResetPolicy.HoldTicks; i++) reset.Observe(2, 0, false);
+        bool firedAgain = reset.Observe(2, 0, false);   // held past the threshold
+
+        Assert.False(firedAgain);
+    }
+
+    [Fact]
+    public void Observe_returns_true_again_only_after_the_hold_breaks_and_reclimbs()
+    {
+        var (save, tally) = SeededTally();
+        var reset = new PlaythroughReset(save, tally);
+
+        for (int i = 0; i < PlaythroughResetPolicy.HoldTicks; i++) reset.Observe(2, 0, false);
+        Assert.False(reset.Observe(5, 0, false));   // breaks the hold: not the opening event
+
+        bool fired = false;
+        for (int i = 0; i < PlaythroughResetPolicy.HoldTicks; i++) fired = reset.Observe(2, 0, false);
+        Assert.True(fired);
+    }
+
+    [Fact]
+    public void Empty_tally_at_the_threshold_still_returns_true_although_the_archive_action_does_not_run()
+    {
+        // The decoupling's load-bearing test: the detection edge fires (Engine needs it to force
+        // BattleState's exit) even though the archive/clear action stays gated on Kills.Count > 0.
+        var save = new SaveLocation(ModDir());
+        var tally = KillTally.Load(save.PathFor("kills.json"));   // nothing seeded/saved
+        var reset = new PlaythroughReset(save, tally);
+
+        bool fired = false;
+        for (int i = 0; i < PlaythroughResetPolicy.HoldTicks; i++)
+            fired = reset.Observe(2, 0, false);
+
+        Assert.True(fired);
+        Assert.False(Directory.Exists(ArchiveDir(save)));         // no archive call
+        Assert.False(File.Exists(save.PathFor("kills.json")));    // no save call either
+    }
 }

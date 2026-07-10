@@ -88,8 +88,10 @@ internal sealed class Engine
 
         _tally = KillTally.Load(save.Migrate("kills.json"));
         // LW-51 Tier-1: shares this SaveLocation/KillTally pair by reference (never re-reads or
-        // re-constructs either); Observe is called every tick post-arm from Tick(), after inLive
-        // is computed, so it sees the same battle-edge gate every other module does.
+        // re-constructs either); Observe is called every tick post-arm from Tick(), gated on the
+        // SAME inLive predicate every other module trusts (LW-56 moved Observe's call site above
+        // BattleState.Step so its detection edge can reach Step as a forced-exit signal the very
+        // same tick; the inLive gating itself is unchanged).
         _playthroughReset = new PlaythroughReset(save, _tally);
         _kills = _tally.Kills;
         // Launch header L3 (logging facelift): the kill-tally load summary, BEFORE the dev seed
@@ -144,9 +146,12 @@ internal sealed class Engine
         // console to Info. Deliberate Release-behavior change, see BattleLog's class doc.
         // Dual-emit composes HERE at the composition root (B2): BattleLog itself never references
         // Flight -- its sink just also records every ev: line into the flight ring.
+        // LW-56: hasLiveWielder wires Wielder.HasLiveWielder over the SAME live memory every other
+        // roster/band consumer in this ctor uses (GunSlinger/GrowthEngine's precedent below), so
+        // CreditKill's gate reads the real battlefield, not a second independent memory view.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(verbose: true, sink: s => { ModLogger.Debug(LogVerb.Trace, s); Flight.Record("ev", s); }),
-                                   Flight.Record, deeds: _reliquary);
+                                   Flight.Record, deeds: _reliquary, hasLiveWielder: id => Wielder.HasLiveWielder(live, id));
         // Kiku-ichimonji's Mushin stack count: ONE dictionary shared by reference between the
         // trigger (Mushin, banks/spends stacks) and the growth hold (GrowthEngine.HoldMushin,
         // reads it), keyed by wielder fingerprint (lvl,br,fa) like Iai's fp-keyed _holds.
@@ -295,21 +300,30 @@ internal sealed class Engine
         bool paused = Mem.U8(Offsets.PauseFlag) == 1;
         int eventId = Mem.U16(Offsets.EventId);   // out-of-live: dialogue/cutscene; in-combat: nameId alias
         var now = DateTime.Now;
-        // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks). nowIn is sticky
-        // through mid-battle dips, flipping only on the debounced edges.
-        BattleEdge edge = _battle.Step(slot0, slot9, battleMode, paused, eventId, now);
+        // A genuine in-battle frame: live modes, or the slot0 marker with a paused/event excuse
+        // (the marker alone lies -- it sticks at 0xFF after a battle QUIT). Gates every module that
+        // writes battle memory. Computed BEFORE BattleState.Step (LW-56) so PlaythroughReset's own
+        // detection edge, below, can reach Step as a forced-exit signal on this same tick.
+        bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
+        // LW-51 Tier-1: runs every tick post-arm (Tick() only early-returns pre-arm above), gated
+        // on the SAME inLive this tick's other modules already trust, so a mid-battle dialogue
+        // frame aliasing eventId==2 can never be mistaken for the new-game opening. LW-56: this
+        // call now runs before BattleState.Step (moved up from below), so its detection edge
+        // (Observe's return value, true exactly on the HoldTicks-th held tick) can reach Step as
+        // a forced-exit signal on the same tick a new game qualifies: flushing stale per-battle
+        // attribution state (the KillTracker weapon latch) that a mid-battle New Game would
+        // otherwise carry into the Orbonne opener, since no ordinary battle-exit edge ever fires
+        // for an in-session New Game.
+        bool newGame = _playthroughReset.Observe(eventId, battleMode, inLive);
+        if (newGame && _battle.In)
+            ModLogger.Event(LogVerb.BattleEnd, "A new game was detected while battle state was still live; forcing the battle exit edge to flush stale attribution state.");
+        // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks), UNLESS forceExit
+        // fires (LW-56: a detected new game bypasses the debounce entirely). nowIn is sticky through
+        // mid-battle dips, flipping only on the debounced or forced edges.
+        BattleEdge edge = _battle.Step(slot0, slot9, battleMode, paused, eventId, now, forceExit: newGame);
         bool nowIn = _battle.In;
         bool onField = BattleState.OnField(nowIn, battleMode);
         if (onField) _lastField = now;
-        // A genuine in-battle frame: live modes, or the slot0 marker with a paused/event excuse
-        // (the marker alone lies -- it sticks at 0xFF after a battle QUIT). Gates every module that
-        // writes battle memory.
-        bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
-        // LW-51 Tier-1: runs every tick post-arm (Tick() only early-returns pre-arm above), gated
-        // on the SAME inLive this tick's other modules already trust. Placed after inLive (not
-        // eventId alone) so a mid-battle dialogue frame aliasing eventId==2 can never be mistaken
-        // for the new-game opening.
-        _playthroughReset.Observe(eventId, battleMode, inLive);
         bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
         if (edge == BattleEdge.Entered)
         {
@@ -341,7 +355,9 @@ internal sealed class Engine
         {
             // THE match-report summary: composed from the per-battle counters BEFORE
             // ResetBattleState() wipes them (order is load-bearing). Sentinels ride the trace
-            // companion, same split as the enter edge.
+            // companion, same split as the enter edge. (LW-56: on a FORCED exit, the tally was
+            // already archived and cleared moments earlier this same tick by PlaythroughReset, so
+            // this summary can compose against an already-empty tally; cosmetic, accepted.)
             string summary = BattleSummary.Compose(
                 _tracker.BattleCredits, _kills, _reliquary.BattleMarks, _tracker.FallbackCredits,
                 _turns.GlobalTurns, LogNames.Weapon, Tuning.TierFor);

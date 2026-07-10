@@ -19,6 +19,13 @@ internal enum BattleEdge { None, Entered, Exited }
 /// in-live tick zeroes the accumulator. The stuck-sentinel world map is sustained out-of-live, so
 /// exit fires there -- giving the next battle a clean Enter + reset. Time comes only from the
 /// passed-in DateTime (tests feed synthetic clocks; the machine never reads the wall clock).
+///
+/// LW-56: <see cref="Step"/> also takes an optional forceExit flag, a dedicated bypass around
+/// both the instant-enter and debounced-exit machinery: it exits IMMEDIATELY, on the same tick,
+/// independent of that tick's own In-Live reading (an in-session New Game never fires an ordinary
+/// exit edge, since real events suspend the debounce, so the one production caller,
+/// PlaythroughReset's own detection edge, needs a way to flush stale per-battle state without
+/// waiting out the debounce or depending on the tick's own sentinels/mode reading out-of-live).
 /// </summary>
 internal sealed class BattleState
 {
@@ -105,8 +112,16 @@ internal sealed class BattleState
     /// a genuine event screen of some kind.</summary>
     internal static bool IsRealEvent(int e) => e >= 1 && e != 0xFFFF;
 
-    /// <summary>Step once per engine tick with raw reads; returns the edge that fired this tick.</summary>
-    public BattleEdge Step(uint slot0, uint slot9, int battleMode, bool paused, int eventId, DateTime now)
+    /// <summary>Step once per engine tick with raw reads; returns the edge that fired this tick.
+    /// <paramref name="forceExit"/> (LW-56, default false): when true, exits INSTANTLY, bypassing
+    /// the debounce entirely, and takes precedence over an in-live reading on this same tick by
+    /// design (the one production caller, PlaythroughReset's own detection edge, is itself gated
+    /// !inLive by PlaythroughResetPolicy.IsOpeningOutOfBattle, so the two conditions never
+    /// actually coincide in production; the precedence is still pinned here so the insertion
+    /// point below cannot silently move under the in-live early-return). A no-op while not In
+    /// (the !In branch below runs first and never observes it).</summary>
+    public BattleEdge Step(uint slot0, uint slot9, int battleMode, bool paused, int eventId, DateTime now,
+                           bool forceExit = false)
     {
         if (!In)
         {
@@ -119,6 +134,18 @@ internal sealed class BattleState
             _lastTick = now;
             _haveLastTick = true;
             return BattleEdge.Entered;
+        }
+
+        // LW-56: forced exit bypasses the debounce entirely and wins over an in-live reading on
+        // this same tick (see this method's own doc comment for the precedence rationale).
+        if (forceExit)
+        {
+            In = false;
+            _haveLastTick = false;
+            // Pair snapshot mirrors the debounced-exit block below: a pair stuck armed through
+            // the transition must not read as a fresh enter edge on the next tick.
+            _pairWasArmed = PairArmed(slot0, slot9);
+            return BattleEdge.Exited;
         }
 
         // In: an in-live tick zeroes the accumulator; out-of-live ticks accumulate ONLY when neither
