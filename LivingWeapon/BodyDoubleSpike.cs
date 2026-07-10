@@ -113,6 +113,29 @@ namespace LivingWeapon;
 /// (+0x07) at 3 every tick (the proven Sanctuary counter-pin) so the removal edge never fires.
 /// KO'd is survivable; REMOVED is the game-over.
 ///
+/// CANARY 8, THE DUPLICATOR (the final canary; owner brief 2026-07-10 late: "simulate adding in a
+/// new unit... can we literally just duplicate a unit and materialize them like we did the
+/// knight?"): F5 now DUPLICATES THE HOVERED UNIT. No pre-hidden ENTD units, no per-map data;
+/// Frank the template is RETIRED. The donor being alive on the field guarantees every input the
+/// old approach struggled for: a loaded sprite sheet, a cribbable scene-load entry (the donor's
+/// OWN), a cloneable battle-keyed registry object, and live identity stamps. The flow composes
+/// the night's proven pieces, in the order the resurrection proved is load-bearing:
+///   (1) copy the donor's 0x200 combat struct into a vacant same-region slot (+0x1BC = host slot,
+///       gate/membership FF, CT 0, logic tile = a FREE tile adjacent to the donor: the
+///       tile-collision lesson);
+///   (2) REGISTRY ENROLL while still hidden (clone the donor's battle-keyed object, re-key +0x2C
+///       to the host slot, append at table[count], bump the count word then byte): the clone is
+///       AI-resolvable BEFORE it is ever walk-visible, which is THE freeze cure (live-proven by
+///       the resurrection);
+///   (3) cold-call the node builder with a1/a2/a3 = THE DESTINATION TILE (they land in the node's
+///       tile key +0x88/89/8A, the AI's tile-lookup: the bug that froze Canary 7's binds was
+///       cribbing the SIBLING's tile here) and arg8 = the host;
+///   (4) the stage-2 bind + identity stamps FROM THE DONOR (+0x191/2 pair, faction trio, real-unit
+///       marker: the dup literally doubles the donor, name and control);
+///   (5) the flourish: node world X/Y set by formula (28*tile+14), Z parked at -600 and stepped
+///       +12 per tick to the donor's own altitude: THE CLONE DESCENDS FROM THE HEAVENS.
+/// The decoy CT-hold still engages at bind as the safe default; F5 again releases it.
+///
 /// SAFETY (crash-capable: an internal engine AV is uncatchable, so prevention is the only defense):
 ///  - TargetReady requires Mem.Readable AND a prologue-byte landmark on 0x14026EBEC (a stale or patched
 ///    address becomes a logged refusal, not a crash). The builder SELF-ABORTS and frees the node if arg5
@@ -130,12 +153,12 @@ namespace LivingWeapon;
 ///    carve-out is the re-arm path, which accepts a non-0xFF gate ONLY behind the _boundThisBattle
 ///    witness (a bind THIS spike made since the last battle edge), so a wrong-battle F5 still refuses.
 ///
-/// USAGE (Canary 7 flow): a FRESH battle 435 on the Frank-as-Monk build with AT LEAST ONE EMPTY player
-/// deploy slot, THROWAWAY SAVE ONLY (autosave quarantined). Open a unit's menu (pause), press F5 once
-/// (template copy into the vacant player slot + build + bind + Canary 4 stamps + hold engaged +
-/// forensics persisted), then unpause. EXPECT: the double drawn and listed as a turnless decoy in the
-/// PLAYER slot region: WATCH THE ENEMY AI (them acting normally = the freeze is region-scoped = the
-/// pivot wins). Press F5 again to release the hold and take control of him as a party unit. AI-FREEZE FIX (Canary 6, the composed enroll; SHIFT+F5 is a
+/// USAGE (Canary 8 flow): ANY battle, THROWAWAY SAVE ONLY. Open the menu of the unit to DUPLICATE
+/// (the hover is the donor pick), press F5 once (copy + registry enroll + node build + bind +
+/// donor stamps + CT hold + the descent arm), then unpause and LOOK UP: the clone descends from
+/// the heavens onto a free tile beside the donor. WATCH THE ENEMY AI (acting normally = the
+/// composed spawn beats the freeze end-to-end). F5 again releases the hold for control; Ctrl+F5
+/// despawns (hover or ghost-orphan resolve); Shift+F5 remains the 6a/6b enroll instruments. AI-FREEZE FIX (Canary 6, the composed enroll; SHIFT+F5 is a
 /// STAGED key): press 1 = 6a (cold-call the AI-data enroller + write his membership id to +0x02;
 /// LIVE 2026-07-10: worked mechanically, row filled, did NOT un-freeze alone); press 2 = 6b (build
 /// his AI OBJECT via the engine's own scratch-fill + populator, append it at registry[count], bump
@@ -148,7 +171,6 @@ internal sealed class BodyDoubleSpike
     private const long FnNodeBuild  = 0x14026EBEC;   // render-node builder (10-arg Win64; PATH A allocates + stamps)
     private const long SceneTable   = 0x141856728;   // scene-load entry table, stride 0x20 (idx 0..6 populated)
     private const long UnitsBase    = 0x141853CE0;   // BattleUnitsBase, stride 0x200
-    private const long FrankCombat  = 0x141854AE0;   // combat slot 7 (Frank, the inserted unit)
     private const long SceneNodeIdx = 0x140822DAC;   // int32[] indexed by combat +0x1BC model id (-1 = no node)
     private const long GModeAddr    = 0x142FF9E2C;   // 0 = PATH A (allocate + stamp); 1 = PATH B (reuse)
     private const long RenderMgrPtr = 0x140CE3250;   // arg10 = *this (render-mgr singleton)
@@ -208,8 +230,16 @@ internal sealed class BodyDoubleSpike
 
     private const int EntryStride   = 0x20;
     private const int Slots         = 21;            // combat slots covered by BattleUnitsBase
-    private const byte MonkJob      = 0x4E;          // Frank's job on this build; a LOADED generic-male sheet
     private const long FreshLabel   = 0x86;          // arg7 >= 16 forces the find-first-free (fresh alloc) branch
+
+    // CANARY 8 descent flourish: park the fresh node's world Z in the heavens and step it to the
+    // donor's altitude on the tick loop (transform ownership: idle nodes are unowned, so the step
+    // animation is uncontested; world X/Y = 28*tile + 14, the live-proven formulas).
+    private const int WorldXOff     = 0x4C;           // node u16 world X
+    private const int WorldZOff     = 0x4E;           // node u16 (signed) world Z; -12*height, Float adds one unit
+    private const int WorldYOff     = 0x50;           // node u16 world Y
+    private const short SkyZ        = -600;
+    private const int DescentStep   = 12;             // one height unit per ~33ms tick
 
     // Canary 3a (decoy hold): CT = combat +0x41 (band +0x25, Offsets.ACtSlam, the byte ExtraTurn slams
     // to 100 to GRANT a turn, Zwill live-proven). Pinned to 0 so Frank's turn never arrives. WRITE-only:
@@ -338,6 +368,9 @@ internal sealed class BodyDoubleSpike
     private long _despawnCombat;    // its combat base (completion check + host-state cleanup)
     private byte _despawnOldMode;   // the +0x12C byte before the mark (restored on sweeper timeout)
     private int _despawnTicks;      // ticks since the mark (timeout counter)
+    private long _donorCombat;      // Canary 8: the duplicated unit (identity stamps + registry clone source)
+    private long _descendNode;      // descent flourish: the node being lowered (0 = none)
+    private short _descendTarget;   // the donor's altitude the descent lands at
     private int _holdHb;
 
     public BodyDoubleSpike(IGameMemory mem, string saveDir)
@@ -355,7 +388,7 @@ internal sealed class BodyDoubleSpike
         if (!_announced)
         {
             _announced = true;
-            ModLogger.Event(LogVerb.Trace, "body-double: armed (dev, CANARY 7 player-slot pivot). Fresh battle 435 on the Frank-Monk build with an empty player deploy slot, THROWAWAY SAVE. Open a unit's menu (pause), then F5 copies the slot-7 template into a vacant player slot and builds/binds the double THERE. Watch the enemy AI.");
+            ModLogger.Event(LogVerb.Trace, "body-double: armed (dev, CANARY 8 THE DUPLICATOR). Any battle, THROWAWAY SAVE. Open the menu of the unit to duplicate (hover = donor), then F5: copy + registry enroll + node build + bind, and the clone descends from the heavens beside the donor. Ctrl+F5 despawns. Watch the enemy AI.");
         }
         if (++_hbTick % 300 == 0)   // ~10s at 33ms
             ModLogger.Debug(LogVerb.Trace, $"body-double: alive (writes {(Mem.WritesEnabled ? "on" : "OFF")})");
@@ -391,6 +424,24 @@ internal sealed class BodyDoubleSpike
         if (_decoyHold) HoldDecoy();
         if (_boundThisBattle) DeathWatch();
         if (_despawnNode != 0) DespawnWatch();
+        if (_descendNode != 0) DescendStep();
+    }
+
+    /// <summary>The heavens-descent flourish: step the fresh clone's world Z toward the donor's
+    /// altitude, one height unit per tick (idle transforms are unowned, so nothing contests the
+    /// animation; the clone's first real move or turn-open re-stamps Z anyway).</summary>
+    private void DescendStep()
+    {
+        if (!Mem.WritesEnabled) { _descendNode = 0; return; }
+        short z = unchecked((short)_mem.U16(_descendNode + WorldZOff));
+        if (z >= _descendTarget)
+        {
+            _descendNode = 0;
+            ModLogger.Event(LogVerb.Trace, $"body-double: the clone has touched down (Z {_descendTarget}).");
+            return;
+        }
+        z = (short)Math.Min(z + DescentStep, (int)_descendTarget);
+        _mem.WriteBytes(_descendNode + WorldZOff, BitConverter.GetBytes((ushort)z));
     }
 
     /// <summary>Debounced battle-edge teardown, called from Engine.ResetBattleState (both edges, the
@@ -398,7 +449,8 @@ internal sealed class BodyDoubleSpike
     /// inLive dip must NOT land here.</summary>
     public void ResetBattle()
     {
-        if (!_bound && !_decoyHold && !_boundThisBattle && _hostCombat == 0) return;
+        if (!_bound && !_decoyHold && !_boundThisBattle && _hostCombat == 0
+            && _despawnNode == 0 && _descendNode == 0) return;
         _bound = false;
         _decoyHold = false;
         _boundThisBattle = false;
@@ -407,6 +459,8 @@ internal sealed class BodyDoubleSpike
         _hostModel = 0;
         _deathPinned = false;
         _despawnNode = 0;   // the scene teardown owns every node at a battle edge; never revert across it
+        _donorCombat = 0;
+        _descendNode = 0;
         ModLogger.Event(LogVerb.Trace, "body-double: battle edge; host claim + bind + decoy hold cleared (a new battle needs a fresh F5).");
     }
 
@@ -962,17 +1016,17 @@ internal sealed class BodyDoubleSpike
         return -1;
     }
 
-    /// <summary>CANARY 7: find a vacant player slot to host the double. Vacancy = the deploy loop's own
-    /// empty stamp (gate +0x01 == FF AND present +0x1B5 == FF; a drawn unit reads a real gate, a
-    /// build-then-disabled one reads present 00). Fully ZEROED slots are preferred over deploy-staging
-    /// residue (live 2026-07-10: a deployed generic left a hidden stat GHOST at slot 20; overwriting
-    /// engine staging is a last resort, not the default). Scans high-to-low so the pick sits far from
-    /// the live party. Returns the combat base and slot, or -1.</summary>
-    private long FindVacantPlayerHost(out int hostSlot)
+    /// <summary>CANARY 8: find a vacant slot in the donor's region (players 16..20, enemies 8..15;
+    /// the deploy pipeline's regions are positional). Vacancy = the deploy loop's own empty stamp
+    /// (gate FF + present FF); fully ZEROED slots preferred over deploy-staging residue (a deployed
+    /// generic once left a hidden stat GHOST at slot 20). Returns the combat base and slot, or -1.</summary>
+    private long FindVacantHost(int donorSlot, out int hostSlot)
     {
+        int lo = donorSlot >= HostLo ? HostLo : 8;
+        int hi = donorSlot >= HostLo ? HostHi : 15;
         long residue = -1;
         int residueSlot = -1;
-        for (int slot = HostHi; slot >= HostLo; slot--)
+        for (int slot = hi; slot >= lo; slot--)
         {
             long combat = UnitsBase + slot * 0x200L;
             if (_mem.U8(combat + 0x01) != 0xFF) continue;
@@ -992,47 +1046,165 @@ internal sealed class BodyDoubleSpike
         return residue;
     }
 
-    /// <summary>CANARY 7: copy the hidden slot-7 template's full 0x200 combat struct into the vacant
-    /// player host, then fix the per-slot fields. The +0x1BC model-id fixup is LOAD-BEARING twice over:
-    /// the builder derives its SceneNodeIdx/SecondTable stamp index from arg8's +0x1BC (0x14026EDB5,
-    /// inclusive cmp al,0x14 bound), and the engine's scene-bind loop hard-assumes model == slot
-    /// (0x1401D5184 stamps the loop index). Gate and membership id reset to FF (hidden, unenrolled)
-    /// and CT zeroed so the copy is inert until the bind.</summary>
-    private bool CopyTemplateToHost(long host, int hostSlot)
+    /// <summary>CANARY 8: the hovered unit = the donor (the condensed cursor struct fingerprint,
+    /// any team, matched uniquely against the visible combat slots; the follows-the-cursor trap is
+    /// the feature). Fail-closed on twins and non-hover states.</summary>
+    private bool ResolveDonor(out long combat, out int slot)
     {
-        if (!_mem.TryReadBytes(FrankCombat, 0x200, out var tpl))
+        combat = 0;
+        slot = -1;
+        if (!Mem.Readable(Offsets.TurnQueue, Offsets.TqMaxHp + 2))
         {
-            ModLogger.Error(LogVerb.Trace, "body-double: could not read the slot-7 template struct; refusing the copy.");
+            ModLogger.Event(LogVerb.Trace, "body-double: F5 refused: the cursor struct is unreadable (hover the unit to duplicate first).");
             return false;
         }
-        _mem.WriteBytes(host, tpl);
+        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
+        ushort hp = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
+        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
+        if (maxHp == 0 || maxHp >= 60000 || level < 1 || level > 99)
+        {
+            ModLogger.Event(LogVerb.Trace, "body-double: F5 refused: no plausible hovered unit (open the donor's menu first).");
+            return false;
+        }
+        int matches = 0;
+        for (int s = 0; s < Slots; s++)
+        {
+            long c = UnitsBase + s * 0x200L;
+            if (_mem.U8(c + 0x01) == 0xFF) continue;
+            long e = c + 0x1C;
+            if (_mem.U16(e + Offsets.AMaxHp) != maxHp) continue;
+            if (_mem.U16(e + Offsets.AHp) != hp) continue;
+            if (_mem.U8(e + Offsets.ALevel) != level) continue;
+            matches++;
+            combat = c;
+            slot = s;
+        }
+        if (matches != 1)
+        {
+            ModLogger.Event(LogVerb.Trace, $"body-double: F5 refused: the hovered fingerprint matched {matches} slots (need exactly 1).");
+            combat = 0;
+            slot = -1;
+            return false;
+        }
+        return true;
+    }
+
+    /// <summary>CANARY 8: a free tile adjacent to the donor for the clone (co-tile spawns are the
+    /// proven target-shadowing + movement soft-lock). Neighbors first, then range-2 in the four
+    /// cardinal directions; occupancy = any visible unit's logic tile. Map walkability is NOT
+    /// checked (unknowable from here): a wall pick is a cosmetic strand, not a crash.</summary>
+    private bool FindFreeTileNear(long donor, out byte tx, out byte ty)
+    {
+        int dx = _mem.U8(donor + 0x4F);
+        int dy = _mem.U8(donor + 0x50);
+        var candidates = new[]
+        {
+            (dx + 1, dy), (dx - 1, dy), (dx, dy + 1), (dx, dy - 1),
+            (dx + 1, dy + 1), (dx - 1, dy - 1), (dx + 1, dy - 1), (dx - 1, dy + 1),
+            (dx + 2, dy), (dx - 2, dy), (dx, dy + 2), (dx, dy - 2),
+        };
+        foreach (var (cx, cy) in candidates)
+        {
+            if (cx < 0 || cy < 0 || cx > 29 || cy > 29) continue;
+            bool taken = false;
+            for (int s = 0; s < Slots && !taken; s++)
+            {
+                long c = UnitsBase + s * 0x200L;
+                if (_mem.U8(c + 0x01) == 0xFF) continue;
+                if (_mem.U8(c + 0x4F) == cx && _mem.U8(c + 0x50) == cy) taken = true;
+            }
+            if (!taken)
+            {
+                tx = (byte)cx;
+                ty = (byte)cy;
+                return true;
+            }
+        }
+        tx = ty = 0;
+        return false;
+    }
+
+    /// <summary>CANARY 8: the donor's own scene-load entry (its combat ptr sits at entry +0x10);
+    /// the donor being DRAWN guarantees its sheet is loaded, so the cribbed sprite-id resolves.</summary>
+    private long FindSceneEntryOf(long combat)
+    {
+        for (int idx = 0; idx < 8; idx++)
+        {
+            long entry = SceneTable + idx * EntryStride;
+            if ((long)_mem.U64(entry + 0x10) == combat) return entry;
+        }
+        return -1;
+    }
+
+    /// <summary>CANARY 8: copy the donor's full 0x200 combat struct into the vacant host, then fix
+    /// the per-slot fields. +0x1BC = host slot is LOAD-BEARING twice (the builder's stamp index and
+    /// the scene-bind loop's model == slot invariant); gate/membership FF and CT 0 keep the copy
+    /// inert until the bind; the logic tile is the chosen FREE destination, never the donor's.</summary>
+    private bool CopyDonorToHost(long donor, long host, int hostSlot, byte tx, byte ty)
+    {
+        if (!_mem.TryReadBytes(donor, 0x200, out var body))
+        {
+            ModLogger.Error(LogVerb.Trace, "body-double: could not read the donor's combat struct; refusing the copy.");
+            return false;
+        }
+        _mem.WriteBytes(host, body);
         _mem.WriteBytes(host + 0x1BC, new[] { (byte)hostSlot });
         _mem.WriteBytes(host + 0x01, new byte[] { 0xFF });
         _mem.WriteBytes(host + 0x02, new byte[] { 0xFF });
         _mem.WriteBytes(host + CtOffset, ZeroCt);
+        _mem.WriteBytes(host + 0x4F, new[] { tx });
+        _mem.WriteBytes(host + 0x50, new[] { ty });
         ModLogger.Event(LogVerb.Trace,
-            $"body-double: CANARY 7 copy: slot-7 template -> player slot {hostSlot} (0x{host:X}); model id fixed to {hostSlot:X2}, gate/membership reset to FF, CT zeroed.");
+            $"body-double: CANARY 8 copy: donor 0x{donor:X} -> slot {hostSlot} (0x{host:X}) at free tile ({tx},{ty}); gate/membership FF, CT 0.");
         return true;
     }
 
-    /// <summary>A DRAWN Monk sibling's scene-load entry (its sheet is loaded, so its sprite-id resolves).
-    /// Scans populated entries idx 0..6, matching a real combat slot whose job is Monk and which is drawn
-    /// (+0x01 != 0xFF) and is not Frank. Returns the entry base address, or -1 if none.</summary>
-    private long FindMonkSiblingEntry()
+    /// <summary>CANARY 8, the freeze cure (live-proven by the resurrection): clone the donor's
+    /// battle-keyed registry object, re-key +0x2C to the host slot, append its pointer at
+    /// table[count], and bump the count word THEN the count byte (the walk never sees a
+    /// half-entry). Data-only; runs while the copy is still hidden so the clone is AI-resolvable
+    /// before it is ever walk-visible.</summary>
+    private bool RegistryEnrollHost(int donorSlot, int hostSlot)
     {
-        for (int idx = 0; idx < 7; idx++)
+        byte count = _mem.U8(AiCountByte);
+        if (count >= AiRegistrySlots)
         {
-            long entry = SceneTable + idx * EntryStride;
-            ulong combat = _mem.U64(entry + 0x10);   // the entry's own arg8 (its combat ptr)
-            if (combat < (ulong)UnitsBase) continue;
-            long off = (long)combat - UnitsBase;
-            if (off < 0 || off >= Slots * 0x200 || (off % 0x200) != 0) continue;   // must land on a real slot
-            if ((long)combat == FrankCombat) continue;
-            if (_mem.U8((long)combat + 0x03) != MonkJob) continue;   // same LOADED sheet as Frank-the-Monk
-            if (_mem.U8((long)combat + 0x01) == 0xFF) continue;      // must be a DRAWN sibling
-            return entry;
+            ModLogger.Event(LogVerb.Trace, $"body-double: registry count {count} at capacity; cannot enroll the clone.");
+            return false;
         }
-        return -1;
+        long src = 0;
+        var used = new HashSet<long>();
+        for (int i = 0; i < count; i++)
+        {
+            long p = (long)_mem.U64(AiRegistry + i * 8L);
+            if (p == 0) continue;
+            used.Add(p);
+            if (Mem.Readable(p + AiObjMatchOff, 2) && _mem.U16(p + AiObjMatchOff) == donorSlot) src = p;
+        }
+        if (src == 0)
+        {
+            ModLogger.Event(LogVerb.Trace, $"body-double: the donor (slot {donorSlot}) has no battle-keyed registry object to clone; refusing.");
+            return false;
+        }
+        long dst = 0;
+        for (int k = 40; k < 54; k++)
+        {
+            long cand = AiObjPool + (long)k * AiObjStride;
+            if (!used.Contains(cand)) { dst = cand; break; }
+        }
+        if (dst == 0 || !_mem.TryReadBytes(src, AiObjStride, out var obj))
+        {
+            ModLogger.Event(LogVerb.Trace, "body-double: no free registry pool slot / unreadable donor object; refusing the enroll.");
+            return false;
+        }
+        _mem.WriteBytes(dst, obj);
+        _mem.WriteBytes(dst + AiObjMatchOff, BitConverter.GetBytes((ushort)hostSlot));
+        _mem.WriteBytes(AiRegistry + count * 8L, BitConverter.GetBytes(dst));
+        _mem.WriteBytes(AiObjCountWord, BitConverter.GetBytes((ushort)(_mem.U16(AiObjCountWord) + 1)));
+        _mem.WriteBytes(AiCountByte, new[] { (byte)(count + 1) });
+        ModLogger.Event(LogVerb.Trace,
+            $"body-double: registry enroll: donor obj cloned -> 0x{dst:X} keyed slot {hostSlot}, table[{count}], count -> {count + 1}. The clone is AI-resolvable before it is visible.");
+        return true;
     }
 
     private void Fire()
@@ -1073,10 +1245,10 @@ internal sealed class BodyDoubleSpike
             // node under the same label into the render list.
             if (hGate == 0xFF && hNode >= 0)
             {
-                long e = FindMonkSiblingEntry();
+                long e = _donorCombat != 0 ? FindSceneEntryOf(_donorCombat) : -1;
                 if (e < 0)
                 {
-                    ModLogger.Event(LogVerb.Trace, "body-double: no DRAWN Monk sibling entry to finish the aborted stage-2; refusing.");
+                    ModLogger.Event(LogVerb.Trace, "body-double: no donor scene entry to finish the aborted stage-2; refusing.");
                     return;
                 }
                 ModLogger.Event(LogVerb.Trace,
@@ -1093,27 +1265,29 @@ internal sealed class BodyDoubleSpike
         }
         else
         {
-            byte job = _mem.U8(FrankCombat + 0x03);
-            if (job != MonkJob)
-            {
-                ModLogger.Event(LogVerb.Trace, $"body-double: slot 7 job {job:X2} is not Monk {MonkJob:X2} (wrong battle or the Black-Mage build). Refusing.");
-                return;
-            }
-            byte srcGate = _mem.U8(FrankCombat + 0x01);
-            if (srcGate != 0xFF)
-            {
-                ModLogger.Event(LogVerb.Trace, $"body-double: template slot 7 +0x01 = {srcGate:X2} (not 0xFF hidden); wrong state for the player-slot copy. Refusing.");
-                return;
-            }
-            long host = FindVacantPlayerHost(out int hostSlot);
+            // CANARY 8: duplicate the HOVERED unit. The donor supplies everything: body bytes,
+            // scene entry, registry object, identity. Order is load-bearing (class doc).
+            if (!ResolveDonor(out long donor, out int donorSlot)) return;
+            long host = FindVacantHost(donorSlot, out int hostSlot);
             if (host < 0)
             {
-                ModLogger.Event(LogVerb.Trace, "body-double: no vacant player slot 16..20 (full 5-unit deployment?); the player-slot double needs one. Refusing.");
+                ModLogger.Event(LogVerb.Trace, $"body-double: no vacant slot in the donor's region (donor slot {donorSlot}); the clone needs one. Refusing.");
                 return;
             }
-            if (!CopyTemplateToHost(host, hostSlot)) return;
+            if (!FindFreeTileNear(donor, out byte tx, out byte ty))
+            {
+                ModLogger.Event(LogVerb.Trace, "body-double: no free tile adjacent to the donor (co-tile spawns are the proven soft-lock); refusing.");
+                return;
+            }
+            if (!CopyDonorToHost(donor, host, hostSlot, tx, ty)) return;
             _hostCombat = host;
             _hostModel = (byte)hostSlot;
+            _donorCombat = donor;
+            if (!RegistryEnrollHost(donorSlot, hostSlot))
+            {
+                ModLogger.Event(LogVerb.Trace, "body-double: registry enroll failed; the copy stays hidden (an un-enrolled reveal is the proven freeze). F5 again retries the build once the registry has room.");
+                return;
+            }
         }
 
         uint gmode = _mem.U32(GModeAddr);
@@ -1129,39 +1303,41 @@ internal sealed class BodyDoubleSpike
             return;
         }
 
-        long entry = FindMonkSiblingEntry();
+        long entry = FindSceneEntryOf(_donorCombat);
         if (entry < 0)
         {
-            ModLogger.Event(LogVerb.Trace, "body-double: no DRAWN Monk sibling scene-load entry to crib (need a loaded-sheet sibling on the field); refusing.");
+            ModLogger.Event(LogVerb.Trace, "body-double: the donor has no scene-load entry to crib (not an init-built unit?); refusing.");
             return;
         }
 
         if (!TargetReady()) return;
         if (!_mem.TryReadBytes(entry, EntryStride, out var b))
         {
-            ModLogger.Error(LogVerb.Trace, "body-double: could not read the sibling scene-load entry; refusing.");
+            ModLogger.Error(LogVerb.Trace, "body-double: could not read the donor's scene-load entry; refusing.");
             return;
         }
 
         long nodeIdxAddr = SceneNodeIdx + _hostModel * 4;
         int before = (int)_mem.U32(nodeIdxAddr);
 
-        // Crib the sibling's node args; override arg8 -> the host, arg7 -> a fresh label, arg10 ->
-        // render-mgr. The builder stamps SceneNodeIdx[arg8's +0x1BC] (= the host model, fixed by the
-        // copy) and writes SecondTable[model] itself, so the host's tables come out engine-authored.
-        long a1 = b[0x00];
-        long a2 = b[0x01];
-        long a3 = b[0x02];
+        // Crib the DONOR's node args, but a1/a2/a3 = THE HOST'S OWN TILE (they land in the node's
+        // tile key +0x88/89/8A, the AI decision pipeline's lookup: cribbing the donor's tile here
+        // is exactly the bug that froze Canary 7's binds). arg8 -> the host, arg7 -> a fresh label,
+        // arg10 -> render-mgr. The builder stamps SceneNodeIdx[arg8's +0x1BC] and writes
+        // SecondTable[model] itself, so the host's tables come out engine-authored.
+        long a1 = _mem.U8(_hostCombat + 0x4F);           // dest tile x
+        long a2 = _mem.U8(_hostCombat + 0x50);           // dest tile y
+        long a3 = (byte)(_mem.U8(_hostCombat + 0x51) >> 7);   // layer bit
         long a4 = (ushort)(b[0x04] | (b[0x05] << 8));
-        long a5 = (ushort)(b[0x06] | (b[0x07] << 8));   // sprite-id (a LOADED Monk sheet, so it resolves)
+        long a5 = (ushort)(b[0x06] | (b[0x07] << 8));   // sprite-id (the donor's own LOADED sheet)
         long a6 = (ushort)(b[0x08] | (b[0x09] << 8));
-        long a7 = FreshLabel;                            // force a fresh alloc, do not match the sibling's node
-        long a8 = _hostCombat;                           // bind the new node to the player-slot host
+        long a7 = FreshLabel;                            // force a fresh alloc, do not match the donor's node
+        long a8 = _hostCombat;                           // bind the new node to the host
         long a9 = (uint)(b[0x18] | (b[0x19] << 8) | (b[0x1A] << 16) | (b[0x1B] << 24));
         long a10 = (long)renderMgr;
 
         ModLogger.Event(LogVerb.Trace,
-            $"body-double: cribbing entry 0x{entry:X} (spriteId {a5:X4}); host model {_hostModel}, sceneNodeIdx[{_hostModel}] = {before}; COLD-CALLING builder 0x{FnNodeBuild:X} (arg8 = host 0x{_hostCombat:X}, arg7 label 0x{a7:X})...");
+            $"body-double: cribbing the donor's entry 0x{entry:X} (spriteId {a5:X4}); dest tile ({a1},{a2}), host model {_hostModel}, sceneNodeIdx[{_hostModel}] = {before}; COLD-CALLING builder 0x{FnNodeBuild:X} (arg8 = host 0x{_hostCombat:X})...");
         long ret;
         try
         {
@@ -1218,11 +1394,10 @@ internal sealed class BodyDoubleSpike
         ModLogger.Event(LogVerb.Trace,
             $"body-double: STAGE-2 bound node 0x{node:X} to the player-slot host (si {si:X2}, animByte {animByte:X2}, node+0x230 0x{r230:X}, node+0x238 0x{r238:X}); combat+0x01 -> {modelId:X2}, +0x1B5 -> 01. Unpause: the double should be a real listed Monk in the player region. WATCH THE ENEMY AI.");
 
-        // CANARY 4: the completeness stamps, every one owner-proven by live pokes (see the class doc).
-        // Cribbed from a live player donor so the values track the running battle, not hardcoded bytes.
-        // The host itself is excluded (it is now a drawn player slot) and generics are preferred over
-        // Ramza (slot 16): the pair routes the double's field NAME and control ownership.
-        long donor = FindPlayerDonor(_hostCombat);
+        // CANARY 4 stamps, Canary 8 flavor: the identity/faction source is THE DUPLICATED UNIT
+        // itself (the clone doubles the donor, name and control); the old player-donor scan stays
+        // as the fallback for recovery paths that lost the donor.
+        long donor = _donorCombat != 0 ? _donorCombat : FindPlayerDonor(_hostCombat);
         if (donor > 0)
         {
             byte id = _mem.U8(donor + 0x191);
@@ -1256,8 +1431,29 @@ internal sealed class BodyDoubleSpike
         _bound = true;
         _boundThisBattle = true;   // the re-arm witness: only a bind made this battle may re-arm
         _decoyHold = true;
+
+        // CANARY 8 flourish + certainty: world X/Y stamped from the proven formulas (28*tile+14),
+        // Z parked in the heavens; the tick loop lowers the clone to the donor's own altitude.
+        // Transform offsets are LIST-NODE relative: list node = pool element + 8 (the reconciled
+        // pool layout: element+0 = in-use dword, element+8 = the node the renderer links).
+        long listNode = node + 8;
+        byte dtx = _mem.U8(_hostCombat + 0x4F);
+        byte dty = _mem.U8(_hostCombat + 0x50);
+        _mem.WriteBytes(listNode + WorldXOff, BitConverter.GetBytes((ushort)(28 * dtx + 14)));
+        _mem.WriteBytes(listNode + WorldYOff, BitConverter.GetBytes((ushort)(28 * dty + 14)));
+        short landing = -48;
+        if (_donorCombat != 0)
+        {
+            byte dModel = _mem.U8(_donorCombat + 0x1BC);
+            int dIdx = dModel < Slots ? (int)_mem.U32(SceneNodeIdx + dModel * 4) : -1;
+            if (dIdx >= 0)
+                landing = unchecked((short)_mem.U16(NodePool + (long)dIdx * NodeSize + 8 + WorldZOff));
+        }
+        _mem.WriteBytes(listNode + WorldZOff, BitConverter.GetBytes(unchecked((ushort)SkyZ)));
+        _descendNode = listNode;
+        _descendTarget = landing;
         ModLogger.Event(LogVerb.Trace,
-            "body-double: decoy CT-hold engaged (combat +0x41 pinned 0). Unpause: the double stands as a decoy in the player region; press F5 to release the hold and take control (stamped builds only).");
+            $"body-double: decoy CT-hold engaged; clone parked in the heavens over ({dtx},{dty}), descending to Z {landing}. Unpause and look up. F5 again releases the hold for control.");
 
         // CANARY 3b: black-Monk forensics. File-only DBG dump of the cribbed sibling's node next to
         // Frank's fresh one; the offline diff names the per-instance fields the skipped node+0x270
@@ -1307,7 +1503,7 @@ internal sealed class BodyDoubleSpike
         // even while turnless). The "combat" label keeps node_dump_diff.py's dump[...] parser blind to
         // them; spawn_probe banddiff reads the same structs live with annotations.
         if (_hostCombat != 0) DumpBytes(Emit, "combat[double]", _hostCombat, 0x200);
-        DumpBytes(Emit, "combat[frank]", FrankCombat, 0x200);
+        if (_donorCombat != 0) DumpBytes(Emit, "combat[donor]", _donorCombat, 0x200);
         DumpBytes(Emit, "combat[sibling]", (long)sibCombat, 0x200);
         PersistForensics(lines);
     }

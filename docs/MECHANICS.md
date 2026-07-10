@@ -62,6 +62,12 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
   turns, AI ignores it) while the render weld leaves its sprite standing; writing the model id
   back restores it whole. Reversible, instant, and the substrate of the Mirror Image idea. TRAP:
   a mid-hide autosave persists the hidden state into resumes.
+- PLAY ANY ANIMATION ON ANY UNIT (the request register) -- DECODED byte-for-byte, one live poke
+  from proven: node+0x10 u16 is the game's own animation-request API; one write plays any
+  sequence from the enumerated vocabulary (idle, flinch, chant, crouch 0x35, stand-up, weapon
+  swings, die) and LATCHES with no hold. The earlier failed pokes were all decoder OUTPUTS
+  (node+0x420 block re-stamps per frame); this is the INPUT. Recipe + vocabulary in the
+  anim-request-register memory.
 - DOUBLE A UNIT'S IDENTITY (name + control) -- PROVEN LIVE: the roster-identity backref pair
   combat +0x191/+0x192 routes field NAME resolution and controller ownership; copying a donor's
   pair makes another unit a literal double of it (a second "Ramza" on the field, owner-witnessed).
