@@ -35,7 +35,7 @@ is the in-flight subset, not a mirror of that checklist.
     kill shows updated on re-open, another item's flavor stays untouched, and the in-battle Attack
     card surface is unaffected.
 
-- **[LW-53] Flight archive for a fingerprint-guard stand-down** (opened 2026-07-07) [QUEUED]
+- **[LW-53] Flight archive for a fingerprint-guard stand-down** (opened 2026-07-07) [BUILDING]
   - Done means: a stand-down leaves a durable black-box archive, not just the livingweapon.log line.
     Observed 2026-07-07 (forced-mismatch launch): the loud ERROR armed FlushOnce but no
     flight_*_error.jsonl landed, because nothing is recorded into the ring while the guard holds the
@@ -46,7 +46,7 @@ is the in-flight subset, not a mirror of that checklist.
     severity: the stand-down is already fully evidenced in livingweapon.log; this is diagnostic
     completeness.
   - Verify: unit-test that a stand-down records a ring entry and a pending flush drains it to a file;
-    live, force a mismatch (LW_FORCE_FINGERPRINT_MISMATCH=1) and confirm a flight_*_error.jsonl
+    live, force a mismatch (LW_FORCE_FINGERPRINT_MISMATCH=1) and confirm a flight_*_standdown.jsonl
     archive appears beside the loud line, with zero game-memory writes through a battle.
 
 - **[LW-55] Attack card shows a wrong kill count that disagrees with the equip card** (opened 2026-07-08) [QUEUED]

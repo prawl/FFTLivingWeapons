@@ -118,8 +118,11 @@ internal sealed class Engine
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
         _live = live;
         // LW-50: born disarmed (Mod.StartEngine already set Mem.WritesEnabled = false before this
-        // ctor ran); Tick() below holds every subsystem off until the landmarks verify.
-        _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: StandDownNotice.Show);
+        // ctor ran); Tick() below holds every subsystem off until the landmarks verify. LW-53:
+        // recorder/requestFlush wire the guard's own arm/stand-down lifecycle into the flight
+        // ring, so a stand-down leaves a durable archive.
+        _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: StandDownNotice.Show,
+            recorder: Flight.Record, requestFlush: Flight.RequestFlush);
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
         // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the deed-recording seam KillTracker's

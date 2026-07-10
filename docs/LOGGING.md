@@ -220,7 +220,7 @@ nothing.
 
 **The jsonl vocabulary is FROZEN and separate from the console verbs.** The record type strings
 (`"ev"`, `"kill"`, `"turn"`, `"mode"`, `"toast"`, `"legend-store"`, `"census"`, `"victim"`,
-`"mark-earned"`, `"deed-miss"`, ...) are set at the tap sites and were deliberately NOT renamed
+`"mark-earned"`, `"deed-miss"`, `"guard"`, ...) are set at the tap sites and were deliberately NOT renamed
 by the logging facelift: `tools/parse_flight.py --grep` filters and every existing archive depend
 on them. The console `[verb]` glossary above is a different namespace; do not "align" them.
 
@@ -230,10 +230,12 @@ lines, dual-emitted alongside the `[trace]` file sink under the flight type `"ev
 rising/falling edges and per-unit turn credit (TurnTracker); the engine actor-pointer's ownership
 transitions (ActorRegister); the acting-player weapon latch and every corpse credit/no-credit
 verdict, including the pending edge (KillTracker); tier-up/milestone toast enqueue and drop
-(BannerToast); toast delivery into the facing prompt (PromptSwap); and the Reliquary deed taps
-(`mark-earned`/`deed-miss`). Deliberately **not** tapped: Puppeteer (a separate live-verify arc
-is in flight against those exact lines) and Treasure Master / the chemist-grenade paths (both
-slated for eventual removal -- no new investment there).
+(BannerToast); toast delivery into the facing prompt (PromptSwap); the Reliquary deed taps
+(`mark-earned`/`deed-miss`); and the fingerprint guard's own lifecycle (`"guard"`, LaunchGuard):
+the armed edge and a stand-down's landmark diag, so a stand-down archive is self-contained
+(LW-53). Deliberately **not** tapped: Puppeteer (a separate live-verify arc is in flight against
+those exact lines) and Treasure Master / the chemist-grenade paths (both slated for eventual
+removal -- no new investment there).
 
 **Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl` -- one compact
 JSON object per line (Newtonsoft.Json; no hand-rolled escaping). The first line of every file is
@@ -255,7 +257,13 @@ flushes synchronously -- it only raises a pending flag (`Flight.RequestFlush("er
 actual serialize+write+retention-prune runs later from `Flight.DrainPending()`, called once per
 Engine tick. This matters because `PromptSwapHook.Detour` logs errors on the game's own
 `SetTextString` thread before forwarding -- a synchronous flush there would stall the game's own
-prompt commit.
+prompt commit. (d) a dedicated `"standdown"` trigger (`Flight.RequestFlush("standdown")`,
+requested LAST inside `LaunchGuard.StandDown`, LW-53): a fingerprint-guard stand-down happens
+before any battle edge is reachable (`Engine.Tick`'s pre-arm early return holds every other
+module off) and the launch's error FlushOnce token can already be burnt by an earlier unrelated
+error (a Mod.cs hooks failure, an Engine.cs tick-loop catch) whose flush drained an empty ring;
+a trigger other than `"error"` bypasses that latch entirely and the archive lands as
+`flight_*_standdown.jsonl`.
 
 **The error trigger is FlushOnce, a documented divergence from "ERROR = broke + flight flush":**
 only the very first error of a launch ever produces a flight file, however many Error lines
