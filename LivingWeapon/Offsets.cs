@@ -14,9 +14,12 @@ internal static class Offsets
     public const long Slot9 = 0x140782A54;   // 1.5 PREDICTED +0x6000 (was 0x14077CA54); read 0xFFFFFFFF (terminator plausible)
     public const long Acted = 0x140782A8C;   // 1.5 CONFIRMED (was 0x14077CA8C): rising edge = an action completed.
                                              //   Production-proven -- TurnTracker/KillTracker ship on it; live log 2026-07-01.
-    public const long EventId = 0x140782A94; // 1.5 PREDICTED +0x6000 (was 0x14077CA94). u16 event file number during cutscenes/dialogue; ALIASES as
+    public const long EventId = 0x140782A94; // 1.5 CONFIRMED live 2026-07-08 (was 0x14077CA94). u16 event file number during cutscenes/dialogue; ALIASES as
                                              //   the active unit's nameId during combat animations -- only
-                                             //   meaningful while out of live battle (dialogue/cutscene gate)
+                                             //   meaningful while out of live battle (dialogue/cutscene gate).
+                                             //   Reads 0xFFFF at the menu, then climbs 2 -> 4 -> 5 through the
+                                             //   Orbonne prologue; PlaythroughReset.Policy.OpeningEventId (2)
+                                             //   anchors LW-51 Tier-1's new-game reset on this value.
 
     /// <summary>Engine global holding a POINTER to the ACTING unit's combat FRAME base (see
     /// <see cref="FrameReadBase"/>; frame + <see cref="BandEntry"/> = that unit's band entry).

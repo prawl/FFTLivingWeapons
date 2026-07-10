@@ -21,6 +21,7 @@ internal sealed class Engine
     private int _tick;
 
     private readonly KillTally _tally;
+    private readonly PlaythroughReset _playthroughReset;   // LW-51 Tier-1: archives + resets the tally on a new-game opening
     private readonly Dictionary<int, int> _kills;
     private readonly LegendStore _legends;   // Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md)
     private readonly Reliquary _reliquary;   // promoted from a ctor local: the battle-end summary reads BattleMarks at the exit edge
@@ -61,6 +62,7 @@ internal sealed class Engine
     private readonly HeaderSpike _headerSpike;   // F8 LW-27 header-repaint research instrument, dev-only
     private readonly AttackCardSpike _attackCardSpike;   // F6 LW-31 Attack-menu census instrument, dev-only
     private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
+    private readonly StatusSpike _statusSpike;   // LW-58: cold-call the status apply engine (F2 canary / F4 treasure), dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -79,13 +81,24 @@ internal sealed class Engine
     public Engine(string modDir, bool? treasureAlwaysOn = null, bool? bannerToasts = null, bool? devSeedKills = null,
         bool? devForceFingerprintMismatch = null)
     {
-        _tally = KillTally.Load(Path.Combine(modDir, "kills.json"));
+        // LW-51: save files now live in the update-safe Reloaded/User/Mods/<ModId> dir, not the
+        // deploy mod dir, so a mod-folder-replace update can no longer wipe them. Each store's
+        // legacy file (if any) migrates into that dir, non-destructively, before its first load.
+        var save = new SaveLocation(modDir);
+        ModLogger.Event(LogVerb.Save, $"Save files live at {save.SaveDir}.");
+
+        _tally = KillTally.Load(save.Migrate("kills.json"));
+        // LW-51 Tier-1: shares this SaveLocation/KillTally pair by reference (never re-reads or
+        // re-constructs either); Observe is called every tick post-arm from Tick(), after inLive
+        // is computed, so it sees the same battle-edge gate every other module does.
+        _playthroughReset = new PlaythroughReset(save, _tally);
         _kills = _tally.Kills;
         // Launch header L3 (logging facelift): the kill-tally load summary, BEFORE the dev seed
         // below can inflate the counts -- this line states what the DISK held.
         ModLogger.Event(LogVerb.Save,
             $"The kill tally holds {_tally.Total} lifetime kills across {_tally.Kills.Count} weapons (kills.json, {_tally.LoadedFrom}).");
-        _legends = LegendStore.Load(modDir);   // Reliquary Phase 1 deed ledger, sibling of kills.json
+        save.Migrate("legends.json");
+        _legends = LegendStore.Load(save.SaveDir);   // Reliquary Phase 1 deed ledger, sibling of kills.json
         // Launch header L4: the legends load summary.
         ModLogger.Event(LogVerb.Save,
             $"The legends hold deeds for {_legends.WeaponCount} weapons and {_legends.TotalMarks} Marks (legends.json, {_legends.LoadedFrom}).");
@@ -177,7 +190,8 @@ internal sealed class Engine
         // so ResetBattle still fires on the debounced battle-exit edge.
         _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
-        _gunSlinger = new GunSlinger(meta, _kills, modDir, live);
+        save.Migrate("gunslinger.json");
+        _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live);
         // LW-35 (owner direction): Marks are release-hidden on EVERY card surface. The Attack card
         // already stopped consuming the deed ledger (AttackCard.Resolve sets markLabel=null); the
         // equip card stops the same way, by NOT wiring legends into Display's StoryLines. The
@@ -200,6 +214,7 @@ internal sealed class Engine
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).
         _turnOwnerSpike = new TurnOwnerSpike(live, _tracker.Register);
+        _statusSpike = new StatusSpike(live);   // LW-58 cold-call research instrument
 #endif
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
@@ -288,6 +303,11 @@ internal sealed class Engine
         // (the marker alone lies -- it sticks at 0xFF after a battle QUIT). Gates every module that
         // writes battle memory.
         bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
+        // LW-51 Tier-1: runs every tick post-arm (Tick() only early-returns pre-arm above), gated
+        // on the SAME inLive this tick's other modules already trust. Placed after inLive (not
+        // eventId alone) so a mid-battle dialogue frame aliasing eventId==2 can never be mistaken
+        // for the new-game opening.
+        _playthroughReset.Observe(eventId, battleMode, inLive);
         bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
         if (edge == BattleEdge.Entered)
         {
@@ -399,6 +419,7 @@ internal sealed class Engine
         _headerSpike.Tick();
         _attackCardSpike.Tick();   // LW-31: the Abilities menu lives here, the load-bearing tick site
         _turnOwnerSpike.Tick();   // LW-31 stage 2: passive correlation recorder, in-battle only (menus out of battle don't matter here)
+        _statusSpike.Tick();   // LW-58: cold-call the status apply engine on F2/F4 (in-battle only; targets live band units)
 #endif
         if (changed)
         {

@@ -129,8 +129,9 @@ public class Mod : IMod
         }
     }
 
-    /// <summary>The mod namespace -- the folder name under both Mods/ and User/Mods/.</summary>
-    private const string ModId = "prawl.fft.livingweapons";
+    /// <summary>The mod namespace (the folder name under both Mods/ and User/Mods/). Internal,
+    /// not private: LW-51's SaveLocation reuses it to resolve the update-safe save dir.</summary>
+    internal const string ModId = "prawl.fft.livingweapons";
 
     /// <summary>
     /// The config the DLL should read. The Reloaded launcher saves user edits to

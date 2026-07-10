@@ -47,7 +47,11 @@ internal sealed class KillTally
     /// <summary>Load the tally at <paramref name="path"/>, falling back to its .bak; a missing
     /// or corrupt pair yields an empty tally (a fresh install), never a crash. A backup or fresh
     /// outcome logs a Warning (the facelift closed KillTally's old silent-catch consistency gap
-    /// against LegendStore.Load, which always reported its corrupt-load fallbacks).</summary>
+    /// against LegendStore.Load, which always reported its corrupt-load fallbacks). Schema
+    /// validation (LW-51 Tier-1, KillsSchema.TryParse) treats a structurally-invalid file
+    /// (not a JSON object) exactly like the old corrupt-file case (fall through to .bak, then
+    /// fresh), but sanitizes a well-formed object entry-by-entry instead of failing the whole
+    /// load on one bad row.</summary>
     public static KillTally Load(string path)
     {
         foreach (var p in new[] { path, path + ".bak" })
@@ -55,10 +59,9 @@ internal sealed class KillTally
             try
             {
                 if (!File.Exists(p)) continue;
-                var d = JsonConvert.DeserializeObject<Dictionary<string, int>>(File.ReadAllText(p));
-                if (d == null) continue;
-                var m = new Dictionary<int, int>(d.Count);
-                foreach (var kv in d) if (int.TryParse(kv.Key, out int id)) m[id] = kv.Value;
+                if (!KillsSchema.TryParse(File.ReadAllText(p), out var m, out int dropped)) continue;
+                if (dropped > 0)
+                    ModLogger.Warn(LogVerb.Save, $"{dropped} malformed kill-tally entries were dropped.");
                 bool fromBackup = p.EndsWith(".bak");
                 if (fromBackup)
                     ModLogger.Warn(LogVerb.Save, "The kill tally's primary file was missing or corrupt; it was restored from the backup.");

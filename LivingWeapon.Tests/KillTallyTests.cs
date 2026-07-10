@@ -103,4 +103,30 @@ public class KillTallyTests
         shared[5] = 99;                       // a subsystem credits a kill
         Assert.Equal(99, t.Kills[5]);          // the tally sees it (same instance, by design)
     }
+
+    // --- LW-51 Tier-1: KillTally.Load wired through KillsSchema.TryParse ---
+
+    [Fact]
+    public void Load_sanitizes_negative_and_garbage_entries_and_keeps_the_valid_ones()
+    {
+        var dir = TempDir();
+        var p = PathIn(dir);
+        File.WriteAllText(p, "{\"9\":3,\"-1\":5,\"junk\":7,\"10\":-2}");
+        var t = KillTally.Load(p);
+        Assert.Equal(3, t.Kills[9]);
+        Assert.Single(t.Kills);
+        Assert.Equal("primary", t.LoadedFrom);
+    }
+
+    [Fact]
+    public void Load_falls_back_to_the_bak_when_the_primary_is_a_non_object()
+    {
+        var dir = TempDir();
+        var p = PathIn(dir);
+        File.WriteAllText(p, "[1,2,3]");                 // structurally invalid (an array, not an object)
+        File.WriteAllText(p + ".bak", "{\"42\":7}");
+        var t = KillTally.Load(p);
+        Assert.Equal(7, t.Kills[42]);
+        Assert.Equal("backup", t.LoadedFrom);
+    }
 }
