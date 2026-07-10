@@ -158,6 +158,14 @@ LIVE RESULTS (owner-run sessions 2026-07-09):
   trigger). UNTESTED VARIANT: frog-cast on the reverted+revived unit inside the window before
   its own turn (the Frog rebuild is a proven model-rebuild event; a frog can act, which may
   dodge the soft-lock). TRAP: a reverted unit that gets a TURN soft-locks the battle.
+  Request-layer test (inflict, 3 owner tapes 2026-07-09): pending-field writes are CONSUMED on
+  the engine's schedule (5 to 17s, battle-phase-linked) but NEVER applied: poison id 24 on a
+  living unit, treasure id 15 on a living unit AND on a fresh corpse all flushed with no
+  effect (the corpse later popped NATURALLY, dead 0x20 -> 0x40: the crystal variant). The
+  field is engine scratch/output, not a free-standing request queue. FINAL PICTURE: every
+  EXTERNAL write lane is exhausted; the remaining levers are in-process cold-calls of the
+  apply engine 0x150BF66DC(slot, mode) or the dispatch 0x1401FB064(id+1, ...) on the right
+  thread (callout-banner precedent), or the event-script AddUnit/Draw layer.
 """
 import ctypes
 import ctypes.wintypes as wt
@@ -196,6 +204,25 @@ A_CONVERT = 0x46         # the conversion marker byte (0 unit, 1 treasure/crysta
 A_DEAD_MIRROR = 0x1D3    # mirror of the +0x45 status byte
 A_CONVERT_MIRROR = 0x1D4 # mirror of the +0x46 conversion marker
 A_COUNTER = -0x15        # crystal/heart counter at combat +0x07 (despawn_probe's byte)
+
+# STATUS SYSTEM DECODE (owner CE captures + disasm, 2026-07-09). The engine keeps 40 statuses
+# (ids 0..39) in 5-byte MSB-first bitfields, THREE layers per unit:
+#   innate/base  band +0x3B..+0x3F
+#   inflicted    band +0x1D3..+0x1D7 (the "mirrors": actually the persistent OR-source)
+#   composed     band +0x45..+0x49 (current = inflicted | innate, re-derived per frame by the
+#                compose loop at 0x150BD0990/0x150BF6936: dest[+0x0A] = src[+0x198] | src[0])
+# The apply engine (prologue 0x150BF66DC; per-status loop entry 0x150BF6767) consumes a
+# PENDING-ADD bitfield at combat +0x1DB (= image 0x141853E9E + slot*0x200 + 0x1D), runs the
+# conflict scan + timer-table copy, ORs the bit into the inflicted layer, and dispatches the
+# status event via call 0x1401FB064(statusId+1, mode, unit) (checker call 0x140278D68). The
+# treasure pop queued id 15 here (deathdiff transient band +0x1C0 = 0x01, self-cleared).
+# Known ids from the proven composed-layer bits: 2 Dead (+0x45/0x20), 3 Undead (+0x45/0x10),
+# 4 Charging (+0x45/0x08), 9 team-flip/invite-family (special-cased), 15 Treasure/Crystal
+# (+0x46/0x01), 18 Reraise (+0x47/0x20), 24 Poison (+0x48/0x80), 25 Regen, 26 Protect,
+# 27 Shell, 28 Haste, 34 Charm (+0x49/0x20, team-color special case), 38 Reflect, 39 Doom.
+A_PENDING_ADD = 0x1BF    # band-relative base of the 5-byte pending status-ADD bitfield
+A_INFLICTED = 0x1D3      # band-relative base of the 5-byte inflicted/persistent layer
+A_COMPOSED = 0x45        # band-relative base of the 5-byte composed/current layer
 CANDS = (("P1", A_PRESENT), ("P2", A_PRESENT_ALT), ("INB", A_INBATTLE),
          ("X18", A_X18_ECHO), ("LOAD", A_LOAD_ECHO))
 
@@ -502,6 +529,26 @@ def _find_all(buf, pat, base):
     return out
 
 
+# Any little-endian pointer into the combat array region (0x14185xxxx) carries this rare byte
+# tag at offsets 2..7, so one find() pass catches pointers to ANY interior slot offset; the
+# u64 range check then narrows to the target slot.
+_PTR_TAG = b"\x85\x41\x01\x00\x00\x00"
+
+
+def _interior_hits(buf, base, combat):
+    """Pure: (absolute address, interior offset) for every pointer in buf that lands anywhere
+    inside [combat, combat+0x200)."""
+    out = []
+    i = buf.find(_PTR_TAG)
+    while i != -1:
+        if i >= 2 and i + 6 <= len(buf):
+            v = struct.unpack_from("<Q", buf, i - 2)[0]
+            if combat <= v < combat + 0x200:
+                out.append((base + i - 2, v - combat))
+        i = buf.find(_PTR_TAG, i + 1)
+    return out
+
+
 def cmd_findrender(slot):
     h = _require_game()
     if not (0 <= slot < BAND_SLOTS):
@@ -529,25 +576,28 @@ def cmd_findrender(slot):
             for name, pat in pats.items():
                 for a in _find_all(buf, pat, carry_base):
                     hits.setdefault(a, name)
+            for a, off in _interior_hits(buf, carry_base, e - 0x1C):
+                hits.setdefault(a, f"interior+0x{off:03X}")
             carry = buf[-_SWEEP_OVERLAP:]
             carry_base = pos - len(carry)
         scanned += size
     print(f"scanned {scanned // (1024 * 1024)} MB ({skipped} oversized regions skipped), "
           f"{len(hits)} pointer hit(s).\n")
     band_lo, band_hi = _band_entry_addr(0) - 0x1C, _band_entry_addr(BAND_SLOTS - 1) + 0x1E4
-    shown = 0
-    for a in sorted(hits):
+    per_bucket = Counter()   # context dumps are rationed PER 16MB REGION, so one huge
+    for a in sorted(hits):   # repetitive arena cannot starve the lonely hits elsewhere
         kind = "static" if 0x140000000 <= a < 0x150000000 else "heap"
         inband = "  (inside the band array itself)" if band_lo <= a < band_hi else ""
         note = "  (= Offsets.ActorPtr)" if a == 0x14186AF68 else ""
         print(f"0x{a:012X}  [{hits[a]}] {kind}{inband}{note}")
-        if shown < 48:
+        bucket = a >> 24
+        per_bucket[bucket] += 1
+        if per_bucket[bucket] <= 6:
             ctx = rpm(a - 0x20, 0x60)
             if ctx is not None:
                 for row in range(0, 0x60, 0x10):
                     print(f"    {a - 0x20 + row:012X}: "
                           + " ".join("%02X" % b for b in ctx[row:row + 0x10]))
-        shown += 1
     if not hits:
         print("no pointers found: an IC render struct either keys the unit differently"
               "\n(index, not pointer) or lives behind an indirection this sweep cannot see.")
@@ -555,6 +605,22 @@ def cmd_findrender(slot):
         print("\nnext: run this on a LIVE unit as a control, then on the chest slot; a hit"
               "\nwhose surrounding struct looks per-unit (and differs unit-to-unit) is the"
               "\nrender-struct candidate; watch it during that unit's animation to confirm.")
+
+
+def cmd_peek(addrs, length=0x100):
+    """Hexdump arbitrary absolute addresses (read-only; for chasing findrender hits)."""
+    _require_game()
+    for addr in addrs:
+        print(f"\n=== 0x{addr:012X} ===")
+        start = addr - 0x40
+        buf = rpm(start, length)
+        if buf is None:
+            print("unreadable")
+            continue
+        for row in range(0, len(buf), 0x10):
+            mark = " <-- hit" if start + row <= addr < start + row + 0x10 else ""
+            print(f"{start + row:012X}: "
+                  + " ".join("%02X" % b for b in buf[row:row + 0x10]) + mark)
 
 
 def cmd_addr(slot):
@@ -574,6 +640,81 @@ def cmd_addr(slot):
         ("marker mirror (band +0x1D4)", e + A_CONVERT_MIRROR),
     ):
         print(f"  {label:<34} 0x{addr:012X}")
+
+
+def _status_bit(sid):
+    """Pure: (byte offset within a 5-byte status bitfield, MSB-first mask) for status id 0..39."""
+    return sid >> 3, 0x80 >> (sid & 7)
+
+
+def cmd_inflict(slot, sid, seconds=60.0):
+    """Queue a status id in the unit's PENDING-ADD bitfield so the ENGINE's own apply pipeline
+    inflicts it (conflict checks, timers, event dispatch, and, for form statuses like treasure,
+    the model swap). This is the request-layer injection: the despawn principle at the status
+    system. Read the STATUS SYSTEM DECODE comment for the id table."""
+    _require_game()
+    if not (0 <= slot < BAND_SLOTS):
+        print(f"slot must be 0..{BAND_SLOTS - 1}")
+        sys.exit(2)
+    if not (0 <= sid < 40):
+        print("status id must be 0..39")
+        sys.exit(2)
+    u = _state(slot)
+    if u["cls"] != "ACTIVE":
+        print(f"REFUSED: slot {slot} classifies {u['cls']}; inflict targets a real unit.")
+        sys.exit(2)
+    e = u["entry"]
+    off, mask = _status_bit(sid)
+    pend, infl, comp = A_PENDING_ADD + off, A_INFLICTED + off, A_COMPOSED + off
+
+    print(f"=== INFLICT status {sid} on s{slot} (n={u['n']:+d}) {u['side']} lvl={u['lvl']} "
+          f"hp={u['hp']}/{u['mhp']} pos=({u['gx']},{u['gy']}) ===")
+    print(f"  pending byte band+0x{pend:03X} mask 0x{mask:02X}; watching inflicted "
+          f"band+0x{infl:03X} and composed band+0x{comp:03X}")
+    print("THROWAWAY SAVE ONLY: the engine runs its own apply path; outcomes may include a"
+          "\nmodel swap, a rejected (conflict-scanned) request, or unknown side effects.")
+    if input("queue it? [y/n] ").strip().lower() != "y":
+        print("aborted, nothing written")
+        return
+
+    old = ru8(e + pend)
+    if old is None:
+        print("pending byte unreadable; aborting")
+        sys.exit(1)
+    ok = wu8(e + pend, old | mask)
+    print(f"  pending band+0x{pend:03X}: {_hx(old)} -> {_hx(old | mask)} "
+          f"write={'OK' if ok else 'FAIL'} readback={_hx(ru8(e + pend))}")
+
+    print(f"\nwatching for {seconds:.0f}s: the engine consuming the pending bit and the"
+          "\ninflicted/composed layers gaining it. EYES ON THE UNIT for any model/overlay"
+          "\nchange. Ctrl+C to stop.\n")
+    start_t = time.monotonic()
+    end_t = start_t + seconds
+    last_log = 0.0
+    consumed = applied = False
+    try:
+        while time.monotonic() < end_t:
+            time.sleep(0.1)
+            now = time.monotonic()
+            p, i2, c = ru8(e + pend), ru8(e + infl), ru8(e + comp)
+            if not consumed and p is not None and not (p & mask):
+                consumed = True
+                print(f">>> [+{now - start_t:5.1f}s] pending bit CONSUMED by the engine")
+            if not applied and i2 is not None and (i2 & mask):
+                applied = True
+                print(f">>> [+{now - start_t:5.1f}s] inflicted layer GAINED the bit "
+                      f"(engine accepted the status)")
+            if now - last_log >= 1.0:
+                last_log = now
+                print(f"[+{now - start_t:5.1f}s] pend={_hx(p)} inflicted={_hx(i2)} "
+                      f"composed={_hx(c)} dead={_hx(ru8(e + A_DEAD_STATUS))} "
+                      f"hp={ru16(e + A_HP)}/{ru16(e + A_MAXHP)}")
+    except KeyboardInterrupt:
+        print("\nstopped by operator.")
+    print("\n=== inflict verdict ===")
+    print(f"  pending consumed: {'YES' if consumed else 'no (engine never picked it up)'}")
+    print(f"  status applied:   {'YES' if applied else 'no (conflict-scan reject, or not seen)'}")
+    print("  visible effect:   OPERATOR CALL (model swap / overlay / tick damage?)")
 
 
 def cmd_revert(slot, seconds=90.0):
@@ -860,6 +1001,16 @@ def _selftest():
           sorted(p[0] for p in _fill_plan(None, None, None, None, None)),
           ["brave", "faith", "hp", "level", "maxhp"])
 
+    # Status-bitfield math (cross-checked against every proven composed-layer bit).
+    check("status bit: dead id 2 = +0x45 byte0 mask 0x20",
+          (_status_bit(2), A_COMPOSED + 0), ((0, 0x20), 0x45))
+    check("status bit: treasure id 15 = byte1 mask 0x01", _status_bit(15), (1, 0x01))
+    check("status bit: poison id 24 = byte3 mask 0x80", _status_bit(24), (3, 0x80))
+    check("status bit: charm id 34 = byte4 mask 0x20", _status_bit(34), (4, 0x20))
+    check("status bit: doom id 39 = byte4 mask 0x01", _status_bit(39), (4, 0x01))
+    check("pending pop transient: id 15 lands at band +0x1C0 as 0x01",
+          (A_PENDING_ADD + _status_bit(15)[0], _status_bit(15)[1]), (0x1C0, 0x01))
+
     # Conversion signature constants and predicate (owner deathdiff tape 2026-07-09).
     check("convert marker = combat 0x62 - band 0x1C", A_CONVERT, 0x62 - 0x1C)
     check("mirror pair sits +0x18E above the primaries",
@@ -871,12 +1022,19 @@ def _selftest():
     check("converted: plain corpse refused (dead bit set)", _is_converted(0x20, 1, 0), False)
     check("converted: None dead refused", _is_converted(None, 1, 0), False)
 
-    # findrender's pure scan helper.
+    # findrender's pure scan helpers.
     check("find_all: none", _find_all(b"\x00\x01\x02", b"\xFF", 0), [])
     check("find_all: maps to absolute base",
           _find_all(b"\x00AB\x00AB", b"AB", 100), [101, 104])
     check("find_all: overlapping occurrences",
           _find_all(b"AAA", b"AA", 0), [0, 1])
+    combat = 0x141853EE0
+    inbuf = b"XXXX" + struct.pack("<Q", combat + 0x40) + b"YY"
+    check("interior: catches an inside-slot pointer with its offset",
+          _interior_hits(inbuf, 1000, combat), [(1004, 0x40)])
+    outbuf = b"XXXX" + struct.pack("<Q", combat + 0x200) + b"YY"
+    check("interior: next slot's base is out of range",
+          _interior_hits(outbuf, 1000, combat), [])
 
     # deathdiff's pure diff.
     check("diff: identical is empty", _diff_bytes(b"\x00\x01", b"\x00\x01"), [])
@@ -911,6 +1069,16 @@ def main():
             sys.exit(2)
         cmd_watch(seconds)
         return
+    if args[0] == "peek":
+        try:
+            targets = [int(a, 16) for a in args[1:]]
+        except ValueError:
+            targets = []
+        if not targets:
+            print("usage: peek <hex-addr> [more hex-addrs...]")
+            sys.exit(2)
+        cmd_peek(targets)
+        return
     if args[0] == "findrender":
         if len(args) < 2 or not args[1].lstrip("-").isdigit():
             print("usage: findrender <slot>")
@@ -922,6 +1090,20 @@ def main():
             print("usage: addr <slot>")
             sys.exit(2)
         cmd_addr(int(args[1]))
+        return
+    if args[0] == "inflict":
+        nums = [x for x in args[1:3] if x.lstrip("-").isdigit()]
+        if len(nums) < 2:
+            print("usage: inflict <slot> <status-id 0..39> [seconds=60]")
+            sys.exit(2)
+        seconds = 60.0
+        if len(args) > 3:
+            try:
+                seconds = float(args[3])
+            except ValueError:
+                print("usage: inflict <slot> <status-id 0..39> [seconds=60]")
+                sys.exit(2)
+        cmd_inflict(int(nums[0]), int(nums[1]), seconds)
         return
     if args[0] == "revert":
         if len(args) < 2 or not args[1].lstrip("-").isdigit():
