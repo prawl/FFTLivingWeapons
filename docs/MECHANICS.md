@@ -40,11 +40,23 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
   tile bytes = the real tile, registry key = the slot, gate = model), unbuilt (Canary 8). Also:
   the double's crystal REMOVAL game-overed battle 435 twice (cause unknown, identity-independent);
   DeathWatch pins the corpse counter as mitigation. Dev-spike only (worktree BodyDoubleSpike).
-- DESPAWN ANY UNIT, SPRITE AND ALL (the reverse door) -- MECHANISM DECODED + BUILT, first live
-  pull pending: ONE guarded byte (node +0x12C = mode 2) and the engine's own sweeper
-  (0x14026E20C) removes unit + render node + list entry on its next unpaused frame; the same
-  primitive vanilla crystallization uses. Shipped as the dev spike's Ctrl+F5 (hover-fingerprint
-  or ghost-orphan target resolve, Ramza/acting-unit refused, timeout auto-revert). ONE-WAY.
+- DESPAWN ANY UNIT, SPRITE AND ALL (the reverse door) -- PROVEN LIVE: ONE guarded byte
+  (node +0x12C = mode 2) and the engine's own sweeper (0x14026E20C) removed a live enemy
+  completely on its next unpaused frame, every predicted side effect byte-perfect (combat
+  +0x01=FF, present +0x1B5=0x80, node done-marked 0x30, pool slot freed, list unlinked); the
+  same primitive vanilla crystallization uses. Dev spike Ctrl+F5 wraps it (hover-fingerprint or
+  ghost-orphan resolve, current-actor refused, timeout auto-revert); the per-id byte at
+  0x140C6CFE0+id*9 is the "engine engaged" (hover/menu) marker, NOT a busy gate.
+  Open: does the victory check stay sane after a removal (owner test pending).
+- RESURRECT A REMOVED UNIT (the re-add; the arc's grail via the reverse door) -- PROVEN LIVE,
+  DATA-ONLY, same night: the despawned Knight was brought back mid-battle by (1) re-enrolling
+  him in the AI registry (clone a living same-team object, re-key +0x2C to his slot, append at
+  table[count], bump counts last), (2) reviving his intact node (element in-use dword = 1,
+  clear the +0x12C done-mark, re-splice at the list head), (3) present = 1 then gate LAST, with
+  a sky-descent flourish (world Z stepped -600 -> ground). The removal drops AI enrollment, so
+  step 1 MUST precede visibility or the LW-58 freeze fires. Full byte recipe in the
+  unit-despawn-resurrect memory. Together with the despawn this is MID-BATTLE REMOVE + RESTORE
+  = the summon/reinforcement mechanic family (park a reserve, materialize on command).
 - HIDE / REVEAL a unit's LOGIC live (the ghost-statue toggle) -- PROVEN LIVE repeatedly: gate
   combat +0x01 = 0xFF removes the unit from every logic walk (untargetable, unhoverable, no
   turns, AI ignores it) while the render weld leaves its sprite standing; writing the model id

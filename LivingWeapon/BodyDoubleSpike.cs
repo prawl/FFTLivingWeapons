@@ -275,8 +275,9 @@ internal sealed class BodyDoubleSpike
     private const int  NodeCombatOff  = 0x148;        // node -> combat back-pointer (builder-written)
     private const int  NodeModeOff    = 0x12C;        // flag word; bits 0x30 = removal mode/done
     private const byte NodeModeRemove = 0x20;         // mode 2 = "remove me" (sweeper consumes)
-    private const long NodeGateTable  = 0x140C6CFE0;  // per-id gate bytes, stride 9; nonzero = busy
-    private const long SpecialNodeId  = 0x140CF873C;  // dword: a reserved node id, never remove it
+    // (The per-id byte table 0x140C6CFE0 stride 9 is the "engine engaged with this unit" marker,
+    // hover/menu-set; it is NOT a busy gate and is deliberately not checked: see FireDespawn.)
+    private const long SpecialNodeId  = 0x140CF873C;  // dword: the CURRENT ACTOR's node id; never remove it
     private const int  NodeWalkMax    = 64;           // list-walk bound (spawn_probe precedent)
     // Sweeper mode-dispatch landmark at 0x14026E28B (verifies the +0x12C semantics still hold
     // before any write; raw exe bytes read live 2026-07-10).
@@ -789,14 +790,16 @@ internal sealed class BodyDoubleSpike
         byte id = _mem.U8(node + NodeIdOff);
         if (id == (byte)_mem.U32(SpecialNodeId))
         {
-            ModLogger.Event(LogVerb.Trace, $"body-double: CTRL+F5 refused: node id {id} is the engine's reserved id ([0x140CF873C]); never remove it.");
+            // The "special id" global is the CURRENT ACTOR's node id (live-decoded 2026-07-10):
+            // never remove the unit whose turn is running.
+            ModLogger.Event(LogVerb.Trace, $"body-double: CTRL+F5 refused: node id {id} is the current actor ([0x140CF873C]); never remove the acting unit.");
             return;
         }
-        if (_mem.U8(NodeGateTable + id * 9L) != 0)
-        {
-            ModLogger.Event(LogVerb.Trace, $"body-double: CTRL+F5 refused: node id {id}'s gate byte reads busy; the engine is doing something with this unit.");
-            return;
-        }
+        // NO gate-byte refusal: 0x140C6CFE0+id*9 turned out to be the "engine engaged with this
+        // unit" marker (menu open / hover), which the AIMING flow itself sets on the target: the
+        // original refusal self-blocked every hover-resolved despawn (owner hit it live
+        // 2026-07-10). The first live pull (shell-fired with the hovered unit's byte reading 01)
+        // completed byte-perfectly, so the marker is harmless for the mode-2 mark.
         byte mode = _mem.U8(node + NodeModeOff);
         if ((mode & 0x30) != 0)
         {

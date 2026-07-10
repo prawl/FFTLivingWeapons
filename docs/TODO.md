@@ -261,6 +261,18 @@ is the in-flight subset, not a mirror of that checklist.
   both units acting normally after. Open before any shipped mechanic: a tile-occupancy check
   (co-tile = target shadowing + movement lock) and a LIVE_LEDGER row (owner flip).
 
+- [LW-66] 2026-07-10: Mid-battle unit REMOVE + RESTORE are both proven live and DATA-ONLY (the
+  LW-58 session finale): despawn = one mode-2 byte on the render node (engine sweeper tears down
+  unit + sprite, byte-perfect); resurrect = AI-registry re-enroll (clone + re-key a living
+  object) + node revival (in-use flag, done-mark clear, list re-splice) + present/gate reopen,
+  with a sky-descent flourish; the removal drops AI enrollment, so re-enroll MUST precede
+  visibility (else the LW-58 freeze). Full byte recipe in the unit-despawn-resurrect memory;
+  MECHANICS.md breakthrough block has the summary. This unlocks the summon/reinforcement
+  mechanic family (park-and-summon variant needs no despawn at all: gate FF + render Z below
+  floor = invisible reserve). Open: victory-check sanity after a removal; whether a legitimate
+  registry rebuild evicts the hand-cloned object; Ctrl+F5 despawn spike fix (hover-marker
+  refusal removed) awaits its next deploy.
+
 ## Walled (blocked by engine / Denuvo / modloader)
 
 - Fix the sword swing-art (art welded to weapon id; the same render node also drives damage).
