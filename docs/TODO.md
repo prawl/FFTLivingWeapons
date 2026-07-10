@@ -10,20 +10,6 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-4] Samurai Sword signature: Kiku-ichimonji Mushin** (opened 2026-07-04) [QUEUED]
-  - Done means: Kiku-ichimonji id45 ships the one-shot Mushin stillness charge: a full WAIT turn
-    with no move and no act arms one PA-boosted hit, spent on the wielder's next own action. The
-    wait is detected off the engine's own per-unit turn bookkeeping, live-mapped 2026-07-09
-    (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log): band +0x19C (the unit's
-    move/act/wait menu open flag) falling edge decides, reading band +0x19D (moved) and +0x19E
-    (acted) at that tick, both reset by the engine at the next turn's open. No KillTracker, turn
-    tracking, or other-unit reads involved. Murasame id41's signature stays deferred out of 2.3.0
-    (LW-47). Release blocker (RELEASE_SCOPE.md section 1).
-  - Verify: xUnit green (Mushin and MushinPolicy suites), items.json block,
-    gen_living_weapon_meta.py (empty diff expected), deploy and VERIFY LIVE, commit and
-    LIVE_LEDGER flip. Clean DEV redeploy before ANY katana live test (an orphaned Zanshin DLL may
-    still be deployed).
-
 - **[LW-51] Kill-tally scoping and mod-update survival** (opened 2026-07-07) [QUEUED]
   - Done means: DECIDE global-forever vs per-playthrough (owner call; recommend per-playthrough for
     the growth fantasy). If per-playthrough, key kills.json / legends.json / gunslinger.json to a save

@@ -8,6 +8,17 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-4] SHIPPED b8f6741 2026-07-09: Kiku-ichimonji id45 ships Mushin, the one-shot stillness
+  charge: a full WAIT turn (no move, no act) arms one PA-boosted hit (PA held at
+  round(natural x 2.05) at tier 3, about 1.6x a normal +3 swing), spent on the wielder's next own
+  action. The trigger reads the engine's own per-unit turn bookkeeping, mapped from the FFHacktics
+  PSX struct and probe-confirmed live the same day (band +0x19C menu-open flag falling edge,
+  +0x19D moved, +0x19E acted, both engine-reset at next turn open; tools/probes/
+  mushin_wait_probe.py). Four earlier same-day designs (CT state machine, TurnTracker round clock,
+  enemy-CT median, action-record-confirmed latch) each failed live on attribution noise and are
+  retired; their forensics live in the Mushin.cs provenance doc and the memory ledger. Owner
+  live-verified (BANK on a still wait, SPENT on the strike); card text rebaked into item.en.nxd
+  (052bb12); suite 2277 green.
 - [LW-52] SHIPPED 50ae6b3 2026-07-07: removed the player-facing config toggles. The Reloaded
   launcher now exposes only Treasure Master Always On; BannerToasts, DevSeedKills, and VerboseLog
   were deleted from Config.cs so players cannot switch off designed behavior. Their runtime keeps

@@ -23,7 +23,7 @@ Two owner decisions set the stopping line:
 
 ### 1. Samurai Swords (BLOCKER): finish = 3 signatures
 Tuning is DONE and analyze.py-green; the work is the one open signature slot (Kiku's Mushin).
-- [ ] **Kiku-ichimonji id45** signature = **Mushin**: a full WAIT turn (no move, no act) arms one
+- [x] **Kiku-ichimonji id45** signature = **Mushin**: a full WAIT turn (no move, no act) arms one
       PA-boosted hit, spent on the wielder's next own action. Buff-hold is proven (StatHold, Iai's
       sibling pattern); the OPEN piece (detecting a full wait live) is CLOSED by the 2026-07-09
       mapping (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log): the engine's own
@@ -31,12 +31,12 @@ Tuning is DONE and analyze.py-green; the work is the one open signature slot (Ki
       PSX-struct-derived) give a direct read of the wait, no aggregation over other units needed.
       Earlier same-day designs built on other units' CT cycling and KillTracker's action-latch
       machinery are retired in favor of this literal read.
-- [ ] **Murasame id41** signature is DEFERRED out of 2.3.0 (backlog LW-47); its capstone stays
+- [x] **Murasame id41** signature is DEFERRED out of 2.3.0 (backlog LW-47); its capstone stays
       pure-growth for now.
-- [ ] The signature: items.json block -> gen_living_weapon_meta.py -> xUnit tests -> deploy ->
+- [x] The signature: items.json block -> gen_living_weapon_meta.py -> xUnit tests -> deploy ->
       **VERIFY LIVE** -> commit -> LIVE_LEDGER flip. Live-verify is non-negotiable (Zanshin
       graveyard: built green, LIVE-FAILED on the damage-intercept wall, reverted).
-- [ ] Clean DEV redeploy before ANY katana live test (orphaned Zanshin DLL may still be deployed).
+- [x] Clean DEV redeploy before ANY katana live test (orphaned Zanshin DLL may still be deployed).
 
 ### 2. Galewind / Puppeteer expiry (BLOCKER) -- ship with fallback
 Committed behavior (verified 2026-07-04, Puppeteer.Hold.cs): puppet releases on the GALEWIND
