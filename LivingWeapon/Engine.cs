@@ -419,7 +419,7 @@ internal sealed class Engine
         _headerSpike.Tick();
         _attackCardSpike.Tick();   // LW-31: the Abilities menu lives here, the load-bearing tick site
         _turnOwnerSpike.Tick();   // LW-31 stage 2: passive correlation recorder, in-battle only (menus out of battle don't matter here)
-        _statusSpike.Tick();   // LW-58: cold-call the status apply engine on F2/F4 (in-battle only; targets live band units)
+        _statusSpike.Tick(inLive);   // LW-58: cold-call the status apply engine on F2/F4 (inLive-gated + paused; targets live band units)
 #endif
         if (changed)
         {
