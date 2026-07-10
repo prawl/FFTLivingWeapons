@@ -8,6 +8,19 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-53] SHIPPED c906d60 2026-07-10: a fingerprint-guard stand-down now leaves a durable
+  black-box archive instead of flushing an empty ring (the 2026-07-07 drill observation: every
+  tapped subsystem is gated off pre-arm, so the FlushOnce error flush drained nothing).
+  LaunchGuard records the guard lifecycle into the flight ring through recorder/requestFlush tap
+  delegates: the armed edge records one guard entry (it rides the next battle flush), and
+  StandDown records the failing landmark diag then requests a dedicated standdown flush as its
+  last step. The dedicated trigger bypasses the error FlushOnce latch, which an earlier unrelated
+  error can burn while the ring is still empty (battle-edge flushes never fire pre-arm, so the
+  guard record would strand forever), and it names the archive flight_*_standdown.jsonl. No
+  game-memory write path is touched; writes stay disarmed through a stand-down. Live-verified
+  2026-07-10: the forced mismatch produced the loud line, the OS notice, and a one-record
+  standdown archive naming pe-build-key; a clean relaunch armed normally and the battle-start
+  flush carried the armed record. Suite 2284 green.
 - [LW-4] SHIPPED b8f6741 2026-07-09: Kiku-ichimonji id45 ships Mushin, the one-shot stillness
   charge: a full WAIT turn (no move, no act) arms one PA-boosted hit (PA held at
   round(natural x 2.05) at tier 3, about 1.6x a normal +3 swing), spent on the wielder's next own
