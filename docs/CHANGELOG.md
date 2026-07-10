@@ -8,6 +8,21 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-55] SHIPPED e774405 2026-07-10: the in-battle Attack card no longer shows another weapon's
+  kill count. Root cause: the cursor resolve named a roster row and read its formation main hand
+  with no cross-check against battle truth, so a wrong or stale row (scripted opener loadouts,
+  the hover-following turn-queue struct) keyed the shared tally with a different weapon id; the
+  observed "Kills: 100" was that other weapon's real count in the then-global kills.json. The
+  resolve now returns raw facts (CursorAnswer) and AttackCard applies CursorGate before
+  composing: the matched band entry's PSX turn flag must read 1, then the roster main hand must
+  agree with the band entry's own equipped weapon, sentinel-normalized; any refusal composes
+  vanilla and writes one "card" flight record per key per battle (a weapon mismatch also warns
+  once; a not-turn-owner refusal stays at Debug because cursor hover is routine). Both gates are
+  narrowing-only: they can turn a composed row into vanilla, never invent a dossier. The PSX
+  turn-flag trio moved to Offsets with provenance (3a8bf6d). Owner live-verified 2026-07-10:
+  attack and equip cards agree on a manual turn, hover targeting never swaps the dossier, and
+  the new-game opener shows the true weapon; the auto-battle premise check stays open (worst
+  case is a vanilla card during auto-turns). Suite 2311 green.
 - [LW-53] SHIPPED c906d60 2026-07-10: a fingerprint-guard stand-down now leaves a durable
   black-box archive instead of flushing an empty ring (the 2026-07-07 drill observation: every
   tapped subsystem is gated off pre-arm, so the FlushOnce error flush drained nothing).
