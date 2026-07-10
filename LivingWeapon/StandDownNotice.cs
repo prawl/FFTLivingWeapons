@@ -12,14 +12,16 @@ namespace LivingWeapon;
 ///
 /// NEVER-BLOCK, NEVER-THROW CONTRACT: <see cref="Show"/> fires from LaunchGuard's stand-down edge,
 /// which runs on the Engine tick loop thread. That same loop thread drains the flight recorder's
-/// pending flush on its NEXT tick (FlightRecorder.DrainPending, called once per Engine tick), and
-/// the stand-down is also the flight recorder's FlushOnce archive trigger (the first LogError of a
-/// launch). FlightRecorder.Flush is a documented never-throw doctrine (FlightRecorder.cs: "Never
-/// throws and never calls ModLogger... every failure here is swallowed") precisely so a flush
-/// failure cannot stall the engine loop. A message box that BLOCKED that same thread (MessageBoxW
-/// is modal and does not return until dismissed) or THREW out of the stand-down path would stall
-/// that evidence write just as badly, so Show hands the dialog to its own background thread and
-/// swallows every exception, both around starting that thread and inside it.
+/// pending flush on its NEXT tick (FlightRecorder.DrainPending, called once per Engine tick); the
+/// stand-down requests its own dedicated "standdown" flush as its last step (LW-53,
+/// LaunchGuard.StandDown), rather than riding the error-tier FlushOnce trigger, so the archive
+/// lands even when an earlier unrelated error already burnt that latch. FlightRecorder.Flush is a
+/// documented never-throw doctrine (FlightRecorder.cs: "Never throws and never calls ModLogger...
+/// every failure here is swallowed") precisely so a flush failure cannot stall the engine loop. A
+/// message box that BLOCKED that same thread (MessageBoxW is modal and does not return until
+/// dismissed) or THREW out of the stand-down path would stall that evidence write just as badly,
+/// so Show hands the dialog to its own background thread and swallows every exception, both
+/// around starting that thread and inside it.
 /// </summary>
 internal static class StandDownNotice
 {

@@ -18,7 +18,8 @@ namespace LivingWeapon;
 ///
 /// Once armed, this instance never re-verifies (verify-once is load-bearing: Barrage legitimately
 /// edits the same JobCommand region after arming, e.g. when it injects Barrage into a job's
-/// command list).
+/// command list). LW-53: the armed edge and the stand-down verdict record into the flight ring,
+/// and stand-down requests its own "standdown" flush, so a stand-down leaves a non-empty archive.
 /// </summary>
 internal sealed class LaunchGuard
 {
@@ -62,15 +63,24 @@ internal sealed class LaunchGuard
     private readonly object _hookLock = new();
     private Action? _pendingHookArm;
     private readonly Action<string, string>? _notice;
+    // LW-53: flight recorder taps (mirrors TurnTracker/KillTracker/Reliquary/Puppeteer); null default keeps tests green.
+    private readonly Action<string, string>? _recorder;
+    private readonly Action<string>? _requestFlush;
 
     /// <param name="notice">The OS-level stand-down notice; null (the default) means NO OS notice
     /// fires, which is what every unit test gets so a real message box never pops during
     /// `dotnet test`. Production wires the real notice explicitly from Engine's construction site
     /// rather than defaulting to it here.</param>
-    public LaunchGuard(IGameMemory mem, bool forceMismatch, Action<string, string>? notice = null)
+    /// <param name="recorder">LW-53: the flight ring tap (production: Flight.Record).</param>
+    /// <param name="requestFlush">LW-53: the flight flush request (production: Flight.RequestFlush);
+    /// only stand-down calls this, with a dedicated "standdown" trigger.</param>
+    public LaunchGuard(IGameMemory mem, bool forceMismatch, Action<string, string>? notice = null,
+        Action<string, string>? recorder = null, Action<string>? requestFlush = null)
     {
         _mem = mem;
         _notice = notice;
+        _recorder = recorder;
+        _requestFlush = requestFlush;
         GuardTryRead tryRead = (long a, int n, out byte[] b) => _mem.TryReadBytes(a, n, out b);
 
         // Always-compiled dev knob (review blocker 2): perturbs the EXPECTED TimeDateStamp so a
@@ -114,6 +124,8 @@ internal sealed class LaunchGuard
     private void ArmedEdge()
     {
         Mem.WritesEnabled = true;
+        // LW-53: no flush request here; the record rides to the next battle-edge flush.
+        _recorder?.Invoke("guard", "armed (all landmarks match; writes enabled)");
         ModLogger.Event(LogVerb.Startup,
             "The game build matches all memory landmarks; Living Weapons is armed (writes were held until now).");
         lock (_hookLock)
@@ -127,7 +139,9 @@ internal sealed class LaunchGuard
     private void StandDown(string diag)
     {
         // Mem.WritesEnabled stays false: the absence of an assignment here IS the point (the
-        // default state Mod.StartEngine set before construction).
+        // default state Mod.StartEngine set before construction). LW-53: record first, so a
+        // later flush archives WHY the mod stood down.
+        _recorder?.Invoke("guard", $"stand-down ({diag})");
         ModLogger.Error(LogVerb.Startup,
             $"The game build does not match this mod's memory landmarks ({diag}); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch, or another installed mod has modified the job command tables.");
         // One-shot alongside the log line above: FingerprintGuard.Step only reaches StandDown once
@@ -144,6 +158,11 @@ internal sealed class LaunchGuard
             + "You can get the logs two ways: copy all the text from the black command prompt "
             + "window that appears when you launch the game, or click the Open Folder button on "
             + "this mod's page in Reloaded-II and open the file named livingweapon.log.");
+        // LW-53: requested LAST and named "standdown", not "error": an earlier unrelated error may
+        // already have burnt the "error" FlushOnce latch, and battle edges never fire pre-arm, so
+        // riding "error" could strand this record; a distinct trigger avoids that (last writer
+        // wins on the pending trigger name, FlightRecorder.cs).
+        _requestFlush?.Invoke("standdown");
     }
 
     private LandmarkVerdict ProbeJobCommandTable()

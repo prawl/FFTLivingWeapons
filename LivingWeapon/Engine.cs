@@ -62,7 +62,6 @@ internal sealed class Engine
     private readonly HeaderSpike _headerSpike;   // F8 LW-27 header-repaint research instrument, dev-only
     private readonly AttackCardSpike _attackCardSpike;   // F6 LW-31 Attack-menu census instrument, dev-only
     private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
-    private readonly StatusSpike _statusSpike;   // LW-58: cold-call the status apply engine (F2 canary / F4 treasure), dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -119,8 +118,11 @@ internal sealed class Engine
         var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
         _live = live;
         // LW-50: born disarmed (Mod.StartEngine already set Mem.WritesEnabled = false before this
-        // ctor ran); Tick() below holds every subsystem off until the landmarks verify.
-        _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: StandDownNotice.Show);
+        // ctor ran); Tick() below holds every subsystem off until the landmarks verify. LW-53:
+        // recorder/requestFlush wire the guard's own arm/stand-down lifecycle into the flight
+        // ring, so a stand-down leaves a durable archive.
+        _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: StandDownNotice.Show,
+            recorder: Flight.Record, requestFlush: Flight.RequestFlush);
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
         // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the deed-recording seam KillTracker's
@@ -214,7 +216,6 @@ internal sealed class Engine
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).
         _turnOwnerSpike = new TurnOwnerSpike(live, _tracker.Register);
-        _statusSpike = new StatusSpike(live);   // LW-58 cold-call research instrument
 #endif
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
@@ -419,7 +420,6 @@ internal sealed class Engine
         _headerSpike.Tick();
         _attackCardSpike.Tick();   // LW-31: the Abilities menu lives here, the load-bearing tick site
         _turnOwnerSpike.Tick();   // LW-31 stage 2: passive correlation recorder, in-battle only (menus out of battle don't matter here)
-        _statusSpike.Tick();   // LW-58: cold-call the status apply engine on F2/F4 (in-battle only; targets live band units)
 #endif
         if (changed)
         {

@@ -257,6 +257,83 @@ public class LaunchGuardTests
         Assert.Empty(calls);
     }
 
+    // --- LW-53: the guard lifecycle records into the flight ring and requests its own dedicated
+    // "standdown" flush, so a stand-down leaves a durable archive, not just the log line. ---
+
+    [Fact]
+    public void StandDown_records_guard_flight_entry_with_landmark_diag()
+    {
+        var mem = HealthyMemory(nameId: 5);   // mismatch: ramza-roster-row only
+        var records = new List<(string type, string payload)>();
+        var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+        for (int i = 0; i < 40; i++) guard.Step();
+        Assert.Equal(GuardState.StoodDown, guard.State);
+
+        Assert.Single(records);
+        Assert.Equal("guard", records[0].type);
+        Assert.Contains("stand-down", records[0].payload);
+        Assert.Contains("ramza-roster-row", records[0].payload);
+
+        for (int i = 0; i < 20; i++) guard.Step();   // stand-down is terminal: no repeat record
+
+        Assert.Single(records);
+    }
+
+    [Fact]
+    public void Armed_edge_records_guard_flight_entry()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            var mem = HealthyMemory();
+            var records = new List<(string type, string payload)>();
+            var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+            guard.Step();
+
+            Assert.Equal(GuardState.Armed, guard.State);
+            Assert.Single(records);
+            Assert.Equal("guard", records[0].type);
+            Assert.Contains("armed", records[0].payload);
+
+            for (int i = 0; i < 20; i++) guard.Step();   // armed is terminal: no repeat record
+
+            Assert.Single(records);
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    [Fact]
+    public void StandDown_requests_a_standdown_flush_exactly_once()
+    {
+        var mem = HealthyMemory(nameId: 5);   // mismatch
+        var triggers = new List<string>();
+        var guard = new LaunchGuard(mem, forceMismatch: false, requestFlush: t => triggers.Add(t));
+
+        for (int i = 0; i < 40; i++) guard.Step();
+        Assert.Equal(GuardState.StoodDown, guard.State);
+
+        for (int i = 0; i < 20; i++) guard.Step();   // stand-down is terminal: no repeat request
+
+        Assert.Single(triggers);
+        Assert.Equal("standdown", triggers[0]);
+    }
+
+    [Fact]
+    public void Armed_edge_never_requests_a_flush()
+    {
+        var mem = HealthyMemory();
+        var triggers = new List<string>();
+        var guard = new LaunchGuard(mem, forceMismatch: false, requestFlush: t => triggers.Add(t));
+
+        guard.Step();
+
+        Assert.Equal(GuardState.Armed, guard.State);
+        Assert.Empty(triggers);
+    }
+
     [Fact]
     public void Notice_default_is_null_so_tests_never_raise_ui()
     {

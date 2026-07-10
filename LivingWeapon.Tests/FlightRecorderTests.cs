@@ -328,4 +328,30 @@ public class FlightRecorderTests
         }
         finally { Flight.Reset(); }
     }
+
+    // ---- (11) LW-53: the dedicated "standdown" trigger drains like any other named trigger,
+    // filing the guard's stand-down record under a self-describing archive name (no new
+    // FlightRecorder logic needed: RequestFlush/Flush are already generic on the trigger
+    // string; this pins that genericity holds for the new trigger too). ----
+    [Fact]
+    public void Standdown_flush_drains_a_guard_record_to_a_file()
+    {
+        string? path = null;
+        string? written = null;
+        var rec = Make(fileWriter: (p, content) => { path = p; written = content; });
+
+        rec.Record("guard", "stand-down (pe-build-key)");
+        rec.RequestFlush("standdown");
+        rec.DrainPending();
+
+        Assert.NotNull(path);
+        Assert.Contains("_standdown.jsonl", path);
+        Assert.NotNull(written);
+
+        var lines = written!.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, lines.Length);   // header + one record
+        var rec1 = JObject.Parse(lines[1]);
+        Assert.Equal("guard", (string)rec1["e"]!);
+        Assert.Contains("stand-down", (string)rec1["d"]!);
+    }
 }
