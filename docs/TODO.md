@@ -25,6 +25,21 @@ is the in-flight subset, not a mirror of that checklist.
     opener's scripted/guest turn shape without weakening enemy-kill exclusion. The LW-55 display
     gates held throughout that tape, so the fault is isolated to the crediting chain
     (ActorResolver / KillTracker / KillerStamp).
+    2026-07-10 live (the LW-56 verify session, second post-reset opener, ~04:57+): fault 2
+    REPRODUCED with fault 1's fix confirmed working in the same run (forced exit fired, fresh
+    enter edge, stale latch dead): the owner killed a unit with the Claymore (card showing 0
+    kills, tally correctly reset) and no credit fired; the kill went pending and expired
+    ("could not be determined"), the honest post-stage-1 shape. VERDICT from that opener's exit
+    tape census (flight_20260710_045930_battle-exit.jsonl, -122.140s): roster slot 0 IS fresh
+    new-game Ramza (0:1L1; slots 1-19 still the old save's party), but the opener's acting units
+    carry canonical ENTD frame nameIds (2, 23, 52, nameId==job, the scripted-unit signature)
+    that match NO roster row, so ActorRegister.Bridge returns zero matches = Enemy
+    (authoritative refuse) for every player-side actor, which also blocks the turn-queue
+    fingerprint fallback (only Unknown falls through), so no latch ever forms. Fix shape now
+    buildable: when the nameId bridge finds ZERO roster matches, rescue via a STRICT
+    unique-fingerprint roster match (level + brave + faith, unique across occupied rows, level
+    drift rule) before conceding Enemy, so scripted-battle players with fresh roster rows latch
+    while true enemies (whose fingerprints should match no roster row uniquely) still refuse.
   - Verify: unit tests pin the reset-edge latch flush and the credit-time weapon-agreement gate
     (IGameMemory fake, non-vacuity by break-and-restore); live, an in-session new game's Orbonne
     opener credits Ramza's Claymore kills with no phantom weapon appearing in kills.json, and a
@@ -186,11 +201,40 @@ is the in-flight subset, not a mirror of that checklist.
   reset. The LW-37 pool repaint ran post-reset (02:45:01, 701 sites) yet the viewed card still
   read 3; determine which painter holds the stale text and make PlaythroughReset force a repaint
   of every kill-count surface.
+  2026-07-10 second live pass (the LW-56 verify session, ~04:57): question one is ANSWERED. On
+  the post-reset opener's equip card the owner read "Claymore+3" (wrong, 3 = the DEV seed floor)
+  while the Kills meter on the same card read "Kills: 0/1 to +" (correct, fresh tally), so the
+  stale surface is the +N NAME-SUFFIX painter specifically: the meter repaints from the live
+  tally but the suffix is never un-painted when the tally resets beneath it. The LW-56 forced
+  battle-exit (which runs Display.Invalidate on the edge) fired that run and did not cure it.
 - [LW-60] 2026-07-10: Author the 2.3.0 release Smoke Test Plan: one owner live pass gathering
   every deferred check before ship (the LW-55 auto-battle gate-B premise, the LW-51 Tier-1 reset
   eyeball on a real cold-launch New Game, the Reliquary Phase 1 live pass, plus whatever
   VERIFY_LIVE.md still holds open), run after the release's task list closes so nothing rides on
   memory at ship time.
+- [LW-63] 2026-07-10: A kill credits the WRONG living weapon when the actor pointer sits parked
+  on another player at the acted edge (owner live report, DEV build: Ramza killed with
+  Kiku-ichimonji id 45, Warbrand id 67 claimed the kill; log 04:44:54-04:46:40, tape
+  flight_20260710_044640_battle-exit.jsonl). Tape anatomy: the whole battle ran on ONE latch
+  (weapons=[67] src=actor-ptr at -106s, nameId 271 bridge=Player) and all six turn credits went
+  to the same fingerprint 99/89/76 while Ramza (nameId 1) visibly transited the pointer between
+  turns; the pointer had returned to the Warbrand wielder's entry before every acted rising
+  edge, so each per-period re-resolve renamed 271 and Ramza never latched; no KillerStamp
+  override fired (271's last arrival predated the resolve tick, so the ordering gate saw no
+  fresh hypothesis); the kill (victim nameId 886, job 124, battle slot 12) then consumed the
+  stale latch. Same one-identity-collapse family as LW-7's turn counting; the LW-56
+  no-live-wielder credit gate correctly cannot catch it (Warbrand IS fielded; that gate checks
+  existence, not which player acted). Candidate direction: stop trusting the parked pointer at
+  the global acted edge and key the acted-period resolve on the per-unit PSX turn flags (band
+  +0x19C/D/E, proven live, Offsets provenance block), which name the acting unit structurally.
+  Sharpening evidence same session (log 04:54:44/04:55:09): on the SAME map the KillerStamp
+  override DID rescue two kills ("the actor register names a fresher killer; crediting Chaos
+  Blade instead of Warbrand"), so the failure discriminator is the stamp's arrival-ordering gate
+  (a fresh register arrival after the latch resolve rescues; a parked pointer that never
+  re-arrives does not).
+- [LW-62] 2026-07-10: Wielder.Roster.cs has grown six near-identical roster-walk loops (250
+  lines; the LW-56 HasLiveWielder walk made it plain): extract one shared occupied-slot walk seam
+  the resolvers and the existence check all ride, next time the file is touched.
 - [LW-61] 2026-07-10: LW-51 Tier-2, per-save-identity tally isolation: two ALTERNATING
   playthroughs still share one kills.json (the shipped Tier-1 reset only archives on a detected
   NEW GAME, bf351db), so key the tally files to a save identity if cross-contamination proves a
