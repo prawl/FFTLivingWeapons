@@ -357,19 +357,19 @@ internal static class Tuning
     /// hop's chip damage. Applies after the base ricochetPct, so damage decays each arc.</summary>
     public const int RicochetHopDecayPct = 60;
 
-    /// <summary>Mushin (Kiku-ichimonji +3): the PER-STACK PA-factor bonus added on top of the
-    /// wielder's tier factor for the charged hit after one or more full-wait turns (up to
-    /// <see cref="MushinMaxStacks"/> stacks, each stacking additively: N stacks add N x this).
-    /// 0.75 (raised from the one-shot design's 0.5) because stacking now costs multiple whole
-    /// turns of tempo to bank the full payoff, not just one -- the per-stack rate stays the same
-    /// investment-mechanic bias as <see cref="Factor"/> (easier to buff up than claw back an
-    /// earned mechanic), just re-tuned for the new multi-turn cost.</summary>
+    /// <summary>Mushin (Kiku-ichimonji +3): the PA-factor bonus added on top of the wielder's tier
+    /// factor for the one charged hit after a full wait turn (no move, no act, judged by
+    /// MushinPolicy.ShouldArm on the literal PSX turn-flag design, LW-4 round 5). One charge =
+    /// round(natural*2.05) PA at tier 3, about 1.6x a normal +3 swing, for one whole forgone turn:
+    /// the per-charge rate stays the same investment-mechanic bias as <see cref="Factor"/> (easier
+    /// to buff up than claw back an earned mechanic).</summary>
     public const double MushinBonus = 0.75;
 
-    /// <summary>Mushin (Kiku-ichimonji +3): the most stacks the charge can bank before a full-wait
-    /// turn stops adding another (idempotent at the cap, not an error). A single attack always
-    /// spends every banked stack in one hit, whatever the count.</summary>
-    public const int MushinMaxStacks = 3;
+    /// <summary>Mushin (Kiku-ichimonji +3): the charge is a single bool (0 or 1), never higher:
+    /// one full wait, one charged hit, matching the card's literal text. Named MaxStacks (not
+    /// "Cap") because MushinPolicy.PaHeld stays generic over an arbitrary stack count; only the
+    /// runtime caller (GrowthEngine.Mushin.cs) ever passes 1.</summary>
+    public const int MushinMaxStacks = 1;
 
     /// <summary>Mushin (Kiku-ichimonji +3): the kill tier at which the full-wait charge unlocks.
     /// Matches every other Living Weapon capstone signature (Iai, Kobu, ...), the tier-3 payoff.</summary>

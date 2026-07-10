@@ -5,31 +5,52 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Kiku-ichimonji's "Mushin" signature: a full WAIT turn (no move, no action) banks one stack
-/// (up to Tuning.MushinMaxStacks); the wielder's next attack spends every banked stack in one
-/// boosted hit, then the buff clears.
+/// Kiku-ichimonji's "Mushin" signature, ROUND 5 (2026-07-09, owner decision: replace rounds 2-4's
+/// CT-clock/seq-gate apparatus with the literal design on the engine's own per-unit turn flags).
+/// See Mushin.cs's class doc for the full PSX-mapping provenance (tools/probes/mushin_wait_probe.py,
+/// scratchpad/psxflags_watch.log) and the retired rounds' one-line history.
 ///
-/// CT-DRIVEN (2026-07-07): the trigger now rides the wielder's OWN scheduler CT
-/// (Offsets.ACtSlam, read off the entry Wielder.ResolveDeployedMainHandAll resolves), not the
-/// ActorPtr/TurnQueue split: both of those track the cursor/UI, not the true turn owner, and
-/// live testing caught both flickering (spurious banks) and false-consuming (cursor-follow).
-/// Tests drive the CT directly via SeedCt: a "turn" is CT >= Mushin.CtCeiling for a tick
-/// (Idle -&gt; Active), then CT &lt; Mushin.CtFloor held for Mushin.SettleTicks+1 more ticks
-/// (Active -&gt; Settling -&gt; the one decision).
+/// This suite drives the trigger DIRECTLY on the three band-relative turn-flag bytes (local test
+/// consts mirroring Mushin.cs's own private consts, since they are private and Offsets.cs is
+/// forbidden this round): TURN FLAG (band +0x19C, the falling edge that decides), MOVED
+/// (+0x19D), ACTED (+0x19E). No KillTracker, no TurnTracker, no CT clocks, no static-array
+/// oracle: Mushin's round-5 ctor no longer even takes a KillTracker.
 ///
-/// LOAD-BEARING tests: Bank_requiresCtReset_notMerePresence (a flicker with no CT reset must NOT
-/// bank; the exact live over-fire bug this rebuild replaces), Bank_fires_onCtCeilingThenReset
-/// (the reset is what drives a bank), and Consume_survives_whenCtNeverResets (the cursor-follow
-/// false-consume, now gated by the CT reset).
+/// LOAD-BEARING: L-1 (a genuine full wait arms) and L-6 (nothing else matters: the module reads
+/// none of rounds 2-4's signals) are the two tests written FIRST and confirmed RED against the
+/// round-4 implementation before this file existed in its round-5 shape (see the round-5 build's
+/// own commit-staging notes); L-6's round-4 counterpart proved round 4 DID react to the exact
+/// "other units' CT churn" topology this suite now proves round 5 ignores entirely.
 /// </summary>
 public class MushinTests
 {
     private const int KikuId = 45;
     private const int OtherWeaponId = 56;
 
-    private static (Mushin mushin, FakeSparseMemory mem, long wielderEntry, (int lvl, int br, int fa) fp,
-                    Dictionary<(int lvl, int br, int fa), int> armed)
-        Build(int kills = -1, int gx = 2, int gy = 2)
+    // Local mirrors of Mushin.cs's private band-relative offsets (see that file's class doc for
+    // the PSX -> frame -> band provenance chain; duplicated here as literals for the same reason
+    // MushinPolicyTests duplicates Tuning.Factor as LockedFactor: catch drift, and Offsets.cs is
+    // forbidden to touch this round).
+    private const int TurnFlagOffset = 0x19C;
+    private const int MovedOffset = 0x19D;
+    private const int ActedOffset = 0x19E;
+
+    private static void SetFlags(FakeSparseMemory mem, long entry, int turnFlag, int moved, int acted)
+    {
+        mem.ReadableAddrs.Add(entry + TurnFlagOffset);
+        mem.ReadableAddrs.Add(entry + MovedOffset);
+        mem.ReadableAddrs.Add(entry + ActedOffset);
+        mem.U8s[entry + TurnFlagOffset] = (byte)turnFlag;
+        mem.U8s[entry + MovedOffset] = (byte)moved;
+        mem.U8s[entry + ActedOffset] = (byte)acted;
+    }
+
+    private static int StacksOf(Dictionary<(int lvl, int br, int fa), int> armed, (int lvl, int br, int fa) fp)
+        => armed.TryGetValue(fp, out int s) ? s : 0;
+
+    private static (FakeSparseMemory mem, Dictionary<int, int> kills, Dictionary<(int lvl, int br, int fa), int> armed,
+                    Mushin mushin, long wielderEntry, (int lvl, int br, int fa) fp)
+        Build(int kills = -1)
     {
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
@@ -42,51 +63,323 @@ public class MushinTests
             }
         };
         var killDict = new Dictionary<int, int> { [KikuId] = kills >= 0 ? kills : Tuning.ProdThresholds[2] };
-
-        var fp = (lvl: 30, br: 65, fa: 60);
+        var wielderFp = (lvl: 30, br: 65, fa: 60);
         const int wielderSlot = 24;
-        long wielder = Band.Entry(wielderSlot);
+        long wielderEntry = Band.Entry(wielderSlot);
 
-        MemSeats.SeatRoster(mem, 0, lvl: fp.lvl, br: fp.br, fa: fp.fa, rh: KikuId);
-        MemSeats.SeatBand(mem, wielderSlot, weapon: KikuId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
-                          gx: gx, gy: gy, hp: 200, maxHp: 300);
+        MemSeats.SeatRoster(mem, 0, lvl: wielderFp.lvl, br: wielderFp.br, fa: wielderFp.fa, rh: KikuId);
+        MemSeats.SeatBand(mem, wielderSlot, weapon: KikuId, lvl: wielderFp.lvl, br: wielderFp.br, fa: wielderFp.fa,
+                          gx: 5, gy: 5, hp: 200, maxHp: 300);
 
         var armed = new Dictionary<(int lvl, int br, int fa), int>();
         var mushin = new Mushin(meta, killDict, armed, mem);
-        return (mushin, mem, wielder, fp, armed);
+        return (mem, killDict, armed, mushin, wielderEntry, wielderFp);
     }
 
-    /// <summary>Drive the wielder's own scheduler CT (Offsets.ACtSlam), the byte the whole
-    /// state machine now keys on.</summary>
-    private static void SeedCt(FakeSparseMemory mem, long entry, int ct) =>
-        mem.U8s[entry + Offsets.ACtSlam] = (byte)ct;
-
-    private static void SetActed(FakeSparseMemory mem, int v) => mem.U8s[Offsets.Acted] = (byte)v;
-
-    private static int StacksOf(Dictionary<(int lvl, int br, int fa), int> armed, (int, int, int) fp)
-        => armed.TryGetValue(fp, out int s) ? s : 0;
-
-    /// <summary>Run the settle grace out: CT is assumed already dropped below CtFloor: ticks
-    /// Mushin.SettleTicks+1 times, which is exactly enough to land the Active-&gt;Settling
-    /// transition tick plus every settle-countdown tick through the one decision.</summary>
-    private static void RunSettle(Mushin mushin)
-    {
-        for (int i = 0; i < Mushin.SettleTicks + 1; i++) mushin.Tick(onField: true);
-    }
-
-    // ---- Gates ----
+    // ================= L-1 [LOAD-BEARING] =================
 
     [Fact]
-    public void Gate_offField_no_change()
+    public void L1_FullWait_Arms()
     {
-        var (mushin, _, _, fp, armed) = Build();
-        mushin.Tick(onField: false);
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, turnFlag: 0, moved: 0, acted: 0);
+        mushin.Tick(true);   // prime
+
+        SetFlags(mem, wielderEntry, turnFlag: 1, moved: 0, acted: 0);   // turn opens
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, turnFlag: 0, moved: 0, acted: 0);   // turn closes: a genuine full wait
+        mushin.Tick(true);
+
+        Assert.Equal(1, StacksOf(armed, fp));
+    }
+
+    // ================= L-2 =================
+
+    [Fact]
+    public void L2_MoveOnlyTurn_ArmedStaysZero()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);   // prime
+
+        SetFlags(mem, wielderEntry, 1, 0, 0);   // turn opens
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 1, 1, 0);   // the wielder moves, mid-window
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 1, 0);   // turn closes: move-only
+        mushin.Tick(true);
+
         Assert.Equal(0, StacksOf(armed, fp));
+    }
+
+    // ================= L-3 =================
+
+    [Fact]
+    public void L3_MoveOnlyTurn_PreArmedCharge_Survives()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);   // prime
+        armed[fp] = 1;       // as if a prior wait already armed the charge
+
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 1, 1, 0);   // moves mid-window
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 1, 0);   // move-only close
+        mushin.Tick(true);
+
+        Assert.Equal(1, StacksOf(armed, fp));   // untouched: move-only neither arms nor consumes
+    }
+
+    // ================= L-4 =================
+
+    [Fact]
+    public void L4_AttackTurn_Consumes()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);   // prime
+        armed[fp] = 1;       // pre-armed
+
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 1, 0, 1);   // the wielder acts, mid-window
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 0, 1);   // turn closes: acted
+        mushin.Tick(true);
+
+        Assert.Equal(0, StacksOf(armed, fp));
+    }
+
+    // ================= L-5 =================
+
+    [Fact]
+    public void L5_MoveThenAttackTurn_ConsumesNotArms()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);   // prime
+        armed[fp] = 1;       // pre-armed: the discriminating precondition. A wrong implementation
+                              // that checks "moved" before "acted" would leave this SURVIVING
+                              // (the L-3 shape) instead of correctly consuming it.
+
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 1, 1, 0);   // moves first
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 1, 1, 1);   // then attacks, same window
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 1, 1);   // turn closes: moved AND acted
+        mushin.Tick(true);
+
+        Assert.Equal(0, StacksOf(armed, fp));   // acted takes priority: consume, never arm
+    }
+
+    // ================= L-6 [NON-VACUITY vs rounds 2-4] =================
+
+    [Fact]
+    public void L6_NothingElseMatters_LegacySignalChurn_ZeroEffect()
+    {
+        // Round 2-4's whole apparatus (other units' scheduler-CT cycling, the global Acted byte,
+        // the ActorPtr) is seeded with exactly the topology that armed the charge under round 4
+        // (see the round-5 build's RED-phase proof against round 4), while the wielder's OWN turn
+        // flag never transitions at all. Round 5 reads none of it: zero effect.
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        mem.ReadableAddrs.Add(wielderEntry + TurnFlagOffset);
+        mem.U8s[wielderEntry + TurnFlagOffset] = 0;   // never transitions this whole test
+        mushin.Tick(true);   // prime
+
+        long enemyEntry = Band.Entry(0);
+        mem.U8s[enemyEntry + Offsets.ALevel] = 20;
+        mem.U8s[enemyEntry + Offsets.ABrave] = 40;
+        mem.U8s[enemyEntry + Offsets.AFaith] = 45;
+        mem.U16s[enemyEntry + Offsets.AMaxHp] = 250;
+        mem.U16s[enemyEntry + Offsets.AHp] = 250;
+        mem.U8s[enemyEntry + Offsets.AGx] = 1;
+        mem.U8s[enemyEntry + Offsets.AGy] = 1;
+
+        for (int i = 0; i < 8; i++)
+        {
+            mem.U8s[Offsets.Acted] = (byte)(i % 2 == 0 ? 1 : 0);                    // global Acted flip
+            mem.U8s[enemyEntry + Offsets.ACtSlam] = (byte)(i % 2 == 0 ? 95 : 8);    // another unit's CT cycling
+            mem.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (i % 5) * Offsets.CombatStride));
+            mushin.Tick(true);
+        }
+
         Assert.Empty(armed);
     }
 
+    // ================= L-7 =================
+
     [Fact]
-    public void Gate_missing_meta_no_crash()
+    public void L7_ReactionContamination_ActedDuringWait_DoesNotArm()
+    {
+        // Fail-safe direction: a reaction mid-window (an enemy's charged spell resolving while
+        // the wielder's own menu is open) sets ACTED without real player intent. Indistinguishable
+        // from a real action here, so the wait never arms.
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);   // prime
+
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 1, 0, 1);   // acted sets mid-window, unintended
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 0, 1);   // closes
+        mushin.Tick(true);
+
+        Assert.Equal(0, StacksOf(armed, fp));
+    }
+
+    // ================= L-8 =================
+
+    [Fact]
+    public void L8_Priming_FirstSightFlagAlreadyOne_ThenFallingEdge_DecidesNormally()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 1, 0, 0);   // first sight: mid-turn (flag already open)
+        mushin.Tick(true);                       // primes only, no decision (safe: flags reset at open)
+        Assert.Empty(armed);
+
+        SetFlags(mem, wielderEntry, 0, 0, 0);   // falls: decides normally
+        mushin.Tick(true);
+
+        Assert.Equal(1, StacksOf(armed, fp));
+    }
+
+    [Fact]
+    public void L8_Priming_FirstSightFlagZero_NoDecisionUntilFullCycle()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);   // first sight: closed
+        mushin.Tick(true);                       // primes only
+        SetFlags(mem, wielderEntry, 0, 0, 0);   // still closed: no rise ever happened, so no edge
+        mushin.Tick(true);
+        Assert.Equal(0, StacksOf(armed, fp));
+
+        SetFlags(mem, wielderEntry, 1, 0, 0);   // now a genuine open
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 0, 0);   // and a genuine close: a full 0->1->0 cycle
+        mushin.Tick(true);
+
+        Assert.Equal(1, StacksOf(armed, fp));
+    }
+
+    // ================= L-9 =================
+
+    [Fact]
+    public void L9_FlagFlicker_DecidesOncePerFallingEdge_ReArmIdempotent()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);   // prime
+
+        // First full wait: 0 -> 1 -> 0 arms.
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);
+        Assert.Equal(1, StacksOf(armed, fp));
+
+        // Held CLOSED for further ticks: prev is already 0, so this is NOT a repeated falling
+        // edge. A later value change (acted flipping true) while the flag stays closed must never
+        // be mistaken for a second decision; if it were, this would wrongly consume the charge.
+        SetFlags(mem, wielderEntry, 0, 0, 1);
+        mushin.Tick(true);
+        mushin.Tick(true);
+        Assert.Equal(1, StacksOf(armed, fp));   // still armed: the stray acted flip was never evaluated
+
+        // A GENUINE second falling edge (the flag actually reopens, then closes again) is a new
+        // decision and re-arms idempotently: armed stays 1, never climbs past 1, harmless.
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);
+        Assert.Equal(1, StacksOf(armed, fp));
+    }
+
+    // ================= L-10 =================
+
+    [Fact]
+    public void L10_TwoWielders_Isolated()
+    {
+        var (mem, kills, armed, mushin, wielderEntryA, fpA) = Build();
+
+        var fpB = (lvl: 45, br: 80, fa: 30);
+        const int slotB = 21;
+        long wielderEntryB = Band.Entry(slotB);
+        MemSeats.SeatRoster(mem, 1, lvl: fpB.lvl, br: fpB.br, fa: fpB.fa, rh: KikuId);
+        MemSeats.SeatBand(mem, slotB, weapon: KikuId, lvl: fpB.lvl, br: fpB.br, fa: fpB.fa,
+                          gx: 12, gy: 12, hp: 180, maxHp: 260);
+
+        SetFlags(mem, wielderEntryA, 0, 0, 0);
+        SetFlags(mem, wielderEntryB, 0, 0, 0);
+        mushin.Tick(true);   // primes both wielders' independent falling-edge state
+        armed[fpB] = 1;       // B pre-armed
+
+        // A does a genuine full wait: arms A only.
+        SetFlags(mem, wielderEntryA, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntryA, 0, 0, 0);
+        mushin.Tick(true);
+
+        // B attacks: consumes B only, independent of A.
+        SetFlags(mem, wielderEntryB, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntryB, 0, 0, 1);
+        mushin.Tick(true);
+
+        Assert.Equal(1, StacksOf(armed, fpA));
+        Assert.Equal(0, StacksOf(armed, fpB));
+    }
+
+    // ================= L-11: Gates =================
+
+    [Fact]
+    public void L11_Gate_offField_NoDecisions_PrevFlagFrozen()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);   // prime on-field
+
+        // Off-field: the flag transitions through a would-be full wait, but the module must never
+        // observe it (band reads are unsafe off-field; the loop returns before touching anything).
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(false);
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(false);
+        Assert.Empty(armed);
+
+        // Back on-field, prev is still frozen at 0 (the last on-field observation) and current
+        // also reads 0: no phantom edge on return.
+        mushin.Tick(true);
+        Assert.Empty(armed);
+
+        // The module is still fully alive: a genuine subsequent full wait still arms normally.
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);
+        Assert.Equal(1, StacksOf(armed, fp));
+    }
+
+    [Fact]
+    public void L11_Gate_belowTier_neverArms()
+    {
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build(kills: Tuning.ProdThresholds[1]);   // tier 2 < AtTier 3
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);
+
+        Assert.True(StacksOf(armed, fp) == 0, "below AtTier must never arm even with a genuine full wait");
+    }
+
+    [Fact]
+    public void L11_Gate_missing_meta_no_crash()
     {
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>();
@@ -94,13 +387,13 @@ public class MushinTests
         var armed = new Dictionary<(int, int, int), int>();
         var mushin = new Mushin(meta, kills, armed, mem);
 
-        mushin.Tick(onField: true);
+        mushin.Tick(true);
 
         Assert.Empty(armed);
     }
 
     [Fact]
-    public void Gate_null_signature_no_crash()
+    public void L11_Gate_null_signature_no_crash()
     {
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
@@ -111,185 +404,13 @@ public class MushinTests
         var armed = new Dictionary<(int, int, int), int>();
         var mushin = new Mushin(meta, kills, armed, mem);
 
-        mushin.Tick(onField: true);
+        mushin.Tick(true);
 
         Assert.Empty(armed);
     }
 
     [Fact]
-    public void Gate_belowTier_no_arm()
-    {
-        var (mushin, mem, wielder, fp, armed) = Build(kills: Tuning.ProdThresholds[1]);   // tier 2 < AtTier 3
-
-        mushin.Tick(onField: true);          // prime
-        SeedCt(mem, wielder, 95);
-        mushin.Tick(onField: true);          // a real turn's CT shape would open the window at tier 3+
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);                    // ...and close it at tier 3+
-
-        Assert.True(StacksOf(armed, fp) == 0, "below AtTier must never arm");
-    }
-
-    // ---- Priming (F5, Iai's contract) ----
-
-    [Fact]
-    public void FirstTick_staleActive_doesNotFalseArmOrConsume()
-    {
-        // Both the CT and Acted already read "mid-turn" on the VERY FIRST evaluated tick (no
-        // Idle->Active arrival ever observed). Prove neither an arm nor a consume fires just
-        // because the priming tick seeded Phase=Active.
-        var (mushin, mem, wielder, fp, armed) = Build();
-        SeedCt(mem, wielder, 95);
-        SetActed(mem, 1);
-
-        mushin.Tick(onField: true);   // priming tick: must not decide anything
-        Assert.Equal(0, StacksOf(armed, fp));
-
-        mushin.Tick(onField: true);   // still no edge (CT and Acted both unchanged since priming)
-        Assert.Equal(0, StacksOf(armed, fp));
-    }
-
-    // ---- Arm/stack: the non-vacuous positive + negatives ----
-
-    [Fact]
-    public void FullWaitTurn_banksOneStack()
-    {
-        var (mushin, mem, wielder, fp, armed) = Build(gx: 2, gy: 2);
-
-        mushin.Tick(onField: true);           // prime (CT unseeded -> 0, Idle)
-        SeedCt(mem, wielder, 95);              // turn active
-        mushin.Tick(onField: true);            // Idle -> Active
-        mushin.Tick(onField: true);            // idle sample: no move, no act
-        SeedCt(mem, wielder, 8);               // scheduler reset: turn taken
-        RunSettle(mushin);
-
-        Assert.Equal(1, StacksOf(armed, fp));
-    }
-
-    [Fact]
-    public void MoveOnlyTurn_doesNotArm()
-    {
-        // THE NON-VACUOUS NEGATIVE: an implementation that arms on turn-end regardless of the
-        // move/act signals would wrongly arm here.
-        var (mushin, mem, wielder, fp, armed) = Build(gx: 2, gy: 2);
-
-        mushin.Tick(onField: true);           // prime
-        SeedCt(mem, wielder, 95);
-        mushin.Tick(onField: true);            // Active, snapshots (gx=2,gy=2)
-        mem.U8s[wielder + Offsets.AGx] = 5;    // the wielder moved
-        mushin.Tick(onField: true);
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);
-
-        Assert.Equal(0, StacksOf(armed, fp));
-    }
-
-    [Fact]
-    public void AttackTurn_doesNotArm()
-    {
-        var (mushin, mem, wielder, fp, armed) = Build();
-
-        mushin.Tick(onField: true);           // prime
-        SeedCt(mem, wielder, 95);
-        mushin.Tick(onField: true);            // Active
-        SetActed(mem, 1);                       // the wielder's own acted edge: an attack
-        mushin.Tick(onField: true);
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);
-
-        Assert.Equal(0, StacksOf(armed, fp));
-    }
-
-    [Fact]
-    public void MoveOnlyTurn_afterStacksBanked_doesNotResetBankedStacks()
-    {
-        // A move-only turn withholds the NEW stack, but must not discard the stacks already
-        // banked from earlier full-wait turns (only an attack ever clears them).
-        var (mushin, mem, wielder, fp, armed) = Build(gx: 2, gy: 2);
-        armed[fp] = 2;   // pre-banked, as if two prior full-wait turns charged it
-
-        mushin.Tick(onField: true);           // prime
-        SeedCt(mem, wielder, 95);
-        mushin.Tick(onField: true);            // Active, snapshots (gx=2,gy=2)
-        mem.U8s[wielder + Offsets.AGx] = 5;    // the wielder moved (no attack)
-        mushin.Tick(onField: true);
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);
-
-        Assert.True(StacksOf(armed, fp) == 2, "a move-only turn must not add a stack, but must not clear banked ones either");
-    }
-
-    // ---- Stacking (the AC itself) ----
-
-    [Fact]
-    public void Stacking_ThreeWaits_CapsAtThree_ThenOneAttackConsumesAll()
-    {
-        var (mushin, mem, wielder, fp, armed) = Build();
-
-        mushin.Tick(onField: true);           // prime
-
-        for (int i = 1; i <= 3; i++)
-        {
-            SeedCt(mem, wielder, 95);
-            mushin.Tick(onField: true);
-            SeedCt(mem, wielder, 8);
-            RunSettle(mushin);
-            Assert.Equal(i, StacksOf(armed, fp));
-        }
-
-        // A fourth wait must not overflow past the cap.
-        SeedCt(mem, wielder, 95);
-        mushin.Tick(onField: true);
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);
-        Assert.Equal(3, StacksOf(armed, fp));
-
-        // ONE attack spends every banked stack in a single hit.
-        SeedCt(mem, wielder, 95);
-        mushin.Tick(onField: true);
-        SetActed(mem, 1);
-        mushin.Tick(onField: true);
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);
-        Assert.Equal(0, StacksOf(armed, fp));
-    }
-
-    // ---- Consume ----
-
-    [Fact]
-    public void Armed_ConsumedByNextOwnTurnAttack()
-    {
-        var (mushin, mem, wielder, fp, armed) = Build();
-        armed[fp] = 1;   // pre-armed, as if a prior full-wait turn charged it
-
-        mushin.Tick(onField: true);           // prime
-        SeedCt(mem, wielder, 95);              // the wielder's next turn begins
-        mushin.Tick(onField: true);
-        SetActed(mem, 1);                       // the attack lands: own acted edge inside the window
-        mushin.Tick(onField: true);
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);
-
-        Assert.True(StacksOf(armed, fp) == 0, "the wielder's own attack must consume every banked stack");
-    }
-
-    // ---- ResetBattle ----
-
-    [Fact]
-    public void ResetBattle_clears_shared_armed_dict()
-    {
-        var (mushin, _, _, fp, armed) = Build();
-        armed[fp] = 3;
-
-        mushin.ResetBattle();
-
-        Assert.Empty(armed);
-    }
-
-    // ---- Gate: offhand-only wielder never arms (main-hand only, mirrors Iai) ----
-
-    [Fact]
-    public void Gate_offhand_only_never_arms()
+    public void L11_Gate_offhandOnly_neverArms()
     {
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
@@ -297,79 +418,50 @@ public class MushinTests
             [KikuId] = new WeaponMeta
             {
                 Name = "Kiku-ichimonji", Wp = 13, Cat = "Katana", Formula = 2,
+                Flavor = "chrysanthemum-hilt blade",
                 Signature = new WeaponSignature { AtTier = Tuning.MushinAtTier, Mushin = true, DisplayLabel = "Mushin" }
             }
         };
         var kills = new Dictionary<int, int> { [KikuId] = Tuning.ProdThresholds[2] };
         var fp = (lvl: 30, br: 65, fa: 60);
-
         MemSeats.SeatRoster(mem, 0, lvl: fp.lvl, br: fp.br, fa: fp.fa, rh: OtherWeaponId, oh: KikuId);
-        MemSeats.SeatBand(mem, 24, weapon: OtherWeaponId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
+        MemSeats.SeatBand(mem, 20, weapon: OtherWeaponId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
                           gx: 2, gy: 2, hp: 200, maxHp: 300);
-        long wielder = Band.Entry(24);
-
         var armed = new Dictionary<(int lvl, int br, int fa), int>();
         var mushin = new Mushin(meta, kills, armed, mem);
 
-        mushin.Tick(onField: true);
-        SeedCt(mem, wielder, 95);
-        mushin.Tick(onField: true);
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);
+        mushin.Tick(true);
 
         Assert.True(StacksOf(armed, fp) == 0, "offhand-only wielder must never arm Mushin");
-    }
-
-    // ---- NON-VACUITY: load-bearing tests for the CT-reset-gated turn detector ----
-
-    [Fact]
-    public void Bank_requiresCtReset_notMerePresence()
-    {
-        // THE LOAD-BEARING NON-VACUITY TEST: reproduce the live over-fire bug directly. The old
-        // ActorPtr window banked on ANY window close, CT reset or not, so a flicker (the window
-        // opening and closing without the wielder ever actually taking its scheduler turn) still
-        // banked a stack. Holding CT at a mid value that never reaches CtCeiling, with no
-        // move/act, across MANY ticks must never bank: there is no turn here at all.
-        var (mushin, mem, wielder, fp, armed) = Build();
-        mushin.Tick(onField: true);   // prime
-
-        SeedCt(mem, wielder, 50);   // never reaches CtCeiling: no Idle->Active transition, ever
-        for (int i = 0; i < 50; i++) mushin.Tick(onField: true);
-
-        Assert.Equal(0, StacksOf(armed, fp));
+        Assert.Empty(armed);   // ResolveDeployedMainHandAll never returns an offhand-only slot
     }
 
     [Fact]
-    public void Bank_fires_onCtCeilingThenReset()
+    public void L11_ResetBattle_clears_armed_and_primeState()
     {
-        // The positive twin of Bank_requiresCtReset_notMerePresence: the CT actually reaching the
-        // ceiling then resetting below the floor is what drives a bank.
-        var (mushin, mem, wielder, fp, armed) = Build();
-        mushin.Tick(onField: true);   // prime
+        var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);   // prime at closed
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);   // turn opens: prev becomes 1 (mid-turn, no decision yet)
+        armed[fp] = 1;         // pretend a charge is already armed going into the reset
 
-        SeedCt(mem, wielder, 95);
-        mushin.Tick(onField: true);   // Idle -> Active
-        SeedCt(mem, wielder, 8);
-        RunSettle(mushin);             // Active -> Settling -> decide
+        mushin.ResetBattle();
+        Assert.Empty(armed);
 
+        // The prime state must ALSO be cleared: if a stale prev==1 survived the reset, the very
+        // next tick reading flag==0 would be wrongly treated as a genuine falling edge (a decision
+        // leaking across the battle boundary). A correctly cleared prime state treats this as
+        // FIRST SIGHT instead: prime only, no decision.
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);
+        Assert.Empty(armed);   // no decision: this was a fresh prime, not a leaked falling edge
+
+        // The module is fully alive post-reset: a genuine subsequent full wait still arms.
+        SetFlags(mem, wielderEntry, 1, 0, 0);
+        mushin.Tick(true);
+        SetFlags(mem, wielderEntry, 0, 0, 0);
+        mushin.Tick(true);
         Assert.Equal(1, StacksOf(armed, fp));
-    }
-
-    [Fact]
-    public void Consume_survives_whenCtNeverResets()
-    {
-        // The cursor-follow false-consume this rebuild replaces: an Acted edge alone, with no CT
-        // reset ever confirming a turn actually happened (CT stays mid, never reaches the
-        // ceiling), must never spend the banked stacks.
-        var (mushin, mem, wielder, fp, armed) = Build();
-        armed[fp] = 2;   // pre-banked
-
-        mushin.Tick(onField: true);   // prime
-
-        SeedCt(mem, wielder, 50);   // never reaches CtCeiling: the wielder never even enters Active
-        SetActed(mem, 1);
-        for (int i = 0; i < 20; i++) mushin.Tick(onField: true);
-
-        Assert.True(armed[fp] == 2, "an acted edge with no confirmed CT turn must not consume");
     }
 }

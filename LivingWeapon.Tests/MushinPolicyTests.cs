@@ -1,149 +1,78 @@
-using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// The pure Mushin policy (MushinPolicy): the stack computation behind Kiku-ichimonji's
-/// stacking power boost, plus PaHeld's growth-formula math. No memory access: the stateful
-/// turn-window tracking (ActorPtr/nameId arrival/departure, move + acted-edge sampling) lives
-/// in Mushin.cs and is exercised by MushinTests.cs. Mirrors the coverage bar UltimaTests.cs set
-/// for GrowthEngine.Ultima.cs: policy pure tests here, the memory hold exercised by the
-/// live-verify step before commit.
+/// The pure Mushin policy (MushinPolicy): the one-shot charge computation behind Kiku-ichimonji's
+/// stillness buff, plus PaHeld's growth-formula math. No memory access: the stateful trigger
+/// (the per-wielder TURN FLAG edge tracking in Mushin.cs) is exercised by MushinTests.cs.
 ///
-/// STACKING (reworked from the one-shot design): a full wait turn banks ONE stack, up to
-/// MushinPolicy's caller-supplied max (Tuning.MushinMaxStacks == 3); a single attack spends
-/// every banked stack in one boosted hit, then resets to 0.
+/// ROUND 5 (2026-07-09, owner decision: replace rounds 2-4's CT-clock/seq-gate apparatus with the
+/// literal design on the engine's own per-unit turn flags; see Mushin.cs's class doc for the full
+/// provenance): ShouldArm and ShouldConsume are back to the ORIGINAL round-1 truth-table shapes
+/// (full circle). StacksFromDeltas (the CT-cycle aggregation) and ConfirmsPerformance (the
+/// action-record pending-confirm truth table) are retired with rounds 2-4.
 /// </summary>
 public class MushinPolicyTests
 {
-    // ── ShouldArm (the full-wait-turn predicate; unchanged shape from the one-shot design) ──
+    // ── ShouldArm (P-1: the arming truth table) ────────────────────────────────────────────────
 
     [Fact]
-    public void ShouldArm_TurnEnded_NoMove_NoAct_Arms()
-        => Assert.True(MushinPolicy.ShouldArm(turnEnded: true, movedDuringTurn: false, actedDuringTurn: false));
+    public void ShouldArm_TurnEnded_NoMoveNoAct_True()
+        => Assert.True(MushinPolicy.ShouldArm(turnEnded: true, moved: false, acted: false));
 
     [Fact]
-    public void ShouldArm_MoveOnly_DoesNotArm()
-        // THE NON-VACUOUS NEGATIVE: a naive `ShouldArm(turnEnded) => turnEnded` (ignoring the
-        // move/act signals) would wrongly return true here.
-        => Assert.False(MushinPolicy.ShouldArm(turnEnded: true, movedDuringTurn: true, actedDuringTurn: false));
+    public void ShouldArm_TurnEnded_Moved_False()
+        => Assert.False(MushinPolicy.ShouldArm(turnEnded: true, moved: true, acted: false));
 
     [Fact]
-    public void ShouldArm_AttackTurn_DoesNotArm()
-        => Assert.False(MushinPolicy.ShouldArm(turnEnded: true, movedDuringTurn: false, actedDuringTurn: true));
+    public void ShouldArm_TurnEnded_Acted_False()
+        => Assert.False(MushinPolicy.ShouldArm(turnEnded: true, moved: false, acted: true));
 
     [Fact]
-    public void ShouldArm_MoveAndAttack_DoesNotArm()
-        => Assert.False(MushinPolicy.ShouldArm(turnEnded: true, movedDuringTurn: true, actedDuringTurn: true));
+    public void ShouldArm_TurnEnded_MovedAndActed_False()
+        => Assert.False(MushinPolicy.ShouldArm(turnEnded: true, moved: true, acted: true));
 
     [Fact]
-    public void ShouldArm_TurnNotEnded_NeverArms_EvenWithNoMoveNoAct()
-        // Defensive: the decision only ever fires AT turn end, mid-turn is never enough.
-        => Assert.False(MushinPolicy.ShouldArm(turnEnded: false, movedDuringTurn: false, actedDuringTurn: false));
-
-    // ── NextStacks (the stack computation: STACKING, up to 3) ─────────────────
-
-    [Fact]
-    public void NextStacks_FromZero_Arming_GoesToOne()
-        => Assert.Equal(1, MushinPolicy.NextStacks(currentStacks: 0, shouldArm: true, maxStacks: 3));
-
-    [Fact]
-    public void NextStacks_IncrementsSequentially_ZeroToThree()
+    public void ShouldArm_TurnNotEnded_NeverArms_RegardlessOfMovedActed()
     {
-        int stacks = 0;
-        stacks = MushinPolicy.NextStacks(stacks, shouldArm: true, maxStacks: 3);
-        Assert.Equal(1, stacks);
-        stacks = MushinPolicy.NextStacks(stacks, shouldArm: true, maxStacks: 3);
-        Assert.Equal(2, stacks);
-        stacks = MushinPolicy.NextStacks(stacks, shouldArm: true, maxStacks: 3);
-        Assert.Equal(3, stacks);
+        Assert.False(MushinPolicy.ShouldArm(turnEnded: false, moved: false, acted: false));
+        Assert.False(MushinPolicy.ShouldArm(turnEnded: false, moved: true, acted: false));
+        Assert.False(MushinPolicy.ShouldArm(turnEnded: false, moved: false, acted: true));
+        Assert.False(MushinPolicy.ShouldArm(turnEnded: false, moved: true, acted: true));
     }
 
-    [Fact]
-    public void NextStacks_CapsAtMax_DoesNotExceedThree()
-        // THE NON-VACUOUS CAP CHECK: a naive `currentStacks + 1` (no Math.Min) overflows past 3.
-        => Assert.Equal(3, MushinPolicy.NextStacks(currentStacks: 3, shouldArm: true, maxStacks: 3));
+    // ── ShouldConsume (P-2: the consume truth table) ───────────────────────────────────────────
 
     [Fact]
-    public void NextStacks_NotArming_StaysUnchanged()
-        => Assert.Equal(2, MushinPolicy.NextStacks(currentStacks: 2, shouldArm: false, maxStacks: 3));
+    public void ShouldConsume_TurnEnded_Acted_True()
+        => Assert.True(MushinPolicy.ShouldConsume(turnEnded: true, acted: true));
 
     [Fact]
-    public void NextStacks_MoveOnlyTurn_DoesNotIncrement()
-        // THE LOAD-BEARING NEGATIVE: composing ShouldArm's move-only result into NextStacks must
-        // leave already-banked stacks untouched, not silently add one anyway.
-        => Assert.Equal(1, MushinPolicy.NextStacks(currentStacks: 1,
-            shouldArm: MushinPolicy.ShouldArm(turnEnded: true, movedDuringTurn: true, actedDuringTurn: false),
-            maxStacks: 3));
+    public void ShouldConsume_TurnEnded_NotActed_False()
+        => Assert.False(MushinPolicy.ShouldConsume(turnEnded: true, acted: false));
 
     [Fact]
-    public void NextStacks_AttackTurn_DoesNotIncrement()
-        // THE OTHER LOAD-BEARING NEGATIVE: an attacking turn must never bank a stack either.
-        => Assert.Equal(1, MushinPolicy.NextStacks(currentStacks: 1,
-            shouldArm: MushinPolicy.ShouldArm(turnEnded: true, movedDuringTurn: false, actedDuringTurn: true),
-            maxStacks: 3));
-
-    // ── ShouldConsume (keyed on stack count instead of a bool) ────────────────
+    public void ShouldConsume_TurnNotEnded_Acted_False()
+        => Assert.False(MushinPolicy.ShouldConsume(turnEnded: false, acted: true));
 
     [Fact]
-    public void ShouldConsume_OneStack_OwnTurnActedEdge_Consumes()
-        => Assert.True(MushinPolicy.ShouldConsume(stacks: 1, ownTurnActedEdge: true));
+    public void ShouldConsume_TurnNotEnded_NotActed_False()
+        => Assert.False(MushinPolicy.ShouldConsume(turnEnded: false, acted: false));
 
     [Fact]
-    public void ShouldConsume_MaxStacks_OwnTurnActedEdge_Consumes()
-        => Assert.True(MushinPolicy.ShouldConsume(stacks: 3, ownTurnActedEdge: true));
-
-    [Fact]
-    public void ShouldConsume_ZeroStacks_OwnTurnActedEdge_NoConsume()
-        => Assert.False(MushinPolicy.ShouldConsume(stacks: 0, ownTurnActedEdge: true));
-
-    [Fact]
-    public void ShouldConsume_Stacks_ActedEdgeOutsideWindow_BuffSurvives()
-        // Negative consume: an acted edge that did NOT occur inside the wielder's own turn window
-        // (an enemy's turn, or the wielder merely reacting/countering) must never consume.
-        => Assert.False(MushinPolicy.ShouldConsume(stacks: 2, ownTurnActedEdge: false));
-
-    [Fact]
-    public void ShouldConsume_ZeroStacks_NoActedEdge_NoConsume()
-        => Assert.False(MushinPolicy.ShouldConsume(stacks: 0, ownTurnActedEdge: false));
-
-    // ── EffectiveStacks (the below-AtTier gate) ───────────────────────────────
-
-    [Fact]
-    public void EffectiveStacks_AtOrAboveTier_ReturnsStacks()
-        => Assert.Equal(3, MushinPolicy.EffectiveStacks(stacks: 3, tier: 3, atTier: 3));
-
-    [Fact]
-    public void EffectiveStacks_BelowAtTier_ReturnsZero()
-        // Even if the trigger's own bookkeeping somehow banked stacks below tier, the bonus never lands.
-        => Assert.Equal(0, MushinPolicy.EffectiveStacks(stacks: 3, tier: 2, atTier: 3));
-
-    [Fact]
-    public void EffectiveStacks_ZeroStacks_ReturnsZero_RegardlessOfTier()
-        => Assert.Equal(0, MushinPolicy.EffectiveStacks(stacks: 0, tier: 3, atTier: 3));
-
-    // ── Stacking integration (pure): three waits cap at 3, one attack spends all ──
-
-    [Fact]
-    public void Stacking_ThreeWaits_CapAtThree_OneAttackSpendsAll()
+    public void ShouldArm_And_ShouldConsume_AreMutuallyExclusive_WhenActed()
     {
-        int stacks = 0;
-        for (int i = 0; i < 3; i++)
-            stacks = MushinPolicy.NextStacks(stacks, MushinPolicy.ShouldArm(true, false, false), maxStacks: 3);
-        Assert.Equal(3, stacks);
-
-        // A fourth wait must not overflow past the cap.
-        stacks = MushinPolicy.NextStacks(stacks, MushinPolicy.ShouldArm(true, false, false), maxStacks: 3);
-        Assert.Equal(3, stacks);
-
-        // ONE attack spends every banked stack in a single hit, not one-at-a-time.
-        if (MushinPolicy.ShouldConsume(stacks, ownTurnActedEdge: true)) stacks = 0;
-        Assert.Equal(0, stacks);
+        // acted=true fails ShouldArm's !acted term unconditionally, so the two predicates can
+        // never both fire for the same falling edge; Mushin.cs's consume-first branching relies
+        // on this, not on evaluation order.
+        Assert.True(MushinPolicy.ShouldConsume(turnEnded: true, acted: true));
+        Assert.False(MushinPolicy.ShouldArm(turnEnded: true, moved: false, acted: true));
+        Assert.False(MushinPolicy.ShouldArm(turnEnded: true, moved: true, acted: true));
     }
 
-    // ── PaHeld ─────────────────────────────────────────────────────────────────
+    // ── PaHeld (P-3: kept VERBATIM; the constants pin updates to the one-shot values) ──────────
 
     private static readonly double[] LockedFactor = { 0.00, 0.10, 0.20, 0.30 };   // Tuning.Factor, duplicated to catch drift
 
@@ -160,7 +89,7 @@ public class MushinPolicyTests
     {
         // Pins the tuned values this whole test file's expectations are built against.
         Assert.Equal(0.75, Tuning.MushinBonus);
-        Assert.Equal(3, Tuning.MushinMaxStacks);
+        Assert.Equal(1, Tuning.MushinMaxStacks);   // one-shot: one wait, one charged hit
     }
 
     [Fact]
@@ -188,6 +117,8 @@ public class MushinPolicyTests
     [Fact]
     public void PaHeld_TwoStacks_AddsBonusTwice()
     {
+        // Not reachable at runtime under the one-shot design (armed is 0/1), but PaHeld is a pure
+        // formula independent of that cap; pinning its math for arbitrary stacks catches drift.
         int expected = (int)System.Math.Round(12 * (1 + LockedFactor[3] + 2 * 0.75));
         int actual = MushinPolicy.PaHeld(naturalPa: 12, tier: 3, LockedFactor, stacks: 2, bonus: 0.75);
         Assert.Equal(expected, actual);
@@ -195,7 +126,7 @@ public class MushinPolicyTests
     }
 
     [Fact]
-    public void PaHeld_ThreeStacks_AddsBonusThriceAtCap()
+    public void PaHeld_ThreeStacks_AddsBonusThrice()
     {
         int expected = (int)System.Math.Round(12 * (1 + LockedFactor[3] + 3 * 0.75));
         int actual = MushinPolicy.PaHeld(naturalPa: 12, tier: 3, LockedFactor, stacks: 3, bonus: 0.75);
@@ -218,6 +149,21 @@ public class MushinPolicyTests
         // Contrived negative bonus exercises the floor clamp directly (real Tuning.MushinBonus is
         // never negative; this pins the defensive clamp itself, not a reachable game state).
         => Assert.Equal(1, MushinPolicy.PaHeld(naturalPa: 5, tier: 0, new[] { 0.0, 0.0, 0.0, 0.0 }, stacks: 1, bonus: -2.0));
+
+    // ── EffectiveStacks (kept VERBATIM: the below-AtTier gate) ────────────────
+
+    [Fact]
+    public void EffectiveStacks_AtOrAboveTier_ReturnsStacks()
+        => Assert.Equal(1, MushinPolicy.EffectiveStacks(stacks: 1, tier: 3, atTier: 3));
+
+    [Fact]
+    public void EffectiveStacks_BelowAtTier_ReturnsZero()
+        // Even if the trigger's own bookkeeping somehow carried a charge below tier, the bonus never lands.
+        => Assert.Equal(0, MushinPolicy.EffectiveStacks(stacks: 1, tier: 2, atTier: 3));
+
+    [Fact]
+    public void EffectiveStacks_ZeroStacks_ReturnsZero_RegardlessOfTier()
+        => Assert.Equal(0, MushinPolicy.EffectiveStacks(stacks: 0, tier: 3, atTier: 3));
 
     // ── OwnsMushin (GrowthEngine's lane-ownership helper) ─────────────────────
 

@@ -130,10 +130,9 @@ public sealed class WeaponSignature
     // (band +0x25) is held at 100 every tick from battle open until the wielder's first turn ends
     // (CT pull-down detection, per-wielder; keyed on the roster fingerprint). false = not an iai weapon.
     [JsonProperty("iai")] public bool Iai { get; set; }
-    // MUSHIN (Kiku-ichimonji "Mushin"): at AtTier, a full WAIT turn (no move, no action) banks
-    // one stack of a PA boost (up to Tuning.MushinMaxStacks); the wielder's next attack spends
-    // every banked stack in one boosted hit (owns the PA lane, see GrowthEngine.Mushin.cs), then
-    // the buff clears. false = not a mushin weapon.
+    // MUSHIN (Kiku-ichimonji "Mushin"): at AtTier, a full ROUND of stillness (no move, no action)
+    // arms ONE charge; the wielder's next attack spends it in a single boosted hit (owns the PA
+    // lane, see GrowthEngine.Mushin.cs), then the charge clears. false = not a mushin weapon.
     [JsonProperty("mushin")] public bool Mushin { get; set; }
     // GUN SLINGER (Blaster "Gun Slinger"): at +3 with the Blaster equipped as the main hand,
     // writes a twin Blaster into the wielder's roster off-hand (ROffHand +0x18, u16) and Dual Wield
