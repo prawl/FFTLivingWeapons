@@ -63,6 +63,7 @@ internal sealed class Engine
     private readonly AttackCardSpike _attackCardSpike;   // F6 LW-31 Attack-menu census instrument, dev-only
     private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
     private readonly StatusSpike _statusSpike;   // LW-58: cold-call the status apply engine (F2 canary / F4 treasure), dev-only
+    private readonly BodyDoubleSpike _bodyDoubleSpike;   // LW-58 Canary 3: reveal Frank + decoy CT-hold (F5), dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -206,8 +207,8 @@ internal sealed class Engine
         _attackCard = new AttackCard(live, _tracker.ResolveCursorPlayer,
                                       _tracker.RawMainHand, _tracker.SpriteOf, meta, _kills);
 #if LWDEV
-        // Constructed here (not beside _showSpike above) because it needs Display's _sites/_pats,
-        // which do not exist until Display itself is built.
+        // Constructed here (after Display, not beside the other dev fields above) because it needs
+        // Display's _sites/_pats, which do not exist until Display itself is built.
         _flavorSpike = new FlavorSpike(live, _display._sites, _display._pats);
         _headerSpike = new HeaderSpike(live, _display._sites);
         _attackCardSpike = new AttackCardSpike(live);
@@ -215,6 +216,7 @@ internal sealed class Engine
         // class doc for why a second register is deliberately avoided).
         _turnOwnerSpike = new TurnOwnerSpike(live, _tracker.Register);
         _statusSpike = new StatusSpike(live);   // LW-58 cold-call research instrument
+        _bodyDoubleSpike = new BodyDoubleSpike(live, save.SaveDir);   // LW-58 Canary 3 reveal cold-call + decoy hold; SaveDir = rotation-proof forensics
 #endif
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
@@ -271,6 +273,9 @@ internal sealed class Engine
         _reliquary.ResetBattle();   // per-battle Marks ledger (the exit edge composes its summary BEFORE this runs)
         foreach (var sig in _signatures) sig.ResetBattle();
         _attackCard.ResetBattle();   // LW-31 stage 2: restore vanilla to any live Attack-menu copies, then drop the cache
+#if LWDEV
+        _bodyDoubleSpike.ResetBattle();   // LW-58: the bind + decoy CT-hold never survive a battle edge
+#endif
         // The toast QUEUE deliberately survives battle edges (Patrick-confirmed ruling A) --
         // PromptSwap is stateless (no per-battle state to reset).
     }
@@ -420,6 +425,7 @@ internal sealed class Engine
         _attackCardSpike.Tick();   // LW-31: the Abilities menu lives here, the load-bearing tick site
         _turnOwnerSpike.Tick();   // LW-31 stage 2: passive correlation recorder, in-battle only (menus out of battle don't matter here)
         _statusSpike.Tick(inLive);   // LW-58: cold-call the status apply engine on F2/F4 (inLive-gated + paused; targets live band units)
+        _bodyDoubleSpike.Tick(inLive);   // LW-58 Canary 3: F5 reveals Frank (inLive-gated + paused), then drives the decoy CT-hold per tick
 #endif
         if (changed)
         {
