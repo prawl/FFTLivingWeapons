@@ -96,12 +96,12 @@ internal sealed class Engine
         // Launch header L3 (logging facelift): the kill-tally load summary, BEFORE the dev seed
         // below can inflate the counts -- this line states what the DISK held.
         ModLogger.Event(LogVerb.Save,
-            $"The kill tally holds {_tally.Total} lifetime kills across {_tally.Kills.Count} weapons (kills.json, {_tally.LoadedFrom}).");
+            LaunchHeader.ComposeTally(_tally.Total, _tally.Kills.Count, _tally.LoadedFrom));
         save.Migrate("legends.json");
         _legends = LegendStore.Load(save.SaveDir);   // Reliquary Phase 1 deed ledger, sibling of kills.json
         // Launch header L4: the legends load summary.
         ModLogger.Event(LogVerb.Save,
-            $"The legends hold deeds for {_legends.WeaponCount} weapons and {_legends.TotalMarks} Marks (legends.json, {_legends.LoadedFrom}).");
+            LaunchHeader.ComposeLegends(_legends.WeaponCount, _legends.TotalMarks, _legends.LoadedFrom));
         var meta = MetaLoader.Load(modDir);
 #if LWDEV
         // DEV build only: seed every weapon to max tier for fast verification. Compiled out of

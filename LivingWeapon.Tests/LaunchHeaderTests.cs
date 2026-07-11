@@ -136,4 +136,36 @@ public class LaunchHeaderTests
         Assert.Equal("primary", reloaded.LoadedFrom);
         Assert.Equal(1, reloaded.WeaponCount);
     }
+
+    // --- LaunchHeader composers (LW-22: the header lines must pluralize their counts) ---
+
+    [Fact]
+    public void Tally_line_singular_counts_read_singular()
+        => Assert.Equal(
+            "The kill tally holds 1 lifetime kill across 1 weapon (kills.json, primary).",
+            LaunchHeader.ComposeTally(1, 1, "primary"));
+
+    [Fact]
+    public void Tally_line_plural_counts_read_plural()
+        => Assert.Equal(
+            "The kill tally holds 63 lifetime kills across 12 weapons (kills.json, primary).",
+            LaunchHeader.ComposeTally(63, 12, "primary"));
+
+    [Fact]
+    public void Tally_line_zero_counts_read_plural()
+        => Assert.Equal(
+            "The kill tally holds 0 lifetime kills across 0 weapons (kills.json, fresh).",
+            LaunchHeader.ComposeTally(0, 0, "fresh"));
+
+    [Fact]
+    public void Legends_line_singular_counts_read_singular()
+        => Assert.Equal(
+            "The legends hold deeds for 1 weapon and 1 Mark (legends.json, primary).",
+            LaunchHeader.ComposeLegends(1, 1, "primary"));
+
+    [Fact]
+    public void Legends_line_plural_counts_read_plural()
+        => Assert.Equal(
+            "The legends hold deeds for 4 weapons and 2 Marks (legends.json, primary).",
+            LaunchHeader.ComposeLegends(4, 2, "primary"));
 }

@@ -74,5 +74,5 @@ internal static class BattleSummary
         return $"Battle ended: {killsClause}, {marksClause}, {tiersClause}{fallbackClause}; {turnsClause}";
     }
 
-    private static string Plural(int n, string noun) => $"{n} {noun}{(n == 1 ? "" : "s")}";
+    internal static string Plural(int n, string noun) => $"{n} {noun}{(n == 1 ? "" : "s")}";
 }

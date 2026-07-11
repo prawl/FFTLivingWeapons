@@ -143,7 +143,7 @@ loader resolves controllers. File shape shown; the console drops the `[verb]` br
 [startup] Living Weapons version 2.2.2 (production build) is starting inside fft_enhanced.exe.
 [config]  Configuration loaded: TreasureAlwaysOn=False LogLevel=Info (from ...\Config.json)
 [save]    The kill tally holds 63 lifetime kills across 12 weapons (kills.json, primary).
-[save]    The legends hold deeds for 4 weapons and 1 Marks (legends.json, primary).
+[save]    The legends hold deeds for 4 weapons and 1 Mark (legends.json, primary).
 [startup] Living Weapons is tracking 118 weapon types.
 [startup] The runtime loop has started.
 [startup] Connected to the game's rendering hooks; toast pop-ups can be delivered.
