@@ -8,6 +8,17 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-46] SHIPPED a1c643b 2026-07-11: the Galewind card no longer promises "No Lucavi"
+  (IsDominatable is allow-everyone by design, owner request 2026-06-18, so the card
+  overpromised). Of the two open candidates the reword shipped, the path RELEASE_SCOPE
+  section 2 mandated regardless; the gameplay-changing Lucavi carve-out stays unbuilt (the
+  items.json note keeps the restore recipe). The "3-turn cooldown" wording is accurate
+  (PuppeteerCooldownTurns=4 global turns = the dominate turn plus 3 blocked turns). p3Desc and
+  the grid CSV moved in lockstep, item.en.nxd rebaked (old clause absent from the baked bytes,
+  new line present), the items.json note shed its stale wielder-clock expiry and CARD/CODE
+  MISMATCH claims, and RELEASE_SCOPE section 2's lock-time paragraph was corrected to the
+  shipped LW-5 own-turn release. The in-game card eyeball rides SMOKE_TEST_2.3.0.md row 3.2.
+  Suite 2431 green, analyze exit 0.
 - [LW-22] SHIPPED c7104b9 2026-07-11: the launch header's save lines pluralize their counts (no
   more "1 Marks"; the kills/weapons counts in the same two lines got the same treatment). The
   two lines moved into a pure LaunchHeader composer riding BattleSummary.Plural so five
