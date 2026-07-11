@@ -10,6 +10,22 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
+- **[LW-62] Extract the shared roster-walk seam in Wielder.Roster.cs** (opened 2026-07-10) [BUILDING]
+  - Done means: the six hand-rolled occupied-slot roster walks in Wielder.Roster.cs (TryResolve,
+    TryResolveMainHand, ResolveDeployedMainHandAllCore, AnyDeployedMainHand, HasLiveWielder,
+    ScanNameIdMatches) ride ONE shared walk seam (slot base + occupancy filter in one place);
+    each caller keeps its own hand-match and accumulation policy; pure refactor, zero behavior
+    change.
+  - Verify: full suite green with no test edits (the resolver tests are the net); non-vacuity by
+    sabotaging the shared walk and watching the resolver tests go red.
+- **[LW-70] Re-baseline BannerToast on the new-game reset edge** (opened 2026-07-11) [BUILDING]
+  - Done means: BannerToast gains a re-baseline that re-snapshots its tier/count baselines from
+    the current tally, and Engine calls it on the PlaythroughReset detection edge (the same edge
+    that already calls Display.Invalidate, LW-59), so a dev build's first post-reset kill reads
+    as a 0-to-1 crossing instead of a seed-3 rollback and its first-blood toast enqueues.
+    Production behavior is already safe; this is the dev-smoke-fidelity fix.
+  - Verify: failing-first unit test (reset tally to empty, re-baseline, first kill enqueues the
+    tier-1 toast; without re-baseline it stays swallowed); suite green.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
@@ -182,9 +198,6 @@ is the in-flight subset, not a mirror of that checklist.
   worktree feature/body-double-spawn). Open polish: AI-passivity (behavior row), decoy-hold default,
   and shipping any of it as a real player mechanic (LW-64 Mirror Image / LW-65 teleport / LW-66
   remove-restore track the shippable slices).
-- [LW-62] 2026-07-10: Wielder.Roster.cs has grown six near-identical roster-walk loops (250
-  lines; the LW-56 HasLiveWielder walk made it plain): extract one shared occupied-slot walk seam
-  the resolvers and the existence check all ride, next time the file is touched.
 - [LW-61] 2026-07-10: LW-51 Tier-2, per-save-identity tally isolation: two ALTERNATING
   playthroughs still share one kills.json (the shipped Tier-1 reset only archives on a detected
   NEW GAME, bf351db), so key the tally files to a save identity if cross-contamination proves a
@@ -248,14 +261,6 @@ is the in-flight subset, not a mirror of that checklist.
   battle: line fired 97s before the wielder's first resolved turn, so it demoted to file-only).
   Pre-existing facelift ordering, not an LW-34 regression; the file evidence is unaffected.
   Candidate fix: on the armed edge, promote a demoted coverage line to the console once.
-- [LW-70] 2026-07-11: A dev-build first-blood toast is swallowed when the tally resets OUT of
-  battle: BannerToast baselines its tier/count snapshot at construction and DetectCrossings only
-  runs in battle, so the first in-battle change after a new-game reset reads seed-3 to 1 as a
-  rollback rather than a crossing (Cutpurse's tier-1 toast was never enqueued on the 03:31 tape
-  while Vagabond's two delivered; the tally itself was correct). Production is safe (no seed and
-  the {5,25,50} curve cannot be jumped in one change); fix is a dev-verification nicety:
-  re-baseline BannerToast on the reset detection edge so a future dev smoke does not misread a
-  missing toast as a regression.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
