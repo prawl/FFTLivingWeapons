@@ -8,6 +8,16 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-70] SHIPPED 97549cc 2026-07-11: a dev build's first post-reset kill no longer swallows its
+  first-blood toast. The out-of-battle tally clear (LW-51's PlaythroughReset) left BannerToast's
+  construction baselines stale, so the first crossing after a new game read as a rollback; the
+  constructor's prime is now an explicit Rebaseline (pure snapshot refresh, never enqueues,
+  loop-thread-only maps) called on the reset detection edge beside the LW-59 Display.Invalidate.
+  Production behavior unchanged in practice (no seeding; the prod curve cannot be jumped in one
+  change). Three failing-first tests incl. a kept contrast pin of the pre-fix swallow;
+  build-lite verify SHIP 9/10 with a no-op-sabotage non-vacuity proof. Suite 2434 green. The
+  in-game dev-smoke observation (first kill after an in-session New Game toasts) folds into the
+  next dev smoke.
 - [LW-46] SHIPPED a1c643b 2026-07-11: the Galewind card no longer promises "No Lucavi"
   (IsDominatable is allow-everyone by design, owner request 2026-06-18, so the card
   overpromised). Of the two open candidates the reword shipped, the path RELEASE_SCOPE

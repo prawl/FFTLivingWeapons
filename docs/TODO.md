@@ -18,14 +18,6 @@ is the in-flight subset, not a mirror of that checklist.
     change.
   - Verify: full suite green with no test edits (the resolver tests are the net); non-vacuity by
     sabotaging the shared walk and watching the resolver tests go red.
-- **[LW-70] Re-baseline BannerToast on the new-game reset edge** (opened 2026-07-11) [BUILDING]
-  - Done means: BannerToast gains a re-baseline that re-snapshots its tier/count baselines from
-    the current tally, and Engine calls it on the PlaythroughReset detection edge (the same edge
-    that already calls Display.Invalidate, LW-59), so a dev build's first post-reset kill reads
-    as a 0-to-1 crossing instead of a seed-3 rollback and its first-blood toast enqueues.
-    Production behavior is already safe; this is the dev-smoke-fidelity fix.
-  - Verify: failing-first unit test (reset tally to empty, re-baseline, first kill enqueues the
-    tier-1 toast; without re-baseline it stays swallowed); suite green.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
