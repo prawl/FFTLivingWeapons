@@ -8,6 +8,15 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-62] SHIPPED 474d494 2026-07-11: Wielder.Roster.cs's six hand-rolled occupied-slot roster
+  walks now ride one shared seam. TryOccupiedSlot centralizes the slot base arithmetic and the
+  occupancy filter (level read first, sequencing preserved) so the addressing and the occupancy
+  rule cannot drift apart per caller; CollectHands centralizes the sentinel-filtered hands
+  collection TryResolve and HasLiveWielder duplicated verbatim (and drops its per-slot temp-array
+  allocation). Pure refactor, zero signature or contract changes, no test edits; verified
+  equivalent loop by loop against the prior revision, non-vacuity by double sabotage (occupancy
+  inversion fails 22 WielderTests; off-hand-append neutering fails the off-hand resolve pin).
+  Build-lite verify SHIP 9/10. Suite 2434 green.
 - [LW-70] SHIPPED 97549cc 2026-07-11: a dev build's first post-reset kill no longer swallows its
   first-blood toast. The out-of-battle tally clear (LW-51's PlaythroughReset) left BannerToast's
   construction baselines stale, so the first crossing after a new game read as a rollback; the

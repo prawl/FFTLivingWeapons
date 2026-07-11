@@ -10,14 +10,6 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-62] Extract the shared roster-walk seam in Wielder.Roster.cs** (opened 2026-07-10) [BUILDING]
-  - Done means: the six hand-rolled occupied-slot roster walks in Wielder.Roster.cs (TryResolve,
-    TryResolveMainHand, ResolveDeployedMainHandAllCore, AnyDeployedMainHand, HasLiveWielder,
-    ScanNameIdMatches) ride ONE shared walk seam (slot base + occupancy filter in one place);
-    each caller keeps its own hand-match and accumulation policy; pure refactor, zero behavior
-    change.
-  - Verify: full suite green with no test edits (the resolver tests are the net); non-vacuity by
-    sabotaging the shared walk and watching the resolver tests go red.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
