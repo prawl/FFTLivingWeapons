@@ -2163,7 +2163,6 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "categoryOverride": "Sword",
-        "spriteIdOverride": 1,
         "shopOverride": "Chapter3_Start"
       },
       "iconTint": [

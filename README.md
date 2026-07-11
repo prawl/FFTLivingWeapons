@@ -54,6 +54,14 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 
 It composes cleanly with **non-item** mods: Level Scaling, Strong Monsters, Spell Overhaul, All-Skills-Cost-0, GenericJobs, and color mods are all fine. Run `python tools/scan_conflicts.py` to list any installed mods that edit the same item IDs.
 
+## Language support
+
+Everything the mod *does* works in every game language: the item rebalance (stats, elements, procs, shop availability), weapon kill-growth, and the signature abilities all apply at the data and runtime level, so non-English players get the full gameplay. The readouts are English-only:
+
+- **Item text.** The rewritten names, descriptions, and flavor ship only for English. On any other game language, items keep their vanilla names and descriptions (so the prose may not reflect an item's reworked stats), while the rebalanced numbers still apply.
+- **The equip-card Kills counter.** The painted "Kills: N" tally and the "+N" name suffix anchor to the English item text, so they display only when the game language is English. Kills are still counted and stats still grow in every language; only the readout is absent.
+- **In-battle toasts.** The tier-up and milestone banners deliver by swapping an English battle prompt, so they too appear only in English. The growth they announce still happens in every language.
+
 ## How it works / build from source
 
 The design lives in one source of truth and is compiled into the modloader package:

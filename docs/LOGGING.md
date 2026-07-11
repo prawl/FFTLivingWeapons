@@ -268,8 +268,8 @@ one record per refused cursor answer (roster/band weapon disagreement, or a hove
 yet the turn owner), deduped to once per refusal key per battle, naming the refusal kind and
 both weapon ids so a live "wrong dossier" report can be diagnosed after the fact. Deliberately
 **not** tapped: Puppeteer (a separate live-verify arc is in flight against those exact lines)
-and Treasure Master / the chemist-grenade paths (both slated for eventual removal, no new
-investment there).
+and Treasure Master (slated for removal, docs/TODO.md LW-10, no new investment there; the
+chemist-grenade paths left the repo entirely with the Offensive Chemist removal, a5ea61e).
 
 **Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl` -- one compact
 JSON object per line (Newtonsoft.Json; no hand-rolled escaping). The first line of every file is
