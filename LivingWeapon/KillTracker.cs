@@ -133,7 +133,8 @@ internal sealed partial class KillTracker
         _register = new ActorRegister(mem, recorder,
             id => _oracle.Contains(((byte)id.lvl, (byte)id.br, (byte)id.fa, (ushort)id.maxHp)));
         _resolver = new ActorResolver(mem, weapons, _register);
-        _killerStamp = new KillerStamp(_register, _resolver.HandsFromRoster);
+        // LW-63 D4: the flags-first hypothesis lane, consulted ahead of the register snapshot.
+        _killerStamp = new KillerStamp(_register, _resolver.HandsFromRoster, _resolver.TryResolveFlagKiller);
         _events = events;
         _victimProbe = new VictimProbe(mem, recorder);
         _census = new BattleCensus(mem, recorder);
@@ -250,7 +251,9 @@ internal sealed partial class KillTracker
                     // and a following corpse would lose the sticky "untracked" verdict.
                     _latchResolvedEmpty = ws.Count == 0;
                     if (ws.Count > 0) AnyTrackedWeaponThisBattle = true;   // sticky armed gate (facelift)
-                    _latchViaFallback = !_resolver.LastResolveViaRegister; // fallback-attribution counter feed
+                    // LW-63: a flags-sourced resolve is pointer-quality evidence, same as a
+                    // register-sourced one -- only a genuine turn-queue fallback counts here.
+                    _latchViaFallback = _resolver.LastResolveSource == ResolveSource.TqFallback;
                     // Refresh the acting fingerprint once per acted-period (on the latch edge).
                     // MUST be outside the !SameSet guard: two Arcanum holders share weapon set {30},
                     // so SameSet is true between them -- if gated inside, switching between two
@@ -261,13 +264,25 @@ internal sealed partial class KillTracker
                         _lastPlayerWeapons = ws;
                         _lastPlayerMainHand = ws.Count > 0 ? _resolver.ResolveActingMainHand() : 0;
                         _actorTag = string.Join(",", ws);
-                        // Source tag mirrors TurnTracker's shipped resolve-source pair;
-                        // no test asserts on these strings (inventory confirmed).
-                        string src = _resolver.LastResolveViaRegister ? "the actor pointer" : "the turn-queue fallback";
+                        // Source tag mirrors TurnTracker's shipped resolve-source pair, now a
+                        // three-way (LW-63 adds the turn-flags lane); no test asserts on these
+                        // strings (inventory confirmed).
+                        string src = _resolver.LastResolveSource switch
+                        {
+                            ResolveSource.Flags => "the turn flags",
+                            ResolveSource.Register => "the actor pointer",
+                            _ => "the turn-queue fallback",
+                        };
                         ModLogger.Debug(LogVerb.Credit, ws.Count > 0
                             ? "the acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (weapon id " + id + ")")) + $", resolved via {src}"
                             : $"the acting player wields no Living Weapon; this action's kills will go uncredited (resolved via {src})");
-                        _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src={(_resolver.LastResolveViaRegister ? "actor-ptr" : "tq-fallback")}");
+                        string srcTag = _resolver.LastResolveSource switch
+                        {
+                            ResolveSource.Flags => "turn-flags",
+                            ResolveSource.Register => "actor-ptr",
+                            _ => "tq-fallback",
+                        };
+                        _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src={srcTag}");
                     }
                 }
             }

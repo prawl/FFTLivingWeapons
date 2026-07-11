@@ -16,6 +16,7 @@ internal enum UntrackedReason : byte
     EnemyTurn,       // death-edge TqTeam read said a non-player turn was in progress
     ActedLatch,      // the acted-period latch resolved a player with no tracked weapon
     ActorRegister,   // the actor register named a player with no tracked weapon (Stamp.cs bury)
+    TurnFlags,       // LW-63: the per-unit turn flags named a player with no tracked weapon (Stamp.cs bury)
 }
 
 /// <summary>
@@ -90,6 +91,7 @@ internal sealed partial class KillTracker
         UntrackedReason.EnemyTurn => "an enemy-turn team read",
         UntrackedReason.ActedLatch => "the acted-period latch",
         UntrackedReason.ActorRegister => "the actor register",
+        UntrackedReason.TurnFlags => "the turn flags",
         _ => "an unknown resolve path",
     };
 

@@ -2427,4 +2427,116 @@ public class KillTrackerTests
         Assert.Contains(deeds.Deeds, d => d.weaponId == w && d.victim.NameId == 500);
         Assert.DoesNotContain(deeds.Deeds, d => d.weaponId == w && d.victim.NameId == 100);
     }
+
+    // ============================================================================================
+    // Turn-flags attribution (LW-63, 2026-07-11): the per-unit PSX turn flags (band +0x19C/D/E)
+    // name the acting unit structurally, closing the parked-pointer mis-credit the register-first
+    // preamble above cannot: Ramza killed with the Chaos Blade (37) while Wilham's Warbrand (67)
+    // claimed it (live tapes flight_20260710_150318 / flight_20260710_044640, docs/TODO.md LW-63).
+    // Unit-level coverage of the resolve lane itself lives in FlagOwnerResolveTests.cs; the tests
+    // below drive the full KillTracker.Poll -> ScanCorpses path.
+    // ============================================================================================
+
+    [Fact]
+    public void FlagOwner_credits_the_true_actor_over_a_parked_register()
+    {
+        // THE LW-63 REPRO, load-bearing (plan test 1). Wilham and Ramza are both fielded and
+        // armed; the engine actor pointer is parked (stable since before the period) on Wilham --
+        // exactly the geometry that mis-credited a live kill (the Chaos Blade kill claimed by
+        // Wilham's Warbrand). Ramza's per-unit turn flag (t=1) names HIM as the true actor, so
+        // the LATCH lane's flags preamble must win over the parked register and credit his
+        // weapon, never Wilham's.
+        // Non-vacuity (plan Phase 4), pinned to the LATCH lane specifically: Ramza's AActed byte
+        // deliberately stays 0 here, so the death-edge STAMP lane's stricter key (t==1 && a==1,
+        // KillerStamp's flags hypothesis) can never rescue the credit at the dead edge -- the
+        // latch preamble is the ONLY thing standing between this test and the wrong credit. With
+        // that preamble disabled, RegisterPathOpen is still satisfied (stable since tick 2,
+        // period begins tick 3+), so the parked register answers instead and this test credits
+        // Wilham's weapon: the exact live mis-credit. The stamp lane has its own dedicated pins
+        // (KillTrackerStampTests.cs's FlagsStamp_* suite). Weapon ids come from this file's own
+        // tracked set (Weapons, line ~94).
+        const int wilhamWeapon = 73, ramzaWeapon = 52;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 99, brave: 89, faith: 76, weapon: wilhamWeapon, nameId: 501);
+        SetRoster(m, slot: 3, level: 70, brave: 60, faith: 55, weapon: ramzaWeapon, nameId: 502);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76, weapon: wilhamWeapon);
+        SetUnit(m, Ramza, hp: 300, maxHp: 300, level: 70, brave: 60, faith: 55, weapon: ramzaWeapon);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);                          // tick1: register priming
+        SetFrameNameId(m, Wilham, 501);
+        PointAt(m, Wilham);
+        t.Poll(true);                          // tick2: register arrives + parks on Wilham
+
+        SetFrameNameId(m, Ramza, 502);
+        long ramzaEntry = Band.Entry(Ramza);
+        m.U8s[ramzaEntry + Offsets.ATurnFlag] = 1;   // Ramza's move/act menu is genuinely open;
+                                                     // AActed stays 0 (the latch-lane pin above)
+
+        SetActive(m, hp: 300, maxHp: 300, level: 70);   // period begins after the register's arrival
+        Settle(t);
+
+        AliveThenDead(m, slot: 4, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(ramzaWeapon));
+        Assert.False(kills.ContainsKey(wilhamWeapon));
+    }
+
+    [Fact]
+    public void Flag_owner_latch_is_not_counted_as_a_fallback_credit()
+    {
+        // Plan test 16: a flags-sourced latch is pointer-quality evidence, not a turn-queue
+        // fallback resolve -- _latchViaFallback must read false and the battle-end summary's
+        // FallbackCredits counter must not tick for a kill credited through it.
+        const int w = 52;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 50, brave: 60, faith: 70, weapon: w, nameId: 501);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 50, brave: 60, faith: 70, weapon: w);
+        SetFrameNameId(m, Wilham, 501);
+        long e = Band.Entry(Wilham);
+        m.U8s[e + Offsets.ATurnFlag] = 1;
+        var t = new KillTracker(kills, m, Weapons);
+
+        SetActive(m, hp: 352, maxHp: 352, level: 50);   // period begins; flags name Wilham directly
+        t.Poll(true);
+
+        Assert.False(t._latchViaFallback);
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(w));
+        Assert.Equal(0, t.FallbackCredits);
+    }
+
+    [Fact]
+    public void FirstKillFallback_inherits_the_flag_owner_path_during_an_open_period()
+    {
+        // Plan test 19 (D6 correction, review finding 7): mirrors the register's own V8 pin
+        // (FirstKillFallback_inherits_the_register_path_during_an_open_period above) for the
+        // flags lane -- FirstKillFallback runs on every Poll with no period gate of its own, so
+        // its shared resolve calls transparently inherit the flags preamble the instant a period
+        // opens, same doctrine as the register case.
+        const int wa = 52;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 50, brave: 60, faith: 70, weapon: wa, nameId: 501);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 50, brave: 60, faith: 70, weapon: wa);
+        SetFrameNameId(m, Wilham, 501);
+        long e = Band.Entry(Wilham);
+        m.U8s[e + Offsets.ATurnFlag] = 1;
+        var t = new KillTracker(kills, m, Weapons);
+
+        // Period begins with a PERMANENTLY unresolvable TQ tuple -- TQ alone could never latch,
+        // and no register arrival is ever seeded -- only the flags lane can answer.
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 1);
+        t.Poll(true);   // BeginActedPeriod; the flags preamble resolves Wilham immediately
+
+        Assert.Equal(wa, t.LastPlayerMainHand);
+
+        AliveThenDead(m, slot: 0, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(wa));
+    }
 }

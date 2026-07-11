@@ -39,8 +39,8 @@ public class DelayedActorTests
         m.U8s[Offsets.Acted] = (byte)acted;
     }
 
-    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon);
+    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon, int nameId = 0)
+        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, nameId: nameId);
 
     private static void SetUnit(FakeSparseMemory m, int bandSlot, int hp, int maxHp = 400,
                                 int level = 10, int brave = 50, int faith = 50)
@@ -76,6 +76,12 @@ public class DelayedActorTests
     {
         for (int i = 0; i < n; i++) t.Poll(true);
     }
+
+    private static void PointAt(FakeSparseMemory m, int bandIdx) =>
+        m.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (long)bandIdx * Offsets.CombatStride));
+
+    private static void SetFrameNameId(FakeSparseMemory m, int bandIdx, int nameId) =>
+        MemSeats.SeatFrameNameId(m, bandIdx, nameId);
 
     // --- T1: LOAD-BEARING (both directions) ---
 
@@ -354,5 +360,53 @@ public class DelayedActorTests
 
         Assert.Equal(1, kills.GetValueOrDefault(X));   // live latch X -- the fp-match guard blocked the wrong V arm
         Assert.False(kills.ContainsKey(V));             // removing the fp-match guard flips this to V=1
+    }
+
+    // --- T9 (LW-63 plan test 15): the delayed-culprit arm is fixed TRANSITIVELY (D5) -- no code
+    // change in this file's own production sibling (KillTracker.Delayed.cs). The commit-time
+    // snapshot is gated on `_lastActorFp == (this slot's fp)`; once the resolver preambles are
+    // flags-first, both _lastPlayerWeapons and _lastActorFp already name the true committer, so
+    // this test pins the transitive fix rather than any new Delayed.cs logic. ---
+
+    [Fact]
+    public void Flag_owner_jumper_overrides_a_parked_register_at_commit()
+    {
+        // A (weapon wa) is register-parked (stable since before the period) -- the pre-fix
+        // mis-credit target. B (weapon wb) holds t=1 (the true actor) and commits a Jump. The
+        // commit-time snapshot must capture B's weapon, not A's parked one.
+        const int wa = 63, wb = 52;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: wa, nameId: 601);   // A: parked target
+        SetUnit(m, PSlot, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        SetRoster(m, slot: 4, level: 99, brave: 89, faith: 76, weapon: wb, nameId: 602);   // B: jumper
+        SetUnit(m, QSlot, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);                     // tick1: register priming
+        SetFrameNameId(m, PSlot, 601);
+        PointAt(m, PSlot);
+        t.Poll(true);                     // tick2: register arrives + parks on A
+
+        SetFrameNameId(m, QSlot, 602);
+        long qEntry = Band.Entry(QSlot);
+        m.U8s[qEntry + Offsets.ATurnFlag] = 1;   // B is the TRUE actor
+        SetJumpBit(m, QSlot, set: true);          // B commits a Jump
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t, 3);   // period begins; flags name B -> latch [wb]; TrackDelayed snapshots wb on B's slot
+
+        SetEnemy(m, EnemySlot, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);   // enemy seenAlive
+
+        SetJumpBit(m, QSlot, set: false);   // Jump lands -> arms [wb]
+        t.Poll(true);
+
+        SetUnit(m, EnemySlot, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true); t.Poll(true); t.Poll(true);   // deadStreak 1->3 -- delayed [wb] wins
+
+        Assert.Equal(1, kills.GetValueOrDefault(wb));
+        Assert.False(kills.ContainsKey(wa));
     }
 }

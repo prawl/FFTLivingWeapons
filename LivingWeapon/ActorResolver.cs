@@ -39,11 +39,18 @@ internal sealed partial class ActorResolver
     private int _periodStartTick = -1;     // -1 = not currently inside an acted-period
     private bool _corpseAnchorOk = true;   // KillTracker's per-tick corpse-anchor veto (V1)
 
-    /// <summary>True when the most recent <see cref="TryResolveActingPlayer"/> credit-worthy
-    /// answer (a resolved player, tracked or not) came from the register path rather than the
-    /// turn-queue fallback -- feeds the latch log line's [actor-ptr]/[tq-fallback] source tag.
-    /// Not asserted on by any test (inventory confirmed); diagnostic only.</summary>
-    public bool LastResolveViaRegister { get; private set; }
+    /// <summary>Which path answered the most recent <see cref="TryResolveActingPlayer"/>
+    /// credit-worthy resolve (a resolved player, tracked or not): the flags lane (LW-63), the
+    /// register path, or the turn-queue fallback. Feeds the latch log line's source tag and
+    /// KillTracker's fallback-attribution counters (see ActorResolver.Flags.cs's class doc).</summary>
+    internal ResolveSource LastResolveSource { get; private set; }
+
+    /// <summary>True when the most recent resolve came from the register path specifically
+    /// (rather than the flags lane or the turn-queue fallback) -- kept for zero churn at the
+    /// three pre-existing consumer sites (ActorResolver.cs, KillTracker.cs); no test asserts on
+    /// it directly (inventory confirmed). Not equivalent to "not the turn-queue fallback" since
+    /// LW-63: a flags-sourced resolve is also not a fallback, but also not this.</summary>
+    public bool LastResolveViaRegister => LastResolveSource == ResolveSource.Register;
 
     public ActorResolver(IGameMemory mem, ISet<int> weapons, ActorRegister? register = null)
     {
@@ -92,14 +99,24 @@ internal sealed partial class ActorResolver
     public bool TryResolveActingPlayer(out List<int> weapons)
     {
         weapons = Empty;
-        LastResolveViaRegister = false;
+        LastResolveSource = ResolveSource.TqFallback;
+        // LW-63: the flags lane goes FIRST -- it names the acting unit structurally and is
+        // strictly better evidence than the register's arrival-time snapshot (D3). Any refusal
+        // (no candidate, ambiguity, capture failure, roster-bridge failure) falls straight
+        // through to the register/turn-queue chain below, unchanged.
+        if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _))
+        {
+            weapons = Hands(flagRosterBase);
+            LastResolveSource = ResolveSource.Flags;
+            return true;
+        }
         if (RegisterPathOpen)
         {
             var bridge = _register!.CurrentBridge;
             if (bridge == RosterBridge.Player)
             {
                 weapons = Hands(_register.CurrentRosterBase);
-                LastResolveViaRegister = true;
+                LastResolveSource = ResolveSource.Register;
                 return true;
             }
             if (bridge == RosterBridge.Enemy) return false;
@@ -241,6 +258,12 @@ internal sealed partial class ActorResolver
     /// commands its gift only from the main hand.</summary>
     public int ResolveActingMainHand()
     {
+        // LW-63: same flags-first preamble as TryResolveActingPlayer (see ActorResolver.Flags.cs).
+        if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _))
+        {
+            ushort flagRrHand = _mem.U16(flagRosterBase + Offsets.RRHand);
+            return _weapons.Contains(flagRrHand) ? flagRrHand : 0;
+        }
         if (RegisterPathOpen)
         {
             var bridge = _register!.CurrentBridge;
@@ -341,6 +364,15 @@ internal sealed partial class ActorResolver
     public bool TryResolveActingFingerprint(out (int lvl, int br, int fa) fp)
     {
         fp = default;
+        // LW-63: same flags-first preamble (see ActorResolver.Flags.cs). Pairs with the delayed
+        // fp-gate (KillTracker.Delayed.cs) -- returning the flags-named entry's OWN fp (not the
+        // register's) keeps TrackDelayed's `_lastActorFp == (this slot's fp)` compare truthful
+        // when the flags lane, not the register, named the committer (D5).
+        if (FlagPathOpen && TryResolveFlagOwner(out _, out long flagEntry))
+        {
+            fp = (_mem.U8(flagEntry + Offsets.ALevel), _mem.U8(flagEntry + Offsets.ABrave), _mem.U8(flagEntry + Offsets.AFaith));
+            return true;
+        }
         if (RegisterPathOpen && _register!.CurrentEntry != 0)
         {
             // The method's contract does not require a roster player -- KillTracker only calls

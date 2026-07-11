@@ -10,7 +10,7 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-63] Parked-pointer kill mis-credits the wrong living weapon** (opened 2026-07-10) [QUEUED]
+- **[LW-63] Parked-pointer kill mis-credits the wrong living weapon** (opened 2026-07-10) [BUILDING]
   - Done means: a kill credits the weapon of the unit that ACTUALLY acted, not whichever player
     the engine actor pointer is parked on at the acted edge. Live-reproduced twice on 2026-07-10:
     Ramza killed with the Chaos Blade (id 37) while Wilham's Warbrand (id 67) claimed it (tape
