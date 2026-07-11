@@ -259,6 +259,12 @@ is the in-flight subset, not a mirror of that checklist.
 - [LW-74] 2026-07-11: docs/research/PORT_1.5.md still inventories the grenade table rows (item
   ids 246-252, ability learn-names 374-378) that a5ea61e already removed from the shipped mod.
   Reconcile the doc with the current table set next time PORT_1.5.md is touched.
+- [LW-75] 2026-07-11: The coverage line effectively never reaches the console: its armed gate
+  (AnyTrackedWeaponThisBattle) rises only when a tracked-weapon wielder COMPLETES an action, and
+  the once-per-battle coverage check nearly always stabilizes first (LW-34 live pass, 14:24
+  battle: line fired 97s before the wielder's first resolved turn, so it demoted to file-only).
+  Pre-existing facelift ordering, not an LW-34 regression; the file evidence is unaffected.
+  Candidate fix: on the armed edge, promote a demoted coverage line to the console once.
 - [LW-70] 2026-07-11: A dev-build first-blood toast is swallowed when the tally resets OUT of
   battle: BannerToast baselines its tier/count snapshot at construction and DetectCrossings only
   runs in battle, so the first in-battle change after a new-game reset reads seed-3 to 1 as a
