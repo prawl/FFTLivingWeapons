@@ -10,17 +10,17 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-72] Close the remaining RELEASE_SCOPE doc-and-hygiene boxes** (opened 2026-07-11) [QUEUED]
-  - Done means: the three section-5 leftovers from the 2026-07-11 release-remainder audit are
-    closed: (1) a player-facing release note states that non-English players get full gameplay
-    (rebalance, growth, signatures) while item TEXT stays vanilla-language and the Kills/+N card
-    counter is English-only; (2) data/items.json id67 Warbrand no longer carries the dead
-    spriteIdOverride:1 (VERIFY_LIVE row 3 marks it DEAD) and the tables regenerate clean;
-    (3) docs/LOGGING.md no longer calls the removed chemist grenades "slated for eventual
-    removal" (removed a5ea61e 2026-07-05; only Treasure Master remains slated, LW-10).
-  - Verify: analyze.py exit 0 and the suite green after the regenerate; grep shows no
-    spriteIdOverride in data/items.json and no stale grenade phrasing in docs/LOGGING.md; the
-    release note reads correctly (owner eyeball before ship).
+- **[LW-69] Silence the unnecessary log output (census-evict flood + audit findings)** (opened 2026-07-11) [BUILDING]
+  - Done means: the 2026-07-11 owner-directed log audit (livingweapon.log + the flight tapes) is
+    run and its unnecessary-output findings are silenced: the two attack-card evict-for-re-census
+    DBG lines no longer flood the file (dedup or edge-gate them; they were 32,193 of the 33,911
+    lines in the LW-59 smoke session at ~875 lines/sec), the census evict/re-census thrash driving
+    that rate is understood (fixed, or ledgered if structural), and any other line class the audit
+    flags as noise is silenced or edge-gated without thinning the evidence chain (real edges,
+    errors, and credit lines stay).
+  - Verify: suite green; a fresh live session log shows no single line class dominating the file
+    and the evict pair prints only on real change edges; flight-tape vocabulary unchanged
+    (docs/LOGGING.md stays accurate).
 
 ## Backlog
 
@@ -246,12 +246,6 @@ is the in-flight subset, not a mirror of that checklist.
   REMAINING: sweep the sibling FFTHandsFree repo for its own F6 bindings (the other roughly two of
   the six).
 
-- [LW-69] 2026-07-11: The attack-card census eviction pair floods the log file (32,193 of the
-  33,911 lines in the LW-59 smoke session were the two evict-for-re-census DBG lines, bursting
-  at ~875 lines/sec; file-only so no console noise, but the evidence chain the file sink exists
-  to preserve is drowned and the rate implies evict/re-census thrashing every tick): dedup or
-  edge-gate the two lines, and look at why the census footprint churns that hard (AttackCard
-  census, LW-55 kin).
 - [LW-70] 2026-07-11: A dev-build first-blood toast is swallowed when the tally resets OUT of
   battle: BannerToast baselines its tier/count snapshot at construction and DetectCrossings only
   runs in battle, so the first in-battle change after a new-game reset reads seed-3 to 1 as a

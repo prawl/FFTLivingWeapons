@@ -8,6 +8,17 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-72] SHIPPED ba5e0fc 2026-07-11: the three section-5 doc-and-hygiene leftovers from the
+  2026-07-11 release-remainder audit are closed. The README gained a player-facing Language
+  support section (non-English players get the full gameplay: rebalance, growth, signatures;
+  item text, the equip-card Kills counter, and the in-battle toasts are English-only readouts,
+  the toast bullet added after an adversarial review pass flagged the PromptSwap
+  English-prompt dependency as a third undisclosed surface). data/items.json id67 Warbrand no
+  longer carries the dead spriteIdOverride:1 (VERIFY_LIVE row 3 marks the override DEAD;
+  ItemData.xml regenerated with only the SpriteID line gone, analyze exit 0). docs/LOGGING.md
+  no longer calls the removed chemist grenades slated for eventual removal (they left the repo
+  with the Offensive Chemist removal, a5ea61e; only Treasure Master remains slated, LW-10).
+  Owner eyeball of the release note rides the ship gate. Suite 2406 green.
 - [LW-71] SHIPPED c2965ce 2026-07-11: the Iai opening-turn Speed hold no longer false-releases
   when the engine actor pointer parks on the struck wielder before its opening turn (the
   ActorPtr-dwell trap: a parked arrival read as the S1 release signal, and the striker's acted
