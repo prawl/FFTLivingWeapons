@@ -58,6 +58,22 @@ $PreservedSaveFiles = @(
     "gunslinger.json.bak"
 )
 
+# LW-28: the post-restore existence check's pure core. A deploy once LOST preserved files
+# despite the round-trip printing success (the 17:54 launch found no kill tally; intermittent,
+# cause still unfound), so BuildLinked now compares what the backup dir HOLDS against what the
+# destination HAS after the restore and fails the deploy red on any loss. Pure over its three
+# inputs so it is testable without a deploy; "flight" stands in for the flight/ archive
+# directory, which rides the same temp dir as the file list. Callers wrap the result in @()
+# (PowerShell unwraps an empty array to $null across function returns).
+function Get-LostPreservedItems([string]$preserveDir, [string]$dest, [string[]]$files) {
+    $lost = @()
+    foreach ($f in $files) {
+        if ((Test-Path (Join-Path $preserveDir $f)) -and -not (Test-Path (Join-Path $dest $f))) { $lost += $f }
+    }
+    if ((Test-Path (Join-Path $preserveDir "flight")) -and -not (Test-Path (Join-Path $dest "flight"))) { $lost += "flight" }
+    return $lost
+}
+
 # Parked repo artifacts that must never ship. The two bloodpact nxd tables stay in the repo
 # tree for provenance (renamed *.bloodpact_parked so the game never loads them), but the
 # modloader scans every file under FFTIVC and logs a per-file "edits nex table ... which is

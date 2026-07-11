@@ -108,9 +108,12 @@ is the in-flight subset, not a mirror of that checklist.
   exists). The 17:0x deploy preserved the same files fine, so the failure is intermittent.
   Second anomaly on the same evidence: the 17:1x session flushed exit tapes at 17:37/17:41 but
   kills.json kept its 13:45 timestamp, so exit-edge tally saves may not have written that
-  session. Investigate both; add a loud post-restore existence check to BuildLinked (a deploy
-  that loses a preserved file must fail red, not print success). Owner declined tally
-  reconstruction for now (tapes and prev.log carry the counts if ever wanted).
+  session. Investigate both. The loud post-restore existence check SHIPPED 2026-07-11
+  (Get-LostPreservedItems in tools/pipeline.ps1; BuildLinked fails red before deleting the
+  backup dir, and the catch path re-restores from it), so the next occurrence fails loud with
+  the copies recoverable instead of printing success; the two investigations remain this row's
+  open work. Owner declined tally reconstruction for now (tapes and prev.log carry the counts
+  if ever wanted).
 - [LW-30] 2026-07-05: Weapon reputation in the attack-targeting pill (demoted from Now when
   LW-31 took the slot; the Abilities-menu funnel covers the in-battle identity job). If
   revived, the locked wording is "Select the target for {Mark}{Name}{suffix}." via a PromptSwap

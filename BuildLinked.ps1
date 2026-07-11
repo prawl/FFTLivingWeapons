@@ -154,8 +154,15 @@ try {
     if (Test-Path (Join-Path $preserveDir "flight")) {
         Copy-Item (Join-Path $preserveDir "flight") $dest -Recurse -Force
     }
+    # LW-28: fail RED if the round-trip lost anything, BEFORE deleting the backup dir, so the
+    # surviving copies stay recoverable in %TEMP% (and the catch path below re-restores the
+    # missing items from that same dir on its way to exit 1).
+    $lostItems = @(Get-LostPreservedItems $preserveDir $dest $PreservedSaveFiles)
+    if ($lostItems.Count -gt 0) {
+        throw "POST-RESTORE CHECK FAILED: preserved item(s) missing from ${dest}: $($lostItems -join ', '). Backup copies remain in $preserveDir."
+    }
     Remove-Item $preserveDir -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Host "  -> Restored preserved save files + flight/ archives" -ForegroundColor Green
+    Write-Host "  -> Restored preserved save files + flight/ archives (post-restore check passed)" -ForegroundColor Green
     # Record the deployed flavor so the guard above can protect the NEXT run.
     Set-Content -Path $marker -Value $flavor.ToLower() -Encoding Ascii
 
