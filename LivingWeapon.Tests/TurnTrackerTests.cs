@@ -260,6 +260,31 @@ public class TurnTrackerTests
     }
 
     [Fact]
+    public void Injected_recorder_dumps_per_slot_turn_flags_at_the_acted_edge()
+    {
+        // LW-63 diagnostic tap: at the acted rising edge every occupied band slot's PSX
+        // turn/moved/acted flags (band +0x19C/D/E) are dumped so a tape can name the TRUE actor when
+        // the engine pointer parks on another player. Two seated units, only slot 6 acted -> the
+        // "flags" line reads a1 for s6 and a0 for s5.
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        var t = new TurnTracker(m, (type, payload) => recorded.Add((type, payload)));
+        SetActive(m, 5, hp: 100, maxHp: 100, level: 20, brave: 70, faith: 50);
+        long s6 = Offsets.BandReadBase + (long)6 * Offsets.CombatStride;
+        m.U16s[s6 + Offsets.AMaxHp] = 80; m.U16s[s6 + Offsets.AHp] = 80;
+        m.U8s[s6 + Offsets.ALevel] = 15; m.U8s[s6 + Offsets.ABrave] = 60; m.U8s[s6 + Offsets.AFaith] = 40;
+        m.U8s[s6 + Offsets.AActed] = 1;   // slot 6 acted; slot 5 did not
+
+        Acted(m, 1); t.Poll();
+
+        var flags = recorded.Find(r => r.type == "turn" && r.payload.StartsWith("flags "));
+        Assert.NotNull(flags.payload);
+        Assert.Contains("s6:", flags.payload);
+        Assert.Contains("a1", flags.payload);            // slot 6's acted flag is high
+        Assert.Matches(@"s5:\d+ t0m0a0", flags.payload);  // slot 5 present, all flags low
+    }
+
+    [Fact]
     public void Pointer_credits_despite_garbage_turn_queue()
     {
         // Pointer names s1; the TQ level is seeded 199 (the observed +100 flake, live 2026-07-01)
