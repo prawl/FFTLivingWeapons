@@ -10,6 +10,27 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
+- **[LW-46] Reword the Galewind card to shippable semantics** (opened 2026-07-07) [BUILDING]
+  - Done means: data/items.json id 9 p3Desc drops the false "No Lucavi" clause (IsDominatable is
+    allow-everyone by design; the carve-out alternative would need live verification and stays
+    unbuilt), the grid CSV row moves in lockstep, generate.py outputs and the item.en.nxd rebake
+    land together, and RELEASE_SCOPE section 2 plus the smoke plan's 3.2 row reflect the reword.
+    The "3-turn cooldown" wording stays: PuppeteerCooldownTurns=4 global turns means the dominate
+    turn plus 3 turns it cannot fire, which is what a player reads as a 3-turn cooldown.
+  - Verify: analyze.py exit 0 (incl. the p3 grid-lockstep gate); suite green; the in-game card
+    eyeball rides SMOKE_TEST_2.3.0.md row 3.2 (restart-only data).
+- **[LW-22] Pluralize the launch header's count lines** (opened 2026-07-05) [BUILDING]
+  - Done means: the Engine launch-header save lines pluralize their counts (no more "1 Marks";
+    same treatment for the kills/weapons counts in the same two lines), and the LOGGING.md launch
+    header example stops showcasing the bad grammar.
+  - Verify: a failing-first unit test pins the singular forms; suite green.
+- **[LW-74] Reconcile PORT_1.5.md with the post-grenade table set** (opened 2026-07-11) [BUILDING]
+  - Done means: the PORT_1.5.md table inventory no longer lists the grenade ItemData rows
+    246-252, the removed ItemConsumableData.xml, or the ability.en.nxd grenade learn-names
+    374-378 (all removed with the Offensive Chemist, a5ea61e); a dated note records the
+    reconciliation.
+  - Verify: suite green (DocsContractTests link scan); a grep of PORT_1.5.md finds no live
+    grenade-row inventory claims.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
