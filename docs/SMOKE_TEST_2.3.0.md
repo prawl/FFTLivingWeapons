@@ -30,10 +30,11 @@ instead of re-running is the owner's call, made per row, not wholesale.
 - **Flight tapes flush on battle EDGES.** To bank a tape, END the battle (win, lose, flee); a hard
   process kill loses the in-memory ring. Never kill-and-deploy to "check" a flight; Alt-Tab out,
   the file is already on disk once the edge fired. Read tapes with `python tools/parse_flight.py`.
-- **After every deploy, eyeball preservation.** The restore lines must appear AND the files must
+- **After every deploy, eyeball preservation.** The restore line must appear AND the files must
   exist under the Reloaded `User/Mods/prawl.fft.livingweapons` folder (`kills.json`,
   `legends.json`, `gunslinger.json`, `flight/`). One deploy lost preserved files intermittently
-  (LW-28, open backlog); there is no loud post-restore check yet, so the eyeball is the check.
+  (LW-28, open backlog); BuildLinked now fails RED on a lost preserved item (post-restore check,
+  backup copies kept in %TEMP%), so a green deploy plus the eyeball is belt and suspenders.
 - **Unexplainable weirdness: bisect the mod list FIRST** (docs/DEV_TEST_RECIPES.md, step zero)
   before blaming this repo. Harness cheats (give_all_items, WP bump, give_move, kill_all) and the
   signature-grant ACTIVE check also live in that doc.
@@ -188,9 +189,9 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   UNCREDITED BY DESIGN (LW-56: the stand-in units are structurally unbridgeable to the roster;
   "no kills were credited" there is correct, not a regression). The first REAL battle afterwards
   credits kill number 1. A Continue load must NOT trip the reset (the detector needs the opener
-  dialogue held, not a one-frame event dip). Dev-build caveat while eyeballing toasts: after an
-  out-of-battle reset a dev build can swallow the first-blood toast (LW-70); prod is safe.
-  **[BLOCKER]**
+  dialogue held, not a one-frame event dip). If run on a DEV build: the first post-reset kill
+  SHOULD now toast (the LW-70 re-baseline fix); a missing first-blood toast there is a real
+  regression, no longer a known quirk. **[BLOCKER]**
 - [ ] 6.2 **Save files live update-safe (LW-51/LW-29).** kills.json, legends.json, gunslinger.json
   sit under Reloaded `User/Mods/prawl.fft.livingweapons`, NOT the deploy folder, so a 2.2.2 to
   2.3.0 mod update cannot wipe them. **[MAJOR]**
@@ -325,8 +326,9 @@ Debug/file tier only.
 
 - **LW-7 auto-battle turn-count collapse:** turn COUNTING can still collapse under auto-battle
   (credit is safe post-LW-63); affects diagnostics, not tallies. Backlog.
-- **LW-28 intermittent preservation loss:** the round-trip usually holds; the loud post-restore
-  check is not built yet. Eyeball every deploy (0. Read first).
+- **LW-28 intermittent preservation loss:** the round-trip usually holds, and BuildLinked now
+  fails red on a lost preserved item (backup copies kept in %TEMP%); the loss cause itself is
+  still uninvestigated. Eyeball every deploy anyway (0. Read first).
 - **LW-42 dead slot0 excuses:** a long cast at mode 1/5 could accumulate the exit debounce and
   false-exit (row 4.6 is the watch); re-anchor is backlog.
 - **LW-39 fingerprint twins:** two party units at identical level + HP/MaxHP make the Attack-card
