@@ -30,6 +30,23 @@ is the in-flight subset, not a mirror of that checklist.
     fielded credits the correct weapon on the exit tape, and the acted-flag record reads that
     unit's slot with a1 at the killing edge.
 
+- **[LW-59] Stale +N name suffix survives the new-game tally reset** (opened 2026-07-10) [BUILDING]
+  - Done means: after an in-session new-game playthrough reset, no equip-card surface shows a
+    pre-reset kill count. Two live passes pinned the culprit: the Kills meter repaints from the
+    live tally (read "Kills: 0/1 to +" correctly post-reset) but the +N NAME-SUFFIX painter never
+    un-paints a suffix it wrote earlier, so the card read "Claymore+3" (3 = the DEV seed floor)
+    over a provably empty tally, and the LW-56 forced battle-exit Display.Invalidate did not cure
+    it. The fix makes the suffix surface downgrade-capable: when the live tally names a lower
+    tier (including tier 0, vanilla name) than what is painted at a site, the painter restores
+    the vanilla name instead of leaving the stale suffix, and PlaythroughReset forces that
+    repaint over every kill-count surface it knows about.
+  - Verify: unit tests pin that a painted suffix site whose weapon drops to a lower tier (and to
+    tier 0) gets repainted to the vanilla name, and that the pool scan registers a suffix site
+    for every tracked id so the reset repaint reaches all of them (IGameMemory-backed fakes,
+    non-vacuity by break-and-restore); live, an in-session New Game then opening the equip card
+    shows the plain weapon name with a fresh Kills meter (owner eyeball, folds into the LW-60
+    smoke plan).
+
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
@@ -190,20 +207,6 @@ is the in-flight subset, not a mirror of that checklist.
   worktree feature/body-double-spawn). Open polish: AI-passivity (behavior row), decoy-hold default,
   and shipping any of it as a real player mechanic (LW-64 Mirror Image / LW-65 teleport / LW-66
   remove-restore track the shippable slices).
-- [LW-59] 2026-07-10: A stale kill count survives the in-session new-game tally reset on the
-  equip-card surface: in the reset opener the owner read 3 kills for Ramza's Claymore while the
-  tally was provably empty (the LW-51 reset had archived kills.2.json, and the battle's first
-  credit logged as kill number 1), and 3 is exactly the pre-reset DEV seed floor, so a painted
-  line (the equip-card Kills meter, the LW-37 pool text, or the +N name suffix) outlived the
-  reset. The LW-37 pool repaint ran post-reset (02:45:01, 701 sites) yet the viewed card still
-  read 3; determine which painter holds the stale text and make PlaythroughReset force a repaint
-  of every kill-count surface.
-  2026-07-10 second live pass (the LW-56 verify session, ~04:57): question one is ANSWERED. On
-  the post-reset opener's equip card the owner read "Claymore+3" (wrong, 3 = the DEV seed floor)
-  while the Kills meter on the same card read "Kills: 0/1 to +" (correct, fresh tally), so the
-  stale surface is the +N NAME-SUFFIX painter specifically: the meter repaints from the live
-  tally but the suffix is never un-painted when the tally resets beneath it. The LW-56 forced
-  battle-exit (which runs Display.Invalidate on the edge) fired that run and did not cure it.
 - [LW-60] 2026-07-10: Author the 2.3.0 release Smoke Test Plan: one owner live pass gathering
   every deferred check before ship (the LW-55 auto-battle gate-B premise, the LW-51 Tier-1 reset
   eyeball on a real cold-launch New Game, the Reliquary Phase 1 live pass, plus whatever

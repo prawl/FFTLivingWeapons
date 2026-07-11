@@ -316,6 +316,13 @@ internal sealed class Engine
         bool newGame = _playthroughReset.Observe(eventId, battleMode, inLive);
         if (newGame && _battle.In)
             ModLogger.Event(LogVerb.BattleEnd, "A new game was detected while battle state was still live; forcing the battle exit edge to flush stale attribution state.");
+        // LW-59: a main-menu New Game (no battle live at reset) fires no Exited edge below
+        // (BattleState's In==false branch cannot return Exited), so it never reached
+        // _display.Invalidate() otherwise, leaving stale painted suffix bytes in the equip-card
+        // pool for the freshly-cleared tally to inherit. Invalidate unconditionally here: Observe
+        // returns true exactly once per detection, Invalidate is idempotent, and the mid-battle
+        // case's forced-exit edge below also invalidates the same tick, harmlessly.
+        if (newGame) _display.Invalidate();
         // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks), UNLESS forceExit
         // fires (LW-56: a detected new game bypasses the debounce entirely). nowIn is sticky through
         // mid-battle dips, flipping only on the debounced or forced edges.

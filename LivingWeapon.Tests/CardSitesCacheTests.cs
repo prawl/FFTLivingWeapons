@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using LivingWeapon;
 using Xunit;
 
@@ -220,5 +221,36 @@ public class CardSitesCacheTests
 
         sites.Clear();
         Assert.Equal(0, sites.Count);
+    }
+
+    // ─── LW-59 D2: cap sanity, sized off the live tape ────────────────────────
+
+    /// <summary>Sizing derivation: ~701 live kills sites observed on the 2026-07-10 tape
+    /// (docs/CHANGELOG.md LW-37 row) across 121 tracked ids is about 5.8 pool copies per id;
+    /// 121 ids x 2 site kinds (kills + suffix) x 8-copy headroom (rounded up from the observed
+    /// ~5.8) is the bound MaxSites must clear so the LW-59 all-ids suffix pass is never refused
+    /// at the cap.</summary>
+    [Fact]
+    public void MaxSites_covers_every_meta_id_at_both_site_kinds_with_headroom()
+    {
+        int metaIdCount = MetaLoader.Load(RepoLivingWeaponDir()).Count;
+        Assert.True(CardSites.MaxSites >= metaIdCount * 2 * 8,
+            $"MaxSites ({CardSites.MaxSites}) must cover {metaIdCount} ids x 2 site kinds x 8-copy headroom");
+    }
+
+    /// <summary>Walk up from the test bin dir to the repo root (same idiom as
+    /// TodoContractTests.RepoRoot), then return its LivingWeapon/ dir (meta.json is
+    /// git-tracked, so this reads the committed 121-id bake, not a build artifact).</summary>
+    private static string RepoLivingWeaponDir()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            if (File.Exists(Path.Combine(dir.FullName, "docs", "TODO.md")) &&
+                Directory.Exists(Path.Combine(dir.FullName, "LivingWeapon")))
+                return Path.Combine(dir.FullName, "LivingWeapon");
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("repo root (docs/TODO.md + LivingWeapon/) not found above the test bin dir");
     }
 }

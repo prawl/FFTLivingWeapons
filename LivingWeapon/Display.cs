@@ -177,7 +177,10 @@ internal sealed partial class Display
         if (!(_poolPaint && MaybePoolPaint()))
         {
             long budget = inBattle ? BudgetInBattle : BudgetOutOfBattle;
-            _sweep.Tick(budget, OnChunk);
+            // allSuffixes stays false here (LW-59): the 33ms engine loop's per-chunk perf
+            // contract is unchanged for the whole-heap sweep, pinned by
+            // DisplayPoolPaintTests.Sweep_path_still_limits_suffix_search_to_targets_plus_rotation.
+            _sweep.Tick(budget, (buf, lookback, searchable, bufBaseAddr) => OnChunk(buf, lookback, searchable, bufBaseAddr, allSuffixes: false));
         }
 
         // Log once per generation completion so the log captures each full scan. Generation 1
@@ -201,17 +204,23 @@ internal sealed partial class Display
     // ─── private helpers ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Called by the sweep for every offered chunk.  Discovers kills and suffix sites,
-    /// registers them, then paints ONLY the newly-registered sites (not the full cache)
-    /// to avoid an O(all-sites) verify storm on every hit chunk.  PaintAll is reserved
-    /// for the count-change path in Tick where a known stale value must be pushed everywhere.
+    /// Called by the sweep (or the pool path, Display.PoolPaint.cs) for every offered chunk.
+    /// Discovers kills and suffix sites, registers them, then paints ONLY the newly-registered
+    /// sites (not the full cache) to avoid an O(all-sites) verify storm on every hit chunk.
+    /// PaintAll is reserved for the count-change path in Tick where a known stale value must
+    /// be pushed everywhere.
     ///
-    /// Suffix coverage: the target set is always included; a rotation slice of ids that had
-    /// kills hits in this chunk is added on top (see <see cref="SuffixRotation"/> for the
-    /// per-ID coverage-cycle policy) so successive chunks and passes cycle through all ids
-    /// -- no chunk has to wait for a new generation.
+    /// Suffix coverage: the target set is always included. When <paramref name="allSuffixes"/>
+    /// is false (the whole-heap sweep), a rotation slice of ids that had kills hits in this
+    /// chunk is added on top (see <see cref="SuffixRotation"/> for the per-ID coverage-cycle
+    /// policy) so successive chunks and passes cycle through all ids, no chunk has to wait for
+    /// a new generation. When true (the pool path, LW-59), every tracked id is searched instead
+    /// of just the rotation slice: the pool's suffix bytes can go stale independent of the
+    /// tally reset (SuffixRotation's own coverage set survives Display.Invalidate, by design,
+    /// so a rotation slice cannot be trusted to heal every id within one reset), and painting
+    /// one small pool chunk is cheap relative to the whole-heap sweep it replaces.
     /// </summary>
-    private void OnChunk(byte[] buf, int lookback, int searchable, long bufBaseAddr)
+    private void OnChunk(byte[] buf, int lookback, int searchable, long bufBaseAddr, bool allSuffixes)
     {
         var killsHits = new List<CardScanner.KillsHit>();
         CardScanner.FindKills(buf, lookback, searchable, _pats, killsHits, _stories?.Anchors);
@@ -220,10 +229,14 @@ internal sealed partial class Display
         var hitIds = new HashSet<int>();
         foreach (var h in killsHits) hitIds.Add(h.Id);
 
-        // Suffix pass: targets UNION a rotation slice of ids that had kills hits.
+        // Suffix pass: targets UNION either every tracked id (pool path) or a rotation slice
+        // of ids that had kills hits (sweep path).
         var suffixIds = new HashSet<int>(_lastTargets);
         if (hitIds.Count > 0)
-            suffixIds.UnionWith(_rotation.Take(hitIds, _lastTargets));
+        {
+            if (allSuffixes) suffixIds.UnionWith(_meta.Keys);
+            else suffixIds.UnionWith(_rotation.Take(hitIds, _lastTargets));
+        }
 
         var suffixHits = new List<CardScanner.SuffixHit>();
         CardScanner.FindSuffixes(buf, lookback, searchable, _pats, suffixIds, suffixHits);
