@@ -29,8 +29,7 @@ public class Mod : IMod
     /// <summary>IModV2 route: Reloaded-II 2.4.0 prefers StartEx when present; controllers
     /// (IReloadedHooks from reloaded.sharedlib.hooks) are only resolvable here, never in the
     /// constructor (mirrors FFTHandsFree.Mod). Fail-soft: without hooks the production
-    /// banner-toast callout delivery (and the dev-only ShowSpike chase instrument) degrade;
-    /// everything else runs.</summary>
+    /// banner-toast callout delivery degrades; everything else runs.</summary>
     public void StartEx(IModLoaderV1 loaderApi, IModConfigV1 modConfig)
     {
         StartEngine();

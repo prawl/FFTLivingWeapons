@@ -204,14 +204,13 @@ is the in-flight subset, not a mirror of that checklist.
   playthroughs still share one kills.json (the shipped Tier-1 reset only archives on a detected
   NEW GAME, bf351db), so key the tally files to a save identity if cross-contamination proves a
   real problem in play; deliberately deferred out of LW-51.
-- [LW-64] 2026-07-10: Remove every service bound to the F6 test key (owner directive; he counts
-  about six F6 users): in this repo four dev spikes share F6 by deliberate collision per their
-  class docs (AttackCardSpike, HeaderSpike, FlavorSpike, and ShowSpike's prompt-swap arm plus its
-  F6 dismiss). Remove the spike services and their Engine.cs wiring (fields at Engine.cs:61-63 and
-  their tick calls) rather than rebinding; the pickup session decides whether ShowSpike (which also
-  holds F2/F4/F5 research taps) dies whole or only sheds F6. Audit the probe-text feeders
-  (AttackCardProbeText, HeaderProbeText, FlavorProbeText) and ScanCursor for spike-only usage in
-  the same pass, and sweep FFTHandsFree for its own F6 bindings to account for the rest of the six.
+- [LW-64] 2026-07-10: Remove every service bound to the F6 test key (owner directive, about six F6
+  users). DONE in this repo: the four dev spikes (AttackCardSpike, HeaderSpike, FlavorSpike, and
+  ShowSpike deleted whole) plus their Engine wiring, the spike-only feeders (HeaderProbeText,
+  FlavorProbeText) and their tests are gone; AttackCardProbeText and ScanCursor/RegionCursor were
+  KEPT because the production Attack-card painter (AttackCard / AttackCard.Census) consumes them.
+  REMAINING: sweep the sibling FFTHandsFree repo for its own F6 bindings (the other roughly two of
+  the six).
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

@@ -50,7 +50,7 @@ internal sealed class CardSites
     /// <summary>Number of sites in the cache.</summary>
     public int Count => _sites.Count;
 
-    /// <summary>Dev-probe (FlavorSpike, P4) + test accessor: a point-in-time copy of the cached sites.</summary>
+    /// <summary>Test accessor (DisplayMaintenanceTests): a point-in-time copy of the cached sites.</summary>
     internal List<Site> Snapshot() => new(_sites);
 
     /// <summary>Clear the cache and reset the prune rate-limit.</summary>
