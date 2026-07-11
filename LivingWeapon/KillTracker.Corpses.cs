@@ -251,13 +251,54 @@ internal sealed partial class KillTracker
                 continue;
             }
 
-            // alive-edge: credit only on alive->dead transition; a frozen twin is never alive here
-            if (!_identityAlive.TryGetValue(id, out bool wasAlive) || !wasAlive)
+            // alive-edge: credit only on alive->dead transition; a frozen twin is never alive here.
+            // LW-65: split PRESENT-false from ABSENT. PRESENT-false means the identity already
+            // resolved this battle (credited OR no-credit) or a simultaneous same-tuple mirror
+            // clone: keep blocking. ABSENT means the alive-edge was stamped under a DIFFERENT
+            // maxHp than this death (drift between :155's mark and this tuple, guaranteed by
+            // :182/:183 to share lvl/br/fa) -- a real, uncredited enemy death, not a duplicate.
+            if (_identityAlive.TryGetValue(id, out bool wasAlive))
             {
-                _deadCredited[s] = true;
-                ModLogger.Warn(LogVerb.Kill, $"Blocked a duplicate credit: an enemy with an identity already credited died again at battle slot {s}.");
-                _recorder?.Invoke("kill", $"no-credit slot={s} reason=duplicate-identity-already-credited");
-                continue;
+                if (!wasAlive)
+                {
+                    _deadCredited[s] = true;
+                    ModLogger.Warn(LogVerb.Kill, $"Blocked a repeat credit: an enemy whose identity was already resolved this battle died again at battle slot {s}.");
+                    _recorder?.Invoke("kill", $"no-credit slot={s} reason=identity-already-resolved");
+                    continue;
+                }
+                // wasAlive == true: normal creditable path; fall through below.
+            }
+            else
+            {
+                // ABSENT: LW-65 orphaned alive-edge. Guaranteed seen-alive (:182) and
+                // oracle-confirmed (above); repair the belt and credit from THIS slot's own
+                // death-edge stamp only. Deliberately does NOT consult the global delayed-culprit
+                // latch (ConsumeDelayedCulprit): that belongs to a charged action mid-flight, and
+                // an orphan scanned at a lower slot index must not steal it from its real victim.
+                // A stamped no-credit verdict (_lethalUntracked) IS still honored here.
+                _recorder?.Invoke("kill", $"orphan-alive-edge slot={s} mhp={mhp}");
+                _identityAlive[id] = true;   // repair the orphaned edge for any later revive/re-death
+                if (_lethalUntracked[s] != UntrackedReason.None)
+                {
+                    _deadCredited[s] = true; _pending[s] = false;
+                    var vs0 = _victimAtEdge[s];
+                    string fellPhrase0 = VictimClass.FellPhrase(vs0.Has, vs0.Job, vs0.Undead);
+                    string fallenNoun0 = fellPhrase0.StartsWith("an ") ? fellPhrase0.Substring(3) : fellPhrase0.Substring(2);
+                    ModLogger.Event(LogVerb.Kill, $"The fallen {fallenNoun0} at battle slot {s} was slain by a player carrying no Living Weapon; the kill is deliberately left uncredited (actor resolved via {ResolveSourcePhrase(_lethalUntracked[s])}).");
+                    _recorder?.Invoke("kill", $"no-credit slot={s} reason=untracked-weapon via={_lethalUntracked[s]}");
+                    continue;
+                }
+                var orphanCulprit = _lethalActor[s] ?? _lastPlayerWeapons;
+                if (orphanCulprit.Count > 0)
+                {
+                    bool orphanViaFallback = _lethalActor[s] != null ? _lethalViaFallback[s] : _latchViaFallback;
+                    _deadCredited[s] = true;
+                    if (CreditKill(s, gx, gy, orphanCulprit, orphanViaFallback)) { _identityAlive[id] = false; changed = true; }
+                    continue;
+                }
+                // No culprit stamped yet: the belt is now repaired, so fall through to the shared
+                // pending/credit machinery below, which treats this as an ordinary seen-alive
+                // corpse from here on.
             }
 
             // Prefer the delayed actor (snapshotted at commit, armed at landing) when available.
@@ -296,8 +337,13 @@ internal sealed partial class KillTracker
                 bool viaFallback = delayed == null && (_lethalActor[s] != null ? _lethalViaFallback[s] : _latchViaFallback);
                 bool c = CreditKill(s, gx, gy, culprit, viaFallback);
                 _deadCredited[s] = true;
-                _identityAlive[id] = false;   // dead now; no re-credit until revived
-                if (c) changed = true;
+                // LW-65/D2/B5: only burn the shared alive-edge when a credit actually landed.
+                // A fully-refused credit (no live wielder) tallies nothing, so the identity was
+                // NOT resolved for crediting purposes; leaving the edge true lets a later genuine
+                // same-tuple wielder-backed kill still credit. Unlike the :276 (untracked-weapon)
+                // and :318 (expired-unresolved) no-credit paths, this one neither adjudicated a
+                // killer nor exhausted the search, so it alone gets the guard.
+                if (c) { _identityAlive[id] = false; changed = true; }
             }
             else if (!_pending[s])
             {

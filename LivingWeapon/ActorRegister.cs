@@ -10,6 +10,24 @@ using System;
 /// of the kill-attribution plan).</summary>
 internal enum RosterBridge { Player, Enemy, Unknown }
 
+/// <summary>Outcome of the canonical-signature rescue (LW-56 fault 2), reached only when
+/// <see cref="RosterBridge"/>'s own nameId+stat loop finds ZERO matches. <see cref="NotRun"/>: the
+/// rescue never ran this transition (the nameId loop already resolved, or the pointer is idle).
+/// <see cref="NotCanonical"/>: not the scripted signature, the ordinary authoritative-enemy case.
+/// Neither is recorded in the flight tap. The rest are the rescue's own verdicts, each recorded:
+/// <see cref="OracleEnemy"/> (the identity tuple was captured as enemy-side at battle start,
+/// refused before either key runs). Then the fingerprint key: <see cref="Unique"/> (accepted),
+/// <see cref="WpnMismatch"/> (a unique fingerprint match whose hands disagree with the band
+/// weapon, terminal, never falls through), <see cref="Ambiguous"/> (more than one fingerprint
+/// match, terminal). Then, only on a ZERO-fingerprint-match fall-through, the weapon key (round 2):
+/// <see cref="WeaponUnique"/> (accepted), <see cref="WeaponAmbiguous"/> (more than one row holds
+/// the band weapon within drift), <see cref="NoMatch"/> (neither key found anything, or the band
+/// weapon itself is unarmed).</summary>
+internal enum RescueOutcome
+{
+    NotRun, NotCanonical, OracleEnemy, Unique, WpnMismatch, Ambiguous, WeaponUnique, WeaponAmbiguous, NoMatch
+}
+
 /// <summary>
 /// Tick-driven ownership tracker for the engine's own actor pointer (<see cref="Offsets.ActorPtr"/>,
 /// resolved via <see cref="Band.ActorEntry"/>). Feeds <see cref="ActorResolver"/>'s register-first
@@ -67,6 +85,12 @@ internal sealed partial class ActorRegister
     // Flight recorder tap (optional; null/no-op default keeps every existing test green
     // unmodified). KillTracker wires this to Flight.Record when it constructs the register.
     private readonly Action<string, string>? _recorder;
+    // LW-56 A1: the oracle-exclusion clause's truth source. Null (every pre-round-2 call site,
+    // and every test that omits it) means the clause is OFF: RescueCanonical runs exactly as it
+    // did before this was wired. KillTracker passes a lambda over its own EnemyOracle so a
+    // canonical entry whose identity was captured as enemy-side at battle start is refused before
+    // either rescue key runs.
+    private readonly Func<(int lvl, int br, int fa, int maxHp), bool>? _isOracleEnemy;
 
     /// <summary>Monotonically-incrementing tick counter, one per <see cref="Update"/> call.</summary>
     public int Tick { get; private set; }
@@ -82,6 +106,10 @@ internal sealed partial class ActorRegister
     public long CurrentRosterBase { get; private set; }
     /// <summary>The roster-bridge classification captured at the current owner's arrival.</summary>
     public RosterBridge CurrentBridge { get; private set; } = RosterBridge.Unknown;
+    /// <summary>The fingerprint rescue's outcome for the current owner's arrival (LW-56 fault 2);
+    /// NotRun whenever the nameId+stat loop already resolved. Reset at the top of every transition
+    /// and by <see cref="ResetBattle"/>.</summary>
+    internal RescueOutcome CurrentRescue { get; private set; } = RescueOutcome.NotRun;
 
     /// <summary>The nameId of the most recent Player-bridged arrival (see <see cref="LastPlayerArrivalTick"/>
     /// for the freshness contract KillerStamp gates on). Untouched by an Enemy-bridged arrival or an
@@ -94,10 +122,12 @@ internal sealed partial class ActorRegister
     /// gates its hypothesis on this being STRICTLY newer than the latch's own resolve tick.</summary>
     public int LastPlayerArrivalTick { get; private set; }
 
-    public ActorRegister(IGameMemory mem, Action<string, string>? recorder = null)
+    public ActorRegister(IGameMemory mem, Action<string, string>? recorder = null,
+                          Func<(int lvl, int br, int fa, int maxHp), bool>? isOracleEnemy = null)
     {
         _mem = mem;
         _recorder = recorder;
+        _isOracleEnemy = isOracleEnemy;
     }
 
     /// <summary>Ticks since the current owner's arrival. NOTE: KillTracker's corpse anchor no
@@ -117,6 +147,7 @@ internal sealed partial class ActorRegister
         CurrentNameId = 0;
         CurrentRosterBase = 0;
         CurrentBridge = RosterBridge.Unknown;
+        CurrentRescue = RescueOutcome.NotRun;
         _primed = false;
         _prevEntry = 0;
         LastPlayerNameId = 0;
@@ -141,6 +172,7 @@ internal sealed partial class ActorRegister
 
         if (entry != _prevEntry)
         {
+            CurrentRescue = RescueOutcome.NotRun;   // reset before Bridge (or an idle arrival) runs
             CurrentEntry = entry;
             ArrivalTick = Tick;
             Trusted = entry != 0;
@@ -176,7 +208,15 @@ internal sealed partial class ActorRegister
             }
             // Pointer-transition tap (on-change only -- Update() only reaches here when the
             // pointer actually moved): old entry, new entry, and the freshly-resolved nameId.
-            _recorder?.Invoke("actor", $"pointer transition 0x{_prevEntry:X} -> 0x{entry:X} nameId={CurrentNameId} bridge={CurrentBridge}");
+            // LW-56 round 2: a rescue-judged transition also carries the outcome, the fp it
+            // judged (read live off CurrentFp), and the raw band weapon read (wpn=, never
+            // normalized: a sentinel rides through as 0xFF/0xFFFF, not 0). The filter is a
+            // NEGATIVE list (not NotRun/NotCanonical) on purpose: a future outcome added to the
+            // enum is tapped by default instead of silently dropped.
+            string rescueTap = CurrentRescue is not (RescueOutcome.NotRun or RescueOutcome.NotCanonical)
+                ? $" rescue={CurrentRescue} fp=L{CurrentFp.lvl}B{CurrentFp.br}F{CurrentFp.fa} wpn={_mem.U16(entry + Offsets.AWeapon)}"
+                : "";
+            _recorder?.Invoke("actor", $"pointer transition 0x{_prevEntry:X} -> 0x{entry:X} nameId={CurrentNameId} bridge={CurrentBridge}{rescueTap}");
         }
         _prevEntry = entry;
     }

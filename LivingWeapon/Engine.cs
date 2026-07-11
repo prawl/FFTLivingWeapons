@@ -363,6 +363,12 @@ internal sealed class Engine
                 _turns.GlobalTurns, LogNames.Weapon, Tuning.TierFor);
             ModLogger.EventWithTrace(LogVerb.BattleEnd, summary,
                 $"battle-end sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
+            // LW-56 D11/A3: re-emit the identity census on the exit edge, unconditionally, before
+            // ResetBattleState()/the flight flush. The enter-side census (KillTracker.Poll,
+            // behind the oracle coverage-done latch) can miss an entire battle when coverage never
+            // completes, so the exit edge is the reliable place a census always lands on tape.
+            // Covers the normal AND the LW-56 forced exit alike (both return Exited here).
+            _tracker.EmitExitCensus();
             ResetBattleState();
             _tally.Save();               // flush on battle end
             _legends.SaveIfDirty();      // Reliquary: mirrors kills.json's battle-exit save timing

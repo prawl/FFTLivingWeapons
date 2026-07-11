@@ -193,8 +193,12 @@ The moving parts:
   incident: an in-session New Game that never fires an ordinary battle-exit edge, so a stale
   per-battle attribution latch could otherwise carry a credit into the next battle). Flight taps
   it per refused weapon as `"kill"` type, `reason=no-live-wielder weapon=<id>`, alongside the
-  existing `not-tracked-enemy` / `duplicate-identity-already-credited` / `untracked-weapon` /
-  `expired-unresolved` no-credit reasons (KillTracker.Corpses.cs).
+  existing `not-tracked-enemy` / `identity-already-resolved` (renamed from
+  `duplicate-identity-already-credited`: LW-65 -- the old wording was wrong whenever the prior
+  resolution was a no-credit, not a real credit) / `untracked-weapon` / `expired-unresolved`
+  no-credit reasons (KillTracker.Corpses.cs). A same-tuple death whose alive-edge was orphaned by
+  maxHp drift (a real, uncredited enemy death, not a duplicate) instead breadcrumbs
+  `orphan-alive-edge slot=<s> mhp=<mhp>` and falls through to the normal credit path.
 - **Unarmed battles are silent**: coverage lines, pending corpses, and kill expiries demote to
   Debug when no Living Weapon is fielded (the relevance gate), so a no-mod-weapons battle prints
   only the two bookends.
@@ -236,13 +240,28 @@ not "align" them.
 **What gets captured (on-change only -- never a per-tick state dump):** battle enter/exit edges
 and battle-mode changes (Engine); the event timeline (BattleLog's `event: damage/healing/move`
 lines, dual-emitted alongside the `[trace]` file sink under the flight type `"ev"`); turn-clock
-rising/falling edges and per-unit turn credit (TurnTracker); the engine actor-pointer's ownership
-transitions (ActorRegister); the acting-player weapon latch and every corpse credit/no-credit
+rising/falling edges and per-unit turn credit (TurnTracker; LW-63 TEMPORARY diagnostic: each acted
+rising edge also emits a `"turn"` record `flags s{slot}:{nameId} t{turn}m{moved}a{acted} ...` dumping
+every occupied band slot's PSX turn/moved/acted flags at band +0x19C/D/E, so a tape names the true
+actor when the pointer parks on another player; remove when LW-63 ships); the engine actor-pointer's ownership
+transitions (ActorRegister; LW-56: a zero-nameId-match transition may additionally carry the
+canonical-signature rescue's outcome, the fp it judged, and the raw band weapon it read,
+`rescue=OracleEnemy/Unique/WpnMismatch/Ambiguous/WeaponUnique/WeaponAmbiguous/NoMatch
+fp=L{level}B{brave}F{faith} wpn={weapon}` (the enum literals verbatim; `wpn=` is the RAW u16 band
+weapon read, sentinels included, never normalized to 0); the acting-player weapon latch and every corpse credit/no-credit
 verdict, including the pending edge, and (LW-56) a stale attribution latch refused for having no
-live wielder on the field (`reason=no-live-wielder`) (KillTracker); the once-per-battle band+roster
-identity census (`"census"`, BattleCensus, Reliquary P2 probe): band entries as
-`s{slot}:{nameId}/{job}`, roster entries as `{slot}:{nameId}L{level}` (e.g. `0:1L99`; LW-56 added
-the level so a stale roster is visible on tape by both fields together, not nameId alone);
+live wielder on the field (`reason=no-live-wielder`) (KillTracker); the band+roster identity census
+(`"census"`, BattleCensus, Reliquary P2 probe): fired once coverage completes (behind an
+armed/fired latch), then RE-EMITTED unconditionally on the battle-exit edge (LW-56 round 2) so
+every exit tape carries a fresh census even on a battle where coverage never completed and the
+enter-side census never fired; a battle where both fire produces two census records. Band entries
+read `s{slot}:{nameId}/{job}`, roster entries read
+`{slot}:{nameId}L{level}B{brave}F{faith}W{rHand},{lHand},{offHand}` (e.g.
+`0:1L99B89F76W80,65535,65535`; LW-56 added level, then brave+faith, so a stale roster is visible on
+tape by all four fields together, not nameId alone, and so a fingerprint rescue's fp can be
+cross-checked against the roster row a tape names; round 2 added the raw hand ids, sentinels
+included exactly as memory held them, so the weapon-key rescue's `wpn=` field can be cross-checked
+against the exact row it claims to have matched);
 tier-up/milestone toast enqueue and drop (BannerToast); toast delivery into the facing prompt
 (PromptSwap); the Reliquary deed taps (`mark-earned`/`deed-miss`); the fingerprint guard's own
 lifecycle (`"guard"`, LaunchGuard):
