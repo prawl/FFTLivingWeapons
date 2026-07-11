@@ -24,6 +24,17 @@ is the in-flight subset, not a mirror of that checklist.
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
 
+- **[LW-34] Fix the enemy coverage line's systematic over-count** (opened 2026-07-05) [BUILDING]
+  - Done means: the "All N enemies are accounted for" line counts the enemies actually fielded
+    this battle (owner repro: "All 8" in a 4-enemy battle; wrong in EVERY battle per the
+    2026-07-09 escalation; "All 10" on the 2026-07-11 08:31 tape whose exit census shows band
+    slots 14-17 co-tiled with 10-13, so phantom seats are in the count); the over-count source
+    in EnemyOracle's array capture (stale slots, phantom or reserve seats, or identity drift)
+    is identified from tape and log evidence and excluded; kill credit and the CoverageDone
+    gate (BattleCensus's trigger) keep their semantics.
+  - Verify: suite green; a live battle's coverage line matches the visible enemy count (owner
+    eyeball); no new unseen-enemy warnings on ordinary battles.
+
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
@@ -96,13 +107,6 @@ is the in-flight subset, not a mirror of that checklist.
   doubling the +N system; the record-first architecture defers that question (candidate
   anti-doubling rule on the table: a Mark requires PLURALITY of kills, not raw count).
   Supersedes/absorbs the Phase 1 legends.json shape when picked up; ties to LW-6.
-- [LW-34] 2026-07-05: The coverage line over-counts enemies ("All 8 enemies are accounted for"
-  in a 4-enemy battle; owner report, log 22:43). Attribution itself was flawless that battle
-  (all 4 kills credited cleanly, correct battle-end summary), so likely the EnemyOracle is
-  counting band MIRROR-seat clones as distinct identities (or hidden/reinforcement units).
-  Investigate: dump the oracle's identity set against the census in one battle; cosmetic
-  unless the count gates something. Escalated 2026-07-09 (owner report): the count is wrong in
-  EVERY battle (e.g. "All 11 enemies are accounted for"), so this is systematic, not a one-off.
 - [LW-28] 2026-07-05: A BuildLinked deploy LOST kills.json and legends.json despite the
   preservation round-trip (the 17:54 launch logged "No kill tally was found on disk"; the 82
   kill tally and the Beastbane Mark were gone; the %TEMP% livingweapon_preserve dir no longer
