@@ -24,7 +24,7 @@ is the in-flight subset, not a mirror of that checklist.
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
 
-- **[LW-34] Fix the enemy coverage line's systematic over-count** (opened 2026-07-05) [BUILDING]
+- **[LW-34] Fix the enemy coverage line's systematic over-count** (opened 2026-07-05) [AWAITING-LIVE]
   - Done means: the "All N enemies are accounted for" line counts the enemies actually fielded
     this battle (owner repro: "All 8" in a 4-enemy battle; wrong in EVERY battle per the
     2026-07-09 escalation; "All 10" on the 2026-07-11 08:31 tape whose exit census shows band
@@ -252,6 +252,13 @@ is the in-flight subset, not a mirror of that checklist.
   REMAINING: sweep the sibling FFTHandsFree repo for its own F6 bindings (the other roughly two of
   the six).
 
+- [LW-73] 2026-07-11: The flight census band records carry no hp/position/CT, so tapes cannot
+  self-diagnose phantom-seat classes on their own (the LW-34 over-count mining needed the raw
+  file log alongside the flight tapes to tell a phantom seat from a real one). Widen the census
+  band record with those fields when the census format is next touched.
+- [LW-74] 2026-07-11: docs/research/PORT_1.5.md still inventories the grenade table rows (item
+  ids 246-252, ability learn-names 374-378) that a5ea61e already removed from the shipped mod.
+  Reconcile the doc with the current table set next time PORT_1.5.md is touched.
 - [LW-70] 2026-07-11: A dev-build first-blood toast is swallowed when the tally resets OUT of
   battle: BannerToast baselines its tier/count snapshot at construction and DetectCrossings only
   runs in battle, so the first in-battle change after a new-game reset reads seed-3 to 1 as a

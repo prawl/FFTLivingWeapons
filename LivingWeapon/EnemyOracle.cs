@@ -16,8 +16,17 @@ namespace LivingWeapon;
 /// array is live at battle start; a restart freezes it but the capture already happened;
 /// post-restart reinforcements are a logged, accepted gap).
 ///
-/// COVERAGE CHECK: once per battle, logs band-vs-array identity coverage for RE validation
-/// (pure logging; retries on an interval until it passes cleanly).
+/// COVERAGE CHECK (LW-34, tape-evidenced 2026-07-11): the array capture above ALSO picks up
+/// conditional-spawn phantom identities the encounter defines but never fields; they carry sane
+/// stats, full HP, and real tiles, so no field-sanity filter can tell them from a real enemy.
+/// Only SCHEDULER PARTICIPATION discriminates. So the once-per-battle coverage line counts only
+/// EVIDENCED identities: captured ids fed by KillTracker.Corpses.cs's band walk via
+/// <see cref="MarkFielded"/> (CT slam or turn-flag participation, debounced) and
+/// <see cref="MarkDead"/> (a corpse was definitionally fielded), never every captured array
+/// identity. Never-evidenced ids are silently excluded from both the total and the line, logged
+/// only as a Debug count. Pure logging; retries on an interval until it passes cleanly. Mid-battle
+/// walk-in reinforcements arriving AFTER the line has latched are not re-counted (it prints once
+/// per battle, unchanged), but they still enter <see cref="_enemyIds"/> normally and credit fine.
 /// </summary>
 internal sealed class EnemyOracle
 {
@@ -25,6 +34,14 @@ internal sealed class EnemyOracle
 
     private readonly IGameMemory _mem;
     private readonly HashSet<(byte lvl, byte br, byte fa, ushort mhp)> _enemyIds = new();
+    // LW-34: additive evidence sets fed by KillTracker.Corpses.cs's band walk. An id in EITHER
+    // set counts toward coverage; an id in neither is a never-scheduled phantom, excluded from
+    // the total entirely (see the class doc).
+    private readonly HashSet<(byte lvl, byte br, byte fa, ushort mhp)> _fielded = new();
+    private readonly HashSet<(byte lvl, byte br, byte fa, ushort mhp)> _died = new();
+    // The fielded-evidence total from the PREVIOUS CheckCoverage call (0 = none yet). A clean
+    // pass only latches when it agrees with this; see CheckCoverage's doc comment.
+    private int _prevTotal;
 
     private int _coveragePollsLeft = CoverageInterval;
     private bool _coverageDone;
@@ -49,14 +66,31 @@ internal sealed class EnemyOracle
     /// <summary>True when the identity was captured from an enemy-side array slot.</summary>
     public bool Contains((byte lvl, byte br, byte fa, ushort mhp) id) => _enemyIds.Contains(id);
 
-    /// <summary>True once <see cref="CheckCoverage"/> has confirmed every captured enemy identity
-    /// is visible in the band -- the once-per-battle "kill: all N enemies accounted for" edge.
-    /// Read-only exposure for BattleCensus's fire trigger (docs/RELIQUARY_AC.md P2).</summary>
+    /// <summary>LW-34 evidence: KillTracker.Corpses.cs calls this once a band seat's scheduler
+    /// participation (CT slam nonzero or turn flag ==1) has held for its 3-tick debounce, with
+    /// the realPos filter already applied by the caller. Additive; harmless on an id this oracle
+    /// never captured (e.g. a player's own fingerprint), since CheckCoverage only ever
+    /// intersects this set against <see cref="_enemyIds"/>.</summary>
+    public void MarkFielded((byte lvl, byte br, byte fa, ushort mhp) id) => _fielded.Add(id);
+
+    /// <summary>LW-34 evidence: KillTracker.Corpses.cs calls this at a slot's dead-edge stamp (a
+    /// corpse was definitionally fielded), independent of <see cref="MarkFielded"/> so a
+    /// credited kill still counts as evidenced even if the corpse later crystallizes or becomes
+    /// a chest and leaves the band before the next coverage check.</summary>
+    public void MarkDead((byte lvl, byte br, byte fa, ushort mhp) id) => _died.Add(id);
+
+    /// <summary>True once <see cref="CheckCoverage"/> has confirmed every EVIDENCED captured
+    /// enemy identity is visible in the band (or died): the once-per-battle "kill: all N enemies
+    /// accounted for" edge. Read-only exposure for BattleCensus's fire trigger
+    /// (docs/RELIQUARY_AC.md P2).</summary>
     public bool CoverageDone => _coverageDone;
 
     public void ResetBattle()
     {
         _enemyIds.Clear();
+        _fielded.Clear();
+        _died.Clear();
+        _prevTotal = 0;
         _coveragePollsLeft = CoverageInterval;
         _coverageDone = false;
         _warnedUnseen.Clear();
@@ -90,39 +124,70 @@ internal sealed class EnemyOracle
         }
     }
 
-    /// <summary>Coverage invariant: each captured array identity must appear as a valid band
-    /// entry. Pure logging. Marks itself done once the check passes cleanly.</summary>
+    /// <summary>True when a captured identity is currently visible as a valid band entry.</summary>
+    private bool BandVisible((byte lvl, byte br, byte fa, ushort mhp) id)
+    {
+        for (int s = 0; s < Offsets.BandSlots; s++)
+        {
+            long addr = Band.Entry(s);
+            if (!Band.IsValid(_mem, addr)) continue;
+            if (_mem.U8(addr + Offsets.ALevel) == id.lvl &&
+                _mem.U8(addr + Offsets.ABrave) == id.br &&
+                _mem.U8(addr + Offsets.AFaith) == id.fa &&
+                _mem.U16(addr + Offsets.AMaxHp) == id.mhp) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Coverage invariant (LW-34 v2): only EVIDENCED captured identities (MarkFielded
+    /// or MarkDead, see the class doc) count toward total/found; a never-evidenced id is a
+    /// never-scheduled phantom, excluded entirely (logged only as a Debug count on the latching
+    /// pass). A MarkDead id counts as found unconditionally (a credited corpse may legitimately
+    /// leave the band). A MarkFielded-only id must still be band-visible; if not, the reworded
+    /// unseen Warn fires (deduped).
+    ///
+    /// LATCH STABILITY: because evidence comes FROM the same band walk this check reads, a clean
+    /// pass is nearly self-satisfying, so latching on the very first one would freeze a partial
+    /// count while evidence is still arriving. The pass only LATCHES (prints the Info line, sets
+    /// <see cref="_coverageDone"/>) when found == total, total &gt; 0, AND total matches the
+    /// PREVIOUS check's total: two consecutive checks agreeing. A changed total (evidence grew)
+    /// updates the remembered total and defers to the next retry with no line printed; total == 0
+    /// defers silently (no "All 0" line).</summary>
     private void CheckCoverage()
     {
-        int total = 0, found = 0;
+        int total = 0, found = 0, excluded = 0;
         foreach (var id in _enemyIds)
         {
+            bool fielded = _fielded.Contains(id);
+            bool died = _died.Contains(id);
+            if (!fielded && !died) { excluded++; continue; }   // never-scheduled phantom
             total++;
-            bool seen = false;
-            for (int s = 0; s < Offsets.BandSlots; s++)
-            {
-                long addr = Band.Entry(s);
-                if (!Band.IsValid(_mem, addr)) continue;
-                if (_mem.U8(addr + Offsets.ALevel) == id.lvl &&
-                    _mem.U8(addr + Offsets.ABrave) == id.br &&
-                    _mem.U8(addr + Offsets.AFaith) == id.fa &&
-                    _mem.U16(addr + Offsets.AMaxHp) == id.mhp) { seen = true; break; }
-            }
-            if (seen) found++;
-            else if (_warnedUnseen.Add(id))
+            if (died) { found++; continue; }   // a corpse may legitimately leave the band afterward
+            if (BandVisible(id)) { found++; continue; }
+            if (_warnedUnseen.Add(id))
             {
                 // A real Warning now (was Info with an embedded "WARN" token), deduped to once
                 // per identity per battle; the fingerprint numerics ride a Debug companion.
-                _slog.Warn("An enemy counted before the battle has not appeared on the field; its kills may go uncredited.");
+                _slog.Warn("A fielded enemy is no longer visible in the battle band; its kills may go uncredited.");
                 ModLogger.Debug(LogVerb.Trace, $"unseen-enemy detail (level={id.lvl} brave={id.br} faith={id.fa} maximum hit points={id.mhp})");
             }
         }
+
+        if (total == 0) return;   // nothing evidenced yet: defer silently, retry
+
+        bool stableTotal = total == _prevTotal;
+        _prevTotal = total;
+
         if (found == total)
         {
+            if (!stableTotal) return;   // the fielded count just grew: wait for one more agreeing pass
             _slog.Info($"All {total} enemies are accounted for; kill credit will be reliable this battle.");
+            ModLogger.Debug(LogVerb.Trace, $"coverage detail: {excluded} captured identities excluded as never-scheduled");
             _coverageDone = true;
+            return;
         }
-        else if (!_coverageFailLogged)
+
+        if (!_coverageFailLogged)
         {
             _coverageFailLogged = true;
             _slog.Info($"Only {found} of {total} enemies are accounted for so far; kill credit may be unreliable this battle.");

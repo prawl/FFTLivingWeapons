@@ -39,12 +39,19 @@ internal sealed partial class KillTracker
 {
     private const int AliveNeeded = 3;  // consecutive valid alive ticks before seenAlive is set
     private const int DeadNeeded = 3;   // consecutive dead ticks before a credit attempt
+    private const int FieldEvidenceNeeded = 3;  // LW-34: consecutive qualifying ticks before MarkFielded
 
     // per-slot state (band slot index = 0..BandSlots-1)
     private readonly bool[] _seenAlive = new bool[Offsets.BandSlots];
     private readonly bool[] _deadCredited = new bool[Offsets.BandSlots];
     private readonly int[] _aliveStreak = new int[Offsets.BandSlots];
     private readonly int[] _deadStreak = new int[Offsets.BandSlots];
+    // LW-34 evidence feed: per-seat consecutive-tick streak of scheduler participation (CT slam
+    // nonzero or turn flag ==1, real position only) feeding EnemyOracle.MarkFielded. Debounced
+    // the same 3-tick way as _aliveStreak/_deadStreak so a single load transient cannot
+    // permanently poison a phantom seat as fielded. Reset on IsValid-fail and in
+    // ResetBattleCorpses.
+    private readonly int[] _fieldEvidenceStreak = new int[Offsets.BandSlots];
     private readonly (byte lvl, byte br, byte fa)[] _slotId = new (byte, byte, byte)[Offsets.BandSlots];
     // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the victim identity snapshot captured at THIS
     // slot's dead-edge (deadStreak 0->1), via the shared VictimReader.Read -- the same guarded
@@ -102,6 +109,7 @@ internal sealed partial class KillTracker
         Array.Clear(_deadCredited, 0, _deadCredited.Length);
         Array.Clear(_aliveStreak, 0, _aliveStreak.Length);
         Array.Clear(_deadStreak, 0, _deadStreak.Length);
+        Array.Clear(_fieldEvidenceStreak, 0, _fieldEvidenceStreak.Length);
         Array.Clear(_slotId, 0, _slotId.Length);
         Array.Clear(_lethalActor, 0, _lethalActor.Length);
         Array.Clear(_lethalUntracked, 0, _lethalUntracked.Length);
@@ -121,7 +129,7 @@ internal sealed partial class KillTracker
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long addr = Band.Entry(s);
-            if (!Band.IsValid(_mem, addr)) { _aliveStreak[s] = 0; _deadStreak[s] = 0; continue; }
+            if (!Band.IsValid(_mem, addr)) { _aliveStreak[s] = 0; _deadStreak[s] = 0; _fieldEvidenceStreak[s] = 0; continue; }
 
             ushort hp = _mem.U16(addr + Offsets.AHp);
             int gx = _mem.U8(addr + Offsets.AGx);
@@ -134,7 +142,28 @@ internal sealed partial class KillTracker
             bool deadBit = (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0;
             bool isDead = hp == 0 || deadBit;
 
-            if (onField) _events?.Observe(s, hp, mhp, gx, gy, _actorTag);
+            if (onField)
+            {
+                _events?.Observe(s, hp, mhp, gx, gy, _actorTag);
+
+                // LW-34 evidence feed: scheduler participation (CT slam nonzero or turn flag ==1,
+                // LW-63 raw-byte semantics: never treat a flag as a plain boolean) with the
+                // realPos filter (Band.FlagOwner's D2b precedent) so a frozen (0,0) mirror's
+                // stale evidence can never poison a phantom seat. Phantom seats carry sane
+                // stats, full HP, and real tiles (tape-evidenced 2026-07-11); only scheduler
+                // participation discriminates them from a real enemy.
+                byte slam = _mem.U8(addr + Offsets.ACtSlam);
+                byte tflag = _mem.U8(addr + Offsets.ATurnFlag);
+                if ((slam != 0 || tflag == 1) && (gx != 0 || gy != 0))
+                {
+                    if (++_fieldEvidenceStreak[s] >= FieldEvidenceNeeded)
+                        _oracle.MarkFielded((lvl, br, fa, mhp));
+                }
+                else
+                {
+                    _fieldEvidenceStreak[s] = 0;
+                }
+            }
 
             if (!isDead)
             {
@@ -192,6 +221,7 @@ internal sealed partial class KillTracker
             {
                 _victimProbe.CaptureDeadEdge(s, addr);   // P1 probe: log-only, zero behavioral dependence
                 _victimAtEdge[s] = VictimReader.Read(_mem, addr);   // Reliquary: the behavioral capture CreditKill consumes
+                _oracle.MarkDead((lvl, br, fa, mhp));   // LW-34 evidence: a corpse was definitionally fielded
                 // Read TqTeam at the death EDGE so it captures the team at the moment of death
                 // (it may flip a few ticks later). Divert ONLY on a confident non-player team
                 // (1=enemy, 2=ally/guest) -- any other value (0=player, garbage, or unreadable
