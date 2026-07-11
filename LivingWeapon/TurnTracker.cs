@@ -75,7 +75,6 @@ internal sealed class TurnTracker
             // line naming Larceny read as "Larceny spam" even with no Arcanum fielded. The per-unit turn
             // line below is generic and only logs when an actor is identified.)
             _recorder?.Invoke("turn", $"acted rising edge -- global turn #{GlobalTurns}");
-            EmitTurnFlags();
             bool viaPointer = TryActiveViaPointer(out var fp);
             if (viaPointer || TryActiveFingerprint(out fp))
             {
@@ -114,24 +113,4 @@ internal sealed class TurnTracker
     /// green, proving parity).</summary>
     private bool TryActiveFingerprint(out (int, int, int) fp)
         => Band.ActiveOwner(_mem, out fp, out _);
-
-    /// <summary>LW-63 diagnostic tap (TEMPORARY, remove when LW-63 ships): at the acted rising edge,
-    /// dump every occupied band slot's PSX turn/moved/acted flags (band +0x19C/D/E,
-    /// Offsets.ATurnFlag/AMoved/AActed) to the flight tape, reusing the "turn" record type with a
-    /// "flags " payload. This lets a tape name the TRUE actor even when the engine actor pointer
-    /// parks on another player (the LW-63 attribution collapse). Reads only; no attribution rides
-    /// this, so it changes no behavior when the recorder is null (tests) or absent.</summary>
-    private void EmitTurnFlags()
-    {
-        if (_recorder == null) return;
-        var parts = new List<string>();
-        for (int s = 0; s < Offsets.BandSlots; s++)
-        {
-            long a = Band.Entry(s);
-            if (!Band.IsValid(_mem, a)) continue;
-            ushort nid = _mem.Readable(a + Offsets.ANameId, 2) ? _mem.U16(a + Offsets.ANameId) : (ushort)0;
-            parts.Add($"s{s}:{nid} t{_mem.U8(a + Offsets.ATurnFlag)}m{_mem.U8(a + Offsets.AMoved)}a{_mem.U8(a + Offsets.AActed)}");
-        }
-        _recorder.Invoke("turn", "flags " + string.Join(" ", parts));
-    }
 }

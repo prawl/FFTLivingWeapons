@@ -10,29 +10,26 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-63] Parked-pointer kill mis-credits the wrong living weapon** (opened 2026-07-10) [BUILDING]
-  - Done means: a kill credits the weapon of the unit that ACTUALLY acted, not whichever player
-    the engine actor pointer is parked on at the acted edge. Live-reproduced twice on 2026-07-10:
-    Ramza killed with the Chaos Blade (id 37) while Wilham's Warbrand (id 67) claimed it (tape
-    flight_20260710_150318, owner eyewitness on the killing blow), and the 04:44 Kiku-vs-Warbrand
-    tape flight_20260710_044640. Both collapse the whole battle onto one latch and one fingerprint
-    (99/89/76) while the real killer never latches: the pointer parks on the other player (a
-    mirror-seat unit is the sticky target), so the live latch, the death-edge stamp, and the
-    global delayed-culprit arm all carry the stale weapon. Kin to LW-7 (turn-count collapse) and
-    NOT caught by the LW-56 no-live-wielder gate (both weapons are fielded; the gate checks
-    existence, not who acted). The fix must cover all THREE credit sources and key the
-    acted-period resolve on the per-unit PSX turn flags (band +0x19C/D/E, proven live, Offsets
-    provenance) which name the acting unit structurally, instead of trusting the parked pointer.
-    An acted-flag flight tap shipped 0f360a1 to capture the disambiguator on the next 2-unit tape.
-    First field evidence landed 2026-07-11 (tape flight_20260711_033132): at two killing edges
-    the flags record named the true turn owner while the actor-pointer credit fingerprint
-    matched no roster unit, and the death-edge stamp's corrected credit agreed with the flags
-    tap both times; the canonical two-unit repro is still wanted before building.
-  - Verify: unit tests pin that the acted-period resolve names the unit whose per-unit acted flag
-    rose, not the parked pointer, across all three credit sources (IGameMemory fake, non-vacuity by
-    break-and-restore); live, a two-unit battle where one unit lands a kill while the other is
-    fielded credits the correct weapon on the exit tape, and the acted-flag record reads that
-    unit's slot with a1 at the killing edge.
+- **[LW-71] Iai's Speed-hold release trusts the parked actor pointer** (opened 2026-07-11) [BUILDING]
+  - Done means: the Iai opening-turn Speed hold releases only when it is actually the wielder's
+    own turn, not whenever the engine actor pointer arrives at (or sits parked on) the wielder's
+    frame. Both release paths (Iai.Policy.cs ReleaseSignal S1 arrival and S2 acted-edge match,
+    plus the identity twin ReleaseSignalById) are exposed to the ActorPtr dwell: the pointer
+    parks on STRUCK units, so an enemy striking the wielder before its opening turn reads as an
+    arrival, and the striker's acted edge can fire S2 while the pointer still names the victim
+    (the same collapse LW-63 fixed for kill credit; Ame-no-Murakumo is the affected weapon).
+    Harden by corroborating with the per-unit PSX turn flags (band +0x19C, the LW-63 primitive,
+    proven in auto-battle): a readable t==1 on the wielder confirms the release, a readable t==0
+    refuses it, and an indeterminate read (battle-opening all-zero flags) falls through to the
+    legacy signal so release is never starved (the wall-clock cap stays the backstop). This is
+    the unchecked RELEASE_SCOPE section-2 harden box, and closes the surviving half of the
+    section-5 falsified pointer-presence deletion (the Puppeteer half died with e882799).
+  - Verify: unit tests pin (IGameMemory fake, non-vacuity by break-and-restore) that a pointer
+    arrival at a struck wielder whose turn flag reads 0 does NOT release, that a real turn-open
+    arrival with the flag at 1 does, and that an all-zero flags read preserves today's legacy
+    behavior on both release paths; live, a battle where the Ame-no-Murakumo wielder is struck
+    before its opening turn keeps the Speed hold until the wielder's own turn (owner eyeball,
+    may ride the LW-60 smoke pass).
 
 ## Backlog
 
@@ -272,6 +269,13 @@ is the in-flight subset, not a mirror of that checklist.
   the {5,25,50} curve cannot be jumped in one change); fix is a dev-verification nicety:
   re-baseline BannerToast on the reset detection edge so a future dev smoke does not misread a
   missing toast as a regression.
+- [LW-72] 2026-07-11: Close the remaining RELEASE_SCOPE doc-and-hygiene boxes surfaced by the
+  2026-07-11 release-remainder audit: author the non-English-players release note (full gameplay,
+  item text stays vanilla-language, the Kills/+N card counter is English-only), drop the dead
+  spriteIdOverride:1 from id67 Warbrand in data/items.json (VERIFY_LIVE row 3 already marks it
+  DEAD; regenerate plus gates), and correct the stale docs/LOGGING.md line still calling the
+  removed chemist grenades "slated for eventual removal" (removed a5ea61e 2026-07-05; only
+  Treasure Master remains slated, LW-10).
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

@@ -8,6 +8,25 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-63] SHIPPED be0e4cc 2026-07-11: a kill no longer credits whichever living weapon the engine
+  actor pointer happens to be parked on (the 2026-07-10 repro: Ramza killed with the Chaos Blade
+  while Wilham's fielded Warbrand claimed it, the pointer parked on the wrong player). All three
+  credit sources (the live latch, the death-edge stamp, and the global delayed-culprit arm) now
+  key the acted-period resolve on the per-unit PSX turn flags (band +0x19C/D/E): Band.FlagOwner
+  walks real-position candidates for exactly one turn-open flag reading 1 and refuses on ambiguity
+  (mirror-seat twins stay harmless under the real-position guard); ActorResolver gained
+  flags-first preambles (the latch keys on t==1, the stamp on t==1 && a==1, matching the live
+  observation that the per-unit a byte lags the global acted edge); KillerStamp gained a
+  flags-first hypothesis lane whose bury stamps read UntrackedReason.TurnFlags. The flag bytes
+  are not boolean (moved reads raw 3), so every key tests ==1; battle-opening acted edges can
+  read all-zero flags, so every low-confidence outcome falls through to the register/turn-queue
+  chain unchanged (that fall-through is load-bearing), and the delayed-culprit arm was fixed
+  transitively (test-pinned, no code change). Owner live-verified 2026-07-11 on two tapes: a
+  manual two-unit battle with the pointer parked on an enemy frame for 3.3 minutes credited the
+  true killer (latch src=turn-flags), and an auto-battle credited all five kills correctly,
+  proving the flags rise under auto-battle (direct LW-7 fuel). Merged 23429c9; suite 2394 green.
+  The exit commit removes the temporary TurnTracker.EmitTurnFlags flight tap, its test pin, and
+  its LOGGING.md passage.
 - [LW-59] SHIPPED fbf59ce 2026-07-11: a stale +N name suffix no longer survives the in-session
   new-game tally reset on the equip card (owner read "Claymore+3" over a provably empty tally
   while the same card's Kills meter correctly read "0/1 to +"). Root cause was a coverage hole,

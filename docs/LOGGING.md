@@ -240,10 +240,7 @@ not "align" them.
 **What gets captured (on-change only -- never a per-tick state dump):** battle enter/exit edges
 and battle-mode changes (Engine); the event timeline (BattleLog's `event: damage/healing/move`
 lines, dual-emitted alongside the `[trace]` file sink under the flight type `"ev"`); turn-clock
-rising/falling edges and per-unit turn credit (TurnTracker; LW-63 TEMPORARY diagnostic: each acted
-rising edge also emits a `"turn"` record `flags s{slot}:{nameId} t{turn}m{moved}a{acted} ...` dumping
-every occupied band slot's PSX turn/moved/acted flags at band +0x19C/D/E, so a tape names the true
-actor when the pointer parks on another player; remove when LW-63 ships); the engine actor-pointer's ownership
+rising/falling edges and per-unit turn credit (TurnTracker); the engine actor-pointer's ownership
 transitions (ActorRegister; LW-56: a zero-nameId-match transition may additionally carry the
 canonical-signature rescue's outcome, the fp it judged, and the raw band weapon it read,
 `rescue=OracleEnemy/Unique/WpnMismatch/Ambiguous/WeaponUnique/WeaponAmbiguous/NoMatch
