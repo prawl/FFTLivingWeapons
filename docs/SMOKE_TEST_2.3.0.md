@@ -96,15 +96,11 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
 - [ ] 3.1 **Own-turn release (LW-5, re-confirm).** A +3 Galewind hit dominates the struck enemy;
   the player gets full menu control of it on ITS next turn; it releases after that turn, not on
   the wielder's clock (file: "Puppet control ended after the enemy took its turn"; the flight
-  tape records reason=own-turn). Note: docs/RELEASE_SCOPE.md section 2's committed-behavior
-  paragraph predates this landing (the stretch shipped as LW-5); the 8.8 sweep corrects it.
-  **[MAJOR]**
-- [ ] 3.2 **Card text matches shipped behavior (LW-46, DECIDE BEFORE SHIP).** The card currently
-  reads "Turns a struck enemy into your puppet for its full turn. No Lucavi; 3-turn cooldown."
-  but IsDominatable allows everyone (a Lucavi CAN be puppeted) and the shipped cooldown is 4
-  global turns. Either build the Lucavi carve-out or reword the card (and check the cooldown
-  wording in the same pass); this box flips only when the shipped card and the shipped behavior
-  agree. Data change = restart-only + patch_names re-bake. **[BLOCKER]**
+  tape records reason=own-turn). **[MAJOR]**
+- [ ] 3.2 **Reworded card renders (LW-46, restart-only).** The Galewind card's +3 block now reads
+  "Turns a struck enemy into your puppet for its full turn. 3-turn cooldown." (the false "No
+  Lucavi" clause was dropped to match the allow-everyone gate; a Lucavi CAN be puppeted, by
+  design). Eyeball the card on a restarted game: new text, fits the box, no clipping. **[MAJOR]**
 - [ ] 3.3 **Cooldown + single puppet.** A second dominate within the cooldown window does not arm;
   only one puppet at a time. **[MINOR]**
 
@@ -300,9 +296,9 @@ Debug/file tier only.
 - [ ] 8.7 **Version + tag:** ModVersion 2.2.2 to 2.3.0 in mod/ModConfig.json; matching v2.3.0 tag
   cut; mod description current. **[BLOCKER]**
 - [ ] 8.8 **Ledger + scope hygiene at ship:** docs/RELEASE_SCOPE.md boxes all ticked (several are
-  done-but-unticked as of authoring) and its section-2 committed-behavior paragraph corrected to
-  the shipped own-turn release (see 3.1); docs/TODO.md Now items exited to the changelog via
-  owner flips (LW-69, LW-60); VERIFY_LIVE row 1 flipped (7.17). **[MAJOR]**
+  done-but-unticked as of authoring; the section-2 prose was corrected to the shipped own-turn
+  release when LW-46 landed); docs/TODO.md Now items exited to the changelog via owner flips
+  (LW-69, LW-60); VERIFY_LIVE row 1 flipped (7.17). **[MAJOR]**
 
 ---
 

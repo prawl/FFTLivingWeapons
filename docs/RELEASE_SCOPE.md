@@ -39,11 +39,13 @@ Tuning is DONE and analyze.py-green; the work is the one open signature slot (Ki
 - [x] Clean DEV redeploy before ANY katana live test (orphaned Zanshin DLL may still be deployed).
 
 ### 2. Galewind / Puppeteer expiry (BLOCKER) -- ship with fallback
-Committed behavior (verified 2026-07-04, Puppeteer.Hold.cs): puppet releases on the GALEWIND
-WIELDER's next turn (TurnTracker wielder-clock; wielderless fallback = 12 GlobalTurns; 4-turn
-cooldown; NO wall-clock cap). Wrong clock -- between dominate and the wielder's next turn a fast
-enemy puppet can act more than once. The approved fallback is therefore ~already the shipped
-behavior; the guaranteed-shippable path is a card match.
+Shipped behavior (LW-5, e882799, owner live-verified 2026-07-07; supersedes the wielder-clock
+paragraph this section carried at lock time): the puppet releases after taking ITS OWN turn
+(TurnQueue acted rising-falling edge on the puppet's seat; GlobalTurns cap backstop; 4-global-turn
+cooldown), so the stretch goal below LANDED, via a different mechanism than the AREC recon it
+proposed. The card reword shipped as LW-46 (the false "No Lucavi" clause dropped; "for its full
+turn" became accurate with the own-turn release). Boxes stay for the owner sweep
+(docs/SMOKE_TEST_2.3.0.md row 8.8).
 - [ ] **Round-7 recon (STRETCH):** instrument-only build reading the AREC kind byte (band +0x184
       +0xA) + naming-span durations + puppet gx/gy on the puppet's OWN seat; ONE cleanly-ended
       battle. If it yields a reliable per-puppet-turn release -> land it (verify live first).

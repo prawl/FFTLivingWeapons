@@ -7,7 +7,7 @@
 6,3,low,Main Gauche,Sanguine Gauche,Knife,Shop,6,(PA+Sp)/2 x WP,50%,PA,Absorb HP (drain),PA +10%,PA +20%,PA +30% + Defense Boost,Reduces physical damage taken.,Forces the Defense Boost support ability into the wielder's support-ability slot.
 7,4,—,Orichalcum Dirk,Adamant Fang,Knife,Shop,12,(PA+Sp)/2 x WP,5%,PA,—,PA +10%,PA +20%,PA +30%,,
 8,4,low,Assassin's Dagger,Mortal Coil,Knife,Shop,8,(PA+Sp)/2 x WP,15%,PA,May inflict Doom,PA +10%,PA +20%,PA +30% + Attack Boost,Raises physical attack while the wielder is below half HP.,Forces the Attack Boost support ability into the wielder's support-ability slot.
-9,5,high,Air Knife,Galewind,Knife,Shop,10,(PA+Sp)/2 x WP,5%,PA,—,PA +10%,PA +20%,PA +30% + Puppeteer,Turns a struck enemy into your puppet for its full turn. No Lucavi; 3-turn cooldown.,
+9,5,high,Air Knife,Galewind,Knife,Shop,10,(PA+Sp)/2 x WP,5%,PA,—,PA +10%,PA +20%,PA +30% + Puppeteer,Turns a struck enemy into your puppet for its full turn. 3-turn cooldown.,
 10,6,high,Zwill Straightblade,Zwill Straightblade,Knife,Poach (Plague Horror),12,(PA+Sp)/2 x WP,10%,PA,May inflict Sleep,PA +10%,PA +20%,PA +30% + Bloodthirst,Grants another turn whenever the wielder scores a kill.,
 11,2,low,Ninja Blade,Swiftfang,Ninja Blade,Shop,4,Speed-scaled (f99),15%,Speed,—,Speed +5%,Speed +10%,Speed +15%,,
 12,3,med,Kunai,Mistedge,Ninja Blade,Shop,9,(PA+Sp)/2 x WP,10%,PA,Reach 2 (strike from a tile back),PA +10%,PA +20%,PA +30%,,
