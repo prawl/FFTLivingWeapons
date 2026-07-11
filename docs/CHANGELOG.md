@@ -8,6 +8,11 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-22] SHIPPED c7104b9 2026-07-11: the launch header's save lines pluralize their counts (no
+  more "1 Marks"; the kills/weapons counts in the same two lines got the same treatment). The
+  two lines moved into a pure LaunchHeader composer riding BattleSummary.Plural so five
+  failing-first tests pin the singular, plural, and zero forms, and the LOGGING.md launch-header
+  example that faithfully showcased the bad grammar reads "1 Mark" now. Suite 2431 green.
 - [LW-74] SHIPPED c494faa 2026-07-11: PORT_1.5.md's Appendix E inventory reconciled with the
   post-Offensive-Chemist table set: the grenade ItemData rows 246-252, the removed
   ItemConsumableData.xml, and the ability.en.nxd grenade learn-names 374-378 (all gone since

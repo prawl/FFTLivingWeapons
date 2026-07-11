@@ -19,11 +19,6 @@ is the in-flight subset, not a mirror of that checklist.
     turn plus 3 turns it cannot fire, which is what a player reads as a 3-turn cooldown.
   - Verify: analyze.py exit 0 (incl. the p3 grid-lockstep gate); suite green; the in-game card
     eyeball rides SMOKE_TEST_2.3.0.md row 3.2 (restart-only data).
-- **[LW-22] Pluralize the launch header's count lines** (opened 2026-07-05) [BUILDING]
-  - Done means: the Engine launch-header save lines pluralize their counts (no more "1 Marks";
-    same treatment for the kills/weapons counts in the same two lines), and the LOGGING.md launch
-    header example stops showcasing the bad grammar.
-  - Verify: a failing-first unit test pins the singular forms; suite green.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
