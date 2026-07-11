@@ -75,6 +75,21 @@ namespace LivingWeapon;
 /// slots carry the SAME nameId (duplicated roster identities) would both identity-match the same
 /// acting unit and release together on the first one's turn -- premature-release direction only
 /// (both lose the boost early; nobody is left permanently fast), so it fails safe.
+///
+/// LW-71 FLAGS CORROBORATION (2026-07-11): the ActorPtr release above still parks on STRUCK
+/// units, so an enemy hitting the wielder before its own opening turn can false-release it via a
+/// parked-pointer arrival mid-enemy-turn. Every release is now corroborated against the per-unit
+/// PSX turn flag (<see cref="Band.FlagOwner"/>, LW-63, proven live manual + auto-battle
+/// 2026-07-11), which names whichever unit's turn is structurally OPEN. Iai.Policy.FlagCorroboration
+/// verdicts: CONFIRM (flag owner IS the wielder) releases alone, regardless of the legacy signal;
+/// REFUSE (flag owner is someone else) blocks release even against a firing legacy signal, the
+/// actual fix; INDETERMINATE (unresolved, e.g. a genuine zero-t battle-opening record, or an
+/// uncomparable identity) falls through to the legacy signal so release never starves. A
+/// CONFIRMED release restores Speed to the FLAG OWNER's entry, never the pointer's, since the
+/// pointer may be parked elsewhere at that exact instant. Degraded corner (cap-bounded, no worse
+/// than the pre-existing v1 address-fallback lane): a STALE LastEntry on an address-fallback hold
+/// can be falsely Refused during the wielder's real turn, because the fresh flag-owner address
+/// never matches the stale one.
 /// </summary>
 internal sealed partial class Iai : ISignature
 {
@@ -139,6 +154,13 @@ internal sealed partial class Iai : ISignature
         // never matches (the 0==0 trap) -- see Iai.Policy.cs.
         int actingNameId = acting != 0 ? _mem.U16(acting + Offsets.ANameId) : 0;
 
+        // LW-71: one guarded FlagOwner walk + one guarded nameId read per tick (not per wielder),
+        // corroborating every hold's release against the per-unit PSX turn flag (structurally
+        // names whichever unit's turn is OPEN, immune to the parked-pointer bug the pointer/Acted
+        // signal above is exposed to, see the class doc comment).
+        bool flagResolved = Band.FlagOwner(_mem, out long flagEntry, out _);
+        int flagNameId = flagResolved ? _mem.U16(flagEntry + Offsets.ANameId) : 0;
+
         foreach (var (entry, fp) in _wielders)
         {
             if (!_holds.TryGetValue(fp, out var state))
@@ -182,24 +204,37 @@ internal sealed partial class Iai : ISignature
             if (state.Released) continue;
 
             bool identity = state.NameId > 0;
-            bool released = evaluate && (identity
+            bool legacy = identity
                 ? ReleaseSignalById(_prevActing, acting, _prevActed, actedNow, actingNameId, state.NameId)
-                : ReleaseSignal(_prevActing, acting, _prevActed, actedNow, state.LastEntry));
+                : ReleaseSignal(_prevActing, acting, _prevActed, actedNow, state.LastEntry);
+            // LW-71: corroborate the legacy pointer signal against the turn-flags owner. Identity
+            // path compares nameId (0 on either side is an unidentifiable owner, never a match,
+            // the same 0==0 trap ReleaseSignalById guards against); address path compares the
+            // flag owner's entry directly against this hold's last-known address.
+            FlagVerdict flags = identity
+                ? FlagCorroboration(flagResolved, ownerIdentityKnown: flagNameId > 0, ownerIsWielder: flagNameId == state.NameId)
+                : FlagCorroboration(flagResolved, ownerIdentityKnown: state.LastEntry != 0, ownerIsWielder: flagEntry == state.LastEntry);
+            bool released = evaluate && ReleaseDecision(legacy, flags);
             bool capFired = !released && (now - state.ArmedAt).TotalSeconds >= Tuning.IaiHoldCapSeconds;
             if (!released && !capFired) continue;
 
-            // Identity release restores to the pointer-provided REAL entry (authoritative at
-            // exactly this instant); the address-fallback release and the cap both restore to the
-            // hold's last-known entry (best-effort -- a stale address is still better than leaving
+            // Restore address (LW-71): a flags-CONFIRMED release can fire while the pointer is
+            // parked on a DIFFERENT unit entirely, so it restores to the FLAG OWNER's entry (the
+            // wielder's real frame at this instant), never the pointer's. A legacy identity
+            // release still restores to the pointer-provided REAL entry (authoritative at exactly
+            // this instant); a legacy address-fallback release and the cap both restore to the
+            // hold's last-known entry (best-effort: a stale address is still better than leaving
             // the wielder permanently fast for the rest of the battle). LastEntry is 0 only if a
             // hold was somehow never armed via the _wielders loop (defensive; skip the write).
-            long restoreAddr = (released && identity) ? acting + Offsets.ASpeed
+            bool confirmed = released && flags == FlagVerdict.Confirm;
+            long restoreAddr = confirmed ? flagEntry + Offsets.ASpeed
+                              : (released && identity) ? acting + Offsets.ASpeed
                               : state.LastEntry != 0 ? state.LastEntry + Offsets.ASpeed : 0;
             if (restoreAddr != 0 && state.NaturalSpeed >= SpeedSaneMin && _mem.Writable(restoreAddr, 1))
                 _mem.W8(restoreAddr, (byte)state.NaturalSpeed);
 
             state.Released = true;
-            string why = released ? "the actor pointer" : "the wall-clock cap";
+            string why = !released ? "the wall-clock cap" : confirmed ? "the turn flags" : "the actor pointer";
             ModLogger.Event(LogVerb.Signature, $"The wielder's opening-turn Speed boost is removed (level {fp.lvl}, brave {fp.br}, faith {fp.fa}; released by {why})");
         }
 

@@ -834,4 +834,223 @@ public class IaiTests
 
         Assert.Empty(mem.Written);
     }
+
+    // ---- LW-71: turn-flags corroboration (Band.FlagOwner, LW-63) overrides the parked pointer ----
+    //
+    // Bug: the engine actor pointer PARKS on struck units. An enemy striking the wielder before
+    // its own opening turn makes the pointer transition to the wielder's frame, a false S1
+    // arrival, releasing the hold mid-enemy-turn and defeating the signature. Fix: every
+    // release is corroborated against Band.FlagOwner (the per-unit PSX turn flag, structurally
+    // naming whichever unit's turn is OPEN) via Iai.Policy.FlagCorroboration/ReleaseDecision.
+
+    // ---- Pure: FlagCorroboration truth table ----
+
+    [Fact]
+    public void FlagCorroboration_unresolved_is_indeterminate()
+        => Assert.Equal(Iai.FlagVerdict.Indeterminate,
+            Iai.FlagCorroboration(ownerResolved: false, ownerIdentityKnown: true, ownerIsWielder: true));
+
+    [Fact]
+    public void FlagCorroboration_resolved_but_identity_unknown_is_indeterminate()
+        => Assert.Equal(Iai.FlagVerdict.Indeterminate,
+            Iai.FlagCorroboration(ownerResolved: true, ownerIdentityKnown: false, ownerIsWielder: true));
+
+    [Fact]
+    public void FlagCorroboration_resolved_matching_wielder_confirms()
+        => Assert.Equal(Iai.FlagVerdict.Confirm,
+            Iai.FlagCorroboration(ownerResolved: true, ownerIdentityKnown: true, ownerIsWielder: true));
+
+    [Fact]
+    public void FlagCorroboration_resolved_mismatching_wielder_refuses()
+        => Assert.Equal(Iai.FlagVerdict.Refuse,
+            Iai.FlagCorroboration(ownerResolved: true, ownerIdentityKnown: true, ownerIsWielder: false));
+
+    // ---- Pure: ReleaseDecision truth table ----
+
+    [Fact]
+    public void ReleaseDecision_confirm_fires_without_legacy_signal()
+        => Assert.True(Iai.ReleaseDecision(legacySignal: false, flags: Iai.FlagVerdict.Confirm));
+
+    [Fact]
+    public void ReleaseDecision_refuse_blocks_even_with_firing_legacy_signal()
+        // The load-bearing row: a firing legacy signal (the parked-pointer arrival) must NOT
+        // release when the flags verdict names a different unit's turn as open.
+        => Assert.False(Iai.ReleaseDecision(legacySignal: true, flags: Iai.FlagVerdict.Refuse));
+
+    [Fact]
+    public void ReleaseDecision_indeterminate_passes_through_true_legacy()
+        => Assert.True(Iai.ReleaseDecision(legacySignal: true, flags: Iai.FlagVerdict.Indeterminate));
+
+    [Fact]
+    public void ReleaseDecision_indeterminate_passes_through_false_legacy()
+        => Assert.False(Iai.ReleaseDecision(legacySignal: false, flags: Iai.FlagVerdict.Indeterminate));
+
+    // ---- Stateful: the load-bearing repro ----
+
+    [Fact]
+    public void Parked_pointer_arrival_during_enemy_turn_does_not_release()
+    {
+        // The real turn owner is an ENEMY (band 0, t==1, a distinct nameId). The engine's actor
+        // pointer nonetheless PARKS on the wielder's own frame (a struck-victim arrival):
+        // exactly the false S1 signal LW-71 exists to override.
+        //
+        // NON-VACUITY: this test MUST fail against the unmodified (pre-LW-71) Tick, which
+        // releases on the pointer arrival alone with no turn-flags corroboration at all.
+        var mem  = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [AmeNoMurakumoId] = new WeaponMeta
+            {
+                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Flavor = "gathering-storm blade",
+                Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
+            }
+        };
+        var kills = new Dictionary<int, int> { [AmeNoMurakumoId] = Tuning.ProdThresholds[2] };
+
+        const int wielderNameId = 298, strikerNameId = 301;
+        const int naturalSpeed = 8;
+
+        MemSeats.SeatRoster(mem, 0, lvl: 30, br: 65, fa: 60, rh: AmeNoMurakumoId, nameId: wielderNameId);
+        long wielderEntry = Band.Entry(24);
+        MemSeats.SeatBand(mem, 24, weapon: AmeNoMurakumoId,
+                          lvl: 30, br: 65, fa: 60, gx: 2, gy: 2, hp: 200, maxHp: 300, speed: naturalSpeed);
+        MemSeats.SeatFrameNameId(mem, 24, wielderNameId);
+        mem.WritableAddrs.Add(wielderEntry + Offsets.ASpeed);
+
+        // The striker: real position, sane fingerprint, ATurnFlag==1 (its turn is really open),
+        // a nameId distinct from the wielder's.
+        long strikerEntry = Band.Entry(0);
+        MemSeats.SeatBand(mem, 0, weapon: OtherWeaponId,
+                          lvl: 20, br: 50, fa: 50, gx: 5, gy: 5, hp: 100, maxHp: 100, speed: 10);
+        MemSeats.SeatFrameNameId(mem, 0, strikerNameId);
+        mem.U8s[strikerEntry + Offsets.ATurnFlag] = 1;
+
+        var iai = new Iai(meta, kills, mem);
+        var now = DateTime.UtcNow;
+
+        iai.Tick(onField: true, now);   // arm + prime
+        Assert.Equal((byte)(10 + Tuning.IaiSpeedMargin), mem.U8s[wielderEntry + Offsets.ASpeed]);
+
+        // The pointer PARKS on the wielder's frame even though the striker still holds the real
+        // open turn (t==1 there, not at the wielder).
+        PointActorAt(mem, wielderEntry);
+        iai.Tick(onField: true, now);
+
+        Assert.Equal((byte)(10 + Tuning.IaiSpeedMargin), mem.U8s[wielderEntry + Offsets.ASpeed]);
+    }
+
+    [Fact]
+    public void Turn_flags_release_fires_even_when_pointer_is_parked_elsewhere()
+    {
+        // The wielder's own entry holds the turn flag (t==1, the real turn owner), while the
+        // actor pointer stays parked on an unrelated entry for the whole test (no arrival, no
+        // Acted edge, so the legacy signal never fires). The flags verdict alone must release, and
+        // the restore must land on the FLAG OWNER's address, not the parked pointer's: pins the
+        // Confirm-restore-to-flagEntry rule against a naive `acting + ASpeed` restore.
+        //
+        // NON-VACUITY: this test MUST fail against the unmodified (pre-LW-71) Tick, which never
+        // releases without a firing legacy pointer signal.
+        var mem  = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [AmeNoMurakumoId] = new WeaponMeta
+            {
+                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Flavor = "gathering-storm blade",
+                Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
+            }
+        };
+        var kills = new Dictionary<int, int> { [AmeNoMurakumoId] = Tuning.ProdThresholds[2] };
+
+        const int wielderNameId = 298;
+        const int naturalSpeed = 8;
+        const int parkedSpeed = 10;
+
+        MemSeats.SeatRoster(mem, 0, lvl: 30, br: 65, fa: 60, rh: AmeNoMurakumoId, nameId: wielderNameId);
+        long wielderEntry = Band.Entry(24);
+        MemSeats.SeatBand(mem, 24, weapon: AmeNoMurakumoId,
+                          lvl: 30, br: 65, fa: 60, gx: 2, gy: 2, hp: 200, maxHp: 300, speed: naturalSpeed);
+        MemSeats.SeatFrameNameId(mem, 24, wielderNameId);
+        mem.WritableAddrs.Add(wielderEntry + Offsets.ASpeed);
+        mem.U8s[wielderEntry + Offsets.ATurnFlag] = 1;   // the wielder's own turn is really OPEN
+
+        long parkedEntry = Band.Entry(0);
+        MemSeats.SeatBand(mem, 0, weapon: OtherWeaponId,
+                          lvl: 20, br: 50, fa: 50, gx: 5, gy: 5, hp: 100, maxHp: 100, speed: parkedSpeed);
+        // Writable on purpose: a naive restore to the parked pointer's address must LAND here
+        // and trip the untouched assert below, not get silently skipped by the Writable guard.
+        mem.WritableAddrs.Add(parkedEntry + Offsets.ASpeed);
+
+        var iai = new Iai(meta, kills, mem);
+        var now = DateTime.UtcNow;
+
+        // The pointer parks on the OTHER entry from the very first tick and never moves.
+        PointActorAt(mem, parkedEntry);
+
+        iai.Tick(onField: true, now);   // arm + prime
+        Assert.Equal((byte)(10 + Tuning.IaiSpeedMargin), mem.U8s[wielderEntry + Offsets.ASpeed]);
+
+        iai.Tick(onField: true, now);   // no pointer transition, no Acted edge, flags alone release
+
+        Assert.Equal((byte)naturalSpeed, mem.U8s[wielderEntry + Offsets.ASpeed]);
+        Assert.Equal((byte)parkedSpeed, mem.U8s[parkedEntry + Offsets.ASpeed]);
+    }
+
+    [Fact]
+    public void Zero_turn_flags_preserve_the_legacy_pointer_release()
+    {
+        // No band entry anywhere has ATurnFlag==1 (the tape-verified battle-opening zero-t
+        // record). FlagOwner resolves nothing -> Indeterminate -> the legacy pointer signal must
+        // still govern, exactly as before LW-71: release must never starve on a genuinely
+        // zero-t tick.
+        var (iai, mem, wielderEntry, _) = Build(naturalSpeed: 5, fieldUnitSpeed: 10, nameId: 298);
+        var now = DateTime.UtcNow;
+
+        iai.Tick(onField: true, now);   // arm + prime
+
+        PointActorAt(mem, wielderEntry);   // S1 arrival, the only signal available
+        iai.Tick(onField: true, now);
+
+        Assert.Equal((byte)5, mem.U8s[wielderEntry + Offsets.ASpeed]);
+    }
+
+    // ---- Stateful: address-fallback lane (identity capture failed, nameId left 0) ----
+
+    [Fact]
+    public void AddressFallback_flagOwner_elsewhere_refuses_despite_pointer_arrival()
+    {
+        // Identity capture failed (nameId left 0 in Build) -> address-fallback path. The flag
+        // owner resolves to a DIFFERENT band entry than the hold's LastEntry, so the verdict must
+        // REFUSE even though the pointer arrives at the wielder (a firing legacy signal).
+        var (iai, mem, wielderEntry, _) = Build(naturalSpeed: 5, fieldUnitSpeed: 10);   // nameId=0 default
+        var now = DateTime.UtcNow;
+        long otherEntry = Band.Entry(0);
+
+        iai.Tick(onField: true, now);   // arm + prime; records LastEntry = wielderEntry
+
+        mem.U8s[otherEntry + Offsets.ATurnFlag] = 1;   // the real turn owner is the OTHER entry
+        PointActorAt(mem, wielderEntry);               // parked-victim arrival at the wielder
+        iai.Tick(onField: true, now);
+
+        Assert.Equal((byte)(10 + Tuning.IaiSpeedMargin), mem.U8s[wielderEntry + Offsets.ASpeed]);
+    }
+
+    [Fact]
+    public void AddressFallback_flagOwner_at_lastEntry_confirms_release()
+    {
+        // Identity capture failed (nameId left 0) -> address-fallback path. The flag owner
+        // resolves to the hold's own LastEntry (the wielder's real address) -> Confirm releases,
+        // even with no pointer signal at all.
+        var (iai, mem, wielderEntry, _) = Build(naturalSpeed: 5, fieldUnitSpeed: 10);   // nameId=0 default
+        var now = DateTime.UtcNow;
+
+        iai.Tick(onField: true, now);   // arm + prime; records LastEntry = wielderEntry
+        Assert.Equal((byte)(10 + Tuning.IaiSpeedMargin), mem.U8s[wielderEntry + Offsets.ASpeed]);
+
+        mem.U8s[wielderEntry + Offsets.ATurnFlag] = 1;   // the wielder's own turn is really open
+        iai.Tick(onField: true, now);   // no pointer signal at all, flags verdict alone releases
+
+        Assert.Equal((byte)5, mem.U8s[wielderEntry + Offsets.ASpeed]);
+    }
 }
