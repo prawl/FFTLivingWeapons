@@ -43,7 +43,14 @@ internal sealed partial class KillTracker
             _lethalViaFallback[s] = _latchViaFallback;
             return;
         }
-        bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age);
+        // LW-63 D4: the 7-out overload consults the flags-first lane before the register
+        // snapshot; viaFlags/bandSlot/moved are the tape payload's evidence trail (review
+        // finding 5), diagnostic only -- Policy.Decide below judges purely on hypW, exactly as
+        // it always has, regardless of which lane produced it.
+        bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age,
+                                               out bool viaFlags, out int bandSlot, out byte moved);
+        string tape = viaFlags ? $" src=flags t=1 m={moved} a=1" : "";
+        string source = viaFlags ? "the turn-flags lane" : "the actor register";
         switch (KillerStamp.Policy.Decide(_lastPlayerWeapons, has, hypW))
         {
             case KillerStamp.StampKind.Latch:
@@ -52,18 +59,18 @@ internal sealed partial class KillTracker
                 break;
             case KillerStamp.StampKind.Register:
                 _lethalActor[s] = hypW;   // fresh list from HandsFromRoster -- never an alias into register state
-                _lethalViaFallback[s] = false;   // register-named: pointer-derived, never a fallback resolve
+                _lethalViaFallback[s] = false;   // pointer- or flags-derived, never a fallback resolve
                 ModLogger.EventWithTrace(LogVerb.Credit,
-                    $"Corrected the kill attribution: the actor register names a fresher killer; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))} instead of {string.Join(", ", _lastPlayerWeapons.ConvertAll(LogNames.Weapon))}.",
+                    $"Corrected the kill attribution: {source} names a fresher killer; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))} instead of {string.Join(", ", _lastPlayerWeapons.ConvertAll(LogNames.Weapon))}.",
                     $"register-override detail (latch=[{string.Join(",", _lastPlayerWeapons)}] register=[{string.Join(",", hypW)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
-                _recorder?.Invoke("kill", $"stamp-override slot={s} latch=[{string.Join(",", _lastPlayerWeapons)}] register=[{string.Join(",", hypW)}] nameId={hypName} age={age}");
+                _recorder?.Invoke("kill", $"stamp-override slot={s} latch=[{string.Join(",", _lastPlayerWeapons)}] register=[{string.Join(",", hypW)}] nameId={hypName} age={age}{tape}");
                 break;
             case KillerStamp.StampKind.Bury:
-                _lethalUntracked[s] = UntrackedReason.ActorRegister;
+                _lethalUntracked[s] = viaFlags ? UntrackedReason.TurnFlags : UntrackedReason.ActorRegister;
                 ModLogger.EventWithTrace(LogVerb.Kill,
-                    $"The actor register names a player carrying no Living Weapon as the killer; the kill goes uncredited (overriding the stale latch {string.Join(", ", _lastPlayerWeapons.ConvertAll(LogNames.Weapon))}).",
+                    $"{(viaFlags ? "The turn-flags lane" : "The actor register")} names a player carrying no Living Weapon as the killer; the kill goes uncredited (overriding the stale latch {string.Join(", ", _lastPlayerWeapons.ConvertAll(LogNames.Weapon))}).",
                     $"register-bury detail (latch=[{string.Join(",", _lastPlayerWeapons)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
-                _recorder?.Invoke("kill", $"stamp-bury slot={s} latch=[{string.Join(",", _lastPlayerWeapons)}] nameId={hypName} age={age}");
+                _recorder?.Invoke("kill", $"stamp-bury slot={s} latch=[{string.Join(",", _lastPlayerWeapons)}] nameId={hypName} age={age}{tape}");
                 break;
         }
     }
@@ -75,14 +82,16 @@ internal sealed partial class KillTracker
     private void StampCulpritFromHypothesisOnly(int s)
     {
         if (!_periodOpen) return;   // THE PERIOD GATE -- rationale on StampCulprit above
-        if (!_killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age)) return;
+        if (!_killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age,
+                                         out bool viaFlags, out _, out byte moved)) return;
         if (hypW.Count == 0) return;
         _lethalActor[s] = hypW;
-        _lethalViaFallback[s] = false;   // register-named: pointer-derived, never a fallback resolve
+        _lethalViaFallback[s] = false;   // pointer- or flags-derived, never a fallback resolve
+        string tape = viaFlags ? $" src=flags t=1 m={moved} a=1" : "";
         ModLogger.EventWithTrace(LogVerb.Credit,
-            $"The actor register identified the killer where no actor was latched; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))}.",
+            $"{(viaFlags ? "The turn-flags lane" : "The actor register")} identified the killer where no actor was latched; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))}.",
             $"register-no-latch detail (register=[{string.Join(",", hypW)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
-        _recorder?.Invoke("kill", $"stamp-register-nolatch slot={s} register=[{string.Join(",", hypW)}] nameId={hypName} age={age}");
+        _recorder?.Invoke("kill", $"stamp-register-nolatch slot={s} register=[{string.Join(",", hypW)}] nameId={hypName} age={age}{tape}");
     }
 
     /// <summary>Death-edge culprit stamp (empty-latch path, LW-1): the sibling of <see cref="StampCulprit"/>
@@ -102,15 +111,17 @@ internal sealed partial class KillTracker
     private void StampCulpritFromEmptyLatch(int s)
     {
         if (!_periodOpen) { _lethalUntracked[s] = UntrackedReason.ActedLatch; return; }   // THE PERIOD GATE
-        bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age);
+        bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age,
+                                               out bool viaFlags, out _, out byte moved);
         if (KillerStamp.Policy.Decide(_lastPlayerWeapons, has, hypW) == KillerStamp.StampKind.Register)
         {
             _lethalActor[s] = hypW;   // fresh list from HandsFromRoster, never an alias into register state
-            _lethalViaFallback[s] = false;   // register-named: pointer-derived, never a fallback resolve
+            _lethalViaFallback[s] = false;   // pointer- or flags-derived, never a fallback resolve
+            string tape = viaFlags ? $" src=flags t=1 m={moved} a=1" : "";
             ModLogger.EventWithTrace(LogVerb.Credit,
-                $"Corrected a burial: the actor register names an armed killer during an unarmed actor's turn; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))} instead of leaving the kill uncredited.",
+                $"Corrected a burial: {(viaFlags ? "the turn-flags lane" : "the actor register")} names an armed killer during an unarmed actor's turn; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))} instead of leaving the kill uncredited.",
                 $"register-over-empty-latch detail (register=[{string.Join(",", hypW)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
-            _recorder?.Invoke("kill", $"stamp-override-empty-latch slot={s} register=[{string.Join(",", hypW)}] nameId={hypName} age={age}");
+            _recorder?.Invoke("kill", $"stamp-override-empty-latch slot={s} register=[{string.Join(",", hypW)}] nameId={hypName} age={age}{tape}");
         }
         else
         {

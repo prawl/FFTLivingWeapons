@@ -239,4 +239,57 @@ public class KillerStampTests
         Assert.False(ok);
         Assert.Empty(weapons);
     }
+
+    // --- LW-63 stage 2: the flags-first hypothesis lane (D4). TryHypothesis gains an overload
+    // that also surfaces the flags-lane diagnostic outs (viaFlags/bandSlot/moved) the death-edge
+    // stamp tapes onto its flight payload; the pre-existing 4-out overload above stays untouched
+    // (every test in this file above still compiles and passes unmodified). ---
+
+    [Fact]
+    public void TryHypothesis_flags_overload_prefers_a_qualifying_flag_owner_over_the_register()
+    {
+        // The flags-first hypothesis wins even when a fresh, otherwise-valid register hypothesis
+        // ALSO exists -- D4's ordering (flags checked FIRST, unconditionally ahead of the
+        // register snapshot).
+        const int flagWeapon = 90;
+        var m = new FakeSparseMemory();
+        var r = NewRegisterWithPlayerArrival(m, bandIdx: 5, rosterSlot: 2, lvl: 99, br: 89, fa: 76, nameId: 501);
+        Func<long, List<int>> handsFromRoster = _ => new List<int> { flagWeapon };
+        bool FlagKiller(out long rb, out ushort nid, out int slot, out byte moved)
+        { rb = 999; nid = 777; slot = 5; moved = 3; return true; }
+        var stamp = new KillerStamp(r, handsFromRoster, FlagKiller);
+
+        bool ok = stamp.TryHypothesis(lastResolveTick: 1, out var weapons, out var nameId, out var age,
+                                       out bool viaFlags, out int bandSlot, out byte moved);
+
+        Assert.True(ok);
+        Assert.True(viaFlags);
+        Assert.Equal(new List<int> { flagWeapon }, weapons);
+        Assert.Equal((ushort)777, nameId);
+        Assert.Equal(0, age);
+        Assert.Equal(5, bandSlot);
+        Assert.Equal((byte)3, moved);
+    }
+
+    [Fact]
+    public void TryHypothesis_flags_overload_falls_through_to_register_snapshot_when_no_flag_owner()
+    {
+        // Plan test 13, explicit pin: no flags owner at all -- the flags-first overload falls
+        // through to the EXISTING register-snapshot body (unchanged, ordering gate and all). The
+        // delegate here is the REAL ActorResolver.TryResolveFlagKiller against a fixture with no
+        // band entry carrying ATurnFlag==1, the same "no flags owner" shape every pre-existing
+        // test in this file's TryHypothesis section above already exercises implicitly.
+        var m = new FakeSparseMemory();
+        var r = NewRegisterWithPlayerArrival(m, bandIdx: 5, rosterSlot: 2, lvl: 99, br: 89, fa: 76, nameId: 501);
+        var resolver = new ActorResolver(m, new HashSet<int> { 42 });
+        var stamp = new KillerStamp(r, StubHands, resolver.TryResolveFlagKiller);
+
+        bool ok = stamp.TryHypothesis(lastResolveTick: 1, out var weapons, out var nameId, out var age,
+                                       out bool viaFlags, out _, out _);
+
+        Assert.True(ok);
+        Assert.False(viaFlags);
+        Assert.Equal((ushort)501, nameId);
+        Assert.Equal(new List<int> { 42 }, weapons);   // StubHands' fresh list, the register-snapshot lane
+    }
 }

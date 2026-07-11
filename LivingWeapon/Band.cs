@@ -146,4 +146,60 @@ internal static class Band
         }
         return set;
     }
+
+    /// <summary>LW-63: the per-unit PSX turn-flags owner (band +0x19C ATurnFlag, PROVEN LIVE
+    /// 2026-07-09) -- names the acting unit STRUCTURALLY, unlike the engine actor pointer (which
+    /// parks on struck victims and mirror-seat units; the parked-pointer mis-credit this fix
+    /// closes, docs/TODO.md LW-63). Walks every band slot for entries with ATurnFlag == 1 (the
+    /// exclusive-ownership byte: across 58 flags records over 4 real tapes, never two t=1 units
+    /// in one record; AMoved/AActed are NOT exclusive this way -- many units read a1 alongside
+    /// the true owner between their own turns, so only t may be tested this way, and only via
+    /// the ==1 test: the moved byte reads raw values up to 3, so no flag byte may ever be
+    /// treated as a plain boolean).
+    ///
+    /// REAL POSITION IS MANDATORY (D2b, the blocker fix): a frozen (0,0) band mirror can carry a
+    /// stale t=1 (Mushin.cs residual 3) with no external anchor to catch it, so a (0,0) entry is
+    /// simply never a candidate here -- it can neither win alone nor create ambiguity against a
+    /// same-identity real-position twin.
+    ///
+    /// Among the remaining (real-position, t=1) candidates: zero -> false (a zero-t record is a
+    /// real, tape-verified case -- the battle-opening edge -- not a bug). One -> that entry wins.
+    /// Two or more with the SAME identity (ANameId when both are nonzero, else the (level,brave,
+    /// faith) fingerprint) -> the first wins (a duplicate, not a disagreement). Two or more with
+    /// DIFFERENT identities -> false: an ambiguous flags read must never be guessed between
+    /// (miss beats mis-credit) -- the caller falls through to the register/turn-queue chain.</summary>
+    public static bool FlagOwner(IGameMemory mem, out long entry, out int slot)
+    {
+        entry = 0;
+        slot = -1;
+        bool found = false;
+        ushort foundNameId = 0;
+        (int lvl, int br, int fa) foundFp = default;
+
+        for (int s = 0; s < Offsets.BandSlots; s++)
+        {
+            long addr = Entry(s);
+            if (!IsValid(mem, addr)) continue;
+            if (mem.U8(addr + Offsets.ATurnFlag) != 1) continue;
+
+            bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
+            if (!realPos) continue;   // D2b: never a candidate, so it can't win alone or create ambiguity
+
+            ushort nameId = mem.U16(addr + Offsets.ANameId);
+            var fp = ((int)mem.U8(addr + Offsets.ALevel), (int)mem.U8(addr + Offsets.ABrave), (int)mem.U8(addr + Offsets.AFaith));
+
+            if (!found)
+            {
+                entry = addr; slot = s; found = true;
+                foundNameId = nameId; foundFp = fp;
+                continue;
+            }
+
+            bool sameIdentity = (foundNameId == 0 && nameId == 0) ? foundFp == fp : foundNameId == nameId;
+            if (!sameIdentity) { entry = 0; slot = -1; return false; }   // two disagreeing t=1 owners -> ambiguous
+            // same identity duplicate (a twin) -> the first candidate already won; keep scanning
+            // in case a later, genuinely different owner turns up.
+        }
+        return found;
+    }
 }

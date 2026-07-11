@@ -3,6 +3,11 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
+/// <summary>LW-63 D4: the death-edge stamp's flags-first lookup contract, mirroring
+/// <see cref="ActorResolver.TryResolveFlagKiller"/>'s exact signature so KillTracker.cs can wire
+/// the method group directly (<c>_resolver.TryResolveFlagKiller</c>) with no wrapping lambda.</summary>
+internal delegate bool FlagKillerLookup(out long rosterBase, out ushort nameId, out int bandSlot, out byte moved);
+
 /// <summary>
 /// The death-edge culprit hypothesis (register half): consulted by KillTracker.Stamp.cs at the
 /// deadStreak==1 stamp edge (KillTracker.Corpses.cs) instead of trusting the acted-edge weapon
@@ -31,11 +36,18 @@ internal sealed class KillerStamp
 {
     private readonly ActorRegister _register;
     private readonly Func<long, List<int>> _handsFromRoster;
+    // LW-63 D4: optional flags-first lookup (ActorResolver.TryResolveFlagKiller). Null default
+    // (every pre-LW-63 call site, and every test in KillerStampTests.cs that omits it) keeps the
+    // register-snapshot lane the ONLY lane, byte-identical to before this fix -- the injected-
+    // dependency pattern this codebase uses everywhere (e.g. KillTracker's own recorder/deeds/
+    // hasLiveWielder ctor params).
+    private readonly FlagKillerLookup? _flagKiller;
 
-    public KillerStamp(ActorRegister register, Func<long, List<int>> handsFromRoster)
+    public KillerStamp(ActorRegister register, Func<long, List<int>> handsFromRoster, FlagKillerLookup? flagKiller = null)
     {
         _register = register;
         _handsFromRoster = handsFromRoster;
+        _flagKiller = flagKiller;
     }
 
     /// <summary>True iff the register holds a hypothesis FRESHER than the latch's own resolve
@@ -63,6 +75,38 @@ internal sealed class KillerStamp
         nameId = _register.LastPlayerNameId;
         arrivalAge = _register.Tick - _register.LastPlayerArrivalTick;
         return true;
+    }
+
+    /// <summary>LW-63 D4: overload of <see cref="TryHypothesis(int, out List{int}, out ushort, out int)"/>
+    /// that consults the flags-first lane BEFORE the register snapshot, and surfaces the flags
+    /// lane's own diagnostic outs for the death-edge stamp's flight tape (review finding 5): the
+    /// owner's live Verify ("a1 at the killing edge") becomes satisfiable from the exit tape.
+    /// When <see cref="_flagKiller"/> is wired and answers, <paramref name="weapons"/> comes from
+    /// <see cref="_handsFromRoster"/> over the flags-named roster slot, <paramref name="arrivalAge"/>
+    /// is 0 (the flags lane needs no arrival-ordering gate -- the stamp key's own a==1 requirement
+    /// IS its ordering gate, ActorResolver.Flags.cs), and <paramref name="viaFlags"/> is true with
+    /// <paramref name="bandSlot"/>/<paramref name="moved"/> carrying the winning entry's own band
+    /// slot and Offsets.AMoved byte. Otherwise this simply calls the 4-out overload above
+    /// UNCHANGED (the register-snapshot body, ordering gate and all) and reports viaFlags=false /
+    /// bandSlot=-1 / moved=0. Every pre-existing caller keeps using the 4-out overload; this one
+    /// is additive.</summary>
+    internal bool TryHypothesis(int lastResolveTick, out List<int> weapons, out ushort nameId, out int arrivalAge,
+                                 out bool viaFlags, out int bandSlot, out byte moved)
+    {
+        viaFlags = false;
+        bandSlot = -1;
+        moved = 0;
+        if (_flagKiller != null && _flagKiller(out long rosterBase, out ushort flagNameId, out int flagSlot, out byte flagMoved))
+        {
+            weapons = _handsFromRoster(rosterBase);
+            nameId = flagNameId;
+            arrivalAge = 0;
+            viaFlags = true;
+            bandSlot = flagSlot;
+            moved = flagMoved;
+            return true;
+        }
+        return TryHypothesis(lastResolveTick, out weapons, out nameId, out arrivalAge);
     }
 
     /// <summary>Death-edge culprit stamp outcome: keep today's latch, override with the register's

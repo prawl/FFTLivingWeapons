@@ -743,4 +743,168 @@ public class KillTrackerStampTests
             .GetValue(t)!;
         Assert.Equal(UntrackedReason.ActedLatch, lethalUntracked[0]);
     }
+
+    // --- LW-63 stage 2: the flags-first hypothesis lane at the death-edge stamp (KillerStamp.cs's
+    // TryHypothesis, D4). Companion to the tape-replay/safety-net tests above (which all pin the
+    // REGISTER-snapshot lane byte-identically -- none of them seed any turn flags, so they double
+    // as the "no flags owner" regression pin for plan test 13). ---
+
+    [Fact]
+    public void FlagsStamp_overrides_stale_latch_with_no_register_arrival_at_all()
+    {
+        // Plan test 11: A's weapon latches (stale); B (a DIFFERENT player) holds t=1 AND a=1 at
+        // the death edge (the STAMP KEY, D4) -- StampCulprit overrides the stale latch to credit
+        // B, with NO register arrival seeded at all (proving the flags-first stamp lane needs
+        // none: this is the StampCulprit path, register-free).
+        const int wa = 60, wb = 37;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: wa, nameId: 801);   // A
+        SetUnit(m, P1, hp: 352, maxHp: 352, level: 99, brave: 70, faith: 50);
+        SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: wb, nameId: 802);   // B
+        SetUnit(m, P2, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        var t = new KillTracker(kills, m, Weapons);
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t, 3);                              // A latches [wa] via TQ (no register seeded)
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);                               // victim seenAlive
+
+        // acted stays stuck at 1 (A's period never closes). B's turn flags name him at the edge.
+        SetFrameNameId(m, P2, 802);
+        long p2Entry = Band.Entry(P2);
+        m.U8s[p2Entry + Offsets.ATurnFlag] = 1;
+        m.U8s[p2Entry + Offsets.AActed] = 1;
+
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true);   // deadStreak=1: StampCulprit's flags-first hypothesis overrides A -> B
+        t.Poll(true);
+        t.Poll(true);   // deadStreak=3 -> credit
+
+        Assert.Equal(1, kills.GetValueOrDefault(wb));
+        Assert.False(kills.ContainsKey(wa));
+    }
+
+    [Fact]
+    public void FlagsStamp_bury_when_flag_owner_is_unarmed_and_stamps_TurnFlags_reason()
+    {
+        // Plan test 12: the flags-named TRUE actor (B) holds no tracked weapon (a=1, bare
+        // hands) -- StampCulprit must bury the kill rather than fall back to the stale latch
+        // (A), and the verdict stamps UntrackedReason.TurnFlags so the console/flight evidence
+        // names the turn flags as the resolve source (not the actor register).
+        const int wa = 60;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: wa, nameId: 803);       // A: stale latch
+        SetUnit(m, P1, hp: 352, maxHp: 352, level: 99, brave: 70, faith: 50);
+        SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: 0xFFFF, nameId: 804);   // B: bare hands, true actor
+        SetUnit(m, P2, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        var t = new KillTracker(kills, m, Weapons, recorder: (type, payload) => recorded.Add((type, payload)));
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t, 3);                              // A latches [wa]
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        SetFrameNameId(m, P2, 804);
+        long p2Entry = Band.Entry(P2);
+        m.U8s[p2Entry + Offsets.ATurnFlag] = 1;
+        m.U8s[p2Entry + Offsets.AActed] = 1;
+
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true); t.Poll(true); t.Poll(true);   // deadStreak 1->3: bury, not the stale latch
+
+        Assert.Empty(kills);
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload.StartsWith("stamp-bury") && r.payload.Contains("src=flags"));
+
+        var lethalUntracked = (UntrackedReason[])typeof(KillTracker)
+            .GetField("_lethalUntracked", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(t)!;
+        Assert.Equal(UntrackedReason.TurnFlags, lethalUntracked[0]);
+    }
+
+    [Fact]
+    public void FlagsStamp_pending_extension_credits_the_flag_owner_with_no_latch_at_all()
+    {
+        // Plan test 14 (StampCulpritFromHypothesisOnly parity). The acted-period opens on a
+        // PERMANENTLY garbage TQ tuple and no register arrival is ever seeded, so
+        // _lastPlayerWeapons stays empty and _latched stays false for the whole test: the main
+        // latch never gets a chance at the flags owner because P2's flags only become valid on
+        // the SAME tick the period debounce-falls (acted -> 0), when the main latch's own
+        // Acted==1 block does not even run. Only the death-edge pending-hole extension
+        // (StampCulpritFromHypothesisOnly) consults the flags-first hypothesis and stamps P2.
+        const int p2Weapon = 22;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: p2Weapon, nameId: 950);
+        SetUnit(m, P2, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        var t = new KillTracker(kills, m, Weapons);
+
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 1);   // period opens on a garbage tuple
+        t.Poll(true);                 // BeginActedPeriod; TQ garbage, no flags for P2 yet -> unlatched
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);                 // enemy seenAlive; still unlatched every tick (P2 flags absent)
+
+        // P2's flags become valid on the SAME tick the period debounce-falls and the corpse
+        // dies -- the main latch's Acted==1 block never runs this tick, so only the death-edge
+        // stamp ever sees the flags hypothesis.
+        SetFrameNameId(m, P2, 950);
+        long p2Entry = Band.Entry(P2);
+        m.U8s[p2Entry + Offsets.ATurnFlag] = 1;
+        m.U8s[p2Entry + Offsets.AActed] = 1;
+        SetActive(m, hp: 0, maxHp: 0, level: 0, acted: 0);
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true);   // deadStreak=1: StampCulpritFromHypothesisOnly stamps P2 from the flags hypothesis
+        t.Poll(true);   // deadStreak=2
+        t.Poll(true);   // deadStreak=3 -> credit
+
+        Assert.Equal(1, kills.GetValueOrDefault(p2Weapon));
+    }
+
+    [Fact]
+    public void FlagsStamp_refuses_the_freshly_opened_next_owner_during_the_debounce_tail()
+    {
+        // Plan test 18 (review finding 3), THE non-vacuous negative for the stamp lane. A
+        // latches and kills; the period then enters its 3-tick close debounce (acted has fallen
+        // to 0, but _periodOpen has not yet flipped false). WITHIN that tail, B's freshly-opened
+        // next turn reads t1 m0 a0 (engine-reset at turn open) -- the stamp lane's a==1
+        // requirement must refuse B (no register hypothesis is seeded either), leaving A's latch
+        // to govern via the plain Latch outcome. Deleting the a==1 requirement (testing t==1
+        // alone) would wrongly credit B instead of A.
+        const int wa = 60, wb = 37;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 99, brave: 70, faith: 50, weapon: wa, nameId: 811);   // A: true killer
+        SetUnit(m, P1, hp: 352, maxHp: 352, level: 99, brave: 70, faith: 50);
+        SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: wb, nameId: 812);   // B: innocent next owner
+        SetUnit(m, P2, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        var t = new KillTracker(kills, m, Weapons);
+
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t, 3);                              // A latches [wa] via TQ
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);                               // victim seenAlive
+
+        // A's period debounce-falls (acted -> 0); B's turn opens FRESH this same tick (t1 m0 a0).
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        SetFrameNameId(m, P2, 812);
+        long p2Entry = Band.Entry(P2);
+        m.U8s[p2Entry + Offsets.ATurnFlag] = 1;   // B's menu is open...
+        m.U8s[p2Entry + Offsets.AMoved] = 0;      // ...freshly (engine-reset at turn open)...
+        m.U8s[p2Entry + Offsets.AActed] = 0;      // ...and he has NOT acted -- the stamp key must refuse
+
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true);   // deadStreak=1, period still technically open (debounce tail): the flags
+                        // hypothesis refuses (a=0 on B) -> Latch governs
+        t.Poll(true);
+        t.Poll(true);   // deadStreak=3 -> credit
+
+        Assert.Equal(1, kills.GetValueOrDefault(wa));
+        Assert.False(kills.ContainsKey(wb));
+    }
 }
