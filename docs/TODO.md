@@ -10,40 +10,25 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-56] New-game opener kills mis-credited or dropped** (opened 2026-07-08) [BUILDING]
-  - Done means: kill crediting survives an in-session new game and the scripted Orbonne opener.
-    Two faults from the 2026-07-10 opener tape (livingweapon.log 02:44-02:47) both die:
-    (1) MIS-CREDIT: kill number 1 went to Kiku-ichimonji id 45 (victim nameId 125, job 77,
-    battle slot 14), a weapon no new-game unit wields (the pre-new-game session that launch
-    fielded a Kiku wielder, so a stale roster-row or register-latch identity bridged the
-    in-session new game; the battle-exit flight tape of that run carries the kill latch
-    records). Flush every per-launch identity
-    latch on the new-game reset edge and verify the credited weapon against battle truth before
-    the tally write (the LW-55 wrong-key class, still ungated on crediting; narrowing-only,
-    refuse rather than guess). (2) DROPPED CREDITS: four opener kills were refused with the
-    logged reason "actor resolved via an enemy-turn team read"; make the resolve engage on the
-    opener's scripted/guest turn shape without weakening enemy-kill exclusion. The LW-55 display
-    gates held throughout that tape, so the fault is isolated to the crediting chain
-    (ActorResolver / KillTracker / KillerStamp).
-    2026-07-10 live (the LW-56 verify session, second post-reset opener, ~04:57+): fault 2
-    REPRODUCED with fault 1's fix confirmed working in the same run (forced exit fired, fresh
-    enter edge, stale latch dead): the owner killed a unit with the Claymore (card showing 0
-    kills, tally correctly reset) and no credit fired; the kill went pending and expired
-    ("could not be determined"), the honest post-stage-1 shape. VERDICT from that opener's exit
-    tape census (flight_20260710_045930_battle-exit.jsonl, -122.140s): roster slot 0 IS fresh
-    new-game Ramza (0:1L1; slots 1-19 still the old save's party), but the opener's acting units
-    carry canonical ENTD frame nameIds (2, 23, 52, nameId==job, the scripted-unit signature)
-    that match NO roster row, so ActorRegister.Bridge returns zero matches = Enemy
-    (authoritative refuse) for every player-side actor, which also blocks the turn-queue
-    fingerprint fallback (only Unknown falls through), so no latch ever forms. Fix shape now
-    buildable: when the nameId bridge finds ZERO roster matches, rescue via a STRICT
-    unique-fingerprint roster match (level + brave + faith, unique across occupied rows, level
-    drift rule) before conceding Enemy, so scripted-battle players with fresh roster rows latch
-    while true enemies (whose fingerprints should match no roster row uniquely) still refuse.
-  - Verify: unit tests pin the reset-edge latch flush and the credit-time weapon-agreement gate
-    (IGameMemory fake, non-vacuity by break-and-restore); live, an in-session new game's Orbonne
-    opener credits Ramza's Claymore kills with no phantom weapon appearing in kills.json, and a
-    normal battle's crediting still lands every player kill (tape shows no newly refused credits).
+- **[LW-63] Parked-pointer kill mis-credits the wrong living weapon** (opened 2026-07-10) [QUEUED]
+  - Done means: a kill credits the weapon of the unit that ACTUALLY acted, not whichever player
+    the engine actor pointer is parked on at the acted edge. Live-reproduced twice on 2026-07-10:
+    Ramza killed with the Chaos Blade (id 37) while Wilham's Warbrand (id 67) claimed it (tape
+    flight_20260710_150318, owner eyewitness on the killing blow), and the 04:44 Kiku-vs-Warbrand
+    tape flight_20260710_044640. Both collapse the whole battle onto one latch and one fingerprint
+    (99/89/76) while the real killer never latches: the pointer parks on the other player (a
+    mirror-seat unit is the sticky target), so the live latch, the death-edge stamp, and the
+    global delayed-culprit arm all carry the stale weapon. Kin to LW-7 (turn-count collapse) and
+    NOT caught by the LW-56 no-live-wielder gate (both weapons are fielded; the gate checks
+    existence, not who acted). The fix must cover all THREE credit sources and key the
+    acted-period resolve on the per-unit PSX turn flags (band +0x19C/D/E, proven live, Offsets
+    provenance) which name the acting unit structurally, instead of trusting the parked pointer.
+    An acted-flag flight tap shipped 0f360a1 to capture the disambiguator on the next 2-unit tape.
+  - Verify: unit tests pin that the acted-period resolve names the unit whose per-unit acted flag
+    rose, not the parked pointer, across all three credit sources (IGameMemory fake, non-vacuity by
+    break-and-restore); live, a two-unit battle where one unit lands a kill while the other is
+    fielded credits the correct weapon on the exit tape, and the acted-flag record reads that
+    unit's slot with a1 at the killing edge.
 
 ## Backlog
 
@@ -224,26 +209,6 @@ is the in-flight subset, not a mirror of that checklist.
   eyeball on a real cold-launch New Game, the Reliquary Phase 1 live pass, plus whatever
   VERIFY_LIVE.md still holds open), run after the release's task list closes so nothing rides on
   memory at ship time.
-- [LW-63] 2026-07-10: A kill credits the WRONG living weapon when the actor pointer sits parked
-  on another player at the acted edge (owner live report, DEV build: Ramza killed with
-  Kiku-ichimonji id 45, Warbrand id 67 claimed the kill; log 04:44:54-04:46:40, tape
-  flight_20260710_044640_battle-exit.jsonl). Tape anatomy: the whole battle ran on ONE latch
-  (weapons=[67] src=actor-ptr at -106s, nameId 271 bridge=Player) and all six turn credits went
-  to the same fingerprint 99/89/76 while Ramza (nameId 1) visibly transited the pointer between
-  turns; the pointer had returned to the Warbrand wielder's entry before every acted rising
-  edge, so each per-period re-resolve renamed 271 and Ramza never latched; no KillerStamp
-  override fired (271's last arrival predated the resolve tick, so the ordering gate saw no
-  fresh hypothesis); the kill (victim nameId 886, job 124, battle slot 12) then consumed the
-  stale latch. Same one-identity-collapse family as LW-7's turn counting; the LW-56
-  no-live-wielder credit gate correctly cannot catch it (Warbrand IS fielded; that gate checks
-  existence, not which player acted). Candidate direction: stop trusting the parked pointer at
-  the global acted edge and key the acted-period resolve on the per-unit PSX turn flags (band
-  +0x19C/D/E, proven live, Offsets provenance block), which name the acting unit structurally.
-  Sharpening evidence same session (log 04:54:44/04:55:09): on the SAME map the KillerStamp
-  override DID rescue two kills ("the actor register names a fresher killer; crediting Chaos
-  Blade instead of Warbrand"), so the failure discriminator is the stamp's arrival-ordering gate
-  (a fresh register arrival after the latch resolve rescues; a parked pointer that never
-  re-arrives does not).
 - [LW-62] 2026-07-10: Wielder.Roster.cs has grown six near-identical roster-walk loops (250
   lines; the LW-56 HasLiveWielder walk made it plain): extract one shared occupied-slot walk seam
   the resolvers and the existence check all ride, next time the file is touched.
@@ -292,6 +257,13 @@ is the in-flight subset, not a mirror of that checklist.
   floor = invisible reserve). Open: victory-check sanity after a removal; whether a legitimate
   registry rebuild evicts the hand-cloned object; Ctrl+F5 despawn spike fix (hover-marker
   refusal removed) awaits its next deploy.
+- [LW-67] 2026-07-10: Remove every service bound to the F6 test key (owner directive, about six F6
+  users). DONE in this repo: the four dev spikes (AttackCardSpike, HeaderSpike, FlavorSpike, and
+  ShowSpike deleted whole) plus their Engine wiring, the spike-only feeders (HeaderProbeText,
+  FlavorProbeText) and their tests are gone; AttackCardProbeText and ScanCursor/RegionCursor were
+  KEPT because the production Attack-card painter (AttackCard / AttackCard.Census) consumes them.
+  REMAINING: sweep the sibling FFTHandsFree repo for its own F6 bindings (the other roughly two of
+  the six).
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

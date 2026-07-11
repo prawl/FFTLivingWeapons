@@ -40,9 +40,9 @@ internal sealed partial class Display
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int>        _kills;
     private readonly IGameMemory                 _mem;
-    internal readonly CardPatterns                _pats;  // FlavorSpike dev-probe accessor (P4)
+    private  readonly CardPatterns                _pats;  // card-pattern set consumed by Display painting
     internal readonly DisplaySweep                _sweep;  // DisplayPoolPaintTests reads Generation/IsComplete (LW-37 skip proof)
-    internal readonly CardSites                  _sites;  // DisplayMaintenanceTests reads Count; FlavorSpike dev-probe accessor (P4)
+    internal readonly CardSites                  _sites;  // DisplayMaintenanceTests reads Count
     private readonly WpScratchPainter            _wpScratch;
     private readonly Func<long>                  _nowMs;
     // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the card-story compose driver. Null when no

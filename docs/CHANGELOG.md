@@ -8,6 +8,33 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-56] SHIPPED b6b234f 2026-07-10: the new-game opener crediting arc. Fault 1 (the mis-credit:
+  a stale identity bridging an in-session new game credited a weapon no fielded unit wields) shipped
+  earlier as the forced new-game exit edge plus the no-live-wielder credit gate (a4d6e33). Fault 2
+  (credit the scripted Orbonne opener kills) was found STRUCTURALLY UNBRIDGEABLE and accepted as
+  uncredited: the opener fields scripted stand-in units whose live identity (canonical nameIds like
+  2/23/52, pre-leveled brave/faith, ENTD weapons) diverges from the fresh level-1 roster on every
+  dimension, so no nameId, fingerprint, or weapon match can connect them to a roster row (owner
+  live-confirmed 2026-07-10, tape flight_20260710_201535). The canonical fingerprint-and-weapon
+  rescue built for it (ActorRegister.RescueCanonical) ships anyway as SAFE: it lives strictly
+  behind the zero-roster-match gate, so a real recruited unit bridges Player directly and never
+  enters it, making the rescue strictly credit-additive (it can add a credit, never suppress or
+  redirect a real one). A four-analyst audit confirmed only scripted stand-ins and guests reach the
+  rescue, neither of which can hold a player-chosen living weapon; the one new surface is a narrow
+  guest weapon-key over-credit, tape-visible and largely blocked by the live-wielder gate.
+  Suite 2369 green.
+- [LW-68] SHIPPED b6b234f 2026-07-10: a real player kill was silently blocked as a duplicate when
+  the victim's maxHp shifted within its life (the 3-tuple swap detector does not track maxHp, so
+  the alive-edge belt was stamped under the old maxHp and the death tuple read as an absent entry,
+  which the block misreported as "already credited" in a battle that credited nothing; owner live,
+  tape flight_20260710_064433). The alive-edge block now splits absent from false: an
+  oracle-confirmed, seen-alive enemy whose edge was orphaned by a maxHp shift credits (reason
+  orphan-alive-edge), while a genuinely resolved identity still blocks with honest wording
+  (reason=identity-already-resolved). The absent-rescue arm is self-contained (it does not consume
+  the global delayed-culprit latch, so it cannot steal a charged action's credit) and the shared
+  alive-edge is cleared only on an actual credit, so a fully refused credit no longer blocks a
+  later same-tuple wielder-backed kill. Full plan-review-implement-verify cycle, non-vacuity by
+  break-and-restore. Suite 2369 green.
 - [LW-55] SHIPPED e774405 2026-07-10: the in-battle Attack card no longer shows another weapon's
   kill count. Root cause: the cursor resolve named a roster row and read its formation main hand
   with no cross-check against battle truth, so a wrong or stale row (scripted opener loadouts,

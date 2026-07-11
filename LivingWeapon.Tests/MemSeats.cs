@@ -54,4 +54,13 @@ internal static class MemSeats
         m.U8s[e + Offsets.ACtTurn] = (byte)ctTurn;
         m.U8s[e + Offsets.ASpeed]  = (byte)speed;
     }
+
+    /// <summary>Seed a band entry's job byte (Puppeteer.JobOff, band-entry-relative == combat
+    /// +0x03). Separate one-liner (not folded into SeatBand's signature) so only the tests that
+    /// need it, the LW-56 canonical-signature fingerprint rescue, pay for it.</summary>
+    internal static void SeatBandJob(FakeSparseMemory m, int bandIdx, byte job)
+    {
+        long e = Band.Entry(bandIdx);
+        m.U8s[e + Puppeteer.JobOff] = job;
+    }
 }

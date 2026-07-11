@@ -90,7 +90,8 @@ public class KillTrackerTests
 
     // Ids that count as real weapons (meta keys). A hand holding anything NOT in here
     // (e.g. Shield) is never credited. Covers every weapon id used across these tests.
-    private static readonly HashSet<int> Weapons = new() { 52, 63, 73, 90 };
+    // 22 (LW-56 round 2): the live opener geometry's Claymore id, used by the weapon-key rescue test.
+    private static readonly HashSet<int> Weapons = new() { 22, 52, 63, 73, 90 };
     private const int Shield = 200;   // a non-weapon left-hand item -> never credited
 
     /// <summary>Poll n times with onField=true (builds alive/dead streaks).</summary>
@@ -1077,6 +1078,17 @@ public class KillTrackerTests
             : (byte)(cur & ~Offsets.ADeadBit);
     }
 
+    /// <summary>Flip the Jump/charge bit at a band slot (mirrors DelayedActorTests.SetJumpBit),
+    /// used by the LW-68 delayed-vs-orphan pin below.</summary>
+    private static void SetJumpBit(FakeSparseMemory m, int slot, bool set = true)
+    {
+        long addr = Band.Entry(slot);
+        byte cur = m.U8s.TryGetValue(addr + Offsets.ADeadStatus, out var v) ? v : (byte)0;
+        m.U8s[addr + Offsets.ADeadStatus] = set
+            ? (byte)(cur | Offsets.AJumpBit)
+            : (byte)(cur & ~Offsets.AJumpBit);
+    }
+
     [Fact]
     public void Status_death_hp_positive_dead_bit_set_enters_corpse_pipeline()
     {
@@ -1604,6 +1616,64 @@ public class KillTrackerTests
     }
 
     [Fact]
+    public void LW56_scripted_opener_unit_latches_via_the_rescue_and_credits_the_kill()
+    {
+        // LW-56 fault 2: the Orbonne-opener scripted signature (frame nameId == job byte) matches
+        // no roster RNameId at all, so the nameId+stat bridge alone would return Enemy and the
+        // whole acted-period latch (and FirstKillFallback) would refuse. The fingerprint rescue
+        // picks this up via a unique bare (level,brave,faith) match plus weapon agreement, and the
+        // credit flows exactly like any other register-first kill.
+        const int w = 52;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 1, brave: 63, faith: 60, weapon: w, nameId: 1);   // RNameId != the scripted 2
+        SetUnit(m, Wilham, hp: 200, maxHp: 200, level: 8, brave: 63, faith: 60, weapon: w);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);                              // tick1: register priming
+        SetFrameNameId(m, Wilham, 2);
+        MemSeats.SeatBandJob(m, Wilham, 2);         // canonical scripted signature: nameId == job
+        PointAt(m, Wilham);
+        t.Poll(true);                              // tick2: rescued arrival, strictly before the edge
+
+        SetActive(m, hp: 200, maxHp: 200, level: 8);   // tick3+: acted=1, period begins after the arrival
+        Settle(t);
+
+        AliveThenDead(m, slot: 3, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(w));
+    }
+
+    [Fact]
+    public void LW56_scripted_unit_with_diverging_fingerprint_credits_via_the_weapon_key()
+    {
+        // LW-56 fault 2, round 2 (the live opener geometry, 2026-07-10): the scripted trio's
+        // fingerprint (level, brave, faith) never matches ANY roster row (brave/faith diverge
+        // from the roster's pre-battle stats), so the fingerprint key finds zero matches. The
+        // weapon key bridges it instead: the scripted unit's band weapon uniquely matches the
+        // roster row's held weapon within the level-drift window.
+        const int w = 22;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 0, level: 1, brave: 70, faith: 70, weapon: w, nameId: 1);   // fp diverges from Wilham's own stats
+        SetUnit(m, Wilham, hp: 200, maxHp: 200, level: 9, brave: 71, faith: 63, weapon: w);
+        var t = new KillTracker(kills, m, Weapons);
+
+        t.Poll(true);                              // tick1: register priming
+        SetFrameNameId(m, Wilham, 2);
+        MemSeats.SeatBandJob(m, Wilham, 2);         // canonical scripted signature: nameId == job
+        PointAt(m, Wilham);
+        t.Poll(true);                              // tick2: rescued arrival via the weapon key
+
+        SetActive(m, hp: 200, maxHp: 200, level: 9);
+        Settle(t);
+
+        AliveThenDead(m, slot: 3, t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(w));
+    }
+
+    [Fact]
     public void Zero_pointer_falls_back()
     {
         // P4 (explicit): the actor pointer is never seeded (reads 0 the whole battle) -- the
@@ -2106,5 +2176,255 @@ public class KillTrackerTests
 
         Assert.True(credited);
         Assert.Equal(1, kills.GetValueOrDefault(wa));
+    }
+
+    // --- LW-68: the alive-edge belt's PRESENT-false vs ABSENT split (KillTracker.Corpses.cs) ---
+    // ABSENT means a seen-alive, oracle-confirmed enemy's alive-mark was stamped under a DIFFERENT
+    // maxHp than its death tuple (drift) -- a real uncredited death, not a duplicate. PRESENT-false
+    // means the identity already resolved this battle (credited or no-credit) or a simultaneous
+    // same-tuple mirror clone -- still blocked. See docs/LOGGING.md's no-credit reason list.
+
+    private sealed class Lw65DeedSink : IDeedSink
+    {
+        public readonly List<(int weaponId, VictimSnapshot victim)> Deeds = new();
+        public void RecordDeed(int weaponId, in VictimSnapshot victim) => Deeds.Add((weaponId, victim));
+        public void DeedMiss(int slot) { }
+    }
+
+    /// <summary>Seed a band slot's victim-identity fields (nameId/job/undead) so a credited deed
+    /// can be told apart from another slot's deed by its VictimSnapshot (mirrors
+    /// KillTrackerDeedTests.SeedVictimFields).</summary>
+    private static void SeedVictimFields(FakeSparseMemory m, int slot, ushort nameId, byte job, bool undead)
+    {
+        long addr = Band.Entry(slot);
+        m.U16s[addr + Offsets.ANameId] = nameId;
+        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.U8s[addr + Puppeteer.JobOff] = job;
+        m.ReadableAddrs.Add(addr + Puppeteer.JobOff);
+        m.U8s[addr + Offsets.ADeadStatus] = undead ? Offsets.AUndeadBit : (byte)0;
+        m.ReadableAddrs.Add(addr + Offsets.ADeadStatus);
+    }
+
+    [Fact]
+    public void LW65_orphaned_alive_edge_from_maxhp_drift_credits_instead_of_blocking()
+    {
+        // LOAD-BEARING: reverting the ABSENT split (blocking on absent, like the old code) makes
+        // this fail -- no credit, plus a duplicate-block record.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons, recorder: (ty, p) => recorded.Add((ty, p)));
+        Settle(t);   // latch weapon 52
+
+        // Alive-mark under maxHp=107.
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 107, level: 20, brave: 20, faith: 20);
+        Settle(t, 3);   // seenAlive -> belt[(20,20,20,107)] = true
+
+        // Drift: same identity, maxHp now 71 -- no lvl/br/fa swap, so seenAlive/slotId are untouched.
+        SetUnit(m, slot: 0, hp: 300, maxHp: 71, level: 20, brave: 20, faith: 20);
+        SetArrayEnemy(m, slot: 0, level: 20, brave: 20, faith: 20, maxHp: 71);   // oracle holds (20,20,20,71) too
+
+        // Death under the drifted maxHp -- the belt has no entry for (20,20,20,71).
+        SetUnit(m, slot: 0, hp: 0, maxHp: 71, level: 20, brave: 20, faith: 20);
+        Settle(t, 3);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+        Assert.DoesNotContain(recorded, r => r.type == "kill" && r.payload.Contains("identity-already-resolved"));
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload == "orphan-alive-edge slot=0 mhp=71");
+    }
+
+    // Note: "genuinely resolved identity re-death still blocked" (B3 test 2) and the mirror guard
+    // below share ONE mechanism -- a same-tuple death with no fresh alive tick after a prior
+    // resolution -- so B3 itself folds them together (see its mirror-guard bullet: "this is test
+    // 2's mechanism"). The frozen-twin construction (never seen alive at the second slot) is a
+    // DIFFERENT, already-covered path (Dead_identity_at_two_band_slots_credits_exactly_once,
+    // above): it never reaches the PRESENT-false line at all (blocked earlier by the seenAlive
+    // gate), so it cannot pin the "identity-already-resolved" reason string. The mirror test below
+    // is the one genuine PRESENT-false construction and pins that reason directly.
+
+    [Fact]
+    public void LW65_mirror_guard_same_tuple_simultaneous_second_corpse_still_blocked()
+    {
+        // The real FALSE-arm pin: A and B seen alive at the SAME identical tuple (same maxHp)
+        // simultaneously; A dies and credits; B then dies with NO fresh alive tick and is blocked.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons, recorder: (ty, p) => recorded.Add((ty, p)));
+        Settle(t);
+
+        // A and B, same tuple, both seen alive simultaneously.
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        SetEnemy(m, slot: 1, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);   // seenAlive[0] and seenAlive[1]
+
+        // A dies -> credited, belt[(10,50,50,400)] = false.
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+        Assert.Equal(1, kills.GetValueOrDefault(52));
+
+        // B dies -- no fresh alive tick since the simultaneous mark above.
+        SetUnit(m, slot: 1, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        Assert.Equal(1, kills.GetValueOrDefault(52));   // still one credit -- B blocked
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload == "no-credit slot=1 reason=identity-already-resolved");
+    }
+
+    [Fact]
+    public void LW65_refused_credit_does_not_burn_a_twin_alive_edge()
+    {
+        // D2 pin: two same-tuple enemies both seen alive; A's only culprit weapon has no live
+        // wielder (CreditKill refuses, tallies nothing); B (same tuple) then dies with a
+        // live-wielder weapon latched and must still credit. Reverting the `if (c)` guard at
+        // Corpses.cs (unconditional _identityAlive[id] = false on a refused credit) flips B to
+        // blocked (reason=identity-already-resolved).
+        const int ghostWeapon = 9;    // tracked, but no roster row backs it once P goes invalid
+        const int liveWeapon = 52;    // Q's weapon, backed by a live roster row + band entry
+        var weapons = new HashSet<int> { ghostWeapon, liveWeapon };
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        var t = new KillTracker(kills, m, weapons, recorder: (ty, p) => recorded.Add((ty, p)),
+                                 hasLiveWielder: id => Wielder.HasLiveWielder(m, id));
+
+        // P latches the ghost weapon.
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: ghostWeapon);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        Settle(t);   // latch ghostWeapon; _lastPlayerWeapons = [9]
+
+        // A and B: same tuple, both seen alive BEFORE A's refusal.
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        SetEnemy(m, slot: 1, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);   // seenAlive[0], seenAlive[1]
+
+        // P's band entry goes invalid: HasLiveWielder(ghostWeapon) now finds no live band match,
+        // even though the stale latch still names it (the LW-56 stale-attribution shape).
+        m.U8s[Band.Entry(Wilham) + Offsets.ALevel] = 0;
+
+        // A dies: culprit=[ghostWeapon], refused at CreditKill (no live wielder) -> tallies nothing.
+        SetUnit(m, slot: 0, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+        Assert.False(kills.ContainsKey(ghostWeapon));
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload == "no-credit slot=0 reason=no-live-wielder weapon=9");
+
+        // End P's acted period (debounced fall) before Q can latch.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        Settle(t, KillTracker.UnfreezeTicks);
+
+        // Q now latches the live weapon.
+        SetRoster(m, slot: 4, level: 50, brave: 60, faith: 55, weapon: liveWeapon);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55, weapon: liveWeapon);
+        SetActive(m, hp: 400, maxHp: 400, level: 50, acted: 1);
+        Settle(t);   // latch liveWeapon
+
+        // B dies: same tuple as A, no fresh alive tick since the simultaneous mark above.
+        SetUnit(m, slot: 1, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        Settle(t, 3);
+
+        Assert.Equal(1, kills.GetValueOrDefault(liveWeapon));   // B credits -- the edge was NOT burned
+    }
+
+    [Fact]
+    public void LW65_absent_orphan_honors_a_stamped_untracked_verdict()
+    {
+        // The self-contained ABSENT rescue must not override a deliberate no-credit ruling: a
+        // drift-ABSENT corpse whose death edge stamped _lethalUntracked (here, a non-player-turn
+        // stale-latch bury) still gets NO credit.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var recorded = new List<(string type, string payload)>();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons, recorder: (ty, p) => recorded.Add((ty, p)));
+        Settle(t);   // latch 52; _lastPlayerWeapons = [52]
+
+        SetEnemy(m, slot: 0, hp: 300, maxHp: 107, level: 20, brave: 20, faith: 20);
+        Settle(t, 3);   // seenAlive -> belt[(20,20,20,107)] = true
+
+        // Drift to maxHp=71 while still alive.
+        SetUnit(m, slot: 0, hp: 300, maxHp: 71, level: 20, brave: 20, faith: 20);
+        SetArrayEnemy(m, slot: 0, level: 20, brave: 20, faith: 20, maxHp: 71);
+
+        // A non-player turn is in progress at the death edge: the stale player latch did not
+        // land this blow -- bury it (UntrackedReason.EnemyTurn).
+        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;
+        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);   // enable the team read at the death edge
+        SetUnit(m, slot: 0, hp: 0, maxHp: 71, level: 20, brave: 20, faith: 20);
+        Settle(t, 3);
+
+        Assert.Empty(kills);
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload == "no-credit slot=0 reason=untracked-weapon via=EnemyTurn");
+    }
+
+    [Fact]
+    public void LW65_absent_orphan_does_not_steal_a_delayed_culprits_credit()
+    {
+        // The biggest new-risk pin (review finding 1): a drift-ABSENT orphan must be
+        // self-contained and must NOT call ConsumeDelayedCulprit -- that latch belongs to a
+        // charged action mid-flight, armed for a DIFFERENT, higher-index victim. Making the
+        // ABSENT arm fall through to the shared block (consuming the delayed culprit there)
+        // flips this test: the orphan's deed would carry weapon W, and the high-index victim's
+        // delayed weapon W would never reach its own deed.
+        const int highSlot = 15;   // the delayed culprit's real, higher-index victim
+        const int orphanSlot = 0;  // the lower-index drift-ABSENT orphan, scanned first
+        const int rSlot = Offsets.SlotsBack + 2;   // a third actor, latched after the jump lands
+        const int w = 52;   // the delayed (jumper's) weapon
+        const int o = 90;   // the live-latch weapon at both slots' own dead-edge stamp
+
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var deeds = new Lw65DeedSink();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: w);   // P: the jumper
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        SetJumpBit(m, Wilham, set: true);   // Jump bit set at commit
+        var t = new KillTracker(kills, m, Weapons, deeds: deeds);
+        Settle(t, 3);   // latch W; TrackDelayed snapshots W
+
+        // The high-index victim, established seenAlive, distinct nameId.
+        SetEnemy(m, slot: highSlot, hp: 300, maxHp: 400, level: 80, brave: 80, faith: 80);
+        SeedVictimFields(m, highSlot, nameId: 500, job: 1, undead: false);
+        Settle(t, 3);   // seenAlive[highSlot]
+
+        // The orphan, established seenAlive under maxHp=107, distinct nameId.
+        SetEnemy(m, slot: orphanSlot, hp: 300, maxHp: 107, level: 20, brave: 20, faith: 20);
+        SeedVictimFields(m, orphanSlot, nameId: 100, job: 2, undead: false);
+        Settle(t, 3);   // seenAlive[orphanSlot] -> belt[(20,20,20,107)] = true
+
+        // End P's period; jump lands -> arm W as the delayed culprit.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 0);
+        Settle(t, KillTracker.UnfreezeTicks);
+        SetJumpBit(m, Wilham, set: false);
+        t.Poll(true);   // arm fires (_delayedArmedTicks = Tuning.DelayedActorWindow)
+
+        // R now latches O -- the live latch at BOTH victims' own dead-edge stamp (their natural
+        // fallback if delayed is unavailable to them).
+        SetRoster(m, slot: 4, level: 40, brave: 45, faith: 48, weapon: o);
+        SetUnit(m, rSlot, hp: 380, maxHp: 380, level: 40, brave: 45, faith: 48);
+        SetActive(m, hp: 380, maxHp: 380, level: 40, acted: 1);
+        t.Poll(true);   // R latches O
+
+        // Drift the orphan to maxHp=71 (same lvl/br/fa) -- the alive-edge orphans.
+        SetUnit(m, orphanSlot, hp: 300, maxHp: 71, level: 20, brave: 20, faith: 20);
+        SetArrayEnemy(m, orphanSlot, level: 20, brave: 20, faith: 20, maxHp: 71);
+
+        // Both victims die on the SAME tick set: the orphan (lower index, scanned first) and the
+        // delayed culprit's real target (higher index).
+        SetUnit(m, orphanSlot, hp: 0, maxHp: 71, level: 20, brave: 20, faith: 20);
+        SetUnit(m, highSlot, hp: 0, maxHp: 400, level: 80, brave: 80, faith: 80);
+        Settle(t, 3);   // both mature on the final tick; orphanSlot scanned before highSlot
+
+        // The delayed weapon W must reach the HIGH victim (nameId 500), never the orphan (100).
+        Assert.Contains(deeds.Deeds, d => d.weaponId == w && d.victim.NameId == 500);
+        Assert.DoesNotContain(deeds.Deeds, d => d.weaponId == w && d.victim.NameId == 100);
     }
 }

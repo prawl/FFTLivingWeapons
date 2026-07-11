@@ -58,9 +58,6 @@ internal sealed class Engine
     private readonly PromptSwap _promptSwap;
     private readonly PromptSwapHook _promptSwapHook;
 #if LWDEV
-    private readonly FlavorSpike _flavorSpike;   // F6 P4 flavor-render probe, dev-only
-    private readonly HeaderSpike _headerSpike;   // F8 LW-27 header-repaint research instrument, dev-only
-    private readonly AttackCardSpike _attackCardSpike;   // F6 LW-31 Attack-menu census instrument, dev-only
     private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
     private readonly StatusSpike _statusSpike;   // LW-58: cold-call the status apply engine (F2 canary / F4 treasure), dev-only
     private readonly BodyDoubleSpike _bodyDoubleSpike;   // LW-58 Canary 8: duplicate a hovered unit into a real AI fighter (F5), dev-only
@@ -216,11 +213,6 @@ internal sealed class Engine
         _attackCard = new AttackCard(live, _tracker.ResolveCursorPlayer,
                                       _tracker.SpriteOf, meta, _kills, Flight.Record);
 #if LWDEV
-        // Constructed here (after Display, not beside the other dev fields above) because it needs
-        // Display's _sites/_pats, which do not exist until Display itself is built.
-        _flavorSpike = new FlavorSpike(live, _display._sites, _display._pats);
-        _headerSpike = new HeaderSpike(live, _display._sites);
-        _attackCardSpike = new AttackCardSpike(live);
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).
         _turnOwnerSpike = new TurnOwnerSpike(live, _tracker.Register);
@@ -370,6 +362,12 @@ internal sealed class Engine
                 _turns.GlobalTurns, LogNames.Weapon, Tuning.TierFor);
             ModLogger.EventWithTrace(LogVerb.BattleEnd, summary,
                 $"battle-end sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
+            // LW-56 D11/A3: re-emit the identity census on the exit edge, unconditionally, before
+            // ResetBattleState()/the flight flush. The enter-side census (KillTracker.Poll,
+            // behind the oracle coverage-done latch) can miss an entire battle when coverage never
+            // completes, so the exit edge is the reliable place a census always lands on tape.
+            // Covers the normal AND the LW-56 forced exit alike (both return Exited here).
+            _tracker.EmitExitCensus();
             ResetBattleState();
             _tally.Save();               // flush on battle end
             _legends.SaveIfDirty();      // Reliquary: mirrors kills.json's battle-exit save timing
@@ -416,15 +414,6 @@ internal sealed class Engine
                 ScholarRing.Grant(_live);
             }
             _display.Tick(false);   // out of battle (slot9 cleared): keep the equip card painted
-#if LWDEV
-            // The P4 flavor probe targets the EQUIP CARD, which lives in these out-of-battle
-            // menus -- it must poll its key here, ahead of the early return. (The original
-            // battle-path-only Tick below made the probe unreachable where it is actually used;
-            // that gate misdiagnosed the F2 arm key as dead, 2026-07-05.)
-            _flavorSpike.Tick();
-            _headerSpike.Tick();   // LW-27: the header label lives in these same equip-card menus
-            _attackCardSpike.Tick();   // LW-31: harmless out here, the Abilities menu it targets is in-battle
-#endif
             return;
         }
 
@@ -438,11 +427,8 @@ internal sealed class Engine
         // gating on onField would sleep through it. Delivery itself needs no Tick: PromptSwapHook
         // fires from the game's own SetTextString call, not from this loop.
         _toast.Tick(changed);
-        _attackCard.Tick();   // LW-31 stage 2: the Attack-menu desc painter; mirrors the spike's own load-bearing tick site below
+        _attackCard.Tick();   // LW-31 stage 2: the Attack-menu desc painter
 #if LWDEV
-        _flavorSpike.Tick();
-        _headerSpike.Tick();
-        _attackCardSpike.Tick();   // LW-31: the Abilities menu lives here, the load-bearing tick site
         _turnOwnerSpike.Tick();   // LW-31 stage 2: passive correlation recorder, in-battle only (menus out of battle don't matter here)
         _statusSpike.Tick(inLive);   // LW-58: cold-call the status apply engine on F2/F4 (inLive-gated + paused; targets live band units)
         _bodyDoubleSpike.Tick(inLive);   // LW-58 Canary 8: F5 duplicates the hovered unit into a real AI fighter (inLive-gated + paused), Ctrl+F5 despawns

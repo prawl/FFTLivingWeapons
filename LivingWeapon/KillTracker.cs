@@ -125,10 +125,15 @@ internal sealed partial class KillTracker
         _kills = kills;
         _mem = mem;
         _recorder = recorder;
-        _register = new ActorRegister(mem, recorder);
+        // LW-56 A1: EnemyOracle is constructed first (moved ahead of ActorRegister) so the
+        // oracle-exclusion lambda below closes over an already-assigned field: the lambda still
+        // reads _oracle at CALL time (mid-battle, long after this ctor returns), not at capture
+        // time, so this ordering is a compiler-friendliness nicety, not a behavioral dependency.
+        _oracle = new EnemyOracle(mem, () => AnyTrackedWeaponThisBattle);
+        _register = new ActorRegister(mem, recorder,
+            id => _oracle.Contains(((byte)id.lvl, (byte)id.br, (byte)id.fa, (ushort)id.maxHp)));
         _resolver = new ActorResolver(mem, weapons, _register);
         _killerStamp = new KillerStamp(_register, _resolver.HandsFromRoster);
-        _oracle = new EnemyOracle(mem, () => AnyTrackedWeaponThisBattle);
         _events = events;
         _victimProbe = new VictimProbe(mem, recorder);
         _census = new BattleCensus(mem, recorder);
@@ -144,6 +149,11 @@ internal sealed partial class KillTracker
     /// risk two slightly different in-flight snapshots mid-tick). Callers must never mutate it
     /// (Update/ResetBattle stay this class's own responsibility).</summary>
     internal ActorRegister Register => _register;
+
+    /// <summary>LW-56 D11/A3: thin wrapper over <see cref="BattleCensus.EmitExit"/>, called by
+    /// Engine on the battle-exit edge (before the flight flush) so every exit tape carries a
+    /// fresh census regardless of whether the enter-side coverage-done census ever fired.</summary>
+    internal void EmitExitCensus() => _census.EmitExit();
 
     /// <summary>LW-31 stage-2 fix (grown in stage 3 to also surface rosterBase; retyped LW-55 to
     /// hand back the raw <see cref="CursorAnswer"/> instead of a filtered weapon list; the ONLY

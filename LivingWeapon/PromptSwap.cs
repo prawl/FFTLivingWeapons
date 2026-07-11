@@ -123,9 +123,8 @@ internal sealed class PromptSwapHook
     }
 
     /// <summary>Install the detour. Idempotent; called from Engine.InjectHooks (toasts are always
-    /// on since LW-52 removed the BannerToasts toggle). Dev builds also run ShowSpike's own tap on the same address
-    /// (standard Reloaded hook stacking) -- production wins the race only if its hook installs
-    /// innermost, a dev-build curiosity, not a correctness concern.</summary>
+    /// on since LW-52 removed the BannerToasts toggle). This is now the only tap on the address
+    /// (the ShowSpike dev instrument that used to stack a second hook here was removed in LW-67).</summary>
     public void Arm(IReloadedHooks hooks)
     {
         if (_hook != null) return;
