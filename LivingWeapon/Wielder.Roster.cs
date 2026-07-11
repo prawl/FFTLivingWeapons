@@ -11,6 +11,26 @@ namespace LivingWeapon;
 /// </summary>
 internal static partial class Wielder
 {
+    /// <summary>The ONE shared occupied-slot walk seam (LW-62): every roster resolver and the
+    /// existence check ride this so the slot base arithmetic and the occupancy rule (level 1..99)
+    /// cannot drift apart per caller.</summary>
+    private static bool TryOccupiedSlot(IGameMemory mem, int r, out long rb, out int lvl)
+    {
+        rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
+        lvl = mem.U8(rb + Offsets.RLevel);
+        return lvl >= 1 && lvl <= 99;
+    }
+
+    /// <summary>Appends the sentinel-filtered, de-duplicated hand ids (rh, lh, oh order) to
+    /// <paramref name="hands"/> without allocating a temp array per slot; shared by
+    /// <see cref="TryResolve"/> and <see cref="HasLiveWielder"/>.</summary>
+    private static void CollectHands(int rh, int lh, int oh, List<int> hands)
+    {
+        if (rh != 0x00FF && rh != 0xFFFF && !hands.Contains(rh)) hands.Add(rh);
+        if (lh != 0x00FF && lh != 0xFFFF && !hands.Contains(lh)) hands.Add(lh);
+        if (oh != 0x00FF && oh != 0xFFFF && !hands.Contains(oh)) hands.Add(oh);
+    }
+
     /// <summary>Resolve the single roster slot holding <paramref name="weaponId"/> in either hand
     /// into its (level,brave,faith) fingerprint and its real hand item ids. False when no roster
     /// slot -- or more than one (ambiguous) -- holds the weapon.</summary>
@@ -22,16 +42,13 @@ internal static partial class Wielder
         int found = 0;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            int lvl = mem.U8(rb + Offsets.RLevel);
-            if (lvl < 1 || lvl > 99) continue;   // empty slot
+            if (!TryOccupiedSlot(mem, r, out long rb, out int lvl)) continue;   // empty slot
             int rh = mem.U16(rb + Offsets.RRHand), lh = mem.U16(rb + Offsets.RLHand), oh = mem.U16(rb + Offsets.ROffHand);
             if (rh != weaponId && lh != weaponId && oh != weaponId) continue;
             if (++found > 1) return false;       // two wielders: ambiguous, no grant
             fp = (lvl, mem.U8(rb + Offsets.RBrave), mem.U8(rb + Offsets.RFaith));
             hands.Clear();
-            foreach (int id in new[] { rh, lh, oh })
-                if (id != 0x00FF && id != 0xFFFF && !hands.Contains(id)) hands.Add(id);
+            CollectHands(rh, lh, oh, hands);
         }
         return found == 1;
     }
@@ -49,9 +66,7 @@ internal static partial class Wielder
         int found = 0;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            int lvl = mem.U8(rb + Offsets.RLevel);
-            if (lvl < 1 || lvl > 99) continue;                         // empty slot
+            if (!TryOccupiedSlot(mem, r, out long rb, out int lvl)) continue;   // empty slot
             if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;    // main-hand match only
             if (++found > 1) return false;                              // two main-hand wielders: ambiguous
             fp = (lvl, mem.U8(rb + Offsets.RBrave), mem.U8(rb + Offsets.RFaith));
@@ -90,9 +105,7 @@ internal static partial class Wielder
         var hand = new List<int> { weaponId };
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            int lvl = mem.U8(rb + Offsets.RLevel);
-            if (lvl < 1 || lvl > 99) continue;                        // empty slot
+            if (!TryOccupiedSlot(mem, r, out long rb, out int lvl)) continue;   // empty slot
             if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;   // main-hand match only
             var candFp = (lvl, (int)mem.U8(rb + Offsets.RBrave), (int)mem.U8(rb + Offsets.RFaith));
             int rosterNameId = mem.U16(rb + Offsets.RNameId);          // this slot's own back-reference (u16, fail-safe)
@@ -142,9 +155,7 @@ internal static partial class Wielder
         var hand = new List<int> { weaponId };
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            int lvl = mem.U8(rb + Offsets.RLevel);
-            if (lvl < 1 || lvl > 99) continue;                        // empty slot
+            if (!TryOccupiedSlot(mem, r, out long rb, out int lvl)) continue;   // empty slot
             if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;   // main-hand match only
             var candFp = (lvl, (int)mem.U8(rb + Offsets.RBrave), (int)mem.U8(rb + Offsets.RFaith));
             int rosterNameId = mem.U16(rb + Offsets.RNameId);
@@ -172,15 +183,12 @@ internal static partial class Wielder
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            int lvl = mem.U8(rb + Offsets.RLevel);
-            if (lvl < 1 || lvl > 99) continue;   // empty slot
+            if (!TryOccupiedSlot(mem, r, out long rb, out int lvl)) continue;   // empty slot
             int rh = mem.U16(rb + Offsets.RRHand), lh = mem.U16(rb + Offsets.RLHand), oh = mem.U16(rb + Offsets.ROffHand);
             if (rh != weaponId && lh != weaponId && oh != weaponId) continue;   // this row doesn't hold it at all
             var fp = (lvl, (int)mem.U8(rb + Offsets.RBrave), (int)mem.U8(rb + Offsets.RFaith));
             var hands = new List<int>();
-            foreach (int id in new[] { rh, lh, oh })
-                if (id != 0x00FF && id != 0xFFFF && !hands.Contains(id)) hands.Add(id);
+            CollectHands(rh, lh, oh, hands);
             int rosterNameId = mem.U16(rb + Offsets.RNameId);
             if (Locate(mem, weaponId, hands, fp, rosterNameId) != 0) return true;   // deployed: done
         }
@@ -227,9 +235,7 @@ internal static partial class Wielder
         count = 0; firstNameId = -1; allSameNameId = true;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            int lvl = mem.U8(rb + Offsets.RLevel);
-            if (lvl < 1 || lvl > 99) continue;                        // empty slot
+            if (!TryOccupiedSlot(mem, r, out long rb, out int lvl)) continue;   // empty slot
             int rh = mem.U16(rb + Offsets.RRHand);
             if (mainHandOnly)
             {
