@@ -15,8 +15,13 @@ internal sealed partial class AttackCard
 {
     private void Arm()
     {
-        _hits.Clear();
+        // LW-57: does NOT clear _hits (the warm cache survives any re-census, including one that
+        // rearms across a battle edge); FindHits below silently skips any candidate already cached,
+        // so a still-live copy is preserved rather than evicted-then-readopted. Evictions already
+        // removed bad entries before setting _needsCensus, so nothing stale should be sitting here.
         _rejectedThisCensus = 0;
+        _sweepCompleted = false;
+        _nextIsRepaint = true;   // the tick right after Arm always repaints first (LW-57 anti-starvation)
         _reader.Snapshot();
         _regionsDesc = ScanCursor.SortDescending(_reader.Regions);
         _cursor = RegionCursor.AtStart(_regionsDesc);
@@ -46,6 +51,9 @@ internal sealed partial class AttackCard
         catch (Exception ex)
         {
             ModLogger.Error(LogVerb.Display, "The Attack-card census failed; the desc painter will retry next battle: " + ex.Message);
+            // _sweepCompleted deliberately stays false here (same silent-partial-cache class as a
+            // battle-edge abort): the next battle edge re-arms a fresh census instead of trusting
+            // whatever partial cache this failed sweep left behind.
             _scanning = false;
         }
     }
@@ -62,6 +70,13 @@ internal sealed partial class AttackCard
             if (!AttackCardProbeText.IsStandaloneHit(buf, pos, enc)) continue;
 
             long labelAddr = bufBase + pos;
+            // LW-57: a candidate already cached (Arm no longer clears _hits) is neither adopted nor
+            // rejected, just preserved: skip silently, before the enc2 ReadDesc work below and
+            // before SyncHit, so a still-live copy is never double-counted or bounced through evict
+            // then re-adopt. Silent on purpose, same as the "never makes the cache" rejection case
+            // below: it must not touch _rejectedThisCensus, or the LW-69 aggregate line's meaning
+            // (rejected == genuinely foreign) would drift.
+            if (_hits.Exists(h => h.LabelAddr == labelAddr)) continue;
             int descPos = AttackCardProbeText.DescStart(pos, enc);
             long descAddr = bufBase + descPos;
 
@@ -101,6 +116,10 @@ internal sealed partial class AttackCard
     private void Finish()
     {
         _scanning = false;
+        // A HitCap finish counts as complete too: cap 32 vs about six live copies per launch, so a
+        // degenerate full-cap instant finish self-heals via RepaintAll's own eviction path, not a
+        // forced re-arm here.
+        _sweepCompleted = true;
         ModLogger.Debug(LogVerb.Display,
             $"attack-card census finished: {_hits.Count} table copies cached for the weapon dossier ({_rejectedThisCensus} candidates rejected)");
     }

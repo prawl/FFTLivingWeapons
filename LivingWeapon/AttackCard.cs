@@ -103,6 +103,8 @@ internal sealed partial class AttackCard
     private readonly List<Hit> _hits = new();
     private bool _needsCensus = true;
     private bool _scanning;
+    private bool _sweepCompleted;   // honest "no census has ever completed"; Arm gates re-arm on this too
+    private bool _nextIsRepaint;    // alternation toggle: which phase Tick runs next while a sweep is in flight
     private int _rejectedThisCensus;   // census-lifecycle state: reset in Arm, reported by Finish
     private List<(long rbase, long rsize)> _regionsDesc = new();
     private RegionCursor _cursor;
@@ -133,12 +135,23 @@ internal sealed partial class AttackCard
     }
 
     /// <summary>In-battle tick (the Abilities menu is in-battle; battle-paused ticks still run).
-    /// Arms/advances the census one budgeted slice at a time (never both in the same tick, the
-    /// spike's own proven anti-starvation shape), then otherwise drives the repaint.</summary>
+    /// Arms the census, then while a sweep is in flight ALTERNATES ticks between RepaintDriver and
+    /// StepScan (never both in the same tick, the spike's own proven anti-starvation shape) so a
+    /// sweep never starves the repaint driver: without this, the session's first battle shows the
+    /// vanilla Attack row for the whole census, since nothing paints until Finish (LW-57). Arm
+    /// pins the tick immediately after it to the REPAINT phase (deterministic: a test fixture's
+    /// sweep finishes in one StepScan, so the phase order is what makes the behavior observable).
+    /// An empty cache has nothing to repaint yet, so it scans every tick, same as before.</summary>
     public void Tick()
     {
         if (_needsCensus && !_scanning) { Arm(); _needsCensus = false; return; }
-        if (_scanning) { StepScan(); return; }
+        if (_scanning)
+        {
+            if (_hits.Count == 0) { StepScan(); return; }
+            if (_nextIsRepaint) { RepaintDriver(); _nextIsRepaint = false; }
+            else { StepScan(); _nextIsRepaint = true; }
+            return;
+        }
         RepaintDriver();
     }
 
@@ -150,12 +163,16 @@ internal sealed partial class AttackCard
     /// renamed again. This is safe for free: RepaintAll's very next pass runs SyncHit over every
     /// cached copy, which fully re-verifies the "Attack" label bytes and the footprint image from
     /// scratch, evicting (and re-arming a census for) anything that went stale in the meantime.
-    /// Only an empty cache re-arms a full census here, since there is nothing left to re-validate.</summary>
+    /// Re-arms a full census here on any of three conditions: an empty cache (nothing left to
+    /// re-validate), a sweep this battle that was ABORTED before it could Finish (a battle edge mid
+    /// sweep would otherwise leave a partial cache silently masquerading as complete forever,
+    /// LW-57), or a re-census already pending from an eviction the battle edge would otherwise
+    /// swallow (the leading `_needsCensus ||` term).</summary>
     public void ResetBattle()
     {
         RestoreVanillaBestEffort();
         _scanning = false;
-        _needsCensus = _hits.Count == 0;
+        _needsCensus = _needsCensus || _hits.Count == 0 || !_sweepCompleted;
         _currentImage = null;
         _currentRowChars = 0;
         _previousImage = null;

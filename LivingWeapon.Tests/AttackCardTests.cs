@@ -431,6 +431,143 @@ public class AttackCardTests
         Assert.Equal(1, rig.Card.HitCountForTests);
     }
 
+    [Fact]
+    public void Battle_edge_that_aborts_an_in_flight_sweep_still_re_arms_next_battle()
+    {
+        // LW-57, the load-bearing negative: reproduces the 2026-07-11 live log. A battle edge that
+        // lands mid sweep (after Arm, before Finish) must not leave the partial cache masquerading
+        // as a complete census: without the !_sweepCompleted term, battle 2's copyB is never found.
+        var rig = Build();
+        long copyA = 0x7000000000;
+        rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
+
+        Settle(rig.Card);   // battle 1: census adopts copyA, sweep completes
+        Assert.Equal(1, rig.Card.HitCountForTests);
+
+        rig.Card.ForceRecensusForTests();
+        rig.Card.Tick();   // Arm only: sweep now in flight, cache still warm (Arm no longer clears it)
+
+        rig.Card.ResetBattle();   // the abort: no Finish ever ran this sweep
+
+        long copyB = 0x7000100000;
+        rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);
+
+        Settle(rig.Card);   // battle 2
+
+        Assert.Equal(2, rig.Card.HitCountForTests);   // copyB adopted by the re-armed census
+    }
+
+    [Fact]
+    public void A_repaint_lands_mid_sweep_without_waiting_for_the_sweep_to_finish()
+    {
+        // LW-57: a sweep must not starve the repaint driver, or the session's first battle shows
+        // the vanilla Attack row for the whole census. Alternation lets a repaint land WHILE the
+        // sweep is still in flight (HitCountForTests unchanged, sweep not yet Finished).
+        var rig = Build();
+        long copyA = 0x7000000000;
+        rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copyA), 1));
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+
+        rig.Card.ForceRecensusForTests();
+        rig.Card.Tick();   // Arm only: phase is pinned to REPAINT next
+
+        OpenTurn(rig, level: 55);   // flip the desired compose to Stormcaller mid-sweep
+
+        rig.Card.Tick();   // repaint phase: lands the new row even though the sweep is still in flight
+        Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copyA), 1));
+
+        rig.Card.Tick();   // scan phase: completes the sweep
+        Assert.Equal(1, rig.Card.HitCountForTests);
+    }
+
+    [Fact]
+    public void Empty_cache_sweep_scans_every_tick_with_no_repaint_phase_interposed()
+    {
+        var rig = Build();
+
+        rig.Card.Tick();   // Arm: cache is empty, nothing to census yet
+        rig.Card.Tick();   // an empty-cache scan tick finishes the census outright
+
+        Assert.Equal(0, rig.Card.HitCountForTests);
+
+        // A copy shows up after that census already finished; the next battle's Settle re-arms and
+        // finds it, proving the second tick above really did Finish (not get stuck alternating).
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+        rig.Card.ResetBattle();
+        Settle(rig.Card);
+        Assert.Equal(1, rig.Card.HitCountForTests);
+    }
+
+    [Fact]
+    public void Preserved_hits_re_census_does_not_duplicate_or_write()
+    {
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+
+        int writesBefore = rig.Mem.WrittenAddrs.Count;
+        rig.Card.ForceRecensusForTests();
+        Settle(rig.Card);
+
+        Assert.Equal(1, rig.Card.HitCountForTests);   // no duplicate entry for the same copy
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Equal(writesBefore, rig.Mem.WrittenAddrs.Count);   // skip-if-equal: zero writes
+    }
+
+    [Fact]
+    public void Eviction_after_a_completed_census_still_re_censuses_across_a_battle_edge()
+    {
+        // Guards the `_needsCensus ||` term: an eviction mid-battle sets _needsCensus, but nothing
+        // ticks it into an Arm before ResetBattle fires. The pending re-census must survive the
+        // battle edge (a completed prior sweep must not mask it via !_sweepCompleted alone).
+        var rig = Build();
+        long copyA = 0x7000000000;
+        rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+        Assert.Equal(1, rig.Card.HitCountForTests);
+
+        var (labelAddr, _) = AttackCardTableFixture.Addrs(copyA, 1);
+        rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
+
+        // Force RepaintAll to notice and evict, WITHOUT letting a subsequent Tick arm the resulting
+        // _needsCensus (a resolve change is what drives RepaintAll's own eviction check).
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        OpenTurn(rig, level: 55);
+        rig.Card.Tick();   // RepaintDriver sees the resolve change, RepaintAll evicts copyA, sets _needsCensus
+
+        Assert.Equal(0, rig.Card.HitCountForTests);
+
+        rig.Card.ResetBattle();   // battle edge lands BEFORE any Tick arms the pending census
+
+        long copyB = 0x7000100000;
+        rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);
+        // No player turn open yet at battle 2's start (an enemy's turn, the stale-cache test's own
+        // convention): otherwise Stormcaller's battle-1 cursor legitimately paints copyB the moment
+        // the census adopts it (SyncHit-on-discovery). Vanilla compose keeps adoption the ONLY
+        // observable thing here.
+        rig.Mem.SeatCursor(team: 1, level: 55, hp: 100, maxHp: 100);
+
+        Settle(rig.Card);   // battle 2
+
+        Assert.Equal(1, rig.Card.HitCountForTests);   // copyB adopted: the pending re-census survived the edge
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copyB), 1));
+    }
+
     // LW-31: CURSOR-ONLY resolve (owner-observed wrong-weapon display 2026-07-06). The register
     // fallback stage 2 kept is GONE from this surface: when the cursor does not answer, the plan
     // is vanilla, full stop. The four guard-failure tests below pin that fail-closed rule (they
@@ -745,7 +882,7 @@ public class AttackCardTests
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
         int writesBefore = rig.Mem.WrittenAddrs.Count;
-        rig.Card.ForceRecensusForTests();   // clears the cache (Arm) without touching any live copy
+        rig.Card.ForceRecensusForTests();   // re-arms a census (Arm no longer clears the cache) without touching any live copy
         Settle(rig.Card);
 
         Assert.Equal(1, rig.Card.HitCountForTests);              // re-adopted

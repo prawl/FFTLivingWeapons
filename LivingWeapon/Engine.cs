@@ -273,7 +273,7 @@ internal sealed class Engine
         _growth.ResetBattle();
         _reliquary.ResetBattle();   // per-battle Marks ledger (the exit edge composes its summary BEFORE this runs)
         foreach (var sig in _signatures) sig.ResetBattle();
-        _attackCard.ResetBattle();   // LW-31 stage 2: restore vanilla to any live Attack-menu copies, then drop the cache
+        _attackCard.ResetBattle();   // LW-31 stage 2: restore vanilla to any live Attack-menu copies; the cache stays warm for the next battle's re-verify
 #if LWDEV
         _bodyDoubleSpike.ResetBattle();   // LW-58: the bind + decoy CT-hold never survive a battle edge
 #endif
