@@ -983,4 +983,115 @@ public class AttackCardTests
         Assert.Contains($"rosterHand={ZwillId}", rig.Recorded[1].Payload);
         Assert.NotEqual(rig.Recorded[0].Payload, rig.Recorded[1].Payload);   // two distinct evidence trails
     }
+
+    // ==================== Census candidate-rejection log flood fix ====================
+    // A heap census walks every "Attack" standalone string it finds, most of them foreign (some
+    // OTHER command's row); SyncHit used to log an "evicting" Debug line for EVERY one of those,
+    // thousands per sweep, 98.4% of a real live log. A census candidate that never makes the cache
+    // is not an eviction: FindHits now counts rejections silently and Finish() reports the total
+    // once. A REAL eviction (a cached copy going foreign between passes, RepaintAll) is rare and
+    // still logs, moved out of SyncHit and worded with the specific reason.
+
+    [Fact]
+    public void Census_candidate_rejection_is_silent_and_aggregated()
+    {
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            var rig = Build();
+            long goodCopy = 0x7000000000;
+            long foreignCopy1 = 0x7000100000;
+            long foreignCopy2 = 0x7000200000;
+            rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
+            // Two foreign standalone "Attack" candidates: some OTHER command's row, never cached.
+            // Long enough (over FootprintBytes-1-PadAfter chars) that the 74-byte footprint read
+            // itself succeeds, landing on the genuine "unknown footprint" rejection path rather than
+            // a short-region read failure: the real flood shape a live heap census hits.
+            rig.Mem.AddHeapRegion(foreignCopy1,
+                AttackCardTableFixture.Build(1, "Some other command's own unrelated description prose, quite long indeed."));
+            rig.Mem.AddHeapRegion(foreignCopy2,
+                AttackCardTableFixture.Build(1, "Yet another foreign command's completely different description text as well."));
+
+            Settle(rig.Card);
+
+            // Stem match: this test drives the census only (nothing was ever cached then lost, so
+            // no legitimate eviction line exists); ANY evict-flavored per-candidate line is the flood.
+            Assert.DoesNotContain(file, l => l.Contains("evict"));
+            string finished = Assert.Single(file, l => l.Contains("census finished"));
+            Assert.Contains("1 table copies cached", finished);
+            Assert.Contains("2 candidates rejected", finished);
+            Assert.Equal(1, rig.Card.HitCountForTests);
+        }
+        finally { ModLogger.Instance = prior; }
+    }
+
+    [Fact]
+    public void A_real_eviction_during_RepaintAll_logs_exactly_one_line_naming_the_reason()
+    {
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            var rig = Build();
+            long copy = 0x7000000000;
+            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+            SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+            OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+            Settle(rig.Card);
+            Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+
+            file.Clear();   // drop the census/paint noise; only the eviction line itself is under test
+
+            var (_, descAddr) = AttackCardTableFixture.Addrs(copy, 1);
+            rig.Mem.WriteBytes(descAddr, AttackRow.BuildImage("ForeignThing", "Unrelated."));   // stomp the text only; the record stays Ours
+
+            SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+            OpenTurn(rig, level: 55);       // Stormcaller's turn opens: forces RepaintAll to re-verify copy
+            Settle(rig.Card, ticks: 1);
+
+            Assert.Equal(0, rig.Card.HitCountForTests);   // evicted (a foreign footprint is never adopted forward)
+
+            var evictionLines = file.FindAll(l => l.Contains("evicted"));
+            Assert.Single(evictionLines);
+            Assert.Contains("foreign-footprint", evictionLines[0]);
+        }
+        finally { ModLogger.Instance = prior; }
+    }
+
+    [Fact]
+    public void Enc2_rejection_at_census_is_also_silent_and_counted()
+    {
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            var rig = Build();
+            long goodCopy = 0x7000000000;
+            long foreignUtf16Copy = 0x7000100000;
+            rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
+            // A standalone utf16 "Attack" candidate holding non-vanilla text: SyncHitEnc2 rejects it,
+            // same silent/counted rule as the enc1 candidates above.
+            rig.Mem.AddHeapRegion(foreignUtf16Copy,
+                AttackCardTableFixture.Build(2, new string('X', AttackCardText.DefaultBudgetChars)));
+
+            Settle(rig.Card);
+
+            // Stem match, same rationale as the enc1 census test above: census-only, so ANY
+            // evict-flavored line is a per-candidate leak.
+            Assert.DoesNotContain(file, l => l.Contains("evict"));
+            string finished = Assert.Single(file, l => l.Contains("census finished"));
+            Assert.Contains("1 table copies cached", finished);
+            Assert.Contains("1 candidates rejected", finished);
+            Assert.Equal(1, rig.Card.HitCountForTests);
+        }
+        finally { ModLogger.Instance = prior; }
+    }
 }

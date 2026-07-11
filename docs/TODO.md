@@ -10,17 +10,19 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-69] Silence the unnecessary log output (census-evict flood + audit findings)** (opened 2026-07-11) [BUILDING]
+- **[LW-69] Silence the unnecessary log output (census-evict flood + audit findings)** (opened 2026-07-11) [AWAITING-LIVE]
   - Done means: the 2026-07-11 owner-directed log audit (livingweapon.log + the flight tapes) is
-    run and its unnecessary-output findings are silenced: the two attack-card evict-for-re-census
-    DBG lines no longer flood the file (dedup or edge-gate them; they were 32,193 of the 33,911
-    lines in the LW-59 smoke session at ~875 lines/sec), the census evict/re-census thrash driving
-    that rate is understood (fixed, or ledgered if structural), and any other line class the audit
-    flags as noise is silenced or edge-gated without thinning the evidence chain (real edges,
-    errors, and credit lines stay).
-  - Verify: suite green; a fresh live session log shows no single line class dominating the file
-    and the evict pair prints only on real change edges; flight-tape vocabulary unchanged
-    (docs/LOGGING.md stays accurate).
+    run and its unnecessary-output findings are silenced. Audit verdict: the two attack-card
+    "evicting the cached copy" DBG lines were 98.4% of the session log (9,024 lines in 2.5s), and
+    the cause is NOT evict/re-census thrash: the census logs one line per rejected never-cached
+    heap candidate during a single sweep. Fix: SyncHit/SyncHitEnc2 return a SyncOutcome instead of
+    logging internally; census rejections aggregate into the census-finished line's rejected
+    count; real RepaintAll evictions keep one DBG line each naming the reason. No other line
+    class flags as noise (next largest: 40 lines); flight tapes are healthy (bounded ring,
+    on-change records) and untouched.
+  - Verify: suite green; a fresh live session log shows zero per-candidate evicting lines, a
+    census-finished line carrying the rejected count, and no single line class dominating the
+    file (owner live pass).
 
 ## Backlog
 

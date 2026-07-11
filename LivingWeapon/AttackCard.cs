@@ -103,6 +103,7 @@ internal sealed partial class AttackCard
     private readonly List<Hit> _hits = new();
     private bool _needsCensus = true;
     private bool _scanning;
+    private int _rejectedThisCensus;   // census-lifecycle state: reset in Arm, reported by Finish
     private List<(long rbase, long rsize)> _regionsDesc = new();
     private RegionCursor _cursor;
 

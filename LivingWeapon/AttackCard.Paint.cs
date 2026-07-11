@@ -47,28 +47,39 @@ internal sealed partial class AttackCard
 
     private void RepaintAll()
     {
-        List<Hit>? toEvict = null;
+        List<(Hit hit, SyncOutcome outcome)>? toEvict = null;
         foreach (var hit in _hits)
-            if (!SyncHit(hit)) (toEvict ??= new List<Hit>()).Add(hit);
+        {
+            var outcome = SyncHit(hit);
+            if (outcome != SyncOutcome.Ok) (toEvict ??= new List<(Hit, SyncOutcome)>()).Add((hit, outcome));
+        }
 
         if (toEvict == null) return;
-        foreach (var h in toEvict) _hits.Remove(h);
+        // A real eviction (a copy that WAS cached going foreign) is rare, bounded by HitCap, and
+        // diagnostically valuable, unlike a census candidate's silent rejection (FindHits below):
+        // log it, one line per copy, naming the reason.
+        foreach (var (h, outcome) in toEvict)
+        {
+            ModLogger.Debug(LogVerb.Display, $"attack row copy evicted ({outcome.Phrase()}): re-censusing");
+            _hits.Remove(h);
+        }
         _needsCensus = true;   // re-census after any eviction (the anchor discipline: never guess a foreign buffer)
     }
 
     /// <summary>Verify one cached copy still holds a known image, then (skip-if-equal) write the
-    /// desired state via AttackRow. Returns false when the copy is foreign (caller evicts it); true
-    /// otherwise, written or not. enc==2 copies never participate in the split-image mechanism at
+    /// desired state via AttackRow. Returns SyncOutcome.Ok when the copy is still live, written or
+    /// not (including a transient not-yet-writable retry); any other outcome names why the copy is
+    /// foreign (caller evicts it). enc==2 copies never participate in the split-image mechanism at
     /// all (see AttackCard.cs's class doc); they get their own vanilla-only sync.</summary>
-    private bool SyncHit(Hit hit)
+    private SyncOutcome SyncHit(Hit hit)
     {
         if (hit.Enc == 2) return SyncHitEnc2(hit);
 
         byte[] labelPattern = AttackCardProbeText.Pattern(1);
         if (!_mem.TryReadBytes(hit.LabelAddr, labelPattern.Length, out var curLabel) || !ByteEq(curLabel, labelPattern))
-            return false;   // race guard: this buffer no longer holds the Attack label at all
+            return SyncOutcome.LabelGone;   // race guard: this buffer no longer holds the Attack label at all
 
-        if (!_mem.TryReadBytes(hit.DescAddr, AttackRow.FootprintBytes, out var footprint)) return false;
+        if (!_mem.TryReadBytes(hit.DescAddr, AttackRow.FootprintBytes, out var footprint)) return SyncOutcome.DescUnreadable;
 
         bool isKnown = ByteEq(footprint, VanillaImage)
                     || (_currentImage != null && ByteEq(footprint, _currentImage))
@@ -76,8 +87,7 @@ internal sealed partial class AttackCard
         if (!isKnown)
         {
             if (_attackRow.Classify(hit.LabelAddr) == AttackRowShape.Ours) _attackRow.Restore(hit.LabelAddr);
-            ModLogger.Debug(LogVerb.Display, "attack row footprint no longer holds a known image: evicting the cached copy for a later re-census");
-            return false;
+            return SyncOutcome.ForeignFootprint;
         }
 
         // LW-33 (kept): this read is a FULL live read that just confirmed footprint is one of the
@@ -88,20 +98,17 @@ internal sealed partial class AttackCard
         hit.DescChars = AttackCardText.DefaultBudgetChars;
 
         byte[] desiredImage = _currentImage ?? VanillaImage;
-        if (ByteEq(footprint, desiredImage)) return true;   // skip-if-equal
+        if (ByteEq(footprint, desiredImage)) return SyncOutcome.Ok;   // skip-if-equal
 
         if (_currentImage != null)
         {
             var shape = _attackRow.Classify(hit.LabelAddr);
             if (shape != AttackRowShape.Vanilla && shape != AttackRowShape.Ours)
-            {
-                ModLogger.Debug(LogVerb.Display, "attack row's record no longer matches a writable shape: evicting the cached copy");
-                return false;   // record-shape mismatch with the footprint's story: evict, hands off
-            }
-            if (!_mem.Writable(hit.DescAddr, AttackRow.FootprintBytes)) return true;   // transient: retry next pass
+                return SyncOutcome.ShapeMismatch;   // record-shape mismatch with the footprint's story: evict, hands off
+            if (!_mem.Writable(hit.DescAddr, AttackRow.FootprintBytes)) return SyncOutcome.Ok;   // transient: retry next pass
             _attackRow.Paint(hit.LabelAddr, desiredImage, _currentRowChars);
             ModLogger.Debug(LogVerb.Display, "attack row repainted");
-            return true;
+            return SyncOutcome.Ok;
         }
 
         // Desired: vanilla plan.
@@ -110,17 +117,17 @@ internal sealed partial class AttackCard
         {
             _attackRow.Restore(hit.LabelAddr);   // the strand killer: restores regardless of what the text says
             ModLogger.Debug(LogVerb.Display, "attack row reverted to vanilla");
-            return true;
+            return SyncOutcome.Ok;
         }
         if (vshape == AttackRowShape.Vanilla)
         {
             // Record already vanilla-shaped; a stale non-vanilla FOOTPRINT under it (the "text-only
             // restore" case) is this caller's own decision, per AttackRow.Restore's class doc.
-            if (!_mem.Writable(hit.DescAddr, AttackRow.FootprintBytes)) return true;
+            if (!_mem.Writable(hit.DescAddr, AttackRow.FootprintBytes)) return SyncOutcome.Ok;
             _mem.WriteBytes(hit.DescAddr, VanillaImage);
-            return true;
+            return SyncOutcome.Ok;
         }
-        return false;   // Foreign/Unreadable record shape: evict, hands off
+        return SyncOutcome.ForeignShape;   // Foreign/Unreadable record shape: evict, hands off
     }
 
     /// <summary>Best-effort vanilla restore for ResetBattle: only touches a copy that currently

@@ -16,6 +16,7 @@ internal sealed partial class AttackCard
     private void Arm()
     {
         _hits.Clear();
+        _rejectedThisCensus = 0;
         _reader.Snapshot();
         _regionsDesc = ScanCursor.SortDescending(_reader.Regions);
         _cursor = RegionCursor.AtStart(_regionsDesc);
@@ -89,13 +90,18 @@ internal sealed partial class AttackCard
             // previous for enc1; vanilla only for enc2): a standalone "Attack" label with unrelated
             // prose after it is some OTHER command's row, not this one, and must never be cached or
             // written (the anchor discipline). SyncHit performs the real check for both encodings.
-            if (SyncHit(hit)) _hits.Add(hit);
+            // A census candidate that never makes the cache is NOT an eviction (it was never
+            // adopted): tallied silently, never logged per-candidate (a sweep walks thousands of
+            // foreign "Attack" strings a battle; see Finish's aggregate line below).
+            if (SyncHit(hit) == SyncOutcome.Ok) _hits.Add(hit);
+            else _rejectedThisCensus++;
         }
     }
 
     private void Finish()
     {
         _scanning = false;
-        ModLogger.Debug(LogVerb.Display, $"attack-card census finished: {_hits.Count} table copies cached for the weapon dossier");
+        ModLogger.Debug(LogVerb.Display,
+            $"attack-card census finished: {_hits.Count} table copies cached for the weapon dossier ({_rejectedThisCensus} candidates rejected)");
     }
 }

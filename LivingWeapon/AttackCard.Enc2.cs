@@ -14,28 +14,24 @@ internal sealed partial class AttackCard
 {
     /// <summary>Verify the label, then require the desc to ALREADY read vanilla to keep this copy
     /// cached: an enc2 catalog is never a candidate for the split-image treatment, so unlike the
-    /// enc1 path's three-way anchor, there is nothing else it could legitimately hold. Evicts
-    /// (returns false, zero writes) on a label mismatch, an unreadable desc, or any non-vanilla
-    /// text: the eviction itself performs no restore attempt here; RestoreVanillaBestEffortEnc2
-    /// is the only place that ever attempts to write this branch's vanilla text back.</summary>
-    private bool SyncHitEnc2(Hit hit)
+    /// enc1 path's three-way anchor, there is nothing else it could legitimately hold. Rejects
+    /// (zero writes) on a label mismatch, an unreadable desc, or any non-vanilla text: the
+    /// rejection itself performs no restore attempt here; RestoreVanillaBestEffortEnc2 is the only
+    /// place that ever attempts to write this branch's vanilla text back.</summary>
+    private SyncOutcome SyncHitEnc2(Hit hit)
     {
         byte[] labelPattern = AttackCardProbeText.Pattern(2);
         if (!_mem.TryReadBytes(hit.LabelAddr, labelPattern.Length, out var curLabel) || !ByteEq(curLabel, labelPattern))
-            return false;
+            return SyncOutcome.LabelGone;
 
         int capBytes = DescCapChars * 2;
-        if (!_mem.TryReadBytes(hit.DescAddr, capBytes, out var descBuf)) return false;
+        if (!_mem.TryReadBytes(hit.DescAddr, capBytes, out var descBuf)) return SyncOutcome.DescUnreadable;
         var (curText, _) = AttackCardProbeText.ReadDesc(descBuf, 0, 2, DescCapChars);
 
-        if (curText != AttackCardText.VanillaDesc)
-        {
-            ModLogger.Debug(LogVerb.Display, "attack row (utf16 copy) no longer holds vanilla: evicting the cached copy for a later re-census");
-            return false;
-        }
+        if (curText != AttackCardText.VanillaDesc) return SyncOutcome.NonVanillaUtf16;
 
         hit.DescChars = AttackCardText.DefaultBudgetChars;   // LW-33 re-pin: a full live read just confirmed vanilla
-        return true;   // already vanilla; enc2 never receives a composed write
+        return SyncOutcome.Ok;   // already vanilla; enc2 never receives a composed write
     }
 
     /// <summary>Best-effort vanilla restore for an enc2 copy: attempts a flat vanilla-text write ONLY
