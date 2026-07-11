@@ -24,13 +24,6 @@ is the in-flight subset, not a mirror of that checklist.
     same treatment for the kills/weapons counts in the same two lines), and the LOGGING.md launch
     header example stops showcasing the bad grammar.
   - Verify: a failing-first unit test pins the singular forms; suite green.
-- **[LW-74] Reconcile PORT_1.5.md with the post-grenade table set** (opened 2026-07-11) [BUILDING]
-  - Done means: the PORT_1.5.md table inventory no longer lists the grenade ItemData rows
-    246-252, the removed ItemConsumableData.xml, or the ability.en.nxd grenade learn-names
-    374-378 (all removed with the Offensive Chemist, a5ea61e); a dated note records the
-    reconciliation.
-  - Verify: suite green (DocsContractTests link scan); a grep of PORT_1.5.md finds no live
-    grenade-row inventory claims.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
@@ -97,11 +90,6 @@ is the in-flight subset, not a mirror of that checklist.
   dupe.
 - [LW-15] 2026-07-04: Enemies actually USE living-weapon benefits (XL undesigned feature; the
   static rebalance already lands the real player want).
-- [LW-22] 2026-07-05: The launch header (Engine.cs:81) does not pluralize its Marks count, so
-  "1 Marks" prints when TotalMarks is 1, and the LOGGING.md launch-header example faithfully
-  showcases the bad grammar. BattleSummary.Compose pluralizes correctly; only the header
-  emitter was missed. One string plus the doc example; fold into the next round that touches
-  Engine.cs or LOGGING.md.
 - [LW-23] 2026-07-05: A Mark deed toast starves the tier-up toast on the same kill (owner
   observed): Ramza's gun earned Beastbane and the deed toast delivered, but the same blow was
   kill 2 (tier-up to +2) and no tier-up toast ever appeared. Investigate contention on the
@@ -171,10 +159,6 @@ is the in-flight subset, not a mirror of that checklist.
   saw the lag live 2026-07-07, not a correctness bug). Suspect the per-wielder locate/write cadence
   serializes or throttles when more than one unit carries the pistol: check the Gun Slinger
   signature's tick loop and whether its locate stops at the first wielder per tick.
-- [LW-46] 2026-07-07: Galewind's p3Desc still claims "No Lucavi" but IsDominatable is allow-everyone
-  (no carve-out), so the card overpromises. Spun out of LW-5 (the expiry, shipped e882799, made the
-  "for its full turn" clause accurate). Either drop the "No Lucavi" clause from items.json p3Desc and
-  re-bake, or implement a Lucavi job carve-out in IsDominatable. Owner decision open.
 - [LW-47] 2026-07-07: Murasame id41's living-weapon signature is deferred out of 2.3.0 (Kiku-ichimonji
   took the one samurai signature slot with Mushin); pick a proven lever and build it when revived.
 - [LW-48] 2026-07-07: Append "Modded by prawl" to the in-battle "View Battlefield" UI label so it
@@ -272,9 +256,6 @@ is the in-flight subset, not a mirror of that checklist.
   self-diagnose phantom-seat classes on their own (the LW-34 over-count mining needed the raw
   file log alongside the flight tapes to tell a phantom seat from a real one). Widen the census
   band record with those fields when the census format is next touched.
-- [LW-74] 2026-07-11: docs/research/PORT_1.5.md still inventories the grenade table rows (item
-  ids 246-252, ability learn-names 374-378) that a5ea61e already removed from the shipped mod.
-  Reconcile the doc with the current table set next time PORT_1.5.md is touched.
 - [LW-75] 2026-07-11: The coverage line effectively never reaches the console: its armed gate
   (AnyTrackedWeaponThisBattle) rises only when a tracked-weapon wielder COMPLETES an action, and
   the once-per-battle coverage check nearly always stabilizes first (LW-34 live pass, 14:24

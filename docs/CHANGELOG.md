@@ -8,6 +8,10 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-74] SHIPPED c494faa 2026-07-11: PORT_1.5.md's Appendix E inventory reconciled with the
+  post-Offensive-Chemist table set: the grenade ItemData rows 246-252, the removed
+  ItemConsumableData.xml, and the ability.en.nxd grenade learn-names 374-378 (all gone since
+  a5ea61e) no longer appear as shipped artifacts; a dated note records the reconciliation.
 - [LW-34] SHIPPED 91593d0 2026-07-11: the "All N enemies are accounted for" line counts only the
   enemies actually fielded, closing the systematic over-count (owner repro "All 8" in a 4-enemy
   battle). Root cause: encounters define conditional-spawn variant rows whose phantom seats carry
