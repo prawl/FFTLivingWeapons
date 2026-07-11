@@ -321,8 +321,10 @@ internal sealed class Engine
         // _display.Invalidate() otherwise, leaving stale painted suffix bytes in the equip-card
         // pool for the freshly-cleared tally to inherit. Invalidate unconditionally here: Observe
         // returns true exactly once per detection, Invalidate is idempotent, and the mid-battle
-        // case's forced-exit edge below also invalidates the same tick, harmlessly.
-        if (newGame) _display.Invalidate();
+        // case's forced-exit edge below also invalidates the same tick, harmlessly. LW-70: the
+        // same once-per-detection edge also re-baselines the toast queue, so a post-reset first
+        // kill reads as a fresh crossing instead of a rollback below the stale pre-reset snapshot.
+        if (newGame) { _display.Invalidate(); _toast.Rebaseline(); }
         // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks), UNLESS forceExit
         // fires (LW-56: a detected new game bypasses the debounce entirely). nowIn is sticky through
         // mid-battle dips, flipping only on the debounced or forced edges.

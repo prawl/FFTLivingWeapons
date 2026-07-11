@@ -46,12 +46,25 @@ internal sealed partial class BannerToast
         _meta = meta;
         _kills = kills;
         _enabled = enabled;
-        foreach (int id in meta.Keys)
+        Snapshot();
+    }
+
+    private void Snapshot()
+    {
+        foreach (int id in _meta.Keys)
         {
-            _tiers[id] = Tuning.TierOf(kills, id);
-            _counts[id] = kills.TryGetValue(id, out int k) ? k : 0;
+            _tiers[id] = Tuning.TierOf(_kills, id);
+            _counts[id] = _kills.TryGetValue(id, out int k) ? k : 0;
         }
     }
+
+    /// <summary>LW-70: called by Engine on the PlaythroughReset new-game detection edge (the same
+    /// edge as Display.Invalidate, LW-59). A pure snapshot refresh that never enqueues -- it just
+    /// re-primes _tiers/_counts against the freshly-cleared kills dictionary so the first post-reset
+    /// tally rise reads as a fresh crossing instead of a rollback below a stale baseline. No lock
+    /// needed: _tiers/_counts are loop-thread-only (the _lock guards only _queue), same as the
+    /// construction prime.</summary>
+    public void Rebaseline() => Snapshot();
 
     public void Tick(bool tallyChanged)
     {

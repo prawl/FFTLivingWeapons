@@ -430,6 +430,59 @@ public class BannerToastTests
     public void FirstBloodTierPayload_wording(int tier, string? sigLabel, string expected)
         => Assert.Equal(expected, BannerToast.FirstBloodTierPayload("Kiyomori", tier, sigLabel));
 
+    // ---- (29) LW-70: Rebaseline re-primes _tiers/_counts on the PlaythroughReset new-game edge,
+    // so the first post-reset tally rise reads as a fresh crossing rather than a rollback ----
+
+    [Fact]
+    public void Rebaseline_after_reset_restores_the_first_crossing_toast()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha") };
+        var kills = new Dictionary<int, int> { [1] = Tuning.ProdThresholds[2] };
+        var bt = new BannerToast(meta, kills, enabled: true);
+
+        kills.Clear();   // PlaythroughReset clears the shared dictionary IN PLACE, out of battle
+        bt.Rebaseline();
+
+        kills[1] = Tuning.ProdThresholds[0];
+        bt.Tick(tallyChanged: true);
+
+        Assert.Single(bt._queue);
+        Assert.Equal(1, bt._queue[0].tier);
+    }
+
+    // ---- (30) A companion pinning today's swallow for contrast: without Rebaseline, the stale
+    // pre-reset baseline reads the first post-reset rise as a rollback and swallows the toast ----
+
+    [Fact]
+    public void Without_rebaseline_the_first_post_reset_crossing_is_swallowed()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha") };
+        var kills = new Dictionary<int, int> { [1] = Tuning.ProdThresholds[2] };
+        var bt = new BannerToast(meta, kills, enabled: true);
+
+        kills.Clear();   // PlaythroughReset clears the shared dictionary IN PLACE, out of battle
+
+        kills[1] = Tuning.ProdThresholds[0];
+        bt.Tick(tallyChanged: true);
+
+        Assert.Empty(bt._queue);
+    }
+
+    // ---- (31) Rebaseline itself is a pure snapshot refresh -- it never enqueues ----
+
+    [Fact]
+    public void Rebaseline_itself_enqueues_nothing()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha") };
+        var kills = new Dictionary<int, int> { [1] = Tuning.ProdThresholds[2] };
+        var bt = new BannerToast(meta, kills, enabled: true);
+
+        kills.Clear();   // PlaythroughReset clears the shared dictionary IN PLACE, out of battle
+        bt.Rebaseline();
+
+        Assert.False(bt.HasPending);
+    }
+
     // ---- (28) Reliquary Phase 1 stage 3: MarkPayload wording + the event-key space ----
 
     [Fact]
