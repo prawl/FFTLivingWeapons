@@ -8,6 +8,22 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-71] SHIPPED c2965ce 2026-07-11: the Iai opening-turn Speed hold no longer false-releases
+  when the engine actor pointer parks on the struck wielder before its opening turn (the
+  ActorPtr-dwell trap: a parked arrival read as the S1 release signal, and the striker's acted
+  edge as S2). Every release is corroborated against Band.FlagOwner (the LW-63 per-unit PSX
+  turn-flag primitive): the flag owner being the wielder confirms the release regardless of the
+  pointer (also closing the old stale-equal starvation corner), a flag owner verifiably naming
+  another unit refuses it even when the legacy pointer signal fires, and an indeterminate read
+  (the tape-verified zero-t battle-opening record) falls through to the legacy signal unchanged
+  so release is never starved; the wall-clock cap stays the backstop. A flags-confirmed release
+  restores Speed to the flag owner's entry (the old acting-entry restore would write the
+  parked-on unit's Speed byte when the pointer is elsewhere), and the release log line names its
+  source (turn flags / actor pointer / cap). Closes the RELEASE_SCOPE section-2 Iai harden box
+  and the surviving half of the section-5 falsified pointer-presence deletion. Owner
+  live-verified 2026-07-11: the opening-turn release fired "released by the turn flags" with a
+  clean session log scan; the struck-pre-turn repro rides the LW-60 smoke pass. Suite 2406
+  green.
 - [LW-63] SHIPPED be0e4cc 2026-07-11: a kill no longer credits whichever living weapon the engine
   actor pointer happens to be parked on (the 2026-07-10 repro: Ramza killed with the Chaos Blade
   while Wilham's fielded Warbrand claimed it, the pointer parked on the wrong player). All three

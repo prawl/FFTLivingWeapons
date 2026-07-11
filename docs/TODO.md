@@ -10,26 +10,17 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-71] Iai's Speed-hold release trusts the parked actor pointer** (opened 2026-07-11) [BUILDING]
-  - Done means: the Iai opening-turn Speed hold releases only when it is actually the wielder's
-    own turn, not whenever the engine actor pointer arrives at (or sits parked on) the wielder's
-    frame. Both release paths (Iai.Policy.cs ReleaseSignal S1 arrival and S2 acted-edge match,
-    plus the identity twin ReleaseSignalById) are exposed to the ActorPtr dwell: the pointer
-    parks on STRUCK units, so an enemy striking the wielder before its opening turn reads as an
-    arrival, and the striker's acted edge can fire S2 while the pointer still names the victim
-    (the same collapse LW-63 fixed for kill credit; Ame-no-Murakumo is the affected weapon).
-    Harden by corroborating with the per-unit PSX turn flags (band +0x19C, the LW-63 primitive,
-    proven in auto-battle): a readable t==1 on the wielder confirms the release, a readable t==0
-    refuses it, and an indeterminate read (battle-opening all-zero flags) falls through to the
-    legacy signal so release is never starved (the wall-clock cap stays the backstop). This is
-    the unchecked RELEASE_SCOPE section-2 harden box, and closes the surviving half of the
-    section-5 falsified pointer-presence deletion (the Puppeteer half died with e882799).
-  - Verify: unit tests pin (IGameMemory fake, non-vacuity by break-and-restore) that a pointer
-    arrival at a struck wielder whose turn flag reads 0 does NOT release, that a real turn-open
-    arrival with the flag at 1 does, and that an all-zero flags read preserves today's legacy
-    behavior on both release paths; live, a battle where the Ame-no-Murakumo wielder is struck
-    before its opening turn keeps the Speed hold until the wielder's own turn (owner eyeball,
-    may ride the LW-60 smoke pass).
+- **[LW-72] Close the remaining RELEASE_SCOPE doc-and-hygiene boxes** (opened 2026-07-11) [QUEUED]
+  - Done means: the three section-5 leftovers from the 2026-07-11 release-remainder audit are
+    closed: (1) a player-facing release note states that non-English players get full gameplay
+    (rebalance, growth, signatures) while item TEXT stays vanilla-language and the Kills/+N card
+    counter is English-only; (2) data/items.json id67 Warbrand no longer carries the dead
+    spriteIdOverride:1 (VERIFY_LIVE row 3 marks it DEAD) and the tables regenerate clean;
+    (3) docs/LOGGING.md no longer calls the removed chemist grenades "slated for eventual
+    removal" (removed a5ea61e 2026-07-05; only Treasure Master remains slated, LW-10).
+  - Verify: analyze.py exit 0 and the suite green after the regenerate; grep shows no
+    spriteIdOverride in data/items.json and no stale grenade phrasing in docs/LOGGING.md; the
+    release note reads correctly (owner eyeball before ship).
 
 ## Backlog
 
@@ -269,13 +260,6 @@ is the in-flight subset, not a mirror of that checklist.
   the {5,25,50} curve cannot be jumped in one change); fix is a dev-verification nicety:
   re-baseline BannerToast on the reset detection edge so a future dev smoke does not misread a
   missing toast as a regression.
-- [LW-72] 2026-07-11: Close the remaining RELEASE_SCOPE doc-and-hygiene boxes surfaced by the
-  2026-07-11 release-remainder audit: author the non-English-players release note (full gameplay,
-  item text stays vanilla-language, the Kills/+N card counter is English-only), drop the dead
-  spriteIdOverride:1 from id67 Warbrand in data/items.json (VERIFY_LIVE row 3 already marks it
-  DEAD; regenerate plus gates), and correct the stale docs/LOGGING.md line still calling the
-  removed chemist grenades "slated for eventual removal" (removed a5ea61e 2026-07-05; only
-  Treasure Master remains slated, LW-10).
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
