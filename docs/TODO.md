@@ -10,6 +10,17 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
+- **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
+  - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
+    DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
+    check in one owner pass: the LW-55 auto-battle gate premise, the LW-71 struck-pre-turn
+    repro, the LW-51 Tier-1 reset eyeball on a real cold-launch New Game, the LW-69 census
+    line and LW-34 coverage confirmations, VERIFY_LIVE's open Choir row, the 2.3.0 feature
+    and regression rows from RELEASE_SCOPE's IN list, and the ship-gate checklist (version
+    bump, tag, Publish).
+  - Verify: suite green (DocsContractTests allow-list + link scan, TodoContractTests); the
+    owner then RUNS the pass, flips its checkboxes, and closes with a green
+    `python tools/scan_logs.py`.
 - **[LW-69] Silence the unnecessary log output (census-evict flood + audit findings)** (opened 2026-07-11) [AWAITING-LIVE]
   - Done means: the 2026-07-11 owner-directed log audit (livingweapon.log + the flight tapes) is
     run and its unnecessary-output findings are silenced. Audit verdict: the two attack-card
@@ -180,11 +191,6 @@ is the in-flight subset, not a mirror of that checklist.
   worktree feature/body-double-spawn). Open polish: AI-passivity (behavior row), decoy-hold default,
   and shipping any of it as a real player mechanic (LW-64 Mirror Image / LW-65 teleport / LW-66
   remove-restore track the shippable slices).
-- [LW-60] 2026-07-10: Author the 2.3.0 release Smoke Test Plan: one owner live pass gathering
-  every deferred check before ship (the LW-55 auto-battle gate-B premise, the LW-51 Tier-1 reset
-  eyeball on a real cold-launch New Game, the Reliquary Phase 1 live pass, plus whatever
-  VERIFY_LIVE.md still holds open), run after the release's task list closes so nothing rides on
-  memory at ship time.
 - [LW-62] 2026-07-10: Wielder.Roster.cs has grown six near-identical roster-walk loops (250
   lines; the LW-56 HasLiveWielder walk made it plain): extract one shared occupied-slot walk seam
   the resolvers and the existence check all ride, next time the file is touched.

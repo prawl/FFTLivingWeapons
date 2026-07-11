@@ -100,6 +100,6 @@ build failures are already caught by generate/analyze/test/compile. Confirm the 
 - Rows 10-12 verified live 2026-07-07 (owner), closing LW-2's release-verify scope. Rows 6-9
   (Reliquary Phase 1 live pass) are deferred past 2.3.0 and tracked under backlog LW-6.
 - Reliquary AC checkbox flips and LIVE_LEDGER rows remain Patrick-only.
-- The next release's verification doc should start from this file plus docs/RELEASE_SCOPE.md's
-  IN list (Samurai Swords signatures, Galewind fallback, balance pass all need their own rows
-  when built).
+- The 2.3.0 release verification doc is docs/SMOKE_TEST_2.3.0.md (LW-60), built from this file
+  plus docs/RELEASE_SCOPE.md's IN list. Row 1 (Choir multi-bearer) is folded into its regression
+  section (7.17); flip both places together.
