@@ -24,8 +24,13 @@ internal sealed class CardSites
     // is NOT treated as a duplicate -- the new-owner site must be admitted.
     private readonly HashSet<(long slot, int enc, bool kills, int id, long anchor)> _keys = new();
 
-    /// <summary>Upper bound on simultaneously-live cached sites.</summary>
-    internal const int MaxSites = 768;
+    /// <summary>Upper bound on simultaneously-live cached sites. LW-59: raised from 768 so the
+    /// pool path's all-ids suffix pass (Display.OnChunk's allSuffixes gate) is never refused at
+    /// the cap. Sizing: ~701 live kills sites observed on the 2026-07-10 tape
+    /// (docs/CHANGELOG.md LW-37 row) across 121 tracked ids is about 5.8 pool copies per id;
+    /// 121 ids x 2 site kinds (kills + suffix) x 8-copy headroom (rounded up from that 5.8)
+    /// = 1936, which 2048 clears.</summary>
+    internal const int MaxSites = 2048;
 
     /// <summary>Minimum refused Adds between successive prune passes while saturated.</summary>
     internal const int PruneEveryRefusals = 32;

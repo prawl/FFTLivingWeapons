@@ -8,6 +8,26 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-59] SHIPPED fbf59ce 2026-07-11: a stale +N name suffix no longer survives the in-session
+  new-game tally reset on the equip card (owner read "Claymore+3" over a provably empty tally
+  while the same card's Kills meter correctly read "0/1 to +"). Root cause was a coverage hole,
+  not a paint hole: the kills meter has guaranteed total pool coverage (CoversAllMeta refuses
+  to retire the sweep until every id has a kills site) but suffix sites were registered only
+  for the two mirror targets plus an 8-id SuffixRotation slice whose covered set persists
+  across Display.Invalidate, so post-reset pool rescans re-registered almost no suffix sites
+  while the painted "+3" bytes persisted in the very pool text the card materializes from (the
+  painter was always downgrade-capable: the tier-0 suffix is the baked vanilla two-space
+  state). Fix: pool-path OnChunk searches suffixes for every tracked id in chunks that carry
+  kills hits (the whole-heap sweep keeps the rotation slice, pinned by test),
+  CardSites.MaxSites grew 768 to 2048 so full suffix coverage is never refused at the cap
+  (~701 live kills sites pre-fix), and Engine invalidates the display on the new-game
+  detection edge (a main-menu New Game fires no battle-exit edge, so it previously kept the
+  stale pool text). Full plan-review-implement-verify cycle; non-vacuity by break-and-restore
+  (forcing the pool path back to the rotation slice fails the three new coverage tests). Owner
+  live-verified 2026-07-11: the post-reset opener card shows the plain name beside a fresh
+  meter, coverage re-latched 15s after the reset with no cap refusals and no engine stall
+  (4 pool regions), and the suffix climbed again at the first real battle (Vagabond+ then
+  Vagabond+2). Suite 2370 green.
 - [LW-56] SHIPPED b6b234f 2026-07-10: the new-game opener crediting arc. Fault 1 (the mis-credit:
   a stale identity bridging an in-session new game credited a weapon no fielded unit wields) shipped
   earlier as the forced new-game exit edge plus the no-live-wielder credit gate (a4d6e33). Fault 2

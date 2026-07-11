@@ -48,7 +48,21 @@ internal sealed partial class Display
     /// <summary>Walk the located pool region in chunks (ChunkReader's own Lookback/TrailSlack
     /// bounds, exactly like DisplaySweep's background walk) and feed each chunk to the
     /// EXISTING private OnChunk: the pool path registers sites through the identical
-    /// discovery, write-discipline, and foreign-refusal code the whole-heap sweep uses.</summary>
+    /// discovery, write-discipline, and foreign-refusal code the whole-heap sweep uses.
+    ///
+    /// allSuffixes: true (LW-59): a text-bearing chunk (one with a kills hit) searches every
+    /// tracked id's suffix, not just the rotation slice, so a tally reset can never leave a
+    /// stale +N behind for lack of that id's turn in the rotation. Honest cost accounting: this
+    /// is roughly 121 ids x 2 encodings of vectorized FindAll passes over each text-bearing
+    /// pool chunk. The observed live pools are small, but a real pool can exceed ChunkSize
+    /// (PoolLocator's own caveat), so the worst case is that many passes over a full 4MB chunk,
+    /// roughly tens of ms per such chunk, landing on the ENGINE'S OWN background loop (never
+    /// the game thread) at the ticks that already run this scan: battle-exit Invalidate or a
+    /// paused status-card Invalidate, where hold-reassert/kill-poll latency does not bite.
+    /// Residual accepted risk: if kills coverage never latches (a future weapon absent from
+    /// every pool region), that text-chunk cost recurs per tick. That never-latch state is a
+    /// pre-existing failure mode (it already re-scans all regions AND runs the sweep every
+    /// tick today) and is observable in the LWDEV coverage log line below.</summary>
     private void ScanPoolRegion(long regionBase, long regionSize)
     {
         var reader = new ChunkReader(_mem);
@@ -58,7 +72,7 @@ internal sealed partial class Display
         {
             int read = reader.ReadInRegion(chunkStart, regionBase, rend, out int lookback, out int searchable);
             if (read == 0) break;
-            OnChunk(reader.Buf, lookback, searchable, chunkStart - lookback);
+            OnChunk(reader.Buf, lookback, searchable, chunkStart - lookback, allSuffixes: true);
             chunkStart += ChunkReader.ChunkSize;
         }
     }

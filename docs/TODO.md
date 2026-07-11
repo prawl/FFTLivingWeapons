@@ -24,6 +24,10 @@ is the in-flight subset, not a mirror of that checklist.
     acted-period resolve on the per-unit PSX turn flags (band +0x19C/D/E, proven live, Offsets
     provenance) which name the acting unit structurally, instead of trusting the parked pointer.
     An acted-flag flight tap shipped 0f360a1 to capture the disambiguator on the next 2-unit tape.
+    First field evidence landed 2026-07-11 (tape flight_20260711_033132): at two killing edges
+    the flags record named the true turn owner while the actor-pointer credit fingerprint
+    matched no roster unit, and the death-edge stamp's corrected credit agreed with the flags
+    tap both times; the canonical two-unit repro is still wanted before building.
   - Verify: unit tests pin that the acted-period resolve names the unit whose per-unit acted flag
     rose, not the parked pointer, across all three credit sources (IGameMemory fake, non-vacuity by
     break-and-restore); live, a two-unit battle where one unit lands a kill while the other is
@@ -55,7 +59,10 @@ is the in-flight subset, not a mirror of that checklist.
 - [LW-10] 2026-07-04: Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug; do not
   fix that doomed code). On removal: de-list treasure.json from pipeline.ps1, release.yml, and
   the csproj together; BattleState.BattleDisplayed is shared with CharmLock and must survive
-  the cut; drop Treasure Master from the ModConfig description.
+  the cut; drop Treasure Master from the ModConfig description. More fuel 2026-07-11: it
+  granted a Scholar's Ring into a freshly reset new-game save 16s after the LW-59 smoke's
+  tally reset, with TreasureAlwaysOn=False (log 02:12:03); confirm at removal time that no
+  such inventory write is reachable in the production flavor.
 - [LW-11] 2026-07-04: Alter Axes and Flails, cheap slice only (Squire/Geomancer equip access on
   existing sword-typed items). The rest is walled research (type-welded formula, id-welded art,
   no known flail formula id).
@@ -190,20 +197,6 @@ is the in-flight subset, not a mirror of that checklist.
   worktree feature/body-double-spawn). Open polish: AI-passivity (behavior row), decoy-hold default,
   and shipping any of it as a real player mechanic (LW-64 Mirror Image / LW-65 teleport / LW-66
   remove-restore track the shippable slices).
-- [LW-59] 2026-07-10: A stale kill count survives the in-session new-game tally reset on the
-  equip-card surface: in the reset opener the owner read 3 kills for Ramza's Claymore while the
-  tally was provably empty (the LW-51 reset had archived kills.2.json, and the battle's first
-  credit logged as kill number 1), and 3 is exactly the pre-reset DEV seed floor, so a painted
-  line (the equip-card Kills meter, the LW-37 pool text, or the +N name suffix) outlived the
-  reset. The LW-37 pool repaint ran post-reset (02:45:01, 701 sites) yet the viewed card still
-  read 3; determine which painter holds the stale text and make PlaythroughReset force a repaint
-  of every kill-count surface.
-  2026-07-10 second live pass (the LW-56 verify session, ~04:57): question one is ANSWERED. On
-  the post-reset opener's equip card the owner read "Claymore+3" (wrong, 3 = the DEV seed floor)
-  while the Kills meter on the same card read "Kills: 0/1 to +" (correct, fresh tally), so the
-  stale surface is the +N NAME-SUFFIX painter specifically: the meter repaints from the live
-  tally but the suffix is never un-painted when the tally resets beneath it. The LW-56 forced
-  battle-exit (which runs Display.Invalidate on the edge) fired that run and did not cure it.
 - [LW-60] 2026-07-10: Author the 2.3.0 release Smoke Test Plan: one owner live pass gathering
   every deferred check before ship (the LW-55 auto-battle gate-B premise, the LW-51 Tier-1 reset
   eyeball on a real cold-launch New Game, the Reliquary Phase 1 live pass, plus whatever
@@ -264,6 +257,21 @@ is the in-flight subset, not a mirror of that checklist.
   KEPT because the production Attack-card painter (AttackCard / AttackCard.Census) consumes them.
   REMAINING: sweep the sibling FFTHandsFree repo for its own F6 bindings (the other roughly two of
   the six).
+
+- [LW-69] 2026-07-11: The attack-card census eviction pair floods the log file (32,193 of the
+  33,911 lines in the LW-59 smoke session were the two evict-for-re-census DBG lines, bursting
+  at ~875 lines/sec; file-only so no console noise, but the evidence chain the file sink exists
+  to preserve is drowned and the rate implies evict/re-census thrashing every tick): dedup or
+  edge-gate the two lines, and look at why the census footprint churns that hard (AttackCard
+  census, LW-55 kin).
+- [LW-70] 2026-07-11: A dev-build first-blood toast is swallowed when the tally resets OUT of
+  battle: BannerToast baselines its tier/count snapshot at construction and DetectCrossings only
+  runs in battle, so the first in-battle change after a new-game reset reads seed-3 to 1 as a
+  rollback rather than a crossing (Cutpurse's tier-1 toast was never enqueued on the 03:31 tape
+  while Vagabond's two delivered; the tally itself was correct). Production is safe (no seed and
+  the {5,25,50} curve cannot be jumped in one change); fix is a dev-verification nicety:
+  re-baseline BannerToast on the reset detection edge so a future dev smoke does not misread a
+  missing toast as a regression.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
