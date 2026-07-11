@@ -10,6 +10,20 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
+- **[LW-57] Fix the Attack command's first-open readiness after a battle load** (opened 2026-07-09) [QUEUED]
+  - Done means: on the first turn of the first battle after a session load, the Attack command
+    row already shows the wielder's weapon name; later battles keep the LW-38 warm-cache
+    behavior (that fix shipped 3bcdadc and holds; it deliberately left this cold-cache first
+    battle open). Verified 2026-07-11: the mechanism is census cold-start latency, NOT the
+    actor-resolve guess the original entry made; the rename cannot land until the census finds
+    the table copies, the census steps only on in-battle ticks, and the 2026-07-11 tapes show a
+    sweep arming and never completing across a whole battle (14:23 and 08:31 sessions) despite
+    the handful-of-ticks budget design, which also starves RepaintDriver while _scanning holds.
+    Step 1 is therefore the live sweep diagnosis (shared with LW-69's pending census-finished
+    observation); the fix follows the diagnosis. Owner re-scoped this into 2.3.0 on 2026-07-11.
+  - Verify: suite green; owner live pass: cold-load a save, enter the first battle, open the
+    command list on the very first turn and see the weapon name, with the census-finished line
+    in the file (folds into SMOKE_TEST_2.3.0.md row 5.3 and the LW-69 check).
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
@@ -127,12 +141,6 @@ is the in-flight subset, not a mirror of that checklist.
   turn-queue fingerprint with more struct fields; the probe dump shows brave/faith-like u16
   candidates in the cursor struct needing offset verification (turn-owner-probe lines,
   livingweapon.log 04:0x). Until then twins fail closed to vanilla by design.
-- [LW-57] 2026-07-09: On battle load the Attack command keeps its generic "Attack" label instead
-  of the wielder's weapon name, generally correcting only after the first turn (owner report).
-  The swap works from then on, so the fault is first-open readiness on the LW-31 Attack-card
-  surface: the actor resolve likely lacks its turn-state inputs until the first acted edge primes
-  them. The generic-label symptom noted inside LW-55 and LW-56 is this same surface; this entry
-  tracks the general first-turn latency in every battle.
 - [LW-41] 2026-07-07: Re-anchor tools/probes/sentinel_probe.py (and audit sibling probes) to the
   1.5 offsets; it still reads the pre-1.5 addresses and fed garbage sentinels (battleMode=0,
   slot9=0x1) during the LW-40 live incident, nearly misdirecting the diagnosis. Source the
