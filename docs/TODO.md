@@ -24,17 +24,6 @@ is the in-flight subset, not a mirror of that checklist.
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
 
-- **[LW-34] Fix the enemy coverage line's systematic over-count** (opened 2026-07-05) [AWAITING-LIVE]
-  - Done means: the "All N enemies are accounted for" line counts the enemies actually fielded
-    this battle (owner repro: "All 8" in a 4-enemy battle; wrong in EVERY battle per the
-    2026-07-09 escalation; "All 10" on the 2026-07-11 08:31 tape whose exit census shows band
-    slots 14-17 co-tiled with 10-13, so phantom seats are in the count); the over-count source
-    in EnemyOracle's array capture (stale slots, phantom or reserve seats, or identity drift)
-    is identified from tape and log evidence and excluded; kill credit and the CoverageDone
-    gate (BattleCensus's trigger) keep their semantics.
-  - Verify: suite green; a live battle's coverage line matches the visible enemy count (owner
-    eyeball); no new unseen-enemy warnings on ordinary battles.
-
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO

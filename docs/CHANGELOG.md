@@ -8,6 +8,23 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-34] SHIPPED 91593d0 2026-07-11: the "All N enemies are accounted for" line counts only the
+  enemies actually fielded, closing the systematic over-count (owner repro "All 8" in a 4-enemy
+  battle). Root cause: encounters define conditional-spawn variant rows whose phantom seats carry
+  sane stats, full hp, and real tiles, so EnemyOracle's array capture counted them; only
+  scheduler participation discriminates them (tape-evidenced: phantom seats read band CT slam
+  +0x25 frozen 0 and turn flag +0x19C never exactly 1, never move, never die). Fix: two additive
+  evidence sets fed from the existing ScanCorpses band walk: MarkFielded (slam nonzero or turn
+  flag ==1, real position, 3 consecutive ticks) and MarkDead at the dead-edge stamp (a died id
+  counts as found without band visibility, the crystallize/chest case); CheckCoverage counts only
+  evidenced identities, defers silently on an empty count, and latches only on two consecutive
+  checks agreeing on the total (evidence comes from the same band the check reads, so a
+  first-pass latch would freeze a partial count). The `_enemyIds` kill-credit gate and the
+  CoverageDone/BattleCensus trigger are untouched by construction. Live pass 2026-07-11 (14:24
+  battle, owner eyeball): 11 identities captured, 5 excluded as never-scheduled, "All 6" reported
+  with 6 visible, zero unseen-enemy warnings; probe data agreed (exactly the 6 counted seats ever
+  showed slam movement). LW-75 opened for the pre-existing facelift race that keeps the line off
+  the console. Suite 2426 green (17 new EnemyOracleTests).
 - [LW-72] SHIPPED ba5e0fc 2026-07-11: the three section-5 doc-and-hygiene leftovers from the
   2026-07-11 release-remainder audit are closed. The README gained a player-facing Language
   support section (non-English players get the full gameplay: rebalance, growth, signatures;
