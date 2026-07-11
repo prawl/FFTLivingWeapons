@@ -119,11 +119,15 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   FILE, "All N enemies are accounted for" matches the enemies actually visible on the field (the
   line lands about a minute in; phantom conditional-spawn seats are excluded). Zero
   no-longer-visible warnings in a normal battle. **[MAJOR]**
-- [ ] 4.4 **Census-finished line + no flood (LW-69, the one unobserved piece).** Open the
-  Attack/Abilities card mid-battle and let the sweep complete: the file shows the census-finished
-  line carrying its rejected count, ZERO per-candidate "evicting the cached copy" lines, and no
-  single line class dominating the session log. Owner flips the TODO row on this evidence.
-  **[MAJOR]**
+- [ ] 4.4 **Census-finished line + no flood (LW-69, the one unobserved piece).** Let a battle run
+  a few turns: the file shows the census-finished line carrying its rejected count, ZERO
+  per-candidate "evicting the cached copy" lines, and no single line class dominating the
+  session log. The LW-57 census hardening (9d347c9) makes this reliably observable: a
+  battle-edge abort now re-arms the census next battle instead of silently keeping a partial
+  cache (the pre-fix reason this line was never seen). Bonus check: enter a battle, flee it
+  immediately, enter another; the second battle logs a fresh census armed AND finished line,
+  and the finished count does not double (warm hits merged, not duplicated). Owner flips the
+  TODO row on this evidence. **[MAJOR]**
 - [ ] 4.5 **Attack-card gate under auto-battle (LW-55's open premise).** LW-63's auto-battle tape
   already proved the per-unit turn flags rise during auto-turns; the remaining question is only
   whether the Attack card composes the dossier during an auto-battle turn if opened. Worst case
@@ -152,8 +156,9 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   fresh meter, and the suffix climbs again with new kills. **[MAJOR]**
 - [ ] 5.3 **Abilities-menu funnel (LW-31 family).** On a wielder's turn the Attack row renames to
   the weapon and its hover card carries the dossier; on the FIRST turn of the session's second
-  battle the rename is already warm (LW-38), and once LW-57 lands (owner re-scoped it into
-  2.3.0) the FIRST battle after a session load must also show the weapon name on first open.
+  battle the rename is already warm (LW-38), and with the LW-57 fix (9d347c9: the census no
+  longer starves the repaint driver) the FIRST battle after a session load must ALSO show the
+  weapon name on the very first turn's menu open, within about a second of the turn opening.
   Known and accepted: fingerprint-twin units fall back to vanilla (LW-39). Marks never appear
   on any card (release-hidden, LW-35). This box is
   the flip evidence for the LIVE_LEDGER Attack-row-rename row (owner-flip-only per the LW-31
@@ -334,11 +339,10 @@ Debug/file tier only.
   false-exit (row 4.6 is the watch); re-anchor is backlog.
 - **LW-39 fingerprint twins:** two party units at identical level + HP/MaxHP make the Attack-card
   resolve fail closed to vanilla. By design until the fingerprint widens.
-- **LW-57 first-open latency:** re-scoped INTO 2.3.0 by the owner (2026-07-11); it sits in the
-  TODO Now queue. Verified cause: census cold-start on the session's FIRST battle (LW-38's
-  warm cache, 3bcdadc, covers battles 2+ and holds), compounded by sweeps that arm but never
-  complete (the same open LW-69 observation, row 4.4). Row 5.3 carries the live expectation
-  once the fix ships.
+- **LW-57 first-open latency:** re-scoped INTO 2.3.0 by the owner (2026-07-11) and the fix
+  SHIPPED the same day (9d347c9), AWAITING-LIVE. Verified cause was the census starving the
+  repaint driver on the session's first battle plus silently-aborted sweeps (LW-38's warm
+  cache, 3bcdadc, covers battles 2+ and holds). Rows 5.3 and 4.4 carry the live expectations.
 - **LW-75 console demotion:** the coverage line nearly always lands file-only because the armed
   gate rises later; the file evidence is unaffected. Candidate fix backlogged.
 - **LW-23 / LW-24 toast delivery:** a deed toast can starve a same-kill tier-up toast, and a late

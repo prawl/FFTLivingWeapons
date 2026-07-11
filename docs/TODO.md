@@ -10,7 +10,7 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-57] Fix the Attack command's first-open readiness after a battle load** (opened 2026-07-09) [QUEUED]
+- **[LW-57] Fix the Attack command's first-open readiness after a battle load** (opened 2026-07-09) [AWAITING-LIVE]
   - Done means: on the first turn of the first battle after a session load, the Attack command
     row already shows the wielder's weapon name; later battles keep the LW-38 warm-cache
     behavior (that fix shipped 3bcdadc and holds; it deliberately left this cold-cache first
@@ -24,6 +24,9 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green; owner live pass: cold-load a save, enter the first battle, open the
     command list on the very first turn and see the weapon name, with the census-finished line
     in the file (folds into SMOKE_TEST_2.3.0.md row 5.3 and the LW-69 check).
+  - Fix SHIPPED 9d347c9 2026-07-11 (repaint/scan tick alternation + aborted-sweep re-arm with
+    hit preservation; full build cycle, verifier SHIP 9/10, suite 2439 green); the owner live
+    pass above is what remains.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
