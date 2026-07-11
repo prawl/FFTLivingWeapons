@@ -650,9 +650,8 @@ All artifacts ship from committed copies under `mod/FFTIVC/`.
 | `ItemShieldData.xml` | `generate.py` | id - 128 (`SHIELD_DATA_BASE`) |
 | `ItemArmorData.xml` | `generate.py` | `AdditionalDataId` (from `additional_data_ids.json`, 261 entries) |
 | `ItemAccessoryData.xml` | `generate.py` | `AdditionalDataId` |
-| `ItemData.xml` | `generate.py` | global item id (`EquipBonusId` ptr, category/flags/shop + grenade rows 246-252) |
+| `ItemData.xml` | `generate.py` | global item id (`EquipBonusId` ptr, category/flags/shop) |
 | `ItemEquipBonusData.xml` | `generate.py` | EB row id (the new `_equipBonus` rows) |
-| `ItemConsumableData.xml` | committed (static) | item id (grenade behavior) |
 | `JobData.xml` | `make_jobequip.py` (reads live `TableData/JobData.xml`) | job id (cross-equips + evasion floor; strips Axe/Flail) |
 | `JobCommandData.xml` | `make_jobcommand.py` (reads live `TableData/JobCommandData.xml`) | rec id (zeros Equip Axes id 460) |
 
@@ -664,8 +663,12 @@ in BuildLinked/Publish.
 | File | Generator | Rows |
 |---|---|---|
 | `item.en.nxd` | `patch_names.py` -> `working/pilot_item.sqlite` -> FF16Tools | 261 (ids 0-260); names/descs/category/sort/`UiStatusEffectId` + baked Kills scaffold. NOT from generate.py |
-| `ability.en.nxd` | `patch_ability_names.py` -> `working/nxd_ability/ability.sqlite` -> FF16Tools (self-verifying) | full; only Barrage 358 + grenade learn-names 374-378 differ |
+| `ability.en.nxd` | `patch_ability_names.py` -> `working/nxd_ability/ability.sqlite` -> FF16Tools (self-verifying) | full; only Barrage 358 differs |
 | `*.bloodpact_parked` | parked, NOT shipped | corrupted abilities -- do not revive |
+
+Reconciled 2026-07-11 (LW-74): the Offensive Chemist removal (a5ea61e) dropped the ItemData
+grenade rows 246-252, the whole `ItemConsumableData.xml`, and the ability.en.nxd grenade
+learn-names 374-378; the tables above reflect the post-removal set.
 
 ### Icons -- `mod/FFTIVC/data/enhanced/ui/ffto/icon/` (478 BC7 .tex = 239 items x 2)
 `equip_item/texture/ei_NNN_uitx.tex` (100x100) + `equip_item_s/texture/ei_s_NNN_uitx.tex` (48x48),
