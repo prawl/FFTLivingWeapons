@@ -118,7 +118,9 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
 - [ ] 4.3 **Coverage line counts only fielded enemies (LW-34, possibly pre-satisfied).** In the
   FILE, "All N enemies are accounted for" matches the enemies actually visible on the field (the
   line lands about a minute in; phantom conditional-spawn seats are excluded). Zero
-  no-longer-visible warnings in a normal battle. **[MAJOR]**
+  no-longer-visible warnings in a normal battle. NEW with LW-75 (f91e0d2): in a battle with a
+  Living Weapon fielded, the same line now also reaches the CONSOLE exactly once, surfacing the
+  moment the mod arms (possibly a minute-plus into the battle), never twice. **[MAJOR]**
 - [ ] 4.4 **Census-finished line + no flood (LW-69, the one unobserved piece).** Let a battle run
   a few turns: the file shows the census-finished line carrying its rejected count, ZERO
   per-candidate "evicting the cached copy" lines, and no single line class dominating the
@@ -343,8 +345,8 @@ Debug/file tier only.
   SHIPPED the same day (9d347c9), AWAITING-LIVE. Verified cause was the census starving the
   repaint driver on the session's first battle plus silently-aborted sweeps (LW-38's warm
   cache, 3bcdadc, covers battles 2+ and holds). Rows 5.3 and 4.4 carry the live expectations.
-- **LW-75 console demotion:** the coverage line nearly always lands file-only because the armed
-  gate rises later; the file evidence is unaffected. Candidate fix backlogged.
+- **LW-75 console demotion:** FIXED (f91e0d2, AWAITING-LIVE): a demoted coverage line now
+  promotes to the console once when the armed latch rises; row 4.3 carries the expectation.
 - **LW-23 / LW-24 toast delivery:** a deed toast can starve a same-kill tier-up toast, and a late
   tier-up banner is swallowed by locked policy (owner 2026-07-05) rather than delivered on the
   wrong unit's turn. Cosmetic; both backlog (and Mark deed toasts are release-hidden anyway).

@@ -10,7 +10,7 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-75] Promote the demoted coverage line to the console on the armed edge** (opened 2026-07-11) [BUILDING]
+- **[LW-75] Promote the demoted coverage line to the console on the armed edge** (opened 2026-07-11) [AWAITING-LIVE]
   - Done means: when the once-per-battle coverage line latches while no tracked weapon has acted
     yet (ScopedLogger demotes it to file-only, the race the LW-34 live pass measured at 97
     seconds), EnemyOracle remembers the demoted line and re-emits it to the console exactly once
