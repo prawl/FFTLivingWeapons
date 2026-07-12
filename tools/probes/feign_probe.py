@@ -128,9 +128,11 @@ SLAM_CT = 100
 #     therefore only READ it (the --team control reports; v1 never writes it).
 ATEAM = 0x38                       # u8 -- READ-ONLY in this probe (report-only --team)
 
-# --- battle gate sentinels ---
-BATTLE_MODE = 0x140900650          # u32: 0 = out of battle, 2/3/4 = live battlefield
-SLOT9 = 0x14077CA54                # u32 == 0xFFFFFFFF when a battle is displayed
+# --- battle gate sentinels (LW-41: from Offsets.cs, not stale copies) ---
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from lib import offsets as _offsets
+# BATTLE_MODE: 0 = out of battle, 2/3/4 = live battlefield. SLOT9: 0xFFFFFFFF when displayed.
+BATTLE_MODE, SLOT9 = _offsets.require(["BattleMode", "Slot9"])
 
 HOLD_TICK = 0.01                   # ~10ms: the engine re-commits death at the turn boundary
 LOG_EVERY = 0.5                    # throttle the per-loop print to ~2 Hz

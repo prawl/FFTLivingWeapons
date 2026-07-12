@@ -61,7 +61,9 @@ BAND_BASE, BAND_STRIDE, BAND_SLOTS = 0x14184C8AC, 0x200, 49
 BLVL, BBR, BFA = 0x0D, 0x0E, 0x10           # occupancy + identity
 BEQ_LO, BEQ_HI = 0x04, 0x0C                  # weapon(+0x04) / Lhand(+0x06) / shield(+0x0a) cluster
 
-BATTLE_MODE = 0x140900650
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from lib import offsets as _offsets
+BATTLE_MODE = _offsets.require(["BattleMode"])[0]   # LW-41: from Offsets.cs, not a stale copy
 TICK = 0.05
 
 

@@ -34,13 +34,16 @@ import os, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV, find_pid, k32, rd
 
-BATTLE_MODE = 0x140900650          # u8
-COND_BASE   = 0x14077D2A0          # condensed turn-queue / active-unit struct
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from lib import offsets as _offsets
+BATTLE_MODE, SUBMENU, PAUSE = _offsets.require(["BattleMode", "SubmenuFlag", "PauseFlag"])   # LW-41: from Offsets.cs
+# WARNING (LW-41 audit): the addresses below are still PRE-1.5 anchors with no Offsets.cs
+# equivalent wired here; re-anchor them before trusting this probe's output on a 1.5 build.
+COND_BASE   = 0x14077D2A0          # condensed turn-queue / active-unit struct (pre-1.5)
 T_TEAM, T_LVL, T_HP, T_MAXHP = 0x02, 0x00, 0x0C, 0x10   # team u16, level u16, hp u16, maxhp u16
-ACTED       = 0x14077CA8C          # u8 "active unit has acted"
-MENU_CURSOR = 0x1407FC620          # u8
-SUBMENU     = 0x140D3A10C          # u8
-PAUSE       = 0x140C64A5C          # u8
+ACTED       = 0x14077CA8C          # u8 "active unit has acted" (pre-1.5)
+MENU_CURSOR = 0x1407FC620          # u8 (pre-1.5)
+print("WARNING: COND_BASE/ACTED/MENU_CURSOR are pre-1.5 anchors; re-anchor before trusting (LW-41).")
 
 MODE = {0: "out", 1: "target", 2: "move", 3: "menu", 4: "target-ok", 5: "cast"}
 TEAM = {0: "PLAYER", 1: "ENEMY", 2: "ALLY"}

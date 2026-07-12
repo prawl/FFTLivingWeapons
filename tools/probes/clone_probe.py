@@ -67,7 +67,9 @@ AINB = 0x12                                       # u16 inBattle flag (engine se
 AGX, AGY = 0x33, 0x34
 ACT = 0x09                                        # u8 CT (read)
 ADEAD, DEAD_BIT = 0x45, 0x20                      # u8 status byte / Dead flag (corpse detection)
-BATTLE_MODE, SLOT9 = 0x140900650, 0x14077CA54
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from lib import offsets as _offsets
+BATTLE_MODE, SLOT9 = _offsets.require(["BattleMode", "Slot9"])   # LW-41: from Offsets.cs, not stale copies
 HOLD_TICK, LOG_EVERY = 0.01, 0.5
 
 

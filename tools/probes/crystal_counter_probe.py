@@ -51,7 +51,9 @@ ALVL, ABR, AFA = 0x0D, 0x0E, 0x10
 AHP, AMHP = 0x14, 0x16
 AGX, AGY = 0x33, 0x34
 ADEAD, DEAD_BIT = 0x45, 0x20
-BATTLE_MODE, SLOT9 = 0x140900650, 0x14077CA54
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from lib import offsets as _offsets
+BATTLE_MODE, SLOT9 = _offsets.require(["BattleMode", "Slot9"])   # LW-41: from Offsets.cs, not stale copies
 TICK, LOG_EVERY = 0.05, 0.0
 
 

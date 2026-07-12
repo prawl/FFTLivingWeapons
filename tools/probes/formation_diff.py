@@ -55,7 +55,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from treasure_flags import rpm, _require_game  # rpm(addr,n)->bytes|None ; _require_game() attaches
 
 # --- battle-state sentinels (read + reported, never gated on -- we want to LEARN them here) ---
-BATTLE_MODE, SLOT9, SLOT0 = 0x140900650, 0x14077CA54, 0x14077CA30
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+from lib import offsets as _offsets
+BATTLE_MODE, SLOT9, SLOT0 = _offsets.require(["BattleMode", "Slot9", "Slot0"])   # LW-41: from Offsets.cs
 
 # entry-relative offsets shared by the band AND the static array (verified vs Offsets.cs / feign_probe).
 # (offset, size, name). Multi-byte fields decode little-endian.

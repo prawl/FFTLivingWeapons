@@ -1,4 +1,25 @@
+"""Dump the battle-state sentinels Engine reads every tick, from the live game.
+
+LW-41: addresses come from LivingWeapon/Offsets.cs via tools/lib/offsets.py. The original
+hardcoded the pre-1.5 copies and fed garbage sentinels (battleMode=0, slot9=0x1) into the
+LW-40 live incident, nearly misdirecting the diagnosis.
+
+Usage:
+  python tools/probes/sentinel_probe.py             # game running: dump the sentinels
+  python tools/probes/sentinel_probe.py --selftest  # no game: parser + Offsets.cs shape check
+"""
 import ctypes, ctypes.wintypes as w, struct, sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from lib import offsets
+
+if "--selftest" in sys.argv:
+    offsets.selftest()
+    sys.exit(0)
+
+SLOT0, SLOT9, BATTLE_MODE, EVENT_ID, PAUSE, SUBMENU = offsets.require(
+    ["Slot0", "Slot9", "BattleMode", "EventId", "PauseFlag", "SubmenuFlag"])
 
 PROCESS_VM_READ = 0x0010
 PROCESS_QUERY_INFORMATION = 0x0400
@@ -36,10 +57,14 @@ def u16(a):
 def u8(a):
     b = rpm(a, 1); return b[0] if b else None
 
-print(f"pid={pid}")
-print(f"slot0      = {u32(0x14077CA30):#x}")
-print(f"slot9      = {u32(0x14077CA54):#x}")
-print(f"battleMode = {u8(0x140900650)}")
-print(f"eventId    = {u16(0x14077CA94)}")
-print(f"pauseFlag  = {u8(0x140C64A5C)}")
-print(f"submenu    = {u8(0x140D3A10C)}")
+def fmt(v, hexed=False):
+    if v is None: return "unreadable"
+    return f"{v:#x}" if hexed else str(v)
+
+print(f"pid={pid} (addresses from Offsets.cs)")
+print(f"slot0      = {fmt(u32(SLOT0), hexed=True)}   @ {SLOT0:#x}")
+print(f"slot9      = {fmt(u32(SLOT9), hexed=True)}   @ {SLOT9:#x}")
+print(f"battleMode = {fmt(u8(BATTLE_MODE))}   @ {BATTLE_MODE:#x}")
+print(f"eventId    = {fmt(u16(EVENT_ID))}   @ {EVENT_ID:#x}")
+print(f"pauseFlag  = {fmt(u8(PAUSE))}   @ {PAUSE:#x}")
+print(f"submenu    = {fmt(u8(SUBMENU))}   @ {SUBMENU:#x}")
