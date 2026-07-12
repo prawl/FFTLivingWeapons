@@ -463,6 +463,92 @@ public class EnemyOracleTests
         Assert.Contains(file, l => l.Contains("All 1 enemies are accounted for"));
     }
 
+    // ---------------------------------------------------------------------------------------
+    // (m) LW-75: the armed latch usually rises AFTER the success line latches (live-measured
+    // 97s late, 2026-07-11); a demoted line must be remembered and pushed to the console once
+    // when the armed latch later rises in the same battle.
+    // ---------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Demoted_success_line_is_promoted_to_console_once_armed_latch_rises()
+    {
+        var m = new FakeSparseMemory();
+        bool armed = false;
+        var o = new EnemyOracle(m, () => armed);
+        SetArrayEnemy(m, slot: 0, level: 10, brave: 50, faith: 50, maxHp: 400);
+        SetBandUnit(m, bandIdx: 0, level: 10, brave: 50, faith: 50, maxHp: 400);
+        o.MarkFielded((10, 50, 50, 400));
+
+        var (console1, file1) = CaptureLog(() =>
+        {
+            RunCoverageCheck(o);   // check 1: unstable -> defers
+            RunCoverageCheck(o);   // check 2: stable -> latches, unarmed -> demoted to file, stashed
+        });
+
+        Assert.True(o.CoverageDone);
+        Assert.DoesNotContain(console1, l => l.Contains("enemies are accounted for"));
+        Assert.Contains(file1, l => l.Contains("All 1 enemies are accounted for"));
+
+        armed = true;
+
+        var (console2, _) = CaptureLog(() => o.TickField());   // armed latch rises: promote once
+
+        Assert.Single(console2.FindAll(l => l.Contains("All 1 enemies are accounted for")));
+
+        var (console3, _) = CaptureLog(() =>
+        {
+            o.TickField();
+            o.TickField();
+        });
+
+        Assert.Empty(console3.FindAll(l => l.Contains("All 1 enemies are accounted for")));
+    }
+
+    [Fact]
+    public void Success_line_reaches_console_exactly_once_when_armed_at_latch_time()
+    {
+        var m = new FakeSparseMemory();
+        var o = new EnemyOracle(m, () => true);
+        SetArrayEnemy(m, slot: 0, level: 10, brave: 50, faith: 50, maxHp: 400);
+        SetBandUnit(m, bandIdx: 0, level: 10, brave: 50, faith: 50, maxHp: 400);
+        o.MarkFielded((10, 50, 50, 400));
+
+        var (console, _) = CaptureLog(() =>
+        {
+            RunCoverageCheck(o);   // check 1: unstable -> defers
+            RunCoverageCheck(o);   // check 2: stable -> latches, armed -> console immediately
+            o.TickField();
+            o.TickField();
+        });
+
+        Assert.Single(console.FindAll(l => l.Contains("All 1 enemies are accounted for")));
+    }
+
+    [Fact]
+    public void ResetBattle_clears_the_pending_console_line()
+    {
+        var m = new FakeSparseMemory();
+        bool armed = false;
+        var o = new EnemyOracle(m, () => armed);
+        SetArrayEnemy(m, slot: 0, level: 10, brave: 50, faith: 50, maxHp: 400);
+        SetBandUnit(m, bandIdx: 0, level: 10, brave: 50, faith: 50, maxHp: 400);
+        o.MarkFielded((10, 50, 50, 400));
+
+        CaptureLog(() =>
+        {
+            RunCoverageCheck(o);
+            RunCoverageCheck(o);
+        });
+        Assert.True(o.CoverageDone);
+
+        o.ResetBattle();
+        armed = true;
+
+        var (console, _) = CaptureLog(() => o.TickField());
+
+        Assert.Empty(console.FindAll(l => l.Contains("enemies are accounted for")));
+    }
+
     [Fact]
     public void A_frozen_zero_zero_seat_with_turn_flag_one_never_qualifies()
     {

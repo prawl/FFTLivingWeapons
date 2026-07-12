@@ -47,7 +47,12 @@ internal sealed class EnemyOracle
     private bool _coverageDone;
     // Facelift: coverage lines are console-gated on "a Living Weapon is deployed this battle"
     // (KillTracker's sticky latch); the file still gets everything via ScopedLogger's demotion.
+    // LW-75: the armed latch nearly always rises AFTER the success line latches (live-measured
+    // 97s late, 2026-07-11), so a demoted success line is remembered and pushed to the console
+    // once when the latch later rises in the same battle (see TickField).
     private readonly ScopedLogger _slog;
+    private readonly Func<bool> _armed;
+    private string? _pendingConsoleLine;
     // Once-per-identity-per-battle dedup for the unseen-enemy Warning: CheckCoverage re-runs
     // every ~5 seconds until it passes, so a permanently-missing enemy would otherwise re-log
     // (console AND file) for the whole battle. Cleared in ResetBattle.
@@ -60,7 +65,8 @@ internal sealed class EnemyOracle
     public EnemyOracle(IGameMemory mem, Func<bool>? armed = null)
     {
         _mem = mem;
-        _slog = ModLogger.For(LogVerb.Credit, armed ?? (() => true));
+        _armed = armed ?? (() => true);
+        _slog = ModLogger.For(LogVerb.Credit, _armed);
     }
 
     /// <summary>True when the identity was captured from an enemy-side array slot.</summary>
@@ -95,6 +101,7 @@ internal sealed class EnemyOracle
         _coverageDone = false;
         _warnedUnseen.Clear();
         _coverageFailLogged = false;
+        _pendingConsoleLine = null;
     }
 
     /// <summary>One onField tick: capture identities, and run the once-per-battle coverage
@@ -107,6 +114,21 @@ internal sealed class EnemyOracle
             CheckCoverage();
             _coveragePollsLeft = CoverageInterval;
         }
+        // LW-75: the armed latch usually rises long after the success line latches, so once it
+        // does, push the once-demoted line to the console exactly one time; the file already
+        // holds the original Debug copy from CheckCoverage.
+        if (_coverageDone && _pendingConsoleLine != null && SafeArmed())
+        {
+            ModLogger.Event(LogVerb.Credit, _pendingConsoleLine);
+            _pendingConsoleLine = null;
+        }
+    }
+
+    /// <summary>Fail-safe armed probe, mirroring ScopedLogger.SafeArmed: never let a throwing
+    /// predicate kill the tick.</summary>
+    private bool SafeArmed()
+    {
+        try { return _armed(); } catch { return false; }
     }
 
     private void Capture()
@@ -181,7 +203,12 @@ internal sealed class EnemyOracle
         if (found == total)
         {
             if (!stableTotal) return;   // the fielded count just grew: wait for one more agreeing pass
-            _slog.Info($"All {total} enemies are accounted for; kill credit will be reliable this battle.");
+            string line = $"All {total} enemies are accounted for; kill credit will be reliable this battle.";
+            _slog.Info(line);
+            // LW-75: only the success latch line gets the once-per-battle console promotion; the
+            // failure line below keeps today's behavior (it already prints at Info once per
+            // battle and demotes on retries, independent of the armed latch).
+            if (!SafeArmed()) _pendingConsoleLine = line;
             ModLogger.Debug(LogVerb.Trace, $"coverage detail: {excluded} captured identities excluded as never-scheduled");
             _coverageDone = true;
             return;
