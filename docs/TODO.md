@@ -19,14 +19,6 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: failing-first EnemyOracleTests (demoted line promoted once on the armed rise;
     armed-at-latch never re-emits; battle reset clears the pending line); suite green; the
     console eyeball folds into SMOKE_TEST_2.3.0.md row 4.3 (owner).
-- **[LW-41] Re-anchor the sentinel probe to Offsets.cs** (opened 2026-07-07) [BUILDING]
-  - Done means: tools/probes/sentinel_probe.py (and any sibling probe carrying pre-1.5 sentinel
-    addresses) reads its addresses from LivingWeapon/Offsets.cs through a shared tools/lib
-    helper instead of hardcoded constants, so a future re-anchor cannot leave a probe feeding
-    garbage sentinels into a live diagnosis again (the LW-40 incident); a selftest pins the
-    extraction against known Offsets.cs values.
-  - Verify: the probe selftest passes and its printed addresses equal Offsets.cs's current
-    values; a live sanity read rides the next probe use (owner).
 - **[LW-57] Fix the Attack command's first-open readiness after a battle load** (opened 2026-07-09) [AWAITING-LIVE]
   - Done means: on the first turn of the first battle after a session load, the Attack command
     row already shows the wielder's weapon name; later battles keep the LW-38 warm-cache

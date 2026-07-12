@@ -8,6 +8,15 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-41] SHIPPED 77010b0 2026-07-11: probe sentinel addresses come from Offsets.cs instead of
+  hardcoded pre-1.5 copies (sentinel_probe fed garbage sentinels into the LW-40 live incident).
+  tools/lib/offsets.py extracts the named constants textually (pure selftest + a shape check of
+  the real file, 88 constants); sentinel_probe gained --selftest and address-annotated output;
+  the six sibling probes carrying the stale sentinel set (clone, crystal_counter, feign,
+  formation_diff, turnteam, roster_loss_trace) now resolve through the helper, and turnteam
+  warns loudly that its remaining COND_BASE/ACTED/MENU_CURSOR anchors are still pre-1.5.
+  Verified by selftest, address equality with Offsets.cs, compile checks, and a no-game run
+  resolving cleanly; the next real probe use doubles as the live sanity read.
 - [LW-62] SHIPPED 474d494 2026-07-11: Wielder.Roster.cs's six hand-rolled occupied-slot roster
   walks now ride one shared seam. TryOccupiedSlot centralizes the slot base arithmetic and the
   occupancy filter (level read first, sequencing preserved) so the addressing and the occupancy
