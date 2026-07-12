@@ -10,6 +10,23 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
+- **[LW-75] Promote the demoted coverage line to the console on the armed edge** (opened 2026-07-11) [BUILDING]
+  - Done means: when the once-per-battle coverage line latches while no tracked weapon has acted
+    yet (ScopedLogger demotes it to file-only, the race the LW-34 live pass measured at 97
+    seconds), EnemyOracle remembers the demoted line and re-emits it to the console exactly once
+    when the armed latch rises later in the battle; per-battle reset; the file evidence chain is
+    unchanged.
+  - Verify: failing-first EnemyOracleTests (demoted line promoted once on the armed rise;
+    armed-at-latch never re-emits; battle reset clears the pending line); suite green; the
+    console eyeball folds into SMOKE_TEST_2.3.0.md row 4.3 (owner).
+- **[LW-41] Re-anchor the sentinel probe to Offsets.cs** (opened 2026-07-07) [BUILDING]
+  - Done means: tools/probes/sentinel_probe.py (and any sibling probe carrying pre-1.5 sentinel
+    addresses) reads its addresses from LivingWeapon/Offsets.cs through a shared tools/lib
+    helper instead of hardcoded constants, so a future re-anchor cannot leave a probe feeding
+    garbage sentinels into a live diagnosis again (the LW-40 incident); a selftest pins the
+    extraction against known Offsets.cs values.
+  - Verify: the probe selftest passes and its printed addresses equal Offsets.cs's current
+    values; a live sanity read rides the next probe use (owner).
 - **[LW-57] Fix the Attack command's first-open readiness after a battle load** (opened 2026-07-09) [AWAITING-LIVE]
   - Done means: on the first turn of the first battle after a session load, the Attack command
     row already shows the wielder's weapon name; later battles keep the LW-38 warm-cache
@@ -144,10 +161,6 @@ is the in-flight subset, not a mirror of that checklist.
   turn-queue fingerprint with more struct fields; the probe dump shows brave/faith-like u16
   candidates in the cursor struct needing offset verification (turn-owner-probe lines,
   livingweapon.log 04:0x). Until then twins fail closed to vanilla by design.
-- [LW-41] 2026-07-07: Re-anchor tools/probes/sentinel_probe.py (and audit sibling probes) to the
-  1.5 offsets; it still reads the pre-1.5 addresses and fed garbage sentinels (battleMode=0,
-  slot9=0x1) during the LW-40 live incident, nearly misdirecting the diagnosis. Source the
-  addresses from LivingWeapon/Offsets.cs.
 - [LW-42] 2026-07-07: Audit the remaining slot0==0xFF marker checks for 1.5, where the in-battle
   marker reads 0x10 (Offsets.Slot0 note; live probe 2026-07-07 read slot0=0x10 on a mode-3 turn).
   InLiveBattle's cast-targeting / paused / event excuse (modes 1 and 5) and PairArmed both test
@@ -253,12 +266,6 @@ is the in-flight subset, not a mirror of that checklist.
   self-diagnose phantom-seat classes on their own (the LW-34 over-count mining needed the raw
   file log alongside the flight tapes to tell a phantom seat from a real one). Widen the census
   band record with those fields when the census format is next touched.
-- [LW-75] 2026-07-11: The coverage line effectively never reaches the console: its armed gate
-  (AnyTrackedWeaponThisBattle) rises only when a tracked-weapon wielder COMPLETES an action, and
-  the once-per-battle coverage check nearly always stabilizes first (LW-34 live pass, 14:24
-  battle: line fired 97s before the wielder's first resolved turn, so it demoted to file-only).
-  Pre-existing facelift ordering, not an LW-34 regression; the file evidence is unaffected.
-  Candidate fix: on the armed edge, promote a demoted coverage line to the console once.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
