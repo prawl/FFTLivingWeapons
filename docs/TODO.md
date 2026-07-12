@@ -258,6 +258,19 @@ is the in-flight subset, not a mirror of that checklist.
   self-diagnose phantom-seat classes on their own (the LW-34 over-count mining needed the raw
   file log alongside the flight tapes to tell a phantom seat from a real one). Widen the census
   band record with those fields when the census format is next touched.
+- [LW-76] 2026-07-11: The owner-directed console audit (every Event/Warn/Error and ScopedLogger
+  call site justified against LOGGING.md's match-report contract) left a candidate list:
+  (a) repeat-spam risks with no per-event dedup beyond the console's per-battle key
+  (Sanctuary.cs:116 re-fires per crystal-counter dip on the same ally, GrowthEngine.Ultima.cs:66
+  re-logs on HP-percent flap, SpiritualFont.cs:164's per-copy WARN loop, the Barrage/ShadowBlade
+  grant/release pairs on equip flapping); (b) Info lines stretching the match-report definition
+  (SpiritualFont.cs:167 narrates EVERY wielder move, PromptSwap.cs:161 doubles every on-screen
+  toast, EagleEye.cs:93 prints per enemy, BattleCensus.cs:144 is a WARNING under the [trace]
+  verb, a tier/verb mismatch); (c) WARNs that fire in healthy sessions (the one-tick locate and
+  readback misses in LifeSap/Renewal/Wyrmblood/Rapture/GrowthEngine.Signatures, the
+  revive-and-rekill repeat-credit WARN, TreasureMaster.cs:305's self-described-benign weather
+  mismatch, AttackCard.Resolve.cs:87 on known stale-cursor hovers). None urgent (console dedup
+  masks most); triage with the owner which get demoted, deduped, or left.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
