@@ -296,10 +296,6 @@ is the in-flight subset, not a mirror of that checklist.
   model.X ?? previous.X at OnAllModsLoaded), clobbering other mods' post-snapshot runtime row
   writes; propose dirty-field-only writeback. Draft body in handoff.md (2026-07-13 action
   pack); owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
-- [LW-79] 2026-07-13: docs/DESIGN.md line ~107 still claims clean compose with Blue/Red Mages
-  ("no interaction", written 2026-05-30, two days before JobData.xml existed); three player
-  reports and the pinned loader writeback contradict it. Correct the claim (cite LW-77's
-  mechanism) when LW-77 resolves.
 - [LW-85] 2026-07-14: AnchorScan later tiers (the rest of the LW-82 arc; the v1 slice shipped
   e77b9d7): battle-state anchors (CombatAnchor/TurnQueue via chained fingerprint scans seeded
   from the found roster base; needs a live battle, and on a patched build the scout cannot

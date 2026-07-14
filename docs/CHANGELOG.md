@@ -8,6 +8,12 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-79] SHIPPED 2a4c325 2026-07-14: the stale DESIGN.md compose claim. Section 3 claimed clean
+  compose with Blue/Red Mages ("no interaction", written 2026-05-30, two days before JobData.xml
+  existed); three player reports and the loader's whole-row writeback (pinned from source, proven
+  live by the 2026-07-14 owner ladder) contradicted it. The claim now states the mechanism and
+  that jobs-mod compose holds only since the LW-77 minimal-table prune, which shipped in the same
+  commit (2a4c325); LW-77 itself stays in Now awaiting its smoke row 7.29 compose re-check.
 - [LW-78] SHIPPED b9777d6 2026-07-14: the stale-nxd re-diff and rebase. The loader applies an
   nxd override per-cell against the RUNNING game's vanilla, so the pre-1.5 full-table bakes
   silently reverted every text cell the 1.5.x patches changed: 111 cells measured (61 ability,
