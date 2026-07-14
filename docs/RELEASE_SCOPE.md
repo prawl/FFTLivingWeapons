@@ -145,11 +145,14 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       50ae6b3, 2026-07-07.
 
 ### 10. Game-1.5.1 aftermath + ecosystem compat (owner-scoped in 2026-07-14)
-- [ ] **Job-mod collision prune (LW-77)**: run the row-57 differential validation first (the
-      handoff ladder; read the guard verdict in livingweapon.log before any manual diffing, the
-      LW-83 methodology), then prune JobData.xml's unknown-id rows and audit JobCommandData.xml's
-      record list so a single-field XML row stops erasing other mods' runtime job edits. Riders:
-      the Nexus known-issues pin and marking the Old Files 1.x zips superseded.
+- [ ] **Job-mod collision prune (LW-77)**: validation done 2026-07-14 (the row-57 differential
+      ladder; the guard read armed throughout). JobData.xml now lists only rows carrying a real
+      behavioral payload (the 28-id keep set); mod JobCommandData.xml is deleted, its sole
+      payload (zeroing the dead-JP Equip Axes RSM slot) replaced by one ability.en.nxd
+      Description cell on key 460. Riders kept: the Nexus known-issues pin, marking the Old
+      Files 1.x zips superseded, and the upgrade note (in-place upgraders must delete the old
+      mod folder so a stale JobCommandData.xml from 2.2.2 does not silently retain the
+      collision). Box stays unticked until the smoke exit (row 7.29).
 - [x] **Full-table nxd re-diff vs 1.5 vanilla (LW-78)**: re-diff the pre-1.5 item.en.nxd and
       ability.en.nxd bakes against current vanilla; count unintended cell edits and check
       row-count parity (rows missing vs vanilla apply as RemovedRows). Done 91b230b + b9777d6

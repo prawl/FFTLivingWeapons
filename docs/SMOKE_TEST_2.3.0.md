@@ -323,6 +323,14 @@ Debug/file tier only.
   restored on heal; kill tier only raises the curve); only the wielder's PA moves; the file shows
   the hold lines without HP-flap flood (the backlog LW-76 watch). Row 7.2 does not cover this
   weapon either: the Ultima hold owns its PA lane. (DEV OK) **[MINOR]**
+- [ ] 7.29 **Job-table collision prune holds (LW-77).** With Blue And Red Mages 2.0.2 enabled on
+  the PROD deploy, Red Mage keeps its abilities with NO hand edit (the pruned JobData.xml lists
+  no row 57); Blue Mage stays intact; the guard reads armed throughout. Bonus oracles: a generic
+  Archer still shows Gun access (the widened equip list survived the prune) and the Equip Axes
+  learn-screen description shows the reforged note (the key-460 ability.en.nxd cell landed).
+  Note: this box's tick lands in or after the commit that exits LW-77 to the changelog (the
+  LW-86 pattern); the ship notes must also tell in-place upgraders to delete the old mod folder
+  first (a stale JobCommandData.xml from 2.2.2 silently retains the collision). **[MAJOR]**
 
 ---
 

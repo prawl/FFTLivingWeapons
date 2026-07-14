@@ -10,15 +10,22 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-75] Promote the demoted coverage line to the console on the armed edge** (opened 2026-07-11) [AWAITING-LIVE]
-  - Done means: when the once-per-battle coverage line latches while no tracked weapon has acted
-    yet (ScopedLogger demotes it to file-only, the race the LW-34 live pass measured at 97
-    seconds), EnemyOracle remembers the demoted line and re-emits it to the console exactly once
-    when the armed latch rises later in the battle; per-battle reset; the file evidence chain is
-    unchanged.
-  - Verify: failing-first EnemyOracleTests (demoted line promoted once on the armed rise;
-    armed-at-latch never re-emits; battle reset clears the pending line); suite green; the
-    console eyeball folds into SMOKE_TEST_2.3.0.md row 4.3 (owner).
+- **[LW-77] Shrink the job-mod collision surface (whole-row writeback prune)** (opened 2026-07-13) [AWAITING-LIVE]
+  - Done means: mod/FFTIVC/tables/enhanced/JobData.xml lists only rows carrying a real payload
+    (the 28-id keep set: make_jobequip.py's CEV_ALLOW plus every generic human non-Lucavi id with
+    a live equip addition/strip), dropping every id that only reverted an already-vanilla-equal
+    Axe/Flail diff; mod JobCommandData.xml is deleted (its sole payload, zeroing the dead-JP Equip
+    Axes RSM slot, ships instead as one ability.en.nxd Description cell on key 460, the proven
+    per-cell merge lane); the mechanism (FFTOJobDataManager.ApplyTablePatch applies every listed
+    row as a WHOLE-ROW writeback at OnAllModsLoaded, model.X ?? previous.X across every field,
+    clobbering another mod's post-snapshot runtime edits to that same row regardless of load
+    order) is cited in make_jobequip.py's docstring and DESIGN.md section 3.
+  - Verify: suite green (JobDataXmlContractTests pins the 28-id set and the payload-per-row
+    invariant; JobCommandXmlContractTests pins the file's absence; PipelineManifestContractTests'
+    release-workflow check flips to DoesNotContain); owner live pass on the PROD deploy folds
+    into SMOKE_TEST_2.3.0.md row 7.29 (Blue And Red Mages compose re-check); the Nexus
+    known-issues pin update and marking the Old Files zips superseded stay owner-at-ship work,
+    not gated here.
 - **[LW-57] Fix the Attack command's first-open readiness after a battle load** (opened 2026-07-09) [AWAITING-LIVE]
   - Done means: on the first turn of the first battle after a session load, the Attack command
     row already shows the wielder's weapon name; later battles keep the LW-38 warm-cache
@@ -267,6 +274,9 @@ is the in-flight subset, not a mirror of that checklist.
   self-diagnose phantom-seat classes on their own (the LW-34 over-count mining needed the raw
   file log alongside the flight tapes to tell a phantom seat from a real one). Widen the census
   band record with those fields when the census format is next touched.
+- [LW-75] 2026-07-11: Promote the demoted coverage line to the console on the armed edge; fix
+  SHIPPED f91e0d2 (2026-07-11), smoke row 4.3 is the live evidence; demoted from Now 2026-07-14 to
+  make room for LW-77.
 - [LW-76] 2026-07-11: The owner-directed console audit (every Event/Warn/Error and ScopedLogger
   call site justified against LOGGING.md's match-report contract) left a candidate list:
   (a) repeat-spam risks with no per-event dedup beyond the console's per-battle key
@@ -281,34 +291,6 @@ is the in-flight subset, not a mirror of that checklist.
   mismatch, AttackCard.Resolve.cs:87 on known stale-cursor hovers). None urgent (console dedup
   masks most); triage with the owner which get demoted, deduped, or left.
 
-- [LW-77] 2026-07-13: Shrink the third-party job-mod collision surface: prune JobData.xml's
-  unknown-id rows (0, 28, 53-57, 142-143, 145-149, 151, 153, 155-161, 163-164, emitted by
-  make_jobequip.py's MonsterGraphic==0 sweep) and audit JobCommandData.xml's record list (5,
-  25-76, 155-160) for records no shipped feature needs. Mechanism (pinned from modloader
-  source, Nenkai fftivc.utility.modloader master): FFTOJobDataManager.ApplyTablePatch does a
-  WHOLE-ROW writeback at OnAllModsLoaded for any row a mod's XML lists (model.X ?? previous.X
-  across all ~40 fields, incl. JobCommandId since loader 1.7.1 and InnateAbilityId1-4), so a
-  CharacterEvasion-only row reverts every post-snapshot runtime write another mod made to that
-  row; load order cannot fix it. Live casualties: DanaCrysalis Blue/Red Mages (Red Mage = job
-  57, ours since v1.1.0; Blue Mage = job 33, never ours: the reported Red-dies-Blue-survives
-  asymmetry), latent for GenericJobs DK/OK (jobs 160/161, both ours). JobCommandData has the
-  same writeback shape (all 16 AbilityIds + 6 RSM slots), so pruning JobData alone does not
-  close it. Confirmation before building: the reporter-runnable ladder (delete the row-57
-  block, then JobCommandData.xml, then ability.en.nxd, restart between each) or the loader's
-  own yellow per-field conflict console lines. Rider: Nexus hygiene (mark the Old Files
-  1.0.0/1.1.1 Item Overhaul zips superseded so users stop running both generations; pin a
-  known-issues post: Warbrand welded-art cosmetic, the row-57 interaction, game-1.5 blast
-  radius). Owner answered 2026-07-13: Red Mage was NEVER re-verified after the Bloodpact park
-  (no compose with these mods was ever verified), so no counter-evidence exists against the
-  writeback mechanism and the June "Red Mage lost abilities" sighting may have been this bug
-  misattributed to Bloodpact. Remaining validation before building: the delete-row-57 ladder
-  above. working/dir_bluered/ holds their decoded action table from the June dev install.
-  2026-07-14 compose-test methodology (owner directive, rides LW-83): every compose test with a
-  suspected-conflicting mod (Blue And Red Mages, GenericJobs) starts by reading the guard
-  verdict in livingweapon.log BEFORE any manual diffing: armed means the other mod's writes
-  miss our watched regions entirely; a jobcommand-table stand-down while pe-build-key matches
-  fingerprints their table writes, and the LW-83 observed-vs-expected bytes in that line name
-  exactly which bytes they changed, ruling a game patch in or out from one log read.
 - [LW-80] 2026-07-13: File the upstream modloader issue (Nenkai/fftivc.utility.modloader):
   table-XML row edits apply as whole-row writebacks (ApplyTablePatch assigns every field via
   model.X ?? previous.X at OnAllModsLoaded), clobbering other mods' post-snapshot runtime row

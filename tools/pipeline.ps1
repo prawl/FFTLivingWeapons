@@ -18,11 +18,17 @@ $PipelineRepoRoot = Split-Path -Parent $PSScriptRoot
 # Required-file manifest shared by BuildLinked's deploy verification and
 # Publish's Verify-Package: the mod manifest, the Living Weapon runtime (DLL +
 # LivingWeapon.deps.json for the Reloaded loader + Newtonsoft + baked meta),
-# all 8 sparse table XMLs, and the two full-table nxds. ModConfig.json declares
+# the 7 sparse table XMLs, and the two full-table nxds. ModConfig.json declares
 # "ModDll": "LivingWeapon.dll", so the DLL is non-optional -- shipping the
 # manifest without it is the bug the verifiers exist to catch. Paths are
 # forward-slash relative to the mod root (zip-entry style); Test-Path and
 # Join-Path both take them as-is.
+#
+# LW-77 (2026-07-14): JobCommandData.xml is GONE, not merely trimmed. A table-XML
+# row applies as a WHOLE-ROW writeback at OnAllModsLoaded, so shipping this table
+# clobbered other job mods' post-snapshot runtime edits to the same 47 records;
+# its sole payload (zeroing the dead-JP Equip Axes RSM slot) now ships as one
+# ability.en.nxd Description cell on key 460 instead (tools/patch_ability_names.py).
 $RequiredModFiles = @(
     "ModConfig.json",
     "LivingWeapon.dll",
@@ -37,7 +43,6 @@ $RequiredModFiles = @(
     "FFTIVC/tables/enhanced/ItemAccessoryData.xml",
     "FFTIVC/tables/enhanced/ItemEquipBonusData.xml",
     "FFTIVC/tables/enhanced/JobData.xml",
-    "FFTIVC/tables/enhanced/JobCommandData.xml",
     "FFTIVC/data/enhanced/nxd/item.en.nxd",
     "FFTIVC/data/enhanced/nxd/ability.en.nxd"
 )

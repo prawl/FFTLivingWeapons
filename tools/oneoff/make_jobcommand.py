@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 """Sparse JobCommandData.xml override: scrub Equip Axes from every learnable support slot.
 
+PARKED (tools/oneoff/): LW-77 2026-07-14: the modloader applies a table-XML row as a WHOLE-ROW
+writeback at OnAllModsLoaded (FFTOJobDataManager.ApplyTablePatch, model.X ?? previous.X across
+every field, incl. every AbilityId/RSM slot), so listing any of this table's 47 records clobbers
+another job mod's post-snapshot runtime edits to those SAME records, proven live on JobData.xml
+(deleting a single row resurrected a compose partner's Red Mage). Re-running this script and
+redeploying mod/FFTIVC/tables/enhanced/JobCommandData.xml reopens that whole-row collision. The
+dead-JP wart this script closed (Equip Axes, ability id 460, being learnable with nothing left
+to equip) is closed instead by a single ability.en.nxd Description cell on key 460
+(tools/patch_ability_names.py), the proven per-cell merge lane that carries no row-writeback risk.
+
 Axes and flails were repurposed into other weapon categories (see make_jobequip.py REMOVE set).
 No axe exists in the mod, so any RSM slot carrying ability 460 (Equip Axes) is dead JP -- the
 player can spend the cost and receive a support that equips a weapon class that doesn't ship.

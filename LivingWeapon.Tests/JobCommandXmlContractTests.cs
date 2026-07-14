@@ -1,20 +1,22 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Xml.Linq;
 using Xunit;
 
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-50 review should-fix: pins that our OWN mod/FFTIVC/tables/enhanced/JobCommandData.xml never
-/// overrides the ability bytes at JobCommand rec 8 (Archer, Aim) or rec 9 (Monk, Martial Arts):
-/// the two records LaunchGuard's JobCommand landmark signature-checks (Barrage.cs:31-43,
-/// tools/probes/jobcommand_find_probe.py:44-45). A modloader table merge is cell-level, so if this
-/// mod ever rebalanced those records' ability lists itself, the baked signature would go stale on
-/// our OWN data, not just a hypothetical rival mod, and the guard would falsely stand down on
-/// every launch. This test is the tripwire: touching those records here must re-derive the
-/// signature (or drop the overridden record) in the same change, not silently break launch.
+/// LW-77: mod/FFTIVC/tables/enhanced/JobCommandData.xml is DELETED. A JobCommandData row is the
+/// same whole-row-writeback hazard as JobData.xml (every AbilityId/RSM field via
+/// model.X ?? previous.X at OnAllModsLoaded, proven live 2026-07-14 on JobData.xml), and this
+/// table's own record list happened to include rec 8 (Archer, Aim) and rec 9 (Monk, Martial
+/// Arts): the two records LaunchGuard's JobCommand landmark signature-checks (Barrage.cs:31-43,
+/// tools/probes/jobcommand_find_probe.py:44-45). The table's sole payload (zeroing the dead-JP
+/// Equip Axes RSM slot, ability id 460, across 47 records) is replaced by one ability.en.nxd
+/// Description cell on key 460 (tools/patch_ability_names.py), the proven per-cell merge lane.
+///
+/// This test is the tripwire's other half: the file must not exist at all. If a future change
+/// ever reintroduces mod JobCommandData.xml, it must either avoid recs 8 and 9 entirely or
+/// re-derive the LaunchGuard signature in the same change, not silently break launch.
 /// </summary>
 public class JobCommandXmlContractTests
 {
@@ -32,20 +34,11 @@ public class JobCommandXmlContractTests
     }
 
     [Fact]
-    public void Rec8_and_rec9_never_declare_an_AbilityId_field()
+    public void Mod_JobCommandData_xml_does_not_exist()
     {
         string path = Path.Combine(RepoRoot(), "mod", "FFTIVC", "tables", "enhanced", "JobCommandData.xml");
-        Assert.True(File.Exists(path), $"{path} does not exist");
-
-        var doc = XDocument.Load(path);
-        var offenders = doc.Descendants("JobCommand")
-            .Where(jc => int.TryParse((string?)jc.Element("Id"), out int id) && (id == 8 || id == 9))
-            .Where(jc => jc.Elements().Any(e => e.Name.LocalName.StartsWith("AbilityId", StringComparison.Ordinal)))
-            .Select(jc => (string?)jc.Element("Id"))
-            .ToList();
-
-        Assert.True(offenders.Count == 0,
-            "JobCommand record(s) " + string.Join(", ", offenders) +
-            " declare an AbilityId field: re-derive the JobCommand landmark bytes or drop the overridden record");
+        Assert.False(File.Exists(path),
+            $"{path} exists: JobCommandData.xml was deleted for LW-77 (whole-row writeback collision); " +
+            "re-derive the LaunchGuard rec8/rec9 signature if this table ever comes back, or avoid those records.");
     }
 }

@@ -4,6 +4,7 @@ Patch ability.en.nxd name/description rows.
 
 Covers:
   Key 358  - Barrage (Yoichi bow ability)
+  Key 460  - Equip Axes (Description only, LW-77 reforged-note)
 
 The modloader merges nxd tables CELL-level against vanilla ("only the actual property
 changes will be tracked so that multiple mods can edit the same table" -- Nenkai's
@@ -42,6 +43,15 @@ PATCHES = {
         "Description": "Unleash 4 attacks with the emphasis on speed. "
                        "Each strike inflicts half the usual damage.",
         "IconId": 32,
+    },
+    # LW-77: Name/IconId untouched, Description only. Every axe in this rebalance was reforged
+    # into another weapon type (make_jobequip.py REMOVE), so the support has nothing left to
+    # equip; this note replaces the mod JobCommandData.xml row that used to zero the learnable
+    # slot (deleted, whole-row writeback collision, see tools/oneoff/make_jobcommand.py).
+    460: {
+        "Description": "Allows the unit to equip axes, regardless of job. Every axe in this "
+                       "rebalance was reforged into another weapon type, so there is nothing "
+                       "left to equip.",
     },
 }
 

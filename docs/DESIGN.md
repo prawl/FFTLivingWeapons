@@ -104,7 +104,8 @@ Audit of the user's installed stack:
 |---|---|---|
 | Item-table editors | **Regabonds.Rebalance** (93 weapons, 64 armors, +abilities/jobs/spawns), **Treasure Hunt** (11 items) | direct field conflict; load order decides per field |
 | Combat-context shifters | Level Scaling, Strong Monsters, Spell Overhaul, All-Skills-Cost-0 | no field conflict, but change the math our gear lives in |
-| Clean compose | GenericJobs, WotL Characters, Innate Skills, Blue/Red Mages, color mod | no interaction |
+| Clean compose | GenericJobs, WotL Characters, Innate Skills, color mod | no interaction |
+| Job-table editors | Blue/Red Mages, GenericJobs (its DK/OK jobs 160/161 overlap ours) | STALE CLAIM CORRECTED (LW-79, 2026-07-14): this bucket used to read "clean compose", written 2026-05-30, two days before JobData.xml existed. A table-XML row applies as a WHOLE-ROW writeback at OnAllModsLoaded (FFTOJobDataManager.ApplyTablePatch, model.X ?? previous.X across every field, incl. JobCommandId since loader 1.7.1), so any row our JobData.xml lists clobbers another job mod's post-snapshot runtime edits to that SAME row, no matter the load order. Pinned from the modloader source and proven live 2026-07-14 (Blue And Red Mages 2.0.2: deleting our row 57 resurrected Red Mage; the guard stayed armed throughout, ruling out a fingerprint explanation). Compose holds again only since the 2.3.0 minimal-table prune (LW-77): JobData.xml now lists only rows with real behavioral payload, so Red Mage's row 57 and the latent GenericJobs DK/OK collision are both off the table. Upstream fix proposed (LW-80): a dirty-field-only writeback would close this class ecosystem-wide. |
 
 **DECISION (2026-05-30):** the user will **disable conflicting item mods** (Regabonds, Equipment Replacer)
 rather than coexist with them. So we are simply *the* authoritative item mod; no load-order fighting

@@ -1,76 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- FFTLivingWeapons: widened generic-job equip + shields, and a class-evade floor on every human job. Load after other job mods. -->
+<!-- FFTLivingWeapons: widened generic-job equip + shields, and a class-evade floor on live-payload jobs (LW-77 pruned the rest). Load after other job mods. -->
 <JobTable>
   <Version>1</Version>
   <Entries>
-    <Job>
-      <Id>0</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>1</Id> <!-- Squire: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Sword, Knife, Unarmed -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Sword, Knife, Unarmed</EquippableItems>
-    </Job>
-    <Job>
-      <Id>2</Id> <!-- Squire: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Sword, Knife, Unarmed -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Sword, Knife, Unarmed</EquippableItems>
-    </Job>
     <Job>
       <Id>3</Id> <!-- Gallant Knight: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, KnightSword, Sword, Unarmed -->
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, KnightSword, Sword, Unarmed</EquippableItems>
     </Job>
     <Job>
-      <Id>4</Id> <!-- Squire: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Sword, Knife, Unarmed; C-EV 5 to 8 -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Sword, Knife, Unarmed</EquippableItems>
+      <Id>4</Id> <!-- Squire: C-EV 5 to 8 -->
       <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>5</Id> <!-- Holy Knight: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Helmet, Shield, Sword, Knife, Unarmed -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Helmet, Shield, Sword, Knife, Unarmed</EquippableItems>
-    </Job>
-    <Job>
-      <Id>6</Id> <!-- ?: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, KnightSword, Sword, Knife, Unarmed -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, KnightSword, Sword, Knife, Unarmed</EquippableItems>
-    </Job>
-    <Job>
-      <Id>7</Id> <!-- Squire: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Sword, Knife, Unarmed -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Sword, Knife, Unarmed</EquippableItems>
     </Job>
     <Job>
       <Id>15</Id> <!-- Dragonkin: C-EV 7 to 8 -->
       <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>28</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>53</Id> <!-- ?: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed; C-EV 0 to 8 -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed</EquippableItems>
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>54</Id> <!-- ?: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed; C-EV 0 to 8 -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed</EquippableItems>
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>55</Id> <!-- ?: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed; C-EV 0 to 8 -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed</EquippableItems>
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>56</Id> <!-- ?: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed; C-EV 0 to 8 -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed</EquippableItems>
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>57</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>61</Id> <!-- Knight: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, KnightSword, Sword, Unarmed -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, KnightSword, Sword, Unarmed</EquippableItems>
     </Job>
     <Job>
       <Id>63</Id> <!-- Archer: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Bow, Crossbow, Unarmed, Gun -->
@@ -184,78 +127,8 @@
       <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>142</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>143</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
       <Id>145</Id> <!-- Automaton: C-EV 0 to 8 -->
       <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>146</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>147</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>148</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>149</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>151</Id> <!-- Keeper of Darkness: C-EV 3 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>153</Id> <!-- Archaeodaemon: C-EV 5 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>155</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>156</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>157</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>158</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>159</Id> <!-- ?: C-EV 0 to 8 -->
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>160</Id> <!-- ?: equip: FellSword, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, Helmet, Shield, KnightSword, Sword, Unarmed; C-EV 0 to 8 -->
-      <EquippableItems>FellSword, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, Helmet, Shield, KnightSword, Sword, Unarmed</EquippableItems>
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>161</Id> <!-- ?: equip: LipRouge, FellSword, Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed; C-EV 5 to 8 -->
-      <EquippableItems>LipRouge, FellSword, Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed</EquippableItems>
-      <CharacterEvasion>8</CharacterEvasion>
-    </Job>
-    <Job>
-      <Id>163</Id> <!-- ?: equip: Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, Hat, Helmet, Shield, KnightSword, Sword, Knife, Unarmed -->
-      <EquippableItems>Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, Hat, Helmet, Shield, KnightSword, Sword, Knife, Unarmed</EquippableItems>
-    </Job>
-    <Job>
-      <Id>164</Id> <!-- ?: equip: LipRouge, FellSword, Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed -->
-      <EquippableItems>LipRouge, FellSword, Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Cloth, Bag, Pole, Polearm, Book, Instrument, Bow, Crossbow, Gun, Staff, Rod, Katana, KnightSword, Sword, NinjaBlade, Knife, Unarmed</EquippableItems>
     </Job>
   </Entries>
 </JobTable>
