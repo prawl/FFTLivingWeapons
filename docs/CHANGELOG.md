@@ -8,6 +8,19 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-57] SHIPPED 9d347c9 2026-07-14: the Attack command's first-open readiness after a session
+  load. Cause was census cold-start latency, not actor resolution: the sweep could arm and never
+  complete across a whole battle while starving RepaintDriver; the fix alternates repaint/scan
+  ticks and re-arms aborted sweeps with hit preservation. Owner live-verified 2026-07-14 (smoke
+  row 5.3): the weapon name rendered on the very first turn of the session's first battle, and a
+  mid-battle weapon swap re-resolved; the LIVE_LEDGER Attack-row rename row flipped PROVEN on
+  the same evidence.
+- [LW-86] SHIPPED fe30e1f 2026-07-14: the production Scholar's Ring auto-grant killed (finding
+  F5 from the LW-10 recon). ScholarRing.Grant compiles to a no-op outside LWDEV (the Tuning
+  compile-out pattern), so shipped builds never write items into player saves for the disarmed,
+  removal-slated Treasure Master module; dev builds keep the disarm-oracle convenience. Owner
+  live-verified 2026-07-14 (smoke row 7.22): ring equipped on a deployed unit produced no marks,
+  the disarm line logged, zero grant lines all session, id 260 inventory untouched.
 - [LW-69] SHIPPED 9ae454f 2026-07-14: the census-evict log flood silenced. The two attack-card
   "evicting the cached copy" DBG lines were 98.4% of the 2026-07-11 session log (9,024 lines in
   2.5s), caused by per-candidate census rejection logging, not evict thrash; SyncHit/SyncHitEnc2

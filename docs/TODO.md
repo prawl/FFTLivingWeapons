@@ -26,23 +26,6 @@ is the in-flight subset, not a mirror of that checklist.
     into SMOKE_TEST_2.3.0.md row 7.29 (Blue And Red Mages compose re-check); the Nexus
     known-issues pin update and marking the Old Files zips superseded stay owner-at-ship work,
     not gated here.
-- **[LW-57] Fix the Attack command's first-open readiness after a battle load** (opened 2026-07-09) [AWAITING-LIVE]
-  - Done means: on the first turn of the first battle after a session load, the Attack command
-    row already shows the wielder's weapon name; later battles keep the LW-38 warm-cache
-    behavior (that fix shipped 3bcdadc and holds; it deliberately left this cold-cache first
-    battle open). Verified 2026-07-11: the mechanism is census cold-start latency, NOT the
-    actor-resolve guess the original entry made; the rename cannot land until the census finds
-    the table copies, the census steps only on in-battle ticks, and the 2026-07-11 tapes show a
-    sweep arming and never completing across a whole battle (14:23 and 08:31 sessions) despite
-    the handful-of-ticks budget design, which also starves RepaintDriver while _scanning holds.
-    Step 1 is therefore the live sweep diagnosis (shared with LW-69's pending census-finished
-    observation); the fix follows the diagnosis. Owner re-scoped this into 2.3.0 on 2026-07-11.
-  - Verify: suite green; owner live pass: cold-load a save, enter the first battle, open the
-    command list on the very first turn and see the weapon name, with the census-finished line
-    in the file (folds into SMOKE_TEST_2.3.0.md row 5.3 and the LW-69 check).
-  - Fix SHIPPED 9d347c9 2026-07-11 (repaint/scan tick alternation + aborted-sweep re-arm with
-    hit preservation; full build cycle, verifier SHIP 9/10, suite 2439 green); the owner live
-    pass above is what remains.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
@@ -54,16 +37,6 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green (DocsContractTests allow-list + link scan, TodoContractTests); the
     owner then RUNS the pass, flips its checkboxes, and closes with a green
     `python tools/scan_logs.py`.
-- **[LW-86] Kill the Scholar's Ring auto-grant in production (finding F5)** (opened 2026-07-14) [AWAITING-LIVE]
-  - Done means: ScholarRing.Grant compiles to a no-op outside LWDEV (the Tuning dev-seed
-    compile-out pattern), so a production build never writes a free Scholar's Ring (item 260,
-    inventory count 0 to 1) into a save that has none; dev builds keep the convenience grant for
-    disarm-oracle testing; found by the LW-10 recon (the 2026-07-11 fresh-save grant was this
-    running as designed); owner decided 2026-07-14 to kill it in 2.3.0 rather than wait for the
-    post-release removal branch.
-  - Verify: failing-first ScholarRingTests prod no-op test; suite green; owner live pass folds
-    into SMOKE_TEST_2.3.0.md row 7.22 (no "Granted a Scholar's Ring" line in the file, id 260
-    inventory count unchanged all session).
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO

@@ -171,7 +171,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
 - [ ] 5.2 **Suffix truth after reset (LW-59, possibly pre-satisfied 2026-07-11).** After the
   section-6 New Game reset: the equip card shows the PLAIN weapon name (no stale +N) beside the
   fresh meter, and the suffix climbs again with new kills. **[MAJOR]**
-- [ ] 5.3 **Abilities-menu funnel (LW-31 family).** On a wielder's turn the Attack row renames to
+- [x] 5.3 (PASSED 2026-07-14, owner live: weapon name present on the very first turn of the
+  session's FIRST battle; a mid-battle weapon swap re-resolved correctly; LW-57 exited and the
+  LIVE_LEDGER Attack-row rename row flipped PROVEN on this evidence) **Abilities-menu funnel
+  (LW-31 family).** On a wielder's turn the Attack row renames to
   the weapon and its hover card carries the dossier; on the FIRST turn of the session's second
   battle the rename is already warm (LW-38), and with the LW-57 fix (9d347c9: the census no
   longer starves the repaint driver) the FIRST battle after a session load must ALSO show the
@@ -302,7 +305,9 @@ Debug/file tier only.
 - [ ] 7.21 **Marks stay hidden everywhere (LW-35)** while legends.json keeps growing beside
   kills.json (collection on, display off; the Reliquary Phase 1 live pass itself is deferred past
   2.3.0, see Appendix A). **[MAJOR]**
-- [ ] 7.22 **Treasure Master ships DISARMED on 1.5.1** (owner decision 2026-07-14; removal is
+- [x] 7.22 (PASSED 2026-07-14, owner live: Scholar's Ring equipped on a deployed unit produced
+  NO marks, the disarm line is in the file, zero grant lines all day, id 260 count unchanged;
+  LW-86 exited on this evidence) **Treasure Master ships DISARMED on 1.5.1** (owner decision 2026-07-14; removal is
   post-release, backlog LW-10). The dataset still carries the pre-1.5.1 build key (0x6A0F86A9
   vs live 0x6A3C5497), so the L0 gate stands the module down at startup, by design. Oracle:
   Scholar's Ring equipped on a DEPLOYED unit = NO marks, and the file shows the one-time WARN
@@ -350,8 +355,9 @@ Debug/file tier only.
   LW-86 pattern); the ship notes must also tell in-place upgraders to delete the old mod folder
   first (a stale JobCommandData.xml from 2.2.2 silently retains the collision). Core evidence
   banked 2026-07-14 (first PROD session, owner): Red Mage abilities present with zero hand
-  edits, Blue Mage intact, guard armed 11:56:20. Still owed before the tick: the two bonus
-  oracles (Archer Gun access, Equip Axes reforged note). **[MAJOR]**
+  edits, Blue Mage intact, guard armed 11:56:20. Archer Gun access verified (owner, second
+  session 2026-07-14). Still owed before the tick: the Equip Axes reforged-note eyeball.
+  **[MAJOR]**
 
 ---
 
