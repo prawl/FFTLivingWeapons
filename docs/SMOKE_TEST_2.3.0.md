@@ -287,9 +287,12 @@ Debug/file tier only.
 - [ ] 7.21 **Marks stay hidden everywhere (LW-35)** while legends.json keeps growing beside
   kills.json (collection on, display off; the Reliquary Phase 1 live pass itself is deferred past
   2.3.0, see Appendix A). **[MAJOR]**
-- [ ] 7.22 **Treasure Master still gates on the Scholar's Ring** (ships in 2.3.0; removal is
-  post-release, backlog LW-10): ring equipped on a DEPLOYED unit = marks; no ring = one idle
-  line, no marks. TreasureAlwaysOn stays default False. **[MINOR]**
+- [ ] 7.22 **Treasure Master ships DISARMED on 1.5.1** (owner decision 2026-07-14; removal is
+  post-release, backlog LW-10). The dataset still carries the pre-1.5.1 build key (0x6A0F86A9
+  vs live 0x6A3C5497), so the L0 gate stands the module down at startup, by design. Oracle:
+  Scholar's Ring equipped on a DEPLOYED unit = NO marks, and the file shows the one-time WARN
+  "Treasure marks are disarmed: the dataset was built for a different game build"; zero
+  treasure writes all session. TreasureAlwaysOn stays default False. **[MINOR]**
 - [ ] 7.23 **Dormant modules stay dormant (expected, not bugs):** CharmLock (superseded by
   Puppeteer), LifeSap, and Wyrmblood have no live data wiring and must produce no behavior and no
   narration. Nothing to see is the pass condition. **[MINOR]**

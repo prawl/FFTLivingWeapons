@@ -88,7 +88,10 @@ is the in-flight subset, not a mirror of that checklist.
   the cut; drop Treasure Master from the ModConfig description. More fuel 2026-07-11: it
   granted a Scholar's Ring into a freshly reset new-game save 16s after the LW-59 smoke's
   tally reset, with TreasureAlwaysOn=False (log 02:12:03); confirm at removal time that no
-  such inventory write is reachable in the production flavor.
+  such inventory write is reachable in the production flavor. Decision 2026-07-14: 2.3.0
+  ships it DISARMED on 1.5.1 (dataset build key is pre-1.5.1, the L0 gate stands it down;
+  no rebake, stay-disarmed per docs/PATCH_REANCHOR.md step 7); smoke row 7.22 re-scoped to
+  the disarmed oracle.
 - [LW-11] 2026-07-04: Alter Axes and Flails, cheap slice only (Squire/Geomancer equip access on
   existing sword-typed items). The rest is walled research (type-welded formula, id-welded art,
   no known flail formula id).
