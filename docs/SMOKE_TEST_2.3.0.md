@@ -119,11 +119,16 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
 
 ## 4. Kill attribution + coverage truth
 
-- [ ] 4.1 **Flags-first credit, manual (LW-63, possibly pre-satisfied 2026-07-11).** In a manual
+- [x] 4.1 (PASSED 2026-07-14, owner live: manual credits all day resolved "via the turn flags"
+  with correct weapon attribution, incl. the Kiku toast kill 15:55:34 and the re-enter kill
+  16:20:23; the 14:08 tape records latch src=turn-flags) **Flags-first credit, manual (LW-63,
+  possibly pre-satisfied 2026-07-11).** In a manual
   battle, kills credit the true killer even when another unit is hovered/parked on (the file logs
   the resolve "via the turn flags" at Debug tier; the flight tape records latch src=turn-flags).
   **[BLOCKER]**
-- [ ] 4.2 **Flags-first credit, auto-battle (LW-63, possibly pre-satisfied).** One auto-battle:
+- [x] 4.2 (PASSED 2026-07-14, owner live: the 14:0x auto-battle grind credited all 7 kills to
+  the correct weapon, battle-end summary "7 kills credited (Chaos Blade 7)") **Flags-first
+  credit, auto-battle (LW-63, possibly pre-satisfied).** One auto-battle:
   every kill credits the correct weapon (the 2026-07-11 tape credited all five). **[BLOCKER]**
 - [x] 4.3 (PASSED 2026-07-14, owner flip: battle-1 line at INFO tier exactly once, "All 4
   enemies are accounted for" matched the field; the no-tracked-weapon battle stayed file-only
@@ -157,7 +162,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   the mode-1/5 slot0==0xFF excuse dead; a false exit resets the kill tracker and shows as a
   spurious "battle ended" in the file mid-battle). If it fires, capture the log and stop the pass.
   **[BLOCKER]**
-- [ ] 4.7 **No false duplicate-blocks (LW-68 spot check).** In a battle where a boss or leveled
+- [x] 4.7 (PASSED 2026-07-14: the 14:0x farm battle revived and re-killed the same enemies
+  repeatedly and every re-kill credited, with zero "Blocked a repeat credit" WARNs in any
+  session log all day) **No false duplicate-blocks (LW-68 spot check).** In a battle where a
+  boss or leveled
   enemy takes a max-HP-shifting hit before dying, its kill still credits (the orphan-alive-edge
   rescue is tape-only vocabulary: end the battle and read the flight tape if in doubt); no
   "Blocked a repeat credit" WARN in a battle that credited nothing. No dedicated setup needed.
@@ -275,7 +283,10 @@ Debug/file tier only.
   ONE stat per weapon and a physical gun routes PA, with Speed reserved for the speed-formula
   blades) **Stat growth holds.** A tiered weapon's wielder shows PA/MA/Speed at
   round(natural x (1+factor)) in battle; growth lines in the file. **[MAJOR]**
-- [ ] 7.3 **Battle enter/exit cycle clean:** started, ended, fresh started across two consecutive
+- [x] 7.3 (PASSED 2026-07-14: a dozen clean enter/exit cycles across the day's sessions, incl.
+  back-to-back battles and the world-map leave/re-enter pair; no double-exit or mid-battle exit
+  in any log; every closing scan CLEAN) **Battle enter/exit cycle clean:** started, ended, fresh
+  started across two consecutive
   battles; no double-exit, no mid-battle exit. **[BLOCKER]**
 - [ ] 7.4 **Zwill Straightblade (id 10) extra turn:** a Zwill kill grants the killer an immediate
   extra turn. **[MAJOR]**
@@ -341,7 +352,10 @@ Debug/file tier only.
 - [ ] 7.23 **Dormant modules stay dormant (expected, not bugs):** CharmLock (superseded by
   Puppeteer), LifeSap, and Wyrmblood have no live data wiring and must produce no behavior and no
   narration. Nothing to see is the pass condition. **[MINOR]**
-- [ ] 7.24 **World-map battle re-enter registers (LW-40 re-check).** Leave an in-progress battle
+- [x] 7.24 (PASSED 2026-07-14, owner live: left the battle at 16:06:10 with a clean exit edge,
+  re-entered at 16:20:03 with a fresh battle-start, Attack row renamed 16:20:19, Chaos Blade
+  kill credited 16:20:23, clean exit and tape at 16:20:40) **World-map battle re-enter registers
+  (LW-40 re-check).** Leave an in-progress battle
   to the world map, then restart it: the mod registers the battle (battle started in the file,
   Attack row renamed, kills credit). The enter/exit machinery changed twice after LW-40's
   2026-07-07 verification (LW-56's forced new-game exit edge, LW-34's coverage work), and the
