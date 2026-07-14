@@ -272,6 +272,37 @@ is the in-flight subset, not a mirror of that checklist.
   mismatch, AttackCard.Resolve.cs:87 on known stale-cursor hovers). None urgent (console dedup
   masks most); triage with the owner which get demoted, deduped, or left.
 
+- [LW-77] 2026-07-13: Shrink the third-party job-mod collision surface: prune JobData.xml's
+  unknown-id rows (0, 28, 53-57, 142-143, 145-149, 151, 153, 155-161, 163-164, emitted by
+  make_jobequip.py's MonsterGraphic==0 sweep) and audit JobCommandData.xml's record list (5,
+  25-76, 155-160) for records no shipped feature needs. Mechanism (pinned from modloader
+  source, Nenkai fftivc.utility.modloader master): FFTOJobDataManager.ApplyTablePatch does a
+  WHOLE-ROW writeback at OnAllModsLoaded for any row a mod's XML lists (model.X ?? previous.X
+  across all ~40 fields, incl. JobCommandId since loader 1.7.1 and InnateAbilityId1-4), so a
+  CharacterEvasion-only row reverts every post-snapshot runtime write another mod made to that
+  row; load order cannot fix it. Live casualties: DanaCrysalis Blue/Red Mages (Red Mage = job
+  57, ours since v1.1.0; Blue Mage = job 33, never ours: the reported Red-dies-Blue-survives
+  asymmetry), latent for GenericJobs DK/OK (jobs 160/161, both ours). JobCommandData has the
+  same writeback shape (all 16 AbilityIds + 6 RSM slots), so pruning JobData alone does not
+  close it. Confirmation before building: the reporter-runnable ladder (delete the row-57
+  block, then JobCommandData.xml, then ability.en.nxd, restart between each) or the loader's
+  own yellow per-field conflict console lines. Rider: Nexus hygiene (mark the Old Files
+  1.0.0/1.1.1 Item Overhaul zips superseded so users stop running both generations; pin a
+  known-issues post: Warbrand welded-art cosmetic, the row-57 interaction, game-1.5 blast
+  radius). Owner question first: was Red Mage re-verified healthy after the Bloodpact park
+  (ef9c090) with row 57 still shipping? working/dir_bluered/ holds their decoded action table
+  from the June dev install.
+- [LW-78] 2026-07-13: Re-diff the pre-1.5 full-table nxd bakes (item.en.nxd and ability.en.nxd)
+  against 1.5 vanilla: the loader diffs each mod's nxd against the CURRENT vanilla table at
+  load, so any text cell the 1.5 game patch changed silently converts our stale bake into an
+  unintended table-wide edit. Verifiable offline (decode 1.5 vanilla, re-diff, count
+  unintended cells); also check row-count parity (rows missing vs vanilla are applied as
+  RemovedRows).
+- [LW-79] 2026-07-13: docs/DESIGN.md line ~107 still claims clean compose with Blue/Red Mages
+  ("no interaction", written 2026-05-30, two days before JobData.xml existed); three player
+  reports and the pinned loader writeback contradict it. Correct the claim (cite LW-77's
+  mechanism) when LW-77 resolves.
+
 ## Walled (blocked by engine / Denuvo / modloader)
 
 - Fix the sword swing-art (art welded to weapon id; the same render node also drives damage).
