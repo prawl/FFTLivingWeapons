@@ -60,7 +60,7 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green; a fresh live session log shows zero per-candidate evicting lines, a
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
-- **[LW-10] Remove Treasure Master** (opened 2026-07-04) [BUILDING]
+- **[LW-10] Remove Treasure Master** (opened 2026-07-04) [BLOCKED(owner-paused 2026-07-14 until post-2.3.0)]
   - Done means: the Treasure Master module and its data leave the repo on branch
     feature/lw10-remove-treasure-master (branch-held; merges to main only after the 2.3.0 tag,
     since 2.3.0 ships the module DISARMED on 1.5.1, decision 2026-07-14): treasure.json
