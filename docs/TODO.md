@@ -294,6 +294,11 @@ is the in-flight subset, not a mirror of that checklist.
   writeback mechanism and the June "Red Mage lost abilities" sighting may have been this bug
   misattributed to Bloodpact. Remaining validation before building: the delete-row-57 ladder
   above. working/dir_bluered/ holds their decoded action table from the June dev install.
+- [LW-80] 2026-07-13: File the upstream modloader issue (Nenkai/fftivc.utility.modloader):
+  table-XML row edits apply as whole-row writebacks (ApplyTablePatch assigns every field via
+  model.X ?? previous.X at OnAllModsLoaded), clobbering other mods' post-snapshot runtime row
+  writes; propose dirty-field-only writeback. Draft body in handoff.md (2026-07-13 action
+  pack); owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
 - [LW-78] 2026-07-13: Re-diff the pre-1.5 full-table nxd bakes (item.en.nxd and ability.en.nxd)
   against 1.5 vanilla: the loader diffs each mod's nxd against the CURRENT vanilla table at
   load, so any text cell the 1.5 game patch changed silently converts our stale bake into an
