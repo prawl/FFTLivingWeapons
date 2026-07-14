@@ -8,6 +8,25 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-78] SHIPPED b9777d6 2026-07-14: the stale-nxd re-diff and rebase. The loader applies an
+  nxd override per-cell against the RUNNING game's vanilla, so the pre-1.5 full-table bakes
+  silently reverted every text cell the 1.5.x patches changed: 111 cells measured (61 ability,
+  the whole 1.5.x ability-text delta including the Mighty Guard to Thunder Breath dragon fix;
+  50 item: the shield and armor menu re-sorts, the Leather Helm hat-to-helmet
+  recategorization, the deleted Moonblade dupe row 254 resurrected). Premise proven live by
+  the owner BEFORE the rebake: the stale Padded Coif equip card read Hat where 1.5.1 vanilla
+  reads Helmet (shop screenshot 2026-07-14). Shipped as tools/audit_nxd_bakes.py (91b230b: an
+  intent-classified audit against a fresh pac extract, red on any UNINTENDED or DRIFT cell,
+  reruns after every future game patch; now cited in PATCH_REANCHOR.md) plus
+  tools/rebase_nxd_pristine.py and the rebaked bakes (b9777d6): all 111 cells adopt current
+  vanilla, designed cells survive byte-for-byte (DRIFT 0), the ability bake is vanilla plus
+  exactly the three Barrage cells, and the closure was independently re-derived twice from
+  primary sources. Deliberate hand edits now live in tools/lib/bake_intent.py with cited
+  reasons (the Sanguine Gauche 1001 badge, Warbrand non-random, three known-good display
+  flags on repurposed rows, the cap-break row 261). The one-time working/nxd_th snapshot
+  proved to be an old bake of this very mod, not vanilla, so intent is derived from
+  items.json, never snapshot-compared. In-game text eyeball folds into the
+  SMOKE_TEST_2.3.0.md text rows. Suite 2524 green; analyze exit 0.
 - [LW-84] SHIPPED 008dd35 2026-07-14: the ReleaseScopeContractTests gate. docs/RELEASE_SCOPE.md
   and docs/SMOKE_TEST_2.3.0.md go under contract test (the TodoContractTests enforcer pattern):
   an IN box whose cited ids all shipped (none still open) must be ticked; a ticked box in

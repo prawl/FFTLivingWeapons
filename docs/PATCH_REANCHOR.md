@@ -29,7 +29,11 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 - The save is safe: the runtime is born disarmed and nothing wrote. There is no urgency beyond
   the release schedule.
 - The DATA layer still works: modloader tables/nxd/tex anchor by the loader's own scans, not by
-  our addresses. Item rebalance keeps applying on the new build.
+  our addresses. Item rebalance keeps applying on the new build. CAVEAT (LW-78, hit on 1.5.x):
+  the full-table nxd text bakes go stale against the NEW vanilla and silently revert every text
+  cell the patch changed; run `python tools/audit_nxd_bakes.py` (red on any unintended cell)
+  and, on red, `python tools/rebase_nxd_pristine.py` followed by both patch scripts (the tool
+  prints the exact sequence), then re-run the audit to green.
 - Relative struct offsets (band +0xNN, roster strides, record sizes) SURVIVED the 1.5
   recompile unchanged, validated across 13 units. Expect relocation, not reshaping; the
   fingerprint scans in Phase B prove or refute this within minutes.

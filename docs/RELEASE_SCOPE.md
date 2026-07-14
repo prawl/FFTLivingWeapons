@@ -146,10 +146,13 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       LW-83 methodology), then prune JobData.xml's unknown-id rows and audit JobCommandData.xml's
       record list so a single-field XML row stops erasing other mods' runtime job edits. Riders:
       the Nexus known-issues pin and marking the Old Files 1.x zips superseded.
-- [ ] **Full-table nxd re-diff vs 1.5 vanilla (LW-78)**: re-diff the pre-1.5 item.en.nxd bake
-      (and the parked ability bakes) against current vanilla; count unintended cell edits and
-      check row-count parity (rows missing vs vanilla apply as RemovedRows). Offline work, no
-      game session needed.
+- [x] **Full-table nxd re-diff vs 1.5 vanilla (LW-78)**: re-diff the pre-1.5 item.en.nxd and
+      ability.en.nxd bakes against current vanilla; count unintended cell edits and check
+      row-count parity (rows missing vs vanilla apply as RemovedRows). Done 91b230b + b9777d6
+      2026-07-14: 111 stale cells found (the whole 1.5.x ability-text delta plus the item menu
+      re-sorts and the Leather Helm recategorization; premise owner-proven live on the Padded
+      Coif card) and rebased away; tools/audit_nxd_bakes.py stays red on any future unintended
+      cell and reruns per game patch.
 - [ ] **DESIGN.md compose-claim correction (LW-79)**: replace the stale "no interaction with
       Blue/Red Mages" claim (written before JobData.xml existed) with the pinned whole-row
       writeback mechanism; lands with LW-77's resolution.
