@@ -150,7 +150,9 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   whether the Attack card composes the dossier during an auto-battle turn if opened. Worst case
   is a vanilla card (narrowing-only gates), so a vanilla observation here is acceptable, not a
   failure; record what you saw either way. **[MINOR]**
-- [ ] 4.6 **Slow-cast false-exit watch (backlog LW-42).** Queue a long charge-time spell and let
+- [x] 4.6 (PASSED 2026-07-14, owner live: a long Hastija charge and cast played through with no
+  false battle-end; no mid-battle exit line in the file) **Slow-cast false-exit watch (backlog
+  LW-42).** Queue a long charge-time spell and let
   the camera linger through the cast: the battle must NOT false-exit mid-fight (the 1.5 port left
   the mode-1/5 slot0==0xFF excuse dead; a false exit resets the kill tracker and shows as a
   spurious "battle ended" in the file mid-battle). If it fires, capture the log and stop the pass.
@@ -346,7 +348,10 @@ Debug/file tier only.
   restored on heal; kill tier only raises the curve); only the wielder's PA moves; the file shows
   the hold lines without HP-flap flood (the backlog LW-76 watch). Row 7.2 does not cover this
   weapon either: the Ultima hold owns its PA lane. (DEV OK) **[MINOR]**
-- [ ] 7.29 **Job-table collision prune holds (LW-77).** With Blue And Red Mages 2.0.2 enabled on
+- [x] 7.29 (PASSED 2026-07-14, owner live: Red and Blue Mage compose on the pruned PROD deploy
+  with zero hand edits, guard armed; Archer Gun access verified; the Equip Axes reforged note
+  verified on screen, screenshot 14:00; LW-77 exited on this evidence) **Job-table collision
+  prune holds (LW-77).** With Blue And Red Mages 2.0.2 enabled on
   the PROD deploy, Red Mage keeps its abilities with NO hand edit (the pruned JobData.xml lists
   no row 57); Blue Mage stays intact; the guard reads armed throughout. Bonus oracles: a generic
   Archer still shows Gun access (the widened equip list survived the prune) and the Equip Axes

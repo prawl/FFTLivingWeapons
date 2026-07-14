@@ -10,22 +10,6 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-77] Shrink the job-mod collision surface (whole-row writeback prune)** (opened 2026-07-13) [AWAITING-LIVE]
-  - Done means: mod/FFTIVC/tables/enhanced/JobData.xml lists only rows carrying a real payload
-    (the 28-id keep set: make_jobequip.py's CEV_ALLOW plus every generic human non-Lucavi id with
-    a live equip addition/strip), dropping every id that only reverted an already-vanilla-equal
-    Axe/Flail diff; mod JobCommandData.xml is deleted (its sole payload, zeroing the dead-JP Equip
-    Axes RSM slot, ships instead as one ability.en.nxd Description cell on key 460, the proven
-    per-cell merge lane); the mechanism (FFTOJobDataManager.ApplyTablePatch applies every listed
-    row as a WHOLE-ROW writeback at OnAllModsLoaded, model.X ?? previous.X across every field,
-    clobbering another mod's post-snapshot runtime edits to that same row regardless of load
-    order) is cited in make_jobequip.py's docstring and DESIGN.md section 3.
-  - Verify: suite green (JobDataXmlContractTests pins the 28-id set and the payload-per-row
-    invariant; JobCommandXmlContractTests pins the file's absence; PipelineManifestContractTests'
-    release-workflow check flips to DoesNotContain); owner live pass on the PROD deploy folds
-    into SMOKE_TEST_2.3.0.md row 7.29 (Blue And Red Mages compose re-check); the Nexus
-    known-issues pin update and marking the Old Files zips superseded stay owner-at-ship work,
-    not gated here.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
@@ -269,6 +253,19 @@ is the in-flight subset, not a mirror of that checklist.
   followed correctly). Fail-closed by design (LW-55 gates, LW-39 family), but a full-battle
   rename blackout is a UX miss; candidate: a mirror-seat-aware cursor resolve (frame nameId
   dedup, the Band mirror rule).
+- [LW-88] 2026-07-14: The attack-card dossier's kill count goes stale mid-battle: the owner
+  watched it hold 19 across a battle that credited 7 Chaos Blade kills live (the 14:08 flight
+  tape shows counts 20 to 26 crediting in real time with victims attached), then read 26 in the
+  next battle. The tally map is live; the composed dossier line is not recomposed on count
+  change within a battle. Cosmetic; candidate: invalidate or recompose the cached dossier for
+  the resolved weapon when its tally entry changes.
+- [LW-89] 2026-07-14: A tier-up toast can enqueue and never deliver: the 14:08 tape shows the
+  Chaos Blade tier-2 toast enqueued at the exact 25th-kill credit (payload composed correctly)
+  and NO deliver record in the remaining two minutes of battle, though the wielder acted three
+  more times. Delivery rides the Wait facing prompt and none surfaced (auto-battle suspected,
+  owner confirmation pending: auto-battle picks facing instantly so the prompt never renders).
+  If auto-battle: document as a known limitation and consider a fallback delivery portal; if
+  manual play: a real delivery bug. The enqueue half of smoke row 7.25 is proven either way.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

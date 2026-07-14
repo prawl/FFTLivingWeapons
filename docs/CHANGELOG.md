@@ -8,6 +8,16 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-77] SHIPPED 2a4c325 2026-07-14: the job-mod collision surface prune. The loader applies
+  every listed table-XML row as a whole-row writeback at OnAllModsLoaded (proven live by the
+  owner's row-57 ladder with Blue And Red Mages 2.0.2; LIVE_LEDGER Proven row added), so
+  JobData.xml now lists only the 28 live-payload rows (contract-test pinned) and
+  JobCommandData.xml is deleted outright, its dead-JP Equip Axes protection replaced by one
+  ability.en.nxd Description cell on key 460. Owner live-verified 2026-07-14 (smoke row 7.29):
+  Red and Blue Mage compose intact on the pruned PROD deploy with zero hand edits, Archer keeps
+  its widened Gun access, and the reforged-note description renders in the learn screen
+  (screenshot). The Nexus riders (known-issues pin, Old Files supersede, the delete-old-folder
+  upgrade note) travel with the ship notes as owner-at-ship work.
 - [LW-57] SHIPPED 9d347c9 2026-07-14: the Attack command's first-open readiness after a session
   load. Cause was census cold-start latency, not actor resolution: the sweep could arm and never
   complete across a whole battle while starving RepaintDriver; the fix alternates repaint/scan

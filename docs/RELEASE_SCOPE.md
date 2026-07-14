@@ -146,14 +146,15 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       50ae6b3, 2026-07-07.
 
 ### 10. Game-1.5.1 aftermath + ecosystem compat (owner-scoped in 2026-07-14)
-- [ ] **Job-mod collision prune (LW-77)**: validation done 2026-07-14 (the row-57 differential
+- [x] **Job-mod collision prune (LW-77; SHIPPED 2a4c325, owner live-verified 2026-07-14 via
+      smoke row 7.29)**: validation done 2026-07-14 (the row-57 differential
       ladder; the guard read armed throughout). JobData.xml now lists only rows carrying a real
       behavioral payload (the 28-id keep set); mod JobCommandData.xml is deleted, its sole
       payload (zeroing the dead-JP Equip Axes RSM slot) replaced by one ability.en.nxd
       Description cell on key 460. Riders kept: the Nexus known-issues pin, marking the Old
       Files 1.x zips superseded, and the upgrade note (in-place upgraders must delete the old
       mod folder so a stale JobCommandData.xml from 2.2.2 does not silently retain the
-      collision). Box stays unticked until the smoke exit (row 7.29).
+      collision); the riders travel with the ship notes (owner at ship time).
 - [x] **Full-table nxd re-diff vs 1.5 vanilla (LW-78)**: re-diff the pre-1.5 item.en.nxd and
       ability.en.nxd bakes against current vanilla; count unintended cell edits and check
       row-count parity (rows missing vs vanilla apply as RemovedRows). Done 91b230b + b9777d6
@@ -161,7 +162,8 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       re-sorts and the Leather Helm recategorization; premise owner-proven live on the Padded
       Coif card) and rebased away; tools/audit_nxd_bakes.py stays red on any future unintended
       cell and reruns per game patch.
-- [ ] **DESIGN.md compose-claim correction (LW-79)**: replace the stale "no interaction with
+- [x] **DESIGN.md compose-claim correction (LW-79; SHIPPED 2a4c325, exited edc117f
+      2026-07-14)**: replace the stale "no interaction with
       Blue/Red Mages" claim (written before JobData.xml existed) with the pinned whole-row
       writeback mechanism; lands with LW-77's resolution.
 - [ ] **File the upstream modloader issue (LW-80)**: the whole-row-writeback report with the
