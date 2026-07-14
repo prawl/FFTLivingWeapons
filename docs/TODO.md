@@ -289,9 +289,11 @@ is the in-flight subset, not a mirror of that checklist.
   own yellow per-field conflict console lines. Rider: Nexus hygiene (mark the Old Files
   1.0.0/1.1.1 Item Overhaul zips superseded so users stop running both generations; pin a
   known-issues post: Warbrand welded-art cosmetic, the row-57 interaction, game-1.5 blast
-  radius). Owner question first: was Red Mage re-verified healthy after the Bloodpact park
-  (ef9c090) with row 57 still shipping? working/dir_bluered/ holds their decoded action table
-  from the June dev install.
+  radius). Owner answered 2026-07-13: Red Mage was NEVER re-verified after the Bloodpact park
+  (no compose with these mods was ever verified), so no counter-evidence exists against the
+  writeback mechanism and the June "Red Mage lost abilities" sighting may have been this bug
+  misattributed to Bloodpact. Remaining validation before building: the delete-row-57 ladder
+  above. working/dir_bluered/ holds their decoded action table from the June dev install.
 - [LW-78] 2026-07-13: Re-diff the pre-1.5 full-table nxd bakes (item.en.nxd and ability.en.nxd)
   against 1.5 vanilla: the loader diffs each mod's nxd against the CURRENT vanilla table at
   load, so any text cell the 1.5 game patch changed silently converts our stale bake into an
