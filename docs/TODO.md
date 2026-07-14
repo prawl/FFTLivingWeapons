@@ -61,36 +61,6 @@ is the in-flight subset, not a mirror of that checklist.
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
 
-- **[LW-81] Re-anchor the mod for the 2026-07-13 game patch** (opened 2026-07-13) [AWAITING-LIVE]
-  - Done means: the full port re-anchor recipe (docs/research/PORT_1.5.md and its offsets
-    ledger) is rerun against the new build (exe stamped 2026-07-13 06:38, PE key
-    TimeDateStamp 0x6A3C5497 + SizeOfImage 0x1878E000, image SHRANK from 0x190EB000):
-    every Offsets.cs absolute address re-verified or re-anchored by probe, the JobCommand
-    rec 8/9 signature bytes re-derived (tools/probes/jobcommand_find_probe.py), the slot0
-    marker semantics re-audited (the LW-42 excuses), and LaunchGuard's expected constants
-    updated IN THE SAME COMMIT as the Offsets.cs re-anchor (never flip the constants
-    alone: the guard exists to stop old offsets running on a new build). Discovered live
-    2026-07-13: the guard fired pe-build-key and stood down cleanly on the owner's first
-    post-patch launch (save untouched, LW-50's first real-world catch). The reusable
-    procedure is banked as docs/PATCH_REANCHOR.md (this arc validates it); per-patch
-    findings land in a dated PORT offsets journal under docs/research/ when Phase B runs.
-    1.5.1 layout audit complete 2026-07-13 (docs/research/PORT_1.5.1_OFFSETS.md): one
-    mover found (SubmenuFlag, delta -0x52) and LaunchGuard's constants flipped in the same
-    commit as the Offsets.cs re-anchor. Remaining before this row can close: owner deploy,
-    the LW_FORCE_FINGERPRINT_MISMATCH stand-down drill, and an armed run covering one
-    battle (a credited kill proves ArrayBase, a delivered toast proves FnSetTextString)
-    with scan_logs exiting 0. The armed run surfaced the one code-region shift
-    (FnSetTextString, two crashes on engaging auto-battle): the 1.5 entry 0x14028F79C was
-    a mid-function branch target on 1.5.1, fixed by the entry correction to 0x14028F750
-    plus a new prologue landmark guard (HookLandmark.cs, PromptSwapHook.ShouldArm) so a
-    future shift refuses the hook install instead of corrupting the function. Remaining
-    before this row can close: the owner re-test (auto-battle engages without a crash,
-    plus one full battle round trip).
-  - Verify: suite green; owner live pass on the new build: guard arms ("Living Weapons is
-    armed"), one battle round-trip credits a kill, scan_logs --require-battle exits 0.
-    Every other AWAITING-LIVE item and the whole SMOKE_TEST_2.3.0.md pass are BLOCKED
-    behind this row.
-
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO

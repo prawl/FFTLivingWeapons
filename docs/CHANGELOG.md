@@ -8,6 +8,25 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-81] SHIPPED 1289fa1 2026-07-14: the mod is re-anchored for game 1.5.1 (with 0cd2f11, the
+  companion data-layer commit; Steam
+  buildid 23901820, exe 2026-07-13; the fingerprint guard's first real-world catch fired
+  pe-build-key on the owner's first post-patch launch, save untouched). The live layout audit
+  (docs/research/PORT_1.5.1_OFFSETS.md, method docs/PATCH_REANCHOR.md, banked as a living
+  contract during this arc) found the entire 1.5 address layout survived except TWO movers:
+  SubmenuFlag (data, moved -0x52, found by a consistency-sampled 3-state solve) and the
+  FnSetTextString prompt-hook entry (code region slid -0x4C, leaving the 1.5 entry a
+  mid-function branch target; the detour corrupted the function and crashed the game twice on
+  engaging auto-battle). Fixes: SubmenuFlag and the LaunchGuard PE key flipped in one commit
+  (0cd2f11); the hook entry corrected to 0x14028F750 and every detour now landmark-guarded
+  (HookLandmark.cs, dependency-free portable core; PromptSwapHook.ShouldArm fail-closed,
+  sabotage-proven) so a future code shift refuses with one Warn instead of crashing (1289fa1).
+  PauseFlag kept its address but narrowed to card-only semantics on 1.5.1. Owner live pass
+  2026-07-14: forced-mismatch drill stood down cleanly, then a normal launch armed, the hook
+  installed (landmark passed), auto-battle ran crash-free, one battle credited 3 kills with
+  victim identity (ArrayBase proven), and scan_logs --require-battle --flight exited 0. The
+  toast SWAP payload proof rides SMOKE_TEST_2.3.0.md row 7.25 (dev seeding leaves no tier-up
+  to fire); Treasure Master stays auto-disarmed on 1.5.1 pending the LW-10 removal decision.
 - [LW-41] SHIPPED 77010b0 2026-07-11: probe sentinel addresses come from Offsets.cs instead of
   hardcoded pre-1.5 copies (sentinel_probe fed garbage sentinels into the LW-40 live incident).
   tools/lib/offsets.py extracts the named constants textually (pure selftest + a shape check of
