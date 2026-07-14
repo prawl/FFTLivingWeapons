@@ -181,9 +181,12 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   Barrage, the Bloodpact precedent). **[MAJOR]**
 - [ ] 5.7 **Config surface (LW-52).** Reloaded launcher, Configure Mod: exactly ONE option remains
   (Treasure Master Always On); BannerToasts, DevSeedKills, and VerboseLog are gone. **[MAJOR]**
-- [ ] 5.8 **Release note eyeball (LW-72 rider).** README's Language support section reads right
-  (non-English players get full gameplay; item text, Kills counter, and toasts are English-only
-  readouts). **[MINOR]**
+- [ ] 5.8 **Release note eyeball (LW-72 rider) + README truth.** README's Language support
+  section reads right (non-English players get full gameplay; item text, Kills counter, and
+  toasts are English-only readouts). Also confirm the two stale claims flagged 2026-07-13 are
+  corrected before ship: install step 5 must no longer call this "a data-only mod" (the Living
+  Weapon DLL runs live in-process; only tables/nxd/tex are restart-bound), and the How-it-works
+  diagram must credit item.en.nxd to tools/patch_names.py, not generate.py. **[MINOR]**
 
 ---
 
@@ -264,7 +267,9 @@ Debug/file tier only.
 - [ ] 7.19 **Outrider Pistol (id 71) Gun Slinger:** out of battle the off-hand fills with a second
   pistol + Dual Wield; in battle Attack fires twice. Known, accepted: a SECOND simultaneous
   wielder equips slowly (LW-43); the LIVE_LEDGER roster-write row is still pending its flip, this
-  box is its evidence. **[MAJOR]**
+  box is its evidence. Ledger caveat (the 7.17 precedent): that row's "Blaster id 76" wording
+  predates the move to Outrider Pistol id 71; correct the weapon id when flipping so the flip
+  does not PROVEN-stamp a stale claim. **[MAJOR]**
 - [ ] 7.20 **Support grants fire with readback=SET** (Gloomfang Concentration, Mortal Coil Attack
   Boost, Sanguine Gauche / Hushblade defense boosts): one grant line each in the file when the
   wielder fields; per-ability oracles in docs/DEV_TEST_RECIPES.md. **[MINOR]**
@@ -287,6 +292,20 @@ Debug/file tier only.
   prompt, with the enqueue and deliver lines in the file. The toast plumbing changed twice this
   cycle (LW-35 release-hid deed toasts, LW-52 removed the BannerToasts toggle), and every other
   toast row in this pass only proves ABSENCE. **[MAJOR]**
+- [ ] 7.26 **Holy Lance (id 104) Cavalier's Charge:** with the +3 wielder riding a chocobo, Speed
+  reads natural+3 in battle; reverts on dismount and at battle exit; no other unit's Speed moves.
+  Last verified 2026-06-27 (DEV), BEFORE the growth-locate and roster-walk reworks (eb76fe5,
+  474d494) that rebuilt the machinery it rides; the LIVE_LEDGER mounted-grant row is still
+  unflipped and this box is its flip evidence. (DEV OK) **[MAJOR]**
+- [ ] 7.27 **Swiftedge (id 28) Afterimage:** the +3 wielder's Speed climbs +1 for each turn it
+  acts, capping at +5; taking a hit resets the ramp; no other unit's Speed drifts (watch the unit
+  card across two turns and one hit). Row 7.2's growth-formula check does NOT cover this weapon:
+  the Afterimage hold owns its Speed lane. (DEV OK) **[MINOR]**
+- [ ] 7.28 **Materia Blade (id 32) Ultima:** at ANY tier (no +3 grind; the hold is always on) the
+  wielder's PA tracks current HP% (above natural at full HP, sagging below it when badly hurt,
+  restored on heal; kill tier only raises the curve); only the wielder's PA moves; the file shows
+  the hold lines without HP-flap flood (the LW-76 watch). Row 7.2 does not cover this weapon
+  either: the Ultima hold owns its PA lane. (DEV OK) **[MINOR]**
 
 ---
 
@@ -303,7 +322,10 @@ Debug/file tier only.
 - [ ] 8.6 **Build-flavor guard:** a plain `.\BuildLinked.ps1` over the prod install refuses (exit
   1, no files touched). **[MAJOR]**
 - [ ] 8.7 **Version + tag:** ModVersion 2.2.2 to 2.3.0 in mod/ModConfig.json; matching v2.3.0 tag
-  cut; mod description current. **[BLOCKER]**
+  cut; mod description current; ModDependencies lists BOTH fftivc.utility.modloader and
+  reloaded.sharedlib.hooks (new hard dep this release, hosts the toast-delivery hook; without it
+  Mod.cs degrades to a no-toast warning) and the packaged zip carries that ModConfig.json.
+  **[BLOCKER]**
 - [ ] 8.8 **Ledger + scope hygiene at ship:** docs/RELEASE_SCOPE.md boxes all ticked (several are
   done-but-unticked as of authoring; the section-2 prose was corrected to the shipped own-turn
   release when LW-46 landed); docs/TODO.md Now items exited to the changelog via owner flips
@@ -376,5 +398,6 @@ Debug/file tier only.
   `python tools/parse_flight.py <file>` for tapes; docs/LOGGING.md for the verb glossary and
   flush triggers.
 - Live-claim bookkeeping: docs/LIVE_LEDGER.md rows wanting flips from this pass: Kobu (2.3),
-  Gun Slinger roster-write (7.19), the Attack-row rename (5.3), Benediction (7.15);
-  docs/VERIFY_LIVE.md row 1 rides 7.17.
+  Gun Slinger roster-write (7.19; correct its stale "Blaster id 76" wording to Outrider Pistol
+  id 71 at flip time), the Cavalier's Charge mounted grant (7.26), the Attack-row rename (5.3),
+  Benediction (7.15); docs/VERIFY_LIVE.md row 1 rides 7.17.

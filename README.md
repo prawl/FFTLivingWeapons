@@ -43,7 +43,7 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 2. Download the latest `FFTLivingWeapons-*.zip` from [Releases](../../releases).
 3. In Reloaded-II, drag the zip onto the mod list (or extract it into your `Reloaded/Mods` folder).
 4. Enable **FFT Living Weapons** in the mod list. The modloader dependency will be fetched automatically if missing.
-5. **Restart the game.** This is a data-only mod; changes take effect on launch, not live.
+5. **Restart the game.** The item rebalance (tables, text, icons) applies on launch, not live; the Living Weapon runtime (kill tracking, growth, signatures, the equip-card counter) runs in-process while you play.
 
 ## Compatibility: disable conflicting item mods
 
@@ -68,7 +68,7 @@ The design lives in one source of truth and is compiled into the modloader packa
 
 ```
 data/items.json             # the only hand-edited source: every item's stats, name, and identity
-  └─ tools/generate.py       # → FFTIVC/tables/enhanced/*.xml + item.en.nxd (names + descriptions)
+  └─ tools/generate.py       # → FFTIVC/tables/enhanced/*.xml (item.en.nxd is baked separately by tools/patch_names.py)
   └─ tools/analyze.py        # build-diversity GATE: exit 1 if ANY item is strictly dominated
   └─ tools/scan_conflicts.py # lists installed mods that touch the same item IDs
 ```
