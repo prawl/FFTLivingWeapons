@@ -49,18 +49,28 @@ instead of re-running is the owner's call, made per row, not wholesale.
 
 > Goal: clean prod deploy, guarded startup, one full battle round-trip, card paint, green scan.
 
-- [ ] **Deploy prod.** `.\BuildLinked.ps1 -Prod`: every step green (generate, analyze gate, meta,
+- [x] (PASSED 2026-07-14: suite 2525/0, analyze 0, flavor marker prod, preservation restore +
+  post-restore check green, prior-session scan CLEAN) **Deploy prod.** `.\BuildLinked.ps1 -Prod`:
+  every step green (generate, analyze gate, meta,
   full test suite (2426 at authoring), DLL publish, deploy), `build_flavor.txt` = prod, no
   `REFUSING TO DEPLOY`, preservation restore lines present. **[BLOCKER]**
-- [ ] **Launch header.** `livingweapon.log` opens with the launch header: version + PROD flavor,
+- [x] (PASSED 2026-07-14: 11:54:45 header, version 2.2.2 production build, config echo, tally +
+  legends lines, no startup trace) **Launch header.** `livingweapon.log` opens with the launch
+  header: version + PROD flavor,
   settings echo, the lifetime kill-tally line. No startup-failed trace. **[BLOCKER]**
-- [ ] **Guard arms.** Seconds after a save loads, the armed line fires ("Living Weapons is armed";
+- [x] (PASSED 2026-07-14: armed 11:56:20 "matches all memory landmarks", no stand-down, no
+  message box, with Blue And Red Mages 2.0.2 enabled) **Guard arms.** Seconds after a save loads,
+  the armed line fires ("Living Weapons is armed";
   LaunchGuard verified the PE key, the JobCommand signature, and Ramza's roster shape). NO
   stand-down line, NO OS message box. **[BLOCKER]**
-- [ ] **One battle round-trip.** Battle started, a player kill credits with victim identity, battle
+- [x] (PASSED 2026-07-14, owner live: battle 11:57:01 to 12:00:30, "3 kills credited (Chaos
+  Blade 3)", tally and legends saved, equip-card Kills meter verified by the owner) **One battle
+  round-trip.** Battle started, a player kill credits with victim identity, battle
   ended with the summary and tally save; afterwards the equip card shows the Kills meter for that
   weapon. **[BLOCKER]**
-- [ ] **Scan green.** `python tools/scan_logs.py --require-battle --flight` exits 0. **[BLOCKER]**
+- [x] (PASSED 2026-07-14: CLEAN, 224 lines, 0 warnings, 0 errors, header + armed + battle +
+  flight archives all present) **Scan green.** `python tools/scan_logs.py --require-battle
+  --flight` exits 0. **[BLOCKER]**
 
 ---
 
@@ -295,7 +305,10 @@ Debug/file tier only.
   treasure writes all session. TreasureAlwaysOn stays default False. The file must also show NO
   "Granted a Scholar's Ring" line and the id 260 inventory count must not change all session
   (LW-86: the production grant is compiled out); flipping this box is LW-86's live evidence.
-  **[MINOR]**
+  Evidence banked 2026-07-14 (first PROD session): zero "Granted a Scholar's Ring" lines across
+  the whole session log, and the disarm line appeared at 11:56:20 (DEBUG tier, idle variant, no
+  ring fielded). Still owed before the tick: the ring-equipped-on-a-deployed-unit = NO-marks
+  check. **[MINOR]**
 - [ ] 7.23 **Dormant modules stay dormant (expected, not bugs):** CharmLock (superseded by
   Puppeteer), LifeSap, and Wyrmblood have no live data wiring and must produce no behavior and no
   narration. Nothing to see is the pass condition. **[MINOR]**
@@ -330,7 +343,10 @@ Debug/file tier only.
   learn-screen description shows the reforged note (the key-460 ability.en.nxd cell landed).
   Note: this box's tick lands in or after the commit that exits LW-77 to the changelog (the
   LW-86 pattern); the ship notes must also tell in-place upgraders to delete the old mod folder
-  first (a stale JobCommandData.xml from 2.2.2 silently retains the collision). **[MAJOR]**
+  first (a stale JobCommandData.xml from 2.2.2 silently retains the collision). Core evidence
+  banked 2026-07-14 (first PROD session, owner): Red Mage abilities present with zero hand
+  edits, Blue Mage intact, guard armed 11:56:20. Still owed before the tick: the two bonus
+  oracles (Archer Gun access, Equip Axes reforged note). **[MAJOR]**
 
 ---
 
