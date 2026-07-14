@@ -61,6 +61,22 @@ is the in-flight subset, not a mirror of that checklist.
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
 
+- **[LW-81] Re-anchor the mod for the 2026-07-13 game patch** (opened 2026-07-13) [QUEUED]
+  - Done means: the full port re-anchor recipe (docs/research/PORT_1.5.md and its offsets
+    ledger) is rerun against the new build (exe stamped 2026-07-13 06:38, PE key
+    TimeDateStamp 0x6A3C5497 + SizeOfImage 0x1878E000, image SHRANK from 0x190EB000):
+    every Offsets.cs absolute address re-verified or re-anchored by probe, the JobCommand
+    rec 8/9 signature bytes re-derived (tools/probes/jobcommand_find_probe.py), the slot0
+    marker semantics re-audited (the LW-42 excuses), and LaunchGuard's expected constants
+    updated IN THE SAME COMMIT as the Offsets.cs re-anchor (never flip the constants
+    alone: the guard exists to stop old offsets running on a new build). Discovered live
+    2026-07-13: the guard fired pe-build-key and stood down cleanly on the owner's first
+    post-patch launch (save untouched, LW-50's first real-world catch).
+  - Verify: suite green; owner live pass on the new build: guard arms ("Living Weapons is
+    armed"), one battle round-trip credits a kill, scan_logs --require-battle exits 0.
+    Every other AWAITING-LIVE item and the whole SMOKE_TEST_2.3.0.md pass are BLOCKED
+    behind this row.
+
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
