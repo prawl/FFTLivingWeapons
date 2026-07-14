@@ -60,20 +60,6 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green; a fresh live session log shows zero per-candidate evicting lines, a
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
-- **[LW-84] Build the ReleaseScopeContractTests gate** (opened 2026-07-14) [BUILDING]
-  - Done means: a ReleaseScopeContractTests suite (the TodoContractTests enforcer pattern) gating
-    docs/RELEASE_SCOPE.md and docs/SMOKE_TEST_2.3.0.md: an IN-list box naming an LW-id that
-    already exited to CHANGELOG.md must be ticked; a ticked box whose id is still open in
-    TODO.md goes red; ticks cite a commit hash or a date (provenance, not vibes); every LW-id
-    cited in either doc exists in TODO.md or CHANGELOG.md (no phantom or retired ids). Lands
-    with the one-time annotation pass ticking the already-shipped 2.3.0 boxes with their
-    hashes, so the gate is born green on a truthful file. Process rule enforced from then on:
-    the commit that ships a scope item ticks its box in that same commit; smoke row 8.8
-    becomes re-verification.
-  - Verify: failing-first tests (each rule goes red on a staged violation and green on the
-    annotated real files); suite green; no live pass (docs-only gate, no runtime surface,
-    Phase 4 skip declared).
-
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO

@@ -8,6 +8,22 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-84] SHIPPED 008dd35 2026-07-14: the ReleaseScopeContractTests gate. docs/RELEASE_SCOPE.md
+  and docs/SMOKE_TEST_2.3.0.md go under contract test (the TodoContractTests enforcer pattern):
+  an IN box whose cited ids all shipped (none still open) must be ticked; a ticked box in
+  either doc citing only still-open work goes red; every tick cites a commit hash or ISO date;
+  every cited LW-id must exist in TODO.md or CHANGELOG.md; checkbox lines are shape-checked
+  (exactly one well-formed box per line); parser sanity floors keep the rules non-vacuous.
+  A "backlog LW-n" citation is a deferral pointer exempt from tick logic (the ticked Murasame
+  deferral box stays truthful) and WONTFIX/RETRACTED ids never force a tick; the must-tick rule
+  deliberately skips the smoke doc, whose boxes are owner live re-verifications. Landed with
+  the one-time annotation pass ticking 14 already-shipped scope boxes with git-verified hashes
+  (sections 3-5 and 7-9; section 2 stays for the owner's 8.8 sweep per its own prose), so the
+  gate was born green on a truthful file; from now on the commit that ships a scope item ticks
+  its box in that same commit and smoke row 8.8 becomes re-verification. Build-lite pipeline:
+  red-first drift inventory (4 shipped-but-unticked boxes, 3 provenance-free ticks, 1 merged
+  checkbox line), independent verifier SHIP 9/10 with two hash-proven doc-sabotage non-vacuity
+  checks. Suite 2524 green; docs-only gate, no runtime surface, live pass skipped by design.
 - [LW-82] SHIPPED e77b9d7 2026-07-14: the AnchorScan verifier scout (the v1 slice; merge f701795).
   A dependency-free single-file AnchorScan core (chunked pin-neighborhood signature scan,
   overlap-safe boundary math, alignment-before-Confirm filtering, fail-closed verdicts: found at

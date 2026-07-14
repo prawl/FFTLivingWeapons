@@ -94,14 +94,14 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
 - [ ] dotnet test green.
 - [ ] Publish.ps1 clean, PROD thresholds {5,25,50}, no LWDEV / no seeding.
 - [ ] Bump ModVersion (-> 2.3.0) + cut the matching tag.
-- [ ] **ReleaseScopeContractTests gate (LW-84, owner-added 2026-07-14, next up in the queue)**:
+- [x] **ReleaseScopeContractTests gate (LW-84, owner-added 2026-07-14)**:
       this scope file itself goes under test (the TodoContractTests enforcer pattern):
       an IN box naming an id that already exited to CHANGELOG.md must be ticked, a ticked box
       whose id is still open in TODO.md goes red, ticks cite a commit hash or date, and every
       LW-id cited here or in docs/SMOKE_TEST_2.3.0.md must exist in docs/TODO.md or
       docs/CHANGELOG.md. Lands with the one-time annotation pass ticking the already-shipped
       2.3.0 boxes with their hashes, so the gate is born green and smoke row 8.8 becomes
-      re-verification. Land before the 8.8 sweep.
+      re-verification. Shipped 008dd35 2026-07-14, ahead of the 8.8 sweep.
 
 ### 7. Save-integrity + patch-safety hardening (BLOCKER)
 - [x] **Startup fingerprint guard (LW-50)**: verify three DATA-ONLY landmarks at launch (the PE build
