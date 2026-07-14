@@ -60,6 +60,19 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green; a fresh live session log shows zero per-candidate evicting lines, a
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
+- **[LW-10] Remove Treasure Master** (opened 2026-07-04) [BUILDING]
+  - Done means: the Treasure Master module and its data leave the repo on branch
+    feature/lw10-remove-treasure-master (branch-held; merges to main only after the 2.3.0 tag,
+    since 2.3.0 ships the module DISARMED on 1.5.1, decision 2026-07-14): treasure.json
+    de-listed from tools/pipeline.ps1, release.yml, and LivingWeapon.csproj in the same commit;
+    BattleState.BattleDisplayed survives the cut (CharmLock consumer); Treasure Master and its
+    options leave the ModConfig description; a static reachability audit confirms no Scholar's
+    Ring inventory write remains in any build flavor (it granted a ring into a fresh save
+    2026-07-11 with TreasureAlwaysOn=False). Obviates the Scholar's Ring idle-nag bug.
+  - Verify: suite green + analyze exit 0 on the branch; grep gate: zero treasure-module
+    references left outside docs history and the ledger; NO live pass needed (the module is
+    already disarmed on 1.5.1, log-proven 2026-07-14 08:30:58, so post-removal live behavior
+    is byte-identical; the disarmed state itself is smoke row 7.22's owner check).
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
@@ -82,16 +95,6 @@ is the in-flight subset, not a mirror of that checklist.
   from early on, overtuned for that acquisition point. Candidates when picked up: later
   availability tier, price bump, or stat trim (re-run the analyze.py dominance gate after any
   change). Independent of the release-scope spriteIdOverride cleanup.
-- [LW-10] 2026-07-04: Remove Treasure Master (OBVIATES the Scholar's Ring idle-nag bug; do not
-  fix that doomed code). On removal: de-list treasure.json from pipeline.ps1, release.yml, and
-  the csproj together; BattleState.BattleDisplayed is shared with CharmLock and must survive
-  the cut; drop Treasure Master from the ModConfig description. More fuel 2026-07-11: it
-  granted a Scholar's Ring into a freshly reset new-game save 16s after the LW-59 smoke's
-  tally reset, with TreasureAlwaysOn=False (log 02:12:03); confirm at removal time that no
-  such inventory write is reachable in the production flavor. Decision 2026-07-14: 2.3.0
-  ships it DISARMED on 1.5.1 (dataset build key is pre-1.5.1, the L0 gate stands it down;
-  no rebake, stay-disarmed per docs/PATCH_REANCHOR.md step 7); smoke row 7.22 re-scoped to
-  the disarmed oracle.
 - [LW-11] 2026-07-04: Alter Axes and Flails, cheap slice only (Squire/Geomancer equip access on
   existing sword-typed items). The rest is walled research (type-welded formula, id-welded art,
   no known flail formula id).
