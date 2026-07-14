@@ -47,6 +47,29 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green (DocsContractTests allow-list + link scan, TodoContractTests); the
     owner then RUNS the pass, flips its checkboxes, and closes with a green
     `python tools/scan_logs.py`.
+- **[LW-78] Re-diff the pre-1.5 nxd bakes against 1.5.1 vanilla** (opened 2026-07-13) [BUILDING]
+  - Done means: tools/audit_nxd_bakes.py exists and classifies every cell the loader would
+    apply from the two shipped full-table bakes (every bake cell differing from a fresh
+    vanilla extract out of the installed game's 0004.en.pac) against DESIGN INTENT: the
+    items.json derivation patch_names.py bakes, patch_ability_names.PATCHES, an explicit
+    allow-list of deliberate hand edits (each citing its design reason), and the orphan
+    SortOrder sweep pattern. Verdicts: INTENDED, ALLOWED, DRIFT (bake no longer matches the
+    current items.json derivation), UNINTENDED (stale pre-1.5 vanilla text or pilot residue:
+    the silent-override bug class), plus row-set rules (rows missing vs vanilla apply as
+    RemovedRows; extra rows must be allow-listed). Nonzero exit on any UNINTENDED or DRIFT
+    cell or row-set violation, so the audit reruns after every future game patch. Done is
+    audit green: either zero such cells, or the bakes re-anchored to current vanilla
+    (rebase pilot_item.sqlite and the ability pristine onto the 1.5.1 decode, preserving
+    only the allow-listed cells, then re-run patch_names.py and patch_ability_names.py) and
+    re-audited to zero. Measured 2026-07-14: 111 unintended cells (61 ability, 50 item),
+    among them the game's 1.5.x Mighty Guard to Thunder Breath fix, the Leather Helm
+    hat-to-helmet recategorization, and the shield menu re-sort, all silently reverted by
+    the stale bakes. The one-time working/nxd_th snapshot proved to be an old bake of this
+    mod, not vanilla, which is why intent is derived, never snapshot-compared.
+  - Verify: audit exit 0, suite green, analyze exit 0. The owner live-eyeballs one named
+    affected string BEFORE any rebake ships (stale wording on screen proves the
+    stale-override premise, current-vanilla wording contradicts it; record the verdict
+    either way), and the rebaked text folds into the SMOKE_TEST_2.3.0.md text rows.
 - **[LW-69] Silence the unnecessary log output (census-evict flood + audit findings)** (opened 2026-07-11) [AWAITING-LIVE]
   - Done means: the 2026-07-11 owner-directed log audit (livingweapon.log + the flight tapes) is
     run and its unnecessary-output findings are silenced. Audit verdict: the two attack-card
@@ -304,12 +327,6 @@ is the in-flight subset, not a mirror of that checklist.
   model.X ?? previous.X at OnAllModsLoaded), clobbering other mods' post-snapshot runtime row
   writes; propose dirty-field-only writeback. Draft body in handoff.md (2026-07-13 action
   pack); owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
-- [LW-78] 2026-07-13: Re-diff the pre-1.5 full-table nxd bakes (item.en.nxd and ability.en.nxd)
-  against 1.5 vanilla: the loader diffs each mod's nxd against the CURRENT vanilla table at
-  load, so any text cell the 1.5 game patch changed silently converts our stale bake into an
-  unintended table-wide edit. Verifiable offline (decode 1.5 vanilla, re-diff, count
-  unintended cells); also check row-count parity (rows missing vs vanilla are applied as
-  RemovedRows).
 - [LW-79] 2026-07-13: docs/DESIGN.md line ~107 still claims clean compose with Blue/Red Mages
   ("no interaction", written 2026-05-30, two days before JobData.xml existed); three player
   reports and the pinned loader writeback contradict it. Correct the claim (cite LW-77's
