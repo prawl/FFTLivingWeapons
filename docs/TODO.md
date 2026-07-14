@@ -71,7 +71,9 @@ is the in-flight subset, not a mirror of that checklist.
     updated IN THE SAME COMMIT as the Offsets.cs re-anchor (never flip the constants
     alone: the guard exists to stop old offsets running on a new build). Discovered live
     2026-07-13: the guard fired pe-build-key and stood down cleanly on the owner's first
-    post-patch launch (save untouched, LW-50's first real-world catch).
+    post-patch launch (save untouched, LW-50's first real-world catch). The reusable
+    procedure is banked as docs/PATCH_REANCHOR.md (this arc validates it); per-patch
+    findings land in a dated PORT offsets journal under docs/research/ when Phase B runs.
   - Verify: suite green; owner live pass on the new build: guard arms ("Living Weapons is
     armed"), one battle round-trip credits a kill, scan_logs --require-battle exits 0.
     Every other AWAITING-LIVE item and the whole SMOKE_TEST_2.3.0.md pass are BLOCKED

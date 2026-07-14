@@ -45,8 +45,9 @@ public class DocsContractTests
     private static readonly HashSet<string> AllowedTopLevelDocs = new(StringComparer.OrdinalIgnoreCase)
     {
         "CHANGELOG.md", "DESIGN.md", "DEV_TEST_RECIPES.md", "LIVE_LEDGER.md", "LOGGING.md",
-        "MECHANICS.md", "RELEASE_SCOPE.md", "RELIQUARY_AC.md", "RELIQUARY_DESIGN.md",
-        "SMOKE_TEST_2.3.0.md", "TODO.md", "USER_FEEDBACK.md", "VERIFY_LIVE.md",
+        "MECHANICS.md", "PATCH_REANCHOR.md", "RELEASE_SCOPE.md", "RELIQUARY_AC.md",
+        "RELIQUARY_DESIGN.md", "SMOKE_TEST_2.3.0.md", "TODO.md", "USER_FEEDBACK.md",
+        "VERIFY_LIVE.md",
     };
 
     [Fact]
