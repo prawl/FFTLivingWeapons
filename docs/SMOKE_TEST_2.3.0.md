@@ -371,12 +371,22 @@ Debug/file tier only.
 - [ ] 8.1 **Dominance gate green:** `python tools\analyze.py` exit 0. **[BLOCKER]**
 - [ ] 8.2 **Unit tests: 0 failed** (`dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj`;
   2426 at authoring). **[BLOCKER]**
-- [ ] 8.3 **Publish.ps1 clean:** package verify OK for every required file (meta.json and
+- [ ] 8.3 (dry-run evidence 2026-07-14: exit 0, package verify PASS on every required file, 7
+  tables with JobCommandData.xml correctly absent, no parked artifacts; the dry-run zip was
+  deleted; ticks on the final post-bump run) **Publish.ps1 clean:** package verify OK for every
+  required file (meta.json and
   treasure.json included), exit 0. **[BLOCKER]**
-- [ ] 8.4 **PROD DLL truth:** thresholds {5,25,50}, no LWDEV, no seeding; kills.json not a dev-seed
+- [x] 8.4 (PASSED 2026-07-14: launch header reads production build, the live tally is organic,
+  7 entries with real counts after the legacy merge, and the dev-over-prod refusal held; the
+  packaged DLL re-verifies trivially at the 8.7 ship run) **PROD DLL truth:** thresholds
+  {5,25,50}, no LWDEV, no seeding; kills.json not a dev-seed
   sea of exact-3 entries. **[BLOCKER]**
-- [ ] 8.5 **release.yml + pipeline.ps1 sentinels** still list every shipped file. **[MAJOR]**
-- [ ] 8.6 **Build-flavor guard:** a plain `.\BuildLinked.ps1` over the prod install refuses (exit
+- [x] 8.5 (PASSED 2026-07-14: PipelineManifestContractTests green in the 2531-test suite and
+  the Publish package verify confirmed every shipped file, post-LW-77 file set) **release.yml +
+  pipeline.ps1 sentinels** still list every shipped file. **[MAJOR]**
+- [x] 8.6 (PASSED 2026-07-14: REFUSING TO DEPLOY printed, exit 1, flavor marker still prod, no
+  files touched) **Build-flavor guard:** a plain `.\BuildLinked.ps1` over the prod install
+  refuses (exit
   1, no files touched). **[MAJOR]**
 - [ ] 8.7 **Version + tag:** ModVersion 2.2.2 to 2.3.0 in mod/ModConfig.json; matching v2.3.0 tag
   cut; mod description current; ModDependencies lists BOTH fftivc.utility.modloader and
