@@ -167,7 +167,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
 
 ## 5. Cards, display, and the item pass (data rows take effect on game RESTART)
 
-- [ ] 5.1 **Equip-card Kills meter, fast paint (LW-37).** Open the equip card on a tracked weapon:
+- [x] 5.1 (PASSED 2026-07-14, owner: every card opened across the day's sessions showed the
+  meter instantly with the right count: Yoichi 0/5, Claymore 8/25 with its + suffix, Kiku 5/25
+  after the fresh tier-up; screenshots on file) **Equip-card Kills meter, fast paint (LW-37).**
+  Open the equip card on a tracked weapon:
   the meter ("Kills: N/T to +") is present on first open with no perceptible sweep delay, and
   matches kills.json. **[BLOCKER]**
 - [ ] 5.2 **Suffix truth after reset (LW-59, possibly pre-satisfied 2026-07-11).** After the
@@ -194,7 +197,11 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   budget: Arcanum (exactly at the 205-char DESC_MAX), Zwill Straightblade, Cursed Ring, Staff of
   the Magi, Warlock's Staff: description + Kills line fit on screen (DESC_MAX is a rough guard;
   the true constraint is wrapped lines, eyeball it). **[MINOR]**
-- [ ] 5.6 **Offensive Chemist fully gone, Barrage intact.** Grenade items (ids 246-250) appear
+- [x] 5.6 (PASSED 2026-07-14, owner: no grenades anywhere in shops/inventory/cards; the Barrage
+  text cells (key 358) were byte-verified in the deployed ability.en.nxd by audit_nxd_bakes the
+  same day, and the Yoichi card's Barrage block renders; the +3 command-list eyeball folds into
+  row 7.6's dev-lane check) **Offensive Chemist fully gone, Barrage intact.** Grenade items (ids
+  246-250) appear
   nowhere (shops, inventory, cards); the Barrage COMMAND on a +3 Yoichi wielder still shows its
   correct name and description (Barrage's text key 358 ships via the same cell-merged
   ability.en.nxd re-bake that used to carry the chemist keys 374-378; a bad re-bake corrupts
