@@ -209,11 +209,20 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
 - [ ] 6.3 **Deploy preservation round-trip (LW-28 watch).** Across this pass's deploys: restore
   lines present each time, files intact afterwards, tally count unchanged. Any silent loss:
   capture the deploy transcript + %TEMP% state and stop deploying until understood. **[MAJOR]**
-- [ ] 6.4 **Guard stand-down drill (optional, DEV OK, live-proven 2026-07-10).** Only if guard code
-  was touched since: set `LW_FORCE_FINGERPRINT_MISMATCH=1` on a DEV build: one loud stand-down
-  line naming the landmark, one OS message box, a flight_*_standdown.jsonl archive (LW-53), zero
-  writes for the session, and scan_logs exits 1 on that log. Unset and redeploy prod after.
-  **[MINOR]**
+- [ ] 6.4 **Guard stand-down drill (optional, DEV OK, live-proven 2026-07-10; drill lane updated
+  2026-07-14).** Only if guard code was touched since: on a DEV build, drop a marker FILE named
+  `LW_FORCE_FINGERPRINT_MISMATCH` into the deployed mod dir AFTER the deploy (the env-var lane is
+  dead on this box, LW-83; BuildLinked's clean step wipes the marker each deploy): one loud
+  drill-tagged stand-down line naming the landmark with observed-vs-expected detail, one OS
+  message box, a flight_*_standdown.jsonl archive (LW-53), zero writes for the session, and
+  scan_logs exits 1 on that log. Delete the marker and redeploy prod after. **[MINOR]**
+- [ ] 6.5 **AnchorScan scout drill (LW-82, DEV OK by design).** Same marker-file drill as 6.4, run
+  once the LW-82 build ships: after the drill stand-down at the title screen, the FILE shows the
+  jobcommand anchor found at its pin BEFORE any save loads, the roster anchor not found plus an
+  early summary (pass behavior pre-save, not a failure), and within about 15s of loading a save
+  the roster line upgrades to found-at-pin with the sibling prediction line and one re-emitted
+  summary. Then delete the marker and relaunch: normal arming and ZERO scout lines. This row is
+  the flip evidence for the two 2026-07-14 LIVE_LEDGER AnchorScan premise rows. **[MAJOR]**
 
 ---
 
@@ -400,4 +409,5 @@ Debug/file tier only.
 - Live-claim bookkeeping: docs/LIVE_LEDGER.md rows wanting flips from this pass: Kobu (2.3),
   Gun Slinger roster-write (7.19; correct its stale "Blaster id 76" wording to Outrider Pistol
   id 71 at flip time), the Cavalier's Charge mounted grant (7.26), the Attack-row rename (5.3),
-  Benediction (7.15); docs/VERIFY_LIVE.md row 1 rides 7.17.
+  Benediction (7.15), the two AnchorScan premise rows (6.5); docs/VERIFY_LIVE.md row 1 rides
+  7.17.

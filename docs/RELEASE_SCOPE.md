@@ -3,6 +3,8 @@
 STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release)
 
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
+Re-scoped 2026-07-14 (owner, in-session): the AnchorScan verifier scout (LW-82 v1, section 7) and
+the 1.5.1-aftermath compat batch (section 10) are IN and required.
 
 **Identity: "Finish the Samurai Swords + a focused item-balance tuning pass."** A consolidation
 release -- land the two committed blockers, absorb ONE cheap high-value tuning batch, and DEFER every
@@ -93,6 +95,13 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       per-playthrough, key the save files to a save identity (one-time migration) so a new game is not
       pre-maxed and playthroughs do not cross-contaminate; ensure a Reloaded mod UPDATE does not wipe
       the tally.
+- [ ] **AnchorScan verifier scout (LW-82 v1, owner-scoped in 2026-07-14)**: the dependency-free
+      AnchorScan core plus the AnchorScout adapter. After any LaunchGuard stand-down, re-find the
+      JobCommand table and the roster base by pin-neighborhood scan and log the re-find inventory
+      (found at pin / elsewhere with delta / ambiguous / not found): the starting map for
+      docs/PATCH_REANCHOR.md Phase B. Verifier scout only: no writes, no arming, no self-heal;
+      consumers keep the Offsets pins. The live drill (marker-file stand-down on a dev build,
+      smoke row 6.5) doubles as the eyewitness for the two 2026-07-14 LIVE_LEDGER premise rows.
 
 ### 8. Equip-card fast paint (SHOULD, pulled in by the owner 2026-07-07)
 - [ ] **Fast Kills meter (LW-37)**: retire the slow whole-heap Display sweep for the equip-card
@@ -109,6 +118,23 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       DevSeedKills, and VerboseLog from the Reloaded config surface so players cannot toggle away
       designed behavior (the LW-50 force-mismatch knob removal set the precedent; dev levers move
       to environment variables). Owner may spare individual options during the build.
+
+### 10. Game-1.5.1 aftermath + ecosystem compat (owner-scoped in 2026-07-14)
+- [ ] **Job-mod collision prune (LW-77)**: run the row-57 differential validation first (the
+      handoff ladder; read the guard verdict in livingweapon.log before any manual diffing, the
+      LW-83 methodology), then prune JobData.xml's unknown-id rows and audit JobCommandData.xml's
+      record list so a single-field XML row stops erasing other mods' runtime job edits. Riders:
+      the Nexus known-issues pin and marking the Old Files 1.x zips superseded.
+- [ ] **Full-table nxd re-diff vs 1.5 vanilla (LW-78)**: re-diff the pre-1.5 item.en.nxd bake
+      (and the parked ability bakes) against current vanilla; count unintended cell edits and
+      check row-count parity (rows missing vs vanilla apply as RemovedRows). Offline work, no
+      game session needed.
+- [ ] **DESIGN.md compose-claim correction (LW-79)**: replace the stale "no interaction with
+      Blue/Red Mages" claim (written before JobData.xml existed) with the pinned whole-row
+      writeback mechanism; lands with LW-77's resolution.
+- [ ] **File the upstream modloader issue (LW-80)**: the whole-row-writeback report with the
+      dirty-field-writeback proposal (draft banked in the 2026-07-13 handoff action pack); the
+      owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
 
 ---
 
