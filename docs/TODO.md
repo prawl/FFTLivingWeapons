@@ -334,6 +334,19 @@ is the in-flight subset, not a mirror of that checklist.
   ("no interaction", written 2026-05-30, two days before JobData.xml existed); three player
   reports and the pinned loader writeback contradict it. Correct the claim (cite LW-77's
   mechanism) when LW-77 resolves.
+- [LW-84] 2026-07-14: Release-scope contract enforcement: a ReleaseScopeContractTests gate so no
+  release task is left behind or inaccurate. Rules: an IN-list box naming an LW-id that already
+  exited to CHANGELOG.md must be ticked (the Offensive Chemist drift class); a ticked box whose
+  id is still open in TODO.md goes red; ticks must cite a commit hash or date (provenance, not
+  vibes); every LW-id cited in RELEASE_SCOPE.md or SMOKE_TEST_2.3.0.md must exist in TODO.md or
+  CHANGELOG.md (no phantom or retired ids). Rider: the one-time annotation pass ticking the
+  already-shipped 2.3.0 boxes with their hashes (Samurai trio, Galewind, tuning batch dd45229,
+  chemist removal a5ea61e, LW-50/51/37/52), so the gate starts green on a truthful file. Process
+  rule it enforces: the commit that ships a scope item ticks its box in that same commit; smoke
+  row 8.8 becomes re-verification. Build route: /build-lite (one more instance of the proven
+  TodoContractTests enforcer pattern); the test and the annotation pass land in the same commit
+  so the gate is born green. Owner-designated NEXT UP (2026-07-14): takes the first Now slot
+  that frees (expected: LW-82's, after its live drill), ahead of everything else queued.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
