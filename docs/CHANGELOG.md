@@ -8,6 +8,22 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-83] SHIPPED 656a832 2026-07-14: guard stand-down artifacts self-diagnose. Landmark probes
+  return a LandmarkReading (verdict plus mismatch detail), so the flight "guard" record and the
+  startup Error line carry observed-vs-expected values for every landmark mismatching on the
+  deciding tick (PE build key: both u32 fields in hex; byte signatures: both hex windows;
+  roster row: the observed nameId/sprite/brave/faith; JobCommand: only the mismatching recs).
+  A drill-forced stand-down self-identifies by naming LW_FORCE_FINGERPRINT_MISMATCH in both
+  artifacts; production compiles the trigger to const false. The drill gained a marker-file
+  lane (DrillTrigger.cs, always compiled): env variables set at launch never reach
+  fft_enhanced through this box's launch chain, so a file named after the flag in the mod dir
+  also triggers, and BuildLinked's clean step wipes it on every deploy. The stand-down notice
+  carries owner-authored copy. FingerprintGuard.cs stays a one-file zero-dependency portable
+  core; LaunchGuard split into lifecycle plus Landmarks partials. Owner live pass 2026-07-14:
+  drill A stood down with the drill tag and both value pairs in the log line and the standdown
+  flight archive (parse_flight verified, message box clean); drill B happy path armed with
+  zero drill traces and scan_logs CLEAN exit 0. Build-lite pipeline, independent verifier SHIP
+  9/10 with a sabotage non-vacuity proof; suite 2469 green.
 - [LW-81] SHIPPED 1289fa1 2026-07-14: the mod is re-anchored for game 1.5.1 (with 0cd2f11, the
   companion data-layer commit; Steam
   buildid 23901820, exe 2026-07-13; the fingerprint guard's first real-world catch fired

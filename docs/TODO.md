@@ -47,25 +47,6 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green (DocsContractTests allow-list + link scan, TodoContractTests); the
     owner then RUNS the pass, flips its checkboxes, and closes with a green
     `python tools/scan_logs.py`.
-- **[LW-83] Guard observability: observed-vs-expected in the stand-down record, self-identifying drill** (opened 2026-07-14) [AWAITING-LIVE]
-  - Done means: a guard stand-down self-diagnoses from its own artifacts: the flight "guard"
-    record and the startup Error line carry each mismatching landmark's observed and expected
-    values (PE build key: both u32 fields in hex; byte-signature landmarks: the observed vs
-    expected byte windows; the roster-row probe: the observed field values), and a stand-down
-    forced by the dev drill (forceMismatch, wired from LW_FORCE_FINGERPRINT_MISMATCH in
-    Mod.StartEngine) self-identifies by printing the flag's name in both artifacts. Production
-    passes forceMismatch=false, so the drill marker is unreachable for players.
-    FingerprintGuard.cs keeps its zero-dependency copy-file portability contract.
-  - Verify: failing-first tests (core mismatch detail surfaces in the stand-down diag; the
-    LaunchGuard recorder record carries observed plus expected PE key values; a drill stand-down
-    names the flag while a real mismatch does not); suite green; owner drill run on a dev build
-    (trigger via the LW_FORCE_FINGERPRINT_MISMATCH marker file in the mod dir; the env-var lane
-    does not reach fft_enhanced on this box) reads the self-identified line and the value pairs
-    in livingweapon.log and the standdown flight archive.
-  - Fix SHIPPED 2026-07-14 (LandmarkReading detail plumbing in the portable core, drill
-    self-identify in the adapter, LaunchGuard split into lifecycle + Landmarks partials;
-    build-lite pipeline, verifier SHIP 9/10 with a sabotage non-vacuity proof, suite 2463
-    green); the owner drill run above is what remains, scripted in the session handoff.
 - **[LW-69] Silence the unnecessary log output (census-evict flood + audit findings)** (opened 2026-07-11) [AWAITING-LIVE]
   - Done means: the 2026-07-11 owner-directed log audit (livingweapon.log + the flight tapes) is
     run and its unnecessary-output findings are silenced. Audit verdict: the two attack-card
