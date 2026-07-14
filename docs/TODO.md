@@ -21,7 +21,12 @@ is the in-flight subset, not a mirror of that checklist.
     prompt-head sampler (first N unique decodable heads per session, file-only DBG, permanent
     observability) so one manual turn end on prod reveals the live 1.5.1 facing text and whether
     it still routes through the hooked SetTextString entry; step 2 fixes the prefix (or
-    re-anchors the route) from that capture.
+    re-anchors the route) from that capture. First capture 2026-07-14 (owner): the on-screen
+    prompt now reads "Select a direction" (1.5.x reworded it, kill switch one), and the sampled
+    heads prove rdx at the true 1.5.1 entry is a string OBJECT, not a char* (readable heads
+    missing their first character, pointer-like garbage, the facing prompt never sampling: kill
+    switch two, which also means the delivery swap must hand back an object-shaped payload).
+    Step 1b (the struct sampler) dumps the object layout from one fresh-session capture.
   - Verify: sampler TDD-tested (bounded, deduped, the toast queue untouched on every sampled
     path); owner live: one manual turn end, read the sampled heads in the file; after the fix,
     the manual Kiku 4-to-5 kill delivers the +1 banner (smoke row 7.25's deliver half, which

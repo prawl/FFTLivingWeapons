@@ -180,4 +180,215 @@ public class PromptSwapSamplerTests
         }
         finally { ModLogger.UseNullLogger(); }
     }
+
+    // LW-89 step 1b: bounded STRUCT sampler (the rdx-is-an-object hypothesis).
+    //
+    // Builds a 32-byte raw block with u64s planted at offsets 0x00 (q0), 0x10 (q10) and 0x18
+    // (q18), mirroring the layout SampleStruct reads back out of textPtr.
+
+    private const int StructSampleCap = 6;
+
+    private static byte[] BuildRaw(int len, long q0 = 0, long q10 = 0, long q18 = 0)
+    {
+        var raw = new byte[len];
+        Array.Copy(BitConverter.GetBytes(q0), 0, raw, 0x00, 8);
+        Array.Copy(BitConverter.GetBytes(q10), 0, raw, 0x10, 8);
+        Array.Copy(BitConverter.GetBytes(q18), 0, raw, 0x18, 8);
+        return raw;
+    }
+
+    // (7) LOAD-BEARING / RED-FIRST: one commit through TryPrepareSwap logs exactly one struct
+    // sample line carrying both the pointer and the q18 field the capacity-check hypothesis cares
+    // about.
+
+    [Fact]
+    public void Struct_sample_logs_one_line_with_rdx_and_q18()
+    {
+        var file = InstallFileCapture();
+        try
+        {
+            var mem = new FakeSparseMemory();
+            mem.TerrainBlocks[TextPtr] = BuildRaw(32);
+            var swap = new PromptSwap(NewToast(), mem);
+
+            swap.TryPrepareSwap(TextPtr, out _);
+
+            var lines = file.Where(l => l.Contains("prompt struct sample")).ToList();
+            Assert.Single(lines);
+            Assert.Contains("rdx=0x", lines[0]);
+            Assert.Contains("q18=", lines[0]);
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    // (8) Dedupe: the same 16 bytes at textPtr sampled twice logs once.
+
+    [Fact]
+    public void Same_struct_bytes_sampled_twice_logs_once()
+    {
+        var file = InstallFileCapture();
+        try
+        {
+            var mem = new FakeSparseMemory();
+            mem.TerrainBlocks[TextPtr] = BuildRaw(32);
+            var swap = new PromptSwap(NewToast(), mem);
+
+            swap.TryPrepareSwap(TextPtr, out _);
+            swap.TryPrepareSwap(TextPtr, out _);
+
+            Assert.Single(file, l => l.Contains("prompt struct sample"));
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    // (9) Bound: StructSampleCap+2 distinct byte patterns log exactly StructSampleCap lines.
+
+    [Fact]
+    public void Struct_bound_caps_at_StructSampleCap_lines_for_more_distinct_samples()
+    {
+        var file = InstallFileCapture();
+        try
+        {
+            var mem = new FakeSparseMemory();
+            var swap = new PromptSwap(NewToast(), mem);
+
+            for (int i = 0; i < StructSampleCap + 2; i++)
+            {
+                mem.TerrainBlocks[TextPtr] = BuildRaw(32, q0: i + 1);
+                swap.TryPrepareSwap(TextPtr, out _);
+            }
+
+            Assert.Equal(StructSampleCap, file.Count(l => l.Contains("prompt struct sample")));
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    // (10) An unreadable textPtr still logs an unreadable-form line (with the pointer value) and
+    // counts toward the bound, so a session that never gets a readable rdx cannot starve the cap
+    // AND cannot burn it forever with a single repeated failure either.
+
+    [Fact]
+    public void Unreadable_struct_ptr_logs_unreadable_form_and_consumes_a_slot()
+    {
+        var file = InstallFileCapture();
+        try
+        {
+            var mem = new FakeSparseMemory(); // TextPtr never registered: a genuinely unreadable rdx.
+            var swap = new PromptSwap(NewToast(), mem);
+
+            swap.TryPrepareSwap(TextPtr, out _);
+
+            var lines = file.Where(l => l.Contains("prompt struct sample")).ToList();
+            Assert.Single(lines);
+            Assert.Contains("unreadable", lines[0]);
+            Assert.Contains($"rdx=0x{TextPtr:X}", lines[0]);
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    [Fact]
+    public void Unreadable_sample_counts_toward_the_bound()
+    {
+        var file = InstallFileCapture();
+        try
+        {
+            var mem = new FakeSparseMemory();
+            var swap = new PromptSwap(NewToast(), mem);
+
+            // Slot 1: genuinely unreadable (nothing registered yet).
+            swap.TryPrepareSwap(TextPtr, out _);
+
+            // Slots 2..StructSampleCap: distinct readable samples.
+            for (int i = 0; i < StructSampleCap - 1; i++)
+            {
+                mem.TerrainBlocks[TextPtr] = BuildRaw(32, q0: i + 1);
+                swap.TryPrepareSwap(TextPtr, out _);
+            }
+
+            Assert.Equal(StructSampleCap, file.Count(l => l.Contains("prompt struct sample")));
+
+            // A further distinct sample must NOT log: the cap (unreadable slot included) is spent.
+            mem.TerrainBlocks[TextPtr] = BuildRaw(32, q0: 999);
+            swap.TryPrepareSwap(TextPtr, out _);
+
+            Assert.Equal(StructSampleCap, file.Count(l => l.Contains("prompt struct sample")));
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    // (11) The deref path renders both hex and a printable-ASCII view (dots for non-printables)
+    // for a seeded pointer chain: q0 points at another registered block holding known text.
+
+    [Fact]
+    public void Deref_renders_hex_and_printable_ascii_for_a_seeded_pointer_chain()
+    {
+        var file = InstallFileCapture();
+        try
+        {
+            var mem = new FakeSparseMemory();
+            const long Q0 = 0xA000;
+            mem.TerrainBlocks[TextPtr] = BuildRaw(32, q0: Q0);
+
+            var derefBytes = new byte[16];
+            var known = System.Text.Encoding.ASCII.GetBytes("Facing prompt!");
+            Array.Copy(known, derefBytes, known.Length);
+            derefBytes[14] = 0x01; // non-printable: must render as a dot
+            derefBytes[15] = (byte)'X';
+            mem.TerrainBlocks[Q0] = derefBytes;
+
+            var swap = new PromptSwap(NewToast(), mem);
+            swap.TryPrepareSwap(TextPtr, out _);
+
+            var line = Assert.Single(file, l => l.Contains("prompt struct sample"));
+            Assert.Contains("deref=", line);
+            Assert.Contains(Convert.ToHexString(derefBytes), line);
+            Assert.Contains("Facing prompt!.X", line);
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    // (12) Pure observer: struct sampling never changes TryPrepareSwap's return value or the
+    // toast queue, even on the matched delivery path.
+
+    [Fact]
+    public void Struct_sampling_is_a_pure_observer_and_does_not_affect_delivery()
+    {
+        var file = InstallFileCapture();
+        try
+        {
+            var mem = new FakeSparseMemory();
+            var toast = NewToast();
+            toast.Enqueue(1, 1, "Zwill Straightblade has grown to +!");
+            var swap = new PromptSwap(toast, mem);
+
+            SeedText(mem, TextPtr, RealPrompt);
+            bool ok = swap.TryPrepareSwap(TextPtr, out var payload);
+
+            Assert.True(ok);
+            Assert.Equal("Zwill Straightblade has grown to +!", payload);
+            Assert.False(toast.HasPending);
+            Assert.Single(file, l => l.Contains("prompt struct sample"));
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    // (13) Both samplers fire independently on the same commit.
+
+    [Fact]
+    public void Head_sampler_and_struct_sampler_both_fire_on_the_same_commit()
+    {
+        var file = InstallFileCapture();
+        try
+        {
+            var mem = new FakeSparseMemory();
+            var swap = new PromptSwap(NewToast(), mem);
+
+            SeedText(mem, TextPtr, "Ramza");
+            swap.TryPrepareSwap(TextPtr, out _);
+
+            Assert.Single(file, l => l.Contains("prompt head sample"));
+            Assert.Single(file, l => l.Contains("prompt struct sample"));
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
 }

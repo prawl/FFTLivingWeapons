@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -36,8 +35,18 @@ namespace LivingWeapon;
 /// first dozen unique decodable prompt heads a session ever sees to the log at Debug tier
 /// (file-only in production), so one manual turn end in-game is enough to read the live text
 /// back out of livingweapon.log.
+///
+/// LW-89 STEP 1b (2026-07-14): the head sampler's own live capture pointed past a plain char*:
+/// readable heads arrived missing their first character, others decoded as pointer-like garbage,
+/// and the facing prompt never sampled at all, consistent with rdx addressing a string OBJECT
+/// (the function's own first check, cmp qword ptr [rdx+18h],10h, is a small-buffer capacity
+/// test) rather than the raw text. PromptSwap.Sampler.cs (the same class, split out as a real
+/// seam once the sampling logic pushed this file past the 200-line trigger) adds a second,
+/// independent bounded sampler that dumps a small window around textPtr (a look-behind, the raw
+/// bytes, and a one-level pointer-chase) on every commit, decodable or not, so the object's real
+/// layout can be read back out of one capture instead of guessed at.
 /// </summary>
-internal sealed class PromptSwap
+internal sealed partial class PromptSwap
 {
     // EN-only by design: the mod's text layer is EN (french-nxd override is walled, see
     // docs/LIVE_LEDGER.md) -- a non-EN game simply never matches this prefix, so every prompt
@@ -52,17 +61,8 @@ internal sealed class PromptSwap
     // bubble/prompt widgets are both nine-grids with the same practical text budget.
     private const int MaxPayloadLen = 96;
 
-    // Sampler bound: at most this many sample lines can ever reach the log in one session, so a
-    // text-heavy session cannot flood the file (the LW-69 lesson). A dozen is plenty: the facing
-    // prompt lands within the first few prompt commits of any battle turn.
-    private const int SampleCap = 12;
-
     private readonly BannerToast _toast;
     private readonly IGameMemory _mem;
-
-    // Sampler state: only ever touched from TryPrepareSwap, which itself only ever runs on the
-    // game's own SetTextString thread (see the class doc), so no lock is needed here either.
-    private readonly HashSet<string> _sampledHeads = new();
 
     public PromptSwap(BannerToast toast, IGameMemory mem)
     {
@@ -78,13 +78,18 @@ internal sealed class PromptSwap
     {
         payload = "";
         if (textPtr == 0) return false;
+
+        // LW-89 step 1b: runs before the head read/decode below, independent of both, so an
+        // unreadable or undecodable commit is dumped too (see SampleStruct's doc, in
+        // PromptSwap.Sampler.cs: those are exactly the ones the head sampler can never see).
+        SampleStruct(textPtr);
+
         if (!_mem.TryReadBytes(textPtr, HeadReadLen, out var head)) return false;
         if (!TryDecodeAscii(head, out var text)) return false;
 
         // Pure observer: sample BEFORE the prefix/queue checks so it sees every decodable head,
         // matched or not, and never changes any return-path behavior below.
-        if (_sampledHeads.Count < SampleCap && text.Length > 0 && _sampledHeads.Add(text))
-            ModLogger.Debug(LogVerb.Toast, $"prompt head sample {_sampledHeads.Count} of {SampleCap}: \"{text}\"");
+        SampleHead(text);
 
         if (!text.StartsWith(FacingPromptPrefix, StringComparison.Ordinal)) return false;
         if (!_toast.TryTake(out var toast)) return false;
