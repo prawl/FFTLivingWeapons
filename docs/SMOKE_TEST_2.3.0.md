@@ -197,7 +197,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   stacks early with the unchanged T1 Wayfarer Boots), Sanctguard id 133 (rider retune), Claymore
   (CARD REWORD only, ForcedTwoHands wording; stats unchanged by design), and Kiku-ichimonji
   (the rebaked Mushin +3 block reads and fits; its card eyeball was never recorded). **[MAJOR]**
-- [ ] 5.5 **Longest cards still fit the box.** Open the cards at the top of the description
+- [x] 5.5 (PASSED 2026-07-14, owner, five screenshots on file: Arcanum, Zwill, Cursed Ring,
+  Staff of the Magi, and Warlock's Staff all render their full description plus the Kills line
+  inside the card frame, capstone blocks included, no clipping) **Longest cards still fit the
+  box.** Open the cards at the top of the description
   budget: Arcanum (exactly at the 205-char DESC_MAX), Zwill Straightblade, Cursed Ring, Staff of
   the Magi, Warlock's Staff: description + Kills line fit on screen (DESC_MAX is a rough guard;
   the true constraint is wrapped lines, eyeball it). **[MINOR]**
