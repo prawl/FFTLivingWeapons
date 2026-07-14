@@ -32,13 +32,15 @@ Tuning is DONE and analyze.py-green; the work is the one open signature slot (Ki
       per-unit turn-open flag (band +0x19C) and its moved/acted latches (band +0x19D/+0x19E, both
       PSX-struct-derived) give a direct read of the wait, no aggregation over other units needed.
       Earlier same-day designs built on other units' CT cycling and KillTracker's action-latch
-      machinery are retired in favor of this literal read.
+      machinery are retired in favor of this literal read. Ships as LW-4 (b8f6741, 2026-07-09).
 - [x] **Murasame id41** signature is DEFERRED out of 2.3.0 (backlog LW-47); its capstone stays
-      pure-growth for now.
+      pure-growth for now. Owner scope call at lock, 2026-07-04.
 - [x] The signature: items.json block -> gen_living_weapon_meta.py -> xUnit tests -> deploy ->
       **VERIFY LIVE** -> commit -> LIVE_LEDGER flip. Live-verify is non-negotiable (Zanshin
-      graveyard: built green, LIVE-FAILED on the damage-intercept wall, reverted).
-- [x] Clean DEV redeploy before ANY katana live test (orphaned Zanshin DLL may still be deployed).
+      graveyard: built green, LIVE-FAILED on the damage-intercept wall, reverted). Followed for
+      Mushin, closed 2026-07-09.
+- [x] Clean DEV redeploy before ANY katana live test (orphaned Zanshin DLL may still be deployed);
+      done ahead of the Mushin live pass, 2026-07-09.
 
 ### 2. Galewind / Puppeteer expiry (BLOCKER) -- ship with fallback
 Shipped behavior (LW-5, e882799, owner live-verified 2026-07-07; supersedes the wielder-clock
@@ -59,29 +61,37 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       fix the bare-arrival false-release ONCE, alongside this turn-credit work.
 
 ### 3. Item-balance tuning pass (SHOULD) -- ONE analyze.py / patch_names.py batch, restart-only
-- [ ] **Rod nerf** (rods are over-tuned).
-- [ ] **Added-Move nerf** (Trailwarden Jerkin + Wayfarer Boots -- too mobile too early). Give every
-      de-Moved item a replacement dimension or analyze.py flags a dominated husk.
-- [ ] **Early-armor rider smell** -- retune riders that are dead weight at their tier (incl.
-      Sanctguard id133 StrongElements=Holy, dead until T5-T6 Holy weapons).
-- [ ] **Claymore = CARD REWORD only** (working-as-designed per the ForcedTwoHands commit; a buff
-      would WORSEN the off-class two-hander over-tuning feedback).
-- [ ] Any name/desc change -> patch_names.py item.en.nxd re-bake (full-table replace, restart-only).
+- [x] **Rod nerf** (rods are over-tuned). Shipped dd45229, 2026-07-05.
+- [x] **Added-Move nerf** (Trailwarden Jerkin + Wayfarer Boots -- too mobile too early). Give every
+      de-Moved item a replacement dimension or analyze.py flags a dominated husk. Shipped dd45229,
+      2026-07-05.
+- [x] **Early-armor rider smell** -- retune riders that are dead weight at their tier (incl.
+      Sanctguard id133 StrongElements=Holy, dead until T5-T6 Holy weapons). Shipped dd45229,
+      2026-07-05.
+- [x] **Claymore = CARD REWORD only** (working-as-designed per the ForcedTwoHands commit; a buff
+      would WORSEN the off-class two-hander over-tuning feedback). Shipped dd45229, 2026-07-05.
+- [x] Any name/desc change -> patch_names.py item.en.nxd re-bake (full-table replace, restart-only);
+      this batch's own re-bake shipped dd45229, 2026-07-05.
 
 ### 4. Remove Offensive Chemist (NICE) -- S, INDEPENDENT of Treasure Master
-- [ ] Grenades (246-250) already out of items.json; scrub any residual refs; two nxd re-bakes via
+- [x] Grenades (246-250) already out of items.json; scrub any residual refs; two nxd re-bakes via
       patch_names.py + patch_ability_names.py (never hand-edit cells -- Barrage shares ability key 358).
+      Shipped a5ea61e, 2026-07-05.
 
 ### 5. Doc + hygiene (free)
-- [ ] Release note: non-English players get FULL gameplay (rebalance + growth + signatures); item
-      TEXT stays vanilla-language and the Kills/+3 card counter is English-only.
-- [ ] Correct docs/USER_FEEDBACK.md: enemies inherit only the STATIC global rebalance, NOT the
-      living-weapon runtime (growth/signatures/tally).
-- [ ] Delete the falsified pointer-presence turn-detection code (rides the Galewind rework).
-- [ ] Drop the dead `spriteIdOverride:1` on id67 Warbrand (items.json:2163).
+- [x] Release note: non-English players get FULL gameplay (rebalance + growth + signatures); item
+      TEXT stays vanilla-language and the Kills/+3 card counter is English-only. Shipped as LW-72
+      (ba5e0fc, 2026-07-11).
+- [x] Correct docs/USER_FEEDBACK.md: enemies inherit only the STATIC global rebalance, NOT the
+      living-weapon runtime (growth/signatures/tally). Shipped c83700c, 2026-07-04.
+- [x] Delete the falsified pointer-presence turn-detection code (rides the Galewind rework);
+      closed by LW-71 (c2965ce, 2026-07-11).
+- [x] Drop the dead `spriteIdOverride:1` on id67 Warbrand (items.json:2163). Shipped as LW-72
+      (ba5e0fc, 2026-07-11).
 
 ### 6. Release gates (existing GO/NO-GO)
-- [ ] analyze.py exit 0 (no dominated item).  - [ ] dotnet test green.
+- [ ] analyze.py exit 0 (no dominated item).
+- [ ] dotnet test green.
 - [ ] Publish.ps1 clean, PROD thresholds {5,25,50}, no LWDEV / no seeding.
 - [ ] Bump ModVersion (-> 2.3.0) + cut the matching tag.
 - [ ] **ReleaseScopeContractTests gate (LW-84, owner-added 2026-07-14, next up in the queue)**:
@@ -94,15 +104,15 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       re-verification. Land before the 8.8 sweep.
 
 ### 7. Save-integrity + patch-safety hardening (BLOCKER)
-- [ ] **Startup fingerprint guard (LW-50)**: verify three DATA-ONLY landmarks at launch (the PE build
+- [x] **Startup fingerprint guard (LW-50)**: verify three DATA-ONLY landmarks at launch (the PE build
       key, the JobCommand table's rec 8/rec 9 ability-byte signature, and Ramza's roster row shape);
       on a debounced mismatch disarm every write and log loudly. Turns a future game patch from
       silent save corruption into a clean "needs updating." RPM/WPM guard crashes, not semantic
-      corruption at a valid-but-wrong address.
-- [ ] **Kill-tally scoping (LW-51, covers LW-29)**: decide global-forever vs per-playthrough; if
+      corruption at a valid-but-wrong address. Shipped 0152cf9, 2026-07-07.
+- [x] **Kill-tally scoping (LW-51, covers LW-29)**: decide global-forever vs per-playthrough; if
       per-playthrough, key the save files to a save identity (one-time migration) so a new game is not
       pre-maxed and playthroughs do not cross-contaminate; ensure a Reloaded mod UPDATE does not wipe
-      the tally.
+      the tally. Shipped bf351db, 2026-07-09.
 - [x] **AnchorScan verifier scout (LW-82 v1, owner-scoped in 2026-07-14; SHIPPED e77b9d7, merge
       f701795, owner live drill passed 2026-07-14)**: the dependency-free
       AnchorScan core plus the AnchorScout adapter. After any LaunchGuard stand-down, re-find the
@@ -113,7 +123,7 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       smoke row 6.5) doubles as the eyewitness for the two 2026-07-14 LIVE_LEDGER premise rows.
 
 ### 8. Equip-card fast paint (SHOULD, pulled in by the owner 2026-07-07)
-- [ ] **Fast Kills meter (LW-37)**: retire the slow whole-heap Display sweep for the equip-card
+- [x] **Fast Kills meter (LW-37)**: retire the slow whole-heap Display sweep for the equip-card
       Kills meter. The LW-31 catalog-record REDIRECT is walled here (live recon 2026-07-07,
       tools/probes/item_text_census.py: the card re-materializes its description from a stable string
       pool each open; the FString descriptors are transient). PROVEN alternative (owner-verified
@@ -121,12 +131,14 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       width) and the card re-materializes our bytes on open. Build the pool-anchored write: a cheap
       stable-substring anchor to the viewed weapon's pool entry, locate the Kills field, compose
       "Kills: N/T to +", overwrite. Unit tests for the pure halves plus a live first-open latency check.
+      Shipped 7830def, 2026-07-08.
 
 ### 9. Configuration surface removal (SHOULD, pulled in by the owner 2026-07-07)
-- [ ] **Remove the remaining config options (LW-52)**: strip TreasureAlwaysOn, BannerToasts,
+- [x] **Remove the remaining config options (LW-52)**: strip TreasureAlwaysOn, BannerToasts,
       DevSeedKills, and VerboseLog from the Reloaded config surface so players cannot toggle away
       designed behavior (the LW-50 force-mismatch knob removal set the precedent; dev levers move
-      to environment variables). Owner may spare individual options during the build.
+      to environment variables). Owner may spare individual options during the build. Shipped
+      50ae6b3, 2026-07-07.
 
 ### 10. Game-1.5.1 aftermath + ecosystem compat (owner-scoped in 2026-07-14)
 - [ ] **Job-mod collision prune (LW-77)**: run the row-57 differential validation first (the
