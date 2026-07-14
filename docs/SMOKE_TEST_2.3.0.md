@@ -256,7 +256,10 @@ Debug/file tier only.
 
 - [ ] 7.1 **Kill tally increments + persists** across battles and a session restart (credit lines
   in-battle, battle-end save, launch header count carries over). **[BLOCKER]**
-- [ ] 7.2 **Stat growth holds.** A tiered weapon's wielder shows PA/MA/Speed at
+- [x] 7.2 (PASSED 2026-07-14, owner live: Ramza with the +2 Outrider Pistol read PA 17 in
+  battle vs natural 14, exactly round(14 x 1.20); Speed correctly unchanged, since Route grants
+  ONE stat per weapon and a physical gun routes PA, with Speed reserved for the speed-formula
+  blades) **Stat growth holds.** A tiered weapon's wielder shows PA/MA/Speed at
   round(natural x (1+factor)) in battle; growth lines in the file. **[MAJOR]**
 - [ ] 7.3 **Battle enter/exit cycle clean:** started, ended, fresh started across two consecutive
   battles; no double-exit, no mid-battle exit. **[BLOCKER]**
