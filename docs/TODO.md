@@ -60,19 +60,16 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green; a fresh live session log shows zero per-candidate evicting lines, a
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
-- **[LW-10] Remove Treasure Master** (opened 2026-07-04) [BLOCKED(owner-paused 2026-07-14 until post-2.3.0)]
-  - Done means: the Treasure Master module and its data leave the repo on branch
-    feature/lw10-remove-treasure-master (branch-held; merges to main only after the 2.3.0 tag,
-    since 2.3.0 ships the module DISARMED on 1.5.1, decision 2026-07-14): treasure.json
-    de-listed from tools/pipeline.ps1, release.yml, and LivingWeapon.csproj in the same commit;
-    BattleState.BattleDisplayed survives the cut (CharmLock consumer); Treasure Master and its
-    options leave the ModConfig description; a static reachability audit confirms no Scholar's
-    Ring inventory write remains in any build flavor (it granted a ring into a fresh save
-    2026-07-11 with TreasureAlwaysOn=False). Obviates the Scholar's Ring idle-nag bug.
-  - Verify: suite green + analyze exit 0 on the branch; grep gate: zero treasure-module
-    references left outside docs history and the ledger; NO live pass needed (the module is
-    already disarmed on 1.5.1, log-proven 2026-07-14 08:30:58, so post-removal live behavior
-    is byte-identical; the disarmed state itself is smoke row 7.22's owner check).
+- **[LW-86] Kill the Scholar's Ring auto-grant in production (finding F5)** (opened 2026-07-14) [AWAITING-LIVE]
+  - Done means: ScholarRing.Grant compiles to a no-op outside LWDEV (the Tuning dev-seed
+    compile-out pattern), so a production build never writes a free Scholar's Ring (item 260,
+    inventory count 0 to 1) into a save that has none; dev builds keep the convenience grant for
+    disarm-oracle testing; found by the LW-10 recon (the 2026-07-11 fresh-save grant was this
+    running as designed); owner decided 2026-07-14 to kill it in 2.3.0 rather than wait for the
+    post-release removal branch.
+  - Verify: failing-first ScholarRingTests prod no-op test; suite green; owner live pass folds
+    into SMOKE_TEST_2.3.0.md row 7.22 (no "Granted a Scholar's Ring" line in the file, id 260
+    inventory count unchanged all session).
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
@@ -95,6 +92,13 @@ is the in-flight subset, not a mirror of that checklist.
   from early on, overtuned for that acquisition point. Candidates when picked up: later
   availability tier, price bump, or stat trim (re-run the analyze.py dominance gate after any
   change). Independent of the release-scope spriteIdOverride cleanup.
+- [LW-10] 2026-07-04: Remove Treasure Master (owner-paused 2026-07-14 until after the 2.3.0 tag;
+  2.3.0 ships the module disarmed on 1.5.1, smoke row 7.22).
+  Stage 1 committed 0f842f5 on branch feature/lw10-remove-treasure-master (worktree
+  C:\Users\ptyRa\Dev\FFTLivingWeapons-lw10, plan at the worktree root lw10_plan.md, Stage 2
+  first half uncommitted there); merges to main only after the 2.3.0 tag; the production
+  Scholar's Ring grant was killed separately in 2.3.0 (LW-86); demoted from Now 2026-07-14 to
+  make room for LW-86.
 - [LW-11] 2026-07-04: Alter Axes and Flails, cheap slice only (Squire/Geomancer equip access on
   existing sword-typed items). The rest is walled research (type-welded formula, id-welded art,
   no known flail formula id).

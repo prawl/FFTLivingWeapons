@@ -292,7 +292,10 @@ Debug/file tier only.
   vs live 0x6A3C5497), so the L0 gate stands the module down at startup, by design. Oracle:
   Scholar's Ring equipped on a DEPLOYED unit = NO marks, and the file shows the one-time WARN
   "Treasure marks are disarmed: the dataset was built for a different game build"; zero
-  treasure writes all session. TreasureAlwaysOn stays default False. **[MINOR]**
+  treasure writes all session. TreasureAlwaysOn stays default False. The file must also show NO
+  "Granted a Scholar's Ring" line and the id 260 inventory count must not change all session
+  (LW-86: the production grant is compiled out); flipping this box is LW-86's live evidence.
+  **[MINOR]**
 - [ ] 7.23 **Dormant modules stay dormant (expected, not bugs):** CharmLock (superseded by
   Puppeteer), LifeSap, and Wyrmblood have no live data wiring and must produce no behavior and no
   narration. Nothing to see is the pass condition. **[MINOR]**

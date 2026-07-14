@@ -4,16 +4,20 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// ScholarRing.Grant() behaviour via FakeSparseMemory.
+/// ScholarRing.Grant() behaviour via FakeSparseMemory, under the PROD test-build compile (LWDEV is
+/// not defined for dotnet test, matching Publish/CI's flavor).
 ///
-/// Invariants:
-///   (1) count[260]==0 and address is Readable+Writable  -> writes 1 to 0x1411A7C00+260.
-///   (2) count[260]==1 (already owned)                  -> no write (idempotent).
-///   (3) count[260]==5 (many)                           -> no write (idempotent).
-///   (4) address not Readable                           -> no crash, no write.
-///   (5) address Readable but not Writable              -> no crash, no write.
-///   (6) address is Readable+Writable+count==0          -> written value is exactly 1.
-///   (7) written address is exactly 0x1411A7C00+260.
+/// LW-86 (owner decision 2026-07-14, after the 2026-07-11 fresh-save grant incident): under this
+/// compile, Grant is a compiled no-op and NEVER writes, not even when count[260] reads 0 (formerly
+/// the write case). The LWDEV flavor keeps the dev convenience grant (address and source cited in
+/// ScholarRing.cs) and is untestable here by design, the established LWDEV-shell precedent (see
+/// AttackCardProbeTextTests' header comment).
+///
+/// Remaining invariants (all still resolve to no write, since Grant is a no-op under this compile):
+///   (2) count[260]==1 (already owned)      -> no write.
+///   (3) count[260]==5 (many)               -> no write.
+///   (4) address not Readable               -> no crash, no write.
+///   (5) address Readable but not Writable  -> no crash, no write.
 /// </summary>
 public class ScholarRingTests
 {
@@ -30,24 +34,14 @@ public class ScholarRingTests
         return m;
     }
 
+    // THE LOAD-BEARING TEST: the prod contract. Even the formerly-write case (readable, writable,
+    // count==0) must produce zero writes under this compile.
     [Fact]
-    public void GrantWhenZero_WritesOne()
+    public void Grant_ProdCompile_NeverWrites_EvenWhenCountZero()
     {
         var m = MakeReadableWritable(0);
         ScholarRing.Grant(m);
-        Assert.True(m.Written.ContainsKey(RingAddr), "should have written to the ring addr");
-        Assert.Equal((byte)1, m.Written[RingAddr]);
-    }
-
-    [Fact]
-    public void GrantWhenZero_WritesAtExactAddress()
-    {
-        var m = MakeReadableWritable(0);
-        ScholarRing.Grant(m);
-        // exactly one address written, and it is the ring address
-        Assert.Single(m.Written);
-        Assert.True(m.Written.ContainsKey(RingAddr));
-        Assert.Equal(0x1411A7C00L + 260, RingAddr);
+        Assert.Empty(m.Written);
     }
 
     [Fact]

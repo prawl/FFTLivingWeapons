@@ -427,7 +427,8 @@ internal sealed class Engine
         }
         if (!nowIn)
         {
-            // Scholar's Ring: ensure the player always has at least one (idempotent).
+            // Scholar's Ring: DEV-only convenience grant since LW-86 (2026-07-14); Grant compiles
+            // to a no-op in production, so this call is a harmless no-op there.
             // Throttled to ~1 s -- no need to hammer inventory every 33 ms.
             if (++_ringThrottleTick >= RingThrottleEveryNTicks)
             {

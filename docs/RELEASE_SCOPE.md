@@ -121,6 +121,10 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       docs/PATCH_REANCHOR.md Phase B. Verifier scout only: no writes, no arming, no self-heal;
       consumers keep the Offsets pins. The live drill (marker-file stand-down on a dev build,
       smoke row 6.5) doubles as the eyewitness for the two 2026-07-14 LIVE_LEDGER premise rows.
+- [ ] **Production Scholar's Ring grant killed (LW-86, owner-scoped in 2026-07-14)**: ScholarRing.Grant
+      compiles out of production builds (LWDEV-only), so 2.3.0 stops writing a free ring into player
+      saves for the disarmed, removal-slated Treasure Master module (the 2026-07-11 fresh-save grant
+      incident); live evidence rides smoke row 7.22.
 
 ### 8. Equip-card fast paint (SHOULD, pulled in by the owner 2026-07-07)
 - [x] **Fast Kills meter (LW-37)**: retire the slow whole-heap Display sweep for the equip-card
