@@ -19,14 +19,16 @@ namespace LivingWeapon;
 /// above, 0x14028F79C, was that function's ENTRY on 1.5 but the patch shifted this code region by
 /// -0x4C, so on 1.5.1 the same address is a MID-FUNCTION branch target, and installing the detour
 /// there corrupted the function and crashed the game on the first battle-prompt render (reproduced
-/// twice, both on engaging auto-battle). The corrected entry, 0x14028F750, was read live from the
+/// twice, both on engaging auto-battle). The then-corrected entry, 0x14028F750, was read live from the
 /// running process: preceded by a ret + CC padding at 0x14028F74D (the previous function's tail)
-/// and opening with the documented prologue (sub rsp,28h; mov rax,[rcx+10h]; mov r8b,dl), matching
-/// the known shape (the text pointer arrives in rdx; the body's first real check is
-/// cmp qword ptr [rdx+18h],10h, the string small-buffer capacity test). PromptSwapHook (its own
-/// file) carries the corrected address plus a prologue landmark (HookLandmark.Verify) so a future
-/// shift refuses the install with one logged warning instead of corrupting the function again.
-/// PromptSwapHook is the native half this class is called from.
+/// and opening with a clean prologue (sub rsp,28h; mov rax,[rcx+10h]; mov r8b,dl), which looked
+/// like the known shape but was not: LW-89 step 2's live disassembly later proved 0x14028F750 is a
+/// DISPATCH WRAPPER (holder in rcx, a flag byte in dl), not the text setter, so the register this
+/// paragraph called "the text pointer" was caller garbage at that entry. See the LW-89 paragraphs
+/// below for the corrected entry. PromptSwapHook (its own file) carries the corrected address plus
+/// a prologue landmark (HookLandmark.Verify) so a future shift refuses the install with one logged
+/// warning instead of corrupting the function again. PromptSwapHook is the native half this class
+/// is called from.
 ///
 /// LW-89 SAMPLER (2026-07-14): the 1.5.1 port also broke this class's own prefix match: the live
 /// facing-prompt text on 1.5.1 silently stopped matching FacingPromptPrefix, and a mismatch here
@@ -34,7 +36,9 @@ namespace LivingWeapon;
 /// new text actually is short of reading raw memory by hand. TryPrepareSwap now samples the
 /// first dozen unique decodable prompt heads a session ever sees to the log at Debug tier
 /// (file-only in production), so one manual turn end in-game is enough to read the live text
-/// back out of livingweapon.log.
+/// back out of livingweapon.log. In hindsight the samples were never going to decode cleanly at
+/// 0x14028F750: every sampled head was garbage or off because the register being sampled was the
+/// dispatch wrapper's flag byte, not a text pointer at all.
 ///
 /// LW-89 STEP 1b (2026-07-14): the head sampler's own live capture pointed past a plain char*:
 /// readable heads arrived missing their first character, others decoded as pointer-like garbage,
@@ -45,6 +49,16 @@ namespace LivingWeapon;
 /// independent bounded sampler that dumps a small window around textPtr (a look-behind, the raw
 /// bytes, and a one-level pointer-chase) on every commit, decodable or not, so the object's real
 /// layout can be read back out of one capture instead of guessed at.
+///
+/// LW-89 STEP 2 (2026-07-14): the sampler's object hypothesis was right, just addressed to the
+/// wrong function. Live disassembly of the 0x14028F750 wrapper found the string object at
+/// holder+0x20 (size at +0x30, capacity at +0x38; inline text at +0x20 when capacity is below
+/// 0x10, else a heap pointer at [holder+0x20]), and both of the wrapper's branches resolve that
+/// object to a real char* and hand it to the TRUE text setter at 0x1403F1098 in rdx. PromptSwapHook
+/// now hooks 0x1403F1098 instead of the wrapper, so textPtr below is that resolved char*, exactly
+/// the register contract the pre-1.5 proven swap (v10/v11 above) rode. The on-screen 1.5.1 wording,
+/// "Select a facing direction and press F to confirm.", still STARTS WITH "Select a facing", so
+/// FacingPromptPrefix did not need to change.
 /// </summary>
 internal sealed partial class PromptSwap
 {

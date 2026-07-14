@@ -27,21 +27,35 @@ internal sealed class PromptSwapHook
     // address above (0x14028F79C) is a MID-FUNCTION branch target on 1.5.1 (the patch shifted this
     // code region by -0x4C), so installing the detour there corrupted the function and crashed the
     // game on the first battle-prompt render (reproduced twice, both on engaging auto-battle). The
-    // corrected entry, 0x14028F750, was read live from the running process: preceded by a ret + CC
-    // padding at 0x14028F74D (the previous function's tail) and opening with ExpectedPrologue below
-    // (sub rsp,28h; mov rax,[rcx+10h]; mov r8b,dl), matching the documented shape (the text pointer
-    // arrives in rdx; the body's first real check is cmp qword ptr [rdx+18h],10h, the string
-    // small-buffer capacity test). Arm() below verifies ExpectedPrologue live before installing
-    // (the BodyDoubleSpike.TargetReady cold-call doctrine this class had been missing, via the
-    // portable HookLandmark core), so a future shift refuses with one logged warning instead of
-    // corrupting the function again.
-    private const long FnSetTextString = 0x14028F750;
+    // then-corrected entry, 0x14028F750, was read live from the running process and looked
+    // address-plausible (preceded by a ret + CC padding at 0x14028F74D, the previous function's
+    // tail, and opening with a clean prologue), but it was semantically wrong: live disassembly
+    // (LW-89 step 2, tools/probes/disasm.py, 2026-07-14) proved 0x14028F750 is a DISPATCH WRAPPER
+    // whose real signature is (holder in rcx, flag byte in dl); the pointer this class was calling
+    // "the text pointer" in rdx is caller garbage at that entry, which is exactly why every sampled
+    // prompt head was garbage or off and no toast ever delivered on 1.5.1 (the LW-89 sampler that
+    // motivated this probe).
+    //
+    // The wrapper resolves the real text from a std::string OBJECT embedded at holder+0x20 (size
+    // at +0x30, capacity at +0x38; inline text at +0x20 when capacity is below 0x10, else a heap
+    // pointer stored at [holder+0x20]) and BOTH of its branches converge on the TRUE text setter
+    // at 0x1403F1098 with the RESOLVED char* in rdx (confirmed by the setter's own second
+    // instruction block doing mov rbx, rdx and treating it as the data pointer; the wrapper's
+    // variant branch at 0x1403F1068 also ends with jmp 0x1403F1098 after resolving its own rdx).
+    // That resolved-text register contract is exactly what the pre-1.5 proven swap (v10/v11 above)
+    // rode, so retargeting the hook here to the true setter revives the proven mechanism unchanged
+    // instead of reinventing it. FnSetTextString below is the true setter; the wrapper was the
+    // impostor. Arm() verifies ExpectedPrologue live before installing (the BodyDoubleSpike.
+    // TargetReady cold-call doctrine this class had been missing, via the portable HookLandmark
+    // core), so a future shift refuses with one logged warning instead of corrupting the function
+    // again.
+    private const long FnSetTextString = 0x1403F1098;
 
-    // The 11-byte prologue read live at FnSetTextString on 1.5.1, 2026-07-14 (see above): sub
-    // rsp,28h; mov rax,[rcx+10h]; mov r8b,dl. Checked via HookLandmark.Verify in Arm() before
-    // every hook install.
+    // The 11-byte prologue read live at FnSetTextString (the true setter) on 1.5.1, 2026-07-14
+    // (LW-89 step 2, see above): push rbp; push rbx; push rdi; mov rbp,rsp; sub rsp,50h. Checked
+    // via HookLandmark.Verify in Arm() before every hook install.
     private static readonly byte[] ExpectedPrologue =
-        { 0x48, 0x83, 0xEC, 0x28, 0x48, 0x8B, 0x41, 0x10, 0x44, 0x8A, 0xC2 };
+        { 0x40, 0x55, 0x53, 0x57, 0x48, 0x8B, 0xEC, 0x48, 0x83, 0xEC, 0x50 };
 
     // MaxPayloadLen(96) + NUL: PromptSwap.TryPrepareSwap guarantees the payload it hands back is
     // already <= 96 chars, so this only needs to hold that plus the terminator.

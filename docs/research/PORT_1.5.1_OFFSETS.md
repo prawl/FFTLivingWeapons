@@ -106,3 +106,20 @@ core, the FingerprintGuard.cs copy-file pattern) backs PromptSwapHook.ShouldArm,
 11-byte prologue at FnSetTextString before every install and refuses (one Warn line, no hook) on
 a mismatch or failed read instead of installing blind. A future code-region shift now becomes a
 logged refusal, not a crash.
+
+STEP-2 CORRECTION (LW-89, 2026-07-14, later the same day): 0x14028F750 is address-correct but
+semantically the WRONG FUNCTION. Live disassembly (tools/probes/disasm.py) showed it is a
+DISPATCH WRAPPER whose real signature is (holder in rcx, flag byte in dl): the "text pointer
+arrives in rdx" claim above only ever described the 1.5 hook point, which sat MID-FUNCTION after
+the wrapper had already resolved the text. The wrapper resolves a std::string OBJECT embedded at
+holder+0x20 (size at +0x30, capacity at +0x38; the cmp qword ptr [rdx+18h],10h above is ITS
+small-buffer test on that object, not on an incoming rdx), and both of its resolution branches
+(plus the variant path through 0x1403F1068) converge on the TRUE text setter at 0x1403F1098 with
+the resolved char* in rdx. Hooking the wrapper therefore armed cleanly, crashed nothing, and
+matched nothing: rdx's upper bytes at that entry are caller leftovers, which is why tier-up
+toasts were silently dead the whole post-1.5.1 era (caught by smoke row 7.25, diagnosed by the
+LW-89 prompt-head and struct samplers). FnSetTextString now points at 0x1403F1098 (prologue 40
+55 53 57 48 8B EC 48 83 EC 50, read live and landmark-guarded), where the pre-1.5 proven swap
+semantics apply unchanged; the 1.5.1 facing prompt reads "Select a facing direction and press F
+to confirm.", which still matches the shipped "Select a facing" prefix. Independently re-derived
+by a fresh verifier from its own disasm run, same day.
