@@ -60,6 +60,25 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green; a fresh live session log shows zero per-candidate evicting lines, a
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
+- **[LW-82] Build the AnchorScan hardening core (verifier scout, not healer)** (opened 2026-07-14) [BUILDING]
+  - Done means: a dependency-free single-file AnchorScan.cs core (the FingerprintGuard copy-file
+    pattern: anchor specs in, scan verdicts out, fail closed on zero or multiple survivors) plus
+    an AnchorScout adapter that runs ONLY after LaunchGuard stands down, re-finds each registered
+    anchor by a pin-neighborhood signature/structure scan on the tick loop (budgeted chunks,
+    guarded reads, zero writes), and logs a re-find inventory in the LW-83 observed-vs-expected
+    style (found at pin / found elsewhere with delta / ambiguous naming addresses / not found),
+    the starting map for PATCH_REANCHOR.md's Phase B; the scout influences nothing (no
+    arming, no healing, consumers keep the Offsets pins; owner-locked 2026-07-14). v1 anchors:
+    the JobCommand rec8/rec9 pair and the roster base with the stride-plus-alignment structural
+    confirm (both live-calibrated 2026-07-14, tools/probes/anchorscan_feasibility_probe.py: pair
+    unique at pin; roster 766 shape decoys collapse to exactly the pin). Later tiers (the
+    battle-state anchors, the SubmenuFlag no-content residue) get their own rows when this
+    slice exits.
+  - Verify: failing-first AnchorScan/AnchorScout tests (verdicts, chunk-boundary straddle, budget
+    stepping, unreadable-chunk skip and count, confirm rejection, log-once and rescan policy, the
+    source-level portability contract); both gates green; owner live pass: the marker-file drill
+    stands a dev build down and livingweapon.log then carries the scout inventory naming both
+    anchors found at their pins, and a marker-free relaunch arms normally.
 
 ## Backlog
 
@@ -305,17 +324,6 @@ is the in-flight subset, not a mirror of that checklist.
   model.X ?? previous.X at OnAllModsLoaded), clobbering other mods' post-snapshot runtime row
   writes; propose dirty-field-only writeback. Draft body in handoff.md (2026-07-13 action
   pack); owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
-- [LW-82] 2026-07-14: The anti-game-update hardening arc: turn pinned addresses into things the
-  mod re-finds itself at boot. Shape per the owner directive (memory hardening-must-be-portable):
-  a dependency-free single-file AnchorScan core (byte signatures and struct fingerprints in,
-  verified addresses out, FAIL CLOSED on zero or multiple hits) plus a thin per-mod adapter, the
-  FingerprintGuard/HookLandmark pattern, copy-reusable in the sibling FFT mods. Tiers from the
-  1.5.1 data: content-signaturable tables (the JobCommand find, generalize it), struct bases via
-  cold fingerprint scans (GrowthEngine.Locate already owns the scan idiom, today it only scans
-  NEAR a pinned base), region siblings by measured delta plus verify, and the residue with no
-  content to sign (the SubmenuFlag class of UI flags: boot-time state-solve or anchoring
-  relative to signed neighbors; 1.5.1's only data casualty was exactly this class). Code hooks
-  are covered by HookLandmark (shipped in the LW-81 arc): refusal, not self-relocation.
 - [LW-78] 2026-07-13: Re-diff the pre-1.5 full-table nxd bakes (item.en.nxd and ability.en.nxd)
   against 1.5 vanilla: the loader diffs each mod's nxd against the CURRENT vanilla table at
   load, so any text cell the 1.5 game patch changed silently converts our stale bake into an
