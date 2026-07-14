@@ -216,7 +216,8 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   drill-tagged stand-down line naming the landmark with observed-vs-expected detail, one OS
   message box, a flight_*_standdown.jsonl archive (LW-53), zero writes for the session, and
   scan_logs exits 1 on that log. Delete the marker and redeploy prod after. **[MINOR]**
-- [ ] 6.5 **AnchorScan scout drill (LW-82, DEV OK by design).** Same marker-file drill as 6.4, run
+- [x] 6.5 (PASSED 2026-07-14, owner dev drill: every expected line byte-exact, negative control
+  clean, drill log banked) **AnchorScan scout drill (LW-82, DEV OK by design).** Same marker-file drill as 6.4, run
   once the LW-82 build ships: after the drill stand-down at the title screen, the FILE shows the
   jobcommand anchor found at its pin BEFORE any save loads, the roster anchor not found plus an
   early summary (pass behavior pre-save, not a failure), and within about 15s of loading a save

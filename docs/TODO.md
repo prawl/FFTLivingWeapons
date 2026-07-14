@@ -60,25 +60,19 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green; a fresh live session log shows zero per-candidate evicting lines, a
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
-- **[LW-82] Build the AnchorScan hardening core (verifier scout, not healer)** (opened 2026-07-14) [BUILDING]
-  - Done means: a dependency-free single-file AnchorScan.cs core (the FingerprintGuard copy-file
-    pattern: anchor specs in, scan verdicts out, fail closed on zero or multiple survivors) plus
-    an AnchorScout adapter that runs ONLY after LaunchGuard stands down, re-finds each registered
-    anchor by a pin-neighborhood signature/structure scan on the tick loop (budgeted chunks,
-    guarded reads, zero writes), and logs a re-find inventory in the LW-83 observed-vs-expected
-    style (found at pin / found elsewhere with delta / ambiguous naming addresses / not found),
-    the starting map for PATCH_REANCHOR.md's Phase B; the scout influences nothing (no
-    arming, no healing, consumers keep the Offsets pins; owner-locked 2026-07-14). v1 anchors:
-    the JobCommand rec8/rec9 pair and the roster base with the stride-plus-alignment structural
-    confirm (both live-calibrated 2026-07-14, tools/probes/anchorscan_feasibility_probe.py: pair
-    unique at pin; roster 766 shape decoys collapse to exactly the pin). Later tiers (the
-    battle-state anchors, the SubmenuFlag no-content residue) get their own rows when this
-    slice exits.
-  - Verify: failing-first AnchorScan/AnchorScout tests (verdicts, chunk-boundary straddle, budget
-    stepping, unreadable-chunk skip and count, confirm rejection, log-once and rescan policy, the
-    source-level portability contract); both gates green; owner live pass: the marker-file drill
-    stands a dev build down and livingweapon.log then carries the scout inventory naming both
-    anchors found at their pins, and a marker-free relaunch arms normally.
+- **[LW-84] Build the ReleaseScopeContractTests gate** (opened 2026-07-14) [BUILDING]
+  - Done means: a ReleaseScopeContractTests suite (the TodoContractTests enforcer pattern) gating
+    docs/RELEASE_SCOPE.md and docs/SMOKE_TEST_2.3.0.md: an IN-list box naming an LW-id that
+    already exited to CHANGELOG.md must be ticked; a ticked box whose id is still open in
+    TODO.md goes red; ticks cite a commit hash or a date (provenance, not vibes); every LW-id
+    cited in either doc exists in TODO.md or CHANGELOG.md (no phantom or retired ids). Lands
+    with the one-time annotation pass ticking the already-shipped 2.3.0 boxes with their
+    hashes, so the gate is born green on a truthful file. Process rule enforced from then on:
+    the commit that ships a scope item ticks its box in that same commit; smoke row 8.8
+    becomes re-verification.
+  - Verify: failing-first tests (each rule goes red on a staged violation and green on the
+    annotated real files); suite green; no live pass (docs-only gate, no runtime surface,
+    Phase 4 skip declared).
 
 ## Backlog
 
@@ -334,19 +328,14 @@ is the in-flight subset, not a mirror of that checklist.
   ("no interaction", written 2026-05-30, two days before JobData.xml existed); three player
   reports and the pinned loader writeback contradict it. Correct the claim (cite LW-77's
   mechanism) when LW-77 resolves.
-- [LW-84] 2026-07-14: Release-scope contract enforcement: a ReleaseScopeContractTests gate so no
-  release task is left behind or inaccurate. Rules: an IN-list box naming an LW-id that already
-  exited to CHANGELOG.md must be ticked (the Offensive Chemist drift class); a ticked box whose
-  id is still open in TODO.md goes red; ticks must cite a commit hash or date (provenance, not
-  vibes); every LW-id cited in RELEASE_SCOPE.md or SMOKE_TEST_2.3.0.md must exist in TODO.md or
-  CHANGELOG.md (no phantom or retired ids). Rider: the one-time annotation pass ticking the
-  already-shipped 2.3.0 boxes with their hashes (Samurai trio, Galewind, tuning batch dd45229,
-  chemist removal a5ea61e, LW-50/51/37/52), so the gate starts green on a truthful file. Process
-  rule it enforces: the commit that ships a scope item ticks its box in that same commit; smoke
-  row 8.8 becomes re-verification. Build route: /build-lite (one more instance of the proven
-  TodoContractTests enforcer pattern); the test and the annotation pass land in the same commit
-  so the gate is born green. Owner-designated NEXT UP (2026-07-14): takes the first Now slot
-  that frees (expected: LW-82's, after its live drill), ahead of everything else queued.
+- [LW-85] 2026-07-14: AnchorScan later tiers (the rest of the LW-82 arc; the v1 slice shipped
+  e77b9d7): battle-state anchors (CombatAnchor/TurnQueue via chained fingerprint scans seeded
+  from the found roster base; needs a live battle, and on a patched build the scout cannot
+  trust any pinned battle-state flag to know one is running) and the no-content residue (the
+  SubmenuFlag class: boot-time state-solve or anchoring relative to signed neighbors; 1.5.1's
+  only data casualty). Sibling-mod adoption (copy AnchorScan.cs, the FingerprintGuard pattern,
+  into FFTHandsFree/FFTColorCustomizer/FFTMultiplayer) rides this row too
+  (hardening-must-be-portable).
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

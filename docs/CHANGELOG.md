@@ -8,6 +8,24 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-82] SHIPPED e77b9d7 2026-07-14: the AnchorScan verifier scout (the v1 slice; merge f701795).
+  A dependency-free single-file AnchorScan core (chunked pin-neighborhood signature scan,
+  overlap-safe boundary math, alignment-before-Confirm filtering, fail-closed verdicts: found at
+  pin / found elsewhere / ambiguous / not found) plus the AnchorScout adapter: after any
+  LaunchGuard stand-down the mod re-finds the JobCommand table (rec8/rec9 pair signature,
+  file-baked image data, needs no save) and the roster base (nameId shape + 0x258 stride
+  structure + %8 alignment; calibrated live 2026-07-14: 11,869 raw hits, 766 shape candidates,
+  exactly the pin survives) and logs a re-find inventory plus the inventory-count sibling
+  prediction: the starting map for docs/PATCH_REANCHOR.md Phase B. Verifier scout only
+  (owner-locked): zero writes, no arming, no self-heal; consumers keep the Offsets pins. Premise
+  probe tools/probes/anchorscan_feasibility_probe.py; two LIVE_LEDGER rows await the PROVEN
+  flip on the drill evidence. Full /build pipeline: 4-reviewer plan panel, TDD implementer,
+  independent verifier SHIP 9/10 with a SHA256-verified sabotage proof and forced rebuild;
+  suite 2489 green (+20 tests incl. the source-scan portability contract). Owner live drill
+  2026-07-14: drill-tagged title-screen stand-down, jobcommand found at pin pre-save, honest
+  roster not-found, post-save upgrade with the sibling line and the summary (2 at pin, 0
+  elsewhere, 0 ambiguous, 0 not found), then a marker-free relaunch armed with zero scout lines
+  and scan_logs CLEAN. Later tiers exit to backlog LW-85.
 - [LW-83] SHIPPED 656a832 2026-07-14: guard stand-down artifacts self-diagnose. Landmark probes
   return a LandmarkReading (verdict plus mismatch detail), so the flight "guard" record and the
   startup Error line carry observed-vs-expected values for every landmark mismatching on the

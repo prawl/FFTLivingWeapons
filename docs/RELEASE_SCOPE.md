@@ -103,7 +103,8 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       per-playthrough, key the save files to a save identity (one-time migration) so a new game is not
       pre-maxed and playthroughs do not cross-contaminate; ensure a Reloaded mod UPDATE does not wipe
       the tally.
-- [ ] **AnchorScan verifier scout (LW-82 v1, owner-scoped in 2026-07-14)**: the dependency-free
+- [x] **AnchorScan verifier scout (LW-82 v1, owner-scoped in 2026-07-14; SHIPPED e77b9d7, merge
+      f701795, owner live drill passed 2026-07-14)**: the dependency-free
       AnchorScan core plus the AnchorScout adapter. After any LaunchGuard stand-down, re-find the
       JobCommand table and the roster base by pin-neighborhood scan and log the re-find inventory
       (found at pin / elsewhere with delta / ambiguous / not found): the starting map for
