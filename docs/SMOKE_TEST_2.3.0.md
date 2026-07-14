@@ -188,7 +188,11 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   appear on any card (release-hidden, LW-35). This box is
   the flip evidence for the LIVE_LEDGER Attack-row-rename row (owner-flip-only per the LW-31
   exit). **[MAJOR]**
-- [ ] 5.4 **Tuning batch cards (dd45229, restart-only).** Spot-check in-game cards against
+- [x] 5.4 (PASSED 2026-07-14, owner card sweep, screenshots on file: Spark Rod WP5/20%/Thunder
+  free-cast, Trailwarden Jerkin HP20/Move+1 at T4, Sanctguard 28/12 Halves Dark, Claymore WP7/0%
+  with the two-hands reword, Kiku WP13/10% with the Mushin block; every value matched
+  items.json exactly) **Tuning batch cards (dd45229, restart-only).** Spot-check in-game cards
+  against
   data/items.json for: the elemental rods (nerf), Trailwarden Jerkin (gated to T4 so it no longer
   stacks early with the unchanged T1 Wayfarer Boots), Sanctguard id 133 (rider retune), Claymore
   (CARD REWORD only, ForcedTwoHands wording; stats unchanged by design), and Kiku-ichimonji
