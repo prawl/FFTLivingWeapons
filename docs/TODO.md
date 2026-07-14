@@ -260,6 +260,17 @@ is the in-flight subset, not a mirror of that checklist.
   change within a battle. Cosmetic; candidate: invalidate or recompose the cached dossier for
   the resolved weapon when its tally entry changes.
 
+- [LW-90] 2026-07-14: An in-battle RESTART after the Iai opening hold leaves the wielder's
+  boosted Speed in place for the restarted battle (owner live, dev lane, 17:31-17:35 logs): the
+  mod's own bookkeeping reads healthy (hold at battle-start, "released by the turn flags" in
+  every instance), so the leading theory is the game's restart snapshot capturing the held
+  Speed as the unit's baseline before the release lands, making the mod's captured "natural"
+  the boosted value on the restarted run. Battle-scoped (combat struct only, roster untouched,
+  gone at battle end); candidate fix: cross-check the captured natural against the ROSTER
+  speed at hold time and clamp, which also caps the restart ratchet. Same hazard likely
+  applies to every capture-natural-then-hold signature (Afterimage, Ultima, Cavalier's
+  Charge) on restarted battles; audit when picked up.
+
 ## Walled (blocked by engine / Denuvo / modloader)
 
 - Fix the sword swing-art (art welded to weapon id; the same render node also drives damage).

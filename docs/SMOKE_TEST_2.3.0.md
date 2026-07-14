@@ -78,7 +78,12 @@ instead of re-running is the owner's call, made per row, not wholesale.
 
 Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV OK).
 
-- [ ] 2.1 **Iai (Ame-no-Murakumo id 42): the opening turn.** The wielder takes the literal first
+- [x] 2.1 (PASSED 2026-07-14, owner live, dev lane: wielder took the literal first turn,
+  release named to the turn flags in the file, Speed normal after, on a normal battle entry.
+  NEW FINDING from the same run, backlog LW-90: an in-battle RESTART bakes the held Speed into
+  the game's own restart snapshot, so the wielder keeps the boost for the restarted battle
+  while the mod's hold/release bookkeeping reads healthy; battle-scoped, never touches the
+  save) **Iai (Ame-no-Murakumo id 42): the opening turn.** The wielder takes the literal first
   turn of the battle regardless of build (Speed quietly held above the field max at battle-open),
   then releases on that first turn; the release log line names its source ("released by the turn
   flags"). Speed reads normal afterwards. **[MAJOR]**
