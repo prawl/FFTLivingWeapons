@@ -181,7 +181,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   Open the equip card on a tracked weapon:
   the meter ("Kills: N/T to +") is present on first open with no perceptible sweep delay, and
   matches kills.json. **[BLOCKER]**
-- [ ] 5.2 **Suffix truth after reset (LW-59, possibly pre-satisfied 2026-07-11).** After the
+- [x] 5.2 (PASSED 2026-07-14, owner screenshot: the same Claymore that read "Claymore+ Kills:
+  8/25 to +2" pre-reset showed plain "Claymore" with "Kills: 0/5 to +" in the post-reset new
+  game, the stale-suffix case on the exact weapon that carried one) **Suffix truth after reset
+  (LW-59, possibly pre-satisfied 2026-07-11).** After the
   section-6 New Game reset: the equip card shows the PLAIN weapon name (no stale +N) beside the
   fresh meter, and the suffix climbs again with new kills. **[MAJOR]**
 - [x] 5.3 (PASSED 2026-07-14, owner live: weapon name present on the very first turn of the
@@ -221,7 +224,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   correct name and description (Barrage's text key 358 ships via the same cell-merged
   ability.en.nxd re-bake that used to carry the chemist keys 374-378; a bad re-bake corrupts
   Barrage, the Bloodpact precedent). **[MAJOR]**
-- [ ] 5.7 **Config surface (LW-52).** Reloaded launcher, Configure Mod: exactly ONE option remains
+- [x] 5.7 (PASSED 2026-07-14, owner: Configure Mod shows exactly one option, Treasure Master
+  Always On; the toggle round-trips (config echo read True) and even forced on, the module
+  stood down on its dataset key at WARN tier, the strongest disarm confirmation) **Config
+  surface (LW-52).** Reloaded launcher, Configure Mod: exactly ONE option remains
   (Treasure Master Always On); BannerToasts, DevSeedKills, and VerboseLog are gone. **[MAJOR]**
 - [ ] 5.8 **Release note eyeball (LW-72 rider) + README truth.** README's Language support
   section reads right (non-English players get full gameplay; item text, Kills counter, and
@@ -234,7 +240,12 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
 
 ## 6. Save integrity (BLOCKER)
 
-- [ ] 6.1 **Cold-launch New Game eyeball (the LW-51 deferred check).** From a COLD game launch
+- [x] 6.1 (PASSED 2026-07-14, owner live on a cold 16:24 launch: Continue of the real save did
+  NOT trip the reset (armed 16:26:36, no archive); New Game archived to archive/kills.8.json
+  with the full-path line at 16:28:04 and reset; the first-real-battle-credits-kill-1 half was
+  proven the same morning when the 11:57 battle credited Chaos Blade 1-3 onto the post-reset
+  tally; the owner tally was restored from the archive after the drill) **Cold-launch New Game
+  eyeball (the LW-51 deferred check).** From a COLD game launch
   (not an in-session restart): main menu, New Game. Expected: the prior kills.json is archived
   into the archive/ subfolder of the save dir (archive/kills.N.json; the file line "Archived the
   previous kills.json" prints the full path) and the tally resets (launch header shows the fresh count;
@@ -245,7 +256,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   dialogue held, not a one-frame event dip). If run on a DEV build: the first post-reset kill
   SHOULD now toast (the LW-70 re-baseline fix); a missing first-blood toast there is a real
   regression, no longer a known quirk. **[BLOCKER]**
-- [ ] 6.2 **Save files live update-safe (LW-51/LW-29).** kills.json, legends.json, gunslinger.json
+- [x] 6.2 (PASSED 2026-07-14: every launch header all day cited the User/Mods path as the
+  primary save location, and the deploy-folder copy proved vestigial during the tally
+  investigation) **Save files live update-safe (LW-51/LW-29).** kills.json, legends.json,
+  gunslinger.json
   sit under Reloaded `User/Mods/prawl.fft.livingweapons`, NOT the deploy folder, so a 2.2.2 to
   2.3.0 mod update cannot wipe them. **[MAJOR]**
 - [ ] 6.3 **Deploy preservation round-trip (backlog LW-28 watch).** Across this pass's deploys:
@@ -276,7 +290,9 @@ Signature rows: prod +3 = 50 kills; use grown weapons on the real save or tag th
 Watch the FILE for the once-per-battle signature/grant narration; a benched +3 narrates at
 Debug/file tier only.
 
-- [ ] 7.1 **Kill tally increments + persists** across battles and a session restart (credit lines
+- [x] 7.1 (PASSED 2026-07-14: credits and battle-end saves all day; the 16:24 cold launch
+  header carried "110 lifetime kills across 7 weapons") **Kill tally increments + persists**
+  across battles and a session restart (credit lines
   in-battle, battle-end save, launch header count carries over). **[BLOCKER]**
 - [x] 7.2 (PASSED 2026-07-14, owner live: Ramza with the +2 Outrider Pistol read PA 17 in
   battle vs natural 14, exactly round(14 x 1.20); Speed correctly unchanged, since Route grants
