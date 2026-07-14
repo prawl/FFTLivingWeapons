@@ -240,6 +240,9 @@ public class LaunchGuardTests
         Assert.Equal("FFT Living Weapons", calls[0].title);
         Assert.Contains("livingweapon.log", calls[0].text);
         Assert.Contains("ptyrawl@gmail.com", calls[0].text);
+        // Owner-authored copy, 2026-07-14: pin the headline and the attach-your-logs ask.
+        Assert.Contains("Living Weapons has switched itself off", calls[0].text);
+        Assert.Contains("attach your logs", calls[0].text);
     }
 
     [Fact]
@@ -352,5 +355,116 @@ public class LaunchGuardTests
         for (int i = 0; i < 40; i++) guard.Step();
 
         Assert.Equal(GuardState.StoodDown, guard.State);
+    }
+
+    // --- LW-83: mismatch readings carry observed-vs-expected detail, and a drill-forced
+    // stand-down self-identifies by naming the LW_FORCE_FINGERPRINT_MISMATCH flag. ---
+
+    [Fact]
+    public void StandDown_record_carries_observed_and_expected_pe_key()
+    {
+        var mem = HealthyMemory();
+        SeedU32Bytes(mem, ModuleBase + ELfanew + TimeDateStampOff, 0x11111111);
+        var records = new List<(string type, string payload)>();
+        var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+        for (int i = 0; i < 40; i++) guard.Step();
+
+        Assert.Equal(GuardState.StoodDown, guard.State);
+        Assert.Single(records);
+        Assert.Contains("0x6A3C5497", records[0].payload);
+        Assert.Contains("0x11111111", records[0].payload);
+    }
+
+    [Fact]
+    public void Drill_standdown_names_the_flag_in_record_and_log()
+    {
+        var mem = HealthyMemory();
+        var records = new List<(string type, string payload)>();
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            var guard = new LaunchGuard(mem, forceMismatch: true, recorder: (t, p) => records.Add((t, p)));
+
+            for (int i = 0; i < 40; i++) guard.Step();
+
+            Assert.Equal(GuardState.StoodDown, guard.State);
+            Assert.Single(records);
+            Assert.Contains("LW_FORCE_FINGERPRINT_MISMATCH", records[0].payload);
+            Assert.Contains(file, line => line.Contains("LW_FORCE_FINGERPRINT_MISMATCH"));
+        }
+        finally { ModLogger.Instance = prior; }
+    }
+
+    [Fact]
+    public void Real_standdown_does_not_name_the_flag()
+    {
+        var mem = HealthyMemory(nameId: 5);   // mismatch
+        var records = new List<(string type, string payload)>();
+        var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+        for (int i = 0; i < 40; i++) guard.Step();
+
+        Assert.Equal(GuardState.StoodDown, guard.State);
+        Assert.Single(records);
+        Assert.DoesNotContain("LW_FORCE_FINGERPRINT_MISMATCH", records[0].payload);
+    }
+
+    [Fact]
+    public void RosterRow_mismatch_detail_names_observed_fields()
+    {
+        var mem = HealthyMemory(nameId: 5);
+        var records = new List<(string type, string payload)>();
+        var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+        for (int i = 0; i < 40; i++) guard.Step();
+
+        Assert.Equal(GuardState.StoodDown, guard.State);
+        Assert.Single(records);
+        Assert.Contains("nameId=5", records[0].payload);
+    }
+
+    [Fact]
+    public void JobCommand_mismatch_detail_carries_observed_bytes()
+    {
+        var mem = HealthyMemory();
+        long rec8 = Barrage.AbilityBase + 8L * Barrage.RecSize;
+        mem.TerrainBlocks[rec8] = new byte[] { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
+        var records = new List<(string type, string payload)>();
+        var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+        for (int i = 0; i < 40; i++) guard.Step();
+
+        Assert.Equal(GuardState.StoodDown, guard.State);
+        Assert.Single(records);
+        Assert.Contains("rec8", records[0].payload);
+        Assert.Contains("AA-AA", records[0].payload);
+    }
+
+    [Fact]
+    public void JobCommand_both_recs_mismatch_composes_both_details()
+    {
+        // Both signature windows wrong at once (non-zero bytes: an all-zero window reads
+        // Unreadable by design), so the composed detail must name BOTH recs, each with its own
+        // observed bytes.
+        var mem = HealthyMemory();
+        long rec8 = Barrage.AbilityBase + 8L * Barrage.RecSize;
+        long rec9 = Barrage.AbilityBase + 9L * Barrage.RecSize;
+        mem.TerrainBlocks[rec8] = new byte[] { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
+        mem.TerrainBlocks[rec9] = new byte[] { 0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB, 0xBB };
+        var records = new List<(string type, string payload)>();
+        var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+        for (int i = 0; i < 40; i++) guard.Step();
+
+        Assert.Equal(GuardState.StoodDown, guard.State);
+        Assert.Single(records);
+        Assert.Contains("rec8", records[0].payload);
+        Assert.Contains("rec9", records[0].payload);
+        Assert.Contains("AA-AA", records[0].payload);
+        Assert.Contains("BB-BB", records[0].payload);
     }
 }

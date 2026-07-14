@@ -20,45 +20,15 @@ namespace LivingWeapon;
 /// edits the same JobCommand region after arming, e.g. when it injects Barrage into a job's
 /// command list). LW-53: the armed edge and the stand-down verdict record into the flight ring,
 /// and stand-down requests its own "standdown" flush, so a stand-down leaves a non-empty archive.
+///
+/// LW-83: this file holds the LIFECYCLE half (construction, Step, the hook-arm handshake, and the
+/// armed/stand-down edges). The landmark expected-value constants, the two composite Probe*
+/// methods, and their observed-vs-expected detail formatting live in the
+/// LaunchGuard.Landmarks.cs partial (a real WHAT-vs-lifecycle seam, kept in the same class so the
+/// ctor can still reference those constants and probes by plain name).
 /// </summary>
-internal sealed class LaunchGuard
+internal sealed partial class LaunchGuard
 {
-    // PE fingerprint of the 1.5.1 exe (Steam buildid 23901820, exe stamped 2026-07-13),
-    // re-derived from the on-disk PE per docs/PATCH_REANCHOR.md. 1.5 values were 0x6A0F86A9 /
-    // 0x190EB000 (docs/research/PORT_1.5_OFFSETS.md:11-15; exe SHA256 3625FD9B...); the 1.5.1
-    // layout audit (docs/research/PORT_1.5.1_OFFSETS.md) found every other absolute unchanged.
-    // Pre-1.5 values differ in BOTH fields (0x690C1269 / 0x156C8000), so either field alone
-    // would catch a rollback; PE FileVersion is NOT usable (reads 1.0.0.0 on every build,
-    // docs/research/PORT_1.5.md:96-98).
-    internal const uint ExpectedTimeDateStamp = 0x6A3C5497;
-    internal const uint ExpectedSizeOfImage = 0x1878E000;
-    private const long ModuleBase = 0x140000000L;
-
-    // JobCommand table, rec 8 (Aim, Archer) + rec 9 (Martial Arts, Monk) ability-id bytes. Window
-    // addresses = Barrage.AbilityBase (0x14067E213, Barrage.cs:43) + rec * Barrage.RecSize (25,
-    // Barrage.cs:44). The unique-hit re-find signature that located AbilityBase after the 1.5
-    // recompile is tools/probes/jobcommand_find_probe.py:44-45 (REC8_SIG/REC9_SIG). Rec 14 (Steal)
-    // is deliberately dropped: its exact bytes rest on one dump note, weaker provenance than the
-    // probe-verified pair above.
-    private static readonly long Rec8Addr = Barrage.AbilityBase + 8L * Barrage.RecSize;
-    private static readonly long Rec9Addr = Barrage.AbilityBase + 9L * Barrage.RecSize;
-    // Aim ability ids 150..157 (0x96..0x9D), Martial Arts ability ids 100..107 (0x64..0x6B): the
-    // same bytes as jobcommand_find_probe.py's REC8_SIG/REC9_SIG.
-    private static readonly byte[] Rec8Sig = { 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D };
-    private static readonly byte[] Rec9Sig = { 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B };
-
-    // Ramza roster row shape at RosterBase slot 0 (Offsets.cs:94). Provenance: Offsets.cs:94/120,
-    // unitid_probe captures (Offsets.cs's ANameId doc), docs/research/SPRITE_SWAP.md:41-52 (Ramza
-    // sprite 0x01-0x06 across chapters; story bodies stay under 0x80, monsters are >= 0x80, in
-    // every chapter).
-    private const int RamzaExpectedNameId = 1;
-    private const byte MonsterSpriteFloor = 0x80;
-    private const byte MaxPlausibleBraveFaith = 100;
-
-    // At the 33ms Engine tick (Engine.cs:19, PollMs), 30 consecutive mismatching Steps is about
-    // 30 * 33ms = 990ms: roughly one second before a permanent stand-down.
-    private const int MismatchDebounce = 30;
-
     private readonly IGameMemory _mem;
     private readonly FingerprintGuard _guard;
     private readonly GuardLandmark _jobCommandRec8;
@@ -69,6 +39,9 @@ internal sealed class LaunchGuard
     // LW-53: flight recorder taps (mirrors TurnTracker/KillTracker/Reliquary/Puppeteer); null default keeps tests green.
     private readonly Action<string, string>? _recorder;
     private readonly Action<string>? _requestFlush;
+    // LW-83: the drill ctor arg, stashed so StandDown can self-identify a drill-forced stand-down
+    // (Mod.cs compiles this to a hard false outside LWDEV, so a player build never sets it).
+    private readonly bool _forceMismatch;
 
     /// <param name="notice">The OS-level stand-down notice; null (the default) means NO OS notice
     /// fires, which is what every unit test gets so a real message box never pops during
@@ -81,6 +54,7 @@ internal sealed class LaunchGuard
         Action<string, string>? recorder = null, Action<string>? requestFlush = null)
     {
         _mem = mem;
+        _forceMismatch = forceMismatch;
         _notice = notice;
         _recorder = recorder;
         _requestFlush = requestFlush;
@@ -144,59 +118,43 @@ internal sealed class LaunchGuard
         // Mem.WritesEnabled stays false: the absence of an assignment here IS the point (the
         // default state Mod.StartEngine set before construction). LW-53: record first, so a
         // later flush archives WHY the mod stood down.
-        _recorder?.Invoke("guard", $"stand-down ({diag})");
+        // LW-83: a drill-forced stand-down (LW_FORCE_FINGERPRINT_MISMATCH, dev builds only; Mod.cs
+        // compiles forceMismatch to a hard false outside LWDEV, so a player build can never reach
+        // this branch) self-identifies in the payload and the log line, so an archive is never
+        // mistaken for a real game-patch mismatch.
+        string payload = _forceMismatch
+            ? $"stand-down (drill: LW_FORCE_FINGERPRINT_MISMATCH) ({diag})"
+            : $"stand-down ({diag})";
+        _recorder?.Invoke("guard", payload);
+        string drillNote = _forceMismatch
+            ? " This stand-down was forced by the LW_FORCE_FINGERPRINT_MISMATCH drill flag (dev builds only)."
+            : "";
         ModLogger.Error(LogVerb.Startup,
-            $"The game build does not match this mod's memory landmarks ({diag}); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch, or another installed mod has modified the job command tables.");
+            $"The game build does not match this mod's memory landmarks ({diag}); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch, or another installed mod has modified the job command tables.{drillNote}");
         // One-shot alongside the log line above: FingerprintGuard.Step only reaches StandDown once
         // (StoodDown is terminal, GuardState never revisits Verifying), so this call fires exactly
         // once per session. A player who never opens the log still learns the mod went inert.
+        // Owner-authored copy (2026-07-14 drill review): headline first, softened cause (a
+        // mismatch is almost always a game update but can be another mod), switched-off framed
+        // as until-resolved, and the email ask carries the logs request inline.
         _notice?.Invoke("FFT Living Weapons",
-            "The Living Weapons mod checked your game and it does not look like the version "
-            + "the mod was built for. The game probably got an update.\n\n"
-            + "To keep your save file safe, the mod has switched itself off for now. Your game "
-            + "will still run normally, just without Living Weapons.\n\n"
-            + "How to fix it: check for a newer version of the mod.\n\n"
-            + "Still stuck? Email me at ptyrawl@gmail.com and I will help. If you do, please copy "
-            + "and paste your logs into a text file and send it with your email.\n\n"
-            + "You can get the logs two ways: copy all the text from the black command prompt "
-            + "window that appears when you launch the game, or click the Open Folder button on "
-            + "this mod's page in Reloaded-II and open the file named livingweapon.log.");
+            "Living Weapons has switched itself off\n\n"
+            + "The Living Weapons mod checked your game and it does not look like the version "
+            + "the mod was built for. This almost always means the game just got an update.\n\n"
+            + "To keep your save file safe, the mod has switched itself off until this is "
+            + "sorted out. Your game will still run normally, just without Living Weapons "
+            + "for now.\n\n"
+            + "How to fix it: check the Living Weapons mod page for a newer version. When the "
+            + "game updates, the mod usually needs a matching update to catch up.\n\n"
+            + "Still stuck? Email me at ptyrawl@gmail.com and I'll help. Please attach your "
+            + "logs so I can see what happened. You can get them two ways: copy all the text "
+            + "from the black command prompt window that opens when you launch the game, or "
+            + "click Open Folder on this mod's page in Reloaded-II and grab the file named "
+            + "livingweapon.log.");
         // LW-53: requested LAST and named "standdown", not "error": an earlier unrelated error may
         // already have burnt the "error" FlushOnce latch, and battle edges never fire pre-arm, so
         // riding "error" could strand this record; a distinct trigger avoids that (last writer
         // wins on the pending trigger name, FlightRecorder.cs).
         _requestFlush?.Invoke("standdown");
-    }
-
-    private LandmarkVerdict ProbeJobCommandTable()
-    {
-        // BOOT-WINDOW SAFETY: a loaded save implies the boot-built JobCommand table (learn
-        // screens work), so gate on Ramza's roster row being populated at all before reading the
-        // signature windows. Game knowledge stays here in the adapter; FingerprintGuard's core
-        // stays agnostic of it.
-        int level = _mem.U8(Offsets.RosterBase + Offsets.RLevel);
-        if (level < 1 || level > 99) return LandmarkVerdict.Unreadable;
-
-        var rec8 = _jobCommandRec8.Probe();
-        var rec9 = _jobCommandRec9.Probe();
-        if (rec8 == LandmarkVerdict.Match && rec9 == LandmarkVerdict.Match) return LandmarkVerdict.Match;
-        if (rec8 == LandmarkVerdict.Mismatch || rec9 == LandmarkVerdict.Mismatch) return LandmarkVerdict.Mismatch;
-        return LandmarkVerdict.Unreadable;
-    }
-
-    private LandmarkVerdict ProbeRamzaRosterRow()
-    {
-        long rb = Offsets.RosterBase;
-        int level = _mem.U8(rb + Offsets.RLevel);
-        if (level < 1 || level > 99) return LandmarkVerdict.Unreadable;   // unpopulated slot (title screen)
-
-        int nameId = _mem.U16(rb + Offsets.RNameId);
-        byte sprite = _mem.U8(rb + Offsets.RSprite);
-        int brave = _mem.U8(rb + Offsets.RBrave);
-        int faith = _mem.U8(rb + Offsets.RFaith);
-
-        return nameId == RamzaExpectedNameId && sprite < MonsterSpriteFloor
-               && brave <= MaxPlausibleBraveFaith && faith <= MaxPlausibleBraveFaith
-            ? LandmarkVerdict.Match : LandmarkVerdict.Mismatch;
     }
 }

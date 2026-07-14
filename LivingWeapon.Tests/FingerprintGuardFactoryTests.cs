@@ -40,7 +40,7 @@ public class FingerprintGuardFactoryTests
         WriteU32(store, BaseAddr + ELfanew + 0x50, 0xBBBBBBBB);
         var landmark = FingerprintGuard.PeBuildKey(DictReader(store), BaseAddr, 0xAAAAAAAA, 0xBBBBBBBB);
 
-        Assert.Equal(LandmarkVerdict.Match, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Match, landmark.Probe().Verdict);
     }
 
     [Theory]
@@ -54,7 +54,7 @@ public class FingerprintGuardFactoryTests
         WriteU32(store, BaseAddr + ELfanew + 0x50, actualSizeOfImage);
         var landmark = FingerprintGuard.PeBuildKey(DictReader(store), BaseAddr, 0xAAAAAAAA, 0xBBBBBBBB);
 
-        Assert.Equal(LandmarkVerdict.Mismatch, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Mismatch, landmark.Probe().Verdict);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class FingerprintGuardFactoryTests
         var store = new Dictionary<long, byte[]>();   // nothing seeded: even e_lfanew fails
         var landmark = FingerprintGuard.PeBuildKey(DictReader(store), BaseAddr, 0xAAAAAAAA, 0xBBBBBBBB);
 
-        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe().Verdict);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public class FingerprintGuardFactoryTests
         WriteU32(store, BaseAddr + 0x3C, 0x7FFFFFFF);   // huge e_lfanew; the follow-up reads are never seeded
         var landmark = FingerprintGuard.PeBuildKey(DictReader(store), BaseAddr, 0xAAAAAAAA, 0xBBBBBBBB);
 
-        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe().Verdict);
     }
 
     // ---- ByteSignature ----
@@ -86,7 +86,7 @@ public class FingerprintGuardFactoryTests
         var store = new Dictionary<long, byte[]> { [0x1000] = new byte[] { 1, 2, 3, 4 } };
         var landmark = FingerprintGuard.ByteSignature(DictReader(store), 0x1000, Expected4, "sig");
 
-        Assert.Equal(LandmarkVerdict.Match, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Match, landmark.Probe().Verdict);
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public class FingerprintGuardFactoryTests
         var store = new Dictionary<long, byte[]> { [0x1000] = new byte[] { 1, 2, 3, 5 } };
         var landmark = FingerprintGuard.ByteSignature(DictReader(store), 0x1000, Expected4, "sig");
 
-        Assert.Equal(LandmarkVerdict.Mismatch, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Mismatch, landmark.Probe().Verdict);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class FingerprintGuardFactoryTests
         var store = new Dictionary<long, byte[]>();   // nothing seeded at 0x1000
         var landmark = FingerprintGuard.ByteSignature(DictReader(store), 0x1000, Expected4, "sig");
 
-        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe().Verdict);
     }
 
     [Fact]
@@ -113,7 +113,7 @@ public class FingerprintGuardFactoryTests
         var store = new Dictionary<long, byte[]> { [0x1000] = new byte[] { 0, 0, 0, 0 } };
         var landmark = FingerprintGuard.ByteSignature(DictReader(store), 0x1000, Expected4, "sig");
 
-        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe().Verdict);
     }
 
     [Fact]
@@ -124,6 +124,55 @@ public class FingerprintGuardFactoryTests
         GuardTryRead reader = (long addr, int len, out byte[] buf) => { buf = new byte[] { 1, 2 }; return true; };
         var landmark = FingerprintGuard.ByteSignature(reader, 0x1000, Expected4, "sig");
 
-        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe());
+        Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe().Verdict);
+    }
+
+    // ---- LW-83: mismatch readings carry observed-vs-expected detail ----
+
+    [Fact]
+    public void PeBuildKey_mismatch_reading_carries_expected_and_observed()
+    {
+        var store = new Dictionary<long, byte[]>();
+        WriteU32(store, BaseAddr + 0x3C, ELfanew);
+        WriteU32(store, BaseAddr + ELfanew + 8, 0xFFFFFFFF);
+        WriteU32(store, BaseAddr + ELfanew + 0x50, 0xBBBBBBBB);
+        var landmark = FingerprintGuard.PeBuildKey(DictReader(store), BaseAddr, 0xAAAAAAAA, 0xBBBBBBBB);
+
+        var reading = landmark.Probe();
+
+        Assert.Equal(LandmarkVerdict.Mismatch, reading.Verdict);
+        Assert.NotNull(reading.Detail);
+        Assert.Contains("0xAAAAAAAA", reading.Detail);
+        Assert.Contains("0xFFFFFFFF", reading.Detail);
+        Assert.Contains("TimeDateStamp", reading.Detail);
+    }
+
+    [Fact]
+    public void PeBuildKey_match_reading_has_null_detail()
+    {
+        var store = new Dictionary<long, byte[]>();
+        WriteU32(store, BaseAddr + 0x3C, ELfanew);
+        WriteU32(store, BaseAddr + ELfanew + 8, 0xAAAAAAAA);
+        WriteU32(store, BaseAddr + ELfanew + 0x50, 0xBBBBBBBB);
+        var landmark = FingerprintGuard.PeBuildKey(DictReader(store), BaseAddr, 0xAAAAAAAA, 0xBBBBBBBB);
+
+        var reading = landmark.Probe();
+
+        Assert.Equal(LandmarkVerdict.Match, reading.Verdict);
+        Assert.Null(reading.Detail);
+    }
+
+    [Fact]
+    public void ByteSignature_mismatch_reading_carries_observed_and_expected_bytes()
+    {
+        var store = new Dictionary<long, byte[]> { [0x1000] = new byte[] { 1, 2, 3, 5 } };
+        var landmark = FingerprintGuard.ByteSignature(DictReader(store), 0x1000, Expected4, "sig");
+
+        var reading = landmark.Probe();
+
+        Assert.Equal(LandmarkVerdict.Mismatch, reading.Verdict);
+        Assert.NotNull(reading.Detail);
+        Assert.Contains("01-02-03-04", reading.Detail);
+        Assert.Contains("01-02-03-05", reading.Detail);
     }
 }

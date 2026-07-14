@@ -47,6 +47,25 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green (DocsContractTests allow-list + link scan, TodoContractTests); the
     owner then RUNS the pass, flips its checkboxes, and closes with a green
     `python tools/scan_logs.py`.
+- **[LW-83] Guard observability: observed-vs-expected in the stand-down record, self-identifying drill** (opened 2026-07-14) [AWAITING-LIVE]
+  - Done means: a guard stand-down self-diagnoses from its own artifacts: the flight "guard"
+    record and the startup Error line carry each mismatching landmark's observed and expected
+    values (PE build key: both u32 fields in hex; byte-signature landmarks: the observed vs
+    expected byte windows; the roster-row probe: the observed field values), and a stand-down
+    forced by the dev drill (forceMismatch, wired from LW_FORCE_FINGERPRINT_MISMATCH in
+    Mod.StartEngine) self-identifies by printing the flag's name in both artifacts. Production
+    passes forceMismatch=false, so the drill marker is unreachable for players.
+    FingerprintGuard.cs keeps its zero-dependency copy-file portability contract.
+  - Verify: failing-first tests (core mismatch detail surfaces in the stand-down diag; the
+    LaunchGuard recorder record carries observed plus expected PE key values; a drill stand-down
+    names the flag while a real mismatch does not); suite green; owner drill run on a dev build
+    (trigger via the LW_FORCE_FINGERPRINT_MISMATCH marker file in the mod dir; the env-var lane
+    does not reach fft_enhanced on this box) reads the self-identified line and the value pairs
+    in livingweapon.log and the standdown flight archive.
+  - Fix SHIPPED 2026-07-14 (LandmarkReading detail plumbing in the portable core, drill
+    self-identify in the adapter, LaunchGuard split into lifecycle + Landmarks partials;
+    build-lite pipeline, verifier SHIP 9/10 with a sabotage non-vacuity proof, suite 2463
+    green); the owner drill run above is what remains, scripted in the session handoff.
 - **[LW-69] Silence the unnecessary log output (census-evict flood + audit findings)** (opened 2026-07-11) [AWAITING-LIVE]
   - Done means: the 2026-07-11 owner-directed log audit (livingweapon.log + the flight tapes) is
     run and its unnecessary-output findings are silenced. Audit verdict: the two attack-card
@@ -294,6 +313,12 @@ is the in-flight subset, not a mirror of that checklist.
   writeback mechanism and the June "Red Mage lost abilities" sighting may have been this bug
   misattributed to Bloodpact. Remaining validation before building: the delete-row-57 ladder
   above. working/dir_bluered/ holds their decoded action table from the June dev install.
+  2026-07-14 compose-test methodology (owner directive, rides LW-83): every compose test with a
+  suspected-conflicting mod (Blue And Red Mages, GenericJobs) starts by reading the guard
+  verdict in livingweapon.log BEFORE any manual diffing: armed means the other mod's writes
+  miss our watched regions entirely; a jobcommand-table stand-down while pe-build-key matches
+  fingerprints their table writes, and the LW-83 observed-vs-expected bytes in that line name
+  exactly which bytes they changed, ruling a game patch in or out from one log read.
 - [LW-80] 2026-07-13: File the upstream modloader issue (Nenkai/fftivc.utility.modloader):
   table-XML row edits apply as whole-row writebacks (ApplyTablePatch assigns every field via
   model.X ?? previous.X at OnAllModsLoaded), clobbering other mods' post-snapshot runtime row
@@ -310,13 +335,6 @@ is the in-flight subset, not a mirror of that checklist.
   content to sign (the SubmenuFlag class of UI flags: boot-time state-solve or anchoring
   relative to signed neighbors; 1.5.1's only data casualty was exactly this class). Code hooks
   are covered by HookLandmark (shipped in the LW-81 arc): refusal, not self-relocation.
-- [LW-83] 2026-07-14: Guard observability: the standdown flight record carries only
-  "stand-down (pe-build-key)" with no observed-vs-expected values, and the
-  LW_FORCE_FINGERPRINT_MISMATCH drill's stand-down line is indistinguishable from a real
-  mismatch in every artifact (bit the 2026-07-14 drill: discriminating them took a mapped-PE
-  argument instead of one log read). Add the observed and expected key values to the guard's
-  flight record and make the drill self-identify in its log line (dev builds only print the
-  flag's name; players can never see it).
 - [LW-78] 2026-07-13: Re-diff the pre-1.5 full-table nxd bakes (item.en.nxd and ability.en.nxd)
   against 1.5 vanilla: the loader diffs each mod's nxd against the CURRENT vanilla table at
   load, so any text cell the 1.5 game patch changed silently converts our stale bake into an

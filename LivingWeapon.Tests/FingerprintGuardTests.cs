@@ -190,4 +190,22 @@ public class FingerprintGuardTests
         Assert.Contains("landmark-b", diag);
         Assert.DoesNotContain("landmark-c", diag);
     }
+
+    [Fact]
+    public void StandDown_diag_carries_mismatch_detail()
+    {
+        var landmark = new GuardLandmark("landmark-detail",
+            () => new LandmarkReading(LandmarkVerdict.Mismatch, "detail-xyz"));
+        string? diag = null;
+        var guard = new FingerprintGuard(new[] { landmark },
+            onStandDown: d => diag = d,
+            mismatchDebounce: 1);
+
+        guard.Step();
+
+        Assert.Equal(GuardState.StoodDown, guard.State);
+        Assert.NotNull(diag);
+        Assert.Contains("landmark-detail", diag);
+        Assert.Contains("detail-xyz", diag);
+    }
 }

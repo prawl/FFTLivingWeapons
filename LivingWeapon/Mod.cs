@@ -104,9 +104,11 @@ public class Mod : IMod
             ModLogger.LogLevel = LogLevel.Info;
             // LW-50 stand-down drill, dev builds only: the config knob was removed 2026-07-07 so
             // players cannot trigger a stand-down from the launcher UI. Set the environment variable
-            // LW_FORCE_FINGERPRINT_MISMATCH to 1 before launching a DEV build to force the mismatch.
+            // LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a marker file of that same name into the
+            // mod dir (LW-83: env variables do not reach fft_enhanced through this box's launch
+            // chain), before launching a DEV build to force the mismatch.
 #if LWDEV
-            bool devForceFingerprintMismatch = Environment.GetEnvironmentVariable("LW_FORCE_FINGERPRINT_MISMATCH") == "1";
+            bool devForceFingerprintMismatch = DrillTrigger.DrillRequested(modDir);
 #else
             const bool devForceFingerprintMismatch = false;
 #endif

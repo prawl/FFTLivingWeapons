@@ -20,15 +20,35 @@ internal enum LandmarkVerdict { Unreadable, Match, Mismatch }
 
 internal enum GuardState { Verifying, Armed, StoodDown }
 
+/// <summary>LW-83: one landmark's verdict PLUS, on a Mismatch only, the observed-vs-expected
+/// evidence behind it (Detail is null for every other verdict). The implicit operator from a bare
+/// <see cref="LandmarkVerdict"/> is load-bearing: every probe that has no detail to offer (Match,
+/// Unreadable, or a Custom landmark that never composes one) keeps returning a bare verdict with
+/// no call-site change.</summary>
+internal readonly struct LandmarkReading
+{
+    public LandmarkVerdict Verdict { get; }
+    public string? Detail { get; }
+
+    public LandmarkReading(LandmarkVerdict verdict, string? detail = null)
+    {
+        Verdict = verdict;
+        Detail = detail;
+    }
+
+    public static implicit operator LandmarkReading(LandmarkVerdict verdict) => new(verdict);
+}
+
 /// <summary>One fact the guard checks: a name (for diagnostics) and a probe that reads live
-/// memory and returns a tri-state verdict. A probe never throws; a failed read is Unreadable, not
-/// an exception.</summary>
+/// memory and returns a landmark reading. A probe never throws: a failed read is Unreadable, not
+/// an exception. <see cref="LandmarkReading.Detail"/> carries the observed-vs-expected mismatch
+/// evidence and is null on every other verdict (LW-83).</summary>
 internal sealed class GuardLandmark
 {
     public string Name { get; }
-    public Func<LandmarkVerdict> Probe { get; }
+    public Func<LandmarkReading> Probe { get; }
 
-    public GuardLandmark(string name, Func<LandmarkVerdict> probe)
+    public GuardLandmark(string name, Func<LandmarkReading> probe)
     {
         Name = name;
         Probe = probe;
@@ -77,11 +97,16 @@ internal sealed class FingerprintGuard
         List<string>? mismatched = null;
         foreach (var landmark in _landmarks)
         {
-            switch (landmark.Probe())
+            var reading = landmark.Probe();
+            switch (reading.Verdict)
             {
                 case LandmarkVerdict.Mismatch:
                     anyMismatch = true;
-                    (mismatched ??= new List<string>()).Add(landmark.Name);
+                    // LW-83: fold the observed-vs-expected evidence into the entry when the probe
+                    // offered one; a bare-verdict probe (still legal via the implicit operator)
+                    // keeps the old name-only entry.
+                    (mismatched ??= new List<string>()).Add(
+                        reading.Detail is null ? landmark.Name : $"{landmark.Name} ({reading.Detail})");
                     break;
                 case LandmarkVerdict.Unreadable:
                     anyUnreadable = true;
@@ -107,7 +132,8 @@ internal sealed class FingerprintGuard
         if (_mismatchStreak >= _mismatchDebounce)
         {
             State = GuardState.StoodDown;
-            _onStandDown(string.Join(", ", mismatched!));
+            // "; " not ", ": a landmark's detail can itself contain commas (LW-83).
+            _onStandDown(string.Join("; ", mismatched!));
         }
     }
 
@@ -124,7 +150,8 @@ internal sealed class FingerprintGuard
 
     /// <summary>A landmark over the mapped image's PE build key (TimeDateStamp + SizeOfImage): a
     /// failed or short read at any of the three fields is Unreadable (the image may not be
-    /// mapped/readable yet); otherwise both fields equal is Match, else Mismatch.</summary>
+    /// mapped/readable yet); otherwise both fields equal is Match, else Mismatch with a detail
+    /// naming both fields' expected and observed values (LW-83).</summary>
     public static GuardLandmark PeBuildKey(GuardTryRead tryRead, long moduleBase,
         uint expectedTimeDateStamp, uint expectedSizeOfImage)
     {
@@ -136,15 +163,20 @@ internal sealed class FingerprintGuard
                 return LandmarkVerdict.Unreadable;
             if (!TryReadU32(tryRead, moduleBase + eLfanew + SizeOfImageOffset, out uint sizeOfImage))
                 return LandmarkVerdict.Unreadable;
-            return timeDateStamp == expectedTimeDateStamp && sizeOfImage == expectedSizeOfImage
-                ? LandmarkVerdict.Match : LandmarkVerdict.Mismatch;
+            if (timeDateStamp == expectedTimeDateStamp && sizeOfImage == expectedSizeOfImage)
+                return LandmarkVerdict.Match;
+            return new LandmarkReading(LandmarkVerdict.Mismatch,
+                $"expected TimeDateStamp=0x{expectedTimeDateStamp:X8} SizeOfImage=0x{expectedSizeOfImage:X8}, "
+                + $"observed TimeDateStamp=0x{timeDateStamp:X8} SizeOfImage=0x{sizeOfImage:X8}");
         });
     }
 
     /// <summary>A fixed byte window at <paramref name="addr"/>. A failed or short read is
     /// Unreadable and never indexes past the returned buffer's length. An ALL-ZERO buffer is also
     /// Unreadable, not Mismatch: the documented boot-window escape for a table region the engine
-    /// has not built yet (uninitialized process memory reads as zero, not as foreign bytes).</summary>
+    /// has not built yet (uninitialized process memory reads as zero, not as foreign bytes). A
+    /// Mismatch's detail carries the expected and observed byte windows, hyphen-hex formatted
+    /// (LW-83).</summary>
     public static GuardLandmark ByteSignature(GuardTryRead tryRead, long addr, byte[] expected, string name)
     {
         return new GuardLandmark(name, () =>
@@ -156,7 +188,10 @@ internal sealed class FingerprintGuard
                 if (buf[i] != 0) { allZero = false; break; }
             if (allZero) return LandmarkVerdict.Unreadable;
             for (int i = 0; i < expected.Length; i++)
-                if (buf[i] != expected[i]) return LandmarkVerdict.Mismatch;
+                if (buf[i] != expected[i])
+                    return new LandmarkReading(LandmarkVerdict.Mismatch,
+                        $"expected {BitConverter.ToString(expected)}, "
+                        + $"observed {BitConverter.ToString(buf, 0, expected.Length)}");
             return LandmarkVerdict.Match;
         });
     }
@@ -164,7 +199,7 @@ internal sealed class FingerprintGuard
     /// <summary>An arbitrary game-knowledge probe (e.g. the Ramza roster row shape, or a
     /// boot-window-guarded composite of other windows). The core stays agnostic: this is how the
     /// adapter plugs game-specific logic in without the core ever seeing a game offset.</summary>
-    public static GuardLandmark Custom(string name, Func<LandmarkVerdict> probe) => new(name, probe);
+    public static GuardLandmark Custom(string name, Func<LandmarkReading> probe) => new(name, probe);
 
     private static bool TryReadU32(GuardTryRead tryRead, long addr, out uint value)
     {
