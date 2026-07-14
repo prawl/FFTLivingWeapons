@@ -8,6 +8,20 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-89] SHIPPED be7e989 2026-07-14: tier-up toast delivery restored (dead the whole post-1.5.1
+  era). Smoke row 7.25's positive control caught it: the Chaos Blade tier-2 toast enqueued at
+  the exact 25th-kill credit with zero deliver records in any retained tape. Diagnosis in three
+  builds the same day: a bounded prompt-head sampler (ed3ce16) showed the hooked entry's rdx was
+  garbage; a struct sampler (22611a4) plus live disassembly proved the 1.5.1 re-anchor had
+  landed on a dispatch wrapper whose rdx is a flag byte, with the text resolved from a string
+  object at holder+0x20 and every branch converging on the true setter at 0x1403F1098 with the
+  resolved char* in rdx; the fix (be7e989) re-anchors the hook there, landmark-guarded, with
+  the proven pre-1.5 swap semantics and the unchanged "Select a facing" prefix (the 1.5.1
+  wording "Select a facing direction and press F to confirm." still matches). Owner
+  live-verified 15:55:36: kill number 5 credited to Kiku-ichimonji at 15:55:34 and the banner
+  "Kiku-ichimonji has gained its 5th kill and has grown to Kiku-ichimonji+" delivered on the
+  facing prompt two seconds later, the first banner since the game patched. The samplers stay
+  shipped as permanent bounded observability.
 - [LW-77] SHIPPED 2a4c325 2026-07-14: the job-mod collision surface prune. The loader applies
   every listed table-XML row as a whole-row writeback at OnAllModsLoaded (proven live by the
   owner's row-57 ladder with Blue And Red Mages 2.0.2; LIVE_LEDGER Proven row added), so

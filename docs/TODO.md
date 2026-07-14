@@ -10,27 +10,6 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-89] Restore tier-up toast delivery (facing-prompt prefix dead on 1.5.1)** (opened 2026-07-14) [BUILDING]
-  - Done means: the silent toast-delivery outage is diagnosed and fixed. Evidence: the 14:08
-    tape shows the Chaos Blade tier-2 toast enqueued at the exact 25th-kill credit with zero
-    deliver records; NO deliver record exists in any retained tape (the whole post-1.5.1 era);
-    the owner's post-enqueue turns were manual (auto-battle stopped one kill earlier), so the
-    Wait facing prompt rendered and never matched PromptSwap's EN prefix ("Select a facing").
-    Dev builds seed every weapon past all tiers, so no crossing ever fired in dev play and the
-    outage stayed invisible until today's first real prod crossing. Step 1 ships a bounded
-    prompt-head sampler (first N unique decodable heads per session, file-only DBG, permanent
-    observability) so one manual turn end on prod reveals the live 1.5.1 facing text and whether
-    it still routes through the hooked SetTextString entry; step 2 fixes the prefix (or
-    re-anchors the route) from that capture. First capture 2026-07-14 (owner): the on-screen
-    prompt now reads "Select a direction" (1.5.x reworded it, kill switch one), and the sampled
-    heads prove rdx at the true 1.5.1 entry is a string OBJECT, not a char* (readable heads
-    missing their first character, pointer-like garbage, the facing prompt never sampling: kill
-    switch two, which also means the delivery swap must hand back an object-shaped payload).
-    Step 1b (the struct sampler) dumps the object layout from one fresh-session capture.
-  - Verify: sampler TDD-tested (bounded, deduped, the toast queue untouched on every sampled
-    path); owner live: one manual turn end, read the sampled heads in the file; after the fix,
-    the manual Kiku 4-to-5 kill delivers the +1 banner (smoke row 7.25's deliver half, which
-    stays the positive control).
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live

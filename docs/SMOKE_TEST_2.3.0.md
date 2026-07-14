@@ -329,7 +329,10 @@ Debug/file tier only.
   Attack row renamed, kills credit). The enter/exit machinery changed twice after LW-40's
   2026-07-07 verification (LW-56's forced new-game exit edge, LW-34's coverage work), and the
   pre-fix failure mode was total silent dormancy. **[MAJOR]**
-- [ ] 7.25 **Toasts still DELIVER (positive control).** One tier-up crossing on prod (pick a
+- [x] 7.25 (PASSED 2026-07-14, owner eyewitness: Kiku-ichimonji kill 5 credited 15:55:34, the
+  +1 banner delivered on the facing prompt 15:55:36 with the Delivered line in the file; this
+  row first FAILED at 14:08 and caught the post-1.5.1 delivery outage, fixed as LW-89 be7e989)
+  **Toasts still DELIVER (positive control).** One tier-up crossing on prod (pick a
   weapon sitting just under 5, 25, or 50 in kills.json) delivers its banner via the facing
   prompt, with the enqueue and deliver lines in the file. The toast plumbing changed twice this
   cycle (LW-35 release-hid deed toasts, LW-52 removed the BannerToasts toggle), and every other
