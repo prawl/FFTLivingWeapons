@@ -18,6 +18,11 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 - Ground truth before concluding anything: read the PE header off the exe ON DISK and compare
   with LaunchGuard.cs's expected constants. A mod cannot plausibly change TimeDateStamp and
   SizeOfImage; both differing means the binary changed.
+- LW-82: once stood down, the read-only AnchorScout re-finds the jobcommand-table and roster-base
+  anchors on its own and logs a re-find inventory (found at pin / found elsewhere with a delta /
+  ambiguous / not found, plus a summary line) into the SAME livingweapon.log; it writes nothing and
+  changes no GuardState. A stood-down log already carries the starting map Phase B below used to
+  spend a whole live session finding by hand.
 
 ## Standing facts that keep this calm
 
@@ -65,7 +70,10 @@ Produce the checklist the live session will execute:
 
 ## Step 4: Phase B, the live re-find (one co-op session, external read-only RPM)
 
-Method by anchor class (the 1.5-proven playbook; details in PORT_1.5_OFFSETS.md "Method"):
+Start from the AnchorScout re-find inventory in the stood-down log (LW-82) rather than a blank
+page: it already names each covered anchor's found-at-pin/elsewhere/ambiguous/not-found verdict
+before anyone touches a probe. Method by anchor class (the 1.5-proven playbook; details in
+PORT_1.5_OFFSETS.md "Method"):
 - State flags (battleMode, pause, submenu): two-state DIFFERENTIAL across transitions; for
   flags the action menu already holds (pause), a HIGH-FREQUENCY CONSISTENCY SAMPLE
   (constant-1 across one state, constant-0 across the other) beats any open/closed diff.

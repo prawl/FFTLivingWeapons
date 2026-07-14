@@ -53,6 +53,7 @@ internal sealed class Engine
     private const int GunSlingerThrottleEveryNTicks = 30;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
     private readonly LaunchGuard _launchGuard;   // LW-50: gates every write until landmarks verify
+    private readonly AnchorScout _anchorScout;   // LW-82: verifier scout, ticks only once StoodDown; writes nothing
     private readonly BannerToast _toast;
     private readonly bool _bannerToastsEnabled;
     private readonly PromptSwap _promptSwap;
@@ -124,6 +125,9 @@ internal sealed class Engine
         // ring, so a stand-down leaves a durable archive.
         _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: StandDownNotice.Show,
             recorder: Flight.Record, requestFlush: Flight.RequestFlush);
+        // LW-82: read-only, ticks only while the guard is StoodDown (below); never arms, never
+        // writes, never touches GuardState. Verifier scout, not healer (owner-locked decision).
+        _anchorScout = new AnchorScout(live);
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
         // Reliquary Phase 1 (docs/RELIQUARY_AC.md): the deed-recording seam KillTracker's
@@ -287,7 +291,15 @@ internal sealed class Engine
 
         // LW-50: before any landmark verifies, only retry the guard and do nothing else this
         // tick. Once armed, this check is a single cheap bool read (Step is never called again).
-        if (!_launchGuard.Armed) { _launchGuard.Step(); return; }
+        // LW-82: once the guard has permanently stood down, the read-only anchor scout ticks
+        // instead (diagnostics only; it never arms and never writes). A still-Verifying guard
+        // ticks neither.
+        if (!_launchGuard.Armed)
+        {
+            _launchGuard.Step();
+            if (_launchGuard.State == GuardState.StoodDown) _anchorScout.Tick();
+            return;
+        }
 
         uint slot0 = Mem.U32(Offsets.Slot0);
         uint slot9 = Mem.U32(Offsets.Slot9);
