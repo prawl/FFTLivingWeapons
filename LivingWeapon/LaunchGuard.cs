@@ -13,8 +13,13 @@ namespace LivingWeapon;
 /// BOOT-WINDOW SAFETY: the JobCommand landmark first checks that Ramza's roster row is populated
 /// (a save is loaded) before touching the signature windows at all; before a save loads, the
 /// table region reads Unreadable (never Mismatch), so the guard never stands down at the title
-/// screen on the JobCommand check alone. The PE-key landmark stays independent and is
-/// early-decidable: a truly patched exe stands down loudly even at the title screen.
+/// screen on the JobCommand check alone. This gate is deliberate boot-window conservatism, not a
+/// consequence of the table itself needing a save to exist: probe evidence 2026-07-14
+/// (tools/probes/anchorscan_feasibility_probe.py, exe backup file offset 0x67D6DB) found the
+/// rec8/rec9 signature pair is FILE-BAKED static image data, present from module-map time; an
+/// earlier version of this comment called the table "boot-built", which was the stale premise. The
+/// PE-key landmark stays independent and is early-decidable: a truly patched exe stands down
+/// loudly even at the title screen.
 ///
 /// Once armed, this instance never re-verifies (verify-once is load-bearing: Barrage legitimately
 /// edits the same JobCommand region after arming, e.g. when it injects Barrage into a job's

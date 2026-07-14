@@ -112,7 +112,7 @@ deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-face
 
 | Verb | Legacy prefix(es) | Level discipline |
 |---|---|---|
-| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer only. |
+| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer, plus the fingerprint guard's armed/stand-down lines and (LW-82) the anchor scout's re-find inventory that only runs after a stand-down. |
 | `config` | `config:` | Info once per launch; Warning on read failure. |
 | `battle-start` | `battle: started` | Info once per battle; sentinels move to a `[trace]` companion. |
 | `battle-end` | `battle: ended` | Info once per battle; THE match-report summary line. |
@@ -267,9 +267,12 @@ the armed edge and a stand-down's landmark diag, so a stand-down archive is self
 one record per refused cursor answer (roster/band weapon disagreement, or a hover that is not
 yet the turn owner), deduped to once per refusal key per battle, naming the refusal kind and
 both weapon ids so a live "wrong dossier" report can be diagnosed after the fact. Deliberately
-**not** tapped: Puppeteer (a separate live-verify arc is in flight against those exact lines)
-and Treasure Master (slated for removal, docs/TODO.md LW-10, no new investment there; the
-chemist-grenade paths left the repo entirely with the Offensive Chemist removal, a5ea61e).
+**not** tapped: Puppeteer (a separate live-verify arc is in flight against those exact lines),
+Treasure Master (slated for removal, docs/TODO.md LW-10, no new investment there; the
+chemist-grenade paths left the repo entirely with the Offensive Chemist removal, a5ea61e), and
+(LW-82) the AnchorScout: it is diagnostics-only read-only scaffolding for a game-patch event, not
+a runtime mechanic worth a jsonl record, and its own log lines (under `[startup]`) are already the
+durable evidence a re-anchor session reads.
 
 **Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl` -- one compact
 JSON object per line (Newtonsoft.Json; no hand-rolled escaping). The first line of every file is

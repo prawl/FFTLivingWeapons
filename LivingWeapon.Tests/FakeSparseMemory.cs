@@ -62,16 +62,26 @@ internal sealed class FakeSparseMemory : IGameMemory
     // U32 support: ArmAudit reads 4-byte PE fields as two U16 reads, or via U8x4.
     // We override TryReadBytes so the fingerprint path works, and expose U8 for U32
     // by splitting the stored uint into bytes.
+    //
+    // LW-82: serves any read FULLY CONTAINED in a registered block (base <= addr &&
+    // addr + len <= base + block.Length), a strict superset of the original exact-base-only
+    // semantics (base == addr is still served, as a 1-entry special case of "contained"). This
+    // lets AnchorScoutTests stage one wide region and read arbitrary sub-windows out of it (a
+    // chunked scan's reads rarely land exactly on a block's own base address), without changing
+    // any existing exact-base caller's behavior.
     public bool TryReadBytes(long addr, int len, out byte[] buf)
     {
-        // Serve a registered terrain block if addr matches exactly.
-        if (TerrainBlocks.TryGetValue(addr, out var block) && len <= block.Length)
-        {
-            buf = new byte[len];
-            System.Array.Copy(block, buf, len);
-            return true;
-        }
         buf = new byte[len];
+        foreach (var pair in TerrainBlocks)
+        {
+            long @base = pair.Key;
+            byte[] block = pair.Value;
+            if (addr >= @base && addr + len <= @base + block.Length)
+            {
+                System.Array.Copy(block, addr - @base, buf, 0, len);
+                return true;
+            }
+        }
         return false;
     }
 

@@ -31,9 +31,16 @@ internal sealed partial class LaunchGuard
     private static readonly long Rec8Addr = Barrage.AbilityBase + 8L * Barrage.RecSize;
     private static readonly long Rec9Addr = Barrage.AbilityBase + 9L * Barrage.RecSize;
     // Aim ability ids 150..157 (0x96..0x9D), Martial Arts ability ids 100..107 (0x64..0x6B): the
-    // same bytes as jobcommand_find_probe.py's REC8_SIG/REC9_SIG.
-    private static readonly byte[] Rec8Sig = { 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D };
-    private static readonly byte[] Rec9Sig = { 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B };
+    // same bytes as jobcommand_find_probe.py's REC8_SIG/REC9_SIG. Content is FILE-BAKED static
+    // image data (this comment used to call the table "boot-built"; that premise was stale: the
+    // pair is present from module-map time, verified live 2026-07-14 by
+    // tools/probes/anchorscan_feasibility_probe.py against exe backup file offset 0x67D6DB, so the
+    // AnchorScout jobcommand-table spec (AnchorScout.cs) needs no save loaded to re-find it, unlike
+    // the roster gate below (deliberate boot-window conservatism, kept as-is). internal (not
+    // private): AnchorScout reuses these two signatures as its jobcommand-table anchor spec, one
+    // master copy shared with this guard's own landmark.
+    internal static readonly byte[] Rec8Sig = { 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D };
+    internal static readonly byte[] Rec9Sig = { 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B };
 
     // Ramza roster row shape at RosterBase slot 0 (Offsets.cs:94). Provenance: Offsets.cs:94/120,
     // unitid_probe captures (Offsets.cs's ANameId doc), docs/research/SPRITE_SWAP.md:41-52 (Ramza
@@ -49,10 +56,13 @@ internal sealed partial class LaunchGuard
 
     private LandmarkReading ProbeJobCommandTable()
     {
-        // BOOT-WINDOW SAFETY: a loaded save implies the boot-built JobCommand table (learn
-        // screens work), so gate on Ramza's roster row being populated at all before reading the
-        // signature windows. Game knowledge stays here in the adapter; FingerprintGuard's core
-        // stays agnostic of it.
+        // BOOT-WINDOW SAFETY: gate on Ramza's roster row being populated at all before reading the
+        // signature windows. This used to read "a loaded save implies the boot-built JobCommand
+        // table"; that premise was stale (the table is FILE-BAKED static image data, present from
+        // module-map time, not something a save load constructs, see the Rec8Sig/Rec9Sig comment
+        // above), so the gate is kept anyway as deliberate boot-window conservatism, not because
+        // the table needs a save to exist. Game knowledge stays here in the adapter;
+        // FingerprintGuard's core stays agnostic of it.
         int level = _mem.U8(Offsets.RosterBase + Offsets.RLevel);
         if (level < 1 || level > 99) return LandmarkVerdict.Unreadable;
 

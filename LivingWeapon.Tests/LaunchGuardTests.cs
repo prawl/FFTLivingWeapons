@@ -12,9 +12,10 @@ namespace LivingWeapon.Tests;
 /// row), the always-compiled forceMismatch knob, the Mem.WritesEnabled arming edge, and the
 /// deferred hook-arm handshake.
 ///
-/// FakeSparseMemory.TryReadBytes only serves exact-address TerrainBlocks entries, so every PE and
-/// JobCommand read here is staged there; U8/U16 roster fields go through the U8s/U16s
-/// dictionaries (unseeded reads default to 0, i.e. an unpopulated roster slot).
+/// FakeSparseMemory.TryReadBytes serves any read fully contained in a registered TerrainBlocks
+/// entry (LW-82 widened this from exact-address-only), so every PE and JobCommand read here is
+/// staged there; U8/U16 roster fields go through the U8s/U16s dictionaries (unseeded reads default
+/// to 0, i.e. an unpopulated roster slot).
 /// </summary>
 public class LaunchGuardTests
 {
