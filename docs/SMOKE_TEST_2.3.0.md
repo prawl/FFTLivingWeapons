@@ -92,7 +92,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   hit (no false release; pre-fix, the parked actor pointer released here and could write the
   wrong unit's Speed), then release normally on the wielder's own turn, named to the turn flags.
   **[MAJOR]**
-- [ ] 2.3 **Kobu (Kiyomori id 43): the Brave climb.** Strike a foe whose current Brave exceeds the
+- [x] 2.3 (PASSED 2026-07-14, owner live, dev lane: the strike raised the wielder 57 to 71 on
+  screen, the file logged the one-shot raise + verdict detail, inactive verdicts proved the
+  gate refuses non-braver foes; the LIVE_LEDGER Kobu row flipped PROVEN on this evidence)
+  **Kobu (Kiyomori id 43): the Brave climb.** Strike a foe whose current Brave exceeds the
   wielder's: the wielder's Brave visibly rises to match (one-shot write, capped 97, battle-scoped,
   never lowers the foe despite the card's "steals" wording). The LIVE_LEDGER Kobu row is still
   Uncertain (the 2026-07-02 rework fired once live, never flipped): this box is its flip evidence.
@@ -313,7 +316,10 @@ Debug/file tier only.
   extra turn. **[MAJOR]**
 - [ ] 7.5 **Venombolt (id 80) Plague:** poison it inflicts never cures and ticks harder; the
   poison itself never lands the killing blow. **[MAJOR]**
-- [ ] 7.6 **Yoichi Bow (id 90) Barrage:** the Barrage command appears in the wielder's command
+- [x] 7.6 (PASSED 2026-07-14, owner live, dev lane: the grant lines show Barrage injected into
+  Thief's action list with the original backed up, and the command appeared castable with its
+  correct name and description) **Yoichi Bow (id 90) Barrage:** the Barrage command appears in
+  the wielder's command
   list (and survives the learn screen). **[MAJOR]**
 - [ ] 7.7 **Sanguine Sword (id 23) Shadow Blade:** the command appears for the wielder (known,
   accepted leak: same-job enemies can also see it; job-global record). **[MINOR]**
