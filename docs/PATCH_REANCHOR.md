@@ -124,3 +124,16 @@ outcomes per probe before running (found / ambiguous / not-found and what each m
   read the log FILE.
 - Restarting the game invalidates all heap addresses mid-hunt; finish a probe batch within a
   session or re-locate cheaply.
+- Before any scanning, run the cheapest content-signature probe AT the old addresses first. The
+  1.5.1 point release preserved the entire layout except one UI byte (docs/research/
+  PORT_1.5.1_OFFSETS.md): the full re-find script collapsed to a verification pass that answered
+  the whole audit in one session. Do not assume a patch moved anything until an old-address read
+  actually comes back wrong.
+- UI flags need a consistency-sampled multi-state solve, not a simple diff: sample each candidate
+  many times per state (not once) and require constant-value-per-state across all of them; a
+  synced sibling copy is normal (expect one), and a generic-panel decoy is separated from the real
+  flag by finding a DIFFERENT submenu (e.g. the abilities list) where the decoy still reads true
+  but the real flag reads false.
+- A flag's ADDRESS can survive a patch while its SEMANTICS narrow: 1.5.1's PauseFlag stayed at the
+  same address but went from holding 1 across the whole player turn (1.5) to holding 1 only while
+  the status card itself is open. Re-check meaning even when a landmark verifies at its old home.

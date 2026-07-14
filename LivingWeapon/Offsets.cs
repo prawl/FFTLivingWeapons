@@ -6,6 +6,12 @@ namespace LivingWeapon;
 /// valid in-process pointers we can read/write directly (no AoB, no syscalls).
 /// Sources: FFTHandsFree/docs/BATTLE_MEMORY_MAP.md and the BattleTracker the
 /// detection logic is ported from.
+///
+/// 1.5.1 (Steam buildid 23901820) audit 2026-07-13 (docs/research/PORT_1.5.1_OFFSETS.md): all
+/// absolutes below were re-verified live at their UNCHANGED 1.5 addresses except
+/// <see cref="SubmenuFlag"/> (the one mover). ArrayBase and EventId are behaviorally provisional
+/// pending a post-deploy battle; dev-spike constants (BodyDoubleSpike/StatusSpike, #if LWDEV)
+/// were deliberately NOT re-verified this pass and stay stale-flagged.
 /// </summary>
 internal static class Offsets
 {
@@ -310,12 +316,25 @@ internal static class Offsets
     // a 10Hz constant-1-while-paused / constant-0-while-running intersection (a 3-frame diff was
     // swamped by animated UI bytes), then confirmed flipping 0->1->0 on a live card open/close.
     // Two synced copies at 0x140C6B1C8 / 0x140C6B307; using the lower. (was 0x140C64A5C, +0x676C)
+    // 1.5.1 SEMANTICS CHANGE (live-verified 2026-07-13, address unchanged): this byte now reads 1
+    // ONLY while the unit status card is itself open; it reads 0 during the command menu and the
+    // abilities list. On 1.5 it held 1 across the whole player turn (idle + menu + card). Callers
+    // that treat "paused" as a broad player-turn signal (BattleState.InLiveBattle's excuse clause,
+    // the #if LWDEV dev-spike gates) now see a narrower true window; see
+    // docs/research/PORT_1.5.1_OFFSETS.md.
     public const long PauseFlag = 0x140C6B1C8;
     public const long MenuCursor = 0x1407FC620;   // 1.5 PRE-1.5/UNUSED: StatusCardOpen does not gate on it ("the card's own cursor once open")
     // 1.5 CONFIRMED LIVE 2026-06-17: u8 == 1 only when the Status card is open (0 on the free
     // battlefield, enemy turns, AND the plain command menu). Found by 3-state solve (live/menu/card)
     // and reconfirmed across sessions; isolated. (was 0x140D3A10C, +0x6752)
-    public const long SubmenuFlag = 0x140D4085E;
+    // 1.5.1 MOVED (delta -0x52, struct-local reshuffle): the old 0x140D4085E address reads 0 in
+    // every game state on 1.5.1 (dead byte). Re-found 2026-07-13 by a consistency-sampled 3-state
+    // solve (12 samples per state at 0.4s: card=1 constant, command-menu=0, field=0), plus
+    // discriminators: reads 1 in the card via BOTH paths (own-turn Status command AND the
+    // pause-menu Units > Status route), reads 0 in the abilities list (which rejected the
+    // generic-panel decoy candidate 0x140D40554), and 0 post-battle. Synced sibling behaves
+    // identically at 0x140D407BA. See docs/research/PORT_1.5.1_OFFSETS.md.
+    public const long SubmenuFlag = 0x140D4080C;
 
     // --- equip-screen "mirror": the VIEWED unit's equipped gear in UI row order,
     //     [Weapon, LHand, Helm, Body, Accessory] as u16. Mirror[0] = the weapon whose

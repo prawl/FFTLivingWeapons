@@ -23,12 +23,15 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class LaunchGuard
 {
-    // PE fingerprint of the 1.5 exe (docs/research/PORT_1.5_OFFSETS.md:11-15; exe SHA256
-    // 3625FD9B...). Pre-1.5 values differ in BOTH fields (0x690C1269 / 0x156C8000), so either
-    // field alone would catch a rollback; PE FileVersion is NOT usable (reads 1.0.0.0 on both
-    // builds, docs/research/PORT_1.5.md:96-98).
-    internal const uint ExpectedTimeDateStamp = 0x6A0F86A9;
-    internal const uint ExpectedSizeOfImage = 0x190EB000;
+    // PE fingerprint of the 1.5.1 exe (Steam buildid 23901820, exe stamped 2026-07-13),
+    // re-derived from the on-disk PE per docs/PATCH_REANCHOR.md. 1.5 values were 0x6A0F86A9 /
+    // 0x190EB000 (docs/research/PORT_1.5_OFFSETS.md:11-15; exe SHA256 3625FD9B...); the 1.5.1
+    // layout audit (docs/research/PORT_1.5.1_OFFSETS.md) found every other absolute unchanged.
+    // Pre-1.5 values differ in BOTH fields (0x690C1269 / 0x156C8000), so either field alone
+    // would catch a rollback; PE FileVersion is NOT usable (reads 1.0.0.0 on every build,
+    // docs/research/PORT_1.5.md:96-98).
+    internal const uint ExpectedTimeDateStamp = 0x6A3C5497;
+    internal const uint ExpectedSizeOfImage = 0x1878E000;
     private const long ModuleBase = 0x140000000L;
 
     // JobCommand table, rec 8 (Aim, Archer) + rec 9 (Martial Arts, Monk) ability-id bytes. Window

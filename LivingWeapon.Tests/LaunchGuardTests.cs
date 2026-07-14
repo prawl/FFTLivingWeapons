@@ -127,8 +127,8 @@ public class LaunchGuardTests
     [Fact]
     public void ExpectedPeKey_constants_are_pinned()
     {
-        Assert.Equal(0x6A0F86A9u, LaunchGuard.ExpectedTimeDateStamp);
-        Assert.Equal(0x190EB000u, LaunchGuard.ExpectedSizeOfImage);
+        Assert.Equal(0x6A3C5497u, LaunchGuard.ExpectedTimeDateStamp);
+        Assert.Equal(0x1878E000u, LaunchGuard.ExpectedSizeOfImage);
     }
 
     [Fact]

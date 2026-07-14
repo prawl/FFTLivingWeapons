@@ -61,7 +61,7 @@ is the in-flight subset, not a mirror of that checklist.
     census-finished line carrying the rejected count, and no single line class dominating the
     file (owner live pass).
 
-- **[LW-81] Re-anchor the mod for the 2026-07-13 game patch** (opened 2026-07-13) [QUEUED]
+- **[LW-81] Re-anchor the mod for the 2026-07-13 game patch** (opened 2026-07-13) [AWAITING-LIVE]
   - Done means: the full port re-anchor recipe (docs/research/PORT_1.5.md and its offsets
     ledger) is rerun against the new build (exe stamped 2026-07-13 06:38, PE key
     TimeDateStamp 0x6A3C5497 + SizeOfImage 0x1878E000, image SHRANK from 0x190EB000):
@@ -74,6 +74,12 @@ is the in-flight subset, not a mirror of that checklist.
     post-patch launch (save untouched, LW-50's first real-world catch). The reusable
     procedure is banked as docs/PATCH_REANCHOR.md (this arc validates it); per-patch
     findings land in a dated PORT offsets journal under docs/research/ when Phase B runs.
+    1.5.1 layout audit complete 2026-07-13 (docs/research/PORT_1.5.1_OFFSETS.md): one
+    mover found (SubmenuFlag, delta -0x52) and LaunchGuard's constants flipped in the same
+    commit as the Offsets.cs re-anchor. Remaining before this row can close: owner deploy,
+    the LW_FORCE_FINGERPRINT_MISMATCH stand-down drill, and an armed run covering one
+    battle (a credited kill proves ArrayBase, a delivered toast proves FnSetTextString)
+    with scan_logs exiting 0.
   - Verify: suite green; owner live pass on the new build: guard arms ("Living Weapons is
     armed"), one battle round-trip credits a kill, scan_logs --require-battle exits 0.
     Every other AWAITING-LIVE item and the whole SMOKE_TEST_2.3.0.md pass are BLOCKED
