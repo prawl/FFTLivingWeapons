@@ -10,6 +10,22 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
+- **[LW-89] Restore tier-up toast delivery (facing-prompt prefix dead on 1.5.1)** (opened 2026-07-14) [BUILDING]
+  - Done means: the silent toast-delivery outage is diagnosed and fixed. Evidence: the 14:08
+    tape shows the Chaos Blade tier-2 toast enqueued at the exact 25th-kill credit with zero
+    deliver records; NO deliver record exists in any retained tape (the whole post-1.5.1 era);
+    the owner's post-enqueue turns were manual (auto-battle stopped one kill earlier), so the
+    Wait facing prompt rendered and never matched PromptSwap's EN prefix ("Select a facing").
+    Dev builds seed every weapon past all tiers, so no crossing ever fired in dev play and the
+    outage stayed invisible until today's first real prod crossing. Step 1 ships a bounded
+    prompt-head sampler (first N unique decodable heads per session, file-only DBG, permanent
+    observability) so one manual turn end on prod reveals the live 1.5.1 facing text and whether
+    it still routes through the hooked SetTextString entry; step 2 fixes the prefix (or
+    re-anchors the route) from that capture.
+  - Verify: sampler TDD-tested (bounded, deduped, the toast queue untouched on every sampled
+    path); owner live: one manual turn end, read the sampled heads in the file; after the fix,
+    the manual Kiku 4-to-5 kill delivers the +1 banner (smoke row 7.25's deliver half, which
+    stays the positive control).
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
@@ -259,13 +275,6 @@ is the in-flight subset, not a mirror of that checklist.
   next battle. The tally map is live; the composed dossier line is not recomposed on count
   change within a battle. Cosmetic; candidate: invalidate or recompose the cached dossier for
   the resolved weapon when its tally entry changes.
-- [LW-89] 2026-07-14: A tier-up toast can enqueue and never deliver: the 14:08 tape shows the
-  Chaos Blade tier-2 toast enqueued at the exact 25th-kill credit (payload composed correctly)
-  and NO deliver record in the remaining two minutes of battle, though the wielder acted three
-  more times. Delivery rides the Wait facing prompt and none surfaced (auto-battle suspected,
-  owner confirmation pending: auto-battle picks facing instantly so the prompt never renders).
-  If auto-battle: document as a known limitation and consider a fallback delivery portal; if
-  manual play: a real delivery bug. The enqueue half of smoke row 7.25 is proven either way.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -27,6 +28,14 @@ namespace LivingWeapon;
 /// file) carries the corrected address plus a prologue landmark (HookLandmark.Verify) so a future
 /// shift refuses the install with one logged warning instead of corrupting the function again.
 /// PromptSwapHook is the native half this class is called from.
+///
+/// LW-89 SAMPLER (2026-07-14): the 1.5.1 port also broke this class's own prefix match: the live
+/// facing-prompt text on 1.5.1 silently stopped matching FacingPromptPrefix, and a mismatch here
+/// is silent by design (an ordinary vanilla-prompt no-op), so there was no way to see what the
+/// new text actually is short of reading raw memory by hand. TryPrepareSwap now samples the
+/// first dozen unique decodable prompt heads a session ever sees to the log at Debug tier
+/// (file-only in production), so one manual turn end in-game is enough to read the live text
+/// back out of livingweapon.log.
 /// </summary>
 internal sealed class PromptSwap
 {
@@ -43,8 +52,17 @@ internal sealed class PromptSwap
     // bubble/prompt widgets are both nine-grids with the same practical text budget.
     private const int MaxPayloadLen = 96;
 
+    // Sampler bound: at most this many sample lines can ever reach the log in one session, so a
+    // text-heavy session cannot flood the file (the LW-69 lesson). A dozen is plenty: the facing
+    // prompt lands within the first few prompt commits of any battle turn.
+    private const int SampleCap = 12;
+
     private readonly BannerToast _toast;
     private readonly IGameMemory _mem;
+
+    // Sampler state: only ever touched from TryPrepareSwap, which itself only ever runs on the
+    // game's own SetTextString thread (see the class doc), so no lock is needed here either.
+    private readonly HashSet<string> _sampledHeads = new();
 
     public PromptSwap(BannerToast toast, IGameMemory mem)
     {
@@ -62,6 +80,12 @@ internal sealed class PromptSwap
         if (textPtr == 0) return false;
         if (!_mem.TryReadBytes(textPtr, HeadReadLen, out var head)) return false;
         if (!TryDecodeAscii(head, out var text)) return false;
+
+        // Pure observer: sample BEFORE the prefix/queue checks so it sees every decodable head,
+        // matched or not, and never changes any return-path behavior below.
+        if (_sampledHeads.Count < SampleCap && text.Length > 0 && _sampledHeads.Add(text))
+            ModLogger.Debug(LogVerb.Toast, $"prompt head sample {_sampledHeads.Count} of {SampleCap}: \"{text}\"");
+
         if (!text.StartsWith(FacingPromptPrefix, StringComparison.Ordinal)) return false;
         if (!_toast.TryTake(out var toast)) return false;
 
