@@ -137,3 +137,13 @@ outcomes per probe before running (found / ambiguous / not-found and what each m
 - A flag's ADDRESS can survive a patch while its SEMANTICS narrow: 1.5.1's PauseFlag stayed at the
   same address but went from holding 1 across the whole player turn (1.5) to holding 1 only while
   the status card itself is open. Re-check meaning even when a landmark verifies at its old home.
+- Code-hook targets are NEVER verified by an address reading "plausibly like code": a stale or
+  shifted address can sit on a real instruction boundary and still be the WRONG one (a mid-function
+  branch target rather than the function's entry), so "the bytes disassemble" proves nothing.
+  Require ret/CC padding immediately BEFORE the address plus a canonical prologue read live AT it,
+  and gate every detour install behind a prologue landmark (HookLandmark.Verify) so a wrong address
+  refuses with one logged line instead of corrupting the function and crashing the game. Cite: the
+  1.5.1 FnSetTextString incident (docs/research/PORT_1.5.1_OFFSETS.md): the eyeballed bytes
+  45 84 C0 at the old 1.5 address were a mid-function branch target, not an entry, and installing
+  the detour there crashed the game twice on auto-battle before the entry was corrected and the
+  install guarded.

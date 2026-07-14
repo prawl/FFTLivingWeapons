@@ -92,7 +92,7 @@ internal sealed class StatusSpike
         if (!_announced)
         {
             _announced = true;
-            ModLogger.Event(LogVerb.Trace, "status-spike: armed (dev). Open a unit's menu (pause), then F2 = CANARY Haste on a live enemy (press FIRST to prove the cold call is safe); F4 = TREASURE on a corpse. THROWAWAY SAVE ONLY.");
+            ModLogger.Debug(LogVerb.Trace, "status-spike: armed (dev). Open a unit's menu (pause), then F2 = CANARY Haste on a live enemy (press FIRST to prove the cold call is safe); F4 = TREASURE on a corpse. THROWAWAY SAVE ONLY.");
         }
         if (++_hbTick % 300 == 0)   // ~10s at 33ms
             ModLogger.Debug(LogVerb.Trace, $"status-spike: alive (haste mode {_hasteMode}, treasure mode {_treasureMode}, writes {(Mem.WritesEnabled ? "on" : "OFF")})");

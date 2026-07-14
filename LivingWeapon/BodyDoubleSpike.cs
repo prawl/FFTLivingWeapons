@@ -400,7 +400,7 @@ internal sealed class BodyDoubleSpike
         if (!_announced)
         {
             _announced = true;
-            ModLogger.Event(LogVerb.Trace, "body-double: armed (dev, CANARY 8 THE DUPLICATOR). Any battle, THROWAWAY SAVE. Open the menu of the unit to duplicate (hover = donor), then F5: copy + registry enroll + node build + bind, and the clone descends from the heavens beside the donor. Ctrl+F5 despawns. Watch the enemy AI.");
+            ModLogger.Debug(LogVerb.Trace, "body-double: armed (dev, CANARY 8 THE DUPLICATOR). Any battle, THROWAWAY SAVE. Open the menu of the unit to duplicate (hover = donor), then F5: copy + registry enroll + node build + bind, and the clone descends from the heavens beside the donor. Ctrl+F5 despawns. Watch the enemy AI.");
         }
         if (++_hbTick % 300 == 0)   // ~10s at 33ms
             ModLogger.Debug(LogVerb.Trace, $"body-double: alive (writes {(Mem.WritesEnabled ? "on" : "OFF")})");

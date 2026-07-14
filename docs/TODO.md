@@ -79,7 +79,13 @@ is the in-flight subset, not a mirror of that checklist.
     commit as the Offsets.cs re-anchor. Remaining before this row can close: owner deploy,
     the LW_FORCE_FINGERPRINT_MISMATCH stand-down drill, and an armed run covering one
     battle (a credited kill proves ArrayBase, a delivered toast proves FnSetTextString)
-    with scan_logs exiting 0.
+    with scan_logs exiting 0. The armed run surfaced the one code-region shift
+    (FnSetTextString, two crashes on engaging auto-battle): the 1.5 entry 0x14028F79C was
+    a mid-function branch target on 1.5.1, fixed by the entry correction to 0x14028F750
+    plus a new prologue landmark guard (HookLandmark.cs, PromptSwapHook.ShouldArm) so a
+    future shift refuses the hook install instead of corrupting the function. Remaining
+    before this row can close: the owner re-test (auto-battle engages without a crash,
+    plus one full battle round trip).
   - Verify: suite green; owner live pass on the new build: guard arms ("Living Weapons is
     armed"), one battle round-trip credits a kill, scan_logs --require-battle exits 0.
     Every other AWAITING-LIVE item and the whole SMOKE_TEST_2.3.0.md pass are BLOCKED
@@ -323,6 +329,24 @@ is the in-flight subset, not a mirror of that checklist.
   model.X ?? previous.X at OnAllModsLoaded), clobbering other mods' post-snapshot runtime row
   writes; propose dirty-field-only writeback. Draft body in handoff.md (2026-07-13 action
   pack); owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
+- [LW-82] 2026-07-14: The anti-game-update hardening arc: turn pinned addresses into things the
+  mod re-finds itself at boot. Shape per the owner directive (memory hardening-must-be-portable):
+  a dependency-free single-file AnchorScan core (byte signatures and struct fingerprints in,
+  verified addresses out, FAIL CLOSED on zero or multiple hits) plus a thin per-mod adapter, the
+  FingerprintGuard/HookLandmark pattern, copy-reusable in the sibling FFT mods. Tiers from the
+  1.5.1 data: content-signaturable tables (the JobCommand find, generalize it), struct bases via
+  cold fingerprint scans (GrowthEngine.Locate already owns the scan idiom, today it only scans
+  NEAR a pinned base), region siblings by measured delta plus verify, and the residue with no
+  content to sign (the SubmenuFlag class of UI flags: boot-time state-solve or anchoring
+  relative to signed neighbors; 1.5.1's only data casualty was exactly this class). Code hooks
+  are covered by HookLandmark (shipped in the LW-81 arc): refusal, not self-relocation.
+- [LW-83] 2026-07-14: Guard observability: the standdown flight record carries only
+  "stand-down (pe-build-key)" with no observed-vs-expected values, and the
+  LW_FORCE_FINGERPRINT_MISMATCH drill's stand-down line is indistinguishable from a real
+  mismatch in every artifact (bit the 2026-07-14 drill: discriminating them took a mapped-PE
+  argument instead of one log read). Add the observed and expected key values to the guard's
+  flight record and make the drill self-identify in its log line (dev builds only print the
+  flag's name; players can never see it).
 - [LW-78] 2026-07-13: Re-diff the pre-1.5 full-table nxd bakes (item.en.nxd and ability.en.nxd)
   against 1.5 vanilla: the loader diffs each mod's nxd against the CURRENT vanilla table at
   load, so any text cell the 1.5 game patch changed silently converts our stale bake into an

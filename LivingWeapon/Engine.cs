@@ -137,7 +137,7 @@ internal sealed class Engine
         // equip-card `legends:` re-enable below.
         _reliquary = new Reliquary(_legends, null, meta, Flight.Record);
         _promptSwap = new PromptSwap(_toast, live);
-        _promptSwapHook = new PromptSwapHook(_promptSwap);
+        _promptSwapHook = new PromptSwapHook(_promptSwap, live);
         _turns = new TurnTracker(live, Flight.Record);
         // verbose: true (was Tuning.VerboseEvents, DEV-only const) -- the event timeline is now
         // always captured to the file at Debug tier via the [trace] verb (Debug writes

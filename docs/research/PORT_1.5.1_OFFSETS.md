@@ -83,3 +83,26 @@ landscape is unchanged (as here, in one session) or tells you exactly where to s
 1.5 recompile taught "expect a non-monotonic gradient of large deltas"; 1.5.1 taught the opposite
 lesson just as hard: don't assume a patch moved anything until you have actually read the old
 address and found it wrong.
+
+## The one CODE casualty: FnSetTextString (live-diagnosed 2026-07-14)
+
+Every other address audited above was DATA (a state flag, a struct base, a table). FnSetTextString
+(PromptSwapHook.cs) is the one CODE address in the mod, and it was the one that actually broke: the
+"prologue bytes read plausible" note above (row: "PromptSwapHook.FnSetTextString ... behavioral
+confirm is a toast actually delivering") was the trap the lesson above warns about. The 1.5 entry
+0x14028F79C is MID-FUNCTION on 1.5.1 (the patch shifted this code region by -0x4C), and installing
+a detour on a mid-function address corrupts the function: two live crashes on engaging auto-battle
+were the symptom, both on the first battle-prompt render after launch.
+
+The true 1.5.1 entry, 0x14028F750, was found live from the running process by reading BACKWARD
+from the old (now-wrong) address: a ret + CC padding sits at 0x14028F74D (the previous function's
+tail), and 0x14028F750 opens with a canonical prologue (sub rsp,28h; mov rax,[rcx+10h]; mov
+r8b,dl) matching the documented shape (the text pointer arrives in rdx; the body's first real
+check is cmp qword ptr [rdx+18h],10h, the small-buffer capacity test). Delta from the 1.5 address:
+-0x4C.
+
+The detour is now landmark-guarded: HookLandmark.cs (a portable, dependency-free prefix-compare
+core, the FingerprintGuard.cs copy-file pattern) backs PromptSwapHook.ShouldArm, which reads the
+11-byte prologue at FnSetTextString before every install and refuses (one Warn line, no hook) on
+a mismatch or failed read instead of installing blind. A future code-region shift now becomes a
+logged refusal, not a crash.
