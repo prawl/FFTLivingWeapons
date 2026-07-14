@@ -54,19 +54,6 @@ is the in-flight subset, not a mirror of that checklist.
   - Verify: suite green (DocsContractTests allow-list + link scan, TodoContractTests); the
     owner then RUNS the pass, flips its checkboxes, and closes with a green
     `python tools/scan_logs.py`.
-- **[LW-69] Silence the unnecessary log output (census-evict flood + audit findings)** (opened 2026-07-11) [AWAITING-LIVE]
-  - Done means: the 2026-07-11 owner-directed log audit (livingweapon.log + the flight tapes) is
-    run and its unnecessary-output findings are silenced. Audit verdict: the two attack-card
-    "evicting the cached copy" DBG lines were 98.4% of the session log (9,024 lines in 2.5s), and
-    the cause is NOT evict/re-census thrash: the census logs one line per rejected never-cached
-    heap candidate during a single sweep. Fix: SyncHit/SyncHitEnc2 return a SyncOutcome instead of
-    logging internally; census rejections aggregate into the census-finished line's rejected
-    count; real RepaintAll evictions keep one DBG line each naming the reason. No other line
-    class flags as noise (next largest: 40 lines); flight tapes are healthy (bounded ring,
-    on-change records) and untouched.
-  - Verify: suite green; a fresh live session log shows zero per-candidate evicting lines, a
-    census-finished line carrying the rejected count, and no single line class dominating the
-    file (owner live pass).
 - **[LW-86] Kill the Scholar's Ring auto-grant in production (finding F5)** (opened 2026-07-14) [AWAITING-LIVE]
   - Done means: ScholarRing.Grant compiles to a no-op outside LWDEV (the Tuning dev-seed
     compile-out pattern), so a production build never writes a free Scholar's Ring (item 260,
@@ -274,9 +261,6 @@ is the in-flight subset, not a mirror of that checklist.
   self-diagnose phantom-seat classes on their own (the LW-34 over-count mining needed the raw
   file log alongside the flight tapes to tell a phantom seat from a real one). Widen the census
   band record with those fields when the census format is next touched.
-- [LW-75] 2026-07-11: Promote the demoted coverage line to the console on the armed edge; fix
-  SHIPPED f91e0d2 (2026-07-11), smoke row 4.3 is the live evidence; demoted from Now 2026-07-14 to
-  make room for LW-77.
 - [LW-76] 2026-07-11: The owner-directed console audit (every Event/Warn/Error and ScopedLogger
   call site justified against LOGGING.md's match-report contract) left a candidate list:
   (a) repeat-spam risks with no per-event dedup beyond the console's per-battle key
@@ -304,6 +288,14 @@ is the in-flight subset, not a mirror of that checklist.
   only data casualty). Sibling-mod adoption (copy AnchorScan.cs, the FingerprintGuard pattern,
   into FFTHandsFree/FFTColorCustomizer/FFTMultiplayer) rides this row too
   (hardening-must-be-portable).
+- [LW-87] 2026-07-14: A whole battle can compose the vanilla Attack row when the cursor's
+  condensed struct parks on a band MIRROR seat (owner watched it live, first PROD session, log
+  12:14:00: credit-side resolve found Vagabond id 19 via the turn-queue fallback, but the card's
+  cursor unit sat at slot 25, not the turn owner, so the CursorGate correctly composed vanilla
+  for the entire battle; the next battle resolved on turn 1 and a mid-battle weapon swap
+  followed correctly). Fail-closed by design (LW-55 gates, LW-39 family), but a full-battle
+  rename blackout is a UX miss; candidate: a mirror-seat-aware cursor resolve (frame nameId
+  dedup, the Band mirror rule).
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

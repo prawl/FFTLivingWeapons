@@ -8,6 +8,18 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-69] SHIPPED 9ae454f 2026-07-14: the census-evict log flood silenced. The two attack-card
+  "evicting the cached copy" DBG lines were 98.4% of the 2026-07-11 session log (9,024 lines in
+  2.5s), caused by per-candidate census rejection logging, not evict thrash; SyncHit/SyncHitEnc2
+  return a SyncOutcome and rejections aggregate into the census-finished line's rejected count.
+  Owner live-verified 2026-07-14 on the first PROD session (smoke row 4.4): census-finished line
+  carried "8191 candidates rejected", zero evicting lines, 224-line session log with no
+  dominating line class.
+- [LW-75] SHIPPED f91e0d2 2026-07-14: the demoted coverage line now reaches the console once on
+  the armed rise. Owner live-verified 2026-07-14 on the first PROD session (smoke row 4.3): the
+  battle-1 "All 4 enemies are accounted for" line went out at INFO tier exactly once and matched
+  the field, while the no-tracked-weapon battle's line correctly stayed file-only (the designed
+  demotion).
 - [LW-79] SHIPPED 2a4c325 2026-07-14: the stale DESIGN.md compose claim. Section 3 claimed clean
   compose with Blue/Red Mages ("no interaction", written 2026-05-30, two days before JobData.xml
   existed); three player reports and the loader's whole-row writeback (pinned from source, proven

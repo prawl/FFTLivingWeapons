@@ -125,16 +125,21 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   **[BLOCKER]**
 - [ ] 4.2 **Flags-first credit, auto-battle (LW-63, possibly pre-satisfied).** One auto-battle:
   every kill credits the correct weapon (the 2026-07-11 tape credited all five). **[BLOCKER]**
-- [ ] 4.3 **Coverage line counts only fielded enemies (LW-34, possibly pre-satisfied).** In the
+- [x] 4.3 (PASSED 2026-07-14, owner flip: battle-1 line at INFO tier exactly once, "All 4
+  enemies are accounted for" matched the field; the no-tracked-weapon battle stayed file-only
+  by design; LW-75 exited on this evidence) **Coverage line counts only fielded enemies (LW-34,
+  possibly pre-satisfied).** In the
   FILE, "All N enemies are accounted for" matches the enemies actually visible on the field (the
   line lands about a minute in; phantom conditional-spawn seats are excluded). Zero
   no-longer-visible warnings in a normal battle. NEW with LW-75 (f91e0d2): in a battle with a
   Living Weapon fielded, the same line now also reaches the CONSOLE exactly once, surfacing the
   moment the mod arms (possibly a minute-plus into the battle), never twice. **[MAJOR]**
-- [ ] 4.4 **Census-finished line + no flood (LW-69, the one unobserved piece).** Let a battle run
+- [x] 4.4 (PASSED 2026-07-14, owner flip: census-finished carried "8191 candidates rejected",
+  zero evicting lines, no dominating line class in the 224-line session; LW-69 exited on this
+  evidence) **Census-finished line + no flood (LW-69, the one unobserved piece).** Let a battle run
   a few turns: the file shows the census-finished line carrying its rejected count, ZERO
   per-candidate "evicting the cached copy" lines, and no single line class dominating the
-  session log. The LW-57 census hardening (9d347c9) makes this reliably observable: a
+  session log. The census hardening commit 9d347c9 makes this reliably observable: a
   battle-edge abort now re-arms the census next battle instead of silently keeping a partial
   cache (the pre-fix reason this line was never seen). Bonus check: enter a battle, flee it
   immediately, enter another; the second battle logs a fresh census armed AND finished line,
