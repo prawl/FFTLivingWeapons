@@ -135,10 +135,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   whether the Attack card composes the dossier during an auto-battle turn if opened. Worst case
   is a vanilla card (narrowing-only gates), so a vanilla observation here is acceptable, not a
   failure; record what you saw either way. **[MINOR]**
-- [ ] 4.6 **Slow-cast false-exit watch (LW-42).** Queue a long charge-time spell and let the camera
-  linger through the cast: the battle must NOT false-exit mid-fight (the 1.5 port left the
-  mode-1/5 slot0==0xFF excuse dead; a false exit resets the kill tracker and shows as a spurious
-  "battle ended" in the file mid-battle). If it fires, capture the log and stop the pass.
+- [ ] 4.6 **Slow-cast false-exit watch (backlog LW-42).** Queue a long charge-time spell and let
+  the camera linger through the cast: the battle must NOT false-exit mid-fight (the 1.5 port left
+  the mode-1/5 slot0==0xFF excuse dead; a false exit resets the kill tracker and shows as a
+  spurious "battle ended" in the file mid-battle). If it fires, capture the log and stop the pass.
   **[BLOCKER]**
 - [ ] 4.7 **No false duplicate-blocks (LW-68 spot check).** In a battle where a boss or leveled
   enemy takes a max-HP-shifting hit before dying, its kill still credits (the orphan-alive-edge
@@ -161,8 +161,8 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   battle the rename is already warm (LW-38), and with the LW-57 fix (9d347c9: the census no
   longer starves the repaint driver) the FIRST battle after a session load must ALSO show the
   weapon name on the very first turn's menu open, within about a second of the turn opening.
-  Known and accepted: fingerprint-twin units fall back to vanilla (LW-39). Marks never appear
-  on any card (release-hidden, LW-35). This box is
+  Known and accepted: fingerprint-twin units fall back to vanilla (backlog LW-39). Marks never
+  appear on any card (release-hidden, LW-35). This box is
   the flip evidence for the LIVE_LEDGER Attack-row-rename row (owner-flip-only per the LW-31
   exit). **[MAJOR]**
 - [ ] 5.4 **Tuning batch cards (dd45229, restart-only).** Spot-check in-game cards against
@@ -206,9 +206,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
 - [ ] 6.2 **Save files live update-safe (LW-51/LW-29).** kills.json, legends.json, gunslinger.json
   sit under Reloaded `User/Mods/prawl.fft.livingweapons`, NOT the deploy folder, so a 2.2.2 to
   2.3.0 mod update cannot wipe them. **[MAJOR]**
-- [ ] 6.3 **Deploy preservation round-trip (LW-28 watch).** Across this pass's deploys: restore
-  lines present each time, files intact afterwards, tally count unchanged. Any silent loss:
-  capture the deploy transcript + %TEMP% state and stop deploying until understood. **[MAJOR]**
+- [ ] 6.3 **Deploy preservation round-trip (backlog LW-28 watch).** Across this pass's deploys:
+  restore lines present each time, files intact afterwards, tally count unchanged. Any silent
+  loss: capture the deploy transcript + %TEMP% state and stop deploying until understood.
+  **[MAJOR]**
 - [ ] 6.4 **Guard stand-down drill (optional, DEV OK, live-proven 2026-07-10; drill lane updated
   2026-07-14).** Only if guard code was touched since: on a DEV build, drop a marker FILE named
   `LW_FORCE_FINGERPRINT_MISMATCH` into the deployed mod dir AFTER the deploy (the env-var lane is
@@ -276,10 +277,10 @@ Debug/file tier only.
   auto-revived at low HP after about two of its turns, no crystal. **[MINOR]**
 - [ ] 7.19 **Outrider Pistol (id 71) Gun Slinger:** out of battle the off-hand fills with a second
   pistol + Dual Wield; in battle Attack fires twice. Known, accepted: a SECOND simultaneous
-  wielder equips slowly (LW-43); the LIVE_LEDGER roster-write row is still pending its flip, this
-  box is its evidence. Ledger caveat (the 7.17 precedent): that row's "Blaster id 76" wording
-  predates the move to Outrider Pistol id 71; correct the weapon id when flipping so the flip
-  does not PROVEN-stamp a stale claim. **[MAJOR]**
+  wielder equips slowly (backlog LW-43); the LIVE_LEDGER roster-write row is still pending its
+  flip, this box is its evidence. Ledger caveat (the 7.17 precedent): that row's "Blaster id 76"
+  wording predates the move to Outrider Pistol id 71; correct the weapon id when flipping so the
+  flip does not PROVEN-stamp a stale claim. **[MAJOR]**
 - [ ] 7.20 **Support grants fire with readback=SET** (Gloomfang Concentration, Mortal Coil Attack
   Boost, Sanguine Gauche / Hushblade defense boosts): one grant line each in the file when the
   wielder fields; per-ability oracles in docs/DEV_TEST_RECIPES.md. **[MINOR]**
@@ -287,8 +288,8 @@ Debug/file tier only.
   kills.json (collection on, display off; the Reliquary Phase 1 live pass itself is deferred past
   2.3.0, see Appendix A). **[MAJOR]**
 - [ ] 7.22 **Treasure Master still gates on the Scholar's Ring** (ships in 2.3.0; removal is
-  post-release, LW-10): ring equipped on a DEPLOYED unit = marks; no ring = one idle line, no
-  marks. TreasureAlwaysOn stays default False. **[MINOR]**
+  post-release, backlog LW-10): ring equipped on a DEPLOYED unit = marks; no ring = one idle
+  line, no marks. TreasureAlwaysOn stays default False. **[MINOR]**
 - [ ] 7.23 **Dormant modules stay dormant (expected, not bugs):** CharmLock (superseded by
   Puppeteer), LifeSap, and Wyrmblood have no live data wiring and must produce no behavior and no
   narration. Nothing to see is the pass condition. **[MINOR]**
@@ -314,8 +315,8 @@ Debug/file tier only.
 - [ ] 7.28 **Materia Blade (id 32) Ultima:** at ANY tier (no +3 grind; the hold is always on) the
   wielder's PA tracks current HP% (above natural at full HP, sagging below it when badly hurt,
   restored on heal; kill tier only raises the curve); only the wielder's PA moves; the file shows
-  the hold lines without HP-flap flood (the LW-76 watch). Row 7.2 does not cover this weapon
-  either: the Ultima hold owns its PA lane. (DEV OK) **[MINOR]**
+  the hold lines without HP-flap flood (the backlog LW-76 watch). Row 7.2 does not cover this
+  weapon either: the Ultima hold owns its PA lane. (DEV OK) **[MINOR]**
 
 ---
 
