@@ -10,6 +10,21 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
+- **[LW-92] Plague drops its victim on a mid-battle level-up (Venombolt hold fails)** (opened 2026-07-14) [BUILDING]
+  - Done means: Plague's victim identity survives mid-battle stat drift. The exact-match
+    fingerprint (mhp, lvl, brave, faith) at Plague.cs:108 and Drive's mismatch drop releases
+    the latch when the victim levels mid-battle (live capture 2026-07-14 dev lane: Aitne
+    latched at 95/449, leveled to 96/453 with orig brave/faith stable at 67/51, hold dropped;
+    at her CURRENT stats the pin defeated three cures on tape with the timer re-stamped to 36
+    each time, so the write machinery is healthy and the loss is identity-only). Fix:
+    drift-tolerant victim matching in the pure policy half (Band.LevelMatchesRoster's up-only
+    level drift, bounded maxHp GROWTH, exact orig brave/faith), applied at BOTH check sites,
+    with the stored fingerprint re-anchored to the current values on every accepted drift so
+    the budget never accumulates stale.
+  - Verify: failing-first policy tests (accepts level+maxHp up-drift, rejects level drop, maxHp
+    shrink, brave/faith change, or beyond-bound growth; stored fp re-anchors on accept); suite
+    green; owner live re-run of the repro (latch, victim levels, hold persists, cure defeated);
+    smoke row 7.5 ticks on that pass.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
@@ -271,6 +286,11 @@ is the in-flight subset, not a mirror of that checklist.
   credit lines resolved Warlock's Staff). Subsumes LW-88 (same lifecycle root, the stale-count
   variant). Fix direction: make paint/revert transactional across cache loss (revert-on-evict,
   or refuse-to-paint while the census is mid-sweep); ship 2.3.0 with a known-issue note.
+  Second witness same day (owner): the Attack card and the equip card disagreed on Venombolt's
+  kill count mid-battle, converging a turn later, and the owner read the EQUIP card as the
+  laggard (Engine gates Display.Tick on ShouldPaintCard's off-field settle, so mid-battle
+  equip-card views can serve stale pool paint), meaning the staleness is cross-surface with
+  distinct cadences. Owner directive: address this one when picked up, not just note it.
 - [LW-90] 2026-07-14: An in-battle RESTART after the Iai opening hold leaves the wielder's
   boosted Speed in place for the restarted battle (owner live, dev lane, 17:31-17:35 logs): the
   mod's own bookkeeping reads healthy (hold at battle-start, "released by the turn flags" in
