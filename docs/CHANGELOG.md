@@ -8,6 +8,16 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-92] SHIPPED d75b39f 2026-07-14: the Plague hold now survives mid-battle level drift. Smoke
+  row 7.5 failed live (the latch dropped when the victim leveled 95/449 to 96/453 while the pin
+  defeated three cures on tape, so the loss was identity-only), and the same-day fix replaced
+  the exact-match victim fingerprint with drift-tolerant identity (exact orig brave/faith,
+  Band.LevelMatchesRoster up-only level drift, bounded maxHp growth) re-anchored on every
+  accepted step; the first adversarial verify caught the re-anchor as test-vacuous and the fix
+  round pinned it with a two-step drift-chain test before the 9/10 SHIP. Owner live-verified
+  22:10:51 on the identical drift shape: the re-anchor line printed exactly once, the hold
+  survived the level-up, and a cure was still defeated after it. Friendly-fire poison stays
+  vanilla and curable by design.
 - [LW-89] SHIPPED be7e989 2026-07-14: tier-up toast delivery restored (dead the whole post-1.5.1
   era). Smoke row 7.25's positive control caught it: the Chaos Blade tier-2 toast enqueued at
   the exact 25th-kill credit with zero deliver records in any retained tape. Diagnosis in three

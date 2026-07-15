@@ -320,11 +320,13 @@ Debug/file tier only.
   battles; no double-exit, no mid-battle exit. **[BLOCKER]**
 - [ ] 7.4 **Zwill Straightblade (id 10) extra turn:** a Zwill kill grants the killer an immediate
   extra turn. **[MAJOR]**
-- [ ] 7.5 (FAILED 2026-07-14 dev lane, then fully diagnosed live: the latch engaged and the pin
-  defeated three cures on tape, but the hold dropped when the victim leveled mid-battle, the
-  exact-match fingerprint losing her at 95/449 to 96/453; fix in flight as LW-92; the re-test
-  is tonight's repro with the hold surviving the level-up) **Venombolt (id 80) Plague:** poison
-  it inflicts never cures and ticks harder; the
+- [x] 7.5 (PASSED 2026-07-14, owner live, dev lane, after a same-day fail-diagnose-fix cycle:
+  the row first FAILED when the hold dropped on the victim's mid-battle level-up at 95/449 to
+  96/453 while the pin itself defeated three cures on tape; the LW-92 fix re-tested on the
+  identical drift shape at 22:10:51, "plague victim leveled up mid-battle: level 95 to 96
+  (maximum HP 449 to 453); re-anchoring the hold" printed exactly once, the hold survived, and
+  a cure was defeated post-level-up; friendly-fire poison correctly stays vanilla and curable)
+  **Venombolt (id 80) Plague:** poison it inflicts never cures and ticks harder; the
   poison itself never lands the killing blow. **[MAJOR]**
 - [x] 7.6 (PASSED 2026-07-14, owner live, dev lane: the grant lines show Barrage injected into
   Thief's action list with the original backed up, and the command appeared castable with its

@@ -10,21 +10,6 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-92] Plague drops its victim on a mid-battle level-up (Venombolt hold fails)** (opened 2026-07-14) [AWAITING-LIVE]
-  - Done means: Plague's victim identity survives mid-battle stat drift. The exact-match
-    fingerprint (mhp, lvl, brave, faith) at Plague.cs:108 and Drive's mismatch drop releases
-    the latch when the victim levels mid-battle (live capture 2026-07-14 dev lane: Aitne
-    latched at 95/449, leveled to 96/453 with orig brave/faith stable at 67/51, hold dropped;
-    at her CURRENT stats the pin defeated three cures on tape with the timer re-stamped to 36
-    each time, so the write machinery is healthy and the loss is identity-only). Fix:
-    drift-tolerant victim matching in the pure policy half (Band.LevelMatchesRoster's up-only
-    level drift, bounded maxHp GROWTH, exact orig brave/faith), applied at BOTH check sites,
-    with the stored fingerprint re-anchored to the current values on every accepted drift so
-    the budget never accumulates stale.
-  - Verify: failing-first policy tests (accepts level+maxHp up-drift, rejects level drop, maxHp
-    shrink, brave/faith change, or beyond-bound growth; stored fp re-anchors on accept); suite
-    green; owner live re-run of the repro (latch, victim levels, hold persists, cure defeated);
-    smoke row 7.5 ticks on that pass.
 - **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
   - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
     DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
