@@ -237,7 +237,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   stood down on its dataset key at WARN tier, the strongest disarm confirmation) **Config
   surface (LW-52).** Reloaded launcher, Configure Mod: exactly ONE option remains
   (Treasure Master Always On); BannerToasts, DevSeedKills, and VerboseLog are gone. **[MAJOR]**
-- [ ] 5.8 **Release note eyeball (LW-72 rider) + README truth.** README's Language support
+- [ ] 5.8 (evidence banked 2026-07-14: the Language support section reads right, install step 5
+  no longer claims data-only, the diagram credits patch_names.py, and the stale 6-XML package
+  count was corrected to 7 plus both nxds in the same sweep; owner one-word confirm flips this)
+  **Release note eyeball (LW-72 rider) + README truth.** README's Language support
   section reads right (non-English players get full gameplay; item text, Kills counter, and
   toasts are English-only readouts). Also confirm the two stale claims flagged 2026-07-13 are
   corrected before ship: install step 5 must no longer call this "a data-only mod" (the Living

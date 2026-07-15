@@ -80,7 +80,7 @@ python tools/analyze.py         # prove no item is strictly dominated (gates dep
 .\Publish.ps1                   # PROD: generate + gate + build the DLL + package the release zip
 ```
 
-The package contains 6 sparse modloader XMLs (`ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`), the full-table `item.en.nxd` (names + descriptions), and the 234 menu-icon `.tex` pairs.
+The package contains 7 sparse modloader XMLs (`ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`, plus `JobData` for the widened generic-job equip lists and class-evade floor), the full-table `item.en.nxd` (names + descriptions), the cell-merged `ability.en.nxd` (the Barrage text and the retired Equip Axes note), and the 234 menu-icon `.tex` pairs.
 
 > **Editing note:** formula and effect IDs in the XML are **decimal, not hex**. The "Special Effect" badge in an item's description is the separate `UiStatusEffectId` nxd field; status/element procs are described in the item's prose, not flagged by a badge.
 
