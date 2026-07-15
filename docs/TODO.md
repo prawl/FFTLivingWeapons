@@ -260,6 +260,17 @@ is the in-flight subset, not a mirror of that checklist.
   change within a battle. Cosmetic; candidate: invalidate or recompose the cached dossier for
   the resolved weapon when its tally entry changes.
 
+- [LW-91] 2026-07-14: With MULTIPLE tracked wielders fielded, the Attack row and hover card can
+  wear the PREVIOUS wielder's dossier on another unit's turn (owner screenshot 20:36:32, dev
+  lane: Wilham's menu read "Kiku-ichimonji+3, Kills: 5", Ramza's weapon; visiting the status
+  page and returning corrected it). The log shows the paint lifecycle mid-churn: label-gone
+  evictions plus ~29s mid-battle re-census windows during which the painter can neither repaint
+  nor REVERT copies it lost, so bytes painted for the prior turn stay visible until a menu
+  rebuild; the cursor gate itself still refuses correctly when it has a cache (20:37:36
+  NotTurnOwner revert). Display-only, self-correcting, credit unaffected (the same window's
+  credit lines resolved Warlock's Staff). Subsumes LW-88 (same lifecycle root, the stale-count
+  variant). Fix direction: make paint/revert transactional across cache loss (revert-on-evict,
+  or refuse-to-paint while the census is mid-sweep); ship 2.3.0 with a known-issue note.
 - [LW-90] 2026-07-14: An in-battle RESTART after the Iai opening hold leaves the wielder's
   boosted Speed in place for the restarted battle (owner live, dev lane, 17:31-17:35 logs): the
   mod's own bookkeeping reads healthy (hold at battle-start, "released by the turn flags" in
