@@ -100,7 +100,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   never lowers the foe despite the card's "steals" wording). The LIVE_LEDGER Kobu row is still
   Uncertain (the 2026-07-02 rework fired once live, never flipped): this box is its flip evidence.
   **[MAJOR]**
-- [ ] 2.4 **Mushin (Kiku-ichimonji id 45): bank and spend.** A full Wait turn (no move, no act)
+- [x] 2.4 (PASSED 2026-07-14, owner live, dev lane: two full cycles on tape: a true wait ARMed
+  the charge with PA held 25 to 51, the next strike CONSUMEd it, move-and-act turns in between
+  correctly banked nothing, and the second wait re-armed at exactly 1 of 1 stacks) **Mushin
+  (Kiku-ichimonji id 45): bank and spend.** A full Wait turn (no move, no act)
   banks one charge (the file logs the bank); the wielder's next own action lands one boosted hit
   (held PA about 2.05x natural, roughly 1.6x a normal +3 swing) and the charge clears (the file
   logs the spend). A move-then-wait turn neither banks nor spends; two waits do not stack.
