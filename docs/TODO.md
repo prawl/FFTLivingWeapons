@@ -287,6 +287,15 @@ is the in-flight subset, not a mirror of that checklist.
   applies to every capture-natural-then-hold signature (Afterimage, Ultima, Cavalier's
   Charge) on restarted battles; audit when picked up.
 
+- [LW-93] 2026-07-14: The external probe toolchain's battle locates are DEAD on 1.5.1: during
+  the LW-92 diagnosis, poison_probe.py watch spun on "unit not located" and survey reported "0
+  units, 0 band-located" while the DLL census read the same battle fine, so the ct_probe-family
+  slot-marker filters (the pre-1.5 slot0==0xFF semantics, the LW-42 class) filter every unit
+  out. The workaround that worked: an ad-hoc watcher on the DLL's own Offsets constants
+  (scratchpad plague_watch.py pattern: BandReadBase = CombatAnchor + BandEntry - 24 * stride,
+  guarded rpm, fingerprint scan). Re-anchor the probe shared constants/filters when a probe is
+  next needed, or lift the plague_watch pattern into tools/probes as the new base.
+
 ## Walled (blocked by engine / Denuvo / modloader)
 
 - Fix the sword swing-art (art welded to weapon id; the same render node also drives damage).
