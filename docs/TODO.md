@@ -10,7 +10,7 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-92] Plague drops its victim on a mid-battle level-up (Venombolt hold fails)** (opened 2026-07-14) [BUILDING]
+- **[LW-92] Plague drops its victim on a mid-battle level-up (Venombolt hold fails)** (opened 2026-07-14) [AWAITING-LIVE]
   - Done means: Plague's victim identity survives mid-battle stat drift. The exact-match
     fingerprint (mhp, lvl, brave, faith) at Plague.cs:108 and Drive's mismatch drop releases
     the latch when the victim levels mid-battle (live capture 2026-07-14 dev lane: Aitne

@@ -104,8 +104,8 @@ internal sealed partial class Plague : ISignature
 
             if (_state.IsHeldAt(addr))
             {
-                // Verify the slot still holds the same unit; drop on fingerprint mismatch.
-                if (!_state.FpAt(addr).Equals(fp)) { _state.ReleaseAt(addr); continue; }
+                // Re-verify the held fingerprint via VerifyOrReanchor (re-anchors a drift).
+                if (!VerifyOrReanchor(addr, _state.FpAt(addr), fp)) { _state.ReleaseAt(addr); continue; }
 
                 int ct = _mem.Readable(addr + Offsets.ACtTurn, 1) ? _mem.U8(addr + Offsets.ACtTurn) : 0;
                 if (CtTurns.IsTurn(_state.LastCtAt(addr), ct)) ApplyAugment(_mem, addr, fp);
@@ -137,17 +137,33 @@ internal sealed partial class Plague : ISignature
         var toDrop = new List<long>();
         foreach (long addr in _state.HeldAddrs)
         {
-            var fp = _state.FpAt(addr);
-            DriveOne(_mem, addr, fp, _state, inLive);
-            // Drop the latch if the fingerprint no longer matches (unit left / battle reset).
-            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)
-                || _mem.U16(addr + Offsets.AMaxHp) != fp.mhp
-                || _mem.U8(addr + Offsets.ALevel)  != fp.lvl
-                || _mem.U8(addr + Offsets.ABrave)  != fp.br
-                || _mem.U8(addr + Offsets.AFaith)  != fp.fa)
-                toDrop.Add(addr);
+            // Off-field path (Tick's onField=false branch calls Drive directly, with no
+            // band-loop pass): VerifyOrReanchor covers this path too. Drop the latch only
+            // when the unit truly left / battle reset.
+            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) { toDrop.Add(addr); continue; }
+            int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
+            int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
+            var current = (mhp, lvl, br, fa);
+
+            if (!VerifyOrReanchor(addr, _state.FpAt(addr), current)) { toDrop.Add(addr); continue; }
+            DriveOne(_mem, addr, current, _state, inLive);
         }
         foreach (long addr in toDrop) _state.ReleaseAt(addr);
+    }
+
+    /// <summary>Verify a held victim's stored fingerprint against a freshly observed one; an
+    /// accepted mid-battle drift (LW-92) re-anchors the store instead of dropping the hold.
+    /// Extracted from the on-field verify and Drive's own per-tick verify, which duplicated
+    /// this SameVictim/RelatchFp/log block verbatim. False (drop) on a genuine mismatch; the
+    /// caller applies its own drop side effect, since the two sites react differently.</summary>
+    private bool VerifyOrReanchor(long addr, (int mhp, int lvl, int br, int fa) captured,
+                                  (int mhp, int lvl, int br, int fa) current)
+    {
+        if (captured.Equals(current)) return true;
+        if (!SameVictim(captured, current)) return false;
+        ModLogger.Debug(LogVerb.Signature, $"plague victim leveled up mid-battle: level {captured.lvl} to {current.lvl} (maximum HP {captured.mhp} to {current.mhp}); re-anchoring the hold");
+        _state.RelatchFp(addr, current);
+        return true;
     }
 
     /// <summary>Enemy fingerprints from the static array (mirrors Maim / EagleEye).

@@ -32,6 +32,7 @@ namespace LivingWeapon.Tests;
 ///   (21) Unequip -> all latches released (A4 unequip release).
 ///   (22) HP write lands as one 2-byte WriteBytes call (A4 torn-HP write).
 ///   (23) Same exclusive mhp bound used in band loop and EnemyFingerprints (A4 align bound).
+///   (24) RelatchFp (LW-92) updates the stored Fp but leaves LastCt untouched.
 /// </summary>
 public class PlagueTests
 {
@@ -455,6 +456,23 @@ public class PlagueTests
         Assert.False(Plague.IsValidEnemyMhp(2000));
         Assert.True(Plague.IsValidEnemyMhp(1999));
         Assert.False(Plague.IsValidEnemyMhp(2001));
+    }
+
+    // ------------------------------------------------------------------ (24) RelatchFp updates Fp and preserves LastCt
+    [Fact]
+    public void PlagueState_RelatchFp_updates_Fp_and_preserves_LastCt()
+    {
+        var state = new PlagueState();
+        var original = (mhp: 200, lvl: 10, br: 50, fa: 50);
+        long addr = 0x1000;
+        state.Latch(addr, original, seedCt: 40);
+        state.UpdateCtAt(addr, 77);
+
+        var drifted = (mhp: 204, lvl: 11, br: 50, fa: 50);
+        state.RelatchFp(addr, drifted);
+
+        Assert.Equal(drifted, state.FpAt(addr));
+        Assert.Equal(77, state.LastCtAt(addr));
     }
 
     // ------------------------------------------------------------------ Main-hand-only activation gate (B1)

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace LivingWeapon;
 
 /// <summary>
@@ -27,6 +25,25 @@ internal sealed partial class Plague
     /// (the "never happened" half-range negatives) always fail.</summary>
     public static bool WithinGrace(long eventMs, long now, long graceMs)
         => eventMs > long.MinValue / 4 && now - eventMs <= graceMs;
+
+    /// <summary>Bound on how much a held victim's maxHp may grow between re-verify checks and
+    /// still count as the SAME unit rather than a different one occupying the slot. The
+    /// 2026-07-14 live capture (LW-92) showed +4 maxHp for a single level (95 to 96, brave/faith
+    /// unchanged); sized generously against Band.MaxLevelDrift's whole allowed level budget at
+    /// 25 maxHp per level of drift, while staying far below the gap between two DIFFERENT
+    /// units' typical maxHp.</summary>
+    public const int MaxHpGrowthPerLatch = Band.MaxLevelDrift * 25;
+
+    /// <summary>True when a re-verified fingerprint still identifies the SAME held victim, even
+    /// though a mid-battle level-up has drifted its level and maxHp upward (LW-92, live capture
+    /// 2026-07-14: level 95 to 96, maxHp 449 to 453, brave/faith unchanged). Brave and faith
+    /// never drift, so they stay an exact match; level is bounded by Band.MaxLevelDrift (up-only,
+    /// the same rule the credit path already uses) and maxHp by MaxHpGrowthPerLatch (up-only).
+    /// An identical tuple always satisfies this, so exact-match callers can use it unconditionally.</summary>
+    public static bool SameVictim((int mhp, int lvl, int br, int fa) captured, (int mhp, int lvl, int br, int fa) current)
+        => current.br == captured.br && current.fa == captured.fa
+           && Band.LevelMatchesRoster(captured.lvl, current.lvl)
+           && current.mhp >= captured.mhp && current.mhp - captured.mhp <= MaxHpGrowthPerLatch;
 
     /// <summary>A completed victim turn = its CT was near-full and has since reset notably lower.
     /// Mirrors Maim.IsTurn / CharmLock.IsTurn (same proven probe for both use cases).</summary>
@@ -96,89 +113,4 @@ internal sealed partial class Plague
         if (!mem.Writable(hpAddr, 2)) return;
         mem.WriteBytes(hpAddr, new byte[] { (byte)(next & 0xFF), (byte)((next >> 8) & 0xFF) });
     }
-}
-
-/// <summary>Per-victim tracking for the Plague latch: band address (primary key), fingerprint
-/// (validity check), last-seen CT, and addr-based operations for independent per-slot state.
-/// Multiple enemies can be poisoned simultaneously (e.g. AoE wielder). The addr key prevents
-/// two same-fingerprint units from cross-clobbering each other's CT tracking.</summary>
-internal sealed class PlagueState
-{
-    private readonly Dictionary<long, PlagueEntry> _held = new();
-
-    // ---- addr-primary API (hot path in Plague.cs) ----
-
-    /// <summary>True when the given band slot address is currently latched.</summary>
-    public bool IsHeldAt(long addr) => _held.ContainsKey(addr);
-
-    /// <summary>The fingerprint stored for a held address, or default.</summary>
-    public (int mhp, int lvl, int br, int fa) FpAt(long addr)
-        => _held.TryGetValue(addr, out var e) ? e.Fp : default;
-
-    /// <summary>Latch a newly poisoned victim at the given band-slot address.
-    /// No-ops if the address is already held. Seeds LastCt with the victim's current CT
-    /// to prevent a phantom augment on the first tick.</summary>
-    public void Latch(long addr, (int mhp, int lvl, int br, int fa) fp, int seedCt = 0)
-    {
-        if (_held.ContainsKey(addr)) return;
-        _held[addr] = new PlagueEntry(Fp: fp, LastCt: seedCt);
-    }
-
-    /// <summary>The last CT observation for a held address.</summary>
-    public int LastCtAt(long addr)
-        => _held.TryGetValue(addr, out var e) ? e.LastCt : 0;
-
-    /// <summary>Update the last CT for a held address.</summary>
-    public void UpdateCtAt(long addr, int ct)
-    {
-        if (_held.TryGetValue(addr, out var e)) _held[addr] = e with { LastCt = ct };
-    }
-
-    /// <summary>Remove the latch for a band-slot address (fingerprint mismatch / unequip).</summary>
-    public void ReleaseAt(long addr) => _held.Remove(addr);
-
-    /// <summary>All currently held band-slot addresses (for drive iteration).</summary>
-    public IEnumerable<long> HeldAddrs => _held.Keys;
-
-    /// <summary>Clear all latches (battle exit).</summary>
-    public void Clear() => _held.Clear();
-
-    // ---- fp-keyed convenience wrappers (test API + Drive drop-check) ----
-
-    /// <summary>True when any held entry has the given fingerprint (linear scan; test convenience).</summary>
-    public bool IsHeld((int mhp, int lvl, int br, int fa) fp)
-    {
-        foreach (var e in _held.Values) if (e.Fp.Equals(fp)) return true;
-        return false;
-    }
-
-    /// <summary>The band address stored for the first held entry matching the fingerprint, or 0.</summary>
-    public long HeldAddr((int mhp, int lvl, int br, int fa) fp)
-    {
-        foreach (var kv in _held) if (kv.Value.Fp.Equals(fp)) return kv.Key;
-        return 0;
-    }
-
-    /// <summary>The last CT for the first held entry matching the fingerprint (test convenience).</summary>
-    public int LastCt((int mhp, int lvl, int br, int fa) fp)
-    {
-        foreach (var kv in _held) if (kv.Value.Fp.Equals(fp)) return kv.Value.LastCt;
-        return 0;
-    }
-
-    /// <summary>Update the last CT for the first held entry matching the fingerprint.</summary>
-    public void UpdateCt((int mhp, int lvl, int br, int fa) fp, int ct)
-    {
-        foreach (var addr in new System.Collections.Generic.List<long>(_held.Keys))
-            if (_held[addr].Fp.Equals(fp)) { _held[addr] = _held[addr] with { LastCt = ct }; return; }
-    }
-
-    /// <summary>Remove the latch for the first entry matching the fingerprint.</summary>
-    public void Release((int mhp, int lvl, int br, int fa) fp)
-    {
-        foreach (var kv in _held)
-            if (kv.Value.Fp.Equals(fp)) { _held.Remove(kv.Key); return; }
-    }
-
-    private record struct PlagueEntry((int mhp, int lvl, int br, int fa) Fp, int LastCt);
 }
