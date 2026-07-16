@@ -8,6 +8,15 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-60] SHIPPED 19000b1 2026-07-16: the 2.3.0 pre-ship smoke pass, authored 2026-07-11 and
+  run to completion by the owner across 2026-07-14 to 2026-07-16. Every row resolved: the pass
+  caught four live regressions and shipped their fixes before release (toast delivery, the
+  Plague drift hold, the turn-credit lane, the Eagle Eye scope, each exited above), flipped
+  the pending LIVE_LEDGER rows to PROVEN on owner evidence, and closed with scan_logs
+  --require-battle --flight exit 0 on the final session, the real saves restored over the dev
+  lane, the PROD 2.3.0 deploy verified, and the release package cut and content-verified
+  (FFTLivingWeapons-2.3.0.zip). The one deliberately open item rides the handoff action pack:
+  the backlog LW-80 upstream-issue filing, an owner-account action.
 - [LW-95] SHIPPED 8c67ca5 2026-07-16: Eagle Eye no longer hastens Dooms it did not inflict.
   Smoke row 7.10 caught it live the same night (a Mortal Coil Doom proc snapped 3 to 1, tape
   flight_20260716_001721): the tier-3 aura armed on fielded-at-tier alone and the hasten rule

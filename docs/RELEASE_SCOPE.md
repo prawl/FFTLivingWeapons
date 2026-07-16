@@ -50,15 +50,24 @@ cooldown), so the stretch goal below LANDED, via a different mechanism than the 
 proposed. The card reword shipped as LW-46 (the false "No Lucavi" clause dropped; "for its full
 turn" became accurate with the own-turn release). Boxes stay for the owner sweep
 (docs/SMOKE_TEST_2.3.0.md row 8.8).
-- [ ] **Round-7 recon (STRETCH):** instrument-only build reading the AREC kind byte (band +0x184
+- [x] **Round-7 recon (STRETCH):** instrument-only build reading the AREC kind byte (band +0x184
       +0xA) + naming-span durations + puppet gx/gy on the puppet's OWN seat; ONE cleanly-ended
       battle. If it yields a reliable per-puppet-turn release -> land it (verify live first).
-- [ ] **Fallback (GUARANTEED):** keep the wielder-clock release; reword the card to match. NEVER
+      (Ticked in the 8.8 owner sweep 2026-07-16: the stretch goal landed via a different
+      mechanism, the TurnQueue own-turn release, LW-5 e882799, owner live-verified 2026-07-07
+      and re-confirmed in smoke rows 3.1-3.3 on 2026-07-15; the AREC recon was never needed.)
+- [x] **Fallback (GUARANTEED):** keep the wielder-clock release; reword the card to match. NEVER
       commit an expiry change without a live release observed in-game.
-- [ ] Fix the card text regardless: p3Desc promises "no Lucavi" (IsDominatable allows every job) and
+      (Ticked in the 8.8 owner sweep 2026-07-16: moot, the own-turn release shipped, was
+      live-verified, and held through the whole smoke pass; the fallback was never invoked.)
+- [x] Fix the card text regardless: p3Desc promises "no Lucavi" (IsDominatable allows every job) and
       "for its full turn" (does not hold) -- reword to shippable semantics.
-- [ ] **Iai ReleaseSignal harden** -- same ActorPtr-dwell trap (Ame-no-Murakumo is a katana too);
+      (Ticked in the 8.8 owner sweep 2026-07-16: shipped as LW-46, the false no-Lucavi clause
+      dropped and the full-turn wording made accurate by the own-turn release.)
+- [x] **Iai ReleaseSignal harden** -- same ActorPtr-dwell trap (Ame-no-Murakumo is a katana too);
       fix the bare-arrival false-release ONCE, alongside this turn-credit work.
+      (Ticked in the 8.8 owner sweep 2026-07-16: shipped as LW-71, c2965ce, owner live-verified
+      2026-07-11; the release names the turn flags, re-confirmed in smoke rows 2.1 and 2.2.)
 
 ### 3. Item-balance tuning pass (SHOULD) -- ONE analyze.py / patch_names.py batch, restart-only
 - [x] **Rod nerf** (rods are over-tuned). Shipped dd45229, 2026-07-05.
@@ -90,10 +99,14 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       (ba5e0fc, 2026-07-11).
 
 ### 6. Release gates (existing GO/NO-GO)
-- [ ] analyze.py exit 0 (no dominated item).
-- [ ] dotnet test green.
-- [ ] Publish.ps1 clean, PROD thresholds {5,25,50}, no LWDEV / no seeding.
-- [ ] Bump ModVersion (-> 2.3.0) + cut the matching tag.
+- [x] analyze.py exit 0 (no dominated item). (Final ship run 2026-07-16: exit 0, standalone and
+      inside Publish.)
+- [x] dotnet test green. (Final ship run 2026-07-16: 2565 passed, 0 failed.)
+- [x] Publish.ps1 clean, PROD thresholds {5,25,50}, no LWDEV / no seeding. (2026-07-16: package
+      verify PASS on every required entry, FFTLivingWeapons-2.3.0.zip, 5.18 MB.)
+- [x] Bump ModVersion (-> 2.3.0) + cut the matching tag. (2026-07-16: version bumped and the
+      disarmed Treasure Master clause dropped from the description; tag v2.3.0 cut at the
+      pass-close commit.)
 - [x] **ReleaseScopeContractTests gate (LW-84, owner-added 2026-07-14)**:
       this scope file itself goes under test (the TodoContractTests enforcer pattern):
       an IN box naming an id that already exited to CHANGELOG.md must be ticked, a ticked box

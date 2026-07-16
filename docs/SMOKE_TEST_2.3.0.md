@@ -583,12 +583,15 @@ Debug/file tier only.
 
 ## 8. Build / release gates (GO/NO-GO inputs)
 
-- [ ] 8.1 **Dominance gate green:** `python tools\analyze.py` exit 0. **[BLOCKER]**
-- [ ] 8.2 **Unit tests: 0 failed** (`dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj`;
+- [x] 8.1 (PASSED 2026-07-16 on the final ship run: exit 0, standalone and inside both the PROD
+  deploy and Publish) **Dominance gate green:** `python tools\analyze.py` exit 0. **[BLOCKER]**
+- [x] 8.2 (PASSED 2026-07-16 on the final ship run: 2565 passed, 0 failed, 0 skipped)
+  **Unit tests: 0 failed** (`dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj`;
   2426 at authoring). **[BLOCKER]**
-- [ ] 8.3 (dry-run evidence 2026-07-14: exit 0, package verify PASS on every required file, 7
-  tables with JobCommandData.xml correctly absent, no parked artifacts; the dry-run zip was
-  deleted; ticks on the final post-bump run) **Publish.ps1 clean:** package verify OK for every
+- [x] 8.3 (PASSED 2026-07-16 on the final post-bump run: exit 0, package verify PASS on every
+  required entry incl. meta.json and treasure.json, 7 tables with JobCommandData.xml correctly
+  absent, no parked artifacts, FFTLivingWeapons-2.3.0.zip at 5.18 MB; dry-run evidence
+  2026-07-14 preceded it) **Publish.ps1 clean:** package verify OK for every
   required file (meta.json and
   treasure.json included), exit 0. **[BLOCKER]**
 - [x] 8.4 (PASSED 2026-07-14: launch header reads production build, the live tally is organic,
@@ -603,12 +606,21 @@ Debug/file tier only.
   files touched) **Build-flavor guard:** a plain `.\BuildLinked.ps1` over the prod install
   refuses (exit
   1, no files touched). **[MAJOR]**
-- [ ] 8.7 **Version + tag:** ModVersion 2.2.2 to 2.3.0 in mod/ModConfig.json; matching v2.3.0 tag
+- [x] 8.7 (PASSED 2026-07-16: version bumped 4d2d2d4, both hard deps confirmed present, the
+  stale Treasure Master clause dropped from the description (39e221b, the module ships
+  disarmed per row 7.22), the final zip rebuilt carrying the corrected 2.3.0 ModConfig.json,
+  and the v2.3.0 tag cut at the pass-close commit)
+  **Version + tag:** ModVersion 2.2.2 to 2.3.0 in mod/ModConfig.json; matching v2.3.0 tag
   cut; mod description current; ModDependencies lists BOTH fftivc.utility.modloader and
   reloaded.sharedlib.hooks (new hard dep this release, hosts the toast-delivery hook; without it
   Mod.cs degrades to a no-toast warning) and the packaged zip carries that ModConfig.json.
   **[BLOCKER]**
-- [ ] 8.8 **Ledger + scope hygiene at ship:** docs/RELEASE_SCOPE.md boxes all ticked (several are
+- [x] 8.8 (PASSED 2026-07-16: the section-2 done-but-unticked boxes swept with their supersede
+  citations, the section-6 gate boxes ticked on the final ship run, TODO Now cleared (LW-60
+  exits in this same commit), VERIFY_LIVE row 1 flipped ef70db5. ONE box deliberately left
+  open: the backlog LW-80 upstream-issue filing, an owner-account action whose draft sits in
+  the handoff action pack; it gates nothing in the package itself)
+  **Ledger + scope hygiene at ship:** docs/RELEASE_SCOPE.md boxes all ticked (several are
   done-but-unticked as of authoring; the section-2 prose was corrected to the shipped own-turn
   release when LW-46 landed); docs/TODO.md Now items exited to the changelog via owner flips
   (LW-69, LW-60); VERIFY_LIVE row 1 flipped (7.17). **[MAJOR]**

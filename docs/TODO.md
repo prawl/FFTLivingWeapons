@@ -10,17 +10,15 @@ is the in-flight subset, not a mirror of that checklist.
 
 ## Now (release: 2.3.0)
 
-- **[LW-60] Author the 2.3.0 release Smoke Test Plan** (opened 2026-07-10) [AWAITING-LIVE]
-  - Done means: docs/SMOKE_TEST_2.3.0.md exists at the docs/ top level (allow-listed in
-    DocsContractTests), modeled on the archived 2.0 checklist, and gathers every deferred live
-    check in one owner pass: the LW-55 auto-battle gate premise, the LW-71 struck-pre-turn
-    repro, the LW-51 Tier-1 reset eyeball on a real cold-launch New Game, the LW-69 census
-    line and LW-34 coverage confirmations, VERIFY_LIVE's open Choir row, the 2.3.0 feature
-    and regression rows from RELEASE_SCOPE's IN list, and the ship-gate checklist (version
-    bump, tag, Publish).
-  - Verify: suite green (DocsContractTests allow-list + link scan, TodoContractTests); the
-    owner then RUNS the pass, flips its checkboxes, and closes with a green
-    `python tools/scan_logs.py`.
+- **[LW-80] File the upstream modloader whole-row-writeback issue** (opened 2026-07-13) [QUEUED]
+  - Done means: the issue is filed on Nenkai/fftivc.utility.modloader under the owner's
+    account, reporting the whole-row table-XML writeback (ApplyTablePatch assigns every field
+    via model.X ?? previous.X at OnAllModsLoaded, clobbering other mods' post-snapshot runtime
+    row writes) and proposing dirty-field-only writeback; the banked draft in the handoff
+    action pack is the body.
+  - Verify: the issue URL exists and is recorded in docs/CHANGELOG.md when this row exits;
+    RELEASE_SCOPE's LW-80 box ticks on the same evidence.
+
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet (the weapon remembers WHO
@@ -232,11 +230,6 @@ is the in-flight subset, not a mirror of that checklist.
   mismatch, AttackCard.Resolve.cs:87 on known stale-cursor hovers). None urgent (console dedup
   masks most); triage with the owner which get demoted, deduped, or left.
 
-- [LW-80] 2026-07-13: File the upstream modloader issue (Nenkai/fftivc.utility.modloader):
-  table-XML row edits apply as whole-row writebacks (ApplyTablePatch assigns every field via
-  model.X ?? previous.X at OnAllModsLoaded), clobbering other mods' post-snapshot runtime row
-  writes; propose dirty-field-only writeback. Draft body in handoff.md (2026-07-13 action
-  pack); owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
 - [LW-85] 2026-07-14: AnchorScan later tiers (the rest of the LW-82 arc; the v1 slice shipped
   e77b9d7): battle-state anchors (CombatAnchor/TurnQueue via chained fingerprint scans seeded
   from the found roster base; needs a live battle, and on a patched build the scout cannot
