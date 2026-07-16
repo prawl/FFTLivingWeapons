@@ -4,25 +4,34 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Eclipsebolt's "Eagle Eye" signature -- the pure decisions behind hastening Doom. While a
-/// +3 Eclipsebolt is equipped, an enemy's Doom countdown is forced down to 1 so the mark
-/// resolves on its next turn. Two pure jobs (no memory; the band scan + write lives in
-/// EagleEye.cs): (1) is the aura active and what countdown does it force to, gated on
-/// kill-tier; (2) the idempotent hasten rule -- write only a Doomed enemy still above target,
-/// so the engine ticks it 1 -> 0 -> death untouched and an expired/undead Doom is left be.
+/// Eclipsebolt's "Eagle Eye" signature -- the pure decisions behind hastening Doom. LW-95: the
+/// rule fires only on a Doom RISING EDGE (doomed &amp;&amp; !wasDoomed) that is ATTRIBUTED to the
+/// wielder's own action (mirrors Larceny's actingMain + actedByte==1 gate), and only ever writes
+/// DOWN toward the target countdown. A pre-existing Doom (no edge) or a foe Doomed by any other
+/// source (another weapon's proc, an enemy cast) is left alone. The stateful band scan +
+/// per-enemy baseline + attribution gate lives in EagleEye.cs.
 /// </summary>
 public class EagleEyeTests
 {
     [Theory]
-    [InlineData(true, 3, 1, true)]    // fresh Doom at 3 -> hasten to 1
-    [InlineData(true, 2, 1, true)]    // caught at 2 -> still hasten
-    [InlineData(true, 1, 1, false)]   // already at target -> leave (idempotent)
-    [InlineData(true, 0, 1, false)]   // expiring/expired -> never re-arm (would block the death tick)
-    [InlineData(false, 3, 1, false)]  // not Doomed -> ignore
-    [InlineData(false, 0, 1, false)]
-    public void ShouldHasten_only_when_doomed_and_above_target(bool doomed, int cd, int target, bool expected)
+    [InlineData(true, false, 3, 1, true, true)]    // fresh Doom edge, attributed to the wielder -> hasten
+    [InlineData(true, false, 3, 1, false, false)]  // fresh Doom edge, NOT attributed -> leave (LW-95 shape)
+    [InlineData(true, true, 3, 1, true, false)]    // pre-existing Doom, no edge -> leave even though wielder acts
+    [InlineData(true, false, 1, 1, true, false)]   // already at target -> leave (idempotent)
+    [InlineData(true, false, 0, 1, true, false)]   // expiring/expired -> never re-arm (would block the death tick)
+    [InlineData(false, false, 3, 1, true, false)]  // not Doomed -> ignore
+    [InlineData(false, true, 3, 1, true, false)]   // Doom expired between sweeps (falling edge) -> ignore
+    public void ShouldHasten_only_on_an_attributed_doom_rising_edge(bool doomed, bool wasDoomed, int cd, int target, bool attributed, bool expected)
     {
-        Assert.Equal(expected, EagleEye.ShouldHasten(doomed, cd, target));
+        Assert.Equal(expected, EagleEye.ShouldHasten(doomed, wasDoomed, cd, target, attributed));
+    }
+
+    [Fact]
+    public void ShouldHasten_ignores_a_doom_edge_not_attributed_to_the_wielder()
+    {
+        // LW-95: Mortal Coil (id 8) procced Doom on an enemy while a +3 Eclipsebolt merely sat
+        // fielded (no action of its own); Eagle Eye hastened it anyway. It must not.
+        Assert.False(EagleEye.ShouldHasten(doomed: true, wasDoomed: false, countdown: 3, target: 1, attributed: false));
     }
 
     private static WeaponSignature Doom(int to, int atTier) =>
