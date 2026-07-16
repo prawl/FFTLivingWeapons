@@ -8,6 +8,22 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-94] SHIPPED 5dd5003 2026-07-16: turn credits now resolve flags-first. TurnTracker rode the
+  parked actor pointer, which sits on the action TARGET at a caster's acted edge, so a healer's
+  own turns never counted (smoke rows 7.14 and 7.27 caught it live: the Mending wielder's three
+  acting turns all credited other fingerprints including the heal target on the 17:10:41 tape,
+  and the Swiftedge wielder took zero credits on the 17:47:22 tape, so Renewal's turn-edge aura
+  and the Afterimage ramp both starved silently); a mid-battle level-up also re-keyed the
+  fingerprint and restarted the count. The fix resolves the acting unit from the per-unit turn
+  flags (the LW-63/LW-71 Band.FlagOwner pattern), demotes the pointer to fall-through, and
+  settles credits into the pre-level-up roster key. Built via build-lite, adversarially
+  verified 9/10 SHIP with both sabotages biting as predicted. Owner live re-tested 2026-07-16
+  across three post-fix battles: every credit on the 23:57:49, 00:01:35, and 00:06:55 tapes
+  rode src=turn-flags, the Mending wielder accrued its own counts with Renewal mending at its
+  exact turn ends (row 7.14), the Afterimage ramp stepped +1 per acted turn to its cap (row
+  7.27), and Larceny's steal landed with its counter lane advancing (row 7.11). The backlog
+  LW-7 auto-battle collapse is this same counting lane and stays open, un-retested under
+  auto-battle.
 - [LW-92] SHIPPED d75b39f 2026-07-14: the Plague hold now survives mid-battle level drift. Smoke
   row 7.5 failed live (the latch dropped when the victim leveled 95/449 to 96/453 while the pin
   defeated three cures on tape, so the loss was identity-only), and the same-day fix replaced

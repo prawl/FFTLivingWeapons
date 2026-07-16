@@ -12,7 +12,7 @@ what you saw and reopen here.
 
 | # | Commit | Change | How to verify live | Done? |
 |---|--------|--------|--------------------|-------|
-| 1 | e98c2f2 | **Choir multi-bearer**: two deployed Warlock's Staff +3 bearers each project a duet. | Two units with +3 Warlock's Staff (id 60) in MAIN hand, same battle. BOTH project (up to four instant-cast allies); a benched third copy neither projects nor blocks. | [ ] |
+| 1 | e98c2f2 | **Choir multi-bearer** (holder-only since the aura dial-back; this row's original "projects a duet" wording predates it): every deployed +3 Warlock's Staff main-hand bearer casts instantly, no aura. | VERIFIED 2026-07-15 (owner live, dev lane, smoke row 7.17): two units with +3 Warlock's Staff (id 60) in MAIN hand, same battle, both seated on the 13:05 tape census, both cast instantly on screen. Benched-copy noise: structurally covered (benched units hold no band seat); passively re-checked in the remaining smoke battles. | [x] |
 | 2 | b861806 | **Lethal-actor stamp** (superseded by the KillerStamp death-edge stamp, f4bf5df). | Superseded: f4bf5df's verification below covers this path and stricter cases. | [x] |
 | 3 | 279e7b8 | **Warbrand spriteIdOverride**. | DEAD: the override never took effect; removal is in the release scope (docs/RELEASE_SCOPE.md doc+hygiene item). No verification possible. | [x] |
 

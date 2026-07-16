@@ -32,10 +32,13 @@ FFT_GIVE_ITEMS_DELAY=200 give_all_items 99   # slower if writes drift
 **The underlying recipe** (works via plain RPM/WPM too, no bridge needed — see `give_living_blades.py`):
 
 ```
-inventory count array: count[itemId] = u8 @ 0x1411A17C0 + itemId   (verified: id257 @ 0x1411A18C1)
+inventory count array: count[itemId] = u8 @ 0x1411A7C00 + itemId   (1.5.x; == Offsets.InventoryCountBase)
 ```
 
-The array sits just below `RosterBase` (`0x1411A18D0`); ids 0..260 stay clear of the roster.
+**1.5 moved this array +0x6440** (pre-1.5 it was `0x1411A17C0`; that old region now READS PLAUSIBLE
+GARBAGE and accepts writes that go nowhere, then get zeroed by the game — it burned a session on
+2026-07-15; verify against `Offsets.InventoryCountBase` before hand-writing). The array sits 0x110
+below `RosterBase` (`0x1411A7D10` on 1.5); ids 0..260 stay clear of the roster.
 **Skip the crashy / IC-unused ids:** `262` (Onion Sword crashes on equip-render) and `261, 263–277`
 (IC stripped these slots). `give_all_items` already skips them; replicate the skip if you write your own.
 Caveat: only ids whose IC layout matches FFTPatcher-canonical render in the menu (~80–85%); the rest write

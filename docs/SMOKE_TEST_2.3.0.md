@@ -87,7 +87,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   turn of the battle regardless of build (Speed quietly held above the field max at battle-open),
   then releases on that first turn; the release log line names its source ("released by the turn
   flags"). Speed reads normal afterwards. **[MAJOR]**
-- [ ] 2.2 **Iai struck-pre-turn repro (the LW-71 deferred check).** Arrange an enemy to STRIKE the
+- [x] 2.2 (PASSED 2026-07-15, owner attestation: the scenario was already tested in an earlier
+  live session and passed; no tape or log survives today's rotation to cite, so this tick rests
+  on the owner call, which is the flip authority for this pass)
+  **Iai struck-pre-turn repro (the LW-71 deferred check).** Arrange an enemy to STRIKE the
   Iai wielder before its opening turn (a fast enemy or a lucky layout). The hold must survive the
   hit (no false release; pre-fix, the parked actor pointer released here and could write the
   wrong unit's Speed), then release normally on the wielder's own turn, named to the turn flags.
@@ -108,23 +111,34 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   (held PA about 2.05x natural, roughly 1.6x a normal +3 swing) and the charge clears (the file
   logs the spend). A move-then-wait turn neither banks nor spends; two waits do not stack.
   **[MAJOR]**
-- [ ] 2.5 **Trio integration.** All three katanas fielded in one battle: each behavior fires, no
+- [x] 2.5 (PASSED 2026-07-15, owner attestation alongside 2.2: the katanas were already tested
+  together in an earlier live session; ticked on the owner call)
+  **Trio integration.** All three katanas fielded in one battle: each behavior fires, no
   tick-error lines, one clean battle exit. **[MINOR]**
 
 ---
 
 ## 3. Galewind Puppeteer (BLOCKER: expiry truth + card truth)
 
-- [ ] 3.1 **Own-turn release (LW-5, re-confirm).** A +3 Galewind hit dominates the struck enemy;
+- [x] 3.1 (PASSED 2026-07-15, owner live, dev lane: two full cycles in the 00:47 battle; the
+  dominates at 00:48:07 and 00:49:05 each released on the puppet's own turn, with the file line
+  at 00:48:33 and 00:49:20 and full menu control confirmed on screen; the tape records both
+  releases reason=own-turn ownTurns=1, one global turn after each dominate, clean exit 00:50:10)
+  **Own-turn release (LW-5, re-confirm).** A +3 Galewind hit dominates the struck enemy;
   the player gets full menu control of it on ITS next turn; it releases after that turn, not on
   the wielder's clock (file: "Puppet control ended after the enemy took its turn"; the flight
   tape records reason=own-turn). **[MAJOR]**
-- [ ] 3.2 **Reworded card renders (LW-46, restart-only).** The Galewind card's +3 block now reads
+- [x] 3.2 (PASSED 2026-07-15, owner eyeball on the restarted 22:07 launch's card: the reworded
+  puppet text renders, fits the box, no clipping, no "No Lucavi" clause) **Reworded card renders
+  (LW-46, restart-only).** The Galewind card's +3 block now reads
   "Turns a struck enemy into your puppet for its full turn. 3-turn cooldown." (the false "No
   Lucavi" clause was dropped to match the allow-everyone gate; a Lucavi CAN be puppeted, by
   design). Eyeball the card on a restarted game: new text, fits the box, no clipping. **[MAJOR]**
-- [ ] 3.3 **Cooldown + single puppet.** A second dominate within the cooldown window does not arm;
-  only one puppet at a time. **[MINOR]**
+- [x] 3.3 (PASSED 2026-07-15, owner live, dev lane, same battle: a strike on a second enemy while
+  holding read verdict=holding and armed nothing; post-release strikes read verdict=cooldown at
+  00:48:38 and 00:49:38; the cooldown then expired and the second dominate armed with
+  offCooldown=True) **Cooldown + single puppet.** A second dominate within the cooldown window
+  does not arm; only one puppet at a time. **[MINOR]**
 
 ---
 
@@ -240,9 +254,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   stood down on its dataset key at WARN tier, the strongest disarm confirmation) **Config
   surface (LW-52).** Reloaded launcher, Configure Mod: exactly ONE option remains
   (Treasure Master Always On); BannerToasts, DevSeedKills, and VerboseLog are gone. **[MAJOR]**
-- [ ] 5.8 (evidence banked 2026-07-14: the Language support section reads right, install step 5
-  no longer claims data-only, the diagram credits patch_names.py, and the stale 6-XML package
-  count was corrected to 7 plus both nxds in the same sweep; owner one-word confirm flips this)
+- [x] 5.8 (PASSED 2026-07-15, owner confirm on the banked 2026-07-14 evidence: the Language
+  support section reads right, install step 5 no longer claims data-only, the diagram credits
+  patch_names.py, and the stale 6-XML package count was corrected to 7 plus both nxds in the
+  same sweep)
   **Release note eyeball (LW-72 rider) + README truth.** README's Language support
   section reads right (non-English players get full gameplay; item text, Kills counter, and
   toasts are English-only readouts). Also confirm the two stale claims flagged 2026-07-13 are
@@ -318,8 +333,11 @@ Debug/file tier only.
   in any log; every closing scan CLEAN) **Battle enter/exit cycle clean:** started, ended, fresh
   started across two consecutive
   battles; no double-exit, no mid-battle exit. **[BLOCKER]**
-- [ ] 7.4 **Zwill Straightblade (id 10) extra turn:** a Zwill kill grants the killer an immediate
-  extra turn. **[MAJOR]**
+- [x] 7.4 (PASSED 2026-07-15, owner live, dev lane: the 01:06 battle credited Zwill kill via the
+  turn flags, the grant line fired on the wielder at 01:06:15, the owner saw the immediate extra
+  turn, and "The extra turn finished (consumed) after 1 turn ends" landed at 01:06:28; clean exit,
+  1 kill credited) **Zwill Straightblade (id 10) extra turn:** a Zwill kill grants the killer an
+  immediate extra turn. **[MAJOR]**
 - [x] 7.5 (PASSED 2026-07-14, owner live, dev lane, after a same-day fail-diagnose-fix cycle:
   the row first FAILED when the hold dropped on the victim's mid-battle level-up at 95/449 to
   96/453 while the pin itself defeated three cures on tape; the LW-92 fix re-tested on the
@@ -333,42 +351,106 @@ Debug/file tier only.
   correct name and description) **Yoichi Bow (id 90) Barrage:** the Barrage command appears in
   the wielder's command
   list (and survives the learn screen). **[MAJOR]**
-- [ ] 7.7 **Sanguine Sword (id 23) Shadow Blade:** the command appears for the wielder (known,
-  accepted leak: same-job enemies can also see it; job-global record). **[MINOR]**
-- [ ] 7.8 **Stormarc (id 86) Chain Lightning:** damaging one enemy chips nearby enemies (up to 3
+- [x] 7.7 (PASSED 2026-07-15, owner live, dev lane: grant landed 17:06:45 and re-asserted at the
+  17:07:49 battle start, Shadow Blade into job 3's action list with the original list backed up
+  and the learned flag re-set; owner verified the command castable; the same-job leak stays
+  known-accepted) **Sanguine Sword (id 23) Shadow Blade:** the command appears for the wielder
+  (known, accepted leak: same-job enemies can also see it; job-global record). **[MINOR]**
+- [x] 7.8 (PASSED 2026-07-15, owner live, dev lane: three volleys at 01:11:39, 01:13:44, and
+  01:49:57, each exactly 3 hops decaying 46/27/16 from a 77 source hit; a read-only band snapshot
+  matched every logged HP claim including the two direct victims down exactly 77, and the owner
+  verified the chipped values on the unit cards. Eyeball note for future passes: the chip is a
+  silent write, the overhead bar does not animate it; the unit card carries the truth)
+  **Stormarc (id 86) Chain Lightning:** damaging one enemy chips nearby enemies (up to 3
   hops, decaying). **[MAJOR]**
-- [ ] 7.9 **Huntress (id 89) Maim:** a struck enemy stops firing its reaction (Counter etc.) for 3
+- [x] 7.9 (PASSED 2026-07-15, owner live, dev lane: the 01:58:46 latch saved real reaction bits
+  (0x00080000), proving the target carried a reaction, and the owner verified the post-maim poke
+  drew no counter on screen. Honest gap: the battle ended at 4 turns before the 3-own-turn
+  "Suppression ended" restore could fire; suppression is battle-scoped so the unobserved restore
+  cannot outlive a battle; re-observe opportunistically if a later battle maims early) **Huntress
+  (id 89) Maim:** a struck enemy stops firing its reaction (Counter etc.) for 3
   turns. **[MINOR]**
 - [ ] 7.10 **Eclipsebolt (id 78) Eagle Eye:** an enemy carrying Doom has its countdown snapped to
   1. **[MINOR]**
-- [ ] 7.11 **Arcanum (id 30) Larceny:** striking a buffed enemy strips the buff onto the wielder
+- [x] 7.11 (PASSED 2026-07-16, owner live, dev lane, on the post-fix build (backlog LW-94): the
+  gate armed on the wielder's act at 00:01:13 and the steal fired at 00:01:17, "Haste was stolen
+  from the struck enemy and is held on the wielder for 3 of its turns", owner verified the
+  transfer on screen; the wielder turn counter the expiry rides is proven advancing
+  src=turn-flags on both post-fix tapes (23:57:49 and 00:01:35). Honest gap: the battle ended 18
+  seconds after the steal, so the 3-turn expiry edge itself was not watched live; it is
+  unit-tested and battle exit releases the hold regardless)
+  **Arcanum (id 30) Larceny:** striking a buffed enemy strips the buff onto the wielder
   for 3 of its turns. **[MINOR]**
-- [ ] 7.12 **Umbral Rod (id 56) Spiritual Font:** ending a turn on a NEW tile silently restores
-  10% HP and MP (watch the unit card values; silent with no Umbral Rod fielded). **[MINOR]**
-- [ ] 7.13 **Rod of Faith (id 58) Rapture:** below 30% HP the wielder's movement becomes
-  teleportation until they recover. **[MINOR]**
-- [ ] 7.14 **Mending Staff (id 61) Renewal:** allies within 1 tile of the wielder regain about 10%
+- [x] 7.12 (PASSED 2026-07-15, owner live, dev lane: the wielder was found and tracked at battle
+  open, four new-tile restores fired across the 16:58 battle (move detail at tiles (7,10), (9,7),
+  (10,4), (10,0)), the MP-full case correctly no-opped ("MP already full (165/165)"), and the
+  owner verified the card values) **Umbral Rod (id 56) Spiritual Font:** ending a turn on a NEW
+  tile silently restores 10% HP and MP (watch the unit card values; silent with no Umbral Rod
+  fielded). **[MINOR]**
+- [x] 7.13 (PASSED 2026-07-15, owner live, dev lane: the teleport grant landed at 17:03:22 with
+  readback=SET (move id 243, original movement saved), and the owner verified the teleport
+  movement on screen) **Rod of Faith (id 58) Rapture:** below 30% HP the wielder's movement
+  becomes teleportation until they recover. **[MINOR]**
+- [x] 7.14 (RE-TEST PASSED 2026-07-16, owner live, dev lane, on the post-fix build: the wielder
+  (fp 99/89/76, Mending Staff in hand on the 00:06:55 tape census) accrued its own counts 1
+  through 3 src=turn-flags at its own acted edges, and the aura fired at those exact turn ends,
+  once correctly finding no ally in range (00:05:16), then "renewal mended the ally at (7,11)
+  for 45 HP" twice (00:05:50 and 00:06:30, 45 of 445 max, the 10 percent contract) with the
+  INFO "1 ally was mended" event each time; owner verified the card tick on screen. Every
+  credit on the tape rode src=turn-flags, zero actor-pointer fallbacks.
+  FAILED history 2026-07-15, owner live, dev lane; diagnosed same session, backlog LW-94: the
+  aura armed and the wielder acted three times, flags-resolved, but TurnTracker's actor-pointer
+  turn credits all went to OTHER fingerprints on the 17:10:41 tape, including the heal TARGET,
+  so the wielder's turn count never advanced and the turn-edge aura never fired, silently; a
+  mid-battle level-up also re-keyed a unit's count, 36 to 37 restarting at 1. Re-test after the
+  backlog LW-94 fix or ship as a known-issue line, owner call; re-tested and PASSED above) **Mending Staff (id 61) Renewal:** allies
+  within 1 tile of the wielder regain about 10%
   max HP at the wielder's turn end (silent write, watch the numbers). **[MINOR]**
-- [ ] 7.15 **Sanctus Staff (id 64) Benediction:** while the wielder was the last player to act,
+- [x] 7.15 (PASSED 2026-07-15, owner live, dev lane: the last-actor latch rose exactly on the
+  Sanctus wielder's acts and handed off to other weapons correctly, a near-max heal was refused
+  unboosted (+22 at 399/399, the right negative), a real boost applied at 17:03:53, and the owner
+  verified the boosted heal; the LIVE_LEDGER Benediction row flipped PROVEN on this evidence)
+  **Sanctus Staff (id 64) Benediction:** while the wielder was the last player to act,
   ally healing lands about 30% larger (survives charged-heal resolve gaps). Its LIVE_LEDGER row
   has been "ready for PROVEN" since 2026-06-16; this box is the flip evidence. **[MINOR]**
-- [ ] 7.16 **Staff of the Magi (id 66) Sanctuary:** fallen allies hold 3 crystal hearts all battle
+- [x] 7.16 (PASSED 2026-07-15, owner live, dev lane: armed 17:07:51, and the hold actively
+  DEFENDED the counter at 17:10:29, "Divine intervention holds the fallen ally at tile (4,10) at
+  3 hearts (the counter had fallen to 2)"; owner verified no crystallization) **Staff of the Magi
+  (id 66) Sanctuary:** fallen allies hold 3 crystal hearts all battle
   while the bearer lives (never crystallize). **[MINOR]**
-- [ ] 7.17 **Warlock's Staff (id 60) Choir + the open multi-bearer row (VERIFY_LIVE row 1).** The
+- [x] 7.17 (PASSED 2026-07-15, owner live, dev lane: the 13:03-13:05 battles armed Choir each
+  time and the owner verified BOTH deployed bearers casting instantly; the 13:05 tape census
+  shows exactly two staffs in the roster and both bearers seated (band s24+s25), the strongest
+  multi-resolve case. Honest gap: no third benched copy existed during the run; structurally a
+  benched unit holds no band seat, and the sub-case rides passively in the remaining battles
+  with a third copy parked on a benched unit) **Warlock's Staff (id 60) Choir + the open
+  multi-bearer row (VERIFY_LIVE row 1).** The
   bearer's own charged magicks resolve instantly (holder-only; the old adjacent-ally aura was
   dialed back by design). For the still-open row 1: TWO deployed +3 bearers each cast instantly
   in the same battle, and a benched third copy neither casts instantly nor blocks the others.
   Flip VERIFY_LIVE row 1 together with this box (its "projects a duet" wording predates the
   holder-only dial-back; instant-cast per bearer is the current contract). **[MAJOR]**
-- [ ] 7.18 **Wrathblade (id 27) Feign Death:** a lethal hit leaves the wielder playing dead, then
+- [x] 7.18 (PASSED 2026-07-15, owner live, dev lane: armed at the 17:40 and 17:43 battle starts,
+  the owner watched the lethal hit become a played-dead act and the auto-revive land with no
+  crystal, and the file shows the feign release ("no longer active" 17:44:05) with clean edges)
+  **Wrathblade (id 27) Feign Death:** a lethal hit leaves the wielder playing dead, then
   auto-revived at low HP after about two of its turns, no crystal. **[MINOR]**
-- [ ] 7.19 **Outrider Pistol (id 71) Gun Slinger:** out of battle the off-hand fills with a second
+- [x] 7.19 (PASSED 2026-07-15, owner live, dev lane: the twin-pistol equip line fired 16:53:07
+  on equipping the Outrider Pistol, the off-hand filled with the twin plus Dual Wield, and Attack
+  fired twice in the 16:54 battle, clean edges, zero errors; the LIVE_LEDGER roster-write row
+  flipped PROVEN on this evidence with its stale "Blaster id 76" wording corrected to Outrider
+  Pistol id 71; the backlog LW-43 second-simultaneous-wielder slowness stays known-accepted,
+  untested by design) **Outrider Pistol (id 71) Gun Slinger:** out of battle the off-hand fills with a second
   pistol + Dual Wield; in battle Attack fires twice. Known, accepted: a SECOND simultaneous
   wielder equips slowly (backlog LW-43); the LIVE_LEDGER roster-write row is still pending its
   flip, this box is its evidence. Ledger caveat (the 7.17 precedent): that row's "Blaster id 76"
   wording predates the move to Outrider Pistol id 71; correct the weapon id when flipping so the
   flip does not PROVEN-stamp a stale claim. **[MAJOR]**
-- [ ] 7.20 **Support grants fire with readback=SET** (Gloomfang Concentration, Mortal Coil Attack
+- [ ] 7.20 (in progress 2026-07-16: Gloomfang banked at 00:04:47 ("Gloomfang bestows
+  Concentration on its wielder", readback=SET), Sanguine Gauche banked at 00:08:44 (Defense
+  Boost, readback=SET), Hushblade banked at 00:08:45 (Magick Def Boost, readback=SET); still
+  owed: Mortal Coil)
+  **Support grants fire with readback=SET** (Gloomfang Concentration, Mortal Coil Attack
   Boost, Sanguine Gauche / Hushblade defense boosts): one grant line each in the file when the
   wielder fields; per-ability oracles in docs/DEV_TEST_RECIPES.md. **[MINOR]**
 - [ ] 7.21 **Marks stay hidden everywhere (LW-35)** while legends.json keeps growing beside
@@ -407,16 +489,37 @@ Debug/file tier only.
   prompt, with the enqueue and deliver lines in the file. The toast plumbing changed twice this
   cycle (LW-35 release-hid deed toasts, LW-52 removed the BannerToasts toggle), and every other
   toast row in this pass only proves ABSENCE. **[MAJOR]**
-- [ ] 7.26 **Holy Lance (id 104) Cavalier's Charge:** with the +3 wielder riding a chocobo, Speed
+- [x] 7.26 (PASSED 2026-07-15, owner live, dev lane: Speed read natural+3 on the card while
+  riding, reverted on dismount, no other unit's Speed moved, across the quick mount-check battles
+  16:48-16:49 with clean edges and zero errors; the hold is silent by design so the card numbers
+  are the whole oracle; the LIVE_LEDGER mounted-grant row flipped PROVEN on this evidence)
+  **Holy Lance (id 104) Cavalier's Charge:** with the +3 wielder riding a chocobo, Speed
   reads natural+3 in battle; reverts on dismount and at battle exit; no other unit's Speed moves.
   Last verified 2026-06-27 (DEV), BEFORE the growth-locate and roster-walk reworks (eb76fe5,
   474d494) that rebuilt the machinery it rides; the LIVE_LEDGER mounted-grant row is still
   unflipped and this box is its flip evidence. (DEV OK) **[MAJOR]**
-- [ ] 7.27 **Swiftedge (id 28) Afterimage:** the +3 wielder's Speed climbs +1 for each turn it
+- [x] 7.27 (RE-TEST PASSED 2026-07-15, owner live, dev lane, on the post-fix build: the 23:57:49
+  tape shows every turn credit in the battle firing src=turn-flags, the wielder's fp 99/97/75
+  taking counts 1 through 5, and the file shows the ramp stepping exactly +1 per acted turn
+  (Speed 11 natural to 14/15/16/17/18, stacks 1 to 5 of 5, cap held) with no other unit's Speed
+  stepped; owner verified the card on screen. Honest gap, the 7.9 pattern: the wielder took no
+  incoming hit this battle, so the ramp-reset sub-case rides passively in any remaining battle.
+  FAILED history same day pre-fix: the Swiftedge wielder (Ramza, fp 99/97/75 on the 17:47:22
+  tape census) received ZERO turn credits while visibly acting, all credits going to other
+  fingerprints via the parked actor pointer, so the ramp's turn counter never advanced; same
+  root cause as 7.14, fixed as backlog LW-94)
+  **Swiftedge (id 28) Afterimage:** the +3 wielder's Speed climbs +1 for each turn it
   acts, capping at +5; taking a hit resets the ramp; no other unit's Speed drifts (watch the unit
   card across two turns and one hit). Row 7.2's growth-formula check does NOT cover this weapon:
   the Afterimage hold owns its Speed lane. (DEV OK) **[MINOR]**
-- [ ] 7.28 **Materia Blade (id 32) Ultima:** at ANY tier (no +3 grind; the hold is always on) the
+- [x] 7.28 (PASSED 2026-07-16, owner live, dev lane: the curve tracked three HP levels in the
+  file, 100 percent health = 130 percent damage (PA hold 20 to 26), 68 percent = 90 percent
+  (20 to 18), 14 percent = 60 percent (20 to 12), each line change-driven with zero flap flood
+  between (the backlog LW-76 watch held), and the owner verified only the wielder's PA moving
+  on the card. Honest gap: no heal landed before battle end, so the restore-on-heal edge was
+  not watched; the sag half proves the live HP tracking and the hold recomputes from that
+  same lane)
+  **Materia Blade (id 32) Ultima:** at ANY tier (no +3 grind; the hold is always on) the
   wielder's PA tracks current HP% (above natural at full HP, sagging below it when badly hurt,
   restored on heal; kill tier only raises the curve); only the wielder's PA moves; the file shows
   the hold lines without HP-flap flood (the backlog LW-76 watch). Row 7.2 does not cover this
