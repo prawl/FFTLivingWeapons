@@ -294,11 +294,20 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   gunslinger.json
   sit under Reloaded `User/Mods/prawl.fft.livingweapons`, NOT the deploy folder, so a 2.2.2 to
   2.3.0 mod update cannot wipe them. **[MAJOR]**
-- [ ] 6.3 **Deploy preservation round-trip (backlog LW-28 watch).** Across this pass's deploys:
+- [x] 6.3 (PASSED 2026-07-16: both of tonight's deploys printed the full restore line
+  ("Restored preserved save files + flight/ archives (post-restore check passed)") and the
+  folder was verified intact afterwards (kills.json, legends.json, gunslinger.json, 20 flight
+  tapes, flavor marker re-stamped); the primary saves live under User/Mods (row 6.2) and the
+  launch headers read a consistent legends tally across both deploy boundaries; no silent loss
+  all pass)
+  **Deploy preservation round-trip (backlog LW-28 watch).** Across this pass's deploys:
   restore lines present each time, files intact afterwards, tally count unchanged. Any silent
   loss: capture the deploy transcript + %TEMP% state and stop deploying until understood.
   **[MAJOR]**
-- [ ] 6.4 **Guard stand-down drill (optional, DEV OK, live-proven 2026-07-10; drill lane updated
+- [x] 6.4 (N/A 2026-07-16 by the row's own condition: no guard code was touched since the 6.5
+  drill passed on 07-14; this pass's runtime changes landed in TurnTracker and EagleEye, and
+  the stand-down lane itself is live-proven with the drill banked)
+  **Guard stand-down drill (optional, DEV OK, live-proven 2026-07-10; drill lane updated
   2026-07-14).** Only if guard code was touched since: on a DEV build, drop a marker FILE named
   `LW_FORCE_FINGERPRINT_MISMATCH` into the deployed mod dir AFTER the deploy (the env-var lane is
   dead on this box, LW-83; BuildLinked's clean step wipes the marker each deploy): one loud
@@ -475,7 +484,12 @@ Debug/file tier only.
   **Support grants fire with readback=SET** (Gloomfang Concentration, Mortal Coil Attack
   Boost, Sanguine Gauche / Hushblade defense boosts): one grant line each in the file when the
   wielder fields; per-ability oracles in docs/DEV_TEST_RECIPES.md. **[MINOR]**
-- [ ] 7.21 **Marks stay hidden everywhere (LW-35)** while legends.json keeps growing beside
+- [x] 7.21 (PASSED 2026-07-16, mined from the full pass logs: every launch header reads the
+  legends as primary ("The legends hold deeds for N weapons and 15 Marks (legends.json,
+  primary)"), the deeds grew 15 to 16 weapons across the pass (the 07-14 22:07 header vs the
+  07-15 16:39 header), battle ends count Marks in the FILE only ("0 Marks earned"), and zero
+  mark narration or toast lines appear in any retained session log)
+  **Marks stay hidden everywhere (LW-35)** while legends.json keeps growing beside
   kills.json (collection on, display off; the Reliquary Phase 1 live pass itself is deferred past
   2.3.0, see Appendix A). **[MAJOR]**
 - [x] 7.22 (PASSED 2026-07-14, owner live: Scholar's Ring equipped on a deployed unit produced
@@ -492,7 +506,10 @@ Debug/file tier only.
   the whole session log, and the disarm line appeared at 11:56:20 (DEBUG tier, idle variant, no
   ring fielded). Still owed before the tick: the ring-equipped-on-a-deployed-unit = NO-marks
   check. **[MINOR]**
-- [ ] 7.23 **Dormant modules stay dormant (expected, not bugs):** CharmLock (superseded by
+- [x] 7.23 (PASSED 2026-07-16, mined from the full pass logs: zero CharmLock, LifeSap,
+  Wyrmblood, or charm-narration lines across all four retained session logs; nothing to see,
+  exactly as specified)
+  **Dormant modules stay dormant (expected, not bugs):** CharmLock (superseded by
   Puppeteer), LifeSap, and Wyrmblood have no live data wiring and must produce no behavior and no
   narration. Nothing to see is the pass condition. **[MINOR]**
 - [x] 7.24 (PASSED 2026-07-14, owner live: left the battle at 16:06:10 with a clean exit edge,
