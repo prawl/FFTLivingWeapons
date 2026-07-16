@@ -175,7 +175,10 @@ Prod +3 = 50 lifetime kills; use the real save's grown katanas or tag rows (DEV 
   immediately, enter another; the second battle logs a fresh census armed AND finished line,
   and the finished count does not double (warm hits merged, not duplicated). Owner flips the
   TODO row on this evidence. **[MAJOR]**
-- [ ] 4.5 **Attack-card gate under auto-battle (LW-55's open premise).** LW-63's auto-battle tape
+- [x] 4.5 (PASSED 2026-07-16, owner live, dev lane: the owner opened the Attack card during an
+  auto-battle turn and the dossier composed correctly on screen, the stronger of the two
+  acceptable outcomes; the gates did not fall back to vanilla)
+  **Attack-card gate under auto-battle (LW-55's open premise).** LW-63's auto-battle tape
   already proved the per-unit turn flags rise during auto-turns; the remaining question is only
   whether the Attack card composes the dossier during an auto-battle turn if opened. Worst case
   is a vanilla card (narrowing-only gates), so a vanilla observation here is acceptable, not a
@@ -370,7 +373,16 @@ Debug/file tier only.
   cannot outlive a battle; re-observe opportunistically if a later battle maims early) **Huntress
   (id 89) Maim:** a struck enemy stops firing its reaction (Counter etc.) for 3
   turns. **[MINOR]**
-- [ ] 7.10 (FAILED 2026-07-16, owner live, dev lane; diagnosed same session, backlog LW-95: the
+- [x] 7.10 (RE-TEST PASSED 2026-07-16, owner live, dev lane, on the post-fix build (backlog
+  LW-95): the 01:06:57 tape battle showed all three pre-registered oracles: the new arm line
+  ("the bow's own Doom procs are hastened to one"), the negative at 01:05:32 (a Mortal Coil
+  Doom "appeared outside the Eclipsebolt wielder's own action (lastActed mainHand id=8); its
+  countdown (3) is left alone", exactly one line, and the owner watched the counter tick down
+  naturally), and the positive at 01:06:48 (the bow's own proc "forced to 1 (was 3, 480
+  maximum HP)", exactly once). Contract reworded at flip, the 7.17 precedent: the original row
+  wording ("an enemy carrying Doom") described the unscoped aura; the shipped contract is a
+  Doom inflicted by the wielder's own action.
+  FAILED history earlier the same night, pre-fix; diagnosed same session, backlog LW-95: the
   hasten is implemented as a field-wide aura with no inflictor gate (EagleEye.Policy.AuraTarget
   arms on fielded-at-tier alone; ShouldHasten never sees who inflicted the Doom), so a Doom
   that Mortal Coil procced at 00:15:44 was snapped 3 to 1 one second later, applying
@@ -455,10 +467,11 @@ Debug/file tier only.
   flip, this box is its evidence. Ledger caveat (the 7.17 precedent): that row's "Blaster id 76"
   wording predates the move to Outrider Pistol id 71; correct the weapon id when flipping so the
   flip does not PROVEN-stamp a stale claim. **[MAJOR]**
-- [ ] 7.20 (in progress 2026-07-16: Gloomfang banked at 00:04:47 ("Gloomfang bestows
-  Concentration on its wielder", readback=SET), Sanguine Gauche banked at 00:08:44 (Defense
-  Boost, readback=SET), Hushblade banked at 00:08:45 (Magick Def Boost, readback=SET); still
-  owed: Mortal Coil)
+- [x] 7.20 (PASSED 2026-07-16, owner live, dev lane, across three battles: Gloomfang banked at
+  00:04:47 ("Gloomfang bestows Concentration on its wielder", readback=SET), Sanguine Gauche
+  at 00:08:44 (Defense Boost, readback=SET), Hushblade at 00:08:45 (Magick Def Boost,
+  readback=SET), and Mortal Coil at 01:06:24 ("Mortal Coil bestows Attack Boost on its
+  wielder") after the wielder crossed below half HP, its designed arming condition)
   **Support grants fire with readback=SET** (Gloomfang Concentration, Mortal Coil Attack
   Boost, Sanguine Gauche / Hushblade defense boosts): one grant line each in the file when the
   wielder fields; per-ability oracles in docs/DEV_TEST_RECIPES.md. **[MINOR]**

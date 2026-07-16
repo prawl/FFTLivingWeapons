@@ -8,6 +8,22 @@ with a date and no hash.
 
 ## 2.3.0 cycle
 
+- [LW-95] SHIPPED 8c67ca5 2026-07-16: Eagle Eye no longer hastens Dooms it did not inflict.
+  Smoke row 7.10 caught it live the same night (a Mortal Coil Doom proc snapped 3 to 1, tape
+  flight_20260716_001721): the tier-3 aura armed on fielded-at-tier alone and the hasten rule
+  never saw the inflictor, while the design (living_weapon_grid.csv id 78) scopes the
+  shortening to the bow's own May-inflict-Doom procs. The fix tracks a per-enemy doomed
+  baseline and hastens only a rising edge observed while the acting main hand is the
+  Eclipsebolt during its acted period (the Larceny/Benediction last-actor lane); an
+  unattributed edge logs once and is left alone, and the guarded write-down path is unchanged.
+  Built via build-lite on the cited proven rows (Doom bytes, the LastPlayerMainHand latch),
+  adversarially verified 9/10 SHIP with both sabotages biting the predicted tests
+  (hash-verified restores). Owner live re-tested the same night on the 01:06:57 tape: the
+  foreign Doom was left alone with exactly one skip line and the bow's own proc forced to 1.
+  Accepted residuals, documented in the class doc: attribution is action-level (a non-wielder
+  Doom landing during the wielder's own acted period would attribute falsely, charm-tier
+  obscurity), and a mid-battle tier-up over a pre-existing foreign Doom could false-hasten
+  once (impossible on DEV builds, which seed every tally past tier).
 - [LW-94] SHIPPED 5dd5003 2026-07-16: turn credits now resolve flags-first. TurnTracker rode the
   parked actor pointer, which sits on the action TARGET at a caster's acted edge, so a healer's
   own turns never counted (smoke rows 7.14 and 7.27 caught it live: the Mending wielder's three
