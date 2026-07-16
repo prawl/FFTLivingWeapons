@@ -296,6 +296,15 @@ is the in-flight subset, not a mirror of that checklist.
   guarded rpm, fingerprint scan). Re-anchor the probe shared constants/filters when a probe is
   next needed, or lift the plague_watch pattern into tools/probes as the new base.
 
+- [LW-95] 2026-07-16: Eagle Eye hastens Dooms it did not inflict. The tier-3 aura
+  (EagleEye.Policy.AuraTarget) arms on fielded-at-tier alone and ShouldHasten never sees the
+  inflictor, so any enemy Doom from any source snaps to 1 while an Eclipsebolt is fielded
+  (smoke row 7.10 FAILED live: a Mortal Coil proc at 00:15:44 was hastened 3 to 1 a second
+  later, tape flight_20260716_001721). Design truth (living_weapon_grid.csv id 78) scopes the
+  shortening to the bow's own May-inflict-Doom procs ("1 turn instead of 3"). Fix direction:
+  gate the hasten on a Doom-appearance edge attributed to the wielder's own action (the
+  KillerStamp last-actor pattern). Player-favoring cheese, not corruption; battle-scoped.
+
 ## Walled (blocked by engine / Denuvo / modloader)
 
 - Fix the sword swing-art (art welded to weapon id; the same render node also drives damage).

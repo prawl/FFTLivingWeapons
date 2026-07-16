@@ -370,7 +370,16 @@ Debug/file tier only.
   cannot outlive a battle; re-observe opportunistically if a later battle maims early) **Huntress
   (id 89) Maim:** a struck enemy stops firing its reaction (Counter etc.) for 3
   turns. **[MINOR]**
-- [ ] 7.10 **Eclipsebolt (id 78) Eagle Eye:** an enemy carrying Doom has its countdown snapped to
+- [ ] 7.10 (FAILED 2026-07-16, owner live, dev lane; diagnosed same session, backlog LW-95: the
+  hasten is implemented as a field-wide aura with no inflictor gate (EagleEye.Policy.AuraTarget
+  arms on fielded-at-tier alone; ShouldHasten never sees who inflicted the Doom), so a Doom
+  that Mortal Coil procced at 00:15:44 was snapped 3 to 1 one second later, applying
+  Eclipsebolt's signature to another weapon's Doom. The write path itself proved live (the
+  countdown forced 3 to 1 on screen and in the file, "1 hastened this battle"); the failure is
+  scope. The CSV design row (living_weapon_grid.csv id 78) reads "Shortens Doom's countdown to
+  1 turn instead of 3", the bow's own May-inflict-Doom procs. Fix or ship as a known-issue
+  line, owner call)
+  **Eclipsebolt (id 78) Eagle Eye:** an enemy carrying Doom has its countdown snapped to
   1. **[MINOR]**
 - [x] 7.11 (PASSED 2026-07-16, owner live, dev lane, on the post-fix build (backlog LW-94): the
   gate armed on the wielder's act at 00:01:13 and the steal fired at 00:01:17, "Haste was stolen
