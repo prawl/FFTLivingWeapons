@@ -10,6 +10,35 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-87] SHIPPED 0b1da09 2026-07-21: the battle Attack row no longer forgets the acting
+  unit's weapon when the player views another unit's status with T and backs out; it keeps
+  the name for that unit's whole turn. The row had been anchored to the game's condensed
+  cursor struct, which follows whichever unit is being LOOKED at rather than the one whose
+  turn is open, so the LW-55 gates were handed another unit's dossier and correctly refused
+  it, and a refusal composes vanilla. The resolve now rides Band.FlagOwner (the per unit turn
+  flag walk that already carries kill credit, LW-63 and LW-94) plus the same roster bridge,
+  and the TurnQueue fingerprint walk is deleted from this surface rather than kept as a cross
+  check, which would have reintroduced the same failure class. Dropping that read also drops
+  its team gate: the roster bridge is the player filter in its place (enemies and guests
+  bridge to zero roster rows), which removes two more blackout classes for free, the garbage
+  team field on save load entries and the flicker to enemy during action resolution while the
+  player's turn is still open. CursorGate.Decide and the CursorRefusal enum are code
+  identical (doc comments only), and resolve level refusals now name their stage (NoOwner,
+  NameIdZero, BridgeFail) and tape one flight record per stage per battle, closing the
+  diagnosability hole that made the original blackout cost a probe session. The opening
+  mirror seat theory was disproven before code: the revolving duplicate was benign in every
+  sample (frozen at 0,0 with its flag down), zero ambiguous verdicts across 8879 probe ticks.
+  Owner live pass 2026-07-21 14:02 to 14:06 on the deployed DEV build: the name held through
+  repeated detours on both ally and enemy status views, whole enemy turns stayed plain
+  vanilla (the fail closed bait step), and the session logged zero warnings; the two column
+  probe counted 581 ticks the old resolve refused and the new one answered, with zero
+  regressions the other way. Owner flip 2026-07-21. Rigor trail: a live probe killed the
+  planned fix direction before it was built, an adversarial plan review blocked
+  implementation until the turn flag hold premise was measured live and forced the refusal
+  observability into scope, and an independent verifier sabotaged the code to prove the load
+  bearing test bites, restoring byte identically and rebuilding clean. Bounded residual
+  banked as LW-103 (a post battle roster versus frozen band disagreement, harmless because
+  nothing composes out of battle). Suite 2630 green, analyze exit 0.
 - [LW-90] SHIPPED d780d13 2026-07-21: a battle restart no longer bakes a held stat boost in
   as a unit's natural, and the Iai opening Speed boost now truly ends after the wielder's
   first turn (that second half shipped as the follow-up prong, 4ca396d). The mod remembers

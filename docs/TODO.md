@@ -13,18 +13,18 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-87] The battle Attack row loses its weapon name whenever the cursor context wanders off the acting unit** (opened 2026-07-14) [BUILDING]
-  - Done means: the Attack row keeps the acting unit's weapon name for that unit's whole turn,
-    including after viewing another unit's status with T, because the resolve now anchors on
-    the turn flags owner instead of the hover following cursor struct. (Tech: ActorResolver.
-    Cursor.cs rides Band.FlagOwner plus the roster bridge; the TurnQueue fingerprint walk is
-    deleted; CursorGate.Decide and the LW-55 fail closed doctrine survive unchanged; resolve
-    refusals tape one flight record per stage per battle.)
-  - Verify: unit tests pin the detour shape (the flag owner composes while the cursor struct
-    holds another unit's tuple), the race window NotTurnOwner refusal, and the enemy turn
-    bridge refusal; the LW-55 WeaponMismatch tripwire tests stay green unmodified; owner live
-    pass sees the row hold through a T status detour with the two column probe confirming the
-    flag holds.
+- **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [QUEUED]
+  - Done means: a rider who restarts a battle and opens it dismounted no longer carries the
+    previous run's leftover mounted Speed until they climb back on a chocobo; the mod
+    recognises its own leftover boost even when the signature that wrote it is not currently
+    active. (Tech: HoldTimedStat's LW-90 correction fires only at an ACTIVE capture, so a
+    dismounted battle 2 open skips capture entirely; candidate is an inactive first sight
+    NaturalLedger consult for mount gated signatures. Rides with it: a clean remount capture
+    currently drops the post revert corrective sentinel for the rest of the battle.)
+  - Verify: unit tests pin the dismounted restart open (a recorded leftover target is refused
+    as a natural even with no active hold) and the remount sentinel; owner live pass restarts
+    a battle with a mounted Cavalier's Charge wielder, opens the restarted battle on foot, and
+    reads natural Speed on the card before mounting up.
 
 ## Backlog
 
@@ -290,14 +290,6 @@ the technical detail lives in the indented lines under it.
   adoption (copy AnchorScan.cs, the FingerprintGuard pattern, into
   FFTHandsFree/FFTColorCustomizer/FFTMultiplayer) rides this row too
   (hardening-must-be-portable).
-- [LW-100] 2026-07-21: The mounted Speed boost (Cavalier's Charge) cannot see through a
-  restart's leftover boost while the rider starts the restarted battle dismounted, so that
-  one battle can keep the leftover Speed until the player mounts up.
-  (Tech: HoldTimedStat's LW-90 correction fires only at an ACTIVE capture; a dismounted
-  battle-2 open skips capture entirely. Bounded, non-compounding, self-heals on mount or
-  next battle. Rides with it: a clean remount capture drops the post-revert corrective
-  sentinel for the rest of the battle. Both from the LW-90 delta review. Candidate: allow
-  an inactive first-sight ledger consult for mount-gated signatures.)
 - [LW-93] 2026-07-14: The external probe scripts can no longer find battle units on game
   version 1.5.1 (the mod itself can); fix the scripts' outdated assumptions, or rebuild
   them on the pattern that still works, before the next probe is needed.
