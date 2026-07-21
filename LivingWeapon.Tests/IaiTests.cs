@@ -235,12 +235,13 @@ public class IaiTests
     public void Post_release_normalize_to_the_holds_own_target_is_re_corrected_without_a_restart()
     {
         // LIVE-OBSERVED 2026-07-21 11:04-11:08 (the owner's LW-90 repro session): in a FRESH
-        // battle (no restart, clean capture), the release restored natural but the engine's
-        // per-turn normalize re-painted the boost -- the game's baseline captures our hold,
-        // which arms within ~100ms of battle open -- and nothing caught it, so the wielder
-        // rode the boost all battle. The ledger-corrected battle in the same session showed
-        // the same normalize being caught by the residue corrective ("re-corrected
-        // post-release 13 -> 11" x2), proving the premise. The corrective must therefore also
+        // battle (no restart, clean capture), the release restored natural but the boost came
+        // back, on the working theory that the engine's per-turn normalize re-paints a baseline
+        // that captured our hold, which arms within ~100ms of battle open; nothing caught it,
+        // so the wielder rode the boost all battle. The ledger-corrected battle in the same
+        // session showed the same return being caught by the residue corrective ("re-corrected
+        // post-release 13 -> 11" x2), which is CONSISTENT with the premise but does not prove
+        // it: the LIVE_LEDGER row is still Uncertain. The corrective must therefore also
         // key on the hold's OWN last written target, not only ledger-flagged residue.
         var (iai, mem, wielder, _) = Build(nameId: 298, fieldUnitSpeed: 10);
         var t0 = DateTime.UtcNow;

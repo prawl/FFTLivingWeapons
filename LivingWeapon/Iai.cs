@@ -24,7 +24,7 @@ namespace LivingWeapon;
 /// Murakumo wielders + a faster Ninja) showed one of the two wielders never observing its own
 /// CT pull-down, so it never released and stayed pinned at fieldMax+1 until the 90s wall-clock
 /// cap. ActorPtr sidesteps the read-reliability problem: it is the engine's OWN notion of "whose
-/// turn is it right now", live-proven 2026-07-01 by tools/probes/unitid_probe.py "watch" (see
+/// turn is it right now", observed 2026-07-01 by tools/probes/unitid_probe.py "watch" (see
 /// docs/LIVE_LEDGER.md's Uncertain row -- flip pending Patrick's live-verify of THIS rebuild).
 ///
 /// RELEASE v2 -- IDENTITY-MATCH (same day, 2026-07-01, tools/probes/unitid_probe.py "watch"/
@@ -76,10 +76,13 @@ namespace LivingWeapon;
 /// acting unit and release together on the first one's turn -- premature-release direction only
 /// (both lose the boost early; nobody is left permanently fast), so it fails safe.
 ///
-/// LW-90 post-release corrective (LIVE-PROVEN NECESSARY 2026-07-21, owner repro session): the
-/// engine's per-turn normalize re-paints the unit's baseline after our release, and the
-/// baseline captures our boost (Iai arms at battle open, before the snapshot), so the released
-/// boost returns in EVERY Iai battle unless re-corrected: fresh battles ride the hold's own
+/// LW-90 post-release corrective. Its premise was OBSERVED live 2026-07-21 (owner repro
+/// session) but is NOT proven: docs/LIVE_LEDGER.md files that row under Uncertain, and only
+/// the owner flips a row to Proven, so treat what follows as the working theory the corrective
+/// is built on. The theory: the engine's per-turn normalize re-paints the unit's baseline after
+/// our release, and that baseline captured our boost (Iai arms at battle open, before the
+/// snapshot), so the released boost came back in every Iai battle observed so far unless
+/// re-corrected: fresh battles ride the hold's own
 /// LastTarget, restarted ones the ledger's BakedResidue; the corrective watches both. Accepted
 /// corner: it rewrites natural over ANY byte reading exactly one of those two values for the
 /// rest of the battle, with no foreign-value discrimination -- a real Speed buff landing the
@@ -195,11 +198,13 @@ internal sealed partial class Iai : ISignature
 
             if (state.Released)
             {
-                // LW-90 post-release corrective hold, LIVE-PROVEN 2026-07-21 (the owner's
-                // repro session, 11:03-11:08 log): the engine's per-turn normalize re-paints
-                // the unit's baseline AFTER our release, and that baseline captured our boost
-                // (Iai arms within ~100ms of battle open, before the game snapshots it), so
-                // in EVERY Iai battle -- restarted or fresh -- the released boost comes back
+                // LW-90 post-release corrective hold. Premise OBSERVED live 2026-07-21 (the
+                // owner's repro session, 11:03-11:08 log), NOT proven: the LIVE_LEDGER row is
+                // still Uncertain, owner flip pending. The theory: the engine's per-turn
+                // normalize re-paints the unit's baseline AFTER our release, and that baseline
+                // captured our boost (Iai arms within ~100ms of battle open, before the game
+                // snapshots it), so in every Iai battle observed so far, restarted or fresh,
+                // the released boost came back
                 // unless re-corrected. Watch BOTH known-ours values for the rest of the
                 // battle: the ledger-flagged restart residue (BakedResidue) AND the hold's
                 // own last written target (LastTarget; the fresh-battle case, which the
@@ -241,8 +246,8 @@ internal sealed partial class Iai : ISignature
             int clamped = raw < SpeedSaneMin ? SpeedSaneMin : raw > SpeedSaneMax ? SpeedSaneMax : raw;
             // LW-90: record every held target per evaluation (the ledger dedups), so a restarted
             // battle's first sight of this exact value is recognized as the mod's own residue;
-            // LastTarget feeds the post-release corrective (the engine normalizes our boost
-            // back after release, live-proven 2026-07-21).
+            // LastTarget feeds the post-release corrective (the engine appears to normalize our
+            // boost back after release: observed 2026-07-21, LIVE_LEDGER row still Uncertain).
             _ledger.RecordWrite(state.NameId, StatLane.Speed, clamped);
             state.LastTarget = clamped;
             _mem.W8(spAddr, (byte)clamped);
@@ -326,9 +331,9 @@ internal sealed partial class Iai : ISignature
         /// exactly this value.</summary>
         public int BakedResidue;
         /// <summary>The hold's own last written target this battle; 0 = never held. The
-        /// post-release corrective's second token: the engine's normalize re-paints OUR boost
-        /// after release in fresh battles too (live-proven 2026-07-21), where BakedResidue is
-        /// 0 because the capture was clean.</summary>
+        /// post-release corrective's second token: the engine's normalize appears to re-paint
+        /// OUR boost after release in fresh battles too (observed 2026-07-21, LIVE_LEDGER row
+        /// still Uncertain), where BakedResidue is 0 because the capture was clean.</summary>
         public int LastTarget;
         public bool Released;
         /// <summary>Roster nameId captured ONCE at arm time (Wielder.RosterNameId); -1 = capture

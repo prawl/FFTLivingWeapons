@@ -44,15 +44,16 @@ before 2026-07-21 keep their original prose.
   first turn (that second half shipped as the follow-up prong, 4ca396d). The mod remembers
   every boost value it writes (NaturalLedger: per unit and stat lane, across battles,
   level-keyed so an earned level-up point is never eaten by a value collision) and refuses
-  to adopt its own leftovers at a fresh battle's first sight; and because the game
-  re-paints its boosted baseline every turn (live-proven this day, LIVE_LEDGER row),
+  to adopt its own leftovers at a fresh battle's first sight; and because the game appears
+  to re-paint its boosted baseline every turn (the working premise, observed live this day,
+  filed UNCERTAIN in LIVE_LEDGER and never promoted to that file's Proven section),
   released holds keep re-correcting their own written values for the rest of the battle.
   All six capture-natural holds are guarded (Iai plus the five growth lanes, which
   compounded multiplicatively across restarts); the backlog's roster-clamp candidate died
   in recon (no mapped roster or raw Speed byte exists). Owner live pass 2026-07-21 11:46:
   Ramza went first against faster enemies while his card read natural 11 throughout, the
-  release fired at his turn open, and the corrective caught the game's re-paint (14 to 11)
-  on tape; the restart leg was proven the same morning on the prior build ("restart
+  release fired at his turn open, and the corrective caught the boost returning (14 to 11)
+  on tape; the restart leg was watched the same morning on the prior build ("restart
   residue corrected at capture", the 11:03 battle), whose correction machinery the prong
   did not touch. Owner flip 2026-07-21. The roster stayed untouched throughout (the owner's
   out-of-battle card read natural 11 after the residue battles). Residuals banked as
