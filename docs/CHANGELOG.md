@@ -10,6 +10,27 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-106] SHIPPED e616be5 2026-07-21: writing that the game was PROVEN to do something now
+  fails the build unless someone deliberately signs off on it. The rule that only the live
+  ledger decides what is proven had no machine behind it and got broken nine times before
+  anyone noticed (LW-105 found nine such sentences across code, tests and this file, only two
+  of them known going in). The check counts the proof claim phrases per file and compares
+  against a frozen baseline, so any addition fails and the author has to open the ledger,
+  confirm the row really sits in the Proven section, and bump a number on purpose; the failure
+  message prints the paste ready row and names the option that is usually right, which is
+  rewording the claim rather than bumping the count. The design written into the ticket did not
+  survive its own seeding grep: an allow list naming the ledger row behind every claim would
+  have been a 197 row hand mapping across 65 files that churns on every reword, so the count
+  ratchet replaced it at roughly a fiftieth of the cost while still catching every addition
+  (LW-90 added four in one commit). Two limits are stated in the test rather than left
+  implicit: the baseline records that those 197 claims EXISTED on this date and does NOT assert
+  each traces to a Proven row (auditing them is LW-107), and deleting one claim while adding
+  another in the SAME file keeps the count equal and passes, which is the accepted price of not
+  freezing line text. Scope covers production code, tests and the top level contract docs;
+  excluded are the ledger itself, the JOURNAL and ARCHIVED doc tiers, and the test file, which
+  necessarily contains every phrase it hunts. Proven to bite: a planted claim in Plague.cs
+  turned it red naming that file, and a byte restore plus forced rebuild turned it green.
+  Suite 2647 green.
 - [LW-102] SHIPPED 3dc0852 2026-07-21: a work row pasted into the wrong part of docs/TODO.md
   used to stop being checked without anyone noticing; now it fails the build. The contract
   tests read entries only out of Now, Backlog, and the changelog, so a row parked under Walled

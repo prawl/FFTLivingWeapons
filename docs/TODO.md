@@ -36,26 +36,19 @@ the technical detail lives in the indented lines under it.
     confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
-- **[LW-106] Make the build notice when someone newly claims the game was proven to do something** (opened 2026-07-21) [BUILDING]
-  - Done means: adding a new sentence that says a game behaviour is proven fails the build
-    until the author deliberately signs off on it, so the claim gets a moment of thought
-    instead of sliding in unnoticed. LW-105 is why: nine such sentences existed, only two were
-    known, and finding the rest took a wide sweep rather than a grep. The rule against this was
-    already written down and got broken anyway, which is the sign a convention needs a machine
-    behind it. (Tech: the shape written into the original backlog row, an allow list naming the
-    LIVE_LEDGER row behind every claim, DIED ON CONTACT WITH THE DATA: a real grep found 197
-    claims across 65 files, so that design is a 197 row hand mapping with heavy churn. Replaced
-    with a ratchet: freeze the per file claim COUNT, fail on any change, which is roughly fifty
-    times cheaper and still catches every addition.)
-  - Verify: adding one proof claim phrase to any scanned file turns the suite red naming that
-    file, and removing it turns the suite green, so the check bites rather than passing
-    vacuously. The frozen counts must be honest about what they mean: they record that these
-    claims EXISTED on 2026-07-21, not that each one is backed by a row in the ledger's Proven
-    section. Auditing the pre existing 197 is separate work and gets its own row. Known and
-    accepted gap: deleting one claim and adding another in the SAME file keeps the count equal
-    and passes.
-
 ## Backlog
+
+- [LW-107] 2026-07-21: The tree carries 197 sentences claiming the game was proven to do
+  something, and nobody has checked whether each one traces to a row the owner actually
+  promoted; audit them the way the session notes were audited.
+  LW-106 froze those 197 as a baseline so no NEW claim can slip in, but freezing is not
+  verifying: the baseline records only that they existed on 2026-07-21. LW-105 audited one
+  premise and found nine bad sentences behind it, so the base rate here is not zero. Method
+  that worked: per claim, name the mechanism, find its LIVE_LEDGER row, check which section
+  the row really sits in, then either keep, reword to the honest status, or delete; have a
+  second reader attack each verdict. Heaviest files first (Offsets.cs 18, BodyDoubleSpike.cs
+  13, MECHANICS.md 20, CHANGELOG.md 27). Expect a large share to be legitimate; the point is
+  knowing which, and the ratchet already stops the bleeding meanwhile.
 - [LW-104] 2026-07-21: The automated build that runs on every push is riding deprecated
   machinery and will eventually stop working unless the actions it uses are bumped; nothing is
   broken today.
