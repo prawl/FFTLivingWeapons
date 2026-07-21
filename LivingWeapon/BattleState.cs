@@ -37,14 +37,18 @@ internal sealed class BattleState
     private bool _haveLastTick;
     private bool _pairWasArmed;                    // last observed sentinel-pair state (for the edge)
 
-    /// <summary>Both battle sentinels armed at once. A LEVEL read of this pair cannot mean
-    /// "a battle is starting": BOTH sentinels stick on the post-quit world map (slot0 stays
-    /// 0xFF after a battle QUIT, probe-verified 2026-06-10; slot9 always sticks), which made a
-    /// level-triggered pair re-enter instantly after every exit -- a 4-second enter/exit
-    /// metronome. Only the disarmed->armed EDGE of the pair enters; live modes stay level
-    /// signals (a real battle reads mode 2/4 the moment the battlefield loads).</summary>
+    /// <summary>Both battle sentinels armed at once: slot0 at the in-battle marker
+    /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5; re-anchored from the retired pre-1.5 0xFF by
+    /// LW-42) with slot9 at its stuck sentinel. A LEVEL read of this pair cannot mean "a battle
+    /// is starting": BOTH sentinels stuck on the pre-1.5 post-quit world map (slot0 stayed 0xFF
+    /// after a battle QUIT, probe-verified 2026-06-10; slot9 always sticks; the 1.5 post-quit
+    /// slot0 value is unverified), which made a level-triggered pair re-enter instantly after
+    /// every exit (a 4-second enter/exit metronome). Only the disarmed->armed EDGE of the pair
+    /// enters; live modes stay level signals (a real battle reads a live mode the moment the
+    /// battlefield loads, and on 1.5 slot0 sampled 0xFFFFFFFF at both battle-load churn edges
+    /// of the 2026-07-21 log, so no early marker edge was observed there).</summary>
     internal static bool PairArmed(uint slot0, uint slot9) =>
-        slot0 == 0xFF && slot9 == 0xFFFFFFFF;
+        slot0 == Offsets.Slot0InBattleMarker && slot9 == 0xFFFFFFFF;
 
     /// <summary>The instant battle-enter signal: a fresh sentinel-pair arm (edge, computed by
     /// the caller) OR any live battlefield mode. battleMode reads 0 on the world map / menus and
@@ -59,16 +63,23 @@ internal sealed class BattleState
         pairRisingEdge || battleMode == 2 || battleMode == 3 || battleMode == 4;
 
     /// <summary>A genuine in-battle frame, for feeding the charm heartbeat and gating every module
-    /// that writes battle memory. battleMode 2/3/4 covers active-turn frames. The slot0==0xFF
-    /// in-battle marker stays set through cast/attack targeting (battleMode 1/5) where gating on
-    /// {2,3,4} alone starves the beat -- but the marker CANNOT be trusted alone: QUITTING a battle
-    /// leaves slot0 STUCK at 0xFF on the world map (probe-verified 2026-06-10; a normal victory
-    /// clears it to 0x66), which kept battles "live" forever -- no exit edge, endless charm holds.
-    /// So a marker-only frame counts as live only with an EXCUSE for battleMode reading 0:
-    /// targeting modes 1/5, the pause flag, or a real event id (mid-battle dialogue).</summary>
+    /// that writes battle memory. battleMode 2/3/4 covers active-turn frames. The slot0 in-battle
+    /// marker (Offsets.Slot0InBattleMarker, 0x10 on 1.5) covers the frames where gating on {2,3,4}
+    /// alone starves the beat: cast/attack targeting and enemy turns (battleMode 1/5). LW-42
+    /// re-anchored the marker test from the pre-1.5 0xFF, which never appears on 1.5, so this
+    /// whole excuse arm had been dead: the 2026-07-21 log's battle-load churn (enter 07:24:14,
+    /// false exit 07:24:22 at mode 1, ~7.6s apart with no excuse available) is that bug firing,
+    /// pre-live there, but the same mechanism mid-battle resets the kill tracker. The marker's
+    /// persistence through mode-1/5 stretches is inherited pre-1.5 behavior, AWAITING-LIVE
+    /// (owner slow-cast eyeball); wrong means dead excuse (the old behavior), never wrongly
+    /// live. The marker CANNOT be trusted alone: pre-1.5, QUITTING left it STUCK on the world
+    /// map (probe-verified 2026-06-10; a victory cleared it to 0x66, and on 1.5 a victory exit
+    /// sampled 0x11) and the 1.5 post-quit value is unverified, so a marker-only frame counts
+    /// as live only with an EXCUSE for battleMode reading 0: targeting modes 1/5, the pause
+    /// flag, or a real event id (mid-battle dialogue).</summary>
     public static bool InLiveBattle(uint slot0, int battleMode, bool paused, int eventId) =>
         battleMode == 2 || battleMode == 3 || battleMode == 4
-        || (slot0 == 0xFF && (battleMode == 1 || battleMode == 5
+        || (slot0 == Offsets.Slot0InBattleMarker && (battleMode == 1 || battleMode == 5
                               || paused || IsRealEvent(eventId)));
 
     /// <summary>On the live battlefield: in battle AND a live mode. slot9 stays stuck on the

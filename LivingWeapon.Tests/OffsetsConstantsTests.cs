@@ -17,4 +17,14 @@ public class OffsetsConstantsTests
     {
         Assert.Equal(50, Offsets.RosterSlots);
     }
+
+    /// <summary>LW-42 tripwire: the 1.5 slot0 in-battle marker is exactly 0x10 (live battle edges
+    /// 2026-07-21; pre-1.5 it was 0xFF and that value is retired). PairArmed and InLiveBattle's
+    /// mode-1/5 excuse anchor on this value, so changing it silently revives or kills those
+    /// paths; any bump needs fresh live edge evidence, not a guess.</summary>
+    [Fact]
+    public void Slot0InBattleMarker_is_the_15_marker_0x10()
+    {
+        Assert.Equal(0x10u, Offsets.Slot0InBattleMarker);
+    }
 }

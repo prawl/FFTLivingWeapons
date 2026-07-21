@@ -13,17 +13,21 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-42] Two leftover battle checks read the old game version's marker and are dead on 1.5** (opened 2026-07-07) [QUEUED]
-  - Done means: the mod never mistakes a long spell cast or paused animation for the battle
-    ending, because every in-battle check asks the current game version's question. Plain
-    version: two checks still look for the old version's "battle running" marker, always
-    hear "no", and a long enough cast could make the mod reset its in-battle kill
-    bookkeeping mid-fight. (Tech: InLiveBattle's cast-targeting / paused / event excuse for
-    modes 1 and 5, and PairArmed, both test slot0 == 0xFF; the 1.5 in-battle marker reads
-    0x10, Offsets.Slot0 note, live probe 2026-07-07.)
-  - Verify: unit tests pin the 1.5 marker semantics on both checks, and a live battle
-    holding a slow cast past the exit debounce shows no false battle-exit in
-    livingweapon.log (owner eyeball).
+- **[LW-42] Two leftover battle checks read the old game version's marker and are dead on 1.5** (opened 2026-07-07) [AWAITING-LIVE]
+  - Done means: the mod never mistakes a long spell cast or a long enemy turn for the battle
+    ending, because every in-battle check asks the current game version's question. Built
+    2026-07-21: both checks now read the current version's marker, red-first tests plus a
+    sabotage pass prove the wiring, and the morning log caught the old bug live (a false
+    battle-exit during a battle intro). (Tech: PairArmed and InLiveBattle's mode-1/5 excuse
+    re-anchored from the retired pre-1.5 slot0 == 0xFF to Offsets.Slot0InBattleMarker 0x10;
+    evidence banked in the LIVE_LEDGER 1.5 slot0 battle-phases Uncertain row.)
+  - Verify: owner live pass, three eyes in one session. (1) Hold a slow cast or watch a long
+    enemy turn past 4 seconds mid-battle, then check livingweapon.log: no battle-end line
+    until the battle truly ends (one enter/exit pair around the battle INTRO is known and
+    harmless). (2) QUIT one battle, dawdle on the world map, and confirm a battle-end line
+    lands within about 4 seconds and the next battle starts clean. (3) Confirm signatures
+    still behave during enemy turns and casts, since the in-battle window widened to cover
+    those frames for the first time since the 1.5 port.
 
 ## Backlog
 

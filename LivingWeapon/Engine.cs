@@ -311,8 +311,10 @@ internal sealed class Engine
         bool paused = Mem.U8(Offsets.PauseFlag) == 1;
         int eventId = Mem.U16(Offsets.EventId);   // out-of-live: dialogue/cutscene; in-combat: nameId alias
         var now = DateTime.Now;
-        // A genuine in-battle frame: live modes, or the slot0 marker with a paused/event excuse
-        // (the marker alone lies -- it sticks at 0xFF after a battle QUIT). Gates every module that
+        // A genuine in-battle frame: live modes, or the slot0 in-battle marker with a targeting/
+        // paused/event excuse. The marker alone lies: pre-1.5 it stuck at the then-marker 0xFF
+        // after a battle QUIT, and the 1.5 post-quit value is unverified (LW-42; see
+        // Offsets.Slot0InBattleMarker). Gates every module that
         // writes battle memory. Computed BEFORE BattleState.Step (LW-56) so PlaythroughReset's own
         // detection edge, below, can reach Step as a forced-exit signal on this same tick.
         bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
@@ -358,7 +360,8 @@ internal sealed class Engine
             // sessions, zero archives, all ended by kills). Loop thread -- synchronous is the norm here.
             Flight.FlushBattleStart();
             // Reset per-battle state on ENTER too. A battle RESTART can re-enter WITHOUT a clean Exit
-            // (the slot0/slot9 sentinels stick -- slot0-quit-stick-trap), which left Larceny's stolen-buff
+            // (pre-1.5 the slot0/slot9 sentinels stuck, the quit-stick trap; the 1.5 restart values
+            // are unverified, so the defensive reset stays), which left Larceny's stolen-buff
             // ledger alive into the new battle: the engine wipes statuses at battle start, but Larceny's
             // per-tick Drive re-applied them from the stale ledger, so they carried over and never faded.
             // Resetting here makes a fresh battle start clean however the prior one ended (2026-06-15).

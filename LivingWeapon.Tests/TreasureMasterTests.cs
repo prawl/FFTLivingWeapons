@@ -1526,7 +1526,7 @@ public class TreasureMasterTests
     // ── (18) battleDisplayed gate: formation / enemy-turn coverage ────────────────
     // The Treasure Master module gates on a single bool from the Engine. Prior to this
     // fix the Engine passed InLiveBattle, which flickered false during enemy turns and
-    // animations (battleMode==1 without slot0==0xFF). This kept resetting _stableTicks
+    // animations (battleMode==1 without the then-marker, pre-1.5 slot0==0xFF). This kept resetting _stableTicks
     // and prevented arming mid-battle. The Engine now passes BattleDisplayed instead:
     // slot9==0xFFFFFFFF && battleMode!=0. Formation and enemy turns both satisfy that,
     // so the module receives a stable true throughout the battle.
@@ -1629,7 +1629,8 @@ public class TreasureMasterTests
 
     /// <summary>
     /// Simulates the pre-fix flicker: the gate alternates false/true repeatedly
-    /// (battleMode==1 without excuse each odd tick, like an enemy turn without slot0==0xFF).
+    /// (battleMode==1 without excuse each odd tick, like an enemy turn without the pre-1.5
+    /// slot0==0xFF marker).
     /// With the old InLiveBattle gate this reset _stableTicks on every odd tick.
     /// With the new battleDisplayed gate (always true while the map is displayed),
     /// the module receives continuous true and arms normally.

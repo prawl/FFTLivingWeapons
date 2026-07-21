@@ -15,6 +15,7 @@ namespace LivingWeapon.Tests;
 public class BattleStateTests
 {
     private const uint WM9 = 0xFFFFFFFFu;   // the stuck slot9 world-map sentinel
+    private const uint M15 = 0x10u;         // the 1.5 slot0 in-battle marker (pre-1.5: 0xFF); Offsets.Slot0InBattleMarker
     private static DateTime T0 => new(2026, 1, 1);
 
     // World-map (fully out) reads: slot0=0, slot9=0, mode=0, not paused, no event.
@@ -35,24 +36,33 @@ public class BattleStateTests
         => Assert.Equal(expected, BattleState.EnterSignal(pairEdge, mode));
 
     [Theory]
-    [InlineData(0xFFu, 0xFFFFFFFFu, true)]   // both armed
-    [InlineData(0xFFu, 0u, false)]           // slot9 not armed
+    [InlineData(0x10u, 0xFFFFFFFFu, true)]   // both armed (1.5 in-battle marker)
+    [InlineData(0x10u, 0u, false)]           // slot9 not armed
     [InlineData(0u, 0xFFFFFFFFu, false)]     // slot0 not armed
-    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, false)]  // slot0 reads the full-width sentinel, not the 0xFF marker
+    [InlineData(0xFFu, 0xFFFFFFFFu, false)]  // the pre-1.5 marker is retired; it never appears on 1.5 (LW-42)
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, false)]  // battle-load intro reads (live edge log 2026-07-21 07:24:14)
+    [InlineData(0x11u, 0xFFFFFFFFu, false)]  // post-victory world-map value (live edge log 2026-07-21 07:28:17)
     public void PairArmed_requires_both_sentinels(uint slot0, uint slot9, bool expected)
         => Assert.Equal(expected, BattleState.PairArmed(slot0, slot9));
 
-    // --- InLiveBattle (pure): the stuck-sentinel contract -- slot0==0xFF alone is NOT proof of a
-    //     live battle. QUITTING a battle leaves it stuck at 0xFF on the world map (probe-verified
-    //     2026-06-10; a normal victory clears it to 0x66). The marker only counts when a mode-0
-    //     frame has an excuse: paused, or a real event id (mid-battle dialogue). ---
+    // --- InLiveBattle (pure): the stuck-sentinel contract -- the in-battle marker alone is NOT
+    //     proof of a live battle. Pre-1.5, QUITTING a battle left the then-marker 0xFF stuck on
+    //     the world map (probe-verified 2026-06-10; a victory cleared it to 0x66); the 1.5
+    //     post-quit value is unverified, so the defensive shape stands: the marker only counts
+    //     when the frame has an excuse (targeting modes 1/5, paused, or a real event id).
+    //     1.5 marker values from the live edge log (2026-07-21 07:24-07:28, rescued to the
+    //     scratchpad): 0xFFFFFFFF through the battle-load intro, 0x10 live, 0x11 post-victory. ---
 
     [Theory]
-    [InlineData(0xFFu, 1, false, 0xFFFF, true)]    // cast targeting (battleMode 1) with the marker
-    [InlineData(0xFFu, 5, false, 0xFFFF, true)]    // cursor on caster's tile during a cast
-    [InlineData(0xFFu, 0, true, 0xFFFF, true)]     // paused mid-battle dip -- excused
-    [InlineData(0xFFu, 0, false, 401, true)]       // mid-battle dialogue (real event id) -- excused
-    [InlineData(0xFFu, 0, false, 0xFFFF, false)]   // QUIT TRAP: stuck marker, mode 0, no excuse -> not live
+    [InlineData(0x10u, 1, false, 0xFFFF, true)]    // enemy turn / animation stretch (battleMode 1) with the marker
+    [InlineData(0x10u, 5, false, 0xFFFF, true)]    // cast targeting with the marker
+    [InlineData(0x10u, 0, true, 0xFFFF, true)]     // paused mid-battle dip: excused
+    [InlineData(0x10u, 0, false, 401, true)]       // mid-battle dialogue (real event id): excused
+    [InlineData(0x10u, 0, false, 0xFFFF, false)]   // STUCK-MARKER GUARD: marker, mode 0, no excuse -> not live
+    [InlineData(0xFFu, 1, false, 0xFFFF, false)]   // the pre-1.5 marker is retired on 1.5 (LW-42)
+    [InlineData(0xFFu, 5, false, 0xFFFF, false)]   // retired marker cannot excuse a cast either
+    [InlineData(0x11u, 1, false, 0xFFFF, false)]   // post-victory value (live 2026-07-21) is not the marker
+    [InlineData(0xFFFFFFFFu, 1, false, 0xFFFF, false)]  // battle-load intro value is not the marker
     [InlineData(0u, 2, false, 0xFFFF, true)]       // active move turn
     [InlineData(0u, 3, false, 0xFFFF, true)]       // action menu
     [InlineData(0u, 4, false, 0xFFFF, true)]       // instant targeting
@@ -116,7 +126,7 @@ public class BattleStateTests
     {
         var bs = new BattleState();
         Assert.False(bs.In);
-        var edge = bs.Step(0xFF, WM9, 0, paused: false, eventId: 0, now: T0);
+        var edge = bs.Step(M15, WM9, 0, paused: false, eventId: 0, now: T0);
         Assert.Equal(BattleEdge.Entered, edge);
         Assert.True(bs.In);
     }
@@ -148,7 +158,7 @@ public class BattleStateTests
         Assert.True(noMarker.In);
 
         var withMarker = new BattleState();
-        Assert.Equal(BattleEdge.Entered, withMarker.Step(0xFF, 0, 3, false, 0, T0));  // marker present
+        Assert.Equal(BattleEdge.Entered, withMarker.Step(M15, 0, 3, false, 0, T0));  // marker present
         Assert.True(withMarker.In);
     }
 
@@ -170,26 +180,28 @@ public class BattleStateTests
     [Fact]
     public void Stuck_sentinel_pair_does_not_reenter_after_a_quit_exit()
     {
-        // Live bug (2026-06-10, after the quit-exit fix): post-quit, BOTH sentinels stay stuck
-        // (slot0=0xFF, slot9=0xFFFFFFFF) with mode 0. The exit fired correctly -- then the
-        // level-triggered pair signal re-entered instantly, producing a 4-second enter/exit
-        // metronome on the world map (tally saves, tracker resets, growth re-locates, forever).
-        // The pair signal must be EDGE-triggered: only a disarmed->armed transition enters.
+        // Live bug (2026-06-10, pre-1.5, after the quit-exit fix): post-quit, BOTH sentinels
+        // stayed stuck (then-marker 0xFF, slot9=0xFFFFFFFF) with mode 0. The exit fired
+        // correctly -- then the level-triggered pair signal re-entered instantly, producing a
+        // 4-second enter/exit metronome on the world map (tally saves, tracker resets, growth
+        // re-locates, forever). The pair signal must be EDGE-triggered: only a disarmed->armed
+        // transition enters. The 1.5 post-quit slot0 value is unverified (LW-42), so this pins
+        // the defensive contract with the 1.5 marker: even a stuck marker must not re-enter.
         var bs = new BattleState();
-        Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, WM9, 2, false, 0xFFFF, T0));   // real battle
+        Assert.Equal(BattleEdge.Entered, bs.Step(M15, WM9, 2, false, 0xFFFF, T0));   // real battle
         var t = T0;
         BattleEdge last = BattleEdge.None;
         for (int i = 0; i < 200 && last != BattleEdge.Exited; i++)
         {
             t = t.AddMilliseconds(33);
-            last = bs.Step(0xFF, WM9, 0, false, 0xFFFF, t);   // quit: pair stuck, mode 0
+            last = bs.Step(M15, WM9, 0, false, 0xFFFF, t);   // quit: pair stuck, mode 0
         }
         Assert.Equal(BattleEdge.Exited, last);
 
         for (int i = 0; i < 400; i++)   // ~13s of the same stuck world-map state
         {
             t = t.AddMilliseconds(33);
-            Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, false, 0xFFFF, t));
+            Assert.Equal(BattleEdge.None, bs.Step(M15, WM9, 0, false, 0xFFFF, t));
             Assert.False(bs.In);
         }
     }
@@ -200,17 +212,17 @@ public class BattleStateTests
         // With the pair stuck since the quit, the NEXT genuine battle must still enter --
         // the battlefield mode (2) is a level signal and fires the moment the map loads.
         var bs = new BattleState();
-        bs.Step(0xFF, WM9, 2, false, 0xFFFF, T0);                       // battle 1
+        bs.Step(M15, WM9, 2, false, 0xFFFF, T0);                       // battle 1
         var t = T0;
         BattleEdge last = BattleEdge.None;
         for (int i = 0; i < 200 && last != BattleEdge.Exited; i++)
-        { t = t.AddMilliseconds(33); last = bs.Step(0xFF, WM9, 0, false, 0xFFFF, t); }
+        { t = t.AddMilliseconds(33); last = bs.Step(M15, WM9, 0, false, 0xFFFF, t); }
         Assert.Equal(BattleEdge.Exited, last);
 
         t = t.AddSeconds(30);                                            // dawdle on the world map
-        Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, false, 0xFFFF, t));
+        Assert.Equal(BattleEdge.None, bs.Step(M15, WM9, 0, false, 0xFFFF, t));
         t = t.AddMilliseconds(33);
-        Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, WM9, 2, false, 0xFFFF, t));   // battle 2 loads
+        Assert.Equal(BattleEdge.Entered, bs.Step(M15, WM9, 2, false, 0xFFFF, t));   // battle 2 loads
         Assert.True(bs.In);
     }
 
@@ -221,7 +233,7 @@ public class BattleStateTests
         // disarmed->armed EDGE must enter even before a live mode is read.
         var bs = new BattleState();
         Assert.Equal(BattleEdge.None, bs.Step(0, 0, 0, false, 0xFFFF, T0));          // disarmed
-        Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, WM9, 0, false, 0xFFFF, T0.AddMilliseconds(33)));
+        Assert.Equal(BattleEdge.Entered, bs.Step(M15, WM9, 0, false, 0xFFFF, T0.AddMilliseconds(33)));
     }
 
     [Fact]
@@ -232,37 +244,39 @@ public class BattleStateTests
         var bs = new BattleState();
         Assert.Equal(BattleEdge.Entered, bs.Step(0, 0, 2, false, 0xFFFF, T0));       // mode enter
         var t = T0.AddMilliseconds(33);
-        bs.Step(0xFF, WM9, 2, false, 0xFFFF, t);                                      // pair arms mid-battle
+        bs.Step(M15, WM9, 2, false, 0xFFFF, t);                                      // pair arms mid-battle
         BattleEdge last = BattleEdge.None;
         for (int i = 0; i < 200 && last != BattleEdge.Exited; i++)
-        { t = t.AddMilliseconds(33); last = bs.Step(0xFF, WM9, 0, false, 0xFFFF, t); }
+        { t = t.AddMilliseconds(33); last = bs.Step(M15, WM9, 0, false, 0xFFFF, t); }
         Assert.Equal(BattleEdge.Exited, last);
 
         for (int i = 0; i < 100; i++)
         {
             t = t.AddMilliseconds(33);
-            Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, false, 0xFFFF, t));
+            Assert.Equal(BattleEdge.None, bs.Step(M15, WM9, 0, false, 0xFFFF, t));
             Assert.False(bs.In);
         }
     }
 
-    // --- Quit-path regression: slot0 sticks at 0xFF after QUITTING a battle ---
+    // --- Quit-path regression: pre-1.5, slot0 stuck at the then-marker 0xFF after QUITTING a
+    //     battle (2026-06-10 probe; a victory cleared it to 0x66). The 1.5 post-quit value is
+    //     unverified (LW-42), so these pin the same defensive contract on the 1.5 marker. ---
 
     [Fact]
     public void Quit_battle_with_stuck_slot0_sentinel_exits_after_debounce()
     {
-        // Live trap (2026-06-10, probe-verified): quitting a battle leaves slot0 STUCK at 0xFF
-        // (a normal victory clears it to 0x66). The post-quit world map reads mode 0, unpaused,
-        // eventId 0xFFFF. Trusting the stuck sentinel alone kept the battle "live" forever --
-        // no exit edge ever fired and charm-lock kept holding/logging indefinitely.
+        // Live trap (2026-06-10, pre-1.5, probe-verified): quitting left the marker STUCK on the
+        // world map (mode 0, unpaused, eventId 0xFFFF). Trusting the stuck sentinel alone kept
+        // the battle "live" forever: no exit edge ever fired and charm-lock kept holding and
+        // logging indefinitely. Pinned here with the 1.5 marker value.
         var bs = new BattleState();
-        bs.Step(0xFF, WM9, 2, false, 0xFFFF, T0);   // enter
+        bs.Step(M15, WM9, 2, false, 0xFFFF, T0);   // enter
         var t = T0;
         BattleEdge last = BattleEdge.None;
         for (int i = 0; i < 200 && last != BattleEdge.Exited; i++)
         {
             t = t.AddMilliseconds(33);
-            last = bs.Step(0xFF, WM9, 0, false, 0xFFFF, t);
+            last = bs.Step(M15, WM9, 0, false, 0xFFFF, t);
         }
         Assert.Equal(BattleEdge.Exited, last);
         Assert.False(bs.In);
@@ -274,14 +288,14 @@ public class BattleStateTests
         // Mid-battle mode-0 dips are excused by pause or a real event id -- the stuck-sentinel
         // fix must not regress those (the event-401 fake exit was fixed earlier the same day).
         var bs = new BattleState();
-        bs.Step(0xFF, WM9, 2, false, 0xFFFF, T0);   // enter
+        bs.Step(M15, WM9, 2, false, 0xFFFF, T0);   // enter
         var t = T0;
         for (int i = 0; i < 300; i++)   // ~10s alternating paused / dialogue frames
         {
             t = t.AddMilliseconds(33);
             bool paused = i % 2 == 0;
             int ev = paused ? 0xFFFF : 401;
-            Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, paused, ev, t));
+            Assert.Equal(BattleEdge.None, bs.Step(M15, WM9, 0, paused, ev, t));
             Assert.True(bs.In);
         }
     }
@@ -291,15 +305,61 @@ public class BattleStateTests
     [Fact]
     public void In_with_sentinel_dead_move_browsing_never_exits()
     {
-        // slot0 stays 0xFF (the in-battle marker) while move-browsing reads mode 1 with slot9 dropped.
-        // slot0==0xFF keeps InLiveBattle true, so the exit timer never accumulates.
+        // slot0 stays at the in-battle marker while move-browsing reads mode 1 with slot9
+        // dropped. The marker keeps InLiveBattle true, so the exit timer never accumulates.
         var bs = new BattleState();
-        bs.Step(0xFF, WM9, 0, false, 0, T0);   // enter
+        bs.Step(M15, WM9, 0, false, 0, T0);   // enter
         var t = T0;
         for (int i = 0; i < 200; i++)   // >6s of sentinel-dead move-browsing
         {
             t = t.AddMilliseconds(33);
-            Assert.Equal(BattleEdge.None, bs.Step(0xFF, 0, 1, false, 0, t));
+            Assert.Equal(BattleEdge.None, bs.Step(M15, 0, 1, false, 0, t));
+            Assert.True(bs.In);
+        }
+    }
+
+    // --- LW-42: the 1.5 marker re-anchor regressions. Live evidence 2026-07-21, the four
+    //     battle-edge trace lines of the owner's log (durable record: the LIVE_LEDGER "1.5
+    //     slot0 battle phases" Uncertain row): slot0 sampled 0xFFFFFFFF at both battle-load
+    //     churn edges, 0x10 at the real enter (mode 3), 0x11 at the victory exit. The churn
+    //     pair IS the bug firing: enter 07:24:14 at mode 2, false exit 07:24:22 at mode 1
+    //     (~7.6s apart, the debounce running out with no excuse available), benign there only
+    //     because it fired before the real battle; the same dead excuse mid-battle resets the
+    //     kill tracker during any >4s mode-1/5 stretch. The marker's persistence through
+    //     mode-1/5 stretches is inherited from the pre-1.5 0xFF behavior and awaits the
+    //     owner's slow-cast eyeball: if it is wrong the excuse is merely dead again (today's
+    //     behavior), never wrongly live. ---
+
+    [Fact]
+    public void Long_cast_at_mode_5_with_the_15_marker_never_exits()
+    {
+        // A slow cast holds cast-targeting frames (mode 5) past the 4s exit debounce. With the
+        // marker excuse dead (the pre-fix state) the machine false-exits mid-battle and the
+        // kill tracker resets; with the marker honored the battle stays live throughout.
+        var bs = new BattleState();
+        bs.Step(M15, WM9, 2, false, 0, T0);   // enter
+        var t = T0;
+        for (int i = 0; i < 200; i++)   // ~6.6s of cast frames, well past the 4s debounce
+        {
+            t = t.AddMilliseconds(33);
+            Assert.Equal(BattleEdge.None, bs.Step(M15, 0, 5, false, 0xFFFF, t));
+            Assert.True(bs.In);
+        }
+    }
+
+    [Fact]
+    public void Long_enemy_turn_at_mode_1_with_the_15_marker_never_exits()
+    {
+        // Enemy turns and animations read mode 1 (the 07:24 churn's exit edge sampled mode 1,
+        // ~7.6s after its enter). A mid-battle stretch like that must not false-exit while
+        // slot0 holds the in-battle marker.
+        var bs = new BattleState();
+        bs.Step(M15, WM9, 2, false, 0, T0);   // enter
+        var t = T0;
+        for (int i = 0; i < 250; i++)   // ~8.2s, the observed intro-stretch length
+        {
+            t = t.AddMilliseconds(33);
+            Assert.Equal(BattleEdge.None, bs.Step(M15, 0, 1, false, 0xFFFF, t));
             Assert.True(bs.In);
         }
     }
@@ -361,16 +421,16 @@ public class BattleStateTests
     [Fact]
     public void Mid_battle_event_401_suspends_exit_timer_and_does_not_reset_kill_tracker()
     {
-        // Replay: enter (slot0=0xFF slot9=0xFFFFFFFF mode=1, using mode=2 for enter signal);
-        // feed > ExitDebounceSeconds of mode=0 ticks with eventId=401 -> no Exited edge;
-        // then a live tick -> still In; then mode=0 with eventId=0xFFFF (real exit sentinel)
-        // sustained > debounce -> Exited fires.
+        // Replay: enter via mode 2; feed > ExitDebounceSeconds of mode=0 ticks with eventId=401
+        // -> no Exited edge; then a live tick -> still In; then mode=0 with eventId=0xFFFF (real
+        // exit sentinel) sustained > debounce -> Exited fires. Out-of-live frames carry 0x11,
+        // the post-victory slot0 value observed live 2026-07-21 (pre-1.5 it was 0x66).
         var bs = new BattleState();
         var t = T0;
 
         // Enter (mode=2 is the clearest enter signal matching live state "mode=1" -> debounce is
         // already in, but mode=2 fires Entered immediately per EnterSignal contract).
-        var edge = bs.Step(0xFF, 0xFFFFFFFF, 2, paused: false, eventId: 0, now: t);
+        var edge = bs.Step(M15, 0xFFFFFFFF, 2, paused: false, eventId: 0, now: t);
         Assert.Equal(BattleEdge.Entered, edge);
         Assert.True(bs.In);
 
@@ -380,7 +440,7 @@ public class BattleStateTests
         {
             t = t.AddMilliseconds(33);
             elapsed += 0.033;
-            edge = bs.Step(slot0: 0x66, slot9: 0xFFFFFFFF, battleMode: 0,
+            edge = bs.Step(slot0: 0x11, slot9: 0xFFFFFFFF, battleMode: 0,
                            paused: false, eventId: 401, now: t);
             Assert.NotEqual(BattleEdge.Exited, edge);
             Assert.True(bs.In);
@@ -388,7 +448,7 @@ public class BattleStateTests
 
         // Live tick returns (mode=2) -> still In, accumulator cleared.
         t = t.AddMilliseconds(33);
-        edge = bs.Step(0x66, 0xFFFFFFFF, battleMode: 2, paused: false, eventId: 0, now: t);
+        edge = bs.Step(0x11, 0xFFFFFFFF, battleMode: 2, paused: false, eventId: 0, now: t);
         Assert.NotEqual(BattleEdge.Exited, edge);
         Assert.True(bs.In);
 
@@ -398,7 +458,7 @@ public class BattleStateTests
         for (int i = 0; i < 200 && exitEdge != BattleEdge.Exited; i++)
         {
             t = t.AddMilliseconds(33);
-            exitEdge = bs.Step(0x66, 0xFFFFFFFF, battleMode: 0,
+            exitEdge = bs.Step(0x11, 0xFFFFFFFF, battleMode: 0,
                                paused: false, eventId: 0xFFFF, now: t);
         }
         Assert.Equal(BattleEdge.Exited, exitEdge);
@@ -451,7 +511,7 @@ public class BattleStateTests
     public void Exits_after_the_debounce_on_a_sustained_stuck_sentinel_world_map()
     {
         var bs = new BattleState();
-        bs.Step(0xFF, WM9, 0, false, 0, T0);   // enter
+        bs.Step(M15, WM9, 0, false, 0, T0);   // enter
         var t = T0;
         // slot9 stays stuck 0xFFFFFFFF, slot0 drops to 0, mode 0, no pause, no event = sustained out-of-live.
         // No exit before the 4s debounce.
@@ -498,7 +558,7 @@ public class BattleStateTests
     public void Full_scenario_battle_then_stuck_world_map_exit_then_next_battle_enter()
     {
         var bs = new BattleState();
-        bs.Step(0xFF, WM9, 2, false, 0, T0);   // battle 1 enter (mode 2)
+        bs.Step(M15, WM9, 2, false, 0, T0);   // battle 1 enter (mode 2)
         Assert.True(bs.In);
         var t = T0;
         // stuck-sentinel world map >= 4s -> Exit
@@ -512,7 +572,7 @@ public class BattleStateTests
         Assert.False(bs.In);
         // next tick has battlefield values -> Enter
         t = t.AddMilliseconds(33);
-        Assert.Equal(BattleEdge.Entered, bs.Step(0xFF, WM9, 2, false, 0, t));
+        Assert.Equal(BattleEdge.Entered, bs.Step(M15, WM9, 2, false, 0, t));
         Assert.True(bs.In);
     }
 
@@ -545,12 +605,12 @@ public class BattleStateTests
     public void Force_exit_while_In_exits_on_the_same_call_no_debounce_time_needed()
     {
         var bs = new BattleState();
-        bs.Step(0xFF, WM9, 2, false, 0, T0);   // enter
+        bs.Step(M15, WM9, 2, false, 0, T0);   // enter
         Assert.True(bs.In);
 
         // Same clock tick as the enter call: no elapsed time at all, proving the debounce is
         // bypassed entirely rather than merely satisfied early.
-        var edge = bs.Step(0xFF, WM9, 2, false, 0, T0, forceExit: true);
+        var edge = bs.Step(M15, WM9, 2, false, 0, T0, forceExit: true);
 
         Assert.Equal(BattleEdge.Exited, edge);
         Assert.False(bs.In);
@@ -562,9 +622,9 @@ public class BattleStateTests
         // PRECEDENCE PIN: kills any implementation that checks InLiveBattle (or EnterSignal)
         // before honoring forceExit.
         var bs = new BattleState();
-        bs.Step(0xFF, WM9, 2, false, 0, T0);   // enter
+        bs.Step(M15, WM9, 2, false, 0, T0);   // enter
 
-        var edge = bs.Step(0xFF, WM9, 3, false, 0, T0, forceExit: true);   // mode 3 reads in-live
+        var edge = bs.Step(M15, WM9, 3, false, 0, T0, forceExit: true);   // mode 3 reads in-live
 
         Assert.Equal(BattleEdge.Exited, edge);
         Assert.False(bs.In);
@@ -577,14 +637,14 @@ public class BattleStateTests
         bs.Step(0, 0, 2, false, 0, T0);   // enter via mode, pair disarmed
         var t = T0.AddMilliseconds(33);
 
-        // The force-exit tick itself reads the stuck-armed pair (slot0=0xFF, slot9=0xFFFFFFFF).
-        var edge = bs.Step(0xFF, WM9, 0, false, 0, t, forceExit: true);
+        // The force-exit tick itself reads the stuck-armed pair (marker slot0, slot9=0xFFFFFFFF).
+        var edge = bs.Step(M15, WM9, 0, false, 0, t, forceExit: true);
         Assert.Equal(BattleEdge.Exited, edge);
 
         // The NEXT tick sees the same stuck pair at a non-live mode; without the exit-time
         // snapshot this would misread as a fresh disarmed->armed edge and re-enter.
         t = t.AddMilliseconds(33);
-        Assert.Equal(BattleEdge.None, bs.Step(0xFF, WM9, 0, false, 0, t));
+        Assert.Equal(BattleEdge.None, bs.Step(M15, WM9, 0, false, 0, t));
         Assert.False(bs.In);
     }
 

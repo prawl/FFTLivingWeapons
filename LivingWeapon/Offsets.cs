@@ -16,8 +16,22 @@ namespace LivingWeapon;
 internal static class Offsets
 {
     // --- in-battle flags ---
-    public const long Slot0 = 0x140782A30;   // 1.5 PREDICTED +0x6000 (was 0x14077CA30) -- VERIFY (read 0x10, existence marker may differ in 1.5)
-    public const long Slot9 = 0x140782A54;   // 1.5 PREDICTED +0x6000 (was 0x14077CA54); read 0xFFFFFFFF (terminator plausible)
+    public const long Slot0 = 0x140782A30;   // 1.5 CONFIRMED +0x6000 (was 0x14077CA30): u32 battle-phase word; four edge
+                                             //   samples 2026-07-21 + the LW-40 probe (LIVE_LEDGER 1.5 slot0 battle-phases
+                                             //   row; see Slot0InBattleMarker for the values).
+    public const long Slot9 = 0x140782A54;   // 1.5 CONFIRMED +0x6000 (was 0x14077CA54): read 0xFFFFFFFF at all four
+                                             //   battle enter/exit edges on the same 2026-07-21 log.
+
+    /// <summary>The slot0 in-battle marker VALUE on 1.5 (pre-1.5 it was 0xFF; the quit-stick trap
+    /// and the 0x66 victory-clear are pre-1.5 observations, sentinel_probe.py 2026-06-10).
+    /// Live 1.5.1 values sampled at the four battle-edge trace lines of the 2026-07-21 log
+    /// (durable record: the LIVE_LEDGER "1.5 slot0 battle phases" Uncertain row): 0xFFFFFFFF at
+    /// both battle-load churn edges, 0x10 at the real enter (mode 3), 0x11 at the victory exit.
+    /// Whether 0x10 persists through mode-1/5 stretches mid-battle is inherited from the
+    /// pre-1.5 marker behavior and AWAITING-LIVE (LW-42, owner slow-cast eyeball): if that
+    /// premise is wrong, the excuse paths anchored on this value are merely dead (the pre-fix
+    /// behavior), never wrongly live.</summary>
+    public const uint Slot0InBattleMarker = 0x10;
     public const long Acted = 0x140782A8C;   // 1.5 CONFIRMED (was 0x14077CA8C): rising edge = an action completed.
                                              //   Production-proven -- TurnTracker/KillTracker ship on it; live log 2026-07-01.
     public const long EventId = 0x140782A94; // 1.5 CONFIRMED live 2026-07-08 (was 0x14077CA94). u16 event file number during cutscenes/dialogue; ALIASES as
