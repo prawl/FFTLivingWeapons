@@ -36,25 +36,26 @@ the technical detail lives in the indented lines under it.
     confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
-## Backlog
+- **[LW-106] Make the build notice when someone newly claims the game was proven to do something** (opened 2026-07-21) [BUILDING]
+  - Done means: adding a new sentence that says a game behaviour is proven fails the build
+    until the author deliberately signs off on it, so the claim gets a moment of thought
+    instead of sliding in unnoticed. LW-105 is why: nine such sentences existed, only two were
+    known, and finding the rest took a wide sweep rather than a grep. The rule against this was
+    already written down and got broken anyway, which is the sign a convention needs a machine
+    behind it. (Tech: the shape written into the original backlog row, an allow list naming the
+    LIVE_LEDGER row behind every claim, DIED ON CONTACT WITH THE DATA: a real grep found 197
+    claims across 65 files, so that design is a 197 row hand mapping with heavy churn. Replaced
+    with a ratchet: freeze the per file claim COUNT, fail on any change, which is roughly fifty
+    times cheaper and still catches every addition.)
+  - Verify: adding one proof claim phrase to any scanned file turns the suite red naming that
+    file, and removing it turns the suite green, so the check bites rather than passing
+    vacuously. The frozen counts must be honest about what they mean: they record that these
+    claims EXISTED on 2026-07-21, not that each one is backed by a row in the ledger's Proven
+    section. Auditing the pre existing 197 is separate work and gets its own row. Known and
+    accepted gap: deleting one claim and adding another in the SAME file keeps the count equal
+    and passes.
 
-- [LW-106] 2026-07-21: Nothing stops a comment or a ledger line from claiming a game behaviour
-  was proven when the live ledger never recorded a proof; make the build catch that instead of
-  a human audit finding it much later.
-  LW-105 found nine such sentences and only two were known in advance, so the other seven cost
-  a five surface sweep to discover. The house rule already exists in the repo's contributor
-  guidance (proven live is a ledger fact, not a doc comment vibe) and was violated anyway,
-  which is the usual sign a convention needs a machine behind it. Cheapest shape, mirroring
-  the allow list
-  DocsContractTests already uses: a test scans LivingWeapon/*.cs plus the CONTRACT tier docs
-  for proof claim phrasing (live-proven, PROVEN LIVE, proven live, verified live, proving the
-  premise) and fails unless each hit appears in a small allow list file that names the
-  LIVE_LEDGER row it rests on, with the test then confirming that row really sits in the Proven
-  section. Adding a new claim would force naming its row, which is exactly the moment an author
-  discovers there is not one. Cost is one test plus seeding the allow list; the risk to weigh
-  first is churn against legitimately proven claims (there are many, and LW-105's sweep found
-  the growth lanes and contract docs already clean), so seed the allow list from a real grep
-  before committing to the design.
+## Backlog
 - [LW-104] 2026-07-21: The automated build that runs on every push is riding deprecated
   machinery and will eventually stop working unless the actions it uses are bumped; nothing is
   broken today.
