@@ -660,6 +660,45 @@ public class ActorRegisterTests
         Assert.Equal(RescueOutcome.NotRun, r.CurrentRescue);
     }
 
+    // --- roster span (LW-96: proven-live 50 row bank, roster_span_probe.py 2026-07-21) ---
+
+    [Fact]
+    public void Bridge_resolves_player_when_the_matching_row_is_at_slot_49()
+    {
+        // LOAD-BEARING: identical arrangement to Bridge_resolves_player_on_single_nameid_and_stat_match,
+        // except the matching roster row lives at slot 49 (the last row of the proven 50-row bank).
+        // Must FAIL before the RosterSlots bump (walk stops at 20) and PASS after.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 5, weapon: 0, lvl: 50, br: 60, fa: 70, gx: 1, gy: 1);
+        MemSeats.SeatFrameNameId(m, 5, nameId: 42);
+        MemSeats.SeatRoster(m, slot: 49, lvl: 50, br: 60, fa: 70, rh: 999, nameId: 42);
+        var r = new ActorRegister(m);
+        r.Update();
+        PointAt(m, 5);
+        r.Update();
+
+        Assert.Equal(RosterBridge.Player, r.CurrentBridge);
+        Assert.Equal(Offsets.RosterBase + 49L * Offsets.RosterStride, r.CurrentRosterBase);
+    }
+
+    [Fact]
+    public void Bridge_never_walks_into_the_stale_guest_bank_at_slot_50()
+    {
+        // GUARD: the matching row lives ONLY at slot 50, the first row of the stale guest bank
+        // (duplicate identities live there; scanning it is the hazard the 50-row ceiling guards
+        // against). Must never bridge as Player, both before and after the RosterSlots bump.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 5, weapon: 0, lvl: 50, br: 60, fa: 70, gx: 1, gy: 1);
+        MemSeats.SeatFrameNameId(m, 5, nameId: 42);
+        MemSeats.SeatRoster(m, slot: 50, lvl: 50, br: 60, fa: 70, rh: 999, nameId: 42);
+        var r = new ActorRegister(m);
+        r.Update();
+        PointAt(m, 5);
+        r.Update();
+
+        Assert.NotEqual(RosterBridge.Player, r.CurrentBridge);
+    }
+
     // --- OwnershipAge (general staleness metric; no longer the corpse-anchor comparand -- see
     // KillTracker.UpdateCorpseAnchor's register-tick birth stamps) ---
 

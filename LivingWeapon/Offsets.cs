@@ -102,7 +102,14 @@ internal static class Offsets
     // --- roster (nameId -> equipped right hand) ---
     public const long RosterBase = 0x1411A7D10;   // 1.5 CONFIRMED +0x6440 (was 0x1411A18D0): slot0=Ramza (lvl99/rhand80/nameId1), slots +1..+7 = real party
     public const int RosterStride = 0x258;
-    public const int RosterSlots = 20;
+    /// <summary>Ceiling, not a floor. Proven live 2026-07-21 by tools/probes/roster_span_probe.py
+    /// on a 46/50 save: rows 0..45 occupied, 50 contiguous rows at the same 0x258 stride
+    /// throughout. Slots 50+ are a STALE GUEST bank carrying duplicate unit identities (a cloned
+    /// Beowulf row with matching level/brave/faith): scanning it would make fingerprint-keyed
+    /// resolves ambiguous and the bridge would refuse (units going dark). Never raise this past
+    /// 50 without a fresh live probe proving the new span is real, contiguous, and free of
+    /// duplicate identities.</summary>
+    public const int RosterSlots = 50;
     /// <summary>u8 roster-relative SpriteSet id (Dicene UnitData +0x00): the battle body/model
     /// selector. LIVE-PROVEN 2026-07-06 (docs/research/SPRITE_SWAP.md + a live roster probe against
     /// a real party monster): 0x82 confirmed MONSTER; generics 0x80 male / 0x81 female; story bodies

@@ -125,9 +125,10 @@ public class BattleCensusTests
     public void Census_truncation_headroom_keeps_the_last_roster_rows_hands_intact()
     {
         // LW-56 round 2: raised MaxPayloadChars (1400 -> 1800) when the roster part grew a raw
-        // W{rHand},{lHand},{offHand} tail, so a fully-occupied census (max band + all 20 roster
-        // rows, every row now carrying its hand ids) never truncates away the LAST roster row's
-        // hands.
+        // W{rHand},{lHand},{offHand} tail, so a fully-occupied census (max band + all RosterSlots
+        // roster rows, every row now carrying its hand ids) never truncates away the LAST roster
+        // row's hands. Seats rows symbolically, so the LW-96 window widening (20 -> 50) makes
+        // this strictly harder, not stale.
         var m = new FakeSparseMemory();
         string? payload = null;
         var census = new BattleCensus(m, (type, p) => { if (type == "census") payload = p; });
@@ -142,7 +143,7 @@ public class BattleCensusTests
 
         Assert.NotNull(payload);
         Assert.DoesNotContain("...", payload);   // no truncation at all under the raised cap
-        Assert.Contains("19:999L99B255F254W80,45,46", payload);
+        Assert.Contains($"{Offsets.RosterSlots - 1}:999L99B255F254W80,45,46", payload);
     }
 
     [Fact]
