@@ -51,6 +51,22 @@ player's; parenthetical scope/triage notes are added during capture and not yet 
 - Outside that, the **cadet fight** is the hardest in the game: enemies outscale your units even
   though both sides have the same gear, because Ramza starts at level 1 with basic equipment.
 
-hanged the axe formula to PA * WP, and (using sword WP as a baseline) made their damage 50% stronger than swords of equal level, and shifted their availability into Chapter 3 and 4. A goal of mine was to give the Squire and Geomancer more bite in the later chapters, so this gives them a significant power boost. By the time the Runeblade (14 WP) becomes available, they have Slasher (21 WP) as an alternative. With Attack Boost, their damage is on roughly equal footing as Dual Wield.
+## 2026-07-21 (after downloading 2.3.0)
 
-I also changed the flail formula to inflict 50-150% of WP, and adjusted WP numbers with respect to sword damage. I also tried adding Bio or Poison to Scorpion Tail, but I didn't feel like it made much of an impact.
+### Only Ramza and generics benefit from the LW system
+- Special/story units appear excluded from the living-weapon runtime. (Triage: [LW-96] in
+  docs/TODO.md; needs a repro to pin which surface skips them.)
+
+### Equip-axe is back on Squires
+- Reported as a regression. (Triage: [LW-97]; check the emitted tables vs another mod's stomp.)
+
+### Fists show the previous unit's weapon name
+- An unarmed unit's Attack row wears the weapon name of the unit that acted the turn before.
+  (Triage: [LW-98]; likely the LW-91 stale-paint lifecycle with nothing to overwrite it.)
+
+### Nagrarok missing (separate report)
+- Nagrarok was equipped on Beowulf and "turned into another sword". (Triage: [LW-99].)
+
+### Positive
+- Loves the new changes: the weapon name replacing "Attack" in the menu "feels nice", and the
+  new +3 for Outrider is "awesome".

@@ -4,10 +4,19 @@ STATUS: CONTRACT (machine-checked by TodoContractTests)
 
 Where docs/TODO.md items land when they ship, die, or retract; newest first within a cycle.
 Entry first line: `- [LW-<n>] SHIPPED <hash> YYYY-MM-DD: <summary>`, or WONTFIX / RETRACTED
-with a date and no hash.
+with a date and no hash. New entries are written ELI5-first (a plain-language opening anyone
+can follow, technical detail after), per the Format rules in docs/TODO.md; rows written
+before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-99] WONTFIX 2026-07-21: a player reported Nagrarok missing from Beowulf, "turned into
+  another sword". Not a bug: this mod deliberately turned that sword into a new one
+  (Lightbringer, the sword line's only Holy blade), so Beowulf's famous frog-sword really is
+  a different weapon now; the player just could not know. (Tech: item id 31, data/items.json,
+  "Repurposed from the retired Living Blade base".) The real gap is communication: renames
+  are invisible to players, so "my item vanished" reports will recur; the candidate follow-up
+  if they do is a rename table in the Nexus description.
 - [LW-60] SHIPPED 19000b1 2026-07-16: the 2.3.0 pre-ship smoke pass, authored 2026-07-11 and
   run to completion by the owner across 2026-07-14 to 2026-07-16. Every row resolved: the pass
   caught four live regressions and shipped their fixes before release (toast delivery, the
