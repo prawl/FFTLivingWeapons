@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-42] SHIPPED ef747d1 2026-07-21: the mod can no longer believe a battle ended in the
+  middle of a long spell cast or enemy turn (which would silently reset its kill
+  bookkeeping mid-fight). Two checks still asked the old game version's question: the
+  pre-1.5 battle marker 0xFF never appears on 1.5, so the battle-enter sentinel pair and
+  the in-battle excuse covering cast-targeting and enemy-turn frames were both silently
+  dead, and the morning log caught the consequence live (a false battle-exit during a
+  battle intro, 7.6 seconds after the enter). Both checks now read the 1.5 marker
+  (Offsets.Slot0InBattleMarker 0x10, tripwire-pinned; red-first TDD, worktree sabotage
+  reproduced exactly the predicted red set). Owner live pass 2026-07-21 (09:04 battle on
+  the deployed build): zero mid-battle exits across 138 mode flips, credits normal, no
+  warnings, and the victory exit proved the stuck-marker guard live (slot0 held 0x10 six
+  seconds past battle end, the debounced exit fired on schedule; banked 1edc124). Owner
+  signed off 2026-07-21. The greater-than-4s cast stretch and the post-QUIT value stay
+  tracked on the LIVE_LEDGER 1.5 slot0 battle-phases row; both fail safe (a wrong premise
+  leaves the excuse dead, the old behavior, never wrongly live).
 - [LW-97] WONTFIX 2026-07-21: the player seeing Squires able to learn Equip Axes again on
   2.3.0 is intended behavior, not a broken install (owner call, 2026-07-21). 2.3.0
   deliberately stopped suppressing that ability: the off switch lived in the mod's

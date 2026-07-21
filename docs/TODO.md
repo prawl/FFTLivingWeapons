@@ -13,21 +13,19 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-42] Two leftover battle checks read the old game version's marker and are dead on 1.5** (opened 2026-07-07) [AWAITING-LIVE]
-  - Done means: the mod never mistakes a long spell cast or a long enemy turn for the battle
-    ending, because every in-battle check asks the current game version's question. Built
-    2026-07-21: both checks now read the current version's marker, red-first tests plus a
-    sabotage pass prove the wiring, and the morning log caught the old bug live (a false
-    battle-exit during a battle intro). (Tech: PairArmed and InLiveBattle's mode-1/5 excuse
-    re-anchored from the retired pre-1.5 slot0 == 0xFF to Offsets.Slot0InBattleMarker 0x10;
-    evidence banked in the LIVE_LEDGER 1.5 slot0 battle-phases Uncertain row.)
-  - Verify: owner live pass, three eyes in one session. (1) Hold a slow cast or watch a long
-    enemy turn past 4 seconds mid-battle, then check livingweapon.log: no battle-end line
-    until the battle truly ends (one enter/exit pair around the battle INTRO is known and
-    harmless). (2) QUIT one battle, dawdle on the world map, and confirm a battle-end line
-    lands within about 4 seconds and the next battle starts clean. (3) Confirm signatures
-    still behave during enemy turns and casts, since the in-battle window widened to cover
-    those frames for the first time since the 1.5 port.
+- **[LW-90] Restarting a battle can lock in a temporary Speed boost as natural Speed** (opened 2026-07-14) [QUEUED]
+  - Done means: restarting a battle never turns a signature's temporary Speed boost into the
+    unit's baseline for the restarted run. Plain version: the game's restart snapshot can
+    capture a held boost as if it were the unit's real Speed, so the mod's own "natural"
+    reading starts wrong and the boost compounds; the observed case was the Iai opening
+    hold, and the mod's bookkeeping read healthy both runs, so the snapshot is the suspect.
+    Battle-scoped (combat struct only, roster untouched, gone at battle end). (Tech:
+    candidate fix is clamping the captured natural against the ROSTER speed at hold time,
+    which also caps the restart ratchet; audit the other capture-natural holds, Afterimage,
+    Ultima, Cavalier's Charge, when picked up.)
+  - Verify: unit tests pin the roster clamp, and an owner restart repro: let the opening
+    hold fire, restart the battle, and the restarted run's card shows natural Speed, not
+    the boosted value.
 
 ## Backlog
 
@@ -262,20 +260,6 @@ the technical detail lives in the indented lines under it.
   Fail-closed by design (LW-55 gates, LW-39 family), but a full-battle rename blackout is
   a UX miss. Candidate: a mirror-seat-aware cursor resolve (frame nameId dedup, the Band
   mirror rule).
-- [LW-90] 2026-07-14: Restarting a battle can lock in a temporary Speed boost as if it
-  were the unit's natural Speed for the restarted run.
-  The observed case was the Iai opening hold (the Kiku-ichimonji signature's battle-start
-  Speed boost): an in-battle RESTART after the hold left the boosted Speed in place for the
-  restarted battle. Owner live (dev lane, 17:31-17:35 logs): the mod's own bookkeeping reads
-  healthy (hold
-  at battle-start, "released by the turn flags" every instance), so the leading theory is
-  the game's restart snapshot capturing the held Speed as the unit's baseline before the
-  release lands, making the mod's captured "natural" the boosted value on the restarted
-  run. Battle-scoped (combat struct only, roster untouched, gone at battle end).
-  Candidate fix: cross-check the captured natural against the ROSTER speed at hold time
-  and clamp, which also caps the restart ratchet. The same hazard likely applies to every
-  capture-natural-then-hold signature (Afterimage, Ultima, Cavalier's Charge) on
-  restarted battles; audit when picked up.
 - [LW-93] 2026-07-14: The external probe scripts can no longer find battle units on game
   version 1.5.1 (the mod itself can); fix the scripts' outdated assumptions, or rebuild
   them on the pattern that still works, before the next probe is needed.
