@@ -23,8 +23,9 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // PA addr -> (captured natural, the last value WE wrote: our ownership token).
-    private readonly Dictionary<long, (int natural, int lastTarget)> _mushin = new();
+    // PA addr -> (captured natural, the last value WE wrote: our ownership token; LW-90
+    // baked = the restart residue a corrected capture read, also recognized).
+    private readonly Dictionary<long, (int natural, int lastTarget, int baked)> _mushin = new();
 
     /// <summary>True when this weapon's signature is Mushin: it owns the wielder's PA lane at
     /// every tier (Route declines it), mirroring OwnsPa/OwnsSpeed.</summary>
@@ -32,8 +33,9 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Hold the Kiku-ichimonji wielder's PA at MushinPolicy.PaHeld(natural, tier,
     /// effectiveStacks). Main-hand only (the charge is commanded from the main hand, mirrors
-    /// HoldUltima); guarded, fail-safe no-op.</summary>
-    private void HoldMushin(long s, WeaponMeta m, int tier, int level, int brave, int faith)
+    /// HoldUltima); guarded, fail-safe no-op. rosterNameId feeds the LW-90 NaturalLedger.
+    /// Internal for the LW-90 seam tests (LocateIn precedent).</summary>
+    internal void HoldMushin(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId = 0)
     {
         if (!OwnsMushin(m)) return;
         long addr = s + Offsets.CPa;
@@ -43,7 +45,12 @@ internal sealed partial class GrowthEngine
         {
             int cur0 = _mem.U8(addr);
             if (cur0 < StatMin || cur0 > StatSaneHi) return;   // wait for a sane natural reading
-            rec = (cur0, cur0);                                 // first sight: own the byte at natural
+            // LW-90: see through the mod's own restart residue; lastTarget seeds to the byte
+            // as-is either way (residue or natural, both are re-owned on the first check).
+            int nat0 = _ledger.FilterCapture(rosterNameId, StatLane.Pa, cur0, level, out int baked0);
+            if (baked0 > 0)
+                ModLogger.Debug(LogVerb.Growth, $"mushin: restart residue corrected at capture (read {baked0}, natural {nat0})");
+            rec = (nat0, cur0, baked0);
         }
 
         var fp = (level, brave, faith);
@@ -52,7 +59,8 @@ internal sealed partial class GrowthEngine
         int target = Clamp(MushinPolicy.PaHeld(rec.natural, tier, Tuning.Factor, effectiveStacks, Tuning.MushinBonus));
 
         int cur = _mem.U8(addr);
-        if (cur == rec.lastTarget || cur == rec.natural)   // we own it (or the engine just normalized)
+        if (cur == rec.lastTarget || cur == rec.natural
+            || (rec.baked > 0 && cur == rec.baked))   // we own it (or the engine normalized -- possibly to the baked residue)
         {
             if (effectiveStacks > 0 && target != rec.lastTarget)
             {
@@ -60,9 +68,10 @@ internal sealed partial class GrowthEngine
                     $"{m.Name}'s Mushin charge holds Physical Attack boosted ({effectiveStacks} of {Tuning.MushinMaxStacks} stack(s), tier {tier}).",
                     $"mushin PA held at {effectiveStacks} stack(s): {rec.natural} -> {target} (tier {tier})");
             }
+            _ledger.RecordWrite(rosterNameId, StatLane.Pa, target);   // per evaluation (LW-90)
             if (cur != target) _mem.W8(addr, (byte)target);
-            _mushin[addr] = (rec.natural, target);
+            _mushin[addr] = (rec.natural, target, rec.baked);
         }
-        else _mushin[addr] = (rec.natural, rec.lastTarget);   // foreign value (buff/debuff): leave the byte
+        else _mushin[addr] = (rec.natural, rec.lastTarget, rec.baked);   // foreign value (buff/debuff): leave the byte
     }
 }

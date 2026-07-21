@@ -139,7 +139,8 @@ public class IaiTests
     /// exercise the identity path instead.
     /// </summary>
     private static (Iai iai, FakeSparseMemory mem, long wielderEntry, (int lvl, int br, int fa) fp)
-        Build(int kills = -1, int wielderSlot = 24, int naturalSpeed = 8, int fieldUnitSpeed = 6, int nameId = 0)
+        Build(int kills = -1, int wielderSlot = 24, int naturalSpeed = 8, int fieldUnitSpeed = 6, int nameId = 0,
+              NaturalLedger? ledger = null)
     {
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
@@ -168,8 +169,85 @@ public class IaiTests
                           lvl: 20, br: 50, fa: 50,
                           gx: 5, gy: 5, hp: 100, maxHp: 100, speed: fieldUnitSpeed);
 
-        var iai = new Iai(meta, killDict, mem);
+        var iai = new Iai(meta, killDict, mem, ledger);
         return (iai, mem, wielder, fp);
+    }
+
+    // ---- LW-90: restart residue (the ledger-corrected capture) ----
+    //
+    // A battle RESTART rebuilds the unit with the mod's own held boost baked into the Speed
+    // byte (owner-observed 2026-07-14). The capture must see through its own residue: the
+    // shared NaturalLedger recognizes a first sight that exactly equals a target the mod
+    // recorded in the previous battle attempt, supplies the true natural, and the release
+    // then restores the true natural instead of locking the boost in. Both ledger resets are
+    // fired per transition because Engine.ResetBattleState runs on BOTH battle edges.
+
+    [Fact]
+    public void Restart_bake_is_corrected_and_release_restores_the_true_natural()
+    {
+        var ledger = new NaturalLedger();
+        var (iai, mem, wielder, _) = Build(nameId: 298, fieldUnitSpeed: 10, ledger: ledger);
+        var t0 = DateTime.UtcNow;
+
+        // Battle 1: arm + hold at fieldMax + margin = 11 (natural 8).
+        iai.Tick(onField: true, t0);
+        Assert.Equal((byte)11, mem.U8s[wielder + Offsets.ASpeed]);
+
+        // Restart: the mod resets (both edges); the game rebuilds the unit WITH the boost baked.
+        iai.ResetBattle();
+        ledger.OnBattleReset(); ledger.OnBattleReset();
+        mem.U8s[wielder + Offsets.ASpeed] = 11;
+
+        // Battle 2: capture sees through the bake; the wall-clock cap release must restore the
+        // TRUE natural 8, not the baked 11 (pre-fix this restored 11: the LW-90 lock-in).
+        iai.Tick(onField: true, t0);
+        iai.Tick(onField: true, t0.AddSeconds(Tuning.IaiHoldCapSeconds + 1));
+        Assert.Equal((byte)8, mem.U8s[wielder + Offsets.ASpeed]);
+    }
+
+    [Fact]
+    public void Post_release_normalize_to_the_baked_value_is_re_corrected()
+    {
+        // Premise-honest corner: if the game's per-turn normalize restores the BAKED value
+        // after the release (the rebuilt unit's engine-side baseline contains the boost), a
+        // one-shot release restore is not enough -- the corrected hold keeps re-writing the
+        // true natural whenever the byte reads the known residue, for the rest of the battle.
+        var ledger = new NaturalLedger();
+        var (iai, mem, wielder, _) = Build(nameId: 298, fieldUnitSpeed: 10, ledger: ledger);
+        var t0 = DateTime.UtcNow;
+
+        iai.Tick(onField: true, t0);                     // battle 1 hold at 11
+        iai.ResetBattle();
+        ledger.OnBattleReset(); ledger.OnBattleReset();
+        mem.U8s[wielder + Offsets.ASpeed] = 11;          // baked rebuild
+
+        iai.Tick(onField: true, t0);                     // battle 2: corrected capture
+        var t2 = t0.AddSeconds(Tuning.IaiHoldCapSeconds + 1);
+        iai.Tick(onField: true, t2);                     // cap release -> writes 8
+        Assert.Equal((byte)8, mem.U8s[wielder + Offsets.ASpeed]);
+
+        mem.U8s[wielder + Offsets.ASpeed] = 11;          // the engine normalizes the residue back
+        iai.Tick(onField: true, t2.AddSeconds(1));
+        Assert.Equal((byte)8, mem.U8s[wielder + Offsets.ASpeed]);
+    }
+
+    [Fact]
+    public void Legit_between_battle_speed_change_is_accepted_not_corrected()
+    {
+        // Fail-open twin: a value the mod never wrote (a real gear/level change) is accepted
+        // as the new natural, and the release restores IT.
+        var ledger = new NaturalLedger();
+        var (iai, mem, wielder, _) = Build(nameId: 298, fieldUnitSpeed: 10, ledger: ledger);
+        var t0 = DateTime.UtcNow;
+
+        iai.Tick(onField: true, t0);                     // battle 1 hold at 11
+        iai.ResetBattle();
+        ledger.OnBattleReset(); ledger.OnBattleReset();
+        mem.U8s[wielder + Offsets.ASpeed] = 9;           // legit new natural (never written by us)
+
+        iai.Tick(onField: true, t0);
+        iai.Tick(onField: true, t0.AddSeconds(Tuning.IaiHoldCapSeconds + 1));
+        Assert.Equal((byte)9, mem.U8s[wielder + Offsets.ASpeed]);
     }
 
     /// <summary>Point Offsets.ActorPtr at <paramref name="bandEntry"/>'s combat frame (the

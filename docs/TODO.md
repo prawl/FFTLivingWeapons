@@ -13,19 +13,23 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-90] Restarting a battle can lock in a temporary Speed boost as natural Speed** (opened 2026-07-14) [QUEUED]
-  - Done means: restarting a battle never turns a signature's temporary Speed boost into the
-    unit's baseline for the restarted run. Plain version: the game's restart snapshot can
-    capture a held boost as if it were the unit's real Speed, so the mod's own "natural"
-    reading starts wrong and the boost compounds; the observed case was the Iai opening
-    hold, and the mod's bookkeeping read healthy both runs, so the snapshot is the suspect.
-    Battle-scoped (combat struct only, roster untouched, gone at battle end). (Tech:
-    candidate fix is clamping the captured natural against the ROSTER speed at hold time,
-    which also caps the restart ratchet; audit the other capture-natural holds, Afterimage,
-    Ultima, Cavalier's Charge, when picked up.)
-  - Verify: unit tests pin the roster clamp, and an owner restart repro: let the opening
-    hold fire, restart the battle, and the restarted run's card shows natural Speed, not
-    the boosted value.
+- **[LW-90] Restarting a battle can lock in a temporary Speed boost as natural Speed** (opened 2026-07-14) [AWAITING-LIVE]
+  - Done means: restarting a battle never turns a signature's temporary boost into the
+    unit's baseline for the restarted run. Built 2026-07-21: the mod now remembers every
+    boost value it writes (per unit and stat, across battles) and refuses to adopt its own
+    leftover boost as a unit's natural at the next battle's first sight. All six
+    capture-natural holds are guarded (Iai plus the five growth lanes), corrections are
+    level-keyed so an earned level-up point is never eaten by a value collision, and
+    corrected holds keep re-owning the leftover value if the game re-paints it. (Tech:
+    NaturalLedger.cs, a rolling two-slot written-target history keyed (roster nameId, stat
+    lane) with a roster-level stamp; baked-residue ownership tokens per hold; Iai
+    post-release and TimedStat post-revert corrective sentinels; the roster-clamp candidate
+    died in recon, no mapped roster or raw Speed byte exists. Two adversarial review rounds
+    plus a delta review, verdict SHIP; sabotage runs bit exactly the predicted tests.)
+  - Verify: owner restart repro on a deployed build: field the Ame-no-Murakumo wielder, let
+    the opening Speed hold fire, RESTART the battle, then check the restarted run's card
+    shows natural Speed after the wielder's first turn AND livingweapon.log carries the
+    "restart residue corrected at capture" line naming the caught values.
 
 ## Backlog
 
@@ -260,6 +264,14 @@ the technical detail lives in the indented lines under it.
   Fail-closed by design (LW-55 gates, LW-39 family), but a full-battle rename blackout is
   a UX miss. Candidate: a mirror-seat-aware cursor resolve (frame nameId dedup, the Band
   mirror rule).
+- [LW-100] 2026-07-21: The mounted Speed boost (Cavalier's Charge) cannot see through a
+  restart's leftover boost while the rider starts the restarted battle dismounted, so that
+  one battle can keep the leftover Speed until the player mounts up.
+  (Tech: HoldTimedStat's LW-90 correction fires only at an ACTIVE capture; a dismounted
+  battle-2 open skips capture entirely. Bounded, non-compounding, self-heals on mount or
+  next battle. Rides with it: a clean remount capture drops the post-revert corrective
+  sentinel for the rest of the battle. Both from the LW-90 delta review. Candidate: allow
+  an inactive first-sight ledger consult for mount-gated signatures.)
 - [LW-93] 2026-07-14: The external probe scripts can no longer find battle units on game
   version 1.5.1 (the mod itself can); fix the scripts' outdated assumptions, or rebuild
   them on the pattern that still works, before the next probe is needed.

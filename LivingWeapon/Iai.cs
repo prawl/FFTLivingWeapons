@@ -76,6 +76,13 @@ namespace LivingWeapon;
 /// acting unit and release together on the first one's turn -- premature-release direction only
 /// (both lose the boost early; nobody is left permanently fast), so it fails safe.
 ///
+/// LW-90 accepted corner: the post-release corrective hold (below) rewrites the corrected
+/// natural over ANY byte reading exactly the baked residue for the rest of the battle, with no
+/// foreign-value discrimination -- a real Speed buff that lands the wielder exactly on the
+/// residue value after a corrected capture is repeatedly stomped (guarded, natural-derived,
+/// one battle, needs the exact collision AND a prior corrected capture). It doubles as the live
+/// discriminator for the normalize-restores-baked premise, which is inference, not a ledger fact.
+///
 /// LW-71 FLAGS CORROBORATION (2026-07-11): the ActorPtr release above still parks on STRUCK
 /// units, so an enemy hitting the wielder before its own opening turn can false-release it via a
 /// parked-pointer arrival mid-enemy-turn. Every release is now corroborated against the per-unit
@@ -101,6 +108,7 @@ internal sealed partial class Iai : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
+    private readonly NaturalLedger _ledger;
     private readonly List<(long entry, (int lvl, int br, int fa) fp)> _wielders = new();
     private readonly Dictionary<(int lvl, int br, int fa), HoldState> _holds = new();
 
@@ -113,11 +121,14 @@ internal sealed partial class Iai : ISignature
     private bool _prevActed;
 
     public Iai(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
-               IGameMemory? mem = null)
+               IGameMemory? mem = null, NaturalLedger? ledger = null)
     {
         _mem   = mem ?? new LiveMemory();
         _meta  = meta;
         _kills = kills;
+        // LW-90: Engine passes the ONE shared instance (mushinArmed precedent); the default is
+        // only for tests, where a private ledger is inert unless the test drives it.
+        _ledger = ledger ?? new NaturalLedger();
     }
 
     public void ResetBattle()
@@ -176,22 +187,51 @@ internal sealed partial class Iai : ISignature
             // ticks where Locate ambiguity-bails (mirror churn) and _wielders comes up empty.
             state.LastEntry = entry;
 
-            if (state.Released) continue;
-
-            // Hold: capture natural once, then write the clamped target every tick.
             long spAddr = entry + Offsets.ASpeed;
             if (!_mem.Writable(spAddr, 1)) continue;
 
+            if (state.Released)
+            {
+                // LW-90 post-release corrective hold: when this hold's capture was corrected
+                // (the battle started with the mod's own baked residue in the byte), the
+                // engine's per-turn normalize can restore that residue AFTER the release --
+                // the rebuilt unit's engine-side baseline plausibly contains the boost. Keep
+                // re-writing the true natural whenever the byte reads the known residue, for
+                // the rest of the battle. Also the live discriminator for that premise: if
+                // this never fires in the owner's restart repro, the normalize does not
+                // restore the bake and the one-shot release restore was already enough.
+                if (state.BakedResidue > 0 && state.NaturalSpeed >= SpeedSaneMin
+                    && _mem.U8(spAddr) == state.BakedResidue)
+                {
+                    _mem.W8(spAddr, (byte)state.NaturalSpeed);
+                    ModLogger.Debug(LogVerb.Signature,
+                        $"iai: restart residue re-corrected post-release ({state.BakedResidue} -> {state.NaturalSpeed})");
+                }
+                continue;
+            }
+
+            // Hold: capture natural once, then write the clamped target every tick.
             int cur = _mem.U8(spAddr);
             if (state.NaturalSpeed < SpeedSaneMin)
             {
                 // First sight: capture before boosting (F5). Skip if cur is not sane.
                 if (cur < SpeedSaneMin || cur > SpeedSaneMax) continue;
-                state.NaturalSpeed = cur;
+                // LW-90: the ledger sees through the mod's own restart residue (a first sight
+                // that exactly equals a target recorded for this unit in the previous battle
+                // attempt); everything else passes through and refreshes the entry.
+                state.NaturalSpeed = _ledger.FilterCapture(state.NameId, StatLane.Speed, cur, fp.lvl, out int baked);
+                state.BakedResidue = baked;
+                if (baked > 0)
+                    ModLogger.EventWithTrace(LogVerb.Signature,
+                        $"A battle restart carried the wielder's held Speed boost over as if it were natural; the true value is restored (level {fp.lvl}, brave {fp.br}, faith {fp.fa}).",
+                        $"iai: restart residue corrected at capture (read {baked}, natural {state.NaturalSpeed})");
             }
 
             int raw     = Target(state.NaturalSpeed, fieldMax, Tuning.IaiSpeedMargin);
             int clamped = raw < SpeedSaneMin ? SpeedSaneMin : raw > SpeedSaneMax ? SpeedSaneMax : raw;
+            // LW-90: record every held target per evaluation (the ledger dedups), so a restarted
+            // battle's first sight of this exact value is recognized as the mod's own residue.
+            _ledger.RecordWrite(state.NameId, StatLane.Speed, clamped);
             _mem.W8(spAddr, (byte)clamped);
         }
 
@@ -267,6 +307,11 @@ internal sealed partial class Iai : ISignature
         public DateTime ArmedAt;
         /// <summary>Captured on first sane sight before the first boost; -1 = not yet captured.</summary>
         public int NaturalSpeed = -1;
+        /// <summary>LW-90: the residue value a corrected capture read (the mod's own prior
+        /// boost, baked into the restarted battle's byte); 0 = the capture was clean. While
+        /// set, the post-release corrective hold re-writes NaturalSpeed over any byte reading
+        /// exactly this value.</summary>
+        public int BakedResidue;
         public bool Released;
         /// <summary>Roster nameId captured ONCE at arm time (Wielder.RosterNameId); -1 = capture
         /// failed (ambiguous or unmatched) -- also &lt;= 0 when a single matched roster slot's own

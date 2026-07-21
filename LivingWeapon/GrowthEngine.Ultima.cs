@@ -21,12 +21,15 @@ namespace LivingWeapon;
 /// equals our lastTarget or natural, the cur== token false-positives and Ultima overwrites the
 /// debuff. This is accepted: the write is guarded and always natural-derived (no crash, no
 /// corruption; resets next battle), and player-side PA debuffs are essentially absent in FFT:IC.
-/// Do NOT add a value-set tracker to fix this -- over-engineering for a non-existent threat.
+/// Do NOT add a value-set tracker to the OWNERSHIP-TOKEN check above -- over-engineering for a
+/// non-existent threat. (The LW-90 NaturalLedger consulted at the CAPTURE moment is a different
+/// boundary: it acts once per battle, across the reset, where no ownership token exists yet.)
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // PA addr -> (captured natural, the last value WE wrote -- our ownership token).
-    private readonly Dictionary<long, (int natural, int lastTarget)> _ultima = new();
+    // PA addr -> (captured natural, the last value WE wrote -- our ownership token; LW-90
+    // baked = the restart residue a corrected capture read, also recognized).
+    private readonly Dictionary<long, (int natural, int lastTarget, int baked)> _ultima = new();
 
     /// <summary>True when this weapon's signature is Ultima -- it owns the wielder's PA at
     /// every tier, so Route declines the PA lane for it.</summary>
@@ -35,8 +38,9 @@ internal sealed partial class GrowthEngine
     /// <summary>Hold the Materia Blade wielder's PA at round(naturalPA × UltimaMul[tier][hpBand]).
     /// Always-on (no tier gate); tier only indexes UltimaMul to raise the whole curve.
     /// Main-hand only (the gift commands from the main hand), guarded, fail-safe no-op.
-    /// rosterNameId (D7) threads through to ReadHp's two-tier-with-veto locate.</summary>
-    private void HoldUltima(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
+    /// rosterNameId (D7) threads through to ReadHp's two-tier-with-veto locate and the LW-90
+    /// NaturalLedger. Internal for the LW-90 seam tests (LocateIn precedent).</summary>
+    internal void HoldUltima(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
     {
         if (!OwnsPa(m)) return;
         long addr = s + Offsets.CPa;
@@ -46,14 +50,20 @@ internal sealed partial class GrowthEngine
         {
             int cur0 = _mem.U8(addr);
             if (cur0 < StatMin || cur0 > StatSaneHi) return;   // wait for a sane natural reading
-            rec = (cur0, cur0);                                 // first sight: own the byte at natural
+            // LW-90: see through the mod's own restart residue; lastTarget seeds to the byte
+            // as-is either way (residue or natural, both are re-owned on the first check).
+            int nat0 = _ledger.FilterCapture(rosterNameId, StatLane.Pa, cur0, level, out int baked0);
+            if (baked0 > 0)
+                ModLogger.Debug(LogVerb.Growth, $"ultima: restart residue corrected at capture (read {baked0}, natural {nat0})");
+            rec = (nat0, cur0, baked0);
         }
 
         var (hp, maxHp) = ReadHp(_mem, level, brave, faith, rosterNameId);   // (0,0) when no band match -> policy leaves PA natural
         int target = Clamp(UltimaPolicy.PaHeld(rec.natural, hp, maxHp, tier, Tuning.UltimaMul));
 
         int cur = _mem.U8(addr);
-        if (cur == rec.lastTarget || cur == rec.natural)   // we own it (or the engine just normalized)
+        if (cur == rec.lastTarget || cur == rec.natural
+            || (rec.baked > 0 && cur == rec.baked))   // we own it (or the engine normalized -- possibly to the baked residue)
         {
             // Live-verify signal: log when the held multiplier actually moves (an HP band crossed or a
             // kill tier earned) -- NOT every tick. target only changes with band/tier (natural is fixed),
@@ -67,9 +77,10 @@ internal sealed partial class GrowthEngine
                     $"{m.Name} at {hpPct} percent health now deals {pct} percent damage (tier {tier}).",
                     $"ultima Physical Attack hold {rec.natural} -> {target} (tier {tier})");
             }
+            _ledger.RecordWrite(rosterNameId, StatLane.Pa, target);   // per evaluation (LW-90)
             if (cur != target) _mem.W8(addr, (byte)target);
-            _ultima[addr] = (rec.natural, target);
+            _ultima[addr] = (rec.natural, target, rec.baked);
         }
-        else _ultima[addr] = (rec.natural, rec.lastTarget);   // foreign value (buff/debuff): leave the byte
+        else _ultima[addr] = (rec.natural, rec.lastTarget, rec.baked);   // foreign value (buff/debuff): leave the byte
     }
 }

@@ -31,8 +31,13 @@ internal sealed partial class GrowthEngine
     private readonly Dictionary<int, int> _kills;
     private readonly TurnTracker _turns;
     private readonly IGameMemory _mem;
-    private readonly Dictionary<long, (int natural, int target, double factor)> _applied = new();
-    private readonly Dictionary<long, int> _timedNatural = new();   // timed-grant stat addr -> captured natural
+    // LW-90: every record's `baked` (0 = none) is a restart-residue ownership token: if the
+    // engine's post-restart normalize restores the BAKED baseline rather than the true
+    // natural (plausible but UNVERIFIED inference; Iai's post-release corrective hold is the
+    // live discriminator), a corrected hold that did not recognize it would go foreign forever.
+    private readonly NaturalLedger _ledger;
+    private readonly Dictionary<long, (int natural, int target, double factor, int baked)> _applied = new();
+    private readonly Dictionary<long, (int nat, int baked)> _timedNatural = new();   // timed-grant stat addr -> captured natural
     // roster slot -> (combat-struct base, tier it was located at: 1 = nameId-exact, 2 = fingerprint
     // fallback). The tier travels with the cache so LocateStruct's revalidate uses the SAME
     // predicate that found it (D5/S4) -- a tier-2 struct never gets held to tier-1's stricter bar.
@@ -48,13 +53,17 @@ internal sealed partial class GrowthEngine
     private readonly Dictionary<(int lvl, int br, int fa), int> _mushinArmed;
 
     public GrowthEngine(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns,
-                        IGameMemory? mem = null, Dictionary<(int lvl, int br, int fa), int>? mushinArmed = null)
+                        IGameMemory? mem = null, Dictionary<(int lvl, int br, int fa), int>? mushinArmed = null,
+                        NaturalLedger? ledger = null)
     {
         _meta = meta;
         _kills = kills;
         _turns = turns;
         _mem = mem ?? new LiveMemory();
         _mushinArmed = mushinArmed ?? new Dictionary<(int, int, int), int>();
+        // LW-90: Engine passes the ONE shared instance (mushinArmed precedent); the default is
+        // only for tests, where a private ledger is inert unless the test drives it.
+        _ledger = ledger ?? new NaturalLedger();
     }
 
     /// <summary>Forget captured naturals + struct locations. Call on battle exit.</summary>
@@ -62,6 +71,7 @@ internal sealed partial class GrowthEngine
     {
         _applied.Clear();
         _timedNatural.Clear();
+        _timedReverted.Clear();
         _afterimage.Clear();
         _ultima.Clear();
         _mushin.Clear();
@@ -104,7 +114,7 @@ internal sealed partial class GrowthEngine
             // ONE RRHand snapshot per slot: re-reading per hand could let a mid-battle gear
             // mutation land between the reads and treat both hands as main-hand for a tick.
             int mainHandId = _mem.U16(rb + Offsets.RRHand);
-            var plan = new Dictionary<long, double>();
+            var plan = new Dictionary<long, (double factor, StatLane lane)>();
             foreach (var (weapon, m) in hands)
             {
                 int tier = Tuning.TierOf(_kills, weapon);
@@ -116,15 +126,15 @@ internal sealed partial class GrowthEngine
                         (hp, maxHp) = ReadHp(_mem, level, brave, faith, rosterNameId);
                     HoldSignature(s, r, weapon, m.Name, m.Signature, tier, hp, maxHp, brave, faith, pickedSupport);
                     if (m.Signature != null && (m.Signature.ForTurns > 0 || m.Signature.Mounted))   // flat stat grant (timed or mount-gated)
-                        HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith));
+                        HoldTimedStat(s, m.Signature, tier, _turns.Turns(level, brave, faith), rosterNameId, level);
                     HoldAfterimage(s, m, tier, level, brave, faith, rosterNameId);   // Swiftedge: ramping Speed (owns the speed lane)
                     HoldUltima(s, m, tier, level, brave, faith, rosterNameId);       // Materia Blade: HP%-scaled PA hold (owns PA lane)
-                    HoldMushin(s, m, tier, level, brave, faith);                     // Kiku-ichimonji: one-hit charged-PA hold (owns PA lane)
+                    HoldMushin(s, m, tier, level, brave, faith, rosterNameId);       // Kiku-ichimonji: one-hit charged-PA hold (owns PA lane)
                 }
-                if (Route(s, m, tier, out long addr, out double factor))
-                    if (!plan.TryGetValue(addr, out double ex) || factor > ex) plan[addr] = factor;
+                if (Route(s, m, tier, out long addr, out double factor, out StatLane lane))
+                    if (!plan.TryGetValue(addr, out var ex) || factor > ex.factor) plan[addr] = (factor, lane);
             }
-            foreach (var kv in plan) Hold(kv.Key, kv.Value);
+            foreach (var kv in plan) Hold(kv.Key, kv.Value.factor, kv.Value.lane, rosterNameId, level);
         }
         ReleaseUnequipped();   // strip support grants whose weapon left its wielder's hands
     }
@@ -139,40 +149,55 @@ internal sealed partial class GrowthEngine
         return list;
     }
 
-    /// <summary>Pick the stat address + factor for a weapon, or false to skip.</summary>
-    private bool Route(long s, WeaponMeta m, int tier, out long addr, out double factor)
+    /// <summary>Pick the stat address + factor + ledger lane for a weapon, or false to skip.</summary>
+    private bool Route(long s, WeaponMeta m, int tier, out long addr, out double factor, out StatLane lane)
     {
+        lane = StatLane.Pa;
         if (Tuning.SkipFormula(m.Formula)) { addr = 0; factor = 0; return false; }
         if (OwnsSpeed(m)) { addr = 0; factor = 0; return false; }   // Afterimage owns Speed (HoldAfterimage)
         if (OwnsPa(m)) { addr = 0; factor = 0; return false; }     // Ultima owns PA (HoldUltima)
         if (OwnsMushin(m)) { addr = 0; factor = 0; return false; } // Mushin owns PA (HoldMushin)
-        if (Tuning.IsSpeedFormula(m.Formula)) { addr = s + Offsets.CSpeed; factor = Tuning.SpeedFactor[tier]; return true; }
-        if (Tuning.IsCaster(m.Cat) || Tuning.IsMagicCastFormula(m.Formula)) { addr = s + Offsets.CMa; factor = Tuning.Factor[tier]; return true; }
+        if (Tuning.IsSpeedFormula(m.Formula)) { addr = s + Offsets.CSpeed; factor = Tuning.SpeedFactor[tier]; lane = StatLane.Speed; return true; }
+        if (Tuning.IsCaster(m.Cat) || Tuning.IsMagicCastFormula(m.Formula)) { addr = s + Offsets.CMa; factor = Tuning.Factor[tier]; lane = StatLane.Ma; return true; }
         addr = s + Offsets.CPa; factor = Tuning.Factor[tier]; return true;
     }
 
     /// <summary>Hold the stat at target, surviving the per-battle reset. Re-application keys off the
     /// captured record (not the raw value), so a grown stat &gt;99 still bumps on a tier cross, and an
-    /// unexpected value (buff/debuff/transient) is left alone rather than re-baselined.</summary>
-    private void Hold(long addr, double factor)
+    /// unexpected value (buff/debuff/transient) is left alone rather than re-baselined.
+    /// LW-90: the first-sight capture consults the NaturalLedger (a restarted battle's byte can
+    /// carry the mod's own prior target); the per-evaluation RecordWrite (not per physical W8:
+    /// a restarted battle starts at cur == target, eliding the write) keeps chained restarts
+    /// matching; and a corrected record's baked value is a recognized re-apply token.
+    /// Internal for the LW-90 seam tests (LocateIn precedent).</summary>
+    internal void Hold(long addr, double factor, StatLane lane, int nameId, int level)
     {
         if (!_mem.Writable(addr, 1)) return;
         int cur = _mem.U8(addr);
         if (_applied.TryGetValue(addr, out var e))
         {
-            if (cur == e.target) { if (factor != e.factor) WriteTarget(addr, e.natural, factor); return; }
-            if (cur == e.natural) WriteTarget(addr, e.natural, factor);   // battle reset -> re-apply
-            return;                                                       // anything else: leave it
+            _ledger.RecordWrite(nameId, lane, e.target);
+            if (cur == e.target) { if (factor != e.factor) WriteTarget(addr, e.natural, factor, lane, nameId, e.baked); return; }
+            if (cur == e.natural || (e.baked > 0 && cur == e.baked))
+                WriteTarget(addr, e.natural, factor, lane, nameId, e.baked);   // battle reset / baked normalize -> re-apply
+            return;                                                            // anything else: leave it
         }
-        if (cur >= StatMin && cur <= StatSaneHi) WriteTarget(addr, cur, factor);   // first sight: capture natural
+        if (cur >= StatMin && cur <= StatSaneHi)
+        {
+            int natural = _ledger.FilterCapture(nameId, lane, cur, level, out int baked);   // first sight
+            if (baked > 0)
+                ModLogger.Debug(LogVerb.Growth, $"growth: restart residue corrected at capture (read {baked}, natural {natural}, lane {lane})");
+            WriteTarget(addr, natural, factor, lane, nameId, baked);
+        }
     }
 
-    private void WriteTarget(long addr, int natural, double factor)
+    private void WriteTarget(long addr, int natural, double factor, StatLane lane, int nameId, int baked)
     {
         int target = (int)Math.Round(natural * (1 + factor));
         if (target < StatMin) target = StatMin;
         if (target > StatMax) target = StatMax;
+        _ledger.RecordWrite(nameId, lane, target);
         if (_mem.U8(addr) != target) _mem.W8(addr, (byte)target);
-        _applied[addr] = (natural, target, factor);
+        _applied[addr] = (natural, target, factor, baked);
     }
 }

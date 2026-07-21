@@ -20,8 +20,9 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // speed addr -> (captured natural, ramp state, the last value WE wrote -- our ownership token).
-    private readonly Dictionary<long, (int natural, AfterimageState st, int lastTarget)> _afterimage = new();
+    // speed addr -> (captured natural, ramp state, the last value WE wrote -- our ownership
+    // token; LW-90 baked = the restart residue a corrected capture read, also recognized).
+    private readonly Dictionary<long, (int natural, AfterimageState st, int lastTarget, int baked)> _afterimage = new();
 
     /// <summary>True when this weapon's signature is Afterimage -- it owns the wielder's Speed at
     /// every tier, so Route declines the Speed lane for it.</summary>
@@ -29,8 +30,9 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Hold Swiftedge's Speed: tier growth at every tier, plus the +3 Afterimage ramp on
     /// top. Main-hand only (the gift commands from the main hand), guarded, fail-safe no-op.
-    /// rosterNameId (D7) threads through to ReadHp's two-tier-with-veto locate.</summary>
-    private void HoldAfterimage(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
+    /// rosterNameId (D7) threads through to ReadHp's two-tier-with-veto locate and the LW-90
+    /// NaturalLedger. Internal for the LW-90 seam tests (LocateIn precedent).</summary>
+    internal void HoldAfterimage(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
     {
         if (!OwnsSpeed(m)) return;
         long addr = s + Offsets.CSpeed;
@@ -40,7 +42,12 @@ internal sealed partial class GrowthEngine
         {
             int cur0 = _mem.U8(addr);
             if (cur0 < StatMin || cur0 > StatSaneHi) return;     // wait for a sane natural reading
-            rec = (cur0, AfterimageState.Empty, cur0);           // first sight: own the byte at natural
+            // LW-90: see through the mod's own restart residue; lastTarget seeds to the byte
+            // as-is either way (residue or natural, both are re-owned on the first check).
+            int nat0 = _ledger.FilterCapture(rosterNameId, StatLane.Speed, cur0, level, out int baked0);
+            if (baked0 > 0)
+                ModLogger.Debug(LogVerb.Growth, $"afterimage: restart residue corrected at capture (read {baked0}, natural {nat0})");
+            rec = (nat0, AfterimageState.Empty, cur0, baked0);
         }
 
         AfterimageState next;
@@ -56,13 +63,15 @@ internal sealed partial class GrowthEngine
         int target = Clamp(growth + AfterimagePolicy.SpeedBonus(next, Tuning.AfterimageSpeedPerTurn));
 
         int cur = _mem.U8(addr);
-        if (cur == rec.lastTarget || cur == rec.natural)         // we own it (or the engine just normalized)
+        if (cur == rec.lastTarget || cur == rec.natural
+            || (rec.baked > 0 && cur == rec.baked))              // we own it (or the engine normalized -- possibly to the baked residue)
         {
             if (next.Stacks != rec.st.Stacks)                    // log each ramp STEP (and the hit-reset back to 0)
                 ModLogger.Debug(LogVerb.Signature, $"stepped Afterimage: {m.Name} wielder Speed {rec.natural} -> {target} (stacks {next.Stacks} of {Tuning.AfterimageSpeedCap})");
+            _ledger.RecordWrite(rosterNameId, StatLane.Speed, target);   // per evaluation (LW-90)
             if (cur != target) _mem.W8(addr, (byte)target);
-            _afterimage[addr] = (rec.natural, next, target);
+            _afterimage[addr] = (rec.natural, next, target, rec.baked);
         }
-        else _afterimage[addr] = (rec.natural, next, rec.lastTarget);   // foreign value: advance state, leave byte
+        else _afterimage[addr] = (rec.natural, next, rec.lastTarget, rec.baked);   // foreign value: advance state, leave byte
     }
 }

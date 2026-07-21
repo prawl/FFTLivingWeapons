@@ -27,6 +27,7 @@ internal sealed class Engine
     private readonly Reliquary _reliquary;   // promoted from a ctor local: the battle-end summary reads BattleMarks at the exit edge
     private readonly KillTracker _tracker;
     private readonly TurnTracker _turns;
+    private readonly NaturalLedger _naturalLedger;   // LW-90: the shared cross-battle written-target memory
     private readonly GrowthEngine _growth;
     private readonly CharmLock _charm;     // named: ticked pre-gate on battleDisplayed, outside the field-signature order
     private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
@@ -159,7 +160,12 @@ internal sealed class Engine
         // trigger (Mushin, banks/spends stacks) and the growth hold (GrowthEngine.HoldMushin,
         // reads it), keyed by wielder fingerprint (lvl,br,fa) like Iai's fp-keyed _holds.
         var mushinArmed = new Dictionary<(int lvl, int br, int fa), int>();
-        _growth = new GrowthEngine(meta, _kills, _turns, live, mushinArmed);
+        // LW-90: ONE NaturalLedger shared by reference between every capture-natural hold
+        // (GrowthEngine's five lanes + Iai), so a value one subsystem baked is recognized by
+        // whichever subsystem captures it after a battle restart. Reset/clear wiring below
+        // (ResetBattleState + the new-game edge); the mushinArmed sharing idiom above.
+        _naturalLedger = new NaturalLedger();
+        _growth = new GrowthEngine(meta, _kills, _turns, live, mushinArmed, _naturalLedger);
         _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
         _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3: grant Shadow Blade (HP-draining dark strike)
@@ -168,7 +174,7 @@ internal sealed class Engine
         var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3: bounce chip to nearest other enemy
         var maim = new Maim(meta, _kills, _tracker, live);          // Huntress +3: struck enemies lose reactions N turns
         var kobu = new Kobu(meta, _kills, _tracker, live);          // Kiyomori +3: on a melee hit, if foe's brave exceeds wielder's, raise wielder's current brave to match
-        var iai = new Iai(meta, _kills, live);                       // Ame-no-Murakumo +3: hold every deployed wielder's Speed above the field max for the opening turn, released by the engine actor pointer (arrival or acted-edge match) naming the wielder's own band entry
+        var iai = new Iai(meta, _kills, live, _naturalLedger);       // Ame-no-Murakumo +3: hold every deployed wielder's Speed above the field max for the opening turn, released by the engine actor pointer (arrival or acted-edge match) naming the wielder's own band entry
         var mushin = new Mushin(meta, _kills, mushinArmed, live);   // Kiku-ichimonji +3: a full wait turn (no move, no act) arms one charge, spent on the wielder's next own-turn action (LW-4 round 5: the literal PSX turn-flag design, no tracker dependency)
         var plague = new Plague(meta, _kills, _tracker, mem: live); // Venombolt +3: poison never fades, ticks harder
         var lifeSap = new LifeSap(meta, _kills, mem: live);         // Umbral +3: a kill heals the wielder 25% max HP
@@ -277,6 +283,11 @@ internal sealed class Engine
         _growth.ResetBattle();
         _reliquary.ResetBattle();   // per-battle Marks ledger (the exit edge composes its summary BEFORE this runs)
         foreach (var sig in _signatures) sig.ResetBattle();
+        // LW-90: promote the ledger's current-attempt write-set. Safe on BOTH edges (this
+        // method's contract): the promotion only fires for entries that recorded anything
+        // since the last promotion, so the exit+enter double reset cannot wipe the history
+        // the restarted battle's capture needs.
+        _naturalLedger.OnBattleReset();
         _attackCard.ResetBattle();   // LW-31 stage 2: restore vanilla to any live Attack-menu copies; the cache stays warm for the next battle's re-verify
 #if LWDEV
         _bodyDoubleSpike.ResetBattle();   // LW-58: the bind + decoy CT-hold never survive a battle edge
@@ -338,7 +349,7 @@ internal sealed class Engine
         // case's forced-exit edge below also invalidates the same tick, harmlessly. LW-70: the
         // same once-per-detection edge also re-baselines the toast queue, so a post-reset first
         // kill reads as a fresh crossing instead of a rollback below the stale pre-reset snapshot.
-        if (newGame) { _display.Invalidate(); _toast.Rebaseline(); }
+        if (newGame) { _display.Invalidate(); _toast.Rebaseline(); _naturalLedger.Clear(); }   // LW-90: a new game's units share nameIds with the old save's; stale residue must not correct them
         // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks), UNLESS forceExit
         // fires (LW-56: a detected new game bypasses the debounce entirely). nowIn is sticky through
         // mid-battle dips, flipping only on the debounced or forced edges.

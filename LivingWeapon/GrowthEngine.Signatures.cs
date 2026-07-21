@@ -155,36 +155,5 @@ internal sealed partial class GrowthEngine
         return (found, result.hp, result.maxHp);
     }
 
-    /// <summary>Hold a TIMED flat stat bonus (Galewind's Speed +3 for the wielder's first ForTurns
-    /// turns), then revert. Captures natural on first sight while active and re-applies natural+bonus
-    /// against the per-turn normalize; once the window passes, restores the captured natural and stops
-    /// tracking. Only ever writes natural or natural+bonus (both guarded) -- worst case a buff lingers
-    /// a turn (and resets next battle), never a corrupt value. Speed is the only wired stat today.</summary>
-    internal void HoldTimedStat(long s, WeaponSignature sig, int tier, int turns)
-    {
-        if (tier < sig.AtTier || sig.StatBonus == 0 || sig.Stat != "Speed") return;
-        long addr = s + Offsets.CSpeed;
-        if (!_mem.Writable(addr, 1)) return;
-        int cur = _mem.U8(addr);
-        bool active = sig.Mounted
-            ? (_mem.U8(s + Offsets.CMount) & Offsets.CMountRidingBit) != 0   // riding a chocobo
-            : turns < sig.ForTurns;
-        if (_timedNatural.TryGetValue(addr, out int nat))
-        {
-            int boosted = Clamp(nat + sig.StatBonus);
-            if (active) { if (cur == nat) _mem.W8(addr, (byte)boosted); }   // re-apply after a normalize
-            else
-            {
-                if (cur == boosted) _mem.W8(addr, (byte)nat);   // window over -> revert our boost
-                _timedNatural.Remove(addr);
-            }
-        }
-        else if (active && cur >= StatMin && cur <= StatSaneHi)   // first sight while active: capture + apply
-        {
-            _timedNatural[addr] = cur;
-            _mem.W8(addr, (byte)Clamp(cur + sig.StatBonus));
-        }
-    }
-
     private static int Clamp(int v) => v < StatMin ? StatMin : v > StatMax ? StatMax : v;
 }
