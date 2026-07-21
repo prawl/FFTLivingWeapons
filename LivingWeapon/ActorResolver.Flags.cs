@@ -60,14 +60,18 @@ internal sealed partial class ActorResolver
     private bool FlagPathOpen => _periodStartTick >= 0;
 
     /// <summary>THE LATCH KEY (D1: t==1 only). Resolves <see cref="Band.FlagOwner"/>'s winning
-    /// entry to exactly one roster row. False (rosterBase/entry left 0) on ANY refusal --
-    /// no t=1 candidate, an ambiguous t=1 read, a nameId==0 capture failure, or a roster bridge
-    /// that fails/is ambiguous -- so the caller's existing fall-through chain runs unchanged.</summary>
-    internal bool TryResolveFlagOwner(out long rosterBase, out long entry)
+    /// entry to exactly one roster row. False (rosterBase/entry left 0, bandSlot left -1) on ANY
+    /// refusal -- no t=1 candidate, an ambiguous t=1 read, a nameId==0 capture failure, or a roster
+    /// bridge that fails/is ambiguous -- so the caller's existing fall-through chain runs
+    /// unchanged. <paramref name="bandSlot"/> is the winning entry's own band slot index (LW-87:
+    /// shares this resolve shape with <see cref="ActorResolver.TryResolveCursorPlayer"/>, which
+    /// needs the slot for its own <see cref="CursorAnswer.BandSlot"/>), -1 on any refusal.</summary>
+    internal bool TryResolveFlagOwner(out long rosterBase, out long entry, out int bandSlot)
     {
         rosterBase = 0;
         entry = 0;
-        if (!Band.FlagOwner(_mem, out long e, out _)) return false;
+        bandSlot = -1;
+        if (!Band.FlagOwner(_mem, out long e, out int slot)) return false;
 
         ushort nameId = _mem.U16(e + Offsets.ANameId);
         if (nameId == 0) return false;   // capture failure: fail closed, never a guess
@@ -79,6 +83,7 @@ internal sealed partial class ActorResolver
 
         rosterBase = rb;
         entry = e;
+        bandSlot = slot;
         return true;
     }
 

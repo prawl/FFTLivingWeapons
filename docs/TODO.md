@@ -13,19 +13,59 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-87] A whole battle can show the plain vanilla Attack row on a mirror-seat cursor** (opened 2026-07-14) [QUEUED]
-  - Done means: the battle menus recover their weapon names even when the game's cursor
-    data points at a duplicate memory copy of a unit instead of the real one. Today that
-    shape is safe but ugly: the fail-closed gates correctly compose vanilla for the entire
-    battle (the owner's first PROD session saw a full-battle rename blackout). (Tech: a
-    mirror-seat-aware cursor resolve, frame nameId dedup per the Band mirror rule; the
-    LW-55 CursorGate fail-closed doctrine must survive unchanged.)
-  - Verify: unit tests pin the mirror-seat resolve against the 12:14 PROD-session shape
-    (cursor unit at a non-turn-owner slot), the LW-55 gate tests stay green, and an owner
-    sighting of a renamed row in a battle where the old build would have blacked out.
+- **[LW-87] The battle Attack row loses its weapon name whenever the cursor context wanders off the acting unit** (opened 2026-07-14) [BUILDING]
+  - Done means: the Attack row keeps the acting unit's weapon name for that unit's whole turn,
+    including after viewing another unit's status with T, because the resolve now anchors on
+    the turn flags owner instead of the hover following cursor struct. (Tech: ActorResolver.
+    Cursor.cs rides Band.FlagOwner plus the roster bridge; the TurnQueue fingerprint walk is
+    deleted; CursorGate.Decide and the LW-55 fail closed doctrine survive unchanged; resolve
+    refusals tape one flight record per stage per battle.)
+  - Verify: unit tests pin the detour shape (the flag owner composes while the cursor struct
+    holds another unit's tuple), the race window NotTurnOwner refusal, and the enemy turn
+    bridge refusal; the LW-55 WeaponMismatch tripwire tests stay green unmodified; owner live
+    pass sees the row hold through a T status detour with the two column probe confirming the
+    flag holds.
 
 ## Backlog
 
+- [LW-103] 2026-07-21: After a battle ends, the party list and the leftover battle data disagree
+  about which weapon a unit is holding, and they stay disagreeing until the next battle; nothing
+  visible breaks, but nobody has explained it yet.
+  Seen post-deploy 2026-07-21 (LW-87 live pass): from the 14:06:31 battle end to the end of a
+  10 minute recording, the roster read weapon 42 for Ramza while his frozen band entry still
+  read 37, about 5.4 minutes of steady disagreement (5439 probe ticks, not a blip; the tape
+  prints only changes, so the single line at battle end was the ONSET). Harmless today on every
+  known surface: the Attack card never composes out of battle (Engine.Tick returns early), so
+  the mod logged zero warnings all session, and CursorGate would refuse the mismatch anyway.
+  Worth an explanation before anything new trusts a roster read taken out of battle: the likely
+  cause is the post-battle equipment reconcile moving the roster while the band stays frozen
+  (the LIVE_LEDGER row on broken and stolen gear committing at battleMode 0 is the neighbouring
+  mechanism), and the owner may simply have re-equipped in the menu. Check GunSlinger.PrepRoster
+  first if it is ever picked up: that lane DOES read roster hands out of battle, though it reads
+  the roster (the live side) rather than the stale band. Instrument already in tree:
+  tools/probes/cursor_resolve_probe.py.
+- [LW-101] 2026-07-21: Players whose game language is not English see no kill counts at all,
+  and the only way to get them back is switching the game to English and restarting (player
+  report 2026-07-21, native language Chinese; the same player confirmed the switch works).
+  The failure is silent and graceful: growth, signatures, and tallies all keep working, only
+  the on card text is missing, so a player has no way to tell the mod is fine. What is NEW in
+  this report: the wall is not French specific (it reaches Chinese too), and the English plus
+  restart workaround is player confirmed. Known cause and wall: the card painter anchors on
+  the literal English "Kills: " string baked into our English item descriptions
+  (CardPatterns.cs), and a non English game loads its own language item table, so no anchor
+  exists to paint into; shipping our text into a per language slot was WALLED live 2026-06-30
+  on two independent counts (the game resolves the item table once under English at boot and
+  never reloads it when another language activates, and FF16Tools cannot parse the real non
+  English tables anyway). Cheap candidates in ascending cost: (a) say it plainly in README
+  and on the Nexus page, since the workaround is real and free; (b) detect a non English item
+  table at startup and log one clear line (and consider the same message box lane the
+  fingerprint guard already owns) so the player learns the mod is healthy and how to see the
+  counter; (c) the real cure, DLL live painting of the counter into the loaded language table
+  (a genuine RE arc, the painter would need a language agnostic anchor), or upstream
+  modloader support for per language text overrides (ask Nenkai; the parser bug report is
+  worth sending either way). See the walled French investigation in the memory ledger and
+  docs/MECHANICS.md before reopening the data lane; do not retry the item.<lang>.nxd approach
+  without new information.
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet: weapons remember WHO
   they killed.
   Design: docs/RELIQUARY_DESIGN.md; acceptance: docs/RELIQUARY_AC.md. Phase 0 probes COMPLETE
@@ -128,6 +168,9 @@ the technical detail lives in the indented lines under it.
   direction: extend the condensed turn-queue fingerprint with more struct fields; the probe
   dump shows brave/faith-like u16 candidates in the cursor struct needing offset
   verification (turn-owner-probe lines, livingweapon.log 04:0x).
+  LW-87's flag-owner resolve (2026-07-21) already gives this surface partial relief: the
+  nameId bridge tells identical-stat twins apart on the Attack card now, though the growth
+  and locate surfaces still need the fingerprint extension planned here.
 - [LW-43] 2026-07-07: The Outrider pistol's twin-gun perk is slow to kick in for a SECOND
   wielder when someone else already has it running (it does apply eventually; owner saw
   the lag live 2026-07-07, not a correctness bug). (Tech: Gun Slinger, Outrider Pistol
@@ -265,6 +308,19 @@ the technical detail lives in the indented lines under it.
   DLL's own Offsets constants (scratchpad plague_watch.py pattern: BandReadBase =
   CombatAnchor + BandEntry - 24 * stride, guarded rpm, fingerprint scan). Lift that into
   tools/probes as the new base.
+  2026-07-21: tools/probes/cursor_resolve_probe.py (shipped with LW-87) is that base, now
+  tracked and live-exercised across four sessions: it walks the band from the DLL's own
+  constants with guarded reads, replays Band.IsValid and the roster bridge faithfully (a
+  plan reviewer re-verified it field by field against the C#), and carries no slot-marker
+  filter at all. Copy its read_band plus bridge_count helpers when rebuilding the
+  ct_probe family, and keep its two column habit (replay the SHIPPED logic beside the
+  PROPOSED one) whenever a probe exists to judge a change.
+- [LW-102] 2026-07-21: A work item pasted into the wrong section of this file silently stops
+  being checked (wrong ids and broken formats go unnoticed), because the contract tests read
+  entries only out of the Now, Backlog, and changelog sections; make an entry-shaped line
+  anywhere else fail the build. Fixed in the TreasureMaster sibling as TM-6 (its commit
+  5569e8e): an entry-shape regex swept over the non-entry sections, proven by a planted
+  stray going red; port it with the LW id prefix.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

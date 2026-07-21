@@ -1,73 +1,113 @@
 namespace LivingWeapon;
 
+/// <summary>Which stage refused a <see cref="ActorResolver.TryResolveCursorPlayer"/> call, so
+/// AttackCard.Resolve.cs's resolve-miss tap (LW-87) can log/tape WHICH stage without re-deriving
+/// it from raw facts. Ordered the same as the resolve's own stage order.</summary>
+internal enum CursorMiss
+{
+    /// <summary>The resolve succeeded; nothing to report. Never itself reported (a resolve call
+    /// always leaves this at None on success, or overwrites it with a real refusal on
+    /// failure).</summary>
+    None,
+
+    /// <summary><see cref="Band.FlagOwner"/> itself refused: either NO band entry currently reads
+    /// ATurnFlag==1 at a real position (the battle-opening edge, or the gap between any two
+    /// units' turns), OR two or more DISAGREEING t=1 entries were found (a genuinely ambiguous
+    /// flags read). Folded into one stage deliberately: <c>Band.FlagOwner</c>'s own bool return
+    /// cannot distinguish the two internally (both are "no safe candidate to answer with"), and
+    /// splitting them would need a second out-param on <c>Band.FlagOwner</c> with three more call
+    /// sites to update for a distinction no caller currently needs. EXPECTED AND ROUTINE between
+    /// any two units' turns; not itself a sign of a problem.</summary>
+    NoOwner,
+
+    /// <summary>The flag owner's own frame nameId back-reference (<see cref="Offsets.ANameId"/>)
+    /// reads 0: a capture failure (the frame slot's identity back-reference has not been written
+    /// yet, or was never captured). Fails closed rather than guess.</summary>
+    NameIdZero,
+
+    /// <summary>The flag owner's (nameId,level,brave,faith) bridge matched zero, or more than one,
+    /// roster row. EXPECTED AND ROUTINE on every enemy turn (an enemy's identity never appears in
+    /// the roster at all) and on any genuinely duplicated roster identity; see
+    /// ActorResolver.Flags.cs's ACCEPTED RESIDUAL doctrine.</summary>
+    BridgeFail,
+}
+
 /// <summary>
-/// LW-31 stage-2 fix (ledger LW-31): the pre-action cursor resolve AttackCard's dossier needs.
+/// LW-87 (docs/TODO.md): the pre-action cursor resolve AttackCard's dossier needs, re-anchored on
+/// the PSX turn-flags owner (<see cref="Band.FlagOwner"/>, LW-63's exclusive ATurnFlag walk)
+/// instead of the condensed turn-queue struct (<see cref="Offsets.TurnQueue"/>) this file read
+/// through 2026-07-14. That struct FOLLOWS THE CURSOR, not the turn: the owner's own repro showed
+/// the Attack row blanking to vanilla the instant a T-status detour moved the struct onto another
+/// unit mid-turn, even though the acting unit's own move/act/wait menu was still open the whole
+/// time. docs/LIVE_LEDGER.md's 2026-07-21 hover-follower row (instrument:
+/// tools/probes/cursor_resolve_probe.py) is the live evidence this re-anchor rests on.
+///
 /// Deliberately separate from <see cref="ActorResolver.TryResolveActingPlayer"/>'s register-first
 /// preamble: that method answers "who committed this action" (kill attribution, correct once an
-/// action has landed), while this one answers "whose turn just opened" (right the instant the
-/// Abilities menu is hovered, before any action is chosen). Reads the condensed turn-queue struct
-/// (<see cref="Offsets.TurnQueue"/>) EXCLUSIVELY, with no register consultation at all: the
-/// TurnOwnerSpike tape (2026-07-05) proved this struct snaps to the acting unit at TURN OPEN,
-/// leading the register's own arrival (which only updates once a unit ACTS) by several seconds on
-/// the same unit.
+/// action has landed), while this one answers "whose turn is open right now" (right the instant
+/// the Abilities menu is hovered, before any action is chosen). This method shares its resolve
+/// shape with <see cref="ActorResolver.TryResolveFlagOwner"/> (ActorResolver.Flags.cs) -- both
+/// walk <see cref="Band.FlagOwner"/> then bridge the winning entry's frame nameId to a roster row
+/// via the same <see cref="TryBridgeCursorToRoster"/> helper -- but answers with per-STAGE
+/// observability (<see cref="CursorMiss"/>) instead of a single collapsed bool, since
+/// AttackCard.Resolve.cs's resolve-miss tap needs to know WHICH stage refused, not merely that one
+/// did.
 ///
-/// NEVER reads <see cref="Offsets.TqNameId"/>: Offsets.cs already documents it as a trap, a
-/// SEQUENTIAL battle index rather than a roster nameId (a Time Mage's index 1 once collided with
-/// Ramza's roster nameId 1 and mis-credited every kill to Ramza), and the same tape caught it
-/// flickering to a garbage value while level/hp stayed correct mid action-confirm. Identity here
-/// comes ONLY from the two proven sources: the (level,hp,maxHp) band fingerprint (the same shape
-/// as this class's own turn-queue fallback body, twin filter included), plus the matched band
-/// entry's own frame nameId back-reference (<see cref="Offsets.ANameId"/>), bridged to roster
-/// exactly like <see cref="ActorRegister"/>'s own Bridge method (nameId narrows, level+brave+faith
-/// confirms). Any guard failure or ambiguity returns false, meaning "no cursor answer", never a
-/// guess.
+/// THE ROSTER BRIDGE IS THE PLAYER FILTER (ActorResolver.Flags.cs's own doctrine, generalized
+/// here): an enemy's or an unbridged guest's turn is not a fault of this method's own gates, it is
+/// <see cref="CursorMiss.BridgeFail"/>, EXPECTED and routine on every enemy turn (the ACCEPTED
+/// RESIDUAL, ActorResolver.Flags.cs's own class doc). An AI-controlled ROSTER unit's turn (a
+/// Charmed/Confused/Berserk party member; the LWDEV Body Double clone bridging to its donor) DOES
+/// compose that unit's own dossier here -- correct-for-the-acting-unit, a documented delta from
+/// the old struct's behavior, not a hole.
 ///
-/// RAW FACTS ONLY (LW-55): a successful resolve returns a <see cref="CursorAnswer"/> carrying the
-/// matched roster slot's raw right-hand weapon id, that SAME unit's own equipped weapon read off
-/// its band entry (<see cref="Offsets.AWeapon"/>) and turn-open flag (<see cref="Offsets.ATurnFlag"/>),
-/// and the matched band entry's own slot index: exactly what was read, no doctrine applied here.
+/// RAW FACTS ONLY (LW-55, unchanged by this re-anchor): a successful resolve returns a
+/// <see cref="CursorAnswer"/> carrying the matched roster slot's raw right-hand weapon id, that
+/// SAME unit's own equipped weapon read off its band entry (<see cref="Offsets.AWeapon"/>), and
+/// its turn-open flag (<see cref="Offsets.ATurnFlag"/>, RE-READ here rather than assumed 1: a
+/// falling-edge race between <c>Band.FlagOwner</c>'s walk and this read can legitimately yield 0,
+/// one benign refused tick that <see cref="CursorGate.Decide"/>'s gate B still catches -- this is
+/// gate B's own remaining job, not something this resolve shortcuts to a constant), and the
+/// matched band entry's own slot index: exactly what was read, no doctrine applied here.
 /// <see cref="CursorGate.Decide"/> (consulted by AttackCard.Resolve.cs, never by this class) is
 /// the only place those facts are judged. There is no register-based fallback: that path was
 /// removed 2026-07-06, and a refused resolve since then composes vanilla, full stop.
 /// </summary>
 internal sealed partial class ActorResolver
 {
-    // The struct span this resolve reads: TqTeam(0x02)..TqMaxHp(0x10)+2 bytes.
-    private const int CursorSpan = Offsets.TqMaxHp + 2;
-
-    /// <summary>True (with <paramref name="answer"/> populated) only when ALL of: (1) the struct
-    /// is readable at all; (2) its team field is 0, a player's turn (an enemy or ally/guest turn
-    /// returns false untouched); (3) its (level,hp,maxHp) fingerprint matches EXACTLY ONE band
-    /// entry (twin filter included, mirrors <see cref="TryResolveActingPlayer"/>'s own turn-queue
-    /// body); (4) that band entry's frame nameId back-reference bridges to EXACTLY ONE roster slot
-    /// agreeing on (level,brave,faith). False otherwise (unreadable, non-player turn,
-    /// ambiguous/absent band match, or the nameId bridge failing/ambiguous), with
-    /// <paramref name="answer"/> left default: the caller (AttackCard.Resolve.cs) composes vanilla
-    /// rather than trust a guess. The two new band reads inside <paramref name="answer"/>
-    /// (<see cref="CursorAnswer.BandWeapon"/>, <see cref="CursorAnswer.TurnFlag"/>) are UNGUARDED
-    /// fail-safe reads, this class's own idiom: only the TurnQueue head above is Readable-guarded;
-    /// <c>Mem</c> fail-safes an unreadable address to 0, and 0 reads as sentinel/flag-down, which
-    /// <see cref="CursorGate.Decide"/> refuses anyway, so no explicit guard is needed here.</summary>
-    public bool TryResolveCursorPlayer(out CursorAnswer answer)
+    /// <summary>True (with <paramref name="answer"/> populated, <paramref name="miss"/> left at
+    /// <see cref="CursorMiss.None"/>) only when ALL of: (1) <see cref="Band.FlagOwner"/> names
+    /// exactly one real-position band entry with its turn-flag currently set; (2) that entry's
+    /// frame nameId back-reference is nonzero; (3) the nameId bridges to EXACTLY ONE roster slot
+    /// agreeing on (level,brave,faith). False otherwise, with <paramref name="answer"/> left
+    /// default and <paramref name="miss"/> naming which stage refused: the caller (AttackCard.
+    /// Resolve.cs) composes vanilla rather than trust a guess.</summary>
+    public bool TryResolveCursorPlayer(out CursorAnswer answer, out CursorMiss miss)
     {
         answer = default;
+        miss = CursorMiss.None;
 
-        if (!_mem.Readable(Offsets.TurnQueue, CursorSpan)) return false;
-        if (_mem.U16(Offsets.TurnQueue + Offsets.TqTeam) != 0) return false;   // not a player's turn
-
-        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
-        ushort hp    = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
-        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
-        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return false;
-
-        if (!TryFindCursorBandEntry(maxHp, hp, level, out long entry, out int bandSlot)) return false;
+        if (!Band.FlagOwner(_mem, out long entry, out int bandSlot))
+        {
+            miss = CursorMiss.NoOwner;
+            return false;
+        }
 
         ushort frameNameId = _mem.U16(entry + Offsets.ANameId);
-        if (frameNameId == 0) return false;   // capture failure: fail closed, never a guess
+        if (frameNameId == 0)
+        {
+            miss = CursorMiss.NameIdZero;
+            return false;
+        }
 
         byte br = _mem.U8(entry + Offsets.ABrave);
         byte fa = _mem.U8(entry + Offsets.AFaith);
-        if (!TryBridgeCursorToRoster(frameNameId, level, br, fa, out long matchedRosterBase)) return false;
+        byte lvl = _mem.U8(entry + Offsets.ALevel);
+        if (!TryBridgeCursorToRoster(frameNameId, lvl, br, fa, out long matchedRosterBase))
+        {
+            miss = CursorMiss.BridgeFail;
+            return false;
+        }
 
         int rosterHand = RawMainHand(matchedRosterBase);
         int bandWeapon = _mem.U16(entry + Offsets.AWeapon);
@@ -76,39 +116,12 @@ internal sealed partial class ActorResolver
         return true;
     }
 
-    /// <summary>Band walk fingerprint-matching (maxHp,hp,level), twin filter included: the SAME
-    /// shape as <see cref="TryResolveActingPlayer"/>'s own turn-queue body, factored out here so
-    /// this cursor resolve does not duplicate the twin-filter logic inline. <paramref name="matchedSlot"/>
-    /// is the winning entry's own band slot index (LW-55: carried into <see cref="CursorAnswer.BandSlot"/>
-    /// for the tripwire's evidence trail), -1 when nothing matched.</summary>
-    private bool TryFindCursorBandEntry(ushort maxHp, ushort hp, ushort level, out long matched, out int matchedSlot)
-    {
-        matched = 0;
-        matchedSlot = -1;
-        bool found = false, foundReal = false;
-        for (int s = 0; s < Offsets.BandSlots; s++)
-        {
-            long addr = Band.Entry(s);
-            if (!Band.IsValid(_mem, addr)) continue;
-            if (_mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
-            if (_mem.U16(addr + Offsets.AHp) != hp) continue;
-            if (_mem.U8(addr + Offsets.ALevel) != level) continue;
-
-            bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
-            if (foundReal && !realPos) continue;
-            if (realPos && !foundReal && found) { found = false; foundReal = true; }
-            if (realPos) foundReal = true;
-
-            if (!found) { matched = addr; matchedSlot = s; found = true; }
-            else if (matched != addr) return false;   // ambiguous band match
-        }
-        return found;
-    }
-
     /// <summary>ActorRegister.Bridge's own proven pattern (nameId narrows, level+brave+faith
     /// confirms), reused here against a BAND entry instead of the register's CurrentEntry.
     /// Exactly one agreeing roster slot returns true; zero (no bridge) or more than one (a
-    /// duplicated nameId) returns false.</summary>
+    /// duplicated nameId) returns false. Shared by <see cref="TryResolveCursorPlayer"/> and
+    /// <see cref="ActorResolver.TryResolveFlagOwner"/>/<see cref="ActorResolver.TryResolveFlagKiller"/>
+    /// (ActorResolver.Flags.cs) -- one bridge implementation, three callers.</summary>
     private bool TryBridgeCursorToRoster(ushort frameNameId, int level, int br, int fa, out long rosterBase)
     {
         rosterBase = 0;

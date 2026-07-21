@@ -41,25 +41,32 @@ namespace LivingWeapon;
 /// at all (AttackRow's record is enc1-only; live census found zero enc2 "Attack" catalogs, so this
 /// is a dead path kept safe): they only ever get vanilla-restore, never a composed write.
 ///
-/// TURN-OWNER SEAM (CURSOR-ONLY since 2026-07-06; ledger LW-31): AttackCard.Resolve.cs's
-/// ComposeCurrentPlan consults ActorResolver.TryResolveCursorPlayer (the condensed turn-queue
-/// struct, Offsets.TurnQueue), proven by the 2026-07-05 TurnOwnerSpike tape to snap to the acting
-/// unit at TURN OPEN, under strict guards (player team, unambiguous band+nameId bridge; see
-/// ActorResolver.Cursor.cs), and NOTHING ELSE. The register fallback stage 2 kept (the KillerStamp
-/// seam, ActorRegister.LastPlayer*) is GONE from this surface: the owner watched it put ANOTHER
-/// unit's weapon (a Spark Rod) on Ramza's Attack row 2026-07-06 when two party units shared the
-/// (level,hp,maxHp) fingerprint; the cursor correctly refused the ambiguous match, and the
-/// fallback then served the LAST ACTED player's hands, which is the wrong dossier on every turn
-/// the cursor cannot clear. Doctrine: a wrong dossier is worse than vanilla, so no cursor answer
-/// now means "restore vanilla", full stop. (Recovering the shared-fingerprint twins case is a
-/// backlogged fingerprint extension; ActorRegister itself and the KillerStamp attribution seam
+/// TURN-OWNER SEAM (CURSOR-ONLY since 2026-07-06, ledger LW-31; RE-ANCHORED 2026-07-21, LW-87):
+/// AttackCard.Resolve.cs's ComposeCurrentPlan consults ActorResolver.TryResolveCursorPlayer, and
+/// NOTHING ELSE. Through 2026-07-14 that method read the condensed turn-queue struct
+/// (Offsets.TurnQueue); LW-87 re-anchored it on the PSX turn-flags owner (Band.FlagOwner, the same
+/// exclusive-ownership walk LW-63's kill-credit lane already trusted) plus the roster bridge,
+/// because the struct FOLLOWS THE CURSOR rather than the turn: the owner watched a T-status
+/// detour blank the whole row to vanilla mid-turn even though the acting unit's own menu was still
+/// open (docs/LIVE_LEDGER.md's 2026-07-21 hover-follower row). See ActorResolver.Cursor.cs's own
+/// class doc for the full resolve shape. The register fallback stage 2 kept (the KillerStamp
+/// seam, ActorRegister.LastPlayer*) is GONE from this surface, unaffected by the re-anchor: the
+/// owner watched it put ANOTHER unit's weapon (a Spark Rod) on Ramza's Attack row 2026-07-06 when
+/// two party units shared the (level,hp,maxHp) fingerprint; the cursor correctly refused the
+/// ambiguous match, and the fallback then served the LAST ACTED player's hands, which is the wrong
+/// dossier on every turn the cursor cannot clear. Doctrine: a wrong dossier is worse than vanilla,
+/// so no cursor answer now means "restore vanilla", full stop. (Recovering the shared-fingerprint
+/// twins case is a backlogged fingerprint extension, LW-39, though LW-87's nameId bridge already
+/// gives this surface partial relief; ActorRegister itself and the KillerStamp attribution seam
 /// elsewhere are untouched.) Once a rosterBase is in hand, the row/tail decision
 /// (AttackRow.Policy.ComposeRow) is driven strictly off the RAW main hand (Offsets.RRHand) and
 /// sprite byte, never the filtered/tracked Hands() set, which cannot distinguish "unarmed" from
 /// "wielding something untracked" and would miss the "Fists" case entirely. Dual wield: only the
 /// main hand is ever shown here (a second blade still earns kills via KillTracker same as always,
 /// just is not featured in this single row/title). LW-55 adds a narrowing-only gate on top of the
-/// cursor answer itself (CursorGate.Decide, see CursorGate.cs and AttackCard.Resolve.cs).
+/// cursor answer itself (CursorGate.Decide, see CursorGate.cs and AttackCard.Resolve.cs); LW-87
+/// adds a per-battle resolve-miss tap (<see cref="CursorMiss"/>) alongside it, naming WHICH stage
+/// refused when there is no answer at all.
 /// </summary>
 internal sealed partial class AttackCard
 {
@@ -97,7 +104,7 @@ internal sealed partial class AttackCard
     private readonly IGameMemory _mem;
     private readonly ChunkReader _reader;
     private readonly AttackRow _attackRow;
-    private readonly Func<CursorAnswer?> _resolveCursor;
+    private readonly Func<(CursorAnswer? Answer, CursorMiss Miss)> _resolveCursor;
     private readonly Func<long, byte> _spriteOf;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -122,7 +129,7 @@ internal sealed partial class AttackCard
     private byte[]? _previousImage;  // the last DISTINCT composed image before the current rotation
     private long _lastMaintenanceMs = -1;
 
-    public AttackCard(IGameMemory mem, Func<CursorAnswer?> resolveCursor,
+    public AttackCard(IGameMemory mem, Func<(CursorAnswer? Answer, CursorMiss Miss)> resolveCursor,
                        Func<long, byte> spriteOf,
                        Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
                        Action<string, string>? recorder = null, Func<long>? nowMs = null)
@@ -183,6 +190,7 @@ internal sealed partial class AttackCard
         _lastMaintenanceMs = -1;
         foreach (var hit in _hits) hit.FirstFailMs = 0;   // LW-91: fresh battle, fresh strike grace
         _reportedRefusals.Clear();   // LW-55: the per-battle tripwire dedup set (AttackCard.Resolve.cs)
+        _reportedMisses.Clear();     // LW-87: the per-battle resolve-miss dedup set (AttackCard.Resolve.cs)
     }
 
     /// <summary>Test accessor (mirrors CardSites.Count/Display._sites): the number of table

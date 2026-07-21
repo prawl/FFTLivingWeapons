@@ -29,16 +29,40 @@ public class AttackCardTests
     /// <summary>Seat a player: a roster slot (main-hand weaponId) plus its matching band entry
     /// and frame nameId, at a distinct (level,brave,faith) fingerprint per slot/bandIdx pair.
     /// <paramref name="sprite"/> defaults to 0 (an ordinary human, AttackRow.Policy.HumanSprite).
-    /// LW-55: also seats the band's own turn-flag byte (Offsets.ATurnFlag) at 1, the genuine
-    /// turn-owner value CursorGate's gate B requires before ANY dossier composes (mirrors
-    /// MushinTests.SetFlags' own seating of the same byte); MemSeats.SeatBand itself is NOT given
-    /// a default (shared suite; MushinTests drives that byte through its own helper).</summary>
+    /// LW-87: <paramref name="turnFlag"/> defaults to 0 (NOT the genuine turn-owner value) since
+    /// this file routinely seats more than one player per test -- defaulting every seat to 1 the
+    /// way LW-55 originally did would make the very FIRST multi-seat test instantly ambiguous
+    /// under the flag-owner resolve (two real-position t=1 entries with different identities).
+    /// <see cref="MakeFlagOwner"/> is the fixture's own "open this unit's turn" primitive now;
+    /// pass <paramref name="turnFlag"/> explicitly only for a single-seat test that never calls
+    /// it. MemSeats.SeatBand itself is NOT given a default (shared suite; MushinTests drives that
+    /// byte through its own helper).</summary>
     private static void SeatPlayer(FakeSparseMemory m, int rosterSlot, int bandIdx, int weaponId,
-                                   int lvl, int br, int fa, int nameId, int sprite = 0)
+                                   int lvl, int br, int fa, int nameId, int sprite = 0, int turnFlag = 0)
     {
         MemSeats.SeatRoster(m, rosterSlot, lvl, br, fa, rh: weaponId, nameId: nameId, sprite: sprite);
         MemSeats.SeatBand(m, bandIdx, weapon: weaponId, lvl: lvl, br: br, fa: fa, gx: bandIdx, gy: bandIdx);
         MemSeats.SeatFrameNameId(m, bandIdx, nameId);
+        m.U8s[Band.Entry(bandIdx) + Offsets.ATurnFlag] = (byte)turnFlag;
+    }
+
+    /// <summary>LW-87: makes band slot <paramref name="bandIdx"/> the EXCLUSIVE PSX turn-flags
+    /// owner (<see cref="Band.FlagOwner"/>) among every band entry this fixture has seeded so far:
+    /// sets ATurnFlag=1 at <paramref name="bandIdx"/> and 0 at every OTHER band slot that already
+    /// carries a sane (<see cref="Band.IsValid"/>) entry. Mirrors TurnTrackerTests.SeatFlagOwner's
+    /// seat-the-flag idiom, generalized to enforce single-owner exclusivity across a whole
+    /// fixture (this file seats several players per test, unlike TurnTracker's one-at-a-time
+    /// shape). "Turn change" in this file = calling this again with a different bandIdx --
+    /// the fixture's replacement for the old cursor-struct OpenTurn helper.</summary>
+    private static void MakeFlagOwner(FakeSparseMemory m, int bandIdx)
+    {
+        for (int s = 0; s < Offsets.BandSlots; s++)
+        {
+            if (s == bandIdx) continue;
+            long addr = Band.Entry(s);
+            if (!Band.IsValid(m, addr)) continue;
+            m.U8s[addr + Offsets.ATurnFlag] = 0;
+        }
         m.U8s[Band.Entry(bandIdx) + Offsets.ATurnFlag] = 1;
     }
 
@@ -113,8 +137,8 @@ public class AttackCardTests
         // trimmed-away suffix) unless a test overrides it; the tier-suffix mechanism itself is
         // AttackRow.Policy's own concern (AttackRowPolicyTests), not this runtime suite's.
         var k = kills ?? new Dictionary<int, int> { [WindrunnerId] = 3, [StormcallerId] = 4 };
-        Func<CursorAnswer?> resolveCursor = () =>
-            resolver.TryResolveCursorPlayer(out var answer) ? answer : (CursorAnswer?)null;
+        Func<(CursorAnswer? Answer, CursorMiss Miss)> resolveCursor = () =>
+            resolver.TryResolveCursorPlayer(out var answer, out var miss) ? (answer, miss) : ((CursorAnswer?)null, miss);
         var recorded = new List<(string Type, string Payload)>();
         var card = new AttackCard(mem, resolveCursor, resolver.SpriteOf, meta, k,
                                    recorder: (t, p) => recorded.Add((t, p)), nowMs: nowMs);
@@ -128,13 +152,6 @@ public class AttackCardTests
     {
         for (int i = 0; i < ticks; i++) card.Tick();
     }
-
-    /// <summary>Open a player's turn the CURSOR-ONLY resolve can see (owner-observed wrong-weapon
-    /// display 2026-07-06: the register fallback is gone from this surface): seats the condensed
-    /// turn-queue struct at the unit's (level, hp, maxHp) fingerprint. SeatBand's hp/maxHp default
-    /// is 100/100, so a distinct LEVEL per seated player keeps the band match unambiguous.</summary>
-    private static void OpenTurn(Rig rig, int level) =>
-        rig.Mem.SeatCursor(team: 0, level: level, hp: 100, maxHp: 100);
 
     [Fact]
     public void Census_finds_the_attack_table_and_caches_it()
@@ -157,7 +174,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(baseUtf16, 2, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
 
         Settle(rig.Card);
 
@@ -184,7 +201,7 @@ public class AttackCardTests
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
 
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens
         Settle(rig.Card);
 
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copyA), 1));
@@ -192,7 +209,7 @@ public class AttackCardTests
         Assert.Equal("Kills: 3/5 to +", TailOf(rig.Mem.RegionBytes(copyA), 1, "Windrunner".Length));
 
         // Turn-owner change: the cursor snaps to slot 3 (Stormcaller).
-        OpenTurn(rig, level: 55);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
         Settle(rig.Card, ticks: 1);
 
         Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copyA), 1));
@@ -217,7 +234,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens
 
         Settle(rig.Card);   // first census + first paint
 
@@ -261,7 +278,7 @@ public class AttackCardTests
         byte[] truncatedBefore = (byte[])partial.Clone();
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
 
         Assert.Equal(1, rig.Card.HitCountForTests);   // only the good copy is cached
@@ -276,7 +293,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -287,8 +304,7 @@ public class AttackCardTests
         MemSeats.SeatRoster(rig.Mem.Sparse, slot: 4, lvl: 45, br: 40, fa: 50, rh: 0xFFFF, nameId: 44, sprite: 0x80);
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 7, weapon: 0xFFFF, lvl: 45, br: 40, fa: 50, gx: 7, gy: 7);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 7, nameId: 44);
-        rig.Mem.Sparse.U8s[Band.Entry(7) + Offsets.ATurnFlag] = 1;
-        OpenTurn(rig, level: 45);       // the unarmed unit's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 7);       // the unarmed unit's turn opens, and Windrunner's own flag clears
         Settle(rig.Card, ticks: 1);
 
         Assert.Equal("Fists", RowOf(rig.Mem.RegionBytes(copy), 1));
@@ -304,14 +320,14 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
         MemSeats.SeatRoster(rig.Mem.Sparse, slot: 4, lvl: 45, br: 40, fa: 50, rh: 0xFFFF, nameId: 44, sprite: 0x82);
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 7, weapon: 0xFFFF, lvl: 45, br: 40, fa: 50, gx: 7, gy: 7);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 7, nameId: 44);
-        OpenTurn(rig, level: 45);       // the unarmed unit's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 7);       // the unarmed unit's turn opens
         Settle(rig.Card, ticks: 1);
 
         byte[] expected = AttackCardProbeText.EncodeWithTerminator(AttackCardText.VanillaDesc, 1);
@@ -331,7 +347,7 @@ public class AttackCardTests
         byte[] foreignBefore = rig.Mem.RegionBytes(foreignCopy);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
 
         Assert.Equal(1, rig.Card.HitCountForTests);   // only the good copy is cached
@@ -348,7 +364,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -369,7 +385,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -380,7 +396,7 @@ public class AttackCardTests
 
         // Battle 2: Windrunner's turn opens again. A SINGLE tick, no census slack at all, is
         // enough to repaint the row, proving the cache from battle 1 was never dropped.
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         rig.Card.Tick();
 
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
@@ -405,7 +421,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
         Assert.Equal(1, rig.Card.HitCountForTests);
 
@@ -415,12 +431,16 @@ public class AttackCardTests
         var (labelAddr, _) = AttackCardTableFixture.Addrs(copyA, 1);
         rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
         rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);     // battle 2's own live copy
-        // No player turn open yet at battle 2's start (an enemy's turn, same "no cursor answer"
-        // convention as Enemy_team_cursor_composes_vanilla): the desired plan stays vanilla
-        // (unchanged from ResetBattle's own null _currentImage), so nothing here is a compose
-        // CHANGE; the clock has to clear AttackCard's own maintenance cadence for RepaintAll to
-        // run at all and notice the corrupted label.
-        rig.Mem.SeatCursor(team: 1, level: 50, hp: 100, maxHp: 100);
+        // No player turn open yet at battle 2's start, same "no cursor answer" convention as
+        // Enemy_team_cursor_composes_vanilla: LW-87 re-seed (the fixture's own note, plan doc
+        // "battle-2 suppression now via clearing all flags, not team") -- ResetBattle never
+        // touches game memory, so Windrunner's own ATurnFlag byte (set by MakeFlagOwner above)
+        // is STILL 1 in memory unless cleared here; without this, Band.FlagOwner would keep
+        // naming Windrunner the owner straight through the battle edge. The desired plan stays
+        // vanilla (unchanged from ResetBattle's own null _currentImage), so nothing here is a
+        // compose CHANGE; the clock has to clear AttackCard's own maintenance cadence for
+        // RepaintAll to run at all and notice the corrupted label.
+        rig.Mem.Sparse.U8s[Band.Entry(5) + Offsets.ATurnFlag] = 0;
         int writesBefore = rig.Mem.WrittenAddrs.Count;
 
         clock.Ms += 1500;
@@ -489,7 +509,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copyA), 1));
 
@@ -498,7 +518,7 @@ public class AttackCardTests
         rig.Card.ForceRecensusForTests();
         rig.Card.Tick();   // Arm only: phase is pinned to REPAINT next
 
-        OpenTurn(rig, level: 55);   // flip the desired compose to Stormcaller mid-sweep
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);   // flip the desired compose to Stormcaller mid-sweep
 
         rig.Card.Tick();   // repaint phase: lands the new row even though the sweep is still in flight
         Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copyA), 1));
@@ -534,7 +554,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -563,7 +583,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
         Assert.Equal(1, rig.Card.HitCountForTests);
 
@@ -571,7 +591,7 @@ public class AttackCardTests
         rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
         Settle(rig.Card);   // episode start (+ its own early-armed census, which may finish here)
         Assert.Equal(1, rig.Card.HitCountForTests);
         Assert.Equal(1, rig.Card.StrikingCountForTests);
@@ -586,11 +606,12 @@ public class AttackCardTests
 
         long copyB = 0x7000100000;
         rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);
-        // No player turn open yet at battle 2's start (an enemy's turn, the stale-cache test's own
-        // convention): otherwise Stormcaller's battle-1 cursor legitimately paints copyB the moment
-        // the census adopts it (SyncHit-on-discovery). Vanilla compose keeps adoption the ONLY
-        // observable thing here.
-        rig.Mem.SeatCursor(team: 1, level: 55, hp: 100, maxHp: 100);
+        // No player turn open yet at battle 2's start (the stale-cache test's own convention):
+        // ResetBattle never touches game memory, so Stormcaller's own ATurnFlag byte (set by
+        // MakeFlagOwner above) is STILL 1 in memory unless cleared here; otherwise Stormcaller's
+        // battle-1 flag legitimately paints copyB the moment the census adopts it (SyncHit-on-
+        // discovery). Vanilla compose keeps adoption the ONLY observable thing here.
+        rig.Mem.Sparse.U8s[Band.Entry(6) + Offsets.ATurnFlag] = 0;
 
         Settle(rig.Card);   // battle 2
 
@@ -598,17 +619,20 @@ public class AttackCardTests
         Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copyB), 1));
     }
 
-    // LW-31: CURSOR-ONLY resolve (owner-observed wrong-weapon display 2026-07-06). The register
-    // fallback stage 2 kept is GONE from this surface: when the cursor does not answer, the plan
-    // is vanilla, full stop. The four guard-failure tests below pin that fail-closed rule (they
-    // are the flipped descendants of the old falls-back-to-the-register tests).
+    // LW-31: CURSOR-ONLY resolve (owner-observed wrong-weapon display 2026-07-06), RE-ANCHORED
+    // LW-87 onto Band.FlagOwner + the roster bridge (ActorResolver.Cursor.cs's own class doc). The
+    // register fallback stage 2 kept is GONE from this surface: when the flag-owner resolve does
+    // not answer, the plan is vanilla, full stop. The guard-failure tests below pin that
+    // fail-closed rule (they are the flipped descendants of the old falls-back-to-the-register
+    // tests, re-seeded so the flag-owner walk -- not the deleted turn-queue struct -- drives each
+    // scenario).
 
     [Fact]
     public void Cursor_leads_the_stale_register_to_the_unit_whose_turn_just_opened()
     {
         // THE bug the stage-2 fix closed: the register is still parked on the PREVIOUS actor
-        // (Windrunner), it never sees Stormcaller act, while the cursor already names Stormcaller,
-        // whose turn has just opened.
+        // (Windrunner), it never sees Stormcaller act, while the flag-owner resolve already names
+        // Stormcaller, whose turn has just opened.
         var rig = Build();
         long copy = 0x7000000000;
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
@@ -618,10 +642,10 @@ public class AttackCardTests
         PointAt(rig.Mem.Sparse, 5);
         rig.Register.Update();          // arrival: slot 2 (Windrunner), the register's ONLY update this test
 
-        // Stormcaller's turn has opened (the cursor snaps to it) but they have not acted; the
-        // register never moves off Windrunner.
+        // Stormcaller's turn has opened (the flag owner moves to bandIdx 6) but they have not
+        // acted; the register never moves off Windrunner.
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        rig.Mem.SeatCursor(team: 0, level: 55, hp: 100, maxHp: 100);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
 
         Settle(rig.Card);
 
@@ -641,12 +665,18 @@ public class AttackCardTests
         PointAt(rig.Mem.Sparse, 5);
         rig.Register.Update();          // the register WOULD answer Windrunner; it must not be consulted
 
-        // An enemy's turn is open (team=1): no cursor answer, so the plan is vanilla, full stop.
-        rig.Mem.SeatCursor(team: 1, level: 50, hp: 100, maxHp: 100);
+        // An ENEMY holds the only t=1 flag and is physically absent from the roster (no seeded
+        // roster row carries nameId 77): Band.FlagOwner names it, but the roster bridge refuses
+        // (BridgeFail), so the plan is vanilla, full stop -- never the register's stale Windrunner
+        // answer. Windrunner's own flag (never set by SeatPlayer, default 0) plays no part.
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 9, weapon: StormcallerId, lvl: 55, br: 65, fa: 75, gx: 9, gy: 9);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 9, nameId: 77);   // no roster slot has nameId 77
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 9);
 
         Settle(rig.Card);
 
         Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload.Contains("miss:BridgeFail"));
     }
 
     [Fact]
@@ -661,12 +691,12 @@ public class AttackCardTests
         PointAt(rig.Mem.Sparse, 5);
         rig.Register.Update();          // the register WOULD answer Windrunner; it must not be consulted
 
-        // level/hp/maxHp fingerprint-match Stormcaller's band entry, but its frame nameId is
-        // overwritten to a value no roster slot carries (the flicker): the cursor refuses, and a
+        // Stormcaller is the exclusive flag owner, but its frame nameId is overwritten to a value
+        // no roster slot carries (the flicker): the roster bridge refuses (BridgeFail), and a
         // refusal now means vanilla (the register's stale answer was exactly the live bug).
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 6, nameId: 999);
-        rig.Mem.SeatCursor(team: 0, level: 55, hp: 100, maxHp: 100);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
 
         Settle(rig.Card);
 
@@ -685,39 +715,12 @@ public class AttackCardTests
         PointAt(rig.Mem.Sparse, 5);
         rig.Register.Update();          // the register WOULD answer Windrunner; it must not be consulted
 
-        // A band entry fingerprint-matches the cursor's level/hp/maxHp, but no roster slot bridges
-        // to it at all; the cursor never guesses a roster identity it cannot confirm, and its
-        // refusal now means vanilla.
+        // A band entry is the exclusive flag owner, but no roster slot bridges to it at all; the
+        // resolve never guesses a roster identity it cannot confirm, and its refusal now means
+        // vanilla.
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 9, weapon: StormcallerId, lvl: 55, br: 65, fa: 75, gx: 9, gy: 9);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 9, nameId: 77);   // no roster slot has nameId 77
-        rig.Mem.SeatCursor(team: 0, level: 55, hp: 100, maxHp: 100);
-
-        Settle(rig.Card);
-
-        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
-    }
-
-    [Fact]
-    public void Unreadable_cursor_struct_composes_vanilla_never_the_registers_answer()
-    {
-        var rig = Build();
-        long copy = 0x7000000000;
-        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
-
-        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        rig.Register.Update();
-        PointAt(rig.Mem.Sparse, 5);
-        rig.Register.Update();          // the register WOULD answer Windrunner; it must not be consulted
-
-        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        // Values planted directly WITHOUT marking Offsets.TurnQueue Readable (FakeSparseMemory's
-        // Readable contract is an exact-address set, see its class doc): mirrors a genuine
-        // unreadable struct address. The cursor path must fail closed rather than trust a read it
-        // cannot confirm succeeded, and failing closed now means vanilla.
-        rig.Mem.Sparse.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 0;
-        rig.Mem.Sparse.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 55;
-        rig.Mem.Sparse.U16s[Offsets.TurnQueue + Offsets.TqHp] = 100;
-        rig.Mem.Sparse.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 9);
 
         Settle(rig.Card);
 
@@ -751,7 +754,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);   // first census + paint: renames to "Windrunner" / "Kills: 3/5 to +"
 
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
@@ -760,7 +763,7 @@ public class AttackCardTests
         rig.Card.PoisonFirstHitFootprintForTests(5);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);       // Stormcaller's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);       // Stormcaller's turn opens
         Settle(rig.Card, ticks: 1);
 
         Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copy), 1));
@@ -785,7 +788,7 @@ public class AttackCardTests
         byte byteAfterFootprintBefore = rig.Mem.RegionBytes(baseAddr)[AttackCardTableFixture.PadBefore + 7 + AttackRow.FootprintBytes];
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: ZwillId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // the Zwill wielder's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // the Zwill wielder's turn opens (cursor-only resolve)
 
         Settle(rig.Card);
 
@@ -829,7 +832,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);   // paints "Windrunner": the record is now genuinely Ours-shaped
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -856,7 +859,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
         Assert.Equal(1, rig.Card.HitCountForTests);
 
@@ -868,7 +871,7 @@ public class AttackCardTests
         // throttle), iterating the already-cached hit list directly: SyncHit's very first check
         // (the label re-verify) must fail closed before touching anything else.
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);       // Stormcaller's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);       // Stormcaller's turn opens
         Settle(rig.Card);   // episode start: RETAINED, not yet evicted
 
         Assert.Equal(1, rig.Card.HitCountForTests);
@@ -897,7 +900,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -905,7 +908,7 @@ public class AttackCardTests
         rig.Mem.WriteBytes(descAddr, AttackRow.BuildImage("ForeignThing", "Unrelated."));   // stomp the text only; the record stays Ours
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);       // Stormcaller's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);       // Stormcaller's turn opens
         Settle(rig.Card);   // pass 1: SyncHit's own :89 restore fires; the copy is RETAINED, not evicted
 
         Assert.Equal(1, rig.Card.HitCountForTests);            // never evicted
@@ -932,7 +935,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -959,11 +962,11 @@ public class AttackCardTests
         byte[] utf16Before = rig.Mem.RegionBytes(utf16Copy);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
         Settle(rig.Card);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);       // Stormcaller's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);       // Stormcaller's turn opens
         Settle(rig.Card, ticks: 1);
 
         Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(asciiCopy), 1));   // the ascii sibling did change
@@ -991,7 +994,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: PeacemakerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // the Peacemaker wielder's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // the Peacemaker wielder's turn opens (cursor-only resolve)
         Settle(rig.Card);
 
         Assert.Equal("Peacemaker+2", RowOf(rig.Mem.RegionBytes(copy), 1));
@@ -1008,7 +1011,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: PeacemakerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);       // the Peacemaker wielder's turn opens (cursor-only resolve)
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // the Peacemaker wielder's turn opens (cursor-only resolve)
         Settle(rig.Card);
 
         Assert.Equal("Peacemaker+3", RowOf(rig.Mem.RegionBytes(copy), 1));
@@ -1055,8 +1058,7 @@ public class AttackCardTests
             MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
             MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: StormcallerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
             MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
-            rig.Mem.Sparse.U8s[Band.Entry(5) + Offsets.ATurnFlag] = 1;
-            OpenTurn(rig, level: 50);
+            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
 
             Settle(rig.Card);
 
@@ -1072,32 +1074,79 @@ public class AttackCardTests
         finally { ModLogger.UseNullLogger(); }
     }
 
-    [Fact]
-    public void LW55_gate_B_turn_flag_not_open_refuses_to_vanilla_with_no_Warn_ever()
+    /// <summary>LW-87 T8 (replaces LW55_gate_B_turn_flag_not_open, whose old scenario -- "the
+    /// band's own turn flag is never seated" -- no longer distinguishes gate B from
+    /// <see cref="CursorMiss.NoOwner"/>: post-re-anchor, <see cref="Band.FlagOwner"/> already
+    /// requires ATurnFlag==1 to find a candidate at all, so an unseeded flag now refuses one step
+    /// earlier, inside the resolve itself, never reaching CursorGate. A genuine gate-B refusal
+    /// needs the rarer falling-edge race the resolve's own doc warns about: the SAME band byte
+    /// reads 1 during <c>Band.FlagOwner</c>'s walk and 0 moments later when
+    /// <c>TryResolveCursorPlayer</c> re-reads it to build the <see cref="CursorAnswer"/>. Wraps
+    /// the watched address's <see cref="IGameMemory.U8"/> reads in a call-parity queue: the
+    /// odd-numbered call (the walk) answers 1, the even-numbered call (the re-read) answers 0 --
+    /// self-sustaining across every tick, so this keeps gate B provably non-vacuous regardless of
+    /// exactly which tick first reaches ComposeCurrentPlan.</summary>
+    private sealed class RaceWindowMemory : IGameMemory
     {
+        private readonly IGameMemory _inner;
+        private readonly long _watchedAddr;
+        private int _calls;
+
+        public RaceWindowMemory(IGameMemory inner, long watchedAddr)
+        {
+            _inner = inner;
+            _watchedAddr = watchedAddr;
+        }
+
+        public byte U8(long addr)
+        {
+            if (addr != _watchedAddr) return _inner.U8(addr);
+            _calls++;
+            return (byte)(_calls % 2 == 1 ? 1 : 0);
+        }
+
+        public ushort U16(long addr) => _inner.U16(addr);
+        public bool Readable(long addr, int len) => _inner.Readable(addr, len);
+        public bool TryReadBytes(long addr, int len, out byte[] buf) => _inner.TryReadBytes(addr, len, out buf);
+        public int ReadInto(long addr, byte[] buf, int len) => _inner.ReadInto(addr, buf, len);
+        public void WriteBytes(long addr, byte[] payload) => _inner.WriteBytes(addr, payload);
+        public bool Writable(long addr, int len) => _inner.Writable(addr, len);
+        public IEnumerable<(long baseAddr, long size)> Regions() => _inner.Regions();
+    }
+
+    [Fact]
+    public void Race_window_flag_falls_between_FlagOwners_walk_and_the_answers_own_reread()
+    {
+        var mem = new AttackCardMemory();
+        long copy = 0x7000000000;
+        mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        MakeFlagOwner(mem.Sparse, bandIdx: 5);
+
+        var raced = new RaceWindowMemory(mem, Band.Entry(5) + Offsets.ATurnFlag);
+        var meta = Meta();
+        var weapons = new HashSet<int>(meta.Keys);
+        var register = new ActorRegister(raced);
+        var resolver = new ActorResolver(raced, weapons, register);
+        var kills = new Dictionary<int, int> { [WindrunnerId] = 3, [StormcallerId] = 4 };
+        var recorded = new List<(string Type, string Payload)>();
+        Func<(CursorAnswer? Answer, CursorMiss Miss)> resolveCursor = () =>
+            resolver.TryResolveCursorPlayer(out var answer, out var miss) ? (answer, miss) : ((CursorAnswer?)null, miss);
+        var card = new AttackCard(raced, resolveCursor, resolver.SpriteOf, meta, kills,
+                                   recorder: (t, p) => recorded.Add((t, p)));
+
         var console = InstallWarnOnlyConsole();
         try
         {
-            var rig = Build();
-            long copy = 0x7000000000;
-            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+            Settle(card);
 
-            // Roster and band AGREE on Windrunner (zero gate-A anomaly), but the band's own turn
-            // flag is never seated (defaults to 0, the unguarded fail-safe read): routine hover
-            // behavior (targeting/reticle sweeps over allies and guests every tick) must never be
-            // mistaken for a weapon anomaly, so this refuses via gate B alone.
-            MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
-            MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: WindrunnerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
-            MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
-            OpenTurn(rig, level: 50);
-
-            Settle(rig.Card);
-
-            Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
-            Assert.Empty(console);   // NEVER a Warn for the routine hover case
-            Assert.Single(rig.Recorded);
-            Assert.Equal("card", rig.Recorded[0].Type);
-            Assert.Contains("NotTurnOwner", rig.Recorded[0].Payload);
+            // The resolve SUCCEEDS (Band.FlagOwner found bandIdx 5 on the odd/walk read) but
+            // CursorGate refuses NotTurnOwner (the even/re-read caught the fall): vanilla, never a
+            // wrong dossier, and never a Warn for a benign one-tick race.
+            Assert.Equal(AttackCardText.VanillaDesc, RowOf(mem.RegionBytes(copy), 1));
+            Assert.Empty(console);
+            Assert.Contains(recorded, r => r.Type == "card" && r.Payload.Contains("NotTurnOwner"));
         }
         finally { ModLogger.UseNullLogger(); }
     }
@@ -1113,7 +1162,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
 
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
@@ -1131,8 +1180,7 @@ public class AttackCardTests
         MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: StormcallerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
-        rig.Mem.Sparse.U8s[Band.Entry(5) + Offsets.ATurnFlag] = 1;
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
 
         Settle(rig.Card, ticks: 10);   // many repeated ticks against the SAME mismatch
 
@@ -1157,8 +1205,7 @@ public class AttackCardTests
         MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: StormcallerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
-        rig.Mem.Sparse.U8s[Band.Entry(5) + Offsets.ATurnFlag] = 1;
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
 
         Settle(rig.Card, ticks: 5);    // first mismatch key: (WeaponMismatch, Windrunner, Stormcaller)
 
@@ -1240,7 +1287,7 @@ public class AttackCardTests
             rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
             SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-            OpenTurn(rig, level: 50);       // Windrunner's turn opens (cursor-only resolve)
+            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
             Settle(rig.Card);
             Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -1249,7 +1296,7 @@ public class AttackCardTests
             rig.Mem.SetRegionPresent(copy, present: false);
 
             SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-            OpenTurn(rig, level: 55);       // Stormcaller's turn opens: forces RepaintAll to re-verify copy
+            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);       // Stormcaller's turn opens: forces RepaintAll to re-verify copy
             Settle(rig.Card);   // episode start: retained, not yet evicted
             Assert.Equal(1, rig.Card.HitCountForTests);
 
@@ -1322,7 +1369,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy2, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy1), 1));
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy2), 1));
@@ -1336,7 +1383,7 @@ public class AttackCardTests
             rig.Mem.SetRegionPresent(copy1, present: false);
 
             SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-            OpenTurn(rig, level: 55);
+            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
             int writesBefore = rig.Mem.WrittenAddrs.Count;
             Settle(rig.Card);   // episode start + the census it early-arms
 
@@ -1384,7 +1431,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -1394,7 +1441,7 @@ public class AttackCardTests
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 7, weapon: 0xFFFF, lvl: 45, br: 40, fa: 50, gx: 7, gy: 7);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 7, nameId: 44);
         rig.Mem.Sparse.U8s[Band.Entry(7) + Offsets.ATurnFlag] = 1;
-        OpenTurn(rig, level: 45);       // the unarmed human's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 7);       // the unarmed human's turn opens
         Settle(rig.Card);   // episode start: the copy strikes (unreadable), retained
 
         Assert.Equal(1, rig.Card.HitCountForTests);
@@ -1421,7 +1468,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
@@ -1430,7 +1477,7 @@ public class AttackCardTests
         MemSeats.SeatRoster(rig.Mem.Sparse, slot: 4, lvl: 45, br: 40, fa: 50, rh: 0xFFFF, nameId: 44, sprite: 0x82);
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 7, weapon: 0xFFFF, lvl: 45, br: 40, fa: 50, gx: 7, gy: 7);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 7, nameId: 44);
-        OpenTurn(rig, level: 45);       // the unarmed monster's turn opens
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 7);       // the unarmed monster's turn opens
         Settle(rig.Card);   // episode start: retained
 
         Assert.Equal(1, rig.Card.HitCountForTests);
@@ -1457,7 +1504,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
         Assert.Equal("Kills: 3/5 to +", TailOf(rig.Mem.RegionBytes(copy), 1, "Windrunner".Length));
 
@@ -1481,7 +1528,7 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy2, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
 
         var console = new List<string>();
@@ -1493,7 +1540,7 @@ public class AttackCardTests
             rig.Mem.SetRegionPresent(copy1, present: false);
 
             SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-            OpenTurn(rig, level: 55);
+            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
             int writesBefore = rig.Mem.WrittenAddrs.Count;
             Settle(rig.Card);   // episode start
             Assert.Equal(1, rig.Card.StrikingCountForTests);
@@ -1568,7 +1615,7 @@ public class AttackCardTests
             rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
 
             SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-            OpenTurn(rig, level: 50);
+            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
             Settle(rig.Card);
             Assert.Equal(1, rig.Card.HitCountForTests);
 
@@ -1579,7 +1626,7 @@ public class AttackCardTests
             rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
 
             SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-            OpenTurn(rig, level: 55);
+            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
             file.Clear();   // isolate this test's own "census armed" count from the ForceRecensus one above
             rig.Card.Tick();   // repaint phase (alternation): copyA strikes mid-sweep
 
@@ -1605,13 +1652,13 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
 
         rig.Mem.SetRegionPresent(copyA, present: false);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
         Settle(rig.Card);   // episode start
         Assert.Equal(1, rig.Card.StrikingCountForTests);
 
@@ -1645,12 +1692,12 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(copy2, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
 
         rig.Mem.SetRegionPresent(copy1, present: false);
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
         Settle(rig.Card);
         Assert.Equal(1, rig.Card.StrikingCountForTests);
 
@@ -1672,12 +1719,12 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(healthy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
 
         rig.Mem.SetRegionPresent(flaky, present: false);
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
         Settle(rig.Card);
 
         Assert.Equal(1, rig.Card.StrikingCountForTests);   // only the flaky copy is striking
@@ -1703,19 +1750,19 @@ public class AttackCardTests
         rig.Mem.AddAttackTable(healthy, 1, AttackCardText.VanillaDesc);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-        OpenTurn(rig, level: 50);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
 
         rig.Mem.SetRegionPresent(copy, present: false);
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-        OpenTurn(rig, level: 55);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
         Settle(rig.Card);   // episode start
         clock.Ms += 500;
-        OpenTurn(rig, level: 50);   // back to Windrunner
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);   // back to Windrunner
         Settle(rig.Card, ticks: 1);
         clock.Ms += 500;
-        OpenTurn(rig, level: 55);   // back to Stormcaller
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);   // back to Stormcaller
         Settle(rig.Card, ticks: 1);
         clock.Ms += 500;   // total elapsed since episode start: 1000ms, still under the grace window
 
@@ -1728,5 +1775,210 @@ public class AttackCardTests
         Settle(rig.Card, ticks: 1);
 
         Assert.Equal(1, rig.Card.HitCountForTests);   // evicted
+    }
+
+    // ==================== LW-87: flag-owner re-anchor (detour shape + resolve-miss stages) ====
+    // The cursor resolve now rides Band.FlagOwner + the roster bridge (ActorResolver.Cursor.cs's
+    // own class doc) instead of the condensed turn-queue struct. These tests pin the detour shape
+    // itself (T1, load-bearing) plus every CursorMiss stage the resolve can now report.
+
+    [Fact]
+    public void Flag_owner_composes_through_a_T_status_detour_the_turn_queue_struct_is_ignored()
+    {
+        // T1 LOAD-BEARING: the owner's own repro. Acting unit A (Windrunner) holds the exclusive
+        // turn flag at a real position; viewed ally B (Stormcaller) is merely being status-checked
+        // (T), its own real position, its own roster row, flag OFF. The condensed turn-queue
+        // struct is ALSO seeded with B's own (level,hp,maxHp) tuple -- the exact shape the OLD
+        // hover-follower resolve used to snap onto -- to pin that this surface no longer reads it
+        // at all. On the pre-LW-87 resolve this composed vanilla (the struct named B, whose own
+        // turn flag reads 0: gate B refuses NotTurnOwner). EXPECT here: the plan still carries A's
+        // (Windrunner's) row for A's whole turn.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);   // Windrunner's turn is open; Stormcaller's flag stays 0
+
+        // The T-status detour: the dead turn-queue struct still holds B's own tuple.
+        rig.Mem.SeatCursor(team: 0, level: 55, hp: 100, maxHp: 100);
+
+        Settle(rig.Card);
+
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Equal("Kills: 3/5 to +", TailOf(rig.Mem.RegionBytes(copy), 1, "Windrunner".Length));
+    }
+
+    [Fact]
+    public void No_flag_owner_anywhere_composes_vanilla_with_miss_NoOwner()
+    {
+        // T2: battle-open edge (or the gap between any two units' turns) -- nobody seeded at all.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        Settle(rig.Card);
+
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:NoOwner");
+    }
+
+    [Fact]
+    public void No_flag_owner_anywhere_reports_the_miss_at_Debug_never_Warn()
+    {
+        // LW-87: ReportMiss's CursorMiss.NoOwner is routine (the gap between any two units' turns,
+        // or the battle-open edge before anyone is seeded yet) and must never escalate to a Warn --
+        // only ReportRefusal's WeaponMismatch tier earns that (see the LW55_gate_A test above).
+        // Reuses T2's exact scenario (No_flag_owner_anywhere_composes_vanilla_with_miss_NoOwner)
+        // with the warn-only console installed, pinning the log tier alongside the pre-existing
+        // flight-record assertion.
+        var console = InstallWarnOnlyConsole();
+        try
+        {
+            var rig = Build();
+            long copy = 0x7000000000;
+            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+            Settle(rig.Card);
+
+            Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+            Assert.Empty(console);
+            Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:NoOwner");
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    [Fact]
+    public void Real_position_flag_owner_wins_over_its_own_frozen_zero_position_twin()
+    {
+        // T3: Band.FlagOwner's D2b real-position mandate -- a frozen (0,0) mirror sharing A's OWN
+        // identity (same nameId/level/brave/faith) can carry a stale t=1 with no external anchor;
+        // it never creates ambiguity against its own real-position twin, it simply never counts as
+        // a candidate at all.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
+
+        // A frozen (0,0) mirror of the SAME unit, also flagged -- MakeFlagOwner is deliberately NOT
+        // used here (it would clear bandIdx 5's flag); both entries must read t=1 simultaneously.
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 20, weapon: WindrunnerId, lvl: 50, br: 60, fa: 70, gx: 0, gy: 0);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 20, nameId: 42);
+        rig.Mem.Sparse.U8s[Band.Entry(20) + Offsets.ATurnFlag] = 1;
+
+        Settle(rig.Card);
+
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+    }
+
+    [Fact]
+    public void Two_disagreeing_flag_owners_compose_vanilla_with_miss_NoOwner()
+    {
+        // T4: two real-position, DIFFERENT-identity t=1 entries -- Band.FlagOwner itself refuses
+        // (miss beats mis-credit), never a guess between them.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        rig.Mem.Sparse.U8s[Band.Entry(5) + Offsets.ATurnFlag] = 1;
+        rig.Mem.Sparse.U8s[Band.Entry(6) + Offsets.ATurnFlag] = 1;
+
+        Settle(rig.Card);
+
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:NoOwner");
+    }
+
+    [Fact]
+    public void Enemy_flag_owner_absent_from_roster_composes_vanilla_with_miss_BridgeFail()
+    {
+        // T5: the enemy IS the sole flag owner (structurally, real position, t=1), but its
+        // identity bridges to zero roster rows -- expected and routine on every enemy turn.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 9, weapon: StormcallerId, lvl: 55, br: 65, fa: 75, gx: 9, gy: 9);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 9, nameId: 77);   // no roster slot has nameId 77
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 9);
+
+        Settle(rig.Card);
+
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:BridgeFail");
+    }
+
+    [Fact]
+    public void Flag_owner_with_zero_frame_nameId_composes_vanilla_with_miss_NameIdZero()
+    {
+        // T6a: the flag owner's own frame nameId back-reference reads 0, a capture failure.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: WindrunnerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+        // SeatFrameNameId deliberately NOT called: ANameId stays at its unseeded 0 default.
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
+
+        Settle(rig.Card);
+
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:NameIdZero");
+    }
+
+    [Fact]
+    public void Flag_owner_bridging_to_two_roster_rows_composes_vanilla_with_miss_BridgeFail()
+    {
+        // T6b: a duplicated roster identity (two rows sharing nameId+level+brave+faith) is ALSO
+        // BridgeFail, never a guess between them (T6's "zero roster matches" leg is already
+        // pinned by Enemy_flag_owner_absent_from_roster_composes_vanilla_with_miss_BridgeFail
+        // above and by Cursor_with_no_roster_match_composes_vanilla_never_the_registers_answer).
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 3, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);   // duplicate
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: WindrunnerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
+
+        Settle(rig.Card);
+
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:BridgeFail");
+    }
+
+    // T7 (flag owner's band weapon != roster hand -> WeaponMismatch + exactly one tripwire
+    // report) is already pinned by LW55_gate_A_roster_and_band_weapon_disagree_refuses_to_
+    // vanilla_with_one_Warn_and_one_card_record above, unaffected by the re-anchor (gate A/B are
+    // untouched code); no separate copy needed here.
+
+    // T8 (the race window, gate B non-vacuous) replaces the old LW55_gate_B test -- see
+    // Race_window_flag_falls_between_FlagOwners_walk_and_the_answers_own_reread above.
+
+    [Fact]
+    public void Same_miss_stage_twice_in_one_battle_records_once_ResetBattle_fires_again()
+    {
+        // T9: the resolve-miss tap's own dedup set (AttackCard.Resolve.cs's _reportedMisses),
+        // mirroring LW55_mismatch_tripwire_dedups_per_battle's pin for the refusal-tier tripwire.
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        // Nobody seeded: every tick's resolve refuses with the SAME miss stage (NoOwner).
+        Settle(rig.Card, ticks: 10);
+
+        Assert.Single(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:NoOwner");
+
+        rig.Card.ResetBattle();
+        Settle(rig.Card, ticks: 3);
+
+        Assert.Equal(2, rig.Recorded.Count(r => r.Type == "card" && r.Payload == "miss:NoOwner"));
     }
 }

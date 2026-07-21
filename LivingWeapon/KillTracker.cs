@@ -157,14 +157,16 @@ internal sealed partial class KillTracker
     internal void EmitExitCensus() => _census.EmitExit();
 
     /// <summary>LW-31 stage-2 fix (grown in stage 3 to also surface rosterBase; retyped LW-55 to
-    /// hand back the raw <see cref="CursorAnswer"/> instead of a filtered weapon list; the ONLY
-    /// resolve seam AttackCard consumes since the 2026-07-06 cursor-only fix): this tracker's
+    /// hand back the raw <see cref="CursorAnswer"/> instead of a filtered weapon list; retyped
+    /// again LW-87 to also surface the <see cref="CursorMiss"/> stage: the ONLY resolve seam
+    /// AttackCard consumes since the 2026-07-06 cursor-only fix): this tracker's
     /// ActorResolver.TryResolveCursorPlayer, exposed for AttackCard's dossier resolve
-    /// (AttackCard.Resolve.cs). Null = no cursor answer (guard failure or ambiguity); non-null =
-    /// a confident resolve, with the raw roster/band facts AttackCard.Resolve.cs's CursorGate.Decide
-    /// judges before any composing happens.</summary>
-    internal Func<CursorAnswer?> ResolveCursorPlayer =>
-        () => _resolver.TryResolveCursorPlayer(out var answer) ? answer : (CursorAnswer?)null;
+    /// (AttackCard.Resolve.cs). Null Answer = no cursor answer (guard failure or ambiguity), with
+    /// Miss naming which resolve stage refused; non-null Answer = a confident resolve (Miss stays
+    /// <see cref="CursorMiss.None"/>), with the raw roster/band facts AttackCard.Resolve.cs's
+    /// CursorGate.Decide judges before any composing happens.</summary>
+    internal Func<(CursorAnswer? Answer, CursorMiss Miss)> ResolveCursorPlayer =>
+        () => _resolver.TryResolveCursorPlayer(out var answer, out var miss) ? (answer, miss) : ((CursorAnswer?)null, miss);
 
     /// <summary>This tracker's ActorResolver.SpriteOf, exposed for AttackCard's row-rename resolve
     /// (LW-31 stage 3): the roster slot's SpriteSet byte (the human/monster gate).</summary>

@@ -23,6 +23,13 @@ internal sealed partial class AttackCard
     /// reporting a refusal is part of the resolve/decide half's own job.</summary>
     private readonly HashSet<(CursorRefusal Kind, int RosterHand, int BandWeapon)> _reportedRefusals = new();
 
+    /// <summary>LW-87's tripwire dedup set: each <see cref="CursorMiss"/> stage that has already
+    /// logged/recorded once this battle is never reported again, so a routine no-owner/bridge-fail
+    /// gap does not spam either the log or the flight ring every tick. Cleared in AttackCard.cs's
+    /// ResetBattle. Lives here (not AttackCard.cs, already at the 200-line trigger) because
+    /// reporting a resolve miss is part of the resolve/decide half's own job.</summary>
+    private readonly HashSet<CursorMiss> _reportedMisses = new();
+
     /// <summary>Resolve the acting unit's row+tail plan, CURSOR-ONLY (owner decision 2026-07-06;
     /// see AttackCard.cs's class doc for the full account): when the cursor resolve does not
     /// answer, the plan is null (restore vanilla), full stop. The register fallback stage 2 kept
@@ -31,8 +38,8 @@ internal sealed partial class AttackCard
     /// is gone from this surface. LW-55 adds a second refusal source on TOP of "no cursor answer
     /// at all": even a confident cursor answer is judged by <see cref="CursorGate.Decide"/> before
     /// it may compose anything, since the cursor resolve's raw roster-hand/band-weapon facts can
-    /// disagree (a stale roster row, a not-yet-the-turn-owner hover) in ways the resolver itself
-    /// cannot see. The Note half names the evidence for AttackCard.Paint.cs's compose-change Debug
+    /// disagree (a stale roster row, or a falling-edge race on the turn-flag byte itself, LW-87) in
+    /// ways the resolver itself cannot see. The Note half names the evidence for AttackCard.Paint.cs's compose-change Debug
     /// lines: which weapon/provenance a plan carries, or exactly WHY the plan is vanilla. Once the
     /// gate clears, the decision is AttackRow.Policy.ComposeRow's alone, driven off the RAW main
     /// hand + sprite byte, never the filtered/tracked Hands() set (which cannot tell "unarmed"
@@ -41,8 +48,12 @@ internal sealed partial class AttackCard
     /// through, never a guess.</summary>
     private (ComposedPlan? Plan, string Note) ComposeCurrentPlan()
     {
-        var resolved = _resolveCursor();
-        if (resolved == null) return (null, "no cursor answer");
+        var (resolved, miss) = _resolveCursor();
+        if (resolved == null)
+        {
+            ReportMiss(miss);
+            return (null, $"no cursor answer: {miss}");
+        }
 
         var answer = resolved.Value;
         var refusal = CursorGate.Decide(answer.RosterHand, answer.BandWeapon, answer.TurnFlag);
@@ -73,10 +84,11 @@ internal sealed partial class AttackCard
 
     /// <summary>LW-55's tiered tripwire: <see cref="CursorRefusal.WeaponMismatch"/> is the genuine
     /// anomaly this whole fix exists to catch (a wrong dossier was one tick from painting) and
-    /// gets a Warn plus a flight record; <see cref="CursorRefusal.NotTurnOwner"/> is routine hover
-    /// behavior (targeting/reticle sweeps over allies and guests every tick) and gets Debug plus a
-    /// flight record only, never a Warn (that would be noise, not signal). Deduped to ONE report
-    /// per (kind, rosterHand, bandWeapon) key per battle via <see cref="_reportedRefusals"/>.</summary>
+    /// gets a Warn plus a flight record; <see cref="CursorRefusal.NotTurnOwner"/> is, since LW-87's
+    /// re-anchor, a RARE falling-edge race (the flag owner's own turn-flag byte re-read low a tick
+    /// after Band.FlagOwner's walk found it high) and gets Debug plus a flight record only, never a
+    /// Warn (a benign one-tick refusal, not a genuine anomaly). Deduped to ONE report per (kind,
+    /// rosterHand, bandWeapon) key per battle via <see cref="_reportedRefusals"/>.</summary>
     private void ReportRefusal(CursorRefusal refusal, CursorAnswer answer)
     {
         var key = (refusal, answer.RosterHand, answer.BandWeapon);
@@ -88,8 +100,26 @@ internal sealed partial class AttackCard
                 $"The Attack card's cursor unit disagrees on weapon ({detail}); the row composes vanilla instead of a wrong dossier.");
         else
             ModLogger.Debug(LogVerb.Display,
-                $"The Attack card's cursor unit is not the turn owner ({detail}); the row composes vanilla.");
+                $"The Attack card's cursor unit's turn flag fell before this read ({detail}); the row composes vanilla for this one tick.");
         _recorder?.Invoke("card", $"{refusal} {detail}");
+    }
+
+    /// <summary>LW-87's resolve-stage observability tap: the FIRST occurrence of each
+    /// <see cref="CursorMiss"/> stage per battle gets one Debug line plus one flight "card" record
+    /// ("miss:&lt;stage&gt;"); every later tick with the SAME stage is silent
+    /// (<see cref="_reportedMisses"/>, cleared in AttackCard.cs's ResetBattle). NEVER a Warn:
+    /// <see cref="CursorMiss.NoOwner"/> fires in the gap between any two units' turns and
+    /// <see cref="CursorMiss.BridgeFail"/> fires on every enemy turn -- both routine, not the
+    /// genuine anomaly <see cref="ReportRefusal"/>'s WeaponMismatch tier exists to catch.
+    /// <see cref="CursorMiss.None"/> is a no-op (nothing to report on a successful resolve).</summary>
+    private void ReportMiss(CursorMiss miss)
+    {
+        if (miss == CursorMiss.None) return;
+        if (!_reportedMisses.Add(miss)) return;
+
+        ModLogger.Debug(LogVerb.Display,
+            $"The Attack card's cursor resolve has no answer this tick ({miss}); the row composes vanilla.");
+        _recorder?.Invoke("card", $"miss:{miss}");
     }
 
     /// <summary>Builds the Named-row plan: the tail's budget is whatever the row name leaves behind

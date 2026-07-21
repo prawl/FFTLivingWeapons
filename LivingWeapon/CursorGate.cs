@@ -6,8 +6,11 @@ namespace LivingWeapon;
 /// (agreement, or both sides agree-as-unarmed); the other two are refusals, split by tier so a
 /// routine hover never spams a Warn:
 ///   <see cref="NotTurnOwner"/>: gate B failed (the matched band entry is not the genuine turn
-///     owner, <see cref="Offsets.ATurnFlag"/> reads something other than 1). This is ROUTINE
-///     hover behavior (targeting/reticle sweeps over allies and guests constantly), Debug tier.
+///     owner, <see cref="Offsets.ATurnFlag"/> reads something other than 1). Since the cursor
+///     resolve's LW-87 re-anchor onto <see cref="Band.FlagOwner"/> (which already requires the
+///     matched entry's own flag to read 1 to be found at all), this gate is a RARE falling-edge
+///     race -- the flag falls between FlagOwner's walk and this answer's own re-read of the same
+///     byte -- rather than routine hover behavior, Debug tier.
 ///   <see cref="WeaponMismatch"/>: gate A failed (the roster right-hand weapon disagrees with the
 ///     matched band entry's own equipped weapon). This is a GENUINE anomaly, the exact live bug
 ///     LW-55 exists to close, Warn tier.
@@ -34,11 +37,13 @@ internal readonly record struct CursorAnswer(long RosterBase, int RosterHand, in
 /// composes strictly off the roster hand once the gates clear). Two gates, checked in this fixed
 /// order:
 ///
-/// GATE B (turn ownership, checked FIRST): a hovered unit's weapon agreement is irrelevant if it
-/// is not even that unit's turn, and checking the flag first keeps a hover storm from ever being
-/// mistaken for a weapon anomaly. The matched band entry's own <see cref="Offsets.ATurnFlag"/>
-/// must read exactly 1 (the unit's move/act/wait menu is genuinely open); anything else refuses
-/// <see cref="CursorRefusal.NotTurnOwner"/>.
+/// GATE B (turn ownership, checked FIRST): the resolved unit's weapon agreement is irrelevant if
+/// it is not even that unit's turn, and checking the flag first keeps a benign re-read race from
+/// ever being mistaken for a weapon anomaly. The matched band entry's own
+/// <see cref="Offsets.ATurnFlag"/> must read exactly 1 (the unit's move/act/wait menu is genuinely
+/// open); anything else refuses <see cref="CursorRefusal.NotTurnOwner"/> (since LW-87's re-anchor
+/// onto <see cref="Band.FlagOwner"/>, a rare falling-edge race rather than routine hover, see
+/// <see cref="CursorRefusal.NotTurnOwner"/>'s own doc above).
 ///
 /// GATE A (weapon agreement): the roster right-hand weapon id must agree with the matched band
 /// entry's own equipped weapon, SENTINEL-NORMALIZED: the sentinel set is {0, 0xFF, 0xFFFF} (see

@@ -104,7 +104,7 @@ internal sealed partial class ActorResolver
         // strictly better evidence than the register's arrival-time snapshot (D3). Any refusal
         // (no candidate, ambiguity, capture failure, roster-bridge failure) falls straight
         // through to the register/turn-queue chain below, unchanged.
-        if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _))
+        if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _, out _))
         {
             weapons = Hands(flagRosterBase);
             LastResolveSource = ResolveSource.Flags;
@@ -259,7 +259,7 @@ internal sealed partial class ActorResolver
     public int ResolveActingMainHand()
     {
         // LW-63: same flags-first preamble as TryResolveActingPlayer (see ActorResolver.Flags.cs).
-        if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _))
+        if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _, out _))
         {
             ushort flagRrHand = _mem.U16(flagRosterBase + Offsets.RRHand);
             return _weapons.Contains(flagRrHand) ? flagRrHand : 0;
@@ -368,7 +368,7 @@ internal sealed partial class ActorResolver
         // fp-gate (KillTracker.Delayed.cs) -- returning the flags-named entry's OWN fp (not the
         // register's) keeps TrackDelayed's `_lastActorFp == (this slot's fp)` compare truthful
         // when the flags lane, not the register, named the committer (D5).
-        if (FlagPathOpen && TryResolveFlagOwner(out _, out long flagEntry))
+        if (FlagPathOpen && TryResolveFlagOwner(out _, out long flagEntry, out _))
         {
             fp = (_mem.U8(flagEntry + Offsets.ALevel), _mem.U8(flagEntry + Offsets.ABrave), _mem.U8(flagEntry + Offsets.AFaith));
             return true;
