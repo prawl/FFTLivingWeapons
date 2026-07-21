@@ -232,6 +232,66 @@ public class IaiTests
     }
 
     [Fact]
+    public void Post_release_normalize_to_the_holds_own_target_is_re_corrected_without_a_restart()
+    {
+        // LIVE-OBSERVED 2026-07-21 11:04-11:08 (the owner's LW-90 repro session): in a FRESH
+        // battle (no restart, clean capture), the release restored natural but the engine's
+        // per-turn normalize re-painted the boost -- the game's baseline captures our hold,
+        // which arms within ~100ms of battle open -- and nothing caught it, so the wielder
+        // rode the boost all battle. The ledger-corrected battle in the same session showed
+        // the same normalize being caught by the residue corrective ("re-corrected
+        // post-release 13 -> 11" x2), proving the premise. The corrective must therefore also
+        // key on the hold's OWN last written target, not only ledger-flagged residue.
+        var (iai, mem, wielder, _) = Build(nameId: 298, fieldUnitSpeed: 10);
+        var t0 = DateTime.UtcNow;
+
+        iai.Tick(onField: true, t0);                     // fresh battle: clean capture, hold at 11
+        Assert.Equal((byte)11, mem.U8s[wielder + Offsets.ASpeed]);
+
+        var t1 = t0.AddSeconds(Tuning.IaiHoldCapSeconds + 1);
+        iai.Tick(onField: true, t1);                     // cap release restores natural 8
+        Assert.Equal((byte)8, mem.U8s[wielder + Offsets.ASpeed]);
+
+        mem.U8s[wielder + Offsets.ASpeed] = 11;          // the engine normalizes OUR boost back
+        iai.Tick(onField: true, t1.AddSeconds(1));
+        Assert.Equal((byte)8, mem.U8s[wielder + Offsets.ASpeed]);
+    }
+
+    [Fact]
+    public void Post_release_corrective_survives_mirror_churn()
+    {
+        // PIN, not a starvation repro: the corrective lives in the wielder-resolve loop, and
+        // this proves that is safe under mirror churn for an IDENTIFIED wielder -- the D3
+        // tier-1 relaxed tie-break (Wielder.cs LocateTier1) deterministically resolves
+        // nameId-verified mirror copies instead of ambiguity-bailing, so the wielder keeps
+        // resolving into _wielders and the corrective keeps firing (live corroboration: the
+        // owner's 2026-07-21 11:03 battle logged the corrective twice through churn
+        // conditions). Known residual: a hold on the DEGRADED lane (roster nameId capture
+        // failed, so tier-1 never runs) can still starve under churn; that lane has no
+        // ledger either, so it is the pre-existing v1 exposure class, accepted.
+        var (iai, mem, wielder, fp) = Build(nameId: 298, fieldUnitSpeed: 10);
+        var t0 = DateTime.UtcNow;
+
+        iai.Tick(onField: true, t0);                     // hold at 11
+        var t1 = t0.AddSeconds(Tuning.IaiHoldCapSeconds + 1);
+        iai.Tick(onField: true, t1);                     // cap release restores natural 8
+        Assert.Equal((byte)8, mem.U8s[wielder + Offsets.ASpeed]);
+
+        // Mirror churn begins: a twin with the wielder's identity at another real position,
+        // INCLUDING the cloned frame nameId (the live mirror copies it, the band-mirror
+        // ledger row), so the locate's nameId tier cannot disambiguate and ambiguity-bails:
+        // the wielder stops resolving into _wielders.
+        MemSeats.SeatBand(mem, 28, weapon: AmeNoMurakumoId,
+                          lvl: fp.lvl, br: fp.br, fa: fp.fa,
+                          gx: 7, gy: 7, hp: 200, maxHp: 300, speed: 8);
+        MemSeats.SeatFrameNameId(mem, 28, 298);
+
+        mem.U8s[wielder + Offsets.ASpeed] = 11;          // the engine normalizes OUR boost back
+        iai.Tick(onField: true, t1.AddSeconds(1));
+        Assert.Equal((byte)8, mem.U8s[wielder + Offsets.ASpeed]);
+    }
+
+    [Fact]
     public void Legit_between_battle_speed_change_is_accepted_not_corrected()
     {
         // Fail-open twin: a value the mod never wrote (a real gear/level change) is accepted
