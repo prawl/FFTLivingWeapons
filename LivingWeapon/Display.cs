@@ -129,6 +129,26 @@ internal sealed partial class Display
         _poolLocator.Invalidate();
     }
 
+    /// <summary>LW-91 stage 2: a narrow, in-battle-safe repaint driven by a kill-count change
+    /// alone. Engine calls this on the in-battle ticks ShouldPaintCard skips (the paused-status-
+    /// card / post-battle-settle gate), so a kill landing mid-fight still reaches the equip card
+    /// instead of waiting for the settle window. Mirrors the count-change edge inside <see
+    /// cref="Tick"/> byte-for-byte -- Recompose BEFORE PaintAll (Display.cs's own Tick ordering
+    /// above), since this narrow path is the ONLY place that consumes the shared _lastCounts edge
+    /// this tick; if it fired the two out of order, a story-line rotation would render one call
+    /// stale for whatever painted here. RequestRescan latches the sweep's next full Tick onto a
+    /// hot re-offer rather than stepping the sweep itself: no pool/sweep locate work, no sweep
+    /// stepping, no Invalidate -- those stay exclusively inside the full Tick.</summary>
+    public void PaintCountsIfChanged()
+    {
+        var changedIds = new List<int>();
+        if (!CheckAndSnapshotCounts(changedIds)) return;
+
+        _stories?.RecomposeChanged(changedIds);
+        _sweep.RequestRescan();
+        if (_sites.Count > 0) _sites.PaintAll(KillsFor);
+    }
+
     /// <summary>Drive one display cycle. <paramref name="inBattle"/> true shrinks the byte
     /// budget to avoid competing with the kill-poll path during a live fight.</summary>
     public void Tick(bool inBattle)

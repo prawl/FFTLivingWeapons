@@ -465,5 +465,7 @@ internal sealed class Engine
         // for a beat (battleMode 0 = world-map party menu / post-battle), paint the card.
         if (BattleState.ShouldPaintCard(battleStatus, onField, (now - _lastField).TotalSeconds, FieldSettleSeconds))
             _display.Tick(true);
+        else
+            _display.PaintCountsIfChanged();   // LW-91 stage 2: a mid-battle kill still follows onto the equip card
     }
 }
