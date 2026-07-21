@@ -10,6 +10,14 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-80] RETRACTED 2026-07-21: the modloader bug report reached its author another way, so
+  the plan to file it as a public GitHub issue is withdrawn. The report itself (one mod's
+  table file can silently erase another mod's runtime changes because the loader writes back
+  every field of a row, not just the edited ones, with dirty-field writeback as the proposed
+  fix) was delivered by the owner to the modloader author through direct contact on
+  2026-07-21; no public issue URL exists (the repo's issue list was checked the same day).
+  The durable technical record of the mechanism lives in docs/DESIGN.md (the whole-row
+  writeback section, LW-79) and this file's LW-77 row.
 - [LW-91] SHIPPED 10320b2 2026-07-21: battle menus no longer wear the previous unit's
   weapon name or an old kill count. The mod paints weapon names and kill tallies over the
   game's own menu text; when a routine recheck of a painted spot failed even once, the mod

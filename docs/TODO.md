@@ -13,17 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-80] Report the modloader bug that lets mods overwrite each other's changes** (opened 2026-07-13) [QUEUED]
-  - Done means: the bug report is posted on the modloader author's GitHub from the owner's
-    account. Plain version: when the modloader applies a mod's table file, it rewrites EVERY
-    field of each row, which stomps changes other mods make at runtime; the report asks it to
-    write only the fields a mod actually changed. (Tech: the whole-row writeback in
-    Nenkai/fftivc.utility.modloader, ApplyTablePatch assigns every field via
-    model.X ?? previous.X at OnAllModsLoaded; the ready-to-paste draft is in the handoff
-    action pack.)
-  - Verify: the issue URL exists; it gets recorded in docs/CHANGELOG.md when this row exits,
-    and RELEASE_SCOPE's LW-80 box ticks on the same evidence.
-
 - **[LW-97] Player report: Squires can equip axes again on 2.3.0** (opened 2026-07-21) [QUEUED]
   - Done means: we know why one player sees axes back on Squires when our shipped files say
     otherwise, and we either fix our bug or answer the player. Plain version: our release

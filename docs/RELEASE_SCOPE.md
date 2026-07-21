@@ -4,8 +4,9 @@ STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release and the 2.3.1
 
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
 2.3.0 shipped 2026-07-16 (tag v2.3.0). The **2.3.1** patch cut (section at the bottom) followed on
-2026-07-21 with the two post-release bug clusters; the one open 2.3.0 box (LW-80, an owner GitHub
-action) carries forward and gates neither cut.
+2026-07-21 with the two post-release bug clusters; the last 2.3.0 box (LW-80, the upstream
+modloader report) closed 2026-07-21: the owner delivered it to the author by direct contact
+instead of a public issue (exited RETRACTED in CHANGELOG.md).
 Re-scoped 2026-07-14 (owner, in-session): the AnchorScan verifier scout (LW-82 v1, section 7) and
 the 1.5.1-aftermath compat batch (section 10) are IN and required.
 
@@ -182,9 +183,11 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       2026-07-14)**: replace the stale "no interaction with
       Blue/Red Mages" claim (written before JobData.xml existed) with the pinned whole-row
       writeback mechanism; lands with LW-77's resolution.
-- [ ] **File the upstream modloader issue (LW-80)**: the whole-row-writeback report with the
+- [x] **File the upstream modloader issue (LW-80)**: the whole-row-writeback report with the
       dirty-field-writeback proposal (draft banked in the 2026-07-13 handoff action pack); the
       owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
+      (Closed 2026-07-21: the owner delivered the report to the modloader author by direct
+      contact instead of a public issue; exited RETRACTED in CHANGELOG.md the same day.)
 
 ---
 
