@@ -1,8 +1,11 @@
 # Release Scope -- next release (consolidation)
 
-STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release)
+STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release and the 2.3.1 patch cut)
 
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
+2.3.0 shipped 2026-07-16 (tag v2.3.0). The **2.3.1** patch cut (section at the bottom) followed on
+2026-07-21 with the two post-release bug clusters; the one open 2.3.0 box (LW-80, an owner GitHub
+action) carries forward and gates neither cut.
 Re-scoped 2026-07-14 (owner, in-session): the AnchorScan verifier scout (LW-82 v1, section 7) and
 the 1.5.1-aftermath compat batch (section 10) are IN and required.
 
@@ -184,6 +187,17 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       owner files it under his account. Fixes the LW-77 class ecosystem-wide once adopted.
 
 ---
+
+## 2.3.1 patch cut (2026-07-21) -- the two post-2.3.0 bug clusters, no new features
+
+- [x] **Roster window (LW-96)**: soldiers past number 20 on the party list earn kills and growth
+      like everyone else (the "only Ramza and generics benefit" report). Shipped 18b983f,
+      owner live-verified 2026-07-21 (slot 46 credit on tape flight_20260721_044145).
+- [x] **Stale menu text cluster (LW-91 + LW-98 + LW-88)**: battle menus no longer wear the
+      previous unit's weapon name, bare fists never show someone else's weapon, the kill count
+      no longer freezes, and the equip card's Kills meter updates on kills mid-battle. Shipped
+      5136f2e + 10320b2, ledger exits 519204d; owner live pass 2026-07-21 (07:24 battle) clean.
+- [x] Gates re-run at the cut: dotnet test 2584 green, analyze.py exit 0 (2026-07-21).
 
 ## DEFERRED (post-release backlog)
 - **Remove Treasure Master** -- L, works + tested, no user benefit this cycle; do as a dedicated

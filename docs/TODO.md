@@ -11,7 +11,7 @@ is the in-flight subset, not a mirror of that checklist.
 Entries are written ELI5-first: the opening sentence is plain language anyone can follow, and
 the technical detail lives in the indented lines under it.
 
-## Now (release: 2.3.0)
+## Now (release: 2.3.1)
 
 - **[LW-80] Report the modloader bug that lets mods overwrite each other's changes** (opened 2026-07-13) [QUEUED]
   - Done means: the bug report is posted on the modloader author's GitHub from the owner's
