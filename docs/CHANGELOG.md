@@ -10,6 +10,43 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-91] SHIPPED 10320b2 2026-07-21: battle menus no longer wear the previous unit's
+  weapon name or an old kill count. The mod paints weapon names and kill tallies over the
+  game's own menu text; when a routine recheck of a painted spot failed even once, the mod
+  instantly forgot the spot and spent up to half a minute re-finding it, and during that
+  blind window the old paint stayed on screen (the reported wrong-name menus and frozen
+  counts; the 2026-07-21 04:35 log caught a battle ending with two such orphaned spots). Now
+  a spot that fails its recheck is kept under watch with nothing written while unsure: spots
+  that come back (the common case, the log showed the same spot count re-found after every
+  blind window) are corrected within about a second, and truly dead spots are dropped after
+  a few seconds with zero writes and the replacement search already running. The equip
+  card's Kills meter also updates on kills mid-battle now (this hash), instead of waiting
+  for a pause-menu visit. (Tech: per-Hit FirstFailMs strike retention in
+  AttackCard.RepaintAll, evict at Tuning.AttackCardEvictAfterMs, early census arm on the
+  episode edge gated on !_scanning, eviction rearm unconditional, eviction taped on the
+  flight "card" record with the label address; restores remain gated on a verified label
+  anchor so the lost-buffer zero-writes rule stands (the plan review killed a
+  restore-under-failed-label variant as a heap hazard); Display.PaintCountsIfChanged
+  mirrors the count-change edge incl. RecomposeChanged and RequestRescan, wired as the else
+  of Engine's ShouldPaintCard gate; retention core in 5136f2e. Adversarial verify SHIP 9/10,
+  both sabotages bit the predicted tests. Owner live pass 2026-07-21 07:24 battle: renamed
+  row, Fists compose, clean turn-change reverts, mid-battle count update, zero stale
+  sightings; the stochastic eviction trigger did not fire in that battle, so the retention
+  path itself is sabotage-proven logic that fails safe to the old behavior and
+  self-documents in normal play via the "retained pending recovery" line and the taped
+  eviction addresses.)
+- [LW-98] SHIPPED 5136f2e 2026-07-21: a bare-handed unit's Attack menu no longer shows a
+  weapon name left over from another unit's turn. Same root and same fix as LW-91: the
+  leftover name lived on a painted menu spot the mod had lost track of; keeping lost spots
+  under watch means the unarmed menu's own text (Fists for a human, plain vanilla
+  otherwise) reaches every spot again. (Tech: rides the LW-91 strike retention; the Fists
+  compose and the fail-closed vanilla doctrine are unchanged. Owner live pass 2026-07-21:
+  the unarmed human composed Fists correctly right after tracked units' turns.)
+- [LW-88] SHIPPED 5136f2e 2026-07-21: the attack-card kill count no longer freezes
+  mid-battle. Subsumed by LW-91 (same root): the count was composed live all along; it
+  froze only on painted spots the mod had lost, which the strike retention now keeps
+  reachable. Kept its own row for the evidence trail (the owner-witnessed 19 held across a
+  battle that credited 7 kills live on the 07-14 tapes).
 - [LW-96] SHIPPED 18b983f 2026-07-21: soldiers past number 20 on the party list now earn
   kills, growth, and card text like everyone else. The mod only ever read the first 20
   roster rows while the game allows 50, so a full roster's late recruits (usually the story

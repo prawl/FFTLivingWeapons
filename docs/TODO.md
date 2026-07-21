@@ -33,15 +33,6 @@ the technical detail lives in the indented lines under it.
   - Verify: a repro attempt on the owner install (Squires must NOT see axes) plus the
     player's load order; the row exits naming the cause.
 
-- **[LW-98] Fists wear the previous unit's weapon name** (opened 2026-07-21) [QUEUED]
-  - Done means: a bare-handed unit's Attack menu never shows a weapon name left over from
-    the previous unit's turn. Plain version: the painted name is stale leftover text that
-    nothing wipes off, because an unarmed menu has no name of its own to paint over it.
-    (Tech: same lifecycle root as LW-91's transactional paint/revert fix, ride that; or gate
-    composition on the resolved unit actually holding a tracked weapon.)
-  - Verify: owner live: right after a tracked-weapon unit acts, an unarmed human's Attack
-    row reads plain vanilla, never the other unit's weapon name.
-
 ## Backlog
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet: weapons remember WHO
@@ -282,31 +273,6 @@ the technical detail lives in the indented lines under it.
   Fail-closed by design (LW-55 gates, LW-39 family), but a full-battle rename blackout is
   a UX miss. Candidate: a mirror-seat-aware cursor resolve (frame nameId dedup, the Band
   mirror rule).
-- [LW-88] 2026-07-14: The attack-card kill count can freeze mid-battle while kills keep
-  counting correctly underneath (subsumed by LW-91, same root; kept for the evidence).
-  Owner watched it hold 19 across a battle that credited 7 Chaos Blade kills live (the
-  14:08 flight tape shows counts 20 to 26 crediting in real time with victims attached),
-  then read 26 in the next battle. The tally map is live; the composed dossier line is
-  not recomposed on count change within a battle. Cosmetic; candidate: invalidate or
-  recompose the cached dossier for the resolved weapon when its tally entry changes.
-- [LW-91] 2026-07-14: With several tracked weapons on the field, the Attack row and hover
-  card can wear the PREVIOUS wielder's weapon info on another unit's turn; display-only
-  and self-correcting, but fix it properly when picked up (owner directive: address, not
-  just note).
-  Owner screenshot 20:36:32 (dev lane): Wilham's menu read "Kiku-ichimonji+3, Kills: 5",
-  Ramza's weapon; visiting the status page and returning corrected it. The log shows the
-  paint lifecycle mid-churn: label-gone evictions plus ~29s mid-battle re-census windows
-  during which the painter can neither repaint nor REVERT copies it lost, so bytes
-  painted for the prior turn stay visible until a menu rebuild; the cursor gate itself
-  still refuses correctly when it has a cache (20:37:36 NotTurnOwner revert). Credit
-  unaffected (the same window's credit lines resolved Warlock's Staff). Subsumes LW-88
-  (same lifecycle root, the stale-count variant). Fix direction: make paint/revert
-  transactional across cache loss (revert-on-evict, or refuse-to-paint while the census
-  is mid-sweep); 2.3.0 shipped with a known-issue note. Second witness same day (owner):
-  the Attack card and the equip card disagreed on Venombolt's kill count mid-battle,
-  converging a turn later, with the EQUIP card the laggard (Engine gates Display.Tick on
-  ShouldPaintCard's off-field settle, so mid-battle equip-card views can serve stale pool
-  paint): the staleness is cross-surface with distinct cadences.
 - [LW-90] 2026-07-14: Restarting a battle can lock in a temporary Speed boost as if it
   were the unit's natural Speed for the restarted run.
   The observed case was the Iai opening hold (the Kiku-ichimonji signature's battle-start
