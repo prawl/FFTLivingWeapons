@@ -36,19 +36,6 @@ the technical detail lives in the indented lines under it.
     confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
-- **[LW-102] A work item pasted into the wrong part of the ledger stops being checked at all** (opened 2026-07-21) [BUILDING]
-  - Done means: a work row that ends up in the wrong section of this file fails the build
-    instead of sitting there looking fine. Today the checks only read Now, Backlog, and the
-    changelog, so a row parked under Walled or Format is invisible to every rule: its id can
-    collide with a live one, its format can be broken, and nothing complains. (Tech: port the
-    TreasureMaster sibling's TM-6, commit 5569e8e, which found the hole as CC-17 in
-    ColorCustomizer: an entry-shape regex swept over every non entry section of TODO.md,
-    deliberately looser than the strict grammars so a MALFORMED stray is still caught.)
-  - Verify: planting a stray row under Walled turns the suite red, and removing it turns the
-    suite green again, so the check is proven to bite rather than passing vacuously. The
-    Format section's own examples must keep passing, since they use the placeholder form
-    rather than a real number.
-
 ## Backlog
 
 - [LW-106] 2026-07-21: Nothing stops a comment or a ledger line from claiming a game behaviour

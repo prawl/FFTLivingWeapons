@@ -10,6 +10,18 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-102] SHIPPED 3dc0852 2026-07-21: a work row pasted into the wrong part of docs/TODO.md
+  used to stop being checked without anyone noticing; now it fails the build. The contract
+  tests read entries only out of Now, Backlog, and the changelog, so a row parked under Walled
+  or Format escaped every rule: its id could collide with a live one and its format could be
+  broken while the build stayed green. Nothing was actually wrong in the file; the hole was
+  that nothing could tell. Check I sweeps an entry-shape regex over every non entry section,
+  deliberately looser than the strict per section grammars so a malformed stray is flagged
+  rather than excused, and keyed on a real digit id so the Format section's own placeholder
+  examples keep passing. Ported from the TreasureMaster sibling's TM-6 (its commit 5569e8e),
+  which found the hole as CC-17 in ColorCustomizer. Proven to bite rather than pass vacuously:
+  a planted stray under Walled turned this one test red with the other 37 green, and removing
+  it turned it green again. Suite 2636 green.
 - [LW-105] SHIPPED 4331ba1 2026-07-21: the notes read back at the start of every work session
   had never been fact checked, and the repo itself was repeating one of their false claims;
   both halves are now closed. The notes half came first: all 139 saved notes were checked one
