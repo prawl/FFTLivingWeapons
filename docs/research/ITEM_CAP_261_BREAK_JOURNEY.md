@@ -935,7 +935,7 @@ clamp disp8 tops out ~382 before re-encoding).
 THE RIG (FFTHandsFree branch `capbreak-equip`, UNCOMMITTED, off-by-default, reversible): verbs
 `capbreak_arm_equip` (relocator + weapon thunk + validity thunk + clamp; NO count-cap), `capbreak_setclone
 <catalogId> <weaponId>` (default 37/67), `capbreak_status`, `capbreak_disarm`. Suite 4853 -> 4920 pass / 2
-skip / 0 fail. Built via /build (plan -> adversarial review -> Sonnet TDD -> independent Opus verify) across
+skip / 0 fail. Built the full way (plan -> adversarial plan review -> TDD implement -> independent verify) across
 three increments (thunk fix, relocation, validity hook). New files: ThunkRedirect.cs, INearAllocator.cs,
 ExtendedCatalogRelocator.cs (+ AccessorCloneHook thunk auto-detect). All addresses re-based + re-confirmed
 live this build. CE not needed for the wins (RPM-capstone disasm + the bridge sufficed; CE VEH only used once

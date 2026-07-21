@@ -140,7 +140,7 @@ adversarially reviewed, and probe-validated; it was **not yet implemented** when
   ```
 
   i.e. hold the grant out of battle (mode 0) or when the turn owner is neither enemy (1) nor ally
-  (2). It is one Sonnet-implement step (TDD: failing test first, then the gate). The full
+  (2). It is one implement step (TDD: failing test first, then the gate). The full
   implement spec exists alongside this work.
 - **1.5 CAVEAT:** `0x14077D2A2` is a **PRE-1.5 address and must be re-found** before implementing.
   Do not wire the gate to the literal until `turnteam_probe.py` re-confirms the TEAM field on the

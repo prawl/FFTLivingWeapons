@@ -60,18 +60,20 @@ internal sealed partial class ActorResolver
     private bool FlagPathOpen => _periodStartTick >= 0;
 
     /// <summary>THE LATCH KEY (D1: t==1 only). Resolves <see cref="Band.FlagOwner"/>'s winning
-    /// entry to exactly one roster row. False (rosterBase/entry left 0, bandSlot left -1) on ANY
-    /// refusal -- no t=1 candidate, an ambiguous t=1 read, a nameId==0 capture failure, or a roster
-    /// bridge that fails/is ambiguous -- so the caller's existing fall-through chain runs
-    /// unchanged. <paramref name="bandSlot"/> is the winning entry's own band slot index (LW-87:
-    /// shares this resolve shape with <see cref="ActorResolver.TryResolveCursorPlayer"/>, which
-    /// needs the slot for its own <see cref="CursorAnswer.BandSlot"/>), -1 on any refusal.</summary>
-    internal bool TryResolveFlagOwner(out long rosterBase, out long entry, out int bandSlot)
+    /// entry to exactly one roster row. False (rosterBase/entry left 0) on ANY refusal -- no t=1
+    /// candidate, an ambiguous t=1 read, a nameId==0 capture failure, or a roster bridge that
+    /// fails/is ambiguous -- so the caller's existing fall-through chain runs unchanged.
+    /// SIBLING NOTE (LW-87): <see cref="ActorResolver.TryResolveCursorPlayer"/> is this same
+    /// resolve shape with two deliberate differences, so it walks Band.FlagOwner itself rather
+    /// than delegating here: it needs the winning band slot for its own
+    /// <see cref="CursorAnswer.BandSlot"/>, and it must distinguish WHICH stage refused
+    /// (<see cref="CursorMiss"/>) where this method only answers yes or no. Keep the two bodies in
+    /// step; the shared piece that must never fork is <see cref="TryBridgeCursorToRoster"/>.</summary>
+    internal bool TryResolveFlagOwner(out long rosterBase, out long entry)
     {
         rosterBase = 0;
         entry = 0;
-        bandSlot = -1;
-        if (!Band.FlagOwner(_mem, out long e, out int slot)) return false;
+        if (!Band.FlagOwner(_mem, out long e, out _)) return false;
 
         ushort nameId = _mem.U16(e + Offsets.ANameId);
         if (nameId == 0) return false;   // capture failure: fail closed, never a guess
@@ -83,7 +85,6 @@ internal sealed partial class ActorResolver
 
         rosterBase = rb;
         entry = e;
-        bandSlot = slot;
         return true;
     }
 
