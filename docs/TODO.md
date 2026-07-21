@@ -36,6 +36,19 @@ the technical detail lives in the indented lines under it.
     confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
+- **[LW-102] A work item pasted into the wrong part of the ledger stops being checked at all** (opened 2026-07-21) [BUILDING]
+  - Done means: a work row that ends up in the wrong section of this file fails the build
+    instead of sitting there looking fine. Today the checks only read Now, Backlog, and the
+    changelog, so a row parked under Walled or Format is invisible to every rule: its id can
+    collide with a live one, its format can be broken, and nothing complains. (Tech: port the
+    TreasureMaster sibling's TM-6, commit 5569e8e, which found the hole as CC-17 in
+    ColorCustomizer: an entry-shape regex swept over every non entry section of TODO.md,
+    deliberately looser than the strict grammars so a MALFORMED stray is still caught.)
+  - Verify: planting a stray row under Walled turns the suite red, and removing it turns the
+    suite green again, so the check is proven to bite rather than passing vacuously. The
+    Format section's own examples must keep passing, since they use the placeholder form
+    rather than a real number.
+
 ## Backlog
 
 - [LW-106] 2026-07-21: Nothing stops a comment or a ledger line from claiming a game behaviour
@@ -345,12 +358,6 @@ the technical detail lives in the indented lines under it.
   filter at all. Copy its read_band plus bridge_count helpers when rebuilding the
   ct_probe family, and keep its two column habit (replay the SHIPPED logic beside the
   PROPOSED one) whenever a probe exists to judge a change.
-- [LW-102] 2026-07-21: A work item pasted into the wrong section of this file silently stops
-  being checked (wrong ids and broken formats go unnoticed), because the contract tests read
-  entries only out of the Now, Backlog, and changelog sections; make an entry-shaped line
-  anywhere else fail the build. Fixed in the TreasureMaster sibling as TM-6 (its commit
-  5569e8e): an entry-shape regex swept over the non-entry sections, proven by a planted
-  stray going red; port it with the LW id prefix.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
