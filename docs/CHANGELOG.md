@@ -10,6 +10,18 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-96] SHIPPED 18b983f 2026-07-21: soldiers past number 20 on the party list now earn
+  kills, growth, and card text like everyone else. The mod only ever read the first 20
+  roster rows while the game allows 50, so a full roster's late recruits (usually the story
+  characters) silently got nothing: the exact shape of the 2.3.0 player report "only Ramza
+  and generics benefit". The window now covers all 50 rows and deliberately stops there,
+  because the rows past 50 hold stale guest copies of real units that would confuse unit
+  matching (a cloned Beowulf with identical stats sat there on the owner's save). (Tech:
+  Offsets.RosterSlots 20 to 50; bank proven live by tools/probes/roster_span_probe.py;
+  boundary tests pin slot 49 seen, slot 50 never scanned, plus a constant tripwire; built
+  via build-lite, adversarial verify SHIP 9/10 with both sabotages biting the predicted
+  tests. Owner verified live 2026-07-21: a roster slot 46 unit's Sanguine Sword kill
+  credited on tape flight_20260721_044145 while veterans credited normally.)
 - [LW-99] WONTFIX 2026-07-21: a player reported Nagrarok missing from Beowulf, "turned into
   another sword". Not a bug: this mod deliberately turned that sword into a new one
   (Lightbringer, the sword line's only Holy blade), so Beowulf's famous frog-sword really is

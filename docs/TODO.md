@@ -24,17 +24,6 @@ the technical detail lives in the indented lines under it.
   - Verify: the issue URL exists; it gets recorded in docs/CHANGELOG.md when this row exits,
     and RELEASE_SCOPE's LW-80 box ticks on the same evidence.
 
-- **[LW-96] Soldiers past #20 on the party list get nothing from the living-weapon system** (opened 2026-07-21) [BUILDING]
-  - Done means: the mod stops ignoring most of a full party. Plain version: it only ever
-    watched the first 20 soldiers on the party list, but the game allows 50, so late recruits
-    (usually the story characters) got no kills, growth, or card text. The fix watches all 50
-    and refuses to read past 50, where the game keeps stale guest copies of units that would
-    confuse the matching. (Tech: Offsets.RosterSlots 20 to 50; bank proven contiguous by
-    tools/probes/roster_span_probe.py 2026-07-21 on a 46/50 save; boundary tests pin slot 49
-    seen and slot 50 never scanned; both gates green; build-lite adversarial verify SHIP 9/10.)
-  - Verify: owner live: give a living weapon to a soldier past #20 on the party list, land a
-    kill, and see it counted in the log/tape and on the weapon's card.
-
 - **[LW-97] Player report: Squires can equip axes again on 2.3.0** (opened 2026-07-21) [QUEUED]
   - Done means: we know why one player sees axes back on Squires when our shipped files say
     otherwise, and we either fix our bug or answer the player. Plain version: our release
