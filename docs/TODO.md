@@ -13,7 +13,30 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [QUEUED]
+- **[LW-105] Check every out of tree session note and throw out the ones nobody can prove** (opened 2026-07-21) [QUEUED]
+  - Done means: the notes kept outside the repo (the ones read back at the start of each work
+    session) have each been checked against the repo itself, anything that turns out to be wrong
+    or unprovable is gone, and whatever survives states plainly how sure it actually is. This
+    exists because a note lied and the lie got believed: the LW-90 note's headline announced a
+    game behaviour as PROVEN while its own body called the same behaviour UNVERIFIED, and the
+    loud half was the wrong half, so a fresh analysis this session inherited a conclusion the
+    evidence never supported. (Tech: per note, classify the claim, then verify the falsifiable
+    ones against the tree: LIVE_LEDGER row status as actually sectioned, Proven vs Uncertain vs
+    Contradicted vs Walled; file and symbol existence; cited commit hashes resolving; offsets
+    matching Offsets.cs. Verdicts: VERIFIED keeps, CONTRADICTED gets corrected or deleted,
+    UNVERIFIABLE technical claims get deleted or reworded to state the uncertainty out loud.
+    Preference and identity notes are exempt from code verification and are checked only for
+    self contradiction and for naming things that no longer exist. A kept note's summary line
+    must agree with its own body, because the summary is the part that gets read every time.)
+  - Verify: a written report lists every note with its verdict and the one evidence line behind
+    it, the index agrees with the surviving files with no dangling rows, and any surviving note
+    claiming something is proven traces to a row that really sits in the Proven section. Two
+    known repairs ride this item and are already scoped: Iai.cs:198 and docs/CHANGELOG.md:48
+    both assert a premise is live proven when its ledger row sits under Uncertain, and both were
+    written by the same commit (4ca396d) that created the row there. Flipping the row itself
+    stays owner only; this item only stops the tree from claiming a flip that never happened.
+
+- **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [BLOCKED(premise unverified, may be a phantom)]
   - Done means: a rider who restarts a battle and opens it dismounted no longer carries the
     previous run's leftover mounted Speed until they climb back on a chocobo; the mod
     recognises its own leftover boost even when the signature that wrote it is not currently
@@ -21,10 +44,20 @@ the technical detail lives in the indented lines under it.
     dismounted battle 2 open skips capture entirely; candidate is an inactive first sight
     NaturalLedger consult for mount gated signatures. Rides with it: a clean remount capture
     currently drops the post revert corrective sentinel for the rest of the battle.)
-  - Verify: unit tests pin the dismounted restart open (a recorded leftover target is refused
-    as a natural even with no active hold) and the remount sentinel; owner live pass restarts
-    a battle with a mounted Cavalier's Charge wielder, opens the restarted battle on foot, and
-    reads natural Speed on the card before mounting up.
+  - Verify: FIRST, prove the bug is real at all, because it may not be. Owner live pass on a dev
+    build: get a Holy Lance (id 104, main hand, tier 3) wielder mounted mid battle so the card
+    climbs 11 to 14, restart the battle while still mounted, and read Speed on the card at the
+    restarted open while on foot. Reads natural, the bug does not exist and this exits RETRACTED.
+    Reads natural plus 3, the bug is real and the same reading settles the ledger question below.
+    ONLY THEN: unit tests pin the dismounted restart open (a recorded leftover target is refused
+    as a natural even with no active hold) and the remount sentinel. (Tech: the whole ticket rests
+    on a battle restart carrying a MID battle boost, and the only evidence a restart carries
+    anything comes from the Iai opening hold, which is armed inside the game's battle open
+    snapshot and therefore cannot tell "restart replays the polluted snapshot" apart from "restart
+    keeps the live byte". A mount happens long after that snapshot, so under the replay reading
+    there is no residue to correct and the code hole is unreachable. The code hole itself is
+    confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
+    a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
 ## Backlog
 
