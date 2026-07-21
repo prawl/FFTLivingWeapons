@@ -13,29 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-105] Check every out of tree session note and throw out the ones nobody can prove** (opened 2026-07-21) [QUEUED]
-  - Done means: the notes kept outside the repo (the ones read back at the start of each work
-    session) have each been checked against the repo itself, anything that turns out to be wrong
-    or unprovable is gone, and whatever survives states plainly how sure it actually is. This
-    exists because a note lied and the lie got believed: the LW-90 note's headline announced a
-    game behaviour as PROVEN while its own body called the same behaviour UNVERIFIED, and the
-    loud half was the wrong half, so a fresh analysis this session inherited a conclusion the
-    evidence never supported. (Tech: per note, classify the claim, then verify the falsifiable
-    ones against the tree: LIVE_LEDGER row status as actually sectioned, Proven vs Uncertain vs
-    Contradicted vs Walled; file and symbol existence; cited commit hashes resolving; offsets
-    matching Offsets.cs. Verdicts: VERIFIED keeps, CONTRADICTED gets corrected or deleted,
-    UNVERIFIABLE technical claims get deleted or reworded to state the uncertainty out loud.
-    Preference and identity notes are exempt from code verification and are checked only for
-    self contradiction and for naming things that no longer exist. A kept note's summary line
-    must agree with its own body, because the summary is the part that gets read every time.)
-  - Verify: a written report lists every note with its verdict and the one evidence line behind
-    it, the index agrees with the surviving files with no dangling rows, and any surviving note
-    claiming something is proven traces to a row that really sits in the Proven section. Two
-    known repairs ride this item and are already scoped: Iai.cs:198 and docs/CHANGELOG.md:48
-    both assert a premise is live proven when its ledger row sits under Uncertain, and both were
-    written by the same commit (4ca396d) that created the row there. Flipping the row itself
-    stays owner only; this item only stops the tree from claiming a flip that never happened.
-
 - **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [BLOCKED(premise unverified, may be a phantom)]
   - Done means: a rider who restarts a battle and opens it dismounted no longer carries the
     previous run's leftover mounted Speed until they climb back on a chocobo; the mod
@@ -61,6 +38,23 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-106] 2026-07-21: Nothing stops a comment or a ledger line from claiming a game behaviour
+  was proven when the live ledger never recorded a proof; make the build catch that instead of
+  a human audit finding it much later.
+  LW-105 found nine such sentences and only two were known in advance, so the other seven cost
+  a five surface sweep to discover. The house rule already exists in the repo's contributor
+  guidance (proven live is a ledger fact, not a doc comment vibe) and was violated anyway,
+  which is the usual sign a convention needs a machine behind it. Cheapest shape, mirroring
+  the allow list
+  DocsContractTests already uses: a test scans LivingWeapon/*.cs plus the CONTRACT tier docs
+  for proof claim phrasing (live-proven, PROVEN LIVE, proven live, verified live, proving the
+  premise) and fails unless each hit appears in a small allow list file that names the
+  LIVE_LEDGER row it rests on, with the test then confirming that row really sits in the Proven
+  section. Adding a new claim would force naming its row, which is exactly the moment an author
+  discovers there is not one. Cost is one test plus seeding the allow list; the risk to weigh
+  first is churn against legitimately proven claims (there are many, and LW-105's sweep found
+  the growth lanes and contract docs already clean), so seed the allow list from a real grep
+  before committing to the design.
 - [LW-104] 2026-07-21: The automated build that runs on every push is riding deprecated
   machinery and will eventually stop working unless the actions it uses are bumped; nothing is
   broken today.

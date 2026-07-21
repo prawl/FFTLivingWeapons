@@ -10,6 +10,24 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-105] SHIPPED 4331ba1 2026-07-21: the notes read back at the start of every work session
+  had never been fact checked, and the repo itself was repeating one of their false claims;
+  both halves are now closed. The notes half came first: all 139 saved notes were checked one
+  at a time against this repo, each verdict then attacked by a second reader whose only job was
+  to break it, leaving 8 deleted as actively wrong, 74 corrected, 49 clean, and 8 exempt as
+  personal preference, with the index rebuilt to match the surviving files exactly. The repo
+  half is the shipping commit: nine sentences across Iai.cs, IaiTests.cs and this file
+  announced the LW-90 normalize premise as confirmed in the live game, when its LIVE_LEDGER row
+  sits under Uncertain and only the owner promotes a row to Proven. All nine now state what is
+  true (observed live 2026-07-21, working theory, row still Uncertain) and no behaviour changed.
+  The ticket named two of the nine; a five surface sweep found the other seven, including two
+  "in EVERY Iai battle" universals that one session's sample cannot carry and a test comment
+  claiming a log line proved the premise. Lessons banked: a note is not corrected until its one
+  line summary is, because the summary is the half that loads every session; and a guard proves
+  nothing until you check its wiring, since a stray core.hooksPath had silently disabled every
+  git hook here, which is also how an innocent "regenerated with" survived in this file long
+  enough to block the first commit once the hook came back (fixed with a word boundary, since
+  the real attribution string is caught by another token anyway). Suite 2630 green.
 - [LW-87] SHIPPED 0b1da09 2026-07-21: the battle Attack row no longer forgets the acting
   unit's weapon when the player views another unit's status with T and backs out; it keeps
   the name for that unit's whole turn. The row had been anchored to the game's condensed
