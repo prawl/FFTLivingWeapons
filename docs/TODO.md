@@ -36,6 +36,18 @@ the technical detail lives in the indented lines under it.
     confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
+- **[LW-104] The automated build is riding machinery GitHub is retiring, and will go red on their schedule** (opened 2026-07-21) [BUILDING]
+  - Done means: the build that runs on every push stops warning that it is using retired
+    machinery, so the day GitHub finally switches it off, nothing breaks and no release is
+    blocked at the worst moment. Nothing is broken today; this is maintenance done while it is
+    cheap. (Tech: five actions in .github/workflows/release.yml still target Node.js 20 and
+    were being FORCED onto Node.js 24 by the runner, per the deprecation notice linked in each
+    run. Bump to the current majors in one commit.)
+  - Verify: the next run after the bump is green AND its annotation list no longer carries the
+    Node.js 20 deprecation notice. Version choices come from the live release feeds rather than
+    memory, and each jump is read for breaking changes against how this workflow actually uses
+    the action, not just bumped.
+
 ## Backlog
 
 - [LW-107] 2026-07-21: The tree carries 197 sentences claiming the game was proven to do
@@ -49,17 +61,6 @@ the technical detail lives in the indented lines under it.
   second reader attack each verdict. Heaviest files first (Offsets.cs 18, BodyDoubleSpike.cs
   13, MECHANICS.md 20, CHANGELOG.md 27). Expect a large share to be legitimate; the point is
   knowing which, and the ratchet already stops the bleeding meanwhile.
-- [LW-104] 2026-07-21: The automated build that runs on every push is riding deprecated
-  machinery and will eventually stop working unless the actions it uses are bumped; nothing is
-  broken today.
-  Every CI run now ends with an annotation: five actions (checkout@v4, setup-dotnet@v4,
-  setup-node@v4, setup-python@v5, upload-artifact@v4) still target Node.js 20 and are being
-  FORCED onto Node.js 24 by the runner, per the GitHub deprecation notice linked in the run
-  (annotation source .github#4). Runs stay green (29857736505 passed in 1m53s), so this is
-  maintenance, not an outage: bump the five action versions in .github/workflows to their
-  Node 24 releases, in one commit, and confirm the annotation disappears from the next run.
-  Cheap to do at the next quiet moment; the failure mode if ignored is a red pipeline that
-  arrives on GitHub's schedule rather than ours, which would block a release cut.
 - [LW-103] 2026-07-21: After a battle ends, the party list and the leftover battle data disagree
   about which weapon a unit is holding, and they stay disagreeing until the next battle; nothing
   visible breaks, but nobody has explained it yet.

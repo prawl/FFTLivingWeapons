@@ -42,23 +42,23 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         fetch-depth: 0  # Full history for changelog
         submodules: 'recursive'
 
     - name: Setup Python (for table generation + dominance gate)
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
 
     - name: Setup .NET 8.0 SDK (for the Living Weapon DLL)
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 8.0.x
 
     - name: Setup Node.js (for changelog)
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v7
       with:
         node-version: '20'
 
@@ -126,14 +126,14 @@ jobs:
         Write-Host "OK: $zipName ($sizeKB KB) contains ItemWeaponData.xml + item.en.nxd + LivingWeapon.dll + meta.json + treasure.json + JobData.xml"
 
     - name: Upload Build Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: FFTLivingWeapons-${{ github.sha }}
         path: ${{ steps.publish.outputs.zip }}
         retention-days: 30
 
     - name: Upload Changelog
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Changelog
         path: ${{ env.PUBLISH_CHANGELOG_PATH }}
