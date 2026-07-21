@@ -200,7 +200,7 @@ before 2026-07-21 keep their original prose.
   items.json, never snapshot-compared. In-game text eyeball folds into the
   SMOKE_TEST_2.3.0.md text rows. Suite 2524 green; analyze exit 0.
 - [LW-84] SHIPPED 008dd35 2026-07-14: the ReleaseScopeContractTests gate. docs/RELEASE_SCOPE.md
-  and docs/SMOKE_TEST_2.3.0.md go under contract test (the TodoContractTests enforcer pattern):
+  and docs/archive/SMOKE_TEST_2.3.0.md go under contract test (the TodoContractTests enforcer pattern):
   an IN box whose cited ids all shipped (none still open) must be ticked; a ticked box in
   either doc citing only still-open work goes red; every tick cites a commit hash or ISO date;
   every cited LW-id must exist in TODO.md or CHANGELOG.md; checkbox lines are shape-checked

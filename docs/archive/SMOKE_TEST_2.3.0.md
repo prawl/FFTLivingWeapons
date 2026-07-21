@@ -1,6 +1,6 @@
 # FFTLivingWeapons 2.3.0 Release Smoke Test Plan
 
-STATUS: CONTRACT (the 2.3.0 pre-ship owner live pass, LW-60; archives to docs/archive/ once 2.3.0 ships)
+STATUS: ARCHIVED (the 2.3.0 pre-ship owner live pass, LW-60; pass closed at the 2026-07-16 tag, archived 2026-07-21 after the Nexus ship)
 
 *Work top to bottom; blockers surface first. Check each box live. Owner-only flips: the boxes here,
 docs/VERIFY_LIVE.md rows, docs/LIVE_LEDGER.md PROVEN flips, and the docs/TODO.md AWAITING-LIVE exits.

@@ -8,7 +8,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// The RELEASE_SCOPE ledger enforcement gate (docs/RELEASE_SCOPE.md + docs/SMOKE_TEST_2.3.0.md),
+/// The RELEASE_SCOPE ledger enforcement gate (docs/RELEASE_SCOPE.md + docs/archive/SMOKE_TEST_2.3.0.md),
 /// the TodoContractTests enforcer pattern (LW-84) applied to the ship gate doc. Same
 /// walk-up-from-the-test-bin-dir RepoRoot idiom, same section-extraction plus
 /// top-level-entry-grouping style as TodoContractTests' SplitSections/GroupTopLevelEntries,
@@ -31,7 +31,7 @@ namespace LivingWeapon.Tests;
 /// R3. Every ticked box (in either doc) cites provenance in its text: a commit hash (with at least
 ///     one digit, so an all-letter hex-lookalike word like "defaced" does not count) or an ISO
 ///     date. Vibes do not count.
-/// R4. Every LW-id cited anywhere in RELEASE_SCOPE.md or docs/SMOKE_TEST_2.3.0.md, including
+/// R4. Every LW-id cited anywhere in RELEASE_SCOPE.md or docs/archive/SMOKE_TEST_2.3.0.md, including
 ///     pointer-form citations, exists in docs/TODO.md or docs/CHANGELOG.md under ANY disposition
 ///     (no phantom or retired ids).
 /// R5. Parser sanity floors (anti-vacuity, the LW-21 lesson): the scope IN region must yield at
@@ -149,7 +149,7 @@ public class ReleaseScopeContractTests
 
     private static List<List<string>> RealSmokeBoxes(string repoRoot)
     {
-        var lines = File.ReadAllLines(Path.Combine(repoRoot, "docs", "SMOKE_TEST_2.3.0.md"));
+        var lines = File.ReadAllLines(Path.Combine(repoRoot, "docs", "archive", "SMOKE_TEST_2.3.0.md"));
         return GroupBoxes(lines);
     }
 
@@ -245,7 +245,7 @@ public class ReleaseScopeContractTests
         foreach (var (name, path) in new[]
         {
             ("RELEASE_SCOPE.md", Path.Combine(repoRoot, "docs", "RELEASE_SCOPE.md")),
-            ("SMOKE_TEST_2.3.0.md", Path.Combine(repoRoot, "docs", "SMOKE_TEST_2.3.0.md")),
+            ("SMOKE_TEST_2.3.0.md", Path.Combine(repoRoot, "docs", "archive", "SMOKE_TEST_2.3.0.md")),
         })
         {
             var lines = File.ReadAllLines(path);
@@ -344,7 +344,7 @@ public class ReleaseScopeContractTests
         foreach (var (name, path) in new[]
         {
             ("RELEASE_SCOPE.md", Path.Combine(repoRoot, "docs", "RELEASE_SCOPE.md")),
-            ("SMOKE_TEST_2.3.0.md", Path.Combine(repoRoot, "docs", "SMOKE_TEST_2.3.0.md")),
+            ("SMOKE_TEST_2.3.0.md", Path.Combine(repoRoot, "docs", "archive", "SMOKE_TEST_2.3.0.md")),
         })
         {
             Assert.True(File.Exists(path), $"{name} does not exist");

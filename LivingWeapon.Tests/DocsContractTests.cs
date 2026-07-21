@@ -46,7 +46,7 @@ public class DocsContractTests
     {
         "CHANGELOG.md", "DESIGN.md", "DEV_TEST_RECIPES.md", "LIVE_LEDGER.md", "LOGGING.md",
         "MECHANICS.md", "PATCH_REANCHOR.md", "RELEASE_SCOPE.md", "RELIQUARY_AC.md",
-        "RELIQUARY_DESIGN.md", "SMOKE_TEST_2.3.0.md", "TODO.md", "USER_FEEDBACK.md",
+        "RELIQUARY_DESIGN.md", "TODO.md", "USER_FEEDBACK.md",
         "VERIFY_LIVE.md",
     };
 

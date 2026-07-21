@@ -53,7 +53,7 @@ paragraph this section carried at lock time): the puppet releases after taking I
 cooldown), so the stretch goal below LANDED, via a different mechanism than the AREC recon it
 proposed. The card reword shipped as LW-46 (the false "No Lucavi" clause dropped; "for its full
 turn" became accurate with the own-turn release). Boxes stay for the owner sweep
-(docs/SMOKE_TEST_2.3.0.md row 8.8).
+(docs/archive/SMOKE_TEST_2.3.0.md row 8.8).
 - [x] **Round-7 recon (STRETCH):** instrument-only build reading the AREC kind byte (band +0x184
       +0xA) + naming-span durations + puppet gx/gy on the puppet's OWN seat; ONE cleanly-ended
       battle. If it yields a reliable per-puppet-turn release -> land it (verify live first).
@@ -115,7 +115,7 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       this scope file itself goes under test (the TodoContractTests enforcer pattern):
       an IN box naming an id that already exited to CHANGELOG.md must be ticked, a ticked box
       whose id is still open in TODO.md goes red, ticks cite a commit hash or date, and every
-      LW-id cited here or in docs/SMOKE_TEST_2.3.0.md must exist in docs/TODO.md or
+      LW-id cited here or in docs/archive/SMOKE_TEST_2.3.0.md must exist in docs/TODO.md or
       docs/CHANGELOG.md. Lands with the one-time annotation pass ticking the already-shipped
       2.3.0 boxes with their hashes, so the gate is born green and smoke row 8.8 becomes
       re-verification. Shipped 008dd35 2026-07-14, ahead of the 8.8 sweep.
