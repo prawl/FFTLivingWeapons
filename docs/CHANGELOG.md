@@ -14,8 +14,8 @@ before 2026-07-21 keep their original prose.
   had never been fact checked, and the repo itself was repeating one of their false claims;
   both halves are now closed. The notes half came first: all 139 saved notes were checked one
   at a time against this repo, each verdict then attacked by a second reader whose only job was
-  to break it, leaving 8 deleted as actively wrong, 74 corrected, 49 clean, and 8 exempt as
-  personal preference, with the index rebuilt to match the surviving files exactly. The repo
+  to break it, leaving 8 deleted as actively wrong and 131 surviving, most of those reworded to
+  state their real certainty, with the index rebuilt to match the surviving files. The repo
   half is the shipping commit: nine sentences across Iai.cs, IaiTests.cs and this file
   announced the LW-90 normalize premise as confirmed in the live game, when its LIVE_LEDGER row
   sits under Uncertain and only the owner promotes a row to Proven. All nine now state what is
