@@ -10,6 +10,15 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-97] WONTFIX 2026-07-21: the player seeing Squires able to learn Equip Axes again on
+  2.3.0 is intended behavior, not a broken install (owner call, 2026-07-21). 2.3.0
+  deliberately stopped suppressing that ability: the off switch lived in the mod's
+  JobCommandData.xml, whose whole-row writeback also erased other job mods' changes (the
+  LW-77 collision prune), so the file was deleted and the vanilla learnable Equip Axes
+  returned with it. It is harmless dead JP under this mod: every axe is reforged into
+  another weapon type, so there is nothing left to equip, and the ability's in-game
+  description says exactly that (the ability.en.nxd Description cell on key 460, LW-77,
+  2a4c325).
 - [LW-80] RETRACTED 2026-07-21: the modloader bug report reached its author another way, so
   the plan to file it as a public GitHub issue is withdrawn. The report itself (one mod's
   table file can silently erase another mod's runtime changes because the loader writes back

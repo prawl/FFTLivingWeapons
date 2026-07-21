@@ -13,14 +13,17 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-97] Player report: Squires can equip axes again on 2.3.0** (opened 2026-07-21) [QUEUED]
-  - Done means: we know why one player sees axes back on Squires when our shipped files say
-    otherwise, and we either fix our bug or answer the player. Plain version: our release
-    turns all three axes into other weapon types, and the shipped table still says so
-    (confirmed in-repo 2026-07-21), so the likely story is their install is not applying our
-    table: a bad download, or another mod overwriting ours (the LW-80 stomp).
-  - Verify: a repro attempt on the owner install (Squires must NOT see axes) plus the
-    player's load order; the row exits naming the cause.
+- **[LW-42] Two leftover battle checks read the old game version's marker and are dead on 1.5** (opened 2026-07-07) [QUEUED]
+  - Done means: the mod never mistakes a long spell cast or paused animation for the battle
+    ending, because every in-battle check asks the current game version's question. Plain
+    version: two checks still look for the old version's "battle running" marker, always
+    hear "no", and a long enough cast could make the mod reset its in-battle kill
+    bookkeeping mid-fight. (Tech: InLiveBattle's cast-targeting / paused / event excuse for
+    modes 1 and 5, and PairArmed, both test slot0 == 0xFF; the 1.5 in-battle marker reads
+    0x10, Offsets.Slot0 note, live probe 2026-07-07.)
+  - Verify: unit tests pin the 1.5 marker semantics on both checks, and a live battle
+    holding a slow cast past the exit debounce shows no false battle-exit in
+    livingweapon.log (owner eyeball).
 
 ## Backlog
 
@@ -126,13 +129,6 @@ the technical detail lives in the indented lines under it.
   direction: extend the condensed turn-queue fingerprint with more struct fields; the probe
   dump shows brave/faith-like u16 candidates in the cursor struct needing offset
   verification (turn-owner-probe lines, livingweapon.log 04:0x).
-- [LW-42] 2026-07-07: Some battle-detection checks still test the OLD game version's marker
-  byte and are dead on 1.5, which could make the mod think a battle ended mid-battle.
-  The slot0 in-battle marker reads 0x10 on 1.5, not 0xFF (Offsets.Slot0 note; live probe
-  2026-07-07 on a mode-3 turn). InLiveBattle's cast-targeting / paused / event excuse
-  (modes 1 and 5) and PairArmed both test 0xFF and are therefore dead in 1.5: a long cast
-  or animation at mode 1/5 could accumulate the exit debounce and false-exit mid-battle
-  (resetting the kill tracker). Verify live with a slow cast, then re-anchor the marker.
 - [LW-43] 2026-07-07: The Outrider pistol's twin-gun perk is slow to kick in for a SECOND
   wielder when someone else already has it running (it does apply eventually; owner saw
   the lag live 2026-07-07, not a correctness bug). (Tech: Gun Slinger, Outrider Pistol
