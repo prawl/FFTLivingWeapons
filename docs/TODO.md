@@ -13,23 +13,16 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-90] Restarting a battle can lock in a temporary Speed boost as natural Speed** (opened 2026-07-14) [AWAITING-LIVE]
-  - Done means: restarting a battle never turns a signature's temporary boost into the
-    unit's baseline for the restarted run. Built 2026-07-21: the mod now remembers every
-    boost value it writes (per unit and stat, across battles) and refuses to adopt its own
-    leftover boost as a unit's natural at the next battle's first sight. All six
-    capture-natural holds are guarded (Iai plus the five growth lanes), corrections are
-    level-keyed so an earned level-up point is never eaten by a value collision, and
-    corrected holds keep re-owning the leftover value if the game re-paints it. (Tech:
-    NaturalLedger.cs, a rolling two-slot written-target history keyed (roster nameId, stat
-    lane) with a roster-level stamp; baked-residue ownership tokens per hold; Iai
-    post-release and TimedStat post-revert corrective sentinels; the roster-clamp candidate
-    died in recon, no mapped roster or raw Speed byte exists. Two adversarial review rounds
-    plus a delta review, verdict SHIP; sabotage runs bit exactly the predicted tests.)
-  - Verify: owner restart repro on a deployed build: field the Ame-no-Murakumo wielder, let
-    the opening Speed hold fire, RESTART the battle, then check the restarted run's card
-    shows natural Speed after the wielder's first turn AND livingweapon.log carries the
-    "restart residue corrected at capture" line naming the caught values.
+- **[LW-87] A whole battle can show the plain vanilla Attack row on a mirror-seat cursor** (opened 2026-07-14) [QUEUED]
+  - Done means: the battle menus recover their weapon names even when the game's cursor
+    data points at a duplicate memory copy of a unit instead of the real one. Today that
+    shape is safe but ugly: the fail-closed gates correctly compose vanilla for the entire
+    battle (the owner's first PROD session saw a full-battle rename blackout). (Tech: a
+    mirror-seat-aware cursor resolve, frame nameId dedup per the Band mirror rule; the
+    LW-55 CursorGate fail-closed doctrine must survive unchanged.)
+  - Verify: unit tests pin the mirror-seat resolve against the 12:14 PROD-session shape
+    (cursor unit at a non-turn-owner slot), the LW-55 gate tests stay green, and an owner
+    sighting of a renamed row in a battle where the old build would have blacked out.
 
 ## Backlog
 
@@ -254,16 +247,6 @@ the technical detail lives in the indented lines under it.
   adoption (copy AnchorScan.cs, the FingerprintGuard pattern, into
   FFTHandsFree/FFTColorCustomizer/FFTMultiplayer) rides this row too
   (hardening-must-be-portable).
-- [LW-87] 2026-07-14: A whole battle can show the plain vanilla Attack row when the game's
-  cursor data points at a duplicate memory copy of a unit instead of the real one; safe
-  but ugly, so teach the mod to see through the duplicates (mirror seats).
-  Owner watched it live (first PROD session, log 12:14:00): credit-side resolve found
-  Vagabond id 19 via the turn-queue fallback, but the card's cursor unit sat at slot 25,
-  not the turn owner, so the CursorGate correctly composed vanilla for the entire battle;
-  the next battle resolved on turn 1 and a mid-battle weapon swap followed correctly.
-  Fail-closed by design (LW-55 gates, LW-39 family), but a full-battle rename blackout is
-  a UX miss. Candidate: a mirror-seat-aware cursor resolve (frame nameId dedup, the Band
-  mirror rule).
 - [LW-100] 2026-07-21: The mounted Speed boost (Cavalier's Charge) cannot see through a
   restart's leftover boost while the rider starts the restarted battle dismounted, so that
   one battle can keep the leftover Speed until the player mounts up.

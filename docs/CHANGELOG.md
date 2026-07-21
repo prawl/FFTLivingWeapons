@@ -10,6 +10,27 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-90] SHIPPED d780d13 2026-07-21: a battle restart no longer bakes a held stat boost in
+  as a unit's natural, and the Iai opening Speed boost now truly ends after the wielder's
+  first turn (that second half shipped as the follow-up prong, 4ca396d). The mod remembers
+  every boost value it writes (NaturalLedger: per unit and stat lane, across battles,
+  level-keyed so an earned level-up point is never eaten by a value collision) and refuses
+  to adopt its own leftovers at a fresh battle's first sight; and because the game
+  re-paints its boosted baseline every turn (live-proven this day, LIVE_LEDGER row),
+  released holds keep re-correcting their own written values for the rest of the battle.
+  All six capture-natural holds are guarded (Iai plus the five growth lanes, which
+  compounded multiplicatively across restarts); the backlog's roster-clamp candidate died
+  in recon (no mapped roster or raw Speed byte exists). Owner live pass 2026-07-21 11:46:
+  Ramza went first against faster enemies while his card read natural 11 throughout, the
+  release fired at his turn open, and the corrective caught the game's re-paint (14 to 11)
+  on tape; the restart leg was proven the same morning on the prior build ("restart
+  residue corrected at capture", the 11:03 battle), whose correction machinery the prong
+  did not touch. Owner flip 2026-07-21. The roster stayed untouched throughout (the owner's
+  out-of-battle card read natural 11 after the residue battles). Residuals banked as
+  LW-100 (the mounted lane); rigor trail: a 3-critic adversarial plan review killed the
+  naive design, an implementation review found the level-key collision, worktree sabotage
+  bit exactly the predicted tests three times, and the owner's first live pass caught the
+  fresh-battle gap every desk round missed.
 - [LW-42] SHIPPED ef747d1 2026-07-21: the mod can no longer believe a battle ended in the
   middle of a long spell cast or enemy turn (which would silently reset its kill
   bookkeeping mid-fight). Two checks still asked the old game version's question: the
