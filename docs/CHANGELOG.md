@@ -10,6 +10,23 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-104] SHIPPED eb02527 2026-07-21: the automated build stopped warning that it runs on
+  machinery GitHub is retiring, so the day they switch it off nothing breaks and no release cut
+  is blocked at the worst moment. Nothing was broken before this; it was maintenance done while
+  it was still cheap. Five actions in .github/workflows/release.yml still targeted Node.js 20
+  and the runner was already force upgrading them, so each run ended with the deprecation
+  notice: checkout v4 to v7, setup-python v5 to v7, setup-dotnet v4 to v6, setup-node v4 to v7,
+  upload-artifact v4 to v7. Versions came from the live release feeds rather than memory, and
+  each jump was read for breaking changes against how this workflow actually uses the action:
+  checkout v7 blocks fork PR checkouts under pull_request_target and workflow_run (this
+  workflow triggers on push, pull_request and workflow_dispatch), setup-python v7 dropped the
+  unused pip-install input, setup-node v7 dropped an unused NODE_AUTH_TOKEN export,
+  upload-artifact v6 needs runner 2.327.1 or newer (GitHub hosted windows-latest satisfies it)
+  and v7 adds an opt-in archive parameter this workflow does not set. Verified end to end
+  rather than assumed: the pre bump run carried a warning naming those exact five actions, and
+  the post bump run (29878091352) finished green with no annotations at all. Left alone on
+  purpose: the node-version '20' input, which is the toolchain auto-changelog runs on rather
+  than an action runtime, and softprops/action-gh-release@v2, which the notice never named.
 - [LW-106] SHIPPED e616be5 2026-07-21: writing that the game was PROVEN to do something now
   fails the build unless someone deliberately signs off on it. The rule that only the live
   ledger decides what is proven had no machine behind it and got broken nine times before

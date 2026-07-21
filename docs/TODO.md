@@ -36,18 +36,6 @@ the technical detail lives in the indented lines under it.
     confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
-- **[LW-104] The automated build is riding machinery GitHub is retiring, and will go red on their schedule** (opened 2026-07-21) [BUILDING]
-  - Done means: the build that runs on every push stops warning that it is using retired
-    machinery, so the day GitHub finally switches it off, nothing breaks and no release is
-    blocked at the worst moment. Nothing is broken today; this is maintenance done while it is
-    cheap. (Tech: five actions in .github/workflows/release.yml still target Node.js 20 and
-    were being FORCED onto Node.js 24 by the runner, per the deprecation notice linked in each
-    run. Bump to the current majors in one commit.)
-  - Verify: the next run after the bump is green AND its annotation list no longer carries the
-    Node.js 20 deprecation notice. Version choices come from the live release feeds rather than
-    memory, and each jump is read for breaking changes against how this workflow actually uses
-    the action, not just bumped.
-
 ## Backlog
 
 - [LW-107] 2026-07-21: The tree carries 197 sentences claiming the game was proven to do
