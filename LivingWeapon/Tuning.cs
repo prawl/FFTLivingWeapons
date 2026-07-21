@@ -76,6 +76,18 @@ internal static class Tuning
     /// archetypes without a re-tune; enforced by a unit test (TuningTests.MaxArchetypes_...).</summary>
     public const int MaxArchetypes = 6;
 
+    /// <summary>AttackCard (LW-91): how long a cached table copy may fail its SyncHit verify
+    /// before RepaintAll evicts it, instead of the old instant-evict-then-re-census. SyncHit for
+    /// an already-cached hit runs only inside RepaintAll -- a compose-change edge, or the 1000ms
+    /// maintenance cadence (AttackCard.MaintenanceMs) -- so steady state is about one verify pass
+    /// per second; the census that will find any genuine replacement is already armed the moment
+    /// the strike episode starts (RepaintAll's episode-start term), so this window is off the
+    /// recovery critical path. 3000ms costs a genuinely dead buffer only about three guarded
+    /// reads before it is dropped, while covering the transient live-buffer misread that was the
+    /// dominant failure on the 2026-07-21 recon tape (a real handle re-verified clean within a
+    /// couple of passes, well under this window).</summary>
+    public const long AttackCardEvictAfterMs = 3000;
+
     /// <summary>Ticks an armed delayed actor (Dragoon Jump / charged action) survives before it
     /// decays. The bit-clear == kill-lands; credit fires at deadStreak >= DeadNeeded (3), so ~3-4
     /// ticks of margin covers the gap between landing and corpse confirmation. Kept TIGHT (12 ticks

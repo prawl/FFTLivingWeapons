@@ -20,9 +20,22 @@ internal sealed class AttackCardMemory : IGameMemory
     private readonly FakeSparseMemory _sparse = new();
     private readonly Dictionary<long, byte[]> _heap = new();
     private readonly HashSet<long> _writable = new();
+    private readonly HashSet<long> _absent = new();
     public readonly List<long> WrittenAddrs = new();
 
     internal FakeSparseMemory Sparse => _sparse;
+
+    /// <summary>LW-91 test seam: marks a heap region temporarily absent (a freed/reused buffer,
+    /// or one that stops mapping mid-battle) without discarding its bytes. TryReadBytes/ReadInto/
+    /// Writable/WriteBytes all fail against an absent region, the same way a genuinely unmapped
+    /// address does; <see cref="RegionBytes"/> still reads the underlying bytes directly (a
+    /// test's own point-in-time snapshot, never a live memory access) so a strike-retention test
+    /// can assert a struck copy's content never changed while it was absent.</summary>
+    internal void SetRegionPresent(long baseAddr, bool present)
+    {
+        if (present) _absent.Remove(baseAddr);
+        else _absent.Add(baseAddr);
+    }
 
     internal void AddHeapRegion(long baseAddr, byte[] data, bool writable = true)
     {
@@ -76,6 +89,7 @@ internal sealed class AttackCardMemory : IGameMemory
     {
         foreach (var kv in _heap)
         {
+            if (_absent.Contains(kv.Key)) continue;
             if (addr >= kv.Key && addr + len <= kv.Key + kv.Value.Length)
             {
                 baseAddr = kv.Key;

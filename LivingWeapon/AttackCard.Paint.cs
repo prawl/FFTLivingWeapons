@@ -45,25 +45,55 @@ internal sealed partial class AttackCard
         RepaintAll();
     }
 
+    /// <summary>LW-91: a cached copy that fails SyncHit is RETAINED under a per-Hit strike
+    /// episode (Hit.FirstFailMs, 0 = healthy) instead of instantly evicted -- the dominant live
+    /// failure is a TRANSIENT misread of a buffer that is still perfectly live, and instant
+    /// eviction threw away that handle only to spend a whole census re-finding it. All strike
+    /// bookkeeping lives HERE, never in SyncHit itself (SyncHit is also the census adoption check,
+    /// AttackCard.Census.cs's FindHits, which must keep its own instant-reject semantics for a
+    /// candidate that never made the cache). Per-Hit and never cross-hit: one flaky copy can never
+    /// advance or reset a healthy sibling's own episode.</summary>
     private void RepaintAll()
     {
+        long now = _nowMs();
         List<(Hit hit, SyncOutcome outcome)>? toEvict = null;
         foreach (var hit in _hits)
         {
             var outcome = SyncHit(hit);
-            if (outcome != SyncOutcome.Ok) (toEvict ??= new List<(Hit, SyncOutcome)>()).Add((hit, outcome));
+            if (outcome == SyncOutcome.Ok) { hit.FirstFailMs = 0; continue; }
+
+            if (hit.FirstFailMs == 0)
+            {
+                // Episode start (0 -> 1): the copy stays cached through the whole strike run below.
+                // !_scanning stops an already-in-flight sweep from latching a pointless back-to-back
+                // second sweep once it Finishes -- the in-flight one visits everything anyway (and
+                // still keeps repainting this same hit via RepaintDriver's own alternation).
+                hit.FirstFailMs = now;
+                ModLogger.Debug(LogVerb.Display, $"attack row copy unverified ({outcome.Phrase()}): retained pending recovery");
+                if (!_scanning) _needsCensus = true;
+                continue;
+            }
+
+            if (now - hit.FirstFailMs >= Tuning.AttackCardEvictAfterMs)
+                (toEvict ??= new List<(Hit, SyncOutcome)>()).Add((hit, outcome));
         }
 
         if (toEvict == null) return;
-        // A real eviction (a copy that WAS cached going foreign) is rare, bounded by HitCap, and
-        // diagnostically valuable, unlike a census candidate's silent rejection (FindHits below):
-        // log it, one line per copy, naming the reason.
+        // A real eviction (a copy that struck for the whole grace window) is rare, bounded by
+        // HitCap, and diagnostically valuable, unlike a census candidate's silent rejection
+        // (FindHits below): log it, one line per copy, naming the reason, plus a flight record
+        // carrying the same reason and the copy's own address (the address-identity gap the
+        // 2026-07-21 recon session flagged: the log line alone never said WHICH copy).
         foreach (var (h, outcome) in toEvict)
         {
             ModLogger.Debug(LogVerb.Display, $"attack row copy evicted ({outcome.Phrase()}): re-censusing");
+            _recorder?.Invoke("card", $"evicted {outcome.Phrase()} labelAddr=0x{h.LabelAddr:X}");
             _hits.Remove(h);
         }
-        _needsCensus = true;   // re-census after any eviction (the anchor discipline: never guess a foreign buffer)
+        // Arm consumed the early episode-start flag; the in-flight census snapshot can predate the
+        // replacement allocation (today's guarantee, kept) -- unconditional, unlike the episode-
+        // start arm above.
+        _needsCensus = true;
     }
 
     /// <summary>Verify one cached copy still holds a known image, then (skip-if-equal) write the

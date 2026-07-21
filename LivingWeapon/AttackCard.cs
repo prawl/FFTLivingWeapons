@@ -88,6 +88,10 @@ internal sealed partial class AttackCard
         public long DescAddr;    // where the desc string begins; the only address ever written
         public int Enc;
         public int DescChars;    // the original desc's char count, found at census time (footprint check)
+        // LW-91: 0 = healthy. Nonzero = the clock reading (AttackCard's injected nowMs) of this
+        // Hit's strike episode start; RepaintAll owns every read/write of this field (SyncHit
+        // never touches it -- see AttackCard.Paint.cs's RepaintAll for the retain/evict policy).
+        public long FirstFailMs;
     }
 
     private readonly IGameMemory _mem;
@@ -177,12 +181,29 @@ internal sealed partial class AttackCard
         _currentRowChars = 0;
         _previousImage = null;
         _lastMaintenanceMs = -1;
+        foreach (var hit in _hits) hit.FirstFailMs = 0;   // LW-91: fresh battle, fresh strike grace
         _reportedRefusals.Clear();   // LW-55: the per-battle tripwire dedup set (AttackCard.Resolve.cs)
     }
 
     /// <summary>Test accessor (mirrors CardSites.Count/Display._sites): the number of table
     /// copies currently cached as known-live.</summary>
     internal int HitCountForTests => _hits.Count;
+
+    /// <summary>Test accessor: how many cached hits are currently mid strike-episode (LW-91: the
+    /// last SyncHit failed and the copy is retained pending recovery, not yet evicted).</summary>
+    internal int StrikingCountForTests
+    {
+        get
+        {
+            int n = 0;
+            foreach (var h in _hits) if (h.FirstFailMs != 0) n++;
+            return n;
+        }
+    }
+
+    /// <summary>Test accessor: mirrors <c>_needsCensus</c> directly, so a test can check whether a
+    /// census is armed/pending arm without having to observe a full Arm/StepScan cycle.</summary>
+    internal bool PendingCensusForTests => _needsCensus;
 
     /// <summary>Test-only hook: force a fresh census on the next Tick, the same effect any live
     /// eviction (RepaintAll) triggers on its own. Lets a test reach the mid-battle re-census case

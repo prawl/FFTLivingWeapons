@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using LivingWeapon;
 using Xunit;
 
@@ -94,7 +95,14 @@ public class AttackCardTests
         public List<(string Type, string Payload)> Recorded = null!;
     }
 
-    private static Rig Build(Dictionary<int, int>? kills = null)
+    private static Rig Build(Dictionary<int, int>? kills = null) => Build(nowMs: null, kills);
+
+    /// <summary>LW-91: a clock-wired variant for tests that must drive AttackCard's strike-
+    /// retention grace window deterministically (AttackCard's ctor already accepts a nowMs func;
+    /// every pre-existing test above never needed to control it).</summary>
+    private static Rig Build(TestClock clock, Dictionary<int, int>? kills = null) => Build(nowMs: clock.Func, kills);
+
+    private static Rig Build(Func<long>? nowMs, Dictionary<int, int>? kills)
     {
         var mem = new AttackCardMemory();
         var meta = Meta();
@@ -109,7 +117,7 @@ public class AttackCardTests
             resolver.TryResolveCursorPlayer(out var answer) ? answer : (CursorAnswer?)null;
         var recorded = new List<(string Type, string Payload)>();
         var card = new AttackCard(mem, resolveCursor, resolver.SpriteOf, meta, k,
-                                   recorder: (t, p) => recorded.Add((t, p)));
+                                   recorder: (t, p) => recorded.Add((t, p)), nowMs: nowMs);
         return new Rig { Mem = mem, Register = register, Resolver = resolver, Card = card, Kills = k, Recorded = recorded };
     }
 
@@ -386,7 +394,12 @@ public class AttackCardTests
         // re-validate it, the underlying buffer itself went stale (a freed/reused allocation, the
         // same real-world shape SyncHit's label re-verify already guards against). A second,
         // genuinely live copy (copyB) exists by the time battle 2's first repaint runs.
-        var rig = Build();
+        // Renegotiated for LW-91's strike-retention window (plan doc, T4/T5): the clock is driven
+        // past Tuning.AttackCardEvictAfterMs before the eviction is expected, since a stale copy
+        // now strikes-and-retains for a grace window instead of evicting on the very first
+        // failing pass.
+        var clock = new TestClock { Ms = 1 };   // nonzero: 0 doubles as FirstFailMs's own "healthy" sentinel
+        var rig = Build(clock);
         long copyA = 0x7000000000;
         long copyB = 0x7000100000;
         rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
@@ -403,14 +416,22 @@ public class AttackCardTests
         rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
         rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);     // battle 2's own live copy
         // No player turn open yet at battle 2's start (an enemy's turn, same "no cursor answer"
-        // convention as Enemy_team_cursor_composes_vanilla): the desired plan stays vanilla, so
-        // the eviction and re-census below are the ONLY things happening this pass.
+        // convention as Enemy_team_cursor_composes_vanilla): the desired plan stays vanilla
+        // (unchanged from ResetBattle's own null _currentImage), so nothing here is a compose
+        // CHANGE; the clock has to clear AttackCard's own maintenance cadence for RepaintAll to
+        // run at all and notice the corrupted label.
         rig.Mem.SeatCursor(team: 1, level: 50, hp: 100, maxHp: 100);
         int writesBefore = rig.Mem.WrittenAddrs.Count;
 
-        Settle(rig.Card);
+        clock.Ms += 1500;
+        Settle(rig.Card);   // pass 1: copyA strikes (retained pending recovery, not yet evicted)
+        Assert.Equal(2, rig.Card.HitCountForTests);    // copyA retained + copyB freshly discovered
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
 
-        Assert.Equal(1, rig.Card.HitCountForTests);                    // copyA evicted, copyB found and cached
+        clock.Ms += Tuning.AttackCardEvictAfterMs + 1000;   // clear the grace window
+        Settle(rig.Card, ticks: 1);
+
+        Assert.Equal(1, rig.Card.HitCountForTests);                    // copyA evicted, copyB remains cached
         Assert.Equal(writesBefore, rig.Mem.WrittenAddrs.Count);        // eviction + fresh vanilla census: zero writes
         Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copyB), 1));   // the re-census located it
     }
@@ -529,10 +550,15 @@ public class AttackCardTests
     [Fact]
     public void Eviction_after_a_completed_census_still_re_censuses_across_a_battle_edge()
     {
-        // Guards the `_needsCensus ||` term: an eviction mid-battle sets _needsCensus, but nothing
-        // ticks it into an Arm before ResetBattle fires. The pending re-census must survive the
-        // battle edge (a completed prior sweep must not mask it via !_sweepCompleted alone).
-        var rig = Build();
+        // Guards the `_needsCensus ||` term: an eviction sets _needsCensus, but nothing ticks it
+        // into an Arm before ResetBattle fires. The pending re-census must survive the battle edge
+        // (a completed prior sweep must not mask it via !_sweepCompleted alone). Renegotiated for
+        // LW-91: eviction only fires once the strike grace window elapses (drive the clock past
+        // Tuning.AttackCardEvictAfterMs); the census episode-start itself arms may well complete
+        // before that window is up, and that's fine -- eviction's OWN unconditional _needsCensus
+        // set is what this test pins, independent of any earlier census having already finished.
+        var clock = new TestClock { Ms = 1 };   // nonzero: 0 doubles as FirstFailMs's own "healthy" sentinel
+        var rig = Build(clock);
         long copyA = 0x7000000000;
         rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
 
@@ -544,13 +570,17 @@ public class AttackCardTests
         var (labelAddr, _) = AttackCardTableFixture.Addrs(copyA, 1);
         rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
 
-        // Force RepaintAll to notice and evict, WITHOUT letting a subsequent Tick arm the resulting
-        // _needsCensus (a resolve change is what drives RepaintAll's own eviction check).
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
         OpenTurn(rig, level: 55);
-        rig.Card.Tick();   // RepaintDriver sees the resolve change, RepaintAll evicts copyA, sets _needsCensus
+        Settle(rig.Card);   // episode start (+ its own early-armed census, which may finish here)
+        Assert.Equal(1, rig.Card.HitCountForTests);
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+
+        clock.Ms += Tuning.AttackCardEvictAfterMs + 1000;
+        rig.Card.Tick();   // the grace window has elapsed: this pass evicts and sets _needsCensus
 
         Assert.Equal(0, rig.Card.HitCountForTests);
+        Assert.True(rig.Card.PendingCensusForTests);   // pending, but nothing has ticked it into an Arm yet
 
         rig.Card.ResetBattle();   // battle edge lands BEFORE any Tick arms the pending census
 
@@ -815,9 +845,13 @@ public class AttackCardTests
     }
 
     [Fact]
-    public void Label_gone_eviction_performs_zero_writes()
+    public void Label_gone_eviction_performs_zero_writes_after_the_grace_window()
     {
-        var rig = Build();
+        // Renegotiated for LW-91's strike-retention window (plan doc T5): a corrupted label used
+        // to evict instantly; it now accrues silent strikes and evicts only once the grace window
+        // (Tuning.AttackCardEvictAfterMs) elapses, still with zero writes to the dead copy ever.
+        var clock = new TestClock { Ms = 1 };   // nonzero: 0 doubles as FirstFailMs's own "healthy" sentinel
+        var rig = Build(clock);
         long copy = 0x7000000000;
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
@@ -835,16 +869,30 @@ public class AttackCardTests
         // (the label re-verify) must fail closed before touching anything else.
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
         OpenTurn(rig, level: 55);       // Stormcaller's turn opens
+        Settle(rig.Card);   // episode start: RETAINED, not yet evicted
+
+        Assert.Equal(1, rig.Card.HitCountForTests);
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+        Assert.Equal(writesBefore, rig.Mem.WrittenAddrs.Count);   // zero writes while striking
+
+        clock.Ms += Tuning.AttackCardEvictAfterMs + 1000;   // clear past the grace window
         Settle(rig.Card, ticks: 1);
 
-        Assert.Equal(writesBefore, rig.Mem.WrittenAddrs.Count);   // zero additional writes
+        Assert.Equal(writesBefore, rig.Mem.WrittenAddrs.Count);   // zero additional writes, ever
         Assert.Equal(0, rig.Card.HitCountForTests);               // evicted
     }
 
     [Fact]
-    public void Foreign_desc_eviction_on_an_Ours_record_restores_the_record_first()
+    public void Foreign_desc_on_an_Ours_record_self_heals_and_is_retained()
     {
-        var rig = Build();
+        // Renegotiated for LW-91 (plan doc T6): a foreign-stomped FOOTPRINT under a still-Ours-
+        // shaped record used to evict immediately. SyncHit's own :89 restore (Classify==Ours ->
+        // Restore) is UNCHANGED and now runs on the very first failing pass regardless of
+        // eviction policy, self-healing the record (and, via Restore's own write order, the
+        // footprint) to vanilla; strike retention means the copy is kept, not evicted, and
+        // re-verifies clean (repainting straight to the new plan) on the next pass.
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
         long copy = 0x7000000000;
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
@@ -858,15 +906,22 @@ public class AttackCardTests
 
         SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
         OpenTurn(rig, level: 55);       // Stormcaller's turn opens
-        Settle(rig.Card, ticks: 1);
+        Settle(rig.Card);   // pass 1: SyncHit's own :89 restore fires; the copy is RETAINED, not evicted
 
-        // Evicted (a foreign footprint is never adopted forward)...
-        Assert.Equal(0, rig.Card.HitCountForTests);
-        // ...but the record was restored to vanilla FIRST, since Classify still read Ours off the
-        // untouched record fields (SyncHit's eviction branch: "Classify==Ours -> Restore first").
+        Assert.Equal(1, rig.Card.HitCountForTests);            // never evicted
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+        // The :89 restore already fired within pass 1 (SyncHit itself is unchanged): both the
+        // record's offsets and the desc footprint are vanilla-shaped again.
         Assert.Equal(AttackRow.VanillaOffsetBytes, rig.Mem.RegionBytes(AttackCardMemory.RecordAddrFor(copy, 1))[..8]);
-        byte[] expectedImage = AttackCardProbeText.EncodeWithTerminator(AttackCardText.VanillaDesc, 1);
-        Assert.Equal(expectedImage, FootprintOf(rig.Mem.RegionBytes(copy), 1));
+        byte[] vanillaImage = AttackCardProbeText.EncodeWithTerminator(AttackCardText.VanillaDesc, 1);
+        Assert.Equal(vanillaImage, FootprintOf(rig.Mem.RegionBytes(copy), 1));
+
+        clock.Ms += 1500;   // past AttackCard's own maintenance cadence (1000ms), still well under the grace window
+        Settle(rig.Card, ticks: 1);   // pass 2: footprint reads vanilla -> known -> repaints straight to Stormcaller
+
+        Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Equal(0, rig.Card.StrikingCountForTests);   // strikes cleared: Ok resets FirstFailMs
+        Assert.Equal(1, rig.Card.HitCountForTests);
     }
 
     [Fact]
@@ -1166,15 +1221,21 @@ public class AttackCardTests
     }
 
     [Fact]
-    public void A_real_eviction_during_RepaintAll_logs_exactly_one_line_naming_the_reason()
+    public void A_real_eviction_after_the_grace_window_logs_exactly_one_line_naming_the_reason()
     {
+        // Renegotiated for LW-91 (plan doc: "T6 ... renegotiates :1169"): the ORIGINAL trigger
+        // here (a foreign-stomped footprint under a still-Ours record) now self-heals instead of
+        // evicting (see Foreign_desc_on_an_Ours_record_self_heals_and_is_retained above), so this
+        // pin rebuilds onto a genuinely dead buffer (SetRegionPresent(false), the T4 shape) so the
+        // "exactly one line, naming the reason" guarantee still has a real eviction to pin against.
         var console = new List<string>();
         var file = new List<string>();
         var prior = ModLogger.Instance;
         ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
         try
         {
-            var rig = Build();
+            var clock = new TestClock { Ms = 1 };
+            var rig = Build(clock);
             long copy = 0x7000000000;
             rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
@@ -1185,18 +1246,21 @@ public class AttackCardTests
 
             file.Clear();   // drop the census/paint noise; only the eviction line itself is under test
 
-            var (_, descAddr) = AttackCardTableFixture.Addrs(copy, 1);
-            rig.Mem.WriteBytes(descAddr, AttackRow.BuildImage("ForeignThing", "Unrelated."));   // stomp the text only; the record stays Ours
+            rig.Mem.SetRegionPresent(copy, present: false);
 
             SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
             OpenTurn(rig, level: 55);       // Stormcaller's turn opens: forces RepaintAll to re-verify copy
-            Settle(rig.Card, ticks: 1);
+            Settle(rig.Card);   // episode start: retained, not yet evicted
+            Assert.Equal(1, rig.Card.HitCountForTests);
 
-            Assert.Equal(0, rig.Card.HitCountForTests);   // evicted (a foreign footprint is never adopted forward)
+            clock.Ms += Tuning.AttackCardEvictAfterMs + 1000;
+            Settle(rig.Card, ticks: 1);   // the grace window clears: evicts
+
+            Assert.Equal(0, rig.Card.HitCountForTests);   // evicted (a dead buffer is never adopted forward)
 
             var evictionLines = file.FindAll(l => l.Contains("evicted"));
             Assert.Single(evictionLines);
-            Assert.Contains("foreign-footprint", evictionLines[0]);
+            Assert.Contains("label-gone", evictionLines[0]);
         }
         finally { ModLogger.Instance = prior; }
     }
@@ -1230,5 +1294,439 @@ public class AttackCardTests
             Assert.Equal(1, rig.Card.HitCountForTests);
         }
         finally { ModLogger.Instance = prior; }
+    }
+
+    // ==================== LW-91: strike retention on the AttackCard cache ====================
+    // A cached copy that fails its SyncHit verify is RETAINED under a per-Hit strike episode
+    // (Hit.FirstFailMs, 0 = healthy) instead of instantly evicted, for up to
+    // Tuning.AttackCardEvictAfterMs. See LivingWeapon\AttackCard.Paint.cs's RepaintAll. All of
+    // these tests use the clock-wired Build overload with a NONZERO starting Ms: 0 doubles as
+    // FirstFailMs's own "healthy" sentinel, so a strike that starts exactly at clock 0 would be
+    // indistinguishable from never having struck at all.
+
+    [Fact]
+    public void Strike_retention_keeps_a_transiently_unreadable_copy_cached_and_never_writes_it()
+    {
+        // T1 LOAD-BEARING (the 2026-07-21 04:41 tape): the dominant live failure is a TRANSIENT
+        // misread of a live buffer, not a genuinely freed one; instant eviction throws away a live
+        // handle and spends ~25s re-finding it. Two copies both hold A's (Windrunner's) row;
+        // copy1's underlying region goes transiently unreadable (a real live symptom, not a
+        // foreign buffer) exactly when B's (Stormcaller's) turn opens. The retention assertions
+        // (HitCount/StrikingCount/log) are the non-vacuity teeth: a B-repaint alone would pass
+        // under today's evict-then-readopt too.
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long copy1 = 0x7000000000;
+        long copy2 = 0x7000100000;
+        rig.Mem.AddAttackTable(copy1, 1, AttackCardText.VanillaDesc);
+        rig.Mem.AddAttackTable(copy2, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy1), 1));
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy2), 1));
+
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            rig.Mem.SetRegionPresent(copy1, present: false);
+
+            SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+            OpenTurn(rig, level: 55);
+            int writesBefore = rig.Mem.WrittenAddrs.Count;
+            Settle(rig.Card);   // episode start + the census it early-arms
+
+            Assert.Equal(2, rig.Card.HitCountForTests);          // RETAINED, never evicted
+            Assert.Equal(1, rig.Card.StrikingCountForTests);     // exactly copy1 is mid-episode
+            Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copy2), 1));   // the healthy sibling still repaints
+            Assert.DoesNotContain(file, l => l.Contains("evicted"));
+            Assert.Single(file, l => l.Contains("retained pending recovery"));
+            Assert.Single(file, l => l.Contains("census armed"));   // the one episode-arm, no more
+
+            var (_, copy1DescAddr) = AttackCardTableFixture.Addrs(copy1, 1);
+            long copy1RecordAddr = AttackCardMemory.RecordAddrFor(copy1, 1);
+            Assert.DoesNotContain(copy1DescAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
+            Assert.DoesNotContain(copy1RecordAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
+
+            // Drive two more maintenance passes, both still short of the eviction grace window.
+            clock.Ms += 1000; Settle(rig.Card, ticks: 1);
+            clock.Ms += 1000; Settle(rig.Card, ticks: 1);
+            Assert.True(clock.Ms - 1 < Tuning.AttackCardEvictAfterMs);
+            Assert.Equal(2, rig.Card.HitCountForTests);
+            Assert.Equal(1, rig.Card.StrikingCountForTests);
+            Assert.DoesNotContain(file, l => l.Contains("evicted"));
+
+            // The buffer becomes readable again: the very next maintenance pass repaints it forward
+            // to B's line, proving it was never orphaned holding A's stale image.
+            rig.Mem.SetRegionPresent(copy1, present: true);
+            clock.Ms += 1500;
+            Settle(rig.Card, ticks: 1);
+
+            Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copy1), 1));
+            Assert.Equal(0, rig.Card.StrikingCountForTests);
+        }
+        finally { ModLogger.Instance = prior; }
+    }
+
+    [Fact]
+    public void Strike_retention_recovers_to_Fists_for_an_unarmed_human()
+    {
+        // T2 (LW-98): the same retained-then-recovered choreography as T1, but the desired plan
+        // at recovery is the unarmed-human "Fists" composition, not another named weapon -- pins
+        // that retention doesn't special-case which plan eventually lands once the buffer heals.
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+
+        rig.Mem.SetRegionPresent(copy, present: false);
+
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 4, lvl: 45, br: 40, fa: 50, rh: 0xFFFF, nameId: 44, sprite: 0x80);
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 7, weapon: 0xFFFF, lvl: 45, br: 40, fa: 50, gx: 7, gy: 7);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 7, nameId: 44);
+        rig.Mem.Sparse.U8s[Band.Entry(7) + Offsets.ATurnFlag] = 1;
+        OpenTurn(rig, level: 45);       // the unarmed human's turn opens
+        Settle(rig.Card);   // episode start: the copy strikes (unreadable), retained
+
+        Assert.Equal(1, rig.Card.HitCountForTests);
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+
+        rig.Mem.SetRegionPresent(copy, present: true);
+        clock.Ms += 1500;   // past AttackCard's own maintenance cadence: the recovery pass
+        Settle(rig.Card, ticks: 1);
+
+        Assert.Equal("Fists", RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Equal(AttackCardTail.FistTail, TailOf(rig.Mem.RegionBytes(copy), 1, "Fists".Length));
+        Assert.Equal(0, rig.Card.StrikingCountForTests);
+    }
+
+    [Fact]
+    public void Strike_retention_recovers_to_byte_exact_vanilla_for_an_unarmed_monster()
+    {
+        // T2 variant (LW-98): recovery for an unarmed MONSTER lands byte-exact vanilla, exercising
+        // AttackRow.Restore's "strand killer" path (the record is still Ours-shaped from A's
+        // earlier paint) rather than a Paint call.
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+
+        rig.Mem.SetRegionPresent(copy, present: false);
+
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 4, lvl: 45, br: 40, fa: 50, rh: 0xFFFF, nameId: 44, sprite: 0x82);
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 7, weapon: 0xFFFF, lvl: 45, br: 40, fa: 50, gx: 7, gy: 7);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 7, nameId: 44);
+        OpenTurn(rig, level: 45);       // the unarmed monster's turn opens
+        Settle(rig.Card);   // episode start: retained
+
+        Assert.Equal(1, rig.Card.HitCountForTests);
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+
+        rig.Mem.SetRegionPresent(copy, present: true);
+        clock.Ms += 1500;
+        Settle(rig.Card, ticks: 1);
+
+        byte[] expected = AttackCardProbeText.EncodeWithTerminator(AttackCardText.VanillaDesc, 1);
+        Assert.Equal(expected, FootprintOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Equal(0, rig.Card.StrikingCountForTests);
+    }
+
+    [Fact]
+    public void Kill_bump_with_no_turn_change_repaints_cached_copies_tails()
+    {
+        // T3 (LW-88 pin): existing behavior, unaffected by strike retention -- a kill bump changes
+        // the composed image (the tail's "Kills: N/T" segment) even with no turn-owner change, so
+        // it is caught by RepaintDriver's own compose-change edge, not the maintenance cadence.
+        var kills = new Dictionary<int, int> { [WindrunnerId] = 3, [StormcallerId] = 4 };
+        var rig = Build(kills: kills);
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+        Assert.Equal("Kills: 3/5 to +", TailOf(rig.Mem.RegionBytes(copy), 1, "Windrunner".Length));
+
+        kills[WindrunnerId] = 4;   // a kill lands mid-turn; the acting unit and weapon never change
+        Settle(rig.Card, ticks: 1);
+
+        Assert.Equal("Kills: 4/5 to +", TailOf(rig.Mem.RegionBytes(copy), 1, "Windrunner".Length));
+    }
+
+    [Fact]
+    public void Dead_buffer_evicts_after_the_grace_window_with_zero_writes_ever()
+    {
+        // T4: a genuinely dead buffer (unlike T1's transient one) accrues silent strikes and
+        // evicts only once Tuning.AttackCardEvictAfterMs elapses, never written to along the way,
+        // with PendingCensus set at eviction even though the episode-start census already ran.
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long copy1 = 0x7000000000;
+        long copy2 = 0x7000100000;
+        rig.Mem.AddAttackTable(copy1, 1, AttackCardText.VanillaDesc);
+        rig.Mem.AddAttackTable(copy2, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            rig.Mem.SetRegionPresent(copy1, present: false);
+
+            SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+            OpenTurn(rig, level: 55);
+            int writesBefore = rig.Mem.WrittenAddrs.Count;
+            Settle(rig.Card);   // episode start
+            Assert.Equal(1, rig.Card.StrikingCountForTests);
+
+            clock.Ms += 1000; Settle(rig.Card, ticks: 1);   // still under threshold
+            Assert.Equal(2, rig.Card.HitCountForTests);
+            clock.Ms += 1000; Settle(rig.Card, ticks: 1);   // still under threshold
+            Assert.Equal(2, rig.Card.HitCountForTests);
+            Assert.DoesNotContain(file, l => l.Contains("evicted"));
+
+            clock.Ms += 1500; Settle(rig.Card, ticks: 1);   // clears the grace window: evicts
+
+            Assert.Equal(1, rig.Card.HitCountForTests);          // copy1 evicted, copy2 remains
+            Assert.True(rig.Card.PendingCensusForTests);         // set unconditionally at eviction
+            var evictionLines = file.FindAll(l => l.Contains("evicted"));
+            Assert.Single(evictionLines);
+            Assert.Contains("label-gone", evictionLines[0]);
+
+            var (_, copy1DescAddr) = AttackCardTableFixture.Addrs(copy1, 1);
+            long copy1RecordAddr = AttackCardMemory.RecordAddrFor(copy1, 1);
+            Assert.DoesNotContain(copy1DescAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
+            Assert.DoesNotContain(copy1RecordAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
+        }
+        finally { ModLogger.Instance = prior; }
+    }
+
+    [Fact]
+    public void Census_candidate_rejection_never_starts_a_strike_episode()
+    {
+        // T7: strike retention lives ONLY in RepaintAll (AttackCard.Census.cs's FindHits calls
+        // SyncHit directly, as the ADOPTION check); a census candidate that fails must still be
+        // rejected instantly, with zero strike bookkeeping and zero per-candidate logging, exactly
+        // as before LW-91.
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            var rig = Build();
+            long goodCopy = 0x7000000000;
+            long foreignCopy = 0x7000100000;
+            rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
+            rig.Mem.AddHeapRegion(foreignCopy,
+                AttackCardTableFixture.Build(1, "Some other command's own unrelated description prose, quite long indeed."));
+
+            Settle(rig.Card);
+
+            Assert.Equal(1, rig.Card.HitCountForTests);       // only the good copy adopted
+            Assert.Equal(0, rig.Card.StrikingCountForTests);  // the rejected candidate never entered a strike episode
+            Assert.DoesNotContain(file, l => l.Contains("unverified"));
+            Assert.DoesNotContain(file, l => l.Contains("retained pending recovery"));
+            Assert.DoesNotContain(file, l => l.Contains("evicted"));
+        }
+        finally { ModLogger.Instance = prior; }
+    }
+
+    [Fact]
+    public void Episode_start_mid_sweep_does_not_set_pending_census_or_latch_a_second_sweep()
+    {
+        // T8 a+b: the !_scanning gate on episode-start's census arm stops an already-in-flight
+        // sweep from latching a pointless back-to-back second sweep once it Finishes -- the
+        // in-flight one visits everything anyway.
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            var rig = Build();
+            long copyA = 0x7000000000;
+            rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
+
+            SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+            OpenTurn(rig, level: 50);
+            Settle(rig.Card);
+            Assert.Equal(1, rig.Card.HitCountForTests);
+
+            rig.Card.ForceRecensusForTests();
+            rig.Card.Tick();   // Arm only: sweep in flight (_scanning == true), cache still warm
+
+            var (labelAddr, _) = AttackCardTableFixture.Addrs(copyA, 1);
+            rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
+
+            SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+            OpenTurn(rig, level: 55);
+            file.Clear();   // isolate this test's own "census armed" count from the ForceRecensus one above
+            rig.Card.Tick();   // repaint phase (alternation): copyA strikes mid-sweep
+
+            Assert.Equal(1, rig.Card.StrikingCountForTests);
+            Assert.False(rig.Card.PendingCensusForTests);   // NOT set: a sweep is already in flight
+
+            Settle(rig.Card, ticks: 5);   // drain the in-flight sweep to Finish
+
+            Assert.DoesNotContain(file, l => l.Contains("census armed"));   // no second sweep latched
+        }
+        finally { ModLogger.Instance = prior; }
+    }
+
+    [Fact]
+    public void Eviction_during_an_in_flight_census_still_latches_a_follow_up_sweep()
+    {
+        // T8c: eviction sets _needsCensus UNCONDITIONALLY (never gated on _scanning, unlike
+        // episode start) -- today's guarantee that an eviction mid-sweep still re-censuses
+        // afterward, since the in-flight snapshot can predate the replacement allocation.
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long copyA = 0x7000000000;
+        rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+
+        rig.Mem.SetRegionPresent(copyA, present: false);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        OpenTurn(rig, level: 55);
+        Settle(rig.Card);   // episode start
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+
+        rig.Card.ForceRecensusForTests();
+        rig.Card.Tick();   // Arm only: a fresh sweep starts in flight while copyA is still striking
+
+        clock.Ms += Tuning.AttackCardEvictAfterMs + 1000;
+        rig.Card.Tick();   // repaint phase mid-sweep: copyA crosses the grace window and evicts
+
+        Assert.Equal(0, rig.Card.HitCountForTests);
+        Assert.True(rig.Card.PendingCensusForTests);   // set unconditionally, even mid-sweep
+
+        long copyB = 0x7000100000;
+        rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);   // battle's own new live copy, planted before the follow-up sweep runs
+
+        Settle(rig.Card, ticks: 10);   // drain the current sweep, then the follow-up census it latches
+
+        Assert.Equal(1, rig.Card.HitCountForTests);   // copyB adopted by the latched follow-up census
+    }
+
+    [Fact]
+    public void ResetBattle_clears_every_strike_episode()
+    {
+        // T9: strikes cleared at the battle edge; the existing warm-cache/restore pins stay green
+        // untouched (this is purely additive to ResetBattle's own behavior).
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long copy1 = 0x7000000000;
+        long copy2 = 0x7000100000;
+        rig.Mem.AddAttackTable(copy1, 1, AttackCardText.VanillaDesc);
+        rig.Mem.AddAttackTable(copy2, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+
+        rig.Mem.SetRegionPresent(copy1, present: false);
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        OpenTurn(rig, level: 55);
+        Settle(rig.Card);
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+
+        rig.Card.ResetBattle();
+
+        Assert.Equal(0, rig.Card.StrikingCountForTests);   // fresh battle, fresh grace
+    }
+
+    [Fact]
+    public void A_flaky_copy_never_advances_a_healthy_siblings_episode()
+    {
+        // T10: strike bookkeeping is per-Hit and never interacts across hits -- one struggling
+        // copy never starts or advances a healthy sibling's own episode.
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long flaky = 0x7000000000;
+        long healthy = 0x7000100000;
+        rig.Mem.AddAttackTable(flaky, 1, AttackCardText.VanillaDesc);
+        rig.Mem.AddAttackTable(healthy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+
+        rig.Mem.SetRegionPresent(flaky, present: false);
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        OpenTurn(rig, level: 55);
+        Settle(rig.Card);
+
+        Assert.Equal(1, rig.Card.StrikingCountForTests);   // only the flaky copy is striking
+        Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(healthy), 1));   // the healthy sibling repainted clean
+
+        clock.Ms += 1000;
+        Settle(rig.Card, ticks: 1);
+        Assert.Equal(1, rig.Card.StrikingCountForTests);   // still just the one; the healthy copy stays Ok every pass
+        Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(healthy), 1));
+    }
+
+    [Fact]
+    public void A_compose_edge_flurry_inside_the_grace_window_never_evicts_but_the_same_failure_held_past_it_does()
+    {
+        // T11: cadence. A flurry of turn-owner (compose-edge) changes, each forcing an immediate
+        // RepaintAll pass, never evicts as long as it stays inside the grace window; the SAME
+        // failure held past Tuning.AttackCardEvictAfterMs does.
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long copy = 0x7000000000;
+        long healthy = 0x7000100000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+        rig.Mem.AddAttackTable(healthy, 1, AttackCardText.VanillaDesc);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        OpenTurn(rig, level: 50);
+        Settle(rig.Card);
+
+        rig.Mem.SetRegionPresent(copy, present: false);
+
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        OpenTurn(rig, level: 55);
+        Settle(rig.Card);   // episode start
+        clock.Ms += 500;
+        OpenTurn(rig, level: 50);   // back to Windrunner
+        Settle(rig.Card, ticks: 1);
+        clock.Ms += 500;
+        OpenTurn(rig, level: 55);   // back to Stormcaller
+        Settle(rig.Card, ticks: 1);
+        clock.Ms += 500;   // total elapsed since episode start: 1000ms, still under the grace window
+
+        Assert.True(clock.Ms - 1 < Tuning.AttackCardEvictAfterMs);
+        Assert.Equal(2, rig.Card.HitCountForTests);        // never evicted
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+
+        // The SAME failure held past the grace window now evicts.
+        clock.Ms += Tuning.AttackCardEvictAfterMs;
+        Settle(rig.Card, ticks: 1);
+
+        Assert.Equal(1, rig.Card.HitCountForTests);   // evicted
     }
 }
