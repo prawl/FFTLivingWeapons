@@ -33,6 +33,19 @@ mover's ordinary lerp signature) and one non-knockback hit (flinch without displ
     python tools\\probes\\knockback_probe.py table                       # slots + tiles
     python tools\\probes\\knockback_probe.py shove <slot> <dx> <dy> [--page H]
     python tools\\probes\\knockback_probe.py watch <slot> [secs]
+    python tools\\probes\\knockback_probe.py order <slot> <dx> <dy>     # WRITE the destination
+
+LANE 3 SUCCEEDED 2026-07-22, first run. The owner Rushed a unit from (9,4) to (8,4) while `watch`
+recorded, and the tape found the order: 18ms BEFORE any world coordinate moved, the engine wrote
+mode `+0x12` 0x04 to 0x1A, counter `+0x8B` 0 to 7, and destination X `+0x8C` 0x09 to 0x08. The
+current tile (`+0x88`) and the combat logic tile did not commit until 138ms later. So the node's
+tile block is TWO triples: `+0x88/89/8A` = where the unit IS, `+0x8C/8D/8E` = where it is GOING.
+The same lead-then-follow drives an ordinary walk on the same tape (dest steps, current follows
+~84ms behind, mode 0x0D instead of 0x1A), which means this is not the knockback mechanism, it is
+THE MOVEMENT MECHANISM and knockback is one mode of it. See the LIVE_LEDGER Uncertain row.
+
+`order` is the write test that follows: set the destination and let the ENGINE move the unit,
+animated and lerped, instead of our teleport's hard cut. Untested when written.
 """
 import json
 import os
@@ -193,6 +206,55 @@ def cmd_watch(slot, secs):
     print("HUNT: fields changing BEFORE n+0x4c/n+0x50 start marching = candidate shove ORDER.")
 
 
+DEST_X, DEST_Y, DEST_L = 0x8C, 0x8D, 0x8E   # the destination triple (read 2026-07-22)
+STEP = 0x8B                                  # step/phase counter: 0 at rest, 7 at a shove order
+MOVE_MODE = 0x12                             # 0x04 rest, 0x0D walking, 0x1A knockback
+
+
+def cmd_order(slot, dx, dy):
+    """THE WRITE TEST for the ordered-movement read. Write only the DESTINATION and let the
+    engine do the moving: if the premise holds, the unit slides there animated, and the engine
+    itself commits the current tile and the combat logic tile with no help from us.
+
+    PRE-REGISTERED OUTCOMES:
+      PASS ......... the unit visibly slides one tile and `table` afterwards shows the combat
+                     logic tile moved. The engine did the work; our teleport becomes a fallback.
+      IGNORED ...... destination reverts to the current tile within a second and nothing moves:
+                     the field is an OUTPUT of the mover, not an input. Ledger the negative; the
+                     shove imitation stands.
+      DESYNC ....... it slides but the logic tile never commits: a partial lever, needs the mode
+                     byte and/or the counter set too. Try again with --mode.
+    Round 1 writes the destination ONLY, one variable at a time; the mode byte and the counter
+    are deliberately left alone so a pass proves the minimal claim."""
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    c, nx, ny = _validate(slot, node, dx, dy)
+    cur = (ru8(node + 0x88), ru8(node + 0x89))
+    dest = (ru8(node + DEST_X), ru8(node + DEST_Y))
+    print(f"slot {slot}: current tile {cur}, destination field reads {dest}, "
+          f"mode {ru8(node + MOVE_MODE):#04x}, step {ru8(node + STEP):#04x}")
+    if cur != dest:
+        print("destination already differs from current: the unit is mid-move. Refusing.")
+        sys.exit(1)
+    print(f"write plan: destination -> ({nx},{ny}). Mode and step byte left UNTOUCHED (round 1).")
+    if input("ORDER? (y/n) ").strip().lower() != "y":
+        print("aborted.")
+        return
+    wu8(node + DEST_X, nx & 0xFF)
+    wu8(node + DEST_Y, ny & 0xFF)
+    for dt in (0.05, 0.15, 0.3, 0.6, 1.2):
+        time.sleep(dt if dt == 0.05 else 0)
+        print(f"  +{dt:4.2f}s dest=({ru8(node + DEST_X)},{ru8(node + DEST_Y)}) "
+              f"cur=({ru8(node + 0x88)},{ru8(node + 0x89)}) "
+              f"logic=({ru8(c + 0x4F)},{ru8(c + 0x50)}) mode={ru8(node + MOVE_MODE):#04x} "
+              f"step={ru8(node + STEP):#04x}")
+        time.sleep(dt)
+    print("VERDICT: logic tile moved = PASS; destination snapped back = IGNORED (output, not input); "
+          "slid without the logic tile committing = DESYNC.")
+
+
 def main():
     _require_game()
     argv = sys.argv[1:]
@@ -208,6 +270,8 @@ def main():
         cmd_shove(int(argv[1]), int(argv[2]), int(argv[3]), page)
     elif len(argv) >= 2 and argv[0] == "watch":
         cmd_watch(int(argv[1]), float(argv[2]) if len(argv) > 2 else 45.0)
+    elif len(argv) >= 4 and argv[0] == "order":
+        cmd_order(int(argv[1]), int(argv[2]), int(argv[3]))
     else:
         print(__doc__)
 

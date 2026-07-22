@@ -108,6 +108,13 @@ the technical detail lives in the indented lines under it.
   field that changes BEFORE the world coords start marching; that would be the engine's own
   shove ORDER, the animation register shape again, and lane 1 retires. Wanted on the same tape:
   one plain walk and one non knockback hit for contrast.
+  LANE 3 SUCCEEDED FIRST RUN 2026-07-22 and outgrew the ticket: the tape found the engine
+  ordering the move 18ms before anything visibly moved, and the same machinery drives ordinary
+  walking, so this is the MOVEMENT api and knockback is one mode of it. Read banked as a
+  LIVE_LEDGER Uncertain row, tape preserved at tools/probes/tapes_knockback_20260722.jsonl.
+  What remains here: the write test (knockback_probe.py order, written and untested) and, if it
+  passes, retiring lane 1's imitation in favour of letting the engine do the moving. Lane 2, the
+  Dash formula table experiment, is untouched and still worth ten minutes.
 - [LW-115] 2026-07-21: The Stop combo works as theater and is one owner observation short of
   being a mechanic: nobody has yet confirmed the frozen unit is SKIPPED IN THE TURN ORDER.
   The combo (animation page 0x00, the camera-facing freeze, plus the proven CT byte held at 0)
