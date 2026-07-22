@@ -209,9 +209,11 @@ def cmd_watch(slot, secs):
 DEST_X, DEST_Y, DEST_L = 0x8C, 0x8D, 0x8E   # the destination triple (read 2026-07-22)
 STEP = 0x8B                                  # step/phase counter: 0 at rest, 7 at a shove order
 MOVE_MODE = 0x12                             # 0x04 rest, 0x0D walking, 0x1A knockback
+KICK_MODE = 0x1A                             # the observed forced-move mode (--kick)
+KICK_STEP = 0x07                             # the counter value the engine set at the shove
 
 
-def cmd_order(slot, dx, dy):
+def cmd_order(slot, dx, dy, kick=False):
     """THE WRITE TEST for the ordered-movement read. Write only the DESTINATION and let the
     engine do the moving: if the premise holds, the unit slides there animated, and the engine
     itself commits the current tile and the combat logic tile with no help from us.
@@ -225,7 +227,21 @@ def cmd_order(slot, dx, dy):
       DESYNC ....... it slides but the logic tile never commits: a partial lever, needs the mode
                      byte and/or the counter set too. Try again with --mode.
     Round 1 writes the destination ONLY, one variable at a time; the mode byte and the counter
-    are deliberately left alone so a pass proves the minimal claim."""
+    are deliberately left alone so a pass proves the minimal claim.
+
+    ROUND 1 RESULT (owner live 2026-07-22): INERT BUT STICKY, a fourth outcome none of the three
+    above predicted. The destination held at the written tile across the full 1.2s sample and was
+    never reverted, so nothing else owns the field at rest and it is not a per-frame output. But
+    mode stayed 0x04 and the step counter stayed 0, and the unit did not move. Reading: the
+    destination says WHERE, and the mode byte is what makes the mover RUN. Hence --kick.
+
+    ROUND 2, --kick: write the destination FIRST, then the step counter, then the mode byte last,
+    which is the order the engine's own knockback used (dest and counter at t=12.2472, motion at
+    t=12.2652). Mode 0x1A is the observed forced-move mode. If the mover runs, it should lerp the
+    world transform and commit both the current tile and the combat logic tile by itself.
+    RISK, stated plainly: this half-drives an engine state machine. If it runs to a stale or
+    illegal destination the unit could end up desynced or wedged mid-step. Use a throwaway
+    battle, never the current actor, and expect that ending the battle clears any mess."""
     node = node_of(slot)
     if not node:
         print("unit not noded; aborting.")
@@ -238,12 +254,20 @@ def cmd_order(slot, dx, dy):
     if cur != dest:
         print("destination already differs from current: the unit is mid-move. Refusing.")
         sys.exit(1)
-    print(f"write plan: destination -> ({nx},{ny}). Mode and step byte left UNTOUCHED (round 1).")
+    if kick:
+        print(f"write plan: destination -> ({nx},{ny}), then step {KICK_STEP:#04x}, then mode "
+              f"{KICK_MODE:#04x} LAST (the order the engine's own knockback used).")
+        print("RISK: this half-drives the mover's state machine. Throwaway battle only.")
+    else:
+        print(f"write plan: destination -> ({nx},{ny}). Mode and step byte left UNTOUCHED (round 1).")
     if input("ORDER? (y/n) ").strip().lower() != "y":
         print("aborted.")
         return
     wu8(node + DEST_X, nx & 0xFF)
     wu8(node + DEST_Y, ny & 0xFF)
+    if kick:
+        wu8(node + STEP, KICK_STEP)       # counter first, as the engine did
+        wu8(node + MOVE_MODE, KICK_MODE)  # mode LAST: this is the go signal
     for dt in (0.05, 0.15, 0.3, 0.6, 1.2):
         time.sleep(dt if dt == 0.05 else 0)
         print(f"  +{dt:4.2f}s dest=({ru8(node + DEST_X)},{ru8(node + DEST_Y)}) "
@@ -258,6 +282,8 @@ def cmd_order(slot, dx, dy):
 def main():
     _require_game()
     argv = sys.argv[1:]
+    kick = "--kick" in argv
+    argv = [a for a in argv if a != "--kick"]
     page = FLINCH_PUSHED
     if "--page" in argv:
         i = argv.index("--page")
@@ -271,7 +297,7 @@ def main():
     elif len(argv) >= 2 and argv[0] == "watch":
         cmd_watch(int(argv[1]), float(argv[2]) if len(argv) > 2 else 45.0)
     elif len(argv) >= 4 and argv[0] == "order":
-        cmd_order(int(argv[1]), int(argv[2]), int(argv[3]))
+        cmd_order(int(argv[1]), int(argv[2]), int(argv[3]), kick)
     else:
         print(__doc__)
 
