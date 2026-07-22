@@ -53,6 +53,7 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import ctypes
 from battle_cheats import rpm, ru8, ru16, wu8, wu16, _handle, _require_game
+import status_map
 
 UNITS = 0x141853CE0
 HEAD = 0x140D3A410
@@ -194,6 +195,54 @@ def cmd_bench(slot, secs):
         print("released early.")
     print("released; CT re-accrues from 0 (the accrued charge is authentically lost).")
     print("EYEBALL: did their turn never come while others acted? That is the AT-list read.")
+
+
+BAND = 0x1C   # band entry = combat base + 0x1C; every status offset is band-relative
+
+
+def cmd_status(slot, name, on, layers="both"):
+    """Set or clear a status bit (LW-119, map in status_map.py).
+
+    Layers, and why it matters: the model says composed (band +0x45..) is rebuilt every frame as
+    inflicted (band +0x1D3..) OR innate (band +0x3B..). So `composed` alone is the wasted-write
+    trap; `both` writes composed and inflicted, which is the normal choice; `all` also clears the
+    INNATE layer, which is the only way to remove a job-derived status like a Bomb's Float, and
+    is also a live test of the layer model itself (if clearing composed alone sticks on an innate
+    status, the model is wrong).
+
+    Refuses the two ids with crash tapes and asks before the engine-owned ones."""
+    e = status_map.lookup(name)
+    if not e:
+        print(f"unknown status '{name}'. Known: {', '.join(sorted(status_map.STATUSES))}")
+        sys.exit(1)
+    if e["name"] in status_map.REFUSE:
+        print(f"{e['name']} is REFUSED: {e['hazard']}")
+        sys.exit(1)
+    node_ok = require_fielded(slot)
+    band = combat_of(slot) + BAND
+    if e["hazard"]:
+        print(f"HAZARD: {e['hazard']}")
+    if e["name"] in status_map.CONFIRM and input("proceed? (y/n) ").strip().lower() != "y":
+        print("aborted."); return
+    targets = [("composed", band + e["composed"])]
+    if layers in ("both", "all"):
+        targets.append(("inflicted", band + e["inflicted"]))
+    if layers == "all":
+        targets.append(("innate", band + status_map.INNATE_BASE + e["byte"]))
+    print(f"slot {slot} {e['name']} (id {e['id']}, tier {e['tier']}) -> {'ON' if on else 'OFF'}")
+    for label, addr in targets:
+        before = ru8(addr)
+        if before is None:
+            print(f"  {label:>9}: unreadable, skipped"); continue
+        after = (before | e["mask"]) if on else (before & ~e["mask"] & 0xFF)
+        wu8(addr, after)
+        print(f"  {label:>9} @band+{addr - band:#05x}: {before:#04x} -> {ru8(addr):#04x} "
+              f"(wanted {after:#04x})")
+    time.sleep(0.5)
+    print("  after 0.5s:", ", ".join(
+        f"{label}={ru8(addr):#04x}" for label, addr in targets if ru8(addr) is not None))
+    print("EYEBALL: did the effect change in game? A composed bit that snaps back means the layer "
+          "below it is re-ORing, which is the model working.")
 
 
 def cmd_warp(slot, x, y, force=False):
@@ -372,6 +421,8 @@ def main():
     a = sys.argv[1:]
     vanish = "--vanish" in a
     force = "--force" in a
+    layers = "all" if "--all" in a else ("composed" if "--composed" in a else "both")
+    a = [x for x in a if x not in ("--all", "--composed")]
     a = [x for x in a if x != "--force"]
     page = VANISH_PAGE
     if "--page" in a:
@@ -395,6 +446,8 @@ def main():
     elif cmd == "show" and len(a) >= 2:
         for sl in [int(x) for x in a[1].split(",")]:
             cmd_show(sl)
+    elif cmd == "status" and len(a) >= 4:
+        cmd_status(int(a[1]), a[2], a[3].lower() in ("on", "1", "true"), layers)
     elif cmd == "warp" and len(a) >= 4:
         cmd_warp(int(a[1]), int(a[2]), int(a[3]), force)
     elif cmd == "float" and len(a) >= 3:
