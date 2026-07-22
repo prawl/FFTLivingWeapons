@@ -19,6 +19,7 @@ list head 0x140D3A410 with +0x148 the combat backref (swap_units.py, proven live
     python tools\\probes\\battle_toolbag.py warp <slot> <x> <y> [--force]      # arbitrary tile
     python tools\\probes\\battle_toolbag.py status <slot> <name> on|off [--all]
     python tools\\probes\\battle_toolbag.py rsm <slot> [movement|support|reaction]
+    python tools\\probes\\battle_toolbag.py sweep <slot> [secs]   # catalog all 23 untested statuses
 
 `hide`/`show` take a comma list (17 or 6,16,17). `--all` on status reaches the innate layer.
 `rsm <slot> <field>` clears a whole RSM field and prints its own restore command.
