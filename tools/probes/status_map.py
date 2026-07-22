@@ -71,8 +71,10 @@ STATUSES = {
                             "onto the tile crashed the game outright."),
     # ---- band +0x47, ids 16-23 ----
     "oil":        (16, "M", None),
-    "float":      (17, "U", "COSMETIC ONLY: the icon shows and the unit does not float. Real hover is "
-                            "the render node Z transform (battle_toolbag.py float)."),
+    "float":      (17, "U", "COSMETIC ONLY, and 2026-07-22 explained WHY: floating comes from a "
+                            "job's innate Levitate ability and/or the render node Z, not this "
+                            "bit. Clearing it on a Bomb removed the icon and left the unit "
+                            "airborne; grounding a flier needs the job ability set."),
     "reraise":    (18, "S", None),
     "invisible":  (19, "S", "Breaks the instant the unit acts, so it needs re-stamping every tick "
                             "(--hold). AoE splash still reaches the unit."),
