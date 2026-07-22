@@ -118,8 +118,7 @@ def cmd_dump(n=96):
     for i in range(0, n, 16):
         chunk = buf[i:i + 16]
         print(f"  +{i:03x}  {chunk.hex(' ')}")
-    print("
-Paste this back; the argument handling decodes out of these bytes.")
+    print("Paste this back; the argument handling decodes out of these bytes.")
 
 
 def main():
