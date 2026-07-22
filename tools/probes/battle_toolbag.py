@@ -192,6 +192,49 @@ def cmd_bench(slot, secs):
     print("EYEBALL: did their turn never come while others acted? That is the AT-list read.")
 
 
+def cmd_warp(slot, x, y, force=False):
+    """Teleport to an ARBITRARY tile, including one the guards would normally refuse. Exists to
+    answer the question every other verb dodges: what does the engine do when a unit is placed
+    somewhere it should not be? Uses the live-proven triple-write (combat logic tile, node AI
+    tile key, node world X/Y) and leaves Z alone, so a height difference renders floated or sunk
+    until the engine re-stamps.
+
+    Guards kept even under --force, because both are known to ruin a battle rather than teach us
+    anything: never the current actor, never a tile another unit already holds (co-tiling causes
+    target shadowing plus the movement soft-lock, proven live). Everything else is allowed:
+    off-map coordinates, walls, void, whatever the map does not actually contain.
+
+    PRE-REGISTERED OUTCOMES: renders and acts normally = tiles are just coordinates and placement
+    is unconstrained; renders but cannot move or be pathed to = placed and stranded (a reserve
+    trick with a cost); renders at a silly height = the known Z gap; hard freeze or crash = a
+    hazard worth a ledger row and a guard everywhere else. THROWAWAY BATTLE."""
+    node = require_fielded(slot)
+    if acting(slot):
+        print("that unit's turn is OPEN; warping the current actor is refused.")
+        sys.exit(1)
+    c = combat_of(slot)
+    here = (ru8(c + 0x4F), ru8(c + 0x50))
+    other = occupant_of((x, y), slot)
+    if other is not None:
+        print(f"({x},{y}) is held by slot {other}; refused even under --force (co-tile soft-lock).")
+        sys.exit(1)
+    if not force and not (0 <= x <= 30 and 0 <= y <= 30):
+        print(f"({x},{y}) is outside the sane tile range; pass --force to do it anyway.")
+        sys.exit(1)
+    print(f"slot {slot}: {here} -> ({x},{y}). Z untouched, so expect a height error if the "
+          f"ground differs. Restore afterwards with: warp {slot} {here[0]} {here[1]}")
+    if input("WARP? (y/n) ").strip().lower() != "y":
+        print("aborted.")
+        return
+    wu8(c + 0x4F, x & 0xFF); wu8(c + 0x50, y & 0xFF)
+    wu8(node + 0x88, x & 0xFF); wu8(node + 0x89, y & 0xFF)
+    wu16(node + 0x4C, (28 * x + 14) & 0xFFFF)
+    wu16(node + 0x50, (28 * y + 14) & 0xFFFF)
+    print(f"warped. logic=({ru8(c + 0x4F)},{ru8(c + 0x50)}) "
+          f"world=({ru16(node + 0x4C)},{ru16(node + 0x50)})")
+    print("EYEBALL: does it render there? can the cursor reach it? does it still take turns?")
+
+
 def cmd_hide(slot, vanish=False, page=VANISH_PAGE):
     """--vanish adds the missing half of a real disappearing act (owner's idea, 2026-07-22).
     The gate byte removes a unit from LOGIC only: untargetable, unhoverable, no turns, AI blind
@@ -324,6 +367,8 @@ def main():
     _require_game()
     a = sys.argv[1:]
     vanish = "--vanish" in a
+    force = "--force" in a
+    a = [x for x in a if x != "--force"]
     page = VANISH_PAGE
     if "--page" in a:
         i = a.index("--page")
@@ -344,6 +389,8 @@ def main():
         cmd_hide(int(a[1]), vanish, page)
     elif cmd == "show" and len(a) >= 2:
         cmd_show(int(a[1]))
+    elif cmd == "warp" and len(a) >= 4:
+        cmd_warp(int(a[1]), int(a[2]), int(a[3]), force)
     elif cmd == "float" and len(a) >= 3:
         cmd_float(int(a[1]), int(a[2]))
     elif cmd == "reserve" and len(a) >= 2:
