@@ -25,8 +25,8 @@ bit 0x20 (the decoded force bit for overriding a critical unit's selector). Rest
     python tools\\probes\\anim_poke_probe.py watch <slot> [s]   # healthy-baseline watch, no writes
     python tools\\probes\\anim_poke_probe.py poke <slot> <logicalHex> [--force]
     python tools\\probes\\anim_poke_probe.py sweep <slot> [--start H] [--stop H]   # catalog pages
-    python tools\\probes\\anim_poke_probe.py face <slot> <0..7>    # facing byte write only (latches)
-    python tools\\probes\\anim_poke_probe.py turn <slot> <0..3>    # facing + idle request = real turn
+    python tools\\probes\\anim_poke_probe.py face <slot> <0..7>    # +0x7C write (meaning UNKNOWN, latches)
+    python tools\\probes\\anim_poke_probe.py turn <slot> <count>   # request turn PAGE 0x01 count times
     python tools\\probes\\anim_poke_probe.py stop <slot> [secs]    # page 0x00 + CT-pin: the Stop combo
 
 LIVE RESULT 2026-07-21 (owner, first input poke ever fired): PASS by the pre-registered bar,
@@ -198,20 +198,27 @@ def cmd_face(slot, value):
     print("EYEBALL: did the unit turn? value kept = input; value re-stamped = output, try pairing with a page poke.")
 
 
-def cmd_turn(slot, facing):
-    """Facing, done right (live-learned 2026-07-21): +0x7C is a request-time PARAMETER, not a
-    live input. The owner's face pokes sat latched with no visible turn until the stop combo's
-    page request consumed the leftover value and the unit swung to face the camera (facing 1).
-    So: write facing, then request the idle page to carry it. Map the value space with 0..3."""
+def cmd_turn(slot, count):
+    """RETRACTED THEORY, corrected mechanism (2026-07-21, same evening). v1 of this command
+    treated +0x7C as a request-time facing parameter; the owner falsified it live (facing +
+    idle page, several values, zero turns) and the stop combo's camera-stare reproduced with
+    DIFFERENT leftover facing state, so that stare is just what page 0x00 looks like. +0x7C's
+    meaning is back on the unknown pile; the decoder's 'facing' label was a guess.
+
+    The REAL turn mechanism was already in the owner's sweep catalog: turning is done by PAGES
+    (0x01 'turn to the right/east', 0x02 'turn north-east'). This command requests page 0x01
+    <count> times, 0.6s apart, to settle absolute-vs-relative: units that keep rotating right
+    prove RELATIVE (four requests walk the compass); a single snap east that repeats prove
+    ABSOLUTE (the other directions hide elsewhere)."""
     node = node_of(slot)
     if not node:
         print("unit not noded; aborting.")
         sys.exit(1)
-    wu8(node + FACING, facing & 0xFF)
-    wu16(node + REQ, 3 + 1)          # idle page request carries the facing parameter
-    time.sleep(0.5)
-    print(f"slot {slot}: facing {facing} + idle page requested. EYEBALL: which way do they face now?")
-    print("(known so far: 1 = toward the camera)")
+    for i in range(count):
+        wu16(node + REQ, 0x01 + 1)
+        time.sleep(0.6)
+        print(f"  request {i + 1}/{count} sent")
+    print("EYEBALL: kept rotating right = RELATIVE pages; snapped east once and held = ABSOLUTE.")
 
 
 def cmd_stop(slot, seconds):

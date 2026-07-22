@@ -56,6 +56,19 @@ the technical detail lives in the indented lines under it.
     a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 ## Backlog
 
+- [LW-115] 2026-07-21: The Stop combo works as theater and is one owner observation short of
+  being a mechanic: nobody has yet confirmed the frozen unit is SKIPPED IN THE TURN ORDER.
+  The combo (animation page 0x00, the camera-facing freeze, plus the proven CT byte held at 0)
+  ran live twice 2026-07-21 and froze the unit both times; the owner explicitly asked not to
+  be allowed to forget the missing half. The observation: run anim_poke_probe.py stop for 20
+  to 30 seconds while turns are actually flowing (not sitting on a menu, CT read 0 both runs
+  because the clock was frozen on the owner's open menu) and watch whether the held unit's
+  turn never comes while others act around them. Yes = the first composed mechanic of the
+  animation family is real and a Time Mage style signature can be designed on it. Facing note
+  banked with it: the +0x7C "facing parameter" theory was falsified live the same evening
+  (facing plus idle page = no turn, several values); turning is done by PAGES (catalog 0x01
+  east, 0x02 north east), absolute versus relative still unsettled via the probe's turn
+  command.
 - [LW-114] 2026-07-21: Finish mapping the animation flipbooks: one sweep per sprite class so
   every signature can pick its pages by fact instead of folklore.
   The time mage sweep (tools/probes/anim_catalog.jsonl, all 128 pages owner labeled) proved the
