@@ -306,6 +306,59 @@ def cmd_status(slot, name, on, layers="both"):
           "below it is re-ORing, which is the model working.")
 
 
+def cmd_status_sweep(slot, secs=6.0):
+    """THE STATUS SWEEP: the animation catalog treatment for statuses.
+
+    Applies each never-exercised bit one at a time, waits, asks what happened, clears it, moves
+    on. Appends one JSON line per status to status_catalog.jsonl next to this probe (append per
+    entry, so a crash or a freeze loses nothing already labeled).
+
+    SKIPPED, deliberately: the two ids with crash tapes (crystal is permanent unit loss, treasure
+    crashed the game outright), the engine-owned action states (charging, jump) whose write
+    desyncs an action, dead (it crashed the engine when set away from the unit's turn), and the
+    contested/walled pair (invite, charm) whose companion bytes three sources disagree about.
+    Those are not sweep material; they are individually-designed experiments.
+
+    PROTOCOL, learned from the animation sweep: sit on your own unit's OPEN MENU so the clock is
+    frozen and the guinea pig cannot act mid-question, and sweep an ENEMY. Enter = nothing
+    visible, s = skip, q = quit (the resume hint names the status you stopped on, not the next)."""
+    import json
+    require_fielded(slot)
+    band = combat_of(slot) + BAND
+    who = input(f"sweeping slot {slot}: what unit is this (job/monster)? ").strip()
+    if not who:
+        print("a unit description is required; statuses may well behave per job. Aborting.")
+        return
+    skip = status_map.REFUSE | status_map.CONFIRM
+    todo = [n for n, (sid, tier, hz) in status_map.STATUSES.items()
+            if n not in skip and tier in ("M", "O")]
+    out_path = pathlib.Path(__file__).resolve().parent / "status_catalog.jsonl"
+    run_id = time.strftime("%Y%m%d_%H%M%S")
+    print(f"{len(todo)} statuses to sweep -> {out_path}")
+    print("Enter = nothing visible, s = skip, q = quit")
+    for name in todo:
+        e = status_map.lookup(name)
+        for label_, addr in (("c", band + e["composed"]), ("i", band + e["inflicted"])):
+            v = ru8(addr)
+            if v is not None:
+                wu8(addr, v | e["mask"])
+        time.sleep(secs)
+        label = input(f"  {name} (id {e['id']}) -> what happened? ").strip()
+        for label_, addr in (("c", band + e["composed"]), ("i", band + e["inflicted"])):
+            v = ru8(addr)
+            if v is not None:
+                wu8(addr, v & ~e["mask"] & 0xFF)
+        if label.lower() == "q":
+            print(f"stopped; resume by sweeping again and skipping past {name}.")
+            break
+        if label.lower() == "s":
+            continue
+        with open(out_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"unit": who, "run": run_id, "slot": slot, "status": name,
+                                "id": e["id"], "label": label or "none"}) + chr(10))
+    print("sweep done; every bit set by this sweep was cleared after its question.")
+
+
 def cmd_warp(slot, x, y, force=False):
     """Teleport to an ARBITRARY tile, including one the guards would normally refuse. Exists to
     answer the question every other verb dodges: what does the engine do when a unit is placed
@@ -512,6 +565,8 @@ def main():
             f, hx = a[3].split(":"); cmd_rsm_restore(int(a[1]), f, hx)
         else:
             cmd_rsm(int(a[1]), a[2] if len(a) > 2 else None)
+    elif cmd == "sweep" and len(a) >= 2:
+        cmd_status_sweep(int(a[1]), float(a[2]) if len(a) > 2 else 6.0)
     elif cmd == "status" and len(a) >= 4:
         cmd_status(int(a[1]), a[2], a[3].lower() in ("on", "1", "true"), layers)
     elif cmd == "warp" and len(a) >= 4:
