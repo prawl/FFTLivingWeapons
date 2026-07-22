@@ -29,11 +29,21 @@ TWO MORE CELLS, decoded live 2026-07-22 after name-and-caption alone rendered NO
 status is not enough to display it; two other columns gate that, and they were found by diffing a
 row the game shows against a row it does not:
 
-  Unknown14  the DISPLAY FLAG. 0 = never rendered, which is why our mark and `Performing` stayed
-             invisible no matter what text they carried. Every status the game actually shows
-             carries 1 or 2; the ordinary named statuses all use 2.
-  Unknown20  the ICON INDEX, where -1 means no icon. Observed values: KO 20, Stop 29, Immobilize
-             30, Berserk 33, Performing 54, Wall 102.
+  Unknown14  the DISPLAY CATEGORY, and it gates rendering entirely. 0 = never rendered, which is
+             why our mark and `Performing` stayed invisible no matter what text they carried.
+             1 = the buff group, 2 = the debuff group.
+  Unknown20  the ICON INDEX, where -1 means no icon. The index space is ORGANISED BY CATEGORY and
+             each block is fully occupied: the U14=1 buffs use 1..10 (Protect 1, Shell 2, Regen 3,
+             Reraise 4, Haste 5, Float 6, Reflect 7, Faith 8, Atheist 9, Invisibility 10) and the
+             U14=2 debuffs use 20..39 (KO 20 through Doom 39). Values outside a category's own
+             block do not resolve FOR that category: 102 renders under U14=1 and draws nothing
+             under U14=2, observed live 2026-07-22 on a unit whose overhead icons visibly cycled
+             between Protect and a blank slot.
+
+That is why this row is filed as a buff (U14=1) despite being a debuff in fiction: 102 is the only
+icon art available that no other status uses, and it only resolves in the buff category. The two
+occupied blocks have no free indices at all, so a debuff-category icon would have to be shared with
+a real status, which is exactly the confusion this avoids.
 
 `Type` is NOT the gate and is deliberately still not written: Key 1, Key 21 Berserk and Key 32 Wall
 are all Type 0, yet two of them render and one did not. Whatever Type selects, it is not visibility.
@@ -86,8 +96,8 @@ PATCHES = {
         "Name": "Provoked",
         "Caption": "The unit has been goaded into a fury and sees nothing but the one who "
                    "called it out.",
-        "Unknown14": 2,      # display flag: 0 never renders; the ordinary named statuses use 2
-        "Unknown20": 102,    # icon index: -1 is none; 102 is Wall's art, unused in normal play
+        "Unknown14": 1,      # display category: 0 never renders; 1 = buff group, 2 = debuff group
+        "Unknown20": 102,    # icon index: Wall's art, unused in play, and it resolves only under U14=1
     },
 }
 
