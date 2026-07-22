@@ -56,6 +56,18 @@ the technical detail lives in the indented lines under it.
     a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 ## Backlog
 
+- [LW-116] 2026-07-22: Knockback: we can already teleport a unit, but a real shove (the Rush
+  effect) is three lanes of work and none has run yet; the probe is armed for two of them.
+  Lane 1, in the bag pending an eyeball: shove = the owner's cataloged flinch-with-displacement
+  page (0x37/0x38) plus the proven teleport triple-write, occupancy refused, Z left to the
+  engine's own re-stamp (knockback_probe.py v2; v1 from June predates the render crack and rode
+  the dead ct_probe harness). Lane 2, a pure table experiment nobody has tried: assign a Dash
+  family formula id to a test weapon and see whether hits push natively; v1's durable note
+  applies, proc rates are Denuvo locked so the native rate is the rate. Lane 3, the discovery:
+  run knockback_probe.py watch on a victim while the owner Rushes them for real, hunting any
+  field that changes BEFORE the world coords start marching; that would be the engine's own
+  shove ORDER, the animation register shape again, and lane 1 retires. Wanted on the same tape:
+  one plain walk and one non knockback hit for contrast.
 - [LW-115] 2026-07-21: The Stop combo works as theater and is one owner observation short of
   being a mechanic: nobody has yet confirmed the frozen unit is SKIPPED IN THE TURN ORDER.
   The combo (animation page 0x00, the camera-facing freeze, plus the proven CT byte held at 0)

@@ -1,114 +1,181 @@
-#!/usr/bin/env python
+"""KNOCKBACK, both lanes (LW-116): the composed imitation we can run today, and the watcher
+that hunts the engine's own shove order during a REAL in-game Rush.
+
+v2, 2026-07-22: full rewrite. v1 (2026-06-09, in git history) predates the render-position
+crack, wrote only the band/static gx/gy mirrors, and rode the ct_probe harness that LW-93
+records as dead on 1.5.1. One durable v1 fact carried forward: may-cast PROC RATES are a
+Denuvo-locked engine byte, so the data lane (granting a knockback-carrying formula to a
+weapon) procs at whatever native rate rides the formula, never a rate we choose.
+
+LANE 1, shove: the staged imitation from proven parts. Play a flinch-with-displacement page
+first (the owner's sweep cataloged 0x37 'pushed to the left then froze' and 0x38 its
+other-direction sibling; which page matches which push vector is UNMAPPED, so --page exists),
+then move the victim one tile via the live-proven teleport triple-write (combat logic tile,
+node AI tile key, node world; swap_units.py is the crib source and the proof). Guards: refuses
+a mid-move unit (layers disagree), refuses an OCCUPIED destination (co-tiled units = target
+shadowing + movement soft-lock, proven live). Height caveat: destination tile height is
+unknowable from here, so world Z is left untouched; on a height change the unit renders
+floated/sunk until the engine re-stamps at its next move or turn-open (visual only,
+self-heals). Do not shove the current actor.
+
+LANE 2 is not in this file: it is a TABLE experiment (assign a Dash-family formula id to a
+test weapon, restart, watch whether hits push natively). See docs/TODO.md LW-116.
+
+LANE 3, watch: the differential tape. Samples the victim's position cluster and the
+unexplored node neighborhoods at high rate and prints CHANGES only (the probe-tape habit),
+tee'd to a jsonl in %TEMP%. Run it while the owner Rushes the watched unit for real.
+PRE-REGISTERED HUNT: any field that changes BEFORE the world coords (n+0x4c/n+0x50) start
+marching is a candidate INPUT (a destination tile or displacement order the mover then
+executes); find one and knockback becomes write-the-order, the animation-register shape, and
+Lane 1 retires. Wanted on the same session for contrast: one plain walk of the victim (the
+mover's ordinary lerp signature) and one non-knockback hit (flinch without displacement).
+
+    python tools\\probes\\knockback_probe.py table                       # slots + tiles
+    python tools\\probes\\knockback_probe.py shove <slot> <dx> <dy> [--page H]
+    python tools\\probes\\knockback_probe.py watch <slot> [secs]
 """
-Knockback probe -- can we WRITE a unit's grid position and have the engine
-accept it? (The 'guaranteed knockback' question. Data path is walled: proc
-rate is the Denuvo-locked engine byte, so may-cast Rush ~25% is the data
-ceiling; a position write is the only guaranteed path.)
-
-Band-copy grid position: gx=+0x33, gy=+0x34 (u8 each; the twin-filter reads
-these, so READS are proven -- writes are NOT, that's this probe).
-
-RUN THIS IN A THROWAWAY BATTLE. Outcomes to watch after a write:
-  - sprite visibly relocates + unit acts from the new tile  -> FEASIBLE
-  - bytes revert instantly                                  -> band is a mirror;
-        try 'which=static' / hunt the real position struct
-  - sprite stays, engine uses new tile (desync)             -> infeasible as-is
-  - anything weird (stuck cursor, frozen AI)                -> infeasible; restart
-
-USAGE (game running, battle live):
-  python ct_probe.py dump                                  # target mhp/lvl
-  python knockback_probe.py pos  <mhp> <lvl>               # read gx/gy both copies
-  python knockback_probe.py push <mhp> <lvl> <dx> <dy> [band|static|both]
-        # one-shot gx+=dx, gy+=dy, then streams the bytes for 12s so you can
-        # watch accept/revert. Prints the restore command before writing.
-  python knockback_probe.py setpos <mhp> <lvl> <x> <y> [band|static|both]
-RPM/WPM only -- cannot crash the game (the ENGINE might dislike the value;
-that result is the answer, not a bug).
-"""
+import json
 import os
+import pathlib
+import struct
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ct_probe import (PROC, PV_W, find_pid, k32, rd, u16, wr)
-from poison_probe import locate_blocking, band_ok
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from battle_cheats import rpm, ru8, ru16, wu8, wu16, _require_game
 
-GX, GY = 0x33, 0x34
-
-
-def read_pos(h, base):
-    b = rd(h, base + GX, 2)
-    return (b[0], b[1]) if b else (None, None)
+UNITS = 0x141853CE0
+HEAD = 0x140D3A410
+REQ = 0x10            # anim request register (input poke PASSED live 2026-07-21)
+FLINCH_PUSHED = 0x37  # owner catalog: 'pushed to the left then froze'; 0x38 = other direction
 
 
-def cmd_pos(h, mhp, lvl):
-    u = locate_blocking(h, mhp, lvl)
-    for name, base in (("static", u["static"]), ("band", u["band"])):
-        x, y = read_pos(h, base)
-        print(f"{name:8} @{base:012X}  gx={x} gy={y}")
+def u64(a):
+    b = rpm(a, 8)
+    return None if b is None else struct.unpack("<Q", b)[0]
 
 
-def targets(u, which):
-    return {"band": [("band", u["band"])],
-            "static": [("static", u["static"])],
-            "both": [("band", u["band"]), ("static", u["static"])]}[which]
+def node_of(slot):
+    cur = u64(HEAD)
+    for _ in range(64):
+        if not cur:
+            return None
+        if u64(cur + 0x148) == UNITS + slot * 0x200:
+            return cur
+        cur = u64(cur)
+    return None
 
 
-def write_and_watch(h, u, mhp, lvl, nx, ny, which):
-    for name, base in targets(u, which):
-        ox, oy = read_pos(h, base)
-        print(f"{name}: ({ox},{oy}) -> ({nx},{ny})   "
-              f"[restore: setpos {mhp} {lvl} {ox} {oy} {name}]")
-        wr(h, base + GX, bytes([nx & 0xFF]))
-        wr(h, base + GY, bytes([ny & 0xFF]))
-    print("\nwatching both copies for 12s (does the engine accept, revert, or re-derive?)")
-    t0 = time.time()
-    last = {}
-    while time.time() - t0 < 12:
-        if not band_ok(h, u["band"], mhp, lvl):
-            print("  band struct moved (reloc/death?) -- stopping watch")
+def tiles_in_use():
+    """Every noded unit's logic tile, for the occupancy refusal."""
+    out = {}
+    cur = u64(HEAD)
+    for _ in range(64):
+        if not cur:
             break
-        for name, base in (("band", u["band"]), ("static", u["static"])):
-            x, y = read_pos(h, base)
-            if last.get(name) != (x, y):
-                print(f"  t={time.time() - t0:5.1f}s  {name:8} gx={x} gy={y}")
-                last[name] = (x, y)
-        time.sleep(0.1)
-    print("watch over. VERDICT IS VISUAL: did the sprite move / does the unit "
-          "act from the new tile / can you target it there?")
+        c = u64(cur + 0x148)
+        off = (c or 0) - UNITS
+        if c and 0 <= off < 21 * 0x200 and off % 0x200 == 0:
+            out[(ru8(c + 0x4F), ru8(c + 0x50))] = off // 0x200
+        cur = u64(cur)
+    return out
+
+
+def cmd_table():
+    for (x, y), s in sorted(tiles_in_use().items(), key=lambda kv: kv[1]):
+        print(f"slot {s:>2}  tile ({x},{y})")
+
+
+def cmd_shove(slot, dx, dy, page):
+    if abs(dx) > 1 or abs(dy) > 1 or (dx == 0 and dy == 0):
+        print("dx/dy each in -1..1 and not both zero; one tile per shove.")
+        sys.exit(1)
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    c = UNITS + slot * 0x200
+    gx, gy = ru8(c + 0x4F), ru8(c + 0x50)
+    tx, ty = ru8(node + 0x88), ru8(node + 0x89)
+    if (gx, gy) != (tx, ty):
+        print(f"layers disagree ({gx},{gy}) vs ({tx},{ty}): unit mid-move, refusing.")
+        sys.exit(1)
+    nx, ny = gx + dx, gy + dy
+    occ = tiles_in_use()
+    if (nx, ny) in occ:
+        print(f"destination ({nx},{ny}) occupied by slot {occ[(nx, ny)]}: refusing (co-tile soft-lock).")
+        sys.exit(1)
+    print(f"slot {slot}: ({gx},{gy}) -> ({nx},{ny}), flinch page {page:#04x} first")
+    if input("SHOVE? (y/n) ").strip().lower() != "y":
+        print("aborted.")
+        return
+    wu16(node + REQ, (page + 1) & 0xFFFF)           # stagger theater first
+    time.sleep(0.15)                                # let the flinch start reading
+    wu8(c + 0x4F, nx & 0xFF); wu8(c + 0x50, ny & 0xFF)                # logic tile
+    wu8(node + 0x88, nx & 0xFF); wu8(node + 0x89, ny & 0xFF)          # AI tile key (layer byte kept)
+    wu16(node + 0x4C, 28 * nx + 14); wu16(node + 0x50, 28 * ny + 14)  # world X/Y; Z untouched
+    print("shoved. EYEBALL: staggered back one tile? A height change renders floated/sunk "
+          "until their next move/turn re-stamp (visual only).")
+
+
+# Watch regions: (base_kind, start, length). Combat covers the logic tile + CT neighborhood;
+# the node spans cover the request register, the world transform, the tile key, the mode word,
+# and the output block, PLUS the unexplored gaps between them; the hunt lives in the gaps.
+REGIONS = [("c", 0x40, 0x20), ("n", 0x00, 0xB0), ("n", 0x120, 0x30), ("n", 0x420, 0x08)]
+
+
+def cmd_watch(slot, secs):
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    c = UNITS + slot * 0x200
+    base = {"c": c, "n": node}
+    tape_path = pathlib.Path(os.environ.get("TEMP", ".")) / f"knockback_watch_{time.strftime('%H%M%S')}.jsonl"
+    tape = open(tape_path, "a", encoding="utf-8")
+    print(f"slot {slot} combat 0x{c:X} node 0x{node:X}: watching {secs:.0f}s, changes only")
+    print(f"tape: {tape_path}")
+    prev = {}
+    t0 = time.time()
+    sweeps = 0
+    try:
+        while time.time() - t0 < secs:
+            for kind, start, length in REGIONS:
+                buf = rpm(base[kind] + start, length)
+                if buf is None:
+                    continue
+                old = prev.get((kind, start))
+                if old is not None and buf != old:
+                    for i, (a, b) in enumerate(zip(old, buf)):
+                        if a != b:
+                            rec = {"t": round(time.time() - t0, 4),
+                                   "at": f"{kind}+{start + i:#05x}", "old": a, "new": b}
+                            print(f"  +{rec['t']:8.4f}s {rec['at']}: {a:#04x} -> {b:#04x}")
+                            tape.write(json.dumps(rec) + "\n")
+                prev[(kind, start)] = buf
+            sweeps += 1
+    except KeyboardInterrupt:
+        print("stopped early by Ctrl+C.")
+    tape.close()
+    print(f"done: {sweeps} sweeps in {time.time() - t0:.0f}s (~{sweeps / max(time.time() - t0, 1):.0f} Hz). "
+          f"Tape kept at {tape_path}")
+    print("HUNT: fields changing BEFORE n+0x4c/n+0x50 start marching = candidate shove ORDER.")
 
 
 def main():
-    a = sys.argv
-    mode = a[1] if len(a) > 1 else ""
-    if mode not in ("pos", "push", "setpos"):
+    _require_game()
+    argv = sys.argv[1:]
+    page = FLINCH_PUSHED
+    if "--page" in argv:
+        i = argv.index("--page"); page = int(argv[i + 1], 16); del argv[i:i + 2]
+    if argv and argv[0] == "table":
+        cmd_table()
+    elif len(argv) >= 4 and argv[0] == "shove":
+        cmd_shove(int(argv[1]), int(argv[2]), int(argv[3]), page)
+    elif len(argv) >= 2 and argv[0] == "watch":
+        cmd_watch(int(argv[1]), float(argv[2]) if len(argv) > 2 else 45.0)
+    else:
         print(__doc__)
-        return
-    pid = find_pid(PROC)
-    if not pid:
-        print(f"{PROC} not running")
-        return
-    h = k32.OpenProcess(PV_W, False, pid)
-    if not h:
-        print("OpenProcess failed")
-        return
-    try:
-        mhp, lvl = int(a[2]), int(a[3])
-        if mode == "pos":
-            cmd_pos(h, mhp, lvl)
-            return
-        u = locate_blocking(h, mhp, lvl)
-        which = (a[6] if len(a) > 6 else "band").lower()
-        if mode == "push":
-            bx, by = read_pos(h, u["band"])
-            if bx is None:
-                print("can't read band position")
-                return
-            write_and_watch(h, u, mhp, lvl, bx + int(a[4]), by + int(a[5]), which)
-        else:
-            write_and_watch(h, u, mhp, lvl, int(a[4]), int(a[5]), which)
-    finally:
-        k32.CloseHandle(h)
 
 
 if __name__ == "__main__":
