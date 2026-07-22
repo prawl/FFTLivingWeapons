@@ -279,6 +279,69 @@ def cmd_order(slot, dx, dy, kick=False):
           "slid without the logic tile committing = DESYNC.")
 
 
+# The ENTIRE order burst the engine wrote at t=12.2468, in tape order, minus the two outputs.
+# Rounds 1 and 2 replayed three of these fourteen fields and concluded the lane was dead, which
+# was premature: n+0xA8 goes 0 -> 1 at the order and 1 -> 0 at completion, which is an
+# is-moving flag, and the LW-58 spawn arc failed the same way until its one enrollment byte was
+# written. n+0x423 is excluded (the animation phase OUTPUT block, proven to re-stamp) and the
+# destination is filled in per call.
+ORDER_BURST = [
+    (0x012, 0x1A),   # movement mode: 0x04 rest, 0x0D walk, 0x1A forced
+    (0x035, 0x80), (0x036, 0xFF), (0x037, 0xFF),   # interpolation scratch (0xFFFF sentinels)
+    (0x045, 0x80),
+    (0x05E, 0xFF), (0x05F, 0xFF),
+    (0x08B, 0x07),   # step/phase counter
+    (0x0A4, 0x01),
+    (0x0A9, 0x40),
+    (0x128, 0x40),
+]
+ACTIVE_FLAG = 0x0A8  # 0 -> 1 at the order, 1 -> 0 at completion: written LAST as the trigger
+
+
+def cmd_full(slot, dx, dy):
+    """ROUND 3: replay the engine's WHOLE order, not a sample of it.
+
+    PRE-REGISTERED OUTCOMES:
+      PASS ....... the unit slides and the engine commits the current tile and the combat logic
+                   tile by itself. The mover takes our order; knockback becomes a write.
+      PARTIAL .... it moves but something is left inconsistent (tile committed, flag stuck, or
+                   the unit cannot act afterwards). Note WHICH field stayed wrong; that names the
+                   next variable.
+      INERT ...... everything sticks and nothing moves, same as rounds 1 and 2. Then the trigger
+                   genuinely lives outside this node, and the honest next step is a global
+                   differential diff during a real move (hunting an enrollment list, the shape
+                   that cracked LW-58) rather than more field archaeology here.
+    Throwaway battle. Never the current actor. Ending the battle clears any wedge; `clear` resets
+    the fields this writes."""
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    c, nx, ny = _validate(slot, node, dx, dy)
+    print(f"slot {slot}: ({ru8(c + 0x4F)},{ru8(c + 0x50)}) -> ({nx},{ny})")
+    print(f"write plan: {len(ORDER_BURST) + 3} fields, the engine's full order, with the "
+          f"is-moving flag +0x{ACTIVE_FLAG:02X} written LAST as the trigger.")
+    print("RISK: this drives a state machine with twelve fields. Throwaway battle only.")
+    if input("FULL ORDER? (y/n) ").strip().lower() != "y":
+        print("aborted.")
+        return
+    for off, val in ORDER_BURST:
+        wu8(node + off, val)
+    wu8(node + DEST_X, nx & 0xFF)
+    wu8(node + DEST_Y, ny & 0xFF)
+    wu8(node + ACTIVE_FLAG, 0x01)               # the go signal, last
+    last = 0.0
+    for dt in (0.05, 0.15, 0.3, 0.6, 1.2, 2.0):
+        time.sleep(dt - last); last = dt
+        print(f"  +{dt:4.2f}s dest=({ru8(node + DEST_X)},{ru8(node + DEST_Y)}) "
+              f"cur=({ru8(node + 0x88)},{ru8(node + 0x89)}) "
+              f"logic=({ru8(c + 0x4F)},{ru8(c + 0x50)}) mode={ru8(node + MOVE_MODE):#04x} "
+              f"step={ru8(node + STEP):#04x} active={ru8(node + ACTIVE_FLAG):#04x} "
+              f"worldX={ru16(node + 0x4C)}")
+    print("VERDICT: logic tile moved = PASS. Moved but something inconsistent = PARTIAL, say which "
+          "field. Nothing moved = INERT, and the trigger lives outside this node.")
+
+
 def cmd_clear(slot):
     """Undo a half-written order. `order` writes a destination that nothing consumes, which
     leaves the unit looking mid-move to this probe's own validator (and possibly to anything
@@ -314,6 +377,8 @@ def main():
         cmd_shove(int(argv[1]), int(argv[2]), int(argv[3]), page)
     elif len(argv) >= 2 and argv[0] == "watch":
         cmd_watch(int(argv[1]), float(argv[2]) if len(argv) > 2 else 45.0)
+    elif len(argv) >= 4 and argv[0] == "full":
+        cmd_full(int(argv[1]), int(argv[2]), int(argv[3]))
     elif len(argv) >= 2 and argv[0] == "clear":
         cmd_clear(int(argv[1]))
     elif len(argv) >= 4 and argv[0] == "order":
