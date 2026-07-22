@@ -103,7 +103,7 @@ public class ProofClaimContractTests
         { "LivingWeapon/AttackRow.cs", 1 },
         { "LivingWeapon/Band.cs", 4 },
         { "LivingWeapon/Barrage.Policy.cs", 3 },
-        { "LivingWeapon/BodyDoubleSpike.cs", 2 },
+        { "LivingWeapon/BodyDoubleSpike.cs", 13 },
         { "LivingWeapon/CharmLock.cs", 1 },
         { "LivingWeapon/CtTurns.cs", 1 },
         { "LivingWeapon/EagleEye.cs", 1 },
@@ -145,9 +145,9 @@ public class ProofClaimContractTests
         { "docs/CHANGELOG.md", 25 },
         { "docs/DESIGN.md", 1 },
         { "docs/DEV_TEST_RECIPES.md", 2 },
-        { "docs/MECHANICS.md", 9 },
+        { "docs/MECHANICS.md", 20 },
         { "docs/RELEASE_SCOPE.md", 7 },
-        { "docs/TODO.md", 1 },
+        { "docs/TODO.md", 6 },
         { "docs/VERIFY_LIVE.md", 3 },
     };
 
