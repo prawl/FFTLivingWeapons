@@ -36,6 +36,16 @@ virtual address is known independently from LivingWeapon/Barrage.cs:43 (0x14067E
 first ability byte; the rec-8 signature that located it lives at 0x14067E2DB).  0x67D6DB + delta =
 0x14067E2DB gives delta = 0x140000C00, which the PE section table corroborates.
 
+THE DECOY (read this before trusting any verdict here)
+------------------------------------------------------
+The action table exists TWICE, back to back.  The file-offset arithmetic above lands on the FIRST
+copy, and the engine reads the SECOND, one table length (368 x 20 = 0x1CC0) later.  Both copies
+hold identical data, so every check this probe performs -- row sentinels, MP anchors, the negative
+control -- passes at BOTH.  A verdict of CONFIRMED therefore means "a real action table is here",
+not "this is the table the engine reads".  Only an edit distinguishes them, and that cost a live
+cycle on 2026-07-22.  Defaults now point at the live copy (ACTION_VA); the decoy stays named as
+ACTION_DECOY_VA so `verify` can show it passing and make the point unmissable.
+
 Verbs
 -----
   python tools\\probes\\ability_table_probe.py verify
@@ -79,10 +89,19 @@ FILE_TO_VA = 0x140000C00
 
 # The ability ACTION table: 368 rows of 20 bytes. File offset found offline 2026-07-22.
 ACTION_FILE_OFF = 0x788A1C
-ACTION_VA = ACTION_FILE_OFF + FILE_TO_VA          # 0x14078961C
 ACTION_ROWS = 368
 ACTION_STRIDE = 20
 ROW_SENTINEL = b"\xff\xff\xff\xff"                 # bytes 0..3 of every action row
+
+# THERE ARE TWO COPIES OF THIS TABLE, BACK TO BACK, AND ONLY ONE OF THEM IS READ.
+# The offline file-offset scan finds the FIRST copy. Writes to it land, read back perfectly, and
+# change nothing in game (found live 2026-07-22, after an edit that verified clean did nothing).
+# The engine reads the SECOND copy, exactly one table length later. Both hold identical data, so
+# no sentinel check, no MP anchor and no read-back can tell them apart: only an EDIT can.
+# Every default in this file therefore aims at the live copy. The decoy is kept named, not
+# deleted, because `verify` deliberately demonstrates that it passes every check too.
+ACTION_DECOY_VA = ACTION_FILE_OFF + FILE_TO_VA     # 0x14078961C -- accepted writes, engine ignores
+ACTION_VA = ACTION_DECOY_VA + ACTION_ROWS * ACTION_STRIDE   # 0x14078B2DC -- the one that matters
 
 # The inflict-status combination table: 128 rows of 6 bytes, laid out [mode][s0..s4]. The MODE
 # BYTE COMES FIRST. Row N is what an action row's InflictStatus byte (+15) indexes into; s0..s4 are
@@ -396,6 +415,7 @@ def report_ids(mem, names, ids, base=ACTION_VA):
 # --------------------------------------------------------------------------- verbs
 def verb_verify(mem, names):
     print(f"ability action table pin: 0x{ACTION_VA:X}  ({ACTION_ROWS} rows x {ACTION_STRIDE} bytes)")
+    print(f"decoy copy:               0x{ACTION_DECOY_VA:X}  (one table length earlier)")
     print()
     print("ANCHOR CHECKS")
     at_pin = check_anchor(mem, ACTION_VA)
@@ -404,13 +424,24 @@ def verb_verify(mem, names):
     control_base = ACTION_VA + 7
     at_control = check_anchor(mem, control_base)
     print_anchor(f"at pin+7 (control)", at_control)
+    # The decoy is NOT a control: it is expected to PASS. Printing it is the whole point -- it is
+    # the standing reminder that these checks cannot identify which copy the engine reads.
+    at_decoy = check_anchor(mem, ACTION_DECOY_VA)
+    print_anchor("at the decoy    ", at_decoy)
     print()
 
     pin_ok = anchor_passes(at_pin)
     control_ok = anchor_passes(at_control)
+    if anchor_passes(at_decoy):
+        print("NOTE: the decoy copy passes every check as well, exactly as expected. That is not a")
+        print("      failure, it is the trap: structure cannot tell the two copies apart, so the")
+        print(f"      pin must stay at 0x{ACTION_VA:X} and any write aimed here must say why.")
+        print()
     if pin_ok and not control_ok:
-        print("VERDICT: CONFIRMED. The offline decode describes the live process, and the checks")
-        print("         are not vacuous (they fail 7 bytes away).")
+        print("VERDICT: CONFIRMED. A real action table is at the pin, and the checks are not")
+        print("         vacuous (they fail 7 bytes away). This does NOT by itself prove the engine")
+        print("         reads THIS copy rather than the decoy; only an edit proves that, and the")
+        print("         2026-07-22 live session is what established which one is live.")
     elif pin_ok and control_ok:
         print("VERDICT: NOT CONFIRMED -- the checks passed at the control address too, so they are")
         print("         vacuous and prove nothing. Do not act on the rows below.")
@@ -542,11 +573,18 @@ def selftest():
             fails.append(f"{label}: got {got!r}, want {want!r}")
 
     check("delta anchors on the JobCommand table", 0x67D6DB + FILE_TO_VA, 0x14067E2DB)
-    check("action table VA", ACTION_VA, 0x14078961C)
+    # The file-offset arithmetic yields the DECOY; the live table is one table length later.
+    # Both are pinned so a future edit to either constant has to face this pair deliberately.
+    check("decoy table VA (what the file offset finds)", ACTION_DECOY_VA, 0x14078961C)
+    check("live table VA (what the engine reads)", ACTION_VA, 0x14078B2DC)
+    check("the gap is exactly one table", ACTION_VA - ACTION_DECOY_VA, ACTION_ROWS * ACTION_STRIDE)
     check("inflict table VA", INFLICT_VA, 0x14080FBA0)
     check("inflict row 53 (Berserk)", INFLICT_VA + 53 * INFLICT_STRIDE, 0x14080FCDE)
+    # The authored Provoke row and the byte that points at it, both on the LIVE table.
+    check("authored inflict row 29", INFLICT_VA + 29 * INFLICT_STRIDE, 0x14080FC4E)
+    check("ability 189 inflict byte", action_addr(189) + 15, 0x14078C1AF)
     check("row address of id 0", action_addr(0), ACTION_VA)
-    check("row address of id 360", action_addr(360), 0x14078B23C)
+    check("row address of id 360", action_addr(360), ACTION_VA + 360 * ACTION_STRIDE)
 
     row = decode_row(bytes([0xFF, 0xFF, 0xFF, 0xFF, 3, 0, 0, 1, 0x51, 0x10, 0, 0, 41, 60, 0, 62, 0, 0, 0, 0]))
     check("decode flags", row["flags"], (1, 0x51, 0x10, 0))
