@@ -942,6 +942,7 @@ def cmd_reveal(wielder_slot, delays, per_cell=5, tape_path=None) -> None:
             h_pos = {s: pos(s) for s in hidden}
             open_hp = {}
             sample_hp(open_hp)          # HP at the turn's open, the baseline
+            bits_open = {s: bool((ru8(addr[s] + A_INVIS_OFF) or 0) & A_INVIS_MASK) for s in hidden}
             lows = dict(open_hp)        # running MINIMUM across the window and its settle tail
             released_at_open = set(released)
 
@@ -955,10 +956,13 @@ def cmd_reveal(wielder_slot, delays, per_cell=5, tape_path=None) -> None:
                 if ru8(addr[opened] + A_TURNFLAG) != 1:
                     break                          # turn ended before the deadline
                 time.sleep(0.01)
+            bits_reveal = None
             if cell >= 0:
                 f, ok = hold(False)                # THE REVEAL. Verified, and re-asserted below.
                 reveal_at = (time.time() - t0) * 1000.0
                 reveal_ok = reveal_ok and ok and not f
+                bits_reveal = {s: bool((ru8(addr[s] + A_INVIS_OFF) or 0) & A_INVIS_MASK)
+                               for s in hidden}
 
             # Play the turn out. Keep the reveal asserted; keep sampling minima.
             t_wait = time.time()
@@ -1008,13 +1012,29 @@ def cmd_reveal(wielder_slot, delays, per_cell=5, tape_path=None) -> None:
                 else:
                     verdict = f"NORMAL(hit {hurtset[0]})"
 
+            # OBSERVED BIT STATE, recorded rather than asserted. "Are you applying invis correctly"
+            # is not a question this instrument should answer from its own source code: it reads
+            # the byte back at three moments and prints what it saw. bits_open is the resting hold
+            # at the turn's open, bits_reveal is immediately after the reveal write, bits_end is
+            # after the turn closed and before the next re-hide. Expected shape for a timed cell is
+            # SET -> CLEAR -> CLEAR; for the control cell, SET -> (no reveal) -> SET.
+            bits_end = {s: bool((ru8(addr[s] + A_INVIS_OFF) or 0) & A_INVIS_MASK) for s in hidden}
             label = "control" if cell < 0 else f"{cell:.0f}ms"
             keep = verdict.startswith("REDIRECTED") or verdict.startswith("NORMAL")
             print(f"  seat {opened} [{label}] revealed at "
                   f"{'never' if reveal_at is None else f'{reveal_at:.0f}ms'} -> {verdict}"
                   f"{need_note}{'' if keep else '   [VOID, re-running]'}")
+            def _fmt(b):
+                return "-" if b is None else "".join("H" if b.get(s) else "." for s in sorted(b))
+            print(f"      bits hidden{sorted(hidden)} open={_fmt(bits_open)} "
+                  f"reveal={_fmt(bits_reveal)} end={_fmt(bits_end)}   (H=hidden, .=visible)")
             tape.append({"cell": label, "enemy": opened, "verdict": verdict,
-                         "reveal_ms": reveal_at, "wielder_dist": _cheb(w_pos, e_pos)})
+                         "reveal_ms": reveal_at, "wielder_dist": _cheb(w_pos, e_pos),
+                         "hidden": sorted(hidden),
+                         "bits_open": _fmt(bits_open), "bits_reveal": _fmt(bits_reveal),
+                         "bits_end": _fmt(bits_end),
+                         "hp_open": {str(k): v for k, v in open_hp.items()},
+                         "hp_low": {str(k): v for k, v in lows.items()}})
             if keep:
                 scored[cell].append(verdict)
                 need[cell] -= 1
