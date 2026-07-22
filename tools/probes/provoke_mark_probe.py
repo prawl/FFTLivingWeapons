@@ -19,6 +19,29 @@ The stated posture is "write BOTH layers"; a composed-only write is the orphan-f
 probe deliberately lets you clear EITHER layer alone, because which one actually releases the
 engine's "already has it" refusal is the entire question and guessing costs a cycle.
 
+WHAT IT FOUND, OWNER-RUN 2026-07-22 (the reason the layer switch exists)
+------------------------------------------------------------------------
+Casting Provoke set BOTH layers inside one 33ms sample, so the apply path does write the registry:
+    slot 15  composed  00 00 40 00 00 -> 80 00 40 00 00
+             inflicted 00 00 00 00 00 -> 80 00 00 00 00
+Clearing them one at a time then separated the two roles cleanly:
+    composed alone   stayed clear 3s, and the recast was ALLOWED at 100%
+    inflicted alone  stayed clear 3s, and the recast was still REFUSED
+    both             stayed clear 3s, recast allowed
+So the engine's "this unit already has it" test reads the COMPOSED layer, not the registry. And
+composed is NOT re-derived from inflicted on any timescale this measures: the inflicted bit sat
+set for three seconds while composed stayed clear. That contradicts the "re-derived from
+inflicted" wording above, and it settles the UNRESOLVED TENSION status_map.py's header records
+between that claim and the Proven composed-only poison hold, in the poison hold's favour.
+
+Shipping posture chosen from this: clear BOTH, composed first. Composed is what does the work;
+inflicted goes too because a persistent registry bit left set is residue that may reach a save,
+and it costs one extra guarded byte.
+
+The clear must be MASK SCOPED and this run proved why on its first try: the byte read 0x88, which
+is the mark plus Charging. A whole-byte write would have dropped a mid-charge unit's Charging
+flag, and KillTracker's death detection reads that same byte.
+
 THE MARK is status id 0 -- band +0x45 bit 0x80, inflicted +0x1D3 bit 0x80 (bit math from
 status_map.py: byte = id >> 3, mask = 0x80 >> (id & 7)). Id 0 is the ONE blank slot in the whole
 40-status decode table, which is why it was free to hijack and why tools/probes/status_probe.py's

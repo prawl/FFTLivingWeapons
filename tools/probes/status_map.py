@@ -18,11 +18,21 @@ Write BOTH inflicted and composed, and re-assert on a loop for anything the engi
 Composed-only is the "wasted write to a rebuilt block" mistake, the same class as the animation
 OUTPUT block that cost the anim decode three months.
 
-UNRESOLVED TENSION, stated rather than smoothed over: "composed is rebuilt every frame" is an
-Uncertain row, while the poison hold (composed-only re-OR at 33ms, beating healer cures) is a
-Proven one. Both cannot be literally true at 60Hz. Practical reading: the compose pass is not a
-per-render-frame wipe, so a fast hold on composed does stick. Writing both layers is the safe
-posture, not a nicety.
+TENSION RESOLVED 2026-07-22 (owner-run, tools/probes/provoke_mark_probe.py). It used to read:
+"'composed is rebuilt every frame' is an Uncertain row, while the poison hold (composed-only
+re-OR at 33ms, beating healer cures) is a Proven one; both cannot be literally true at 60Hz."
+A direct measurement settled it in the poison hold's favour. Clearing ONLY the composed bit of a
+status whose inflicted bit stayed set left composed clear for a full three seconds, so composed is
+not re-derived from inflicted on any timescale that matters to a 33ms loop.
+
+Two consequences, and the SECOND one is the surprise:
+  1. A composed-only write is not the wasted write this file used to call it.
+  2. The engine's "this unit already has that status" refusal reads COMPOSED, not the registry.
+     Clearing inflicted alone left the ability refused at 0%; clearing composed alone allowed it
+     at 100%. So to take a status OFF, composed is the load-bearing half.
+Writing both layers is still the safe posture for APPLYING (the engine itself sets both, measured
+in one 33ms sample), and clearing both is the safe posture for removing, because a registry bit
+left set is residue that may reach a save. But "composed alone is wasted" was wrong.
 
 CLOSED DOOR: the pending-ADD field at band +0x1BF is consumed but IGNORED for external writes
 (three live tapes). The apply-engine cold call 0x150BF66DC is in-process only, so a python probe
@@ -48,6 +58,15 @@ DOOM_COUNTDOWN = 0x59    # band-relative u8, engine inits 3, decrements per vict
 # name: (id, tier, hazard or None). Hazard text is printed before any write.
 STATUSES = {
     # ---- band +0x45, ids 0-7 ----
+    "provoked":   (0,  "U", "OURS, not the game's. Id 0 is the one slot the vanilla 40-status "
+                            "decode table leaves blank, which is why it was free to take: it "
+                            "carries no behaviour, no pose and no immunity entry, so nothing in "
+                            "the game resists it. Applied by the hijacked ability 189 through a "
+                            "hand-written inflict row; named Provoked via uistatuseffect Key 1. "
+                            "It NEVER expires and cannot be re-applied while present, so removing "
+                            "it is what makes the ability reusable, not hygiene. Clear the COMPOSED "
+                            "bit to release the engine's refusal; the inflicted bit alone does "
+                            "nothing (owner-run 2026-07-22, provoke_mark_probe.py)."),
     "crystal":    (1,  "U", "PERMANENT UNIT LOSS: crystallization removes the unit for good."),
     "dead":       (2,  "S", "CRASHED the engine when set far from the unit's own turn; set mid-turn "
                             "it left a stuck dead-but-active turn. Only 'up next' was ever safe. "
