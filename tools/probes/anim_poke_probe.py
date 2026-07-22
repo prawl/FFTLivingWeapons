@@ -197,6 +197,22 @@ def cmd_face(slot, value):
     print("EYEBALL: did the unit turn? value kept = input; value re-stamped = output, try pairing with a page poke.")
 
 
+def cmd_turn(slot, facing):
+    """Facing, done right (live-learned 2026-07-21): +0x7C is a request-time PARAMETER, not a
+    live input. The owner's face pokes sat latched with no visible turn until the stop combo's
+    page request consumed the leftover value and the unit swung to face the camera (facing 1).
+    So: write facing, then request the idle page to carry it. Map the value space with 0..3."""
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    wu8(node + FACING, facing & 0xFF)
+    wu16(node + REQ, 3 + 1)          # idle page request carries the facing parameter
+    time.sleep(0.5)
+    print(f"slot {slot}: facing {facing} + idle page requested. EYEBALL: which way do they face now?")
+    print("(known so far: 1 = toward the camera)")
+
+
 def cmd_stop(slot, seconds):
     """THE STOP COMBO (first composition of the new family): page 0x00 (the owner's own sweep
     label: 'like the stop spell was casted') + the CT byte held at 0 so the scheduler never
