@@ -56,6 +56,18 @@ the technical detail lives in the indented lines under it.
     a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 ## Backlog
 
+- [LW-117] 2026-07-22: The battle toolbag: one plain verb per already-proven mechanic, so a
+  design conversation can say "what if the weapon benched them a turn" and we can just do it.
+  tools/probes/battle_toolbag.py wraps Proven-section mechanisms only, no new reverse
+  engineering: quick (CT slam, act now), bench (CT held at zero, turn denial), hide and show
+  (the gate byte, with the model id saved to a temp state file because each probe run is its
+  own process), float (render Z hover), reserve and deploy (park below the floor, return with
+  the sky descent), and state (every field the bag touches, for every unit). Constants were
+  re-read out of the tree rather than recalled. Hazards are printed by the commands that carry
+  them: a hidden unit gets no turns and cannot un-hide itself, a mid-hide autosave persists the
+  hidden state into the resume, and hide and bench both refuse the current actor. Owner eyeball
+  wanted per verb before any of it informs a signature design; quick and bench together also
+  settle the LW-115 AT-list question in one battle.
 - [LW-116] 2026-07-22: Knockback: we can already teleport a unit, but a real shove (the Rush
   effect) is three lanes of work and none has run yet; the probe is armed for two of them.
   Lane 1, in the bag pending an eyeball: shove = the owner's cataloged flinch-with-displacement
