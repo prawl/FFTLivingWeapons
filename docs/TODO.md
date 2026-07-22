@@ -40,6 +40,28 @@ the technical detail lives in the indented lines under it.
     a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 ## Backlog
 
+- [LW-112] 2026-07-21: A popular kind of mod (custom jobs/items) makes Living Weapons switch
+  itself off with a message blaming a game update that never happened; the guard is
+  misdiagnosing a mod conflict as a game patch.
+  Player report 2026-07-21 (the same player as LW-101): loading CustomJOB_ITEM alongside us
+  popped the stand-down box ("it does not look like the version the mod was built for").
+  Desk-confirmed root cause: startup landmark 2 is the JobCommand rec 8/rec 9 ability-id bytes
+  (LaunchGuard.Landmarks.cs Rec8Sig/Rec9Sig = Archer's Aim ids 150..157 and Monk's Martial Arts
+  ids 100..107). A custom-job mod rewrites exactly those bytes (whole-row table writeback,
+  modloader-merge-semantics), so the signature legitimately vanishes, ANY single landmark
+  mismatch held 30 ticks stands the whole mod down (FingerprintGuard.cs anyMismatch path), and
+  the message asserts a game update. The PE build key MATCHES in this scenario, which is the
+  discriminator we already hold but ignore. Fix direction: when the PE key matches and only a
+  DATA landmark mismatches, say the truth (another mod rewrote the same game data, name the
+  landmark, suggest load order/compat) and consider degrading only what rests on that anchor
+  (Barrage kit injection) instead of the whole mod; rec8/rec9 is Barrage's anchor, not a game
+  version check, and job mods will always touch it. Verify with the player's livingweapon.log
+  stand-down line, which names the landmark (LW-83). Unexplained residue, do not paper over:
+  the player then merged the other mod's table rows into a third mod's folder and reports both
+  now work, which should NOT clear the memory bytes; suspect the merged copy is silently inert
+  (wrong folder shape, or a bad value making the modloader reject the whole file), meaning
+  their custom jobs are likely dead and they have not noticed. Their in-game state is worth a
+  question before advising anyone else to copy the workaround.
 - [LW-108] 2026-07-21: Restarting a battle quickly is completely invisible to the mod, so it
   keeps believing the old battle never ended; the worst case is a kill being counted twice.
   Found while checking LW-100 (flight tape flight_20260721_211423): battleMode fell to 0 for
