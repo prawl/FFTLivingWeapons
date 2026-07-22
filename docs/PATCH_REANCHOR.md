@@ -61,10 +61,12 @@ in the row that every AWAITING-LIVE flip and the smoke pass are blocked behind i
 ## Step 3: Phase A, the offline damage inventory (no game needed)
 
 Produce the checklist the live session will execute:
-1. Every absolute address: Offsets.cs in full, plus literals living elsewhere (Barrage.cs
-   AbilityBase, LaunchGuard.cs constants, dev spikes under #if LWDEV, Treasure Master anchors).
-   Classify each: state flag / struct base / table base / display mirror / TM; and whether it
-   GATES WRITES (stale-but-valid write anchors are the dangerous class, see Traps).
+1. Every absolute address: Offsets.cs in full (including the Provoke ability-action/inflict-status
+   table bases, `LiveActionTable`/`InflictTable`, added LW-123 arc 1), plus literals living
+   elsewhere (Barrage.cs AbilityBase, Provoke.Policy.cs DecoyActionTable, LaunchGuard.cs constants,
+   dev spikes under #if LWDEV, Treasure Master anchors). Classify each: state flag / struct base /
+   table base / display mirror / TM; and whether it GATES WRITES (stale-but-valid write anchors are
+   the dangerous class, see Traps).
 2. Every pin that must move in the same commit: tests that hard-code addresses or build keys
    (BarrageTests table-base pin, ScholarRingTests write tripwire, LaunchGuardTests /
    StandDownFlightArchiveTests staging), docs/recipes stating addresses as current.
@@ -85,7 +87,13 @@ PORT_1.5_OFFSETS.md "Method"):
   (level, brave, faith, HP, weapon id) across the image; verify neighbors (party slots, twin
   at the known stride).
 - Content-anchored tables (JobCommand): SIGNATURE scan on invariant CONTENT (rec 8 Aim bytes +
-  rec 9 Martial Arts bytes exactly one RecSize apart); tools/probes/jobcommand_find_probe.py.
+  rec 9 Martial Arts bytes exactly one RecSize apart); tools/probes/jobcommand_find_probe.py. The
+  Provoke ability-action table pair (`Offsets.LiveActionTable` + its byte-identical decoy mirror,
+  `Provoke.Policy.cs` `DecoyActionTable`, one table-length -- 368*20 bytes -- apart) and the
+  hand-authored inflict-status table (`Offsets.InflictTable`) are the same anchor class: re-find by
+  content signature, then re-verify which of the two action-table copies is LIVE (the decoy accepts
+  writes and reads them back identically, so only a behavior check -- does a write actually change
+  what the ability does -- tells them apart, never a byte comparison).
 - Region siblings: predict by the measured neighborhood delta, then VERIFY by read/behavior.
 - NEVER interpolate across regions: deltas are a non-monotonic gradient (1.5 measured +0x5080
   to +0x676C depending on region; 1.5.1 shrank the image, so expect negative-leaning deltas).

@@ -32,6 +32,7 @@ internal sealed class Engine
     private readonly CharmLock _charm;     // named: ticked pre-gate on battleDisplayed, outside the field-signature order
     private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
     private readonly ShadowBlade _shadowBlade; // named: ticks pre-gate like Barrage (JobCommand grant of Shadow Blade)
+    private readonly Provoke _provoke;     // named: ticks pre-gate like ShadowBlade (LW-123 arc 1; ships inert -- no signature block on id 33 yet)
     private readonly TreasureMaster _treasure;
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
@@ -169,6 +170,7 @@ internal sealed class Engine
         _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
         _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3: grant Shadow Blade (HP-draining dark strike)
+        _provoke = new Provoke(meta, _kills, live);                   // Defender +3: grant Provoke (LW-123 arc 1, ships inert -- no signature block on id 33 yet)
         var extra = new ExtraTurn(_kills, live);                    // Zwill +3: a kill grants the killer an immediate extra turn
         var eagle = new EagleEye(meta, _kills, _tracker, live);     // Eclipsebolt +3: hasten the wielder's OWN Doom procs to a 1-turn countdown (LW-95: attributed only)
         var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3: bounce chip to nearest other enemy
@@ -204,7 +206,7 @@ internal sealed class Engine
         // pre-gate on battleDisplayed like TreasureMaster, so a held charm is not dropped
         // mid-combat between turns). Both TreasureMaster and CharmLock stay in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         save.Migrate("gunslinger.json");
         _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live);
@@ -416,6 +418,11 @@ internal sealed class Engine
         // JobCommand table live, and the learned bit needs its hold against menu writebacks.
         _barrage.Tick();
         _shadowBlade.Tick();   // pre-gate like Barrage: the learn screen / menus read the JobCommand table live
+        // Order is load-bearing: FindEmptySlot returns the FIRST empty slot, so a module ticking
+        // earlier claims the lower slot -- Provoke must tick after Barrage and Shadow Blade so it
+        // sees both modules' writes when all three share a JobCommand record (see
+        // BarrageShadowBladeCollisionTests' three-way case).
+        _provoke.Tick();
         // Treasure Master gates on "a battle map is on screen" (slot9 armed + mode != 0) rather
         // than strict InLiveBattle.  This makes it stable through formation, enemy turns, and
         // cast animations (all mode 1 with slot9 stuck) while still excluding the world map

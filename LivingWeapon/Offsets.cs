@@ -403,4 +403,19 @@ internal static class Offsets
     // map 80 (Araguay)'s STORED pre-1.5 fingerprint exactly -- proving the terrain DATA is unchanged
     // on 1.5, so every captured map's stored fpHash stays valid (no re-fingerprint needed).
     public const long TerrainGrid = 0x140C6B440;
+
+    // --- Provoke (LW-123 arc 1): the ability ACTION table (InflictStatus repoint target) and the
+    // hand-authored inflict-status table (the mark the repoint applies). Content-anchored, image-
+    // static addresses -- observed live 2026-07-22 (LIVE_LEDGER row, Uncertain; docs/PROVOKE_AC.md
+    // "How it works, plainly"), the same anchor class as Barrage.AbilityBase (a JobCommand table),
+    // just two tables further into the exe. COVERED BY LAUNCHGUARD INDIRECTLY BUT COMPLETELY: a
+    // patched executable fails the PE build-key landmark (LaunchGuard.Landmarks.cs
+    // ExpectedTimeDateStamp/ExpectedSizeOfImage) and the guard stands the whole mod down
+    // permanently before any write to either table happens -- these are not a separately-guarded
+    // class, only addresses that (like every other one in this file) need a re-find on a re-anchor
+    // (docs/PATCH_REANCHOR.md). The BYTE-IDENTICAL decoy mirror of the action table
+    // (ProvokePolicy.DecoyActionTable, Provoke.Policy.cs) is deliberately NOT pinned here: nothing
+    // in the runtime ever writes it, so it is a policy-level safety constant, not a write anchor.
+    public const long LiveActionTable = 0x14078B2DC;   // 368 rows x 20 bytes; the copy the engine and UI both read
+    public const long InflictTable = 0x14080FBA0;      // 128 rows x 6 bytes, [mode][s0..s4], mode byte FIRST
 }

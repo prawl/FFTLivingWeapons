@@ -34,6 +34,12 @@ internal sealed class FakeSparseMemory : IGameMemory
     public readonly List<(long addr, byte[] bytes)> WrittenBytes = new();
     public Action<long, byte[]>? OnWrite;
 
+    /// <summary>Every W8 call's address, in call order (duplicates kept). Written is a Dictionary
+    /// (last-value-wins, no order), which cannot answer "which byte got written first" -- added for
+    /// ProvokeTests' write-order assertion (inflict-row bytes before the action byte). Additive only:
+    /// existing tests that only read Written/U8s are unaffected.</summary>
+    public readonly List<long> WriteOrder = new();
+
     // TreasureMaster extensions
     public readonly HashSet<long>             ReadableAddrs  = new();
     public readonly Dictionary<long, byte[]>  TerrainBlocks  = new();
@@ -50,7 +56,7 @@ internal sealed class FakeSparseMemory : IGameMemory
 
     public bool Readable(long a, int n) => ReadableAddrs.Contains(a);
     public bool Writable(long a, int n) => WritableAddrs.Contains(a);
-    public void W8(long a, byte v) { Written[a] = v; U8s[a] = v; }
+    public void W8(long a, byte v) { Written[a] = v; U8s[a] = v; WriteOrder.Add(a); }
     public void W16(long a, ushort v) { WrittenU16[a] = v; U16s[a] = v; }
 
     public void WriteBytes(long addr, byte[] data)

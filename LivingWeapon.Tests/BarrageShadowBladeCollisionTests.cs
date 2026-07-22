@@ -19,8 +19,11 @@ namespace LivingWeapon.Tests;
 ///   - Wielder B is a Knight (job 76) with a Sanguine Sword in hand -- Knight is directly on
 ///     ShadowBladePolicy's whitelist, landing in the SAME record 7.
 /// This is the "two Knights, one wielding a Defender-like Knight-sword grant, one a Sanguine Sword"
-/// scenario the fix exists for, reproduced with the two grants that already ship (Provoke does not
-/// exist yet to test directly).
+/// scenario the fix exists for. Provoke now exists (LW-123 arc 1) and shares the exact same
+/// Knight-record whitelist (ProvokePolicy delegates to ShadowBladePolicy), so
+/// Barrage_shadow_blade_and_provoke_share_one_record_without_corrupting_each_other below extends
+/// the recipe to the REAL three-way case, ticked in Engine.cs's actual order (Barrage, Shadow
+/// Blade, Provoke).
 /// </summary>
 public class BarrageShadowBladeCollisionTests
 {
@@ -219,5 +222,76 @@ public class BarrageShadowBladeCollisionTests
 
         Assert.Equal((byte)200, buf[Barrage.FlagPrefixSize + 0]);   // still someone else's
         Assert.Equal((byte)102, buf[Barrage.FlagPrefixSize + 1]);   // Barrage recovered onto a fresh slot
+    }
+
+    /// <summary>The real three-way case: Barrage, Shadow Blade AND Provoke all resolve to record 7
+    /// (three Knights, one per grant) and tick in Engine.cs's actual order. Releasing any one must
+    /// leave the other two intact and must not resurrect an already-released one -- the same
+    /// property the two-way test above proves, now with the third tenant that motivated the
+    /// slot-scoped release fix in the first place (see Provoke.cs's class doc).</summary>
+    [Fact]
+    public void Barrage_shadow_blade_and_provoke_share_one_record_without_corrupting_each_other()
+    {
+        var m = new FakeSparseMemory();
+        var buf = StageRecord(m, KnightRecord);
+        SeatWielder(m, rosterSlot: 0, rhand: YoichiId, job: KnightJob, secRec: StealRecord);       // Wielder A
+        SeatWielder(m, rosterSlot: 1, rhand: SanguineId, job: KnightJob, secRec: 0);                // Wielder B
+        SeatWielder(m, rosterSlot: 2, rhand: Provoke.DefenderId, job: KnightJob, secRec: 0);        // Wielder C
+
+        long actionAddr = ProvokePolicy.ActionInflictAddr(ProvokePolicy.ProvokeAbilityId);
+        long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
+        m.ReadableAddrs.Add(actionAddr);
+        m.WritableAddrs.Add(actionAddr);
+        for (int i = 0; i < ProvokePolicy.InflictStride; i++)
+        {
+            m.ReadableAddrs.Add(inflictAddr + i);
+            m.WritableAddrs.Add(inflictAddr + i);
+        }
+
+        var kills = new Dictionary<int, int> { [YoichiId] = 999, [SanguineId] = 999, [Provoke.DefenderId] = 999 };
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [YoichiId] = new WeaponMeta { Signature = new WeaponSignature { AtTier = 3, GrantCommandAbilityId = BarrageAbilityId } },
+            [SanguineId] = new WeaponMeta { Signature = new WeaponSignature { AtTier = 3, GrantCommandAbilityId = ShadowBladePolicy.ShadowBladeAbilityId } },
+            [Provoke.DefenderId] = new WeaponMeta { Signature = new WeaponSignature { AtTier = 3, GrantCommandAbilityId = ProvokePolicy.ProvokeAbilityId } },
+        };
+        var barrage = new Barrage(meta, kills, m);
+        var shadow = new ShadowBlade(meta, kills, m);
+        var provoke = new Provoke(meta, kills, m);
+
+        void TickBarrage() { Sync(m, buf, KnightRecord); barrage.Tick(); Sync(m, buf, KnightRecord); }
+        void TickShadow() { Sync(m, buf, KnightRecord); shadow.Tick(); Sync(m, buf, KnightRecord); }
+        void TickProvoke() { Sync(m, buf, KnightRecord); provoke.Tick(); Sync(m, buf, KnightRecord); }
+
+        // Engine.cs order: Barrage, Shadow Blade, then Provoke.
+        TickBarrage();
+        TickShadow();
+        TickProvoke();
+
+        Assert.Equal((byte)102, buf[Barrage.FlagPrefixSize + 0]);   // Barrage: slot 1
+        Assert.Equal((byte)165, buf[Barrage.FlagPrefixSize + 1]);   // Shadow Blade: slot 2
+        Assert.Equal((byte)189, buf[Barrage.FlagPrefixSize + 2]);   // Provoke: slot 3
+        Assert.Equal((byte)ProvokePolicy.ProvokeInflictRow, m.U8(actionAddr));   // the table repoint landed too
+
+        // Release Barrage -- the other two survive untouched.
+        m.U16s[Offsets.RosterBase + 0 * Offsets.RosterStride + Offsets.RRHand] = 0xFFFF;
+        TickBarrage();
+        Assert.Equal((byte)0, buf[Barrage.FlagPrefixSize + 0]);
+        Assert.Equal((byte)165, buf[Barrage.FlagPrefixSize + 1]);
+        Assert.Equal((byte)189, buf[Barrage.FlagPrefixSize + 2]);
+
+        // Release Shadow Blade -- Provoke survives; Barrage's slot is NOT resurrected.
+        m.U16s[Offsets.RosterBase + 1 * Offsets.RosterStride + Offsets.RRHand] = 0xFFFF;
+        TickShadow();
+        Assert.Equal((byte)0, buf[Barrage.FlagPrefixSize + 0]);
+        Assert.Equal((byte)0, buf[Barrage.FlagPrefixSize + 1]);
+        Assert.Equal((byte)189, buf[Barrage.FlagPrefixSize + 2]);
+
+        // Release Provoke -- the record returns byte-identical to pre-injection, and the table
+        // repoint reverts to its captured original too.
+        m.U16s[Offsets.RosterBase + 2 * Offsets.RosterStride + Offsets.RRHand] = 0xFFFF;
+        TickProvoke();
+        Assert.Equal(new byte[Barrage.RecSize], buf);
+        Assert.Equal((byte)0, m.U8(actionAddr));
     }
 }
