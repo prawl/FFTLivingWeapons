@@ -25,6 +25,8 @@ bit 0x20 (the decoded force bit for overriding a critical unit's selector). Rest
     python tools\\probes\\anim_poke_probe.py watch <slot> [s]   # healthy-baseline watch, no writes
     python tools\\probes\\anim_poke_probe.py poke <slot> <logicalHex> [--force]
     python tools\\probes\\anim_poke_probe.py sweep <slot> [--start H] [--stop H]   # catalog pages
+    python tools\\probes\\anim_poke_probe.py face <slot> <0..7>    # facing byte +0x7C (unpoked)
+    python tools\\probes\\anim_poke_probe.py stop <slot> [secs]    # page 0x00 + CT-pin: the Stop combo
 
 LIVE RESULT 2026-07-21 (owner, first input poke ever fired): PASS by the pre-registered bar,
 twice. Poke 1 consumed before the +0.10s sample, output block parked at phase 1 (the frozen
@@ -175,6 +177,52 @@ def cmd_sweep(slot, start, stop):
     print("sweep done; guinea pig restored to idle.")
 
 
+FACING = 0x7C   # u8 facing stored by the RequestAnim stub alongside the page id (decoded, unpoked)
+CT = 0x41       # combat-struct CT byte (band +0x25); write side proven live (the Zwill extra-turn slam)
+
+
+def cmd_face(slot, value):
+    """Facing poke (decoded as the RequestAnim stub's second store, never fired): write u8 to
+    node +0x7C and eyeball which way the unit turns. Map the value space by poking 0..7; the
+    pre-registered outcomes mirror the register's: re-stamped-and-ignored is a verdict too."""
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    before = ru8(node + FACING)
+    print(f"slot {slot} node 0x{node:X}  facing before: {before}")
+    wu8(node + FACING, value & 0xFF)
+    time.sleep(0.5)
+    print(f"facing after 0.5s: {ru8(node + FACING)} (write was {value})")
+    print("EYEBALL: did the unit turn? value kept = input; value re-stamped = output, try pairing with a page poke.")
+
+
+def cmd_stop(slot, seconds):
+    """THE STOP COMBO (first composition of the new family): page 0x00 (the owner's own sweep
+    label: 'like the stop spell was casted') + the CT byte held at 0 so the scheduler never
+    gives the unit a turn. Both writes are decoded/proven individually; this tests the PAIR.
+    Release = stop holding (CT re-accrues from 0, which is authentic Stop economics: victims
+    lose accrued CT) + page 3 (idle). Ctrl+C also releases."""
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    c = UNITS + slot * 0x200
+    ct0 = ru8(c + CT)
+    print(f"slot {slot}: CT reads {ct0}; STOPPING for {seconds:.0f}s (page 0x00 + CT held 0)")
+    wu16(node + REQ, 0x00 + 1)
+    end = time.time() + seconds
+    try:
+        while time.time() < end:
+            wu8(c + CT, 0)
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("released early by Ctrl+C.")
+    wu16(node + REQ, 3 + 1)
+    print(f"released: CT resumes from 0 (was {ct0}, authentically lost), page back to idle.")
+    print("EYEBALL: frozen mid-pose the whole hold, skipped in the turn order, then normal after?")
+
+
 def main():
     _require_game()
     argv = sys.argv[1:]
@@ -193,6 +241,10 @@ def main():
         cmd_poke(int(argv[1]), int(argv[2], 16), force)
     elif len(argv) >= 2 and argv[0] == "sweep":
         cmd_sweep(int(argv[1]), start, stop)
+    elif len(argv) >= 3 and argv[0] == "face":
+        cmd_face(int(argv[1]), int(argv[2]))
+    elif len(argv) >= 2 and argv[0] == "stop":
+        cmd_stop(int(argv[1]), float(argv[2]) if len(argv) > 2 else 15.0)
     else:
         print(__doc__)
 
