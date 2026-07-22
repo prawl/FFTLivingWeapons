@@ -8,14 +8,20 @@ band-relative, "matches combat base+0x41"), gate combat +0x01 (0xFF hides, the M
 reveals), present combat +0x1B5, node world Z +0x4E with Z = -12 * height, node reached via
 list head 0x140D3A410 with +0x148 the combat backref (swap_units.py, proven live).
 
-    python tools\\probes\\battle_toolbag.py state              # every unit, every field we touch
-    python tools\\probes\\battle_toolbag.py quick <slot> [ct]  # slam CT: act NOW (default 100)
-    python tools\\probes\\battle_toolbag.py bench <slot> <s>   # hold CT 0: deny turns for s seconds
-    python tools\\probes\\battle_toolbag.py hide <slot>        # gate FF: untargetable, no turns
-    python tools\\probes\\battle_toolbag.py show <slot>        # restore the saved model id
-    python tools\\probes\\battle_toolbag.py float <slot> <n>   # hover n height units (0 = ground)
-    python tools\\probes\\battle_toolbag.py reserve <slot>     # hide + sink below the floor
-    python tools\\probes\\battle_toolbag.py deploy <slot>      # the reverse, with a sky descent
+    python tools\\probes\\battle_toolbag.py state                    # every unit, every field
+    python tools\\probes\\battle_toolbag.py quick <slot> [ct]        # slam CT: act NOW (default 100)
+    python tools\\probes\\battle_toolbag.py bench <slot> <secs>      # hold CT 0: deny turns
+    python tools\\probes\\battle_toolbag.py hide <slots> [--vanish]  # gate FF; --vanish hides the SPRITE too
+    python tools\\probes\\battle_toolbag.py show <slots>             # restore gate (and pose, and Z)
+    python tools\\probes\\battle_toolbag.py float <slot> <n>         # hover n height units
+    python tools\\probes\\battle_toolbag.py reserve <slot>           # hide + remember ground Z
+    python tools\\probes\\battle_toolbag.py deploy <slot>            # reveal with a sky descent
+    python tools\\probes\\battle_toolbag.py warp <slot> <x> <y> [--force]      # arbitrary tile
+    python tools\\probes\\battle_toolbag.py status <slot> <name> on|off [--all]
+    python tools\\probes\\battle_toolbag.py rsm <slot> [movement|support|reaction]
+
+`hide`/`show` take a comma list (17 or 6,16,17). `--all` on status reaches the innate layer.
+`rsm <slot> <field>` clears a whole RSM field and prints its own restore command.
 
 HAZARDS, all ledger-documented, all stated because they bite:
   - A HIDDEN unit gets no scheduler turns, so it cannot un-hide itself: `show` is the only way
@@ -198,6 +204,61 @@ def cmd_bench(slot, secs):
 
 
 BAND = 0x1C   # band entry = combat base + 0x1C; every status offset is band-relative
+# RSM (Reaction / Support / Movement) ability fields, combat-relative, read out of Offsets.cs
+# 2026-07-22: CReaction 0x94 (4 bytes, Maim zeroes it to suppress Counter), CSupport 0x98
+# (4 bytes, base id 198), CMovement 0x9C (3 bytes, base id 230, where Rapture parks its teleport
+# image, so this field is known-writable). Bits are MSB-first per byte, ability id = base + index.
+RSM = {"reaction": (0x94, 4, None), "support": (0x98, 4, 198), "movement": (0x9C, 3, 230)}
+
+
+def cmd_rsm(slot, clear=None):
+    """Show a unit's Reaction/Support/Movement ability bits, and optionally clear a whole field.
+
+    The question that prompted it: a Bomb keeps floating after its Float STATUS is cleared,
+    because the hover comes from the job's innate Levitate MOVEMENT ability. This is where that
+    ability lives. Clearing the movement field removes every movement ability the unit has, which
+    is a blunt instrument on purpose: we do not know Levitate's bit index, and zeroing three bytes
+    answers "does the engine re-derive hover from this field" without needing to.
+
+    Height is re-stamped on move-end, turn-open and being HIT (all observed), so if the Bomb does
+    not drop immediately, give it a turn or hit it before concluding anything."""
+    require_fielded(slot)
+    c = combat_of(slot)
+    for name, (off, size, base) in RSM.items():
+        raw = rpm(c + off, size)
+        bits = []
+        if raw:
+            for bi, byte in enumerate(raw):
+                for k in range(8):
+                    if byte & (0x80 >> k):
+                        bits.append(bi * 8 + k + (base or 0))
+        print(f"  {name:>8} @combat+{off:#04x}: {raw.hex(' ') if raw else '??'}"
+              f"{'  ids ' + str(bits) if bits and base else ''}")
+    if clear:
+        off, size, _ = RSM[clear]
+        before = rpm(c + off, size)
+        print(f"clearing {clear} ({size} bytes at combat+{off:#04x}), was {before.hex(' ')}")
+        print(f"restore with: rsm {slot} --restore {clear}:{before.hex()}")
+        if input("CLEAR? (y/n) ").strip().lower() != "y":
+            print("aborted."); return
+        for i in range(size):
+            wu8(c + off + i, 0)
+        after = rpm(c + off, size)
+        print(f"cleared -> {after.hex(' ')}")
+        print("EYEBALL: did it drop? If not, give it a turn or hit it (both re-stamp height).")
+
+
+def cmd_rsm_restore(slot, field, hexbytes):
+    """Put a cleared RSM field back from the hex the clear printed."""
+    require_fielded(slot)
+    off, size, _ = RSM[field]
+    data = bytes.fromhex(hexbytes)
+    if len(data) != size:
+        print(f"{field} needs {size} bytes, got {len(data)}"); sys.exit(1)
+    c = combat_of(slot)
+    for i, b in enumerate(data):
+        wu8(c + off + i, b)
+    print(f"{field} restored to {rpm(c + off, size).hex(' ')}")
 
 
 def cmd_status(slot, name, on, layers="both"):
@@ -446,6 +507,11 @@ def main():
     elif cmd == "show" and len(a) >= 2:
         for sl in [int(x) for x in a[1].split(",")]:
             cmd_show(sl)
+    elif cmd == "rsm" and len(a) >= 2:
+        if len(a) >= 4 and a[2] == "--restore":
+            f, hx = a[3].split(":"); cmd_rsm_restore(int(a[1]), f, hx)
+        else:
+            cmd_rsm(int(a[1]), a[2] if len(a) > 2 else None)
     elif cmd == "status" and len(a) >= 4:
         cmd_status(int(a[1]), a[2], a[3].lower() in ("on", "1", "true"), layers)
     elif cmd == "warp" and len(a) >= 4:
