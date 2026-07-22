@@ -10,6 +10,29 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-107] SHIPPED fdb476b 2026-07-21: the tree carried 197 sentences saying the game was
+  proven to do something, nobody had ever checked them, and 61 of them turned out to be wrong.
+  They now say what is true. LW-106 froze the 197 so no new claim could slip in, but freezing is
+  not verifying, and this is the checkup it deferred. Method, the one that worked on the session
+  notes: read every claim against docs/LIVE_LEDGER.md, the only place allowed to decide what is
+  proven, then hand each alleged defect to a second reader whose default was to REFUSE the
+  accusation. 128 claims came back fine, 61 did not, and 7 accusations were thrown out by the
+  refuters. The 128 split two ways and the distinction is the whole game here: some are real
+  mechanism claims backed by a row genuinely sitting in the Proven section, and the rest are work
+  item live sign offs, the owner watching a shipped feature behave, which is this repo's normal
+  language and never needed a row. Corrections are minimal and consistent: only the false proof
+  label changes, never the mechanism description or the evidence, so a sentence that read PROVEN
+  LIVE now reads OBSERVED LIVE. Nothing was deleted and no ledger row was touched or flipped,
+  which stays owner only. Almost half the defects share ONE root cause: the 2026-07-10 unit
+  manipulation night (teleport, spawn, despawn, resurrect, animation, hide) was written up
+  everywhere as proven while all five of its ledger rows still sit under Uncertain, each tagged
+  "Ready for the PROVEN flip" that nobody performed; docs/MECHANICS.md now says so once, loudly,
+  in a LEDGER STATUS note over that block instead of leaving the next reader to infer it. Three
+  others were confident and load bearing enough to name: the roster bank span cited as proven by
+  a probe tape, the turn flags generalised from "menu is up" to "rises under auto battle" on one
+  tape, and the Larceny status buffs called functional and proven with no row behind them. The
+  LW-106 baseline drops 192 to 134 in the same commit so the ratchet stays honest. 85 agents,
+  every verdict adversarially checked. Suite 2647 green.
 - [LW-104] SHIPPED eb02527 2026-07-21: the automated build stopped warning that it runs on
   machinery GitHub is retiring, so the day they switch it off nothing breaks and no release cut
   is blocked at the worst moment. Nothing was broken before this; it was maintenance done while

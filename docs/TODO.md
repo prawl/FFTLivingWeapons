@@ -36,24 +36,8 @@ the technical detail lives in the indented lines under it.
     confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
-- **[LW-107] Check the 197 sentences that say the game was proven to do something** (opened 2026-07-21) [BUILDING]
-  - Done means: every sentence in the tree claiming a game behaviour is proven has been checked
-    against the one place allowed to decide that, and any sentence that cannot point at a row
-    the owner really promoted now says what is actually true instead. LW-106 froze these 197 so
-    no NEW claim can slip in, but freezing is not verifying: the baseline records only that they
-    existed on 2026-07-21. LW-105 audited the sentences behind ONE mechanism and found nine bad
-    ones, so the base rate here is not zero. (Tech: per claim, name the mechanism, find its
-    LIVE_LEDGER row, check which section that row really sits in, then keep, reword, or delete.
-    Only the Proven section counts and only the owner puts a row there.)
-  - Verify: a written verdict for every claim with the one evidence line behind it, each
-    proposed correction attacked by a second reader whose job is to refuse it, and the LW-106
-    baseline counts updated in the same commit as any rewording so the ratchet stays honest.
-    The audit MUST separate two things that share vocabulary: a MECHANISM claim (this is how
-    the game works, which needs a Proven row) and a WORK ITEM live sign off (the owner watched
-    a shipped feature behave, which is this repo's normal changelog language and needs no row).
-    Only the first kind can be wrong here. No ledger row gets flipped by this work.
-
 ## Backlog
+
 - [LW-103] 2026-07-21: After a battle ends, the party list and the leftover battle data disagree
   about which weapon a unit is holding, and they stay disagreeing until the next battle; nothing
   visible breaks, but nobody has explained it yet.
