@@ -76,8 +76,11 @@ STATUSES = {
                             "bit. Clearing it on a Bomb removed the icon and left the unit "
                             "airborne; grounding a flier needs the job ability set."),
     "reraise":    (18, "S", None),
-    "invisible":  (19, "S", "Breaks the instant the unit acts, so it needs re-stamping every tick "
-                            "(--hold). AoE splash still reaches the unit."),
+    "invisible":  (19, "S", "Breaks when the unit is HIT, so a held hide needs re-stamping (--hold). "
+                            "CORRECTED 2026-07-22: this said 'breaks the instant the unit acts', which "
+                            "is measurably wrong. A raw composed write survives the unit's own action "
+                            "and survives 60s of running clock untouched; the engine's damage path is "
+                            "what strips it. AoE splash still reaches the unit."),
     "berserk":    (20, "O", "OBSERVED WORKING 2026-07-22 (owner live, the first map-only bit promoted): "
                             "the unit charges mindlessly at the nearest target and uses no abilities. "
                             "IT DOES NOT CAUSE FRIENDLY FIRE: targeting still respects sides, so a "

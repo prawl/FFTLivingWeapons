@@ -292,6 +292,9 @@ def cmd_status(slot, name, on, layers="both"):
     if layers == "all":
         targets.append(("innate", band + status_map.INNATE_BASE + e["byte"]))
     print(f"slot {slot} {e['name']} (id {e['id']}, tier {e['tier']}) -> {'ON' if on else 'OFF'}")
+    # The layer list is printed BEFORE the first write so the operator can abort a mistake instead
+    # of discovering it in a diff afterwards. If you asked for one layer, exactly one name appears.
+    print(f"  layers({layers}): {', '.join(label for label, _ in targets)}")
     for label, addr in targets:
         before = ru8(addr)
         if before is None:
@@ -577,8 +580,31 @@ def main():
     a = sys.argv[1:]
     vanish = "--vanish" in a
     force = "--force" in a
-    layers = "all" if "--all" in a else ("composed" if "--composed" in a else "both")
+    # LAYER SELECTION, two accepted forms, and BOTH tokens must be stripped from argv or the
+    # leftover word shifts every positional argument after it.
+    # REPAIRED 2026-07-22 (verified defect): only the bare `--all` / `--composed` flags were ever
+    # parsed, so the `--layers composed` form was silently ignored -- it matched nothing, fell
+    # through to the default "both", and cmd_status wrote the INFLICTED layer as well as the
+    # composed one. That is the wasted-write trap this verb's own docstring warns about, firing in
+    # the direction that is hardest to undo, while the operator believed they had asked for one
+    # layer. cmd_status now also prints the layers it is about to touch, so the mistake is visible
+    # in the transcript rather than inferred afterwards.
+    layers = "both"
+    if "--layers" in a:
+        i = a.index("--layers")
+        if i + 1 >= len(a):
+            print("--layers needs a value: composed | both | all")
+            sys.exit(1)
+        layers = a[i + 1].lower()
+        del a[i:i + 2]
+    if "--all" in a:
+        layers = "all"
+    elif "--composed" in a:
+        layers = "composed"
     a = [x for x in a if x not in ("--all", "--composed")]
+    if layers not in ("composed", "both", "all"):
+        print(f"unknown --layers '{layers}': expected composed | both | all")
+        sys.exit(1)
     a = [x for x in a if x != "--force"]
     page = VANISH_PAGE
     if "--page" in a:

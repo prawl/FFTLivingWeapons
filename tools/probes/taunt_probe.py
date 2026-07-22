@@ -242,9 +242,29 @@ def _is_valid_entry(addr: int) -> bool:
     return gx <= 30 and gy <= 30
 
 
-def _enumerate():
-    """Return [(slot, side, nameId, hp, mhp, lvl, gx, gy, brave, faith)] for every live unit."""
-    out = []
+# OUT-OF-PLAY GATE, combat +0x01 read band-relative (0x01 - BAND_ENTRY = -0x1B).
+# The engine parks units that are not participating -- notably the cast of a post-battle cutscene
+# -- by writing 0xFF here. It is the same byte the hide/reveal row writes, and the FIRST test in
+# the PSX Check_if_Unit_can_be_Targeted routine: 0xFF means the unit is neither a valid target nor
+# a valid actor. FOUND LIVE 2026-07-22: five staged cutscene units sat at tiles (0,6)..(0,10) with
+# 0xFF here, real nonzero gy, sane level/brave/faith, and passed every other liveness check in this
+# file. Anything that enumerates "units on the field" MUST gate on this or it picks up phantoms.
+A_GATE_OFF   = 0x01 - BAND_ENTRY   # == -0x1B
+A_GATE_ABSENT = 0xFF
+
+
+def _enumerate(quiet=True):
+    """Return [(slot, side, nameId, hp, mhp, lvl, gx, gy, brave, faith)] for every live unit.
+
+    SIDE comes from the TEAM BIT, not from the slot number. VALIDATED LIVE 2026-07-22 by teamscan
+    on six player-side units of which five were guests and NONE sat at slot >= 24: the old
+    `s >= PLAYER_SLOT_THRESHOLD` rule called every one of them an enemy. Guests are the whole
+    point -- they fight for the player from enemy-side seats -- so any funnel that misses them
+    leaves units drawing fire. Read the bit, NEVER write the byte (writing it is the rejected
+    team-swap lane, and a neighbouring bit belongs to Puppeteer). The threshold is kept only as
+    a fallback for a failed read.
+    """
+    out, staged = [], []
     for s in range(BAND_SLOTS):
         e = _band_entry_addr(s)
         if not _is_valid_entry(e):
@@ -252,18 +272,41 @@ def _enumerate():
         mhp = ru16(e + A_MAXHP)
         if not mhp or mhp <= 0:
             continue
-        side = "player" if s >= PLAYER_SLOT_THRESHOLD else "enemy"
+        if ru8(e + A_GATE_OFF) == A_GATE_ABSENT:
+            staged.append(s)       # staged / removed: on the books, not on the field
+            continue
+        team = ru8(e + A_TEAM_OFF)
+        if team is None:
+            side = "player" if s >= PLAYER_SLOT_THRESHOLD else "enemy"
+        else:
+            side = "enemy" if (team & A_TEAM_MASK) else "player"
         out.append((s, side, ru16(e + A_NAMEID), ru16(e + A_HP), mhp,
                     ru8(e + A_LEVEL), ru8(e + A_GX), ru8(e + A_GY),
                     ru8(e + A_BRAVE), ru8(e + A_FAITH)))
+    if staged and not quiet:
+        print(f"  ({len(staged)} seat(s) skipped as out-of-play, combat+0x01 == 0xFF: {staged})")
     return out
 
 
+# SLOT NUMBERING DIFFERS BETWEEN THE TWO PROBES BY EXACTLY 8, AND MIXING THEM WRITES TO A
+# BYSTANDER. taunt_probe walks the band from COMBAT_ANCHOR - 24*0x200 = 0x141852CE0, while
+# battle_toolbag.py walks units from 0x141853CE0. The gap is 0x1000 = 8 * 0x200, so:
+#     taunt_probe slot = battle_toolbag slot + 8
+# Type a toolbag number into this probe and you hold Invisible on a unit eight seats away, which
+# is both the wrong experiment and a unit nobody is watching to un-hide. The list output prints
+# both columns so a mixed recipe can be checked by eye instead of by arithmetic. Documented
+# 2026-07-22 after the arming review found it unguarded in every cross-probe recipe.
+TOOLBAG_SLOT_DELTA = 8
+
+
 def _print_units(units):
-    print(f"{'slot':>4} {'side':<7} {'nameId':>6} {'hp':>5}/{'mhp':<5} {'lvl':>3} {'pos':<9}")
+    print(f"{'slot':>4} {'tbag':>4} {'side':<7} {'nameId':>6} {'hp':>5}/{'mhp':<5} {'lvl':>3} {'pos':<9}")
     for s, side, nameid, hp, mhp, lvl, gx, gy, br, fa in units:
         nid = "??" if nameid is None else str(nameid)
-        print(f"{s:>4} {side:<7} {nid:>6} {hp!s:>5}/{mhp!s:<5} {lvl!s:>3} ({gx},{gy})")
+        print(f"{s:>4} {s - TOOLBAG_SLOT_DELTA:>4} {side:<7} {nid:>6} "
+              f"{hp!s:>5}/{mhp!s:<5} {lvl!s:>3} ({gx},{gy})")
+    print("  slot = this probe's numbering; tbag = the same unit in battle_toolbag.py "
+          f"(tbag = slot - {TOOLBAG_SLOT_DELTA}). Never type one into the other unconverted.")
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +314,7 @@ def _print_units(units):
 # ---------------------------------------------------------------------------
 def cmd_list() -> None:
     _require_game()
-    units = _enumerate()
+    units = _enumerate(quiet=False)
     if not units:
         print("No live units found -- are you in a battle (fully loaded)?")
         return
@@ -535,9 +578,17 @@ def cmd_taunt(wielder_slot, hide_slots=None) -> None:
     guard).  Holds every ~150ms; Ctrl+C clears the bit and restores.
 
     NOTE (design): this is whole-battlefield -- ALL enemies target the visible wielder, it is not a
-    per-enemy taunt.  The Invisible bit also makes the hidden units transparent + shows the status icon
-    (welded to the same bit); a continuity-clean ship version would use the AI team-perception byte
-    instead (no icon), which is not located in IC yet."""
+    per-enemy taunt.  The shipping design time-slices the hold to ONE enemy's turn.
+
+    CORRECTED 2026-07-22, because this docstring taught the wrong thing for two weeks: the bit does
+    NOT make the unit transparent.  It shows the status ICON and nothing else visual.  A raw status
+    bit sets the FLAG; the engine's apply routine performs the visible EFFECT, and we never call it.
+    Evidence: FeignDeath.cs holds this exact bit on a live wielder for two turns with the AI
+    ignoring it (observed live end to end 2026-06-14) and no transparency; Float set by bit shows
+    its icon and does not float (live 2026-06-15); frog and petrify set by bit give icons with an
+    unchanged model (live 2026-07-22).  The old suggestion to use the AI team-perception byte
+    instead is also withdrawn: flipping band +0x1D2 is a real side switch that empties the player
+    team, so the wielder dying is an immediate game over."""
     _require_game()
     units = {u[0]: u for u in _enumerate()}
     if wielder_slot not in units or units[wielder_slot][1] != "player":
@@ -555,14 +606,25 @@ def cmd_taunt(wielder_slot, hide_slots=None) -> None:
         print("no units to hide (need the wielder + at least one other unit; name guest slots explicitly).")
         return
 
-    # Save originals + report.
-    saved = {}   # slot -> (addr, original_0x47_byte, brave, faith)
+    # TWO LISTS, AND THE SECOND ONE IS NEVER PRUNED. `saved` is the live HOLD list and a unit
+    # leaves it the moment its brave/faith fingerprint stops matching, because the seat has
+    # migrated and continuing to write there would stamp a stranger. But the bit we already set is
+    # still set, at the address we set it at. The old restore loop iterated the PRUNED list, so the
+    # one unit something went wrong with was the exact unit nobody un-hid, and it stayed invisible
+    # for the rest of the battle. `ever_set` is the CLEANUP list and it only ever grows.
+    # Verified defect, repaired 2026-07-22.
+    saved = {}      # slot -> (addr, original_0x47_byte, brave, faith)   LIVE HOLD list, pruned
+    ever_set = {}   # slot -> (addr, bit_was_already_set)                CLEANUP list, never pruned
     for s in targets:
         e = _band_entry_addr(s)
         cur = ru8(e + A_INVIS_OFF)
         if cur is None:
             continue
         saved[s] = (e, cur, ru8(e + A_BRAVE), ru8(e + A_FAITH))
+        # Remember whether the unit was ALREADY invisible when we arrived. If it was, the bit is
+        # not ours and cleanup must leave it alone rather than stripping a status the game or
+        # another module owns.
+        ever_set[s] = (e, bool(cur & A_INVIS_MASK))
     if not saved:
         print("could not read the status byte on any target -- aborted.")
         return
@@ -572,28 +634,67 @@ def cmd_taunt(wielder_slot, hide_slots=None) -> None:
           f"hiding {len(saved)} ally(ies): {sorted(saved)}")
     print("Holding Invisible.  End your turn and watch the enemy phase converge on the wielder.  Ctrl+C to clear.")
 
+    fails = {}   # slot -> consecutive read-back failures (a write that did not take)
     try:
         while True:
             for s, (e, _orig, br, fa) in list(saved.items()):
                 if ru8(e + A_BRAVE) != br or ru8(e + A_FAITH) != fa:
-                    del saved[s]                       # slot migrated -- stop holding it
+                    del saved[s]        # seat migrated: stop HOLDING it. It stays on ever_set.
+                    print(f"  slot {s} migrated: released from the hold, still on the cleanup list.")
                     continue
                 cur = ru8(e + A_INVIS_OFF)
-                if cur is not None:
-                    wu8(e + A_INVIS_OFF, cur | A_INVIS_MASK)
+                if cur is None:
+                    fails[s] = fails.get(s, 0) + 1
+                    continue
+                if cur & A_INVIS_MASK:
+                    fails[s] = 0        # already held; change-only, no write needed this cycle
+                    continue
+                wu8(e + A_INVIS_OFF, cur | A_INVIS_MASK)
+                # READ-BACK. Without it, a write that silently no-ops is indistinguishable from a
+                # successful hold, and the whole experiment reports a clean funnel that never
+                # happened. WRITE-FAILED (the bit is not set immediately after we set it) is a
+                # different diagnosis from TOO-LATE (the bit took, but the AI had already chosen),
+                # and only a read-back separates them.
+                rb = ru8(e + A_INVIS_OFF)
+                if rb is None or not (rb & A_INVIS_MASK):
+                    fails[s] = fails.get(s, 0) + 1
+                    if fails[s] in (1, 10, 100):
+                        print(f"  slot {s}: WRITE-FAILED x{fails[s]} (the bit did not take; "
+                              f"this is NOT the AI clearing it)")
+                else:
+                    fails[s] = 0
             if not saved:
-                print("  all held units migrated -- stopping.")
+                print("  all held units migrated -- stopping (cleanup still runs below).")
                 break
-            time.sleep(0.03)   # aggressive re-apply: acting clears Invisible, re-hide before the AI re-targets
+            # Re-apply cadence. BEING HIT clears Invisible; ACTING does not (corrected 2026-07-22,
+            # measured live: a raw composed write survived the unit's own attack and 60s untouched).
+            # The re-stamp is still needed, because splash damage un-hides a held unit.
+            time.sleep(0.03)
     except KeyboardInterrupt:
         print()
 
-    # Restore: clear the invisible bit we set (leave any other bits as they are now).
-    for s, (e, _orig, _br, _fa) in saved.items():
+    # CLEANUP walks ever_set, never saved, and verifies. A unit we could not clear is reported by
+    # slot so it can be cleared by hand rather than discovered mid-battle.
+    cleared = skipped = stuck = 0
+    for s, (e, was_set) in ever_set.items():
+        if was_set:
+            skipped += 1        # it was invisible before we arrived; the bit is not ours to clear
+            continue
         cur = ru8(e + A_INVIS_OFF)
-        if cur is not None:
+        if cur is None:
+            stuck += 1
+            print(f"  slot {s}: read failed during cleanup -- MAY STILL BE INVISIBLE, check it.")
+            continue
+        if cur & A_INVIS_MASK:
             wu8(e + A_INVIS_OFF, cur & ~A_INVIS_MASK & 0xFF)
-    print(f"Cleared Invisible on {len(saved)} unit(s).")
+            rb = ru8(e + A_INVIS_OFF)
+            if rb is None or (rb & A_INVIS_MASK):
+                stuck += 1
+                print(f"  slot {s}: CLEAR FAILED -- still invisible, clear it by hand.")
+                continue
+        cleared += 1
+    print(f"Cleanup: cleared {cleared}, left {skipped} pre-existing, {stuck} STUCK "
+          f"(of {len(ever_set)} on the cleanup list).")
 
 
 def cmd_poke(slot, off, val, width) -> None:
