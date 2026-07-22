@@ -41,6 +41,23 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-121] 2026-07-22: A weapon that plants its wielder somewhere nothing can reach: proven to
+  work, and degenerate unless it costs something.
+  Found by deliberately breaking a guard (battle_toolbag.py warp onto a treetop). The engine
+  accepts placement on terrain it would never path a unit onto: correct perched render, real
+  height readout, turn marker, health bar, valid selection diamond. The unit is then STRANDED,
+  since the pathfinder refuses to route out of a tile it would not route into ("At present, can't
+  move to any other tiles"), but it acts normally and its ranged attacks connect, while the enemy
+  AI degrades gracefully, backing off and milling about without engaging or crashing. So the
+  mechanic writes itself: trade all mobility for an unassailable firing position, which is a
+  genuine tactical bargain rather than a cheat, PROVIDED it is bounded. Unbounded it is a
+  degenerate strategy, since melee simply cannot answer it. Design levers to price it: a duration
+  after which the wielder is returned to the ground, a one per battle limit, an accuracy or damage
+  penalty while perched, or making the descent the wielder's whole next turn. Height matters
+  mechanically in this game (damage, accuracy, range), so the perch is worth more than the
+  novelty suggests. Open before any build: whether melee genuinely cannot reach (the AI's retreat
+  implies it but was not directly tested), and whether an ability that moves a target could shove
+  the wielder off.
 - [LW-120] 2026-07-22: Play an animation at a dramatic moment, so a weapon coming alive looks
   like something instead of only printing text.
   Now legal: the animation register is Proven (owner flip 2026-07-21). Candidate first moment is
