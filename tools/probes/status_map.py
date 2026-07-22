@@ -84,7 +84,14 @@ STATUSES = {
                             "berserk enemy still only attacks the player. Prior note, now answered: a "
                             "write spike existed with no recorded result."),
     "chicken":    (21, "M", None),
-    "frog":       (22, "M", "Drives the body model and is a real model-rebuild event; untested here."),
+    "frog":       (22, "O", "TESTED 2026-07-22 (owner live) and it splits the difference: a raw bit "
+                            "write gives the ICON and the status-menu representation (the menu shows a "
+                            "frog) while the BATTLE MAP MODEL stays unchanged. So the bit is the flag "
+                            "and the model rebuild is separate work the engine's apply routine does. "
+                            "Corrects the earlier note, which called frog a real model-rebuild event "
+                            "without distinguishing the game applying it from us setting the bit. This "
+                            "is the concrete case FOR the apply-engine cold call 0x150BF66DC: same "
+                            "shape as everything else here, drive the engine rather than write data."),
     "critical":   (23, "M", None),
     # ---- band +0x48, ids 24-31 ----
     "poison":     (24, "S", "Rides a timer at band +0x4A (engine inits 36). A cure clears the bit, so "
