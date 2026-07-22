@@ -1,0 +1,23 @@
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "defending", "id": 6, "label": "nothing"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "performing", "id": 7, "label": "nothing"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "petrify", "id": 8, "label": "Unit has the stone icon over his head, but not stoned"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "blind", "id": 10, "label": "Blindness icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "confuse", "id": 11, "label": "Confusion icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "silence", "id": 12, "label": "Silence icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "vampire", "id": 13, "label": "Vampire icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "cursed", "id": 14, "label": "Nothing, no icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "oil", "id": 16, "label": "oil icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "berserk", "id": 20, "label": "Berserk icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "chicken", "id": 21, "label": "Chicken Icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "critical", "id": 23, "label": "No icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "protect", "id": 26, "label": "Protect icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "shell", "id": 27, "label": "Shell icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "slow", "id": 29, "label": "Slow icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "stop", "id": 30, "label": "Stop icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "wall", "id": 31, "label": "An icon I've never seen before.  in the status menu it doesnn't have a text desc.  it looks like a diamond with lines around it"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "faithstatus", "id": 32, "label": "Faith Icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "innocent", "id": 33, "label": "Atheist Icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "sleep", "id": 35, "label": "Sleep icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "dontmove", "id": 36, "label": "Don't move icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "dontact", "id": 37, "label": "Don't act icon"}
+{"unit": "Goblin", "run": "20260722_020236", "slot": 0, "status": "reflect", "id": 38, "label": "Reflect icon"}
