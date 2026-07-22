@@ -56,6 +56,20 @@ the technical detail lives in the indented lines under it.
     a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 ## Backlog
 
+- [LW-118] 2026-07-22: Find out whether we can read, and eventually reorder, the game's turn
+  order array; if it is writable, time control is complete and Quick, Delay and Haste become
+  mechanics instead of metaphors.
+  The ledger's Combat Timeline row is Uncertain, dated 2026-06-16, describes a 4 byte record
+  array with byte0 = CT and byte1 = a tile X locator, and writes its own address with a tilde,
+  approximate. It also predates the 1.5.1 re-anchor, and the re-anchor rule is to verify at the
+  old address before scanning. tools/probes/turn_queue_probe.py is therefore READ ONLY on
+  purpose: dump correlates candidate records against every live unit's real CT and tile X
+  (five or more matches is proof by construction, one is coincidence), find fingerprint scans a
+  bounded window if the address moved, and watch samples while the clock runs to confirm byte0s
+  march with CT accrual. No write verb exists until a read proves the array is real, current and
+  understood. Protocol: sit on an open menu for dump and find so the clock is frozen and the
+  cross check cannot disagree by timing; close it for watch. Whatever the answer, the ledger row
+  gets updated, including a clean negative.
 - [LW-117] 2026-07-22: The battle toolbag: one plain verb per already-proven mechanic, so a
   design conversation can say "what if the weapon benched them a turn" and we can just do it.
   tools/probes/battle_toolbag.py wraps Proven-section mechanisms only, no new reverse
