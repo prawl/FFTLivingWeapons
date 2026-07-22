@@ -86,6 +86,38 @@ def cmd_table():
         print(f"slot {s:>2}  tile ({x},{y})")
 
 
+TILE_MAX = 30       # the repo's own gx/gy sanity ceiling (battle_cheats._is_valid_entry)
+TURNFLAG_C = 0x1B8  # combat-relative per-unit turn flag (band +0x19C, band at combat +0x1C)
+
+
+def _validate(slot, node, dx, dy):
+    """Every precondition, in one place, so it can be re-run immediately before the writes.
+    Returns (combat_addr, nx, ny) or exits. Guards: the unit is not mid-move (layers agree),
+    the destination is on the map, unoccupied, and the unit's turn is not open."""
+    c = UNITS + slot * 0x200
+    flag = ru8(c + TURNFLAG_C)
+    if flag is None or flag == 1:
+        print("that unit's turn is OPEN (or unreadable); shoving the current actor is refused.")
+        sys.exit(1)
+    gx, gy = ru8(c + 0x4F), ru8(c + 0x50)
+    tx, ty = ru8(node + 0x88), ru8(node + 0x89)
+    if None in (gx, gy, tx, ty):
+        print("position unreadable; refusing.")
+        sys.exit(1)
+    if (gx, gy) != (tx, ty):
+        print(f"layers disagree ({gx},{gy}) vs ({tx},{ty}): unit mid-move, refusing.")
+        sys.exit(1)
+    nx, ny = gx + dx, gy + dy
+    if not (0 <= nx <= TILE_MAX and 0 <= ny <= TILE_MAX):
+        print(f"destination ({nx},{ny}) is off the map; refusing (a negative would mask to 255).")
+        sys.exit(1)
+    occ = tiles_in_use()
+    if (nx, ny) in occ:
+        print(f"destination ({nx},{ny}) occupied by slot {occ[(nx, ny)]}: refusing (co-tile soft-lock).")
+        sys.exit(1)
+    return c, nx, ny
+
+
 def cmd_shove(slot, dx, dy, page):
     if abs(dx) > 1 or abs(dy) > 1 or (dx == 0 and dy == 0):
         print("dx/dy each in -1..1 and not both zero; one tile per shove.")
@@ -94,28 +126,24 @@ def cmd_shove(slot, dx, dy, page):
     if not node:
         print("unit not noded; aborting.")
         sys.exit(1)
-    c = UNITS + slot * 0x200
-    gx, gy = ru8(c + 0x4F), ru8(c + 0x50)
-    tx, ty = ru8(node + 0x88), ru8(node + 0x89)
-    if (gx, gy) != (tx, ty):
-        print(f"layers disagree ({gx},{gy}) vs ({tx},{ty}): unit mid-move, refusing.")
-        sys.exit(1)
-    nx, ny = gx + dx, gy + dy
-    occ = tiles_in_use()
-    if (nx, ny) in occ:
-        print(f"destination ({nx},{ny}) occupied by slot {occ[(nx, ny)]}: refusing (co-tile soft-lock).")
-        sys.exit(1)
-    print(f"slot {slot}: ({gx},{gy}) -> ({nx},{ny}), flinch page {page:#04x} first")
+    c, nx, ny = _validate(slot, node, dx, dy)
+    print(f"slot {slot}: ({ru8(c + 0x4F)},{ru8(c + 0x50)}) -> ({nx},{ny}), flinch page {page:#04x} first")
+    print("NOTE: tile EXISTENCE and walkability are not validated, only occupancy and bounds; "
+          "eyeball the destination before saying yes.")
     if input("SHOVE? (y/n) ").strip().lower() != "y":
         print("aborted.")
         return
     wu16(node + REQ, (page + 1) & 0xFFFF)           # stagger theater first
     time.sleep(0.15)                                # let the flinch start reading
+    # Re-validate: the confirm above is unbounded human time and the sleep is another 150ms, so
+    # the world may have moved. Nothing has been written to a position layer yet, so an abort
+    # here is clean (the flinch page self-heals at the unit's next event).
+    c, nx, ny = _validate(slot, node, dx, dy)
     wu8(c + 0x4F, nx & 0xFF); wu8(c + 0x50, ny & 0xFF)                # logic tile
     wu8(node + 0x88, nx & 0xFF); wu8(node + 0x89, ny & 0xFF)          # AI tile key (layer byte kept)
     wu16(node + 0x4C, 28 * nx + 14); wu16(node + 0x50, 28 * ny + 14)  # world X/Y; Z untouched
-    print("shoved. EYEBALL: staggered back one tile? A height change renders floated/sunk "
-          "until their next move/turn re-stamp (visual only).")
+    print("shoved. EYEBALL: staggered back one tile? The flinch pose holds until their next "
+          "event (self-heals); a height change renders floated/sunk until the same re-stamp.")
 
 
 # Watch regions: (base_kind, start, length). Combat covers the logic tile + CT neighborhood;
@@ -152,8 +180,11 @@ def cmd_watch(slot, secs):
                                    "at": f"{kind}+{start + i:#05x}", "old": a, "new": b}
                             print(f"  +{rec['t']:8.4f}s {rec['at']}: {a:#04x} -> {b:#04x}")
                             tape.write(json.dumps(rec) + "\n")
+                    tape.flush()      # a Ctrl+C or a game crash must not eat the decisive lines
                 prev[(kind, start)] = buf
             sweeps += 1
+            time.sleep(0.004)         # ~250Hz: fast enough to catch an order before the lerp,
+                                      # slow enough not to spin a whole core on RPM calls
     except KeyboardInterrupt:
         print("stopped early by Ctrl+C.")
     tape.close()
@@ -167,7 +198,10 @@ def main():
     argv = sys.argv[1:]
     page = FLINCH_PUSHED
     if "--page" in argv:
-        i = argv.index("--page"); page = int(argv[i + 1], 16); del argv[i:i + 2]
+        i = argv.index("--page")
+        if i + 1 >= len(argv):
+            print("--page needs a hex page id, e.g. --page 38"); sys.exit(1)
+        page = int(argv[i + 1], 16); del argv[i:i + 2]
     if argv and argv[0] == "table":
         cmd_table()
     elif len(argv) >= 4 and argv[0] == "shove":

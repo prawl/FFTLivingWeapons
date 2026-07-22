@@ -97,11 +97,10 @@ def cmd_find(window):
         buf = rpm(base, RECORD * len(units) * 2)
         if buf is None:
             continue
-        found = 0
-        for i in range(len(buf) // RECORD):
-            r = buf[i * RECORD:(i + 1) * RECORD]
-            if (r[0], r[1]) in want:
-                found += 1
+        # DISTINCT pairs matched, not total hits: a region full of one common (ct,gx) repeat
+        # would otherwise outscore the real array.
+        seen = {(buf[i * RECORD], buf[i * RECORD + 1]) for i in range(len(buf) // RECORD)}
+        found = len(seen & want)
         if found > best[0]:
             best = (found, base)
     if best[1] is None or best[0] < 3:

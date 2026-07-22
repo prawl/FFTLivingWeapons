@@ -25,7 +25,15 @@ HAZARDS, all ledger-documented, all stated because they bite:
   - `show`/`deploy` need the model id saved by `hide`/`reserve`; it is kept in a state file
     under %TEMP% (per-process invocations cannot share memory). If that file is lost, the model
     id is recoverable from any same-sprite unit, or by ending the battle.
-  - Never `hide` or `bench` the CURRENT ACTOR; both refuse a unit whose turn flag is open.
+  - `show` REFUSES to reveal onto an occupied tile: co-tiling causes target shadowing plus a
+    movement soft-lock (both proven live), and the same ledger row records the engine displacing
+    a hidden unit by a tile on its own, so a parked unit's tile is not stable while it waits.
+    Move the intruder (swap_units.py) and re-run.
+  - The state file is stamped with the game's PID and `show` refuses a slot whose gate is not
+    0xFF, because slot numbers are not identity: slot 5 is a different unit every battle, and
+    %TEMP% outlives reboots. Both guards exist so a stale record cannot stamp a stranger.
+  - Never `hide` or `bench` the CURRENT ACTOR; both refuse a unit whose turn flag is open, and
+    the flag check FAILS CLOSED (an unreadable flag refuses rather than writing blind).
 """
 import json
 import os
@@ -35,7 +43,8 @@ import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from battle_cheats import rpm, ru8, ru16, wu8, wu16, _require_game
+import ctypes
+from battle_cheats import rpm, ru8, ru16, wu8, wu16, _handle, _require_game
 
 UNITS = 0x141853CE0
 HEAD = 0x140D3A410
@@ -69,20 +78,52 @@ def node_of(slot):
     return None
 
 
+def game_pid():
+    """Session identity for the state file. Slot numbers alone are NOT identity: slot 5 is a
+    different unit in every battle, and %TEMP% survives reboots, so an entry banked in one
+    launch could otherwise be stamped into a stranger."""
+    return int(ctypes.windll.kernel32.GetProcessId(_handle()))
+
+
 def load_state():
+    """Entries from another game launch are dropped, not trusted."""
     try:
-        return json.loads(STATE.read_text(encoding="utf-8"))
+        d = json.loads(STATE.read_text(encoding="utf-8"))
     except Exception:
         return {}
+    if d.get("pid") != game_pid():
+        return {}
+    return d.get("slots", {})
 
 
-def save_state(d):
-    STATE.write_text(json.dumps(d), encoding="utf-8")
+def save_state(slots):
+    STATE.write_text(json.dumps({"pid": game_pid(), "slots": slots}), encoding="utf-8")
 
 
 def acting(slot):
-    """True if this unit's turn is structurally open (the LW-63 per-unit turn flag)."""
-    return ru8(combat_of(slot) + BAND_FROM_COMBAT + TURNFLAG) == 1
+    """True if this unit's turn is structurally open (the LW-63 per-unit turn flag). FAILS
+    CLOSED: an unreadable flag reports acting, so a refusal beats a blind write."""
+    v = ru8(combat_of(slot) + BAND_FROM_COMBAT + TURNFLAG)
+    return v is None or v == 1
+
+
+def require_fielded(slot):
+    """peek-before-poke: every write verb refuses a slot that is not a live fielded unit."""
+    live = dict(live_slots())
+    if slot not in live:
+        print(f"slot {slot} is not a fielded unit right now; run `state` to see what is.")
+        sys.exit(1)
+    return live[slot]
+
+
+def occupant_of(tile, ignore_slot):
+    for slot, _node in live_slots():
+        if slot == ignore_slot:
+            continue
+        c = combat_of(slot)
+        if (ru8(c + 0x4F), ru8(c + 0x50)) == tile:
+            return slot
+    return None
 
 
 def live_slots():
@@ -115,13 +156,18 @@ def cmd_state():
 
 
 def cmd_quick(slot, ct):
+    if not 0 <= ct <= 255:
+        print("CT must be 0..255 (100 is a full charge); refusing rather than truncating.")
+        sys.exit(1)
+    require_fielded(slot)
     c = combat_of(slot)
     before = ru8(c + CT)
-    wu8(c + CT, ct & 0xFF)
+    wu8(c + CT, ct)
     print(f"slot {slot}: CT {before} -> {ru8(c + CT)}. EYEBALL: do they jump the AT queue and act next?")
 
 
 def cmd_bench(slot, secs):
+    require_fielded(slot)
     if acting(slot):
         print("that unit's turn is OPEN right now; benching the current actor is refused.")
         sys.exit(1)
@@ -140,6 +186,7 @@ def cmd_bench(slot, secs):
 
 
 def cmd_hide(slot):
+    require_fielded(slot)
     if acting(slot):
         print("that unit's turn is OPEN right now; hiding the current actor is refused.")
         sys.exit(1)
@@ -160,14 +207,33 @@ def cmd_show(slot):
     st = load_state()
     rec = st.get(str(slot))
     if not rec:
-        print(f"no saved model id for slot {slot}; check {STATE} or end the battle to reset.")
+        print(f"no saved model id for slot {slot} in this game launch; check {STATE}, or end the "
+              f"battle (the combat struct is rebuilt) to reset.")
         sys.exit(1)
+    node = require_fielded(slot)
     c = combat_of(slot)
+    if ru8(c + GATE) != 0xFF:
+        print(f"slot {slot} is not hidden (gate reads {ru8(c + GATE):#04x}, not 0xFF). Refusing: "
+              f"this record is stale and writing it would stamp a stranger's model id.")
+        sys.exit(1)
+    # The PROVEN hide/reveal row names this hazard first: restoring onto an OCCUPIED tile
+    # co-tiles into target shadowing plus the movement soft-lock, and the same row records the
+    # engine displacing a hidden unit by a tile on its own, so a parked unit's tile is not even
+    # stable while it waits.
+    tile = (ru8(c + 0x4F), ru8(c + 0x50))
+    other = occupant_of(tile, slot)
+    if other is not None:
+        print(f"tile {tile} is now occupied by slot {other}; revealing here would co-tile them "
+              f"(target shadowing + movement soft-lock, both proven live). Move that unit first "
+              f"(swap_units.py) and re-run.")
+        sys.exit(1)
+    if "z" in rec:                          # a reserve, not a plain hide: un-sink before showing
+        wu16(node + NODE_Z, rec["z"] & 0xFFFF)
     wu8(c + PRESENT, 1)
     wu8(c + GATE, rec["model"] & 0xFF)      # gate LAST, per the resurrect recipe's ordering
     st.pop(str(slot), None)
     save_state(st)
-    print(f"slot {slot} revealed (model {rec['model']:#04x} restored, present first then gate).")
+    print(f"slot {slot} revealed at {tile} (model {rec['model']:#04x} restored, present then gate).")
 
 
 def cmd_float(slot, heights):
@@ -210,8 +276,13 @@ def cmd_deploy(slot):
         print(f"slot {slot} was not reserved by this toolbag; use show instead.")
         sys.exit(1)
     z = rec["z"]
+    # Take the Z out of the record first: cmd_show restores a reserve's Z on the owner's behalf,
+    # which would fight the descent below.
+    rec.pop("z", None)
+    st[str(slot)] = rec
+    save_state(st)
     wu16(node + NODE_Z, (z - 600) & 0xFFFF)     # start above the map
-    cmd_show(slot)
+    cmd_show(slot)                              # occupancy-checked; exits if the tile is taken
     for step in range(10, -1, -1):              # descend over ~0.6s
         wu16(node + NODE_Z, (z - 60 * step) & 0xFFFF)
         time.sleep(0.05)

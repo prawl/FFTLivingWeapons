@@ -155,6 +155,11 @@ def cmd_sweep(slot, start, stop):
         print("unit not noded; aborting.")
         sys.exit(1)
     who = input(f"sweeping slot {slot} node 0x{node:X}: what unit is this (job/sex/monster)? ").strip()
+    if not who:
+        print("a unit description is required: page ids are per sprite class, so an unlabeled "
+              "sweep cannot be used. Aborting before any write.")
+        return
+    run_id = time.strftime("%Y%m%d_%H%M%S")
     out_path = pathlib.Path(__file__).resolve().parent / "anim_catalog.jsonl"
     print(f"catalog -> {out_path} (append); Enter=none, s=skip, q=quit+resume-later")
     for logical in range(start, stop + 1):
@@ -167,12 +172,15 @@ def cmd_sweep(slot, start, stop):
         time.sleep(1.5)                            # let the page play far enough to read
         label = input(f"  id {logical:#04x} -> what played? ").strip()
         if label.lower() == "q":
-            print(f"stopped; resume with: sweep {slot} --start {logical + 1:#x}")
+            # Resume AT this id, not after it: quitting means this one was never labeled, and
+            # an off-by-one here silently drops a page from the catalog forever.
+            print(f"stopped; resume with: sweep {slot} --start {logical:#x}")
             break
         if label.lower() == "s":
             continue
         with open(out_path, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"unit": who, "slot": slot, "logical": logical,
+            # run stamp: repeated or interleaved sweeps of the same class stay distinguishable
+            f.write(json.dumps({"unit": who, "run": run_id, "slot": slot, "logical": logical,
                                 "label": label or "none"}) + "\n")
     wu16(node + REQ, 3 + 1)                        # leave the guinea pig standing (idle)
     print("sweep done; guinea pig restored to idle.")

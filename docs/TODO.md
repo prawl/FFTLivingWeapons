@@ -56,6 +56,23 @@ the technical detail lives in the indented lines under it.
     a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 ## Backlog
 
+- [LW-119] 2026-07-22: The status map is extracted and the hazards are known, but the probe
+  verb that would use it is not written yet, and two thirds of the map has never been exercised
+  in this game.
+  tools/probes/status_map.py holds all 40 ids with their band offsets, the three layer model
+  (write inflicted AND composed, re-assert on a loop; composed alone is the same wasted-write
+  mistake the animation output block taught us), the two proven timers (poison band +0x4A init
+  36, doom band +0x59 init 3), and an evidence tier per status. Only 13 bits are anchored by
+  shipped code or a Proven row; the other 27 are map-only, meaning the ported decode table plus
+  id arithmetic that checks out, which is good evidence for the TABLE and no evidence for any
+  individual bit. Two ids are refused outright because the repo has crash tapes for them:
+  crystal is permanent unit loss and treasure crashed the game when an enemy pathed onto the
+  tile. Six more need an explicit yes. Three open disagreements are recorded in the file rather
+  than smoothed over: charm's companion byte (band +0x54 versus +0x38 versus a third source
+  calling +0x38 a node pool index, so write the status bit only), composed-rebuilt-every-frame
+  versus the proven composed-only poison hold, and Larceny's one-shot strip which has no ledger
+  row and should be undone by the next compose. Next step is the verb plus a live pass that
+  promotes map-only bits to observed, cheapest first: haste, regen, protect, shell.
 - [LW-118] 2026-07-22: Find out whether we can read, and eventually reorder, the game's turn
   order array; if it is writable, time control is complete and Quick, Delay and Haste become
   mechanics instead of metaphors.
