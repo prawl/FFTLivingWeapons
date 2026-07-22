@@ -1,0 +1,128 @@
+{"unit": "timemage/male/human", "slot": 17, "logical": 0, "label": "The unit stopped walking in place like they had the stop spell casted on them or the battle ended"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 1, "label": "Unit still standing still turn to the right (facing east)"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 2, "label": "Unit still standing still turn to the up (facing north east)"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 3, "label": "Unit started walking in place again"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 4, "label": "Unit started walking in place faster like haste was casted on them"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 5, "label": "Unit started walking in place slower like slow was casted on them"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 6, "label": "Unit froze in place mid walk animation.  Not the same as 0x01 and 0x02"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 7, "label": "No change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 8, "label": "No change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 9, "label": "Unit is hovering slightly above the ground.  Not as high as a normal float ability"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 10, "label": "Unit is hovering slightly above the ground.  Same as before but bobbing up and down faster"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 11, "label": "Unit is hovering slightly above teh ground.  Same as before but bobbing up and down slower"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 12, "label": "Unit is walking in place really fast like super haste was casted on them."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 13, "label": "Unit is walking in place even faster than before.  SO FAST! lol"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 14, "label": "Looks like their walking in a normal pace again?"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 15, "label": "Unit froze in place again.  Similar to 0x06"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 16, "label": "No change."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 17, "label": "No change."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 18, "label": "Unit is walking in place very fast again."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 19, "label": "Unit is walking in place even faster than before"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 20, "label": "Unit is walking at normal speed I think."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 21, "label": "Unit is spinning in place.  I've never seen this before.  Really funny."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 22, "label": "Unit is crouched like their at critical health"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 23, "label": "Unit is in a defensive position.  Arms crossed like evasive stance was casted"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 24, "label": "Unit dodged to the left one time.  Same animation when an enemy attacks and misses them"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 25, "label": "Unit is convulsing in place like they got hurt but continuously doing it"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 26, "label": "Unit is dead on the ground"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 27, "label": "Unit is holding their hands above their head like casting a spell"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 28, "label": "Unit is jumping up and down throwing their arms up.  Seen when leveling up."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 29, "label": "Same as 0x1c but just slow and less of a jump"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 30, "label": "Unit did this one time crouch and then popped back up into the casting postion with arms held above head"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 31, "label": "Same as 0x1e.  But the unit looks lower to the ground."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 32, "label": "Unit is holding a semi-crouched position like their using aim and charging an attack"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 33, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 34, "label": "No change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 35, "label": "Unit is frozen in place as they stepped forward"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 36, "label": "Unit is crouched like they're at critical health"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 37, "label": "Unit is throwing their arms up and down.  As seen in when they are confused."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 38, "label": "Unit in just standing in place not moving"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 39, "label": "No change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 40, "label": "Unit is hold one arm up and chanting like when a bard cast a spell"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 41, "label": "Unit is twirling in place like when a dancer casts a spell"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 42, "label": "Unit did a one time animation where they threw their arms up and is holding them.  Never seen this one before."}
+{"unit": "timemage/male/human", "slot": 17, "logical": 43, "label": "Unit is hold their hands up and chanting like when casting a spell"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 44, "label": "Unit did a one time jump like they levled up then is holding their arms up.  Similar to 0x2a"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 45, "label": "No change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 46, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 47, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 48, "label": "Unit is frozen ins place during the walk animation"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 49, "label": "Unit is frozen in palce during the walk animation arms are forward this time"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 50, "label": "Unit turn completely invisible"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 51, "label": "Unit did a little hop and threw their arms up once then stopped in a standing position"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 52, "label": "Unit did the full die animation where they fell over and are laying on the ground"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 53, "label": "Unit did the animation where they were dead and stood back up"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 54, "label": "Unit is crouched like they're at critical health"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 55, "label": "Unit is flenching like they got hit.  They did a one time animation where they pushed to the left then froze at the flenching animation"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 56, "label": "Same as 0x37 just looking North East this time"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 57, "label": "Unit is standing still and raising their arms like casting a spell.  Looking north east"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 58, "label": "Same as 0x39 just lower to the ground"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 59, "label": "Unit is invisible"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 60, "label": "Unit did the teleport animation once where they disappeared and reappeared"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 61, "label": "Unit did the punch animation once"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 62, "label": "Same as 0x3d"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 63, "label": "same as 0x3e"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 64, "label": "Unit swung their staff in an attack animation"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 65, "label": "Same as 0x40"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 66, "label": "Same 0x41"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 67, "label": "Unit swung their staff then sorta stopped frozen in a punch position"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 68, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 69, "label": "Unit stuck in punch animation but a very quick staff swing"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 70, "label": "Same as 0x45 but slower"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 71, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 72, "label": "Same as 0x46 but now they're standing slightly differently"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 73, "label": "same as 0x48 but they're leaning foward frozen"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 74, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 75, "label": "Same 0x48"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 76, "label": "Same as 0x4b"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 77, "label": "Similar to 0x4c"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 78, "label": "Similar to 0x4d"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 79, "label": "Similar to 0x4e"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 80, "label": "Similar to 0x4f"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 81, "label": "Similar to 0x50"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 82, "label": "Similar to 0x51"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 83, "label": "Similar to 0x52"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 84, "label": "Similar to 0x53"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 85, "label": "Similar to 0x54"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 86, "label": "Unit is standing frozen with one arm raised like a bard casting a spell.  The staff swung back n forth several times then stopped"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 87, "label": "Similar to 0x56"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 88, "label": "Frozen in a postion like they're about to punch"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 89, "label": "Similar to 0x58"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 90, "label": "Unit swung staff and looks like they're crouching slightly"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 91, "label": "Unit swung staff and paused when they're leaning backwards"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 92, "label": "Same as 0x5b"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 93, "label": "Same as 0x5c"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 94, "label": "Same as 0x5d without the staff showing"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 95, "label": "Same as 0x5e"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 96, "label": "Same as 0x5f"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 97, "label": "Same as 0x60 but the samm showed briefly in the swing"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 98, "label": "Same as 0x61"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 99, "label": "Same as 0x62"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 100, "label": "Unit punched left hand freezing with fish out"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 101, "label": "Unit is casting a spell hands raised"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 102, "label": "Unit is casting a spell but only left hand is raised.  Right hand is forward in front"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 103, "label": "Unit did the monk ability (i'm forgetting it's name).  Spin punch!"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 104, "label": "Unit did the monk ability repeating fist"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 105, "label": "Unit quickly raised right hand over head then paused holding it out in front of them"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 106, "label": "Unit did some voodoo shit and rubber banded into the ground and back"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 107, "label": "Unit held out left hand and staff appeared in a downward angle like they were using it to write something"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 108, "label": "Units mount opened then froze.  Left hand is out in front like casting a spell"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 109, "label": "Unit croucned into a critical health position"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 110, "label": "Normal staff swing then froze in a walking postion"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 111, "label": "Bard casting animation"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 112, "label": "No change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 113, "label": "Same as 0x6a rubber band voodo.  At the end they're left hand is out like casting a spell"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 114, "label": "Crouch into bard casting animation"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 115, "label": "Held up the staff like they found a hidden treasure"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 116, "label": "Held up their hands like found a hidden tresure with no item"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 117, "label": "Dragoon jump animation"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 118, "label": "Dragoon landing animation"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 119, "label": "Swung stand forward and frozen at the end of the swing"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 120, "label": "Same as 0x77"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 121, "label": "Same as 0x78"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 122, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 123, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 124, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 125, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 126, "label": "no change"}
+{"unit": "timemage/male/human", "slot": 17, "logical": 127, "label": "no change"}
