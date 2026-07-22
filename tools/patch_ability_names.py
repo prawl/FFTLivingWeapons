@@ -53,6 +53,26 @@ PATCHES = {
                        "rebalance was reforged into another weapon type, so there is nothing "
                        "left to equip.",
     },
+    # ---------------------------------------------------------------------------------------
+    # LW-123: the Defender's "Provoke" command. Key 189 is vanilla `Embrace`, a cut ability that
+    # nothing in the game can reach -- no JobCommand record, no monster skillset, no innate slot,
+    # no weapon proc -- which is what makes renaming it safe, since a rename is global to the id.
+    # Chosen live 2026-07-22 over two other candidates because it alone cleared all three gates:
+    # it renders in a command list, its cursor reaches a single enemy at range 5, and the engine
+    # actually executes it (0 MP, no charge, 100% on a non-immune target).
+    #
+    # This row supplies the NAME only. The ability's EFFECT is a separate lever: its action-row
+    # InflictStatus byte is repointed from 45 (Immobilize) to 53 (Berserk), which is a live-memory
+    # write into the ability action table, NOT a data edit -- the behaviour-table nxd stays parked
+    # after the Bloodpact corruption. Until the runtime owns that write, a build carrying this row
+    # gives a correctly-named Provoke that still inflicts Immobilize. See docs/PROVOKE_AC.md and
+    # the 2026-07-22 LIVE_LEDGER row.
+    189: {
+        "Name": "Provoke",
+        "Description": "Goad a distant foe into a blind rage. It forgets its skills and charges, "
+                       "seeing only the one who called it out.",
+        "IconId": 32,
+    },
 }
 
 
