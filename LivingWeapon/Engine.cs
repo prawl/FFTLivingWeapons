@@ -226,7 +226,7 @@ internal sealed class Engine
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).
         _turnOwnerSpike = new TurnOwnerSpike(live, _tracker.Register);
-        _statusSpike = new StatusSpike(live);   // LW-58 cold-call research instrument
+        _statusSpike = new StatusSpike(live, modDir);   // LW-58 cold-call research instrument; modDir carries the request-file lane
         _bodyDoubleSpike = new BodyDoubleSpike(live, save.SaveDir);   // LW-58 Canary 8 duplicate-to-AI-fighter; SaveDir = rotation-proof forensics
 #endif
         LogNames.Init(meta);

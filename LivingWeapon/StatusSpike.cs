@@ -47,6 +47,12 @@ namespace LivingWeapon;
 /// first cold call of a game function can be dead a whole launch, or crash; a dead game = restart,
 /// the standard spike tax. THROWAWAY SAVE ONLY, autosave quarantined.
 ///
+/// USAGE (v2, 2026-07-22): the same rules, plus a REQUEST FILE lane so any of the 40 ids can be
+/// fired without burning a function key. Write "statusId[,mode][,corpse]" into
+/// <modDir>/status_request.txt (battle_toolbag.py engine does it for you) while a unit's menu is
+/// open; the spike consumes and DELETES it within ~0.5s and fires the identical hardened path.
+/// The target is still chosen by FindEnemy, exactly as the keys choose it.
+///
 /// USAGE: in a live battle, OPEN A UNIT'S MENU (so PauseFlag == 1), then press F2 (canary) or F4
 /// (treasure). Each key owns its own mode counter, cycling the mode arg 0 -> 1 -> 2 so an id's apply
 /// mode sweeps deterministically. Read livingweapon.log's status-spike lines for APPLIED=..., then
@@ -54,15 +60,75 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class StatusSpike
 {
-    private const long FnApplyStatuses = 0x150BF66DC;   // ecx = battle-stats slot, edx = mode
+    private const long FnApplyStatuses = 0x150BF66DC;   // v1 target: ecx = battle-stats slot, edx = mode
 
-    // The apply engine's prologue (disasm 2026-07-09): mov [rsp+8],rbx; mov [rsp+0x10],rbp. A
-    // landmark that the address still points at the expected routine (game not patched/relocated).
+    // The v1 apply engine's prologue (disasm 2026-07-09): mov [rsp+8],rbx; mov [rsp+0x10],rbp.
     private static readonly byte[] ApplyPrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x10 };
+
+    // ---- v2 (2026-07-22): resolve the routine at runtime instead of pinning it ----
+    //
+    // WHY. On 2026-07-22 the pinned v1 address refused with a prologue mismatch, and a live peek
+    // found unrelated code sitting there: 0x150BF66DC is in a region ABOVE the fixed main image
+    // that does not hold still across launches. Re-pinning a constant would just buy another few
+    // launches, so v2 stops carrying one.
+    //
+    // HOW. The inner dispatch at 0x1401FB064 lives in the FIXED image (0x140000000, no ASLR) and
+    // is an `E9 rel32` thunk. Reading its rel32 gives the routine's CURRENT address every launch.
+    // Measured 2026-07-22: 0x1401FB064 = e9 57 4f 1a 0d -> 0x14D39FFC0, whose first instructions
+    // are a real frame, not a VM springboard:
+    //     48 83 EC 28     sub    rsp, 0x28
+    //     4C 63 D1        movsxd r10, ecx          ; arg1
+    //     41 89 D3        mov    r11d, edx         ; arg2
+    //     41 0F B7 C8     movzx  ecx, r8w          ; arg3 (16-bit)
+    // ARG ORDER IS INFERRED, NOT PROVEN: the v1 header documents this dispatch as
+    // (id + 1, mode, slot), and the prologue is consistent with three ints where the third is
+    // used as a 16-bit value, which fits a small slot index. That inference is exactly why the
+    // canary discipline below is mandatory: fire Haste first, read APPLIED, and stop if it lies.
+    private const long DispatchThunk = 0x1401FB064;   // fixed-image E9 thunk; target resolved per launch
+    private static readonly byte[] DispatchPrologue = { 0x48, 0x83, 0xEC, 0x28, 0x4C, 0x63, 0xD1, 0x41, 0x89, 0xD3 };
 
     // x64 (rcx, rdx): first int in ecx, second in edx, matching the disassembled prologue.
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate void ApplyStatusesFn(int unitSlot, int mode);
+
+    // v2: (id + 1, mode, slot). Third arg is read as 16-bit by the callee; passing an int is
+    // correct for the Windows x64 ABI (the callee narrows it itself via movzx).
+    [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+    private delegate void DispatchStatusFn(int idPlusOne, int mode, int unitSlot);
+
+    /// <summary>Resolve the dispatch routine THIS launch by decoding the fixed-image thunk, then
+    /// landmark-verify the destination. Returns 0 on any doubt, which the caller treats as a
+    /// logged refusal: every failure here must stay a no-op, because the alternative is calling a
+    /// wrong address inside the game's own process.</summary>
+    private long ResolveDispatch(string label)
+    {
+        if (!Mem.Readable(DispatchThunk, 5) || !_mem.TryReadBytes(DispatchThunk, 5, out var thunk))
+        {
+            ModLogger.Error(LogVerb.Trace, $"status-spike: {label} dispatch thunk 0x{DispatchThunk:X} unreadable; refusing.");
+            return 0;
+        }
+        if (thunk[0] != 0xE9)
+        {
+            ModLogger.Error(LogVerb.Trace, $"status-spike: {label} dispatch thunk is not an E9 jmp (got {thunk[0]:X2}); refusing.");
+            return 0;
+        }
+        int rel = thunk[1] | (thunk[2] << 8) | (thunk[3] << 16) | (thunk[4] << 24);
+        long target = DispatchThunk + 5 + rel;
+        if (!Mem.Readable(target, DispatchPrologue.Length) ||
+            !_mem.TryReadBytes(target, DispatchPrologue.Length, out var got))
+        {
+            ModLogger.Error(LogVerb.Trace, $"status-spike: {label} resolved target 0x{target:X} is not readable; refusing.");
+            return 0;
+        }
+        for (int i = 0; i < DispatchPrologue.Length; i++)
+            if (got[i] != DispatchPrologue[i])
+            {
+                ModLogger.Error(LogVerb.Trace, $"status-spike: {label} resolved target 0x{target:X} prologue mismatch (expected {BitConverter.ToString(DispatchPrologue)}, got {BitConverter.ToString(got)}); refusing.");
+                return 0;
+            }
+        ModLogger.Event(LogVerb.Trace, $"status-spike: {label} dispatch resolved to 0x{target:X} this launch (thunk rel {rel:X8}), prologue verified.");
+        return target;
+    }
 
     [DllImport("user32.dll")]
     private static extern short GetAsyncKeyState(int vKey);
@@ -76,12 +142,37 @@ internal sealed class StatusSpike
     private const int VkF4 = 0x73;   // treasure (id 15, corpse)
 
     private readonly IGameMemory _mem;
+    private readonly string? _requestPath;   // null when no modDir was supplied (tests); see RequestFileName
     private bool _f2Was, _f4Was;
     private int _hasteMode, _treasureMode;   // per-key sweeps 0 -> 1 -> 2 independently
+    private int _requestMode;                // the request lane's own sweep, independent of the keys
     private int _hbTick;
     private bool _announced;
 
-    public StatusSpike(IGameMemory mem) => _mem = mem;
+    /// <summary>The request lane (2026-07-22). The keys above can only ever fire the two ids they
+    /// were hardcoded for, which is what the arc needed on 2026-07-09 and is not what it needs now:
+    /// the open questions are frog (does the ENGINE rebuild the model where a raw bit only set a
+    /// flag), invite and charm (the apply engine special-cases both to merge team-colour bits, which
+    /// is the Guest/Traitor allegiance wall), and the twenty-three ids whose raw writes produced an
+    /// icon and nothing else. So: a file the toolbag writes and this spike consumes.
+    ///
+    /// Why a FILE and not an env var or a key: environment variables do not survive this game's
+    /// launch chain (proven twice), and this box's function keys are a scarce, half-eaten resource
+    /// with its own scar ledger. The fingerprint-guard drill already uses exactly this marker-file
+    /// lane for the same reason.
+    ///
+    /// Format, one line: statusId[,mode][,corpse]  e.g. "22" (frog), "9,0" (invite), "15,1,corpse".
+    /// The file is DELETED as soon as it is read, so a stale request cannot re-fire on a later
+    /// launch, and the target is still chosen by FindEnemy exactly as the keys choose it: v1
+    /// deliberately does not accept a seat, because band seats and combat slots are different
+    /// numbering and a mis-mapped seat is an AV, not a typo.</summary>
+    private const string RequestFileName = "status_request.txt";
+
+    public StatusSpike(IGameMemory mem, string? modDir = null)
+    {
+        _mem = mem;
+        _requestPath = string.IsNullOrEmpty(modDir) ? null : System.IO.Path.Combine(modDir, RequestFileName);
+    }
 
     /// <summary>In-battle loop tick: heartbeat + key edges. The cold call runs HERE on the loop
     /// thread (ShowSpike.ColdSpawn proved a loop-thread cold call draws), gated to a paused frame.
@@ -100,6 +191,39 @@ internal sealed class StatusSpike
         if (!inLive) return;   // only fire during a genuine live-battle frame
         if (Pressed(VkF2, ref _f2Was)) Fire("CANARY", StatusApply.HasteId, corpse: false, ref _hasteMode);
         if (Pressed(VkF4, ref _f4Was)) Fire("TREASURE", StatusApply.TreasureId, corpse: true, ref _treasureMode);
+        if (_hbTick % 15 == 0) PollRequest();   // ~0.5s: responsive without hammering the disk
+    }
+
+    /// <summary>Consume a queued request file (see RequestFileName) and fire it through the SAME
+    /// hardened path the keys use. Every failure mode here is a logged no-op: an unreadable or
+    /// malformed file is deleted and reported rather than guessed at, because the one thing worse
+    /// than ignoring a request is cold-calling the engine with a number we invented.</summary>
+    private void PollRequest()
+    {
+        if (_requestPath == null) return;
+        string raw;
+        try
+        {
+            if (!System.IO.File.Exists(_requestPath)) return;
+            raw = System.IO.File.ReadAllText(_requestPath).Trim();
+            System.IO.File.Delete(_requestPath);   // delete FIRST: a request must never fire twice
+        }
+        catch (Exception ex)
+        {
+            ModLogger.Error(LogVerb.Trace, $"status-spike: could not read/delete the request file: {ex.Message}");
+            return;
+        }
+        var parts = raw.Split(',');
+        if (parts.Length == 0 || !int.TryParse(parts[0].Trim(), out int statusId) || statusId < 0 || statusId > 39)
+        {
+            ModLogger.Error(LogVerb.Trace, $"status-spike: request '{raw}' is not a status id in 0..39; ignored.");
+            return;
+        }
+        bool corpse = parts.Length > 2 && parts[2].Trim().Equals("corpse", StringComparison.OrdinalIgnoreCase);
+        if (parts.Length > 1 && int.TryParse(parts[1].Trim(), out int modeArg) && modeArg >= 0 && modeArg <= 2)
+            _requestMode = modeArg;   // explicit mode overrides the sweep for this shot
+        ModLogger.Event(LogVerb.Trace, $"status-spike: request '{raw}' accepted (status {statusId}, mode {_requestMode}, {(corpse ? "corpse" : "live")} target).");
+        Fire($"REQUEST[{statusId}]", statusId, corpse, ref _requestMode);
     }
 
     private static bool Pressed(int vk, ref bool was)
@@ -180,7 +304,11 @@ internal sealed class StatusSpike
             ModLogger.Event(LogVerb.Trace, $"status-spike: {label} needs a paused menu; open a unit's menu first so the engine's status pass is idle (reentrancy guard).");
             return;
         }
-        if (!TargetReady(label)) return;
+        // v2 first: the runtime-resolved dispatch. v1's pinned engine is kept as a fallback only
+        // because it costs nothing to try when its landmark still matches, and a working v1 would
+        // itself be evidence (that the region happened to land the same way this launch).
+        long dispatch = ResolveDispatch(label);
+        if (dispatch == 0 && !TargetReady(label)) return;   // neither door verified: refuse
 
         int by = StatusApply.StatusByte(statusId);
         byte mask = StatusApply.StatusMask(statusId);
@@ -203,13 +331,26 @@ internal sealed class StatusSpike
         byte inflBefore = _mem.U8(infl);
         int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
         byte p = _mem.U8(pend);
+        // The pending write is a v1 requirement (that engine READ the pending field to decide what
+        // to apply). v2 names the id directly, so the write is redundant there; it is kept because
+        // it is harmless, and because leaving it makes the two paths comparable on one tape.
         _mem.WriteBytes(pend, new[] { (byte)(p | mask) });   // synchronous pending-ADD request
+        string via = dispatch != 0 ? $"v2 dispatch 0x{dispatch:X} (id+1={statusId + 1}, mode={mode}, slot={engineSlot})"
+                                   : $"v1 apply 0x{FnApplyStatuses:X} (slot={engineSlot}, mode={mode})";
         ModLogger.Event(LogVerb.Trace,
-            $"status-spike: {label} seat {seat} pos ({gx},{gy}) engineSlot {engineSlot} status {statusId} mode {mode}; pending {p:X2}->{(byte)(p | mask):X2}, composed {compBefore:X2} inflicted {inflBefore:X2}; COLD-CALLING apply 0x{FnApplyStatuses:X}...");
+            $"status-spike: {label} seat {seat} pos ({gx},{gy}) engineSlot {engineSlot} status {statusId} mode {mode}; pending {p:X2}->{(byte)(p | mask):X2}, composed {compBefore:X2} inflicted {inflBefore:X2}; COLD-CALLING {via}...");
         try
         {
-            var apply = Marshal.GetDelegateForFunctionPointer<ApplyStatusesFn>(unchecked((nint)FnApplyStatuses));
-            apply(engineSlot, mode);
+            if (dispatch != 0)
+            {
+                var fn = Marshal.GetDelegateForFunctionPointer<DispatchStatusFn>(unchecked((nint)dispatch));
+                fn(statusId + 1, mode, engineSlot);
+            }
+            else
+            {
+                var apply = Marshal.GetDelegateForFunctionPointer<ApplyStatusesFn>(unchecked((nint)FnApplyStatuses));
+                apply(engineSlot, mode);
+            }
         }
         catch (Exception ex)
         {

@@ -307,6 +307,43 @@ def cmd_status(slot, name, on, layers="both"):
           "below it is re-ORing, which is the model working.")
 
 
+MODDIR = os.environ.get("RELOADEDIIMODS", "")
+
+
+def cmd_engine(name, mode=None, corpse=False):
+    """Ask the GAME to apply a status, instead of writing the bit ourselves.
+
+    Tonight's rule in one command: a raw bit sets the flag, the engine's apply routine performs
+    the effect (frog gave an icon and no model rebuild; petrify gave a stone icon and no
+    petrification). The DLL carries a hardened cold call to that routine, and this drops a request
+    file it consumes within about half a second.
+
+    The DLL picks the target itself (first eligible enemy), so this takes no slot: band seats and
+    combat slots are different numbering and a mis-mapped seat is an access violation, not a typo.
+
+    Requires a DEV build, a live battle, and a PAUSED frame (open a unit's menu), and the canary
+    discipline still applies: press F2 once per launch first to prove the cold call is alive.
+    Watch livingweapon.log for the status-spike line and its APPLIED= verdict."""
+    e = status_map.lookup(name)
+    if not e:
+        print(f"unknown status '{name}'. Known: {', '.join(sorted(status_map.STATUSES))}")
+        sys.exit(1)
+    if not MODDIR:
+        print("RELOADEDIIMODS is not set; cannot find the mod directory.")
+        sys.exit(1)
+    path = pathlib.Path(MODDIR) / "prawl.fft.livingweapons" / "status_request.txt"
+    if e["hazard"]:
+        print(f"HAZARD: {e['hazard']}")
+    if e["name"] in status_map.REFUSE:
+        print("refused outright by the map; this one has a crash tape.")
+        sys.exit(1)
+    body = str(e["id"]) + (f",{mode}" if mode is not None else "") + (",corpse" if corpse else "")
+    path.write_text(body, encoding="utf-8")
+    print(f"queued '{body}' ({e['name']}, id {e['id']}) -> {path}")
+    print("The spike consumes it within ~0.5s IF: dev build, live battle, menu open (paused).")
+    print("Read livingweapon.log for the status-spike line; it prints APPLIED=True/False.")
+
+
 def cmd_status_sweep(slot, secs=6.0):
     """THE STATUS SWEEP: the animation catalog treatment for statuses.
 
@@ -566,6 +603,9 @@ def main():
             f, hx = a[3].split(":"); cmd_rsm_restore(int(a[1]), f, hx)
         else:
             cmd_rsm(int(a[1]), a[2] if len(a) > 2 else None)
+    elif cmd == "engine" and len(a) >= 2:
+        cmd_engine(a[1], int(a[2]) if len(a) > 2 and a[2].isdigit() else None,
+                   corpse="corpse" in a)
     elif cmd == "sweep" and len(a) >= 2:
         cmd_status_sweep(int(a[1]), float(a[2]) if len(a) > 2 else 6.0)
     elif cmd == "status" and len(a) >= 4:
