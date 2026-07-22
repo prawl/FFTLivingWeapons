@@ -40,10 +40,16 @@ row the game shows against a row it does not:
              under U14=2, observed live 2026-07-22 on a unit whose overhead icons visibly cycled
              between Protect and a blank slot.
 
-That is why this row is filed as a buff (U14=1) despite being a debuff in fiction: 102 is the only
-icon art available that no other status uses, and it only resolves in the buff category. The two
-occupied blocks have no free indices at all, so a debuff-category icon would have to be shared with
-a real status, which is exactly the confusion this avoids.
+NO OVERHEAD ICON IS AVAILABLE, and the row is filed as a debuff (U14=2) because that is what it
+honestly is. Both categories were tried live 2026-07-22 with icon 102, the value `Wall` renders a
+blue diamond from, and NEITHER drew anything for this Key. The mark is demonstrably IN the overhead
+rotation -- on a unit already carrying Protect the icons visibly cycled between Protect and an empty
+slot -- so the status is recognised and simply has no sprite. Since `Wall` renders that same index
+from the same columns, the art must be keyed on the STATUS ID somewhere outside this table; the
+generic `Icon` table in 0004.pac is not it, as its keys do not line up with the status blocks at all
+(index 20 is a zodiac-sign path while KO uses 20). Chasing it further was capped as polish. The
+player still gets "Provoked" plus its description in the status list, and a re-cast on an already
+provoked unit reads 0%, which is honest feedback for free.
 
 `Type` is NOT the gate and is deliberately still not written: Key 1, Key 21 Berserk and Key 32 Wall
 are all Type 0, yet two of them render and one did not. Whatever Type selects, it is not visibility.
@@ -96,8 +102,8 @@ PATCHES = {
         "Name": "Provoked",
         "Caption": "The unit has been goaded into a fury and sees nothing but the one who "
                    "called it out.",
-        "Unknown14": 1,      # display category: 0 never renders; 1 = buff group, 2 = debuff group
-        "Unknown20": 102,    # icon index: Wall's art, unused in play, and it resolves only under U14=1
+        "Unknown14": 2,      # display category: 0 never renders; 1 = buff group, 2 = debuff group
+        "Unknown20": 102,    # no sprite resolves for this Key in either category; kept as the best guess
     },
 }
 
