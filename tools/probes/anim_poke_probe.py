@@ -24,6 +24,15 @@ bit 0x20 (the decoded force bit for overriding a critical unit's selector). Rest
     python tools\\probes\\anim_poke_probe.py table              # units + register/output reads
     python tools\\probes\\anim_poke_probe.py watch <slot> [s]   # healthy-baseline watch, no writes
     python tools\\probes\\anim_poke_probe.py poke <slot> <logicalHex> [--force]
+    python tools\\probes\\anim_poke_probe.py sweep <slot> [--start H] [--stop H]   # catalog pages
+
+LIVE RESULT 2026-07-21 (owner, first input poke ever fired): PASS by the pre-registered bar,
+twice. Poke 1 consumed before the +0.10s sample, output block parked at phase 1 (the frozen
+pose). Poke 2 caught the latch red-handed: req held 53 through +0.25s, consumed by +0.50s. The
+unit visibly played the page both times and a later real move event re-stamped it (the director
+overwrite, as decoded). Vocabulary caveat proven the same minute: logical 0x34 played PRONE on
+the owner's knight, not the decode session's crouch, so page ids are per sprite class and the
+sweep mode below exists to map each class's flipbook.
 """
 import pathlib
 import struct
@@ -127,10 +136,54 @@ def cmd_poke(slot, logical, force):
     print("restore: rerun with logical 3 (idle), or let the unit's next turn re-stamp.")
 
 
+def cmd_sweep(slot, start, stop):
+    """Flipbook cataloging (LW-113 round 2): walk logical ids [start, stop] on one unit and
+    record what each page plays, one JSON line per id appended to anim_catalog.jsonl next to
+    this probe (append-per-entry: a crash or a game freeze loses nothing already labeled).
+    PROTOCOL: sit on YOUR OWN unit's open menu (CT is frozen while a player menu is up) and
+    sweep an ENEMY, so the guinea pig stays idle indefinitely. Labels are the owner's words at
+    the keyboard: what did the unit DO? Enter = 'none' (no visible change); s = skip (could not
+    see); q = quit (resume later with --start). Ids are per sprite class (0x34 was labeled
+    crouch on the decode unit and plays PRONE on a knight), so the catalog records the unit
+    description the sweep opened with, and one sweep per sprite class is the goal."""
+    import json
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    who = input(f"sweeping slot {slot} node 0x{node:X}: what unit is this (job/sex/monster)? ").strip()
+    out_path = pathlib.Path(__file__).resolve().parent / "anim_catalog.jsonl"
+    print(f"catalog -> {out_path} (append); Enter=none, s=skip, q=quit+resume-later")
+    for logical in range(start, stop + 1):
+        if reg_snap(node)["req"] != 0:
+            time.sleep(0.3)                        # a prior slip is still latched; let it consume
+            if reg_snap(node)["req"] != 0:
+                print(f"  id {logical:#04x}: register stuck, stopping (resume with --start {logical:#x})")
+                break
+        wu16(node + REQ, (logical + 1) & 0xFFFF)
+        time.sleep(1.5)                            # let the page play far enough to read
+        label = input(f"  id {logical:#04x} -> what played? ").strip()
+        if label.lower() == "q":
+            print(f"stopped; resume with: sweep {slot} --start {logical + 1:#x}")
+            break
+        if label.lower() == "s":
+            continue
+        with open(out_path, "a", encoding="utf-8") as f:
+            f.write(json.dumps({"unit": who, "slot": slot, "logical": logical,
+                                "label": label or "none"}) + "\n")
+    wu16(node + REQ, 3 + 1)                        # leave the guinea pig standing (idle)
+    print("sweep done; guinea pig restored to idle.")
+
+
 def main():
     _require_game()
     argv = sys.argv[1:]
     force = "--force" in argv
+    start, stop = 0x00, 0x7F
+    if "--start" in argv:
+        i = argv.index("--start"); start = int(argv[i + 1], 16); del argv[i:i + 2]
+    if "--stop" in argv:
+        i = argv.index("--stop"); stop = int(argv[i + 1], 16); del argv[i:i + 2]
     argv = [a for a in argv if a != "--force"]
     if argv and argv[0] == "table":
         cmd_table()
@@ -138,6 +191,8 @@ def main():
         cmd_watch(int(argv[1]), float(argv[2]) if len(argv) > 2 else 10.0)
     elif len(argv) >= 3 and argv[0] == "poke":
         cmd_poke(int(argv[1]), int(argv[2], 16), force)
+    elif len(argv) >= 2 and argv[0] == "sweep":
+        cmd_sweep(int(argv[1]), start, stop)
     else:
         print(__doc__)
 
