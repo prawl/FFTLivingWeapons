@@ -250,9 +250,15 @@ def cmd_float(slot, heights):
 
 
 def cmd_reserve(slot):
-    """Park-and-summon: hide the logic AND sink the render below the floor, so nothing shows
-    even if some later pass re-opens the gate. The despawn arc's cheaper cousin: no engine
-    sweeper involved, so no re-enrollment is needed to bring them back."""
+    """Park-and-summon: hide the logic and REMEMBER the ground Z so deploy can drop them back in
+    from the sky. The despawn arc's cheaper cousin: no engine sweeper involved, so no
+    re-enrollment is needed to bring them back.
+
+    v2 (owner live 2026-07-22): the original version also sank the render below the floor as
+    belt-and-braces. That does not work and is removed. World Z is -12 * height, so POSITIVE is
+    DOWNWARD, and a downward write collides with the terrain: the unit will not go under the
+    map. Upward still works, which is why the resurrect arc's sky descent (negative Z) does.
+    The gate hide alone already removes the unit completely, so nothing is lost."""
     node = node_of(slot)
     if not node:
         print("unit not noded; aborting.")
@@ -263,8 +269,7 @@ def cmd_reserve(slot):
     st = load_state()
     st[str(slot)]["z"] = z
     save_state(st)
-    wu16(node + NODE_Z, (z + 600) & 0xFFFF)     # +Z is downward: sink well under the map
-    print(f"slot {slot} reserved (hidden and sunk from Z {z}).")
+    print(f"slot {slot} reserved (hidden; ground Z {z} remembered for the deploy descent).")
 
 
 def cmd_deploy(slot):
