@@ -279,6 +279,24 @@ def cmd_order(slot, dx, dy, kick=False):
           "slid without the logic tile committing = DESYNC.")
 
 
+def cmd_clear(slot):
+    """Undo a half-written order. `order` writes a destination that nothing consumes, which
+    leaves the unit looking mid-move to this probe's own validator (and possibly to anything
+    else that compares the two triples). Resets destination to current, mode to rest, counter
+    to zero. Written after round 1 left a unit dirty on the owner's board."""
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    cx, cy = ru8(node + 0x88), ru8(node + 0x89)
+    print(f"slot {slot}: current ({cx},{cy}), dest ({ru8(node + DEST_X)},{ru8(node + DEST_Y)}), "
+          f"mode {ru8(node + MOVE_MODE):#04x}, step {ru8(node + STEP):#04x} -> resetting to rest")
+    wu8(node + DEST_X, cx); wu8(node + DEST_Y, cy)
+    wu8(node + STEP, 0); wu8(node + MOVE_MODE, 0x04)
+    print(f"cleared: dest ({ru8(node + DEST_X)},{ru8(node + DEST_Y)}) mode "
+          f"{ru8(node + MOVE_MODE):#04x} step {ru8(node + STEP):#04x}")
+
+
 def main():
     _require_game()
     argv = sys.argv[1:]
@@ -296,6 +314,8 @@ def main():
         cmd_shove(int(argv[1]), int(argv[2]), int(argv[3]), page)
     elif len(argv) >= 2 and argv[0] == "watch":
         cmd_watch(int(argv[1]), float(argv[2]) if len(argv) > 2 else 45.0)
+    elif len(argv) >= 2 and argv[0] == "clear":
+        cmd_clear(int(argv[1]))
     elif len(argv) >= 4 and argv[0] == "order":
         cmd_order(int(argv[1]), int(argv[2]), int(argv[3]), kick)
     else:

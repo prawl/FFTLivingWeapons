@@ -112,9 +112,15 @@ the technical detail lives in the indented lines under it.
   ordering the move 18ms before anything visibly moved, and the same machinery drives ordinary
   walking, so this is the MOVEMENT api and knockback is one mode of it. Read banked as a
   LIVE_LEDGER Uncertain row, tape preserved at tools/probes/tapes_knockback_20260722.jsonl.
-  What remains here: the write test (knockback_probe.py order, written and untested) and, if it
-  passes, retiring lane 1's imitation in favour of letting the engine do the moving. Lane 2, the
-  Dash formula table experiment, is untouched and still worth ten minutes.
+  THE WRITE LANE IS DEAD by this method, settled the same night in two rounds: the destination
+  alone is inert but sticky, and replaying the engine's entire order in its own sequence
+  (destination, counter, then mode last) also stuck in every byte and still moved nothing. These
+  fields are the mover's bookkeeping, not its inputs, the same wall shape as the LW-58 pending
+  field. So lane 1's composed imitation STANDS as the shipping path for a knockback effect, and
+  the read half keeps its value: we can now watch any move and tell a shove from a walk by the
+  mode byte. Whatever actually drives the mover is in-process territory (a call, not a poke), so
+  it belongs with the deep levers rather than here. Lane 2, the Dash formula table experiment, is
+  untouched and still worth ten minutes.
 - [LW-115] 2026-07-21: The Stop combo works as theater and is one owner observation short of
   being a mechanic: nobody has yet confirmed the frozen unit is SKIPPED IN THE TURN ORDER.
   The combo (animation page 0x00, the camera-facing freeze, plus the proven CT byte held at 0)
