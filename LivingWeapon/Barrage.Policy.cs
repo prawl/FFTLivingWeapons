@@ -3,8 +3,11 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Yoichi Bow's "Barrage" signature -- no memory access.
-/// The stateful wielder scan and JobCommand record inject/restore live in Barrage.cs.
+/// The pure decisions behind Yoichi Bow's "Barrage" signature, plus the guarded record read/write
+/// primitives (InjectSlot/ReleaseSlot) that take memory access as a parameter rather than an
+/// instance field -- both shapes are directly unit-testable without a live Barrage. The STATEFUL
+/// wielder scan and per-instance record bookkeeping (which slot, which record, when to call these)
+/// live in Barrage.cs.
 ///
 /// LIVE-PROVEN layout (2026-06-10 menu session; supersedes barrage_probe.py's "msb" flag,
 /// which is whole-u16 order and WRONG -- it rendered ability 358 as Aurablast/102):
@@ -38,11 +41,11 @@ internal sealed partial class Barrage
         => Signatures.Earned(sig, tier) && sig!.GrantCommandAbilityId > 0;
 
     /// <summary>A wielder qualifies for the Barrage grant when Thief is the primary job
-    /// (job 83) OR Steal is the mounted secondary command (secondary record == 14). Injection
-    /// always targets the Steal record (rec 14) regardless of the eligibility path: for a
-    /// Thief primary that IS the primary command slot; for any other primary with Steal mounted
-    /// as a secondary, it is the secondary slot. Eligibility differs; the injection target
-    /// does not. Enforces the card's "Thief Only" promise in code.</summary>
+    /// (job 83) OR Steal is the mounted secondary command (secondary record == 14). Enforces the
+    /// card's "Thief Only" promise in code. Injection does NOT always target rec 14 -- see the
+    /// correction on <see cref="TryResolveGrant"/>: a normal-executor primary other than Thief
+    /// (e.g. a Knight) that merely has Steal mounted as its secondary still resolves via its OWN
+    /// primary record, not Steal's.</summary>
     public static bool IsEligibleWielder(int job, int secondaryRecord)
         => job == ThiefJob || secondaryRecord == ThiefRecord;
 
@@ -88,7 +91,15 @@ internal sealed partial class Barrage
     /// <summary>The grant target for a wielder: the PRIMARY job's record when it's a normal
     /// executor; otherwise fall back to the mounted SECONDARY command's record (LIVE-PROVEN
     /// 2026-06-10: Barrage cast from Steal mounted as an Archer's secondary). False when
-    /// neither is grantable (e.g. Archer with Items secondary, or no secondary).</summary>
+    /// neither is grantable (e.g. Archer with Items secondary, or no secondary).
+    ///
+    /// NOTE this does NOT always land in rec 14 (Steal): that is only true for a Thief PRIMARY
+    /// (whose own record IS Steal) or a special-executor primary (e.g. Archer) falling back to a
+    /// Steal secondary. A normal-executor primary that merely has Steal MOUNTED as its secondary
+    /// (e.g. a Knight with Steal secondary, eligible via IsEligibleWielder's OR) resolves via its
+    /// OWN primary record instead -- Knight lands in rec 7, ignoring the mounted Steal entirely.
+    /// This is exactly how Barrage and ShadowBlade can end up sharing a record (both Knights):
+    /// see Barrage.Policy.ReleaseSlot / InjectSlot for why that is now safe.</summary>
     public static bool TryResolveGrant(int job, int secondaryRec, out int recId, out int jobIdx, out bool viaSecondary)
     {
         viaSecondary = false;
@@ -139,60 +150,77 @@ internal sealed partial class Barrage
     public static byte LearnedBitMask(int slotIdx1)
         => (byte)(1 << (7 - (slotIdx1 - 1) % 8));
 
-    /// <summary>Write the ability into the given slot of a JobCommand record.
+    /// <summary>Write the ability into the given slot of a JobCommand record -- but ONLY when the
+    /// slot is empty or already holds THIS SAME ability (the write-side twin of ReleaseSlot's
+    /// verify-before-write guard, checked with the same predicate: <see
+    /// cref="ShadowBladePolicy.NeedsInject"/>'s negation). Without this, a slotIdx re-applied
+    /// without a fresh FindEmptySlot call (which BarrageState.RecId's atomicity makes rare, but
+    /// does not make impossible -- e.g. the JobCommand table rebuilding a real ability into what
+    /// was our empty slot) could silently overwrite it. Callers still gate the call itself with a
+    /// NeedsInject check (only call when a write is actually wanted); this guard is what makes a
+    /// stale call safe instead of destructive.
     /// <paramref name="flagAddr"/> = start of the 3-byte flag prefix (ExtAb b0, ExtAb b1, ExtRSM).
     /// <paramref name="abBase"/> = start of the 16 ability bytes (flagAddr + 3).
-    /// ORs the slot's extend bit, preserving the record's other extend bits. VirtualQuery-guarded.</summary>
-    public static void InjectSlot(IGameMemory mem, long flagAddr, long abBase, int slotIdx, int abilityId)
+    /// ORs the slot's extend bit, preserving the record's other extend bits. ALL-OR-NOTHING: both
+    /// the ability byte and the 2-byte flag word are confirmed writable before either write lands,
+    /// so a guard refusal never leaves the slot byte-cleared-but-bit-left (which would render as
+    /// ability 256, a phantom FindEmptySlot never reclaims). Returns true when the write happened,
+    /// false on refusal.</summary>
+    public static bool InjectSlot(IGameMemory mem, long flagAddr, long abBase, int slotIdx, int abilityId)
     {
         long byteAddr = abBase + slotIdx;
-        if (!mem.Writable(byteAddr, 1)) return;
-        mem.W8(byteAddr, SlotByte(abilityId));
-
-        if (!mem.Readable(flagAddr, 2)) return;
+        if (!mem.Readable(byteAddr, 1) || !mem.Readable(flagAddr, 2)) return false;
+        byte curByte = mem.U8(byteAddr);
         ushort extAb = (ushort)(mem.U8(flagAddr) | (mem.U8(flagAddr + 1) << 8));
         ushort bit = ExtendBit(slotIdx);
+        bool isEmpty = curByte == 0 && (extAb & bit) == 0;
+        bool isOurs = !ShadowBladePolicy.NeedsInject(curByte, extAb, slotIdx, abilityId);
+        if (!isEmpty && !isOurs) return false;   // someone else's ability is sitting here -- refuse
+
+        if (!mem.Writable(byteAddr, 1) || !mem.Writable(flagAddr, 2)) return false;
+        mem.W8(byteAddr, SlotByte(abilityId));
         if (abilityId >= 256) extAb |= bit; else extAb = (ushort)(extAb & ~bit);
-        if (!mem.Writable(flagAddr, 2)) return;
         mem.W8(flagAddr, (byte)(extAb & 0xFF));
         mem.W8(flagAddr + 1, (byte)(extAb >> 8));
+        return true;
     }
 
-    /// <summary>Write the 25 saved bytes (flags + ability + RSM) back to the record.
-    /// <paramref name="flagAddr"/> = start of the 3-byte flag prefix. VirtualQuery-guarded.</summary>
-    public static void RestoreRecord(IGameMemory mem, long flagAddr, byte[] saved)
+    /// <summary>Remove OUR ability from the given slot, putting it back to empty (byte 0, its own
+    /// extend bit clear) -- and ONLY that slot; every other byte in the 25-byte record is left
+    /// alone. This replaces the old whole-record restore: FindEmptySlot only ever hands out a slot
+    /// that was already empty, so putting OUR slot back to empty needs no saved snapshot, and it
+    /// cannot resurrect a DIFFERENT module's injection into the same record (see BarrageTests'
+    /// two-module collision test) or wipe an ability the player legitimately owns in another slot.
+    ///
+    /// VERIFY BEFORE WRITE: release only when the slot still holds OUR ability -- checked with
+    /// <see cref="ShadowBladePolicy.NeedsInject"/>'s negation, the SAME "does this slot already
+    /// hold ability X" predicate InjectSlot's symmetric guard uses, so release and inject can never
+    /// disagree about what "ours" means. This is load-bearing: the JobCommand table rebuilds at
+    /// boot (see Barrage.cs), so a stale slotIdx can point at a REAL ability by the time release
+    /// runs; blindly zeroing it would delete it. If the slot holds anything else -- a foreign
+    /// ability, or nothing at all -- refuse and leave the record untouched.
+    ///
+    /// ALL-OR-NOTHING: both the ability byte and the 2-byte flag word are confirmed writable before
+    /// either is written, so a guard refusal never leaves a half-released slot.
+    ///
+    /// Returns true when the release happened, false on refusal. Either way the caller forgets the
+    /// slot (BarrageState.Clear): a refusal means the slot is no longer ours to track, and
+    /// remembering it would just make every later tick fight over ground we already lost.</summary>
+    public static bool ReleaseSlot(IGameMemory mem, long flagAddr, long abBase, int slotIdx, int abilityId)
     {
-        if (!mem.Writable(flagAddr, saved.Length)) return;
-        mem.WriteBytes(flagAddr, saved);
+        long byteAddr = abBase + slotIdx;
+        if (!mem.Readable(byteAddr, 1) || !mem.Readable(flagAddr, 2)) return false;
+        byte slotByte = mem.U8(byteAddr);
+        ushort extAb = (ushort)(mem.U8(flagAddr) | (mem.U8(flagAddr + 1) << 8));
+        if (ShadowBladePolicy.NeedsInject(slotByte, extAb, slotIdx, abilityId)) return false;   // not ours
+
+        if (!mem.Writable(byteAddr, 1) || !mem.Writable(flagAddr, 2)) return false;
+        mem.W8(byteAddr, 0);
+        ushort bit = ExtendBit(slotIdx);
+        extAb = (ushort)(extAb & ~bit);
+        mem.W8(flagAddr, (byte)(extAb & 0xFF));
+        mem.W8(flagAddr + 1, (byte)(extAb >> 8));
+        return true;
     }
 
-    /// <summary>Restore the original record bytes for <paramref name="recId"/> if we have them
-    /// saved. Called on grant end or job change.</summary>
-    private void Restore(int recId)
-    {
-        var saved = _state.GetSaved(recId);
-        if (saved is null) return;
-        long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
-        if (!_mem.Writable(flagAddr, RecSize)) return;
-        RestoreRecord(_mem, flagAddr, saved);
-        ModLogger.EventWithTrace(LogVerb.Grant,
-            "Barrage was removed from the job's action list; the original abilities are back",
-            $"barrage restore (record {recId})");
-    }
-
-    /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
-    /// (jobIdx triple). Re-sets whenever clear -- the learn menu's purchase writeback can wipe
-    /// externally-set bits. Never cleared by us.</summary>
-    private void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
-    {
-        long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
-        long addr = rb + RLearnedBase + (long)jobIdx * LearnedStride + LearnedByteIndex(slotIdx1);
-        byte mask = LearnedBitMask(slotIdx1);
-        if (!_mem.Readable(addr, 1)) return;
-        byte cur = _mem.U8(addr);
-        if ((cur & mask) != 0) return;   // already set -> no write needed
-        if (!_mem.Writable(addr, 1)) return;
-        _mem.W8(addr, (byte)(cur | mask));
-        ModLogger.Debug(LogVerb.Grant, $"re-set the learned flag for Barrage in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1}); menu write-back cleared it");
-    }
 }

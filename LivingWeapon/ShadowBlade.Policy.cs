@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// Gaffgarion's Shadow Blade -- a ranged dark strike that absorbs the foe's HP -- via the same
 /// JobCommand injection that ships Barrage. It REUSES the proven Barrage table primitives
 /// (Barrage.TryResolveJob / TryResolveSecondary / FindEmptySlot / ExtendBit / SlotByte / InjectSlot /
-/// RestoreRecord / learned-bit math); the injection mechanism is identical. Only two things differ
+/// ReleaseSlot / learned-bit math); the injection mechanism is identical. Only two things differ
 /// from Barrage and live here, so the shipped Barrage module is never touched:
 ///   1. Eligibility is a WHITELIST of sword skill-sets -- Squire/Knight -- where Barrage is Thief-only.
 ///      Shadow Blade is a sword skill, so it may only land in one of those command sets, reached via the

@@ -10,7 +10,9 @@ namespace LivingWeapon.Tests;
 /// (the table rebuilds at boot) and is re-asserted each tick (idempotent hold). The learned bit
 /// is HELD each tick and never cleared: a menu ability purchase writes the learned block back
 /// from a stale snapshot and wipes externally-set bits (observed live 2026-06-10), so set-once is
-/// not enough. On grant end, the original record bytes are restored.
+/// not enough. On grant end, ONLY our own slot is released (ReleaseSlot) -- no snapshot, no
+/// whole-record restore; see BarrageShadowBladeCollisionTests for why that matters when two
+/// signatures share one record.
 ///
 /// LIVE-PROVEN layout (2026-06-10 menu session; barrage_probe.py's "msb" flag is the WRONG order):
 ///   Record r: flags at ABILITY_BASE + r*25 - 3 = [ExtAb byte0][ExtAb byte1][ExtRSM], then
@@ -290,29 +292,36 @@ public class BarrageTests
         Assert.True(Barrage.NeedsInject(slotByte: 102, extAb: 0x00FF, slotIdx: 8));
     }
 
-    // ---- (7) Never-re-save: do not overwrite the saved record if already saved ----
+    // ---- (7) BarrageState: atomic (RecId, SlotIdx) pair, set and cleared together ----
+    // Retired here: the old Save/HasSaved/GetSaved snapshot API (and its "never-re-save"
+    // invariant) fed the whole-record restore this change removes. There is nothing left to
+    // snapshot -- ReleaseSlot needs no saved bytes, so BarrageState carries only the slot pointer.
 
     [Fact]
-    public void BarrageState_never_overwrites_saved_record()
+    public void BarrageState_starts_empty()
     {
         var state = new BarrageState();
-        var original = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25 };
-        state.Save(recId: 8, record: original);
-        Assert.True(state.HasSaved(8));
-
-        // Try to save again with different bytes -- must not overwrite.
-        var modified = new byte[25];
-        state.Save(recId: 8, record: modified);
-        Assert.Equal(original, state.GetSaved(8));
+        Assert.Equal(-1, state.RecId);
+        Assert.Equal(-1, state.SlotIdx);
     }
 
     [Fact]
-    public void BarrageState_clear_releases_saved_record()
+    public void BarrageState_set_moves_recId_and_slotIdx_together()
     {
         var state = new BarrageState();
-        state.Save(8, new byte[25]);
+        state.Set(recId: 7, slotIdx: 3);
+        Assert.Equal(7, state.RecId);
+        Assert.Equal(3, state.SlotIdx);
+    }
+
+    [Fact]
+    public void BarrageState_clear_forgets_both_fields_together()
+    {
+        var state = new BarrageState();
+        state.Set(recId: 7, slotIdx: 3);
         state.Clear();
-        Assert.False(state.HasSaved(8));
+        Assert.Equal(-1, state.RecId);
+        Assert.Equal(-1, state.SlotIdx);
     }
 
     // ---- (8) Learned bitfield: byte0 = slots 1-8, byte1 = slots 9-16, MSB-first ----
@@ -342,7 +351,7 @@ public class BarrageTests
         long abBase = flagAddr + 3;                          // ability bytes
 
         // Inject ability 358 into slotIdx 8 (slot 9 -- the Archer shape).
-        Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358);
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));
 
         Assert.Equal((byte)102, rec.Bytes[3 + 8]);   // ability byte
         Assert.Equal((byte)0x80, rec.Bytes[1]);      // byte1 bit7 = slot 9 extend
@@ -353,7 +362,7 @@ public class BarrageTests
     public void Inject_slot1_uses_byte0_bit7()
     {
         using var rec = PinnedBuf.Of(28);
-        Barrage.InjectSlot(Live, rec.Addr, rec.Addr + 3, slotIdx: 0, abilityId: 358);
+        Assert.True(Barrage.InjectSlot(Live, rec.Addr, rec.Addr + 3, slotIdx: 0, abilityId: 358));
         Assert.Equal((byte)102, rec.Bytes[3]);
         Assert.Equal((byte)0x80, rec.Bytes[0]);      // byte0 bit7 = slot 1 extend
         Assert.Equal((byte)0x00, rec.Bytes[1]);
@@ -365,19 +374,207 @@ public class BarrageTests
         // Archer rec 8: byte0 = 0xFF (Aim+N extends) must survive a slot-9 inject.
         using var rec = PinnedBuf.Of(28);
         rec.Bytes[0] = 0xFF;
-        Barrage.InjectSlot(Live, rec.Addr, rec.Addr + 3, slotIdx: 8, abilityId: 358);
+        Assert.True(Barrage.InjectSlot(Live, rec.Addr, rec.Addr + 3, slotIdx: 8, abilityId: 358));
         Assert.Equal((byte)0xFF, rec.Bytes[0]);
         Assert.Equal((byte)0x80, rec.Bytes[1]);
     }
 
     [Fact]
-    public void Restore_writes_back_the_saved_25_bytes_including_flags()
+    public void Inject_refuses_when_a_different_ability_already_occupies_the_slot()
     {
-        var original = new byte[25];
-        for (int i = 0; i < 25; i++) original[i] = (byte)(i + 10);
-        using var rec = PinnedBuf.Of(25);
-        Barrage.RestoreRecord(Live, rec.Addr, original);
-        Assert.Equal(original, rec.Bytes);
+        // The symmetric guard: a slotIdx handed a stale index that now points at a REAL ability
+        // (e.g. a table rebuild) must not be able to stomp it.
+        using var rec = PinnedBuf.Of(28);
+        rec.Bytes[3 + 8] = 200;   // some other ability's byte already sitting in slot 9
+        Assert.False(Barrage.InjectSlot(Live, rec.Addr, rec.Addr + 3, slotIdx: 8, abilityId: 358));
+        Assert.Equal((byte)200, rec.Bytes[3 + 8]);   // untouched
+        Assert.Equal((byte)0x00, rec.Bytes[1]);       // no extend bit written either
+    }
+
+    // ---- ReleaseSlot: the slot-scoped replacement for the old whole-record restore ----
+    // T1-T5 from the plan, plus the Aurablast (byte-matches-extend-disagrees) and all-or-nothing
+    // guard cases the plan's own test list under-specified.
+
+    [Fact]
+    public void ReleaseSlot_zeroes_own_slot_byte_and_clears_own_extend_bit()   // T1
+    {
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));
+
+        Assert.True(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));
+
+        Assert.Equal((byte)0, rec.Bytes[3 + 8]);
+        Assert.Equal((byte)0x00, rec.Bytes[1]);   // byte1 bit7 (slot 9) cleared
+    }
+
+    [Fact]
+    public void ReleaseSlot_leaves_every_other_byte_of_the_record_byte_identical()   // T2
+    {
+        // A non-zero, realistic record (Archer rec 8 shape: Aim+1..+8 in slots 1-8, byte0=0xFF)
+        // with Barrage injected at slot 9 and arbitrary non-zero filler in the untouched tail --
+        // "byte-identical" against an all-zero buffer would prove nothing.
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+        rec.Bytes[0] = 0xFF;                                  // slots 1-8 extend bits (Aim+N)
+        rec.Bytes[2] = 0x55;                                  // ExtRSM filler
+        for (int i = 0; i < 8; i++) rec.Bytes[3 + i] = (byte)(150 + i);   // Aim+1..+8
+        for (int i = 9; i < 16; i++) rec.Bytes[3 + i] = 0xAA;             // slots 10-16 filler
+        for (int i = 0; i < 6; i++) rec.Bytes[3 + 16 + i] = 0x77;         // RSM filler
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));
+
+        byte[] expected = (byte[])rec.Bytes.Clone();
+        expected[3 + 8] = 0;      // only Barrage's own slot byte goes back to empty
+        expected[1] = 0x00;       // only its own extend bit clears
+
+        Assert.True(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));
+        Assert.Equal(expected, rec.Bytes);
+    }
+
+    [Fact]
+    public void ReleaseSlot_leaves_other_slots_extend_bits_untouched()   // T3
+    {
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+        // Seed three OTHER slots (spanning both extend-flag bytes) with real ids >= 256, plus ours.
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 0, abilityId: 300));    // byte0 bit7
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));    // byte1 bit7 (ours)
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 15, abilityId: 400));   // byte1 bit0
+
+        Assert.True(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));
+
+        Assert.Equal((byte)0x80, rec.Bytes[0]);   // slot 1's extend bit survives
+        Assert.Equal((byte)0x01, rec.Bytes[1]);   // slot 16's extend bit survives; slot 9's is gone
+        Assert.Equal(Barrage.SlotByte(300), rec.Bytes[3 + 0]);
+        Assert.Equal((byte)0, rec.Bytes[3 + 8]);
+        Assert.Equal(Barrage.SlotByte(400), rec.Bytes[3 + 15]);
+    }
+
+    [Fact]
+    public void ReleaseSlot_refuses_when_slot_holds_a_different_ability_id()   // T4
+    {
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+        rec.Bytes[3 + 8] = 55;   // some other ability entirely, no extend bit
+        byte[] before = (byte[])rec.Bytes.Clone();
+
+        Assert.False(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));
+        Assert.Equal(before, rec.Bytes);
+    }
+
+    [Fact]
+    public void ReleaseSlot_refuses_the_aurablast_trap_byte_matches_but_extend_bit_disagrees()
+    {
+        // 358 (Barrage) and 102 (Aurablast) share the low byte 102 -- distinguished ONLY by the
+        // extend bit. A slot whose byte is 102 with the extend bit CLEAR is really Aurablast, and
+        // must never be released as if it were our Barrage.
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+        rec.Bytes[3 + 8] = 102;   // Aurablast's own byte, no extend bit
+        byte[] before = (byte[])rec.Bytes.Clone();
+
+        Assert.False(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 8, abilityId: 358));
+        Assert.Equal(before, rec.Bytes);
+    }
+
+    [Fact]
+    public void ReleaseSlot_refuses_an_already_empty_slot()
+    {
+        // SlotByte(256) == 0 (256 & 0xFF), the same as a truly empty slot's byte -- an id whose low
+        // byte is 0 must not be able to "release" a slot that never held anything.
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+
+        Assert.False(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 0, abilityId: 256));
+        Assert.Equal(new byte[Barrage.RecSize], rec.Bytes);
+    }
+
+    [Fact]
+    public void ReleaseSlot_ability_below_256_leaves_the_extend_bit_clear_throughout()   // T5 (low id)
+    {
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 3, abilityId: 165));   // Shadow Blade, < 256
+        Assert.Equal((byte)0x00, rec.Bytes[0]);   // never set
+
+        Assert.True(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 3, abilityId: 165));
+        Assert.Equal((byte)0, rec.Bytes[3 + 3]);
+        Assert.Equal((byte)0x00, rec.Bytes[0]);   // still clear
+    }
+
+    [Fact]
+    public void ReleaseSlot_ability_at_or_above_256_clears_the_extend_bit_it_set()   // T5 (high id)
+    {
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 3, abilityId: 358));
+        Assert.Equal((byte)0x10, rec.Bytes[0]);   // slotIdx 3 -> byte0 bit4 (0x80 >> 3)
+
+        Assert.True(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 3, abilityId: 358));
+        Assert.Equal((byte)0, rec.Bytes[3 + 3]);
+        Assert.Equal((byte)0x00, rec.Bytes[0]);
+    }
+
+    [Fact]
+    public void ReleaseSlot_all_or_nothing_when_the_flag_word_is_not_writable()
+    {
+        // Readable+Writable slot byte, but the 2-byte extend-flag word is only READABLE, not
+        // writable. The old shape (write the byte, then bail on the flag guard) would leave the
+        // slot byte-cleared but the extend bit still set -- a phantom FindEmptySlot never reclaims.
+        var m = new FakeSparseMemory();
+        long flagAddr = 0x2000, abBase = 0x3000;   // slotIdx 0 -> byteAddr == abBase
+        m.U8s[abBase] = Barrage.SlotByte(358);
+        m.U8s[flagAddr] = 0x80;      // slotIdx 0's extend bit set -- matches "ours" for id 358
+        m.ReadableAddrs.Add(abBase);
+        m.ReadableAddrs.Add(flagAddr);
+        m.WritableAddrs.Add(abBase);   // the ability byte IS writable...
+        // ...but flagAddr is NOT in WritableAddrs -- the guard must refuse before touching anything.
+
+        Assert.False(Barrage.ReleaseSlot(m, flagAddr, abBase, slotIdx: 0, abilityId: 358));
+        Assert.False(m.Written.ContainsKey(abBase));
+        Assert.Equal(Barrage.SlotByte(358), m.U8s[abBase]);   // untouched
+    }
+
+    [Fact]
+    public void ReleaseSlot_two_grants_sharing_one_record_survive_each_others_release()   // T6
+    {
+        // The load-bearing non-vacuity proof for the primitive itself: Barrage (358) and a stand-in
+        // second grant (Shadow Blade, 165) land in the SAME record at different slots -- exactly the
+        // Sanguine Sword + Defender collision the plan describes. Releasing one must leave the
+        // other completely intact, and releasing both must return the record to byte-identical
+        // pre-injection state with neither resurrected. (The module-level version of this same
+        // scenario, driving the real Barrage/ShadowBlade classes, lives in
+        // BarrageShadowBladeCollisionTests -- this is the primitive-level half of the proof.)
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 0, abilityId: 358));    // "Barrage"
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 1, abilityId: 165));    // "Shadow Blade"
+
+        Assert.True(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 0, abilityId: 358));
+        // Shadow Blade's slot is completely untouched by Barrage's release.
+        Assert.Equal((byte)165, rec.Bytes[3 + 1]);
+        Assert.Equal((byte)0, rec.Bytes[3 + 0]);
+
+        Assert.True(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 1, abilityId: 165));
+        // Byte-identical to the record before either grant ever touched it -- and Barrage was NOT
+        // resurrected by Shadow Blade's release.
+        Assert.Equal(new byte[Barrage.RecSize], rec.Bytes);
+    }
+
+    [Fact]
+    public void ReleaseSlot_a_learned_ability_in_another_slot_survives_our_release()   // T7
+    {
+        // Simulates the player learning a real ability into the record AFTER our inject (a raw
+        // write into another empty slot, standing in for the game's own purchase writeback).
+        using var rec = PinnedBuf.Of(Barrage.RecSize);
+        long flagAddr = rec.Addr, abBase = rec.Addr + 3;
+        Assert.True(Barrage.InjectSlot(Live, flagAddr, abBase, slotIdx: 0, abilityId: 358));
+
+        rec.Bytes[3 + 5] = 40;   // player learns some real ability (id 40, < 256) into slot 6
+
+        Assert.True(Barrage.ReleaseSlot(Live, flagAddr, abBase, slotIdx: 0, abilityId: 358));
+        Assert.Equal((byte)40, rec.Bytes[3 + 5]);   // untouched by our release
     }
 
     // ---- (9) JobCommand table base re-anchor tripwire (the most dangerous WRITE in the port) ----

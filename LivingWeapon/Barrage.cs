@@ -9,9 +9,15 @@ namespace LivingWeapon;
 /// tick (idempotent: NeedsInject only writes when the slot is wrong). Ticked in AND out of
 /// battle -- the learn screen and pre-battle menus read the table live.
 ///
-/// RECORD SAVE: the 25-byte record (flag prefix + 16 ability bytes + 6 RSM bytes) is saved
-/// ONCE on first inject. A re-save while injected would capture injected state and make the
-/// restore restore the injection. Never-re-save is the invariant.
+/// SLOT-SCOPED, NOT RECORD-SCOPED: no snapshot of the record is ever taken. FindEmptySlot only
+/// ever hands out a slot that was already empty, so ending the grant just means putting THAT ONE
+/// slot back to empty (Barrage.Policy.ReleaseSlot) -- verified at release time to still hold our
+/// ability. This is what lets a second signature (ShadowBlade) share the same record: each module
+/// only ever touches its own slot, so the two are mutually invisible, and it is also what stops a
+/// stray whole-record restore from dropping an ability the player (or another mod) legitimately
+/// put in the record after we injected. BarrageState.RecId/SlotIdx move as one atomic pair (see
+/// Barrage.State.cs) and are cleared on EVERY path that ends a grant, so a later grant always
+/// re-verifies emptiness instead of trusting a remembered index.
 ///
 /// LEARNED BIT: HELD each tick (re-set whenever clear) and NEVER cleared. Set-once is not
 /// enough: the learn menu's purchase flow writes the learned block back from a stale
@@ -60,9 +66,8 @@ internal sealed partial class Barrage : ISignature
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly BarrageState _state;
+    private readonly BarrageState _state; // atomic (RecId, SlotIdx) pair; RecId doubles as "record currently targeted"
     private bool _wasActive;
-    private int _lastRecId = -1;          // record id currently injected (-1 = none)
     private int _lastUnsupportedJob = -1; // log-once guard for unmapped jobs
     private bool _recNotReadableLogged;    // Signatures.StuckEdge latch: record unreadable nag
     private bool _noSlotLogged;            // Signatures.StuckEdge latch: no empty slot nag
@@ -77,8 +82,8 @@ internal sealed partial class Barrage : ISignature
 
     public void ResetBattle()
     {
-        // No restore on battle exit: the grant is session-long while the bow stays equipped.
-        // Saved-record state persists across battles within one session.
+        // No release on battle exit: the grant is session-long while the bow stays equipped.
+        // The injected slot (BarrageState) persists across battles within one session.
         _wasActive = false;
         _recNotReadableLogged = false;
         _noSlotLogged = false;
@@ -120,7 +125,7 @@ internal sealed partial class Barrage : ISignature
         {
             if (_wasActive) ModLogger.Event(LogVerb.Grant, "Barrage is no longer granted; no eligible Yoichi Bow wielder remains");
             _wasActive = false;
-            if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
+            Restore();   // no-ops cleanly when nothing is injected; always clears bookkeeping
             return;
         }
 
@@ -135,7 +140,7 @@ internal sealed partial class Barrage : ISignature
                     $"{LogNames.Job(wielderJob)} cannot receive Barrage; this job's action menu silently drops added abilities, or it is a unique story job",
                     $"barrage ungrantable (job {wielderJob}, secondary command {wielderSecondary})");
             }
-            if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
+            Restore();
             _wasActive = false;
             return;
         }
@@ -151,13 +156,10 @@ internal sealed partial class Barrage : ISignature
                 $"barrage grant (party slot {wielderSlot}, record {recId}, learn index {jobIdx})");
         }
 
-        // Job changed mid-session: restore the old record and re-inject for the new job.
-        if (_lastRecId >= 0 && _lastRecId != recId)
-        {
-            Restore(_lastRecId);
-            _state.Clear();
-        }
-        _lastRecId = recId;
+        // Job changed mid-session: release the old record's slot before targeting the new one.
+        // BarrageState.RecId doubles as "the record our current slot belongs to"; Restore() clears
+        // it, so the slot lookup below naturally re-runs FindEmptySlot against the new record.
+        if (_state.RecId >= 0 && _state.RecId != recId) Restore();
 
         long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
         long abBase = AbilityBase + (long)recId * RecSize;
@@ -170,16 +172,10 @@ internal sealed partial class Barrage : ISignature
             ModLogger.Debug(LogVerb.Grant, $"command record {recId} is not readable in memory yet; skipping this tick");
         if (recNotReadable) return;
 
-        // Save the original record ONCE (never-re-save while injected).
-        if (!_state.HasSaved(recId))
-        {
-            byte[] original = _mem.ReadBytes(flagAddr, RecSize);
-            _state.Save(recId, original);
-            ModLogger.Debug(LogVerb.Grant, $"backed up {LogNames.Job(wielderJob)}'s original action list before adding Barrage (record {recId})");
-        }
-
-        // Find or verify the injection slot.
-        int slotIdx = _state.SlotIdx;
+        // Find or verify the injection slot. Only trust a remembered slot when it was found in
+        // THIS record -- guards the same cross-record staleness Restore() above already handles,
+        // belt-and-suspenders against the exact hazard BarrageState.Set/Clear exist to prevent.
+        int slotIdx = _state.RecId == recId ? _state.SlotIdx : -1;
         if (slotIdx < 0)
         {
             if (!_mem.TryReadBytes(flagAddr, RecSize, out byte[] buf)) return;
@@ -196,7 +192,7 @@ internal sealed partial class Barrage : ISignature
             }
             Signatures.StuckEdge(ref _noSlotLogged, false);   // slot found -> re-arm for next time
             slotIdx = slot1 - 1;   // convert to 0-indexed
-            _state.SlotIdx = slotIdx;
+            _state.Set(recId, slotIdx);
             ModLogger.Debug(LogVerb.Grant, $"placed Barrage in ability slot {slot1} of {LogNames.Job(wielderJob)}'s action list (slot index {slotIdx}, record {recId})");
         }
 
@@ -211,4 +207,44 @@ internal sealed partial class Barrage : ISignature
         HoldLearnedBit(wielderSlot, jobIdx, slotIdx + 1);   // 1-indexed slot for learned math
     }
 
+    /// <summary>Release our injected slot (if any) and forget it, unconditionally -- called
+    /// whenever the grant ends (no eligible wielder, an unsupported job) or the wielder's job
+    /// changes to a different record. See BarrageState.Clear for why clearing happens even when the
+    /// release below is refused.</summary>
+    private void Restore()
+    {
+        int recId = _state.RecId;
+        int slotIdx = _state.SlotIdx;
+        if (recId >= 0 && slotIdx >= 0)
+        {
+            long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
+            long abBase = AbilityBase + (long)recId * RecSize;
+            bool released = ReleaseSlot(_mem, flagAddr, abBase, slotIdx, BarrageAbilityId);
+            if (released)
+                ModLogger.EventWithTrace(LogVerb.Grant,
+                    "Barrage was removed from the job's action list; the rest of the list is untouched",
+                    $"barrage release (record {recId}, slot {slotIdx})");
+            else
+                ModLogger.WarnWithTrace(LogVerb.Grant,
+                    "Could not remove Barrage from its slot; something else changed it first",
+                    $"barrage release refused (record {recId}, slot {slotIdx})");
+        }
+        _state.Clear();
+    }
+
+    /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
+    /// (jobIdx triple). Re-sets whenever clear -- the learn menu's purchase writeback can wipe
+    /// externally-set bits. Never cleared by us.</summary>
+    private void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
+    {
+        long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
+        long addr = rb + RLearnedBase + (long)jobIdx * LearnedStride + LearnedByteIndex(slotIdx1);
+        byte mask = LearnedBitMask(slotIdx1);
+        if (!_mem.Readable(addr, 1)) return;
+        byte cur = _mem.U8(addr);
+        if ((cur & mask) != 0) return;   // already set -> no write needed
+        if (!_mem.Writable(addr, 1)) return;
+        _mem.W8(addr, (byte)(cur | mask));
+        ModLogger.Debug(LogVerb.Grant, $"re-set the learned flag for Barrage in party slot {rosterSlot} (job index {jobIdx}, ability slot {slotIdx1}); menu write-back cleared it");
+    }
 }

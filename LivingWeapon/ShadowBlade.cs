@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// Sanguine Sword's "Shadow Blade" signature: grant the wielder Gaffgarion's Shadow Blade -- a ranged
 /// dark strike that absorbs the foe's HP -- via JobCommand injection. It REUSES every proven Barrage
 /// primitive (the table-layout consts + TryResolveGrant / FindEmptySlot / ExtendBit / SlotByte /
-/// InjectSlot / RestoreRecord / learned-bit math + BarrageState); the shipped Barrage module is not
+/// InjectSlot / ReleaseSlot / learned-bit math + BarrageState); the shipped Barrage module is not
 /// touched. Only three things differ from Barrage and live here:
 ///   - the granted ability is read from meta (GrantCommandAbilityId), not hardcoded to 358;
 ///   - eligibility is a WHITELIST of sword skill-sets -- Squire/Knight (records 5/7) -- reached via
@@ -14,20 +14,24 @@ namespace LivingWeapon;
 ///     where Barrage is Thief-only; the resolution is otherwise identical;
 ///   - the idempotent-inject check is general for any id (ShadowBladePolicy.NeedsInject).
 ///
-/// FOLLOW-UP SEAM: the save/inject/restore/hold orchestration below is structurally Barrage's. Once
+/// FOLLOW-UP SEAM: the find/inject/release/hold orchestration below is structurally Barrage's. Once
 /// Shadow Blade is live-verified, the shared core should be extracted into one helper both call --
 /// deferred deliberately, so a blind refactor can't regress the SHIPPED Barrage path.
 ///
 /// LIVE-PENDING (only a deploy can settle, the same class Barrage needed): does Shadow Blade render
 /// with its real menu NAME (the blank-name risk -- it has a table name, so it SHOULD), and does
 /// every resolvable job actually EXECUTE it (the special-executor swallow)? All reads/writes are
-/// VirtualQuery-guarded; the record is saved-once and restored, so a wrong guess reverts cleanly.
+/// VirtualQuery-guarded. Ending the grant releases ONLY the one slot we injected (verified at
+/// release time to still hold our ability), so a wrong guess reverts cleanly without touching
+/// anything else in the record -- see ReleaseSlot.
 ///
-/// RESTORE BLAST RADIUS (inherited from Barrage's save-once/full-record-restore, wider here because
-/// the grant can target either whitelisted record 5/7, not just Thief's rec 14): if the player legitimately
-/// learns a NEW ability into the SAME record AFTER our first save, a later Restore reverts that
-/// record to the pre-inject snapshot, dropping the learned ability. Same latent behavior as Barrage;
-/// a precise fix (restore only the injected slot) belongs in the future shared-core extraction.
+/// SHARED RECORD, NOW SAFE: the grant can target either whitelisted record 5 or 7, the SAME two
+/// Barrage can land in when a non-Thief primary has Steal mounted as a secondary (see the
+/// TryResolveGrant correction in Barrage.Policy.cs), and Provoke (a forthcoming Knight-sword
+/// signature) is slated for record 7 too. Slot-scoped release is what makes that safe: each module
+/// only ever writes and releases its OWN slot, so two grants sharing a record can never see or
+/// disturb each other's -- and neither can drop an ability the player (or another mod) legitimately
+/// owns in a different slot of that same record.
 /// </summary>
 internal sealed class ShadowBlade : ISignature
 {
@@ -37,9 +41,8 @@ internal sealed class ShadowBlade : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly BarrageState _state = new();   // same save/slot ledger Barrage uses
+    private readonly BarrageState _state = new();   // same atomic (RecId, SlotIdx) ledger Barrage uses
     private bool _wasActive;
-    private int _lastRecId = -1;
     private int _lastUnsupportedJob = -1;
     private bool _noSlotLogged;   // Signatures.StuckEdge latch: no empty slot nag
 
@@ -52,7 +55,7 @@ internal sealed class ShadowBlade : ISignature
 
     public void ResetBattle()
     {
-        _wasActive = false;   // session-long grant; saved record persists across battles
+        _wasActive = false;   // session-long grant; the injected slot (BarrageState) persists across battles
         _noSlotLogged = false;
     }
 
@@ -87,11 +90,11 @@ internal sealed class ShadowBlade : ISignature
         {
             if (_wasActive) ModLogger.Event(LogVerb.Grant, "Shadow Blade is no longer granted; no eligible Sanguine Sword wielder remains");
             _wasActive = false;
-            // Clear the ledger too (not just _lastRecId): eligibility is OPEN, so the NEXT grant can
-            // resolve to a DIFFERENT record. A stale SlotIdx would inject there without re-finding an
-            // empty slot, overwriting a real ability. (Barrage is Thief-only/constant-record, so it
-            // never hits this -- the open eligibility is what makes it reachable.)
-            if (_lastRecId >= 0) { Restore(_lastRecId); _state.Clear(); _lastRecId = -1; }
+            // Eligibility is OPEN (unlike Barrage's fixed Thief path), so the NEXT grant can resolve
+            // to a DIFFERENT record -- Restore() releases the slot in the record we're actually
+            // tracking (BarrageState.RecId) and always clears, so nothing stale survives to be
+            // misapplied against whichever record comes next.
+            Restore(abilityId);
             return;
         }
 
@@ -104,7 +107,7 @@ internal sealed class ShadowBlade : ISignature
                     $"{LogNames.Job(wielderJob)} cannot receive Shadow Blade; it needs Squire or Knight as the primary job, or one of their action sets as the secondary command",
                     $"shadow blade ungrantable (job {wielderJob}, secondary command {wielderSecondary})");
             }
-            if (_lastRecId >= 0) { Restore(_lastRecId); _lastRecId = -1; }
+            Restore(abilityId);
             _wasActive = false;
             return;
         }
@@ -117,21 +120,17 @@ internal sealed class ShadowBlade : ISignature
                 $"shadow blade grant (party slot {wielderSlot}, ability {abilityId}, record {recId}, learn index {jobIdx})");
         }
 
-        // Job changed mid-session: restore the old record, re-inject for the new one.
-        if (_lastRecId >= 0 && _lastRecId != recId) { Restore(_lastRecId); _state.Clear(); }
-        _lastRecId = recId;
+        // Job changed mid-session: release the old record's slot before targeting the new one.
+        if (_state.RecId >= 0 && _state.RecId != recId) Restore(abilityId);
 
         long flagAddr = Barrage.AbilityBase + (long)recId * Barrage.RecSize - Barrage.FlagPrefixSize;
         long abBase = Barrage.AbilityBase + (long)recId * Barrage.RecSize;
         if (!_mem.Readable(flagAddr, Barrage.RecSize)) { return; }
 
-        if (!_state.HasSaved(recId))
-        {
-            _state.Save(recId, _mem.ReadBytes(flagAddr, Barrage.RecSize));
-            ModLogger.Debug(LogVerb.Grant, $"backed up {LogNames.Job(wielderJob)}'s original action list before adding Shadow Blade (record {recId})");
-        }
-
-        int slotIdx = _state.SlotIdx;
+        // Find or verify the injection slot. Only trust a remembered slot when it was found in
+        // THIS record -- see the matching comment in Barrage.cs for why this check survives even
+        // though Restore() above should already have cleared a mismatched record.
+        int slotIdx = _state.RecId == recId ? _state.SlotIdx : -1;
         if (slotIdx < 0)
         {
             if (!_mem.TryReadBytes(flagAddr, Barrage.RecSize, out byte[] buf)) return;
@@ -148,7 +147,7 @@ internal sealed class ShadowBlade : ISignature
             }
             Signatures.StuckEdge(ref _noSlotLogged, false);   // slot found -> re-arm for next time
             slotIdx = slot1 - 1;
-            _state.SlotIdx = slotIdx;
+            _state.Set(recId, slotIdx);
             ModLogger.Debug(LogVerb.Grant, $"placed Shadow Blade in ability slot {slot1} of {LogNames.Job(wielderJob)}'s action list (record {recId})");
         }
 
@@ -161,16 +160,31 @@ internal sealed class ShadowBlade : ISignature
         HoldLearnedBit(wielderSlot, jobIdx, slotIdx + 1);
     }
 
-    private void Restore(int recId)
+    /// <summary>Release our injected slot (if any) and forget it, unconditionally -- called
+    /// whenever the grant ends or the wielder's job changes records. <paramref name="abilityId"/>
+    /// is passed in (read from meta at the top of Tick) rather than re-read here, so a missing meta
+    /// key can never make this silently no-op the way a second dictionary lookup could. See
+    /// Barrage.Restore (same shape, ability id hardcoded there) and BarrageState.Clear for why
+    /// clearing happens unconditionally, even when the release below is refused.</summary>
+    private void Restore(int abilityId)
     {
-        var saved = _state.GetSaved(recId);
-        if (saved is null) return;
-        long flagAddr = Barrage.AbilityBase + (long)recId * Barrage.RecSize - Barrage.FlagPrefixSize;
-        if (!_mem.Writable(flagAddr, Barrage.RecSize)) return;
-        Barrage.RestoreRecord(_mem, flagAddr, saved);
-        ModLogger.EventWithTrace(LogVerb.Grant,
-            "Shadow Blade was removed from the job's action list; the original abilities are back",
-            $"shadow blade restore (record {recId})");
+        int recId = _state.RecId;
+        int slotIdx = _state.SlotIdx;
+        if (recId >= 0 && slotIdx >= 0)
+        {
+            long flagAddr = Barrage.AbilityBase + (long)recId * Barrage.RecSize - Barrage.FlagPrefixSize;
+            long abBase = Barrage.AbilityBase + (long)recId * Barrage.RecSize;
+            bool released = Barrage.ReleaseSlot(_mem, flagAddr, abBase, slotIdx, abilityId);
+            if (released)
+                ModLogger.EventWithTrace(LogVerb.Grant,
+                    "Shadow Blade was removed from the job's action list; the rest of the list is untouched",
+                    $"shadow blade release (record {recId}, slot {slotIdx})");
+            else
+                ModLogger.WarnWithTrace(LogVerb.Grant,
+                    "Could not remove Shadow Blade from its slot; something else changed it first",
+                    $"shadow blade release refused (record {recId}, slot {slotIdx})");
+        }
+        _state.Clear();
     }
 
     private void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
