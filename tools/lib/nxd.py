@@ -7,8 +7,13 @@ return without the expected file.
 """
 import shutil
 import subprocess
+from pathlib import Path
 
-from .paths import FF16
+from .paths import FF16, STEAM_FFT
+
+# The base game's encrypted table archive. Every bake script needs a pristine vanilla decode to
+# diff against, and every one of them gets it from here.
+PAC = STEAM_FFT / "data" / "enhanced" / "0004.en.pac"
 
 
 def encode_sqlite_to_nxd(sqlite, out_dir, nxd_name):
@@ -49,3 +54,17 @@ def deploy_nxd(built, dest):
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(built, dest)
     return dest
+
+
+def unpack(pac, inner, out_dir):
+    """Extract ONE inner file from an encrypted game pac; return its path.
+
+    Lives here rather than in a caller because three tools need it and one of them
+    (patch_status_names) is itself imported by the audit, which made the old
+    audit-owns-it arrangement a circular import."""
+    r = subprocess.run([str(FF16), "unpack", "-i", str(pac), "-f", inner,
+                        "-o", str(out_dir), "-g", "fft"], capture_output=True, text=True)
+    out = out_dir / Path(inner)
+    if r.returncode != 0 or not out.exists():
+        raise SystemExit(f"UNPACK FAILED ({inner}):\n" + r.stdout + r.stderr)
+    return out

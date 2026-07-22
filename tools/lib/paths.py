@@ -15,6 +15,10 @@ MOD_TABLES = ROOT / "mod" / "FFTIVC" / "tables" / "enhanced"
 MOD_NXD_DIR = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "nxd"
 MOD_ITEM_NXD = MOD_NXD_DIR / "item.en.nxd"
 MOD_ABILITY_NXD = MOD_NXD_DIR / "ability.en.nxd"
+# LW-123: the status name/description table. Needed because Provoke marks its target with a status
+# that ships with a BLANK name and description (UIStatusEffect Key 1), so the mark has no way to
+# announce itself until we write those two cells.
+MOD_STATUS_NXD = MOD_NXD_DIR / "uistatuseffect.en.nxd"
 
 # FF16Tools CLI (sqlite-to-nxd / nxd-to-sqlite / tex-conv / img-conv; base game pacs are
 # encrypted, every call needs -g fft). FF16TOOLS_CLI overrides it so a version bump is one

@@ -44,7 +44,13 @@ $RequiredModFiles = @(
     "FFTIVC/tables/enhanced/ItemEquipBonusData.xml",
     "FFTIVC/tables/enhanced/JobData.xml",
     "FFTIVC/data/enhanced/nxd/item.en.nxd",
-    "FFTIVC/data/enhanced/nxd/ability.en.nxd"
+    "FFTIVC/data/enhanced/nxd/ability.en.nxd",
+    # LW-123: names the blank status Provoke marks its target with. Without this the mark
+    # renders as an unlabelled icon. Built by tools/patch_status_names.py.
+    # WARNING, never write a closing round bracket in a comment inside this array. The manifest
+    # contract test finds the block with a NON-GREEDY regex, so the first closing bracket ends
+    # the match and every entry below it silently vanishes from the parsed manifest.
+    "FFTIVC/data/enhanced/nxd/uistatuseffect.en.nxd"
 )
 
 # Save-adjacent files a deploy must round-trip through %TEMP% rather than wipe: the

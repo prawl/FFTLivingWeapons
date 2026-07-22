@@ -47,11 +47,12 @@ from lib.bake_intent import ALLOWED_EXTRA_ROWS, ALLOWED_ITEM_CELLS
 from lib.categories import WEAPON_CATS
 from lib.flavor import assemble_desc, is_living, plural
 from lib.items import load_items
-from lib.paths import FF16, MOD_ABILITY_NXD, MOD_ITEM_NXD, STEAM_FFT
+from lib.nxd import PAC, unpack   # re-exported: rebase_nxd_pristine imports them from here
+from lib.paths import FF16, MOD_ABILITY_NXD, MOD_ITEM_NXD, MOD_STATUS_NXD, STEAM_FFT
 from patch_ability_names import PATCHES as ABILITY_PATCHES
+from patch_status_names import PATCHES as STATUS_PATCHES
 from patch_names import GROUP_RANK, SCAFFOLD_LIVING, UICAT
 
-PAC = STEAM_FFT / "data" / "enhanced" / "0004.en.pac"
 
 
 def item_intent():
@@ -96,13 +97,6 @@ def orphan_sort_ok(bake_row, vanilla_row, value):
     return rank is not None and isinstance(value, int) and value // 100 == rank
 
 
-def unpack(pac, inner, out_dir):
-    r = subprocess.run([str(FF16), "unpack", "-i", str(pac), "-f", inner,
-                        "-o", str(out_dir), "-g", "fft"], capture_output=True, text=True)
-    out = out_dir / Path(inner)
-    if r.returncode != 0 or not out.exists():
-        raise SystemExit(f"UNPACK FAILED ({inner}):\n" + r.stdout + r.stderr)
-    return out
 
 
 def rows(db, table):
@@ -163,6 +157,7 @@ def main():
     stamp = datetime.fromtimestamp(PAC.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
     print(f"pac: {PAC} (mtime {stamp})")
     ability_intent = {(k, c): v for k, cols in ABILITY_PATCHES.items() for c, v in cols.items()}
+    status_intent = {(k, c): v for k, cols in STATUS_PATCHES.items() for c, v in cols.items()}
     problems = 0
     with tempfile.TemporaryDirectory(prefix="nxd_audit_") as td:
         tmp = Path(td)
@@ -170,6 +165,7 @@ def main():
         for table, inner, bake_nxd, intent, allowed in [
             ("Item-en", "nxd/item.en.nxd", MOD_ITEM_NXD, item_intent(), ALLOWED_ITEM_CELLS),
             ("Ability-en", "nxd/ability.en.nxd", MOD_ABILITY_NXD, ability_intent, {}),
+            ("UIStatusEffect-en", "nxd/uistatuseffect.en.nxd", MOD_STATUS_NXD, status_intent, {}),
         ]:
             fresh = unpack(PAC, inner, tmp / "pacout")
             name = Path(inner).name
