@@ -124,24 +124,6 @@ the technical detail lives in the indented lines under it.
   mode byte. Whatever actually drives the mover is in-process territory (a call, not a poke), so
   it belongs with the deep levers rather than here. Lane 2, the Dash formula table experiment, is
   untouched and still worth ten minutes.
-- [LW-115] 2026-07-21: The Stop combo works as theater and is one owner observation short of
-  being a mechanic: nobody has yet confirmed the frozen unit is SKIPPED IN THE TURN ORDER.
-  The combo (animation page 0x00, the camera-facing freeze, plus the proven CT byte held at 0)
-  ran live twice 2026-07-21 and froze the unit both times; the owner explicitly asked not to
-  be allowed to forget the missing half. The observation: run anim_poke_probe.py stop for 20
-  to 30 seconds while turns are actually flowing (not sitting on a menu, CT read 0 both runs
-  because the clock was frozen on the owner's open menu) and watch whether the held unit's
-  turn never comes while others act around them. PROGRESS 2026-07-21 late: a 25 second hold
-  with the menu closed dropped the unit from the turn order ONCE by the owner's eyeball, a
-  soft pass wanting one sharp rep. The decisive version uses the game's own AT list: note the
-  unit's place in the upcoming order, hold stop for 25 seconds, watch them sink off the
-  predicted queue while everyone else keeps position, then re enter at the back after release
-  (they restart from CT 0). Compass anchored the same run: the camera is SOUTH and page 0x00
-  always faces it. Facing notes: the +0x7C "facing parameter" theory was falsified live
-  (facing plus idle page = no turn, several values); turning is done by PAGES (catalog 0x01
-  east, 0x02 north east); four requests of 0x01 ended facing north east, leaning ABSOLUTE but
-  confounded (requests 0.6s apart can drop while a turn animation is mid play, so the landed
-  count is unknown).
 - [LW-114] 2026-07-21: Finish mapping the animation flipbooks: one sweep per sprite class so
   every signature can pick its pages by fact instead of folklore.
   The time mage sweep (tools/probes/anim_catalog.jsonl, all 128 pages owner labeled) proved the

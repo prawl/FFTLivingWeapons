@@ -10,6 +10,17 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-115] SHIPPED 4e3272a 2026-07-22: the Stop combo is a complete mechanic, not just a pose.
+  Holding a unit's CT byte at zero denies it turns outright: the owner watched a benched unit's
+  next turn never arrive and the unit vanish from the on screen turn order, then return normally
+  once the hold released, with its accrued charge genuinely lost because CT re-accrues from zero.
+  Paired with animation page 0x00, the camera facing freeze from the owner's own sweep, that is a
+  full Stop effect assembled from two writes and no new engine work, the first mechanic composed
+  entirely out of the toolbag opened this week. Two earlier attempts confirmed only the freeze
+  because both sat on an open menu, which stops the clock and makes the turn order question
+  unreadable; the deciding run closed the menu. Observation banked as a LIVE_LEDGER row for the
+  owner to flip. The CT write side was already proven the other direction (the extra turn slam),
+  so this is the same byte read as a denial rather than a gift.
 - [LW-113] SHIPPED c855985 2026-07-21: the mod can now play any animation on any unit, and the
   owner proved it live. A register the engine uses to order up animations had been decoded since
   2026-07-10 but never actually poked, because every earlier attempt hit a per frame OUTPUT field
