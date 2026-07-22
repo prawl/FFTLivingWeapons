@@ -68,6 +68,11 @@ Verbs
       List every ability id whose shipped name is NULL/empty (the hijack pool), with its decoded
       behavior row.  Read-only.
 
+  python tools\\probes\\ability_table_probe.py inflictrefs
+      Which inflict rows are FREE to author, and which are SHARED by several abilities.  Answer
+      both before repointing an ability's `+15`: authoring a referenced row changes that ability
+      too, and editing a shared row changes every bystander that indexes it.  Read-only.
+
   python tools\\probes\\ability_table_probe.py --selftest
       Offline checks (no game needed): address arithmetic and the row decoder.
 """
@@ -564,6 +569,53 @@ def verb_orphans(mem, names):
     return 0
 
 
+def verb_inflictrefs(mem, names):
+    """Which inflict rows are FREE to author, and which abilities share the ones that are not.
+
+    Hijacking an ability means giving it a new effect, and the cheap way is to point its action row
+    `+15` at an inflict row we wrote ourselves. Two questions decide whether that is safe, and
+    `orphans` answers neither, because it lists unnamed ABILITIES rather than unreferenced INFLICT
+    rows:
+
+      1. Is the row we intend to author referenced by anything already? If it is, authoring it
+         silently changes that ability too.
+      2. Is the ability's CURRENT row shared? Ability 189's vanilla row 45 is used by three
+         abilities, so editing it in place would have changed two bystanders. That is exactly why
+         the shipped design points 189 at a fresh row instead of editing its own.
+
+    Read-only. Note that a row this reports as referenced by exactly the ability you are hijacking
+    is normally YOUR OWN hold showing up: stop the hold and re-run to see the vanilla picture."""
+    raw = mem.read(ACTION_VA, ACTION_ROWS * ACTION_STRIDE)
+    if raw is None:
+        print(f"live action table unreadable at 0x{ACTION_VA:X}")
+        return 1
+
+    users = {}
+    skipped = 0
+    for i in range(ACTION_ROWS):
+        row = raw[i * ACTION_STRIDE:(i + 1) * ACTION_STRIDE]
+        if row[0:4] != ROW_SENTINEL:
+            skipped += 1
+            continue
+        users.setdefault(row[F_INFLICT], []).append(i)
+
+    free = [n for n in range(INFLICT_ROWS) if n not in users]
+    print(f"scanned {ACTION_ROWS - skipped} action rows at the LIVE table 0x{ACTION_VA:X}"
+          + (f" ({skipped} lacked the row marker and were skipped)" if skipped else ""))
+    print()
+    print(f"{len(free)} of {INFLICT_ROWS} inflict rows are referenced by NO action row, so they are "
+          f"free to author:")
+    print("  " + ", ".join(str(n) for n in free))
+    print()
+    print("SHARED rows (more than one ability indexes them; never edit these in place):")
+    shared = sorted((n, ids) for n, ids in users.items() if len(ids) > 1)
+    for n, ids in shared:
+        shown = ", ".join(f"{i} {name_of(names, i)}" for i in ids[:4])
+        more = f" and {len(ids) - 4} more" if len(ids) > 4 else ""
+        print(f"  row {n:3d} @ 0x{INFLICT_VA + n * INFLICT_STRIDE:X}: {len(ids)} abilities: {shown}{more}")
+    return 0
+
+
 # --------------------------------------------------------------------------- selftest
 def selftest():
     fails = []
@@ -652,6 +704,8 @@ def main():
             return verb_findrow(mem, ability_id, pattern, lo, hi)
         if verb == "orphans":
             return verb_orphans(mem, names)
+        if verb == "inflictrefs":
+            return verb_inflictrefs(mem, names)
         if verb == "inflict":
             base = INFLICT_VA
             want = None
