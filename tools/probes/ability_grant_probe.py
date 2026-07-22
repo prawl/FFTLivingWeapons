@@ -46,9 +46,11 @@ TWO THINGS THAT WILL BITE
 
 Verbs
 -----
-  python tools\\probes\\ability_grant_probe.py roster
-      List roster slots: job byte, resolved JobCommand record, secondary command, learned index.
-      Read-only. Use it to pick a slot.
+  python tools\\probes\\ability_grant_probe.py roster [--all]
+      List roster slots with enough identity to pick one without guessing: nameId (Ramza is 1 and
+      is labelled), level, job NAME, resolved JobCommand record, learned index, secondary command,
+      and the main-hand weapon by name. Read-only. Only grantable slots are listed by default;
+      --all adds the story uniques and monsters that need an explicit --rec.
 
   python tools\\probes\\ability_grant_probe.py dump <rec>
       Decode a JobCommand record: its extend flags and all 16 ability slots, with names.
@@ -117,9 +119,20 @@ ROSTER_BASE = 0x1411A7D10
 ROSTER_STRIDE = 0x258
 R_JOB = 0x02          # u8 job byte
 R_SECONDARY = 0x07    # u8 secondary command = a JobCommand record id
+R_RHAND = 0x14        # u16 main-hand weapon id (Offsets.RRHand; == data/items.json id)
+R_LEVEL = 0x1D        # u8  (Offsets.RLevel; 0 on an empty slot)
+R_NAMEID = 0x230      # u16 (Offsets.RNameId; Ramza is nameId 1, per Offsets.cs:117)
 R_LEARNED_BASE = 0x32
 LEARNED_STRIDE = 3
-ROSTER_SLOTS = 20
+ROSTER_SLOTS = 50     # Offsets.RosterSlots -- 50 is a HARD CEILING, not a guess (LW-96)
+
+# Job names, ported verbatim from LivingWeapon/LogNames.cs:17-42 (the verified PSX-wheel mapping).
+# `roster` exists to answer "which slot is my Knight", and a bare job NUMBER does not answer it.
+JOB_NAMES = {74: "Squire", 75: "Chemist", 76: "Knight", 77: "Archer", 78: "Monk",
+             79: "White Mage", 80: "Black Mage", 81: "Time Mage", 82: "Summoner", 83: "Thief",
+             84: "Orator", 85: "Mystic", 86: "Geomancer", 87: "Dragoon", 88: "Samurai",
+             89: "Ninja", 90: "Arithmetician", 91: "Bard", 92: "Dancer", 93: "Mime",
+             43: "Machinist", 96: "Chocobo", 160: "Dark Knight"}
 
 # --- ability ACTION table (located offline 2026-07-22, CONFIRMED live the same day by
 #     tools/probes/ability_table_probe.py: 367/368 row sentinels, MP anchors exact, and a negative
@@ -272,6 +285,21 @@ def load_names():
         con.close()
 
 
+def load_item_names():
+    """id -> display name from data/items.json, so `roster` can say "Defender" rather than "33".
+    Degrades to {} if the repo copy is missing: this is a nicety, never a dependency."""
+    try:
+        sys.path.insert(0, str(ROOT / "tools"))
+        from lib.items import display_name, load_items
+        return {it["id"]: display_name(it) for it in load_items()["items"]}
+    except Exception:
+        return {}
+
+
+def job_name(job):
+    return JOB_NAMES.get(job, f"job {job}")
+
+
 def name_of(names, ability_id):
     n = names.get(ability_id)
     if n is None:
@@ -311,25 +339,54 @@ def verb_dump(mem, names, rec):
     return 0
 
 
-def verb_roster(mem, names):
-    print("slot  job  record  jobIdx  secondary  note")
+def verb_roster(mem, names, show_all=False):
+    """List roster slots so a human can pick one. Prints WHO each slot is, not just what job byte
+    it holds: identifying a unit by job number alone means guessing, and a grant aimed at the wrong
+    slot sets the learned bit on the wrong unit, which reads in game as "the command never
+    appeared" rather than as an error.
+
+    The 50-slot roster window is mostly NOT your party -- it carries story units, monsters and
+    recruit-pool entries with sane levels and real equipment. By default only slots whose job
+    resolves to a JobCommand record are listed, because those are the only ones a bare `grant` can
+    target anyway; `--all` shows the rest, which need an explicit --rec."""
+    items = load_item_names()
+    print(f"{'slot':>4} {'nameId':>6} {'lvl':>3}  {'job':<14} {'rec':>3} {'jobIdx':>6} "
+          f"{'2nd':>3}  {'main hand':<22} note")
+    shown = 0
+    hidden = 0
     for s in range(ROSTER_SLOTS):
         base = ROSTER_BASE + s * ROSTER_STRIDE
-        raw = mem.read(base + R_JOB, 6)
-        if raw is None:
+        row = mem.read(base, ROSTER_STRIDE)
+        if row is None:
             continue
-        job = raw[0]
-        secondary = mem.read(base + R_SECONDARY, 1)
-        secondary = secondary[0] if secondary else 0
+        job = row[R_JOB]
+        level = row[R_LEVEL]
+        if job == 0 or not 1 <= level <= 99:
+            continue          # empty seat: no job, or a level no real unit carries
+        if resolve_job(job)[0] is None and not show_all:
+            hidden += 1
+            continue
+        name_id = row[R_NAMEID] | (row[R_NAMEID + 1] << 8)
+        rhand = row[R_RHAND] | (row[R_RHAND + 1] << 8)
+        secondary = row[R_SECONDARY]
         rec, job_idx = resolve_job(job)
-        note = ""
-        if job == 0:
-            continue
+
+        hand = items.get(rhand, f"item {rhand}") if rhand not in (0, 0xFFFF) else "(empty)"
+        notes = []
+        if name_id == 1:
+            notes.append("RAMZA")
         if rec is None:
-            note = "job outside the generic 74-92 band (story unique / monster) -- use --rec"
+            notes.append("job outside the generic 74-92 band (story unique / monster) -- use --rec")
         elif job in SPECIAL_EXECUTORS:
-            note = f"SPECIAL EXECUTOR ({SPECIAL_EXECUTORS[job]}): may swallow foreign ids"
-        print(f"{s:4d}  {job:3d}  {str(rec):>6}  {str(job_idx):>6}  {secondary:9d}  {note}")
+            notes.append(f"SPECIAL EXECUTOR ({SPECIAL_EXECUTORS[job]}): may swallow foreign ids")
+        print(f"{s:4d} {name_id:6d} {level:3d}  {job_name(job):<14} {str(rec):>3} "
+              f"{str(job_idx):>6} {secondary:3d}  {hand[:22]:<22} {', '.join(notes)}")
+        shown += 1
+    if shown == 0:
+        print("(no populated slots -- is a save loaded?)")
+    if hidden:
+        print(f"\n{hidden} populated slot(s) hidden: their job does not map to a JobCommand "
+              f"record (story uniques, monsters, recruit pool). `roster --all` lists them.")
     return 0
 
 
@@ -675,10 +732,14 @@ def main():
     rec_override = None
     slot_override = None
     base_override = None
+    show_all = False
     positional = []
     i = 0
     while i < len(args):
-        if args[i] == "--rec":
+        if args[i] == "--all":
+            show_all = True
+            i += 1
+        elif args[i] == "--rec":
             rec_override = int(args[i + 1], 0)
             i += 2
         elif args[i] == "--slot":
@@ -700,7 +761,7 @@ def main():
     try:
         verb = positional[0]
         if verb == "roster":
-            return verb_roster(mem, names)
+            return verb_roster(mem, names, show_all)
         if verb == "dump":
             if len(positional) < 2:
                 print("usage: dump <rec>")
