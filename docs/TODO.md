@@ -41,6 +41,31 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-123] 2026-07-22: Give the Defender a shout that pulls one enemy's attention onto the person
+  holding it. Point at a foe, and until that foe has taken its turn, attacking enemies cannot see
+  anyone on your side except the bearer, who carries the best parry in the game to survive what it
+  just invited.
+  Why it matters: this game has no aggro, so a tank cannot protect anyone. The only lever on who
+  the AI attacks is whether a unit can be targeted at all, which makes a taunt subtractive: hide
+  everyone else. That was observed working live on 2026-07-22, and it gives the Defender the one
+  thing its "un-killable dodge wall" identity currently lacks, which is a reason for enemies to
+  swing at it.
+  Scope and gates: acceptance criteria are in docs/PROVOKE_AC.md. Builds in two arcs, the hold
+  engine first and the granted command second, with a seam between them. Rests on two ledger rows
+  that are live-observed and awaiting the owner's PROVEN flip (the funnel, and the orphan-flag
+  status layer model). Does not gate 2.3.1, whose scope is locked at no new features.
+
+- [LW-124] 2026-07-22: Audit every band walk in the runtime for staged cutscene units. The engine
+  parks them in real seats with sane stats and real map positions, so a walk that only checks for
+  sane values counts them as party members.
+  Why it matters: five of them sailed through a position-based filter on 2026-07-22 and would have
+  been treated as live party members. Band.IsValid does not test the engine's own hide gate, so
+  every existing caller is exposed, not just the new one.
+  State: LW-123 adds a Band.IsOnField predicate (IsValid plus combat +0x01 not equal to 0xFF) and
+  uses it in the new code only. Folding it into IsValid touches about ten call sites and each one
+  needs a think about whether excluding an off-field seat changes its answer, so it is deliberately
+  a separate pass.
+
 - [LW-122] 2026-07-22: Make the game apply a status for us. The door is found, resolvable and
   safe to knock on; we are not yet speaking its dialect.
   Why it matters: three independent systems said the same thing this session (the mover ignores
