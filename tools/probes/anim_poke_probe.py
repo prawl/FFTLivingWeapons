@@ -25,7 +25,8 @@ bit 0x20 (the decoded force bit for overriding a critical unit's selector). Rest
     python tools\\probes\\anim_poke_probe.py watch <slot> [s]   # healthy-baseline watch, no writes
     python tools\\probes\\anim_poke_probe.py poke <slot> <logicalHex> [--force]
     python tools\\probes\\anim_poke_probe.py sweep <slot> [--start H] [--stop H]   # catalog pages
-    python tools\\probes\\anim_poke_probe.py face <slot> <0..7>    # facing byte +0x7C (unpoked)
+    python tools\\probes\\anim_poke_probe.py face <slot> <0..7>    # facing byte write only (latches)
+    python tools\\probes\\anim_poke_probe.py turn <slot> <0..3>    # facing + idle request = real turn
     python tools\\probes\\anim_poke_probe.py stop <slot> [secs]    # page 0x00 + CT-pin: the Stop combo
 
 LIVE RESULT 2026-07-21 (owner, first input poke ever fired): PASS by the pre-registered bar,
@@ -259,6 +260,8 @@ def main():
         cmd_sweep(int(argv[1]), start, stop)
     elif len(argv) >= 3 and argv[0] == "face":
         cmd_face(int(argv[1]), int(argv[2]))
+    elif len(argv) >= 3 and argv[0] == "turn":
+        cmd_turn(int(argv[1]), int(argv[2]))
     elif len(argv) >= 2 and argv[0] == "stop":
         cmd_stop(int(argv[1]), float(argv[2]) if len(argv) > 2 else 15.0)
     else:
