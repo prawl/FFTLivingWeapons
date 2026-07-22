@@ -25,12 +25,25 @@ legitimate occurrence of it in the game. A blank row has no legitimate occurrenc
   knows: Berserk (bit 20 -> Key 21), Invisibility (19 -> 20), Slow (29 -> 30), Charmed (34 -> 35),
   Immobilize (36 -> 37).
 
-DELIBERATELY NOT WRITTEN: the `Type` column. Type is the status's display CATEGORY (1 on the
-buffs, 3 on the debuffs, 12 on Stone/Invisibility) and may or may not drive the overhead icon --
-Key 1 and Key 32 are both Type 0 yet only Key 32 renders an icon, so Type is not the whole story.
-Writing name and caption alone keeps the first live reading clean: if "Provoked" appears in the
-status list with no icon, the icon is driven from somewhere else and that is worth knowing before
-another cell is guessed at.
+TWO MORE CELLS, decoded live 2026-07-22 after name-and-caption alone rendered NOTHING. Naming a
+status is not enough to display it; two other columns gate that, and they were found by diffing a
+row the game shows against a row it does not:
+
+  Unknown14  the DISPLAY FLAG. 0 = never rendered, which is why our mark and `Performing` stayed
+             invisible no matter what text they carried. Every status the game actually shows
+             carries 1 or 2; the ordinary named statuses all use 2.
+  Unknown20  the ICON INDEX, where -1 means no icon. Observed values: KO 20, Stop 29, Immobilize
+             30, Berserk 33, Performing 54, Wall 102.
+
+`Type` is NOT the gate and is deliberately still not written: Key 1, Key 21 Berserk and Key 32 Wall
+are all Type 0, yet two of them render and one did not. Whatever Type selects, it is not visibility.
+
+The icon chosen is 102, the one `Wall` points at. Berserk's 33 was the first pick and was rejected
+on a good argument: Berserk occurs naturally in play, so sharing its icon would make a genuinely
+enraged enemy read as provoked and vice versa. Icon 102 has no such problem because NOTHING in the
+game inflicts `Wall` (its text is blank and no ability's action row points at a combination
+containing it), so that art is effectively unused and becomes ours alone. It renders as a blue
+diamond, which carries no prior meaning to a player.
 
 Same safety contract as tools/patch_ability_names.py, and for the same reason: the 2026-06-05
 "Bloodpact" ability-table ship corrupted unrelated abilities (docs/MECHANICS.md). This script
@@ -73,6 +86,8 @@ PATCHES = {
         "Name": "Provoked",
         "Caption": "The unit has been goaded into a fury and sees nothing but the one who "
                    "called it out.",
+        "Unknown14": 2,      # display flag: 0 never renders; the ordinary named statuses use 2
+        "Unknown20": 102,    # icon index: -1 is none; 102 is Wall's art, unused in normal play
     },
 }
 
