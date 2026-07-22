@@ -144,12 +144,16 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 0c. It applies the id 0 mark and nothing else: no damage, no pose, no engine state. The action
    row's InflictStatus index points at our authored row 29 in the LIVE table (`0x14078B2DC`); the
    decoy copy at `0x14078961C` is never written, by anything, ever.
-0d. There is no immunity gap. OPEN, AND NOT TO BE ASSUMED: the 2026-07-22 boss cast that returned
-   100% against a Netherseer immune to 37 of the 38 statuses the immunity system knows was made
-   with `Wall`, before the mark moved to id 0, and the same enum analysis names the two absent bits
-   as `Cursed` and `Wall`. The shipped mark's unresistability is inherited from a neighbour rather
-   than measured. Re-run the boss cast with the id 0 mark; until it comes back 100%, no item card
-   and no criterion here may state that every unit can be provoked.
+0d. There is no immunity gap on the boss tier. MET for the mark that actually ships, owner live
+   2026-07-22: Provoke cast at Loffrey (Divine Knight, Lv 54, flagged Objective and Enemy) read
+   100% on the cursor, and a band read taken straight afterwards showed him wearing status id 0 in
+   BOTH status layers. This REPLACES the earlier evidence, which was gathered with `Wall` before
+   the mark moved and therefore described a different status; that substitution is the reason this
+   criterion was wrong for a day, and it is why the re-run happened. REMAINING SCOPE, stated so it
+   is not overclaimed later: one boss on one job is enough for this criterion, because the boss
+   tier was the entire worry, and it is NOT enough to assert the engine's immunity system could
+   never carry this bit. So the item card needs no exception, and no prose here may go further.
+   The supporting ledger row stays Uncertain until the owner flips it.
 0e. The command is job-global: units of the same job, INCLUDING ENEMIES, inherit it. Accepted for
    v1, same as Sanguine Sword's shipped leak, and called out on the card.
 0f. The ability's own description says what the ability does. IT DOES NOT TODAY, and the wrong text
