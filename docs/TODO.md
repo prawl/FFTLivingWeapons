@@ -112,7 +112,10 @@ the technical detail lives in the indented lines under it.
   ordering the move 18ms before anything visibly moved, and the same machinery drives ordinary
   walking, so this is the MOVEMENT api and knockback is one mode of it. Read banked as a
   LIVE_LEDGER Uncertain row, tape preserved at tools/probes/tapes_knockback_20260722.jsonl.
-  THE WRITE LANE IS DEAD by this method, settled the same night in two rounds: the destination
+  THE WRITE LANE IS DEAD by this method, settled the same night in THREE rounds (one field, then
+  three, then the engine's whole fourteen field burst with the is-moving flag last; every value
+  stuck untouched for two seconds and nothing moved, and the engine did not even reset them, so
+  nothing reads that block at rest). Earlier note, kept because the correction matters: the destination
   alone is inert but sticky, and replaying the engine's entire order in its own sequence
   (destination, counter, then mode last) also stuck in every byte and still moved nothing. These
   fields are the mover's bookkeeping, not its inputs, the same wall shape as the LW-58 pending
