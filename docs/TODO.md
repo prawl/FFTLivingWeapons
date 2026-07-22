@@ -41,6 +41,18 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-120] 2026-07-22: Play an animation at a dramatic moment, so a weapon coming alive looks
+  like something instead of only printing text.
+  Now legal: the animation register is Proven (owner flip 2026-07-21). Candidate first moment is
+  a tier up, which the mod already detects (BannerToast) and which the owner's catalog already
+  has a page for (0x1c, the level up leap). Work needed: the render node walk currently lives
+  ONLY in BodyDoubleSpike.cs behind #if LWDEV, so production has never touched a node; moving it
+  into shipped code through the guarded Mem layer and the IGameMemory seam is the actual task,
+  after which the write is one guarded u16 (page + 1 into node +0x10). Theater only, so the risk
+  is a wrong pose for a few seconds and the engine re-stamps at the unit's next event. THE REAL
+  GATE: page ids are per sprite class and only one class is swept, so either finish LW-114 first
+  and use pages that agree across classes, or fire only for mapped classes and skip the rest
+  (fail closed, house style). Rides /build-lite plus an owner live pass.
 - [LW-119] 2026-07-22: The status map is extracted and the hazards are known, but the probe
   verb that would use it is not written yet, and two thirds of the map has never been exercised
   in this game.
