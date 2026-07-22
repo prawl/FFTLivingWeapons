@@ -39,21 +39,36 @@ the technical detail lives in the indented lines under it.
     is confirmed, GrowthEngine.TimedStat.cs gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 
-## Backlog
+- **[LW-123] Give the Defender a shout that pulls one enemy's attention onto the person holding it** (opened 2026-07-22) [BUILDING]
+  - Done means: a player holding a grown Defender can point at any enemy on the field, and until
+    that enemy has taken its turn, the enemies who act cannot see anyone on your side except the
+    bearer, who carries the best parry in the game to survive what it just invited. The shout is a
+    real command in the bearer's list, and the mark it leaves comes off when the shout ends, so the
+    same enemy can be shouted at more than once in a battle. None of that survives closing the game
+    today: everything working is held up by two Python programs, and teaching the mod to do it
+    itself is the first half of the job. Acceptance criteria are docs/PROVOKE_AC.md. (Tech: two arcs
+    behind a seam. Arc 1, the trigger, is solved and needs moving out of the probes into the
+    runtime: the JobCommand injection of ability 189 on Barrage's proven lane, plus two guarded
+    idempotent table writes, the authored inflict row 29 at 0x14080FC4E and ability 189's
+    InflictStatus byte at 0x14078C1AF in the LIVE action table at 0x14078B2DC, never the decoy copy
+    at 0x14078961C. Page protections on all four addresses already pass Mem.Writable, measured
+    2026-07-22, so no new memory capability is needed. Arc 2, the hold, holds the composed Invisible
+    bit, band +0x47 bit 0x10, on every player side seat except the bearer while an enemy holds the
+    turn. Data plumbing: id 33 has no signature block, and adding one turns two description budget
+    gates red until the living_weapon_grid.csv cell and the new p3Desc are shortened byte
+    identically.)
+  - Verify: the owner runs the live pass already written into docs/PROVOKE_AC.md, which starts with
+    a bait step so a bearer who was going to be attacked anyway cannot look like a success. Two
+    things must be settled BEFORE that pass is worth running, and neither is code. First, cast the
+    shipped mark at a boss and confirm it lands at 100%: the only boss evidence on record was
+    gathered with Wall, the status this design abandoned, so criterion 0d is currently inherited
+    rather than measured and the item card may not claim there is no immunity gap until it is.
+    Second, read what the probe reports when its hold on the two table bytes ends, because the
+    handoff says one write sticks and the ledger says that is unmeasured; the runtime is being
+    built idempotent so it is correct either way, but the ledger row should stop contradicting
+    itself. Owner only, as every AWAITING-LIVE flip is.
 
-- [LW-123] 2026-07-22: Give the Defender a shout that pulls one enemy's attention onto the person
-  holding it. Point at a foe, and until that foe has taken its turn, attacking enemies cannot see
-  anyone on your side except the bearer, who carries the best parry in the game to survive what it
-  just invited.
-  Why it matters: this game has no aggro, so a tank cannot protect anyone. The only lever on who
-  the AI attacks is whether a unit can be targeted at all, which makes a taunt subtractive: hide
-  everyone else. That was observed working live on 2026-07-22, and it gives the Defender the one
-  thing its "un-killable dodge wall" identity currently lacks, which is a reason for enemies to
-  swing at it.
-  Scope and gates: acceptance criteria are in docs/PROVOKE_AC.md. Builds in two arcs, the hold
-  engine first and the granted command second, with a seam between them. Rests on two ledger rows
-  that are live-observed and awaiting the owner's PROVEN flip (the funnel, and the orphan-flag
-  status layer model). Does not gate 2.3.1, whose scope is locked at no new features.
+## Backlog
 
 - [LW-124] 2026-07-22: Audit every band walk in the runtime for staged cutscene units. The engine
   parks them in real seats with sane stats and real map positions, so a walk that only checks for
