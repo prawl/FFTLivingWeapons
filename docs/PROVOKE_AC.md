@@ -152,6 +152,16 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
    and no criterion here may state that every unit can be provoked.
 0e. The command is job-global: units of the same job, INCLUDING ENEMIES, inherit it. Accepted for
    v1, same as Sanguine Sword's shipped leak, and called out on the card.
+0f. The ability's own description says what the ability does. IT DOES NOT TODAY, and the wrong text
+   is already committed: `tools/patch_ability_names.py` Key 189 ships "Goad a distant foe into a
+   blind rage. It forgets its skills and charges, seeing only the one who called it out." That is
+   Berserk prose, left from the abandoned index 53 design. The provoked enemy keeps its entire
+   skill set and nothing makes it charge; the redirect comes from hiding the bearer's allies, not
+   from enraging the target. Harmless while nothing can reach ability 189, and player-visible the
+   moment the command is granted, so the fix rides the same commit that first grants it. Changing
+   it means editing that script, rebaking `ability.en.nxd` and re-running
+   `tools/audit_nxd_bakes.py`, so it is one text change, not two. The provenance comment above the
+   row is stale in the same way: it still describes the byte being repointed to 53 (Berserk).
 
 **Arming and duration**
 
