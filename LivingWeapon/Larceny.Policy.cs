@@ -56,7 +56,7 @@ internal static class LarcenyPolicy
     ///   4. Shell   -- halves magic damage.                                         [+0x48/0x10]
     ///   5. Reflect -- bounces single-target magic.                                 [+0x49/0x02]
     ///   6. Regen   -- HP regained each turn.                                       [+0x48/0x40]
-    /// WIRED (all six): Reraise + Regen are FUNCTIONAL (proven live). Haste/Protect/Shell/Reflect are
+    /// WIRED (all six): Reraise + Regen are FUNCTIONAL (observed live). Haste/Protect/Shell/Reflect are
     /// wired and UNDER live functional test 2026-06-15 -- the bits transfer; whether the EFFECT applies
     /// is the open question (drop any that prove cosmetic, like Float). THE HARD LESSON (Float, 2026-06-15):
     /// setting a display bit does NOT guarantee the effect -- Float painted the icon but the unit didn't
@@ -70,10 +70,10 @@ internal static class LarcenyPolicy
         new("Protect", Offsets.AProtect, Offsets.AProtectBit),   // 3 -- +0x48/0x20, functional steal UNDER TEST 2026-06-15
         new("Shell",   Offsets.AShell,   Offsets.AShellBit),     // 4 -- +0x48/0x10, functional steal UNDER TEST 2026-06-15
         new("Reflect", Offsets.AReflect, Offsets.AReflectBit),   // 5 -- +0x49/0x02, functional steal UNDER TEST 2026-06-15
-        new("Regen", Offsets.ARegen, Offsets.ARegenBit),         // 6 -- +0x48/0x40, FUNCTIONAL (heals each turn -- proven live 2026-06-15)
+        new("Regen", Offsets.ARegen, Offsets.ARegenBit),         // 6 -- +0x48/0x40, FUNCTIONAL (heals each turn -- observed live 2026-06-15)
         // Float (+0x47/0x40) DROPPED 2026-06-15: setting the bit shows the icon but does NOT make the unit
         //   float -- the hover/earth-immunity effect lives in engine state the display bit doesn't touch
-        //   (the cosmetic-only seam, proven live). Lowest-value buff anyway, so not worth chasing the path.
+        //   (the cosmetic-only seam, observed live). Lowest-value buff anyway, so not worth chasing the path.
     };
 
     /// <summary>Pick the highest-priority buff the target currently has set, or null when it has

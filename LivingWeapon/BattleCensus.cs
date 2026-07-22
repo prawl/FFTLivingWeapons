@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// checked for uniqueness/stability/player-pool collisions without killing every unit.
 ///
 /// TRIGGER: <see cref="EnemyOracle.CoverageDone"/> -- the "kill: all N enemies accounted for" edge,
-/// live-proven to fire reliably ~5s into battle (EnemyOracle.CheckCoverage). Firing on this existing
+/// observed live to fire reliably ~5s into battle (EnemyOracle.CheckCoverage). Firing on this existing
 /// edge means the census never needs its own timer: it rides a trigger that is already known-solid.
 /// Fires EXACTLY ONCE per battle via <see cref="Tick"/> (armed/fired flag, not a re-derived edge
 /// test: once <see cref="EnemyOracle.CoverageDone"/> goes true it stays true for the rest of the

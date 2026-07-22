@@ -25,7 +25,7 @@ namespace LivingWeapon;
 ///   Recover  -- the engine raised the wielder: drop Reraise, HOLD the dead/KO bit CLEARED for
 ///               FeignRecoverSeconds so the stand-up leaves no hearts / skipped turn, then spent.
 ///
-/// PROVEN LIVE 2026-06-14 end to end in-game (real combat death, 2 turns acting while the AI ignores
+/// OBSERVED LIVE 2026-06-14 end to end in-game (real combat death, 2 turns acting while the AI ignores
 /// it, animated stand-up at 10% HP with the KO state cleared). SYNERGY (why Wrathblade):
 /// its damage = the wielder's MISSING HP (formula 67) -- reviving at ~10% leaves ~90% missing, loading
 /// the blade to near-max. Reraise is applied ONLY at the finishing blow, never the whole battle, so

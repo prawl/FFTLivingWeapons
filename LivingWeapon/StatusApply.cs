@@ -27,7 +27,7 @@ internal static class StatusApply
     public const int Composed   = 0x45;    // current layer (== Offsets.ADeadStatus); composed each frame
 
     // Status ids whose composed bits are already proven in Offsets (these cross-check the bit math
-    // in StatusApplyTests, tying this pure layer to the live-verified status offsets).
+    // in StatusApplyTests, tying this pure layer to the observed live status offsets).
     public const int DeadId     = 2;    // composed +0x45 / 0x20
     public const int TreasureId = 15;   // composed +0x46 / 0x01 (the unit-to-chest conversion)
     public const int PoisonId   = 24;   // composed +0x48 / 0x80

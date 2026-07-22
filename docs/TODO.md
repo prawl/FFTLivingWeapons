@@ -36,19 +36,24 @@ the technical detail lives in the indented lines under it.
     confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
     a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
 
-## Backlog
+- **[LW-107] Check the 197 sentences that say the game was proven to do something** (opened 2026-07-21) [BUILDING]
+  - Done means: every sentence in the tree claiming a game behaviour is proven has been checked
+    against the one place allowed to decide that, and any sentence that cannot point at a row
+    the owner really promoted now says what is actually true instead. LW-106 froze these 197 so
+    no NEW claim can slip in, but freezing is not verifying: the baseline records only that they
+    existed on 2026-07-21. LW-105 audited the sentences behind ONE mechanism and found nine bad
+    ones, so the base rate here is not zero. (Tech: per claim, name the mechanism, find its
+    LIVE_LEDGER row, check which section that row really sits in, then keep, reword, or delete.
+    Only the Proven section counts and only the owner puts a row there.)
+  - Verify: a written verdict for every claim with the one evidence line behind it, each
+    proposed correction attacked by a second reader whose job is to refuse it, and the LW-106
+    baseline counts updated in the same commit as any rewording so the ratchet stays honest.
+    The audit MUST separate two things that share vocabulary: a MECHANISM claim (this is how
+    the game works, which needs a Proven row) and a WORK ITEM live sign off (the owner watched
+    a shipped feature behave, which is this repo's normal changelog language and needs no row).
+    Only the first kind can be wrong here. No ledger row gets flipped by this work.
 
-- [LW-107] 2026-07-21: The tree carries 197 sentences claiming the game was proven to do
-  something, and nobody has checked whether each one traces to a row the owner actually
-  promoted; audit them the way the session notes were audited.
-  LW-106 froze those 197 as a baseline so no NEW claim can slip in, but freezing is not
-  verifying: the baseline records only that they existed on 2026-07-21. LW-105 audited one
-  premise and found nine bad sentences behind it, so the base rate here is not zero. Method
-  that worked: per claim, name the mechanism, find its LIVE_LEDGER row, check which section
-  the row really sits in, then either keep, reword to the honest status, or delete; have a
-  second reader attack each verdict. Heaviest files first (Offsets.cs 18, BodyDoubleSpike.cs
-  13, MECHANICS.md 20, CHANGELOG.md 27). Expect a large share to be legitimate; the point is
-  knowing which, and the ratchet already stops the bleeding meanwhile.
+## Backlog
 - [LW-103] 2026-07-21: After a battle ends, the party list and the leftover battle data disagree
   about which weapon a unit is holding, and they stay disagreeing until the next battle; nothing
   visible breaks, but nobody has explained it yet.
@@ -236,19 +241,19 @@ the technical detail lives in the indented lines under it.
   isolation was deliberately deferred out of LW-51.
 - [LW-64] 2026-07-10: Mirror Image ability concept (owner): briefly phase a unit out so a
   locked-on spell whiffs while its sprite stays standing; the decisive test PASSED live.
-  Mechanism: flip the hide gate (combat +0x01 to 0xFF); every primitive live-proven in the
+  Mechanism: flip the hide gate (combat +0x01 to 0xFF); every primitive observed live in the
   LW-58 gate-toggle session. THE DECISIVE TEST (2026-07-10, owner live): a mid-cast Slow
   whiffed entirely when the target was gate-hidden during the cast animation, so
   hide-at-resolution defeats locked-on actions and the core fantasy is proven. Known
   hazards to guard: restoring onto an occupied tile co-tiles into the movement soft-lock
-  (proven live); a mid-hide autosave persists the hidden state into resumes (proven live,
+  (observed live); a mid-hide autosave persists the hidden state into resumes (observed live,
   needs a battle-enter un-strand sweep); hidden units get no scheduler turns, so the
   restore trigger must be external (other units' acted edges, or the dodged action
   resolving). Castable wrapper when built: JobCommand injection plus an action-record
   watch (the Barrage lane). New side effect to chase before any build: the whiffed
   resolution DISPLACED the hidden unit one tile (unexplained; possibly target-snap
   bookkeeping applying to a unit the effect could not find).
-- [LW-65] 2026-07-10: Unit TELEPORT is proven live (real units moved, two units swapped
+- [LW-65] 2026-07-10: Unit TELEPORT is observed live (real units moved, two units swapped
   mid-battle, both acted normally after); it needs a tile-occupancy check and a ledger row
   before it can ship as a mechanic.
   The missing layer was render position: render node +0x4C/+0x50 u16 world X/Y = 28*tile
@@ -261,7 +266,7 @@ the technical detail lives in the indented lines under it.
   memory updated) and gives Mirror Image its restore-displacement primitive. Open before
   any shipped mechanic: the tile-occupancy check (co-tile = target shadowing + movement
   lock) and a LIVE_LEDGER row (owner flip).
-- [LW-66] 2026-07-10: Mid-battle unit REMOVE and RESTORE are both proven live with pure
+- [LW-66] 2026-07-10: Mid-battle unit REMOVE and RESTORE are both observed live with pure
   data writes (sky-descent flourish included); this unlocks the summon/reinforcement
   mechanic family.
   Despawn = one mode-2 byte on the render node (the engine sweeper tears down unit +

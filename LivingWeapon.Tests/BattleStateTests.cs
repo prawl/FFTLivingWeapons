@@ -394,7 +394,7 @@ public class BattleStateTests
         }
     }
 
-    // Regression (LW-40, live-proven 2026-07-07 with the owner holding the repro): re-entering a
+    // Regression (LW-40, observed live 2026-07-07 with the owner holding the repro): re-entering a
     // battle from the world map presents battleMode=3 with the 1.5 slot0 marker reading 0x10, never
     // the 1.0-era 0xFF. The old EnterSignal gated mode 3 behind slot0==0xFF, so this enter edge was
     // silently dropped and the whole battle subsystem (Attack-row rename, growth, kill-tracking)

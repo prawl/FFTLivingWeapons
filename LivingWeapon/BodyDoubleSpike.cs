@@ -24,7 +24,7 @@ namespace LivingWeapon;
 /// CANARY 1 PROVED (live 2026-07-10): the build alone drew a Monk sprite for Frank (render weld broken).
 /// But it was a SHALLOW CLONE: it rode the cribbed sibling's identity/animation, so it drew at the
 /// sibling's tile, was not a listed unit, and when the real Monks animated they went black while the clone
-/// froze mid-walk (shared animation resources). CANARY 2 (live-proven 2026-07-10) added the scene-bind body (the exact
+/// froze mid-walk (shared animation resources). CANARY 2 (observed live 2026-07-10) added the scene-bind body (the exact
 /// per-slot writes 0x1401D517D..0x1401D51B6, verified against the disasm) right after the build, so the new
 /// node becomes FRANK: node+0x150 = Frank's combat ptr (unit link, drives position + hover), combat+0x01 =
 /// slot idx (clears the 0xFF hide gate, so he becomes a real listed unit with his own logic per the owner
@@ -61,7 +61,7 @@ namespace LivingWeapon;
 /// names the per-instance fields the skipped node+0x270 sub-block (the suspected VRAM/palette slot math)
 /// leaves different: that list is the next canary's fix, captured for free in this live session.
 ///
-/// CANARY 4 (this build; every stamp owner-proven by live pokes 2026-07-10): after the bind, three stamp
+/// CANARY 4 (this build; every stamp owner-observed live by live pokes 2026-07-10): after the bind, three stamp
 /// groups turn the decoy into a COMPLETE unit, values cribbed from a live PLAYER donor (combat slots
 /// 16..20, drawn, non-zero job; the earlier +0x02 gate was dynamic turn state, not identity). (a)
 /// +0x1BE = 01, the real-unit marker (writer 0x140456444, a separate init phase the hidden-reserve path
@@ -125,7 +125,7 @@ namespace LivingWeapon;
 ///       tile-collision lesson);
 ///   (2) REGISTRY ENROLL while still hidden (clone the donor's battle-keyed object, re-key +0x2C
 ///       to the host slot, append at table[count], bump the count word then byte): the clone is
-///       AI-resolvable BEFORE it is ever walk-visible, which is THE freeze cure (live-proven by
+///       AI-resolvable BEFORE it is ever walk-visible, which is THE freeze cure (observed live by
 ///       the resurrection);
 ///   (3) cold-call the node builder with a1/a2/a3 = THE DESTINATION TILE (they land in the node's
 ///       tile key +0x88/89/8A, the AI's tile-lookup: the bug that froze Canary 7's binds was
@@ -218,7 +218,7 @@ internal sealed class BodyDoubleSpike
     // includes the new object). The id-map 0x143741530 write is deliberately SKIPPED in v1 (its
     // key/value semantics are murky in the disasm and the subject-select walk matches obj +0x2C
     // directly; add it in 6c only if 6b alone does not un-freeze).
-    // CANARY 9 (the coexistence fix; LIVE-PROVEN 2026-07-10 on the slot-19 clone: ONE byte turned
+    // CANARY 9 (the coexistence fix; OBSERVED LIVE 2026-07-10 on the slot-19 clone: ONE byte turned
     // a drawing-but-crashing clone into a real AI fighter). The AI-turn orchestrator's early gate
     // (0x151086AE8 `cmp byte [0x141873038+slot], 0x10`) reads a per-slot AI-ROSTER INDEX table that
     // the registry/node/combat enroll never touched: real units hold sequential indices 0x00..0x07,
@@ -246,7 +246,7 @@ internal sealed class BodyDoubleSpike
 
     // CANARY 8 descent flourish: park the fresh node's world Z in the heavens and step it to the
     // donor's altitude on the tick loop (transform ownership: idle nodes are unowned, so the step
-    // animation is uncontested; world X/Y = 28*tile + 14, the live-proven formulas).
+    // animation is uncontested; world X/Y = 28*tile + 14, the observed live formulas).
     private const int WorldXOff     = 0x4C;           // node u16 world X
     private const int WorldZOff     = 0x4E;           // node u16 (signed) world Z; -12*height, Float adds one unit
     private const int WorldYOff     = 0x50;           // node u16 world Y
@@ -477,7 +477,7 @@ internal sealed class BodyDoubleSpike
     }
 
     /// <summary>Post-bind F5: flip the decoy hold. Release is REFUSED unless the Canary 4 stamps landed
-    /// this battle: a released, stamped Kerrich takes controllable turns (owner-proven 2026-07-10); an
+    /// this battle: a released, stamped Kerrich takes controllable turns (owner-observed live 2026-07-10); an
     /// unstamped one crashes on turn arrival (the unassigned-controller-id null deref at 0x14018D102).</summary>
     private void ToggleHold()
     {
@@ -669,7 +669,7 @@ internal sealed class BodyDoubleSpike
         byte before02 = _mem.U8(_hostCombat + 0x02);
         if (before02 != 0xFF)
         {
-            // 6a already ran this battle (the AI-data row exists, live-verified: row 0x2E filled
+            // 6a already ran this battle (the AI-data row exists, observed live: row 0x2E filled
             // 80 2E 4E.. parallel to a real enemy's 80 01 57..). Stage 6b: the object layer.
             if (HostRegistered(out int already))
             {
@@ -707,7 +707,7 @@ internal sealed class BodyDoubleSpike
 
     /// <summary>CANARY 6b: build Kerrich's AI OBJECT, the engine's own single-object sequence
     /// lifted verbatim (constants block for the decode). Preconditions: 6a ran (combat +0x02 = a
-    /// real id whose AI-data row carries the id stamp at entry+1; live-verified row 0x2E reads
+    /// real id whose AI-data row carries the id stamp at entry+1; observed live row 0x2E reads
     /// 80 2E 4E.., parallel to a real enemy's row) and no registry object matches yet. Steps:
     /// scratch-fill from the row, populate a FRESH pool object (the populator memsets it first),
     /// append it at registry[count], bump the builder's count word + the cached count byte by
@@ -1171,7 +1171,7 @@ internal sealed class BodyDoubleSpike
         return true;
     }
 
-    /// <summary>CANARY 8, the freeze cure (live-proven by the resurrection): clone the donor's
+    /// <summary>CANARY 8, the freeze cure (observed live by the resurrection): clone the donor's
     /// battle-keyed registry object, re-key +0x2C to the host slot, append its pointer at
     /// table[count], and bump the count word THEN the count byte (the walk never sees a
     /// half-entry). Data-only; runs while the copy is still hidden so the clone is AI-resolvable
@@ -1216,7 +1216,7 @@ internal sealed class BodyDoubleSpike
         _mem.WriteBytes(AiCountByte, new[] { (byte)(count + 1) });
 
         // CANARY 9: assign the host the next free AI-ROSTER INDEX (the one byte that made the clone
-        // a real AI fighter, live-proven). Next index = the count of slots already carrying a valid
+        // a real AI fighter, observed live). Next index = the count of slots already carrying a valid
         // index (< the gate cap); the reals are 0..N-1 sequential, so that count IS the next slot.
         int nextIdx = 0;
         for (int s = 0; s < Slots; s++)
@@ -1228,7 +1228,7 @@ internal sealed class BodyDoubleSpike
         }
         _mem.WriteBytes(AiRosterTable + hostSlot, new[] { (byte)nextIdx });
         ModLogger.Event(LogVerb.Trace,
-            $"body-double: registry enroll: donor obj cloned -> 0x{dst:X} keyed slot {hostSlot}, table[{count}], count -> {count + 1}; AI-roster index 0x141873038+{hostSlot} = {nextIdx:X2}. The clone is a FULL AI subject (the coexistence fix, live-proven).");
+            $"body-double: registry enroll: donor obj cloned -> 0x{dst:X} keyed slot {hostSlot}, table[{count}], count -> {count + 1}; AI-roster index 0x141873038+{hostSlot} = {nextIdx:X2}. The clone is a FULL AI subject (the coexistence fix, observed live).");
         return true;
     }
 

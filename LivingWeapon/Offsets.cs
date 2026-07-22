@@ -116,7 +116,7 @@ internal static class Offsets
     // --- roster (nameId -> equipped right hand) ---
     public const long RosterBase = 0x1411A7D10;   // 1.5 CONFIRMED +0x6440 (was 0x1411A18D0): slot0=Ramza (lvl99/rhand80/nameId1), slots +1..+7 = real party
     public const int RosterStride = 0x258;
-    /// <summary>Ceiling, not a floor. Proven live 2026-07-21 by tools/probes/roster_span_probe.py
+    /// <summary>Ceiling, not a floor. Observed live 2026-07-21 by tools/probes/roster_span_probe.py
     /// on a 46/50 save: rows 0..45 occupied, 50 contiguous rows at the same 0x258 stride
     /// throughout. Slots 50+ are a STALE GUEST bank carrying duplicate unit identities (a cloned
     /// Beowulf row with matching level/brave/faith): scanning it would make fingerprint-keyed
@@ -198,8 +198,8 @@ internal static class Offsets
     public const byte AUndeadBit  = 0x10;  // mask: bit 4 of ADeadStatus is the Undead flag
     // Delayed-action bits on the same status byte (tools/probes/status_probe.py decode map;
     // confirmed via actor_attrib_probe.py watchweapon trace 2026-06-26):
-    //   Jump 0x04 -- PROVEN LIVE: status[45] 00->04 at jump-commit, 04->00 at landing (~8.6s later).
-    //   Charging 0x08 -- same mechanism. PROVEN LIVE 2026-06-26: SET observed (charging_probe.py); the
+    //   Jump 0x04 -- OBSERVED LIVE: status[45] 00->04 at jump-commit, 04->00 at landing (~8.6s later).
+    //   Charging 0x08 -- same mechanism. OBSERVED LIVE 2026-06-26: SET observed (charging_probe.py); the
     //   untracked-arm cross-turn summon no-credit fires in-game (which requires the 1->0 landing edge). See LIVE_LEDGER.
     public const byte AJumpBit          = 0x04;
     public const byte AChargingBit      = 0x08;
@@ -210,7 +210,7 @@ internal static class Offsets
     public const byte APoisonBit  = 0x80;  // mask: bit 7 of APoison is the "poisoned" flag
     public const int APoisonTimer = 0x4A;  // u8 poison countdown timer (engine inits to 36; ticks per CT unit)
 
-    // --- reraise (auto-revive) status byte (band-entry relative, PROVEN LIVE 2026-06-14) ---
+    // --- reraise (auto-revive) status byte (band-entry relative, OBSERVED LIVE 2026-06-14) ---
     // Held re-applied through the death that clears it == the engine's OWN animated Reraise: a
     // lethal hit becomes a played-dead corpse the engine raises back at ~10% HP when its CT next
     // reaches 100. This is the FUNCTIONAL half of an item's "Permanent: Reraise" -- the status-page
@@ -219,7 +219,7 @@ internal static class Offsets
     public const int AReraise     = 0x47;  // u8 status bitfield byte containing the Reraise flag
     public const byte AReraiseBit = 0x20;  // mask: bit 5 of AReraise is the "reraise" flag
 
-    // --- invisible (transparent) status byte (band-entry relative, PROVEN LIVE 2026-06-14) ---
+    // --- invisible (transparent) status byte (band-entry relative, OBSERVED LIVE 2026-06-14) ---
     // Shares +0x47 with Reraise; bit 4 (0x10). Held re-applied (it breaks the moment the unit acts),
     // it makes the AI ignore the unit -- single-target enemies skip it; AoE splash can still reach it.
     // Feign Death sets it through the played-dead window so the prone wielder acts unmolested, then
@@ -234,7 +234,7 @@ internal static class Offsets
     //     unit Float-only). Full bit map = FFTHandsFree StatusDecoder. Larceny steals these
     //     (LarcenyPolicy.Stealable); Regen is wired, Haste/Protect/Shell/Reflect are bit-confirmed.
     //     FLOAT is COSMETIC-ONLY when set via the bit (icon shows, the unit doesn't float -- its hover
-    //     state lives elsewhere; proven live 2026-06-15), so Larceny does NOT steal it; AFloat stays
+    //     state lives elsewhere; observed live 2026-06-15), so Larceny does NOT steal it; AFloat stays
     //     for reference / status_probe. ---
     public const int AFloat   = 0x47;  public const byte AFloatBit   = 0x40;
     public const int ARegen   = 0x48;  public const byte ARegenBit   = 0x40;
@@ -337,7 +337,7 @@ internal static class Offsets
     // a 10Hz constant-1-while-paused / constant-0-while-running intersection (a 3-frame diff was
     // swamped by animated UI bytes), then confirmed flipping 0->1->0 on a live card open/close.
     // Two synced copies at 0x140C6B1C8 / 0x140C6B307; using the lower. (was 0x140C64A5C, +0x676C)
-    // 1.5.1 SEMANTICS CHANGE (live-verified 2026-07-13, address unchanged): this byte now reads 1
+    // 1.5.1 SEMANTICS CHANGE (observed live 2026-07-13, address unchanged): this byte now reads 1
     // ONLY while the unit status card is itself open; it reads 0 during the command menu and the
     // abilities list. On 1.5 it held 1 across the whole player turn (idle + menu + card). Callers
     // that treat "paused" as a broad player-turn signal (BattleState.InLiveBattle's excuse clause,

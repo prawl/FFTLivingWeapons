@@ -205,7 +205,7 @@ before 2026-07-21 keep their original prose.
   and generics benefit". The window now covers all 50 rows and deliberately stops there,
   because the rows past 50 hold stale guest copies of real units that would confuse unit
   matching (a cloned Beowulf with identical stats sat there on the owner's save). (Tech:
-  Offsets.RosterSlots 20 to 50; bank proven live by tools/probes/roster_span_probe.py;
+  Offsets.RosterSlots 20 to 50; bank observed live by tools/probes/roster_span_probe.py;
   boundary tests pin slot 49 seen, slot 50 never scanned, plus a constant tripwire; built
   via build-lite, adversarial verify SHIP 9/10 with both sabotages biting the predicted
   tests. Owner verified live 2026-07-21: a roster slot 46 unit's Sanguine Sword kill
@@ -516,7 +516,7 @@ before 2026-07-21 keep their original prose.
   are not boolean (moved reads raw 3), so every key tests ==1; battle-opening acted edges can
   read all-zero flags, so every low-confidence outcome falls through to the register/turn-queue
   chain unchanged (that fall-through is load-bearing), and the delayed-culprit arm was fixed
-  transitively (test-pinned, no code change). Owner live-verified 2026-07-11 on two tapes: a
+  transitively (test-pinned, no code change). Owner observed live 2026-07-11 on two tapes: a
   manual two-unit battle with the pointer parked on an enemy frame for 3.3 minutes credited the
   true killer (latch src=turn-flags), and an auto-battle credited all five kills correctly,
   proving the flags rise under auto-battle (direct LW-7 fuel). Merged 23429c9; suite 2394 green.

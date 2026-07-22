@@ -89,7 +89,7 @@ internal sealed partial class Puppeteer
            || currentWielderTurn - lastPuppetWielderTurn >= cooldownTurns;
 
     // ---- the agency flag (the runtime hold target) ----
-    // Combat base +0x05, bit 0x08: SET = human (the action menu opens), CLEAR = AI. PROVEN live
+    // Combat base +0x05, bit 0x08: SET = human (the action menu opens), CLEAR = AI. OBSERVED live
     // 2026-06-18 (Ramza read 0x0B with the bit set; enemies read 0x50 clear; setting it on an enemy
     // opened the player menu for it). Band-relative: the band entry sits at combat base +0x1C, so
     // combat +0x05 == band -0x17 (cf. Offsets.ACrystalHearts -0x15 == combat +0x07).

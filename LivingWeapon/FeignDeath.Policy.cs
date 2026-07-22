@@ -71,7 +71,7 @@ internal sealed partial class FeignDeath
     public static bool Elapsed(System.DateTime start, System.DateTime now, double seconds) =>
         (now - start).TotalSeconds >= seconds;
 
-    /// <summary>The pure played-dead transition for one tick. Mirrors the live-proven probe exactly:
+    /// <summary>The pure played-dead transition for one tick. Mirrors the observed live probe exactly:
     /// flop -> hold prone+invisible for the window -> finishing blow (HP 0 AND the dead bit, so the
     /// engine's Reraise sees a real death) held until the revive edge -> clear the KO state for the
     /// recover window -> spent.</summary>

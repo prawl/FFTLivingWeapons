@@ -9,7 +9,7 @@ namespace LivingWeapon.Tests;
 /// injected into their current job's 25-byte JobCommand record. The injection is session-only
 /// (the table rebuilds at boot) and is re-asserted each tick (idempotent hold). The learned bit
 /// is HELD each tick and never cleared: a menu ability purchase writes the learned block back
-/// from a stale snapshot and wipes externally-set bits (proven live 2026-06-10), so set-once is
+/// from a stale snapshot and wipes externally-set bits (observed live 2026-06-10), so set-once is
 /// not enough. On grant end, the original record bytes are restored.
 ///
 /// LIVE-PROVEN layout (2026-06-10 menu session; barrage_probe.py's "msb" flag is the WRONG order):
@@ -116,14 +116,14 @@ public class BarrageTests
         => Assert.False(Barrage.TryResolveJob(job, out _, out _));
 
     // Special-executor commands silently drop foreign ability ids at confirm time.
-    // PROVEN LIVE for Aim (2026-06-10): 358, 102 Aurablast, 146 Focus, and 16 Fire all
+    // OBSERVED LIVE for Aim (2026-06-10): 358, 102 Aurablast, 146 Focus, and 16 Fire all
     // swallowed from rec 8 slots 1/9/10/11 on two different units; the menu label renders but
     // targeting/preview are positional basic-attack cosmetics and execution no-ops. The id
     // whitelist is code-side (no writable tier table found in a full memory scan). Jump shares
     // Aim's tier-row structure; Items/Throw consult inventory; Arithmeticks is a bespoke picker.
     [Theory]
     [InlineData(75)]    // Chemist -> Items
-    [InlineData(77)]    // Archer -> Aim (the live-proven wall)
+    [InlineData(77)]    // Archer -> Aim (the observed live wall)
     [InlineData(87)]    // Dragoon -> Jump
     [InlineData(89)]    // Ninja -> Throw
     [InlineData(90)]    // Arithmetician -> Arithmeticks

@@ -26,8 +26,8 @@ internal static class Tuning
     public const bool DevSeedAllKills = true;
     /// <summary>DEV: pool-anchored in-place equip-card Kills paint (LW-37). Once the writable
     /// UE string pool is located and fully covers every tracked weapon id, the per-paint
-    /// whole-heap DisplaySweep is skipped. Mechanism proven live 2026-07-07 (memory
-    /// lw37-equip-card-redirect-walled) AND live-verified 2026-07-08 through this exact code path
+    /// whole-heap DisplaySweep is skipped. Mechanism observed live 2026-07-07 (memory
+    /// lw37-equip-card-redirect-walled) AND observed live 2026-07-08 through this exact code path
     /// (card reads the live count, sweep retired, foreign surfaces untouched). Enabled in both
     /// build flavors; Engine reads this flag, tests default to the sweep path independent of it.</summary>
     public const bool PoolPaintEnabled = true;
@@ -220,7 +220,7 @@ internal static class Tuning
 
     /// <summary>Feign Death: after the engine raises the wielder (Reraise fires at CT 100), hold the
     /// dead/KO bit CLEARED for this long so the stand-up leaves no corpse head-marker (hearts) and no
-    /// skipped turn -- the bit-clear must out-last the engine's revive bookkeeping. 3s proven live
+    /// skipped turn -- the bit-clear must out-last the engine's revive bookkeeping. 3s observed live
     /// 2026-06-14.</summary>
     public const double FeignRecoverSeconds = 3.0;
 

@@ -48,7 +48,7 @@ internal sealed partial class Barrage
 
     /// <summary>Jobs whose PRIMARY command is a special-cased executor that silently drops
     /// foreign ability ids at confirm time (the menu label renders, targeting/preview show
-    /// positional basic-attack cosmetics, execution no-ops). PROVEN LIVE for Aim 2026-06-10:
+    /// positional basic-attack cosmetics, execution no-ops). OBSERVED LIVE for Aim 2026-06-10:
     /// 358/102/146 all swallowed from rec 8 slots 1/9/10/11 on two units; the id whitelist is
     /// code-side (no writable tier table found). Jump shares Aim's tier-row structure; Items/
     /// Throw consult inventory; Arithmeticks has a bespoke picker — excluded conservatively.

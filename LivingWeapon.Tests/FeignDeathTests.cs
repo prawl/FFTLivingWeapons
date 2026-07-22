@@ -20,7 +20,7 @@ namespace LivingWeapon.Tests;
 ///   (4) SetReraise/SetInvisible/SetDead + HoldAlive/ForceKill: the guarded bit/HP writes -- exercised
 ///       for real against a PinnedBuf (a committed address; the production RPM/WPM guard path runs).
 ///   (5) ActivatesOnMainHandOnly: the main-hand-only activation contract.
-/// The full Tick orchestration (roster -> band locate -> apply) is the live-verified integration
+/// The full Tick orchestration (roster -> band locate -> apply) is the observed live integration
 /// (proven 2026-06-14, the possum probe this runtime is ported from).
 /// </summary>
 public class FeignDeathTests

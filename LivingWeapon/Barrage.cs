@@ -15,7 +15,7 @@ namespace LivingWeapon;
 ///
 /// LEARNED BIT: HELD each tick (re-set whenever clear) and NEVER cleared. Set-once is not
 /// enough: the learn menu's purchase flow writes the learned block back from a stale
-/// snapshot and wipes externally-set bits (proven live 2026-06-10, High Ether purchase).
+/// snapshot and wipes externally-set bits (observed live 2026-06-10, High Ether purchase).
 /// The wipe risk only matters while the menu is open; the 33ms hold closes it.
 ///
 /// JOB RESOLUTION (live-anchored, see Barrage.Policy.cs): roster job byte +0x02; generic

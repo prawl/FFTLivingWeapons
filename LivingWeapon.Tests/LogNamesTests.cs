@@ -42,7 +42,7 @@ public class LogNamesTests
         Assert.Null(ex);
     }
 
-    // ---- Job lookup: live-proven anchors ----
+    // ---- Job lookup: observed live anchors ----
 
     [Fact]
     public void Job_77_maps_to_Archer_live_proven_anchor()

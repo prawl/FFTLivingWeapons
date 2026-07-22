@@ -148,8 +148,8 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
 - [x] **Fast Kills meter (LW-37)**: retire the slow whole-heap Display sweep for the equip-card
       Kills meter. The LW-31 catalog-record REDIRECT is walled here (live recon 2026-07-07,
       tools/probes/item_text_census.py: the card re-materializes its description from a stable string
-      pool each open; the FString descriptors are transient). PROVEN alternative (owner-verified
-      live): overwrite the "Kills:" field IN PLACE in that pool (same-length, within its padded
+      pool each open; the FString descriptors are transient). Working alternative (owner-observed
+      live, no LIVE_LEDGER row): overwrite the "Kills:" field IN PLACE in that pool (same-length, within its padded
       width) and the card re-materializes our bytes on open. Build the pool-anchored write: a cheap
       stable-substring anchor to the viewed weapon's pool entry, locate the Kills field, compose
       "Kills: N/T to +", overwrite. Unit tests for the pure halves plus a live first-open latency check.
@@ -176,7 +176,7 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       ability.en.nxd bakes against current vanilla; count unintended cell edits and check
       row-count parity (rows missing vs vanilla apply as RemovedRows). Done 91b230b + b9777d6
       2026-07-14: 111 stale cells found (the whole 1.5.x ability-text delta plus the item menu
-      re-sorts and the Leather Helm recategorization; premise owner-proven live on the Padded
+      re-sorts and the Leather Helm recategorization; premise owner-observed live on the Padded
       Coif card) and rebased away; tools/audit_nxd_bakes.py stays red on any future unintended
       cell and reruns per game patch.
 - [x] **DESIGN.md compose-claim correction (LW-79; SHIPPED 2a4c325, exited edc117f

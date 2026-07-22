@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// queue both pass through untouched. The dequeue only ever happens once the prefix has matched,
 /// so a non-facing text commit can never silently drain the queue.
 ///
-/// Mechanism is live-proven, not new: ShowSpike.TapDetour (v10/v11, 2026-07-03 06:14 eyewitness +
+/// Mechanism is observed live, not new: ShowSpike.TapDetour (v10/v11, 2026-07-03 06:14 eyewitness +
 /// log, docs/research/CALLOUT_BANNER_JOURNEY.md "The Wait-state pivot") showed that hooking SetTextString
 /// 0x14028F79C, prefix-matching the incoming text against "Select a facing", and swapping rdx to a
 /// pinned plain-ANSI buffer renders in the prompt slot and STAYS until the player confirms facing

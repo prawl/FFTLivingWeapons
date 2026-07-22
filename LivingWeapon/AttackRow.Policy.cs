@@ -150,7 +150,7 @@ internal sealed partial class AttackRow
     /// <summary>True for a roster SpriteSet byte (Offsets.RSprite) that renders as an ordinary
     /// human: every story body and both generics render under 0x80 or ARE 0x80/0x81
     /// (docs/research/SPRITE_SWAP.md), plus the three known guest bodies 0xA2/0xA3/0xA5. FALSE for
-    /// 0x82 (the monster generic, live-proven 2026-07-06 against a real party monster) and for
+    /// 0x82 (the monster generic, observed live 2026-07-06 against a real party monster) and for
     /// anything else this table does not positively recognize, fails CLOSED, because an unknown
     /// sprite earning "Fists" by default would be a silent mis-classification, never a safe guess.</summary>
     internal static bool HumanSprite(byte s) =>
