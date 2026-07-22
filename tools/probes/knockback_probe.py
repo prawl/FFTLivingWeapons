@@ -342,6 +342,59 @@ def cmd_full(slot, dx, dy):
           "field. Nothing moved = INERT, and the trigger lives outside this node.")
 
 
+def cmd_hijack(slot, dx, dy, secs=30.0):
+    """THE VARIANT ALL THREE WRITE ROUNDS MISSED: write the destination while the mover is
+    RUNNING, not at rest.
+
+    Rounds 1 to 3 concluded that nothing reads this node's movement block, but every one of them
+    poked a unit standing still. The mover is only alive during a walk, which is the single
+    window in which the destination field is guaranteed to be read. If it takes an edit there,
+    a unit can be REDIRECTED in motion, and the write lane reopens through a door we walked past.
+
+    Method: poll at ~250Hz for the start of a real move (mode leaves rest, or the two tile triples
+    disagree), then immediately rewrite the destination by the given offset from where it was
+    heading. Watch whether the unit finishes at OUR tile or the engine's.
+
+    PRE-REGISTERED: unit arrives at our tile = redirection works, the field is read while active;
+    unit arrives at the engine's tile with our value overwritten = the mover latched the
+    destination at order time, so redirection needs to be earlier still; unit arrives at the
+    engine's tile with our value still sitting there = read once and ignored after, same wall as
+    the rest-state rounds. THROWAWAY BATTLE, and let an ENEMY walk rather than driving your own,
+    so the move is engine-initiated exactly like the Rush was."""
+    node = node_of(slot)
+    if not node:
+        print("unit not noded; aborting.")
+        sys.exit(1)
+    c = UNITS + slot * 0x200
+    print(f"slot {slot}: watching {secs:.0f}s for a move to start, then redirecting by ({dx},{dy}).")
+    print("Make the unit walk (an enemy's own turn is ideal). Ctrl+C to give up.")
+    t0 = time.time()
+    try:
+        while time.time() - t0 < secs:
+            mode = ru8(node + MOVE_MODE)
+            cx, cy = ru8(node + 0x88), ru8(node + 0x89)
+            ddx, ddy = ru8(node + DEST_X), ru8(node + DEST_Y)
+            if mode is not None and (mode != 0x04 or (cx, cy) != (ddx, ddy)):
+                nx, ny = ddx + dx, ddy + dy
+                wu8(node + DEST_X, nx & 0xFF)
+                wu8(node + DEST_Y, ny & 0xFF)
+                print(f"  +{time.time() - t0:6.2f}s MOVE DETECTED mode={mode:#04x} cur=({cx},{cy}) "
+                      f"engine dest=({ddx},{ddy}) -> rewrote to ({nx},{ny})")
+                for i in range(12):
+                    time.sleep(0.1)
+                    print(f"    +{0.1 * (i + 1):4.1f}s cur=({ru8(node + 0x88)},{ru8(node + 0x89)}) "
+                          f"dest=({ru8(node + DEST_X)},{ru8(node + DEST_Y)}) "
+                          f"logic=({ru8(c + 0x4F)},{ru8(c + 0x50)}) mode={ru8(node + MOVE_MODE):#04x}")
+                print("VERDICT: finished at OUR tile = redirection works. Finished at the engine's "
+                      "tile with our value gone = latched at order time. Finished at the engine's "
+                      "tile with our value still there = read once, ignored after.")
+                return
+            time.sleep(0.004)
+    except KeyboardInterrupt:
+        print("stopped.")
+    print("no move seen in the window.")
+
+
 def cmd_clear(slot):
     """Undo a half-written order. `order` writes a destination that nothing consumes, which
     leaves the unit looking mid-move to this probe's own validator (and possibly to anything
@@ -377,6 +430,9 @@ def main():
         cmd_shove(int(argv[1]), int(argv[2]), int(argv[3]), page)
     elif len(argv) >= 2 and argv[0] == "watch":
         cmd_watch(int(argv[1]), float(argv[2]) if len(argv) > 2 else 45.0)
+    elif len(argv) >= 4 and argv[0] == "hijack":
+        cmd_hijack(int(argv[1]), int(argv[2]), int(argv[3]),
+                   float(argv[4]) if len(argv) > 4 else 30.0)
     elif len(argv) >= 4 and argv[0] == "full":
         cmd_full(int(argv[1]), int(argv[2]), int(argv[3]))
     elif len(argv) >= 2 and argv[0] == "clear":
