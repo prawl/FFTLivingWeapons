@@ -13,7 +13,7 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-113] Fire the one poke that settles whether we can play any animation on any unit** (opened 2026-07-21) [BUILDING]
+- **[LW-113] Fire the one poke that settles whether we can play any animation on any unit** (opened 2026-07-21) [AWAITING-LIVE]
   - Done means: the animation request register gets the live input poke it has been owed since
     2026-07-10, and the ledger row moves out of limbo in whichever direction the game answers.
     The decode is finished (the register, the consumer tick, the sequencer, the whole move
@@ -56,6 +56,16 @@ the technical detail lives in the indented lines under it.
     a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 ## Backlog
 
+- [LW-114] 2026-07-21: Finish mapping the animation flipbooks: one sweep per sprite class so
+  every signature can pick its pages by fact instead of folklore.
+  The time mage sweep (tools/probes/anim_catalog.jsonl, all 128 pages owner labeled) proved the
+  ids are per sprite class and killed the old decode labels (its "crouch 0x34" is the full
+  death animation). Wanted next, about ten minutes each with anim_poke_probe.py sweep: a KNIGHT
+  or other weapon carrier (the same-as-previous runs at 0x4b-0x55 and 0x5d-0x63 are suspected
+  per weapon category swing variants that a staff collapses; a sword should fan them out), a
+  FEMALE sprite, and a MONSTER (chocobo first, since summons and mounts care). Protocol notes
+  that earned their keep: sit on your own unit's open menu so CT freezes and the guinea pig
+  stays idle; labels append per entry so a freeze loses nothing; the book ends near 0x79.
 - [LW-112] 2026-07-21: A popular kind of mod (custom jobs/items) makes Living Weapons switch
   itself off with a message blaming a game update that never happened; the guard is
   misdiagnosing a mod conflict as a game patch.
