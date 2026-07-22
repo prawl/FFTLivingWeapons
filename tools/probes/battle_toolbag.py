@@ -20,6 +20,10 @@ list head 0x140D3A410 with +0x148 the combat backref (swap_units.py, proven live
 HAZARDS, all ledger-documented, all stated because they bite:
   - A HIDDEN unit gets no scheduler turns, so it cannot un-hide itself: `show` is the only way
     back. Never hide the last unit you control.
+  - HIDING EVERY ENEMY WINS THE BATTLE (owner live 2026-07-22). The engine's living-enemy count
+    walks the same logic list the gate byte removes a unit from, so taking the last one ends the
+    fight in a victory. Fine in a throwaway, ruinous mid-playthrough, and a guard any shipped
+    Vanish effect will need.
   - `hide` alone removes the unit from LOGIC only; the render weld leaves its SPRITE STANDING
     (the ledger's ghost-statue toggle). Add `--vanish` to also request an invisibility page and
     get a true disappearing act. The pairing is self-holding: an animation page is normally
