@@ -13,7 +13,7 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
-- **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [BLOCKED(premise unverified, may be a phantom)]
+- **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [BLOCKED(needs instrumentation and a slow enough restart)]
   - Done means: a rider who restarts a battle and opens it dismounted no longer carries the
     previous run's leftover mounted Speed until they climb back on a chocobo; the mod
     recognises its own leftover boost even when the signature that wrote it is not currently
@@ -21,23 +21,67 @@ the technical detail lives in the indented lines under it.
     dismounted battle 2 open skips capture entirely; candidate is an inactive first sight
     NaturalLedger consult for mount gated signatures. Rides with it: a clean remount capture
     currently drops the post revert corrective sentinel for the rest of the battle.)
-  - Verify: FIRST, prove the bug is real at all, because it may not be. Owner live pass on a dev
-    build: get a Holy Lance (id 104, main hand, tier 3) wielder mounted mid battle so the card
-    climbs 11 to 14, restart the battle while still mounted, and read Speed on the card at the
-    restarted open while on foot. Reads natural, the bug does not exist and this exits RETRACTED.
-    Reads natural plus 3, the bug is real and the same reading settles the ledger question below.
-    ONLY THEN: unit tests pin the dismounted restart open (a recorded leftover target is refused
-    as a natural even with no active hold) and the remount sentinel. (Tech: the whole ticket rests
-    on a battle restart carrying a MID battle boost, and the only evidence a restart carries
-    anything comes from the Iai opening hold, which is armed inside the game's battle open
-    snapshot and therefore cannot tell "restart replays the polluted snapshot" apart from "restart
-    keeps the live byte". A mount happens long after that snapshot, so under the replay reading
-    there is no residue to correct and the code hole is unreachable. The code hole itself is
-    confirmed: GrowthEngine.TimedStat.cs:63 gates the only FilterCapture call on active first, so
-    a dismounted open misses all three arms. Confirmed code is not a confirmed bug.)
-
+  - Verify: the owner ran the live pass 2026-07-21 and it came back INCONCLUSIVE, not clean, so
+    the ticket stays open. What happened: the reload took 3.469 seconds and the mod only counts a
+    battle as ended after 4.0 seconds out of battle, so it never saw an end or a start, never
+    cleared its notes, and simply wrote the natural it still remembered. A reading of natural is
+    what the mod produces in BOTH worlds, so that seat cannot tell them apart. Two things did
+    change: the premise this ticket rests on is no longer unverified, because the same session
+    caught the mod's own boosted value surviving a battle rebuild on the PA lane (read 27 against
+    natural 21, exactly the 1.30 hold target) and the previous log caught it on the SPEED byte
+    itself (iai read 18 against natural 11). RE TEST RECIPE, in order: (1) land LW-110 first so
+    the mount lane actually says what it did, because today it logs nothing when it works and this
+    had to be reconstructed from flight tapes; (2) make the restart cross the 4 second debounce,
+    or lower ExitDebounceSeconds in a dev build, and CONFIRM a real battle-end plus battle-start
+    pair in livingweapon.log before trusting the read; (3) then read Speed at the restarted open
+    while on foot, BEFORE remounting. Only then the unit tests: a recorded leftover target is
+    refused as a natural even with no active hold, plus the remount sentinel. (Tech: the code hole
+    is confirmed, GrowthEngine.TimedStat.cs gates the only FilterCapture call on active first, so
+    a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
 ## Backlog
 
+- [LW-108] 2026-07-21: Restarting a battle quickly is completely invisible to the mod, so it
+  keeps believing the old battle never ended; the worst case is a kill being counted twice.
+  Found while checking LW-100 (flight tape flight_20260721_211423): battleMode fell to 0 for
+  3.469 seconds and the mod's exit debounce is 4.0 seconds (BattleState.ExitDebounceSeconds), so
+  no battle-end and no battle-start fired, the turn counter ran straight through (the closing
+  line reported 8 turns across BOTH attempts), and Engine.ResetBattleState never ran. Everything
+  per battle survives into the replayed battle: kill tracker corpse latches and coverage, growth
+  captures, the struct location cache, the LW-42 marker arm, and every signature's state. The
+  sharp edge is credit: enemies killed before the restart are alive again while the mod still
+  holds their corpses, so re-killing them can credit twice. Seen twice now (3.469s here, 2.860s
+  in the 14:04 tape), so a fast reload is the normal case, not an outlier. Candidates: detect the
+  board snapping back to spawn tiles (five units moved in one 4ms tick) as a restart edge, or key
+  the reset on a battle identity rather than a wall clock gap. Do NOT just shorten the debounce
+  without re-checking the LW-42 post battle marker stick that the 4 seconds exists to absorb.
+- [LW-109] 2026-07-21: When a timed stat bonus ends, one unexpected reading throws the bonus away
+  for the rest of the battle with no way back.
+  GrowthEngine.TimedStat.cs's window-closed branch removes the record unconditionally, including
+  when the revert write was skipped because the byte read neither the boosted nor the baked value.
+  With a clean capture no corrective sentinel is armed (that arm is gated on a baked residue), so
+  the bonus is abandoned silently. Asymmetric with the ordinary Hold path, which keeps its record
+  and can re-apply. Found by desk review during the LW-100 evidence pass, not observed live.
+- [LW-110] 2026-07-21: The mounted Speed bonus never says anything in the log when it works, which
+  is why a simple question about it needed a forensic pass over flight tapes to answer.
+  HoldTimedStat logs only its two correction paths; the capture, the boost write, the re-apply and
+  the revert are all silent at every level, and growth is not tapped by the flight recorder at
+  all. Consequence: absence of a log line proves nothing about this lane, which is exactly the
+  trap the LW-100 pass fell into. Add a Debug line at capture, boost and revert (file sink gets
+  everything, so console noise is not a concern), and consider tapping stat holds in the recorder.
+  Blocks a trustworthy LW-100 re test. Related trap for triagers: GrowthEngine.cs and
+  GrowthEngine.TimedStat.cs emit nearly identical "restart residue corrected at capture" strings,
+  distinguishable only by the lane token the first one carries, so grepping that phrase can look
+  like every lane was checked when only one was.
+- [LW-111] 2026-07-21: Stepping off a chocobo mid turn keeps the Speed bonus until the turn ends,
+  and the item text promises it drops immediately.
+  Owner observed it live 2026-07-21 (step 5 of the LW-100 pass): dismounting and moving away held
+  Speed at 15 for about 23 seconds, until the turn was committed. Most likely game side rather
+  than ours: the mod re-reads the ride bit about ten times a second and reverts on the first tick
+  it sees clear (the same session showed an instant revert when the move was undone), so a hold
+  that long means the game itself keeps combat +0x1B4 bit 0x80 set until turn commit. Bounded to
+  one turn, capped at natural plus 3, self healing, non compounding. Two cheap outcomes: a
+  LIVE_LEDGER Uncertain row for when the game clears the ride bit, and a wording fix in
+  data/items.json, which currently claims the bonus reverts on dismount.
 - [LW-103] 2026-07-21: After a battle ends, the party list and the leftover battle data disagree
   about which weapon a unit is holding, and they stay disagreeing until the next battle; nothing
   visible breaks, but nobody has explained it yet.
