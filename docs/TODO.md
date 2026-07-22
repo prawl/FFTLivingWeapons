@@ -41,6 +41,25 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-122] 2026-07-22: Make the game apply a status for us. The door is found, resolvable and
+  safe to knock on; we are not yet speaking its dialect.
+  Why it matters: three independent systems said the same thing this session (the mover ignores
+  written state, the animation register wanted an input not an output, a raw status bit sets a
+  flag while the engine does the work), so "ask the engine" is the general key, and this is the
+  first tool that turns it. It also unlocks two walls directly, the enemy model rebuild and the
+  Guest/Traitor allegiance flip, both of which were declared dead for reasons that only apply to
+  writing data ourselves.
+  State: the pinned v1 apply engine is dead on this build. The fixed image thunk at 0x1401FB064
+  resolves the live routine every launch and its prologue is verified before every call, which is
+  a permanent fix rather than a re-pin. Eleven cold calls landed safely and applied nothing,
+  covering all three modes against all three candidate subjects at the decoded argument order.
+  Next, cheapest first: sweep the four remaining argument permutations (one loop, no deploy, the
+  knob already ships); read the global flag the routine tests early, since a wrong global sends it
+  down a different path before it touches anything; disassemble past the bail branches; and
+  reconsider the premise, because the claim that this dispatch means id, mode and slot came from
+  a v1 header note that was never verified and the function may not be what we think it is.
+  Instruments in tree: tools/probes/apply_engine_find.py (peek, spring, dump, scan) and
+  battle_toolbag.py engine with its order and subj knobs.
 - [LW-121] 2026-07-22: A weapon that plants its wielder somewhere nothing can reach: proven to
   work, and degenerate unless it costs something.
   Found by deliberately breaking a guard (battle_toolbag.py warp onto a treetop). The engine
