@@ -13,6 +13,22 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
+- **[LW-113] Fire the one poke that settles whether we can play any animation on any unit** (opened 2026-07-21) [BUILDING]
+  - Done means: the animation request register gets the live input poke it has been owed since
+    2026-07-10, and the ledger row moves out of limbo in whichever direction the game answers.
+    The decode is finished (the register, the consumer tick, the sequencer, the whole move
+    vocabulary); the one thing never done is writing the INPUT, because every earlier attempt
+    hit the per frame OUTPUT block by mistake. If the poke works we own unit state transitions,
+    the biggest expressiveness door the mod has: summons that kneel, tier ups with a drawn
+    blade, vanishes that look like vanishes. (Tech: write u16 logicalId+1 to render node +0x10,
+    the encoding the game's own RequestAnim stub uses; probe tools/probes/anim_poke_probe.py,
+    node walk cribbed from the proven swap_units.py.)
+  - Verify: owner runs the probe mid battle on an idle ENEMY, pre registered outcomes: register
+    consumed plus a visible crouch is PASS and the owner flips the Uncertain row to Proven;
+    consumed with no visible change is CONTRADICTED and gets ledgered as loudly; never consumed
+    is no verdict and means re check the width or the tick gating before concluding anything.
+    Round 1 is crouch (0x34) and flinch (0x19) with no force bit; the +0x8F force bit is round 2,
+    only after a round 1 pass, only on a critical unit.
 - **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [BLOCKED(needs instrumentation and a slow enough restart)]
   - Done means: a rider who restarts a battle and opens it dismounted no longer carries the
     previous run's leftover mounted Speed until they climb back on a chocobo; the mod
