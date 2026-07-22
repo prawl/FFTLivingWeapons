@@ -21,11 +21,12 @@ gap, Squire shield rule, Larceny log spam, Sanctus Staff tests) are NOT mechanic
 > are earned rather than assumed. Hide/reveal got a row of its own in that pass, having previously
 > had none (it rode inside the despawn row).
 >
-> ONE EXCEPTION, deliberately not flipped: **play any animation** (node `+0x10`). It was decoded
-> byte-for-byte and its outputs were watched, but the input poke was never actually performed, so
-> its row stays Uncertain and says so. It is kept in full because the decode is real work and the
-> vocabulary is worth having; it is simply one live poke short of proven. Do not promote it by
-> association with its neighbours in this block.
+> The one hold-out is now in too: **play any animation** (node `+0x10`) was decoded but never
+> actually poked, and on 2026-07-21 the owner fired the owed INPUT poke. It passed twice, the
+> second attempt catching the request latch mid-act, so that row is Proven as well. One
+> correction rode in with it: page ids are PER SPRITE CLASS and the decode's guessed labels were
+> wrong nearly everywhere (its "crouch 0x34" plays the death animation on a time mage). The real
+> map is `tools/probes/anim_catalog.jsonl`; other sprite classes are unswept (LW-114).
 
 - MOVE ANY UNIT ANYWHERE mid-battle (full teleport + two-unit position swap) -- PROVEN LIVE:
   the render position was the missing layer for a month (the Knockback wall); a coherent

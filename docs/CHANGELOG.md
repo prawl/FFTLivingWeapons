@@ -10,6 +10,26 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-113] SHIPPED c855985 2026-07-21: the mod can now play any animation on any unit, and the
+  owner proved it live. A register the engine uses to order up animations had been decoded since
+  2026-07-10 but never actually poked, because every earlier attempt hit a per frame OUTPUT field
+  by mistake and watched it re-stamp. This fired the real INPUT and it passed its pre registered
+  bar twice: the first write was consumed before the 100ms sample and froze the unit in the
+  requested pose, and the second caught the latch mid act, the request byte still holding at
+  250ms and eaten by 500ms. A later real move event re-stamped the pose, which is the engine's
+  own overwrite arriving exactly as decoded and doubles as the self heal, so nothing about this
+  can strand a unit. Encoding: write u16 logicalId plus 1 to render node +0x10. The owner then
+  swept all 128 pages on a time mage and labeled every one (tools/probes/anim_catalog.jsonl):
+  teleport vanish, invisibility, the dragoon jump and landing, death and rise from death, the
+  level up jump, monk punches, casting poses, a dancer twirl, three hover heights, flinches with
+  displacement baked in, and a spin the owner had never seen the game use. Two corrections rode
+  along and are banked as loudly as the win: the old decode's page labels were wrong nearly
+  everywhere because ids are PER SPRITE CLASS (its "crouch 0x34" is the full death animation),
+  and the facing theory for node +0x7C was falsified live within the hour (turning is done by
+  pages, and +0x7C's meaning is unknown again). LIVE_LEDGER row flipped to Proven by the owner
+  2026-07-21; remaining sprite classes tracked as LW-114. This is the theater layer only: playing
+  death does not kill and playing stand does not heal, which is exactly why it is safe to build
+  signature moments on.
 - [LW-107] SHIPPED fdb476b 2026-07-21: the tree carried 197 sentences saying the game was
   proven to do something, nobody had ever checked them, and 61 of them turned out to be wrong.
   They now say what is true. LW-106 froze the 197 so no new claim could slip in, but freezing is
