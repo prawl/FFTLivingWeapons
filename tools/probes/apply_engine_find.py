@@ -102,6 +102,26 @@ def cmd_scan(span=0x400000):
               f"prologue-shaped; the DLL's refusal would then mean a read failure, not a mismatch.")
 
 
+def cmd_dump(n=96):
+    """Dump the resolved dispatch target so its argument handling can be decoded properly rather
+    than inferred from four instructions. Added after a clean cold call returned APPLIED=False on
+    all three modes with the assumed order: better bytes beat more guesses."""
+    b = rpm(DISPATCH, 5)
+    if not b or b[0] != 0xE9:
+        print("dispatch thunk is not an E9 jmp; nothing to follow."); return
+    rel = struct.unpack("<i", b[1:5])[0]
+    tgt = DISPATCH + 5 + rel
+    buf = rpm(tgt, n)
+    if not buf:
+        print(f"target {tgt:#x} unreadable."); return
+    print(f"resolved target {tgt:#x}, first {n} bytes:")
+    for i in range(0, n, 16):
+        chunk = buf[i:i + 16]
+        print(f"  +{i:03x}  {chunk.hex(' ')}")
+    print("
+Paste this back; the argument handling decodes out of these bytes.")
+
+
 def main():
     _require_game()
     a = sys.argv[1:]
@@ -109,6 +129,8 @@ def main():
         cmd_peek()
     elif a and a[0] == "spring":
         cmd_spring()
+    elif a and a[0] == "dump":
+        cmd_dump(int(a[1], 0) if len(a) > 1 else 96)
     elif a and a[0] == "scan":
         cmd_scan(int(a[1], 0) if len(a) > 1 else 0x400000)
     else:
