@@ -386,9 +386,11 @@ def main():
     elif cmd == "bench" and len(a) >= 3:
         cmd_bench(int(a[1]), float(a[2]))
     elif cmd == "hide" and len(a) >= 2:
-        cmd_hide(int(a[1]), vanish, page)
+        for sl in [int(x) for x in a[1].split(",")]:
+            cmd_hide(sl, vanish, page)
     elif cmd == "show" and len(a) >= 2:
-        cmd_show(int(a[1]))
+        for sl in [int(x) for x in a[1].split(",")]:
+            cmd_show(sl)
     elif cmd == "warp" and len(a) >= 4:
         cmd_warp(int(a[1]), int(a[2]), int(a[3]), force)
     elif cmd == "float" and len(a) >= 3:
