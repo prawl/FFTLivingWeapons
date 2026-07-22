@@ -146,6 +146,8 @@ internal sealed class StatusSpike
     private bool _f2Was, _f4Was;
     private int _hasteMode, _treasureMode;   // per-key sweeps 0 -> 1 -> 2 independently
     private int _requestMode;                // the request lane's own sweep, independent of the keys
+    private int _argOrder;                   // dispatch arg permutation; see the switch in Fire
+    private int _subject;                    // which unit identifier arg3 carries; see SubjectFor
     private int _hbTick;
     private bool _announced;
 
@@ -161,7 +163,8 @@ internal sealed class StatusSpike
     /// with its own scar ledger. The fingerprint-guard drill already uses exactly this marker-file
     /// lane for the same reason.
     ///
-    /// Format, one line: statusId[,mode][,corpse]  e.g. "22" (frog), "9,0" (invite), "15,1,corpse".
+    /// Format, one line: statusId[,mode][,corpse][,orderN]  e.g. "22", "9,0", "15,1,corpse",
+    /// "28,0,order1". orderN selects the dispatch argument permutation (0..4, default 0).
     /// The file is DELETED as soon as it is read, so a stale request cannot re-fire on a later
     /// launch, and the target is still chosen by FindEnemy exactly as the keys choose it: v1
     /// deliberately does not accept a seat, because band seats and combat slots are different
@@ -220,9 +223,21 @@ internal sealed class StatusSpike
             return;
         }
         bool corpse = parts.Length > 2 && parts[2].Trim().Equals("corpse", StringComparison.OrdinalIgnoreCase);
+        _argOrder = 0;
+        _subject = 2;   // default to nameId: the decode says arg3 is a 16-bit handle, and slot already failed
+        foreach (var seg in parts)
+        {
+            string t = seg.Trim();
+            if (t.StartsWith("order", StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(t.Substring(5), out int ord) && ord >= 0 && ord <= 4)
+                _argOrder = ord;
+            if (t.StartsWith("subj", StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(t.Substring(4), out int sub) && sub >= 0 && sub <= 2)
+                _subject = sub;
+        }
         if (parts.Length > 1 && int.TryParse(parts[1].Trim(), out int modeArg) && modeArg >= 0 && modeArg <= 2)
             _requestMode = modeArg;   // explicit mode overrides the sweep for this shot
-        ModLogger.Event(LogVerb.Trace, $"status-spike: request '{raw}' accepted (status {statusId}, mode {_requestMode}, {(corpse ? "corpse" : "live")} target).");
+        ModLogger.Event(LogVerb.Trace, $"status-spike: request '{raw}' accepted (status {statusId}, mode {_requestMode}, argOrder {_argOrder}, {(corpse ? "corpse" : "live")} target).");
         Fire($"REQUEST[{statusId}]", statusId, corpse, ref _requestMode);
     }
 
@@ -292,6 +307,29 @@ internal sealed class StatusSpike
         return twin;
     }
 
+    /// <summary>Which identifier the dispatch's THIRD argument wants (2026-07-22 decode).
+    ///
+    /// The disassembly settles the shape and leaves one unknown. arg3 is narrowed to SIXTEEN BITS
+    /// (movzx ecx, r8w) and handed straight to a lookup at 0x140260ABC, whose return is tested for
+    /// null and, if null, aborts the whole routine before it touches anything. That is exactly the
+    /// signature of our four failed fires: a clean call, no crash, nothing applied.
+    ///
+    /// So arg3 is a unit HANDLE, not the engine slot we were passing. A 16-bit width fits a nameId
+    /// (Ramza is 1, a chocobo 900) far better than a 0..20 slot index, but "fits better" is not
+    /// evidence, so all three candidates are selectable and the owner picks by experiment:
+    ///   0 = engineSlot (seat - 8, what v1's apply engine took, and what already failed)
+    ///   1 = band seat (the un-shifted index)
+    ///   2 = nameId (the 16-bit per-unit identity read off the band entry)</summary>
+    private int SubjectFor(int seat, int engineSlot)
+    {
+        switch (_subject)
+        {
+            case 1: return seat;
+            case 2: return _mem.U16(Band.Entry(seat) + Offsets.ANameId);
+            default: return engineSlot;
+        }
+    }
+
     private void Fire(string label, int statusId, bool corpse, ref int modeCounter)
     {
         if (!Mem.WritesEnabled)
@@ -335,7 +373,7 @@ internal sealed class StatusSpike
         // to apply). v2 names the id directly, so the write is redundant there; it is kept because
         // it is harmless, and because leaving it makes the two paths comparable on one tape.
         _mem.WriteBytes(pend, new[] { (byte)(p | mask) });   // synchronous pending-ADD request
-        string via = dispatch != 0 ? $"v2 dispatch 0x{dispatch:X} (id+1={statusId + 1}, mode={mode}, slot={engineSlot})"
+        string via = dispatch != 0 ? $"v2 dispatch 0x{dispatch:X} (id+1={statusId + 1}, mode={mode}, subj={SubjectFor(seat, engineSlot)} [kind {_subject}], order {_argOrder})"
                                    : $"v1 apply 0x{FnApplyStatuses:X} (slot={engineSlot}, mode={mode})";
         ModLogger.Event(LogVerb.Trace,
             $"status-spike: {label} seat {seat} pos ({gx},{gy}) engineSlot {engineSlot} status {statusId} mode {mode}; pending {p:X2}->{(byte)(p | mask):X2}, composed {compBefore:X2} inflicted {inflBefore:X2}; COLD-CALLING {via}...");
@@ -344,7 +382,19 @@ internal sealed class StatusSpike
             if (dispatch != 0)
             {
                 var fn = Marshal.GetDelegateForFunctionPointer<DispatchStatusFn>(unchecked((nint)dispatch));
-                fn(statusId + 1, mode, engineSlot);
+                // ARG ORDER IS A GUESS, so it is a knob rather than a constant: one deploy buys
+                // every permutation instead of one. Order 0 is the v1 header's documented reading
+                // (id+1, mode, slot); the rest are the plausible alternatives, and the third arg
+                // being narrowed to 16 bits by the callee is the clue that it is the small index.
+                int subj = SubjectFor(seat, engineSlot);
+                switch (_argOrder)
+                {
+                    case 1: fn(subj, mode, statusId + 1); break;
+                    case 2: fn(subj, statusId + 1, mode); break;
+                    case 3: fn(statusId + 1, subj, mode); break;
+                    case 4: fn(mode, statusId + 1, subj); break;
+                    default: fn(statusId + 1, mode, subj); break;   // the decoded order
+                }
             }
             else
             {

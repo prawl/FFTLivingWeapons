@@ -310,7 +310,7 @@ def cmd_status(slot, name, on, layers="both"):
 MODDIR = os.environ.get("RELOADEDIIMODS", "")
 
 
-def cmd_engine(name, mode=None, corpse=False):
+def cmd_engine(name, mode=None, corpse=False, order=None, subj=None):
     """Ask the GAME to apply a status, instead of writing the bit ourselves.
 
     Tonight's rule in one command: a raw bit sets the flag, the engine's apply routine performs
@@ -338,6 +338,10 @@ def cmd_engine(name, mode=None, corpse=False):
         print("refused outright by the map; this one has a crash tape.")
         sys.exit(1)
     body = str(e["id"]) + (f",{mode}" if mode is not None else "") + (",corpse" if corpse else "")
+    if order is not None:
+        body += f",order{order}"
+    if subj is not None:
+        body += f",subj{subj}"
     path.write_text(body, encoding="utf-8")
     print(f"queued '{body}' ({e['name']}, id {e['id']}) -> {path}")
     print("The spike consumes it within ~0.5s IF: dev build, live battle, menu open (paused).")
@@ -604,8 +608,10 @@ def main():
         else:
             cmd_rsm(int(a[1]), a[2] if len(a) > 2 else None)
     elif cmd == "engine" and len(a) >= 2:
+        _ord = next((int(x[5:]) for x in a if x.startswith("order") and x[5:].isdigit()), None)
+        _sub = next((int(x[4:]) for x in a if x.startswith("subj") and x[4:].isdigit()), None)
         cmd_engine(a[1], int(a[2]) if len(a) > 2 and a[2].isdigit() else None,
-                   corpse="corpse" in a)
+                   corpse="corpse" in a, order=_ord, subj=_sub)
     elif cmd == "sweep" and len(a) >= 2:
         cmd_status_sweep(int(a[1]), float(a[2]) if len(a) > 2 else 6.0)
     elif cmd == "status" and len(a) >= 4:
