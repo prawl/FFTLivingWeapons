@@ -70,6 +70,24 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-125] 2026-07-22: Three weapons now grant a command to their wielder, and all three do it with
+  the same hundred and thirty lines copied out three times. The next one makes it four.
+  Why it matters: the duplicated part is not the interesting part. It is the roster walk that finds
+  the wielder, the release path, and the learned bit hold, and every copy is a place a fix has to
+  be applied again and can be forgotten. ShadowBlade.cs has carried a FOLLOW UP SEAM comment since
+  it shipped saying the shared core should be extracted once it is live verified, and Provoke has
+  now made it a third copy rather than a second.
+  Deliberately deferred, not overlooked: extracting the core means editing two shipped modules that
+  players are running, and doing that inside a commit that also adds a feature is the exact diff a
+  reviewer should distrust. It is its own stage. The pure decisions were already shared rather than
+  copied (ProvokePolicy delegates to ShadowBladePolicy for record resolution), so what is left is
+  the stateful half only.
+  Watch for when it happens: Barrage.Policy.InjectSlot and ReleaseSlot call
+  ShadowBladePolicy.NeedsInject, so the dependency between those two files already points the wrong
+  way, and the extraction is the natural moment to straighten it. Do not fold the table write half
+  of Provoke into any shared core: it is keyed on a different arming condition on purpose, and
+  fusing the two lifecycles is the bug LW-123's plan review was written to prevent.
+
 - [LW-124] 2026-07-22: Audit every band walk in the runtime for staged cutscene units. The engine
   parks them in real seats with sane stats and real map positions, so a walk that only checks for
   sane values counts them as party members.
