@@ -29,7 +29,7 @@ CLOSED DOOR: the pending-ADD field at band +0x1BF is consumed but IGNORED for ex
 cannot use it. Bit math: byte = id >> 3, mask = 0x80 >> (id & 7).
 
 TIERS: S = shipped production code writes it AND it was live-verified; P = Proven ledger row;
-U = Uncertain/observed; M = map-only (the ported decode table plus id arithmetic that checks out
+U = Uncertain/observed; O = map-only bit since OBSERVED working live in this game; M = map-only (the ported decode table plus id arithmetic that checks out
 against 13 independently anchored bits, but this specific bit has never been set or cleared and
 watched in this game). M is not a guess, but it is not evidence either.
 """
@@ -78,7 +78,11 @@ STATUSES = {
     "reraise":    (18, "S", None),
     "invisible":  (19, "S", "Breaks the instant the unit acts, so it needs re-stamping every tick "
                             "(--hold). AoE splash still reaches the unit."),
-    "berserk":    (20, "M", "A write spike exists (berserk_probe.py) with NO recorded result."),
+    "berserk":    (20, "O", "OBSERVED WORKING 2026-07-22 (owner live, the first map-only bit promoted): "
+                            "the unit charges mindlessly at the nearest target and uses no abilities. "
+                            "IT DOES NOT CAUSE FRIENDLY FIRE: targeting still respects sides, so a "
+                            "berserk enemy still only attacks the player. Prior note, now answered: a "
+                            "write spike existed with no recorded result."),
     "chicken":    (21, "M", None),
     "frog":       (22, "M", "Drives the body model and is a real model-rebuild event; untested here."),
     "critical":   (23, "M", None),
