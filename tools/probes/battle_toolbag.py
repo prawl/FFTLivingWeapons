@@ -20,6 +20,10 @@ list head 0x140D3A410 with +0x148 the combat backref (swap_units.py, proven live
 HAZARDS, all ledger-documented, all stated because they bite:
   - A HIDDEN unit gets no scheduler turns, so it cannot un-hide itself: `show` is the only way
     back. Never hide the last unit you control.
+  - `hide` alone removes the unit from LOGIC only; the render weld leaves its SPRITE STANDING
+    (the ledger's ghost-statue toggle). Add `--vanish` to also request an invisibility page and
+    get a true disappearing act. The pairing is self-holding: an animation page is normally
+    re-stamped at the unit's next event, and a hidden unit has no events. `show` restores both.
   - A mid-hide AUTOSAVE persists the hidden state into the resume (proven live). Do not save
     while anything is hidden or reserved.
   - `show`/`deploy` need the model id saved by `hide`/`reserve`; it is kept in a state file
@@ -55,6 +59,9 @@ HP = 0x30          # u16 current HP, for the state dump's sanity column
 TURNFLAG = 0x19C   # band-relative per-unit turn flag; combat-relative via the band offset below
 BAND_FROM_COMBAT = 0x1C   # band entry sits at combat base + 0x1C (Offsets/probe convention)
 NODE_Z = 0x4E      # u16 signed world Z; Z = -12 * height (+1 height unit renders as FLOAT hover)
+ANIM_REQ = 0x10    # animation request register (Proven 2026-07-21): write u16 page + 1
+VANISH_PAGE = 0x32 # owner catalog: 'unit turned completely invisible' (0x3b is its sibling)
+IDLE_PAGE = 0x03   # 'started walking in place again', the resting page
 STATE = pathlib.Path(os.environ.get("TEMP", ".")) / "lw_toolbag_state.json"
 
 
@@ -185,7 +192,15 @@ def cmd_bench(slot, secs):
     print("EYEBALL: did their turn never come while others acted? That is the AT-list read.")
 
 
-def cmd_hide(slot):
+def cmd_hide(slot, vanish=False, page=VANISH_PAGE):
+    """--vanish adds the missing half of a real disappearing act (owner's idea, 2026-07-22).
+    The gate byte removes a unit from LOGIC only: untargetable, unhoverable, no turns, AI blind
+    to it, but the render weld leaves its SPRITE STANDING, which is why the ledger calls this
+    the ghost-statue toggle. Requesting an invisibility page (the owner's sweep found 0x32 "unit
+    turned completely invisible" and 0x3b as its sibling) removes the sprite too.
+
+    The two halves hold each other up: an animation page is normally re-stamped at the unit's
+    next event, but a hidden unit GETS no events, so nothing overwrites it. Reveal restores both."""
     require_fielded(slot)
     if acting(slot):
         print("that unit's turn is OPEN right now; hiding the current actor is refused.")
@@ -197,8 +212,16 @@ def cmd_hide(slot):
         sys.exit(1)
     st = load_state()
     st[str(slot)] = {"model": gate}
-    save_state(st)
     wu8(c + GATE, 0xFF)
+    if vanish:
+        node = node_of(slot)
+        if node:
+            wu16(node + ANIM_REQ, (page + 1) & 0xFFFF)
+            st[str(slot)]["vanished"] = True
+            print(f"slot {slot} hidden AND sprite vanished (page {page:#04x}).")
+        else:
+            print(f"slot {slot} hidden, but the node was unreadable so the sprite still stands.")
+    save_state(st)
     print(f"slot {slot} hidden; model id {gate:#04x} saved to {STATE}.")
     print("REMEMBER: hidden units get no turns and cannot un-hide themselves. Do not autosave.")
 
@@ -229,6 +252,8 @@ def cmd_show(slot):
         sys.exit(1)
     if "z" in rec:                          # a reserve, not a plain hide: un-sink before showing
         wu16(node + NODE_Z, rec["z"] & 0xFFFF)
+    if rec.get("vanished"):
+        wu16(node + ANIM_REQ, (IDLE_PAGE + 1) & 0xFFFF)   # sprite back before the logic returns
     wu8(c + PRESENT, 1)
     wu8(c + GATE, rec["model"] & 0xFF)      # gate LAST, per the resurrect recipe's ordering
     st.pop(str(slot), None)
@@ -249,7 +274,7 @@ def cmd_float(slot, heights):
           f"Pure render data; the engine re-stamps at their next move or turn-open.")
 
 
-def cmd_reserve(slot):
+def cmd_reserve(slot, vanish=False):
     """Park-and-summon: hide the logic and REMEMBER the ground Z so deploy can drop them back in
     from the sky. The despawn arc's cheaper cousin: no engine sweeper involved, so no
     re-enrollment is needed to bring them back.
@@ -263,7 +288,7 @@ def cmd_reserve(slot):
     if not node:
         print("unit not noded; aborting.")
         sys.exit(1)
-    cmd_hide(slot)
+    cmd_hide(slot, vanish=vanish)
     z = ru16(node + NODE_Z)
     z = z - 65536 if z > 32767 else z
     st = load_state()
@@ -298,6 +323,14 @@ def cmd_deploy(slot):
 def main():
     _require_game()
     a = sys.argv[1:]
+    vanish = "--vanish" in a
+    page = VANISH_PAGE
+    if "--page" in a:
+        i = a.index("--page")
+        if i + 1 >= len(a):
+            print("--page needs a hex page id, e.g. --page 3b"); sys.exit(1)
+        page = int(a[i + 1], 16); del a[i:i + 2]
+    a = [x for x in a if x != "--vanish"]
     if not a:
         print(__doc__); return
     cmd = a[0]
@@ -308,13 +341,13 @@ def main():
     elif cmd == "bench" and len(a) >= 3:
         cmd_bench(int(a[1]), float(a[2]))
     elif cmd == "hide" and len(a) >= 2:
-        cmd_hide(int(a[1]))
+        cmd_hide(int(a[1]), vanish, page)
     elif cmd == "show" and len(a) >= 2:
         cmd_show(int(a[1]))
     elif cmd == "float" and len(a) >= 3:
         cmd_float(int(a[1]), int(a[2]))
     elif cmd == "reserve" and len(a) >= 2:
-        cmd_reserve(int(a[1]))
+        cmd_reserve(int(a[1]), vanish)
     elif cmd == "deploy" and len(a) >= 2:
         cmd_deploy(int(a[1]))
     else:
