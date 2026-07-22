@@ -69,9 +69,10 @@ Verbs
 
       --base MATTERS: there are TWO copies of this table, back to back, 368*20 = 0x1CC0 bytes apart
       (found live 2026-07-22 by ability_table_probe.py findrow, after an edit to the first copy read
-      back correctly and changed nothing in game).  ACTION_VA below is the FIRST copy; the second
-      begins at 0x14078B2DC.  Both hold identical data, so no anchor check can tell them apart --
-      only an edit can.  Pass --base to aim at the other one.
+      back correctly and changed nothing in game).  The DEFAULT is now the second copy, the one the
+      engine reads, at 0x14078B2DC; the first copy at 0x14078961C is the decoy and this verb used to
+      default there.  Both hold identical data, so no anchor check can tell them apart, only an edit
+      can.  Pass --base 0x14078961C to aim at the decoy on purpose.
 
   python tools\\probes\\ability_grant_probe.py restore [key]
       Restore outstanding holds. With no key, sweeps every snapshot in the temp directory -- the
@@ -134,15 +135,32 @@ JOB_NAMES = {74: "Squire", 75: "Chemist", 76: "Knight", 77: "Archer", 78: "Monk"
              89: "Ninja", 90: "Arithmetician", 91: "Bard", 92: "Dancer", 93: "Mime",
              43: "Machinist", 96: "Chocobo", 160: "Dark Knight"}
 
-# --- ability ACTION table (located offline 2026-07-22, CONFIRMED live the same day by
-#     tools/probes/ability_table_probe.py: 367/368 row sentinels, MP anchors exact, and a negative
-#     control 7 bytes away scoring 0/368). 368 rows of 20 bytes. Field offsets within a row:
+# --- ability ACTION table. 368 rows of 20 bytes. Field offsets within a row:
 #     +4 Range, +5 EffectArea, +6 Vertical, +12 Formula, +13 X, +14 Y, +15 InflictStatus,
 #     +16 CT, +17 MP. Bytes 7-11 are targeting/behavior flags, not yet decoded.
-ACTION_VA = 0x14078961C
+#
+#     THERE ARE TWO COPIES, back to back, and the engine reads only the SECOND. The offline file
+#     offset scan finds the first; writes to it land, read back perfectly, and change nothing in
+#     game. The original "CONFIRMED live" note here quoted 367/368 row sentinels, which is the
+#     DECOY's score (the live copy scores 368/368), so this file was verified against the wrong
+#     table and its `action` verb defaulted there. Fixed 2026-07-22: the default is now the live
+#     copy, and --base aims at the decoy for anyone deliberately reproducing the trap.
+ACTION_DECOY_VA = 0x14078961C   # accepts writes, engine ignores them
 ACTION_STRIDE = 20
 ACTION_ROWS = 368
+ACTION_VA = ACTION_DECOY_VA + ACTION_ROWS * ACTION_STRIDE   # 0x14078B2DC -- the live one
 ACTION_INFLICT = 15   # the byte that indexes the inflict-status table
+
+# --- inflict-status combination table: 128 rows of 6 bytes, laid out [mode][s0..s4] with the MODE
+#     BYTE FIRST. Row N is what an action row's +15 byte indexes. s0..s4 mirror the band's composed
+#     status layout (+0x45..+0x49, MSB-first), so status id 0 is s0 bit 0x80.
+#     THE BASE WAS ONE BYTE LATE for a whole cycle (0x14080FBA1), which still decoded every status
+#     correctly and reported each row's mode from the NEXT row. A row left reading mode 0x00 applies
+#     nothing, which looks exactly like the engine refusing a hand-written row.
+INFLICT_VA = 0x14080FBA0
+INFLICT_STRIDE = 6
+INFLICT_ROWS = 128
+PROVOKE_INFLICT_ROW = 29        # authored here: referenced by no shipped ability
 
 HOLD_MS = 150         # re-assert cadence; menu write-backs are what the hold defends against
 
@@ -554,7 +572,9 @@ def verb_action(mem, names, ability_id, offset, value, base=None):
     addr = row_addr + offset
     snap = save_snapshot(f"action{ability_id}_{row_addr:X}", [(f"ability {ability_id} action row", row_addr, before)])
     print(f"snapshot -> {snap}")
-    which = "PINNED table" if base is None else f"table base 0x{base:X}"
+    which = "LIVE table" if base is None else (
+        "DECOY table, the engine ignores writes here" if base == ACTION_DECOY_VA
+        else f"table base 0x{base:X}")
     print(f"ability {ability_id} ({name_of(names, ability_id)}) action row @ 0x{row_addr:X}  [{which}]")
     print(f"  before: {before.hex(' ')}")
     print(f"  holding byte +{offset} (0x{addr:X}): 0x{before[offset]:02X} -> 0x{value:02X}")
@@ -689,22 +709,31 @@ def selftest():
     check("ability addr rec 7", ability_addr(7), ABILITY_BASE + 7 * 25)
 
     # poke spec parsing
-    check("poke spec addr", parse_poke("0x14080FC4F=000000010080")[0], 0x14080FC4F)
-    check("poke spec bytes", parse_poke("0x14080FC4F=000000010080")[1],
-          bytes([0x00, 0x00, 0x00, 0x01, 0x00, 0x80]))
+    # Sample data is the REAL Provoke recipe, so anyone reading the selftest for the incantation
+    # copies the working one rather than the superseded Wall bytes at the one-byte-late address.
+    check("poke spec addr", parse_poke("0x14080FC4E=808000000000")[0], 0x14080FC4E)
+    check("poke spec bytes", parse_poke("0x14080FC4E=808000000000")[1],
+          bytes([0x80, 0x80, 0x00, 0x00, 0x00, 0x00]))
     check("poke spec single byte", parse_poke("0x14078C1AF=1d")[1], bytes([0x1D]))
     check("poke spec tolerates spaces", parse_poke("0x100=00 01 02")[1], bytes([0, 1, 2]))
 
-    # Inflict-table row addressing, and the Wall bit (band +0x48/0x01 per
-    # tools/probes/evasive_stance_probe.py:91-92): byte index 3 of the five status bytes.
-    check("inflict row 29 @ pinned base", 0x14080FBA1 + 29 * 6, 0x14080FC4F)
-    check("live action row 189 inflict byte", 0x14078B2DC + 189 * 20 + 15, 0x14078C1AF)
+    # Inflict-table row addressing. Provoke's row is index 29 and the mark is status id 0, which
+    # is s0 bit 0x80, so the authored row reads 80 80 00 00 00 00 (mode AllOrNothing FIRST).
+    # The previous version of this block pinned the one-byte-late base (0x14080FBA1) and described
+    # the abandoned Wall mark at band +0x48 bit 0x01. Both are gone: Wall turned out to make its
+    # bearer invincible, and the late base reported every row's mode from the following row.
+    check("inflict table base", INFLICT_VA, 0x14080FBA0)
+    check("authored inflict row 29", INFLICT_VA + PROVOKE_INFLICT_ROW * INFLICT_STRIDE, 0x14080FC4E)
 
-    # Action-row addressing, anchored on the id whose row was read live today.
+    # Action-row addressing. BOTH copies are pinned so a future edit has to face the pair
+    # deliberately instead of silently re-adopting the decoy the file offset scan lands on.
+    check("decoy table base", ACTION_DECOY_VA, 0x14078961C)
+    check("live table base", ACTION_VA, 0x14078B2DC)
+    check("the gap is exactly one table", ACTION_VA - ACTION_DECOY_VA, ACTION_ROWS * ACTION_STRIDE)
     check("action row of id 0", action_row_addr(0), ACTION_VA)
-    check("action row of id 189", action_row_addr(189), 0x14078A4E0)
-    check("inflict byte of id 189", action_row_addr(189) + ACTION_INFLICT, 0x14078A4EF)
-    check("action row of id 360", action_row_addr(360), 0x14078B23C)
+    check("live inflict byte of id 189", action_row_addr(189) + ACTION_INFLICT, 0x14078C1AF)
+    check("the same byte on the decoy", action_row_addr(189, ACTION_DECOY_VA) + ACTION_INFLICT,
+          0x14078A4EF)
 
     # An empty slot needs BOTH a zero byte and a clear extend bit (byte 0 + ext = ability 256).
     check("free slot in an empty record", find_empty_slot([0] * 16, 0x0000), 1)
@@ -778,7 +807,8 @@ def main():
         if verb == "poke":
             if len(positional) < 2:
                 print("usage: poke <addr>=<hexbytes> [<addr>=<hexbytes> ...]")
-                print("   e.g. poke 0x14080FC4F=000000010080 0x14078C1AF=1d")
+                print("   e.g. poke 0x14080FC4E=808000000000 0x14078C1AF=1d")
+                print("        (authors inflict row 29 as mark-only, then points ability 189 at it)")
                 return 2
             return verb_poke(mem, positional[1:])
         if verb == "action":
