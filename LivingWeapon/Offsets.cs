@@ -220,10 +220,23 @@ internal static class Offsets
     public const byte AReraiseBit = 0x20;  // mask: bit 5 of AReraise is the "reraise" flag
 
     // --- invisible (transparent) status byte (band-entry relative, OBSERVED LIVE 2026-06-14) ---
-    // Shares +0x47 with Reraise; bit 4 (0x10). Held re-applied (it breaks the moment the unit acts),
-    // it makes the AI ignore the unit -- single-target enemies skip it; AoE splash can still reach it.
-    // Feign Death sets it through the played-dead window so the prone wielder acts unmolested, then
-    // drops it for the finishing blow.
+    // Shares +0x47 with Reraise; bit 4 (0x10). It makes the AI ignore the unit -- single-target
+    // enemies skip it; AoE splash can still reach it. Feign Death sets it through the played-dead
+    // window so the prone wielder acts unmolested, then drops it for the finishing blow.
+    //
+    // CORRECTED 2026-07-22 (measured live, mod off; LIVE_LEDGER "orphan flag" Uncertain row). This
+    // block used to say the bit "breaks the moment the unit acts". IT DOES NOT. A raw write here
+    // survives the unit's own action untouched and survives 60s of running clock with no re-stamp.
+    // What clears it is BEING HIT, because the engine's damage-resolution path strips Transparent
+    // unconditionally. So a held hide still needs re-stamping, for splash rather than for acting.
+    // WHY: +0x47 is the COMPOSED layer, which is a read-out. The engine registers a status it
+    // applies in the INFLICTED layer (+0x1D3..+0x1D7). A composed-only write is an ORPHAN FLAG that
+    // the HUD icon renders and the AI reads, but that nothing owns, so no visible effect is
+    // performed (the unit does NOT go transparent) and nothing ever expires it. Measured on one
+    // unit carrying both: ours read composed 0x10 / inflicted 0x00, while an engine-applied Stop on
+    // the same unit read composed 0x02 AND inflicted 0x02 with a real effect and a real expiry.
+    // Corollary for anything that HOLDS this bit: it does not decay on its own, so a stuck hold
+    // needs a watchdog rather than a hope.
     public const int AInvisible     = 0x47;  // u8 status bitfield byte containing the Invisible flag
     public const byte AInvisibleBit = 0x10;  // mask: bit 4 of AInvisible is the "invisible" flag
 

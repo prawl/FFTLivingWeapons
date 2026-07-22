@@ -91,7 +91,8 @@ internal sealed partial class FeignDeath
 
             case Phase.Possum:
                 // Prone but alive (dead bit cleared, HP held at 1) and ignored (Invisible re-stamped;
-                // it breaks the moment the unit acts). Hold for the window, then the finishing blow.
+                // it breaks when the wielder is HIT, not when it acts -- corrected 2026-07-22, see
+                // Offsets.AInvisible). Hold for the window, then the finishing blow.
                 return new FeignTick
                 {
                     Next = possumDone ? Phase.Finish : Phase.Possum,

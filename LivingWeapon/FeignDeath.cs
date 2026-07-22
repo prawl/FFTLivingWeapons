@@ -13,7 +13,10 @@ namespace LivingWeapon;
 /// reads facts, calls Step, and applies the guarded writes):
 ///   Watching -- armed and alive, waiting for the lethal hit (HP 0 or the dead bit).
 ///   Possum   -- clear the dead bit + hold HP at 1 (prone but alive, so it still takes turns) and hold
-///               Invisible (+0x47/0x10, re-stamped: it breaks the instant the unit acts) so the AI
+///               Invisible (+0x47/0x10, re-stamped: it breaks when the wielder is HIT -- corrected
+///               2026-07-22, this line used to say "the instant the unit acts", which is measurably
+///               wrong; see the Offsets.AInvisible block and the LIVE_LEDGER orphan-flag row. The
+///               re-stamp is still required, because a prone wielder among enemies gets hit) so the AI
 ///               skips it. Single-target enemies ignore it; AoE splash can still reach it. Lasts 2 of
 ///               the wielder's turns, counted off the active-unit struct (the band CT byte is too noisy
 ///               to count); FeignPossumSeconds is an idle-only safety cap.
