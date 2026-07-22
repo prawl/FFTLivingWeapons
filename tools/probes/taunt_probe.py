@@ -67,6 +67,9 @@ Verbs
 """
 import ctypes
 import ctypes.wintypes as w
+import io
+import json
+import random
 import struct
 import sys
 import time
@@ -697,6 +700,430 @@ def cmd_taunt(wielder_slot, hide_slots=None) -> None:
           f"(of {len(ever_set)} on the cleanup list).")
 
 
+def cmd_turnwatch(seconds=90.0) -> None:
+    """READ-ONLY. Watch the turn flag on EVERY live seat and print each transition.
+
+    THE PREMISE THIS SETTLES, and it gates the whole reveal experiment. The Guardian design keys
+    off band +0x19C, the turn flag, and assumes an AI unit's turn is ONE CONTINUOUS WINDOW: one
+    0->1 when its turn opens, one 1->0 when it ends, with its move AND its attack both inside.
+    That is a PROVEN row, but the 2026-07-09 tape behind it was taken on the PLAYER's own seat at
+    menu open. Nobody has ever checked an AI seat. If an enemy's flag DIPS between its move phase
+    and its act phase, every reveal-timing measurement built on it reads the wrong window and the
+    design gets retired for a fault in the instrument. verify-premise-live-before-building is the
+    standing rule here and it has already burned four cycles once.
+
+    WHAT TO LOOK FOR, per enemy seat, across a turn where it BOTH MOVES AND ATTACKS:
+      PASS  exactly one `t 0->1` then one `t 1->0`, with the attack landing between them
+      FAIL  1 -> 0 -> 1 -> 0 within a single turn: the flag pulses per sub-phase
+
+    Also prints moved (+0x19D) and acted (+0x19E) so the sub-phases are visible in the same tape,
+    and CT (+0x25) so this doubles as the turn-duration sample step 4 wants. NEVER compare a flag
+    byte to a boolean: Band.cs records raw values above 1 on the moved byte, so values are printed
+    raw and only `== 1` is treated as ownership.
+    """
+    _require_game()
+    units = {u[0]: u for u in _enumerate(quiet=False)}
+    if not units:
+        print("No live units -- are you in a battle?")
+        return
+    addr = {s: _band_entry_addr(s) for s in units}
+    print(f"Watching turn flags on {len(units)} seat(s) for {seconds:.0f}s. READ-ONLY. Ctrl+C stops.")
+    print("Let at least one ENEMY take a turn in which it MOVES and THEN ATTACKS.\n")
+    print(f"{'time':>8}  {'seat':>4} {'side':<6} {'t':>3} {'moved':>5} {'acted':>5} {'ct':>4}")
+    prev = {}
+    start = time.time()
+    try:
+        while time.time() - start < seconds:
+            for s in units:
+                e = addr[s]
+                cur = (ru8(e + A_TURNFLAG), ru8(e + A_MOVED), ru8(e + A_ACTED))
+                if any(v is None for v in cur):
+                    continue                      # a failed read is NOT a transition
+                if s in prev and cur == prev[s]:
+                    continue
+                if s in prev:                     # skip the priming pass, it is not a transition
+                    print(f"{time.time() - start:7.2f}s  {s:>4} {units[s][1]:<6} "
+                          f"{cur[0]:>3} {cur[1]:>5} {cur[2]:>5} {ru8(e + A_CT) or 0:>4}"
+                          f"{'   <-- TURN OPEN' if cur[0] == 1 and prev[s][0] != 1 else ''}"
+                          f"{'   <-- turn end' if cur[0] != 1 and prev[s][0] == 1 else ''}")
+                prev[s] = cur
+            time.sleep(0.02)
+    except KeyboardInterrupt:
+        print()
+    print("\nRead the ENEMY rows: one TURN OPEN and one turn end per turn is a PASS. "
+          "An open/end/open/end inside a single turn is a FAIL and the reveal design needs rework.")
+
+
+# --- Guardian probe step 6: how EARLY must the reveal land? -----------------------------------
+# Band turn flag, PROVEN row (owner live 2026-07-09): +0x19C reads 1 while the unit owns the turn,
+# 0->1 at turn open and 1->0 at turn end. Exclusivity (one owner at a time) has 58 records over 4
+# tapes behind it. NEVER test a flag byte as a boolean: Band.cs records raw values above 1 on the
+# moved byte, so compare == 1 and nothing else.
+A_TURNFLAG = 0x19C
+A_MOVED    = 0x19D   # 0->1 at the move; engine-reset at the NEXT turn open
+A_ACTED    = 0x19E   # 0->1 at the action; same reset. Compare == 1, never as a boolean
+A_CT       = 0x25    # scheduler CT (Offsets.ACtSlam); 100 = acts
+
+
+def _cheb(a, b):
+    """Chebyshev tile distance; FFT movement is 8-directional at the grid level for our purposes."""
+    return max(abs(a[0] - b[0]), abs(a[1] - b[1]))
+
+
+def cmd_reveal(wielder_slot, delays, per_cell=5, tape_path=None) -> None:
+    """STEP 6. Measure how EARLY the reveal must land for an untaunted enemy to fight normally.
+
+    THE QUESTION. Guardian keeps the party hidden as its RESTING state and REVEALS them during the
+    turns of enemies that were NOT provoked. That reveal is a reaction with a deadline: land it
+    after the AI has chosen and the untaunted enemy funnels onto the provoker too, degrading a
+    precise provoke into a whole-battlefield taunt. This measures that deadline.
+
+    REWRITTEN 2026-07-22 after an adversarial review of the first version found ELEVEN defects, of
+    which THREE printed as the best-looking possible result: a hide that never landed, a reveal
+    that never landed, and a dead wielder all scored as clean data. Every guard below exists
+    because of a specific one of those, and none of them should be removed without re-reading the
+    review. The governing principle: THIS INSTRUMENT MUST NEVER PREFER A CONFIDENT ANSWER TO NO
+    ANSWER. Every doubt voids a turn.
+
+    NON-VACUITY IS ENFORCED, NOT REQUESTED. The first version printed a reminder to run a control
+    by hand. A reminder is not a control. The CONTROL IS NOW A CELL: delay -1 means "never reveal",
+    which is the permanent hold, and it is drawn from the same randomised pool as every timed cell.
+    If the control cell does not come back mostly REDIRECTED, the funnel was not working during
+    this session and the verb REFUSES to report the other cells at all.
+
+    PREMISE VERIFIED LIVE 2026-07-22 before this was written (tools/probes/taunt_probe.py
+    turnwatch): an AI seat's band +0x19C is ONE CONTINUOUS WINDOW spanning its move AND its act.
+    A black mage opened at 6.06s, moved at 6.90s and ended at 8.56s with acted latched, with no dip
+    in between. Without that check every measurement here would have timed the wrong window.
+
+    SCORING, from HP MINIMA, never endpoint deltas. Endpoint scoring loses a hit that a reaction
+    heals back inside the window (Auto-Potion is exactly what a tank carries), and loses damage
+    that has not committed when the flag falls. Minima across the window plus a settle tail fix
+    both.
+        REDIRECTED  only the WIELDER was hurt      -> funnel still bit, the reveal was too late
+        NORMAL      only a HIDDEN unit was hurt    -> the reveal landed, the enemy chose freely
+        SPLASH      two or more hurt               -> VOID (AoE ignores this bit anyway)
+        NO-ACTION   nobody hurt                    -> VOID
+        CONFOUNDED  wielder was not farther from the acting enemy than some hidden unit -> VOID
+        VOID-*      any write, reveal, liveness or roster doubt                          -> VOID
+    """
+    _require_game()
+    if not delays:
+        print("need at least one delay")
+        return
+    cells = [-1] + list(delays)          # -1 == the enforced control cell (never reveal)
+    need = {c: per_cell for c in cells}
+    scored = {c: [] for c in cells}
+    voided = {}
+    tape = []
+
+    units = {u[0]: u for u in _enumerate()}
+    if wielder_slot not in units or units[wielder_slot][1] != "player":
+        print(f"wielder slot {wielder_slot} is not a live player unit -- run `list`.")
+        return
+    addr = {s: _band_entry_addr(s) for s in units}
+
+    def fingerprint(s):
+        return (ru8(addr[s] + A_BRAVE), ru8(addr[s] + A_FAITH))
+
+    def pos(s):
+        return (ru8(addr[s] + A_GX), ru8(addr[s] + A_GY))
+
+    def alive(s):
+        hp = ru16(addr[s] + A_HP)
+        return hp is not None and hp > 0
+
+    # BUILD THE HIDE SET. Exclude corpses (a corpse's HP can never fall again, which silently makes
+    # one verdict unreachable) and exclude anything ALREADY carrying the bit (not ours to strip, and
+    # its reveal would prove nothing about our deadline).
+    hidden, preset, dead = [], [], []
+    for s, u in units.items():
+        if u[1] != "player" or s == wielder_slot:
+            continue
+        if not alive(s):
+            dead.append(s); continue
+        cur = ru8(addr[s] + A_INVIS_OFF)
+        if cur is None:
+            print(f"slot {s}: status byte unreadable -- aborting before any write.")
+            return
+        if cur & A_INVIS_MASK:
+            preset.append(s); continue
+        hidden.append(s)
+    if not hidden:
+        print("no eligible units to hide (all dead, or already invisible).")
+        return
+    enemies = [s for s in units if units[s][1] == "enemy" and alive(s)]
+    if not enemies:
+        print("no live enemies.")
+        return
+
+    ever_set = {s: addr[s] for s in hidden}   # NEVER pruned. The cleanup list.
+    fp = {s: fingerprint(s) for s in hidden}
+    w_fp = fingerprint(wielder_slot)
+    released = set()                          # seats dropped from the hold mid-run
+
+    def hold(active):
+        """Re-stamp or clear the hide. Returns (write_failures, all_seats_verified)."""
+        fails, ok = 0, True
+        for s in list(hidden):
+            e = addr[s]
+            if fingerprint(s) != fp[s]:
+                hidden.remove(s); released.add(s)
+                print(f"  slot {s} migrated: released from the hold (still on the cleanup list).")
+                continue
+            cur = ru8(e + A_INVIS_OFF)
+            if cur is None:
+                fails += 1; ok = False; continue
+            want = bool(active)
+            if bool(cur & A_INVIS_MASK) != want:
+                wu8(e + A_INVIS_OFF, (cur | A_INVIS_MASK) if want else (cur & ~A_INVIS_MASK & 0xFF))
+                rb = ru8(e + A_INVIS_OFF)
+                if rb is None or bool(rb & A_INVIS_MASK) != want:
+                    fails += 1; ok = False
+        return fails, ok
+
+    players = [s for s in units if units[s][1] == "player" and alive(s)]
+
+    def sample_hp(into):
+        for s in players:
+            hp = ru16(addr[s] + A_HP)
+            if hp is not None:
+                into[s] = min(into.get(s, hp), hp)
+
+    print(f"STEP 6 reveal ladder. Wielder slot {wielder_slot} stays visible; hiding {hidden}.")
+    if preset:
+        print(f"  EXCLUDED, already invisible (not ours to touch): {preset}")
+    if dead:
+        print(f"  EXCLUDED, KO'd: {dead}")
+    print(f"  Cells: control(never reveal) + {list(delays)}ms, {per_cell} scored turn(s) each, "
+          f"drawn in RANDOM order. {len(enemies)} live enemy seat(s).")
+    print("  Every doubt voids a turn rather than guessing. Ctrl+C stops and cleans up.\n")
+
+    owner_prev = {}
+    aborted = None
+    try:
+        while any(n > 0 for n in need.values()):
+            f, _ = hold(True)                      # THE RESTING HOLD. Its failures are counted.
+            if f:
+                aborted = (f"resting hold failed ({f} write failure(s)) -- every later "
+                           f"measurement would be meaningless")
+                break
+            if not hidden:
+                aborted = "every hidden seat was released; nothing left to measure"
+                break
+
+            # EDGE DETECTION. Take at most one rise per pass and leave any others PENDING, because
+            # FFT runs enemy turns back to back and the first version stamped owner_prev for every
+            # seat it scanned, which consumed a second enemy's rise without ever watching it. Those
+            # turns then played out fully hidden and unmeasured while the wielder ate them.
+            # `opened is None` and not a truthiness test: band slot 0 is a real seat.
+            opened = None
+            for s in enemies:
+                now = ru8(addr[s] + A_TURNFLAG)
+                if now is None:
+                    continue                       # a failed read is NOT a transition
+                prev = owner_prev.get(s)
+                if prev is None:
+                    owner_prev[s] = now            # prime on first sight; never an edge
+                    continue
+                if now == 1 and prev != 1:
+                    if opened is None:
+                        opened = s
+                    continue                       # leave prev untouched: still an unconsumed rise
+                owner_prev[s] = now
+            if opened is None:
+                time.sleep(0.01)
+                continue
+
+            cell = random.choice([c for c in cells if need[c] > 0])
+            t0 = time.time()
+            e_pos = pos(opened)
+            w_pos = pos(wielder_slot)
+            h_pos = {s: pos(s) for s in hidden}
+            open_hp = {}
+            sample_hp(open_hp)          # HP at the turn's open, the baseline
+            lows = dict(open_hp)        # running MINIMUM across the window and its settle tail
+            released_at_open = set(released)
+
+            # HOLD until the deadline (or forever, for the control cell).
+            reveal_ok, reveal_at = True, None
+            while cell < 0 or (time.time() - t0) * 1000.0 < cell:
+                f, _ = hold(True)
+                if f:
+                    reveal_ok = False
+                sample_hp(lows)
+                if ru8(addr[opened] + A_TURNFLAG) != 1:
+                    break                          # turn ended before the deadline
+                time.sleep(0.01)
+            if cell >= 0:
+                f, ok = hold(False)                # THE REVEAL. Verified, and re-asserted below.
+                reveal_at = (time.time() - t0) * 1000.0
+                reveal_ok = reveal_ok and ok and not f
+
+            # Play the turn out. Keep the reveal asserted; keep sampling minima.
+            t_wait = time.time()
+            while ru8(addr[opened] + A_TURNFLAG) == 1 and time.time() - t_wait < 30.0:
+                if cell >= 0:
+                    f, ok = hold(False)
+                    reveal_ok = reveal_ok and ok and not f
+                else:
+                    hold(True)
+                sample_hp(lows)
+                time.sleep(0.01)
+            t_settle = time.time()                 # settle tail: damage can commit after the fall
+            while time.time() - t_settle < 1.0:
+                sample_hp(lows)
+                time.sleep(0.01)
+
+            # ---- verdict, in strict precedence: doubts first, then geometry, then damage ----
+            verdict = None
+            if not reveal_ok:
+                verdict = "VOID-WRITE"
+            elif fingerprint(wielder_slot) != w_fp or not alive(wielder_slot):
+                verdict = "VOID-WIELDER"
+                aborted = "the wielder died or changed identity; the experiment is over"
+            elif released != released_at_open:
+                verdict = "VOID-RELEASED"
+            owner_prev[opened] = 0                 # consume ONLY this seat's edge
+            need_note = ""
+            if verdict is None:
+                w_d = _cheb(w_pos, e_pos)
+                h_d = {s: _cheb(h_pos[s], e_pos) for s in h_pos}
+                nearer = [s for s in h_d if h_d[s] < w_d]
+                if not nearer:
+                    verdict = "CONFOUNDED"
+                    need_note = (f" (wielder d={w_d} was not farther than every hidden unit "
+                                 f"{sorted(h_d.values())})")
+            if verdict is None:
+                # Scored on MINIMA vs the open baseline, so a hit that a reaction heals back
+                # inside the window still counts, and damage committing after the flag falls is
+                # caught by the settle tail above.
+                hurtset = [s for s in open_hp if s in lows and lows[s] < open_hp[s]]
+                if not hurtset:
+                    verdict = "NO-ACTION"
+                elif len(hurtset) > 1:
+                    verdict = "SPLASH"
+                elif hurtset[0] == wielder_slot:
+                    verdict = "REDIRECTED"
+                else:
+                    verdict = f"NORMAL(hit {hurtset[0]})"
+
+            label = "control" if cell < 0 else f"{cell:.0f}ms"
+            keep = verdict.startswith("REDIRECTED") or verdict.startswith("NORMAL")
+            print(f"  seat {opened} [{label}] revealed at "
+                  f"{'never' if reveal_at is None else f'{reveal_at:.0f}ms'} -> {verdict}"
+                  f"{need_note}{'' if keep else '   [VOID, re-running]'}")
+            tape.append({"cell": label, "enemy": opened, "verdict": verdict,
+                         "reveal_ms": reveal_at, "wielder_dist": _cheb(w_pos, e_pos)})
+            if keep:
+                scored[cell].append(verdict)
+                need[cell] -= 1
+            else:
+                voided[verdict] = voided.get(verdict, 0) + 1
+            if aborted:
+                break
+    except KeyboardInterrupt:
+        aborted = "interrupted by the operator"
+        print()
+    finally:
+        cleared = stuck = 0
+        for s, e in ever_set.items():
+            while True:
+                try:
+                    cur = ru8(e + A_INVIS_OFF)
+                    if cur is None:
+                        stuck += 1
+                        print(f"  slot {s}: read failed in cleanup -- MAY STILL BE INVISIBLE.")
+                        break
+                    if cur & A_INVIS_MASK:
+                        wu8(e + A_INVIS_OFF, cur & ~A_INVIS_MASK & 0xFF)
+                        rb = ru8(e + A_INVIS_OFF)
+                        if rb is None or (rb & A_INVIS_MASK):
+                            stuck += 1
+                            print(f"  slot {s}: CLEAR FAILED -- run `unhide {s}` by hand.")
+                            break
+                    cleared += 1
+                    break
+                except KeyboardInterrupt:
+                    continue          # a stray second Ctrl+C must not abandon half the party
+        print(f"\nCleanup: cleared {cleared}, {stuck} STUCK (of {len(ever_set)}).")
+
+    # ---- report, and refuse to report if the control did not hold ----
+    if tape_path:
+        try:
+            with io.open(tape_path, "a", encoding="utf-8") as fh:
+                for rec in tape:
+                    fh.write(json.dumps(rec) + "\n")
+            print(f"Tape appended: {tape_path}")
+        except OSError as ex:
+            print(f"tape write failed: {ex}")
+    if aborted:
+        print(f"\nRUN ABORTED: {aborted}.")
+        print("TREAT THIS RUN AS VOID. The counts below are partial and must not be quoted.")
+    ctrl = scored[-1]
+    ctrl_red = sum(1 for v in ctrl if v.startswith("REDIRECTED"))
+    print(f"\ncontrol (never revealed): {ctrl_red}/{len(ctrl)} REDIRECTED")
+    if len(ctrl) < max(4, per_cell - 1) or ctrl_red * 2 < len(ctrl):
+        print("NON-VACUITY CONTROL FAILED OR INCOMPLETE. The funnel was not demonstrably working")
+        print("during this session, so the timed cells below cannot be interpreted and are NOT")
+        print("reported. Re-check the geometry (wielder must NOT be the natural target) and re-run.")
+        return
+    print("Control held, so the timed cells are interpretable:\n")
+    for c in delays:
+        got = scored[c]
+        red = sum(1 for v in got if v.startswith("REDIRECTED"))
+        flag = "" if len(got) >= 4 else "   (UNDER-POWERED, n<4, do not quote)"
+        print(f"  {c:>5.0f}ms: {red}/{len(got)} still REDIRECTED, {len(got) - red} NORMAL{flag}")
+    print(f"\nVoided: {voided if voided else 'none'}")
+    print("A cell that is mostly NORMAL means the reveal landed in time at that delay.")
+    print("The largest delay that is still mostly NORMAL is the budget the DLL has to hit.")
+    print("HONEST LIMIT: turns within one battle are pseudo-replicates (same map, same seats).")
+    print("Re-run on a second map before quoting any millisecond figure as a property of the game.")
+
+
+def cmd_unhide(slots) -> None:
+    """RESCUE VERB. Unconditionally clear band +0x47 bit 0x10 on the named seats (or every live
+    player seat with `--all`), read back, and report anything that refuses.
+
+    WHY THIS HAS TO EXIST SEPARATELY. `taunt` was hardened on 2026-07-22 to record whether a seat
+    was ALREADY invisible when it armed, and to leave such a seat alone on cleanup so it never
+    strips a status the game owns. That is correct for `taunt` and useless as a rescue: a unit
+    stranded invisible by a probe that died hard reads as "already invisible" to the next run and
+    gets deliberately skipped. And per status-layer-registry-model the bit does NOT decay, so
+    "it will wear off" is false. This verb is the deliberate override, which is exactly why it is
+    a separate verb you have to ask for by name rather than a flag on a verb you run for other
+    reasons.
+    """
+    _require_game()
+    units = {u[0]: u for u in _enumerate()}
+    targets = ([s for s in units if units[s][1] == "player"] if slots == "all"
+               else [s for s in slots if s in units])
+    if not targets:
+        print("no matching live seats -- run `list`.")
+        return
+    cleared = already = stuck = 0
+    for s in targets:
+        e = _band_entry_addr(s)
+        cur = ru8(e + A_INVIS_OFF)
+        if cur is None:
+            stuck += 1
+            print(f"  slot {s}: unreadable.")
+            continue
+        if not (cur & A_INVIS_MASK):
+            already += 1
+            continue
+        wu8(e + A_INVIS_OFF, cur & ~A_INVIS_MASK & 0xFF)
+        rb = ru8(e + A_INVIS_OFF)
+        if rb is None or (rb & A_INVIS_MASK):
+            stuck += 1
+            print(f"  slot {s}: CLEAR FAILED, still invisible.")
+        else:
+            cleared += 1
+            print(f"  slot {s}: cleared.")
+    print(f"unhide: {cleared} cleared, {already} already visible, {stuck} STUCK "
+          f"(of {len(targets)} checked).")
+
+
 def cmd_poke(slot, off, val, width) -> None:
     """Raw write primitive: band+off = val (width bytes), read-back, LEAVE it (no restore).
     Sanity check that our band addressing lands on REAL unit data -- poke a VISIBLE field
@@ -1139,6 +1566,52 @@ def main() -> None:
         flip_mod = not base_only
         flip_base = also_base or base_only
         cmd_teamflip([int(a, 0) for a in rest], flip_mod=flip_mod, flip_base=flip_base)
+        return
+
+    if args[0] == "turnwatch":
+        secs = float(args[1]) if len(args) > 1 else 90.0
+        cmd_turnwatch(secs)
+        return
+
+    if args[0] == "unhide":
+        rest = args[1:]
+        if not rest:
+            print("usage: unhide <slot> [slot ...]   |   unhide --all")
+            print("  Force-clears band+0x47 bit 0x10. The deliberate override for a unit stranded")
+            print("  invisible by a probe that died: `taunt` will NOT rescue it, by design.")
+            sys.exit(2)
+        cmd_unhide("all" if "--all" in rest else [int(x, 0) for x in rest])
+        return
+
+    if args[0] == "reveal":
+        # reveal <wielder_slot> [--delays a,b,c] [--per-cell N] [--tape FILE]
+        rest = args[1:]
+        delays, per_cell, tape = [0.0, 60.0, 125.0, 250.0, 500.0], 5, None
+        for flag, conv in (("--delays", None), ("--per-cell", int), ("--tape", str)):
+            if flag in rest:
+                k = rest.index(flag)
+                if k + 1 >= len(rest):
+                    print(f"{flag} needs a value")
+                    sys.exit(2)
+                val = rest[k + 1]
+                del rest[k:k + 2]
+                if flag == "--delays":
+                    delays = [float(x) for x in val.split(",") if x]
+                elif flag == "--per-cell":
+                    per_cell = int(val, 0)
+                else:
+                    tape = val
+        if len(rest) != 1:
+            print("usage: reveal <wielder_slot> [--delays 0,60,125,250,500] [--per-cell 5] [--tape FILE]")
+            print("  Keeps every player unit except <wielder_slot> hidden as the RESTING state,")
+            print("  then releases the hold N ms after each enemy turn opens and scores who was hurt.")
+            print("  A 'control' cell that never reveals is drawn from the same randomised pool and")
+            print("  is ENFORCED: if it does not come back mostly REDIRECTED, nothing is reported.")
+            sys.exit(2)
+        if per_cell < 1:
+            print("--per-cell must be >= 1")
+            sys.exit(2)
+        cmd_reveal(int(rest[0], 0), delays, per_cell, tape)
         return
 
     if args[0] == "teamscan":
