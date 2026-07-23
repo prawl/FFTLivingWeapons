@@ -70,6 +70,28 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-130] 2026-07-23: You can shout Provoke at your own teammate, and when you do, that teammate
+  is left wearing the Provoked status for the rest of the battle with no way to take it off.
+  Why it matters: the cursor lets you pick an ally, owner confirmed live 2026-07-23, so a player
+  will do it by accident. The shout itself does nothing to an ally, which is fine and matches how
+  this game lets you heal an enemy, but the leftover mark is not fine: the unit reads Provoked in
+  its status list forever, and shouting at that same ally again reads 0% because the game refuses a
+  status the unit already has. Worst case, still unmeasured, is that the mark reaches the save.
+  Why it happens: ProvokeHold only ever looks for an ENEMY wearing the mark (ProvokeHold.Scan.cs
+  FindMarkedEnemy filters on IsEnemySide), so an ally mark arms nothing; and the only code that
+  scrubs a mark is the release path, which scrubs the one enemy it armed on. The mark has Counter 0
+  so the engine never expires it either (docs/LIVE_LEDGER.md, the orphan-flag row).
+  Proposed fix, cheapest correct one: leave the cast legal and doing nothing, and have the runtime
+  scrub the mark off any PLAYER-side unit wearing it. It reuses the mask-scoped ClearMark that the
+  release path already uses (band +0x45 mask 0x80, never a whole-byte write, since that byte is
+  shared with Dead, Undead, Charging and Jump and KillTracker reads it) and one band walk the tick
+  already performs. No new mechanism and no new premise, so it rides /build-lite.
+  Considered and not chosen: restricting the ability to enemy targets through the action row's
+  targeting flags (+7..+10, still vanilla Embrace's). Cleaner fiction, but those flag bits are not
+  decoded and not live proven, and it would not remove the need for the scrub anyway.
+  Open question worth answering in the same pass: does a mark left on a player unit survive an
+  autosave into the save file. The AC already carries it as an open question for the enemy case.
+
 - [LW-129] 2026-07-22: When Provoke hides your units, they wear a visible invisible status icon over
   their heads, which tips off the player that the mod is doing something; suppress that icon so the
   trick stays hidden.
