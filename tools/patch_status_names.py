@@ -100,8 +100,16 @@ DEC_DIR = ENC_DIR / "verify_decode"
 PATCHES = {
     1: {
         "Name": "Provoked",
-        "Caption": "The unit has been goaded into a fury and sees nothing but the one who "
-                   "called it out.",
+        # House style, copied from the vanilla rows in this same table (Doom Key 40, Charmed Key 35,
+        # Reraise Key 19): one paragraph of "The unit <state>." plus its mechanical consequence, a
+        # blank line, then a removal clause. No "Wears off with time" because this status genuinely
+        # has no timer (Counter: 0), and the removal clause names the real release: the runtime
+        # clears the mark when the provoked unit's turn ends. Deliberately says NOTHING about rage
+        # or lost skills; that was Berserk prose from the abandoned design and the provoked unit
+        # keeps its entire skill set.
+        "Caption": "The unit has been called out, and its attention is fixed on the one who "
+                   "goaded it. It strikes at its provoker in preference to that unit's allies.\n\n"
+                   "Removed when the unit's turn ends, or when it is KO'd.",
         "Unknown14": 2,      # display category: 0 never renders; 1 = buff group, 2 = debuff group
         "Unknown20": 102,    # no sprite resolves for this Key in either category; kept as the best guess
     },
