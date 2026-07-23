@@ -10,6 +10,26 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.0 cycle
 
+- [LW-109] SHIPPED 3dccbf7 2026-07-23: a rider could permanently lose the Speed the mod lent them.
+  When a timed Speed loan ended, the mod checked that the Speed byte still held the value it had
+  lent before writing the original back. If the byte read anything unexpected it correctly wrote
+  nothing, but it also forgot the whole arrangement, so the rider's real Speed was never restored
+  and nothing would restore it for the rest of that battle. An unexpected reading now keeps the
+  note and retries next evaluation, matching how the ordinary bonus path has always behaved. The
+  distinction that needed a test to get right: a byte already reading the natural value is a
+  SUCCESS with nothing to put back, so it still clears the note; only a genuinely unexplained
+  reading retries. The per battle reset is the backstop. Found by desk review during the LW-100
+  evidence pass rather than in play, and it is verified by tests rather than by a live pass, since
+  contriving an unexpected reading on demand in a real battle is impractical.
+- [LW-110] SHIPPED 3dccbf7 2026-07-23: the mounted Speed lane now says what it did, so the next
+  question about it can be answered from the log instead of forensics. It used to log only its two
+  correction paths, which meant the absence of a line proved nothing, and that is exactly the trap
+  the 2026-07-21 live pass fell into: the answer had to be reconstructed from flight tapes. Capture,
+  boost, re-apply and revert each write one Debug line now, and each sits inside the branch that
+  performs the write, so a line appearing means a write really happened. This was recorded as
+  blocking a trustworthy LW-100 retest, and that block is now lifted. The lines themselves get
+  exercised the next time that retest runs; the file sink takes Debug unconditionally, so no
+  console setting is needed to capture them.
 - [LW-115] SHIPPED 4e3272a 2026-07-22: the Stop combo is a complete mechanic, not just a pose.
   Holding a unit's CT byte at zero denies it turns outright: the owner watched a benched unit's
   next turn never arrive and the unit vanish from the on screen turn order, then return normally

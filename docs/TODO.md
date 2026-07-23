@@ -29,9 +29,10 @@ the technical detail lives in the indented lines under it.
     change: the premise this ticket rests on is no longer unverified, because the same session
     caught the mod's own boosted value surviving a battle rebuild on the PA lane (read 27 against
     natural 21, exactly the 1.30 hold target) and the previous log caught it on the SPEED byte
-    itself (iai read 18 against natural 11). RE TEST RECIPE, in order: (1) land LW-110 first so
-    the mount lane actually says what it did, because today it logs nothing when it works and this
-    had to be reconstructed from flight tapes; (2) make the restart cross the 4 second debounce,
+    itself (iai read 18 against natural 11). RE TEST RECIPE, in order: (1) DONE 2026-07-23, commit
+    3dccbf7: the mount lane now logs its capture, boost, re-apply and revert, so a line appearing
+    means a write really happened and the absence of one is finally evidence. This step used to be
+    the blocker and no longer is; (2) make the restart cross the 4 second debounce,
     or lower ExitDebounceSeconds in a dev build, and CONFIRM a real battle-end plus battle-start
     pair in livingweapon.log before trusting the read; (3) then read Speed at the restarted open
     while on foot, BEFORE remounting. Only then the unit tests: a recorded leftover target is
@@ -399,24 +400,6 @@ the technical detail lives in the indented lines under it.
   board snapping back to spawn tiles (five units moved in one 4ms tick) as a restart edge, or key
   the reset on a battle identity rather than a wall clock gap. Do NOT just shorten the debounce
   without re-checking the LW-42 post battle marker stick that the 4 seconds exists to absorb.
-- [LW-109] 2026-07-21: When a timed stat bonus ends, one unexpected reading throws the bonus away
-  for the rest of the battle with no way back.
-  GrowthEngine.TimedStat.cs's window-closed branch removes the record unconditionally, including
-  when the revert write was skipped because the byte read neither the boosted nor the baked value.
-  With a clean capture no corrective sentinel is armed (that arm is gated on a baked residue), so
-  the bonus is abandoned silently. Asymmetric with the ordinary Hold path, which keeps its record
-  and can re-apply. Found by desk review during the LW-100 evidence pass, not observed live.
-- [LW-110] 2026-07-21: The mounted Speed bonus never says anything in the log when it works, which
-  is why a simple question about it needed a forensic pass over flight tapes to answer.
-  HoldTimedStat logs only its two correction paths; the capture, the boost write, the re-apply and
-  the revert are all silent at every level, and growth is not tapped by the flight recorder at
-  all. Consequence: absence of a log line proves nothing about this lane, which is exactly the
-  trap the LW-100 pass fell into. Add a Debug line at capture, boost and revert (file sink gets
-  everything, so console noise is not a concern), and consider tapping stat holds in the recorder.
-  Blocks a trustworthy LW-100 re test. Related trap for triagers: GrowthEngine.cs and
-  GrowthEngine.TimedStat.cs emit nearly identical "restart residue corrected at capture" strings,
-  distinguishable only by the lane token the first one carries, so grepping that phrase can look
-  like every lane was checked when only one was.
 - [LW-111] 2026-07-21: Stepping off a chocobo mid turn keeps the Speed bonus until the turn ends,
   and the item text promises it drops immediately.
   Owner observed it live 2026-07-21 (step 5 of the LW-100 pass): dismounting and moving away held
