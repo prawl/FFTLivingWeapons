@@ -16,7 +16,10 @@ reacts to the turn starting lands too late. Clean single-enemy slice is DEFERRED
 LOOKAHEAD (LW-118). Below, wherever a criterion says "SLICE is the shipped default," read it as the
 DEFERRED goal; WINDOW is what ships. Polish A (2026-07-22) moved the release detection onto the proven
 actor pointer so WINDOW releases promptly when the provoked foe's turn ends. Arc 2b (the data
-plumbing that arms the real granted command) is still deferred, so the command ships inert.
+plumbing that arms the real granted command) SHIPPED 2026-07-22 (commit 3565363): id 33 carries the
+signature, so a grown Defender grants a working Provoke command. The job-global leak that arming
+exposes (criterion 0e) is RESOLVED met-by-observation 2026-07-23: the enemy AI does not cast a
+zero-value command, so no usable-by-AI clear ships. See 0e.
 
 ## One line
 
@@ -173,11 +176,23 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
    tier was the entire worry, and it is NOT enough to assert the engine's immunity system could
    never carry this bit. So the item card needs no exception, and no prose here may go further.
    The supporting ledger row stays Uncertain until the owner flips it.
-0e. The command is job-global: units of the same job, INCLUDING ENEMIES, would inherit it. This is
-   NOT accepted for v1 (owner call 2026-07-22). It is fixed in arc 2b by clearing the ability's
-   usable-by-AI bit so enemy Knights keep the command greyed even though the job lists it; that fix
-   is mapped but untested and gets its own live-verify. Until arc 2b the command is inert (no weapon
-   carries it), so nothing leaks in the meantime.
+0e. The command is job-global: units of the same job, INCLUDING ENEMIES, inherit it. RESOLVED
+   met-by-observation, owner live 2026-07-23: an enemy Knight carrying Provoke as a LEARNED command,
+   with its usable-by-AI bit SET, never cast it across many turns of a real battle. Provoke applies a
+   zero-value inert mark (0 damage, no effect the AI scores), and the enemy AI picks abilities by
+   utility, so a do-nothing ability scores about zero and is never chosen. The leak is that enemies
+   HOLD the command, not that they USE it, and holding an unused command has no player-visible effect.
+   The worst case even if it ever fired is harmless: an enemy casting Provoke on a player unit only
+   hangs the inert mark on that unit, and the hold engine reacts solely to an ENEMY wearing the mark,
+   so nothing triggers. The mapped suppressor (clear the usable-by-AI bit: COMMON-data byte +7 mask
+   0x80 at 0x14078856F, confirmed a real flag field, 401 of 512 rows set, single copy, no decoy twin,
+   via `tools/probes/ability_grant_probe.py aiflag`) is therefore NOT shipped: it is a per-battle
+   write whose behavioural effect cannot be demonstrated, because there is no baseline where the AI
+   casts Provoke for the clear to suppress, and an unproven write to the ability tables is the exact
+   surface that has bitten this repo before. CAVEAT kept honest: this is one enemy on one job, not
+   exhaustive across boss AI; and if Provoke is ever given a real AI-attractive effect the leak could
+   wake, at which point the mapped clear is ready to wire. Supporting ledger row: docs/LIVE_LEDGER.md
+   dated 2026-07-23, owner PROVEN flip pending.
 0f. The ability's own description says what the ability does. IT DOES NOT TODAY, and the wrong text
    is already committed: `tools/patch_ability_names.py` Key 189 ships "Goad a distant foe into a
    blind rage. It forgets its skills and charges, seeing only the one who called it out." That is
