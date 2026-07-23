@@ -84,6 +84,31 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-131] 2026-07-23: Provoke keeps hanging on for its full thirty second safety timer even when
+  the enemy you shouted at HAS taken its turn, so the shout runs far longer than it should and
+  every enemy acting in that window gets pulled onto the bearer.
+  Why it matters: the shout is supposed to let go the moment the goaded enemy finishes its turn.
+  The safety timer is a backstop for a release we failed to notice, and it firing means a real bug,
+  which is why it logs as a warning. The handoff assumed the enemy simply never got a turn in
+  thirty seconds. The tape says otherwise, so the assumption in that note is wrong and should not
+  be carried forward.
+  Evidence, and it is unambiguous: flight tape flight_20260723_003332_battle-exit.jsonl. The mod
+  armed on nameId 623 at -66.640s. The engine actor pointer then named 623 as the acting unit at
+  -48.984s and released it at -47.234s, and did the same again at -40.609s to -37.078s. Two clean
+  rising and falling edges, both inside the hold, and the turn counter never moved. The watchdog
+  fired at -35.828s, about 3 seconds before that enemy took yet another turn.
+  Candidate causes, best first. (1) The enemy turn gate: TickArmed computes markedActive as
+  TurnQueue +0x02 team equals 1 AND the actor pointer matching the marked identity. There is a
+  standing memory (condensed-struct-follows-hover) saying that condensed struct describes the unit
+  under the CURSOR rather than the turn owner, which flatly contradicts the Proven LIVE_LEDGER row
+  dated 2026-06-16 that this code cites for the team read. One of the two is wrong and finding out
+  which is the first job. (2) The identity match in MarkedIsActor drifting from the tuple captured
+  at arm. Do not simply delete the team gate: it is there because the actor pointer PARKS on struck
+  victims, so without it a marked enemy that merely gets hit during your own turn would count as
+  having taken a turn.
+  Note for whoever picks this up: LW-127 (the single enemy slice) is gated on the same turn
+  detection question, so answering this answers part of that too.
+
 - [LW-129] 2026-07-22: When Provoke hides your units, they wear a visible invisible status icon over
   their heads, which tips off the player that the mod is doing something; suppress that icon so the
   trick stays hidden.
