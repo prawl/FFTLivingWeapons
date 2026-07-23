@@ -161,8 +161,19 @@ the technical detail lives in the indented lines under it.
   Why it matters: that bubble is the game's own callout for the ability, Embrace's vanilla quote
   slot gone blank after we renamed and repointed the ability, and it fires exactly on cast, so it is
   free thematic flavour going to waste. Owner asked for a jeer in there 2026-07-22.
-  State: the mechanism is a Proven ledger row (a callout bubble carries mod supplied text via the
-  show flag hijack: poll the callout text holder show flag, inject our line on the rising edge).
+  State, CORRECTED 2026-07-23: this ticket previously said the mechanism rests on a Proven ledger
+  row. IT DOES NOT, and the correction matters more than the feature, because acting on the old
+  wording would have meant building on a premise nobody has signed off. Both callout rows in
+  docs/LIVE_LEDGER.md (the show flag hijack, and the injected call with piggyback timing) sit in the
+  UNCERTAIN section, dated 2026-07-02. They are strong: the owner eyewitnessed custom text rendering
+  on screen twice, and roughly ten in process call runs went by without a crash. They are still not
+  a Proven row, and only the owner moves one.
+  What that costs: this is a full build arc with its own live premise proof, not a small change
+  riding an established mechanism. The evidence is also OLDER THAN THE 1.5.1 RE-ANCHOR, and the
+  addresses involved (a 0x436B07D058 holder, an in process call to 0x14028F720) were never
+  re-verified after it, so step one is simply reading whether that holder still validates on this
+  build. The spike that proved it (ShowSpike) was DELETED from the tree by LW-67, so the code has to
+  be written again rather than revived, and commit b6a1ffe is where the original lives.
   Candidate lines drafted (Eyes on me curs / Come break upon my shield / Your mother swung truer);
   consider rotating a few at random. Polish; rides after the core arc and the usable by AI fix.
 
