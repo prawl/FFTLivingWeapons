@@ -118,6 +118,16 @@ the technical detail lives in the indented lines under it.
   measured PRE-1.5 at 0x14077D2A2, and the 1.5 re-anchor comment in Offsets.cs records confirming
   team equals 0 only, so team equals 1 during an enemy turn has never been re-confirmed on this
   build at all.
+  CORROBORATION FOUND THE SAME PASS, and it is close to decisive. The sibling FFTHandsFree repo's
+  own BATTLE_COORDINATES note (that repo's docs folder, not this one) describes this exact struct
+  as showing the unit under the cursor
+  and says in as many words that the +0x02 team field is the HOVERED unit's team, going stale on an
+  empty tile. The same note carries the mechanism that would explain this bug exactly: during an
+  enemy's action the AI cursor sits on the PLAYER unit it is targeting, so the team field reads 0
+  for the player, the enemy turn gate goes false, and the goaded enemy's turn is never counted. That
+  is not proof on this build and it is not an owner flip, but it means the 2026-06-16 row and a
+  sibling repo's documentation now flatly disagree, and the row is the one whose evidence has the
+  hole in it.
   The discriminating probe is about a minute of play and settles both at once: during an ENEMY
   unit's turn, move the cursor onto one of YOUR units and read TurnQueue +0x02. Reads 1, the field
   is the turn owner and the Proven row survives (look elsewhere, and suspect the actor pointer
