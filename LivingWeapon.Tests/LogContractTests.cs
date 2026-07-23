@@ -249,7 +249,7 @@ public class LogContractTests
     /// BodyDoubleSpike remain.)</summary>
     private static readonly HashSet<string> FenceExemptDevFiles = new(StringComparer.OrdinalIgnoreCase)
     {
-        "TurnOwnerSpike.cs", "StatusSpike.cs", "BodyDoubleSpike.cs",
+        "TurnOwnerSpike.cs", "StatusSpike.cs", "BodyDoubleSpike.cs", "ProvokeSpike.cs",
     };
 
     private static readonly Regex LeaderPrefixRegex = new(@"^[A-Za-z][A-Za-z-]*:", RegexOptions.Compiled);

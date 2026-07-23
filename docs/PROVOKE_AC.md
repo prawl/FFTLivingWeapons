@@ -6,24 +6,37 @@ Approved 2026-07-22. Design source: `docs/living_weapon_grid.csv` row 34 (Defend
 Post-release feature: it does not gate 2.3.1 (`docs/RELEASE_SCOPE.md`, locked "no new features").
 Work ledger id: LW-123.
 
+**SHIPPED STATUS (arc 2a, live 2026-07-22).** The FUNNEL PREMISE IS PROVEN (owner-verified through
+the mod: hiding every player unit except the bearer makes the enemy AI target the bearer;
+docs/LIVE_LEDGER.md Proven row). The runtime SHIPS IN **WINDOW** MODE (`Tuning.ProvokeSliceMode =
+false`): it hides for the WHOLE enemy phase, so units are hidden before any enemy commits a target.
+SLICE (hide only during the provoked enemy's own turn, the clean single-enemy facade) was tried live
+and LOSES THE TURN-START RACE: the AI commits its target the instant its turn opens, so a hide that
+reacts to the turn starting lands too late. Clean single-enemy slice is DEFERRED and needs turn-queue
+LOOKAHEAD (LW-118). Below, wherever a criterion says "SLICE is the shipped default," read it as the
+DEFERRED goal; WINDOW is what ships. Polish A (2026-07-22) moved the release detection onto the proven
+actor pointer so WINDOW releases promptly when the provoked foe's turn ends. Arc 2b (the data
+plumbing that arms the real granted command) is still deferred, so the command ships inert.
+
 ## One line
 
 The Defender lets its bearer shout down one enemy: point at any foe, and until that foe has taken
-its turn, the enemies who act cannot see anyone on your side except the bearer, who has the game's
-best parry to survive what it just invited.
+its turn, that foe attacks the bearer instead of your other units, whom the bearer shields by
+carrying the game's best parry to survive what it just invited.
 
 ## What the player does
 
 1. Equip a Defender that has earned its third tier. Its bearer gains a command called **Provoke**.
 2. Use it and pick any enemy on the field. That is the bearer's action for the turn.
-3. From that moment until the provoked enemy finishes its next turn, any enemy taking a turn
-   attacks the bearer instead of your other units.
+3. From that moment until the provoked enemy finishes its next turn, THAT enemy attacks the bearer
+   instead of your other units. Other enemies acting in between behave normally.
 4. It ends. Everyone fights normally again.
 
-The turn order is on screen, so the player picks the price. Provoke the unit at the top of the
-queue and exactly one enemy is redirected. Provoke a unit four places down and every enemy in
-between is redirected too, because the shout is up the whole time. That is a tactical choice the
-player makes with full information, not a limitation being hidden from them.
+Under the shipped WINDOW mode, every enemy that acts until the provoked foe's turn ends is redirected
+onto the bearer, so provoking a foe further down the queue pulls the ones ahead of it too. The turn
+order is on screen, so that is a visible tactical price the player reads with full information, not a
+hidden limitation. The clean single-enemy version (only the foe you point at, wherever it sits) is
+the DEFERRED slice goal, which lost the turn-start race live.
 
 ## How it works, plainly
 
@@ -42,11 +55,14 @@ EXPIRES, so nothing in the engine will tidy up after it; and it CANNOT BE RE-APP
 so a recast on an already provoked unit reads 0%. Together those mean the runtime clearing the mark
 is not hygiene, it is what makes the ability usable more than once on the same enemy in a battle.
 
-**The hold decides who they can see.** While the mark is up, the runtime flags every other unit on
-your side with the engine's own "cannot be seen" status, leaving the bearer as the only name on the
-enemy's target list. This half is subtractive because it has to be: there is no aggro in this game.
-A PSX dig closed that question, enemy targeting is computed tile scoring with no holdable focus
-field, so the only lever on who the AI attacks is whether a unit can be targeted at all.
+**The hold decides who they can see.** While the mark is up and an enemy holds the turn (WINDOW, the
+shipped mode), the runtime flags every other unit on your side with the engine's own "cannot be seen"
+status, leaving the bearer as the only name on the acting enemy's target list; the flags stay up
+across the whole enemy phase, so units are hidden before any enemy commits a target. This half is
+subtractive because it has to be: there is no aggro in this game. A PSX dig closed that question,
+enemy targeting is computed tile scoring with no holdable focus field, so the only lever on who the
+AI attacks is whether a unit can be targeted at all. (The deferred SLICE mode would hide only during
+the provoked enemy's own turn, but it loses the turn-start race; see the acceptance criteria.)
 
 REJECTED, and recorded so the reasoning is not relitigated. **Berserk** was the first choice and is
 the better fiction (the engine genuinely enrages the unit for free), but 25 of 173 jobs resist it,
@@ -122,9 +138,12 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
   provoked enemy may touch that layer, because clearing residue is the opposite operation from
   planting a durable flag. The exception is for clearing only, for the mark's bit only, and it is
   always a mask-scoped read-modify-write.
-- NO reveal-timing dependency. Nothing in this arc needs to arm inside the gap between two turns, so
-  no unmeasured timing number appears anywhere in it.
-- NO per-enemy time-slicing in v1 (see Deferred).
+- Reveal-timing: SLICE (the default) does depend on the hide landing at the provoked enemy's
+  turn-start before its AI commits a target. That is a variable MEASURED at the live pass, not an
+  unmeasured number baked into the code, and the WINDOW fallback (which cannot lose the race) is the
+  safety net if the measurement goes against us. The v2 hardening is turn-queue LOOKAHEAD.
+- Per-enemy time-slicing IS in v1 (the slice default, criterion 4): the hide fires only during the
+  provoked enemy's own turn. Only the lookahead half remains v2 (see Deferred).
 - NO stat change to the Defender's static profile. Its numbers stay as `data/items.json` id 33 has
   them. CORRECTED 2026-07-22: this document previously asserted the item is already gate-exempt as a
   living weapon, and it is not. Only id 32 carries the `livingWeapon` flag; id 33 has no flag and no
@@ -154,8 +173,11 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
    tier was the entire worry, and it is NOT enough to assert the engine's immunity system could
    never carry this bit. So the item card needs no exception, and no prose here may go further.
    The supporting ledger row stays Uncertain until the owner flips it.
-0e. The command is job-global: units of the same job, INCLUDING ENEMIES, inherit it. Accepted for
-   v1, same as Sanguine Sword's shipped leak, and called out on the card.
+0e. The command is job-global: units of the same job, INCLUDING ENEMIES, would inherit it. This is
+   NOT accepted for v1 (owner call 2026-07-22). It is fixed in arc 2b by clearing the ability's
+   usable-by-AI bit so enemy Knights keep the command greyed even though the job lists it; that fix
+   is mapped but untested and gets its own live-verify. Until arc 2b the command is inert (no weapon
+   carries it), so nothing leaks in the meantime.
 0f. The ability's own description says what the ability does. IT DOES NOT TODAY, and the wrong text
    is already committed: `tools/patch_ability_names.py` Key 189 ships "Goad a distant foe into a
    blind rage. It forgets its skills and charges, seeing only the one who called it out." That is
@@ -176,7 +198,11 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 2. The hold arms on the cast, during the bearer's own turn, and is up continuously from that instant
    until it releases. There is no timing window to hit.
 3. The hold releases on the FIRST of: the provoked enemy's turn ends; the provoked enemy dies; the
-   bearer dies; the bearer no longer holds a Defender in its main hand; the battle ends.
+   provoked enemy can no longer carry out its provoked turn because it is Petrified, Confused,
+   Stopped, Charmed, Slept, or set to Don't-Act (status ids 8/11/30/34/35/37, read on its composed
+   layer); the bearer dies; the bearer no longer holds a Defender in its main hand; the battle ends.
+   NOTE: a provoked enemy that is instead mind-controlled by Puppeteer's agency bits (not the Charm
+   status) is not caught by this list and is left to the watchdog; closing that gap is LW-126.
 3b. Releasing the hold CLEARS THE MARK off the provoked enemy, so the same enemy can be provoked
    again later in the battle. Owner design decision, 2026-07-22. The composed bit (`+0x45` mask
    `0x80`) is the half that does the work: it is what the engine's already-has-it refusal reads, and
@@ -188,11 +214,19 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 
 **Who is flagged**
 
-4. While the hold is up AND an enemy holds the turn, every valid, on-field, player-side band entry
+4. While the PROVOKED enemy is taking its turn, every valid, on-field, player-side band entry
    except the bearer carries the Invisible bit, re-stamped each tick so splash damage cannot strip
-   it for the rest of the turn.
-5. While the hold is up and a PLAYER or ALLY holds the turn, no unit is flagged by Provoke. Your own
-   units are normally targetable on your own turns, so healing and buffing behave as usual.
+   it for the rest of the turn. NOTE: this criterion describes SLICE mode
+   (`Tuning.ProvokeSliceMode = true`), which is DEFERRED (WINDOW ships; see the shipped-status note).
+   Under the deferred slice only the goaded enemy is redirected, so the fiction "I called out THAT
+   one" holds. A WINDOW
+   fallback (`ProvokeSliceMode=false`) instead flags during any enemy's turn, redirecting every
+   enemy that acts while the hold is up; it exists because it cannot lose the turn-start timing race
+   slice trades in (see Live verification and Deferred).
+5. On the player's own turns, on an ally's turn, and on any NON-provoked enemy's turn, no unit is
+   flagged by Provoke: under slice we only hide during the provoked enemy's own turn. Your own units
+   are normally targetable on your own turns, so healing and buffing behave as usual, and it is
+   CONFIRMED live 2026-07-22 that a flagged ally can still be targeted anyway.
 6. Side membership is read from the friend/foe bit, so guests are hidden alongside the party. That
    byte is never written.
 7. Seats reading combat `+0x01` == `0xFF` are skipped. The engine parks staged cutscene units in
@@ -210,7 +244,10 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
     the same byte is never disturbed in either direction.
 12. On the battle-exit edge, every seat Provoke ever flagged is cleared.
 13. On the battle-ENTER edge, the same sweep runs before anything else, so a hold stranded by a
-    crash, a hard process kill, or a mid-hold reload does not survive into the next battle.
+    mid-hold reload or a fast battle restart, where our tracked seats survive in-process, does not
+    survive into the next battle. A hard PROCESS kill loses the tracked seats with the process, but
+    that case is covered instead by the engine constructing fresh units at the next battle, so no
+    stranded flag reaches it either way.
 14. A watchdog releases the hold if it has been up longer than a plausible single turn (initial
     value: 30 seconds of live battle time, in `Tuning.cs`). This exists because the flag never
     expires on its own; it is a backstop for a release condition we failed to observe, and firing it
@@ -227,10 +264,18 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 
 **Accepted costs, stated so they are not read as defects**
 
-18. Flagged units visibly wear a status icon for the duration. They do not turn transparent, because
-    a raw composed bit renders the icon and performs no visible effect. Accepted for v1.
-19. Enemies that act between the cast and the provoked enemy's turn are also redirected. This is the
-    design, not a leak (see What the player does).
+18. Flagged units would visibly wear a status icon, because the AI-ignore flag and its icon are the
+    SAME bit: a raw composed bit renders the icon and performs no visible effect, so the unit never
+    turns transparent. We SUPPRESS that over-head UI so the trick stays hidden, but the lever is a
+    global toggle on a DYNAMIC address (`0x436A367BF8`) whose launch stability, and whether it hides
+    the status ICON versus only the HP bar, are unconfirmed, so it is gated on an owner-run probe.
+    Until that probe passes, a build is allowed to show the icon and that is not a failure of the
+    hold. Hiding the reddened HP bar of a flagged ally stays deferred polish.
+19. Under the SHIPPED WINDOW mode, every enemy that acts while the hold is up is redirected onto the
+    bearer, not just the provoked one. This is the accepted v1 behaviour: the funnel is proven, and
+    SLICE (which would redirect only the provoked enemy) lost the turn-start race live and is deferred
+    with lookahead. Polish A's prompt release keeps the window tight, so provoking the next-to-act
+    enemy still reads as a clean single redirect.
 
 ## Live verification (pre-registered)
 
@@ -242,38 +287,54 @@ Environment variables do not survive this game's launch chain, so they are not a
 tier 3. Formation matters less than it did for the reveal experiment, but the bearer should not be
 the closest unit to the enemy, so that a redirect is visibly a redirect.
 
+**Arming (DEV).** Hover the target enemy and press F6, or drop `provoke_request.txt` into the mod
+directory; the dev planter writes the id-0 mark on that enemy and the production hold polls for it.
+
 **Bait step (makes a clean result meaningful).** Run one enemy turn with no hold and record who each
 enemy attacks. Without this, a bearer who was going to be attacked anyway proves nothing.
 
-**PASS.** With the hold armed, enemies taking turns attack the bearer, including from positions
-where a different unit is closer. On release, the next enemy turn goes back to attacking whoever it
-prefers. No unit carries the status icon after the release, after the battle ends, or at the start
-of the next battle.
+**PASS (slice).** With the hold armed, the PROVOKED enemy attacks the bearer on its turn, including
+from a position where a different unit is closer; enemies that act BEFORE it attack whoever they
+prefer, so only the goaded one is redirected. On the provoked enemy's release the field returns to
+normal. No unit carries the status icon after release, after the battle ends, or at the start of the
+next battle, subject to the icon-suppression probe below (until that lever is proven, a lingering
+icon is not a failure of the hold).
 
 **Failure signatures and what each means.**
-- Enemies still attack other units with the hold up: the flag is not landing (check the log for
-  refused writes) or the funnel does not hold for this enemy composition, which contradicts the
-  premise row and stops the arc.
-- Enemies attack the bearer but a unit stays flagged after release: the release path is incomplete.
-  Capture the log and the flight tape before doing anything else.
+- The provoked enemy attacks someone else at its turn-start (a closer visible ally): the AI latched
+  its target before our turn-start hide landed, so the slice race is lost. Flip
+  `Tuning.ProvokeSliceMode` to false (WINDOW) for the ship and add turn-queue lookahead.
+- EVERY enemy in the window redirects, not just the provoked one: you are seeing WINDOW behaviour;
+  confirm `ProvokeSliceMode` is true.
+- The hold never fires at all (no units hidden): the marked enemy's own turn flag is not reading 1
+  for an enemy; fall back to the actor-pointer identity signal.
+- The provoked enemy attacks the bearer but a unit stays flagged after release: the release path is
+  incomplete. Capture the log and the flight tape before doing anything else.
 - A unit is flagged at the start of the next battle: the enter sweep did not run.
 - The watchdog line appears: a release condition was missed. The tape names which.
+
+**Also run the icon-suppression probe in this pass.** With a unit wearing our flag, test whether the
+global overhead-UI toggle hides the status ICON (not just the HP bar) and whether its dynamic
+address is stable launch to launch. The result decides whether criterion 18's suppression ships
+surgically, ships bluntly (all overhead UI off during the provoked turn), or is deferred.
 
 Status stays AWAITING-LIVE until the owner runs this. Only the owner flips it.
 
 ## Deferred to v2
 
-- **Per-enemy time-slicing**: arming at the start of the provoked enemy's turn only, so intervening
-  enemies are never redirected. Needs the reveal-deadline measurement (whether the AI latches its
-  target at turn open) and turn-queue lookahead, and it is a strict upgrade to this contract rather
-  than a change to it.
+- **Turn-queue LOOKAHEAD**: pre-hiding just before the provoked enemy's turn opens, so the hide is
+  guaranteed up before the AI commits even if it latches its target at turn-open. Per-enemy
+  time-slicing itself SHIPPED in v1 (the slice default, criterion 4); lookahead is the hardening
+  that only matters if the live pass shows the turn-start race is lost, and until then the WINDOW
+  fallback is the safety net.
 - Hiding the reddened HP bar a flagged ally shows, and suppressing the status icon.
 - A per-battle use cap, if uncapped play proves degenerate.
 
 ## Open questions (do not block this arc)
 
-- Can the player still select and target their own units while flagged? Not exercised. Criterion 5
-  makes it moot in v1 by never flagging during your own turns, but the answer is needed before any
-  design that holds the flag across a player turn.
+- Can the player still select and target their own units while flagged? ANSWERED live 2026-07-22:
+  yes, a flagged ally can be targeted normally. Criterion 5 makes it moot in v1 anyway (slice never
+  flags during your own turns), but the confirmed answer means a future continuous-hide design would
+  not break healing.
 - Do caster and archer enemies funnel the same way? The premise row observed melee only.
 - Does a mid-hold autosave persist the composed bit into the save?

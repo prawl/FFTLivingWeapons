@@ -70,6 +70,34 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-127] 2026-07-22: Provoke ships redirecting EVERY enemy that acts while the shout is up (window
+  mode), not just the one you point at; the clean single-enemy version needs the game's turn order
+  read so the mod can hide the party just before that one foe acts.
+  Why it matters: the owner wanted only the provoked enemy redirected, but the slice approach (hide
+  only during that foe's own turn) loses the turn-start race live. The AI picks its target the
+  instant its turn opens, so a hide that reacts to the turn starting lands too late (flight tape
+  2026-07-22: the marked enemy moved on the same tick it became the actor). Window mode (hide the
+  whole enemy phase) avoids the race but pulls every acting enemy onto the bearer.
+  State: Tuning.ProvokeSliceMode is the switch (ships false = window). The fix is turn-queue
+  lookahead: read the turn order (LW-118), detect the provoked enemy is next, and pre-hide in the
+  gap before its turn opens. Gated on LW-118 proving the turn queue is readable. Polish A already
+  moved the turn detection onto the proven actor pointer, so the release half is done.
+
+- [LW-126] 2026-07-22: When an enemy you shouted at with Provoke gets mind-controlled onto your
+  side by Galewind's Puppeteer, the shout does not notice the takeover and hangs on until a
+  failsafe fires; it should recognise the takeover and let go right away.
+  Why it matters: a Puppeteered enemy is now driven by the player, so it never takes the AI turn
+  Provoke is waiting on. In the shipping slice mode this is harmless, since a takeover means that
+  enemy is never the acting AI unit and nobody is hidden for it, and the thirty-second watchdog
+  clears the stranded armed state on its own; but a direct release is tidier and becomes REQUIRED
+  if the window fallback mode is ever the shipped one.
+  State: LW-123's disabling-status release catches engine Charm (status id 34), but Puppeteer
+  dominates through the agency bits (combat +0x05 and its shadow +0x1EE), not the Charm status, so
+  a domination slips past. The agency read mask is a LIVE_LEDGER Uncertain row (inferred from
+  scouting Dicene's fftivc.unitcontrol, never live-proven as a readable signal), so this is gated
+  on proving that mask first; once proven, add the agency bit to Provoke's disabling check (Tuning
+  holds the id/mask set). The same case is a watch item on the LW-123 live pass.
+
 - [LW-125] 2026-07-22: Three weapons now grant a command to their wielder, and all three do it with
   the same hundred and thirty lines copied out three times. The next one makes it four.
   Why it matters: the duplicated part is not the interesting part. It is the roster walk that finds

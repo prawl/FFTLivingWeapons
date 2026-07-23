@@ -62,7 +62,8 @@ internal static class Offsets
     //     roster nameId 1, which mis-credited everyone's kills to Ramza. Do not resolve by it. ---
     public const long TurnQueue = 0x1407832A0;   // 1.5 CONFIRMED +0x6000 (was 0x14077D2A0): fingerprint team=0/nameId=1/hp=486/486
     public const int TqLevel = 0x00;   // u16
-    public const int TqTeam  = 0x02;   // u16  0 = player, 1 = enemy
+    public const int TqTeam  = 0x02;   // u16  0 = player, 1 = enemy, 2 = ally/guest (corroborated
+                                       //      KillTracker.Corpses.cs:233 + docs/research/PORT_1.5.md)
     public const int TqNameId = 0x04;  // u16  SEQUENTIAL battle index (NOT roster nameId -- a trap)
     public const int TqHp    = 0x0C;   // u16  active unit's current HP (fingerprint key)
     public const int TqMaxHp = 0x10;   // u16  active unit's MaxHP (fingerprint key)
@@ -418,4 +419,21 @@ internal static class Offsets
     // in the runtime ever writes it, so it is a policy-level safety constant, not a write anchor.
     public const long LiveActionTable = 0x14078B2DC;   // 368 rows x 20 bytes; the copy the engine and UI both read
     public const long InflictTable = 0x14080FBA0;      // 128 rows x 6 bytes, [mode][s0..s4], mode byte FIRST
+
+    // --- Provoke hold (LW-123 arc 2a): side membership + the ghost-seat gate, BOTH READ-ONLY -- the
+    // hold never writes either byte, only reads them to decide who counts as an on-field enemy/ally. ---
+    /// <summary>u8 band-relative friend/foe byte (= combat +0x1EE). Bit <see cref="AFriendFoeEnemyBit"/>
+    /// set = enemy, clear = ally. GUEST-COMPLETE: the guardian probe (live 2026-07-22) read this bit
+    /// clear on all 6 player-side seats including 5 guests, none of them in the "classic party" seat
+    /// range -- so side membership must be read from this bit, never inferred from seat position.</summary>
+    public const int AFriendFoe = 0x1D2;
+    public const byte AFriendFoeEnemyBit = 0x10;
+
+    /// <summary>u8 band-relative on-field gate (= combat +0x01). Reads <see cref="AGateHiddenValue"/>
+    /// on a ghost/cutscene seat that <see cref="Band.IsValid"/> alone does not catch (the hide/reveal
+    /// PROVEN row + the guardian probe, both live 2026-07-22). The hold skips any seat reading this
+    /// value before ever touching it -- Band.IsValid runs first, so a fail-safe-0 gate read on an
+    /// already-garbage seat is rejected before this check is even reached.</summary>
+    public const int AGateByte = -0x1B;   // band entry - 0x1B == combat +0x01
+    public const byte AGateHiddenValue = 0xFF;
 }

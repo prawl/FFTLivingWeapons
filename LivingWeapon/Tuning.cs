@@ -392,4 +392,45 @@ internal static class Tuning
     /// nearly any foe -- a unit at 98-100 is unbeatably brave but Kobu won't fully match
     /// it (acceptable: the blade is never fully "bought" by one ultra-brave target).</summary>
     public const int KobuBraveCap = 97;
+
+    // -- Provoke hold (LW-123 arc 2a): docs/PROVOKE_AC.md / the arc 2a plan's "Locked design
+    //    decisions". Arc 1 (Provoke.cs) plants the mark; this knob set tunes the hold that reads it. --
+
+    /// <summary>Hide mode (decision 3, owner pivot 2026-07-22): true = SLICE, the clean facade -- hide
+    /// every player-side-but-bearer unit iff the PROVOKED enemy is the unit whose turn it is right now
+    /// (so only the goaded enemy's own turn is affected). false = WINDOW, the guaranteed-no-race
+    /// fallback that hides for ANY enemy's turn while the hold is armed. Ships SLICE; the Phase 5 live
+    /// pass measures whether the turn-start hide beats the AI's target commit -- WINDOW is the fallback
+    /// if it does not. LIVE 2026-07-22: it does NOT. The flight tape showed enemies commit their target
+    /// the instant their turn opens (the marked enemy moved on the SAME tick it became the actor), so
+    /// the slice turn-start hide lands ~33ms too late and loses the race. Set to WINDOW to (1) confirm
+    /// the funnel premise live and (2) give a working provoke, pending the clean-slice fix (turn
+    /// detection now rides the proven actor pointer, not the flaky enemy ATurnFlag -- see
+    /// ProvokeHold.MarkedIsActor; still pending: turn-queue lookahead so the single-enemy facade hides
+    /// BEFORE the provoked enemy's turn opens).</summary>
+    public const bool ProvokeSliceMode = false;
+
+    /// <summary>Provoke hold: the marked enemy's own completed turns (the falling edge of the
+    /// actor-pointer identity match gated on an enemy turn, decision 10 -- see
+    /// ProvokeHold.MarkedIsActor; never the TurnQueue stat-fingerprint, which collides on identical
+    /// enemies) before the hold releases as EnemyTurnDone. AC 1b's target is 3; v1 ships 1.</summary>
+    public const int ProvokeTurns = 1;
+
+    /// <summary>Provoke hold: LIVE battle-time safety cap (decision 11 -- accrued only on ticks where
+    /// Offsets.PauseFlag reads unpaused, so a long menu/deliberation never burns down the clock) before
+    /// an armed-but-stuck hold force-releases as a Watchdog.</summary>
+    public const double ProvokeWatchdogSeconds = 30.0;
+
+    /// <summary>Provoke hold: consecutive ticks the marked enemy may fail to re-locate (a transient
+    /// band-scan miss -- an unreadable frame for a tick, say) before the hold concludes it is genuinely
+    /// gone (EnemyGone) and releases. One missed tick alone must never release the hold.</summary>
+    public const int ProvokeMarkedMissTicks = 3;
+
+    /// <summary>Provoke hold (R2, owner round-2 feedback): status ids that mean the provoked enemy can
+    /// no longer carry out its provoked turn, so the hold releases rather than linger to the watchdog.
+    /// Petrify=8, Confuse=11, Stop=30, Charm=34, Sleep=35, DontAct=37 -- Death is already EnemyDead;
+    /// Frog/Berserk/Blind/Slow/DontMove/DeathSentence are deliberately EXCLUDED because the disabled
+    /// unit still attacks the only visible target (the bearer), so the provoke still lands. Read on the
+    /// COMPOSED layer (StatusApply.Composed + StatusByte/StatusMask(id)).</summary>
+    public static readonly int[] ProvokeDisablingStatusIds = { 8, 11, 30, 34, 35, 37 };
 }

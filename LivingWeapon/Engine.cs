@@ -33,6 +33,7 @@ internal sealed class Engine
     private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
     private readonly ShadowBlade _shadowBlade; // named: ticks pre-gate like Barrage (JobCommand grant of Shadow Blade)
     private readonly Provoke _provoke;     // named: ticks pre-gate like ShadowBlade (LW-123 arc 1; ships inert -- no signature block on id 33 yet)
+    private readonly ProvokeHold _provokeHold;   // named: LW-123 arc 2a -- reads arc 1's mark, gates on the band bit itself, not meta[33].Signature
     private readonly TreasureMaster _treasure;
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
@@ -64,6 +65,7 @@ internal sealed class Engine
     private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
     private readonly StatusSpike _statusSpike;   // LW-58: cold-call the status apply engine (F2 canary / F4 treasure), dev-only
     private readonly BodyDoubleSpike _bodyDoubleSpike;   // LW-58 Canary 8: duplicate a hovered unit into a real AI fighter (F5), dev-only
+    private readonly ProvokeSpike _provokeSpike;   // LW-123 arc 2a: plant the provoke mark without the real granted command (F6 / provoke_request.txt), dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -171,6 +173,7 @@ internal sealed class Engine
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
         _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3: grant Shadow Blade (HP-draining dark strike)
         _provoke = new Provoke(meta, _kills, live);                   // Defender +3: grant Provoke (LW-123 arc 1, ships inert -- no signature block on id 33 yet)
+        _provokeHold = new ProvokeHold(_kills, live);                 // LW-123 arc 2a: the hold that reads arc 1's mark and hides the party from the provoked enemy
         var extra = new ExtraTurn(_kills, live);                    // Zwill +3: a kill grants the killer an immediate extra turn
         var eagle = new EagleEye(meta, _kills, _tracker, live);     // Eclipsebolt +3: hasten the wielder's OWN Doom procs to a 1-turn countdown (LW-95: attributed only)
         var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3: bounce chip to nearest other enemy
@@ -206,8 +209,8 @@ internal sealed class Engine
         // pre-gate on battleDisplayed like TreasureMaster, so a held charm is not dropped
         // mid-combat between turns). Both TreasureMaster and CharmLock stay in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
-        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
+        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
         save.Migrate("gunslinger.json");
         _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live);
         // LW-35 (owner direction): Marks are release-hidden on EVERY card surface. The Attack card
@@ -230,6 +233,7 @@ internal sealed class Engine
         _turnOwnerSpike = new TurnOwnerSpike(live, _tracker.Register);
         _statusSpike = new StatusSpike(live, modDir);   // LW-58 cold-call research instrument; modDir carries the request-file lane
         _bodyDoubleSpike = new BodyDoubleSpike(live, save.SaveDir);   // LW-58 Canary 8 duplicate-to-AI-fighter; SaveDir = rotation-proof forensics
+        _provokeSpike = new ProvokeSpike(live, modDir);   // LW-123 arc 2a mark-planter; modDir carries the provoke_request.txt lane
 #endif
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
@@ -475,6 +479,7 @@ internal sealed class Engine
         _turnOwnerSpike.Tick();   // LW-31 stage 2: passive correlation recorder, in-battle only (menus out of battle don't matter here)
         _statusSpike.Tick(inLive);   // LW-58: cold-call the status apply engine on F2/F4 (inLive-gated + paused; targets live band units)
         _bodyDoubleSpike.Tick(inLive);   // LW-58 Canary 8: F5 duplicates the hovered unit into a real AI fighter (inLive-gated + paused), Ctrl+F5 despawns
+        _provokeSpike.Tick(inLive);   // LW-123 arc 2a: F6 / provoke_request.txt marks the hovered-else-first-live enemy so ProvokeHold can arm
 #endif
         if (changed)
         {

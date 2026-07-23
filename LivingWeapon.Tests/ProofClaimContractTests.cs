@@ -147,7 +147,7 @@ public class ProofClaimContractTests
         { "docs/DEV_TEST_RECIPES.md", 2 },
         { "docs/MECHANICS.md", 20 },
         { "docs/RELEASE_SCOPE.md", 7 },
-        { "docs/TODO.md", 6 },
+        { "docs/TODO.md", 7 },
         { "docs/VERIFY_LIVE.md", 3 },
     };
 
