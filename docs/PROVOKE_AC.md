@@ -226,6 +226,18 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
    write is mask-scoped: `+0x45` is shared with Dead, Undead, Charging and Jump, and KillTracker's
    death detection reads that byte, so a whole-byte write there is a correctness bug, not a style
    one. If the mark ever returns after a clear, the next tick clears it again.
+3c. Provoke can be cast at a friendly unit, not just an enemy: the cursor allows picking your own
+   side, owner confirmed live 2026-07-23. That cast is legal and DOES NOTHING to the ally, but the
+   inert mark it leaves never expires (Counter 0) and blocks a recast on the same unit at 0%, so
+   left alone it would strand that unit "Provoked" for the rest of the battle. LW-130. The runtime
+   scrubs the mark off any PLAYER-side seat wearing it, every live tick, independent of the hold's
+   own Idle/Armed state (a player can provoke an ally while a hold on some other enemy is already
+   up). The bearer is included, not exempt: it is a player-side seat like any other and a mark on
+   it is just as stuck. Reuses the same mask-scoped `ClearMark` criterion 3b uses, on both layers,
+   for the same reason (`+0x45` is shared with Dead/Undead/Charging/Jump; KillTracker reads it).
+   Whether a friendly mark could reach a SAVE before the next tick scrubs it is UNMEASURED, same as
+   the open question already on record for the enemy case below; this criterion does not claim it
+   cannot.
 
 **Who is flagged**
 

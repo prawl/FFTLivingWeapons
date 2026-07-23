@@ -14,6 +14,11 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ProvokeHold
 {
+    /// <summary>Signatures.StuckEdge latch for ScrubPlayerSideMarks' refused-write WARN (LW-130).
+    /// Declared here, not in ProvokeHold.cs, to keep that file's growth to the two call lines the
+    /// spec asked for.</summary>
+    private bool _scrubRefusedLogged;
+
     /// <summary>Every valid, on-field seat's identity tuple, read straight off its own band entry.</summary>
     private static (int nameId, int mhp, int lvl, int br, int fa) ReadIdentity(IGameMemory mem, long e) =>
         (mem.U16(e + Offsets.ANameId), mem.U16(e + Offsets.AMaxHp), mem.U8(e + Offsets.ALevel),
@@ -154,5 +159,52 @@ internal sealed partial class ProvokeHold
             if (SameIdentity(ReadIdentity(mem, e), bearer)) continue;
             results.Add(e);
         }
+    }
+
+    /// <summary>LW-130 / AC 3c: scrubs a stray Provoke mark cast on the player's own side. Called
+    /// every live tick regardless of the hold's own Idle/Armed state -- a separate clerical
+    /// fixup, not part of the hold's own state machine.
+    ///
+    /// The bearer is walked too, deliberately not excluded: a mark on it is exactly as stuck as
+    /// an ally's, and excluding it here would only re-introduce the bug for one specific seat.
+    ///
+    /// Must go through the existing mask-scoped ClearMark (ProvokeHold.Policy.cs), never a
+    /// whole-byte write: composed +0x45 is the SAME byte Dead/Undead/Charging/Jump live on, and
+    /// KillTracker's death detection reads that byte.</summary>
+    private void ScrubPlayerSideMarks()
+    {
+        byte mask = StatusApply.StatusMask(MarkId);
+        int by = StatusApply.StatusByte(MarkId);
+        bool anyRefused = false;
+        int refusedSeat = -1;
+
+        for (int s = 0; s < Offsets.BandSlots; s++)
+        {
+            long e = Band.Entry(s);
+            if (!Band.IsValid(_mem, e) || !OnField(_mem, e) || IsEnemySide(_mem, e)) continue;
+            if ((_mem.U8(e + StatusApply.Composed + by) & mask) == 0) continue;
+
+            if (ClearMark(_mem, e))
+            {
+                var id = ReadIdentity(_mem, e);
+                int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
+                ModLogger.EventWithTrace(LogVerb.Signature,
+                    "A stray provoke mark landed on one of your own units; the runtime scrubbed it off.",
+                    $"provoke player-side mark scrubbed (nameId {id.nameId}, tile {gx},{gy})");
+                Flight.Record("provoke", $"scrub-player-side nameId={id.nameId} tile={gx},{gy}");
+            }
+            // Remember only the FIRST refusal this tick: one line names one seat, and a second
+            // refused seat in the same tick is still covered by the same "something is stuck" fact.
+            else if (!anyRefused) { anyRefused = true; refusedSeat = s; }
+        }
+
+        // Signatures.StuckEdge latch (the LW-69 flood shape, same as Provoke.Table.cs's own
+        // _boundsRefusedLogged): a page that stays unwritable would otherwise re-log this WARN on
+        // every 33ms tick forever. One call per tick against the WHOLE sweep's outcome, not one
+        // per seat, so the latch tracks "is anything still stuck" rather than any single address.
+        if (Signatures.StuckEdge(ref _scrubRefusedLogged, anyRefused))
+            ModLogger.WarnWithTrace(LogVerb.Signature,
+                "Could not scrub a provoke mark off one of your own units; the guarded write was refused",
+                $"provoke player-side mark-clear refused (seat {refusedSeat})");
     }
 }

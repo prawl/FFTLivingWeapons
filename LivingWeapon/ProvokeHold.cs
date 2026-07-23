@@ -69,6 +69,7 @@ internal sealed partial class ProvokeHold : ISignature
             long markedEntry = LocateByIdentity(_mem, _markedId);
             if (markedEntry != 0) ClearMark(_mem, markedEntry);
         }
+        ScrubPlayerSideMarks();   // LW-130: a friendly mark stranded right before this edge too
         EnterIdle();
         _liveElapsed = 0;
         _flaggedNow.Clear();
@@ -78,6 +79,8 @@ internal sealed partial class ProvokeHold : ISignature
     public void Tick(DateTime now, bool inLive)
     {
         if (!inLive) return;
+
+        ScrubPlayerSideMarks();   // LW-130: independent of hold state, an ally can be provoked anytime
 
         long bearerEntry = Wielder.ResolveDeployedMainHand(_mem, Provoke.DefenderId, out _);
         bool bearerPresent = bearerEntry != 0 && Tuning.TierOf(_kills, Provoke.DefenderId) >= 3;

@@ -94,6 +94,12 @@ public class ProvokeHoldTests
         (m.U8(Band.Entry(bandIdx) + StatusApply.Composed + StatusApply.StatusByte(ProvokeHold.MarkId))
             & StatusApply.StatusMask(ProvokeHold.MarkId)) != 0;
 
+    /// <summary>The INFLICTED-layer twin of <see cref="HasMark"/> (LW-130: a correct clear must
+    /// scrub both layers, not just the composed one ClearMark's own doc calls out).</summary>
+    private static bool HasInflictedMark(FakeSparseMemory m, int bandIdx) =>
+        (m.U8(Band.Entry(bandIdx) + StatusApply.Inflicted + StatusApply.StatusByte(ProvokeHold.MarkId))
+            & StatusApply.StatusMask(ProvokeHold.MarkId)) != 0;
+
     // ---- THE LOAD-BEARING TEST (SLICE mode) ----
 
     [Fact]
@@ -469,10 +475,19 @@ public class ProvokeHoldTests
         hold.Tick(DateTime.UtcNow, true);
         Assert.True(IsInvisible(m, 1));
 
+        // A stray player-side mark stranded right before the reset edge (LW-130 / AC 3c), seated
+        // AFTER the tick above so ScrubPlayerSideMarks' Tick call site never touches it -- only
+        // ResetBattle's own call site (the one the verifier deleted with the suite staying green)
+        // can be what clears it here.
+        SeatAlly(m, 2, lvl: 26, br: 41, fa: 61, gx: 3, gy: 3);
+        SetMark(m, 2, true);
+
         hold.ResetBattle();
 
         Assert.False(IsInvisible(m, 1));
         Assert.False(HasMark(m, 10));
+        Assert.False(HasMark(m, 2));            // composed layer scrubbed off the stray ally mark
+        Assert.False(HasInflictedMark(m, 2));   // inflicted layer scrubbed too
     }
 
     // ---- Watchdog (criteria 14/17) ----
@@ -539,5 +554,161 @@ public class ProvokeHoldTests
 
         Assert.Empty(m.Written);
         Assert.Contains(file, l => l.Contains("refused"));
+    }
+
+    // ---- LW-130: scrub a mark a player accidentally cast on their own side (docs/PROVOKE_AC.md
+    // criterion 3c). ScrubPlayerSideMarks runs every live tick regardless of the hold's own
+    // Idle/Armed state, because a player can provoke an ally while a hold on some other enemy is
+    // already up (or with no enemy marked at all). ----
+
+    // ---- THE LOAD-BEARING TEST ----
+
+    [Fact]
+    public void A_mark_on_a_player_side_seat_is_scrubbed_on_both_layers_while_an_enemys_mark_survives_and_still_arms()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SetMark(m, 1, true);   // the player cast Provoke at their own ally by mistake
+        SeatAlly(m, 2, lvl: 26, br: 41, fa: 61, gx: 3, gy: 3);   // hidden-when-armed control seat
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = new ProvokeHold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.False(HasMark(m, 1));            // composed layer scrubbed off the ally
+        Assert.False(HasInflictedMark(m, 1));   // inflicted layer scrubbed too
+        Assert.True(HasMark(m, 10));            // the enemy's own mark is untouched
+        Assert.True(IsInvisible(m, 2));         // the enemy mark still arms the hold normally
+    }
+
+    // ---- MASK DISCIPLINE: neighbouring bits on the shared composed/inflicted bytes survive ----
+
+    [Fact]
+    public void Scrubbing_a_player_side_mark_touches_only_the_mark_bit_leaving_neighbouring_status_bits_alone()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SetMark(m, 1, true);
+
+        long composedByte = Band.Entry(1) + StatusApply.Composed;
+        long inflictedByte = Band.Entry(1) + StatusApply.Inflicted;
+        // Composed +0x45 is the SAME byte Dead/Undead/Jump/Charging live on (KillTracker reads
+        // it), so a correct clear must leave every one of these set exactly as found.
+        m.U8s[composedByte] = (byte)(m.U8(composedByte) | Offsets.AUndeadBit | Offsets.AJumpBit | Offsets.AChargingBit);
+        // An unrelated inflicted bit (status id 7, mask 0x01) must also survive untouched.
+        byte unrelatedInflictedMask = StatusApply.StatusMask(7);
+        m.U8s[inflictedByte] = (byte)(m.U8(inflictedByte) | unrelatedInflictedMask);
+        m.WritableAddrs.Add(composedByte);
+        m.WritableAddrs.Add(inflictedByte);
+        byte composedBefore = m.U8(composedByte);
+        byte inflictedBefore = m.U8(inflictedByte);
+
+        var hold = new ProvokeHold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        byte mask = StatusApply.StatusMask(ProvokeHold.MarkId);
+        Assert.Equal(composedBefore & ~mask, m.U8(composedByte) & ~mask);   // every OTHER composed bit unchanged
+        Assert.Equal(0, m.U8(composedByte) & mask);                          // only the mark bit cleared
+        Assert.Equal(inflictedBefore & ~mask, m.U8(inflictedByte) & ~mask); // every OTHER inflicted bit unchanged
+        Assert.Equal(0, m.U8(inflictedByte) & mask);
+    }
+
+    // ---- SCRUB WHILE ARMED: a friendly mark landing mid-hold is cleared without disturbing the
+    // hold's own armed state on a different (enemy) mark ----
+
+    [Fact]
+    public void A_player_side_mark_cast_mid_hold_is_scrubbed_while_the_hold_stays_armed_on_its_own_enemy()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 2, lvl: 26, br: 41, fa: 61, gx: 3, gy: 3);   // hidden-when-armed control seat
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = new ProvokeHold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms on the enemy
+        Assert.True(IsInvisible(m, 2));
+
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SetMark(m, 1, true);   // a friendly cast lands mid-hold
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.False(HasMark(m, 1));      // scrubbed off the ally
+        Assert.True(HasMark(m, 10));      // the armed hold's own mark is untouched
+        Assert.True(IsInvisible(m, 2));   // still armed: no release, no state reset
+    }
+
+    // ---- OFF-FIELD / INVALID SEATS SKIPPED (criterion 7's own gate, reused here) ----
+
+    [Fact]
+    public void ScrubPlayerSideMarks_never_writes_to_an_offfield_or_invalid_seat()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 3, gy: 3);
+        SetMark(m, 1, true);
+        m.U8s[Band.Entry(1) + Offsets.AGateByte] = Offsets.AGateHiddenValue;   // combat +0x01 == 0xFF
+
+        // bandIdx 2 is never seated at all (lvl/br/fa/mhp all read 0) -> Band.IsValid is false.
+        SetMark(m, 2, true);
+
+        var hold = new ProvokeHold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.True(HasMark(m, 1));   // off-field: skipped, mark survives untouched
+        Assert.True(HasMark(m, 2));   // invalid seat: skipped, mark survives untouched
+        Assert.False(m.Written.ContainsKey(Band.Entry(1) + StatusApply.Composed));
+        Assert.False(m.Written.ContainsKey(Band.Entry(2) + StatusApply.Composed));
+    }
+
+    // ---- NO-OP TICK: nobody player-side marked -> zero writes to any composed status byte ----
+
+    [Fact]
+    public void A_tick_with_no_player_side_mark_writes_nothing_to_any_composed_status_byte()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = new ProvokeHold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.False(m.Written.ContainsKey(Band.Entry(0) + StatusApply.Composed));
+        Assert.False(m.Written.ContainsKey(Band.Entry(1) + StatusApply.Composed));
+    }
+
+    // ---- NOT IN LIVE BATTLE: a false inLive scrubs nothing ----
+
+    [Fact]
+    public void ScrubPlayerSideMarks_does_nothing_when_not_in_a_live_battle()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SetMark(m, 1, true);
+
+        var hold = new ProvokeHold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, false);
+
+        Assert.True(HasMark(m, 1));
+    }
+
+    // ---- THE BEARER: included, not exempt ----
+
+    [Fact]
+    public void A_mark_on_the_bearer_itself_is_scrubbed_too()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SetMark(m, 0, true);
+
+        var hold = new ProvokeHold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.False(HasMark(m, 0));
+        Assert.False(HasInflictedMark(m, 0));
     }
 }
