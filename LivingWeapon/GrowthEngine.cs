@@ -72,6 +72,7 @@ internal sealed partial class GrowthEngine
         _applied.Clear();
         _timedNatural.Clear();
         _timedReverted.Clear();
+        _timedUnexpectedLogged.Clear();   // LW-109: a fresh battle re-arms the flood latch
         _afterimage.Clear();
         _ultima.Clear();
         _mushin.Clear();

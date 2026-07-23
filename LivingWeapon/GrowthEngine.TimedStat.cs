@@ -25,6 +25,14 @@ internal sealed partial class GrowthEngine
     // Populated only by a corrected-capture hold whose window closed; cleared per battle.
     private readonly Dictionary<long, (int nat, int baked)> _timedReverted = new();
 
+    // LW-109: addresses whose window-closed byte read something genuinely unexpected (not the
+    // boosted value, not the baked residue, not natural) THIS battle, so the once-per-battle
+    // Debug line below doesn't flood (this runs on the growth cadence, the LW-69 flood shape).
+    // Cleared the moment the revert finally lands (or a fresh capture supersedes it), and by
+    // the per-battle ResetBattle, so a later recurrence -- in this battle or the next -- logs
+    // again rather than staying silently latched forever.
+    private readonly HashSet<long> _timedUnexpectedLogged = new();
+
     /// <summary>Hold a TIMED flat stat bonus (Galewind's Speed +3 for the wielder's first ForTurns
     /// turns), then revert. Captures natural on first sight while active and re-applies natural+bonus
     /// against the per-turn normalize; once the window passes, restores the captured natural and stops
@@ -32,7 +40,16 @@ internal sealed partial class GrowthEngine
     /// a turn (and resets next battle), never a corrupt value. Speed is the only wired stat today.
     /// LW-90: the capture consults the NaturalLedger (rosterNameId keys it, 0 = the degraded bypass
     /// lane; level is the ledger's level key); a corrected record's baked residue is recognized at
-    /// re-apply, revert, AND after the revert via the corrective sentinel above.</summary>
+    /// re-apply, revert, AND after the revert via the corrective sentinel above.
+    /// LW-109: the window-closed branch used to drop its record UNCONDITIONALLY, even when the
+    /// byte read neither the boosted value nor the baked residue (so the revert write was
+    /// skipped) -- abandoning the hold, with no corrective sentinel armed on a clean capture, for
+    /// the rest of the battle. It now keeps the record when the reading is genuinely unexpected,
+    /// mirroring the ordinary Hold path's retry-next-tick behavior; the per-battle reset is the
+    /// backstop that keeps a permanently-wrong reading from leaking past the battle.
+    /// LW-110: capture/boost/re-apply/revert were silent at every log level, so the absence of a
+    /// line proved nothing about this lane (the trap the LW-100 live pass fell into). All four now
+    /// log at Debug, only on the write they actually perform.</summary>
     internal void HoldTimedStat(long s, WeaponSignature sig, int tier, int turns, int rosterNameId = 0,
                                 int level = 0)
     {
@@ -50,26 +67,51 @@ internal sealed partial class GrowthEngine
             {
                 _ledger.RecordWrite(rosterNameId, StatLane.Speed, boosted);   // per evaluation (LW-90)
                 if (cur == rec.nat || (rec.baked > 0 && cur == rec.baked))
+                {
                     _mem.W8(addr, (byte)boosted);   // re-apply after a normalize (possibly to the baked residue)
+                    ModLogger.Debug(LogVerb.Growth, $"timed-stat: re-apply wrote {boosted} (read {cur} before write)");
+                }
             }
             else
             {
-                if (cur == boosted || (rec.baked > 0 && cur == rec.baked))
+                bool reverted = cur == boosted || (rec.baked > 0 && cur == rec.baked);
+                bool alreadyNatural = !reverted && cur == rec.nat;
+                if (reverted)
+                {
                     _mem.W8(addr, (byte)rec.nat);   // window over -> revert our boost (or the residue)
-                if (rec.baked > 0) _timedReverted[addr] = rec;   // keep watching for the residue
-                _timedNatural.Remove(addr);
+                    ModLogger.Debug(LogVerb.Growth, $"timed-stat: revert wrote {rec.nat} (read {cur} before write)");
+                }
+                if (reverted || alreadyNatural)
+                {
+                    // Either the revert write just landed, or there was nothing to revert (the
+                    // byte already reads natural) -- both are SUCCESS, not the LW-109 retry case.
+                    if (rec.baked > 0) _timedReverted[addr] = rec;   // keep watching for the residue
+                    _timedNatural.Remove(addr);
+                    _timedUnexpectedLogged.Remove(addr);   // a fresh recurrence later logs again
+                }
+                else if (_timedUnexpectedLogged.Add(addr))   // LW-109: genuinely unexpected -- keep the record
+                {
+                    string expected = rec.baked > 0
+                        ? $"boosted {boosted}, baked residue {rec.baked}, or natural {rec.nat}"
+                        : $"boosted {boosted} or natural {rec.nat}";
+                    ModLogger.Debug(LogVerb.Growth,
+                        $"timed-stat: window closed but read {cur}, expected {expected}; keeping the record to retry the revert");
+                }
             }
         }
         else if (active && cur >= StatMin && cur <= StatSaneHi)   // first sight while active: capture + apply
         {
             int nat = _ledger.FilterCapture(rosterNameId, StatLane.Speed, cur, level, out int baked);
+            ModLogger.Debug(LogVerb.Growth, $"timed-stat: capture natural {nat} (read {cur}, level {level}, rosterNameId {rosterNameId})");
             if (baked > 0)
                 ModLogger.Debug(LogVerb.Growth, $"timed-stat: restart residue corrected at capture (read {baked}, natural {nat})");
             _timedReverted.Remove(addr);   // a fresh capture supersedes any prior sentinel
+            _timedUnexpectedLogged.Remove(addr);   // a fresh capture supersedes any prior unexpected-reading latch
             _timedNatural.Add(addr, (nat, baked));
             int boosted = Clamp(nat + sig.StatBonus);
             _ledger.RecordWrite(rosterNameId, StatLane.Speed, boosted);
             _mem.W8(addr, (byte)boosted);
+            ModLogger.Debug(LogVerb.Growth, $"timed-stat: boost wrote {boosted} (natural {nat} + bonus {sig.StatBonus})");
         }
         else if (_timedReverted.TryGetValue(addr, out var rev) && cur == rev.baked)
         {
