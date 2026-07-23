@@ -61,16 +61,19 @@ PATCHES = {
     # it renders in a command list, its cursor reaches a single enemy at range 5, and the engine
     # actually executes it (0 MP, no charge, 100% on a non-immune target).
     #
-    # This row supplies the NAME only. The ability's EFFECT is a separate lever: its action-row
-    # InflictStatus byte is repointed from 45 (Immobilize) to 53 (Berserk), which is a live-memory
-    # write into the ability action table, NOT a data edit -- the behaviour-table nxd stays parked
-    # after the Bloodpact corruption. Until the runtime owns that write, a build carrying this row
-    # gives a correctly-named Provoke that still inflicts Immobilize. See docs/PROVOKE_AC.md and
-    # the 2026-07-22 LIVE_LEDGER row.
+    # This row supplies the NAME and DESCRIPTION. The ability's EFFECT is a separate lever the
+    # runtime owns (Provoke.Table.cs, shipped 2026-07-22): ability 189's action-row InflictStatus
+    # byte is repointed at a hand-authored inflict row that plants StatusEffectData id 0, a blank
+    # mark, NOT via this data edit -- the behaviour-table nxd stays parked after the Bloodpact
+    # corruption. Arc 2a's ProvokeHold reads that mark and, while an enemy holds the turn, hides
+    # every player unit except the bearer so the enemy AI funnels onto the bearer (PROVEN LIVE
+    # 2026-07-22, WINDOW mode). The description below matches that shipped behaviour and replaces the
+    # abandoned Berserk fiction ("blind rage / forgets its skills"), which described a different,
+    # rejected design (index 53). See docs/PROVOKE_AC.md and the LIVE_LEDGER funnel row.
     189: {
         "Name": "Provoke",
-        "Description": "Goad a distant foe into a blind rage. It forgets its skills and charges, "
-                       "seeing only the one who called it out.",
+        "Description": "Threaten a distant foe. Until it takes its turn, enemy attacks are drawn "
+                       "onto the bearer, not your allies.",
         "IconId": 32,
     },
 }

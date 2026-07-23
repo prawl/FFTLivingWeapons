@@ -301,7 +301,14 @@
     "wp": 16,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "A broad-bladed knight's sword with jewels embedded in its pommel."
+    "flavor": "A broad-bladed knight's sword with jewels embedded in its pommel.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Provoke",
+      "grantCommandAbilityId": 189
+    }
   },
   "34": {
     "name": "Save the Queen",

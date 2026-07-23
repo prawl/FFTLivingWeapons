@@ -70,6 +70,30 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-129] 2026-07-22: When Provoke hides your units, they wear a visible invisible status icon over
+  their heads, which tips off the player that the mod is doing something; suppress that icon so the
+  trick stays hidden.
+  Why it matters: the AI ignore flag and its icon are the same bit (band +0x47 bit 0x10), so we
+  cannot set the behaviour without the icon; suppressing it needs a separate rendering side lever.
+  Owner confirmed the icon still shows in the 2026-07-22 live test and wants it hidden.
+  State: candidate lever is the global overhead UI toggle (u32 at 0x436A367BF8, write 2 = UI off)
+  found via CE 2026-07-09, but it sits in the DYNAMIC 0x43xx region so its launch to launch
+  stability is UNCONFIRMED, and it is unproven whether value 2 hides the status ICON versus only the
+  HP bar. Gated on a read only probe first: does the address hold a sane 0/1/2 each launch, and does
+  writing 2 take the icon with it. Alternatives: a per unit icon visibility field, or setting the AI
+  layer and leaving the icon layer clear if the two split. ProvokeHold already carries a SuppressIcon
+  no op seam waiting for the proven lever. Hiding the reddened HP bar of a hidden ally is separate.
+
+- [LW-128] 2026-07-22: Provoke pops an empty speech bubble over the caster (Ramza's portrait, no
+  words) on cast; fill it with a taunt, since Provoke is literally a taunt.
+  Why it matters: that bubble is the game's own callout for the ability, Embrace's vanilla quote
+  slot gone blank after we renamed and repointed the ability, and it fires exactly on cast, so it is
+  free thematic flavour going to waste. Owner asked for a jeer in there 2026-07-22.
+  State: the mechanism is a Proven ledger row (a callout bubble carries mod supplied text via the
+  show flag hijack: poll the callout text holder show flag, inject our line on the rising edge).
+  Candidate lines drafted (Eyes on me curs / Come break upon my shield / Your mother swung truer);
+  consider rotating a few at random. Polish; rides after the core arc and the usable by AI fix.
+
 - [LW-127] 2026-07-22: Provoke ships redirecting EVERY enemy that acts while the shout is up (window
   mode), not just the one you point at; the clean single-enemy version needs the game's turn order
   read so the mod can hide the party just before that one foe acts.
