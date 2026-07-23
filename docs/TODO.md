@@ -97,15 +97,38 @@ the technical detail lives in the indented lines under it.
   -48.984s and released it at -47.234s, and did the same again at -40.609s to -37.078s. Two clean
   rising and falling edges, both inside the hold, and the turn counter never moved. The watchdog
   fired at -35.828s, about 3 seconds before that enemy took yet another turn.
-  Candidate causes, best first. (1) The enemy turn gate: TickArmed computes markedActive as
-  TurnQueue +0x02 team equals 1 AND the actor pointer matching the marked identity. There is a
-  standing memory (condensed-struct-follows-hover) saying that condensed struct describes the unit
-  under the CURSOR rather than the turn owner, which flatly contradicts the Proven LIVE_LEDGER row
-  dated 2026-06-16 that this code cites for the team read. One of the two is wrong and finding out
-  which is the first job. (2) The identity match in MarkedIsActor drifting from the tuple captured
-  at arm. Do not simply delete the team gate: it is there because the actor pointer PARKS on struck
-  victims, so without it a marked enemy that merely gets hit during your own turn would count as
-  having taken a turn.
+  Desk pass 2026-07-23 narrowed it to ONE suspect. TickArmed only counts a turn when BOTH halves
+  agree: the team read (TurnQueue +0x02 equals 1) AND the actor pointer naming a unit matching the
+  marked identity. The identity half is CLEARED, and the tape proves it rather than argues it: had
+  the marked identity stopped resolving, the miss tick counter would have released with reason
+  EnemyGone, and it never did, so LocateByIdentity matched that same tuple on every tick of the
+  hold. The actor pointer half resolves through the same band entry base the flight tap prints, and
+  that tap read nameId 623 off it, the very nameId the mark was armed on. That leaves the TEAM READ.
+  What makes the team read genuinely doubtful, and it is not just the standing hover memory: the
+  Proven LIVE_LEDGER row this code cites (dated 2026-06-16) is CONFOUNDED. Its own evidence line
+  says player turns read 0 including under hover, and enemy turns read 1 across whole turns. Both
+  observations are equally consistent with the field describing the CURSOR, because the units
+  hovered during player turns were player units, and during an enemy turn the camera follows the
+  acting enemy anyway. The experiment never once hovered a unit belonging to a DIFFERENT team than
+  the current turn owner, which is the only arrangement that separates the two explanations. The
+  LW-87 hover follower row (2026-07-21) then showed the same struct's identity fields moving with
+  the cursor, and the whole codebase was re-anchored off it for turn owner questions
+  (ActorResolver.Cursor.cs, AttackCard.cs) about a day before ProvokeHold was written against it.
+  There is a second, cheaper possibility worth ruling out in the same run: the 2026-06-16 row was
+  measured PRE-1.5 at 0x14077D2A2, and the 1.5 re-anchor comment in Offsets.cs records confirming
+  team equals 0 only, so team equals 1 during an enemy turn has never been re-confirmed on this
+  build at all.
+  The discriminating probe is about a minute of play and settles both at once: during an ENEMY
+  unit's turn, move the cursor onto one of YOUR units and read TurnQueue +0x02. Reads 1, the field
+  is the turn owner and the Proven row survives (look elsewhere, and suspect the actor pointer
+  timing). Reads 0, the field follows the cursor, the Proven row is wrong and must be corrected,
+  and this bug is explained: a player idly hovering their own units during the enemy phase silently
+  switches the shout's turn detection off.
+  Do NOT simply delete the team gate as the fix. It is there because the actor pointer PARKS on
+  struck victims, so without it a marked enemy that merely gets HIT during your own turn would
+  count as having taken its turn. The replacement has to be a signal that is per turn and not per
+  cursor, most likely Band.FlagOwner, the PSX turn flags walk the rest of the runtime re-anchored
+  onto for exactly this reason.
   Note for whoever picks this up: LW-127 (the single enemy slice) is gated on the same turn
   detection question, so answering this answers part of that too.
 
