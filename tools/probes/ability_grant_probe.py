@@ -74,6 +74,15 @@ Verbs
       default there.  Both hold identical data, so no anchor check can tell them apart, only an edit
       can.  Pass --base 0x14078961C to aim at the decoy on purpose.
 
+  python tools\\probes\\ability_grant_probe.py aiflag <abilityId> [dump|clear|set] [--base A]
+      Read an ability's UsableByAI bit (COMMON-data row byte +7, mask 0x80), the AC 0e leak lever:
+      the grant is job-global, so enemy Knights inherit Provoke, and clearing this bit is the
+      mapped-but-UNTESTED fix. `dump` (default) is read-only: it prints the row, the set/clear
+      split across the table (a sanity check on the bit), and scans for a decoy twin. `clear`/`set`
+      hold the bit with a mask-scoped read-modify-write so you can run the live premise test.
+      e.g. aiflag 189            does Provoke's row look like a real AI flag, and is there a twin?
+           aiflag 189 clear      hold it clear, then watch an enemy Knight's turns
+
   python tools\\probes\\ability_grant_probe.py restore [key]
       Restore outstanding holds. With no key, sweeps every snapshot in the temp directory -- the
       after-a-crash case, where you should not have to remember what was held.
@@ -161,6 +170,17 @@ INFLICT_VA = 0x14080FBA0
 INFLICT_STRIDE = 6
 INFLICT_ROWS = 128
 PROVOKE_INFLICT_ROW = 29        # authored here: referenced by no shipped ability
+
+# --- ability COMMON-data table: 512 rows of 8 bytes. Byte +7 bit 0x80 is UsableByAI, the AI's
+#     "may a unit choose this ability" gate. Mapped 2026-07-22 (memory new-ability-hijack-recipe),
+#     NOT yet live-proven. The JobCommand grant is job-global, so enemy Knights inherit Provoke
+#     (AC 0e); clearing this bit is the mapped-but-untested fix, and `aiflag` sets up its live test.
+#     SUSPECT a back-to-back twin the way the ACTION table has one -- only an EDIT tells them apart.
+COMMON_VA = 0x140787F80
+COMMON_STRIDE = 8
+COMMON_ROWS = 512
+AI_FLAG_OFFSET = 7
+AI_USABLE_MASK = 0x80
 
 HOLD_MS = 150         # re-assert cadence; menu write-backs are what the hold defends against
 
@@ -609,6 +629,139 @@ def verb_action(mem, names, ability_id, offset, value, base=None):
     return 0
 
 
+# --------------------------------------------------------------------------- AI-usable flag (AC 0e)
+def common_row_addr(ability_id, base=None):
+    return (base if base is not None else COMMON_VA) + ability_id * COMMON_STRIDE
+
+
+def scan_for_block(mem, pattern, lo=0x140000000, hi=0x141000000, chunk=0x400000):
+    """Every start address in [lo, hi) whose bytes equal `pattern`. Chunked so one unmapped page
+    inside the range only costs that chunk, not the whole scan. Modelled on ability_table_probe's
+    findrow: the way you distinguish a live table from an identical decoy twin is to look for a
+    second copy of a run long enough that a chance collision is implausible."""
+    hits = []
+    addr = lo
+    while addr < hi:
+        span = mem.read(addr, chunk + len(pattern))
+        if span is not None:
+            start = 0
+            while True:
+                idx = span.find(pattern, start)
+                if idx < 0:
+                    break
+                hits.append(addr + idx)
+                start = idx + 1
+        addr += chunk
+    return hits
+
+
+def verb_aiflag(mem, names, ability_id, mode, base=None):
+    """Read -- and optionally hold cleared -- an ability's UsableByAI bit (COMMON-data row byte +7,
+    mask 0x80). This is the AC 0e lever. The Provoke grant is job-global, so enemy Knights inherit
+    the command; clearing this bit is the mapped-but-UNTESTED fix meant to stop the enemy AI
+    choosing it while leaving the player's own cast untouched.
+
+    LIVE TEST (a NEW premise -- prove it here before any C# is written):
+      1. Player-side control (easy, decisive): with the bit held clear, confirm YOUR Provoke still
+         casts, targets, marks and funnels exactly as before. Clearing an AI-only flag must not
+         touch the player menu. If the player's cast breaks, the bit or the base is wrong.
+      2. AI suppression (the real question, and a NOISY one -- you are proving a negative):
+         a. BASELINE: get an enemy of the granting job to hold Provoke (the DEV build already arms
+            it on Knight, or `grant` it onto an enemy's job). Watch several of its turns WITHOUT
+            this hold. Does it EVER cast Provoke? If it never does even with the bit set, the leak
+            is invisible and this fix is optional insurance -- record that and stop.
+         b. CLEARED: same setup with `aiflag <id> clear` holding. Over a comparable window, does it
+            still cast Provoke? Stops -> lever PROVEN. Still casts -> wrong copy (try a reported
+            twin base) or wrong bit (eyeball the row dump and the set/clear split).
+
+    TWIN CAUTION: the ACTION table ships two identical copies and the engine reads only one; a
+    write to the decoy reads back perfectly and changes nothing. This verb scans for a twin of the
+    COMMON table and reports it, but ONLY THE LIVE TEST proves which copy the engine consults.
+    Pass --base to aim a clear at a reported twin. Read-only unless mode is clear or set."""
+    if not 0 <= ability_id < COMMON_ROWS:
+        print(f"ability id {ability_id} is outside the common table (0..{COMMON_ROWS - 1})")
+        return 1
+    row_addr = common_row_addr(ability_id, base)
+    row = mem.read(row_addr, COMMON_STRIDE)
+    if row is None:
+        print(f"common-data row for ability {ability_id} unreadable at 0x{row_addr:X}")
+        return 1
+    flag_byte = row[AI_FLAG_OFFSET]
+    is_set = bool(flag_byte & AI_USABLE_MASK)
+    which = "LIVE/default table" if base is None else f"table base 0x{base:X}"
+    print(f"ability {ability_id} ({name_of(names, ability_id)}) common row @ 0x{row_addr:X}  [{which}]")
+    print(f"  8 bytes: {row.hex(' ')}")
+    print(f"  byte +{AI_FLAG_OFFSET} = 0x{flag_byte:02X}; UsableByAI (mask 0x{AI_USABLE_MASK:02X}) is "
+          f"{'SET (AI may use it -- LEAKS)' if is_set else 'CLEAR (AI will not use it)'}")
+
+    # Plausibility: a real flag field VARIES across the table. All-set or all-clear means the bit,
+    # or the whole base, is wrong -- cheaper to catch here than in a live battle.
+    table = mem.read(common_row_addr(0, base), COMMON_ROWS * COMMON_STRIDE)
+    if table is not None:
+        set_count = sum(1 for i in range(COMMON_ROWS)
+                        if table[i * COMMON_STRIDE + AI_FLAG_OFFSET] & AI_USABLE_MASK)
+        warn = ("   <-- all one way: SUSPECT the bit/base is wrong"
+                if set_count in (0, COMMON_ROWS) else "")
+        print(f"  across all {COMMON_ROWS} rows: UsableByAI set in {set_count}, "
+              f"clear in {COMMON_ROWS - set_count}{warn}")
+
+    # Twin scan: an 8-byte row collides by chance, so search a 64-byte (8-row) block for uniqueness.
+    block_lo = max(0, ability_id - 4)
+    block = mem.read(common_row_addr(block_lo, base), 8 * COMMON_STRIDE)
+    if block is not None:
+        pin = common_row_addr(block_lo, base)
+        others = [h for h in scan_for_block(mem, block) if h != pin]
+        if others:
+            print(f"  TWIN: {len(others)} other copy/copies of this block carry identical bytes:")
+            for h in others:
+                implied = h - block_lo * COMMON_STRIDE
+                print(f"    0x{h:X}  (implied table base 0x{implied:X}; aim a clear with --base 0x{implied:X})")
+        else:
+            print("  twin scan: no second copy found (only the live test truly confirms the base)")
+
+    if mode == "dump":
+        return 0
+
+    # clear / set: mask-scoped read-modify-write hold, so the other 7 bits of the byte are never
+    # disturbed -- the shape a shipped fix must use, since +7 is shared with the rest of the flags.
+    want_set = (mode == "set")
+    addr = row_addr + AI_FLAG_OFFSET
+    snap = save_snapshot(f"aiflag{ability_id}_{addr:X}",
+                         [(f"ability {ability_id} AI-flag byte", addr, bytes([flag_byte]))])
+    print()
+    print(f"snapshot -> {snap}")
+    print(f"HOLDING UsableByAI {'SET' if want_set else 'CLEAR'} on ability {ability_id}. "
+          f"Ctrl+C restores the byte and exits.")
+    print("Now run the live test in this verb's docstring (player cast + enemy-turn watch).")
+    writes = 0
+    failures = 0
+    try:
+        while True:
+            cur = mem.read(addr, 1)
+            if cur is not None:
+                bit_on = bool(cur[0] & AI_USABLE_MASK)
+                if bit_on != want_set:
+                    new = (cur[0] | AI_USABLE_MASK) if want_set else (cur[0] & ~AI_USABLE_MASK)
+                    if mem.write(addr, bytes([new])):
+                        writes += 1
+                    else:
+                        failures += 1
+            time.sleep(HOLD_MS / 1000.0)
+    except KeyboardInterrupt:
+        print()
+        print(f"held: {writes} re-writes, {failures} FAILED writes")
+        if writes > 1:
+            print("  more than one re-write means the ENGINE rewrites this byte, so a shipped fix")
+            print("  must hold it every tick rather than writing it once.")
+        elif writes == 1:
+            print("  exactly one write and no re-writes: the value stuck, so one idempotent write")
+            print("  at battle construction would hold.")
+        if failures:
+            print("  FAILED writes mean the hold had gaps -- treat observations as unreliable.")
+        verb_restore(mem, f"aiflag{ability_id}_{addr:X}")
+    return 0
+
+
 def parse_poke(spec):
     """'0xADDR=hexbytes' -> (addr, bytes). Pure, so --selftest covers the parsing."""
     if "=" not in spec:
@@ -735,6 +888,12 @@ def selftest():
     check("the same byte on the decoy", action_row_addr(189, ACTION_DECOY_VA) + ACTION_INFLICT,
           0x14078A4EF)
 
+    # Common-data (UsableByAI) addressing, AC 0e. Byte +7 of ability 189's 8-byte row is the leak
+    # lever; the selftest pins it so a base/stride typo shows up offline, not in a live battle.
+    check("common table base", COMMON_VA, 0x140787F80)
+    check("common row of id 0", common_row_addr(0), COMMON_VA)
+    check("AI-flag byte of id 189", common_row_addr(189) + AI_FLAG_OFFSET, 0x14078856F)
+
     # An empty slot needs BOTH a zero byte and a clear extend bit (byte 0 + ext = ability 256).
     check("free slot in an empty record", find_empty_slot([0] * 16, 0x0000), 1)
     check("byte 0 with extend set is NOT free", find_empty_slot([0] * 16, extend_bit(0)), 2)
@@ -819,6 +978,17 @@ def main():
             off = ACTION_INFLICT if positional[2] == "inflict" else int(positional[2], 0)
             return verb_action(mem, names, int(positional[1], 0), off, int(positional[3], 0),
                                base_override)
+        if verb == "aiflag":
+            if len(positional) < 2:
+                print("usage: aiflag <abilityId> [dump|clear|set] [--base <addr>]")
+                print("   e.g. aiflag 189            read Provoke's UsableByAI bit + scan for a twin")
+                print("        aiflag 189 clear      hold the bit cleared, then run the live test")
+                return 2
+            mode = positional[2] if len(positional) > 2 else "dump"
+            if mode not in ("dump", "clear", "set"):
+                print(f"unknown mode {mode!r}; expected dump, clear or set")
+                return 2
+            return verb_aiflag(mem, names, int(positional[1], 0), mode, base_override)
         print(f"unknown verb {verb!r}")
         print(__doc__)
         return 2
