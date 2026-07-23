@@ -147,7 +147,12 @@ public class ProofClaimContractTests
         { "docs/DEV_TEST_RECIPES.md", 2 },
         { "docs/MECHANICS.md", 20 },
         { "docs/RELEASE_SCOPE.md", 7 },
-        { "docs/TODO.md", 7 },
+        // 7 -> 8 (2026-07-23, LW-131): the new claim cites the 2026-06-16 turn-owner-team row,
+        // which really does sit in LIVE_LEDGER's Proven section -- and cites it in order to argue
+        // that its EVIDENCE is confounded (it never hovered a unit from the other side). Leaning on
+        // a Proven row to challenge that same row is the inverse of the inflation this gate exists
+        // to catch, so the number moves rather than the wording.
+        { "docs/TODO.md", 8 },
         { "docs/VERIFY_LIVE.md", 3 },
     };
 
