@@ -12,6 +12,16 @@ namespace LivingWeapon;
 /// <see cref="SubmenuFlag"/> (the one mover). ArrayBase and EventId are behaviorally provisional
 /// pending a post-deploy battle; dev-spike constants (BodyDoubleSpike/StatusSpike, #if LWDEV)
 /// were deliberately NOT re-verified this pass and stay stale-flagged.
+///
+/// 1.5.2 (Steam buildid 24304240) audit 2026-07-24 (docs/research/PORT_1.5.2_OFFSETS.md): NO
+/// address in this file changed. The audit was done OFFLINE by diffing the 1.5.1 and 1.5.2 exes on
+/// disk (tools/probes/exe_reanchor_scan.py, tools/probes/rip_xref_reanchor.py): the section VA
+/// layout is identical up to the packed tail, and every runtime global here was re-read out of the
+/// game's OWN RIP-relative instructions in both builds, which agree on the same address (up to
+/// 33/33 referencing sites for <see cref="RosterBase"/>). That is strong evidence about ADDRESSES
+/// and says nothing about SEMANTICS: the 1.5.1 pause-flag lesson (address survived, meaning
+/// narrowed) applies, so the post-deploy live pass still owns behavior. The one address the mod
+/// moved for 1.5.2 lives outside this file (PromptSwapHook.FnSetTextString, +4).
 /// </summary>
 internal static class Offsets
 {

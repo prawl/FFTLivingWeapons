@@ -19,7 +19,10 @@ namespace LivingWeapon.Tests;
 public class PromptSwapHookArmDecisionTests
 {
     // Mirrors PromptSwapHook.ExpectedPrologue (push rbp; push rbx; push rdi; mov rbp,rsp;
-    // sub rsp,50h), read live at the true setter 0x1403F1098 on 1.5.1, 2026-07-14 (LW-89).
+    // sub rsp,50h), read live at the true setter 0x1403F1098 on 1.5.1, 2026-07-14 (LW-89). These
+    // BYTES are unchanged on 1.5.2; only the setter's address moved (+4, to 0x1403F109C), so this
+    // mirror needed no edit in the 1.5.2 re-anchor -- which is the point of pinning bytes, not a
+    // location.
     private static readonly byte[] Prologue = { 0x40, 0x55, 0x53, 0x57, 0x48, 0x8B, 0xEC, 0x48, 0x83, 0xEC, 0x50 };
 
     // The superseded 0x14028F750 dispatch-wrapper prologue (sub rsp,28h; mov rax,[rcx+10h];

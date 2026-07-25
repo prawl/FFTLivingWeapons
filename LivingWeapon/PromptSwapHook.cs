@@ -42,6 +42,9 @@ internal sealed class PromptSwapHook
     // at 0x1403F1098 with the RESOLVED char* in rdx (confirmed by the setter's own second
     // instruction block doing mov rbx, rdx and treating it as the data pointer; the wrapper's
     // variant branch at 0x1403F1068 also ends with jmp 0x1403F1098 after resolving its own rdx).
+    // Every address in THIS paragraph is a 1.5.1 address, kept as written because it is the record
+    // of how the setter was identified; on 1.5.2 the whole neighbourhood slid +4 (setter
+    // 0x1403F109C, variant branch 0x1403F106C), see the re-anchor note on FnSetTextString below.
     // That resolved-text register contract is exactly what the pre-1.5 proven swap (v10/v11 above)
     // rode, so retargeting the hook here to the true setter revives the proven mechanism unchanged
     // instead of reinventing it. FnSetTextString below is the true setter; the wrapper was the
@@ -49,11 +52,24 @@ internal sealed class PromptSwapHook
     // TargetReady cold-call doctrine this class had been missing, via the portable HookLandmark
     // core), so a future shift refuses with one logged warning instead of corrupting the function
     // again.
-    private const long FnSetTextString = 0x1403F1098;
+    // 1.5.2 RE-ANCHOR (2026-07-24): +4, from the 1.5.1 address 0x1403F1098. This is the ONLY
+    // address in the mod that 1.5.2 moved; every data anchor verified unchanged. Evidence is
+    // offline and byte-level (tools/probes/exe_reanchor_scan.py, docs/research/
+    // PORT_1.5.2_OFFSETS.md): the 1.5.1 and 1.5.2 exes were diffed on disk, and at 0x1403F109C the
+    // new image carries the SAME 11-byte ExpectedPrologue below, preceded by the SAME `e9 01 00 00
+    // 00 cc` jmp+int3 padding that precedes the 1.5.1 entry (the runbook's required ret/CC-padding
+    // landmark), with the prologue occurring exactly ONCE in 0x1403F0000..0x1403F3000 in both
+    // builds. The function body is 505/512 bytes identical at shift +4, and all 7 differing bytes
+    // are RIP displacement adjustments that reconcile exactly (5 of them -4 for the instruction's
+    // own move; 2 of them +12, pointing into the region 1.5.2 shifted +16). The old address now
+    // holds `00 00 00 cc` padding, so hooking it blind would corrupt the function -- which
+    // HookLandmark.Verify would have refused, the 1.5.1 incident's whole point.
+    private const long FnSetTextString = 0x1403F109C;
 
     // The 11-byte prologue read live at FnSetTextString (the true setter) on 1.5.1, 2026-07-14
-    // (LW-89 step 2, see above): push rbp; push rbx; push rdi; mov rbp,rsp; sub rsp,50h. Checked
-    // via HookLandmark.Verify in Arm() before every hook install.
+    // (LW-89 step 2, see above): push rbp; push rbx; push rdi; mov rbp,rsp; sub rsp,50h. UNCHANGED
+    // on 1.5.2 (verified byte-for-byte at the re-anchored address above). Checked via
+    // HookLandmark.Verify in Arm() before every hook install.
     private static readonly byte[] ExpectedPrologue =
         { 0x40, 0x55, 0x53, 0x57, 0x48, 0x8B, 0xEC, 0x48, 0x83, 0xEC, 0x50 };
 

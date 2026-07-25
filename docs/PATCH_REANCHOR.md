@@ -52,6 +52,7 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 | pre-1.5 | 0x690C1269 | 0x156C8000 | 20688883 | 6DEDDA92 | C:\Users\ptyRa\FFT_IC_backup_pre1.5\ |
 | 1.5 | 0x6A0F86A9 | 0x190EB000 | 23353019 | 3625FD9B | none (replaced in place) |
 | 1.5.1 | 0x6A3C5497 | 0x1878E000 | 23901820 | 841DD404 | C:\Users\ptyRa\FFT_IC_backup_1.5.1\ |
+| 1.5.2 | 0x6A5EA53C | 0x18D78000 | 24304240 | 1FD5320D | C:\Users\ptyRa\FFT_IC_backup_1.5.2\ |
 
 ## Step 2: ledger it
 
@@ -60,7 +61,26 @@ in the row that every AWAITING-LIVE flip and the smoke pass are blocked behind i
 
 ## Step 3: Phase A, the offline damage inventory (no game needed)
 
-Produce the checklist the live session will execute:
+FIRST, run the two offline exe differs against the previous build's backup. Added 2026-07-24 during
+the 1.5.2 re-anchor, where between them they answered the ENTIRE address audit before the game was
+launched once, leaving the live session only behavior to confirm:
+
+```
+python tools/probes/exe_reanchor_scan.py     # section-layout diff + content re-find of the baked
+                                             #   tables and the code hook targets
+python tools/probes/rip_xref_reanchor.py     # runtime globals, re-read out of the game's own
+                                             #   RIP-relative instructions in both builds
+```
+
+The second one is the surprising half. Runtime globals (roster, combat band, battle flags, UI
+mirrors) hold nothing in the file, so the file cannot show their CONTENTS -- but the code that
+reaches them encodes their ADDRESSES in RIP-relative displacements, and those can be read straight
+out of both images and compared. Consensus across many independent referencing sites (up to 33 for
+RosterBase on 1.5.2) is far stronger evidence than a single live fingerprint hit. Keep the standing
+caution: this is evidence about ADDRESSES ONLY and is blind to SEMANTICS (see the pause-flag trap
+below), so it changes Phase B from a hunt into a verification pass rather than replacing it.
+
+Then produce the checklist the live session will execute:
 1. Every absolute address: Offsets.cs in full (including the Provoke ability-action/inflict-status
    table bases, `LiveActionTable`/`InflictTable`, added LW-123 arc 1), plus literals living
    elsewhere (Barrage.cs AbilityBase, Provoke.Policy.cs DecoyActionTable, LaunchGuard.cs constants,

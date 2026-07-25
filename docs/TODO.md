@@ -13,6 +13,27 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.1)
 
+- **[LW-132] The game updated to 1.5.2 and the mod switched itself off; teach it the new build** (opened 2026-07-24) [AWAITING-LIVE]
+  - Done means: the mod recognises the updated game and arms normally again, and the one piece of
+    it that attaches to a game function attaches to the right place. Almost nothing actually moved
+    this update: every table and every piece of battle data the mod reads is exactly where it was,
+    which was established by comparing the old and new game programs on disk, without launching the
+    game. One function slid four bytes along, and it is the one function the mod hooks, so that is
+    the only address that changed. (Tech: PE build key 0x6A3C5497/0x1878E000 to
+    0x6A5EA53C/0x18D78000, Steam buildid 24304240; PromptSwapHook.FnSetTextString 0x1403F1098 to
+    0x1403F109C; every Offsets.cs absolute re-confirmed by RIP cross-reference consensus, up to
+    33/33 sites for RosterBase; full damage report in docs/research/PORT_1.5.2_OFFSETS.md; new
+    offline instruments tools/probes/exe_reanchor_scan.py and tools/probes/rip_xref_reanchor.py.)
+  - Verify: OWNER, live. Deploy the dev build, load a save, and confirm the log says Living Weapons
+    is armed with no stand-down. Then one battle round trip: a kill is credited with the victim
+    named, the battle ends cleanly, and the equip card paints its Kills line. Three things carry
+    the thinnest offline evidence and are what the battle actually settles: the equip-card mirrors
+    (open any unit's card and check the card shows the right weapon), the static unit array (proven
+    by a credited kill), and whether a tier-up toast appears, which is the only proof the moved
+    hook is attached correctly. Also re-check meaning, not just address: 1.5.1 kept the pause flag
+    at its old home while narrowing what it meant, and an offline diff cannot see that class of
+    change. Then `python tools/scan_logs.py --require-battle --flight` exits 0.
+
 - **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [BLOCKED(needs instrumentation and a slow enough restart)]
   - Done means: a rider who restarts a battle and opens it dismounted no longer carries the
     previous run's leftover mounted Speed until they climb back on a chocobo; the mod

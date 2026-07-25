@@ -11,15 +11,16 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class LaunchGuard
 {
-    // PE fingerprint of the 1.5.1 exe (Steam buildid 23901820, exe stamped 2026-07-13),
-    // re-derived from the on-disk PE per docs/PATCH_REANCHOR.md. 1.5 values were 0x6A0F86A9 /
-    // 0x190EB000 (docs/research/PORT_1.5_OFFSETS.md:11-15; exe SHA256 3625FD9B...); the 1.5.1
-    // layout audit (docs/research/PORT_1.5.1_OFFSETS.md) found every other absolute unchanged.
-    // Pre-1.5 values differ in BOTH fields (0x690C1269 / 0x156C8000), so either field alone
-    // would catch a rollback; PE FileVersion is NOT usable (reads 1.0.0.0 on every build,
-    // docs/research/PORT_1.5.md:96-98).
-    internal const uint ExpectedTimeDateStamp = 0x6A3C5497;
-    internal const uint ExpectedSizeOfImage = 0x1878E000;
+    // PE fingerprint of the 1.5.2 exe (Steam buildid 24304240, exe stamped 2026-07-20, installed
+    // 2026-07-24), re-derived from the on-disk PE per docs/PATCH_REANCHOR.md. Prior builds:
+    // 1.5.1 0x6A3C5497 / 0x1878E000 (docs/research/PORT_1.5.1_OFFSETS.md), 1.5 0x6A0F86A9 /
+    // 0x190EB000 (docs/research/PORT_1.5_OFFSETS.md:11-15), pre-1.5 0x690C1269 / 0x156C8000 --
+    // every pair differs in BOTH fields, so either field alone would catch a rollback. PE
+    // FileVersion is NOT usable (reads 1.0.0.0 on every build, docs/research/PORT_1.5.md:96-98).
+    // The 1.5.2 audit (docs/research/PORT_1.5.2_OFFSETS.md) found every DATA absolute unchanged
+    // and exactly one CODE address moved (PromptSwapHook.FnSetTextString, +4).
+    internal const uint ExpectedTimeDateStamp = 0x6A5EA53C;
+    internal const uint ExpectedSizeOfImage = 0x18D78000;
     private const long ModuleBase = 0x140000000L;
 
     // JobCommand table, rec 8 (Aim, Archer) + rec 9 (Martial Arts, Monk) ability-id bytes. Window

@@ -54,8 +54,9 @@ namespace LivingWeapon;
 /// wrong function. Live disassembly of the 0x14028F750 wrapper found the string object at
 /// holder+0x20 (size at +0x30, capacity at +0x38; inline text at +0x20 when capacity is below
 /// 0x10, else a heap pointer at [holder+0x20]), and both of the wrapper's branches resolve that
-/// object to a real char* and hand it to the TRUE text setter at 0x1403F1098 in rdx. PromptSwapHook
-/// now hooks 0x1403F1098 instead of the wrapper, so textPtr below is that resolved char*, exactly
+/// object to a real char* and hand it to the TRUE text setter at 0x1403F1098 in rdx (a 1.5.1
+/// address: 1.5.2 slid the setter +4 to 0x1403F109C, PromptSwapHook.FnSetTextString). PromptSwapHook
+/// hooks that setter rather than the wrapper, so textPtr below is that resolved char*, exactly
 /// the register contract the pre-1.5 proven swap (v10/v11 above) rode. The on-screen 1.5.1 wording,
 /// "Select a facing direction and press F to confirm.", still STARTS WITH "Select a facing", so
 /// FacingPromptPrefix did not need to change.

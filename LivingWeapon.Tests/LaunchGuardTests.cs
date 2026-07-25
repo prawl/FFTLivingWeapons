@@ -128,8 +128,8 @@ public class LaunchGuardTests
     [Fact]
     public void ExpectedPeKey_constants_are_pinned()
     {
-        Assert.Equal(0x6A3C5497u, LaunchGuard.ExpectedTimeDateStamp);
-        Assert.Equal(0x1878E000u, LaunchGuard.ExpectedSizeOfImage);
+        Assert.Equal(0x6A5EA53Cu, LaunchGuard.ExpectedTimeDateStamp);
+        Assert.Equal(0x18D78000u, LaunchGuard.ExpectedSizeOfImage);
     }
 
     [Fact]
@@ -373,7 +373,7 @@ public class LaunchGuardTests
 
         Assert.Equal(GuardState.StoodDown, guard.State);
         Assert.Single(records);
-        Assert.Contains("0x6A3C5497", records[0].payload);
+        Assert.Contains("0x6A5EA53C", records[0].payload);
         Assert.Contains("0x11111111", records[0].payload);
     }
 
