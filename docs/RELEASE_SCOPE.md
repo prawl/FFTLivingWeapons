@@ -209,21 +209,25 @@ The game updated to 1.5.2 and the mod switched itself off to protect saves, whic
 startup guard is for. This cut exists to make the mod work again on the updated game, and to do
 nothing else. Owner scope call 2026-07-25, in-session.
 
-- [ ] **1.5.2 re-anchor (LW-132)**: the mod recognises the new game build and arms again. Almost
+- [x] **1.5.2 re-anchor (LW-132)**: the mod recognises the new game build and arms again. Almost
       nothing moved; the audit was done offline by diffing the two executables. Shipped 9959821.
       Damage report: docs/research/PORT_1.5.2_OFFSETS.md.
-- [ ] **Provoke ships DISARMED (LW-133)**: LW-123 is still [BUILDING] and its acceptance pass
-      (docs/PROVOKE_AC.md) has never been run, so a compat cut must not carry it to players. Three
-      parts, all required together: the Defender's items.json signature block is removed (no granted
-      command), item.en.nxd is rebaked so the equip card stops advertising Provoke, and
-      Tuning.ProvokeEnabled gates the hold, which reads the mark bit rather than the signature and
-      would otherwise stay live. The ability/status text rows stay baked: both are unreachable in
-      vanilla (ability 189 is a cut ability, UIStatusEffect Key 1 ships blank), so they are
-      invisible with the grant gone.
-- [ ] **Owner live pass**: the mod arms on 1.5.2 with no stand-down, one battle round trip credits
-      a kill and paints the card, and a tier-up toast delivers (the only proof the one moved address
-      landed). Blocking: nothing ships until this passes. See docs/TODO.md LW-132's Verify.
-- [ ] Gates re-run at the cut: dotnet test green, analyze.py exit 0, audit_nxd_bakes.py exit 0.
+- [x] **Provoke ships DISARMED (LW-133)**: shipped 6f1e21a, 2026-07-25. The shout is held back
+      because nobody has played it yet and its acceptance pass (docs/PROVOKE_AC.md) has never been
+      run, so a compat cut must not carry it to players. Three parts, all required together: the
+      Defender's items.json signature block is removed (no granted command), item.en.nxd is rebaked
+      so the equip card stops advertising Provoke, and Tuning.ProvokeEnabled gates the hold, which
+      reads the mark bit rather than the signature and would otherwise stay live. The ability/status
+      text rows stay baked: both are unreachable in vanilla (ability 189 is a cut ability,
+      UIStatusEffect Key 1 ships blank), so they are invisible with the grant gone. The feature's
+      own ticket stays open and BUILDING; nothing was reverted, only gated.
+- [x] **Owner live pass** (2026-07-25, 01:52 launch / 01:54 battle exit): armed with no stand-down,
+      two kills credited with victim identity, clean battle exit, no Provoke command and no hide
+      lines. The moved hook is confirmed by its own canary intercepting the session's first prompt
+      and reading real text. scan_logs --require-battle --flight exit 0, zero warnings. The equip
+      card was owner-confirmed by eye (it leaves no log line the scanner reads).
+- [x] Gates re-run at the cut: dotnet test 2752 green, analyze.py exit 0, audit_nxd_bakes.py exit 0
+      (2026-07-25).
 
 ## DEFERRED (post-release backlog)
 - **Remove Treasure Master** -- L, works + tested, no user benefit this cycle; do as a dedicated

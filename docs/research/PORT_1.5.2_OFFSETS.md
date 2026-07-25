@@ -162,6 +162,31 @@ own scans.)
   survived, meaning narrowed to card-open only) is exactly the class of change this method cannot
   see, which is why the live pass still owns the verdict.
 
+## Live pass (owner, 2026-07-25) and what it did NOT cover
+
+Session 01:52 launch, 01:54 battle exit. `scan_logs.py --require-battle --flight` exit 0, zero
+warnings, zero errors across 196 log lines.
+
+- ARMED clean: "The game build matches all memory landmarks; Living Weapons is armed". No
+  stand-down. Settles the re-derived PE build key.
+- The MOVED HOOK is confirmed, and by the strongest available signal rather than by a toast: the
+  prompt hook's own canary fired ("the game's first prompt this session was intercepted") and the
+  sampled prompt heads read as real text ("Objective", "Guest", "Special", "Camera Controls"). A
+  wrong entry yields caller garbage in rdx, which is exactly the LW-89 failure shape, so readable
+  text at 0x1403F109C is a direct refutation of it. A tier-up toast also ENQUEUED ("Chaos Blade has
+  gained its 5th kill and has grown to Chaos Blade+"); delivery needs a facing prompt, which this
+  battle never reached, so enqueue is as far as the tape goes.
+- ArrayBase, the thinnest offline row (4 neighbours), is settled by a credited kill carrying victim
+  identity: "Chaos Blade claims kill number 4", victim nameId 833, job 100, battle slot 14.
+- The display mirrors (MirrorWeapon / MirrorOffHand / WpScratch), the OTHER thin row, were NOT
+  settled by the log. The battle exercised the Attack-menu row, which resolves by cursor, not
+  through these mirrors; no equip card was opened during the recorded session. The owner confirmed
+  the card by eye afterwards, so these three rest on offline evidence (481/492 neighbours at delta
+  +0) plus an owner eyeball, NOT on a log line. Recorded here deliberately: if a display bug ever
+  surfaces on 1.5.2, this is the row to re-check first.
+- Semantics were not systematically re-checked (the 1.5.1 pause-flag class of change). Nothing in
+  the session suggested drift, but absence of a symptom in one battle is not a semantic audit.
+
 ## The lesson
 
 1.5.1 taught "read the old address before assuming anything moved". 1.5.2 extends it: you can read

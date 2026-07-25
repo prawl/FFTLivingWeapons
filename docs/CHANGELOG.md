@@ -8,6 +8,44 @@ with a date and no hash. New entries are written ELI5-first (a plain-language op
 can follow, technical detail after), per the Format rules in docs/TODO.md; rows written
 before 2026-07-21 keep their original prose.
 
+## 2.3.2 cycle
+
+- [LW-132] SHIPPED 9959821 2026-07-25: the game updated to 1.5.2, the mod switched itself off to
+  protect saves, and this taught it the new build. Almost nothing had actually moved. Every table
+  and every piece of battle data the mod reads sits exactly where it sat before; one function slid
+  four bytes, and it happened to be the single function the mod attaches to, so that was the only
+  address that changed. What is worth remembering is how that was established: by comparing the old
+  and new game programs on disk, without launching the game once. Two read-only instruments do it
+  and are kept for next time (tools/probes/exe_reanchor_scan.py re-finds baked tables and hooked
+  code by content; tools/probes/rip_xref_reanchor.py recovers the addresses of battle data that only
+  exists while the game runs, by reading them back out of the game's own instructions in both builds
+  and requiring independent references to agree, up to 33 of them for the roster). docs/
+  PATCH_REANCHOR.md Step 3 now runs both FIRST, which turns the live session from a hunt into a
+  verification pass. Owner live pass 2026-07-25 (01:52 launch, 01:54 battle exit): armed with no
+  stand-down, two kills credited with victim identity, clean exit, scan_logs --require-battle
+  --flight exit 0 with zero warnings. The moved hook is confirmed by its own canary intercepting the
+  session's first prompt and reading real text, which is the direct refutation of the LW-89 failure
+  shape. Damage report: docs/research/PORT_1.5.2_OFFSETS.md. One honest caveat recorded there: the
+  three equip-card display mirrors rest on offline evidence plus the owner's own eyes on the card,
+  not on a log line, because the card paint leaves no trace the scanner reads.
+- [LW-133] SHIPPED 6f1e21a 2026-07-25: the Defender's Provoke shout is held back from this release,
+  because nobody had played it yet and its acceptance pass had never been run. A compatibility
+  release exists to make the mod work on the new game and to carry nothing else. Pulling it took
+  three changes rather than one, and the third is the one worth knowing about. The Defender stops
+  granting the command, and its equip card stops advertising a command it no longer grants. But the
+  part of the mod that hides your party was written to watch for the mark left on an enemy rather
+  than to ask whether the feature is switched on, and a Defender reaches its top tier on kills alone
+  regardless of that data. So the first two changes would have left it awake, able to hide a
+  player's whole party if anything else in the game ever set that same mark, and whether the game
+  ever does is an open question nobody has answered. It is now switched off outright, ahead of every
+  write. (Tech: items.json id 33 signature block removed plus a patch_names.py rebake of
+  item.en.nxd; Tuning.ProvokeEnabled gates ProvokeHold.Tick and ResetBattle; the ability 189 and
+  UIStatusEffect Key 1 text bakes deliberately stay, both rows being unreachable in vanilla.
+  Re-arming is a deliberate three-part edit, documented on Tuning.ProvokeEnabled, and a test pins
+  the switch off so it cannot ride along on an unrelated change.) LW-123 stays open and BUILDING:
+  nothing about the feature was reverted, only gated. Owner live pass 2026-07-25: no Provoke entry
+  in a Knight's command list, and zero provoke or hide lines in the whole session log.
+
 ## 2.3.0 cycle
 
 - [LW-109] SHIPPED 3dccbf7 2026-07-23: a rider could permanently lose the Speed the mod lent them.
