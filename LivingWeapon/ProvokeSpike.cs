@@ -6,9 +6,10 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// DEV-ONLY (LW-123 arc 2a, owner-decided 2026-07-22): arm ProvokeHold without arc 2b's real granted
-/// command (which does not exist yet -- items.json id 33 carries no signature block). Plants the SAME
-/// mark arc 1's real cast will eventually plant -- composed +0x45/0x80 and inflicted +0x1D3/0x80, the
+/// DEV-ONLY (LW-123 arc 2a, owner-decided 2026-07-22): arm ProvokeHold without needing the real
+/// granted command at all, which is what keeps the hold testable on any save, on any job, with no
+/// grown Defender in the party. Plants the SAME mark arc 1's real cast plants -- composed
+/// +0x45/0x80 and inflicted +0x1D3/0x80, the
 /// blank status id 0 (<see cref="ProvokeHold.MarkId"/>) -- on an enemy, via two guarded bit writes
 /// (<see cref="MemBits.OrSet"/>, never an unguarded deref). ProvokeHold itself gates on the mark bit,
 /// not on this class, so the production hold engine is unchanged by this spike's presence.

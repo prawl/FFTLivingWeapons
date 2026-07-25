@@ -32,7 +32,7 @@ internal sealed class Engine
     private readonly CharmLock _charm;     // named: ticked pre-gate on battleDisplayed, outside the field-signature order
     private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
     private readonly ShadowBlade _shadowBlade; // named: ticks pre-gate like Barrage (JobCommand grant of Shadow Blade)
-    private readonly Provoke _provoke;     // named: ticks pre-gate like ShadowBlade (LW-123 arc 1; ships inert -- no signature block on id 33 yet)
+    private readonly Provoke _provoke;     // named: ticks pre-gate like ShadowBlade (LW-123 arc 1; armed via id 33's signature block, disarmed by removing it)
     private readonly ProvokeHold _provokeHold;   // named: LW-123 arc 2a -- reads arc 1's mark, gates on the band bit itself, not meta[33].Signature
     private readonly TreasureMaster _treasure;
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
@@ -172,7 +172,7 @@ internal sealed class Engine
         _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
         _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3: grant Shadow Blade (HP-draining dark strike)
-        _provoke = new Provoke(meta, _kills, live);                   // Defender +3: grant Provoke (LW-123 arc 1, ships inert -- no signature block on id 33 yet)
+        _provoke = new Provoke(meta, _kills, live);                   // Defender +3: grant Provoke (LW-123 arc 1; grants only while id 33 carries its signature block)
         _provokeHold = new ProvokeHold(_kills, live);                 // LW-123 arc 2a: the hold that reads arc 1's mark and hides the party from the provoked enemy
         var extra = new ExtraTurn(_kills, live);                    // Zwill +3: a kill grants the killer an immediate extra turn
         var eagle = new EagleEye(meta, _kills, _tracker, live);     // Eclipsebolt +3: hasten the wielder's OWN Doom procs to a 1-turn countdown (LW-95: attributed only)

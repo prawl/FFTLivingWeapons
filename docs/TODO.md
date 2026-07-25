@@ -55,9 +55,15 @@ the technical detail lives in the indented lines under it.
     at 0x14078961C. Page protections on all four addresses already pass Mem.Writable, measured
     2026-07-22, so no new memory capability is needed. Arc 2, the hold, holds the composed Invisible
     bit, band +0x47 bit 0x10, on every player side seat except the bearer while an enemy holds the
-    turn. Data plumbing: id 33 has no signature block, and adding one turns two description budget
-    gates red until the living_weapon_grid.csv cell and the new p3Desc are shortened byte
-    identically.)
+    turn. Data plumbing: DONE, id 33 carries its signature block and every description budget gate
+    is green with it in.)
+  - Build state, so nobody has to rediscover it: the shout is ARMED in the tree again. 2.3.2 shipped
+    it switched off because nobody had played it yet (LW-133), which parked every outstanding Provoke
+    live check, so it was re armed in all three of its parts at once: the switch, the Defender's
+    signature block, and the equip card text, whose rebake came out byte identical to the pre disarm
+    one. Switching it off again means all three parts again, and a test now refuses either half armed
+    state. (Tech: Tuning.ProvokeEnabled true, data/items.json id 33, tools/patch_names.py; pinned by
+    ProvokeHoldTests.The_baked_meta_signature_block_agrees_with_the_ship_switch.)
   - Verify: the owner runs the live pass already written into docs/PROVOKE_AC.md, which starts with
     a bait step so a bearer who was going to be attacked anyway cannot look like a success. Two
     things must be settled BEFORE that pass is worth running, and neither is code. First, cast the
@@ -84,6 +90,24 @@ the technical detail lives in the indented lines under it.
     have to answer.) Owner only, as every AWAITING-LIVE flip is.
 
 ## Backlog
+
+- [LW-134] 2026-07-25: The deploy guard that is supposed to stop a test build from scribbling on a
+  real player's kill counts can no longer see those counts, so it silently waves the test build
+  through.
+  Why it matters: the whole reason the guard exists is that a test build seeds every weapon's tally
+  and that once polluted a real save. It only defends an install that carries a marker file saying
+  what flavour is deployed, and falls back to looking for kills.json next to the mod. Nobody
+  installing a release zip gets a marker, and the save files moved out of the mod folder when save
+  scoping shipped (LW-51, bf351db, into Reloaded\User\Mods), so the fallback now looks in a place
+  the file can never be. Both halves miss the exact case they were written for.
+  Found 2026-07-25 while re-arming Provoke: the install was a PRODUCTION 2.3.2 build with a live
+  384 kill tally, no marker file, and a plain dev BuildLinked was ready to deploy over it without a
+  word. It was harmless only by luck, because that tally turned out to be dev-seeded already (119 of
+  121 weapons sitting exactly on the seed floor of 3), so the seeding had nothing left to spoil.
+  Fix direction: point the fallback at the real save directory (SaveLocation.ResolveSaveDir is the
+  one truth, and the runtime already logs the path at startup), and consider having the running mod
+  stamp its own flavour into the save directory at launch, since Tuning.BuildFlavor is compiled in
+  and cannot be stale the way a deploy-time marker can. (Tech: BuildLinked.ps1 lines 78 to 95.)
 
 - [LW-131] 2026-07-23: Provoke keeps hanging on for its full thirty second safety timer even when
   the enemy you shouted at HAS taken its turn, so the shout runs far longer than it should and

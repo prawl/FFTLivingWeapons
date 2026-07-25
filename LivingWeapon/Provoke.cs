@@ -13,13 +13,15 @@ namespace LivingWeapon;
 /// (the two byte writes that repoint ability 189's effect), a genuinely separate state machine
 /// with its own arming condition -- see the class doc there for why the two cannot share one.
 ///
-/// SHIPS INERT. items.json id 33 (Defender) carries no `signature` block yet, so in production
-/// this module is constructed, ticks, finds no meta.Signature, and does nothing. That is
-/// deliberate: the mark this module makes castable NEVER EXPIRES and CANNOT BE RE-APPLIED (see
-/// docs/PROVOKE_AC.md), and the hold engine that would make the mark do anything -- and clear it
-/// again -- is a separate arc that does not exist yet. Tests supply their own meta dictionary
-/// (exactly like ShadowBladeTests), so this module is fully covered without touching
-/// data/items.json.
+/// ARMED OR INERT IS A DATA QUESTION, not a code one: this module grants nothing unless
+/// items.json id 33 (Defender) carries a `signature` block, since it ticks, finds no
+/// meta.Signature, and returns. 2.3.2 shipped with that block removed and the module therefore
+/// inert (LW-133); it is back for LW-123's acceptance pass, and the pairing is machine-checked
+/// (ProvokeHoldTests.The_baked_meta_signature_block_agrees_with_the_ship_switch pins the block
+/// against Tuning.ProvokeEnabled, so the grant can never be live while the hold that clears the
+/// mark is switched off -- the mark this module makes castable does NOT expire on its own; see
+/// docs/PROVOKE_AC.md). Tests supply their own meta dictionary (exactly like ShadowBladeTests),
+/// so this module stays fully covered either way, without touching data/items.json.
 ///
 /// The wielder scan below does NOT filter by job eligibility (unlike ShadowBlade's scan, where
 /// IsEligible and TryResolveGrant are the same check): it finds any valid Defender main-hand

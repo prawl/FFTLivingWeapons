@@ -1043,7 +1043,15 @@
         0.58,
         0.18,
         0.92
-      ]
+      ],
+      "signature": {
+        "atTier": 3,
+        "grantCommandAbilityId": 189,
+        "displayLabel": "Provoke",
+        "sigName": "Provoke (Knight jobs only)",
+        "note": "Provoke -- grant ability 189 (vanilla Embrace, renamed to Provoke) into the wielder's JobCommand menu via the proven Barrage/ShadowBlade injection lane, whitelisted to the same Squire/Knight sword skill-sets (ProvokePolicy delegates to ShadowBladePolicy.TryResolveGrant). Ability 189's action-row InflictStatus byte is repointed live (Provoke.Table.cs) at a hand-authored inflict row that plants StatusEffectData id 0, a blank mark carrying no behaviour; VERIFIED LIVE 2026-07-22 the cast lands at 100% on a boss (Loffrey). Arc 2a's ProvokeHold reads that mark and, while an enemy holds the turn, hides every player-side unit except the bearer with the Invisible bit so the enemy AI funnels onto the bearer; the FUNNEL is PROVEN LIVE 2026-07-22 (WINDOW mode, actor-pointer prompt release). p3Desc is byte-identical to docs/living_weapon_grid.csv's '+3 ability' cell (analyze.py lockstep). KNOWN (AC 0e): the grant is job-global so enemy Knights inherit the command until the usable-by-AI fix ships (a separate step).",
+        "p3Desc": "Threatens a foe, drawing enemy attacks onto the bearer until that foe takes its turn."
+      }
     },
     {
       "id": 34,

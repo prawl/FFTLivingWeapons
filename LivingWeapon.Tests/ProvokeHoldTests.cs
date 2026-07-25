@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using Xunit;
 
 namespace LivingWeapon.Tests;
@@ -111,13 +112,15 @@ public class ProvokeHoldTests
 
     // ---- THE SHIP SWITCH (LW-133): disabled means inert, not merely quiet ----
 
-    /// <summary>2.3.2 ships Provoke disarmed (the Defender carries no signature block), but this
-    /// hold deliberately gates on the MARK BIT rather than on meta[33].Signature, so removing the
-    /// block alone would leave it live: any enemy found carrying status id 0 would still hide the
-    /// party for a player whose Defender reached tier 3 on kills alone. "Vanilla never sets status
-    /// id 0" is an UNVERIFIED premise (the control battle that would settle it has not been run),
-    /// so the compat release must not rest on it. With the switch off the hold must not arm, must
-    /// hide nobody, and must not write at all.</summary>
+    /// <summary>The switch has to survive being turned back off, which is why these two tests pass
+    /// enabled: false explicitly rather than leaning on the compiled default (2.3.2 shipped it off,
+    /// LW-133; it is on again for the LW-123 acceptance pass). What it buys: this hold gates on the
+    /// MARK BIT rather than on meta[33].Signature, so pulling the Defender's signature block alone
+    /// would leave it live, and any enemy found carrying status id 0 would still hide the party for
+    /// a player whose Defender reached tier 3 on kills alone. "Vanilla never sets status id 0" is
+    /// an UNVERIFIED premise (the cast-nothing control battle that would settle it has not been
+    /// run), so a release must be able to opt out of resting on it. With the switch off the hold
+    /// must not arm, must hide nobody, and must not write at all.</summary>
     [Fact]
     public void Disabled_hold_never_arms_even_with_a_marked_enemy_and_a_tier3_bearer()
     {
@@ -135,8 +138,8 @@ public class ProvokeHoldTests
     }
 
     /// <summary>The same switch must also silence the every-tick ScrubPlayerSideMarks write, which
-    /// runs independently of hold state: with Provoke disarmed the mod has no business clearing a
-    /// status bit it did not set.</summary>
+    /// runs independently of hold state: with Provoke switched off the mod has no business clearing
+    /// a status bit it did not set.</summary>
     [Fact]
     public void Disabled_hold_does_not_scrub_a_player_side_mark()
     {
@@ -152,12 +155,54 @@ public class ProvokeHoldTests
         Assert.True(HasInflictedMark(m, 1));
     }
 
-    /// <summary>The shipped default IS off for 2.3.2. Pinned so re-arming Provoke has to be a
-    /// deliberate edit that turns this test red, not something that rides along on an unrelated
-    /// change (docs/TODO.md LW-133).</summary>
+    /// <summary>The compiled default is ON again, re-armed for the LW-123 acceptance pass after
+    /// 2.3.2 shipped it off (LW-133). Pinned in BOTH directions on purpose: flipping this switch
+    /// either way has to be a deliberate edit that turns this test red, never something that rides
+    /// along on an unrelated change.</summary>
     [Fact]
-    public void Provoke_ships_disabled_in_this_release()
-        => Assert.False(Tuning.ProvokeEnabled);
+    public void Provoke_is_armed_in_this_build()
+        => Assert.True(Tuning.ProvokeEnabled);
+
+    /// <summary>THE THREE-PART CONTRACT, mechanised. Arming Provoke is not one edit: the switch
+    /// above turns the hold on, and the Defender's items.json signature block is what grants the
+    /// command that plants the mark the hold reads. Either half alone is a broken build. Switch on
+    /// with no signature block = a hold watching for a mark the player has no way to cast, which is
+    /// live behaviour resting on the unverified "vanilla never sets status id 0" premise for no
+    /// benefit at all; signature block with the switch off = a command that visibly does nothing.
+    /// (The third part, the item.en.nxd card text, is gated by tools/audit_nxd_bakes.py instead:
+    /// it is a baked binary, outside this suite's reach.)</summary>
+    [Fact]
+    public void The_baked_meta_signature_block_agrees_with_the_ship_switch()
+    {
+        var meta = MetaLoader.Load(RepoLivingWeaponDir());
+        Assert.True(meta.ContainsKey(DefenderId), "meta.json has no Defender (id 33) row at all");
+        var sig = meta[DefenderId].Signature;
+
+        if (Tuning.ProvokeEnabled)
+        {
+            Assert.NotNull(sig);
+            Assert.Equal(ProvokePolicy.ProvokeAbilityId, sig!.GrantCommandAbilityId);
+            Assert.Equal(3, sig.AtTier);
+        }
+        else
+        {
+            Assert.Null(sig);
+        }
+    }
+
+    /// <summary>Walk up from the test bin dir to the repo's LivingWeapon/ dir, the one holding the
+    /// build-generated meta.json (same walk as MetaSchemaTests.RepoMetaPath).</summary>
+    private static string RepoLivingWeaponDir()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            string candidate = Path.Combine(dir.FullName, "LivingWeapon", "meta.json");
+            if (File.Exists(candidate)) return Path.GetDirectoryName(candidate)!;
+            dir = dir.Parent;
+        }
+        throw new FileNotFoundException("LivingWeapon/meta.json not found above the test bin dir");
+    }
 
     // ---- THE LOAD-BEARING TEST (SLICE mode) ----
 
