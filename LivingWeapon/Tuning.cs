@@ -396,6 +396,26 @@ internal static class Tuning
     // -- Provoke hold (LW-123 arc 2a): docs/PROVOKE_AC.md / the arc 2a plan's "Locked design
     //    decisions". Arc 1 (Provoke.cs) plants the mark; this knob set tunes the hold that reads it. --
 
+    /// <summary>THE SHIP SWITCH for the whole Provoke feature (LW-133, 2.3.2). False = the hold is
+    /// wholly inert: it never arms, hides nobody, and performs no write at all, not even the
+    /// every-tick player-side mark scrub.
+    ///
+    /// Why a switch rather than just deleting the Defender's items.json signature block (which
+    /// 2.3.2 also does, and which is what stops the COMMAND being granted): this hold deliberately
+    /// gates on the MARK BIT rather than on meta[33].Signature, because arc 2b's data plumbing was
+    /// pending when it was written. So the data edit alone would leave the hold live, and any enemy
+    /// found carrying status id 0 would still hide the party for a player whose Defender reached
+    /// tier 3 -- and tier is earned from KILLS, independently of the signature block. That rests on
+    /// "vanilla never sets status id 0", which is an UNVERIFIED premise: the control battle that
+    /// would settle it (docs/PROVOKE_AC.md, the cast-nothing opener) has not been run. 2.3.2 is a
+    /// game-compatibility release and must not rest on an unverified premise, so the feature ships
+    /// behind this switch.
+    ///
+    /// Re-arming is a deliberate three-part edit, not a flag flip: set this true, restore the id 33
+    /// signature block (its exact text is in git at commit 9959821^), and re-run tools/patch_names.py
+    /// so the equip card advertises the command again. ProvokeHoldTests pins the false.</summary>
+    public const bool ProvokeEnabled = false;
+
     /// <summary>Hide mode (decision 3, owner pivot 2026-07-22): true = SLICE, the clean facade -- hide
     /// every player-side-but-bearer unit iff the PROVOKED enemy is the unit whose turn it is right now
     /// (so only the goaded enemy's own turn is affected). false = WINDOW, the guaranteed-no-race

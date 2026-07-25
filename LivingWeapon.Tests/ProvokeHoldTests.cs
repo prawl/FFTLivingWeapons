@@ -14,6 +14,15 @@ namespace LivingWeapon.Tests;
 public class ProvokeHoldTests
 {
     private const int DefenderId = Provoke.DefenderId;   // 33
+    /// <summary>Every test here constructs the hold through this factory, which opts INTO the
+    /// feature (enabled: true). The shipped default is OFF for 2.3.2 (Tuning.ProvokeEnabled, see
+    /// Provoke_ships_disabled_in_this_release), and that switch gates SHIPPING, not the logic: the
+    /// arc 2a behavior below must stay fully covered while the feature waits for its live pass, so
+    /// the suite would go quietly vacuous if these inherited the off default.</summary>
+    private static ProvokeHold Hold(Dictionary<int, int> kills, FakeSparseMemory m,
+        bool? sliceMode = null, int? provokeTurns = null, bool enabled = true)
+        => new ProvokeHold(kills, m, sliceMode, provokeTurns, enabled);
+
     private static Dictionary<int, int> Tier3Kills() => new() { [DefenderId] = 999 };
 
     private static void SeatBearer(FakeSparseMemory m, int rosterSlot, int bandIdx,
@@ -100,6 +109,56 @@ public class ProvokeHoldTests
         (m.U8(Band.Entry(bandIdx) + StatusApply.Inflicted + StatusApply.StatusByte(ProvokeHold.MarkId))
             & StatusApply.StatusMask(ProvokeHold.MarkId)) != 0;
 
+    // ---- THE SHIP SWITCH (LW-133): disabled means inert, not merely quiet ----
+
+    /// <summary>2.3.2 ships Provoke disarmed (the Defender carries no signature block), but this
+    /// hold deliberately gates on the MARK BIT rather than on meta[33].Signature, so removing the
+    /// block alone would leave it live: any enemy found carrying status id 0 would still hide the
+    /// party for a player whose Defender reached tier 3 on kills alone. "Vanilla never sets status
+    /// id 0" is an UNVERIFIED premise (the control battle that would settle it has not been run),
+    /// so the compat release must not rest on it. With the switch off the hold must not arm, must
+    /// hide nobody, and must not write at all.</summary>
+    [Fact]
+    public void Disabled_hold_never_arms_even_with_a_marked_enemy_and_a_tier3_bearer()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, rosterSlot: 0, bandIdx: 0);
+        SeatAlly(m, bandIdx: 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, bandIdx: 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true);
+
+        var hold = Hold(Tier3Kills(), m, enabled: false);
+        hold.Tick(DateTime.UtcNow, inLive: true);
+
+        Assert.False(IsInvisible(m, 1));    // the ally stays visible: nothing was hidden
+        Assert.False(IsInvisible(m, 0));
+        Assert.True(HasMark(m, 10));        // and the enemy's own mark is left alone, not scrubbed
+    }
+
+    /// <summary>The same switch must also silence the every-tick ScrubPlayerSideMarks write, which
+    /// runs independently of hold state: with Provoke disarmed the mod has no business clearing a
+    /// status bit it did not set.</summary>
+    [Fact]
+    public void Disabled_hold_does_not_scrub_a_player_side_mark()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, rosterSlot: 0, bandIdx: 0);
+        SeatAlly(m, bandIdx: 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SetMark(m, 1, true);
+
+        var hold = Hold(Tier3Kills(), m, enabled: false);
+        hold.Tick(DateTime.UtcNow, inLive: true);
+
+        Assert.True(HasMark(m, 1));
+        Assert.True(HasInflictedMark(m, 1));
+    }
+
+    /// <summary>The shipped default IS off for 2.3.2. Pinned so re-arming Provoke has to be a
+    /// deliberate edit that turns this test red, not something that rides along on an unrelated
+    /// change (docs/TODO.md LW-133).</summary>
+    [Fact]
+    public void Provoke_ships_disabled_in_this_release()
+        => Assert.False(Tuning.ProvokeEnabled);
+
     // ---- THE LOAD-BEARING TEST (SLICE mode) ----
 
     [Fact]
@@ -110,7 +169,7 @@ public class ProvokeHoldTests
         SeatAlly(m, bandIdx: 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, bandIdx: 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, inLive: true);
 
         Assert.True(IsInvisible(m, 1));     // the other player unit is hidden
@@ -132,7 +191,7 @@ public class ProvokeHoldTests
         // Explicit sliceMode: true -- the shipped default is now WINDOW (Tuning.ProvokeSliceMode,
         // flipped 2026-07-22 after the slice turn-start race lost live), so this SLICE-specific
         // facade test opts in rather than relying on the default.
-        var hold = new ProvokeHold(Tier3Kills(), m, sliceMode: true);
+        var hold = Hold(Tier3Kills(), m, sliceMode: true);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.False(IsInvisible(m, 1));   // nobody hidden: the ACTIVE unit is not the marked one
@@ -151,7 +210,7 @@ public class ProvokeHoldTests
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 10;
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;
 
-        var hold = new ProvokeHold(Tier3Kills(), m, sliceMode: false);
+        var hold = Hold(Tier3Kills(), m, sliceMode: false);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.True(IsInvisible(m, 1));
@@ -169,7 +228,7 @@ public class ProvokeHoldTests
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
         SeatEnemy(m, 11, lvl: 20, br: 30, fa: 30, gx: 6, gy: 6, marked: false, active: false, nameId: 501);   // fp-identical twin
 
-        var hold = new ProvokeHold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);   // arms (marked not active)
 
@@ -198,7 +257,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);   // arms; TqTeam defaults to 0 (a player turn), nobody active yet
 
@@ -225,7 +284,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);   // arms; marked active -> ally hidden
         Assert.True(IsInvisible(m, 1));
@@ -257,7 +316,7 @@ public class ProvokeHoldTests
         // provokeTurns=2 isolates SLICE's own reveal from the coincident EnemyTurnDone release the
         // shipped default of 1 would otherwise trigger on this exact edge. Explicit sliceMode: true
         // because the shipped default is now WINDOW (see the facade test above).
-        var hold = new ProvokeHold(Tier3Kills(), m, sliceMode: true, provokeTurns: 2);
+        var hold = Hold(Tier3Kills(), m, sliceMode: true, provokeTurns: 2);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -282,7 +341,7 @@ public class ProvokeHoldTests
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 10;
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;   // enemy turn at arm
 
-        var hold = new ProvokeHold(Tier3Kills(), m, sliceMode: false);
+        var hold = Hold(Tier3Kills(), m, sliceMode: false);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -303,7 +362,7 @@ public class ProvokeHoldTests
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 10;
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;
 
-        var hold = new ProvokeHold(Tier3Kills(), m, sliceMode: false);
+        var hold = Hold(Tier3Kills(), m, sliceMode: false);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -325,7 +384,7 @@ public class ProvokeHoldTests
         m.U8s[invisAddr] = Offsets.AInvisibleBit;   // already invisible (FeignDeath's, say)
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);   // arm + hide step: band1 already invisible -> skipped, never written
         Assert.False(m.Written.ContainsKey(invisAddr));
@@ -349,7 +408,7 @@ public class ProvokeHoldTests
         long composedByte = Band.Entry(10) + StatusApply.Composed;
         m.U8s[composedByte] = (byte)(m.U8(composedByte) | Offsets.AUndeadBit);   // pre-set on the SAME byte the mark shares
 
-        var hold = new ProvokeHold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -374,7 +433,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -394,7 +453,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -416,7 +475,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -440,7 +499,7 @@ public class ProvokeHoldTests
         m.U8s[Band.Entry(2) + Offsets.AGateByte] = Offsets.AGateHiddenValue;   // combat +0x01 == 0xFF
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.True(IsInvisible(m, 1));
@@ -455,7 +514,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 40, lvl: 28, br: 44, fa: 66, gx: 7, gy: 7);   // a "guest" far from the usual party range
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.True(IsInvisible(m, 40));
@@ -471,7 +530,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
         Assert.True(IsInvisible(m, 1));
 
@@ -504,7 +563,7 @@ public class ProvokeHoldTests
         ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
         try
         {
-            var hold = new ProvokeHold(Tier3Kills(), m);
+            var hold = Hold(Tier3Kills(), m);
             var t0 = DateTime.UtcNow;
             hold.Tick(t0, true);   // arms
             hold.Tick(t0.AddSeconds(Tuning.ProvokeWatchdogSeconds + 1), true);   // unpaused, cap exceeded
@@ -522,7 +581,7 @@ public class ProvokeHoldTests
         SeatBearer(m, 0, 0);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);   // arms
 
@@ -547,7 +606,7 @@ public class ProvokeHoldTests
         ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
         try
         {
-            var hold = new ProvokeHold(Tier3Kills(), m);
+            var hold = Hold(Tier3Kills(), m);
             hold.Tick(DateTime.UtcNow, true);
         }
         finally { ModLogger.UseNullLogger(); }
@@ -573,7 +632,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 2, lvl: 26, br: 41, fa: 61, gx: 3, gy: 3);   // hidden-when-armed control seat
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.False(HasMark(m, 1));            // composed layer scrubbed off the ally
@@ -605,7 +664,7 @@ public class ProvokeHoldTests
         byte composedBefore = m.U8(composedByte);
         byte inflictedBefore = m.U8(inflictedByte);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
         byte mask = StatusApply.StatusMask(ProvokeHold.MarkId);
@@ -626,7 +685,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 2, lvl: 26, br: 41, fa: 61, gx: 3, gy: 3);   // hidden-when-armed control seat
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);   // arms on the enemy
         Assert.True(IsInvisible(m, 2));
@@ -654,7 +713,7 @@ public class ProvokeHoldTests
         // bandIdx 2 is never seated at all (lvl/br/fa/mhp all read 0) -> Band.IsValid is false.
         SetMark(m, 2, true);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.True(HasMark(m, 1));   // off-field: skipped, mark survives untouched
@@ -673,7 +732,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.False(m.Written.ContainsKey(Band.Entry(0) + StatusApply.Composed));
@@ -690,7 +749,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SetMark(m, 1, true);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, false);
 
         Assert.True(HasMark(m, 1));
@@ -705,7 +764,7 @@ public class ProvokeHoldTests
         SeatBearer(m, 0, 0);
         SetMark(m, 0, true);
 
-        var hold = new ProvokeHold(Tier3Kills(), m);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.False(HasMark(m, 0));

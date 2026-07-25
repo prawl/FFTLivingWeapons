@@ -11,7 +11,7 @@ is the in-flight subset, not a mirror of that checklist.
 Entries are written ELI5-first: the opening sentence is plain language anyone can follow, and
 the technical detail lives in the indented lines under it.
 
-## Now (release: 2.3.1)
+## Now (release: 2.3.2)
 
 - **[LW-132] The game updated to 1.5.2 and the mod switched itself off; teach it the new build** (opened 2026-07-24) [AWAITING-LIVE]
   - Done means: the mod recognises the updated game and arms normally again, and the one piece of
@@ -33,6 +33,24 @@ the technical detail lives in the indented lines under it.
     hook is attached correctly. Also re-check meaning, not just address: 1.5.1 kept the pause flag
     at its old home while narrowing what it meant, and an offline diff cannot see that class of
     change. Then `python tools/scan_logs.py --require-battle --flight` exits 0.
+
+- **[LW-133] Hold the Defender's shout back from the 2.3.2 release until it has been played** (opened 2026-07-25) [AWAITING-LIVE]
+  - Done means: the compatibility release does not hand players the Provoke shout, because nobody
+    has played it yet. Three things had to happen together, not one: the Defender stops granting the
+    command, its equip card stops advertising a command it no longer grants, and the part of the mod
+    that hides your party is switched off outright. That last one matters most: it was written to
+    watch for the mark on an enemy rather than to ask whether the feature is switched on, so pulling
+    the command alone would have left it able to hide a player's whole party if anything else in the
+    game ever set that same mark. Nobody has checked whether the game does. (Tech: items.json id 33
+    signature block removed plus a patch_names.py rebake of item.en.nxd; Tuning.ProvokeEnabled=false
+    gates ProvokeHold.Tick and ResetBattle before any write, mutation-checked. The ability 189 and
+    UIStatusEffect Key 1 text bakes deliberately stay: both rows are unreachable in vanilla.)
+  - Verify: OWNER, live, and this one is cheap because it is all absence. Field a tier-3 Defender on
+    a Knight and confirm there is NO Provoke entry in its command list, and that the Defender's equip
+    card no longer mentions Provoke anywhere. Then play one ordinary battle and confirm nothing in
+    your party ever turns invisible on an enemy turn. Re-arming later is deliberately a three-part
+    edit, not a flag flip: see Tuning.ProvokeEnabled's doc for the exact steps and where the removed
+    block lives in git.
 
 - **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [BLOCKED(needs instrumentation and a slow enough restart)]
   - Done means: a rider who restarts a battle and opens it dismounted no longer carries the

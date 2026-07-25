@@ -28,6 +28,7 @@ internal sealed partial class ProvokeHold : ISignature
 
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, int> _kills;
+    private readonly bool _enabled;
     private readonly bool _sliceMode;
     private readonly int _provokeTurns;
     private readonly List<long> _hideScratch = new();
@@ -46,10 +47,17 @@ internal sealed partial class ProvokeHold : ISignature
     /// Engine.bannerToasts ctor-seam precedent) -- isolates the WINDOW fallback for tests.</param>
     /// <param name="provokeTurns">Overrides Tuning.ProvokeTurns; null uses the compiled default --
     /// isolates "still armed after one turn ends" from the release value 1 triggers immediately.</param>
-    public ProvokeHold(Dictionary<int, int> kills, IGameMemory? mem = null, bool? sliceMode = null, int? provokeTurns = null)
+    /// <param name="enabled">Overrides <see cref="Tuning.ProvokeEnabled"/>, the feature's ship
+    /// switch; null uses the compiled default (false for 2.3.2). The switch gates SHIPPING, not the
+    /// logic, so the arc 2a behavior must stay covered while the feature waits for its live pass:
+    /// ProvokeHoldTests routes every construction through its own Hold(...) factory that passes
+    /// true, which is what stops the suite going vacuous the moment the default flipped off.</param>
+    public ProvokeHold(Dictionary<int, int> kills, IGameMemory? mem = null, bool? sliceMode = null,
+        int? provokeTurns = null, bool? enabled = null)
     {
         _mem = mem ?? new LiveMemory();
         _kills = kills;
+        _enabled = enabled ?? Tuning.ProvokeEnabled;
         _sliceMode = sliceMode ?? Tuning.ProvokeSliceMode;
         _provokeTurns = provokeTurns ?? Tuning.ProvokeTurns;
     }
@@ -59,6 +67,10 @@ internal sealed partial class ProvokeHold : ISignature
     /// this (the flight recorder's "loses the ring" loss mode); protects same-process restarts only.</summary>
     public void ResetBattle()
     {
+        // Ship switch (LW-133): inert means NO write, and that has to hold on the battle edges too,
+        // not just in Tick -- ResetBattle reveals, scrubs marks and clears state, all writes.
+        // Nothing can have been flagged while disabled, so there is nothing to undo either.
+        if (!_enabled) return;
         foreach (var id in _everFlagged)
         {
             long e = LocateByIdentity(_mem, id);
@@ -78,6 +90,10 @@ internal sealed partial class ProvokeHold : ISignature
 
     public void Tick(DateTime now, bool inLive)
     {
+        // Ship switch (LW-133): before the mark scan and before ScrubPlayerSideMarks, so a disabled
+        // build neither arms nor writes. See Tuning.ProvokeEnabled for why the items.json disarm
+        // alone is not sufficient (this hold gates on the mark bit, not on meta[33].Signature).
+        if (!_enabled) return;
         if (!inLive) return;
 
         ScrubPlayerSideMarks();   // LW-130: independent of hold state, an ally can be provoked anytime
