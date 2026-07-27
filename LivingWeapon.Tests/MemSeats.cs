@@ -40,7 +40,7 @@ internal static class MemSeats
 
     internal static void SeatBand(FakeSparseMemory m, int bandIdx, int weapon, int lvl, int br, int fa,
                                   int gx, int gy, int hp = 100, int maxHp = 100, int ctTurn = 0,
-                                  int speed = 0)
+                                  int speed = 0, int? ctSlam = null)
     {
         long e = Band.Entry(bandIdx);
         m.U16s[e + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)weapon;
@@ -53,6 +53,11 @@ internal static class MemSeats
         m.U16s[e + Offsets.AMaxHp] = (ushort)maxHp;
         m.U8s[e + Offsets.ACtTurn] = (byte)ctTurn;
         m.U8s[e + Offsets.ASpeed]  = (byte)speed;
+        // LW-127: ACtSlam (band +0x25) is the field TurnOrder.cs reads for the CT+Speed turn-order
+        // ranking. Nullable and additive-only: every existing caller leaves it unwritten, exactly as
+        // before (an unseeded FakeSparseMemory read already returns 0, so leaving it null is not
+        // merely "harmless", it is bit-for-bit the old behavior).
+        if (ctSlam.HasValue) m.U8s[e + Offsets.ACtSlam] = (byte)ctSlam.Value;
     }
 
     /// <summary>Seed a band entry's job byte (Puppeteer.JobOff, band-entry-relative == combat
