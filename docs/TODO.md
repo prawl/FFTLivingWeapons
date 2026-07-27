@@ -148,6 +148,27 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-139] 2026-07-27: The mod can now know who acts NEXT, and several features that currently
+  guess at turn state from present tense signals could be rebuilt on it.
+  Why it matters: every turn related mechanic in the runtime today asks "who is acting right now"
+  and answers with either the engine's actor pointer (which parks on units that were merely struck,
+  the LW-138 bug) or the per unit menu open flag (which is blank during action resolution, the hole
+  LW-138 fell through). Neither can answer "who is up after this one", so anything wanting to act
+  BEFORE a turn opens has been impossible. The CT and Speed clock model proved live on 2026-07-27
+  reproduces the game's own Combat Timeline, so that answer is now available for the cost of a band
+  walk, with no new write surface and no new address.
+  Candidate consumers, each its own card when picked up: Provoke's hide (LW-118, the reason this was
+  proven at all), Iai and Kobu and Mushin's turn detection, the Attack card's turn owner resolve
+  (LW-87 anchors it on the menu open flag), and ExtraTurn, which already WRITES CT and could read
+  the same field it slams.
+  Not free, and the limit is sharper than the headline: only the NEXT unit to act is trustworthy.
+  That part scored 15 of 15 across two sessions and a game restart. The DEEP forecast is not
+  trustworthy and the two runs disagree about how far it holds, one staying exact for six turns and
+  the other going wrong at three, so any consumer wanting more than one turn of lookahead has to
+  earn it with its own measurement rather than inheriting this row. Shared code would want one turn
+  order helper rather than five copies. (Tech: band +0x25 CT and
+  +0x24 Speed; ledger rows dated 2026-07-27; harness tools/probes/provoke_lookahead_probe.py.)
+
 - [LW-138] 2026-07-27: The Defender's shout ended a few seconds after being cast, long before the
   enemy it was aimed at took its turn, so by the time that enemy moved the party was visible again
   and it attacked whoever it liked.
