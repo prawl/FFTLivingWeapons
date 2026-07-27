@@ -13,33 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.2)
 
-- **[LW-100] A restarted battle can keep a leftover Speed boost while the rider starts on foot** (opened 2026-07-21) [BLOCKED(needs instrumentation and a slow enough restart)]
-  - Done means: a rider who restarts a battle and opens it dismounted no longer carries the
-    previous run's leftover mounted Speed until they climb back on a chocobo; the mod
-    recognises its own leftover boost even when the signature that wrote it is not currently
-    active. (Tech: HoldTimedStat's LW-90 correction fires only at an ACTIVE capture, so a
-    dismounted battle 2 open skips capture entirely; candidate is an inactive first sight
-    NaturalLedger consult for mount gated signatures. Rides with it: a clean remount capture
-    currently drops the post revert corrective sentinel for the rest of the battle.)
-  - Verify: the owner ran the live pass 2026-07-21 and it came back INCONCLUSIVE, not clean, so
-    the ticket stays open. What happened: the reload took 3.469 seconds and the mod only counts a
-    battle as ended after 4.0 seconds out of battle, so it never saw an end or a start, never
-    cleared its notes, and simply wrote the natural it still remembered. A reading of natural is
-    what the mod produces in BOTH worlds, so that seat cannot tell them apart. Two things did
-    change: the premise this ticket rests on is no longer unverified, because the same session
-    caught the mod's own boosted value surviving a battle rebuild on the PA lane (read 27 against
-    natural 21, exactly the 1.30 hold target) and the previous log caught it on the SPEED byte
-    itself (iai read 18 against natural 11). RE TEST RECIPE, in order: (1) DONE 2026-07-23, commit
-    3dccbf7: the mount lane now logs its capture, boost, re-apply and revert, so a line appearing
-    means a write really happened and the absence of one is finally evidence. This step used to be
-    the blocker and no longer is; (2) make the restart cross the 4 second debounce,
-    or lower ExitDebounceSeconds in a dev build, and CONFIRM a real battle-end plus battle-start
-    pair in livingweapon.log before trusting the read; (3) then read Speed at the restarted open
-    while on foot, BEFORE remounting. Only then the unit tests: a recorded leftover target is
-    refused as a natural even with no active hold, plus the remount sentinel. (Tech: the code hole
-    is confirmed, GrowthEngine.TimedStat.cs gates the only FilterCapture call on active first, so
-    a dismounted open misses all three arms. The 2026-07-21 pass never entered it.)
-
 - **[LW-123] Give the Defender a shout that pulls one enemy's attention onto the person holding it** (opened 2026-07-22) [BUILDING]
   - Done means: a player holding a grown Defender can point at any enemy on the field, and until
     that enemy has taken its turn, the enemies who act cannot see anyone on your side except the
@@ -74,44 +47,11 @@ the technical detail lives in the indented lines under it.
     criterion 0d met for the mark that actually ships rather than inherited from the abandoned Wall
     evidence. Second, the table byte worry: the probe reported one write for each of the two bytes
     and both stuck, and the runtime is idempotent so it is correct either way. The pass itself is
-    now written for the mode that ships (WINDOW, rewritten in commit c3ed2f2), and one battle closes
+    now written for what actually ships (rewritten in c3ed2f2, then again for LW-127), and one battle closes
     this row alongside LW-130 and LW-131. Two passes were run on 2026-07-27 and each found one real
     bug, both since fixed: the hold hid nobody (LW-135), then it let go 28 seconds before the goaded
     enemy took its turn (LW-138). The retest has to confirm BOTH halves in one battle, units hidden
     AND the hold still up when that enemy actually acts. Owner only, as every AWAITING-LIVE flip is.
-
-- **[LW-131] Provoke's shout now lets go the moment the goaded enemy actually finishes its own turn** (opened 2026-07-23) [AWAITING-LIVE]
-  - Done means: the enemy the Defender's shout marks releases the hold within a turn or two of that
-    enemy really acting, instead of the shout dragging on for its full thirty second safety timer
-    and pulling every enemy that acts in that window onto the bearer. (Tech: TickArmed's turn gate
-    no longer reads the cursor/team field TurnQueue +0x02. The working suspicion is that field
-    follows the AI's targeted unit rather than the true turn owner, but that is a hypothesis, not a
-    settled fact: it departs from a LIVE_LEDGER row (docs/LIVE_LEDGER.md, Proven, dated 2026-06-16)
-    that calls that same field turn-stable, and that row's own experiment carries a documented
-    confound, it never hovered a unit belonging to a different team than the turn owner, so its
-    evidence reads just as well as the field tracking the cursor. That row stays as written; only
-    the owner flips a LIVE_LEDGER row, and the one probe that would decide between the two readings,
-    hovering a player unit during an enemy turn and reading +0x02, has never been run. The fix does
-    not need that question settled either
-    way, because it now asks Band.FlagOwner, the per-unit turn flag (the per-unit turn/moved/acted
-    flags row, docs/LIVE_LEDGER.md, dated 2026-07-09, the same row Band.cs already cites for
-    FlagOwner; a separate LW-87 row, docs/LIVE_LEDGER.md, 2026-07-21, sits under Uncertain and
-    offers supporting but not owner-confirmed observation that the flag holds through a
-    status-screen detour), whether a player-side seat currently owns the turn; only when nobody
-    does does the engine's actor pointer naming the marked enemy count as that enemy's own turn.
-    That gate reads no cursor field at all, so it holds regardless of which way the TqTeam question
-    resolves. The actor pointer identity half is unchanged on purpose: it PARKS ON STRUCK VICTIMS, so a marked
-    enemy merely hit during the player's own turn must still not count as having acted. LW-127, the
-    single enemy slice, is gated on this same turn detection question, so this fix answers part of
-    that too. LW-135 tracks the shipped hide path, which still rides the doubted field. Covered by
-    LivingWeapon.Tests\ProvokeHoldTests.cs.)
-  - Verify: PASSED live 2026-07-27, and it is the half of that pass that worked. The owner cast the
-    real command at a goblin; the hold armed, tracked that enemy through its own turn, and let go
-    1.6 seconds later naming EnemyTurnDone, with no thirty second timeout and no early release while
-    the enemy was merely being hit. The same battle failed on the OTHER half, the hide, which hid
-    nobody: that is LW-135, now confirmed and fixed, and its retest is what remains. This row's own
-    behaviour needs no further watching unless the retest changes it. The formal flip stays owner
-    only, as every AWAITING-LIVE flip is.
 
 - **[LW-130] Provoking your own teammate no longer leaves them stuck wearing the Provoked mark forever** (opened 2026-07-23) [AWAITING-LIVE]
   - Done means: casting the Defender's shout at your own side no longer leaves a mark that never
@@ -148,6 +88,54 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-100] 2026-07-21: A rider who restarts a battle and opens it on foot can keep the previous
+  run's leftover mounted Speed until they climb back on a chocobo.
+  Demoted from Now on 2026-07-27 to make room for LW-127, which is being actively worked. Nothing
+  about it changed: it has been BLOCKED since 2026-07-21 on a live pass nobody can currently run,
+  and parking it in Now while five other things move is how a ledger starts lying about what is
+  being worked.
+  State: the 2026-07-21 live pass came back INCONCLUSIVE rather than clean. The reload took 3.469
+  seconds and the mod only counts a battle as ended after 4.0 seconds out of battle, so it never saw
+  an end or a start, never cleared its notes, and wrote the natural it still remembered, which is
+  what it would produce in BOTH worlds. That seat cannot tell them apart. The premise itself is no
+  longer unverified: the same session caught the mod's own boosted value surviving a battle rebuild
+  on the PA lane (read 27 against natural 21, exactly the 1.30 hold target) and an earlier log caught
+  it on the Speed byte itself (18 against natural 11).
+  RE TEST RECIPE, in order: (1) DONE 2026-07-23, commit 3dccbf7, the mount lane now logs its
+  capture, boost, re-apply and revert, so a line appearing means a write really happened and the
+  absence of one is finally evidence; this step used to be the blocker and no longer is. (2) Make
+  the restart cross the 4 second debounce, or lower ExitDebounceSeconds in a dev build, and CONFIRM
+  a real battle-end plus battle-start pair in livingweapon.log before trusting the read. (3) Then
+  read Speed at the restarted open while on foot, BEFORE remounting. Only then the unit tests: a
+  recorded leftover target is refused as a natural even with no active hold, plus the remount
+  sentinel. (Tech: the code hole is confirmed, GrowthEngine.TimedStat.cs gates the only
+  FilterCapture call on active first, so a dismounted open misses all three arms; the 2026-07-21
+  pass never entered it. Rides with it: a clean remount capture currently drops the post revert
+  corrective sentinel for the rest of the battle.)
+
+- [LW-143] 2026-07-27: While holding the fast-forward button, the owner may have seen the Defender's
+  shout keep going past the one enemy turn it is supposed to last; parked at the owner's request
+  ("keep that in your back pocket, don't act on it yet"), a single possible sighting, not a
+  confirmed bug.
+  Why it is plausible rather than dismissed: the mod samples the battle every 33 milliseconds of
+  real time, but fast-forward speeds the GAME clock, not ours. The release needs to SEE the marked
+  enemy become the acting unit and then stop being it (a rise then a fall, LW-138's fresh-rise
+  rule). Under fast-forward a short enemy turn could open and close entirely between two of our
+  samples, so the rise is never observed, the turn is never counted, and the hold lingers until the
+  90 second watchdog force-releases it with a WARN. That WARN line, or an EnemyTurnDone arriving
+  only after a SECOND turn of the marked enemy, is exactly what the tape would show if this is
+  real; the flight tapes survive deploys, so the evidence keeps.
+  If confirmed, the likely fix direction already exists in this session's findings: detect the
+  marked enemy's turn by its CT PAYMENT (a drop of about 100, readable long after the fact) instead
+  of, or as well as, the sub-sample actor-pointer dwell. The payment persists between samples; the
+  pointer does not.
+  Probable corroborating tape, banked same day without acting on it:
+  flight_20260727_101904_battle-exit.jsonl cast 3 (mark nameId 795, second cast on that enemy)
+  held 43 seconds between its why=next hide (-110.312s) and its EnemyTurnDone release (-67.703s),
+  where the battle's other holds released within about 14 seconds. Matches the predicted
+  "EnemyTurnDone only after a later turn" signature; the release reason was NOT Watchdog, so the
+  fall was eventually observed rather than timed out.
+
 - [LW-139] 2026-07-27: The mod can now know who acts NEXT, and several features that currently
   guess at turn state from present tense signals could be rebuilt on it.
   Why it matters: every turn related mechanic in the runtime today asks "who is acting right now"
@@ -168,26 +156,6 @@ the technical detail lives in the indented lines under it.
   earn it with its own measurement rather than inheriting this row. Shared code would want one turn
   order helper rather than five copies. (Tech: band +0x25 CT and
   +0x24 Speed; ledger rows dated 2026-07-27; harness tools/probes/provoke_lookahead_probe.py.)
-
-- [LW-138] 2026-07-27: The Defender's shout ended a few seconds after being cast, long before the
-  enemy it was aimed at took its turn, so by the time that enemy moved the party was visible again
-  and it attacked whoever it liked.
-  Why it matters: this is the shout doing nothing, which is what the owner saw in the second live
-  pass, and it looked like a success in the log. The evidence: armed 04:30:40.222, hid 2 units 5ms
-  later, released reason=EnemyTurnDone at 04:30:43.467, and the marked enemy was still standing on
-  the tile both lines name (3,11) for another 31 seconds before it moved.
-  Cause: the engine's actor pointer parks on the unit a player action targeted, and Provoke targets
-  the enemy it marks, so during the cast's own resolution the pointer named the marked enemy. The
-  LW-131 turn-flag gate cannot veto that, because that flag is raised by an open MENU and every menu
-  is closed while an action resolves, so the tick reads exactly like an enemy turn. The end of that
-  park was counted as a completed turn.
-  FIXED the same day: a park already underway when the hold arms is ignored, and only a park that
-  RISES after arming can complete a turn. Tuning.ProvokeWatchdogSeconds went 30 to 90 in the same
-  change, because the 31-second wait this pass measured is a HEALTHY hold and the old cap would have
-  force-released it about a second before the enemy acted, logging the warning that means a real
-  bug. (Tech: ProvokeHold._sawFreshRise, docs/PROVOKE_AC.md criteria 2 and 14, covered by three
-  tests plus a rewrite of the six that had encoded the false edge in their fixtures.)
-  Still open: the retest. Nobody has yet seen the hold survive until the marked enemy's real turn.
 
 - [LW-137] 2026-07-27: Kill credit may be reading the same field Provoke just stopped trusting, so a
   kill scored while the cursor happens to sit on an enemy could be filed as an enemy's kill instead
@@ -223,56 +191,6 @@ the technical detail lives in the indented lines under it.
   stamp its own flavour into the save directory at launch, since Tuning.BuildFlavor is compiled in
   and cannot be stale the way a deploy-time marker can. (Tech: BuildLinked.ps1 lines 78 to 95.)
 
-- [LW-135] 2026-07-25: While a shouted-at enemy is taking its turn, the party units Provoke is
-  supposed to keep hidden might be reading their hide/reveal call off the same cursor field LW-131
-  just stopped trusting for the release gate, so the hiding itself could still be riding a guess.
-  Why it matters: Tuning.ProvokeSliceMode ships false, so WINDOW mode is what players get, and
-  WindowAction (ProvokeHold.Scan.cs, around line 182) feeds ProvokeHold.Policy.cs's ActionFor from
-  TurnQueue +0x02, the same cursor/team field LW-131 only stopped trusting for the release decision,
-  not for this hide/reveal decision. If the LW-131 cursor hypothesis turns out true, then mid enemy
-  action the cursor can sit on the targeted player unit, the field reads 0, ActionFor returns
-  Reveal, and the party un-hides at exactly the moment the funnel matters.
-  CONFIRMED LIVE and FIXED 2026-07-27, so the paragraph above is history, not a suspicion. The owner
-  cast the real command at a goblin, the goblin acted next and attacked an ally exactly as if the mod
-  were not installed, and the log says why in one number: the hold armed, saw the goblin take its
-  turn, released cleanly as EnemyTurnDone 1.6 seconds later, and hid ZERO units the whole time
-  (arm 04:20:41.039, release 04:20:42.659, both naming tile 1,9). Turn detection was never the
-  problem; the hide was. The field read PLAYER for the whole of an enemy turn, which is the reading
-  the cursor hypothesis predicts and the turn-owner reading cannot produce, since a sane-but-
-  player-looking read is the only way ActionFor returns Reveal there.
-  The fix: WindowAction now takes the same player-side turn-flag answer the release gate already
-  computes each tick, so no cursor field is read anywhere in the module. It failed in the other
-  direction too, and that half is now covered as well: hovering an enemy on your OWN turn read ENEMY
-  and hid your party mid-turn. Both arrangements are pinned by module tests that seat the exact
-  fixture the live failure produced; the old policy tests could not express the bug, because what
-  broke was which field got READ.
-  Why the suite missed it for five days: every WINDOW fixture but one left the TurnQueue struct
-  unseeded, which reads as garbage, and bias-to-hidden turned garbage into Hide, so the tests passed
-  through the one path the live game never takes. The single test that seeded a sane queue also
-  seeded team=1. A green suite proved nothing about the live arrangement.
-  Still open here, and it is why this row stays: the retest. Nobody has yet seen the party actually
-  stay hidden through a marked enemy's turn in WINDOW mode.
-  Loosely related, not yet its own item: ProvokeHold.Scan.cs's PlayerSideOwnsTurn doc comment offers
-  a plausible, unprobed explanation for why the direct enemy-side ATurnFlag read went flaky on
-  2026-07-22. The per-unit turn/moved/acted flags row (docs/LIVE_LEDGER.md, dated 2026-07-09) reads
-  band +0x19C as set only while that unit's OWN move/act/wait menu is up, and an AI-driven unit may
-  not raise that menu the way a human-controlled one does. Worth a probe if anyone revisits the
-  enemy-side read; nothing currently shipped depends on it.
-
-- [LW-129] 2026-07-22: When Provoke hides your units, they wear a visible invisible status icon over
-  their heads, which tips off the player that the mod is doing something; suppress that icon so the
-  trick stays hidden.
-  Why it matters: the AI ignore flag and its icon are the same bit (band +0x47 bit 0x10), so we
-  cannot set the behaviour without the icon; suppressing it needs a separate rendering side lever.
-  Owner confirmed the icon still shows in the 2026-07-22 live test and wants it hidden.
-  State: candidate lever is the global overhead UI toggle (u32 at 0x436A367BF8, write 2 = UI off)
-  found via CE 2026-07-09, but it sits in the DYNAMIC 0x43xx region so its launch to launch
-  stability is UNCONFIRMED, and it is unproven whether value 2 hides the status ICON versus only the
-  HP bar. Gated on a read only probe first: does the address hold a sane 0/1/2 each launch, and does
-  writing 2 take the icon with it. Alternatives: a per unit icon visibility field, or setting the AI
-  layer and leaving the icon layer clear if the two split. ProvokeHold already carries a SuppressIcon
-  no op seam waiting for the proven lever. Hiding the reddened HP bar of a hidden ally is separate.
-
 - [LW-128] 2026-07-22: Provoke pops an empty speech bubble over the caster (Ramza's portrait, no
   words) on cast; fill it with a taunt, since Provoke is literally a taunt.
   Why it matters: that bubble is the game's own callout for the ability, Embrace's vanilla quote
@@ -294,27 +212,19 @@ the technical detail lives in the indented lines under it.
   Candidate lines drafted (Eyes on me curs / Come break upon my shield / Your mother swung truer);
   consider rotating a few at random. Polish; rides after the core arc and the usable by AI fix.
 
-- [LW-127] 2026-07-22: Provoke ships redirecting EVERY enemy that acts while the shout is up (window
-  mode), not just the one you point at; the clean single-enemy version needs the game's turn order
-  read so the mod can hide the party just before that one foe acts.
-  Why it matters: the owner wanted only the provoked enemy redirected, but the slice approach (hide
-  only during that foe's own turn) loses the turn-start race live. The AI picks its target the
-  instant its turn opens, so a hide that reacts to the turn starting lands too late (flight tape
-  2026-07-22: the marked enemy moved on the same tick it became the actor). Window mode (hide the
-  whole enemy phase) avoids the race but pulls every acting enemy onto the bearer.
-  State: Tuning.ProvokeSliceMode is the switch (ships false = window). The fix is turn-queue
-  lookahead: read the turn order (LW-118), detect the provoked enemy is next, and pre-hide in the
-  gap before its turn opens. Gated on LW-118 proving the turn queue is readable. Polish A already
-  moved the turn detection onto the proven actor pointer, so the release half is done.
 
 - [LW-126] 2026-07-22: When an enemy you shouted at with Provoke gets mind-controlled onto your
   side by Galewind's Puppeteer, the shout does not notice the takeover and hangs on until a
   failsafe fires; it should recognise the takeover and let go right away.
   Why it matters: a Puppeteered enemy is now driven by the player, so it never takes the AI turn
-  Provoke is waiting on. In the shipping slice mode this is harmless, since a takeover means that
-  enemy is never the acting AI unit and nobody is hidden for it, and the thirty-second watchdog
-  clears the stranded armed state on its own; but a direct release is tidier and becomes REQUIRED
-  if the window fallback mode is ever the shipped one.
+  Provoke is waiting on. RE-READ 2026-07-27, because this row's reasoning was written against a
+  shipped behaviour that no longer exists and its conclusion flipped: it used to argue the gap was
+  harmless under the then-hypothetical single enemy mode and would only become REQUIRED if the
+  whole phase fallback shipped. LW-127 shipped the single enemy rule, so the harmless case is the
+  live one: a dominated enemy is not the acting AI unit, so the ranking stops naming it as next and
+  the party is revealed rather than held hidden. What remains is a stranded ARMED hold that sits
+  there until the ninety second watchdog clears it, which logs a WARN meaning "a real bug" and so
+  produces a false bug report rather than a broken battle. A direct release is still the right fix.
   State: LW-123's disabling-status release catches engine Charm (status id 34), but Puppeteer
   dominates through the agency bits (combat +0x05 and its shadow +0x1EE), not the Charm status, so
   a domination slips past. The agency read mask is a LIVE_LEDGER Uncertain row (inferred from
@@ -416,20 +326,6 @@ the technical detail lives in the indented lines under it.
   versus the proven composed-only poison hold, and Larceny's one-shot strip which has no ledger
   row and should be undone by the next compose. Next step is the verb plus a live pass that
   promotes map-only bits to observed, cheapest first: haste, regen, protect, shell.
-- [LW-118] 2026-07-22: Find out whether we can read, and eventually reorder, the game's turn
-  order array; if it is writable, time control is complete and Quick, Delay and Haste become
-  mechanics instead of metaphors.
-  The ledger's Combat Timeline row is Uncertain, dated 2026-06-16, describes a 4 byte record
-  array with byte0 = CT and byte1 = a tile X locator, and writes its own address with a tilde,
-  approximate. It also predates the 1.5.1 re-anchor, and the re-anchor rule is to verify at the
-  old address before scanning. tools/probes/turn_queue_probe.py is therefore READ ONLY on
-  purpose: dump correlates candidate records against every live unit's real CT and tile X
-  (five or more matches is proof by construction, one is coincidence), find fingerprint scans a
-  bounded window if the address moved, and watch samples while the clock runs to confirm byte0s
-  march with CT accrual. No write verb exists until a read proves the array is real, current and
-  understood. Protocol: sit on an open menu for dump and find so the clock is frozen and the
-  cross check cannot disagree by timing; close it for watch. Whatever the answer, the ledger row
-  gets updated, including a clean negative.
 - [LW-117] 2026-07-22: The battle toolbag: one plain verb per already-proven mechanic, so a
   design conversation can say "what if the weapon benched them a turn" and we can just do it.
   tools/probes/battle_toolbag.py wraps Proven-section mechanisms only, no new reverse
@@ -805,6 +701,24 @@ the technical detail lives in the indented lines under it.
   filter at all. Copy its read_band plus bridge_count helpers when rebuilding the
   ct_probe family, and keep its two column habit (replay the SHIPPED logic beside the
   PROPOSED one) whenever a probe exists to judge a change.
+
+- [LW-140] 2026-07-27: Silent effects like Renewal's heal still show no number. A probe day
+  found the engine routine that builds the floating number popup and a dev trigger fired it
+  four times live (paused, unpaused, with and without the unit pointer pre-set): it returns
+  cleanly and draws nothing, so the routine is only the last step of a pipeline and the
+  caller's preparation work is what actually spawns the number. Verdict recorded in the
+  LIVE_LEDGER numeral wall row with the two next levers named (call one level up, or detour
+  the natural call site). Reopen only with one of those levers; the easy paths are spent.
+- [LW-141] 2026-07-27: The 1.5 update moved the battle cursor and tile memory the old probes
+  read. The cursor pair and a map size global were re-found live, but the tile array beside
+  them is pathfinding scratch the engine recomputes, not the real terrain shape. Find where
+  the game actually keeps tile heights before designing any ground-changing ability.
+- [LW-142] 2026-07-27: The blue move-range tiles render from a record buffer that was decoded
+  this session and survived the 1.5 update at its old address. The first held write CRASHED
+  THE GAME (owner-run, same day): the renderer consumes this buffer live and tolerates no
+  incoherent value, which proves the buffer is real and raises the bar. Any paint attempt
+  must write whole coherent records, paused, likely with the record count; treat it as a
+  small arc now, not a one-poke test.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

@@ -270,7 +270,10 @@ both weapon ids so a live "wrong dossier" report can be diagnosed after the fact
 provoke hold (`"provoke"`, ProvokeHold, LW-123): `arm nameId=.. tile=..`, `release reason=.. tile=..`
 (the reason is the `Release` enum verbatim, so `EnemyTurnDone` is the good one and `Watchdog` means
 a release condition was missed), plus the two mark scrubs, `scrub-player-side` (a shout cast at your
-own side, LW-130) and `scrub-unarmable` (a shout that landed while the hold could not arm, LW-136).
+own side, LW-130) and `scrub-unarmable` (a shout that landed while the hold could not arm, LW-136),
+plus `hide-edge` / `reveal-edge` on every hide/reveal TRANSITION (LW-127, never per tick) carrying
+`why=<branch>` with the leading and marked enemies' ticks-to-act and the next enemy's nameId, or the
+visibly distinct `lookahead=fallback` when the turn-order read was unusable.
 The tile is the LAST KNOWN one, which is why a release naming an enemy that has already left the
 field still carries coordinates. Deliberately
 **not** tapped: Puppeteer (a separate live-verify arc is in flight against those exact lines),

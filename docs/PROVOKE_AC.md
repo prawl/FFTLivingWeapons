@@ -8,14 +8,19 @@ Work ledger id: LW-123.
 
 **SHIPPED STATUS (arc 2a, live 2026-07-22).** The FUNNEL PREMISE IS PROVEN (owner-verified through
 the mod: hiding every player unit except the bearer makes the enemy AI target the bearer;
-docs/LIVE_LEDGER.md Proven row). The runtime SHIPS IN **WINDOW** MODE (`Tuning.ProvokeSliceMode =
-false`): it hides for the WHOLE enemy phase, so units are hidden before any enemy commits a target.
-SLICE (hide only during the provoked enemy's own turn, the clean single-enemy facade) was tried live
-and LOSES THE TURN-START RACE: the AI commits its target the instant its turn opens, so a hide that
-reacts to the turn starting lands too late. Clean single-enemy slice is DEFERRED and needs turn-queue
-LOOKAHEAD (LW-118). Below, wherever a criterion says "SLICE is the shipped default," read it as the
-DEFERRED goal; WINDOW is what ships. Polish A (2026-07-22) moved the release detection onto the proven
-actor pointer so WINDOW releases promptly when the provoked foe's turn ends. Arc 2b (the data
+docs/LIVE_LEDGER.md Proven row). **SUPERSEDED 2026-07-27 by LW-127, and the history matters because
+this document spent five days telling its reader the opposite.** The runtime used to hide for the
+WHOLE enemy phase (called WINDOW, `Tuning.ProvokeSliceMode = false`), which meant every enemy that
+acted while the hold was up walked past the party to hit the bearer. The clean single-enemy
+alternative (called SLICE) was tried live on 2026-07-22 and LOST THE TURN-START RACE: the AI commits
+its target the instant its turn opens, so a hide that reacts to the turn starting lands too late.
+Both names are now retired, along with the `ProvokeSliceMode` constant, because the thing that made
+the choice unnecessary arrived: the runtime can now tell WHO ACTS NEXT (LW-118, measured live
+2026-07-27, ledger rows pending the owner's flip), so the hide goes up in the run-up to the marked
+enemy's own turn instead of blanketing the phase. The shipped rule is one five-branch decision
+(`ProvokeHold.Policy.ActionFor`) in which HIDE IS THE DEFAULT and a reveal must be earned. Wherever
+the text below still says SLICE or WINDOW, it is describing that retired pair. Polish A (2026-07-22)
+moved the release detection onto the proven actor pointer, and that half is unchanged. Arc 2b (the data
 plumbing that arms the real granted command) SHIPPED 2026-07-22 (commit 3565363): id 33 carries the
 signature, so a grown Defender grants a working Provoke command. The job-global leak that arming
 exposes (criterion 0e) is RESOLVED met-by-observation 2026-07-23: the enemy AI does not cast a
@@ -35,11 +40,16 @@ carrying the game's best parry to survive what it just invited.
    instead of your other units. Other enemies acting in between behave normally.
 4. It ends. Everyone fights normally again.
 
-Under the shipped WINDOW mode, every enemy that acts until the provoked foe's turn ends is redirected
-onto the bearer, so provoking a foe further down the queue pulls the ones ahead of it too. The turn
-order is on screen, so that is a visible tactical price the player reads with full information, not a
-hidden limitation. The clean single-enemy version (only the foe you point at, wherever it sits) is
-the DEFERRED slice goal, which lost the turn-start race live.
+Normally one enemy besides the provoked one is affected: whoever acts IMMEDIATELY before it.
+The runtime has to have the party hidden before the provoked foe's turn opens, because the AI picks
+its target the instant a turn starts, and the only place to raise the hide is during the turn just
+ahead. So that neighbour is redirected too. Everyone earlier in the order fights normally. It can be
+more than one neighbour when several enemies are bunched within the reveal margin
+(`Tuning.ProvokeRevealMarginTicks`, 2 ticks of charge time), since the party stays hidden across
+that whole bunch; expect one, do not score two as a failure, and score "all of them" as one.
+Criterion 19 records this as the accepted cost and what it would take to remove it. UNTIL 2026-07-27
+this paragraph said the opposite, that EVERY enemy acting during the hold was redirected, which was
+true of the mode that shipped then and is a FAILURE signature now.
 
 ## How it works, plainly
 
@@ -58,14 +68,17 @@ EXPIRES, so nothing in the engine will tidy up after it; and it CANNOT BE RE-APP
 so a recast on an already provoked unit reads 0%. Together those mean the runtime clearing the mark
 is not hygiene, it is what makes the ability usable more than once on the same enemy in a battle.
 
-**The hold decides who they can see.** While the mark is up and an enemy holds the turn (WINDOW, the
-shipped mode), the runtime flags every other unit on your side with the engine's own "cannot be seen"
-status, leaving the bearer as the only name on the acting enemy's target list; the flags stay up
-across the whole enemy phase, so units are hidden before any enemy commits a target. This half is
-subtractive because it has to be: there is no aggro in this game. A PSX dig closed that question,
-enemy targeting is computed tile scoring with no holdable focus field, so the only lever on who the
-AI attacks is whether a unit can be targeted at all. (The deferred SLICE mode would hide only during
-the provoked enemy's own turn, but it loses the turn-start race; see the acceptance criteria.)
+**The hold decides who they can see.** While the mark is up, the runtime flags every other unit on
+your side with the engine's own "cannot be seen" status, leaving the bearer as the only name on the
+acting enemy's target list. The flags go up in the RUN-UP to the provoked enemy's turn, not across
+the whole enemy phase: the runtime reads who acts next from each enemy's charge time and speed
+(`TurnOrder.cs`), raises the hide once the provoked enemy is the next enemy due, and holds it through
+that enemy's turn. Timing is why the run-up is mandatory rather than tidy: the AI commits its target
+the instant its turn opens, so a hide that waits for the provoked enemy to start acting is always too
+late. This half is subtractive because it has to be: there is no aggro in this game. A PSX dig closed
+that question, enemy targeting is computed tile scoring with no holdable focus field, so the only
+lever on who the AI attacks is whether a unit can be targeted at all. (Before 2026-07-27 the flags
+did stay up for the whole enemy phase, which is what pulled every acting enemy onto the bearer.)
 
 REJECTED, and recorded so the reasoning is not relitigated. **Berserk** was the first choice and is
 the better fiction (the engine genuinely enrages the unit for free), but 25 of 173 jobs resist it,
@@ -142,14 +155,12 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
   provoked enemy may touch that layer, because clearing residue is the opposite operation from
   planting a durable flag. The exception is for clearing only, for the mark's bit only, and it is
   always a mask-scoped read-modify-write.
-- Reveal-timing: SLICE depended on the hide landing at the provoked enemy's turn-start before its AI
-  committed a target. It was written as the default, the live pass MEASURED it on 2026-07-22, and
-  the measurement went against us: the AI commits the instant the turn opens, so the reactive hide
-  lands too late. The WINDOW fallback, which cannot lose that race, is what ships
-  (`Tuning.ProvokeSliceMode = false`), and the v2 hardening is turn-queue LOOKAHEAD (LW-118).
-- Per-enemy time-slicing is therefore NOT in v1, whatever criterion 4's original wording says. Both
-  halves of slice, the time-slicing and the lookahead that would make it land in time, are v2 (see
-  Deferred). The player-visible consequence is criterion 19.
+- Reveal-timing: the reactive approach (hide at the provoked enemy's turn-start) was written as the
+  default, MEASURED live on 2026-07-22, and lost: the AI commits the instant the turn opens, so a
+  hide that reacts to the turn starting lands too late. That non-goal stands, and it is why the
+  shipped rule hides during the RUN-UP instead of reacting. What changed on 2026-07-27 is that the
+  run-up became knowable (LW-118), so per-enemy behaviour is in v1 after all, and criterion 4 is
+  written against what actually ships rather than against a deferred goal.
 - NO stat change to the Defender's static profile. Its numbers stay as `data/items.json` id 33 has
   them. CORRECTED 2026-07-22: this document previously asserted the item is already gate-exempt as a
   living weapon, and it is not. Only id 32 carries the `livingWeapon` flag, and id 33 passes
@@ -271,22 +282,37 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 
 **Who is flagged**
 
-4. While the PROVOKED enemy is taking its turn, every valid, on-field, player-side band entry
-   except the bearer carries the Invisible bit, re-stamped each tick so splash damage cannot strip
-   it for the rest of the turn. NOTE: this criterion describes SLICE mode
-   (`Tuning.ProvokeSliceMode = true`), which is DEFERRED (WINDOW ships; see the shipped-status note).
-   Under the deferred slice only the goaded enemy is redirected, so the fiction "I called out THAT
-   one" holds. A WINDOW
-   fallback (`ProvokeSliceMode=false`) instead flags during any enemy's turn, redirecting every
-   enemy that acts while the hold is up; it exists because it cannot lose the turn-start timing race
-   slice trades in (see Live verification and Deferred). WINDOW decides "is it an enemy's turn" the
-   same way the release gate does, by asking whether a PLAYER-SIDE seat owns the engine's per-unit
-   turn flag, and hides whenever the answer is no. It read the cursor/team field until 2026-07-27,
-   which is why the first live pass hid nobody at all (LW-135).
+4. While the PROVOKED enemy is taking its turn, AND during the run-up to that turn, every valid,
+   on-field, player-side band entry except the bearer carries the Invisible bit, re-stamped each
+   tick so splash damage cannot strip it for the rest of the turn. The run-up is the load-bearing
+   half and it is not optional: the AI commits its target the instant its turn opens, so a hide that
+   waits for the provoked enemy to BE the actor is always too late (measured live 2026-07-22). The
+   runtime therefore reads who acts next from each enemy's charge time and speed (LW-118/LW-127,
+   `TurnOrder.cs`), hides once the provoked enemy is the next ENEMY due, and holds through its turn.
+   Player seats are deliberately excluded from that ranking: `ExtraTurn` writes charge time and
+   `Iai` and `GrowthEngine` write speed on player seats, all three ticking before this one in the
+   same loop, and `Offsets.cs` warns the player-side read is untrustworthy anyway.
 5. On the player's own turns, on an ally's turn, and on any NON-provoked enemy's turn, no unit is
-   flagged by Provoke: under slice we only hide during the provoked enemy's own turn. Your own units
-   are normally targetable on your own turns, so healing and buffing behave as usual, and it is
-   CONFIRMED live 2026-07-22 that a flagged ally can still be targeted anyway.
+   flagged by Provoke, with TWO exceptions. First, the enemy acting immediately before the provoked
+   one (criterion 19). Second, and this one was bought with a failed live pass on 2026-07-27: once
+   the provoked enemy is the NEXT enemy due, the party stays hidden even through your own turns.
+   The original ordering revealed on any player turn, and the tape shows exactly what that cost:
+   `hide (why=next ... nextNameId=828 markedEta=4)` at 08:08:04, then
+   `reveal (why=player-turn ... nextNameId=828 markedEta=3)` at 08:08:09 with that same enemy still
+   next, then its turn opened against a fully visible party and it walked past the bearer to kill a
+   mage. A player turn ends and the next turn opens with no gap to re-hide in, so revealing there is
+   the same lost race in a new costume.
+   The reveal was also buying nothing: a flagged ally can still be selected and targeted normally,
+   CONFIRMED live 2026-07-22, so healing and buffing behave as usual either way. The one cost was
+   cosmetic, the party wearing the status icon during your own turns while the shout winds up, and
+   the owner rejected even that, so criterion 18's data fix removes the icon outright: with it in,
+   nothing about the extended hold is player-visible at all.
+   A reveal has to be EARNED, which is the opposite of how this shipped before 2026-07-27: the
+   decision defaults to hiding, and only the provoked enemy reading as clearly further off than the
+   leading enemy by `Tuning.ProvokeRevealMarginTicks`, or a player-side seat owning the turn while
+   the provoked enemy is NOT next, opens the party back up. Every ambiguous or unusable read stays
+   hidden, so a degraded build still funnels rather than silently doing nothing, which is the LW-135
+   failure this ordering exists to make impossible.
 6. Side membership is read from the friend/foe bit, so guests are hidden alongside the party. That
    byte is never written.
 7. Seats reading combat `+0x01` == `0xFF` are skipped. The engine parks staged cutscene units in
@@ -334,31 +360,57 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 
 **Accepted costs, stated so they are not read as defects**
 
-18. Flagged units would visibly wear a status icon, because the AI-ignore flag and its icon are the
-    SAME bit: a raw composed bit renders the icon and performs no visible effect, so the unit never
-    turns transparent. We SUPPRESS that over-head UI so the trick stays hidden, but the lever is a
-    global toggle on a DYNAMIC address (`0x436A367BF8`) whose launch stability, and whether it hides
-    the status ICON versus only the HP bar, are unconfirmed, so it is gated on an owner-run probe.
-    Until that probe passes, a build is allowed to show the icon and that is not a failure of the
-    hold. Hiding the reddened HP bar of a flagged ally stays deferred polish.
-19. Under the SHIPPED WINDOW mode, every enemy that acts while the hold is up is redirected onto the
-    bearer, not just the provoked one. This is the accepted v1 behaviour: the funnel is proven, and
-    SLICE (which would redirect only the provoked enemy) lost the turn-start race live and is deferred
-    with lookahead. Polish A's prompt release keeps the window tight, so provoking the next-to-act
-    enemy still reads as a clean single redirect.
+18. SOLVED IN DATA 2026-07-27 (LW-129), by a different lever than this criterion spent its life
+    waiting for. The AI-ignore flag and its icon are the SAME bit, so the flag could never be set
+    without the renderer wanting to draw the icon; and once criterion 5 started holding the flag
+    through YOUR OWN turns (the branch reorder), that icon would have sat over the party's heads
+    while you gave orders, which the owner rejected as a deviation from the design. The fix does not
+    touch the flag or any dynamic address: `uistatuseffect.en.nxd` Key 20 (Invisibility) is baked to
+    display category 0, the never-rendered gate (`Unknown14 = 0`), via `tools/patch_status_names.py`
+    with the cell-level audit green. TWO ITERATIONS, recorded because the first is a lesson: the
+    first bake set only the icon-index cell to -1 and FAILED LIVE the same day (the owner still saw
+    the icon); that -1 semantic was correlation read off never-rendered rows, never a tested lever.
+    `U14 = 0` is the one cell this table has ever proven causally (it made the mark render nothing,
+    2026-07-22). COST, wider than first aimed for: Invisibility disappears from the status LIST as
+    well as the overhead rotation. For the hidden party that is nothing; a vanilla Vanish Mantle
+    wearer loses the list entry, and their unit is rendered transparent by the real apply path
+    anyway, so the state stays self-evident. Feign Death (our own hold on the same bit) sheds its
+    icon too. The old lever (global overhead-UI toggle at a dynamic `0x43xx` address,
+    owner-probe-gated) is RETIRED UNPROBED. AWAITING the owner's eyes: nobody has yet seen a battle
+    with the icon gone. Restart-only data, so it needs the redeploy. If THIS iteration also shows
+    the icon, this table does not drive the overhead icon for statuses with real art, the data lane
+    is dead, and the next step is a what-renders probe, not a third cell guess. Hiding the reddened
+    HP bar of a flagged ally stays deferred polish (already hidden on the default HUD).
+19. REWRITTEN 2026-07-27, and the cost it accepts is now much smaller. This criterion used to licence
+    the whole-phase behaviour ("every enemy that acts while the hold is up is redirected onto the
+    bearer, not just the provoked one... the accepted v1 behaviour"), which is exactly what the owner
+    rejected after playing it. Anyone scoring a live pass against the old wording would have marked
+    the removed behaviour as a PASS. WHAT IS ACCEPTED NOW: the enemy acting IMMEDIATELY BEFORE the
+    provoked one is also hidden from, so it redirects too. One extra, not the whole side. The cause
+    is timing rather than sloppiness: that enemy commits its target at its own turn-open, and the
+    hide has to be up before the provoked enemy's turn opens, so the two windows touch. It can be
+    more than one when enemies are bunched inside `Tuning.ProvokeRevealMarginTicks` of each other,
+    because the reveal needs daylight and a bunched queue never provides it; one is the expectation,
+    two is not a failure, all of them is. Closing the gap means letting the preceding enemy commit
+    first and only then hiding, which needs a delay measured from a live pass rather than guessed;
+    that measurement is the follow-up, not this pass.
 
 ## Live verification (pre-registered)
 
 One battle, played normally, decides whether the Defender's shout works. Cast it, watch who the
 enemies swing at, then read one line in the log to see the hold let go for the right reason.
 
-**Judge the shipped mode, not the deferred one.** WINDOW is what ships
-(`Tuning.ProvokeSliceMode = false`), so EVERY enemy that acts while the hold is up is redirected
-onto the bearer, not only the goaded one. That is criterion 19's accepted v1 behaviour, and it is
-never a failure signature here. SLICE lost the turn-start race live on 2026-07-22 and is deferred
-behind turn-queue lookahead (LW-118), so nothing in this pass asks anyone to flip that knob on. Both
-halves of the trigger are in the runtime now (arc 2b, commit 3565363): the command is granted and
-its table repoint is performed in process, with no probe script anywhere near it.
+**What counts as correct, since it changed on 2026-07-27.** The shout should affect the enemy it was
+aimed at, plus a small tail of the enemies acting immediately before it, normally one and more when
+several are bunched close together in the turn order (criterion 19). Every enemy further back should
+fight normally, with the party plainly visible. Two neighbours redirecting is not a failure; the
+whole enemy side redirecting is. THE FAILURE THAT
+LOOKS LIKE A SUCCESS: if the lookahead never fires, the party stays hidden the whole phase and every
+enemy beelines for the bearer, which still ends with the bearer being attacked and can easily be
+scored as a pass. So the deciding observation is NOT "did the bearer get hit" but "did the enemies
+acting EARLIER hit somebody else". Both halves of the trigger are in the runtime (arc 2b, commit
+3565363): the command is granted and its table repoint is performed in process, with no probe script
+anywhere near it.
 
 **Setup.** A Defender (item id 33) at kill tier 3 or above in a unit's MAIN hand, that unit deployed
 and alive, plus at least two OTHER party members deployed, since they are the ones that get hidden.
@@ -406,22 +458,36 @@ turn and the old cap would have force-released a working hold with a WARN that m
 The run below is the retest of both. What must be true this time: units are hidden (run 1's
 failure), AND the hold is still up when the marked enemy actually takes its turn (run 2's).
 
-**PASS (window).** With the hold armed, all three hold:
+**PASS.** With the hold armed, all four hold:
 
-1. The enemies that act while the hold is up attack the BEARER, including from positions where a
-   different party member is closer.
+1. The MARKED enemy attacks the bearer, including from a position where a different party member is
+   closer. The enemies that act EARLIER attack whoever they like, with the party plainly visible.
+   A SMALL number of exceptions is expected and accepted, normally just the enemy acting immediately
+   before the marked one, and more when several enemies are bunched close together in the turn order
+   (criterion 19). "Every enemy attacked the bearer" is a FAILURE, not a pass, and it is the failure
+   that most resembles success, so this item is the one to read slowly.
 2. `livingweapon.log` in the Mods folder (read the file, not the console) shows
    `The provoke hold ends (EnemyTurnDone)` landing a second or two after the marked enemy finishes
    its turn.
 3. On release the field returns to normal: nobody stays hidden, and the mark comes off the marked
    enemy, so that same enemy can be shouted at again later in the same battle (criterion 3b).
+4. The tape carries at least one hide edge that PRINTS ETA FIELDS (`leaderEta=`), rather than every
+   hide edge reading `lookahead=fallback`. That is the runtime saying in its own words that the
+   turn-order ranking actually ran. Do NOT require the word `why=next` specifically: the edge line is
+   written only when the hide/reveal ACTION changes, so if the party is already hidden for the
+   neighbour when the marked enemy becomes next, the reason flips with no new line, and a perfectly
+   correct battle can contain no `why=next` at all. Presence of the ETA fields is the guaranteed
+   signal; `why=next` is a bonus when you get it. See the token table below.
 
 **Three things to watch with your eyes, because they close three tickets in one battle.**
 
-1. **LW-131 / LW-135.** During the marked enemy's turn, do the hidden units STAY hidden, or flicker
-   visible partway through its attack? A flicker means the shipped hide path is still riding the
-   doubted cursor/team field (`WindowAction` in `ProvokeHold.Scan.cs`, the single surviving read of
-   it after LW-131), and LW-135 is real work rather than a suspicion.
+1. **LW-127.** During the marked enemy's turn, do the hidden units STAY hidden, or flicker visible
+   partway through its attack? A flicker now means the hide/reveal decision crossed the reveal margin
+   mid-turn, i.e. branch 4 fired because the ranking stopped naming the marked enemy as next
+   (`Tuning.ProvokeRevealMarginTicks`, `ProvokeHold.Scan.cs`). Capture the tape: the `why=` token on
+   each edge names the branch that decided. NOTE, because this bullet said something else until
+   2026-07-27: a flicker is NOT evidence of the old cursor-field bug. `ProvokeHold` reads no cursor
+   field anywhere any more, so that diagnosis is dead and following it wastes a battle.
 2. **LW-130 / criterion 3c.** Cast Provoke at one of your OWN units, and again at the bearer itself.
    The mark should clear within a tick ("A stray provoke mark landed on one of your own units"), and
    a second cast on that same unit should land at 100% rather than being refused at 0%.
@@ -429,9 +495,12 @@ failure), AND the hold is still up when the marked enemy actually takes its turn
 
 **Failure signatures and what each means.**
 - The WARN line `The provoke hold timed out and released on its own`, roughly
-  `Tuning.ProvokeWatchdogSeconds` (30 seconds of unpaused battle time) after the arm line: a release
+  `Tuning.ProvokeWatchdogSeconds` (90 seconds of unpaused battle time) after the arm line: a release
   condition was missed, which is exactly the signature of the bug LW-131 set out to fix. Capture the
-  log and the flight tape before doing anything else.
+  log and the flight tape before doing anything else. Do NOT read a long wait as this failure: a
+  healthy hold routinely runs half a minute or more, because the shout is cast on your turn and the
+  goaded enemy can sit most of a round away. The 2026-07-27 pass measured 31 seconds, which is why
+  the cap is 90 and not the 30 this line used to name.
 - An `EnemyTurnDone` release that fires BEFORE the marked enemy ever acts: the release gate is
   counting a parked actor pointer as an actor. OBSERVED 2026-07-27 and fixed (LW-138), so it is here
   as a regression signature now, not a hypothetical. The tell is the gap: a release landing a few
@@ -440,54 +509,101 @@ failure), AND the hold is still up when the marked enemy actually takes its turn
 - No arm line in the log at all: either the mark never landed (did the cast read 100%?) or the
   bearer failed its tier-3, main-hand, deployed and alive check.
 - An arm line but `0 units were ever hidden` on release: this is the 2026-07-27 failure above. The
-  log now settles which half broke without another battle, because every hide/reveal TRANSITION logs
-  one line: `provoke hide: N unit(s) now hidden` or `provoke reveal: ...`. No hide line at all means
-  the hold chose Reveal throughout (a turn-detection problem); a hide line reading 0 units means the
+  log settles which half broke without another battle, because every hide/reveal TRANSITION logs one
+  line: `provoke hide: N unit(s) now hidden` or `provoke reveal: ...`. No hide line at all means the
+  hold chose Reveal throughout (a turn-detection problem); a hide line reading 0 units means the
   enumeration found no targets (check that other party members really are deployed and on field).
+- EVERY enemy redirecting onto the bearer: the lookahead never fired and the build fell back to
+  hiding for the whole phase. The bearer still gets attacked, so this reads as a success unless you
+  watch who the EARLIER enemies hit. DO NOT try to settle this by looking for the presence or absence
+  of `provoke reveal:` lines. Reveals fire on every one of YOUR units' turns too (branch 1), and the
+  2026-07-27 tape had 31 seconds and several player turns between the cast and the marked enemy's
+  turn, so reveal lines appear in the broken world and the working world alike. This document told
+  you to use that test until it was measured and found useless; use the token table instead.
+- The marked enemy attacks somebody else while the party WAS hidden and the hold WAS up: the hide
+  landed too late, or the ranking named the wrong enemy as next. Distinguish on the last hide edge
+  before that turn by whether ETA FIELDS are present. ETA fields present (any `why=`, including
+  `fallback`) means the ranking was running, so suspect timing or a mispredict; `lookahead=fallback`
+  means the ranking never ran at all and the hide you saw was the blanket one. Capture the tape and
+  note `markedEta` on the last few edges. READ THE TIMESTAMPS WITH CARE: an edge line is written only
+  when the hide/reveal action CHANGES, so the `why=` on it describes the tick the hide went up, not
+  the tick the enemy's turn opened. It cannot by itself prove the hide was late; the flight tape
+  timestamps against when the enemy visibly moved are what settle that.
+- A `reveal (why=player-turn ...)` whose `nextNameId` is still the provoked enemy, at any point
+  before that enemy acts: the 2026-07-27 REGRESSION. It means the party was uncovered while the
+  provoked enemy was already next in line, and its turn will open with everyone visible. This is the
+  failure the branch reorder was made to eliminate, so seeing it again means the ordering in
+  `ProvokeHold.Policy.ActionForWithReason` has drifted back.
 - A unit stays hidden after the release line: the release path is incomplete.
 - A unit is hidden at the start of the NEXT battle: the enter sweep did not run (criterion 13).
+
+**The token table: what the hide and reveal lines actually say.** A line is written only when the
+hide/reveal ACTION changes, never per tick and NOT when only the reason changes, so one hide edge can
+cover a long hidden span and its `why=` describes the moment the hide went up. The single most useful
+distinction is not any particular `why=` value: it is whether the line carries ETA FIELDS at all.
+ETA fields present means the turn-order ranking ran; `lookahead=fallback` means it did not.
+
+| Token on the edge line | What it means |
+|---|---|
+| `why=next leaderEta=N nextNameId=N markedEta=N` | The ranking RAN and named the marked enemy as the next enemy due. The feature working, plainly. Welcome but NOT required: see the note above about reason changes that write no line. |
+| `why=fallback leaderEta=N nextNameId=N markedEta=N` | The ranking RAN, and the marked enemy is inside the reveal margin of the leader, so the party stays hidden. This is a NORMAL working-build line and it is what produces criterion 19's accepted neighbour redirect. Do not read the word fallback here as failure; the ETA fields prove the ranking ran. |
+| `why=actor ...` | The marked enemy is currently acting. Expected during its own turn. |
+| `why=player-turn` | One of your units holds the turn AND the provoked enemy is not next and not acting, so the party is revealed on purpose (criterion 5). Normal and common. BUT a `why=player-turn` reveal arriving while `nextNameId` is still the provoked enemy is the 2026-07-27 live failure and must not reappear: that ordering let the enemy's turn open against a visible party. Branch order now puts "is next" above "player turn" precisely to make that line impossible. |
+| `why=far-off ...` | The ranking ran and put the marked enemy clearly behind the leader, so the party was revealed. This is what SHOULD happen while earlier enemies act. |
+| `lookahead=fallback` (anywhere on the line) | The ranking could not read the turn order at all, so no ETA fields are printed. `why=fallback lookahead=fallback` on a HIDE edge is the whole-phase blanket. If every hide edge in the battle carries `lookahead=fallback`, the feature never engaged: that is failure (ii), whatever the bearer's HP bar suggests. |
+| `markedEta=?` | The marked enemy's own seat was refused by the candidate filter (off field, dead, garbage read). Not a genuine ETA of zero. |
 
 **Retry, do not sign off.** Any release reading `EnemyDead`, `EnemyGone`, `EnemyDisabled`,
 `BearerGone` or `BearerDead`. Each of those exits for its own reason and never exercises the
 turn-end gate this pass exists to test, so the battle proves nothing either way. `EnemyDisabled` is
 worth one extra note: the disable arm (Petrify, Confuse, Stop, Charm, Sleep, Don't-Act) has no
 behavioural test behind it, only a policy test fed a literal bool, so a wrong layer, mask or id
-would show up not as a wrong release but as the 30-second watchdog WARN above.
+would show up not as a wrong release but as the 90-second watchdog WARN above.
 
 **Not a failure, do not report either as one.**
-- Every enemy that acts during the hold redirecting onto the bearer. That is WINDOW (criterion 19).
-- A status icon over the hidden units' heads. Criterion 18 explicitly permits it.
+- The enemy or two acting immediately before the provoked one redirecting onto the bearer. That is
+  criterion 19's accepted cost. Every enemy redirecting is a DIFFERENT thing and IS a failure now
+  (see the failure table): it means the lookahead never fired and the build reverted to hiding for
+  the whole phase. Until 2026-07-27 this line said the opposite, so read it carefully.
+- SINCE 2026-07-27 the hidden units should show NO icon at all (criterion 18's data fix). Seeing
+  the Invisibility icon over their heads is therefore no longer neutral: it is a soft signal the
+  baked `uistatuseffect.en.nxd` did not load (a table change, so it needs the game RESTARTED, not
+  just relaunched from the Reloaded menu). It does not fail the funnel half of the pass on its own.
 
 **Reading the flight tape.** Do NOT hard kill the game to grab one: the recorder flushes on the
 battle EXIT edge, so END the battle (win, lose or flee) and Alt-Tab out, at which point the file is
 already on disk. Read it with `python tools/parse_flight.py <file>`; arm, release and player-side
 scrub are all recorded under the `provoke` tag.
 
-**Optional, and it does not block this pass: the icon-suppression probe.** With a unit wearing our
-flag, test whether the global overhead-UI toggle hides the status ICON (not just the HP bar) and
-whether its dynamic address is stable launch to launch. The result decides whether criterion 18's
-suppression ships surgically, ships bluntly (all overhead UI off during the provoked turn), or is
-deferred (LW-129). Criterion 18 already permits a visible icon, so skipping this costs the pass
-nothing.
+**The icon-suppression probe is CANCELLED, not merely optional.** Icon suppression shipped in data
+on 2026-07-27 (criterion 18: `uistatuseffect.en.nxd` Key 20 to the never-rendered category,
+iteration 2 after the icon-cell-only attempt failed live), so the global overhead-UI toggle and its
+dynamic-address stability question no longer gate anything. What replaces the probe is two glances
+during this pass: hidden units should wear NO icon, and a provoked ENEMY's status list should still
+read "Provoked" (which proves the baked table loaded at all; both edits ride the same file). Icon
+still showing plus "Provoked" still present would mean the table loads and this lane cannot reach
+the overhead icon; see criterion 18 for what happens then.
 
 Status stays AWAITING-LIVE until the owner runs this. Only the owner flips it.
 
 ## Deferred to v2
 
-- **The clean single-enemy facade, both halves.** Per-enemy time-slicing did NOT ship in v1: the
-  live pass on 2026-07-22 showed the turn-start race is lost, the AI commits its target the instant
-  its turn opens, so a hide that reacts to the turn starting lands too late. That leaves SLICE
-  (`Tuning.ProvokeSliceMode`, false in the shipped build, criterion 4) needing turn-queue LOOKAHEAD,
-  pre-hiding just BEFORE the provoked enemy's turn opens, to be worth turning on at all. The two are
-  one deferred item now, LW-118, and the WINDOW fallback is what ships in the meantime.
-- Hiding the reddened HP bar a flagged ally shows, and suppressing the status icon.
+- **DELIVERED 2026-07-27, no longer deferred: the clean single-enemy facade.** It was parked here
+  because the reactive version lost the turn-start race, and it became buildable once LW-118 measured
+  live that the next enemy to act is computable from charge time and speed. Shipped as LW-127, the
+  five-branch rule in `ProvokeHold.Policy.ActionFor`, with `TurnOrder.cs` supplying the run-up. What
+  is still outstanding is the LAST enemy: the one acting immediately before the provoked one is also
+  hidden from (criterion 19), and closing that needs a commit delay measured from a live pass rather
+  than guessed.
+- Hiding the reddened HP bar a flagged ally shows (already hidden on the default HUD). The status
+  icon half of this bullet shipped 2026-07-27 in data (criterion 18) and is no longer deferred.
 - A per-battle use cap, if uncapped play proves degenerate.
 
 ## Open questions (do not block this arc)
 
 - Can the player still select and target their own units while flagged? ANSWERED live 2026-07-22:
-  yes, a flagged ally can be targeted normally. Criterion 5 makes it moot in v1 anyway (slice never
-  flags during your own turns), but the confirmed answer means a future continuous-hide design would
-  not break healing.
+  yes, a flagged ally can be targeted normally. Criterion 5 makes it moot in v1 anyway (branch 1
+  reveals on a positive player-side turn-flag read, so nobody is flagged while your own menu is
+  open), but the confirmed answer means a future continuous-hide design would not break healing.
 - Do caster and archer enemies funnel the same way? The premise row observed melee only.
 - Does a mid-hold autosave persist the composed bit into the save?

@@ -142,7 +142,12 @@ public class ProofClaimContractTests
         { "LivingWeapon.Tests/RaptureTests.cs", 1 },
         { "LivingWeapon.Tests/RaptureWindowTests.cs", 2 },
         { "LivingWeapon.Tests/SpiritualFontTests.cs", 1 },
-        { "docs/CHANGELOG.md", 25 },
+        // 25 -> 26 (2026-07-27, LW-127 exit row): "Owner verified live the same day" -- the claim is
+        // the owner's own in-session sign-off on the LW-127 live passes (two clean casts plus the
+        // three-cast tape), given before the exit row was written. It asserts the FEATURE's owner
+        // verdict, not a LIVE_LEDGER mechanism row; the supporting turn-order rows deliberately
+        // stay under Uncertain until the owner flips them, and the row says so.
+        { "docs/CHANGELOG.md", 26 },
         { "docs/DESIGN.md", 1 },
         { "docs/DEV_TEST_RECIPES.md", 2 },
         { "docs/MECHANICS.md", 20 },

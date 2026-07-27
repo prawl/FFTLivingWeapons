@@ -1,4 +1,4 @@
-# Changelog (work-ledger exits)
+﻿# Changelog (work-ledger exits)
 
 STATUS: CONTRACT (machine-checked by TodoContractTests)
 
@@ -9,6 +9,61 @@ can follow, technical detail after), per the Format rules in docs/TODO.md; rows 
 before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
+
+- [LW-127] SHIPPED f9549be 2026-07-27: the Defender's shout (helper commit 43573e9) now pulls only the
+  enemy it names onto the bearer, instead of every enemy that acted while it was up. The trick is
+  fortune telling: the runtime projects each enemy's charge time forward by its speed, the same
+  arithmetic the game uses to draw the on screen Combat Timeline, so the party is hidden BEFORE the
+  goaded enemy's turn opens, which matters because the AI picks its victim on the very first tick
+  of its turn. Owner verified live the same day, two clean casts plus a three cast battle on tape.
+  The rule was wrong twice on the way and each failure was measured off the owner's own tapes with
+  millisecond stamps: revealing during the player's turns lost the race by one turn handoff, and
+  the enemy's own turn opening fooled the predictor because charge time is paid at turn start, so
+  the mod uncovered the party inside the AI's commit window. The shipped rule hides by default,
+  earns every reveal, and latches from "it is next" until the turn is done. Accepted cost, recorded
+  in criterion 19: the enemy acting immediately before the goaded one is also redirected, normally
+  one extra, because the two hide windows touch. Remaining Provoke work stays in LW-123, LW-130 and
+  LW-136; the fast forward observation is parked as LW-143 at the owner's request.
+- [LW-129] SHIPPED 8041e38 2026-07-27: hidden units no longer advertise themselves with an
+  invisible status icon over their heads. The backlog expected a dynamic memory hunt; the answer
+  was one cell in a table this mod already ships, switching the Invisibility status to the display
+  category the game never renders. Two iterations, the first failed live and is recorded in the
+  bake comment so the wrong lever is not retried. Owner verdict same day: icon nowhere to be found.
+- [LW-131] SHIPPED 3bbcc10 2026-07-27: owner live pass the same day confirmed it, the shout releases the moment the
+  goaded enemy actually finishes its own turn, instead of dragging on to its safety timer and
+  pulling every enemy in that window onto the bearer. The fix stopped trusting a field that follows
+  the on screen cursor and asks the per unit turn flags instead; the owner's pass showed the hold
+  arming, tracking the enemy through its turn, and releasing 1.6 seconds after it finished, named
+  EnemyTurnDone.
+- [LW-135] SHIPPED 91f312d 2026-07-27: retested by the owner the same day inside the LW-127
+  passes, the hide decision no longer reads the cursor following field that once made the shout
+  hide nobody at all (the goblin battle where the tape read "0 units were ever hidden"). Both the
+  release gate and the hide now share one cursor free question, and the party demonstrably stays
+  hidden through the goaded enemy's turn.
+- [LW-138] SHIPPED 05cc5a8 2026-07-27: retested by the owner the same day, the shout no longer
+  mistakes its own cast for the enemy's turn. The engine's actor pointer parks on whatever a player
+  action targets, so the cast made the hold believe the enemy had already acted and it released 28
+  seconds early; only a rise that happens after arming counts now, and the watchdog rose 30 to 90
+  seconds because a healthy hold measured 31 seconds of legitimate waiting.
+- [LW-118] SHIPPED 1122e26 2026-07-27: the question was whether the mod can read the game's turn
+  order, and the answer is yes, though not the way this row expected. The array it went looking for
+  is not there any more: the address the ledger carried, written with a tilde and dated 2026-06-16,
+  reads a repeating pattern with zero records matching any live unit, checked twice, once before a
+  battle and once mid battle with real numbers on the board. That is the clean negative this row
+  asked for and it is recorded rather than buried. The array turned out not to be needed. Every
+  unit's charge time and speed are already readable through fields the mod trusts, and projecting
+  them forward reproduces the game's own Combat Timeline panel exactly, which the owner verified
+  position by position on screen. Measured live: the next unit to act was predicted correctly 15
+  times out of 15, across two sessions and a full game restart. Two smaller facts came out of the
+  same pass and are worth as much: charge time is paid at the START of a turn, so the unit currently
+  acting already reads its post payment value, and a deeper forecast is NOT trustworthy, since two
+  runs disagreed about how far it holds, one staying exact for six turns and the other going wrong
+  at three. The reorder half of this row's ambition is not opened here, though the lever is already
+  proven elsewhere: the same charge time byte is what the Zwill extra turn writes. Instruments:
+  tools/probes/provoke_lookahead_probe.py (snapshot, validate, lead time; read only, no write verb)
+  and the existing tools/probes/turn_queue_probe.py for the negative. Ledger rows dated 2026-07-27,
+  owner flip pending. What consumes this next: LW-127 for the Defender's shout, and LW-139, which
+  collects every other place in the runtime that currently guesses at turn state.
 
 - [LW-132] SHIPPED 9959821 2026-07-25: the game updated to 1.5.2, the mod switched itself off to
   protect saves, and this taught it the new build. Almost nothing had actually moved. Every table
