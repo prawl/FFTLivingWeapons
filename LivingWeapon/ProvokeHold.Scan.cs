@@ -24,6 +24,11 @@ internal sealed partial class ProvokeHold
         (mem.U16(e + Offsets.ANameId), mem.U16(e + Offsets.AMaxHp), mem.U8(e + Offsets.ALevel),
          mem.U8(e + Offsets.ABrave), mem.U8(e + Offsets.AFaith));
 
+    /// <summary>The seat's board tile, for criterion 15's log lines. Lives here with every other raw
+    /// band read rather than inline in the state machine, which is this partial's whole contract.</summary>
+    private static (int gx, int gy) ReadTile(IGameMemory mem, long e) =>
+        (mem.U8(e + Offsets.AGx), mem.U8(e + Offsets.AGy));
+
     /// <summary>Same identity: the (maxHp,level,brave,faith) fingerprint must match; a nameId that
     /// reads nonzero on BOTH sides must also agree (an unseeded/zero nameId on either side trusts the
     /// fingerprint alone, the same veto shape <see cref="Wielder"/>'s locate layer uses).</summary>

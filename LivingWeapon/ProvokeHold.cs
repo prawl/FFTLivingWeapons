@@ -35,6 +35,10 @@ internal sealed partial class ProvokeHold : ISignature
 
     private HoldState _state;
     private (int nameId, int mhp, int lvl, int br, int fa) _markedId;
+    /// <summary>The marked enemy's LAST KNOWN tile (criterion 15). Held rather than re-read at
+    /// release time because the two releases that matter most, EnemyGone and EnemyDead, are exactly
+    /// the cases with no readable seat left to read it from.</summary>
+    private (int gx, int gy) _markedTile;
     private bool _wasMarkedActive;
     private int _markedTurns;
     private int _markedMissTicks;
@@ -123,11 +127,11 @@ internal sealed partial class ProvokeHold : ISignature
         _liveElapsed = 0;
         _lastTick = now;
         _flaggedNow.Clear();
-        int gx = _mem.U8(entry + Offsets.AGx), gy = _mem.U8(entry + Offsets.AGy);
+        _markedTile = ReadTile(_mem, entry);
         ModLogger.EventWithTrace(LogVerb.Signature,
             "The Defender's provoke takes hold; the marked enemy can see nothing but the Defender.",
-            $"provoke hold arm (nameId {id.nameId}, tile {gx},{gy}, 0 units hidden so far)");
-        Flight.Record("provoke", $"arm nameId={id.nameId} tile={gx},{gy}");
+            $"provoke hold arm (nameId {id.nameId}, tile {TileText}, 0 units hidden so far)");
+        Flight.Record("provoke", $"arm nameId={id.nameId} tile={TileText}");
     }
 
     private void TickArmed(bool bearerPresent, bool bearerAlive,
@@ -135,6 +139,7 @@ internal sealed partial class ProvokeHold : ISignature
     {
         long markedEntry = LocateByIdentity(_mem, _markedId);
         bool markedLocated = markedEntry != 0;
+        if (markedLocated) _markedTile = ReadTile(_mem, markedEntry);   // criterion 15: keep it fresh while we still can
         _markedMissTicks = markedLocated ? 0 : _markedMissTicks + 1;
         bool markedMissedOut = !markedLocated && _markedMissTicks >= Tuning.ProvokeMarkedMissTicks;
         bool markedDead = markedLocated && !IsAlive(_mem, markedEntry);
@@ -195,18 +200,22 @@ internal sealed partial class ProvokeHold : ISignature
 
         if (reason == Release.Watchdog)
             ModLogger.WarnWithTrace(LogVerb.Signature, "The provoke hold timed out and released on its own; something kept the marked enemy from ever finishing its turn",
-                $"provoke hold WATCHDOG release ({_everFlagged.Count} units were ever hidden)");
+                $"provoke hold WATCHDOG release (tile {TileText}, {_everFlagged.Count} units were ever hidden)");
         else
             ModLogger.EventWithTrace(LogVerb.Signature, $"The provoke hold ends ({reason}); every hidden unit is visible again.",
-                $"provoke hold release reason={reason} ({_everFlagged.Count} units were ever hidden)");
-        Flight.Record("provoke", $"release reason={reason}");
+                $"provoke hold release reason={reason} (tile {TileText}, {_everFlagged.Count} units were ever hidden)");
+        Flight.Record("provoke", $"release reason={reason} tile={TileText}");
         EnterIdle();
     }
+
+    /// <summary>The tile as both log lines and both flight records print it (criterion 15).</summary>
+    private string TileText => $"{_markedTile.gx},{_markedTile.gy}";
 
     private void EnterIdle()
     {
         _state = HoldState.Idle;
         _markedId = default;
+        _markedTile = default;
         _wasMarkedActive = false;
         _markedTurns = 0;
         _markedMissTicks = 0;

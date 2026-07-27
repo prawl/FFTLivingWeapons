@@ -785,6 +785,106 @@ public class ProvokeHoldTests
         Assert.True(HasMark(m, 10));   // still armed: the huge elapsed gap never accrued while paused
     }
 
+    // ---- Criterion 15: arm, release AND the watchdog each name the provoked enemy's TILE ----
+    //
+    // Why these exist at all: nothing asserted the CONTENT of any arm or release line, so the
+    // release lines shipped naming only the reason and the unit count while the arm line named the
+    // tile. Reading a live log then meant guessing which enemy a release belonged to (the arm line
+    // is the only other place the tile appears, and a battle can arm more than once). The count
+    // half of the criterion is already carried by the "N units" text these lines have always had.
+
+    private const string ExpectedTile = "tile 5,5";   // every fixture below seats the marked enemy at gx=5, gy=5
+
+    [Fact]
+    public void The_arm_line_names_the_provoked_enemys_tile()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
+
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            Hold(Tier3Kills(), m).Tick(DateTime.UtcNow, true);   // arms
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.Contains(file, l => l.Contains("provoke hold arm") && l.Contains(ExpectedTile));
+    }
+
+    [Fact]
+    public void A_normal_release_line_names_the_provoked_enemys_tile()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
+            var t0 = DateTime.UtcNow;
+            hold.Tick(t0, true);        // arms with the marked enemy acting
+            ClearActor(m);              // its turn ends
+            hold.Tick(t0.AddMilliseconds(33), true);   // releases EnemyTurnDone
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.Contains(file, l => l.Contains("release reason=EnemyTurnDone") && l.Contains(ExpectedTile));
+    }
+
+    [Fact]
+    public void The_watchdog_release_line_names_the_provoked_enemys_tile()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
+
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            var hold = Hold(Tier3Kills(), m);
+            var t0 = DateTime.UtcNow;
+            hold.Tick(t0, true);   // arms
+            hold.Tick(t0.AddSeconds(Tuning.ProvokeWatchdogSeconds + 1), true);
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.Contains(file, l => l.Contains("WATCHDOG") && l.Contains(ExpectedTile));
+    }
+
+    /// <summary>The case that decides the implementation: an EnemyGone release has NO band entry
+    /// left to read a tile off, so the line has to name the LAST KNOWN tile rather than skip it or
+    /// print zeroes. This fixture corrupts the marked enemy's own gy to 99 to make it unlocatable
+    /// (Transient_locate_miss_does_not_release_before_the_debounce_is_exhausted's trick), which also
+    /// means a naive re-read at release time would print the corrupt 5,99 instead of 5,5.</summary>
+    [Fact]
+    public void A_release_after_the_marked_enemy_vanishes_still_names_its_last_known_tile()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            var hold = Hold(Tier3Kills(), m);
+            var t0 = DateTime.UtcNow;
+            hold.Tick(t0, true);   // arms at 5,5
+            m.U8s[Band.Entry(10) + Offsets.AGy] = 99;   // now unlocatable by the band scan
+            for (int i = 1; i <= Tuning.ProvokeMarkedMissTicks; i++)
+                hold.Tick(t0.AddMilliseconds(33 * i), true);
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.Contains(file, l => l.Contains("release reason=EnemyGone") && l.Contains(ExpectedTile));
+    }
+
     // ---- A refused guarded write logs distinctly (criterion 17) ----
 
     [Fact]

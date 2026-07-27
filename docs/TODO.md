@@ -47,9 +47,9 @@ the technical detail lives in the indented lines under it.
     real command in the bearer's list, and the mark it leaves comes off when the shout ends, so the
     same enemy can be shouted at more than once in a battle. The whole thing runs inside the mod
     now: a player who installs this build gets a working command with no helper script anywhere near
-    it, which was the first half of the job and is finished. What is left in code is one log line
-    (criterion 15, the release and watchdog lines should name the goaded enemy's tile the way the
-    arm line already does). Acceptance criteria are docs/PROVOKE_AC.md. (Tech: two arcs behind a
+    it, which was the first half of the job and is finished. Every acceptance criterion that code
+    can close is closed, including criterion 15, so what is left is the owner playing one battle.
+    Acceptance criteria are docs/PROVOKE_AC.md. (Tech: two arcs behind a
     seam, both in process since 2026-07-22, commit 3565363. Arc 1, the trigger: Provoke.cs performs
     the JobCommand injection of ability 189 on Barrage's lane, and Provoke.Table.cs performs both
     table writes, guarded and idempotent, the authored inflict row 29 at 0x14080FC4E and ability

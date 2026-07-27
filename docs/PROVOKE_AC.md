@@ -288,8 +288,14 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 
 **Observability**
 
-15. Arm, release, and the reason for the release each log one line at Event level naming the
-    provoked enemy's tile and the number of units flagged.
+15. Arm, release, and the reason for the release each log one line naming the provoked enemy's tile
+    and the number of units flagged (arm and a normal release at Event level, the watchdog release
+    at Warning, per criterion 14). MET in code: the release lines carried only the reason and the
+    count until the tile was added, which meant a log with more than one arm in it could not say
+    which enemy a release belonged to. The tile printed on release is the LAST KNOWN one, refreshed
+    every armed tick the enemy can still be located, because the two releases that most need it,
+    EnemyGone and EnemyDead, are exactly the ones with no readable seat left. Covered by
+    `LivingWeapon.Tests/ProvokeHoldTests.cs` (the four tile tests, one per release shape).
 16. Arm and release are recorded to the flight recorder, so a battle that goes wrong can be read
     after the fact rather than reproduced.
 17. A watchdog release, or any tick where a write is refused by the guarded write path, logs
