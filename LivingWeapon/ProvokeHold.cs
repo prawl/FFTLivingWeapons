@@ -35,6 +35,11 @@ internal sealed partial class ProvokeHold : ISignature
 
     private HoldState _state;
     private (int nameId, int mhp, int lvl, int br, int fa) _markedId;
+    /// <summary>LW-138: has the marked enemy become the actor by a RISING edge since this hold
+    /// armed? Only then may a falling edge complete a turn. Arming happens during the Provoke cast's
+    /// own resolution, and the engine's actor pointer parks on whatever that cast targeted, so the
+    /// park visible at arm time belongs to the player's action and must never count.</summary>
+    private bool _sawFreshRise;
     /// <summary>The marked enemy's LAST KNOWN tile (criterion 15). Held rather than re-read at
     /// release time because the two releases that matter most, EnemyGone and EnemyDead, are exactly
     /// the cases with no readable seat left to read it from.</summary>
@@ -124,7 +129,12 @@ internal sealed partial class ProvokeHold : ISignature
     {
         _state = HoldState.Armed;
         _markedId = id;
-        _wasMarkedActive = false;
+        // LW-138: seed the edge state with what is TRUE right now, not with false. The cast that
+        // planted the mark has parked the actor pointer on this very enemy, so seeding false would
+        // manufacture a rising edge out of the player's own action; _sawFreshRise then keeps that
+        // park from completing a turn even so.
+        _wasMarkedActive = MarkedIsActor(_mem, id) && !PlayerSideOwnsTurn(_mem);
+        _sawFreshRise = false;
         _markedTurns = 0;
         _markedMissTicks = 0;
         _liveElapsed = 0;
@@ -160,7 +170,11 @@ internal sealed partial class ProvokeHold : ISignature
         // the answer on every armed tick regardless of who the actor is.
         bool playerTurn = PlayerSideOwnsTurn(_mem);
         bool markedActive = MarkedIsActor(_mem, _markedId) && !playerTurn;
-        if (TurnEnded(_wasMarkedActive, markedActive)) _markedTurns++;
+        // LW-138: a falling edge only completes a turn when the matching RISE happened after this
+        // hold armed. The park that is already underway at arm time is the Provoke cast's own, and
+        // its end is not a turn. Cleared on use so each turn needs its own rise (ProvokeTurns > 1).
+        if (!_wasMarkedActive && markedActive) _sawFreshRise = true;
+        if (TurnEnded(_wasMarkedActive, markedActive) && _sawFreshRise) { _markedTurns++; _sawFreshRise = false; }
         _wasMarkedActive = markedActive;
 
         var reason = ReleaseReason(bearerPresent, bearerAlive, markedLocated, markedDead, markedMissedOut,

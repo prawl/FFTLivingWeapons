@@ -75,7 +75,10 @@ the technical detail lives in the indented lines under it.
     evidence. Second, the table byte worry: the probe reported one write for each of the two bytes
     and both stuck, and the runtime is idempotent so it is correct either way. The pass itself is
     now written for the mode that ships (WINDOW, rewritten in commit c3ed2f2), and one battle closes
-    this row alongside LW-130 and LW-131. Owner only, as every AWAITING-LIVE flip is.
+    this row alongside LW-130 and LW-131. Two passes were run on 2026-07-27 and each found one real
+    bug, both since fixed: the hold hid nobody (LW-135), then it let go 28 seconds before the goaded
+    enemy took its turn (LW-138). The retest has to confirm BOTH halves in one battle, units hidden
+    AND the hold still up when that enemy actually acts. Owner only, as every AWAITING-LIVE flip is.
 
 - **[LW-131] Provoke's shout now lets go the moment the goaded enemy actually finishes its own turn** (opened 2026-07-23) [AWAITING-LIVE]
   - Done means: the enemy the Defender's shout marks releases the hold within a turn or two of that
@@ -144,6 +147,26 @@ the technical detail lives in the indented lines under it.
     battle by handing a second Defender to another unit. Owner only, as every AWAITING-LIVE flip is.
 
 ## Backlog
+
+- [LW-138] 2026-07-27: The Defender's shout ended a few seconds after being cast, long before the
+  enemy it was aimed at took its turn, so by the time that enemy moved the party was visible again
+  and it attacked whoever it liked.
+  Why it matters: this is the shout doing nothing, which is what the owner saw in the second live
+  pass, and it looked like a success in the log. The evidence: armed 04:30:40.222, hid 2 units 5ms
+  later, released reason=EnemyTurnDone at 04:30:43.467, and the marked enemy was still standing on
+  the tile both lines name (3,11) for another 31 seconds before it moved.
+  Cause: the engine's actor pointer parks on the unit a player action targeted, and Provoke targets
+  the enemy it marks, so during the cast's own resolution the pointer named the marked enemy. The
+  LW-131 turn-flag gate cannot veto that, because that flag is raised by an open MENU and every menu
+  is closed while an action resolves, so the tick reads exactly like an enemy turn. The end of that
+  park was counted as a completed turn.
+  FIXED the same day: a park already underway when the hold arms is ignored, and only a park that
+  RISES after arming can complete a turn. Tuning.ProvokeWatchdogSeconds went 30 to 90 in the same
+  change, because the 31-second wait this pass measured is a HEALTHY hold and the old cap would have
+  force-released it about a second before the enemy acted, logging the warning that means a real
+  bug. (Tech: ProvokeHold._sawFreshRise, docs/PROVOKE_AC.md criteria 2 and 14, covered by three
+  tests plus a rewrite of the six that had encoded the false edge in their fixtures.)
+  Still open: the retest. Nobody has yet seen the hold survive until the marked enemy's real turn.
 
 - [LW-137] 2026-07-27: Kill credit may be reading the same field Provoke just stopped trusting, so a
   kill scored while the cursor happens to sit on an enemy could be filed as an enemy's kill instead

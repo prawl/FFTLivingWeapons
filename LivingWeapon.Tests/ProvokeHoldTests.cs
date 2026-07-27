@@ -88,6 +88,24 @@ public class ProvokeHoldTests
     /// "this enemy's turn ends" for the actor-pointer signal.</summary>
     private static void ClearActor(FakeSparseMemory m) => m.SeedU64(Offsets.ActorPtr, 0);
 
+    /// <summary>Drive ONE complete turn for an already-armed marked enemy: the actor pointer rises
+    /// onto it, then falls away, two ticks apart. LW-138 is why this exists as a helper rather than
+    /// a bare ClearActor: a park already underway when the hold armed belongs to the Provoke cast
+    /// that targeted that enemy, so it never completes a turn, and a test that wants a real turn has
+    /// to produce the RISE itself. Returns the timestamp of the last tick it drove.</summary>
+    private static DateTime RunMarkedEnemyTurn(ProvokeHold hold, FakeSparseMemory m, int bandIdx,
+        DateTime t0, int startMs = 33)
+    {
+        ClearActor(m);   // whatever the pointer was on, including the cast's own park, let it end
+        hold.Tick(t0.AddMilliseconds(startMs), true);
+        PointActorAtEnemyTurn(m, bandIdx);   // THE RISE: this enemy's own turn opens
+        hold.Tick(t0.AddMilliseconds(startMs + 33), true);
+        ClearActor(m);                       // and ends
+        var last = t0.AddMilliseconds(startMs + 66);
+        hold.Tick(last, true);
+        return last;
+    }
+
     /// <summary>LW-131: seat the engine's per-unit turn flag (Offsets.ATurnFlag) on an already-seated
     /// band entry, expressing "it is this seat's turn" for TickArmed's PlayerSideOwnsTurn gate.
     /// Band.FlagOwner also requires Band.IsValid and a real (nonzero) AGx/AGy, which every Seat*
@@ -368,10 +386,9 @@ public class ProvokeHoldTests
 
         var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
-        hold.Tick(t0, true);   // arms; marked enemy is already the actor
+        hold.Tick(t0, true);   // arms
 
-        ClearActor(m);   // the marked enemy's turn ends
-        hold.Tick(t0.AddMilliseconds(33), true);
+        RunMarkedEnemyTurn(hold, m, 10, t0);   // its turn opens and ends (LW-138: the rise is the point)
 
         Assert.False(HasMark(m, 10));   // the turn WAS counted: released at ProvokeTurns=1, mark scrubbed
     }
@@ -409,15 +426,14 @@ public class ProvokeHoldTests
         // see the helper's doc comment for why that direction is safe.
         var m = new FakeSparseMemory();
         SeatBearer(m, 0, 0);
-        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
         // Nobody seats a turn flag anywhere -- the fixture default.
 
         var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
-        hold.Tick(t0, true);   // arms; marked enemy already the actor
+        hold.Tick(t0, true);   // arms
 
-        ClearActor(m);
-        hold.Tick(t0.AddMilliseconds(33), true);
+        RunMarkedEnemyTurn(hold, m, 10, t0);
 
         Assert.False(HasMark(m, 10));   // counted: fail-open let the turn through
     }
@@ -433,10 +449,9 @@ public class ProvokeHoldTests
 
         var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
-        hold.Tick(t0, true);   // arms; marked enemy (10) already the actor
+        hold.Tick(t0, true);   // arms
 
-        ClearActor(m);
-        hold.Tick(t0.AddMilliseconds(33), true);
+        RunMarkedEnemyTurn(hold, m, 10, t0);
 
         Assert.False(HasMark(m, 10));   // counted: an enemy-side flag owner is not a player turn
     }
@@ -460,10 +475,9 @@ public class ProvokeHoldTests
 
         var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
-        hold.Tick(t0, true);   // arms; marked enemy already the actor
+        hold.Tick(t0, true);   // arms
 
-        ClearActor(m);
-        hold.Tick(t0.AddMilliseconds(33), true);
+        RunMarkedEnemyTurn(hold, m, 10, t0);
 
         Assert.False(HasMark(m, 10));   // counted: an ambiguous flag read fails open, same as nobody owning it
     }
@@ -606,8 +620,7 @@ public class ProvokeHoldTests
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
 
-        ClearActor(m);   // one turn-end edge (the actor pointer moves off the marked enemy) -> EnemyTurnDone
-        hold.Tick(t0.AddMilliseconds(33), true);
+        RunMarkedEnemyTurn(hold, m, 10, t0);   // one complete turn -> EnemyTurnDone
 
         Assert.False(IsInvisible(m, 1));
         Assert.False(HasMark(m, 10));
@@ -784,6 +797,77 @@ public class ProvokeHoldTests
         Assert.True(HasMark(m, 10));   // still armed: the huge elapsed gap never accrued while paused
     }
 
+    // ---- LW-138: the cast's OWN actor-pointer park must not count as the enemy's turn ----
+    //
+    // THE LIVE FAILURE, owner pass 2026-07-27 (second battle): the hold armed at 04:30:40.222, hid 2
+    // units, and released as EnemyTurnDone at 04:30:43.467, 3.2 seconds later. The marked enemy was
+    // still standing on its arm tile (3,11) 31 seconds after that, when it finally moved: the hold
+    // had ended 28 seconds before the enemy ever took a turn, so by the time it acted the party was
+    // visible again and it attacked an ally.
+    //
+    // Mechanism: the engine's actor pointer PARKS on the unit a player action targeted (memory
+    // "actorptr-dwell-semantics": sample acted edges only). Provoke targets the enemy it marks, so
+    // during the cast's own resolution the pointer names the marked enemy. The LW-131 gate cannot
+    // veto that, because the per-unit turn flag it reads is a MENU-OPEN flag: while an action
+    // resolves, every menu is closed and no player-side seat owns it, so the tick reads exactly like
+    // an enemy turn. The park then ends, and the falling edge counted a turn that never happened.
+    //
+    // The fix is an edge-origin rule, not another turn-owner signal: a park already underway when
+    // the hold arms is ignored, and only a park that RISES after arming can complete a turn.
+
+    [Fact]
+    public void The_casts_own_actor_park_does_not_count_as_the_marked_enemys_turn()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        // active: true reproduces the live arm: the pointer is ALREADY parked on the marked enemy,
+        // because the Provoke cast that planted the mark is what put it there.
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms, and the stale park is visible on this very tick
+
+        ClearActor(m);   // the cast finishes resolving and the pointer moves off
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.True(HasMark(m, 10));      // NOT released: nothing has taken a turn yet
+        Assert.True(IsInvisible(m, 1));   // and the party is still hidden, which is the whole point
+    }
+
+    [Fact]
+    public void A_park_that_rises_after_arming_still_completes_a_turn_and_releases()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);                          // arms with the cast's stale park
+        ClearActor(m);
+        hold.Tick(t0.AddMilliseconds(33), true);      // park ends: ignored
+        Assert.True(HasMark(m, 10));
+
+        PointActorAtEnemyTurn(m, 10);                 // the enemy's REAL turn opens
+        hold.Tick(t0.AddMilliseconds(66), true);
+        ClearActor(m);                                // and ends
+        hold.Tick(t0.AddMilliseconds(99), true);
+
+        Assert.False(HasMark(m, 10));     // released: a turn genuinely completed
+        Assert.False(IsInvisible(m, 1));  // everyone visible again
+    }
+
+    /// <summary>The live hold ran 31 seconds from cast to the marked enemy's real turn, so the
+    /// watchdog has to outlast a queue that long or it would fire on a perfectly healthy hold and
+    /// log a permanent false bug report (its WARN means "a release condition was missed").</summary>
+    [Fact]
+    public void The_watchdog_outlasts_a_realistic_wait_for_the_marked_enemys_turn()
+        => Assert.True(Tuning.ProvokeWatchdogSeconds >= 60.0,
+            "a hold now legitimately spans from the cast until the marked enemy's own turn");
+
     // ---- LW-135: WINDOW's hide/reveal must not ride the cursor/team field ----
     //
     // THE LIVE FAILURE, owner pass 2026-07-27: the hold armed on a goblin, saw its turn, and
@@ -948,9 +1032,8 @@ public class ProvokeHoldTests
         {
             var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
             var t0 = DateTime.UtcNow;
-            hold.Tick(t0, true);        // arms with the marked enemy acting
-            ClearActor(m);              // its turn ends
-            hold.Tick(t0.AddMilliseconds(33), true);   // releases EnemyTurnDone
+            hold.Tick(t0, true);                   // arms
+            RunMarkedEnemyTurn(hold, m, 10, t0);   // its turn opens and ends -> releases EnemyTurnDone
         }
         finally { ModLogger.UseNullLogger(); }
 

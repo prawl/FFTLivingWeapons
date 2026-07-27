@@ -220,7 +220,13 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 1b. The hold lasts `Tuning.ProvokeTurns` of the provoked enemy's turns. Ships at 1 for the first
    live pass, target 3.
 2. The hold arms on the cast, during the bearer's own turn, and is up continuously from that instant
-   until it releases. There is no timing window to hit.
+   until it releases. There is no timing window to hit. The cast's OWN resolution never counts as
+   the marked enemy's turn: the engine's actor pointer parks on whatever a player action targeted,
+   and Provoke targets the enemy it marks, so the park visible at arm time belongs to the bearer's
+   action. Only a park that RISES after the hold armed can complete a turn (LW-138, live 2026-07-27,
+   where the old rule released 28 seconds before the enemy moved). The cost is deliberate and
+   narrow: if a mark somehow lands while that enemy is already mid-turn (the DEV planter can do it,
+   a cast cannot), that turn does not count and the hold waits for the next one.
 3. The hold releases on the FIRST of: the provoked enemy's turn ends; the provoked enemy dies; the
    provoked enemy leaves the field entirely (EnemyGone, declared only after
    `Tuning.ProvokeMarkedMissTicks` consecutive failed re-locates, so one unreadable frame never
@@ -302,10 +308,14 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
     survive into the next battle. A hard PROCESS kill loses the tracked seats with the process, but
     that case is covered instead by the engine constructing fresh units at the next battle, so no
     stranded flag reaches it either way.
-14. A watchdog releases the hold if it has been up longer than a plausible single turn (initial
-    value: 30 seconds of live battle time, in `Tuning.cs`). This exists because the flag never
-    expires on its own; it is a backstop for a release condition we failed to observe, and firing it
-    logs at WARNING level (louder than a normal Event release) because it means a real bug.
+14. A watchdog releases the hold if it has been up longer than a plausible WAIT for the marked
+    enemy's turn (90 seconds of live battle time, in `Tuning.cs`). This exists because the flag
+    never expires on its own; it is a backstop for a release condition we failed to observe, and
+    firing it logs at WARNING level (louder than a normal Event release) because it means a real
+    bug. RAISED from 30 on 2026-07-27: the shout is cast on YOUR turn and the goaded enemy can sit
+    most of a round away in the queue, which the live pass measured at 31 seconds, so the original
+    cap described a single turn's length rather than the wait the design actually asks for. Raising
+    `ProvokeTurns` above 1 needs this raised again, since the clock accrues across the whole hold.
 
 **Observability**
 
@@ -373,15 +383,28 @@ tier-3 main-hand Defender, and exactly one of them (see criterion 3d), or it wil
 **Bait step (makes a clean result meaningful).** Run one enemy turn with no hold and record who each
 enemy attacks. Without this, a bearer who was going to be attacked anyway proves nothing.
 
-**Result of the first run, 2026-07-27 (read this before running it again).** Half passed. The hold
-armed on a goblin cast at with the real command, tracked it through its own turn, and released as
-`EnemyTurnDone` 1.6 seconds later: the release gate works. The hide did not run at all, so the
-goblin attacked an ally exactly as if the mod were absent, and the log named the failure in one
-number, `0 units were ever hidden`. Cause: WindowAction read the cursor/team field, which reads
-PLAYER while an enemy acts because the cursor sits on the unit being attacked, so every tick chose
-Reveal. Fixed by moving that call onto the same player-side turn-flag walk the release gate uses
-(LW-135). The run below is the retest, and the thing to confirm is criterion 4 itself: that anyone
-is hidden at all.
+**Results of the first two runs, 2026-07-27 (read this before running it again).** Two separate
+bugs, one per run, both found in a single battle each and both fixed.
+
+RUN 1 hid nobody. The hold armed, tracked the goblin, and released as `EnemyTurnDone`, so the
+release gate worked; the log named the failure in one number, `0 units were ever hidden`. Cause:
+WindowAction read the cursor/team field, which reads PLAYER while an enemy acts because the cursor
+sits on the unit being attacked, so every tick chose Reveal. That is LW-135, fixed by moving the
+call onto the same player-side turn-flag walk the release gate uses.
+
+RUN 2 hid 2 units, and released 28 seconds too early. Arm 04:30:40.222, `provoke hide: 2 unit(s)`
+5ms later, release `EnemyTurnDone` at 04:30:43.467 (3.2 seconds), and the marked enemy was still
+standing on its arm tile 3,11 for another 31 seconds before it moved. Cause: the engine's actor
+pointer PARKS on the unit a player action targeted, and Provoke targets the enemy it marks, so
+during the cast's own resolution the pointer named the marked enemy while no menu was open for the
+turn-flag gate to veto. The end of that park counted as a turn that had not happened. That is
+LW-138, fixed by an edge-origin rule: a park already underway when the hold arms is ignored, and
+only a park that RISES after arming can complete a turn. `Tuning.ProvokeWatchdogSeconds` went 30 to
+90 in the same change, because run 2 measured a healthy 31-second wait from cast to the enemy's own
+turn and the old cap would have force-released a working hold with a WARN that means "a real bug".
+
+The run below is the retest of both. What must be true this time: units are hidden (run 1's
+failure), AND the hold is still up when the marked enemy actually takes its turn (run 2's).
 
 **PASS (window).** With the hold armed, all three hold:
 
@@ -409,10 +432,11 @@ is hidden at all.
   `Tuning.ProvokeWatchdogSeconds` (30 seconds of unpaused battle time) after the arm line: a release
   condition was missed, which is exactly the signature of the bug LW-131 set out to fix. Capture the
   log and the flight tape before doing anything else.
-- An `EnemyTurnDone` release that fires BEFORE the marked enemy ever acts, for instance while it is
-  merely being HIT during your own turn: the release gate is counting a struck victim as an actor
-  (the engine's actor pointer parks on units that were just hit). This shape is new with LW-131's
-  fix and the old code could not produce it, so check the flight tape timestamps if unsure.
+- An `EnemyTurnDone` release that fires BEFORE the marked enemy ever acts: the release gate is
+  counting a parked actor pointer as an actor. OBSERVED 2026-07-27 and fixed (LW-138), so it is here
+  as a regression signature now, not a hypothetical. The tell is the gap: a release landing a few
+  seconds after the arm, with the marked enemy still on the tile both lines name. Cross-check the
+  arm and release timestamps against when the enemy actually moved.
 - No arm line in the log at all: either the mark never landed (did the cast read 100%?) or the
   bearer failed its tier-3, main-hand, deployed and alive check.
 - An arm line but `0 units were ever hidden` on release: this is the 2026-07-27 failure above. The

@@ -442,8 +442,19 @@ internal static class Tuning
 
     /// <summary>Provoke hold: LIVE battle-time safety cap (decision 11 -- accrued only on ticks where
     /// Offsets.PauseFlag reads unpaused, so a long menu/deliberation never burns down the clock) before
-    /// an armed-but-stuck hold force-releases as a Watchdog.</summary>
-    public const double ProvokeWatchdogSeconds = 30.0;
+    /// an armed-but-stuck hold force-releases as a Watchdog.
+    ///
+    /// RAISED 30 -> 90 on 2026-07-27, measured rather than guessed. The owner's live pass armed the
+    /// hold at 04:30:40 and the marked enemy did not take its turn until roughly 04:31:11, 31
+    /// seconds later, because a shout lands during YOUR turn and the goaded enemy can sit most of a
+    /// round away in the queue. Under the old cap that healthy hold would have force-released about
+    /// a second before the enemy acted, and logged the WARN that means "a release condition was
+    /// missed" -- a permanent false bug report on a working feature. This cap exists for a hold that
+    /// is genuinely stuck (the Invisible bit never expires on its own), not for one that is merely
+    /// waiting, and every real release path (turn done, death, disable, bearer loss, battle end)
+    /// fires long before it. Raising ProvokeTurns above 1 would need this raised again, since the
+    /// clock accrues across the WHOLE hold, not per turn.</summary>
+    public const double ProvokeWatchdogSeconds = 90.0;
 
     /// <summary>Provoke hold: consecutive ticks the marked enemy may fail to re-locate (a transient
     /// band-scan miss -- an unreadable frame for a tick, say) before the hold concludes it is genuinely
