@@ -84,10 +84,10 @@ status text is global to the status, so every ordinary Slow in the game would re
 
 | Fact | Where | Status |
 |---|---|---|
-| Holding the composed Invisible bit on every player-team unit except one funnels enemy AI onto that one | `docs/LIVE_LEDGER.md` Uncertain, 2026-07-22 | LIVE-OBSERVED, owner PROVEN flip PENDING |
+| Holding the composed Invisible bit on every player-team unit except one funnels enemy AI onto that one | `docs/LIVE_LEDGER.md` Proven, 2026-07-22 | PROVEN |
 | A raw composed status write is an orphan flag: the AI reads it, no effect is performed, and it NEVER expires | `docs/LIVE_LEDGER.md` Uncertain, 2026-07-22 | LIVE-OBSERVED, owner PROVEN flip PENDING |
 | The Invisible bit survives the unit acting; it is cleared by BEING HIT | `LivingWeapon/Offsets.cs` AInvisible block | corrected 2026-07-22 |
-| Turn-owner team field is reliable for turn-level gating | `docs/LIVE_LEDGER.md` Proven, 2026-06-16 | PROVEN |
+| Turn-owner team field is reliable for turn-level gating | `docs/LIVE_LEDGER.md` Proven, 2026-06-16 | PROVEN, but doubted by LW-131 (docs/TODO.md, opened 2026-07-23): that row's own experiment never hovered a unit on a different team than the turn owner, so its evidence is equally consistent with the field tracking the cursor instead. The discriminating probe has not run and the row itself is untouched (owner-only). ProvokeHold's shipped release gate (PlayerSideOwnsTurn, ProvokeHold.Scan.cs) no longer reads this field at all, so it does not depend on the answer. |
 | Per-unit turn/moved/acted flags | `docs/LIVE_LEDGER.md` Proven, 2026-07-09 | PROVEN |
 | Command grant via JobCommand inject | `docs/LIVE_LEDGER.md` Proven, 2026-06-10 and 2026-06-14 | PROVEN |
 | A cut ability can be renamed, granted, and re-effected: Provoke exists in the game | `docs/LIVE_LEDGER.md` Uncertain, 2026-07-22 | LIVE-OBSERVED end to end, owner PROVEN flip PENDING |
@@ -207,12 +207,18 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 **Arming and duration**
 
 1. Provoke is offered only when the bearer holds a Defender (id 33) in its MAIN hand at kill tier 3
-   or above, is deployed, and is alive.
+   or above, is deployed, and is alive. It is additionally job-gated by the shipped grant: the
+   command is injected only into Squire or Knight, whether as the bearer's primary job or as one of
+   their action sets taken as its secondary command (the shared whitelist ShadowBlade already uses).
+   Any other job is logged as ungrantable and gets nothing.
 1b. The hold lasts `Tuning.ProvokeTurns` of the provoked enemy's turns. Ships at 1 for the first
    live pass, target 3.
 2. The hold arms on the cast, during the bearer's own turn, and is up continuously from that instant
    until it releases. There is no timing window to hit.
 3. The hold releases on the FIRST of: the provoked enemy's turn ends; the provoked enemy dies; the
+   provoked enemy leaves the field entirely (EnemyGone, declared only after
+   `Tuning.ProvokeMarkedMissTicks` consecutive failed re-locates, so one unreadable frame never
+   releases the hold); the
    provoked enemy can no longer carry out its provoked turn because it is Petrified, Confused,
    Stopped, Charmed, Slept, or set to Don't-Act (status ids 8/11/30/34/35/37, read on its composed
    layer); the bearer dies; the bearer no longer holds a Defender in its main hand; the battle ends.
@@ -278,7 +284,7 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 14. A watchdog releases the hold if it has been up longer than a plausible single turn (initial
     value: 30 seconds of live battle time, in `Tuning.cs`). This exists because the flag never
     expires on its own; it is a backstop for a release condition we failed to observe, and firing it
-    logs at Event level because it means a real bug.
+    logs at WARNING level (louder than a normal Event release) because it means a real bug.
 
 **Observability**
 
@@ -306,44 +312,97 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
 
 ## Live verification (pre-registered)
 
-The hold engine ships before the trigger, so the DEV build arms it through the marker-file lane in
-the mod directory rather than a command, matching the existing dev request-file instruments.
-Environment variables do not survive this game's launch chain, so they are not an option.
+One battle, played normally, decides whether the Defender's shout works. Cast it, watch who the
+enemies swing at, then read one line in the log to see the hold let go for the right reason.
 
-**Setup.** A battle with at least three player units and two enemies. Bearer holds a Defender at
-tier 3. Formation matters less than it did for the reveal experiment, but the bearer should not be
-the closest unit to the enemy, so that a redirect is visibly a redirect.
+**Judge the shipped mode, not the deferred one.** WINDOW is what ships
+(`Tuning.ProvokeSliceMode = false`), so EVERY enemy that acts while the hold is up is redirected
+onto the bearer, not only the goaded one. That is criterion 19's accepted v1 behaviour, and it is
+never a failure signature here. SLICE lost the turn-start race live on 2026-07-22 and is deferred
+behind turn-queue lookahead (LW-118), so nothing in this pass asks anyone to flip that knob on. Both
+halves of the trigger are in the runtime now (arc 2b, commit 3565363): the command is granted and
+its table repoint is performed in process, with no probe script anywhere near it.
 
-**Arming (DEV).** Hover the target enemy and press F6, or drop `provoke_request.txt` into the mod
-directory; the dev planter writes the id-0 mark on that enemy and the production hold polls for it.
+**Setup.** A Defender (item id 33) at kill tier 3 or above in a unit's MAIN hand, that unit deployed
+and alive, plus at least two OTHER party members deployed, since they are the ones that get hidden.
+The bearer should not be the closest unit to the enemy, so a redirect is visibly a redirect. For the
+command to appear at all, the bearer's job must be Squire or Knight, or carry one of their action
+sets as its secondary command (criteria 0a/1); any other job logs "cannot receive Provoke" and
+grants nothing.
+
+**Arming (primary): cast the real command.** Pick Provoke from the bearer's action list and point at
+any enemy within range 5. That is the bearer's action for the turn, and the cast should read 100% on
+the cursor.
+
+**Arming (fallback, DEV builds only).** If no save has a grown Defender, hover the target enemy and
+press F6, or drop any file named `provoke_request.txt` into the mod directory (polled about twice a
+second, deleted on read). F3 is eaten on this box. Environment variables do not survive this game's
+launch chain, so they are not an option. The dev planter writes exactly the same id-0 mark a real
+cast writes, and the hold gates on that mark rather than on how it got there, so the two lanes
+exercise identical production code.
 
 **Bait step (makes a clean result meaningful).** Run one enemy turn with no hold and record who each
 enemy attacks. Without this, a bearer who was going to be attacked anyway proves nothing.
 
-**PASS (slice).** With the hold armed, the PROVOKED enemy attacks the bearer on its turn, including
-from a position where a different unit is closer; enemies that act BEFORE it attack whoever they
-prefer, so only the goaded one is redirected. On the provoked enemy's release the field returns to
-normal. No unit carries the status icon after release, after the battle ends, or at the start of the
-next battle, subject to the icon-suppression probe below (until that lever is proven, a lingering
-icon is not a failure of the hold).
+**PASS (window).** With the hold armed, all three hold:
+
+1. The enemies that act while the hold is up attack the BEARER, including from positions where a
+   different party member is closer.
+2. `livingweapon.log` in the Mods folder (read the file, not the console) shows
+   `The provoke hold ends (EnemyTurnDone)` landing a second or two after the marked enemy finishes
+   its turn.
+3. On release the field returns to normal: nobody stays hidden, and the mark comes off the marked
+   enemy, so that same enemy can be shouted at again later in the same battle (criterion 3b).
+
+**Three things to watch with your eyes, because they close three tickets in one battle.**
+
+1. **LW-131 / LW-135.** During the marked enemy's turn, do the hidden units STAY hidden, or flicker
+   visible partway through its attack? A flicker means the shipped hide path is still riding the
+   doubted cursor/team field (`WindowAction` in `ProvokeHold.Scan.cs`, the single surviving read of
+   it after LW-131), and LW-135 is real work rather than a suspicion.
+2. **LW-130 / criterion 3c.** Cast Provoke at one of your OWN units, and again at the bearer itself.
+   The mark should clear within a tick ("A stray provoke mark landed on one of your own units"), and
+   a second cast on that same unit should land at 100% rather than being refused at 0%.
+3. **LW-123 / criterion 3b.** After the release, the same enemy accepts a second Provoke.
 
 **Failure signatures and what each means.**
-- The provoked enemy attacks someone else at its turn-start (a closer visible ally): the AI latched
-  its target before our turn-start hide landed, so the slice race is lost. Flip
-  `Tuning.ProvokeSliceMode` to false (WINDOW) for the ship and add turn-queue lookahead.
-- EVERY enemy in the window redirects, not just the provoked one: you are seeing WINDOW behaviour;
-  confirm `ProvokeSliceMode` is true.
-- The hold never fires at all (no units hidden): the marked enemy's own turn flag is not reading 1
-  for an enemy; fall back to the actor-pointer identity signal.
-- The provoked enemy attacks the bearer but a unit stays flagged after release: the release path is
-  incomplete. Capture the log and the flight tape before doing anything else.
-- A unit is flagged at the start of the next battle: the enter sweep did not run.
-- The watchdog line appears: a release condition was missed. The tape names which.
+- The WARN line `The provoke hold timed out and released on its own`, roughly
+  `Tuning.ProvokeWatchdogSeconds` (30 seconds of unpaused battle time) after the arm line: a release
+  condition was missed, which is exactly the signature of the bug LW-131 set out to fix. Capture the
+  log and the flight tape before doing anything else.
+- An `EnemyTurnDone` release that fires BEFORE the marked enemy ever acts, for instance while it is
+  merely being HIT during your own turn: the release gate is counting a struck victim as an actor
+  (the engine's actor pointer parks on units that were just hit). This shape is new with LW-131's
+  fix and the old code could not produce it, so check the flight tape timestamps if unsure.
+- No arm line in the log at all: either the mark never landed (did the cast read 100%?) or the
+  bearer failed its tier-3, main-hand, deployed and alive check.
+- An arm line but nothing hidden: the hide enumeration found no targets, so check that other party
+  members are actually deployed and on field.
+- A unit stays hidden after the release line: the release path is incomplete.
+- A unit is hidden at the start of the NEXT battle: the enter sweep did not run (criterion 13).
 
-**Also run the icon-suppression probe in this pass.** With a unit wearing our flag, test whether the
-global overhead-UI toggle hides the status ICON (not just the HP bar) and whether its dynamic
-address is stable launch to launch. The result decides whether criterion 18's suppression ships
-surgically, ships bluntly (all overhead UI off during the provoked turn), or is deferred.
+**Retry, do not sign off.** Any release reading `EnemyDead`, `EnemyGone`, `EnemyDisabled`,
+`BearerGone` or `BearerDead`. Each of those exits for its own reason and never exercises the
+turn-end gate this pass exists to test, so the battle proves nothing either way. `EnemyDisabled` is
+worth one extra note: the disable arm (Petrify, Confuse, Stop, Charm, Sleep, Don't-Act) has no
+behavioural test behind it, only a policy test fed a literal bool, so a wrong layer, mask or id
+would show up not as a wrong release but as the 30-second watchdog WARN above.
+
+**Not a failure, do not report either as one.**
+- Every enemy that acts during the hold redirecting onto the bearer. That is WINDOW (criterion 19).
+- A status icon over the hidden units' heads. Criterion 18 explicitly permits it.
+
+**Reading the flight tape.** Do NOT hard kill the game to grab one: the recorder flushes on the
+battle EXIT edge, so END the battle (win, lose or flee) and Alt-Tab out, at which point the file is
+already on disk. Read it with `python tools/parse_flight.py <file>`; arm, release and player-side
+scrub are all recorded under the `provoke` tag.
+
+**Optional, and it does not block this pass: the icon-suppression probe.** With a unit wearing our
+flag, test whether the global overhead-UI toggle hides the status ICON (not just the HP bar) and
+whether its dynamic address is stable launch to launch. The result decides whether criterion 18's
+suppression ships surgically, ships bluntly (all overhead UI off during the provoked turn), or is
+deferred (LW-129). Criterion 18 already permits a visible icon, so skipping this costs the pass
+nothing.
 
 Status stays AWAITING-LIVE until the owner runs this. Only the owner flips it.
 
