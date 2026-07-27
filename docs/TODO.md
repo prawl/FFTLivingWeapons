@@ -45,18 +45,19 @@ the technical detail lives in the indented lines under it.
     that enemy has taken its turn, the enemies who act cannot see anyone on your side except the
     bearer, who carries the best parry in the game to survive what it just invited. The shout is a
     real command in the bearer's list, and the mark it leaves comes off when the shout ends, so the
-    same enemy can be shouted at more than once in a battle. None of that survives closing the game
-    today: everything working is held up by two Python programs, and teaching the mod to do it
-    itself is the first half of the job. Acceptance criteria are docs/PROVOKE_AC.md. (Tech: two arcs
-    behind a seam. Arc 1, the trigger, is solved and needs moving out of the probes into the
-    runtime: the JobCommand injection of ability 189 on Barrage's proven lane, plus two guarded
-    idempotent table writes, the authored inflict row 29 at 0x14080FC4E and ability 189's
-    InflictStatus byte at 0x14078C1AF in the LIVE action table at 0x14078B2DC, never the decoy copy
-    at 0x14078961C. Page protections on all four addresses already pass Mem.Writable, measured
-    2026-07-22, so no new memory capability is needed. Arc 2, the hold, holds the composed Invisible
-    bit, band +0x47 bit 0x10, on every player side seat except the bearer while an enemy holds the
-    turn. Data plumbing: DONE, id 33 carries its signature block and every description budget gate
-    is green with it in.)
+    same enemy can be shouted at more than once in a battle. The whole thing runs inside the mod
+    now: a player who installs this build gets a working command with no helper script anywhere near
+    it, which was the first half of the job and is finished. What is left in code is one log line
+    (criterion 15, the release and watchdog lines should name the goaded enemy's tile the way the
+    arm line already does). Acceptance criteria are docs/PROVOKE_AC.md. (Tech: two arcs behind a
+    seam, both in process since 2026-07-22, commit 3565363. Arc 1, the trigger: Provoke.cs performs
+    the JobCommand injection of ability 189 on Barrage's lane, and Provoke.Table.cs performs both
+    table writes, guarded and idempotent, the authored inflict row 29 at 0x14080FC4E and ability
+    189's InflictStatus byte at 0x14078C1AF in the LIVE action table at 0x14078B2DC, never the decoy
+    copy at 0x14078961C. Page protections on all four addresses pass Mem.Writable, measured
+    2026-07-22. Arc 2, the hold, holds the composed Invisible bit, band +0x47 bit 0x10, on every
+    player side seat except the bearer while an enemy holds the turn. Data plumbing: DONE, id 33
+    carries its signature block and every description budget gate is green with it in.)
   - Build state, so nobody has to rediscover it: the shout is ARMED in the tree again. 2.3.2 shipped
     it switched off because nobody had played it yet (LW-133), which parked every outstanding Provoke
     live check, so it was re armed in all three of its parts at once: the switch, the Defender's
@@ -64,16 +65,17 @@ the technical detail lives in the indented lines under it.
     one. Switching it off again means all three parts again, and a test now refuses either half armed
     state. (Tech: Tuning.ProvokeEnabled true, data/items.json id 33, tools/patch_names.py; pinned by
     ProvokeHoldTests.The_baked_meta_signature_block_agrees_with_the_ship_switch.)
-  - Verify: the owner runs the live pass already written into docs/PROVOKE_AC.md, which starts with
-    a bait step so a bearer who was going to be attacked anyway cannot look like a success. Two
-    things must be settled BEFORE that pass is worth running, and neither is code. First, cast the
-    shipped mark at a boss and confirm it lands at 100%: the only boss evidence on record was
-    gathered with Wall, the status this design abandoned, so criterion 0d is currently inherited
-    rather than measured and the item card may not claim there is no immunity gap until it is.
-    Second, read what the probe reports when its hold on the two table bytes ends, because the
-    handoff says one write sticks and the ledger says that is unmeasured; the runtime is being
-    built idempotent so it is correct either way, but the ledger row should stop contradicting
-    itself. Owner only, as every AWAITING-LIVE flip is.
+  - Verify: the owner runs the live pass in docs/PROVOKE_AC.md, which starts with a bait step so a
+    bearer who was going to be attacked anyway cannot look like a success. Nothing blocks that pass
+    any more. This row used to name two things to settle first and BOTH were settled the day they
+    were written, 2026-07-22, so anyone reading the old wording was being sent to redo finished
+    work. First, the boss immunity worry: the shipped id 0 mark was cast at Loffrey, read 100%, and
+    a band read taken straight afterwards found him wearing it in both status layers, which is
+    criterion 0d met for the mark that actually ships rather than inherited from the abandoned Wall
+    evidence. Second, the table byte worry: the probe reported one write for each of the two bytes
+    and both stuck, and the runtime is idempotent so it is correct either way. The pass itself is
+    now written for the mode that ships (WINDOW, rewritten in commit c3ed2f2), and one battle closes
+    this row alongside LW-130 and LW-131. Owner only, as every AWAITING-LIVE flip is.
 
 - **[LW-131] Provoke's shout now lets go the moment the goaded enemy actually finishes its own turn** (opened 2026-07-23) [AWAITING-LIVE]
   - Done means: the enemy the Defender's shout marks releases the hold within a turn or two of that
