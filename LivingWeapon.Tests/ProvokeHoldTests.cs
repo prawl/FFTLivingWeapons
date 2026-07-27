@@ -23,8 +23,8 @@ public class ProvokeHoldTests
     /// suite would go quietly vacuous the moment it is next flipped off if these tests inherited the
     /// compiled default instead of pinning true.</summary>
     private static ProvokeHold Hold(Dictionary<int, int> kills, FakeSparseMemory m,
-        bool? sliceMode = null, int? provokeTurns = null, bool enabled = true)
-        => new ProvokeHold(kills, m, sliceMode, provokeTurns, enabled);
+        int? provokeTurns = null, bool enabled = true)
+        => new ProvokeHold(kills, m, provokeTurns, enabled);
 
     private static Dictionary<int, int> Tier3Kills() => new() { [DefenderId] = 999 };
 
@@ -40,17 +40,24 @@ public class ProvokeHoldTests
         StageInvisible(m, bandIdx);
     }
 
-    private static void SeatAlly(FakeSparseMemory m, int bandIdx, int lvl, int br, int fa, int gx, int gy, int weapon = 5)
+    private static void SeatAlly(FakeSparseMemory m, int bandIdx, int lvl, int br, int fa, int gx, int gy,
+        int weapon = 5, int ct = 0, int speed = 0)
     {
-        MemSeats.SeatBand(m, bandIdx, weapon, lvl, br, fa, gx, gy);
+        // LW-127: ct/speed default 0, additive-only -- every pre-existing call site is unaffected
+        // (TurnOrder excludes player-side seats from its ranking entirely, so a player-side seat's
+        // CT/Speed never drives a hide/reveal decision either way; these two params exist only for
+        // T12, which pins that exclusion against a pinned-CT-100 player seat).
+        MemSeats.SeatBand(m, bandIdx, weapon, lvl, br, fa, gx, gy, ctSlam: ct, speed: speed);
         SetSide(m, bandIdx, enemy: false);
         StageInvisible(m, bandIdx);
     }
 
     private static void SeatEnemy(FakeSparseMemory m, int bandIdx, int lvl, int br, int fa, int gx, int gy,
-        bool marked = false, bool active = false, int nameId = 0)
+        bool marked = false, bool active = false, int nameId = 0, int ct = 0, int speed = 0)
     {
-        MemSeats.SeatBand(m, bandIdx, weapon: 0, lvl, br, fa, gx, gy);
+        // LW-127: ct/speed default 0, additive-only -- every pre-existing call site keeps reading an
+        // unwritten (0) ACtSlam/Speed pair, exactly as before TurnOrder.cs existed.
+        MemSeats.SeatBand(m, bandIdx, weapon: 0, lvl, br, fa, gx, gy, ctSlam: ct, speed: speed);
         SetSide(m, bandIdx, enemy: true);
         if (nameId != 0) MemSeats.SeatFrameNameId(m, bandIdx, nameId);
         // "active" now seats the engine's ACTOR POINTER on this seat during an enemy turn -- the
@@ -235,10 +242,10 @@ public class ProvokeHoldTests
         throw new FileNotFoundException("LivingWeapon/meta.json not found above the test bin dir");
     }
 
-    // ---- THE LOAD-BEARING TEST (SLICE mode) ----
+    // ---- LW-127 (D1 revised): the turn-order lookahead rule, five branches, first match wins ----
 
     [Fact]
-    public void SliceMode_hides_everyone_but_the_bearer_while_the_marked_enemy_is_active()
+    public void Marked_enemy_active_hides_everyone_but_the_bearer()
     {
         var m = new FakeSparseMemory();
         SeatBearer(m, rosterSlot: 0, bandIdx: 0);
@@ -253,27 +260,505 @@ public class ProvokeHoldTests
         Assert.False(IsInvisible(m, 10));   // the enemy side is never touched
     }
 
-    // ---- THE FACADE TEST (SLICE mode, the design pivot) ----
-
+    /// <summary>T0 (NON-VACUITY, the plan's biggest catch). No pre-existing Provoke fixture seeded
+    /// CT or Speed, so without a real TurnOrder wired in, every fixture here falls into branch 5 and
+    /// exercises zero lines of the new lookahead path -- the suite would stay green over a stubbed
+    /// `TryNextEnemyToAct` that always returns false. Pin it directly: the SAME fixture shape (a
+    /// marked enemy that is not active, and a different enemy that IS) produces a DIFFERENT
+    /// hide/reveal outcome depending on whether CT/Speed are seeded. Verified by hand that this test
+    /// fails (the seeded half's assertion) if TryNextEnemyToAct is stubbed to return false.</summary>
     [Fact]
-    public void SliceMode_flags_nobody_when_a_different_enemy_is_active_not_the_marked_one()
+    public void CT_and_Speed_seeding_changes_the_hide_reveal_outcome_T0_non_vacuity()
+    {
+        (FakeSparseMemory, ProvokeHold) Build(bool seeded)
+        {
+            var mem = new FakeSparseMemory();
+            SeatBearer(mem, 0, 0);
+            SeatAlly(mem, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+            int markedSpeed = seeded ? 1 : 0;
+            int leaderSpeed = seeded ? 10 : 0;
+            SeatEnemy(mem, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+                nameId: 500, ct: 0, speed: markedSpeed);
+            SeatEnemy(mem, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: true,
+                nameId: 501, ct: 95, speed: leaderSpeed);
+            return (mem, Hold(Tier3Kills(), mem));
+        }
+
+        var (seededMem, seededHold) = Build(seeded: true);
+        seededHold.Tick(DateTime.UtcNow, true);
+
+        var (zeroMem, zeroHold) = Build(seeded: false);
+        zeroHold.Tick(DateTime.UtcNow, true);
+
+        // Seeded: the ranking sees the marked enemy is clearly further off than the leading (active)
+        // enemy -> branch 4, Reveal.
+        Assert.False(IsInvisible(seededMem, 1));
+        // Every Speed 0: no enemy candidate at all -> branch 5's default, Hide.
+        Assert.True(IsInvisible(zeroMem, 1));
+    }
+
+    /// <summary>T1 (the owner's complaint, red before TurnOrder was wired in). A DIFFERENT enemy is
+    /// clearly next up and genuinely mid-turn (active: true) while the marked enemy sits far behind
+    /// in the queue -- the whole-phase behaviour this feature replaces would have hidden the party
+    /// from that unrelated enemy too. Must seed CT/Speed, or the fixture would pass for the wrong
+    /// reason (branch 5's default already hides).</summary>
+    [Fact]
+    public void Marked_enemy_not_next_and_far_off_reveals_nobody_hidden_T1()
     {
         var m = new FakeSparseMemory();
         SeatBearer(m, 0, 0);
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
-        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
-        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: true, nameId: 501);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 0, speed: 1);      // eta 100: nowhere near its turn
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: true,
+            nameId: 501, ct: 95, speed: 10);    // eta 1: an unrelated enemy is genuinely mid-turn
 
-        // Explicit sliceMode: true -- the shipped default is now WINDOW (Tuning.ProvokeSliceMode,
-        // flipped 2026-07-22 after the slice turn-start race lost live), so this SLICE-specific
-        // facade test opts in rather than relying on the default.
-        var hold = Hold(Tier3Kills(), m, sliceMode: true);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
-        Assert.False(IsInvisible(m, 1));   // nobody hidden: the ACTIVE unit is not the marked one
+        Assert.False(IsInvisible(m, 1));   // the owner's complaint: a DIFFERENT enemy's turn no longer hides the party
+        Assert.True(HasMark(m, 10));       // still armed on the marked enemy -- a hide/reveal choice, not a release
     }
 
-    // ---- WINDOW-mode load-bearing test ----
+    /// <summary>T2, rebuilt per the adversarial review's SHOULD-FIX. The IsInvisible assertion alone
+    /// is a MATHEMATICAL DEAD END, not a fixable-by-different-numbers gap: the projection's shared
+    /// wait is the MINIMUM raw ETA across every candidate, and a candidate whose own raw ETA is
+    /// ABOVE that minimum provably has not yet reached CT 100 after waiting, so it can never win the
+    /// argmax -- only a candidate tied for the minimum ever can. So whenever the marked enemy
+    /// genuinely wins the ranking, its own raw ETA is PROVABLY EQUAL to the shared leader ETA, the
+    /// diff is always exactly 0, always under the margin, and branch 4 can NEVER fire. Forcing
+    /// markedIsNext false therefore STILL yields Hide via branch 5's default, no matter what
+    /// ct/speed numbers the fixture uses -- verified by hand (see the session report). The only way
+    /// to prove branch 3, not branch 5, actually decided this is to check WHICH branch fired, which
+    /// the hide/reveal evidence line (BLOCKER-3) now names directly via `why=`.</summary>
+    [Fact]
+    public void Marked_enemy_is_next_to_act_hides_before_it_becomes_the_actor_T2()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 90, speed: 20);   // eta 1, and the CT-overshoot winner
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 0, speed: 1);     // eta 100: nowhere close
+
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            var hold = Hold(Tier3Kills(), m);
+            hold.Tick(DateTime.UtcNow, true);
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.True(IsInvisible(m, 1));   // hidden already, before the marked enemy is literally the actor
+        Assert.Contains(file, l => l.Contains("provoke hide") && l.Contains("why=next"));
+    }
+
+    [Fact]
+    public void Marked_enemy_leads_by_less_than_the_margin_still_hides_T3()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 80, speed: 10);   // eta 2
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 95, speed: 10);   // eta 1 and the winner -- only 1 tick ahead, under the margin (2)
+
+        var hold = Hold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.True(IsInvisible(m, 1));   // close but not clearly further away -- the margin keeps it hidden
+    }
+
+    [Fact]
+    public void Marked_enemy_is_the_current_actor_hides_regardless_of_ranking_T5()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true,
+            nameId: 500, ct: 0, speed: 1);      // eta 100 -- the ranking alone would call this "far off"
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 99, speed: 50);    // eta 1 and the winner, if ranking were consulted
+
+        var hold = Hold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.True(IsInvisible(m, 1));   // its own turn wins even though the ranking alone would say "far off"
+    }
+
+    // ---- THE LIVE FAILURE, owner pass 2026-07-27 (livingweapon.log, cast 2): a design error in the
+    // branch ORDER, not the lookahead itself (sane ETAs, why=next hides appearing exactly when they
+    // should). The tape:
+    //   08:08:04.490 provoke hide:   (why=next        leaderEta=4 nextNameId=828 markedEta=4)
+    //   08:08:09.930 provoke reveal: (why=player-turn leaderEta=3 nextNameId=828 markedEta=3)
+    //   08:08:13.599 provoke hide:   (why=actor       leaderEta=6 nextNameId=835 markedEta=8)
+    //   08:08:19.897 release reason=EnemyTurnDone
+    // The middle line is the bug: nextNameId=828 IS the marked enemy and markedEta == leaderEta, so
+    // it was still genuinely NEXT TO ACT, and the OLD order revealed the party anyway purely because
+    // a player-side seat owned the turn. The player's turn ended, the marked enemy's turn opened
+    // immediately, and the AI committed against a fully visible party -- the why=actor hide at
+    // 08:08:13 is the hide arriving after the commit, exactly the race this feature exists to win.
+    // Cast 1 failed the same way (no why=next hide ever appeared before that enemy acted). ----
+
+    /// <summary>THE REGRESSION TEST for the live failure above. markedIsNext must beat
+    /// playerSideOwnsTurn now: once the marked enemy is next to act, the party stays hidden even
+    /// while a player-side seat owns the turn. Criterion 5 (a player can still target their own
+    /// units on their own turn) is not actually load-bearing here -- docs/LIVE_LEDGER.md records a
+    /// live-confirmed 2026-07-22 fact that a flagged (Invisible-bit) ally can still be targeted
+    /// normally, so the old reveal was buying nothing and costing the whole feature. The only
+    /// remaining cost of staying hidden through a player turn is the status icon over the party's
+    /// heads, which criterion 18 already accepts.</summary>
+    [Fact]
+    public void Marked_enemy_next_stays_hidden_even_on_a_player_turn_live_2026_07_27()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 90, speed: 20);   // eta 1, and the CT-overshoot winner: genuinely next
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 0, speed: 1);
+        SetTurnFlagOwner(m, 1);   // a player-side seat owns the turn -- the live failure's exact shape
+
+        var hold = Hold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.True(IsInvisible(m, 1));   // stays hidden: the marked enemy is still next to act
+    }
+
+    /// <summary>T6, rebuilt for the live fix: a player-side seat owning the turn reveals ONLY when
+    /// the marked enemy is not next and not the actor. Reuses T3's "leads by less than the margin"
+    /// shape (branch far-off would NOT fire on its own here) so this isolates player-turn's OWN
+    /// reveal power from far-off's, rather than riding along on a Reveal that far-off would have
+    /// produced anyway.</summary>
+    [Fact]
+    public void Player_side_turn_reveals_only_when_the_marked_enemy_is_not_next_and_not_the_actor_T6()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 80, speed: 10);   // eta 2 -- NOT next, and under the margin
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 95, speed: 10);   // eta 1 and the winner
+        SetTurnFlagOwner(m, 1);   // a player-side seat genuinely owns the turn
+
+        var hold = Hold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.False(IsInvisible(m, 1));   // revealed: marked is neither next nor the actor
+    }
+
+    [Fact]
+    public void No_usable_CT_or_Speed_falls_back_to_hide_while_an_enemy_holds_the_turn_T7()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);   // ct/speed default 0
+
+        var hold = Hold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.True(IsInvisible(m, 1));   // branch 5's default: an unusable read still means hide
+    }
+
+    // ---- BLOCKER-3 (adversarial review): the hide/reveal evidence line must carry enough to tell
+    // "the lookahead never fired" apart from "the lookahead fired but mispredicted". ----
+
+    /// <summary>The Reveal case: the evidence line names the SAME leaderEta/nextNameId/markedEta
+    /// numbers T1's fixture implies, so a live tape can be checked by hand against the fixture math.</summary>
+    [Fact]
+    public void Reveal_evidence_line_carries_leaderEta_nextNameId_and_markedEta_when_the_lookahead_fires()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 0, speed: 1);      // markedEta 100
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: true,
+            nameId: 501, ct: 95, speed: 10);    // leaderEta 1, nameId 501
+
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            Hold(Tier3Kills(), m).Tick(DateTime.UtcNow, true);
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.Contains(file, l => l.Contains("provoke reveal") && l.Contains("why=far-off")
+            && l.Contains("leaderEta=1") && l.Contains("nextNameId=501") && l.Contains("markedEta=100"));
+    }
+
+    /// <summary>The fallback case: when the lookahead never fires at all (every candidate excluded,
+    /// or Speed 0 across the board), the line must say so explicitly rather than printing zeros that
+    /// would read as a real (and misleadingly tied) measurement.</summary>
+    [Fact]
+    public void Hide_evidence_line_states_the_fallback_distinctly_rather_than_printing_zeros()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);   // ct/speed default 0
+
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            Hold(Tier3Kills(), m).Tick(DateTime.UtcNow, true);
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.Contains(file, l => l.Contains("provoke hide") && l.Contains("why=fallback") && l.Contains("lookahead=fallback"));
+        Assert.DoesNotContain(file, l => l.Contains("provoke hide") && l.Contains("leaderEta="));
+    }
+
+    // ---- LW-127 round-4 live fix (cast 3): the ENGAGEMENT LATCH ----
+    //
+    // THE TAPE, owner pass 2026-07-27 (livingweapon.log, cast 3): the branch reorder (round 3) works
+    // -- no player-turn reveal while marked is next, sane ETAs, why=next hides at the right time --
+    // but at the MARKED ENEMY'S OWN TURN OPEN it reveals for one window and the AI commits against a
+    // visible party:
+    //   08:46:04.737 hide   (why=next    leaderEta=2 nextNameId=796 markedEta=2)
+    //   08:46:07.558 reveal (why=far-off leaderEta=2 nextNameId=906 markedEta=8)   <- markedEta jumped 2 to 8
+    //   08:46:14.868 hide   (why=actor   leaderEta=2 nextNameId=906 markedEta=8)   <- too late, it committed at :07
+    // Cast 1 failed identically at 08:45:17.947. ROOT CAUSE: CT is paid at turn START. On the tick the
+    // marked enemy's turn opens, its own CT drops by the threshold, so TryEta reads it as far off for
+    // a few ticks until the actor pointer swings onto it -- the far-off branch is fooled by the very
+    // event it exists to wait for. FIX: once genuinely engaged (next to act, or a FRESH actor rise
+    // after arming), latch Hide unconditionally until the marked enemy's turn completes.
+
+    /// <summary>THE REGRESSION TEST for the tape above. Reproduces the exact shape: a genuine
+    /// why=next hide, then one tick later the marked seat's own CT drops ~100 (the payment) while a
+    /// DIFFERENT enemy now reads eta 0 (the new ranking "leader"), with the actor pointer still not
+    /// on the marked enemy.</summary>
+    [Fact]
+    public void Marked_enemys_own_ct_payment_does_not_reveal_the_party_live_2026_07_27_cast3()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 90, speed: 20);   // eta 1, genuinely next
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 0, speed: 1);     // eta 100: nowhere close, yet
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // tick 1: a genuine why=next hide
+        Assert.True(IsInvisible(m, 1));
+
+        // tick 2: the CT payment. The marked seat's own CT drops ~100 (a post-payment read), the
+        // OTHER enemy now reads eta 0 (the new ranking "leader"), and the actor pointer is NOT yet on
+        // the marked enemy -- exactly the live tape's shape.
+        m.U8s[Band.Entry(10) + Offsets.ACtSlam] = 5;
+        m.U8s[Band.Entry(11) + Offsets.ACtSlam] = 100;
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.True(IsInvisible(m, 1));   // must stay hidden: the engagement latch survives the payment misread
+    }
+
+    /// <summary>Park does not latch (LW-138 interaction, cast 2's CORRECT behaviour that must be
+    /// preserved): arm at 08:45:46.756 hid why=actor (the Provoke cast's own park), then at
+    /// 08:45:48.420 correctly revealed why=far-off once the marked enemy was found to be genuinely 7
+    /// away, and a different enemy acted with the party visible. A naive "hide once markedIsActor"
+    /// latch would kill this -- the arm-tick park is markedIsActor WITHOUT a fresh rise, and must
+    /// never engage.</summary>
+    [Fact]
+    public void Arm_tick_park_does_not_latch_engagement_live_2026_07_27_cast2()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        // active: true reproduces the arm-time park: the actor pointer is ALREADY on the marked enemy
+        // because the Provoke cast itself put it there (LW-138), not because it is genuinely acting.
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true,
+            nameId: 500, ct: 0, speed: 1);      // eta 100: genuinely far off, no why=next condition
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 95, speed: 10);    // eta 1 and the winner
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms with the stale park -> why=actor hide (correct, matches the tape)
+        Assert.True(IsInvisible(m, 1));
+
+        ClearActor(m);   // the park ends -- not a real turn, no fresh rise ever happened
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.False(IsInvisible(m, 1));   // revealed: far off, and NOT latched by the stale park
+    }
+
+    /// <summary>Latch clears on turn completion: after the marked enemy's real turn completes (a
+    /// FRESH rise, which does latch, then a fall -- ProvokeTurns=2 so the hold stays armed), with the
+    /// marked enemy still genuinely far off in the ranking, the party is revealed again. Proves the
+    /// clear, not just the set: a latch that never released would defeat the far-off branch forever.</summary>
+    [Fact]
+    public void Engagement_latch_clears_when_the_marked_enemys_turn_completes_and_reveals_again_if_far_off()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true,
+            nameId: 500, ct: 0, speed: 1);      // eta 100: far off throughout, even during its own turn
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 95, speed: 10);    // eta 1 and the winner throughout
+
+        var hold = Hold(Tier3Kills(), m, provokeTurns: 2);   // stays armed after one completed turn
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms with the stale park (why=actor, does not latch)
+
+        RunMarkedEnemyTurn(hold, m, 10, t0);   // a REAL turn: fresh rise (latches), then falls (clears)
+
+        Assert.True(HasMark(m, 10));       // still armed: only 1 of 2 turns done
+        Assert.False(IsInvisible(m, 1));   // revealed again: far off, and the latch cleared on completion
+    }
+
+    /// <summary>Latch clears on battle-edge reset: ResetBattle zeroes it along with every other
+    /// per-hold field, so a second arm (after a battle boundary) behaves like a first rather than
+    /// inheriting a stale latch from the previous mark.</summary>
+    [Fact]
+    public void Engagement_latch_clears_on_battle_reset_so_a_second_arm_behaves_like_a_first()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 90, speed: 20);   // eta 1: genuinely next -> engages
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 0, speed: 1);
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // why=next hide -> latches (for the NEXT tick, not observed here)
+        Assert.True(IsInvisible(m, 1));
+
+        hold.ResetBattle();   // battle edge: must zero _engaged along with every other per-hold field
+
+        // Re-mark and re-seat as FAR OFF and NOT next -- if _engaged had survived the reset, this
+        // second arm would incorrectly stay hidden via the stale latch instead of revealing.
+        SetMark(m, 10, true);
+        m.U8s[Band.Entry(10) + Offsets.ACtSlam] = 0;
+        m.U8s[Band.Entry(10) + Offsets.ASpeed] = 1;      // eta 100: far off
+        m.U8s[Band.Entry(11) + Offsets.ACtSlam] = 95;
+        m.U8s[Band.Entry(11) + Offsets.ASpeed] = 10;     // eta 1: the winner
+
+        hold.Tick(t0.AddMilliseconds(66), true);   // re-arms fresh
+
+        Assert.False(IsInvisible(m, 1));   // revealed: far off and not next -- the stale latch did not survive
+    }
+
+    /// <summary>T12: TurnOrder must never let a player-side seat into its ranking. ExtraTurn's own
+    /// live slam pins a player seat's CT at exactly 100 with a high Speed; if that leaked into the
+    /// ranking it would win every tick outright (CT >= 100 -> eta 0), making every real enemy look
+    /// clearly further away and spuriously revealing the party mid-hold.</summary>
+    [Fact]
+    public void Player_seat_pinned_at_CT_100_never_enters_the_ranking_T12()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2, ct: 100, speed: 99);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 50, speed: 10);   // the ONLY enemy candidate -- trivially "next" on its own
+
+        var hold = Hold(Tier3Kills(), m);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.True(IsInvisible(m, 1));   // the pinned player CT never got a vote
+    }
+
+    // ---- BLOCKER-1 (adversarial review): TryEta must never trust a seat the ranking itself would
+    // refuse. markedEntry comes from LocateByIdentity, which only requires Band.IsValid -- it says
+    // nothing about on-field, enemy-side, or hp<=maxHp. Before the fix, TryEta applied only a
+    // Speed > 0 check, so a marked seat failing the CANDIDATE filter (a ghost seat, a garbage
+    // hp>maxHp read) still yielded a number, and a stale/zero CT read as "clearly far off" ->
+    // Reveal. Both fixtures below arm normally (the marked enemy must be a real candidate at ARM
+    // TIME, since FindMarkedEnemy itself requires on-field), then corrupt the marked seat AFTER
+    // arming to simulate the bad read landing mid-hold, with a healthy leading enemy that would
+    // make the far-off branch fire if the corrupted seat's stale CT/Speed were trusted. ----
+
+    [Fact]
+    public void Marked_enemy_seat_failing_the_candidate_filter_off_field_still_hides_not_reveals_BLOCKER1()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 0, speed: 1);      // stale CT/Speed that WOULD read "far off" if trusted
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 95, speed: 10);    // a healthy leading enemy
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms normally -- the marked seat is on-field at arm time
+
+        m.U8s[Band.Entry(10) + Offsets.AGateByte] = Offsets.AGateHiddenValue;   // now reads as a ghost seat
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.True(IsInvisible(m, 1));   // must stay hidden: the marked seat fails the candidate filter
+    }
+
+    [Fact]
+    public void Marked_enemy_seat_failing_the_candidate_filter_hp_over_maxHp_still_hides_not_reveals_BLOCKER1()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 0, speed: 1);      // stale CT/Speed that WOULD read "far off" if trusted
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 95, speed: 10);    // a healthy leading enemy
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms normally
+
+        m.U16s[Band.Entry(10) + Offsets.AHp] = 9999;   // a garbage read: hp now exceeds maxHp (100)
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.True(IsInvisible(m, 1));   // must stay hidden: the marked seat fails the candidate filter
+    }
+
+    /// <summary>BLOCKER-1 follow-up (round-3 review): markedEta=0 is ambiguous in EXACTLY the field
+    /// the evidence line exists to clarify. A genuine ETA of 0 means "the marked enemy is due right
+    /// now" -- the opposite of this scenario, where TryEta REFUSED the marked seat because it fails
+    /// the candidate filter. The owner's live tape cannot tell those two apart if both print
+    /// markedEta=0, and the refused-seat path is precisely the rare, confusing one. Reuses the
+    /// off-field fixture above; only the log assertion is new.</summary>
+    [Fact]
+    public void Refused_marked_seat_prints_a_distinct_eta_token_not_zero()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false,
+            nameId: 500, ct: 0, speed: 1);
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
+            nameId: 501, ct: 95, speed: 10);
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms normally, no log-worthy edge asserted here
+
+        m.U8s[Band.Entry(10) + Offsets.AGateByte] = Offsets.AGateHiddenValue;   // now reads as a ghost seat
+
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            hold.Tick(t0.AddMilliseconds(33), true);
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.DoesNotContain(file, l => l.Contains("markedEta=0"));
+        Assert.Contains(file, l => l.Contains("markedEta=?"));
+    }
+
+    // ---- WINDOW-mode load-bearing test (legacy TqTeam field; unread since LW-135, kept to pin that
+    // the fallback shape is unchanged) ----
 
     [Fact]
     public void WindowMode_hides_on_any_enemy_turn_via_TqTeam()
@@ -286,7 +771,7 @@ public class ProvokeHoldTests
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 10;
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;
 
-        var hold = Hold(Tier3Kills(), m, sliceMode: false);
+        var hold = Hold(Tier3Kills(), m);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.True(IsInvisible(m, 1));
@@ -511,20 +996,24 @@ public class ProvokeHoldTests
         Assert.False(IsInvisible(m, 1));   // now released (EnemyGone)
     }
 
-    // ---- SLICE reveal is automatic (criterion 5), not a release ----
+    // ---- D1 revised: hide is the default state, so a turn ending does NOT auto-reveal ----
 
+    /// <summary>Superseded v1 assumption, pinned so a regression is loud: v1's SLICE facade revealed
+    /// the instant the marked enemy stopped being active, no matter what came next. D1 revised
+    /// explicitly rejects that ("Hide is the default state; a reveal must be earned") -- with no
+    /// CT/Speed seeded and no player-side seat owning the turn, nothing has earned a reveal here, so
+    /// the party STAYS hidden even though the marked enemy's own turn just ended.</summary>
     [Fact]
-    public void SliceMode_reveals_the_instant_the_marked_enemy_stops_being_active_while_still_armed()
+    public void Marked_enemy_turn_ending_does_not_auto_reveal_hide_is_the_default_state()
     {
         var m = new FakeSparseMemory();
         SeatBearer(m, 0, 0);
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
 
-        // provokeTurns=2 isolates SLICE's own reveal from the coincident EnemyTurnDone release the
-        // shipped default of 1 would otherwise trigger on this exact edge. Explicit sliceMode: true
-        // because the shipped default is now WINDOW (see the facade test above).
-        var hold = Hold(Tier3Kills(), m, sliceMode: true, provokeTurns: 2);
+        // provokeTurns=2 isolates this from the coincident EnemyTurnDone release the shipped default
+        // of 1 would otherwise trigger on this exact edge.
+        var hold = Hold(Tier3Kills(), m, provokeTurns: 2);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -532,11 +1021,11 @@ public class ProvokeHoldTests
         ClearActor(m);   // the marked enemy's own turn ends -- the actor pointer moves off it
         hold.Tick(t0.AddMilliseconds(33), true);
 
-        Assert.False(IsInvisible(m, 1));   // revealed automatically -- no per-turn toggle needed
-        Assert.True(HasMark(m, 10));       // still armed (1 of 2 turns) -- this was SLICE's reveal, not a release
+        Assert.True(IsInvisible(m, 1));    // still hidden: nothing earned a reveal
+        Assert.True(HasMark(m, 10));       // still armed (1 of 2 turns) -- no release either
     }
 
-    // ---- WINDOW ActionFor wiring (LW-135: the turn flag, never the cursor/team field) ----
+    // ---- ActionFor wiring (LW-135: the turn flag, never the cursor/team field) ----
 
     [Fact]
     public void WindowMode_reveals_the_moment_a_player_side_seat_takes_the_turn()
@@ -546,7 +1035,7 @@ public class ProvokeHoldTests
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
 
-        var hold = Hold(Tier3Kills(), m, sliceMode: false);
+        var hold = Hold(Tier3Kills(), m);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);               // nobody owns the turn flag: the enemy phase
         Assert.True(IsInvisible(m, 1));
@@ -569,7 +1058,7 @@ public class ProvokeHoldTests
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
         SetTurnFlagOwner(m, 10);   // the marked ENEMY owns the flag: unambiguously its turn
 
-        var hold = Hold(Tier3Kills(), m, sliceMode: false);
+        var hold = Hold(Tier3Kills(), m);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
@@ -897,7 +1386,7 @@ public class ProvokeHoldTests
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 25;
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 0;
 
-        var hold = Hold(Tier3Kills(), m, sliceMode: false, provokeTurns: 5);
+        var hold = Hold(Tier3Kills(), m, provokeTurns: 5);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.True(IsInvisible(m, 1));    // the ally is hidden: this is the whole feature
@@ -916,7 +1405,7 @@ public class ProvokeHoldTests
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 20;
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;   // cursor hovering an enemy on your own turn
 
-        var hold = Hold(Tier3Kills(), m, sliceMode: false, provokeTurns: 5);
+        var hold = Hold(Tier3Kills(), m, provokeTurns: 5);
         hold.Tick(DateTime.UtcNow, true);
 
         Assert.False(IsInvisible(m, 1));   // criterion 5: nobody is hidden on your own turn

@@ -420,19 +420,21 @@ internal static class Tuning
     /// drift apart; tools/audit_nxd_bakes.py covers the card text.</summary>
     public const bool ProvokeEnabled = true;
 
-    /// <summary>Hide mode (decision 3, owner pivot 2026-07-22): true = SLICE, the clean facade -- hide
-    /// every player-side-but-bearer unit iff the PROVOKED enemy is the unit whose turn it is right now
-    /// (so only the goaded enemy's own turn is affected). false = WINDOW, the guaranteed-no-race
-    /// fallback that hides for ANY enemy's turn while the hold is armed. Ships SLICE; the Phase 5 live
-    /// pass measures whether the turn-start hide beats the AI's target commit -- WINDOW is the fallback
-    /// if it does not. LIVE 2026-07-22: it does NOT. The flight tape showed enemies commit their target
-    /// the instant their turn opens (the marked enemy moved on the SAME tick it became the actor), so
-    /// the slice turn-start hide lands ~33ms too late and loses the race. Set to WINDOW to (1) confirm
-    /// the funnel premise live and (2) give a working provoke, pending the clean-slice fix (turn
-    /// detection now rides the proven actor pointer, not the flaky enemy ATurnFlag -- see
-    /// ProvokeHold.MarkedIsActor; still pending: turn-queue lookahead so the single-enemy facade hides
-    /// BEFORE the provoked enemy's turn opens).</summary>
-    public const bool ProvokeSliceMode = false;
+    /// <summary>LW-127 (D1 revised, branch 4): how much further off the leading enemy's ETA must be
+    /// than the marked enemy's own ETA before the hold reveals -- "clearly further away", not a photo
+    /// finish, so a one-position ordering error in TurnOrder's ranking still leaves the party hidden.
+    /// A const like every Tuning knob below, so changing it is a rebuild, never a runtime toggle.</summary>
+    public const int ProvokeRevealMarginTicks = 2;
+
+    /// <summary>LW-127: the master switch for the CT+Speed turn-order lookahead (TurnOrder.cs). True
+    /// runs the full five-branch rule (D1 revised, ProvokeHold.Policy.ActionFor); false skips
+    /// branches 3/4 entirely -- TurnOrder is never consulted, so ActionFor always falls to its
+    /// branch 5 default (hide unless a player-side seat owns the turn or the marked enemy is the
+    /// current actor), which is the same fallback shape the old WINDOW mode shipped. A rollback
+    /// lever, not a player option: if the live pass finds the ranking model unreliable, flipping this
+    /// off restores the known fallback without reverting the whole feature. A const, so flipping it
+    /// is a rebuild, not a runtime toggle.</summary>
+    public const bool ProvokeLookahead = true;
 
     /// <summary>Provoke hold: the marked enemy's own completed turns (the falling edge of the
     /// actor-pointer identity match gated on an enemy turn, decision 10 -- see

@@ -4,18 +4,22 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-123 arc 2a: the runtime half that READS arc 1's mark. Arc 1 (Provoke.cs) grants the Defender's
-/// "Provoke" command, planting an inert receipt (composed +0x45/0x80 and inflicted +0x1D3/0x80, the
-/// blank status id 0) on the targeted enemy -- nothing reads it yet. This module polls the band for
-/// that mark: while up on an enemy, with a tier-3 main-hand Defender bearer deployed and alive, the
-/// hold hides every other player-side unit from the AI (SLICE mode: only during the marked enemy's
-/// own turn, the clean facade -- Tuning.ProvokeSliceMode) so the AI's only visible target is the
-/// bearer. Gates on the mark bit itself, never `meta[33].Signature` (arc 2b's data plumbing), so this
-/// same code runs whether the mark came from a real cast or the DEV planter (ProvokeSpike.cs, LWDEV).
+/// LW-123 arc 2a (rebuilt for LW-127): the runtime half that READS arc 1's mark. Arc 1 (Provoke.cs)
+/// grants the Defender's "Provoke" command, planting an inert receipt (composed +0x45/0x80 and
+/// inflicted +0x1D3/0x80, the blank status id 0) on the targeted enemy -- nothing reads it yet. This
+/// module polls the band for that mark: while up on an enemy, with a tier-3 main-hand Defender bearer
+/// deployed and alive, the hold hides every other player-side unit from the AI so the AI's only
+/// visible target is the bearer. LW-127 replaced the old SLICE/WINDOW pair with one five-branch rule
+/// (D1 revised, ProvokeHold.Policy.ActionFor): hide is the DEFAULT state, and a reveal has to be
+/// earned -- by a player-side seat owning the turn, or by TurnOrder.cs's CT+Speed lookahead showing
+/// the marked enemy is clearly further off than the leading enemy. Gates on the mark bit itself,
+/// never `meta[33].Signature` (arc 2b's data plumbing), so this same code runs whether the mark came
+/// from a real cast or the DEV planter (ProvokeSpike.cs, LWDEV).
 ///
 /// Split across three partials, a real seam: this file is the state machine; ProvokeHold.Scan.cs is
-/// every band walk; ProvokeHold.Policy.cs is the pure decisions plus guarded bit writers, unit-tested
-/// directly. See docs/PROVOKE_AC.md for the full premise ledger and the SLICE/WINDOW trade-off.
+/// every band walk (plus the hide/reveal call into TurnOrder); ProvokeHold.Policy.cs is the pure
+/// decisions plus guarded bit writers, unit-tested directly. See docs/PROVOKE_AC.md for the full
+/// premise ledger.
 /// </summary>
 internal sealed partial class ProvokeHold : ISignature
 {
@@ -29,9 +33,13 @@ internal sealed partial class ProvokeHold : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, int> _kills;
     private readonly bool _enabled;
-    private readonly bool _sliceMode;
     private readonly int _provokeTurns;
     private readonly List<long> _hideScratch = new();
+    /// <summary>Caller-owned scratch for TurnOrder.TryNextEnemyToAct (the NIT fix from the adversarial
+    /// review): TurnOrder stays stateless -- no static mutable buffer, which would be a threading
+    /// hazard since the flight/logging paths run off the engine thread -- so this hold owns the one
+    /// reusable list, mirroring <see cref="_hideScratch"/>.</summary>
+    private readonly List<(long e, int ct, int speed)> _turnOrderScratch = new();
 
     private HoldState _state;
     private (int nameId, int mhp, int lvl, int br, int fa) _markedId;
@@ -40,6 +48,18 @@ internal sealed partial class ProvokeHold : ISignature
     /// own resolution, and the engine's actor pointer parks on whatever that cast targeted, so the
     /// park visible at arm time belongs to the player's action and must never count.</summary>
     private bool _sawFreshRise;
+    /// <summary>LW-127 round-4 live fix (cast 3): once the hold hides because the marked enemy is
+    /// next to act, or because it is genuinely acting (markedIsActor AND a FRESH rise since arming,
+    /// never the arm-tick's own stale park -- see <see cref="_sawFreshRise"/>), stay hidden
+    /// UNCONDITIONALLY until the marked enemy's turn completes. Closes the CT-payment race: CT is
+    /// paid at turn START, so on the tick the marked enemy's turn opens, TryEta reads its own CT as
+    /// having jumped away from the threshold for a few ticks until the actor pointer swings onto it,
+    /// misreading as "far off" and revealing the party inside the AI's commit window. Set from THIS
+    /// tick's signals but applied starting the FOLLOWING tick's decision (see TickArmed), so a
+    /// genuine why=next/why=actor hide still logs its own real reason the first time; cleared on the
+    /// SAME falling edge that completes a turn (<see cref="_markedTurns"/> increments), and in
+    /// EnterIdle/ResetBattle like every other per-hold field.</summary>
+    private bool _engaged;
     /// <summary>The marked enemy's LAST KNOWN tile (criterion 15). Held rather than re-read at
     /// release time because the two releases that matter most, EnemyGone and EnemyDead, are exactly
     /// the cases with no readable seat left to read it from.</summary>
@@ -53,8 +73,6 @@ internal sealed partial class ProvokeHold : ISignature
     private readonly HashSet<(int, int, int, int, int)> _flaggedNow = new();
     private readonly HashSet<(int, int, int, int, int)> _everFlagged = new();
 
-    /// <param name="sliceMode">Overrides Tuning.ProvokeSliceMode; null uses the compiled default (the
-    /// Engine.bannerToasts ctor-seam precedent) -- isolates the WINDOW fallback for tests.</param>
     /// <param name="provokeTurns">Overrides Tuning.ProvokeTurns; null uses the compiled default --
     /// isolates "still armed after one turn ends" from the release value 1 triggers immediately.</param>
     /// <param name="enabled">Overrides <see cref="Tuning.ProvokeEnabled"/>, the feature's ship
@@ -63,13 +81,12 @@ internal sealed partial class ProvokeHold : ISignature
     /// waits for its live pass: ProvokeHoldTests routes every construction through its own
     /// Hold(...) factory that passes true, which is what stops the suite going vacuous the moment
     /// the default flips off again.</param>
-    public ProvokeHold(Dictionary<int, int> kills, IGameMemory? mem = null, bool? sliceMode = null,
+    public ProvokeHold(Dictionary<int, int> kills, IGameMemory? mem = null,
         int? provokeTurns = null, bool? enabled = null)
     {
         _mem = mem ?? new LiveMemory();
         _kills = kills;
         _enabled = enabled ?? Tuning.ProvokeEnabled;
-        _sliceMode = sliceMode ?? Tuning.ProvokeSliceMode;
         _provokeTurns = provokeTurns ?? Tuning.ProvokeTurns;
     }
 
@@ -174,16 +191,26 @@ internal sealed partial class ProvokeHold : ISignature
         // hold armed. The park that is already underway at arm time is the Provoke cast's own, and
         // its end is not a turn. Cleared on use so each turn needs its own rise (ProvokeTurns > 1).
         if (!_wasMarkedActive && markedActive) _sawFreshRise = true;
-        if (TurnEnded(_wasMarkedActive, markedActive) && _sawFreshRise) { _markedTurns++; _sawFreshRise = false; }
+        // LW-127 round-4: the SAME falling edge that completes a turn clears the engagement latch --
+        // the turn that engaged it is over, so the next decision starts from a clean slate.
+        if (TurnEnded(_wasMarkedActive, markedActive) && _sawFreshRise) { _markedTurns++; _sawFreshRise = false; _engaged = false; }
         _wasMarkedActive = markedActive;
 
         var reason = ReleaseReason(bearerPresent, bearerAlive, markedLocated, markedDead, markedMissedOut,
             markedDisabled, _markedTurns, _provokeTurns, watchdogElapsed);
         if (reason != Release.None) { ReleaseHold(reason, markedEntry); return; }
 
-        HideAction action = _sliceMode ? (markedActive ? HideAction.Hide : HideAction.Reveal) : WindowAction(playerTurn);
-        if (action == HideAction.Hide) HideAllExceptBearer(bearerId); else RevealFlagged();
-        LogHideEdge(action);
+        var look = GatherLookahead(markedEntry);
+        // Decide THIS tick's action using the latch as it stood BEFORE this tick's own signals are
+        // folded in -- a genuine why=next/why=actor hide still logs its own real reason the first
+        // time it fires; the latch only starts overriding the FOLLOWING tick, which is exactly the
+        // window cast 3's tape shows failing (the CT-payment misread lands a tick or more later).
+        var (action, actionReason) = ActionForWithReason(_engaged, playerTurn, markedActive, look.markedIsNext, look.markedIsFarOff);
+        if (look.markedIsNext || (markedActive && _sawFreshRise)) _engaged = true;
+
+        var decision = (action, actionReason, look.lookaheadFired, look.leaderEta, look.markedEta, look.nextNameId);
+        if (decision.action == HideAction.Hide) HideAllExceptBearer(bearerId); else RevealFlagged();
+        LogHideEdge(decision);
     }
 
     private void HideAllExceptBearer((int nameId, int mhp, int lvl, int br, int fa) bearerId)
@@ -231,17 +258,38 @@ internal sealed partial class ProvokeHold : ISignature
     /// <summary>The tile as both log lines and both flight records print it (criterion 15).</summary>
     private string TileText => $"{_markedTile.gx},{_markedTile.gy}";
 
-    /// <summary>One line per hide/reveal TRANSITION, never per tick. LW-135's evidence gap: the
-    /// 2026-07-27 live tape could say only that 0 units were ever hidden, and nothing anywhere said
-    /// whether the hold had decided to hide and found nobody, or had decided to reveal all along.
-    /// That ambiguity cost a whole battle to resolve, so the decision now leaves a trace.</summary>
-    private void LogHideEdge(HideAction action)
+    /// <summary>One line per hide/reveal TRANSITION, never per tick (the on-change latch on
+    /// <see cref="_lastAction"/>, preserved). LW-135's evidence gap: the 2026-07-27 live tape could
+    /// say only that 0 units were ever hidden, and nothing anywhere said whether the hold had decided
+    /// to hide and found nobody, or had decided to reveal all along. That ambiguity cost a whole
+    /// battle to resolve, so the decision now leaves a trace.
+    ///
+    /// EXTENDED (BLOCKER-3, adversarial review): the trace used to carry only a unit count, which
+    /// cannot tell "the lookahead never fired" apart from "the lookahead fired but mispredicted" --
+    /// two different bug classes that need different fixes. Now it carries WHICH branch decided
+    /// (<paramref name="d"/>.reason, see ActionForWithReason) and, whenever the lookahead actually
+    /// ran, the leading enemy's ETA, the marked enemy's own ETA, and the next enemy's nameId. When
+    /// the lookahead did NOT fire, the line says so explicitly (`lookahead=fallback`) rather than
+    /// printing zeros that would look like a real (and misleadingly tied) reading. Same reasoning
+    /// applies one level deeper (round-3 review): <paramref name="d"/>.markedEta being null (TryEta
+    /// never attempted or refused, e.g. BLOCKER-1's off-field/hp&gt;maxHp seat) prints `markedEta=?`,
+    /// never `markedEta=0` -- a genuine 0 means "due right now", the opposite situation, and the
+    /// refused-seat path is exactly the rare one that would otherwise read as a real measurement.</summary>
+    private void LogHideEdge((HideAction action, string reason, bool lookaheadFired, int leaderEta,
+        int? markedEta, int nextNameId) d)
     {
-        if (_lastAction == action) return;
-        _lastAction = action;
-        ModLogger.Debug(LogVerb.Signature, action == HideAction.Hide
-            ? $"provoke hide: {_flaggedNow.Count} unit(s) now hidden from the marked enemy"
-            : "provoke reveal: every unit the hold hid is visible again");
+        if (_lastAction == d.action) return;
+        _lastAction = d.action;
+        string markedEtaText = d.markedEta.HasValue ? d.markedEta.Value.ToString() : "?";
+        string evidence = d.lookaheadFired
+            ? $"why={d.reason} leaderEta={d.leaderEta} nextNameId={d.nextNameId} markedEta={markedEtaText}"
+            : $"why={d.reason} lookahead=fallback";
+        ModLogger.Debug(LogVerb.Signature, d.action == HideAction.Hide
+            ? $"provoke hide: {_flaggedNow.Count} unit(s) now hidden from the marked enemy ({evidence})"
+            : $"provoke reveal: every unit the hold hid is visible again ({evidence})");
+        // Flight vocabulary stays FROZEN (LW-127 constraint): the EXISTING "provoke" record type,
+        // just a richer payload string, exactly like the arm/release/scrub records beside it.
+        Flight.Record("provoke", $"{(d.action == HideAction.Hide ? "hide" : "reveal")}-edge {evidence}");
     }
 
     private void EnterIdle()
@@ -254,6 +302,7 @@ internal sealed partial class ProvokeHold : ISignature
         _wasMarkedActive = false;
         _markedTurns = 0;
         _markedMissTicks = 0;
+        _engaged = false;   // LW-127 round-4: never let a stale latch survive into the next arm cycle
     }
 
     /// <summary>SEAM (R3, criterion 18): suppress the invisible ICON without the AI-ignore effect.

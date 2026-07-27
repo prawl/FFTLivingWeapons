@@ -37,30 +37,83 @@ internal sealed partial class ProvokeHold
         return Release.None;
     }
 
-    /// <summary>WINDOW mode's hide/reveal choice (decision 3): Reveal iff a PLAYER-SIDE seat
-    /// currently owns the engine's per-unit turn flag (<see cref="PlayerSideOwnsTurn"/>), Hide
-    /// otherwise. Guests count as player-side (the friend/foe bit is guest-complete), so an ally's
-    /// turn reveals too, which is criterion 5.
+    /// <summary>LW-127 (D1 revised, RE-ORDERED after the 2026-07-27 live pass failed both casts --
+    /// see the session ledger and <see cref="ProvokeHoldTests.Marked_enemy_next_stays_hidden_even_on_a_player_turn_live_2026_07_27"/>,
+    /// then GAINED THE ENGAGEMENT LATCH after cast 3's follow-up failure -- see
+    /// <see cref="ProvokeHoldTests.Marked_enemys_own_ct_payment_does_not_reveal_the_party_live_2026_07_27_cast3"/>):
+    /// the whole hide/reveal decision for one armed tick, evaluated in order -- first match wins.
+    /// HIDE IS THE DEFAULT STATE; A REVEAL MUST BE EARNED (branch 5 is the fallback, not merely the
+    /// case of an unreadable band walk):
     ///
-    /// LW-135, and it is the bug the owner's 2026-07-27 live pass caught rather than a tidy-up.
-    /// This used to read Offsets.TqTeam, the condensed TurnQueue struct's team field. During an
-    /// enemy's action the cursor sits on the PLAYER unit being targeted, so that field read PLAYER,
-    /// this returned Reveal, and the hold hid NOBODY for the entire enemy turn: the tape reads
-    /// "arm ... 0 units hidden so far" then "release reason=EnemyTurnDone ... 0 units were ever
-    /// hidden", and the goaded goblin attacked an ally exactly as if the mod were absent. It failed
-    /// in the other direction too: hovering an enemy on your OWN turn read ENEMY and hid the party
-    /// mid-turn. That is the same cursor-tracking behaviour LW-131 stopped trusting for the release
-    /// gate; this was the one read of it left, and it was the one deciding the feature's whole
-    /// point. Both directions are now decided by the flag walk, which reads no cursor field at all.
+    ///   0. <paramref name="engaged"/>               -&gt; Hide, unconditionally, no matter what the
+    ///      other four inputs say (STATE, not a ranking read -- see ProvokeHold._engaged). Cast 3's
+    ///      tape: CT is paid at turn START, so the instant the marked enemy's turn opens, its own CT
+    ///      drops by the threshold and TryEta misreads it as far off for a few ticks until the actor
+    ///      pointer swings onto it -- branch 4 (far-off) was being fooled by the very event it exists
+    ///      to wait for. The latch is set by the STATEFUL caller once the hold has genuinely hidden
+    ///      because the marked enemy was next or truly acting, and held through exactly that window.
+    ///   1. <paramref name="markedIsActor"/>        -&gt; Hide (its own turn; already gated on NOT a
+    ///      player turn by the caller, see ProvokeHold.MarkedIsActor/TickArmed's `markedActive`).
+    ///   2. <paramref name="markedIsNext"/>          -&gt; Hide (the run-up: hidden before its turn
+    ///      opens, TurnOrder.TryNextEnemyToAct's whole point. MOVED ABOVE playerSideOwnsTurn: the
+    ///      live tape showed the marked enemy still genuinely next (markedEta == leaderEta) when a
+    ///      player-side seat's own turn opened and revealed the party anyway; the player's turn then
+    ///      ended, the marked enemy's turn opened immediately, and the AI committed against a fully
+    ///      visible party -- the exact race this feature exists to win, lost).
+    ///   3. <paramref name="playerSideOwnsTurn"/>  -&gt; Reveal (criterion 5: your menus can target
+    ///      your own units).
+    ///   4. <paramref name="markedIsFarOff"/>        -&gt; Reveal (the marked enemy is CLEARLY
+    ///      further away than the leading enemy -- Tuning.ProvokeRevealMarginTicks is the margin, so
+    ///      a one-position ordering error still leaves the party hidden).
+    ///   5. anything else                            -&gt; Hide (today's whole-phase fallback: an
+    ///      unusable CT/Speed read, a close call under the margin, or no enemy candidate at all).
     ///
-    /// BIAS TO HIDDEN survives the rewrite: PlayerSideOwnsTurn fails open (nobody owns the flag, or
-    /// two seats disagree, both return false), so an unreadable or transitional band walk hides
-    /// rather than leaking a hidden unit's turn. In WINDOW that bias is a feature, not a hedge: the
-    /// hide wants to be up BEFORE the enemy phase opens, and the gap between turns is exactly when
-    /// nobody owns the flag. SLICE mode does not call this: it inlines `markedActive ? Hide :
-    /// Reveal` in the module (tested via the module facade test, not here).</summary>
-    internal static HideAction ActionFor(bool playerSideOwnsTurn) =>
-        playerSideOwnsTurn ? HideAction.Reveal : HideAction.Hide;
+    /// WHY MOVING BRANCH 3 BELOW 1/2 IS SAFE: criterion 5 exists so the player can still target their
+    /// own units during their own turn. It is NOT actually load-bearing for that -- docs/LIVE_LEDGER.md
+    /// records a live-confirmed fact (2026-07-22) that a flagged (Invisible-bit) ally CAN still be
+    /// targeted normally, so the old reveal-on-player-turn was buying nothing while it was active, and
+    /// costing the whole feature whenever it coincided with the marked enemy being next. The only
+    /// remaining cost of staying hidden through a player turn is the status icon over the party's
+    /// heads, which criterion 18 already accepts as an open, un-fixed cosmetic gap.
+    ///
+    /// LW-135 history, still relevant to why player-side ownership is read from the per-unit turn
+    /// flag (<see cref="PlayerSideOwnsTurn"/>) and never a cursor field: this function used to read
+    /// Offsets.TqTeam, the condensed TurnQueue struct's team field. During an enemy's action the
+    /// cursor sits on the PLAYER unit being targeted, so that field read PLAYER, this returned
+    /// Reveal, and the hold hid NOBODY for the entire enemy turn -- the goaded goblin attacked an
+    /// ally exactly as if the mod were absent. PlayerSideOwnsTurn reads no cursor field at all, and
+    /// FAILS OPEN (nobody owns the flag, or two seats disagree, both return false), so branch 3 can
+    /// only fire on a genuinely positive read; every other ambiguity falls through to branch 5's
+    /// Hide default, same bias-to-hidden shape as before.</summary>
+    internal static HideAction ActionFor(bool engaged, bool playerSideOwnsTurn, bool markedIsActor,
+        bool markedIsNext, bool markedIsFarOff)
+        => ActionForWithReason(engaged, playerSideOwnsTurn, markedIsActor, markedIsNext, markedIsFarOff).action;
+
+    /// <summary>ActionFor plus a diagnostic tag naming WHICH branch decided, for things that cannot
+    /// be told apart from the HideAction alone (adversarial review, BLOCKER-3 and the T2 SHOULD-FIX;
+    /// then cast 3's engagement latch): the owner's live pass needs to tell "the lookahead never
+    /// fired" apart from "the lookahead fired but mispredicted", a test needs to tell "branch 2
+    /// genuinely fired" apart from "branch 5 coincidentally produced the same Hide" -- which matters
+    /// because branch 4 can PROVABLY never fire when the marked enemy genuinely wins TurnOrder's
+    /// ranking (its own raw ETA is then always exactly the shared leader ETA, so the margin check
+    /// never trips), making branch 2 and branch 5 permanently outcome-identical for a "marked is
+    /// next" fixture -- and now the tape needs to tell "engaged is holding the hide through a
+    /// misprediction" apart from a genuine why=next/why=actor/why=far-off read, which is exactly why
+    /// an engaged Hide reports its OWN reason ("engaged") rather than reusing whatever next/actor/
+    /// far-off would have said, even when one of those is ALSO true underneath. Delegates to the
+    /// SAME branch order as <see cref="ActionFor"/> (this is the one place that order is written down
+    /// -- ActionFor calls back into this, never the reverse) so the reason can never drift from the
+    /// real decision.</summary>
+    internal static (HideAction action, string reason) ActionForWithReason(bool engaged,
+        bool playerSideOwnsTurn, bool markedIsActor, bool markedIsNext, bool markedIsFarOff)
+    {
+        if (engaged) return (HideAction.Hide, "engaged");
+        if (markedIsActor) return (HideAction.Hide, "actor");
+        if (markedIsNext) return (HideAction.Hide, "next");
+        if (playerSideOwnsTurn) return (HideAction.Reveal, "player-turn");
+        if (markedIsFarOff) return (HideAction.Reveal, "far-off");
+        return (HideAction.Hide, "fallback");
+    }
 
     /// <summary>One completed turn: WAS the active unit last tick, is NOT now -- the falling edge.
     /// Identical shape to FeignDeath.TurnEnded, reused here against the marked enemy's actor-pointer

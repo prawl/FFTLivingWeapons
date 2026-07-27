@@ -184,11 +184,52 @@ internal sealed partial class ProvokeHold
         return fpReal != 0 ? fpReal : fpAny;
     }
 
-    /// <summary>LW-135: WINDOW's hide/reveal call now rides the same player-side turn-flag walk the
-    /// release gate does, so no cursor field is read anywhere in this module. The caller has already
-    /// computed <paramref name="playerSideOwnsTurn"/> for the release gate this tick; passing it in
-    /// rather than re-walking the band is the whole reason this takes a parameter.</summary>
-    private static HideAction WindowAction(bool playerSideOwnsTurn) => ActionFor(playerSideOwnsTurn);
+    /// <summary>LW-127 (D1 revised): the CT+Speed ranking evidence for one armed tick -- everything
+    /// ActionForWithReason needs about the LOOKAHEAD half of its inputs, plus the diagnostic evidence
+    /// behind it (BLOCKER-3, adversarial review: the log/flight line this feeds must be able to tell
+    /// "the lookahead never fired" apart from "the lookahead fired but mispredicted"). Deliberately
+    /// does NOT decide the action -- that needs <see cref="_engaged"/> too (round-4 live fix, cast 3),
+    /// which is STATE the caller (TickArmed) owns and must fold in between gathering this evidence and
+    /// calling ActionForWithReason, so the engagement latch can only ever be set/cleared in ONE place.
+    /// <paramref name="markedEntry"/> is the marked enemy's own band entry, already located this tick,
+    /// or 0 when it could not be found.
+    ///
+    /// The ranking comes from <see cref="TurnOrder"/>'s CT+Speed model, ENEMY seats only (see
+    /// TurnOrder.cs for why player seats are excluded), consulted only when Tuning.ProvokeLookahead
+    /// is on; off, or when TurnOrder finds no candidate at all, <c>lookaheadFired</c> is false.
+    /// <c>markedEta</c> is computed whenever the lookahead fires and the marked seat is itself a
+    /// usable candidate, EVEN WHEN it is already the winner (markedIsNext true) -- purely for the
+    /// evidence line's sake. NULLABLE (round-3 review): a plain 0 would be ambiguous with a GENUINE
+    /// eta of 0 ("due right now") -- the two situations are opposites, and printing the same digit for
+    /// both hides exactly the rare, confusing case (BLOCKER-1's refused-seat path) the evidence line
+    /// exists to surface. Null means TryEta was never even attempted or was refused (markedEntry == 0,
+    /// or the marked seat itself fails TurnOrder's candidate filter); LogHideEdge prints a distinct
+    /// token for that case rather than a misleading 0. Instance method (not static): it needs
+    /// <see cref="_mem"/>, <see cref="_markedId"/>, and the caller-owned
+    /// <see cref="_turnOrderScratch"/> (the NIT fix: TurnOrder itself stays stateless).</summary>
+    private (bool lookaheadFired, int leaderEta, int? markedEta, int nextNameId, bool markedIsNext, bool markedIsFarOff)
+        GatherLookahead(long markedEntry)
+    {
+        bool markedIsNext = false;
+        bool markedIsFarOff = false;
+        bool lookaheadFired = false;
+        int leaderEta = 0, nextNameId = 0;
+        int? markedEta = null;
+        if (Tuning.ProvokeLookahead && TurnOrder.TryNextEnemyToAct(_mem, _turnOrderScratch, out long nextEntry, out int wait))
+        {
+            lookaheadFired = true;
+            leaderEta = wait;
+            var nextId = ReadIdentity(_mem, nextEntry);
+            nextNameId = nextId.nameId;
+            markedIsNext = SameIdentity(nextId, _markedId);
+            if (markedEntry != 0 && TurnOrder.TryEta(_mem, markedEntry, out int eta))
+            {
+                markedEta = eta;
+                if (!markedIsNext) markedIsFarOff = eta - leaderEta >= Tuning.ProvokeRevealMarginTicks;
+            }
+        }
+        return (lookaheadFired, leaderEta, markedEta, nextNameId, markedIsNext, markedIsFarOff);
+    }
 
     /// <summary>Every valid, on-field, PLAYER-side seat except the bearer's own identity (criteria
     /// 4/8/9). A guest counts as player-side (the friend/foe bit is guest-complete, decision 6) and

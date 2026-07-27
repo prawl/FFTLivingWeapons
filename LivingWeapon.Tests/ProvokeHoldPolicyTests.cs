@@ -12,26 +12,77 @@ public class ProvokeHoldPolicyTests
 {
     private static readonly LiveMemory Live = new();
 
-    // ---- ActionFor (WINDOW mode's hide/reveal choice) ----
+    // ---- ActionFor (LW-127, D1 revised: the six-branch hide/reveal rule) ----
     //
-    // LW-135 (owner live pass 2026-07-27) rewrote this from the condensed TurnQueue's team field to
-    // the player-side turn-flag walk. The old tests pinned queueSane/team pairs, which is the input
-    // that turned out to describe the CURSOR rather than the turn: on a live enemy turn the cursor
-    // sits on the player unit being hit, so the old function returned Reveal and the hold hid
-    // nobody. These two cover the whole input space now; the arrangement that broke it live is
-    // pinned at module level (ProvokeHoldTests, the two WindowMode cursor tests), because the bug
-    // was in what got READ, which a pure function cannot express.
+    // Branch order, first match wins. RE-ORDERED after the 2026-07-27 live pass failed both casts
+    // (a player-side seat's own turn was revealing the party even while the marked enemy was still
+    // genuinely next to act, and its turn opened against a fully visible party the instant the
+    // player's turn ended -- see ProvokeHoldTests.Marked_enemy_next_stays_hidden_even_on_a_player_turn_live_2026_07_27),
+    // THEN GAINED THE ENGAGEMENT LATCH after cast 3's follow-up failure (CT is paid at turn START, so
+    // TryEta misreads the marked enemy's own CT as "far off" for a few ticks right as its turn opens
+    // -- see ProvokeHoldTests.Marked_enemys_own_ct_payment_does_not_reveal_the_party_live_2026_07_27_cast3):
+    // (0) engaged -> Hide, (1) markedIsActor -> Hide, (2) markedIsNext -> Hide,
+    // (3) playerSideOwnsTurn -> Reveal, (4) markedIsFarOff -> Reveal, (5) default -> Hide. Each test
+    // below isolates one branch by setting every earlier-priority input false; the priority tests pin
+    // that an earlier branch wins even when a later one would also fire -- in particular, engaged now
+    // beats every other signal (STATE beats every ranking read), and markedIsActor/markedIsNext beat
+    // playerSideOwnsTurn, the exact reordering the live fixes required. The arrangement that broke the
+    // OLD (pre-LW-127) version of this function live is pinned at module level (ProvokeHoldTests, the
+    // WindowMode cursor tests), because that bug was in what got READ, which a pure function cannot
+    // express.
 
     [Fact]
     public void ActionFor_reveals_while_a_player_side_seat_owns_the_turn()
-        => Assert.Equal(ProvokeHold.HideAction.Reveal, ProvokeHold.ActionFor(playerSideOwnsTurn: true));
+        => Assert.Equal(ProvokeHold.HideAction.Reveal, ProvokeHold.ActionFor(engaged: false,
+            playerSideOwnsTurn: true, markedIsActor: false, markedIsNext: false, markedIsFarOff: false));
 
-    /// <summary>Hide covers both the genuine enemy turn and the fail-open cases (nobody owns the
-    /// flag, or two seats disagree), which is bias-to-hidden: in WINDOW the hide wants to be up
-    /// BEFORE the enemy phase opens, and the gap between turns is exactly when nobody owns it.</summary>
+    /// <summary>THE CAST-3 LIVE FIX, pinned at the pure-function level: engaged beats every other
+    /// signal, including a player-side seat owning the turn and the marked enemy reading far off --
+    /// the exact misprediction the engagement latch exists to survive.</summary>
     [Fact]
-    public void ActionFor_hides_whenever_no_player_side_seat_owns_the_turn()
-        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(playerSideOwnsTurn: false));
+    public void ActionFor_engaged_beats_every_other_signal()
+        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(engaged: true,
+            playerSideOwnsTurn: true, markedIsActor: false, markedIsNext: false, markedIsFarOff: true));
+
+    /// <summary>THE CAST-2 LIVE FIX, pinned at the pure-function level: markedIsActor now beats
+    /// playerSideOwnsTurn (moved from branch 2 to branch 1).</summary>
+    [Fact]
+    public void ActionFor_marked_is_actor_beats_player_side_turn()
+        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(engaged: false,
+            playerSideOwnsTurn: true, markedIsActor: true, markedIsNext: false, markedIsFarOff: false));
+
+    /// <summary>THE CAST-2 LIVE FIX, pinned at the pure-function level: markedIsNext now beats
+    /// playerSideOwnsTurn (moved from branch 3 to branch 2) -- this is the exact reordering the
+    /// 2026-07-27 live failure demanded (nextNameId matched the marked enemy, markedEta ==
+    /// leaderEta, and the OLD order still revealed the party because a player-side seat owned the
+    /// turn).</summary>
+    [Fact]
+    public void ActionFor_marked_is_next_beats_player_side_turn()
+        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(engaged: false,
+            playerSideOwnsTurn: true, markedIsActor: false, markedIsNext: true, markedIsFarOff: false));
+
+    [Fact]
+    public void ActionFor_hides_when_the_marked_enemy_is_the_current_actor()
+        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(engaged: false,
+            playerSideOwnsTurn: false, markedIsActor: true, markedIsNext: false, markedIsFarOff: true));
+
+    [Fact]
+    public void ActionFor_hides_when_the_marked_enemy_is_next_to_act()
+        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(engaged: false,
+            playerSideOwnsTurn: false, markedIsActor: false, markedIsNext: true, markedIsFarOff: false));
+
+    [Fact]
+    public void ActionFor_reveals_when_the_marked_enemy_is_clearly_further_off()
+        => Assert.Equal(ProvokeHold.HideAction.Reveal, ProvokeHold.ActionFor(engaged: false,
+            playerSideOwnsTurn: false, markedIsActor: false, markedIsNext: false, markedIsFarOff: true));
+
+    /// <summary>Branch 5, the DEFAULT (not merely the unreadable-read case): bias-to-hidden survives
+    /// D1's rewrite, so an unusable CT/Speed read, a close call under the margin, or no enemy
+    /// candidate at all all land here.</summary>
+    [Fact]
+    public void ActionFor_hides_by_default_when_nothing_else_applies()
+        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(engaged: false,
+            playerSideOwnsTurn: false, markedIsActor: false, markedIsNext: false, markedIsFarOff: false));
 
     // ---- ReleaseReason: each reason isolated ----
 
