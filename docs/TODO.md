@@ -123,22 +123,26 @@ the technical detail lives in the indented lines under it.
     could reach a save before the scrub runs stays an open, unmeasured question this pass does not
     have to answer.) Owner only, as every AWAITING-LIVE flip is.
 
-## Backlog
+- **[LW-136] A second Defender in the party no longer leaves an enemy stuck wearing the Provoked mark** (opened 2026-07-27) [AWAITING-LIVE]
+  - Done means: a player fielding TWO Defenders can shout at an enemy, see that nothing happens, and
+    shout at that same enemy again later once the party is sorted out, instead of that enemy being
+    permanently unshoutable for the rest of the battle. The shout is granted to the first party
+    member holding a Defender in a main hand, but the part that does the work refuses to run while
+    two are deployed, because it cannot tell which of them is the bearer, so the mark lands with
+    nothing there to take it off. (Tech: LW-136, docs/PROVOKE_AC.md criterion 3d, found by desk
+    reading 2026-07-27 rather than in play. Provoke.cs takes the first main-hand id 33 roster row;
+    ProvokeHold resolves its bearer through Wielder.ResolveDeployedMainHand, which returns 0 on two
+    deployed wielders. The mark never expires (Counter 0) and the engine refuses to re-apply a status
+    a unit already carries, so every later cast on that enemy reads 0 percent. Fixed in commit
+    19ba0d8: ProvokeHold.ScrubUnarmableMark, debounced on Tuning.ProvokeMarkedMissTicks so a bearer
+    read that misses for one tick cannot eat a mark the next tick would have armed on. Covered by
+    three tests in LivingWeapon.Tests\ProvokeHoldTests.cs.)
+  - Verify: the owner deploys TWO Defenders at once, casts the shout at an enemy, and confirms the
+    mark comes off that enemy within a moment rather than sticking, so a later shout at the same
+    enemy still lands. Cheap to fold into the main Provoke pass as a second battle, or into the same
+    battle by handing a second Defender to another unit. Owner only, as every AWAITING-LIVE flip is.
 
-- [LW-136] 2026-07-27: A player fielding TWO Defenders could shout at an enemy, have nothing happen,
-  and leave that enemy wearing the Provoked mark for the rest of the battle, refusing every later
-  shout aimed at it.
-  Why it matters: the shout is granted to the first party member found holding a Defender in a main
-  hand, but the hold that does the actual work refuses to arm when two are deployed, because it
-  cannot tell which of them is the bearer. So the command sits in the menu, casting it plants the
-  mark, and nothing is ever there to take the mark off again. The mark does not expire, and the game
-  refuses to re-apply a status a unit already has, so that enemy reads 0 percent forever after.
-  Found by desk reading on 2026-07-27, not in play; two deployed Defenders is an ordinary party
-  choice, not a contrived one.
-  FIXED the same day, see docs/CHANGELOG.md: an unarmable mark is scrubbed after the same short
-  debounce the marked-enemy locate already uses, so a bearer read that misses for a single tick
-  cannot eat a mark the next tick would have armed on. (Tech: ProvokeHold.ScrubUnarmableMark,
-  docs/PROVOKE_AC.md criterion 3d, covered by three tests in LivingWeapon.Tests\ProvokeHoldTests.cs.)
+## Backlog
 
 - [LW-134] 2026-07-25: The deploy guard that is supposed to stop a test build from scribbling on a
   real player's kill counts can no longer see those counts, so it silently waves the test build
