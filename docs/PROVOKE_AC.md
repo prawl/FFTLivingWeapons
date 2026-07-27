@@ -245,6 +245,18 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
    the open question already on record for the enemy case below; this criterion does not claim it
    cannot.
 
+3d. A mark that lands on an enemy while the hold CANNOT arm is scrubbed off rather than left on that
+   enemy for the rest of the battle. LW-136, found by desk reading on 2026-07-27, not by play. The
+   way in that matters is TWO DEPLOYED DEFENDERS: the command is granted off the first roster row
+   holding id 33 in a main hand, while the hold resolves its bearer through
+   `Wielder.ResolveDeployedMainHand`, which returns 0 on two deployed wielders because the pair is
+   genuinely ambiguous. So the command is castable while the hold refuses to arm, the mark lands,
+   nothing ever releases it (there is no hold to release), and because the mark never expires and
+   cannot be re-applied, every later cast on that enemy reads 0% for the rest of the battle. The
+   scrub is debounced on `Tuning.ProvokeMarkedMissTicks`, the same counter the marked-enemy locate
+   uses, so a bearer read that misses for a single tick cannot eat a mark the next tick would have
+   armed on. Reuses `ClearMark` on both layers, mask-scoped, for criterion 3b's reasons.
+
 **Who is flagged**
 
 4. While the PROVOKED enemy is taking its turn, every valid, on-field, player-side band entry
@@ -340,12 +352,14 @@ grants nothing.
 any enemy within range 5. That is the bearer's action for the turn, and the cast should read 100% on
 the cursor.
 
-**Arming (fallback, DEV builds only).** If no save has a grown Defender, hover the target enemy and
-press F6, or drop any file named `provoke_request.txt` into the mod directory (polled about twice a
-second, deleted on read). F3 is eaten on this box. Environment variables do not survive this game's
-launch chain, so they are not an option. The dev planter writes exactly the same id-0 mark a real
-cast writes, and the hold gates on that mark rather than on how it got there, so the two lanes
-exercise identical production code.
+**Arming (fallback, DEV builds only).** If the command itself is not reachable on the save at hand
+(wrong job, no free slot in the action list), hover the target enemy and press F6, or drop any file
+named `provoke_request.txt` into the mod directory (polled about twice a second, deleted on read).
+F3 is eaten on this box. Environment variables do not survive this game's launch chain, so they are
+not an option. The dev planter writes exactly the same id-0 mark a real cast writes, and the hold
+gates on that mark rather than on how it got there, so the two lanes exercise identical production
+code. What this lane does NOT substitute for is the bearer: the hold still needs a deployed, living,
+tier-3 main-hand Defender, and exactly one of them (see criterion 3d), or it will not arm at all.
 
 **Bait step (makes a clean result meaningful).** Run one enemy turn with no hold and record who each
 enemy attacks. Without this, a bearer who was going to be attacked anyway proves nothing.

@@ -110,7 +110,9 @@ internal sealed partial class ProvokeHold : ISignature
 
         if (_state == HoldState.Idle)
         {
-            if (!FindMarkedEnemy(_mem, out long foundEntry, out var foundId) || !bearerPresent || !bearerAlive) return;
+            if (!FindMarkedEnemy(_mem, out long foundEntry, out var foundId)) { _unarmableTicks = 0; return; }
+            if (!bearerPresent || !bearerAlive) { ScrubUnarmableMark(foundEntry); return; }   // LW-136
+            _unarmableTicks = 0;
             Arm(foundId, foundEntry, now);
         }
 
@@ -216,6 +218,7 @@ internal sealed partial class ProvokeHold : ISignature
         _state = HoldState.Idle;
         _markedId = default;
         _markedTile = default;
+        _unarmableTicks = 0;   // LW-136: never carry a partial run across a release or a battle edge
         _wasMarkedActive = false;
         _markedTurns = 0;
         _markedMissTicks = 0;

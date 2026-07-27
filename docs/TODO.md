@@ -125,6 +125,21 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-136] 2026-07-27: A player fielding TWO Defenders could shout at an enemy, have nothing happen,
+  and leave that enemy wearing the Provoked mark for the rest of the battle, refusing every later
+  shout aimed at it.
+  Why it matters: the shout is granted to the first party member found holding a Defender in a main
+  hand, but the hold that does the actual work refuses to arm when two are deployed, because it
+  cannot tell which of them is the bearer. So the command sits in the menu, casting it plants the
+  mark, and nothing is ever there to take the mark off again. The mark does not expire, and the game
+  refuses to re-apply a status a unit already has, so that enemy reads 0 percent forever after.
+  Found by desk reading on 2026-07-27, not in play; two deployed Defenders is an ordinary party
+  choice, not a contrived one.
+  FIXED the same day, see docs/CHANGELOG.md: an unarmable mark is scrubbed after the same short
+  debounce the marked-enemy locate already uses, so a bearer read that misses for a single tick
+  cannot eat a mark the next tick would have armed on. (Tech: ProvokeHold.ScrubUnarmableMark,
+  docs/PROVOKE_AC.md criterion 3d, covered by three tests in LivingWeapon.Tests\ProvokeHoldTests.cs.)
+
 - [LW-134] 2026-07-25: The deploy guard that is supposed to stop a test build from scribbling on a
   real player's kill counts can no longer see those counts, so it silently waves the test build
   through.

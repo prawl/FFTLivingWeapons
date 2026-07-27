@@ -19,6 +19,9 @@ internal sealed partial class ProvokeHold
     /// spec asked for.</summary>
     private bool _scrubRefusedLogged;
 
+    /// <summary>LW-136's debounce counter, declared here with its method for the same reason.</summary>
+    private int _unarmableTicks;
+
     /// <summary>Every valid, on-field seat's identity tuple, read straight off its own band entry.</summary>
     private static (int nameId, int mhp, int lvl, int br, int fa) ReadIdentity(IGameMemory mem, long e) =>
         (mem.U16(e + Offsets.ANameId), mem.U16(e + Offsets.AMaxHp), mem.U8(e + Offsets.ALevel),
@@ -207,6 +210,33 @@ internal sealed partial class ProvokeHold
             if (SameIdentity(ReadIdentity(mem, e), bearer)) continue;
             results.Add(e);
         }
+    }
+
+    /// <summary>LW-136: scrub a mark that landed on an enemy while the hold CANNOT arm, which would
+    /// otherwise strand that enemy Provoked for the whole battle. The mark never expires (Counter 0)
+    /// and the engine refuses to re-apply a status a unit already carries, so every later cast on
+    /// that enemy reads 0%; and the hold's own release path cannot clean up after a hold that never
+    /// existed. The way in that matters is TWO DEPLOYED DEFENDERS: Provoke.cs grants the command off
+    /// the first roster row holding id 33 in a main hand, while this hold resolves its bearer through
+    /// Wielder.ResolveDeployedMainHand, which returns 0 on two deployed wielders because the pair is
+    /// genuinely ambiguous. Castable command, unarmable hold.
+    ///
+    /// Debounced on Tuning.ProvokeMarkedMissTicks, the same counter the marked-enemy locate already
+    /// uses, and for the same reason: a bearer read that misses for a tick (an unreadable frame, a
+    /// mid-battle band rebuild) must not eat a mark the very next tick would have armed on. The
+    /// counter resets on every tick that arms or finds no mark at all, so only a SUSTAINED
+    /// marked-but-unarmable run scrubs.</summary>
+    private void ScrubUnarmableMark(long entry)
+    {
+        if (++_unarmableTicks < Tuning.ProvokeMarkedMissTicks) return;
+        _unarmableTicks = 0;
+        if (!ClearMark(_mem, entry)) return;   // unwritable page: the next run of ticks retries
+        var id = ReadIdentity(_mem, entry);
+        var (gx, gy) = ReadTile(_mem, entry);
+        ModLogger.EventWithTrace(LogVerb.Signature,
+            "A provoke mark landed on an enemy while the shout could not take hold, so the runtime scrubbed it off; that enemy can be shouted at again.",
+            $"provoke unarmable mark scrubbed (nameId {id.nameId}, tile {gx},{gy})");
+        Flight.Record("provoke", $"scrub-unarmable nameId={id.nameId} tile={gx},{gy}");
     }
 
     /// <summary>LW-130 / AC 3c: scrubs a stray Provoke mark cast on the player's own side. Called

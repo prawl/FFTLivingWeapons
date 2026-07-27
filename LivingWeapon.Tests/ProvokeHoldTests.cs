@@ -785,6 +785,74 @@ public class ProvokeHoldTests
         Assert.True(HasMark(m, 10));   // still armed: the huge elapsed gap never accrued while paused
     }
 
+    // ---- LW-136: a mark that lands while the hold CANNOT arm must not strand the enemy ----
+    //
+    // The realistic way in is TWO DEPLOYED DEFENDERS. Provoke.cs grants the command off the FIRST
+    // roster row holding id 33 in a main hand, while the hold resolves its bearer through
+    // Wielder.ResolveDeployedMainHand, which returns 0 on two deployed wielders because the pair is
+    // genuinely ambiguous. So the command is castable while the hold refuses to arm, and the mark
+    // it plants never expires (Counter 0) and refuses every recast on that enemy at 0% for the rest
+    // of the battle (docs/PROVOKE_AC.md, "the mark never expires"). The hold's own release path
+    // cannot help: it never armed. Scrubbing on the same miss-tick debounce the marked-enemy locate
+    // already uses is what keeps a transient bearer miss from eating a legitimate mark.
+
+    /// <summary>Two deployed main-hand Defenders with distinct fingerprints, which is exactly the
+    /// ambiguity ResolveDeployedMainHand bails on.</summary>
+    private static void SeatTwoBearers(FakeSparseMemory m)
+    {
+        SeatBearer(m, rosterSlot: 0, bandIdx: 0);
+        SeatBearer(m, rosterSlot: 1, bandIdx: 1, lvl: 31, br: 51, fa: 51, gx: 2, gy: 1);
+    }
+
+    [Fact]
+    public void Two_deployed_defenders_cannot_arm_the_hold_and_must_not_strand_the_mark()
+    {
+        var m = new FakeSparseMemory();
+        SeatTwoBearers(m);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        for (int i = 0; i <= Tuning.ProvokeMarkedMissTicks; i++)
+            hold.Tick(t0.AddMilliseconds(33 * i), true);
+
+        Assert.False(HasMark(m, 10));            // composed layer scrubbed: the enemy can be shouted at again
+        Assert.False(HasInflictedMark(m, 10));   // inflicted layer too, same asymmetry ClearMark exists for
+        Assert.False(IsInvisible(m, 0));         // and nothing was ever hidden: the hold genuinely never armed
+    }
+
+    [Fact]
+    public void A_mark_is_not_scrubbed_before_the_debounce_in_case_the_bearer_read_was_transient()
+    {
+        var m = new FakeSparseMemory();
+        SeatTwoBearers(m);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        for (int i = 0; i < Tuning.ProvokeMarkedMissTicks - 1; i++)
+            hold.Tick(t0.AddMilliseconds(33 * i), true);
+
+        Assert.True(HasMark(m, 10));   // still there: a one-tick bearer miss must not eat a real cast
+    }
+
+    [Fact]
+    public void A_mark_that_can_arm_is_never_scrubbed_by_the_unarmable_sweep()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);   // exactly ONE bearer: the hold arms normally
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = Hold(Tier3Kills(), m, provokeTurns: 5);   // stays armed across every tick below
+        var t0 = DateTime.UtcNow;
+        for (int i = 0; i <= Tuning.ProvokeMarkedMissTicks; i++)
+            hold.Tick(t0.AddMilliseconds(33 * i), true);
+
+        Assert.True(HasMark(m, 10));     // the armed hold owns the mark; only its own release clears it
+        Assert.True(IsInvisible(m, 1));
+    }
+
     // ---- Criterion 15: arm, release AND the watchdog each name the provoked enemy's TILE ----
     //
     // Why these exist at all: nothing asserted the CONTENT of any arm or release line, so the
