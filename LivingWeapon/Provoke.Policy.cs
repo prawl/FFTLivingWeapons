@@ -4,9 +4,9 @@ namespace LivingWeapon;
 /// The pure decisions behind the Defender's "Provoke" signature -- LW-123 arc 1, the runtime half
 /// that repoints ability 189 (vanilla Embrace) to plant an inert mark and keeps that repoint alive
 /// whenever a tier-3 main-hand Defender wielder exists, plus the JobCommand injection that puts
-/// the renamed command in the wielder's action list. See Provoke.cs's class doc for why this arc
-/// ships deliberately inert (no data/items.json signature block yet) and for the two-lifecycle
-/// split (slot vs. table) this policy class backs.
+/// the renamed command in the wielder's action list. See Provoke.cs's class doc for why armed-or-
+/// inert is a DATA question (id 33's items.json signature block, present again since 43de63e) and
+/// for the two-lifecycle split (slot vs. table) this policy class backs.
 ///
 /// GRANT RESOLUTION is REUSED from ShadowBladePolicy, not duplicated: both weapons are sword-
 /// family blades whose wielders are Knight-ish jobs, so the Squire/Knight whitelist is shared BY

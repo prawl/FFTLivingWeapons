@@ -108,7 +108,8 @@ re-stamped, for splash damage rather than for the unit acting.
 ## Scope
 
 **This arc (the hold engine).** Everything that decides who is flagged and when, plus its release
-and its fail-safes. The trigger is stubbed behind a seam.
+and its fail-safes. It was scoped with the trigger stubbed behind a seam; the trigger then landed
+the same session (below), and both halves ship in process today.
 
 **The trigger: SOLVED LIVE 2026-07-22, ahead of schedule.** It is a real granted command, built from
 four levers that were each proven the same session (see the LIVE_LEDGER row). The shape:
@@ -141,26 +142,31 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
   provoked enemy may touch that layer, because clearing residue is the opposite operation from
   planting a durable flag. The exception is for clearing only, for the mark's bit only, and it is
   always a mask-scoped read-modify-write.
-- Reveal-timing: SLICE (the default) does depend on the hide landing at the provoked enemy's
-  turn-start before its AI commits a target. That is a variable MEASURED at the live pass, not an
-  unmeasured number baked into the code, and the WINDOW fallback (which cannot lose the race) is the
-  safety net if the measurement goes against us. The v2 hardening is turn-queue LOOKAHEAD.
-- Per-enemy time-slicing IS in v1 (the slice default, criterion 4): the hide fires only during the
-  provoked enemy's own turn. Only the lookahead half remains v2 (see Deferred).
+- Reveal-timing: SLICE depended on the hide landing at the provoked enemy's turn-start before its AI
+  committed a target. It was written as the default, the live pass MEASURED it on 2026-07-22, and
+  the measurement went against us: the AI commits the instant the turn opens, so the reactive hide
+  lands too late. The WINDOW fallback, which cannot lose that race, is what ships
+  (`Tuning.ProvokeSliceMode = false`), and the v2 hardening is turn-queue LOOKAHEAD (LW-118).
+- Per-enemy time-slicing is therefore NOT in v1, whatever criterion 4's original wording says. Both
+  halves of slice, the time-slicing and the lookahead that would make it land in time, are v2 (see
+  Deferred). The player-visible consequence is criterion 19.
 - NO stat change to the Defender's static profile. Its numbers stay as `data/items.json` id 33 has
   them. CORRECTED 2026-07-22: this document previously asserted the item is already gate-exempt as a
-  living weapon, and it is not. Only id 32 carries the `livingWeapon` flag; id 33 has no flag and no
-  signature block at all today, and it passes `analyze.py` on its own numbers. Adding a signature
-  block flips two gates red on the spot (its `docs/living_weapon_grid.csv` "+3 ability" cell is 134
-  characters against a 90 cap, and the assembled description is 234 against a 205 budget), so the
-  grid cell and the new `p3Desc` have to be shortened byte-identically in the same commit.
+  living weapon, and it is not. Only id 32 carries the `livingWeapon` flag, and id 33 passes
+  `analyze.py` on its own numbers. Its SIGNATURE BLOCK is a separate thing and it is present again
+  (removed for 2.3.2 by LW-133, restored by 43de63e), which is what makes the command grantable;
+  adding it was what flipped two gates red at the time (the `docs/living_weapon_grid.csv` "+3
+  ability" cell ran 134 characters against a 90 cap, and the assembled description 234 against a 205
+  budget), so both were shortened in the same commit and both gates are green with the block in.
 
 ## Acceptance criteria
 
 **The command itself**
 
 0a. Provoke appears as a real entry in the bearer's command list, named Provoke, with its own
-   description and icon, and is selectable rather than greyed.
+   description and icon, and is selectable rather than greyed. It appears in Squire's or Knight's
+   action set only, which is the shipped grant's job whitelist (shared with Shadow Blade); see
+   criterion 1.
 0b. It targets a single enemy at range 5, costs no MP, has no charge time, and lands at 100% on a
    non-immune target.
 0c. It applies the id 0 mark and nothing else: no damage, no pose, no engine state. The action
@@ -193,16 +199,16 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
    exhaustive across boss AI; and if Provoke is ever given a real AI-attractive effect the leak could
    wake, at which point the mapped clear is ready to wire. Supporting ledger row: docs/LIVE_LEDGER.md
    dated 2026-07-23, owner PROVEN flip pending.
-0f. The ability's own description says what the ability does. IT DOES NOT TODAY, and the wrong text
-   is already committed: `tools/patch_ability_names.py` Key 189 ships "Goad a distant foe into a
-   blind rage. It forgets its skills and charges, seeing only the one who called it out." That is
-   Berserk prose, left from the abandoned index 53 design. The provoked enemy keeps its entire
-   skill set and nothing makes it charge; the redirect comes from hiding the bearer's allies, not
-   from enraging the target. Harmless while nothing can reach ability 189, and player-visible the
-   moment the command is granted, so the fix rides the same commit that first grants it. Changing
-   it means editing that script, rebaking `ability.en.nxd` and re-running
-   `tools/audit_nxd_bakes.py`, so it is one text change, not two. The provenance comment above the
-   row is stale in the same way: it still describes the byte being repointed to 53 (Berserk).
+0f. The ability's own description says what the ability does. MET since commit 3565363:
+   `tools/patch_ability_names.py` Key 189 ships "Threaten a distant foe. Until it takes its turn,
+   enemy attacks are drawn onto the bearer, not your allies." The provenance comment above that row
+   was corrected in the same pass and now describes the shipped repoint rather than the abandoned
+   Berserk one. This criterion previously alleged the old Berserk prose ("blind rage", "forgets its
+   skills") was still shipping, which was true only until that commit; the wrong text described a
+   rejected design (index 53) where the enemy was enraged, whereas the shipped redirect comes from
+   hiding the bearer's allies and the provoked enemy keeps its whole skill set. Any future change
+   here means editing that script, rebaking `ability.en.nxd` and re-running
+   `tools/audit_nxd_bakes.py`, so it is one text change, not two.
 
 **Arming and duration**
 
@@ -428,11 +434,12 @@ Status stays AWAITING-LIVE until the owner runs this. Only the owner flips it.
 
 ## Deferred to v2
 
-- **Turn-queue LOOKAHEAD**: pre-hiding just before the provoked enemy's turn opens, so the hide is
-  guaranteed up before the AI commits even if it latches its target at turn-open. Per-enemy
-  time-slicing itself SHIPPED in v1 (the slice default, criterion 4); lookahead is the hardening
-  that only matters if the live pass shows the turn-start race is lost, and until then the WINDOW
-  fallback is the safety net.
+- **The clean single-enemy facade, both halves.** Per-enemy time-slicing did NOT ship in v1: the
+  live pass on 2026-07-22 showed the turn-start race is lost, the AI commits its target the instant
+  its turn opens, so a hide that reacts to the turn starting lands too late. That leaves SLICE
+  (`Tuning.ProvokeSliceMode`, false in the shipped build, criterion 4) needing turn-queue LOOKAHEAD,
+  pre-hiding just BEFORE the provoked enemy's turn opens, to be worth turning on at all. The two are
+  one deferred item now, LW-118, and the WINDOW fallback is what ships in the meantime.
 - Hiding the reddened HP bar a flagged ally shows, and suppressing the status icon.
 - A per-battle use cap, if uncapped play proves degenerate.
 

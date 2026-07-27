@@ -266,7 +266,13 @@ the armed edge and a stand-down's landmark diag, so a stand-down archive is self
 (LW-53); and the Attack card's cursor-gate tripwire (`"card"`, AttackCard.Resolve.cs, LW-55):
 one record per refused cursor answer (roster/band weapon disagreement, or a hover that is not
 yet the turn owner), deduped to once per refusal key per battle, naming the refusal kind and
-both weapon ids so a live "wrong dossier" report can be diagnosed after the fact. Deliberately
+both weapon ids so a live "wrong dossier" report can be diagnosed after the fact; and the Defender's
+provoke hold (`"provoke"`, ProvokeHold, LW-123): `arm nameId=.. tile=..`, `release reason=.. tile=..`
+(the reason is the `Release` enum verbatim, so `EnemyTurnDone` is the good one and `Watchdog` means
+a release condition was missed), plus the two mark scrubs, `scrub-player-side` (a shout cast at your
+own side, LW-130) and `scrub-unarmable` (a shout that landed while the hold could not arm, LW-136).
+The tile is the LAST KNOWN one, which is why a release naming an enemy that has already left the
+field still carries coordinates. Deliberately
 **not** tapped: Puppeteer (a separate live-verify arc is in flight against those exact lines),
 Treasure Master (slated for removal, docs/TODO.md LW-10, no new investment there; the
 chemist-grenade paths left the repo entirely with the Offensive Chemist removal, a5ea61e), and

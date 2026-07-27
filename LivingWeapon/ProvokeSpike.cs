@@ -61,7 +61,7 @@ internal sealed class ProvokeSpike
         if (!_announced)
         {
             _announced = true;
-            ModLogger.Debug(LogVerb.Trace, "provoke-spike: armed (dev). F6 or a provoke_request.txt drop marks the hovered-else-first-live enemy so ProvokeHold arms without the real granted command (arc 2b, not wired yet). THROWAWAY SAVE ONLY.");
+            ModLogger.Debug(LogVerb.Trace, "provoke-spike: armed (dev). F6 or a provoke_request.txt drop marks the hovered-else-first-live enemy so ProvokeHold arms without casting the real granted command (which does ship: this lane is for saves where it cannot be reached). THROWAWAY SAVE ONLY.");
         }
         if (++_hbTick % 300 == 0)   // ~10s at 33ms
             ModLogger.Debug(LogVerb.Trace, $"provoke-spike: alive (writes {(Mem.WritesEnabled ? "on" : "OFF")})");
