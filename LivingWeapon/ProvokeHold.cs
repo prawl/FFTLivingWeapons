@@ -39,6 +39,7 @@ internal sealed partial class ProvokeHold : ISignature
     /// release time because the two releases that matter most, EnemyGone and EnemyDead, are exactly
     /// the cases with no readable seat left to read it from.</summary>
     private (int gx, int gy) _markedTile;
+    private HideAction? _lastAction;   // LW-135: the on-change latch behind LogHideEdge
     private bool _wasMarkedActive;
     private int _markedTurns;
     private int _markedMissTicks;
@@ -152,11 +153,13 @@ internal sealed partial class ProvokeHold : ISignature
         _lastTick = now;
         bool watchdogElapsed = WatchdogElapsed(_liveElapsed, Tuning.ProvokeWatchdogSeconds);
 
-        // LW-131: gated on PlayerSideOwnsTurn (ProvokeHold.Scan.cs), not the cursor/team field --
-        // whether that field tracks the cursor instead of the turn owner is a live hypothesis, not
-        // settled fact (see PlayerSideOwnsTurn's doc comment). Identity check first: it is cheap and
-        // fails on most ticks, so the band walk behind PlayerSideOwnsTurn only runs when it matters.
-        bool markedActive = MarkedIsActor(_mem, _markedId) && !PlayerSideOwnsTurn(_mem);
+        // LW-131 (release gate) and LW-135 (hide/reveal) both ask this one question, so it is asked
+        // ONCE per tick and shared: does a player-side seat currently own the engine's per-unit turn
+        // flag (ProvokeHold.Scan.cs)? No cursor field is read anywhere in this module. It is no
+        // longer short-circuited behind the cheaper identity check, because WindowAction below needs
+        // the answer on every armed tick regardless of who the actor is.
+        bool playerTurn = PlayerSideOwnsTurn(_mem);
+        bool markedActive = MarkedIsActor(_mem, _markedId) && !playerTurn;
         if (TurnEnded(_wasMarkedActive, markedActive)) _markedTurns++;
         _wasMarkedActive = markedActive;
 
@@ -164,8 +167,9 @@ internal sealed partial class ProvokeHold : ISignature
             markedDisabled, _markedTurns, _provokeTurns, watchdogElapsed);
         if (reason != Release.None) { ReleaseHold(reason, markedEntry); return; }
 
-        HideAction action = _sliceMode ? (markedActive ? HideAction.Hide : HideAction.Reveal) : WindowAction();
+        HideAction action = _sliceMode ? (markedActive ? HideAction.Hide : HideAction.Reveal) : WindowAction(playerTurn);
         if (action == HideAction.Hide) HideAllExceptBearer(bearerId); else RevealFlagged();
+        LogHideEdge(action);
     }
 
     private void HideAllExceptBearer((int nameId, int mhp, int lvl, int br, int fa) bearerId)
@@ -213,12 +217,26 @@ internal sealed partial class ProvokeHold : ISignature
     /// <summary>The tile as both log lines and both flight records print it (criterion 15).</summary>
     private string TileText => $"{_markedTile.gx},{_markedTile.gy}";
 
+    /// <summary>One line per hide/reveal TRANSITION, never per tick. LW-135's evidence gap: the
+    /// 2026-07-27 live tape could say only that 0 units were ever hidden, and nothing anywhere said
+    /// whether the hold had decided to hide and found nobody, or had decided to reveal all along.
+    /// That ambiguity cost a whole battle to resolve, so the decision now leaves a trace.</summary>
+    private void LogHideEdge(HideAction action)
+    {
+        if (_lastAction == action) return;
+        _lastAction = action;
+        ModLogger.Debug(LogVerb.Signature, action == HideAction.Hide
+            ? $"provoke hide: {_flaggedNow.Count} unit(s) now hidden from the marked enemy"
+            : "provoke reveal: every unit the hold hid is visible again");
+    }
+
     private void EnterIdle()
     {
         _state = HoldState.Idle;
         _markedId = default;
         _markedTile = default;
         _unarmableTicks = 0;   // LW-136: never carry a partial run across a release or a battle edge
+        _lastAction = null;    // LW-135: the next hold logs its own first hide/reveal edge
         _wasMarkedActive = false;
         _markedTurns = 0;
         _markedMissTicks = 0;

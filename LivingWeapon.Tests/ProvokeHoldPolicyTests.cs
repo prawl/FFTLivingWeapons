@@ -13,26 +13,25 @@ public class ProvokeHoldPolicyTests
     private static readonly LiveMemory Live = new();
 
     // ---- ActionFor (WINDOW mode's hide/reveal choice) ----
+    //
+    // LW-135 (owner live pass 2026-07-27) rewrote this from the condensed TurnQueue's team field to
+    // the player-side turn-flag walk. The old tests pinned queueSane/team pairs, which is the input
+    // that turned out to describe the CURSOR rather than the turn: on a live enemy turn the cursor
+    // sits on the player unit being hit, so the old function returned Reveal and the hold hid
+    // nobody. These two cover the whole input space now; the arrangement that broke it live is
+    // pinned at module level (ProvokeHoldTests, the two WindowMode cursor tests), because the bug
+    // was in what got READ, which a pure function cannot express.
 
     [Fact]
-    public void ActionFor_sane_player_turn_reveals()
-        => Assert.Equal(ProvokeHold.HideAction.Reveal, ProvokeHold.ActionFor(queueSane: true, team: 0));
+    public void ActionFor_reveals_while_a_player_side_seat_owns_the_turn()
+        => Assert.Equal(ProvokeHold.HideAction.Reveal, ProvokeHold.ActionFor(playerSideOwnsTurn: true));
 
+    /// <summary>Hide covers both the genuine enemy turn and the fail-open cases (nobody owns the
+    /// flag, or two seats disagree), which is bias-to-hidden: in WINDOW the hide wants to be up
+    /// BEFORE the enemy phase opens, and the gap between turns is exactly when nobody owns it.</summary>
     [Fact]
-    public void ActionFor_sane_ally_turn_reveals()
-        => Assert.Equal(ProvokeHold.HideAction.Reveal, ProvokeHold.ActionFor(queueSane: true, team: 2));
-
-    [Fact]
-    public void ActionFor_sane_enemy_turn_hides()
-        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(queueSane: true, team: 1));
-
-    [Fact]
-    public void ActionFor_sane_unknown_team_hides()
-        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(queueSane: true, team: 3));
-
-    [Fact]
-    public void ActionFor_insane_queue_biases_hidden_even_on_a_player_looking_team()
-        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(queueSane: false, team: 0));
+    public void ActionFor_hides_whenever_no_player_side_seat_owns_the_turn()
+        => Assert.Equal(ProvokeHold.HideAction.Hide, ProvokeHold.ActionFor(playerSideOwnsTurn: false));
 
     // ---- ReleaseReason: each reason isolated ----
 

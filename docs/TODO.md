@@ -102,12 +102,13 @@ the technical detail lives in the indented lines under it.
     single enemy slice, is gated on this same turn detection question, so this fix answers part of
     that too. LW-135 tracks the shipped hide path, which still rides the doubted field. Covered by
     LivingWeapon.Tests\ProvokeHoldTests.cs.)
-  - Verify: the owner shouts at a real enemy in a real battle and confirms the hold lets go within
-    a turn or two of that enemy actually acting rather than thirty seconds later, and checks a
-    flight tape shows the turn counter advancing on that enemy's own turn edge. While that enemy's
-    turn plays out, the owner also watches whether the hidden party stays hidden or flickers visible
-    partway through, since a flicker would mean the shipped hide path is still riding the doubted
-    cursor field, a separate bug tracked as LW-135. Owner only, as every AWAITING-LIVE flip is.
+  - Verify: PASSED live 2026-07-27, and it is the half of that pass that worked. The owner cast the
+    real command at a goblin; the hold armed, tracked that enemy through its own turn, and let go
+    1.6 seconds later naming EnemyTurnDone, with no thirty second timeout and no early release while
+    the enemy was merely being hit. The same battle failed on the OTHER half, the hide, which hid
+    nobody: that is LW-135, now confirmed and fixed, and its retest is what remains. This row's own
+    behaviour needs no further watching unless the retest changes it. The formal flip stays owner
+    only, as every AWAITING-LIVE flip is.
 
 - **[LW-130] Provoking your own teammate no longer leaves them stuck wearing the Provoked mark forever** (opened 2026-07-23) [AWAITING-LIVE]
   - Done means: casting the Defender's shout at your own side no longer leaves a mark that never
@@ -144,6 +145,22 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-137] 2026-07-27: Kill credit may be reading the same field Provoke just stopped trusting, so a
+  kill scored while the cursor happens to sit on an enemy could be filed as an enemy's kill instead
+  of yours.
+  Why it matters: KillTracker.Corpses.cs reads TurnQueue +0x02 at the death edge to decide whether a
+  non-player turn was in progress (the EnemyTurn bury). Provoke's 2026-07-27 live pass produced a
+  clean observation that the same field reads PLAYER for the whole of an enemy turn, which is what a
+  cursor-tracking field does and what a turn-owner field cannot do, so the bury's premise is now
+  doubtful in both directions: a player kill landing while the cursor rests on an enemy could be
+  buried, and an enemy-turn death could be credited.
+  Nuance: that read already has a fail-safe rule (an unreadable field defaults to the player-turn
+  answer, LIVE_LEDGER row 45) and kill credit has been stable in play for weeks, so this is an
+  exposure worth measuring, not a reported bug. Nobody has counted how often the two readings would
+  disagree in a real battle.
+  Fix direction if it proves real: the same Band.FlagOwner walk ProvokeHold now uses for both of its
+  gates. Do not touch the ledger row; the discriminating probe is still the owner's to run.
+
 - [LW-134] 2026-07-25: The deploy guard that is supposed to stop a test build from scribbling on a
   real player's kill counts can no longer see those counts, so it silently waves the test build
   through.
@@ -171,15 +188,26 @@ the technical detail lives in the indented lines under it.
   not for this hide/reveal decision. If the LW-131 cursor hypothesis turns out true, then mid enemy
   action the cursor can sit on the targeted player unit, the field reads 0, ActionFor returns
   Reveal, and the party un-hides at exactly the moment the funnel matters.
-  Nuance, so this does not read as alarmist: this is a suspected gap, not an observed failure, and
-  there is live evidence pointing the other way. The LIVE_LEDGER funnel row records that on
-  2026-07-22 the owner proved the funnel through the shipping mod in WINDOW mode: an F6-marked
-  enemy, Invisible held on every deployed player unit except the Defender bearer, and every enemy
-  ignored the hidden units and made straight for the bearer. So the hide held up well enough in play
-  for the funnel to work that day.
-  What decides this: the live watch item now in LW-131's Verify, whether the hidden party stays
-  hidden or flickers visible during a marked enemy's turn, is what turns this row into real work or
-  lets it close as a non-issue.
+  CONFIRMED LIVE and FIXED 2026-07-27, so the paragraph above is history, not a suspicion. The owner
+  cast the real command at a goblin, the goblin acted next and attacked an ally exactly as if the mod
+  were not installed, and the log says why in one number: the hold armed, saw the goblin take its
+  turn, released cleanly as EnemyTurnDone 1.6 seconds later, and hid ZERO units the whole time
+  (arm 04:20:41.039, release 04:20:42.659, both naming tile 1,9). Turn detection was never the
+  problem; the hide was. The field read PLAYER for the whole of an enemy turn, which is the reading
+  the cursor hypothesis predicts and the turn-owner reading cannot produce, since a sane-but-
+  player-looking read is the only way ActionFor returns Reveal there.
+  The fix: WindowAction now takes the same player-side turn-flag answer the release gate already
+  computes each tick, so no cursor field is read anywhere in the module. It failed in the other
+  direction too, and that half is now covered as well: hovering an enemy on your OWN turn read ENEMY
+  and hid your party mid-turn. Both arrangements are pinned by module tests that seat the exact
+  fixture the live failure produced; the old policy tests could not express the bug, because what
+  broke was which field got READ.
+  Why the suite missed it for five days: every WINDOW fixture but one left the TurnQueue struct
+  unseeded, which reads as garbage, and bias-to-hidden turned garbage into Hide, so the tests passed
+  through the one path the live game never takes. The single test that seeded a sane queue also
+  seeded team=1. A green suite proved nothing about the live arrangement.
+  Still open here, and it is why this row stays: the retest. Nobody has yet seen the party actually
+  stay hidden through a marked enemy's turn in WINDOW mode.
   Loosely related, not yet its own item: ProvokeHold.Scan.cs's PlayerSideOwnsTurn doc comment offers
   a plausible, unprobed explanation for why the direct enemy-side ATurnFlag read went flaky on
   2026-07-22. The per-unit turn/moved/acted flags row (docs/LIVE_LEDGER.md, dated 2026-07-09) reads

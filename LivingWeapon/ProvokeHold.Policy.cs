@@ -37,17 +37,30 @@ internal sealed partial class ProvokeHold
         return Release.None;
     }
 
-    /// <summary>WINDOW mode's hide/reveal choice (decision 3): Reveal only on a clean, sane
-    /// PLAYER(0)/ALLY(2) turn; Hide on TqTeam==1 OR any non-clean/garbage read -- bias-to-hidden, so
-    /// an unreadable or transitional queue never leaks a hidden unit's turn. TqTeam is the SAME
-    /// cursor/team field LW-131 stopped trusting for the release gate over a disputed, not settled,
-    /// turn-owner-identity question (see ProvokeHold.Scan.cs's PlayerSideOwnsTurn doc comment and
-    /// docs/TODO.md LW-131 / LW-135); this method still reads it for the hide/reveal call, so that
-    /// call rides whichever way the question resolves. SLICE mode does not call this: it inlines
-    /// `markedActive ? Hide : Reveal` in the module (tested via the module facade test, not
-    /// here).</summary>
-    internal static HideAction ActionFor(bool queueSane, int team) =>
-        queueSane && (team == 0 || team == 2) ? HideAction.Reveal : HideAction.Hide;
+    /// <summary>WINDOW mode's hide/reveal choice (decision 3): Reveal iff a PLAYER-SIDE seat
+    /// currently owns the engine's per-unit turn flag (<see cref="PlayerSideOwnsTurn"/>), Hide
+    /// otherwise. Guests count as player-side (the friend/foe bit is guest-complete), so an ally's
+    /// turn reveals too, which is criterion 5.
+    ///
+    /// LW-135, and it is the bug the owner's 2026-07-27 live pass caught rather than a tidy-up.
+    /// This used to read Offsets.TqTeam, the condensed TurnQueue struct's team field. During an
+    /// enemy's action the cursor sits on the PLAYER unit being targeted, so that field read PLAYER,
+    /// this returned Reveal, and the hold hid NOBODY for the entire enemy turn: the tape reads
+    /// "arm ... 0 units hidden so far" then "release reason=EnemyTurnDone ... 0 units were ever
+    /// hidden", and the goaded goblin attacked an ally exactly as if the mod were absent. It failed
+    /// in the other direction too: hovering an enemy on your OWN turn read ENEMY and hid the party
+    /// mid-turn. That is the same cursor-tracking behaviour LW-131 stopped trusting for the release
+    /// gate; this was the one read of it left, and it was the one deciding the feature's whole
+    /// point. Both directions are now decided by the flag walk, which reads no cursor field at all.
+    ///
+    /// BIAS TO HIDDEN survives the rewrite: PlayerSideOwnsTurn fails open (nobody owns the flag, or
+    /// two seats disagree, both return false), so an unreadable or transitional band walk hides
+    /// rather than leaking a hidden unit's turn. In WINDOW that bias is a feature, not a hedge: the
+    /// hide wants to be up BEFORE the enemy phase opens, and the gap between turns is exactly when
+    /// nobody owns the flag. SLICE mode does not call this: it inlines `markedActive ? Hide :
+    /// Reveal` in the module (tested via the module facade test, not here).</summary>
+    internal static HideAction ActionFor(bool playerSideOwnsTurn) =>
+        playerSideOwnsTurn ? HideAction.Reveal : HideAction.Hide;
 
     /// <summary>One completed turn: WAS the active unit last tick, is NOT now -- the falling edge.
     /// Identical shape to FeignDeath.TurnEnded, reused here against the marked enemy's actor-pointer

@@ -184,17 +184,11 @@ internal sealed partial class ProvokeHold
         return fpReal != 0 ? fpReal : fpAny;
     }
 
-    /// <summary>WINDOW mode's own turn-owner read (decision 3's fallback): the condensed TurnQueue
-    /// struct's sanity + team, fed straight into Policy.ActionFor. A garbage/insane read biases to
-    /// Hide (ActionFor's own contract); this method only does the reading.</summary>
-    private HideAction WindowAction()
-    {
-        int mhp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
-        int lvl = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
-        bool queueSane = mhp is >= 1 and <= 1999 && lvl is >= 1 and <= 99;
-        int team = _mem.U16(Offsets.TurnQueue + Offsets.TqTeam);
-        return ActionFor(queueSane, team);
-    }
+    /// <summary>LW-135: WINDOW's hide/reveal call now rides the same player-side turn-flag walk the
+    /// release gate does, so no cursor field is read anywhere in this module. The caller has already
+    /// computed <paramref name="playerSideOwnsTurn"/> for the release gate this tick; passing it in
+    /// rather than re-walking the band is the whole reason this takes a parameter.</summary>
+    private static HideAction WindowAction(bool playerSideOwnsTurn) => ActionFor(playerSideOwnsTurn);
 
     /// <summary>Every valid, on-field, PLAYER-side seat except the bearer's own identity (criteria
     /// 4/8/9). A guest counts as player-side (the friend/foe bit is guest-complete, decision 6) and

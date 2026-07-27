@@ -522,48 +522,47 @@ public class ProvokeHoldTests
         Assert.True(HasMark(m, 10));       // still armed (1 of 2 turns) -- this was SLICE's reveal, not a release
     }
 
-    // ---- WINDOW ActionFor wiring ----
+    // ---- WINDOW ActionFor wiring (LW-135: the turn flag, never the cursor/team field) ----
 
     [Fact]
-    public void WindowMode_reveals_on_a_sane_player_turn()
+    public void WindowMode_reveals_the_moment_a_player_side_seat_takes_the_turn()
     {
         var m = new FakeSparseMemory();
         SeatBearer(m, 0, 0);
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 10;
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;   // enemy turn at arm
 
         var hold = Hold(Tier3Kills(), m, sliceMode: false);
         var t0 = DateTime.UtcNow;
-        hold.Tick(t0, true);
+        hold.Tick(t0, true);               // nobody owns the turn flag: the enemy phase
         Assert.True(IsInvisible(m, 1));
 
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 0;   // now a clean player turn
+        SetTurnFlagOwner(m, 1);            // the ally's own turn opens
         hold.Tick(t0.AddMilliseconds(33), true);
-        Assert.False(IsInvisible(m, 1));
+        Assert.False(IsInvisible(m, 1));   // criterion 5: your units are targetable on your turns
     }
 
+    /// <summary>Bias-to-hidden, restated for the flag walk: an ENEMY seat owning the turn flag, and
+    /// an ambiguous walk where two seats disagree, must both leave the party hidden. Band.FlagOwner
+    /// bails ambiguous on the second arrangement, which is the fail-open case ActionFor turns into
+    /// Hide.</summary>
     [Fact]
-    public void WindowMode_keeps_units_hidden_on_an_insane_garbage_queue_read()
+    public void WindowMode_keeps_units_hidden_when_the_flag_is_enemy_owned_or_unreadable()
     {
         var m = new FakeSparseMemory();
         SeatBearer(m, 0, 0);
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 10;
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;
+        SetTurnFlagOwner(m, 10);   // the marked ENEMY owns the flag: unambiguously its turn
 
         var hold = Hold(Tier3Kills(), m, sliceMode: false);
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);
         Assert.True(IsInvisible(m, 1));
 
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 0;   // garbage read -> queueSane false
+        SetTurnFlagOwner(m, 1);    // now TWO seats claim it, one per side: ambiguous, fail open
         hold.Tick(t0.AddMilliseconds(33), true);
-        Assert.True(IsInvisible(m, 1));   // bias-to-hidden: stays hidden
+        Assert.True(IsInvisible(m, 1));   // stays hidden rather than leaking a hidden unit's turn
     }
 
     // ---- FeignDeath's own Invisible bit is never set or cleared by us (criterion 11) ----
@@ -783,6 +782,60 @@ public class ProvokeHoldTests
         hold.Tick(t0.AddSeconds(Tuning.ProvokeWatchdogSeconds + 1), true);
 
         Assert.True(HasMark(m, 10));   // still armed: the huge elapsed gap never accrued while paused
+    }
+
+    // ---- LW-135: WINDOW's hide/reveal must not ride the cursor/team field ----
+    //
+    // THE LIVE FAILURE, owner pass 2026-07-27: the hold armed on a goblin, saw its turn, and
+    // released as EnemyTurnDone 1.6s later, all correct -- and hid NOBODY ("0 units were ever
+    // hidden"), so the goblin attacked an ally exactly as if the mod were not installed. Turn
+    // detection was never the problem; the HIDE was. WindowAction read Offsets.TqTeam, and during
+    // an enemy's action the cursor sits on the player unit being targeted, so that field reads
+    // PLAYER, ActionFor returned Reveal, and the party stayed visible for the whole enemy turn.
+    //
+    // Why the suite did not catch it: every other WINDOW fixture leaves the TurnQueue struct
+    // unseeded, which reads as garbage, and ActionFor's bias-to-hidden turned garbage into Hide.
+    // The one test that seeded a SANE queue seeded team=1 as well, which is the reading the live
+    // game does not produce. This test seeds the arrangement that actually happens.
+
+    [Fact]
+    public void WindowMode_hides_during_an_enemy_turn_even_when_the_cursor_field_reads_player()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        // A SANE condensed-TurnQueue read whose team says PLAYER: the cursor parked on the ally the
+        // acting enemy is about to hit. No player-side seat owns the engine's per-unit turn flag,
+        // which is what "it is genuinely an enemy's turn" looks like (SetTurnFlagOwner is not called).
+        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 25;
+        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 0;
+
+        var hold = Hold(Tier3Kills(), m, sliceMode: false, provokeTurns: 5);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.True(IsInvisible(m, 1));    // the ally is hidden: this is the whole feature
+        Assert.False(IsInvisible(m, 0));   // the bearer never is
+    }
+
+    [Fact]
+    public void WindowMode_reveals_on_the_players_own_turn_even_if_the_cursor_field_says_enemy()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
+        SetTurnFlagOwner(m, 1);   // the ally owns the turn flag: it really is the player's turn
+        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = 100;
+        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = 20;
+        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;   // cursor hovering an enemy on your own turn
+
+        var hold = Hold(Tier3Kills(), m, sliceMode: false, provokeTurns: 5);
+        hold.Tick(DateTime.UtcNow, true);
+
+        Assert.False(IsInvisible(m, 1));   // criterion 5: nobody is hidden on your own turn
     }
 
     // ---- LW-136: a mark that lands while the hold CANNOT arm must not strand the enemy ----

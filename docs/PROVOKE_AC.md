@@ -87,7 +87,7 @@ status text is global to the status, so every ordinary Slow in the game would re
 | Holding the composed Invisible bit on every player-team unit except one funnels enemy AI onto that one | `docs/LIVE_LEDGER.md` Proven, 2026-07-22 | PROVEN |
 | A raw composed status write is an orphan flag: the AI reads it, no effect is performed, and it NEVER expires | `docs/LIVE_LEDGER.md` Uncertain, 2026-07-22 | LIVE-OBSERVED, owner PROVEN flip PENDING |
 | The Invisible bit survives the unit acting; it is cleared by BEING HIT | `LivingWeapon/Offsets.cs` AInvisible block | corrected 2026-07-22 |
-| Turn-owner team field is reliable for turn-level gating | `docs/LIVE_LEDGER.md` Proven, 2026-06-16 | PROVEN, but doubted by LW-131 (docs/TODO.md, opened 2026-07-23): that row's own experiment never hovered a unit on a different team than the turn owner, so its evidence is equally consistent with the field tracking the cursor instead. The discriminating probe has not run and the row itself is untouched (owner-only). ProvokeHold's shipped release gate (PlayerSideOwnsTurn, ProvokeHold.Scan.cs) no longer reads this field at all, so it does not depend on the answer. |
+| Turn-owner team field is reliable for turn-level gating | `docs/LIVE_LEDGER.md` Proven, 2026-06-16 | CONTRADICTED IN PLAY 2026-07-27, ledger row untouched (owner-only). The 2026-06-16 row's own experiment never hovered a unit on a different team than the turn owner, which is the only arrangement separating "tracks the turn" from "tracks the cursor" (LW-131). The Provoke pass then produced that arrangement by accident: across a whole enemy turn the field read a sane PLAYER value, which is what a cursor-tracking field does when the AI targets a player unit, and is not something a turn-owner field can do. ProvokeHold now reads this field NOWHERE, in either of its gates (LW-131 release, LW-135 hide). Other consumers still do, notably KillTracker's death-edge bury (LW-137). |
 | Per-unit turn/moved/acted flags | `docs/LIVE_LEDGER.md` Proven, 2026-07-09 | PROVEN |
 | Command grant via JobCommand inject | `docs/LIVE_LEDGER.md` Proven, 2026-06-10 and 2026-06-14 | PROVEN |
 | A cut ability can be renamed, granted, and re-effected: Provoke exists in the game | `docs/LIVE_LEDGER.md` Uncertain, 2026-07-22 | LIVE-OBSERVED end to end, owner PROVEN flip PENDING |
@@ -273,7 +273,10 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
    one" holds. A WINDOW
    fallback (`ProvokeSliceMode=false`) instead flags during any enemy's turn, redirecting every
    enemy that acts while the hold is up; it exists because it cannot lose the turn-start timing race
-   slice trades in (see Live verification and Deferred).
+   slice trades in (see Live verification and Deferred). WINDOW decides "is it an enemy's turn" the
+   same way the release gate does, by asking whether a PLAYER-SIDE seat owns the engine's per-unit
+   turn flag, and hides whenever the answer is no. It read the cursor/team field until 2026-07-27,
+   which is why the first live pass hid nobody at all (LW-135).
 5. On the player's own turns, on an ally's turn, and on any NON-provoked enemy's turn, no unit is
    flagged by Provoke: under slice we only hide during the provoked enemy's own turn. Your own units
    are normally targetable on your own turns, so healing and buffing behave as usual, and it is
@@ -370,6 +373,16 @@ tier-3 main-hand Defender, and exactly one of them (see criterion 3d), or it wil
 **Bait step (makes a clean result meaningful).** Run one enemy turn with no hold and record who each
 enemy attacks. Without this, a bearer who was going to be attacked anyway proves nothing.
 
+**Result of the first run, 2026-07-27 (read this before running it again).** Half passed. The hold
+armed on a goblin cast at with the real command, tracked it through its own turn, and released as
+`EnemyTurnDone` 1.6 seconds later: the release gate works. The hide did not run at all, so the
+goblin attacked an ally exactly as if the mod were absent, and the log named the failure in one
+number, `0 units were ever hidden`. Cause: WindowAction read the cursor/team field, which reads
+PLAYER while an enemy acts because the cursor sits on the unit being attacked, so every tick chose
+Reveal. Fixed by moving that call onto the same player-side turn-flag walk the release gate uses
+(LW-135). The run below is the retest, and the thing to confirm is criterion 4 itself: that anyone
+is hidden at all.
+
 **PASS (window).** With the hold armed, all three hold:
 
 1. The enemies that act while the hold is up attack the BEARER, including from positions where a
@@ -402,8 +415,11 @@ enemy attacks. Without this, a bearer who was going to be attacked anyway proves
   fix and the old code could not produce it, so check the flight tape timestamps if unsure.
 - No arm line in the log at all: either the mark never landed (did the cast read 100%?) or the
   bearer failed its tier-3, main-hand, deployed and alive check.
-- An arm line but nothing hidden: the hide enumeration found no targets, so check that other party
-  members are actually deployed and on field.
+- An arm line but `0 units were ever hidden` on release: this is the 2026-07-27 failure above. The
+  log now settles which half broke without another battle, because every hide/reveal TRANSITION logs
+  one line: `provoke hide: N unit(s) now hidden` or `provoke reveal: ...`. No hide line at all means
+  the hold chose Reveal throughout (a turn-detection problem); a hide line reading 0 units means the
+  enumeration found no targets (check that other party members really are deployed and on field).
 - A unit stays hidden after the release line: the release path is incomplete.
 - A unit is hidden at the start of the NEXT battle: the enter sweep did not run (criterion 13).
 
