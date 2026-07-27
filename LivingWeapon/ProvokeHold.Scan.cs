@@ -46,14 +46,57 @@ internal sealed partial class ProvokeHold
     /// pointed-to entry -- mirrors Iai's own actor-nameId read (Iai.cs), which trusts Band.ActorEntry's
     /// own pointer-shape validation and skips content sanity, since a garbage/zeroed entry can only
     /// coincidentally collide with an already-validated marked identity. Callers must ALSO gate on
-    /// TqTeam==1 (an enemy turn): the pointer PARKS ON STRUCK VICTIMS, so during a PLAYER turn it can
-    /// name the marked enemy the instant it gets hit without that ever being its turn (see
-    /// ProvokeHoldTests' Actor_pointer_parked_on_the_marked_enemy_during_a_player_turn_does_not_count_as_its_turn).</summary>
+    /// <see cref="PlayerSideOwnsTurn"/> (LW-131): the pointer PARKS ON STRUCK VICTIMS, so during a
+    /// PLAYER turn it can name the marked enemy the instant it gets hit without that ever being its
+    /// turn (see ProvokeHoldTests' Actor_pointer_parked_on_the_marked_enemy_during_a_player_turn_does_not_count_as_its_turn).</summary>
     private static bool MarkedIsActor(IGameMemory mem, (int nameId, int mhp, int lvl, int br, int fa) markedId)
     {
         long actorEntry = Band.ActorEntry(mem);
         return actorEntry != 0 && SameIdentity(ReadIdentity(mem, actorEntry), markedId);
     }
+
+    /// <summary>LW-131: TickArmed's second gate half, replacing a direct read of the cursor/team
+    /// field (Offsets.TqTeam). True iff SOME player-side seat currently owns the engine's per-unit
+    /// turn flag (<see cref="Band.FlagOwner"/>), i.e. it is provably still the player's turn.
+    ///
+    /// Why not read the marked enemy's OWN ATurnFlag instead: tried and observed FLAKY live
+    /// 2026-07-22 (hid 0 units one attempt, missed the turn-done edge another -> the 30s watchdog);
+    /// see MarkedIsActor's doc comment above for the same evidence. The player-side flag read rests
+    /// on the per-unit turn/moved/acted flags row (docs/LIVE_LEDGER.md, Proven, dated 2026-07-09 --
+    /// the same row Band.cs already cites for Band.FlagOwner), which characterises band +0x19C as a
+    /// MENU-OPEN flag (set while that unit's own move/act/wait menu is up), its falling edge marking
+    /// turn end. That shape also suggests, as a plausible but unprobed explanation and nothing more,
+    /// why the enemy-side read above went flaky: a player's own turn raises that player's own menu,
+    /// so a player-side owner is a direct positive read of "the player's turn is open", whereas an
+    /// AI-driven unit never drives that menu the way a human-controlled one does. This gate
+    /// deliberately only ever asks about the player side and never leans on the flaky enemy-side
+    /// read; a probe for that explanation is banked in the LW-135 backlog row (docs/TODO.md).
+    ///
+    /// Why not delete the gate outright: the engine's actor pointer PARKS ON STRUCK VICTIMS, so a
+    /// marked enemy merely HIT during the player's own turn would otherwise read as having taken
+    /// its turn. Asking "does a player-side seat currently own the turn" closes that by
+    /// construction: an Uncertain LIVE_LEDGER row (LW-87, docs/LIVE_LEDGER.md,
+    /// observed live 2026-07-21, not owner-flipped) reports the flag holding at 1 on the ACTING unit
+    /// across a status-screen detour; if that report holds up it is still short of establishing that
+    /// the flag holds for the whole span of a turn (turn hand-offs and inter-turn gaps are untested
+    /// either way), and this gate does not need that stronger claim to work. Its best property holds
+    /// either way: it reads no cursor field at all, so it is correct whether or not Offsets.TqTeam
+    /// turns out to track the cursor (see docs/TODO.md LW-131 and its LW-135 follow-up).
+    ///
+    /// FAIL-OPEN is deliberate: if Band.FlagOwner finds nobody carrying the flag, or bails ambiguous
+    /// (two disagreeing owners), this returns false and the gate OPENS (a marked enemy caught as the
+    /// actor counts as taking its turn). That is the intended direction: a missing or enemy-owned
+    /// flag is the enemy-turn case, and it is no worse than the code this replaces -- the old
+    /// Offsets.TqTeam read already flickered to ENEMY during the PLAYER's own action resolution while
+    /// the actor pointer parked on the struck victim (an Uncertain LIVE_LEDGER row, LW-87,
+    /// docs/LIVE_LEDGER.md, observed live 2026-07-21, not owner-flipped), so the old gate had exactly
+    /// the same false-positive shape (docs/TODO.md LW-131). The best direct observation for THIS
+    /// gate's own shape is that same LW-87 row's tick census: across 804 ticks sampled on enemy
+    /// turns, Band.FlagOwner never resolved to a player-side seat ("FLAG-BRIDGE-FAIL 804 on enemy
+    /// turns, the player filter working"). An observation from an Uncertain row, not proof, but it
+    /// is exactly the "no player-side owner on an enemy turn" shape this gate relies on.</summary>
+    private static bool PlayerSideOwnsTurn(IGameMemory mem) =>
+        Band.FlagOwner(mem, out long owner, out _) && !IsEnemySide(mem, owner);
 
     /// <summary>Decision 6's ghost-seat gate (criterion 7): combat +0x01 (band entry + AGateByte)
     /// reading 0xFF marks a cutscene/ghost seat that <see cref="Band.IsValid"/> alone lets through.</summary>

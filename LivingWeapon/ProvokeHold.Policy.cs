@@ -39,9 +39,13 @@ internal sealed partial class ProvokeHold
 
     /// <summary>WINDOW mode's hide/reveal choice (decision 3): Reveal only on a clean, sane
     /// PLAYER(0)/ALLY(2) turn; Hide on TqTeam==1 OR any non-clean/garbage read -- bias-to-hidden, so
-    /// an unreadable or transitional queue never leaks a hidden unit's turn. SLICE mode does not call
-    /// this: it inlines `markedActive ? Hide : Reveal` in the module (tested via the module facade
-    /// test, not here).</summary>
+    /// an unreadable or transitional queue never leaks a hidden unit's turn. TqTeam is the SAME
+    /// cursor/team field LW-131 stopped trusting for the release gate over a disputed, not settled,
+    /// turn-owner-identity question (see ProvokeHold.Scan.cs's PlayerSideOwnsTurn doc comment and
+    /// docs/TODO.md LW-131 / LW-135); this method still reads it for the hide/reveal call, so that
+    /// call rides whichever way the question resolves. SLICE mode does not call this: it inlines
+    /// `markedActive ? Hide : Reveal` in the module (tested via the module facade test, not
+    /// here).</summary>
     internal static HideAction ActionFor(bool queueSane, int team) =>
         queueSane && (team == 0 || team == 2) ? HideAction.Reveal : HideAction.Hide;
 

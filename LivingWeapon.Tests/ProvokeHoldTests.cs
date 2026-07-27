@@ -16,10 +16,12 @@ public class ProvokeHoldTests
 {
     private const int DefenderId = Provoke.DefenderId;   // 33
     /// <summary>Every test here constructs the hold through this factory, which opts INTO the
-    /// feature (enabled: true). The shipped default is OFF for 2.3.2 (Tuning.ProvokeEnabled, see
-    /// Provoke_ships_disabled_in_this_release), and that switch gates SHIPPING, not the logic: the
-    /// arc 2a behavior below must stay fully covered while the feature waits for its live pass, so
-    /// the suite would go quietly vacuous if these inherited the off default.</summary>
+    /// feature (enabled: true) explicitly rather than leaning on the compiled default. The default
+    /// is ON again in this build (Tuning.ProvokeEnabled, re-armed for the acceptance pass, commit
+    /// 43de63e; see Provoke_is_armed_in_this_build), but that switch gates SHIPPING, not the logic:
+    /// the arc 2a behavior below must stay fully covered whichever way the switch is thrown, so the
+    /// suite would go quietly vacuous the moment it is next flipped off if these tests inherited the
+    /// compiled default instead of pinning true.</summary>
     private static ProvokeHold Hold(Dictionary<int, int> kills, FakeSparseMemory m,
         bool? sliceMode = null, int? provokeTurns = null, bool enabled = true)
         => new ProvokeHold(kills, m, sliceMode, provokeTurns, enabled);
@@ -66,21 +68,32 @@ public class ProvokeHoldTests
     private static void SetSide(FakeSparseMemory m, int bandIdx, bool enemy) =>
         m.U8s[Band.Entry(bandIdx) + Offsets.AFriendFoe] = enemy ? Offsets.AFriendFoeEnemyBit : (byte)0;
 
-    /// <summary>Point the engine's actor pointer (Offsets.ActorPtr) at bandIdx's combat frame and
-    /// mark this as an ENEMY turn (TqTeam=1) -- the round-trip of Band.ActorEntry: frame =
-    /// Band.Entry(bandIdx) - BandEntry, so ActorEntry resolves back to exactly Band.Entry(bandIdx).
-    /// Mirrors IaiTests.PointActorAt. Only ONE unit can be the actor at a time (a single global
-    /// pointer) -- last writer wins, which is fine since these tests seat at most one active enemy.</summary>
+    /// <summary>Point the engine's actor pointer (Offsets.ActorPtr) at bandIdx's combat frame -- the
+    /// round-trip of Band.ActorEntry: frame = Band.Entry(bandIdx) - BandEntry, so ActorEntry resolves
+    /// back to exactly Band.Entry(bandIdx). Mirrors IaiTests.PointActorAt. Only ONE unit can be the
+    /// actor at a time (a single global pointer) -- last writer wins, which is fine since these tests
+    /// seat at most one active enemy.
+    ///
+    /// LW-131: no longer writes TqTeam. TickArmed's turn gate now asks Band.FlagOwner whether a
+    /// player-side seat owns the turn instead of reading the cursor/team field, and every fixture
+    /// here defaults to nobody owning the turn flag, which is exactly the "no player-side seat"
+    /// condition the fix treats as an enemy turn -- so no extra write is needed to express it.</summary>
     private static void PointActorAtEnemyTurn(FakeSparseMemory m, int bandIdx)
     {
         long frame = Band.Entry(bandIdx) - Offsets.BandEntry;
         m.SeedU64(Offsets.ActorPtr, (ulong)frame);
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;
     }
 
     /// <summary>Clear the actor pointer so it resolves to nobody (Band.ActorEntry returns 0) --
     /// "this enemy's turn ends" for the actor-pointer signal.</summary>
     private static void ClearActor(FakeSparseMemory m) => m.SeedU64(Offsets.ActorPtr, 0);
+
+    /// <summary>LW-131: seat the engine's per-unit turn flag (Offsets.ATurnFlag) on an already-seated
+    /// band entry, expressing "it is this seat's turn" for TickArmed's PlayerSideOwnsTurn gate.
+    /// Band.FlagOwner also requires Band.IsValid and a real (nonzero) AGx/AGy, which every Seat*
+    /// helper in this file already provides, so no extra seating is needed here.</summary>
+    private static void SetTurnFlagOwner(FakeSparseMemory m, int bandIdx) =>
+        m.U8s[Band.Entry(bandIdx) + Offsets.ATurnFlag] = 1;
 
     private static void SetMark(FakeSparseMemory m, int bandIdx, bool on)
     {
@@ -288,11 +301,15 @@ public class ProvokeHoldTests
         Assert.True(HasMark(m, 10));
     }
 
-    // ---- Struck-victim park does not miscount (the TqTeam==1 gate is load-bearing) ----
+    // ---- Struck-victim park does not miscount (the PlayerSideOwnsTurn gate is load-bearing) ----
     //
     // Live testing 2026-07-22 proved the engine's actor pointer PARKS ON STRUCK VICTIMS: during a
     // PLAYER turn it can name the marked enemy the instant it gets hit, without that ever being the
-    // enemy's own turn. Dropping the "&& TqTeam==1" gate makes THIS test fail.
+    // enemy's own turn. LW-131 replaced the old "&& TqTeam==1" gate (suspected, not confirmed, of
+    // reading the AI's targeting cursor rather than the turn owner -- docs/TODO.md LW-131) with
+    // PlayerSideOwnsTurn (ProvokeHold.Scan.cs), which asks whether a player-side seat currently owns
+    // the engine's per-unit turn flag. Dropping that gate makes THIS test fail the same way the old
+    // one guarded against.
 
     [Fact]
     public void Actor_pointer_parked_on_the_marked_enemy_during_a_player_turn_does_not_count_as_its_turn()
@@ -304,10 +321,11 @@ public class ProvokeHoldTests
 
         var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
         var t0 = DateTime.UtcNow;
-        hold.Tick(t0, true);   // arms; TqTeam defaults to 0 (a player turn), nobody active yet
+        hold.Tick(t0, true);   // arms; nobody active yet
 
+        SetTurnFlagOwner(m, 1);   // the ally owns the turn flag: this genuinely is a player turn
         // The actor pointer parks on the marked enemy -- it was just STRUCK mid-player-turn, not
-        // taking its own turn. TqTeam is deliberately left at 0 (NOT set to 1).
+        // taking its own turn.
         long frame = Band.Entry(10) - Offsets.BandEntry;
         m.SeedU64(Offsets.ActorPtr, (ulong)frame);
         hold.Tick(t0.AddMilliseconds(33), true);
@@ -317,6 +335,137 @@ public class ProvokeHoldTests
         hold.Tick(t0.AddMilliseconds(66), true);
 
         Assert.True(HasMark(m, 10));   // no EnemyTurnDone release: _markedTurns never incremented
+    }
+
+    // ---- LW-131: the turn gate asks "does a player-side seat own the turn" (Band.FlagOwner via
+    // PlayerSideOwnsTurn), not the cursor/team field. The working suspicion, not a settled fact
+    // (docs/TODO.md LW-131), is that the AI's targeting cursor sits on the PLAYER unit an enemy is
+    // attacking mid-action, so TurnQueue +0x02 reads PLAYER even though the enemy genuinely owns the
+    // turn -- under that reading the old gate would never count that turn, and the hold would run
+    // all the way to its thirty second watchdog. Nobody has hovered a player unit during an enemy
+    // turn and read +0x02 to check; a LIVE_LEDGER row (docs/LIVE_LEDGER.md, Proven, dated
+    // 2026-06-16) calls that field turn-stable, but its own experiment never covered that case, so
+    // the evidence reads just as well the other way. The fix below does not depend on which reading
+    // is right: PlayerSideOwnsTurn reads no cursor field at all, and this test pins the behaviour it
+    // guarantees either way. docs/LIVE_LEDGER.md's Uncertain LW-87 flag-owner row (2026-07-21, not
+    // owner-flipped) and docs/TODO.md's LW-131 flight-tape analysis are the evidence trail. ----
+
+    [Fact]
+    public void Enemy_turn_counts_even_when_the_cursor_team_field_reads_player_LW131()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+        // The suspected live symptom (docs/TODO.md LW-131, never directly observed): the AI's cursor
+        // sits on the player unit it targets, so the cursor team field reads PLAYER even though this
+        // genuinely is the marked enemy's own turn. This fixture has the marked enemy carry its OWN
+        // turn flag -- one shape an enemy turn can take, not the only one Band.FlagOwner has to
+        // handle: a zero-owner record is a real case too, per Band.FlagOwner's own doc comment (the
+        // battle-opening edge) -- so this exercises PlayerSideOwnsTurn's "!IsEnemySide" half, not the
+        // separate "nobody owns the flag" fail-open path (see the Nobody_owning_... test below).
+        SetTurnFlagOwner(m, 10);
+        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 0;
+
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms; marked enemy is already the actor
+
+        ClearActor(m);   // the marked enemy's turn ends
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.False(HasMark(m, 10));   // the turn WAS counted: released at ProvokeTurns=1, mark scrubbed
+    }
+
+    [Fact]
+    public void Player_side_flag_owner_closes_the_gate_even_when_the_cursor_team_field_reads_enemy_LW131()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: false, nameId: 500);
+
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms
+
+        SetTurnFlagOwner(m, 1);            // the ally owns the turn: this IS a player turn
+        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;   // pins that the team field no longer drives the decision
+        long frame = Band.Entry(10) - Offsets.BandEntry;
+        m.SeedU64(Offsets.ActorPtr, (ulong)frame);        // the marked enemy is the actor (struck, not its turn)
+        hold.Tick(t0.AddMilliseconds(33), true);
+        Assert.True(HasMark(m, 10));   // not counted: a player-side seat owns the turn
+
+        ClearActor(m);
+        hold.Tick(t0.AddMilliseconds(66), true);
+        Assert.True(HasMark(m, 10));   // still not counted: no EnemyTurnDone edge ever fired
+    }
+
+    [Fact]
+    public void Nobody_owning_the_turn_flag_fails_open_to_an_enemy_turn_by_design_LW131()
+    {
+        // PlayerSideOwnsTurn's documented FAIL-OPEN direction (ProvokeHold.Scan.cs): when
+        // Band.FlagOwner finds nobody carrying the turn flag, the gate treats that as "not a player
+        // turn" and opens, rather than refusing to count the turn. Deliberate, not an accident --
+        // see the helper's doc comment for why that direction is safe.
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+        // Nobody seats a turn flag anywhere -- the fixture default.
+
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms; marked enemy already the actor
+
+        ClearActor(m);
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.False(HasMark(m, 10));   // counted: fail-open let the turn through
+    }
+
+    [Fact]
+    public void Enemy_side_flag_owner_does_not_close_the_gate_LW131()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+        SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false, nameId: 501);
+        SetTurnFlagOwner(m, 11);   // a DIFFERENT enemy owns the turn flag, not a player-side seat
+
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms; marked enemy (10) already the actor
+
+        ClearActor(m);
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.False(HasMark(m, 10));   // counted: an enemy-side flag owner is not a player turn
+    }
+
+    [Fact]
+    public void Two_disagreeing_player_side_flag_owners_fail_open_by_design_LW131()
+    {
+        // PlayerSideOwnsTurn's OTHER documented fail-open path (ProvokeHold.Scan.cs): not just
+        // "nobody owns the flag", but Band.FlagOwner (LivingWeapon/Band.cs) also bails AMBIGUOUS
+        // when TWO player-side seats both carry ATurnFlag==1 with valid, real positions and
+        // DIFFERENT identities. An ambiguous read is treated the same as "nobody owns it": the gate
+        // opens rather than refusing to count the turn. Deliberate, not an accident -- see the
+        // helper's doc comment.
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatAlly(m, 2, lvl: 41, br: 12, fa: 77, gx: 3, gy: 3);   // different fingerprint, nameId 0 on both
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+        SetTurnFlagOwner(m, 1);
+        SetTurnFlagOwner(m, 2);   // two seats both claim the flag with disagreeing identities
+
+        var hold = Hold(Tier3Kills(), m);   // default ProvokeTurns = 1
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);   // arms; marked enemy already the actor
+
+        ClearActor(m);
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.False(HasMark(m, 10));   // counted: an ambiguous flag read fails open, same as nobody owning it
     }
 
     // ---- Transient-miss non-release (guards the debounce) ----

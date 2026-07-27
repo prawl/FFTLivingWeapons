@@ -75,6 +75,38 @@ the technical detail lives in the indented lines under it.
     built idempotent so it is correct either way, but the ledger row should stop contradicting
     itself. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-131] Provoke's shout now lets go the moment the goaded enemy actually finishes its own turn** (opened 2026-07-23) [AWAITING-LIVE]
+  - Done means: the enemy the Defender's shout marks releases the hold within a turn or two of that
+    enemy really acting, instead of the shout dragging on for its full thirty second safety timer
+    and pulling every enemy that acts in that window onto the bearer. (Tech: TickArmed's turn gate
+    no longer reads the cursor/team field TurnQueue +0x02. The working suspicion is that field
+    follows the AI's targeted unit rather than the true turn owner, but that is a hypothesis, not a
+    settled fact: it departs from a LIVE_LEDGER row (docs/LIVE_LEDGER.md, Proven, dated 2026-06-16)
+    that calls that same field turn-stable, and that row's own experiment carries a documented
+    confound, it never hovered a unit belonging to a different team than the turn owner, so its
+    evidence reads just as well as the field tracking the cursor. That row stays as written; only
+    the owner flips a LIVE_LEDGER row, and the one probe that would decide between the two readings,
+    hovering a player unit during an enemy turn and reading +0x02, has never been run. The fix does
+    not need that question settled either
+    way, because it now asks Band.FlagOwner, the per-unit turn flag (the per-unit turn/moved/acted
+    flags row, docs/LIVE_LEDGER.md, dated 2026-07-09, the same row Band.cs already cites for
+    FlagOwner; a separate LW-87 row, docs/LIVE_LEDGER.md, 2026-07-21, sits under Uncertain and
+    offers supporting but not owner-confirmed observation that the flag holds through a
+    status-screen detour), whether a player-side seat currently owns the turn; only when nobody
+    does does the engine's actor pointer naming the marked enemy count as that enemy's own turn.
+    That gate reads no cursor field at all, so it holds regardless of which way the TqTeam question
+    resolves. The actor pointer identity half is unchanged on purpose: it PARKS ON STRUCK VICTIMS, so a marked
+    enemy merely hit during the player's own turn must still not count as having acted. LW-127, the
+    single enemy slice, is gated on this same turn detection question, so this fix answers part of
+    that too. LW-135 tracks the shipped hide path, which still rides the doubted field. Covered by
+    LivingWeapon.Tests\ProvokeHoldTests.cs.)
+  - Verify: the owner shouts at a real enemy in a real battle and confirms the hold lets go within
+    a turn or two of that enemy actually acting rather than thirty seconds later, and checks a
+    flight tape shows the turn counter advancing on that enemy's own turn edge. While that enemy's
+    turn plays out, the owner also watches whether the hidden party stays hidden or flickers visible
+    partway through, since a flicker would mean the shipped hide path is still riding the doubted
+    cursor field, a separate bug tracked as LW-135. Owner only, as every AWAITING-LIVE flip is.
+
 - **[LW-130] Provoking your own teammate no longer leaves them stuck wearing the Provoked mark forever** (opened 2026-07-23) [AWAITING-LIVE]
   - Done means: casting the Defender's shout at your own side no longer leaves a mark that never
     comes off, so that teammate stops reading Provoked in its status list and can be shouted at
@@ -109,63 +141,30 @@ the technical detail lives in the indented lines under it.
   stamp its own flavour into the save directory at launch, since Tuning.BuildFlavor is compiled in
   and cannot be stale the way a deploy-time marker can. (Tech: BuildLinked.ps1 lines 78 to 95.)
 
-- [LW-131] 2026-07-23: Provoke keeps hanging on for its full thirty second safety timer even when
-  the enemy you shouted at HAS taken its turn, so the shout runs far longer than it should and
-  every enemy acting in that window gets pulled onto the bearer.
-  Why it matters: the shout is supposed to let go the moment the goaded enemy finishes its turn.
-  The safety timer is a backstop for a release we failed to notice, and it firing means a real bug,
-  which is why it logs as a warning. The handoff assumed the enemy simply never got a turn in
-  thirty seconds. The tape says otherwise, so the assumption in that note is wrong and should not
-  be carried forward.
-  Evidence, and it is unambiguous: flight tape flight_20260723_003332_battle-exit.jsonl. The mod
-  armed on nameId 623 at -66.640s. The engine actor pointer then named 623 as the acting unit at
-  -48.984s and released it at -47.234s, and did the same again at -40.609s to -37.078s. Two clean
-  rising and falling edges, both inside the hold, and the turn counter never moved. The watchdog
-  fired at -35.828s, about 3 seconds before that enemy took yet another turn.
-  Desk pass 2026-07-23 narrowed it to ONE suspect. TickArmed only counts a turn when BOTH halves
-  agree: the team read (TurnQueue +0x02 equals 1) AND the actor pointer naming a unit matching the
-  marked identity. The identity half is CLEARED, and the tape proves it rather than argues it: had
-  the marked identity stopped resolving, the miss tick counter would have released with reason
-  EnemyGone, and it never did, so LocateByIdentity matched that same tuple on every tick of the
-  hold. The actor pointer half resolves through the same band entry base the flight tap prints, and
-  that tap read nameId 623 off it, the very nameId the mark was armed on. That leaves the TEAM READ.
-  What makes the team read genuinely doubtful, and it is not just the standing hover memory: the
-  Proven LIVE_LEDGER row this code cites (dated 2026-06-16) is CONFOUNDED. Its own evidence line
-  says player turns read 0 including under hover, and enemy turns read 1 across whole turns. Both
-  observations are equally consistent with the field describing the CURSOR, because the units
-  hovered during player turns were player units, and during an enemy turn the camera follows the
-  acting enemy anyway. The experiment never once hovered a unit belonging to a DIFFERENT team than
-  the current turn owner, which is the only arrangement that separates the two explanations. The
-  LW-87 hover follower row (2026-07-21) then showed the same struct's identity fields moving with
-  the cursor, and the whole codebase was re-anchored off it for turn owner questions
-  (ActorResolver.Cursor.cs, AttackCard.cs) about a day before ProvokeHold was written against it.
-  There is a second, cheaper possibility worth ruling out in the same run: the 2026-06-16 row was
-  measured PRE-1.5 at 0x14077D2A2, and the 1.5 re-anchor comment in Offsets.cs records confirming
-  team equals 0 only, so team equals 1 during an enemy turn has never been re-confirmed on this
-  build at all.
-  CORROBORATION FOUND THE SAME PASS, and it is close to decisive. The sibling FFTHandsFree repo's
-  own BATTLE_COORDINATES note (that repo's docs folder, not this one) describes this exact struct
-  as showing the unit under the cursor
-  and says in as many words that the +0x02 team field is the HOVERED unit's team, going stale on an
-  empty tile. The same note carries the mechanism that would explain this bug exactly: during an
-  enemy's action the AI cursor sits on the PLAYER unit it is targeting, so the team field reads 0
-  for the player, the enemy turn gate goes false, and the goaded enemy's turn is never counted. That
-  is not proof on this build and it is not an owner flip, but it means the 2026-06-16 row and a
-  sibling repo's documentation now flatly disagree, and the row is the one whose evidence has the
-  hole in it.
-  The discriminating probe is about a minute of play and settles both at once: during an ENEMY
-  unit's turn, move the cursor onto one of YOUR units and read TurnQueue +0x02. Reads 1, the field
-  is the turn owner and the Proven row survives (look elsewhere, and suspect the actor pointer
-  timing). Reads 0, the field follows the cursor, the Proven row is wrong and must be corrected,
-  and this bug is explained: a player idly hovering their own units during the enemy phase silently
-  switches the shout's turn detection off.
-  Do NOT simply delete the team gate as the fix. It is there because the actor pointer PARKS on
-  struck victims, so without it a marked enemy that merely gets HIT during your own turn would
-  count as having taken its turn. The replacement has to be a signal that is per turn and not per
-  cursor, most likely Band.FlagOwner, the PSX turn flags walk the rest of the runtime re-anchored
-  onto for exactly this reason.
-  Note for whoever picks this up: LW-127 (the single enemy slice) is gated on the same turn
-  detection question, so answering this answers part of that too.
+- [LW-135] 2026-07-25: While a shouted-at enemy is taking its turn, the party units Provoke is
+  supposed to keep hidden might be reading their hide/reveal call off the same cursor field LW-131
+  just stopped trusting for the release gate, so the hiding itself could still be riding a guess.
+  Why it matters: Tuning.ProvokeSliceMode ships false, so WINDOW mode is what players get, and
+  WindowAction (ProvokeHold.Scan.cs, around line 182) feeds ProvokeHold.Policy.cs's ActionFor from
+  TurnQueue +0x02, the same cursor/team field LW-131 only stopped trusting for the release decision,
+  not for this hide/reveal decision. If the LW-131 cursor hypothesis turns out true, then mid enemy
+  action the cursor can sit on the targeted player unit, the field reads 0, ActionFor returns
+  Reveal, and the party un-hides at exactly the moment the funnel matters.
+  Nuance, so this does not read as alarmist: this is a suspected gap, not an observed failure, and
+  there is live evidence pointing the other way. The LIVE_LEDGER funnel row records that on
+  2026-07-22 the owner proved the funnel through the shipping mod in WINDOW mode: an F6-marked
+  enemy, Invisible held on every deployed player unit except the Defender bearer, and every enemy
+  ignored the hidden units and made straight for the bearer. So the hide held up well enough in play
+  for the funnel to work that day.
+  What decides this: the live watch item now in LW-131's Verify, whether the hidden party stays
+  hidden or flickers visible during a marked enemy's turn, is what turns this row into real work or
+  lets it close as a non-issue.
+  Loosely related, not yet its own item: ProvokeHold.Scan.cs's PlayerSideOwnsTurn doc comment offers
+  a plausible, unprobed explanation for why the direct enemy-side ATurnFlag read went flaky on
+  2026-07-22. The per-unit turn/moved/acted flags row (docs/LIVE_LEDGER.md, dated 2026-07-09) reads
+  band +0x19C as set only while that unit's OWN move/act/wait menu is up, and an AI-driven unit may
+  not raise that menu the way a human-controlled one does. Worth a probe if anyone revisits the
+  enemy-side read; nothing currently shipped depends on it.
 
 - [LW-129] 2026-07-22: When Provoke hides your units, they wear a visible invisible status icon over
   their heads, which tips off the player that the mod is doing something; suppress that icon so the

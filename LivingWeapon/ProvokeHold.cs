@@ -48,10 +48,11 @@ internal sealed partial class ProvokeHold : ISignature
     /// <param name="provokeTurns">Overrides Tuning.ProvokeTurns; null uses the compiled default --
     /// isolates "still armed after one turn ends" from the release value 1 triggers immediately.</param>
     /// <param name="enabled">Overrides <see cref="Tuning.ProvokeEnabled"/>, the feature's ship
-    /// switch; null uses the compiled default (false for 2.3.2). The switch gates SHIPPING, not the
-    /// logic, so the arc 2a behavior must stay covered while the feature waits for its live pass:
-    /// ProvokeHoldTests routes every construction through its own Hold(...) factory that passes
-    /// true, which is what stops the suite going vacuous the moment the default flipped off.</param>
+    /// switch; null uses the compiled default (true again, re-armed by commit 43de63e). The switch
+    /// gates SHIPPING, not the logic, so the arc 2a behavior must stay covered while the feature
+    /// waits for its live pass: ProvokeHoldTests routes every construction through its own
+    /// Hold(...) factory that passes true, which is what stops the suite going vacuous the moment
+    /// the default flips off again.</param>
     public ProvokeHold(Dictionary<int, int> kills, IGameMemory? mem = null, bool? sliceMode = null,
         int? provokeTurns = null, bool? enabled = null)
     {
@@ -144,10 +145,11 @@ internal sealed partial class ProvokeHold : ISignature
         _lastTick = now;
         bool watchdogElapsed = WatchdogElapsed(_liveElapsed, Tuning.ProvokeWatchdogSeconds);
 
-        // ACTOR-POINTER identity match gated on TqTeam==1 (an enemy turn): replaces the flaky
-        // ATurnFlag read -- see MarkedIsActor's doc comment (ProvokeHold.Scan.cs) for why.
-        bool enemyTurn = _mem.U16(Offsets.TurnQueue + Offsets.TqTeam) == 1;
-        bool markedActive = enemyTurn && MarkedIsActor(_mem, _markedId);
+        // LW-131: gated on PlayerSideOwnsTurn (ProvokeHold.Scan.cs), not the cursor/team field --
+        // whether that field tracks the cursor instead of the turn owner is a live hypothesis, not
+        // settled fact (see PlayerSideOwnsTurn's doc comment). Identity check first: it is cheap and
+        // fails on most ticks, so the band walk behind PlayerSideOwnsTurn only runs when it matters.
+        bool markedActive = MarkedIsActor(_mem, _markedId) && !PlayerSideOwnsTurn(_mem);
         if (TurnEnded(_wasMarkedActive, markedActive)) _markedTurns++;
         _wasMarkedActive = markedActive;
 
