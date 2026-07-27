@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """
-Patch uistatuseffect.en.nxd name/caption rows: give a blank status its identity.
+Patch uistatuseffect.en.nxd rows: give a blank status its identity, and blank one icon.
 
 Covers:
   Key 1  - "Provoked" (LW-123, the Defender's Provoke mark)
+  Key 20 - Invisibility un-rendered entirely, U14=0 (LW-129, owner directive 2026-07-27;
+           iteration 2 -- the icon-index-only attempt failed live, see the entry's comment)
 
 WHY THIS TABLE EXISTS IN OUR MOD AT ALL
 ---------------------------------------
@@ -113,6 +115,27 @@ PATCHES = {
         "Unknown14": 2,      # display category: 0 never renders; 1 = buff group, 2 = debuff group
         "Unknown20": 102,    # no sprite resolves for this Key in either category; kept as the best guess
     },
+    # LW-129, owner directive 2026-07-27 ("do not deviate from the design"): the Provoke hold keeps
+    # the party flagged Invisible through the player's own turns once the goaded enemy is next up
+    # (LW-127; revealing there lost the turn-open race twice, live). The AI-ignore behaviour is the
+    # band bit and never touches this table; the leak is Invisibility's overhead icon.
+    #
+    # ITERATION 2. Iteration 1 set Unknown20 = -1 (keep the category, blank only the icon index) and
+    # FAILED LIVE the same day: the owner still saw the icon. The -1 inference was correlation, not
+    # causation; every never-rendered row carries -1 because U14=0 already gates it, and nothing had
+    # ever tested -1 under a RENDERED category. Lesson re-learned: this table's only lever proven by
+    # a live experiment is Unknown14 = 0, which made the mark render NOTHING no matter what its
+    # other cells said (this file's header, decoded 2026-07-22). So that is what ships now, and
+    # Unknown20 goes BACK to vanilla 10 on purpose: a negative value in that column carries a
+    # silent-whole-file-rejection risk this repo has met before on the item tables, and there is no
+    # reason left to carry it. COST, wider than iteration 1 aimed for: U14=0 removes Invisibility
+    # from the status LIST as well as the overhead rotation. For our hidden party that is nothing;
+    # for a vanilla Vanish Mantle wearer the list entry disappears, and their unit is rendered
+    # transparent by the real apply path anyway, so the state stays self-evident on screen.
+    20: {
+        "Unknown14": 0,
+        "Unknown20": 10,
+    },
 }
 
 
@@ -192,13 +215,17 @@ def main() -> None:
     if dry:
         return
     ensure_pristine()
-    # Guard the one assumption a blank-row patch rests on: if the row we are claiming is NOT blank
-    # in this game version, we would be overwriting text the game actually shows.
+    # Guard the one assumption a blank-row TEXT patch rests on: if the row we are claiming is NOT
+    # blank in this game version, we would be overwriting text the game actually shows. Scoped to
+    # keys that actually write Name/Caption (LW-129's Key 20 touches only the icon cell of a status
+    # the game legitimately names, which is exactly what this guard exists to forbid for TEXT).
     van = rows(PRISTINE)
-    for key in PATCHES:
+    for key, cols in PATCHES.items():
         if key not in van:
             sys.exit(f"FAIL: Key {key} is not in the vanilla status table")
         for col in ("Name", "Caption"):
+            if col not in cols:
+                continue
             cur = van[key].get(col)
             if cur not in (None, "", "None"):
                 sys.exit(f"FAIL: Key {key} {col} is not blank in vanilla (reads {cur!r}). "
