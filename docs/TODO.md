@@ -13,25 +13,27 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.2)
 
-- **[LW-134] The deploy guard can no longer see the kill counts it exists to protect; teach it where they live now** (opened 2026-07-25) [QUEUED]
-  - Done means: a test build aimed at an install carrying a real player's kill counts stops and asks
-    before deploying, even when no flavour marker file exists, because the guard looks for the
-    counts where they actually live now (the Reloaded save directory) instead of the mod folder
-    they moved out of when save scoping shipped. (Tech: point the BuildLinked.ps1 fallback, lines
-    78 to 95, at the directory SaveLocation.ResolveSaveDir resolves, and consider the running mod
-    stamping its compiled-in flavour, Tuning.BuildFlavor, into that directory at launch, so the
-    check no longer rests on a deploy-time marker that can be stale or absent.)
-  - How it was found, kept so the stakes stay visible: 2026-07-25, while re-arming Provoke, the
-    installed build was a PRODUCTION 2.3.2 with a live 384 kill tally and no marker file, and a
-    plain dev BuildLinked was ready to deploy over it without a word. Harmless only by luck: that
-    tally turned out to be dev-seeded already (119 of 121 weapons sitting exactly on the seed floor
-    of 3), so the seeding had nothing left to spoil. The guard exists because a dev build seeds
-    every weapon's tally and once polluted a real save; the fallback looks for kills.json next to
-    the mod, a place the file can never be since save scoping (LW-51, bf351db) moved the saves into
-    Reloaded\User\Mods.
-  - Verify: on this box, against an install dressed as production (no marker file, a tally in the
-    real save directory), a plain BuildLinked run refuses red before touching the Mods folder, and
-    the same run with -Force proceeds; both checks run without launching the game.
+- **[LW-112] Stop blaming a game update when another mod rewrote the same game data** (opened 2026-07-21) [QUEUED]
+  - Done means: a player running a custom job mod alongside Living Weapons no longer sees this mod
+    switch itself off with a message blaming a game update that never happened. When the game
+    program itself checks out fine and only a data landmark mismatches, the stand-down says the
+    truth, another mod rewrote the same game data, names the landmark, and suggests checking load
+    order; and the build considers degrading only what rests on that anchor (the Barrage kit
+    injection) instead of standing the whole mod down. (Tech: player report 2026-07-21, root cause
+    desk-confirmed. Landmark 2 is the JobCommand rec 8/rec 9 ability-id signature,
+    LaunchGuard.Landmarks.cs Rec8Sig/Rec9Sig, which is Barrage's anchor and not a version check; a
+    job mod's whole-row table writeback legitimately rewrites those bytes. The PE build key
+    MATCHING while a data landmark mismatches is the discriminator the guard already holds and
+    ignores; today FingerprintGuard.cs's anyMismatch path stands everything down.)
+  - Unexplained residue, kept so it is not papered over: the player then merged the other mod's
+    table rows into a third mod's folder and reports both now work, which should NOT clear the
+    memory bytes; suspect the merged copy is silently inert, meaning their custom jobs are likely
+    dead and they have not noticed. Worth one question before advising anyone to copy the
+    workaround.
+  - Verify: unit tests pin the new message and any degrade path, and the dev stand-down drill (the
+    modDir marker-file lane; environment variables do not reach the game) shows the truthful
+    message live. The real-world case confirms itself in a player's livingweapon.log, whose
+    stand-down line names the landmark (LW-83).
 
 ## Backlog
 
@@ -305,28 +307,6 @@ the technical detail lives in the indented lines under it.
   FEMALE sprite, and a MONSTER (chocobo first, since summons and mounts care). Protocol notes
   that earned their keep: sit on your own unit's open menu so CT freezes and the guinea pig
   stays idle; labels append per entry so a freeze loses nothing; the book ends near 0x79.
-- [LW-112] 2026-07-21: A popular kind of mod (custom jobs/items) makes Living Weapons switch
-  itself off with a message blaming a game update that never happened; the guard is
-  misdiagnosing a mod conflict as a game patch.
-  Player report 2026-07-21 (the same player as LW-101): loading CustomJOB_ITEM alongside us
-  popped the stand-down box ("it does not look like the version the mod was built for").
-  Desk-confirmed root cause: startup landmark 2 is the JobCommand rec 8/rec 9 ability-id bytes
-  (LaunchGuard.Landmarks.cs Rec8Sig/Rec9Sig = Archer's Aim ids 150..157 and Monk's Martial Arts
-  ids 100..107). A custom-job mod rewrites exactly those bytes (whole-row table writeback,
-  modloader-merge-semantics), so the signature legitimately vanishes, ANY single landmark
-  mismatch held 30 ticks stands the whole mod down (FingerprintGuard.cs anyMismatch path), and
-  the message asserts a game update. The PE build key MATCHES in this scenario, which is the
-  discriminator we already hold but ignore. Fix direction: when the PE key matches and only a
-  DATA landmark mismatches, say the truth (another mod rewrote the same game data, name the
-  landmark, suggest load order/compat) and consider degrading only what rests on that anchor
-  (Barrage kit injection) instead of the whole mod; rec8/rec9 is Barrage's anchor, not a game
-  version check, and job mods will always touch it. Verify with the player's livingweapon.log
-  stand-down line, which names the landmark (LW-83). Unexplained residue, do not paper over:
-  the player then merged the other mod's table rows into a third mod's folder and reports both
-  now work, which should NOT clear the memory bytes; suspect the merged copy is silently inert
-  (wrong folder shape, or a bad value making the modloader reject the whole file), meaning
-  their custom jobs are likely dead and they have not noticed. Their in-game state is worth a
-  question before advising anyone else to copy the workaround.
 - [LW-108] 2026-07-21: Restarting a battle quickly is completely invisible to the mod, so it
   keeps believing the old battle never ended; the worst case is a kill being counted twice.
   Found while checking LW-100 (flight tape flight_20260721_211423): battleMode fell to 0 for

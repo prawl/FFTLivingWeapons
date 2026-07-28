@@ -10,6 +10,25 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-134] SHIPPED 18211c3 2026-07-28: a test build can no longer silently stomp a real player's
+  kill counts. The guard that refuses such deploys had gone blind: it looked for the player's tally
+  next to the mod, but the save files moved into the Reloaded User\Mods directory when save scoping
+  shipped (LW-51), so it found nothing and waved every test build through; on 2026-07-25 it nearly
+  let one overwrite a production install carrying a live tally, and only a human noticed. The guard
+  now checks the real save directory, the running mod stamps its own compiled flavour there at
+  every launch so the guard can also trust what last RAN, and the decision fails closed: production
+  evidence from any source, or player data with no flavour evidence at all, refuses a plain dev
+  deploy without -Force. Verified offline both ways against a throwaway Reloaded tree with the real
+  install untouched: the exact near-miss shape is refused before any pipeline stage runs, and
+  -Force proceeds through a complete deploy. One rider stays open by design: the stamp file appears
+  in the real save directory only after the next real game launch, a one-glance check that rides
+  any future session and whose absence merely leaves the guard on its marker-and-tally behaviour.
+  (Tech: Resolve-DeployedFlavor in tools/pipeline.ps1, precedence marker prod, stamp prod, marker
+  dev, stamp dev, tally presence; probes kills.json in BOTH the save dir and the legacy mod dir;
+  stamp = run_flavor.txt via FlavorStamp.cs from the compiled Tuning.BuildFlavor, fail-soft, one
+  call in Engine; 13 new tests, DeployGuardTests executing the real PowerShell function, the
+  incident-shape test proven non-vacuous by sabotage and byte-exact restore; suite 2865 green;
+  adversarial verify SHIP 9/10.)
 - [LW-123] SHIPPED 3565363 2026-07-28: the Defender's shout is finished and played. A player holding
   a grown Defender points at one enemy, and until that enemy has taken its turn, the enemies who act
   cannot see anyone on your side except the bearer, who carries the best parry in the game to
