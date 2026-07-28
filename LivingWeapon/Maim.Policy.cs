@@ -24,36 +24,43 @@ internal sealed partial class Maim
     /// and the restore would wipe the reaction permanently. Never re-save while a hold is active.</summary>
     public static bool ShouldResave(bool isHeld) => !isHeld;
 
-    /// <summary>Write zeros to the victim's reaction field -- all 4 bytes. VirtualQuery-guarded.</summary>
+    /// <summary>Write zeros to the victim's reaction field -- all 4 bytes, one WriteBytes call
+    /// (LW-145 fix 2: four separate W8s opened a torn-value window). VirtualQuery-guarded.</summary>
     public static void HoldZero(IGameMemory mem, long addr)
     {
         long ra = addr + ReactionBandOff;
         if (!mem.Writable(ra, 4)) return;
-        mem.W8(ra,     0);
-        mem.W8(ra + 1, 0);
-        mem.W8(ra + 2, 0);
-        mem.W8(ra + 3, 0);
+        mem.WriteBytes(ra, new byte[4]);
     }
 
-    /// <summary>Write the original reaction bytes back. VirtualQuery-guarded.</summary>
+    /// <summary>Write the original reaction bytes back, one WriteBytes call (LW-145 fix 2: four
+    /// separate W8s opened a torn-value window). VirtualQuery-guarded.</summary>
     public static void Restore(IGameMemory mem, long addr, uint saved)
     {
         long ra = addr + ReactionBandOff;
         if (!mem.Writable(ra, 4)) return;
-        mem.W8(ra,     (byte)(saved & 0xFF));
-        mem.W8(ra + 1, (byte)((saved >> 8) & 0xFF));
-        mem.W8(ra + 2, (byte)((saved >> 16) & 0xFF));
-        mem.W8(ra + 3, (byte)(saved >> 24));
+        mem.WriteBytes(ra, new byte[]
+        {
+            (byte)(saved & 0xFF),
+            (byte)((saved >> 8) & 0xFF),
+            (byte)((saved >> 16) & 0xFF),
+            (byte)(saved >> 24),
+        });
     }
 
-    /// <summary>Read the 4-byte reaction field at <paramref name="addr"/> (little-endian).
-    /// Returns 0 if the address is not readable.</summary>
-    public static uint ReadReactionField(IGameMemory mem, long addr)
+    /// <summary>Read the 4-byte reaction field at <paramref name="addr"/> (little-endian). False
+    /// on an unreadable address -- LW-145 fix 3: the old 0-sentinel-on-failure was silently
+    /// indistinguishable from a REAL all-zero reaction field, so it got latched, saved, and later
+    /// restored as "the victim's reaction", wiping a real one for the battle. Callers MUST refuse
+    /// to latch on false (see Maim.cs's latch site).</summary>
+    public static bool TryReadReactionField(IGameMemory mem, long addr, out uint value)
     {
+        value = 0;
         long ra = addr + ReactionBandOff;
-        if (!mem.Readable(ra, 4)) return 0;
+        if (!mem.Readable(ra, 4)) return false;
         byte b0 = mem.U8(ra), b1 = mem.U8(ra + 1), b2 = mem.U8(ra + 2), b3 = mem.U8(ra + 3);
-        return (uint)(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24));
+        value = (uint)(b0 | (b1 << 8) | (b2 << 16) | (b3 << 24));
+        return true;
     }
 }
 

@@ -63,8 +63,11 @@ internal sealed partial class Plague
         return next < 1 ? 1 : next;
     }
 
-    /// <summary>True when an mhp value belongs to a real combat unit (shared bound used in
-    /// both the band-loop filter and EnemyFingerprints so they stay consistent).</summary>
+    /// <summary>True when an mhp value belongs to a real combat unit. Serves EnemyFingerprints
+    /// only (the static enemy array scan below) -- the band-loop filter in Plague.cs's Tick
+    /// carries its own inline copy of the same shared sibling bound (see the comment at
+    /// Plague.cs:96) rather than calling this method. The two bounds are numerically aligned but
+    /// not yet unified; that unification is ledgered as LW-149.</summary>
     public static bool IsValidEnemyMhp(int mhp) => mhp >= 1 && mhp <= 1999;
 
     /// <summary>Drive the held poison state for one victim: re-OR the poison bit and re-pin

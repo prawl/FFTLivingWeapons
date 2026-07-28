@@ -40,24 +40,35 @@ the technical detail lives in the indented lines under it.
     box, Barrage absent, kills still count). The drill mod recipe and every failure signature are
     pre-registered there. Owner only, as every AWAITING-LIVE flip is.
 
-## Backlog
+- **[LW-145] Six small proven bugs in the write layer, found by the smell audit, get fixed as one batch** (opened 2026-07-28) [BUILDING]
+  - Done means: the six write-layer defects below are gone, each pinned by a test that fails on
+    the old code: no failed read can ever make a guarded bit-write zero its neighbors, no heal or
+    stat write passes through a torn half-written value another thread could observe, a failed
+    reaction read never becomes a fake saved reaction that later wipes a real one, the two
+    interface shims pass the battle gate their contract documents, Bulwark only restores terrain
+    bytes it can prove it still owns, and the seven band sanity reads agree on one maxHP bound.
+    Riding as an enabling prerequisite, the first slice of LW-147: the test fake applies
+    WriteBytes and W16 so read-backs and no-write assertions actually see them.
+  - The six, with their anchors: (1) MemBits.OrSet treats a failed pre-read as value 0 and would
+    write the bare mask, zeroing the other 7 bits, the exact neighbor-bit disturbance its own doc
+    forbids; Clear has the dual defect (MemBits.cs:20). (2) Five policy sites write multi-byte
+    values one byte at a time, opening a torn-value window the game's own threads can observe (a
+    heal crossing 255 HP transiently reads 0): LifeSap.Policy.cs:44, SpiritualFont.Policy.cs:59,
+    Ricochet.Policy.cs:101, Maim.Policy.cs:32 and 43, Rapture.Policy.cs:60; the single-syscall
+    form already exists in-house (Plague.Policy.cs:114). (3) Maim latches a failed reaction read's
+    0 sentinel as the victim's saved reaction and restores it, wiping a real reaction for the
+    battle (Maim.cs:110, Maim.Policy.cs:54). (4) CharmLock and TreasureMaster's ISignature.Tick
+    shims pass InLive where the contract documents BattleDisplayed, a dormant wrong-gate trap
+    (CharmLock.cs:35, TreasureMaster.cs:29). (5) Bulwark.Terrain Release restores saved bytes
+    without verifying it still owns them, the one restore surface in the repo without an ownership
+    check (Bulwark.Terrain.cs:142). (6) The seven copied band sanity reads have already forked
+    their maxHP bound, Plague reads mhp > 2000 while six siblings read >= 2000 (Plague.cs:94).
+  - Verify: the full suite green with the new pinning tests in, an adversarial verify pass with
+    the non-vacuity break on the MemBits failed-read test, and nothing else changed. No owner
+    battle is required: no fix changes what a correct run writes, only what a failing read or a
+    torn window could have corrupted; the next ordinary play session is the standing rider.
 
-- [LW-145] 2026-07-28: The 2026-07-28 smell audit found six small real bugs in the write layer,
-  each verified against the code, none yet observed live.
-  (1) MemBits.OrSet treats a failed pre-read as value 0 and would write the bare mask, zeroing the
-  other 7 bits, the exact neighbor-bit disturbance its own doc forbids; Clear has the dual defect
-  (MemBits.cs:20). (2) Five policy sites write multi-byte values one byte at a time, opening a
-  torn-value window the game's own threads can observe (a heal crossing 255 HP transiently reads
-  0): LifeSap.Policy.cs:44, SpiritualFont.Policy.cs:59, Ricochet.Policy.cs:101, Maim.Policy.cs:32
-  and 43, Rapture.Policy.cs:60; the single-syscall form already exists in-house
-  (Plague.Policy.cs:114). (3) Maim latches a failed reaction read's 0 sentinel as the victim's
-  saved reaction and restores it, wiping a real reaction for the battle (Maim.cs:110,
-  Maim.Policy.cs:54). (4) CharmLock and TreasureMaster's ISignature.Tick shims pass InLive where
-  the contract documents BattleDisplayed, a dormant wrong-gate trap (CharmLock.cs:35,
-  TreasureMaster.cs:29). (5) Bulwark.Terrain Release restores saved bytes without verifying it
-  still owns them, the one restore surface in the repo without an ownership check
-  (Bulwark.Terrain.cs:142). (6) The seven copied band sanity reads have already forked their maxHP
-  bound, Plague reads mhp > 2000 while six siblings read >= 2000 (Plague.cs:94).
+## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lie about the code they sit on, the
   repo's named disease, all verified word against tree.
@@ -122,7 +133,10 @@ the technical detail lives in the indented lines under it.
   Ricochet.Manhattan are borrowed cross-module and want a neutral home (LifeSap.Policy.cs:30);
   Puppeteer.Policy.JobOff is load-bearing for three attribution modules and belongs in Offsets
   (Puppeteer.Policy.cs:103). Test Seed* fixtures are copy-pasted three ways across six files
-  (KillTrackerTests.cs:2197).
+  (KillTrackerTests.cs:2197). Found by the LW-145 verify pass, same family: Band.cs:144 (the
+  static-array Fingerprints scan) still reads mhp > 2000 where the seven aligned band walks read
+  >= 2000, so it can emit a fingerprint no walk will ever match; fold it into the shared helper
+  when this row is worked.
 
 - [LW-150] 2026-07-28: Structural seams the audit judged real, to take opportunistically when the
   files are next touched.
@@ -136,7 +150,10 @@ the technical detail lives in the indented lines under it.
   array orderings are enforced only by comment (Engine.cs:218). analyze.py's main is twelve
   copy-pasted stanzas where one forgotten rc=1 would green-light a red gate (analyze.py:524).
   BodyDoubleSpike.cs is 1575 lines of accreted canary research whose proven recipes LW-120 needs
-  mined out; split it along its own phase seams when that work starts.
+  mined out; split it along its own phase seams when that work starts. Small rider from the
+  LW-145 verify: MemBits' guarded pre-read now allocates a fresh one-byte array per call on the
+  33ms loop where the old path reused a thread-static scratch; give IGameMemory a
+  no-allocation single-byte try-read when MemBits is next touched.
 
 - [LW-100] 2026-07-21: A rider who restarts a battle and opens it on foot can keep the previous
   run's leftover mounted Speed until they climb back on a chocobo.

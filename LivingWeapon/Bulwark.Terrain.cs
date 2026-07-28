@@ -126,12 +126,21 @@ internal sealed partial class Bulwark
         }
     }
 
-    /// <summary>RELEASE: write every restore-book original back exactly (guarded), clear the book
-    /// and the deferred watch, log once -- UNLESS there was nothing to restore (both empty
-    /// already), in which case it is a silent no-op. That silence is load-bearing: ResetBattle
-    /// (Bulwark.cs's class doc, A1) now calls this on every battle edge, and Engine fires
-    /// ResetBattle on BOTH the enter and exit edges, so a routine double-edge reset must not
-    /// narrate a release that never happened.</summary>
+    /// <summary>RELEASE: write every restore-book original back (guarded AND ownership-verified --
+    /// see below), clear the book and the deferred watch, log once -- UNLESS there was nothing to
+    /// restore (both empty already), in which case it is a silent no-op. That silence is
+    /// load-bearing: ResetBattle (Bulwark.cs's class doc, A1) now calls this on every battle edge,
+    /// and Engine fires ResetBattle on BOTH the enter and exit edges, so a routine double-edge
+    /// reset must not narrate a release that never happened.
+    ///
+    /// OWNERSHIP CHECK (LW-145 fix 5): every other restore surface in the repo verifies it still
+    /// owns a byte before stamping a saved original back; this was the one that didn't. Restore
+    /// ONLY when the tile still reads as OUR vetoed form of the saved original (BulwarkPolicy.
+    /// VetoedF6(saved)) -- if another system rewrote it since we planted (a level script, another
+    /// mod's terrain edit), stamping the stale saved original back would clobber a write we no
+    /// longer own. A mismatch skips that byte and logs once; MaintainPlant already re-asserts the
+    /// vetoed form from the saved original every tick the plant is held, so this check can never
+    /// strand a healthy plant -- it only ever catches a genuine foreign write.</summary>
     private void Release(string reason)
     {
         bool hadState = _restoreBook.Count > 0 || _deferred.Count > 0;
@@ -139,7 +148,15 @@ internal sealed partial class Bulwark
         foreach (var kv in _restoreBook)
         {
             long addr = GridAddr(kv.Key);
-            if (_mem.Writable(addr, 1)) _mem.W8(addr, kv.Value);
+            if (!_mem.Readable(addr, 1) || !_mem.Writable(addr, 1)) continue;
+            if (_mem.U8(addr) != BulwarkPolicy.VetoedF6(kv.Value))
+            {
+                ModLogger.WarnWithTrace(LogVerb.Signature,
+                    "Bulwark finds the ground behind the Sunderer was changed by something else since it planted, so it leaves that tile alone instead of overwriting the change.",
+                    $"tile index {kv.Key}, addr 0x{addr:X}: expected vetoed byte 0x{BulwarkPolicy.VetoedF6(kv.Value):X2}, observed 0x{_mem.U8(addr):X2}.");
+                continue;
+            }
+            _mem.W8(addr, kv.Value);
         }
         _restoreBook.Clear();
         _deferred.Clear();

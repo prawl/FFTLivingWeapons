@@ -36,12 +36,13 @@ internal sealed partial class LifeSap
 
     /// <summary>Guarded little-endian u16 write of the wielder's HP on its band entry
     /// (the authoritative copy -- the same field Ricochet's chip writes). Fail-safe no-op
-    /// when the page isn't writable.</summary>
+    /// when the page isn't writable. One W16 call (LW-145 fix 2): two separate W8 halves opened
+    /// a torn-value window a heal crossing 255 HP could transiently expose to the game's own
+    /// threads (the low byte written, the high byte not yet).</summary>
     public static void WriteHp(IGameMemory mem, long entryAddr, int newHp)
     {
         long a = entryAddr + Offsets.AHp;
         if (!mem.Writable(a, 2)) return;
-        mem.W8(a, (byte)(newHp & 0xFF));
-        mem.W8(a + 1, (byte)((newHp >> 8) & 0xFF));
+        mem.W16(a, (ushort)newHp);
     }
 }

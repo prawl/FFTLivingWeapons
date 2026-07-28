@@ -177,10 +177,28 @@ public class MaimTests
     }
 
     [Fact]
-    public void ReadReactionField_reads_4_bytes_little_endian()
+    public void TryReadReactionField_reads_4_bytes_little_endian()
     {
         using var unit = MakeUnit(0x12345678u);
-        Assert.Equal(0x12345678u, Maim.ReadReactionField(Live, unit.Addr));
+        Assert.True(Maim.TryReadReactionField(Live, unit.Addr, out uint value));
+        Assert.Equal(0x12345678u, value);
+    }
+
+    // ---- LW-145 fix 3: a failed reaction read must never latch a fake 0 as "the saved reaction" ----
+
+    [Fact]
+    public void TryReadReactionField_returns_false_and_leaves_value_zero_when_unreadable()
+    {
+        // A FakeSparseMemory address absent from ReadableAddrs is the constructible "failed read"
+        // state: the old ReadReactionField's Mem.U8-based fallback silently returned 0 here, which
+        // looked identical to a REAL all-zero reaction field.
+        var mem = new FakeSparseMemory();
+        long addr = 0x1000;   // deliberately never added to ReadableAddrs
+
+        bool ok = Maim.TryReadReactionField(mem, addr, out uint value);
+
+        Assert.False(ok);
+        Assert.Equal(0u, value);
     }
 
     // ---- Main-hand-only activation gate (B1) ----
@@ -210,7 +228,8 @@ public class MaimTests
     private const int LiveCtOff = 0x25;   // band-relative live charge-time (== Offsets.ACtSlam)
 
     private static (Maim maim, FakeSparseMemory mem, long victim) BuildMaimedVictim(
-        (int mhp, int lvl, int br, int fa) fp, int bandSlot = 24, int crippleTurns = 3, int seedCt = 50)
+        (int mhp, int lvl, int br, int fa) fp, int bandSlot = 24, int crippleTurns = 3, int seedCt = 50,
+        bool reactionReadable = true)
     {
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
@@ -227,7 +246,8 @@ public class MaimTests
         mem.U8s[Offsets.Acted] = 1;                               // and it is acting this turn
 
         long victim = Band.Entry(bandSlot);
-        SeatVictim(mem, victim, fp, hp: 100, reaction: 0x00080000u, ct: seedCt);   // 0x00080000 = Counter
+        // 0x00080000 = Counter (the "real" reaction that must survive a failed read, fix 3).
+        SeatVictim(mem, victim, fp, hp: 100, reaction: 0x00080000u, ct: seedCt, reactionReadable: reactionReadable);
         SeatEnemyFp(mem, fp);                                     // recognized as an enemy
 
         var maim = new Maim(meta, kills, tracker, mem: mem);
@@ -235,7 +255,7 @@ public class MaimTests
     }
 
     private static void SeatVictim(FakeSparseMemory mem, long addr,
-        (int mhp, int lvl, int br, int fa) fp, int hp, uint reaction, int ct)
+        (int mhp, int lvl, int br, int fa) fp, int hp, uint reaction, int ct, bool reactionReadable = true)
     {
         mem.ReadableAddrs.Add(addr + Offsets.AMaxHp);
         mem.U16s[addr + Offsets.AMaxHp] = (ushort)fp.mhp;
@@ -246,7 +266,9 @@ public class MaimTests
         mem.U16s[addr + Offsets.AHp] = (ushort)hp;
         mem.U8s[addr + Offsets.AGx] = 5;
         mem.U8s[addr + Offsets.AGy] = 5;
-        mem.ReadableAddrs.Add(addr + Maim.ReactionBandOff);       // reaction field (4 bytes @ +0x78)
+        // LW-145 fix 3: reactionReadable=false stages a DETECTABLY-transient failed read (writable
+        // stays true so a genuine hold/restore would still apply if a latch were ever recorded).
+        if (reactionReadable) mem.ReadableAddrs.Add(addr + Maim.ReactionBandOff);   // reaction field (4 bytes @ +0x78)
         mem.WritableAddrs.Add(addr + Maim.ReactionBandOff);
         for (int i = 0; i < 4; i++) mem.U8s[addr + Maim.ReactionBandOff + i] = (byte)((reaction >> (8 * i)) & 0xFF);
         mem.U8s[addr + LiveCtOff] = (byte)ct;                     // live charge-time @ +0x25
@@ -285,6 +307,47 @@ public class MaimTests
         maim.Tick(onField: true);
 
         Assert.Equal(0u, ReadReactionAt(mem, victim));  // reaction zeroed = suppressed
+    }
+
+    // ---- LW-145 fix 3: a failed reaction read at latch time must refuse to latch ----
+    // The old ReadReactionField returned 0 on a failed read; Maim.cs latched that 0 as the
+    // victim's SAVED reaction, and ExpireAll/RestoreAll later wrote it back -- wiping a real
+    // reaction for the whole battle. The fix: refuse the latch outright on a failed read. No
+    // suppression fires this strike (fail-safe), but the victim's real reaction is never touched.
+
+    [Fact]
+    public void Tick_refuses_to_latch_on_a_failed_reaction_read()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (maim, mem, victim) = BuildMaimedVictim(fp, reactionReadable: false);
+
+        maim.Tick(onField: true);                       // baseline HP 100 (no damage yet)
+        mem.U16s[victim + Offsets.AHp] = 80;            // the wielder's hit lands -- would normally latch
+        maim.Tick(onField: true);
+
+        // No latch: the real reaction (Counter, 0x00080000) is untouched -- HoldZero never ran
+        // because nothing entered _state.Held for this fingerprint.
+        Assert.Equal(0x00080000u, ReadReactionAt(mem, victim));
+
+        // No restore ever fires either, across many further ticks (nothing was ever latched to
+        // restore) -- the reaction stays exactly what it always was.
+        for (int i = 0; i < 10; i++) maim.Tick(onField: false);
+        Assert.Equal(0x00080000u, ReadReactionAt(mem, victim));
+    }
+
+    [Fact]
+    public void Tick_latches_normally_once_the_reaction_read_succeeds()
+    {
+        // The successful-read half of the same scenario, pinned alongside the refusal: with the
+        // reaction field readable, the identical hit DOES latch and suppress.
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (maim, mem, victim) = BuildMaimedVictim(fp, reactionReadable: true);
+
+        maim.Tick(onField: true);
+        mem.U16s[victim + Offsets.AHp] = 80;
+        maim.Tick(onField: true);
+
+        Assert.Equal(0u, ReadReactionAt(mem, victim));   // suppressed: the latch fired
     }
 
     [Fact]

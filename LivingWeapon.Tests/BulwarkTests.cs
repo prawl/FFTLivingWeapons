@@ -327,6 +327,60 @@ public class BulwarkTests
         Assert.Equal(writesBefore, mem.WriteOrder.Count);
     }
 
+    // ---- LW-145 fix 5: Release only restores a byte it can prove it still owns ----
+
+    [Fact]
+    public void Release_ByteStillOurs_RestoresExactOriginal()
+    {
+        // The ownership check's happy path, pinned explicitly alongside the mismatch case below:
+        // the byte still reads as VetoedF6(saved) at release time, so it restores exactly as
+        // before the fix.
+        var (mem, kills, toast, bulwark, entry) = Build(wx: 5, wy: 5, mapW: 11, mapH: 12);
+        int idx = Idx(5, 6, 11);
+        StageTerrain(mem, idx, 0x20);
+
+        RunFullWaitCycle(bulwark, mem, entry);
+        Assert.Equal(BulwarkPolicy.VetoedF6(0x20), mem.U8(GridAddr(idx)));   // still ours, untouched since plant
+
+        SetFlags(mem, entry, 1, 0, 0);   // RISE: next turn opens -> release
+        bulwark.Tick(true);
+
+        Assert.Equal((byte)0x20, mem.U8(GridAddr(idx)));
+    }
+
+    [Fact]
+    public void Release_OwnershipMismatch_SkipsTheOverwrite_AndLogsOnce()
+    {
+        // Every other restore surface in the repo ownership-verifies before writing a saved
+        // original back; Release didn't. Simulate another system rewriting the tile's obstacle
+        // byte in the one-tick gap between MaintainPlant's last re-assert and the release edge
+        // (Release sets _planted=false before Bulwark.Tick's own MaintainPlant call this same
+        // tick, so nothing re-asserts the vetoed form first -- this IS the realistic race).
+        var (mem, kills, toast, bulwark, entry) = Build(wx: 5, wy: 5, mapW: 11, mapH: 12);
+        int idx = Idx(5, 6, 11);
+        StageTerrain(mem, idx, 0x20);
+
+        RunFullWaitCycle(bulwark, mem, entry);
+        Assert.Equal(BulwarkPolicy.VetoedF6(0x20), mem.U8(GridAddr(idx)));
+
+        // Another system's write lands: no longer OUR vetoed form of the saved original (0x22).
+        mem.U8s[GridAddr(idx)] = 0x99;
+
+        var console = new List<string>();
+        var file = new List<string>();
+        var prior = ModLogger.Instance;
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        try
+        {
+            SetFlags(mem, entry, 1, 0, 0);   // RISE: next turn opens -> release
+            bulwark.Tick(true);
+        }
+        finally { ModLogger.Instance = prior; }
+
+        Assert.Equal((byte)0x99, mem.U8(GridAddr(idx)));   // NOT overwritten with the stale saved original
+        Assert.Contains(file, l => l.Contains("leaves that tile alone"));
+    }
+
     [Fact]
     public void WielderDeath_Hp0_MidHold_Restores()
     {

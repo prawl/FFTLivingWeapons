@@ -15,12 +15,20 @@ internal readonly struct TickContext
     /// <summary>A genuine in-battle frame (<see cref="BattleState.InLiveBattle"/>) --
     /// the gate for every module that writes battle memory.</summary>
     public bool InLive { get; }
+    /// <summary>A battle map is on screen (<see cref="BattleState.BattleDisplayed"/>) -- looser
+    /// than InLive, survives the between-turn mode-0 lulls. The pre-gate modules (CharmLock,
+    /// TreasureMaster) gate their typed Tick on THIS, not InLive; their ISignature.Tick shims
+    /// must delegate here (LW-145 fix 4: both shims wired InLive instead, a dormant wrong-gate
+    /// trap the two modules never actually hit in production, since Engine ticks them pre-gate
+    /// through their typed Tick directly and never through this interface today).</summary>
+    public bool BattleDisplayed { get; }
 
-    public TickContext(DateTime now, bool onField, bool inLive)
+    public TickContext(DateTime now, bool onField, bool inLive, bool battleDisplayed)
     {
         Now = now;
         OnField = onField;
         InLive = inLive;
+        BattleDisplayed = battleDisplayed;
     }
 }
 

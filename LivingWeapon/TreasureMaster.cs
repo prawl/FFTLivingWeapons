@@ -26,7 +26,9 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class TreasureMaster : ISignature
 {
-    void ISignature.Tick(in TickContext ctx) => Tick(ctx.Now, ctx.InLive);
+    // LW-145 fix 4: Engine.cs ticks this pre-gate on BattleDisplayed (see the class doc's
+    // Containment section), not InLive -- delegate the same fact the production call site uses.
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.Now, ctx.BattleDisplayed);
 
     // ── internal state ────────────────────────────────────────────────────────────
 

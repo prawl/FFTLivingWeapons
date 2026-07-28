@@ -91,7 +91,9 @@ internal sealed partial class Plague : ISignature
             long addr = Band.Entry(s);
             if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
             int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
-            if (mhp < 1 || mhp > 2000 || lvl < 1 || lvl > 99) continue;
+            // LW-145 fix 6: aligned to >= 2000, shared with Ricochet/Larceny/Maim/Kobu/Benediction/
+            // Puppeteer's identical read -- must not fork again (extraction ledgered as LW-149).
+            if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
             int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
             if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
 
@@ -167,8 +169,10 @@ internal sealed partial class Plague : ISignature
     }
 
     /// <summary>Enemy fingerprints from the static array (mirrors Maim / EagleEye).
-    /// NOT Band.EnemyFingerprints: this scan's mhp bound (IsValidEnemyMhp, &lt;= 1999) is
-    /// deliberately quarantined from the inclusive-2000 bound the other modules share.</summary>
+    /// NOT Band.EnemyFingerprints: this scan's own mhp bound (IsValidEnemyMhp, &lt;= 1999) reads a
+    /// DIFFERENT array (the static enemy array, not the band) than Tick's band walk, so it stays
+    /// its own check. The two bounds now coincide numerically (LW-145 fix 6 aligned the band walk
+    /// to the same &gt;= 2000 reject); unifying the checks themselves is LW-149.</summary>
     private System.Collections.Generic.HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints()
     {
         var set = new System.Collections.Generic.HashSet<(int, int, int, int)>();

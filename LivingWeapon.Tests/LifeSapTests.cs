@@ -92,6 +92,26 @@ public class LifeSapTests
         Assert.Equal(0x12, band.Bytes[Offsets.AHp + 1]);
     }
 
+    // ---- LW-145 fix 2: torn-write regression -- one W16 call, never two W8 halves ----
+
+    [Fact]
+    public void WriteHp_crossing_the_255_256_boundary_lands_as_one_16bit_write_never_two_torn_halves()
+    {
+        // A heal crossing 255 -> 256+ HP used to be two separate W8 calls (low byte, then high
+        // byte): a torn-value window where the game's own threads could observe an intermediate
+        // garbage HP (a mid-write read of the low byte alone). One W16 call closes the window.
+        var mem = new FakeSparseMemory();
+        long entryAddr = 0x5000;
+        mem.WritableAddrs.Add(entryAddr + Offsets.AHp);
+
+        LifeSap.WriteHp(mem, entryAddr, 260);   // 0x104: crosses the 255/256 byte boundary
+
+        Assert.Equal(260, mem.WrittenU16[entryAddr + Offsets.AHp]);
+        Assert.Contains(entryAddr + Offsets.AHp, mem.WriteOrder);
+        Assert.False(mem.Written.ContainsKey(entryAddr + Offsets.AHp));       // no low-byte W8
+        Assert.False(mem.Written.ContainsKey(entryAddr + Offsets.AHp + 1));   // no high-byte W8
+    }
+
     // ---- Main-hand-only activation contract (B2) ----
     // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
     // LifeSap resolves wielder via Wielder.TryResolveMainHand (RRHand-only match).

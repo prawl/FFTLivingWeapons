@@ -334,4 +334,41 @@ public class PlagueLevelDriftTests
         Assert.Equal(Offsets.APoisonBit, mem.U8s[victim + Offsets.APoison]);
         Assert.Equal(Tuning.PoisonTimerInit, mem.U8s[victim + Offsets.APoisonTimer]);
     }
+
+    // ------------------------------------------------------------------ (7) LW-145 fix 6: the
+    // band walk's own mhp bound must match the six sibling modules (>= 2000 rejected), not the
+    // forked "> 2000 accepted" Plague alone carried.
+    //
+    // A latch-based test (a brand-new mhp=2000 enemy is never latched) would be VACUOUS: the
+    // enemyFps set is built from EnemyFingerprints, gated by IsValidEnemyMhp (<= 1999) regardless
+    // of the band walk's own bound, so it already excludes mhp=2000 either way. The one place the
+    // band walk's OWN bound is independently observable is its per-tick handling of an ALREADY-
+    // HELD victim: the augment-on-turn-edge step lives ONLY inside the band walk (Drive(), called
+    // unconditionally at the end of every Tick, re-anchors the fingerprint with no mhp bound at
+    // all, but never applies the augment -- only the band walk does that). So a held victim whose
+    // maxHp reads exactly 2000 on a turn-edge tick is the honest, non-vacuous pin: the OLD "> 2000"
+    // bound let the walk keep processing it (augment fires); the ALIGNED ">= 2000" bound must
+    // reject the slot outright (no augment this tick).
+
+    [Fact]
+    public void OnField_walk_rejects_a_held_victim_whose_maxHp_reads_exactly_2000_no_augment_this_tick()
+    {
+        var fp = (mhp: 1999, lvl: 10, br: 50, fa: 50);
+        var (plague, mem, victim) = BuildLatchedVictim(fp, seedCt: 50);
+
+        bool augmentWrote = false;
+        long hpAddr = victim + Offsets.AHp;
+        mem.OnWrite = (addr, bytes) => { if (addr == hpAddr) augmentWrote = true; };
+
+        // A genuine +1 maxHp growth (well within SameVictim's tolerance, so a working re-anchor
+        // would otherwise accept it) lands exactly on the forked boundary.
+        mem.U16s[victim + Offsets.AMaxHp] = 2000;
+        mem.U8s[victim + Offsets.ACtTurn] = 90;   // climbs toward full
+        plague.Tick(onField: true, inLive: true);
+
+        mem.U8s[victim + Offsets.ACtTurn] = 10;   // resets: a completed turn
+        plague.Tick(onField: true, inLive: true);
+
+        Assert.False(augmentWrote);
+    }
 }
