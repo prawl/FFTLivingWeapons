@@ -66,6 +66,7 @@ internal sealed class Engine
     private readonly StatusSpike _statusSpike;   // LW-58: cold-call the status apply engine (F2 canary / F4 treasure), dev-only
     private readonly BodyDoubleSpike _bodyDoubleSpike;   // LW-58 Canary 8: duplicate a hovered unit into a real AI fighter (F5), dev-only
     private readonly ProvokeSpike _provokeSpike;   // LW-123 arc 2a: plant the provoke mark without the real granted command (F6 / provoke_request.txt), dev-only
+    private readonly NumeralSpike _numeralSpike;   // cold-call the floating number-popup builder (F8 / numeral_request.txt), dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
@@ -234,6 +235,7 @@ internal sealed class Engine
         _statusSpike = new StatusSpike(live, modDir);   // LW-58 cold-call research instrument; modDir carries the request-file lane
         _bodyDoubleSpike = new BodyDoubleSpike(live, save.SaveDir);   // LW-58 Canary 8 duplicate-to-AI-fighter; SaveDir = rotation-proof forensics
         _provokeSpike = new ProvokeSpike(live, modDir);   // LW-123 arc 2a mark-planter; modDir carries the provoke_request.txt lane
+        _numeralSpike = new NumeralSpike(live, modDir);   // number-popup cold-call instrument; modDir carries the numeral_request.txt lane
 #endif
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
@@ -480,6 +482,7 @@ internal sealed class Engine
         _statusSpike.Tick(inLive);   // LW-58: cold-call the status apply engine on F2/F4 (inLive-gated + paused; targets live band units)
         _bodyDoubleSpike.Tick(inLive);   // LW-58 Canary 8: F5 duplicates the hovered unit into a real AI fighter (inLive-gated + paused), Ctrl+F5 despawns
         _provokeSpike.Tick(inLive);   // LW-123 arc 2a: F6 / provoke_request.txt marks the hovered-else-first-live enemy so ProvokeHold can arm
+        _numeralSpike.Tick(inLive);   // F8 / numeral_request.txt: cold-call the number popup (inLive-gated + paused). F8 because F6 is booked by five spikes
 #endif
         if (changed)
         {

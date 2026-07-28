@@ -709,16 +709,29 @@ the technical detail lives in the indented lines under it.
   caller's preparation work is what actually spawns the number. Verdict recorded in the
   LIVE_LEDGER numeral wall row with the two next levers named (call one level up, or detour
   the natural call site). Reopen only with one of those levers; the easy paths are spent.
-- [LW-141] 2026-07-27: The 1.5 update moved the battle cursor and tile memory the old probes
-  read. The cursor pair and a map size global were re-found live, but the tile array beside
-  them is pathfinding scratch the engine recomputes, not the real terrain shape. Find where
-  the game actually keeps tile heights before designing any ground-changing ability.
+- [LW-141] 2026-07-27: FOUND, WRITABLE, AND OBEYED, all in one evening. The real terrain grid
+  the game consults lives at one fixed spot, eight bytes per tile, and holding one byte of it
+  turned flat ground into a cliff the engine fully believed: the move range excluded the tile
+  and the camera panned up to ground that is not there, owner-witnessed. Terrain mutation and
+  zone-control abilities (the Bulwark idea) now rest on a recorded mechanism instead of a
+  hunch. (Tech: base 0x140D8DCC0, idx = x + y*mapWidth + layerBit*0x100, f2 low5 = height;
+  found by CE what-accesses on a bystander's +0x4F at Move-open; LIVE_LEDGER Uncertain row
+  2026-07-27, owner PROVEN flip pending.) Remaining before an ability ships: find the clean
+  no-entry flag (the height hack pans the camera), confirm the base holds across maps and
+  battles, and decode the f0 flag bits.
 - [LW-142] 2026-07-27: The blue move-range tiles render from a record buffer that was decoded
   this session and survived the 1.5 update at its old address. The first held write CRASHED
   THE GAME (owner-run, same day): the renderer consumes this buffer live and tolerates no
   incoherent value, which proves the buffer is real and raises the bar. Any paint attempt
   must write whole coherent records, paused, likely with the record count; treat it as a
   small arc now, not a one-poke test.
+
+- [LW-144] 2026-07-27: Bulwark, the Sunderer's new signature idea: the knight full-waits to
+  plant the blade and the four vacant tiles around them become ground no enemy can walk on
+  until the knight's next turn. Rests on the terrain grid found and obeyed live this same
+  evening (LW-141). The design gate is docs/BULWARK_AC.md: three premise checks (owner
+  PROVEN flip, cross-map grid stability, a hunt for a cleaner no-entry flag than the height
+  hack), then the build. Red painted tiles are explicitly OUT of v1.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
