@@ -4,7 +4,15 @@ STATUS: CONTRACT (Provoke acceptance criteria)
 
 Approved 2026-07-22. Design source: `docs/living_weapon_grid.csv` row 34 (Defender, id 33).
 Post-release feature: it does not gate 2.3.1 (`docs/RELEASE_SCOPE.md`, locked "no new features").
-Work ledger id: LW-123.
+Work ledger id: LW-123 (exited SHIPPED 2026-07-28 with LW-130 and LW-136; see below).
+
+**OWNER LIVE PASS: PASSED 2026-07-28.** The owner ran the pre-registered pass below and signed it
+off: the retest of both 2026-07-27 failures held (units hidden, and the hold still up when the
+goaded enemy took its turn). LW-123, LW-130 and LW-136 exited to docs/CHANGELOG.md the same day.
+Stated honestly: this pass fields exactly ONE Defender, so LW-136's two-Defender leg (criterion 3d)
+was not a step of it; that ticket exits on the blanket sign-off, desk-found and test-covered.
+The premise-table LIVE_LEDGER rows marked "owner PROVEN flip PENDING" are a separate owner action
+and stay pending until flipped individually.
 
 **SHIPPED STATUS (arc 2a, live 2026-07-22).** The FUNNEL PREMISE IS PROVEN (owner-verified through
 the mod: hiding every player unit except the bearer makes the enemy AI target the bearer;
@@ -376,8 +384,8 @@ action-record read: it polls for an enemy wearing the mark, which is a read it a
     wearer loses the list entry, and their unit is rendered transparent by the real apply path
     anyway, so the state stays self-evident. Feign Death (our own hold on the same bit) sheds its
     icon too. The old lever (global overhead-UI toggle at a dynamic `0x43xx` address,
-    owner-probe-gated) is RETIRED UNPROBED. AWAITING the owner's eyes: nobody has yet seen a battle
-    with the icon gone. Restart-only data, so it needs the redeploy. If THIS iteration also shows
+    owner-probe-gated) is RETIRED UNPROBED. SEEN 2026-07-27: the owner's verdict on the LW-129
+    exit row is "icon nowhere to be found", so the second iteration held. If a future bake shows
     the icon, this table does not drive the overhead icon for statuses with real art, the data lane
     is dead, and the next step is a what-renders probe, not a third cell guess. Hiding the reddened
     HP bar of a flagged ally stays deferred polish (already hidden on the default HUD).
@@ -584,7 +592,8 @@ read "Provoked" (which proves the baked table loaded at all; both edits ride the
 still showing plus "Provoked" still present would mean the table loads and this lane cannot reach
 the overhead icon; see criterion 18 for what happens then.
 
-Status stays AWAITING-LIVE until the owner runs this. Only the owner flips it.
+Status: PASSED, owner live pass 2026-07-28 (the flip is the owner's and this records it). LW-123,
+LW-130 and LW-136 exited to docs/CHANGELOG.md the same day.
 
 ## Deferred to v2
 

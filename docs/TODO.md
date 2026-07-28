@@ -13,78 +13,25 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.2)
 
-- **[LW-123] Give the Defender a shout that pulls one enemy's attention onto the person holding it** (opened 2026-07-22) [BUILDING]
-  - Done means: a player holding a grown Defender can point at any enemy on the field, and until
-    that enemy has taken its turn, the enemies who act cannot see anyone on your side except the
-    bearer, who carries the best parry in the game to survive what it just invited. The shout is a
-    real command in the bearer's list, and the mark it leaves comes off when the shout ends, so the
-    same enemy can be shouted at more than once in a battle. The whole thing runs inside the mod
-    now: a player who installs this build gets a working command with no helper script anywhere near
-    it, which was the first half of the job and is finished. Every acceptance criterion that code
-    can close is closed, including criterion 15, so what is left is the owner playing one battle.
-    Acceptance criteria are docs/PROVOKE_AC.md. (Tech: two arcs behind a
-    seam, both in process since 2026-07-22, commit 3565363. Arc 1, the trigger: Provoke.cs performs
-    the JobCommand injection of ability 189 on Barrage's lane, and Provoke.Table.cs performs both
-    table writes, guarded and idempotent, the authored inflict row 29 at 0x14080FC4E and ability
-    189's InflictStatus byte at 0x14078C1AF in the LIVE action table at 0x14078B2DC, never the decoy
-    copy at 0x14078961C. Page protections on all four addresses pass Mem.Writable, measured
-    2026-07-22. Arc 2, the hold, holds the composed Invisible bit, band +0x47 bit 0x10, on every
-    player side seat except the bearer while an enemy holds the turn. Data plumbing: DONE, id 33
-    carries its signature block and every description budget gate is green with it in.)
-  - Build state, so nobody has to rediscover it: the shout is ARMED in the tree again. 2.3.2 shipped
-    it switched off because nobody had played it yet (LW-133), which parked every outstanding Provoke
-    live check, so it was re armed in all three of its parts at once: the switch, the Defender's
-    signature block, and the equip card text, whose rebake came out byte identical to the pre disarm
-    one. Switching it off again means all three parts again, and a test now refuses either half armed
-    state. (Tech: Tuning.ProvokeEnabled true, data/items.json id 33, tools/patch_names.py; pinned by
-    ProvokeHoldTests.The_baked_meta_signature_block_agrees_with_the_ship_switch.)
-  - Verify: the owner runs the live pass in docs/PROVOKE_AC.md, which starts with a bait step so a
-    bearer who was going to be attacked anyway cannot look like a success. Nothing blocks that pass
-    any more. This row used to name two things to settle first and BOTH were settled the day they
-    were written, 2026-07-22, so anyone reading the old wording was being sent to redo finished
-    work. First, the boss immunity worry: the shipped id 0 mark was cast at Loffrey, read 100%, and
-    a band read taken straight afterwards found him wearing it in both status layers, which is
-    criterion 0d met for the mark that actually ships rather than inherited from the abandoned Wall
-    evidence. Second, the table byte worry: the probe reported one write for each of the two bytes
-    and both stuck, and the runtime is idempotent so it is correct either way. The pass itself is
-    now written for what actually ships (rewritten in c3ed2f2, then again for LW-127), and one battle closes
-    this row alongside LW-130 and LW-131. Two passes were run on 2026-07-27 and each found one real
-    bug, both since fixed: the hold hid nobody (LW-135), then it let go 28 seconds before the goaded
-    enemy took its turn (LW-138). The retest has to confirm BOTH halves in one battle, units hidden
-    AND the hold still up when that enemy actually acts. Owner only, as every AWAITING-LIVE flip is.
-
-- **[LW-130] Provoking your own teammate no longer leaves them stuck wearing the Provoked mark forever** (opened 2026-07-23) [AWAITING-LIVE]
-  - Done means: casting the Defender's shout at your own side no longer leaves a mark that never
-    comes off, so that teammate stops reading Provoked in its status list and can be shouted at
-    again later without the game refusing at 0 percent. (Tech: ProvokeHold.ScrubPlayerSideMarks
-    walks every player-side band seat on every live tick, independent of the hold's own Idle or
-    Armed state, and mask-scoped ClearMark clears the id-0 mark off both status layers, composed +0x45
-    and inflicted +0x1D3, on any seat found wearing it, the bearer included. Covered by
-    LivingWeapon.Tests\ProvokeHoldTests.cs.)
-  - Verify: the owner runs a live pass, casting Provoke at an ally and confirming the status clears
-    within a tick and a second cast on that same ally lands rather than reading 0 percent, plus the
-    same check aimed at the bearer itself. (Tech: docs/PROVOKE_AC.md criterion 3c. Whether a mark
-    could reach a save before the scrub runs stays an open, unmeasured question this pass does not
-    have to answer.) Owner only, as every AWAITING-LIVE flip is.
-
-- **[LW-136] A second Defender in the party no longer leaves an enemy stuck wearing the Provoked mark** (opened 2026-07-27) [AWAITING-LIVE]
-  - Done means: a player fielding TWO Defenders can shout at an enemy, see that nothing happens, and
-    shout at that same enemy again later once the party is sorted out, instead of that enemy being
-    permanently unshoutable for the rest of the battle. The shout is granted to the first party
-    member holding a Defender in a main hand, but the part that does the work refuses to run while
-    two are deployed, because it cannot tell which of them is the bearer, so the mark lands with
-    nothing there to take it off. (Tech: LW-136, docs/PROVOKE_AC.md criterion 3d, found by desk
-    reading 2026-07-27 rather than in play. Provoke.cs takes the first main-hand id 33 roster row;
-    ProvokeHold resolves its bearer through Wielder.ResolveDeployedMainHand, which returns 0 on two
-    deployed wielders. The mark never expires (Counter 0) and the engine refuses to re-apply a status
-    a unit already carries, so every later cast on that enemy reads 0 percent. Fixed in commit
-    19ba0d8: ProvokeHold.ScrubUnarmableMark, debounced on Tuning.ProvokeMarkedMissTicks so a bearer
-    read that misses for one tick cannot eat a mark the next tick would have armed on. Covered by
-    three tests in LivingWeapon.Tests\ProvokeHoldTests.cs.)
-  - Verify: the owner deploys TWO Defenders at once, casts the shout at an enemy, and confirms the
-    mark comes off that enemy within a moment rather than sticking, so a later shout at the same
-    enemy still lands. Cheap to fold into the main Provoke pass as a second battle, or into the same
-    battle by handing a second Defender to another unit. Owner only, as every AWAITING-LIVE flip is.
+- **[LW-134] The deploy guard can no longer see the kill counts it exists to protect; teach it where they live now** (opened 2026-07-25) [QUEUED]
+  - Done means: a test build aimed at an install carrying a real player's kill counts stops and asks
+    before deploying, even when no flavour marker file exists, because the guard looks for the
+    counts where they actually live now (the Reloaded save directory) instead of the mod folder
+    they moved out of when save scoping shipped. (Tech: point the BuildLinked.ps1 fallback, lines
+    78 to 95, at the directory SaveLocation.ResolveSaveDir resolves, and consider the running mod
+    stamping its compiled-in flavour, Tuning.BuildFlavor, into that directory at launch, so the
+    check no longer rests on a deploy-time marker that can be stale or absent.)
+  - How it was found, kept so the stakes stay visible: 2026-07-25, while re-arming Provoke, the
+    installed build was a PRODUCTION 2.3.2 with a live 384 kill tally and no marker file, and a
+    plain dev BuildLinked was ready to deploy over it without a word. Harmless only by luck: that
+    tally turned out to be dev-seeded already (119 of 121 weapons sitting exactly on the seed floor
+    of 3), so the seeding had nothing left to spoil. The guard exists because a dev build seeds
+    every weapon's tally and once polluted a real save; the fallback looks for kills.json next to
+    the mod, a place the file can never be since save scoping (LW-51, bf351db) moved the saves into
+    Reloaded\User\Mods.
+  - Verify: on this box, against an install dressed as production (no marker file, a tally in the
+    real save directory), a plain BuildLinked run refuses red before touching the Mods folder, and
+    the same run with -Force proceeds; both checks run without launching the game.
 
 ## Backlog
 
@@ -172,24 +119,6 @@ the technical detail lives in the indented lines under it.
   disagree in a real battle.
   Fix direction if it proves real: the same Band.FlagOwner walk ProvokeHold now uses for both of its
   gates. Do not touch the ledger row; the discriminating probe is still the owner's to run.
-
-- [LW-134] 2026-07-25: The deploy guard that is supposed to stop a test build from scribbling on a
-  real player's kill counts can no longer see those counts, so it silently waves the test build
-  through.
-  Why it matters: the whole reason the guard exists is that a test build seeds every weapon's tally
-  and that once polluted a real save. It only defends an install that carries a marker file saying
-  what flavour is deployed, and falls back to looking for kills.json next to the mod. Nobody
-  installing a release zip gets a marker, and the save files moved out of the mod folder when save
-  scoping shipped (LW-51, bf351db, into Reloaded\User\Mods), so the fallback now looks in a place
-  the file can never be. Both halves miss the exact case they were written for.
-  Found 2026-07-25 while re-arming Provoke: the install was a PRODUCTION 2.3.2 build with a live
-  384 kill tally, no marker file, and a plain dev BuildLinked was ready to deploy over it without a
-  word. It was harmless only by luck, because that tally turned out to be dev-seeded already (119 of
-  121 weapons sitting exactly on the seed floor of 3), so the seeding had nothing left to spoil.
-  Fix direction: point the fallback at the real save directory (SaveLocation.ResolveSaveDir is the
-  one truth, and the runtime already logs the path at startup), and consider having the running mod
-  stamp its own flavour into the save directory at launch, since Tuning.BuildFlavor is compiled in
-  and cannot be stale the way a deploy-time marker can. (Tech: BuildLinked.ps1 lines 78 to 95.)
 
 - [LW-128] 2026-07-22: Provoke pops an empty speech bubble over the caster (Ramza's portrait, no
   words) on cast; fill it with a taunt, since Provoke is literally a taunt.

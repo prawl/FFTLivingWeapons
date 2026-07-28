@@ -10,6 +10,44 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-123] SHIPPED 3565363 2026-07-28: the Defender's shout is finished and played. A player holding
+  a grown Defender points at one enemy, and until that enemy has taken its turn, the enemies who act
+  cannot see anyone on your side except the bearer, who carries the best parry in the game to
+  survive what it just invited. The mark comes off when the shout ends, so the same enemy can be
+  shouted at again, and the whole thing runs inside the mod with no helper script anywhere near it.
+  The owner ran the acceptance pass in docs/PROVOKE_AC.md and signed it off 2026-07-28, the retest
+  both 2026-07-27 battles earned: units actually hidden (LW-135's failure) AND the hold still up
+  when the goaded enemy took its turn (LW-138's). The arc bought its polish with three live-found
+  bugs along the way, each already exited on its own row (LW-135, LW-138, LW-131), plus the
+  single-enemy rule (LW-127). (Tech: trigger = JobCommand injection of ability 189 plus two guarded
+  idempotent table writes, the authored inflict row 29 at 0x14080FC4E and the InflictStatus byte at
+  0x14078C1AF in the LIVE action table at 0x14078B2DC, never the decoy at 0x14078961C; hold = the
+  composed Invisible bit, band +0x47 bit 0x10, raised in the run-up read from CT and Speed. Shipped
+  by 3565363, re-armed after the 2.3.2 disarm by 43de63e. The Provoke LIVE_LEDGER rows still marked
+  Uncertain await the owner's PROVEN flips separately; this exit does not flip them.)
+- [LW-130] SHIPPED a067b20 2026-07-28: shouting at your own teammate no longer brands them Provoked
+  for the rest of the battle. The mark never expires on its own, so the runtime scrubs it off any
+  player-side seat found wearing it, the bearer included, on every live tick, and a later shout at
+  that teammate lands instead of being refused at 0 percent. Closed by the owner's 2026-07-28
+  sign-off on the docs/PROVOKE_AC.md pass, whose watch list carries this check as criterion 3c
+  alongside LW-123. Whether a
+  friendly mark could reach a save in the tick before the scrub runs stays an open, unmeasured
+  question, recorded in the criterion rather than papered over. (Tech:
+  ProvokeHold.ScrubPlayerSideMarks, independent of the hold's own Idle or Armed state; mask-scoped
+  ClearMark on both status layers, composed +0x45 and inflicted +0x1D3; covered by
+  LivingWeapon.Tests\ProvokeHoldTests.cs.)
+- [LW-136] SHIPPED 19ba0d8 2026-07-28: fielding TWO Defenders no longer leaves a shouted-at enemy
+  permanently unshoutable. With two deployed, the hold cannot tell which is the bearer and refuses
+  to arm, so the mark used to land with nothing there to ever take it off; it is now scrubbed off
+  within a moment, so the party can be sorted out and the shout used again on that same enemy.
+  Exits on the owner's blanket 2026-07-28 Provoke sign-off, and the provenance is stated honestly:
+  the registered pass fields exactly ONE Defender, so the two-Defender battle was not a step of it
+  and has not been separately played. The bug was found by desk reading, never observed in play,
+  and the scrub is pinned by tests, so the sign-off retires the ticket rather than claiming that
+  battle happened. (Tech: ProvokeHold.ScrubUnarmableMark, debounced on
+  Tuning.ProvokeMarkedMissTicks so a bearer read that misses for one tick cannot eat a mark the
+  next tick would have armed on; docs/PROVOKE_AC.md criterion 3d; fixed in 19ba0d8, covered by
+  three tests in LivingWeapon.Tests\ProvokeHoldTests.cs.)
 - [LW-144] SHIPPED d4c3744 2026-07-28: the Sunderer learned Bulwark, owner live-passed the same
   morning. A knight holding a grown Sunderer who waits out a whole turn without moving or acting
   plants the blade, and the single tile directly behind the knight becomes ground nobody may step
