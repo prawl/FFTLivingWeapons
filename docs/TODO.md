@@ -42,6 +42,102 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-145] 2026-07-28: The 2026-07-28 smell audit found six small real bugs in the write layer,
+  each verified against the code, none yet observed live.
+  (1) MemBits.OrSet treats a failed pre-read as value 0 and would write the bare mask, zeroing the
+  other 7 bits, the exact neighbor-bit disturbance its own doc forbids; Clear has the dual defect
+  (MemBits.cs:20). (2) Five policy sites write multi-byte values one byte at a time, opening a
+  torn-value window the game's own threads can observe (a heal crossing 255 HP transiently reads
+  0): LifeSap.Policy.cs:44, SpiritualFont.Policy.cs:59, Ricochet.Policy.cs:101, Maim.Policy.cs:32
+  and 43, Rapture.Policy.cs:60; the single-syscall form already exists in-house
+  (Plague.Policy.cs:114). (3) Maim latches a failed reaction read's 0 sentinel as the victim's
+  saved reaction and restores it, wiping a real reaction for the battle (Maim.cs:110,
+  Maim.Policy.cs:54). (4) CharmLock and TreasureMaster's ISignature.Tick shims pass InLive where
+  the contract documents BattleDisplayed, a dormant wrong-gate trap (CharmLock.cs:35,
+  TreasureMaster.cs:29). (5) Bulwark.Terrain Release restores saved bytes without verifying it
+  still owns them, the one restore surface in the repo without an ownership check
+  (Bulwark.Terrain.cs:142). (6) The seven copied band sanity reads have already forked their maxHP
+  bound, Plague reads mhp > 2000 while six siblings read >= 2000 (Plague.cs:94).
+
+- [LW-146] 2026-07-28: A batch of comments and docs that lie about the code they sit on, the
+  repo's named disease, all verified word against tree.
+  docs/LOGGING.md:279 (a CONTRACT doc) says Puppeteer is deliberately not flight-tapped while
+  Engine.cs:194 wires the tap and "pup" records land in every tape. StatusApply.cs:11 presents the
+  dead v1 apply-engine address as current fact against StatusSpike.cs's own v2 correction.
+  NumeralSpike.cs:65 and 119, BodyDoubleSpike.cs:360 and Engine.cs:497 cite F6-polling spikes that
+  LW-67 deleted. TurnOwnerSpike still ticks in Engine while its header claims it serves LW-31,
+  shipped 2026-07-07; decide whether LW-137/LW-139 want the recorder, else unwire it. Log.cs, the
+  shim whose header says DELETE in the Puppeteer expiry commit, has zero callers and outlived that
+  commit by three weeks. tools/probes/tile_cal.py:62 still carries the CONTRADICTED terrain grid
+  base 0x140D8DCC0 and bit 0x01, so its next run writes vetoes two tiles east of target; the
+  ledger correction says 0x140D8DCB0 bit 0x02. Puppeteer.Policy.cs:37 points at a class TODO that
+  no longer exists. Owner-territory rider: LIVE_LEDGER's line-138 "TILE SYSTEM SOLVED" paragraph
+  still asserts the wrong base two lines under its own correction banner and wants a supersession
+  stamp.
+
+- [LW-147] 2026-07-28: The test fakes have blind spots that quietly weaken about 40 negative
+  assertions, found by the audit's test lens.
+  FakeSparseMemory.WriteBytes records the write but never applies it, so read-after-write returns
+  the pre-write value, inverting the fake's own documented W8 contract (FakeSparseMemory.cs:62);
+  Readable/Writable ignore the length argument entirely while production validates the whole range
+  (:57); W8, W16 and WriteBytes land in three separate logs so "zero writes happened" assertions
+  that check only Written/WriteOrder can miss a W16 or WriteBytes (:59); the U32s dictionary is
+  dead and its doc misleads (:46); OffsetRemapMem forwards nine members but not W16, so a W16
+  through the adapter vanishes into the interface default no-op (OffsetRemapMem.cs:31).
+  LogContractTests' balanced-args scanner treats backslash as an escape inside verbatim strings,
+  so a facade call with a verbatim path ending in a backslash silently desyncs the sweep
+  (LogContractTests.cs:165). About 16 suites leak their temp dirs; DrillTriggerTests and
+  GunSlingerTests already show the try/finally pattern to copy.
+
+- [LW-148] 2026-07-28: Toolchain hardening batch: the pipeline's own scripts have silent-failure
+  holes the audit verified end to end.
+  patch_names.py runs its UPDATEs with no changes()==1 guard and no decode-verify, unlike both
+  sibling patch scripts, so a rename whose Key is absent silently ships vanilla text
+  (patch_names.py:88). scan_logs.py's ERROR detection hangs on one anchored regex; a log format
+  drift blinds it and a dirty log scans CLEAN, so it needs a recognized-line tripwire, and
+  ARMED_MARK deserves the both-directions test pin STANDDOWN_MARK already has (scan_logs.py:70).
+  generate.py emits most tables only when non-empty and never deletes a stale one, so an emptied
+  set keeps deploying the previous run's XML (generate.py:188). tools/lib/paths.py hardcodes the
+  Steam mods path and ignores RELOADEDIIMODS, third copy of a rule BuildLinked and scan_logs each
+  carry (paths.py:32). parse_flight.py silently swallows unknown flags and extra positionals
+  (parse_flight.py:78). BuildLinked's finally block reports a scan_logs crash as "RUNTIME ERRORS
+  in the session you just played" (BuildLinked.ps1:244). The manifest contract regex ends at the
+  first close paren and harvests quotes out of comments (PipelineManifestContractTests.cs:36). The
+  PS/C# save-dir mirror and the flavor.py/Signatures.cs kills-slot mirror both claim pins that no
+  test actually crosses languages to enforce; make each claimed pin real (BuildLinked.ps1:94,
+  tools/lib/flavor.py:224).
+
+- [LW-149] 2026-07-28: The audit mapped the duplication families beyond the ledgered LW-125 trio;
+  each is a candidate extraction stage, none urgent alone.
+  The capture/ownership/re-apply hold skeleton is hand-rolled five times across the GrowthEngine
+  partials and the doc comments admit it (GrowthEngine.Ultima.cs:44 and siblings). Renewal and
+  Wyrmblood are the same turn-edge ally-pulse machine differing only in radius metric and amount
+  (Renewal.cs:90 vs Wyrmblood.cs:85). The 6-line band-slot sanity read is copied seven times and
+  has forked once already (see LW-145 item 6). The activation-edge announce block is copied 14
+  times outside the LW-125 family (LifeSap.cs:49 lists them). Six modules roll their own roster
+  walk with three different occupancy rules while Wielder.TryOccupiedSlot claims to be THE seam
+  but is private (Wielder.Roster.cs:17). The nxd patch scripts duplicate apply/rows/verify
+  wholesale and audit_nxd_bakes carries a third rows() (patch_status_names.py:175). BuildLinked's
+  preserve round-trip loop appears three times (BuildLinked.ps1:214). LifeSap.NewHp/WriteHp and
+  Ricochet.Manhattan are borrowed cross-module and want a neutral home (LifeSap.Policy.cs:30);
+  Puppeteer.Policy.JobOff is load-bearing for three attribution modules and belongs in Offsets
+  (Puppeteer.Policy.cs:103). Test Seed* fixtures are copy-pasted three ways across six files
+  (KillTrackerTests.cs:2197).
+
+- [LW-150] 2026-07-28: Structural seams the audit judged real, to take opportunistically when the
+  files are next touched.
+  KillTracker.Corpses.ScanCorpses is one 280-line per-slot loop interleaving five concerns, the
+  costliest place in the repo to reason about edge ordering (KillTracker.Corpses.cs:124).
+  KillTracker.cs still hosts a nameable acted-period latch state machine across eight fields that
+  wants to be its own tested class (KillTracker.cs:210). Iai.Tick is 156 lines with two pure
+  verdicts trapped inline that belong in Iai.Policy.cs (Iai.cs:146). Engine.Tick reads its battle
+  sentinels through static Mem despite holding the injected seam, which is why no test can
+  construct an Engine, and it reads PauseFlag twice per tick (Engine.cs:330); its two load-bearing
+  array orderings are enforced only by comment (Engine.cs:218). analyze.py's main is twelve
+  copy-pasted stanzas where one forgotten rc=1 would green-light a red gate (analyze.py:524).
+  BodyDoubleSpike.cs is 1575 lines of accreted canary research whose proven recipes LW-120 needs
+  mined out; split it along its own phase seams when that work starts.
+
 - [LW-100] 2026-07-21: A rider who restarts a battle and opens it on foot can keep the previous
   run's leftover mounted Speed until they climb back on a chocobo.
   Demoted from Now on 2026-07-27 to make room for LW-127, which is being actively worked. Nothing
