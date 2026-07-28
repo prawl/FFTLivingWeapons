@@ -194,6 +194,10 @@ internal sealed class Engine
         var benediction = new Benediction(meta, _kills, _tracker, live); // Sanctus Staff +3: ally HP rises boosted 30% while a Sanctus Staff is the last player to act (sticky latch -- survives the charged-heal resolve gap)
         var sanctuary = new Sanctuary(meta, _kills, live);               // Staff of the Magi +3: while the bearer lives, fallen allies are held from crystallizing
         var choir = new Choir(meta, _kills, live);                       // Warlock's Staff +3: adjacent allies cast magick instantly (Non-charge aura)
+        // Sunderer +3: a full-wait turn bars the one tile at the wielder's back (docs/BULWARK_AC.md).
+        // Constructed after _toast (built above) so the toast injection is safe; no ordering dependency
+        // with any other signature -- it never reads or writes another module's state.
+        var bulwark = new Bulwark(meta, _kills, _toast, live);
         var treasureJson = Path.Combine(modDir, "treasure.json");
         _treasure = new TreasureMaster(
             load:         () => TreasureDb.Load(modDir),
@@ -210,8 +214,8 @@ internal sealed class Engine
         // pre-gate on battleDisplayed like TreasureMaster, so a held charm is not dropped
         // mid-combat between turns). Both TreasureMaster and CharmLock stay in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, _treasure };
-        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir };
+        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark, _treasure };
+        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         save.Migrate("gunslinger.json");
         _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live);
         // LW-35 (owner direction): Marks are release-hidden on EVERY card surface. The Attack card

@@ -65,7 +65,12 @@ from ct_probe import PROC, PV_W, find_pid, k32, rd, wr  # noqa: E402
 # LIVE-VERIFIED same evening: Bomb (3,10) and player (4,10) both decoded height 2 at f2 low5;
 # f2 top3 = slope family; f0 differed by bit 0x40 between the two (flag semantics OPEN).
 # The stride-7 band at 0x140C6B3C1 was pathfinding SCRATCH, not this; June's 0x140C65000 is dead.
-GRID = 0x140D8DCC0
+# BASE CORRECTED 2026-07-28: 0x140D8DCB0, NOT 0x140D8DCC0. The old value was 2 records (16 bytes)
+# high, so every write landed 2 tiles EAST of target -- the "+2 in x" that wasted a whole session.
+# Disasm operands [rdx + idx*8 + 0xD8DCB2] / +0xD8DCB3 put record bytes +2/+3 here; owner-proven
+# live (a 4-neighbour ring at this base locks a unit in on all four sides; at the old base only
+# one tile blocked). Byte +6 bit 0x01 = the walkability veto; byte +2 low5 = height (inspection).
+GRID = 0x140D8DCB0
 REC = 8
 CUR_X = 0x140C6AFB8
 CUR_Y = 0x140C6ADAC
@@ -188,6 +193,66 @@ def cmd_poke(a):
         print(f"\nrestored field to {old[0]}")
 
 
+def cmd_block(a):
+    """The STATIC-RE walkability test (workflow wf_afe76ac4, 2026-07-28): OR bit 0x01 into grid
+    byte +6 (0x140D8DCB6 + idx*8) on the four orthogonal tiles around the wielder, hold, restore.
+    USE BIT 0x02, not 0x01 (live A/B 2026-07-28): both block movement, but 0x01 also strips the
+    tile from the cursor mask (unhoverable, unselectable) while 0x02 is the state the map's own
+    TREES carry (byte+6 == 0x22), so the tile stays selectable and shows the engine's native red
+    circle-slash. The height (+2) writes tried earlier were never walkability inputs at all.
+    HAZARD: either bit on an OCCUPIED tile freezes the occupant, so vacant tiles only. open Move on an adjacent unit (tiles must be excluded) and let an
+    enemy take a turn (it must path AROUND, not through). Restores on exit / Ctrl-C."""
+    h = open_game()
+    W = u8(h, MAP_WH) or 11
+    seat_base = 0x141855CE0 + 0x1C - 24 * 0x200
+    kx = ky = layer = None
+    if a.seat is not None:
+        b = rd(h, seat_base + a.seat * 0x200, 0x60)
+        kx, ky, layer = b[0x33], b[0x34], (b[0x35] >> 7) & 1
+    else:
+        for s in range(49):
+            b = rd(h, seat_base + s * 0x200, 0x60)
+            if b and b[0x0D] == 99 and b[0x0F] == 97 and (b[0x33], b[0x34]) != (0, 0):
+                kx, ky, layer = b[0x33], b[0x34], (b[0x35] >> 7) & 1
+                break
+    if kx is None:
+        sys.exit("wielder not found (pass --seat)")
+    print(f"wielder at ({kx},{ky}) layer {layer}, map width {W}")
+    held = []
+    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        x, y = kx + dx, ky + dy
+        if not (0 <= x < W and 0 <= y < 40):
+            continue
+        idx = x + y * W + layer * 0x100
+        addr = GRID + idx * 8 + 6
+        cur = rd(h, addr, 1)
+        if cur is None:
+            continue
+        orig = cur[0]
+        if orig & 0x03:
+            print(f"  ({x},{y}) already impassable (0x{orig:02X}), skipped")
+            continue
+        wr(h, addr, bytes([orig | 0x02]))
+        held.append((x, y, addr, orig))
+        print(f"  ({x},{y}) byte+6 0x{orig:02X} -> 0x{orig | 0x02:02X}  (obstacle state, tree-equivalent)")
+    print(f"{len(held)} tiles vetoed, holding {a.secs}s. OPEN MOVE on an adjacent unit; then let an enemy move.")
+    print("PASS = tiles excluded from the blue range AND the enemy paths AROUND. Ctrl-C restores.")
+    try:
+        end = time.time() + a.secs
+        while time.time() < end:
+            for x, y, addr, orig in held:
+                c = rd(h, addr, 1)
+                if c and not (c[0] & 0x02):
+                    wr(h, addr, bytes([c[0] | 0x02]))
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        for x, y, addr, orig in held:
+            wr(h, addr, bytes([orig]))
+        print("\nrestored all four byte+6 originals")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -219,6 +284,11 @@ def main():
     k.add_argument("val", type=lambda x: int(x, 0))
     k.add_argument("--secs", type=int, default=30)
     k.set_defaults(fn=cmd_poke)
+
+    b = sub.add_parser("block", help="OR byte+6 bit 0x02 (the engine's own obstacle state, same as a tree) on the vacant tiles around a unit, hold, restore")
+    b.add_argument("--seat", type=int, default=None, help="band seat of the wielder; default = find lvl99/br97")
+    b.add_argument("--secs", type=int, default=180)
+    b.set_defaults(fn=cmd_block)
 
     a = p.parse_args()
     a.fn(a)

@@ -1588,7 +1588,14 @@
         0.1,
         0.62
       ],
-      "iconSource": 34
+      "iconSource": 34,
+      "signature": {
+        "atTier": 3,
+        "bulwark": true,
+        "displayLabel": "Bulwark",
+        "note": "Bulwark (Line in the Sand, docs/BULWARK_AC.md): a full WAIT turn (no move, no act -- the same PSX turn-flag falling edge Mushin arms on, band +0x19C/+0x19D/+0x19E) plants the blade; the ONE tile directly BEHIND the wielder is barred (the anti-Provoke, leave-me-alone move: mobility and allies are untouched, but the back-attack bonus is denied) until the wielder's own next turn opens (the rising edge of the same flag), the wielder dies, or the wielder cannot be located for Tuning.BulwarkUnresolvedTicks consecutive ticks. MECHANISM (settled live 2026-07-28, LIVE_LEDGER Contradicted-section terrain entry -- the original height-write design is dead): the pathfinder's live terrain grid (Offsets.PathTerrainGrid, base corrected 2026-07-28 to 0x140D8DCB0) exposes the engine's OWN obstacle state at byte +6 bit 0x02 -- this map's five natural trees all read byte+6 == 0x22. OR'ing it in blocks movement and enemy AI pathing while the tile stays hoverable/selectable, rendering the game's own red circle-slash 'invalid destination' cursor. FACING (band +0x35 low 2 bits, packed with the terrain-layer bit, live-proven 2026-07-28) picks which neighbor is 'behind': 0=South, 1=West, 2=North, 3=East. Off-map behind (the wielder's back is to the map edge) plants nothing. VACANT ONLY: an occupied tile (unit or corpse) is never written; a tile whose occupant leaves is raised after two consecutive vacant ticks, never mid-walk. The behind-tile lookup is PER-AXIS bounds-guarded before any index math, closing the wrap trap where an unguarded x-1/y-1 at the map edge silently aliases a tile on another row/column. RESTORE is exact-byte on every release path INCLUDING the battle-exit edge (ResetBattle now restores before clearing state): grid writes persist the whole process session, and stale walkability dirt once crashed the game, so dropping the book unwritten is no longer safe.",
+        "p3Desc": "A full wait plants the blade; none may take the ground at the wielder's back."
+      }
     },
     {
       "id": 51,

@@ -104,6 +104,12 @@ public class ProofClaimContractTests
         { "LivingWeapon/Band.cs", 4 },
         { "LivingWeapon/Barrage.Policy.cs", 3 },
         { "LivingWeapon/BodyDoubleSpike.cs", 13 },
+        // Bulwark's terrain-veto rework (2026-07-28): the class docs cite the LIVE_LEDGER
+        // Contradicted-section terrain entry's SETTLED sub-facts (grid base correction, the byte
+        // +6 bit 0x02 obstacle mechanism, the facing byte) -- owner-verified live content, just
+        // recorded as an in-place correction on that row rather than moved to a fresh Proven row.
+        { "LivingWeapon/Bulwark.Policy.cs", 1 },
+        { "LivingWeapon/Bulwark.cs", 1 },
         { "LivingWeapon/CharmLock.cs", 1 },
         { "LivingWeapon/CtTurns.cs", 1 },
         { "LivingWeapon/EagleEye.cs", 1 },
@@ -117,7 +123,9 @@ public class ProofClaimContractTests
         { "LivingWeapon/LaunchGuard.Landmarks.cs", 1 },
         { "LivingWeapon/Maim.Policy.cs", 1 },
         { "LivingWeapon/Maim.cs", 1 },
-        { "LivingWeapon/Offsets.cs", 11 },
+        // 11 -> 12 (2026-07-28): the Bulwark terrain-grid block gained one more "live-proven"
+        // citation for the ALayerBit facing-bits doc, same ledger row as the Bulwark.cs bump above.
+        { "LivingWeapon/Offsets.cs", 12 },
         { "LivingWeapon/Plague.cs", 1 },
         { "LivingWeapon/Rapture.cs", 1 },
         { "LivingWeapon/ShadowBlade.cs", 1 },
@@ -142,6 +150,11 @@ public class ProofClaimContractTests
         { "LivingWeapon.Tests/RaptureTests.cs", 1 },
         { "LivingWeapon.Tests/RaptureWindowTests.cs", 2 },
         { "LivingWeapon.Tests/SpiritualFontTests.cs", 1 },
+        // New (2026-07-28, Bulwark's back-tile rework): "live-proven" (the facing byte) and
+        // "proven live" (the grid writes persisting the whole process session) both cite the
+        // LIVE_LEDGER Contradicted-section terrain entry's settled sub-facts -- real owner-
+        // verified content, same justification as the Bulwark.cs/Bulwark.Policy.cs bump above.
+        { "docs/BULWARK_AC.md", 2 },
         // 25 -> 26 (2026-07-27, LW-127 exit row): "Owner verified live the same day" -- the claim is
         // the owner's own in-session sign-off on the LW-127 live passes (two clean casts plus the
         // three-cast tape), given before the exit row was written. It asserts the FEATURE's owner

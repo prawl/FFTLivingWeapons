@@ -32,6 +32,9 @@ internal sealed partial class BannerToast
     // EVENT-KEY CONVENTION: the tuple's tier slot doubles as the queue-dedupe event key. Tier
     // crossings use the real tier (1..3); Weapon Chronicle milestone crossings use the NEGATED
     // milestone (-1, -100, -250, -500, -1000) so the two kinds of event can never collide.
+    // Bulwark (Sunderer +3, docs/BULWARK_AC.md) reserves key 4 for its plant announcement
+    // (Tuning.BulwarkToastKey): outside both the 1..3 tier range and every negative milestone, so
+    // Bulwark.cs's direct Enqueue call can never dedupe-collide with a tier or milestone toast.
     internal readonly List<(int weaponId, int tier, string payload)> _queue = new();
 
     /// <param name="enabled">Toasts on/off. Always on since LW-52 removed the toggle (Engine passes

@@ -48,7 +48,7 @@
 47,6,high,Chirijiraden,Chirijiraden,Katana,Move-Find (Midlight's Deep),20,PA x Br/100 x WP,12%,PA,May inflict Immobilize,PA +10%,PA +20%,PA +30%,,
 48,1,low,Battle Axe,Terrastaff,Pole,Shop,9,MA x WP,20%,PA,—,PA +10%,PA +20%,PA +30%,,
 49,4,med,Giant's Axe,Ravager,Knight Sword,Shop,15,PA x Br/100 x WP,5%,PA,May inflict Confuse,PA +10%,PA +20%,PA +30%,,
-50,5,med,Slasher,Sunderer,Knight Sword,Shop,13,PA x Br/100 x WP,10%,PA,—,PA +10%,PA +20%,PA +30%,,
+50,5,med,Slasher,Sunderer,Knight Sword,Shop,13,PA x Br/100 x WP,10%,PA,—,PA +10%,PA +20%,PA +30% + Bulwark,A full wait plants the blade; none may take the ground at the wielder's back.,"Bulwark (Sunderer +3): standing perfectly still for a whole turn plants the blade; the single tile directly behind the wielder becomes impassable (the game shows its normal red no-entry cursor there) until the wielder's next turn, cutting off back attacks; a tile with someone standing on it is never touched, and the ground settles back the moment the wielder acts again, dies, or leaves the field, including when the battle ends."
 51,1,low,Rod,Wellspring Rod,Rod,Shop,5,PA x WP,18%,MA,Absorb MP,MA +10%,MA +20%,MA +30%,,
 52,2,low,Thunder Rod,Spark Rod,Rod,Shop,5,Faith spell (f4),20%,MA,Attack casts Thunder (Magick Attack),MA +10%,MA +20%,MA +30%,,
 53,2,low,Flame Rod,Ember Rod,Rod,Shop,5,Faith spell (f4),20%,MA,Attack casts Fire (Magick Attack),MA +10%,MA +20%,MA +30%,,

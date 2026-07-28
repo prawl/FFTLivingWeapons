@@ -134,6 +134,11 @@ public sealed class WeaponSignature
     // arms ONE charge; the wielder's next attack spends it in a single boosted hit (owns the PA
     // lane, see GrowthEngine.Mushin.cs), then the charge clears. false = not a mushin weapon.
     [JsonProperty("mushin")] public bool Mushin { get; set; }
+    // BULWARK (Sunderer "Bulwark", docs/BULWARK_AC.md): at AtTier, a full WAIT turn (no move, no
+    // act -- Mushin's exact falling-edge shape) plants the blade: the one vacant tile directly
+    // behind the wielder is barred (terrain-grid byte +6 bit 0x02) until the wielder's next turn
+    // opens, dies, or cannot be located, restored on every end including battle exit. false = not a bulwark weapon.
+    [JsonProperty("bulwark")] public bool Bulwark { get; set; }
     // GUN SLINGER (Blaster "Gun Slinger"): at +3 with the Blaster equipped as the main hand,
     // writes a twin Blaster into the wielder's roster off-hand (ROffHand +0x18, u16) and Dual Wield
     // (support 221) into the roster support slot (RSupport +0x0A, u8) between battles, with

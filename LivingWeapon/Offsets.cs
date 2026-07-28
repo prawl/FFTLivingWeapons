@@ -107,6 +107,17 @@ internal static class Offsets
     public const int AMaxMp    = 0x1A; // u16  (see AMp; same per-battle guard applies)
     public const int AGx       = 0x33; // u8
     public const int AGy       = 0x34; // u8
+    /// <summary>u8 band-relative byte whose bit 7 flags the unit's terrain LAYER (bridge decks
+    /// above/below share (gx,gy) but occupy different pathfinder layers): combat +0x51 -
+    /// BandEntry (0x1C) = 0x35. Bulwark (docs/BULWARK_AC.md criterion 8) reads this so a plant
+    /// only blocks the wielder's OWN layer, never the deck above or below. The SAME byte's low 2
+    /// bits are the unit's FACING (0=South, 1=West, 2=North, 3=East), live-proven to track the
+    /// Wait facing wheel 2026-07-28 (LIVE_LEDGER row "Unit FACING is band +0x35 low 2 bits"). The
+    /// Y-axis look direction was CORRECTED 2026-07-28 06:15 by a live pass: North (2) looks toward
+    /// +y and South (0) looks toward -y -- the inherited "y+ = south" convention was backwards for
+    /// this grid (see BulwarkPolicy.BehindTile). Bulwark reads facing and layer off this one byte
+    /// in a single read (Bulwark.Terrain.cs's Plant).</summary>
+    public const int ALayerBit = 0x35;   // u8, bit 0x80 = layer index, low 2 bits = facing
     /// <summary>u8 band-relative WRITE TARGET: slam this to 100 to inject a scheduler turn
     /// (ExtraTurn.CtOff). Matches combat base+0x41. Do NOT read this for turn counting --
     /// a live watcher saw zero transitions; the write takes, but reads don't tick reliably.
@@ -413,7 +424,40 @@ internal static class Offsets
     // 1.5 RE-FOUND 2026-06-17 +0x6440 (was 0x140C65000): the live v2 hash at this start matched
     // map 80 (Araguay)'s STORED pre-1.5 fingerprint exactly -- proving the terrain DATA is unchanged
     // on 1.5, so every captured map's stored fpHash stays valid (no re-fingerprint needed).
+    // NOT the same table as PathTerrainGrid below -- that one is the PATHFINDER's own live grid;
+    // this one is Treasure Master's read-only fingerprint scratch. Cross-referenced so nobody
+    // writes the wrong one.
     public const long TerrainGrid = 0x140C6B440;
+
+    // --- Bulwark (Sunderer +3, docs/BULWARK_AC.md): the PATHFINDER's own live terrain grid, 8
+    // bytes/tile. idx = x + y*mapWidth + layerBit*0x100. BASE CORRECTED 2026-07-28: the true
+    // record base is 0x140D8DCB0, NOT 0x140D8DCC0 -- the old base was 16 bytes (2 records) high,
+    // so every write landed 2 tiles east of target, per the disasm operand
+    // [rdx + idx*8 + 0xD8DCB2] (record byte +2 lives at 0x140D8DCB2, which only resolves against
+    // the 0xB0 base). The real walkability lever is byte +6 bit 0x02 (PathTerrainVetoBit): the
+    // engine's OWN obstacle state -- this map's five natural trees all read byte+6 == 0x22, bit
+    // 0x02 set. OR'ing it in blocks movement AND enemy AI pathing while the tile stays
+    // hoverable/selectable, rendering the game's own red circle-slash "invalid destination"
+    // cursor. Bit 0x01 also blocks but additionally strips the tile from the cursor mask
+    // (rejected -- the player couldn't even hover it). HEIGHT (byte +2) is NOT a walkability
+    // input: raising it left a tile selectable and SOFTLOCKED the game when stepped on
+    // (contradicted 2026-07-28). Grid writes PERSIST for the whole process session (across battle
+    // restarts and onto the world map) -- stale dirt once crashed the game, so restore is
+    // mandatory on every path that ends a hold, including battle exit. Cite: LIVE_LEDGER.md
+    // Contradicted-section terrain entry, settled live 2026-07-28. NOT the same table as
+    // TerrainGrid above (0x140C6B440, Treasure Master's read-only fingerprint scratch) --
+    // cross-referenced so nobody writes the wrong one.
+    public const long PathTerrainGrid = 0x140D8DCB0;
+    public const int PathTerrainStride = 8;
+    public const int PathTerrainVetoField = 6;
+    public const byte PathTerrainVetoBit = 0x02;
+
+    /// <summary>u8 pair (W, H): the live map's width then height. Matched 11x12 and 10x18 on the
+    /// two live probe maps 2026-07-27, and the pathfinder's own width register (r14 = 11) agreed
+    /// with the pair on the 11-wide map (docs/BULWARK_AC.md A3). Every consumer MUST carry the
+    /// runtime sanity gates BulwarkPolicy.DimsSane enforces -- this pair is read out of a live
+    /// battle-phase struct, not a validated table, so a garbage read must refuse rather than plant.</summary>
+    public const long MapDimsWH = 0x140C6AD6A;
 
     // --- Provoke (LW-123 arc 1): the ability ACTION table (InflictStatus repoint target) and the
     // hand-authored inflict-status table (the mark the repoint applies). Content-anchored, image-

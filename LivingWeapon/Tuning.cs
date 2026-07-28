@@ -358,6 +358,19 @@ internal static class Tuning
     /// / combat +0x07) while the bearer is alive -- keeps fallen allies permanently revivable.</summary>
     public const byte SanctuaryHearts = 3;
 
+    /// <summary>Bulwark (Sunderer +3, docs/BULWARK_AC.md A7): consecutive ticks the wielder may
+    /// fail to resolve (Wielder.ResolveDeployedMainHand returning 0 -- benched, or the LW-136
+    /// two-deployed refusal) before an active plant releases on its own. A single missed tick
+    /// alone must never tear down a genuine hold.</summary>
+    public const int BulwarkUnresolvedTicks = 10;
+
+    /// <summary>Bulwark (Sunderer +3): the BannerToast dedupe/event key reserved for the plant
+    /// announcement. BannerToast's EVENT-KEY CONVENTION (see BannerToast.cs) already spends the
+    /// tier slot two ways -- real tier crossings use 1..3, Weapon Chronicle milestones use the
+    /// NEGATED milestone -- so a plant toast needs its own key outside both ranges. 4 is free:
+    /// tiers 1..3 and every milestone (negative) are already taken.</summary>
+    public const int BulwarkToastKey = 4;
+
     /// <summary>Choir (Warlock's Staff +3): the support ability OR-set on adjacent allies so their magick casts instantly -- 227 = Non-charge (ability.en key 483), live-proven calc-gated. Swiftspell (226, half-charge) is the milder alt.</summary>
     public const int InstantCastSupportId = 227;
 

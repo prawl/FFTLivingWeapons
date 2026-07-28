@@ -104,6 +104,8 @@ def main():
                 entry["signature"]["iai"] = True
             if sig.get("mushin"):  # Mushin (Kiku-ichimonji): a full WAIT turn (no move, no act) arms a one-hit PA boost, spent on the wielder's next attack
                 entry["signature"]["mushin"] = True
+            if sig.get("bulwark"):  # Bulwark (Sunderer): a full WAIT turn plants the blade, barring the one vacant tile behind the wielder (terrain-grid byte +6 bit 0x02) until the next turn opens, restored on every end including battle exit
+                entry["signature"]["bulwark"] = True
             if sig.get("gunSlinger"):  # Gun Slinger (Blaster): roster off-hand twin + Dual Wield between battles
                 entry["signature"]["gunSlinger"] = True
         meta[str(it["id"])] = entry
