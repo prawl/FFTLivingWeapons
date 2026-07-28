@@ -87,6 +87,50 @@ function Get-LostPreservedItems([string]$preserveDir, [string]$dest, [string[]]$
     return $lost
 }
 
+# LW-134 (2026-07-25 near-miss): teaches the deploy guard where the player's kill counts
+# actually live now. A DEV build pre-seeds every weapon's tally (LWDEV), so deploying a dev build
+# over a real player's install would wipe their real progress -- the guard's whole job is to catch
+# that BEFORE it happens. The old guard's fallback checked for kills.json next to the mod folder,
+# but LW-51 moved save files into the update-safe Reloaded/User/Mods/<ModId> dir
+# (SaveLocation.ResolveSaveDir, LivingWeapon/SaveLocation.cs), so that check was looking at a spot
+# the file can never be in anymore -- it always came back "nothing to worry about" and would have
+# waved a real installed save through. On 2026-07-25 a plain dev BuildLinked run got all the way
+# to the edge of overwriting a production install with a live 384-kill tally and no marker file at
+# all; only a human noticing stopped it.
+#
+# Pure over its three inputs (a marker path, a stamp path, and a list of tally-probe paths) so it
+# is testable without a deploy. Precedence is FAIL CLOSED, checked in this order:
+#   1. build_flavor.txt ($markerPath): BuildLinked's own last-DEPLOY marker, next to the mod.
+#   2. run_flavor.txt ($stampPath): the mod's own last-RUN marker (FlavorStamp.cs), in the save
+#      dir. Deliberately OUTRANKS a stale "dev" marker: a dev marker surviving a hand-extracted
+#      prod zip (which BuildLinked never touched) is exactly the miss class this guard exists for,
+#      while the stamp is written by whatever build actually ran most recently.
+#   3. Any $tallyProbePaths path that exists: player data with no flavour evidence at all gets
+#      protected as if it were production -- this is the 2026-07-25 incident shape.
+#   4. Otherwise: no evidence either way, nothing to protect.
+# A marker/stamp file is valid ONLY if its first line, trimmed, is exactly "dev" or "prod";
+# anything else (missing, empty, garbage) counts as absent rather than trusted.
+function Resolve-DeployedFlavor([string]$markerPath, [string]$stampPath, [string[]]$tallyProbePaths) {
+    function Read-FlavorToken([string]$path) {
+        if (-not (Test-Path $path)) { return "" }
+        try { $line = ([string](Get-Content $path -TotalCount 1)).Trim() } catch { return "" }
+        if ($line -eq "dev" -or $line -eq "prod") { return $line }
+        return ""
+    }
+
+    $marker = Read-FlavorToken $markerPath
+    $stamp  = Read-FlavorToken $stampPath
+
+    if ($marker -eq "prod") { return [pscustomobject]@{ Flavor = "prod"; Source = "marker" } }
+    if ($stamp  -eq "prod") { return [pscustomobject]@{ Flavor = "prod"; Source = "stamp" } }
+    if ($marker -eq "dev")  { return [pscustomobject]@{ Flavor = "dev";  Source = "marker" } }
+    if ($stamp  -eq "dev")  { return [pscustomobject]@{ Flavor = "dev";  Source = "stamp" } }
+    foreach ($p in $tallyProbePaths) {
+        if (Test-Path $p) { return [pscustomobject]@{ Flavor = "prod"; Source = "tally" } }
+    }
+    return [pscustomobject]@{ Flavor = ""; Source = "none" }
+}
+
 # Parked repo artifacts that must never ship. The two bloodpact nxd tables stay in the repo
 # tree for provenance (renamed *.bloodpact_parked so the game never loads them), but the
 # modloader scans every file under FFTIVC and logs a per-file "edits nex table ... which is

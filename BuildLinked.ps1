@@ -72,25 +72,40 @@ try {
     }
 
     # --- Guard: a plain (dev) run must not stomp a prod-flavored install ---
-    # A DEV build pre-seeds every weapon's tally (LWDEV); deployed over the real
-    # prod install once and polluted the player's kills.json. build_flavor.txt
-    # records what's deployed; kills.json with NO marker is the hand-copied
-    # prod-era state and gets the same protection. -Prod never needs the guard.
-    $deployed = ""
-    if (Test-Path $marker) {
-        $deployed = ([string](Get-Content $marker -TotalCount 1)).Trim()
-        # An unreadable/garbage marker proves nothing -- treat it like NO marker and
-        # fall through to the kills.json heuristic rather than silently failing open.
-        if ($deployed -ne "dev" -and $deployed -ne "prod") { $deployed = "" }
-    }
-    if (-not $deployed -and (Test-Path "$dest\kills.json")) {
-        $deployed = "prod"   # kills.json with no readable marker = the hand-copied prod-era state
-    }
+    # ELI5: this deploy is about to overwrite the mod folder, and there might be a real player's
+    # save sitting behind it. A DEV build pre-fills every weapon's kill tally for fast testing, so
+    # deploying one over a real save would quietly wipe that player's actual progress. This check
+    # gathers every clue available before that happens, and refuses to guess wrong.
+    #
+    # (Tech, LW-134, 2026-07-25 near-miss): build_flavor.txt ($marker) is BuildLinked's own
+    # last-DEPLOY marker, written next to the mod. LW-51 moved the actual save files -- kills.json
+    # included -- out to the update-safe Reloaded/User/Mods/<ModId> dir, so the OLD fallback here
+    # (Test-Path next to the mod) was checking a spot kills.json can no longer be in; it failed
+    # open, and a plain dev BuildLinked run nearly stomped a real production save that same day,
+    # caught only by a human noticing. $saveDir below MUST mirror
+    # SaveLocation.ResolveSaveDir (LivingWeapon/SaveLocation.cs) exactly: the two are one
+    # resolution rule kept in two languages, and they move together. run_flavor.txt ($stampPath)
+    # is stamped by the RUNNING mod itself on every launch (FlavorStamp.cs), so it is last-RUN
+    # truth, a second and independent witness from build_flavor.txt's last-DEPLOY truth.
+    # Resolve-DeployedFlavor (tools/pipeline.ps1) is the shared, unit-tested precedence over both
+    # plus a raw kills.json probe; see its own comment for the exact rule order. -Prod never needs
+    # the guard.
+    $reloadedRoot = Split-Path $modsDir -Parent
+    $saveDir      = Join-Path $reloadedRoot "User\Mods\$modId"
+    $stampPath    = Join-Path $saveDir "run_flavor.txt"
+    $flavorVerdict = Resolve-DeployedFlavor $marker $stampPath @((Join-Path $saveDir "kills.json"), (Join-Path $dest "kills.json"))
+    $deployed = $flavorVerdict.Flavor
     if (-not $Prod) {
         if ($deployed -eq "prod" -and -not $Force) {
-            Write-Host "`nREFUSING TO DEPLOY: $dest holds a PROD-flavored install (real save data)." -ForegroundColor Red
+            Write-Host "`nREFUSING TO DEPLOY: evidence says $dest holds a PROD-flavored install (real save data)." -ForegroundColor Red
+            Write-Host "Evidence source: $($flavorVerdict.Source) (see Resolve-DeployedFlavor in tools/pipeline.ps1)." -ForegroundColor Red
             Write-Host "A DEV deploy seeds every weapon's kill tally and would pollute the player's kills.json." -ForegroundColor Red
             Write-Host "Use -Prod to deploy a production build, or -Force if you really want the dev build." -ForegroundColor Red
+            if ($flavorVerdict.Source -eq "stamp") {
+                Write-Host "The escape hatch: the last RUN of this mod was a production build. If you already" -ForegroundColor Red
+                Write-Host "-Force deployed a dev build over it, launch the game once (the dev build re-stamps" -ForegroundColor Red
+                Write-Host "run_flavor.txt) or pass -Force again." -ForegroundColor Red
+            }
             exit 1
         }
     } elseif ($deployed -eq "dev") {

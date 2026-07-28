@@ -89,6 +89,7 @@ internal sealed class Engine
         // deploy mod dir, so a mod-folder-replace update can no longer wipe them. Each store's
         // legacy file (if any) migrates into that dir, non-destructively, before its first load.
         var save = new SaveLocation(modDir);
+        FlavorStamp.Write(save);   // LW-134: stamp the running build's flavor where the deploy guard can see it
         ModLogger.Event(LogVerb.Save, $"Save files live at {save.SaveDir}.");
 
         _tally = KillTally.Load(save.Migrate("kills.json"));
