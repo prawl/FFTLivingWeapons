@@ -86,29 +86,6 @@ the technical detail lives in the indented lines under it.
     enemy still lands. Cheap to fold into the main Provoke pass as a second battle, or into the same
     battle by handing a second Defender to another unit. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-144] The Sunderer learns Bulwark: stand perfectly still and nobody may take the ground at your back** (opened 2026-07-27) [AWAITING-LIVE]
-  - Done means: a player whose grown Sunderer waits out a whole turn (no move, no action) plants the
-    blade, and the single tile directly behind the wielder becomes ground nobody can step on, shown
-    with the game's own red no-entry cursor, until the wielder's next turn opens, the wielder falls,
-    or the battle ends. Denying that one tile denies the back-attack bonus, so it is a real defensive
-    stat delivered through the map. The ground ALWAYS settles back: every way a hold can end restores
-    the exact original bytes, including battle exit, because grid writes are proven to outlive
-    battles and stale ones once crashed the game. The owner redesigned this from the original
-    four-tile ring (which locked the wielder in place) to the one back tile, "the anti-Provoke".
-    (Tech: Bulwark.cs trigger on the Mushin turn-flag falling edge; Bulwark.Terrain.cs writes byte
-    +6 bit 0x02 at grid base 0x140D8DCB0, idx = x + y*mapWidth + layerBit*0x100, the engine's own
-    obstacle state, trees read 0x22; facing from band +0x35 low 2 bits, 0 S, 1 W, 2 N, 3 E; occupied
-    or transiently unwritable back tile defers on a two-vacant-tick watch; ResetBattle now restores
-    then clears, the A1 inversion in docs/BULWARK_AC.md; suite 2852 green, adversarial verify SHIP
-    8/10 plus a fix round for stale comments and a hardcoded test byte.)
-  - Verify: the owner runs the nine-step live script from the verify agent, in order: the facing
-    bait step (face a named landmark, confirm the red no-entry cursor lands on the tile at the
-    BACK, a wrong side means a sign flip and an instant fail), enemy move range excluding the tile,
-    release on the wielder's next turn, death release, the enemy-pathing gate with TWO deployed
-    player units so a blocked enemy is distinguishable from an enemy with nobody else to chase, the
-    map-edge refusal, and the battle-end restore where a follow-up battle must behave fully vanilla.
-    Owner only, as every AWAITING-LIVE flip is.
-
 ## Backlog
 
 - [LW-100] 2026-07-21: A rider who restarts a battle and opens it on foot can keep the previous
@@ -732,19 +709,6 @@ the technical detail lives in the indented lines under it.
   caller's preparation work is what actually spawns the number. Verdict recorded in the
   LIVE_LEDGER numeral wall row with the two next levers named (call one level up, or detour
   the natural call site). Reopen only with one of those levers; the easy paths are spent.
-- [LW-141] 2026-07-27: FOUND, WRITABLE, AND OBEYED in one evening, then CORRECTED the next
-  night after the corrections ate a session. The real terrain grid the game consults lives at
-  one fixed spot, eight bytes per tile, and setting one obstacle bit makes a tile impassable
-  for every unit on both sides while it stays hoverable with the game's own red no-entry
-  cursor: the exact state the map's own trees carry, owner-witnessed. Two hard corrections:
-  the base first written down was two records too high (every write landed two tiles east of
-  target), and the height byte is NOT a wall at all: raising it leaves the tile walkable and
-  stepping onto it softlocks the game. Grid writes persist for the whole game process, across
-  battle restarts and onto the world map, so anything that sets the bit must restore it or
-  risk the crash stale dirt already caused once. (Tech: base 0x140D8DCB0, idx = x +
-  y*mapWidth + layerBit*0x100, byte +6 bit 0x02 the lever, byte +2 height CONTRADICTED as a
-  walkability input; LIVE_LEDGER terrain entries 2026-07-28.) Bulwark (LW-144, Now) consumes
-  the mechanism; still open here: the f0 flag bits and the slope field semantics.
 - [LW-142] 2026-07-27: The blue move-range tiles render from a record buffer that was decoded
   this session and survived the 1.5 update at its old address. The first held write CRASHED
   THE GAME (owner-run, same day): the renderer consumes this buffer live and tolerates no

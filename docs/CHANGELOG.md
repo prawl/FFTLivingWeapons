@@ -10,6 +10,34 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-144] SHIPPED d4c3744 2026-07-28: the Sunderer learned Bulwark, owner live-passed the same
+  morning. A knight holding a grown Sunderer who waits out a whole turn without moving or acting
+  plants the blade, and the single tile directly behind the knight becomes ground nobody may step
+  on, shown with the game's own red no entry cursor, until the knight's next turn opens, the
+  knight falls, or the battle ends. Denying that tile denies the back attack bonus, so standing
+  guard is a real defense now. The owner redesigned it mid arc from a four tile ring to the one
+  back tile, "the anti Provoke": the ring locked the wielder in place, the back tile keeps him
+  mobile and starves nothing. Two corrections were bought live on the way in: the first build
+  raised terrain HEIGHT, which is not a wall at all (a raised tile stays walkable and stepping
+  onto it softlocks), and the first shipped facing math had north and south swapped, caught by
+  the owner's bait step when a north facing plant barred the tile in front. The ground always
+  settles back exactly: grid writes are proven to outlive battles, so every ending restores the
+  saved bytes, including battle exit, an inversion of the old never write on the battle edge
+  rule. (Tech: byte +6 bit 0x02 at grid base 0x140D8DCB0, the engine's own obstacle state, trees
+  read 0x22; facing from band +0x35 low 2 bits, north looks toward rising y; trigger is the
+  Mushin turn flag falling edge; Bulwark.cs, Bulwark.Terrain.cs, Bulwark.Policy.cs, 50 tests
+  inside the 2852 green suite, adversarial verify SHIP 8/10 plus two fix rounds.)
+- [LW-141] SHIPPED d4c3744 2026-07-28: the terrain grid hunt that began as a height hack ended as
+  a proven walkability lever and shipped inside Bulwark (LW-144). The grid the game consults
+  lives at one fixed spot, eight bytes per tile, and setting one obstacle bit, the same state the
+  map's own trees carry, makes a tile impassable for every unit on both sides while it stays
+  hoverable with the game's own red no entry cursor. Three corrections along the way, each owner
+  witnessed: the base first recorded was two records too high so every write landed two tiles
+  east of target, the height byte is not a wall and stepping onto a raised tile softlocks, and
+  grid writes persist for the whole game process so an unrestored write is a crash waiting to
+  happen. (Tech: base 0x140D8DCB0, idx = x + y*mapWidth + layerBit*0x100, byte +6 bit 0x02;
+  LIVE_LEDGER terrain entries 2026-07-28. Still open, recorded in the ledger: the f0 flag bits
+  and the slope field semantics.)
 - [LW-127] SHIPPED f9549be 2026-07-27: the Defender's shout (helper commit 43573e9) now pulls only the
   enemy it names onto the bearer, instead of every enemy that acted while it was up. The trick is
   fortune telling: the runtime projects each enemy's charge time forward by its speed, the same
