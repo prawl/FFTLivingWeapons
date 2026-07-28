@@ -324,6 +324,8 @@ internal sealed class Engine
             if (_launchGuard.State == GuardState.StoodDown) _anchorScout.Tick();
             return;
         }
+        // LW-112: the kit-lane guard steps only once the main guard armed; cheap no-op once terminal.
+        _launchGuard.StepKitLane();
 
         uint slot0 = Mem.U32(Offsets.Slot0);
         uint slot9 = Mem.U32(Offsets.Slot9);
@@ -427,13 +429,18 @@ internal sealed class Engine
         }
         // Barrage runs in AND out of battle: the learn screen / pre-battle menus read the
         // JobCommand table live, and the learned bit needs its hold against menu writebacks.
-        _barrage.Tick();
-        _shadowBlade.Tick();   // pre-gate like Barrage: the learn screen / menus read the JobCommand table live
-        // Order is load-bearing: FindEmptySlot returns the FIRST empty slot, so a module ticking
-        // earlier claims the lower slot -- Provoke must tick after Barrage and Shadow Blade so it
-        // sees both modules' writes when all three share a JobCommand record (see
-        // BarrageShadowBladeCollisionTests' three-way case).
-        _provoke.Tick();
+        // LW-112: gated on the kit-lane guard, not the main guard -- another mod rewriting the
+        // JobCommand table disables only this trio for the session, never the whole engine.
+        if (_launchGuard.KitLaneArmed)
+        {
+            _barrage.Tick();
+            _shadowBlade.Tick();   // pre-gate like Barrage: the learn screen / menus read the JobCommand table live
+            // Order is load-bearing: FindEmptySlot returns the FIRST empty slot, so a module ticking
+            // earlier claims the lower slot -- Provoke must tick after Barrage and Shadow Blade so it
+            // sees both modules' writes when all three share a JobCommand record (see
+            // BarrageShadowBladeCollisionTests' three-way case).
+            _provoke.Tick();
+        }
         // Treasure Master gates on "a battle map is on screen" (slot9 armed + mode != 0) rather
         // than strict InLiveBattle.  This makes it stable through formation, enemy turns, and
         // cast animations (all mode 1 with slot9 stuck) while still excluding the world map

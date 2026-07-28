@@ -126,7 +126,11 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       key, the JobCommand table's rec 8/rec 9 ability-byte signature, and Ramza's roster row shape);
       on a debounced mismatch disarm every write and log loudly. Turns a future game patch from
       silent save corruption into a clean "needs updating." RPM/WPM guard crashes, not semantic
-      corruption at a valid-but-wrong address. Shipped 0152cf9, 2026-07-07.
+      corruption at a valid-but-wrong address. Shipped 0152cf9, 2026-07-07. (Detail superseded
+      2026-07-28, the mod-conflict guard split: the JobCommand landmark moved to a kit-lane guard
+      that disables only the weapon-granted commands when the PE key still matches; the PE key and
+      roster landmarks keep the full stand-down. The in-flight ticket in docs/TODO.md carries the
+      id.)
 - [x] **Kill-tally scoping (LW-51, covers LW-29)**: decide global-forever vs per-playthrough; if
       per-playthrough, key the save files to a save identity (one-time migration) so a new game is not
       pre-maxed and playthroughs do not cross-contaminate; ensure a Reloaded mod UPDATE does not wipe

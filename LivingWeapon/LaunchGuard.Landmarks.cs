@@ -3,11 +3,17 @@ namespace LivingWeapon;
 /// <summary>
 /// LW-83 seam: the WHAT half of <see cref="LaunchGuard"/>, split out of LaunchGuard.cs so that
 /// file stays the LIFECYCLE half (construction, Step, the hook-arm handshake, the armed/stand-down
-/// edges) under the 200-line house guideline. Holds the three landmarks' expected-value constants,
-/// the two composite Probe* methods (JobCommand rec8/rec9, Ramza's roster row), and the
-/// observed-vs-expected detail formatting each composes on a mismatch. Same partial class as
-/// LaunchGuard.cs, so LaunchGuard.cs's constructor still reaches every constant and probe here by
-/// plain name: this is a real data/game-knowledge-vs-behavior split, not a state-machine clone.
+/// edges) under the 200-line house guideline. Holds the MAIN guard's two landmarks' expected-value
+/// constants, its one composite Probe* method (Ramza's roster row), and the observed-vs-expected
+/// detail formatting it composes on a mismatch. Same partial class as LaunchGuard.cs, so
+/// LaunchGuard.cs's constructor still reaches every constant and probe here by plain name: this is
+/// a real data/game-knowledge-vs-behavior split, not a state-machine clone.
+///
+/// LW-112: the JobCommand rec8/rec9 constants (Rec8Addr/Rec9Addr/Rec8Sig/Rec9Sig) stay here even
+/// though the landmark that reads them moved to the kit-lane guard (LaunchGuard.KitLane.cs) -- they
+/// are game-KNOWLEDGE (where the table lives, what it says), not lifecycle, and AnchorScout also
+/// reuses the two signature byte arrays as its own re-find spec, so one shared copy stays the
+/// single source of truth for both consumers.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
@@ -54,34 +60,6 @@ internal sealed partial class LaunchGuard
     // At the 33ms Engine tick (Engine.cs:19, PollMs), 30 consecutive mismatching Steps is about
     // 30 * 33ms = 990ms: roughly one second before a permanent stand-down.
     private const int MismatchDebounce = 30;
-
-    private LandmarkReading ProbeJobCommandTable()
-    {
-        // BOOT-WINDOW SAFETY: gate on Ramza's roster row being populated at all before reading the
-        // signature windows. This used to read "a loaded save implies the boot-built JobCommand
-        // table"; that premise was stale (the table is FILE-BAKED static image data, present from
-        // module-map time, not something a save load constructs, see the Rec8Sig/Rec9Sig comment
-        // above), so the gate is kept anyway as deliberate boot-window conservatism, not because
-        // the table needs a save to exist. Game knowledge stays here in the adapter;
-        // FingerprintGuard's core stays agnostic of it.
-        int level = _mem.U8(Offsets.RosterBase + Offsets.RLevel);
-        if (level < 1 || level > 99) return LandmarkVerdict.Unreadable;
-
-        var rec8 = _jobCommandRec8.Probe();
-        var rec9 = _jobCommandRec9.Probe();
-        if (rec8.Verdict == LandmarkVerdict.Match && rec9.Verdict == LandmarkVerdict.Match)
-            return LandmarkVerdict.Match;
-        // LW-83: only the mismatching rec(s) contribute their inner detail, so one rec's failure
-        // doesn't drag the other rec's unrelated match state into the diagnostic.
-        if (rec8.Verdict == LandmarkVerdict.Mismatch || rec9.Verdict == LandmarkVerdict.Mismatch)
-        {
-            string detail = rec8.Verdict == LandmarkVerdict.Mismatch && rec9.Verdict == LandmarkVerdict.Mismatch
-                ? $"rec8: {rec8.Detail}; rec9: {rec9.Detail}"
-                : rec8.Verdict == LandmarkVerdict.Mismatch ? $"rec8: {rec8.Detail}" : $"rec9: {rec9.Detail}";
-            return new LandmarkReading(LandmarkVerdict.Mismatch, detail);
-        }
-        return LandmarkVerdict.Unreadable;
-    }
 
     private LandmarkReading ProbeRamzaRosterRow()
     {

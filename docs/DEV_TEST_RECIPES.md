@@ -117,3 +117,38 @@ If the wielder's job already has the same support picked, the log also emits:
 [Living Weapons] [12:34:56.789] [INFO] [grant] The wielder already chose Concentration as their support; the weapon's grant adds nothing (pick a different support to benefit).
 ```
 The grant writes the same bit that's already set — no stacking is possible (the engine reads a flag, not a count). Switch the equipped support to get value from the weapon grant.
+
+## LW-112 kit-lane drill: prove the mod-conflict verdict live (owner, two legs)
+
+The guard split (LW-112) claims a custom job mod no longer switches the whole mod off. Proving it
+needs a real conflicting mod, so this recipe builds a throwaway one. Table changes are
+RESTART-ONLY; kill fft_enhanced.exe before deploys.
+
+**Leg 1, BAIT (no conflict mod).** Dev deploy (plain BuildLinked, NOT -Prod: Barrage needs the bow
+at tier +3, and only the dev flavour seeds every weapon there), launch, load a save, put a Yoichi
+Bow (id 90) on an Archer. Expect in livingweapon.log: the "Living Weapons is armed" line AND the kit-lane line "The
+JobCommand table matches" with Barrage present in the Archer's Aim list, zero boxes, zero WARNs.
+Without this leg a broken lane that never arms would look identical to a working conflict verdict.
+
+**Leg 2, CONFLICT.** Create `$env:RELOADEDIIMODS\lwdrill.jobconflict\` with a minimal
+ModConfig.json (ModId lwdrill.jobconflict, ModDependencies ["fftivc.utility.modloader"],
+SupportedAppId ["fft_enhanced.exe"], no DLL) and
+`FFTIVC\tables\enhanced\JobCommandData.xml` carrying the vanilla record whose AbilityId1..8 read
+150..157 (Aim, record id 8: identify it by CONTENT, since the mod anchors on those bytes, not on
+an index) with ONLY AbilityId1..8 changed to 100..107 (a real, non-zero, non-vanilla delta; the
+Archer's Aim list will visibly show Monk's Martial Arts). TWO XML TRAPS, both previously live-observed: the ExtendAbilityIdFlagBits /
+ExtendReactionSupportMovementIdFlagBits elements must be present BEFORE their id elements, and no
+"--" inside any XML comment; either mistake makes the modloader silently drop the whole table and
+the leg proves nothing (failure signature: Archer shows vanilla Aim and NO WARN appears).
+Enable it in Reloaded-II, relaunch, load the same save. PASS = ALL of:
+1. The "armed" line still appears (mod ON), then ~1s later ONE WARN naming jobcommand-table with
+   expected 96-97-... observed 64-65-... bytes.
+2. Exactly one box, headline "Living Weapons found another mod editing the same game data". NO
+   "switched itself off" box; no "standing down to protect your save" anywhere in the log.
+3. Barrage ABSENT from the Yoichi wielder's commands; a kill still bumps the tally (growth alive).
+4. flight_*_standdown.jsonl carries a guard record containing "kit-lane stand-down".
+FAILURE MAP: game-update box = discriminator failed; two boxes = ordering broke; WARN but Barrage
+still grantable = the Engine lane gate is not wired; frozen tally = the lane verdict leaked into
+Mem.WritesEnabled.
+**Cleanup:** disable + delete lwdrill.jobconflict, relaunch, confirm the lane-armed line and
+Barrage return.

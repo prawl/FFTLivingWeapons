@@ -309,7 +309,9 @@ before any battle edge is reachable (`Engine.Tick`'s pre-arm early return holds 
 module off) and the launch's error FlushOnce token can already be burnt by an earlier unrelated
 error (a Mod.cs hooks failure, an Engine.cs tick-loop catch) whose flush drained an empty ring;
 a trigger other than `"error"` bypasses that latch entirely and the archive lands as
-`flight_*_standdown.jsonl`.
+`flight_*_standdown.jsonl`. The same trigger also fires on a kit-lane stand-down (LW-112, a
+conflicting mod's JobCommand-table edit disabling only the three weapon-granted commands); the
+record's payload text ("stand-down" vs "kit-lane stand-down") is what tells the two shapes apart.
 
 **The error trigger is FlushOnce, a documented divergence from "ERROR = broke + flight flush":**
 only the very first error of a launch ever produces a flight file, however many Error lines

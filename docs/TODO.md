@@ -13,27 +13,32 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.2)
 
-- **[LW-112] Stop blaming a game update when another mod rewrote the same game data** (opened 2026-07-21) [QUEUED]
+- **[LW-112] Stop blaming a game update when another mod rewrote the same game data** (opened 2026-07-21) [AWAITING-LIVE]
   - Done means: a player running a custom job mod alongside Living Weapons no longer sees this mod
     switch itself off with a message blaming a game update that never happened. When the game
-    program itself checks out fine and only a data landmark mismatches, the stand-down says the
-    truth, another mod rewrote the same game data, names the landmark, and suggests checking load
-    order; and the build considers degrading only what rests on that anchor (the Barrage kit
-    injection) instead of standing the whole mod down. (Tech: player report 2026-07-21, root cause
-    desk-confirmed. Landmark 2 is the JobCommand rec 8/rec 9 ability-id signature,
-    LaunchGuard.Landmarks.cs Rec8Sig/Rec9Sig, which is Barrage's anchor and not a version check; a
-    job mod's whole-row table writeback legitimately rewrites those bytes. The PE build key
-    MATCHING while a data landmark mismatches is the discriminator the guard already holds and
-    ignores; today FingerprintGuard.cs's anyMismatch path stands everything down.)
+    program itself checks out fine and only the job-command data landmark mismatches, the mod
+    STAYS ON, says the truth (another mod rewrote the same game data, named, with the observed
+    bytes), and switches off only the three weapon-granted commands that write that data, so the
+    two mods stop overwriting each other. The message does NOT suggest load order, although this
+    row once promised that: the LW-77 proven row says load order cannot fix a whole-row writeback
+    conflict, so suggesting it would be false hope; the honest options (live without the three
+    commands, or remove the conflicting mod) are stated instead. (Tech: built 2026-07-28. Two
+    instances of the untouched portable FingerprintGuard core: main guard = PE build key + Ramza
+    roster row, full stand-down; kit-lane guard = the jobcommand-table landmark in
+    LaunchGuard.KitLane.cs, stepped only after main arms, standing down only the
+    Barrage/ShadowBlade/Provoke ticks in Engine. Post-arm an all-zero window counts as a blanked
+    row, not a boot window. LIVE_LEDGER Uncertain row dated 2026-07-28 carries the discriminator
+    claim; adversarial verify passed both non-vacuity breaks.)
   - Unexplained residue, kept so it is not papered over: the player then merged the other mod's
     table rows into a third mod's folder and reports both now work, which should NOT clear the
     memory bytes; suspect the merged copy is silently inert, meaning their custom jobs are likely
     dead and they have not noticed. Worth one question before advising anyone to copy the
     workaround.
-  - Verify: unit tests pin the new message and any degrade path, and the dev stand-down drill (the
-    modDir marker-file lane; environment variables do not reach the game) shows the truthful
-    message live. The real-world case confirms itself in a player's livingweapon.log, whose
-    stand-down line names the landmark (LW-83).
+  - Verify: the owner runs the two-leg drill in docs/DEV_TEST_RECIPES.md (LW-112 section): a bait
+    leg with no conflicting mod (lane arms, Barrage present, zero boxes), then a leg with a
+    throwaway job mod that really rewrites rec 8 (mod stays armed, one truthful WARN and one calm
+    box, Barrage absent, kills still count). The drill mod recipe and every failure signature are
+    pre-registered there. Owner only, as every AWAITING-LIVE flip is.
 
 ## Backlog
 

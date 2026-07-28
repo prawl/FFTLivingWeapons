@@ -3,41 +3,55 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-50: the LivingWeapon adapter over the portable <see cref="FingerprintGuard"/> core. Builds
-/// the three DATA-ONLY landmarks the mod checks before any write arms (owner decision: no
-/// .text code hash, see docs/TODO.md LW-50 and docs/RELEASE_SCOPE.md section 7):
-///   1. PE build key (TimeDateStamp + SizeOfImage of the mapped game image).
-///   2. The JobCommand table's rec 8 / rec 9 ability-byte signature (Barrage's own anchor).
-///   3. Ramza's roster row shape at RosterBase slot 0.
+/// LW-50: the LivingWeapon adapter over the portable <see cref="FingerprintGuard"/> core.
 ///
-/// BOOT-WINDOW SAFETY: the JobCommand landmark first checks that Ramza's roster row is populated
-/// (a save is loaded) before touching the signature windows at all; before a save loads, the
-/// table region reads Unreadable (never Mismatch), so the guard never stands down at the title
-/// screen on the JobCommand check alone. This gate is deliberate boot-window conservatism, not a
-/// consequence of the table itself needing a save to exist: probe evidence 2026-07-14
-/// (tools/probes/anchorscan_feasibility_probe.py, exe backup file offset 0x67D6DB) found the
+/// LW-112 split this adapter into TWO independent FingerprintGuard state machines:
+///   - The MAIN guard (this file's <c>_guard</c>) checks two DATA-ONLY landmarks (owner decision:
+///     no .text code hash, see docs/TODO.md LW-50 and docs/RELEASE_SCOPE.md section 7):
+///       1. PE build key (TimeDateStamp + SizeOfImage of the mapped game image).
+///       2. Ramza's roster row shape at RosterBase slot 0.
+///     A main-guard mismatch means "the game itself changed" and stands the WHOLE mod down
+///     (writes stay disabled all session).
+///   - The KIT-LANE guard (LaunchGuard.KitLane.cs) checks a THIRD landmark, the JobCommand
+///     table's rec 8 / rec 9 ability-byte signature (Barrage's own anchor) -- but a mismatch there
+///     only means another installed mod (a custom job/ability mod, LW-112's motivating report)
+///     legitimately rewrote that shared table, so it disables only the three weapon-granted
+///     commands (Barrage, Shadow Blade, Provoke) and leaves everything else, including the main
+///     guard, armed and running. The lane only ever steps after the main guard arms (StepKitLane
+///     in LaunchGuard.KitLane.cs), so a lane stand-down can never be mistaken for a game update.
+///
+/// BOOT-WINDOW SAFETY (main guard only): before a save loads, Ramza's roster row reads Unreadable
+/// (never Mismatch), so the guard never stands down at the title screen. The PE-key landmark stays
+/// independent and is early-decidable: a truly patched exe stands down loudly even at the title
+/// screen. (The old JobCommand boot-window gate moved with the landmark to the kit-lane guard,
+/// which needs none of its own: it only ever steps once the main guard -- and therefore a
+/// populated roster row -- already armed. Probe evidence 2026-07-14,
+/// tools/probes/anchorscan_feasibility_probe.py, exe backup file offset 0x67D6DB, found the
 /// rec8/rec9 signature pair is FILE-BAKED static image data, present from module-map time; an
-/// earlier version of this comment called the table "boot-built", which was the stale premise. The
-/// PE-key landmark stays independent and is early-decidable: a truly patched exe stands down
-/// loudly even at the title screen.
+/// earlier version of this comment called the table "boot-built", which was the stale premise.)
 ///
-/// Once armed, this instance never re-verifies (verify-once is load-bearing: Barrage legitimately
-/// edits the same JobCommand region after arming, e.g. when it injects Barrage into a job's
-/// command list). LW-53: the armed edge and the stand-down verdict record into the flight ring,
-/// and stand-down requests its own "standdown" flush, so a stand-down leaves a non-empty archive.
+/// Once armed, neither instance ever re-verifies (verify-once is load-bearing: Barrage
+/// legitimately edits the same JobCommand region after arming, e.g. when it injects Barrage into
+/// a job's command list). LW-53: both guards' armed/stand-down edges record into the flight ring,
+/// and a stand-down requests its own "standdown" flush, so a stand-down leaves a non-empty archive.
 ///
 /// LW-83: this file holds the LIFECYCLE half (construction, Step, the hook-arm handshake, and the
-/// armed/stand-down edges). The landmark expected-value constants, the two composite Probe*
-/// methods, and their observed-vs-expected detail formatting live in the
-/// LaunchGuard.Landmarks.cs partial (a real WHAT-vs-lifecycle seam, kept in the same class so the
-/// ctor can still reference those constants and probes by plain name).
+/// armed/stand-down edges). The MAIN guard's landmark expected-value constants and its one
+/// composite Probe method (Ramza's roster row), plus their observed-vs-expected detail formatting,
+/// live in the LaunchGuard.Landmarks.cs partial (a real WHAT-vs-lifecycle seam, kept in the same
+/// class so the ctor can still reference those constants and probes by plain name). LW-112: the
+/// KIT-LANE guard's own probe (ProbeKitLaneTable/DescribeKitLaneMismatch) and its lifecycle
+/// (StepKitLane, KitLaneArmedEdge, KitLaneStandDown) live together in LaunchGuard.KitLane.cs
+/// instead -- one file for the lane's whole seam, since it is small enough not to need its own
+/// WHAT/lifecycle split.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
     private readonly IGameMemory _mem;
     private readonly FingerprintGuard _guard;
-    private readonly GuardLandmark _jobCommandRec8;
-    private readonly GuardLandmark _jobCommandRec9;
+    // LW-112: the second, independent state machine. Field lives here (ctor wiring needs it
+    // alongside _guard); its Step/probe/edge methods live in LaunchGuard.KitLane.cs.
+    private readonly FingerprintGuard _kitLaneGuard;
     private readonly object _hookLock = new();
     private Action? _pendingHookArm;
     private readonly Action<string, string>? _notice;
@@ -71,16 +85,17 @@ internal sealed partial class LaunchGuard
         // Release still compiles this same code path and exercises it with a hard false.
         uint expectedTimeDateStamp = forceMismatch ? ExpectedTimeDateStamp ^ 1 : ExpectedTimeDateStamp;
 
-        _jobCommandRec8 = FingerprintGuard.ByteSignature(tryRead, Rec8Addr, Rec8Sig, "jobcommand-rec8");
-        _jobCommandRec9 = FingerprintGuard.ByteSignature(tryRead, Rec9Addr, Rec9Sig, "jobcommand-rec9");
-
         var landmarks = new[]
         {
             FingerprintGuard.PeBuildKey(tryRead, ModuleBase, expectedTimeDateStamp, ExpectedSizeOfImage),
-            FingerprintGuard.Custom("jobcommand-table", ProbeJobCommandTable),
             FingerprintGuard.Custom("ramza-roster-row", ProbeRamzaRosterRow),
         };
         _guard = new FingerprintGuard(landmarks, StandDown, ArmedEdge, MismatchDebounce);
+
+        // LW-112: the kit-lane guard's one landmark (JobCommand rec8/rec9). Same debounce constant
+        // as the main guard; its own arm/stand-down edges live in LaunchGuard.KitLane.cs.
+        var kitLaneLandmarks = new[] { FingerprintGuard.Custom("jobcommand-table", ProbeKitLaneTable) };
+        _kitLaneGuard = new FingerprintGuard(kitLaneLandmarks, KitLaneStandDown, KitLaneArmedEdge, MismatchDebounce);
     }
 
     public bool Armed => _guard.Armed;
@@ -88,6 +103,13 @@ internal sealed partial class LaunchGuard
     /// <summary>Test/diagnostic seam: the underlying state machine's terminal state, so a test can
     /// tell "still retrying" apart from "permanently stood down" (both read Armed == false).</summary>
     internal GuardState State => _guard.State;
+
+    /// <summary>True once the kit-lane guard has verified the JobCommand table itself (LW-112);
+    /// Engine gates Barrage/Shadow Blade/Provoke's Tick on this, independently of <see cref="Armed"/>.</summary>
+    public bool KitLaneArmed => _kitLaneGuard.Armed;
+
+    /// <summary>Test/diagnostic seam, mirrors <see cref="State"/> for the kit-lane guard.</summary>
+    internal GuardState KitLaneState => _kitLaneGuard.State;
 
     public void Step() => _guard.Step();
 
@@ -134,8 +156,12 @@ internal sealed partial class LaunchGuard
         string drillNote = _forceMismatch
             ? " This stand-down was forced by the LW_FORCE_FINGERPRINT_MISMATCH drill flag (dev builds only)."
             : "";
+        // LW-112: the "or another installed mod..." clause moved out. That story now provably
+        // belongs to the kit-lane guard alone (JobCommand-table conflicts stand down only the
+        // three weapon-granted commands, never this whole-mod path), so a reader of THIS line can
+        // trust it means an actual game-build mismatch.
         ModLogger.Error(LogVerb.Startup,
-            $"The game build does not match this mod's memory landmarks ({diag}); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch, or another installed mod has modified the job command tables.{drillNote}");
+            $"The game build does not match this mod's memory landmarks ({diag}); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch.{drillNote}");
         // One-shot alongside the log line above: FingerprintGuard.Step only reaches StandDown once
         // (StoodDown is terminal, GuardState never revisits Verifying), so this call fires exactly
         // once per session. A player who never opens the log still learns the mod went inert.
