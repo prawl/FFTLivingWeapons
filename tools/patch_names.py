@@ -13,13 +13,14 @@ Usage:
   python tools/patch_names.py --dry      # print the name/description that WOULD be written, no write
 """
 import sys
+import tempfile
 from pathlib import Path
 import sqlite3
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
 from lib.flavor import assemble_desc, is_living, plural
 from lib.items import load_items
-from lib.nxd import encode_sqlite_to_nxd, deploy_nxd
+from lib.nxd import PAC, decode_nxd_to_sqlite, encode_sqlite_to_nxd, deploy_nxd, unpack
 from lib.paths import ROOT, MOD_ITEM_NXD
 
 SQLITE = ROOT / "working" / "pilot_item.sqlite"
@@ -50,12 +51,11 @@ GROUP_RANK = {1: 1, 3: 2, 4: 3, 12: 4, 11: 5, 8: 6, 7: 7, 10: 8, 14: 9, 16: 10,
 # those ids revert to their vanilla cure-consumable names via the pristine base table.)
 
 
-def main():
-    dry = "--dry" in sys.argv
-    doc = load_items()
-    named = [it for it in doc["items"] if it.get("name") and it["name"] != "TBD"]
-    # Regroup weapon SortOrder by ACTUAL type (fixes repurposed-in-place scatter). Within a type, order by
-    # (tier, id) for a clean weak->strong progression. Non-weapons keep their stock SortOrder.
+def build_sort_map(named):
+    """Regroup weapon SortOrder by ACTUAL type (fixes repurposed-in-place scatter). Within a type,
+    order by (tier, id) for a clean weak->strong progression. Non-weapons keep their stock
+    SortOrder. Pulled out of main() so both apply_patches (the writer) and a verify caller can
+    share the exact same derivation."""
     sort_map, by_group = {}, {}
     for it in named:
         eff = it["proposed"].get("categoryOverride") or it.get("category")
@@ -65,8 +65,24 @@ def main():
         rank = GROUP_RANK.get(uicat, 19)
         for i, it in enumerate(sorted(items_in, key=lambda x: (x.get("tier", 99) or 99, x["id"])), start=1):
             sort_map[it["id"]] = rank * 100 + i
-    con = sqlite3.connect(SQLITE)
-    n = 0
+    return sort_map
+
+
+def _guarded_update(con, sql, params, what):
+    """Run one UPDATE and refuse to continue unless it touched EXACTLY one row (the
+    patch_ability_names.py / patch_status_names.py apply_patches shape, LW-148). A Key with no
+    matching row -- a typo, an id that fell out of items.json, a stale table -- used to silently
+    match zero rows here and the item kept shipping its old (often plain vanilla) text forever."""
+    con.execute(sql, params)
+    if con.execute('SELECT changes()').fetchone()[0] != 1:
+        sys.exit(f"FAIL: {what} did not update exactly one Item-en row")
+
+
+def apply_patches(con, named, sort_map):
+    """Run every Item-en UPDATE for the named items, guarding each one. Returns
+    intent: {(id, column): value} for every cell this run wrote, so a caller can confirm the same
+    values actually round-tripped through the nxd encode/decode (verify_against_vanilla)."""
+    intent = {}
     for it in named:
         # Full card text (flavor + mechanics + range line + signature block + Kills scaffold)
         # comes from the shared assembler so analyze.py's desc-budget gate sees the exact bake.
@@ -81,23 +97,32 @@ def main():
         # drift from the bake. is_living = the shared noGrowth/category predicate, in lockstep
         # with gen_living_weapon_meta.
         name = clean + "  " if (SCAFFOLD_LIVING and is_living(it)) else clean
-        if dry:
-            if it["id"] >= 11:  # show the new ones
-                print(f"id{it['id']:>3} {name!r}\n      {desc!r}")
-            continue
-        con.execute('UPDATE "Item-en" SET Name=?, NameSingular=?, NamePlural=?, Name2=?, Description=? WHERE Key=?',
-                    (name, clean.lower(), plural(clean), name, desc, it["id"]))
+        _guarded_update(con,
+            'UPDATE "Item-en" SET Name=?, NameSingular=?, NamePlural=?, Name2=?, Description=? WHERE Key=?',
+            (name, clean.lower(), plural(clean), name, desc, it["id"]),
+            f"id{it['id']} ({clean!r}) name/description")
+        for col, val in (("Name", name), ("NameSingular", clean.lower()), ("NamePlural", plural(clean)),
+                         ("Name2", name), ("Description", desc)):
+            intent[(it["id"], col)] = val
         # card type-label = the override category if repurposed, else the native category. Setting it for EVERY
         # weapon also auto-corrects vanilla mislabels (e.g. Birchwood Staff shipped as a KnightSword).
         if eff_cat in UICAT:
-            con.execute('UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?', (UICAT[eff_cat], it["id"]))
+            _guarded_update(con, 'UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?',
+                            (UICAT[eff_cat], it["id"]), f"id{it['id']} ({clean!r}) UiItemCategoryId")
+            intent[(it["id"], "UiItemCategoryId")] = UICAT[eff_cat]
         if it["id"] in sort_map:
-            con.execute('UPDATE "Item-en" SET SortOrder=? WHERE Key=?', (sort_map[it["id"]], it["id"]))
-        n += 1
-    if dry:
-        con.close(); return
-    # Orphan weapons not in items.json (e.g. DLC dupes like the id254 Moonblade) keep a stale SortOrder --
-    # sweep any that don't match their type group to the END of that group, so none stray to the front.
+            _guarded_update(con, 'UPDATE "Item-en" SET SortOrder=? WHERE Key=?',
+                            (sort_map[it["id"]], it["id"]), f"id{it['id']} ({clean!r}) SortOrder")
+            intent[(it["id"], "SortOrder")] = sort_map[it["id"]]
+    return intent
+
+
+def orphan_sweep(con, sort_map):
+    """Orphan weapons not in items.json (e.g. DLC dupes like the id254 Moonblade) keep a stale
+    SortOrder -- sweep any that don't match their type group to the END of that group, so none
+    stray to the front. Every row here came straight off a SELECT of the same table in the same
+    transaction, so its Key is guaranteed present; the guard still runs for the same reason every
+    UPDATE in this file gets one (LW-148: no unguarded UPDATE, full stop)."""
     grp_max = {}
     for so in sort_map.values():
         grp_max[so // 100] = max(grp_max.get(so // 100, 0), so % 100)
@@ -106,10 +131,70 @@ def main():
         rank = GROUP_RANK.get(uicat)
         if key not in sort_map and rank and so // 100 != rank:
             grp_max[rank] = grp_max.get(rank, 0) + 1
-            con.execute('UPDATE "Item-en" SET SortOrder=? WHERE Key=?', (rank * 100 + grp_max[rank], key))
+            _guarded_update(con, 'UPDATE "Item-en" SET SortOrder=? WHERE Key=?',
+                            (rank * 100 + grp_max[rank], key), f"orphan id{key} SortOrder sweep")
+
+
+def verify_against_vanilla(built_nxd, own_intent):
+    """Decode the freshly-built nxd and diff it cell-by-cell against CURRENT vanilla, refusing to
+    deploy unless exactly the intended cells differ (the patch_ability_names.py / patch_status_names.py
+    verify() shape, LW-148). Reuses tools/audit_nxd_bakes.py's own audit (item_intent,
+    ALLOWED_ITEM_CELLS, the orphan-sweep allowance, and its LW-148 MISS check for a silently
+    no-opped rename) rather than a second, weaker reimplementation of the same classification --
+    the audit tool is already the thing that knows what counts as intentional for this table.
+    Imported lazily (not at module load) to dodge the one real circular edge: audit_nxd_bakes.py
+    itself imports GROUP_RANK/SCAFFOLD_LIVING/UICAT from this module.
+
+    own_intent (apply_patches' own {(id, col): value} record of what THIS run tried to write) gets
+    one extra, narrower check on top: the patch_ability_names.py-style final loop confirming every
+    cell this run actually attempted to write landed byte-for-byte in the decoded rebuild. This is
+    deliberately redundant with the vanilla-diff audit above (independent evidence beats a single
+    path that could itself have a bug)."""
+    import audit_nxd_bakes as audit
+
+    with tempfile.TemporaryDirectory(prefix="patch_names_verify_") as td:
+        tmp = Path(td)
+        fresh_vanilla_nxd = unpack(PAC, "nxd/item.en.nxd", tmp / "pacout")
+        v_cols, vanilla = audit.rows(decode_nxd_to_sqlite([fresh_vanilla_nxd], tmp, "van_item.sqlite"), "Item-en")
+        _, bake = audit.rows(decode_nxd_to_sqlite([built_nxd], tmp, "bake_item.sqlite"), "Item-en")
+        problems = audit.audit_table("Item-en", v_cols, vanilla, bake, audit.item_intent(),
+                                     audit.ALLOWED_ITEM_CELLS, audit.ALLOWED_EXTRA_ROWS.get("Item-en", set()),
+                                     full=False)
+        if problems:
+            sys.exit(f"FAIL: decode-verify found {problems} problem(s) against vanilla -- refusing to "
+                     f"deploy. Re-run tools/audit_nxd_bakes.py for the detail.")
+        landed = [(key, col, want, bake[key][col]) for (key, col), want in own_intent.items()
+                 if key not in bake or col not in bake[key] or bake[key][col] != want]
+        if landed:
+            for key, col, want, got in landed[:20]:
+                print(f"  UNLANDED: id{key} {col}: wanted {want!r}, decoded {got!r}")
+            sys.exit(f"FAIL: {len(landed)} of this run's own writes did not land in the rebuilt table "
+                     f"-- refusing to deploy")
+    print("  verify PASS: decoded bake matches vanilla + intent exactly, and every cell this run "
+          "wrote landed (see tools/audit_nxd_bakes.py for detail)")
+
+
+def main():
+    dry = "--dry" in sys.argv
+    doc = load_items()
+    named = [it for it in doc["items"] if it.get("name") and it["name"] != "TBD"]
+    sort_map = build_sort_map(named)
+    if dry:
+        for it in named:
+            desc = assemble_desc(it, scaffold=SCAFFOLD_LIVING)
+            clean = it["name"]
+            name = clean + "  " if (SCAFFOLD_LIVING and is_living(it)) else clean
+            if it["id"] >= 11:  # show the new ones
+                print(f"id{it['id']:>3} {name!r}\n      {desc!r}")
+        return
+    con = sqlite3.connect(SQLITE)
+    intent = apply_patches(con, named, sort_map)
+    orphan_sweep(con, sort_map)
     con.commit(); con.close()
-    print(f"Patched {n} rows in {SQLITE.name}. Re-encoding to nxd...")
+    print(f"Patched {len(named)} rows in {SQLITE.name}. Re-encoding to nxd...")
     out_nxd = encode_sqlite_to_nxd(SQLITE, ENC_DIR, "item.en.nxd")
+    print("Decode-verifying the built nxd against vanilla before deploy...")
+    verify_against_vanilla(out_nxd, intent)
     deploy_nxd(out_nxd, MOD_ITEM_NXD)
     print(f"Wrote {MOD_ITEM_NXD} ({out_nxd.stat().st_size} bytes).")
 

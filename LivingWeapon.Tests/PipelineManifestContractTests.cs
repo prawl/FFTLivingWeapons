@@ -32,22 +32,55 @@ public class PipelineManifestContractTests
         throw new FileNotFoundException("repo root (docs/TODO.md + LivingWeapon/) not found above the test bin dir");
     }
 
+    // LW-148: anchored to a close-paren that STARTS its own line (RegexOptions.Multiline's ^),
+    // matching how tools/pipeline.ps1 actually formats the array's closing ")". The old regex's
+    // non-greedy "\)" ended the match at the FIRST close-paren found ANYWHERE, including one typed
+    // inside a comment -- every entry below such a comment silently vanished from the parsed
+    // manifest, invisibly (the array itself, and the file, are both still perfectly valid
+    // PowerShell). The array literal used to carry a hand-written warning about this; the fix
+    // below makes the warning unnecessary, so it was deleted from tools/pipeline.ps1 in the same
+    // commit as this test.
     private static readonly Regex RequiredModFilesBlockRegex =
-        new(@"\$RequiredModFiles\s*=\s*@\(([\s\S]*?)\)", RegexOptions.Compiled);
+        new(@"\$RequiredModFiles\s*=\s*@\(([\s\S]*?)^\)", RegexOptions.Compiled | RegexOptions.Multiline);
 
     private static readonly Regex QuotedEntryRegex = new("\"([^\"]+)\"", RegexOptions.Compiled);
 
     /// <summary>Extracts the quoted string entries from tools/pipeline.ps1's
     /// "$RequiredModFiles = @( ... )" array literal. The block body holds only quoted strings and
     /// # comments, so a plain quote scan over the captured block is enough; no PowerShell parser
-    /// needed.</summary>
+    /// needed -- PROVIDED comment tails are stripped first (LW-148), else a quote character typed
+    /// inside a comment would be scanned as if it opened/closed a real array entry.</summary>
     internal static List<string> ParseRequiredModFiles(string pipelineScriptText)
     {
         var blockMatch = RequiredModFilesBlockRegex.Match(pipelineScriptText);
         Assert.True(blockMatch.Success, "$RequiredModFiles = @( ... ) block not found in tools/pipeline.ps1");
 
-        string body = blockMatch.Groups[1].Value;
+        string body = StripCommentTails(blockMatch.Groups[1].Value);
         return QuotedEntryRegex.Matches(body).Select(m => m.Groups[1].Value).ToList();
+    }
+
+    /// <summary>Removes everything from a line's first #-outside-quotes onward, line by line
+    /// (LW-148). Handles both a whole comment line and a trailing "value", # comment tail; a '#'
+    /// inside an open pair of quotes is left alone (none of this manifest's entries need one, but
+    /// the scan should not assume that).</summary>
+    private static string StripCommentTails(string psArrayBody)
+    {
+        var lines = psArrayBody.Replace("\r\n", "\n").Split('\n');
+        for (int li = 0; li < lines.Length; li++)
+        {
+            string line = lines[li];
+            bool inQuotes = false;
+            for (int i = 0; i < line.Length; i++)
+            {
+                if (line[i] == '"') inQuotes = !inQuotes;
+                else if (line[i] == '#' && !inQuotes)
+                {
+                    lines[li] = line.Substring(0, i);
+                    break;
+                }
+            }
+        }
+        return string.Join("\n", lines);
     }
 
     /// <summary>Every real shipped table/nxd file, mapped to the manifest's forward-slash-relative

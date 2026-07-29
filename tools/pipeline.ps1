@@ -47,9 +47,6 @@ $RequiredModFiles = @(
     "FFTIVC/data/enhanced/nxd/ability.en.nxd",
     # LW-123: names the blank status Provoke marks its target with. Without this the mark
     # renders as an unlabelled icon. Built by tools/patch_status_names.py.
-    # WARNING, never write a closing round bracket in a comment inside this array. The manifest
-    # contract test finds the block with a NON-GREEDY regex, so the first closing bracket ends
-    # the match and every entry below it silently vanishes from the parsed manifest.
     "FFTIVC/data/enhanced/nxd/uistatuseffect.en.nxd"
 )
 
@@ -85,6 +82,18 @@ function Get-LostPreservedItems([string]$preserveDir, [string]$dest, [string[]]$
     }
     if ((Test-Path (Join-Path $preserveDir "flight")) -and -not (Test-Path (Join-Path $dest "flight"))) { $lost += "flight" }
     return $lost
+}
+
+# LW-51 / LW-134 (LW-148 extraction): the update-safe save directory's location, shared by
+# BuildLinked.ps1's deploy guard and (via the DeployGuardTests-style cross-language pin) a C# test
+# asserting it resolves to the exact same path as LivingWeapon/SaveLocation.cs's own
+# ResolveSaveDir. modsDir is the Mods folder itself (one level ABOVE the deployed mod dir, e.g.
+# "<root>\Reloaded\Mods"), matching the C# side's own two-levels-up walk from the deployed mod dir
+# (Directory.GetParent(modDir)?.Parent). Pure over its two string inputs so it is testable without
+# a deploy.
+function Resolve-SaveDir([string]$modsDir, [string]$modId) {
+    $reloadedRoot = Split-Path $modsDir -Parent
+    return Join-Path $reloadedRoot "User\Mods\$modId"
 }
 
 # LW-134 (2026-07-25 near-miss): teaches the deploy guard where the player's kill counts
@@ -181,6 +190,18 @@ function Invoke-TablePipeline {
     & python "$PipelineRepoRoot\tools\gen_treasure_db.py"
     if ($LASTEXITCODE -ne 0) {
         throw "REFUSING TO ${FailVerb}: treasure-db gen failed (exit $LASTEXITCODE)."
+    }
+
+    # Run the log scanner's own built-in regression cases (LW-148 F2): scan_logs.py is a
+    # verify-time tool, not a build gate, but its PARSING LOGIC (line_level, the recognized-line
+    # tripwire, --allow, flight-trigger parsing, ...) is exactly the kind of pure code this
+    # pipeline's other gates exist to protect, and it had no build-time gate of its own. Running
+    # its selftest here catches a regression in the scanner itself at build time instead of the
+    # next time someone actually needs it to catch a bad live-verify log.
+    Write-Host "  -> tools/scan_logs.py --selftest (the log scanner's own regression cases)..."
+    & python "$PipelineRepoRoot\tools\scan_logs.py" --selftest
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: scan_logs.py --selftest failed (exit $LASTEXITCODE)."
     }
 
     Write-Host "  -> Generated + gated + meta baked OK." -ForegroundColor Green

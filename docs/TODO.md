@@ -60,6 +60,32 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-148] The pipeline's own scripts can fail silently; close every hole the audit verified** (opened 2026-07-28) [BUILDING]
+  - Done means: no gate script can pass falsely. A rename whose Key is missing fails the bake red
+    instead of shipping vanilla text; a log the scanner cannot parse is INCONCLUSIVE, never CLEAN;
+    an emptied table set deletes its stale XML instead of deploying last run's; the mods folder
+    rule lives in one place; bad probe arguments refuse instead of being swallowed; a crashed
+    scanner is reported as a crashed scanner; and the two cross-language mirror pins the comments
+    only promise (the save-dir rule, the kills-slot width) become real tests.
+  - Verify: the full suite green with the new contract tests in, each proven non-vacuous by
+    breaking its target once; plus one offline run of the patched bake script against the real
+    sqlite showing the guard counts. No game launch and no owner step.
+  patch_names.py runs its UPDATEs with no changes()==1 guard and no decode-verify, unlike both
+  sibling patch scripts, so a rename whose Key is absent silently ships vanilla text
+  (patch_names.py:88). scan_logs.py's ERROR detection hangs on one anchored regex; a log format
+  drift blinds it and a dirty log scans CLEAN, so it needs a recognized-line tripwire, and
+  ARMED_MARK deserves the both-directions test pin scan_logs.py's STANDDOWN_MARK already has.
+  generate.py emits most tables only when non-empty and never deletes a stale one, so an emptied
+  set keeps deploying the previous run's XML (generate.py:188). tools/lib/paths.py hardcodes the
+  Steam mods path and ignores RELOADEDIIMODS, third copy of a rule BuildLinked and scan_logs each
+  carry (paths.py:32). parse_flight.py silently swallows unknown flags and extra positionals
+  (parse_flight.py:78). BuildLinked's finally block reports a scan_logs crash as "RUNTIME ERRORS
+  in the session you just played" (BuildLinked.ps1:244). The manifest contract regex ends at the
+  first close paren and harvests quotes out of comments (PipelineManifestContractTests.cs:36). The
+  PS/C# save-dir mirror and the flavor.py/Signatures.cs kills-slot mirror both claim pins that no
+  test actually crosses languages to enforce; make each claimed pin real (BuildLinked.ps1:94,
+  tools/lib/flavor.py:224).
+
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
@@ -91,24 +117,6 @@ the technical detail lives in the indented lines under it.
   so a facade call with a verbatim path ending in a backslash silently desyncs the sweep
   (LogContractTests.cs:165). About 16 suites leak their temp dirs; DrillTriggerTests and
   GunSlingerTests already show the try/finally pattern to copy.
-
-- [LW-148] 2026-07-28: Toolchain hardening batch: the pipeline's own scripts have silent-failure
-  holes the audit verified end to end.
-  patch_names.py runs its UPDATEs with no changes()==1 guard and no decode-verify, unlike both
-  sibling patch scripts, so a rename whose Key is absent silently ships vanilla text
-  (patch_names.py:88). scan_logs.py's ERROR detection hangs on one anchored regex; a log format
-  drift blinds it and a dirty log scans CLEAN, so it needs a recognized-line tripwire, and
-  ARMED_MARK deserves the both-directions test pin STANDDOWN_MARK already has (scan_logs.py:70).
-  generate.py emits most tables only when non-empty and never deletes a stale one, so an emptied
-  set keeps deploying the previous run's XML (generate.py:188). tools/lib/paths.py hardcodes the
-  Steam mods path and ignores RELOADEDIIMODS, third copy of a rule BuildLinked and scan_logs each
-  carry (paths.py:32). parse_flight.py silently swallows unknown flags and extra positionals
-  (parse_flight.py:78). BuildLinked's finally block reports a scan_logs crash as "RUNTIME ERRORS
-  in the session you just played" (BuildLinked.ps1:244). The manifest contract regex ends at the
-  first close paren and harvests quotes out of comments (PipelineManifestContractTests.cs:36). The
-  PS/C# save-dir mirror and the flavor.py/Signatures.cs kills-slot mirror both claim pins that no
-  test actually crosses languages to enforce; make each claimed pin real (BuildLinked.ps1:94,
-  tools/lib/flavor.py:224).
 
 - [LW-149] 2026-07-28: The audit mapped the duplication families beyond the ledgered LW-125 trio;
   each is a candidate extraction stage, none urgent alone.

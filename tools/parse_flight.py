@@ -61,7 +61,13 @@ def print_timeline(header, records, grep=None):
 
 def parse_args(argv):
     """(paths, grep_type_or_None). Keeps the arg parsing dependency-free (no argparse needed for
-    one optional flag) -- mirrors the other one-shot tools/ scripts' plain sys.argv handling."""
+    one optional flag) -- mirrors the other one-shot tools/ scripts' plain sys.argv handling.
+
+    An unrecognized --flag and more than one positional path both raise ValueError (LW-148):
+    this used to silently swallow both (`if a.startswith("--"): continue` ate any unknown flag,
+    and every positional after the first was collected and then quietly discarded by main(), which
+    only ever reads paths[0]), so a typo'd flag or an extra path looked like it worked and just
+    printed the wrong thing."""
     grep = None
     positional = []
     skip_next = False
@@ -76,8 +82,10 @@ def parse_args(argv):
             skip_next = True
             continue
         if a.startswith("--"):
-            continue
+            raise ValueError(f"unknown flag: {a}")
         positional.append(a)
+    if len(positional) > 1:
+        raise ValueError(f"expected exactly one flight file path, got {len(positional)}: {positional}")
     return positional, grep
 
 

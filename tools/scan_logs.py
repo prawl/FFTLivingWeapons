@@ -39,16 +39,19 @@ Usage:
 
 Exit codes: 0 = clean, 1 = runtime failure(s) found, 2 = could not run (no log / bad args).
 """
-import os
 import re
 import sys
 from collections import namedtuple
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib.paths import RELOADED_MODS
+
 # --- Deployed-install resolution (mirror BuildLinked.ps1's mods-folder logic) ---
+# The RELOADEDIIMODS-vs-Steam-default rule itself now lives in ONE place, lib.paths.RELOADED_MODS
+# (LW-148): this used to be a third hardcoded copy of the Steam path that never looked at the env
+# var at all, drifting from BuildLinked.ps1 and lib.paths.
 MOD_ID = "prawl.fft.livingweapons"
-DEFAULT_MODS_DIR = (r"C:\program files (x86)\steam\steamapps\common"
-                    r"\FINAL FANTASY TACTICS - The Ivalice Chronicles\Reloaded\Mods")
 LOG_NAME = "livingweapon.log"
 PREV_LOG_NAME = "livingweapon.prev.log"
 
@@ -116,10 +119,13 @@ def scan_lines(lines, allow=(), require_battle=False):
     findings = []
     errors_seen = 0
     warns_seen = 0
+    classified_seen = 0
     startup = armed = stood_down = battle = False
 
     for i, line in enumerate(lines, start=1):
         level = line_level(line)
+        if level is not None:
+            classified_seen += 1
         if is_startup_header(line):
             startup = True
         if is_armed(line):
@@ -144,6 +150,18 @@ def scan_lines(lines, allow=(), require_battle=False):
             findings.append(Finding("fail", "runtime-error", i, "runtime error: " + line.strip()))
         elif level == "WARN":
             warns_seen += 1
+
+    # Recognized-line tripwire (LW-148): a NON-EMPTY log where NO line matched a known level
+    # marker means the scanner's own line-format assumptions have drifted (or the file is not a
+    # mod log at all), so it cannot vouch for the log's health. Fail loud and distinctly rather
+    # than silently falling through to the title-screen "inconclusive" warn below, which reads as
+    # CLEAN -- exactly the "a dirty log scans CLEAN" failure mode this scanner exists to catch.
+    # An EMPTY log (no lines at all) is a different, legitimate case and is untouched by this.
+    if lines and classified_seen == 0:
+        findings.append(Finding("fail", "unrecognized-log", None,
+                                f"none of the {len(lines)} line(s) in this log matched a recognized "
+                                "level marker (ERROR/WARN/INFO/DEBUG): the scanner's line-format "
+                                "assumptions may have drifted, so this log cannot be trusted as clean"))
 
     # Not-armed: a battle ran but the guard never armed and never stood down -> writes stayed off,
     # the mod was silently inert through gameplay. If it stood down, that finding already explains it.
@@ -178,9 +196,7 @@ def exit_code(result):
 def resolve_mod_dir(explicit=None):
     if explicit:
         return Path(explicit)
-    env = os.environ.get("RELOADEDIIMODS")
-    base = Path(env) if env else Path(DEFAULT_MODS_DIR)
-    return base / MOD_ID
+    return RELOADED_MODS / MOD_ID
 
 
 def resolve_log_path(positional=None, mod_dir=None):
@@ -462,6 +478,22 @@ def selftest():
     bad = scan_lines(_hdr() + [_ARMED] + _BATTLE + [_ERROR])
     qlines, _ = report_lines(bad, "x.log", None, (), quiet=True)
     check("quiet: only FAIL lines on failure", len(qlines) == 1 and qlines[0].startswith("[FAIL]"))
+
+    # 16. Recognized-line tripwire (LW-148): a NON-EMPTY log where zero lines classify via
+    # line_level must never read CLEAN -- a format drift that blinds the classifier is exactly
+    # the "dirty log scans CLEAN" failure mode this scanner exists to prevent.
+    r = scan_lines(["this is not a mod log line at all", "neither is this one"])
+    check("unrecognized: fails, never clean", exit_code(r) == 1)
+    check("unrecognized: distinct finding code", "unrecognized-log" in _codes(r))
+    lines, _ = report_lines(r, "x.log", None, ())
+    check("unrecognized: report never says CLEAN", not any("RESULT: CLEAN" in l for l in lines))
+    # ...but a genuinely EMPTY log (no lines at all) is unaffected: still the old title-screen
+    # inconclusive-by-default behaviour, not this new tripwire.
+    r = scan_lines([])
+    check("empty log: unaffected by the tripwire", "unrecognized-log" not in _codes(r) and exit_code(r) == 0)
+    # ...and a log with at least one recognized line among garbage does NOT trip it.
+    r = scan_lines(["garbage line"] + _hdr())
+    check("mixed: one recognized line among garbage does not trip it", "unrecognized-log" not in _codes(r))
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

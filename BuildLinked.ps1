@@ -89,9 +89,9 @@ try {
     # truth, a second and independent witness from build_flavor.txt's last-DEPLOY truth.
     # Resolve-DeployedFlavor (tools/pipeline.ps1) is the shared, unit-tested precedence over both
     # plus a raw kills.json probe; see its own comment for the exact rule order. -Prod never needs
-    # the guard.
-    $reloadedRoot = Split-Path $modsDir -Parent
-    $saveDir      = Join-Path $reloadedRoot "User\Mods\$modId"
+    # the guard. Resolve-SaveDir (tools/pipeline.ps1, LW-148) is the extracted, cross-language-pinned
+    # form of the derivation that used to live inline here only.
+    $saveDir      = Resolve-SaveDir $modsDir $modId
     $stampPath    = Join-Path $saveDir "run_flavor.txt"
     $flavorVerdict = Resolve-DeployedFlavor $marker $stampPath @((Join-Path $saveDir "kills.json"), (Join-Path $dest "kills.json"))
     $deployed = $flavorVerdict.Flavor
@@ -242,9 +242,20 @@ finally {
             0 { Write-Host "  CLEAN: no runtime errors in the session you just played." -ForegroundColor Green }
             2 { Write-Host "  No previous session log to scan (game not launched since the last deploy)." -ForegroundColor DarkGray }
             default {
-                Write-Host "  RUNTIME ERRORS in the session you just played (its log is now wiped by this deploy):" -ForegroundColor Red
-                foreach ($ln in $scanFindings) { Write-Host "    $ln" -ForegroundColor Red }
-                Write-Host "  Report only, not a gate (LW-54). Investigate before you flip a VERIFY_LIVE row." -ForegroundColor Red
+                if ($scanFindings.Count -eq 0) {
+                    # scan_logs.py --quiet prints nothing on a clean scan and ONLY [FAIL] lines on a
+                    # real finding, so a nonzero exit with an EMPTY capture means the scanner itself
+                    # crashed (a Python exception, a bad flag) rather than found a runtime error --
+                    # its own message went to stderr, above this block, not into $scanFindings. LW-148:
+                    # this used to get mislabeled as "RUNTIME ERRORS in the session you just played",
+                    # which sends you hunting through gameplay for a bug that was actually in the
+                    # scanner's own process.
+                    Write-Host "  The log scanner itself failed (exit $scanExit); its error went to the console above." -ForegroundColor Red
+                } else {
+                    Write-Host "  RUNTIME ERRORS in the session you just played (its log is now wiped by this deploy):" -ForegroundColor Red
+                    foreach ($ln in $scanFindings) { Write-Host "    $ln" -ForegroundColor Red }
+                    Write-Host "  Report only, not a gate (LW-54). Investigate before you flip a VERIFY_LIVE row." -ForegroundColor Red
+                }
             }
         }
     }

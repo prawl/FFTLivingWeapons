@@ -71,6 +71,19 @@ def write_table(path, text):
     path.write_text(text, encoding="utf-8")
 
 
+def remove_stale(path):
+    """LW-148: a conditionally-emitted table (shields/armor/accessories/ItemData/EquipBonus) used
+    to just skip writing when its source set went empty, silently leaving a PRIOR run's XML in
+    place to keep deploying forever. If the set is empty this run, the table has nothing to say and
+    the stale file must go instead. A no-op (no print) when there was nothing to remove."""
+    if path.exists():
+        path.unlink()
+        print(f"  removed {path.name} (empty set): this is an UNSHIPPABLE state until the "
+              f"tools/pipeline.ps1 $RequiredModFiles row for {path.name} is consciously retired, "
+              f"since the next deploy/package will otherwise fail with a misleading "
+              f"'{path.name} missing' error instead of naming this as the real cause")
+
+
 def weapon_entry(it):
     # Sparse: omit AttackFlags (preserve vanilla TwoSwords/Throwable/TwoHands) unless a design explicitly sets it.
     s = it["proposed"]
@@ -166,37 +179,52 @@ def main():
     wrote.append(f"ItemWeaponData.xml ({len(weapons)} weapons)")
 
     shields = [it for it in items if it["category"] in SHIELD_CATEGORIES]
+    shield_path = MOD_TABLES / "ItemShieldData.xml"
     if shields:
-        write_table(MOD_TABLES / "ItemShieldData.xml",
+        write_table(shield_path,
                     hdr("ItemShieldTable") + "".join(shield_entry(it) for it in shields) + "  </Entries>\n</ItemShieldTable>\n")
         wrote.append(f"ItemShieldData.xml ({len(shields)} shields)")
+    else:
+        remove_stale(shield_path)
 
     armor = [it for it in items if it["category"] in ARMOR_CATEGORIES]
+    armor_path = MOD_TABLES / "ItemArmorData.xml"
     if armor:
-        write_table(MOD_TABLES / "ItemArmorData.xml",
+        write_table(armor_path,
                     hdr("ItemArmorTable") + "".join(armor_entry(it) for it in armor) + "  </Entries>\n</ItemArmorTable>\n")
         wrote.append(f"ItemArmorData.xml ({len(armor)} armor)")
+    else:
+        remove_stale(armor_path)
 
     accessories = [it for it in items if it["category"] in ACCESSORY_CATEGORIES]
+    accessory_path = MOD_TABLES / "ItemAccessoryData.xml"
     if accessories:
-        write_table(MOD_TABLES / "ItemAccessoryData.xml",
+        write_table(accessory_path,
                     hdr("ItemAccessoryTable") + "".join(accessory_entry(it) for it in accessories) + "  </Entries>\n</ItemAccessoryTable>\n")
         wrote.append(f"ItemAccessoryData.xml ({len(accessories)} accessories)")
+    else:
+        remove_stale(accessory_path)
 
     # ItemData: every item that sets an equipBonusId (shields + any weapon w/ a rider, e.g. Arcanum MA+2)
     data_items = [it for it in items if "equipBonusId" in it["proposed"] or it["proposed"].get("categoryOverride") or it["proposed"].get("typeFlagsOverride") or it["proposed"].get("shopOverride") or it["proposed"].get("spriteIdOverride") is not None]
+    itemdata_path = MOD_TABLES / "ItemData.xml"
     if data_items or EXTRA_ITEMDATA:
         body = "".join(itemdata_entry(it) for it in data_items)
         body += "".join(extra_itemdata_entry(i, f) for i, f in sorted(EXTRA_ITEMDATA.items()))
-        write_table(MOD_TABLES / "ItemData.xml",
+        write_table(itemdata_path,
                     hdr("ItemTable") + body + "  </Entries>\n</ItemTable>\n")
         wrote.append(f"ItemData.xml ({len(data_items)} entries + {len(EXTRA_ITEMDATA)} consumable shop overrides)")
+    else:
+        remove_stale(itemdata_path)
 
+    equipbonus_path = MOD_TABLES / "ItemEquipBonusData.xml"
     if new_eb:
         rows = "".join(equipbonus_entry(int(k), v) for k, v in sorted(new_eb.items(), key=lambda kv: int(kv[0])))
-        write_table(MOD_TABLES / "ItemEquipBonusData.xml",
+        write_table(equipbonus_path,
                     hdr("ItemEquipBonusTable") + rows + "  </Entries>\n</ItemEquipBonusTable>\n")
         wrote.append(f"ItemEquipBonusData.xml ({len(new_eb)} new rows: {sorted(int(k) for k in new_eb)})")
+    else:
+        remove_stale(equipbonus_path)
 
     names = {str(it["id"]): {"name": it.get("name"), "vanillaName": it["vanillaName"]}
              for it in items if it.get("name") not in (None, "TBD")}

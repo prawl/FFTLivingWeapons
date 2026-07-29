@@ -125,6 +125,7 @@ def audit_table(table, vanilla_cols, vanilla, bake, intent, allowed_cells, allow
         problems += 1
     counts = {"INTENDED": 0, "ALLOWED": 0, "DRIFT": 0, "UNINTENDED": 0}
     detail = []
+    seen_intended = set()   # (key, col) that actually showed up as a bake-vs-vanilla diff
     for key in sorted(set(vanilla) & set(bake)):
         for col in vanilla_cols:
             if col == "Key" or col not in bake[key]:
@@ -137,6 +138,7 @@ def audit_table(table, vanilla_cols, vanilla, bake, intent, allowed_cells, allow
                 cls = "ALLOWED" if b == want else "UNINTENDED"
             elif (key, col) in intent:
                 cls = "INTENDED" if b == intent[(key, col)] else "DRIFT"
+                seen_intended.add((key, col))
             elif table == "Item-en" and col == "SortOrder" and orphan_sort_ok(bake[key], vanilla[key], b):
                 cls = "INTENDED"  # the orphan sweep regroups unnamed weapon rows
             else:
@@ -149,6 +151,32 @@ def audit_table(table, vanilla_cols, vanilla, bake, intent, allowed_cells, allow
     for cls, key, col, v, b in detail:
         print(f"  [{cls}] Key {key} {col}:")
         print(f"      vanilla {clip(v)}\n      bake    {clip(b)}")
+
+    # MISS check (LW-148): the loop above only ever looks at cells where bake != vanilla, so an
+    # intended change that never actually landed (bake still reads vanilla, e.g. a rename whose
+    # UPDATE silently matched zero rows) never enters it at all -- a silently no-opped rename was
+    # therefore invisible to this audit. Walk the intent set itself and demand every entry whose
+    # target genuinely differs from vanilla actually shows up as a diff above.
+    missed = []
+    for (key, col), want in sorted(intent.items()):
+        if key not in vanilla or key not in bake or col not in bake[key]:
+            continue   # row-set problems (missing/extra rows) are already reported above
+        if (key, col) in allowed_cells:
+            continue   # the classifier loop above checks allowed_cells BEFORE intent, so a cell
+                       # present in both never reaches seen_intended there either way (ALLOWED or
+                       # UNINTENDED); re-checking it against intent's own target here would
+                       # false-flag a landed, correctly-classified change as a silent no-op
+        v = vanilla[key][col]
+        if want == v:
+            continue   # intent legitimately matches vanilla already; no diff was ever expected
+        if (key, col) not in seen_intended:
+            missed.append((key, col, v, want))
+    if missed:
+        print(f"  MISSED: {len(missed)} intended change(s) never diverged from vanilla (silent no-op):")
+        for key, col, v, want in missed:
+            print(f"      Key {key} {col}: still {clip(v)} (wanted {clip(want)})")
+        problems += len(missed)
+
     return problems
 
 

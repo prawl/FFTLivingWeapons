@@ -31,5 +31,9 @@ FF16 = Path(os.environ.get(
 # (the authoritative baseline decode_tables.py and the JobData builders read from).
 STEAM_FFT = Path(r"C:\Program Files (x86)\Steam\steamapps\common"
                  r"\FINAL FANTASY TACTICS - The Ivalice Chronicles")
-RELOADED_MODS = STEAM_FFT / "Reloaded" / "Mods"
+# RELOADEDIIMODS overrides the mods folder the same way BuildLinked.ps1 and scan_logs.py's
+# resolve_mod_dir already honor -- this used to be a third hardcoded copy of the Steam default
+# that ignored the env var entirely (LW-148). One rule, read here, imported everywhere else.
+_env_mods = os.environ.get("RELOADEDIIMODS")
+RELOADED_MODS = Path(_env_mods) if _env_mods else STEAM_FFT / "Reloaded" / "Mods"
 TABLE_DATA = RELOADED_MODS / "FFTIVC_Mod_Loader" / "TableData"

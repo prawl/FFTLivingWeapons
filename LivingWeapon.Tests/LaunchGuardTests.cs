@@ -776,4 +776,35 @@ public class LaunchGuardTests
         }
         finally { Mem.WritesEnabled = prevWrites; }
     }
+
+    [Fact]
+    public void Armed_edge_log_line_pins_the_scanner_ARMED_MARK_phrase()
+    {
+        // tools/scan_logs.py's ARMED_MARK classifies the literal phrase "Living Weapons is armed"
+        // as its evidence that writes were enabled this session. STANDDOWN_MARK already
+        // has this dual-language pin (see the "standing down to protect your save" assertions
+        // above, e.g. Lane_notice_never_contains_the_scanner_stand_down_phrase); this is
+        // ARMED_MARK's twin (LW-148), so a wording edit to LaunchGuard.ArmedEdge's log line breaks
+        // a test here instead of silently blinding the scanner to a healthy session.
+        bool prevWrites = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            var mem = HealthyMemory();
+            var file = new List<string>();
+            var prior = ModLogger.Instance;
+            ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add);
+            try
+            {
+                var guard = new LaunchGuard(mem, forceMismatch: false);
+
+                guard.Step();
+
+                Assert.Equal(GuardState.Armed, guard.State);
+                Assert.Contains(file, line => line.Contains("Living Weapons is armed"));
+            }
+            finally { ModLogger.Instance = prior; }
+        }
+        finally { Mem.WritesEnabled = prevWrites; }
+    }
 }
