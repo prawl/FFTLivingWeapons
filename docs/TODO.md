@@ -40,6 +40,26 @@ the technical detail lives in the indented lines under it.
     box, Barrage absent, kills still count). The drill mod recipe and every failure signature are
     pre-registered there. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-137] Measure whether kill credit's death-edge bury reads a turn or a cursor** (opened 2026-07-27) [AWAITING-LIVE]
+  - Done means: a measured answer, from real battles, to whether the kill counter's "was an enemy
+    acting when this unit died" check can be fooled by where the cursor happens to rest. If the
+    two readings never disagree at real death edges, the worry closes; if they disagree, the
+    measured rate and direction justify moving the check onto the per-unit turn flags, the same
+    walk the Defender's shout already switched to. (Tech: KillTracker.Corpses.cs:232 reads
+    TqTeam at the death edge, diverting on 1 or 2; the 2026-07-27 Provoke pass observed that
+    field reading PLAYER through a whole enemy turn, cursor-tracking behaviour. The measurement
+    instrument is built: tools/probes/killcredit_probe.py, passive and read-only, records BOTH
+    readings side by side at every death edge with pre-registered verdict classes, on the
+    cursor_resolve_probe base. The 20 banked flight tapes were mined first, 2026-07-28, and
+    carry ZERO death edges, all recent tapes being feature-drill sessions, so live play is the
+    only evidence source.)
+  - Verify: the owner runs killcredit_probe.py alongside any normal battles, ideally including
+    the LW-112 drill battle since it is already owed, until a handful of death edges land on
+    both sides (player kills and enemy-turn deaths), then reads the census line: zero
+    disagreements across a real session closes this; any A-PLAYER-B-AI or A-AI-B-PLAYER line is
+    the exposure proven, with the fix direction already named. The ledger row stays untouched
+    until then. Owner only, as every AWAITING-LIVE flip is.
+
 ## Backlog
 
 - [LW-145] 2026-07-28: The 2026-07-28 smell audit found six small real bugs in the write layer,
@@ -207,21 +227,6 @@ the technical detail lives in the indented lines under it.
   order helper rather than five copies. (Tech: band +0x25 CT and
   +0x24 Speed; ledger rows dated 2026-07-27; harness tools/probes/provoke_lookahead_probe.py.)
 
-- [LW-137] 2026-07-27: Kill credit may be reading the same field Provoke just stopped trusting, so a
-  kill scored while the cursor happens to sit on an enemy could be filed as an enemy's kill instead
-  of yours.
-  Why it matters: KillTracker.Corpses.cs reads TurnQueue +0x02 at the death edge to decide whether a
-  non-player turn was in progress (the EnemyTurn bury). Provoke's 2026-07-27 live pass produced a
-  clean observation that the same field reads PLAYER for the whole of an enemy turn, which is what a
-  cursor-tracking field does and what a turn-owner field cannot do, so the bury's premise is now
-  doubtful in both directions: a player kill landing while the cursor rests on an enemy could be
-  buried, and an enemy-turn death could be credited.
-  Nuance: that read already has a fail-safe rule (an unreadable field defaults to the player-turn
-  answer, LIVE_LEDGER row 45) and kill credit has been stable in play for weeks, so this is an
-  exposure worth measuring, not a reported bug. Nobody has counted how often the two readings would
-  disagree in a real battle.
-  Fix direction if it proves real: the same Band.FlagOwner walk ProvokeHold now uses for both of its
-  gates. Do not touch the ledger row; the discriminating probe is still the owner's to run.
 
 - [LW-128] 2026-07-22: Provoke pops an empty speech bubble over the caster (Ramza's portrait, no
   words) on cast; fill it with a taunt, since Provoke is literally a taunt.

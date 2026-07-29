@@ -10,8 +10,11 @@ Three tile coordinate FRAMES were conflated all night and produced apparently-co
 results (+2-in-x on some vetoes, exact on others, a softlock attributed to the wrong unit):
 
   A. COMBAT frame: unit gx/gy at combat +0x4F/+0x50 (band +0x33/+0x34).
-  B. GRID frame:   the walkability grid 0x140D8DCC0 (8 B/tile), idx = x + y*W + layer*0x100.
-     Proven consumers of byte +6 bit 0x01: the move-range builder (softlock, range hole) and
+  B. GRID frame:   the walkability grid 0x140D8DCB0 (8 B/tile), idx = x + y*W + layer*0x100.
+     (BASE AND BIT CORRECTED 2026-07-28 per docs/LIVE_LEDGER.md: this file shipped with the
+     contradicted base 0x140D8DCC0 and bit 0x01, which wrote every veto 2 tiles east of target;
+     the ledger's four-sided lock-in settled 0x140D8DCB0 and walkability = byte +6 bit 0x02.)
+     Proven consumers of byte +6 bit 0x02: the move-range builder (softlock, range hole) and
      the cursor mask (tile unselectable).
   C. CURSOR frame: the hover globals 0x140C6AFB8 (X) / 0x140C6ADAC (Y), which both the owner's
      eyeballs and several probes have used as "the" coordinates.
@@ -32,7 +35,7 @@ THE PROTOCOL
        including any x/y swap. No writes.
 
   2. python tile_cal.py stick <seat>
-       Vetoes (byte+6 |= 1) the grid idx computed from THAT SEAT's combat gx/gy, holds until
+       Vetoes (byte+6 |= 2) the grid idx computed from THAT SEAT's combat gx/gy, holds until
        released. The one question, identity-based: WHICH unit cannot move / cannot be selected?
        If it is that seat's unit, grid==combat with zero offset for this tile; repeat on a
        second seat elsewhere on the map to rule out coincidence. Release:
@@ -47,7 +50,7 @@ THE PROTOCOL
        up elsewhere, say where, and the delta IS the correction. Several tiles across corners
        and center make it conclusive.
 
-Every write is byte +6 bit 0x01 only, original byte saved, restored on release or window end;
+Every write is byte +6 bit 0x02 only, original byte saved, restored on release or window end;
 the release-file pattern exists because a hard kill skips finally-restores (proven tonight:
 stale bit0 dirt survived a battle RETRY and had to be hand-cleared).
 """
@@ -59,7 +62,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV_W, find_pid, k32, rd, wr  # noqa: E402
 
-GRID = 0x140D8DCC0
+GRID = 0x140D8DCB0   # CORRECTED 2026-07-28 (was 0x140D8DCC0, the 2-tiles-east decoy; LIVE_LEDGER)
 CUR_X, CUR_Y = 0x140C6AFB8, 0x140C6ADAC
 MAP_WH = 0x140C6AD6A
 SEAT_BASE = 0x141855CE0 + 0x1C - 24 * 0x200
@@ -127,8 +130,8 @@ def hold_loop(h, held, note):
         while not os.path.exists(RELEASE):
             for addr, orig in held:
                 c = rd(h, addr, 1)
-                if c and not (c[0] & 1):
-                    wr(h, addr, bytes([c[0] | 1]))
+                if c and not (c[0] & 2):
+                    wr(h, addr, bytes([c[0] | 2]))
             time.sleep(0.1)
     except KeyboardInterrupt:
         pass
@@ -145,6 +148,9 @@ def hold_loop(h, held, note):
 def cmd_stick(a):
     h = open_game()
     w = u8(h, MAP_WH)
+    if w is None:
+        print("MAP_WH unreadable; refusing to compute a tile index (no write attempted).")
+        sys.exit(1)
     target = None
     for s, gx, gy, lay, lvl, hp, mhp in units(h):
         if s == a.seat:
@@ -158,4 +164,105 @@ def cmd_stick(a):
     idx = gx + gy * w + lay * 0x100
     addr = GRID + idx * 8 + 6
     orig = u8(h, addr)
-    wr(h, addr, bytes([orig | 1
+    if orig is None:
+        print(f"addr 0x{addr:X} (idx 0x{idx:X}) unreadable; refusing to write a wrong-tile veto.")
+        sys.exit(1)
+    wr(h, addr, bytes([orig | 2]))
+    hold_loop(h, [(addr, orig)],
+              f"veto held on seat {s}'s own tile ({gx},{gy}) layer {lay} (idx 0x{idx:X}, "
+              f"addr 0x{addr:X}, orig 0x{orig:02X}). WHICH unit is stuck?")
+
+
+def cmd_dwell(a):
+    # NOTE (recovered 2026-07-28): the committed file was TRUNCATED mid-cmd_stick (an
+    # interrupted write on the Bulwark night), so this verb never ran; rebuilt from the
+    # protocol doc above. The closed-loop eyeball test: dwell ~1.2s on a tile, the probe
+    # vetoes the CURSOR-frame idx (shifted by --dx/--dy while testing a hypothesis), holds
+    # 6s, restores, keeps going.
+    h = open_game()
+    w = u8(h, MAP_WH)
+    if w is None:
+        print("MAP_WH unreadable; refusing to compute any tile index (no write attempted).")
+        sys.exit(1)
+    print("WARNING: this verb assumes layer 0 for every veto -- the cursor frame carries no "
+          "layer bit (unlike a unit's own combat gx/gy, whose layer rides band +0x35 bit 0x80). "
+          "On a bridge-deck map (units stacked at the same x,y on two layers) a dwell veto may "
+          "land on the wrong deck; treat dwell results there as untrustworthy.")
+    print(f"dwell mode: hover any tile ~1.2s to veto it (dx={a.dx} dy={a.dy}); Ctrl-C or touch "
+          f"{RELEASE} to stop.")
+    last = None
+    stable_since = 0.0
+    fired = False
+    try:
+        while True:
+            if os.path.exists(RELEASE):
+                print("release file seen; stopping.")
+                try:
+                    os.remove(RELEASE)
+                except OSError:
+                    pass
+                return
+            cx, cy = u8(h, CUR_X), u8(h, CUR_Y)
+            if (cx, cy) != last:
+                last = (cx, cy)
+                stable_since = time.time()
+                fired = False
+            elif not fired and cx is not None and time.time() - stable_since > 1.2:
+                fired = True
+                tx, ty = cx + a.dx, cy + a.dy
+                idx = tx + ty * w   # layer 0: the dwell test targets ground tiles
+                addr = GRID + idx * 8 + 6
+                orig = u8(h, addr)
+                if orig is None:
+                    print(f"  ({tx},{ty}) idx 0x{idx:X}: unreadable, skipped")
+                    continue
+                released_early = False
+                # The write + hold + restore live in one try/finally so a Ctrl-C (or any other
+                # exception) during the 6s hold still restores this byte: the finally clause runs
+                # BEFORE KeyboardInterrupt propagates, so by the time the outer except below prints
+                # anything, this veto (if any was live) is already gone.
+                try:
+                    wr(h, addr, bytes([orig | 2]))
+                    print(f"  veto ({tx},{ty}) idx 0x{idx:X} addr 0x{addr:X} for 6s -- try to select the hovered tile NOW")
+                    t0 = time.time()
+                    while time.time() - t0 < 6.0:
+                        if os.path.exists(RELEASE):
+                            released_early = True
+                            break
+                        c = rd(h, addr, 1)
+                        if c and not (c[0] & 2):
+                            wr(h, addr, bytes([c[0] | 2]))
+                        time.sleep(0.1)
+                finally:
+                    wr(h, addr, bytes([orig]))
+                    print("  restored")
+                if released_early:
+                    print("release file seen mid-hold; stopping.")
+                    try:
+                        os.remove(RELEASE)
+                    except OSError:
+                        pass
+                    return
+            time.sleep(0.15)
+    except KeyboardInterrupt:
+        print("stopped (Ctrl-C): any veto that was in progress has just been restored by its "
+              "own finally block above; nothing is left held.")
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("hover").set_defaults(fn=cmd_hover)
+    p_stick = sub.add_parser("stick")
+    p_stick.add_argument("seat", type=int)
+    p_stick.set_defaults(fn=cmd_stick)
+    p_dwell = sub.add_parser("dwell")
+    p_dwell.add_argument("--dx", type=int, default=0)
+    p_dwell.add_argument("--dy", type=int, default=0)
+    p_dwell.set_defaults(fn=cmd_dwell)
+    a = ap.parse_args()
+    a.fn(a)
+
+
+if __name__ == "__main__":
+    main()
