@@ -5,9 +5,12 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Pure-half suite for TurnOwnerSpike (LW-31 stage 2's live-pass blocker, docs/TODO.md Now
-/// entry): the ChangeGate (byte-array and string forms) and the sampling throttle math, plus
-/// light coverage of the deterministic formatting helpers. The spike body itself
+/// Pure-half suite for TurnOwnerSpike: the ChangeGate (byte-array and string forms) and the
+/// sampling throttle math, plus light coverage of the deterministic formatting helpers. Built to
+/// answer LW-31 stage 2's live-pass blocker; that question is answered and shipped
+/// (docs/CHANGELOG.md:932, LW-31 SHIPPED 2b2f5b4 2026-07-07). The spike still ticks in Engine as
+/// a passive correlation recorder: its only prospective consumer is LW-139's turn-order rebuild
+/// (docs/TODO.md); if LW-139 declines it, unwiring is the follow-up. The spike body itself
 /// (TurnOwnerSpike.cs) is LWDEV-only and untestable by design; this exercises every pure
 /// comparison and format that body stays thin over.
 /// </summary>

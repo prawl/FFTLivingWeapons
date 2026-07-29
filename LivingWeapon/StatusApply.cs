@@ -8,8 +8,13 @@ namespace LivingWeapon;
 /// The engine keeps 40 status ids (0..39) in 5-byte MSB-first bitfields, three layers per unit
 /// (band-entry-relative): a PENDING-ADD request field, an INFLICTED persistent layer, and a
 /// COMPOSED per-frame layer (composed = inflicted OR innate, re-derived every frame). The apply
-/// engine (StatusSpike.FnApplyStatuses = 0x150BF66DC, args slot + mode) walks all 40 ids for one
-/// unit, reads the pending field, conflict-scans, and ORs accepted bits into the inflicted layer.
+/// engine is not pinned to a fixed address: StatusSpike's v1 target (FnApplyStatuses =
+/// 0x150BF66DC) went dead (prologue mismatch, 2026-07-22), so v2 resolves the routine fresh each
+/// launch by decoding the fixed-image dispatch thunk at 0x1401FB064 and landmark-verifying the
+/// destination (StatusSpike.cs's v2 block, ~lines 68-88). The resolved routine walks all 40 ids
+/// for one unit, reads the pending field, conflict-scans, and ORs accepted bits into the
+/// inflicted layer; the argument order (id + 1, mode, slot) is INFERRED, not proven (same
+/// citation).
 ///
 /// The "slot" argument is the index into the battle-stats array at BattleUnitsBase 0x141853CE0
 /// (stride 0x200). Our band seats anchor on CombatAnchor 0x141855CE0 = BattleUnitsBase + 0x2000

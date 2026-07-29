@@ -494,7 +494,7 @@ internal sealed class Engine
         _statusSpike.Tick(inLive);   // LW-58: cold-call the status apply engine on F2/F4 (inLive-gated + paused; targets live band units)
         _bodyDoubleSpike.Tick(inLive);   // LW-58 Canary 8: F5 duplicates the hovered unit into a real AI fighter (inLive-gated + paused), Ctrl+F5 despawns
         _provokeSpike.Tick(inLive);   // LW-123 arc 2a: F6 / provoke_request.txt marks the hovered-else-first-live enemy so ProvokeHold can arm
-        _numeralSpike.Tick(inLive);   // F8 / numeral_request.txt: cold-call the number popup (inLive-gated + paused). F8 because F6 is booked by five spikes
+        _numeralSpike.Tick(inLive);   // F8 / numeral_request.txt: cold-call the number popup (inLive-gated + paused). F8 keeps clear of F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike, F6 ProvokeSpike
 #endif
         if (changed)
         {

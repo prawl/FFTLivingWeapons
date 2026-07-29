@@ -79,21 +79,21 @@ the technical detail lives in the indented lines under it.
   (Bulwark.Terrain.cs:142). (6) The seven copied band sanity reads have already forked their maxHP
   bound, Plague reads mhp > 2000 while six siblings read >= 2000 (Plague.cs:94).
 
-- [LW-146] 2026-07-28: A batch of comments and docs that lie about the code they sit on, the
-  repo's named disease, all verified word against tree.
-  docs/LOGGING.md:279 (a CONTRACT doc) says Puppeteer is deliberately not flight-tapped while
-  Engine.cs:194 wires the tap and "pup" records land in every tape. StatusApply.cs:11 presents the
-  dead v1 apply-engine address as current fact against StatusSpike.cs's own v2 correction.
-  NumeralSpike.cs:65 and 119, BodyDoubleSpike.cs:360 and Engine.cs:497 cite F6-polling spikes that
-  LW-67 deleted. TurnOwnerSpike still ticks in Engine while its header claims it serves LW-31,
-  shipped 2026-07-07; decide whether LW-137/LW-139 want the recorder, else unwire it. Log.cs, the
-  shim whose header says DELETE in the Puppeteer expiry commit, has zero callers and outlived that
-  commit by three weeks. tools/probes/tile_cal.py:62 still carries the CONTRADICTED terrain grid
-  base 0x140D8DCC0 and bit 0x01, so its next run writes vetoes two tiles east of target; the
-  ledger correction says 0x140D8DCB0 bit 0x02. Puppeteer.Policy.cs:37 points at a class TODO that
-  no longer exists. Owner-territory rider: LIVE_LEDGER's line-138 "TILE SYSTEM SOLVED" paragraph
-  still asserts the wrong base two lines under its own correction banner and wants a supersession
-  stamp.
+- [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
+  one item is left, and it needs the owner's own sign-off.
+  Fixed this commit: docs/LOGGING.md's claim that Puppeteer is not flight-tapped (it is, and the
+  "pup" record shapes are now documented), StatusApply.cs's dead v1 apply-engine address,
+  NumeralSpike.cs/BodyDoubleSpike.cs/Engine.cs's stale F6-spike comments (LW-67 deleted those
+  spikes; the current map is F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike, F6 ProvokeSpike, F8
+  NumeralSpike), the TurnOwnerSpike/TurnOwnerProbe/TurnOwnerProbeTests headers (LW-31 shipped
+  2026-07-07, docs/CHANGELOG.md:932; the recorder stays wired only as a passive correlation
+  instrument for LW-139), the dead Log.cs shim (deleted, its test allowlist updated), and
+  Puppeteer.Policy.cs's dangling reference to a class TODO that no longer exists. tools/probes/
+  tile_cal.py's stale terrain grid base was already fixed earlier the same day, commit df8b779, so
+  there was nothing left to do there.
+  Still open, owner territory: docs/LIVE_LEDGER.md line 138's "TILE SYSTEM SOLVED" paragraph still
+  names the wrong terrain grid base two lines under its own correction banner and wants a
+  supersession stamp; that flip is owner sign-off only, same as every LIVE_LEDGER row.
 
 - [LW-147] 2026-07-28: The test fakes have blind spots that quietly weaken about 40 negative
   assertions, found by the audit's test lens.

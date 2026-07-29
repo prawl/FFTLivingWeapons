@@ -61,11 +61,11 @@ namespace LivingWeapon;
 /// frame is alive and non-crashing. A first cold call of a game function can be dead for a whole
 /// launch or can crash; a dead game is a restart, the standard spike tax. THROWAWAY SAVE ONLY.
 ///
-/// USAGE: in a live battle, open a unit's menu so the game is paused, then press F8. F8 because
-/// F6 is booked by five spikes and one of them blocks for 2.6 s, which ate an earlier canary's
-/// key edge entirely. A request-file lane (numeral_request.txt, "slot[,value]") exists for the
+/// USAGE: in a live battle, open a unit's menu so the game is paused, then press F8. F8 keeps
+/// clear of the rest of the wired key map (F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike, F6
+/// ProvokeSpike). A request-file lane (numeral_request.txt, "slot[,value]") exists for the
 /// same reason StatusSpike has one: this box's function keys are a scarce, half-eaten resource
-/// and environment variables do not survive the game's launch chain.
+/// (F3 is eaten on this box) and environment variables do not survive the game's launch chain.
 /// </summary>
 internal sealed class NumeralSpike
 {
@@ -116,8 +116,8 @@ internal sealed class NumeralSpike
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint pid);
     [DllImport("kernel32.dll")] private static extern uint GetCurrentProcessId();
 
-    // F8. Deliberately NOT F6: five wired spikes poll it and HeaderSpike blocks 2.6s inside its
-    // handler, so an F6 edge is routinely gone before a later-ticked spike ever reads the key.
+    // F8. Current wired key map: F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike, F6 ProvokeSpike
+    // (LW-67 deleted the old Flavor/Header/AttackCard spikes that used to squat on F6).
     private const int VkF8 = 0x77;
 
     private const string RequestFileName = "numeral_request.txt";

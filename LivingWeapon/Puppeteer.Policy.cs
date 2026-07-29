@@ -33,8 +33,11 @@ internal sealed partial class Puppeteer
     /// <summary>Top of the monster band -- excludes 0x91 Construct 8 and the 0xA0+ named-character jobs.</summary>
     public const int MonsterJobHi = 144;   // 0x90
 
-    /// <summary>True when the job id is a monster class. ⚠ Currently includes boss-monsters / Lucavi (see
-    /// the class TODO) until the IC Lucavi job list is mapped.</summary>
+    /// <summary>True when the job id is a monster class. The band (96-144) already excludes 0x91
+    /// Construct 8 and the 0xA0+ named-character jobs (see MonsterJobHi); the IC Lucavi job list
+    /// was never mapped, so this helper cannot tell a boss-monster / Lucavi job apart from a plain
+    /// one. IsDominatable does not call it (ALLOW-EVERYONE, see the class doc above); it is kept
+    /// only so a narrower IsDominatable gate can be reinstated in one line.</summary>
     public static bool IsMonsterJob(int jobId) => jobId >= MonsterJobLo && jobId <= MonsterJobHi;
 
     /// <summary>The Puppeteer target gate. ⚠ ALLOW-EVERYONE: every struck enemy is dominatable -- the

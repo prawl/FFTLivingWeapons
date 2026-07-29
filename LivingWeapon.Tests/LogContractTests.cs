@@ -96,7 +96,7 @@ public class LogContractTests
     /// <summary>Permanent exceptions: the facade's own plumbing. Never shrinks.</summary>
     private static readonly HashSet<string> PermanentAllowList = new(StringComparer.OrdinalIgnoreCase)
     {
-        "ModLogger.cs", "FileConsoleLogger.cs", "NullLogger.cs", "Log.cs",
+        "ModLogger.cs", "FileConsoleLogger.cs", "NullLogger.cs",
     };
 
     /// <summary>Files still pending the call-site conversion pass (stage 2 of the logging
@@ -144,9 +144,10 @@ public class LogContractTests
     internal static List<string> FacadeCallStringLiterals(string source)
     {
         var results = new List<string>();
-        // Group "recv" captures the receiver so calls on the transitional Log shim (Log.Info/
-        // Log.Error) can be excluded in code: a regex lookbehind can't reject the captured
-        // text itself, only what precedes the match.
+        // Group "recv" captures the receiver so a call on a class literally named "Log" (the
+        // retired transitional shim's name; Log.cs is gone, but the name guard stays as a
+        // regression fence) can be excluded in code: a regex lookbehind can't reject the
+        // captured text itself, only what precedes the match.
         var callStart = new Regex(@"\bModLogger\.(Event|Warn|Error|Debug|EventWithTrace|WarnWithTrace)\s*\(|\b(?<recv>\w+)\.(Info|Warn|Debug)\s*\(");
         foreach (Match m in callStart.Matches(source))
         {

@@ -275,10 +275,17 @@ plus `hide-edge` / `reveal-edge` on every hide/reveal TRANSITION (LW-127, never 
 `why=<branch>` with the leading and marked enemies' ticks-to-act and the next enemy's nameId, or the
 visibly distinct `lookahead=fallback` when the turn-order read was unusable.
 The tile is the LAST KNOWN one, which is why a release naming an enemy that has already left the
-field still carries coordinates. Deliberately
-**not** tapped: Puppeteer (a separate live-verify arc is in flight against those exact lines),
-Treasure Master (slated for removal, docs/TODO.md LW-10, no new investment there; the
-chemist-grenade paths left the repo entirely with the Offensive Chemist removal, a5ea61e), and
+field still carries coordinates. Also tapped: Galewind's puppeteer dominate/release lifecycle
+(`"pup"`, Puppeteer.cs / Puppeteer.Hold.cs): one `dominate` record when the struck enemy is first
+seized, `seat=0x{addr:X} nameId={the puppet's own nameId, 0 if unreadable at that instant}
+mhp={fingerprint max HP} slot={s} job={job} gturn={GlobalTurns}`; and a `release` record on every
+hand-back, in one of three shapes sharing `reason=`: `own-turn` (the puppet finished its own-turn
+budget) and `cap` (the GlobalTurns fallback cap tripped instead) both carry
+`ownTurns={puppet's own turns taken} gturn={GlobalTurns}`, while `seat-invalid` (the seat's copy
+moved or was freed mid-hold) carries only `seat=0x{addr:X} gturn={GlobalTurns}`.
+Deliberately
+**not** tapped: Treasure Master (slated for removal, docs/TODO.md LW-10, no new investment there;
+the chemist-grenade paths left the repo entirely with the Offensive Chemist removal, a5ea61e), and
 (LW-82) the AnchorScout: it is diagnostics-only read-only scaffolding for a game-patch event, not
 a runtime mechanic worth a jsonl record, and its own log lines (under `[startup]`) are already the
 durable evidence a re-anchor session reads.

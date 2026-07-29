@@ -4,8 +4,11 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure half of the TurnOwnerSpike passive recorder (LW-31 stage 2's live-pass blocker,
-/// docs/TODO.md Now entry). Everything here is pure string/byte/int logic, always compiled and
+/// Pure half of the TurnOwnerSpike passive recorder. Built to answer LW-31 stage 2's live-pass
+/// blocker; that question is answered and shipped (docs/CHANGELOG.md:932, LW-31 SHIPPED 2b2f5b4
+/// 2026-07-07). It still ticks in Engine as a passive correlation recorder: its only prospective
+/// consumer is LW-139's turn-order rebuild (docs/TODO.md); if LW-139 declines it, unwiring is the
+/// follow-up. Everything here is pure string/byte/int logic, always compiled and
 /// unit-tested; the #if LWDEV shell that drives the actual memory reads and Trace logging is
 /// TurnOwnerSpike.cs.
 ///

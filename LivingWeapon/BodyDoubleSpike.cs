@@ -357,7 +357,7 @@ internal sealed class BodyDoubleSpike
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint pid);
     [DllImport("kernel32.dll")] private static extern uint GetCurrentProcessId();
-    private const int VkF5 = 0x74;   // reveal + hold toggle. F5, NOT F6: three WIRED spikes (Flavor/Header/AttackCard) already poll F6, so one press would fire them all. ShowSpike claims F5/F8 but is not wired in Engine.
+    private const int VkF5 = 0x74;   // reveal + hold toggle. F5, NOT F6: F6 is ProvokeSpike's (LW-123) key now; the old Flavor/Header/AttackCard spikes that used to squat on F6 were deleted by LW-67. ShowSpike claims F5/F8 but is not wired in Engine.
     private const int VkShift = 0x10; // Canary 5 AI-registry refresh rides SHIFT+F5, NOT a fresh F-key: ShowSpike.cs's key doc records F3/F7/F9 as LL-hook EATEN on this box and F8 as stopped-registering, and the only proven working set is F2/F4/F5/F6 (all claimed by wired spikes). Reusing this spike's own proven F5 with a Shift gate avoids gambling on an untested key.
     private const int VkCtrl = 0x11;  // CTRL+F5 = the clean despawn; same scarce-key reasoning as Shift.
 
