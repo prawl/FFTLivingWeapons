@@ -134,7 +134,72 @@ public class LogContractTests
 
     // --- 3. No double-dash / em dash inside a facade call's string literals ---
 
-    private static readonly Regex StringLiteralRegex = new(@"\$?@?""(?:[^""\\]|\\.)*""", RegexOptions.Compiled);
+    /// <summary>Skips a single string literal starting at <paramref name="quoteIndex"/> (the
+    /// index of its OPENING '"' in <paramref name="text"/>) and returns the index just past its
+    /// closing quote. Verbatim-aware: a REGULAR (or interpolated-but-not-verbatim, i.e. plain
+    /// <c>"..."</c> or <c>$"..."</c>) string treats backslash as an escape, so <c>\"</c> does not
+    /// end it; a VERBATIM string (<c>@"..."</c>, <c>$@"..."</c>, or <c>@$"..."</c> -- detected by
+    /// walking backward from <paramref name="quoteIndex"/> over any run of '@'/'$' prefix chars
+    /// and checking for an '@' among them) treats backslash as an ordinary LITERAL character that
+    /// never escapes anything; a lone '"' always ends it, and the only escape mechanism is
+    /// DOUBLING the quote (<c>""</c> -&gt; a literal embedded '"'). Getting this wrong is exactly
+    /// the LW-147 bug: the old code applied backslash-escape rules unconditionally, so a verbatim
+    /// path ending in a backslash right before the closing quote (e.g. <c>@"C:\Users\"</c>) had
+    /// its real closing quote swallowed as if it were an escaped character, desyncing every
+    /// paren/quote count for the rest of the scan.</summary>
+    private static int SkipStringLiteral(string text, int quoteIndex)
+    {
+        bool verbatim = false;
+        int p = quoteIndex - 1;
+        while (p >= 0 && (text[p] == '@' || text[p] == '$'))
+        {
+            if (text[p] == '@') verbatim = true;
+            p--;
+        }
+
+        int i = quoteIndex + 1;
+        if (verbatim)
+        {
+            while (i < text.Length)
+            {
+                if (text[i] == '"')
+                {
+                    if (i + 1 < text.Length && text[i + 1] == '"') { i += 2; continue; }   // "" -> literal quote
+                    return i + 1;
+                }
+                i++;
+            }
+            return i;   // unterminated (shouldn't happen in valid C#)
+        }
+        while (i < text.Length)
+        {
+            if (text[i] == '\\') { i += 2; continue; }   // backslash escapes the next char
+            if (text[i] == '"') return i + 1;
+            i++;
+        }
+        return i;   // unterminated (shouldn't happen in valid C#)
+    }
+
+    /// <summary>Scans <paramref name="text"/> for every string literal (any of the four quote
+    /// prefixes: plain, <c>$</c>, <c>@</c>, <c>$@</c>/<c>@$</c>) and returns each one's full
+    /// source text (prefix chars + quotes included), verbatim-aware via <see
+    /// cref="SkipStringLiteral"/>. Replaces a plain regex extraction, which -- like the manual
+    /// paren-balance loops below -- treated every string as backslash-escaped and so mis-scanned
+    /// (silently dropping, not crashing on) a verbatim literal ending in a backslash.</summary>
+    private static List<string> FindStringLiterals(string text)
+    {
+        var found = new List<string>();
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (text[i] != '"') continue;
+            int start = i;
+            while (start > 0 && (text[start - 1] == '@' || text[start - 1] == '$')) start--;
+            int end = SkipStringLiteral(text, i);
+            found.Add(text.Substring(start, end - start));
+            i = end - 1;   // the for loop's i++ resumes right after this literal
+        }
+        return found;
+    }
 
     /// <summary>Finds every call to a facade method (ModLogger.Event/Warn/Error/Debug/
     /// EventWithTrace/WarnWithTrace, or a ScopedLogger's Info/Warn/Debug; receiver must not be the
@@ -164,20 +229,16 @@ public class LogContractTests
                 else if (c == ')') depth--;
                 else if (c == '"')
                 {
-                    // Skip over the whole string literal (handles escaped quotes) so an internal
-                    // '(' or ')' inside a string can't desync the paren balance.
-                    i++;
-                    while (i < source.Length && source[i] != '"')
-                    {
-                        if (source[i] == '\\') i++;
-                        i++;
-                    }
+                    // Skip over the whole string literal (verbatim-aware) so an internal '(' or
+                    // ')' -- or a verbatim path's trailing backslash -- can't desync the paren
+                    // balance.
+                    i = SkipStringLiteral(source, i) - 1;   // -1: the for loop's own i++ lands right after
                 }
             }
             if (depth != 0) continue;   // unbalanced (shouldn't happen in valid C#): skip defensively
             string args = source.Substring(argsStart, i - argsStart - 1);
-            foreach (Match lit in StringLiteralRegex.Matches(args))
-                results.Add(lit.Value);
+            foreach (var lit in FindStringLiterals(args))
+                results.Add(lit);
         }
         return results;
     }
@@ -216,20 +277,56 @@ public class LogContractTests
         Assert.DoesNotContain(literals, l => l.Contains(" -- ") || l.Contains(EmDash));
     }
 
+    // ---- LW-147: verbatim-string semantics. Both the inline balance loop above (inside
+    // FacadeCallStringLiterals) and ExtractBalancedArgs below treated backslash as a universal
+    // escape, which is wrong for a verbatim (@"...") or verbatim-interpolated ($@"..."/@$"...")
+    // string literal: there, backslash is a literal character and the only escape is a DOUBLED
+    // quote. A verbatim path ending in a backslash right before the closing quote (e.g.
+    // @"C:\Users\") had its real closing quote swallowed as "escaped", desyncing the scan for
+    // the rest of the call (and, for FacadeCallStringLiterals, the rest of the source text). ----
+
+    [Fact]
+    public void FacadeCallStringLiterals_captures_a_verbatim_path_literal_ending_in_a_backslash()
+    {
+        string snippet = "ModLogger.Event(LogVerb.Save, @\"C:\\Users\\ptyRa\\\");";
+        // The literal text the scanner should see, unescaped: ModLogger.Event(LogVerb.Save, @"C:\Users\ptyRa\");
+        var literals = FacadeCallStringLiterals(snippet);
+        Assert.Contains(literals, l => l == "@\"C:\\Users\\ptyRa\\\"");
+    }
+
+    [Fact]
+    public void ConsoleEligibleMessageLiterals_is_not_desynced_by_a_verbatim_path_argument_ending_in_a_backslash()
+    {
+        // The message (arg index 1) is a perfectly normal literal; the TRAILING traceDetail
+        // argument (arg index 2, not itself checked by this scanner) is a verbatim path ending
+        // in a backslash. The old ExtractBalancedArgs desynced scanning THAT argument, so depth
+        // never rebalanced and the whole call -- including the innocent message -- vanished from
+        // the results.
+        string snippet = "ModLogger.EventWithTrace(LogVerb.Save, \"Loaded the save file\", @\"path=C:\\Users\\ptyRa\\\");";
+        var literals = ConsoleEligibleMessageLiterals(snippet);
+        Assert.Contains(literals, l => l == "\"Loaded the save file\"");
+    }
+
     [Fact]
     public void No_facade_call_in_the_repo_passes_a_string_literal_with_a_double_dash_or_em_dash()
     {
         string repoRoot = RepoRoot();
         var violations = new List<string>();
+        var allLiterals = new List<string>();
         foreach (var path in SourceFiles(repoRoot))
         {
             string name = Path.GetFileName(path);
             if (PermanentAllowList.Contains(name)) continue;   // the facade's own code, not a call site
             string text = File.ReadAllText(path);
             foreach (var lit in FacadeCallStringLiterals(text))
+            {
+                allLiterals.Add(lit);
                 if (lit.Contains(" -- ") || lit.Contains(EmDash))
                     violations.Add($"{name}: {lit}");
+            }
         }
+        // A scan that finds zero facade literals means the scanner desynced, not that the repo is clean.
+        Assert.NotEmpty(allLiterals);
         Assert.True(violations.Count == 0, "Facade calls with a disallowed separator:\n" + string.Join("\n", violations));
     }
 
@@ -286,10 +383,12 @@ public class LogContractTests
         }
     }
 
-    /// <summary>Balances parens (and skips over string-literal contents, so a stray '(' or ')'
-    /// inside quotes can't desync the count) to return the full argument-list text of the call
-    /// starting at <paramref name="matchIndex"/>. Shared shape with FacadeCallStringLiterals'
-    /// scanner above; kept as an independent copy since the two serve different checks.</summary>
+    /// <summary>Balances parens (and skips over string-literal contents, verbatim-aware via
+    /// <see cref="SkipStringLiteral"/>, so a stray '(' or ')' -- or a verbatim path's trailing
+    /// backslash -- inside quotes can't desync the count) to return the full argument-list text
+    /// of the call starting at <paramref name="matchIndex"/>. Shared shape with
+    /// FacadeCallStringLiterals' scanner above; kept as an independent copy since the two serve
+    /// different checks.</summary>
     private static string? ExtractBalancedArgs(string source, int matchIndex)
     {
         int openParen = source.IndexOf('(', matchIndex);
@@ -304,12 +403,7 @@ public class LogContractTests
             else if (c == ')') depth--;
             else if (c == '"')
             {
-                i++;
-                while (i < source.Length && source[i] != '"')
-                {
-                    if (source[i] == '\\') i++;
-                    i++;
-                }
+                i = SkipStringLiteral(source, i) - 1;   // -1: the for loop's own i++ lands right after
             }
         }
         if (depth != 0) return null;
@@ -317,8 +411,13 @@ public class LogContractTests
     }
 
     /// <summary>Splits a call's argument-list text on top-level commas only (depth-tracking
-    /// parens/braces/brackets, and skipping over string-literal contents so a comma inside a
-    /// message can't be mistaken for an argument separator).</summary>
+    /// parens/braces/brackets, and skipping over string-literal contents, verbatim-aware via
+    /// <see cref="SkipStringLiteral"/>, so a comma -- or a verbatim path's trailing backslash --
+    /// inside a message can't be mistaken for an argument separator or a false string end).
+    /// Shares the same bug class ExtractBalancedArgs and FacadeCallStringLiterals had: a
+    /// verbatim argument earlier in the list that ends in a backslash right before its closing
+    /// quote would otherwise swallow the FOLLOWING top-level comma as "inside the string",
+    /// silently merging two arguments into one.</summary>
     private static List<string> SplitTopLevelArgs(string args)
     {
         var parts = new List<string>();
@@ -331,12 +430,7 @@ public class LogContractTests
             else if (c == ')' || c == '}' || c == ']') depth--;
             else if (c == '"')
             {
-                i++;
-                while (i < args.Length && args[i] != '"')
-                {
-                    if (args[i] == '\\') i++;
-                    i++;
-                }
+                i = SkipStringLiteral(args, i) - 1;   // -1: the for loop's own i++ lands right after
             }
             else if (c == ',' && depth == 0)
             {
@@ -379,15 +473,21 @@ public class LogContractTests
     {
         string repoRoot = RepoRoot();
         var violations = new List<string>();
+        var allLiterals = new List<string>();
         foreach (var path in SourceFiles(repoRoot))
         {
             string name = Path.GetFileName(path);
             if (PermanentAllowList.Contains(name) || FenceExemptDevFiles.Contains(name)) continue;
             string text = File.ReadAllText(path);
             foreach (var lit in ConsoleEligibleMessageLiterals(text))
+            {
+                allLiterals.Add(lit);
                 if (!PassesSubjectFirstFence(lit))
                     violations.Add($"{name}: {lit}");
+            }
         }
+        // A scan that finds zero facade literals means the scanner desynced, not that the repo is clean.
+        Assert.NotEmpty(allLiterals);
         Assert.True(violations.Count == 0, "Console-eligible facade calls failing the subject-first lexical fence:\n" + string.Join("\n", violations));
     }
 }

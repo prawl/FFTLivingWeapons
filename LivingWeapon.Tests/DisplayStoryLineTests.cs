@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -13,18 +14,26 @@ namespace LivingWeapon.Tests;
 /// sites verified via the OLD (now "previous") line must NOT be evicted when a kill rotates the
 /// composed line -- reverting CardSites.AnchorIsLive to baked-only fails this by eviction
 /// (frozen Kills counters), which is exactly the bug the three-way anchor exists to prevent.
+/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class DisplayStoryLineTests
+public class DisplayStoryLineTests : IDisposable
 {
     private const int Id = 30;
     private const long SourceBase = 0x50_0000_0000L;
     private const long StaticsBase = 0x51_0000_0000L;
 
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_displaystory_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_displaystory_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     private static Dictionary<int, WeaponMeta> Meta(string flavor)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -8,15 +9,24 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// The kill tally's persistence contract: tmp -> .bak -> move saves, .bak fallback loads,
 /// and fail-safe empties. This is the player's progress file -- the paranoia is the point.
-/// Each test works in its own temp directory so parallel runs never collide.
+/// Each test works in its own temp directory so parallel runs never collide. LW-147: every
+/// TempDir() directory is tracked and deleted in Dispose (xUnit's per-test teardown for an
+/// IDisposable test class) via the shared TempDirs fixture, instead of leaking.
 /// </summary>
-public class KillTallyTests
+public class KillTallyTests : IDisposable
 {
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_tally_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_tally_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     private static string PathIn(string dir) => Path.Combine(dir, "kills.json");

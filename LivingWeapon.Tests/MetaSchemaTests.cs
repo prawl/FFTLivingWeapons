@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -19,8 +20,15 @@ namespace LivingWeapon.Tests;
 /// Also the first direct coverage of MetaLoader's fail-safe contract: a missing or corrupt
 /// meta.json yields an EMPTY map (growth degrades, display paints nothing), never a crash.
 /// </summary>
-public class MetaSchemaTests
+public class MetaSchemaTests : IDisposable
 {
+    private readonly List<TempDirs> _tempDirs = new();
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
+    }
+
     /// <summary>Walk up from the test bin dir to the repo root (the dir holding LivingWeapon/).</summary>
     private static string RepoMetaPath()
     {
@@ -57,12 +65,13 @@ public class MetaSchemaTests
     }
 
     // --- MetaLoader's fail-safe contract (previously untested) ---
+    // LW-147: TempDir() directories are tracked and deleted in Dispose (above), not leaked.
 
-    private static string TempDir()
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_meta_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_meta_");
+        _tempDirs.Add(t);
+        return t.Dir;
     }
 
     [Fact]

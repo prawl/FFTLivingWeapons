@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
 using Xunit;
@@ -9,15 +11,23 @@ namespace LivingWeapon.Tests;
 /// (Resolve-DeployedFlavor, tools/pipeline.ps1) has a last-RUN flavour truth even when
 /// build_flavor.txt (BuildLinked's own last-DEPLOY marker) is missing or stale -- e.g. a
 /// hand-extracted production zip, which never went through BuildLinked at all. Mirrors
-/// SaveLocationTests' unique-temp-ModDir idiom so parallel runs never collide.
+/// SaveLocationTests' unique-temp-ModDir idiom so parallel runs never collide. LW-147:
+/// TempRoot() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class FlavorStampTests
+public class FlavorStampTests : IDisposable
 {
-    private static string TempRoot()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempRoot()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_flavorstamp_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_flavorstamp_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     /// <summary>Builds root/Mods/&lt;ModId&gt;, the same two-levels-under-the-Reloaded-root shape

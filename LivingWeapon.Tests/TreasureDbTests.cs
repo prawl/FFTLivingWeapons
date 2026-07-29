@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -11,15 +12,23 @@ namespace LivingWeapon.Tests;
 /// Three pillars: missing file → empty dataset; corrupt JSON → empty; malformed rows
 /// skipped while good rows load.  Plus the address validation rules baked into the
 /// loader: module span 0x140000000..0x143000000 (inclusive low, exclusive high),
-/// UI-render-arena rejection 0x140C63000..0x140CC5000.
+/// UI-render-arena rejection 0x140C63000..0x140CC5000. LW-147: TempDir() directories are
+/// tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class TreasureDbTests
+public class TreasureDbTests : IDisposable
 {
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "td_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("td_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     // ── fail-soft trio ───────────────────────────────────────────────────────

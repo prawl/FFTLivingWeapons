@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,14 +15,22 @@ namespace LivingWeapon.Tests;
 /// (Flight.Init) and a REAL FileConsoleLogger (fake sinks, mirroring CounterAttributionTests'
 /// ModLogger.Instance swap-and-restore) through a REAL LaunchGuard construction, proving a
 /// fingerprint-guard stand-down actually leaves a durable flight_*_standdown.jsonl archive.
+/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class StandDownFlightArchiveTests
+public class StandDownFlightArchiveTests : IDisposable
 {
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_standdown_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_standdown_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     // Minimal PE + JobCommand + Ramza-row staging, mirroring LaunchGuardTests.HealthyMemory but

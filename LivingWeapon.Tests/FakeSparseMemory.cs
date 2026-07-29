@@ -15,8 +15,32 @@ namespace LivingWeapon.Tests;
 /// Extended for TreasureMaster tests:
 ///   ReadableAddrs  -- Readable() returns true only for members (default: false).
 ///   TerrainBlocks  -- TryReadBytes serves a block registered here (keyed by base addr).
-///   U32s           -- for PE header reads (U32 = two U16 reads combined).
 ///   ReadCount      -- counts how many times each address has been read via U8.
+///
+/// LW-147 (DOCUMENTED DIVERGENCE from production -- read this before trusting a passing test):
+/// production Mem.Probe (Mem.cs) gates the WHOLE [addr, addr+len) range against one committed
+/// VirtualQuery region -- a multi-byte read/write over a partially-mapped region correctly
+/// refuses. By DEFAULT this fake does NOT reproduce that: Readable(a, n)/Writable(a, n) still
+/// check only base-address set membership and IGNORE n, exactly as before LW-147, because
+/// MEASURING the honest fix (require every byte in the range to be individually marked) turned
+/// on by default fails 94 pre-existing TESTS across 21 suites that mark only a struct's base
+/// offset (e.g. `ReadableAddrs.Add(addr + Offsets.AMaxHp)` for a field production reads with
+/// n=2) -- a different count from the 226 marking call sites across 35 files this touches --
+/// past this pass's reconciliation budget. Reconciling all of them was OUT OF SCOPE for this
+/// pass; the gap is real and stays open, tracked as LW-151 (docs/TODO.md) for closing it for
+/// real (a test that marks only a field's base byte cannot tell a genuine multi-byte gate
+/// refusal from a pass).
+///
+/// StrictRangeChecks (default false) is the opt-in escape hatch: when true, Readable/Writable
+/// require EVERY byte in [a, a+n) to be an individually-marked member of ReadableAddrs/
+/// WritableAddrs (mirroring Mem.Probe's real range gate) -- two adjacent single-byte Add calls
+/// compose into full coverage of a 2-byte read exactly as one MarkReadable(a, 2) call would. Only
+/// FakeSparseMemoryTests' own LW-147 pinning tests run strict today (proving the mechanism is
+/// real, non-vacuous); a new suite that wants the honest range gate should opt in explicitly
+/// rather than assume it is the default. The plain single-address `.Add(x)` path every
+/// pre-existing call site uses keeps working unchanged in BOTH modes (it marks a 1-byte range);
+/// MarkReadable(addr, len)/MarkWritable(addr, len) mark a longer run in one call for strict-mode
+/// call sites staging a multi-byte production gate.
 ///
 /// Extended for the (now-retired) callout on-demand suites: the default IGameMemory.WriteBytes is
 /// a silent no-op, which left a multi-byte write (e.g. a linger-arm dword) unobservable.
@@ -57,10 +81,19 @@ internal sealed class FakeSparseMemory : IGameMemory
     /// existing tests that only read Written/U8s are unaffected.</summary>
     public readonly List<long> WriteOrder = new();
 
+    /// <summary>Opt-in switch to the honest length-aware Readable/Writable gate (see the class
+    /// doc's LW-147 section). Defaults false: EVERY pre-existing call site in this repo was
+    /// written against the legacy base-address-only semantics, so flipping the default would
+    /// break 94 pre-existing tests across 21 suites (measured; a different count from the 226
+    /// marking call sites across 35 files that mark only a struct field's base offset). Closing
+    /// that gap for real is tracked as LW-151 (docs/TODO.md); this pass only documents and pins
+    /// the divergence. Set true on a FakeSparseMemory instance a new/updated test controls to
+    /// get the real per-byte range gate.</summary>
+    public bool StrictRangeChecks;
+
     // TreasureMaster extensions
     public readonly HashSet<long>             ReadableAddrs  = new();
     public readonly Dictionary<long, byte[]>  TerrainBlocks  = new();
-    public readonly Dictionary<long, uint>    U32s           = new();
     public readonly Dictionary<long, int>     ReadCount      = new();
 
     public byte U8(long a)
@@ -71,8 +104,40 @@ internal sealed class FakeSparseMemory : IGameMemory
 
     public ushort U16(long a) => U16s.TryGetValue(a, out var v) ? v : (ushort)0;
 
-    public bool Readable(long a, int n) => ReadableAddrs.Contains(a);
-    public bool Writable(long a, int n) => WritableAddrs.Contains(a);
+    /// <summary>Default (StrictRangeChecks == false): legacy behavior, base-address membership
+    /// only, n ignored -- see the class doc's LW-147 section for why. StrictRangeChecks == true:
+    /// true only when EVERY byte in [a, a+n) has been individually marked in ReadableAddrs --
+    /// mirrors production Mem.Probe, which gates the whole range against one committed region
+    /// (see Mem.cs: addr &gt;= base &amp;&amp; addr + len &lt;= base + regionSize), not just the base address.
+    /// Two adjacent single-byte Add calls compose into coverage of a 2-byte read exactly as
+    /// MarkReadable(a, 2) would, because coverage is checked per byte.</summary>
+    public bool Readable(long a, int n)
+    {
+        if (!StrictRangeChecks) return ReadableAddrs.Contains(a);
+        for (int i = 0; i < n; i++)
+            if (!ReadableAddrs.Contains(a + i)) return false;
+        return true;
+    }
+
+    /// <summary>Writable's twin of Readable -- see its doc for the default-vs-strict rule.</summary>
+    public bool Writable(long a, int n)
+    {
+        if (!StrictRangeChecks) return WritableAddrs.Contains(a);
+        for (int i = 0; i < n; i++)
+            if (!WritableAddrs.Contains(a + i)) return false;
+        return true;
+    }
+
+    /// <summary>Mark [addr, addr+len) readable in one call -- equivalent to calling
+    /// ReadableAddrs.Add for each byte in the range individually. Use this (rather than a
+    /// manual loop or a single Add at the base address) when staging a multi-byte production
+    /// gate, e.g. GrowthEngine.Locate's StructSpan read or ArmAudit's 4-byte PE field reads --
+    /// marking only the base address leaves the rest of the range uncovered and Readable(addr,
+    /// len) now correctly refuses.</summary>
+    public void MarkReadable(long addr, int len) { for (int i = 0; i < len; i++) ReadableAddrs.Add(addr + i); }
+
+    /// <summary>WritableAddrs' twin of MarkReadable.</summary>
+    public void MarkWritable(long addr, int len) { for (int i = 0; i < len; i++) WritableAddrs.Add(addr + i); }
     public void W8(long a, byte v) { Written[a] = v; U8s[a] = v; WriteOrder.Add(a); }
 
     public void W16(long a, ushort v)
@@ -102,10 +167,6 @@ internal sealed class FakeSparseMemory : IGameMemory
         OnWrite?.Invoke(addr, data);
     }
 
-    // U32 support: ArmAudit reads 4-byte PE fields as two U16 reads, or via U8x4.
-    // We override TryReadBytes so the fingerprint path works, and expose U8 for U32
-    // by splitting the stored uint into bytes.
-    //
     // LW-82: serves any read FULLY CONTAINED in a registered block (base <= addr &&
     // addr + len <= base + block.Length), a strict superset of the original exact-base-only
     // semantics (base == addr is still served, as a 1-entry special case of "contained"). This
@@ -129,7 +190,13 @@ internal sealed class FakeSparseMemory : IGameMemory
     }
 
     /// <summary>Seed a U32 value as 4 little-endian bytes at <paramref name="addr"/> so
-    /// ArmAudit's four-byte PE reads return the expected value.</summary>
+    /// ArmAudit's four-byte PE reads (ReadU32: four composed U8 reads) return the expected
+    /// value, and marks all 4 bytes readable. Serves U8-COMPOSED readers ONLY: it writes U8s,
+    /// not U16s, so IGameMemory's interface-default U32(addr) -- which composes from two U16
+    /// reads (U16(addr) | U16(addr+2)&lt;&lt;16), see GameMemory.cs -- will NOT see a value seeded
+    /// here. No current test calls the interface-default U32 through this fake; if one starts
+    /// to, seed U16s directly (or add a U16-composed sibling) instead of assuming this helper
+    /// covers it.</summary>
     public void SeedU32(long addr, uint value)
     {
         U8s[addr + 0] = (byte)(value        & 0xFF);

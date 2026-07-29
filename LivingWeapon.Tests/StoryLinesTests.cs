@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -11,18 +12,26 @@ namespace LivingWeapon.Tests;
 /// Display's own addition to ~12 lines). SeedAtStartup recomposes CURRENT from store state
 /// (never persisted itself -- decision 12) and loads PREVIOUS from the store's "lastPainted".
 /// RecomposeChanged is the live compose-change edge: it rotates the anchor and persists the
-/// evicted line as the new "lastPainted" in the SAME step.
+/// evicted line as the new "lastPainted" in the SAME step. LW-147: TempDir() directories are
+/// tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class StoryLinesTests
+public class StoryLinesTests : IDisposable
 {
     private const int Id = 9;
     private const byte Archer = 77;   // Human
 
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_storylines_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_storylines_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     private static (Dictionary<int, WeaponMeta> meta, CardPatterns pats) Meta(string flavor)

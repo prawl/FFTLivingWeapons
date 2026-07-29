@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -17,14 +18,23 @@ namespace LivingWeapon.Tests;
 ///   (3) A Config.json written with TreasureAlwaysOn=false round-trips back as false.
 ///   (4) A Config.json written with TreasureAlwaysOn=true  round-trips back as true.
 ///   (5) FromFile on a corrupt JSON silently returns a default Config (no throw).
+///
+/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class ModConfigTests
+public class ModConfigTests : IDisposable
 {
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_cfg_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_cfg_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     [Fact]

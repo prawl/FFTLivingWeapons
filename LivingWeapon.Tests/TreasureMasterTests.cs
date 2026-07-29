@@ -39,15 +39,23 @@ namespace LivingWeapon.Tests;
 /// Plus one PinnedBuf fact through LiveMemory: hold a 6-byte tile against pinned
 /// process memory, assert 0x80 lands at the target offset and neighbors are untouched.
 /// </summary>
-public class TreasureMasterTests
+public class TreasureMasterTests : IDisposable
 {
     // ── test-db helpers ──────────────────────────────────────────────────────────
 
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    // LW-147: tracked and deleted in Dispose (below), not leaked.
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "tm_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("tm_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     /// <summary>
@@ -1891,7 +1899,7 @@ public class TreasureMasterTests
     /// Build a standard TreasureMaster mem seeded for a known map, optionally with
     /// the Scholar's Ring in a roster slot.
     /// </summary>
-    private static (TreasureDb db, FakeSparseMemory mem, long addr) BuildRingGateScenario(
+    private (TreasureDb db, FakeSparseMemory mem, long addr) BuildRingGateScenario(
         bool ringEquipped, int rosterSlot = 0, bool deployed = true)
     {
         var dir     = TempDir();

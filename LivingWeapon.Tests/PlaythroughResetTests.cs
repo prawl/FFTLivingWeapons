@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -10,24 +11,33 @@ namespace LivingWeapon.Tests;
 /// debounce) archives the previous kill tally and resets the shared instance, non-destructively.
 /// LOAD-BEARING: a single qualifying tick must NEVER archive, only HoldTicks CONSECUTIVE
 /// qualifying ticks do; a hold that breaks before the threshold resets the counter and never
-/// fires. Mirrors KillTallyTests/SaveLocationTests' own-temp-dir idiom.
+/// fires. Mirrors KillTallyTests/SaveLocationTests' own-temp-dir idiom. LW-147: ModDir()'s
+/// backing temp root is tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class PlaythroughResetTests
+public class PlaythroughResetTests : IDisposable
 {
+    private readonly List<TempDirs> _tempDirs = new();
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
+    }
+
     // SaveLocation resolves SaveDir from modDir's GRANDPARENT (Directory.GetParent(modDir)?.Parent),
     // keyed on the real Mod.ModId, not on the temp folder's own random name. A bare random temp dir
     // used directly as modDir shares that grandparent (the OS temp root) across every test, so every
     // test would resolve to the SAME real SaveDir and collide. Mirrors SaveLocationTests' ModDirIn:
     // build root/Mods/<ModId> so each test's random ROOT keeps its resolved SaveDir isolated.
-    private static string ModDir()
+    private string ModDir()
     {
-        var root = Path.Combine(Path.GetTempPath(), "lw_pr_" + Path.GetRandomFileName());
-        var dir = Path.Combine(root, "Mods", Mod.ModId);
+        var t = TempDirs.Create("lw_pr_");
+        _tempDirs.Add(t);
+        var dir = Path.Combine(t.Dir, "Mods", Mod.ModId);
         Directory.CreateDirectory(dir);
         return dir;
     }
 
-    private static (SaveLocation save, KillTally tally) SeededTally(int weaponId = 1, int kills = 5)
+    private (SaveLocation save, KillTally tally) SeededTally(int weaponId = 1, int kills = 5)
     {
         var save = new SaveLocation(ModDir());
         var tally = KillTally.Load(save.PathFor("kills.json"));

@@ -59,6 +59,70 @@ public class FakeSparseMemoryTests
         Assert.False(m.Writable(0x5001, 1));
     }
 
+    // ---- LW-147: Readable/Writable can become length-aware, OPT-IN via StrictRangeChecks.
+    // Production Mem.Probe (Mem.cs) gates the WHOLE [addr, addr+len) range against one committed
+    // region; by default this fake ignores len and passes on base-address membership alone (a
+    // divergence from production, documented on the class and on StrictRangeChecks -- reconciling
+    // every one of the ~90+ pre-existing call sites that only mark a struct field's base offset
+    // was past the ticket's ~50-call-site cap, so the gap stays open by default). These pinning
+    // tests prove the opt-in mechanism is real and non-vacuous; they are the only suite that runs
+    // strict today. ----
+
+    [Fact]
+    public void Strict_Readable_refuses_a_multibyte_range_that_is_only_half_marked()
+    {
+        var m = new FakeSparseMemory { StrictRangeChecks = true };
+        m.ReadableAddrs.Add(0xC000);           // only the first byte marked
+        Assert.False(m.Readable(0xC000, 2));   // the second byte (0xC001) is NOT covered
+    }
+
+    [Fact]
+    public void Strict_Readable_passes_a_multibyte_range_once_every_byte_is_marked()
+    {
+        var m = new FakeSparseMemory { StrictRangeChecks = true };
+        m.ReadableAddrs.Add(0xC000);
+        m.ReadableAddrs.Add(0xC001);           // two adjacent single-byte marks compose...
+        Assert.True(m.Readable(0xC000, 2));    // ...into full coverage of the 2-byte range
+    }
+
+    [Fact]
+    public void Strict_MarkReadable_marks_a_whole_range_in_one_call()
+    {
+        var m = new FakeSparseMemory { StrictRangeChecks = true };
+        m.MarkReadable(0xD000, 4);
+        Assert.True(m.Readable(0xD000, 4));
+        Assert.False(m.Readable(0xD000, 5));   // one byte past the marked range still refuses
+    }
+
+    [Fact]
+    public void Strict_Writable_refuses_a_multibyte_range_that_is_only_half_marked()
+    {
+        var m = new FakeSparseMemory { StrictRangeChecks = true };
+        m.WritableAddrs.Add(0xE000);
+        Assert.False(m.Writable(0xE000, 2));
+    }
+
+    [Fact]
+    public void Strict_MarkWritable_marks_a_whole_range_in_one_call()
+    {
+        var m = new FakeSparseMemory { StrictRangeChecks = true };
+        m.MarkWritable(0xF000, 3);
+        Assert.True(m.Writable(0xF000, 3));
+        Assert.False(m.Writable(0xEFFF, 3));   // one byte before the marked range still refuses
+    }
+
+    [Fact]
+    public void NonStrict_default_ignores_length_a_half_marked_range_still_passes_documented_divergence()
+    {
+        // Pins the DEFAULT (non-strict) divergence from production Mem.Probe: with
+        // StrictRangeChecks left false, marking only the base byte of a 2-byte field still
+        // passes a 2-byte Readable check, unlike production, which would refuse an
+        // only-half-mapped range. See the class doc's LW-147 section for why this stays open.
+        var m = new FakeSparseMemory();
+        m.ReadableAddrs.Add(0x11000);
+        Assert.True(m.Readable(0x11000, 2));   // 0x11001 was never marked -- still passes
+    }
+
     [Fact]
     public void WriteBytes_records_into_WrittenBytes_and_invokes_OnWrite()
     {

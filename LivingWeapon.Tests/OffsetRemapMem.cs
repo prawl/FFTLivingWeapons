@@ -34,6 +34,7 @@ internal sealed class OffsetRemapMem : IGameMemory
     public int    ReadInto(long addr, byte[] buf, int len)         => _inner.ReadInto(Remap(addr), buf, len);
     public void   WriteBytes(long addr, byte[] data)               => _inner.WriteBytes(Remap(addr), data);
     public void   W8(long addr, byte v)                            => _inner.W8(Remap(addr), v);
+    public void   W16(long addr, ushort v)                         => _inner.W16(Remap(addr), v);
     public bool   Readable(long addr, int len)                     => _inner.Readable(Remap(addr), len);
     public bool   Writable(long addr, int len)                     => _inner.Writable(Remap(addr), len);
     public System.Collections.Generic.IEnumerable<(long baseAddr, long size)> Regions()

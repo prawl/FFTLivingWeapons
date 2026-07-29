@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -11,14 +12,22 @@ namespace LivingWeapon.Tests;
 /// Persistence mirrors KillTally's prior-copy-to-.bak ordering exactly (KillTally.cs:64-76)
 /// PLUS a corrupt-load warning + flight record KillTally's own silent catch lacks. Each test
 /// works in its own temp directory so parallel runs never collide (mirrors KillTallyTests).
+/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class LegendStoreTests
+public class LegendStoreTests : IDisposable
 {
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_legends_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_legends_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     private static string PathIn(string dir) => Path.Combine(dir, "legends.json");

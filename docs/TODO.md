@@ -60,6 +60,24 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-147] Finish hardening the test fakes so no assertion can silently go blind** (opened 2026-07-28) [BUILDING]
+  - Done means: the remaining fake blind spots from the audit are closed or honestly fenced.
+    Readable and Writable CAN honor the length argument the way production does, but only where
+    a test opts in: FakeSparseMemory gains a StrictRangeChecks switch (default off) requiring
+    every byte of the range marked, plus MarkReadable/MarkWritable helpers; the default stays
+    the old base-address check because the honest gate on by default fails 94 existing tests
+    across 21 suites, far past this pass's reconciliation budget, so the divergence is written
+    on the class, pinned by a strict half-marked-range refusal test and by a test pinning the
+    default's blind spot, and closing it for real is captured as LW-151. Fully delivered: a W16
+    through the offset-remap adapter reaches the inner fake; the dead U32s dictionary is gone
+    and SeedU32's doc says which readers see it; the log-contract scanners understand verbatim
+    strings so a path ending in a backslash cannot desync them; and 17 leaking suites adopted a
+    shared disposable temp-dir fixture. The LW-145 batch already delivered the WriteBytes-applies
+    and unified-write-log halves.
+  - Verify: full suite green; the strict gate proven non-vacuous by a test that marks half a
+    range and refuses; no pre-existing test's expectation changed, proven by the suite staying
+    green with zero assertion edits across the 17 converted suites. Offline only.
+
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
@@ -78,19 +96,15 @@ the technical detail lives in the indented lines under it.
   names the wrong terrain grid base two lines under its own correction banner and wants a
   supersession stamp; that flip is owner sign-off only, same as every LIVE_LEDGER row.
 
-- [LW-147] 2026-07-28: The test fakes have blind spots that quietly weaken about 40 negative
-  assertions, found by the audit's test lens.
-  FakeSparseMemory.WriteBytes records the write but never applies it, so read-after-write returns
-  the pre-write value, inverting the fake's own documented W8 contract (FakeSparseMemory.cs:62);
-  Readable/Writable ignore the length argument entirely while production validates the whole range
-  (:57); W8, W16 and WriteBytes land in three separate logs so "zero writes happened" assertions
-  that check only Written/WriteOrder can miss a W16 or WriteBytes (:59); the U32s dictionary is
-  dead and its doc misleads (:46); OffsetRemapMem forwards nine members but not W16, so a W16
-  through the adapter vanishes into the interface default no-op (OffsetRemapMem.cs:31).
-  LogContractTests' balanced-args scanner treats backslash as an escape inside verbatim strings,
-  so a facade call with a verbatim path ending in a backslash silently desyncs the sweep
-  (LogContractTests.cs:165). About 16 suites leak their temp dirs; DrillTriggerTests and
-  GunSlingerTests already show the try/finally pattern to copy.
+- [LW-151] 2026-07-29: The test fake's honest length-aware read gate exists but is opt-in;
+  turning it on for the whole suite is the open work.
+  Measured 2026-07-29: defaulting StrictRangeChecks to true fails 94 tests across 21 suites,
+  because tests mark a production gate's base byte while the shipped code gates multi-byte
+  ranges (AMaxHp and friends 2 bytes, KillTracker 12, GrowthEngine.Locate 65, Barrage RecSize
+  25); real marking sites number 226 across 35 files. The cheap path runs THROUGH LW-149: once
+  the shared band sanity helper exists, tests seed through shared fixtures that mark honest
+  ranges centrally, and the default can flip with a fraction of the hand edits. Until then the
+  divergence is documented on FakeSparseMemory and pinned in both directions.
 
 - [LW-149] 2026-07-28: The audit mapped the duplication families beyond the ledgered LW-125 trio;
   each is a candidate extraction stage, none urgent alone.

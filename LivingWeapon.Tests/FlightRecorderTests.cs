@@ -18,16 +18,24 @@ namespace LivingWeapon.Tests;
 /// injected, so nothing here touches a real disk or a real clock except where a test explicitly
 /// wants the production default (the facade smoke test).
 /// </summary>
-public class FlightRecorderTests
+public class FlightRecorderTests : IDisposable
 {
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    // LW-147: tracked and deleted in Dispose (below), not leaked.
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_flight_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_flight_");
+        _tempDirs.Add(t);
+        return t.Dir;
     }
 
-    private static FlightRecorder Make(
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
+    }
+
+    private FlightRecorder Make(
         string? modDir = null,
         Func<long>? clock = null,
         Func<DateTime>? wallClock = null,

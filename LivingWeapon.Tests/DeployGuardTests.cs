@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Xunit;
@@ -9,10 +10,18 @@ namespace LivingWeapon.Tests;
 /// LW-134: exercises tools/pipeline.ps1's Resolve-DeployedFlavor for real, via a real Windows
 /// PowerShell 5.1 child process (not a re-implementation of its logic in C#), so these tests are
 /// pinned against the exact script BuildLinked.ps1's deploy guard runs, not a paraphrase of it.
-/// Repo-root resolution mirrors PipelineManifestContractTests.
+/// Repo-root resolution mirrors PipelineManifestContractTests. LW-147: TempFixtureDir()
+/// directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class DeployGuardTests
+public class DeployGuardTests : IDisposable
 {
+    private readonly List<TempDirs> _tempDirs = new();
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
+    }
+
     private static string RepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
@@ -26,11 +35,11 @@ public class DeployGuardTests
         throw new FileNotFoundException("repo root (docs/TODO.md + LivingWeapon/) not found above the test bin dir");
     }
 
-    private static string TempFixtureDir()
+    private string TempFixtureDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_deployguard_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_deployguard_");
+        _tempDirs.Add(t);
+        return t.Dir;
     }
 
     private static string WriteFile(string dir, string name, string content)

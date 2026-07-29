@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -10,14 +11,22 @@ namespace LivingWeapon.Tests;
 /// (KillTrackerDeedTests.cs owns that wiring). This file owns Reliquary's OWN behavior: the
 /// Mark toast enqueue (stage 3, decision 11's disabled-toast inertness) and the flight taps.
 /// Each test works in its own temp legends.json directory so parallel runs never collide.
+/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class ReliquaryTests
+public class ReliquaryTests : IDisposable
 {
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_reliquary_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_reliquary_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     private static VictimSnapshot Victim(ushort nameId, byte job, bool undead = false)

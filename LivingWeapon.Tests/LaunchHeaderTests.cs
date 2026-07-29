@@ -10,14 +10,22 @@ namespace LivingWeapon.Tests;
 /// The launch header's data sources (logging facelift stage 3): ModInfo.ReadVersion (fail-soft
 /// ModConfig.json read), KillTally.LoadedFrom + its backup/fresh Warnings, and LegendStore's
 /// WeaponCount/TotalMarks/LoadedFrom getters. All filesystem cases run in isolated temp dirs.
+/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class LaunchHeaderTests
+public class LaunchHeaderTests : IDisposable
 {
-    private static string TempDir()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_header_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_header_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     // --- ModInfo.ReadVersion ---

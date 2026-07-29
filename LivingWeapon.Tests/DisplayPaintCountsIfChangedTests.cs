@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -12,11 +13,19 @@ namespace LivingWeapon.Tests;
 /// -> PaintAll, Display.cs:145-157's own ordering) without any pool/sweep locate work or sweep
 /// stepping, so a mid-battle kill repaints the equip card's Kills meter without waiting for the
 /// post-battle settle window (ShouldPaintCard gates the full Tick to out-of-battle/paused frames).
+/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
-public class DisplayPaintCountsIfChangedTests
+public class DisplayPaintCountsIfChangedTests : IDisposable
 {
     private const long StaticsBase = 0x42_0000_0000L;
     private const long SourceBase  = 0x43_0000_0000L;
+
+    private readonly List<TempDirs> _tempDirs = new();
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
+    }
 
     private static Dictionary<int, WeaponMeta> BuildMeta() => new()
     {
@@ -103,12 +112,13 @@ public class DisplayPaintCountsIfChangedTests
     }
 
     // ─── T13: the review-blocker ordering + consumed-edge pins ────────────────
+    // LW-147: tracked and deleted in Dispose (above), not leaked.
 
-    private static string TempDir()
+    private string TempDir()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_paintcounts_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_paintcounts_");
+        _tempDirs.Add(t);
+        return t.Dir;
     }
 
     private static string ReadRegion(FakeHeap heap, long addr, int len)

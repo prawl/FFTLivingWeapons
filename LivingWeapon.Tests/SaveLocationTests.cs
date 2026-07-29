@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using LivingWeapon;
@@ -10,15 +11,23 @@ namespace LivingWeapon.Tests;
 /// runs a one-time, strictly non-destructive migration of a legacy file out of the deploy mod
 /// dir. Every test builds its own random-rooted temp tree (mirrors KillTallyTests/LegendStoreTests)
 /// so the resolved dir (which keys on the real Mod.ModId, not on any test-chosen folder name)
-/// never collides across parallel runs.
+/// never collides across parallel runs. LW-147: TempRoot() directories are tracked and deleted
+/// in Dispose, not leaked.
 /// </summary>
-public class SaveLocationTests
+public class SaveLocationTests : IDisposable
 {
-    private static string TempRoot()
+    private readonly List<TempDirs> _tempDirs = new();
+
+    private string TempRoot()
     {
-        var d = Path.Combine(Path.GetTempPath(), "lw_saveloc_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(d);
-        return d;
+        var t = TempDirs.Create("lw_saveloc_");
+        _tempDirs.Add(t);
+        return t.Dir;
+    }
+
+    public void Dispose()
+    {
+        foreach (var t in _tempDirs) t.Dispose();
     }
 
     /// <summary>Builds root/Mods/&lt;ModId&gt;, the same two-levels-under-the-Reloaded-root shape
