@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-148] SHIPPED 357634d 2026-07-29: the pipeline's own safety gates can no longer pass falsely.
+  A rename whose target row is missing fails the bake red instead of silently shipping vanilla
+  text, and the built table is verified cell by cell against pristine before deploy; a log the
+  scanner cannot parse reads INCONCLUSIVE, never CLEAN, and the scanner's own 41 regression cases
+  now run as a build gate on every deploy; an emptied item table deletes its stale file with a
+  loud unshippable-state warning instead of deploying last run's copy; the mods folder rule lives
+  in one env-aware place; the flight tape reader refuses unknown flags; a crashed log scanner is
+  reported as itself, not as game errors; and the save-dir and kills-slot-width mirror promises
+  became real cross-language contract tests. All ten holes were desk-verified twice by the smell
+  audit before building. (Tech: patch_names.py changes()==1 guards + verify_against_vanilla via
+  audit_nxd_bakes' own audit; the MISSED-intent check with the allowed-cells overlap guard, false
+  red proven then fixed; scan_logs tripwire + selftest in Invoke-TablePipeline;
+  Resolve-SaveDir in pipeline.ps1 pinned by SaveDirMirrorTests; KillsSlotWidthContractTests;
+  manifest regex anchored with comment-tail stripping. Adversarial verify SHIP 8/10; suite 2893;
+  real bake reproduced byte-identical.)
 - [LW-145] SHIPPED 4f681fb 2026-07-28: six small proven bugs in the code that writes into the
   running game are fixed as one batch, none ever observed live, all found by the same day's smell
   audit and confirmed by adversarial review. Plainly: a guarded bit write could zero its seven
