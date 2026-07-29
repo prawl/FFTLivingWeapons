@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-147] SHIPPED 070974a 2026-07-29: the test fakes the whole suite leans on can no longer let
+  an assertion silently go blind, and the one gap too wide to close in a day is fenced honestly
+  instead of papered over. Closed outright: a sixteen-bit write through the offset-remap adapter
+  used to vanish into a default no-op; a dead dictionary advertised support nothing read; the
+  log-contract scanner could be desynced by a verbatim path ending in a backslash; and seventeen
+  suites leaked their temp directories (over a hundred thousand orphan folders on this box), all
+  now on one shared disposable fixture with zero assertion changes. Fenced honestly: production
+  validates a whole read range while the fake checks only the first byte; the honest gate now
+  exists behind an opt-in StrictRangeChecks switch, pinned in BOTH directions (a strict
+  half-marked-range refusal, and a pin on the default's blind spot), because defaulting it on
+  fails 94 existing tests across 21 suites, measured and independently reproduced; closing that
+  for real is LW-151 and rides the LW-149 helper extraction. (Tech: FakeSparseMemory ranges +
+  MarkReadable/MarkWritable; OffsetRemapMem W16 forward; SkipStringLiteral verbatim semantics in
+  LogContractTests with empty-scan guards; TempDirs.cs fixture; 14 new tests, suite 2907, zero
+  production files touched; adversarial verify SHIP 8/10, findings folded in.)
 - [LW-148] SHIPPED 357634d 2026-07-29: the pipeline's own safety gates can no longer pass falsely.
   A rename whose target row is missing fails the bake red instead of silently shipping vanilla
   text, and the built table is verified cell by cell against pristine before deploy; a log the

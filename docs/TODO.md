@@ -60,24 +60,6 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-147] Finish hardening the test fakes so no assertion can silently go blind** (opened 2026-07-28) [BUILDING]
-  - Done means: the remaining fake blind spots from the audit are closed or honestly fenced.
-    Readable and Writable CAN honor the length argument the way production does, but only where
-    a test opts in: FakeSparseMemory gains a StrictRangeChecks switch (default off) requiring
-    every byte of the range marked, plus MarkReadable/MarkWritable helpers; the default stays
-    the old base-address check because the honest gate on by default fails 94 existing tests
-    across 21 suites, far past this pass's reconciliation budget, so the divergence is written
-    on the class, pinned by a strict half-marked-range refusal test and by a test pinning the
-    default's blind spot, and closing it for real is captured as LW-151. Fully delivered: a W16
-    through the offset-remap adapter reaches the inner fake; the dead U32s dictionary is gone
-    and SeedU32's doc says which readers see it; the log-contract scanners understand verbatim
-    strings so a path ending in a backslash cannot desync them; and 17 leaking suites adopted a
-    shared disposable temp-dir fixture. The LW-145 batch already delivered the WriteBytes-applies
-    and unified-write-log halves.
-  - Verify: full suite green; the strict gate proven non-vacuous by a test that marks half a
-    range and refuses; no pre-existing test's expectation changed, proven by the suite staying
-    green with zero assertion edits across the 17 converted suites. Offline only.
-
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
