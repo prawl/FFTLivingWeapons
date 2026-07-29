@@ -23,6 +23,23 @@ namespace LivingWeapon.Tests;
 /// WriteBytes now records into WrittenBytes AND invokes the optional OnWrite hook so a test can
 /// fold memory writes into the same ordered op log as native calls -- kept as a generic harness
 /// for any future suite that needs write-order assertions, even with its original consumer gone.
+///
+/// LW-145 fix 0 (the LW-147 slice this batch rides in on): W16 and WriteBytes used to log a write
+/// (WrittenU16 / WrittenBytes) WITHOUT applying it, so a read-back after either one silently
+/// returned the pre-write value -- the opposite of W8's own documented contract -- and neither
+/// call appended to WriteOrder, so a "this address was never written" assertion built on
+/// WriteOrder alone could miss a real W16/WriteBytes write. Fixed, but the three channels are NOT
+/// symmetric -- read the exact mapping before trusting a read-back:
+///   W8         -&gt; U8s only.
+///   W16        -&gt; U16s, AND mirrors its low/high bytes into U8s (little-endian), so a U8
+///                 read-back also observes it.
+///   WriteBytes -&gt; U8s (every byte written), plus a containing TerrainBlocks block when one
+///                 fully covers the range (mirroring TryReadBytes' own containment check) --
+///                 but NEVER U16s. A U16() read-back after a 2-byte WriteBytes at that address
+///                 still returns the PRE-write value (PlagueLevelDriftTests.cs documents this
+///                 exact gap; observe such a write via OnWrite/WrittenBytes instead of U16()).
+/// All three append to WriteOrder. Written/WrittenU16/WrittenBytes are unchanged (existing tests
+/// read them).
 /// </summary>
 internal sealed class FakeSparseMemory : IGameMemory
 {
@@ -57,11 +74,31 @@ internal sealed class FakeSparseMemory : IGameMemory
     public bool Readable(long a, int n) => ReadableAddrs.Contains(a);
     public bool Writable(long a, int n) => WritableAddrs.Contains(a);
     public void W8(long a, byte v) { Written[a] = v; U8s[a] = v; WriteOrder.Add(a); }
-    public void W16(long a, ushort v) { WrittenU16[a] = v; U16s[a] = v; }
+
+    public void W16(long a, ushort v)
+    {
+        WrittenU16[a] = v;
+        U16s[a] = v;
+        U8s[a] = (byte)(v & 0xFF);
+        U8s[a + 1] = (byte)((v >> 8) & 0xFF);
+        WriteOrder.Add(a);
+    }
 
     public void WriteBytes(long addr, byte[] data)
     {
         WrittenBytes.Add((addr, (byte[])data.Clone()));
+        for (int i = 0; i < data.Length; i++) U8s[addr + i] = data[i];
+        foreach (var pair in TerrainBlocks)
+        {
+            long @base = pair.Key;
+            byte[] block = pair.Value;
+            if (addr >= @base && addr + data.Length <= @base + block.Length)
+            {
+                System.Array.Copy(data, 0, block, addr - @base, data.Length);
+                break;
+            }
+        }
+        WriteOrder.Add(addr);
         OnWrite?.Invoke(addr, data);
     }
 

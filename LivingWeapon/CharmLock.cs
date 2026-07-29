@@ -32,7 +32,10 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class CharmLock : ISignature
 {
-    void ISignature.Tick(in TickContext ctx) => Tick(ctx.Now, ctx.InLive);
+    // LW-145 fix 4: the typed Tick's own class doc (LIVENESS, above) and Engine.cs's call site
+    // both gate on BattleDisplayed, not InLive -- delegate the same fact the production call
+    // site already uses.
+    void ISignature.Tick(in TickContext ctx) => Tick(ctx.Now, ctx.BattleDisplayed);
 
     internal const int CharmStatusOff = 0x49, CharmAllegOff = 0x54;   // base-relative (internal: tests assert the held bytes)
     private const int CtOff = 0x25;

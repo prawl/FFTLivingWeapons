@@ -90,16 +90,16 @@ internal sealed partial class Ricochet
     /// <summary>New HP after applying chip: max(currentHp - chip, 1). Chip never kills.</summary>
     public static int ClampHp(int currentHp, int chip) => Math.Max(currentHp - chip, 1);
 
-    /// <summary>Write the clamped HP to the authoritative band entry. Both bytes written
-    /// little-endian. No-ops if not writable (fail-safe) or if HP is already at the floor.</summary>
+    /// <summary>Write the clamped HP to the authoritative band entry as one little-endian W16
+    /// call (LW-145 fix 2: two separate W8 halves opened a torn-value window). No-ops if not
+    /// writable (fail-safe) or if HP is already at the floor.</summary>
     public static void ApplyChip(IGameMemory mem, long addr, int currentHp, int chip)
     {
         int newHp = ClampHp(currentHp, chip);
         if (newHp == currentHp) return;   // already at floor (hp was 1) or chip is 0
         long hpAddr = addr + Offsets.AHp;
         if (!mem.Writable(hpAddr, 2)) return;
-        mem.W8(hpAddr,     (byte)(newHp & 0xFF));
-        mem.W8(hpAddr + 1, (byte)((newHp >> 8) & 0xFF));
+        mem.W16(hpAddr, (ushort)newHp);
     }
 }
 

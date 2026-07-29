@@ -51,13 +51,14 @@ internal sealed partial class Rapture
         return f;
     }
 
-    /// <summary>Guarded write of a 3-byte movement field image to the band entry. Used for both
-    /// the hold (teleport image) and the restore (saved image); fail-safe no-op.</summary>
+    /// <summary>Guarded write of a 3-byte movement field image to the band entry, one WriteBytes
+    /// call (LW-145 fix 2: a per-byte W8 loop opened a torn-value window). Used for both the
+    /// hold (teleport image) and the restore (saved image); fail-safe no-op.</summary>
     public static void WriteField(IGameMemory mem, long entryAddr, byte[] field)
     {
         long a = entryAddr + Offsets.AMovement;
         if (!mem.Writable(a, field.Length)) return;
-        for (int i = 0; i < field.Length; i++) mem.W8(a + i, field[i]);
+        mem.WriteBytes(a, field);
     }
 
     /// <summary>Read the granted movement bit back off the band entry -- true == SET. The

@@ -83,4 +83,53 @@ public class FakeSparseMemoryTests
         m.WriteBytes(0x7000, new byte[] { 9 });
         Assert.Single(m.WrittenBytes);
     }
+
+    // ---- LW-145 fix 0 (LW-147 slice): W16/WriteBytes join the read-back + WriteOrder contract ----
+
+    [Fact]
+    public void W16_mirrors_into_U8s_little_endian_and_lands_in_WriteOrder()
+    {
+        var m = new FakeSparseMemory();
+        m.W16(0x8000, 0x1234);
+        Assert.Equal(0x1234, m.U16(0x8000));
+        Assert.Equal((byte)0x34, m.U8(0x8000));   // low byte
+        Assert.Equal((byte)0x12, m.U8(0x8001));   // high byte
+        Assert.Contains(0x8000L, m.WriteOrder);
+    }
+
+    [Fact]
+    public void WriteBytes_applies_into_U8s_so_a_U8_read_back_observes_it()
+    {
+        var m = new FakeSparseMemory();
+        m.WriteBytes(0x9000, new byte[] { 0xAA, 0xBB, 0xCC });
+        Assert.Equal((byte)0xAA, m.U8(0x9000));
+        Assert.Equal((byte)0xBB, m.U8(0x9001));
+        Assert.Equal((byte)0xCC, m.U8(0x9002));
+        Assert.Contains(0x9000L, m.WriteOrder);
+    }
+
+    [Fact]
+    public void WriteBytes_applies_into_a_containing_TerrainBlock_when_one_covers_the_range()
+    {
+        // Mirrors TryReadBytes's own containment check (base <= addr && addr+len <= base+block.Length)
+        // so a treasure-tile-style block write is observable through TryReadBytes too, not just U8.
+        var m = new FakeSparseMemory();
+        var block = new byte[8];
+        m.TerrainBlocks[0xA000] = block;
+        m.WriteBytes(0xA002, new byte[] { 0x11, 0x22 });
+        Assert.True(m.TryReadBytes(0xA002, 2, out var buf));
+        Assert.Equal(new byte[] { 0x11, 0x22 }, buf);
+        Assert.Equal((byte)0x11, block[2]);
+        Assert.Equal((byte)0x22, block[3]);
+    }
+
+    [Fact]
+    public void W16_and_WriteBytes_join_W8_in_one_unified_WriteOrder()
+    {
+        var m = new FakeSparseMemory();
+        m.W8(0xB000, 1);
+        m.W16(0xB002, 2);
+        m.WriteBytes(0xB004, new byte[] { 3 });
+        Assert.Equal(new long[] { 0xB000, 0xB002, 0xB004 }, m.WriteOrder);
+    }
 }

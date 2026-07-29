@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-145] SHIPPED 4f681fb 2026-07-28: six small proven bugs in the code that writes into the
+  running game are fixed as one batch, none ever observed live, all found by the same day's smell
+  audit and confirmed by adversarial review. Plainly: a guarded bit write could zero its seven
+  neighbor bits if its pre-read failed at exactly the wrong moment; five places wrote a number one
+  byte at a time, so another thread could glimpse a half-written value; a katana's reaction
+  suppression could mistake a failed read for "no reaction" and later erase a real one; two
+  modules answered the wrong is-a-battle-on-screen question through their shared interface; the
+  Sunderer's ground restore now proves it still owns a tile before writing it back; and seven
+  copies of the same sanity check agree on one bound where one had drifted. Also rides: the test
+  fake now applies two-byte and multi-byte writes so read-backs and no-write assertions see them,
+  the first slice of LW-147. One honest exception to behavior-identical, verified unreachable in
+  practice: an enemy whose max HP reads exactly 2000 was processed by Plague's walk before and is
+  skipped now. (Tech: built TDD on branch fix/lw145-write-layer-correctness, 17 new tests, suite
+  2890; adversarial verify SHIP 8/10 with three sabotage breaks each going red; merged to main
+  2026-07-28 with this exit riding the merge commit.)
 - [LW-134] SHIPPED 18211c3 2026-07-28: a test build can no longer silently stomp a real player's
   kill counts. The guard that refuses such deploys had gone blind: it looked for the player's tally
   next to the mod, but the save files moved into the Reloaded User\Mods directory when save scoping

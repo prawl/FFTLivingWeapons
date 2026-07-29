@@ -253,13 +253,14 @@ public class BenedictionTests
         return (bene, mem, tracker, wAddr);
     }
 
-    // Read back the u16 HP our boost wrote (LifeSap.WriteHp writes two little-endian bytes via W8).
+    // Read back the u16 HP our boost wrote (LifeSap.WriteHp writes one little-endian W16 call,
+    // LW-145 fix 2: it used to be two separate W8 halves, landing in Written instead).
     private static bool TryReadWritten(FakeSparseMemory mem, long entryAddr, out int hp)
     {
         hp = 0;
         long a = entryAddr + Offsets.AHp;
-        if (!mem.Written.ContainsKey(a)) return false;
-        hp = mem.Written[a] | (mem.Written.TryGetValue(a + 1, out var hi) ? hi << 8 : 0);
+        if (!mem.WrittenU16.ContainsKey(a)) return false;
+        hp = mem.WrittenU16[a];
         return true;
     }
 
@@ -302,7 +303,7 @@ public class BenedictionTests
         bene.Tick(onField: true);                  // baseline
         mem.U16s[w + Offsets.AHp] = 80;            // ally HP rose, but Sanctus isn't the latch
         bene.Tick(onField: true);
-        Assert.False(mem.Written.ContainsKey(w + Offsets.AHp));
+        Assert.False(TryReadWritten(mem, w, out _));
     }
 
     [Fact]
@@ -314,7 +315,7 @@ public class BenedictionTests
         bene.Tick(onField: true);                  // active, baseline both
         mem.U16s[enemy + Offsets.AHp] = 90;        // an enemy got healed while Sanctus holds the latch
         bene.Tick(onField: true);
-        Assert.False(mem.Written.ContainsKey(enemy + Offsets.AHp));   // the ally-only filter blocks it
+        Assert.False(TryReadWritten(mem, enemy, out _));   // the ally-only filter blocks it
     }
 
     [Fact]
@@ -326,7 +327,7 @@ public class BenedictionTests
         bene.Tick(onField: true);
         mem.U16s[w + Offsets.AHp] = 80;
         bene.Tick(onField: true);
-        Assert.False(mem.Written.ContainsKey(w + Offsets.AHp));
+        Assert.False(TryReadWritten(mem, w, out _));
     }
 
     [Fact]
@@ -338,7 +339,7 @@ public class BenedictionTests
         bene.Tick(onField: true);                  // baseline at 50
         mem.U16s[w + Offsets.AHp] = 100;           // Cure topped the ally off
         bene.Tick(onField: true);                  // rise 50, bonus 15, but 100+15 clamps to 100
-        Assert.False(mem.Written.ContainsKey(w + Offsets.AHp));
+        Assert.False(TryReadWritten(mem, w, out _));
     }
 
     [Fact]

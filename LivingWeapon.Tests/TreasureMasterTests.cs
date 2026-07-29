@@ -191,6 +191,36 @@ public class TreasureMasterTests
         Assert.Empty(mem.Written);
     }
 
+    // ── LW-145 fix 4: the ISignature.Tick shim must gate on BattleDisplayed, not InLive ──────
+
+    [Fact]
+    public void Shim_gates_on_BattleDisplayed_not_InLive_armed_module_writes_nothing_when_not_displayed()
+    {
+        // The typed Tick's own class doc and Engine.cs's call site both gate TreasureMaster on
+        // BattleDisplayed, not InLive -- the old shim wired ctx.InLive instead, a dormant
+        // wrong-gate trap. Arm the module for real, then drive it through the SHIM with InLive
+        // true but BattleDisplayed false: a correct shim must idle (no re-assert write), exactly
+        // like a typed Tick(now, inLive: false) call does.
+        var dir = TempDir();
+        var terrain = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07 };
+        var addr = TileAddr(9);
+        var db = BuildDb(dir, fpLen: terrain.Length, fpHash: TerrainFpHash(terrain),
+            addrs: new[] { (addr, (byte)0x00) });
+        var mem = BuildMem(74, terrain, new[] { addr });
+
+        var tm = Make(db, mem);
+        StabilizeAndArm(tm);
+        Assert.True(mem.Written.ContainsKey(addr));   // confirmed armed and holding
+
+        mem.Written.Clear();
+        mem.U8s[addr] = 0x00;   // engine cleared the mark; a displayed re-assert would rewrite it
+
+        var ctx = new TickContext(DateTime.Now, onField: true, inLive: true, battleDisplayed: false);
+        ((ISignature)tm).Tick(in ctx);
+
+        Assert.False(mem.Written.ContainsKey(addr));
+    }
+
     // ── (2) Arms and writes cur|0x80 to each Resting addr ────────────────────────
 
     [Fact]

@@ -62,23 +62,6 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
-- [LW-145] 2026-07-28: The 2026-07-28 smell audit found six small real bugs in the write layer,
-  each verified against the code, none yet observed live.
-  (1) MemBits.OrSet treats a failed pre-read as value 0 and would write the bare mask, zeroing the
-  other 7 bits, the exact neighbor-bit disturbance its own doc forbids; Clear has the dual defect
-  (MemBits.cs:20). (2) Five policy sites write multi-byte values one byte at a time, opening a
-  torn-value window the game's own threads can observe (a heal crossing 255 HP transiently reads
-  0): LifeSap.Policy.cs:44, SpiritualFont.Policy.cs:59, Ricochet.Policy.cs:101, Maim.Policy.cs:32
-  and 43, Rapture.Policy.cs:60; the single-syscall form already exists in-house
-  (Plague.Policy.cs:114). (3) Maim latches a failed reaction read's 0 sentinel as the victim's
-  saved reaction and restores it, wiping a real reaction for the battle (Maim.cs:110,
-  Maim.Policy.cs:54). (4) CharmLock and TreasureMaster's ISignature.Tick shims pass InLive where
-  the contract documents BattleDisplayed, a dormant wrong-gate trap (CharmLock.cs:35,
-  TreasureMaster.cs:29). (5) Bulwark.Terrain Release restores saved bytes without verifying it
-  still owns them, the one restore surface in the repo without an ownership check
-  (Bulwark.Terrain.cs:142). (6) The seven copied band sanity reads have already forked their maxHP
-  bound, Plague reads mhp > 2000 while six siblings read >= 2000 (Plague.cs:94).
-
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
   one item is left, and it needs the owner's own sign-off.
   Fixed this commit: docs/LOGGING.md's claim that Puppeteer is not flight-tapped (it is, and the

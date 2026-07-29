@@ -480,7 +480,7 @@ internal sealed class Engine
 
         bool changed = _tracker.Poll(onField);   // every ~33ms tick so fast-forward deaths aren't missed
         _turns.Poll();                        // edge-detect each unit's turns (for timed signatures)
-        var ctx = new TickContext(now, onField, inLive);
+        var ctx = new TickContext(now, onField, inLive, battleDisplayed);
         foreach (var sig in _fieldSignatures) sig.Tick(in ctx);
         if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
         // NOT onField-gated: the facing prompt this queues into can render during the mode-1

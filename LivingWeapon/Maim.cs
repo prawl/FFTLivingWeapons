@@ -107,7 +107,12 @@ internal sealed partial class Maim : ISignature
                 {
                     // First hit: read the LIVE reaction before we zero it, and seed the turn counter with
                     // the victim's CURRENT CT so the first sample is never mistaken for a completed turn.
-                    uint saved = ReadReactionField(_mem, addr);
+                    // A failed read must NEVER latch a fake 0 as "the saved reaction" -- ExpireAll/
+                    // RestoreAll would later write that 0 back and wipe a REAL reaction for the battle.
+                    // Refuse the latch instead: no suppression this strike, fail-safe -- there is
+                    // nothing to retry (the HP-diff event is already spent), unlike Kobu's rearm-read
+                    // refusal, which rolls the baseline back for a next-tick retry.
+                    if (!TryReadReactionField(_mem, addr, out uint saved)) continue;
                     _state.Latch(addr, fp, saved, _mem.U8(addr + LiveCtOff));
                     ModLogger.EventWithTrace(LogVerb.Signature,
                         $"The struck enemy ({mhp} maximum HP) loses its reaction abilities for {crippleTurns} of its turns.",

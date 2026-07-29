@@ -184,6 +184,27 @@ public class CharmLockTests
         Assert.NotNull(cl.LockedFingerprint);
     }
 
+    // --- LW-145 fix 4: the ISignature.Tick shim must gate on BattleDisplayed, not InLive ---
+
+    [Fact]
+    public void Shim_gates_on_BattleDisplayed_not_InLive_armed_lock_idles_when_not_displayed()
+    {
+        // The typed Tick's class doc and Engine.cs's own call site both gate CharmLock on
+        // BattleDisplayed (mode != 0), not InLive -- the old shim wired ctx.InLive instead, a
+        // dormant wrong-gate trap. With InLive true but BattleDisplayed false, a correct shim
+        // must still idle exactly like inLive=false above: no Drive, no writes, lock stays armed.
+        using var enemy = MappedEnemy((100, 20, 70, 50), charmed: true);
+        var cl = New();
+        cl.AdoptOrTransfer(new[] { (enemy.Addr, (100, 20, 70, 50)) });
+
+        var ctx = new TickContext(new DateTime(2026, 1, 1), onField: true, inLive: true, battleDisplayed: false);
+        ((ISignature)cl).Tick(in ctx);
+
+        Assert.NotEqual(0, Charm(enemy.Bytes, CharmLock.CharmStatusOff));
+        Assert.NotEqual(0, Charm(enemy.Bytes, CharmLock.CharmAllegOff));
+        Assert.NotNull(cl.LockedFingerprint);
+    }
+
     [Fact]
     public void Drive_hold_restamps_both_the_charm_status_and_the_control_byte()
     {
