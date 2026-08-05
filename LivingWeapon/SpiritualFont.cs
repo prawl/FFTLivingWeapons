@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// current (gx, gy) from the first located band entry and feeds it to a MoveWatch
 /// state machine. When MoveWatch confirms a stable position change (new tile held for
 /// StabilityTicks=3 consecutive ticks), the RUNTIME restores Tuning.FontHpPct of max HP
-/// (LifeSap.NewHp: floor 1, clamp at full, never revive) and Tuning.FontMpPct of max MP
+/// (BandHeal.NewHp: floor 1, clamp at full, never revive) and Tuning.FontMpPct of max MP
 /// (NewMp: floor 1, clamp at maxMp; never into a corpse). Rate-capped at one fire per
 /// RateCap=90 ticks (~3 s). Move-only turns NOW PAY (the old gap is closed).
 ///
@@ -148,13 +148,13 @@ internal sealed partial class SpiritualFont : ISignature
     {
         long first = entries[0];
         int hp = _mem.U16(first + Offsets.AHp), maxHp = _mem.U16(first + Offsets.AMaxHp);
-        int newHp = LifeSap.NewHp(hp, maxHp, LifeSap.HealAmount(maxHp, Tuning.FontHpPct));
-        foreach (long ent in entries) if (newHp != hp) LifeSap.WriteHp(_mem, ent, newHp);
+        int newHp = BandHeal.NewHp(hp, maxHp, BandHeal.HealAmount(maxHp, Tuning.FontHpPct));
+        foreach (long ent in entries) if (newHp != hp) BandHeal.WriteHp(_mem, ent, newHp);
         int mpRestored = 0;
         if (MpHalfAllowed(hp, _mpOk))   // layout unproven OR a dead wielder: no MP write
         {
             int mp = _mem.U16(first + Offsets.AMp), maxMp = _mem.U16(first + Offsets.AMaxMp);
-            int newMp = NewMp(mp, maxMp, LifeSap.HealAmount(maxMp, Tuning.FontMpPct));
+            int newMp = NewMp(mp, maxMp, BandHeal.HealAmount(maxMp, Tuning.FontMpPct));
             if (newMp == mp) ModLogger.Debug(LogVerb.Signature, $"font MP already full ({mp}/{maxMp}); no MP restore needed");
             else
             {

@@ -22,7 +22,7 @@ namespace LivingWeapon;
 /// rise in that span is boosted 30%: a charged Cure, Regen ticking, an elemental absorb, an item
 /// heal, a reaction heal, a co-equipped Wyrmblood splash, even a revive (we observe HP after the
 /// engine applies the heal, so a revived ally already reads alive and IS boosted; only a unit still
-/// reading 0 at scan time is skipped, via LifeSap.NewHp's hp&lt;=0 guard, which never fires on the
+/// reading 0 at scan time is skipped, via BandHeal.NewHp's hp&lt;=0 guard, which never fires on the
 /// revive path because hp is already positive when we observe). The old claim that Wielder.Locate
 /// "closed an enemy-turn hole" was FALSE -- it only narrowed a TIME window; this gate has no time
 /// component at all. COMMON MISS (fail-safe): if another PLAYER acts before the charged heal lands,
@@ -36,7 +36,7 @@ namespace LivingWeapon;
 /// ALLIES ONLY, positively identified: Band.AllyFingerprints (static-array PLAYER-slot fingerprints)
 /// -- the same oracle as Wyrmblood. Enemies are never boosted.
 ///
-/// HP WRITE: LifeSap.NewHp (clamp at max, never revive) + LifeSap.WriteHp (the proven band +0x14
+/// HP WRITE: BandHeal.NewHp (clamp at max, never revive) + BandHeal.WriteHp (the proven band +0x14
 /// guarded write). A dead ally (HP 0) is left alone.
 ///
 /// BAND-TWIN DEDUPE: per-fingerprint HashSet (same discipline as Wyrmblood/Ricochet) so a frozen
@@ -123,15 +123,15 @@ internal sealed partial class Benediction : ISignature
 
             int bonus = BonusHeal(rise, m.Signature.HealBoostPct);
             if (bonus <= 0) continue;
-            int newHp = LifeSap.NewHp(hp, mhp, bonus);
+            int newHp = BandHeal.NewHp(hp, mhp, bonus);
             if (newHp == hp)
             {
-                // overheal / already at max (LifeSap.NewHp also guards hp <= 0 -> a dead ally is never revived)
+                // overheal / already at max (BandHeal.NewHp also guards hp <= 0 -> a dead ally is never revived)
                 ModLogger.Debug(LogVerb.Signature, $"benediction ally heal +{rise} not boosted; band slot {s} already at or near maximum ({hp}/{mhp})");
                 continue;
             }
 
-            LifeSap.WriteHp(_mem, addr, newHp);
+            BandHeal.WriteHp(_mem, addr, newHp);
             _state.Consume(s, newHp);   // our write is not a heal event (no re-boost)
             boosted!.Add(fp);
             ModLogger.EventWithTrace(LogVerb.Signature,

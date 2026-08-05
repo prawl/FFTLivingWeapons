@@ -18,7 +18,7 @@ namespace LivingWeapon;
 ///
 /// ALLIES ONLY, positively identified: a splash target's fingerprint must match a static-array
 /// PLAYER slot (s &gt; EnemySlotMax) -- "not an enemy" would risk healing an uncaptured enemy
-/// reinforcement. The dead are never healed (LifeSap.NewHp leaves hp 0 alone -- no accidental
+/// reinforcement. The dead are never healed (BandHeal.NewHp leaves hp 0 alone -- no accidental
 /// revival), and each fingerprint is healed once per splash (band twins). Wielder location =
 /// the shared roster resolve + band twin-filter walk (Wielder.cs).
 /// </summary>
@@ -98,9 +98,9 @@ internal sealed partial class Wyrmblood : ISignature
             if (!allies.Contains(fp)) continue;      // never enemies (positive ally match only)
             if (healed.Contains(fp)) continue;       // band twin: one heal per unit
             int hp = _mem.U16(e + Offsets.AHp);
-            int newHp = LifeSap.NewHp(hp, fp.mhp, RegenAmount(fp.mhp, Tuning.WyrmbloodDiv));
+            int newHp = BandHeal.NewHp(hp, fp.mhp, RegenAmount(fp.mhp, Tuning.WyrmbloodDiv));
             if (newHp == hp) continue;               // full, or dead (never revive)
-            LifeSap.WriteHp(_mem, e, newHp);
+            BandHeal.WriteHp(_mem, e, newHp);
             healed.Add(fp);
             totalMended += newHp - hp;
             ModLogger.Debug(LogVerb.Signature, $"wyrmblood regenerated the ally at ({gx},{gy}) for {newHp - hp} HP (HP {hp} to {newHp}, maximum {fp.mhp})");

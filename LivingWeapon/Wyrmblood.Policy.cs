@@ -29,7 +29,7 @@ internal sealed partial class Wyrmblood
     }
 
     /// <summary>True when a unit at (x,y) is inside the splash around the wielder at (wx,wy):
-    /// Manhattan distance &lt;= radius (Ricochet tile math). The wielder itself is distance 0.</summary>
+    /// Manhattan distance &lt;= radius (the shared Grid tile math). The wielder itself is distance 0.</summary>
     public static bool InSplash(int wx, int wy, int x, int y, int radius)
-        => Ricochet.Manhattan(wx, wy, x, y) <= radius;
+        => Grid.Manhattan(wx, wy, x, y) <= radius;
 }

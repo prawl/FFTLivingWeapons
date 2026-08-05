@@ -28,7 +28,7 @@ internal sealed partial class SpiritualFont
 
     /// <summary>The MP half runs only for a LIVING wielder on a layout-proven battle: a wielder
     /// who moved and then died before their turn edge (trap tile, counter-kill) gains NOTHING --
-    /// the HP half already no-ops at hp 0 (LifeSap.NewHp never revives), and MP must not be
+    /// the HP half already no-ops at hp 0 (BandHeal.NewHp never revives), and MP must not be
     /// written into a corpse either, even though MP carries no revival semantics.</summary>
     public static bool MpHalfAllowed(int hp, bool mpOk) => mpOk && hp > 0;
 
@@ -50,9 +50,9 @@ internal sealed partial class SpiritualFont
     }
 
     /// <summary>Guarded little-endian u16 write of the wielder's MP on its band entry (the
-    /// provisional +0x18). Fail-safe no-op when the page isn't writable -- LifeSap.WriteHp's
+    /// provisional +0x18). Fail-safe no-op when the page isn't writable -- BandHeal.WriteHp's
     /// shape. The caller re-reads afterwards and logs SET/MISS. One W16 call (LW-145 fix 2):
-    /// two separate W8 halves opened a torn-value window (LifeSap.WriteHp's same fix).</summary>
+    /// two separate W8 halves opened a torn-value window (BandHeal.WriteHp's same fix).</summary>
     public static void WriteMp(IGameMemory mem, long entryAddr, int newMp)
     {
         long a = entryAddr + Offsets.AMp;
