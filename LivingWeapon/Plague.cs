@@ -181,13 +181,17 @@ internal sealed partial class Plague : ISignature
         return set;
     }
 
-    /// <summary>True when any roster slot holds Venombolt (id 80) in either hand.</summary>
-    private bool IsEquipped()
+    /// <summary>True when any roster slot holds Venombolt (id 80) in RRHand or ROffHand -- NOT
+    /// RLHand, Plague's own historical hand set (LW-149: preserved caller-side, not "fixed"; see
+    /// PlagueTests' left-hand-only pin). Occupancy rides Wielder's shared LENIENT walk
+    /// (Wielder.Occupancy.cs, Readable(RNameId,2)-only, no level gate -- byte-identical to the
+    /// loop this replaced). Internal (widened from private) so the ghost-row pin can call it
+    /// directly instead of driving the whole Tick pipeline.</summary>
+    internal bool IsEquipped()
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;
+            if (!Wielder.TryOccupiedSlotLenient(_mem, r, out long rb)) continue;
             if (_mem.U16(rb + Offsets.RRHand) == VenomboltId || _mem.U16(rb + Offsets.ROffHand) == VenomboltId)
                 return true;
         }

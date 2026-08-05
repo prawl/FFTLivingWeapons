@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
@@ -50,5 +51,40 @@ public class EagleEyeTests
         Assert.Equal(0, EagleEye.AuraTarget(Doom(1, 3), tier: 2));   // not earned yet
         Assert.Equal(1, EagleEye.AuraTarget(Doom(1, 3), tier: 3));   // earned
         Assert.Equal(1, EagleEye.AuraTarget(Doom(1, 3), tier: 4));   // and stays past it
+    }
+
+    // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for the LENIENT occupied-slot rule) ----
+    // ActiveTarget's roster sweep historically gated occupancy on nothing but
+    // Readable(RNameId, 2) -- no level floor/ceiling at all (unlike Wielder.TryOccupiedSlot's
+    // strict level 1..99 rule). This pins TODAY'S behavior: a roster slot whose nameId field is
+    // readable but whose level reads 0 (a "ghost row" -- ordinarily meaningless, but readable)
+    // still arms the Doom-hastening gate. Written BEFORE ActiveTarget migrates onto
+    // Wielder.TryOccupiedSlotLenient, so it passes against the OLD hand-rolled
+    // `if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;` loop first, then must keep passing
+    // unchanged once the loop is replaced with the shared helper. Non-vacuity: forcing the
+    // LENIENT helper to also apply the level gate (the strict rule) makes this fail.
+    [Fact]
+    public void ActiveTarget_arms_from_a_readable_level_zero_ghost_row()
+    {
+        const int EclipseboltId = 78;   // EagleEye's own const is private; mirrored here for the fixture
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [EclipseboltId] = new WeaponMeta
+            {
+                Name = "Eclipsebolt", Wp = 9, Cat = "Bow", Formula = 1, Flavor = "a doom-tipped bolt",
+                Signature = new WeaponSignature { AtTier = 3, DoomCountdownTo = 1, Slot = "" }
+            }
+        };
+        var kills = new Dictionary<int, int> { [EclipseboltId] = Tuning.ProdThresholds[2] };   // tier 3
+
+        long rb = Offsets.RosterBase;   // slot 0: ghost row -- nameId readable, level UNSET (0)
+        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.U16s[rb + Offsets.RRHand] = (ushort)EclipseboltId;
+        // RLevel intentionally left at its default 0 -- a STRICT-rule walk would skip this row.
+
+        var kt = new KillTracker(new Dictionary<int, int>(), mem, new HashSet<int>());
+        var ee = new EagleEye(meta, kills, kt, mem: mem);
+        Assert.Equal(1, ee.ActiveTarget());
     }
 }

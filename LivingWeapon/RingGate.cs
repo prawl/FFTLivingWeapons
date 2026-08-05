@@ -32,10 +32,14 @@ internal static class RingGate
             if (!mem.Readable(acc, 2)) continue;
             if (mem.U16(acc) != Offsets.ScholarRingItemId) continue;
 
-            // Ring found in the roster -- only counts if its wearer is on the field.
-            if (!mem.Readable(rb + Offsets.RLevel, 1)) continue;
-            int rLvl = mem.U8(rb + Offsets.RLevel);
-            if (rLvl < 1 || rLvl > 99) continue;          // empty / invalid roster slot
+            // Ring found in the roster -- only counts if its wearer is on the field. LW-149 stage
+            // D: migrated onto Wielder's shared STRICT occupied-slot walk (same rb arithmetic,
+            // same level 1..99 rule as the two lines this replaces). The read sequence shifts --
+            // TryOccupiedSlot's own U8(RLevel) read is fail-safe on an unreadable address the same
+            // way the removed explicit Readable probe was -- but the observable answer is
+            // identical for every case this file's tests (TreasureMasterTests' RingGate_* suite)
+            // exercise.
+            if (!Wielder.TryOccupiedSlot(mem, slot, out _, out int rLvl)) continue;
             int rBr = mem.U8(rb + Offsets.RBrave);
             int rFa = mem.U8(rb + Offsets.RFaith);
             // D7: this slot's own roster nameId, guarded like GrowthEngine.Apply's read (Readable

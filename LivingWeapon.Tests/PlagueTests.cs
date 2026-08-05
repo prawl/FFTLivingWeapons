@@ -538,4 +538,45 @@ public class PlagueTests
         Assert.Single(file, l => l.Contains(onLine) && l.Contains("[DEBUG]"));
         Assert.Single(console, l => l.Contains(onLine));
     }
+
+    // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for the LENIENT occupied-slot rule) ----
+    // IsEquipped's roster sweep historically gated occupancy on nothing but
+    // Readable(RNameId, 2) -- no level floor/ceiling at all (unlike Wielder.TryOccupiedSlot's
+    // strict level 1..99 rule). This pins TODAY'S behavior: a roster slot whose nameId field is
+    // readable but whose level reads 0 (a "ghost row" -- ordinarily meaningless, but readable)
+    // still counts as equipped. Written BEFORE IsEquipped migrates onto
+    // Wielder.TryOccupiedSlotLenient, so it passes against the OLD hand-rolled
+    // `if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;` loop first, then must keep passing
+    // unchanged once the loop is replaced with the shared helper. Non-vacuity: forcing the
+    // LENIENT helper to also apply the level gate (the strict rule) makes this fail.
+    [Fact]
+    public void IsEquipped_true_from_a_readable_level_zero_ghost_row()
+    {
+        const int VenomboltId = 80;   // Plague's own const is private; mirrored here for the fixture
+        var mem = new FakeSparseMemory();
+        long rb = Offsets.RosterBase;   // slot 0: ghost row -- nameId readable, level UNSET (0)
+        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.U16s[rb + Offsets.RRHand] = (ushort)VenomboltId;
+        // RLevel intentionally left at its default 0 -- a STRICT-rule walk would skip this row.
+
+        var tracker = new KillTracker(new Dictionary<int, int>(), mem, new HashSet<int>());
+        var plague = new Plague(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), tracker, mem: mem);
+        Assert.True(plague.IsEquipped());
+    }
+
+    // ---- Plague's hand set is RRHand + ROffHand, NOT RLHand (LW-149 review: preserve, don't "fix") ----
+    [Fact]
+    public void IsEquipped_ignores_a_left_hand_only_holder_by_design_not_a_fix_target()
+    {
+        const int VenomboltId = 80;   // Plague's own const is private; mirrored here for the fixture
+        var mem = new FakeSparseMemory();
+        long rb = Offsets.RosterBase;
+        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.U8s[rb + Offsets.RLevel] = 20;
+        mem.U16s[rb + Offsets.RLHand] = (ushort)VenomboltId;   // LEFT hand only
+
+        var tracker = new KillTracker(new Dictionary<int, int>(), mem, new HashSet<int>());
+        var plague = new Plague(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), tracker, mem: mem);
+        Assert.False(plague.IsEquipped());
+    }
 }

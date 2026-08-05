@@ -691,6 +691,35 @@ public class ChoirTests
         Assert.True(IsSet(mem, bearerB), "bearer B must be one of the two winners");
     }
 
+    // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for Choir's STRICT protectedBF walk) ----
+    // Choir's protectedBF scan (Choir.cs:~108) rides Wielder.TryOccupiedSlot -- the STRICT rule
+    // (level 1..99), the OPPOSITE direction from the CharmLock/EagleEye/Plague ghost-row pins,
+    // which pin the weaker LENIENT rule (Wielder.TryOccupiedSlotLenient) those three ride instead.
+    // This pins TODAY'S strict behavior: a roster row whose nameId is readable but whose level
+    // reads 0 (a "ghost row") must NOT land in protectedBF, even when its RSupport equals
+    // InstantCastSupportId and its brave/faith exactly match a real deployed bearer's -- a
+    // gate-less walk would let that stale/garbage ghost row falsely protect the bearer (exclude
+    // them from winners, so their own bit never gets set). Non-vacuity: temporarily accepting
+    // every roster slot at the Choir call site (deleting the occupancy gate) turns this red.
+    [Fact]
+    public void Tick_does_not_protect_a_readable_level_zero_ghost_row()
+    {
+        var (choir, mem, bearerEntry, _) = BuildActive();   // bearer at roster slot 0: br=65, fa=60
+
+        // Ghost row at roster slot 1: nameId readable, level left UNSET (0) -- a strict-rule walk
+        // skips it. RSupport==NonChargeId and brave/faith match the bearer's EXACTLY, so if the
+        // gate were absent this row alone would land (65,60) in protectedBF and wrongly exempt the
+        // bearer from Choir's winners.
+        long rb1 = Offsets.RosterBase + 1L * Offsets.RosterStride;
+        mem.ReadableAddrs.Add(rb1 + Offsets.RNameId);
+        SeedRosterSlot(mem, 1, lvl: 0, br: 65, fa: 60, mainHandId: 0, rsupport: NonChargeId);
+
+        choir.Tick(onField: true);
+
+        Assert.True(IsSet(mem, bearerEntry),
+            "a level-0 ghost row's RSupport must not protect a real bearer with matching brave/faith -- the strict occupancy gate must reject it");
+    }
+
     // ---- LW-149 stage C: activation-edge log STRING PIN (the `ModLogger.Event` shape) ----
     // Written BEFORE Choir.Tick converts to ActivationEdge.Step, so it passes against the OLD
     // hand-rolled `if (active != _wasActive) { _wasActive = active; ModLogger.Event(...); }`

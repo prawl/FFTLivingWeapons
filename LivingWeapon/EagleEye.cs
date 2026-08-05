@@ -70,16 +70,21 @@ internal sealed partial class EagleEye : ISignature
     }
 
     /// <summary>DoomCountdownTo if a +3 Eclipsebolt is equipped by any roster unit, else 0.
-    /// Mirrors CharmLock.ActiveLockTurns (signature gate, then a roster sweep for the weapon).</summary>
-    private int ActiveTarget()
+    /// Mirrors CharmLock.ActiveLockTurns (signature gate, then a roster sweep for the weapon).
+    /// Internal (LW-149 stage D, widened from private): lets the ghost-row pin test call this
+    /// directly rather than driving the whole Tick pipeline. Behavior unchanged.</summary>
+    internal int ActiveTarget()
     {
         if (!_meta.TryGetValue(EclipseboltId, out var m)) return 0;
         int target = AuraTarget(m.Signature, Tuning.TierOf(_kills, EclipseboltId));
         if (target <= 0) return 0;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;
+            // LW-149 stage D: migrated onto Wielder's shared LENIENT occupied-slot walk
+            // (Wielder.Occupancy.cs) -- same Readable(RNameId,2)-only rule this loop used before
+            // (no level gate), now named and shared instead of copy-pasted (also used by
+            // CharmLock.ActiveLockTurns and Plague.IsEquipped). Byte-identical.
+            if (!Wielder.TryOccupiedSlotLenient(_mem, r, out long rb)) continue;
             // Signatures fire from the main hand only: an offhand Eclipsebolt does not hasten Doom.
             if (_mem.U16(rb + Offsets.RRHand) == EclipseboltId)
                 return target;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
@@ -240,5 +241,39 @@ public class CharmLockTests
 
         Assert.Equal(0, Charm(enemy.Bytes, CharmLock.CharmStatusOff));   // Drive cleared it
         Assert.Null(cl.LockedFingerprint);                        // lock released after 0 turns
+    }
+
+    // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for the LENIENT occupied-slot rule) ----
+    // ActiveLockTurns' roster sweep historically gated occupancy on nothing but
+    // Readable(RNameId, 2) -- no level floor/ceiling at all (unlike Wielder.TryOccupiedSlot's
+    // strict level 1..99 rule). This pins TODAY'S behavior: a roster slot whose nameId field is
+    // readable but whose level reads 0 (a "ghost row" -- ordinarily meaningless, but readable)
+    // still arms the charm lock. Written BEFORE ActiveLockTurns migrates onto
+    // Wielder.TryOccupiedSlotLenient, so it passes against the OLD hand-rolled
+    // `if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;` loop first, then must keep passing
+    // unchanged once the loop is replaced with the shared helper. Non-vacuity: forcing the
+    // LENIENT helper to also apply the level gate (the strict rule) makes this fail.
+    [Fact]
+    public void ActiveLockTurns_arms_from_a_readable_level_zero_ghost_row()
+    {
+        const int GalewindId = 9;   // CharmLock's own const is private; mirrored here for the fixture
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [GalewindId] = new WeaponMeta
+            {
+                Name = "Galewind", Wp = 9, Cat = "Bow", Formula = 1, Flavor = "a keening bow",
+                Signature = new WeaponSignature { AtTier = 3, CharmLockTurns = 3, Slot = "" }
+            }
+        };
+        var kills = new Dictionary<int, int> { [GalewindId] = Tuning.ProdThresholds[2] };   // tier 3
+
+        long rb = Offsets.RosterBase;   // slot 0: ghost row -- nameId readable, level UNSET (0)
+        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.U16s[rb + Offsets.RRHand] = (ushort)GalewindId;
+        // RLevel intentionally left at its default 0 -- a STRICT-rule walk would skip this row.
+
+        var cl = new CharmLock(meta, kills, mem: mem);
+        Assert.Equal(3, cl.ActiveLockTurns());
     }
 }

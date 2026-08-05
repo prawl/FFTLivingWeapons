@@ -88,8 +88,10 @@ internal sealed partial class CharmLock : ISignature
         Drive(lockTurns);                                   // hold/clear every tick (beats on-hit clear)
     }
 
-    /// <summary>charmLockTurns if a +3 Galewind is equipped by any roster unit, else 0.</summary>
-    private int ActiveLockTurns()
+    /// <summary>charmLockTurns if a +3 Galewind is equipped by any roster unit, else 0. Internal
+    /// (LW-149 stage D, widened from private): lets the ghost-row pin test call this directly
+    /// rather than driving the whole Tick pipeline. Behavior unchanged.</summary>
+    internal int ActiveLockTurns()
     {
         if (!_meta.TryGetValue(GalewindId, out var m) || m.Signature is null || m.Signature.CharmLockTurns <= 0)
             return 0;
@@ -97,8 +99,11 @@ internal sealed partial class CharmLock : ISignature
             return 0;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;
+            // LW-149 stage D: migrated onto Wielder's shared LENIENT occupied-slot walk
+            // (Wielder.Occupancy.cs) -- same Readable(RNameId,2)-only rule this loop used before
+            // (no level gate), now named and shared instead of copy-pasted (also used by
+            // EagleEye.ActiveTarget and Plague.IsEquipped). Byte-identical.
+            if (!Wielder.TryOccupiedSlotLenient(_mem, r, out long rb)) continue;
             // Signatures fire from the main hand only: an offhand Galewind does not lock charms.
             if (_mem.U16(rb + Offsets.RRHand) == GalewindId)
                 return m.Signature.CharmLockTurns;

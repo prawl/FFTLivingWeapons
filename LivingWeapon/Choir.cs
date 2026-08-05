@@ -103,9 +103,9 @@ internal sealed partial class Choir : ISignature
         var protectedBF = new HashSet<(int br, int fa)>();
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            long rb  = Offsets.RosterBase + (long)r * Offsets.RosterStride;
-            int  lvl = _mem.U8(rb + Offsets.RLevel);
-            if (lvl < 1 || lvl > 99) continue;
+            // LW-149 stage D: migrated onto Wielder's shared STRICT occupied-slot walk
+            // (Wielder.Roster.cs) -- same rb arithmetic, same level 1..99 rule, byte-identical.
+            if (!Wielder.TryOccupiedSlot(_mem, r, out long rb, out _)) continue;
             if (_mem.U8(rb + Offsets.RSupport) == Tuning.InstantCastSupportId)
                 protectedBF.Add((_mem.U8(rb + Offsets.RBrave), _mem.U8(rb + Offsets.RFaith)));
         }
