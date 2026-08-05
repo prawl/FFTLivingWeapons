@@ -100,7 +100,10 @@ the technical detail lives in the indented lines under it.
 
 - [LW-151] 2026-07-29: The test fake's honest length-aware read gate exists but is opt-in;
   turning it on for the whole suite is the open work.
-  Measured 2026-07-29: defaulting StrictRangeChecks to true fails 94 tests across 21 suites,
+  Re-measured 2026-08-04 after the LW-149 fixture dedup: 97 tests across 23 suites, so the
+  fixture fold alone moved nothing, exactly as the plan review predicted; the honest range marks
+  belong to the flip itself. Originally measured 2026-07-29: defaulting StrictRangeChecks to
+  true fails 94 tests across 21 suites,
   because tests mark a production gate's base byte while the shipped code gates multi-byte
   ranges (AMaxHp and friends 2 bytes, KillTracker 12, GrowthEngine.Locate 65, Barrage RecSize
   25); real marking sites number 226 across 35 files. The cheap path runs THROUGH LW-149: once

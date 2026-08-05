@@ -190,35 +190,20 @@ public class BenedictionTests
     // test MUST move _lastPlayerMainHand off 64 (the load-bearing variable), not the fingerprint.
     // SeedAllyFp is still required (the ally-only filter reads the static-array fingerprints).
 
+    // THIN TAIL over BandFixtures.SeedBandEntryCore (LW-149 stage I): the shared core sets the
+    // 7 fields every SeedBandEntry copy set identically; the writable-HP pair below is
+    // Benediction-specific (its Tick writes HP, so its tests need the address writable) and stays
+    // local rather than joining the shared fixture. Same name/signature/defaults as before the
+    // dedup -- no caller line in this file changed.
     private static void SeedBandEntry(FakeSparseMemory mem, long addr,
         int hp, int maxHp, int lvl, int br, int fa, int gx, int gy, bool writable = true)
     {
-        mem.ReadableAddrs.Add(addr + Offsets.AMaxHp);
-        mem.U16s[addr + Offsets.AMaxHp] = (ushort)maxHp;
-        mem.U8s[addr + Offsets.ALevel] = (byte)lvl;
-        mem.U8s[addr + Offsets.ABrave] = (byte)br;
-        mem.U8s[addr + Offsets.AFaith] = (byte)fa;
-        mem.ReadableAddrs.Add(addr + Offsets.AHp);
-        mem.U16s[addr + Offsets.AHp] = (ushort)hp;
-        mem.U8s[addr + Offsets.AGx] = (byte)gx;
-        mem.U8s[addr + Offsets.AGy] = (byte)gy;
+        BandFixtures.SeedBandEntryCore(mem, addr, hp, maxHp, lvl, br, fa, gx, gy);
         if (writable)
         {
             mem.WritableAddrs.Add(addr + Offsets.AHp);
             mem.WritableAddrs.Add(addr + Offsets.AHp + 1);
         }
-    }
-
-    // Plant a static-array ally fingerprint (player slot above EnemySlotMax) so Band.AllyFingerprints
-    // recognizes a band unit with this (maxHp,lvl,br,fa) as a healable ally.
-    private static void SeedAllyFp(FakeSparseMemory mem, int mhp, int lvl, int br, int fa)
-    {
-        long slot = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + 1) * Offsets.ArrayStride;
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
-        mem.U16s[slot + Offsets.AMaxHp] = (ushort)mhp;
-        mem.U8s[slot + Offsets.ALevel] = (byte)lvl;
-        mem.U8s[slot + Offsets.ABrave] = (byte)br;
-        mem.U8s[slot + Offsets.AFaith] = (byte)fa;
     }
 
     // The full active scenario: a +3 Sanctus ally at a real-position band slot, recognized as an ally,
@@ -244,7 +229,7 @@ public class BenedictionTests
         };
         long wAddr = Band.Entry(allySlot);
         SeedBandEntry(mem, wAddr, hp, maxHp, lvl, br, fa, gx: 5, gy: 5);
-        SeedAllyFp(mem, maxHp, lvl, br, fa);
+        BandFixtures.SeedAllyFp(mem, maxHp, lvl, br, fa);
 
         var tracker = new KillTracker(new Dictionary<int, int>(), mem, new HashSet<int>());
         tracker._lastPlayerMainHand = mainHand;   // the ONLY thing the gate reads

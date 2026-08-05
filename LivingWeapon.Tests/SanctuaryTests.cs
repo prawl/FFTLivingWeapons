@@ -55,35 +55,20 @@ public class SanctuaryTests
 
     // ---- Seeding helpers ----
 
-    /// <summary>Seed a valid band entry at <paramref name="addr"/>. HP 0 + deadBit true = fallen.</summary>
+    /// <summary>Seed a valid band entry at <paramref name="addr"/>. HP 0 + deadBit true = fallen.
+    /// THIN TAIL over BandFixtures.SeedBandEntryCore (LW-149 stage I): the shared core sets the 7
+    /// fields every SeedBandEntry copy set identically; the dead-bit/crystal-hearts tail below is
+    /// Sanctuary-specific and stays local rather than joining the shared fixture. Same
+    /// name/signature/defaults as before the dedup -- no caller line in this file changed.</summary>
     private static void SeedBandEntry(FakeSparseMemory mem, long addr,
         int hp, int maxHp, int lvl, int br, int fa, int gx = 5, int gy = 5,
         bool deadBit = false, bool writableCounter = true)
     {
-        mem.U8s[addr + Offsets.ALevel] = (byte)lvl;
-        mem.U8s[addr + Offsets.ABrave] = (byte)br;
-        mem.U8s[addr + Offsets.AFaith] = (byte)fa;
-        mem.U16s[addr + Offsets.AMaxHp] = (ushort)maxHp;
-        mem.ReadableAddrs.Add(addr + Offsets.AMaxHp);
-        mem.U16s[addr + Offsets.AHp] = (ushort)hp;
-        mem.ReadableAddrs.Add(addr + Offsets.AHp);
-        mem.U8s[addr + Offsets.AGx] = (byte)gx;
-        mem.U8s[addr + Offsets.AGy] = (byte)gy;
+        BandFixtures.SeedBandEntryCore(mem, addr, hp, maxHp, lvl, br, fa, gx, gy);
         if (deadBit)
             mem.U8s[addr + Offsets.ADeadStatus] = Offsets.ADeadBit;
         if (writableCounter)
             mem.WritableAddrs.Add(addr + Offsets.ACrystalHearts);
-    }
-
-    /// <summary>Plant a static-array ally fingerprint (player slot above EnemySlotMax).</summary>
-    private static void SeedAllyFp(FakeSparseMemory mem, int mhp, int lvl, int br, int fa)
-    {
-        long slot = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + 1) * Offsets.ArrayStride;
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
-        mem.U16s[slot + Offsets.AMaxHp] = (ushort)mhp;
-        mem.U8s[slot + Offsets.ALevel] = (byte)lvl;
-        mem.U8s[slot + Offsets.ABrave] = (byte)br;
-        mem.U8s[slot + Offsets.AFaith] = (byte)fa;
     }
 
     /// <summary>Plant a roster entry with the Staff of the Magi (id 66) in main hand.</summary>
@@ -136,7 +121,7 @@ public class SanctuaryTests
                       gx: 7, gy: 8, deadBit: corpseHp == 0, writableCounter: writableCounter);
 
         // Ally fingerprint (static array)
-        SeedAllyFp(mem, mhp: 300, lvl: corpseLvl, br: corseBr, fa: corseFa);
+        BandFixtures.SeedAllyFp(mem, mhp: 300, lvl: corpseLvl, br: corseBr, fa: corseFa);
 
         var sanc = new Sanctuary(meta, kills, mem: mem);
         return (sanc, mem, corpseEntry);
@@ -210,7 +195,7 @@ public class SanctuaryTests
         long living = Band.Entry(25);
         SeedBandEntry(mem, living, hp: 150, maxHp: 150, lvl: 18, br: 50, fa: 50, gx: 6, gy: 6,
                       writableCounter: true);
-        SeedAllyFp(mem, mhp: 150, lvl: 18, br: 50, fa: 50);
+        BandFixtures.SeedAllyFp(mem, mhp: 150, lvl: 18, br: 50, fa: 50);
         TickN(sanc, 3);
         Assert.False(mem.Written.ContainsKey(living + Offsets.ACrystalHearts));
     }

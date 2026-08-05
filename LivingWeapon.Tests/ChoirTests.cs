@@ -102,46 +102,21 @@ public class ChoirTests
 
     // ---- Seeding helpers ----
 
+    // THIN TAIL over BandFixtures.SeedBandEntryCore (LW-149 stage I): the shared core sets the
+    // 7 fields every SeedBandEntry copy set identically; the Non-charge support-bit tail below is
+    // Choir-specific and stays local rather than joining the shared fixture. Same
+    // name/signature/defaults as before the dedup -- no caller line in this file changed.
     private static void SeedBandEntry(FakeSparseMemory mem, long addr,
         int hp, int maxHp, int lvl, int br, int fa, int gx, int gy,
         bool writableSupport = true)
     {
-        mem.U8s[addr + Offsets.ALevel] = (byte)lvl;
-        mem.U8s[addr + Offsets.ABrave] = (byte)br;
-        mem.U8s[addr + Offsets.AFaith] = (byte)fa;
-        mem.U16s[addr + Offsets.AMaxHp] = (ushort)maxHp;
-        mem.ReadableAddrs.Add(addr + Offsets.AMaxHp);
-        mem.U16s[addr + Offsets.AHp] = (ushort)hp;
-        mem.ReadableAddrs.Add(addr + Offsets.AHp);
-        mem.U8s[addr + Offsets.AGx] = (byte)gx;
-        mem.U8s[addr + Offsets.AGy] = (byte)gy;
+        BandFixtures.SeedBandEntryCore(mem, addr, hp, maxHp, lvl, br, fa, gx, gy);
         long supportAddr = addr + NcBandOff;
         if (writableSupport)
         {
             mem.WritableAddrs.Add(supportAddr);
             mem.ReadableAddrs.Add(supportAddr);
         }
-    }
-
-    private static void SeedAllyFp(FakeSparseMemory mem, int mhp, int lvl, int br, int fa)
-    {
-        long slot = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + 1) * Offsets.ArrayStride;
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
-        mem.U16s[slot + Offsets.AMaxHp] = (ushort)mhp;
-        mem.U8s[slot + Offsets.ALevel]  = (byte)lvl;
-        mem.U8s[slot + Offsets.ABrave]  = (byte)br;
-        mem.U8s[slot + Offsets.AFaith]  = (byte)fa;
-    }
-
-    /// <summary>Plant the idx-th distinct ally fingerprint (static array slot EnemySlotMax + idx).</summary>
-    private static void SeedAllyFpAt(FakeSparseMemory mem, int idx, int mhp, int lvl, int br, int fa)
-    {
-        long slot = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + idx) * Offsets.ArrayStride;
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
-        mem.U16s[slot + Offsets.AMaxHp] = (ushort)mhp;
-        mem.U8s[slot + Offsets.ALevel]  = (byte)lvl;
-        mem.U8s[slot + Offsets.ABrave]  = (byte)br;
-        mem.U8s[slot + Offsets.AFaith]  = (byte)fa;
     }
 
     /// <summary>True when the Non-charge bit was written SET at this entry's +0x7F.</summary>
@@ -204,7 +179,7 @@ public class ChoirTests
         long allyEntry = Band.Entry(28);
         SeedBandEntry(mem, allyEntry, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55,
                       gx: allyGx, gy: allyGy, writableSupport: writableAllySupport);
-        SeedAllyFp(mem, mhp: 150, lvl: 20, br: 50, fa: 55);
+        BandFixtures.SeedAllyFp(mem, mhp: 150, lvl: 20, br: 50, fa: 55);
 
         var choir = new Choir(meta, kills, mem: mem);
         return (choir, mem, bearerEntry, allyEntry);
@@ -395,8 +370,8 @@ public class ChoirTests
                       gx: 6, gy: 6, writableSupport: true);
         mem.U16s[canaryEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
 
-        SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
-        SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
+        BandFixtures.SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
+        BandFixtures.SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
 
         var choir = new Choir(meta, kills, mem: mem);
 
@@ -600,10 +575,10 @@ public class ChoirTests
         long allyB = Band.Entry(24);
         SeedBandEntry(mem, allyB, hp: 140, maxHp: 140, lvl: 22, br: 52, fa: 57, gx: 9, gy: 8);
 
-        SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
-        SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
-        SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
-        SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
+        BandFixtures.SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
+        BandFixtures.SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
+        BandFixtures.SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
+        BandFixtures.SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
 
         var choir = new Choir(meta, kills, mem: mem);
         choir.Tick(onField: true);
@@ -641,8 +616,8 @@ public class ChoirTests
         SeedBandEntry(mem, bearerB, hp: 180, maxHp: 250, lvl: 30, br: 70, fa: 68, gx: 8, gy: 8);
         mem.U16s[bearerB + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
 
-        SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
-        SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
+        BandFixtures.SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
+        BandFixtures.SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
 
         var choir = new Choir(meta, kills, mem: mem);
 
@@ -698,10 +673,10 @@ public class ChoirTests
         long allyB = Band.Entry(24);
         SeedBandEntry(mem, allyB, hp: 140, maxHp: 140, lvl: 22, br: 52, fa: 57, gx: 10, gy: 9);
 
-        SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
-        SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
-        SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
-        SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
+        BandFixtures.SeedAllyFpAt(mem, 1, 300, 35, 65, 60);
+        BandFixtures.SeedAllyFpAt(mem, 2, 250, 30, 70, 68);
+        BandFixtures.SeedAllyFpAt(mem, 3, 150, 20, 50, 55);
+        BandFixtures.SeedAllyFpAt(mem, 4, 140, 22, 52, 57);
 
         var choir = new Choir(meta, kills, mem: mem);
         choir.Tick(onField: true);

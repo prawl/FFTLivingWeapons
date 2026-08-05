@@ -59,19 +59,6 @@ public class KillTrackerDeedTests
 
     private static void Settle(KillTracker t, int n = 3) { for (int i = 0; i < n; i++) t.Poll(true); }
 
-    /// <summary>Seed the three victim fields at band slot <paramref name="slot"/>'s entry, marked
-    /// Readable (mirrors VictimProbeTests.SeedVictimFields).</summary>
-    private static void SeedVictimFields(FakeSparseMemory m, int slot, ushort nameId, byte job, bool undead)
-    {
-        long addr = Band.Entry(slot);
-        m.U16s[addr + Offsets.ANameId] = nameId;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
-        m.U8s[addr + Puppeteer.JobOff] = job;
-        m.ReadableAddrs.Add(addr + Puppeteer.JobOff);
-        m.U8s[addr + Offsets.ADeadStatus] = undead ? Offsets.AUndeadBit : (byte)0;
-        m.ReadableAddrs.Add(addr + Offsets.ADeadStatus);
-    }
-
     private sealed class FakeDeedSink : IDeedSink
     {
         public readonly List<(int weaponId, VictimSnapshot victim)> Deeds = new();
@@ -88,7 +75,7 @@ public class KillTrackerDeedTests
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
         SetEnemy(m, slot: 0, hp: 300);
-        SeedVictimFields(m, slot: 0, nameId: 918, job: 99, undead: true);
+        BandFixtures.SeedVictimFields(m, slot: 0, nameId: 918, job: 99, undead: true);
         var t = new KillTracker(kills, m, Weapons);
         Settle(t);   // seenAlive
 
@@ -112,7 +99,7 @@ public class KillTrackerDeedTests
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         SetEnemy(m, slot: 0, hp: 300);
-        SeedVictimFields(m, slot: 0, nameId: 918, job: 77, undead: false);
+        BandFixtures.SeedVictimFields(m, slot: 0, nameId: 918, job: 77, undead: false);
         var t = new KillTracker(kills, m, Weapons, recorder: null, deeds: sink);
 
         Settle(t);
@@ -140,7 +127,7 @@ public class KillTrackerDeedTests
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         SetEnemy(m, slot: 0, hp: 300);
-        SeedVictimFields(m, slot: 0, nameId: 918, job: 77, undead: false);
+        BandFixtures.SeedVictimFields(m, slot: 0, nameId: 918, job: 77, undead: false);
         var t = new KillTracker(kills, m, Weapons, recorder: null, deeds: sink);
 
         Settle(t);
@@ -187,7 +174,7 @@ public class KillTrackerDeedTests
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
         SetActive(m, hp: 352, maxHp: 352, level: 99);
         SetEnemy(m, slot: 0, hp: 300);
-        SeedVictimFields(m, slot: 0, nameId: 918, job: 77, undead: false);
+        BandFixtures.SeedVictimFields(m, slot: 0, nameId: 918, job: 77, undead: false);
         var t = new KillTracker(kills, m, Weapons);   // deeds omitted -> null, default
 
         var ex = Record.Exception(() =>
@@ -209,7 +196,7 @@ public class KillTrackerDeedTests
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
         SetEnemy(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
-        SeedVictimFields(m, slot: 0, nameId: 918, job: 99, undead: false);
+        BandFixtures.SeedVictimFields(m, slot: 0, nameId: 918, job: 99, undead: false);
         var t = new KillTracker(kills, m, Weapons);
         Settle(t, 3);   // seenAlive with identity (10,50,50)
 
@@ -235,7 +222,7 @@ public class KillTrackerDeedTests
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
         SetUnit(m, slot: 0, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);   // no array entry -> unknown identity
-        SeedVictimFields(m, slot: 0, nameId: 42, job: 7, undead: false);
+        BandFixtures.SeedVictimFields(m, slot: 0, nameId: 42, job: 7, undead: false);
         var t = new KillTracker(kills, m, Weapons);
         Settle(t, 3);   // seenAlive
 
@@ -258,7 +245,7 @@ public class KillTrackerDeedTests
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
         SetEnemy(m, slot: 0, hp: 300);
-        SeedVictimFields(m, slot: 0, nameId: 918, job: 99, undead: false);
+        BandFixtures.SeedVictimFields(m, slot: 0, nameId: 918, job: 99, undead: false);
         var t = new KillTracker(kills, m, Weapons);
         Settle(t, 3);
 
@@ -286,7 +273,7 @@ public class KillTrackerDeedTests
         var t = new KillTracker(kills, m, Weapons);
 
         SetEnemy(m, slot: 0, hp: 300);
-        SeedVictimFields(m, slot: 0, nameId: 918, job: 99, undead: false);
+        BandFixtures.SeedVictimFields(m, slot: 0, nameId: 918, job: 99, undead: false);
         Settle(t, 3);
         SetUnit(m, slot: 0, hp: 0);
         t.Poll(true); t.Poll(true); t.Poll(true); t.Poll(true); t.Poll(true);   // past DeadNeeded, still pending

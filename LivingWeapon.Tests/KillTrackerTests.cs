@@ -2191,20 +2191,6 @@ public class KillTrackerTests
         public void DeedMiss(int slot) { }
     }
 
-    /// <summary>Seed a band slot's victim-identity fields (nameId/job/undead) so a credited deed
-    /// can be told apart from another slot's deed by its VictimSnapshot (mirrors
-    /// KillTrackerDeedTests.SeedVictimFields).</summary>
-    private static void SeedVictimFields(FakeSparseMemory m, int slot, ushort nameId, byte job, bool undead)
-    {
-        long addr = Band.Entry(slot);
-        m.U16s[addr + Offsets.ANameId] = nameId;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
-        m.U8s[addr + Puppeteer.JobOff] = job;
-        m.ReadableAddrs.Add(addr + Puppeteer.JobOff);
-        m.U8s[addr + Offsets.ADeadStatus] = undead ? Offsets.AUndeadBit : (byte)0;
-        m.ReadableAddrs.Add(addr + Offsets.ADeadStatus);
-    }
-
     [Fact]
     public void LW65_orphaned_alive_edge_from_maxhp_drift_credits_instead_of_blocking()
     {
@@ -2392,12 +2378,12 @@ public class KillTrackerTests
 
         // The high-index victim, established seenAlive, distinct nameId.
         SetEnemy(m, slot: highSlot, hp: 300, maxHp: 400, level: 80, brave: 80, faith: 80);
-        SeedVictimFields(m, highSlot, nameId: 500, job: 1, undead: false);
+        BandFixtures.SeedVictimFields(m, highSlot, nameId: 500, job: 1, undead: false);
         Settle(t, 3);   // seenAlive[highSlot]
 
         // The orphan, established seenAlive under maxHp=107, distinct nameId.
         SetEnemy(m, slot: orphanSlot, hp: 300, maxHp: 107, level: 20, brave: 20, faith: 20);
-        SeedVictimFields(m, orphanSlot, nameId: 100, job: 2, undead: false);
+        BandFixtures.SeedVictimFields(m, orphanSlot, nameId: 100, job: 2, undead: false);
         Settle(t, 3);   // seenAlive[orphanSlot] -> belt[(20,20,20,107)] = true
 
         // End P's period; jump lands -> arm W as the delayed culprit.
