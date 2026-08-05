@@ -100,20 +100,14 @@ internal sealed partial class Benediction : ISignature
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            long addr = Band.Entry(s);
-            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
-            if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
-            int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
-            if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
-            int hp = _mem.Readable(addr + Offsets.AHp, 2) ? _mem.U16(addr + Offsets.AHp) : 0;
+            // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
+            if (!Band.TryReadUnit(_mem, s, out long addr, out var fp, out int hp)) continue;
 
             // Always observe (baseline) BEFORE the active/rise early-continue, so a heal that predates
             // the latch flipping active is never read as a giant stale delta when it first activates.
             int rise = _state.Observe(s, hp);
             if (!active || rise <= 0) continue;
 
-            var fp = (mhp, lvl, br, fa);
             // Per-fingerprint dedupe (NOT slot-keying): the proven discipline shared with
             // Wyrmblood/Ricochet. Known minor limitation: two distinct allies with byte-identical
             // (mhp,lvl,br,fa) on a group heal collide and only the first is boosted -- accepted, pre-existing.
@@ -122,11 +116,11 @@ internal sealed partial class Benediction : ISignature
 
             int bonus = BonusHeal(rise, m.Signature.HealBoostPct);
             if (bonus <= 0) continue;
-            int newHp = BandHeal.NewHp(hp, mhp, bonus);
+            int newHp = BandHeal.NewHp(hp, fp.mhp, bonus);
             if (newHp == hp)
             {
                 // overheal / already at max (BandHeal.NewHp also guards hp <= 0 -> a dead ally is never revived)
-                ModLogger.Debug(LogVerb.Signature, $"benediction ally heal +{rise} not boosted; band slot {s} already at or near maximum ({hp}/{mhp})");
+                ModLogger.Debug(LogVerb.Signature, $"benediction ally heal +{rise} not boosted; band slot {s} already at or near maximum ({hp}/{fp.mhp})");
                 continue;
             }
 
@@ -134,7 +128,7 @@ internal sealed partial class Benediction : ISignature
             _state.Consume(s, newHp);   // our write is not a heal event (no re-boost)
             boosted!.Add(fp);
             ModLogger.EventWithTrace(LogVerb.Signature,
-                $"An ally's heal of {rise} was boosted by {bonus} more ({m.Signature.HealBoostPct} percent); their HP {hp} to {newHp} of {mhp}.",
+                $"An ally's heal of {rise} was boosted by {bonus} more ({m.Signature.HealBoostPct} percent); their HP {hp} to {newHp} of {fp.mhp}.",
                 $"benediction boost detail (battle slot {s})");
         }
     }

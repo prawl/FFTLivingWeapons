@@ -87,18 +87,12 @@ internal sealed partial class Maim : ISignature
             var enemyFps = active ? Band.EnemyFingerprints(_mem) : null;
             for (int s = 0; s < Offsets.BandSlots; s++)
             {
-                long addr = Band.Entry(s);
-                if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-                int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
-                if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
-                int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
-                if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
-                int hp = _mem.Readable(addr + Offsets.AHp, 2) ? _mem.U16(addr + Offsets.AHp) : 0;
+                // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
+                if (!Band.TryReadUnit(_mem, s, out long addr, out var fp, out int hp)) continue;
 
                 int dmg = _hpState.Observe(s, hp);
 
                 if (!active || dmg <= 0 || enemyFps is null) continue;
-                var fp = (mhp, lvl, br, fa);
                 bool enemy = enemyFps.Contains(fp);
                 if (!ShouldLatch(enemy)) continue;
 
@@ -114,14 +108,14 @@ internal sealed partial class Maim : ISignature
                     if (!TryReadReactionField(_mem, addr, out uint saved)) continue;
                     _state.Latch(addr, fp, saved, _mem.U8(addr + LiveCtOff));
                     ModLogger.EventWithTrace(LogVerb.Signature,
-                        $"The struck enemy ({mhp} maximum HP) loses its reaction abilities for {crippleTurns} of its turns.",
+                        $"The struck enemy ({fp.mhp} maximum HP) loses its reaction abilities for {crippleTurns} of its turns.",
                         $"maim latch detail (saved reaction bits=0x{saved:X8})");
                 }
                 else
                 {
                     // Re-hit: refresh the window (reset turn counter), keep saved bytes intact.
                     _state.Refresh(fp);
-                    ModLogger.Event(LogVerb.Signature, $"An already-maimed enemy ({mhp} maximum HP) was hit again; its suppression window restarts.");
+                    ModLogger.Event(LogVerb.Signature, $"An already-maimed enemy ({fp.mhp} maximum HP) was hit again; its suppression window restarts.");
                 }
             }
         }

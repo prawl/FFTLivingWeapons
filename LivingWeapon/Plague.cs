@@ -87,16 +87,10 @@ internal sealed partial class Plague : ISignature
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            long addr = Band.Entry(s);
-            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
-            // LW-145 fix 6: aligned to >= 2000, shared with Ricochet/Larceny/Maim/Kobu/Benediction/
-            // Puppeteer's identical read -- must not fork again (extraction ledgered as LW-149).
-            if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
-            int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
-            if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
-
-            var fp = (mhp, lvl, br, fa);
+            // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs)
+            // -- this loop was one of seven verbatim copies (Ricochet/Larceny/Maim/Kobu/
+            // Benediction/Puppeteer). Plague reads no HP here, so it uses the no-hp overload.
+            if (!Band.TryReadUnit(_mem, s, out long addr, out var fp)) continue;
             bool poisoned = _mem.Readable(addr + Offsets.APoison, 1)
                             && (_mem.U8(addr + Offsets.APoison) & Offsets.APoisonBit) != 0;
 
@@ -124,7 +118,7 @@ internal sealed partial class Plague : ISignature
             {
                 int seedCt = _mem.Readable(addr + Offsets.ACtTurn, 1) ? _mem.U8(addr + Offsets.ACtTurn) : 0;
                 _state.Latch(addr, fp, seedCt);
-                ModLogger.Event(LogVerb.Signature, $"Venombolt locked onto the level {lvl} enemy ({mhp} maximum HP); its poison will never fade and ticks harder");
+                ModLogger.Event(LogVerb.Signature, $"Venombolt locked onto the level {fp.lvl} enemy ({fp.mhp} maximum HP); its poison will never fade and ticks harder");
             }
         }
 

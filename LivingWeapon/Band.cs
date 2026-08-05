@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// static-array A* offsets (ALevel 0x0D, ABrave 0x0E, etc.). Live-proven: fresh
 /// corpse 0/539 visible only in the band; Ramza's real grid position only there.
 /// </summary>
-internal static class Band
+internal static partial class Band
 {
     /// <summary>How far a LIVE level may exceed the ROSTER level and still identify the same
     /// unit. The roster keeps the pre-battle level until battle end while live structs update

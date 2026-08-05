@@ -100,13 +100,8 @@ internal sealed class Larceny : ISignature
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            long addr = Band.Entry(s);
-            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
-            if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
-            int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
-            if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
-            int hp = _mem.Readable(addr + Offsets.AHp, 2) ? _mem.U16(addr + Offsets.AHp) : 0;
+            // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
+            if (!Band.TryReadUnit(_mem, s, out long addr, out var fp, out int hp)) continue;
 
             int dmg = _hpState.Observe(s, hp);
             // Snapshot this slot's holdable buff EVERY tick; the steal uses the PRE-hit snapshot as cheap
@@ -116,7 +111,7 @@ internal sealed class Larceny : ISignature
             _preHit[s] = nowBuff;
 
             if (!active || dmg <= 0 || enemyFps is null) continue;
-            if (!LarcenyPolicy.ShouldLatch(enemyFps.Contains((mhp, lvl, br, fa)))) continue;
+            if (!LarcenyPolicy.ShouldLatch(enemyFps.Contains(fp))) continue;
 
             var buff = preHit ?? nowBuff;   // the buff the foe had BEFORE the hit (the live one may be gone)
             if (buff is null) continue;     // foe carried no holdable buff

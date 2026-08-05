@@ -197,18 +197,13 @@ internal sealed partial class Puppeteer : ISignature
             // regardless of the gate -- detection survives idle gaps (Maim's proven shape).
             for (int s = 0; s < Offsets.BandSlots; s++)
             {
-                long addr = Band.Entry(s);
-                if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-                int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
-                if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
-                int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
-                if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
-                int hp = _mem.Readable(addr + Offsets.AHp, 2) ? _mem.U16(addr + Offsets.AHp) : 0;
+                // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
+                if (!Band.TryReadUnit(_mem, s, out long addr, out var fp, out int hp)) continue;
 
                 int dmg = _hpState.Observe(s, hp);   // ALWAYS observe to keep the HP-diff baseline
                 if (dmg <= 0) continue;
 
-                Evaluate(s, addr, dmg, hp, (mhp, lvl, br, fa), wielderEntry, active, turnNow, puppetTurns);
+                Evaluate(s, addr, dmg, hp, fp, wielderEntry, active, turnNow, puppetTurns);
             }
         }
 

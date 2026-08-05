@@ -70,20 +70,17 @@ internal sealed partial class Ricochet : ISignature
         // Pass 1: observe every valid band entry; build the COMPLETE candidate list first.
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            long addr = Band.Entry(s);
-            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;
-            int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
-            if (mhp < 1 || mhp >= 2000 || lvl < 1 || lvl > 99) continue;
-            int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
-            if (br < 1 || br > 100 || fa < 1 || fa > 100) continue;
+            // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
+            // The gx/gy > 30 reject stays caller-side -- it is Ricochet's own extra gate, not
+            // part of the shared core the other six callers share.
+            if (!Band.TryReadUnit(_mem, s, out long addr, out var fp, out int hp)) continue;
             int gx = _mem.U8(addr + Offsets.AGx), gy = _mem.U8(addr + Offsets.AGy);
             if (gx > 30 || gy > 30) continue;
-            int hp = _mem.Readable(addr + Offsets.AHp, 2) ? _mem.U16(addr + Offsets.AHp) : 0;
 
             int dmg = _state.Observe(s, hp);   // always observe: baselining while inactive
             if (!active) continue;
 
-            bool enemy = enemyFps!.Contains((mhp, lvl, br, fa));
+            bool enemy = enemyFps!.Contains(fp);
             slots.Add(new SlotInfo(s, gx, gy, hp, enemy));
             if (dmg > 0 && enemy) events.Add((s, gx, gy, dmg));
         }
