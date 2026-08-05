@@ -132,15 +132,7 @@ try {
     Write-Host "[3/5] Cleaning $dest (preserving save files + flight/ archives)..." -ForegroundColor Yellow
     if (Test-Path $preserveDir) { Remove-Item $preserveDir -Recurse -Force -ErrorAction SilentlyContinue }
     New-Item -ItemType Directory -Force -Path $preserveDir | Out-Null
-    foreach ($f in $PreservedSaveFiles) {
-        $src = Join-Path $dest $f
-        if (Test-Path $src) {
-            Copy-Item $src (Join-Path $preserveDir $f) -Force
-        }
-    }
-    if (Test-Path (Join-Path $dest "flight")) {
-        Copy-Item (Join-Path $dest "flight") $preserveDir -Recurse -Force
-    }
+    Copy-PreservedItems $dest $preserveDir $PreservedSaveFiles
     if (Test-Path $dest) {
         # Keep the Vortex marker so Vortex doesn't treat the folder as orphaned. Everything
         # else (incl. flight/) is wiped here and restored from $preserveDir below.
@@ -160,15 +152,7 @@ try {
     Get-ChildItem "$dest\FFTIVC" -Recurse -Filter $ParkedArtifactFilter -ErrorAction SilentlyContinue | Remove-Item -Force
     Copy-Item "$root\mod\ModConfig.json" $dest -Force   # our config wins over any published one
     if (Test-Path "$root\mod\preview.png") { Copy-Item "$root\mod\preview.png" $dest -Force }
-    foreach ($f in $PreservedSaveFiles) {
-        $src = Join-Path $preserveDir $f
-        if (Test-Path $src) {
-            Copy-Item $src (Join-Path $dest $f) -Force
-        }
-    }
-    if (Test-Path (Join-Path $preserveDir "flight")) {
-        Copy-Item (Join-Path $preserveDir "flight") $dest -Recurse -Force
-    }
+    Copy-PreservedItems $preserveDir $dest $PreservedSaveFiles
     # LW-28: fail RED if the round-trip lost anything, BEFORE deleting the backup dir, so the
     # surviving copies stay recoverable in %TEMP% (and the catch path below re-restores the
     # missing items from that same dir on its way to exit 1).
@@ -212,19 +196,7 @@ catch {
     # the next plain deploy. Restore each preserved item ONLY if it's still missing, so
     # this never clobbers a partial restore a later stage already completed.
     if ((Test-Path $preserveDir) -and (Test-Path $dest)) {
-        foreach ($f in $PreservedSaveFiles) {
-            $src = Join-Path $preserveDir $f
-            $dst = Join-Path $dest $f
-            if ((Test-Path $src) -and -not (Test-Path $dst)) {
-                Copy-Item $src $dst -Force
-                Write-Host "Restored $f after the failed deploy." -ForegroundColor Yellow
-            }
-        }
-        $flightSrc = Join-Path $preserveDir "flight"
-        if ((Test-Path $flightSrc) -and -not (Test-Path (Join-Path $dest "flight"))) {
-            Copy-Item $flightSrc $dest -Recurse -Force
-            Write-Host "Restored flight/ after the failed deploy." -ForegroundColor Yellow
-        }
+        Copy-PreservedItems $preserveDir $dest $PreservedSaveFiles -OnlyIfMissing
     }
     if ($deployed -and (Test-Path $dest) -and -not (Test-Path $marker)) {
         Set-Content -Path $marker -Value $deployed -Encoding Ascii

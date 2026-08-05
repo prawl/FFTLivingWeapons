@@ -84,6 +84,35 @@ function Get-LostPreservedItems([string]$preserveDir, [string]$dest, [string[]]$
     return $lost
 }
 
+# LW-149 Stage F: the preserve round-trip loop itself (copy each $PreservedSaveFiles entry plus
+# the flight/ archive directory, the same one-mechanism treatment Get-LostPreservedItems above
+# already checks). BuildLinked.ps1 used to carry this loop three times: the pre-clean backup
+# ($dest -> $preserveDir, unconditional overwrite, silent), the post-stage restore ($preserveDir
+# -> $dest, unconditional overwrite, silent), and the catch path's re-restore, which is the one
+# copy that differs in shape -- it only fills in items still MISSING at the destination (so it
+# never clobbers a partial restore an earlier stage already completed) and narrates every file it
+# saves, because that narration is the only evidence a failed-deploy session leaves about what
+# survived. -OnlyIfMissing reproduces exactly that guard + narration (the host lines are
+# byte-identical to the catch path's old inline copies, BuildLinked.ps1 pre-LW-149 lines
+# 214-228); omit it for the unconditional backup/restore legs, which stay silent since their own
+# [3/5]-style step header already announces the copy.
+function Copy-PreservedItems([string]$from, [string]$to, [string[]]$files, [switch]$OnlyIfMissing) {
+    foreach ($f in $files) {
+        $src = Join-Path $from $f
+        $dst = Join-Path $to $f
+        if (-not (Test-Path $src)) { continue }
+        if ($OnlyIfMissing -and (Test-Path $dst)) { continue }
+        Copy-Item $src $dst -Force
+        if ($OnlyIfMissing) { Write-Host "Restored $f after the failed deploy." -ForegroundColor Yellow }
+    }
+    $flightSrc = Join-Path $from "flight"
+    $flightDst = Join-Path $to "flight"
+    if ((Test-Path $flightSrc) -and -not ($OnlyIfMissing -and (Test-Path $flightDst))) {
+        Copy-Item $flightSrc $to -Recurse -Force
+        if ($OnlyIfMissing) { Write-Host "Restored flight/ after the failed deploy." -ForegroundColor Yellow }
+    }
+}
+
 # LW-51 / LW-134 (LW-148 extraction): the update-safe save directory's location, shared by
 # BuildLinked.ps1's deploy guard and (via the DeployGuardTests-style cross-language pin) a C# test
 # asserting it resolves to the exact same path as LivingWeapon/SaveLocation.cs's own
