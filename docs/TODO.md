@@ -60,6 +60,21 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-150] Take the structural seams the audit judged real, one green stage at a time** (opened 2026-07-28) [BUILDING]
+  - Done means: the audit's structural findings are refactored with runtime behavior byte
+    identical, each stage its own commit with its own breakable pin: analyze.py's twelve copied
+    check stanzas become one registry loop that cannot forget to set the failure code; Iai's two
+    pure verdicts move into its Policy file where they are directly testable; the kill tracker's
+    acted-period latch becomes its own tested class instead of eight fields in a shared soup;
+    ScanCorpses' 280-line loop splits into named per-slot handlers behind the same dispatcher;
+    and Engine's battle sentinel reads go through the injected memory seam so a test can finally
+    construct an Engine and script its tick, with the two load-bearing array orderings pinned by
+    a test instead of a comment. The BodyDoubleSpike split stays with LW-120 where it belongs.
+  - Verify: full suite green after every stage; every stage's pin proven non-vacuous by breaking
+    it once; the kill-credit probe's lockstep note honored (behavior-preserving structure moves
+    keep the probe valid; any edge-machinery semantic change is out of scope here). Offline only;
+    the standing rider is the owner's next ordinary session.
+
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
@@ -90,20 +105,6 @@ the technical detail lives in the indented lines under it.
   the shared band sanity helper exists, tests seed through shared fixtures that mark honest
   ranges centrally, and the default can flip with a fraction of the hand edits. Until then the
   divergence is documented on FakeSparseMemory and pinned in both directions.
-
-- [LW-150] 2026-07-28: Structural seams the audit judged real, to take opportunistically when the
-  files are next touched.
-  KillTracker.Corpses.ScanCorpses is one 280-line per-slot loop interleaving five concerns, the
-  costliest place in the repo to reason about edge ordering (KillTracker.Corpses.cs:124).
-  KillTracker.cs still hosts a nameable acted-period latch state machine across eight fields that
-  wants to be its own tested class (KillTracker.cs:210). Iai.Tick is 156 lines with two pure
-  verdicts trapped inline that belong in Iai.Policy.cs (Iai.cs:146). Engine.Tick reads its battle
-  sentinels through static Mem despite holding the injected seam, which is why no test can
-  construct an Engine, and it reads PauseFlag twice per tick (Engine.cs:330); its two load-bearing
-  array orderings are enforced only by comment (Engine.cs:218). SpiritualFont.cs also carries the activation-edge idiom shape on its separate _wasLocated field, unconverted by the LW-149 edge-helper stage on purpose (a located-edge, not an activation-edge); fold it in when that file is next touched. analyze.py's main is twelve
-  copy-pasted stanzas where one forgotten rc=1 would green-light a red gate (analyze.py:524).
-  BodyDoubleSpike.cs is 1575 lines of accreted canary research whose proven recipes LW-120 needs
-  mined out; split it along its own phase seams when that work starts.
 
 - [LW-100] 2026-07-21: A rider who restarts a battle and opens it on foot can keep the previous
   run's leftover mounted Speed until they climb back on a chocobo.

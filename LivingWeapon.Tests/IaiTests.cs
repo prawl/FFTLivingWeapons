@@ -1192,4 +1192,111 @@ public class IaiTests
 
         Assert.Equal((byte)5, mem.U8s[wielderEntry + Offsets.ASpeed]);
     }
+
+    // ---- S2: pure OursResidue verdict (extracted from Tick's post-release corrective, :216-218)
+    // ----
+    //
+    // Values measured directly off the OLD inline expression:
+    //   bool ours = (state.BakedResidue > 0 && cur0 == state.BakedResidue)
+    //            || (state.LastTarget > 0 && cur0 == state.LastTarget
+    //                && cur0 != state.NaturalSpeed);
+    // THE PIN is the asymmetry: the BakedResidue arm has NO "cur != natural" guard, the
+    // LastTarget arm DOES. The two tests immediately below are the same collision (residue
+    // value == natural, current reading == residue) run through each arm alone; they must
+    // disagree, or the asymmetry has been lost.
+
+    [Fact]
+    public void OursResidue_bakedArm_fires_even_when_residue_equals_natural()
+        // BakedResidue arm has no cur!=natural guard: a (contrived) collision where the residue
+        // itself equals natural must still fire ours=true.
+        => Assert.True(Iai.OursResidue(cur: 11, bakedResidue: 11, lastTarget: 0, naturalSpeed: 11));
+
+    [Fact]
+    public void OursResidue_lastTargetArm_refuses_the_same_collision_the_bakedArm_accepts()
+        // Same collision (target value == natural, current reading == target), but routed through
+        // the LastTarget arm instead: its cur!=natural guard blocks it. NON-VACUITY: a stub that
+        // "fixes" the asymmetry by adding the same guard to the BakedResidue arm makes the test
+        // above fail (that is the point -- see the deliberately-wrong-stub check).
+        => Assert.False(Iai.OursResidue(cur: 11, bakedResidue: 0, lastTarget: 11, naturalSpeed: 11));
+
+    [Fact]
+    public void OursResidue_bakedArm_fires_on_a_normal_non_colliding_match()
+        => Assert.True(Iai.OursResidue(cur: 13, bakedResidue: 13, lastTarget: 0, naturalSpeed: 8));
+
+    [Fact]
+    public void OursResidue_lastTargetArm_fires_when_cur_matches_and_differs_from_natural()
+        => Assert.True(Iai.OursResidue(cur: 11, bakedResidue: 0, lastTarget: 11, naturalSpeed: 8));
+
+    [Fact]
+    public void OursResidue_zero_bakedResidue_never_matches_even_if_cur_is_zero()
+        // BakedResidue<=0 means "capture was clean" -- the arm must stay disabled even if cur
+        // happens to read 0 too (the ">0" guard, not a plain equality).
+        => Assert.False(Iai.OursResidue(cur: 0, bakedResidue: 0, lastTarget: 0, naturalSpeed: 8));
+
+    [Fact]
+    public void OursResidue_zero_lastTarget_never_matches_even_if_cur_is_zero()
+        => Assert.False(Iai.OursResidue(cur: 0, bakedResidue: 0, lastTarget: 0, naturalSpeed: -1));
+
+    [Fact]
+    public void OursResidue_neither_arm_matches_returns_false()
+        => Assert.False(Iai.OursResidue(cur: 9, bakedResidue: 11, lastTarget: 13, naturalSpeed: 8));
+
+    // ---- S2: pure RestoreAddress three-way verdict (extracted from Tick's release pass, :287-290)
+    // ----
+    //
+    // Values measured directly off the OLD inline expression:
+    //   bool confirmed = released && flags == FlagVerdict.Confirm;
+    //   long restoreAddr = confirmed ? flagEntry + Offsets.ASpeed
+    //                     : (released && identity) ? acting + Offsets.ASpeed
+    //                     : state.LastEntry != 0 ? state.LastEntry + Offsets.ASpeed : 0;
+    // Three arms: Confirm (flag owner's entry), Identity (the acting pointer's entry), LastEntry
+    // (the hold's best-effort last-known address, or 0 to skip the write). The LastEntry arm is
+    // reached by BOTH the wall-clock cap (released=false, entirely independent of flags/identity)
+    // AND the legacy address-fallback release (released=true, identity=false) -- both are pinned
+    // explicitly below.
+
+    private const long FlagE = 0x3000, ActingE = 0x4000, LastE = 0x5000;
+
+    [Fact]
+    public void RestoreAddress_confirmed_uses_flagEntry_regardless_of_identity_or_lastEntry()
+        => Assert.Equal((FlagE + Offsets.ASpeed, true),
+            Iai.RestoreAddress(released: true, identity: true, flags: Iai.FlagVerdict.Confirm,
+                flagEntry: FlagE, acting: ActingE, lastEntry: LastE));
+
+    [Fact]
+    public void RestoreAddress_confirm_folds_released_and_flags_together()
+        // The load-bearing fold: flags==Confirm alone is NOT enough. released=false (the cap
+        // fired instead of a real release) must NOT take the Confirm arm even though flags still
+        // reads Confirm -- it falls through to the LastEntry arm instead.
+        => Assert.Equal((LastE + Offsets.ASpeed, false),
+            Iai.RestoreAddress(released: false, identity: true, flags: Iai.FlagVerdict.Confirm,
+                flagEntry: FlagE, acting: ActingE, lastEntry: LastE));
+
+    [Fact]
+    public void RestoreAddress_legacy_identity_release_uses_acting()
+        => Assert.Equal((ActingE + Offsets.ASpeed, false),
+            Iai.RestoreAddress(released: true, identity: true, flags: Iai.FlagVerdict.Indeterminate,
+                flagEntry: FlagE, acting: ActingE, lastEntry: LastE));
+
+    [Fact]
+    public void RestoreAddress_legacy_addressFallback_release_uses_lastEntry()
+        // released=true, identity=false (the roster-nameId capture failed) -- the address-fallback
+        // lane, not the wall-clock cap.
+        => Assert.Equal((LastE + Offsets.ASpeed, false),
+            Iai.RestoreAddress(released: true, identity: false, flags: Iai.FlagVerdict.Indeterminate,
+                flagEntry: FlagE, acting: ActingE, lastEntry: LastE));
+
+    [Fact]
+    public void RestoreAddress_capFired_path_lands_in_the_lastEntry_arm()
+        // THE cap-fired case: released=false (the wall-clock cap fired, not a real release).
+        // Explicitly independent of identity/flags/flagEntry/acting -- only lastEntry governs.
+        => Assert.Equal((LastE + Offsets.ASpeed, false),
+            Iai.RestoreAddress(released: false, identity: false, flags: Iai.FlagVerdict.Refuse,
+                flagEntry: FlagE, acting: ActingE, lastEntry: LastE));
+
+    [Fact]
+    public void RestoreAddress_lastEntry_zero_skips_the_write()
+        => Assert.Equal((0L, false),
+            Iai.RestoreAddress(released: false, identity: false, flags: Iai.FlagVerdict.Indeterminate,
+                flagEntry: FlagE, acting: ActingE, lastEntry: 0));
 }

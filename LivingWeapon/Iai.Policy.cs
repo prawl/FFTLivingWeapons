@@ -128,4 +128,57 @@ internal sealed partial class Iai
     /// underneath all three verdicts.</summary>
     internal static bool ReleaseDecision(bool legacySignal, FlagVerdict flags)
         => flags == FlagVerdict.Confirm || (flags == FlagVerdict.Indeterminate && legacySignal);
+
+    /// <summary>S2 extraction (mechanical, from Tick's post-release corrective hold): does the
+    /// currently-read Speed byte look like OUR own boost coming back after release (the LW-90
+    /// theory -- the engine's per-turn normalize re-paints a baseline that captured the hold), so
+    /// it should be re-corrected to natural? Watches BOTH known-ours values: the ledger-flagged
+    /// restart residue (<paramref name="bakedResidue"/>) and the hold's own last written target
+    /// (<paramref name="lastTarget"/>; the fresh-battle case).
+    ///
+    /// THE PIN, deliberate and NOT a bug: the two arms are asymmetric. The BakedResidue arm has
+    /// no "cur != natural" guard; the LastTarget arm does. Measured verbatim off the original
+    /// inline expression (Iai.cs, pre-extraction) -- do not "fix" the asymmetry by adding the
+    /// missing guard to the BakedResidue arm; IaiTests pins the exact collision that distinguishes
+    /// the two arms.
+    ///
+    /// The caller's write guard (<c>state.NaturalSpeed &gt;= SpeedSaneMin</c>) is NOT part of this
+    /// verdict -- it stays at the call site (Iai.cs), unchanged.</summary>
+    internal static bool OursResidue(int cur, int bakedResidue, int lastTarget, int naturalSpeed)
+        => (bakedResidue > 0 && cur == bakedResidue)
+        || (lastTarget > 0 && cur == lastTarget && cur != naturalSpeed);
+
+    /// <summary>S2 extraction (mechanical, from Tick's release+cap pass): the three-way restore
+    /// address selection, plus the <c>confirmed</c> flag the caller also needs for its log line
+    /// ("released by the turn flags" vs "the actor pointer"). Measured verbatim off the original
+    /// inline expression (Iai.cs, pre-extraction):
+    /// <code>
+    ///   bool confirmed = released &amp;&amp; flags == FlagVerdict.Confirm;
+    ///   long restoreAddr = confirmed ? flagEntry + Offsets.ASpeed
+    ///                     : (released &amp;&amp; identity) ? acting + Offsets.ASpeed
+    ///                     : lastEntry != 0 ? lastEntry + Offsets.ASpeed : 0;
+    /// </code>
+    /// Three arms, in priority order:
+    ///   1. CONFIRM -- a flags-CONFIRMED release restores to the FLAG OWNER's entry (the pointer
+    ///      may be parked on a different unit entirely at this exact instant).
+    ///   2. IDENTITY -- a legacy identity release (flags Indeterminate, nameId-matched) restores
+    ///      to the pointer-provided acting entry (authoritative at exactly this instant).
+    ///   3. LAST-ENTRY -- everything else: a legacy address-fallback release (released &amp;&amp;
+    ///      !identity) AND the wall-clock cap (released == false, entirely independent of
+    ///      identity/flags/flagEntry/acting) both land here, best-effort against the hold's last-
+    ///      known address. <paramref name="lastEntry"/> == 0 returns addr 0 (skip the write) --
+    ///      the only way a hold can reach this method with no armed entry at all.
+    ///
+    /// THE FOLD, load-bearing: <c>confirmed</c> requires BOTH <paramref name="released"/> AND
+    /// <paramref name="flags"/> == Confirm -- a cap-fired tick (released == false) never takes the
+    /// Confirm arm even if <paramref name="flags"/> still happens to read Confirm.</summary>
+    internal static (long addr, bool confirmed) RestoreAddress(
+        bool released, bool identity, FlagVerdict flags, long flagEntry, long acting, long lastEntry)
+    {
+        bool confirmed = released && flags == FlagVerdict.Confirm;
+        long addr = confirmed ? flagEntry + Offsets.ASpeed
+                  : (released && identity) ? acting + Offsets.ASpeed
+                  : lastEntry != 0 ? lastEntry + Offsets.ASpeed : 0;
+        return (addr, confirmed);
+    }
 }

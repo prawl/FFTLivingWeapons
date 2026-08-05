@@ -178,6 +178,20 @@ internal sealed partial class Iai : ISignature
         bool flagResolved = Band.FlagOwner(_mem, out long flagEntry, out _);
         int flagNameId = flagResolved ? _mem.U16(flagEntry + Offsets.ANameId) : 0;
 
+        ApplyHolds(now, fieldMax);
+        SweepReleases(evaluate, acting, actedNow, actingNameId, flagResolved, flagEntry, flagNameId, now);
+
+        _prevActing = acting;
+        _prevActed = actedNow;
+    }
+
+    /// <summary>Pass 1 (S2 extraction, mechanical -- moved verbatim out of Tick): arm/hold every
+    /// resolved wielder this tick. Capture natural once (F5), then write the clamped Speed target
+    /// every tick while unreleased; a released wielder instead gets the LW-90 post-release
+    /// corrective (see the class doc comment). <paramref name="fieldMax"/> is the scan result
+    /// computed once per tick in Tick; <paramref name="now"/> is Tick's own clock parameter.</summary>
+    private void ApplyHolds(DateTime now, int fieldMax)
+    {
         foreach (var (entry, fp) in _wielders)
         {
             if (!_holds.TryGetValue(fp, out var state))
@@ -212,10 +226,10 @@ internal sealed partial class Iai : ISignature
                 // Living in the resolved-wielder loop is safe for an identified wielder: the
                 // D3 tier-1 tie-break resolves nameId-verified mirror copies instead of
                 // bailing (pinned by IaiTests.Post_release_corrective_survives_mirror_churn).
+                // Verdict extracted to Iai.Policy.OursResidue (S2); the write guard right below
+                // stays here at the call site.
                 int cur0 = _mem.U8(spAddr);
-                bool ours = (state.BakedResidue > 0 && cur0 == state.BakedResidue)
-                         || (state.LastTarget > 0 && cur0 == state.LastTarget
-                             && cur0 != state.NaturalSpeed);
+                bool ours = OursResidue(cur0, state.BakedResidue, state.LastTarget, state.NaturalSpeed);
                 if (ours && state.NaturalSpeed >= SpeedSaneMin)
                 {
                     _mem.W8(spAddr, (byte)state.NaturalSpeed);
@@ -252,11 +266,18 @@ internal sealed partial class Iai : ISignature
             state.LastTarget = clamped;
             _mem.W8(spAddr, (byte)clamped);
         }
+    }
 
-        // Release + cap: one pass over EVERY unreleased hold, not just this tick's resolved
-        // _wielders (N6 FIX, 2026-07-01) -- a mirror-churned wielder that ambiguity-bails out of
-        // _wielders must still be able to release (identity path) and must still be able to cap
-        // (wall-clock backstop, previously starved alongside it).
+    /// <summary>Pass 2 (S2 extraction, mechanical -- moved verbatim out of Tick): release + cap,
+    /// one pass over EVERY unreleased hold, not just this tick's resolved _wielders (N6 FIX,
+    /// 2026-07-01) -- a mirror-churned wielder that ambiguity-bails out of _wielders must still be
+    /// able to release (identity path) and must still be able to cap (wall-clock backstop,
+    /// previously starved alongside it). All parameters are Tick locals computed once per tick,
+    /// before either pass runs; <see cref="_prevActing"/>/<see cref="_prevActed"/> stay field
+    /// reads (Tick advances them itself, after both passes).</summary>
+    private void SweepReleases(bool evaluate, long acting, bool actedNow, int actingNameId,
+        bool flagResolved, long flagEntry, int flagNameId, DateTime now)
+    {
         foreach (var (fp, state) in _holds)
         {
             if (state.Released) continue;
@@ -284,10 +305,8 @@ internal sealed partial class Iai : ISignature
             // hold's last-known entry (best-effort: a stale address is still better than leaving
             // the wielder permanently fast for the rest of the battle). LastEntry is 0 only if a
             // hold was somehow never armed via the _wielders loop (defensive; skip the write).
-            bool confirmed = released && flags == FlagVerdict.Confirm;
-            long restoreAddr = confirmed ? flagEntry + Offsets.ASpeed
-                              : (released && identity) ? acting + Offsets.ASpeed
-                              : state.LastEntry != 0 ? state.LastEntry + Offsets.ASpeed : 0;
+            // Verdict extracted to Iai.Policy.RestoreAddress (S2).
+            var (restoreAddr, confirmed) = RestoreAddress(released, identity, flags, flagEntry, acting, state.LastEntry);
             if (restoreAddr != 0 && state.NaturalSpeed >= SpeedSaneMin && _mem.Writable(restoreAddr, 1))
                 _mem.W8(restoreAddr, (byte)state.NaturalSpeed);
 
@@ -295,9 +314,6 @@ internal sealed partial class Iai : ISignature
             string why = !released ? "the wall-clock cap" : confirmed ? "the turn flags" : "the actor pointer";
             ModLogger.Event(LogVerb.Signature, $"The wielder's opening-turn Speed boost is removed (level {fp.lvl}, brave {fp.br}, faith {fp.fa}; released by {why})");
         }
-
-        _prevActing = acting;
-        _prevActed = actedNow;
     }
 
     /// <summary>Max Speed among all valid band entries NOT in <paramref name="wielderEntries"/>,
