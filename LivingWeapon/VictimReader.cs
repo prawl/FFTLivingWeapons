@@ -27,7 +27,7 @@ internal static class VictimReader
     {
         bool nameOk = mem.Readable(addr + Offsets.ANameId, 2);
         ushort nameId = nameOk ? mem.U16(addr + Offsets.ANameId) : (ushort)0;
-        byte job = mem.Readable(addr + Puppeteer.JobOff, 1) ? mem.U8(addr + Puppeteer.JobOff) : (byte)0;
+        byte job = mem.Readable(addr + Offsets.AJob, 1) ? mem.U8(addr + Offsets.AJob) : (byte)0;
         bool undead = mem.Readable(addr + Offsets.ADeadStatus, 1)
             && (mem.U8(addr + Offsets.ADeadStatus) & Offsets.AUndeadBit) != 0;
         return new VictimSnapshot(nameOk, nameId, job, undead);

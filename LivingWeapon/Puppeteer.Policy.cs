@@ -99,11 +99,12 @@ internal sealed partial class Puppeteer
     internal const int AgencyOff = -0x17;
     internal const byte AgencyBit = 0x08;
 
-    // The victim's job id (for the log line + the re-gating hook): combat base +0x03 (PSX "Current
-    // Job"), band-relative == band -0x19. CONFIRMED live 2026-06-18 (Ramza 83 Thief, party Dark Knight
-    // 94, enemies Goblin 99 / Bonesnatch 110 / Wisenkin 124-127) -- but the byte is not a reliable unit
-    // FILTER (bosses read story/special ids like 37), so IsDominatable ignores it (see above).
-    internal const int JobOff = -0x19;
+    // The victim's job id (for the log line + the re-gating hook). Promoted to Offsets.AJob
+    // (LW-149 stage H): kept here as a one-line alias so Puppeteer.cs:227 and every existing test
+    // call site that references Puppeteer.JobOff keep working unchanged. See Offsets.AJob for the
+    // full provenance (combat base +0x03, CONFIRMED live 2026-06-18) and the "only negative offset
+    // in this section" warning.
+    internal const int JobOff = Offsets.AJob;
 
     /// <summary>Guarded single-bit RMW of the agency flag at <paramref name="bandAddr"/> + AgencyOff:
     /// OR-set (on) or AND-clear (off) ONLY bit 0x08, leaving the rest of the byte intact (its other bits

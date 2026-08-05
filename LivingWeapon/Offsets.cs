@@ -134,6 +134,16 @@ internal static class Offsets
     /// at/above 90, then falls below 70 = one turn taken. Live-proven by Maim (victim-turn
     /// counting) and CharmLock. CtTurns feeds off this offset. Equals combat base+0x25.</summary>
     public const int ACtTurn   = 0x09;
+    /// <summary>u8 band-relative job id (PSX "Current Job", combat base +0x03): the only NEGATIVE
+    /// offset in THIS section's A* fields (ACrystalHearts and AGateByte, in other sections of this
+    /// file, are negative too) -- it reaches BACKWARD out of the band entry
+    /// into combat-struct territory below BandEntry (0x1C), the opposite direction of every other
+    /// field in this block. Do not mistake it for an in-entry field. Promoted from Puppeteer.Policy's
+    /// private JobOff constant (LW-149 stage H); Puppeteer.Policy.JobOff is now a one-line alias to
+    /// this constant. CONFIRMED live 2026-06-18 (Ramza 83 Thief, party Dark Knight 94, enemies
+    /// Goblin 99 / Bonesnatch 110 / Wisenkin 124-127) -- but the byte is NOT a reliable unit FILTER
+    /// (bosses read story/special ids like 37), so Puppeteer.IsDominatable ignores it.</summary>
+    public const int AJob      = -0x19;
 
     // --- roster (nameId -> equipped right hand) ---
     public const long RosterBase = 0x1411A7D10;   // 1.5 CONFIRMED +0x6440 (was 0x1411A18D0): slot0=Ramza (lvl99/rhand80/nameId1), slots +1..+7 = real party

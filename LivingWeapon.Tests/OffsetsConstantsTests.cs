@@ -27,4 +27,15 @@ public class OffsetsConstantsTests
     {
         Assert.Equal(0x10u, Offsets.Slot0InBattleMarker);
     }
+
+    /// <summary>LW-149 stage H: JobOff was promoted from a private Puppeteer.Policy constant to
+    /// Offsets.AJob (the band-relative reach-back to combat +0x03, live-confirmed 2026-06-18).
+    /// Puppeteer.Policy.JobOff is now a one-line alias -- this pins both names to the same value
+    /// so a future edit to either side cannot let them drift apart.</summary>
+    [Fact]
+    public void JobOff_alias_matches_the_promoted_Offsets_constant()
+    {
+        Assert.Equal(-0x19, Offsets.AJob);
+        Assert.Equal(Offsets.AJob, Puppeteer.JobOff);
+    }
 }

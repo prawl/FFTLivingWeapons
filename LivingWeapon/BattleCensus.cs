@@ -92,7 +92,7 @@ internal sealed class BattleCensus
 
                 bool nameOk = _mem.Readable(addr + Offsets.ANameId, 2);
                 ushort nameId = nameOk ? _mem.U16(addr + Offsets.ANameId) : (ushort)0;
-                byte job = _mem.Readable(addr + Puppeteer.JobOff, 1) ? _mem.U8(addr + Puppeteer.JobOff) : (byte)0;
+                byte job = _mem.Readable(addr + Offsets.AJob, 1) ? _mem.U8(addr + Offsets.AJob) : (byte)0;
                 int lvl = _mem.U8(addr + Offsets.ALevel);
                 int br = _mem.U8(addr + Offsets.ABrave);
                 int fa = _mem.U8(addr + Offsets.AFaith);

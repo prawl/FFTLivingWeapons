@@ -60,6 +60,26 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-149] Fold the audit's duplication families into single homes, one green stage at a time** (opened 2026-07-28) [BUILDING]
+  - Done means: the copy-paste families the audit mapped each live in ONE place with the copies
+    deleted, shipped as one commit per family, and runtime behavior is byte-identical throughout,
+    with every family's seam pinned by its own tests. In scope, cheap to risky: the band-relative
+    job offset promoted to Offsets; the shared band-heal core and grid metric into neutral homes;
+    the copy-pasted test Seed fixtures into one file with exact-address-set pins; a ref-bool
+    activation-edge helper that leaves every module's own log call untouched; the seven-copy band
+    sanity read into Band.TryReadUnit; the roster walk split into its two honest rules (strict and
+    lenient) with ghost-row pins written BEFORE migration; the GrowthEngine ownership-hold core
+    covering the Ultima/Mushin/Afterimage trio with TimedStat excluded up front as a genuinely
+    different machine; the nxd patch script dedup into tools/lib; and the BuildLinked preserve
+    loop into one pipeline function. EXPLICITLY OUT: the frozen weapon-command trio (LW-125), and
+    the static enemy-array mhp bound at Band.cs, whose inclusive-2000 drift is a documented,
+    live-observable choice waiting on the owner's LIVE_LEDGER row about whether any unit can
+    reach exactly 2000 max HP.
+  - Verify: full suite green after every stage; each stage's load-bearing pin proven non-vacuous
+    by breaking it once; the plan review's per-caller and per-lane verdicts honored (a caller or
+    lane that cannot migrate byte-identically stays put with a comment saying why). Offline only;
+    the standing rider is the owner's next ordinary session.
+
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
@@ -87,23 +107,6 @@ the technical detail lives in the indented lines under it.
   the shared band sanity helper exists, tests seed through shared fixtures that mark honest
   ranges centrally, and the default can flip with a fraction of the hand edits. Until then the
   divergence is documented on FakeSparseMemory and pinned in both directions.
-
-- [LW-149] 2026-07-28: The audit mapped the duplication families beyond the ledgered LW-125 trio;
-  each is a candidate extraction stage, none urgent alone.
-  The capture/ownership/re-apply hold skeleton is hand-rolled five times across the GrowthEngine
-  partials and the doc comments admit it (GrowthEngine.Ultima.cs:44 and siblings). Renewal and
-  Wyrmblood are the same turn-edge ally-pulse machine differing only in radius metric and amount
-  (Renewal.cs:90 vs Wyrmblood.cs:85). The 6-line band-slot sanity read is copied seven times and
-  has forked once already (see LW-145 item 6). The activation-edge announce block is copied 14
-  times outside the LW-125 family (LifeSap.cs:49 lists them). Six modules roll their own roster
-  walk with three different occupancy rules while Wielder.TryOccupiedSlot claims to be THE seam
-  but is private (Wielder.Roster.cs:17). The nxd patch scripts duplicate apply/rows/verify
-  wholesale and audit_nxd_bakes carries a third rows() (patch_status_names.py:175). BuildLinked's
-  preserve round-trip loop appears three times (BuildLinked.ps1:214). LifeSap.NewHp/WriteHp and
-  Ricochet.Manhattan are borrowed cross-module and want a neutral home (LifeSap.Policy.cs:30);
-  Puppeteer.Policy.JobOff is load-bearing for three attribution modules and belongs in Offsets
-  (Puppeteer.Policy.cs:103). Test Seed* fixtures are copy-pasted three ways across six files
-  (KillTrackerTests.cs:2197).
 
 - [LW-150] 2026-07-28: Structural seams the audit judged real, to take opportunistically when the
   files are next touched.

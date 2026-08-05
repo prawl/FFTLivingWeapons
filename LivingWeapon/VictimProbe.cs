@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// integrity"). Log-only: zero behavioral effect on kill crediting, pending, oracle, or streak
 /// logic -- KillTracker calls into this purely to observe.
 ///
-/// Captures a corpse's identity -- nameId (Offsets.ANameId), job byte (Puppeteer.JobOff), and the
+/// Captures a corpse's identity -- nameId (Offsets.ANameId), job byte (Offsets.AJob), and the
 /// undead bit (Offsets.ADeadStatus &amp; Offsets.AUndeadBit) -- at three lifecycle points so a later
 /// live run can compare them and answer which point reads sane victim identity on a corpse:
 ///   (a) ALIVE  -- every consistent alive on-field tick (KillTracker.Corpses.cs's ScanCorpses).

@@ -53,7 +53,7 @@ internal sealed partial class ActorRegister
     ///
     /// The ladder:
     ///   0. CANONICAL SIGNATURE, the scripted-opener tell: the frame nameId already handed to
-    ///      <see cref="Bridge"/> equals this SAME entry's own job byte (<see cref="Puppeteer.JobOff"/>,
+    ///      <see cref="Bridge"/> equals this SAME entry's own job byte (<see cref="Offsets.AJob"/>,
     ///      read UNGUARDED, mirroring this class's own ALevel/ABrave/AFaith reads). A strong
     ///      STATISTICAL filter only (a re-rolled generic nameId lands on its own job byte about
     ///      1 in 256); the rest of the ladder is what makes the individual keys structural.
@@ -96,7 +96,7 @@ internal sealed partial class ActorRegister
     private RosterBridge RescueCanonical(long entry, ushort nameId, int lvl, int br, int fa, out long rosterBase)
     {
         rosterBase = 0;
-        if (nameId != _mem.U8(entry + Puppeteer.JobOff))
+        if (nameId != _mem.U8(entry + Offsets.AJob))
         {
             CurrentRescue = RescueOutcome.NotCanonical;
             return RosterBridge.Enemy;
