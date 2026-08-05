@@ -78,14 +78,13 @@ Usage:
   python tools/patch_status_names.py --dry    # print planned edits, no writes
 """
 import shutil
-import sqlite3
-import subprocess
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.nxd import PAC, decode_nxd_to_sqlite, encode_sqlite_to_nxd, deploy_nxd, unpack
-from lib.paths import ROOT, FF16, MOD_STATUS_NXD
+from lib.nxd_patch import apply_patches, rows, verify_only_intended_cells
+from lib.paths import ROOT, MOD_STATUS_NXD
 
 TABLE = "UIStatusEffect-en"
 NXD_NAME = "uistatuseffect.en.nxd"
@@ -96,7 +95,6 @@ PRISTINE_NXD = PRISTINE_DIR / NXD_NAME
 PRISTINE = PRISTINE_DIR / "uistatuseffect.sqlite"     # vanilla decode (do not mutate)
 BUILD = ROOT / "working" / "nxd_out_status" / "status_build.sqlite"
 ENC_DIR = ROOT / "working" / "nxd_out_status"
-DEC_DIR = ENC_DIR / "verify_decode"
 
 # Key -> {column: value}. Key 1 is the blank row for StatusEffectData Id 0 (band +0x45 bit 0x80).
 PATCHES = {
@@ -153,61 +151,6 @@ def ensure_pristine():
     print(f"  cached -> {PRISTINE}")
 
 
-def apply_patches(db: Path) -> None:
-    con = sqlite3.connect(db)
-    for key, cols in PATCHES.items():
-        sets = ", ".join(f'"{c}" = ?' for c in cols)
-        con.execute(f'UPDATE "{TABLE}" SET {sets} WHERE Key = ?', [*cols.values(), key])
-        if con.execute('SELECT changes()').fetchone()[0] != 1:
-            sys.exit(f"FAIL: Key {key} did not update exactly one row")
-    con.commit()
-    con.close()
-
-
-def rows(db: Path) -> dict:
-    con = sqlite3.connect(db)
-    cols = [r[1] for r in con.execute(f'PRAGMA table_info("{TABLE}")')]
-    data = {r[0]: dict(zip(cols, r)) for r in con.execute(f'SELECT * FROM "{TABLE}"')}
-    con.close()
-    return data
-
-
-def verify(built_nxd: Path) -> None:
-    """Decode the built nxd and assert only the intended cells differ from vanilla."""
-    if DEC_DIR.exists():
-        shutil.rmtree(DEC_DIR)
-    in_dir = DEC_DIR / "in"
-    in_dir.mkdir(parents=True)
-    shutil.copy(built_nxd, in_dir / built_nxd.name)
-    decoded = DEC_DIR / "status_verify.sqlite"
-    r = subprocess.run([str(FF16), "nxd-to-sqlite", "-i", str(in_dir),
-                        "-o", str(decoded), "-g", "fft"], capture_output=True, text=True)
-    if r.returncode != 0 or not decoded.exists():
-        sys.exit(f"FAIL: verify decode failed:\n{r.stdout}\n{r.stderr}")
-
-    vanilla, rebuilt = rows(PRISTINE), rows(decoded)
-    if set(vanilla) != set(rebuilt):
-        sys.exit(f"FAIL: row-key sets differ (vanilla {len(vanilla)} vs rebuilt {len(rebuilt)})")
-    unexpected = []
-    for key, vrow in vanilla.items():
-        for col, vval in vrow.items():
-            nval = rebuilt[key][col]
-            if nval == vval:
-                continue
-            if col in PATCHES.get(key, {}) and nval == PATCHES[key][col]:
-                continue
-            unexpected.append((key, col, vval, nval))
-    if unexpected:
-        for key, col, vval, nval in unexpected[:20]:
-            print(f"  UNEXPECTED diff Key {key} {col}: {vval!r} -> {nval!r}")
-        sys.exit(f"FAIL: {len(unexpected)} unexpected cell diffs -- refusing to deploy")
-    for key, cols in PATCHES.items():
-        for col, val in cols.items():
-            if rebuilt[key][col] != val:
-                sys.exit(f"FAIL: Key {key} {col} did not land in the rebuilt table")
-    print(f"  verify PASS: only the intended {sum(len(c) for c in PATCHES.values())} cells differ")
-
-
 def main() -> None:
     dry = "--dry" in sys.argv
     for key, cols in PATCHES.items():
@@ -219,7 +162,7 @@ def main() -> None:
     # blank in this game version, we would be overwriting text the game actually shows. Scoped to
     # keys that actually write Name/Caption (LW-129's Key 20 touches only the icon cell of a status
     # the game legitimately names, which is exactly what this guard exists to forbid for TEXT).
-    van = rows(PRISTINE)
+    van = rows(PRISTINE, TABLE)
     for key, cols in PATCHES.items():
         if key not in van:
             sys.exit(f"FAIL: Key {key} is not in the vanilla status table")
@@ -233,9 +176,9 @@ def main() -> None:
                          f"legitimate use of it.")
     ENC_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy(PRISTINE, BUILD)
-    apply_patches(BUILD)
+    apply_patches(BUILD, TABLE, PATCHES)
     out_nxd = encode_sqlite_to_nxd(BUILD, ENC_DIR, NXD_NAME)
-    verify(out_nxd)
+    verify_only_intended_cells(out_nxd, PRISTINE, TABLE, PATCHES)
     deploy_nxd(out_nxd, MOD_STATUS_NXD)
     print(f"deployed -> {MOD_STATUS_NXD}")
 

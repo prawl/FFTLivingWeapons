@@ -35,7 +35,6 @@ Usage:
   python tools/audit_nxd_bakes.py          # summary + detail for UNINTENDED and DRIFT
   python tools/audit_nxd_bakes.py --full   # also list every INTENDED cell
 """
-import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -48,6 +47,7 @@ from lib.categories import WEAPON_CATS
 from lib.flavor import assemble_desc, is_living, plural
 from lib.items import load_items
 from lib.nxd import PAC, unpack   # re-exported: rebase_nxd_pristine imports them from here
+from lib.nxd_patch import rows as _rows   # LW-149 Stage E: unify onto the shared row reader
 from lib.paths import FF16, MOD_ABILITY_NXD, MOD_ITEM_NXD, MOD_STATUS_NXD, STEAM_FFT
 from patch_ability_names import PATCHES as ABILITY_PATCHES
 from patch_status_names import PATCHES as STATUS_PATCHES
@@ -100,11 +100,9 @@ def orphan_sort_ok(bake_row, vanilla_row, value):
 
 
 def rows(db, table):
-    con = sqlite3.connect(db)
-    cols = [r[1] for r in con.execute(f'PRAGMA table_info("{table}")')]
-    data = {r[0]: dict(zip(cols, r)) for r in con.execute(f'SELECT * FROM "{table}"')}
-    con.close()
-    return cols, data
+    """(cols, data) form this module's own callers and patch_names.py's audit.rows(...) expect
+    (LW-149 Stage E: thin wrapper onto the shared lib.nxd_patch.rows, return_cols=True)."""
+    return _rows(db, table, return_cols=True)
 
 
 def clip(v, n=70):
