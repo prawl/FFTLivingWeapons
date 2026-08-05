@@ -60,26 +60,6 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-149] Fold the audit's duplication families into single homes, one green stage at a time** (opened 2026-07-28) [BUILDING]
-  - Done means: the copy-paste families the audit mapped each live in ONE place with the copies
-    deleted, shipped as one commit per family, and runtime behavior is byte-identical throughout,
-    with every family's seam pinned by its own tests. In scope, cheap to risky: the band-relative
-    job offset promoted to Offsets; the shared band-heal core and grid metric into neutral homes;
-    the copy-pasted test Seed fixtures into one file with exact-address-set pins; a ref-bool
-    activation-edge helper that leaves every module's own log call untouched; the seven-copy band
-    sanity read into Band.TryReadUnit; the roster walk split into its two honest rules (strict and
-    lenient) with ghost-row pins written BEFORE migration; the GrowthEngine ownership-hold core
-    covering the Ultima/Mushin/Afterimage trio with TimedStat excluded up front as a genuinely
-    different machine; the nxd patch script dedup into tools/lib; and the BuildLinked preserve
-    loop into one pipeline function. EXPLICITLY OUT: the frozen weapon-command trio (LW-125), and
-    the static enemy-array mhp bound at Band.cs, whose inclusive-2000 drift is a documented,
-    live-observable choice waiting on the owner's LIVE_LEDGER row about whether any unit can
-    reach exactly 2000 max HP.
-  - Verify: full suite green after every stage; each stage's load-bearing pin proven non-vacuous
-    by breaking it once; the plan review's per-caller and per-lane verdicts honored (a caller or
-    lane that cannot migrate byte-identically stays put with a comment saying why). Offline only;
-    the standing rider is the owner's next ordinary session.
-
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;

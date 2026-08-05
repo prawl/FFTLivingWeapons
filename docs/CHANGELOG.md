@@ -10,6 +10,23 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-149] SHIPPED 7dbe862 2026-08-05: the audit's copy-paste families each live in ONE home now,
+  shipped as eight green-gated stages over two days, every one adversarially verified with its
+  load-bearing pin broken once on purpose, and runtime behavior byte-identical throughout (the
+  moved bodies were diffed token against token, the log lines survived character for character,
+  and the growth lanes' ledger-recording rhythms were pinned against the old code before anything
+  moved). The stages and their commits: the backward job offset promoted to Offsets (2960ecc);
+  the shared heal math and grid metric into neutral homes (3376f2a); the copied test seeding
+  helpers into one fixture with an exact-address pin (6f30b01); sixteen activation announcements
+  onto one edge detector (c150029); the seven copied unit sanity checks into Band.TryReadUnit
+  (4e03e36); the roster walks split into their two honest occupancy rules with ghost-row pins
+  (e9827ea); three growth lanes onto one ownership machine with the two genuinely different lanes
+  measured and left alone (04dc584); and the nxd patch safety library plus the deploy script's
+  preserve round-trip (e6aa847, 7dbe862). Honestly excluded and still ledgered: the frozen
+  weapon-command trio (LW-125 waits on the owner drill), the static enemy-array bound (owner
+  LIVE_LEDGER question), TimedStat's hold (a different machine), and the strict-range default
+  (LW-151, re-measured 97 tests across 23 suites). Suite grew 2907 to 2996; verify scores ran
+  8 to 9 of 10 across the eight stages.
 - [LW-147] SHIPPED 070974a 2026-07-29: the test fakes the whole suite leans on can no longer let
   an assertion silently go blind, and the one gap too wide to close in a day is fenced honestly
   instead of papered over. Closed outright: a sixteen-bit write through the offset-remap adapter
