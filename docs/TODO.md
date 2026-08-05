@@ -93,6 +93,16 @@ the technical detail lives in the indented lines under it.
   names the wrong terrain grid base two lines under its own correction banner and wants a
   supersession stamp; that flip is owner sign-off only, same as every LIVE_LEDGER row.
 
+- [LW-152] 2026-08-05: One corner of kill credit has never had a test: an orphaned corpse whose
+  alive edge arrives with NO culprit stamped at all.
+  Found by the LW-150 stage S4 verify pass, which inverted the orphan handler's fall-through and
+  watched the whole suite stay green, then proved the same blindness exists at the pre-split code
+  by injecting the equivalent skip into the old file: also green. So the gap is pre-existing, not
+  created by the split. The three existing LW-65 orphan tests all land in the credited or
+  no-credit arms; none builds the empty-culprit fall-through that continues into the shared
+  credit machinery. One test that stages that shape closes it; the handler seam
+  (KillTracker.Corpses.cs HandleOrphanAliveEdge returning true) now makes it easy to reach.
+
 - [LW-151] 2026-07-29: The test fake's honest length-aware read gate exists but is opt-in;
   turning it on for the whole suite is the open work.
   Re-measured 2026-08-04 after the LW-149 fixture dedup: 97 tests across 23 suites, so the
