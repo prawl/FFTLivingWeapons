@@ -88,9 +88,8 @@ internal sealed partial class Benediction : ISignature
         bool active = Benediction.IsActive(m.Signature, tier)
                       && _tracker.LastPlayerMainHand == SanctusStaffId;
 
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             ModLogger.Debug(LogVerb.Signature, active
                 ? $"benediction latch: the Sanctus Staff is the last player to act (tier {tier}); ally HP rises boosted {m.Signature.HealBoostPct} percent"
                 : $"benediction latch: another unit now holds the last-actor latch (last player main-hand weapon id {_tracker.LastPlayerMainHand})");

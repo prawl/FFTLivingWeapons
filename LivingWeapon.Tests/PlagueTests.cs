@@ -1,4 +1,5 @@
-﻿using LivingWeapon;
+﻿using System.Collections.Generic;
+using LivingWeapon;
 using Xunit;
 
 namespace LivingWeapon.Tests;
@@ -489,4 +490,52 @@ public class PlagueTests
     [Fact]
     public void IsActingMainHand_false_when_mainHand_is_zero_meaning_no_actor_resolved()
         => Assert.False(Signatures.IsActingMainHand(mainHand: 0, weaponId: 80));
+
+    // ---- LW-149 stage C: activation-edge log STRING PIN (the single-interpolated-ternary `ModLogger.Debug` shape) ----
+    // Written BEFORE Plague.Tick converts to ActivationEdge.Step, so it passes against the OLD
+    // hand-rolled `if (active != _wasActive) { _wasActive = active; ModLogger.Debug($"... {(active ? ... : ...)}"); }`
+    // idiom first, then keeps passing unchanged once the guard is replaced -- proof the extraction
+    // never touched the log call, its text, or its once-per-transition cadence.
+    [Fact]
+    public void Tick_activation_edge_logs_the_window_opened_line_exactly_once_then_stays_silent()
+    {
+        const int VenomboltId = 80;   // Plague's own const is private; mirrored here for the fixture
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [VenomboltId] = new WeaponMeta
+            {
+                Name = "Venombolt", Wp = 9, Cat = "Rod", Formula = 1,
+                Flavor = "a venomous rod", Signature = PlagueSig()
+            }
+        };
+        var kills = new Dictionary<int, int> { [VenomboltId] = Tuning.ProdThresholds[2] };   // tier 3
+        var tracker = new KillTracker(new Dictionary<int, int>(), mem, new HashSet<int>())
+        {
+            _lastPlayerMainHand = VenomboltId
+        };
+        mem.U8s[Offsets.Acted] = 1;
+
+        long rb = Offsets.RosterBase;
+        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.U16s[rb + Offsets.RNameId] = 1;
+        mem.U16s[rb + Offsets.RRHand] = (ushort)VenomboltId;
+        mem.U16s[rb + Offsets.ROffHand] = 0xFFFF;
+
+        var plague = new Plague(meta, kills, tracker, mem: mem);
+
+        var console = new List<string>();
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            plague.Tick(onField: true, inLive: true);   // rising edge: window line fires once
+            plague.Tick(onField: true, inLive: true);   // steady state: must add nothing more
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        const string onLine = "plague window opened: poison landing on the wielder's target during this window latches";
+        Assert.Single(file, l => l.Contains(onLine) && l.Contains("[DEBUG]"));
+        Assert.Single(console, l => l.Contains(onLine));
+    }
 }

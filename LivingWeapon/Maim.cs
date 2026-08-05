@@ -71,9 +71,8 @@ internal sealed partial class Maim : ISignature
         bool active = onField && IsActive(m.Signature, tier)
                       && Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, HuntressId)
                       && _mem.U8(Offsets.Acted) == 1;
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             ModLogger.Debug(LogVerb.Signature, $"maim window {(active ? "armed for this action; the next hit suppresses enemy reactions" : "closed")}");
         }
 

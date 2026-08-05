@@ -58,9 +58,8 @@ internal sealed partial class Ricochet : ISignature
         int tier = Tuning.TierOf(_kills, Stormarc);
         bool active = IsActive(m.Signature, tier) && Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, Stormarc)
                       && _mem.U8(Offsets.Acted) == 1;
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             ModLogger.Debug(LogVerb.Signature, $"ricochet window {(active ? "armed for this action; chain lightning is ready to bounce" : "closed")}");
         }
 

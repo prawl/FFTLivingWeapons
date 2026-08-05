@@ -60,9 +60,8 @@ internal sealed partial class EagleEye : ISignature
     public void Tick()
     {
         int target = ActiveTarget();
-        if ((target > 0) != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, target > 0))
         {
-            _wasActive = target > 0;
             _slog.Info(_wasActive
                 ? "Eclipsebolt at tier three is wielded on the field; the bow's own Doom procs are hastened to one"
                 : "Eclipsebolt's Doom hastening is no longer active");

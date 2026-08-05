@@ -690,4 +690,29 @@ public class ChoirTests
         Assert.True(IsSet(mem, bearerA), "bearer A must be one of the two winners");
         Assert.True(IsSet(mem, bearerB), "bearer B must be one of the two winners");
     }
+
+    // ---- LW-149 stage C: activation-edge log STRING PIN (the `ModLogger.Event` shape) ----
+    // Written BEFORE Choir.Tick converts to ActivationEdge.Step, so it passes against the OLD
+    // hand-rolled `if (active != _wasActive) { _wasActive = active; ModLogger.Event(...); }`
+    // idiom first, then keeps passing unchanged once the guard is replaced -- proof the
+    // extraction never touched the log call, its text, or its once-per-transition cadence.
+    [Fact]
+    public void Tick_activation_edge_logs_the_armed_line_exactly_once_then_stays_silent()
+    {
+        var (choir, _, _, _) = BuildActive();   // bearer alive at tier 3 -> active from tick 1
+
+        var console = new List<string>();
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add) { LogLevel = LogLevel.Info };
+        try
+        {
+            choir.Tick(onField: true);   // rising edge: armed line fires once
+            choir.Tick(onField: true);   // steady state: must add nothing more
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        const string onLine = "Warlock's Staff at tier three is armed and its bearer lives; the bearer casts magick instantly.";
+        Assert.Single(file, l => l.Contains(onLine) && l.Contains("[INFO]"));
+        Assert.Single(console, l => l.Contains(onLine));
+    }
 }

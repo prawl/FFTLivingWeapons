@@ -113,9 +113,8 @@ internal sealed partial class Bulwark : ISignature
         long entry = Wielder.ResolveDeployedMainHand(_mem, SundererId, out _);
         bool active = tier >= m.Signature.AtTier && entry != 0;
 
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             _slog.Info(active
                 ? "Sunderer at tier three is wielded on the field; a full wait plants the blade and bars the ground behind the wielder."
                 : "Bulwark is no longer active.");

@@ -62,9 +62,8 @@ internal sealed partial class Rapture : ISignature
         int tier = Tuning.TierOf(_kills, RodOfFaithId);
         (int lvl, int br, int fa) fp = default;
         bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(_mem, RodOfFaithId, out fp, _hands);
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             _slog.Info(active
                 ? "Rod of Faith at tier three is wielded on the field; emergency teleportation is ready."
                 : "Emergency teleportation is no longer active.");

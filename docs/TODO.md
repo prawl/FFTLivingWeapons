@@ -120,7 +120,7 @@ the technical detail lives in the indented lines under it.
   verdicts trapped inline that belong in Iai.Policy.cs (Iai.cs:146). Engine.Tick reads its battle
   sentinels through static Mem despite holding the injected seam, which is why no test can
   construct an Engine, and it reads PauseFlag twice per tick (Engine.cs:330); its two load-bearing
-  array orderings are enforced only by comment (Engine.cs:218). analyze.py's main is twelve
+  array orderings are enforced only by comment (Engine.cs:218). SpiritualFont.cs also carries the activation-edge idiom shape on its separate _wasLocated field, unconverted by the LW-149 edge-helper stage on purpose (a located-edge, not an activation-edge); fold it in when that file is next touched. analyze.py's main is twelve
   copy-pasted stanzas where one forgotten rc=1 would green-light a red gate (analyze.py:524).
   BodyDoubleSpike.cs is 1575 lines of accreted canary research whose proven recipes LW-120 needs
   mined out; split it along its own phase seams when that work starts.

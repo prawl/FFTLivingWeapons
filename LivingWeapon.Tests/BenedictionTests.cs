@@ -351,4 +351,30 @@ public class BenedictionTests
         int hp = buf.Bytes[Offsets.AHp] | (buf.Bytes[Offsets.AHp + 1] << 8);
         Assert.Equal(512, hp);
     }
+
+    // ---- LW-149 stage C: activation-edge log STRING PIN (the two-interpolated-string `ModLogger.Debug` shape) ----
+    // Written BEFORE Benediction.Tick converts to ActivationEdge.Step, so it passes against the OLD
+    // hand-rolled `if (active != _wasActive) { _wasActive = active; ModLogger.Debug(active ? $"..." : $"..."); }`
+    // idiom first, then keeps passing unchanged once the guard is replaced. The interpolations
+    // (tier, HealBoostPct) must stay read INSIDE the if, at the same tick as before -- this pin
+    // proves the values, not just the shape, survive the extraction.
+    [Fact]
+    public void Tick_activation_edge_logs_the_latch_line_exactly_once_then_stays_silent()
+    {
+        var (bene, _, _, _) = BuildActiveScenario(tier: 3, hp: 50, maxHp: 100);   // latch active from tick 1
+
+        var console = new List<string>();
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add) { LogLevel = LogLevel.Debug };
+        try
+        {
+            bene.Tick(onField: true);   // rising edge: latch line fires once
+            bene.Tick(onField: true);   // steady state: must add nothing more
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        const string onLine = "benediction latch: the Sanctus Staff is the last player to act (tier 3); ally HP rises boosted 30 percent";
+        Assert.Single(file, l => l.Contains(onLine) && l.Contains("[DEBUG]"));
+        Assert.Single(console, l => l.Contains(onLine));
+    }
 }

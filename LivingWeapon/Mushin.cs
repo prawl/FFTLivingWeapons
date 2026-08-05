@@ -123,9 +123,8 @@ internal sealed partial class Mushin : ISignature
         Wielder.ResolveDeployedMainHandAll(_mem, KikuIchimonjiId, _wielders);
 
         bool active = tier >= m.Signature.AtTier && _wielders.Count > 0;
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             _slog.Info(active
                 ? "Kiku-ichimonji at tier three is wielded on the field; a full wait charges the wielder's next strike."
                 : "Kiku-ichimonji's Mushin is no longer active.");

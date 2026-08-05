@@ -1,4 +1,5 @@
-﻿using LivingWeapon;
+﻿using System.Collections.Generic;
+using LivingWeapon;
 using Xunit;
 
 namespace LivingWeapon.Tests;
@@ -119,4 +120,54 @@ public class LifeSapTests
     [Fact]
     public void ActivatesOnMainHandOnly_is_documented_in_policy()
         => Assert.True(LifeSap.ActivatesOnMainHandOnly);
+
+    // ---- LW-149 stage C: activation-edge log STRING PIN (the `_slog.Info` shape) ----
+    // Written BEFORE LifeSap.Tick converts to ActivationEdge.Step, so it passes against the OLD
+    // hand-rolled `if (active != _wasActive) { _wasActive = active; _slog.Info(...); }` idiom
+    // first, then keeps passing unchanged once the guard is replaced -- proof the extraction never
+    // touched the log call, its text, or its once-per-transition cadence.
+    [Fact]
+    public void Tick_activation_edge_logs_the_armed_line_exactly_once_then_stays_silent()
+    {
+        const int UmbralId = 56;   // LifeSap's own const is private; mirrored here for the fixture
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [UmbralId] = new WeaponMeta
+            {
+                Name = "Umbral Rod", Wp = 1, Cat = "Rod", Formula = 1,
+                Flavor = "A rod that drinks its foes' vigor", Signature = SapSig()
+            }
+        };
+        var kills = new Dictionary<int, int> { [UmbralId] = Tuning.ProdThresholds[2] };   // tier 3
+
+        // Roster slot 0: Umbral Rod in main hand.
+        long rb = Offsets.RosterBase;
+        mem.U8s[rb + Offsets.RLevel] = 30;
+        mem.U8s[rb + Offsets.RBrave] = 60;
+        mem.U8s[rb + Offsets.RFaith] = 55;
+        mem.U16s[rb + Offsets.RRHand] = (ushort)UmbralId;
+
+        // A deployed live band entry so ScopedLogger's armed gate (Wielder.AnyDeployedMainHand)
+        // reports true -- the console/file line renders at Info, not demoted to Debug.
+        long entry = Band.Entry(30);
+        BandFixtures.SeedBandEntryCore(mem, entry, hp: 200, maxHp: 200, lvl: 30, br: 60, fa: 55, gx: 5, gy: 5);
+        mem.U16s[entry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)UmbralId;
+
+        var sap = new LifeSap(meta, kills, mem: mem);
+
+        var console = new List<string>();
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add) { LogLevel = LogLevel.Info };
+        try
+        {
+            sap.Tick();   // rising edge: armed line fires once
+            sap.Tick();   // steady state: must add nothing more
+        }
+        finally { ModLogger.UseNullLogger(); }
+
+        const string onLine = "Umbral Rod at tier three is wielded on the field; its kills restore the wielder's HP.";
+        Assert.Single(file, l => l.Contains(onLine) && l.Contains("[INFO]"));
+        Assert.Single(console, l => l.Contains(onLine));
+    }
 }

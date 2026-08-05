@@ -78,9 +78,8 @@ internal sealed partial class CharmLock : ISignature
     {
         if (!inLive) return;   // world map or a between-turn mode-0 lull: idle, PRESERVING the lock
         int lockTurns = ActiveLockTurns();
-        if ((lockTurns > 0) != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, lockTurns > 0))
         {
-            _wasActive = lockTurns > 0;
             _slog.Info(_wasActive
                 ? "Galewind at tier three is wielded on the field; charms the party lands are held unbreakable"
                 : "Galewind's charm lock is no longer active");

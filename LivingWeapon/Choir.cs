@@ -74,9 +74,8 @@ internal sealed partial class Choir : ISignature
 
         bool active = IsActive(m.Signature, tier) && aliveBearers > 0;
 
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             ModLogger.Event(LogVerb.Signature, active
                 ? "Warlock's Staff at tier three is armed and its bearer lives; the bearer casts magick instantly."
                 : "The Warlock's Staff's bearer is down or unequipped; instant casting ends.");

@@ -72,9 +72,8 @@ internal sealed partial class Plague : ISignature
         long now = _nowMs();
         if (active) _lastActiveMs = now;
         bool windowRecent = WithinGrace(_lastActiveMs, now, Tuning.PlagueGraceMs);
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             // Demoted to Debug (log facelift): two lines per Venombolt action is acted-window
             // chatter, evidence rather than match report.
             ModLogger.Debug(LogVerb.Signature, $"plague window {(active ? "opened: poison landing on the wielder's target during this window latches" : "closed")}");

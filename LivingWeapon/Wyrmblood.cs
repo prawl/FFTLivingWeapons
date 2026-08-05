@@ -59,9 +59,8 @@ internal sealed partial class Wyrmblood : ISignature
         int tier = Tuning.TierOf(_kills, DragonRodId);
         (int lvl, int br, int fa) fp = default;
         bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(_mem, DragonRodId, out fp, _hands);
-        if (active != _wasActive)
+        if (ActivationEdge.Step(ref _wasActive, active))
         {
-            _wasActive = active;
             _slog.Info(active
                 ? "Dragon Rod at tier three is wielded on the field; the end-of-turn regeneration splash is active."
                 : "The regeneration splash is no longer active.");
