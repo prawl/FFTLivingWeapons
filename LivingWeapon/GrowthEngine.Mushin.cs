@@ -39,39 +39,38 @@ internal sealed partial class GrowthEngine
     {
         if (!OwnsMushin(m)) return;
         long addr = s + Offsets.CPa;
-        if (!_mem.Writable(addr, 1)) return;
 
-        if (!_mushin.TryGetValue(addr, out var rec))
-        {
-            int cur0 = _mem.U8(addr);
-            if (cur0 < StatMin || cur0 > StatSaneHi) return;   // wait for a sane natural reading
-            // LW-90: see through the mod's own restart residue; lastTarget seeds to the byte
-            // as-is either way (residue or natural, both are re-owned on the first check).
-            int nat0 = _ledger.FilterCapture(rosterNameId, StatLane.Pa, cur0, level, out int baked0);
-            if (baked0 > 0)
-                ModLogger.Debug(LogVerb.Growth, $"mushin: restart residue corrected at capture (read {baked0}, natural {nat0})");
-            rec = (nat0, cur0, baked0);
-        }
+        // LW-149 stage A: shared with HoldUltima/HoldAfterimage via OwnershipHold (see its class doc).
+        bool hadRecord = _mushin.TryGetValue(addr, out var rec0);
+        var step = OwnershipHold.Step(_mem, _ledger, addr, StatLane.Pa, rosterNameId, level,
+                                      hadRecord, rec0.lastTarget, rec0.natural, rec0.baked);
+        if (step.Branch == OwnershipHold.Branch.Refused) return;
+
+        var rec = step.Branch == OwnershipHold.Branch.Captured
+            ? (natural: step.Natural, lastTarget: step.Cur, baked: step.Baked)
+            : rec0;
+        if (step.Branch == OwnershipHold.Branch.Captured && step.Baked > 0)
+            ModLogger.Debug(LogVerb.Growth, $"mushin: restart residue corrected at capture (read {step.Baked}, natural {step.Natural})");
 
         var fp = (level, brave, faith);
         int stacks = _mushinArmed.TryGetValue(fp, out int s0) ? s0 : 0;
         int effectiveStacks = MushinPolicy.EffectiveStacks(stacks, tier, m.Signature!.AtTier);
         int target = Clamp(MushinPolicy.PaHeld(rec.natural, tier, Tuning.Factor, effectiveStacks, Tuning.MushinBonus));
 
-        int cur = _mem.U8(addr);
-        if (cur == rec.lastTarget || cur == rec.natural
-            || (rec.baked > 0 && cur == rec.baked))   // we own it (or the engine normalized -- possibly to the baked residue)
+        if (step.Branch == OwnershipHold.Branch.Foreign)
         {
-            if (effectiveStacks > 0 && target != rec.lastTarget)
-            {
-                ModLogger.EventWithTrace(LogVerb.Signature,
-                    $"{m.Name}'s Mushin charge holds Physical Attack boosted ({effectiveStacks} of {Tuning.MushinMaxStacks} stack(s), tier {tier}).",
-                    $"mushin PA held at {effectiveStacks} stack(s): {rec.natural} -> {target} (tier {tier})");
-            }
-            _ledger.RecordWrite(rosterNameId, StatLane.Pa, target);   // per evaluation (LW-90)
-            if (cur != target) _mem.W8(addr, (byte)target);
-            _mushin[addr] = (rec.natural, target, rec.baked);
+            _mushin[addr] = (rec.natural, rec.lastTarget, rec.baked);   // foreign value (buff/debuff): leave the byte
+            return;
         }
-        else _mushin[addr] = (rec.natural, rec.lastTarget, rec.baked);   // foreign value (buff/debuff): leave the byte
+
+        if (effectiveStacks > 0 && target != rec.lastTarget)
+        {
+            ModLogger.EventWithTrace(LogVerb.Signature,
+                $"{m.Name}'s Mushin charge holds Physical Attack boosted ({effectiveStacks} of {Tuning.MushinMaxStacks} stack(s), tier {tier}).",
+                $"mushin PA held at {effectiveStacks} stack(s): {rec.natural} -> {target} (tier {tier})");
+        }
+        _ledger.RecordWrite(rosterNameId, StatLane.Pa, target);   // per evaluation (LW-90)
+        if (step.Cur != target) _mem.W8(addr, (byte)target);
+        _mushin[addr] = (rec.natural, target, rec.baked);
     }
 }

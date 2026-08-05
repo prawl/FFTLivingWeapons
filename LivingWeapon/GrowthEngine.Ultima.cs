@@ -44,43 +44,45 @@ internal sealed partial class GrowthEngine
     {
         if (!OwnsPa(m)) return;
         long addr = s + Offsets.CPa;
-        if (!_mem.Writable(addr, 1)) return;
 
-        if (!_ultima.TryGetValue(addr, out var rec))
-        {
-            int cur0 = _mem.U8(addr);
-            if (cur0 < StatMin || cur0 > StatSaneHi) return;   // wait for a sane natural reading
-            // LW-90: see through the mod's own restart residue; lastTarget seeds to the byte
-            // as-is either way (residue or natural, both are re-owned on the first check).
-            int nat0 = _ledger.FilterCapture(rosterNameId, StatLane.Pa, cur0, level, out int baked0);
-            if (baked0 > 0)
-                ModLogger.Debug(LogVerb.Growth, $"ultima: restart residue corrected at capture (read {baked0}, natural {nat0})");
-            rec = (nat0, cur0, baked0);
-        }
+        // LW-149 stage A: the writable gate, first-sight capture (+ LW-90 ledger consult), and
+        // the three-token ownership check now live in the shared OwnershipHold core -- Ultima,
+        // Mushin, and Afterimage were near-clones of exactly this shape (see its class doc).
+        bool hadRecord = _ultima.TryGetValue(addr, out var rec0);
+        var step = OwnershipHold.Step(_mem, _ledger, addr, StatLane.Pa, rosterNameId, level,
+                                      hadRecord, rec0.lastTarget, rec0.natural, rec0.baked);
+        if (step.Branch == OwnershipHold.Branch.Refused) return;
+
+        var rec = step.Branch == OwnershipHold.Branch.Captured
+            ? (natural: step.Natural, lastTarget: step.Cur, baked: step.Baked)
+            : rec0;
+        if (step.Branch == OwnershipHold.Branch.Captured && step.Baked > 0)
+            ModLogger.Debug(LogVerb.Growth, $"ultima: restart residue corrected at capture (read {step.Baked}, natural {step.Natural})");
 
         var (hp, maxHp) = ReadHp(_mem, level, brave, faith, rosterNameId);   // (0,0) when no band match -> policy leaves PA natural
         int target = Clamp(UltimaPolicy.PaHeld(rec.natural, hp, maxHp, tier, Tuning.UltimaMul));
 
-        int cur = _mem.U8(addr);
-        if (cur == rec.lastTarget || cur == rec.natural
-            || (rec.baked > 0 && cur == rec.baked))   // we own it (or the engine normalized -- possibly to the baked residue)
+        if (step.Branch == OwnershipHold.Branch.Foreign)
         {
-            // Live-verify signal: log when the held multiplier actually moves (an HP band crossed or a
-            // kill tier earned) -- NOT every tick. target only changes with band/tier (natural is fixed),
-            // so this stays low-volume while HP drifts inside a band.
-            if (target != rec.lastTarget)
-            {
-                int band = UltimaPolicy.Band(hp, maxHp);
-                int pct = band < 0 ? 100 : Tuning.UltimaMul[tier][band];
-                int hpPct = maxHp > 0 ? (int)(hp * 100L / maxHp) : 0;
-                ModLogger.EventWithTrace(LogVerb.Signature,
-                    $"{m.Name} at {hpPct} percent health now deals {pct} percent damage (tier {tier}).",
-                    $"ultima Physical Attack hold {rec.natural} -> {target} (tier {tier})");
-            }
-            _ledger.RecordWrite(rosterNameId, StatLane.Pa, target);   // per evaluation (LW-90)
-            if (cur != target) _mem.W8(addr, (byte)target);
-            _ultima[addr] = (rec.natural, target, rec.baked);
+            _ultima[addr] = (rec.natural, rec.lastTarget, rec.baked);   // foreign value (buff/debuff): leave the byte
+            return;
         }
-        else _ultima[addr] = (rec.natural, rec.lastTarget, rec.baked);   // foreign value (buff/debuff): leave the byte
+
+        // Captured or Owned: we hold the byte.
+        // Live-verify signal: log when the held multiplier actually moves (an HP band crossed or a
+        // kill tier earned) -- NOT every tick. target only changes with band/tier (natural is fixed),
+        // so this stays low-volume while HP drifts inside a band.
+        if (target != rec.lastTarget)
+        {
+            int band = UltimaPolicy.Band(hp, maxHp);
+            int pct = band < 0 ? 100 : Tuning.UltimaMul[tier][band];
+            int hpPct = maxHp > 0 ? (int)(hp * 100L / maxHp) : 0;
+            ModLogger.EventWithTrace(LogVerb.Signature,
+                $"{m.Name} at {hpPct} percent health now deals {pct} percent damage (tier {tier}).",
+                $"ultima Physical Attack hold {rec.natural} -> {target} (tier {tier})");
+        }
+        _ledger.RecordWrite(rosterNameId, StatLane.Pa, target);   // per evaluation (LW-90)
+        if (step.Cur != target) _mem.W8(addr, (byte)target);
+        _ultima[addr] = (rec.natural, target, rec.baked);
     }
 }

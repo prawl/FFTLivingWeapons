@@ -36,19 +36,21 @@ internal sealed partial class GrowthEngine
     {
         if (!OwnsSpeed(m)) return;
         long addr = s + Offsets.CSpeed;
-        if (!_mem.Writable(addr, 1)) return;
 
-        if (!_afterimage.TryGetValue(addr, out var rec))
-        {
-            int cur0 = _mem.U8(addr);
-            if (cur0 < StatMin || cur0 > StatSaneHi) return;     // wait for a sane natural reading
-            // LW-90: see through the mod's own restart residue; lastTarget seeds to the byte
-            // as-is either way (residue or natural, both are re-owned on the first check).
-            int nat0 = _ledger.FilterCapture(rosterNameId, StatLane.Speed, cur0, level, out int baked0);
-            if (baked0 > 0)
-                ModLogger.Debug(LogVerb.Growth, $"afterimage: restart residue corrected at capture (read {baked0}, natural {nat0})");
-            rec = (nat0, AfterimageState.Empty, cur0, baked0);
-        }
+        // LW-149 stage A: shared with HoldUltima/HoldMushin via OwnershipHold (see its class doc).
+        // Afterimage is the one lane whose record (AfterimageState) advances on the FOREIGN
+        // branch too, which is exactly why the core reports the branch rather than owning the
+        // dictionary -- only this lane knows how to merge `next` into its own record shape.
+        bool hadRecord = _afterimage.TryGetValue(addr, out var rec0);
+        var step = OwnershipHold.Step(_mem, _ledger, addr, StatLane.Speed, rosterNameId, level,
+                                      hadRecord, rec0.lastTarget, rec0.natural, rec0.baked);
+        if (step.Branch == OwnershipHold.Branch.Refused) return;
+
+        var rec = step.Branch == OwnershipHold.Branch.Captured
+            ? (natural: step.Natural, st: AfterimageState.Empty, lastTarget: step.Cur, baked: step.Baked)
+            : rec0;
+        if (step.Branch == OwnershipHold.Branch.Captured && step.Baked > 0)
+            ModLogger.Debug(LogVerb.Growth, $"afterimage: restart residue corrected at capture (read {step.Baked}, natural {step.Natural})");
 
         AfterimageState next;
         if (AfterimagePolicy.IsActive(m.Signature, tier))
@@ -62,16 +64,16 @@ internal sealed partial class GrowthEngine
         int growth = Clamp((int)Math.Round(rec.natural * (1 + Tuning.SpeedFactor[tier])));
         int target = Clamp(growth + AfterimagePolicy.SpeedBonus(next, Tuning.AfterimageSpeedPerTurn));
 
-        int cur = _mem.U8(addr);
-        if (cur == rec.lastTarget || cur == rec.natural
-            || (rec.baked > 0 && cur == rec.baked))              // we own it (or the engine normalized -- possibly to the baked residue)
+        if (step.Branch == OwnershipHold.Branch.Foreign)
         {
-            if (next.Stacks != rec.st.Stacks)                    // log each ramp STEP (and the hit-reset back to 0)
-                ModLogger.Debug(LogVerb.Signature, $"stepped Afterimage: {m.Name} wielder Speed {rec.natural} -> {target} (stacks {next.Stacks} of {Tuning.AfterimageSpeedCap})");
-            _ledger.RecordWrite(rosterNameId, StatLane.Speed, target);   // per evaluation (LW-90)
-            if (cur != target) _mem.W8(addr, (byte)target);
-            _afterimage[addr] = (rec.natural, next, target, rec.baked);
+            _afterimage[addr] = (rec.natural, next, rec.lastTarget, rec.baked);   // foreign value: advance state, leave byte
+            return;
         }
-        else _afterimage[addr] = (rec.natural, next, rec.lastTarget, rec.baked);   // foreign value: advance state, leave byte
+
+        if (next.Stacks != rec.st.Stacks)                    // log each ramp STEP (and the hit-reset back to 0)
+            ModLogger.Debug(LogVerb.Signature, $"stepped Afterimage: {m.Name} wielder Speed {rec.natural} -> {target} (stacks {next.Stacks} of {Tuning.AfterimageSpeedCap})");
+        _ledger.RecordWrite(rosterNameId, StatLane.Speed, target);   // per evaluation (LW-90)
+        if (step.Cur != target) _mem.W8(addr, (byte)target);
+        _afterimage[addr] = (rec.natural, next, target, rec.baked);
     }
 }

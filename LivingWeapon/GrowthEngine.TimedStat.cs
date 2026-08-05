@@ -49,7 +49,16 @@ internal sealed partial class GrowthEngine
     /// backstop that keeps a permanently-wrong reading from leaking past the battle.
     /// LW-110: capture/boost/re-apply/revert were silent at every log level, so the absence of a
     /// line proved nothing about this lane (the trap the LW-100 live pass fell into). All four now
-    /// log at Debug, only on the write they actually perform.</summary>
+    /// log at Debug, only on the write they actually perform.
+    /// LW-149 stage A: DELIBERATELY EXCLUDED from the OwnershipHold core that HoldUltima/HoldMushin/
+    /// HoldAfterimage now share. This is a genuinely different machine, not a near-clone: it
+    /// REVERTS mid-battle when its window closes, keeps a post-revert corrective sentinel
+    /// (_timedReverted) that outlives the main record, latches on an unexpected window-closed
+    /// reading (_timedUnexpectedLogged, LW-109) rather than just leaving the byte alone, and drops
+    /// its record entirely on a clean revert rather than updating it. The core's four-branch
+    /// capture-or-check shape has no branch for "revert" or "keep watching after the record is
+    /// gone" -- wrapping it would either lose behavior or grow the core into this method's own
+    /// shape, which defeats the point of sharing it.</summary>
     internal void HoldTimedStat(long s, WeaponSignature sig, int tier, int turns, int rosterNameId = 0,
                                 int level = 0)
     {

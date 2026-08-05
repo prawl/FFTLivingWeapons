@@ -62,6 +62,13 @@ internal sealed class NaturalLedger
 
     private readonly Dictionary<(int nameId, StatLane lane), Entry> _entries = new();
 
+    // LW-149 stage A: total-invocation counter for the RecordWrite-cadence pins
+    // (GrowthEngineCadenceTests.cs). Purely additive bookkeeping -- counts every call
+    // regardless of the early-return guards below, because the cadence question is "how many
+    // times did a lane call RecordWrite this tick", not "how many targets got remembered".
+    // No existing caller reads this; behavior is unchanged.
+    internal int RecordWriteCalls { get; private set; }
+
     /// <summary>Promote Current to Prev, ONLY for entries that recorded anything this attempt.
     /// Safe to call any number of times per transition (Engine resets on both edges).</summary>
     public void OnBattleReset()
@@ -82,6 +89,7 @@ internal sealed class NaturalLedger
     /// identity lane (nameId &lt;= 0) or outside byte range.</summary>
     public void RecordWrite(int nameId, StatLane lane, int target)
     {
+        RecordWriteCalls++;
         if (nameId <= 0 || target < TargetMin || target > TargetMax) return;
         if (!_entries.TryGetValue((nameId, lane), out var e))
             _entries[(nameId, lane)] = e = new Entry();

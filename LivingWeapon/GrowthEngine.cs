@@ -24,7 +24,10 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    private const int StatMin = 1, StatMax = 255, StatSaneHi = 99, SigStatHi = 199;
+    // StatMin/StatSaneHi are internal (LW-149 stage A) so OwnershipHold.cs shares this ONE
+    // definition instead of duplicating the sane-range bounds; values/uses unchanged.
+    internal const int StatMin = 1, StatSaneHi = 99;
+    private const int StatMax = 255, SigStatHi = 199;
     private const int StructSpan = 0x41;   // bytes we touch per combat struct (0x20..0x40)
 
     private readonly Dictionary<int, WeaponMeta> _meta;
@@ -170,7 +173,11 @@ internal sealed partial class GrowthEngine
     /// carry the mod's own prior target); the per-evaluation RecordWrite (not per physical W8:
     /// a restarted battle starts at cur == target, eliding the write) keeps chained restarts
     /// matching; and a corrected record's baked value is a recognized re-apply token.
-    /// Internal for the LW-90 seam tests (LocateIn precedent).</summary>
+    /// Internal for the LW-90 seam tests (LocateIn precedent).
+    /// LW-149 stage A: deliberately NOT converted to the OwnershipHold core (GrowthEngine.
+    /// OwnershipHold.cs) that HoldUltima/HoldMushin/HoldAfterimage now share -- the RecordWrite
+    /// below fires unconditionally (a shape the core doesn't have); see OwnershipHold.cs's class
+    /// doc and GrowthEngineCadenceTests.cs for the measured cadence that ruled it out.</summary>
     internal void Hold(long addr, double factor, StatLane lane, int nameId, int level)
     {
         if (!_mem.Writable(addr, 1)) return;
