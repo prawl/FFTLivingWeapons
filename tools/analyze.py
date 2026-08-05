@@ -521,6 +521,63 @@ def fmt(it, key, nf):
     return f"id{it['id']:>3} {display_name(it):18} T{it.get('tier','?')} {axes}{extra}"
 
 
+def _fmt_dominance(v):
+    for a, doms in v:
+        print(f"  DOMINATED: id{a['id']} {display_name(a)}, beaten by {', '.join('id'+str(b['id']) for b in doms)}")
+
+
+def _fmt_slots(v):
+    for a, doms in v:
+        print(f"  DOMINATED id{a['id']} {display_name(a)} ({a['category']}), beaten by "
+              + ", ".join(f"id{b['id']} {b.get('name')}({b['category']})" for b in doms))
+
+
+def _fmt_unique_flavor(v):
+    for a, b in v:
+        print(f"  DUPLICATE id{a['id']} {a.get('name')} shares its flavor with id{b['id']} {b.get('name')}:")
+        print(f"      {flavor_anchor(a)!r}")
+
+
+def _fmt_flavor_length(v):
+    for a, n in v:
+        print(f"  TOO LONG id{a['id']} {a.get('name')} ({n} chars): {a['flavorOverride']!r}")
+
+
+def _fmt_p3desc(v):
+    for a, s in v:
+        print(f"  INVALID id{a['id']} {a.get('name')} (len={len(s)}): {s!r}")
+
+
+def _fmt_desc_budget(v):
+    for a, n in v:
+        print(f"  OVERFLOW id{a['id']} {a.get('name')} ({n} chars, {n - DESC_MAX} over)")
+
+
+def _fmt_kills_scaffold(v):
+    # Findings are either an item dict (a living weapon whose baked desc drifted) or a bare
+    # string (the <KILLS_SCAFFOLD constant> self-check, which has no item to name).
+    for a, detail in v:
+        name = a.get("name") if isinstance(a, dict) else a
+        aid = a.get("id") if isinstance(a, dict) else "-"
+        print(f"  DRIFT id{aid} {name}: {detail}")
+
+
+def _fmt_rider_desc(v):
+    for a, missing in v:
+        print(f"  UNSTATED id{a['id']} {a.get('name')}: desc is missing {missing}")
+
+
+def _fmt_rider_payload(v):
+    for a, eid, diffs in v:
+        print(f"  MISMATCH id{a['id']} {a.get('name')} (equipBonusId {eid}): " + "; ".join(diffs))
+
+
+def _fmt_drift_probs(v):
+    for a, probs in v:
+        for prob in probs:
+            print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
+
+
 def main():
     doc = load_items(ITEMS)
     nf = set(doc["_meta"].get("normalFormulaIds", [1]))
@@ -528,122 +585,77 @@ def main():
     print(f"=== {ITEMS.name}: {len(items)} items ===\n")
     for it in sorted(items, key=lambda x: x["id"]):
         print("  " + fmt(it, "proposed", nf))
+
+    # Registry of every gate stanza: (header, check_fn, pass_msg, format_failure, sets_rc).
+    # sets_rc lets one entry opt OUT of failing the build (the --baseline dominance pass is
+    # informational only; see the dominance loop below) without a special case in the runner.
+    registry = []
+    dom_runs = [("baseline", "BASELINE"), ("proposed", "PROPOSED")] if CHECK_BASELINE else [("proposed", "PROPOSED")]
+    for key, label in dom_runs:
+        registry.append(dict(
+            header=f"{label} dominance check",
+            check_fn=lambda key=key: check(items, key, nf),
+            pass_msg="PASS: no item is strictly dominated. Build-diversity invariant holds.",
+            format_failure=_fmt_dominance,
+            sets_rc=(label == "PROPOSED"),   # --baseline is reference-only, never fails the gate
+        ))
+    registry += [
+        dict(header="SLOT-WIDE dominance (cross-category, same equip slot, access-aware)",
+             check_fn=lambda: check_slots(items, nf),
+             pass_msg="PASS: no item is dominated within its equip slot.",
+             format_failure=_fmt_slots, sets_rc=True),
+        dict(header="DESCRIPTION UNIQUENESS (no two items share a flavor line)",
+             check_fn=lambda: check_unique_flavor(items),
+             pass_msg="PASS: every item's flavor line is unique.",
+             format_failure=_fmt_unique_flavor, sets_rc=True),
+        dict(header=f"FLAVOR LENGTH (authored flavorOverride <= {FLAVOR_MAX} chars)",
+             check_fn=lambda: check_flavor_length(items),
+             pass_msg=f"PASS: every authored flavor line is <= {FLAVOR_MAX} chars.",
+             format_failure=_fmt_flavor_length, sets_rc=True),
+        dict(header=f"P3 DESCRIPTION (signature effect <= {P3DESC_MAX} chars + a card-header name)",
+             check_fn=lambda: check_p3desc(items),
+             pass_msg="PASS: every p3Desc is valid.",
+             format_failure=_fmt_p3desc, sets_rc=True),
+        dict(header=f"DESC BUDGET (assembled card text <= {DESC_MAX} chars; overflow clips the box)",
+             check_fn=lambda: check_desc_budget(items),
+             pass_msg="PASS: every assembled description fits the card.",
+             format_failure=_fmt_desc_budget, sets_rc=True),
+        dict(header=f"KILLS SCAFFOLD LOCKSTEP (baked meter body == {KILLS_SLOT_BODY_CHARS} chars, Kills line first)",
+             check_fn=lambda: check_kills_scaffold_lockstep(items),
+             pass_msg=f"PASS: KILLS_SCAFFOLD is {KILLS_SLOT_BODY_CHARS} chars and every living weapon leads with it.",
+             format_failure=_fmt_kills_scaffold, sets_rc=True),
+        dict(header="RIDER PROSE (verbatim descs state every equip-bonus clause)",
+             check_fn=lambda: check_rider_desc(items),
+             pass_msg="PASS: every verbatim desc states its rider in the house voice.",
+             format_failure=_fmt_rider_desc, sets_rc=True),
+        dict(header="RIDER PAYLOAD (numeric rider stat matches the emitted EquipBonus row)",
+             check_fn=lambda: check_rider_payload(items, doc.get("_equipBonus", {})),
+             pass_msg="PASS: every numeric rider matches its EquipBonus row.",
+             format_failure=_fmt_rider_payload, sets_rc=True),
+        dict(header="GRID SYNC (docs/living_weapon_grid.csv matches items.json on id/name/tier/WP/parry)",
+             check_fn=lambda: check_grid_sync(items),
+             pass_msg="PASS: the living weapon grid matches items.json.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="P3 ABILITY GRID LOCKSTEP (items.json p3Desc == grid CSV '+3 ability')",
+             check_fn=lambda: check_p3_grid_lockstep(items),
+             pass_msg="PASS: every grid '+3 ability' cell matches items.json's signature p3Desc.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="P3 SIGNATURE NAME (grid CSV 'P3' cell carries the card's signature name)",
+             check_fn=lambda: check_p3_signame_grid(items),
+             pass_msg="PASS: every grid 'P3' cell names the ability the card shows.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
+    ]
+
     rc = 0
-    for key, label in ([("baseline", "BASELINE"), ("proposed", "PROPOSED")] if CHECK_BASELINE else [("proposed", "PROPOSED")]):
-        v = check(items, key, nf)
-        print(f"\n--- {label} dominance check ---")
+    for gate in registry:
+        v = gate["check_fn"]()
+        print(f"\n--- {gate['header']} ---")
         if not v:
-            print("  PASS: no item is strictly dominated. Build-diversity invariant holds.")
+            print(f"  {gate['pass_msg']}")
         else:
-            for a, doms in v:
-                print(f"  DOMINATED: id{a['id']} {display_name(a)}, beaten by {', '.join('id'+str(b['id']) for b in doms)}")
-            if label == "PROPOSED":
+            gate["format_failure"](v)
+            if gate["sets_rc"]:
                 rc = 1
-    sv = check_slots(items, nf)
-    print("\n--- SLOT-WIDE dominance (cross-category, same equip slot, access-aware) ---")
-    if not sv:
-        print("  PASS: no item is dominated within its equip slot.")
-    else:
-        for a, doms in sv:
-            print(f"  DOMINATED id{a['id']} {display_name(a)} ({a['category']}), beaten by "
-                  + ", ".join(f"id{b['id']} {b.get('name')}({b['category']})" for b in doms))
-        rc = 1
-
-    fv = check_unique_flavor(items)
-    print("\n--- DESCRIPTION UNIQUENESS (no two items share a flavor line) ---")
-    if not fv:
-        print("  PASS: every item's flavor line is unique.")
-    else:
-        for a, b in fv:
-            print(f"  DUPLICATE id{a['id']} {a.get('name')} shares its flavor with id{b['id']} {b.get('name')}:")
-            print(f"      {flavor_anchor(a)!r}")
-        rc = 1
-
-    fl = check_flavor_length(items)
-    print(f"\n--- FLAVOR LENGTH (authored flavorOverride <= {FLAVOR_MAX} chars) ---")
-    if not fl:
-        print(f"  PASS: every authored flavor line is <= {FLAVOR_MAX} chars.")
-    else:
-        for a, n in fl:
-            print(f"  TOO LONG id{a['id']} {a.get('name')} ({n} chars): {a['flavorOverride']!r}")
-        rc = 1
-
-    p3 = check_p3desc(items)
-    print(f"\n--- P3 DESCRIPTION (signature effect <= {P3DESC_MAX} chars + a card-header name) ---")
-    if not p3:
-        print(f"  PASS: every p3Desc is valid.")
-    else:
-        for a, s in p3:
-            print(f"  INVALID id{a['id']} {a.get('name')} (len={len(s)}): {s!r}")
-        rc = 1
-
-    db = check_desc_budget(items)
-    print(f"\n--- DESC BUDGET (assembled card text <= {DESC_MAX} chars; overflow clips the box) ---")
-    if not db:
-        print(f"  PASS: every assembled description fits the card.")
-    else:
-        for a, n in db:
-            print(f"  OVERFLOW id{a['id']} {a.get('name')} ({n} chars, {n - DESC_MAX} over)")
-        rc = 1
-
-    ksl = check_kills_scaffold_lockstep(items)
-    print(f"\n--- KILLS SCAFFOLD LOCKSTEP (baked meter body == {KILLS_SLOT_BODY_CHARS} chars, Kills line first) ---")
-    if not ksl:
-        print(f"  PASS: KILLS_SCAFFOLD is {KILLS_SLOT_BODY_CHARS} chars and every living weapon leads with it.")
-    else:
-        for a, detail in ksl:
-            name = a.get("name") if isinstance(a, dict) else a
-            aid = a.get("id") if isinstance(a, dict) else "-"
-            print(f"  DRIFT id{aid} {name}: {detail}")
-        rc = 1
-
-    rd = check_rider_desc(items)
-    print("\n--- RIDER PROSE (verbatim descs state every equip-bonus clause) ---")
-    if not rd:
-        print("  PASS: every verbatim desc states its rider in the house voice.")
-    else:
-        for a, missing in rd:
-            print(f"  UNSTATED id{a['id']} {a.get('name')}: desc is missing {missing}")
-        rc = 1
-
-    rp = check_rider_payload(items, doc.get("_equipBonus", {}))
-    print("\n--- RIDER PAYLOAD (numeric rider stat matches the emitted EquipBonus row) ---")
-    if not rp:
-        print("  PASS: every numeric rider matches its EquipBonus row.")
-    else:
-        for a, eid, diffs in rp:
-            print(f"  MISMATCH id{a['id']} {a.get('name')} (equipBonusId {eid}): " + "; ".join(diffs))
-        rc = 1
-
-    gs = check_grid_sync(items)
-    print("\n--- GRID SYNC (docs/living_weapon_grid.csv matches items.json on id/name/tier/WP/parry) ---")
-    if not gs:
-        print("  PASS: the living weapon grid matches items.json.")
-    else:
-        for a, probs in gs:
-            for prob in probs:
-                print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
-        rc = 1
-
-    p3g = check_p3_grid_lockstep(items)
-    print("\n--- P3 ABILITY GRID LOCKSTEP (items.json p3Desc == grid CSV '+3 ability') ---")
-    if not p3g:
-        print("  PASS: every grid '+3 ability' cell matches items.json's signature p3Desc.")
-    else:
-        for a, probs in p3g:
-            for prob in probs:
-                print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
-        rc = 1
-
-    p3n = check_p3_signame_grid(items)
-    print("\n--- P3 SIGNATURE NAME (grid CSV 'P3' cell carries the card's signature name) ---")
-    if not p3n:
-        print("  PASS: every grid 'P3' cell names the ability the card shows.")
-    else:
-        for a, probs in p3n:
-            for prob in probs:
-                print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
-        rc = 1
 
     sys.exit(rc)
 
