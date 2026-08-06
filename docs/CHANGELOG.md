@@ -10,6 +10,23 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-150] SHIPPED 40a02b2 2026-08-05: the audit's five structural seams are taken, each its own
+  green commit, runtime behavior byte-identical throughout and every claim proven by token-level
+  comparison against the old code plus sabotage runs. The balance gate's twelve copied check
+  stanzas became one registry loop that cannot forget the failure code, proven output-identical
+  in both modes and failure-identical on a seeded duplicate (3f04327). The katana hold's 156-line
+  tick became a short dispatcher with its two buried judgment calls freed into the policy file
+  and truth-tabled, including a deliberate asymmetry now written down (d5d75aa). The kill
+  counter's 280-line corpse loop split into named handlers with its subtle fall-through preserved
+  exactly (c31e188), and its eight-field turn latch became its own tested machine behind a
+  mirror-outputs carrier so every consumer reads the same fields it always did, held by a
+  25-mutation campaign (c693db1). Finally the engine opened its memory seam: for the first time a
+  test constructs the composition root, arms the real guard over a fake, and watches the tick
+  read through the injected memory, with the two load-bearing array orderings pinned element for
+  element instead of comment-enforced (40a02b2). Honest residue banked as LW-152: two
+  pre-existing kill-credit coverage gaps the verify passes exposed, neither created by the
+  refactors, both proven present in the old code too. Suite grew 3009 to 3025; verify scores 8
+  to 9 of 10 across five stages.
 - [LW-149] SHIPPED 7dbe862 2026-08-05: the audit's copy-paste families each live in ONE home now,
   shipped as eight green-gated stages over two days, every one adversarially verified with its
   load-bearing pin broken once on purpose, and runtime behavior byte-identical throughout (the

@@ -60,21 +60,6 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-150] Take the structural seams the audit judged real, one green stage at a time** (opened 2026-07-28) [BUILDING]
-  - Done means: the audit's structural findings are refactored with runtime behavior byte
-    identical, each stage its own commit with its own breakable pin: analyze.py's twelve copied
-    check stanzas become one registry loop that cannot forget to set the failure code; Iai's two
-    pure verdicts move into its Policy file where they are directly testable; the kill tracker's
-    acted-period latch becomes its own tested class instead of eight fields in a shared soup;
-    ScanCorpses' 280-line loop splits into named per-slot handlers behind the same dispatcher;
-    and Engine's battle sentinel reads go through the injected memory seam so a test can finally
-    construct an Engine and script its tick, with the two load-bearing array orderings pinned by
-    a test instead of a comment. The BodyDoubleSpike split stays with LW-120 where it belongs.
-  - Verify: full suite green after every stage; every stage's pin proven non-vacuous by breaking
-    it once; the kill-credit probe's lockstep note honored (behavior-preserving structure moves
-    keep the probe valid; any edge-machinery semantic change is out of scope here). Offline only;
-    the standing rider is the owner's next ordinary session.
-
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
