@@ -82,8 +82,16 @@ internal sealed class Engine
     /// only under #if LWDEV at the Mod.cs call site): true perturbs the expected PE build key so
     /// LaunchGuard stands down as if the game had been patched, even though memory truly matches.
     /// Null/false is the normal path.</param>
+    /// <param name="mem">LW-150 S5: injectable memory seam. Null (the default, what Mod.cs always
+    /// passes) constructs a fresh <see cref="LiveMemory"/> exactly as before this param existed, so
+    /// production stays byte-identical; tests inject a fake so every subsystem below -- including
+    /// LaunchGuard -- arms and reads through the same memory Tick()'s sentinel reads use.</param>
+    /// <param name="notice">LW-150 S5: the OS-level stand-down notice handed to LaunchGuard. Null
+    /// (the default) falls back to <see cref="StandDownNotice.Show"/> right here at the production
+    /// construction site, so a real build still raises the real message box on a mismatch; tests
+    /// pass a captured no-op so `dotnet test` never pops a Win32 dialog.</param>
     public Engine(string modDir, bool? treasureAlwaysOn = null, bool? bannerToasts = null, bool? devSeedKills = null,
-        bool? devForceFingerprintMismatch = null)
+        bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null)
     {
         // LW-51: save files now live in the update-safe Reloaded/User/Mods/<ModId> dir, not the
         // deploy mod dir, so a mod-folder-replace update can no longer wipe them. Each store's
@@ -123,13 +131,16 @@ internal sealed class Engine
             ModLogger.Event(LogVerb.Startup, $"Development build: every weapon's tally is seeded to at least {Tuning.DevKillSeed} kills; every weapon starts with its full powers for fast testing.");
         }
 #endif
-        var live = new LiveMemory();   // the ONE production IGameMemory, shared by every subsystem
-        _live = live;
+        // LW-150 S5: mem ?? new LiveMemory() keeps production byte-identical (Mod.cs never passes
+        // mem, so this is always a fresh LiveMemory there). `live` stays the local alias every
+        // subsystem below was already wired against, now backed by the injected fake in tests.
+        _live = mem ?? new LiveMemory();   // the ONE IGameMemory, shared by every subsystem
+        var live = _live;
         // LW-50: born disarmed (Mod.StartEngine already set Mem.WritesEnabled = false before this
         // ctor ran); Tick() below holds every subsystem off until the landmarks verify. LW-53:
         // recorder/requestFlush wire the guard's own arm/stand-down lifecycle into the flight
         // ring, so a stand-down leaves a durable archive.
-        _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: StandDownNotice.Show,
+        _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: ResolveNotice(notice),
             recorder: Flight.Record, requestFlush: Flight.RequestFlush);
         // LW-82: read-only, ticks only while the guard is StoodDown (below); never arms, never
         // writes, never touches GuardState. Verifier scout, not healer (owner-locked decision).
@@ -247,6 +258,26 @@ internal sealed class Engine
         ModLogger.Event(LogVerb.Startup, $"Living Weapons is tracking {meta.Count} weapon types.");
     }
 
+    /// <summary>The notice-fallback resolution pulled out of the ctor's LaunchGuard wiring so a
+    /// test can pin the null-coalesce itself: a verifier proved dropping the
+    /// <c>?? StandDownNotice.Show</c> at the wiring site leaves the whole suite green while
+    /// production would silently lose the stand-down message box (nothing else in the suite
+    /// observes which delegate LaunchGuard actually got). Null (production; Mod.cs never passes
+    /// notice) resolves to <see cref="StandDownNotice.Show"/>; a non-null value (tests) passes
+    /// through unchanged.</summary>
+    internal static Action<string, string> ResolveNotice(Action<string, string>? n) => n ?? StandDownNotice.Show;
+
+    /// <summary>Test/diagnostic seam (LW-150 S5): the battle-exit reset order (see the ctor
+    /// comment above the _signatures assignment for why both orders are load-bearing). Pinned by
+    /// EngineTests so this sequence can only change on purpose.</summary>
+    internal IReadOnlyList<Type> SignatureResetOrder => Array.ConvertAll(_signatures, s => s.GetType());
+
+    /// <summary>Test/diagnostic seam (LW-150 S5): the in-battle field tick order -- excludes
+    /// Barrage, ShadowBlade, Provoke (kit-lane trio, pre-gate) and CharmLock/TreasureMaster
+    /// (both pre-gate on battleDisplayed), all of which still appear in
+    /// <see cref="SignatureResetOrder"/>. Pinned by EngineTests.</summary>
+    internal IReadOnlyList<Type> FieldTickOrder => Array.ConvertAll(_fieldSignatures, s => s.GetType());
+
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves
     /// reloaded.sharedlib.hooks (controllers are not resolvable at construction time).
     /// Production arms the facing-prompt swap here (gated on the compiled BannerToasts default,
@@ -309,7 +340,7 @@ internal sealed class Engine
         // PromptSwap is stateless (no per-battle state to reset).
     }
 
-    private void Tick()
+    internal void Tick()
     {
         Flight.DrainPending();   // cheap flag check every tick; the actual I/O (if any is pending) runs here, never on the requester's thread
 
@@ -327,15 +358,15 @@ internal sealed class Engine
         // LW-112: the kit-lane guard steps only once the main guard armed; cheap no-op once terminal.
         _launchGuard.StepKitLane();
 
-        uint slot0 = Mem.U32(Offsets.Slot0);
-        uint slot9 = Mem.U32(Offsets.Slot9);
-        int battleMode = Mem.U8(Offsets.BattleMode);
+        uint slot0 = _live.U32(Offsets.Slot0);
+        uint slot9 = _live.U32(Offsets.Slot9);
+        int battleMode = _live.U8(Offsets.BattleMode);
         // Mode-CHANGE tap (N2): new code -- Engine only edge-detected battle enter/exit before this.
         // First sighting baselines silently (mirrors BattleLog.Observe); only real changes record.
         if (_lastMode == int.MinValue) _lastMode = battleMode;
         else if (battleMode != _lastMode) { Flight.Record("mode", $"battleMode {_lastMode} -> {battleMode}"); _lastMode = battleMode; }
-        bool paused = Mem.U8(Offsets.PauseFlag) == 1;
-        int eventId = Mem.U16(Offsets.EventId);   // out-of-live: dialogue/cutscene; in-combat: nameId alias
+        bool paused = _live.U8(Offsets.PauseFlag) == 1;
+        int eventId = _live.U16(Offsets.EventId);   // out-of-live: dialogue/cutscene; in-combat: nameId alias
         var now = DateTime.Now;
         // A genuine in-battle frame: live modes, or the slot0 in-battle marker with a targeting/
         // paused/event excuse. The marker alone lies: pre-1.5 it stuck at the then-marker 0xFF
@@ -395,8 +426,12 @@ internal sealed class Engine
         }
 
         // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.
+        // LW-150 S5: the PauseFlag re-read here is DELIBERATELY a second, fresher read, not the
+        // `paused` value above -- the tick can run battle-state steps and flush I/O between the
+        // two while the game mutates the flag on its own threads; collapsing them would shift
+        // StatusCardOpen by a tick (locked ruling -- do not fold into one read).
         bool battleStatus = BattleState.StatusCardOpen(nowIn, battleMode,
-                                                       Mem.U8(Offsets.PauseFlag) == 1, Mem.U8(Offsets.SubmenuFlag) == 1);
+                                                       _live.U8(Offsets.PauseFlag) == 1, _live.U8(Offsets.SubmenuFlag) == 1);
         if (battleStatus && !_lastBattleStatus) _display.Invalidate();   // re-find the card's fresh buffers
         _lastBattleStatus = battleStatus;
 

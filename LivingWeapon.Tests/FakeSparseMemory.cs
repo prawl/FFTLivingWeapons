@@ -15,7 +15,9 @@ namespace LivingWeapon.Tests;
 /// Extended for TreasureMaster tests:
 ///   ReadableAddrs  -- Readable() returns true only for members (default: false).
 ///   TerrainBlocks  -- TryReadBytes serves a block registered here (keyed by base addr).
-///   ReadCount      -- counts how many times each address has been read via U8.
+///   ReadCount      -- counts how many times each address has been read via U8 or U16 (LW-150 S5:
+///                     U16 joined U8 so the default IGameMemory.U32 composition -- two U16 reads,
+///                     see GameMemory.cs -- is observable too; U32 itself is not overridden here).
 ///
 /// LW-147 (DOCUMENTED DIVERGENCE from production -- read this before trusting a passing test):
 /// production Mem.Probe (Mem.cs) gates the WHOLE [addr, addr+len) range against one committed
@@ -102,7 +104,13 @@ internal sealed class FakeSparseMemory : IGameMemory
         return U8s.TryGetValue(a, out var v) ? v : (byte)0;
     }
 
-    public ushort U16(long a) => U16s.TryGetValue(a, out var v) ? v : (ushort)0;
+    public ushort U16(long a)
+    {
+        // LW-150 S5: mirrors U8's ReadCount tracking above, so a caller reading through the
+        // default IGameMemory.U32 composition (two U16 reads) is observable via ReadCount too.
+        ReadCount[a] = ReadCount.TryGetValue(a, out int c) ? c + 1 : 1;
+        return U16s.TryGetValue(a, out var v) ? v : (ushort)0;
+    }
 
     /// <summary>Default (StrictRangeChecks == false): legacy behavior, base-address membership
     /// only, n ignored -- see the class doc's LW-147 section for why. StrictRangeChecks == true:
@@ -194,9 +202,10 @@ internal sealed class FakeSparseMemory : IGameMemory
     /// value, and marks all 4 bytes readable. Serves U8-COMPOSED readers ONLY: it writes U8s,
     /// not U16s, so IGameMemory's interface-default U32(addr) -- which composes from two U16
     /// reads (U16(addr) | U16(addr+2)&lt;&lt;16), see GameMemory.cs -- will NOT see a value seeded
-    /// here. No current test calls the interface-default U32 through this fake; if one starts
-    /// to, seed U16s directly (or add a U16-composed sibling) instead of assuming this helper
-    /// covers it.</summary>
+    /// here. EngineTests' Tick now DOES drive the interface-default U32 through this fake (its
+    /// slot0/slot9 sentinel reads compose from two U16 reads each), but that path is exercised
+    /// via mem.U16s/TerrainBlocks staging, never via this helper -- SeedU32-seeded values still
+    /// serve U8-composed readers only.</summary>
     public void SeedU32(long addr, uint value)
     {
         U8s[addr + 0] = (byte)(value        & 0xFF);
