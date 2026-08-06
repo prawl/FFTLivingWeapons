@@ -66,11 +66,8 @@ internal sealed partial class KillTracker
                                                     //   the untracked corpse stamp. Sticky until the next successful
                                                     //   resolve so a later corpse stamped while untracked is correctly
                                                     //   blocked even if the active struct drifts between turns.
-    private int _actedLow;                           // consecutive acted==0 ticks (drift-debounced period end)
     internal int _actedFalls;                        // battle-local count of debounced acted-falling edges
     private string _actorTag = "";                   // cached "10,52" form of the latch, for event lines
-    private List<int> _fallbackSet = new();          // the resolve being stability-counted by the no-actor fallback
-    private int _fallbackStreak;                     // consecutive identical non-empty resolves
     internal readonly BattleLog? _events;            // dev event timeline (damage/heal/move); null = off
     // Flight recorder tap (optional; null/no-op default keeps every existing test green
     // unmodified). Engine wires this to Flight.Record, and it is threaded down into the
@@ -117,6 +114,14 @@ internal sealed partial class KillTracker
     // Wielder.HasLiveWielder over the same live memory every other roster/band consumer uses
     // (Engine.cs).
     private readonly Func<int, bool>? _hasLiveWielder;
+    // S3 (LW-150): the acted-period latch state machine (KillTracker.cs's old Poll acted-block +
+    // FirstKillFallback), extracted to ActedPeriodLatch.cs. THE MIRROR-OUTPUTS DESIGN: the latch
+    // never touches this class's fields directly -- _latchIO is the one persistent transient
+    // carrier, seeded from this class's own fields before every Step/Reset call and copied back
+    // onto them immediately after (SeedLatchOutputs/ApplyLatchOutputs below). Constructed once so
+    // Step doesn't allocate a fresh carrier every 33ms tick.
+    private readonly ActedPeriodLatch _latch;
+    private readonly ActedPeriodOutputs _latchIO = new();
 
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
                         Action<string, string>? recorder = null, IDeedSink? deeds = null,
@@ -135,6 +140,7 @@ internal sealed partial class KillTracker
         _resolver = new ActorResolver(mem, weapons, _register);
         // LW-63 D4: the flags-first hypothesis lane, consulted ahead of the register snapshot.
         _killerStamp = new KillerStamp(_register, _resolver.HandsFromRoster, _resolver.TryResolveFlagKiller);
+        _latch = new ActedPeriodLatch(mem, _resolver, _register, recorder);
         _events = events;
         _victimProbe = new VictimProbe(mem, recorder);
         _census = new BattleCensus(mem, recorder);
@@ -180,28 +186,62 @@ internal sealed partial class KillTracker
         Array.Clear(_pendingAge, 0, _pendingAge.Length);
         Array.Clear(_pendingFalls, 0, _pendingFalls.Length);
         Array.Clear(_pendingBirthTick, 0, _pendingBirthTick.Length);
-        _lastPlayerWeapons = new();
-        _lastPlayerMainHand = 0;
-        _lastActorFp = default;
-        _lastResolveTick = 0;
-        _latched = false;
-        _periodOpen = false;
+        // S3 (LW-150): the latch's own Reset (its clean-move fields) plus every acted-period
+        // mirror-output field's battle-start default, written into _latchIO and copied back --
+        // reproduces every one of the original inline assignments this replaced (including the
+        // _lastPlayerWeapons list REPLACE), see ActedPeriodLatch.Reset's doc comment.
+        _latch.Reset(_latchIO);
+        ApplyLatchOutputs(_latchIO);
         _register.ResetBattle();
         _resolver.EndActedPeriod();
-        _latchResolvedEmpty = false;   // battle start = never-resolved; genuine first kill still uses the fallback
-        _actedLow = 0;
-        _actedFalls = 0;
-        _actorTag = "";
-        _fallbackSet = new();
-        _fallbackStreak = 0;
         _events?.ResetBattle();
-        AnyTrackedWeaponThisBattle = false;   // re-quiet the armed gate for the next battle
         BattleCredits.Clear();                // per-battle match-report counters
         FallbackCredits = 0;
-        _latchViaFallback = false;
         ResetBattleCorpses();   // clear per-battle band-scan state (Corpses.cs)
         ResetDelayed();         // clear delayed-action snapshot/arm state (Delayed.cs)
         _census.ResetBattle();  // re-arm the P2 identity-census probe (BattleCensus.cs)
+    }
+
+    /// <summary>S3 (LW-150): seed <see cref="_latchIO"/> with the CURRENT value of every
+    /// acted-period mirror-output field, immediately before handing it to
+    /// <see cref="ActedPeriodLatch.Step"/> -- the latch reads these as its inputs (e.g. whether
+    /// it is already latched, the weapon set to SameSet-compare against) exactly as the original
+    /// inline code read its own bare fields.</summary>
+    private void SeedLatchOutputs(ActedPeriodOutputs o)
+    {
+        o.PeriodOpen = _periodOpen;
+        o.Latched = _latched;
+        o.LastPlayerWeapons = _lastPlayerWeapons;
+        o.LastPlayerMainHand = _lastPlayerMainHand;
+        o.LastActorFp = _lastActorFp;
+        o.LatchResolvedEmpty = _latchResolvedEmpty;
+        o.LatchViaFallback = _latchViaFallback;
+        o.LastResolveTick = _lastResolveTick;
+        o.ActorTag = _actorTag;
+        o.ActedFalls = _actedFalls;
+        o.AnyTrackedWeaponThisBattle = AnyTrackedWeaponThisBattle;
+    }
+
+    /// <summary>S3 (LW-150): the write-back half of the mirror-outputs design -- copies every
+    /// field <see cref="_latchIO"/> now holds back onto this class's own same-named fields, the
+    /// ones every other partial/consumer/test reads. Called after both
+    /// <see cref="ActedPeriodLatch.Step"/> (from Poll) and <see cref="ActedPeriodLatch.Reset"/>
+    /// (from ResetBattle). The order of the individual assignments below is not itself observable
+    /// (nothing reads any of these fields between them -- every reader runs either before Seed or
+    /// after Apply), so it need not mirror the original inline statement order.</summary>
+    private void ApplyLatchOutputs(ActedPeriodOutputs o)
+    {
+        _periodOpen = o.PeriodOpen;
+        _latched = o.Latched;
+        _lastPlayerWeapons = o.LastPlayerWeapons;
+        _lastPlayerMainHand = o.LastPlayerMainHand;
+        _lastActorFp = o.LastActorFp;
+        _latchResolvedEmpty = o.LatchResolvedEmpty;
+        _latchViaFallback = o.LatchViaFallback;
+        _lastResolveTick = o.LastResolveTick;
+        _actorTag = o.ActorTag;
+        _actedFalls = o.ActedFalls;
+        AnyTrackedWeaponThisBattle = o.AnyTrackedWeaponThisBattle;
     }
 
     /// <summary>One in-battle tick. <paramref name="onField"/> gates streak accumulation --
@@ -209,97 +249,21 @@ internal sealed partial class KillTracker
     /// Returns true if the tally changed.</summary>
     public bool Poll(bool onField)
     {
-        bool changed = false;
+        bool changed;
 
         _register.Update();       // ownership tracker: one read of the engine actor pointer per tick
         UpdateCorpseAnchor();     // V1 corpse-anchor veto, pushed to the resolver for this tick's resolves
 
-        // Latch the acting player's weapon(s) ONCE per acted-period. acted==1 marks an action
-        // complete, but the condensed struct follows the CURSOR (BATTLE_COORDINATES.md) and acted
-        // stays 1 for the rest of the turn -- so re-resolving every tick let a post-act hover over
-        // an ALLY steal the latch. The first successful resolve of the period is the actor (the
-        // struct shows them when their action lands); freeze on it until acted stays 0 for
-        // UnfreezeTicks (the byte drifts to 0 transiently after confirmed actions). The roster
-        // fingerprint -- not the unreliable team field -- is the player test: enemies resolve empty,
-        // so an enemy's acted-period never latches and the previous player's latch stays sticky.
-        if (_mem.U8(Offsets.Acted) == 1)
-        {
-            _actedLow = 0;
-            // Period Begin is EDGE-GUARDED: fires once on the first acted==1 tick of the period
-            // (regardless of whether a resolve succeeds that tick), never re-fires mid-period --
-            // a sub-UnfreezeTicks Acted drift dip never reaches the End branch below, so _periodOpen
-            // stays true and this can't refresh the resolver's periodStartTick out from under it.
-            if (!_periodOpen)
-            {
-                _periodOpen = true;
-                _resolver.BeginActedPeriod(_register.Tick);
-            }
-            if (!_latched)
-            {
-                // A RESOLVED player always replaces the latch -- even with an EMPTY weapon set
-                // (untracked gear like DLC weapons, or unarmed): their kills go honestly
-                // uncredited instead of paying out to the previous actor (live bug: a Throw
-                // Stone kill by a DLC-armed Ramza credited the prior actor's crossbow). Only
-                // an UNRESOLVED acted-period (enemy acting / the Acted-byte flake) leaves the
-                // previous latch sticky.
-                if (_resolver.TryResolveActingPlayer(out var ws))
-                {
-                    _latched = true;
-                    _lastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
-                    // Track whether the resolved actor holds any tracked weapon. Must be OUTSIDE the
-                    // !SameSet guard (same placement rationale as the _lastActorFp refresh): two
-                    // consecutive untracked actors share an empty set, so SameSet is true between
-                    // them -- if gated inside, the second untracked actor would not refresh the flag
-                    // and a following corpse would lose the sticky "untracked" verdict.
-                    _latchResolvedEmpty = ws.Count == 0;
-                    if (ws.Count > 0) AnyTrackedWeaponThisBattle = true;   // sticky armed gate (facelift)
-                    // LW-63: a flags-sourced resolve is pointer-quality evidence, same as a
-                    // register-sourced one -- only a genuine turn-queue fallback counts here.
-                    _latchViaFallback = _resolver.LastResolveSource == ResolveSource.TqFallback;
-                    // Refresh the acting fingerprint once per acted-period (on the latch edge).
-                    // MUST be outside the !SameSet guard: two Arcanum holders share weapon set {30},
-                    // so SameSet is true between them -- if gated inside, switching between two
-                    // same-weapon wielders would never update the fingerprint (the Larceny bug).
-                    _lastActorFp = _resolver.TryResolveActingFingerprint(out var afp) ? afp : default;
-                    if (!ActorResolver.SameSet(ws, _lastPlayerWeapons))
-                    {
-                        _lastPlayerWeapons = ws;
-                        _lastPlayerMainHand = ws.Count > 0 ? _resolver.ResolveActingMainHand() : 0;
-                        _actorTag = string.Join(",", ws);
-                        // Source tag mirrors TurnTracker's shipped resolve-source pair, now a
-                        // three-way (LW-63 adds the turn-flags lane); no test asserts on these
-                        // strings (inventory confirmed).
-                        string src = _resolver.LastResolveSource switch
-                        {
-                            ResolveSource.Flags => "the turn flags",
-                            ResolveSource.Register => "the actor pointer",
-                            _ => "the turn-queue fallback",
-                        };
-                        ModLogger.Debug(LogVerb.Credit, ws.Count > 0
-                            ? "the acting player wields " + string.Join(", ", ws.ConvertAll(id => LogNames.Weapon(id) + " (weapon id " + id + ")")) + $", resolved via {src}"
-                            : $"the acting player wields no Living Weapon; this action's kills will go uncredited (resolved via {src})");
-                        string srcTag = _resolver.LastResolveSource switch
-                        {
-                            ResolveSource.Flags => "turn-flags",
-                            ResolveSource.Register => "actor-ptr",
-                            _ => "tq-fallback",
-                        };
-                        _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src={srcTag}");
-                    }
-                }
-            }
-        }
-        // The debounced acted-falling edge (acted low for UnfreezeTicks) is one turn-end event: count it
-        // once per period (drives the two-edge pending expiry below) as the latch unfreezes.
-        else if (_actedLow < UnfreezeTicks && ++_actedLow >= UnfreezeTicks)
-        {
-            _latched = false;
-            _actedFalls++;
-            _periodOpen = false;
-            _resolver.EndActedPeriod();
-        }
-
-        FirstKillFallback();   // no prior latch + a corpse waiting -> resolve the actor without the acted gate
+        // S3 (LW-150): the acted-period latch (latches the acting player's weapon(s) ONCE per
+        // acted-period, freezing until the debounced acted-falling edge) plus the first-kill
+        // fallback (no prior latch + a corpse waiting -> resolve the actor without the acted
+        // gate), both extracted to ActedPeriodLatch.cs -- see its class doc for the mechanism.
+        // Seed/Step/Apply is the mirror-outputs write-back: AnyPending() is evaluated here (the
+        // same point in the sequence FirstKillFallback used to read it from) since it is the one
+        // external input the latch needs that isn't itself a mirror-output field.
+        SeedLatchOutputs(_latchIO);
+        _latch.Step(_latchIO, AnyPending());
+        ApplyLatchOutputs(_latchIO);
 
         TrackDelayed(onField);   // snapshot/arm the committer of a delayed action (Delayed.cs)
 
@@ -308,39 +272,6 @@ internal sealed partial class KillTracker
         _census.Tick(_oracle.CoverageDone);   // P2 probe: fires once, right after the oracle's own tick
 
         return changed;
-    }
-
-    /// <summary>First-kill fix: the killing action's `acted` edge can arrive seconds after the corpse,
-    /// and the FIRST action of a battle has no prior latch to fall back on. While a corpse is pending
-    /// and no latch exists, resolve the actor WITHOUT the acted gate -- but only when not paused, and
-    /// accept only after <see cref="FallbackStreak"/> consecutive identical non-empty resolves (a
-    /// stability gate, so a flickering hover can't latch). Inert once a real latch exists, so a
-    /// post-act ally hover can never steal credit.</summary>
-    private void FirstKillFallback()
-    {
-        if (_lastPlayerWeapons.Count > 0 || _latchResolvedEmpty || !AnyPending() || _mem.U8(Offsets.PauseFlag) != 0)
-        {
-            _fallbackStreak = 0; _fallbackSet = new();
-            return;
-        }
-        var ws = _resolver.ResolveActingWeapons();
-        if (ws.Count == 0) { _fallbackStreak = 0; _fallbackSet = new(); return; }
-        if (_fallbackStreak > 0 && ActorResolver.SameSet(ws, _fallbackSet)) _fallbackStreak++;
-        else { _fallbackSet = ws; _fallbackStreak = 1; }
-        if (_fallbackStreak >= FallbackStreak)
-        {
-            _lastPlayerWeapons = ws;
-            _lastPlayerMainHand = _resolver.ResolveActingMainHand();
-            _actorTag = string.Join(",", ws);
-            _lastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
-            _fallbackStreak = 0; _fallbackSet = new();
-            AnyTrackedWeaponThisBattle = true;   // ws is non-empty here: a tracked weapon is fielded
-            _latchViaFallback = true;            // first-kill fallback is a fallback resolve by definition
-            ModLogger.EventWithTrace(LogVerb.Credit,
-                "No actor had been identified yet; crediting the only player who has acted (first-kill fallback), wielding " + string.Join(", ", ws.ConvertAll(LogNames.Weapon)) + ".",
-                $"first-kill fallback latched (weapon ids {_actorTag})");
-            _recorder?.Invoke("kill", $"latch weapons=[{_actorTag}] mainHand={_lastPlayerMainHand} src=first-kill-fallback");
-        }
     }
 
     /// <summary>The (level,brave,faith) of the unit latched this acted-period, or default when

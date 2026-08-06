@@ -102,6 +102,11 @@ the technical detail lives in the indented lines under it.
   no-credit arms; none builds the empty-culprit fall-through that continues into the shared
   credit machinery. One test that stages that shape closes it; the handler seam
   (KillTracker.Corpses.cs HandleOrphanAliveEdge returning true) now makes it easy to reach.
+  Same family, from the stage S3 verify: three diagnostic mirror fields survive a dropped
+  copy-back with the suite green (AnyTrackedWeaponThisBattle's console gate, _latchViaFallback's
+  provenance tagging, _actorTag's dev log string), all pre-existing field-level gaps that the
+  latch extraction turned into one-line plumbing dependencies; one Poll-driven test each closes
+  them.
 
 - [LW-151] 2026-07-29: The test fake's honest length-aware read gate exists but is opt-in;
   turning it on for the whole suite is the open work.
