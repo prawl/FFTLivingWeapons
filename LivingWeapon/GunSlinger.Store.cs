@@ -29,10 +29,13 @@ internal sealed class GunSlingerStore
         return snap;
     }
 
-    /// <summary>Atomic save: write tmp; back up prior primary to .bak; move tmp to primary;
-    /// then copy the new primary to .bak so the .bak is always the last-known-good copy.
-    /// Mirrors KillTally but adds the final bak-copy so a single-save cycle leaves .bak
-    /// valid for the fallback Load path. A failed save logs and leaves the prior file intact.</summary>
+    /// <summary>Atomic save: write tmp; move tmp over the primary; then write the SAME json to
+    /// .bak. Unlike KillTally/LegendStore's shared SidecarJson.SaveAtomic (whose .bak holds the
+    /// PREVIOUS generation via a prior-primary copy), there is no prior-copy step at all: this
+    /// .bak deliberately holds the CURRENT generation, so a single save cycle leaves it valid
+    /// for the fallback Load path. Deliberately NOT folded onto the shared chain (LW-153):
+    /// folding would change which generation the fallback sees. A failed save logs and leaves
+    /// the prior file intact.</summary>
     public void Save()
     {
         try

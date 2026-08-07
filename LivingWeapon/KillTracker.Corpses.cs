@@ -425,11 +425,7 @@ internal sealed partial class KillTracker
         if (_lethalUntracked[s] != UntrackedReason.None)
         {
             _deadCredited[s] = true; _pending[s] = false;
-            var vs0 = _victimAtEdge[s];
-            string fellPhrase0 = VictimClass.FellPhrase(vs0.Has, vs0.Job, vs0.Undead);
-            string fallenNoun0 = fellPhrase0.StartsWith("an ") ? fellPhrase0.Substring(3) : fellPhrase0.Substring(2);
-            ModLogger.Event(LogVerb.Kill, $"The fallen {fallenNoun0} at battle slot {s} was slain by a player carrying no Living Weapon; the kill is deliberately left uncredited (actor resolved via {ResolveSourcePhrase(_lethalUntracked[s])}).");
-            _recorder?.Invoke("kill", $"no-credit slot={s} reason=untracked-weapon via={_lethalUntracked[s]}");
+            LogUntrackedBury(s);
             return false;
         }
         var orphanCulprit = _lethalActor[s] ?? _lastPlayerWeapons;
@@ -444,6 +440,23 @@ internal sealed partial class KillTracker
         // pending/credit machinery below, which treats this as an ordinary seen-alive
         // corpse from here on.
         return true;
+    }
+
+    /// <summary>THE OWNER-FLAGGED untracked-bury ruling (LW-153: was pasted near-identically in
+    /// <see cref="HandleOrphanAliveEdge"/> and <see cref="ResolveCredit"/>, exactly where a
+    /// future wording or recorder-tag fix would land in one copy and silently drift the flight
+    /// tape from the console): name the victim from the slot's still-populated dead-edge
+    /// snapshot and HOW the untracked actor was resolved, on both the console line and the
+    /// flight no-credit record. The line's vocabulary is frozen surface (docs/LOGGING.md).
+    /// The surrounding verdict state writes stay at the two call sites: they deliberately
+    /// differ (the orphan path repaired _identityAlive to true just above and keeps it).</summary>
+    private void LogUntrackedBury(int s)
+    {
+        var vs = _victimAtEdge[s];
+        string fellPhrase = VictimClass.FellPhrase(vs.Has, vs.Job, vs.Undead);
+        string fallenNoun = fellPhrase.StartsWith("an ") ? fellPhrase.Substring(3) : fellPhrase.Substring(2);
+        ModLogger.Event(LogVerb.Kill, $"The fallen {fallenNoun} at battle slot {s} was slain by a player carrying no Living Weapon; the kill is deliberately left uncredited (actor resolved via {ResolveSourcePhrase(_lethalUntracked[s])}).");
+        _recorder?.Invoke("kill", $"no-credit slot={s} reason=untracked-weapon via={_lethalUntracked[s]}");
     }
 
     /// <summary>S4 extraction (mechanical, moved token-identical off ScanCorpses' shared tail):
@@ -463,15 +476,8 @@ internal sealed partial class KillTracker
         {
             // Killing edge was stamped during a roster player's turn with no tracked weapon.
             // Credit nobody: the summoner/dancer/item-user's AoE kill is intentionally uncredited.
-            // THE OWNER-FLAGGED LINE: the console ruling names the victim (from the slot's
-            // still-populated dead-edge snapshot) and HOW the untracked actor was resolved.
             _deadCredited[s] = true; _pending[s] = false; _identityAlive[slot.Id] = false;
-            var vs = _victimAtEdge[s];
-            string fellPhrase = VictimClass.FellPhrase(vs.Has, vs.Job, vs.Undead);
-            string fallenNoun = fellPhrase.StartsWith("an ") ? fellPhrase.Substring(3) : fellPhrase.Substring(2);
-            ModLogger.Event(LogVerb.Kill,
-                $"The fallen {fallenNoun} at battle slot {s} was slain by a player carrying no Living Weapon; the kill is deliberately left uncredited (actor resolved via {ResolveSourcePhrase(_lethalUntracked[s])}).");
-            _recorder?.Invoke("kill", $"no-credit slot={s} reason=untracked-weapon via={_lethalUntracked[s]}");
+            LogUntrackedBury(s);
             return;
         }
         var culprit = delayed ?? _lethalActor[s] ?? _lastPlayerWeapons;

@@ -73,18 +73,16 @@ internal sealed class KillTally
         return new KillTally(path, new Dictionary<int, int>(), "fresh");
     }
 
-    /// <summary>Persist atomically: write a .tmp, back the current file up to .bak, move the
-    /// .tmp over the primary. A failed save logs and leaves the previous file intact.</summary>
+    /// <summary>Persist atomically via the shared <see cref="SidecarJson.SaveAtomic"/> chain
+    /// (LW-153; was an inline copy of the same three lines). A failed save logs and leaves the
+    /// previous file intact.</summary>
     public void Save()
     {
         try
         {
             var outMap = new Dictionary<string, int>(Kills.Count);
             foreach (var kv in Kills) outMap[kv.Key.ToString()] = kv.Value;
-            var tmp = _path + ".tmp";
-            File.WriteAllText(tmp, JsonConvert.SerializeObject(outMap));
-            if (File.Exists(_path)) File.Copy(_path, _path + ".bak", true);
-            File.Move(tmp, _path, true);
+            SidecarJson.SaveAtomic(_path, JsonConvert.SerializeObject(outMap));
         }
         catch (Exception ex) { ModLogger.Error(LogVerb.Save, "Failed to save the kill tally to disk: " + ex.Message); }
     }

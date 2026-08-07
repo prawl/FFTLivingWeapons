@@ -148,10 +148,11 @@ internal sealed class LegendStore
         _dirty = true;
     }
 
-    /// <summary>Persist iff something changed since the last save -- mirrors KillTally.Save's
-    /// exact ordering (tmp -> prior-copy-to-.bak -> move). A failed save logs and leaves the
-    /// previous primary+.bak intact; dirty stays set so the next save edge retries. Never throws
-    /// (this runs on Engine's tick thread).</summary>
+    /// <summary>Persist iff something changed since the last save, via the shared
+    /// <see cref="SidecarJson.SaveAtomic"/> chain (LW-153; was an inline copy of KillTally's
+    /// exact ordering). A failed save logs and leaves the previous primary+.bak intact; dirty
+    /// stays set so the next save edge retries. Never throws (this runs on Engine's tick
+    /// thread).</summary>
     public void SaveIfDirty()
     {
         if (!_dirty) return;
@@ -159,10 +160,7 @@ internal sealed class LegendStore
         {
             var dto = new Dictionary<string, WeaponLegendDto>(_legends.Count);
             foreach (var kv in _legends) dto[kv.Key.ToString()] = WeaponLegendDto.From(kv.Value);
-            var tmp = _path + ".tmp";
-            File.WriteAllText(tmp, JsonConvert.SerializeObject(dto));
-            if (File.Exists(_path)) File.Copy(_path, _path + ".bak", true);
-            File.Move(tmp, _path, true);
+            SidecarJson.SaveAtomic(_path, JsonConvert.SerializeObject(dto));
             _dirty = false;
         }
         catch (Exception ex) { ModLogger.Error(LogVerb.Save, "Failed to save weapon legends to disk: " + ex.Message); }
