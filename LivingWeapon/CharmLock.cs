@@ -137,7 +137,7 @@ internal sealed partial class CharmLock : ISignature
         var fps = new List<(int mhp, int lvl, int br, int fa)>(charmed.Count);
         foreach (var c in charmed) fps.Add(c.fp);
         if (!Decide(_lock?.fp, fps, out var target, out bool dropPrevious)) return;
-        if (dropPrevious && _lock is { } prev && Valid(prev.addr, prev.fp))
+        if (dropPrevious && _lock is { } prev && Band.SameUnitAtExact(_mem, prev.addr, prev.fp))
             SetCharm(prev.addr, false);   // drop the charm from the previous monster
         long addr = 0;
         foreach (var c in charmed) if (c.fp.Equals(target)) { addr = c.addr; break; }
@@ -152,7 +152,7 @@ internal sealed partial class CharmLock : ISignature
     internal void Drive(int lockTurns)
     {
         if (_lock is not { } L) return;
-        if (!Valid(L.addr, L.fp)) { _lock = null; return; }   // copy moved/freed -> re-detect later
+        if (!Band.SameUnitAtExact(_mem, L.addr, L.fp)) { _lock = null; return; }   // copy moved/freed -> re-detect later
         int ct = _mem.U8(L.addr + CtOff);
         int counted = L.counted + (CtTurns.IsTurn(L.lastCt, ct) ? 1 : 0);
         if (_dbg++ % 20 == 0) ModLogger.Debug(LogVerb.Signature, $"charm lock holding: enemy ({L.fp.mhp} maximum HP), {counted}/{lockTurns} of its turns complete (charge time {ct})");
@@ -162,12 +162,8 @@ internal sealed partial class CharmLock : ISignature
         else { _lock = null; ModLogger.Event(LogVerb.Signature, $"Charm expired on the enemy ({L.fp.mhp} maximum HP) after {counted} of its turns; the lock is released"); }
     }
 
-    private bool Valid(long b, (int mhp, int lvl, int br, int fa) fp)
-    {
-        if (!_mem.Readable(b + Offsets.AMaxHp, 2)) return false;
-        return _mem.U16(b + Offsets.AMaxHp) == fp.mhp && _mem.U8(b + Offsets.ALevel) == fp.lvl
-            && _mem.U8(b + Offsets.ABrave) == fp.br && _mem.U8(b + Offsets.AFaith) == fp.fa;
-    }
+    // The same-unit write-safety verify lives in Band.SameUnitAtExact (LW-153, was a private
+    // token-identical copy here).
 
     // Charm is two pieces of state and the on-hit clear wipes BOTH: +0x49 = status/icon (probe-visible),
     // +0x54 = AI control/allegiance (probe-INvisible). Hold/clear both. Force ORs/ANDs only the 0x20 bit,

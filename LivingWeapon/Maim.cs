@@ -132,10 +132,9 @@ internal sealed partial class Maim : ISignature
         foreach (var fp in _state.Held)
         {
             long addr = _state.HeldAddr(fp);
-            if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) continue;   // copy moved/freed
-            // Verify it's still the same unit (fingerprint match).
-            if (_mem.U16(addr + Offsets.AMaxHp) != fp.mhp || _mem.U8(addr + Offsets.ALevel) != fp.lvl
-                || _mem.U8(addr + Offsets.ABrave) != fp.br || _mem.U8(addr + Offsets.AFaith) != fp.fa) continue;
+            // Copy moved/freed, or a stranger sits at the held address now (LW-153: the shared
+            // same-unit write-safety verify).
+            if (!Band.SameUnitAtExact(_mem, addr, fp)) continue;
             // Count the victim's own turns off its live charge-time at the stored address. Reading
             // from HeldAddr (not a slot scan) means a frozen twin at a different address cannot
             // thrash LastCt and produce spurious turn counts.

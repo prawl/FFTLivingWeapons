@@ -17,6 +17,9 @@ namespace LivingWeapon;
 /// Anything a caller does beyond this shared core (Ricochet's gx/gy &gt; 30 reject, Puppeteer's
 /// job byte, Larceny's holdable-buff snapshot, ...) stays caller-side: this helper is exactly
 /// the six-line block every copy shared, nothing more.
+///
+/// LW-153 adds the read side's write-safety twin below: <see cref="SameUnitAtExact"/>, the
+/// verify every held write runs before re-squeezing a stored band address.
 /// </summary>
 internal static partial class Band
 {
@@ -46,5 +49,26 @@ internal static partial class Band
         if (!TryReadUnit(mem, slot, out addr, out fp)) { hp = 0; return false; }
         hp = mem.Readable(addr + Offsets.AHp, 2) ? mem.U16(addr + Offsets.AHp) : 0;
         return true;
+    }
+
+    /// <summary>The same-unit WRITE-SAFETY predicate every held write verifies before
+    /// re-squeezing a stored band address (LW-153): is the unit at <paramref name="addr"/>
+    /// still EXACTLY the one whose fingerprint was captured at latch time? Guards the maxHp
+    /// read, then demands all four fields equal. Band slots are fixed addresses and units
+    /// migrate between them, so a stale address must read as a stranger and be skipped, never
+    /// written. Was token-identical in CharmLock.Valid and Puppeteer.Hold.Valid and inlined in
+    /// Maim.Drive and Plague.DriveOne.
+    ///
+    /// EXACT is in the name on purpose: two lookalikes are DIFFERENT rules and must NOT fold
+    /// in. Rapture.SameUnit is brave/faith-only with fail-safe reads (level-exempt by design),
+    /// and PlaguePolicy.SameVictim is LW-92 drift-tolerant (accepts a bounded mid-battle
+    /// level-up). The LW-92 lesson is why one home matters: if exact-match ever proves too
+    /// strict for another module, the call gets decided HERE once, not re-discovered per
+    /// copy.</summary>
+    internal static bool SameUnitAtExact(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp)
+    {
+        if (!mem.Readable(addr + Offsets.AMaxHp, 2)) return false;
+        return mem.U16(addr + Offsets.AMaxHp) == fp.mhp && mem.U8(addr + Offsets.ALevel) == fp.lvl
+            && mem.U8(addr + Offsets.ABrave) == fp.br && mem.U8(addr + Offsets.AFaith) == fp.fa;
     }
 }

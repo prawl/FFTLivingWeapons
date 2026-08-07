@@ -78,10 +78,10 @@ internal sealed partial class Plague
     public static void DriveOne(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp,
                                 PlagueState state, bool inLive = true)
     {
-        // Verify fingerprint at the stored address before writing.
-        if (!mem.Readable(addr + Offsets.AMaxHp, 2)) return;
-        if (mem.U16(addr + Offsets.AMaxHp) != fp.mhp || mem.U8(addr + Offsets.ALevel) != fp.lvl
-            || mem.U8(addr + Offsets.ABrave) != fp.br || mem.U8(addr + Offsets.AFaith) != fp.fa) return;
+        // Verify fingerprint at the stored address before writing (LW-153: the shared
+        // same-unit write-safety verify; the LW-92 drift ACCEPTANCE is the caller's
+        // VerifyOrReanchor lane, which re-anchors fp before this exact check runs).
+        if (!Band.SameUnitAtExact(mem, addr, fp)) return;
 
         if (!inLive) return;   // A3: no writes during debounce tail / post-battle
 

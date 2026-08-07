@@ -309,6 +309,27 @@ public class MaimTests
         Assert.Equal(0u, ReadReactionAt(mem, victim));  // reaction zeroed = suppressed
     }
 
+    [Fact]
+    public void Tick_stops_holding_when_a_stranger_occupies_the_held_address()
+    {
+        // LW-153 pin for the shared same-unit write-safety verify (Band.SameUnitAtExact): once
+        // the fingerprint at the held address stops matching, Drive must skip the hold-zero
+        // write, so a stranger's real reaction is left exactly as the engine set it. Born RED
+        // under an accept-any-readable sabotage of the shared predicate.
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (maim, mem, victim) = BuildMaimedVictim(fp);
+        maim.Tick(onField: true);                       // baseline HP 100
+        mem.U16s[victim + Offsets.AHp] = 80;            // the wielder's hit -> latch + suppress
+        maim.Tick(onField: true);
+        Assert.Equal(0u, ReadReactionAt(mem, victim));
+
+        // A stranger (different level) now sits at the held address, carrying its own reaction.
+        mem.U8s[victim + Offsets.ALevel] = 51;
+        for (int i = 0; i < 4; i++) mem.U8s[victim + Maim.ReactionBandOff + i] = (byte)((0x00080000u >> (8 * i)) & 0xFF);
+        maim.Tick(onField: true);
+        Assert.Equal(0x00080000u, ReadReactionAt(mem, victim));   // the stranger's reaction untouched
+    }
+
     // ---- LW-145 fix 3: a failed reaction read at latch time must refuse to latch ----
     // The old ReadReactionField returned 0 on a failed read; Maim.cs latched that 0 as the
     // victim's SAVED reaction, and ExpireAll/RestoreAll later wrote it back -- wiping a real

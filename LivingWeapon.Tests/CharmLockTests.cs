@@ -243,6 +243,26 @@ public class CharmLockTests
         Assert.Null(cl.LockedFingerprint);                        // lock released after 0 turns
     }
 
+    // ---- LW-153: the shared same-unit write-safety verify (Band.SameUnitAtExact) ----
+
+    [Fact]
+    public void Drive_releases_and_writes_nothing_when_a_stranger_occupies_the_held_address()
+    {
+        // Band slots are fixed addresses and units migrate between them: when the fingerprint
+        // at the held address stops matching, Drive must drop the lock and never re-stamp the
+        // charm bytes onto the stranger. Born RED under an accept-any-readable sabotage of the
+        // shared predicate (which only PlagueTests caught before this pin); the sibling
+        // consumers (Puppeteer, Maim) carry the same pin.
+        using var enemy = MappedEnemy((100, 20, 70, 50), charmed: false);
+        var cl = New();
+        cl.AdoptOrTransfer(new[] { (enemy.Addr, (100, 20, 70, 50)) });
+        enemy.Bytes[Offsets.ABrave] = 71;   // a stranger (different brave) now sits at the address
+        cl.Drive(3);
+        Assert.Null(cl.LockedFingerprint);                              // lock dropped, re-detect later
+        Assert.Equal(0, Charm(enemy.Bytes, CharmLock.CharmStatusOff));  // the stranger was never written
+        Assert.Equal(0, Charm(enemy.Bytes, CharmLock.CharmAllegOff));
+    }
+
     // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for the LENIENT occupied-slot rule) ----
     // ActiveLockTurns' roster sweep historically gated occupancy on nothing but
     // Readable(RNameId, 2) -- no level floor/ceiling at all (unlike Wielder.TryOccupiedSlot's

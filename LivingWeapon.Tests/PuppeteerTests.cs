@@ -356,6 +356,27 @@ public class PuppeteerTests
     }
 
     [Fact]
+    public void Tick_releases_and_never_rewrites_agency_when_a_stranger_occupies_the_held_seat()
+    {
+        // LW-153 pin for the shared same-unit write-safety verify (Band.SameUnitAtExact): when
+        // the unit at the held seat stops matching the stored fingerprint, the hold must
+        // release (reason=seat-invalid) instead of re-asserting the agency bit onto the
+        // stranger. Born RED under an accept-any-readable sabotage of the shared predicate.
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, _, victim) = BuildPuppet(fp);
+        pup.Tick(onField: true);
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+        Assert.True(AgencyBitSet(mem, victim));
+
+        mem.U8s[victim + Puppeteer.AgencyOff] = 0x50;   // the engine re-derived it back to AI...
+        mem.U8s[victim + Offsets.ABrave] = 71;          // ...and a STRANGER now sits at the seat
+        pup.Tick(onField: true);
+        Assert.False(AgencyBitSet(mem, victim));        // released; the stranger was never re-written
+        Assert.Null(pup.PuppetFingerprint);
+    }
+
+    [Fact]
     public void Tick_reverts_to_AI_after_the_puppet_completes_one_full_turn()
     {
         // Verify revert happens: dominate, then the PUPPET takes its own turn -> release.

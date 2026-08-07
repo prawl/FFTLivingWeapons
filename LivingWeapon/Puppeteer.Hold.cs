@@ -20,7 +20,7 @@ internal sealed partial class Puppeteer
         if (!_state.HasPuppet) return;
         long addr = _state.Addr;
         var fp = _state.Fingerprint!.Value;
-        if (!Valid(addr, fp)) { _recorder?.Invoke("pup", $"release reason=seat-invalid seat=0x{addr:X} gturn={_turns.GlobalTurns}"); _state.Release(); return; }   // copy moved/freed -> drop (cooldown stays)
+        if (!Band.SameUnitAtExact(_mem, addr, fp)) { _recorder?.Invoke("pup", $"release reason=seat-invalid seat=0x{addr:X} gturn={_turns.GlobalTurns}"); _state.Release(); return; }   // copy moved/freed -> drop (cooldown stays)
         SetAgency(_mem, addr, true);
     }
 
@@ -74,14 +74,10 @@ internal sealed partial class Puppeteer
         if (!_state.HasPuppet) return;
         long addr = _state.Addr;
         var fp = _state.Fingerprint!.Value;
-        if (Valid(addr, fp)) SetAgency(_mem, addr, false);
+        if (Band.SameUnitAtExact(_mem, addr, fp)) SetAgency(_mem, addr, false);
         _state.Release();
     }
 
-    private bool Valid(long b, (int mhp, int lvl, int br, int fa) fp)
-    {
-        if (!_mem.Readable(b + Offsets.AMaxHp, 2)) return false;
-        return _mem.U16(b + Offsets.AMaxHp) == fp.mhp && _mem.U8(b + Offsets.ALevel) == fp.lvl
-            && _mem.U8(b + Offsets.ABrave) == fp.br && _mem.U8(b + Offsets.AFaith) == fp.fa;
-    }
+    // The same-unit write-safety verify lives in Band.SameUnitAtExact (LW-153, was a private
+    // token-identical copy here).
 }
