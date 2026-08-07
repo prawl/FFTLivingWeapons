@@ -53,7 +53,7 @@ public class GrowthEngineCadenceTests
         mem.WritableAddrs.Add(addr);
         mem.U8s[addr] = 10;
         MemSeats.SeatBand(mem, 4, weapon: 77, lvl: 30, br: 65, fa: 60, gx: 3, gy: 3, hp: 300, maxHp: 300);
-        mem.ReadableAddrs.Add(Band.Entry(4) + Offsets.AMaxHp);
+        mem.MarkReadable(Band.Entry(4) + Offsets.AMaxHp, 2);   // production reads n=2 (GrowthEngine.Signatures.cs ReadHpScan)
 
         engine.HoldUltima(StructBase, m, tier: 0, level: 30, brave: 65, faith: 60, rosterNameId: NameId);
         Assert.Equal(1, ledger.RecordWriteCalls);   // capture tick: trivially owned (nothing wrote in between), records once

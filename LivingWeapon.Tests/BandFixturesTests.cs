@@ -27,6 +27,13 @@ namespace LivingWeapon.Tests;
 /// against a deliberately-mutated BandFixtures.SeedBandEntryCore that marked one extra address
 /// (Offsets.AGx added to ReadableAddrs, an address the old body never touched), then GREEN again
 /// once the mutation was reverted.
+///
+/// LW-151 (strict default flip): the reference bodies below moved in lockstep with the fixture
+/// when FakeSparseMemory.StrictRangeChecks became the default. Each 2-byte field the shipped
+/// code reads with n=2 (AMaxHp/AHp via Band.Sanity.cs, ANameId via VictimReader.cs, the static
+/// array's AMaxHp via GrowthEngine.Signatures.cs) now marks BOTH its bytes, because that is
+/// what production's whole-range gate demands. The pin's job is unchanged: it freezes the exact
+/// marked set, so any future widening (or narrowing) of a fixture still fails loud here.
 /// </summary>
 public class BandFixturesTests
 {
@@ -48,13 +55,13 @@ public class BandFixturesTests
 
     // ---- Family 1: SeedVictimFields (KillTrackerDeedTests / KillTrackerTests / VictimProbeTests) ----
 
-    /// <summary>Verbatim copy of the pre-dedup SeedVictimFields body (all three copies were
-    /// byte-identical).</summary>
+    /// <summary>The pre-dedup SeedVictimFields body (all three copies were byte-identical),
+    /// carrying the LW-151 honest-range widen (see the class doc).</summary>
     private static void OldSeedVictimFields(FakeSparseMemory m, int slot, ushort nameId, byte job, bool undead)
     {
         long addr = Band.Entry(slot);
         m.U16s[addr + Offsets.ANameId] = nameId;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.MarkReadable(addr + Offsets.ANameId, 2);
         m.U8s[addr + Puppeteer.JobOff] = job;
         m.ReadableAddrs.Add(addr + Puppeteer.JobOff);
         m.U8s[addr + Offsets.ADeadStatus] = undead ? Offsets.AUndeadBit : (byte)0;
@@ -76,8 +83,9 @@ public class BandFixturesTests
 
     // ---- Family 2: SeedBandEntry's shared core (Benediction/Choir/Sanctuary) ----
 
-    /// <summary>Verbatim copy of the 7-line body all three pre-dedup SeedBandEntry copies shared
-    /// identically (statement order normalized to Choir/Sanctuary's, verified semantically
+    /// <summary>The 7-line body all three pre-dedup SeedBandEntry copies shared identically,
+    /// carrying the LW-151 honest-range widen (see the class doc)
+    /// (statement order normalized to Choir/Sanctuary's, verified semantically
     /// equivalent to Benediction's own order since every statement targets a distinct address).
     /// Deliberately excludes every tail (writable HP, support bit, dead bit, crystal hearts) --
     /// those are NOT part of the shared fixture and stay pinned by each file's own existing
@@ -89,9 +97,9 @@ public class BandFixturesTests
         mem.U8s[addr + Offsets.ABrave] = (byte)br;
         mem.U8s[addr + Offsets.AFaith] = (byte)fa;
         mem.U16s[addr + Offsets.AMaxHp] = (ushort)maxHp;
-        mem.ReadableAddrs.Add(addr + Offsets.AMaxHp);
+        mem.MarkReadable(addr + Offsets.AMaxHp, 2);
         mem.U16s[addr + Offsets.AHp] = (ushort)hp;
-        mem.ReadableAddrs.Add(addr + Offsets.AHp);
+        mem.MarkReadable(addr + Offsets.AHp, 2);
         mem.U8s[addr + Offsets.AGx] = (byte)gx;
         mem.U8s[addr + Offsets.AGy] = (byte)gy;
     }
@@ -112,12 +120,13 @@ public class BandFixturesTests
 
     // ---- Family 3: SeedAllyFp (Benediction/Choir/Sanctuary) ----
 
-    /// <summary>Verbatim copy of the pre-dedup SeedAllyFp body (all three copies were
-    /// byte-identical; each was SeedAllyFpAt with idx fixed at 1).</summary>
+    /// <summary>The pre-dedup SeedAllyFp body (all three copies were byte-identical; each was
+    /// SeedAllyFpAt with idx fixed at 1), carrying the LW-151 honest-range widen (see the
+    /// class doc).</summary>
     private static void OldSeedAllyFp(FakeSparseMemory mem, int mhp, int lvl, int br, int fa)
     {
         long slot = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + 1) * Offsets.ArrayStride;
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
+        mem.MarkReadable(slot + Offsets.AMaxHp, 2);
         mem.U16s[slot + Offsets.AMaxHp] = (ushort)mhp;
         mem.U8s[slot + Offsets.ALevel] = (byte)lvl;
         mem.U8s[slot + Offsets.ABrave] = (byte)br;

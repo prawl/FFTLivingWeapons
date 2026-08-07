@@ -26,7 +26,7 @@ public class BattleCensusTests
         MemSeats.SeatBand(m, slot, weapon: 0, lvl: lvl, br: br, fa: fa, gx: gx, gy: gy, hp: hp, maxHp: maxHp);
         long addr = Band.Entry(slot);
         m.U16s[addr + Offsets.ANameId] = nameId;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.MarkReadable(addr + Offsets.ANameId, 2);   // production reads n=2 (BattleCensus.cs:93)
         m.U8s[addr + Puppeteer.JobOff] = job;
         m.ReadableAddrs.Add(addr + Puppeteer.JobOff);
     }
@@ -260,7 +260,8 @@ public class BattleCensusTests
         // so this slot must never reach the log/payload despite its nameId being readable.
         long addr = Band.Entry(3);
         m.U16s[addr + Offsets.ANameId] = 777;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.MarkReadable(addr + Offsets.ANameId, 2);   // production reads n=2 (BattleCensus.cs:93) -- keeps
+                                                     // "nameId readable" true so the skip stays IsValid's doing
 
         census.Tick(true);
 

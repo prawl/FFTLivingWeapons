@@ -257,19 +257,19 @@ public class MaimTests
     private static void SeatVictim(FakeSparseMemory mem, long addr,
         (int mhp, int lvl, int br, int fa) fp, int hp, uint reaction, int ct, bool reactionReadable = true)
     {
-        mem.ReadableAddrs.Add(addr + Offsets.AMaxHp);
+        mem.MarkReadable(addr + Offsets.AMaxHp, 2);   // production reads n=2 (Band.Sanity.cs, Maim.cs Drive)
         mem.U16s[addr + Offsets.AMaxHp] = (ushort)fp.mhp;
         mem.U8s[addr + Offsets.ALevel] = (byte)fp.lvl;
         mem.U8s[addr + Offsets.ABrave] = (byte)fp.br;
         mem.U8s[addr + Offsets.AFaith] = (byte)fp.fa;
-        mem.ReadableAddrs.Add(addr + Offsets.AHp);
+        mem.MarkReadable(addr + Offsets.AHp, 2);      // production reads n=2 (Band.Sanity.cs)
         mem.U16s[addr + Offsets.AHp] = (ushort)hp;
         mem.U8s[addr + Offsets.AGx] = 5;
         mem.U8s[addr + Offsets.AGy] = 5;
         // LW-145 fix 3: reactionReadable=false stages a DETECTABLY-transient failed read (writable
         // stays true so a genuine hold/restore would still apply if a latch were ever recorded).
-        if (reactionReadable) mem.ReadableAddrs.Add(addr + Maim.ReactionBandOff);   // reaction field (4 bytes @ +0x78)
-        mem.WritableAddrs.Add(addr + Maim.ReactionBandOff);
+        if (reactionReadable) mem.MarkReadable(addr + Maim.ReactionBandOff, 4);   // production reads n=4 (Maim.Policy.cs TryReadReactionField); reaction field @ +0x78
+        mem.MarkWritable(addr + Maim.ReactionBandOff, 4);   // production writes n=4 (Maim.Policy.cs HoldZero/Restore)
         for (int i = 0; i < 4; i++) mem.U8s[addr + Maim.ReactionBandOff + i] = (byte)((reaction >> (8 * i)) & 0xFF);
         mem.U8s[addr + LiveCtOff] = (byte)ct;                     // live charge-time @ +0x25
     }
@@ -277,7 +277,7 @@ public class MaimTests
     private static void SeatEnemyFp(FakeSparseMemory mem, (int mhp, int lvl, int br, int fa) fp)
     {
         long slot = Offsets.ArrayReadBase;                        // static-array slot 0 (enemy side)
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
+        mem.MarkReadable(slot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs Fingerprints)
         mem.U16s[slot + Offsets.AMaxHp] = (ushort)fp.mhp;
         mem.U8s[slot + Offsets.ALevel] = (byte)fp.lvl;
         mem.U8s[slot + Offsets.ABrave] = (byte)fp.br;

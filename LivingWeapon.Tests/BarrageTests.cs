@@ -526,7 +526,8 @@ public class BarrageTests
         m.U8s[abBase] = Barrage.SlotByte(358);
         m.U8s[flagAddr] = 0x80;      // slotIdx 0's extend bit set -- matches "ours" for id 358
         m.ReadableAddrs.Add(abBase);
-        m.ReadableAddrs.Add(flagAddr);
+        m.MarkReadable(flagAddr, 2);   // the READABLE pre-check (n=2, Barrage.Policy.cs) must pass,
+                                       // so the refusal below comes from the WRITABLE guard under test
         m.WritableAddrs.Add(abBase);   // the ability byte IS writable...
         // ...but flagAddr is NOT in WritableAddrs -- the guard must refuse before touching anything.
 

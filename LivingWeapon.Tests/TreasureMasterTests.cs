@@ -1706,7 +1706,7 @@ public class TreasureMasterTests : IDisposable
         long rb   = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
         long addr = rb + Offsets.RAccessory;
         mem.U16s[addr]       = itemId;
-        mem.ReadableAddrs.Add(addr);
+        mem.MarkReadable(addr, 2);   // production reads n=2 (RingGate.cs:32/64)
     }
 
     /// <summary>Seed a band entry (Band.Entry(bandSlot)) as a valid deployed unit with the given
@@ -1740,14 +1740,14 @@ public class TreasureMasterTests : IDisposable
     {
         long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
         mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId;
-        mem.ReadableAddrs.Add(rb + Offsets.RAccessory);
+        mem.MarkReadable(rb + Offsets.RAccessory, 2);   // production reads n=2 (RingGate.cs:32)
         mem.U8s[rb + Offsets.RLevel] = level;  mem.ReadableAddrs.Add(rb + Offsets.RLevel);
         mem.U8s[rb + Offsets.RBrave] = brave;  mem.ReadableAddrs.Add(rb + Offsets.RBrave);
         mem.U8s[rb + Offsets.RFaith] = faith;  mem.ReadableAddrs.Add(rb + Offsets.RFaith);
         if (nameId != 0)
         {
             mem.U16s[rb + Offsets.RNameId] = (ushort)nameId;
-            mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+            mem.MarkReadable(rb + Offsets.RNameId, 2);   // production reads n=2 (RingGate.cs:50)
         }
         if (deployed) SeedBandUnit(mem, bandSlot, level, brave, faith, nameId: nameId);
     }
@@ -1788,7 +1788,7 @@ public class TreasureMasterTests : IDisposable
     {
         var mem = new FakeSparseMemory();
         long rb = Offsets.RosterBase;   // slot 0
-        mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId; mem.ReadableAddrs.Add(rb + Offsets.RAccessory);
+        mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId; mem.MarkReadable(rb + Offsets.RAccessory, 2);   // production reads n=2 (RingGate.cs:32)
         mem.U8s[rb + Offsets.RLevel] = 50; mem.ReadableAddrs.Add(rb + Offsets.RLevel);
         mem.U8s[rb + Offsets.RBrave] = 70; mem.ReadableAddrs.Add(rb + Offsets.RBrave);
         mem.U8s[rb + Offsets.RFaith] = 70; mem.ReadableAddrs.Add(rb + Offsets.RFaith);
@@ -1969,7 +1969,7 @@ public class TreasureMasterTests : IDisposable
 
         // Ring is in the roster from the start, but the unit's band entry is NOT there yet.
         long rb = Offsets.RosterBase;
-        mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId; mem.ReadableAddrs.Add(rb + Offsets.RAccessory);
+        mem.U16s[rb + Offsets.RAccessory] = (ushort)Offsets.ScholarRingItemId; mem.MarkReadable(rb + Offsets.RAccessory, 2);   // production reads n=2 (RingGate.cs:32)
         mem.U8s[rb + Offsets.RLevel] = 50; mem.ReadableAddrs.Add(rb + Offsets.RLevel);
         mem.U8s[rb + Offsets.RBrave] = 70; mem.ReadableAddrs.Add(rb + Offsets.RBrave);
         mem.U8s[rb + Offsets.RFaith] = 70; mem.ReadableAddrs.Add(rb + Offsets.RFaith);

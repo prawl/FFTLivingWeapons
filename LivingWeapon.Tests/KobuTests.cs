@@ -124,12 +124,12 @@ public class KobuTests
         MemSeats.SeatBand(mem, enemySlot, weapon: 0, lvl: 40, br: enemyOrigBrave, fa: 55,
                           gx: 4, gy: 5, hp: 200, maxHp: 400);
         mem.U8s[enemy + Offsets.ABraveCurrent] = (byte)enemyCurrentBrave;
-        mem.ReadableAddrs.Add(enemy + Offsets.AMaxHp);
-        mem.ReadableAddrs.Add(enemy + Offsets.AHp);
+        mem.MarkReadable(enemy + Offsets.AMaxHp, 2);   // production reads n=2 (Band.Sanity.cs)
+        mem.MarkReadable(enemy + Offsets.AHp, 2);      // production reads n=2 (Band.Sanity.cs)
 
         // Static-array enemy fingerprint at slot 0 (enemy-oracle, mirrors MaimTests.SeatEnemyFp)
         long arrSlot = Offsets.ArrayReadBase;
-        mem.ReadableAddrs.Add(arrSlot + Offsets.AMaxHp);
+        mem.MarkReadable(arrSlot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs, the static-array Fingerprints sweep)
         mem.U16s[arrSlot + Offsets.AMaxHp] = 400;
         mem.U8s[arrSlot + Offsets.ALevel]  = 40;
         mem.U8s[arrSlot + Offsets.ABrave]  = (byte)enemyOrigBrave;
@@ -151,8 +151,8 @@ public class KobuTests
                           gx: 2, gy: 2, hp: 200, maxHp: 300);
         // ABraveCurrent at band +0x0F (= AWeapon 0x04 offset; MemSeats writes ABrave at +0x0E only)
         mem.U8s[wielder + Offsets.ABraveCurrent] = (byte)wielderBrave;
-        mem.ReadableAddrs.Add(wielder + Offsets.AMaxHp);
-        mem.ReadableAddrs.Add(wielder + Offsets.AHp);
+        mem.MarkReadable(wielder + Offsets.AMaxHp, 2);   // production reads n=2 (Band.Sanity.cs)
+        mem.MarkReadable(wielder + Offsets.AHp, 2);      // production reads n=2 (Band.Sanity.cs)
         mem.WritableAddrs.Add(wielder + Offsets.ABraveCurrent);  // allow the one-shot raise write
         // Also mark the status byte writable so the +0x47 guard test is NON-VACUOUS: if Kobu ever
         // wrote band +0x47 (AReraise) by mistake, the fake would let it land and the guard would fire.

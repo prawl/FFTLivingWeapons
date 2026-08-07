@@ -39,7 +39,7 @@ public class ProvokeTests
     {
         long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
         m.U16s[rb + Offsets.RNameId] = 1;
-        m.ReadableAddrs.Add(rb + Offsets.RNameId);
+        m.MarkReadable(rb + Offsets.RNameId, 2);   // production's wielder scan reads n=2 (Provoke.cs)
         m.U8s[rb + Offsets.RLevel] = 30;
         m.U16s[rb + Offsets.RRHand] = (ushort)rhand;
         m.U16s[rb + Offsets.ROffHand] = (ushort)offHand;
@@ -211,8 +211,9 @@ public class ProvokeTests
         long abBase = Barrage.AbilityBase + (long)KnightRecord * Barrage.RecSize;
         var buf = new byte[Barrage.RecSize];
         m.TerrainBlocks[flagAddr] = buf;
-        for (int i = 0; i < Barrage.FlagPrefixSize; i++) { m.ReadableAddrs.Add(flagAddr + i); m.WritableAddrs.Add(flagAddr + i); }
-        for (int i = 0; i < Barrage.AbilityCount; i++) { m.ReadableAddrs.Add(abBase + i); m.WritableAddrs.Add(abBase + i); }
+        m.MarkReadable(flagAddr, Barrage.RecSize);   // production gates the whole record read at n=RecSize (Provoke.cs)
+        for (int i = 0; i < Barrage.FlagPrefixSize; i++) m.WritableAddrs.Add(flagAddr + i);
+        for (int i = 0; i < Barrage.AbilityCount; i++) m.WritableAddrs.Add(abBase + i);
 
         // Barrage and Shadow Blade already occupy slots 1 and 2 (0-indexed 0 and 1) -- seeded
         // directly, not via ticking those modules, since this test is about Provoke's own release
@@ -267,8 +268,9 @@ public class ProvokeTests
         long abBase = Barrage.AbilityBase + (long)KnightRecord * Barrage.RecSize;
         var buf = new byte[Barrage.RecSize];
         m.TerrainBlocks[flagAddr] = buf;
-        for (int i = 0; i < Barrage.FlagPrefixSize; i++) { m.ReadableAddrs.Add(flagAddr + i); m.WritableAddrs.Add(flagAddr + i); }
-        for (int i = 0; i < Barrage.AbilityCount; i++) { m.ReadableAddrs.Add(abBase + i); m.WritableAddrs.Add(abBase + i); }
+        m.MarkReadable(flagAddr, Barrage.RecSize);   // production gates the whole record read at n=RecSize (Provoke.cs)
+        for (int i = 0; i < Barrage.FlagPrefixSize; i++) m.WritableAddrs.Add(flagAddr + i);
+        for (int i = 0; i < Barrage.AbilityCount; i++) m.WritableAddrs.Add(abBase + i);
 
         SeatWielder(m, rosterSlot: 0, rhand: DefenderId, job: KnightJob);
         StageTable(m);

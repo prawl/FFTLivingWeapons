@@ -517,7 +517,7 @@ public class PlagueTests
         mem.U8s[Offsets.Acted] = 1;
 
         long rb = Offsets.RosterBase;
-        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.MarkReadable(rb + Offsets.RNameId, 2);   // production reads n=2 (Wielder.Occupancy.cs)
         mem.U16s[rb + Offsets.RNameId] = 1;
         mem.U16s[rb + Offsets.RRHand] = (ushort)VenomboltId;
         mem.U16s[rb + Offsets.ROffHand] = 0xFFFF;
@@ -555,7 +555,7 @@ public class PlagueTests
         const int VenomboltId = 80;   // Plague's own const is private; mirrored here for the fixture
         var mem = new FakeSparseMemory();
         long rb = Offsets.RosterBase;   // slot 0: ghost row -- nameId readable, level UNSET (0)
-        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.MarkReadable(rb + Offsets.RNameId, 2);   // production reads n=2 (Wielder.Occupancy.cs)
         mem.U16s[rb + Offsets.RRHand] = (ushort)VenomboltId;
         // RLevel intentionally left at its default 0 -- a STRICT-rule walk would skip this row.
 
@@ -571,7 +571,7 @@ public class PlagueTests
         const int VenomboltId = 80;   // Plague's own const is private; mirrored here for the fixture
         var mem = new FakeSparseMemory();
         long rb = Offsets.RosterBase;
-        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.MarkReadable(rb + Offsets.RNameId, 2);   // production reads n=2 (Wielder.Occupancy.cs)
         mem.U8s[rb + Offsets.RLevel] = 20;
         mem.U16s[rb + Offsets.RLHand] = (ushort)VenomboltId;   // LEFT hand only
 

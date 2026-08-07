@@ -711,7 +711,10 @@ public class ChoirTests
         // gate were absent this row alone would land (65,60) in protectedBF and wrongly exempt the
         // bearer from Choir's winners.
         long rb1 = Offsets.RosterBase + 1L * Offsets.RosterStride;
-        mem.ReadableAddrs.Add(rb1 + Offsets.RNameId);
+        // Full 2-byte mark (the lenient rule's gate width, Wielder.Occupancy.cs): a base-only mark
+        // would let a lenient-swap regression reject this ghost row for the WRONG reason (unreadable
+        // nameId) and keep the pin green; honestly readable, only the strict level rule rejects it.
+        mem.MarkReadable(rb1 + Offsets.RNameId, 2);
         SeedRosterSlot(mem, 1, lvl: 0, br: 65, fa: 60, mainHandId: 0, rsupport: NonChargeId);
 
         choir.Tick(onField: true);

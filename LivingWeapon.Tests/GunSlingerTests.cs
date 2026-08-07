@@ -291,8 +291,8 @@ public class GunSlingerTests
         mem.U16s[b + Offsets.ROffHand]  = off;
         mem.U8s[b + Offsets.RSupport]   = supp;
         // Mark off-hand and support writable
-        mem.WritableAddrs.Add(b + Offsets.ROffHand);
-        mem.WritableAddrs.Add(b + Offsets.RSupport);
+        mem.MarkWritable(b + Offsets.ROffHand, 2);   // production gates the u16 twin write with n=2 (GunSlinger.cs WriteOffHand)
+        mem.WritableAddrs.Add(b + Offsets.RSupport); // production gates the support write with n=1 (GunSlinger.cs WriteSupport)
     }
 
     // Integration keystone: main=Blaster/off=EMPTY/supp=EMPTY -> off==76, supp==221

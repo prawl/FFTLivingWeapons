@@ -21,7 +21,7 @@ public class VictimReaderTests
         var m = new FakeSparseMemory();
         long addr = Addr;
         m.U16s[addr + Offsets.ANameId] = 918;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.MarkReadable(addr + Offsets.ANameId, 2);   // production reads n=2 (VictimReader.cs:28)
         m.U8s[addr + Puppeteer.JobOff] = 77;
         m.ReadableAddrs.Add(addr + Puppeteer.JobOff);
         m.U8s[addr + Offsets.ADeadStatus] = Offsets.AUndeadBit;
@@ -58,7 +58,7 @@ public class VictimReaderTests
         var m = new FakeSparseMemory();
         long addr = Addr;
         m.U16s[addr + Offsets.ANameId] = 918;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.MarkReadable(addr + Offsets.ANameId, 2);   // production reads n=2 (VictimReader.cs:28)
         // job deliberately NOT marked readable.
 
         var snap = VictimReader.Read(m, addr);
@@ -76,7 +76,7 @@ public class VictimReaderTests
         var m = new FakeSparseMemory();
         long addr = Addr;
         m.U16s[addr + Offsets.ANameId] = 42;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.MarkReadable(addr + Offsets.ANameId, 2);   // production reads n=2 (VictimReader.cs:28)
         m.U8s[addr + Puppeteer.JobOff] = 0;
         m.ReadableAddrs.Add(addr + Puppeteer.JobOff);
 
@@ -92,7 +92,7 @@ public class VictimReaderTests
         var m = new FakeSparseMemory();
         long addr = Addr;
         m.U16s[addr + Offsets.ANameId] = 918;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.MarkReadable(addr + Offsets.ANameId, 2);   // production reads n=2 (VictimReader.cs:28)
         // undead status byte deliberately NOT marked readable.
 
         var snap = VictimReader.Read(m, addr);

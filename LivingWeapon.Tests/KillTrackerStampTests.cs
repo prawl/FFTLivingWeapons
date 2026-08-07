@@ -415,7 +415,7 @@ public class KillTrackerStampTests
         // naming a DIFFERENT player must not leak past the team gate and produce a credit.
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
-        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);
+        m.MarkReadable(Offsets.TurnQueue + Offsets.TqTeam, 2);   // production reads n=2 (KillTracker.Corpses.cs)
         SetRoster(m, slot: 0, level: 90, brave: 80, faith: 70, weapon: 60);                // P1
         SetUnit(m, P1, hp: 352, maxHp: 352, level: 90, brave: 80, faith: 70);
         SetRoster(m, slot: 3, level: 50, brave: 60, faith: 55, weapon: 37, nameId: 903);   // P2

@@ -59,14 +59,12 @@ public class FakeSparseMemoryTests
         Assert.False(m.Writable(0x5001, 1));
     }
 
-    // ---- LW-147: Readable/Writable can become length-aware, OPT-IN via StrictRangeChecks.
-    // Production Mem.Probe (Mem.cs) gates the WHOLE [addr, addr+len) range against one committed
-    // region; by default this fake ignores len and passes on base-address membership alone (a
-    // divergence from production, documented on the class and on StrictRangeChecks -- reconciling
-    // every one of the ~90+ pre-existing call sites that only mark a struct field's base offset
-    // was past the ticket's ~50-call-site cap, so the gap stays open by default). These pinning
-    // tests prove the opt-in mechanism is real and non-vacuous; they are the only suite that runs
-    // strict today. ----
+    // ---- LW-147/LW-151: the length-aware Readable/Writable gate. Production Mem.Probe (Mem.cs)
+    // gates the WHOLE [addr, addr+len) range against one committed region; LW-147 built that
+    // honesty behind an opt-in StrictRangeChecks flag, and LW-151 made it the DEFAULT for the
+    // whole suite (every marking site now declares the real span the shipped code reads). These
+    // pins hold the mechanism in both directions: strict semantics, the strict DEFAULT (the pin
+    // that goes red if the one-line default flip is ever reverted), and the legacy opt-out. ----
 
     [Fact]
     public void Strict_Readable_refuses_a_multibyte_range_that_is_only_half_marked()
@@ -112,15 +110,27 @@ public class FakeSparseMemoryTests
     }
 
     [Fact]
-    public void NonStrict_default_ignores_length_a_half_marked_range_still_passes_documented_divergence()
+    public void Strict_is_the_DEFAULT_a_half_marked_multibyte_range_refuses_without_opting_in()
     {
-        // Pins the DEFAULT (non-strict) divergence from production Mem.Probe: with
-        // StrictRangeChecks left false, marking only the base byte of a 2-byte field still
-        // passes a 2-byte Readable check, unlike production, which would refuse an
-        // only-half-mapped range. See the class doc's LW-147 section for why this stays open.
+        // THE load-bearing LW-151 pin: a fresh fake, StrictRangeChecks untouched, must already
+        // enforce the honest whole-range gate production Mem.Probe enforces. Reverting the
+        // one-line default flip on FakeSparseMemory turns exactly this test red.
         var m = new FakeSparseMemory();
-        m.ReadableAddrs.Add(0x11000);
-        Assert.True(m.Readable(0x11000, 2));   // 0x11001 was never marked -- still passes
+        m.ReadableAddrs.Add(0x11000);          // only the first byte of a 2-byte field marked
+        Assert.False(m.Readable(0x11000, 2));  // 0x11001 was never marked -- refuses, like production
+        m.WritableAddrs.Add(0x12000);
+        Assert.False(m.Writable(0x12000, 2));  // Writable's default is strict too
+    }
+
+    [Fact]
+    public void Legacy_opt_out_restores_base_address_only_semantics()
+    {
+        // The other direction of the pin: the pre-LW-151 legacy mode is still reachable, but
+        // only by explicit opt-out. Nothing in this suite runs legacy except this pin; a new
+        // test should never reach for it (see the class doc).
+        var m = new FakeSparseMemory { StrictRangeChecks = false };
+        m.ReadableAddrs.Add(0x13000);
+        Assert.True(m.Readable(0x13000, 2));   // n ignored, base membership alone passes
     }
 
     [Fact]

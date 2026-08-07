@@ -103,7 +103,7 @@ public class LifeSapTests
         // garbage HP (a mid-write read of the low byte alone). One W16 call closes the window.
         var mem = new FakeSparseMemory();
         long entryAddr = 0x5000;
-        mem.WritableAddrs.Add(entryAddr + Offsets.AHp);
+        mem.MarkWritable(entryAddr + Offsets.AHp, 2);   // production gates Writable n=2 (BandHeal.cs, via the LifeSap forward)
 
         LifeSap.WriteHp(mem, entryAddr, 260);   // 0x104: crosses the 255/256 byte boundary
 

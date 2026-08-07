@@ -21,6 +21,11 @@ public class GrowthEngineTests
     // RPM/WPM reads work on them for real -- the guard path is exercised, not faked.
     private static readonly LiveMemory Live = new();
 
+    // The combat-struct span MatchesEntry gates with Readable(s, StructSpan)
+    // (GrowthEngine.Locate.cs). Well short of the +0x1FC frame nameId, so marking it never
+    // covers a deliberately-unreadable nameAddr.
+    private const int StructSpan = GrowthEngine.StructSpan;
+
     /// <summary>Allocate a pinned buffer that looks like a valid combat struct.
     /// level, brave, faith, weapon at the C* offsets; PA/MA in a sane range; gx/gy at
     /// AGx/AGy for the twin tie-break. Caller disposes the PinnedBuf.</summary>
@@ -253,7 +258,7 @@ public class GrowthEngineTests
         // it): mark the struct span readable but leave s+0x1FC out of ReadableAddrs entirely.
         var mem = new FakeSparseMemory();
         long s = 0x5000_0000;
-        mem.ReadableAddrs.Add(s);
+        mem.MarkReadable(s, StructSpan);   // production gates Readable(s, StructSpan) (GrowthEngine.Locate.cs MatchesEntry)
         mem.U16s[s + Offsets.CWeapon] = 10;
         mem.U8s[s + Offsets.CLevel] = 30;
         mem.U8s[s + Offsets.CBrave] = 65;
@@ -334,7 +339,7 @@ public class GrowthEngineTests
         // pinning both halves of the "unreadable" contract at once.
         var mem = new FakeSparseMemory();
         long s = 0x6000_0000;
-        mem.ReadableAddrs.Add(s);
+        mem.MarkReadable(s, StructSpan);   // production gates Readable(s, StructSpan) (GrowthEngine.Locate.cs MatchesEntry)
         mem.U16s[s + Offsets.CWeapon] = 10;
         mem.U8s[s + Offsets.CLevel] = 30;
         mem.U8s[s + Offsets.CBrave] = 65;
@@ -416,10 +421,10 @@ public class GrowthEngineTests
         // neither "real"). Only tier 1's EXACT match stops at the wielder's own entry first.
         var mem = new FakeSparseMemory();
         MemSeats.SeatBand(mem, bandIdx: 0, weapon: 0, lvl: 30, br: 65, fa: 58, gx: 0, gy: 0, hp: 222, maxHp: 200);
-        mem.ReadableAddrs.Add(Band.Entry(0) + Offsets.AMaxHp);
+        mem.MarkReadable(Band.Entry(0) + Offsets.AMaxHp, 2);   // production reads n=2 (GrowthEngine.Signatures.cs ReadHpScan)
         MemSeats.SeatFrameNameId(mem, 0, 298);   // the wielder's own nameId
         MemSeats.SeatBand(mem, bandIdx: 1, weapon: 0, lvl: 30, br: 65, fa: 58, gx: 0, gy: 0, hp: 111, maxHp: 200);
-        mem.ReadableAddrs.Add(Band.Entry(1) + Offsets.AMaxHp);
+        mem.MarkReadable(Band.Entry(1) + Offsets.AMaxHp, 2);
         MemSeats.SeatFrameNameId(mem, 1, 0);   // anonymous zero-nameId same-fp twin
 
         var (hp, maxHp) = GrowthEngine.ReadHp(mem, 30, 65, 58, rosterNameId: 298);
@@ -432,7 +437,7 @@ public class GrowthEngineTests
     {
         var mem = new FakeSparseMemory();
         MemSeats.SeatBand(mem, bandIdx: 0, weapon: 0, lvl: 30, br: 65, fa: 58, gx: 0, gy: 0, hp: 111, maxHp: 200);
-        mem.ReadableAddrs.Add(Band.Entry(0) + Offsets.AMaxHp);
+        mem.MarkReadable(Band.Entry(0) + Offsets.AMaxHp, 2);   // production reads n=2 (GrowthEngine.Signatures.cs ReadHpScan)
         MemSeats.SeatFrameNameId(mem, 0, 918);   // only a foreign collider present -- no wielder entry at all
 
         var (hp, maxHp) = GrowthEngine.ReadHp(mem, 30, 65, 58, rosterNameId: 298);

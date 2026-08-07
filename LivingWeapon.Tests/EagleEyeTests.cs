@@ -79,7 +79,7 @@ public class EagleEyeTests
         var kills = new Dictionary<int, int> { [EclipseboltId] = Tuning.ProdThresholds[2] };   // tier 3
 
         long rb = Offsets.RosterBase;   // slot 0: ghost row -- nameId readable, level UNSET (0)
-        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.MarkReadable(rb + Offsets.RNameId, 2);   // production reads n=2 (Wielder.Occupancy.cs)
         mem.U16s[rb + Offsets.RRHand] = (ushort)EclipseboltId;
         // RLevel intentionally left at its default 0 -- a STRICT-rule walk would skip this row.
 

@@ -28,7 +28,7 @@ internal sealed partial class GrowthEngine
     // definition instead of duplicating the sane-range bounds; values/uses unchanged.
     internal const int StatMin = 1, StatSaneHi = 99;
     private const int StatMax = 255, SigStatHi = 199;
-    private const int StructSpan = 0x41;   // bytes we touch per combat struct (0x20..0x40)
+    internal const int StructSpan = 0x41;   // bytes we touch per combat struct (0x20..0x40); internal so tests cite the real gate span instead of a drift-prone mirror
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;

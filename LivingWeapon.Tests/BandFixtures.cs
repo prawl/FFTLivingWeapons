@@ -38,9 +38,9 @@ internal static class BandFixtures
         mem.U8s[addr + Offsets.ABrave] = (byte)br;
         mem.U8s[addr + Offsets.AFaith] = (byte)fa;
         mem.U16s[addr + Offsets.AMaxHp] = (ushort)maxHp;
-        mem.ReadableAddrs.Add(addr + Offsets.AMaxHp);
+        mem.MarkReadable(addr + Offsets.AMaxHp, 2);   // production reads n=2 (Band.Sanity.cs)
         mem.U16s[addr + Offsets.AHp] = (ushort)hp;
-        mem.ReadableAddrs.Add(addr + Offsets.AHp);
+        mem.MarkReadable(addr + Offsets.AHp, 2);      // production reads n=2 (Band.Sanity.cs)
         mem.U8s[addr + Offsets.AGx] = (byte)gx;
         mem.U8s[addr + Offsets.AGy] = (byte)gy;
     }
@@ -53,7 +53,7 @@ internal static class BandFixtures
     {
         long addr = Band.Entry(slot);
         m.U16s[addr + Offsets.ANameId] = nameId;
-        m.ReadableAddrs.Add(addr + Offsets.ANameId);
+        m.MarkReadable(addr + Offsets.ANameId, 2);   // production reads n=2 (VictimReader.cs)
         m.U8s[addr + Puppeteer.JobOff] = job;
         m.ReadableAddrs.Add(addr + Puppeteer.JobOff);
         m.U8s[addr + Offsets.ADeadStatus] = undead ? Offsets.AUndeadBit : (byte)0;
@@ -67,7 +67,7 @@ internal static class BandFixtures
     public static void SeedAllyFpAt(FakeSparseMemory mem, int idx, int mhp, int lvl, int br, int fa)
     {
         long slot = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + idx) * Offsets.ArrayStride;
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
+        mem.MarkReadable(slot + Offsets.AMaxHp, 2);   // production reads n=2 (GrowthEngine.Signatures.cs, Band.cs)
         mem.U16s[slot + Offsets.AMaxHp] = (ushort)mhp;
         mem.U8s[slot + Offsets.ALevel] = (byte)lvl;
         mem.U8s[slot + Offsets.ABrave] = (byte)br;

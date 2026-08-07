@@ -19,30 +19,21 @@ namespace LivingWeapon.Tests;
 ///                     U16 joined U8 so the default IGameMemory.U32 composition -- two U16 reads,
 ///                     see GameMemory.cs -- is observable too; U32 itself is not overridden here).
 ///
-/// LW-147 (DOCUMENTED DIVERGENCE from production -- read this before trusting a passing test):
-/// production Mem.Probe (Mem.cs) gates the WHOLE [addr, addr+len) range against one committed
-/// VirtualQuery region -- a multi-byte read/write over a partially-mapped region correctly
-/// refuses. By DEFAULT this fake does NOT reproduce that: Readable(a, n)/Writable(a, n) still
-/// check only base-address set membership and IGNORE n, exactly as before LW-147, because
-/// MEASURING the honest fix (require every byte in the range to be individually marked) turned
-/// on by default fails 94 pre-existing TESTS across 21 suites that mark only a struct's base
-/// offset (e.g. `ReadableAddrs.Add(addr + Offsets.AMaxHp)` for a field production reads with
-/// n=2) -- a different count from the 226 marking call sites across 35 files this touches --
-/// past this pass's reconciliation budget. Reconciling all of them was OUT OF SCOPE for this
-/// pass; the gap is real and stays open, tracked as LW-151 (docs/TODO.md) for closing it for
-/// real (a test that marks only a field's base byte cannot tell a genuine multi-byte gate
-/// refusal from a pass).
-///
-/// StrictRangeChecks (default false) is the opt-in escape hatch: when true, Readable/Writable
-/// require EVERY byte in [a, a+n) to be an individually-marked member of ReadableAddrs/
-/// WritableAddrs (mirroring Mem.Probe's real range gate) -- two adjacent single-byte Add calls
-/// compose into full coverage of a 2-byte read exactly as one MarkReadable(a, 2) call would. Only
-/// FakeSparseMemoryTests' own LW-147 pinning tests run strict today (proving the mechanism is
-/// real, non-vacuous); a new suite that wants the honest range gate should opt in explicitly
-/// rather than assume it is the default. The plain single-address `.Add(x)` path every
-/// pre-existing call site uses keeps working unchanged in BOTH modes (it marks a 1-byte range);
-/// MarkReadable(addr, len)/MarkWritable(addr, len) mark a longer run in one call for strict-mode
-/// call sites staging a multi-byte production gate.
+/// LW-147 introduced StrictRangeChecks as an OPT-IN honest range gate and documented the
+/// default's divergence from production; LW-151 CLOSED that divergence by making strict the
+/// DEFAULT: Readable(a, n)/Writable(a, n) require EVERY byte in [a, a+n) to be an
+/// individually-marked member of ReadableAddrs/WritableAddrs, mirroring production Mem.Probe
+/// (Mem.cs), which gates the whole range against one committed VirtualQuery region and so
+/// correctly refuses a multi-byte access over a partially-mapped region. Two adjacent
+/// single-byte Add calls compose into full coverage of a 2-byte read exactly as one
+/// MarkReadable(a, 2) call would. The plain single-address `.Add(x)` path keeps working in both
+/// modes (it marks a 1-byte range); MarkReadable(addr, len)/MarkWritable(addr, len) mark a
+/// longer run in one call when staging a multi-byte production gate (AMaxHp and friends 2
+/// bytes, Maim's reaction word 4, KillTracker's corpse stamp 12, Barrage's RecSize 25,
+/// GrowthEngine.Locate's StructSpan). Setting StrictRangeChecks = false restores the
+/// pre-LW-151 legacy semantics (base-address membership only, n ignored); it survives ONLY as
+/// a pinned escape hatch (FakeSparseMemoryTests' legacy pin) so the mechanism stays honest in
+/// both directions -- no suite runs legacy today, and a new test should never reach for it.
 ///
 /// Extended for the (now-retired) callout on-demand suites: the default IGameMemory.WriteBytes is
 /// a silent no-op, which left a multi-byte write (e.g. a linger-arm dword) unobservable.
@@ -83,15 +74,12 @@ internal sealed class FakeSparseMemory : IGameMemory
     /// existing tests that only read Written/U8s are unaffected.</summary>
     public readonly List<long> WriteOrder = new();
 
-    /// <summary>Opt-in switch to the honest length-aware Readable/Writable gate (see the class
-    /// doc's LW-147 section). Defaults false: EVERY pre-existing call site in this repo was
-    /// written against the legacy base-address-only semantics, so flipping the default would
-    /// break 94 pre-existing tests across 21 suites (measured; a different count from the 226
-    /// marking call sites across 35 files that mark only a struct field's base offset). Closing
-    /// that gap for real is tracked as LW-151 (docs/TODO.md); this pass only documents and pins
-    /// the divergence. Set true on a FakeSparseMemory instance a new/updated test controls to
-    /// get the real per-byte range gate.</summary>
-    public bool StrictRangeChecks;
+    /// <summary>The honest length-aware Readable/Writable gate, the DEFAULT since LW-151: every
+    /// byte in [a, a+n) must be individually marked, exactly as production Mem.Probe gates the
+    /// whole range (see the class doc). Setting false restores the legacy base-address-only
+    /// semantics (n ignored) that pre-LW-151 call sites were written against; it exists only as
+    /// a pinned escape hatch (FakeSparseMemoryTests' legacy pin), never for new tests.</summary>
+    public bool StrictRangeChecks = true;
 
     // TreasureMaster extensions
     public readonly HashSet<long>             ReadableAddrs  = new();
@@ -112,13 +100,13 @@ internal sealed class FakeSparseMemory : IGameMemory
         return U16s.TryGetValue(a, out var v) ? v : (ushort)0;
     }
 
-    /// <summary>Default (StrictRangeChecks == false): legacy behavior, base-address membership
-    /// only, n ignored -- see the class doc's LW-147 section for why. StrictRangeChecks == true:
-    /// true only when EVERY byte in [a, a+n) has been individually marked in ReadableAddrs --
-    /// mirrors production Mem.Probe, which gates the whole range against one committed region
-    /// (see Mem.cs: addr &gt;= base &amp;&amp; addr + len &lt;= base + regionSize), not just the base address.
-    /// Two adjacent single-byte Add calls compose into coverage of a 2-byte read exactly as
-    /// MarkReadable(a, 2) would, because coverage is checked per byte.</summary>
+    /// <summary>Default (StrictRangeChecks == true, since LW-151): true only when EVERY byte in
+    /// [a, a+n) has been individually marked in ReadableAddrs -- mirrors production Mem.Probe,
+    /// which gates the whole range against one committed region (see Mem.cs: addr &gt;= base
+    /// &amp;&amp; addr + len &lt;= base + regionSize), not just the base address. Two adjacent
+    /// single-byte Add calls compose into coverage of a 2-byte read exactly as MarkReadable(a, 2)
+    /// would, because coverage is checked per byte. StrictRangeChecks == false: the pre-LW-151
+    /// legacy behavior, base-address membership only, n ignored (pinned escape hatch only).</summary>
     public bool Readable(long a, int n)
     {
         if (!StrictRangeChecks) return ReadableAddrs.Contains(a);

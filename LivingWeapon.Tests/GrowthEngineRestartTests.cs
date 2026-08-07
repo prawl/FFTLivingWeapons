@@ -153,8 +153,8 @@ public class GrowthEngineRestartTests
         var fp = (lvl: 30, br: 65, fa: 60);
         MemSeats.SeatBand(mem, 4, weapon: 77, lvl: fp.lvl, br: fp.br, fa: fp.fa,
                           gx: 3, gy: 3, hp: 300, maxHp: 300, speed: 7);
-        // ReadHp pre-checks Readable on AMaxHp (FakeSparseMemory's exact-address contract).
-        mem.ReadableAddrs.Add(Band.Entry(4) + Offsets.AMaxHp);
+        // ReadHp pre-checks Readable on AMaxHp -- production reads n=2 (GrowthEngine.Signatures.cs ReadHpScan).
+        mem.MarkReadable(Band.Entry(4) + Offsets.AMaxHp, 2);
         int fullTarget = UltimaPolicy.PaHeld(10, 300, 300, tier: 0, Tuning.UltimaMul);
         engine.HoldUltima(StructBase, m, tier: 0, level: fp.lvl, brave: fp.br, faith: fp.fa, rosterNameId: NameId);
         Assert.Equal((byte)fullTarget, mem.U8s[addr]);

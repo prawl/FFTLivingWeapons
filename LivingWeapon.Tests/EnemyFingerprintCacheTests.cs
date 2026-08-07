@@ -15,7 +15,7 @@ public class EnemyFingerprintCacheTests
     {
         var mem = new FakeSparseMemory();
         long slot = Offsets.ArrayReadBase;
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
+        mem.MarkReadable(slot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs Fingerprints)
         mem.U16s[slot + Offsets.AMaxHp] = 400;
         mem.U8s[slot + Offsets.ALevel] = 40;
         mem.U8s[slot + Offsets.ABrave] = 75;

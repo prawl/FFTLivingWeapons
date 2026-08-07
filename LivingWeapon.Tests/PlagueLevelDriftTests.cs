@@ -117,7 +117,7 @@ public class PlagueLevelDriftTests
     private static void SeatRosterSlot(FakeSparseMemory mem, int slot, int rh)
     {
         long rb = Offsets.RosterBase + (long)slot * Offsets.RosterStride;
-        mem.ReadableAddrs.Add(rb + Offsets.RNameId);
+        mem.MarkReadable(rb + Offsets.RNameId, 2);   // production reads n=2 (Wielder.Occupancy.cs)
         mem.U16s[rb + Offsets.RNameId] = 1;
         mem.U16s[rb + Offsets.RRHand] = (ushort)rh;
         mem.U16s[rb + Offsets.ROffHand] = 0xFFFF;
@@ -126,7 +126,7 @@ public class PlagueLevelDriftTests
     private static void SeatVictim(FakeSparseMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp,
                                     bool poisoned, byte timer, byte ct, ushort hp)
     {
-        mem.ReadableAddrs.Add(addr + Offsets.AMaxHp);
+        mem.MarkReadable(addr + Offsets.AMaxHp, 2);   // production reads n=2 (Band.Sanity.cs, Plague.cs Drive, Plague.Policy.cs DriveOne)
         mem.U16s[addr + Offsets.AMaxHp] = (ushort)fp.mhp;
         mem.U8s[addr + Offsets.ALevel] = (byte)fp.lvl;
         mem.U8s[addr + Offsets.ABrave] = (byte)fp.br;
@@ -139,15 +139,15 @@ public class PlagueLevelDriftTests
         mem.U8s[addr + Offsets.APoisonTimer] = timer;
         mem.ReadableAddrs.Add(addr + Offsets.ACtTurn);
         mem.U8s[addr + Offsets.ACtTurn] = ct;
-        mem.ReadableAddrs.Add(addr + Offsets.AHp);
-        mem.WritableAddrs.Add(addr + Offsets.AHp);
+        mem.MarkReadable(addr + Offsets.AHp, 2);   // production reads n=2 (Plague.Policy.cs ApplyAugment)
+        mem.MarkWritable(addr + Offsets.AHp, 2);   // production writes n=2 (Plague.Policy.cs ApplyAugment)
         mem.U16s[addr + Offsets.AHp] = hp;
     }
 
     private static void SeatEnemyFp(FakeSparseMemory mem, (int mhp, int lvl, int br, int fa) fp)
     {
         long slot = Offsets.ArrayReadBase;   // static-array slot 0 (enemy side); a frozen snapshot.
-        mem.ReadableAddrs.Add(slot + Offsets.AMaxHp);
+        mem.MarkReadable(slot + Offsets.AMaxHp, 2);   // production reads n=2 (Plague.cs EnemyFingerprints)
         mem.U16s[slot + Offsets.AMaxHp] = (ushort)fp.mhp;
         mem.U8s[slot + Offsets.ALevel] = (byte)fp.lvl;
         mem.U8s[slot + Offsets.ABrave] = (byte)fp.br;

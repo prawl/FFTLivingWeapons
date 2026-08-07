@@ -91,7 +91,7 @@ public class CounterAttributionTests
         // Non-vacuous: without the team gate, _lethalActor=[ArmedWeapon] -> kills[ArmedWeapon]=1.
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
-        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);   // enable team read at death edge
+        m.MarkReadable(Offsets.TurnQueue + Offsets.TqTeam, 2);   // enable team read at death edge -- production reads n=2 (KillTracker.Corpses.cs)
 
         // A: tracked player (weapon ArmedWeapon).
         SetRoster(m, slot: 0, level: 90, brave: 80, faith: 70, weapon: ArmedWeapon);
@@ -134,7 +134,7 @@ public class CounterAttributionTests
         // Non-vacuous: if the gate misfired on team=0, kills would be empty.
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
-        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);
+        m.MarkReadable(Offsets.TurnQueue + Offsets.TqTeam, 2);   // production reads n=2 (KillTracker.Corpses.cs)
 
         SetRoster(m, slot: 0, level: 90, brave: 80, faith: 70, weapon: ArmedWeapon);
         SetUnit(m, ASlot, hp: 352, maxHp: 352, level: 90, brave: 80, faith: 70);
@@ -174,7 +174,7 @@ public class CounterAttributionTests
         // would suppress the delayed actor -> kills empty.
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
-        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);
+        m.MarkReadable(Offsets.TurnQueue + Offsets.TqTeam, 2);   // production reads n=2 (KillTracker.Corpses.cs)
 
         // P: tracked jumper (JumperWeapon=90).
         SetRoster(m, slot: 0, level: 99, brave: 89, faith: 76, weapon: JumperWeapon);
@@ -228,7 +228,7 @@ public class CounterAttributionTests
         // Non-vacuous: hard-coding nonPlayerTurn=true would suppress the credit here.
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
-        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);
+        m.MarkReadable(Offsets.TurnQueue + Offsets.TqTeam, 2);   // production reads n=2 (KillTracker.Corpses.cs)
 
         SetRoster(m, slot: 0, level: 90, brave: 80, faith: 70, weapon: ArmedWeapon);
         SetUnit(m, ASlot, hp: 352, maxHp: 352, level: 90, brave: 80, faith: 70);
@@ -269,7 +269,7 @@ public class CounterAttributionTests
         // must be an Info-tier [kill] line, not a bare "no tracked weapon" shrug.
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();
-        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);
+        m.MarkReadable(Offsets.TurnQueue + Offsets.TqTeam, 2);   // production reads n=2 (KillTracker.Corpses.cs)
         SetRoster(m, slot: 0, level: 90, brave: 80, faith: 70, weapon: ArmedWeapon);
         SetUnit(m, ASlot, hp: 352, maxHp: 352, level: 90, brave: 80, faith: 70);
 

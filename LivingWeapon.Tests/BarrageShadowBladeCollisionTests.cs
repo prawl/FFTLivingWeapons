@@ -37,7 +37,8 @@ public class BarrageShadowBladeCollisionTests
     private static long FlagAddr(int recId) => Barrage.AbilityBase + (long)recId * Barrage.RecSize - Barrage.FlagPrefixSize;
     private static long AbBase(int recId) => Barrage.AbilityBase + (long)recId * Barrage.RecSize;
 
-    /// <summary>Register a record as readable/writable at every byte InjectSlot/ReleaseSlot can
+    /// <summary>Register a record as readable across its FULL RecSize (Tick() gates the
+    /// whole-record read before any slot work), writable at every byte InjectSlot/ReleaseSlot can
     /// touch, and back it with a TerrainBlocks buffer so TryReadBytes (the whole-record scan
     /// Tick() uses to run FindEmptySlot) can serve it. Returns the buffer -- see <see cref="Sync"/>.</summary>
     private static byte[] StageRecord(FakeSparseMemory m, int recId)
@@ -45,8 +46,9 @@ public class BarrageShadowBladeCollisionTests
         long flagAddr = FlagAddr(recId), abBase = AbBase(recId);
         var buf = new byte[Barrage.RecSize];
         m.TerrainBlocks[flagAddr] = buf;
-        for (int i = 0; i < Barrage.FlagPrefixSize; i++) { m.ReadableAddrs.Add(flagAddr + i); m.WritableAddrs.Add(flagAddr + i); }
-        for (int i = 0; i < Barrage.AbilityCount; i++) { m.ReadableAddrs.Add(abBase + i); m.WritableAddrs.Add(abBase + i); }
+        m.MarkReadable(flagAddr, Barrage.RecSize);   // production reads n=RecSize, RSM tail included (Barrage.cs:170, ShadowBlade.cs:128, Provoke.cs:126)
+        for (int i = 0; i < Barrage.FlagPrefixSize; i++) m.WritableAddrs.Add(flagAddr + i);   // flag-word writes gate n=2 within this (Barrage.Policy.cs InjectSlot/ReleaseSlot)
+        for (int i = 0; i < Barrage.AbilityCount; i++) m.WritableAddrs.Add(abBase + i);       // ability-byte writes gate n=1 (Barrage.Policy.cs InjectSlot/ReleaseSlot)
         return buf;
     }
 
@@ -67,7 +69,7 @@ public class BarrageShadowBladeCollisionTests
     {
         long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
         m.U16s[rb + Offsets.RNameId] = 1;
-        m.ReadableAddrs.Add(rb + Offsets.RNameId);
+        m.MarkReadable(rb + Offsets.RNameId, 2);   // production reads n=2 (Barrage.cs:107, ShadowBlade.cs:76, Provoke.cs:74)
         m.U8s[rb + Offsets.RLevel] = 30;
         m.U16s[rb + Offsets.RRHand] = (ushort)rhand;
         m.U8s[rb + Barrage.RJobId] = (byte)job;

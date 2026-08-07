@@ -59,7 +59,7 @@ public class BandHealTests
         // separate W8 halves that could expose a torn intermediate value to the game's own threads.
         var mem = new FakeSparseMemory();
         long entryAddr = 0x5000;
-        mem.WritableAddrs.Add(entryAddr + Offsets.AHp);
+        mem.MarkWritable(entryAddr + Offsets.AHp, 2);   // production gates Writable n=2 (BandHeal.cs)
 
         BandHeal.WriteHp(mem, entryAddr, 260);   // 0x104: crosses the 255/256 byte boundary
 
@@ -99,8 +99,8 @@ public class BandHealTests
         var a = new FakeSparseMemory();
         var b = new FakeSparseMemory();
         long addr = 0x5000 + Offsets.AHp;
-        a.WritableAddrs.Add(addr);
-        b.WritableAddrs.Add(addr);
+        a.MarkWritable(addr, 2);   // production gates Writable n=2 (BandHeal.cs)
+        b.MarkWritable(addr, 2);
 
         LifeSap.WriteHp(a, 0x5000, 260);
         BandHeal.WriteHp(b, 0x5000, 260);

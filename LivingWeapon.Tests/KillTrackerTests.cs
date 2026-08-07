@@ -1734,7 +1734,7 @@ public class KillTrackerTests
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
 
         long arec = Band.Entry(0) + Offsets.AArec;
-        m.ReadableAddrs.Add(arec);
+        m.MarkReadable(arec, 0xC);   // production gates the whole record, n=0xC (KillTracker.cs, LogKillDiag)
         m.U8s[arec + 0x0] = 8;      // idx
         m.U16s[arec + 0x2] = 441;   // abil
         m.U8s[arec + 0xA] = 5;      // kind
@@ -2343,7 +2343,7 @@ public class KillTrackerTests
         // A non-player turn is in progress at the death edge: the stale player latch did not
         // land this blow -- bury it (UntrackedReason.EnemyTurn).
         m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = 1;
-        m.ReadableAddrs.Add(Offsets.TurnQueue + Offsets.TqTeam);   // enable the team read at the death edge
+        m.MarkReadable(Offsets.TurnQueue + Offsets.TqTeam, 2);   // enable the team read at the death edge -- production reads n=2 (KillTracker.Corpses.cs)
         SetUnit(m, slot: 0, hp: 0, maxHp: 71, level: 20, brave: 20, faith: 20);
         Settle(t, 3);
 
