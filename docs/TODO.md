@@ -60,6 +60,26 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-156] Give the item-bake tooling one brain instead of hand-synced copies** (opened 2026-08-07) [BUILDING]
+  - Done means: the tools that bake and check the item text no longer keep private copies of the
+    same rules, so a rule change lands once and the checker can never blame the wrong file. Four
+    parts, each proven to change nothing about what the tools produce: (a) the bake's
+    sort-and-cells derivation lives in ONE pure function that both patch_names.py (the writer)
+    and audit_nxd_bakes.py (the checker) import, ending the token-identical inline copy that
+    today turns a one-sided edit into a deploy refusal pointing at the audit instead of the
+    cause; (b) gen_living_weapon_meta.py's ~25 hand-copied items.json to meta.json passthrough
+    branches become one table that preserves truthiness semantics exactly, so a future key
+    cannot be silently dropped on the way to the runtime; (c) analyze.py reads
+    living_weapon_grid.csv through one loader instead of three private copies (dup-id detection
+    stays exclusive to check_grid_sync), and the sigName-or-displayLabel card-name rule lives in
+    one place instead of three; (d) patch_ability_names.py gets the pristine-cache bootstrap its
+    status sibling already has, so a fresh checkout does not FileNotFoundError.
+  - Verify: regenerating meta.json leaves git diff empty; analyze.py emits byte-identical stdout
+    and the same exit code before and after; audit_nxd_bakes.py emits the same verdicts on the
+    committed tree; the full dotnet suite stays green; and an adversarial reviewer re-derives
+    each moved rule against its old copy. No live pass needed: these are build-time tools, the
+    shipped mod bytes do not change.
+
 ## Backlog
 
 - [LW-153] 2026-08-07: Several shipped weapon behaviors are maintained as hand-synced copies of
@@ -112,24 +132,6 @@ the technical detail lives in the indented lines under it.
   describes a LifeSap on-kill heal that is provably data-dormant (lifeSapOnKill appears in zero
   items); fix both comments, and put the real question to the owner: wire the mechanic to a
   weapon or delete the module.
-- [LW-156] 2026-08-07: The item-bake tooling maintains the same derivation rules in two places
-  and reads the same CSV with three private copies of one loader, so a rule change can pass the
-  gate while pointing the blame at the wrong file.
-  From the 2026-08-07 deep dive; the verifier called (a) the strongest finding of its batch. (a)
-  audit_nxd_bakes.item_intent is a token-identical inline copy of patch_names' bake derivation
-  (build_sort_map plus the intent cell set), breaking build_sort_map's own docstring promise
-  that writer and verifier share one derivation; today an edit to apply_patches alone turns the
-  deploy red with a message pointing at the audit instead of the cause. Extract one pure
-  derivation both import (lazy import direction already documented in the file). (b)
-  gen_living_weapon_meta.py hand-copies ~25 get/branch passthroughs from items.json to
-  meta.json with no gate for a missing branch (MetaSchemaTests catches only the opposite
-  direction); table-drive it, preserving TRUTHINESS semantics (if sig.get(k)) exactly, then
-  prove by regenerating meta.json byte-identical. (c) analyze.py loads living_weapon_grid.csv
-  three times with three private loaders (two copy-identical, one adding dup-id detection that
-  must NOT quietly spread to the other two), and the sigName-or-displayLabel resolution rule is
-  copied in analyze.py twice plus lib/flavor.py; one loader, one rule, proof is identical
-  stdout and exit code. (d) patch_ability_names.py hard-copies a pristine cache file that a
-  fresh checkout does not have; give it the bootstrap its status sibling already has.
 - [LW-157] 2026-08-07: The test suite pays a copy-paste tax: nine kill-tracker suites carry the
   same seeding helpers, fifty call sites hand-roll the same seven-line logger swap, and a few
   seed rituals still live outside the shared fixtures.
