@@ -60,25 +60,6 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-154] Give the acting-unit resolver one copy of its subtlest logic** (opened 2026-08-07) [BUILDING]
-  - Done means: the code that answers "which unit is acting right now", the heart of kill
-    credit, no longer spells its trickiest step three times over. The identical turn-queue
-    read-and-sanity gate and the identical twin filter (the discard-and-restart bookkeeping
-    that keeps mirror seats from stealing credit) each live in ONE named home inside
-    ActorResolver, with each caller keeping its own accumulation and ambiguity policy, and the
-    moved bodies behave exactly as the three copies did, including the observable
-    early-ambiguous ordering. The roster-walk half (the file's self-named follow-up seam) is
-    either extracted with the same proof or honestly split into its own ticket, not fudged.
-    (Tech: from the 2026-08-07 deep dive; preamble verbatim at ActorResolver.cs:126-129,
-    279-282, 385-388, twin filter verbatim at 149-158, 299-304, 402-405; the have-accumulation
-    predicate and reset action stay caller-side.)
-  - Verify: the full suite stays green (FlagOwnerResolveTests, ActorResolverUnarmedTests,
-    KillTrackerTests, CounterAttributionTests pin this surface); the moved bodies are
-    token-compared against the deleted copies; and sabotage runs prove the pins are real
-    (mutating the shared twin filter or the sanity gate turns predicted tests red, restored
-    green after). No live pass needed: behavior-identical refactor, no address or write-path
-    changes.
-
 ## Backlog
 
 - [LW-153] 2026-08-07: Several shipped weapon behaviors are maintained as hand-synced copies of

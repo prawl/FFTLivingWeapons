@@ -10,6 +10,26 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-154] SHIPPED ae2709f 2026-08-07: the code that answers "which unit is acting right now",
+  the heart of kill credit, no longer spells its trickiest step three times over. The
+  turn-queue sanity read and the twin filter (the discard-and-restart bookkeeping that keeps a
+  frozen mirror seat from stealing or spoiling credit) each live in one named home inside
+  ActorResolver (TryReadTqActor, the TwinFilter struct), with each of the three resolvers
+  keeping its own accumulation and ambiguity policy; the roster walks share their fingerprint
+  match rule (RosterFpMatches, the LW-39 edit point) while their bodies stay separate on
+  purpose (set-equality accumulation vs a band-confirmed mid-loop return, now said plainly in
+  the comments instead of promising a follow-up seam). Proven the hard way: six twin-filter
+  pins written FIRST against the old code (a pre-refactor sabotage turned exactly the predicted
+  one red), then post-refactor sabotages of the SHARED filter turned exactly the three restart
+  pins and exactly the three skip pins red, one edit reaching all three resolvers, which is the
+  refactor's whole point demonstrated. The work also exposed and closed a real coverage hole:
+  dropping FAITH from the fingerprint rule left all 3036 then-tests green, so two faith pins
+  were born red under that sabotage and now hold the rule honest; a ninth pin (verifier
+  requested) holds the main-hand restart's ambiguity clear. Two independent adversarial
+  auditors returned SHIP with an exhaustive state-case equivalence proof; their comment nits
+  are fixed in the closing commit (the shared homes' docs scope their claims to this resolver
+  and name the register lane's own copy of the rule). Work 5f9d95a, follow-up ae2709f; suite
+  3030 to 3039; no live pass needed, behavior byte-identical.
 - [LW-156] SHIPPED d4eb42b 2026-08-07: the item-bake tooling keeps each rule in ONE place now,
   so a rule change lands once and the checker can never blame the wrong file. Four stages, each
   proven to change nothing the tools produce. (a) 9a5c5d3: the bake's sort-and-cells derivation
