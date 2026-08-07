@@ -43,46 +43,22 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.bake_intent import ALLOWED_EXTRA_ROWS, ALLOWED_ITEM_CELLS
-from lib.categories import WEAPON_CATS
-from lib.flavor import assemble_desc, is_living, plural
-from lib.items import load_items
 from lib.nxd import PAC, unpack   # re-exported: rebase_nxd_pristine imports them from here
 from lib.nxd_patch import rows as _rows   # LW-149 Stage E: unify onto the shared row reader
 from lib.paths import FF16, MOD_ABILITY_NXD, MOD_ITEM_NXD, MOD_STATUS_NXD, STEAM_FFT
 from patch_ability_names import PATCHES as ABILITY_PATCHES
 from patch_status_names import PATCHES as STATUS_PATCHES
-from patch_names import GROUP_RANK, SCAFFOLD_LIVING, UICAT
+from patch_names import GROUP_RANK, item_intent as _bake_item_intent, named_items
 
 
 
 def item_intent():
-    """(Key, column) -> expected value, exactly as patch_names.py derives them."""
-    doc = load_items()
-    named = [it for it in doc["items"] if it.get("name") and it["name"] != "TBD"]
-    sort_map, by_group = {}, {}
-    for it in named:
-        eff = it["proposed"].get("categoryOverride") or it.get("category")
-        if eff in WEAPON_CATS:
-            by_group.setdefault(UICAT[eff], []).append(it)
-    for uicat, items_in in by_group.items():
-        rank = GROUP_RANK.get(uicat, 19)
-        for i, it in enumerate(sorted(items_in, key=lambda x: (x.get("tier", 99) or 99, x["id"])), start=1):
-            sort_map[it["id"]] = rank * 100 + i
-    intent = {}
-    for it in named:
-        clean = it["name"]
-        name = clean + "  " if (SCAFFOLD_LIVING and is_living(it)) else clean
-        intent[(it["id"], "Name")] = name
-        intent[(it["id"], "NameSingular")] = clean.lower()
-        intent[(it["id"], "NamePlural")] = plural(clean)
-        intent[(it["id"], "Name2")] = name
-        intent[(it["id"], "Description")] = assemble_desc(it, scaffold=SCAFFOLD_LIVING)
-        eff = it["proposed"].get("categoryOverride") or it.get("category")
-        if eff in UICAT:
-            intent[(it["id"], "UiItemCategoryId")] = UICAT[eff]
-        if it["id"] in sort_map:
-            intent[(it["id"], "SortOrder")] = sort_map[it["id"]]
-    return intent
+    """(Key, column) -> expected value, via patch_names.item_intent: the SAME derivation the
+    writer bakes with. This used to be a token-identical inline copy (LW-156): an edit to the
+    bake rules in patch_names.py alone would flip every touched cell to DRIFT here, turning the
+    deploy red with a message blaming the audit instead of the real cause. One shared function
+    makes that divergence unrepresentable."""
+    return _bake_item_intent(named_items())
 
 
 def orphan_sort_ok(bake_row, vanilla_row, value):

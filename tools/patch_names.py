@@ -51,6 +51,13 @@ GROUP_RANK = {1: 1, 3: 2, 4: 3, 12: 4, 11: 5, 8: 6, 7: 7, 10: 8, 14: 9, 16: 10,
 # those ids revert to their vanilla cure-consumable names via the pristine base table.)
 
 
+def named_items():
+    """The rows the bake writes: named, non-placeholder items of data/items.json. Shared with
+    audit_nxd_bakes.py so the writer and the checker can never disagree about which rows are in
+    scope (LW-156)."""
+    return [it for it in load_items()["items"] if it.get("name") and it["name"] != "TBD"]
+
+
 def build_sort_map(named):
     """Regroup weapon SortOrder by ACTUAL type (fixes repurposed-in-place scatter). Within a type,
     order by (tier, id) for a clean weak->strong progression. Non-weapons keep their stock
@@ -68,6 +75,42 @@ def build_sort_map(named):
     return sort_map
 
 
+def item_intent(named, sort_map=None):
+    """(Key, column) -> value for EVERY cell the bake writes for the named items: THE single
+    derivation (LW-156). apply_patches (the writer) drives its UPDATEs from this dict and
+    audit_nxd_bakes.item_intent (the checker) classifies against the same dict, so an edit to
+    the bake rules can no longer leave the checker holding a stale private copy and blaming the
+    wrong file. This keeps build_sort_map's original promise (writer and verifier share the
+    exact same derivation) for the whole cell set, not just SortOrder."""
+    if sort_map is None:
+        sort_map = build_sort_map(named)
+    intent = {}
+    for it in named:
+        clean = it["name"]
+        # --- Living Weapon display scaffolding (every weapon grows as it kills) ---
+        # Two trailing spaces = a 2-char name-suffix SLOT the companion paints +/+2/+3 into
+        # (spaces render as nothing, so tier 0 reads clean). The desc-side scaffold (the FIRST
+        # line's Kills tier-progress meter and the "+N Ability" block) is baked by assemble_desc
+        # below; lib/flavor.py owns that layout so the analyze.py budget gate cannot drift from
+        # the bake. is_living = the shared noGrowth/category predicate, in lockstep with
+        # gen_living_weapon_meta.
+        name = clean + "  " if (SCAFFOLD_LIVING and is_living(it)) else clean
+        intent[(it["id"], "Name")] = name
+        intent[(it["id"], "NameSingular")] = clean.lower()
+        intent[(it["id"], "NamePlural")] = plural(clean)
+        intent[(it["id"], "Name2")] = name
+        intent[(it["id"], "Description")] = assemble_desc(it, scaffold=SCAFFOLD_LIVING)
+        # card type-label = the override category if repurposed, else the native category. Setting
+        # it for EVERY weapon also auto-corrects vanilla mislabels (e.g. Birchwood Staff shipped
+        # as a KnightSword).
+        eff = it["proposed"].get("categoryOverride") or it.get("category")
+        if eff in UICAT:
+            intent[(it["id"], "UiItemCategoryId")] = UICAT[eff]
+        if it["id"] in sort_map:
+            intent[(it["id"], "SortOrder")] = sort_map[it["id"]]
+    return intent
+
+
 def _guarded_update(con, sql, params, what):
     """Run one UPDATE and refuse to continue unless it touched EXACTLY one row (the
     patch_ability_names.py / patch_status_names.py apply_patches shape, LW-148). A Key with no
@@ -78,42 +121,24 @@ def _guarded_update(con, sql, params, what):
         sys.exit(f"FAIL: {what} did not update exactly one Item-en row")
 
 
-def apply_patches(con, named, sort_map):
-    """Run every Item-en UPDATE for the named items, guarding each one. Returns
-    intent: {(id, column): value} for every cell this run wrote, so a caller can confirm the same
-    values actually round-tripped through the nxd encode/decode (verify_against_vanilla)."""
-    intent = {}
+def apply_patches(con, named, intent):
+    """Run every Item-en UPDATE for the named items, guarding each one. The VALUES come from
+    item_intent (the shared derivation above); this function owns only the writing. Returns the
+    same intent dict so a caller can confirm the values actually round-tripped through the nxd
+    encode/decode (verify_against_vanilla)."""
     for it in named:
-        # Full card text (flavor + mechanics + range line + signature block + Kills scaffold)
-        # comes from the shared assembler so analyze.py's desc-budget gate sees the exact bake.
-        desc = assemble_desc(it, scaffold=SCAFFOLD_LIVING)
-        clean = it["name"]
-        eff_cat = it["proposed"].get("categoryOverride") or it.get("category")
-        # --- Living Weapon display scaffolding (every weapon grows as it kills) ---
-        # Two trailing spaces = a 2-char name-suffix SLOT the companion paints +/+2/+3 into
-        # (spaces render as nothing, so tier 0 reads clean). The desc-side scaffold (the FIRST
-        # line's Kills tier-progress meter and the "+N Ability" block) is baked by assemble_desc
-        # above -- lib/flavor.py owns that layout now so the analyze.py budget gate cannot
-        # drift from the bake. is_living = the shared noGrowth/category predicate, in lockstep
-        # with gen_living_weapon_meta.
-        name = clean + "  " if (SCAFFOLD_LIVING and is_living(it)) else clean
+        i, clean = it["id"], it["name"]
         _guarded_update(con,
             'UPDATE "Item-en" SET Name=?, NameSingular=?, NamePlural=?, Name2=?, Description=? WHERE Key=?',
-            (name, clean.lower(), plural(clean), name, desc, it["id"]),
-            f"id{it['id']} ({clean!r}) name/description")
-        for col, val in (("Name", name), ("NameSingular", clean.lower()), ("NamePlural", plural(clean)),
-                         ("Name2", name), ("Description", desc)):
-            intent[(it["id"], col)] = val
-        # card type-label = the override category if repurposed, else the native category. Setting it for EVERY
-        # weapon also auto-corrects vanilla mislabels (e.g. Birchwood Staff shipped as a KnightSword).
-        if eff_cat in UICAT:
+            (intent[(i, "Name")], intent[(i, "NameSingular")], intent[(i, "NamePlural")],
+             intent[(i, "Name2")], intent[(i, "Description")], i),
+            f"id{i} ({clean!r}) name/description")
+        if (i, "UiItemCategoryId") in intent:
             _guarded_update(con, 'UPDATE "Item-en" SET UiItemCategoryId=? WHERE Key=?',
-                            (UICAT[eff_cat], it["id"]), f"id{it['id']} ({clean!r}) UiItemCategoryId")
-            intent[(it["id"], "UiItemCategoryId")] = UICAT[eff_cat]
-        if it["id"] in sort_map:
+                            (intent[(i, "UiItemCategoryId")], i), f"id{i} ({clean!r}) UiItemCategoryId")
+        if (i, "SortOrder") in intent:
             _guarded_update(con, 'UPDATE "Item-en" SET SortOrder=? WHERE Key=?',
-                            (sort_map[it["id"]], it["id"]), f"id{it['id']} ({clean!r}) SortOrder")
-            intent[(it["id"], "SortOrder")] = sort_map[it["id"]]
+                            (intent[(i, "SortOrder")], i), f"id{i} ({clean!r}) SortOrder")
     return intent
 
 
@@ -143,7 +168,7 @@ def verify_against_vanilla(built_nxd, own_intent):
     no-opped rename) rather than a second, weaker reimplementation of the same classification --
     the audit tool is already the thing that knows what counts as intentional for this table.
     Imported lazily (not at module load) to dodge the one real circular edge: audit_nxd_bakes.py
-    itself imports GROUP_RANK/SCAFFOLD_LIVING/UICAT from this module.
+    itself imports GROUP_RANK/item_intent/named_items from this module.
 
     own_intent (apply_patches' own {(id, col): value} record of what THIS run tried to write) gets
     one extra, narrower check on top: the patch_ability_names.py-style final loop confirming every
@@ -176,19 +201,17 @@ def verify_against_vanilla(built_nxd, own_intent):
 
 def main():
     dry = "--dry" in sys.argv
-    doc = load_items()
-    named = [it for it in doc["items"] if it.get("name") and it["name"] != "TBD"]
+    named = named_items()
     sort_map = build_sort_map(named)
+    intent = item_intent(named, sort_map)
     if dry:
         for it in named:
-            desc = assemble_desc(it, scaffold=SCAFFOLD_LIVING)
-            clean = it["name"]
-            name = clean + "  " if (SCAFFOLD_LIVING and is_living(it)) else clean
             if it["id"] >= 11:  # show the new ones
-                print(f"id{it['id']:>3} {name!r}\n      {desc!r}")
+                print(f"id{it['id']:>3} {intent[(it['id'], 'Name')]!r}\n"
+                      f"      {intent[(it['id'], 'Description')]!r}")
         return
     con = sqlite3.connect(SQLITE)
-    intent = apply_patches(con, named, sort_map)
+    apply_patches(con, named, intent)
     orphan_sweep(con, sort_map)
     con.commit(); con.close()
     print(f"Patched {len(named)} rows in {SQLITE.name}. Re-encoding to nxd...")
