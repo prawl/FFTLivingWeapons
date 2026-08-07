@@ -60,6 +60,25 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-154] Give the acting-unit resolver one copy of its subtlest logic** (opened 2026-08-07) [BUILDING]
+  - Done means: the code that answers "which unit is acting right now", the heart of kill
+    credit, no longer spells its trickiest step three times over. The identical turn-queue
+    read-and-sanity gate and the identical twin filter (the discard-and-restart bookkeeping
+    that keeps mirror seats from stealing credit) each live in ONE named home inside
+    ActorResolver, with each caller keeping its own accumulation and ambiguity policy, and the
+    moved bodies behave exactly as the three copies did, including the observable
+    early-ambiguous ordering. The roster-walk half (the file's self-named follow-up seam) is
+    either extracted with the same proof or honestly split into its own ticket, not fudged.
+    (Tech: from the 2026-08-07 deep dive; preamble verbatim at ActorResolver.cs:126-129,
+    279-282, 385-388, twin filter verbatim at 149-158, 299-304, 402-405; the have-accumulation
+    predicate and reset action stay caller-side.)
+  - Verify: the full suite stays green (FlagOwnerResolveTests, ActorResolverUnarmedTests,
+    KillTrackerTests, CounterAttributionTests pin this surface); the moved bodies are
+    token-compared against the deleted copies; and sabotage runs prove the pins are real
+    (mutating the shared twin filter or the sanity gate turns predicted tests red, restored
+    green after). No live pass needed: behavior-identical refactor, no address or write-path
+    changes.
+
 ## Backlog
 
 - [LW-153] 2026-08-07: Several shipped weapon behaviors are maintained as hand-synced copies of
@@ -81,20 +100,6 @@ the technical detail lives in the indented lines under it.
   doc) alone. Also the one place LW-28 would instrument saves once. (d) Benediction's HealState
   is a sign-flipped copy of RicochetState (~35 lines); base class plus two direction subclasses,
   call sites untouched. (e) KillTracker.Corpses pastes one untracked-bury ruling block twice.
-- [LW-154] 2026-08-07: The code that answers "which unit is acting right now", the heart of kill
-  credit, spells its subtlest logic three times over; give it one home before the twins ticket
-  makes it four.
-  From the 2026-08-07 deep dive, adversarially verified against ActorResolver.cs in full. The
-  3-read turn-queue preamble plus sanity gate is verbatim at three sites, and the twin filter
-  (the discard-and-restart bookkeeping that keeps mirror seats from stealing credit) is
-  verbatim-triplicated; LW-39's fingerprint extension would have to edit all three. Stage 1
-  (extract TryReadTqActor plus a TwinFilter struct, accumulation and ambiguity policy stay
-  caller-side, bodies move verbatim because early-ambiguous ordering is observable behavior) is
-  near S effort and carries most of the payoff. Stage 2, the roster-walk seam the file itself
-  names twice as follow-up work, is the delicate half: FingerprintPlayer and MainHandFromRoster
-  differ materially (set-equality accumulation vs mid-loop early return) and a shared walk must
-  preserve that byte-for-byte; treat it as its own verified stage or skip it. Pinned by
-  FlagOwnerResolveTests, ActorResolverUnarmedTests, KillTrackerTests, CounterAttributionTests.
 - [LW-155] 2026-08-07: Retire code that is finished, dead, or lying: a whole logging lane nobody
   calls anymore, a dead second copy of the poison turn thresholds, a settings knob that can only
   ever be one value, and two wiring comments that name the wrong weapons.
