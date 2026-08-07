@@ -26,12 +26,17 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from lib.nxd import encode_sqlite_to_nxd, deploy_nxd
+from lib.nxd import PAC, decode_nxd_to_sqlite, encode_sqlite_to_nxd, deploy_nxd, unpack
 from lib.nxd_patch import apply_patches, verify_only_intended_cells
 from lib.paths import ROOT, MOD_ABILITY_NXD
 
 TABLE = "Ability-en"
-PRISTINE = ROOT / "working" / "nxd_ability" / "ability.sqlite"   # vanilla decode (do not mutate)
+NXD_NAME = "ability.en.nxd"
+PAC_INNER = "nxd/" + NXD_NAME
+
+PRISTINE_DIR = ROOT / "working" / "nxd_ability"
+PRISTINE_NXD = PRISTINE_DIR / NXD_NAME
+PRISTINE = PRISTINE_DIR / "ability.sqlite"   # vanilla decode (do not mutate)
 BUILD = ROOT / "working" / "nxd_out_ability" / "ability_build.sqlite"
 ENC_DIR = ROOT / "working" / "nxd_out_ability"
 
@@ -78,12 +83,30 @@ PATCHES = {
 }
 
 
+def ensure_pristine():
+    """Extract + decode the vanilla ability table if the local cache is missing (the
+    patch_status_names.py bootstrap, adopted for LW-156: working/ is an uncommitted build
+    cache, so a hand-placed vanilla decode made the first run FileNotFoundError on any fresh
+    checkout). Delete working/nxd_ability/ to force a re-extract after a game patch."""
+    if PRISTINE.exists() and PRISTINE_NXD.exists():
+        return
+    PRISTINE_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"  no cached vanilla decode; extracting {PAC_INNER} from the game pac...")
+    fresh = unpack(PAC, PAC_INNER, PRISTINE_DIR / "pacout")
+    shutil.copy(fresh, PRISTINE_NXD)
+    decoded = decode_nxd_to_sqlite([PRISTINE_NXD], PRISTINE_DIR, PRISTINE.name)
+    if decoded != PRISTINE:
+        shutil.copy(decoded, PRISTINE)
+    print(f"  cached -> {PRISTINE}")
+
+
 def main() -> None:
     dry = "--dry" in sys.argv
     for key, cols in PATCHES.items():
         print(f"Key {key}: " + "; ".join(f"{c} = {v!r}" for c, v in cols.items()))
     if dry:
         return
+    ensure_pristine()
     ENC_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy(PRISTINE, BUILD)
     apply_patches(BUILD, TABLE, PATCHES)

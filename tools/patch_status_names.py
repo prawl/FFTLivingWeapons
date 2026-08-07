@@ -68,10 +68,11 @@ Same safety contract as tools/patch_ability_names.py, and for the same reason: t
 therefore VERIFIES ITS OWN OUTPUT -- it decodes the freshly-built nxd back to sqlite and asserts
 that exactly the intended cells differ from pristine vanilla. A red verify refuses to deploy.
 
-Unlike its sibling, this script BOOTSTRAPS its own pristine: working/ is a local build cache that
-is never committed, so requiring a hand-placed vanilla decode would make the first run fail on any
-fresh checkout. The vanilla table is extracted from the installed game's own pac on demand and
-cached. Delete working/nxd_status/ to force a re-extract after a game patch.
+This script BOOTSTRAPS its own pristine (and since LW-156 its ability sibling does too): working/
+is a local build cache that is never committed, so requiring a hand-placed vanilla decode would
+make the first run fail on any fresh checkout. The vanilla table is extracted from the installed
+game's own pac on demand and cached. Delete working/nxd_status/ to force a re-extract after a
+game patch.
 
 Usage:
   python tools/patch_status_names.py          # build + verify + deploy into the mod tree
