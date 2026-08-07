@@ -16,8 +16,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
-from lib.flavor import (assemble_desc, flavor_anchor, rider_text,   # the exact rendered card text
-                         is_living, KILLS_SCAFFOLD, KILLS_SLOT_BODY_CHARS)
+from lib.flavor import (assemble_desc, card_signature_name, flavor_anchor,   # the exact rendered card text
+                         rider_text, is_living, KILLS_SCAFFOLD, KILLS_SLOT_BODY_CHARS)
                                                    # + the house-voice prose each rider bakes onto its card
 from lib.items import load_items, display_name
 from lib.paths import ROOT, ITEMS as ITEMS_DEFAULT
@@ -143,7 +143,7 @@ def check_p3desc(items):
         p3 = sig.get("p3Desc")
         if not p3:
             continue
-        name = sig.get("sigName") or sig.get("displayLabel", "")
+        name = card_signature_name(sig)   # the card's own resolution rule (lib/flavor.py)
         if not name or len(name) > SIGNAME_MAX or len(p3) > P3DESC_MAX:
             bad.append((it, p3))
     return bad
@@ -324,6 +324,29 @@ def check_rider_payload(items, new_eb):
     return violations
 
 
+def load_grid_rows(collect_dups=None):
+    """docs/living_weapon_grid.csv -> {id: row}: THE loader all three grid gates share (LW-156;
+    they used to carry three private copies of it). Returns None when the file is missing (each
+    gate turns that into its own violation row). A duplicated id is last-write-wins, exactly as
+    every private copy behaved; only check_grid_sync opts into duplicate DETECTION by passing
+    collect_dups (a list receiving the repeat row before it wins) -- the two p3 gates
+    deliberately keep judging the surviving row alone, so this loader must NOT quietly promote
+    dup detection to all three."""
+    grid_path = ROOT / "docs" / "living_weapon_grid.csv"
+    if not grid_path.exists():
+        return None
+    rows = {}
+    for r in csv.DictReader(grid_path.open(encoding="utf-8-sig")):
+        try:
+            rid = int(r["id"])
+        except (KeyError, ValueError):
+            continue
+        if collect_dups is not None and rid in rows:
+            collect_dups.append((rid, r))
+        rows[rid] = r
+    return rows
+
+
 def check_grid_sync(items):
     """docs/living_weapon_grid.csv is the DESIGN SOURCE OF TRUTH for the living weapons and must
     never drift from items.json. Mechanically-checkable columns are enforced: every living weapon
@@ -331,19 +354,11 @@ def check_grid_sync(items):
     (the vanilla weapon it was converted from) / tier / WP / parry% match items.json. Prose
     columns (sigNote, onHit) and 'Verified Live?' are NOT checked --
     the verified flag is flipped by a human only."""
-    grid_path = ROOT / "docs" / "living_weapon_grid.csv"
-    violations = []
-    if not grid_path.exists():
+    dups = []
+    rows = load_grid_rows(collect_dups=dups)
+    if rows is None:
         return [({"id": 0, "name": "living_weapon_grid.csv"}, ["grid file missing"])]
-    rows = {}
-    for r in csv.DictReader(grid_path.open(encoding="utf-8-sig")):
-        try:
-            rid = int(r["id"])
-        except (KeyError, ValueError):
-            continue
-        if rid in rows:
-            violations.append(({"id": rid, "name": r.get("name")}, ["duplicate grid row"]))
-        rows[rid] = r
+    violations = [({"id": rid, "name": r.get("name")}, ["duplicate grid row"]) for rid, r in dups]
     lw = {it["id"]: it for it in items
           if it.get("category") in WEAPON_CATS and not it.get("noGrowth")}
     for iid in sorted(set(lw) - set(rows)):
@@ -382,16 +397,9 @@ def check_p3_grid_lockstep(items):
     exactly. A signature with NO p3Desc (id 32, Materia Blade/Ultima, whose curve is conveyed by
     the item's own desc, not a card-header effect line) must have an EMPTY cell, so a stray value
     can't creep in unnoticed."""
-    grid_path = ROOT / "docs" / "living_weapon_grid.csv"
-    if not grid_path.exists():
+    rows = load_grid_rows()
+    if rows is None:
         return [({"id": 0, "name": "living_weapon_grid.csv"}, ["grid file missing"])]
-    rows = {}
-    for r in csv.DictReader(grid_path.open(encoding="utf-8-sig")):
-        try:
-            rid = int(r["id"])
-        except (KeyError, ValueError):
-            continue
-        rows[rid] = r
     violations = []
     for it in items:
         sig = it.get("signature")
@@ -423,22 +431,15 @@ def check_p3_signame_grid(items):
     stale-name drift it was added to catch: Galewind read 'Infatuation' long after the Puppeteer
     rework, and Yoichi read 'Fan-Splitter' after the signature shipped as Barrage. Signatures with
     no p3Desc render no card block (id 32, Materia Blade/Ultima) and are skipped, same as the card."""
-    grid_path = ROOT / "docs" / "living_weapon_grid.csv"
-    if not grid_path.exists():
+    rows = load_grid_rows()
+    if rows is None:
         return [({"id": 0, "name": "living_weapon_grid.csv"}, ["grid file missing"])]
-    rows = {}
-    for r in csv.DictReader(grid_path.open(encoding="utf-8-sig")):
-        try:
-            rid = int(r["id"])
-        except (KeyError, ValueError):
-            continue
-        rows[rid] = r
     violations = []
     for it in items:
         sig = it.get("signature")
         if not sig or not sig.get("p3Desc"):
             continue
-        name = sig.get("sigName") or sig.get("displayLabel", "")
+        name = card_signature_name(sig)   # the card's own resolution rule (lib/flavor.py)
         base = re.sub(r"\s*\([^)]*\)", "", name).strip()  # drop a trailing class-restriction note
         row = rows.get(it["id"])
         if row is None:

@@ -231,6 +231,14 @@ KILLS_SLOT_BODY_CHARS = 11
 KILLS_SCAFFOLD = "Kills: 0/5 to +   "
 
 
+def card_signature_name(sig):
+    """The name the equip card shows for a signature block: curated sigName, falling back to
+    displayLabel. THE resolution rule (LW-156), shared by the bake (assemble_desc below) and
+    analyze.py's two name gates (check_p3desc, check_p3_signame_grid), so a gate can never pin a
+    different name than the card actually renders."""
+    return sig.get("sigName") or sig.get("displayLabel", "")
+
+
 def assemble_desc(it, scaffold=True):
     """The COMPLETE rendered card description, byte-for-byte what patch_names.py bakes into
     item.en.nxd: the Living Weapon Kills-meter scaffold FIRST (owner decision 2026-07-06, moved
@@ -262,7 +270,7 @@ def assemble_desc(it, scaffold=True):
         sig = it.get("signature")
         p3 = sig.get("p3Desc") if sig else None
         if p3:
-            sname = sig.get("sigName") or sig.get("displayLabel", "")
+            sname = card_signature_name(sig)
             at = sig.get("atTier", 3)
             header = f"{sname} (+{at})" if sname else f"(+{at})"
             desc = desc.rstrip() + f"\n\n{header}\n{p3}"
