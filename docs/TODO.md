@@ -60,26 +60,6 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-156] Give the item-bake tooling one brain instead of hand-synced copies** (opened 2026-08-07) [BUILDING]
-  - Done means: the tools that bake and check the item text no longer keep private copies of the
-    same rules, so a rule change lands once and the checker can never blame the wrong file. Four
-    parts, each proven to change nothing about what the tools produce: (a) the bake's
-    sort-and-cells derivation lives in ONE pure function that both patch_names.py (the writer)
-    and audit_nxd_bakes.py (the checker) import, ending the token-identical inline copy that
-    today turns a one-sided edit into a deploy refusal pointing at the audit instead of the
-    cause; (b) gen_living_weapon_meta.py's ~25 hand-copied items.json to meta.json passthrough
-    branches become one table that preserves truthiness semantics exactly, so a future key
-    cannot be silently dropped on the way to the runtime; (c) analyze.py reads
-    living_weapon_grid.csv through one loader instead of three private copies (dup-id detection
-    stays exclusive to check_grid_sync), and the sigName-or-displayLabel card-name rule lives in
-    one place instead of three; (d) patch_ability_names.py gets the pristine-cache bootstrap its
-    status sibling already has, so a fresh checkout does not FileNotFoundError.
-  - Verify: regenerating meta.json leaves git diff empty; analyze.py emits byte-identical stdout
-    and the same exit code before and after; audit_nxd_bakes.py emits the same verdicts on the
-    committed tree; the full dotnet suite stays green; and an adversarial reviewer re-derives
-    each moved rule against its old copy. No live pass needed: these are build-time tools, the
-    shipped mod bytes do not change.
-
 ## Backlog
 
 - [LW-153] 2026-08-07: Several shipped weapon behaviors are maintained as hand-synced copies of

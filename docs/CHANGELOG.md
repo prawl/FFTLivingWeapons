@@ -10,6 +10,29 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-156] SHIPPED d4eb42b 2026-08-07: the item-bake tooling keeps each rule in ONE place now,
+  so a rule change lands once and the checker can never blame the wrong file. Four stages, each
+  proven to change nothing the tools produce. (a) 9a5c5d3: the bake's sort-and-cells derivation
+  is one pure function (patch_names.item_intent) that the writer drives its guarded UPDATEs
+  from and audit_nxd_bakes imports, ending the token-identical inline copy that turned a
+  one-sided rule edit into a deploy refusal pointing at the audit; proven by byte-identical
+  patch_names --dry output and a byte-identical full nxd audit, and the verifier re-executed
+  the DELETED copy against the shared one over all 1442 cells including insertion order. (b)
+  9f1f6b6: the meta bake's ~23 hand-written signature passthrough branches became one ordered
+  table with the same truthiness gating, plus a NEW loud gate: a signature key the table and
+  allowlist do not know fails the bake naming the item and the key, instead of silently
+  shipping an inert mechanic; meta.json regenerates byte-identical and a planted bogus key
+  turned the bake red in both my probe and the verifier's independent one. (c) ce34516:
+  analyze.py's three private grid-CSV loaders became one (duplicate-id detection stays
+  exclusive to the sync gate; the p3 gates keep last-write-wins), and the sigName-else-
+  displayLabel card-name rule lives once in lib/flavor.py for the bake and both name gates;
+  analyze stdout byte-identical in both modes, and the verifier also probed doctored CSVs
+  (duplicate rows, deleted file) old-vs-new identical. (d) 73eec0f + d4eb42b: the ability
+  rename tool bootstraps its vanilla cache from the game pac like its status sibling, so a
+  fresh checkout no longer dies on a missing hand-placed file; proven by hiding the cache,
+  regenerating it byte-identical, and restoring the original. Two independent adversarial
+  auditors returned SHIP on all four stages; dotnet suite 3030 green throughout; no live pass
+  needed, the shipped mod bytes are untouched.
 - [LW-151] SHIPPED 659593a 2026-08-07: the tests' pretend memory is now as strict about partial
   reads as the real game guard, closing the last open row of the 2026-07-28 smell audit. Before,
   a check like "can I read these two bytes" passed when only the first byte was declared good,
