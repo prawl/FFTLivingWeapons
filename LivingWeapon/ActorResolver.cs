@@ -123,15 +123,12 @@ internal sealed partial class ActorResolver
             // Unknown (duplicated roster identities) -> fall through to the turn-queue body.
         }
 
-        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
-        ushort hp = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
-        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
-        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return false;
+        if (!TryReadTqActor(out ushort maxHp, out ushort hp, out ushort level)) return false;
 
-        // Collect all band entries matching (mhp, hp, lvl); track whether any have real position.
+        // Collect all band entries matching (mhp, hp, lvl); the twin filter prefers real position.
         List<int>? found = null;
         bool foundSet = false;
-        bool foundReal = false;   // any match at gx/gy != (0,0)
+        var twin = new TwinFilter();
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
@@ -146,16 +143,9 @@ internal sealed partial class ActorResolver
             if (!FingerprintPlayer(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith), actorWeapon, out var w))
                 continue;   // not a roster unit -> enemy entry
 
-            // Twin filter: if we already have a real-position match, skip (0,0) entries.
-            if (foundReal && !realPos) continue;
-            // If this is real and we only had (0,0) so far, discard the old match and restart.
-            if (realPos && !foundReal && foundSet)
-            {
-                found = null;
-                foundSet = false;
-                foundReal = true;
-            }
-            if (realPos) foundReal = true;
+            var verdict = twin.Step(realPos, haveAccumulation: foundSet);
+            if (verdict == TwinFilter.Verdict.Skip) continue;
+            if (verdict == TwinFilter.Verdict.Restart) { found = null; foundSet = false; }
 
             if (!foundSet) { found = w; foundSet = true; }
             else if (!SameSet(found!, w)) return false;   // two distinct weapon sets -> ambiguous
@@ -172,9 +162,10 @@ internal sealed partial class ActorResolver
     /// when the weapon path produces no candidate or the weapon is untracked. Returns false only
     /// when the armed path is ambiguous (two armed slots disagree on set). <paramref name="hands"/>
     /// is possibly empty (untracked / unarmed player -- still a real player turn).
-    /// NOTE: the roster-walk here is duplicated in <see cref="MainHandFromRoster"/> (their
-    /// ambiguity semantics differ: set equality here vs RRHand identity there); a shared helper
-    /// is a follow-up seam.</summary>
+    /// NOTE: the walk BODY here and in <see cref="MainHandFromRoster"/> stay separate on purpose
+    /// (their ambiguity semantics differ: set equality + dual-track accumulation here vs RRHand
+    /// identity + a band-confirmed mid-loop return there); the shared truth is the fingerprint
+    /// MATCH RULE, <see cref="RosterFpMatches"/> (LW-154).</summary>
     private bool FingerprintPlayer(int level, int brave, int faith, int actorWeapon, out List<int> hands)
     {
         hands = Empty;
@@ -189,10 +180,7 @@ internal sealed partial class ActorResolver
         for (int s = 0; s < Offsets.RosterSlots; s++)
         {
             long b = Offsets.RosterBase + (long)s * Offsets.RosterStride;
-            // level is the LIVE value; the roster keeps the pre-battle level (level-drift rule).
-            if (!Band.LevelMatchesRoster(_mem.U8(b + Offsets.RLevel), level)) continue;
-            if (_mem.U8(b + Offsets.RBrave) != brave) continue;
-            if (_mem.U8(b + Offsets.RFaith) != faith) continue;
+            if (!RosterFpMatches(b, level, brave, faith)) continue;
             var h = Hands(b);
             if (h.Count == 0) { emptyMatch = true; continue; }
             if (weaponTracked && h.Contains(actorWeapon))
@@ -276,13 +264,10 @@ internal sealed partial class ActorResolver
             // Unknown -> fall through to the turn-queue body.
         }
 
-        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
-        ushort hp    = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
-        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
-        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return 0;
+        if (!TryReadTqActor(out ushort maxHp, out ushort hp, out ushort level)) return 0;
 
-        bool foundReal = false;
         int mainHand = 0; bool ambiguous = false;
+        var twin = new TwinFilter();
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long addr = Band.Entry(s);
@@ -296,12 +281,9 @@ internal sealed partial class ActorResolver
             int rh = MainHandFromRoster(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith), actorWeapon);
             if (rh == 0) continue;
 
-            if (foundReal && !realPos) continue;
-            if (realPos && !foundReal && mainHand != 0)
-            {
-                mainHand = 0; ambiguous = false; foundReal = true;
-            }
-            if (realPos) foundReal = true;
+            var verdict = twin.Step(realPos, haveAccumulation: mainHand != 0);
+            if (verdict == TwinFilter.Verdict.Skip) continue;
+            if (verdict == TwinFilter.Verdict.Restart) { mainHand = 0; ambiguous = false; }
 
             if (mainHand == 0) mainHand = rh;
             else if (mainHand != rh) ambiguous = true;
@@ -317,9 +299,10 @@ internal sealed partial class ActorResolver
     /// A band-confirmed unarmed actor (sentinel weapon) that has its own empty-hands roster
     /// slot returns 0 (no main hand to command from) rather than borrowing a
     /// fingerprint-colliding armed slot's RRHand.
-    /// NOTE: the roster-walk here is duplicated from <see cref="FingerprintPlayer"/> (their
-    /// ambiguity semantics differ: RRHand identity here vs set equality there); a shared helper
-    /// is a follow-up seam.</summary>
+    /// NOTE: the walk BODY here and in <see cref="FingerprintPlayer"/> stay separate on purpose
+    /// (their ambiguity semantics differ: RRHand identity + a band-confirmed mid-loop return
+    /// here vs set equality + dual-track accumulation there); the shared truth is the
+    /// fingerprint MATCH RULE, <see cref="RosterFpMatches"/> (LW-154).</summary>
     private int MainHandFromRoster(int level, int brave, int faith, int actorWeapon)
     {
         bool weaponTracked = actorWeapon != 0 && actorWeapon != 0xFFFF && _weapons.Contains(actorWeapon);
@@ -329,11 +312,7 @@ internal sealed partial class ActorResolver
         for (int s = 0; s < Offsets.RosterSlots; s++)
         {
             long b = Offsets.RosterBase + (long)s * Offsets.RosterStride;
-            // level is the LIVE value; the roster keeps the pre-battle level (level-drift rule --
-            // exact equality here silently disarmed main-hand signatures after a mid-battle level-up).
-            if (!Band.LevelMatchesRoster(_mem.U8(b + Offsets.RLevel), level)) continue;
-            if (_mem.U8(b + Offsets.RBrave) != brave) continue;
-            if (_mem.U8(b + Offsets.RFaith) != faith) continue;
+            if (!RosterFpMatches(b, level, brave, faith)) continue;
             int candidate = _mem.U16(b + Offsets.RRHand);
             if (!_weapons.Contains(candidate)) { emptyMatch = true; continue; }   // empty / shield main hand
             if (weaponTracked && candidate == actorWeapon) return actorWeapon;   // band-confirmed main hand
@@ -382,14 +361,11 @@ internal sealed partial class ActorResolver
             return true;
         }
 
-        ushort maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
-        ushort hp    = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
-        ushort level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
-        if (maxHp == 0 || maxHp >= 2000 || level < 1 || level > 99) return false;
+        if (!TryReadTqActor(out ushort maxHp, out ushort hp, out ushort level)) return false;
 
         (int, int, int) found = default;
-        bool haveFp    = false;
-        bool foundReal = false;
+        bool haveFp = false;
+        var twin = new TwinFilter();
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
@@ -400,9 +376,9 @@ internal sealed partial class ActorResolver
             if (_mem.U8(addr  + Offsets.ALevel) != level) continue;
 
             bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
-            if (foundReal && !realPos) continue;
-            if (realPos && !foundReal && haveFp) { found = default; haveFp = false; foundReal = true; }
-            if (realPos) foundReal = true;
+            var verdict = twin.Step(realPos, haveAccumulation: haveFp);
+            if (verdict == TwinFilter.Verdict.Skip) continue;
+            if (verdict == TwinFilter.Verdict.Restart) { found = default; haveFp = false; }
 
             var candidate = ((int)level, (int)_mem.U8(addr + Offsets.ABrave), (int)_mem.U8(addr + Offsets.AFaith));
             if (!haveFp) { found = candidate; haveFp = true; }
@@ -419,5 +395,53 @@ internal sealed partial class ActorResolver
         if (a.Count != b.Count) return false;
         foreach (var x in a) if (!b.Contains(x)) return false;
         return true;
+    }
+
+    /// <summary>The roster fingerprint MATCH RULE both roster walks share (LW-154): does roster
+    /// slot base <paramref name="b"/> belong to a unit with this live (level,brave,faith)?
+    /// Level goes through the level-drift rule (the roster keeps the pre-battle level; exact
+    /// equality here once silently disarmed main-hand signatures after a mid-battle level-up).
+    /// THE edit point when the fingerprint grows more fields (LW-39, the twins ticket): extend
+    /// here and both walks agree by construction.</summary>
+    private bool RosterFpMatches(long b, int level, int brave, int faith)
+        => Band.LevelMatchesRoster(_mem.U8(b + Offsets.RLevel), level)
+        && _mem.U8(b + Offsets.RBrave) == brave
+        && _mem.U8(b + Offsets.RFaith) == faith;
+
+    /// <summary>The three condensed turn-queue reads plus the sanity gate every tq-fallback
+    /// resolve opens with (LW-154: was spelled verbatim at all three sites). False = the
+    /// condensed struct does not hold a plausible unit; each caller returns its own failure
+    /// value. The gate is unchanged from the copies: maxHp 0 or &gt;= 2000, or level outside
+    /// 1..99, refuses.</summary>
+    private bool TryReadTqActor(out ushort maxHp, out ushort hp, out ushort level)
+    {
+        maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
+        hp    = _mem.U16(Offsets.TurnQueue + Offsets.TqHp);
+        level = _mem.U16(Offsets.TurnQueue + Offsets.TqLevel);
+        return maxHp != 0 && maxHp < 2000 && level >= 1 && level <= 99;
+    }
+
+    /// <summary>The twin filter's ONE home (LW-154: was verbatim-triplicated across the three
+    /// tq-fallback walks). Prefers real-position (gx/gy != 0,0) band seats over a roster unit's
+    /// frozen (0,0) mirror, whose stale fields would otherwise spoil the resolve as ambiguous.
+    /// Per-candidate protocol: Skip = a (0,0) seat after a real match latched, ignore it;
+    /// Restart = the FIRST real seat arriving after (0,0)-only accumulation, so the caller
+    /// discards what it accumulated and re-accumulates from this candidate; Keep = accumulate
+    /// normally. The caller supplies its own have-accumulation predicate and owns the discard
+    /// action (the three callers' accumulations and ambiguity policies differ on purpose);
+    /// this struct owns only the real-position bookkeeping. Construct fresh per resolve.</summary>
+    private struct TwinFilter
+    {
+        internal enum Verdict { Keep, Restart, Skip }
+
+        private bool _foundReal;   // any accepted match at gx/gy != (0,0) so far
+
+        internal Verdict Step(bool realPos, bool haveAccumulation)
+        {
+            if (_foundReal && !realPos) return Verdict.Skip;
+            bool restart = realPos && !_foundReal && haveAccumulation;
+            if (realPos) _foundReal = true;
+            return restart ? Verdict.Restart : Verdict.Keep;
+        }
     }
 }
