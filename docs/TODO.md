@@ -62,6 +62,93 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-153] 2026-08-07: Several shipped weapon behaviors are maintained as hand-synced copies of
+  the same code, so a fix has to land twice or more and can silently miss a copy; fold each
+  family into one shared home.
+  From the 2026-08-07 refactor deep dive (6 finders, 3 adversarial verify batches; every item
+  below re-verified by diffing both sides). The families, best value first: (a) Renewal.cs and
+  Wyrmblood.cs are token-identical for ~85 lines of tick and ally-heal loop; a name-normalized
+  diff leaves only 5 real differences (weapon id, radius knob, heal amount, range predicate,
+  prose). Extract one heal-pulse core, keep Chebyshev vs Manhattan as an injected predicate,
+  keep per-weapon log strings byte-identical. (b) The same-unit write-safety predicate (the
+  check that keeps a held write off a stranger's memory when band seats migrate) is
+  token-identical in CharmLock.Valid and Puppeteer.Hold.Valid and inlined again in Maim.Drive
+  and Plague.DriveOne; one Band.SameUnitAtExact helper makes the LW-92 level-drift lesson a
+  one-place decision. Do NOT fold Rapture.SameUnit (level-exempt by design) or Plague.SameVictim
+  (drift-tolerant by design). (c) KillTally.Save and LegendStore.SaveIfDirty share a
+  token-identical atomic save chain (tmp, copy prior to .bak, move); extract SaveAtomic only,
+  leave the divergent Load loops and GunSlingerStore.Save (different .bak generation, by its own
+  doc) alone. Also the one place LW-28 would instrument saves once. (d) Benediction's HealState
+  is a sign-flipped copy of RicochetState (~35 lines); base class plus two direction subclasses,
+  call sites untouched. (e) KillTracker.Corpses pastes one untracked-bury ruling block twice.
+- [LW-154] 2026-08-07: The code that answers "which unit is acting right now", the heart of kill
+  credit, spells its subtlest logic three times over; give it one home before the twins ticket
+  makes it four.
+  From the 2026-08-07 deep dive, adversarially verified against ActorResolver.cs in full. The
+  3-read turn-queue preamble plus sanity gate is verbatim at three sites, and the twin filter
+  (the discard-and-restart bookkeeping that keeps mirror seats from stealing credit) is
+  verbatim-triplicated; LW-39's fingerprint extension would have to edit all three. Stage 1
+  (extract TryReadTqActor plus a TwinFilter struct, accumulation and ambiguity policy stay
+  caller-side, bodies move verbatim because early-ambiguous ordering is observable behavior) is
+  near S effort and carries most of the payoff. Stage 2, the roster-walk seam the file itself
+  names twice as follow-up work, is the delicate half: FingerprintPlayer and MainHandFromRoster
+  differ materially (set-equality accumulation vs mid-loop early return) and a shared walk must
+  preserve that byte-for-byte; treat it as its own verified stage or skip it. Pinned by
+  FlagOwnerResolveTests, ActorResolverUnarmedTests, KillTrackerTests, CounterAttributionTests.
+- [LW-155] 2026-08-07: Retire code that is finished, dead, or lying: a whole logging lane nobody
+  calls anymore, a dead second copy of the poison turn thresholds, a settings knob that can only
+  ever be one value, and two wiring comments that name the wrong weapons.
+  From the 2026-08-07 deep dive, each verified by repo-wide caller grep. (a) The verb-less
+  legacy logging lane (five ModLogger statics, five verb-less ILogger members, their
+  FileConsoleLogger and NullLogger impls) has ZERO production callers; the migration ratchet
+  (LogContractTests.LegacyCallers) is empty and ModLogger.cs's keep-public comment cites a shim
+  LW-146 already deleted. Delete the lane, reshape the ~20 LoggerTests methods that drive it
+  (one asserts a console/file equality that is only true on the legacy path and gets deleted),
+  fix docs/LOGGING.md:307. (b) Plague.IsTurn has zero callers and hardcodes the 90/70 CT
+  thresholds a second time outside CtTurns; delete it, and fix the two Plague comments that
+  still point future work at retired LW-149. (c) SCAFFOLD_LIVING (patch_names.py:31) is never
+  False anywhere; flipping it would silently split the CI gates from the bake, so delete the
+  knob. (d) Engine.cs's wiring table says Wellspring for the id-56 font (it is Umbral Rod) and
+  describes a LifeSap on-kill heal that is provably data-dormant (lifeSapOnKill appears in zero
+  items); fix both comments, and put the real question to the owner: wire the mechanic to a
+  weapon or delete the module.
+- [LW-156] 2026-08-07: The item-bake tooling maintains the same derivation rules in two places
+  and reads the same CSV with three private copies of one loader, so a rule change can pass the
+  gate while pointing the blame at the wrong file.
+  From the 2026-08-07 deep dive; the verifier called (a) the strongest finding of its batch. (a)
+  audit_nxd_bakes.item_intent is a token-identical inline copy of patch_names' bake derivation
+  (build_sort_map plus the intent cell set), breaking build_sort_map's own docstring promise
+  that writer and verifier share one derivation; today an edit to apply_patches alone turns the
+  deploy red with a message pointing at the audit instead of the cause. Extract one pure
+  derivation both import (lazy import direction already documented in the file). (b)
+  gen_living_weapon_meta.py hand-copies ~25 get/branch passthroughs from items.json to
+  meta.json with no gate for a missing branch (MetaSchemaTests catches only the opposite
+  direction); table-drive it, preserving TRUTHINESS semantics (if sig.get(k)) exactly, then
+  prove by regenerating meta.json byte-identical. (c) analyze.py loads living_weapon_grid.csv
+  three times with three private loaders (two copy-identical, one adding dup-id detection that
+  must NOT quietly spread to the other two), and the sigName-or-displayLabel resolution rule is
+  copied in analyze.py twice plus lib/flavor.py; one loader, one rule, proof is identical
+  stdout and exit code. (d) patch_ability_names.py hard-copies a pristine cache file that a
+  fresh checkout does not have; give it the bootstrap its status sibling already has.
+- [LW-157] 2026-08-07: The test suite pays a copy-paste tax: nine kill-tracker suites carry the
+  same seeding helpers, fifty call sites hand-roll the same seven-line logger swap, and a few
+  seed rituals still live outside the shared fixtures.
+  From the 2026-08-07 deep dive, all diffs verified. (a) Nine KillTracker-family suites copy
+  Settle and the Set* seed helpers (three files byte-identical, two cosmetic variants); the
+  genuinely duplicated core is the TurnQueue+Acted seed, static-array oracle seed, ActorPtr
+  formula, and settle rhythms, roughly 30-45 lines per suite. PRECONDITION: KillCreditCoverageTests
+  documents per-file mirroring as this family's deliberate convention, so retiring it is an
+  owner call first. (b) The ModLogger capture ritual (swap in a sink logger, run, restore in
+  finally) appears at ~50 sites across 21 files with TWO different restore conventions; one
+  shared capture scope (level and sink-selection parameterized) makes the restore discipline
+  structural. (c) Twelve hand-rolled Display constructions could ride CardFixtures.MakeDisplay;
+  (d) GunSlingerTests hand-rolls the temp-dir try/finally ritual nine times beside the TempDirs
+  fixture 20+ suites already use; (e) the byte-identical SeatEnemyFp triple (Maim, PlagueDrift,
+  Puppeteer, plus a fourth inline copy in KobuTests) belongs in BandFixtures beside its
+  ally-side twin (ChoirTests' inline variant stays out, its 1-byte mark is a different premise);
+  (f) residue: dead 1-byte mark at ChoirTests:234, stale AttackCardFixtures.SeatCursor comment,
+  and ExtraTurn's guarded CT/HP reads have zero readable-success coverage in either suite, so a
+  future dead-check test would pass vacuously.
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
   one item is left, and it needs the owner's own sign-off.
   Fixed this commit: docs/LOGGING.md's claim that Puppeteer is not flight-tapped (it is, and the
