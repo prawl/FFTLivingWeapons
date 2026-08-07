@@ -110,7 +110,7 @@ def main() -> None:
     ENC_DIR.mkdir(parents=True, exist_ok=True)
     shutil.copy(PRISTINE, BUILD)
     apply_patches(BUILD, TABLE, PATCHES)
-    out_nxd = encode_sqlite_to_nxd(BUILD, ENC_DIR, "ability.en.nxd")
+    out_nxd = encode_sqlite_to_nxd(BUILD, ENC_DIR, NXD_NAME)
     verify_only_intended_cells(out_nxd, PRISTINE, TABLE, PATCHES)
     deploy_nxd(out_nxd, MOD_ABILITY_NXD)
     print(f"deployed -> {MOD_ABILITY_NXD}")
