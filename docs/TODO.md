@@ -60,20 +60,6 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-152] Close the four test-blind corners of kill credit the refactor verifies exposed** (opened 2026-08-05) [BUILDING]
-  - Done means: four corners of the kill counter that no test has ever watched each get one
-    test that fails when its corner breaks: an orphaned corpse whose alive edge arrives with NO
-    culprit stamped must still fall through into the shared credit machinery (proven test-blind
-    in both the old and new code); and the three diagnostic mirror copy-backs the latch
-    extraction turned into one-line plumbing dependencies (the console armed gate, the
-    fallback-credit provenance flag, the dev log's actor tag) each get a Poll-driven test that
-    goes red when its copy-back is dropped. (Tech: the S4 seam, HandleOrphanAliveEdge returning
-    true, and the S3 carrier, ActedPeriodOutputs, make all four reachable; the verify passes
-    proved each gap by mutation with the suite staying green, so the non-vacuity bar for each
-    new test is exactly that mutation going red.)
-  - Verify: full suite green with the four tests in; each proven non-vacuous by re-running its
-    verify-pass mutation and watching exactly that test fail. Offline only.
-
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;

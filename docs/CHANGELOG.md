@@ -10,6 +10,16 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-152] SHIPPED f553a1a 2026-08-07: the kill counter's four test-blind corners each have their
+  first test, and each is proven to catch exactly its own break. The orphaned-corpse-with-no-
+  known-killer path is pinned as going pending into the shared credit machinery, verified against
+  BOTH the current dispatcher and the pre-split code (the verifier swapped the old file in and
+  watched the new tests pass, then broke the old code the old way and watched exactly one test
+  die), so the pin canonizes long-standing behavior. The three latch copy-backs (the console
+  armed gate, the fallback-credit provenance flag, the battle log's weapon tag) each go red when
+  dropped; one turned out partly compiler-guarded (deleting the actor-tag copy-back does not
+  compile), banked in the verify record. Tests only, no production change; suite 3029; verify
+  SHIP 9/10 with four mutations run instead of the two asked.
 - [LW-150] SHIPPED 40a02b2 2026-08-05: the audit's five structural seams are taken, each its own
   green commit, runtime behavior byte-identical throughout and every claim proven by token-level
   comparison against the old code plus sabotage runs. The balance gate's twelve copied check
