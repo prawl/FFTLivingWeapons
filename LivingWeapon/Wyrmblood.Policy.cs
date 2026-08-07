@@ -14,10 +14,10 @@ internal sealed partial class Wyrmblood
     /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
 
-    /// <summary>The wielder's turn edge: a PRIMED TurnTracker count climbed. -1 = unprimed
-    /// (first sight after a reset or a re-equip baselines silently). A count that DROPPED
-    /// (tracker reset under us) re-baselines instead of splashing.</summary>
-    public static bool IsTurnEdge(int lastTurns, int turns) => lastTurns >= 0 && turns > lastTurns;
+    /// <summary>The wielder's turn edge -- THE rule lives on the shared core
+    /// (<see cref="HealPulse.IsTurnEdge"/>; LW-153: this was one of two verbatim copies).
+    /// Kept as a delegating alias so the policy surface and its tests read per-module.</summary>
+    public static bool IsTurnEdge(int lastTurns, int turns) => HealPulse.IsTurnEdge(lastTurns, turns);
 
     /// <summary>The per-unit heal: its OWN maxHp / div (vanilla Regen is maxHp/8, integer
     /// floor), floor 1 so tiny units still mend. 0 when maxHp is junk.</summary>

@@ -97,4 +97,87 @@ public class RenewalTests
     [Fact]
     public void ActivatesOnMainHandOnly_is_documented_in_policy()
         => Assert.True(Renewal.ActivatesOnMainHandOnly);
+
+    // ---- LW-153 pulse pins: the STATEFUL heal loop, driven directly (internal for test reach).
+    // Written GREEN against the pre-fold Renewal.Aura, so the shared HealPulse core must keep
+    // them green and a sabotage of the shared loop turns them red in BOTH suites at once. ----
+
+    private static readonly (int mhp, int lvl, int br, int fa) AllyFp = (300, 40, 60, 55);
+
+    /// <summary>Stage a band seat at <paramref name="slot"/> carrying AllyFp (or a stranger's
+    /// fp), registered (or not) as a static-array PLAYER so Band.AllyFingerprints recognizes
+    /// it, with the HP field writable the way production writes it (BandHeal, n=2).</summary>
+    private static FakeSparseMemory PulseRig(out Renewal r)
+    {
+        var m = new FakeSparseMemory();
+        BandFixtures.SeedAllyFpAt(m, idx: 1, mhp: AllyFp.mhp, lvl: AllyFp.lvl, br: AllyFp.br, fa: AllyFp.fa);
+        r = new Renewal(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), new TurnTracker(m), m);
+        return m;
+    }
+
+    private static long SeatAt(FakeSparseMemory m, int slot, int gx, int gy, int hp,
+                               (int mhp, int lvl, int br, int fa)? fp = null)
+    {
+        var f = fp ?? AllyFp;
+        MemSeats.SeatBand(m, slot, weapon: 0, lvl: f.lvl, br: f.br, fa: f.fa, gx: gx, gy: gy, hp: hp, maxHp: f.mhp);
+        long e = Band.Entry(slot);
+        m.MarkWritable(e + Offsets.AHp, 2);   // production writes n=2 (BandHeal.cs WriteHp)
+        return e;
+    }
+
+    private static int ExpectedHealed(int hp) =>
+        BandHeal.NewHp(hp, AllyFp.mhp, BandHeal.HealAmount(AllyFp.mhp, Tuning.RenewalPct));
+
+    [Fact]
+    public void Aura_heals_a_live_ally_in_radius()
+    {
+        var m = PulseRig(out var r);
+        long e = SeatAt(m, slot: 30, gx: 6, gy: 5, hp: 200);
+        r.Aura(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)ExpectedHealed(200), m.U16s[e + Offsets.AHp]);
+        Assert.NotEqual(200, ExpectedHealed(200));   // non-vacuity: the heal really moves HP
+    }
+
+    [Fact]
+    public void Aura_never_heals_a_non_ally_fingerprint()
+    {
+        // Positive ally match only: a unit whose fingerprint is NOT a static-array PLAYER slot
+        // (an enemy, an uncaptured reinforcement) is never healed, even in radius.
+        var m = PulseRig(out var r);
+        long e = SeatAt(m, slot: 30, gx: 6, gy: 5, hp: 200, fp: (400, 30, 45, 45));
+        r.Aura(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)200, m.U16s[e + Offsets.AHp]);   // untouched
+    }
+
+    [Fact]
+    public void Aura_never_revives_a_dead_ally()
+    {
+        var m = PulseRig(out var r);
+        long e = SeatAt(m, slot: 30, gx: 6, gy: 5, hp: 0);
+        r.Aura(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)0, m.U16s[e + Offsets.AHp]);     // dead stays dead
+    }
+
+    [Fact]
+    public void Aura_heals_a_band_twin_once()
+    {
+        var m = PulseRig(out var r);
+        long first = SeatAt(m, slot: 30, gx: 6, gy: 5, hp: 200);
+        long twin  = SeatAt(m, slot: 31, gx: 5, gy: 6, hp: 200);   // same fp, also in radius
+        r.Aura(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)ExpectedHealed(200), m.U16s[first + Offsets.AHp]);
+        Assert.Equal((ushort)200, m.U16s[twin + Offsets.AHp]);     // one heal per fingerprint
+    }
+
+    [Fact]
+    public void Aura_reaches_the_diagonal_neighbor_Chebyshev()
+    {
+        // THE deliberate metric difference from Wyrmblood: at radius 1 the diagonal tile is
+        // distance 1 under Chebyshev (healed here) but distance 2 under Manhattan (skipped in
+        // WyrmbloodTests' mirror pin with the same geometry).
+        var m = PulseRig(out var r);
+        long e = SeatAt(m, slot: 30, gx: 6, gy: 6, hp: 200);
+        r.Aura(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)ExpectedHealed(200), m.U16s[e + Offsets.AHp]);
+    }
 }

@@ -3,114 +3,51 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Mending Staff's "Renewal" signature: at each of the +3 wielder's turn edges (TurnTracker),
-/// the wielder AND every ALLY within RegenAuraRadius Chebyshev tiles are healed for
-/// round(maxHP * Tuning.RenewalPct) of their OWN max HP, clamped at full. This is a SILENT
-/// band +0x14 HP write -- no status icon, no floating number (proven impossible to surface
-/// without engine hooks). The Regen status bit is never touched.
-///
-/// TIMING: TurnTracker's edge is the COMPLETED-turn edge (the rising Acted flag), so the
-/// aura fires as the wielder FINISHES acting, with adjacency measured from the post-move
-/// tile. Completed turns are the only edge TurnTracker offers and the edge the design
-/// prescribes.
-///
-/// ALLIES ONLY, positively identified: an aura target's fingerprint must match a static-array
-/// PLAYER slot (s &gt; EnemySlotMax) -- "not an enemy" would risk healing an uncaptured enemy
-/// reinforcement. The dead are never healed (BandHeal.NewHp leaves hp 0 alone -- no accidental
-/// revival), and each fingerprint is healed once per pulse (band twins). Wielder location =
-/// the shared roster resolve + band twin-filter walk (Wielder.cs).
+/// Mending Staff's "Renewal" signature: at each of the +3 wielder's turn edges, the wielder
+/// AND every ALLY within RegenAuraRadius CHEBYSHEV tiles are healed for
+/// round(maxHP * Tuning.RenewalPct) of their OWN max HP, clamped at full. A SILENT band HP
+/// write -- no status icon, no floating number; the Regen status bit is never touched.
 ///
 /// CHEBYSHEV (not Manhattan): radius 1 covers all 8 surrounding tiles, including diagonals.
-/// This is the key difference from Wyrmblood's Manhattan splash.
+/// This is the key difference from Wyrmblood's Manhattan splash (pinned by the two suites'
+/// mirrored diagonal tests).
 ///
-/// MULTI-WIELDER: if two players equip a +3 Mending Staff simultaneously, TryResolveMainHand
-/// returns false (ambiguity) and the aura is suppressed for that tick -- inherited behaviour
-/// from the shared wielder-resolve path.
+/// The stateful machinery (activation edge, completed-turn edge, wielder locate, the ally
+/// heal loop, the aggregated narration) is the shared <see cref="HealPulse"/> core (LW-153:
+/// this file and Wyrmblood.cs were ~85 token-identical lines); this class is the Renewal
+/// config over it, and Renewal.Policy.cs keeps the pure per-module rules.
 /// </summary>
 internal sealed partial class Renewal : ISignature
 {
-    void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
     private const int MendingStaffId = 61;
 
-    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
-
-    private readonly Dictionary<int, WeaponMeta> _meta;
-    private readonly Dictionary<int, int> _kills;
-    private readonly TurnTracker _turns;
-    private readonly List<int> _hands = new();
-    private readonly ScopedLogger _slog;   // armed gate: a benched +3 staff must not narrate on console
-    private int _lastTurns = -1;
-    private bool _wasActive;
+    private readonly HealPulse _pulse;
 
     public Renewal(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns, IGameMemory? mem = null)
     {
-        _mem = mem ?? new LiveMemory();
-        _meta = meta;
-        _kills = kills;
-        _turns = turns;
-        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, MendingStaffId));
-    }
-
-    public void ResetBattle()
-    {
-        _lastTurns = -1;
-        _wasActive = false;
-    }
-
-    public void Tick(bool onField)
-    {
-        if (!onField) return;
-        if (!_meta.TryGetValue(MendingStaffId, out var m) || m.Signature is null) return;
-        int tier = Tuning.TierOf(_kills, MendingStaffId);
-        (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(_mem, MendingStaffId, out fp, _hands);
-        if (ActivationEdge.Step(ref _wasActive, active))
+        _pulse = new HealPulse(new HealPulse.Config
         {
-            _slog.Info(active
-                ? "Mending Staff at tier three is wielded on the field; the end-of-turn mending aura is active."
-                : "The mending aura is no longer active.");
-        }
-        if (!active) { _lastTurns = -1; return; }   // re-baseline on re-equip (no stale-diff aura)
-
-        int turns = _turns.Turns(fp.lvl, fp.br, fp.fa);
-        bool edge = IsTurnEdge(_lastTurns, turns);
-        _lastTurns = turns;
-        if (!edge) return;
-
-        long w = Wielder.Locate(_mem, MendingStaffId, _hands, fp);
-        if (w == 0) { ModLogger.Warn(LogVerb.Signature, "The wielder's turn ended but they could not be found in memory this tick; the mending aura did not fire."); return; }
-        Aura(_mem.U8(w + Offsets.AGx), _mem.U8(w + Offsets.AGy), m.Signature.RegenAuraRadius, turns);
+            WeaponId = MendingStaffId,
+            Radius = sig => sig.RegenAuraRadius,
+            IsActive = IsActive,
+            Amount = mhp => BandHeal.HealAmount(mhp, Tuning.RenewalPct),
+            InRange = InAura,
+            ActiveLine = "Mending Staff at tier three is wielded on the field; the end-of-turn mending aura is active.",
+            InactiveLine = "The mending aura is no longer active.",
+            WielderMissWarn = "The wielder's turn ended but they could not be found in memory this tick; the mending aura did not fire.",
+            DebugVerb = "renewal mended",
+            NoAlliesDebug = "renewal turn-edge aura found no allies in range to mend",
+            Summary = (n, total) => $"{n} {(n == 1 ? "ally was" : "allies were")} mended for {total} HP at the wielder's turn end.",
+        }, meta, kills, turns, mem);
     }
 
-    /// <summary>One aura pulse: heal every live ALLY band entry within the radius (the wielder is
-    /// its own ally at distance 0) by round(its OWN maxHp * Tuning.RenewalPct), once per fingerprint.
-    /// Console gets ONE aggregated summary per pulse; the per-ally tile/HP detail is file-only
-    /// (the old one-Info-line-per-ally shape ate the console ceiling every wielder turn).</summary>
-    private void Aura(int wgx, int wgy, int radius, int turn)
-    {
-        var allies = Band.AllyFingerprints(_mem);
-        var healed = new HashSet<(int mhp, int lvl, int br, int fa)>();
-        int totalMended = 0;
-        for (int s = 0; s < Offsets.BandSlots; s++)
-        {
-            long e = Band.Entry(s);
-            if (!Band.IsValid(_mem, e)) continue;
-            int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
-            if (!InAura(wgx, wgy, gx, gy, radius)) continue;
-            var fp = (mhp: (int)_mem.U16(e + Offsets.AMaxHp), lvl: (int)_mem.U8(e + Offsets.ALevel),
-                      br: (int)_mem.U8(e + Offsets.ABrave), fa: (int)_mem.U8(e + Offsets.AFaith));
-            if (!allies.Contains(fp)) continue;      // never enemies (positive ally match only)
-            if (healed.Contains(fp)) continue;       // band twin: one heal per unit
-            int hp = _mem.U16(e + Offsets.AHp);
-            int newHp = BandHeal.NewHp(hp, fp.mhp, BandHeal.HealAmount(fp.mhp, Tuning.RenewalPct));
-            if (newHp == hp) continue;               // full, or dead (never revive)
-            BandHeal.WriteHp(_mem, e, newHp);
-            healed.Add(fp);
-            totalMended += newHp - hp;
-            ModLogger.Debug(LogVerb.Signature, $"renewal mended the ally at ({gx},{gy}) for {newHp - hp} HP (HP {hp} to {newHp}, maximum {fp.mhp})");
-        }
-        if (healed.Count == 0) ModLogger.Debug(LogVerb.Signature, "renewal turn-edge aura found no allies in range to mend");
-        else ModLogger.Event(LogVerb.Signature, $"{healed.Count} {(healed.Count == 1 ? "ally was" : "allies were")} mended for {totalMended} HP at the wielder's turn end.");
-    }
+    void ISignature.Tick(in TickContext ctx) => _pulse.Tick(ctx.OnField);
 
+    public void Tick(bool onField) => _pulse.Tick(onField);
+
+    public void ResetBattle() => _pulse.ResetBattle();
+
+    // internal for test reach (the CharmLock.Drive precedent): RenewalTests' pulse pins drive
+    // the shared loop directly through this module's own config.
+    internal void Aura(int wgx, int wgy, int radius, int turn) => _pulse.Pulse(wgx, wgy, radius);
 }

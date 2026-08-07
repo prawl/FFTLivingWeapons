@@ -16,10 +16,10 @@ internal sealed partial class Renewal
     /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
 
-    /// <summary>The wielder's turn edge: a PRIMED TurnTracker count climbed. -1 = unprimed
-    /// (first sight after a reset or a re-equip baselines silently). A count that DROPPED
-    /// (tracker reset under us) re-baselines instead of pulsing the aura.</summary>
-    public static bool IsTurnEdge(int lastTurns, int turns) => lastTurns >= 0 && turns > lastTurns;
+    /// <summary>The wielder's turn edge -- THE rule lives on the shared core
+    /// (<see cref="HealPulse.IsTurnEdge"/>; LW-153: this was one of two verbatim copies).
+    /// Kept as a delegating alias so the policy surface and its tests read per-module.</summary>
+    public static bool IsTurnEdge(int lastTurns, int turns) => HealPulse.IsTurnEdge(lastTurns, turns);
 
     /// <summary>Chebyshev distance between two grid tiles: max(|dx|, |dy|). Unlike Manhattan
     /// distance, diagonals count as 1, matching the 8-directional "king move" neighbourhood.</summary>

@@ -1,111 +1,54 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace LivingWeapon;
 
 /// <summary>
-/// Dragon Rod's "Wyrmblood" signature: at each of the +3 wielder's turn edges (TurnTracker),
-/// the wielder AND every ALLY within RegenSplashRadius Manhattan tiles regenerate their OWN
-/// maxHP/WyrmbloodDiv (the vanilla Regen rate), clamped at full. This is EMULATED regen --
-/// the Regen status bit is unmapped and never touched; the heal is a plain guarded HP write
-/// on the authoritative band entries (the field Ricochet's chip writes).
+/// Dragon Rod's "Wyrmblood" signature: at each of the +3 wielder's turn edges, the wielder
+/// AND every ALLY within RegenSplashRadius MANHATTAN tiles regenerate their OWN
+/// maxHP/WyrmbloodDiv (the vanilla Regen rate), clamped at full. EMULATED regen -- the Regen
+/// status bit is unmapped and never touched; the heal is a plain guarded HP write on the
+/// authoritative band entries.
 ///
-/// TIMING: TurnTracker's edge is the COMPLETED-turn edge (the rising Acted flag), so the
-/// splash lands as the wielder FINISHES acting, with adjacency measured from the post-move
-/// tile -- NOT before the wielder moves, as vanilla Regen would tick. Completed turns are
-/// the only edge TurnTracker offers (and the mechanism the design prescribes); true
-/// start-of-turn semantics would need an active-unit fingerprint watch on the turn queue
-/// (TryActiveFingerprint before Acted rises) and is deliberately not attempted here.
+/// MANHATTAN (not Chebyshev): at radius 1 the diagonal tile is distance 2 and stays outside
+/// the splash. This is the key difference from Renewal's Chebyshev aura (pinned by the two
+/// suites' mirrored diagonal tests).
 ///
-/// ALLIES ONLY, positively identified: a splash target's fingerprint must match a static-array
-/// PLAYER slot (s &gt; EnemySlotMax) -- "not an enemy" would risk healing an uncaptured enemy
-/// reinforcement. The dead are never healed (BandHeal.NewHp leaves hp 0 alone -- no accidental
-/// revival), and each fingerprint is healed once per splash (band twins). Wielder location =
-/// the shared roster resolve + band twin-filter walk (Wielder.cs).
+/// The stateful machinery (activation edge, completed-turn edge, wielder locate, the ally
+/// heal loop, the aggregated narration) is the shared <see cref="HealPulse"/> core (LW-153:
+/// this file and Renewal.cs were ~85 token-identical lines); this class is the Wyrmblood
+/// config over it, and Wyrmblood.Policy.cs keeps the pure per-module rules.
 /// </summary>
 internal sealed partial class Wyrmblood : ISignature
 {
-    void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
     private const int DragonRodId = 57;
 
-    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
-
-    private readonly Dictionary<int, WeaponMeta> _meta;
-    private readonly Dictionary<int, int> _kills;
-    private readonly TurnTracker _turns;
-    private readonly List<int> _hands = new();
-    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod must not narrate on console
-    private int _lastTurns = -1;
-    private bool _wasActive;
+    private readonly HealPulse _pulse;
 
     public Wyrmblood(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns, IGameMemory? mem = null)
     {
-        _mem = mem ?? new LiveMemory();
-        _meta = meta;
-        _kills = kills;
-        _turns = turns;
-        _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, DragonRodId));
-    }
-
-    public void ResetBattle()
-    {
-        _lastTurns = -1;
-        _wasActive = false;
-    }
-
-    public void Tick(bool onField)
-    {
-        if (!onField) return;
-        if (!_meta.TryGetValue(DragonRodId, out var m) || m.Signature is null) return;
-        int tier = Tuning.TierOf(_kills, DragonRodId);
-        (int lvl, int br, int fa) fp = default;
-        bool active = IsActive(m.Signature, tier) && Wielder.TryResolveMainHand(_mem, DragonRodId, out fp, _hands);
-        if (ActivationEdge.Step(ref _wasActive, active))
+        _pulse = new HealPulse(new HealPulse.Config
         {
-            _slog.Info(active
-                ? "Dragon Rod at tier three is wielded on the field; the end-of-turn regeneration splash is active."
-                : "The regeneration splash is no longer active.");
-        }
-        if (!active) { _lastTurns = -1; return; }   // re-baseline on re-equip (no stale-diff splash)
-
-        int turns = _turns.Turns(fp.lvl, fp.br, fp.fa);
-        bool edge = IsTurnEdge(_lastTurns, turns);
-        _lastTurns = turns;
-        if (!edge) return;
-
-        long w = Wielder.Locate(_mem, DragonRodId, _hands, fp);
-        if (w == 0) { ModLogger.Warn(LogVerb.Signature, "The wielder's turn ended but they could not be found in memory this tick; the regeneration splash did not fire."); return; }
-        Splash(_mem.U8(w + Offsets.AGx), _mem.U8(w + Offsets.AGy), m.Signature.RegenSplashRadius, turns);
+            WeaponId = DragonRodId,
+            Radius = sig => sig.RegenSplashRadius,
+            IsActive = IsActive,
+            Amount = mhp => RegenAmount(mhp, Tuning.WyrmbloodDiv),
+            InRange = InSplash,
+            ActiveLine = "Dragon Rod at tier three is wielded on the field; the end-of-turn regeneration splash is active.",
+            InactiveLine = "The regeneration splash is no longer active.",
+            WielderMissWarn = "The wielder's turn ended but they could not be found in memory this tick; the regeneration splash did not fire.",
+            DebugVerb = "wyrmblood regenerated",
+            NoAlliesDebug = "wyrmblood turn-edge regeneration found no allies in range to mend",
+            Summary = (n, total) => $"{n} {(n == 1 ? "ally" : "allies")} regenerated {total} HP at the wielder's turn end.",
+        }, meta, kills, turns, mem);
     }
 
-    /// <summary>One splash: heal every live ALLY band entry within the radius (the wielder is
-    /// its own ally at distance 0) by its OWN maxHp/WyrmbloodDiv, once per fingerprint.
-    /// Console gets ONE aggregated summary per splash; the per-ally tile/HP detail is file-only
-    /// (the old one-Info-line-per-ally shape ate the console ceiling every wielder turn).</summary>
-    private void Splash(int wgx, int wgy, int radius, int turn)
-    {
-        var allies = Band.AllyFingerprints(_mem);
-        var healed = new HashSet<(int mhp, int lvl, int br, int fa)>();
-        int totalMended = 0;
-        for (int s = 0; s < Offsets.BandSlots; s++)
-        {
-            long e = Band.Entry(s);
-            if (!Band.IsValid(_mem, e)) continue;
-            int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
-            if (!InSplash(wgx, wgy, gx, gy, radius)) continue;
-            var fp = (mhp: (int)_mem.U16(e + Offsets.AMaxHp), lvl: (int)_mem.U8(e + Offsets.ALevel),
-                      br: (int)_mem.U8(e + Offsets.ABrave), fa: (int)_mem.U8(e + Offsets.AFaith));
-            if (!allies.Contains(fp)) continue;      // never enemies (positive ally match only)
-            if (healed.Contains(fp)) continue;       // band twin: one heal per unit
-            int hp = _mem.U16(e + Offsets.AHp);
-            int newHp = BandHeal.NewHp(hp, fp.mhp, RegenAmount(fp.mhp, Tuning.WyrmbloodDiv));
-            if (newHp == hp) continue;               // full, or dead (never revive)
-            BandHeal.WriteHp(_mem, e, newHp);
-            healed.Add(fp);
-            totalMended += newHp - hp;
-            ModLogger.Debug(LogVerb.Signature, $"wyrmblood regenerated the ally at ({gx},{gy}) for {newHp - hp} HP (HP {hp} to {newHp}, maximum {fp.mhp})");
-        }
-        if (healed.Count == 0) ModLogger.Debug(LogVerb.Signature, "wyrmblood turn-edge regeneration found no allies in range to mend");
-        else ModLogger.Event(LogVerb.Signature, $"{healed.Count} {(healed.Count == 1 ? "ally" : "allies")} regenerated {totalMended} HP at the wielder's turn end.");
-    }
+    void ISignature.Tick(in TickContext ctx) => _pulse.Tick(ctx.OnField);
 
+    public void Tick(bool onField) => _pulse.Tick(onField);
+
+    public void ResetBattle() => _pulse.ResetBattle();
+
+    // internal for test reach (the CharmLock.Drive precedent): WyrmbloodTests' pulse pins drive
+    // the shared loop directly through this module's own config.
+    internal void Splash(int wgx, int wgy, int radius, int turn) => _pulse.Pulse(wgx, wgy, radius);
 }

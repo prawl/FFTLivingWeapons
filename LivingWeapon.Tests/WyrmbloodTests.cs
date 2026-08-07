@@ -95,4 +95,71 @@ public class WyrmbloodTests
     [Fact]
     public void ActivatesOnMainHandOnly_is_documented_in_policy()
         => Assert.True(Wyrmblood.ActivatesOnMainHandOnly);
+
+    // ---- LW-153 pulse pins: the STATEFUL heal loop, driven directly (internal for test
+    // reach). Mirrors RenewalTests' pulse pins; written GREEN against the pre-fold
+    // Wyrmblood.Splash, so the shared HealPulse core must keep them green. ----
+
+    private static readonly (int mhp, int lvl, int br, int fa) AllyFp = (300, 40, 60, 55);
+
+    private static FakeSparseMemory PulseRig(out Wyrmblood w)
+    {
+        var m = new FakeSparseMemory();
+        BandFixtures.SeedAllyFpAt(m, idx: 1, mhp: AllyFp.mhp, lvl: AllyFp.lvl, br: AllyFp.br, fa: AllyFp.fa);
+        w = new Wyrmblood(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), new TurnTracker(m), m);
+        return m;
+    }
+
+    private static long SeatAt(FakeSparseMemory m, int slot, int gx, int gy, int hp,
+                               (int mhp, int lvl, int br, int fa)? fp = null)
+    {
+        var f = fp ?? AllyFp;
+        MemSeats.SeatBand(m, slot, weapon: 0, lvl: f.lvl, br: f.br, fa: f.fa, gx: gx, gy: gy, hp: hp, maxHp: f.mhp);
+        long e = Band.Entry(slot);
+        m.MarkWritable(e + Offsets.AHp, 2);   // production writes n=2 (BandHeal.cs WriteHp)
+        return e;
+    }
+
+    private static int ExpectedHealed(int hp) =>
+        BandHeal.NewHp(hp, AllyFp.mhp, Wyrmblood.RegenAmount(AllyFp.mhp, Tuning.WyrmbloodDiv));
+
+    [Fact]
+    public void Splash_heals_a_live_ally_in_radius()
+    {
+        var m = PulseRig(out var w);
+        long e = SeatAt(m, slot: 30, gx: 6, gy: 5, hp: 200);
+        w.Splash(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)ExpectedHealed(200), m.U16s[e + Offsets.AHp]);
+        Assert.NotEqual(200, ExpectedHealed(200));   // non-vacuity: the heal really moves HP
+    }
+
+    [Fact]
+    public void Splash_never_heals_a_non_ally_fingerprint()
+    {
+        var m = PulseRig(out var w);
+        long e = SeatAt(m, slot: 30, gx: 6, gy: 5, hp: 200, fp: (400, 30, 45, 45));
+        w.Splash(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)200, m.U16s[e + Offsets.AHp]);   // untouched
+    }
+
+    [Fact]
+    public void Splash_never_revives_a_dead_ally()
+    {
+        var m = PulseRig(out var w);
+        long e = SeatAt(m, slot: 30, gx: 6, gy: 5, hp: 0);
+        w.Splash(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)0, m.U16s[e + Offsets.AHp]);     // dead stays dead
+    }
+
+    [Fact]
+    public void Splash_skips_the_diagonal_neighbor_Manhattan()
+    {
+        // The mirror of RenewalTests' Chebyshev pin, SAME geometry: at radius 1 the diagonal
+        // tile is Manhattan distance 2, so the splash must NOT reach it. Together the two pins
+        // hold the twins' one deliberate metric difference through the shared-core fold.
+        var m = PulseRig(out var w);
+        long e = SeatAt(m, slot: 30, gx: 6, gy: 6, hp: 200);
+        w.Splash(wgx: 5, wgy: 5, radius: 1, turn: 1);
+        Assert.Equal((ushort)200, m.U16s[e + Offsets.AHp]);   // out of Manhattan range
+    }
 }
