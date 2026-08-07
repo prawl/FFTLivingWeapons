@@ -105,47 +105,12 @@ internal sealed partial class Ricochet
     }
 }
 
-/// <summary>Per-slot HP tracking for the chain-lightning damage-event detector. Baselines the
-/// first sighting silently; after that a drop in HP is one event (heals are ignored).
-/// <see cref="Consume"/> records our OWN chip write so the bounce never feeds another bounce.</summary>
-internal sealed class RicochetState
+/// <summary>Per-slot HP tracking for the chain-lightning damage-event detector: a DROP in HP
+/// is one event (heals are ignored). The bookkeeping (baseline / consume / rearm) is the
+/// shared <see cref="HpDeltaState"/> core (LW-153); this subclass fixes the direction.</summary>
+internal sealed class RicochetState : HpDeltaState
 {
-    private readonly bool[] _seen;
-    private readonly int[] _prevHp;
+    public RicochetState(int slots) : base(slots) { }
 
-    public RicochetState(int slots) { _seen = new bool[slots]; _prevHp = new int[slots]; }
-
-    /// <summary>Reset on battle enter/exit.</summary>
-    public void ResetBattle() { Array.Clear(_seen, 0, _seen.Length); Array.Clear(_prevHp, 0, _prevHp.Length); }
-
-    /// <summary>Observe a slot's current HP. Returns the positive damage delta if this is a
-    /// drop on a previously-seen slot, else 0 (first sighting baselines silently).</summary>
-    public int Observe(int slot, int currentHp)
-    {
-        if (!_seen[slot])
-        {
-            _seen[slot] = true;
-            _prevHp[slot] = currentHp;
-            return 0;
-        }
-        int delta = _prevHp[slot] - currentHp;
-        _prevHp[slot] = currentHp;
-        return delta > 0 ? delta : 0;
-    }
-
-    /// <summary>Record OUR chip write as the slot's known HP, so the next Observe doesn't
-    /// read it back as a fresh damage event (the no-chain guarantee).</summary>
-    public void Consume(int slot, int newHp)
-    {
-        if (_seen[slot]) _prevHp[slot] = newHp;
-    }
-
-    /// <summary>Roll a slot's baseline back to <paramref name="priorHp"/> so the NEXT Observe
-    /// re-returns the same drop. The un-consume half of the non-lossy event contract (Kobu):
-    /// when a detected drop's evaluation is blocked by a DETECTABLY-transient read (a fail-safe
-    /// zero, an unwritable target, an unlocatable wielder), the caller rearms with hp + dmg and
-    /// retries next tick instead of permanently discarding the one-shot event. Functionally
-    /// identical to <see cref="Consume"/> -- kept as a delegating alias so intent reads at the
-    /// call site and the two cannot drift.</summary>
-    public void Rearm(int slot, int priorHp) => Consume(slot, priorHp);
+    protected override int Delta(int prevHp, int currentHp) => prevHp - currentHp;
 }

@@ -43,45 +43,14 @@ internal sealed partial class Benediction
     }
 }
 
-/// <summary>Per-slot HP tracking for the heal-event detector. Baselines the first sighting
-/// silently; after that a RISE in HP is one heal event (drops are ignored). Mirrors
-/// RicochetState but triggers on positive deltas instead of negative.
-/// <see cref="Consume"/> records our OWN bonus write so the boost is never re-triggered
-/// from our own write on the next tick.</summary>
-internal sealed class HealState
+/// <summary>Per-slot HP tracking for the heal-event detector: a RISE in HP is one heal event
+/// (drops are ignored). The bookkeeping (baseline / consume / rearm) is the shared
+/// <see cref="HpDeltaState"/> core (LW-153: this class was a line-for-line sign-flipped copy
+/// of <see cref="RicochetState"/>); this subclass fixes the direction, and the heal side gains
+/// the non-lossy Rearm contract for free when it ever needs it.</summary>
+internal sealed class HealState : HpDeltaState
 {
-    private readonly bool[] _seen;
-    private readonly int[] _prevHp;
+    public HealState(int slots) : base(slots) { }
 
-    public HealState(int slots) { _seen = new bool[slots]; _prevHp = new int[slots]; }
-
-    /// <summary>Reset on battle enter/exit.</summary>
-    public void ResetBattle()
-    {
-        Array.Clear(_seen, 0, _seen.Length);
-        Array.Clear(_prevHp, 0, _prevHp.Length);
-    }
-
-    /// <summary>Observe a slot's current HP. Returns the positive heal delta if this is a
-    /// RISE on a previously-seen slot, else 0 (first sighting baselines silently; drops and
-    /// same-HP re-reads return 0).</summary>
-    public int Observe(int slot, int currentHp)
-    {
-        if (!_seen[slot])
-        {
-            _seen[slot] = true;
-            _prevHp[slot] = currentHp;
-            return 0;
-        }
-        int delta = currentHp - _prevHp[slot];
-        _prevHp[slot] = currentHp;
-        return delta > 0 ? delta : 0;
-    }
-
-    /// <summary>Record OUR bonus write as the slot's known HP, so the next Observe doesn't
-    /// read it back as a fresh heal event (the no-re-boost guarantee).</summary>
-    public void Consume(int slot, int newHp)
-    {
-        if (_seen[slot]) _prevHp[slot] = newHp;
-    }
+    protected override int Delta(int prevHp, int currentHp) => currentHp - prevHp;
 }
