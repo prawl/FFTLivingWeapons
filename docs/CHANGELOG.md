@@ -10,6 +10,26 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-151] SHIPPED 659593a 2026-08-07: the tests' pretend memory is now as strict about partial
+  reads as the real game guard, closing the last open row of the 2026-07-28 smell audit. Before,
+  a check like "can I read these two bytes" passed when only the first byte was declared good,
+  so a test could stage half a field and still watch the code succeed; now every byte of the
+  range must be declared, exactly how the shipped guard treats a partially mapped region, and
+  the honest mode is the default rather than an opt-in switch. The flip broke 101 tests across
+  26 suites; every marking site now declares the exact span the shipped code reads, widened
+  centrally through the LW-149 shared fixtures first and cited line by line elsewhere. The
+  honest gate also exposed about a dozen tests that had been green for the wrong reason (a
+  refused read fail-safing into the asserted outcome); all were de-vacuated, two proven by
+  sabotage (Choir's ghost-row pin now catches a lenient-occupancy swap; Barrage's release
+  all-or-nothing test now reaches the flag-word writable guard it exists to prove). The only
+  production change is visibility (GrowthEngine.StructSpan internal so tests cite the real
+  constant). Verified by three independent adversarial diff audits re-deriving every widened
+  length from production, a completeness critic sweeping every multi-byte gate, and the
+  default-flip sabotage (reverting the one line turns exactly the new pin red). Honest residue,
+  noted not fixed: dead marks and stale comments the critic flagged (ChoirTests' unused
+  static-array mark, TreasureMasterTests' gate-free band marks, AttackCardFixtures' vestigial
+  TurnQueue mark, ExtraTurn's uncovered CT and HP reads). Suite 3029 to 3030; no live pass
+  needed, nothing in the shipped runtime changes behavior.
 - [LW-152] SHIPPED f553a1a 2026-08-07: the kill counter's four test-blind corners each have their
   first test, and each is proven to catch exactly its own break. The orphaned-corpse-with-no-
   known-killer path is pinned as going pending into the shared credit machinery, verified against

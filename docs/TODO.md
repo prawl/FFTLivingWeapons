@@ -60,21 +60,6 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-151] Make the tests' pretend memory as strict about partial reads as the real game guard** (opened 2026-07-29) [BUILDING]
-  - Done means: the fake memory the unit tests run against now refuses a multi-byte read or write
-    unless every byte of the range was declared good, which is exactly how the shipped memory
-    guard behaves in the real game, and the honest mode is the default instead of an opt-in
-    switch. Every test that only declared the first byte of a multi-byte field now declares the
-    real span the shipped code reads, and no test got weakened or opted out to make that cheap.
-    (Tech: flip FakeSparseMemory.StrictRangeChecks to default true; re-measured 2026-08-04 at 97
-    failing tests, 101 by 2026-08-07; honest range marks go through the LW-149 shared fixtures
-    first, hand edits after; FakeSparseMemoryTests' pins move from pinning the divergence to
-    pinning the strict default in both directions.)
-  - Verify: the full suite runs green with the strict default on, a pin test proves a half-marked
-    multi-byte range now refuses by default, and reverting only the one-line default flip turns
-    that pin test red, proving the flip is load-bearing rather than cosmetic. No live pass is
-    needed: nothing in the shipped runtime changes, only the tests' pretend memory.
-
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
