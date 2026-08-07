@@ -25,6 +25,48 @@ from lib.paths import ROOT
 
 OUT = ROOT / "LivingWeapon" / "meta.json"
 
+# LW-156: the signature passthrough, table-driven. One row per uniform runtime key: (key, kind)
+# where kind "int" emits int(sig[key]) and "flag" emits literal True. Gating is TRUTHINESS
+# (if sig.get(key)), exactly the semantics of the old hand-written branch per key: an explicit
+# 0 or false is OMITTED from meta.json, same as an absent key. EMISSION ORDER IS THE TABLE
+# ORDER and meta.json is proven byte-identical on regenerate, so append new keys at the END
+# unless a diff is intended. Non-uniform keys (hpBelow, the forTurns/mounted stat compound,
+# ricochetPct's default-50 rider) stay hand-written in main() where their special rules are.
+_SIG_PASSTHROUGH = (
+    ("charmLockTurns", "int"),        # charm-lock aura (Galewind, retired design): landed Charm unbreakable N turns
+    ("puppeteerTurns", "int"),        # puppeteer (Galewind): dominate the struck enemy for N of its turns
+    ("doomCountdownTo", "int"),       # doom-hasten aura (Eclipsebolt "Eagle Eye"): force enemy Doom to this
+    ("ricochetRadius", "int"),        # ricochet aura (Stormarc "Arc Lightning"): chip to nearest foe (+pct rider in main)
+    ("crippleTurns", "int"),          # maim (Huntress "Maim"): struck enemies lose reactions N turns
+    ("grantCommandAbilityId", "int"), # command grant (Yoichi "Barrage" / Sanguine "Shadow Blade")
+    ("larcenyTurns", "int"),          # larceny (Arcanum): steal the struck foe's holdable buff onto the wielder
+    ("lifeSapOnKill", "flag"),        # life sap (Umbral "Life Sap"): a kill heals the wielder
+    ("regenSplashRadius", "int"),     # wyrmblood (Dragon Rod): turn-edge regen splash to allies
+    ("regenAuraRadius", "int"),       # renewal (Mending Staff): turn-edge regen aura to adjacent allies (Chebyshev)
+    ("fontOnMove", "flag"),           # spiritual font (Wellspring): a moved turn restores HP/MP (runtime-written)
+    ("raptureMove", "flag"),          # rapture (Rod of Faith): low-HP Master Teleportation window
+    ("feignDeath", "flag"),           # feign death (Wrathblade): hold Reraise -> play dead -> animated auto-revive
+    ("afterimage", "flag"),           # afterimage (Swiftedge): Speed ramps each turn, resets on a hit
+    ("ultima", "flag"),               # ultima (Materia Blade): always-on HP%-scaled PA hold
+    ("healBoostPct", "int"),          # benediction (Sanctus Staff): ally HP-rise boost on wielder action window
+    ("antiCrystallize", "flag"),      # sanctuary (Staff of the Magi): hold fallen allies' crystal counter while the bearer lives
+    ("instantCastRadius", "int"),     # choir (Warlock's Staff): adjacent allies cast magick instantly (Non-charge aura)
+    ("braveOneUp", "flag"),           # Kobu (Kiyomori): raise wielder's current brave to a bolder struck foe's
+    ("iai", "flag"),                  # Iai (Ame-no-Murakumo): opening-turn Speed hold, reverted after that turn
+    ("mushin", "flag"),               # Mushin (Kiku-ichimonji): a full WAIT turn arms a one-hit PA boost
+    ("bulwark", "flag"),              # Bulwark (Sunderer): a full WAIT turn plants the blade, barring the tile behind
+    ("gunSlinger", "flag"),           # Gun Slinger (Blaster): roster off-hand twin + Dual Wield between battles
+)
+
+# Signature keys that legitimately do NOT pass through to meta.json: consumed by the analyze.py
+# gates / the description bake (lib/flavor.py) or handled by the hand-written block in main().
+_SIG_HANDLED_ELSEWHERE = {
+    "abilityId", "slot", "atTier", "displayLabel",        # base entry fields (main)
+    "hpBelow", "stat", "statBonus", "forTurns", "mounted", # compound stat-grant rules (main)
+    "ricochetPct",                                         # ricochetRadius's default-50 rider (main)
+    "sigName", "p3Desc", "note",                           # card text + curator prose, never runtime
+}
+
 
 def main():
     doc = load_items()
@@ -61,53 +103,22 @@ def main():
                 entry["signature"]["forTurns"] = int(sig["forTurns"])
             if sig.get("mounted"):   # mount-gated flat stat grant (Cavalier's Charge): Speed while riding a chocobo
                 entry["signature"]["mounted"] = True
-            if sig.get("charmLockTurns"):  # charm-lock aura (Galewind): landed Charm unbreakable N turns
-                entry["signature"]["charmLockTurns"] = int(sig["charmLockTurns"])
-            if sig.get("puppeteerTurns"):  # puppeteer (Galewind): dominate the struck enemy for N of its turns (replaces charm-lock)
-                entry["signature"]["puppeteerTurns"] = int(sig["puppeteerTurns"])
-            if sig.get("doomCountdownTo"):  # doom-hasten aura (Eclipsebolt "Eagle Eye"): force enemy Doom to this
-                entry["signature"]["doomCountdownTo"] = int(sig["doomCountdownTo"])
-            if sig.get("ricochetRadius"):  # ricochet aura (Stormarc "Arc Lightning"): chip to nearest foe
-                entry["signature"]["ricochetRadius"] = int(sig["ricochetRadius"])
-                entry["signature"]["ricochetPct"] = int(sig.get("ricochetPct", 50))
-            if sig.get("crippleTurns"):  # maim (Huntress "Maim"): struck enemies lose reactions N turns
-                entry["signature"]["crippleTurns"] = int(sig["crippleTurns"])
-            if sig.get("grantCommandAbilityId"):  # command grant (Yoichi "Barrage" / Sanguine "Shadow Blade")
-                entry["signature"]["grantCommandAbilityId"] = int(sig["grantCommandAbilityId"])
-            if sig.get("larcenyTurns"):  # larceny (Arcanum): steal the struck foe's holdable buff onto the wielder
-                entry["signature"]["larcenyTurns"] = int(sig["larcenyTurns"])
-            if sig.get("lifeSapOnKill"):  # life sap (Umbral "Life Sap"): a kill heals the wielder
-                entry["signature"]["lifeSapOnKill"] = True
-            if sig.get("regenSplashRadius"):  # wyrmblood (Dragon Rod): turn-edge regen splash to allies
-                entry["signature"]["regenSplashRadius"] = int(sig["regenSplashRadius"])
-            if sig.get("regenAuraRadius"):  # renewal (Mending Staff): turn-edge regen aura to adjacent allies (Chebyshev)
-                entry["signature"]["regenAuraRadius"] = int(sig["regenAuraRadius"])
-            if sig.get("fontOnMove"):  # spiritual font (Wellspring): a moved turn restores HP/MP (runtime-written)
-                entry["signature"]["fontOnMove"] = True
-            if sig.get("raptureMove"):  # rapture (Rod of Faith): low-HP Master Teleportation window
-                entry["signature"]["raptureMove"] = True
-            if sig.get("feignDeath"):  # feign death (Wrathblade): hold Reraise -> play dead -> animated auto-revive
-                entry["signature"]["feignDeath"] = True
-            if sig.get("afterimage"):  # afterimage (Swiftedge): Speed ramps each turn, resets on a hit
-                entry["signature"]["afterimage"] = True
-            if sig.get("ultima"):   # ultima (Materia Blade): always-on HP%-scaled PA hold
-                entry["signature"]["ultima"] = True
-            if sig.get("healBoostPct"):  # benediction (Sanctus Staff): ally HP-rise boost on wielder action window
-                entry["signature"]["healBoostPct"] = int(sig["healBoostPct"])
-            if sig.get("antiCrystallize"):  # sanctuary (Staff of the Magi): hold fallen allies' crystal counter while the bearer lives
-                entry["signature"]["antiCrystallize"] = True
-            if sig.get("instantCastRadius"):  # choir (Warlock's Staff): adjacent allies cast magick instantly (Non-charge aura)
-                entry["signature"]["instantCastRadius"] = int(sig["instantCastRadius"])
-            if sig.get("braveOneUp"):  # Kobu (Kiyomori): on a melee hit the wielder lands, if struck foe's CURRENT brave (band +0x0F) exceeds the wielder's, raise wielder's current brave to match
-                entry["signature"]["braveOneUp"] = True
-            if sig.get("iai"):  # Iai (Ame-no-Murakumo): at battle start, hold the wielder's Speed above the field so it takes the opening turn, then revert after that turn
-                entry["signature"]["iai"] = True
-            if sig.get("mushin"):  # Mushin (Kiku-ichimonji): a full WAIT turn (no move, no act) arms a one-hit PA boost, spent on the wielder's next attack
-                entry["signature"]["mushin"] = True
-            if sig.get("bulwark"):  # Bulwark (Sunderer): a full WAIT turn plants the blade, barring the one vacant tile behind the wielder (terrain-grid byte +6 bit 0x02) until the next turn opens, restored on every end including battle exit
-                entry["signature"]["bulwark"] = True
-            if sig.get("gunSlinger"):  # Gun Slinger (Blaster): roster off-hand twin + Dual Wield between battles
-                entry["signature"]["gunSlinger"] = True
+            for key, kind in _SIG_PASSTHROUGH:
+                if not sig.get(key):
+                    continue
+                entry["signature"][key] = True if kind == "flag" else int(sig[key])
+                if key == "ricochetRadius":   # the one paired rider: pct defaults 50, radius-gated
+                    entry["signature"]["ricochetPct"] = int(sig.get("ricochetPct", 50))
+            # LW-156 gate: a signature key neither the table nor the hand-written block above
+            # knows is a FUTURE MECHANIC BEING SILENTLY DROPPED on its way to the runtime (the
+            # C#-side MetaSchemaTests only catch the opposite direction, an emitted key with no
+            # property). Fail the bake loud instead: add a _SIG_PASSTHROUGH row, or allowlist a
+            # genuinely non-runtime key in _SIG_HANDLED_ELSEWHERE.
+            unknown = set(sig) - {k for k, _ in _SIG_PASSTHROUGH} - _SIG_HANDLED_ELSEWHERE
+            if unknown:
+                sys.exit(f"FAIL: id{it['id']} ({name}) signature carries unhandled key(s) "
+                         f"{sorted(unknown)}: not in _SIG_PASSTHROUGH, not allowlisted in "
+                         f"_SIG_HANDLED_ELSEWHERE, so meta.json would silently drop them")
         meta[str(it["id"])] = entry
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")
