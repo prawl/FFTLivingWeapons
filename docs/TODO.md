@@ -60,27 +60,27 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-153] Fold the runtime's hand-synced twin code into single homes** (opened 2026-08-07) [BUILDING]
+  - Done means: five shipped-code families that were maintained as hand-synced copies each live
+    in one home, and a fix can no longer land in one copy while silently missing another. The
+    two healing twins (Mending Staff's aura, Dragon Rod's splash) run one shared heal-pulse
+    core with their five real differences injected (weapon id, radius knob, heal amount,
+    distance rule, narration), log lines byte-identical per weapon; the same-unit write-safety
+    check the held writes rely on is one named Band helper at its four copy sites, with the two
+    deliberately different lookalikes (Rapture's level-exempt check, Plague's drift-tolerant
+    SameVictim) fenced out by name; the HP-drop and HP-rise trackers are one direction-
+    parameterized core; the atomic save chain shared by the kill tally and the legends store is
+    one SaveAtomic (the gun store's different bak semantics stay put); and the kill counter's
+    pasted untracked-bury ruling block appears once.
+  - Verify: the full suite stays green throughout (Renewal/Wyrmblood/CharmLock/Puppeteer/Maim/
+    Plague/Benediction/Ricochet and the persistence suites pin these surfaces); moved bodies
+    are token-compared against the deleted copies; sabotage runs on each shared home turn
+    predicted tests red across ALL consumers at once, restored green; an adversarial audit
+    reviews the whole span before the row exits. No live pass needed: behavior-identical folds,
+    no address or write-path changes.
+
 ## Backlog
 
-- [LW-153] 2026-08-07: Several shipped weapon behaviors are maintained as hand-synced copies of
-  the same code, so a fix has to land twice or more and can silently miss a copy; fold each
-  family into one shared home.
-  From the 2026-08-07 refactor deep dive (6 finders, 3 adversarial verify batches; every item
-  below re-verified by diffing both sides). The families, best value first: (a) Renewal.cs and
-  Wyrmblood.cs are token-identical for ~85 lines of tick and ally-heal loop; a name-normalized
-  diff leaves only 5 real differences (weapon id, radius knob, heal amount, range predicate,
-  prose). Extract one heal-pulse core, keep Chebyshev vs Manhattan as an injected predicate,
-  keep per-weapon log strings byte-identical. (b) The same-unit write-safety predicate (the
-  check that keeps a held write off a stranger's memory when band seats migrate) is
-  token-identical in CharmLock.Valid and Puppeteer.Hold.Valid and inlined again in Maim.Drive
-  and Plague.DriveOne; one Band.SameUnitAtExact helper makes the LW-92 level-drift lesson a
-  one-place decision. Do NOT fold Rapture.SameUnit (level-exempt by design) or Plague.SameVictim
-  (drift-tolerant by design). (c) KillTally.Save and LegendStore.SaveIfDirty share a
-  token-identical atomic save chain (tmp, copy prior to .bak, move); extract SaveAtomic only,
-  leave the divergent Load loops and GunSlingerStore.Save (different .bak generation, by its own
-  doc) alone. Also the one place LW-28 would instrument saves once. (d) Benediction's HealState
-  is a sign-flipped copy of RicochetState (~35 lines); base class plus two direction subclasses,
-  call sites untouched. (e) KillTracker.Corpses pastes one untracked-bury ruling block twice.
 - [LW-155] 2026-08-07: Retire code that is finished, dead, or lying: a whole logging lane nobody
   calls anymore, a dead second copy of the poison turn thresholds, a settings knob that can only
   ever be one value, and two wiring comments that name the wrong weapons.
