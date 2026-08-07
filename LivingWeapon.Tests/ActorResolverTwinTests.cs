@@ -21,9 +21,10 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class ActorResolverTwinTests
 {
-    private const int TwinWeapon = 52;   // what the frozen (0,0) mirror's fingerprint resolves to
-    private const int RealWeapon = 73;   // what the real-position seat's fingerprint resolves to
-    private static readonly HashSet<int> Weapons = new() { TwinWeapon, RealWeapon };
+    private const int TwinWeapon = 52;    // what the frozen (0,0) mirror's fingerprint resolves to
+    private const int RealWeapon = 73;    // what the real-position seat's fingerprint resolves to
+    private const int ThirdWeapon = 90;   // the double-twin ambiguity pin's real-seat answer
+    private static readonly HashSet<int> Weapons = new() { TwinWeapon, RealWeapon, ThirdWeapon };
 
     private const int LowSlot = 3;                        // walked BEFORE HighSlot
     private const int HighSlot = Offsets.SlotsBack + 1;   // walked AFTER LowSlot
@@ -120,6 +121,27 @@ public class ActorResolverTwinTests
         var r = new ActorResolver(m, Weapons);
         Assert.True(r.TryResolveActingPlayer(out var ws));   // faith-blind rule -> ambiguous -> false
         Assert.Equal(new List<int> { TwinWeapon }, ws);
+    }
+
+    [Fact]
+    public void Main_hand_restart_clears_ambiguity_accumulated_across_two_conflicting_twins()
+    {
+        // Verifier-requested pin (LW-154): ResolveActingMainHand's restart must clear BOTH its
+        // accumulation and its ambiguous flag. Two conflicting (0,0) twins accumulate
+        // ambiguity, then the real seat restarts; drop the `ambiguous = false` half of the
+        // reset and the stale flag would zero out the real seat's clean answer. (The weapons
+        // resolver has no equivalent pin on purpose: it refuses on the twins' set mismatch
+        // BEFORE the real seat is reached, pre-existing behavior.)
+        var m = new FakeSparseMemory();
+        SetActive(m, hp: 400, maxHp: 400, level: 50);
+        MemSeats.SeatBand(m, LowSlot, weapon: TwinWeapon, lvl: 50, br: 55, fa: 60, gx: 0, gy: 0, hp: 400, maxHp: 400);
+        MemSeats.SeatBand(m, LowSlot + 1, weapon: RealWeapon, lvl: 50, br: 70, fa: 40, gx: 0, gy: 0, hp: 400, maxHp: 400);
+        MemSeats.SeatBand(m, HighSlot, weapon: ThirdWeapon, lvl: 50, br: 30, fa: 30, gx: 5, gy: 5, hp: 400, maxHp: 400);
+        MemSeats.SeatRoster(m, slot: 0, lvl: 50, br: 55, fa: 60, rh: TwinWeapon);
+        MemSeats.SeatRoster(m, slot: 1, lvl: 50, br: 70, fa: 40, rh: RealWeapon);
+        MemSeats.SeatRoster(m, slot: 2, lvl: 50, br: 30, fa: 30, rh: ThirdWeapon);
+        var r = new ActorResolver(m, Weapons);
+        Assert.Equal(ThirdWeapon, r.ResolveActingMainHand());
     }
 
     [Fact]

@@ -401,8 +401,10 @@ internal sealed partial class ActorResolver
     /// slot base <paramref name="b"/> belong to a unit with this live (level,brave,faith)?
     /// Level goes through the level-drift rule (the roster keeps the pre-battle level; exact
     /// equality here once silently disarmed main-hand signatures after a mid-battle level-up).
-    /// THE edit point when the fingerprint grows more fields (LW-39, the twins ticket): extend
-    /// here and both walks agree by construction.</summary>
+    /// The edit point for THIS CLASS when the fingerprint grows more fields (LW-39, the twins
+    /// ticket): extend here and both walks agree by construction. The register lane keeps its
+    /// own copy of the same rule (ActorRegister.Bridge.cs); an LW-39 extension must touch both
+    /// or the lanes diverge.</summary>
     private bool RosterFpMatches(long b, int level, int brave, int faith)
         => Band.LevelMatchesRoster(_mem.U8(b + Offsets.RLevel), level)
         && _mem.U8(b + Offsets.RBrave) == brave
@@ -421,8 +423,11 @@ internal sealed partial class ActorResolver
         return maxHp != 0 && maxHp < 2000 && level >= 1 && level <= 99;
     }
 
-    /// <summary>The twin filter's ONE home (LW-154: was verbatim-triplicated across the three
-    /// tq-fallback walks). Prefers real-position (gx/gy != 0,0) band seats over a roster unit's
+    /// <summary>The twin filter's one home for THIS RESOLVER's three tq-fallback walks (LW-154:
+    /// was spelled out at each, differing only in accumulation variables). Band.ActiveOwner and
+    /// Wielder.Locate carry their own prefer-real variants with different reset payloads; those
+    /// stayed put on purpose (different walks, different accumulations), so a repo-wide fold is
+    /// NOT implied here. Prefers real-position (gx/gy != 0,0) band seats over a roster unit's
     /// frozen (0,0) mirror, whose stale fields would otherwise spoil the resolve as ambiguous.
     /// Per-candidate protocol: Skip = a (0,0) seat after a real match latched, ignore it;
     /// Restart = the FIRST real seat arriving after (0,0)-only accumulation, so the caller
