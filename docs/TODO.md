@@ -60,6 +60,21 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-151] Make the tests' pretend memory as strict about partial reads as the real game guard** (opened 2026-07-29) [BUILDING]
+  - Done means: the fake memory the unit tests run against now refuses a multi-byte read or write
+    unless every byte of the range was declared good, which is exactly how the shipped memory
+    guard behaves in the real game, and the honest mode is the default instead of an opt-in
+    switch. Every test that only declared the first byte of a multi-byte field now declares the
+    real span the shipped code reads, and no test got weakened or opted out to make that cheap.
+    (Tech: flip FakeSparseMemory.StrictRangeChecks to default true; re-measured 2026-08-04 at 97
+    failing tests, 101 by 2026-08-07; honest range marks go through the LW-149 shared fixtures
+    first, hand edits after; FakeSparseMemoryTests' pins move from pinning the divergence to
+    pinning the strict default in both directions.)
+  - Verify: the full suite runs green with the strict default on, a pin test proves a half-marked
+    multi-byte range now refuses by default, and reverting only the one-line default flip turns
+    that pin test red, proving the flip is load-bearing rather than cosmetic. No live pass is
+    needed: nothing in the shipped runtime changes, only the tests' pretend memory.
+
 ## Backlog
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
@@ -77,19 +92,6 @@ the technical detail lives in the indented lines under it.
   Still open, owner territory: docs/LIVE_LEDGER.md line 138's "TILE SYSTEM SOLVED" paragraph still
   names the wrong terrain grid base two lines under its own correction banner and wants a
   supersession stamp; that flip is owner sign-off only, same as every LIVE_LEDGER row.
-
-- [LW-151] 2026-07-29: The test fake's honest length-aware read gate exists but is opt-in;
-  turning it on for the whole suite is the open work.
-  Re-measured 2026-08-04 after the LW-149 fixture dedup: 97 tests across 23 suites, so the
-  fixture fold alone moved nothing, exactly as the plan review predicted; the honest range marks
-  belong to the flip itself. Originally measured 2026-07-29: defaulting StrictRangeChecks to
-  true fails 94 tests across 21 suites,
-  because tests mark a production gate's base byte while the shipped code gates multi-byte
-  ranges (AMaxHp and friends 2 bytes, KillTracker 12, GrowthEngine.Locate 65, Barrage RecSize
-  25); real marking sites number 226 across 35 files. The cheap path runs THROUGH LW-149: once
-  the shared band sanity helper exists, tests seed through shared fixtures that mark honest
-  ranges centrally, and the default can flip with a fraction of the hand edits. Until then the
-  divergence is documented on FakeSparseMemory and pinned in both directions.
 
 - [LW-100] 2026-07-21: A rider who restarts a battle and opens it on foot can keep the previous
   run's leftover mounted Speed until they climb back on a chocobo.
