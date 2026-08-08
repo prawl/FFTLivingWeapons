@@ -60,29 +60,21 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-157] Pay down the test suite's copy-paste tax** (opened 2026-08-07) [BUILDING]
-  - Done means: the repeated rituals the deep dive verified across the test suite each live in
-    one shared home, THIS PASS covering every part that needs no owner decision: the ModLogger
-    capture ritual (swap a sink logger in, run, restore in finally; ~50 sites across 21 files
-    with TWO different restore conventions) becomes one disposable capture scope with level and
-    sink-selection knobs, making the restore discipline structural instead of per-site
-    diligence; the hand-rolled Display constructions ride CardFixtures.MakeDisplay; the
-    GunSlingerTests temp-dir try/finally ritual converts to the TempDirs fixture its 20+
-    sibling suites already use; the byte-identical SeatEnemyFp triple (Maim, PlagueDrift,
-    Puppeteer, plus KobuTests' inline copy) folds into BandFixtures beside its ally-side twin
-    (ChoirTests' 1-byte variant stays out, different premise); and the residue is swept (the
-    dead mark at ChoirTests:234, the stale AttackCardFixtures.SeatCursor comment, and
-    ExtraTurn's guarded CT/HP reads get their missing readable-success coverage). Part (a),
-    the nine KillTracker-family suites' shared seed helpers, is EXCLUDED here: their per-file
-    mirroring is a documented deliberate convention, retiring it is an owner call, and that
-    half splits into its own row at exit rather than being fudged.
-  - Verify: the full suite stays green with unchanged assertions (structure-only edits); the
-    capture-scope conversion is proven equivalent per convention (prior-restore vs
-    UseNullLogger) before the sweep; a sabotage of the shared scope's restore turns predicted
-    tests red; an independent adversarial audit reviews the span before the row exits. No live
-    pass needed: test structure only.
-
 ## Backlog
+
+- [LW-160] 2026-08-08: Nine kill-tracker test suites still carry hand-copied seeding helpers,
+  and folding them waits on the owner retiring a convention those suites document on purpose.
+  The unfinished half of LW-157, split out honestly rather than fudged: the Settle and Set*
+  seed helpers are byte-identical in three files with cosmetic variants in two more, and the
+  genuinely duplicated core (the TurnQueue+Acted seed, static-array oracle seed, ActorPtr
+  formula, and settle rhythms, roughly 30-45 lines per suite) would fold into one shared
+  fixture the same way BandFixtures did. PRECONDITION, the reason this is parked:
+  KillCreditCoverageTests documents per-file mirroring as this family's deliberate convention
+  ("every file that drives KillTracker.Poll keeps its own thin wrapper"), so retiring that
+  convention is an owner call first. Riders when picked up: LarcenyTests carries a fifth
+  inline SeatEnemyFp copy (values 400/40/75/55) that should repoint at BandFixtures.SeatEnemyFp,
+  and ChoirTests.BuildActive seeds a static-array ally fingerprint that is dead by the same
+  proof that killed its sibling mark in LW-157.
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
   one item is left, and it needs the owner's own sign-off.

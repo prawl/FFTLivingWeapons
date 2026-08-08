@@ -7,7 +7,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// LW-157(b): THE shared ModLogger capture scope. Before this existed the same ritual -- swap a
 /// sink-injected <see cref="FileConsoleLogger"/> into <see cref="ModLogger.Instance"/>, run the
-/// body, restore in a finally -- was hand-rolled at ~50 sites across ~21 test files, with TWO
+/// body, restore in a finally -- was hand-rolled at 51 sites across 16 test files, with TWO
 /// restore conventions in the wild (most restored the PRIOR instance; one family called
 /// <see cref="ModLogger.UseNullLogger"/> instead). A missed finally used to leak a capture logger
 /// across the whole suite; this scope makes the restore discipline structural:

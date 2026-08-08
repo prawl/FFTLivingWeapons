@@ -10,6 +10,24 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-157] SHIPPED ce24cc9 2026-08-08: the test suite's copy-paste tax is paid down everywhere
+  no owner decision was needed. The swap-a-logger-in, run, restore-in-finally ritual, 51
+  hand-rolled sites across 16 files with two competing restore conventions, is one disposable
+  LogCapture scope whose Dispose restores the prior logger (proven equivalent to the
+  UseNullLogger family at top level, structurally leak-proof, sabotage-proven: a scope that
+  stops swapping turns exactly 52 tests red, all in converted files); twelve Display
+  constructions ride CardFixtures.MakeDisplay; all eleven temp-dir try/finally rituals ride
+  the TempDirs fixture; the byte-identical SeatEnemyFp enemy-oracle seeder folded into
+  BandFixtures with an exact-set pin and its four copies repointed; and the residue was swept,
+  including a new born-red-proven test for ExtraTurn's previously uncovered guarded-read
+  success arms and KillerDead release. Assertions stayed byte-untouched throughout, verified
+  by two adversarial auditors who read both commits' full diffs (143 assertion lines out, 143
+  identical back in) and re-derived both dead-mark deletion proofs independently; zero
+  production files changed. The suite ends at 2977. The one excluded half, the KillTracker
+  suites' shared seed helpers, split honestly into LW-160: their per-file mirroring is a
+  documented deliberate convention and retiring it is an owner call. Work e742def + ce24cc9;
+  the row itself was briefly deleted by an over-greedy ledger edit and restored from history
+  in 0351e8f, named there as the mistake it was.
 - [LW-158] SHIPPED c75f793 2026-08-07: the Arcanum's buff-stealing trigger, the one user of the
   shared HP-drop detector that no test watched, has its stateful pin. A full staging (wielder
   acting, struck foe carrying Reraise) proves the steal's real observable, the bit transfer off
