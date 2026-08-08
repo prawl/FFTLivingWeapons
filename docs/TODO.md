@@ -60,6 +60,42 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-159] Delete the four ability lanes no weapon uses anymore** (opened 2026-08-07) [BUILDING]
+  - Done means: the shipped mod no longer carries runtime code for abilities that no weapon in
+    the design can trigger. Proven dormant from data/items.json (the design source of truth):
+    the charm-lock lane (Galewind moved to Puppeteer), the Wyrmblood regen splash (the Dragon
+    Rod no longer carries a signature), the LifeSap on-kill heal (never wired to any item; the
+    owner's 2026-08-07 directive resolves the wire-or-delete question as delete), and the
+    forTurns timed-stat arm (the Holy Lance uses the mount gate instead). Each lane's whole
+    surface goes: module files, Engine wiring, meta passthrough rows, WeaponMeta properties,
+    Tuning knobs, tests, and doc references, with the meta bake proven byte-identical after
+    (dormant keys emitted nothing) and the unknown-key gate left to catch any future
+    revival attempt loudly. The forTurns arm is deleted ONLY if it separates cleanly from the
+    mount lane, which carries two open live-bug tickets (LW-100, LW-111); if interwoven, it
+    stays with a doc note and this row says so honestly.
+  - Verify: an adversarial audit confirms each lane's dormancy independently (no activation
+    path outside the missing key) and that every other signature module HAS a live activator,
+    so no fifth lane is deleted by mistake and none is missed; the full suite stays green;
+    repo-wide greps prove zero surviving references per deleted lane; regenerating meta.json
+    leaves git diff empty. No live pass needed: deleting code no data can reach cannot change
+    what players see, and the fingerprint guard surface is untouched.
+
+- **[LW-155] Retire code that is finished, dead, or lying** (opened 2026-08-07) [BUILDING]
+  - Done means: the four verified dead-code findings from the 2026-08-07 deep dive are gone. The
+    verb-less legacy logging lane (five ModLogger statics, five verb-less ILogger members, their
+    FileConsoleLogger and NullLogger implementations) is deleted with its ~20 LoggerTests
+    reshaped onto the typed lane (the one console-equals-file assertion that is only true on the
+    legacy path goes with it) and docs/LOGGING.md corrected; Plague.IsTurn (a dead second copy
+    of the 90/70 CT thresholds) is deleted and the two Plague comments pointing future work at
+    retired LW-149 are fixed; the never-False SCAFFOLD_LIVING knob is deleted from
+    patch_names.py so the CI gates and the bake cannot silently split; and Engine.cs's wiring
+    comments name the right weapons (the id-56 font is Umbral Rod, not Wellspring; the LifeSap
+    line goes with the LifeSap module, LW-159).
+  - Verify: the migration ratchet (LogContractTests.LegacyCallers) and repo-wide grep prove the
+    verb-less lane had zero production callers before deletion; the full suite stays green;
+    patch_names --dry and audit_nxd_bakes emit byte-identical output after the knob deletion;
+    an adversarial audit reviews the span. No live pass needed: dead lanes and comments only.
+
 ## Backlog
 
 - [LW-158] 2026-08-07: The Arcanum's buff-stealing trigger is the one user of the shared
@@ -75,23 +111,6 @@ the technical detail lives in the indented lines under it.
   route through the shared same-unit predicate with only transitive pins, and the
   untracked-bury console pin asserts only a fragment of the frozen sentence.
 
-- [LW-155] 2026-08-07: Retire code that is finished, dead, or lying: a whole logging lane nobody
-  calls anymore, a dead second copy of the poison turn thresholds, a settings knob that can only
-  ever be one value, and two wiring comments that name the wrong weapons.
-  From the 2026-08-07 deep dive, each verified by repo-wide caller grep. (a) The verb-less
-  legacy logging lane (five ModLogger statics, five verb-less ILogger members, their
-  FileConsoleLogger and NullLogger impls) has ZERO production callers; the migration ratchet
-  (LogContractTests.LegacyCallers) is empty and ModLogger.cs's keep-public comment cites a shim
-  LW-146 already deleted. Delete the lane, reshape the ~20 LoggerTests methods that drive it
-  (one asserts a console/file equality that is only true on the legacy path and gets deleted),
-  fix docs/LOGGING.md:307. (b) Plague.IsTurn has zero callers and hardcodes the 90/70 CT
-  thresholds a second time outside CtTurns; delete it, and fix the two Plague comments that
-  still point future work at retired LW-149. (c) SCAFFOLD_LIVING (patch_names.py:31) is never
-  False anywhere; flipping it would silently split the CI gates from the bake, so delete the
-  knob. (d) Engine.cs's wiring table says Wellspring for the id-56 font (it is Umbral Rod) and
-  describes a LifeSap on-kill heal that is provably data-dormant (lifeSapOnKill appears in zero
-  items); fix both comments, and put the real question to the owner: wire the mechanic to a
-  weapon or delete the module.
 - [LW-157] 2026-08-07: The test suite pays a copy-paste tax: nine kill-tracker suites carry the
   same seeding helpers, fifty call sites hand-roll the same seven-line logger swap, and a few
   seed rituals still live outside the shared fixtures.
