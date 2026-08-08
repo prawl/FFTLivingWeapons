@@ -195,7 +195,7 @@ internal sealed class Engine
         var plague = new Plague(meta, _kills, _tracker, mem: live); // Venombolt +3: poison never fades, ticks harder
         var renewal = new Renewal(meta, _kills, _turns, live);     // Mending Staff +3: turn-edge regen aura to allies within 1 tile (Chebyshev)
         var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
-        var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
+        var font = new SpiritualFont(meta, _kills, _tracker, live); // Umbral Rod +3: a moved action restores HP and MP (id 56; the signature moved off the growth-only starter Wellspring, id 51)
         var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
         var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N of the wielder's own turns)
         var puppeteer = new Puppeteer(meta, _kills, _tracker, _turns, live, Flight.Record);  // Galewind +3: dominate a struck enemy for N of its turns (Puppeteer; successor to Charm-Lock, whose dormant module was deleted in LW-159). Flight.Record = the LW-5 recon tap (puppet-turn signals).

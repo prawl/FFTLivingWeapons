@@ -164,8 +164,10 @@ internal sealed partial class Plague : ISignature
     /// <summary>Enemy fingerprints from the static array (mirrors Maim / EagleEye).
     /// NOT Band.EnemyFingerprints: this scan's own mhp bound (IsValidEnemyMhp, &lt;= 1999) reads a
     /// DIFFERENT array (the static enemy array, not the band) than Tick's band walk, so it stays
-    /// its own check. The two bounds now coincide numerically (LW-145 fix 6 aligned the band walk
-    /// to the same &gt;= 2000 reject); unifying the checks themselves is LW-149.</summary>
+    /// its own check. The two bounds coincide numerically (LW-145 fix 6 aligned the band walk to
+    /// the same &gt;= 2000 reject) but stay deliberately un-unified: whether exactly 2000 is a
+    /// valid mhp is an OPEN owner row in docs/LIVE_LEDGER.md, so do not fold these checks
+    /// together without the owner's live probe settling it.</summary>
     private System.Collections.Generic.HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints()
     {
         var set = new System.Collections.Generic.HashSet<(int, int, int, int)>();

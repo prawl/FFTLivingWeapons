@@ -4,7 +4,8 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Static logging facade -- ported from FFTColorCustomizer's ModLogger (Utilities/ModLogger.cs).
-/// Every call site in the runtime logs through here (ModLogger.Log/.LogError/.LogWarning/.LogDebug),
+/// Every call site in the runtime logs through here (ModLogger.Event/.Warn/.Error/.Debug, or a
+/// <see cref="ScopedLogger"/> from <see cref="For"/>),
 /// never against <see cref="ILogger"/> or a concrete logger directly. <see cref="Instance"/> is the
 /// test seam: <see cref="Reset"/>/<see cref="UseNullLogger"/> swap it, mirroring the injected-sink
 /// pattern the rest of the runtime already uses (KillTracker/BattleLog). Production defaults lazily
@@ -44,18 +45,6 @@ internal static class ModLogger
         get => Instance.LogLevel;
         set => Instance.LogLevel = value;
     }
-
-    // --- Legacy free-form entry points. Every call site OUTSIDE this file, FileConsoleLogger.cs,
-    // NullLogger.cs, and the transitional Log.cs shim (no new call sites there) should be using
-    // the typed facade below (Event/Warn/Error/Debug/For) instead; LogContractTests ratchets
-    // the legacy callers down to that allow-list. Kept public (not made private) because that
-    // allow-list is enforced by a source scan, not by the compiler: a hard access-modifier cut
-    // would force every one of the ~200 call sites to migrate atomically instead of stage-by-stage.
-    public static void Log(string message) => Instance.Log(message);
-    public static void LogError(string message) => Instance.LogError(message);
-    public static void LogWarning(string message) => Instance.LogWarning(message);
-    public static void LogDebug(string message) => Instance.LogDebug(message);
-    public static void LogException(string message, Exception exception) => Instance.LogError(message, exception);
 
     // --- Typed facade. Every module logs through these: a LogVerb names the closed event-verb
     // glossary (docs/LOGGING.md). The FILE line always carries "[verb] "; the CONSOLE line drops

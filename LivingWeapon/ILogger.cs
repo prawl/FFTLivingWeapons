@@ -17,27 +17,12 @@ internal interface ILogger
     /// semantics (the file evidence chain ignores this entirely).</summary>
     LogLevel LogLevel { get; set; }
 
-    /// <summary>Standard informational message (the old Log.Info). Verb-less: renders with no
-    /// "[verb]" segment on either sink (the legacy, mid-migration shape).</summary>
-    void Log(string message);
-
-    /// <summary>Error message (the old Log.Error). Verb-less variant.</summary>
-    void LogError(string message);
-
-    /// <summary>Error message with exception detail appended. Verb-less variant.</summary>
-    void LogError(string message, Exception exception);
-
-    /// <summary>Warning message. Verb-less variant.</summary>
-    void LogWarning(string message);
-
-    /// <summary>Debug-tier message: file-always, console only when the threshold allows it.
-    /// Verb-less variant.</summary>
-    void LogDebug(string message);
-
-    // --- Verb-aware overloads (ModLogger's typed facade: Event/Warn/Error/Debug). The FILE line
-    // always carries "[verb] "; the CONSOLE line carries it only at Warning/Error tier. An Info
-    // console line (the match report's narrative sentences) renders subject-first with no leading
-    // bracket. See FileConsoleLogger's class doc for the exact rendering split. ---
+    // --- Verb-aware entry points (ModLogger's typed facade: Event/Warn/Error/Debug). The FILE
+    // line always carries "[verb] "; the CONSOLE line carries it only at Warning/Error tier. An
+    // Info console line (the match report's narrative sentences) renders subject-first with no
+    // leading bracket. See FileConsoleLogger's class doc for the exact rendering split. The old
+    // verb-less members (Log/LogError/LogWarning/LogDebug taking a bare string) were deleted in
+    // LW-155 after their call-site migration finished; LogContractTests trips if one returns. ---
 
     /// <summary>Info-tier, verb-aware. File: "[LEVEL] [verb] message". Console: "[LEVEL] message"
     /// (verb omitted).</summary>

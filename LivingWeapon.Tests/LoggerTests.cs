@@ -12,7 +12,8 @@ namespace LivingWeapon.Tests;
 /// that routes every call site to whichever ILogger is current. Ported shape from
 /// FFTColorCustomizer's Tests/Core/LoggerTests.cs, adapted for the two-sink divergence. All
 /// FileConsoleLogger cases use the injected-sink internal ctor so no test touches a real console
-/// or file.
+/// or file. Everything drives the TYPED (verb-aware) lane: the verb-less legacy lane was deleted
+/// in LW-155 once its call-site migration finished.
 /// </summary>
 public class LoggerTests
 {
@@ -30,7 +31,7 @@ public class LoggerTests
     public void Log_reaches_both_sinks_at_the_default_Info_level()
     {
         var (log, console, file) = Make();
-        log.Log("hello");
+        log.Log(LogVerb.Kill, "hello");
         Assert.Single(console);
         Assert.Single(file);
         Assert.Contains("hello", console[0]);
@@ -44,7 +45,7 @@ public class LoggerTests
         // above UNCONDITIONALLY. Even at the noisiest possible console threshold (None), the file
         // still gets every Debug line -- the evidence chain must never thin out.
         var (log, _, file) = Make(LogLevel.None);
-        log.LogDebug("diagnostic");
+        log.LogDebug(LogVerb.Trace, "diagnostic");
         Assert.Single(file);
         Assert.Contains("diagnostic", file[0]);
     }
@@ -53,11 +54,11 @@ public class LoggerTests
     public void LogDebug_reaches_the_console_ONLY_when_LogLevel_is_Debug()
     {
         var (quiet, quietConsole, _) = Make(LogLevel.Info);
-        quiet.LogDebug("diagnostic");
+        quiet.LogDebug(LogVerb.Trace, "diagnostic");
         Assert.Empty(quietConsole);
 
         var (verbose, verboseConsole, _) = Make(LogLevel.Debug);
-        verbose.LogDebug("diagnostic");
+        verbose.LogDebug(LogVerb.Trace, "diagnostic");
         Assert.Single(verboseConsole);
     }
 
@@ -65,7 +66,7 @@ public class LoggerTests
     public void Debug_tier_file_lines_carry_the_DEBUG_level_token()
     {
         var (log, _, file) = Make();
-        log.LogDebug("diagnostic");
+        log.LogDebug(LogVerb.Trace, "diagnostic");
         Assert.Contains("[DEBUG]", file[0]);
     }
 
@@ -73,7 +74,7 @@ public class LoggerTests
     public void Info_tier_lines_carry_the_INFO_level_token_and_no_other()
     {
         var (log, console, file) = Make();
-        log.Log("plain");
+        log.Log(LogVerb.Kill, "plain");
         Assert.Contains("[INFO]", console[0]);
         Assert.DoesNotContain("[DEBUG]", console[0]);
         Assert.DoesNotContain("[WARN]", console[0]);
@@ -85,14 +86,13 @@ public class LoggerTests
     [Fact]
     public void Both_sinks_carry_the_Living_Weapons_tag_and_a_millisecond_timestamp()
     {
+        // The two rendered lines are NOT asserted equal: at Info tier the file line carries the
+        // "[verb] " bracket and the console line drops it (the rendering split below). Each sink
+        // still opens with the same tag + bracketed millisecond timestamp + level token.
         var (log, console, file) = Make();
-        log.Log("plain");
-        Assert.StartsWith("[Living Weapons] [", console[0]);
+        log.Log(LogVerb.Kill, "plain");
         Assert.Matches(@"^\[Living Weapons\] \[\d{2}:\d{2}:\d{2}\.\d{3}\] \[INFO\] plain$", console[0]);
-        // The console line and the file line are IDENTICAL on the VERB-LESS legacy path (the
-        // format fix: console previously lacked the timestamp entirely). The verb-aware path
-        // diverges at Info tier: see the "verb rendering split" cases below.
-        Assert.Equal(console[0], file[0]);
+        Assert.Matches(@"^\[Living Weapons\] \[\d{2}:\d{2}:\d{2}\.\d{3}\] \[INFO\] \[kill\] plain$", file[0]);
     }
 
     // --- Verb-aware rendering split (owner format delta): the FILE line always carries the
@@ -193,7 +193,7 @@ public class LoggerTests
     public void Log_console_visibility_follows_the_threshold(int thresholdValue, bool expectConsole)
     {
         var (log, console, file) = Make((LogLevel)thresholdValue);
-        log.Log("info line");
+        log.Log(LogVerb.Kill, "info line");
         Assert.Equal(expectConsole, console.Count == 1);
         Assert.Single(file);   // file always gets it regardless of threshold
     }
@@ -202,12 +202,12 @@ public class LoggerTests
     public void LogWarning_tags_and_respects_threshold()
     {
         var (log, console, file) = Make(LogLevel.Warning);
-        log.LogWarning("careful");
+        log.LogWarning(LogVerb.Save, "careful");
         Assert.Contains("[WARN]", console[0]);
         Assert.Contains("[WARN]", file[0]);
 
         var (quiet, quietConsole, quietFile) = Make(LogLevel.Error);
-        quiet.LogWarning("careful");
+        quiet.LogWarning(LogVerb.Save, "careful");
         Assert.Empty(quietConsole);
         Assert.Single(quietFile);   // file still gets it
     }
@@ -216,12 +216,12 @@ public class LoggerTests
     public void LogError_reaches_the_console_at_every_normal_threshold()
     {
         var (log, console, file) = Make(LogLevel.None);   // even the quietest console threshold...
-        log.LogError("boom");
+        log.LogError(LogVerb.Engine, "boom");
         Assert.Empty(console);   // ...None truly silences the console (by design: total opt-out)
         Assert.Single(file);     // ...but the file still gets it
 
         var (log2, console2, _) = Make(LogLevel.Error);
-        log2.LogError("boom");
+        log2.LogError(LogVerb.Engine, "boom");
         Assert.Single(console2);
         Assert.Contains("[ERROR]", console2[0]);
     }
@@ -230,7 +230,7 @@ public class LoggerTests
     public void LogError_with_exception_appends_a_second_line()
     {
         var (log, console, file) = Make();
-        log.LogError("operation failed", new InvalidOperationException("bad state"));
+        log.LogError(LogVerb.Engine, "operation failed", new InvalidOperationException("bad state"));
         Assert.Equal(2, console.Count);
         Assert.Contains("operation failed", console[0]);
         Assert.Contains("InvalidOperationException", console[1]);
@@ -242,7 +242,7 @@ public class LoggerTests
     public void LogError_with_null_exception_does_not_append_a_second_line()
     {
         var (log, console, _) = Make();
-        log.LogError("operation failed", null!);
+        log.LogError(LogVerb.Engine, "operation failed", null!);
         Assert.Single(console);
     }
 
@@ -252,7 +252,7 @@ public class LoggerTests
         var log = new FileConsoleLogger(
             consoleSink: _ => throw new InvalidOperationException("console is down"),
             fileSink: _ => throw new InvalidOperationException("disk is full"));
-        var ex = Record.Exception(() => log.Log("anything"));
+        var ex = Record.Exception(() => log.Log(LogVerb.Kill, "anything"));
         Assert.Null(ex);
     }
 
@@ -262,9 +262,9 @@ public class LoggerTests
     public void An_identical_line_reaches_the_console_only_once_per_battle()
     {
         var (log, console, file) = Make();
-        log.Log("battle: started");
-        log.Log("battle: started");
-        log.Log("battle: started");
+        log.Log(LogVerb.BattleStart, "battle started");
+        log.Log(LogVerb.BattleStart, "battle started");
+        log.Log(LogVerb.BattleStart, "battle started");
         Assert.Single(console);
         Assert.Equal(3, file.Count);   // the file NEVER dedups: every occurrence lands
     }
@@ -273,9 +273,9 @@ public class LoggerTests
     public void NoteBattleEdge_resets_the_console_dedup_seen_set()
     {
         var (log, console, _) = Make();
-        log.Log("kill: credited");
+        log.Log(LogVerb.Kill, "credited");
         log.NoteBattleEdge();
-        log.Log("kill: credited");
+        log.Log(LogVerb.Kill, "credited");
         Assert.Equal(2, console.Count);   // the reset let the second battle's identical line through
     }
 
@@ -285,7 +285,7 @@ public class LoggerTests
         // Regression guard: if the dedup key ever accidentally included the timestamp, every
         // call would look "unique" and the whole feature would be a no-op.
         var (log, console, _) = Make();
-        for (int i = 0; i < 5; i++) log.Log("kill: all 3 enemies accounted for");
+        for (int i = 0; i < 5; i++) log.Log(LogVerb.Kill, "all 3 enemies accounted for");
         Assert.Single(console);
     }
 
@@ -293,9 +293,9 @@ public class LoggerTests
     public void Dedup_is_console_only_and_distinguishes_by_level_and_content()
     {
         var (log, console, file) = Make(LogLevel.Debug);
-        log.Log("same text");
-        log.LogWarning("same text");   // different level -> not deduped against the Info line
-        log.Log("different text");     // different content -> not deduped
+        log.Log(LogVerb.Kill, "same text");
+        log.LogWarning(LogVerb.Kill, "same text");   // different level -> not deduped against the Info line
+        log.Log(LogVerb.Kill, "different text");     // different content -> not deduped
         Assert.Equal(3, console.Count);
         Assert.Equal(3, file.Count);
     }
@@ -308,11 +308,11 @@ public class LoggerTests
         var logger = NullLogger.Instance;
         var ex = Record.Exception(() =>
         {
-            logger.Log("x");
-            logger.LogWarning("x");
-            logger.LogError("x");
-            logger.LogError("x", new Exception("x"));
-            logger.LogDebug("x");
+            logger.Log(LogVerb.Kill, "x");
+            logger.LogWarning(LogVerb.Save, "x");
+            logger.LogError(LogVerb.Engine, "x");
+            logger.LogError(LogVerb.Engine, "x", new Exception("x"));
+            logger.LogDebug(LogVerb.Trace, "x");
         });
         Assert.Null(ex);
     }
@@ -327,11 +327,11 @@ public class LoggerTests
         ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
         try
         {
-            ModLogger.Log("a");
-            ModLogger.LogWarning("b");
-            ModLogger.LogError("c");
-            ModLogger.LogDebug("d");
-            ModLogger.LogException("e", new Exception("boom"));
+            ModLogger.Event(LogVerb.Kill, "a");
+            ModLogger.Warn(LogVerb.Save, "b");
+            ModLogger.Error(LogVerb.Engine, "c");
+            ModLogger.Debug(LogVerb.Trace, "d");
+            ModLogger.Error(LogVerb.Engine, "e", new Exception("boom"));
 
             Assert.Contains(file, l => l.Contains("a"));
             Assert.Contains(file, l => l.Contains("b") && l.Contains("[WARN]"));
@@ -362,7 +362,7 @@ public class LoggerTests
         ModLogger.UseNullLogger();
         try
         {
-            var ex = Record.Exception(() => ModLogger.Log("anything, anywhere"));
+            var ex = Record.Exception(() => ModLogger.Event(LogVerb.Kill, "anything, anywhere"));
             Assert.Null(ex);
             Assert.Same(NullLogger.Instance, ModLogger.Instance);
         }

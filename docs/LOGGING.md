@@ -54,9 +54,10 @@ an `ILogger` (`LivingWeapon/ILogger.cs`); production impl is `FileConsoleLogger`
 swallow is `NullLogger`. Since the facelift the facade surface is TYPED: every call site uses
 `ModLogger.Event(verb, msg)` / `Warn(verb, msg)` / `Error(verb, msg[, ex])` / `Debug(verb, msg)`,
 the two-line helpers `EventWithTrace`/`WarnWithTrace`, or a `ScopedLogger` from
-`ModLogger.For(verb, armed)`. The old free-form `Log`/`LogWarning`/`LogError`/`LogDebug` entry
-points exist only inside the facade's own plumbing; `LogContractTests` fails the build if any
-module calls them raw.
+`ModLogger.For(verb, armed)`. The old free-form (verb-less) `Log`/`LogWarning`/`LogError`/
+`LogDebug` entry points no longer exist at all: their call-site migration finished and LW-155
+deleted the lane outright, facade plumbing included. `LogContractTests` keeps a tripwire that
+fails the build if a verb-less logger member or raw call site is ever reintroduced.
 
 Four tiers, `LogLevel` enum (low = more verbose): `Debug` (0), `Info` (1), `Warning` (2),
 `Error` (3), `None` (4, silences the console entirely).
@@ -304,8 +305,9 @@ synchronously on Engine's own loop thread, and neither is hooked to `ResetBattle
 fires on both enter and exit). The enter-edge flush was added live 2026-07-04: three straight
 sessions produced no archives at all because each ended in a process kill (the kill-and-deploy
 cycle) before any exit edge fired, so the NEXT battle's enter edge is the reliable moment the
-prior battle's tail can still be saved. (c) the first Error-tier line of a launch: both the
-legacy `LogError` path and the typed `ModLogger.Error(verb, ...)` path arm it. An Error never
+prior battle's tail can still be saved. (c) the first Error-tier line of a launch: the typed
+`ModLogger.Error(verb, ...)` path arms it (the only error path since LW-155 deleted the
+verb-less lane). An Error never
 flushes synchronously -- it only raises a pending flag (`Flight.RequestFlush("error")`); the
 actual serialize+write+retention-prune runs later from `Flight.DrainPending()`, called once per
 Engine tick. This matters because `PromptSwapHook.Detour` logs errors on the game's own

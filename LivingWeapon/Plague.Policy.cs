@@ -45,10 +45,6 @@ internal sealed partial class Plague
            && Band.LevelMatchesRoster(captured.lvl, current.lvl)
            && current.mhp >= captured.mhp && current.mhp - captured.mhp <= MaxHpGrowthPerLatch;
 
-    /// <summary>A completed victim turn = its CT was near-full and has since reset notably lower.
-    /// Mirrors Maim.IsTurn (same proven probe for both use cases).</summary>
-    public static bool IsTurn(int lastCt, int curCt) => lastCt >= 90 && curCt < 70;
-
     /// <summary>True when the poison timer should be re-pinned (reads below the initial value,
     /// meaning the engine has ticked it down or a cure/expiry is in progress).</summary>
     public static bool ShouldRepin(int timer, byte init) => timer < init;
@@ -66,8 +62,11 @@ internal sealed partial class Plague
     /// <summary>True when an mhp value belongs to a real combat unit. Serves EnemyFingerprints
     /// only (the static enemy array scan below) -- the band-loop filter in Plague.cs's Tick
     /// carries its own inline copy of the same shared sibling bound (see the comment at
-    /// Plague.cs:96) rather than calling this method. The two bounds are numerically aligned but
-    /// not yet unified; that unification is ledgered as LW-149.</summary>
+    /// Plague.cs:96) rather than calling this method. The two bounds coincide numerically but
+    /// stay DELIBERATELY separate checks (LW-149 unified other seams and left this one alone):
+    /// whether exactly 2000 is a valid mhp is an OPEN owner row in docs/LIVE_LEDGER.md
+    /// (Band.EnemyFingerprints accepts 2000 inclusive; this bound rejects it). Do not align the
+    /// two without the owner's live probe settling that row.</summary>
     public static bool IsValidEnemyMhp(int mhp) => mhp >= 1 && mhp <= 1999;
 
     /// <summary>Drive the held poison state for one victim: re-OR the poison bit and re-pin

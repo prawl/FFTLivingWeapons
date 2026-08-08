@@ -14,14 +14,12 @@ namespace LivingWeapon.Tests;
 ///
 /// 1. <see cref="LogVerb"/> matches docs/LOGGING.md's committed "Event verbs" table one-for-one:
 ///    the doc and the enum cannot drift.
-/// 2. No file outside a tiny allow-list calls a raw logger entry point (ModLogger.Log/
-///    LogWarning/LogError/LogDebug/LogException, or the transitional Log.cs shim's Log.Info/
-///    Log.Error); every module must route through the typed facade
-///    (ModLogger.Event/Warn/Error/Debug/EventWithTrace/WarnWithTrace or a ScopedLogger from
-///    ModLogger.For). This is a RATCHET: <see cref="LegacyCallers"/> lists every file that still
-///    has raw calls pending the call-site conversion pass; the test asserts the scan finds
-///    EXACTLY that set (not a subset), so shrinking the list without finishing the conversion,
-///    or finishing the conversion without shrinking the list, both go red.
+/// 2. The verb-less legacy lane STAYS DELETED (LW-155). The migration this section once
+///    ratcheted (LegacyCallers, a per-file allow-list shrunk to empty) finished, and the lane
+///    itself (the five bare-string ModLogger statics, ILogger's bare-string members, their
+///    FileConsoleLogger/NullLogger implementations) was then removed outright. What remains is
+///    a TRIPWIRE, not a ceremony: it goes red if anyone re-declares a verb-less logger member
+///    or re-adds a raw call site, so the lane cannot quietly grow back.
 /// 3. No string literal passed to a facade call contains a double dash or an em dash (the
 ///    owner's "no double-dash anywhere in new text" ruling).
 /// </summary>
@@ -91,20 +89,28 @@ public class LogContractTests
             $"In enum but not doc: [{string.Join(", ", enumSet.Except(docSet))}].");
     }
 
-    // --- 2. Raw-logger-call ratchet ---
+    // --- 2. Verb-less-lane tripwire (LW-155: the lane is deleted; keep it that way) ---
 
-    /// <summary>Permanent exceptions: the facade's own plumbing. Never shrinks.</summary>
+    /// <summary>The facade's own plumbing: exempt from the string-literal checks (sections 3/4)
+    /// because its files are not call sites. The tripwires in THIS section deliberately scan
+    /// these files too -- the verb-less lane must not return even inside the facade. Never
+    /// shrinks.</summary>
     private static readonly HashSet<string> PermanentAllowList = new(StringComparer.OrdinalIgnoreCase)
     {
         "ModLogger.cs", "FileConsoleLogger.cs", "NullLogger.cs",
     };
 
-    /// <summary>Files still pending the call-site conversion pass (stage 2 of the logging
-    /// facelift). SHRINK this set as each file's log calls migrate to the typed facade; do not
-    /// add to it. EMPTY as of the stage 2 conversion: every module routes through the typed
-    /// facade, and only the facade's own plumbing (the permanent allow-list above) may touch
-    /// the raw entry points.</summary>
-    private static readonly HashSet<string> LegacyCallers = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>A verb-less logger member: one of the five legacy names whose first parameter is
+    /// a bare string. The typed lane's first parameter is always a LogVerb, so this shape only
+    /// exists if someone re-declares the deleted lane (or a lookalike of it).</summary>
+    private static readonly Regex VerbLessMemberRegex = new(
+        @"\b(Log|LogWarning|LogError|LogDebug|LogException)\s*\(\s*string\b", RegexOptions.Compiled);
+
+    /// <summary>The typed lane's LogVerb-first shape: the tripwire's non-vacuity proof. If this
+    /// stops matching anywhere, the scan is reading the wrong files (or the member naming moved)
+    /// and the verb-less tripwire above would pass while proving nothing.</summary>
+    private static readonly Regex TypedMemberRegex = new(
+        @"\b(Log|LogWarning|LogError|LogDebug)\s*\(\s*LogVerb\b", RegexOptions.Compiled);
 
     private static readonly Regex RawModLoggerCallRegex = new(
         @"\bModLogger\.(Log|LogWarning|LogError|LogDebug|LogException)\s*\(", RegexOptions.Compiled);
@@ -113,23 +119,46 @@ public class LogContractTests
         @"(?<!Mod)\bLog\.(Info|Error)\s*\(", RegexOptions.Compiled);
 
     [Fact]
-    public void Only_the_declared_legacy_files_still_call_a_raw_logger_entry_point()
+    public void No_verb_less_logger_member_is_declared_anywhere_in_the_runtime()
     {
+        string repoRoot = RepoRoot();
+        var offenders = new List<string>();
+        bool sawTypedLane = false;
+        foreach (var path in SourceFiles(repoRoot))
+        {
+            string text = File.ReadAllText(path);
+            if (VerbLessMemberRegex.IsMatch(text))
+                offenders.Add(Path.GetFileName(path));
+            if (TypedMemberRegex.IsMatch(text))
+                sawTypedLane = true;
+        }
+        Assert.True(sawTypedLane,
+            "Non-vacuity proof failed: the scan never saw the typed lane's LogVerb-first members, " +
+            "so it cannot be trusted to catch a reintroduced verb-less one.");
+        Assert.True(offenders.Count == 0,
+            "The verb-less logger lane was deleted in LW-155 and must not be reintroduced. " +
+            $"Files declaring a bare-string logger member: [{string.Join(", ", offenders)}]. " +
+            "Route the new need through the typed facade (a LogVerb-first member) instead.");
+    }
+
+    [Fact]
+    public void No_file_calls_a_deleted_raw_logger_entry_point()
+    {
+        // The compiler already rejects a raw ModLogger.Log(...) call (the member is gone); this
+        // scan stays because it fails with a message naming the deletion instead of a bare
+        // CS0117, and because it also catches a re-created transitional Log shim (a class named
+        // Log with Info/Error members would compile just fine).
         string repoRoot = RepoRoot();
         var offenders = new List<string>();
         foreach (var path in SourceFiles(repoRoot))
         {
-            string name = Path.GetFileName(path);
-            if (PermanentAllowList.Contains(name)) continue;
             string text = File.ReadAllText(path);
             if (RawModLoggerCallRegex.IsMatch(text) || RawLogShimCallRegex.IsMatch(text))
-                offenders.Add(name);
+                offenders.Add(Path.GetFileName(path));
         }
-        var offenderSet = new HashSet<string>(offenders, StringComparer.OrdinalIgnoreCase);
-        Assert.True(offenderSet.SetEquals(LegacyCallers),
-            $"Raw-logger-call scan drifted from the declared ratchet list. " +
-            $"Newly offending (add to LegacyCallers or convert instead): [{string.Join(", ", offenderSet.Except(LegacyCallers))}]. " +
-            $"No longer offending (SHRINK LegacyCallers): [{string.Join(", ", LegacyCallers.Except(offenderSet))}].");
+        Assert.True(offenders.Count == 0,
+            "The raw (verb-less) logger entry points were deleted in LW-155; nothing may call " +
+            $"one. Offending files: [{string.Join(", ", offenders)}].");
     }
 
     // --- 3. No double-dash / em dash inside a facade call's string literals ---

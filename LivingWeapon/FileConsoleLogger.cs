@@ -21,9 +21,7 @@ namespace LivingWeapon;
 /// player actually reads: <c>[Living Weapons] [HH:mm:ss.fff] [LEVEL] description</c>. Warning and
 /// Error console lines keep the verb (a bug-report console paste needs it for triage), and so
 /// does a Debug line that reaches the console when the level is raised to Debug (a diagnostic tier, not curated
-/// narrative). Legacy verb-less callers (<see cref="Log"/>/<see cref="LogWarning"/>/
-/// <see cref="LogError"/>/<see cref="LogDebug"/>, mid-migration call sites ratcheted to zero by
-/// LogContractTests) render identically on both sinks, exactly as before this split.
+/// narrative).
 ///
 /// The console dedup key is the SEMANTIC identity (level, verb, message) computed before any
 /// rendering happens, never the rendered console string: two different verbs sharing the same
@@ -88,35 +86,15 @@ internal sealed class FileConsoleLogger : ILogger
         return line => { try { File.AppendAllText(file, line + "\n"); } catch { } };
     }
 
-    // --- Verb-less (legacy, mid-migration) entry points ---
-
-    public void Log(string message) => Write(LogLevel.Info, null, message);
-    public void LogWarning(string message) => Write(LogLevel.Warning, null, message);
-
-    /// <summary>Also arms the flight recorder's FlushOnce error trigger (B1): a flag-only
-    /// request, no I/O happens on this call/thread. The Engine loop drains it on its next tick
-    /// (Flight.DrainPending), so a LogError fired from the game's own SetTextString thread
-    /// (PromptSwapHook.Detour) never stalls on disk I/O here.</summary>
-    public void LogError(string message)
-    {
-        Write(LogLevel.Error, null, message);
-        Flight.RequestFlush("error");
-    }
-
-    public void LogDebug(string message) => Write(LogLevel.Debug, null, message);
-
-    public void LogError(string message, Exception exception)
-    {
-        LogError(message);
-        if (exception != null)
-            Write(LogLevel.Error, null, $"  {exception.GetType().Name}: {exception.Message}");
-    }
-
     // --- Verb-aware entry points (ModLogger's typed facade) ---
 
     public void Log(LogVerb verb, string message) => Write(LogLevel.Info, verb, message);
     public void LogWarning(LogVerb verb, string message) => Write(LogLevel.Warning, verb, message);
 
+    /// <summary>Also arms the flight recorder's FlushOnce error trigger (B1): a flag-only
+    /// request, no I/O happens on this call/thread. The Engine loop drains it on its next tick
+    /// (Flight.DrainPending), so an Error logged from the game's own SetTextString thread
+    /// (PromptSwapHook.Detour) never stalls on disk I/O here.</summary>
     public void LogError(LogVerb verb, string message)
     {
         Write(LogLevel.Error, verb, message);

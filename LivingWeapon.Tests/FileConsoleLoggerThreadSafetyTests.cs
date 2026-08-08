@@ -48,7 +48,7 @@ public class FileConsoleLoggerThreadSafetyTests
                 {
                     string message = $"thread {threadIndex} message {i}";
                     expected.Add(message);
-                    log.Log(message);
+                    log.Log(LogVerb.Kill, message);
                 }
             }));
         }

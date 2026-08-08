@@ -26,9 +26,9 @@ from lib.paths import ROOT, MOD_ITEM_NXD
 SQLITE = ROOT / "working" / "pilot_item.sqlite"
 ENC_DIR = ROOT / "working" / "nxd_out"
 
-# Living Weapon display scaffolding: bake a fixed 2-char name-suffix SLOT (companion paints +/+2/+3)
-# and a fixed-width Kills line onto every weapon, so the in-card "it leveled up" overwrite works.
-SCAFFOLD_LIVING = True
+# Living Weapon display scaffolding (unconditional; the never-False SCAFFOLD_LIVING knob was
+# deleted in LW-155): bake a fixed 2-char name-suffix SLOT (companion paints +/+2/+3) and a
+# fixed-width Kills line onto every weapon, so the in-card "it leveled up" overwrite works.
 MELEE1_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff", "Flail", "Bag"}
 # UiItemCategoryId = the equip-card weapon-TYPE label (item.en.nxd Item-en table). A repurposed weapon
 # keeps its BASE slot's type id, so the card mislabels it (e.g. a KnightSword on the Giant's Axe slot
@@ -94,12 +94,12 @@ def item_intent(named, sort_map=None):
         # below; lib/flavor.py owns that layout so the analyze.py budget gate cannot drift from
         # the bake. is_living = the shared noGrowth/category predicate, in lockstep with
         # gen_living_weapon_meta.
-        name = clean + "  " if (SCAFFOLD_LIVING and is_living(it)) else clean
+        name = clean + "  " if is_living(it) else clean
         intent[(it["id"], "Name")] = name
         intent[(it["id"], "NameSingular")] = clean.lower()
         intent[(it["id"], "NamePlural")] = plural(clean)
         intent[(it["id"], "Name2")] = name
-        intent[(it["id"], "Description")] = assemble_desc(it, scaffold=SCAFFOLD_LIVING)
+        intent[(it["id"], "Description")] = assemble_desc(it)
         # card type-label = the override category if repurposed, else the native category. Setting
         # it for EVERY weapon also auto-corrects vanilla mislabels (e.g. Birchwood Staff shipped
         # as a KnightSword).
