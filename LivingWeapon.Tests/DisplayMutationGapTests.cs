@@ -101,11 +101,7 @@ public class DisplayMutationGapTests
         statics[4] = 12;
 
         var heap = new FakeHeap((bigBase, bigData), (StaticsBase + 0x1_0000_0000L, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase + 0x1_0000_0000L,
-            mirrorOffHandAddr: StaticsBase + 0x1_0000_0000L + 2,
-            wpScratchAddr:     StaticsBase + 0x1_0000_0000L + 4);
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase + 0x1_0000_0000L, clock);
 
         // ONE tick -- the card in the last chunk must NOT be painted yet.
         clock.Ms += DisplaySweep.HotRescanMs + 1;
@@ -173,11 +169,7 @@ public class DisplayMutationGapTests
 
         long staticsAddr = 0x83_0000_0000L;
         var heap = new FakeHeap((utf16Base, regionData), (staticsAddr, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  staticsAddr,
-            mirrorOffHandAddr: staticsAddr + 2,
-            wpScratchAddr:     staticsAddr + 4);
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsAddr, clock);
 
         CardFixtures.DrainGeneration(display, clock, 600);
 
@@ -285,12 +277,8 @@ public class DisplayMutationGapTests
         statics[0] = 20; statics[1] = 0; // mirror = id 20
 
         var heap = new FakeHeap((srcBase, src), (statBase, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  statBase,
-            mirrorOffHandAddr: statBase + 2,
-            wpScratchAddr:     statBase + 4);
         var clock = new TestClock();
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, statBase, clock);
 
         // Run bounded Ticks.
         for (int i = 0; i < 1000; i++)
@@ -333,11 +321,7 @@ public class DisplayMutationGapTests
 
         var heap = new FakeHeap((SourceBase + 0x10_0000_0000L, src),
                                 (StaticsBase + 0x10_0000_0000L, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase + 0x10_0000_0000L,
-            mirrorOffHandAddr: StaticsBase + 0x10_0000_0000L + 2,
-            wpScratchAddr:     StaticsBase + 0x10_0000_0000L + 4);
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase + 0x10_0000_0000L, clock);
         CardFixtures.DrainGeneration(display, clock, 600);
 
         display.Invalidate();
@@ -383,11 +367,7 @@ public class DisplayMutationGapTests
         long srcBase  = 0x87_0000_0000L;
         long statBase = 0x88_0000_0000L;
         var heap = new FakeHeap((srcBase, src), (statBase, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  statBase,
-            mirrorOffHandAddr: statBase + 2,
-            wpScratchAddr:     statBase + 4);
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, statBase, clock);
         CardFixtures.DrainGeneration(display, clock, 600);
 
         // Count slot must show the kills=3 meter body (nonzero, so assertion is non-vacuous).
@@ -633,11 +613,7 @@ public class DisplayMutationGapTests
         statics[4] = 12;
 
         var heap = new FakeHeap((regionBase, regionData), (statBase, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  statBase,
-            mirrorOffHandAddr: statBase + 2,
-            wpScratchAddr:     statBase + 4);
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, statBase, clock);
 
         // Drive Display.Tick for enough Ticks to cover both chunks.
         CardFixtures.DrainGeneration(display, clock, 600);

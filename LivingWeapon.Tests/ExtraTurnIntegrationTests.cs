@@ -122,4 +122,47 @@ public class ExtraTurnIntegrationTests
             "expected CT restore write on GateLost");
         Assert.Equal(0, m.Written[Band.Entry(15) + ExtraTurn.CtOff]);
     }
+
+    // ---- KillerDead release: the guarded CT/HP reads' SUCCESS arms (LW-157) ----
+    // Every other test in this suite leaves the wielder's CT and HP unmarked, so ReadCt/ReadHp
+    // only ever exercised their guarded-FAILURE arms (-1). This one marks both readable and
+    // drives the release-on-death path end to end: CT reads FullCt on two consecutive ticks so
+    // Classify resolves Owed (only a SUCCESSFUL ReadCt can return >= FullCt; the failure arm's
+    // -1 keeps Classify null forever), and HP reads 0 for three consecutive ticks so
+    // Release(KillerDead) fires and restores CT=0 (the failure arm's -1 never equals 0, so an
+    // unreadable HP can never reach KillerDead).
+
+    [Fact]
+    public void KillerDead_releases_and_restores_ct_when_readable_hp_holds_zero()
+    {
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 30, br: 65, fa: 58, rh: ExtraTurn.ZwillId);
+        // hp: 0 -- the killer died mid-window. Band.IsValid does not gate on HP, so the entry
+        // still locates; only the guarded ReadHp observes the death.
+        SeatBand(m, 15, weapon: ExtraTurn.ZwillId, lvl: 30, br: 65, fa: 58, gx: 4, gy: 3, hp: 0);
+        long entry = Band.Entry(15);
+        // The two guarded success arms this test exists to stage (no other seeding marks them):
+        m.MarkReadable(entry + ExtraTurn.CtOff, 1);      // ReadCt's Readable n=1 gate (ExtraTurn.cs)
+        m.MarkReadable(entry + Offsets.AHp, 2);          // ReadHp's Readable n=2 gate (ExtraTurn.cs)
+        m.U8s[entry + ExtraTurn.CtOff] = ExtraTurn.FullCt;   // the engine holding the kill-turn's CT full
+
+        int threshold = Tuning.KillThresholds[ExtraTurn.AtTier - 1];
+        var kills = new Dictionary<int, int> { [ExtraTurn.ZwillId] = threshold };
+        var extra = new ExtraTurn(kills, m);
+
+        extra.Tick(DateTime.Now);          // baseline (_lastCount = threshold, stays Idle)
+        kills[ExtraTurn.ZwillId] = threshold + 1;
+        extra.Tick(DateTime.Now);          // fresh kill -> Arming; dead streak 1; first CT sample
+        Assert.Equal(GrantState.Arming, extra.State);
+
+        extra.Tick(DateTime.Now);          // dead streak 2; CT 100/100 agree -> Owed (ReadCt success arm)
+        Assert.Equal(GrantState.Owed, extra.State);
+
+        extra.Tick(DateTime.Now);          // dead streak 3 -> Release(KillerDead)
+
+        Assert.Equal(GrantState.Idle, extra.State);
+        Assert.True(m.Written.ContainsKey(entry + ExtraTurn.CtOff),
+            "KillerDead release must restore CT=0 on the located entry");
+        Assert.Equal(0, m.Written[entry + ExtraTurn.CtOff]);
+    }
 }

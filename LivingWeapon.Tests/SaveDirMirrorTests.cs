@@ -74,8 +74,8 @@ public class SaveDirMirrorTests
     [Fact]
     public void Resolve_SaveDir_matches_SaveLocations_own_ctor_over_the_same_tree()
     {
-        string root = Path.Combine(Path.GetTempPath(), "lw_savedirmirror_" + Path.GetRandomFileName());
-        string modsDir = Path.Combine(root, "Mods");
+        using var temp = TempDirs.Create("lw_savedirmirror_");
+        string modsDir = Path.Combine(temp.Dir, "Mods");
         // Deliberately a DIFFERENT folder name than Mod.ModId: SaveLocation.ResolveSaveDir's own
         // doc comment says it keys on the manifest ModId constant, never modDir's own folder name.
         // Using a mismatched name here proves that claim on BOTH sides, rather than merely not
@@ -84,18 +84,11 @@ public class SaveDirMirrorTests
         string destDir = Path.Combine(modsDir, "some_other_folder_name_entirely");
         Directory.CreateDirectory(destDir);
 
-        try
-        {
-            var saveLocation = new SaveLocation(destDir);
-            string csharpResult = saveLocation.SaveDir;
+        var saveLocation = new SaveLocation(destDir);
+        string csharpResult = saveLocation.SaveDir;
 
-            string psResult = RunResolveSaveDir(modsDir, Mod.ModId);
+        string psResult = RunResolveSaveDir(modsDir, Mod.ModId);
 
-            Assert.Equal(csharpResult, psResult);
-        }
-        finally
-        {
-            Directory.Delete(root, recursive: true);
-        }
+        Assert.Equal(csharpResult, psResult);
     }
 }

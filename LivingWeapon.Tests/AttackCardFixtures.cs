@@ -107,19 +107,21 @@ internal sealed class AttackCardMemory : IGameMemory
     public ushort U16(long addr) => _sparse.U16(addr);
     public bool Readable(long addr, int len) => _sparse.Readable(addr, len);
 
-    /// <summary>LW-31 stage-2: plants the condensed turn-queue struct (Offsets.TurnQueue:
-    /// team/level/hp/maxHp) the cursor-first guard tests need, and marks the struct's base
-    /// address Readable (FakeSparseMemory's Readable contract is an exact-address set, see its
-    /// class doc). Unseeded is the default for every OTHER test in this file, so Readable() stays
-    /// false there and the cursor path fails closed exactly like a genuine unreadable struct;
-    /// every pre-existing test is unaffected.</summary>
+    /// <summary>LW-31 stage-2, now a DECOY seeder: plants the condensed turn-queue struct's
+    /// fields (Offsets.TurnQueue: team/level/hp/maxHp). Since LW-87 the cursor resolve rides
+    /// Band.FlagOwner + the roster bridge (ActorResolver.Cursor.cs) and never reads this struct;
+    /// the one remaining caller seeds it precisely to pin that the surface IGNORES it (the
+    /// T-status detour test). The old 1-byte ReadableAddrs mark at the struct base was dropped
+    /// (LW-157 residue sweep): no production path this fixture serves gates Readable on
+    /// TurnQueue -- ActorResolver's tq fallback (TryReadTqActor) reads the U16s ungated, and the
+    /// LW-87 resolve never touches the struct. (FakeSparseMemory's Readable has been an honest
+    /// per-byte RANGE gate since the LW-151 strict flip, no longer an exact-address set.)</summary>
     internal void SeatCursor(int team, int level, int hp, int maxHp)
     {
         _sparse.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;
         _sparse.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
         _sparse.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
         _sparse.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
-        _sparse.ReadableAddrs.Add(Offsets.TurnQueue);
     }
 
     // --- concern 2: the Attack-menu table copies ---

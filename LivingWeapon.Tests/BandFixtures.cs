@@ -79,4 +79,20 @@ internal static class BandFixtures
     /// three were SeedAllyFpAt(mem, idx: 1, ...) in disguise.</summary>
     public static void SeedAllyFp(FakeSparseMemory mem, int mhp, int lvl, int br, int fa)
         => SeedAllyFpAt(mem, 1, mhp, lvl, br, fa);
+
+    /// <summary>Plant static-array slot 0's ENEMY fingerprint so the enemy-side oracle
+    /// (Band.EnemyFingerprints; Plague keeps its own same-shape scan over the same array)
+    /// recognizes a band unit with this (maxHp,lvl,br,fa) as an enemy. LW-157 fold: the three
+    /// private SeatEnemyFp copies in MaimTests, PlagueLevelDriftTests, and PuppeteerTests were
+    /// byte-identical (verified diff; only the provenance comments differed), and KobuTests
+    /// carried a fourth inline copy of the same body.</summary>
+    public static void SeatEnemyFp(FakeSparseMemory mem, (int mhp, int lvl, int br, int fa) fp)
+    {
+        long slot = Offsets.ArrayReadBase;            // static-array slot 0 (enemy side)
+        mem.MarkReadable(slot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs Fingerprints)
+        mem.U16s[slot + Offsets.AMaxHp] = (ushort)fp.mhp;
+        mem.U8s[slot + Offsets.ALevel] = (byte)fp.lvl;
+        mem.U8s[slot + Offsets.ABrave] = (byte)fp.br;
+        mem.U8s[slot + Offsets.AFaith] = (byte)fp.fa;
+    }
 }

@@ -248,7 +248,7 @@ public class MaimTests
         long victim = Band.Entry(bandSlot);
         // 0x00080000 = Counter (the "real" reaction that must survive a failed read, fix 3).
         SeatVictim(mem, victim, fp, hp: 100, reaction: 0x00080000u, ct: seedCt, reactionReadable: reactionReadable);
-        SeatEnemyFp(mem, fp);                                     // recognized as an enemy
+        BandFixtures.SeatEnemyFp(mem, fp);                        // recognized as an enemy
 
         var maim = new Maim(meta, kills, tracker, mem: mem);
         return (maim, mem, victim);
@@ -272,16 +272,6 @@ public class MaimTests
         mem.MarkWritable(addr + Maim.ReactionBandOff, 4);   // production writes n=4 (Maim.Policy.cs HoldZero/Restore)
         for (int i = 0; i < 4; i++) mem.U8s[addr + Maim.ReactionBandOff + i] = (byte)((reaction >> (8 * i)) & 0xFF);
         mem.U8s[addr + LiveCtOff] = (byte)ct;                     // live charge-time @ +0x25
-    }
-
-    private static void SeatEnemyFp(FakeSparseMemory mem, (int mhp, int lvl, int br, int fa) fp)
-    {
-        long slot = Offsets.ArrayReadBase;                        // static-array slot 0 (enemy side)
-        mem.MarkReadable(slot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs Fingerprints)
-        mem.U16s[slot + Offsets.AMaxHp] = (ushort)fp.mhp;
-        mem.U8s[slot + Offsets.ALevel] = (byte)fp.lvl;
-        mem.U8s[slot + Offsets.ABrave] = (byte)fp.br;
-        mem.U8s[slot + Offsets.AFaith] = (byte)fp.fa;
     }
 
     private static uint ReadReactionAt(FakeSparseMemory mem, long addr)

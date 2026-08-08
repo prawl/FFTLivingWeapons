@@ -313,7 +313,7 @@ public class LarcenyTests
         mem.MarkWritable(enemy + Offsets.AReraise, 1);
 
         // Static-array enemy fingerprint at slot 0 (Band.EnemyFingerprints, the enemy oracle --
-        // same seeding as KobuTests.Build / MaimTests.SeatEnemyFp).
+        // same seeding as KobuTests.Build / BandFixtures.SeatEnemyFp).
         long arrSlot = Offsets.ArrayReadBase;
         mem.MarkReadable(arrSlot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs, the Fingerprints sweep)
         mem.U16s[arrSlot + Offsets.AMaxHp] = 400;

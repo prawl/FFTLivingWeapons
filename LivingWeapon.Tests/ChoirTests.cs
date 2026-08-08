@@ -228,14 +228,10 @@ public class ChoirTests
     public void Tick_sets_bit_on_bearer_self()
     {
         var (choir, mem, bearerEntry, _) = BuildActive();
-        // Register bearer fingerprint in a second static array slot so it doesn't overwrite
-        // the ally fp seeded by BuildActive at slot EnemySlotMax+1
-        long slot2 = Offsets.ArrayReadBase + (long)(Offsets.EnemySlotMax + 2) * Offsets.ArrayStride;
-        mem.ReadableAddrs.Add(slot2 + Offsets.AMaxHp);
-        mem.U16s[slot2 + Offsets.AMaxHp] = 300;
-        mem.U8s[slot2 + Offsets.ALevel]  = 35;
-        mem.U8s[slot2 + Offsets.ABrave]  = 65;
-        mem.U8s[slot2 + Offsets.AFaith]  = 60;
+        // No static-array bearer fingerprint is seeded here: holder-only Choir resolves its
+        // bearer via Wielder.ResolveDeployedMainHandAll (a roster + band walk) and never reads
+        // the static-array fingerprints -- the aura-era slot registration that used to sit here
+        // was dead weight (LW-157 residue sweep).
 
         choir.Tick(onField: true);
 

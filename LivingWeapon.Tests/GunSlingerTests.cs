@@ -214,54 +214,42 @@ public class GunSlingerTests
     [Fact]
     public void Snapshot_SaveLoad_roundtrip()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var store = new GunSlingerStore(dir);
-            var snap = store.Get(nameId: 1);
-            snap.HasOff = true; snap.OrigOff = 100;
-            snap.HasSupp = true; snap.OrigSupp = 213;
-            store.Save();
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            var store2 = new GunSlingerStore(dir);
-            var snap2 = store2.Get(nameId: 1);
-            Assert.True(snap2.HasOff);
-            Assert.Equal(100, snap2.OrigOff);
-            Assert.True(snap2.HasSupp);
-            Assert.Equal(213, snap2.OrigSupp);
-        }
-        finally
-        {
-            Directory.Delete(dir, true);
-        }
+        var store = new GunSlingerStore(dir);
+        var snap = store.Get(nameId: 1);
+        snap.HasOff = true; snap.OrigOff = 100;
+        snap.HasSupp = true; snap.OrigSupp = 213;
+        store.Save();
+
+        var store2 = new GunSlingerStore(dir);
+        var snap2 = store2.Get(nameId: 1);
+        Assert.True(snap2.HasOff);
+        Assert.Equal(100, snap2.OrigOff);
+        Assert.True(snap2.HasSupp);
+        Assert.Equal(213, snap2.OrigSupp);
     }
 
     [Fact]
     public void Snapshot_SaveLoad_bak_fallback()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var store = new GunSlingerStore(dir);
-            var snap = store.Get(nameId: 2);
-            snap.HasOff = true; snap.OrigOff = 77;
-            store.Save();
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            // Corrupt the primary; .bak should contain the good data
-            var primary = Path.Combine(dir, "gunslinger.json");
-            File.WriteAllText(primary, "CORRUPT{{{");
+        var store = new GunSlingerStore(dir);
+        var snap = store.Get(nameId: 2);
+        snap.HasOff = true; snap.OrigOff = 77;
+        store.Save();
 
-            var store2 = new GunSlingerStore(dir);
-            var snap2 = store2.Get(nameId: 2);
-            Assert.True(snap2.HasOff);
-            Assert.Equal(77, snap2.OrigOff);
-        }
-        finally
-        {
-            Directory.Delete(dir, true);
-        }
+        // Corrupt the primary; .bak should contain the good data
+        var primary = Path.Combine(dir, "gunslinger.json");
+        File.WriteAllText(primary, "CORRUPT{{{");
+
+        var store2 = new GunSlingerStore(dir);
+        var snap2 = store2.Get(nameId: 2);
+        Assert.True(snap2.HasOff);
+        Assert.Equal(77, snap2.OrigOff);
     }
 
     // ── Stage-3: integration through roster scan ──────────────────────────────
@@ -299,104 +287,86 @@ public class GunSlingerTests
     [Fact]
     public void PrepRoster_equips_twin_and_dualwield_when_Blaster_main_tier3()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var mem = new FakeSparseMemory();
-            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] }; // tier 3
-            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                           off: EmptyU16, supp: EmptyU8);
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-            gs.PrepRoster();
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] }; // tier 3
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                       off: EmptyU16, supp: EmptyU8);
 
-            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-            Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
-                "GunSlinger must write off-hand");
-            Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
-            Assert.True(mem.Written.ContainsKey(b + Offsets.RSupport),
-                "GunSlinger must write support");
-            Assert.Equal((byte)DualWieldId, mem.Written[b + Offsets.RSupport]);
-        }
-        finally
-        {
-            Directory.Delete(dir, true);
-        }
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        gs.PrepRoster();
+
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "GunSlinger must write off-hand");
+        Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.True(mem.Written.ContainsKey(b + Offsets.RSupport),
+            "GunSlinger must write support");
+        Assert.Equal((byte)DualWieldId, mem.Written[b + Offsets.RSupport]);
     }
 
     // Integration: real item in off-hand gets snapshotted and overwritten
     [Fact]
     public void PrepRoster_snapshots_and_overwrites_real_offhand()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var mem = new FakeSparseMemory();
-            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
-            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                           off: 100, supp: 213);
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-            gs.PrepRoster();
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                       off: 100, supp: 213);
 
-            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-            Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
-            Assert.Equal((byte)DualWieldId, mem.Written[b + Offsets.RSupport]);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        gs.PrepRoster();
 
-            // snapshot should have originals
-            var store = gs.StoreForTest();
-            var snap = store.Get(nameId: 1);
-            Assert.True(snap.HasOff);
-            Assert.Equal(100, snap.OrigOff);
-            Assert.True(snap.HasSupp);
-            Assert.Equal(213, snap.OrigSupp);
-        }
-        finally
-        {
-            Directory.Delete(dir, true);
-        }
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.Equal((byte)DualWieldId, mem.Written[b + Offsets.RSupport]);
+
+        // snapshot should have originals
+        var store = gs.StoreForTest();
+        var snap = store.Get(nameId: 1);
+        Assert.True(snap.HasOff);
+        Assert.Equal(100, snap.OrigOff);
+        Assert.True(snap.HasSupp);
+        Assert.Equal(213, snap.OrigSupp);
     }
 
     // Integration: unequip Blaster -> restore original off-hand and support
     [Fact]
     public void PrepRoster_restores_originals_when_Blaster_unequipped()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var mem = new FakeSparseMemory();
-            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
-            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                           off: 100, supp: 213);
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-            gs.PrepRoster();  // snapshot + write twin/221
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                       off: 100, supp: 213);
 
-            // Now switch to a different main-hand weapon
-            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-            mem.U16s[b + Offsets.RRHand]   = 77;         // different gun
-            mem.U16s[b + Offsets.ROffHand] = BlasterId;  // twin still there
-            mem.U8s[b + Offsets.RSupport]  = DualWieldId;
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        gs.PrepRoster();  // snapshot + write twin/221
 
-            mem.Written.Clear();
-            mem.WrittenU16.Clear();
+        // Now switch to a different main-hand weapon
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        mem.U16s[b + Offsets.RRHand]   = 77;         // different gun
+        mem.U16s[b + Offsets.ROffHand] = BlasterId;  // twin still there
+        mem.U8s[b + Offsets.RSupport]  = DualWieldId;
 
-            gs.PrepRoster();  // should restore 100 and 213
+        mem.Written.Clear();
+        mem.WrittenU16.Clear();
 
-            Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
-                "must restore off-hand to original");
-            Assert.Equal((ushort)100, mem.WrittenU16[b + Offsets.ROffHand]);
-            Assert.True(mem.Written.ContainsKey(b + Offsets.RSupport),
-                "must restore support to original");
-            Assert.Equal((byte)213, mem.Written[b + Offsets.RSupport]);
-        }
-        finally
-        {
-            Directory.Delete(dir, true);
-        }
+        gs.PrepRoster();  // should restore 100 and 213
+
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "must restore off-hand to original");
+        Assert.Equal((ushort)100, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.True(mem.Written.ContainsKey(b + Offsets.RSupport),
+            "must restore support to original");
+        Assert.Equal((byte)213, mem.Written[b + Offsets.RSupport]);
     }
 
     // ── In-battle RE-ASSERT-ONLY guard (2026-07-04: "twin pistol only works out of battle") ──
@@ -405,28 +375,25 @@ public class GunSlingerTests
     [Fact]
     public void PrepRoster_inBattle_reasserts_a_clobbered_twin()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var mem = new FakeSparseMemory();
-            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
-            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                           off: EmptyU16, supp: EmptyU8);
-            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-            gs.PrepRoster();   // out of battle: snapshot + write twin (snap.HasOff now true)
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-            mem.U16s[b + Offsets.ROffHand] = EmptyU16;   // the game clobbered the off-hand back to empty
-            mem.WrittenU16.Clear();
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                       off: EmptyU16, supp: EmptyU8);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        gs.PrepRoster();   // out of battle: snapshot + write twin (snap.HasOff now true)
 
-            gs.PrepRoster(inBattle: true);   // in battle: re-assert only
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        mem.U16s[b + Offsets.ROffHand] = EmptyU16;   // the game clobbered the off-hand back to empty
+        mem.WrittenU16.Clear();
 
-            Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
-                "in battle, a clobbered twin must be re-written");
-            Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
-        }
-        finally { Directory.Delete(dir, true); }
+        gs.PrepRoster(inBattle: true);   // in battle: re-assert only
+
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "in battle, a clobbered twin must be re-written");
+        Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
     }
 
     // LOAD-BEARING SAFETY: in battle, a fresh GunSlinger main-hand with NO snapshot must NOT
@@ -435,80 +402,68 @@ public class GunSlingerTests
     [Fact]
     public void PrepRoster_inBattle_never_snapshots_fresh()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var mem = new FakeSparseMemory();
-            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
-            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                           off: 100, supp: 213);   // a REAL off-hand, no prior snapshot
-            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            gs.PrepRoster(inBattle: true);   // in battle: must leave everything alone
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                       off: 100, supp: 213);   // a REAL off-hand, no prior snapshot
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
 
-            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-            Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
-                "in battle with no snapshot, the off-hand must be left untouched");
-            var snap = gs.StoreForTest().Get(nameId: 1);
-            Assert.False(snap.HasOff);   // NOTHING captured to the persistent store
-        }
-        finally { Directory.Delete(dir, true); }
+        gs.PrepRoster(inBattle: true);   // in battle: must leave everything alone
+
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "in battle with no snapshot, the off-hand must be left untouched");
+        var snap = gs.StoreForTest().Get(nameId: 1);
+        Assert.False(snap.HasOff);   // NOTHING captured to the persistent store
     }
 
     // In battle, an unequipped GunSlinger must NOT restore (that touches the store + the real gear).
     [Fact]
     public void PrepRoster_inBattle_never_restores()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var mem = new FakeSparseMemory();
-            var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
-            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                           off: 100, supp: 213);
-            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-            gs.PrepRoster();   // out of battle: snapshot established
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-            mem.U16s[b + Offsets.RRHand] = 77;   // switched off the Blaster
-            mem.WrittenU16.Clear();
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                       off: 100, supp: 213);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        gs.PrepRoster();   // out of battle: snapshot established
 
-            gs.PrepRoster(inBattle: true);   // in battle: restore is suppressed
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        mem.U16s[b + Offsets.RRHand] = 77;   // switched off the Blaster
+        mem.WrittenU16.Clear();
 
-            Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
-                "in battle, a Restore must be suppressed (the off-hand is left as-is)");
-            Assert.True(gs.StoreForTest().Get(nameId: 1).HasOff);   // snapshot NOT cleared
-        }
-        finally { Directory.Delete(dir, true); }
+        gs.PrepRoster(inBattle: true);   // in battle: restore is suppressed
+
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "in battle, a Restore must be suppressed (the off-hand is left as-is)");
+        Assert.True(gs.StoreForTest().Get(nameId: 1).HasOff);   // snapshot NOT cleared
     }
 
     // Tier guard: below tier 3 -> no writes even if Blaster is equipped
     [Fact]
     public void PrepRoster_no_writes_when_tier_below_3()
     {
-        var dir = Path.Combine(Path.GetTempPath(), "gs_test_" + System.Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(dir);
-        try
-        {
-            var mem = new FakeSparseMemory();
-            var kills = new Dictionary<int, int> { [BlasterId] = 0 };  // tier 0
-            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                           off: EmptyU16, supp: EmptyU8);
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
 
-            var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-            gs.PrepRoster();
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = 0 };  // tier 0
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                       off: EmptyU16, supp: EmptyU8);
 
-            long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-            Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
-                "must not write off-hand below tier 3");
-            Assert.False(mem.Written.ContainsKey(b + Offsets.RSupport),
-                "must not write support below tier 3");
-        }
-        finally
-        {
-            Directory.Delete(dir, true);
-        }
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        gs.PrepRoster();
+
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "must not write off-hand below tier 3");
+        Assert.False(mem.Written.ContainsKey(b + Offsets.RSupport),
+            "must not write support below tier 3");
     }
 }

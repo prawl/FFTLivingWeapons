@@ -145,4 +145,32 @@ public class BandFixturesTests
 
         AssertExactMatch(oldMem, newMem);
     }
+
+    // ---- Family 4: SeatEnemyFp (Maim/PlagueLevelDrift/Puppeteer, LW-157 fold) ----
+
+    /// <summary>The pre-fold SeatEnemyFp body (the MaimTests/PlagueLevelDriftTests/PuppeteerTests
+    /// private copies were byte-identical -- verified diff -- and KobuTests inlined the same
+    /// statements).</summary>
+    private static void OldSeatEnemyFp(FakeSparseMemory mem, (int mhp, int lvl, int br, int fa) fp)
+    {
+        long slot = Offsets.ArrayReadBase;
+        mem.MarkReadable(slot + Offsets.AMaxHp, 2);
+        mem.U16s[slot + Offsets.AMaxHp] = (ushort)fp.mhp;
+        mem.U8s[slot + Offsets.ALevel] = (byte)fp.lvl;
+        mem.U8s[slot + Offsets.ABrave] = (byte)fp.br;
+        mem.U8s[slot + Offsets.AFaith] = (byte)fp.fa;
+    }
+
+    [Fact]
+    public void SeatEnemyFp_matches_old_body_exactly()
+    {
+        var oldMem = new FakeSparseMemory();
+        var newMem = new FakeSparseMemory();
+
+        // Representative call, lifted from PuppeteerTests' mirror-copy scenario fingerprint.
+        OldSeatEnemyFp(oldMem, (mhp: 600, lvl: 50, br: 70, fa: 50));
+        BandFixtures.SeatEnemyFp(newMem, (mhp: 600, lvl: 50, br: 70, fa: 50));
+
+        AssertExactMatch(oldMem, newMem);
+    }
 }

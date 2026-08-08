@@ -91,7 +91,7 @@ public class KobuTests
 
     // ---- Integration setup ----
     //
-    // SeatEnemy: band entry + static-array slot 0 (enemy oracle -- same pattern as MaimTests.SeatEnemyFp).
+    // SeatEnemy: band entry + static-array slot 0 (enemy oracle -- BandFixtures.SeatEnemyFp).
     // SeatWielder: roster slot + band entry via MemSeats helpers, plus ABraveCurrent (0x0F) seeded manually
     //              (MemSeats.SeatBand writes ABrave at +0x0E; ABraveCurrent at +0x0F is a NEW constant).
     //
@@ -127,13 +127,8 @@ public class KobuTests
         mem.MarkReadable(enemy + Offsets.AMaxHp, 2);   // production reads n=2 (Band.Sanity.cs)
         mem.MarkReadable(enemy + Offsets.AHp, 2);      // production reads n=2 (Band.Sanity.cs)
 
-        // Static-array enemy fingerprint at slot 0 (enemy-oracle, mirrors MaimTests.SeatEnemyFp)
-        long arrSlot = Offsets.ArrayReadBase;
-        mem.MarkReadable(arrSlot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs, the static-array Fingerprints sweep)
-        mem.U16s[arrSlot + Offsets.AMaxHp] = 400;
-        mem.U8s[arrSlot + Offsets.ALevel]  = 40;
-        mem.U8s[arrSlot + Offsets.ABrave]  = (byte)enemyOrigBrave;
-        mem.U8s[arrSlot + Offsets.AFaith]  = 55;
+        // Static-array enemy fingerprint at slot 0 (enemy-oracle)
+        BandFixtures.SeatEnemyFp(mem, (mhp: 400, lvl: 40, br: enemyOrigBrave, fa: 55));
 
         var kobu = new Kobu(meta, kills, tracker, mem: mem);
         return (kobu, mem, wielder, enemy);

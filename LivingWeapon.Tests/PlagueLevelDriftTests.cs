@@ -98,7 +98,7 @@ public class PlagueLevelDriftTests
     }
 
     // ------------------------------------------------------------------ integration setup
-    // Mirrors MaimTests' BuildMaimedVictim/SeatVictim/SeatEnemyFp pattern: a real Plague instance
+    // Mirrors MaimTests' BuildMaimedVictim/SeatVictim + BandFixtures.SeatEnemyFp pattern: a real Plague instance
     // ticked against a FakeSparseMemory laid out at the true Offsets.
 
     private const int VenomboltId = 80;
@@ -144,16 +144,6 @@ public class PlagueLevelDriftTests
         mem.U16s[addr + Offsets.AHp] = hp;
     }
 
-    private static void SeatEnemyFp(FakeSparseMemory mem, (int mhp, int lvl, int br, int fa) fp)
-    {
-        long slot = Offsets.ArrayReadBase;   // static-array slot 0 (enemy side); a frozen snapshot.
-        mem.MarkReadable(slot + Offsets.AMaxHp, 2);   // production reads n=2 (Plague.cs EnemyFingerprints)
-        mem.U16s[slot + Offsets.AMaxHp] = (ushort)fp.mhp;
-        mem.U8s[slot + Offsets.ALevel] = (byte)fp.lvl;
-        mem.U8s[slot + Offsets.ABrave] = (byte)fp.br;
-        mem.U8s[slot + Offsets.AFaith] = (byte)fp.fa;
-    }
-
     /// <summary>Build a Plague instance with one victim already latched (poison edge + acted
     /// window overlapping at a fixed clock, mirroring PlagueGraceTests' grace-window mechanics).</summary>
     private static (Plague plague, FakeSparseMemory mem, long victim) BuildLatchedVictim(
@@ -168,7 +158,7 @@ public class PlagueLevelDriftTests
         mem.U8s[Offsets.Acted] = 1;
 
         SeatRosterSlot(mem, slot: 0, rh: VenomboltId);
-        SeatEnemyFp(mem, fp);
+        BandFixtures.SeatEnemyFp(mem, fp);
 
         long victim = Band.Entry(5);
         SeatVictim(mem, victim, fp, poisoned: false, timer: Tuning.PoisonTimerInit, ct: seedCt, hp: 100);

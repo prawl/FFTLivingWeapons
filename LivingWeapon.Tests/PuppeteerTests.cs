@@ -197,7 +197,7 @@ public class PuppeteerTests
 
         long victim = Band.Entry(bandSlot);
         SeatVictim(mem, victim, fp, hp: 100, job: job, agency: 0x50);   // 0x50 = enemy (0x08 clear)
-        SeatEnemyFp(mem, fp);
+        BandFixtures.SeatEnemyFp(mem, fp);
 
         var pup = new Puppeteer(meta, kills, tracker, turns, mem: mem,
                                 recorder: rec is null ? null : (t, p) => rec.Add((t, p)));
@@ -221,16 +221,6 @@ public class PuppeteerTests
         mem.ReadableAddrs.Add(addr + Puppeteer.AgencyOff);
         mem.WritableAddrs.Add(addr + Puppeteer.AgencyOff);
         mem.U8s[addr + Puppeteer.AgencyOff] = agency;
-    }
-
-    private static void SeatEnemyFp(FakeSparseMemory mem, (int mhp, int lvl, int br, int fa) fp)
-    {
-        long slot = Offsets.ArrayReadBase;                       // static-array slot 0 (enemy side)
-        mem.MarkReadable(slot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs Fingerprints)
-        mem.U16s[slot + Offsets.AMaxHp] = (ushort)fp.mhp;
-        mem.U8s[slot + Offsets.ALevel] = (byte)fp.lvl;
-        mem.U8s[slot + Offsets.ABrave] = (byte)fp.br;
-        mem.U8s[slot + Offsets.AFaith] = (byte)fp.fa;
     }
 
     private static bool AgencyBitSet(FakeSparseMemory mem, long victim)
@@ -702,7 +692,7 @@ public class PuppeteerTests
         long victim = Band.Entry(24);
         var enemyFp = (mhp: 600, lvl: 50, br: 70, fa: 50);
         SeatVictim(mem, victim, enemyFp, hp: 100, job: 76, agency: 0x50);
-        SeatEnemyFp(mem, enemyFp);
+        BandFixtures.SeatEnemyFp(mem, enemyFp);
 
         var pup = new Puppeteer(meta, kills, tracker, turns, mem: mem);
 
@@ -752,7 +742,7 @@ public class PuppeteerTests
         long victim = Band.Entry(24);
         var enemyFp = (mhp: 600, lvl: 50, br: 70, fa: 50);
         SeatVictim(mem, victim, enemyFp, hp: 100, job: 76, agency: 0x50);
-        SeatEnemyFp(mem, enemyFp);
+        BandFixtures.SeatEnemyFp(mem, enemyFp);
 
         var pup = new Puppeteer(meta, kills, tracker, turns, mem: mem);
 

@@ -246,13 +246,8 @@ public class DisplayTests
         var statics  = new byte[64];
 
         var heap = new FakeHeap((bigBase, bigData), (StaticsBase, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase + 0,
-            mirrorOffHandAddr: StaticsBase + 2,
-            wpScratchAddr:     StaticsBase + 4);
-
         var clock = new TestClock();
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock);
 
         // A single out-of-battle tick must not throw and must respect budget
         var ex = Record.Exception(() =>

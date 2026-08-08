@@ -77,11 +77,7 @@ public class DisplayTrailSlackTests
         statics[0] = WeaponId; statics[1] = 0; // MirrorWeapon = WeaponId
 
         var heap = new FakeHeap((regionBase, regionData), (statBase, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  statBase,
-            mirrorOffHandAddr: statBase + 2,
-            wpScratchAddr:     statBase + 4);
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, statBase, clock);
 
         CardFixtures.DrainGeneration(display, clock, 600);
 

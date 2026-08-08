@@ -78,13 +78,8 @@ public class DisplayRotationTests
         statics[0] = 20; statics[1] = 0; // mirror = id 20
 
         var heap = new FakeHeap((SourceBase3, src), (StaticsBase3, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase3 + 0,
-            mirrorOffHandAddr: StaticsBase3 + 2,
-            wpScratchAddr:     StaticsBase3 + 4);
-
         var clock = new TestClock();
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase3, clock);
 
         // Run bounded Ticks and count how many distinct ids get their suffix painted
         // (suffix for 5 kills at prod thresholds {5,20,50}: tier 1 = "+")
@@ -145,13 +140,8 @@ public class DisplayRotationTests
         const long SmallBase = 0x72_0000_0000L;
         var heap = new FakeHeap((SourceBase3 + 0x2_0000_0000L, big), (SmallBase, small),
                                 (StaticsBase3 + 0x2_0000_0000L, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase3 + 0x2_0000_0000L + 0,
-            mirrorOffHandAddr: StaticsBase3 + 0x2_0000_0000L + 2,
-            wpScratchAddr:     StaticsBase3 + 0x2_0000_0000L + 4);
-
         var clock = new TestClock();
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase3 + 0x2_0000_0000L, clock);
 
         byte plus = ByteScan.Ascii("+")[0];
         for (int i = 0; i < 800; i++)
@@ -196,13 +186,8 @@ public class DisplayRotationTests
         statics[0] = 20; statics[1] = 0;
 
         var heap = new FakeHeap((SourceBase3 + 0x1_0000_0000L, src), (StaticsBase3 + 0x1_0000_0000L, statics));
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase3 + 0x1_0000_0000L + 0,
-            mirrorOffHandAddr: StaticsBase3 + 0x1_0000_0000L + 2,
-            wpScratchAddr:     StaticsBase3 + 0x1_0000_0000L + 4);
-
         var clock = new TestClock();
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase3 + 0x1_0000_0000L, clock);
 
         // Discovery pass
         for (int i = 0; i < 100; i++)

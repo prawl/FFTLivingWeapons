@@ -60,14 +60,9 @@ public class DrillTriggerTests
         // File.Exists lane. There is deliberately NO real-overload false-case companion: it would
         // read the real process environment, and a leaked LW_FORCE_FINGERPRINT_MISMATCH=1 on a CI
         // or dev box would flake it; the injected-seam tests above already pin the false paths.
-        string tempDir = Path.Combine(Path.GetTempPath(), "lw_drill_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(tempDir);
-        try
-        {
-            File.WriteAllText(Path.Combine(tempDir, DrillTrigger.FlagName), "");
+        using var temp = TempDirs.Create("lw_drill_");
+        File.WriteAllText(Path.Combine(temp.Dir, DrillTrigger.FlagName), "");
 
-            Assert.True(DrillTrigger.DrillRequested(tempDir));
-        }
-        finally { Directory.Delete(tempDir, recursive: true); }
+        Assert.True(DrillTrigger.DrillRequested(temp.Dir));
     }
 }

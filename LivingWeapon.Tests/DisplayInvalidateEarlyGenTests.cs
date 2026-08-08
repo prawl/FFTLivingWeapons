@@ -68,12 +68,7 @@ public class DisplayInvalidateEarlyGenTests
             (SourceBase2,  padded),
             (StaticsBase2, statics));
 
-        var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase2 + 0,
-            mirrorOffHandAddr: StaticsBase2 + 2,
-            wpScratchAddr:     StaticsBase2 + 4);
-
-        var display = new Display(meta, kills, wrapped, clock.Func);
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase2, clock);
 
         // Drain initial generation (mirror = 10)
         for (int i = 0; i < 200; i++)
