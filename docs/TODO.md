@@ -60,76 +60,8 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-159] Delete the four ability lanes no weapon uses anymore** (opened 2026-08-07) [BUILDING]
-  - Done means: the shipped mod no longer carries runtime code for abilities that no weapon in
-    the design can trigger. Proven dormant from data/items.json (the design source of truth):
-    the charm-lock lane (Galewind moved to Puppeteer), the Wyrmblood regen splash (the Dragon
-    Rod no longer carries a signature), the LifeSap on-kill heal (never wired to any item; the
-    owner's 2026-08-07 directive resolves the wire-or-delete question as delete), and the
-    forTurns timed-stat arm (the Holy Lance uses the mount gate instead). Each lane's whole
-    surface goes: module files, Engine wiring, meta passthrough rows, WeaponMeta properties,
-    Tuning knobs, tests, and doc references, with the meta bake proven byte-identical after
-    (dormant keys emitted nothing) and the unknown-key gate left to catch any future
-    revival attempt loudly. The forTurns arm is deleted ONLY if it separates cleanly from the
-    mount lane, which carries two open live-bug tickets (LW-100, LW-111); if interwoven, it
-    stays with a doc note and this row says so honestly.
-  - Verify: an adversarial audit confirms each lane's dormancy independently (no activation
-    path outside the missing key) and that every other signature module HAS a live activator,
-    so no fifth lane is deleted by mistake and none is missed; the full suite stays green;
-    repo-wide greps prove zero surviving references per deleted lane; regenerating meta.json
-    leaves git diff empty. No live pass needed: deleting code no data can reach cannot change
-    what players see, and the fingerprint guard surface is untouched.
-
-- **[LW-155] Retire code that is finished, dead, or lying** (opened 2026-08-07) [BUILDING]
-  - Done means: the four verified dead-code findings from the 2026-08-07 deep dive are gone. The
-    verb-less legacy logging lane (five ModLogger statics, five verb-less ILogger members, their
-    FileConsoleLogger and NullLogger implementations) is deleted with its ~20 LoggerTests
-    reshaped onto the typed lane (the one console-equals-file assertion that is only true on the
-    legacy path goes with it) and docs/LOGGING.md corrected; Plague.IsTurn (a dead second copy
-    of the 90/70 CT thresholds) is deleted and the two Plague comments pointing future work at
-    retired LW-149 are fixed; the never-False SCAFFOLD_LIVING knob is deleted from
-    patch_names.py so the CI gates and the bake cannot silently split; and Engine.cs's wiring
-    comments name the right weapons (the id-56 font is Umbral Rod, not Wellspring; the LifeSap
-    line goes with the LifeSap module, LW-159).
-  - Verify: the migration ratchet (LogContractTests.LegacyCallers) and repo-wide grep prove the
-    verb-less lane had zero production callers before deletion; the full suite stays green;
-    patch_names --dry and audit_nxd_bakes emit byte-identical output after the knob deletion;
-    an adversarial audit reviews the span. No live pass needed: dead lanes and comments only.
-
 ## Backlog
 
-- [LW-158] 2026-08-07: The Arcanum's buff-stealing trigger is the one user of the shared
-  HP-drop detector that no test watches; give it the same stateful pin its five siblings have.
-  Found by the LW-153 adversarial audit: Larceny.cs:106 gates the entire steal on
-  HpDeltaState.Observe, but LarcenyTests drives only the pure policy statics, so the
-  dead-event sabotage that turned 41 tests red across five consumer suites left Larceny
-  silently broken with zero reds. Pre-existing debt (the loop was never pinned), but the
-  LW-153 fold concentrates the risk: one edit to the shared core now reaches six modules with
-  pins on five. The pin is one KobuTests-shaped staging (wielder + struck enemy + an HP drop)
-  asserting the steal latches, born red under a dead-Observe sabotage. The audit's two smaller
-  residues can ride along: CharmLock's dropPrevious un-charm and Puppeteer's Release revert
-  route through the shared same-unit predicate with only transitive pins, and the
-  untracked-bury console pin asserts only a fragment of the frozen sentence.
-
-- [LW-157] 2026-08-07: The test suite pays a copy-paste tax: nine kill-tracker suites carry the
-  same seeding helpers, fifty call sites hand-roll the same seven-line logger swap, and a few
-  seed rituals still live outside the shared fixtures.
-  From the 2026-08-07 deep dive, all diffs verified. (a) Nine KillTracker-family suites copy
-  Settle and the Set* seed helpers (three files byte-identical, two cosmetic variants); the
-  genuinely duplicated core is the TurnQueue+Acted seed, static-array oracle seed, ActorPtr
-  formula, and settle rhythms, roughly 30-45 lines per suite. PRECONDITION: KillCreditCoverageTests
-  documents per-file mirroring as this family's deliberate convention, so retiring it is an
-  owner call first. (b) The ModLogger capture ritual (swap in a sink logger, run, restore in
-  finally) appears at ~50 sites across 21 files with TWO different restore conventions; one
-  shared capture scope (level and sink-selection parameterized) makes the restore discipline
-  structural. (c) Twelve hand-rolled Display constructions could ride CardFixtures.MakeDisplay;
-  (d) GunSlingerTests hand-rolls the temp-dir try/finally ritual nine times beside the TempDirs
-  fixture 20+ suites already use; (e) the byte-identical SeatEnemyFp triple (Maim, PlagueDrift,
-  Puppeteer, plus a fourth inline copy in KobuTests) belongs in BandFixtures beside its
-  ally-side twin (ChoirTests' inline variant stays out, its 1-byte mark is a different premise);
-  (f) residue: dead 1-byte mark at ChoirTests:234, stale AttackCardFixtures.SeatCursor comment,
-  and ExtraTurn's guarded CT/HP reads have zero readable-success coverage in either suite, so a
-  future dead-check test would pass vacuously.
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
   one item is left, and it needs the owner's own sign-off.
   Fixed this commit: docs/LOGGING.md's claim that Puppeteer is not flight-tapped (it is, and the

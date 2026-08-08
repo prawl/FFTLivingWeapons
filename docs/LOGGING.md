@@ -122,7 +122,7 @@ deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-face
 | `mark` | (new: Reliquary RecordDeed earn, previously toast-only) | Info, once per earn. |
 | `tier` | tier crossings (previously buried in GRANT/toast payloads) | Reserved: no per-crossing line is emitted; a crossing surfaces via the `[battle-end]` summary and toast delivery instead. |
 | `grant` | `GRANT`, `barrage:`/`shadow blade:` JobCommand grant + readback lines | Info when armed; a readback MISS stays Warning-worthy. |
-| `signature` | `charm-lock:` `eagle-eye:` `ricochet:` `maim:` `kobu:` `iai:` `plague:` `life-sap:` `wyrmblood:` `renewal:` `rapture:` `font:` `feign-death:` `larceny:` `benediction:` `sanctuary:` `choir:` `ultima:` `afterimage:` `puppeteer:`* | Info only under the relevance gate (a deployed unit wields the weapon this battle); everything else Debug. |
+| `signature` | `eagle-eye:` `ricochet:` `maim:` `kobu:` `iai:` `plague:` `renewal:` `rapture:` `font:` `feign-death:` `larceny:` `benediction:` `sanctuary:` `choir:` `ultima:` `afterimage:` `puppeteer:`* (historic, archives only: `charm-lock:` `life-sap:` `wyrmblood:` -- their modules were deleted as dormant in LW-159, so no current build emits them) | Info only under the relevance gate (a deployed unit wields the weapon this battle); everything else Debug. |
 | `toast` | `banner-toast:` `prompt-swap:` | Info for delivered/dropped; queue internals Debug. |
 | `save` | `kill-tally:` `legend-store:` + the new load summaries | Info for load summaries; Warning for fallback/corrupt; Error for failed saves. |
 | `display` | `display:` | Info once per launch: sweep generation 1 is the liveness canary; every later generation is Debug, file-only. |

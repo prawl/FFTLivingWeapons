@@ -246,7 +246,8 @@ def assemble_desc(it, scaffold=True):
     flavor line (+ generated mechanics), the uniform range sentence, and the "+{atTier} Ability"
     signature block. Extracted here so analyze.py's desc-budget gate and the baker CANNOT drift:
     the same lockstep contract flavor_anchor carries for the (now second) flavor line.
-    `scaffold` mirrors patch_names' SCAFFOLD_LIVING switch."""
+    `scaffold` stays a parameter for callers that need an unscaffolded render; the bake itself
+    is unconditional (patch_names' never-False SCAFFOLD_LIVING knob was deleted in LW-155)."""
     custom = it.get("desc")
     if custom:
         desc = custom

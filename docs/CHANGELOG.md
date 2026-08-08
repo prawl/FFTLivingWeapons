@@ -10,6 +10,48 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-158] SHIPPED c75f793 2026-08-07: the Arcanum's buff-stealing trigger, the one user of the
+  shared HP-drop detector that no test watched, has its stateful pin. A full staging (wielder
+  acting, struck foe carrying Reraise) proves the steal's real observable, the bit transfer off
+  the foe onto the wielder, fires across an observed HP drop; the pin was born red under the
+  exact dead-detector sabotage that had previously broken Larceny silently while 41 tests
+  guarded its five siblings, plus a steady-HP control proving nothing writes without a drop.
+  Accepted residue, stated honestly: the row's two smaller notes partially resolved themselves
+  (the charm-lock transitive-pin concern died with the module in LW-159) and the remaining two
+  nits (Puppeteer's Release revert is pinned only transitively; the untracked-bury console pin
+  asserts a fragment of the frozen sentence) are accepted as-is.
+- [LW-155] SHIPPED d27fbe4 2026-08-07: the finished, dead, and lying code the deep dive
+  verified is retired. The verb-less legacy logging lane (five ModLogger statics, five
+  bare-string ILogger members, their two sink implementations) had zero production callers and
+  is deleted, with nineteen LoggerTests migrated onto the typed lane, the one assertion that
+  was only true on the legacy path replaced by stronger per-sink shape checks, and the spent
+  migration ratchet converted into a live tripwire pair proven against the real deleted shapes
+  (twenty hits on the old tree, zero now). The flight recorder's first-error arming and the
+  two-sink rule are byte-unchanged. Plague.IsTurn, a zero-caller second copy of the 90/70 CT
+  thresholds, is deleted, and the two comments pointing future work at retired LW-149 now
+  state the deliberate bound separation guarded by the open owner ledger row. patch_names.py's
+  never-False SCAFFOLD_LIVING knob is gone with the scaffold unconditional, proven by
+  byte-identical dry-run and audit output. Engine.cs's font comment names the Umbral Rod. The
+  LifeSap half of the old item (d) shipped inside LW-159's deletion instead, as planned.
+- [LW-159] SHIPPED 9f927d5 2026-08-07: the four ability lanes no weapon can trigger anymore
+  are deleted from the shipped mod, per the owner's 2026-08-07 directive. An adversarial
+  dormancy audit first proved each lane inert (activation traced to a meta key no item emits)
+  and, just as important, proved every OTHER module alive, catching the two traps that would
+  have made a naive sweep destructive: Plague activates on a bare keyless signature block
+  (Venombolt) and ExtraTurn is id-keyed with no meta gate at all, so neither could be judged
+  by missing keys. Deleted whole, one commit per lane: the charm lock (0d62c81; Galewind moved
+  to Puppeteer), the Wyrmblood regen splash (729c063; the Dragon Rod carries no signature and
+  the design sheet agrees; HealPulse deliberately stays as Renewal's core), the LifeSap
+  on-kill heal (9f927d5; the one live primitive its suite pinned, Signatures.FreshKill, moved
+  to SignaturesTests first), and the forTurns timed-stat arm (9f927d5; a pure predicate
+  amputation, token-compared to leave the mount lane's LW-100/109/110 machinery byte-identical,
+  every timed-window test converted 1:1 onto the mount gate). Roughly 1,300 lines of
+  unreachable runtime and test code are gone; meta.json regenerates byte-identical throughout;
+  the meta bake's unknown-key gate now fails loud if any deleted key ever returns. Three
+  independent adversarial auditors returned SHIP over the whole span; their cosmetic findings
+  (a log-glossary row unmarked historic, one stale docstring) are fixed in the retiring
+  commit. Suite 3051 to 2975 with coverage survival verified pin by pin; no live pass needed,
+  deleting code no data can reach cannot change what players see.
 - [LW-153] SHIPPED 523aa30 2026-08-07: five families of shipped weapon code that were
   maintained as hand-synced copies each live in one home now, so a fix lands once instead of
   landing twice and silently missing a sibling. The healing twins (Mending Staff's Chebyshev
