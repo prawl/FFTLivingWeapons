@@ -254,4 +254,111 @@ public class LarcenyTests
         Assert.Equal(Offsets.AReraiseBit, wielder.Bytes[Offsets.AReraise]);  // the wielder wears one copy
         Assert.Single(ledger.Held);
     }
+
+    // ── LW-158: the stateful Observe-driven steal pin. Everything above drives the pure
+    //    LarcenyPolicy statics; nothing exercised Larceny.Tick's own detection path, which rides
+    //    the shared HpDeltaState HP-drop core (HpDeltaState.cs, subclass RicochetState). That core
+    //    had five pinned consumers and this unpinned sixth: a dead-Observe sabotage turned 41
+    //    tests red across five sibling suites while Larceny broke silently. These pins stage the
+    //    full trigger (tier gate, acting-main-hand + Acted gates, wielder locate, band walk,
+    //    enemy-fingerprint filter) on a FakeSparseMemory, Kobu-style (KobuTests.Build -- the same
+    //    strike-detection family), and assert the steal's real observable: the buff bit LEAVING
+    //    the struck foe and LANDING on the wielder. ──
+
+    private const int ArcanumId = 30;
+
+    private static (Larceny larceny, FakeSparseMemory mem, long wielderEntry, long enemyEntry)
+        BuildStateful(int wielderSlot = 24, int enemySlot = 20)
+    {
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            [ArcanumId] = new WeaponMeta
+            {
+                Name = "Arcanum", Wp = 12, Cat = "Ninja Blade", Formula = 1,
+                Flavor = "blade of forbidden sigils",
+                Signature = new WeaponSignature { AtTier = 3, LarcenyTurns = 3, DisplayLabel = "Larceny" }
+            }
+        };
+        var kills = new Dictionary<int, int> { [ArcanumId] = Tuning.ProdThresholds[2] };  // tier 3
+        var tracker = new KillTracker(new Dictionary<int, int>(), mem, new HashSet<int>());
+        tracker._lastPlayerMainHand = ArcanumId;   // the wielder is the last to act (acting-main-hand gate)
+        tracker._lastActorFp = (30, 70, 60);       // the per-period fingerprint latch names the wielder
+        mem.U8s[Offsets.Acted] = 1;                // and it is acting this turn
+        mem.MarkReadable(Offsets.Acted, 1);        // production guards the acted read (Larceny.cs, the actedByte Readable pre-filter)
+
+        // Wielder: roster slot + band entry (Wielder.Locate resolves the acting fingerprint to
+        // this band address; SeatRoster's nameId 0 keeps the tier-2 fingerprint-scan path).
+        long wielder = Band.Entry(wielderSlot);
+        MemSeats.SeatRoster(mem, 0, lvl: 30, br: 70, fa: 60, rh: ArcanumId);
+        MemSeats.SeatBand(mem, wielderSlot, weapon: ArcanumId, lvl: 30, br: 70, fa: 60,
+                          gx: 2, gy: 2, hp: 200, maxHp: 300);
+        mem.MarkReadable(wielder + Offsets.AMaxHp, 2);   // production reads n=2 (Band.Sanity.cs)
+        mem.MarkReadable(wielder + Offsets.AHp, 2);      // production reads n=2 (Band.Sanity.cs)
+        // The steal's grant target: SetBit pre-filters Readable(a,1) && Writable(a,1)
+        // (LarcenyPolicy.SetBit); HasBit needs the same 1-byte read.
+        mem.MarkReadable(wielder + Offsets.AReraise, 1);
+        mem.MarkWritable(wielder + Offsets.AReraise, 1);
+
+        // Struck enemy: band entry visible in the band walk, carrying a holdable Reraise buff.
+        long enemy = Band.Entry(enemySlot);
+        MemSeats.SeatBand(mem, enemySlot, weapon: 0, lvl: 40, br: 75, fa: 55,
+                          gx: 4, gy: 5, hp: 200, maxHp: 400);
+        mem.MarkReadable(enemy + Offsets.AMaxHp, 2);   // production reads n=2 (Band.Sanity.cs)
+        mem.MarkReadable(enemy + Offsets.AHp, 2);      // production reads n=2 (Band.Sanity.cs)
+        // The pre-hit buff snapshot reads each Stealable offset behind a 1-byte Readable guard
+        // (Larceny.cs, the Pick lambda); the strip is ClearBit's Readable+Writable pre-filter.
+        mem.U8s[enemy + Offsets.AReraise] = Offsets.AReraiseBit;
+        mem.MarkReadable(enemy + Offsets.AReraise, 1);
+        mem.MarkWritable(enemy + Offsets.AReraise, 1);
+
+        // Static-array enemy fingerprint at slot 0 (Band.EnemyFingerprints, the enemy oracle --
+        // same seeding as KobuTests.Build / MaimTests.SeatEnemyFp).
+        long arrSlot = Offsets.ArrayReadBase;
+        mem.MarkReadable(arrSlot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs, the Fingerprints sweep)
+        mem.U16s[arrSlot + Offsets.AMaxHp] = 400;
+        mem.U8s[arrSlot + Offsets.ALevel]  = 40;
+        mem.U8s[arrSlot + Offsets.ABrave]  = 75;
+        mem.U8s[arrSlot + Offsets.AFaith]  = 55;
+
+        var larceny = new Larceny(meta, kills, tracker, new TurnTracker(mem), mem);
+        return (larceny, mem, wielder, enemy);
+    }
+
+    [Fact]
+    public void Tick_steals_the_struck_foes_buff_onto_the_wielder_across_the_hp_drop()
+    {
+        var (larceny, mem, wielderEntry, enemy) = BuildStateful();
+
+        larceny.Tick(onField: true);              // tick 1: baseline enemy HP 200 + pre-hit buff snapshot
+        mem.U16s[enemy + Offsets.AHp] = 160;      // hit: HP dropped 40
+        larceny.Tick(onField: true);              // tick 2: Observe reports the drop -> the steal fires
+
+        // The steal's observable effect is the bit TRANSFER: stripped off the struck foe...
+        Assert.True(mem.Written.ContainsKey(enemy + Offsets.AReraise),
+            "the struck foe's Reraise bit must be stripped (LarcenyPolicy.ClearBit write)");
+        Assert.Equal(0, mem.U8s[enemy + Offsets.AReraise] & Offsets.AReraiseBit);
+        // ...and granted + held on the wielder.
+        Assert.True(mem.Written.ContainsKey(wielderEntry + Offsets.AReraise),
+            "the wielder must be granted the stolen Reraise bit (LarcenyHoldings.Steal -> SetBit write)");
+        Assert.Equal(Offsets.AReraiseBit,
+            mem.U8s[wielderEntry + Offsets.AReraise] & Offsets.AReraiseBit);
+    }
+
+    [Fact]
+    public void Tick_steals_nothing_while_the_foes_hp_holds_steady()
+    {
+        // The other direction of the same pin: with every gate open but NO HP drop, Observe stays
+        // silent and neither side's status byte is ever written.
+        var (larceny, mem, wielderEntry, enemy) = BuildStateful();
+
+        larceny.Tick(onField: true);   // baseline
+        larceny.Tick(onField: true);   // same HP re-read: not an event
+        larceny.Tick(onField: true);
+
+        Assert.False(mem.Written.ContainsKey(enemy + Offsets.AReraise),
+            "no HP drop -- the foe's buff must not be stripped");
+        Assert.False(mem.Written.ContainsKey(wielderEntry + Offsets.AReraise),
+            "no HP drop -- the wielder must not be granted anything");
+    }
 }
