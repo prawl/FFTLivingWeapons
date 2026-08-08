@@ -7,8 +7,10 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Per-unit roster-snapshot persistence for Gun Slinger. Keys on roster nameId (u16).
-/// Saved as gunslinger.json in the mod directory; atomic write + .bak, mirrors KillTally.
-/// Loaded once at construction; Save() is called each time a snapshot changes.
+/// Saved as gunslinger.json in the mod directory; atomic write + .bak with CURRENT-generation
+/// bak semantics (see Save's doc; deliberately NOT KillTally/LegendStore's shared
+/// SidecarJson.SaveAtomic chain). Loaded once at construction; Save() is called each time a
+/// snapshot changes.
 /// </summary>
 internal sealed class GunSlingerStore
 {

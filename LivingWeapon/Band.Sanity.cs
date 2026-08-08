@@ -51,8 +51,9 @@ internal static partial class Band
         return true;
     }
 
-    /// <summary>The same-unit WRITE-SAFETY predicate every held write verifies before
-    /// re-squeezing a stored band address (LW-153): is the unit at <paramref name="addr"/>
+    /// <summary>The same-unit WRITE-SAFETY predicate its four consumers (CharmLock, Puppeteer's
+    /// hold, Maim's drive, Plague's drive) verify before re-squeezing a stored band address
+    /// (LW-153): is the unit at <paramref name="addr"/>
     /// still EXACTLY the one whose fingerprint was captured at latch time? Guards the maxHp
     /// read, then demands all four fields equal. Band slots are fixed addresses and units
     /// migrate between them, so a stale address must read as a stranger and be skipped, never

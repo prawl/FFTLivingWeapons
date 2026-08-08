@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-153] SHIPPED 523aa30 2026-08-07: five families of shipped weapon code that were
+  maintained as hand-synced copies each live in one home now, so a fix lands once instead of
+  landing twice and silently missing a sibling. The healing twins (Mending Staff's Chebyshev
+  aura, Dragon Rod's Manhattan splash, ~85 token-identical lines) run one HealPulse core with
+  their five real differences injected and every narration string moved byte-identical; the
+  fold exposed that the whole stateful heal loop had ZERO direct tests, so nine pulse pins
+  were written first, including a mirrored diagonal pair that holds the twins' one deliberate
+  metric difference. The same-unit write-safety check behind every held write is one
+  Band.SameUnitAtExact at its four copy sites (Rapture's level-exempt check and Plague's
+  drift-tolerant SameVictim fenced out by name); its sabotage exposed that only one of four
+  consumers pinned it, so CharmLock, Puppeteer, and Maim each gained a stranger-at-the-held-
+  address pin born red under the break. The HP-drop and HP-rise trackers are one
+  direction-parameterized HpDeltaState (a shared-core sabotage turned 41 tests red across
+  five consumer suites at once); the kill tally and legends store share one
+  SidecarJson.SaveAtomic (also the single doorway an LW-28 save diagnostic would tap; the gun
+  store's current-generation bak stays out by design and its doc no longer describes a backup
+  step its code never had); and the kill counter's owner-flagged untracked-bury ruling is one
+  helper, so the wording pin covers the orphan path that previously had none. Two independent
+  adversarial auditors returned SHIP with byte-level token comparison of every moved body and
+  string; their one real finding, Larceny as the unpinned sixth HP-delta consumer, is filed
+  as LW-158, and their doc nits are fixed in the closing commit. Stages 484cfca, 811a79d,
+  2e17cbf, 523aa30; suite 3030 to 3051; no live pass needed, behavior byte-identical.
 - [LW-154] SHIPPED ae2709f 2026-08-07: the code that answers "which unit is acting right now",
   the heart of kill credit, no longer spells its trickiest step three times over. The
   turn-queue sanity read and the twin filter (the discard-and-restart bookkeeping that keeps a

@@ -60,26 +60,20 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-153] Fold the runtime's hand-synced twin code into single homes** (opened 2026-08-07) [BUILDING]
-  - Done means: five shipped-code families that were maintained as hand-synced copies each live
-    in one home, and a fix can no longer land in one copy while silently missing another. The
-    two healing twins (Mending Staff's aura, Dragon Rod's splash) run one shared heal-pulse
-    core with their five real differences injected (weapon id, radius knob, heal amount,
-    distance rule, narration), log lines byte-identical per weapon; the same-unit write-safety
-    check the held writes rely on is one named Band helper at its four copy sites, with the two
-    deliberately different lookalikes (Rapture's level-exempt check, Plague's drift-tolerant
-    SameVictim) fenced out by name; the HP-drop and HP-rise trackers are one direction-
-    parameterized core; the atomic save chain shared by the kill tally and the legends store is
-    one SaveAtomic (the gun store's different bak semantics stay put); and the kill counter's
-    pasted untracked-bury ruling block appears once.
-  - Verify: the full suite stays green throughout (Renewal/Wyrmblood/CharmLock/Puppeteer/Maim/
-    Plague/Benediction/Ricochet and the persistence suites pin these surfaces); moved bodies
-    are token-compared against the deleted copies; sabotage runs on each shared home turn
-    predicted tests red across ALL consumers at once, restored green; an adversarial audit
-    reviews the whole span before the row exits. No live pass needed: behavior-identical folds,
-    no address or write-path changes.
-
 ## Backlog
+
+- [LW-158] 2026-08-07: The Arcanum's buff-stealing trigger is the one user of the shared
+  HP-drop detector that no test watches; give it the same stateful pin its five siblings have.
+  Found by the LW-153 adversarial audit: Larceny.cs:106 gates the entire steal on
+  HpDeltaState.Observe, but LarcenyTests drives only the pure policy statics, so the
+  dead-event sabotage that turned 41 tests red across five consumer suites left Larceny
+  silently broken with zero reds. Pre-existing debt (the loop was never pinned), but the
+  LW-153 fold concentrates the risk: one edit to the shared core now reaches six modules with
+  pins on five. The pin is one KobuTests-shaped staging (wielder + struck enemy + an HP drop)
+  asserting the steal latches, born red under a dead-Observe sabotage. The audit's two smaller
+  residues can ride along: CharmLock's dropPrevious un-charm and Puppeteer's Release revert
+  route through the shared same-unit predicate with only transitive pins, and the
+  untracked-bury console pin asserts only a fragment of the frozen sentence.
 
 - [LW-155] 2026-08-07: Retire code that is finished, dead, or lying: a whole logging lane nobody
   calls anymore, a dead second copy of the poison turn thresholds, a settings knob that can only
