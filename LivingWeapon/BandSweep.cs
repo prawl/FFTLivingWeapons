@@ -4,11 +4,11 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The shared authoritative-copy sweep behind CharmLock and EagleEye: chunked RPM reads of the
+/// The shared authoritative-copy sweep behind EagleEye: chunked RPM reads of the
 /// +/-1MB window around the combat anchor, scanning every byte offset for a 2-byte AMaxHp match
 /// against the candidate fingerprints, then confirming level/brave/faith at the struct-relative
-/// offsets. The byMhp candidate grouping and the chunk/overlap loop live HERE, once; each module
-/// supplies only its per-hit body (CharmLock: charm-bit check + collect; EagleEye: doom check +
+/// offsets. The byMhp candidate grouping and the chunk/overlap loop live HERE, once; the caller
+/// supplies only its per-hit body (EagleEye: doom check +
 /// guarded write-down). The sweep is heavy -- callers throttle it (~every 6th tick), not this class.
 /// </summary>
 internal static class BandSweep

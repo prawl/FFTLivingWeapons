@@ -109,7 +109,7 @@ A `build-time-only support` Warning = the ability id bakes at battle-build, so t
 - **Concentration** (Gloomfang) — open the attack command and preview a hit against a unit with high physical evade or a shield; the hit% should read full (100%) rather than reduced. Without Concentration, evade knocks it down.
 - **Attack Boost** (Mortal Coil, below half HP) — watch the damage preview on any physical attack before and after the wielder drops under 50% HP; the number rises once the condition trips. The boost arms and stays for the rest of the battle even if HP recovers.
 - **Defense Boost** (Sanguine Gauche) / **Magick Def Boost** (Hushblade) — compare incoming damage from a known attack or spell before and after the grant fires; the number drops.
-- **Charm-lock** (Galewind) / **Extra Turn** (Zwill) — behavioral; both are already live-verified.
+- **Extra Turn** (Zwill) — behavioral; already live-verified.
 
 **3. Redundancy note.**
 If the wielder's job already has the same support picked, the log also emits:

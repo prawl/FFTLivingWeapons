@@ -14,10 +14,10 @@ namespace LivingWeapon;
 /// LATCH: on first hit, read and save the 4-byte reaction field ONCE (never re-save while held --
 /// the field is zeroed while held; re-reading it would restore zeros, losing the reaction).
 /// HOLD: zero the field each tick while the latch is live.
-/// EXPIRY: count the victim's turns off its CT (+0x25 = band ACtSlam, CharmLock's proven pattern),
+/// EXPIRY: count the victim's turns off its CT (+0x25 = band ACtSlam, the proven enemy-turn read),
 /// read from the stored HeldAddr each tick in Drive (never from a band scan -- avoids CT thrash when
 /// a frozen twin shares the fingerprint); after crippleTurns victim-turns the saved bytes restore.
-/// BATTLE EXIT: restore all latches and clear (mirrors CharmLock / Ricochet).
+/// BATTLE EXIT: restore all latches and clear (mirrors Ricochet).
 /// All reads/writes are VirtualQuery-guarded.
 /// </summary>
 internal sealed partial class Maim : ISignature
@@ -25,7 +25,7 @@ internal sealed partial class Maim : ISignature
     void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
     private const int HuntressId = 89;
     // The victim's LIVE scheduler charge-time, band-entry-relative. Counting a unit's completed turns
-    // reads THIS byte (== Offsets.ACtSlam, == combat base+0x41 -- the one CharmLock reads cleanly for
+    // reads THIS byte (== Offsets.ACtSlam, == combat base+0x41 -- the one that reads cleanly for
     // enemy turns). NOT band +0x09 (Offsets.ACtTurn): a live probe (2026-06-17) proved +0x09 stays
     // flat 0 for enemies and never crosses the turn threshold, so the old read never counted a turn
     // and the latch never expired (the maim-never-unlatched bug).

@@ -144,7 +144,7 @@ outcomes per probe before running (found / ambiguous / not-found and what each m
   addresses. Re-anchor cost is a rebase run (tools/treasure_rebase.py, two ground-truth
   recaptures) vs leaving it disarmed. With removal planned (LW-10), stay-disarmed is the
   default recommendation.
-- Dormant modules (CharmLock, LifeSap, Wyrmblood) ship no live data wiring: nothing to do.
+- Dormant modules: none currently; the dormant-module cleanup shipped as LW-159.
 - Dev spikes are LWDEV-only: re-anchor lazily, when next used.
 
 ## Traps (each cost real time once)

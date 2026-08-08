@@ -151,7 +151,7 @@ public class EngineTests
 
             Assert.Equal(new[]
             {
-                typeof(CharmLock), typeof(ExtraTurn), typeof(EagleEye), typeof(Ricochet), typeof(Maim),
+                typeof(ExtraTurn), typeof(EagleEye), typeof(Ricochet), typeof(Maim),
                 typeof(Kobu), typeof(Iai), typeof(Mushin), typeof(Larceny), typeof(Puppeteer), typeof(Plague),
                 typeof(Barrage), typeof(ShadowBlade), typeof(Provoke), typeof(ProvokeHold), typeof(LifeSap),
                 typeof(Wyrmblood), typeof(Renewal), typeof(Rapture), typeof(SpiritualFont), typeof(FeignDeath),
@@ -162,7 +162,7 @@ public class EngineTests
     }
 
     [Fact]
-    public void FieldTickOrder_matches_the_hand_wired_in_battle_sequence_and_excludes_the_pre_gate_five()
+    public void FieldTickOrder_matches_the_hand_wired_in_battle_sequence_and_excludes_the_pre_gate_four()
     {
         ModLogger.UseNullLogger();
         try
@@ -179,9 +179,9 @@ public class EngineTests
             };
             Assert.Equal(expected, engine.FieldTickOrder);
 
-            // The five that tick pre-gate instead (see the ctor's comment above _signatures): named
+            // The four that tick pre-gate instead (see the ctor's comment above _signatures): named
             // explicitly so a reader never has to diff the two arrays above by eye to find them.
-            var preGate = new[] { typeof(Barrage), typeof(ShadowBlade), typeof(Provoke), typeof(CharmLock), typeof(TreasureMaster) };
+            var preGate = new[] { typeof(Barrage), typeof(ShadowBlade), typeof(Provoke), typeof(TreasureMaster) };
             foreach (var t in preGate)
                 Assert.DoesNotContain(t, engine.FieldTickOrder);
         }

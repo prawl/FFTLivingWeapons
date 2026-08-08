@@ -19,7 +19,7 @@ namespace LivingWeapon;
 /// proven live yet:
 ///
 /// HYPOTHESIS 1, the scheduler CT: each band unit's CT byte (Offsets.ACtSlam, band-entry +0x25,
-/// the same field CharmLock/Maim/ExtraTurn already read or hold) should sit at the ceiling for
+/// the same field Maim/ExtraTurn already read or hold) should sit at the ceiling for
 /// exactly the turn owner while their own menu is open. Offsets.cs already flags this as
 /// unreliable on a player's OWN actively-managed unit in at least one prior probe (clean 100 in
 /// one reading, stale ~85 in another), which is exactly why a full recorded battle is needed

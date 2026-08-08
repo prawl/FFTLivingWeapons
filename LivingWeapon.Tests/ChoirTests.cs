@@ -693,8 +693,8 @@ public class ChoirTests
 
     // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for Choir's STRICT protectedBF walk) ----
     // Choir's protectedBF scan (Choir.cs:~108) rides Wielder.TryOccupiedSlot -- the STRICT rule
-    // (level 1..99), the OPPOSITE direction from the CharmLock/EagleEye/Plague ghost-row pins,
-    // which pin the weaker LENIENT rule (Wielder.TryOccupiedSlotLenient) those three ride instead.
+    // (level 1..99), the OPPOSITE direction from the EagleEye/Plague ghost-row pins,
+    // which pin the weaker LENIENT rule (Wielder.TryOccupiedSlotLenient) those two ride instead.
     // This pins TODAY'S strict behavior: a roster row whose nameId is readable but whose level
     // reads 0 (a "ghost row") must NOT land in protectedBF, even when its RSupport equals
     // InstantCastSupportId and its brave/faith exactly match a real deployed bearer's -- a

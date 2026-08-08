@@ -47,7 +47,7 @@ internal sealed partial class Renewal : ISignature
 
     public void ResetBattle() => _pulse.ResetBattle();
 
-    // internal for test reach (the CharmLock.Drive precedent): RenewalTests' pulse pins drive
+    // internal for test reach: RenewalTests' pulse pins drive
     // the shared loop directly through this module's own config.
     internal void Aura(int wgx, int wgy, int radius, int turn) => _pulse.Pulse(wgx, wgy, radius);
 }

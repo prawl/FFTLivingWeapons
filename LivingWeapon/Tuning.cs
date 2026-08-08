@@ -197,7 +197,7 @@ internal static class Tuning
     public const int RaptureMoveId = 243;
 
     /// <summary>Feign Death (Wrathblade +3): how many of the wielder's OWN turns the played-dead
-    /// window lasts, counted off its live CT at band +0x25 (CharmLock's byte). PROVEN 2026-06-14: a
+    /// window lasts, counted off its live CT at band +0x25 (Offsets.ACtSlam). PROVEN 2026-06-14: a
     /// shadow count tracked active turns cleanly (1@16s, 2@22s, 3@31s). The wielder's +0x09 reads flat
     /// 0 (the Rapture wall); +0x25 reads clean during ACTIVE play and only freezes when the player
     /// sits idle -- which a real battle never does mid-turn.</summary>

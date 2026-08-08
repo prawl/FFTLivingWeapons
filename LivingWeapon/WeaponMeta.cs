@@ -44,9 +44,6 @@ public sealed class WeaponSignature
     // (combat +0x1B4 bit 0x80, proven live 2026-06-26). Reverts on dismount/battle-exit.
     // Replaces the forTurns gate in HoldTimedStat; Speed is the only wired stat today.
     [JsonProperty("mounted")] public bool Mounted { get; set; }
-    // CHARM-LOCK aura: while a unit wields this at AtTier, any Charm the party lands is held unbreakable
-    // for this many of the target's turns, then force-cleared (Galewind). 0 = not a charm-lock weapon.
-    [JsonProperty("charmLockTurns")] public int CharmLockTurns { get; set; }
     // PUPPETEER (Galewind "Puppeteer", replaces Charm-Lock): a hit by the +3 wielder dominates the
     // struck enemy for this many of ITS OWN turns -- the player controls its move + full skillset (the
     // agency bit, combat +0x05 / 0x08, held set each tick), then it reverts to AI. One puppet at a time,

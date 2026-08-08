@@ -432,7 +432,7 @@ internal sealed class BodyDoubleSpike
         // the whole accrual phase uncovered (a contiguous enemy stretch reaches 100 unwritten) and a
         // single dip must never read as "battle left": teardown is ResetBattle (the debounced edges,
         // Engine.ResetBattleState), never a raw frame. The write target is the host's fixed static slot,
-        // so the broader gate adds no wrong-address risk (the CharmLock/TreasureMaster pre-gate lesson).
+        // so the broader gate adds no wrong-address risk (the TreasureMaster pre-gate lesson).
         if (_decoyHold) HoldDecoy();
         if (_boundThisBattle) DeathWatch();
         if (_despawnNode != 0) DespawnWatch();

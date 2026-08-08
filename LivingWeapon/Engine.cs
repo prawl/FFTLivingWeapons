@@ -29,7 +29,6 @@ internal sealed class Engine
     private readonly TurnTracker _turns;
     private readonly NaturalLedger _naturalLedger;   // LW-90: the shared cross-battle written-target memory
     private readonly GrowthEngine _growth;
-    private readonly CharmLock _charm;     // named: ticked pre-gate on battleDisplayed, outside the field-signature order
     private readonly Barrage _barrage;     // named: ticks in AND out of battle (learn-screen hold), pre-gate
     private readonly ShadowBlade _shadowBlade; // named: ticks pre-gate like Barrage (JobCommand grant of Shadow Blade)
     private readonly Provoke _provoke;     // named: ticks pre-gate like ShadowBlade (LW-123 arc 1; armed via id 33's signature block, disarmed by removing it)
@@ -182,7 +181,6 @@ internal sealed class Engine
         // (ResetBattleState + the new-game edge); the mushinArmed sharing idiom above.
         _naturalLedger = new NaturalLedger();
         _growth = new GrowthEngine(meta, _kills, _turns, live, mushinArmed, _naturalLedger);
-        _charm = new CharmLock(meta, _kills, live);                 // Galewind +3: one charm held unbreakable (own-CT turns)
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
         _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3: grant Shadow Blade (HP-draining dark strike)
         _provoke = new Provoke(meta, _kills, live);                   // Defender +3: grant Provoke (LW-123 arc 1; grants only while id 33 carries its signature block)
@@ -202,7 +200,7 @@ internal sealed class Engine
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
         var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
         var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N of the wielder's own turns)
-        var puppeteer = new Puppeteer(meta, _kills, _tracker, _turns, live, Flight.Record);  // Galewind +3: dominate a struck enemy for N of its turns (Puppeteer; replaces Charm-Lock -- _charm goes dormant once Galewind's meta carries puppeteerTurns). Flight.Record = the LW-5 recon tap (puppet-turn signals).
+        var puppeteer = new Puppeteer(meta, _kills, _tracker, _turns, live, Flight.Record);  // Galewind +3: dominate a struck enemy for N of its turns (Puppeteer; successor to Charm-Lock, whose dormant module was deleted in LW-159). Flight.Record = the LW-5 recon tap (puppet-turn signals).
         var benediction = new Benediction(meta, _kills, _tracker, live); // Sanctus Staff +3: ally HP rises boosted 30% while a Sanctus Staff is the last player to act (sticky latch -- survives the charged-heal resolve gap)
         var sanctuary = new Sanctuary(meta, _kills, live);               // Staff of the Magi +3: while the bearer lives, fallen allies are held from crystallizing
         var choir = new Choir(meta, _kills, live);                       // Warlock's Staff +3: adjacent allies cast magick instantly (Non-charge aura)
@@ -219,14 +217,12 @@ internal sealed class Engine
             alwaysOn: treasureAlwaysOn);
         _treasure.StartFastHold();
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
-        // reset runs charm..font with Barrage between Plague and LifeSap; the in-battle tick
-        // excludes Barrage (ticks before the !nowIn early-return, learn screens included),
+        // reset runs extra..font with Barrage between Plague and LifeSap; the in-battle tick
+        // excludes Barrage (ticks before the !nowIn early-return, learn screens included) and
         // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
-        // and enemy turns are included; world map excluded), and excludes CharmLock (ticks
-        // pre-gate on battleDisplayed like TreasureMaster, so a held charm is not dropped
-        // mid-combat between turns). Both TreasureMaster and CharmLock stay in _signatures
+        // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { _charm, extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark, _treasure };
+        _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark, _treasure };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, lifeSap, wyrmblood, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         save.Migrate("gunslinger.json");
         _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live);
@@ -273,8 +269,8 @@ internal sealed class Engine
     internal IReadOnlyList<Type> SignatureResetOrder => Array.ConvertAll(_signatures, s => s.GetType());
 
     /// <summary>Test/diagnostic seam (LW-150 S5): the in-battle field tick order -- excludes
-    /// Barrage, ShadowBlade, Provoke (kit-lane trio, pre-gate) and CharmLock/TreasureMaster
-    /// (both pre-gate on battleDisplayed), all of which still appear in
+    /// Barrage, ShadowBlade, Provoke (kit-lane trio, pre-gate) and TreasureMaster
+    /// (pre-gate on battleDisplayed), all of which still appear in
     /// <see cref="SignatureResetOrder"/>. Pinned by EngineTests.</summary>
     internal IReadOnlyList<Type> FieldTickOrder => Array.ConvertAll(_fieldSignatures, s => s.GetType());
 
@@ -482,11 +478,6 @@ internal sealed class Engine
         // (mode 0).  It ticks here -- before the !nowIn early-return -- so it fires on
         // formation and enemy turns that nowIn might not cover.
         _treasure.Tick(now, battleDisplayed);
-        // CharmLock gates on battleDisplayed (mode != 0), not strict InLiveBattle. A held charm survives
-        // the between-turn mode-0 lulls because Tick merely IDLES when battleDisplayed is false (it does
-        // NOT time the lock out -- there is no heartbeat), then resumes holding when the map redraws.
-        // ResetBattle (battle-exit edge, via _signatures) is the teardown. Same pre-gate slot as TreasureMaster.
-        _charm.Tick(now, battleDisplayed);
         // Gun Slinger runs PRE-GATE (2026-07-04, Barrage's precedent) -- it originally ran only in
         // the out-of-battle branch and the twin pistol did not hold into combat. It now also runs in
         // battle (inBattle: nowIn) but RE-ASSERTS ONLY there: it may rewrite a twin it already

@@ -116,7 +116,7 @@ internal static partial class Band
     }
 
     /// <summary>ENEMY fingerprints from the static array (slots 0..EnemySlotMax) -- the shared
-    /// enemy-side oracle behind CharmLock/EagleEye/Maim/Ricochet. Shared caveat: the static
+    /// enemy-side oracle behind EagleEye/Maim/Ricochet. Shared caveat: the static
     /// array FREEZES on battle restart (capture already happened).
     /// NOTE: the mhp bound here is 2000 INCLUSIVE -- the bound every live-proven scan shipped
     /// with -- and deliberately differs from <see cref="IsValid"/>'s exclusive (&gt;= 2000)

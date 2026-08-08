@@ -88,7 +88,7 @@ weapon is EQUIPPED BY A DEPLOYED UNIT this battle; unarmed, `ScopedLogger` demot
 (the file keeps everything). Signature modules gate on `Wielder.AnyDeployedMainHand`; the
 attribution lines (pending corpses, kill expiries, coverage) gate on KillTracker's sticky
 per-battle latch ("any tracked weapon resolved this battle"). Modules that deliberately tick OUT
-of battle (Barrage, ShadowBlade, CharmLock's hold path, GunSlinger's roster prep) keep their
+of battle (Barrage, ShadowBlade, GunSlinger's roster prep) keep their
 out-of-battle plumbing at Debug rather than inventing an out-of-battle gate; their player-visible
 grant/proc edges are armed by construction (they only fire when a wielder exists).
 

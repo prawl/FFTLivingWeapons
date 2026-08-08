@@ -110,7 +110,6 @@ public class ProofClaimContractTests
         // recorded as an in-place correction on that row rather than moved to a fresh Proven row.
         { "LivingWeapon/Bulwark.Policy.cs", 1 },
         { "LivingWeapon/Bulwark.cs", 1 },
-        { "LivingWeapon/CharmLock.cs", 1 },
         { "LivingWeapon/CtTurns.cs", 1 },
         { "LivingWeapon/EagleEye.cs", 1 },
         { "LivingWeapon/Engine.cs", 1 },

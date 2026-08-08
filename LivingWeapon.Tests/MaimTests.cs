@@ -13,15 +13,15 @@ namespace LivingWeapon.Tests;
 /// Pure jobs in Maim.Policy.cs:
 ///   (1) IsActive: gates on crippleTurns > 0 AND tier >= AtTier.
 ///   (2) ShouldLatch: enemy-fingerprint filter for the victim (same pattern as Ricochet).
-///   (3) IsTurn: per-target turn counting from CT (reuse CharmLock.IsTurn pattern).
+///   (3) IsTurn: per-target turn counting from CT (the shared CtTurns.IsTurn rule).
 ///   (4) Never-re-save trap: once a victim is held, a second hit must NOT overwrite the saved
 ///       reaction bytes (those are the original non-zeroed state; overwriting with zeros means
 ///       we'd restore zeros, losing the reaction permanently).
 ///   (5) Refresh: re-hit while held resets the turn counter but keeps the same saved bytes.
 ///
 /// Stateful runtime in Maim.cs: victim latch mirrors Ricochet's HP-diff detection during the
-/// acted period; save/hold/restore mirrors CharmLock's Drive pattern; per-target turn counting
-/// mirrors CharmLock's IsTurn. All reads/writes VirtualQuery-guarded.
+/// acted period; save-once/hold/restore drive; per-target turn counting
+/// rides the shared CT-edge rule. All reads/writes VirtualQuery-guarded.
 /// </summary>
 public class MaimTests
 {
@@ -64,7 +64,7 @@ public class MaimTests
         => Assert.False(Maim.ShouldLatch(isEnemy: false));
 
     // ---- (3) IsTurn: per-target turn counting off CT ----
-    // Reuses CharmLock.IsTurn logic â€” a turn = CT was near-full and has since reset notably lower.
+    // Reuses the shared CT-edge rule â€” a turn = CT was near-full and has since reset notably lower.
 
     [Theory]
     [InlineData(100, 10, true)]
@@ -219,8 +219,8 @@ public class MaimTests
     // ---- Integration: latch -> count the victim's OWN turns -> restore (the real Tick path) ----
     // Regression for the 1.5 live failure (maim never unlatched after 3+ enemy turns). Two coupled
     // bugs the live probe exposed: (a) the expiry counted turns off band +0x09, a DEAD byte that
-    // stays flat 0 -- the live charge-time for enemies is band +0x25 (== Offsets.ACtSlam, what
-    // CharmLock reads); (b) the count + expiry ran only inside the onField branch, but an enemy's CT
+    // stays flat 0 -- the live charge-time for enemies is band +0x25 (== Offsets.ACtSlam, the
+    // proven enemy-turn read); (b) the count + expiry ran only inside the onField branch, but an enemy's CT
     // crosses 90->below-70 during ITS OWN turn, which is an ENEMY-turn frame (off-field). So a maimed
     // enemy must regain its reaction after CrippleTurns of its own turns counted across OFF-FIELD ticks.
 

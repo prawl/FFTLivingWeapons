@@ -237,7 +237,8 @@ nothing else. Owner scope call 2026-07-25, in-session.
 - **Remove Treasure Master** -- L, works + tested, no user benefit this cycle; do as a dedicated
   cleanup. OBVIATES the Scholar's Ring idle-nag bug (do NOT fix that doomed code). On removal:
   de-list treasure.json from pipeline.ps1 + release.yml + csproj together; BattleState.BattleDisplayed
-  is shared with CharmLock and must survive the cut; also drop Treasure Master from the ModConfig
+  and its TickContext property must survive the cut (Treasure Master is its last pre-gate consumer,
+  but the predicate is core BattleState); also drop Treasure Master from the ModConfig
   description.
 - **Alter Axes and Flails** -- scope trap. Only cheap slice = Squire/Geomancer equip access on
   existing sword-typed items; PA*WP axe collides with the type-welded formula + id-welded art, flail

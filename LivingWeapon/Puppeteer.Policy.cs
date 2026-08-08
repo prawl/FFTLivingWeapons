@@ -109,7 +109,7 @@ internal sealed partial class Puppeteer
     /// <summary>Guarded single-bit RMW of the agency flag at <paramref name="bandAddr"/> + AgencyOff:
     /// OR-set (on) or AND-clear (off) ONLY bit 0x08, leaving the rest of the byte intact (its other bits
     /// are engine state). VirtualQuery-guarded -- a non-writable address is a no-op. The per-tick hold
-    /// primitive (mirrors CharmLock.Force).</summary>
+    /// primitive.</summary>
     public static void SetAgency(IGameMemory mem, long bandAddr, bool on)
     {
         long a = bandAddr + AgencyOff;
@@ -121,7 +121,7 @@ internal sealed partial class Puppeteer
 }
 
 /// <summary>Per-battle state for Puppeteer: exactly ONE active puppet at a time (the latch) plus the
-/// battle-turn stamp of the last puppet (the cooldown clock). Mirrors CharmLock's single-lock shape,
+/// battle-turn stamp of the last puppet (the cooldown clock). A single-lock shape,
 /// not Maim's dictionary -- only one enemy is dominated at a time. No memory access.
 ///
 /// RELEASE: the puppet is held until it takes its OWN turn, detected LIVE in Puppeteer.Hold.cs by

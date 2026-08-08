@@ -17,11 +17,11 @@ internal static partial class Wielder
     /// (RingGate.cs) ride this so the slot base arithmetic and the occupancy rule (level 1..99)
     /// cannot drift apart per caller. Rule UNCHANGED, byte-identical to before LW-149 -- only the
     /// visibility widened. NOT the only occupied-slot rule any more (the old doc's "the ONE shared
-    /// ... seam" claim was already false before this stage -- CharmLock/EagleEye/Plague's roster
-    /// scans never rode this): CharmLock.ActiveLockTurns, EagleEye.ActiveTarget, and
+    /// ... seam" claim was already false before this stage -- EagleEye/Plague's roster
+    /// scans never rode this): EagleEye.ActiveTarget and
     /// Plague.IsEquipped ride the weaker LENIENT rule instead
     /// (<see cref="TryOccupiedSlotLenient"/>, Wielder.Occupancy.cs) -- a bare "is this roster slot
-    /// readable at all" gate with no level floor/ceiling, which is what those three callers
+    /// readable at all" gate with no level floor/ceiling, which is what those callers
     /// already used before this stage; forcing them onto THIS stricter rule would silently change
     /// their behavior (a readable-but-level-0 ghost row would stop arming their signature), so the
     /// two rules stay named and separate rather than being unified into one.</summary>

@@ -14,7 +14,7 @@ namespace LivingWeapon.Tests;
 ///   (1) IsActive: tier gate + signature presence.
 ///   (2) ShouldLatch: enemy filter (never ally).
 ///   (3) AugmentDamage: mhp*3/32 arithmetic, floor 1, never 0.
-///   (4) IsTurn: reuses same CT-edge rule as Maim/CharmLock.
+///   (4) IsTurn: reuses same CT-edge rule as Maim.
 ///   (5) ShouldRepin: re-pin when timer is below init.
 ///
 /// Runtime tests (pinned-buffer style, PlagueState) cover:

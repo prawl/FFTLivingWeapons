@@ -33,7 +33,6 @@ OUT = ROOT / "LivingWeapon" / "meta.json"
 # unless a diff is intended. Non-uniform keys (hpBelow, the forTurns/mounted stat compound,
 # ricochetPct's default-50 rider) stay hand-written in main() where their special rules are.
 _SIG_PASSTHROUGH = (
-    ("charmLockTurns", "int"),        # charm-lock aura (Galewind, retired design): landed Charm unbreakable N turns
     ("puppeteerTurns", "int"),        # puppeteer (Galewind): dominate the struck enemy for N of its turns
     ("doomCountdownTo", "int"),       # doom-hasten aura (Eclipsebolt "Eagle Eye"): force enemy Doom to this
     ("ricochetRadius", "int"),        # ricochet aura (Stormarc "Arc Lightning"): chip to nearest foe (+pct rider in main)

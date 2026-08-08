@@ -17,7 +17,7 @@ internal sealed class CtTurns
 
     /// <summary>The stateless form of the same probe, for callers that carry their own lastCt:
     /// a completed turn = CT was (near-)full and has since reset notably lower. Used by the
-    /// CharmLock/Maim/Plague victim-turn counters (one definition; the thresholds above).</summary>
+    /// Maim/Plague victim-turn counters (one definition; the thresholds above).</summary>
     public static bool IsTurn(int lastCt, int curCt) => lastCt >= TurnHi && curCt < TurnLo;
 
     private bool _up;

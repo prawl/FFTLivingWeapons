@@ -22,7 +22,7 @@ namespace LivingWeapon;
 ///
 /// Idempotent: only an enemy whose countdown is STILL above the target (1) is written, so once
 /// hastened we never touch it again -- the engine ticks it 1 -> 0 -> death untouched. Only ENEMIES
-/// are scanned (a Doomed ally is never sped up). Mirrors CharmLock's enemy-scan + auth-copy read.
+/// are scanned (a Doomed ally is never sped up). Enemy-scan + auth-copy read (BandSweep).
 /// Every read/write is VirtualQuery-guarded.
 /// </summary>
 internal sealed partial class EagleEye : ISignature
@@ -69,8 +69,8 @@ internal sealed partial class EagleEye : ISignature
         if (target > 0 && _tick++ % 6 == 0) Hasten(target);   // band scan is heavy -> ~every 200ms
     }
 
-    /// <summary>DoomCountdownTo if a +3 Eclipsebolt is equipped by any roster unit, else 0.
-    /// Mirrors CharmLock.ActiveLockTurns (signature gate, then a roster sweep for the weapon).
+    /// <summary>DoomCountdownTo if a +3 Eclipsebolt is equipped by any roster unit, else 0
+    /// (signature gate, then a roster sweep for the weapon).
     /// Internal (LW-149 stage D, widened from private): lets the ghost-row pin test call this
     /// directly rather than driving the whole Tick pipeline. Behavior unchanged.</summary>
     internal int ActiveTarget()
@@ -83,7 +83,7 @@ internal sealed partial class EagleEye : ISignature
             // LW-149 stage D: migrated onto Wielder's shared LENIENT occupied-slot walk
             // (Wielder.Occupancy.cs) -- same Readable(RNameId,2)-only rule this loop used before
             // (no level gate), now named and shared instead of copy-pasted (also used by
-            // CharmLock.ActiveLockTurns and Plague.IsEquipped). Byte-identical.
+            // Plague.IsEquipped). Byte-identical.
             if (!Wielder.TryOccupiedSlotLenient(_mem, r, out long rb)) continue;
             // Signatures fire from the main hand only: an offhand Eclipsebolt does not hasten Doom.
             if (_mem.U16(rb + Offsets.RRHand) == EclipseboltId)

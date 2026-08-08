@@ -46,7 +46,7 @@ internal sealed partial class Plague
            && current.mhp >= captured.mhp && current.mhp - captured.mhp <= MaxHpGrowthPerLatch;
 
     /// <summary>A completed victim turn = its CT was near-full and has since reset notably lower.
-    /// Mirrors Maim.IsTurn / CharmLock.IsTurn (same proven probe for both use cases).</summary>
+    /// Mirrors Maim.IsTurn (same proven probe for both use cases).</summary>
     public static bool IsTurn(int lastCt, int curCt) => lastCt >= 90 && curCt < 70;
 
     /// <summary>True when the poison timer should be re-pinned (reads below the initial value,

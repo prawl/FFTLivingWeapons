@@ -6,7 +6,7 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// Band.EnemyFingerprints / Band.AllyFingerprints: the ONE static-array fingerprint sweep
-/// behind CharmLock/EagleEye/Maim/Ricochet (enemy side) and Wyrmblood (ally side).
+/// behind EagleEye/Maim/Ricochet (enemy side) and Wyrmblood (ally side).
 /// Slot split: 0..EnemySlotMax = enemies, EnemySlotMax+1..NSlots-1 = players.
 /// Filter contract (every live-proven scan shipped with it): mhp 1..2000 INCLUSIVE
 /// (deliberately different from Band.IsValid's exclusive band-entry bound -- documented

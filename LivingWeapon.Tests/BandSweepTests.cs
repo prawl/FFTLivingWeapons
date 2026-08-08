@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// BandSweep.ForEachFingerprintHit: the ONE chunked +/-1MB sweep CharmLock and EagleEye share.
+/// BandSweep.ForEachFingerprintHit: the ONE chunked +/-1MB sweep behind EagleEye.
 /// Contract under test: candidates are matched by AMaxHp u16 then confirmed at the
 /// level/brave/faith struct offsets; onHit receives the struct's absolute base address, the
 /// chunk buffer, the struct's base index within it, and the matched fingerprint; an empty

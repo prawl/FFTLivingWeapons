@@ -19,7 +19,7 @@ namespace LivingWeapon;
 /// while the pointer already equals the wielder's entry) -- see Iai.Policy.ReleaseSignal for the
 /// pure decision and its priming contract. The prior own-CT pull-down (entry+ACtSlam read,
 /// ClassifyCt, IaiCtHigh/IaiCtReleased) is DELETED: it re-derived the acting unit's own scheduler
-/// CT, which read cleanly on ENEMY turns (CharmLock, Maim both still use it) but INCONSISTENTLY
+/// CT, which read cleanly on ENEMY turns (Maim still uses it) but INCONSISTENTLY
 /// on the PLAYER'S OWN actively-managed unit -- live 2026-07-01's 3-unit repro (two Ame-no-
 /// Murakumo wielders + a faster Ninja) showed one of the two wielders never observing its own
 /// CT pull-down, so it never released and stayed pinned at fieldMax+1 until the 90s wall-clock

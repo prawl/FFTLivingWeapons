@@ -122,17 +122,17 @@ internal static class Offsets
     /// (ExtraTurn.CtOff). Matches combat base+0x41. Do NOT read this for turn counting --
     /// a live watcher saw zero transitions; the write takes, but reads don't tick reliably.
     /// NOTE 2026-06-14 (ct_watch / finish_watch probes): for a PLAYER unit this byte CAN read and
-    /// climb to 100 (+0x09 stays flat 0, the Rapture wall), and CharmLock reads it cleanly for ENEMY
+    /// climb to 100 (+0x09 stays flat 0, the Rapture wall), and it reads cleanly for ENEMY
     /// turns -- but on the player's OWN actively-managed unit it read INCONSISTENTLY (clean 100 in one
     /// probe, but stale/frozen ~85 during the unit's own input menu in the live DLL). So counting the
     /// player wielder's OWN turns off it proved unreliable; FeignDeath uses a wall clock instead.
     /// Treat as: write target always; clean enemy-turn read; do NOT trust for the player's own turns.
     /// NOTE 2026-07-01: Iai no longer reads this for its release signal (rebuilt on ActorPtr); still
-    /// live for ExtraTurn's write and Maim/CharmLock/FeignDeath/SpiritualFont/Plague/Rapture reads.</summary>
+    /// live for ExtraTurn's write and Maim/FeignDeath/SpiritualFont/Plague/Rapture reads.</summary>
     public const int ACtSlam   = 0x25;
     /// <summary>u8 band-relative READ byte for counting a unit's completed turns: CT seen
     /// at/above 90, then falls below 70 = one turn taken. Live-proven by Maim (victim-turn
-    /// counting) and CharmLock. CtTurns feeds off this offset. Equals combat base+0x25.</summary>
+    /// counting). CtTurns feeds off this offset. Equals combat base+0x25.</summary>
     public const int ACtTurn   = 0x09;
     /// <summary>u8 band-relative job id (PSX "Current Job", combat base +0x03): the only NEGATIVE
     /// offset in THIS section's A* fields (ACrystalHearts and AGateByte, in other sections of this
