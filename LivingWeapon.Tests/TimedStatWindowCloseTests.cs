@@ -19,7 +19,7 @@ public class TimedStatWindowCloseTests
 {
     private static readonly WeaponSignature Sig = new()
     {
-        AtTier = 3, StatBonus = 3, Stat = "Speed", ForTurns = 2
+        AtTier = 3, StatBonus = 3, Stat = "Speed", Mounted = true
     };
 
     private static GrowthEngine MakeEngine(FakeSparseMemory mem)
@@ -38,18 +38,20 @@ public class TimedStatWindowCloseTests
         var mem = new FakeSparseMemory();
         long s = 0x1000_0000;
         mem.U8s[s + Offsets.CSpeed] = 8;
+        mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
         mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
         var engine = MakeEngine(mem);
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 0);   // capture: 8 -> 11
+        engine.HoldTimedStat(s, Sig, tier: 3);   // capture: 8 -> 11
         Assert.Equal((byte)11, mem.U8s[s + Offsets.CSpeed]);
 
         mem.U8s[s + Offsets.CSpeed] = 50;                   // something else wrote a value we don't expect
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 5);   // window closed: neither boosted nor natural
+        mem.U8s[s + Offsets.CMount] = 0x00;                 // dismount: the window closes
+        engine.HoldTimedStat(s, Sig, tier: 3);   // window closed: neither boosted nor natural
         Assert.Equal((byte)50, mem.U8s[s + Offsets.CSpeed]);   // no revert attempted -- left alone
 
         mem.U8s[s + Offsets.CSpeed] = 11;                   // a later tick: back to the boosted reading
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 6);   // the retry: record survived, so this reverts
+        engine.HoldTimedStat(s, Sig, tier: 3);   // the retry: record survived, so this reverts
         Assert.Equal((byte)8, mem.U8s[s + Offsets.CSpeed]);
     }
 
@@ -61,20 +63,22 @@ public class TimedStatWindowCloseTests
         var mem = new FakeSparseMemory();
         long s = 0x1000_0000;
         mem.U8s[s + Offsets.CSpeed] = 8;
+        mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
         mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
         var engine = MakeEngine(mem);
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 0);   // capture: 8 -> 11
+        engine.HoldTimedStat(s, Sig, tier: 3);   // capture: 8 -> 11
 
         mem.U8s[s + Offsets.CSpeed] = 8;                    // already natural by the time the window closes
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 5);   // success: nothing to revert
+        mem.U8s[s + Offsets.CMount] = 0x00;                 // dismount: the window closes
+        engine.HoldTimedStat(s, Sig, tier: 3);   // success: nothing to revert
         Assert.Equal((byte)8, mem.U8s[s + Offsets.CSpeed]);
 
         // Prove the record is really gone, not lingering as a retry candidate: a later
         // coincidentally-boosted-looking reading must NOT be reverted -- nothing owns this
         // address anymore, and re-reverting it here would be the double-revert the spec bans.
         mem.U8s[s + Offsets.CSpeed] = 11;
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 6);
+        engine.HoldTimedStat(s, Sig, tier: 3);
         Assert.Equal((byte)11, mem.U8s[s + Offsets.CSpeed]);
     }
 
@@ -86,16 +90,18 @@ public class TimedStatWindowCloseTests
         var mem = new FakeSparseMemory();
         long s = 0x1000_0000;
         mem.U8s[s + Offsets.CSpeed] = 8;
+        mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
         mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
         var engine = MakeEngine(mem);
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 0);   // capture: 8 -> 11
+        engine.HoldTimedStat(s, Sig, tier: 3);   // capture: 8 -> 11
 
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 5);   // window closed, cur == boosted: ordinary revert
+        mem.U8s[s + Offsets.CMount] = 0x00;                 // dismount: the window closes
+        engine.HoldTimedStat(s, Sig, tier: 3);   // window closed, cur == boosted: ordinary revert
         Assert.Equal((byte)8, mem.U8s[s + Offsets.CSpeed]);
 
         mem.U8s[s + Offsets.CSpeed] = 11;                   // a later coincidental boosted-looking reading
-        engine.HoldTimedStat(s, Sig, tier: 3, turns: 6);   // must be left alone: no record, no double revert
+        engine.HoldTimedStat(s, Sig, tier: 3);   // must be left alone: no record, no double revert
         Assert.Equal((byte)11, mem.U8s[s + Offsets.CSpeed]);
     }
 
@@ -118,10 +124,11 @@ public class TimedStatWindowCloseTests
             var mem = new FakeSparseMemory();
             long s = 0x1000_0000;
             mem.U8s[s + Offsets.CSpeed] = 8;
+            mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
             mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
             var engine = MakeEngine(mem);
-            engine.HoldTimedStat(s, Sig, tier: 3, turns: 0);   // capture + boost: 8 -> 11
+            engine.HoldTimedStat(s, Sig, tier: 3);   // capture + boost: 8 -> 11
         }
         finally { ModLogger.UseNullLogger(); }
 
@@ -138,11 +145,13 @@ public class TimedStatWindowCloseTests
             var mem = new FakeSparseMemory();
             long s = 0x1000_0000;
             mem.U8s[s + Offsets.CSpeed] = 8;
+            mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
             mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
             var engine = MakeEngine(mem);
-            engine.HoldTimedStat(s, Sig, tier: 3, turns: 0);   // capture + boost
-            engine.HoldTimedStat(s, Sig, tier: 3, turns: 5);   // window closed: ordinary revert
+            engine.HoldTimedStat(s, Sig, tier: 3);   // capture + boost
+            mem.U8s[s + Offsets.CMount] = 0x00;      // dismount: the window closes
+            engine.HoldTimedStat(s, Sig, tier: 3);   // window closed: ordinary revert
         }
         finally { ModLogger.UseNullLogger(); }
 

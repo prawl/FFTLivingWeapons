@@ -6,8 +6,8 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// Eight-Fluted Pole +3 "Cavalier's Charge": Speed +3 while mounted on a chocobo.
-/// Exercises HoldTimedStat's mount-gated path -- combat +0x1B4 bit 0x80 (proven live
-/// 2026-06-26) replaces the forTurns gate. The `turns` argument is ignored when Mounted.
+/// Exercises HoldTimedStat's mount gate -- combat +0x1B4 bit 0x80 (proven live
+/// 2026-06-26), which replaced the forTurns gate (that dormant timed arm was deleted in LW-159).
 /// Break check for verifier: forcing the mount read to 0 must make the keystone fail.
 /// </summary>
 public class CavalierChargeTests
@@ -36,7 +36,7 @@ public class CavalierChargeTests
         mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
         var engine = MakeEngine(mem);
-        engine.HoldTimedStat(s, MountedSig, tier: 3, turns: 99);  // turns is irrelevant for mounted sig
+        engine.HoldTimedStat(s, MountedSig, tier: 3);
 
         Assert.Equal(11, mem.Written[s + Offsets.CSpeed]);         // 8 + 3
     }
@@ -53,7 +53,7 @@ public class CavalierChargeTests
         mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
         var engine = MakeEngine(mem);
-        engine.HoldTimedStat(s, MountedSig, tier: 3, turns: 0);
+        engine.HoldTimedStat(s, MountedSig, tier: 3);
 
         Assert.False(mem.Written.ContainsKey(s + Offsets.CSpeed));
     }
@@ -70,11 +70,11 @@ public class CavalierChargeTests
         mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
         var engine = MakeEngine(mem);
-        engine.HoldTimedStat(s, MountedSig, tier: 3, turns: 0);   // first call: mounted -> boost to 11
+        engine.HoldTimedStat(s, MountedSig, tier: 3);   // first call: mounted -> boost to 11
         Assert.Equal(11, mem.U8s[s + Offsets.CSpeed]);
 
-        mem.U8s[s + Offsets.CMount] = 0x00;                        // dismount
-        engine.HoldTimedStat(s, MountedSig, tier: 3, turns: 0);   // second call: not mounted -> revert to 8
+        mem.U8s[s + Offsets.CMount] = 0x00;             // dismount
+        engine.HoldTimedStat(s, MountedSig, tier: 3);   // second call: not mounted -> revert to 8
         Assert.Equal(8, mem.U8s[s + Offsets.CSpeed]);
     }
 
@@ -90,7 +90,7 @@ public class CavalierChargeTests
         mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
         var engine = MakeEngine(mem);
-        engine.HoldTimedStat(s, MountedSig, tier: 2, turns: 0);   // tier 2 < AtTier 3
+        engine.HoldTimedStat(s, MountedSig, tier: 2);   // tier 2 < AtTier 3
 
         Assert.False(mem.Written.ContainsKey(s + Offsets.CSpeed));
     }

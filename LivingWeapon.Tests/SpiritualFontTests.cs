@@ -17,7 +17,7 @@ namespace LivingWeapon.Tests;
 ///
 /// Pure helpers in SpiritualFont.Policy.cs:
 ///   (1) IsActive: gates on fontOnMove AND tier >= AtTier.
-///   (2) HP half: LifeSap.HealAmount (round, floor 1) + LifeSap.NewHp (clamp, never revive).
+///   (2) HP half: BandHeal.HealAmount (round, floor 1) + BandHeal.NewHp (clamp, never revive).
 ///   (3) MP half: NewMp clamps at maxMp; mp 0 still gains (not death).
 ///   (4) MpLayoutOk: per-battle gate on the +0x18/+0x1A pair (live-verified 2026-06-10).
 ///   (5) WriteMp: guarded little-endian u16 write, neighbors untouched.
@@ -55,13 +55,13 @@ public class SpiritualFontTests
     // ---- (2) HP half: round(maxHP * FontHpPct) floor 1, clamp at max, NEVER revive ----
 
     [Fact]
-    public void Hp_half_reuses_LifeSap_round_floor_clamp_and_never_revives()
+    public void Hp_half_reuses_BandHeal_round_floor_clamp_and_never_revives()
     {
-        Assert.Equal(10, LifeSap.HealAmount(100, Tuning.FontHpPct));
-        Assert.Equal(1, LifeSap.HealAmount(7, Tuning.FontHpPct));     // floor 1 on tiny units
-        Assert.Equal(60, LifeSap.NewHp(50, 100, LifeSap.HealAmount(100, Tuning.FontHpPct)));
-        Assert.Equal(100, LifeSap.NewHp(95, 100, 10));                // clamp at max
-        Assert.Equal(0, LifeSap.NewHp(0, 100, 10));                   // dead stays dead (no revive)
+        Assert.Equal(10, BandHeal.HealAmount(100, Tuning.FontHpPct));
+        Assert.Equal(1, BandHeal.HealAmount(7, Tuning.FontHpPct));     // floor 1 on tiny units
+        Assert.Equal(60, BandHeal.NewHp(50, 100, BandHeal.HealAmount(100, Tuning.FontHpPct)));
+        Assert.Equal(100, BandHeal.NewHp(95, 100, 10));                // clamp at max
+        Assert.Equal(0, BandHeal.NewHp(0, 100, 10));                   // dead stays dead (no revive)
     }
 
     // ---- (3) MP half: NewMp clamps; 0 MP is NOT death and still gains ----
@@ -79,9 +79,9 @@ public class SpiritualFontTests
     [Fact]
     public void Mp_gain_rounds_and_floors_like_the_hp_half()
     {
-        Assert.Equal(10, LifeSap.HealAmount(96, Tuning.FontMpPct));   // round(9.6) = 10
-        Assert.Equal(1, LifeSap.HealAmount(4, Tuning.FontMpPct));     // floor 1
-        Assert.Equal(0, LifeSap.HealAmount(0, Tuning.FontMpPct));     // junk maxMp -> no gain
+        Assert.Equal(10, BandHeal.HealAmount(96, Tuning.FontMpPct));   // round(9.6) = 10
+        Assert.Equal(1, BandHeal.HealAmount(4, Tuning.FontMpPct));     // floor 1
+        Assert.Equal(0, BandHeal.HealAmount(0, Tuning.FontMpPct));     // junk maxMp -> no gain
     }
 
     // ---- (4) MpLayoutOk ----

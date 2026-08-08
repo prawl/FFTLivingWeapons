@@ -11,8 +11,8 @@ namespace LivingWeapon.Tests;
 /// is set when a player acts and persists across enemy turns until the next PLAYER acts, so it spans
 /// the multi-second charge of a queued Cure (the failure a time window could not cover). The boost is
 /// computed on the OBSERVED restored HP (not the spell's nominal output), so an overheal yields no
-/// bonus -- a deliberate design choice (no overheal inflation). The HP write reuses LifeSap.WriteHp /
-/// LifeSap.NewHp (the band +0x14 path proven by Ricochet/LifeSap).
+/// bonus -- a deliberate design choice (no overheal inflation). The HP write reuses BandHeal.WriteHp /
+/// BandHeal.NewHp (the band +0x14 path proven by Ricochet).
 ///
 /// Pure jobs in Benediction.Policy.cs:
 ///   (1) IsActive: gates on HealBoostPct > 0 AND tier >= AtTier.
@@ -20,7 +20,7 @@ namespace LivingWeapon.Tests;
 ///   (3) HealState.Observe: baselines first sighting silently; rise returns positive delta;
 ///       drop or same HP returns 0.
 ///   (4) HealState.Consume: records our write so the boost is not re-triggered next tick.
-///   (5) LifeSap.NewHp as the shared clamp: never revives, clamps at maxHp; a 0-HP ally stays 0.
+///   (5) BandHeal.NewHp as the shared clamp: never revives, clamps at maxHp; a 0-HP ally stays 0.
 ///
 /// Stateful runtime in Benediction.cs: observe every valid ally band entry every tick (baselines
 /// while inactive); while the latch names the Sanctus Staff, boost ally HP rises; consume every write;
@@ -151,7 +151,7 @@ public class BenedictionTests
         Assert.Equal(0, state.Observe(0, 100));  // first sight after reset: baseline, no event
     }
 
-    // ---- (5) LifeSap.NewHp reused: clamp at max, never revive ----
+    // ---- (5) BandHeal.NewHp reused: clamp at max, never revive ----
 
     [Fact]
     public void BonusHeal_via_NewHp_never_exceeds_maxHp()
@@ -161,7 +161,7 @@ public class BenedictionTests
         // newHp = NewHp(100, 100, 6) = 100 (clamped). No overheal write.
         int bonus = Benediction.BonusHeal(20, 30);
         Assert.Equal(6, bonus);
-        Assert.Equal(100, LifeSap.NewHp(100, 100, bonus));  // already at max -> no boost
+        Assert.Equal(100, BandHeal.NewHp(100, 100, bonus));  // already at max -> no boost
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public class BenedictionTests
     {
         // A 0-HP ally must never be accidentally revived by our boost, even with a positive bonus.
         int bonus = Benediction.BonusHeal(50, 30);  // = 15
-        Assert.Equal(0, LifeSap.NewHp(0, 100, bonus));   // dead stays dead
+        Assert.Equal(0, BandHeal.NewHp(0, 100, bonus));   // dead stays dead
     }
 
     [Fact]
@@ -178,9 +178,9 @@ public class BenedictionTests
         // A unit near full: hp=95, max=100, observed rise=10 (bonus=3).
         // newHp should be clamped to 100, not 98.
         int bonus = Benediction.BonusHeal(10, 30);  // = 3
-        Assert.Equal(100, LifeSap.NewHp(95 + 10, 100, bonus));  // post-heal hp=105 clamped to 100; no boost
+        Assert.Equal(100, BandHeal.NewHp(95 + 10, 100, bonus));  // post-heal hp=105 clamped to 100; no boost
         // More useful: starting from the already-clamped engine hp (100), bonus lands on top:
-        Assert.Equal(100, LifeSap.NewHp(100, 100, 3));  // full -> no write
+        Assert.Equal(100, BandHeal.NewHp(100, 100, 3));  // full -> no write
     }
 
     // ---- Integration: FakeSparseMemory walk (Benediction.Tick) ----
@@ -238,7 +238,7 @@ public class BenedictionTests
         return (bene, mem, tracker, wAddr);
     }
 
-    // Read back the u16 HP our boost wrote (LifeSap.WriteHp writes one little-endian W16 call,
+    // Read back the u16 HP our boost wrote (BandHeal.WriteHp writes one little-endian W16 call,
     // LW-145 fix 2: it used to be two separate W8 halves, landing in Written instead).
     private static bool TryReadWritten(FakeSparseMemory mem, long entryAddr, out int hp)
     {
@@ -337,7 +337,7 @@ public class BenedictionTests
         Assert.Equal(0, state.Observe(0, 100));
     }
 
-    // ---- WriteHp guard (B3): confirms LifeSap.WriteHp is the shared write path ----
+    // ---- WriteHp guard (B3): confirms BandHeal.WriteHp is the shared write path ----
 
     [Fact]
     public void WriteHp_writes_little_endian_u16_to_hp_offset()
@@ -347,7 +347,7 @@ public class BenedictionTests
         buf.Bytes[Offsets.AHp + 1] = 0;
         buf.Bytes[Offsets.AMaxHp]     = 0xE8; // maxHp = 1000 little-endian
         buf.Bytes[Offsets.AMaxHp + 1] = 0x03;
-        LifeSap.WriteHp(Live, buf.Addr, newHp: 512);
+        BandHeal.WriteHp(Live, buf.Addr, newHp: 512);
         int hp = buf.Bytes[Offsets.AHp] | (buf.Bytes[Offsets.AHp + 1] << 8);
         Assert.Equal(512, hp);
     }

@@ -157,10 +157,6 @@ internal static class Tuning
     /// <summary>tier -> the 2-char name suffix painted on the card ("  " renders as nothing).</summary>
     public static readonly string[] Suffix = { "  ", "+ ", "+2", "+3" };
 
-    /// <summary>Life Sap (Umbral Rod +3): fraction of the wielder's max HP restored when a kill
-    /// is credited to the rod (clamped at full; never revives).</summary>
-    public const double LifeSapPct = 0.25;
-
     /// <summary>Renewal (Mending Staff +3): fraction of max HP each ally within the aura is
     /// healed per wielder turn edge (round away-from-zero, floor 1).</summary>
     public const double RenewalPct = 0.10;

@@ -208,19 +208,21 @@ public class GrowthEngineRestartTests
     public void TimedStat_revert_restores_the_true_natural_after_a_restart_bake()
     {
         var (engine, mem, ledger) = Build();
-        var sig = new WeaponSignature { AtTier = 3, StatBonus = 3, Stat = "Speed", ForTurns = 2, DisplayLabel = "Charge" };
+        var sig = new WeaponSignature { AtTier = 3, StatBonus = 3, Stat = "Speed", Mounted = true, DisplayLabel = "Charge" };
         long addr = StructBase + Offsets.CSpeed;
         mem.WritableAddrs.Add(addr);
         mem.U8s[addr] = 8;
+        mem.U8s[StructBase + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
 
-        engine.HoldTimedStat(StructBase, sig, tier: 3, turns: 0, rosterNameId: NameId, level: 30);   // battle 1: 8 -> 11
+        engine.HoldTimedStat(StructBase, sig, tier: 3, rosterNameId: NameId, level: 30);   // battle 1: 8 -> 11
         Assert.Equal((byte)11, mem.U8s[addr]);
 
         Restart(engine, ledger);
         mem.U8s[addr] = 11;                                          // baked rebuild
 
-        engine.HoldTimedStat(StructBase, sig, tier: 3, turns: 0, rosterNameId: NameId, level: 30);   // corrected capture (nat 8)
-        engine.HoldTimedStat(StructBase, sig, tier: 3, turns: 5, rosterNameId: NameId, level: 30);   // window over: revert
+        engine.HoldTimedStat(StructBase, sig, tier: 3, rosterNameId: NameId, level: 30);   // corrected capture (nat 8)
+        mem.U8s[StructBase + Offsets.CMount] = 0x00;                                       // dismount: the window closes
+        engine.HoldTimedStat(StructBase, sig, tier: 3, rosterNameId: NameId, level: 30);   // window over: revert
         Assert.Equal((byte)8, mem.U8s[addr]);                        // pre-fix: captured 11, reverts to 11
     }
 
@@ -232,21 +234,23 @@ public class GrowthEngineRestartTests
         // the rest of the battle. The corrective sentinel keeps watching (the Iai
         // post-release corrective hold's sibling).
         var (engine, mem, ledger) = Build();
-        var sig = new WeaponSignature { AtTier = 3, StatBonus = 3, Stat = "Speed", ForTurns = 2, DisplayLabel = "Charge" };
+        var sig = new WeaponSignature { AtTier = 3, StatBonus = 3, Stat = "Speed", Mounted = true, DisplayLabel = "Charge" };
         long addr = StructBase + Offsets.CSpeed;
         mem.WritableAddrs.Add(addr);
         mem.U8s[addr] = 8;
+        mem.U8s[StructBase + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
 
-        engine.HoldTimedStat(StructBase, sig, tier: 3, turns: 0, rosterNameId: NameId, level: 30);   // battle 1: 8 -> 11
+        engine.HoldTimedStat(StructBase, sig, tier: 3, rosterNameId: NameId, level: 30);   // battle 1: 8 -> 11
         Restart(engine, ledger);
         mem.U8s[addr] = 11;                                                                          // baked rebuild
 
-        engine.HoldTimedStat(StructBase, sig, tier: 3, turns: 0, rosterNameId: NameId, level: 30);   // corrected capture
-        engine.HoldTimedStat(StructBase, sig, tier: 3, turns: 5, rosterNameId: NameId, level: 30);   // revert -> 8
+        engine.HoldTimedStat(StructBase, sig, tier: 3, rosterNameId: NameId, level: 30);   // corrected capture
+        mem.U8s[StructBase + Offsets.CMount] = 0x00;                                       // dismount: the window closes
+        engine.HoldTimedStat(StructBase, sig, tier: 3, rosterNameId: NameId, level: 30);   // revert -> 8
         Assert.Equal((byte)8, mem.U8s[addr]);
 
         mem.U8s[addr] = 11;                                                                          // normalize restores the residue
-        engine.HoldTimedStat(StructBase, sig, tier: 3, turns: 6, rosterNameId: NameId, level: 30);
+        engine.HoldTimedStat(StructBase, sig, tier: 3, rosterNameId: NameId, level: 30);
         Assert.Equal((byte)8, mem.U8s[addr]);                        // the sentinel re-corrects
     }
 }

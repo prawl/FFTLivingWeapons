@@ -14,10 +14,10 @@ namespace LivingWeapon.Tests;
 /// Pure jobs in Renewal.Policy.cs:
 ///   (1) IsActive: gates on regenAuraRadius > 0 AND tier >= AtTier.
 ///   (2) IsTurnEdge: the primed turn-count diff (no heal on first sight after a reset).
-///   (3) HealAmount: LifeSap.HealAmount(maxHp, 0.10) -- 10%, round away-from-zero, floor 1.
+///   (3) HealAmount: BandHeal.HealAmount(maxHp, 0.10) -- 10%, round away-from-zero, floor 1.
 ///   (4) InAura: Chebyshev distance <= radius (max(|dx|,|dy|)); diagonal is distance 1.
 ///       The wielder itself is distance 0 and always inside.
-/// Heal clamping reuses LifeSap.NewHp (clamp at max, never revive).
+/// Heal clamping reuses BandHeal.NewHp (clamp at max, never revive).
 /// </summary>
 public class RenewalTests
 {
@@ -64,7 +64,7 @@ public class RenewalTests
     [InlineData(7, 1)]      // floor 1 on tiny units
     [InlineData(0, 0)]      // junk maxHp -> no heal
     public void HealAmount_is_ten_pct_of_max_floor_1(int maxHp, int expected)
-        => Assert.Equal(expected, LifeSap.HealAmount(maxHp, 0.10));
+        => Assert.Equal(expected, BandHeal.HealAmount(maxHp, 0.10));
 
     // ---- (4) InAura: Chebyshev distance <= radius ----
     // THE load-bearing non-vacuous test: diagonal (5,5,6,6) is Chebyshev 1 (TRUE),
@@ -80,14 +80,14 @@ public class RenewalTests
     public void InAura_uses_chebyshev_distance(int wx, int wy, int x, int y, bool expected)
         => Assert.Equal(expected, Renewal.InAura(wx, wy, x, y, radius: 1));
 
-    // ---- heal clamping is shared with Life Sap (clamp at max, never revive) ----
+    // ---- heal clamping is shared via BandHeal (clamp at max, never revive) ----
 
     [Fact]
-    public void Aura_heal_clamps_and_never_revives_via_LifeSap_NewHp()
+    public void Aura_heal_clamps_and_never_revives_via_BandHeal_NewHp()
     {
-        int amount100 = LifeSap.HealAmount(100, 0.10);   // = 10
-        Assert.Equal(100, LifeSap.NewHp(95, 100, amount100));   // clamped at full
-        Assert.Equal(0,   LifeSap.NewHp(0,  100, amount100));   // dead stays dead
+        int amount100 = BandHeal.HealAmount(100, 0.10);   // = 10
+        Assert.Equal(100, BandHeal.NewHp(95, 100, amount100));   // clamped at full
+        Assert.Equal(0,   BandHeal.NewHp(0,  100, amount100));   // dead stays dead
     }
 
     // ---- Main-hand-only activation contract ----

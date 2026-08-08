@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The timed/mounted flat-stat half of GrowthEngine (Galewind's first-N-turns Speed +3,
-/// Cavalier's Charge's while-mounted Speed +3), split to its own partial per the LW-90 plan
+/// The mount-gated flat-stat half of GrowthEngine (Cavalier's Charge's while-mounted
+/// Speed +3), split to its own partial per the LW-90 plan
 /// (the seam mirroring the Afterimage/Ultima/Mushin partials). Capture-natural-then-hold with
 /// the shared NaturalLedger consulted at capture, and -- unique to this hold, which REVERTS
 /// mid-battle when its window closes -- a post-revert corrective sentinel: if the capture was
@@ -33,8 +33,8 @@ internal sealed partial class GrowthEngine
     // again rather than staying silently latched forever.
     private readonly HashSet<long> _timedUnexpectedLogged = new();
 
-    /// <summary>Hold a TIMED flat stat bonus (Galewind's Speed +3 for the wielder's first ForTurns
-    /// turns), then revert. Captures natural on first sight while active and re-applies natural+bonus
+    /// <summary>Hold the MOUNT-GATED flat stat bonus (Cavalier's Charge's Speed +3 while riding
+    /// a chocobo), then revert on dismount. Captures natural on first sight while active and re-applies natural+bonus
     /// against the per-turn normalize; once the window passes, restores the captured natural and stops
     /// tracking. Only ever writes natural or natural+bonus (both guarded) -- worst case a buff lingers
     /// a turn (and resets next battle), never a corrupt value. Speed is the only wired stat today.
@@ -59,16 +59,14 @@ internal sealed partial class GrowthEngine
     /// capture-or-check shape has no branch for "revert" or "keep watching after the record is
     /// gone" -- wrapping it would either lose behavior or grow the core into this method's own
     /// shape, which defeats the point of sharing it.</summary>
-    internal void HoldTimedStat(long s, WeaponSignature sig, int tier, int turns, int rosterNameId = 0,
+    internal void HoldTimedStat(long s, WeaponSignature sig, int tier, int rosterNameId = 0,
                                 int level = 0)
     {
         if (tier < sig.AtTier || sig.StatBonus == 0 || sig.Stat != "Speed") return;
         long addr = s + Offsets.CSpeed;
         if (!_mem.Writable(addr, 1)) return;
         int cur = _mem.U8(addr);
-        bool active = sig.Mounted
-            ? (_mem.U8(s + Offsets.CMount) & Offsets.CMountRidingBit) != 0   // riding a chocobo
-            : turns < sig.ForTurns;
+        bool active = (_mem.U8(s + Offsets.CMount) & Offsets.CMountRidingBit) != 0;   // riding a chocobo
         if (_timedNatural.TryGetValue(addr, out var rec))
         {
             int boosted = Clamp(rec.nat + sig.StatBonus);

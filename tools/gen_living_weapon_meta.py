@@ -30,7 +30,7 @@ OUT = ROOT / "LivingWeapon" / "meta.json"
 # (if sig.get(key)), exactly the semantics of the old hand-written branch per key: an explicit
 # 0 or false is OMITTED from meta.json, same as an absent key. EMISSION ORDER IS THE TABLE
 # ORDER and meta.json is proven byte-identical on regenerate, so append new keys at the END
-# unless a diff is intended. Non-uniform keys (hpBelow, the forTurns/mounted stat compound,
+# unless a diff is intended. Non-uniform keys (hpBelow, the mounted stat compound,
 # ricochetPct's default-50 rider) stay hand-written in main() where their special rules are.
 _SIG_PASSTHROUGH = (
     ("puppeteerTurns", "int"),        # puppeteer (Galewind): dominate the struck enemy for N of its turns
@@ -39,7 +39,6 @@ _SIG_PASSTHROUGH = (
     ("crippleTurns", "int"),          # maim (Huntress "Maim"): struck enemies lose reactions N turns
     ("grantCommandAbilityId", "int"), # command grant (Yoichi "Barrage" / Sanguine "Shadow Blade")
     ("larcenyTurns", "int"),          # larceny (Arcanum): steal the struck foe's holdable buff onto the wielder
-    ("lifeSapOnKill", "flag"),        # life sap (Umbral "Life Sap"): a kill heals the wielder
     ("regenAuraRadius", "int"),       # renewal (Mending Staff): turn-edge regen aura to adjacent allies (Chebyshev)
     ("fontOnMove", "flag"),           # spiritual font (Wellspring): a moved turn restores HP/MP (runtime-written)
     ("raptureMove", "flag"),          # rapture (Rod of Faith): low-HP Master Teleportation window
@@ -60,7 +59,7 @@ _SIG_PASSTHROUGH = (
 # gates / the description bake (lib/flavor.py) or handled by the hand-written block in main().
 _SIG_HANDLED_ELSEWHERE = {
     "abilityId", "slot", "atTier", "displayLabel",        # base entry fields (main)
-    "hpBelow", "stat", "statBonus", "forTurns", "mounted", # compound stat-grant rules (main)
+    "hpBelow", "stat", "statBonus", "mounted",             # compound stat-grant rules (main)
     "ricochetPct",                                         # ricochetRadius's default-50 rider (main)
     "sigName", "p3Desc", "note",                           # card text + curator prose, never runtime
 }
@@ -87,19 +86,16 @@ def main():
         }
         sig = it.get("signature")
         if sig:   # iconic tier-grant; emit only the fields the runtime uses (drop curator notes).
-            # abilityId/slot are absent on a timed stat grant (e.g. Galewind's Speed +3) -> default them.
+            # abilityId/slot are absent on a flat stat grant (e.g. Holy Lance's mounted Speed +3) -> default them.
             entry["signature"] = {
                 "abilityId": int(sig.get("abilityId", 0)), "slot": sig.get("slot", ""), "atTier": int(sig["atTier"]),
                 "displayLabel": sig.get("displayLabel", ""),
             }
             if sig.get("hpBelow"):   # conditional HP-gate (e.g. Mortal Coil: Attack Boost while HP < 50%)
                 entry["signature"]["hpBelow"] = int(sig["hpBelow"])
-            if sig.get("forTurns") or sig.get("mounted"):   # flat stat grant (timed OR mount-gated)
+            if sig.get("mounted"):   # mount-gated flat stat grant (Cavalier's Charge): Speed while riding a chocobo
                 entry["signature"]["stat"] = sig.get("stat", "")
                 entry["signature"]["statBonus"] = int(sig.get("statBonus", 0))
-            if sig.get("forTurns"):  # timed stat grant (e.g. Galewind: Speed +3 for the first 3 turns)
-                entry["signature"]["forTurns"] = int(sig["forTurns"])
-            if sig.get("mounted"):   # mount-gated flat stat grant (Cavalier's Charge): Speed while riding a chocobo
                 entry["signature"]["mounted"] = True
             for key, kind in _SIG_PASSTHROUGH:
                 if not sig.get(key):

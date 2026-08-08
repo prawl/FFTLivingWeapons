@@ -4,13 +4,12 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// BandHeal (LW-149 stage G): the shared band-entry HP-heal core promoted out of LifeSap.Policy.cs
-/// so Benediction/Renewal/SpiritualFont stop borrowing one signature's name for a
-/// cross-cutting mechanic. LifeSap.Policy.HealAmount/NewHp/WriteHp are now one-line forwards to
-/// here -- this suite pins BandHeal's own behavior (the same contract LifeSapTests already pins on
-/// the forward) AND, separately, proves the forwards genuinely delegate rather than merely
-/// agreeing by coincidence (a forward that silently diverged would still pass a same-suite
-/// duplicate-assertions check; only a direct LifeSap-vs-BandHeal comparison catches that).
+/// BandHeal (LW-149 stage G): the shared band-entry HP-heal core promoted out of the former
+/// LifeSap.Policy.cs so Benediction/Renewal/SpiritualFont stop borrowing one signature's name
+/// for a cross-cutting mechanic. The dormant LifeSap module and its one-line forwards were
+/// deleted in LW-159 (the forward-agreement non-vacuity tests died with them); this suite is
+/// now the sole pin of BandHeal's own contract -- heal sizing, the never-revive clamp, and the
+/// guarded little-endian HP write.
 /// </summary>
 public class BandHealTests
 {
@@ -55,8 +54,8 @@ public class BandHealTests
     [Fact]
     public void WriteHp_crossing_the_255_256_boundary_lands_as_one_16bit_write_never_two_torn_halves()
     {
-        // Same LW-145 fix 2 regression LifeSapTests pins on the forward: one W16 call, never two
-        // separate W8 halves that could expose a torn intermediate value to the game's own threads.
+        // The LW-145 fix 2 regression: one W16 call, never two separate W8 halves that could
+        // expose a torn intermediate value to the game's own threads.
         var mem = new FakeSparseMemory();
         long entryAddr = 0x5000;
         mem.MarkWritable(entryAddr + Offsets.AHp, 2);   // production gates Writable n=2 (BandHeal.cs)
@@ -67,48 +66,5 @@ public class BandHealTests
         Assert.Contains(entryAddr + Offsets.AHp, mem.WriteOrder);
         Assert.False(mem.Written.ContainsKey(entryAddr + Offsets.AHp));       // no low-byte W8
         Assert.False(mem.Written.ContainsKey(entryAddr + Offsets.AHp + 1));   // no high-byte W8
-    }
-
-    // ---- Non-vacuity: LifeSap.Policy's forwards genuinely delegate, not just agree by luck ----
-
-    [Theory]
-    [InlineData(100, 0.25)]
-    [InlineData(10, 0.25)]
-    [InlineData(1, 0.25)]
-    [InlineData(0, 0.25)]
-    [InlineData(333, 0.1)]
-    public void LifeSap_HealAmount_and_BandHeal_HealAmount_agree_on_sample_inputs(int maxHp, double pct)
-        => Assert.Equal(BandHeal.HealAmount(maxHp, pct), LifeSap.HealAmount(maxHp, pct));
-
-    [Theory]
-    [InlineData(50, 100, 25)]
-    [InlineData(0, 100, 25)]
-    [InlineData(100, 100, 25)]
-    [InlineData(1, 100, 25)]
-    public void LifeSap_NewHp_and_BandHeal_NewHp_agree_on_sample_inputs(int hp, int maxHp, int heal)
-        => Assert.Equal(BandHeal.NewHp(hp, maxHp, heal), LifeSap.NewHp(hp, maxHp, heal));
-
-    [Fact]
-    public void LifeSap_WriteHp_and_BandHeal_WriteHp_produce_identical_writes_on_a_fake()
-    {
-        // Two independent fakes, the same call shape through each name -- if LifeSap.WriteHp
-        // truly forwards to BandHeal.WriteHp, both fakes end up byte-identical, including the
-        // guard shape (Writable gate, one W16 call). A reimplementation that merely computed the
-        // same final value could still diverge here on write count/order; only a real forward
-        // guarantees this passes.
-        var a = new FakeSparseMemory();
-        var b = new FakeSparseMemory();
-        long addr = 0x5000 + Offsets.AHp;
-        a.MarkWritable(addr, 2);   // production gates Writable n=2 (BandHeal.cs)
-        b.MarkWritable(addr, 2);
-
-        LifeSap.WriteHp(a, 0x5000, 260);
-        BandHeal.WriteHp(b, 0x5000, 260);
-
-        Assert.Equal(260, a.WrittenU16[addr]);
-        Assert.Equal(a.WrittenU16[addr], b.WrittenU16[addr]);
-        Assert.Equal(a.U8s[addr], b.U8s[addr]);
-        Assert.Equal(a.U8s[addr + 1], b.U8s[addr + 1]);
-        Assert.Equal(a.WriteOrder, b.WriteOrder);
     }
 }

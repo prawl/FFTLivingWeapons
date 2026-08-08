@@ -157,6 +157,19 @@ public class SignaturesTests
         Assert.False(Signatures.ConditionMet(null, hp: 1, maxHp: 100));
     }
 
+    // --- FreshKill: the primed kill-tally-diff trigger (live via ExtraTurn's freshKill edge;
+    //     this pin moved here from LifeSapTests when the dormant Life Sap lane was deleted, LW-159) ---
+
+    [Theory]
+    [InlineData(-1, 0, false)]   // unprimed: first sight never fires
+    [InlineData(-1, 5, false)]   // unprimed even with seeded kills
+    [InlineData(0, 1, true)]
+    [InlineData(5, 6, true)]
+    [InlineData(5, 5, false)]    // no change
+    [InlineData(5, 4, false)]    // tally can only climb; a drop is not a kill
+    public void FreshKill_fires_only_on_a_primed_increment(int last, int now, bool expected)
+        => Assert.Equal(expected, Signatures.FreshKill(last, now));
+
     // --- Spiritual Font (Wellspring Rod): movement-bit grants (Lifefont + Manafont) ---
     // The movement bitfield sits at +0x9C (3 bytes, base id 230, MSB-first -- the same shape
     // as the support field). Movement is normally exactly-one-effective; OR-setting BOTH font

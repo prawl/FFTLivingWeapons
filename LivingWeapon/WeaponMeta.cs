@@ -35,14 +35,11 @@ public sealed class WeaponSignature
     // Conditional HP-gate: grant only applies while current HP is below this % of max (0 = always-on,
     // e.g. Mortal Coil's Attack Boost while HP < 50%). Arm-and-stays once tripped (never strips a support).
     [JsonProperty("hpBelow")] public int HpBelow { get; set; }
-    // TIMED stat grant (no support id): a flat StatBonus to Stat for the wielder's first ForTurns turns,
-    // then reverted -- e.g. (former) Galewind Speed +3 for 3 turns. ForTurns == 0 means not a timed grant.
+    // MOUNT-GATED stat grant (no support id): a flat StatBonus to Stat while the wielder is riding
+    // a chocobo (combat +0x1B4 bit 0x80, proven live 2026-06-26). Reverts on dismount/battle-exit;
+    // Speed is the only wired stat today.
     [JsonProperty("stat")] public string Stat { get; set; } = "";
     [JsonProperty("statBonus")] public int StatBonus { get; set; }
-    [JsonProperty("forTurns")] public int ForTurns { get; set; }
-    // MOUNT-GATED stat grant: flat StatBonus to Stat while the wielder is riding a chocobo
-    // (combat +0x1B4 bit 0x80, proven live 2026-06-26). Reverts on dismount/battle-exit.
-    // Replaces the forTurns gate in HoldTimedStat; Speed is the only wired stat today.
     [JsonProperty("mounted")] public bool Mounted { get; set; }
     // PUPPETEER (Galewind "Puppeteer", replaces Charm-Lock): a hit by the +3 wielder dominates the
     // struck enemy for this many of ITS OWN turns -- the player controls its move + full skillset (the
@@ -63,9 +60,6 @@ public sealed class WeaponSignature
     // BARRAGE (Yoichi "Barrage"): while a unit wields this at AtTier, the wielder gains Barrage (ability 358)
     // injected into their current job's JobCommand record. 0 = not a barrage weapon.
     [JsonProperty("grantCommandAbilityId")] public int GrantCommandAbilityId { get; set; }
-    // LIFE SAP (Umbral Rod "Life Sap"): a kill credited to this weapon at AtTier heals the wielder by
-    // Tuning.LifeSapPct of max HP (clamped; never revives). false = not a life-sap weapon.
-    [JsonProperty("lifeSapOnKill")] public bool LifeSapOnKill { get; set; }
     // RENEWAL (Mending Staff "Renewal"): at each wielder turn edge, the wielder + allies within this
     // many Chebyshev tiles are healed for round(maxHP * Tuning.RenewalPct) each. Silent band write.
     // 0 = not a renewal weapon.

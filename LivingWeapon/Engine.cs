@@ -193,7 +193,6 @@ internal sealed class Engine
         var iai = new Iai(meta, _kills, live, _naturalLedger);       // Ame-no-Murakumo +3: hold every deployed wielder's Speed above the field max for the opening turn, released by the engine actor pointer (arrival or acted-edge match) naming the wielder's own band entry
         var mushin = new Mushin(meta, _kills, mushinArmed, live);   // Kiku-ichimonji +3: a full wait turn (no move, no act) arms one charge, spent on the wielder's next own-turn action (LW-4 round 5: the literal PSX turn-flag design, no tracker dependency)
         var plague = new Plague(meta, _kills, _tracker, mem: live); // Venombolt +3: poison never fades, ticks harder
-        var lifeSap = new LifeSap(meta, _kills, mem: live);         // Umbral +3: a kill heals the wielder 25% max HP
         var renewal = new Renewal(meta, _kills, _turns, live);     // Mending Staff +3: turn-edge regen aura to allies within 1 tile (Chebyshev)
         var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
         var font = new SpiritualFont(meta, _kills, _tracker, live); // Wellspring +3: a moved action restores HP and MP
@@ -216,13 +215,13 @@ internal sealed class Engine
             alwaysOn: treasureAlwaysOn);
         _treasure.StartFastHold();
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
-        // reset runs extra..font with Barrage between Plague and LifeSap; the in-battle tick
+        // reset runs extra..font with Barrage between Plague and Renewal; the in-battle tick
         // excludes Barrage (ticks before the !nowIn early-return, learn screens included) and
         // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
         // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
         // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, lifeSap, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark, _treasure };
-        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, lifeSap, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
+        _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark, _treasure };
+        _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         save.Migrate("gunslinger.json");
         _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live);
         // LW-35 (owner direction): Marks are release-hidden on EVERY card surface. The Attack card
