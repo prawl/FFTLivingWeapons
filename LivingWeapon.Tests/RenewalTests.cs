@@ -68,7 +68,7 @@ public class RenewalTests
 
     // ---- (4) InAura: Chebyshev distance <= radius ----
     // THE load-bearing non-vacuous test: diagonal (5,5,6,6) is Chebyshev 1 (TRUE),
-    // which is the exact case that is FALSE under Wyrmblood's Manhattan metric.
+    // the exact case a Manhattan metric would score distance 2 and exclude.
 
     [Theory]
     [InlineData(5, 5, 5, 5, true)]    // the wielder itself (distance 0)
@@ -100,7 +100,7 @@ public class RenewalTests
 
     // ---- LW-153 pulse pins: the STATEFUL heal loop, driven directly (internal for test reach).
     // Written GREEN against the pre-fold Renewal.Aura, so the shared HealPulse core must keep
-    // them green and a sabotage of the shared loop turns them red in BOTH suites at once. ----
+    // them green -- the pins outrank the fold, not the other way around. ----
 
     private static readonly (int mhp, int lvl, int br, int fa) AllyFp = (300, 40, 60, 55);
 
@@ -172,9 +172,10 @@ public class RenewalTests
     [Fact]
     public void Aura_reaches_the_diagonal_neighbor_Chebyshev()
     {
-        // THE deliberate metric difference from Wyrmblood: at radius 1 the diagonal tile is
-        // distance 1 under Chebyshev (healed here) but distance 2 under Manhattan (skipped in
-        // WyrmbloodTests' mirror pin with the same geometry).
+        // Pins Renewal's Chebyshev diagonal reach through the shared core's INJECTED metric:
+        // at radius 1 the diagonal tile is distance 1 under Chebyshev (healed here) where a
+        // Manhattan metric would score distance 2 and skip it. Deliberate, not vestigial --
+        // this is the one pin proving Config.InRange really is Renewal's own metric.
         var m = PulseRig(out var r);
         long e = SeatAt(m, slot: 30, gx: 6, gy: 6, hp: 200);
         r.Aura(wgx: 5, wgy: 5, radius: 1, turn: 1);

@@ -15,7 +15,7 @@ internal sealed partial class LifeSap
     public const bool ActivatesOnMainHandOnly = true;
 
     /// <summary>Forwards to <see cref="BandHeal.HealAmount"/> (LW-149 stage G: promoted to the
-    /// shared band-heal core so Benediction/Renewal/SpiritualFont/Wyrmblood stop borrowing
+    /// shared band-heal core so Benediction/Renewal/SpiritualFont stop borrowing
     /// LifeSap's name). Kept here so LifeSap's own tests and any missed caller keep working.</summary>
     public static int HealAmount(int maxHp, double pct) => BandHeal.HealAmount(maxHp, pct);
 

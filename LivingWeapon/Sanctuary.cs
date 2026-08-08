@@ -11,7 +11,7 @@ namespace LivingWeapon;
 /// crystallizes (permanent loss). Sanctuary re-writes it to 3 every tick so the revive window
 /// never closes. If the bearer dies, Sanctuary lifts -- the engine resumes counting.
 ///
-/// PER-TICK PIN, NOT TURN-EDGE: unlike Renewal or Wyrmblood, this fires every tick (no
+/// PER-TICK PIN, NOT TURN-EDGE: unlike Renewal, this fires every tick (no
 /// TurnTracker). The pin is idempotent; when the counter is already 3 no log fires (low spam).
 ///
 /// BEARER-ALIVE GATE ("save the priest"): Wielder.Locate is called each tick to find the bearer.

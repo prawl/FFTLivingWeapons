@@ -12,7 +12,7 @@ namespace LivingWeapon.Tests;
 /// the multi-second charge of a queued Cure (the failure a time window could not cover). The boost is
 /// computed on the OBSERVED restored HP (not the spell's nominal output), so an overheal yields no
 /// bonus -- a deliberate design choice (no overheal inflation). The HP write reuses LifeSap.WriteHp /
-/// LifeSap.NewHp (the band +0x14 path proven by Ricochet/Wyrmblood/LifeSap).
+/// LifeSap.NewHp (the band +0x14 path proven by Ricochet/LifeSap).
 ///
 /// Pure jobs in Benediction.Policy.cs:
 ///   (1) IsActive: gates on HealBoostPct > 0 AND tier >= AtTier.

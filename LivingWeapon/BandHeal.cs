@@ -5,9 +5,9 @@ namespace LivingWeapon;
 /// <summary>
 /// The shared band-entry HP-heal core: the heal-sizing formula, the clamp-and-never-revive rule,
 /// and the guarded little-endian HP write. Promoted out of LifeSap.Policy.cs (LW-149 stage G) --
-/// Benediction, Renewal, SpiritualFont, and Wyrmblood each already borrowed LifeSap's HealAmount/
-/// NewHp/WriteHp by name for their own heal/regen/aura/font restores, so a neutral home replaces
-/// four cross-signature borrows of one signature's name with a shared primitive. LifeSap.Policy
+/// Benediction, Renewal, and SpiritualFont each already borrowed LifeSap's HealAmount/
+/// NewHp/WriteHp by name for their own heal/aura/font restores, so a neutral home replaces
+/// the cross-signature borrows of one signature's name with a shared primitive. LifeSap.Policy
 /// keeps thin one-line forwards for all three so its own tests and any missed caller keep working.
 /// </summary>
 internal static class BandHeal

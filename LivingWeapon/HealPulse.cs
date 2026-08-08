@@ -4,17 +4,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The shared stateful core of the two turn-edge healing signatures (LW-153): Mending Staff's
-/// Renewal aura and Dragon Rod's Wyrmblood splash were ~85 token-identical lines maintained as
-/// hand-synced copies (a name-normalized diff left only five real differences). Those five
-/// differences ride in <see cref="Config"/> -- weapon id, which meta knob is the radius, the
-/// per-unit heal amount, the range metric (Chebyshev vs Manhattan, a DELIBERATE difference,
-/// pinned by the two suites' mirrored diagonal tests), and the narration strings, which are
-/// behavior (the evidence chain) and stay byte-identical per weapon. Renewal.cs and
-/// Wyrmblood.cs are thin configs over this core; their Policy partials keep the pure
-/// per-module rules the tests drive directly.
+/// The stateful turn-edge heal-pulse core that Renewal rides. Extracted in LW-153, when Dragon
+/// Rod's Wyrmblood splash was Renewal's twin (~85 token-identical hand-synced lines; a
+/// name-normalized diff left only the differences that now ride in <see cref="Config"/> --
+/// weapon id, which meta knob is the radius, the per-unit heal amount, the range metric, and
+/// the narration strings, which are behavior (the evidence chain) and stay byte-identical per
+/// weapon). Wyrmblood was deleted as dormant in LW-159, leaving Renewal.cs the one thin config
+/// over this core; the core KEEPS the module shape so a future turn-edge healing signature is
+/// one Config away, not a re-fold. Renewal.Policy.cs keeps the pure per-module rules the tests
+/// drive directly.
 ///
-/// The shared behavior, unchanged from the copies: at each of the +3 wielder's COMPLETED-turn
+/// The behavior, unchanged since the fold: at each of the +3 wielder's COMPLETED-turn
 /// edges (TurnTracker's rising-Acted edge, adjacency measured from the post-move tile), heal
 /// the wielder and every ALLY in range for the config's amount of their OWN max HP, clamped at
 /// full. Allies only, positively identified against the static-array PLAYER slots; the dead
@@ -23,8 +23,8 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class HealPulse
 {
-    /// <summary>The five real differences between the two healing twins; everything absent
-    /// from here is shared by construction.</summary>
+    /// <summary>The per-signature differences; everything absent from here is shared by
+    /// construction. Renewal is the sole rider today (see the class doc).</summary>
     internal sealed class Config
     {
         public int WeaponId;
@@ -35,7 +35,7 @@ internal sealed class HealPulse
         public string ActiveLine = "";                             // activation-edge console pair
         public string InactiveLine = "";
         public string WielderMissWarn = "";                        // turn edge fired, wielder unlocatable
-        public string DebugVerb = "";                              // "renewal mended" / "wyrmblood regenerated"
+        public string DebugVerb = "";                              // "renewal mended"
         public string NoAlliesDebug = "";                          // empty-pulse file-only line
         public Func<int, int, string> Summary = null!;             // (healedCount, totalMended) console line
     }
@@ -63,8 +63,8 @@ internal sealed class HealPulse
 
     /// <summary>The wielder's turn edge: a PRIMED TurnTracker count climbed. -1 = unprimed
     /// (first sight after a reset or a re-equip baselines silently). A count that DROPPED
-    /// (tracker reset under us) re-baselines instead of pulsing. THE rule; the two Policy
-    /// IsTurnEdge statics delegate here (they were verbatim copies).</summary>
+    /// (tracker reset under us) re-baselines instead of pulsing. THE rule; Renewal.Policy's
+    /// IsTurnEdge static delegates here (the pre-fold twins carried verbatim copies).</summary>
     public static bool IsTurnEdge(int lastTurns, int turns) => lastTurns >= 0 && turns > lastTurns;
 
     public void ResetBattle()

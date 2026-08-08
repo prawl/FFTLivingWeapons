@@ -5,7 +5,7 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// BandHeal (LW-149 stage G): the shared band-entry HP-heal core promoted out of LifeSap.Policy.cs
-/// so Benediction/Renewal/SpiritualFont/Wyrmblood stop borrowing one signature's name for a
+/// so Benediction/Renewal/SpiritualFont stop borrowing one signature's name for a
 /// cross-cutting mechanic. LifeSap.Policy.HealAmount/NewHp/WriteHp are now one-line forwards to
 /// here -- this suite pins BandHeal's own behavior (the same contract LifeSapTests already pins on
 /// the forward) AND, separately, proves the forwards genuinely delegate rather than merely

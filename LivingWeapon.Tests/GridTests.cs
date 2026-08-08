@@ -5,8 +5,9 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// Grid (LW-149 stage G): the shared tile-metric home promoted out of Ricochet.Policy.cs.
-/// Wyrmblood.Policy.InSplash already borrowed Ricochet.Manhattan by name for its own splash-radius
-/// math; Grid removes that cross-signature dependency. Ricochet.Manhattan is now a one-line forward
+/// The then-extant Wyrmblood.Policy.InSplash (deleted as dormant in LW-159) had borrowed
+/// Ricochet.Manhattan by name for its own splash-radius math; Grid removes that
+/// cross-signature dependency. Ricochet.Manhattan is now a one-line forward
 /// to here -- this suite pins Grid.Manhattan's own behavior (the same contract RicochetTests
 /// already pins on the forward) AND, separately, proves the forward genuinely delegates rather
 /// than merely agreeing by coincidence.

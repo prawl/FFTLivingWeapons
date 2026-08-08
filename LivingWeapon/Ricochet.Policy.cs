@@ -85,8 +85,8 @@ internal sealed partial class Ricochet
 
     /// <summary>Manhattan (taxicab) distance between two grid cells. Forwards to
     /// <see cref="Grid.Manhattan"/> (LW-149 stage G: promoted to the shared grid-metric home so
-    /// Wyrmblood.Policy stops borrowing Ricochet's name). Kept here so Ricochet's own tests and
-    /// any missed caller keep working.</summary>
+    /// cross-signature callers stop borrowing Ricochet's name). Kept here so Ricochet's own
+    /// tests and any missed caller keep working.</summary>
     public static int Manhattan(int x1, int y1, int x2, int y2) => Grid.Manhattan(x1, y1, x2, y2);
 
     /// <summary>New HP after applying chip: max(currentHp - chip, 1). Chip never kills.</summary>

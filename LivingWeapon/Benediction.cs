@@ -20,7 +20,7 @@ namespace LivingWeapon;
 /// cost of supporting charged spells): the boost is live for the ENTIRE span from the wielder's
 /// action until the next PLAYER acts -- across enemy turns, possibly tens of seconds. ANY ally HP
 /// rise in that span is boosted 30%: a charged Cure, Regen ticking, an elemental absorb, an item
-/// heal, a reaction heal, a co-equipped Wyrmblood splash, even a revive (we observe HP after the
+/// heal, a reaction heal, even a revive (we observe HP after the
 /// engine applies the heal, so a revived ally already reads alive and IS boosted; only a unit still
 /// reading 0 at scan time is skipped, via BandHeal.NewHp's hp&lt;=0 guard, which never fires on the
 /// revive path because hp is already positive when we observe). The old claim that Wielder.Locate
@@ -34,12 +34,12 @@ namespace LivingWeapon;
 /// lands on the tick the latch flips active is not read as a giant stale diff.
 ///
 /// ALLIES ONLY, positively identified: Band.AllyFingerprints (static-array PLAYER-slot fingerprints)
-/// -- the same oracle as Wyrmblood. Enemies are never boosted.
+/// -- the same oracle as Renewal. Enemies are never boosted.
 ///
 /// HP WRITE: BandHeal.NewHp (clamp at max, never revive) + BandHeal.WriteHp (the proven band +0x14
 /// guarded write). A dead ally (HP 0) is left alone.
 ///
-/// BAND-TWIN DEDUPE: per-fingerprint HashSet (same discipline as Wyrmblood/Ricochet) so a frozen
+/// BAND-TWIN DEDUPE: per-fingerprint HashSet (same discipline as Renewal/Ricochet) so a frozen
 /// band twin doesn't double-boost. Known minor limitation (pre-existing, accepted): two distinct
 /// allies with byte-identical (maxHp,level,brave,faith) on a group heal collide and only the first
 /// is boosted. The per-slot Consume prevents our own write from being read back as a second event.
@@ -109,7 +109,7 @@ internal sealed partial class Benediction : ISignature
             if (!active || rise <= 0) continue;
 
             // Per-fingerprint dedupe (NOT slot-keying): the proven discipline shared with
-            // Wyrmblood/Ricochet. Known minor limitation: two distinct allies with byte-identical
+            // Renewal/Ricochet. Known minor limitation: two distinct allies with byte-identical
             // (mhp,lvl,br,fa) on a group heal collide and only the first is boosted -- accepted, pre-existing.
             if (allyFps is null || !allyFps.Contains(fp)) continue;   // enemies are never boosted
             if (boosted!.Contains(fp)) continue;                       // band twin: one boost per unit

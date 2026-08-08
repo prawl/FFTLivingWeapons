@@ -40,7 +40,6 @@ _SIG_PASSTHROUGH = (
     ("grantCommandAbilityId", "int"), # command grant (Yoichi "Barrage" / Sanguine "Shadow Blade")
     ("larcenyTurns", "int"),          # larceny (Arcanum): steal the struck foe's holdable buff onto the wielder
     ("lifeSapOnKill", "flag"),        # life sap (Umbral "Life Sap"): a kill heals the wielder
-    ("regenSplashRadius", "int"),     # wyrmblood (Dragon Rod): turn-edge regen splash to allies
     ("regenAuraRadius", "int"),       # renewal (Mending Staff): turn-edge regen aura to adjacent allies (Chebyshev)
     ("fontOnMove", "flag"),           # spiritual font (Wellspring): a moved turn restores HP/MP (runtime-written)
     ("raptureMove", "flag"),          # rapture (Rod of Faith): low-HP Master Teleportation window

@@ -161,10 +161,6 @@ internal static class Tuning
     /// is credited to the rod (clamped at full; never revives).</summary>
     public const double LifeSapPct = 0.25;
 
-    /// <summary>Wyrmblood (Dragon Rod +3): each splash target mends its OWN maxHP / this divisor
-    /// per wielder turn -- 8 == the vanilla Regen rate.</summary>
-    public const int WyrmbloodDiv = 8;
-
     /// <summary>Renewal (Mending Staff +3): fraction of max HP each ally within the aura is
     /// healed per wielder turn edge (round away-from-zero, floor 1).</summary>
     public const double RenewalPct = 0.10;

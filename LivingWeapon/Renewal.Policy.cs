@@ -28,7 +28,7 @@ internal sealed partial class Renewal
 
     /// <summary>True when a unit at (x,y) is inside the aura centred on the wielder at (wx,wy):
     /// Chebyshev distance &lt;= radius. The wielder itself is distance 0. Diagonals are
-    /// distance 1 (the key distinction from Wyrmblood's Manhattan metric).</summary>
+    /// distance 1 (under a Manhattan metric they would be 2 and fall outside radius 1).</summary>
     public static bool InAura(int wx, int wy, int x, int y, int radius)
         => Chebyshev(wx, wy, x, y) <= radius;
 }

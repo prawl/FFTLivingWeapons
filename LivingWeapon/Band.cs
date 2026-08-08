@@ -125,8 +125,8 @@ internal static partial class Band
         => Fingerprints(mem, 0, Offsets.EnemySlotMax);
 
     /// <summary>PLAYER-side fingerprints from the static array (slots above EnemySlotMax) --
-    /// the positive ally oracle (Wyrmblood's splash filter). Same freeze caveat and the same
-    /// inclusive-2000 mhp bound as <see cref="EnemyFingerprints"/>.</summary>
+    /// the positive ally oracle (Renewal's aura filter, Benediction's boost filter). Same freeze
+    /// caveat and the same inclusive-2000 mhp bound as <see cref="EnemyFingerprints"/>.</summary>
     public static HashSet<(int mhp, int lvl, int br, int fa)> AllyFingerprints(IGameMemory mem)
         => Fingerprints(mem, Offsets.EnemySlotMax + 1, Offsets.NSlots - 1);
 

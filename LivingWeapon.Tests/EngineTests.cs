@@ -154,7 +154,7 @@ public class EngineTests
                 typeof(ExtraTurn), typeof(EagleEye), typeof(Ricochet), typeof(Maim),
                 typeof(Kobu), typeof(Iai), typeof(Mushin), typeof(Larceny), typeof(Puppeteer), typeof(Plague),
                 typeof(Barrage), typeof(ShadowBlade), typeof(Provoke), typeof(ProvokeHold), typeof(LifeSap),
-                typeof(Wyrmblood), typeof(Renewal), typeof(Rapture), typeof(SpiritualFont), typeof(FeignDeath),
+                typeof(Renewal), typeof(Rapture), typeof(SpiritualFont), typeof(FeignDeath),
                 typeof(Benediction), typeof(Sanctuary), typeof(Choir), typeof(Bulwark), typeof(TreasureMaster),
             }, engine.SignatureResetOrder);
         }
@@ -174,7 +174,7 @@ public class EngineTests
             {
                 typeof(ExtraTurn), typeof(EagleEye), typeof(Ricochet), typeof(Maim), typeof(Kobu), typeof(Iai),
                 typeof(Mushin), typeof(Larceny), typeof(Puppeteer), typeof(Plague), typeof(ProvokeHold),
-                typeof(LifeSap), typeof(Wyrmblood), typeof(Renewal), typeof(Rapture), typeof(SpiritualFont),
+                typeof(LifeSap), typeof(Renewal), typeof(Rapture), typeof(SpiritualFont),
                 typeof(FeignDeath), typeof(Benediction), typeof(Sanctuary), typeof(Choir), typeof(Bulwark),
             };
             Assert.Equal(expected, engine.FieldTickOrder);

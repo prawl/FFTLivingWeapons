@@ -11,8 +11,8 @@ namespace LivingWeapon;
 /// Cure's HP write lands ~7 s after the wielder selects it, so the latch (which persists across enemy
 /// turns until the next PLAYER acts) is the only gate that survives the gap. Trade-off, stated
 /// honestly: the boost is live for the ENTIRE span from the wielder's action until the next player
-/// acts -- ANY ally HP rise in that span (Regen, elemental absorb, item heal, reaction heal, a
-/// co-equipped Wyrmblood splash, even a revive) is boosted 30%. This is WIDER than the old
+/// acts -- ANY ally HP rise in that span (Regen, elemental absorb, item heal, reaction heal,
+/// even a revive) is boosted 30%. This is WIDER than the old
 /// Acted-windowed exposure and is accepted as the cost of supporting charged spells. Common MISS
 /// (fail-safe): if another player acts before the charged heal lands, the latch moves off the Sanctus
 /// Staff and the boost is silently lost -- never a wrong-target boost. Revive safety: we observe HP

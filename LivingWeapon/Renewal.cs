@@ -9,13 +9,13 @@ namespace LivingWeapon;
 /// write -- no status icon, no floating number; the Regen status bit is never touched.
 ///
 /// CHEBYSHEV (not Manhattan): radius 1 covers all 8 surrounding tiles, including diagonals.
-/// This is the key difference from Wyrmblood's Manhattan splash (pinned by the two suites'
-/// mirrored diagonal tests).
+/// A deliberate choice, pinned by RenewalTests' diagonal-reach test on the shared core's
+/// injected metric.
 ///
 /// The stateful machinery (activation edge, completed-turn edge, wielder locate, the ally
-/// heal loop, the aggregated narration) is the shared <see cref="HealPulse"/> core (LW-153:
-/// this file and Wyrmblood.cs were ~85 token-identical lines); this class is the Renewal
-/// config over it, and Renewal.Policy.cs keeps the pure per-module rules.
+/// heal loop, the aggregated narration) is the shared <see cref="HealPulse"/> core (LW-153;
+/// its class doc carries the extraction story); this class is the Renewal config over it,
+/// and Renewal.Policy.cs keeps the pure per-module rules.
 /// </summary>
 internal sealed partial class Renewal : ISignature
 {
