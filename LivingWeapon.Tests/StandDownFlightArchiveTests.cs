@@ -82,10 +82,7 @@ public class StandDownFlightArchiveTests : IDisposable
     {
         var dir = TempDir();
         Flight.Init(dir);
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        using var cap = LogCapture.Start();
         try
         {
             var guard = new LaunchGuard(MismatchingMemory(), forceMismatch: false,
@@ -101,7 +98,7 @@ public class StandDownFlightArchiveTests : IDisposable
             Assert.Single(files);
             Assert.True(ArchiveHasGuardStandDownRecord(files[0]));
         }
-        finally { Flight.Reset(); ModLogger.Instance = prior; }
+        finally { Flight.Reset(); }
     }
 
     [Fact]
@@ -109,10 +106,7 @@ public class StandDownFlightArchiveTests : IDisposable
     {
         var dir = TempDir();
         Flight.Init(dir);
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
+        using var cap = LogCapture.Start();
         try
         {
             // Burn the error FlushOnce latch on an EARLIER, unrelated error before the guard ever
@@ -136,6 +130,6 @@ public class StandDownFlightArchiveTests : IDisposable
             Assert.Single(files);
             Assert.True(ArchiveHasGuardStandDownRecord(files[0]));
         }
-        finally { Flight.Reset(); ModLogger.Instance = prior; }
+        finally { Flight.Reset(); }
     }
 }

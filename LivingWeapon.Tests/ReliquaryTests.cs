@@ -115,16 +115,11 @@ public class ReliquaryTests : IDisposable
         var meta = new Dictionary<int, WeaponMeta> { [9] = new WeaponMeta { Name = "Kiyomori" } };
         var reliquary = new Reliquary(store, toast: null, meta);
 
-        var console = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, _ => { });
-        try
-        {
-            int threshold = Tuning.MarkThresholds[0];
-            for (int i = 0; i < threshold; i++)
-                reliquary.RecordDeed(9, Victim((ushort)(100 + i), 77));
-            Assert.Contains(console, l => l.Contains("[INFO]") && l.Contains("Kiyomori earns the Mark of the Manslayer."));
-        }
-        finally { ModLogger.Instance = prior; }
+        using var cap = LogCapture.Start(file: false);
+        var console = cap.Console;
+        int threshold = Tuning.MarkThresholds[0];
+        for (int i = 0; i < threshold; i++)
+            reliquary.RecordDeed(9, Victim((ushort)(100 + i), 77));
+        Assert.Contains(console, l => l.Contains("[INFO]") && l.Contains("Kiyomori earns the Mark of the Manslayer."));
     }
 }

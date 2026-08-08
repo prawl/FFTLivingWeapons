@@ -37,18 +37,13 @@ public class DisplaySweepLogCanaryTests
         var kills = new Dictionary<int, int> { { 10, 0 } };
         var (_, display) = BuildDisplay(0x50_0000_0000L, 0x51_0000_0000L, kills, clock);
 
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            CardFixtures.DrainGeneration(display, clock, 500);
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        CardFixtures.DrainGeneration(display, clock, 500);
 
-            Assert.Contains(console, l => l.Contains("card display sweep") && l.Contains("first pass"));
-            Assert.Contains(file, l => l.Contains("[INFO]") && l.Contains("[display]") && l.Contains("first pass"));
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.Contains(console, l => l.Contains("card display sweep") && l.Contains("first pass"));
+        Assert.Contains(file, l => l.Contains("[INFO]") && l.Contains("[display]") && l.Contains("first pass"));
     }
 
     [Fact]
@@ -58,26 +53,21 @@ public class DisplaySweepLogCanaryTests
         var kills = new Dictionary<int, int> { { 10, 0 } };
         var (_, display) = BuildDisplay(0x52_0000_0000L, 0x53_0000_0000L, kills, clock);
 
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            CardFixtures.DrainGeneration(display, clock, 500);
-            console.Clear();
-            file.Clear();
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        CardFixtures.DrainGeneration(display, clock, 500);
+        console.Clear();
+        file.Clear();
 
-            // A single Tick after the rest gap elapses is enough to complete the next
-            // generation over this tiny region (ample per-Tick budget); draining many more
-            // ticks here would let further rest gaps elapse and complete generation 3+ too,
-            // which is not what this case is pinning.
-            clock.Ms += DisplaySweep.GenerationRestMs + 1;
-            display.Tick(false);
+        // A single Tick after the rest gap elapses is enough to complete the next
+        // generation over this tiny region (ample per-Tick budget); draining many more
+        // ticks here would let further rest gaps elapse and complete generation 3+ too,
+        // which is not what this case is pinning.
+        clock.Ms += DisplaySweep.GenerationRestMs + 1;
+        display.Tick(false);
 
-            Assert.DoesNotContain(console, l => l.Contains("card display sweep") || l.Contains("memory sweep"));
-            Assert.Contains(file, l => l.Contains("[DEBUG]") && l.Contains("[display]") && l.Contains("memory sweep number"));
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.DoesNotContain(console, l => l.Contains("card display sweep") || l.Contains("memory sweep"));
+        Assert.Contains(file, l => l.Contains("[DEBUG]") && l.Contains("[display]") && l.Contains("memory sweep number"));
     }
 }

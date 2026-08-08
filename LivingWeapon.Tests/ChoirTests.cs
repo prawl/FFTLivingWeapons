@@ -733,15 +733,11 @@ public class ChoirTests
     {
         var (choir, _, _, _) = BuildActive();   // bearer alive at tier 3 -> active from tick 1
 
-        var console = new List<string>();
-        var file = new List<string>();
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add) { LogLevel = LogLevel.Info };
-        try
-        {
-            choir.Tick(onField: true);   // rising edge: armed line fires once
-            choir.Tick(onField: true);   // steady state: must add nothing more
-        }
-        finally { ModLogger.UseNullLogger(); }
+        using var cap = LogCapture.Start(level: LogLevel.Info);
+        var console = cap.Console;
+        var file = cap.File;
+        choir.Tick(onField: true);   // rising edge: armed line fires once
+        choir.Tick(onField: true);   // steady state: must add nothing more
 
         const string onLine = "Warlock's Staff at tier three is armed and its bearer lives; the bearer casts magick instantly.";
         Assert.Single(file, l => l.Contains(onLine) && l.Contains("[INFO]"));

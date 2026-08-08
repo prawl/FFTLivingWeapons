@@ -107,30 +107,19 @@ public class TimedStatWindowCloseTests
 
     // ---- LW-110: the previously-silent capture/boost/revert paths now log at Debug ----
 
-    private static (List<string> console, List<string> file) InstallLogger()
-    {
-        var console = new List<string>();
-        var file = new List<string>();
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add) { LogLevel = LogLevel.Debug };
-        return (console, file);
-    }
-
     [Fact]
     public void Capture_and_boost_log_at_Debug()
     {
-        var (_, file) = InstallLogger();
-        try
-        {
-            var mem = new FakeSparseMemory();
-            long s = 0x1000_0000;
-            mem.U8s[s + Offsets.CSpeed] = 8;
-            mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
-            mem.WritableAddrs.Add(s + Offsets.CSpeed);
+        using var cap = LogCapture.Start(level: LogLevel.Debug);
+        var file = cap.File;
+        var mem = new FakeSparseMemory();
+        long s = 0x1000_0000;
+        mem.U8s[s + Offsets.CSpeed] = 8;
+        mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
+        mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
-            var engine = MakeEngine(mem);
-            engine.HoldTimedStat(s, Sig, tier: 3);   // capture + boost: 8 -> 11
-        }
-        finally { ModLogger.UseNullLogger(); }
+        var engine = MakeEngine(mem);
+        engine.HoldTimedStat(s, Sig, tier: 3);   // capture + boost: 8 -> 11
 
         Assert.Contains(file, l => l.Contains("[growth]") && l.Contains("timed-stat: capture") && l.Contains("8"));
         Assert.Contains(file, l => l.Contains("[growth]") && l.Contains("timed-stat: boost") && l.Contains("11"));
@@ -139,21 +128,18 @@ public class TimedStatWindowCloseTests
     [Fact]
     public void Revert_logs_at_Debug()
     {
-        var (_, file) = InstallLogger();
-        try
-        {
-            var mem = new FakeSparseMemory();
-            long s = 0x1000_0000;
-            mem.U8s[s + Offsets.CSpeed] = 8;
-            mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
-            mem.WritableAddrs.Add(s + Offsets.CSpeed);
+        using var cap = LogCapture.Start(level: LogLevel.Debug);
+        var file = cap.File;
+        var mem = new FakeSparseMemory();
+        long s = 0x1000_0000;
+        mem.U8s[s + Offsets.CSpeed] = 8;
+        mem.U8s[s + Offsets.CMount] = Offsets.CMountRidingBit;   // riding: the window is open
+        mem.WritableAddrs.Add(s + Offsets.CSpeed);
 
-            var engine = MakeEngine(mem);
-            engine.HoldTimedStat(s, Sig, tier: 3);   // capture + boost
-            mem.U8s[s + Offsets.CMount] = 0x00;      // dismount: the window closes
-            engine.HoldTimedStat(s, Sig, tier: 3);   // window closed: ordinary revert
-        }
-        finally { ModLogger.UseNullLogger(); }
+        var engine = MakeEngine(mem);
+        engine.HoldTimedStat(s, Sig, tier: 3);   // capture + boost
+        mem.U8s[s + Offsets.CMount] = 0x00;      // dismount: the window closes
+        engine.HoldTimedStat(s, Sig, tier: 3);   // window closed: ordinary revert
 
         Assert.Contains(file, l => l.Contains("[growth]") && l.Contains("timed-stat: revert") && l.Contains("8"));
     }

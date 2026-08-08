@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
@@ -524,15 +524,11 @@ public class PlagueTests
 
         var plague = new Plague(meta, kills, tracker, mem: mem);
 
-        var console = new List<string>();
-        var file = new List<string>();
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add) { LogLevel = LogLevel.Debug };
-        try
-        {
-            plague.Tick(onField: true, inLive: true);   // rising edge: window line fires once
-            plague.Tick(onField: true, inLive: true);   // steady state: must add nothing more
-        }
-        finally { ModLogger.UseNullLogger(); }
+        using var cap = LogCapture.Start(level: LogLevel.Debug);
+        var console = cap.Console;
+        var file = cap.File;
+        plague.Tick(onField: true, inLive: true);   // rising edge: window line fires once
+        plague.Tick(onField: true, inLive: true);   // steady state: must add nothing more
 
         const string onLine = "plague window opened: poison landing on the wielder's target during this window latches";
         Assert.Single(file, l => l.Contains(onLine) && l.Contains("[DEBUG]"));

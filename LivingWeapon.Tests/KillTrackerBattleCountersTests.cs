@@ -57,20 +57,15 @@ public class KillTrackerBattleCountersTests
         // mis-timed New Game) has no live wielder to credit. This test must fail if the
         // CreditGate call in CreditKill is removed.
         var t = MakeGated(out var kills, out _, out var recorded, out var deeds);
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add);
-        try
-        {
-            bool changed = t.CreditKill(0, 5, 5, new List<int> { 9 });
+        using var cap = LogCapture.Start(console: false);
+        var file = cap.File;
+        bool changed = t.CreditKill(0, 5, 5, new List<int> { 9 });
 
-            Assert.False(changed);
-            Assert.False(kills.ContainsKey(9));
-            Assert.Empty(deeds.Deeds);
-            Assert.Contains(recorded, r => r.type == "kill" && r.payload == "no-credit slot=0 reason=no-live-wielder weapon=9");
-            Assert.Contains(file, l => l.Contains("[kill]") && l.Contains("stale attribution"));
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.False(changed);
+        Assert.False(kills.ContainsKey(9));
+        Assert.Empty(deeds.Deeds);
+        Assert.Contains(recorded, r => r.type == "kill" && r.payload == "no-credit slot=0 reason=no-live-wielder weapon=9");
+        Assert.Contains(file, l => l.Contains("[kill]") && l.Contains("stale attribution"));
     }
 
     [Fact]
@@ -209,35 +204,25 @@ public class KillTrackerBattleCountersTests
     public void The_credit_line_names_the_victim_from_the_captured_snapshot()
     {
         var t = Make(out _);
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add);
-        try
-        {
-            t._victimAtEdge[0] = new VictimSnapshot(true, 405, 82, false);   // job 82 Summoner -> caster
-            t.CreditKill(0, 7, 6, new List<int> { 9 });
-            Assert.Contains(file, l => l.Contains("[kill]")
-                && l.Contains("claims kill number 1")
-                && l.Contains("felling a caster at (7,6)"));
-            // The two-line id pattern: the ids ride the trace companion, not the console line.
-            Assert.Contains(file, l => l.Contains("[trace]") && l.Contains("victim nameId 405"));
-        }
-        finally { ModLogger.Instance = prior; }
+        using var cap = LogCapture.Start(console: false);
+        var file = cap.File;
+        t._victimAtEdge[0] = new VictimSnapshot(true, 405, 82, false);   // job 82 Summoner -> caster
+        t.CreditKill(0, 7, 6, new List<int> { 9 });
+        Assert.Contains(file, l => l.Contains("[kill]")
+            && l.Contains("claims kill number 1")
+            && l.Contains("felling a caster at (7,6)"));
+        // The two-line id pattern: the ids ride the trace companion, not the console line.
+        Assert.Contains(file, l => l.Contains("[trace]") && l.Contains("victim nameId 405"));
     }
 
     [Fact]
     public void The_credit_line_says_an_enemy_when_no_snapshot_was_captured()
     {
         var t = Make(out _);
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add);
-        try
-        {
-            t.CreditKill(0, 3, 4, new List<int> { 52 });
-            Assert.Contains(file, l => l.Contains("felling an enemy at (3,4)"));
-        }
-        finally { ModLogger.Instance = prior; }
+        using var cap = LogCapture.Start(console: false);
+        var file = cap.File;
+        t.CreditKill(0, 3, 4, new List<int> { 52 });
+        Assert.Contains(file, l => l.Contains("felling an enemy at (3,4)"));
     }
 
     // --- the resolve-source phrases behind the owner-flagged no-credit line ---

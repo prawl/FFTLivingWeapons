@@ -63,17 +63,12 @@ public class LaunchHeaderTests : IDisposable
         var dir = TempDir();
         string path = Path.Combine(dir, "kills.json");
         File.WriteAllText(path, "{\"9\":3}");
-        var lines = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(_ => { }, lines.Add);
-        try
-        {
-            var tally = KillTally.Load(path);
-            Assert.Equal("primary", tally.LoadedFrom);
-            Assert.Equal(3, tally.Kills[9]);
-            Assert.DoesNotContain(lines, l => l.Contains("[WARN]"));
-        }
-        finally { ModLogger.Instance = prior; }
+        using var cap = LogCapture.Start(console: false);
+        var lines = cap.File;
+        var tally = KillTally.Load(path);
+        Assert.Equal("primary", tally.LoadedFrom);
+        Assert.Equal(3, tally.Kills[9]);
+        Assert.DoesNotContain(lines, l => l.Contains("[WARN]"));
     }
 
     [Fact]
@@ -83,17 +78,12 @@ public class LaunchHeaderTests : IDisposable
         string path = Path.Combine(dir, "kills.json");
         File.WriteAllText(path, "{ corrupt");
         File.WriteAllText(path + ".bak", "{\"9\":7}");
-        var lines = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(_ => { }, lines.Add);
-        try
-        {
-            var tally = KillTally.Load(path);
-            Assert.Equal("backup", tally.LoadedFrom);
-            Assert.Equal(7, tally.Kills[9]);
-            Assert.Contains(lines, l => l.Contains("[WARN]") && l.Contains("[save]") && l.Contains("backup"));
-        }
-        finally { ModLogger.Instance = prior; }
+        using var cap = LogCapture.Start(console: false);
+        var lines = cap.File;
+        var tally = KillTally.Load(path);
+        Assert.Equal("backup", tally.LoadedFrom);
+        Assert.Equal(7, tally.Kills[9]);
+        Assert.Contains(lines, l => l.Contains("[WARN]") && l.Contains("[save]") && l.Contains("backup"));
     }
 
     [Fact]
@@ -101,17 +91,12 @@ public class LaunchHeaderTests : IDisposable
     {
         var dir = TempDir();
         string path = Path.Combine(dir, "kills.json");
-        var lines = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(_ => { }, lines.Add);
-        try
-        {
-            var tally = KillTally.Load(path);
-            Assert.Equal("fresh", tally.LoadedFrom);
-            Assert.Empty(tally.Kills);
-            Assert.Contains(lines, l => l.Contains("[WARN]") && l.Contains("[save]") && l.Contains("fresh"));
-        }
-        finally { ModLogger.Instance = prior; }
+        using var cap = LogCapture.Start(console: false);
+        var lines = cap.File;
+        var tally = KillTally.Load(path);
+        Assert.Equal("fresh", tally.LoadedFrom);
+        Assert.Empty(tally.Kills);
+        Assert.Contains(lines, l => l.Contains("[WARN]") && l.Contains("[save]") && l.Contains("fresh"));
     }
 
     // --- LegendStore counters + LoadedFrom ---

@@ -174,17 +174,11 @@ public class LegendStoreTests : IDisposable
         var p = PathIn(dir);
         File.WriteAllText(p, "{ not json at all");
 
-        var lines = new List<string>();
-        var fake = new FileConsoleLogger(_ => { }, lines.Add);
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = fake;
-        try
-        {
-            var store = LegendStore.Load(dir);
-            Assert.False(store.Has(42));   // no .bak either -- falls back to empty
-            Assert.Contains(lines, l => l.Contains("[WARN]") && l.Contains("[save]") && l.Contains("legends file"));
-        }
-        finally { ModLogger.Instance = prior; }
+        using var cap = LogCapture.Start(console: false);
+        var lines = cap.File;
+        var store = LegendStore.Load(dir);
+        Assert.False(store.Has(42));   // no .bak either -- falls back to empty
+        Assert.Contains(lines, l => l.Contains("[WARN]") && l.Contains("[save]") && l.Contains("legends file"));
     }
 
     [Fact]

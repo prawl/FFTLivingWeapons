@@ -363,15 +363,11 @@ public class BenedictionTests
     {
         var (bene, _, _, _) = BuildActiveScenario(tier: 3, hp: 50, maxHp: 100);   // latch active from tick 1
 
-        var console = new List<string>();
-        var file = new List<string>();
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add) { LogLevel = LogLevel.Debug };
-        try
-        {
-            bene.Tick(onField: true);   // rising edge: latch line fires once
-            bene.Tick(onField: true);   // steady state: must add nothing more
-        }
-        finally { ModLogger.UseNullLogger(); }
+        using var cap = LogCapture.Start(level: LogLevel.Debug);
+        var console = cap.Console;
+        var file = cap.File;
+        bene.Tick(onField: true);   // rising edge: latch line fires once
+        bene.Tick(onField: true);   // steady state: must add nothing more
 
         const string onLine = "benediction latch: the Sanctus Staff is the last player to act (tier 3); ally HP rises boosted 30 percent";
         Assert.Single(file, l => l.Contains(onLine) && l.Contains("[DEBUG]"));

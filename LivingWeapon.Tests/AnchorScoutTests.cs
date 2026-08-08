@@ -67,14 +67,6 @@ public class AnchorScoutTests
         StageRosterSlot(mem, rosterBase, slot: 1, level: 40, nameId: 42, brave: 50, faith: 55);   // populated, non-Ramza
     }
 
-    private static (List<string> console, List<string> file) SwapLogger()
-    {
-        var console = new List<string>();
-        var file = new List<string>();
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        return (console, file);
-    }
-
     private static void TickMany(AnchorScout scout, int n) { for (int i = 0; i < n; i++) scout.Tick(); }
 
     // ---- 13. LOAD-BEARING: jobcommand content moved to pin+0x6000; zeros remain at the pin ----
@@ -85,18 +77,14 @@ public class AnchorScoutTests
         var mem = new FakeSparseMemory();
         StageRegion(mem, JobPin);
         StageJobCommandAt(mem, JobPin + 0x6000);   // sabotage target: break base math or the boundary handling and this reds
-        var prior = ModLogger.Instance;
-        var (_, file) = SwapLogger();
-        try
-        {
-            var scout = NewScout(mem);
-            TickMany(scout, 30);   // region/chunkBytes exhausts well within this budget
+        using var cap = LogCapture.Start();
+        var file = cap.File;
+        var scout = NewScout(mem);
+        TickMany(scout, 30);   // region/chunkBytes exhausts well within this budget
 
-            long expectedBase = JobPin + 0x6000;
-            Assert.Contains(file, l => l.Contains($"found elsewhere at 0x{expectedBase:X}"));
-            Assert.Contains(file, l => l.Contains("delta +0x6000"));
-        }
-        finally { ModLogger.Instance = prior; }
+        long expectedBase = JobPin + 0x6000;
+        Assert.Contains(file, l => l.Contains($"found elsewhere at 0x{expectedBase:X}"));
+        Assert.Contains(file, l => l.Contains("delta +0x6000"));
     }
 
     // ---- 14. healthy staging -> both anchors at-pin + one summary ----
@@ -109,19 +97,15 @@ public class AnchorScoutTests
         StageJobCommandAt(mem, JobPin);
         StageRegion(mem, RosterPin);
         StageHealthyRoster(mem, RosterPin);
-        var prior = ModLogger.Instance;
-        var (_, file) = SwapLogger();
-        try
-        {
-            var scout = NewScout(mem);
-            TickMany(scout, 30);
+        using var cap = LogCapture.Start();
+        var file = cap.File;
+        var scout = NewScout(mem);
+        TickMany(scout, 30);
 
-            Assert.Contains(file, l => l.Contains("anchor jobcommand-table: found at pin"));
-            Assert.Contains(file, l => l.Contains("anchor roster-base: found at pin"));
-            Assert.Single(file, l => l.Contains("anchor scout:"));
-            Assert.Contains(file, l => l.Contains("anchor scout: 2 at pin, 0 elsewhere, 0 ambiguous, 0 not found"));
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.Contains(file, l => l.Contains("anchor jobcommand-table: found at pin"));
+        Assert.Contains(file, l => l.Contains("anchor roster-base: found at pin"));
+        Assert.Single(file, l => l.Contains("anchor scout:"));
+        Assert.Contains(file, l => l.Contains("anchor scout: 2 at pin, 0 elsewhere, 0 ambiguous, 0 not found"));
     }
 
     // ---- 15. roster decoy staging (stride-riding misaligned candidate) -> rejected, FoundAtPin ----
@@ -138,17 +122,13 @@ public class AnchorScoutTests
         long decoyBase = RosterPin + 5;
         StageRosterSlot0(mem, decoyBase, level: 60, sprite: 0x01, brave: 80, faith: 75);
         StageRosterSlot(mem, decoyBase, slot: 1, level: 30, nameId: 99, brave: 40, faith: 45);
-        var prior = ModLogger.Instance;
-        var (_, file) = SwapLogger();
-        try
-        {
-            var scout = NewScout(mem);
-            TickMany(scout, 30);
+        using var cap = LogCapture.Start();
+        var file = cap.File;
+        var scout = NewScout(mem);
+        TickMany(scout, 30);
 
-            Assert.Contains(file, l => l.Contains("anchor roster-base: found at pin"));
-            Assert.DoesNotContain(file, l => l.Contains("anchor roster-base: ambiguous"));
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.Contains(file, l => l.Contains("anchor roster-base: found at pin"));
+        Assert.DoesNotContain(file, l => l.Contains("anchor roster-base: ambiguous"));
     }
 
     // ---- 16. log-once: repeat Ticks after conclusion add no further lines ----
@@ -161,19 +141,15 @@ public class AnchorScoutTests
         StageJobCommandAt(mem, JobPin);
         StageRegion(mem, RosterPin);
         StageHealthyRoster(mem, RosterPin);
-        var prior = ModLogger.Instance;
-        var (_, file) = SwapLogger();
-        try
-        {
-            var scout = NewScout(mem);
-            TickMany(scout, 30);   // fully concludes both specs and logs the summary
-            int countAfterFirstRun = file.Count;
+        using var cap = LogCapture.Start();
+        var file = cap.File;
+        var scout = NewScout(mem);
+        TickMany(scout, 30);   // fully concludes both specs and logs the summary
+        int countAfterFirstRun = file.Count;
 
-            TickMany(scout, 60);   // well short of RescanTicks (450): no rescan interferes
+        TickMany(scout, 60);   // well short of RescanTicks (450): no rescan interferes
 
-            Assert.Equal(countAfterFirstRun, file.Count);
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.Equal(countAfterFirstRun, file.Count);
     }
 
     // ---- 17. rescan upgrade: roster region empty -> NotFound + summary; populate -> one new
@@ -186,28 +162,24 @@ public class AnchorScoutTests
         StageRegion(mem, JobPin);
         StageJobCommandAt(mem, JobPin);
         // Roster region deliberately left UNSTAGED: every read fails, so the scan concludes NotFound.
-        var prior = ModLogger.Instance;
-        var (_, file) = SwapLogger();
-        try
-        {
-            var scout = NewScout(mem);
-            TickMany(scout, 30);   // both specs conclude: jobcommand at pin, roster not found
+        using var cap = LogCapture.Start();
+        var file = cap.File;
+        var scout = NewScout(mem);
+        TickMany(scout, 30);   // both specs conclude: jobcommand at pin, roster not found
 
-            Assert.Contains(file, l => l.Contains("anchor roster-base: not found"));
-            Assert.Contains(file, l => l.Contains("anchor scout: 1 at pin, 0 elsewhere, 0 ambiguous, 1 not found"));
-            int countBeforeRescan = file.Count;
+        Assert.Contains(file, l => l.Contains("anchor roster-base: not found"));
+        Assert.Contains(file, l => l.Contains("anchor scout: 1 at pin, 0 elsewhere, 0 ambiguous, 1 not found"));
+        int countBeforeRescan = file.Count;
 
-            // "a save loads": the roster region is now populated, healthy, at its pin.
-            StageRegion(mem, RosterPin);
-            StageHealthyRoster(mem, RosterPin);
+        // "a save loads": the roster region is now populated, healthy, at its pin.
+        StageRegion(mem, RosterPin);
+        StageHealthyRoster(mem, RosterPin);
 
-            TickMany(scout, 450);   // RescanTicks: rearms every concluded non-pin spec
+        TickMany(scout, 450);   // RescanTicks: rearms every concluded non-pin spec
 
-            var newLines = file.Skip(countBeforeRescan).ToList();
-            Assert.Single(newLines, l => l.Contains("anchor roster-base: found at pin"));
-            Assert.Single(newLines, l => l.Contains("anchor scout: 2 at pin, 0 elsewhere, 0 ambiguous, 0 not found"));
-        }
-        finally { ModLogger.Instance = prior; }
+        var newLines = file.Skip(countBeforeRescan).ToList();
+        Assert.Single(newLines, l => l.Contains("anchor roster-base: found at pin"));
+        Assert.Single(newLines, l => l.Contains("anchor scout: 2 at pin, 0 elsewhere, 0 ambiguous, 0 not found"));
     }
 
     // ---- 18. sibling line exactly once, base - 0x110 ----
@@ -218,17 +190,13 @@ public class AnchorScoutTests
         var mem = new FakeSparseMemory();
         StageRegion(mem, RosterPin);
         StageHealthyRoster(mem, RosterPin);
-        var prior = ModLogger.Instance;
-        var (_, file) = SwapLogger();
-        try
-        {
-            var scout = NewScout(mem);
-            TickMany(scout, 30);
+        using var cap = LogCapture.Start();
+        var file = cap.File;
+        var scout = NewScout(mem);
+        TickMany(scout, 30);
 
-            long expectedInventoryBase = RosterPin - 0x110;
-            Assert.Single(file, l => l.Contains("sibling prediction") && l.Contains($"0x{expectedInventoryBase:X}"));
-        }
-        finally { ModLogger.Instance = prior; }
+        long expectedInventoryBase = RosterPin - 0x110;
+        Assert.Single(file, l => l.Contains("sibling prediction") && l.Contains($"0x{expectedInventoryBase:X}"));
     }
 
     // ---- 19. a full scout run performs ZERO writes (the non-vacuous half: real work happened) ----
@@ -241,25 +209,21 @@ public class AnchorScoutTests
         StageJobCommandAt(mem, JobPin);
         StageRegion(mem, RosterPin);
         StageHealthyRoster(mem, RosterPin);
-        var prior = ModLogger.Instance;
-        var (_, file) = SwapLogger();
+        using var cap = LogCapture.Start();
+        var file = cap.File;
         bool priorWrites = Mem.WritesEnabled;
-        try
-        {
-            var scout = NewScout(mem);
-            TickMany(scout, 500);   // runs through a full rescan cycle too, not just the first conclusion
+        var scout = NewScout(mem);
+        TickMany(scout, 500);   // runs through a full rescan cycle too, not just the first conclusion
 
-            // Non-vacuous: real scanning work actually happened (both anchors resolved and the
-            // summary logged), so the zero-writes assertions below are not trivially true of a no-op.
-            Assert.Contains(file, l => l.Contains("anchor jobcommand-table: found at pin"));
-            Assert.Contains(file, l => l.Contains("anchor roster-base: found at pin"));
-            Assert.Contains(file, l => l.Contains("anchor scout:"));
+        // Non-vacuous: real scanning work actually happened (both anchors resolved and the
+        // summary logged), so the zero-writes assertions below are not trivially true of a no-op.
+        Assert.Contains(file, l => l.Contains("anchor jobcommand-table: found at pin"));
+        Assert.Contains(file, l => l.Contains("anchor roster-base: found at pin"));
+        Assert.Contains(file, l => l.Contains("anchor scout:"));
 
-            Assert.Empty(mem.Written);
-            Assert.Empty(mem.WrittenU16);
-            Assert.Empty(mem.WrittenBytes);
-            Assert.Equal(priorWrites, Mem.WritesEnabled);   // bonus: the scout never touches the global write gate
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.Empty(mem.Written);
+        Assert.Empty(mem.WrittenU16);
+        Assert.Empty(mem.WrittenBytes);
+        Assert.Equal(priorWrites, Mem.WritesEnabled);   // bonus: the scout never touches the global write gate
     }
 }

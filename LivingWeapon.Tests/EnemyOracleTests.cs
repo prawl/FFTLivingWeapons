@@ -59,16 +59,14 @@ public class EnemyOracleTests
     }
 
     /// <summary>Swap ModLogger to an injected-sink FileConsoleLogger for the duration of
-    /// <paramref name="body"/>, capturing both sinks, then restore the assembly-wide NullLogger
-    /// default (TestLoggingSetup). Mirrors LoggerTests.cs's ModLogger_routes_every_call idiom.</summary>
+    /// <paramref name="body"/>, capturing both sinks, then restore the prior logger -- the shared
+    /// LogCapture scope (LW-157) carries the ritual; this wrapper keeps the call sites' lambda
+    /// shape.</summary>
     private static (List<string> console, List<string> file) CaptureLog(System.Action body)
     {
-        var console = new List<string>();
-        var file = new List<string>();
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try { body(); }
-        finally { ModLogger.UseNullLogger(); }
-        return (console, file);
+        using var cap = LogCapture.Start();
+        body();
+        return (cap.Console, cap.File);
     }
 
     /// <summary>Reflects into KillTracker's private per-seat evidence-streak array (Corpses.cs),

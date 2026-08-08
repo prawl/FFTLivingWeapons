@@ -366,16 +366,11 @@ public class BulwarkTests
         // Another system's write lands: no longer OUR vetoed form of the saved original (0x22).
         mem.U8s[GridAddr(idx)] = 0x99;
 
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            SetFlags(mem, entry, 1, 0, 0);   // RISE: next turn opens -> release
-            bulwark.Tick(true);
-        }
-        finally { ModLogger.Instance = prior; }
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        SetFlags(mem, entry, 1, 0, 0);   // RISE: next turn opens -> release
+        bulwark.Tick(true);
 
         Assert.Equal((byte)0x99, mem.U8(GridAddr(idx)));   // NOT overwritten with the stale saved original
         Assert.Contains(file, l => l.Contains("leaves that tile alone"));

@@ -273,27 +273,22 @@ public class CounterAttributionTests
         SetRoster(m, slot: 0, level: 90, brave: 80, faith: 70, weapon: ArmedWeapon);
         SetUnit(m, ASlot, hp: 352, maxHp: 352, level: 90, brave: 80, faith: 70);
 
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add);
-        try
-        {
-            var t = new KillTracker(kills, m, Weapons);
-            SetActive(m, hp: 352, maxHp: 352, level: 90, acted: 1, team: 0);
-            Settle(t, 3);
-            SetActive(m, hp: 352, maxHp: 352, level: 90, acted: 0, team: 0);
-            Settle(t, KillTracker.UnfreezeTicks);
-            SetEnemy(m, EnemySlot, hp: 300);
-            Settle(t, 3);
-            SetActive(m, hp: 150, maxHp: 250, level: 20, acted: 1, team: 1);
-            SetUnit(m, EnemySlot, hp: 0);
-            t.Poll(true); t.Poll(true); t.Poll(true);   // deadStreak 3 -> no-credit fires
+        using var cap = LogCapture.Start(console: false);
+        var file = cap.File;
+        var t = new KillTracker(kills, m, Weapons);
+        SetActive(m, hp: 352, maxHp: 352, level: 90, acted: 1, team: 0);
+        Settle(t, 3);
+        SetActive(m, hp: 352, maxHp: 352, level: 90, acted: 0, team: 0);
+        Settle(t, KillTracker.UnfreezeTicks);
+        SetEnemy(m, EnemySlot, hp: 300);
+        Settle(t, 3);
+        SetActive(m, hp: 150, maxHp: 250, level: 20, acted: 1, team: 1);
+        SetUnit(m, EnemySlot, hp: 0);
+        t.Poll(true); t.Poll(true); t.Poll(true);   // deadStreak 3 -> no-credit fires
 
-            Assert.Empty(kills);   // the behavioral half stays pinned
-            Assert.Contains(file, l => l.Contains("[kill]")
-                && l.Contains("deliberately left uncredited")
-                && l.Contains("an enemy-turn team read"));
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.Empty(kills);   // the behavioral half stays pinned
+        Assert.Contains(file, l => l.Contains("[kill]")
+            && l.Contains("deliberately left uncredited")
+            && l.Contains("an enemy-turn team read"));
     }
 }

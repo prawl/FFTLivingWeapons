@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using LivingWeapon;
@@ -1026,16 +1026,12 @@ public class AttackCardTests
     // composes vanilla, doctrine unchanged (a wrong dossier is worse than vanilla). See
     // CursorGate.cs's own class doc for the full gate-order/sentinel rationale.
 
-    /// <summary>Installs a fake FileConsoleLogger at Info tier (mirrors ModLoggerFacadeTests'
-    /// own Install helper): AttackCard's production paths never log at Info, so the console list
-    /// captures ONLY Warn/Error lines, letting these tests assert Warn presence/absence precisely
-    /// without Debug-tier noise (RepaintDriver/SyncHit log plenty of Debug lines every tick).</summary>
-    private static List<string> InstallWarnOnlyConsole()
-    {
-        var console = new List<string>();
-        ModLogger.Instance = new FileConsoleLogger(console.Add, _ => { }) { LogLevel = LogLevel.Info };
-        return console;
-    }
+    /// <summary>Starts a console-only LogCapture at Info tier (LW-157): AttackCard's production
+    /// paths never log at Info, so cap.Console captures ONLY Warn/Error lines, letting these
+    /// tests assert Warn presence/absence precisely without Debug-tier noise (RepaintDriver/
+    /// SyncHit log plenty of Debug lines every tick).</summary>
+    private static LogCapture InstallWarnOnlyConsole()
+        => LogCapture.Start(level: LogLevel.Info, file: false);
 
     [Fact]
     public void LW55_gate_A_roster_and_band_weapon_disagree_refuses_to_vanilla_with_one_Warn_and_one_card_record()
@@ -1044,34 +1040,31 @@ public class AttackCardTests
         // would compose vanilla even pre-fix, making the test vacuous). Pre-fix, this painted
         // Windrunner's row with the roster's own 100-kill tally under Windrunner's name while the
         // unit's actual band loadout (Stormcaller, 8 kills) was never cross-checked: the live bug.
-        var console = InstallWarnOnlyConsole();
-        try
-        {
-            var rig = Build(kills: new Dictionary<int, int> { [WindrunnerId] = 100, [StormcallerId] = 8 });
-            long copy = 0x7000000000;
-            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+        using var cap = InstallWarnOnlyConsole();
+        var console = cap.Console;
+        var rig = Build(kills: new Dictionary<int, int> { [WindrunnerId] = 100, [StormcallerId] = 8 });
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
-            // Roster says Windrunner (100 kills, the wrong dossier); the SAME unit's own band entry
-            // says Stormcaller is actually equipped: a real live split (a stale roster row / a
-            // scripted ENTD opener). The bridge is unambiguous and the turn flag is genuinely open
-            // (gate B alone would pass): gate A is the only thing that can refuse here.
-            MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
-            MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: StormcallerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
-            MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
-            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
+        // Roster says Windrunner (100 kills, the wrong dossier); the SAME unit's own band entry
+        // says Stormcaller is actually equipped: a real live split (a stale roster row / a
+        // scripted ENTD opener). The bridge is unambiguous and the turn flag is genuinely open
+        // (gate B alone would pass): gate A is the only thing that can refuse here.
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, nameId: 42);
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: StormcallerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
 
-            Settle(rig.Card);
+        Settle(rig.Card);
 
-            Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
-            Assert.Single(console);
-            Assert.Contains("[WARN]", console[0]);
-            Assert.Single(rig.Recorded);
-            Assert.Equal("card", rig.Recorded[0].Type);
-            Assert.Contains("WeaponMismatch", rig.Recorded[0].Payload);
-            Assert.Contains($"rosterHand={WindrunnerId}", rig.Recorded[0].Payload);
-            Assert.Contains($"bandWeapon={StormcallerId}", rig.Recorded[0].Payload);
-        }
-        finally { ModLogger.UseNullLogger(); }
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Single(console);
+        Assert.Contains("[WARN]", console[0]);
+        Assert.Single(rig.Recorded);
+        Assert.Equal("card", rig.Recorded[0].Type);
+        Assert.Contains("WeaponMismatch", rig.Recorded[0].Payload);
+        Assert.Contains($"rosterHand={WindrunnerId}", rig.Recorded[0].Payload);
+        Assert.Contains($"bandWeapon={StormcallerId}", rig.Recorded[0].Payload);
     }
 
     /// <summary>LW-87 T8 (replaces LW55_gate_B_turn_flag_not_open, whose old scenario -- "the
@@ -1136,19 +1129,16 @@ public class AttackCardTests
         var card = new AttackCard(raced, resolveCursor, resolver.SpriteOf, meta, kills,
                                    recorder: (t, p) => recorded.Add((t, p)));
 
-        var console = InstallWarnOnlyConsole();
-        try
-        {
-            Settle(card);
+        using var cap = InstallWarnOnlyConsole();
+        var console = cap.Console;
+        Settle(card);
 
-            // The resolve SUCCEEDS (Band.FlagOwner found bandIdx 5 on the odd/walk read) but
-            // CursorGate refuses NotTurnOwner (the even/re-read caught the fall): vanilla, never a
-            // wrong dossier, and never a Warn for a benign one-tick race.
-            Assert.Equal(AttackCardText.VanillaDesc, RowOf(mem.RegionBytes(copy), 1));
-            Assert.Empty(console);
-            Assert.Contains(recorded, r => r.Type == "card" && r.Payload.Contains("NotTurnOwner"));
-        }
-        finally { ModLogger.UseNullLogger(); }
+        // The resolve SUCCEEDS (Band.FlagOwner found bandIdx 5 on the odd/walk read) but
+        // CursorGate refuses NotTurnOwner (the even/re-read caught the fall): vanilla, never a
+        // wrong dossier, and never a Warn for a benign one-tick race.
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(mem.RegionBytes(copy), 1));
+        Assert.Empty(console);
+        Assert.Contains(recorded, r => r.Type == "card" && r.Payload.Contains("NotTurnOwner"));
     }
 
     [Fact]
@@ -1234,37 +1224,32 @@ public class AttackCardTests
     [Fact]
     public void Census_candidate_rejection_is_silent_and_aggregated()
     {
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            var rig = Build();
-            long goodCopy = 0x7000000000;
-            long foreignCopy1 = 0x7000100000;
-            long foreignCopy2 = 0x7000200000;
-            rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
-            // Two foreign standalone "Attack" candidates: some OTHER command's row, never cached.
-            // Long enough (over FootprintBytes-1-PadAfter chars) that the 74-byte footprint read
-            // itself succeeds, landing on the genuine "unknown footprint" rejection path rather than
-            // a short-region read failure: the real flood shape a live heap census hits.
-            rig.Mem.AddHeapRegion(foreignCopy1,
-                AttackCardTableFixture.Build(1, "Some other command's own unrelated description prose, quite long indeed."));
-            rig.Mem.AddHeapRegion(foreignCopy2,
-                AttackCardTableFixture.Build(1, "Yet another foreign command's completely different description text as well."));
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        var rig = Build();
+        long goodCopy = 0x7000000000;
+        long foreignCopy1 = 0x7000100000;
+        long foreignCopy2 = 0x7000200000;
+        rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
+        // Two foreign standalone "Attack" candidates: some OTHER command's row, never cached.
+        // Long enough (over FootprintBytes-1-PadAfter chars) that the 74-byte footprint read
+        // itself succeeds, landing on the genuine "unknown footprint" rejection path rather than
+        // a short-region read failure: the real flood shape a live heap census hits.
+        rig.Mem.AddHeapRegion(foreignCopy1,
+            AttackCardTableFixture.Build(1, "Some other command's own unrelated description prose, quite long indeed."));
+        rig.Mem.AddHeapRegion(foreignCopy2,
+            AttackCardTableFixture.Build(1, "Yet another foreign command's completely different description text as well."));
 
-            Settle(rig.Card);
+        Settle(rig.Card);
 
-            // Stem match: this test drives the census only (nothing was ever cached then lost, so
-            // no legitimate eviction line exists); ANY evict-flavored per-candidate line is the flood.
-            Assert.DoesNotContain(file, l => l.Contains("evict"));
-            string finished = Assert.Single(file, l => l.Contains("census finished"));
-            Assert.Contains("1 table copies cached", finished);
-            Assert.Contains("2 candidates rejected", finished);
-            Assert.Equal(1, rig.Card.HitCountForTests);
-        }
-        finally { ModLogger.Instance = prior; }
+        // Stem match: this test drives the census only (nothing was ever cached then lost, so
+        // no legitimate eviction line exists); ANY evict-flavored per-candidate line is the flood.
+        Assert.DoesNotContain(file, l => l.Contains("evict"));
+        string finished = Assert.Single(file, l => l.Contains("census finished"));
+        Assert.Contains("1 table copies cached", finished);
+        Assert.Contains("2 candidates rejected", finished);
+        Assert.Equal(1, rig.Card.HitCountForTests);
     }
 
     [Fact]
@@ -1275,72 +1260,62 @@ public class AttackCardTests
         // evicting (see Foreign_desc_on_an_Ours_record_self_heals_and_is_retained above), so this
         // pin rebuilds onto a genuinely dead buffer (SetRegionPresent(false), the T4 shape) so the
         // "exactly one line, naming the reason" guarantee still has a real eviction to pin against.
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            var clock = new TestClock { Ms = 1 };
-            var rig = Build(clock);
-            long copy = 0x7000000000;
-            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        var clock = new TestClock { Ms = 1 };
+        var rig = Build(clock);
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
-            SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
-            Settle(rig.Card);
-            Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);       // Windrunner's turn opens (cursor-only resolve)
+        Settle(rig.Card);
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
 
-            file.Clear();   // drop the census/paint noise; only the eviction line itself is under test
+        file.Clear();   // drop the census/paint noise; only the eviction line itself is under test
 
-            rig.Mem.SetRegionPresent(copy, present: false);
+        rig.Mem.SetRegionPresent(copy, present: false);
 
-            SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);       // Stormcaller's turn opens: forces RepaintAll to re-verify copy
-            Settle(rig.Card);   // episode start: retained, not yet evicted
-            Assert.Equal(1, rig.Card.HitCountForTests);
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);       // Stormcaller's turn opens: forces RepaintAll to re-verify copy
+        Settle(rig.Card);   // episode start: retained, not yet evicted
+        Assert.Equal(1, rig.Card.HitCountForTests);
 
-            clock.Ms += Tuning.AttackCardEvictAfterMs + 1000;
-            Settle(rig.Card, ticks: 1);   // the grace window clears: evicts
+        clock.Ms += Tuning.AttackCardEvictAfterMs + 1000;
+        Settle(rig.Card, ticks: 1);   // the grace window clears: evicts
 
-            Assert.Equal(0, rig.Card.HitCountForTests);   // evicted (a dead buffer is never adopted forward)
+        Assert.Equal(0, rig.Card.HitCountForTests);   // evicted (a dead buffer is never adopted forward)
 
-            var evictionLines = file.FindAll(l => l.Contains("evicted"));
-            Assert.Single(evictionLines);
-            Assert.Contains("label-gone", evictionLines[0]);
-        }
-        finally { ModLogger.Instance = prior; }
+        var evictionLines = file.FindAll(l => l.Contains("evicted"));
+        Assert.Single(evictionLines);
+        Assert.Contains("label-gone", evictionLines[0]);
     }
 
     [Fact]
     public void Enc2_rejection_at_census_is_also_silent_and_counted()
     {
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            var rig = Build();
-            long goodCopy = 0x7000000000;
-            long foreignUtf16Copy = 0x7000100000;
-            rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
-            // A standalone utf16 "Attack" candidate holding non-vanilla text: SyncHitEnc2 rejects it,
-            // same silent/counted rule as the enc1 candidates above.
-            rig.Mem.AddHeapRegion(foreignUtf16Copy,
-                AttackCardTableFixture.Build(2, new string('X', AttackCardText.DefaultBudgetChars)));
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        var rig = Build();
+        long goodCopy = 0x7000000000;
+        long foreignUtf16Copy = 0x7000100000;
+        rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
+        // A standalone utf16 "Attack" candidate holding non-vanilla text: SyncHitEnc2 rejects it,
+        // same silent/counted rule as the enc1 candidates above.
+        rig.Mem.AddHeapRegion(foreignUtf16Copy,
+            AttackCardTableFixture.Build(2, new string('X', AttackCardText.DefaultBudgetChars)));
 
-            Settle(rig.Card);
+        Settle(rig.Card);
 
-            // Stem match, same rationale as the enc1 census test above: census-only, so ANY
-            // evict-flavored line is a per-candidate leak.
-            Assert.DoesNotContain(file, l => l.Contains("evict"));
-            string finished = Assert.Single(file, l => l.Contains("census finished"));
-            Assert.Contains("1 table copies cached", finished);
-            Assert.Contains("1 candidates rejected", finished);
-            Assert.Equal(1, rig.Card.HitCountForTests);
-        }
-        finally { ModLogger.Instance = prior; }
+        // Stem match, same rationale as the enc1 census test above: census-only, so ANY
+        // evict-flavored line is a per-candidate leak.
+        Assert.DoesNotContain(file, l => l.Contains("evict"));
+        string finished = Assert.Single(file, l => l.Contains("census finished"));
+        Assert.Contains("1 table copies cached", finished);
+        Assert.Contains("1 candidates rejected", finished);
+        Assert.Equal(1, rig.Card.HitCountForTests);
     }
 
     // ==================== LW-91: strike retention on the AttackCard cache ====================
@@ -1374,49 +1349,44 @@ public class AttackCardTests
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy1), 1));
         Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy2), 1));
 
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            rig.Mem.SetRegionPresent(copy1, present: false);
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        rig.Mem.SetRegionPresent(copy1, present: false);
 
-            SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
-            int writesBefore = rig.Mem.WrittenAddrs.Count;
-            Settle(rig.Card);   // episode start + the census it early-arms
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
+        int writesBefore = rig.Mem.WrittenAddrs.Count;
+        Settle(rig.Card);   // episode start + the census it early-arms
 
-            Assert.Equal(2, rig.Card.HitCountForTests);          // RETAINED, never evicted
-            Assert.Equal(1, rig.Card.StrikingCountForTests);     // exactly copy1 is mid-episode
-            Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copy2), 1));   // the healthy sibling still repaints
-            Assert.DoesNotContain(file, l => l.Contains("evicted"));
-            Assert.Single(file, l => l.Contains("retained pending recovery"));
-            Assert.Single(file, l => l.Contains("census armed"));   // the one episode-arm, no more
+        Assert.Equal(2, rig.Card.HitCountForTests);          // RETAINED, never evicted
+        Assert.Equal(1, rig.Card.StrikingCountForTests);     // exactly copy1 is mid-episode
+        Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copy2), 1));   // the healthy sibling still repaints
+        Assert.DoesNotContain(file, l => l.Contains("evicted"));
+        Assert.Single(file, l => l.Contains("retained pending recovery"));
+        Assert.Single(file, l => l.Contains("census armed"));   // the one episode-arm, no more
 
-            var (_, copy1DescAddr) = AttackCardTableFixture.Addrs(copy1, 1);
-            long copy1RecordAddr = AttackCardMemory.RecordAddrFor(copy1, 1);
-            Assert.DoesNotContain(copy1DescAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
-            Assert.DoesNotContain(copy1RecordAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
+        var (_, copy1DescAddr) = AttackCardTableFixture.Addrs(copy1, 1);
+        long copy1RecordAddr = AttackCardMemory.RecordAddrFor(copy1, 1);
+        Assert.DoesNotContain(copy1DescAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
+        Assert.DoesNotContain(copy1RecordAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
 
-            // Drive two more maintenance passes, both still short of the eviction grace window.
-            clock.Ms += 1000; Settle(rig.Card, ticks: 1);
-            clock.Ms += 1000; Settle(rig.Card, ticks: 1);
-            Assert.True(clock.Ms - 1 < Tuning.AttackCardEvictAfterMs);
-            Assert.Equal(2, rig.Card.HitCountForTests);
-            Assert.Equal(1, rig.Card.StrikingCountForTests);
-            Assert.DoesNotContain(file, l => l.Contains("evicted"));
+        // Drive two more maintenance passes, both still short of the eviction grace window.
+        clock.Ms += 1000; Settle(rig.Card, ticks: 1);
+        clock.Ms += 1000; Settle(rig.Card, ticks: 1);
+        Assert.True(clock.Ms - 1 < Tuning.AttackCardEvictAfterMs);
+        Assert.Equal(2, rig.Card.HitCountForTests);
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+        Assert.DoesNotContain(file, l => l.Contains("evicted"));
 
-            // The buffer becomes readable again: the very next maintenance pass repaints it forward
-            // to B's line, proving it was never orphaned holding A's stale image.
-            rig.Mem.SetRegionPresent(copy1, present: true);
-            clock.Ms += 1500;
-            Settle(rig.Card, ticks: 1);
+        // The buffer becomes readable again: the very next maintenance pass repaints it forward
+        // to B's line, proving it was never orphaned holding A's stale image.
+        rig.Mem.SetRegionPresent(copy1, present: true);
+        clock.Ms += 1500;
+        Settle(rig.Card, ticks: 1);
 
-            Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copy1), 1));
-            Assert.Equal(0, rig.Card.StrikingCountForTests);
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.Equal("Stormcaller", RowOf(rig.Mem.RegionBytes(copy1), 1));
+        Assert.Equal(0, rig.Card.StrikingCountForTests);
     }
 
     [Fact]
@@ -1531,40 +1501,35 @@ public class AttackCardTests
         MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
         Settle(rig.Card);
 
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            rig.Mem.SetRegionPresent(copy1, present: false);
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        rig.Mem.SetRegionPresent(copy1, present: false);
 
-            SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
-            int writesBefore = rig.Mem.WrittenAddrs.Count;
-            Settle(rig.Card);   // episode start
-            Assert.Equal(1, rig.Card.StrikingCountForTests);
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
+        int writesBefore = rig.Mem.WrittenAddrs.Count;
+        Settle(rig.Card);   // episode start
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
 
-            clock.Ms += 1000; Settle(rig.Card, ticks: 1);   // still under threshold
-            Assert.Equal(2, rig.Card.HitCountForTests);
-            clock.Ms += 1000; Settle(rig.Card, ticks: 1);   // still under threshold
-            Assert.Equal(2, rig.Card.HitCountForTests);
-            Assert.DoesNotContain(file, l => l.Contains("evicted"));
+        clock.Ms += 1000; Settle(rig.Card, ticks: 1);   // still under threshold
+        Assert.Equal(2, rig.Card.HitCountForTests);
+        clock.Ms += 1000; Settle(rig.Card, ticks: 1);   // still under threshold
+        Assert.Equal(2, rig.Card.HitCountForTests);
+        Assert.DoesNotContain(file, l => l.Contains("evicted"));
 
-            clock.Ms += 1500; Settle(rig.Card, ticks: 1);   // clears the grace window: evicts
+        clock.Ms += 1500; Settle(rig.Card, ticks: 1);   // clears the grace window: evicts
 
-            Assert.Equal(1, rig.Card.HitCountForTests);          // copy1 evicted, copy2 remains
-            Assert.True(rig.Card.PendingCensusForTests);         // set unconditionally at eviction
-            var evictionLines = file.FindAll(l => l.Contains("evicted"));
-            Assert.Single(evictionLines);
-            Assert.Contains("label-gone", evictionLines[0]);
+        Assert.Equal(1, rig.Card.HitCountForTests);          // copy1 evicted, copy2 remains
+        Assert.True(rig.Card.PendingCensusForTests);         // set unconditionally at eviction
+        var evictionLines = file.FindAll(l => l.Contains("evicted"));
+        Assert.Single(evictionLines);
+        Assert.Contains("label-gone", evictionLines[0]);
 
-            var (_, copy1DescAddr) = AttackCardTableFixture.Addrs(copy1, 1);
-            long copy1RecordAddr = AttackCardMemory.RecordAddrFor(copy1, 1);
-            Assert.DoesNotContain(copy1DescAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
-            Assert.DoesNotContain(copy1RecordAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
-        }
-        finally { ModLogger.Instance = prior; }
+        var (_, copy1DescAddr) = AttackCardTableFixture.Addrs(copy1, 1);
+        long copy1RecordAddr = AttackCardMemory.RecordAddrFor(copy1, 1);
+        Assert.DoesNotContain(copy1DescAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
+        Assert.DoesNotContain(copy1RecordAddr, rig.Mem.WrittenAddrs.Skip(writesBefore));
     }
 
     [Fact]
@@ -1574,28 +1539,23 @@ public class AttackCardTests
         // SyncHit directly, as the ADOPTION check); a census candidate that fails must still be
         // rejected instantly, with zero strike bookkeeping and zero per-candidate logging, exactly
         // as before LW-91.
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            var rig = Build();
-            long goodCopy = 0x7000000000;
-            long foreignCopy = 0x7000100000;
-            rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
-            rig.Mem.AddHeapRegion(foreignCopy,
-                AttackCardTableFixture.Build(1, "Some other command's own unrelated description prose, quite long indeed."));
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        var rig = Build();
+        long goodCopy = 0x7000000000;
+        long foreignCopy = 0x7000100000;
+        rig.Mem.AddAttackTable(goodCopy, 1, AttackCardText.VanillaDesc);
+        rig.Mem.AddHeapRegion(foreignCopy,
+            AttackCardTableFixture.Build(1, "Some other command's own unrelated description prose, quite long indeed."));
 
-            Settle(rig.Card);
+        Settle(rig.Card);
 
-            Assert.Equal(1, rig.Card.HitCountForTests);       // only the good copy adopted
-            Assert.Equal(0, rig.Card.StrikingCountForTests);  // the rejected candidate never entered a strike episode
-            Assert.DoesNotContain(file, l => l.Contains("unverified"));
-            Assert.DoesNotContain(file, l => l.Contains("retained pending recovery"));
-            Assert.DoesNotContain(file, l => l.Contains("evicted"));
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.Equal(1, rig.Card.HitCountForTests);       // only the good copy adopted
+        Assert.Equal(0, rig.Card.StrikingCountForTests);  // the rejected candidate never entered a strike episode
+        Assert.DoesNotContain(file, l => l.Contains("unverified"));
+        Assert.DoesNotContain(file, l => l.Contains("retained pending recovery"));
+        Assert.DoesNotContain(file, l => l.Contains("evicted"));
     }
 
     [Fact]
@@ -1604,40 +1564,35 @@ public class AttackCardTests
         // T8 a+b: the !_scanning gate on episode-start's census arm stops an already-in-flight
         // sweep from latching a pointless back-to-back second sweep once it Finishes -- the
         // in-flight one visits everything anyway.
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
-        {
-            var rig = Build();
-            long copyA = 0x7000000000;
-            rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
+        using var cap = LogCapture.Start();
+        var console = cap.Console;
+        var file = cap.File;
+        var rig = Build();
+        long copyA = 0x7000000000;
+        rig.Mem.AddAttackTable(copyA, 1, AttackCardText.VanillaDesc);
 
-            SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
-            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
-            Settle(rig.Card);
-            Assert.Equal(1, rig.Card.HitCountForTests);
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 2, bandIdx: 5, weaponId: WindrunnerId, lvl: 50, br: 60, fa: 70, nameId: 42);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
+        Settle(rig.Card);
+        Assert.Equal(1, rig.Card.HitCountForTests);
 
-            rig.Card.ForceRecensusForTests();
-            rig.Card.Tick();   // Arm only: sweep in flight (_scanning == true), cache still warm
+        rig.Card.ForceRecensusForTests();
+        rig.Card.Tick();   // Arm only: sweep in flight (_scanning == true), cache still warm
 
-            var (labelAddr, _) = AttackCardTableFixture.Addrs(copyA, 1);
-            rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
+        var (labelAddr, _) = AttackCardTableFixture.Addrs(copyA, 1);
+        rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
 
-            SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
-            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
-            file.Clear();   // isolate this test's own "census armed" count from the ForceRecensus one above
-            rig.Card.Tick();   // repaint phase (alternation): copyA strikes mid-sweep
+        SeatPlayer(rig.Mem.Sparse, rosterSlot: 3, bandIdx: 6, weaponId: StormcallerId, lvl: 55, br: 65, fa: 75, nameId: 43);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 6);
+        file.Clear();   // isolate this test's own "census armed" count from the ForceRecensus one above
+        rig.Card.Tick();   // repaint phase (alternation): copyA strikes mid-sweep
 
-            Assert.Equal(1, rig.Card.StrikingCountForTests);
-            Assert.False(rig.Card.PendingCensusForTests);   // NOT set: a sweep is already in flight
+        Assert.Equal(1, rig.Card.StrikingCountForTests);
+        Assert.False(rig.Card.PendingCensusForTests);   // NOT set: a sweep is already in flight
 
-            Settle(rig.Card, ticks: 5);   // drain the in-flight sweep to Finish
+        Settle(rig.Card, ticks: 5);   // drain the in-flight sweep to Finish
 
-            Assert.DoesNotContain(file, l => l.Contains("census armed"));   // no second sweep latched
-        }
-        finally { ModLogger.Instance = prior; }
+        Assert.DoesNotContain(file, l => l.Contains("census armed"));   // no second sweep latched
     }
 
     [Fact]
@@ -1833,20 +1788,17 @@ public class AttackCardTests
         // Reuses T2's exact scenario (No_flag_owner_anywhere_composes_vanilla_with_miss_NoOwner)
         // with the warn-only console installed, pinning the log tier alongside the pre-existing
         // flight-record assertion.
-        var console = InstallWarnOnlyConsole();
-        try
-        {
-            var rig = Build();
-            long copy = 0x7000000000;
-            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+        using var cap = InstallWarnOnlyConsole();
+        var console = cap.Console;
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
-            Settle(rig.Card);
+        Settle(rig.Card);
 
-            Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
-            Assert.Empty(console);
-            Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:NoOwner");
-        }
-        finally { ModLogger.UseNullLogger(); }
+        Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
+        Assert.Empty(console);
+        Assert.Contains(rig.Recorded, r => r.Type == "card" && r.Payload == "miss:NoOwner");
     }
 
     [Fact]
