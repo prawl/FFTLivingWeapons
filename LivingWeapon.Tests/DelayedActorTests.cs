@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
+using static LivingWeapon.Tests.KillTrackerFixtures;
 
 namespace LivingWeapon.Tests;
 
@@ -28,60 +29,9 @@ public class DelayedActorTests
     // Enemy band slot 0 is safe (enemy-side: <= EnemySlotMax=19).
     private const int EnemySlot = 0;
 
-    // --- helpers ---
-
-    private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level, int acted = 1)
-    {
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam]  = 0;
-        m.U16s[Offsets.TurnQueue + Offsets.TqHp]    = (ushort)hp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
-        m.U8s[Offsets.Acted] = (byte)acted;
-    }
-
-    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon, int nameId = 0)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, nameId: nameId);
-
-    private static void SetUnit(FakeSparseMemory m, int bandSlot, int hp, int maxHp = 400,
-                                int level = 10, int brave = 50, int faith = 50)
-        => MemSeats.SeatBand(m, bandSlot, weapon: 0, lvl: level, br: brave, fa: faith,
-                             gx: 5, gy: 5, hp: hp, maxHp: maxHp);
-
-    private static void SetEnemy(FakeSparseMemory m, int bandSlot, int hp, int maxHp = 400,
-                                 int level = 10, int brave = 50, int faith = 50)
-    {
-        MemSeats.SeatBand(m, bandSlot, weapon: 0, lvl: level, br: brave, fa: faith,
-                          gx: 5, gy: 5, hp: hp, maxHp: maxHp);
-        if (bandSlot <= Offsets.EnemySlotMax)
-        {
-            long s = Offsets.ArrayReadBase + (long)bandSlot * Offsets.ArrayStride;
-            m.U16s[s + Offsets.AInBattle] = 1;
-            m.U8s[s + Offsets.ALevel]     = (byte)level;
-            m.U8s[s + Offsets.ABrave]     = (byte)brave;
-            m.U8s[s + Offsets.AFaith]     = (byte)faith;
-            m.U16s[s + Offsets.AMaxHp]    = (ushort)maxHp;
-        }
-    }
-
-    private static void SetJumpBit(FakeSparseMemory m, int bandSlot, bool set = true)
-    {
-        long addr = Band.Entry(bandSlot);
-        byte cur = m.U8s.TryGetValue(addr + Offsets.ADeadStatus, out var v) ? v : (byte)0;
-        m.U8s[addr + Offsets.ADeadStatus] = set
-            ? (byte)(cur | Offsets.AJumpBit)
-            : (byte)(cur & ~Offsets.AJumpBit);
-    }
-
-    private static void Settle(KillTracker t, int n = 3)
-    {
-        for (int i = 0; i < n; i++) t.Poll(true);
-    }
-
-    private static void PointAt(FakeSparseMemory m, int bandIdx) =>
-        m.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (long)bandIdx * Offsets.CombatStride));
-
-    private static void SetFrameNameId(FakeSparseMemory m, int bandIdx, int nameId) =>
-        MemSeats.SeatFrameNameId(m, bandIdx, nameId);
+    // Seeding helpers ride the shared KillTrackerFixtures (LW-160); every call site past the
+    // (m, slot, hp, maxHp) positional prefix passes by name, so the canonical signatures bind
+    // identically to the old local variants.
 
     // --- T1: LOAD-BEARING (both directions) ---
 

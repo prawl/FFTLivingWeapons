@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
+using static LivingWeapon.Tests.KillTrackerFixtures;
 
 namespace LivingWeapon.Tests;
 
@@ -10,54 +11,14 @@ namespace LivingWeapon.Tests;
 /// captures (deadStreak==1), via the shared VictimReader.Read. KillTracker.cs's CreditKill
 /// consumes it EXACTLY ONCE (both the credited and no-credit branches clear it) and reports it to
 /// an injected IDeedSink (null-safe -- every existing call site that omits `deeds` behaves
-/// byte-identically). Mirrors the fake-memory band/roster seeding pattern from KillTrackerTests.cs
-/// and VictimProbeTests.cs.
+/// byte-identically). Band/roster seeding rides the shared KillTrackerFixtures (LW-160).
 /// </summary>
 public class KillTrackerDeedTests
 {
-    private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level, int team = 0, int acted = 1)
-    {
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;
-        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
-        m.U8s[Offsets.Acted] = (byte)acted;
-    }
-
-    private static void SetUnit(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                int level = 10, int brave = 50, int faith = 50, int weapon = 0)
-        => MemSeats.SeatBand(m, slot, weapon: weapon, lvl: level, br: brave, fa: faith,
-                             gx: gx, gy: gy, hp: hp, maxHp: maxHp);
-
-    private static void SetArrayEnemy(FakeSparseMemory m, int slot, int level, int brave, int faith, int maxHp,
-                                      int inb = 1)
-    {
-        long s = Offsets.ArrayReadBase + (long)slot * Offsets.ArrayStride;
-        m.U16s[s + Offsets.AInBattle] = (ushort)inb;
-        m.U8s[s + Offsets.ALevel] = (byte)level;
-        m.U8s[s + Offsets.ABrave] = (byte)brave;
-        m.U8s[s + Offsets.AFaith] = (byte)faith;
-        m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
-    }
-
-    private static void SetEnemy(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                 int level = 10, int brave = 50, int faith = 50)
-    {
-        SetUnit(m, slot, hp, maxHp, gx, gy, level, brave, faith);
-        if (slot <= Offsets.EnemySlotMax)
-            SetArrayEnemy(m, slot, level, brave, faith, maxHp);
-    }
-
-    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon,
-                                  int lhand = 0xFFFF, int offhand = 0xFFFF, int nameId = 0)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, lhand, offhand, nameId);
-
     private const int Wilham = Offsets.SlotsBack;       // band slot 20 (player-side actor)
     private const int Ramza = Offsets.SlotsBack + 1;    // band slot 21
 
     private static readonly HashSet<int> Weapons = new() { 52, 90, 63 };
-
-    private static void Settle(KillTracker t, int n = 3) { for (int i = 0; i < n; i++) t.Poll(true); }
 
     private sealed class FakeDeedSink : IDeedSink
     {

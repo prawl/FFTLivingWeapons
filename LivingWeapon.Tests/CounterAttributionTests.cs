@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
+using static LivingWeapon.Tests.KillTrackerFixtures;
 
 namespace LivingWeapon.Tests;
 
@@ -26,56 +27,9 @@ public class CounterAttributionTests
     // Enemy band slot (enemy-side: <= EnemySlotMax=19)
     private const int EnemySlot = 0;
 
-    // --- helpers (mirror SummonerAttributionTests style) ---
-
-    /// <param name="team">TqTeam value: 0=player, 1=enemy, 2=ally/guest; any other value
-    /// is treated as "unknown" and takes the normal credit path (fail-safe).</param>
-    private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level, int acted = 1, int team = 0)
-    {
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam]  = (ushort)team;
-        m.U16s[Offsets.TurnQueue + Offsets.TqHp]    = (ushort)hp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
-        m.U8s[Offsets.Acted] = (byte)acted;
-    }
-
-    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon);
-
-    private static void SetUnit(FakeSparseMemory m, int bandSlot, int hp, int maxHp = 400,
-                                int level = 10, int brave = 50, int faith = 50)
-        => MemSeats.SeatBand(m, bandSlot, weapon: 0, lvl: level, br: brave, fa: faith,
-                             gx: 5, gy: 5, hp: hp, maxHp: maxHp);
-
-    private static void SetEnemy(FakeSparseMemory m, int bandSlot, int hp, int maxHp = 400,
-                                 int level = 10, int brave = 50, int faith = 50)
-    {
-        MemSeats.SeatBand(m, bandSlot, weapon: 0, lvl: level, br: brave, fa: faith,
-                          gx: 5, gy: 5, hp: hp, maxHp: maxHp);
-        if (bandSlot <= Offsets.EnemySlotMax)
-        {
-            long s = Offsets.ArrayReadBase + (long)bandSlot * Offsets.ArrayStride;
-            m.U16s[s + Offsets.AInBattle] = 1;
-            m.U8s[s + Offsets.ALevel]     = (byte)level;
-            m.U8s[s + Offsets.ABrave]     = (byte)brave;
-            m.U8s[s + Offsets.AFaith]     = (byte)faith;
-            m.U16s[s + Offsets.AMaxHp]    = (ushort)maxHp;
-        }
-    }
-
-    private static void SetJumpBit(FakeSparseMemory m, int bandSlot, bool set = true)
-    {
-        long addr = Band.Entry(bandSlot);
-        byte cur = m.U8s.TryGetValue(addr + Offsets.ADeadStatus, out var v) ? v : (byte)0;
-        m.U8s[addr + Offsets.ADeadStatus] = set
-            ? (byte)(cur | Offsets.AJumpBit)
-            : (byte)(cur & ~Offsets.AJumpBit);
-    }
-
-    private static void Settle(KillTracker t, int n = 3)
-    {
-        for (int i = 0; i < n; i++) t.Poll(true);
-    }
+    // Seeding helpers ride the shared KillTrackerFixtures (LW-160). Every call site here passes
+    // team/acted and level/brave/faith by name, so the canonical signatures bind identically to
+    // the old local variants (which listed acted before team and omitted gx/gy).
 
     // --- T1: HEADLINE -- counter kill during enemy turn not credited to stale latch ---
 

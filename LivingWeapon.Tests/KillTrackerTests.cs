@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
+using static LivingWeapon.Tests.KillTrackerFixtures;
 
 namespace LivingWeapon.Tests;
 
@@ -19,69 +20,9 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class KillTrackerTests
 {
-    /// <summary>The active (condensed) struct: which unit's turn it is, by HP/MaxHP/level.
-    /// `acted` is the action-complete flag (0x14077CA8C): the latch only captures when it is 1,
-    /// so the inter-turn flicker of the struct (acted=0) can't steal credit.</summary>
-    private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level, int team = 0, int acted = 1)
-    {
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;
-        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
-        m.U8s[Offsets.Acted] = (byte)acted;
-    }
-
-    /// <summary>Write a unit into the BAND entry at band slot <paramref name="slot"/>.
-    /// This is the live source for corpse detection and actor resolution.
-    /// Pass level/brave/faith to make it matchable as the actor (ActorResolver reads the band).
-    /// Pass weapon to seat the actor's equipped item at band+AWeapon (used by the
-    /// weapon-disambiguation path in FingerprintPlayer / MainHandFromRoster).</summary>
-    private static void SetUnit(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                int level = 10, int brave = 50, int faith = 50, int weapon = 0)
-        => MemSeats.SeatBand(m, slot, weapon: weapon, lvl: level, br: brave, fa: faith,
-                             gx: gx, gy: gy, hp: hp, maxHp: maxHp);
-
-    /// <summary>Write identity fields into the STATIC ARRAY slot so the capture oracle can
-    /// classify this as a known enemy. inb defaults to 1 but is NOT required by the capture --
-    /// live, the flag pulses 0/1 per unit mid-battle (it is not a membership marker).</summary>
-    private static void SetArrayEnemy(FakeSparseMemory m, int slot, int level, int brave, int faith, int maxHp,
-                                      int inb = 1)
-    {
-        long s = Offsets.ArrayReadBase + (long)slot * Offsets.ArrayStride;
-        m.U16s[s + Offsets.AInBattle] = (ushort)inb;
-        m.U8s[s + Offsets.ALevel] = (byte)level;
-        m.U8s[s + Offsets.ABrave] = (byte)brave;
-        m.U8s[s + Offsets.AFaith] = (byte)faith;
-        m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
-    }
-
-    /// <summary>Convenience: write BOTH the band entry (liveness) and the static array slot
-    /// (identity capture). Enemies in tests must have their identity captured to earn credit.</summary>
-    private static void SetEnemy(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                 int level = 10, int brave = 50, int faith = 50)
-    {
-        SetUnit(m, slot, hp, maxHp, gx, gy, level, brave, faith);
-        if (slot <= Offsets.EnemySlotMax)
-            SetArrayEnemy(m, slot, level, brave, faith, maxHp);
-    }
-
-    /// <summary>A roster slot keyed by the (level,brave,faith) fingerprint -> its R-hand weapon.
-    /// ROffHand (+0x18) is where the live dual-wield off-hand actually sits. nameId defaults to 0
-    /// (old unseeded-read behavior); the register-path tests seed it explicitly to bridge a pointer
-    /// arrival's frame nameId back to this slot.</summary>
-    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon,
-                                  int lhand = 0xFFFF, int offhand = 0xFFFF, int nameId = 0)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, lhand, offhand, nameId);
-
-    /// <summary>Point Offsets.ActorPtr at band slot <paramref name="bandIdx"/>'s combat FRAME base
-    /// (mirrors TurnTrackerTests.PointAt).</summary>
-    private static void PointAt(FakeSparseMemory m, int bandIdx) =>
-        m.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (long)bandIdx * Offsets.CombatStride));
-
-    /// <summary>Bridge a band slot's frame nameId to a roster slot's nameId (MemSeats.SeatFrameNameId
-    /// wrapper) so the register's roster bridge resolves that pointer arrival to a specific player.</summary>
-    private static void SetFrameNameId(FakeSparseMemory m, int bandIdx, int nameId) =>
-        MemSeats.SeatFrameNameId(m, bandIdx, nameId);
+    // Seeding helpers (SetActive/SetUnit/SetArrayEnemy/SetEnemy/SetRoster/PointAt/SetFrameNameId/
+    // Settle/AliveThenDead/SetJumpBit) ride the shared KillTrackerFixtures via the using-static
+    // import (LW-160). SetDeadBit below stays local: this file is its only consumer.
 
     // Band slot indices for player-side units (arbitrary; just need to be non-enemy for clarity).
     // Enemy band slots can be anywhere in 0..BandSlots-1; slot 0 is a convenient enemy slot.
@@ -93,20 +34,6 @@ public class KillTrackerTests
     // 22 (LW-56 round 2): the live opener geometry's Claymore id, used by the weapon-key rescue test.
     private static readonly HashSet<int> Weapons = new() { 22, 52, 63, 73, 90 };
     private const int Shield = 200;   // a non-weapon left-hand item -> never credited
-
-    /// <summary>Poll n times with onField=true (builds alive/dead streaks).</summary>
-    private static void Settle(KillTracker t, int n = 3) { for (int i = 0; i < n; i++) t.Poll(true); }
-
-    /// <summary>Set a band slot alive (hp>0), settle 3 ticks (seenAlive), then set it dead and
-    /// settle 3 ticks (deadStreak). Leaves it ready for credit. Returns tracker for fluent use.</summary>
-    private static void AliveThenDead(FakeSparseMemory m, int slot, KillTracker t,
-                                      int hp = 300, int maxHp = 400, int level = 10, int brave = 50, int faith = 50)
-    {
-        SetEnemy(m, slot, hp, maxHp, level: level, brave: brave, faith: faith);
-        Settle(t);
-        SetUnit(m, slot, hp: 0, maxHp: maxHp, level: level, brave: brave, faith: faith);
-        Settle(t);
-    }
 
     [Fact]
     public void Credits_the_acting_players_weapon()
@@ -1076,17 +1003,6 @@ public class KillTrackerTests
         m.U8s[s + Offsets.ADeadStatus] = set
             ? (byte)(cur | Offsets.ADeadBit)
             : (byte)(cur & ~Offsets.ADeadBit);
-    }
-
-    /// <summary>Flip the Jump/charge bit at a band slot (mirrors DelayedActorTests.SetJumpBit),
-    /// used by the LW-68 delayed-vs-orphan pin below.</summary>
-    private static void SetJumpBit(FakeSparseMemory m, int slot, bool set = true)
-    {
-        long addr = Band.Entry(slot);
-        byte cur = m.U8s.TryGetValue(addr + Offsets.ADeadStatus, out var v) ? v : (byte)0;
-        m.U8s[addr + Offsets.ADeadStatus] = set
-            ? (byte)(cur | Offsets.AJumpBit)
-            : (byte)(cur & ~Offsets.AJumpBit);
     }
 
     [Fact]

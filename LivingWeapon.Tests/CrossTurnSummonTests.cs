@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
+using static LivingWeapon.Tests.KillTrackerFixtures;
 
 namespace LivingWeapon.Tests;
 
@@ -32,49 +33,9 @@ public class CrossTurnSummonTests
     // Enemy band slot 0 (enemy-side: <= EnemySlotMax=19).
     private const int EnemySlot = 0;
 
-    // --- helpers (mirror DelayedActorTests / SummonerAttributionTests) ---
-
-    private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level, int acted = 1)
-    {
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam]  = 0;
-        m.U16s[Offsets.TurnQueue + Offsets.TqHp]    = (ushort)hp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
-        m.U8s[Offsets.Acted] = (byte)acted;
-    }
-
-    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon);
-
-    private static void SetUnit(FakeSparseMemory m, int bandSlot, int hp, int maxHp = 400,
-                                int level = 10, int brave = 50, int faith = 50)
-        => MemSeats.SeatBand(m, bandSlot, weapon: 0, lvl: level, br: brave, fa: faith,
-                             gx: 5, gy: 5, hp: hp, maxHp: maxHp);
-
-    private static void SetEnemy(FakeSparseMemory m, int bandSlot, int hp, int maxHp = 400,
-                                 int level = 10, int brave = 50, int faith = 50)
-    {
-        MemSeats.SeatBand(m, bandSlot, weapon: 0, lvl: level, br: brave, fa: faith,
-                          gx: 5, gy: 5, hp: hp, maxHp: maxHp);
-        if (bandSlot <= Offsets.EnemySlotMax)
-        {
-            long s = Offsets.ArrayReadBase + (long)bandSlot * Offsets.ArrayStride;
-            m.U16s[s + Offsets.AInBattle] = 1;
-            m.U8s[s + Offsets.ALevel]     = (byte)level;
-            m.U8s[s + Offsets.ABrave]     = (byte)brave;
-            m.U8s[s + Offsets.AFaith]     = (byte)faith;
-            m.U16s[s + Offsets.AMaxHp]    = (ushort)maxHp;
-        }
-    }
-
-    private static void SetJumpBit(FakeSparseMemory m, int bandSlot, bool set = true)
-    {
-        long addr = Band.Entry(bandSlot);
-        byte cur = m.U8s.TryGetValue(addr + Offsets.ADeadStatus, out var v) ? v : (byte)0;
-        m.U8s[addr + Offsets.ADeadStatus] = set
-            ? (byte)(cur | Offsets.AJumpBit)
-            : (byte)(cur & ~Offsets.AJumpBit);
-    }
+    // Seeding helpers ride the shared KillTrackerFixtures (LW-160); every call site past the
+    // (m, slot, hp, maxHp) positional prefix passes by name. SetChargingBit stays local: this
+    // file is its only consumer (the charged-summon commit bit, 0x08, vs the shared Jump 0x04).
 
     private static void SetChargingBit(FakeSparseMemory m, int bandSlot, bool set = true)
     {
@@ -83,11 +44,6 @@ public class CrossTurnSummonTests
         m.U8s[addr + Offsets.ADeadStatus] = set
             ? (byte)(cur | Offsets.AChargingBit)
             : (byte)(cur & ~Offsets.AChargingBit);
-    }
-
-    private static void Settle(KillTracker t, int n = 3)
-    {
-        for (int i = 0; i < n; i++) t.Poll(true);
     }
 
     // --- U1: LOAD-BEARING, NON-VACUOUS ---

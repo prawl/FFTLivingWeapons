@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using LivingWeapon;
 using Xunit;
+using static LivingWeapon.Tests.KillTrackerFixtures;
 
 namespace LivingWeapon.Tests;
 
@@ -9,78 +10,13 @@ namespace LivingWeapon.Tests;
 /// Death-edge culprit-stamp integration tests -- KillTracker.Poll driven end-to-end through the
 /// REAL KillerStamp/ActorRegister wiring (KillTracker.Stamp.cs, KillTracker.Corpses.cs's
 /// deadStreak==1 edge). Companion to KillerStampTests.cs (the pure Decide/TryHypothesis halves).
-/// Fixture idioms mirror KillTrackerTests.cs's register-first section (~line 1492+): SetActive
-/// seats the turn-queue tuple, SetUnit/SetEnemy seat band entries (+ the static-array identity
-/// capture for enemies), SetRoster seats a roster slot's fingerprint+hands+nameId, PointAt/
-/// SetFrameNameId drive the engine actor pointer and its frame&lt;-&gt;roster nameId bridge.
+/// Seeding rides the shared KillTrackerFixtures (LW-160): SetActive seats the turn-queue tuple,
+/// SetUnit/SetEnemy seat band entries (+ the static-array identity capture for enemies),
+/// SetRoster seats a roster slot's fingerprint+hands+nameId, PointAt/SetFrameNameId drive the
+/// engine actor pointer and its frame&lt;-&gt;roster nameId bridge.
 /// </summary>
 public class KillTrackerStampTests
 {
-    private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level, int team = 0, int acted = 1)
-    {
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;
-        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
-        m.U8s[Offsets.Acted] = (byte)acted;
-    }
-
-    private static void SetUnit(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                int level = 10, int brave = 50, int faith = 50, int weapon = 0)
-        => MemSeats.SeatBand(m, slot, weapon: weapon, lvl: level, br: brave, fa: faith,
-                             gx: gx, gy: gy, hp: hp, maxHp: maxHp);
-
-    private static void SetArrayEnemy(FakeSparseMemory m, int slot, int level, int brave, int faith, int maxHp,
-                                      int inb = 1)
-    {
-        long s = Offsets.ArrayReadBase + (long)slot * Offsets.ArrayStride;
-        m.U16s[s + Offsets.AInBattle] = (ushort)inb;
-        m.U8s[s + Offsets.ALevel] = (byte)level;
-        m.U8s[s + Offsets.ABrave] = (byte)brave;
-        m.U8s[s + Offsets.AFaith] = (byte)faith;
-        m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
-    }
-
-    private static void SetEnemy(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                 int level = 10, int brave = 50, int faith = 50)
-    {
-        SetUnit(m, slot, hp, maxHp, gx, gy, level, brave, faith);
-        if (slot <= Offsets.EnemySlotMax)
-            SetArrayEnemy(m, slot, level, brave, faith, maxHp);
-    }
-
-    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon,
-                                  int lhand = 0xFFFF, int offhand = 0xFFFF, int nameId = 0)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, lhand, offhand, nameId);
-
-    private static void PointAt(FakeSparseMemory m, int bandIdx) =>
-        m.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (long)bandIdx * Offsets.CombatStride));
-
-    private static void SetFrameNameId(FakeSparseMemory m, int bandIdx, int nameId) =>
-        MemSeats.SeatFrameNameId(m, bandIdx, nameId);
-
-    private static void SetJumpBit(FakeSparseMemory m, int bandSlot, bool set = true)
-    {
-        long addr = Band.Entry(bandSlot);
-        byte cur = m.U8s.TryGetValue(addr + Offsets.ADeadStatus, out var v) ? v : (byte)0;
-        m.U8s[addr + Offsets.ADeadStatus] = set
-            ? (byte)(cur | Offsets.AJumpBit)
-            : (byte)(cur & ~Offsets.AJumpBit);
-    }
-
-    private static void Settle(KillTracker t, int n = 3) { for (int i = 0; i < n; i++) t.Poll(true); }
-
-    /// <summary>Set a band slot alive (hp&gt;0), settle 3 ticks (seenAlive), then set it dead and
-    /// settle 3 ticks (deadStreak). Leaves it ready for credit (mirrors KillTrackerTests.cs).</summary>
-    private static void AliveThenDead(FakeSparseMemory m, int slot, KillTracker t,
-                                      int hp = 300, int maxHp = 400, int level = 10, int brave = 50, int faith = 50)
-    {
-        SetEnemy(m, slot, hp, maxHp, level: level, brave: brave, faith: faith);
-        Settle(t, 3);
-        SetUnit(m, slot, hp: 0, maxHp: maxHp, level: level, brave: brave, faith: faith);
-        Settle(t, 3);
-    }
-
     // Player band slot indices (arbitrary; just need to be player-side / non-enemy).
     private const int P1 = Offsets.SlotsBack;       // band slot 20
     private const int P2 = Offsets.SlotsBack + 1;   // band slot 21

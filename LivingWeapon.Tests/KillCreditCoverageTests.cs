@@ -1,68 +1,23 @@
 using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
+using static LivingWeapon.Tests.KillTrackerFixtures;
 
 namespace LivingWeapon.Tests;
 
 /// <summary>
 /// LW-152: four tests closing verified-test-blind corners the LW-150 S3 (ActedPeriodLatch
 /// mirror-outputs)/S4 (KillTracker.Corpses.cs dispatcher) splits opened -- each pinned against a
-/// SPECIFIC named mutation the existing suite did not catch (docs/TODO.md LW-152). Local helpers
-/// mirror KillTrackerTests' private statics (SetActive/SetRoster/SetUnit/SetEnemy/Settle) rather
-/// than reusing them, matching this suite's existing per-file convention (e.g.
-/// KillTrackerBattleCountersTests.cs's own Make/MakeGated helpers) -- every file that drives
-/// KillTracker.Poll keeps its own thin wrapper over MemSeats/Offsets.
+/// SPECIFIC named mutation the existing suite did not catch (docs/TODO.md LW-152). Seeding
+/// helpers ride the shared KillTrackerFixtures: the per-file mirroring convention this header
+/// used to document ("every file that drives KillTracker.Poll keeps its own thin wrapper") was
+/// retired by owner call on 2026-08-08, and LW-160 folded the copies.
 /// </summary>
 public class KillCreditCoverageTests
 {
-    private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level, int team = 0, int acted = 1)
-    {
-        m.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;
-        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
-        m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
-        m.U8s[Offsets.Acted] = (byte)acted;
-    }
-
-    private static void SetUnit(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                int level = 10, int brave = 50, int faith = 50, int weapon = 0)
-        => MemSeats.SeatBand(m, slot, weapon: weapon, lvl: level, br: brave, fa: faith,
-                             gx: gx, gy: gy, hp: hp, maxHp: maxHp);
-
-    private static void SetArrayEnemy(FakeSparseMemory m, int slot, int level, int brave, int faith, int maxHp,
-                                      int inb = 1)
-    {
-        long s = Offsets.ArrayReadBase + (long)slot * Offsets.ArrayStride;
-        m.U16s[s + Offsets.AInBattle] = (ushort)inb;
-        m.U8s[s + Offsets.ALevel] = (byte)level;
-        m.U8s[s + Offsets.ABrave] = (byte)brave;
-        m.U8s[s + Offsets.AFaith] = (byte)faith;
-        m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
-    }
-
-    private static void SetEnemy(FakeSparseMemory m, int slot, int hp, int maxHp = 400, int gx = 5, int gy = 5,
-                                 int level = 10, int brave = 50, int faith = 50)
-    {
-        SetUnit(m, slot, hp, maxHp, gx, gy, level, brave, faith);
-        if (slot <= Offsets.EnemySlotMax)
-            SetArrayEnemy(m, slot, level, brave, faith, maxHp);
-    }
-
-    private static void SetRoster(FakeSparseMemory m, int slot, int level, int brave, int faith, int weapon,
-                                  int nameId = 0)
-        => MemSeats.SeatRoster(m, slot, level, brave, faith, weapon, nameId: nameId);
-
-    private static void PointAt(FakeSparseMemory m, int bandIdx) =>
-        m.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + (long)bandIdx * Offsets.CombatStride));
-
-    private static void SetFrameNameId(FakeSparseMemory m, int bandIdx, int nameId) =>
-        MemSeats.SeatFrameNameId(m, bandIdx, nameId);
-
     private const int Wilham = Offsets.SlotsBack;   // band slot 20 (player-side actor)
 
     private static readonly HashSet<int> Weapons = new() { 52 };
-
-    private static void Settle(KillTracker t, int n = 3) { for (int i = 0; i < n; i++) t.Poll(true); }
 
     // ------------------------------------------------------------------------------------------
     // Test 1: the S4 dispatcher's deliberate orphan fall-through, with NO culprit stamped at all.
