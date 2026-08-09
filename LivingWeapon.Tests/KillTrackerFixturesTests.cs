@@ -16,10 +16,13 @@ namespace LivingWeapon.Tests;
 ///
 /// Each Old* helper below is a verbatim copy of a pre-fold body. Where the nine files carried two
 /// SHAPES of the same helper (the five KillTrackerTests-lineage copies with gx/gy/team parameters,
-/// and the four DelayedActorTests-lineage variants without them), the variant shape gets its own
-/// pin proving it equals the canonical fixture at the variant's own parameter surface -- that is
-/// the one place the fold claims two different source texts were equivalent, so it is the one
-/// place a pin must hold the claim up.
+/// and the four DelayedActorTests-lineage variants without them), the SetEnemy variant -- the one
+/// whose source TEXT genuinely differed, inlining the array block instead of composing -- gets its
+/// own pins, on the interior, boundary, and exterior sides of the EnemySlotMax branch. The other
+/// variant deltas (team hardcoded 0, CounterAttribution's reordered acted/team, the narrower
+/// SetRoster shapes) reduce to identical writes through equal defaults and all-named call sites;
+/// that reduction is re-derived by independent audit (two auditors hashed every pre-fold body and
+/// parsed every call site during LW-160's verify pass), not pinned here.
 ///
 /// Settle and AliveThenDead are deliberately NOT pinned here: they write no memory of their own
 /// (Settle is n Poll(true) calls; AliveThenDead composes SetEnemy/SetUnit/Settle, all pinned or
@@ -143,6 +146,23 @@ public class KillTrackerFixturesTests
         // Player-side slot (> EnemySlotMax): the array block must NOT fire in either shape.
         OldVariantSetEnemy(oldMem, bandSlot: Offsets.SlotsBack, hp: 300);
         KillTrackerFixtures.SetEnemy(newMem, slot: Offsets.SlotsBack, hp: 300);
+
+        AssertExactMatch(oldMem, newMem);
+    }
+
+    [Fact]
+    public void SetEnemy_variant_shape_matches_fixture_exactly_on_boundary_slot()
+    {
+        var oldMem = new FakeSparseMemory();
+        var newMem = new FakeSparseMemory();
+
+        // The EnemySlotMax boundary itself. LW-160's sabotage audit proved a one-character
+        // drift of the branch bound (<= to <) was invisible to the interior/exterior pins AND
+        // to the full suite (no consumer seeds an enemy above slot 15), so the boundary slot
+        // gets its own pin: under a narrowed bound the fixture skips the identity capture here
+        // while the verbatim old body writes it, and the U16s count assertion goes red.
+        OldVariantSetEnemy(oldMem, bandSlot: Offsets.EnemySlotMax, hp: 300);
+        KillTrackerFixtures.SetEnemy(newMem, slot: Offsets.EnemySlotMax, hp: 300);
 
         AssertExactMatch(oldMem, newMem);
     }

@@ -173,16 +173,22 @@ public class ChoirTests
                       gx: bearerGx, gy: bearerGy, writableSupport: writableBearerSupport);
         mem.U16s[bearerEntry + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)WarlockStaffId;
 
-        // Ally band entry (band slot 28): adjacent by default; alive, writable. Under
-        // holder-only, Choir must NOT set the ally's bit -- kept as a real candidate so a
-        // regression to ally-aura would set it and be caught by test (4). No static-array ally
-        // fingerprint is seeded: holder-only Choir resolves via Wielder.ResolveDeployedMainHandAll
-        // (a roster + band walk) and never reads the static-array fingerprints, the same proof
-        // that deleted Tick_sets_bit_on_bearer_self's bearer-side slot registration (LW-157;
-        // this ally-side twin was the LW-160 rider).
+        // Ally band entry (band slot 28): adjacent by default; alive, writable, and IN
+        // AllyFingerprints via the seed below. Under holder-only, Choir must NOT set the ally's
+        // bit -- kept as a real candidate so a regression to ally-aura would set it and be
+        // caught by test (4). The fingerprint seed is DELIBERATELY kept even though holder-only
+        // Choir never reads the static array (LW-160 briefly deleted it as dead; the adversarial
+        // audit reversed that): the aura-era Choir this test guards against (pre-cfc1a4e) gated
+        // every grant on Band.AllyFingerprints.Contains, as do all four current aura-style
+        // modules (Benediction/Sanctuary/HealPulse/FeignDeath), so without this seed a
+        // filtered-aura regression would pass test (4) vacuously -- the ally would be invisible
+        // to the very loop the test exists to catch. Unlike Tick_sets_bit_on_bearer_self's
+        // deleted bearer-side registration (LW-157), which fed a POSITIVE assertion that passes
+        // without it, this seed arms a NEGATIVE one.
         long allyEntry = Band.Entry(28);
         SeedBandEntry(mem, allyEntry, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55,
                       gx: allyGx, gy: allyGy, writableSupport: writableAllySupport);
+        BandFixtures.SeedAllyFp(mem, mhp: 150, lvl: 20, br: 50, fa: 55);
 
         var choir = new Choir(meta, kills, mem: mem);
         return (choir, mem, bearerEntry, allyEntry);
