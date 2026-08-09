@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-160] SHIPPED 7745bd0 2026-08-08: the nine test suites that exercise the kill counter no
+  longer hand-copy the same setup helpers; one shared fixture (KillTrackerFixtures) owns those
+  bodies, every suite reads from it through using-static imports, and not one calling line or
+  assertion changed meaning. The owner retired the per-file mirroring convention in session,
+  which was this item's parked precondition. Proof carried the ship: two adversarial auditors
+  read both full diffs (assertion counts flat per file, 312 asserts and 155 facts), hashed
+  every pre-fold helper body against the fixture, and mechanically parsed all 1,328 helper
+  call sites to confirm everything past the shared positional prefix is passed by name, which
+  defuses the three real silent-rebind hazards the two helper lineages hid. Nine exact-set pin
+  tests freeze the fixture's writes against verbatim copies of the pre-fold bodies; a sabotage
+  pass in an isolated worktree proved them non-vacuous (an extra-byte write and a bit-clobber
+  both go red) and exposed one hole, a boundary off-by-one in the enemy branch that all 2985
+  tests missed, now covered by a born-red-proven boundary pin. The audit also REVERSED one
+  rider, the row's best lesson: ChoirTests' ally-fingerprint seed, deleted as dead by analogy
+  to the bearer-side twin LW-157 removed, was actually a live tripwire (the aura-era Choir
+  gated grants on that oracle, so deleting the seed let a filtered-aura regression pass the
+  anti-aura test vacuously); it is restored with the real contract documented in place. The
+  analogy failed because the bearer seed fed a positive assertion and the ally seed arms a
+  negative one; only the first kind dies safely on a "nothing reads it" proof. The other rider
+  stands: LarcenyTests' fifth inline enemy-oracle seed rides BandFixtures.SeatEnemyFp,
+  byte-equivalent under its LW-157 pin. Work 49732d2 + bfee1f5 + 7d381fc + 7745bd0; suite 2977
+  to 2986; zero production files touched.
 - [LW-157] SHIPPED ce24cc9 2026-08-08: the test suite's copy-paste tax is paid down everywhere
   no owner decision was needed. The swap-a-logger-in, run, restore-in-finally ritual, 51
   hand-rolled sites across 16 files with two competing restore conventions, is one disposable

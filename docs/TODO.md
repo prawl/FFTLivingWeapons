@@ -40,24 +40,6 @@ the technical detail lives in the indented lines under it.
     box, Barrage absent, kills still count). The drill mod recipe and every failure signature are
     pre-registered there. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-160] Nine kill-tracker test suites stop hand-copying the same setup helpers** (opened 2026-08-08) [BUILDING]
-  - Done means: the nine test suites that exercise the kill counter each carried their own copy of
-    the same setup helpers (seat the acting unit, seat a fake enemy, poll until the tracker
-    settles), so a change to that setup had to be repeated up to nine times and a missed copy
-    would quietly test the old way; after this, one shared fixture owns those helper bodies,
-    every suite reads from it, and no test's meaning changes. The owner retired the per-file
-    mirroring convention in session on 2026-08-08, which was this item's parked precondition.
-    Riders from the original row: LarcenyTests' fifth inline enemy-oracle seed repoints at the
-    shared BandFixtures.SeatEnemyFp, and ChoirTests.BuildActive's ally-fingerprint seed is
-    deleted as dead by the same proof that killed its sibling mark in LW-157 (holder-only Choir
-    never reads the static-array fingerprints). (Tech: new KillTrackerFixtures.cs on the
-    BandFixtures pattern with exact-address pin tests; the nine suites take using-static imports
-    and delete their private copies; the cross-variant call sites all pass named arguments, so
-    the canonical signatures bind identically and no call line changes meaning.)
-  - Verify: the full suite stays green with assertion lines byte-untouched (full-diff proof),
-    the new fixture pin tests pass, and an independent adversarial audit re-derives the
-    call-site bind equivalence and both rider proofs before the retire row cites the hashes.
-
 - **[LW-137] Measure whether kill credit's death-edge bury reads a turn or a cursor** (opened 2026-07-27) [AWAITING-LIVE]
   - Done means: a measured answer, from real battles, to whether the kill counter's "was an enemy
     acting when this unit died" check can be fooled by where the cursor happens to rest. If the
