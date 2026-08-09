@@ -40,6 +40,24 @@ the technical detail lives in the indented lines under it.
     box, Barrage absent, kills still count). The drill mod recipe and every failure signature are
     pre-registered there. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-160] Nine kill-tracker test suites stop hand-copying the same setup helpers** (opened 2026-08-08) [BUILDING]
+  - Done means: the nine test suites that exercise the kill counter each carried their own copy of
+    the same setup helpers (seat the acting unit, seat a fake enemy, poll until the tracker
+    settles), so a change to that setup had to be repeated up to nine times and a missed copy
+    would quietly test the old way; after this, one shared fixture owns those helper bodies,
+    every suite reads from it, and no test's meaning changes. The owner retired the per-file
+    mirroring convention in session on 2026-08-08, which was this item's parked precondition.
+    Riders from the original row: LarcenyTests' fifth inline enemy-oracle seed repoints at the
+    shared BandFixtures.SeatEnemyFp, and ChoirTests.BuildActive's ally-fingerprint seed is
+    deleted as dead by the same proof that killed its sibling mark in LW-157 (holder-only Choir
+    never reads the static-array fingerprints). (Tech: new KillTrackerFixtures.cs on the
+    BandFixtures pattern with exact-address pin tests; the nine suites take using-static imports
+    and delete their private copies; the cross-variant call sites all pass named arguments, so
+    the canonical signatures bind identically and no call line changes meaning.)
+  - Verify: the full suite stays green with assertion lines byte-untouched (full-diff proof),
+    the new fixture pin tests pass, and an independent adversarial audit re-derives the
+    call-site bind equivalence and both rider proofs before the retire row cites the hashes.
+
 - **[LW-137] Measure whether kill credit's death-edge bury reads a turn or a cursor** (opened 2026-07-27) [AWAITING-LIVE]
   - Done means: a measured answer, from real battles, to whether the kill counter's "was an enemy
     acting when this unit died" check can be fooled by where the cursor happens to rest. If the
@@ -61,20 +79,6 @@ the technical detail lives in the indented lines under it.
     until then. Owner only, as every AWAITING-LIVE flip is.
 
 ## Backlog
-
-- [LW-160] 2026-08-08: Nine kill-tracker test suites still carry hand-copied seeding helpers,
-  and folding them waits on the owner retiring a convention those suites document on purpose.
-  The unfinished half of LW-157, split out honestly rather than fudged: the Settle and Set*
-  seed helpers are byte-identical in three files with cosmetic variants in two more, and the
-  genuinely duplicated core (the TurnQueue+Acted seed, static-array oracle seed, ActorPtr
-  formula, and settle rhythms, roughly 30-45 lines per suite) would fold into one shared
-  fixture the same way BandFixtures did. PRECONDITION, the reason this is parked:
-  KillCreditCoverageTests documents per-file mirroring as this family's deliberate convention
-  ("every file that drives KillTracker.Poll keeps its own thin wrapper"), so retiring that
-  convention is an owner call first. Riders when picked up: LarcenyTests carries a fifth
-  inline SeatEnemyFp copy (values 400/40/75/55) that should repoint at BandFixtures.SeatEnemyFp,
-  and ChoirTests.BuildActive seeds a static-array ally fingerprint that is dead by the same
-  proof that killed its sibling mark in LW-157.
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
   one item is left, and it needs the owner's own sign-off.
