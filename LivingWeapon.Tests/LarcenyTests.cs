@@ -312,14 +312,10 @@ public class LarcenyTests
         mem.MarkReadable(enemy + Offsets.AReraise, 1);
         mem.MarkWritable(enemy + Offsets.AReraise, 1);
 
-        // Static-array enemy fingerprint at slot 0 (Band.EnemyFingerprints, the enemy oracle --
-        // same seeding as KobuTests.Build / BandFixtures.SeatEnemyFp).
-        long arrSlot = Offsets.ArrayReadBase;
-        mem.MarkReadable(arrSlot + Offsets.AMaxHp, 2);   // production reads n=2 (Band.cs, the Fingerprints sweep)
-        mem.U16s[arrSlot + Offsets.AMaxHp] = 400;
-        mem.U8s[arrSlot + Offsets.ALevel]  = 40;
-        mem.U8s[arrSlot + Offsets.ABrave]  = 75;
-        mem.U8s[arrSlot + Offsets.AFaith]  = 55;
+        // Static-array enemy fingerprint at slot 0 (Band.EnemyFingerprints, the enemy oracle).
+        // The fifth inline copy of this seeding, repointed at the shared fold (LW-160 rider;
+        // LW-157 folded the other four).
+        BandFixtures.SeatEnemyFp(mem, (mhp: 400, lvl: 40, br: 75, fa: 55));
 
         var larceny = new Larceny(meta, kills, tracker, new TurnTracker(mem), mem);
         return (larceny, mem, wielder, enemy);
