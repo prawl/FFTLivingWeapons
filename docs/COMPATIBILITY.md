@@ -1,4 +1,4 @@
-# Mod Compatibility
+﻿# Mod Compatibility
 
 STATUS: CONTRACT (the player-facing compatibility grid the Nexus page links to; update it
 whenever a mod is checked or a conflict class changes)
@@ -25,13 +25,13 @@ so gear from the losing mod silently reverts. There is no safe ordering; pick on
 
 | Mod | Nexus # | Scope |
 |---|---|---|
-| CustomJOB_ITEM-1 | 64 | Full item rebalance; every gear row fights |
-| FFT Regabond's Rebalance | 72 | Full item rebalance; every gear row fights |
-| Antidote - FFT Rebalanced | 75 | Full item rebalance; every gear row fights |
-| The War of the Lions Equipment Replacer | 84 | Full item rebalance; every gear row fights |
-| All Items in Shops | 107 | Item table rows; the rows it ships fight ours |
-| Materia Blade Plus Replacement | 115 | Item table rows; the rows it ships fight ours |
-| Cloud Re-Work | 46 | Limited: ships ItemData rows for the gear it edits, so those specific items follow one mod only (its ability and encounter files are fine); pairing breaks either Cloud's kit or our rebalance on those items |
+| [CustomJOB_ITEM-1](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/64) | 64 | Full item rebalance; every gear row fights |
+| [FFT Regabond's Rebalance](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/72) | 72 | Full item rebalance; every gear row fights |
+| [Antidote - FFT Rebalanced](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/75) | 75 | Full item rebalance; every gear row fights |
+| [The War of the Lions Equipment Replacer](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/84) | 84 | Full item rebalance; every gear row fights |
+| [All Items in Shops](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/107) | 107 | Item table rows; the rows it ships fight ours |
+| [Materia Blade Plus Replacement](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/115) | 115 | Item table rows; the rows it ships fight ours |
+| [Cloud Re-Work](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/46) | 46 | Limited: ships ItemData rows for the gear it edits, so those specific items follow one mod only (its ability and encounter files are fine); pairing breaks either Cloud's kit or our rebalance on those items |
 
 ## Works, with a known caveat
 
@@ -47,17 +47,17 @@ These classes coexist with Living Weapons at one specific, known cost:
 
 | Mod | Nexus # | Verdict |
 |---|---|---|
-| Ivalice Retranslation Project | 9 | Text lane: it rewrites the game's English text including item and ability tables (its standalone version replaces the whole English text archive). Our custom item names/descriptions fight its translation, and the painted kill counter can lose its anchor on affected cards |
-| Dual Subtitles JP-EN with Kana Assist | 90 | Text lane, milder: it switches item/job/ability names to Japanese while keeping descriptions in English (the author's stated design), so our custom names may fight it but the kill counter's description anchor likely survives. Not yet watched in game |
-| Ramza Overhaul | 110 | Payload read row by row: its command records (25-28, Ramza and Delita) and job text are clear of everything we ship or guard, and no item tables. Exactly one row overlaps ours (a Ramza chapter job where it grants Knight Sword access and we raise evasion): depending on load order one of those two small edits can lose, so worst case is Ramza missing 3 points of evasion or the overhaul missing Knight Sword access on that chapter. Everything else coexists |
+| [Ivalice Retranslation Project](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/9) | 9 | Text lane: it rewrites the game's English text including item and ability tables (its standalone version replaces the whole English text archive). Our custom item names/descriptions fight its translation, and the painted kill counter can lose its anchor on affected cards |
+| [Dual Subtitles JP-EN with Kana Assist](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/90) | 90 | Text lane, milder: it switches item/job/ability names to Japanese while keeping descriptions in English (the author's stated design), so our custom names may fight it but the kill counter's description anchor likely survives. Not yet watched in game |
+| [Ramza Overhaul](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/110) | 110 | Payload read row by row: its command records (25-28, Ramza and Delita) and job text are clear of everything we ship or guard, and no item tables. Exactly one row overlaps ours (a Ramza chapter job where it grants Knight Sword access and we raise evasion): depending on load order one of those two small edits can lose, so worst case is Ramza missing 3 points of evasion or the overhaul missing Knight Sword access on that chapter. Everything else coexists |
 
 ## Verified compatible
 
 | Mod | Nexus # | Note |
 |---|---|---|
-| Generic Jobs | 34 | The site's most-downloaded mod; source-audited, and its one residual write pattern was checked in-game against our job-command region: clean |
-| Super and Ultrawide Resolutions | 11 | Ships only resolution configuration tables; nothing shared with this mod |
-| Deep Brave Story (base + add-on files) | 83 | Payload-verified on three of its eight files: the base ships encounter data and character/place names (none of the files we touch), and the Sage Elder and Dark Gaffgarion add-ons edit only story-job rows (17, 19, 23) and story command records (32, 39, 82), none of the rows or records this mod ships or guards. The other boss add-ons (Dark Witch, Witch Assassin, Divine Alma, Elmdor Enhanced, Delita QoL) ship the same file classes aimed at other story jobs and are expected clean the same way; in the worst case one rewrites the two command records we guard, and then the mod says so in game and costs only the three weapon-granted commands. No item tables anywhere in the family |
+| [Generic Jobs](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/34) | 34 | The site's most-downloaded mod; source-audited, and its one residual write pattern was checked in-game against our job-command region: clean |
+| [Super and Ultrawide Resolutions](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/11) | 11 | Ships only resolution configuration tables; nothing shared with this mod |
+| [Deep Brave Story (base + add-on files)](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/83) | 83 | Payload-verified on three of its eight files: the base ships encounter data and character/place names (none of the files we touch), and the Sage Elder and Dark Gaffgarion add-ons edit only story-job rows (17, 19, 23) and story command records (32, 39, 82), none of the rows or records this mod ships or guards. The other boss add-ons (Dark Witch, Witch Assassin, Divine Alma, Elmdor Enhanced, Delita QoL) ship the same file classes aimed at other story jobs and are expected clean the same way; in the worst case one rewrites the two command records we guard, and then the mod says so in game and costs only the three weapon-granted commands. No item tables anywhere in the family |
 
 ## Not yet checked
 
