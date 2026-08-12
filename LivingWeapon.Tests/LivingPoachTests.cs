@@ -9,8 +9,11 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// LW-167 Living Poach (docs plan v2, stages 1-2). Mirrors GunSlingerTests' staged structure:
-///   Stage-1  LivingPoachPolicy pure decisions (Decide / SpeciesOf / StripIconMarkup)
+///   Stage-1  LivingPoachPolicy pure decisions (Decide / StripIconMarkup)
 ///   Stage-1b PoachMap loader (the real committed poach.json + missing/corrupt-file disarm)
+///   Stage-1c LW-169 job-id remap pinned regression (owner-observed live 2026-08-12): the old
+///            species = victim job byte - 95 arithmetic is gone; poach.json now keys straight off
+///            each monster job's own id (tools/extract_poach_map.py decodes it off the Job sheet).
 ///   Stage-2  LivingPoach executor via FakeSparseMemory (guarded W8 store write + toast + the
 ///            per-corpse dedupe latch) and DeedFanout/KillTracker's widened deed seam.
 ///   Stage-2b The killer's real Poach-bit read (combat support bitfield).
@@ -51,7 +54,7 @@ public class LivingPoachTests : IDisposable
     public void Decide_KEYSTONE_vanillaFormula_neverFires_evenWithEveryOtherGateGreen()
     {
         var v = LivingPoachPolicy.Decide(weaponIsDormantFormula: false, killerHasPoach: true,
-            wasBasicAttack: true, victimJob: 96, speciesMapped: true, roll: 0);
+            wasBasicAttack: true, victimJob: 94, jobMapped: true, roll: 0);
         Assert.Equal(PoachVerdict.None, v);
     }
 
@@ -61,7 +64,7 @@ public class LivingPoachTests : IDisposable
     public void Decide_wasBasicAttack_false_None()
     {
         var v = LivingPoachPolicy.Decide(true, killerHasPoach: true, wasBasicAttack: false,
-            victimJob: 96, speciesMapped: true, roll: 0);
+            victimJob: 94, jobMapped: true, roll: 0);
         Assert.Equal(PoachVerdict.None, v);
     }
 
@@ -69,23 +72,16 @@ public class LivingPoachTests : IDisposable
     public void Decide_killerHasPoach_false_None()
     {
         var v = LivingPoachPolicy.Decide(true, killerHasPoach: false, wasBasicAttack: true,
-            victimJob: 96, speciesMapped: true, roll: 0);
+            victimJob: 94, jobMapped: true, roll: 0);
         Assert.Equal(PoachVerdict.None, v);
     }
 
+    // LW-169: jobMapped is the whole monster-eligibility gate now -- no range check behind it.
+    // A human job (or a monster job poach.json never resolved) reads jobMapped: false here.
     [Fact]
-    public void Decide_unmapped_species_None()
+    public void Decide_unmapped_job_None()
     {
-        var v = LivingPoachPolicy.Decide(true, true, true, victimJob: 96, speciesMapped: false, roll: 0);
-        Assert.Equal(PoachVerdict.None, v);
-    }
-
-    [Theory]
-    [InlineData(95)]   // species 0 -- one below the monster band
-    [InlineData(145)]  // species 50 -- one past poach.json's 48 species
-    public void Decide_job_outside_monster_range_None(int job)
-    {
-        var v = LivingPoachPolicy.Decide(true, true, true, victimJob: job, speciesMapped: true, roll: 0);
+        var v = LivingPoachPolicy.Decide(true, true, true, victimJob: 93, jobMapped: false, roll: 0);
         Assert.Equal(PoachVerdict.None, v);
     }
 
@@ -97,16 +93,9 @@ public class LivingPoachTests : IDisposable
     [InlineData(255, false)]
     public void Decide_roll_boundaries(int roll, bool expectCommon)
     {
-        var v = LivingPoachPolicy.Decide(true, true, true, victimJob: 96, speciesMapped: true, roll: roll);
+        var v = LivingPoachPolicy.Decide(true, true, true, victimJob: 94, jobMapped: true, roll: roll);
         Assert.Equal(expectCommon ? PoachVerdict.Common : PoachVerdict.Rare, v);
     }
-
-    [Theory]
-    [InlineData(96, 1)]
-    [InlineData(101, 6)]
-    [InlineData(144, 49)]
-    public void SpeciesOf_math(int job, int expectedSpecies)
-        => Assert.Equal(expectedSpecies, LivingPoachPolicy.SpeciesOf(job));
 
     [Theory]
     [InlineData("Chocobo Carcass<Icon=103>", "Chocobo Carcass")]
@@ -122,12 +111,12 @@ public class LivingPoachTests : IDisposable
         var map = new PoachMap(RepoLivingWeaponDir());
         Assert.True(map.IsLoaded);
 
-        Assert.True(map.TryGetSpecies(1, out var species1));
-        Assert.Equal(1, species1.CommonKey);
-        Assert.Equal("Chocobo Carcass", species1.CommonName);
+        Assert.True(map.TryGetJob(94, out var chocobo));   // Chocobo
+        Assert.Equal(1, chocobo.CommonKey);
+        Assert.Equal("Chocobo Carcass", chocobo.CommonName);
 
-        Assert.True(map.TryGetSpecies(6, out var species6));
-        Assert.Equal(11, species6.CommonKey);
+        Assert.True(map.TryGetJob(99, out var gobbledygook));   // Gobbledygook
+        Assert.Equal(11, gobbledygook.CommonKey);
     }
 
     [Fact]
@@ -137,7 +126,7 @@ public class LivingPoachTests : IDisposable
         var ex = Record.Exception(() => map = new PoachMap(TempDir()));
         Assert.Null(ex);
         Assert.False(map!.IsLoaded);
-        Assert.False(map.TryGetSpecies(1, out _));
+        Assert.False(map.TryGetJob(94, out _));
     }
 
     [Fact]
@@ -171,9 +160,9 @@ public class LivingPoachTests : IDisposable
         Assert.True(map.IsLoaded);
 
         var keys = new List<int>();
-        for (int species = 1; species <= 100; species++)
+        for (int jobId = 1; jobId <= 300; jobId++)
         {
-            if (!map.TryGetSpecies(species, out var carcass)) continue;
+            if (!map.TryGetJob(jobId, out var carcass)) continue;
             keys.Add(carcass.CommonKey);
             keys.Add(carcass.RareKey);
         }
@@ -187,24 +176,76 @@ public class LivingPoachTests : IDisposable
         }
     }
 
+    // ── Stage-1c: LW-169 job-id remap pinned regression (owner-observed live 2026-08-12) ──────
+    // A Black Chocobo (job 95) carried the victim's job byte straight through and was refused
+    // under the old "species = job - 95" arithmetic (job 95 landed one below JobInMonsterRange's
+    // own 96..144 band). The game's Job sheet carries each monster job's PoachItem common/rare
+    // Keys directly; human jobs (Mime, job 93) carry none. Map-membership BY JOB ID is the whole
+    // gate now -- these pin the exact falsifying case plus its nearest neighbors against both the
+    // map lookup and the full executor.
+
+    [Fact]
+    public void PoachMap_job95_blackChocobo_is_mapped_to_keys_3_and_4()
+    {
+        var map = new PoachMap(RepoLivingWeaponDir());
+        Assert.True(map.TryGetJob(95, out var carcass));
+        Assert.Equal(3, carcass.CommonKey);
+        Assert.Equal(4, carcass.RareKey);
+    }
+
+    [Fact]
+    public void PoachMap_job94_chocobo_is_mapped_to_keys_1_and_2()
+    {
+        var map = new PoachMap(RepoLivingWeaponDir());
+        Assert.True(map.TryGetJob(94, out var carcass));
+        Assert.Equal(1, carcass.CommonKey);
+        Assert.Equal(2, carcass.RareKey);
+    }
+
+    [Fact]
+    public void PoachMap_job93_mime_human_job_is_unmapped()
+    {
+        var map = new PoachMap(RepoLivingWeaponDir());
+        Assert.False(map.TryGetJob(93, out _));
+    }
+
+    // THE FALSIFYING CASE: a Black Chocobo (job 95) killed by a basic Attack, dormant-formula
+    // weapon, Poach-supported killer -- every gate green. Under the old arithmetic this never
+    // wrote the store (confirmed RED against the pre-fix tree); it must decide Common/Rare now.
+    [Fact]
+    public void RecordPoachDeed_job95_blackChocobo_THE_FALSIFYING_CASE_now_writes_the_store()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(RepoLivingWeaponDir());
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, 3, current: 0);   // job 95's real committed common key
+        var poach = MakePoach(mem, map, meta, roll: 0);   // roll 0 -> Common
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, 95, false), slot: 0,
+            delayedOrCharged: false, viaFallback: false);
+
+        long addr = Offsets.PoachStoreBase + (3 - 1);
+        Assert.Equal((byte)1, mem.U8(addr));
+    }
+
     // ── Stage-2: LivingPoach executor via FakeSparseMemory ─────────────────────
 
     private const int PoachWeaponId = 999;   // an arbitrary id -- self-built meta, no items.json dependency
-    private const int TestSpecies = 1;
+    private const int TestJobId = 94;        // an arbitrary fabricated map entry -- the fixture json below keys on it
     private const int TestCommonKey = 1;
     private const int TestRareKey = 2;
-    private const int TestVictimJob = 96;    // SpeciesOf(96) == 1 == TestSpecies
+    private const int TestVictimJob = TestJobId;
 
     private static Dictionary<int, WeaponMeta> DormantMeta(int formula = 45) => new()
     {
         [PoachWeaponId] = new WeaponMeta { Name = "Test Blade", Wp = 10, Cat = "Sword", Formula = formula }
     };
 
-    private string MakePoachJson(int species, int commonKey, string commonName, int rareKey, string rareName)
+    private string MakePoachJson(int jobId, int commonKey, string commonName, int rareKey, string rareName)
     {
         var dir = TempDir();
         File.WriteAllText(Path.Combine(dir, "poach.json"),
-            "{\"species\":{\"" + species + "\":{\"common\":{\"key\":" + commonKey + ",\"name\":\"" + commonName + "\"},"
+            "{\"jobs\":{\"" + jobId + "\":{\"common\":{\"key\":" + commonKey + ",\"name\":\"" + commonName + "\"},"
             + "\"rare\":{\"key\":" + rareKey + ",\"name\":\"" + rareName + "\"}}}}");
         return dir;
     }
@@ -232,7 +273,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_eligible_increments_the_store_by_exactly_one()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "Chocobo Carcass<Icon=103>"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "Chocobo Carcass<Icon=103>"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 5);
         var poach = MakePoach(mem, map, meta, roll: 0);   // roll 0 -> Common
@@ -249,7 +290,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_store_at_cap_255_refuses_the_write()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 255);
         var poach = MakePoach(mem, map, meta, roll: 0);
@@ -265,7 +306,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_unwritable_address_no_write_no_throw()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         long addr = Offsets.PoachStoreBase + (TestCommonKey - 1);
         mem.ReadableAddrs.Add(addr);
@@ -283,7 +324,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_dual_credit_same_corpse_writes_exactly_once()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = new Dictionary<int, WeaponMeta>
         {
             [PoachWeaponId] = new WeaponMeta { Name = "Blade A", Formula = 45 },
@@ -307,7 +348,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_battle_reset_clears_the_latch_same_corpse_can_poach_again()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         var poach = MakePoach(mem, map, meta, roll: 0);
@@ -328,7 +369,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_enqueues_toast_once_with_key_5_and_stripped_name()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "Chocobo Carcass<Icon=103>"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "Chocobo Carcass<Icon=103>"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestRareKey, current: 0);
         var toast = new BannerToast(meta, new Dictionary<int, int>(), enabled: true);
@@ -354,7 +395,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_vanillaFormula_weapon_never_writes()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta(formula: 1);   // vanilla-readable formula -- NOT in Tuning.DormantPoachFormulas
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         var poach = MakePoach(mem, map, meta, roll: 0);
@@ -372,7 +413,7 @@ public class LivingPoachTests : IDisposable
         // own live-memory read (covered separately below by ReadWasBasicAttack's own unit tests
         // and the end-to-end armed-wiring test).
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         var poach = MakePoach(mem, map, meta, wasBasicAttack: false, roll: 0);
@@ -428,7 +469,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_eligible_poach_also_despawns_the_corpse()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         const ushort nameId = 42;
@@ -445,22 +486,33 @@ public class LivingPoachTests : IDisposable
         Assert.Equal((byte)0x20, mem.Written[DespawnNodeAddr + Offsets.DespawnNodeModeOff]);
     }
 
+    // LW-172: turnOpen refuses TRANSIENTLY (the corpse is still confirmed dead and ours -- only the
+    // open-turn guard stands in the way), so this is no longer a permanent one-shot miss: the
+    // immediate-call assertions below are UNCHANGED (querying the queue takes no memory action of
+    // its own, so nothing here weakens), plus a new assertion proves the corpse is now retried
+    // rather than abandoned -- strictly more coverage, not less.
     [Fact]
-    public void RecordPoachDeed_despawn_refusal_does_not_roll_back_the_store_write()
+    public void RecordPoachDeed_despawn_refusal_does_not_roll_back_the_store_write_and_queues_for_retry()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         const ushort nameId = 42;
-        SeedDespawnableCorpse(mem, nameId, turnOpen: true);   // the despawn's own guard refuses
+        SeedDespawnableCorpse(mem, nameId, turnOpen: true);   // the despawn's own guard refuses -- TRANSIENT
         var poach = MakePoach(mem, map, meta, roll: 0);
 
         poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
 
         long storeAddr = Offsets.PoachStoreBase + (TestCommonKey - 1);
         Assert.Equal((byte)1, mem.U8(storeAddr));   // the carcass still stands (its own W8 write)
-        Assert.False(mem.Written.ContainsKey(DespawnNodeAddr + Offsets.DespawnNodeModeOff));   // but nothing despawned
+        Assert.False(mem.Written.ContainsKey(DespawnNodeAddr + Offsets.DespawnNodeModeOff));   // but nothing despawned yet
+
+        // The corpse is queued, not abandoned: still transiently refused, it stays pending across
+        // a Tick rather than silently dropping (a Permanent refusal, proven separately below,
+        // WOULD drop after one Tick).
+        poach.Tick();
+        Assert.False(mem.Written.ContainsKey(DespawnNodeAddr + Offsets.DespawnNodeModeOff));   // still pending, still not despawned
     }
 
     // ── Stage-2b: the killer's real Poach-bit read (combat support bitfield) ───
@@ -552,7 +604,7 @@ public class LivingPoachTests : IDisposable
     public void DeedFanout_forwards_RecordDeed_and_DeedMiss_to_inner_and_RecordPoachDeed_to_LivingPoach()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         var poach = MakePoach(mem, map, meta, roll: 0);
@@ -685,7 +737,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_ARMED_fully_eligible_credit_with_attack_stamp_writes_the_store()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         SeedArmedKiller(mem, PoachWeaponId, abil: 0);   // confirmed basic Attack
@@ -702,7 +754,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_ARMED_ability_stamp_killer_record_never_writes()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         SeedArmedKiller(mem, PoachWeaponId, abil: 141);   // Rend Weapon: a real ability, not the basic Attack
@@ -722,7 +774,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_viaFallback_true_never_writes_even_with_every_other_gate_green()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         var poach = MakePoach(mem, map, meta, roll: 0);
@@ -737,7 +789,7 @@ public class LivingPoachTests : IDisposable
     public void RecordPoachDeed_delayedOrCharged_true_never_writes_even_with_every_other_gate_green()
     {
         var mem = new FakeSparseMemory();
-        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestCommonKey, current: 0);
         var poach = MakePoach(mem, map, meta, roll: 0);
@@ -746,5 +798,269 @@ public class LivingPoachTests : IDisposable
             delayedOrCharged: true, viaFallback: false);
 
         Assert.Empty(mem.Written);
+    }
+
+    // ── Stage-5: LW-172 the despawn retry lifecycle (LivingPoach.Despawn.cs) ───────────────────
+    // Owner design decision (live pass, 2026-08-12): a vanilla-poached corpse yields NEITHER
+    // crystal nor chest, so a TRANSIENT despawn refusal must retry instead of standing as a
+    // one-shot miss (a corpse left standing could crystallize on its own turn, handing out BOTH
+    // the carcass and a crystal). These fixtures reuse Stage-3's SeedDespawnableCorpse (band slot
+    // DespawnBandSlot, node DespawnNodeAddr, node id 3) and drive the TRANSIENT case via the
+    // current-actor guard (SetCurrentActorNodeId) since it is trivial to both trigger and clear.
+
+    /// <summary>Overwrite the current-actor node-id global SeedDespawnableCorpse already marked
+    /// Readable. Setting it to the corpse's own node id (3) makes CorpseDespawn's current-actor
+    /// guard refuse TRANSIENTLY (Band slot {DespawnBandSlot}'s node is the acting unit); any other
+    /// value clears the guard.</summary>
+    private static void SetCurrentActorNodeId(FakeSparseMemory mem, byte nodeId)
+    {
+        mem.U16s[Offsets.DespawnCurrentActorNodeId] = nodeId;
+        mem.U16s[Offsets.DespawnCurrentActorNodeId + 2] = 0;
+    }
+
+    private static long DespawnCrystalAddr => Band.Entry(DespawnBandSlot) + Offsets.ACrystalHearts;
+    private static long DespawnModeAddr => DespawnNodeAddr + Offsets.DespawnNodeModeOff;
+
+    [Fact]
+    public void Tick_transient_refusal_stays_pending_and_despawns_once_the_guard_clears_writing_exactly_once()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);   // matches the corpse's own node -- TRANSIENT (never remove the acting unit)
+        var poach = MakePoach(mem, map, meta, roll: 0);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+        Assert.False(mem.Written.ContainsKey(DespawnModeAddr));
+
+        poach.Tick();
+        poach.Tick();
+        Assert.False(mem.Written.ContainsKey(DespawnModeAddr));   // still pending
+
+        SetCurrentActorNodeId(mem, 0xFF);   // the guard clears -- no longer the current actor
+        poach.Tick();
+
+        Assert.True(mem.Written.ContainsKey(DespawnModeAddr));
+        Assert.Equal((byte)0x20, mem.Written[DespawnModeAddr]);
+        Assert.Equal(1, mem.WriteOrder.FindAll(a => a == DespawnModeAddr).Count);   // the write landed exactly once overall
+
+        // Success drops the corpse from the pending set: a further Tick touches nothing more.
+        poach.Tick();
+        Assert.Equal(1, mem.WriteOrder.FindAll(a => a == DespawnModeAddr).Count);
+    }
+
+    [Fact]
+    public void Tick_pins_the_crystal_counter_to_3_each_pending_tick_and_stops_after_success()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);
+        mem.MarkWritable(DespawnCrystalAddr, 1);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+
+        poach.Tick();
+        Assert.Equal((byte)3, mem.U8(DespawnCrystalAddr));
+        poach.Tick();
+        Assert.Equal(2, mem.WriteOrder.FindAll(a => a == DespawnCrystalAddr).Count);
+
+        SetCurrentActorNodeId(mem, 0xFF);   // clears the guard -- this Tick despawns instead of pinning
+        poach.Tick();
+        Assert.Equal(2, mem.WriteOrder.FindAll(a => a == DespawnCrystalAddr).Count);   // no pin on the success tick
+
+        poach.Tick();   // dropped from pending -- nothing more happens
+        Assert.Equal(2, mem.WriteOrder.FindAll(a => a == DespawnCrystalAddr).Count);
+    }
+
+    [Fact]
+    public void Tick_pin_write_is_guarded_unwritable_counter_no_op_no_throw()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);
+        // DespawnCrystalAddr deliberately left NOT writable.
+        var poach = MakePoach(mem, map, meta, roll: 0);
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+
+        var ex = Record.Exception(() => poach.Tick());
+
+        Assert.Null(ex);
+        Assert.False(mem.Written.ContainsKey(DespawnCrystalAddr));
+    }
+
+    [Theory]
+    [InlineData(false, true)]    // no longer Dead -- alive again
+    [InlineData(true, false)]    // nameId mismatch -- slot reused by a different unit
+    public void Tick_permanent_staleness_drops_pending_corpse_with_no_write_and_no_pin(bool stillDead, bool nameIdMatches)
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);   // queue it via a transient refusal first
+        mem.MarkWritable(DespawnCrystalAddr, 1);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+
+        // The corpse turns permanently stale before the next tick.
+        long entry = Band.Entry(DespawnBandSlot);
+        if (!stillDead) mem.U8s[entry + Offsets.ADeadStatus] = 0;
+        if (!nameIdMatches) mem.U16s[entry + Offsets.ANameId] = (ushort)(nameId + 1);
+
+        poach.Tick();
+
+        Assert.False(mem.Written.ContainsKey(DespawnCrystalAddr));   // no pin
+        Assert.False(mem.Written.ContainsKey(DespawnModeAddr));      // no despawn write
+
+        // Dropped, not merely stalled: clearing the current-actor guard afterward proves nothing
+        // is retried anymore (a still-pending corpse WOULD despawn here, per the test above).
+        SetCurrentActorNodeId(mem, 0xFF);
+        poach.Tick();
+        Assert.False(mem.Written.ContainsKey(DespawnModeAddr));
+    }
+
+    [Fact]
+    public void Tick_permanent_chestBit_drops_pending_corpse_with_no_write_and_no_pin()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);
+        mem.MarkWritable(DespawnCrystalAddr, 1);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+
+        long entry = Band.Entry(DespawnBandSlot);
+        mem.U8s[entry + Offsets.ACorpseConvertMarker] = Offsets.ACorpseChestBitMask;   // engine's own chest conversion
+
+        poach.Tick();
+
+        Assert.False(mem.Written.ContainsKey(DespawnCrystalAddr));
+        Assert.False(mem.Written.ContainsKey(DespawnModeAddr));
+    }
+
+    [Fact]
+    public void Tick_watchdog_drops_after_the_tick_cap_with_exactly_one_warn_and_no_further_pins()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);   // never clears -- the corpse can never resolve
+        mem.MarkWritable(DespawnCrystalAddr, 1);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+
+        using var cap = LogCapture.Start(file: false);
+        for (int i = 0; i < LivingPoach.PendingTickCap; i++) poach.Tick();
+
+        Assert.Single(cap.Console, l => l.Contains("gave up"));
+        int pinsDuringRetry = mem.WriteOrder.FindAll(a => a == DespawnCrystalAddr).Count;
+        Assert.Equal(LivingPoach.PendingTickCap - 1, pinsDuringRetry);   // pinned every tick except the final (drop) tick
+        Assert.False(mem.Written.ContainsKey(DespawnModeAddr));
+
+        // Dropped, not merely paused: further ticks add neither pins nor warnings.
+        poach.Tick();
+        Assert.Equal(pinsDuringRetry, mem.WriteOrder.FindAll(a => a == DespawnCrystalAddr).Count);
+        Assert.Single(cap.Console, l => l.Contains("gave up"));
+    }
+
+    [Fact]
+    public void ResetBattle_clears_the_pending_despawn_queue_no_cross_battle_writes()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);
+        mem.MarkWritable(DespawnCrystalAddr, 1);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+        poach.Tick();
+        int pinsBeforeReset = mem.WriteOrder.FindAll(a => a == DespawnCrystalAddr).Count;
+        Assert.Equal(1, pinsBeforeReset);
+
+        poach.ResetBattle();
+
+        // The guard clearing after the reset would have let a still-pending corpse despawn; it
+        // must not, because ResetBattle dropped it from the queue.
+        SetCurrentActorNodeId(mem, 0xFF);
+        poach.Tick();
+
+        Assert.Equal(pinsBeforeReset, mem.WriteOrder.FindAll(a => a == DespawnCrystalAddr).Count);   // no further pin
+        Assert.False(mem.Written.ContainsKey(DespawnModeAddr));   // no cross-battle despawn write either
+    }
+
+    [Fact]
+    public void Tick_never_rewrites_the_store_or_requeues_the_toast_for_a_pending_corpse()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "Chocobo Carcass<Icon=103>"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);
+        mem.MarkWritable(DespawnCrystalAddr, 1);
+        var toast = new BannerToast(meta, new Dictionary<int, int>(), enabled: true);
+        var poach = new LivingPoach(meta, map, mem, toast, _ => true, _ => true, () => 0);
+        long storeAddr = Offsets.PoachStoreBase + (TestCommonKey - 1);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+        Assert.Equal((byte)1, mem.U8(storeAddr));
+        Assert.Single(toast._queue);
+
+        poach.Tick();
+        poach.Tick();
+        poach.Tick();
+
+        Assert.Equal((byte)1, mem.U8(storeAddr));   // the credit-moment write is never repeated
+        Assert.Single(toast._queue);                // the toast is never requeued
+    }
+
+    [Fact]
+    public void RetryLifecycle_write_set_is_exactly_the_store_write_plus_the_pin_bytes_plus_the_mode_flag_byte()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        SetCurrentActorNodeId(mem, 3);
+        mem.MarkWritable(DespawnCrystalAddr, 1);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+        long storeAddr = Offsets.PoachStoreBase + (TestCommonKey - 1);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+        poach.Tick();
+        poach.Tick();
+        SetCurrentActorNodeId(mem, 0xFF);
+        poach.Tick();   // succeeds
+
+        var expected = new HashSet<long> { storeAddr, DespawnCrystalAddr, DespawnModeAddr };
+        var actual = new HashSet<long>(mem.Written.Keys);
+        Assert.Equal(expected, actual);
     }
 }

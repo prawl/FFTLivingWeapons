@@ -548,11 +548,14 @@ internal static class Offsets
     public const long DespawnCurrentActorNodeId = 0x140CF873C;   // dword: the CURRENT ACTOR's node id; never remove it
     public const int DespawnNodeWalkMax = 64;               // bounded list walk (BodyDoubleSpike/spawn_probe precedent)
 
-    /// <summary>The chest/crystal conversion marker: composed status byte 1 (Offsets.ADeadStatus
-    /// + 1 = 0x46; == StatusApply.Composed + StatusApply.StatusByte(StatusApply.TreasureId)).
-    /// LW-58's pop-signature evidence (docs/LIVE_LEDGER.md): this byte flips 0-&gt;1 the instant
-    /// the engine converts a corpse to its crystal/chest model. A corpse reading nonzero here is
-    /// already the engine's own conversion, in flight or done -- never the despawn primitive's to
-    /// touch.</summary>
+    /// <summary>The composed-status byte carrying the chest/crystal conversion bit: status byte 1
+    /// (Offsets.ADeadStatus + 1 = 0x46; == StatusApply.Composed + StatusApply.StatusByte(id)),
+    /// which holds composed status ids 8-15, MSB-first -- Treasure (id 15, LW-58's pop-signature
+    /// evidence, docs/LIVE_LEDGER.md) is only ONE of them; Blind/Darkness (id 13) shares this same
+    /// byte. Only <see cref="ACorpseChestBitMask"/> marks the engine's own crystal/chest
+    /// conversion -- check the bit, never the whole byte (a Blinded, unconverted corpse reads this
+    /// byte nonzero too; owner-caught live 2026-08-12, CorpseDespawn.cs's staleness check false-
+    /// positived on it).</summary>
     public const int ACorpseConvertMarker = 0x46;
+    public const byte ACorpseChestBitMask = 0x01;  // mask: bit 0 of ACorpseConvertMarker (id 15, the byte's last slot MSB-first) is Treasure/chest
 }

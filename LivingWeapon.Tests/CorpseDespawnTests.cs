@@ -136,6 +136,42 @@ public class CorpseDespawnTests
         Assert.Empty(mem.Written);
     }
 
+    // ── The convert marker is a BIT test (Treasure id 15 -> composed byte +0x46, mask 0x01),
+    //    not a whole-byte check -- the composed byte also carries unrelated statuses (e.g. Blind,
+    //    id 13, mask 0x04); a Blinded-but-not-converted corpse must still despawn. Owner-caught
+    //    live 2026-08-12: a Gloomfang Blind proc read this byte nonzero and wrongly refused a
+    //    plain corpse. ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void TryDespawn_convert_marker_blind_bit_alone_proceeds()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem, convertMarker: 0x04);   // Blind (id 13) only -- no chest bit
+        SeedNotCurrentActor(mem);
+        SeedHeadNode(mem, NodeAddr);
+        SeedNode(mem, NodeAddr, next: 0, id: 3, combatBackref: Frame);
+        mem.MarkWritable(NodeAddr + Offsets.DespawnNodeModeOff, 1);
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId);
+
+        Assert.True(result);
+        Assert.True(mem.Written.ContainsKey(NodeAddr + Offsets.DespawnNodeModeOff));
+    }
+
+    [Fact]
+    public void TryDespawn_convert_marker_chest_bit_with_other_bits_set_still_refuses()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem, convertMarker: 0x05);   // chest (0x01) + Blind (0x04) -- the bit under test IS set
+        SeedHeadNode(mem, NodeAddr);
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId);
+
+        Assert.False(result);
+        Assert.False(mem.ReadCount.ContainsKey(Offsets.DespawnNodeListHead));
+        Assert.Empty(mem.Written);
+    }
+
     // ── Node resolve ────────────────────────────────────────────────────────────
 
     [Fact]
@@ -311,5 +347,138 @@ public class CorpseDespawnTests
         Assert.True(mem.Written.ContainsKey(NodeAddr + Offsets.DespawnNodeModeOff));
         Assert.Empty(mem.WrittenU16);       // no W16 ever fired
         Assert.Empty(mem.WrittenBytes);     // no WriteBytes ever fired
+    }
+
+    // ── LW-172: DespawnRefusal classification (Permanent vs Transient) ─────────────────────────
+    // The out-reason overload exists so LivingPoach.Despawn.cs's retry lifecycle can tell a
+    // corpse worth retrying from one that is provably gone. PERMANENT is exactly the three
+    // StillOurCorpse failures (alive/nameId mismatch/chest bit); everything else -- node resolve,
+    // the current-actor/open-turn guards, an unwritable or in-flight-marked flag byte -- is
+    // TRANSIENT, because the corpse is still confirmed dead and ours in every one of those cases.
+
+    [Fact]
+    public void TryDespawn_success_reason_is_None()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem);
+        SeedNotCurrentActor(mem);
+        SeedHeadNode(mem, NodeAddr);
+        SeedNode(mem, NodeAddr, next: 0, id: 3, combatBackref: Frame);
+        mem.MarkWritable(NodeAddr + Offsets.DespawnNodeModeOff, 1);
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId, out var reason);
+
+        Assert.True(result);
+        Assert.Equal(DespawnRefusal.None, reason);
+    }
+
+    [Theory]
+    [InlineData(false, (ushort)VictimNameId, (byte)0)]                 // alive
+    [InlineData(true, (ushort)(VictimNameId + 1), (byte)0)]             // nameId mismatch (slot reuse)
+    [InlineData(true, (ushort)VictimNameId, (byte)0x01)]                // chest bit
+    public void TryDespawn_staleness_refusals_read_Permanent(bool dead, ushort nameId, byte convertMarker)
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem, dead: dead, nameId: nameId, convertMarker: convertMarker);
+        SeedHeadNode(mem, NodeAddr);   // linked but must never be consulted
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId, out var reason);
+
+        Assert.False(result);
+        Assert.Equal(DespawnRefusal.Permanent, reason);
+    }
+
+    [Fact]
+    public void TryDespawn_no_backref_match_reads_Transient()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem);
+        SeedHeadNode(mem, NodeAddr);
+        SeedNode(mem, NodeAddr, next: 0, id: 5, combatBackref: Frame + 0x200);   // wrong frame
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId, out var reason);
+
+        Assert.False(result);
+        Assert.Equal(DespawnRefusal.Transient, reason);
+    }
+
+    [Fact]
+    public void TryDespawn_current_actor_node_reads_Transient()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem);
+        SeedHeadNode(mem, NodeAddr);
+        SeedNode(mem, NodeAddr, next: 0, id: 7, combatBackref: Frame);
+        SeedCurrentActorNodeId(mem, 7);
+        mem.MarkWritable(NodeAddr + Offsets.DespawnNodeModeOff, 1);
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId, out var reason);
+
+        Assert.False(result);
+        Assert.Equal(DespawnRefusal.Transient, reason);
+    }
+
+    [Fact]
+    public void TryDespawn_open_turn_reads_Transient()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem, turnFlag: 1);
+        SeedNotCurrentActor(mem);
+        SeedHeadNode(mem, NodeAddr);
+        SeedNode(mem, NodeAddr, next: 0, id: 9, combatBackref: Frame);
+        mem.MarkWritable(NodeAddr + Offsets.DespawnNodeModeOff, 1);
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId, out var reason);
+
+        Assert.False(result);
+        Assert.Equal(DespawnRefusal.Transient, reason);
+    }
+
+    [Fact]
+    public void TryDespawn_unwritable_flag_byte_reads_Transient()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem);
+        SeedNotCurrentActor(mem);
+        SeedHeadNode(mem, NodeAddr);
+        SeedNode(mem, NodeAddr, next: 0, id: 3, combatBackref: Frame);
+        // deliberately NOT marked writable
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId, out var reason);
+
+        Assert.False(result);
+        Assert.Equal(DespawnRefusal.Transient, reason);
+    }
+
+    [Fact]
+    public void TryDespawn_in_flight_marked_node_reads_Transient()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem);
+        SeedNotCurrentActor(mem);
+        SeedHeadNode(mem, NodeAddr);
+        SeedNode(mem, NodeAddr, next: 0, id: 3, combatBackref: Frame, modeByte: 0x20);
+        mem.MarkWritable(NodeAddr + Offsets.DespawnNodeModeOff, 1);
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId, out var reason);
+
+        Assert.False(result);
+        Assert.Equal(DespawnRefusal.Transient, reason);
+    }
+
+    [Fact]
+    public void TryDespawn_three_arg_overload_still_behaves_exactly_as_before()
+    {
+        var mem = new FakeSparseMemory();
+        SeedCorpse(mem);
+        SeedNotCurrentActor(mem);
+        SeedHeadNode(mem, NodeAddr);
+        SeedNode(mem, NodeAddr, next: 0, id: 3, combatBackref: Frame);
+        mem.MarkWritable(NodeAddr + Offsets.DespawnNodeModeOff, 1);
+
+        bool result = CorpseDespawn.TryDespawn(mem, BandSlot, VictimNameId);   // no out-reason
+
+        Assert.True(result);
+        Assert.True(mem.Written.ContainsKey(NodeAddr + Offsets.DespawnNodeModeOff));
     }
 }
