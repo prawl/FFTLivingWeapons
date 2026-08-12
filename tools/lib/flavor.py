@@ -232,6 +232,24 @@ KILLS_SLOT_BODY_CHARS = 11
 KILLS_SCAFFOLD = "Kills: 0/5 to +   "
 
 
+#: LW-166: the game's Poach support ability is only wired into the vanilla damage-formula
+#: handlers {1, 2, 3, 4, 6, 7} (owner-proven live 2026-08-12, the LW-166 formula matrix); a
+#: weapon riding any OTHER (dormant/repurposed) formula silently cannot be poached through,
+#: no matter how the fight goes. This is the full set of formula ids the rebalance ships on a
+#: weapon that the matrix confirmed or extrapolated poach-blind. assemble_desc() appends
+#: POACH_NOTICE to the card of every weapon whose proposed.formula is in this set, so the
+#: limitation can never be forgotten on a future dormant-formula weapon; analyze.py's
+#: check_poach_notice gate enforces the notice appears exactly on these weapons and nowhere
+#: else, and check_poach_formula_classified refuses any weapon formula that is neither in this
+#: set nor the vanilla poach-capable set.
+DORMANT_FORMULAS = {45, 46, 47, 48, 67, 69, 99}
+
+#: The card-text clause LW-166 bakes onto every dormant-formula weapon (see DORMANT_FORMULAS).
+#: Deliberately plain: a poacher building player should learn the limit from the shop screen,
+#: not from a monster that refused to drop.
+POACH_NOTICE = "No Poaching."
+
+
 def card_signature_name(sig):
     """The name the equip card shows for a signature block: curated sigName, falling back to
     displayLabel. THE resolution rule (LW-156), shared by the bake (assemble_desc below) and
@@ -265,6 +283,15 @@ def assemble_desc(it, scaffold=True):
         if desc and not desc.endswith((".", "!", "?")):
             desc += "."
         desc += f" Reaches {rng} tiles."
+    # LW-166: the game's Poach support silently cannot trigger through a dormant-formula weapon
+    # (owner-proven live 2026-08-12; see DORMANT_FORMULAS above). Appended here -- after the range
+    # sentence, before the signature block -- so the notice can never be forgotten on a future
+    # dormant-formula weapon; analyze.py's check_poach_notice gate pins this exact lockstep.
+    if it.get("category") in WEAPON_CATS and (it.get("proposed") or {}).get("formula") in DORMANT_FORMULAS:
+        desc = desc.rstrip()
+        if desc and not desc.endswith((".", "!", "?")):
+            desc += "."
+        desc += f" {POACH_NOTICE}"
     if scaffold and is_living(it):
         # p3Desc stays grouped with the gameplay prose (BELOW the flavor line, same relative
         # order as before the Kills-scaffold move). Header names the ability via sigName

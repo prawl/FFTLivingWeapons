@@ -1566,7 +1566,7 @@
       "name": "Sunderer",
       "tier": 5,
       "identity": "Sunder bruiser — normal KnightSword damage PLUS every hit shatters a random piece of the foe's gear (formula 46). The break is the whole point, so it pays the LOWEST WP in the category (13) = a sidegrade, not an upgrade; whiffs on the unequipped and on monsters.",
-      "flavorOverride": "A spiteful edge made less to slay than to ruin, shattering the arms off whatever it meets.",
+      "flavorOverride": "A spiteful edge made less to slay than to ruin; it shatters what it meets.",
       "baseline": {
         "wp": 16,
         "evade": 0,

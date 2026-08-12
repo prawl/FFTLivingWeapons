@@ -15,6 +15,9 @@ import csv, json, re, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib import flavor as flavor_mod   # module ref (not `from ... import`): the poach-notice gate
+                                        # reads DORMANT_FORMULAS/POACH_NOTICE via getattr so a RED
+                                        # run fails loudly on the missing NOTICE, never on ImportError
 from lib.categories import WEAPON_CATS
 from lib.flavor import (assemble_desc, card_signature_name, flavor_anchor,   # the exact rendered card text
                          rider_text, is_living, KILLS_SCAFFOLD, KILLS_SLOT_BODY_CHARS)
@@ -171,6 +174,61 @@ def check_desc_budget(items):
         n = len(assemble_desc(it))
         if n > DESC_MAX:
             bad.append((it, n))
+    return bad
+
+
+#: The only damage-formula ids the game's Poach support ability is actually wired into
+#: (owner-proven live 2026-08-12, LW-166: the formula matrix). Every OTHER formula a weapon
+#: ships on must be in lib.flavor.DORMANT_FORMULAS -- classified poach-blind -- or the
+#: classification gate below refuses the build.
+VANILLA_FORMULAS = {1, 2, 3, 4, 6, 7}
+
+
+def check_poach_notice(items):
+    """LW-166: the game's Poach support silently cannot trigger through a weapon whose damage
+    formula sits outside the vanilla handler set (owner-proven live 2026-08-12). Every
+    weapon-category item's assembled card must carry lib.flavor.POACH_NOTICE EXACTLY WHEN its
+    proposed.formula is in lib.flavor.DORMANT_FORMULAS -- never on a poach-capable weapon (a false
+    warning is its own bug), never missing on a poach-blind one (the bug this gate exists for).
+    Reads the two lib.flavor constants via getattr rather than a hard import so this check fails
+    LOUDLY on the missing notice text itself, not on an ImportError, if flavor.py hasn't grown
+    them yet."""
+    dormant = getattr(flavor_mod, "DORMANT_FORMULAS", None)
+    notice = getattr(flavor_mod, "POACH_NOTICE", None)
+    if dormant is None or notice is None:
+        return [({"id": 0, "name": "lib/flavor.py"},
+                  ["DORMANT_FORMULAS/POACH_NOTICE missing from lib/flavor.py (LW-166)"])]
+    bad = []
+    for it in items:
+        if it.get("category") not in WEAPON_CATS:
+            continue
+        formula = it.get("proposed", {}).get("formula")
+        wants_notice = formula in dormant
+        has_notice = notice in assemble_desc(it)
+        if wants_notice and not has_notice:
+            bad.append((it, [f"formula {formula} is dormant but the card is missing {notice!r}"]))
+        elif has_notice and not wants_notice:
+            bad.append((it, [f"formula {formula} is poach-capable but the card carries {notice!r} anyway"]))
+    return bad
+
+
+def check_poach_formula_classified(items):
+    """LW-166: every weapon's proposed.formula must be classified as either poach-capable
+    (VANILLA_FORMULAS, the owner-proven-live set the game's Poach branch actually reads) or
+    poach-blind (lib.flavor.DORMANT_FORMULAS). A formula in neither set is a future author who
+    added a new damage formula without deciding which bucket it belongs in -- classify it in one
+    of the two sets (and if poach-blind, check_poach_notice will demand the card say so)."""
+    dormant = getattr(flavor_mod, "DORMANT_FORMULAS", set())
+    known = VANILLA_FORMULAS | dormant
+    bad = []
+    for it in items:
+        if it.get("category") not in WEAPON_CATS:
+            continue
+        formula = it.get("proposed", {}).get("formula")
+        if formula not in known:
+            bad.append((it, [f"formula {formula!r} is not classified poach-capable "
+                              f"(VANILLA_FORMULAS) or poach-blind (lib.flavor.DORMANT_FORMULAS) -- "
+                              f"LW-166: classify it before shipping"]))
     return bad
 
 
@@ -621,6 +679,14 @@ def main():
              check_fn=lambda: check_desc_budget(items),
              pass_msg="PASS: every assembled description fits the card.",
              format_failure=_fmt_desc_budget, sets_rc=True),
+        dict(header="POACH NOTICE (card carries \"No Poaching.\" exactly on dormant-formula weapons)",
+             check_fn=lambda: check_poach_notice(items),
+             pass_msg="PASS: every dormant-formula weapon's card carries the notice, and no other weapon does.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="POACH FORMULA CLASSIFIED (every weapon formula is poach-capable or poach-blind)",
+             check_fn=lambda: check_poach_formula_classified(items),
+             pass_msg="PASS: every weapon formula is classified poach-capable or poach-blind.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
         dict(header=f"KILLS SCAFFOLD LOCKSTEP (baked meter body == {KILLS_SLOT_BODY_CHARS} chars, Kills line first)",
              check_fn=lambda: check_kills_scaffold_lockstep(items),
              pass_msg=f"PASS: KILLS_SCAFFOLD is {KILLS_SLOT_BODY_CHARS} chars and every living weapon leads with it.",

@@ -448,7 +448,7 @@
     "wp": 13,
     "cat": "KnightSword",
     "formula": 46,
-    "flavor": "A spiteful edge made less to slay than to ruin, shattering the arms off whatever it meets.",
+    "flavor": "A spiteful edge made less to slay than to ruin; it shatters what it meets.",
     "signature": {
       "abilityId": 0,
       "slot": "",
