@@ -7,12 +7,14 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// Blaster (id 76) +3 "Gun Slinger": writes a twin Blaster into the wielder's roster
-/// off-hand (ROffHand +0x18, u16) and Dual Wield (support 221) into the roster support
-/// slot (RSupport +0x0A, u8) between battles, with snapshot+restore of the originals.
+/// off-hand (ROffHand +0x18, u16) and Dual Wield (support Key 477) into the roster support
+/// slot (RSupport +0x0A, u16 ability Key) between battles, with snapshot+restore of the
+/// originals.
 ///
 /// Organised into:
 ///   Stage-1  W16 seam (FakeSparseMemory round-trip)
 ///   Stage-2  Policy pure decisions (GunSlinger.Policy)
+///   Stage-2a Legacy support-Key migration (pure function)
 ///   Stage-2b Snapshot save/load round-trip
 ///   Stage-3  Integration through FakeSparseMemory roster scan
 /// </summary>
@@ -141,16 +143,21 @@ public class GunSlingerTests
     }
 
     // ── Stage-2: GunSlinger.Policy -- support decisions ───────────────────────
+    //
+    // LW-168 v2 (owner-observed live 2026-08-12): the roster picked-support field at +0x0A is a
+    // u16 ABILITY KEY, not a u8 id. An empty support slot reads u16 0; Dual Wield is Key 477
+    // (live support id 221 + 256).
 
-    private const byte DualWieldId = 221;
-    private const byte EmptySuppSentinel = 0xFF;
+    private const ushort DualWieldKey = 477;
 
+    // A low-byte residue (e.g. the v1 bug's Toadja Key 221) is snapshottable like any value; it
+    // round-trips verbatim.
     [Fact]
-    public void Policy_Supp_mainIsGS_empty_noSnap_SnapshotAndWrite()
+    public void Policy_Supp_mainIsGS_lowByteResidue_noSnap_SnapshotAndWrite()
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: EmptySuppSentinel, snap: snap);
+            mainIsGS: true, supp: 221, snap: snap);
         Assert.Equal(GunSlingerSuppAction.SnapshotAndWrite, action);
     }
 
@@ -159,7 +166,7 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: DualWieldId, snap: snap);
+            mainIsGS: true, supp: DualWieldKey, snap: snap);
         Assert.Equal(GunSlingerSuppAction.Leave, action);
     }
 
@@ -168,25 +175,25 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: 213, snap: snap);
+            mainIsGS: true, supp: 463, snap: snap);
         Assert.Equal(GunSlingerSuppAction.SnapshotAndWrite, action);
     }
 
     [Fact]
     public void Policy_Supp_hasSnap_suppNotDualWield_Write()
     {
-        var snap = new GunSlingerSnap { HasSupp = true, OrigSupp = 213 };
+        var snap = new GunSlingerSnap { HasSupp = true, OrigSupp = 463 };
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: EmptySuppSentinel, snap: snap);
+            mainIsGS: true, supp: 0, snap: snap);
         Assert.Equal(GunSlingerSuppAction.Write, action);
     }
 
     [Fact]
     public void Policy_Supp_notMainIsGS_hasSnap_Restore()
     {
-        var snap = new GunSlingerSnap { HasSupp = true, OrigSupp = 213 };
+        var snap = new GunSlingerSnap { HasSupp = true, OrigSupp = 463 };
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: false, supp: DualWieldId, snap: snap);
+            mainIsGS: false, supp: 0, snap: snap);
         Assert.Equal(GunSlingerSuppAction.Restore, action);
     }
 
@@ -195,18 +202,38 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: false, supp: EmptySuppSentinel, snap: snap);
+            mainIsGS: false, supp: 0, snap: snap);
         Assert.Equal(GunSlingerSuppAction.Leave, action);
     }
 
-    // Validity gate for support: refuse 0 (garbage)
+    // LOAD-BEARING KEYSTONE (LW-168): an EMPTY support slot reads u16 0 live (owner-diagnosed
+    // 2026-08-12). The old policy rejected 0 as garbage, so a unit with no support ability
+    // never received Dual Wield. If Policy returns Leave here, this test must fail.
     [Fact]
-    public void Policy_Supp_garbage_zero_noSnap_Leave()
+    public void Policy_Supp_mainIsGS_emptyZero_noSnap_SnapshotAndWrite()
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
             mainIsGS: true, supp: 0, snap: snap);
-        Assert.Equal(GunSlingerSuppAction.Leave, action);
+        Assert.Equal(GunSlingerSuppAction.SnapshotAndWrite, action);
+    }
+
+    // ── Stage-2a: legacy support-Key migration (pure function) ───────────────
+    // Legacy gunslinger.json files (release 2.3.2 and earlier) recorded only the LOW BYTE of the
+    // support Key (the field was misread as u8). MigrateLegacySupp maps a legacy low byte back to
+    // its real u16 Key, the phantom 255 sentinel to the true empty (0), and passes current-format
+    // values through untouched.
+    [Theory]
+    [InlineData(207, 463)]   // legacy low byte of a real support Key maps up
+    [InlineData(198, 454)]   // band edge (low)
+    [InlineData(254, 510)]   // band edge (high)
+    [InlineData(255, 0)]     // the old code's phantom empty sentinel maps to the true empty
+    [InlineData(0, 0)]       // empty passes through
+    [InlineData(463, 463)]   // current-format Key passes through untouched
+    [InlineData(477, 477)]   // current-format Key (Dual Wield) passes through untouched
+    public void Policy_MigrateLegacySupp(int stored, ushort expected)
+    {
+        Assert.Equal(expected, GunSlingerPolicy.MigrateLegacySupp(stored));
     }
 
     // ── Stage-2b: snapshot round-trip ─────────────────────────────────────────
@@ -220,7 +247,7 @@ public class GunSlingerTests
         var store = new GunSlingerStore(dir);
         var snap = store.Get(nameId: 1);
         snap.HasOff = true; snap.OrigOff = 100;
-        snap.HasSupp = true; snap.OrigSupp = 213;
+        snap.HasSupp = true; snap.OrigSupp = 463;
         store.Save();
 
         var store2 = new GunSlingerStore(dir);
@@ -228,7 +255,7 @@ public class GunSlingerTests
         Assert.True(snap2.HasOff);
         Assert.Equal(100, snap2.OrigOff);
         Assert.True(snap2.HasSupp);
-        Assert.Equal(213, snap2.OrigSupp);
+        Assert.Equal(463, snap2.OrigSupp);
     }
 
     [Fact]
@@ -252,11 +279,28 @@ public class GunSlingerTests
         Assert.Equal(77, snap2.OrigOff);
     }
 
+    // LW-168 v2: a legacy gunslinger.json (release 2.3.2 and earlier) recorded only the LOW BYTE
+    // of the support Key. Loading one must migrate it to the real u16 Key at the deserialization
+    // boundary, not plant the low byte verbatim.
+    [Fact]
+    public void Snapshot_Load_migrates_legacy_lowByte_origSupp()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var primary = Path.Combine(dir, "gunslinger.json");
+        File.WriteAllText(primary, "{\"1\":{\"hasSupp\":true,\"origSupp\":207}}");
+
+        var store = new GunSlingerStore(dir);
+        var snap = store.Get(nameId: 1);
+        Assert.True(snap.HasSupp);
+        Assert.Equal(463, snap.OrigSupp);
+    }
+
     // ── Stage-3: integration through roster scan ──────────────────────────────
 
     private const int BlasterId = 76;
     private const ushort EmptyU16 = 0xFFFF;
-    private const byte EmptyU8 = 0xFF;
 
     private static Dictionary<int, WeaponMeta> MakeGunMeta() => new()
     {
@@ -270,20 +314,20 @@ public class GunSlingerTests
 
     // Seed a roster slot in FakeSparseMemory
     private static void SeedRosterSlot(FakeSparseMemory mem, int slot,
-        ushort nameId, byte level, ushort rh, ushort off, byte supp)
+        ushort nameId, byte level, ushort rh, ushort off, ushort supp)
     {
         long b = Offsets.RosterBase + slot * Offsets.RosterStride;
         mem.U16s[b + Offsets.RNameId]   = nameId;
         mem.U8s[b + Offsets.RLevel]     = level;
         mem.U16s[b + Offsets.RRHand]    = rh;
         mem.U16s[b + Offsets.ROffHand]  = off;
-        mem.U8s[b + Offsets.RSupport]   = supp;
+        mem.U16s[b + Offsets.RSupport]  = supp;
         // Mark off-hand and support writable
         mem.MarkWritable(b + Offsets.ROffHand, 2);   // production gates the u16 twin write with n=2 (GunSlinger.cs WriteOffHand)
-        mem.WritableAddrs.Add(b + Offsets.RSupport); // production gates the support write with n=1 (GunSlinger.cs WriteSupport)
+        mem.MarkWritable(b + Offsets.RSupport, 2);   // production gates the u16 support write with n=2 (GunSlinger.cs WriteSupport)
     }
 
-    // Integration keystone: main=Blaster/off=EMPTY/supp=EMPTY -> off==76, supp==221
+    // Integration keystone: main=Blaster/off=EMPTY/supp=EMPTY -> off==76, supp==477 (Dual Wield Key)
     [Fact]
     public void PrepRoster_equips_twin_and_dualwield_when_Blaster_main_tier3()
     {
@@ -293,7 +337,7 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] }; // tier 3
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: EmptyU16, supp: EmptyU8);
+                       off: EmptyU16, supp: 0);
 
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
         gs.PrepRoster();
@@ -302,9 +346,9 @@ public class GunSlingerTests
         Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
             "GunSlinger must write off-hand");
         Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
-        Assert.True(mem.Written.ContainsKey(b + Offsets.RSupport),
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.RSupport),
             "GunSlinger must write support");
-        Assert.Equal((byte)DualWieldId, mem.Written[b + Offsets.RSupport]);
+        Assert.Equal(DualWieldKey, mem.WrittenU16[b + Offsets.RSupport]);
     }
 
     // Integration: real item in off-hand gets snapshotted and overwritten
@@ -317,14 +361,14 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: 100, supp: 213);
+                       off: 100, supp: 463);
 
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
         Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
-        Assert.Equal((byte)DualWieldId, mem.Written[b + Offsets.RSupport]);
+        Assert.Equal(DualWieldKey, mem.WrittenU16[b + Offsets.RSupport]);
 
         // snapshot should have originals
         var store = gs.StoreForTest();
@@ -332,7 +376,7 @@ public class GunSlingerTests
         Assert.True(snap.HasOff);
         Assert.Equal(100, snap.OrigOff);
         Assert.True(snap.HasSupp);
-        Assert.Equal(213, snap.OrigSupp);
+        Assert.Equal(463, snap.OrigSupp);
     }
 
     // Integration: unequip Blaster -> restore original off-hand and support
@@ -345,28 +389,65 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: 100, supp: 213);
+                       off: 100, supp: 463);
 
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-        gs.PrepRoster();  // snapshot + write twin/221
+        gs.PrepRoster();  // snapshot + write twin/Dual Wield
 
         // Now switch to a different main-hand weapon
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
         mem.U16s[b + Offsets.RRHand]   = 77;         // different gun
         mem.U16s[b + Offsets.ROffHand] = BlasterId;  // twin still there
-        mem.U8s[b + Offsets.RSupport]  = DualWieldId;
+        mem.U16s[b + Offsets.RSupport] = DualWieldKey;
 
         mem.Written.Clear();
         mem.WrittenU16.Clear();
 
-        gs.PrepRoster();  // should restore 100 and 213
+        gs.PrepRoster();  // should restore 100 and 463
 
         Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
             "must restore off-hand to original");
         Assert.Equal((ushort)100, mem.WrittenU16[b + Offsets.ROffHand]);
-        Assert.True(mem.Written.ContainsKey(b + Offsets.RSupport),
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.RSupport),
             "must restore support to original");
-        Assert.Equal((byte)213, mem.Written[b + Offsets.RSupport]);
+        Assert.Equal((ushort)463, mem.WrittenU16[b + Offsets.RSupport]);
+    }
+
+    // LW-168: a BARE unit (support slot reads u16 0, the live empty) gets Dual Wield, the
+    // snapshot records the true empty, and unequipping restores 0 rather than a phantom ability.
+    [Fact]
+    public void PrepRoster_bare_unit_gets_dualwield_and_restore_writes_true_empty()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
+                       off: EmptyU16, supp: 0);   // NO support ability equipped
+
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        gs.PrepRoster();
+
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.RSupport),
+            "a bare unit must receive Dual Wield (the live empty slot reads 0)");
+        Assert.Equal(DualWieldKey, mem.WrittenU16[b + Offsets.RSupport]);
+
+        var snap = gs.StoreForTest().Get(nameId: 1);
+        Assert.True(snap.HasSupp);
+        Assert.Equal((ushort)0, snap.OrigSupp);   // the TRUE empty is what was snapshotted
+
+        // Unequip the pistol: restore must write the true empty (0) back, not a phantom Key.
+        mem.U16s[b + Offsets.RRHand] = 77;
+        mem.Written.Clear();
+        mem.WrittenU16.Clear();
+
+        gs.PrepRoster();
+
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.RSupport),
+            "must restore the support slot on unequip");
+        Assert.Equal((ushort)0, mem.WrittenU16[b + Offsets.RSupport]);
     }
 
     // ── In-battle RE-ASSERT-ONLY guard (2026-07-04: "twin pistol only works out of battle") ──
@@ -381,7 +462,7 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: EmptyU16, supp: EmptyU8);
+                       off: EmptyU16, supp: 0);
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
         gs.PrepRoster();   // out of battle: snapshot + write twin (snap.HasOff now true)
 
@@ -408,7 +489,7 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: 100, supp: 213);   // a REAL off-hand, no prior snapshot
+                       off: 100, supp: 463);   // a REAL off-hand, no prior snapshot
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
 
         gs.PrepRoster(inBattle: true);   // in battle: must leave everything alone
@@ -430,7 +511,7 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: 100, supp: 213);
+                       off: 100, supp: 463);
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
         gs.PrepRoster();   // out of battle: snapshot established
 
@@ -455,7 +536,7 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = 0 };  // tier 0
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: EmptyU16, supp: EmptyU8);
+                       off: EmptyU16, supp: 0);
 
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
         gs.PrepRoster();
@@ -463,7 +544,7 @@ public class GunSlingerTests
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
             "must not write off-hand below tier 3");
-        Assert.False(mem.Written.ContainsKey(b + Offsets.RSupport),
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.RSupport),
             "must not write support below tier 3");
     }
 }

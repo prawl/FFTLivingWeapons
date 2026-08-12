@@ -79,7 +79,10 @@ PROC = "FFT_enhanced"
 ROSTER_BASE = 0x1411A7D10
 ROSTER_STRIDE = 0x258
 ROSTER_SLOTS = 20
-R_SUPPORT = 0x0A   # u8  picked support ability id
+R_SUPPORT = 0x0A   # u16 picked support ability KEY (LW-168 owner-observed 2026-08-12: empty=0,
+                   # Dual Wield=477=live id 221+256). list/show read u16. WARNING: the twin/poke
+                   # WRITE lanes below still write the u8 LOW BYTE (a bare unit gets Key 221
+                   # "Toadja") -- do not use `+dw` writes until those lanes are converted.
 R_ACCESSORY = 0x12  # u16
 R_RHAND = 0x14     # u16 right-hand weapon (main)
 R_LHAND = 0x16     # u16 left-hand (live: empty)
@@ -260,7 +263,7 @@ def cmd_list(h):
         lh = fmt_item(u16(h, base + R_LHAND))
         oh = fmt_item(u16(h, base + R_OFFHAND))
         sh = fmt_item(u16(h, base + R_SHIELD))
-        sup = u8(h, base + R_SUPPORT)
+        sup = u16(h, base + R_SUPPORT)   # u16 ability KEY since LW-168 (empty 0, Dual Wield 477)
         print(f"{s:>4} {nid:>6} {lvl:>3} {br:>3} {fa:>3} "
               f"{rh:>6} {lh:>6} {oh:>7} {sh:>6} {sup if sup is not None else '??':>7}")
     if not any_row:
@@ -278,7 +281,7 @@ def cmd_show(h, name_id):
     print(f"  lHand(+0x16)   = {fmt_item(u16(h, base + R_LHAND))}")
     print(f"  offHand(+0x18) = {fmt_item(u16(h, base + R_OFFHAND))}")
     print(f"  shield(+0x1A)  = {fmt_item(u16(h, base + R_SHIELD))}")
-    print(f"  support(+0x0A) = {u8(h, base + R_SUPPORT)} (Dual Wield = {DUAL_WIELD_ID})")
+    print(f"  support(+0x0A) = {u16(h, base + R_SUPPORT)} (u16 Key; Dual Wield = 477, empty = 0)")
     rh = u16(h, base + R_RHAND)
     if rh is None or rh in (0x00FF, 0xFFFF):
         print(f"  NOTE: main hand is {fmt_item(rh)} (empty/unreadable) -- equip a weapon, or pass "

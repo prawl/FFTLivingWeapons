@@ -15,16 +15,22 @@ internal sealed class GunSlingerSnap
     public bool HasOff    { get; set; }
     public ushort OrigOff { get; set; }
     public bool HasSupp   { get; set; }
-    public byte OrigSupp  { get; set; }
+    public ushort OrigSupp { get; set; }
 }
 
 /// <summary>
 /// Pure decisions for the Gun Slinger out-of-battle roster prep. No memory access.
 ///
-/// EMPTY sentinels: read 0x00FF (255) or 0xFFFF (65535) for off-hand; 0xFF (255) for support.
+/// EMPTY sentinels: the off-hand reads 0x00FF (255) or 0xFFFF (65535); the SUPPORT slot is a
+/// u16 ABILITY KEY at +0x0A (reaction +0x08 / movement +0x0C are its u16 siblings) and reads 0
+/// when empty. Dual Wield = Key 477 = live support id 221 + 256 (owner-observed live 2026-08-12,
+/// LW-168: a low-byte-only 221 write onto a bare unit rendered the placeholder ability
+/// "Toadja", Key 221; a u16 477 poke rendered Dual Wield). Every u16 support value is
+/// snapshottable and restored verbatim, so the true empty (0) round-trips instead of being
+/// eaten.
 /// Valid off-hand range for snapshotting: 1..315 OR the EMPTY sentinels.
-/// Valid support range for snapshotting: 1..254 OR 255 (EMPTY). Reject 0 as garbage.
-/// Validity gate fires only when no snap exists (HasOff/HasSupp == false); re-assert ignores it.
+/// The off-hand validity gate fires only when no snap exists (HasOff == false); re-assert
+/// ignores it. The support lane has no validity gate at all.
 /// </summary>
 internal static class GunSlingerPolicy
 {
@@ -63,14 +69,12 @@ internal static class GunSlingerPolicy
     /// Decide what to do with the wielder's roster support slot.
     /// <paramref name="snap"/> is read-only; the caller mutates it after a SnapshotAndWrite decision.
     /// </summary>
-    public static GunSlingerSuppAction DesiredSupport(bool mainIsGS, byte supp, GunSlingerSnap snap)
+    public static GunSlingerSuppAction DesiredSupport(bool mainIsGS, ushort supp, GunSlingerSnap snap)
     {
         if (mainIsGS)
         {
-            if (supp == 221)    return GunSlingerSuppAction.Leave;
+            if (supp == GunSlinger.DualWieldKey) return GunSlingerSuppAction.Leave;
             if (snap.HasSupp)   return GunSlingerSuppAction.Write;
-            // No snap yet: validate before snapshotting (reject 0 as garbage)
-            if (supp == 0)      return GunSlingerSuppAction.Leave;
             return GunSlingerSuppAction.SnapshotAndWrite;
         }
         else
@@ -79,4 +83,16 @@ internal static class GunSlingerPolicy
             return GunSlingerSuppAction.Leave;
         }
     }
+
+    /// <summary>
+    /// Legacy gunslinger.json files (release 2.3.2 and earlier) recorded only the LOW BYTE of
+    /// the support Key (the field was misread as u8). Real support Keys live at high byte 0x01
+    /// (454..510), so a legacy file holds 198..254 for a real support and 255 for the old,
+    /// never-observed assumed-empty sentinel. Map low bytes back to their Keys, the phantom 255
+    /// to the true empty (0), and pass current-format values (0, or >= 256) through verbatim.
+    /// </summary>
+    internal static ushort MigrateLegacySupp(int stored) =>
+        stored == 255 ? (ushort)0
+      : stored >= 198 && stored <= 254 ? (ushort)(stored + 256)
+      : (ushort)stored;
 }

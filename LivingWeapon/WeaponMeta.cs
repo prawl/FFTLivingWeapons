@@ -128,8 +128,8 @@ public sealed class WeaponSignature
     [JsonProperty("bulwark")] public bool Bulwark { get; set; }
     // GUN SLINGER (Blaster "Gun Slinger"): at +3 with the Blaster equipped as the main hand,
     // writes a twin Blaster into the wielder's roster off-hand (ROffHand +0x18, u16) and Dual Wield
-    // (support 221) into the roster support slot (RSupport +0x0A, u8) between battles, with
-    // snapshot+restore of the originals. NOT in-battle (no ISignature tick). false = not a gun-slinger weapon.
+    // (support Key 477) into the roster support slot (RSupport +0x0A, u16 ability Key) between
+    // battles, with snapshot+restore of the originals. NOT in-battle (no ISignature tick). false = not a gun-slinger weapon.
     [JsonProperty("gunSlinger")] public bool GunSlinger { get; set; }
 }
 

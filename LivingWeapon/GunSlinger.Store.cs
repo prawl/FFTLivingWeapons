@@ -89,7 +89,8 @@ internal sealed class GunSlingerStore
 
         public GunSlingerSnap ToSnap() => new()
         {
-            HasOff = HasOff, OrigOff = (ushort)OrigOff, HasSupp = HasSupp, OrigSupp = (byte)OrigSupp
+            HasOff = HasOff, OrigOff = (ushort)OrigOff, HasSupp = HasSupp,
+            OrigSupp = GunSlingerPolicy.MigrateLegacySupp(OrigSupp)
         };
     }
 }

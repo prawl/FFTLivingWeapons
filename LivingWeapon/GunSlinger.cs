@@ -6,9 +6,9 @@ namespace LivingWeapon;
 /// Outrider Pistol (id 71) +3 "Gun Slinger": roster prep + hold.
 /// When a unit has the gun-slinger pistol as their main-hand weapon and has earned tier 3,
 /// writes a second pistol into the roster off-hand slot (ROffHand +0x18, u16) and
-/// Dual Wield (support 221) into the roster support slot (RSupport +0x0A, u8) -- so the unit
-/// dual-wields and Attack fires twice. Both slots are snapshot+restored when the unit switches
-/// away from the pistol.
+/// Dual Wield (support Key 477, RSupport +0x0A, u16 ability Key) into the roster support
+/// slot -- so the unit dual-wields and Attack fires twice. Both slots are snapshot+restored
+/// when the unit switches away from the pistol.
 ///
 /// Runs every ~1 s: world map, formation, AND in battle (Engine, Barrage's precedent). It
 /// originally ran only between battles and the twin did not hold into combat; the in-battle
@@ -21,7 +21,9 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class GunSlinger
 {
-    private const byte DualWieldId = 221;
+    /// <summary>Dual Wield's roster picked-support ABILITY KEY (live support id 221 + 256).
+    /// See GunSlingerPolicy's class doc for the low-byte-misread history (LW-168).</summary>
+    internal const ushort DualWieldKey = 477;
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
@@ -67,7 +69,7 @@ internal sealed class GunSlinger
             ushort nameId = _mem.U16(b + Offsets.RNameId);
             ushort mainH  = _mem.U16(b + Offsets.RRHand);
             ushort offH   = _mem.U16(b + Offsets.ROffHand);
-            byte   supp   = _mem.U8(b + Offsets.RSupport);
+            ushort supp   = _mem.U16(b + Offsets.RSupport);
 
             int tier = Tuning.TierOf(_kills, mainH);
             bool mainIsGS = mainH == _twinId
@@ -110,7 +112,7 @@ internal sealed class GunSlinger
         }
     }
 
-    private bool ApplySupport(long b, byte supp, bool mainIsGS, GunSlingerSnap snap, bool inBattle)
+    private bool ApplySupport(long b, ushort supp, bool mainIsGS, GunSlingerSnap snap, bool inBattle)
     {
         var action = GunSlingerPolicy.DesiredSupport(mainIsGS, supp, snap);
         switch (action)
@@ -118,10 +120,10 @@ internal sealed class GunSlinger
             case GunSlingerSuppAction.SnapshotAndWrite when !inBattle:
                 snap.OrigSupp = supp;
                 snap.HasSupp  = true;
-                WriteSupport(b, DualWieldId);
+                WriteSupport(b, DualWieldKey);
                 return true;
             case GunSlingerSuppAction.Write:
-                WriteSupport(b, DualWieldId);
+                WriteSupport(b, DualWieldKey);
                 ModLogger.Debug(LogVerb.Signature, $"re-equipped Dual Wield; something overwrote the support slot (read {supp})");
                 return false;
             case GunSlingerSuppAction.Restore when !inBattle:
@@ -139,10 +141,10 @@ internal sealed class GunSlinger
         if (_mem.Writable(addr, 2)) _mem.W16(addr, value);
     }
 
-    private void WriteSupport(long b, byte value)
+    private void WriteSupport(long b, ushort value)
     {
         long addr = b + Offsets.RSupport;
-        if (_mem.Writable(addr, 1)) _mem.W8(addr, value);
+        if (_mem.Writable(addr, 2)) _mem.W16(addr, value);
     }
 
     private static int ResolveTwinId(Dictionary<int, WeaponMeta> meta)
