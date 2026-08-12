@@ -232,6 +232,45 @@ def check_poach_formula_classified(items):
     return bad
 
 
+def check_dormant_poach_formulas_lockstep(items):
+    """LW-167: pins LivingWeapon/Tuning.cs's DormantPoachFormulas array (the C# runtime's own
+    poach-arming gate, LivingPoachPolicy.Decide's keystone) to lib.flavor.DORMANT_FORMULAS (the
+    same set check_poach_notice/check_poach_formula_classified already gate the card text on) --
+    mirrors check_kills_scaffold_lockstep's cross-language-pin mechanics: regex the C# constant's
+    literal int list straight out of Tuning.cs, parse it, and diff against the Python set. A
+    future author editing one side without the other is a silent double-fire (a weapon the
+    runtime arms poaching on top of vanilla's own working Poach branch) or under-arm (a weapon
+    that should be poachable through Living Poach never rolls) bug that no other gate catches --
+    this makes the drift a red build instead."""
+    tuning_path = ROOT / "LivingWeapon" / "Tuning.cs"
+    try:
+        text = tuning_path.read_text(encoding="utf-8")
+    except OSError as ex:
+        return [("<LivingWeapon/Tuning.cs>", f"could not read the file: {ex}")]
+
+    m = re.search(r"DormantPoachFormulas\s*=\s*\{([^}]*)\}", text)
+    if not m:
+        return [("<LivingWeapon/Tuning.cs>", "DormantPoachFormulas = { ... } not found "
+                 "(vacuous-pass guard: this gate never silently passes without reading it)")]
+    try:
+        csharp_set = {int(tok.strip()) for tok in m.group(1).split(",") if tok.strip()}
+    except ValueError as ex:
+        return [("<LivingWeapon/Tuning.cs>", f"could not parse DormantPoachFormulas as ints: {ex}")]
+
+    python_set = set(getattr(flavor_mod, "DORMANT_FORMULAS", set()))
+    if csharp_set != python_set:
+        only_cs = sorted(csharp_set - python_set)
+        only_py = sorted(python_set - csharp_set)
+        detail = (f"Tuning.cs DormantPoachFormulas={sorted(csharp_set)} != "
+                  f"lib/flavor.py DORMANT_FORMULAS={sorted(python_set)}")
+        if only_cs:
+            detail += f"; only in C#: {only_cs}"
+        if only_py:
+            detail += f"; only in Python: {only_py}"
+        return [("<DormantPoachFormulas>", detail)]
+    return []
+
+
 def check_kills_scaffold_lockstep(items):
     """Pins the Python bake's Kills-scaffold body width to LivingWeapon/Signatures.cs's own
     KillsMeterSlotChars (11, the single source of truth for the width: see that constant's
@@ -612,6 +651,13 @@ def _fmt_desc_budget(v):
         print(f"  OVERFLOW id{a['id']} {a.get('name')} ({n} chars, {n - DESC_MAX} over)")
 
 
+def _fmt_dormant_poach_lockstep(v):
+    # Findings are always a bare (name, detail) string pair -- there is no per-item finding here,
+    # the whole check is a single file-vs-file comparison.
+    for a, detail in v:
+        print(f"  DRIFT {a}: {detail}")
+
+
 def _fmt_kills_scaffold(v):
     # Findings are either an item dict (a living weapon whose baked desc drifted) or a bare
     # string (the <KILLS_SCAFFOLD constant> self-check, which has no item to name).
@@ -687,6 +733,10 @@ def main():
              check_fn=lambda: check_poach_formula_classified(items),
              pass_msg="PASS: every weapon formula is classified poach-capable or poach-blind.",
              format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="DORMANT POACH FORMULAS LOCKSTEP (LivingWeapon/Tuning.cs == lib.flavor.DORMANT_FORMULAS)",
+             check_fn=lambda: check_dormant_poach_formulas_lockstep(items),
+             pass_msg="PASS: Tuning.cs's DormantPoachFormulas matches lib.flavor.DORMANT_FORMULAS exactly.",
+             format_failure=_fmt_dormant_poach_lockstep, sets_rc=True),
         dict(header=f"KILLS SCAFFOLD LOCKSTEP (baked meter body == {KILLS_SLOT_BODY_CHARS} chars, Kills line first)",
              check_fn=lambda: check_kills_scaffold_lockstep(items),
              pass_msg=f"PASS: KILLS_SCAFFOLD is {KILLS_SLOT_BODY_CHARS} chars and every living weapon leads with it.",

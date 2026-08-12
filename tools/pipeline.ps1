@@ -36,6 +36,8 @@ $RequiredModFiles = @(
     "Newtonsoft.Json.dll",
     "meta.json",
     "treasure.json",
+    # LW-167: Living Poach's species -> carcass key/name map (PoachMap.cs loads it from modDir).
+    "poach.json",
     "FFTIVC/tables/enhanced/ItemData.xml",
     "FFTIVC/tables/enhanced/ItemWeaponData.xml",
     "FFTIVC/tables/enhanced/ItemArmorData.xml",

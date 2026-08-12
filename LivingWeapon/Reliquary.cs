@@ -18,6 +18,18 @@ internal interface IDeedSink
     /// missing-snapshot failure mode, docs/RELIQUARY_AC.md's Capture checklist) -- log-only, no
     /// deed recorded, tally still increments exactly as before Reliquary existed.</summary>
     void DeedMiss(int slot);
+
+    /// <summary>LW-167 Living Poach: the SAME credit-moment report as <see cref="RecordDeed"/>,
+    /// widened with what LivingPoach additionally needs -- the victim's band slot (its per-corpse
+    /// dedupe key alongside the victim's nameId) and the kill's shape (a delayed/charged-action
+    /// credit, or one resolved via the turn-queue fallback rather than the actor pointer; both
+    /// feed stage 4's action discriminator, unconsulted before then). DEFAULT NO-OP: every
+    /// pre-existing IDeedSink implementer (Reliquary, and every test fake) is untouched by this
+    /// widening -- C# interface default methods mean nobody has to override it to keep compiling.
+    /// KillTracker.CreditKill calls this alongside RecordDeed for every credited weapon whose slot
+    /// captured a victim snapshot; DeedFanout.cs is the only production override, forwarding to
+    /// LivingPoach.</summary>
+    void RecordPoachDeed(int weaponId, in VictimSnapshot victim, int slot, bool delayedOrCharged, bool viaFallback) { }
 }
 
 /// <summary>

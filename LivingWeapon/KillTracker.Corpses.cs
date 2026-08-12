@@ -492,7 +492,7 @@ internal sealed partial class KillTracker
                     $"Crediting the unit that landed the finishing blow, wielding {string.Join(", ", culprit.ConvertAll(LogNames.Weapon))}, rather than the unit that acted most recently.",
                     $"finishing-blow detail (lethal=[{string.Join(",", culprit)}] live-latch=[{string.Join(",", _lastPlayerWeapons)}], battle slot {s}, dead-streak {_deadStreak[s]})");
             bool viaFallback = delayed == null && (_lethalActor[s] != null ? _lethalViaFallback[s] : _latchViaFallback);
-            bool c = CreditKill(s, slot.Gx, slot.Gy, culprit, viaFallback);
+            bool c = CreditKill(s, slot.Gx, slot.Gy, culprit, viaFallback, delayedOrCharged: delayed != null);
             _deadCredited[s] = true;
             // LW-68/D2/B5: only burn the shared alive-edge when a credit actually landed.
             // A fully-refused credit (no live wielder) tallies nothing, so the identity was

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace LivingWeapon;
 
@@ -470,6 +471,36 @@ internal static class Tuning
     /// band-scan miss -- an unreadable frame for a tick, say) before the hold concludes it is genuinely
     /// gone (EnemyGone) and releases. One missed tick alone must never release the hold.</summary>
     public const int ProvokeMarkedMissTicks = 3;
+
+    // -- Living Poach (LW-167 stages 1-2): docs plan v2's "Locked design". The feature stays
+    //    structurally DISARMED through stage 2 (Engine wires wasBasicAttack to () => false; stage
+    //    4, the action discriminator, is what arms it) -- these knobs exist now so the pure policy
+    //    and the executor are both fully unit-tested ahead of that wiring. --
+
+    /// <summary>LW-167 Living Poach: damage formulas the game's own vanilla Poach support (Key
+    /// 471, live id 215) is DORMANT (owner-observed formula matrix, LW-166) through -- a weapon
+    /// shipping on any of these can never let VANILLA poach it, so this is exactly the set the
+    /// runtime feature is allowed to arm on
+    /// (owner-observed live 2026-08-12, LW-166's formula matrix; the keystone double-fire guard --
+    /// see LivingPoachPolicy.Decide's doc). MUST equal tools/lib/flavor.py's own DORMANT_FORMULAS:
+    /// analyze.py's lockstep gate (check_dormant_poach_formulas_lockstep) pins the two together so
+    /// this Python/C# pair can never drift apart.</summary>
+    internal static readonly int[] DormantPoachFormulas = { 45, 46, 47, 48, 67, 69, 99 };
+
+    /// <summary>True when <paramref name="formula"/> is one of <see cref="DormantPoachFormulas"/>
+    /// -- the keystone gate LivingPoach checks before ever considering a poach.</summary>
+    internal static bool IsDormantPoachFormula(int formula) => Array.IndexOf(DormantPoachFormulas, formula) >= 0;
+
+    /// <summary>LW-167 Living Poach: the BannerToast dedupe/event key reserved for a successful
+    /// poach's carcass announcement. Outside every other reserved key: tiers 1..3, Bulwark's 4
+    /// (<see cref="BulwarkToastKey"/>), and every negated Weapon Chronicle milestone.</summary>
+    internal const int PoachToastKey = 5;
+
+    /// <summary>LW-167 Living Poach: the killer's Poach SUPPORT ability id (live id 215 = Key 471
+    /// - 256, owner-observed live 2026-08-12) -- fed through Signatures.SupportBit the same way
+    /// Choir's InstantCastSupportId is, to find the (byteOffset, mask) in the 4-byte support
+    /// bitfield (Offsets.CSupport / Offsets.ASupport).</summary>
+    internal const int PoachSupportAbilityId = 215;
 
     /// <summary>Provoke hold (R2, owner round-2 feedback): status ids that mean the provoked enemy can
     /// no longer carry out its provoked turn, so the hold releases rather than linger to the watchdog.

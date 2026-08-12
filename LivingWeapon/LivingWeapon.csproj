@@ -38,6 +38,9 @@
   <ItemGroup>
     <None Include="meta.json"      CopyToOutputDirectory="PreserveNewest" Condition="Exists('meta.json')" />
     <None Include="treasure.json"  CopyToOutputDirectory="PreserveNewest" Condition="Exists('treasure.json')" />
+    <!-- LW-167: poach.json (species to carcass key/name map) rides the same build-output copy as
+         meta.json/treasure.json; PoachMap.cs loads it from modDir at runtime. -->
+    <None Include="poach.json"     CopyToOutputDirectory="PreserveNewest" Condition="Exists('poach.json')" />
   </ItemGroup>
 
 </Project>

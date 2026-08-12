@@ -500,4 +500,16 @@ internal static class Offsets
     /// already-garbage seat is rejected before this check is even reached.</summary>
     public const int AGateByte = -0x1B;   // band entry - 0x1B == combat +0x01
     public const byte AGateHiddenValue = 0xFF;
+
+    // --- Living Poach (LW-167): the Poacher's Den carcass store -- u8[96], one byte per
+    // poach.json carcass key. LIVE_LEDGER row dated 2026-08-12: found by a fingerprint scan of
+    // the Den's inventory-style array, owner-eyewitnessed both a read (the Den UI reflects the
+    // byte) and a write (a manual poke landed a carcass the player then saw in the Den). A
+    // mid-battle poach does NOT write this array directly -- the engine's own commit lands at
+    // battle END as an increment. What was specifically owner-observed (2026-08-12) is that a mod
+    // write made MID-battle survives that end-of-battle commit (the engine increments rather
+    // than rebuilds, per the ledger row). Same class of access as the
+    // adjacent InventoryCountBase array: guarded W8, one byte per key, addr =
+    // PoachStoreBase + (key - 1).
+    public const long PoachStoreBase = 0x1411A7A1B;
 }

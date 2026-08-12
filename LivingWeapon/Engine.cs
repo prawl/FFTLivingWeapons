@@ -25,6 +25,7 @@ internal sealed class Engine
     private readonly Dictionary<int, int> _kills;
     private readonly LegendStore _legends;   // Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md)
     private readonly Reliquary _reliquary;   // promoted from a ctor local: the battle-end summary reads BattleMarks at the exit edge
+    private readonly LivingPoach _livingPoach;   // LW-167 stage 2 (DISARMED): the Poach carcass-drop executor
     private readonly KillTracker _tracker;
     private readonly TurnTracker _turns;
     private readonly NaturalLedger _naturalLedger;   // LW-90: the shared cross-battle written-target memory
@@ -156,6 +157,19 @@ internal sealed class Engine
         // `_bannerToastsEnabled ? _toast : null` to re-enable (Reliquary Phase 2), matching the
         // equip-card `legends:` re-enable below.
         _reliquary = new Reliquary(_legends, null, meta, Flight.Record);
+        // LW-167 Living Poach (stage 2, DISARMED): the poach.json map + the executor. wasBasicAttack
+        // is hard-wired false here -- the action-discriminator premise (stage 4) is still tape-
+        // mining, so the whole feature stays structurally inert regardless of the map/roll/tier
+        // below (LivingPoachPolicy.Decide's AND-gate never passes). killerHasPoach IS wired to the
+        // real combat-struct support-bit read (LivingPoach.ReadKillerHasPoach) so stage 4 only has
+        // to flip the one wasBasicAttack delegate, not re-plumb memory access. DeedFanout is the
+        // seam-widening adapter (docs plan v2 point 4): KillTracker's `deeds:` stays a single
+        // IDeedSink, now fanning RecordDeed/DeedMiss to Reliquary and RecordPoachDeed to LivingPoach.
+        var poachMap = new PoachMap(modDir);
+        _livingPoach = new LivingPoach(meta, poachMap, live, _toast,
+            killerHasPoach: id => LivingPoach.ReadKillerHasPoach(live, id),
+            wasBasicAttack: () => false);
+        var deeds = new DeedFanout(_reliquary, _livingPoach);
         _promptSwap = new PromptSwap(_toast, live);
         _promptSwapHook = new PromptSwapHook(_promptSwap, live);
         _turns = new TurnTracker(live, Flight.Record);
@@ -170,7 +184,7 @@ internal sealed class Engine
         // CreditKill's gate reads the real battlefield, not a second independent memory view.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(verbose: true, sink: s => { ModLogger.Debug(LogVerb.Trace, s); Flight.Record("ev", s); }),
-                                   Flight.Record, deeds: _reliquary, hasLiveWielder: id => Wielder.HasLiveWielder(live, id));
+                                   Flight.Record, deeds: deeds, hasLiveWielder: id => Wielder.HasLiveWielder(live, id));
         // Kiku-ichimonji's Mushin stack count: ONE dictionary shared by reference between the
         // trigger (Mushin, banks/spends stacks) and the growth hold (GrowthEngine.HoldMushin,
         // reads it), keyed by wielder fingerprint (lvl,br,fa) like Iai's fp-keyed _holds.
@@ -320,6 +334,7 @@ internal sealed class Engine
         _turns.ResetBattle();
         _growth.ResetBattle();
         _reliquary.ResetBattle();   // per-battle Marks ledger (the exit edge composes its summary BEFORE this runs)
+        _livingPoach.ResetBattle();   // LW-167: clears the per-corpse poach dedupe latch
         foreach (var sig in _signatures) sig.ResetBattle();
         // LW-90: promote the ledger's current-attempt write-set. Safe on BOTH edges (this
         // method's contract): the promotion only fires for entries that recorded anything

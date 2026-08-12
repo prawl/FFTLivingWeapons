@@ -346,8 +346,13 @@ internal sealed partial class KillTracker
     /// as before, just with a DeedMiss instead of a RecordDeed. Never mutates/retains
     /// <paramref name="weapons"/> (may alias _lastPlayerWeapons). <paramref name="viaFallback"/>
     /// marks a credit whose culprit latch came from the turn-queue fallback rather than the
-    /// actor pointer -- it feeds the battle-end summary's fallback-attribution counter.</summary>
-    internal bool CreditKill(int s, int gx, int gy, List<int> weapons, bool viaFallback = false)
+    /// actor pointer -- it feeds the battle-end summary's fallback-attribution counter.
+    /// <paramref name="delayedOrCharged"/> (LW-167): true when this credit came from the delayed-
+    /// actor path (KillTracker.Delayed.cs's ConsumeDelayedCulprit -- a Jump or charged spellcast
+    /// that just landed); reported alongside every RecordPoachDeed call so a future consumer
+    /// (stage 4's action discriminator) can tell a delayed strike from an ordinary one. Defaults
+    /// false, matching every pre-existing call site that never passes it.</summary>
+    internal bool CreditKill(int s, int gx, int gy, List<int> weapons, bool viaFallback = false, bool delayedOrCharged = false)
     {
         bool changed = false;
         List<int> credited = weapons;
@@ -369,7 +374,11 @@ internal sealed partial class KillTracker
         _victimProbe.LogAtCredit(s);   // Reliquary P1 probe: log-only, zero behavioral dependence
         VictimSnapshot snap = _victimAtEdge[s];
         if (snap.Has)
-            foreach (int w in credited) _deeds?.RecordDeed(w, in snap);
+            foreach (int w in credited)
+            {
+                _deeds?.RecordDeed(w, in snap);
+                _deeds?.RecordPoachDeed(w, in snap, s, delayedOrCharged, viaFallback);
+            }
         else
             _deeds?.DeedMiss(s);
         _victimAtEdge[s] = default;   // consume-once: this slot's next death gets a fresh capture

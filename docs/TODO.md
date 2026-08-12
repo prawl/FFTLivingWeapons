@@ -80,6 +80,26 @@ the technical detail lives in the indented lines under it.
     seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
     is.
 
+- **[LW-167] Weapons on exotic formulas can Poach again through the mod, the real cure behind the card notice** (opened 2026-08-12) [BUILDING]
+  - Done means: a unit with the Poach support who lands a basic Attack kill with one of the 15
+    dormant formula weapons gets a carcass in the Poacher's Den, exactly like a vanilla weapon
+    would give them, with the vanilla odds (225 of 256 common, 31 of 256 rare) and a toast
+    saying what was claimed. Ability kills never fire it, because the owner proved live that
+    the game itself already poaches weapon-strike ability kills, so firing there would hand
+    out two carcasses for one kill. (Tech: every premise but one was closed live 2026-08-12,
+    LIVE_LEDGER rows dated same day: Poach = support Key 471 read at roster RSupport; the
+    monster map is baked to LivingWeapon/poach.json from the PoachItem sheet, species = job
+    minus 95; the Den store is u8[96] at 0x1411A7A1B plus Key minus 1, owner eyewitnessed
+    read and write, mid battle writes survive the battle end commit. The one open premise is
+    the basic Attack discriminator; the feature ships DISARMED, wired false, until it lands.
+    Stages: 1 policy plus map, 2 seam plus executor disarmed, 3 corpse despawn extraction,
+    4 discriminator plus arming, 5 the LW-166 notice reversal data stage.)
+  - Verify: the suite is green with the keystone double fire guards (vanilla formula weapon
+    never fires; ability kill never fires), analyze passes with the new formula set lockstep
+    gate, and the owner's live pass shows a dormant weapon Attack kill producing a Den
+    carcass with no double carcass on a vanilla control and no carcass on an ability kill.
+    Owner only, as every live flip is.
+
 ## Backlog
 
 - [LW-169] 2026-08-12: Every published Nexus mod is now labeled for compatibility with Living
@@ -99,16 +119,6 @@ the technical detail lives in the indented lines under it.
   sites), and a grant time record verify for command rewrites beyond recs 8 and 9 (Knight
   Overhaul rewrites rec 7, exactly where ShadowBlade injects for a Knight wielder). Five
   mods still need payload checks the pages could not settle: ids 9, 46, 90, 11, 110.
-
-- [LW-167] 2026-08-12: Make the exotic formula weapons actually able to Poach again, the real
-  cure behind LW-166's card notice.
-  Direction from the LW-166 dossier: a runtime Living Poach that detects a poach eligible kill
-  itself (the death edge and the killer's weapon are already owned; the kill must be a basic
-  attack by a unit carrying the Poach support against a non undead monster) and performs the
-  poach with the PROVEN despawn (render node mode 2 plus the engine sweeper) and inventory give
-  primitives. Two unproven reads gate it: detecting the equipped Poach support on the roster,
-  and the monster to poach item table. A full /build arc with its own live probes when picked
-  up; competes with Reliquary for the post release slot.
 
 - [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
   briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
