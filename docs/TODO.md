@@ -82,6 +82,24 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-169] 2026-08-12: Every published Nexus mod is now labeled for compatibility with Living
+  Weapons; turn that survey into player facing armor: a compatibility section on the Nexus
+  page, and a guard extension that detects the unguarded conflict classes and says the truth
+  in game.
+  The survey (all 97 published mods, owner session 2026-08-12): 6 do not work, all of them
+  item table mods, because whole row writeback makes two item rebalances mutually fatal
+  (ids 115, 107, 84, 75, 72, 64); roughly 25 work with potential conflicts (job row overlaps
+  on the rows our JobData.xml lists, command record rewrites, text cell overlaps on the
+  Barrage cells, non English counters per LW-101); the remaining 66 coexist clean.
+  GenericJobs (id 34, the site's most downloaded mod) was source audited on GitHub and its
+  one residual pattern scan probed live in the JobCommand region: clean. Guard extension
+  candidates the survey exposed: an item lane guard (we know every row we ship; detect
+  foreign item rows at arm time and name the loss instead of silently fighting), a text
+  anchor census message when another mod's cells cover ours (pool coverage already counts
+  sites), and a grant time record verify for command rewrites beyond recs 8 and 9 (Knight
+  Overhaul rewrites rec 7, exactly where ShadowBlade injects for a Knight wielder). Five
+  mods still need payload checks the pages could not settle: ids 9, 46, 90, 11, 110.
+
 - [LW-167] 2026-08-12: Make the exotic formula weapons actually able to Poach again, the real
   cure behind LW-166's card notice.
   Direction from the LW-166 dossier: a runtime Living Poach that detects a poach eligible kill
