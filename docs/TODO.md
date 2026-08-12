@@ -60,32 +60,6 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-163] The kill counter on the weapon card freezes for players who reload saves quickly** (opened 2026-08-12) [AWAITING-LIVE]
-  - Done means: a player who fights, quickly reloads a map save, and fights again always sees the
-    card's painted kill count catch up on its own within a few seconds of being wrong, instead of
-    freezing at a stale number (or a reset-looking card) until the rare battle they linger after.
-    The real count was never wrong and never lost: the tally saves on every kill (the on-change
-    save in Engine.cs), so this is purely making the painted text tell the truth. (Tech: two
-    edits. One, the load-bearing half: the pool-paint coverage latch re-checks itself against the
-    live site cache instead of short-circuiting forever; while covered, sites can only shrink, so
-    a count gate detects a drained cache, clears the latch, and the next display tick re-locates,
-    and that tick still runs inside a stuck bracket via ShouldPaintCard's off-field settle arm.
-    Two, defense in depth: the battle-enter edge also calls Display.Invalidate, dropping a latch
-    the prior exit edge re-anchored onto pre-load buffers; the enter edge structurally CANNOT
-    fire in a fully starved bracket, BattleState only returns Entered from the not-In branch,
-    which is why edit one carries the fix. Known residual, named on purpose: if a load leaves the
-    old buffers freed but intact enough to false-verify both the flavor anchor and the Kills
-    literal, neither edit triggers; a freeze persisting through the live pass reads as exactly
-    that signal. This does NOT close LW-108's double-credit exposure: in a starved bracket no
-    edge fires, so ResetBattleState stays starved too.)
-  - Verify: the born-red drained-pool test and the re-latch pin are green in
-    DisplayPoolPaintTests, the full suite and analyze.py pass, and the owner reproduces the
-    player's loop live on a deployed build: win a battle, reload the map save in under four
-    seconds, open the status page, see the stale number, then watch it correct itself within a
-    few seconds without entering a battle or leveling anything. A number that stays frozen
-    through that pass is the named residual, not a random failure. Owner only, as every live
-    flip is.
-
 ## Backlog
 
 - [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be

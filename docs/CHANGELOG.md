@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-163] SHIPPED 303ddf6 2026-08-12: the weapon card's painted kill counter no longer freezes
+  for players who reload saves quickly. The player report that opened this said it best: kills
+  mostly did not track until the weapon leveled, and then you are flying blind. Their flight
+  tapes proved counting and saving were always correct and only the painted text lied: the
+  painter's pool coverage latch was one way, and its only resets (battle end, new game, the
+  paused battle status card) were starved by a fast reload loop, since the battle exit clock
+  suspends inside menus, so dead paint sites were never rediscovered and every card rebuilt from
+  them showed a frozen or reset looking number. Fixed by making the latch re check itself
+  against the live site cache (while covered, sites can only shrink, so one integer compare per
+  tick catches a drained cache and the next display tick re locates, even inside a stuck battle
+  bracket) plus a battle enter Invalidate as defense in depth; the adversarial plan review
+  proved the enter edge cannot fire in a fully starved bracket, which reversed which edit
+  carries the fix. Proof chain: born red drained pool test, 2990 tests green, analyze green,
+  adversarial verify SHIP at 9 of 10 with double sabotage non vacuity, and the owner live pass
+  2026-08-12 reproduced the starved bracket on tape (kill 21 credited, no battle end line ever
+  fired, two edge less re locates healed the card before the status page even opened, the
+  counter reading correct straight away). The same report's graphical glitch (reset looking
+  cards after load, the Attack row lagging behind its weapon) was this same blind painter wearing
+  different costumes; the healthy Attack card machinery correcting it mid battle is what proved
+  the data underneath was fine. Known residual stays named in the LIVE_LEDGER Uncertain row:
+  freed but intact buffers that false verify both anchors would defeat both edits; it did not
+  appear live.
 - [LW-161] SHIPPED 1793e1f 2026-08-12: weapons now level up at a pace a real playthrough can
   actually reach: +1 at 5 kills, +2 at 10, and +3 (the signature ability) at 15, replacing the
   old 5/25/50 climb. The owner's first full playthrough forced the issue: playing heavily, a
