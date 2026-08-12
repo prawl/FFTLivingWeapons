@@ -92,8 +92,18 @@ the technical detail lives in the indented lines under it.
   wires Poach inside the vanilla weapon attack handlers, and the dormant handlers we repurposed
   never got the poach branch, so every formula 45 or 99 weapon silently cannot poach.
   Prediction: poach fails on every 45/99 weapon and works on every vanilla formula weapon; one
-  counterexample kills the theory. Owner confirmation matrix (ten minutes, Poach support on,
-  chocobo target): Hushblade no, Quicksilver yes, Swiftfang no, Sanguine Gauche yes. Fix
+  counterexample kills the theory. CONFIRMED by the owner matrix same day: Venombolt (formula
+  45, a crossbow) did not poach, proving the formula and not the weapon class decides, and
+  Sanguine Gauche (formula 48, earlier wrongly presumed working from a name mixup with the
+  vanilla formula Sanguine Sword) did not poach either. The rule tightens: only the vanilla
+  formula set {1, 2, 3, 4, 6, 7} carries the poach branch; every dormant handler tested (45,
+  48, 99) lacks it, making the untested 46/47/67/69 near certain casualties. Census findings
+  folded in: 15 weapons ride dormant formulas (Gloomfang, Hushblade, Bloodlash, Venombolt,
+  Pitchbolt on 45; Swiftfang, Swiftedge on 99; Sanguine Gauche 48; Sunderer 46; Bizen Osafune
+  and Wellspring Rod 47; Wrathblade and Muramasa 67; Climhazzard and Tombspire 69), every one
+  of which shipped formula 1 or 2 in vanilla. STAKES: tier 6 is the poach acquisition tier
+  (Red Dragon and Tiamat poaches among others), so a poacher wielding an affected weapon
+  cannot farm the mod's endgame items, though re equipping the poacher works around it. Fix
   directions ranked: document on the card (free, honest); demote formula 45 weapons to the
   native may cast lane (keeps poach, trades the guaranteed proc for the native rate, does
   nothing for Swiftfang); a runtime Living Poach built on the PROVEN despawn and inventory give
