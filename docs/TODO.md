@@ -80,6 +80,27 @@ the technical detail lives in the indented lines under it.
     seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
     is.
 
+- **[LW-171] The Arbalest learns the twin trick: at +3 it loads a second crossbow and fires twice** (opened 2026-08-12) [BUILDING]
+  - Done means: a unit whose Arbalest has grown to tier +3 gets a second Arbalest loaded into
+    the off hand and Dual Wield granted automatically, so the basic Attack fires twice, the
+    same deal the Outrider Pistol's Gun Slinger gives the gun line. The signature is named
+    Crossfire (owner picked host and name 2026-08-12: the Arbalest is the line's rider free
+    clean sniper, so the twin IS its identity, matching the Outrider precedent; Eclipsebolt
+    stays a one signature weapon). Equipping works out of battle only, same as Gun Slinger,
+    and the card text says so. (Tech: items.json id 79 gains the gunSlinger flag block with
+    displayLabel Crossfire plus the grid CSV row update; GunSlinger.ResolveTwinId goes plural
+    and the off hand write becomes per slot, the wielder's own main hand id, so two flagged
+    weapons coexist; Policy.cs already takes the twin id as a parameter; gunslinger.json
+    schema unchanged. Mechanism = the PROVEN Gun Slinger roster write pair plus LW-168's u16
+    Key 477 model; the LIVE_LEDGER Uncertain twin crossbow row dated 2026-08-12 flips on this
+    feature's live pass.)
+  - Verify: suite green with pinned tests for the two flagged weapon edges (a unit swapping
+    from one flagged weapon to the other between passes must get the NEW weapon's twin, and
+    a shield legitimately sitting in the off hand snapshots and restores cleanly), analyze
+    exit 0, meta regenerated not hand edited, and the owner live pass: equip a +3 Arbalest
+    out of battle, twin plus Dual Wield land, Attack fires twice in a real battle, unequip
+    restores the original off hand and support. The ledger flip is owner only.
+
 - **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [AWAITING-LIVE]
   - Built and adversarially checked 2026-08-12, same session it was opened: six new pinned
     tests written red first, the extractor now emits the five alias entries (each tagged with
@@ -180,20 +201,6 @@ the technical detail lives in the indented lines under it.
   it is not smoothed over: a 2026-06-08 live ROSTER read recorded job 96 as "Chocobo", which
   either means that unit was actually a Red Chocobo or the roster +0x02 space differs from
   the band job byte at the boundary; one deliberate re-read settles it.
-
-- [LW-171] 2026-08-12: Give a crossbow the twin trick: a second crossbow in the off hand plus
-  Dual Wield, so its basic Attack fires twice, exactly like the Outrider Pistol's Gun Slinger.
-  Owner proved it live 2026-08-12 on a whim: twin Eclipsebolts rendered on the equip screen
-  and Attack fired twice in a real battle (LIVE_LEDGER Uncertain row same date; the mechanism
-  is the PROVEN Gun Slinger write pair, off hand id plus Dual Wield Key 477, hardened by
-  LW-168's u16 Key model). Owner wants it in the next release. Build shape when picked up:
-  /build-lite (the mechanism is the already verified GunSlinger lane); the one code seam is
-  that GunSlinger.ResolveTwinId assumes a SINGLE flagged weapon, so supporting a second twin
-  weapon means iterating flagged ids rather than copying the module. Design half: WHICH
-  crossbow gets it and at what tier is a grid/CSV decision (curated grants, owner signs off);
-  Eclipsebolt already carries the Doom identity, so a different bow may be the better host.
-  Watch the LW-43 lag note (second wielder slow to receive the twin) if two twin weapons can
-  be fielded at once.
 
 - [LW-170] 2026-08-12: Units wearing the rebalance's Float granting gear render in a strange
   half floating state: standing flush on solid ground as if not floating at all, hovering
