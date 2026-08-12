@@ -417,6 +417,21 @@ internal sealed class Engine
             // per-tick Drive re-applied them from the stale ledger, so they carried over and never faded.
             // Resetting here makes a fresh battle start clean however the prior one ended (2026-06-15).
             ResetBattleState();
+            // LW-163: drop the pool-paint coverage latch on entry too, not just on exit. WHY this
+            // is defense-in-depth, not the primary fix: when the PREVIOUS battle's exit edge did
+            // fire, ITS Invalidate() (below, the Exited block) re-latched coverage onto whatever
+            // menu buffers were live during the world-map window that followed, and a save-load
+            // right after that can swap those buffers out from under the latch before another
+            // exit edge ever comes along to drop it again; this enter edge is the first hook after
+            // such a load that can drop the stale latch. It structurally CANNOT rescue a battle
+            // that starts inside a fully starved bracket (a fast reload that eats the debounce
+            // entirely, LW-108's class): BattleState.Step only ever returns Entered from its !In
+            // branch, so no enter edge fires there at all, which is exactly why the count-gated
+            // re-check in Display.PoolPaint.cs (MaybePoolPaint) carries the actual fix. Also worth
+            // naming, not hiding: this same tick already runs Flight.FlushBattleStart's synchronous
+            // archive above, so the pool scan this Invalidate can trigger stacks on top of that on
+            // the shared background-loop tick; accepted, same as every other enter-tick cost here.
+            _display.Invalidate();
         }
 
         // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.

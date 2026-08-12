@@ -13,15 +13,35 @@ internal sealed partial class Display
     private readonly bool _poolPaint;
     private readonly PoolLocator _poolLocator;
     private bool _poolCovered;
+    // LW-163: the site count the cache held the moment coverage last latched true. While
+    // _poolCovered is true, nothing else in this Tick offers a site to the pool cache (the
+    // sweep and the pool scan below are both skipped), so the cache can only ever SHRINK, via
+    // a maintenance/count-change PaintAll evicting a site whose anchor no longer verifies (a
+    // save-load reallocated the buffer it pointed at). An unchanged count therefore means
+    // unchanged coverage; a changed count is the drained-cache signal the re-check below acts on.
+    private int _countAtCoverage;
 
     /// <summary>True if the sweep should be skipped this Tick. Locates the pool at most once
     /// per coverage window: a cached "already covering" flag short-circuits every subsequent
-    /// call until Invalidate() resets it (no per-tick rescan once covered, matching the
-    /// existing maintenance/change-driven PaintAll paths that keep cached sites fresh).</summary>
+    /// call SO LONG AS the live site cache still covers every tracked id. The short-circuit is
+    /// no longer a one-way latch (LW-163): a cheap count compare against the cache's size at the
+    /// moment coverage latched detects a shrink (the only way it can move while covered, see
+    /// _countAtCoverage's own comment); a shrink that still covers everything just re-latches at
+    /// the new count, and a shrink that drains coverage below every tracked id clears the latch
+    /// so the locate/scan below runs again on this same Tick. A save-load that frees the buffers
+    /// the cached sites point into is exactly that drain: CardSites.PaintAll's anchor re-verify
+    /// evicts the dead sites first (maintenance or count-change PaintAll, both ahead of this call
+    /// in Display.Tick), this method sees the smaller count next, and re-locates instead of
+    /// staying blind until Invalidate() is called from somewhere else.</summary>
     private bool MaybePoolPaint()
     {
         if (!_poolPaint) return false;
-        if (_poolCovered) return true;
+        if (_poolCovered)
+        {
+            if (_sites.Count == _countAtCoverage) return true;                 // cheap steady-state: one int compare
+            if (CoversAllMeta()) { _countAtCoverage = _sites.Count; return true; }  // shrank but still covers: re-latch
+            _poolCovered = false;                                              // drained below coverage: fall through to re-locate
+        }
 
         var regions = _poolLocator.LocateAll();
         if (regions.Count == 0)
@@ -37,6 +57,7 @@ internal sealed partial class Display
         foreach (var (rbase, rsize) in regions) ScanPoolRegion(rbase, rsize);
 
         _poolCovered = CoversAllMeta();
+        if (_poolCovered) _countAtCoverage = _sites.Count;   // LW-163: snapshot the count the re-check above compares against
 #if LWDEV
         int killsIds = 0;
         foreach (var s in _sites.Snapshot()) if (s.IsKills) killsIds++;
@@ -57,8 +78,11 @@ internal sealed partial class Display
     /// pool chunk. The observed live pools are small, but a real pool can exceed ChunkSize
     /// (PoolLocator's own caveat), so the worst case is that many passes over a full 4MB chunk,
     /// roughly tens of ms per such chunk, landing on the ENGINE'S OWN background loop (never
-    /// the game thread) at the ticks that already run this scan: battle-exit Invalidate or a
-    /// paused status-card Invalidate, where hold-reassert/kill-poll latency does not bite.
+    /// the game thread) at the ticks that already run this scan: battle-exit Invalidate, a
+    /// paused status-card Invalidate, the battle-enter Invalidate (LW-163, Engine.cs), or the
+    /// drained-cache re-latch above (LW-163: the count-gated re-check clearing _poolCovered),
+    /// which can also land mid-battle during an off-field settle stretch rather than only at an
+    /// edge, where hold-reassert/kill-poll latency does not bite.
     /// Residual accepted risk: if kills coverage never latches (a future weapon absent from
     /// every pool region), that text-chunk cost recurs per tick. That never-latch state is a
     /// pre-existing failure mode (it already re-scans all regions AND runs the sweep every

@@ -300,4 +300,122 @@ public class DisplayPoolPaintTests
         Assert.True(suffixSites <= 1 + SuffixRotation.RotationSlice,
             $"suffix sites ({suffixSites}) must not exceed target + rotation slice on the sweep path");
     }
+
+    // ─── LW-163: a drained pool cache must re-locate on its own, no Invalidate involved ────
+
+    /// <summary>LW-163 (load-bearing, born red): a save-load can free the pool region the cached
+    /// sites point into WITHOUT any Invalidate() call reaching Display at all (the player's
+    /// habitual check surface is the out-of-battle status page, which triggers none). Once
+    /// coverage has latched, the pre-fix MaybePoolPaint short-circuits forever, so a drained
+    /// cache is never re-discovered and the card freezes blind. Recipe: reach coverage, then
+    /// (mirroring DisplayMutationGapTests' C4 region-move) remove the pool region and add a
+    /// fresh one at a different base with unpainted card bytes for the same two weapons, advance
+    /// the clock past Display.MaintenanceMs so the maintenance PaintAll evicts the now-dead sites
+    /// (their anchors live in memory that no longer exists), and Tick once more with NO
+    /// Invalidate() anywhere in the test. A correct fix re-locates within that same Tick (the
+    /// eviction and the pool-paint re-check both run inside Display.Tick, eviction first).</summary>
+    [Fact]
+    public void PoolPaint_drained_pool_relocates_without_any_invalidate()
+    {
+        var f = BuildTwoWeaponPoolFixture();
+        f.Kills[10] = 7; f.Kills[11] = 3;
+        var clock = new TestClock();
+        var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
+
+        display.Tick(false);
+
+        Assert.False(display._sweep.IsComplete);   // proves attribution came from the pool path
+        Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, f.PoolBase + f.SlotA, Signatures.KillsMeterSlotChars));
+
+        // Drain: remove the original pool region and add a fresh replacement at a DIFFERENT
+        // base, with fresh (unpainted) card bytes for both weapons. No Invalidate() call.
+        f.Heap.RemoveRegion(f.PoolBase);
+        long newBase = 0x58_0000_0000L;
+        var newBuf = new byte[2000];
+        var (_, slotA2, flavorA2) = CardFixtures.WriteCardForwardWithName(newBuf, 0, "BowX", "Fletched with regret");
+        int nextStart2 = flavorA2 + ByteScan.Ascii("Fletched with regret").Length + 20;
+        var (_, slotB2, _) = CardFixtures.WriteCardForwardWithName(newBuf, nextStart2, "BowY", "Arrow never sleeps");
+        f.Heap.AddRegion(newBase, newBuf, writable: true);
+
+        // Advance past MaintenanceMs so the maintenance PaintAll runs, re-verifies every cached
+        // site's anchor, and evicts the ones whose anchor now lives in removed memory.
+        clock.Ms += Display.MaintenanceMs + 1;
+        display.Tick(false);
+
+        Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(3), ReadAscii(f.Heap, newBase + slotB2, Signatures.KillsMeterSlotChars));
+        Assert.False(display._sweep.IsComplete);   // the whole-heap sweep still never ran
+    }
+
+    /// <summary>LW-163 regression pin, the non-vacuous negative for the fall-through above: the
+    /// fix must not turn into a permanent every-tick rescan. RegionsSpyMem is copied (not
+    /// referenced) from PoolLocatorTests.cs's private helper of the same name, per this file's
+    /// own no-cross-file-reference convention for test-only fakes.</summary>
+    [Fact]
+    public void PoolPaint_steady_state_short_circuits_and_relatches_after_heal()
+    {
+        var f = BuildTwoWeaponPoolFixture();
+        f.Kills[10] = 7; f.Kills[11] = 3;
+        var clock = new TestClock();
+        var spy = new RegionsSpyMem(f.Heap);
+        var wrapped = new OffsetRemapMem(spy, f.StaticsBase, f.StaticsBase + 2, f.StaticsBase + 4);
+        var display = new Display(f.Meta, f.Kills, wrapped, clock.Func, legends: null, poolPaint: true);
+
+        display.Tick(false);   // establish coverage
+        Assert.False(display._sweep.IsComplete);
+
+        int callsAfterCoverage = spy.RegionsCalls;
+        Assert.True(callsAfterCoverage > 0, "the cold locate must have scanned Regions() at least once");
+
+        // (a) steady state: several ticks with sites alive must short-circuit on the cheap count
+        // gate alone, never calling into the locator (so Regions() is never re-enumerated).
+        for (int i = 0; i < 5; i++) display.Tick(false);
+        Assert.Equal(callsAfterCoverage, spy.RegionsCalls);
+
+        // Drain (same recipe as the born-red test above), then heal on the next Tick.
+        f.Heap.RemoveRegion(f.PoolBase);
+        long newBase = 0x59_0000_0000L;
+        var newBuf = new byte[2000];
+        var (_, slotA2, flavorA2) = CardFixtures.WriteCardForwardWithName(newBuf, 0, "BowX", "Fletched with regret");
+        int nextStart2 = flavorA2 + ByteScan.Ascii("Fletched with regret").Length + 20;
+        CardFixtures.WriteCardForwardWithName(newBuf, nextStart2, "BowY", "Arrow never sleeps");
+        f.Heap.AddRegion(newBase, newBuf, writable: true);
+
+        clock.Ms += Display.MaintenanceMs + 1;
+        display.Tick(false);   // maintenance evicts, then the drained-cache re-check heals, same Tick
+
+        Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
+
+        int callsAfterHeal = spy.RegionsCalls;
+        Assert.True(callsAfterHeal > callsAfterCoverage, "the heal must have re-scanned Regions()");
+
+        // (b) re-latch pin: one further tick with the healed sites alive must NOT call
+        // Regions() again -- the fix re-latches, it does not become a permanent rescan.
+        display.Tick(false);
+        Assert.Equal(callsAfterHeal, spy.RegionsCalls);
+    }
+
+    /// <summary>IGameMemory wrapper that counts Regions() calls, forwarding everything else --
+    /// copied from PoolLocatorTests.cs's private helper of the same name (this file's own
+    /// no-cross-file-reference convention for test-only fakes).</summary>
+    private sealed class RegionsSpyMem : IGameMemory
+    {
+        private readonly IGameMemory _inner;
+        public int RegionsCalls { get; private set; }
+        public RegionsSpyMem(IGameMemory inner) => _inner = inner;
+
+        public byte U8(long addr) => _inner.U8(addr);
+        public ushort U16(long addr) => _inner.U16(addr);
+        public bool TryReadBytes(long addr, int len, out byte[] buf) => _inner.TryReadBytes(addr, len, out buf);
+        public int ReadInto(long addr, byte[] buf, int len) => _inner.ReadInto(addr, buf, len);
+        public void WriteBytes(long addr, byte[] data) => _inner.WriteBytes(addr, data);
+        public void W8(long addr, byte value) => _inner.W8(addr, value);
+        public bool Readable(long addr, int len) => _inner.Readable(addr, len);
+        public bool Writable(long addr, int len) => _inner.Writable(addr, len);
+        public IEnumerable<(long baseAddr, long size)> Regions()
+        {
+            RegionsCalls++;
+            return _inner.Regions();
+        }
+    }
 }

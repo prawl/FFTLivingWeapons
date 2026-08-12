@@ -60,42 +60,33 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-## Backlog
+- **[LW-163] The kill counter on the weapon card freezes for players who reload saves quickly** (opened 2026-08-12) [AWAITING-LIVE]
+  - Done means: a player who fights, quickly reloads a map save, and fights again always sees the
+    card's painted kill count catch up on its own within a few seconds of being wrong, instead of
+    freezing at a stale number (or a reset-looking card) until the rare battle they linger after.
+    The real count was never wrong and never lost: the tally saves on every kill (the on-change
+    save in Engine.cs), so this is purely making the painted text tell the truth. (Tech: two
+    edits. One, the load-bearing half: the pool-paint coverage latch re-checks itself against the
+    live site cache instead of short-circuiting forever; while covered, sites can only shrink, so
+    a count gate detects a drained cache, clears the latch, and the next display tick re-locates,
+    and that tick still runs inside a stuck bracket via ShouldPaintCard's off-field settle arm.
+    Two, defense in depth: the battle-enter edge also calls Display.Invalidate, dropping a latch
+    the prior exit edge re-anchored onto pre-load buffers; the enter edge structurally CANNOT
+    fire in a fully starved bracket, BattleState only returns Entered from the not-In branch,
+    which is why edit one carries the fix. Known residual, named on purpose: if a load leaves the
+    old buffers freed but intact enough to false-verify both the flavor anchor and the Kills
+    literal, neither edit triggers; a freeze persisting through the live pass reads as exactly
+    that signal. This does NOT close LW-108's double-credit exposure: in a starved bracket no
+    edge fires, so ResetBattleState stays starved too.)
+  - Verify: the born-red drained-pool test and the re-latch pin are green in
+    DisplayPoolPaintTests, the full suite and analyze.py pass, and the owner reproduces the
+    player's loop live on a deployed build: win a battle, reload the map save in under four
+    seconds, open the status page, see the stale number, then watch it correct itself within a
+    few seconds without entering a battle or leveling anything. A number that stays frozen
+    through that pass is the named residual, not a random failure. Owner only, as every live
+    flip is.
 
-- [LW-163] 2026-08-12: A player whose habit is fast save-reloading between fights sees their
-  weapon's painted kill count freeze for battles at a time while the real count keeps climbing;
-  the number only snaps correct after a battle the mod actually saw end.
-  Root cause assembled from the player's flight tapes (2026-08-12 triage): the equip card
-  repaint (_display.Invalidate), the kill tally save, and the flight flush ALL hang exclusively
-  off the battle-exit edge (Engine.cs battle-exit block), and that edge is eaten whenever the
-  out-of-battle gap stays under the 4.0 second debounce (the LW-108 class; the player's own tape
-  measured a 3.5-3.75s gap bracket, and their load-the-map-save loop lives on that boundary).
-  The same tapes prove counting itself is healthy: Vagabond (id 19) ran 22 to 27 to 32 with
-  clean credits, a delivered tier-2 toast, and one correct no-credit refusal, so the bug is
-  purely the stale painted text. Candidate fixes, cheapest first: also invalidate the display
-  and save the tally on the battle-ENTER edge (enter edges fired reliably on every tape in the
-  set), or key both on the restart detection LW-108 proposes. Likely also explains LW-28's
-  second anomaly (the session whose kills.json timestamp never advanced: every exit edge that
-  session may have been eaten). One more corroboration banked: the player tape shows an exit
-  firing 0.25-0.48s earlier than the 4.0s debounce should permit, reconcilable only as an
-  engine-loop stall telescoping the accumulator, so identical fast transitions can land on
-  either side of the threshold at random.
-  SHARPENED same day, code-read round: the exact freeze is the pool-paint coverage latch.
-  Display.PoolPaint.cs MaybePoolPaint short-circuits on _poolCovered forever once set, with no
-  re-verify and no sweep fallback, and only three events reset it (Engine.cs: the battle-exit
-  edge, a new-game detect, and the paused IN-battle status card opening). When a save-reload
-  reallocates the card buffers, the cached sites correctly refuse and drain, but the latch stays
-  true, so nothing re-discovers the live buffers and zero paints land anywhere visible.
-  Player round-2 detail confirms it and folds in their "graphical glitch": their habitual check
-  surface is the OUT-of-battle status page (which triggers no invalidate at all); some loads
-  come up with every weapon looking factory reset (fresh unpainted scaffold, vanilla-looking
-  name, Kills 0/x) while others show the frozen stale number; and in battle the Attack row opens
-  as plain "Attack" then corrects to the dressed name, tier, and kills when the strike composes,
-  which is the Attack card's own per-battle census machinery proving the underlying data healthy
-  while Display stays latched blind. Fix direction accordingly: clear the latch / Invalidate on
-  the battle-ENTER edge (and consider re-running CoversAllMeta instead of trusting the latch),
-  so every battle starts with a re-find instead of gambling on the player lingering at battle
-  end.
+## Backlog
 
 - [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
   briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
