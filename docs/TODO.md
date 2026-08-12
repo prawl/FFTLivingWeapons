@@ -60,22 +60,17 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-161] Weapons level up far too slowly in real play** (opened 2026-08-11) [AWAITING-LIVE]
-  - Done means: a player who keeps using a weapon through normal battles sees it reach +1 at 5
-    kills, +2 at 10, and +3 (the signature ability) at 15, instead of the old 5/25/50 climb: the
-    owner's first full playthrough reached 50 kills on only ONE weapon while a third of the way
-    through the game, so under the old curve most weapons never awakened at all. Existing saves
-    benefit the moment they load, since tiers are recomputed from the banked tallies. (Tech:
-    Tuning.ProdThresholds {5,25,50} to {5,10,15}; ProdMarkThresholds placeholder 25 to 10; dev
-    curves untouched; the meter slot width stays 11 chars and thresholds[0] stays 5, so the baked
-    item.en.nxd scaffold "Kills: 0/5 to +" needs no rebake; literal calibrated tests re-picked.)
-  - Verify: the full test suite is green including the new curve pin and the new widest meter
-    body derivation test, analyze.py stays green, and audit_nxd_bakes.py reports no drift. Then
-    the owner live pass on a production flavored build: load a real save, confirm a weapon with
-    15 or more kills shows +3 on its card and the meter counts toward /10 and /15. Owner only,
-    as every live flip is.
-
 ## Backlog
+
+- [LW-162] 2026-08-12: The build script's warning about leftover dev kill tallies points at the
+  wrong folder, so anyone following it looks where the tally no longer lives.
+  Found during the LW-161 live pass: BuildLinked's DEV-flavored-install warning tells the owner
+  to delete kills.json from the deploy folder (Reloaded\Mods\prawl.fft.livingweapons), but since
+  the LW-134 save-dir split the tally lives in the User save folder
+  (Reloaded\User\Mods\prawl.fft.livingweapons), and the deploy-folder path misdirected this
+  session's live-pass staging on the first try. Re-point the warning text at the real save dir
+  and check whether the preserve/restore list still names the old location anywhere else in
+  tools/pipeline.ps1.
 
 - [LW-146] 2026-07-28: A batch of comments and docs that lied about the code they sit on is fixed;
   one item is left, and it needs the owner's own sign-off.

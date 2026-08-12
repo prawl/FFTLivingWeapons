@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-161] SHIPPED 1793e1f 2026-08-12: weapons now level up at a pace a real playthrough can
+  actually reach: +1 at 5 kills, +2 at 10, and +3 (the signature ability) at 15, replacing the
+  old 5/25/50 climb. The owner's first full playthrough forced the issue: playing heavily, a
+  third of the way through the game, exactly one weapon reached 50 kills, meaning the mod's
+  headline feature effectively did not exist in normal play. Existing saves promote instantly on
+  load because tiers are recomputed from the banked tallies. The scope stayed deliberately
+  small: the first threshold stays 5 and the widest meter body stays 11 chars, so the baked card
+  scaffold in item.en.nxd needed no rebake (audit_nxd_bakes green, zero drift). Guarded by a
+  born-red curve pin plus a widest-meter-body derivation test recomputed from the thresholds,
+  both proven non-vacuous by sabotage; nine suites' literal boundary picks were re-derived to
+  keep probing both sides of every threshold; six stale comments claiming the old curve were
+  corrected across three adversarial verify rounds (final verdict SHIP at 9 of 10). The
+  Reliquary Mark placeholder scaled down with it (25 to 10, still a placeholder). Owner live
+  pass 2026-08-12 on a production deploy: staged tallies at 6 and 12 kills painted the right
+  suffixes and meters, and the launch header, arming, and command grants all came up clean.
 - [LW-160] SHIPPED 7745bd0 2026-08-08: the nine test suites that exercise the kill counter no
   longer hand-copy the same setup helpers; one shared fixture (KillTrackerFixtures) owns those
   bodies, every suite reads from it through using-static imports, and not one calling line or
