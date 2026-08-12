@@ -49,6 +49,7 @@ These classes coexist with Living Weapons at one specific, known cost:
 |---|---|---|
 | Ivalice Retranslation Project | 9 | Text lane: it rewrites the game's English text including item and ability tables (its standalone version replaces the whole English text archive). Our custom item names/descriptions fight its translation, and the painted kill counter can lose its anchor on affected cards |
 | Dual Subtitles JP-EN with Kana Assist | 90 | Text lane, milder: it switches item/job/ability names to Japanese while keeping descriptions in English (the author's stated design), so our custom names may fight it but the kill counter's description anchor likely survives. Not yet watched in game |
+| Ramza Overhaul | 110 | Payload read row by row: its command records (25-28, Ramza and Delita) and job text are clear of everything we ship or guard, and no item tables. Exactly one row overlaps ours (a Ramza chapter job where it grants Knight Sword access and we raise evasion): depending on load order one of those two small edits can lose, so worst case is Ramza missing 3 points of evasion or the overhaul missing Knight Sword access on that chapter. Everything else coexists |
 
 ## Verified compatible
 
@@ -60,11 +61,8 @@ These classes coexist with Living Weapons at one specific, known cost:
 
 ## Not yet checked
 
-Treat as unknown until a verdict lands here:
-
-| Mod | Nexus # | Why still unchecked |
-|---|---|---|
-| Ramza Overhaul | 110 | Its upload storage format offers no archive preview, and the page does not say which tables it ships; needs a payload check |
+Nothing at the moment: every mod flagged by the survey now has a verdict above. New mods
+get checked as they appear; open a GitHub issue to request one.
 
 ## Everything else
 
@@ -80,5 +78,6 @@ Survey provenance: hands-on review of all 97 published Ivalice Chronicles Nexus 
 2026-08-12, against this mod's shipped tables and runtime guards. Same-day follow-up: the
 formerly unchecked mods were classified by enumerating their archive contents through the
 Nexus file-preview metadata (no downloads), and Deep Brave Story's verdict was upgraded by
-reading three of its downloaded payloads row by row against this mod's shipped tables. One
-mod (Ramza Overhaul) resists both routes and stays unchecked. Page last updated: 2026-08-12.
+reading three of its downloaded payloads row by row against this mod's shipped tables, and
+Ramza Overhaul was settled last the same way from a downloaded payload. Every survey-flagged
+mod now carries a verdict. Page last updated: 2026-08-12.

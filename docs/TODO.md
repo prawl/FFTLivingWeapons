@@ -233,6 +233,18 @@ the technical detail lives in the indented lines under it.
   units on land. Prior that may bite: a redefined EquipBonus row rewrites every user of that
   row (see the row override audit memory).
 
+- [LW-178] 2026-08-12: Settle whether the mod loader merges table XML rows per PROPERTY or
+  per ROW, because compatibility verdicts hinge on it when two mods edit different fields of
+  the same row. The loader's own template comment claims per property tracking ("only
+  properties actually included will be tracked as edited"), while the LW-77 Proven ledger
+  row showed load order cannot fix the item table conflicts we tested; both can be true if
+  the tested conflicts shipped the same properties, so the grain question is genuinely open.
+  Concrete test case sitting ready: Ramza Overhaul (Nexus 110) and this mod both ship
+  JobData row 4 with DISJOINT properties (their EquippableItems grant vs our
+  CharacterEvasion 8); install both, restart, and read Ramza's chapter job in game: both
+  effects landing proves per property, one missing proves per row. The answer sharpens the
+  compatibility grid's caveat wording and could soften the fatal six's phrasing.
+
 - [LW-177] 2026-08-12: Teach the mod to detect the conflict classes the compatibility
   survey exposed and say the truth in game, the guard extension half of what LW-169 carried
   before the grid narrowed it. Candidates from the survey session: an item lane guard (we
