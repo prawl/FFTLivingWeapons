@@ -106,6 +106,17 @@ the technical detail lives in the indented lines under it.
     its base job), the regenerated map is byte identical on a re run, and the independent
     verify broke the implementation three ways to prove the new guards really trip (suite
     3086 green, analyze exit 0, verdict SHIP at 9/10). Only the live premise beat remains.
+  - Premise rescoped 2026-08-12 after a full encounter-table sweep: alias jobs appear in
+    EXACTLY three battles in the whole game (384 Siedge Weald, the TIC name for PSX Sweegy
+    Woods, fielding six alias units; 389 one panther; 400 one chocobo), all story battles,
+    so the player impact is those battles plus NG+ replays, and a late save cannot reach any
+    of them naturally. The owner's live pass instead confirmed base-job poaches end to end
+    (goblin, skeleton x2, black goblin, red panther all claimed, despawned, and Den counted,
+    with the Den UI cross-checked exact against the store bytes). The live settle for the
+    alias byte is a staged encounter: inject one MainJob 169 panther into a reachable random
+    battle through the moddable encounter table (the arena lane the sibling repo showed
+    working live), restart, poach it; a toast plus key 19 rising settles it, silence means
+    the engine normalizes aliases and this row gets a retraction note instead.
   - Done means: a monster the game fields on one of the Job sheet's five alias rows (jobs
     169-173, which per the sheet are exact clones of jobs 103/97/98/100/94 with the same
     species and the same carcass keys) poaches exactly like its base-job twin: the map
@@ -129,6 +140,18 @@ the technical detail lives in the indented lines under it.
     space).
 
 ## Backlog
+
+- [LW-176] 2026-08-12: Make the living poach look and sound closer to the game's own poach:
+  the owner watched one live and called it eerily close but not identical, the removal
+  timing is slightly off and the game's poach sound never plays. Step one when picked up is
+  a read-only tape of a VANILLA poach with the existing text-hook head sampler running, to
+  inventory exactly what the engine fires (banner call, timing, whatever sits next to the
+  sound trigger); that ten minute tape decides whether the mimicry is a weekend or a wall.
+  Sound triggering from in-process has no proven lane today, and calling engine UI routines
+  cold has walled before (the numeral popup), so this is a real RE arc, not a knob. Open
+  design question for the owner first: perfect mimicry may be undesirable, since a slightly
+  distinct presentation is how a player and a debugger tell a mod poach from a vanilla
+  poach at a glance.
 
 - [LW-175] 2026-08-12: If a poached corpse's removal stays blocked for about 30 seconds the
   mod gives up, and the corpse can then still crystallize on top of the already-banked
