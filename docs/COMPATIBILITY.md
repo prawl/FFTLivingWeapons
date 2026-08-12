@@ -23,14 +23,15 @@ Living Weapons, please open a GitHub issue on this repository.
 Both mods rewrite whole rows of the game's item tables. Whichever loads last wins each row,
 so gear from the losing mod silently reverts. There is no safe ordering; pick one.
 
-| Mod | Nexus # |
-|---|---|
-| CustomJOB_ITEM-1 | 64 |
-| FFT Regabond's Rebalance | 72 |
-| Antidote - FFT Rebalanced | 75 |
-| The War of the Lions Equipment Replacer | 84 |
-| All Items in Shops | 107 |
-| Materia Blade Plus Replacement | 115 |
+| Mod | Nexus # | Scope |
+|---|---|---|
+| CustomJOB_ITEM-1 | 64 | Full item rebalance; every gear row fights |
+| FFT Regabond's Rebalance | 72 | Full item rebalance; every gear row fights |
+| Antidote - FFT Rebalanced | 75 | Full item rebalance; every gear row fights |
+| The War of the Lions Equipment Replacer | 84 | Full item rebalance; every gear row fights |
+| All Items in Shops | 107 | Item table rows; the rows it ships fight ours |
+| Materia Blade Plus Replacement | 115 | Item table rows; the rows it ships fight ours |
+| Cloud Re-Work | 46 | Limited: ships ItemData rows for the gear it edits, so those specific items follow one mod only (its ability and encounter files are fine); pairing breaks either Cloud's kit or our rebalance on those items |
 
 ## Works, with a known caveat
 
@@ -42,24 +43,28 @@ These classes coexist with Living Weapons at one specific, known cost:
 | Overwrites the text cells our custom names and descriptions live in | Those specific names/descriptions may display the other mod's text | Everything mechanical |
 | ...or you play in a language other than English | The painted "Kills:" counter on weapon cards does not render (a non-English game loads different item text, so our anchor is not there). Switching the game to English and restarting shows it again | Counting itself continues untouched; nothing is lost, only hidden |
 
+### Specific mods checked into these classes
+
+| Mod | Nexus # | Verdict |
+|---|---|---|
+| Ivalice Retranslation Project | 9 | Text lane: it rewrites the game's English text including item and ability tables (its standalone version replaces the whole English text archive). Our custom item names/descriptions fight its translation, and the painted kill counter can lose its anchor on affected cards |
+| Dual Subtitles JP-EN with Kana Assist | 90 | Text lane, milder: it switches item/job/ability names to Japanese while keeping descriptions in English (the author's stated design), so our custom names may fight it but the kill counter's description anchor likely survives. Not yet watched in game |
+
 ## Verified compatible
 
 | Mod | Nexus # | Note |
 |---|---|---|
 | Generic Jobs | 34 | The site's most-downloaded mod; source-audited, and its one residual write pattern was checked in-game against our job-command region: clean |
+| Super and Ultrawide Resolutions | 11 | Ships only resolution configuration tables; nothing shared with this mod |
+| Deep Brave Story (base + add-on files) | 83 | Payload-verified on three of its eight files: the base ships encounter data and character/place names (none of the files we touch), and the Sage Elder and Dark Gaffgarion add-ons edit only story-job rows (17, 19, 23) and story command records (32, 39, 82), none of the rows or records this mod ships or guards. The other boss add-ons (Dark Witch, Witch Assassin, Divine Alma, Elmdor Enhanced, Delita QoL) ship the same file classes aimed at other story jobs and are expected clean the same way; in the worst case one rewrites the two command records we guard, and then the mod says so in game and costs only the three weapon-granted commands. No item tables anywhere in the family |
 
 ## Not yet checked
 
-Flagged during the survey as needing a closer look at their actual payloads; treat as
-unknown until a verdict lands here:
+Treat as unknown until a verdict lands here:
 
-| Mod | Nexus # |
-|---|---|
-| Ivalice Retranslation Project | 9 |
-| Super and Ultrawide Resolutions | 11 |
-| Cloud Re-Work | 46 |
-| Dual Subtitles JP-EN Text with Kana Assist | 90 |
-| Ramza Overhaul | 110 |
+| Mod | Nexus # | Why still unchecked |
+|---|---|---|
+| Ramza Overhaul | 110 | Its upload storage format offers no archive preview, and the page does not say which tables it ships; needs a payload check |
 
 ## Everything else
 
@@ -72,5 +77,8 @@ class a new mod falls into, open an issue and it will be checked and added.
 ---
 
 Survey provenance: hands-on review of all 97 published Ivalice Chronicles Nexus mods,
-2026-08-12, against this mod's shipped tables and runtime guards. Page last updated:
-2026-08-12.
+2026-08-12, against this mod's shipped tables and runtime guards. Same-day follow-up: the
+formerly unchecked mods were classified by enumerating their archive contents through the
+Nexus file-preview metadata (no downloads), and Deep Brave Story's verdict was upgraded by
+reading three of its downloaded payloads row by row against this mod's shipped tables. One
+mod (Ramza Overhaul) resists both routes and stays unchecked. Page last updated: 2026-08-12.
