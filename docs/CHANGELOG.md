@@ -10,6 +10,27 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-167] SHIPPED ac43327 2026-08-12: weapons rebuilt on the game's dormant damage formulas
+  can Poach again, the real cure behind the retired "No Poaching." card notice. A unit with
+  the Poach support who lands a basic Attack kill with one of the fifteen affected weapons
+  now gets a carcass in the Poacher's Den at the vanilla odds, a toast saying what was
+  claimed, and the corpse removed with no crystal, exactly the deal a vanilla weapon gets.
+  Ability kills never fire it, because the game itself poaches weapon-strike ability kills
+  and firing there would pay twice. Shipped across five stages (policy and map, seam and
+  executor disarmed, corpse despawn, discriminator and arming, the LW-166 notice reversal),
+  with the owner's live pass catching three real bugs the 3000-test suite could not see
+  (the species arithmetic, a Blind false positive on the chest check, a crystal double
+  payout), each fixed in ac43327 with its falsifying case pinned as a permanent test; the
+  fix batch then survived a 14-agent adversarial verify round whose two confirmed catches
+  were captured as LW-174 (shipped same day) and LW-175. The completing live pass, evening
+  2026-08-12: five living poaches end to end (goblin, red panther, skeleton twice, black
+  goblin), the last-enemy poach ending its battle cleanly with the count intact, and the
+  Poacher's Den UI matching the store bytes exactly. The pause beat is recorded as covered
+  in spirit rather than run, since the pending state it wanted to observe is not reachable
+  by hand (the pause menu is blocked during kill resolution and the despawn completes in
+  milliseconds). The Den store and discriminator LIVE_LEDGER rows flipped on this pass at
+  the owner's direction; the twin crossbow row stays Uncertain, its flip riding LW-171.
+
 - [LW-168] SHIPPED fd7274b 2026-08-12: the Outrider Pistol's twin gun trick now works for a
   unit with no support ability equipped; before this, such a unit silently never received
   Dual Wield and the second pistol fired once. The bug had two layers and the owner's live

@@ -80,26 +80,6 @@ the technical detail lives in the indented lines under it.
     seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
     is.
 
-- **[LW-167] Weapons on exotic formulas can Poach again through the mod, the real cure behind the card notice** (opened 2026-08-12) [BUILDING]
-  - Done means: a unit with the Poach support who lands a basic Attack kill with one of the 15
-    dormant formula weapons gets a carcass in the Poacher's Den, exactly like a vanilla weapon
-    would give them, with the vanilla odds (225 of 256 common, 31 of 256 rare) and a toast
-    saying what was claimed. Ability kills never fire it, because the owner proved live that
-    the game itself already poaches weapon-strike ability kills, so firing there would hand
-    out two carcasses for one kill. (Tech: every premise but one was closed live 2026-08-12,
-    LIVE_LEDGER rows dated same day: Poach = support Key 471 read at roster RSupport; the
-    monster map is baked to LivingWeapon/poach.json from the PoachItem sheet, species = job
-    minus 95; the Den store is u8[96] at 0x1411A7A1B plus Key minus 1, owner eyewitnessed
-    read and write, mid battle writes survive the battle end commit. The one open premise is
-    the basic Attack discriminator; the feature ships DISARMED, wired false, until it lands.
-    Stages: 1 policy plus map, 2 seam plus executor disarmed, 3 corpse despawn extraction,
-    4 discriminator plus arming, 5 the LW-166 notice reversal data stage.)
-  - Verify: the suite is green with the keystone double fire guards (vanilla formula weapon
-    never fires; ability kill never fires), analyze passes with the new formula set lockstep
-    gate, and the owner's live pass shows a dormant weapon Attack kill producing a Den
-    carcass with no double carcass on a vanilla control and no carcass on an ability kill.
-    Owner only, as every live flip is.
-
 - **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [AWAITING-LIVE]
   - Built and adversarially checked 2026-08-12, same session it was opened: six new pinned
     tests written red first, the extractor now emits the five alias entries (each tagged with
