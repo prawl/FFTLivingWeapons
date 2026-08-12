@@ -80,22 +80,6 @@ the technical detail lives in the indented lines under it.
     seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
     is.
 
-- **[LW-166] Some weapons silently cannot Poach; their cards now say so** (opened 2026-08-12) [BUILDING]
-  - Done means: every weapon riding an exotic damage formula carries a plain "No Poaching."
-    notice on its card, so a poacher building player learns the limit from the shop screen
-    instead of from a dead monster, and the build gate refuses any future weapon whose formula
-    has not been classified poach capable or not. The notice is generated, never hand written:
-    the description assembler appends it for every weapon whose formula sits in the dormant set
-    {45, 46, 47, 48, 67, 69, 99}, the set the owner's live matrix proved cannot poach (only the
-    vanilla formulas 1, 2, 3, 4, 6, 7 carry the game's poach branch). One flavor line was
-    trimmed to make room, Sunderer at 90 chars down to 74, owner blessed. The real cure, a
-    runtime Living Poach, is captured separately as LW-167 and does not gate this.
-  - Verify: analyze.py is green including the new poach notice lockstep (notice present exactly
-    on dormant formula weapons, every formula classified), audit_nxd_bakes.py reports the bake
-    matches intent after patch_names.py, the dotnet suite stays green, and the owner restarts
-    the game on a deployed build and reads "No Poaching." on the Sunderer and Hushblade cards
-    with nothing clipped. Owner only, as every live flip is.
-
 ## Backlog
 
 - [LW-168] 2026-08-12: The Outrider Pistol's twin gun trick silently does nothing for a unit

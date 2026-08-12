@@ -10,6 +10,26 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-166] SHIPPED 8aa4d8e 2026-08-12: fifteen weapons that can never trigger the game's Poach
+  ability now say so right on their cards with a plain "No Poaching." line, so a poacher
+  learns the limit in the shop instead of over a dead monster. A player report supplied the
+  decisive weapon lists; the pattern landed exactly on the damage formula, and the owner's
+  live matrix confirmed and tightened it the same day: only the vanilla handler formulas
+  {1, 2, 3, 4, 6, 7} carry the game's poach branch, and every dormant PSX handler the
+  rebalance revived (45, 46, 47, 48, 67, 69, 99) lacks it, proven across weapon classes
+  (a formula 45 crossbow failed identically to the knives) and across lanes (formula 48
+  failed despite its vanilla twin working). The notice is generated, never hand written: the
+  description assembler appends it for every dormant formula weapon, so a future weapon
+  cannot ship without it, and a new analyze gate refuses any formula that has not been
+  classified poach capable or not. One flavor line was trimmed for the card ceiling
+  (Sunderer, 90 to 74 chars, owner blessed); Hushblade rides the tightest card at 204 of
+  205 chars and rendered clean in the owner's live pass alongside Sunderer and a clean
+  Vagabond control. The baked item.en.nxd was ground truthed to carry exactly fifteen
+  notices by byte count; adversarial verify shipped it at 9 of 10 with double sabotage
+  non vacuity. The stakes that motivated the notice: tier 6 is the poach acquisition tier,
+  so a poacher wielding an affected weapon could not farm the mod's endgame items and had
+  no way to learn why. The real cure, a runtime Living Poach on the proven despawn and
+  inventory give primitives, is captured as LW-167.
 - [LW-163] SHIPPED 303ddf6 2026-08-12: the weapon card's painted kill counter no longer freezes
   for players who reload saves quickly. The player report that opened this said it best: kills
   mostly did not track until the weapon leveled, and then you are flying blind. Their flight
