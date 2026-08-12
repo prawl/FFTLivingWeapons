@@ -80,29 +80,6 @@ the technical detail lives in the indented lines under it.
     seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
     is.
 
-- **[LW-168] The Outrider Pistol's twin gun trick now works for a unit with no support ability equipped** (opened 2026-08-12) [BUILDING]
-  - Done means: a unit holding the tier 3 Outrider Pistol with an EMPTY support slot gets Dual
-    Wield written like everyone else, and taking the pistol off leaves the slot truly empty
-    again instead of planting a phantom ability. The old rule treated the empty slot's real
-    reading as garbage and silently gave up forever. (Tech: the first fix attempt exposed a
-    deeper wrong premise and the owner live pass caught it, writing byte 221 onto a bare unit
-    rendered the ability Toadja, ability Key 221, description placeholder A221. Live probe
-    reads 2026-08-12 across 7 roster units plus an owner witnessed 477 poke proved the truth:
-    the roster picked ability block is THREE u16 ability Keys, reaction +0x08, support +0x0A,
-    movement +0x0C; empty reads u16 0; Dual Wield is Key 477, live support id 221 plus 256,
-    the same Key to live id mapping the Choir arc banked for Key 483 to id 227. The July
-    PROVEN row worked by accident: that unit already had a support picked so the 0x01 high
-    byte was resident and the low byte write composed to 477. Fix: read, compare, snapshot,
-    write and restore the support slot as u16, write Key 477, and migrate legacy
-    gunslinger.json snapshots that recorded only the low byte, 198 to 254 maps to value plus
-    256, the never observed phantom 255 maps to 0, so shipped 2.3.2 players do not get a
-    phantom ability restored.)
-  - Verify: the suite is green with the u16 keystone tests (a bare unit's 0 snapshots and
-    Dual Wield lands as a WrittenU16 477; a legacy low byte snapshot restores the full Key,
-    not the low byte), and the owner's live pass on a bare pistol unit shows Dual Wield plus
-    the twin appear, Attack fires twice, and unequipping returns the support slot to truly
-    empty with no phantom ability. Owner only, as every live flip is.
-
 ## Backlog
 
 - [LW-167] 2026-08-12: Make the exotic formula weapons actually able to Poach again, the real

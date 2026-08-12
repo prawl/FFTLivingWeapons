@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-168] SHIPPED fd7274b 2026-08-12: the Outrider Pistol's twin gun trick now works for a
+  unit with no support ability equipped; before this, such a unit silently never received
+  Dual Wield and the second pistol fired once. The bug had two layers and the owner's live
+  pass caught the deeper one: the first fix admitted the empty slot's real reading of 0,
+  then planted the placeholder ability Toadja on screen, which exposed the true mechanism.
+  The roster support slot is a u16 ability Key (empty 0, Dual Wield 477, live id 221 plus
+  256); the shipped u8 write of 221 had only ever worked by borrowing a resident high byte
+  from units that already had a support picked. The fix handles the slot as the full Key
+  end to end (snapshot and restore verbatim, so unequipping returns a truly empty slot) and
+  migrates legacy gunslinger.json snapshots that stored only the low byte, so updating
+  players cannot be handed a phantom ability. Owner live pass same day: Dual Wield applied
+  from nothing set, clean re-assert against the equip screen's normalize, truly empty
+  restore, and the LIVE_LEDGER discovery row (the roster picked ability block: reaction
+  +0x08, support +0x0A, movement +0x0C, all u16 Keys) flipped to Proven on that pass.
+
 - [LW-166] SHIPPED 8aa4d8e 2026-08-12: fifteen weapons that can never trigger the game's Poach
   ability now say so right on their cards with a plain "No Poaching." line, so a poacher
   learns the limit in the shop instead of over a dead monster. A player report supplied the
