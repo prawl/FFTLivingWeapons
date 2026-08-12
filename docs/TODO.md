@@ -80,6 +80,22 @@ the technical detail lives in the indented lines under it.
   firing 0.25-0.48s earlier than the 4.0s debounce should permit, reconcilable only as an
   engine-loop stall telescoping the accumulator, so identical fast transitions can land on
   either side of the threshold at random.
+  SHARPENED same day, code-read round: the exact freeze is the pool-paint coverage latch.
+  Display.PoolPaint.cs MaybePoolPaint short-circuits on _poolCovered forever once set, with no
+  re-verify and no sweep fallback, and only three events reset it (Engine.cs: the battle-exit
+  edge, a new-game detect, and the paused IN-battle status card opening). When a save-reload
+  reallocates the card buffers, the cached sites correctly refuse and drain, but the latch stays
+  true, so nothing re-discovers the live buffers and zero paints land anywhere visible.
+  Player round-2 detail confirms it and folds in their "graphical glitch": their habitual check
+  surface is the OUT-of-battle status page (which triggers no invalidate at all); some loads
+  come up with every weapon looking factory reset (fresh unpainted scaffold, vanilla-looking
+  name, Kills 0/x) while others show the frozen stale number; and in battle the Attack row opens
+  as plain "Attack" then corrects to the dressed name, tier, and kills when the strike composes,
+  which is the Attack card's own per-battle census machinery proving the underlying data healthy
+  while Display stays latched blind. Fix direction accordingly: clear the latch / Invalidate on
+  the battle-ENTER edge (and consider re-running CoversAllMeta instead of trusting the latch),
+  so every battle starts with a re-find instead of gambling on the player lingering at battle
+  end.
 
 - [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
   briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
