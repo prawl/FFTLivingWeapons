@@ -119,24 +119,6 @@ the technical detail lives in the indented lines under it.
     the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
     space).
 
-- **[LW-169] Players can see which mods work with this one before installing** (opened 2026-08-12) [BUILDING]
-  - Done means: a player deciding whether to install can read one page, linked straight from
-    the Nexus description, that names the six mods that cannot run with this one (all item
-    rebalances, with the plain reason that both mods rewrite the same gear tables and the
-    loader keeps only one side, so no load order helps), states the caveats most players
-    could hit (custom job mods can cost the three weapon granted commands, and the mod
-    itself says so in game; a non English game hides the kill counter until switched to
-    English), and is honest about the five mods nobody has checked yet. The page lives in
-    the repo as docs/COMPATIBILITY.md so updating it never touches Nexus, and the docs
-    contract test knows it exists. (Tech: delivery decided with the owner 2026-08-12, a
-    GitHub hosted grid plus one Nexus link; the eleven named mods' display names were read
-    off their live Nexus pages this session; the in game guard extension half moved to its
-    own backlog row LW-177.)
-  - Verify: DocsContractTests green with COMPATIBILITY.md in the allow list (the doc was
-    born red against that test and greened by the allow list entry), the public GitHub URL
-    renders the grid after push, and the owner pastes the link into the Nexus page
-    description (owner step, outside the repo).
-
 ## Backlog
 
 - [LW-176] 2026-08-12: Make the living poach look and sound closer to the game's own poach:

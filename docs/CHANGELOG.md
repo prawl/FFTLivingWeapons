@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-169] SHIPPED dd36845 2026-08-12: a player deciding whether to install can now read one
+  public page, linked straight from the Nexus description, naming every mod that cannot run
+  beside this one and why. The page (docs/COMPATIBILITY.md, rendered by GitHub) names the
+  six item rebalance mods that cannot coexist (both sides rewrite the same gear tables and
+  the loader keeps only one, so no load order helps), the caveats most players could hit
+  (custom job mods can cost the three weapon granted commands, a non English game hides the
+  kill counter until switched to English, two text mods can cover our card cells), and its
+  unknown column ended the survey honestly EMPTY, every named mod settled, including Deep
+  Brave Story verified compatible payload by payload. Every mod name links to its Nexus
+  page. Shipped across ee9bffc (the grid), 8f2c7a1 and 99b4b9d (the verdicts), and dd36845
+  (the links); DocsContractTests owns the doc's existence and link integrity. The closing
+  step landed outside the repo 2026-08-12: the owner pasted the two drafted Nexus blurbs
+  carrying the grid URL into the mod description. The in game guard extension half lives on
+  as LW-177.
+
 - [LW-167] SHIPPED ac43327 2026-08-12: weapons rebuilt on the game's dormant damage formulas
   can Poach again, the real cure behind the retired "No Poaching." card notice. A unit with
   the Poach support who lands a basic Attack kill with one of the fifteen affected weapons
