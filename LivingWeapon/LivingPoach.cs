@@ -27,6 +27,11 @@ namespace LivingWeapon;
 ///
 /// Every memory access is guarded: Readable before the current-count read, Writable before the
 /// W8, never a raw deref (house rule). Never throws.
+///
+/// STAGE 3 (LW-167): a successful poach also attempts <see cref="CorpseDespawn.TryDespawn"/> --
+/// vanilla's own Poach leaves no corpse behind, so a poached carcass shouldn't linger either. A
+/// despawn refusal never rolls back the store write/toast above it (see the ctor doc's carcass-
+/// stands note); the whole feature stays disarmed in production via wasBasicAttack regardless.
 /// </summary>
 internal sealed class LivingPoach
 {
@@ -85,35 +90,43 @@ internal sealed class LivingPoach
 
             int key = verdict == PoachVerdict.Common ? carcass.CommonKey : carcass.RareKey;
             string name = verdict == PoachVerdict.Common ? carcass.CommonName : carcass.RareName;
-            WriteCarcass(weaponId, key, name);
+            if (WriteCarcass(weaponId, key, name))
+            {
+                // LW-167 stage 3: vanilla fidelity -- a real Poach leaves no corpse behind (no
+                // crystal, no chest), so a poached carcass shouldn't either. A despawn refusal
+                // never rolls back the poach above: the store write and toast already landed,
+                // the corpse just stands (CorpseDespawn.cs logs its own refusal reason).
+                CorpseDespawn.TryDespawn(_mem, slot, victim.NameId);
+            }
         }
         catch (Exception ex) { ModLogger.Error(LogVerb.Signature, "Living Poach's credit-moment handling failed: " + ex.Message); }
     }
 
-    private void WriteCarcass(int weaponId, int key, string name)
+    private bool WriteCarcass(int weaponId, int key, string name)
     {
         long addr = Offsets.PoachStoreBase + (key - 1);
         if (!_mem.Readable(addr, 1))
         {
             ModLogger.Debug(LogVerb.Signature, $"Living Poach could not read the Den store for key {key}; the poach is skipped.");
-            return;
+            return false;
         }
         int current = _mem.U8(addr);
         if (current >= 255)
         {
             ModLogger.Debug(LogVerb.Signature, $"Living Poach's Den store for key {key} is already full (255); the poach is skipped.");
-            return;
+            return false;
         }
         if (!_mem.Writable(addr, 1))
         {
             ModLogger.Debug(LogVerb.Signature, $"Living Poach could not write the Den store for key {key}; the poach is skipped.");
-            return;
+            return false;
         }
         _mem.W8(addr, (byte)(current + 1));
 
         string displayName = LivingPoachPolicy.StripIconMarkup(name);
         _toast.Enqueue(weaponId, Tuning.PoachToastKey, displayName);
         ModLogger.Event(LogVerb.Signature, $"The weapon's spirit claims the carcass: {displayName} added to the Poacher's Den.");
+        return true;
     }
 
     /// <summary>The killer's real Poach read: locate <paramref name="weaponId"/>'s single deployed

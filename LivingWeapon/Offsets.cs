@@ -512,4 +512,31 @@ internal static class Offsets
     // adjacent InventoryCountBase array: guarded W8, one byte per key, addr =
     // PoachStoreBase + (key - 1).
     public const long PoachStoreBase = 0x1411A7A1B;
+
+    // --- Corpse despawn (LW-167 stage 3): the engine's own declarative render-node removal,
+    // promoted from BodyDoubleSpike.cs's Ctrl+F5 dev instrument (LivingWeapon/BodyDoubleSpike.cs,
+    // #if LWDEV) into CorpseDespawn.cs's guarded production helper. docs/LIVE_LEDGER.md's
+    // "DESPAWN any unit mid-battle, sprite and all" Proven row (owner live 2026-07-10, flip
+    // 2026-07-21): write mode 2 into the render node's flag word and the engine's own per-frame
+    // node sweeper (0x14026E20C) completes the whole removal -- unit AND sprite -- on its next
+    // UNPAUSED frame; the same primitive vanilla crystallization uses. ONE-WAY. BodyDoubleSpike
+    // keeps its own private copy of these constants (dev-only, unchanged by this promotion) --
+    // see CorpseDespawn.cs's class doc for why duplicating the (much smaller) despawn-only logic
+    // was the smaller, safer diff than refactoring the 1576-line working dev spike.
+    public const long DespawnNodeListHead = 0x140D3A410;   // render-node singly-linked list head
+    public const int DespawnNodeIdOff = 0x08;              // node id byte (matched vs the current-actor dword)
+    public const int DespawnNodeCombatOff = 0x148;         // node -> combat back-pointer (builder-written)
+    public const int DespawnNodeModeOff = 0x12C;           // mode flags; all proven access is to the LOW BYTE (bits 0x30 = removal mode/done)
+    public const uint DespawnNodeModeClearMask = 0x30;     // bits cleared before the mode-2 stamp
+    public const uint DespawnNodeModeRemoveValue = 0x20;   // mode 2 = "remove me" (the sweeper consumes it)
+    public const long DespawnCurrentActorNodeId = 0x140CF873C;   // dword: the CURRENT ACTOR's node id; never remove it
+    public const int DespawnNodeWalkMax = 64;               // bounded list walk (BodyDoubleSpike/spawn_probe precedent)
+
+    /// <summary>The chest/crystal conversion marker: composed status byte 1 (Offsets.ADeadStatus
+    /// + 1 = 0x46; == StatusApply.Composed + StatusApply.StatusByte(StatusApply.TreasureId)).
+    /// LW-58's pop-signature evidence (docs/LIVE_LEDGER.md): this byte flips 0-&gt;1 the instant
+    /// the engine converts a corpse to its crystal/chest model. A corpse reading nonzero here is
+    /// already the engine's own conversion, in flight or done -- never the despawn primitive's to
+    /// touch.</summary>
+    public const int ACorpseConvertMarker = 0x46;
 }

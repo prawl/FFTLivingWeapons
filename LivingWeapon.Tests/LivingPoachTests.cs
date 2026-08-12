@@ -373,6 +373,87 @@ public class LivingPoachTests : IDisposable
         Assert.Empty(mem.Written);
     }
 
+    // ── Stage-3: corpse despawn integration (LW-167 stage 3, CorpseDespawn.cs) ────
+    // Hand-seeded (not MemSeats: MemSeats never marks Readable, and CorpseDespawn's every read
+    // is guard-gated) -- mirrors CorpseDespawnTests.cs's fixture shape exactly.
+
+    private const int DespawnBandSlot = 10;
+    private const long DespawnNodeAddr = 0x2000_3000;
+
+    private static long DespawnFrame => Offsets.FrameReadBase + (long)DespawnBandSlot * Offsets.CombatStride;
+
+    /// <summary>A live, freshly-dead, unconverted corpse at DespawnBandSlot with
+    /// <paramref name="nameId"/>, plus a single render node whose combat back-pointer resolves to
+    /// it -- every CorpseDespawn precondition green by default. Callers override individual
+    /// fields/omit the node to exercise one refusal.</summary>
+    private static void SeedDespawnableCorpse(FakeSparseMemory mem, ushort nameId, bool turnOpen = false)
+    {
+        long entry = Band.Entry(DespawnBandSlot);
+        mem.U8s[entry + Offsets.ADeadStatus] = Offsets.ADeadBit;
+        mem.MarkReadable(entry + Offsets.ADeadStatus, 1);
+        mem.U16s[entry + Offsets.ANameId] = nameId;
+        mem.MarkReadable(entry + Offsets.ANameId, 2);
+        mem.U8s[entry + Offsets.ACorpseConvertMarker] = 0;
+        mem.MarkReadable(entry + Offsets.ACorpseConvertMarker, 1);
+        mem.U8s[entry + Offsets.ATurnFlag] = (byte)(turnOpen ? 1 : 0);
+        mem.MarkReadable(entry + Offsets.ATurnFlag, 1);
+
+        mem.SeedU64(Offsets.DespawnNodeListHead, (ulong)DespawnNodeAddr);
+        mem.MarkReadable(Offsets.DespawnNodeListHead, 8);
+        mem.SeedU64(DespawnNodeAddr, 0);   // next pointer: end of list
+        mem.U8s[DespawnNodeAddr + Offsets.DespawnNodeIdOff] = 3;
+        mem.SeedU64(DespawnNodeAddr + Offsets.DespawnNodeCombatOff, (ulong)DespawnFrame);
+        mem.MarkReadable(DespawnNodeAddr, Offsets.DespawnNodeCombatOff + 8);
+        mem.MarkWritable(DespawnNodeAddr + Offsets.DespawnNodeModeOff, 1);
+        // node flag byte 0 -- BYTE-wide, matching the Proven row's own access to +0x12C. Already
+        // covered readable by the node-prefix MarkReadable call above (0x12C < CombatOff+8).
+        mem.U8s[DespawnNodeAddr + Offsets.DespawnNodeModeOff] = 0;
+
+        // "not the current actor" -- any id other than the node's own 3.
+        mem.U16s[Offsets.DespawnCurrentActorNodeId] = 0xFFFF;
+        mem.U16s[Offsets.DespawnCurrentActorNodeId + 2] = 0xFFFF;
+        mem.MarkReadable(Offsets.DespawnCurrentActorNodeId, 4);
+    }
+
+    [Fact]
+    public void RecordPoachDeed_eligible_poach_also_despawns_the_corpse()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+
+        long storeAddr = Offsets.PoachStoreBase + (TestCommonKey - 1);
+        Assert.Equal((byte)1, mem.U8(storeAddr));   // the poach itself still landed
+        // Both the store write and the despawn write are W8 now (byte-wide), so they share
+        // mem.Written -- assert the despawn write specifically rather than the dict's size.
+        Assert.True(mem.Written.ContainsKey(DespawnNodeAddr + Offsets.DespawnNodeModeOff));
+        Assert.Equal((byte)0x20, mem.Written[DespawnNodeAddr + Offsets.DespawnNodeModeOff]);
+    }
+
+    [Fact]
+    public void RecordPoachDeed_despawn_refusal_does_not_roll_back_the_store_write()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        const ushort nameId = 42;
+        SeedDespawnableCorpse(mem, nameId, turnOpen: true);   // the despawn's own guard refuses
+        var poach = MakePoach(mem, map, meta, roll: 0);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, nameId, TestVictimJob, false), slot: DespawnBandSlot, false, false);
+
+        long storeAddr = Offsets.PoachStoreBase + (TestCommonKey - 1);
+        Assert.Equal((byte)1, mem.U8(storeAddr));   // the carcass still stands (its own W8 write)
+        Assert.False(mem.Written.ContainsKey(DespawnNodeAddr + Offsets.DespawnNodeModeOff));   // but nothing despawned
+    }
+
     // ── Stage-2b: the killer's real Poach-bit read (combat support bitfield) ───
 
     [Fact]
