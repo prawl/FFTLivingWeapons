@@ -62,6 +62,21 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-165] 2026-08-12: After a cold boot straight into a loaded file, the kill counts are slow to
+  appear in the status menu on the Steam Deck (owner observed during the full playthrough).
+  Three serial gates sit between launch and the first painted digit: the safety arming gate (the
+  mod is born disarmed and arms only after a save loads and the roster landmarks verify), the
+  pool locate (fast once the game has built its item strings, but regions materialize over the
+  session), and the budgeted whole heap sweep fallback (16MB per out of battle tick), which is
+  the likely felt delay on Deck hardware but that is a guess. DIAGNOSE BEFORE TUNING: the Deck's
+  livingweapon.log measures gate one (launch header to the armed line) and gate three (the sweep
+  first pass completed line, Info tier, in the file log) with no code change; get that log first.
+  Candidate knobs once the dominant term is measured: a cold start burst budget for the first
+  sweep generation (no battle exists during a cold boot, so the throttle protects nothing), a
+  pool re locate nudge on the menu open edge, or seeding the locator with the previous session's
+  region bases (observed stable within a session on 2026-08-12). The arming gate itself is not a
+  knob; it is the LW-50 safety and stays as designed.
+
 - [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
   briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
   weapon.
