@@ -119,6 +119,24 @@ the technical detail lives in the indented lines under it.
     the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
     space).
 
+- **[LW-169] Players can see which mods work with this one before installing** (opened 2026-08-12) [BUILDING]
+  - Done means: a player deciding whether to install can read one page, linked straight from
+    the Nexus description, that names the six mods that cannot run with this one (all item
+    rebalances, with the plain reason that both mods rewrite the same gear tables and the
+    loader keeps only one side, so no load order helps), states the caveats most players
+    could hit (custom job mods can cost the three weapon granted commands, and the mod
+    itself says so in game; a non English game hides the kill counter until switched to
+    English), and is honest about the five mods nobody has checked yet. The page lives in
+    the repo as docs/COMPATIBILITY.md so updating it never touches Nexus, and the docs
+    contract test knows it exists. (Tech: delivery decided with the owner 2026-08-12, a
+    GitHub hosted grid plus one Nexus link; the eleven named mods' display names were read
+    off their live Nexus pages this session; the in game guard extension half moved to its
+    own backlog row LW-177.)
+  - Verify: DocsContractTests green with COMPATIBILITY.md in the allow list (the doc was
+    born red against that test and greened by the allow list entry), the public GitHub URL
+    renders the grid after push, and the owner pastes the link into the Nexus page
+    description (owner step, outside the repo).
+
 ## Backlog
 
 - [LW-176] 2026-08-12: Make the living poach look and sound closer to the game's own poach:
@@ -215,23 +233,20 @@ the technical detail lives in the indented lines under it.
   units on land. Prior that may bite: a redefined EquipBonus row rewrites every user of that
   row (see the row override audit memory).
 
-- [LW-169] 2026-08-12: Every published Nexus mod is now labeled for compatibility with Living
-  Weapons; turn that survey into player facing armor: a compatibility section on the Nexus
-  page, and a guard extension that detects the unguarded conflict classes and says the truth
-  in game.
-  The survey (all 97 published mods, owner session 2026-08-12): 6 do not work, all of them
-  item table mods, because whole row writeback makes two item rebalances mutually fatal
-  (ids 115, 107, 84, 75, 72, 64); roughly 25 work with potential conflicts (job row overlaps
-  on the rows our JobData.xml lists, command record rewrites, text cell overlaps on the
-  Barrage cells, non English counters per LW-101); the remaining 66 coexist clean.
-  GenericJobs (id 34, the site's most downloaded mod) was source audited on GitHub and its
-  one residual pattern scan probed live in the JobCommand region: clean. Guard extension
-  candidates the survey exposed: an item lane guard (we know every row we ship; detect
-  foreign item rows at arm time and name the loss instead of silently fighting), a text
-  anchor census message when another mod's cells cover ours (pool coverage already counts
-  sites), and a grant time record verify for command rewrites beyond recs 8 and 9 (Knight
-  Overhaul rewrites rec 7, exactly where ShadowBlade injects for a Knight wielder). Five
-  mods still need payload checks the pages could not settle: ids 9, 46, 90, 11, 110.
+- [LW-177] 2026-08-12: Teach the mod to detect the conflict classes the compatibility
+  survey exposed and say the truth in game, the guard extension half of what LW-169 carried
+  before the grid narrowed it. Candidates from the survey session: an item lane guard (we
+  know every row we ship; detect foreign item rows at arm time and name the loss instead of
+  silently fighting, covering the only FATAL class), a text anchor census message when
+  another mod's cells cover ours (pool coverage already counts sites), and a grant time
+  record verify for command rewrites beyond recs 8 and 9 (Knight Overhaul rewrites rec 7,
+  exactly where ShadowBlade injects for a Knight wielder). Same guard family and born
+  disarmed discipline as LW-112's kit lane. Survey provenance: all 97 published mods, owner
+  session 2026-08-12: 6 fatal item table mods (ids 115, 107, 84, 75, 72, 64), roughly 25
+  with potential conflicts (job row overlaps, command record rewrites, text cell overlaps,
+  non English counters per LW-101), 66 clean; GenericJobs (id 34) source audited clean; the
+  per mod verdicts for the middle bucket live only as classes, the durable record is
+  docs/COMPATIBILITY.md.
 
 - [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
   briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
