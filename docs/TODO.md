@@ -121,7 +121,17 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
-- [LW-176] 2026-08-12: Make the living poach look and sound closer to the game's own poach:
+- [LW-179] 2026-08-12: The battle menu's Attack row should wear the weapon's name from the
+  very first menu of a battle; today the first open (and the odd mid-battle blip) shows the
+  plain Attack text because the mod refuses to paint when it cannot prove whose menu is
+  open, the fail-closed rule that cured the 2.3.0 wrong-name bug. Owner ideal stated
+  2026-08-12: never see the plain text. Fix shape agreed in session: ride the LW-139
+  turn-order helper (the proven next-actor clock) as a fallback owner at battle open, with
+  fail-closed kept as the outer gate (prediction and flags disagreeing composes vanilla,
+  same as today), and note the BridgeFail lane (owner resolved but the roster match failed)
+  is untouched by that helper and needs its own look before "never" is honest. The owner
+  signalled this may be picked up very soon; the three sightings and their log lines are in
+  the LW-171 session log (two NoOwner at battle load, one BridgeFail mid-battle). Make the living poach look and sound closer to the game's own poach:
   the owner watched one live and called it eerily close but not identical, the removal
   timing is slightly off and the game's poach sound never plays. Step one when picked up is
   a read-only tape of a VANILLA poach with the existing text-hook head sampler running, to
