@@ -102,6 +102,20 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-172] 2026-08-12: The mod's human versus monster job boundary is off by two, and every
+  consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.
+  Falsified live during the LW-167 pass (a Black Chocobo victim's job byte read 95 at the
+  credit edge) and confirmed by the game's own Job sheet (Key 94 Chocobo, 95 Black Chocobo,
+  96 Red Chocobo; the sheet also carries each monster's poach keys). Known consumers of the
+  wrong floor: Puppeteer.Policy.cs (GenericJobHi 95, MonsterJobLo 96), VictimClass.cs
+  (IsHumanJob 74 to 95; job 94 labeled "Dark Knight", which per the sheet is the Chocobo, so
+  the July "Dark Knight 94 live" reading and any Reliquary victim classing built on it are
+  suspect), and any band walk leaning on the 96 floor. Living Poach itself no longer cares
+  (its gate is Job sheet map membership since the fix). Also unresolved and captured here so
+  it is not smoothed over: a 2026-06-08 live ROSTER read recorded job 96 as "Chocobo", which
+  either means that unit was actually a Red Chocobo or the roster +0x02 space differs from
+  the band job byte at the boundary; one deliberate re-read settles it.
+
 - [LW-171] 2026-08-12: Give a crossbow the twin trick: a second crossbow in the off hand plus
   Dual Wield, so its basic Attack fires twice, exactly like the Outrider Pistol's Gun Slinger.
   Owner proved it live 2026-08-12 on a whim: twin Eclipsebolts rendered on the equip screen
