@@ -80,37 +80,52 @@ the technical detail lives in the indented lines under it.
     seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
     is.
 
+- **[LW-166] Some weapons silently cannot Poach; their cards now say so** (opened 2026-08-12) [BUILDING]
+  - Done means: every weapon riding an exotic damage formula carries a plain "No Poaching."
+    notice on its card, so a poacher building player learns the limit from the shop screen
+    instead of from a dead monster, and the build gate refuses any future weapon whose formula
+    has not been classified poach capable or not. The notice is generated, never hand written:
+    the description assembler appends it for every weapon whose formula sits in the dormant set
+    {45, 46, 47, 48, 67, 69, 99}, the set the owner's live matrix proved cannot poach (only the
+    vanilla formulas 1, 2, 3, 4, 6, 7 carry the game's poach branch). One flavor line was
+    trimmed to make room, Sunderer at 90 chars down to 74, owner blessed. The real cure, a
+    runtime Living Poach, is captured separately as LW-167 and does not gate this.
+  - Verify: analyze.py is green including the new poach notice lockstep (notice present exactly
+    on dormant formula weapons, every formula classified), audit_nxd_bakes.py reports the bake
+    matches intent after patch_names.py, the dotnet suite stays green, and the owner restarts
+    the game on a deployed build and reads "No Poaching." on the Sunderer and Hushblade cards
+    with nothing clipped. Owner only, as every live flip is.
+
 ## Backlog
 
-- [LW-166] 2026-08-12: Player report: some rebalanced weapons cannot Poach (the monster just
-  dies), others poach fine; the split lands exactly on which damage formula the weapon rides.
-  Broken per the player: Hushblade and Gloomfang (both formula 45, the revived dormant PSX
-  status proc handler) and Swiftfang (formula 99, the Speed scaling handler). Working:
-  Quicksilver, Ravager, Tanglethorn (formula 1) and Sanguine Sword (formula 6); the owner
-  personally poached with Tanglethorn, so the player's one contrary claim there was likely an
-  undead target or an off hand kill. Theory, pre registered before any live test: the remaster
-  wires Poach inside the vanilla weapon attack handlers, and the dormant handlers we repurposed
-  never got the poach branch, so every formula 45 or 99 weapon silently cannot poach.
-  Prediction: poach fails on every 45/99 weapon and works on every vanilla formula weapon; one
-  counterexample kills the theory. CONFIRMED by the owner matrix same day: Venombolt (formula
-  45, a crossbow) did not poach, proving the formula and not the weapon class decides, and
-  Sanguine Gauche (formula 48, earlier wrongly presumed working from a name mixup with the
-  vanilla formula Sanguine Sword) did not poach either. The rule tightens: only the vanilla
-  formula set {1, 2, 3, 4, 6, 7} carries the poach branch; every dormant handler tested (45,
-  48, 99) lacks it, making the untested 46/47/67/69 near certain casualties. Census findings
-  folded in: 15 weapons ride dormant formulas (Gloomfang, Hushblade, Bloodlash, Venombolt,
-  Pitchbolt on 45; Swiftfang, Swiftedge on 99; Sanguine Gauche 48; Sunderer 46; Bizen Osafune
-  and Wellspring Rod 47; Wrathblade and Muramasa 67; Climhazzard and Tombspire 69), every one
-  of which shipped formula 1 or 2 in vanilla. STAKES: tier 6 is the poach acquisition tier
-  (Red Dragon and Tiamat poaches among others), so a poacher wielding an affected weapon
-  cannot farm the mod's endgame items, though re equipping the poacher works around it. Fix
-  directions ranked: document on the card (free, honest); demote formula 45 weapons to the
-  native may cast lane (keeps poach, trades the guaranteed proc for the native rate, does
-  nothing for Swiftfang); a runtime Living Poach built on the PROVEN despawn and inventory give
-  primitives (needs a read for the equipped Poach support and the monster to item table); an
-  engine detour into the dormant handlers (Denuvo fragile, last resort). A formula census
-  workflow was run the same day to bound the affected weapon list; its findings extend this row
-  when read.
+- [LW-168] 2026-08-12: The Outrider Pistol's twin gun trick silently does nothing for a unit
+  that has NO support ability equipped; give it any support ability (Reequip, anything) and it
+  works.
+  Owner found and diagnosed live 2026-08-12: Gun Slinger (+3) works by writing a second pistol
+  into the off hand and forcing the Dual Wield support (id 221) into the roster support slot.
+  The code's own premise says an EMPTY support slot reads 255 (GunSlinger.Policy.cs doc, "Valid
+  support range for snapshotting: 1..254 OR 255 (EMPTY). Reject 0 as garbage."), so
+  DesiredSupport returns Leave on a 0 read as a fail closed garbage guard
+  (GunSlinger.Policy.cs:73). The live observation proves the premise wrong: a unit with no
+  support ability set reads 0 there, so the legitimate empty case is eaten forever, Dual Wield
+  is never written, and the second gun does nothing. Fix when picked up: verify live what an
+  empty roster support slot actually reads (0, 255, or both in different states; a one minute
+  probe read on a bare unit settles it), then admit the true empty sentinel to the snapshot
+  path so OrigSupp records empty and the restore writes the correct empty value back rather
+  than a phantom ability. The dual gun off hand write itself is PROVEN and unaffected
+  (dual-gun-equip-write ledger row); only the support slot half starves. Worth one grep for
+  the same 255 empty assumption elsewhere before closing, since RSupport reads may be
+  consulted by other lanes.
+
+- [LW-167] 2026-08-12: Make the exotic formula weapons actually able to Poach again, the real
+  cure behind LW-166's card notice.
+  Direction from the LW-166 dossier: a runtime Living Poach that detects a poach eligible kill
+  itself (the death edge and the killer's weapon are already owned; the kill must be a basic
+  attack by a unit carrying the Poach support against a non undead monster) and performs the
+  poach with the PROVEN despawn (render node mode 2 plus the engine sweeper) and inventory give
+  primitives. Two unproven reads gate it: detecting the equipped Poach support on the roster,
+  and the monster to poach item table. A full /build arc with its own live probes when picked
+  up; competes with Reliquary for the post release slot.
 
 - [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
   briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
