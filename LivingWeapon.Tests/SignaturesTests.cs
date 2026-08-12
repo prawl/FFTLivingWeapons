@@ -286,10 +286,10 @@ public class SignaturesTests
     [InlineData(0)]
     [InlineData(4)]
     [InlineData(5)]
-    [InlineData(24)]
-    [InlineData(25)]
-    [InlineData(49)]
-    [InlineData(50)]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(14)]
+    [InlineData(15)]
     [InlineData(55)]
     [InlineData(9999)]
     [InlineData(10000)]
@@ -304,10 +304,10 @@ public class SignaturesTests
     [InlineData(0)]
     [InlineData(4)]
     [InlineData(5)]
-    [InlineData(24)]
-    [InlineData(25)]
-    [InlineData(49)]
-    [InlineData(50)]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(14)]
+    [InlineData(15)]
     [InlineData(55)]
     [InlineData(9999)]
     [InlineData(10000)]
@@ -325,21 +325,38 @@ public class SignaturesTests
     }
 
     [Fact]
+    public void Widest_prod_meter_body_matches_KillsMeterSlotChars()
+    {
+        // A DERIVATION, not a re-pinned literal: recomputes the widest unpadded meter body over
+        // every kill count the CURRENT Tuning.ProdThresholds curve can produce (0..max+1) and
+        // asserts it equals KillsMeterSlotChars. If a later threshold retune ever grows a digit
+        // (e.g. a 3-digit tier), this fails instead of the card silently truncating.
+        int widest = 0;
+        for (int k = 0; k <= Tuning.ProdThresholds[2] + 1; k++)
+        {
+            string full = AttackCardTail.ComposeHead(k, Tuning.ProdThresholds, Tuning.Suffix);
+            string body = full.Substring("Kills: ".Length).TrimEnd();
+            widest = System.Math.Max(widest, body.Length);
+        }
+        Assert.Equal(Signatures.KillsMeterSlotChars, widest);
+    }
+
+    [Fact]
     public void KillsMeterSlot_delegates_to_the_compiled_prod_tuning()
     {
         // KillsMeterSlot (no explicit thresholds/suffixes) must match KillsMeterSlotIn driven by
         // the compiled Tuning.KillThresholds/Suffix (prod under a non-LWDEV test compile).
-        foreach (int k in new[] { 0, 5, 25, 50, 55 })
+        foreach (int k in new[] { 0, 5, 10, 15, 55 })
             Assert.Equal(Signatures.KillsMeterSlotIn(k, Tuning.KillThresholds, Tuning.Suffix), Signatures.KillsMeterSlot(k));
     }
 
     [Theory]
     [InlineData(0, "0/5 to +   ")]     // "0/5 to +" (8 chars) padded to 11
-    [InlineData(5, "5/25 to +2 ")]     // "5/25 to +2" (10 chars) padded to 11
-    [InlineData(24, "24/25 to +2")]    // exactly 11, no padding
-    [InlineData(25, "25/50 to +3")]    // exactly 11, no padding
-    [InlineData(49, "49/50 to +3")]    // exactly 11, no padding (widest prod body)
-    [InlineData(50, "50         ")]    // max tier: plain count, padded to 11
+    [InlineData(5, "5/10 to +2 ")]     // "5/10 to +2" (10 chars) padded to 11
+    [InlineData(9, "9/10 to +2 ")]     // "9/10 to +2" (10 chars) padded to 11
+    [InlineData(10, "10/15 to +3")]    // exactly 11, no padding
+    [InlineData(14, "14/15 to +3")]    // exactly 11, no padding (widest prod body)
+    [InlineData(15, "15         ")]    // max tier: plain count, padded to 11
     public void KillsMeterSlot_worked_examples_under_prod_thresholds(int kills, string expected)
     {
         Assert.Equal(expected, Signatures.KillsMeterSlot(kills));

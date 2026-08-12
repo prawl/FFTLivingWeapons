@@ -116,7 +116,7 @@ public class DisplayPoolPaintTests
     public void PoolPaint_registers_and_paints_the_mirrored_weapons_suffix_too()
     {
         var f = BuildTwoWeaponPoolFixture();
-        f.Kills[10] = 30;   // prod thresholds {5,25,50}: tier 2 -> "+2"
+        f.Kills[10] = 12;   // prod thresholds {5,10,15}: tier 2 -> "+2"
         var clock = new TestClock();
         var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
 
@@ -125,7 +125,7 @@ public class DisplayPoolPaintTests
 
         Assert.False(display._sweep.IsComplete);
 
-        Assert.Equal(Signatures.KillsMeterSlot(30), ReadAscii(f.Heap, f.PoolBase + f.SlotA, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(12), ReadAscii(f.Heap, f.PoolBase + f.SlotA, Signatures.KillsMeterSlotChars));
         Assert.Equal("+2", ReadAscii(f.Heap, f.PoolBase + f.SuffixA, 2));
     }
 

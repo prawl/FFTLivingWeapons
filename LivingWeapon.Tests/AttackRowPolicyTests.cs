@@ -203,13 +203,13 @@ public class AttackRowPolicyTests
     [InlineData(0, "Windrunner")]
     [InlineData(4, "Windrunner")]
     [InlineData(5, "Windrunner+")]
-    [InlineData(24, "Windrunner+")]
-    [InlineData(25, "Windrunner+2")]
-    [InlineData(49, "Windrunner+2")]
-    [InlineData(50, "Windrunner+3")]
+    [InlineData(9, "Windrunner+")]
+    [InlineData(10, "Windrunner+2")]
+    [InlineData(14, "Windrunner+2")]
+    [InlineData(15, "Windrunner+3")]
     public void ComposeRow_named_weapon_carries_the_trimmed_tier_suffix(int kills, string expectedRowName)
     {
-        // Tuning.ProdThresholds {5,25,50}: the test build compiles without LWDEV, so KillThresholds
+        // Tuning.ProdThresholds {5,10,15}: the test build compiles without LWDEV, so KillThresholds
         // is the production curve (mirrors AttackCardTests' own documented convention).
         var decision = AttackRow.ComposeRow(WindrunnerId, "Windrunner", kills, spriteByte: 0x80);
 

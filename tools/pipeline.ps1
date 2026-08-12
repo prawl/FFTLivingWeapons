@@ -256,8 +256,8 @@ function Invoke-LivingWeaponPublish {
     # (the Reloaded loader reads it), and meta.json (copied via the csproj).
     #
     # -Dev defines LWDEV (-p:LwDev=true): kill thresholds {1,2,3} + every weapon
-    # pre-seeded to P2 (one kill from P3) for fast in-game verification. Omit it
-    # for production thresholds {5,25,50} and no kill seeding.
+    # pre-seeded to P3 for fast in-game verification. Omit it
+    # for production thresholds {5,10,15} and no kill seeding.
     #
     # -CleanFirst forces a FULL recompile: MSBuild's incremental up-to-date check
     # shipped a stale Release DLL with a fresh timestamp on the first 2.0.0 cut

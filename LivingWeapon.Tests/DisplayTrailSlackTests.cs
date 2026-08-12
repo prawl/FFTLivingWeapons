@@ -30,7 +30,7 @@ public class DisplayTrailSlackTests
         {
             { WeaponId, new WeaponMeta { Name = "Excalibur", Flavor = flavor, Wp = 40, Cat = "Sword", Formula = 1 } },
         };
-        var kills = new Dictionary<int, int> { { WeaponId, 11 } }; // meter body "11/25 to +2" (11 chars, no padding)
+        var kills = new Dictionary<int, int> { { WeaponId, 11 } }; // meter body "11/15 to +3" (11 chars, no padding)
         var clock = new TestClock();
 
         const int enc = 2; // UTF-16: the widest encoding, and the one the TrailSlack formula is sized against

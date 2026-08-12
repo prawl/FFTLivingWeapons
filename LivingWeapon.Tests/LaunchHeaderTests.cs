@@ -110,7 +110,7 @@ public class LaunchHeaderTests : IDisposable
         Assert.Equal(0, store.WeaponCount);
         Assert.Equal(0, store.TotalMarks);
 
-        // Two weapons with deeds; ProdMarkThresholds[0]=25 kills of one archetype earns a Mark.
+        // Two weapons with deeds; MarkThresholds[0] kills of one archetype earns a Mark.
         var victim = new VictimSnapshot(true, 100, 77, false);   // job 77 (Archer) -> Human
         for (int i = 0; i < Tuning.MarkThresholds[0]; i++) store.RecordDeed(9, victim);
         store.RecordDeed(52, victim);

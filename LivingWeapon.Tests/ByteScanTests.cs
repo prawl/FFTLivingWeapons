@@ -90,7 +90,8 @@ public class ByteScanTests
 
     [Theory]
     [InlineData("0/5 to +   ")]    // tier-0 body, padded (11 chars)
-    [InlineData("49/50 to +3")]    // widest sub-max body, no padding needed (11 chars)
+    [InlineData("49/50 to +3")]    // two-digit count body, no padding needed (11 chars); the
+                                    // production widest sub-max is now "14/15 to +3" under {5,10,15}
     [InlineData("55         ")]    // max-tier bare count, padded (11 chars)
     public void MeterSlotDigits_ascii_accepts_valid(string slot)
     {

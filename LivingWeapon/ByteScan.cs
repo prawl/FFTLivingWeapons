@@ -74,7 +74,7 @@ internal static class ByteScan
     }
 
     /// <summary>Slot validator for the equip card's tier-progress METER body ("0/5 to +   ",
-    /// "49/50 to +3", "55         ", width chars wide, Signatures.KillsMeterSlotChars in
+    /// "14/15 to +3", "55         ", width chars wide, Signatures.KillsMeterSlotChars in
     /// production). Char 0 must be an ASCII digit (the count always leads, same rule as
     /// KillsDigits); every char across the WHOLE width is restricted to the meter's own
     /// alphabet (digits, '/', ' ', '+', and the two letters of "to") so a stale unrelated buffer

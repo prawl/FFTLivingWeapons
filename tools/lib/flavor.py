@@ -217,10 +217,11 @@ def is_living(it):
 
 
 #: Width (chars) of the equip-card meter-body slot painted after "Kills: ": the widest
-#: production tier-progress body under the shipped kill-tier thresholds {5,25,50} is 11 chars
-#: ("49/50 to +3" / "24/25 to +2" / "25/50 to +3", all exactly 11). Mirrors LivingWeapon's
-#: Signatures.KillsMeterSlotChars byte-for-byte; analyze.py's lockstep check pins the two
-#: together so a C#-side width change can't silently drift out of sync with the baked nxd.
+#: production tier-progress body under the shipped kill-tier thresholds {5,10,15} (2026-08-11
+#: retune) is 11 chars ("14/15 to +3" / "10/15 to +3", every tier-2 body from 10 through 14, all
+#: exactly 11). Mirrors LivingWeapon's Signatures.KillsMeterSlotChars byte-for-byte; analyze.py's
+#: lockstep check pins the two together so a C#-side width change can't silently drift out of
+#: sync with the baked nxd.
 KILLS_SLOT_BODY_CHARS = 11
 
 #: The unpainted equip-card Kills line, baked as the FIRST line of every living weapon's

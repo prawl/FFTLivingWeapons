@@ -34,19 +34,19 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class AttackCardTailTests
 {
-    // ---- The tier-progress meter itself (owner's worked examples, production thresholds {5,25,50}) ----
+    // ---- The tier-progress meter itself (owner's worked examples, production thresholds {5,10,15}) ----
 
     [Theory]
     [InlineData(0, "Kills: 0/5 to +")]
     [InlineData(1, "Kills: 1/5 to +")]
     [InlineData(4, "Kills: 4/5 to +")]
-    [InlineData(5, "Kills: 5/25 to +2")]
-    [InlineData(6, "Kills: 6/25 to +2")]
-    [InlineData(24, "Kills: 24/25 to +2")]
-    [InlineData(25, "Kills: 25/50 to +3")]
-    [InlineData(34, "Kills: 34/50 to +3")]
-    [InlineData(49, "Kills: 49/50 to +3")]
-    [InlineData(50, "Kills: 50")]
+    [InlineData(5, "Kills: 5/10 to +2")]
+    [InlineData(6, "Kills: 6/10 to +2")]
+    [InlineData(9, "Kills: 9/10 to +2")]
+    [InlineData(10, "Kills: 10/15 to +3")]
+    [InlineData(12, "Kills: 12/15 to +3")]
+    [InlineData(14, "Kills: 14/15 to +3")]
+    [InlineData(15, "Kills: 15")]
     [InlineData(55, "Kills: 55")]
     public void ComposeTail_meter_matches_the_owners_worked_examples(int kills, string expectedHead)
     {
@@ -81,7 +81,7 @@ public class AttackCardTailTests
     public void Head_only_when_no_mark_and_no_signature()
     {
         string line = AttackCardTail.ComposeTail(kills: 5, markLabel: null, sigLabel: null, sigEarned: false, budgetChars: 51);
-        Assert.Equal("Kills: 5/25 to +2", line);
+        Assert.Equal("Kills: 5/10 to +2", line);
     }
 
     [Fact]
@@ -118,8 +118,8 @@ public class AttackCardTailTests
     [Fact]
     public void Mark_clause_present_without_sig_clause()
     {
-        string line = AttackCardTail.ComposeTail(42, "Beastbane", sigLabel: null, sigEarned: false, budgetChars: 200);
-        Assert.Equal("Kills: 42/50 to +3. Beastbane", line);
+        string line = AttackCardTail.ComposeTail(12, "Beastbane", sigLabel: null, sigEarned: false, budgetChars: 200);
+        Assert.Equal("Kills: 12/15 to +3. Beastbane", line);
     }
 
     // ---- The signature clause's two mutually exclusive faces ----
@@ -148,8 +148,8 @@ public class AttackCardTailTests
     {
         // The sig clause is disabled (owner 2026-07-07): sigLabel/sigEarned still passed (proving
         // they're ignored), but the result is the bare meter head.
-        string line = AttackCardTail.ComposeTail(42, markLabel: null, sigLabel: "Concentration", sigEarned: true, budgetChars: 200);
-        Assert.Equal("Kills: 42/50 to +3", line);
+        string line = AttackCardTail.ComposeTail(12, markLabel: null, sigLabel: "Concentration", sigEarned: true, budgetChars: 200);
+        Assert.Equal("Kills: 12/15 to +3", line);
     }
 
     [Fact]
@@ -157,8 +157,8 @@ public class AttackCardTailTests
     {
         // The owner's own worked "locked" example (2026-07-06, no-trailing-period wording pass).
         // Disabled 2026-07-07 (owner): the tease never renders now, regardless of sigLabel/sigEarned.
-        string line = AttackCardTail.ComposeTail(34, markLabel: null, sigLabel: "Gun Slinger", sigEarned: false, budgetChars: 200);
-        Assert.Equal("Kills: 34/50 to +3", line);
+        string line = AttackCardTail.ComposeTail(12, markLabel: null, sigLabel: "Gun Slinger", sigEarned: false, budgetChars: 200);
+        Assert.Equal("Kills: 12/15 to +3", line);
     }
 
     [Fact]
@@ -176,10 +176,10 @@ public class AttackCardTailTests
     {
         // sigLabel null means "this weapon has no signature at all": sigEarned must be ignored,
         // never fabricating a clause from a stray true.
-        Assert.Equal("Kills: 34/50 to +3",
-            AttackCardTail.ComposeTail(34, markLabel: null, sigLabel: null, sigEarned: true, budgetChars: 200));
-        Assert.Equal("Kills: 34/50 to +3",
-            AttackCardTail.ComposeTail(34, markLabel: null, sigLabel: null, sigEarned: false, budgetChars: 200));
+        Assert.Equal("Kills: 12/15 to +3",
+            AttackCardTail.ComposeTail(12, markLabel: null, sigLabel: null, sigEarned: true, budgetChars: 200));
+        Assert.Equal("Kills: 12/15 to +3",
+            AttackCardTail.ComposeTail(12, markLabel: null, sigLabel: null, sigEarned: false, budgetChars: 200));
     }
 
     [Fact]
@@ -196,8 +196,8 @@ public class AttackCardTailTests
     {
         // The sig clause is disabled (owner 2026-07-07): sigLabel/sigEarned still passed (proving
         // they're ignored), leaving only the meter head plus the Mark clause as the achievable max.
-        string line = AttackCardTail.ComposeTail(42, "Beastbane", "Concentration", sigEarned: true, budgetChars: 200);
-        Assert.Equal("Kills: 42/50 to +3. Beastbane", line);
+        string line = AttackCardTail.ComposeTail(12, "Beastbane", "Concentration", sigEarned: true, budgetChars: 200);
+        Assert.Equal("Kills: 12/15 to +3. Beastbane", line);
     }
 
     // ---- Budget-drop rules (whole clause, from the tail inward, never mid-clause) ----
@@ -209,8 +209,8 @@ public class AttackCardTailTests
     [Fact]
     public void Mark_clause_included_right_at_its_own_length_boundary()
     {
-        string headPlusMark = "Kills: 42/50 to +3. Beastbane";
-        string line = AttackCardTail.ComposeTail(42, "Beastbane", "Concentration", sigEarned: true, budgetChars: headPlusMark.Length);
+        string headPlusMark = "Kills: 12/15 to +3. Beastbane";
+        string line = AttackCardTail.ComposeTail(12, "Beastbane", "Concentration", sigEarned: true, budgetChars: headPlusMark.Length);
         Assert.Equal(headPlusMark, line);
     }
 
@@ -219,9 +219,9 @@ public class AttackCardTailTests
     {
         // One char short of the head+mark line: must fall back cleanly to head, never a truncated
         // fragment of "Beastbane".
-        string headPlusMark = "Kills: 42/50 to +3. Beastbane";
-        string head = "Kills: 42/50 to +3";
-        string line = AttackCardTail.ComposeTail(42, "Beastbane", "Concentration", sigEarned: true, budgetChars: headPlusMark.Length - 1);
+        string headPlusMark = "Kills: 12/15 to +3. Beastbane";
+        string head = "Kills: 12/15 to +3";
+        string line = AttackCardTail.ComposeTail(12, "Beastbane", "Concentration", sigEarned: true, budgetChars: headPlusMark.Length - 1);
         Assert.Equal(head, line);
         Assert.DoesNotContain("Beastbane", line);
     }
@@ -229,8 +229,8 @@ public class AttackCardTailTests
     [Fact]
     public void Drops_the_mark_clause_when_only_the_head_fits()
     {
-        string head = "Kills: 42/50 to +3";
-        string line = AttackCardTail.ComposeTail(42, "Beastbane", "Concentration", sigEarned: true, budgetChars: head.Length);
+        string head = "Kills: 12/15 to +3";
+        string line = AttackCardTail.ComposeTail(12, "Beastbane", "Concentration", sigEarned: true, budgetChars: head.Length);
         Assert.Equal(head, line);
         Assert.DoesNotContain("Beastbane", line);
         Assert.DoesNotContain("armed", line);
@@ -240,17 +240,17 @@ public class AttackCardTailTests
     public void Generic_when_even_the_head_does_not_fit_the_budget()
     {
         // The ONLY remaining GenericTail trigger: a budget too tight for the mandatory head itself.
-        string head = "Kills: 42/50 to +3";
-        string line = AttackCardTail.ComposeTail(42, "Beastbane", "Concentration", sigEarned: true, budgetChars: head.Length - 1);
+        string head = "Kills: 12/15 to +3";
+        string line = AttackCardTail.ComposeTail(12, "Beastbane", "Concentration", sigEarned: true, budgetChars: head.Length - 1);
         Assert.Equal(AttackCardTail.GenericTail, line);
     }
 
     [Fact]
     public void Budget_edge_is_inclusive_at_the_heads_own_length()
     {
-        string head = "Kills: 42/50 to +3";
-        Assert.Equal(head, AttackCardTail.ComposeTail(42, null, null, sigEarned: false, budgetChars: head.Length));
-        Assert.Equal(AttackCardTail.GenericTail, AttackCardTail.ComposeTail(42, null, null, sigEarned: false, budgetChars: head.Length - 1));
+        string head = "Kills: 12/15 to +3";
+        Assert.Equal(head, AttackCardTail.ComposeTail(12, null, null, sigEarned: false, budgetChars: head.Length));
+        Assert.Equal(AttackCardTail.GenericTail, AttackCardTail.ComposeTail(12, null, null, sigEarned: false, budgetChars: head.Length - 1));
     }
 
     // Full_line_fits_exactly_at_its_own_length_boundary removed (owner 2026-07-07): with the sig

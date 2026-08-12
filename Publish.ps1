@@ -392,7 +392,7 @@ try {
     # "ModDll": "LivingWeapon.dll", so a package without it is a broken mod (the
     # old data-only Publish shipped a manifest pointing at a DLL it never
     # included). NO -Dev here: production ships the real escalating thresholds
-    # {5,25,50} and seeds no kills. -CleanFirst is the stale-DLL incident guard
+    # {5,10,15} and seeds no kills. -CleanFirst is the stale-DLL incident guard
     # (see tools/pipeline.ps1).
     Write-Status "Building Living Weapon DLL into the package..." "Cyan"
     Invoke-LivingWeaponPublish -OutDir $BuildOutputPath -CleanFirst

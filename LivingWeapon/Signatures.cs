@@ -135,8 +135,8 @@ internal static class Signatures
     public static string KillsSlot(int count) => (Math.Max(0, count) % 10000).ToString().PadRight(4);
 
     /// <summary>Width (chars) of the equip card's painted meter-body slot: the widest production
-    /// tier-progress body under Tuning.ProdThresholds {5,25,50} is 11 chars ("49/50 to +3",
-    /// "24/25 to +2", "25/50 to +3", all exactly 11). The SINGLE source of the 11: every C#
+    /// tier-progress body under Tuning.ProdThresholds {5,10,15} is 11 chars ("14/15 to +3",
+    /// "10/15 to +3", every tier-2 body from 10 through 14, all exactly 11). The SINGLE source of the 11: every C#
     /// site that paints or validates the meter slot (ByteScan's validator width, CardPatterns'
     /// widest-slot math, CardScanner's slot width, CardSites' paint width) references this
     /// constant, never a literal. The Python bake (tools/lib/flavor.py's
@@ -150,7 +150,7 @@ internal static class Signatures
     /// and pads (or, only ever reachable above an 11-digit count under prod, see below,
     /// truncates) the remainder to the fixed slot width so the painted byte width never changes.
     /// The truncate branch is unreachable under prod thresholds (the widest sub-max body is
-    /// exactly 11 chars, "49/50 to +3"; the max-tier body is a bare count, which only exceeds 11
+    /// exactly 11 chars, "14/15 to +3"; the max-tier body is a bare count, which only exceeds 11
     /// chars past a 11-digit kill total), documented rather than asserted-against, since a
     /// corrupt kills.json could theoretically still produce one, and truncating (never crashing)
     /// is strictly better than the old KillsSlot's silent %10000 wrap: the max-tier meter now
@@ -165,7 +165,7 @@ internal static class Signatures
     }
 
     /// <summary>KillsMeterSlotIn driven by the compiled build's own Tuning.KillThresholds/Suffix
-    /// (dev {1,2,3} under LWDEV, prod {5,25,50} otherwise): the call CardSites' paint path
+    /// (dev {1,2,3} under LWDEV, prod {5,10,15} otherwise): the call CardSites' paint path
     /// actually makes.</summary>
     public static string KillsMeterSlot(int kills) => KillsMeterSlotIn(kills, Tuning.KillThresholds, Tuning.Suffix);
 

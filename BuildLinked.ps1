@@ -12,7 +12,7 @@
 # deploy verification. Table/nxd/tex changes take effect on game RESTART; the DLL loads
 # on next game launch.
 #
-#   -Prod   build with production kill thresholds {5,25,50} and no kill seeding
+#   -Prod   build with production kill thresholds {5,10,15} and no kill seeding
 #           (omits -p:LwDev=true) -- for release-testing on a real save.
 #   -Force  let a plain DEV deploy overwrite a prod-flavored install (see the
 #           guard below for why that needs an explicit opt-in).

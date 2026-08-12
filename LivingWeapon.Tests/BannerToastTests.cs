@@ -277,7 +277,7 @@ public class BannerToastTests
         var kills = new Dictionary<int, int> { [1] = 0 };
         var bt = new BannerToast(meta, kills, enabled: true);
 
-        kills[1] = 105;   // crosses tier 3 (ProdThresholds[2]=50) AND milestone 100
+        kills[1] = 105;   // crosses tier 3 (ProdThresholds[2]=15) AND milestone 100
         bt.Tick(tallyChanged: true);
 
         Assert.Equal(2, bt._queue.Count);
@@ -392,7 +392,7 @@ public class BannerToastTests
         var kills = new Dictionary<int, int> { [1] = 0 };
         var bt = new BannerToast(meta, kills, enabled: true);
 
-        // Under ProdThresholds (5/25/50), a single kill (0->1) crosses milestone 1 alone; tier
+        // Under ProdThresholds (5/10/15), a single kill (0->1) crosses milestone 1 alone; tier
         // stays 0 -- the CrossedMilestone-only pass the merge logic must leave untouched.
         kills[1] = 1;
         bt.Tick(tallyChanged: true);
@@ -412,7 +412,7 @@ public class BannerToastTests
         var kills = new Dictionary<int, int> { [1] = 0 };
         var bt = new BannerToast(meta, kills, enabled: true);
 
-        kills[1] = 105;   // crosses tier 3 (ProdThresholds[2]=50) AND milestone 100
+        kills[1] = 105;   // crosses tier 3 (ProdThresholds[2]=15) AND milestone 100
         bt.Tick(tallyChanged: true);
 
         Assert.Equal(2, bt._queue.Count);

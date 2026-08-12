@@ -168,8 +168,8 @@ public class DisplayTests
     public void Suffix_target_weapon_at_tier2_gets_plus2_suffix()
     {
         var meta  = BuildMeta();
-        // Prod thresholds {5,20,50}: 20 kills = tier 2 -> "+2"
-        var kills = new Dictionary<int, int> { { 10, 25 }, { 11, 0 }, { 12, 0 } };
+        // Prod thresholds {5,10,15}: 12 kills = tier 2 -> "+2"
+        var kills = new Dictionary<int, int> { { 10, 12 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
         var (heap, _, cA, _, _) = BuildFixture(mirrorId: 10, naturalWp: 12);
         var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock);

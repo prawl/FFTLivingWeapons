@@ -8,14 +8,16 @@ namespace LivingWeapon;
 /// Kill thresholds are build-gated: a DEV build (BuildLinked.ps1 passes -p:LwDev=true, which
 /// defines LWDEV) uses {1,2,3} so a weapon hits P3 in three kills, AND pre-seeds every weapon
 /// to DevKillSeed (3 == P3) on load -- so every +3 signature is live the moment the weapon is
-/// equipped. A PRODUCTION build (Publish.ps1, no flag) uses the real curve {5,25,50} and seeds nothing.
+/// equipped. A PRODUCTION build (Publish.ps1, no flag) uses the real curve {5,10,15} and seeds nothing.
 /// </summary>
 internal static class Tuning
 {
     /// <summary>Both threshold sets, ALWAYS compiled (so a test can reason about the dev curve even
     /// though tests compile under prod). The active one is selected by the LWDEV flag below.</summary>
     public static readonly int[] DevThresholds = { 1, 2, 3 };    // P3 by the third kill (fast verification)
-    public static readonly int[] ProdThresholds = { 5, 25, 50 }; // escalating: a fast taste at P, an aspirational P3
+    public static readonly int[] ProdThresholds = { 5, 10, 15 }; // gentle ramp (2026-08-11 retune): the
+        // owner's first full playthrough reached 50 kills on only ONE weapon by mid-game, so most
+        // weapons never awakened under the old {5,25,50} curve
 #if LWDEV
     public static readonly int[] KillThresholds = DevThresholds;
     /// <summary>The binary's own build flavor, for the launch header (logging facelift). A
@@ -64,7 +66,8 @@ internal static class Tuning
     /// tests compile under prod; the active one is selected by LWDEV below. A single-element
     /// array -- unlike the 3-tier kill curve, a Mark is earned once (no P1/P2/P3 progression).</summary>
     public static readonly int[] DevMarkThresholds = { 2 };     // fast in-game verification
-    public static readonly int[] ProdMarkThresholds = { 25 };   // PLACEHOLDER -- deferred balance pass
+    public static readonly int[] ProdMarkThresholds = { 10 };   // PLACEHOLDER -- deferred balance pass;
+        // scaled down 25 -> 10 alongside the 2026-08-11 kill-curve retune (still a placeholder, not tuned)
 #if LWDEV
     public static readonly int[] MarkThresholds = DevMarkThresholds;
 #else
@@ -320,9 +323,9 @@ internal static class Tuning
     public static readonly int[][] UltimaMul =
     {
         new[] { 115, 110, 80, 70, 50 },  // +0  (0-4 kills)
-        new[] { 120, 113, 83, 73, 53 },  // +1  (5-24)
-        new[] { 125, 116, 86, 76, 56 },  // +2  (25-49)
-        new[] { 130, 120, 90, 80, 60 },  // +3  (50+)
+        new[] { 120, 113, 83, 73, 53 },  // +1  (5-9)
+        new[] { 125, 116, 86, 76, 56 },  // +2  (10-14)
+        new[] { 130, 120, 90, 80, 60 },  // +3  (15+)
     };
 
     /// <summary>Missing-HP formulas ignore every stat -> no growth lever.</summary>

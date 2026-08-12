@@ -7,7 +7,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// The growth knobs that detection/growth/display all share. TierFor's kills->tier mapping
 /// must hold at every threshold boundary (regardless of whether the build compiled the dev
-/// {1,2,3} or production {5,25,50} thresholds), and the DEV kill-seed must floor every weapon
+/// {1,2,3} or production {5,10,15} thresholds), and the DEV kill-seed must floor every weapon
 /// to P3 for fast in-game testing without ever clobbering an already-higher count.
 /// </summary>
 public class TuningTests
@@ -24,6 +24,18 @@ public class TuningTests
         Assert.Equal(2, Tuning.TierFor(t[2] - 1));
         Assert.Equal(3, Tuning.TierFor(t[2]));
         Assert.Equal(3, Tuning.TierFor(t[2] + 1000));
+    }
+
+    [Fact]
+    public void Prod_kill_curve_is_5_10_15()
+    {
+        // Pins the 2026-08-11 retune: the owner's first full playthrough reached 50 kills on only
+        // ONE weapon while a third of the way through the game, so under the old {5,25,50} curve
+        // most weapons never awakened at all. {5,10,15} is the gentler replacement.
+        Assert.Equal(3, Tuning.ProdThresholds.Length);
+        Assert.Equal(5, Tuning.ProdThresholds[0]);
+        Assert.Equal(10, Tuning.ProdThresholds[1]);
+        Assert.Equal(15, Tuning.ProdThresholds[2]);
     }
 
     [Fact]
@@ -90,7 +102,7 @@ public class TuningTests
         // Tests compile under prod (no LWDEV) and must still be able to reason about the dev
         // curve directly -- mirrors DevThresholds/ProdThresholds above (Tuning.cs:15-18 idiom).
         Assert.Equal(2, Tuning.DevMarkThresholds[0]);
-        Assert.Equal(25, Tuning.ProdMarkThresholds[0]);
+        Assert.Equal(10, Tuning.ProdMarkThresholds[0]);
     }
 
     [Fact]

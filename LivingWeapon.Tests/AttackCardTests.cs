@@ -776,7 +776,9 @@ public class AttackCardTests
     public void LOAD_BEARING_the_split_image_and_offset_bytes_are_written_byte_exact_and_nothing_else_moves()
     {
         // The owner's own cited worst-case name, "Zwill Straightblade+3" (21 chars), at tier 3
-        // (kills >= Tuning.ProdThresholds[2] == 50).
+        // (kills 50 is well past Tuning.ProdThresholds[2], now 15): a max-tier weapon's tail is
+        // always the bare "Kills: {kills}" count regardless of how far past max it climbs, so 50
+        // still exercises the same worst-case rendering as before the 2026-08-11 retune.
         var rig = Build(kills: new Dictionary<int, int> { [ZwillId] = 50 });
         long baseAddr = 0x7000000000;
         rig.Mem.AddAttackTable(baseAddr, 1, AttackCardText.VanillaDesc);
@@ -986,10 +988,10 @@ public class AttackCardTests
     public void A_weapon_with_a_locked_signature_shows_the_unlocks_tease_on_the_card()
     {
         // Matches the owner's own worked "locked" example (CHANGE 3, 2026-07-06): Peacemaker's
-        // Signature.AtTier is 3 (Tuning.ProdThresholds[2] == 50); 34 kills sits at tier 2
-        // (25 <= 34 < 50), short of it. The tease clause is disabled (owner 2026-07-07), so only
-        // the meter head reaches the card now.
-        var rig = Build(kills: new Dictionary<int, int> { [PeacemakerId] = 34 });
+        // Signature.AtTier is 3 (Tuning.ProdThresholds[2], 15 after the 2026-08-11 retune); 12
+        // kills sits at tier 2 (10 <= 12 < 15), short of it. The tease clause is disabled (owner
+        // 2026-07-07), so only the meter head reaches the card now.
+        var rig = Build(kills: new Dictionary<int, int> { [PeacemakerId] = 12 });
         long copy = 0x7000000000;
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
 
@@ -998,7 +1000,7 @@ public class AttackCardTests
         Settle(rig.Card);
 
         Assert.Equal("Peacemaker+2", RowOf(rig.Mem.RegionBytes(copy), 1));
-        Assert.Equal("Kills: 34/50 to +3",
+        Assert.Equal("Kills: 12/15 to +3",
             TailOf(rig.Mem.RegionBytes(copy), 1, "Peacemaker+2".Length));
     }
 

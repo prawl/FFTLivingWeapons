@@ -21,7 +21,7 @@ public class BattleSummaryTests
         _ => "weapon " + id,
     };
 
-    // The production thresholds {5,25,50} via the always-compiled test hook.
+    // The production thresholds {5,10,15} via the always-compiled test hook.
     private static int Tier(int kills) => Tuning.TierForIn(kills, Tuning.ProdThresholds);
 
     private static string Compose(
@@ -60,7 +60,7 @@ public class BattleSummaryTests
     [Fact]
     public void A_tier_crossing_is_derived_from_the_credit_delta()
     {
-        // Windrunner went 4 -> 6 lifetime this battle: tier 0 -> tier 1 under {5,25,50}.
+        // Windrunner went 4 -> 6 lifetime this battle: tier 0 -> tier 1 under {5,10,15}.
         var credits = new Dictionary<int, int> { [52] = 2 };
         var lifetime = new Dictionary<int, int> { [52] = 6 };
         string s = Compose(credits, lifetime);
@@ -70,9 +70,10 @@ public class BattleSummaryTests
     [Fact]
     public void No_crossing_means_no_tier_parenthetical()
     {
-        // 10 -> 12: still tier 1. The clause reports zero without naming anyone.
+        // 6 -> 8: still tier 1 (mid-span, well clear of both boundaries). The clause reports zero
+        // without naming anyone.
         var credits = new Dictionary<int, int> { [52] = 2 };
-        var lifetime = new Dictionary<int, int> { [52] = 12 };
+        var lifetime = new Dictionary<int, int> { [52] = 8 };
         string s = Compose(credits, lifetime);
         Assert.Contains("0 tiers reached", s);
         Assert.DoesNotContain("Windrunner tier", s);
