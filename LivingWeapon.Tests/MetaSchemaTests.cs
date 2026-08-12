@@ -96,4 +96,25 @@ public class MetaSchemaTests : IDisposable
         Assert.Single(map);
         Assert.Equal("Galewind", map[9].Name);
     }
+
+    // LW-171 "Crossfire": pins the committed bake, mirroring LivingPoachTests' precedent for
+    // pinning committed generated files (poach.json). Outrider Pistol (id 71) "Gun Slinger" was
+    // the sole gunSlinger-flagged weapon; Arbalest (id 79) "Crossfire" is the second. Both must
+    // carry the flag at tier 3 in the real, build-generated meta.json.
+    [Fact]
+    public void Baked_meta_flags_both_Outrider_Pistol_and_Arbalest_as_gunSlinger_at_tier3()
+    {
+        var map = MetaLoader.Load(Path.GetDirectoryName(RepoMetaPath())!);
+
+        Assert.True(map.TryGetValue(71, out var pistol), "id71 (Outrider Pistol) missing from meta.json");
+        Assert.NotNull(pistol.Signature);
+        Assert.True(pistol.Signature!.GunSlinger);
+        Assert.Equal(3, pistol.Signature.AtTier);
+
+        Assert.True(map.TryGetValue(79, out var arbalest), "id79 (Arbalest) missing from meta.json");
+        Assert.NotNull(arbalest.Signature);
+        Assert.True(arbalest.Signature!.GunSlinger);
+        Assert.Equal(3, arbalest.Signature.AtTier);
+        Assert.Equal("Crossfire", arbalest.Signature.DisplayLabel);
+    }
 }

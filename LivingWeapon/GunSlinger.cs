@@ -3,12 +3,15 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Outrider Pistol (id 71) +3 "Gun Slinger": roster prep + hold.
-/// When a unit has the gun-slinger pistol as their main-hand weapon and has earned tier 3,
-/// writes a second pistol into the roster off-hand slot (ROffHand +0x18, u16) and
-/// Dual Wield (support Key 477, RSupport +0x0A, u16 ability Key) into the roster support
-/// slot -- so the unit dual-wields and Attack fires twice. Both slots are snapshot+restored
-/// when the unit switches away from the pistol.
+/// Gun Slinger family: roster prep + hold for every weapon flagged `gunSlinger` in meta.json.
+/// Outrider Pistol (id 71) "Gun Slinger" was the sole flagged weapon; Arbalest (id 79)
+/// "Crossfire" (LW-171) is the second. When a unit's main-hand weapon is ANY flagged weapon
+/// and the unit has earned that weapon's own tier, the mod writes a second copy of THAT SAME
+/// weapon into the roster off-hand slot (ROffHand +0x18, u16) and Dual Wield (support Key 477,
+/// RSupport +0x0A, u16 ability Key) into the roster support slot -- so the unit dual-wields and
+/// Attack fires twice. Each wielder always receives a twin of their OWN main-hand weapon, never
+/// another unit's. Both slots are snapshot+restored when the unit switches away from every
+/// flagged weapon.
 ///
 /// Runs every ~1 s: world map, formation, AND in battle (Engine, Barrage's precedent). It
 /// originally ran only between battles and the twin did not hold into combat; the in-battle
@@ -29,7 +32,7 @@ internal sealed class GunSlinger
     private readonly Dictionary<int, int> _kills;
     private readonly IGameMemory _mem;
     private readonly GunSlingerStore _store;
-    private readonly int _twinId;   // the gun-slinger-flagged id, cached at construction
+    private readonly HashSet<int> _twinIds;   // every gun-slinger-flagged id, cached at construction
 
     public GunSlinger(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
                       string modDir, IGameMemory? mem = null)
@@ -38,7 +41,7 @@ internal sealed class GunSlinger
         _kills = kills;
         _mem   = mem ?? new LiveMemory();
         _store = new GunSlingerStore(modDir);
-        _twinId = ResolveTwinId(meta);
+        _twinIds = ResolveTwinIds(meta);
     }
 
     /// <summary>Test seam: expose the store so integration tests can verify snapshot state.</summary>
@@ -57,7 +60,7 @@ internal sealed class GunSlinger
     /// </summary>
     public void PrepRoster(bool inBattle = false)
     {
-        if (_twinId == 0) return;   // no GunSlinger weapon in meta
+        if (_twinIds.Count == 0) return;   // no GunSlinger weapon in meta
 
         bool dirty = false;
         for (int slot = 0; slot < Offsets.RosterSlots; slot++)
@@ -72,40 +75,42 @@ internal sealed class GunSlinger
             ushort supp   = _mem.U16(b + Offsets.RSupport);
 
             int tier = Tuning.TierOf(_kills, mainH);
-            bool mainIsGS = mainH == _twinId
+            bool mainIsGS = _twinIds.Contains(mainH)
                          && _meta.TryGetValue(mainH, out var m)
                          && (m.Signature?.GunSlinger ?? false)
                          && tier >= (m.Signature?.AtTier ?? 99);
 
             var snap = _store.Get(nameId);
-            dirty |= ApplyOffHand(b, offH, mainIsGS, snap, inBattle);
+            dirty |= ApplyOffHand(b, offH, mainIsGS, mainH, snap, inBattle);
             dirty |= ApplySupport(b, supp, mainIsGS, snap, inBattle);
         }
         if (dirty) _store.Save();
     }
 
-    private bool ApplyOffHand(long b, ushort off, bool mainIsGS, GunSlingerSnap snap, bool inBattle)
+    private bool ApplyOffHand(long b, ushort off, bool mainIsGS, int mainH, GunSlingerSnap snap, bool inBattle)
     {
-        var action = GunSlingerPolicy.DesiredOffHand(mainIsGS, _twinId, off, snap);
+        // twin = the wielder's OWN main-hand weapon: each unit is twinned with what it actually
+        // wields, never a module-global id (LW-171 -- several weapons can be flagged at once).
+        var action = GunSlingerPolicy.DesiredOffHand(mainIsGS, mainH, off, snap);
         switch (action)
         {
             case GunSlingerOffAction.SnapshotAndWrite when !inBattle:
                 snap.OrigOff = off;
                 snap.HasOff  = true;
-                WriteOffHand(b, (ushort)_twinId);
-                ModLogger.Event(LogVerb.Signature, "A twin pistol is equipped in the wielder's off-hand; their original gear is remembered and returns when the pistol comes off.");
+                WriteOffHand(b, (ushort)mainH);
+                ModLogger.Event(LogVerb.Signature, "A twin weapon is equipped in the wielder's off-hand; their original gear is remembered and returns when the weapon comes off.");
                 return true;
             case GunSlingerOffAction.Write:
-                WriteOffHand(b, (ushort)_twinId);
+                WriteOffHand(b, (ushort)mainH);
                 // The re-assert IS the clobber instrument: this branch only runs when something
                 // rewrote the slot out from under the hold -- the logged value names the culprit's
                 // leftovers (an EMPTY sentinel = an equip screen normalized the "illegal" twin away).
-                ModLogger.Debug(LogVerb.Signature, $"re-equipped the twin pistol; something overwrote the off-hand slot (read {off})");
+                ModLogger.Debug(LogVerb.Signature, $"re-equipped the twin weapon; something overwrote the off-hand slot (read {off})");
                 return false;   // snap unchanged, no persistence needed
             case GunSlingerOffAction.Restore when !inBattle:
                 WriteOffHand(b, snap.OrigOff);
                 snap.HasOff = false;
-                ModLogger.Event(LogVerb.Signature, "The twin pistol is removed; the wielder's original off-hand gear is restored.");
+                ModLogger.Event(LogVerb.Signature, "The twin weapon is removed; the wielder's original off-hand gear is restored.");
                 return true;
             default:   // Leave, or a SnapshotAndWrite/Restore suppressed in battle
                 return false;
@@ -147,10 +152,11 @@ internal sealed class GunSlinger
         if (_mem.Writable(addr, 2)) _mem.W16(addr, value);
     }
 
-    private static int ResolveTwinId(Dictionary<int, WeaponMeta> meta)
+    private static HashSet<int> ResolveTwinIds(Dictionary<int, WeaponMeta> meta)
     {
+        var ids = new HashSet<int>();
         foreach (var kv in meta)
-            if (kv.Value.Signature?.GunSlinger == true) return kv.Key;
-        return 0;
+            if (kv.Value.Signature?.GunSlinger == true) ids.Add(kv.Key);
+        return ids;
     }
 }

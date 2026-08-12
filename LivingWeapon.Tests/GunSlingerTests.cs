@@ -547,4 +547,171 @@ public class GunSlingerTests
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.RSupport),
             "must not write support below tier 3");
     }
+
+    // ── LW-171 "Crossfire": multiple flagged gun-slinger weapons, each wielder's own twin ────
+    //
+    // Outrider Pistol (id 71) "Gun Slinger" and Arbalest (id 79) "Crossfire" are both flagged
+    // gunSlinger in meta.json. The runtime must resolve EVERY flagged id, not just one, and each
+    // wielder must be twinned with THEIR OWN main-hand weapon, never another unit's.
+
+    private const int OutriderPistolId = 71;
+    private const int ArbalestId = 79;
+
+    private static Dictionary<int, WeaponMeta> MakeTwoGunMeta() => new()
+    {
+        [OutriderPistolId] = new WeaponMeta
+        {
+            Name = "Outrider Pistol", Wp = 7, Cat = "Gun", Formula = 3,
+            Flavor = "wheel-lock",
+            Signature = new WeaponSignature { AtTier = 3, GunSlinger = true, DisplayLabel = "Gun Slinger" }
+        },
+        [ArbalestId] = new WeaponMeta
+        {
+            Name = "Arbalest", Wp = 7, Cat = "Crossbow", Formula = 1,
+            Flavor = "steel arbalest",
+            Signature = new WeaponSignature { AtTier = 3, GunSlinger = true, DisplayLabel = "Crossfire" }
+        }
+    };
+
+    // LOAD-BEARING (LW-171): two DIFFERENT flagged weapons, two DIFFERENT wielders. Under the
+    // single-_twinId code only whichever id ResolveTwinId resolved first ever equips a twin --
+    // the other wielder's off-hand/support are silently left alone. Confirm RED before
+    // implementing (report which assertion failed).
+    [Fact]
+    public void PrepRoster_two_flagged_weapons_each_unit_gets_own_twin()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int>
+        {
+            [OutriderPistolId] = Tuning.ProdThresholds[2],
+            [ArbalestId] = Tuning.ProdThresholds[2],
+        };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: OutriderPistolId, off: EmptyU16, supp: 0);
+        SeedRosterSlot(mem, slot: 1, nameId: 2, level: 30, rh: ArbalestId, off: EmptyU16, supp: 0);
+
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        gs.PrepRoster();
+
+        long bA = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        long bB = Offsets.RosterBase + 1 * Offsets.RosterStride;
+
+        Assert.True(mem.WrittenU16.ContainsKey(bA + Offsets.ROffHand),
+            "unit A (Outrider Pistol) must get its own twin");
+        Assert.Equal((ushort)OutriderPistolId, mem.WrittenU16[bA + Offsets.ROffHand]);
+        Assert.True(mem.WrittenU16.ContainsKey(bA + Offsets.RSupport));
+        Assert.Equal(DualWieldKey, mem.WrittenU16[bA + Offsets.RSupport]);
+
+        Assert.True(mem.WrittenU16.ContainsKey(bB + Offsets.ROffHand),
+            "unit B (Arbalest) must get its own twin, not unit A's pistol nor nothing");
+        Assert.Equal((ushort)ArbalestId, mem.WrittenU16[bB + Offsets.ROffHand]);
+        Assert.True(mem.WrittenU16.ContainsKey(bB + Offsets.RSupport));
+        Assert.Equal(DualWieldKey, mem.WrittenU16[bB + Offsets.RSupport]);
+    }
+
+    // Swap: a unit already dual-wielding the Outrider Pistol re-equips the Arbalest -- the
+    // off-hand twin must switch too (the Write re-assert branch uses the WIELDER's own main-hand
+    // id, not a single module-global twin), and the stored OrigOff must not be disturbed.
+    [Fact]
+    public void PrepRoster_swap_between_flagged_weapons_writes_new_twin()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int>
+        {
+            [OutriderPistolId] = Tuning.ProdThresholds[2],
+            [ArbalestId] = Tuning.ProdThresholds[2],
+        };
+        // Main-hand already Arbalest at tier 3; off-hand still holds the OLD twin (Outrider
+        // Pistol) left over from before the swap.
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: ArbalestId,
+                       off: (ushort)OutriderPistolId, supp: DualWieldKey);
+
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        var snap = gs.StoreForTest().Get(nameId: 1);
+        snap.HasOff = true;
+        snap.OrigOff = 100;   // the real gear from before Gun Slinger ever engaged
+
+        gs.PrepRoster();
+
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
+        Assert.Equal((ushort)ArbalestId, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.Equal(100, gs.StoreForTest().Get(nameId: 1).OrigOff);   // untouched by the re-assert
+    }
+
+    // Shield off-hand: a legitimate item (not a flagged weapon) in the off-hand gets
+    // snapshotted and overwritten with the wielder's own twin; unequipping restores it.
+    [Fact]
+    public void PrepRoster_shield_offhand_snapshots_and_restores()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int>
+        {
+            [OutriderPistolId] = Tuning.ProdThresholds[2],
+            [ArbalestId] = Tuning.ProdThresholds[2],
+        };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: ArbalestId, off: 111, supp: 0);
+
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        gs.PrepRoster();
+
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.Equal((ushort)ArbalestId, mem.WrittenU16[b + Offsets.ROffHand]);
+        var snap = gs.StoreForTest().Get(nameId: 1);
+        Assert.True(snap.HasOff);
+        Assert.Equal(111, snap.OrigOff);
+
+        // Switch away from every flagged weapon -> restore the shield.
+        mem.U16s[b + Offsets.RRHand] = 1;   // an unflagged weapon
+        mem.WrittenU16.Clear();
+
+        gs.PrepRoster();
+
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
+        Assert.Equal((ushort)111, mem.WrittenU16[b + Offsets.ROffHand]);
+    }
+
+    // Cross-twin collision (deliberate): the OTHER flagged weapon legitimately sits in the
+    // off-hand when the main-hand flips to a flagged weapon at tier 3 -- it gets snapshotted and
+    // overwritten like any other off-hand item, and unequipping restores it.
+    [Fact]
+    public void PrepRoster_flagged_weapon_in_offhand_is_snapshotted_and_overwritten()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int>
+        {
+            [OutriderPistolId] = Tuning.ProdThresholds[2],
+            [ArbalestId] = Tuning.ProdThresholds[2],
+        };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: ArbalestId,
+                       off: (ushort)OutriderPistolId, supp: 0);
+
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        gs.PrepRoster();
+
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.Equal((ushort)ArbalestId, mem.WrittenU16[b + Offsets.ROffHand]);
+        var snap = gs.StoreForTest().Get(nameId: 1);
+        Assert.True(snap.HasOff);
+        Assert.Equal((ushort)OutriderPistolId, snap.OrigOff);
+
+        mem.U16s[b + Offsets.RRHand] = 1;   // unequip the Arbalest
+        mem.WrittenU16.Clear();
+
+        gs.PrepRoster();
+
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
+        Assert.Equal((ushort)OutriderPistolId, mem.WrittenU16[b + Offsets.ROffHand]);
+    }
 }

@@ -2540,7 +2540,7 @@
       "name": "Arbalest",
       "tier": 3,
       "identity": "Raw stringless workhorse and the ONLY Range-5 crossbow. Best rider-free WP of its era + unique reach; the clean PA*WP sniper.",
-      "flavorOverride": "A steel arbalest cranked taut as a war-engine, its shaft passing clean through any foe.",
+      "flavorOverride": "A steel arbalest cranked taut as a war-engine.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2559,6 +2559,12 @@
         "formula": 1,
         "range": 6,
         "attackFlags": "Direct"
+      },
+      "signature": {
+        "atTier": 3,
+        "gunSlinger": true,
+        "displayLabel": "Crossfire",
+        "p3Desc": "Loads a second arbalest into the off-hand, granting dual-wield. Must equip out of battle."
       }
     },
     {

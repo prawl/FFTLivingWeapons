@@ -714,7 +714,14 @@
     "wp": 7,
     "cat": "Crossbow",
     "formula": 1,
-    "flavor": "A steel arbalest cranked taut as a war-engine, its shaft passing clean through any foe."
+    "flavor": "A steel arbalest cranked taut as a war-engine.",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Crossfire",
+      "gunSlinger": true
+    }
   },
   "80": {
     "name": "Venombolt",
