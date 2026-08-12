@@ -150,29 +150,41 @@ public class LivingPoachTests : IDisposable
 
     // Every carcass key in the committed file must fall inside the store's u8[96] -- the write
     // computes PoachStoreBase + key - 1, so a key outside 1..96 would write below or past the
-    // array, and a duplicate key would let two different carcasses collide on one byte. Pins the
-    // real committed poach.json so a future regeneration (tools/extract_poach_map.py) can never
-    // silently produce either.
+    // array. Uniqueness is pinned PER DISTINCT CARCASS PAIR, not per job entry: since LW-174 the
+    // Job sheet's ALIAS rows (jobs 169-173, exact clones of 103/97/98/100/94) ship as first-class
+    // map entries carrying their base job's pair, so two job ids sharing one IDENTICAL pair is the
+    // design, and it is harmless -- LivingPoach.WriteCarcass keys the store write on the carcass
+    // key alone, so both job ids land on the same byte on purpose. A key reused across two
+    // DIFFERENT pairs is still fatal (two unrelated carcasses colliding on one store byte), and
+    // that is what this pins so a future regeneration (tools/extract_poach_map.py) can never
+    // silently produce it.
     [Fact]
-    public void PoachMap_every_carcass_key_is_in_1_96_and_unique()
+    public void PoachMap_every_carcass_key_is_in_1_96_and_unique_across_distinct_pairs()
     {
         var map = new PoachMap(RepoLivingWeaponDir());
         Assert.True(map.IsLoaded);
 
-        var keys = new List<int>();
+        var pairs = new HashSet<(int Common, int Rare)>();
         for (int jobId = 1; jobId <= 300; jobId++)
         {
             if (!map.TryGetJob(jobId, out var carcass)) continue;
-            keys.Add(carcass.CommonKey);
-            keys.Add(carcass.RareKey);
+            Assert.InRange(carcass.CommonKey, 1, 96);
+            Assert.InRange(carcass.RareKey, 1, 96);
+            // A pair may never collide with ITSELF either (one byte holding both drops).
+            Assert.NotEqual(carcass.CommonKey, carcass.RareKey);
+            pairs.Add((carcass.CommonKey, carcass.RareKey));
         }
-        Assert.NotEmpty(keys);
+        Assert.NotEmpty(pairs);
 
-        var seen = new HashSet<int>();
-        foreach (int key in keys)
+        var owner = new Dictionary<int, (int Common, int Rare)>();
+        foreach (var pair in pairs)
         {
-            Assert.InRange(key, 1, 96);
-            Assert.True(seen.Add(key), $"duplicate carcass key {key}");
+            foreach (int key in new[] { pair.Common, pair.Rare })
+            {
+                Assert.True(!owner.TryGetValue(key, out var prior) || prior.Equals(pair),
+                    $"carcass key {key} is claimed by two different pairs ({prior} and {pair})");
+                owner[key] = pair;
+            }
         }
     }
 
@@ -225,6 +237,50 @@ public class LivingPoachTests : IDisposable
             delayedOrCharged: false, viaFallback: false);
 
         long addr = Offsets.PoachStoreBase + (3 - 1);
+        Assert.Equal((byte)1, mem.U8(addr));
+    }
+
+    // ── Stage-1d: LW-174 the Job sheet's ALIAS monster rows ───────────────────────────────────
+    // Jobs 169, 170, 171, 172, 173 are exact clones of jobs 103, 97, 98, 100, 94 (Red Panther,
+    // Goblin, Black Goblin, Bomb, Chocobo) and carry those jobs' IDENTICAL carcass key pairs. They
+    // are not NG+ curiosities the map can skip: the VANILLA encounter table fields these alias ids
+    // in ordinary story battles (offline ENTD decode 2026-08-12 -- battle 384, Sweegy Woods
+    // chapter 1, fields MainJob 169-172; battles 389 and 400 field aliases too). Map membership BY
+    // JOB ID is the entire monster gate (LivingPoach.RecordPoachDeed), so an alias job with no map
+    // entry is a SILENT refusal: those monsters simply never poach. Exactly the failure shape of
+    // the Black Chocobo job-95 bug above, which is why these pin both the lookup and the executor.
+
+    [Theory]
+    [InlineData(169, 103)]   // Red Panther
+    [InlineData(170, 97)]    // Goblin
+    [InlineData(171, 98)]    // Black Goblin
+    [InlineData(172, 100)]   // Bomb
+    [InlineData(173, 94)]    // Chocobo
+    public void PoachMap_alias_jobs_resolve_identically_to_their_base_job(int aliasJob, int baseJob)
+    {
+        var map = new PoachMap(RepoLivingWeaponDir());
+        Assert.True(map.TryGetJob(aliasJob, out var alias), $"alias job {aliasJob} has no poach.json entry");
+        Assert.True(map.TryGetJob(baseJob, out var basis), $"base job {baseJob} has no poach.json entry");
+        Assert.Equal(basis, alias);   // record equality: both keys AND both display names
+    }
+
+    // The executor-level twin of the job-95 falsifying case: a Red Panther fielded under its ALIAS
+    // job id (169) by the vanilla encounter table, killed by a basic Attack with a dormant-formula
+    // weapon and a Poach-supported killer -- every gate green. The store write must land on base
+    // job 103's own common key, 19 (Red Panther Carcass, per the committed LivingWeapon/poach.json).
+    [Fact]
+    public void RecordPoachDeed_job169_aliasRedPanther_writes_the_store_at_its_base_jobs_key()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(RepoLivingWeaponDir());
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, 19, current: 0);   // job 103 (Red Panther)'s real committed common key
+        var poach = MakePoach(mem, map, meta, roll: 0);   // roll 0 -> Common
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, 169, false), slot: 0,
+            delayedOrCharged: false, viaFallback: false);
+
+        long addr = Offsets.PoachStoreBase + (19 - 1);
         Assert.Equal((byte)1, mem.U8(addr));
     }
 

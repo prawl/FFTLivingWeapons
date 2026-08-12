@@ -16,13 +16,18 @@ run -- a mismatch means the sheet layout moved and this script must stop, not gu
   Chocobo (94) -> 1/2, Black Chocobo (95) -> 3/4, Goblin (97) -> 7/8, Bomb (100) -> 25/26,
   Skeleton (109) -> 31/32, Ghoul (112) -> 13/14.
 
-The Job sheet also repeats a handful of species' key pairs on higher, non-contiguous job ids
-(169-173 duplicate 103/97/98/100/94's exact pairs -- almost certainly reused NG+/bonus-encounter
-job slots for the same five species). Those are folded into the FIRST (lowest id, primary
-94-141 block) job that owns each pair rather than kept as separate map entries, so the map's
-carcass keys stay globally unique (each of the store's 96 bytes has exactly one owning pair) --
-see the dedupe loop below. A genuine PARTIAL collision (a key reused across two DIFFERENT pairs)
-is a real corruption signal and still fails loudly.
+The Job sheet also repeats a handful of species' key pairs on higher, non-contiguous ALIAS job ids
+(169-173 duplicate 103/97/98/100/94's exact pairs: Red Panther, Goblin, Black Goblin, Bomb,
+Chocobo). Those alias rows are EMITTED as first-class map entries sharing their base job's pair.
+They used to be folded away, which silently disabled Living Poach wherever the game fields them --
+and it fields them in ORDINARY STORY BATTLES, not some NG+ corner: an offline ENTD decode
+(2026-08-12) shows battle 384 (Sweegy Woods, chapter 1) fielding MainJob 169-172, with battles 389
+and 400 fielding aliases too. Map membership by job id is the runtime's entire monster gate, so an
+unmapped alias is a silent refusal (the LW-174 finding, from the ac43327 adversarial verify round).
+Two job ids sharing one IDENTICAL pair is harmless: the store write is keyed by carcass key alone.
+Carcass keys therefore stay unique across DISTINCT pairs (each of the store's 96 bytes has exactly
+one owning pair) -- see the dedupe loop below. A genuine PARTIAL collision (a key reused across two
+DIFFERENT pairs) is a real corruption signal and still fails loudly.
 
 Rerun after a game patch (the pac path comes from tools/lib/paths.py) and commit the diff; the
 json is the runtime's single source for the map.
@@ -90,7 +95,8 @@ def main():
 
     jobs = {}
     key_owner = {}   # key -> (commonKey, rareKey) pair that first claimed it
-    skipped_aliases = []
+    pair_owner = {}  # (commonKey, rareKey) pair -> the FIRST (lowest id) job that claimed it
+    emitted_aliases = []   # (aliasJobId, baseJobId) pairs, for the summary print
     for job_id, common_key, rare_key in job_rows:
         job_id, common_key, rare_key = int(job_id), int(common_key), int(rare_key)
         if common_key == 0 or rare_key == 0:
@@ -115,14 +121,27 @@ def main():
         if prior_common is None and prior_rare is None:
             key_owner[common_key] = pair
             key_owner[rare_key] = pair
+            pair_owner[pair] = job_id
             jobs[job_id] = {
                 "common": {"key": common_key, "name": common_name},
                 "rare": {"key": rare_key, "name": rare_name},
             }
         elif prior_common == pair and prior_rare == pair:
-            # Exact duplicate of an already-mapped species (a higher, non-contiguous job id
-            # reusing an earlier job's carcass pair) -- fold into the earlier entry, not corruption.
-            skipped_aliases.append(job_id)
+            # ALIAS row: a higher, non-contiguous job id carrying an earlier job's EXACT carcass
+            # pair (169-173 clone 103/97/98/100/94). LW-174: emit it as a first-class entry sharing
+            # that pair instead of folding it away -- the vanilla encounter table fields these ids
+            # in ordinary story battles (battle 384 Sweegy Woods, MainJob 169-172), and the runtime
+            # gates entirely on map membership by job id, so no entry meant a silent no-poach.
+            # Sharing one pair is safe: the store write is keyed by carcass key alone. key_owner is
+            # deliberately NOT touched here, so the global per-distinct-pair uniqueness self-check
+            # below still measures exactly what it did before.
+            base_job = pair_owner[pair]
+            jobs[job_id] = {
+                "common": {"key": common_key, "name": common_name},
+                "rare": {"key": rare_key, "name": rare_name},
+                "aliasOf": base_job,   # self-documenting only; the runtime DTO ignores unknown fields
+            }
+            emitted_aliases.append((job_id, base_job))
         else:
             raise SystemExit(
                 f"job {job_id}: key pair {pair} partially collides with an existing entry "
@@ -142,15 +161,19 @@ def main():
                        "directly) joined against nxd/poachitem.en.nxd; carcass store u8[96] at "
                        "0x1411A7A1B + (key - 1); the species = job - 95 arithmetic was falsified "
                        "live by a Black Chocobo at job 95, 2026-08-12 -- see LIVE_LEDGER row "
-                       "2026-08-12",
+                       "2026-08-12; the Job sheet's alias rows 169-173 are emitted as first-class "
+                       "entries sharing their base jobs' (103/97/98/100/94) carcass pairs because "
+                       "the vanilla encounter table fields those ids in ordinary story battles "
+                       "(LW-174)",
         "jobs": {str(j): jobs[j] for j in sorted(jobs)},
     }
     OUT.write_text(json.dumps(out, indent=1), encoding="utf-8")
     ids = sorted(jobs)
     print(f"wrote {OUT} ({len(jobs)} monster jobs, ids {ids[0]}..{ids[-1]})")
-    if skipped_aliases:
-        print(f"  folded {len(skipped_aliases)} duplicate-key alias job ids into their primary "
-              f"entry: {skipped_aliases}")
+    if emitted_aliases:
+        shared = ", ".join(f"{alias} -> {base}" for alias, base in emitted_aliases)
+        print(f"  emitted {len(emitted_aliases)} alias job entries sharing a base job's carcass "
+              f"pair: {shared}")
 
 
 if __name__ == "__main__":

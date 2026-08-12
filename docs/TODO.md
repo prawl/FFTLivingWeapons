@@ -100,7 +100,12 @@ the technical detail lives in the indented lines under it.
     carcass with no double carcass on a vanilla control and no carcass on an ability kill.
     Owner only, as every live flip is.
 
-- **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [BUILDING]
+- **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [AWAITING-LIVE]
+  - Built and adversarially checked 2026-08-12, same session it was opened: six new pinned
+    tests written red first, the extractor now emits the five alias entries (each tagged with
+    its base job), the regenerated map is byte identical on a re run, and the independent
+    verify broke the implementation three ways to prove the new guards really trip (suite
+    3086 green, analyze exit 0, verdict SHIP at 9/10). Only the live premise beat remains.
   - Done means: a monster the game fields on one of the Job sheet's five alias rows (jobs
     169-173, which per the sheet are exact clones of jobs 103/97/98/100/94 with the same
     species and the same carcass keys) poaches exactly like its base-job twin: the map
