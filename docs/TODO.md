@@ -119,8 +119,9 @@ the technical detail lives in the indented lines under it.
     entries; the existing global key-uniqueness test is deliberately relaxed to base rows
     only, with alias rows asserted equal to their base instead. Live premise watch, owner
     only: one alias-job monster poached in a story battle, since the band job byte reading
-    169-173 live is the one unverified link (band equals sheet key is live-proven at 95;
-    MainJob is sheet-key space).
+    169-173 live is the one unverified link (band equals sheet key was read live at 95 in
+    the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
+    space).
 
 ## Backlog
 
