@@ -63,6 +63,12 @@ internal sealed partial class Display
     // Generation number at the last log line so we log once per completion.
     private long _lastLoggedGen = -1;
 
+    // LW-165 stage 1: the timestamp of this Display's own first Tick, -1 until then. Engine only
+    // starts ticking Display after the launch guard arms (Mod.cs/Engine.cs), so this stamp IS the
+    // armed moment for timing purposes -- Display.PoolPaint.cs reads it to time how long the kill
+    // counters took to go live after arming.
+    private long _firstTickMs = -1;
+
     /// <param name="legends">Reliquary Phase 1's deed ledger (docs/RELIQUARY_AC.md). Null (the
     /// default) omits card-story composing entirely -- every existing caller/test that doesn't
     /// pass this behaves byte-identically to pre-Reliquary Display.</param>
@@ -153,6 +159,8 @@ internal sealed partial class Display
     /// budget to avoid competing with the kill-poll path during a live fight.</summary>
     public void Tick(bool inBattle)
     {
+        if (_firstTickMs < 0) _firstTickMs = _nowMs();
+
         // Gather the weapons whose NAME we actively track for suffix painting:
         // both mirror slots, filtered to valid tracked ids.  No tier gate -- the old gate
         // suppressed counts for sub-threshold weapons entirely (live bug: "tier-0 never painted").

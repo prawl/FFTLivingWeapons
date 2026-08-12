@@ -21,6 +21,14 @@ internal sealed partial class Display
     // unchanged coverage; a changed count is the drained-cache signal the re-check below acts on.
     private int _countAtCoverage;
 
+    // LW-165 stage 1: latches true the first time pool coverage goes false->true this process
+    // launch, and never resets (deliberately independent of _poolCovered's own per-window
+    // resets). Gates AnnounceCoverage's Info vs. Debug split below: the FIRST latch is the
+    // "kill counters just went live" moment the owner needs a stopwatch on; every LATER
+    // false->true edge (a post-Invalidate re-latch, e.g. battle exit/enter or the LW-163
+    // drained-cache heal) is a re-coverage, not first light, and stays Debug/file-only.
+    private bool _coverageAnnounced;
+
     /// <summary>True if the sweep should be skipped this Tick. Locates the pool at most once
     /// per coverage window: a cached "already covering" flag short-circuits every subsequent
     /// call SO LONG AS the live site cache still covers every tracked id. The short-circuit is
@@ -57,13 +65,45 @@ internal sealed partial class Display
         foreach (var (rbase, rsize) in regions) ScanPoolRegion(rbase, rsize);
 
         _poolCovered = CoversAllMeta();
-        if (_poolCovered) _countAtCoverage = _sites.Count;   // LW-163: snapshot the count the re-check above compares against
+        if (_poolCovered)
+        {
+            _countAtCoverage = _sites.Count;   // LW-163: snapshot the count the re-check above compares against
+            AnnounceCoverage(regions);         // LW-165 stage 1: this is always a false->true edge (see field doc)
+        }
 #if LWDEV
         int killsIds = 0;
         foreach (var s in _sites.Snapshot()) if (s.IsKills) killsIds++;
         ModLogger.Debug(LogVerb.Display, $"LW37 paint: {regions.Count} region(s), kills sites={killsIds}, meta ids={_meta.Count}, coverage={_poolCovered}");
 #endif
         return _poolCovered;
+    }
+
+    /// <summary>LW-165 stage 1: called only from the false->true coverage-latch site above (the
+    /// re-check inside the short-circuit at the top of <see cref="MaybePoolPaint"/> re-latches an
+    /// ALREADY-true _poolCovered and never reaches here -- it is a coverage continuation, not a
+    /// transition). The first call of the process launch is the "kill counters just went live"
+    /// moment: logs at Info, with the paint-spot count and how long it took since Display's own
+    /// first Tick (Engine only starts ticking Display after the launch guard arms, so that stamp
+    /// times the gap the owner actually feels). Every later call (a post-Invalidate re-latch, e.g.
+    /// battle exit/enter or the LW-163 drained-cache heal) logs at Debug instead: still evidence
+    /// in the file, never console noise.</summary>
+    private void AnnounceCoverage(IReadOnlyList<(long baseAddr, long size)> regions)
+    {
+        int killsSites = 0;
+        foreach (var s in _sites.Snapshot()) if (s.IsKills) killsSites++;
+
+        if (!_coverageAnnounced)
+        {
+            _coverageAnnounced = true;
+            double seconds = _firstTickMs < 0 ? 0.0 : (_nowMs() - _firstTickMs) / 1000.0;
+            ModLogger.Event(LogVerb.Display,
+                $"The kill counters are live on the equip cards: {killsSites} paint spots across {regions.Count} pool region(s), {seconds:0.0}s after the mod armed.");
+        }
+        else
+        {
+            ModLogger.Debug(LogVerb.Display,
+                $"pool coverage re-established: {killsSites} spots across {regions.Count} region(s)");
+        }
     }
 
     /// <summary>Walk the located pool region in chunks (ChunkReader's own Lookback/TrailSlack

@@ -129,6 +129,56 @@ public class DisplayPoolPaintTests
         Assert.Equal("+2", ReadAscii(f.Heap, f.PoolBase + f.SuffixA, 2));
     }
 
+    // ─── LW-165 stage 1: the once-per-launch coverage stopwatch line ──────────────
+
+    /// <summary>Born-red (LW-165): production has no line marking when the equip-card kill
+    /// counters actually go live, so the owner's "slow to paint after cold boot" complaint
+    /// cannot be measured. The first false-to-true edge of the pool coverage latch must emit
+    /// exactly one Info-level line naming how many paint spots it maintains.</summary>
+    [Fact]
+    public void PoolPaint_first_coverage_emits_one_info_line_with_paint_spots()
+    {
+        var f = BuildTwoWeaponPoolFixture();
+        f.Kills[10] = 7; f.Kills[11] = 3;
+        var clock = new TestClock();
+        var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
+
+        using var cap = LogCapture.Start();
+        clock.Ms += DisplaySweep.HotRescanMs + 1;
+        display.Tick(false);
+
+        Assert.False(display._sweep.IsComplete);   // proves attribution came from the pool path
+
+        var infoHits = cap.File.FindAll(l => l.Contains("[INFO]") && l.Contains("paint spots"));
+        Assert.Single(infoHits);
+    }
+
+    /// <summary>The once-per-launch pin: a post-Invalidate re-coverage (the normal battle-exit/
+    /// battle-enter shape) must NOT repeat the Info-level announce line. It re-latches at Debug
+    /// instead (file-only), so the Info-level "paint spots" count stays at exactly 1 across both
+    /// coverage windows.</summary>
+    [Fact]
+    public void PoolPaint_re_coverage_after_invalidate_does_not_repeat_the_info_line()
+    {
+        var f = BuildTwoWeaponPoolFixture();
+        f.Kills[10] = 7; f.Kills[11] = 3;
+        var clock = new TestClock();
+        var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
+
+        using var cap = LogCapture.Start();
+        clock.Ms += DisplaySweep.HotRescanMs + 1;
+        display.Tick(false);   // first coverage: the announce line fires
+
+        display.Invalidate();
+        clock.Ms += DisplaySweep.HotRescanMs + 1;
+        display.Tick(false);   // re-coverage: must not repeat the Info line
+
+        Assert.False(display._sweep.IsComplete);
+
+        var infoHits = cap.File.FindAll(l => l.Contains("[INFO]") && l.Contains("paint spots"));
+        Assert.Single(infoHits);
+    }
+
     // ─── sweep-gate via the injected flag (B2) ─────────────────────────────────────
 
     [Fact]

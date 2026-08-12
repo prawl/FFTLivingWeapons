@@ -60,7 +60,7 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [BUILDING]
+- **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [AWAITING-LIVE]
   - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
     decision is made from that number. The mod now prints one plain line the first time the kill
     counters come alive each launch, saying how many card text spots it maintains and how many
