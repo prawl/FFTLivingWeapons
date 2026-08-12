@@ -60,22 +60,47 @@ the technical detail lives in the indented lines under it.
     the exposure proven, with the fix direction already named. The ledger row stays untouched
     until then. Owner only, as every AWAITING-LIVE flip is.
 
+- **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [BUILDING]
+  - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
+    decision is made from that number. The mod now prints one plain line the first time the kill
+    counters come alive each launch, saying how many card text spots it maintains and how many
+    seconds after arming that happened, so the owner's next Deck cold boot turns the complaint
+    into a stopwatch reading. Already measured from the 2026-08-11 Deck log: the whole heap
+    sweep never ran (pool coverage carries everything) and arming tracked the save load
+    closely, so the unmeasured gap between arming and the first paint is the only suspect left.
+    (Tech: the Info line fires on the false to true edge of the pool coverage latch in
+    Display.PoolPaint.cs, once per launch, timed from Display's own first Tick, which Engine
+    only starts after the guard arms; later re coverages after an Invalidate log at Debug to
+    the file only. If the measured gap comes back under a second, the felt lag was the arming
+    follows save load seconds plus menu time, and the only deeper lever is read only pre
+    locating before arming, which touches the born disarmed principle and would need its own
+    arc.)
+  - Verify: the suite is green including the born red first coverage line test and the once per
+    launch pin, and the owner's next Steam Deck cold boot log shows the new line with its
+    seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
+    is.
+
 ## Backlog
 
-- [LW-165] 2026-08-12: After a cold boot straight into a loaded file, the kill counts are slow to
-  appear in the status menu on the Steam Deck (owner observed during the full playthrough).
-  Three serial gates sit between launch and the first painted digit: the safety arming gate (the
-  mod is born disarmed and arms only after a save loads and the roster landmarks verify), the
-  pool locate (fast once the game has built its item strings, but regions materialize over the
-  session), and the budgeted whole heap sweep fallback (16MB per out of battle tick), which is
-  the likely felt delay on Deck hardware but that is a guess. DIAGNOSE BEFORE TUNING: the Deck's
-  livingweapon.log measures gate one (launch header to the armed line) and gate three (the sweep
-  first pass completed line, Info tier, in the file log) with no code change; get that log first.
-  Candidate knobs once the dominant term is measured: a cold start burst budget for the first
-  sweep generation (no battle exists during a cold boot, so the throttle protects nothing), a
-  pool re locate nudge on the menu open edge, or seeding the locator with the previous session's
-  region bases (observed stable within a session on 2026-08-12). The arming gate itself is not a
-  knob; it is the LW-50 safety and stays as designed.
+- [LW-166] 2026-08-12: Player report: some rebalanced weapons cannot Poach (the monster just
+  dies), others poach fine; the split lands exactly on which damage formula the weapon rides.
+  Broken per the player: Hushblade and Gloomfang (both formula 45, the revived dormant PSX
+  status proc handler) and Swiftfang (formula 99, the Speed scaling handler). Working:
+  Quicksilver, Ravager, Tanglethorn (formula 1) and Sanguine Sword (formula 6); the owner
+  personally poached with Tanglethorn, so the player's one contrary claim there was likely an
+  undead target or an off hand kill. Theory, pre registered before any live test: the remaster
+  wires Poach inside the vanilla weapon attack handlers, and the dormant handlers we repurposed
+  never got the poach branch, so every formula 45 or 99 weapon silently cannot poach.
+  Prediction: poach fails on every 45/99 weapon and works on every vanilla formula weapon; one
+  counterexample kills the theory. Owner confirmation matrix (ten minutes, Poach support on,
+  chocobo target): Hushblade no, Quicksilver yes, Swiftfang no, Sanguine Gauche yes. Fix
+  directions ranked: document on the card (free, honest); demote formula 45 weapons to the
+  native may cast lane (keeps poach, trades the guaranteed proc for the native rate, does
+  nothing for Swiftfang); a runtime Living Poach built on the PROVEN despawn and inventory give
+  primitives (needs a read for the equipped Poach support and the monster to item table); an
+  engine detour into the dormant handlers (Denuvo fragile, last resort). A formula census
+  workflow was run the same day to bound the affected weapon list; its findings extend this row
+  when read.
 
 - [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
   briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
