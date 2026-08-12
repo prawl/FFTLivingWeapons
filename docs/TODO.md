@@ -62,6 +62,37 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-163] 2026-08-12: A player whose habit is fast save-reloading between fights sees their
+  weapon's painted kill count freeze for battles at a time while the real count keeps climbing;
+  the number only snaps correct after a battle the mod actually saw end.
+  Root cause assembled from the player's flight tapes (2026-08-12 triage): the equip card
+  repaint (_display.Invalidate), the kill tally save, and the flight flush ALL hang exclusively
+  off the battle-exit edge (Engine.cs battle-exit block), and that edge is eaten whenever the
+  out-of-battle gap stays under the 4.0 second debounce (the LW-108 class; the player's own tape
+  measured a 3.5-3.75s gap bracket, and their load-the-map-save loop lives on that boundary).
+  The same tapes prove counting itself is healthy: Vagabond (id 19) ran 22 to 27 to 32 with
+  clean credits, a delivered tier-2 toast, and one correct no-credit refusal, so the bug is
+  purely the stale painted text. Candidate fixes, cheapest first: also invalidate the display
+  and save the tally on the battle-ENTER edge (enter edges fired reliably on every tape in the
+  set), or key both on the restart detection LW-108 proposes. Likely also explains LW-28's
+  second anomaly (the session whose kills.json timestamp never advanced: every exit edge that
+  session may have been eaten). One more corroboration banked: the player tape shows an exit
+  firing 0.25-0.48s earlier than the 4.0s debounce should permit, reconcilable only as an
+  engine-loop stall telescoping the accumulator, so identical fast transitions can land on
+  either side of the threshold at random.
+
+- [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
+  briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
+  weapon.
+  Seen once on the 2026-08-12 player tape (flight_20260812_023631): a band enemy wielding weapon
+  id 19 was bridged Player with rescue=WeaponUnique even though FOUR roster rows also carry id
+  19 and the enemy's level/brave/faith fingerprint matched no roster row; no kill landed on that
+  hit, so nothing mis-credited, but the WeaponUnique rescue demonstrably fired on a non-unique
+  id. Check ActorResolver's WeaponUnique lane: it should refuse when the weapon id is not unique
+  across the roster, and probably verify the fingerprint against the roster row it names. The
+  same tape shows vanilla chapter 1 human enemies routinely carrying tracked ids 19 and 20, so
+  the collision population is normal play, not an exotic setup.
+
 - [LW-162] 2026-08-12: The build script's warning about leftover dev kill tallies points at the
   wrong folder, so anyone following it looks where the tally no longer lives.
   Found during the LW-161 live pass: BuildLinked's DEV-flavored-install warning tells the owner
