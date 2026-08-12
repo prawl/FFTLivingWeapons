@@ -102,6 +102,20 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-171] 2026-08-12: Give a crossbow the twin trick: a second crossbow in the off hand plus
+  Dual Wield, so its basic Attack fires twice, exactly like the Outrider Pistol's Gun Slinger.
+  Owner proved it live 2026-08-12 on a whim: twin Eclipsebolts rendered on the equip screen
+  and Attack fired twice in a real battle (LIVE_LEDGER Uncertain row same date; the mechanism
+  is the PROVEN Gun Slinger write pair, off hand id plus Dual Wield Key 477, hardened by
+  LW-168's u16 Key model). Owner wants it in the next release. Build shape when picked up:
+  /build-lite (the mechanism is the already verified GunSlinger lane); the one code seam is
+  that GunSlinger.ResolveTwinId assumes a SINGLE flagged weapon, so supporting a second twin
+  weapon means iterating flagged ids rather than copying the module. Design half: WHICH
+  crossbow gets it and at what tier is a grid/CSV decision (curated grants, owner signs off);
+  Eclipsebolt already carries the Doom identity, so a different bow may be the better host.
+  Watch the LW-43 lag note (second wielder slow to receive the twin) if two twin weapons can
+  be fielded at once.
+
 - [LW-170] 2026-08-12: Units wearing the rebalance's Float granting gear render in a strange
   half floating state: standing flush on solid ground as if not floating at all, hovering
   slightly only over water, and the float look overrides the critical kneel (the owner saw a
