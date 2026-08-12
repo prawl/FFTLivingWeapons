@@ -102,6 +102,26 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-170] 2026-08-12: Units wearing the rebalance's Float granting gear render in a strange
+  half floating state: standing flush on solid ground as if not floating at all, hovering
+  slightly only over water, and the float look overrides the critical kneel (the owner saw a
+  critical Agrias over a water tile in an upright standing pose players never normally see,
+  hovering above the water).
+  Owner observed live 2026-08-12 on enemies and on Agrias. The items are the mod's own innate
+  Float pieces: Sunsteel Helm (id 149, vanilla Golden Helm) and Empyrean Robe (id 206, vanilla
+  Luminous Robe, EquipBonus row 46); enemies pick them up through level lists, so the state is
+  common in late fights. Cosmetic only so far; nobody has verified whether the gameplay half
+  of the innate Float (Earth/Quake immunity, trap immunity, terrain walk) actually works on
+  these pieces, and that check should ride the diagnosis, since a broken gameplay half would
+  reclassify this from cosmetic oddity to broken rider. Diagnosis leads when picked up:
+  compare against a vanilla native Float source (status layer Float via the proven band bytes,
+  or any vanilla float gear if one exists) to learn whether this is the game's own rendering
+  of equipment granted float or something about the EquipBonus lane; the render side hover is
+  pure node data (node Z = negative 12 times height, one extra height unit with FLOAT, per the
+  teleport/float ledger row), so a probe can read whether the game ever re stamps Z for these
+  units on land. Prior that may bite: a redefined EquipBonus row rewrites every user of that
+  row (see the row override audit memory).
+
 - [LW-169] 2026-08-12: Every published Nexus mod is now labeled for compatibility with Living
   Weapons; turn that survey into player facing armor: a compatibility section on the Nexus
   page, and a guard extension that detects the unguarded conflict classes and says the truth
