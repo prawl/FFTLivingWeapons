@@ -102,6 +102,20 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-173] 2026-08-12: The game has a native message box on the WORLD MAP (clean modal, story
+  text styling, F/Enter Close), and owning it would give the mod an in game voice outside of
+  battle, replacing the raw OS message box the fingerprint guard uses today for stand down
+  and conflict notices, and opening a home for things like the non English counter warning.
+  Owner discovered a reproducible trigger 2026-08-12: traverse to a story node, start the
+  battle, FLEE back to the world map (the unit now stands ON the story node), then select the
+  next, not yet accessible story node; the game answers with the modal "You cannot travel to
+  the selected location at this time..." (screenshot banked in the owner's Monosnap). RE
+  leads when picked up: the dialog text almost certainly flows through the FnSetTextString
+  family the PromptSwap hook already taps (watch the hook's head sampler while triggering
+  it); the RTTI scan of the live image names candidate window classes (FFTOItemConfirmWindow
+  and siblings); a show routine plus text holder pair would make this a callable surface, the
+  same shape as the battle callout bubble arc.
+
 - [LW-172] 2026-08-12: The mod's human versus monster job boundary is off by two, and every
   consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.
   Falsified live during the LW-167 pass (a Black Chocobo victim's job byte read 95 at the
