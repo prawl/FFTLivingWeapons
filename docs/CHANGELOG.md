@@ -10,6 +10,24 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-171] SHIPPED 4bd256b 2026-08-12: the Arbalest crossbow learned the twin trick. Once it
+  has grown to its third tier, its wielder automatically gets a second Arbalest loaded into
+  the off hand and Dual Wield granted, so the basic Attack fires twice, the same deal the
+  Outrider Pistol's Gun Slinger gives guns. The signature is named Crossfire (owner picked
+  the host and the name: the Arbalest is the crossbow line's rider-free clean sniper, so the
+  twin IS its identity, and Eclipsebolt keeps its single Doom signature). Under the hood the
+  Gun Slinger module now supports any number of flagged weapons, each wielder receiving a
+  twin of their own main-hand weapon, so a future twin on a newly proven category is a pure
+  data edit. Owner live pass same day: the twin rendered on the equip screen, Attack fired
+  twice in a real battle, one Arbalest kill was credited cleanly, the pistol lane was
+  re-verified with and without a support ability picked, and swapping the main hand between
+  pistol and crossbow moved both the off hand and the support correctly. The two battle-load
+  moments where the command row read plain Attack were the card's designed fail-closed
+  compose (cursor resolve NoOwner or BridgeFail, zero warnings), not a regression. Built by
+  the compressed pipeline: five pinned tests born red first, suite 3091 green, analyze exit
+  0, and an independent adversarial verify at SHIP 9/10 that proved the load-bearing tests
+  non-vacuous by sabotage (both historical failure shapes caught).
+
 - [LW-169] SHIPPED dd36845 2026-08-12: a player deciding whether to install can now read one
   public page, linked straight from the Nexus description, naming every mod that cannot run
   beside this one and why. The page (docs/COMPATIBILITY.md, rendered by GitHub) names the
