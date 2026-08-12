@@ -10,14 +10,21 @@ namespace LivingWeapon;
 /// class gathers the inputs it needs (weapon formula from meta, species from the victim's job,
 /// the map lookup) and performs the guarded write + toast.
 ///
-/// wasBasicAttack is a constructor-injected <see cref="Func{TResult}"/> so stage 4 (the action
-/// discriminator, the tape-mining premise LW-167's plan is still gathering) can wire the real
-/// signal later without touching this file: Engine.cs passes <c>() =&gt; false</c> for stage 2,
-/// which keeps the whole feature structurally disarmed in production (LivingPoachPolicy.Decide's
-/// AND-gate never passes) regardless of what killerHasPoach/the map/the roll say. killerHasPoach
-/// IS the real read already (<see cref="ReadKillerHasPoach"/>): a per-weapon delegate so each call
-/// re-locates that weapon's deployed main-hand wielder and reads its live Poach support bit,
-/// rather than a snapshot taken once at construction.
+/// wasBasicAttack is a constructor-injected <c>Func&lt;int, bool&gt;</c>, keyed by weaponId exactly
+/// like killerHasPoach, so every pre-stage-4 executor test can still drive it directly without a
+/// live action-record fixture. ARMED (LW-167 stage 4, 2026-08-12): Engine.cs now wires it to
+/// <see cref="ReadWasBasicAttack"/>, which resolves the SAME weapon's deployed main-hand wielder
+/// (the killer) via the same lane <see cref="ReadKillerHasPoach"/> uses and reads that wielder's
+/// own action record for a basic-Attack stamp -- see <see cref="ReadWasBasicAttack"/>'s own doc for
+/// the mechanism and its LIVE_LEDGER citation. killerHasPoach is the real read already
+/// (<see cref="ReadKillerHasPoach"/>): a per-weapon delegate so each call re-locates that weapon's
+/// deployed main-hand wielder and reads its live Poach support bit, rather than a snapshot taken
+/// once at construction.
+///
+/// KILL-SHAPE REFUSALS: a credit whose slot's own kill-shape flags read viaFallback (an
+/// attribution guess, not a confirmed actor) or delayedOrCharged (a Jump/charge landing, not an
+/// ordinary blow) refuses to poach outright, regardless of what the discriminator or any other
+/// gate reads -- see the guard at the top of <see cref="RecordPoachDeed"/>.
 ///
 /// PER-CORPSE DEDUPE: a dual-wielder's kill reports to this sink once per credited weapon (same
 /// battle slot + victim nameId both times) -- only the FIRST eligible report (verdict != None)
@@ -31,22 +38,22 @@ namespace LivingWeapon;
 /// STAGE 3 (LW-167): a successful poach also attempts <see cref="CorpseDespawn.TryDespawn"/> --
 /// vanilla's own Poach leaves no corpse behind, so a poached carcass shouldn't linger either. A
 /// despawn refusal never rolls back the store write/toast above it (see the ctor doc's carcass-
-/// stands note); the whole feature stays disarmed in production via wasBasicAttack regardless.
+/// stands note).
 /// </summary>
-internal sealed class LivingPoach
+internal sealed partial class LivingPoach
 {
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly PoachMap _map;
     private readonly IGameMemory _mem;
     private readonly BannerToast _toast;
     private readonly Func<int, bool> _killerHasPoach;
-    private readonly Func<bool> _wasBasicAttack;
+    private readonly Func<int, bool> _wasBasicAttack;
     private readonly Func<int> _roll;
 
     private readonly HashSet<(int slot, ushort nameId)> _poachedThisBattle = new();
 
     public LivingPoach(Dictionary<int, WeaponMeta> meta, PoachMap map, IGameMemory mem, BannerToast toast,
-        Func<int, bool> killerHasPoach, Func<bool> wasBasicAttack, Func<int>? roll = null)
+        Func<int, bool> killerHasPoach, Func<int, bool> wasBasicAttack, Func<int>? roll = null)
     {
         _meta = meta;
         _map = map;
@@ -72,6 +79,20 @@ internal sealed class LivingPoach
             var corpseKey = (slot, victim.NameId);
             if (_poachedThisBattle.Contains(corpseKey)) return;
 
+            // Kill-shape refusals (the stage-2 verifier's recorded obligation): these override the
+            // discriminator outright, never merely feed into it -- a fallback-guessed or
+            // delayed/charged credit is never a confirmed ordinary blow, so it must never poach.
+            if (viaFallback)
+            {
+                ModLogger.Debug(LogVerb.Signature, $"Living Poach refused weapon {weaponId}'s credit at battle slot {slot}: the kill's actor was a fallback attribution guess, not a confirmed basic Attack.");
+                return;
+            }
+            if (delayedOrCharged)
+            {
+                ModLogger.Debug(LogVerb.Signature, $"Living Poach refused weapon {weaponId}'s credit at battle slot {slot}: the kill landed via a delayed or charged action (Jump/spellcast), not an ordinary blow.");
+                return;
+            }
+
             bool dormant = _meta.TryGetValue(weaponId, out var m) && Tuning.IsDormantPoachFormula(m.Formula);
 
             PoachCarcass carcass = default;
@@ -79,7 +100,7 @@ internal sealed class LivingPoach
                 && _map.TryGetSpecies(LivingPoachPolicy.SpeciesOf(victim.Job), out carcass);
 
             bool hasPoach = _killerHasPoach(weaponId);
-            bool basicAttack = _wasBasicAttack();
+            bool basicAttack = _wasBasicAttack(weaponId);
             int roll = _roll();
 
             var verdict = LivingPoachPolicy.Decide(dormant, hasPoach, basicAttack, victim.Job, speciesMapped, roll);
@@ -127,22 +148,5 @@ internal sealed class LivingPoach
         _toast.Enqueue(weaponId, Tuning.PoachToastKey, displayName);
         ModLogger.Event(LogVerb.Signature, $"The weapon's spirit claims the carcass: {displayName} added to the Poacher's Den.");
         return true;
-    }
-
-    /// <summary>The killer's real Poach read: locate <paramref name="weaponId"/>'s single deployed
-    /// main-hand wielder (Wielder.ResolveDeployedMainHand -- the same locate Choir/Kobu/Bulwark
-    /// use) and read its live combat-struct support bitfield for the Poach bit (id 215, combat
-    /// +0x98 byte 2 mask 0x40 via Signatures.SupportBit -- the band-relative address is
-    /// Offsets.ASupport + that same (byteOffset, mask), the identity Choir already relies on).
-    /// Locate unavailable (zero or ambiguous deployed wielders) -&gt; false, FAIL CLOSED: a poach
-    /// must never fire on a guess about who's holding the weapon.</summary>
-    internal static bool ReadKillerHasPoach(IGameMemory mem, int weaponId)
-    {
-        long entry = Wielder.ResolveDeployedMainHand(mem, weaponId, out _);
-        if (entry == 0) return false;
-        if (!Signatures.SupportBit(Tuning.PoachSupportAbilityId, out int off, out byte mask)) return false;
-        long addr = entry + Offsets.ASupport + off;
-        if (!mem.Readable(addr, 1)) return false;
-        return (mem.U8(addr) & mask) != 0;
     }
 }

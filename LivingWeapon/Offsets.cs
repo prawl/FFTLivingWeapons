@@ -352,15 +352,31 @@ internal static class Offsets
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 
     // --- AREC kill diagnostic (band-entry-relative; D4 of the kill-attribution plan) ---
-    /// <summary>u8-array-relative per-unit ACTION RECORD, DIAGNOSTIC ONLY (the credit path never
-    /// consults this): = frame-relative FR_AREC (0x1A0) - BandEntry (0x1C) = 0x184. Sub-offsets
-    /// (relative to AArec): +0x0 idx (engine index == seat-8, SOLID), +0x2 abil u16 (ability id),
-    /// +0xA kind (5=performing/6=receiving, PROBABLE), +0xB xref (candidate victim&lt;-&gt;attacker
-    /// cross-reference, UNPROVEN -- one observation each direction). Provenance: the 17:57
-    /// all-seat capture, tools/probes/unitid_probe.py "watch", 2026-07-01; docs/LIVE_LEDGER.md's
-    /// Uncertain AREC row is the durable evidence home. Guarded read (Readable) at CreditKill time;
-    /// skip silently when unreadable.</summary>
+    /// <summary>u8-array-relative per-unit ACTION RECORD: = frame-relative FR_AREC (0x1A0) -
+    /// BandEntry (0x1C) = 0x184. Sub-offsets (relative to AArec): +0x0 idx (engine index ==
+    /// seat-8, SOLID), +0x2 abil u16 (ability id, <see cref="ArecAbil"/>), +0xA kind (<see
+    /// cref="ArecKind"/>, 5=performing/6=receiving), +0xB xref (candidate victim&lt;-&gt;attacker
+    /// cross-reference, UNPROVEN and REFUTED as a kill-attribution shortcut -- see
+    /// docs/LIVE_LEDGER.md's Uncertain AREC row). KillTracker.CreditKill's own attribution never
+    /// consults this record (it stays a diagnostic log line there, gated on Tuning.VerboseEvents);
+    /// LW-167 stage 4's Living Poach basic-Attack discriminator (LivingPoach.ReadWasBasicAttack)
+    /// is the one production consumer, reading the KILLER's own record at credit time (LIVE_LEDGER
+    /// "The basic-Attack discriminator (LW-167 stage 4)" row, 2026-08-12). Guarded read (Readable)
+    /// at every consultation; skip silently when unreadable.</summary>
     public const int AArec = 0x184;
+    /// <summary>u16 AArec-relative ability id: 0 (<see cref="LivingWeapon.Tuning.BasicAttackAbilityId"/>)
+    /// means the record names the basic Attack command; any other value is an ability id. Read
+    /// only alongside <see cref="ArecKind"/> == <see cref="ArecKindPerforming"/> (LivingPoach's
+    /// stage-4 discriminator).</summary>
+    public const int ArecAbil = 0x2;
+    /// <summary>u8 AArec-relative kind tag: <see cref="ArecKindPerforming"/> (5) == the record
+    /// names THIS unit's own pending action; 6 == receiving (a struck unit's stale last-action
+    /// stamp, noise for the discriminator). PROBABLE per the original probe, now load-bearing for
+    /// LivingPoach's basic-Attack discriminator (2026-08-12 owner probe, LIVE_LEDGER row above).</summary>
+    public const int ArecKind = 0xA;
+    /// <summary>The <see cref="ArecKind"/> value meaning "performing" (this unit's own pending
+    /// action, read at the KILLER's entry).</summary>
+    public const byte ArecKindPerforming = 5;
 
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
     // 1.5 CONFIRMED LIVE 2026-06-17: MirrorWeapon - 0x1E; read 6 = Venombolt's WP with Ramza's card up.

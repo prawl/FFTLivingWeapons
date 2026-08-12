@@ -157,18 +157,18 @@ internal sealed class Engine
         // `_bannerToastsEnabled ? _toast : null` to re-enable (Reliquary Phase 2), matching the
         // equip-card `legends:` re-enable below.
         _reliquary = new Reliquary(_legends, null, meta, Flight.Record);
-        // LW-167 Living Poach (stage 2, DISARMED): the poach.json map + the executor. wasBasicAttack
-        // is hard-wired false here -- the action-discriminator premise (stage 4) is still tape-
-        // mining, so the whole feature stays structurally inert regardless of the map/roll/tier
-        // below (LivingPoachPolicy.Decide's AND-gate never passes). killerHasPoach IS wired to the
-        // real combat-struct support-bit read (LivingPoach.ReadKillerHasPoach) so stage 4 only has
-        // to flip the one wasBasicAttack delegate, not re-plumb memory access. DeedFanout is the
-        // seam-widening adapter (docs plan v2 point 4): KillTracker's `deeds:` stays a single
+        // LW-167 Living Poach (stage 4, ARMED 2026-08-12): the poach.json map + the executor.
+        // Both killerHasPoach and wasBasicAttack are wired to real per-weapon memory reads --
+        // LivingPoach.ReadKillerHasPoach (the combat-struct support bit) and
+        // LivingPoach.ReadWasBasicAttack (the killer's own action-record basic-Attack stamp, the
+        // LIVE_LEDGER "The basic-Attack discriminator (LW-167 stage 4)" row) -- so
+        // LivingPoachPolicy.Decide's AND-gate now reads live signals on every gate. DeedFanout is
+        // the seam-widening adapter (docs plan v2 point 4): KillTracker's `deeds:` stays a single
         // IDeedSink, now fanning RecordDeed/DeedMiss to Reliquary and RecordPoachDeed to LivingPoach.
         var poachMap = new PoachMap(modDir);
         _livingPoach = new LivingPoach(meta, poachMap, live, _toast,
             killerHasPoach: id => LivingPoach.ReadKillerHasPoach(live, id),
-            wasBasicAttack: () => false);
+            wasBasicAttack: id => LivingPoach.ReadWasBasicAttack(live, id));
         var deeds = new DeedFanout(_reliquary, _livingPoach);
         _promptSwap = new PromptSwap(_toast, live);
         _promptSwapHook = new PromptSwapHook(_promptSwap, live);

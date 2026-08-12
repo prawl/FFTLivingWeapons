@@ -16,9 +16,10 @@ internal enum PoachVerdict { None, Common, Rare }
 /// <c>weaponIsDormantFormula</c> (a weapon on a vanilla-readable formula must never also fire this
 /// runtime feature -- vanilla already procs through it) and <c>wasBasicAttack</c> (vanilla poaches
 /// an ABILITY kill too, owner-observed live 2026-08-12, so an ability kill must never double-poach
-/// beside it). <c>wasBasicAttack</c> is hard-wired false at the Engine wiring site until stage 4
-/// (the action discriminator) lands -- see LivingPoach.cs's ctor doc -- so the feature stays
-/// structurally disarmed in production through stage 2, regardless of what the other four gates read.
+/// beside it). ARMED (LW-167 stage 4, 2026-08-12): Engine now wires <c>wasBasicAttack</c> to
+/// <see cref="LivingPoach.ReadWasBasicAttack"/>, the real per-credit action-record discriminator --
+/// see LivingPoach.cs's ctor doc -- so this gate reads a live signal in production, same as the
+/// other four.
 /// </summary>
 internal static class LivingPoachPolicy
 {

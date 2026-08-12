@@ -15,9 +15,9 @@ import csv, json, re, sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from lib import flavor as flavor_mod   # module ref (not `from ... import`): the poach-notice gate
-                                        # reads DORMANT_FORMULAS/POACH_NOTICE via getattr so a RED
-                                        # run fails loudly on the missing NOTICE, never on ImportError
+from lib import flavor as flavor_mod   # module ref (not `from ... import`): the poach-formula
+                                        # classification gates read DORMANT_FORMULAS via getattr so
+                                        # a RED run fails loudly on the missing set, never on ImportError
 from lib.categories import WEAPON_CATS
 from lib.flavor import (assemble_desc, card_signature_name, flavor_anchor,   # the exact rendered card text
                          rider_text, is_living, KILLS_SCAFFOLD, KILLS_SLOT_BODY_CHARS)
@@ -184,31 +184,23 @@ def check_desc_budget(items):
 VANILLA_FORMULAS = {1, 2, 3, 4, 6, 7}
 
 
-def check_poach_notice(items):
-    """LW-166: the game's Poach support silently cannot trigger through a weapon whose damage
-    formula sits outside the vanilla handler set (owner-proven live 2026-08-12). Every
-    weapon-category item's assembled card must carry lib.flavor.POACH_NOTICE EXACTLY WHEN its
-    proposed.formula is in lib.flavor.DORMANT_FORMULAS -- never on a poach-capable weapon (a false
-    warning is its own bug), never missing on a poach-blind one (the bug this gate exists for).
-    Reads the two lib.flavor constants via getattr rather than a hard import so this check fails
-    LOUDLY on the missing notice text itself, not on an ImportError, if flavor.py hasn't grown
-    them yet."""
-    dormant = getattr(flavor_mod, "DORMANT_FORMULAS", None)
-    notice = getattr(flavor_mod, "POACH_NOTICE", None)
-    if dormant is None or notice is None:
-        return [({"id": 0, "name": "lib/flavor.py"},
-                  ["DORMANT_FORMULAS/POACH_NOTICE missing from lib/flavor.py (LW-166)"])]
+#: LW-167: the "No Poaching." clause LW-166 baked onto every dormant-formula weapon's card is
+#: retired -- the runtime cure (Living Poach, LivingWeapon/Tuning.cs DormantPoachFormulas) makes
+#: the claim false, and the owner chose clean cards + a FAQ entry over a replacement line. Kept
+#: here as a literal (not in lib.flavor -- nothing bakes it anymore) so this gate can prove the
+#: retired text never comes back.
+RETIRED_POACH_NOTICE = "No Poaching."
+
+
+def check_poach_notice_absent(items):
+    """LW-167: the retired notice text must not appear on ANY item's assembled card -- full stop,
+    not just the 15 dormant-formula weapons that used to carry it (a future author restoring a
+    line from an old diff, or prose that happens to spell out the retired phrase, should fail
+    loudly here too)."""
     bad = []
     for it in items:
-        if it.get("category") not in WEAPON_CATS:
-            continue
-        formula = it.get("proposed", {}).get("formula")
-        wants_notice = formula in dormant
-        has_notice = notice in assemble_desc(it)
-        if wants_notice and not has_notice:
-            bad.append((it, [f"formula {formula} is dormant but the card is missing {notice!r}"]))
-        elif has_notice and not wants_notice:
-            bad.append((it, [f"formula {formula} is poach-capable but the card carries {notice!r} anyway"]))
+        if RETIRED_POACH_NOTICE in assemble_desc(it):
+            bad.append((it, [f"card still carries the retired {RETIRED_POACH_NOTICE!r} notice (LW-167)"]))
     return bad
 
 
@@ -217,7 +209,8 @@ def check_poach_formula_classified(items):
     (VANILLA_FORMULAS, the owner-proven-live set the game's Poach branch actually reads) or
     poach-blind (lib.flavor.DORMANT_FORMULAS). A formula in neither set is a future author who
     added a new damage formula without deciding which bucket it belongs in -- classify it in one
-    of the two sets (and if poach-blind, check_poach_notice will demand the card say so)."""
+    of the two sets. (Pre-LW-167 the poach-blind bucket also demanded a card notice; that notice
+    is retired -- see check_poach_notice_absent -- but the classification duty stays.)"""
     dormant = getattr(flavor_mod, "DORMANT_FORMULAS", set())
     known = VANILLA_FORMULAS | dormant
     bad = []
@@ -235,7 +228,7 @@ def check_poach_formula_classified(items):
 def check_dormant_poach_formulas_lockstep(items):
     """LW-167: pins LivingWeapon/Tuning.cs's DormantPoachFormulas array (the C# runtime's own
     poach-arming gate, LivingPoachPolicy.Decide's keystone) to lib.flavor.DORMANT_FORMULAS (the
-    same set check_poach_notice/check_poach_formula_classified already gate the card text on) --
+    same set check_poach_formula_classified already gates the formula classification on) --
     mirrors check_kills_scaffold_lockstep's cross-language-pin mechanics: regex the C# constant's
     literal int list straight out of Tuning.cs, parse it, and diff against the Python set. A
     future author editing one side without the other is a silent double-fire (a weapon the
@@ -725,9 +718,9 @@ def main():
              check_fn=lambda: check_desc_budget(items),
              pass_msg="PASS: every assembled description fits the card.",
              format_failure=_fmt_desc_budget, sets_rc=True),
-        dict(header="POACH NOTICE (card carries \"No Poaching.\" exactly on dormant-formula weapons)",
-             check_fn=lambda: check_poach_notice(items),
-             pass_msg="PASS: every dormant-formula weapon's card carries the notice, and no other weapon does.",
+        dict(header="POACH NOTICE RETIRED (no item description carries the old \"No Poaching.\" text)",
+             check_fn=lambda: check_poach_notice_absent(items),
+             pass_msg="PASS: no item's card carries the retired \"No Poaching.\" notice.",
              format_failure=_fmt_drift_probs, sets_rc=True),
         dict(header="POACH FORMULA CLASSIFIED (every weapon formula is poach-capable or poach-blind)",
              check_fn=lambda: check_poach_formula_classified(items),

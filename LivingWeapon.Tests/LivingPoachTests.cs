@@ -14,11 +14,14 @@ namespace LivingWeapon.Tests;
 ///   Stage-2  LivingPoach executor via FakeSparseMemory (guarded W8 store write + toast + the
 ///            per-corpse dedupe latch) and DeedFanout/KillTracker's widened deed seam.
 ///   Stage-2b The killer's real Poach-bit read (combat support bitfield).
-/// wasBasicAttack stays hard-wired false at the Engine wiring site until stage 4 (the action
-/// discriminator) lands -- see LivingPoach.cs's ctor doc. Reliquary/KillTracker's PRE-EXISTING
-/// suites (ReliquaryTests.cs, KillTrackerDeedTests.cs, KillTrackerBattleCountersTests.cs) are the
-/// regression proof that this feature's seam-widening is byte-identical for every other consumer;
-/// they run unmodified.
+///   Stage-4  The real basic-Attack discriminator (LivingPoach.ReadWasBasicAttack) and the ARMED
+///            end-to-end wiring (Engine.cs no longer passes a constant false) -- see LivingPoach.cs's
+///            ctor doc. Most stage-2 executor tests above still inject wasBasicAttack directly
+///            (MakePoach's bool param) to stay isolated from live-memory fixtures; that is
+///            deliberate, not stale coverage -- the discriminator itself is proven separately below.
+/// Reliquary/KillTracker's PRE-EXISTING suites (ReliquaryTests.cs, KillTrackerDeedTests.cs,
+/// KillTrackerBattleCountersTests.cs) are the regression proof that this feature's seam-widening is
+/// byte-identical for every other consumer; they run unmodified.
 /// </summary>
 public class LivingPoachTests : IDisposable
 {
@@ -218,7 +221,11 @@ public class LivingPoachTests : IDisposable
         bool killerHasPoach = true, bool wasBasicAttack = true, int roll = 0, BannerToast? toast = null)
     {
         toast ??= new BannerToast(meta, new Dictionary<int, int>(), enabled: true);
-        return new LivingPoach(meta, map, mem, toast, _ => killerHasPoach, () => wasBasicAttack, () => roll);
+        // wasBasicAttack takes weaponId (Func<int, bool>, matching killerHasPoach's shape) since
+        // LW-167 stage 4 armed it to a per-weapon discriminator (LivingPoach.ReadWasBasicAttack);
+        // this helper still injects the boolean directly so every executor-only test below stays
+        // isolated from live memory fixtures.
+        return new LivingPoach(meta, map, mem, toast, _ => killerHasPoach, _ => wasBasicAttack, () => roll);
     }
 
     [Fact]
@@ -325,7 +332,7 @@ public class LivingPoachTests : IDisposable
         var meta = DormantMeta();
         MakeStoreSlot(mem, TestRareKey, current: 0);
         var toast = new BannerToast(meta, new Dictionary<int, int>(), enabled: true);
-        var poach = new LivingPoach(meta, map, mem, toast, _ => true, () => true, () => 255);   // roll 255 -> Rare
+        var poach = new LivingPoach(meta, map, mem, toast, _ => true, _ => true, () => 255);   // roll 255 -> Rare
 
         poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, TestVictimJob, false), slot: 0, false, false);
 
@@ -360,8 +367,10 @@ public class LivingPoachTests : IDisposable
     [Fact]
     public void RecordPoachDeed_wasBasicAttack_false_never_writes()
     {
-        // Stage 2's Engine wiring hard-codes this false until stage 4 -- proves the executor
-        // itself honors it (not merely the pure policy).
+        // Proves the EXECUTOR itself honors whatever wasBasicAttack(weaponId) reports (not merely
+        // the pure policy) by injecting false directly, independent of the stage-4 discriminator's
+        // own live-memory read (covered separately below by ReadWasBasicAttack's own unit tests
+        // and the end-to-end armed-wiring test).
         var mem = new FakeSparseMemory();
         var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
         var meta = DormantMeta();
@@ -561,5 +570,181 @@ public class LivingPoachTests : IDisposable
         Assert.Equal(3, inner.Misses[0]);
         Assert.Empty(inner.PoachCalls);   // RecordPoachDeed never reaches the inner (Reliquary-side) sink
         Assert.Equal((byte)1, mem.U8(Offsets.PoachStoreBase + (TestCommonKey - 1)));   // it reached LivingPoach instead
+    }
+
+    // ── Stage-4: the real basic-Attack discriminator + the ARMED end-to-end wiring ─────
+    //
+    // LivingPoach.ReadWasBasicAttack (LIVE_LEDGER "The basic-Attack discriminator (LW-167 stage
+    // 4)" row, 2026-08-12): resolves the credited weapon's KILLER via the same lane
+    // ReadKillerHasPoach uses, then reads that wielder's own AArec action record. kind==5
+    // (performing) + abil==0 means a confirmed basic Attack; anything else fails closed to false.
+
+    private const int DiscBandSlot = 24;
+
+    private static long SeedDiscriminatorKiller(FakeSparseMemory mem, int weaponId)
+    {
+        MemSeats.SeatRoster(mem, 0, lvl: 30, br: 50, fa: 50, rh: weaponId);
+        MemSeats.SeatBand(mem, DiscBandSlot, weapon: weaponId, lvl: 30, br: 50, fa: 50, gx: 5, gy: 5);
+        return Band.Entry(DiscBandSlot);
+    }
+
+    [Fact]
+    public void ReadWasBasicAttack_true_when_the_killers_record_is_kind5_performing_abil0()
+    {
+        var mem = new FakeSparseMemory();
+        const int weaponId = 71;
+        long entry = SeedDiscriminatorKiller(mem, weaponId);
+        long rec = entry + Offsets.AArec;
+        mem.MarkReadable(rec + Offsets.ArecKind, 1);
+        mem.U8s[rec + Offsets.ArecKind] = Offsets.ArecKindPerforming;
+        mem.MarkReadable(rec + Offsets.ArecAbil, 2);
+        mem.U16s[rec + Offsets.ArecAbil] = 0;
+
+        Assert.True(LivingPoach.ReadWasBasicAttack(mem, weaponId));
+    }
+
+    [Fact]
+    public void ReadWasBasicAttack_false_when_the_record_names_an_ability()
+    {
+        var mem = new FakeSparseMemory();
+        const int weaponId = 71;
+        long entry = SeedDiscriminatorKiller(mem, weaponId);
+        long rec = entry + Offsets.AArec;
+        mem.MarkReadable(rec + Offsets.ArecKind, 1);
+        mem.U8s[rec + Offsets.ArecKind] = Offsets.ArecKindPerforming;
+        mem.MarkReadable(rec + Offsets.ArecAbil, 2);
+        mem.U16s[rec + Offsets.ArecAbil] = 141;   // Rend Weapon -- the owner-observed live counter-example
+
+        Assert.False(LivingPoach.ReadWasBasicAttack(mem, weaponId));
+    }
+
+    [Fact]
+    public void ReadWasBasicAttack_false_when_kind_is_receiving_not_performing()
+    {
+        var mem = new FakeSparseMemory();
+        const int weaponId = 71;
+        long entry = SeedDiscriminatorKiller(mem, weaponId);
+        long rec = entry + Offsets.AArec;
+        mem.MarkReadable(rec + Offsets.ArecKind, 1);
+        mem.U8s[rec + Offsets.ArecKind] = 6;   // receiving: a struck unit's stale stamp, not the killer's own
+        mem.MarkReadable(rec + Offsets.ArecAbil, 2);
+        mem.U16s[rec + Offsets.ArecAbil] = 0;
+
+        Assert.False(LivingPoach.ReadWasBasicAttack(mem, weaponId));
+    }
+
+    [Fact]
+    public void ReadWasBasicAttack_false_when_the_action_record_is_unreadable()
+    {
+        var mem = new FakeSparseMemory();
+        const int weaponId = 71;
+        SeedDiscriminatorKiller(mem, weaponId);   // AArec bytes deliberately never marked Readable
+
+        Assert.False(LivingPoach.ReadWasBasicAttack(mem, weaponId));
+    }
+
+    [Fact]
+    public void ReadWasBasicAttack_false_when_the_killer_cannot_be_located()
+    {
+        var mem = new FakeSparseMemory();   // nobody deployed at all
+        Assert.False(LivingPoach.ReadWasBasicAttack(mem, weaponId: 71));
+    }
+
+    /// <summary>Wires the SAME delegate shape Engine.cs uses (both LivingPoach static readers over
+    /// live memory, roll pinned to Common so the store address under test is deterministic) --
+    /// the ARMED production wiring, not an injected stand-in.</summary>
+    private static LivingPoach MakeArmedPoach(FakeSparseMemory mem, PoachMap map, Dictionary<int, WeaponMeta> meta)
+    {
+        var toast = new BannerToast(meta, new Dictionary<int, int>(), enabled: true);
+        return new LivingPoach(meta, map, mem, toast,
+            killerHasPoach: id => LivingPoach.ReadKillerHasPoach(mem, id),
+            wasBasicAttack: id => LivingPoach.ReadWasBasicAttack(mem, id),
+            roll: () => 0);
+    }
+
+    private static void SeedArmedKiller(FakeSparseMemory mem, int weaponId, ushort abil)
+    {
+        long entry = SeedDiscriminatorKiller(mem, weaponId);
+        Signatures.SupportBit(Tuning.PoachSupportAbilityId, out int off, out byte mask);
+        mem.ReadableAddrs.Add(entry + Offsets.ASupport + off);
+        mem.U8s[entry + Offsets.ASupport + off] = mask;   // killerHasPoach true
+        long rec = entry + Offsets.AArec;
+        mem.MarkReadable(rec + Offsets.ArecKind, 1);
+        mem.U8s[rec + Offsets.ArecKind] = Offsets.ArecKindPerforming;
+        mem.MarkReadable(rec + Offsets.ArecAbil, 2);
+        mem.U16s[rec + Offsets.ArecAbil] = abil;
+    }
+
+    // KEYSTONE POSITIVE: the first reachable-armed happy path. Confirmed RED against the disarmed
+    // wiring (wasBasicAttack forced to a constant false, mirroring the pre-stage-4 Engine.cs) before
+    // switching MakeArmedPoach's wasBasicAttack delegate to the real ReadWasBasicAttack -- with the
+    // constant false the store stayed at 0 (mem.Written empty); with the real discriminator wired
+    // in, unchanged otherwise, it writes. This is what proves the discriminator (not some other
+    // gate) is what flips the result.
+    [Fact]
+    public void RecordPoachDeed_ARMED_fully_eligible_credit_with_attack_stamp_writes_the_store()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        SeedArmedKiller(mem, PoachWeaponId, abil: 0);   // confirmed basic Attack
+        var poach = MakeArmedPoach(mem, map, meta);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, TestVictimJob, false), slot: 0,
+            delayedOrCharged: false, viaFallback: false);
+
+        long storeAddr = Offsets.PoachStoreBase + (TestCommonKey - 1);
+        Assert.Equal((byte)1, mem.U8(storeAddr));
+    }
+
+    [Fact]
+    public void RecordPoachDeed_ARMED_ability_stamp_killer_record_never_writes()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        SeedArmedKiller(mem, PoachWeaponId, abil: 141);   // Rend Weapon: a real ability, not the basic Attack
+        var poach = MakeArmedPoach(mem, map, meta);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, TestVictimJob, false), slot: 0,
+            delayedOrCharged: false, viaFallback: false);
+
+        Assert.Empty(mem.Written);
+    }
+
+    // Kill-shape refusals (deliverable 2): override the discriminator outright. killerHasPoach and
+    // wasBasicAttack both inject true (MakePoach's defaults) so a failure here can only be the
+    // viaFallback/delayedOrCharged guard, never a starved upstream gate.
+
+    [Fact]
+    public void RecordPoachDeed_viaFallback_true_never_writes_even_with_every_other_gate_green()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, TestVictimJob, false), slot: 0,
+            delayedOrCharged: false, viaFallback: true);
+
+        Assert.Empty(mem.Written);
+    }
+
+    [Fact]
+    public void RecordPoachDeed_delayedOrCharged_true_never_writes_even_with_every_other_gate_green()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestSpecies, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 0);
+        var poach = MakePoach(mem, map, meta, roll: 0);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, TestVictimJob, false), slot: 0,
+            delayedOrCharged: true, viaFallback: false);
+
+        Assert.Empty(mem.Written);
     }
 }

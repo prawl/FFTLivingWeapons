@@ -472,10 +472,9 @@ internal static class Tuning
     /// gone (EnemyGone) and releases. One missed tick alone must never release the hold.</summary>
     public const int ProvokeMarkedMissTicks = 3;
 
-    // -- Living Poach (LW-167 stages 1-2): docs plan v2's "Locked design". The feature stays
-    //    structurally DISARMED through stage 2 (Engine wires wasBasicAttack to () => false; stage
-    //    4, the action discriminator, is what arms it) -- these knobs exist now so the pure policy
-    //    and the executor are both fully unit-tested ahead of that wiring. --
+    // -- Living Poach (LW-167): docs plan v2's "Locked design". ARMED at stage 4 (2026-08-12):
+    //    Engine now wires wasBasicAttack to LivingPoach.ReadWasBasicAttack, the real per-credit
+    //    action-record discriminator, so every gate below is live in production. --
 
     /// <summary>LW-167 Living Poach: damage formulas the game's own vanilla Poach support (Key
     /// 471, live id 215) is DORMANT (owner-observed formula matrix, LW-166) through -- a weapon
@@ -501,6 +500,14 @@ internal static class Tuning
     /// Choir's InstantCastSupportId is, to find the (byteOffset, mask) in the 4-byte support
     /// bitfield (Offsets.CSupport / Offsets.ASupport).</summary>
     internal const int PoachSupportAbilityId = 215;
+
+    /// <summary>LW-167 stage 4: the Offsets.ArecAbil value meaning "the killer's action record
+    /// names the basic Attack command, not an ability" -- LIVE_LEDGER's "The basic-Attack
+    /// discriminator (LW-167 stage 4)" row (2026-08-12, owner probe tools/probes/arec_watch.py):
+    /// a kind==5 (performing) stamp with abil==0 held from before the fatal blow through the
+    /// credit moment on every observed basic-Attack kill, while an ability kill (Rend Weapon,
+    /// id 141) held its own ability id the whole way. See LivingPoach.ReadWasBasicAttack.</summary>
+    internal const int BasicAttackAbilityId = 0;
 
     /// <summary>Provoke hold (R2, owner round-2 feedback): status ids that mean the provoked enemy can
     /// no longer carry out its provoked turn, so the hold releases rather than linger to the watchdog.
