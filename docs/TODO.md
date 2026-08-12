@@ -100,7 +100,49 @@ the technical detail lives in the indented lines under it.
     carcass with no double carcass on a vanilla control and no carcass on an ability kill.
     Owner only, as every live flip is.
 
+- **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [BUILDING]
+  - Done means: a monster the game fields on one of the Job sheet's five alias rows (jobs
+    169-173, which per the sheet are exact clones of jobs 103/97/98/100/94 with the same
+    species and the same carcass keys) poaches exactly like its base-job twin: the map
+    resolves it, the Den store gets the right carcass, the toast fires, and nothing else
+    changes. The extractor emits alias entries pointing at the same carcass pairs instead of
+    folding them into a skip list, and two job ids sharing one carcass pair is explicitly
+    allowed, since the store write is keyed by carcass key alone. (Tech: the confirmed major
+    finding from the ac43327 adversarial verify round. PoachMap.TryGetJob membership is the
+    mod's entire monster gate at LivingPoach.cs:108, so an unmapped alias job is a silent
+    refusal, the same failure shape as the Black Chocobo job 95 bug that round's parent
+    commit fixed. Offline evidence: the vanilla ENTD table, decoded, fields MainJob 169-172
+    for all six monsters of battle 384, the Sweegy Woods chapter 1 composition, plus aliases
+    in battles 389 and 400, so ordinary story play hits the gap.)
+  - Verify: the suite is green with pinned tests proving jobs 169-173 resolve to the same
+    carcass keys as their base jobs and that the real committed poach.json carries the alias
+    entries; the existing global key-uniqueness test is deliberately relaxed to base rows
+    only, with alias rows asserted equal to their base instead. Live premise watch, owner
+    only: one alias-job monster poached in a story battle, since the band job byte reading
+    169-173 live is the one unverified link (band equals sheet key is live-proven at 95;
+    MainJob is sheet-key space).
+
 ## Backlog
+
+- [LW-175] 2026-08-12: If a poached corpse's removal stays blocked for about 30 seconds the
+  mod gives up, and the corpse can then still crystallize on top of the already-banked
+  carcass, the exact double payout the fix batch set out to remove, just delayed; the code
+  comments claim this cannot happen, and the give-up clock even burns while the game is
+  paused. Confirmed (minor, four independent confirmations) by the ac43327 adversarial
+  verify round: at PendingTickCap (~900 ticks) LivingPoach.Despawn.cs drops the pending
+  entry, the crystal pin stops at the vanilla start value 3, and the engine's countdown
+  simply resumes; the class doc at lines 29-31 ("never the double-payout") and the give-up
+  Warn both oversell the guarantee; and the cap counts raw 33ms Engine ticks that keep
+  running through pause, menus, and mid-battle dialogue while every Transient blocker is
+  frozen game state, so a longer-than-30s pause defeats the watchdog outright
+  (KillTracker.Corpses gates its own pending age on onField polls for exactly this reason).
+  Fix shape is an owner call: gate the cap on progress-capable frames, or keep pinning with
+  retries stopped until a Permanent read or battle end, or accept the bounded residual and
+  make the doc and the Warn tell the truth. Rides with it, from the same round's notes: the
+  new refusal log claims crystal conversion is caught by the Dead-bit check while the doc it
+  replaced said crystal also sets composed bit 0x01, both cannot be right, and no ledger row
+  distinguishes them; the owed live pass should watch one corpse crystallize while pending
+  to settle what +0x46 and the Dead bit actually do.
 
 - [LW-173] 2026-08-12: The game has a native message box on the WORLD MAP (clean modal, story
   text styling, F/Enter Close), and owning it would give the mod an in game voice outside of
