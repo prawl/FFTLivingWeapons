@@ -116,6 +116,22 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-227] 2026-08-13: The icon check that is supposed to prove "the shipped picture is exactly
+  the picture you approved" has been passing without actually looking at any colour. It compares
+  two images and asks Pillow whether they differ, but the newest Pillow answers that question by
+  looking only at which pixels are see-through, so two pictures with completely different colours
+  come back "identical". Proven here by handing it the shipped red Genji Helm and the untinted
+  vanilla art of the same helmet: it called them the same image. Nothing shipped is known to be
+  wrong, but every "bake matched the preview pixel for pixel" sign-off since the Pillow upgrade
+  proved less than it claimed, so the shields and weapons want a re-check once the check is
+  honest again. (Tech: tools/icon_preview.py:180 uses
+  `ImageChops.difference(a, b).getbbox() is not None`; Pillow 10 added `alpha_only=True` as
+  getbbox's default and this box runs Pillow 12.0.0, so the all-zero alpha channel of the
+  difference image short-circuits it. Fix is a direct `a.tobytes() != b.tobytes()`, which also
+  keeps catching alpha drift and needs no version floor; add a red-vs-blue regression case so it
+  cannot silently rot again. Found during the LW-215 helmet pass, whose own harness check hit
+  the same trap.)
+
 - [LW-198] 2026-08-13: Daggers re-pass: the 11 dagger icons get the shields-grade per item
   review. This row also carries the LW-198 through LW-226 program statement the other section
   rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
