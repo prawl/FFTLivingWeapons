@@ -13,6 +13,107 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
+- **[LW-215] Give the thirteen helmet icons the shields-grade treatment, first section of the re-pass program** (opened 2026-08-13) [BUILDING]
+  - Done means: helmets stop being the family the icon work never reached: all thirteen still
+    wear the legacy one-hue stamp (one flat colour over every pixel), now the worst look in a
+    menu that shows them beside the finished shields. Each helmet gets its identity tint and
+    treatment revisited per item, owner review rounds on both surfaces (card art and list
+    icon), with the engine chosen by looking at the art: a helmet is one solid object plus
+    fittings, plume and visor, the exact shape the shield engine's modes (two-tone trim,
+    second tint, geometric ring, forced cover, invert) were built for, but that transfer is a
+    starting hypothesis to test on pictures, not an assumption to ship. Process and program
+    reasoning per LW-198.
+  - Verify: recolor selftest green, every untouched family proven byte identical against the
+    committed engine (the 242 of 242 pattern extended to shields), the bake matches the
+    approved previews pixel for pixel, and the owner signs the gallery off and then confirms
+    the in-game look after a deploy. Owner only, as every live flip is.
+
+- **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [AWAITING-LIVE]
+  - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
+    decision is made from that number. The mod now prints one plain line the first time the kill
+    counters come alive each launch, saying how many card text spots it maintains and how many
+    seconds after arming that happened, so the owner's next Deck cold boot turns the complaint
+    into a stopwatch reading. Already measured from the 2026-08-11 Deck log: the whole heap
+    sweep never ran (pool coverage carries everything) and arming tracked the save load
+    closely, so the unmeasured gap between arming and the first paint is the only suspect left.
+    (Tech: the Info line fires on the false to true edge of the pool coverage latch in
+    Display.PoolPaint.cs, once per launch, timed from Display's own first Tick, which Engine
+    only starts after the guard arms; later re coverages after an Invalidate log at Debug to
+    the file only. If the measured gap comes back under a second, the felt lag was the arming
+    follows save load seconds plus menu time, and the only deeper lever is read only pre
+    locating before arming, which touches the born disarmed principle and would need its own
+    arc.)
+  - Desktop halves measured 2026-08-12: two launches read 10.5s and 10.9s between arming and
+    the first paint, and the owner reproduced the felt symptom on desktop (a party menu opened
+    right after a save load shows the baked zero counts until the menu is re-entered). Owner
+    decision same night: ACCEPTED for the 2.3.3 cut, the README carries the player note, and
+    the row stays open for the Deck cold boot reading and the tune decision it may still
+    force (the likely tune is an unthrottled first pool locate at arming).
+  - Verify: the suite is green including the born red first coverage line test and the once per
+    launch pin, and the owner's next Steam Deck cold boot log shows the new line with its
+    seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
+    is.
+
+- **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [AWAITING-LIVE]
+  - Built and adversarially checked 2026-08-12, same session it was opened: six new pinned
+    tests written red first, the extractor now emits the five alias entries (each tagged with
+    its base job), the regenerated map is byte identical on a re run, and the independent
+    verify broke the implementation three ways to prove the new guards really trip (suite
+    3086 green, analyze exit 0, verdict SHIP at 9/10). Only the live premise beat remains.
+  - Premise rescoped 2026-08-12 after a full encounter-table sweep: alias jobs appear in
+    EXACTLY three battles in the whole game (384 Siedge Weald, the TIC name for PSX Sweegy
+    Woods, fielding six alias units; 389 one panther; 400 one chocobo), all story battles,
+    so the player impact is those battles plus NG+ replays, and a late save cannot reach any
+    of them naturally. The owner's live pass instead confirmed base-job poaches end to end
+    (goblin, skeleton x2, black goblin, red panther all claimed, despawned, and Den counted,
+    with the Den UI cross-checked exact against the store bytes). The live settle for the
+    alias byte is a staged encounter: inject one MainJob 169 panther into a reachable random
+    battle through the moddable encounter table (the arena lane the sibling repo showed
+    working live), restart, poach it; a toast plus key 19 rising settles it, silence means
+    the engine normalizes aliases and this row gets a retraction note instead.
+  - Done means: a monster the game fields on one of the Job sheet's five alias rows (jobs
+    169-173, which per the sheet are exact clones of jobs 103/97/98/100/94 with the same
+    species and the same carcass keys) poaches exactly like its base-job twin: the map
+    resolves it, the Den store gets the right carcass, the toast fires, and nothing else
+    changes. The extractor emits alias entries pointing at the same carcass pairs instead of
+    folding them into a skip list, and two job ids sharing one carcass pair is explicitly
+    allowed, since the store write is keyed by carcass key alone. (Tech: the confirmed major
+    finding from the ac43327 adversarial verify round. PoachMap.TryGetJob membership is the
+    mod's entire monster gate at LivingPoach.cs:108, so an unmapped alias job is a silent
+    refusal, the same failure shape as the Black Chocobo job 95 bug that round's parent
+    commit fixed. Offline evidence: the vanilla ENTD table, decoded, fields MainJob 169-172
+    for all six monsters of battle 384, the Sweegy Woods chapter 1 composition, plus aliases
+    in battles 389 and 400, so ordinary story play hits the gap.)
+  - Verify: the suite is green with pinned tests proving jobs 169-173 resolve to the same
+    carcass keys as their base jobs and that the real committed poach.json carries the alias
+    entries; the existing global key-uniqueness test is deliberately relaxed to base rows
+    only, with alias rows asserted equal to their base instead. Live premise watch, owner
+    only: one alias-job monster poached in a story battle, since the band job byte reading
+    169-173 live is the one unverified link (band equals sheet key was read live at 95 in
+    the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
+    space).
+
+- **[LW-188] Too many early enemies hover on Float gear; the two rebalance-added armor Floats are cut back** (opened 2026-08-13) [AWAITING-LIVE]
+  - Done means: chapter 1 stops being a hovering parade. The owner observed a majority of early
+    enemies floating off equipped gear (and caught an Empyrean Robe floater live mid-battle).
+    Root cause: the rebalance grew the game's Float sources from two to five, and one of the
+    new ones sat on the single most-worn enemy helmet in the game. Enemy auto-equip honors the
+    vanilla level gates our sparse tables never touch, so every level-15+ knight wore the Float
+    helm and every level-38+ caster the Float robe. The cutback reverts exactly the two new
+    armor-slot grants: Sunsteel Helm (id 149, vanilla Golden Helm) trades innate Float for
+    Jump+1 (vanilla EB row 43, kept as the only mobility helm), and Empyrean Robe (id 206,
+    vanilla Luminous Robe) trades innate Float for Silence immunity (vanilla EB row 26, the MP
+    throne whose voice cannot be stolen). Float now lives only on its vanilla sources
+    (Featherfoot Boots, Envoutement) plus the Cursed Ring unique, so enemy Float prevalence
+    returns to exactly vanilla. (Tech: re-points only, no EB row redefined; descriptions
+    re-baked into item.en.nxd via patch_names.py, audit INTENDED 1130 / DRIFT 0 / UNINTENDED 0;
+    also shrinks LW-170's half-float render bug exposure to rare late pieces.)
+  - Verify: generate plus analyze green (both dominance passes, rider prose, desc budget), the
+    nxd bake audit green, suite 3101 green. Live half, owner only: after the next deploy and
+    restart, knights wearing the helm stand on the ground, the helm card reads Jump +1, the
+    robe card reads Wards against Silence, and no early-battle enemy floats without a vanilla
+    Float source equipped.
+
 - **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [AWAITING-LIVE]
   - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
     decision is made from that number. The mod now prints one plain line the first time the kill
@@ -121,6 +222,18 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-198] 2026-08-13: Daggers re-pass: the 11 dagger icons get the shields-grade per item
+  review. This row also carries the LW-198 through LW-226 program statement the other section
+  rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
+  the owner called the first-pass recolors hasty ("sloppy"), so every equipment section gets
+  the treatment that made the shields land: per item owner review rounds judged as pictures,
+  rule fixes over pixel fixes, variant picker pages when a call is contested, engines chosen
+  per family on evidence, and the identity proof (preview equals production, bake matched
+  pixel for pixel) at the end. The assembly line is docs/DEV_TEST_RECIPES.md ("Icon recolor
+  process") plus the engine modes in tools/recolor_icons.py. Helmets run first (LW-215
+  promoted 2026-08-13, the owner delegated the order call): headgear still wears the legacy
+  one-hue stamp, and a helmet is the same art shape the shield engine was built for.
+
 - [LW-199] 2026-08-13: Swords re-pass: the 15 sword icons get the shields-grade per item review; see LW-198 for the program's process and reasoning.
 
 - [LW-200] 2026-08-13: Knight Swords re-pass: the 7 knight sword icons get the shields-grade per item review; process per LW-198.
@@ -152,8 +265,6 @@ the technical detail lives in the indented lines under it.
 - [LW-213] 2026-08-13: Cloths re-pass: the 3 cloth icons get the shields-grade per item review (no-blade art); process per LW-198.
 
 - [LW-214] 2026-08-13: Throwing weapons and Bombs first pass: the 6 shuriken and bomb icons were never tinted at all (they sit outside the 121-weapon set), so this is a first coloring, not a re-pass; process per LW-198.
-
-- [LW-215] 2026-08-13: Helmets re-pass: the 13 helmet icons still wear the legacy one-hue stamp (never reviewed under the new rules); process per LW-198.
 
 - [LW-216] 2026-08-13: Hats re-pass: the 12 hat icons still wear the legacy one-hue stamp; process per LW-198.
 
