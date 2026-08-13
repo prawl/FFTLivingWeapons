@@ -112,16 +112,20 @@ ICON_TINTS = {
     135: (0.05, 0.80, 0.68),  # Emberward       burnt ember over gilt, darker so the gilt cross
                               #                 defines and it splits from Sanctguard's bright red
     136: (0.05, 0.55, 0.72),  # Spellbane       burnished mahogany, vanilla cross (anti-mage)
-    141: (0.06, 0.72, 1.02),  # Conduit         BRIGHT copper cross on a BRIGHT blue field (boost)
+    141: (0.06, 0.72, 1.02),  # Kaiser Shield   BRIGHT copper cross on a BRIGHT blue field
+                              #                 (NAME CORRECTED post-ship, was labeled "Conduit")
     130: (0.15, 0.92, 1.18),  # Stormwall       bright golden yellow (round seven: hue 0.17 read
                               #                 GREEN once the cool-shadow ramp pulled its darks)
     137: (0.23, 0.62, 0.92),  # Trailblazer     forest green (Move)
     129: (0.88, 0.62, 1.02),  # Galewall        fuchsia (owner round eight: instead of green)
     131: (0.45, 0.30, 1.18),  # Swiftguard      frost-white mint fittings, vanilla plate (Speed)
     134: (0.51, 0.42, 1.08),  # Rimeward        white ice (owner round six: more white)
-    142: (0.55, 0.14, 1.16),  # Bastion         icy platinum, gilt trim (generalist)
+    142: (0.55, 0.14, 1.16),  # Venetian Shield icy platinum, gilt trim
+                              #                 (NAME CORRECTED post-ship, was labeled "Bastion")
     128: (0.58, 0.66, 0.96),  # Tideward        deep ocean blue
-    140: (0.62, 0.26, 0.70),  # Ronin Wall      cold steel-blue (rare)
+    140: (0.62, 0.26, 0.70),  # Genji Shield    cold steel-blue (rare; NAME CORRECTED post-ship,
+                              #                 the table said "Ronin Wall" but items.json keeps
+                              #                 the vanilla name; see LW-197 for the set-colour question)
     143: (0.60, 0.85, 1.10),  # Aegis Prime     sapphire; gold on edges and gem only (capstone)
     132: (0.71, 0.48, 0.95),  # Wardstone       purple inner under a thin white geometric rim
                               #                 (settled round twelve, picker variant A)
@@ -455,12 +459,13 @@ SHIELD_OVERRIDES = {
     135: {"trim": "gold"},                 # Emberward: dark ember body, gilt fittings (round five:
                                            # the measured-from-vanilla copper read as no change)
     136: {"trim": "vanilla"},              # Spellbane: burnished dark, the silver cross stays
-    141: {"trim_tint": (0.58, 0.66, 1.12), "split": "sat", "split_p": 56},  # Conduit rounds
+    141: {"trim_tint": (0.58, 0.66, 1.12), "split": "sat", "split_p": 56},  # Kaiser Shield rounds
                                            # seven and eight: copper strictly the cross, blue
                                            # strictly the background (plain sat-split matches on
                                            # both surfaces); split_p 56 hands the boundary a
                                            # tiny bit more blue, as asked
-    142: {"trim": "gold"},                 # Bastion: platinum body needs gilt to stop reading monochrome
+    142: {"trim": "gold"},                 # Venetian Shield: platinum body needs gilt to stop
+                                           # reading monochrome
     132: {"ring": 6},                      # Wardstone settled round twelve, picker variant A
                                            # ("outer rim white, inner purple"): the thin
                                            # geometric ring, rich purple beneath
