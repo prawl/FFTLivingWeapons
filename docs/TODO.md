@@ -121,6 +121,24 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-181] 2026-08-12: Redesign Bulwark: the owner regression-tested it, bounced off the
+  full-wait trigger (moved first, got the silent refusal), and wants the back-tile denial
+  rethought as persistent rather than wait-triggered, active only during enemy turns, with
+  friendlies free to stand or pass behind the wielder. The proven lane fuses both asks: the
+  terrain veto bit is side-blind, so "allies may pass" can only mean toggling the bit OFF
+  during player-controlled turns and ON during AI turns (turn ownership reads exist; the
+  write lane and restore book are shipped code). New load-bearing premise needing its own
+  live beat before any build: a veto bit flipped at the enemy's turn-open edge must be
+  honored by that unit's pathing that same turn (the V6 observation, an AI unit pathing
+  around a barred tile, is the static half of that premise). Design questions riding it:
+  the move-range preview will show enemies a path their turn refuses (the bit is off on
+  player turns), the plant must follow the wielder on position or facing change, and an
+  always-on denial may need a price where the full wait used to be the price. Two comms
+  fixes ride regardless of the redesign: the moved-or-acted plant refusal is currently
+  SILENT (one Debug line would have saved this session's confusion), and the card's "full
+  wait" wording does not land as "no moving either". Until this arc runs, the shipped
+  full-wait Bulwark stays as-is.
+
 - [LW-180] 2026-08-12: The kill-credit census warned twice in one battle that a fielded enemy
   vanished from the battle band ("its kills may go uncredited"), both times in an undead
   fight, and nobody knows which seat or why; the one kill actually taken that battle
