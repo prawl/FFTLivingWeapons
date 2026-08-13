@@ -126,25 +126,27 @@ the technical detail lives in the indented lines under it.
     robe card reads Wards against Silence, and no early-battle enemy floats without a vanilla
     Float source equipped.
 
-## Backlog
+- **[LW-189] Recolor every weapon icon with per-surface accuracy instead of the one-hue stamp** (opened 2026-08-13) [BUILDING]
+  - Done means: weapon sprites stop looking dipped in a single paint bucket. Every item ships
+    two separate vanilla sprites (the 100x100 equip-card weapon image and the 48x48 list icon,
+    which is its own simplified art, not a downscale), and the owner picked the treatment per
+    surface from the proof-of-concept gallery 2026-08-13: the card image gets the TWO-ZONE
+    recolor (color clustering finds the blade, the identity tint goes on the metal, hilt and
+    trim keep their vanilla colors, per-item override available), and the list icon gets the
+    HUE-SHIFT recolor (re-aim the color while keeping each pixel's own light and shade, since
+    an invented material split reads muddy at that size). The in-battle weapon graphic is a
+    third, welded asset no recolor reaches (the tabled WEAPON_VISUALS_SCOPING research).
+    (Tech: preview generation runs from the scratchpad against the vanilla Pac icons using the
+    shipped ICON_TINTS plus items.json tints and honoring iconSource; the production step is
+    upgrading tools/recolor_icons.py to the same two rules and regenerating the tex files only
+    after sign-off.)
+  - Verify: every tinted weapon's four-way (card vanilla, card new, icon vanilla, icon new)
+    passes a visual review against the vanilla art with outliers fixed by per-item override,
+    then the owner spot-checks the full before/after gallery; only after that sign-off does
+    the regenerated tex set land in the mod tree and ride a deploy for the in-game look.
+    Owner only, as every live flip is.
 
-- [LW-189] 2026-08-13: Recolor every weapon icon again with two-zone accuracy: blade and hilt
-  take different colors instead of the current one-hue stamp that melts the whole sprite into
-  a single color family (owner request; the touch-up they have wanted since the first pass).
-  Scope sharpened by an owner question 2026-08-13: every item ships TWO separate sprites, the
-  100x100 equip-card weapon image (equip_item) and the 48x48 list icon (equip_item_s), and the
-  small one is its own simplified art, not a downscale (verified by decoding both for one id),
-  so segmentation and the visual pass must run on both surfaces, roughly doubling the QA. The
-  in-battle weapon drawn in a unit's hand is a third, welded asset no recolor reaches (the
-  tabled WEAPON_VISUALS_SCOPING research). Proof of concept run 2026-08-13 on Flamberge and
-  Galewind card images: per-icon color clustering separates blade from grip on real vanilla
-  art, the two-zone result reads as two materials, and the residual blade speckle is zone
-  noise a spatial smoothing pass removes. Owner saw the before/after gallery. Build shape when picked up: upgrade tools/recolor_icons.py to per-icon
-  segmentation (k-means over hue/sat/value, smoothing, brightest-zone-is-blade heuristic with
-  a per-item override), add an optional second trim tint per item in data/items.json (absent
-  means trim keeps its vanilla colors), regenerate all icon tex files, and gate on an
-  every-icon visual pass: assistant eyeballs each against vanilla first, then the owner
-  signs off a full before/after gallery before any tex lands in the mod tree.
+## Backlog
 
 - [LW-187] 2026-08-13: The build pipeline's test gate never exercises the dev-only code paths,
   so a broken dev-only phase row (or any future dev-only logic) would sail through the gate
