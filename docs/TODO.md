@@ -116,17 +116,18 @@ the technical detail lives in the indented lines under it.
   a keeper even though it repeats no fact.
 
 - [LW-184] 2026-08-13: Rewrite Engine.Tick's hand-written recipe as a declarative phase
-  table (owner directed): each subsystem tick becomes a data row with a name, a named gate
-  predicate, a cadence, and an "after" annotation naming its ordering reason, so the order
-  the program runs is a value tests can inspect instead of physical line positions with the
-  reasons living only in comments. The prologue and the two battle-edge transactions stay
-  sequential code behind named methods (they are transactions, not phases); the disarmed
-  guard stays a mode, not a row. Safety net first, before any restructuring: a golden-call-
-  sequence test written against the CURRENT Tick (fake memory, one scripted tick per regime:
-  disarmed, armed out of battle, enter edge, in battle, exit edge) that the refactor must
-  keep green. Known landmines to preserve: the kit-lane trio's slot-claim order, summary
-  composed before reset on the exit edge, Observe before Step for the forced new-game exit,
-  and the deliberately fresh second PauseFlag read (locked ruling in its comment).
+  table (owner directed). BUILT AND COMMITTED 27eb98f, owner regression watch OWED before
+  this row exits: each subsystem tick is now a data row with a name, a named gate, a
+  cadence, and an "after" annotation naming its ordering reason, so the tick order is a
+  value tests inspect instead of physical line positions. Tests pin the exact table, every
+  gate and cadence, and every ordering reason, each sabotage-proven non-vacuous; a regime
+  test proves the in-battle rows run in battle and stay silent outside it. The prologue and
+  both battle-edge transactions stayed sequential (bodies moved verbatim, mechanically
+  diffed), the kit-lane trio's slot-claim order and the locked second PauseFlag read are
+  preserved, and the independent verify rated it SHIP 9/10 on suite 3099. Exit gate, owner
+  only: the seven-step DEV live regression watch (guard arms; twin equips out of battle;
+  battle enter line; kill plus toast; growth on the status card; exit summary plus flight
+  flush; post-battle equip-card paint), one battle, all signatures read from the log.
 
 - [LW-181] 2026-08-12: Redesign Bulwark as "Upheaval" (pivoted 2026-08-13, supersedes the
   earlier enemy-turns-only toggle sketch): instead of a wait stance that quietly bars the
