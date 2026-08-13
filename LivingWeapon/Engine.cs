@@ -15,10 +15,9 @@ namespace LivingWeapon;
 internal sealed class Engine
 {
     // Poll fast: at fast-forward a death's hp==0 window is brief, and a 100ms loop sailed
-    // past it, missing kills. The kill scan is cheap; growth (heavier) runs every Nth tick.
+    // past it, missing kills. The kill scan is cheap; growth (heavier) runs every Nth tick
+    // (LW-184: the old _tick/GrowthEveryNTicks counter now lives on the "growth" TickPhase row).
     private const int PollMs = 33;
-    private const int GrowthEveryNTicks = 3;   // ~100ms; stat-hold doesn't need 33ms
-    private int _tick;
 
     private readonly KillTally _tally;
     private readonly PlaythroughReset _playthroughReset;   // LW-51 Tier-1: archives + resets the tally on a new-game opening
@@ -46,14 +45,13 @@ internal sealed class Engine
     private bool _lastBattleStatus;                     // edge-detect entering the in-battle status card
     private int _lastMode = int.MinValue;               // edge-detect battleMode changes for the flight recorder (N2)
 
-    // Scholar's Ring grant: throttled to ~1 s (every 30 ticks at 33 ms) and only
-    // runs out of battle.  A separate counter avoids coupling to _tick (which only
-    // advances in-battle).
-    private int _ringThrottleTick;
-    private const int RingThrottleEveryNTicks = 30;
+    // LW-184: the declarative tick fan-out table (built once in the ctor, after every subsystem
+    // below exists) and the reused per-tick blackboard its rows read/write. Replaces the old
+    // _ringThrottleTick/RingThrottleEveryNTicks and _gunSlingerThrottleTick/
+    // GunSlingerThrottleEveryNTicks counters (now on the "scholar-ring" and "gunslinger" rows).
+    private readonly TickPhase[] _phases;
+    private readonly TickPhaseState _tickState = new();
     private readonly GunSlinger _gunSlinger = null!;
-    private int _gunSlingerThrottleTick;
-    private const int GunSlingerThrottleEveryNTicks = 30;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
     private readonly LaunchGuard _launchGuard;   // LW-50: gates every write until landmarks verify
     private readonly AnchorScout _anchorScout;   // LW-82: verifier scout, ticks only once StoodDown; writes nothing
@@ -261,9 +259,109 @@ internal sealed class Engine
         _provokeSpike = new ProvokeSpike(live, modDir);   // LW-123 arc 2a mark-planter; modDir carries the provoke_request.txt lane
         _numeralSpike = new NumeralSpike(live, modDir);   // number-popup cold-call instrument; modDir carries the numeral_request.txt lane
 #endif
+        // LW-184: built last, after every subsystem above exists -- BuildPhases's rows close over
+        // them by field reference, so construction order here never matters, only that it runs after.
+        _phases = BuildPhases();
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
         ModLogger.Event(LogVerb.Startup, $"Living Weapons is tracking {meta.Count} weapon types.");
+    }
+
+    /// <summary>LW-184: the declarative fan-out table Tick()'s post-edge tail steps through, in
+    /// order, every tick -- same gates, same cadence, same call order as the hand-rolled kit-lane
+    /// trio / treasure / throttled gunslinger / <c>if (!nowIn) { ...; return; }</c> branch / the
+    /// in-battle tail it replaces. Built once, last in the ctor, so every row can close over the
+    /// subsystem fields directly. Pinned by EngineTests.Phases_match_the_hand_wired_tick_order.</summary>
+    private TickPhase[] BuildPhases()
+    {
+        var phases = new List<TickPhase>
+        {
+            // Ticks in AND out of battle: the learn screen / pre-battle menus read the JobCommand
+            // table live. Gated on the kit-lane guard (LW-112), not the main guard, so another mod
+            // rewriting the table disables only this trio, never the whole engine.
+            new TickPhase("kit-barrage", TickGates.KitLane, 1, false, Array.Empty<string>(),
+                _ => _barrage.Tick()),
+            // Pre-gate like Barrage: the learn screen / menus read the JobCommand table live too.
+            new TickPhase("kit-shadowblade", TickGates.KitLane, 1, false, Array.Empty<string>(),
+                _ => _shadowBlade.Tick()),
+            // FindEmptySlot claims the FIRST empty JobCommand slot, so tick order IS slot order --
+            // Provoke must run after Barrage and Shadow Blade (see BarrageShadowBladeCollisionTests).
+            new TickPhase("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" },
+                _ => _provoke.Tick()),
+
+            // Gates on "a battle map on screen" (slot9+mode), not strict InLiveBattle, so it stays
+            // stable through formation/enemy turns/casts; runs pre-gate so it fires where nowIn might not.
+            new TickPhase("treasure", TickGates.Always, 1, false, Array.Empty<string>(),
+                s => _treasure.Tick(s.Now, s.BattleDisplayed)),
+            // Pre-gate (Barrage's precedent); re-asserts a snapshotted twin in battle but never
+            // snapshots/restores there. Live-verified 2026-07-04: the twin fires twice in battle
+            // with this hold. Old name: GunSlingerThrottleEveryNTicks (30, ~1s @ 33ms).
+            new TickPhase("gunslinger", TickGates.Always, 30, false, Array.Empty<string>(),
+                s => _gunSlinger.PrepRoster(inBattle: s.NowIn)),
+            // DEV-only convenience grant (LW-86); Grant no-ops in Release. Old name:
+            // RingThrottleEveryNTicks (30, ~1s @ 33ms).
+            new TickPhase("scholar-ring", TickGates.OutOfBattle, 30, false, Array.Empty<string>(),
+                _ => ScholarRing.Grant(_live)),
+            // Out of battle (slot9 cleared): keep the equip card painted.
+            new TickPhase("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(),
+                _ => _display.Tick(false)),
+
+            // Every ~33ms tick so a fast-forward death's brief hp==0 window isn't missed.
+            new TickPhase("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
+                s => s.Changed = _tracker.Poll(s.OnField)),
+            // Edge-detects each unit's turns for the timed signatures.
+            new TickPhase("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
+                _ => _turns.Poll()),
+            new TickPhase("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" },
+                s =>
+                {
+                    var ctx = new TickContext(s.Now, s.OnField, s.InLive, s.BattleDisplayed);
+                    foreach (var sig in _fieldSignatures) sig.Tick(in ctx);
+                }),
+            // Not an ISignature (no ResetBattle-order dependency): retries a corpse whose despawn
+            // transiently refused and pins its crystal counter meanwhile (mirrors Sanctuary).
+            new TickPhase("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>(),
+                _ => _livingPoach.Tick()),
+            // Growth holds stats; ~100ms is plenty. Old name: _tick / GrowthEveryNTicks (3 ticks).
+            new TickPhase("growth", TickGates.InBattle, 3, true, Array.Empty<string>(),
+                _ => _growth.Apply()),
+            // NOT onField-gated: the facing prompt this queues into can render during mode-1 cast
+            // animations too. Delivery itself needs no Tick (fires from the game's own hook).
+            new TickPhase("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" },
+                s => _toast.Tick(s.Changed)),
+            // LW-31 stage 2: the Attack-menu desc dossier painter.
+            new TickPhase("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(),
+                _ => _attackCard.Tick()),
+        };
+#if LWDEV
+        // Dev-only passive/cold-call research instruments, in-battle only (see each Spike class's
+        // own doc for its F-key / request-file lane); compiled out of Release entirely.
+        phases.Add(new TickPhase("turn-owner-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+            _ => _turnOwnerSpike.Tick()));
+        phases.Add(new TickPhase("status-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+            s => _statusSpike.Tick(s.InLive)));
+        phases.Add(new TickPhase("body-double-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+            s => _bodyDoubleSpike.Tick(s.InLive)));
+        phases.Add(new TickPhase("provoke-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+            s => _provokeSpike.Tick(s.InLive)));
+        phases.Add(new TickPhase("numeral-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+            s => _numeralSpike.Tick(s.InLive)));
+#endif
+        // Reads Changed from kill-poll (After). Mirrors kills.json's on-change save timing (Reliquary).
+        phases.Add(new TickPhase("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" },
+            s => { if (s.Changed) { _tally.Save(); _legends.SaveIfDirty(); } }));
+        // slot9 is still the battle sentinel, but once off-field a beat (battleMode 0 = world-map
+        // party menu / post-battle), paint the card instead of just following counts.
+        phases.Add(new TickPhase("paint", TickGates.InBattle, 1, false, Array.Empty<string>(),
+            s =>
+            {
+                if (BattleState.ShouldPaintCard(s.BattleStatus, s.OnField, (s.Now - _lastField).TotalSeconds, FieldSettleSeconds))
+                    _display.Tick(true);
+                else
+                    _display.PaintCountsIfChanged();   // LW-91 stage 2: a mid-battle kill still follows onto the equip card
+            }));
+
+        return phases.ToArray();
     }
 
     /// <summary>The notice-fallback resolution pulled out of the ctor's LaunchGuard wiring so a
@@ -285,6 +383,10 @@ internal sealed class Engine
     /// (pre-gate on battleDisplayed), all of which still appear in
     /// <see cref="SignatureResetOrder"/>. Pinned by EngineTests.</summary>
     internal IReadOnlyList<Type> FieldTickOrder => Array.ConvertAll(_fieldSignatures, s => s.GetType());
+
+    /// <summary>Test/diagnostic seam (LW-184): the declarative tick fan-out table Tick()'s
+    /// post-edge tail steps through every tick. Pinned by EngineTests.</summary>
+    internal IReadOnlyList<TickPhase> Phases => _phases;
 
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves
     /// reloaded.sharedlib.hooks (controllers are not resolvable at construction time).
@@ -413,41 +515,7 @@ internal sealed class Engine
         bool onField = BattleState.OnField(nowIn, battleMode);
         if (onField) _lastField = now;
         bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
-        if (edge == BattleEdge.Entered)
-        {
-            ModLogger.NoteBattleEdge();   // console-only per-battle dedup reset (C1); file sink unaffected
-            // Console gets the clean edge; the raw hex sentinels ride the [trace] companion
-            // (numeric ids belong in parens on file lines only).
-            ModLogger.EventWithTrace(LogVerb.BattleStart, "Battle started.",
-                $"battle-start sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
-            // Archive the ring BEFORE the new battle's events pour in: sessions ending in a process
-            // kill (deploys, crashes) never fire the exit-edge flush, so the enter edge is the
-            // reliable rescue point for the PREVIOUS battle's tail (live-observed 2026-07-04: three
-            // sessions, zero archives, all ended by kills). Loop thread -- synchronous is the norm here.
-            Flight.FlushBattleStart();
-            // Reset per-battle state on ENTER too. A battle RESTART can re-enter WITHOUT a clean Exit
-            // (pre-1.5 the slot0/slot9 sentinels stuck, the quit-stick trap; the 1.5 restart values
-            // are unverified, so the defensive reset stays), which left Larceny's stolen-buff
-            // ledger alive into the new battle: the engine wipes statuses at battle start, but Larceny's
-            // per-tick Drive re-applied them from the stale ledger, so they carried over and never faded.
-            // Resetting here makes a fresh battle start clean however the prior one ended (2026-06-15).
-            ResetBattleState();
-            // LW-163: drop the pool-paint coverage latch on entry too, not just on exit. WHY this
-            // is defense-in-depth, not the primary fix: when the PREVIOUS battle's exit edge did
-            // fire, ITS Invalidate() (below, the Exited block) re-latched coverage onto whatever
-            // menu buffers were live during the world-map window that followed, and a save-load
-            // right after that can swap those buffers out from under the latch before another
-            // exit edge ever comes along to drop it again; this enter edge is the first hook after
-            // such a load that can drop the stale latch. It structurally CANNOT rescue a battle
-            // that starts inside a fully starved bracket (a fast reload that eats the debounce
-            // entirely, LW-108's class): BattleState.Step only ever returns Entered from its !In
-            // branch, so no enter edge fires there at all, which is exactly why the count-gated
-            // re-check in Display.PoolPaint.cs (MaybePoolPaint) carries the actual fix. Also worth
-            // naming, not hiding: this same tick already runs Flight.FlushBattleStart's synchronous
-            // archive above, so the pool scan this Invalidate can trigger stacks on top of that on
-            // the shared background-loop tick; accepted, same as every other enter-tick cost here.
-            _display.Invalidate();
-        }
+        if (edge == BattleEdge.Entered) OnBattleEnter(slot0, slot9, battleMode);
 
         // In-battle "Status" card (a paused, stable menu) -- paint the counter there too.
         // LW-150 S5: the PauseFlag re-read here is DELIBERATELY a second, fresher read, not the
@@ -459,112 +527,91 @@ internal sealed class Engine
         if (battleStatus && !_lastBattleStatus) _display.Invalidate();   // re-find the card's fresh buffers
         _lastBattleStatus = battleStatus;
 
-        if (edge == BattleEdge.Exited)
-        {
-            // THE match-report summary: composed from the per-battle counters BEFORE
-            // ResetBattleState() wipes them (order is load-bearing). Sentinels ride the trace
-            // companion, same split as the enter edge. (LW-56: on a FORCED exit, the tally was
-            // already archived and cleared moments earlier this same tick by PlaythroughReset, so
-            // this summary can compose against an already-empty tally; cosmetic, accepted.)
-            string summary = BattleSummary.Compose(
-                _tracker.BattleCredits, _kills, _reliquary.BattleMarks, _tracker.FallbackCredits,
-                _turns.GlobalTurns, LogNames.Weapon, Tuning.TierFor);
-            ModLogger.EventWithTrace(LogVerb.BattleEnd, summary,
-                $"battle-end sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
-            // LW-56 D11/A3: re-emit the identity census on the exit edge, unconditionally, before
-            // ResetBattleState()/the flight flush. The enter-side census (KillTracker.Poll,
-            // behind the oracle coverage-done latch) can miss an entire battle when coverage never
-            // completes, so the exit edge is the reliable place a census always lands on tape.
-            // Covers the normal AND the LW-56 forced exit alike (both return Exited here).
-            _tracker.EmitExitCensus();
-            ResetBattleState();
-            _tally.Save();               // flush on battle end
-            _legends.SaveIfDirty();      // Reliquary: mirrors kills.json's battle-exit save timing
-            // S2: the battle-exit edge ONLY -- ResetBattleState() fires on BOTH edges (enter+exit),
-            // so the flush lives here beside _tally.Save(), not inside that shared method.
-            Flight.FlushBattleEnd();
-            _display.Invalidate();       // re-find the menu's freshly-allocated render copies
-            ModLogger.NoteBattleEdge();  // console-only per-battle dedup reset (C1); file sink unaffected
-        }
-        // Barrage runs in AND out of battle: the learn screen / pre-battle menus read the
-        // JobCommand table live, and the learned bit needs its hold against menu writebacks.
-        // LW-112: gated on the kit-lane guard, not the main guard -- another mod rewriting the
-        // JobCommand table disables only this trio for the session, never the whole engine.
-        if (_launchGuard.KitLaneArmed)
-        {
-            _barrage.Tick();
-            _shadowBlade.Tick();   // pre-gate like Barrage: the learn screen / menus read the JobCommand table live
-            // Order is load-bearing: FindEmptySlot returns the FIRST empty slot, so a module ticking
-            // earlier claims the lower slot -- Provoke must tick after Barrage and Shadow Blade so it
-            // sees both modules' writes when all three share a JobCommand record (see
-            // BarrageShadowBladeCollisionTests' three-way case).
-            _provoke.Tick();
-        }
-        // Treasure Master gates on "a battle map is on screen" (slot9 armed + mode != 0) rather
-        // than strict InLiveBattle.  This makes it stable through formation, enemy turns, and
-        // cast animations (all mode 1 with slot9 stuck) while still excluding the world map
-        // (mode 0).  It ticks here -- before the !nowIn early-return -- so it fires on
-        // formation and enemy turns that nowIn might not cover.
-        _treasure.Tick(now, battleDisplayed);
-        // Gun Slinger runs PRE-GATE (2026-07-04, Barrage's precedent) -- it originally ran only in
-        // the out-of-battle branch and the twin pistol did not hold into combat. It now also runs in
-        // battle (inBattle: nowIn) but RE-ASSERTS ONLY there: it may rewrite a twin it already
-        // snapshotted, never snapshots fresh or restores in battle, so an unreliable mid-battle
-        // roster read can NEVER corrupt the persisted "original gear" store. Snapshot/restore stay
-        // out of battle, where equipment legitimately changes. Live-verified 2026-07-04: the twin
-        // fires twice in battle with this hold. The ~1 s throttle stands.
-        if (++_gunSlingerThrottleTick >= GunSlingerThrottleEveryNTicks)
-        {
-            _gunSlingerThrottleTick = 0;
-            _gunSlinger.PrepRoster(inBattle: nowIn);
-        }
-        if (!nowIn)
-        {
-            // Scholar's Ring: DEV-only convenience grant since LW-86 (2026-07-14); Grant compiles
-            // to a no-op in production, so this call is a harmless no-op there.
-            // Throttled to ~1 s -- no need to hammer inventory every 33 ms.
-            if (++_ringThrottleTick >= RingThrottleEveryNTicks)
-            {
-                _ringThrottleTick = 0;
-                ScholarRing.Grant(_live);
-            }
-            _display.Tick(false);   // out of battle (slot9 cleared): keep the equip card painted
-            return;
-        }
+        if (edge == BattleEdge.Exited) OnBattleExit(slot0, slot9, battleMode, paused, eventId);
 
-        bool changed = _tracker.Poll(onField);   // every ~33ms tick so fast-forward deaths aren't missed
-        _turns.Poll();                        // edge-detect each unit's turns (for timed signatures)
-        var ctx = new TickContext(now, onField, inLive, battleDisplayed);
-        foreach (var sig in _fieldSignatures) sig.Tick(in ctx);
-        // LW-167: not an ISignature (no ResetBattle-order dependency on the field array above) --
-        // retries any corpse whose despawn refused transiently at credit time and pins its crystal
-        // counter meanwhile (mirrors Sanctuary's pin), so it never crystallizes into a double payout.
-        _livingPoach.Tick();
-        if (_tick++ % GrowthEveryNTicks == 0) _growth.Apply();   // growth holds stats; ~100ms is plenty
-        // NOT onField-gated: the facing prompt this queues into can render during the mode-1
-        // cast-animation frames too (BannerToast's class doc / the migrated BannerSpike lesson) --
-        // gating on onField would sleep through it. Delivery itself needs no Tick: PromptSwapHook
-        // fires from the game's own SetTextString call, not from this loop.
-        _toast.Tick(changed);
-        _attackCard.Tick();   // LW-31 stage 2: the Attack-menu desc painter
-#if LWDEV
-        _turnOwnerSpike.Tick();   // LW-31 stage 2: passive correlation recorder, in-battle only (menus out of battle don't matter here)
-        _statusSpike.Tick(inLive);   // LW-58: cold-call the status apply engine on F2/F4 (inLive-gated + paused; targets live band units)
-        _bodyDoubleSpike.Tick(inLive);   // LW-58 Canary 8: F5 duplicates the hovered unit into a real AI fighter (inLive-gated + paused), Ctrl+F5 despawns
-        _provokeSpike.Tick(inLive);   // LW-123 arc 2a: F6 / provoke_request.txt marks the hovered-else-first-live enemy so ProvokeHold can arm
-        _numeralSpike.Tick(inLive);   // F8 / numeral_request.txt: cold-call the number popup (inLive-gated + paused). F8 keeps clear of F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike, F6 ProvokeSpike
-#endif
-        if (changed)
-        {
-            _tally.Save();
-            _legends.SaveIfDirty();   // Reliquary: mirrors kills.json's on-change save timing
-        }
+        // LW-184: everything past the two battle edges is a declarative fan-out over _phases
+        // (see BuildPhases) -- one reused blackboard filled fresh every tick, then stepped in
+        // table order. Replaces the hand-rolled kit-lane trio / treasure / throttled gunslinger /
+        // the old `if (!nowIn) { ...; return; }` branch / the in-battle tail through the paint
+        // decision; the OutOfBattle/InBattle gates reproduce that early return exactly (nothing
+        // that ran after the old return ran out of battle, and nothing in the old !nowIn branch
+        // ran in battle).
+        _tickState.Now = now;
+        _tickState.OnField = onField;
+        _tickState.InLive = inLive;
+        _tickState.BattleDisplayed = battleDisplayed;
+        _tickState.NowIn = nowIn;
+        _tickState.BattleStatus = battleStatus;
+        _tickState.KitLaneArmed = _launchGuard.KitLaneArmed;
+        _tickState.Changed = false;
+        foreach (var p in _phases) p.Step(_tickState);
+    }
 
-        // slot9 is still the battle sentinel, but once we've been OFF the live battlefield
-        // for a beat (battleMode 0 = world-map party menu / post-battle), paint the card.
-        if (BattleState.ShouldPaintCard(battleStatus, onField, (now - _lastField).TotalSeconds, FieldSettleSeconds))
-            _display.Tick(true);
-        else
-            _display.PaintCountsIfChanged();   // LW-91 stage 2: a mid-battle kill still follows onto the equip card
+    /// <summary>The debounced (or LW-56 forced) battle-enter edge body -- extracted verbatim out
+    /// of Tick() by the LW-184 phase-table refactor (same statements, same comments, same order).</summary>
+    private void OnBattleEnter(uint slot0, uint slot9, int battleMode)
+    {
+        ModLogger.NoteBattleEdge();   // console-only per-battle dedup reset (C1); file sink unaffected
+        // Console gets the clean edge; the raw hex sentinels ride the [trace] companion
+        // (numeric ids belong in parens on file lines only).
+        ModLogger.EventWithTrace(LogVerb.BattleStart, "Battle started.",
+            $"battle-start sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
+        // Archive the ring BEFORE the new battle's events pour in: sessions ending in a process
+        // kill (deploys, crashes) never fire the exit-edge flush, so the enter edge is the
+        // reliable rescue point for the PREVIOUS battle's tail (live-observed 2026-07-04: three
+        // sessions, zero archives, all ended by kills). Loop thread -- synchronous is the norm here.
+        Flight.FlushBattleStart();
+        // Reset per-battle state on ENTER too. A battle RESTART can re-enter WITHOUT a clean Exit
+        // (pre-1.5 the slot0/slot9 sentinels stuck, the quit-stick trap; the 1.5 restart values
+        // are unverified, so the defensive reset stays), which left Larceny's stolen-buff
+        // ledger alive into the new battle: the engine wipes statuses at battle start, but Larceny's
+        // per-tick Drive re-applied them from the stale ledger, so they carried over and never faded.
+        // Resetting here makes a fresh battle start clean however the prior one ended (2026-06-15).
+        ResetBattleState();
+        // LW-163: drop the pool-paint coverage latch on entry too, not just on exit. WHY this
+        // is defense-in-depth, not the primary fix: when the PREVIOUS battle's exit edge did
+        // fire, ITS Invalidate() (below, the Exited block) re-latched coverage onto whatever
+        // menu buffers were live during the world-map window that followed, and a save-load
+        // right after that can swap those buffers out from under the latch before another
+        // exit edge ever comes along to drop it again; this enter edge is the first hook after
+        // such a load that can drop the stale latch. It structurally CANNOT rescue a battle
+        // that starts inside a fully starved bracket (a fast reload that eats the debounce
+        // entirely, LW-108's class): BattleState.Step only ever returns Entered from its !In
+        // branch, so no enter edge fires there at all, which is exactly why the count-gated
+        // re-check in Display.PoolPaint.cs (MaybePoolPaint) carries the actual fix. Also worth
+        // naming, not hiding: this same tick already runs Flight.FlushBattleStart's synchronous
+        // archive above, so the pool scan this Invalidate can trigger stacks on top of that on
+        // the shared background-loop tick; accepted, same as every other enter-tick cost here.
+        _display.Invalidate();
+    }
+
+    /// <summary>The debounced (or LW-56 forced) battle-exit edge body -- extracted verbatim out
+    /// of Tick() by the LW-184 phase-table refactor (same statements, same comments, same order).</summary>
+    private void OnBattleExit(uint slot0, uint slot9, int battleMode, bool paused, int eventId)
+    {
+        // THE match-report summary: composed from the per-battle counters BEFORE
+        // ResetBattleState() wipes them (order is load-bearing). Sentinels ride the trace
+        // companion, same split as the enter edge. (LW-56: on a FORCED exit, the tally was
+        // already archived and cleared moments earlier this same tick by PlaythroughReset, so
+        // this summary can compose against an already-empty tally; cosmetic, accepted.)
+        string summary = BattleSummary.Compose(
+            _tracker.BattleCredits, _kills, _reliquary.BattleMarks, _tracker.FallbackCredits,
+            _turns.GlobalTurns, LogNames.Weapon, Tuning.TierFor);
+        ModLogger.EventWithTrace(LogVerb.BattleEnd, summary,
+            $"battle-end sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
+        // LW-56 D11/A3: re-emit the identity census on the exit edge, unconditionally, before
+        // ResetBattleState()/the flight flush. The enter-side census (KillTracker.Poll,
+        // behind the oracle coverage-done latch) can miss an entire battle when coverage never
+        // completes, so the exit edge is the reliable place a census always lands on tape.
+        // Covers the normal AND the LW-56 forced exit alike (both return Exited here).
+        _tracker.EmitExitCensus();
+        ResetBattleState();
+        _tally.Save();               // flush on battle end
+        _legends.SaveIfDirty();      // Reliquary: mirrors kills.json's battle-exit save timing
+        // S2: the battle-exit edge ONLY -- ResetBattleState() fires on BOTH edges (enter+exit),
+        // so the flush lives here beside _tally.Save(), not inside that shared method.
+        Flight.FlushBattleEnd();
+        _display.Invalidate();       // re-find the menu's freshly-allocated render copies
+        ModLogger.NoteBattleEdge();  // console-only per-battle dedup reset (C1); file sink unaffected
     }
 }

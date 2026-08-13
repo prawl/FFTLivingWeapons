@@ -188,6 +188,143 @@ public class EngineTests
         finally { ModLogger.UseNullLogger(); }
     }
 
+    // --- LW-184: Engine.Tick's fan-out is now a declarative TickPhase[] table (TickPhase.cs).
+    // These two pin the table itself against the hand-wired sequence it replaced, so a reorder or
+    // a dropped/miswired row breaks a test, not just a comment. ---
+
+    [Fact]
+    public void Phases_match_the_hand_wired_tick_order()
+    {
+        ModLogger.UseNullLogger();
+        try
+        {
+            using var temp = TempDirs.Create("lw_engine_phases_");
+            var engine = new Engine(NestedModDir(temp), mem: HealthyMemory(), notice: (_, __) => { });
+
+            var expected = new List<(string Name, Func<TickPhaseState, bool> Gate, int EveryNTicks, bool FiresOnFirstPass)>
+            {
+                ("kit-barrage", TickGates.KitLane, 1, false),
+                ("kit-shadowblade", TickGates.KitLane, 1, false),
+                ("kit-provoke", TickGates.KitLane, 1, false),
+                ("treasure", TickGates.Always, 1, false),
+                ("gunslinger", TickGates.Always, 30, false),
+                ("scholar-ring", TickGates.OutOfBattle, 30, false),
+                ("display-out", TickGates.OutOfBattle, 1, false),
+                ("kill-poll", TickGates.InBattle, 1, false),
+                ("turn-poll", TickGates.InBattle, 1, false),
+                ("field-signatures", TickGates.InBattle, 1, false),
+                ("living-poach", TickGates.InBattle, 1, false),
+                ("growth", TickGates.InBattle, 3, true),
+                ("toast", TickGates.InBattle, 1, false),
+                ("attack-card", TickGates.InBattle, 1, false),
+            };
+#if LWDEV
+            expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool)[]
+            {
+                ("turn-owner-spike", TickGates.InBattle, 1, false),
+                ("status-spike", TickGates.InBattle, 1, false),
+                ("body-double-spike", TickGates.InBattle, 1, false),
+                ("provoke-spike", TickGates.InBattle, 1, false),
+                ("numeral-spike", TickGates.InBattle, 1, false),
+            });
+#endif
+            expected.Add(("save-on-change", TickGates.InBattle, 1, false));
+            expected.Add(("paint", TickGates.InBattle, 1, false));
+
+            Assert.Equal(expected.Count, engine.Phases.Count);
+            for (int i = 0; i < expected.Count; i++)
+            {
+                var row = engine.Phases[i];
+                Assert.Equal(expected[i].Name, row.Name);
+                Assert.Same(expected[i].Gate, row.Gate);
+                Assert.Equal(expected[i].EveryNTicks, row.EveryNTicks);
+                Assert.Equal(expected[i].FiresOnFirstPass, row.FiresOnFirstPass);
+            }
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    [Fact]
+    public void Phase_after_annotations_only_name_earlier_rows()
+    {
+        ModLogger.UseNullLogger();
+        try
+        {
+            using var temp = TempDirs.Create("lw_engine_phases_after_");
+            var engine = new Engine(NestedModDir(temp), mem: HealthyMemory(), notice: (_, __) => { });
+
+            // Machine-checks every row's "after" ordering-reason annotations: each cited name must
+            // belong to a row that already ran (strictly earlier in the table), so the comments
+            // documenting a data-flow dependency (e.g. toast/save-on-change reading Changed from
+            // kill-poll) can never silently drift out of sync with the actual row order.
+            var seen = new HashSet<string>();
+            foreach (var phase in engine.Phases)
+            {
+                foreach (var reason in phase.After)
+                    Assert.True(seen.Contains(reason),
+                        $"'{phase.Name}' cites '{reason}' in After, but that row has not run yet.");
+                seen.Add(phase.Name);
+            }
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
+    // LW-184 follow-up: the two tests above pin the phase TABLE's shape against the hand-wired
+    // order it replaced, but neither one ever calls Tick() -- a row wired to the wrong lambda or
+    // the wrong gate (e.g. a copy-paste that left kill-poll gated on OutOfBattle) would sail
+    // through both untouched. This one drives the real Tick() through both regimes and checks
+    // which rows actually ran, by memory address, not by table introspection.
+    [Fact]
+    public void InBattle_regime_runs_the_battle_fanout_and_out_of_battle_does_not()
+    {
+        ModLogger.UseNullLogger();
+        try
+        {
+            // Two separate engines/memories -- one driven into the live battlefield, one left
+            // out of battle -- sidesteps BattleState's debounced EXIT (a real battle end needs 4
+            // real seconds of accumulated out-of-live time and Tick() has no injectable clock),
+            // so each regime is reached cleanly from its own fresh start instead of round-tripping
+            // one engine through an edge Tick() cannot fast-forward in a unit test.
+            using var tempIn = TempDirs.Create("lw_engine_regime_in_");
+            var memIn = HealthyMemory();
+            var engineIn = new Engine(NestedModDir(tempIn), mem: memIn, notice: (_, __) => { });
+            engineIn.Tick();   // arms the guard (mirrors the sentinel test); phases don't run this tick.
+            // Stage the in-battle regime: battleMode 3 alone satisfies both BattleState.EnterSignal
+            // (instant enter) and BattleState.InLiveBattle; slot9 stuck at its sentinel matches the
+            // documented in-battle pair (Offsets.Slot9's own doc comment).
+            SeedU32Bytes(memIn, Offsets.Slot9, 0xFFFFFFFF);
+            memIn.U8s[Offsets.BattleMode] = 3;
+            engineIn.Tick();   // Tick A: enters battle this same tick, then runs the in-battle fan-out.
+
+            using var tempOut = TempDirs.Create("lw_engine_regime_out_");
+            var memOut = HealthyMemory();
+            var engineOut = new Engine(NestedModDir(tempOut), mem: memOut, notice: (_, __) => { });
+            engineOut.Tick();   // arms the guard
+            engineOut.Tick();   // Tick B: healthy-but-unstaged sentinels all read 0 -> stays out of battle.
+
+            // Signature: Offsets.ActorPtr (the engine's own acting-unit pointer, resolved via
+            // Band.ActorEntry) is touched ONLY by in-battle-gated rows -- kill-poll's
+            // ActorRegister.Update chief among them -- never by the Always/OutOfBattle rows
+            // (kit-lane trio, treasure, gunslinger, scholar-ring, display-out), none of which ever
+            // reference it. A region-level presence check, not an exact count, so this survives an
+            // unrelated reshuffle of exactly which in-battle row reads it first.
+            Assert.True(memIn.ReadCount.ContainsKey(Offsets.ActorPtr),
+                "in-battle regime: Offsets.ActorPtr was never read -- the in-battle fan-out did not run");
+            Assert.False(memOut.ReadCount.ContainsKey(Offsets.ActorPtr),
+                "out-of-battle regime: Offsets.ActorPtr was read -- an in-battle-gated row ran while NowIn was false");
+
+            // The prologue's own sentinel reads fire every tick regardless of regime (both engines
+            // are past their arm tick here) -- the out-of-battle regime is not just "nothing ran",
+            // it is specifically "the battle-fanout rows didn't run".
+            Assert.True(memOut.ReadCount.ContainsKey(Offsets.Slot0));
+            Assert.True(memOut.ReadCount.ContainsKey(Offsets.Slot9));
+            Assert.True(memOut.ReadCount.ContainsKey(Offsets.BattleMode));
+            Assert.True(memOut.ReadCount.ContainsKey(Offsets.PauseFlag));
+            Assert.True(memOut.ReadCount.ContainsKey(Offsets.EventId));
+        }
+        finally { ModLogger.UseNullLogger(); }
+    }
+
     [Fact]
     public void ResolveNotice_falls_back_to_StandDownNotice_Show_and_passes_through_a_non_null_override()
     {

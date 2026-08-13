@@ -12,6 +12,13 @@
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <!-- DEV build flag: mirrors LivingWeapon.csproj's block verbatim, so a hand-typed
+       `dotnet test -p:LwDev=true` compiles this project's own #if LWDEV test rows too, instead of
+       leaving them mismatched against the 21-row production phase table the referenced DLL built. -->
+  <PropertyGroup Condition="'$(LwDev)' == 'true'">
+    <DefineConstants>$(DefineConstants);LWDEV</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
