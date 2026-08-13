@@ -121,6 +121,17 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-180] 2026-08-12: The kill-credit census warned twice in one battle that a fielded enemy
+  vanished from the battle band ("its kills may go uncredited"), both times in an undead
+  fight, and nobody knows which seat or why; the one kill actually taken that battle
+  credited fine, so this is a caution light, not an observed loss. Suspect: undead final
+  death or dissolution removing or hiding the seat, which would make this a false-alarm
+  class; a real coverage hole if not. Evidence banked from the 2026-08-12 Provoke
+  regression session: tapes flight_20260812_211943_battle-exit.jsonl (first WARN 21:20:42)
+  and flight_20260812_213229_battle-exit.jsonl (second WARN 21:32:13; the flush census
+  still shows the killed undead 851 seated at s8, so corpses staying seated is not the
+  vanish). Fold the verdict into LW-76's healthy-session WARN triage if it proves benign.
+
 - [LW-179] 2026-08-12: The battle menu's Attack row should wear the weapon's name from the
   very first menu of a battle; today the first open (and the odd mid-battle blip) shows the
   plain Attack text because the mod refuses to paint when it cannot prove whose menu is
