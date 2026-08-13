@@ -107,6 +107,27 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-185] 2026-08-13: Thin the codebase's comments to the owner's rule: a comment must say
+  something the code cannot, capped at roughly two lines per reason, with the long history
+  moved to the right durable doc and cited by its row slug. Runs AFTER LW-183 gives ledger
+  rows their greppable slugs (the citations need somewhere precise to point) and after
+  LW-184 rewrites the engine tick (no point thinning comments that rewrite deletes). The
+  deletion test keeps the fence case: a line whose absence would invite a wrong refactor is
+  a keeper even though it repeats no fact.
+
+- [LW-184] 2026-08-13: Rewrite Engine.Tick's hand-written recipe as a declarative phase
+  table (owner directed): each subsystem tick becomes a data row with a name, a named gate
+  predicate, a cadence, and an "after" annotation naming its ordering reason, so the order
+  the program runs is a value tests can inspect instead of physical line positions with the
+  reasons living only in comments. The prologue and the two battle-edge transactions stay
+  sequential code behind named methods (they are transactions, not phases); the disarmed
+  guard stays a mode, not a row. Safety net first, before any restructuring: a golden-call-
+  sequence test written against the CURRENT Tick (fake memory, one scripted tick per regime:
+  disarmed, armed out of battle, enter edge, in battle, exit edge) that the refactor must
+  keep green. Known landmines to preserve: the kit-lane trio's slot-claim order, summary
+  composed before reset on the exit edge, Observe before Step for the forced new-game exit,
+  and the deliberately fresh second PauseFlag read (locked ruling in its comment).
+
 - [LW-183] 2026-08-13: Make the long ledger rows readable again (owner directed): every
   LIVE_LEDGER row should open with one or two sentences saying what is true right now (current
   claim, current status) and nothing else, with the full history, corrections, and evidence
