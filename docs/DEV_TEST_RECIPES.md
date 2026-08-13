@@ -152,3 +152,33 @@ still grantable = the Engine lane gate is not wired; frozen tally = the lane ver
 Mem.WritesEnabled.
 **Cleanup:** disable + delete lwdrill.jobconflict, relaunch, confirm the lane-armed line and
 Barrage return.
+
+## Icon recolor process (the LW-189 pipeline, reusable for every equipment pass)
+
+Recoloring a family of equipment sprites is a settled assembly line, proven on the 121
+weapons (2026-08-13). In plain terms: preview everything as pictures first, let reviewers
+and then the owner judge the pictures, fix rules rather than pixels, and only bake real
+game files once the pictures are signed off, with a mechanical proof that the baked files
+match the approved pictures exactly.
+
+1. Tints live in tools/recolor_icons.py ICON_TINTS plus data/items.json iconTint; the
+   recolor ENGINE (two-zone k-means card art, BRIGHT hue-ramp list icons, per-item
+   overrides) also lives in recolor_icons.py and is the single source of truth.
+2. `python tools/icon_preview.py preview` decodes vanilla art and renders the engine's
+   output as PNGs only (no game files). It imports the engine from recolor_icons.py, so
+   preview equals production by construction.
+3. `sheets` builds contact sheets for a visual QA sweep (the LW-189 pattern: fan out
+   reviewers over the sheets, collapse their flags into RULE fixes or per-item overrides
+   in recolor_icons.py, never hand-edit an icon; then re-preview).
+4. `gallery` builds the owner's before/after HTML (flags.json in the out dir annotates
+   rows amber); the owner's sign-off is the gate.
+5. `python tools/recolor_icons.py [ids...]` bakes the real tex files into the mod tree.
+6. `python tools/icon_preview.py verify` proves the bake's intermediate images are
+   pixel-identical to the approved previews (the LW-189 weapon pass closed at 242/242).
+7. Commit, deploy, owner eyeballs the cards in-game.
+
+Extending to a NEW equipment family (shields, armor, accessories): those categories still
+route through the legacy whole-tint on purpose (unreviewed under the new rules). The work
+is choosing their zone semantics in recolor_icons.py (what is "the metal" on a shield?),
+then running this exact line. Changing the engine invalidates the approved-gallery
+identity for already-shipped families; any engine change means re-previewing them too.
