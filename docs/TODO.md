@@ -128,6 +128,19 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-189] 2026-08-13: Recolor every weapon icon again with two-zone accuracy: blade and hilt
+  take different colors instead of the current one-hue stamp that melts the whole sprite into
+  a single color family (owner request; the touch-up they have wanted since the first pass).
+  Proof of concept run 2026-08-13 on Flamberge and Galewind: per-icon color clustering
+  separates blade from grip on real vanilla art, the two-zone result reads as two materials,
+  and the residual blade speckle is zone noise a spatial smoothing pass removes. Owner saw the
+  before/after gallery. Build shape when picked up: upgrade tools/recolor_icons.py to per-icon
+  segmentation (k-means over hue/sat/value, smoothing, brightest-zone-is-blade heuristic with
+  a per-item override), add an optional second trim tint per item in data/items.json (absent
+  means trim keeps its vanilla colors), regenerate all icon tex files, and gate on an
+  every-icon visual pass: assistant eyeballs each against vanilla first, then the owner
+  signs off a full before/after gallery before any tex lands in the mod tree.
+
 - [LW-187] 2026-08-13: The build pipeline's test gate never exercises the dev-only code paths,
   so a broken dev-only phase row (or any future dev-only logic) would sail through the gate
   that guards deploys and only fail in a hand-typed dev test run. Surfaced by the LW-186
