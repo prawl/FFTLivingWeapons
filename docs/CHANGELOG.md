@@ -10,6 +10,16 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-183] SHIPPED 6158503 2026-08-13: the live ledger is readable again. Each of its 118
+  claims now opens with one or two sentences saying what is true right now (current claim,
+  current status, latest date), with the complete original history preserved word for word
+  inside a collapsible fold below, and every entry carries a short slug that code and docs
+  can cite precisely. No status moved and nothing was lost: a mechanical check proved every
+  address, date, id, filename, and word from the old rows survives, and an adversarial
+  review of the fresh summary lines caught and fixed five stale-pointer defects before the
+  commit. (Tech: the four sections and the owner-only PROVEN rule are unchanged; the three
+  free standing Contradicted terrain paragraphs survive in place; suite 3099 green.)
+
 - [LW-182] SHIPPED a61775c 2026-08-13: the runtime's two hundred source files no longer live
   in one giant flat directory. Everything is folded into twelve domain folders (Guard, Memory,
   Logging, Battle, Kills, Growth, Signatures, Display, Chronicle, Persistence, Dev, and the

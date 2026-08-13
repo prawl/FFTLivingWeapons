@@ -128,12 +128,6 @@ the technical detail lives in the indented lines under it.
   composed before reset on the exit edge, Observe before Step for the forced new-game exit,
   and the deliberately fresh second PauseFlag read (locked ruling in its comment).
 
-- [LW-183] 2026-08-13: Make the long ledger rows readable again (owner directed): every
-  LIVE_LEDGER row should open with one or two sentences saying what is true right now (current
-  claim, current status) and nothing else, with the full history, corrections, and evidence
-  trail below a fold in whatever detail it needs. The rigor stays; the archaeology moves down
-  so a reader stops having to excavate 400-word paragraphs to learn the current state.
-
 - [LW-181] 2026-08-12: Redesign Bulwark as "Upheaval" (pivoted 2026-08-13, supersedes the
   earlier enemy-turns-only toggle sketch): instead of a wait stance that quietly bars the
   tile behind the knight, the player aims Bulwark at the ground like Provoke's sibling,
