@@ -283,7 +283,8 @@ or the owner's call to accept it as a standing watch.
       Publish.ps1; package verify PASS on every required entry
       (FFTLivingWeapons-2.3.3.zip); ModVersion bumped to 2.3.3; no parked artifacts
       packaged.
-- [ ] Tag v2.3.3 cut at the release commit and pushed (rides the owner's push word).
+- [x] Tag v2.3.3 cut at the release commit b7104c0 and pushed (2026-08-12, owner word in
+      session).
 
 ## DEFERRED (post-release backlog)
 - **Remove Treasure Master** -- L, works + tested, no user benefit this cycle; do as a dedicated
