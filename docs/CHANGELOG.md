@@ -10,6 +10,25 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-190] SHIPPED cca4acc 2026-08-13: every shield icon now wears its own two colours instead
+  of the old one-hue paint dip, and the owner confirmed the in-game look the same day the bake
+  shipped ("it looks so good in game", the live half of the verify). Sixteen shields were
+  settled one by one across twelve owner review rounds, including two ten-variant picker pages:
+  Aegis Prime landed on bright sapphire with gold kept to the edges and gem, Wardstone on a
+  thin white geometric rim over rich purple, Conduit on a copper cross over a bright blue
+  field, and Emberward on burnt ember under gilt fittings, with the rest called by name along
+  the way. The weapons card rule was tried first and rejected on evidence: a shield is one
+  convex plate, so colour clustering follows the lighting rather than the materials, and it
+  produced half-painted shields and camouflage speckle. (Tech: the shield engine in
+  tools/recolor_icons.py finds the second material by saturation, with per-shield override
+  modes the owner picked (gold / keep-vanilla / second-tint trims, inverted tint-on-fittings,
+  strict saturation split, forced-cover brightness split, and a geometric BFS ring from the
+  sprite silhouette); bright relief rides a tanh shoulder instead of the weapons' hard clip;
+  the sixteen tints are respaced with a selftest tripwire against collisions. Proof: bake
+  matched the approved previews 32 of 32, the 121 weapon icons re-proven byte-identical 242 of
+  242 against the committed engine, suite 3101 green, analyze exit 0. Preview equals production
+  by construction: tools/icon_preview.py imports the engine's route().)
+
 - [LW-186] SHIPPED 3aaefdd 2026-08-13: the engine's tick table now defends its own shape. The
   phase list that says what runs when can be handed to tests as plain data, no engine built
   and no game memory touched, and the "after" ordering notes on its rows are enforced instead
