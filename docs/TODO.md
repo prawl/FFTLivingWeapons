@@ -134,7 +134,13 @@ the technical detail lives in the indented lines under it.
     recolor (color clustering finds the blade, the identity tint goes on the metal, hilt and
     trim keep their vanilla colors, per-item override available), and the list icon gets the
     HUE-SHIFT recolor (re-aim the color while keeping each pixel's own light and shade, since
-    an invented material split reads muddy at that size). The in-battle weapon graphic is a
+    an invented material split reads muddy at that size). Shading rule settled by the owner's
+    gun A/B rounds 2026-08-13, "BRIGHT AF": the colored zones shade on a hue-graded ramp
+    (shadows lean cool blue and gain saturation, highlights lean gently warm and stay vivid,
+    vanilla white gleams stay white) with a gamma-lifted midtone and a hot base saturation;
+    plain saturation boosts alone were rejected. Five katana or ninja-blade smalls (ids 13,
+    15, 16, 18, 24) carry a per-item override to the card-style two-zone treatment after the
+    owner's first review round. The in-battle weapon graphic is a
     third, welded asset no recolor reaches (the tabled WEAPON_VISUALS_SCOPING research).
     (Tech: preview generation runs from the scratchpad against the vanilla Pac icons using the
     shipped ICON_TINTS plus items.json tints and honoring iconSource; the production step is
