@@ -19,9 +19,10 @@ Verbs (all outputs go under --out, default %TEMP%\\icon_preview; never a repo di
   python tools/icon_preview.py gallery [--out D]            # the owner's before/after HTML
   python tools/icon_preview.py verify [--out D]             # preview PNGs vs the production bake's
                                                             # working/icons PNGs, pixel identity
-preview with no ids does every tinted item, weapons through the LW-189 engine and everything
-else through the legacy whole-tint (matching production's split exactly). flags.json in the
-out dir ({id: note}) annotates gallery rows amber.
+preview with no ids does every tinted item, each routed through recolor_icons.route() -- the
+SAME per-category split production uses (LW-189 bright-v2 for weapons, LW-190 two-tone for
+shields, legacy whole-tint for the rest), so the split can never drift from production.
+flags.json in the out dir ({id: note}) annotates gallery rows amber.
 """
 import base64
 import io
@@ -35,7 +36,6 @@ import sys
 from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from lib.categories import WEAPON_CATS
 from lib.paths import ROOT, FF16
 import recolor_icons as ri
 
@@ -73,7 +73,7 @@ def cmd_preview(only, out):
         cat = ri._CATEGORY.get(iid)
         src_id = ri.SRC.get(iid, iid)
         row = {"id": iid, "category": cat, "src": src_id, "tint": list(tint),
-               "engine": "bright-v2" if cat in WEAPON_CATS else "legacy"}
+               "engine": ri.engine_for(iid)}
         ok = True
         for sub, pfx, surface in SURFACES:
             vanilla = decode_vanilla(sub, pfx, src_id, out)
@@ -82,11 +82,7 @@ def cmd_preview(only, out):
                 ok = False
                 continue
             vanilla.save(out / f"i{iid:03d}_{surface}_0v.png")
-            if cat in WEAPON_CATS:
-                new = ri.apply_weapon(vanilla, iid, tint, surface)
-            else:
-                new = ri.recolor(vanilla.copy(), *tint)
-            new.save(out / f"i{iid:03d}_{surface}_1new.png")
+            ri.route(vanilla, iid, tint, surface).save(out / f"i{iid:03d}_{surface}_1new.png")
         if ok:
             manifest.append(row)
             print(f"id{iid:>3} {cat:<12} [{row['engine']}]")

@@ -6,10 +6,10 @@ Pipeline per item (both the 100x100 card image and the 48x48 list icon):
   vanilla BC7 .tex (Pac Files/0008) -> FF16Tools tex-conv -> DDS -> Pillow recolor
   -> img-conv --no-chunk-compression -> .tex placed in the mod tree.
 
-TWO recolor engines since LW-189 (owner-directed, settled through three live A/B rounds on
-2026-08-13; docs/TODO.md LW-189 carries the decision trail):
+THREE recolor engines, routed per item by engine_for() (owner-directed; docs/TODO.md LW-189
+and LW-190 carry the decision trails):
 
-  WEAPONS (category in lib.categories.WEAPON_CATS) get the BRIGHT v2 treatment:
+  WEAPONS (category in lib.categories.WEAPON_CATS) get the LW-189 BRIGHT v2 treatment:
     - card image: TWO-ZONE k-means segmentation of the VANILLA art (the identity tint goes on
       the metal/blade zone, hilt and trim keep their vanilla colors), shaded on a hue-graded
       ramp: shadows lean cool and gain saturation, highlights lean gently warm (clamped so
@@ -18,9 +18,14 @@ TWO recolor engines since LW-189 (owner-directed, settled through three live A/B
       invented split reads muddy), except SMALL_TWO_ZONE ids which use the card treatment.
     - per-item overrides in CARD_OVERRIDES / SMALL_TWO_ZONE (owner review rounds).
 
-  NON-WEAPONS (shields, armor, accessories) keep the ORIGINAL whole-icon tint: they were
-  never part of the LW-189 review, so their shipped look must not change until an owner pass
-  covers them.
+  SHIELDS (category in WHOLE_BRIGHT_CATS) get the LW-190 two-tone treatment: the identity
+  colour on the shield body (BRIGHT shading under a tanh shoulder), a distinct trim tone on
+  the metal fittings found by trim_mask, per-item modes in SHIELD_OVERRIDES (gold or vanilla
+  trim, inverted tint-on-fittings, forced mask cover). k-means was tried and rejected here:
+  a shield is one convex plate, so it clusters the lighting, not the materials.
+
+  EVERYTHING ELSE (armor, accessories) keeps the ORIGINAL whole-icon tint: not yet reviewed
+  under the new rules, so their shipped look must not change until an owner pass covers them.
 
 ICON_TINTS = {id: (hue, sat, value_mult)}; hue/sat in 0..1, value_mult scales brightness.
 Run: python tools/recolor_icons.py [ids...]   |   python tools/recolor_icons.py --selftest
@@ -31,6 +36,7 @@ import random
 import shutil
 import subprocess
 import sys
+from collections import deque
 from pathlib import Path
 
 from PIL import Image
@@ -89,22 +95,39 @@ ICON_TINTS = {
     90: (0.58, 0.42, 0.95),   # Tempest         storm grey-blue
     91: (0.13, 0.45, 1.18),   # Seraph          radiant gold (Holy)
     # --- Shields (ids 128-143) ---
-    128: (0.52, 0.55, 0.95),  # Tideward        water blue
-    129: (0.42, 0.52, 1.00),  # Galewall        wind teal
-    130: (0.14, 0.75, 1.05),  # Stormwall       lightning yellow
-    131: (0.52, 0.20, 1.10),  # Swiftguard      silver-cyan (Speed)
-    132: (0.62, 0.32, 1.00),  # Wardstone       pale blue (Shell)
-    133: (0.13, 0.48, 1.15),  # Sanctguard      gold (Holy)
-    134: (0.50, 0.58, 1.08),  # Rimeward        ice cyan
-    135: (0.05, 0.82, 1.05),  # Emberward       fire orange
-    136: (0.64, 0.55, 0.92),  # Spellbane       indigo (anti-mage)
-    137: (0.30, 0.55, 0.95),  # Trailblazer     green (Move)
-    138: (0.99, 0.45, 0.82),  # Vanguard        crimson (PA)
-    139: (0.78, 0.50, 0.62),  # Nightward       dark violet (Dark)
-    140: (0.60, 0.12, 0.72),  # Ronin Wall      gunmetal (rare)
-    141: (0.85, 0.55, 0.95),  # Conduit         magenta (boost)
-    142: (0.58, 0.10, 1.15),  # Bastion         platinum (generalist)
-    143: (0.60, 0.60, 1.10),  # Aegis Prime     radiant blue (capstone)
+    # Hues are DELIBERATELY SPACED, and SHIELD_MIN_HUE_GAP in selftest() enforces it. Under the
+    # whole-glyph engine below the tint is the item's entire colour signal, so two shields whose
+    # tints sit close become the same object on screen. The pre-pass palette had seven such pairs
+    # (140 vs 142 were 0.02 hue and 0.02 saturation apart, i.e. one shield in two names); the
+    # LW-190 review round measured them as hard collisions and this layout is the fix.
+    # Owner review rounds two and three, 2026-08-13, applied per shield by name. Round three's
+    # standing rule: "I like the original better" means build FROM the vanilla art, not revert,
+    # so those shields (Emberward, Spellbane, Conduit) take a tint MEASURED from their own
+    # vanilla body hue (chroma-weighted mean of the non-trim pixels), enriched, with the artist's
+    # fittings kept via the vanilla-trim override. Sanctguard keeps its red body but the inner
+    # emblem stays vanilla gold ("leave the inner shield color the same"). Aegis Prime keeps the
+    # dark blue and drops the light powder blue (vmult down). Trailblazer read as Galewall's twin
+    # and moves toward forest green. Vanguard passed and keeps its crimson, which is why
+    # Sanctguard's red sits hotter and brighter (their tripwire separation is saturation).
+    135: (0.05, 0.80, 0.68),  # Emberward       burnt ember over gilt, darker so the gilt cross
+                              #                 defines and it splits from Sanctguard's bright red
+    136: (0.05, 0.55, 0.72),  # Spellbane       burnished mahogany, vanilla cross (anti-mage)
+    141: (0.06, 0.72, 1.02),  # Conduit         BRIGHT copper cross on a BRIGHT blue field (boost)
+    130: (0.15, 0.92, 1.18),  # Stormwall       bright golden yellow (round seven: hue 0.17 read
+                              #                 GREEN once the cool-shadow ramp pulled its darks)
+    137: (0.23, 0.62, 0.92),  # Trailblazer     forest green (Move)
+    129: (0.88, 0.62, 1.02),  # Galewall        fuchsia (owner round eight: instead of green)
+    131: (0.45, 0.30, 1.18),  # Swiftguard      frost-white mint fittings, vanilla plate (Speed)
+    134: (0.51, 0.42, 1.08),  # Rimeward        white ice (owner round six: more white)
+    142: (0.55, 0.14, 1.16),  # Bastion         icy platinum, gilt trim (generalist)
+    128: (0.58, 0.66, 0.96),  # Tideward        deep ocean blue
+    140: (0.62, 0.26, 0.70),  # Ronin Wall      cold steel-blue (rare)
+    143: (0.60, 0.85, 1.10),  # Aegis Prime     sapphire; gold on edges and gem only (capstone)
+    132: (0.71, 0.48, 0.95),  # Wardstone       purple inner under a thin white geometric rim
+                              #                 (settled round twelve, picker variant A)
+    139: (0.78, 0.34, 0.55),  # Nightward       near-black, faint violet cast (Dark)
+    138: (0.96, 0.50, 0.84),  # Vanguard        crimson (PA)
+    133: (0.995, 0.85, 1.00), # Sanctguard      bright red, vanilla gold emblem (Holy)
 }
 
 # Merge per-item tints from data/items.json (source for the new categories).
@@ -276,9 +299,228 @@ def small_bright(im, tint):
     return out
 
 
+# --- LW-190 shield engine (whole-glyph BRIGHT) ----------------------------------------------
+# Shields do NOT take the weapons card rule. Measured on all 16 sprites: a shield is one convex
+# plate, so k-means clusters on the LIGHTING gradient rather than on a material boundary, giving
+# half-painted shields (130, 142) and camouflage speckle (128, 134, 135, 139). Full coverage with
+# BRIGHT shading is the treatment; these two constants fix the defects that coverage exposes.
+SHIELD_KNEE = 0.70                      # value above which the shoulder compresses
+SHIELD_GLEAM_V, SHIELD_GLEAM_S = 0.74, 0.30   # widened from the weapons rule's 0.85 / 0.20
+
+
+def shoulder(x, knee=SHIELD_KNEE):
+    """Soft-clip above the knee. shade_bright's min(1.0, ...) FLAT-clipped up to 29% of a bright
+    shield's pixels to one cream value (id133), dissolving the embossed relief. tanh keeps the
+    mapping strictly increasing, so every brightness step in the vanilla art survives as a
+    distinguishable step in the output."""
+    if x <= knee:
+        return x
+    return knee + (1.0 - knee) * math.tanh((x - knee) / (1.0 - knee))
+
+
+def shade_shield(h_t, s_t, vmult, s0, v0):
+    """BRIGHT shading for a shield pixel: identity hue and hot saturation, vanilla brightness
+    through the shoulder, and a widened gleam preserve so light-on-dark devices (id130's
+    lightning bolt, id143's gem facets) stay light instead of being repainted the plate hue."""
+    s_hot = min(0.97, s_t * 1.3 + 0.03)
+    v = shoulder((v0 ** 0.88) * vmult)
+    nh, ns = ramp_color(h_t, s_hot, v)
+    r, g, b = colorsys.hsv_to_rgb(nh, ns, v)
+    if s0 < SHIELD_GLEAM_S and v0 > SHIELD_GLEAM_V:
+        lift = 0.60 * min(1.0, (v0 - SHIELD_GLEAM_V) / (1.0 - SHIELD_GLEAM_V) + 0.35)
+        r, g, b = (c + (1.0 - c) * lift for c in (r, g, b))
+    return tuple(int(c * 255) for c in (r, g, b))
+
+
+TRIM_HUE, TRIM_SAT = 0.58, 0.07     # cool silver, the default second tone
+TRIM_MIN_COVER = 0.06               # every shield must end up genuinely two-tone
+
+
+def _pct(vals, p):
+    s = sorted(vals)
+    return s[max(0, min(len(s) - 1, int(len(s) * p / 100.0)))]
+
+
+def trim_mask(im, s_p=45, v_p=50, cover=None, sat_split=False, split_p=50, ring=None):
+    """Find the shield's SECOND material: the rim, boss and fittings.
+
+    Keyed on SATURATION, not brightness. That is the whole point. k-means on these sprites
+    clusters the lighting gradient across one convex plate, which is why the weapons card rule
+    produced half-painted shields; but within a single sprite the metal fittings really are the
+    low-saturation, high-value population, and that separation survives the lighting.
+
+    cover overrides the whole hunt with a plain brightness split sized to that fraction of the
+    sprite. It exists for art the saturation key misreads: Aegis Prime's filigree is SATURATED
+    bronze (so the key skips it and gilds only the gem), and Swiftguard's inverse mode wants
+    exactly "the bright fittings" as its tint zone."""
+    px = im.load()
+    coords, ss, vv = [], [], []
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            if a < 8:
+                continue
+            _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            coords.append((x, y)); ss.append(s0); vv.append(v0)
+    if ring is not None:
+        # Geometric rim (owner round eleven, Wardstone "outer rim white, inner purple"): the
+        # mask is the band of SOLID pixels within `ring` of the sprite's solid silhouette,
+        # found by a BFS inward from the silhouette boundary. Brightness and saturation keys
+        # cannot express this: the art's bright center band always outbids the rim on both.
+        # `ring` is authored against the 100px card and scales with the sprite so the same
+        # override fits the 48px icon. The smoky semi-transparent halo around every sprite is
+        # NOT solid (alpha < 160), so the ring hugs the shield's real edge, not the smoke.
+        px2 = im.load()
+        solid = {c for c in coords if px2[c][3] >= 160}
+        q = deque()
+        dist = {}
+        for (x, y) in solid:
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                n = (x + dx, y + dy)
+                if n not in solid:
+                    dist[(x, y)] = 0
+                    q.append((x, y))
+                    break
+        while q:
+            c = q.popleft()
+            x, y = c
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                n = (x + dx, y + dy)
+                if n in solid and n not in dist:
+                    dist[n] = dist[c] + 1
+                    q.append(n)
+        thick = max(2, round(ring * im.width / 100.0))
+        return coords, {c: (c in solid and dist.get(c, 1 << 30) < thick) for c in coords}
+    if sat_split:
+        # Strict material split (owner round six, "one colour strictly the cross, the other the
+        # background"): mask = the LOW-saturation share of the sprite regardless of brightness,
+        # so painted panels and bare metal separate cleanly even through shadow. split_p moves
+        # the boundary: higher hands more mid-saturation pixels to the mask side.
+        s2 = _pct(ss, split_p)
+        return coords, smooth_mask({c: (s0 < s2) for c, s0 in zip(coords, ss)},
+                                   im.width, im.height, passes=1)
+    if cover is not None:
+        v2 = _pct(vv, int(100 * (1.0 - cover)))
+        return coords, smooth_mask({c: (v0 > v2) for c, v0 in zip(coords, vv)},
+                                   im.width, im.height, passes=1)
+    s_cut = max(0.10, min(0.48, _pct(ss, s_p)))
+    v_cut = max(0.30, min(0.78, _pct(vv, v_p)))
+    mask = smooth_mask({c: (s0 < s_cut and v0 > v_cut) for c, s0, v0 in zip(coords, ss, vv)},
+                       im.width, im.height, passes=2)
+    # Coverage is judged AFTER smoothing on purpose: on the 48px Stormwall and Conduit icons the
+    # metal is one pixel wide, so the majority vote ate it and a pre-smooth count read healthy.
+    for p in (72, 62, 52):
+        if sum(mask.values()) / len(mask) >= TRIM_MIN_COVER:
+            break
+        v2 = _pct(vv, p)
+        mask = smooth_mask({c: (v0 > v2) for c, v0 in zip(coords, vv)}, im.width, im.height, passes=1)
+    return coords, mask
+
+
+GOLD_HUE, GOLD_SAT = 0.115, 0.58    # heraldic gilt, the warm alternative to silver trim
+
+
+def trim_tone(h_t, s_t, v0, mode="silver"):
+    """Cool silver against a coloured body. Two escapes from that default:
+
+    "gold" is asked for per item, because a white fitting is wrong on some art. It is also the
+    only answer for a near-neutral IDENTITY: Bastion's vanilla is a gold plate with a SILVER
+    cross, so both "recolour the trim silver" and "keep the vanilla trim" leave silver on
+    platinum, which is the monochrome the owner rejected. Gilt is what separates them.
+
+    When the identity is near-neutral and no mode is given, the trim drops to graphite so the
+    two tones separate by VALUE instead of hue."""
+    if mode == "gold":
+        v = shoulder((v0 ** 0.85) * 1.04)
+        return colorsys.hsv_to_rgb(GOLD_HUE, GOLD_SAT * (1.0 - 0.45 * v), v)
+    if s_t < 0.20:
+        return colorsys.hsv_to_rgb((h_t + 0.5) % 1.0, 0.10, shoulder((v0 ** 1.15) * 0.62))
+    v = shoulder((v0 ** 0.85) * 1.06)
+    r, g, b = colorsys.hsv_to_rgb(TRIM_HUE, TRIM_SAT * (1.0 - 0.5 * v), v)
+    return tuple(c + (1.0 - c) * 0.25 for c in (r, g, b))
+
+
+# Per-shield trim overrides from the owner's review round (2026-08-13). "vanilla" keeps the
+# artist's own trim colour instead of recolouring it, which is the answer whenever the vanilla
+# fitting is gold and the recolour was turning it white: Emberward's inner trim (asked for
+# directly), Bastion (platinum body plus silver trim was still one colour, gold fixes it) and
+# Aegis Prime (white trim rejected; its gold filigree is the capstone's whole character).
+SHIELD_OVERRIDES = {
+    # Swiftguard: owner keeps the vanilla inner plate, so the identity tint moves ONTO the bright
+    # fittings. Covers tuned per surface by A/B (the card and the list icon are separate art):
+    # wider grabs the plate's sheen and reads half-painted, narrower loses the identity.
+    131: {"invert": True, "cover": 0.32, "cover_small": 0.22},
+    133: {"trim": "vanilla"},              # Sanctguard: red body, the inner emblem stays the
+                                           # artist's gold ("leave the inner shield color the same")
+    135: {"trim": "gold"},                 # Emberward: dark ember body, gilt fittings (round five:
+                                           # the measured-from-vanilla copper read as no change)
+    136: {"trim": "vanilla"},              # Spellbane: burnished dark, the silver cross stays
+    141: {"trim_tint": (0.58, 0.66, 1.12), "split": "sat", "split_p": 56},  # Conduit rounds
+                                           # seven and eight: copper strictly the cross, blue
+                                           # strictly the background (plain sat-split matches on
+                                           # both surfaces); split_p 56 hands the boundary a
+                                           # tiny bit more blue, as asked
+    142: {"trim": "gold"},                 # Bastion: platinum body needs gilt to stop reading monochrome
+    132: {"ring": 6},                      # Wardstone settled round twelve, picker variant A
+                                           # ("outer rim white, inner purple"): the thin
+                                           # geometric ring, rich purple beneath
+    143: {"trim_tint": (0.13, 0.80, 1.20), "cover": 0.22, "cover_small": 0.18},  # Aegis Prime
+                                           # settled round eleven, picker variant C ("hands down
+                                           # my favorite"): bright sapphire, gold kept to the
+                                           # edges and gem
+}
+
+
+def shield_two_tone(im, tint, override=None, surface="card"):
+    """Identity colour on the shield body, a distinct trim on its metal. Owner rule 2026-08-13:
+    a shield whose vanilla art carries two colours must come out carrying two colours, and no
+    shield may ship as a single flat colour."""
+    h_t, s_t, vmult = tint
+    ov = override or {}
+    trim_mode = ov.get("trim", "silver")
+    invert = ov.get("invert", False)
+    # The card and the list icon are separate vanilla art, so a forced cover may differ per
+    # surface; cover_small falls back to cover, which falls back to the saturation-keyed hunt.
+    cover = ov.get("cover_small", ov.get("cover")) if surface == "small" else ov.get("cover")
+    coords, mask = trim_mask(im, cover=cover, sat_split=ov.get("split") == "sat",
+                             split_p=ov.get("split_p", 50), ring=ov.get("ring"))
+    if surface == "small" and ov.get("swap_small"):
+        # The card and list icon can have INVERTED material roles (Conduit: the card's cross is
+        # its saturated straps, the icon's cross is its desaturated T), so the same colour lands
+        # on "the cross" of both surfaces only by swapping the zone assignment on the small.
+        mask = {c: not m for c, m in mask.items()}
+    px = im.load()
+    out = im.copy()
+    opx = out.load()
+    for c in coords:
+        r, g, b, a = px[c]
+        _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        if invert:
+            # Inverse assignment (Swiftguard): the identity tint lands ON the bright fittings and
+            # the plate keeps its vanilla paint, the owner's "inner plate stays original" rule.
+            if mask[c]:
+                opx[c] = (*shade_shield(h_t, s_t, vmult, s0, v0), a)
+            continue
+        if mask[c]:
+            if trim_mode == "vanilla":
+                continue                     # out is a copy of im, so the vanilla pixel stands
+            if "trim_tint" in ov:
+                # Two-colour shield (owner round six, Conduit "copper blue but BRIGHT AF"):
+                # the mask zone takes its OWN full identity tint through the same shader,
+                # so both materials read hot instead of one deferring to a metal tone.
+                t2 = ov["trim_tint"]
+                opx[c] = (*shade_shield(t2[0], t2[1], t2[2], s0, v0), a)
+                continue
+            nr, ng, nb = trim_tone(h_t, s_t, v0, trim_mode)
+            opx[c] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+        else:
+            opx[c] = (*shade_shield(h_t, s_t, vmult, s0, v0), a)
+    return out
+
+
 def recolor(im, hue, sat, val_mult):
-    """LEGACY whole-icon tint: non-weapons only (their look predates LW-189 and is unreviewed
-    under the new rules; do not route weapons here)."""
+    """LEGACY whole-icon tint: armor and accessories only (their look predates LW-189 and is
+    unreviewed under the new rules; do not route weapons or shields here)."""
     px = im.load()
     for y in range(im.height):
         for x in range(im.width):
@@ -302,9 +544,32 @@ def apply_weapon(im, item_id, tint, surface):
     return small_bright(im, tint)
 
 
+WHOLE_BRIGHT_CATS = {"Shield"}   # families reviewed under LW-190
+
+
+def engine_for(item_id):
+    cat = _CATEGORY.get(item_id)
+    if cat in WEAPON_CATS:
+        return "bright-v2"
+    if cat in WHOLE_BRIGHT_CATS:
+        return "shield-bright"
+    return "legacy"
+
+
+def route(im, item_id, tint, surface):
+    """THE single routing rule, returning a NEW image so callers keep their vanilla copy.
+    process() and tools/icon_preview.py both call this and neither owns a second copy of the
+    branch, so the reviewed gallery cannot drift from the production bake."""
+    engine = engine_for(item_id)
+    if engine == "bright-v2":
+        return apply_weapon(im, item_id, tint, surface)
+    if engine == "shield-bright":
+        return shield_two_tone(im, tint, SHIELD_OVERRIDES.get(item_id), surface)
+    return recolor(im.copy(), *tint)
+
+
 def process(item_id, tint, src_id=None):
     WORK.mkdir(parents=True, exist_ok=True)
-    is_weapon = _CATEGORY.get(item_id) in WEAPON_CATS
     sid = item_id if src_id is None else src_id
     for sub, pfx, surface in [("equip_item", "ei", "card"), ("equip_item_s", "ei_s", "small")]:
         src_name = f"{pfx}_{sid:03d}_uitx"
@@ -315,11 +580,7 @@ def process(item_id, tint, src_id=None):
         work_tex = WORK / f"{src_name}.tex"
         shutil.copy(src, work_tex)
         subprocess.run([str(FF16), "tex-conv", "-i", str(work_tex)], capture_output=True)
-        im = Image.open(WORK / f"{src_name}.dds").convert("RGBA")
-        if is_weapon:
-            im = apply_weapon(im, item_id, tint, surface)
-        else:
-            recolor(im, *tint)
+        im = route(Image.open(WORK / f"{src_name}.dds").convert("RGBA"), item_id, tint, surface)
         png = WORK / f"{out_name}.png"
         im.save(png)
         work_tex.unlink(missing_ok=True)
@@ -327,8 +588,8 @@ def process(item_id, tint, src_id=None):
         dst = MOD / sub / "texture"
         dst.mkdir(parents=True, exist_ok=True)
         shutil.move(str(WORK / f"{out_name}.tex"), str(dst / f"{out_name}.tex"))
-        engine = "bright-v2" if is_weapon else "legacy"
-        print(f"  {out_name}" + (f" (from {src_name})" if src_id is not None else "") + f" -> {sub} [{engine}]")
+        print(f"  {out_name}" + (f" (from {src_name})" if src_id is not None else "")
+              + f" -> {sub} [{engine_for(item_id)}]")
 
 
 def selftest():
@@ -379,6 +640,130 @@ def selftest():
     bag = two_zone_bright(im, (0.3, 0.8, 1.0), "Bag", {})
     check("bag tints the large body", bag.getpixel((5, 2)) != im.getpixel((5, 2)))
     check("bag leaves the bright clasp", bag.getpixel((5, 9))[:3] == im.getpixel((5, 9))[:3])
+
+    # --- LW-190 shield engine ---------------------------------------------------------------
+    # The shoulder exists to stop the flat clip that ate id133's relief, so the properties that
+    # matter are "never reaches 1.0" and "never ties two distinct inputs".
+    check("shoulder is identity below the knee", shoulder(0.5) == 0.5)
+    check("shoulder never reaches a flat 1.0", shoulder(1.0) < 1.0 and shoulder(4.0) < 1.0)
+    steps = [shoulder(i / 200.0) for i in range(201)]
+    check("shoulder is strictly increasing", all(b > a for a, b in zip(steps, steps[1:])))
+    # a bright vanilla pixel that shade_bright would have clipped keeps headroom here
+    check("shoulder keeps headroom where shade_bright clipped",
+          shoulder((0.95 ** 0.88) * 1.15) < 0.995)
+    # Widened gleam preserve, isolated: s0 feeds ONLY the gleam branch, so holding v0 fixed and
+    # moving s0 across the cutoff measures the lift and nothing else.
+    lit = shade_shield(0.16, 0.85, 1.04, 0.10, 0.80)      # v0 above GLEAM_V, s0 below GLEAM_S
+    unlit = shade_shield(0.16, 0.85, 1.04, 0.40, 0.80)    # same pixel, gleam refused on s0
+    check("widened gleam lifts a light device", min(lit) > min(unlit))
+    # ...and it stays OFF for midtones, so the plate is not washed toward white
+    check("gleam preserve does not swallow midtones",
+          shade_shield(0.16, 0.85, 1.04, 0.10, 0.55) == shade_shield(0.16, 0.85, 1.04, 0.40, 0.55))
+    # the widening is real: the shield window must stay strictly wider than the weapons rule
+    # (shade_bright's literal s0 < 0.20 and v0 > 0.85), on BOTH axes, or light-on-dark devices
+    # like id130's bolt fall back out of the preserve
+    check("gleam window stays wider than the weapons rule",
+          SHIELD_GLEAM_V < 0.85 and SHIELD_GLEAM_S > 0.20)
+    # Two-tone: a synthetic shield of a saturated body plus a pale metal rim must come out with
+    # the body tinted and the rim on a visibly DIFFERENT tone (the owner's no-monochrome rule).
+    # The rim's gradient must reach its MAX channel (HSV value is the max), because a perfectly
+    # flat brightness field defeats percentile splits (nothing is strictly above the cut), the
+    # same degeneracy the kmeans note documents. Real sprite art is continuous.
+    sim = Image.new("RGBA", (12, 12), (0, 0, 0, 0))
+    for y in range(12):
+        for x in range(12):
+            edge = x in (0, 1, 10, 11) or y in (0, 1, 10, 11)
+            sim.putpixel((x, y), (210 + x, 214 + y, 218 + x, 255) if edge else (120 + x, 70, 55, 255))
+    sim.putpixel((6, 11), (0, 0, 0, 0))          # one transparent pixel: must survive untouched
+    tt = shield_two_tone(sim, (0.58, 0.66, 0.96))
+    body, rim = tt.getpixel((6, 6))[:3], tt.getpixel((0, 6))[:3]
+    check("two-tone tints the body", body != sim.getpixel((6, 6))[:3])
+    check("two-tone leaves transparent pixels alone", tt.getpixel((6, 11))[3] == 0)
+    check("two-tone body and trim are distinct tones", sum(abs(a - b) for a, b in zip(body, rim)) > 60)
+    _, m = trim_mask(sim)
+    check("trim mask clears the coverage floor", sum(m.values()) / len(m) >= TRIM_MIN_COVER)
+    # a near-neutral identity must NOT return silver-on-silver: it drops to graphite instead
+    pale = trim_tone(0.10, 0.07, 0.85)
+    bright = trim_tone(0.58, 0.66, 0.85)
+    check("neutral identity trims darker, not silver", max(pale) < max(bright))
+    # the vanilla-trim override really does leave the artist's fitting alone
+    kept = shield_two_tone(sim, (0.58, 0.66, 0.96), {"trim": "vanilla"})
+    check("vanilla-trim override keeps the artist's trim",
+          kept.getpixel((0, 6))[:3] == sim.getpixel((0, 6))[:3])
+    check("vanilla-trim override still tints the body", kept.getpixel((6, 6))[:3] != sim.getpixel((6, 6))[:3])
+    check("every shield override names a real shield",
+          all(_CATEGORY.get(i) in WHOLE_BRIGHT_CATS for i in SHIELD_OVERRIDES))
+    check("every shield override names a known trim mode",
+          all(o.get("trim", "silver") in ("silver", "gold", "vanilla") for o in SHIELD_OVERRIDES.values()))
+    check("every shield override key is a known option",
+          all(set(o) <= {"trim", "invert", "cover", "cover_small", "trim_tint", "split",
+                         "split_p", "swap_small", "ring"} for o in SHIELD_OVERRIDES.values()))
+    # ring: the geometric rim claims the border and NOT the center, whatever their colours
+    rcoords, rmask = trim_mask(sim, ring=17)   # 17% of a 12px sprite = 2px band
+    check("ring masks the border", rmask[(0, 6)] and rmask[(11, 6)])
+    check("ring leaves the center", not rmask[(6, 6)])
+    # sat-split: the low-saturation rim of the fixture is the mask even where it is dark
+    scoords, smask = trim_mask(sim, sat_split=True)
+    check("sat-split masks the low-saturation material", smask[(0, 6)] and not smask[(6, 6)])
+    # swap_small flips the zone assignment on the small surface only: the rim pixel (mask
+    # under sat-split) must carry the BODY tint's shading, computed independently here, and the
+    # same override on the card surface must leave the plain assignment (rim = trim_tint).
+    swapped = shield_two_tone(sim, (0.06, 0.72, 1.02),
+                              {"trim_tint": (0.58, 0.6, 1.1), "split": "sat", "swap_small": True}, "small")
+    _, rs0, rv0 = colorsys.rgb_to_hsv(*[c / 255 for c in sim.getpixel((0, 6))[:3]])
+    check("swap_small puts the body tint on the mask zone",
+          swapped.getpixel((0, 6))[:3] == shade_shield(0.06, 0.72, 1.02, rs0, rv0))
+    carded = shield_two_tone(sim, (0.06, 0.72, 1.02),
+                             {"trim_tint": (0.58, 0.6, 1.1), "split": "sat", "swap_small": True}, "card")
+    check("swap_small leaves the card surface unswapped",
+          carded.getpixel((0, 6))[:3] == shade_shield(0.58, 0.6, 1.1, rs0, rv0))
+    # two-colour mode: body and mask each take a full tint, and the two zones come out distinct
+    tt2 = shield_two_tone(sim, (0.06, 0.72, 1.02), {"trim_tint": (0.58, 0.55, 1.10)})
+    b2, r2 = tt2.getpixel((6, 6))[:3], tt2.getpixel((0, 6))[:3]
+    check("trim_tint tints the mask zone", r2 != sim.getpixel((0, 6))[:3])
+    check("trim_tint zones are distinct tones", sum(abs(a - b) for a, b in zip(b2, r2)) > 60)
+    # invert: the tint lands ON the fittings and the plate keeps its vanilla paint
+    inv = shield_two_tone(sim, (0.45, 0.34, 1.10), {"invert": True, "cover": 0.40})
+    check("invert keeps the plate vanilla", inv.getpixel((6, 6))[:3] == sim.getpixel((6, 6))[:3])
+    check("invert tints the bright fittings", inv.tobytes() != sim.tobytes())
+    # cover: the forced brightness split really claims about that fraction of the sprite
+    ccoords, cmask = trim_mask(sim, cover=0.30)
+    frac = sum(cmask.values()) / len(cmask)
+    check("cover-forced mask lands near its target", 0.15 <= frac <= 0.55)
+    # gold trim must actually read WARM, and must beat silver on a near-neutral identity, which
+    # is the whole reason it exists (Bastion was silver-on-platinum, i.e. one colour)
+    g_r, g_g, g_b = trim_tone(0.10, 0.07, 0.85, "gold")
+    s_r, s_g, s_b = trim_tone(0.10, 0.07, 0.85)
+    check("gold trim is warm", g_r > g_b and (g_r - g_b) > 0.15)
+    check("gold trim separates from the neutral default", abs(g_r - s_r) + abs(g_b - s_b) > 0.2)
+    # routing: shields take the shield engine, weapons keep bright-v2, everything else legacy
+    check("shield routes to shield-bright", engine_for(128) == "shield-bright")
+    check("weapon routes to bright-v2", engine_for(19) == "bright-v2")
+    # PALETTE SEPARATION. Under whole-glyph coverage the tint is the item's entire colour signal,
+    # so two close tints are one shield in two names. The pre-LW-190 palette had seven such pairs
+    # (140 vs 142 were 0.02 hue and 0.02 saturation apart). This is the tripwire that keeps a
+    # later tint tweak from quietly recreating one.
+    SHIELD_MIN_HUE_GAP, SHIELD_MIN_SAT_GAP = 0.05, 0.25
+    shields = sorted(i for i, c in _CATEGORY.items() if c in WHOLE_BRIGHT_CATS and i in ICON_TINTS)
+
+    def tint_is_whole_signal(i):
+        # The tripwire guards shields whose tint IS their entire colour signal. A shield on the
+        # invert or vanilla-trim override keeps a large slab of its own vanilla art on screen
+        # (owner round three anchored four shields to their vanilla look on purpose), so its
+        # distinguishability rides the art, and its measured-from-vanilla tint may legitimately
+        # sit near a sibling's.
+        ov = SHIELD_OVERRIDES.get(i, {})
+        # trim_tint shields are exempt too: they wear TWO identity colours, so the pair is the
+        # signal and the body tint alone no longer decides distinguishability.
+        return not (ov.get("invert") or ov.get("trim") == "vanilla" or "trim_tint" in ov)
+
+    guarded = [i for i in shields if tint_is_whole_signal(i)]
+    collisions = [(a, b) for n, a in enumerate(guarded) for b in guarded[n + 1:]
+                  if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < SHIELD_MIN_HUE_GAP
+                  and abs(ICON_TINTS[a][1] - ICON_TINTS[b][1]) < SHIELD_MIN_SAT_GAP]
+    check(f"shield tints stay distinguishable (collisions: {collisions})", not collisions)
+    check("shield palette covers all 16", len(shields) == 16)
+    check("the tripwire still guards most of the set", len(guarded) >= 10)
 
     if failures:
         print("SELFTEST FAILURES:", "; ".join(failures))

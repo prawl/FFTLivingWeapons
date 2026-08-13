@@ -13,14 +13,24 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-190] Recolor the sixteen shield icons so each shield reads as its own colour instead of a flat paint dip** (opened 2026-08-13) [BUILDING]
+- **[LW-190] Recolor the sixteen shield icons so each shield reads as its own colour instead of a flat paint dip** (opened 2026-08-13) [AWAITING-LIVE]
+  - Owner signed all sixteen off 2026-08-13 ("Ship it") after twelve per-shield review
+    rounds, including two ten-variant picker pages: Aegis Prime settled on sapphire with
+    gold edges (variant C, "hands down my favorite") and Wardstone on the thin white
+    geometric rim over rich purple (variant A). The bake landed the same day and its
+    intermediate images matched the approved previews pixel for pixel, 32 of 32; the 121
+    weapon icons were re-proven byte identical against the committed engine, 242 of 242;
+    suite 3101 green; analyze exit 0. Remaining: the in-game look on the next deploy.
   - Done means: shields stop being the family the icon pass skipped. Every shield ships two
     sprites (the 100x100 equip card art and the 48x48 list icon) and both still get the OLD flat
     stamp: one hue and one saturation painted over every pixel, keeping only each pixel's
     brightness. That is the same paint bucket look the owner rejected for weapons, so shields are
-    now the odd family out on an equip screen that shows both. The replacement keeps full
-    coverage but shades it the approved BRIGHT way (cool saturated shadows, gently warm
-    highlights, gamma lifted midtones, vanilla white gleams kept white). The weapons CARD rule
+    now the odd family out on an equip screen that shows both. The replacement settled, over the
+    review rounds, into a per-shield TWO-TONE: the identity colour on the body under the
+    approved BRIGHT shading (cool saturated shadows, gently warm highlights, gamma lifted
+    midtones, gleams kept), and a second tone on the metal fittings, with per-shield modes
+    the owner picked by name (silver, gold, keep-vanilla, a second full tint, the inverted
+    tint-on-fittings, and a geometric white ring; no shield ships as one flat colour). The weapons CARD rule
     was tried first and rejected on evidence, which is the finding worth keeping: a shield is one
     convex plate, so colour clustering splits on where the LIGHT falls rather than where the
     MATERIALS change, and it produced half painted shields (id130, id142) and camouflage speckle
