@@ -157,9 +157,12 @@ cursor over the barred tile — is a FEATURE, not a cost. See item 10.)
       ranges, and the other three orthogonal tiles are untouched.
 - [ ] V2. An enemy standing on the behind tile walks away normally and attacks normally
       while adjacent; its vacated tile then blocks.
-- [ ] V3. Wielder against the map edge with its back to the edge: no plant at all, no
-      phantom blocks anywhere else on the map; the same wielder facing AWAY from the edge
-      blocks its true behind tile normally.
+- [ ] V3. Two waits from the same spot on the map's edge row, one per orientation. First:
+      wait FACING INTO the map, so the wielder's back is to the void — nothing plants (the
+      stance simply does not activate; the file-only Debug refusal "the wielder's back is
+      to the map edge" is the expected receipt) and no phantom block appears anywhere else
+      on the map. Then turn around and wait FACING THE VOID, so the wielder's back points
+      into the map — the real tile behind him bars normally.
 - [ ] V4. A corpse on the behind tile is untouched; a revive onto it still works.
 - [ ] V5. Release on the wielder's next turn; the tile restores exactly; a battle restart
       (and a battle END) shows pristine terrain — no leaked obstacle bit onto the next fight
