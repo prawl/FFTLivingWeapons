@@ -217,6 +217,16 @@ the technical detail lives in the indented lines under it.
   needs its own probe. The two comms fixes from the original capture (the silent plant
   refusal and the "full wait" card wording) stay owed only if this redesign walls and the
   shipped full-wait Bulwark survives; until the arc runs, the shipped Bulwark stays as-is.
+  SHOVE ACCEPTANCE RUN 2026-08-13, owner live, three of the four unknowns settled GREEN in
+  one battle (the fourth still owed): the victim was a Red Panther, so the second sprite
+  class question answered itself, both pages 0x37 and 0x38 played as a plausible flinch on
+  a monster class ("works like a charm"); the direction map question resolved as MOOT, the
+  flinch is too brief to read a direction at game speed so page choice is not load bearing;
+  the freeze tail self-heals exactly as documented, the pose locked after each shove and
+  the victim's own turn-open re-stamp fixed it, the panther then took a normal turn with NO
+  rubberbanding, meaning the engine fully adopted the shoved tile as the real position.
+  Still owed before the build arc: one shove onto a height-changing tile (the stale-Z float
+  transient read) and the tile-cast detection probe, which remains the one wall risk.
 
 - [LW-180] 2026-08-12: The kill-credit census warned twice in one battle that a fielded enemy
   vanished from the battle band ("its kills may go uncredited"), both times in an undead
