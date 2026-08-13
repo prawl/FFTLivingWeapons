@@ -10,6 +10,17 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-189] SHIPPED 4872ed5 2026-08-13: every weapon icon got per-surface recoloring instead of
+  the one-hue stamp, and the owner gave the live verdict the same week it deployed: the weapons
+  look ACCEPTABLE in game, which closes this row's remaining half. "Acceptable" is also the
+  reason this row's successor exists: with the LW-190 shields setting a higher bar, the owner
+  judged the first-pass weapon tints hasty and opened the full-catalog re-pass program (LW-198
+  through LW-226, one row per equipment section), so the polish work continues there rather
+  than by reopening this row. What this row delivered stands: the two-zone card rule, the
+  BRIGHT hue-ramp smalls, the per item overrides, the owner-approved 121-weapon gallery, the
+  242 of 242 pixel-identity production proof, and the preview pipeline that every later pass
+  reuses.
+
 - [LW-197] SHIPPED dbb7f1f 2026-08-13: three recolored shields had been reviewed under names
   that do not exist in the game, and the fix was corrections plus one owner call, both now
   done. The icon tint table had carried the labels "Ronin Wall", "Conduit" and "Bastion" for

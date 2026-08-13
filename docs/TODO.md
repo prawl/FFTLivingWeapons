@@ -99,41 +99,83 @@ the technical detail lives in the indented lines under it.
     robe card reads Wards against Silence, and no early-battle enemy floats without a vanilla
     Float source equipped.
 
-- **[LW-189] Recolor every weapon icon with per-surface accuracy instead of the one-hue stamp** (opened 2026-08-13) [AWAITING-LIVE]
-  - Owner signed the full 121-weapon BRIGHT v2 gallery off 2026-08-13 ("Ship it") with the
-    nine amber art-direction notes accepted as-is (three authored-tint oddities and six
-    card-versus-icon tension calls, each one line away from a later tweak). The production
-    bake reproduces the approved previews exactly: tools/recolor_icons.py now carries the
-    frozen engine (weapons only; shields and armor keep the legacy whole-tint look until
-    their own review), its selftest guards the ramp math, and a pixel-identity check proved
-    the baked intermediate images match the approved gallery images for every weapon on both
-    surfaces before the tex files landed. Remaining: the in-game look on the next deploy.
-  - Done means: weapon sprites stop looking dipped in a single paint bucket. Every item ships
-    two separate vanilla sprites (the 100x100 equip-card weapon image and the 48x48 list icon,
-    which is its own simplified art, not a downscale), and the owner picked the treatment per
-    surface from the proof-of-concept gallery 2026-08-13: the card image gets the TWO-ZONE
-    recolor (color clustering finds the blade, the identity tint goes on the metal, hilt and
-    trim keep their vanilla colors, per-item override available), and the list icon gets the
-    HUE-SHIFT recolor (re-aim the color while keeping each pixel's own light and shade, since
-    an invented material split reads muddy at that size). Shading rule settled by the owner's
-    gun A/B rounds 2026-08-13, "BRIGHT AF": the colored zones shade on a hue-graded ramp
-    (shadows lean cool blue and gain saturation, highlights lean gently warm and stay vivid,
-    vanilla white gleams stay white) with a gamma-lifted midtone and a hot base saturation;
-    plain saturation boosts alone were rejected. Five katana or ninja-blade smalls (ids 13,
-    15, 16, 18, 24) carry a per-item override to the card-style two-zone treatment after the
-    owner's first review round. The in-battle weapon graphic is a
-    third, welded asset no recolor reaches (the tabled WEAPON_VISUALS_SCOPING research).
-    (Tech: preview generation runs from the scratchpad against the vanilla Pac icons using the
-    shipped ICON_TINTS plus items.json tints and honoring iconSource; the production step is
-    upgrading tools/recolor_icons.py to the same two rules and regenerating the tex files only
-    after sign-off.)
-  - Verify: every tinted weapon's four-way (card vanilla, card new, icon vanilla, icon new)
-    passes a visual review against the vanilla art with outliers fixed by per-item override,
-    then the owner spot-checks the full before/after gallery; only after that sign-off does
-    the regenerated tex set land in the mod tree and ride a deploy for the in-game look.
-    Owner only, as every live flip is.
+- **[LW-198] Give the eleven dagger icons the shields-grade re-pass, the first section of the full-catalog TLC program** (opened 2026-08-13) [BUILDING]
+  - This row leads the LW-198 through LW-226 re-pass program, owner-directed 2026-08-13: after
+    the shields pass (LW-190) set the quality bar, the owner judged the rest of the catalog
+    against it and called the first-pass recolors hasty ("sloppy"), so every equipment section
+    gets its own row and the same treatment that made the shields land: per item owner review
+    rounds judged as pictures, rule fixes over pixel fixes, variant picker pages when a call is
+    contested, engines and overrides chosen per family on evidence, and the identity proof
+    (preview equals production, bake matched pixel for pixel) at the end. Later rows cite this
+    one instead of repeating it; the assembly line is docs/DEV_TEST_RECIPES.md ("Icon recolor
+    process") plus the shield engine modes now in tools/recolor_icons.py.
+  - Done means: the eleven Knife-category icons stop looking like a haste job: each dagger's
+    identity tint and treatment is revisited with the owner shield by shield style, on both
+    surfaces (card art and list icon), and the owner signs the family gallery off. Weapons
+    currently ride the LW-189 bright-v2 engine; whether a dagger stays on it, moves to a
+    two-tone, or gets a per item override is decided by looking, not assumed.
+  - Verify: the recolor selftest stays green, the untouched families are proven byte identical
+    against the committed engine (the 242 of 242 pattern, minus whatever this row changes),
+    the bake matches the approved previews pixel for pixel, and the owner confirms the in-game
+    look after a deploy. Owner only, as every live flip is.
 
 ## Backlog
+
+- [LW-199] 2026-08-13: Swords re-pass: the 15 sword icons get the shields-grade per item review; see LW-198 for the program's process and reasoning.
+
+- [LW-200] 2026-08-13: Knight Swords re-pass: the 7 knight sword icons get the shields-grade per item review; process per LW-198.
+
+- [LW-201] 2026-08-13: Bows re-pass: the 9 bow icons get the shields-grade per item review; process per LW-198.
+
+- [LW-202] 2026-08-13: Crossbows re-pass: the 6 crossbow icons get the shields-grade per item review; process per LW-198.
+
+- [LW-203] 2026-08-13: Guns re-pass: the 6 gun icons get the shields-grade per item review; process per LW-198.
+
+- [LW-204] 2026-08-13: Katanas re-pass: the 11 katana icons get the shields-grade per item review, including the five smalls that carry the card-style override today; process per LW-198.
+
+- [LW-205] 2026-08-13: Ninja Blades re-pass: the 9 ninja blade icons get the shields-grade per item review; process per LW-198.
+
+- [LW-206] 2026-08-13: Poles re-pass: the 9 pole icons get the shields-grade per item review; process per LW-198.
+
+- [LW-207] 2026-08-13: Polearms re-pass: the 8 polearm icons get the shields-grade per item review; process per LW-198.
+
+- [LW-208] 2026-08-13: Rods re-pass: the 8 rod icons get the shields-grade per item review; process per LW-198.
+
+- [LW-209] 2026-08-13: Staves re-pass: the 8 staff icons get the shields-grade per item review; process per LW-198.
+
+- [LW-210] 2026-08-13: Books re-pass: the 4 book icons get the shields-grade per item review (no-blade art, largest-cluster rule today); process per LW-198.
+
+- [LW-211] 2026-08-13: Instruments re-pass: the 3 instrument icons get the shields-grade per item review (no-blade art); process per LW-198.
+
+- [LW-212] 2026-08-13: Bags re-pass: the 4 bag icons get the shields-grade per item review (no-blade art); process per LW-198.
+
+- [LW-213] 2026-08-13: Cloths re-pass: the 3 cloth icons get the shields-grade per item review (no-blade art); process per LW-198.
+
+- [LW-214] 2026-08-13: Throwing weapons and Bombs first pass: the 6 shuriken and bomb icons were never tinted at all (they sit outside the 121-weapon set), so this is a first coloring, not a re-pass; process per LW-198.
+
+- [LW-215] 2026-08-13: Helmets re-pass: the 13 helmet icons still wear the legacy one-hue stamp (never reviewed under the new rules); process per LW-198.
+
+- [LW-216] 2026-08-13: Hats re-pass: the 12 hat icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-217] 2026-08-13: Hair Adornments re-pass: the 3 hair adornment icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-218] 2026-08-13: Heavy Armor re-pass: the 14 armor icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-219] 2026-08-13: Clothing re-pass: the 14 clothing icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-220] 2026-08-13: Robes re-pass: the 8 robe icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-221] 2026-08-13: Shoes re-pass: the 7 shoe icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-222] 2026-08-13: Armguards re-pass: the 4 armguard icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-223] 2026-08-13: Rings re-pass: the 6 ring icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-224] 2026-08-13: Armlets re-pass: the 5 armlet icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-225] 2026-08-13: Cloaks re-pass: the 7 cloak icons still wear the legacy one-hue stamp; process per LW-198.
+
+- [LW-226] 2026-08-13: Perfumes re-pass: the 4 perfume icons still wear the legacy one-hue stamp; process per LW-198.
 
 - [LW-196] 2026-08-13: The item icon shown when picking up a Move-Find Treasure appears NOT to
   carry the mod's recolor; it looks like the vanilla icon even for items whose menu icons are
