@@ -126,7 +126,15 @@ the technical detail lives in the indented lines under it.
     robe card reads Wards against Silence, and no early-battle enemy floats without a vanilla
     Float source equipped.
 
-- **[LW-189] Recolor every weapon icon with per-surface accuracy instead of the one-hue stamp** (opened 2026-08-13) [BUILDING]
+- **[LW-189] Recolor every weapon icon with per-surface accuracy instead of the one-hue stamp** (opened 2026-08-13) [AWAITING-LIVE]
+  - Owner signed the full 121-weapon BRIGHT v2 gallery off 2026-08-13 ("Ship it") with the
+    nine amber art-direction notes accepted as-is (three authored-tint oddities and six
+    card-versus-icon tension calls, each one line away from a later tweak). The production
+    bake reproduces the approved previews exactly: tools/recolor_icons.py now carries the
+    frozen engine (weapons only; shields and armor keep the legacy whole-tint look until
+    their own review), its selftest guards the ramp math, and a pixel-identity check proved
+    the baked intermediate images match the approved gallery images for every weapon on both
+    surfaces before the tex files landed. Remaining: the in-game look on the next deploy.
   - Done means: weapon sprites stop looking dipped in a single paint bucket. Every item ships
     two separate vanilla sprites (the 100x100 equip-card weapon image and the 48x48 list icon,
     which is its own simplified art, not a downscale), and the owner picked the treatment per
