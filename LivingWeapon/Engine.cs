@@ -260,8 +260,8 @@ internal sealed class Engine
         _numeralSpike = new NumeralSpike(live, modDir);   // number-popup cold-call instrument; modDir carries the numeral_request.txt lane
 #endif
         // LW-184: built last, after every subsystem above exists -- BuildPhases's rows close over
-        // them by field reference, so construction order here never matters, only that it runs after.
-        _phases = BuildPhases();
+        // them through this engine, so construction order here never matters, only that it runs after.
+        _phases = BuildPhases(this);
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
         ModLogger.Event(LogVerb.Startup, $"Living Weapons is tracking {meta.Count} weapon types.");
@@ -270,9 +270,14 @@ internal sealed class Engine
     /// <summary>LW-184: the declarative fan-out table Tick()'s post-edge tail steps through, in
     /// order, every tick -- same gates, same cadence, same call order as the hand-rolled kit-lane
     /// trio / treasure / throttled gunslinger / <c>if (!nowIn) { ...; return; }</c> branch / the
-    /// in-battle tail it replaces. Built once, last in the ctor, so every row can close over the
-    /// subsystem fields directly. Pinned by EngineTests.Phases_match_the_hand_wired_tick_order.</summary>
-    private TickPhase[] BuildPhases()
+    /// in-battle tail it replaces. Built once at the end of the ctor; every row reaches the
+    /// subsystems through <paramref name="e"/>, dereferenced lazily at Run time. STATIC with a
+    /// nullable engine (LW-186):
+    /// BuildPhases(null) hands the table to shape-only inspection (EngineTickTableTests reads
+    /// Name/Gate/After as pure data, no Engine constructed, no memory touched); every row's Run
+    /// closure dereferences e lazily, so with null the shape is the real production table but Run
+    /// must never be invoked. Pinned by EngineTests.Phases_match_the_hand_wired_tick_order.</summary>
+    internal static TickPhase[] BuildPhases(Engine? e)
     {
         var phases = new List<TickPhase>
         {
@@ -280,85 +285,85 @@ internal sealed class Engine
             // table live. Gated on the kit-lane guard (LW-112), not the main guard, so another mod
             // rewriting the table disables only this trio, never the whole engine.
             new TickPhase("kit-barrage", TickGates.KitLane, 1, false, Array.Empty<string>(),
-                _ => _barrage.Tick()),
+                _ => e!._barrage.Tick()),
             // Pre-gate like Barrage: the learn screen / menus read the JobCommand table live too.
             new TickPhase("kit-shadowblade", TickGates.KitLane, 1, false, Array.Empty<string>(),
-                _ => _shadowBlade.Tick()),
+                _ => e!._shadowBlade.Tick()),
             // FindEmptySlot claims the FIRST empty JobCommand slot, so tick order IS slot order --
             // Provoke must run after Barrage and Shadow Blade (see BarrageShadowBladeCollisionTests).
             new TickPhase("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" },
-                _ => _provoke.Tick()),
+                _ => e!._provoke.Tick()),
 
             // Gates on "a battle map on screen" (slot9+mode), not strict InLiveBattle, so it stays
             // stable through formation/enemy turns/casts; runs pre-gate so it fires where nowIn might not.
             new TickPhase("treasure", TickGates.Always, 1, false, Array.Empty<string>(),
-                s => _treasure.Tick(s.Now, s.BattleDisplayed)),
+                s => e!._treasure.Tick(s.Now, s.BattleDisplayed)),
             // Pre-gate (Barrage's precedent); re-asserts a snapshotted twin in battle but never
             // snapshots/restores there. Live-verified 2026-07-04: the twin fires twice in battle
             // with this hold. Old name: GunSlingerThrottleEveryNTicks (30, ~1s @ 33ms).
             new TickPhase("gunslinger", TickGates.Always, 30, false, Array.Empty<string>(),
-                s => _gunSlinger.PrepRoster(inBattle: s.NowIn)),
+                s => e!._gunSlinger.PrepRoster(inBattle: s.NowIn)),
             // DEV-only convenience grant (LW-86); Grant no-ops in Release. Old name:
             // RingThrottleEveryNTicks (30, ~1s @ 33ms).
             new TickPhase("scholar-ring", TickGates.OutOfBattle, 30, false, Array.Empty<string>(),
-                _ => ScholarRing.Grant(_live)),
+                _ => ScholarRing.Grant(e!._live)),
             // Out of battle (slot9 cleared): keep the equip card painted.
             new TickPhase("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(),
-                _ => _display.Tick(false)),
+                _ => e!._display.Tick(false)),
 
             // Every ~33ms tick so a fast-forward death's brief hp==0 window isn't missed.
             new TickPhase("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                s => s.Changed = _tracker.Poll(s.OnField)),
+                s => s.Changed = e!._tracker.Poll(s.OnField)),
             // Edge-detects each unit's turns for the timed signatures.
             new TickPhase("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                _ => _turns.Poll()),
+                _ => e!._turns.Poll()),
             new TickPhase("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" },
                 s =>
                 {
                     var ctx = new TickContext(s.Now, s.OnField, s.InLive, s.BattleDisplayed);
-                    foreach (var sig in _fieldSignatures) sig.Tick(in ctx);
+                    foreach (var sig in e!._fieldSignatures) sig.Tick(in ctx);
                 }),
             // Not an ISignature (no ResetBattle-order dependency): retries a corpse whose despawn
             // transiently refused and pins its crystal counter meanwhile (mirrors Sanctuary).
             new TickPhase("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                _ => _livingPoach.Tick()),
+                _ => e!._livingPoach.Tick()),
             // Growth holds stats; ~100ms is plenty. Old name: _tick / GrowthEveryNTicks (3 ticks).
             new TickPhase("growth", TickGates.InBattle, 3, true, Array.Empty<string>(),
-                _ => _growth.Apply()),
+                _ => e!._growth.Apply()),
             // NOT onField-gated: the facing prompt this queues into can render during mode-1 cast
             // animations too. Delivery itself needs no Tick (fires from the game's own hook).
             new TickPhase("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" },
-                s => _toast.Tick(s.Changed)),
+                s => e!._toast.Tick(s.Changed)),
             // LW-31 stage 2: the Attack-menu desc dossier painter.
             new TickPhase("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                _ => _attackCard.Tick()),
+                _ => e!._attackCard.Tick()),
         };
 #if LWDEV
         // Dev-only passive/cold-call research instruments, in-battle only (see each Spike class's
         // own doc for its F-key / request-file lane); compiled out of Release entirely.
         phases.Add(new TickPhase("turn-owner-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            _ => _turnOwnerSpike.Tick()));
+            _ => e!._turnOwnerSpike.Tick()));
         phases.Add(new TickPhase("status-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            s => _statusSpike.Tick(s.InLive)));
+            s => e!._statusSpike.Tick(s.InLive)));
         phases.Add(new TickPhase("body-double-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            s => _bodyDoubleSpike.Tick(s.InLive)));
+            s => e!._bodyDoubleSpike.Tick(s.InLive)));
         phases.Add(new TickPhase("provoke-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            s => _provokeSpike.Tick(s.InLive)));
+            s => e!._provokeSpike.Tick(s.InLive)));
         phases.Add(new TickPhase("numeral-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            s => _numeralSpike.Tick(s.InLive)));
+            s => e!._numeralSpike.Tick(s.InLive)));
 #endif
         // Reads Changed from kill-poll (After). Mirrors kills.json's on-change save timing (Reliquary).
         phases.Add(new TickPhase("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" },
-            s => { if (s.Changed) { _tally.Save(); _legends.SaveIfDirty(); } }));
+            s => { if (s.Changed) { e!._tally.Save(); e._legends.SaveIfDirty(); } }));
         // slot9 is still the battle sentinel, but once off-field a beat (battleMode 0 = world-map
         // party menu / post-battle), paint the card instead of just following counts.
         phases.Add(new TickPhase("paint", TickGates.InBattle, 1, false, Array.Empty<string>(),
             s =>
             {
-                if (BattleState.ShouldPaintCard(s.BattleStatus, s.OnField, (s.Now - _lastField).TotalSeconds, FieldSettleSeconds))
-                    _display.Tick(true);
+                if (BattleState.ShouldPaintCard(s.BattleStatus, s.OnField, (s.Now - e!._lastField).TotalSeconds, FieldSettleSeconds))
+                    e._display.Tick(true);
                 else
-                    _display.PaintCountsIfChanged();   // LW-91 stage 2: a mid-battle kill still follows onto the equip card
+                    e._display.PaintCountsIfChanged();   // LW-91 stage 2: a mid-battle kill still follows onto the equip card
             }));
 
         return phases.ToArray();

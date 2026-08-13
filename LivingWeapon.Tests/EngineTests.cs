@@ -189,8 +189,11 @@ public class EngineTests
     }
 
     // --- LW-184: Engine.Tick's fan-out is now a declarative TickPhase[] table (TickPhase.cs).
-    // These two pin the table itself against the hand-wired sequence it replaced, so a reorder or
-    // a dropped/miswired row breaks a test, not just a comment. ---
+    // This pins the ENGINE's table against the hand-wired sequence it replaced, so a reorder or
+    // a dropped/miswired row breaks a test, not just a comment. The table's pure data invariants
+    // (After ordering/resolution, the non-battle allowlist) live in EngineTickTableTests (LW-186),
+    // which reads Engine.BuildPhases(null) with no Engine constructed; the ctor wires the same
+    // rows, so those invariants hold for this instance table too. ---
 
     [Fact]
     public void Phases_match_the_hand_wired_tick_order()
@@ -201,35 +204,38 @@ public class EngineTests
             using var temp = TempDirs.Create("lw_engine_phases_");
             var engine = new Engine(NestedModDir(temp), mem: HealthyMemory(), notice: (_, __) => { });
 
-            var expected = new List<(string Name, Func<TickPhaseState, bool> Gate, int EveryNTicks, bool FiresOnFirstPass)>
+            // After rides the per-row pin since LW-186: the data-invariant tests read the static
+            // BuildPhases(null) table, so pinning After VALUES here on the instance is what keeps
+            // the two views provably the same shape (the belt the deleted After walk left behind).
+            var expected = new List<(string Name, Func<TickPhaseState, bool> Gate, int EveryNTicks, bool FiresOnFirstPass, string[] After)>
             {
-                ("kit-barrage", TickGates.KitLane, 1, false),
-                ("kit-shadowblade", TickGates.KitLane, 1, false),
-                ("kit-provoke", TickGates.KitLane, 1, false),
-                ("treasure", TickGates.Always, 1, false),
-                ("gunslinger", TickGates.Always, 30, false),
-                ("scholar-ring", TickGates.OutOfBattle, 30, false),
-                ("display-out", TickGates.OutOfBattle, 1, false),
-                ("kill-poll", TickGates.InBattle, 1, false),
-                ("turn-poll", TickGates.InBattle, 1, false),
-                ("field-signatures", TickGates.InBattle, 1, false),
-                ("living-poach", TickGates.InBattle, 1, false),
-                ("growth", TickGates.InBattle, 3, true),
-                ("toast", TickGates.InBattle, 1, false),
-                ("attack-card", TickGates.InBattle, 1, false),
+                ("kit-barrage", TickGates.KitLane, 1, false, Array.Empty<string>()),
+                ("kit-shadowblade", TickGates.KitLane, 1, false, Array.Empty<string>()),
+                ("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" }),
+                ("treasure", TickGates.Always, 1, false, Array.Empty<string>()),
+                ("gunslinger", TickGates.Always, 30, false, Array.Empty<string>()),
+                ("scholar-ring", TickGates.OutOfBattle, 30, false, Array.Empty<string>()),
+                ("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>()),
+                ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }),
+                ("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("growth", TickGates.InBattle, 3, true, Array.Empty<string>()),
+                ("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" }),
+                ("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>()),
             };
 #if LWDEV
-            expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool)[]
+            expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool, string[])[]
             {
-                ("turn-owner-spike", TickGates.InBattle, 1, false),
-                ("status-spike", TickGates.InBattle, 1, false),
-                ("body-double-spike", TickGates.InBattle, 1, false),
-                ("provoke-spike", TickGates.InBattle, 1, false),
-                ("numeral-spike", TickGates.InBattle, 1, false),
+                ("turn-owner-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("status-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("body-double-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("provoke-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("numeral-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
             });
 #endif
-            expected.Add(("save-on-change", TickGates.InBattle, 1, false));
-            expected.Add(("paint", TickGates.InBattle, 1, false));
+            expected.Add(("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" }));
+            expected.Add(("paint", TickGates.InBattle, 1, false, Array.Empty<string>()));
 
             Assert.Equal(expected.Count, engine.Phases.Count);
             for (int i = 0; i < expected.Count; i++)
@@ -239,38 +245,14 @@ public class EngineTests
                 Assert.Same(expected[i].Gate, row.Gate);
                 Assert.Equal(expected[i].EveryNTicks, row.EveryNTicks);
                 Assert.Equal(expected[i].FiresOnFirstPass, row.FiresOnFirstPass);
+                Assert.Equal(expected[i].After, row.After);
             }
         }
         finally { ModLogger.UseNullLogger(); }
     }
 
-    [Fact]
-    public void Phase_after_annotations_only_name_earlier_rows()
-    {
-        ModLogger.UseNullLogger();
-        try
-        {
-            using var temp = TempDirs.Create("lw_engine_phases_after_");
-            var engine = new Engine(NestedModDir(temp), mem: HealthyMemory(), notice: (_, __) => { });
-
-            // Machine-checks every row's "after" ordering-reason annotations: each cited name must
-            // belong to a row that already ran (strictly earlier in the table), so the comments
-            // documenting a data-flow dependency (e.g. toast/save-on-change reading Changed from
-            // kill-poll) can never silently drift out of sync with the actual row order.
-            var seen = new HashSet<string>();
-            foreach (var phase in engine.Phases)
-            {
-                foreach (var reason in phase.After)
-                    Assert.True(seen.Contains(reason),
-                        $"'{phase.Name}' cites '{reason}' in After, but that row has not run yet.");
-                seen.Add(phase.Name);
-            }
-        }
-        finally { ModLogger.UseNullLogger(); }
-    }
-
-    // LW-184 follow-up: the two tests above pin the phase TABLE's shape against the hand-wired
-    // order it replaced, but neither one ever calls Tick() -- a row wired to the wrong lambda or
+    // LW-184 follow-up: the table pins (above, and EngineTickTableTests' data checks) inspect
+    // the phase TABLE's shape but never call Tick() -- a row wired to the wrong lambda or
     // the wrong gate (e.g. a copy-paste that left kill-poll gated on OutOfBattle) would sail
     // through both untouched. This one drives the real Tick() through both regimes and checks
     // which rows actually ran, by memory address, not by table introspection.
