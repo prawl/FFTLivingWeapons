@@ -107,23 +107,30 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
-- [LW-181] 2026-08-12: Redesign Bulwark: the owner regression-tested it, bounced off the
-  full-wait trigger (moved first, got the silent refusal), and wants the back-tile denial
-  rethought as persistent rather than wait-triggered, active only during enemy turns, with
-  friendlies free to stand or pass behind the wielder. The proven lane fuses both asks: the
-  terrain veto bit is side-blind, so "allies may pass" can only mean toggling the bit OFF
-  during player-controlled turns and ON during AI turns (turn ownership reads exist; the
-  write lane and restore book are shipped code). New load-bearing premise needing its own
-  live beat before any build: a veto bit flipped at the enemy's turn-open edge must be
-  honored by that unit's pathing that same turn (the V6 observation, an AI unit pathing
-  around a barred tile, is the static half of that premise). Design questions riding it:
-  the move-range preview will show enemies a path their turn refuses (the bit is off on
-  player turns), the plant must follow the wielder on position or facing change, and an
-  always-on denial may need a price where the full wait used to be the price. Two comms
-  fixes ride regardless of the redesign: the moved-or-acted plant refusal is currently
-  SILENT (one Debug line would have saved this session's confusion), and the card's "full
-  wait" wording does not land as "no moving either". Until this arc runs, the shipped
-  full-wait Bulwark stays as-is.
+- [LW-181] 2026-08-12: Redesign Bulwark as "Upheaval" (pivoted 2026-08-13, supersedes the
+  earlier enemy-turns-only toggle sketch): instead of a wait stance that quietly bars the
+  tile behind the knight, the player aims Bulwark at the ground like Provoke's sibling,
+  anyone standing in the zone is visibly thrown clear, and the vacated ground then refuses
+  entry. The wall stays always-on and side-blind (vanilla tree semantics), so the game's
+  own red no-entry cursor and move previews keep telling the truth and the old turn-toggle
+  premise beat is not needed. Built the Living Poach way: recreate the game's knockback
+  from pieces already proven one by one (flinch-with-displacement animation page plus the
+  Proven teleport triple-write), delivered through the granted-command lane (the Provoke
+  hijack recipe), whose donor resolution also supplies the flash and sound poach had to
+  skip. Owner-directed due diligence before any build: one last shove probe, the
+  acceptance run of knockback_probe.py shove, judged poach-style for convincingness, and
+  it must settle four unknowns: which flinch page (0x37/0x38) maps to which push
+  direction, whether those page ids transfer to a second sprite class (the anim catalog is
+  time mage male only, LW-114), whether the post-flinch freeze needs an idle re-request,
+  and how the stale-Z float transient reads on a height-changing shove. Stretch probe if
+  the imitation reads cheap: the global differential diff during a real engine move
+  hunting the mover's trigger (the LW-58 one-byte enrollment shape); from rest the mover's
+  block is settled dead across three rounds, in flight the destination rewrite is honored.
+  The other unproven premise is tile-cast detection (how the mod learns which tile the
+  player aimed at; Provoke's mark rides the target unit, an empty tile has none), which
+  needs its own probe. The two comms fixes from the original capture (the silent plant
+  refusal and the "full wait" card wording) stay owed only if this redesign walls and the
+  shipped full-wait Bulwark survives; until the arc runs, the shipped Bulwark stays as-is.
 
 - [LW-180] 2026-08-12: The kill-credit census warned twice in one battle that a fielded enemy
   vanished from the battle band ("its kills may go uncredited"), both times in an undead
