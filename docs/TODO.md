@@ -13,32 +13,40 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-112] Stop blaming a game update when another mod rewrote the same game data** (opened 2026-07-21) [AWAITING-LIVE]
-  - Done means: a player running a custom job mod alongside Living Weapons no longer sees this mod
-    switch itself off with a message blaming a game update that never happened. When the game
-    program itself checks out fine and only the job-command data landmark mismatches, the mod
-    STAYS ON, says the truth (another mod rewrote the same game data, named, with the observed
-    bytes), and switches off only the three weapon-granted commands that write that data, so the
-    two mods stop overwriting each other. The message does NOT suggest load order, although this
-    row once promised that: the LW-77 proven row says load order cannot fix a whole-row writeback
-    conflict, so suggesting it would be false hope; the honest options (live without the three
-    commands, or remove the conflicting mod) are stated instead. (Tech: built 2026-07-28. Two
-    instances of the untouched portable FingerprintGuard core: main guard = PE build key + Ramza
-    roster row, full stand-down; kit-lane guard = the jobcommand-table landmark in
-    LaunchGuard.KitLane.cs, stepped only after main arms, standing down only the
-    Barrage/ShadowBlade/Provoke ticks in Engine. Post-arm an all-zero window counts as a blanked
-    row, not a boot window. LIVE_LEDGER Uncertain row dated 2026-07-28 carries the discriminator
-    claim; adversarial verify passed both non-vacuity breaks.)
-  - Unexplained residue, kept so it is not papered over: the player then merged the other mod's
-    table rows into a third mod's folder and reports both now work, which should NOT clear the
-    memory bytes; suspect the merged copy is silently inert, meaning their custom jobs are likely
-    dead and they have not noticed. Worth one question before advising anyone to copy the
-    workaround.
-  - Verify: the owner runs the two-leg drill in docs/DEV_TEST_RECIPES.md (LW-112 section): a bait
-    leg with no conflicting mod (lane arms, Barrage present, zero boxes), then a leg with a
-    throwaway job mod that really rewrites rec 8 (mod stays armed, one truthful WARN and one calm
-    box, Barrage absent, kills still count). The drill mod recipe and every failure signature are
-    pre-registered there. Owner only, as every AWAITING-LIVE flip is.
+- **[LW-190] Recolor the sixteen shield icons so each shield reads as its own colour instead of a flat paint dip** (opened 2026-08-13) [BUILDING]
+  - Done means: shields stop being the family the icon pass skipped. Every shield ships two
+    sprites (the 100x100 equip card art and the 48x48 list icon) and both still get the OLD flat
+    stamp: one hue and one saturation painted over every pixel, keeping only each pixel's
+    brightness. That is the same paint bucket look the owner rejected for weapons, so shields are
+    now the odd family out on an equip screen that shows both. The replacement keeps full
+    coverage but shades it the approved BRIGHT way (cool saturated shadows, gently warm
+    highlights, gamma lifted midtones, vanilla white gleams kept white). The weapons CARD rule
+    was tried first and rejected on evidence, which is the finding worth keeping: a shield is one
+    convex plate, so colour clustering splits on where the LIGHT falls rather than where the
+    MATERIALS change, and it produced half painted shields (id130, id142) and camouflage speckle
+    (id128, id134, id135, id139). Three defects of plain whole glyph shading were measured and
+    fixed rather than accepted. First, blowout: the weapons value lift clipped up to 29 percent
+    of a bright shield's pixels to flat cream (id133, id134, id142, id143), erasing relief, so a
+    soft shoulder now compresses the top of the range instead of clipping it, bringing every
+    shield back to roughly its vanilla clipped fraction. Second, lost figures: light on dark
+    devices such as id130's lightning bolt were repainted the plate colour, so the gleam preserve
+    that keeps vanilla speculars white is widened for this engine. Third, and the reason the
+    palette moves too: once colour covers the whole sprite the tint IS the item's entire signal,
+    and seven shield pairs sat close enough to become the same object, worst of all Ronin Wall
+    and Bastion at two hundredths of a hue apart. The sixteen identities are respaced around the
+    wheel, and gunmetal and platinum are separated by temperature (cold steel blue versus warm
+    platinum) so both carry real colour instead of both reading grey. (Tech: the new engine and
+    the respaced ICON_TINTS live in tools/recolor_icons.py, routed by category so the shipped 121
+    weapon icons stay byte identical; tools/icon_preview.py imports that engine, so the reviewed
+    gallery is the production output by construction, the same identity guarantee LW-189 closed
+    at 242 of 242.)
+  - Verify: the recolor selftest is green including the new cases (the shoulder never reaches a
+    flat 1.0 and stays monotonic, the widened gleam preserve fires, and a palette separation case
+    that fails if any two shield tints drift back within one twentieth of a hue of each other),
+    the weapon path is proven untouched by a pixel identity pass over the shipped weapon set, and
+    the before and after gallery covers all sixteen shields on both surfaces. Then the owner's
+    sign off on the gallery, which is the gate: only after it does the bake land the tex files and
+    ride a deploy for the in game look. Owner only, as every live flip is.
 
 - **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [AWAITING-LIVE]
   - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
@@ -161,6 +169,113 @@ the technical detail lives in the indented lines under it.
     Owner only, as every live flip is.
 
 ## Backlog
+
+- [LW-196] 2026-08-13: The item icon shown when picking up a Move-Find Treasure appears NOT to
+  carry the mod's recolor; it looks like the vanilla icon even for items whose menu icons are
+  recolored. Owner sighting 2026-08-13 (softly held, "pretty sure"), logged with a concrete
+  suspect already in hand: the vanilla icon tree has 26 icon FAMILIES and the recolor pipeline
+  ships exactly two of them (equip_item, the 100px card art, and equip_item_s, the 48px list
+  icon), so any UI surface drawing from a third family shows vanilla art. The treasure pickup
+  popup is exactly such a surface, and a "treasure" family exists right beside the two we
+  cover (Pac Files 0008 ui/ffto/icon/treasure, 90 files as t_NNN plus t_NNN_l pairs, so about
+  45 ids, which is NOT one per item and means an id mapping question, not just a recolor
+  question). First probe when picked up: pick up one recolored item via Move-Find, screenshot
+  the popup, and match its art against equip_item versus treasure to learn which family that
+  popup reads and how its t-ids map to item ids; then the fix is the settled recolor assembly
+  line pointed at one more family, plus the same check for other uncovered surfaces (shop,
+  battle spoils, Poachers Den) which may each read yet another family.
+
+- [LW-195] 2026-08-13: Equip a weapon in the OFF hand and a shield in the MAIN hand and the
+  battle menu's Attack row reads as bare fists, as if the unit were unarmed. Owner hit it live
+  2026-08-13. First question when picked up, before any fix: is the fists text the GAME's own
+  behaviour for that hand arrangement or this mod's paint? One battle with the mod disabled (or
+  an untracked vanilla weapon in the same arrangement) settles it. If it is ours, the likely
+  lane is that everything in the runtime treats the roster MAIN hand slot as "the weapon":
+  the attack-row painter resolves the acting unit's weapon from that slot, so a shield there
+  reads as no weapon even though a real weapon sits in the off hand. If that read is right, the
+  same blind spot silently breaks more than text: kill credit and every signature also key on
+  the main hand, so an off-hand-weapon build would earn no kills, no growth, and no granted
+  commands, making this a coverage hole for an entire legal equipment arrangement, with the
+  fists text just its visible corner. (Tech: unverified beyond the sighting; the main-hand
+  reads to audit are the RRHand roster reads in Wielder/ActorResolver/Display and the
+  mainHandWeapon field the kobu/credit log lines already print. The flight tape from the
+  sighting battle, if one flushed, shows what the credit lane resolved for that unit.)
+
+- [LW-194] 2026-08-13: A player who does NOT want the twin-weapon signatures has to fight the
+  game to refuse them: opting out of Gun Slinger or Crossfire (say, to keep a shield in the off
+  hand) is a wrestling match instead of a choice. Owner report 2026-08-13, same session as the
+  LW-193 gear-loss report and almost certainly the same lane: the grant logic re-asserts the
+  twin weapon on its tick loop, so whatever the player changes in the equip menu gets stamped
+  back over. Design gap, not just a bug: the signatures have no opt-out surface at all. The fix
+  needs a deliberate refusal rule the re-assert respects, and the obvious candidate is "an off
+  hand the PLAYER filled is never overwritten", which would also shrink LW-193's damage. Rides
+  with LW-193 when picked up; probing one probes the other. (Tech: unverified, logged with the
+  report: check how the twin lane decides the off hand is free, and whether it distinguishes
+  "empty because the player wants it empty or filled with a shield" from "empty because my
+  phantom copy is missing and needs re-stamping".)
+
+- [LW-193] 2026-08-13: Using Crossfire or Gun Slinger permanently deletes whatever the wielder
+  had in their off hand, a shield included; the item is just gone afterwards, not returned to
+  the inventory. Owner hit it live 2026-08-13 during normal play. That makes the two twin-weapon
+  signatures net gear destroyers right now: a player who tries the feature once can lose an
+  expensive shield forever, which is worse than the signature not existing. Until fixed, the
+  README/Nexus page should warn players to unequip the off hand first, and the fix must also
+  answer what happens to the phantom copy on save, on battle end, on crystallize, and on the
+  wielder dying mid battle. (Tech: unverified suspicion only, logged with the report: both
+  signatures ride the twin-weapon lane (LW-171 GunSlinger, data-driven N-weapon), and the
+  proven dual-gun recipe works by writing the SECOND weapon into the roster off-hand slot, so
+  the natural failure shape is the grant overwriting the shield's item id in that slot and the
+  restore half never running or losing the original id. First probe: equip a shield, trigger
+  the grant, and read the roster row's off-hand bytes before, during, and after battle to see
+  whether the shield id is overwritten in place and whether any copy of it survives anywhere;
+  also check whether the game's inventory count for the shield changes, since "permanently
+  removed" may mean the id was overwritten in the one place the game stores it.)
+
+- [LW-192] 2026-08-13: Signature idea from Patrick, "Scholar": the weapon teaches its wielder any
+  spell an enemy casts on them, so getting hit with something new is how you learn it. A book or
+  rod fits the fantasy. The appeal is that it turns being targeted into progress, which no current
+  signature does, and it rewards the player for walking into a caster's range instead of avoiding
+  it. Design questions before any build, none answered yet: does it learn only spells the
+  wielder's CURRENT job could legally know, or bank them for whenever that job is worn; does it
+  fire on a resisted or missed cast; is it capped per battle so a long fight does not hand over a
+  whole spell list; and does it announce itself, since a silent learn is the invisible-feedback
+  failure the signature audit already flagged on Chain Lightning and Font. (Tech: the WRITE half
+  is likely cheap and already proven in tree, since Barrage and Shadow Blade both set the roster
+  learned flag for an ability slot, see HoldLearnedBit in Barrage.cs and ShadowBlade.cs. The
+  unproven half is the READ: learning which ability was just cast AT the wielder. The mod
+  currently infers actions from turn flags and damage events, not from an ability id on an
+  incoming cast, so this needs its own probe to find where the engine names the ability being
+  resolved against a target. Check whether the game already ships a vanilla learn on being hit
+  support ability before inventing a mechanism, since poaching a working one is the pattern that
+  made Living Poach and the granted commands cheap.)
+
+- [LW-191] 2026-08-13: Equipping a living weapon in the middle of a battle can take its granted
+  command AWAY instead of giving it, and the mod then says there is no eligible wielder while that
+  wielder is standing on the field. Seen live 2026-08-13: Patrick stole the Sanguine Sword from
+  Gaffgarion and used Re-equip during the same battle. Shadow Blade had been granted to Ramza at
+  11:51:49 (party slot 0, job 2, record 26, the Squire story variant) and was released at 11:55:45
+  with the line "no eligible Sanguine Sword wielder remains", so the command disappeared from the
+  menu mid fight. One second after that release the battle side event lines still read weapon 23,
+  meaning the battle still held the sword while the roster scan no longer found it. (Tech:
+  ShadowBlade.cs walks RosterBase and requires the roster right hand to read id 23; Barrage and
+  Provoke are the same roster keyed shape, so all three granted commands share the exposure. This
+  is LW-103's roster versus band disagreement reaching a surface where it costs the player an
+  ability instead of being harmless. Cheapest first question, one probe: does a mid battle Re-equip
+  write the roster row at all, or only the band? If only the band, the grant lane wants a band
+  fallback keyed the way kill credit already bridges a battle actor to its roster slot. Second,
+  independent of the fix: the release message should not assert there is no eligible wielder when
+  the truth is that the mod lost sight of the weapon.)
+
+- [LW-112] 2026-07-21: Stop blaming a game update when another mod rewrote the same game data;
+  demoted from Now 2026-08-13 to make room for LW-190, which is being actively worked.
+  Nothing about it changed and nothing is blocked on this repo: it has been AWAITING-LIVE since
+  2026-07-28 on a two leg owner drill that has not been run in over two weeks, and holding a Now
+  seat for a row nobody is moving is how the ledger starts lying about what is being worked (the
+  same argument LW-100 was demoted under). The build, the tests and the adversarial verify all
+  passed at the time; only the live drill is owed. Full done means, the unexplained player residue,
+  and the drill's pre registered failure signatures are preserved verbatim in the CHANGELOG entry
+  this row will cite when it exits, and the drill recipe itself lives in docs/DEV_TEST_RECIPES.md
+  (LW-112 section). Promote it back the moment the owner is ready to run the two legs.
 
 - [LW-187] 2026-08-13: The build pipeline's test gate never exercises the dev-only code paths,
   so a broken dev-only phase row (or any future dev-only logic) would sail through the gate
