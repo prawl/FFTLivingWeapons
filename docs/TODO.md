@@ -40,26 +40,6 @@ the technical detail lives in the indented lines under it.
     box, Barrage absent, kills still count). The drill mod recipe and every failure signature are
     pre-registered there. Owner only, as every AWAITING-LIVE flip is.
 
-- **[LW-137] Measure whether kill credit's death-edge bury reads a turn or a cursor** (opened 2026-07-27) [AWAITING-LIVE]
-  - Done means: a measured answer, from real battles, to whether the kill counter's "was an enemy
-    acting when this unit died" check can be fooled by where the cursor happens to rest. If the
-    two readings never disagree at real death edges, the worry closes; if they disagree, the
-    measured rate and direction justify moving the check onto the per-unit turn flags, the same
-    walk the Defender's shout already switched to. (Tech: KillTracker.Corpses.cs:232 reads
-    TqTeam at the death edge, diverting on 1 or 2; the 2026-07-27 Provoke pass observed that
-    field reading PLAYER through a whole enemy turn, cursor-tracking behaviour. The measurement
-    instrument is built: tools/probes/killcredit_probe.py, passive and read-only, records BOTH
-    readings side by side at every death edge with pre-registered verdict classes, on the
-    cursor_resolve_probe base. The 20 banked flight tapes were mined first, 2026-07-28, and
-    carry ZERO death edges, all recent tapes being feature-drill sessions, so live play is the
-    only evidence source.)
-  - Verify: the owner runs killcredit_probe.py alongside any normal battles, ideally including
-    the LW-112 drill battle since it is already owed, until a handful of death edges land on
-    both sides (player kills and enemy-turn deaths), then reads the census line: zero
-    disagreements across a real session closes this; any A-PLAYER-B-AI or A-AI-B-PLAYER line is
-    the exposure proven, with the fix direction already named. The ledger row stays untouched
-    until then. Owner only, as every AWAITING-LIVE flip is.
-
 - **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [AWAITING-LIVE]
   - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
     decision is made from that number. The mod now prints one plain line the first time the kill
@@ -352,6 +332,15 @@ the technical detail lives in the indented lines under it.
   where the battle's other holds released within about 14 seconds. Matches the predicted
   "EnemyTurnDone only after a later turn" signature; the release reason was NOT Watchdog, so the
   fall was eventually observed rather than timed out.
+  CONFIRMED SIGNATURE 2026-08-12, one instance, from the Provoke regression night: the owner's
+  deliberate fast-forward hold produced the exact predicted shape, a markedEta=0 arm at
+  21:24:14 with no turn ever observed and the watchdog WARN release at 21:25:44 (tape
+  flight_20260812_213229_battle-exit.jsonl); the same enemy then accepted a re-cast without
+  fast-forward and released cleanly on EnemyTurnDone. Honesty rider: the markedEta=0 arm means
+  a cast landing while the enemy's turn was already open (the fresh-rise refusal) cannot be
+  fully excluded as the cause of this one instance, so the confirmation is strong but not
+  airtight. Still parked for the 2.3.3 release at the owner's original direction; the CT
+  payment fix direction stands.
 
 - [LW-139] 2026-07-27: The mod can now know who acts NEXT, and several features that currently
   guess at turn state from present tense signals could be rebuilt on it.

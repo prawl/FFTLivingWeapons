@@ -10,6 +10,18 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.2 cycle
 
+- [LW-137] SHIPPED df8b779 2026-08-12: the worry that the kill counter could hand credit to
+  the wrong side because its death-edge check secretly tracked the cursor is measured and
+  closed, with no code change needed. The measurement instrument (killcredit_probe.py,
+  shipped df8b779) ran passively beside the owner's regression night and recorded five real
+  death edges: the shipped reading called every one correctly (an enemy acting at all four
+  player-unit deaths, the player acting at the owner's Defender kill) and was never caught
+  disagreeing, while the proposed replacement, the per-unit turn-flags walk, had NO answer
+  at four of the five edges, because deaths resolve during action resolution when those
+  flags are blank. Census: four B-NO-OWNER, one AGREE-AI, zero disagreement lines. So the
+  shipped check stays, the replacement is disqualified as structurally blind at death
+  edges, and the cursor worry closes on a real session. Owner-directed close 2026-08-12.
+
 - [LW-171] SHIPPED 4bd256b 2026-08-12: the Arbalest crossbow learned the twin trick. Once it
   has grown to its third tier, its wielder automatically gets a second Arbalest loaded into
   the off hand and Dual Wield granted, so the basic Attack fires twice, the same deal the
