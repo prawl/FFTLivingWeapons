@@ -113,15 +113,6 @@ the technical detail lives in the indented lines under it.
   trail below a fold in whatever detail it needs. The rigor stays; the archaeology moves down
   so a reader stops having to excavate 400-word paragraphs to learn the current state.
 
-- [LW-182] 2026-08-13: Fold the runtime's 200 flat source files into 12 domain folders (owner
-  directed: the dot-name partials were doing the job folders should be doing). Pure git moves,
-  no namespace or code changes; the spine (Mod, Engine, Offsets, Tuning, WeaponMeta, ModInfo,
-  AssemblyInfo) stays at the project root, partly because Python tooling parses Offsets.cs and
-  Tuning.cs at their pinned paths. Two contract tests reworked to be layout-proof instead of
-  path-pinned: the proof-claim ratchet scans recursively with project-qualified filename keys
-  plus a duplicate-name tripwire, and the AnchorScan portability test locates its file by name.
-  Tool and pipeline comments that cited moved paths were re-pointed in the same change.
-
 - [LW-181] 2026-08-12: Redesign Bulwark as "Upheaval" (pivoted 2026-08-13, supersedes the
   earlier enemy-turns-only toggle sketch): instead of a wait stance that quietly bars the
   tile behind the knight, the player aims Bulwark at the ground like Provoke's sibling,

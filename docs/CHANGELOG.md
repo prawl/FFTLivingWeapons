@@ -8,6 +8,19 @@ with a date and no hash. New entries are written ELI5-first (a plain-language op
 can follow, technical detail after), per the Format rules in docs/TODO.md; rows written
 before 2026-07-21 keep their original prose.
 
+## 2.3.3 cycle
+
+- [LW-182] SHIPPED a61775c 2026-08-13: the runtime's two hundred source files no longer live
+  in one giant flat directory. Everything is folded into twelve domain folders (Guard, Memory,
+  Logging, Battle, Kills, Growth, Signatures, Display, Chronicle, Persistence, Dev, and the
+  quarantined TreasureMaster), with only the seven spine files left at the project root, so
+  finding the kill code is now opening a folder instead of scanning two hundred names. Pure
+  git renames, no namespace or code changes, and every gate stayed green. (Tech: Offsets.cs
+  and Tuning.cs stay root-pinned for the Python tools that parse them by path; the proof-claim
+  ratchet and the AnchorScan portability test were reworked to be layout-proof; stale path
+  citations in probes, items.json notes, and pipeline comments were re-pointed in the same
+  commit. An adversarial verify pass confirmed the moves as 193 exact renames before commit.)
+
 ## 2.3.2 cycle
 
 - [LW-137] SHIPPED df8b779 2026-08-12: the worry that the kill counter could hand credit to
