@@ -1,7 +1,7 @@
 # Release Scope -- next release (consolidation)
 
-STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release, the 2.3.1 patch cut, and the
-2.3.2 game-compatibility cut)
+STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release, the 2.3.1 patch cut, the
+2.3.2 game-compatibility cut, and the 2.3.3 feature cut)
 
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
 2.3.0 shipped 2026-07-16 (tag v2.3.0). The **2.3.1** patch cut (section at the bottom) followed on
@@ -232,6 +232,58 @@ nothing else. Owner scope call 2026-07-25, in-session.
       card was owner-confirmed by eye (it leaves no log line the scanner reads).
 - [x] Gates re-run at the cut: dotnet test 2752 green, analyze.py exit 0, audit_nxd_bakes.py exit 0
       (2026-07-25).
+
+## 2.3.3 feature cut (2026-08-12) -- Living Poach, Crossfire, and the softened growth curve
+
+The cycle's theme: weapons that do more than grow. Owner scope call 2026-08-12, in-session.
+The cut was preceded the same evening by an owner regression night covering the two riskiest
+shipped mechanics plus a random signature sample, and by a prod-flavor eyeball of the new
+kill curve.
+
+- [x] **Living Poach (LW-167)**: weapons rebuilt on the game's dormant damage formulas can
+      Poach again, end to end (job map, credit seam, corpse despawn, basic-Attack
+      discriminator, arming). Shipped across five stages ending ac43327; owner live pass
+      completed 2026-08-12; exited 323b393. Rider shipped with it: the LW-166 "No
+      Poaching." notice and its later reversal to clean cards (8aa4d8e). The alias-row map
+      fix (35d998c) also ships in this cut; its ticket stays open in Now, see the prose
+      below.
+- [x] **Crossfire (LW-171)**: the Arbalest loads a twin and fires twice at +3, on the proven
+      Gun Slinger lane made N-weapon and data-driven. Shipped 4bd256b, owner live pass the
+      same evening (twin rendered, double Attack, kill credited), exited 506360a.
+- [x] **Kill curve softened (LW-161)**: production tier thresholds {5,25,50} became
+      {5,10,15}; the prod flavor was eyeballed live at the cut (a 13-kill Defender read
+      "Kills: 13/15 to +3" on screen, 2026-08-12).
+- [x] **Support-slot Key model (LW-168)**: the roster picked-support is a u16 ability Key
+      end to end; a bare unit receives Dual Wield correctly and unequipping restores a true
+      empty. Shipped fd7274b, owner live pass 2026-08-12.
+- [x] **Card counters survive quick reloads (LW-163)**: the equip-card paint latch re-arms
+      after mid-session save loads. Shipped 303ddf6, owner-passed.
+- [x] **Compatibility grid (LW-169)**: docs/COMPATIBILITY.md public with every verdict
+      settled and the Nexus description linking it. Exited e8f90ce citing dd36845.
+- [x] **Owner regression night (2026-08-12, pre-tag)**: Provoke full acceptance pass (three
+      hold cycles, re-cast on a released enemy, player-side mark self-scrub, ETA-driven
+      hides throughout); Bulwark V1, V5, and the V6 path-around observed live (an AI unit
+      routed around the barred tile); three randomly drawn signatures spot-checked green
+      (Attack Boost, Kobu, Choir); eleven LIVE_LEDGER rows flipped Proven on the night;
+      closing session scan CLEAN with every warning dispositioned to a ledger row.
+
+Known and accepted at the cut, deliberately shipped as-is (open rows, prose on purpose):
+the first equip-card paint lands about 11 seconds after arming, so a party menu opened
+immediately after a save load briefly shows the baked zero counts (LW-165 stays open for
+the Steam Deck reading; the README carries the player note); the kill-credit census can
+warn about a vanished enemy seat in undead fights with no credit loss observed (LW-180);
+a Provoke hold under held fast-forward can outlive its enemy turn and fall to the
+90-second watchdog (LW-143, bounded, one confirmed instance); the poach despawn watchdog
+carries a bounded delayed double-payout residual awaiting its fix-shape call (LW-175); and
+the alias-row map fix ships while its ticket LW-174 stays open in Now for the one
+unverified link, the staged-encounter premise beat (a live band job byte reading 169-173),
+or the owner's call to accept it as a standing watch.
+
+- [x] Gates at the cut (2026-08-12): analyze exit 0 and the full test suite green inside
+      Publish.ps1; package verify PASS on every required entry
+      (FFTLivingWeapons-2.3.3.zip); ModVersion bumped to 2.3.3; no parked artifacts
+      packaged.
+- [ ] Tag v2.3.3 cut at the release commit and pushed (rides the owner's push word).
 
 ## DEFERRED (post-release backlog)
 - **Remove Treasure Master** -- L, works + tested, no user benefit this cycle; do as a dedicated

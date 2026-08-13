@@ -62,6 +62,13 @@ Everything the mod *does* works in every game language: the item rebalance (stat
 - **The equip-card Kills counter.** The painted "Kills: N" tally and the "+N" name suffix anchor to the English item text, so they display only when the game language is English. Kills are still counted and stats still grow in every language; only the readout is absent.
 - **In-battle toasts.** The tier-up and milestone banners deliver by swapping an English battle prompt, so they too appear only in English. The growth they announce still happens in every language.
 
+## Good to know
+
+- **Kill counts appear a few seconds after loading a save.** If you open the party menu
+  immediately after a load, the cards can briefly show zeroed "Kills" text — the mod paints
+  the real tally moments later. Back out and re-open the menu and your numbers are there.
+  Nothing is ever lost; only the first paint lags a few seconds.
+
 ## How it works / build from source
 
 The design lives in one source of truth and is compiled into the modloader package:

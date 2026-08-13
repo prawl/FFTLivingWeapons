@@ -11,7 +11,7 @@ is the in-flight subset, not a mirror of that checklist.
 Entries are written ELI5-first: the opening sentence is plain language anyone can follow, and
 the technical detail lives in the indented lines under it.
 
-## Now (release: 2.3.2)
+## Now (release: 2.3.3)
 
 - **[LW-112] Stop blaming a game update when another mod rewrote the same game data** (opened 2026-07-21) [AWAITING-LIVE]
   - Done means: a player running a custom job mod alongside Living Weapons no longer sees this mod
@@ -55,6 +55,12 @@ the technical detail lives in the indented lines under it.
     follows save load seconds plus menu time, and the only deeper lever is read only pre
     locating before arming, which touches the born disarmed principle and would need its own
     arc.)
+  - Desktop halves measured 2026-08-12: two launches read 10.5s and 10.9s between arming and
+    the first paint, and the owner reproduced the felt symptom on desktop (a party menu opened
+    right after a save load shows the baked zero counts until the menu is re-entered). Owner
+    decision same night: ACCEPTED for the 2.3.3 cut, the README carries the player note, and
+    the row stays open for the Deck cold boot reading and the tune decision it may still
+    force (the likely tune is an unthrottled first pool locate at arming).
   - Verify: the suite is green including the born red first coverage line test and the once per
     launch pin, and the owner's next Steam Deck cold boot log shows the new line with its
     seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
