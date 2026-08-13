@@ -193,7 +193,7 @@
     </Item>
     <Item>
       <Id>149</Id> <!-- Sunsteel Helm (was Golden Helm) -->
-      <EquipBonusId>46</EquipBonusId>
+      <EquipBonusId>43</EquipBonusId>
     </Item>
     <Item>
       <Id>150</Id> <!-- Sealed Visor (was Close Helmet) -->
@@ -417,7 +417,7 @@
     </Item>
     <Item>
       <Id>206</Id> <!-- Empyrean Robe (was Luminous Robe) -->
-      <EquipBonusId>46</EquipBonusId>
+      <EquipBonusId>26</EquipBonusId>
     </Item>
     <Item>
       <Id>207</Id> <!-- Lordly Robe -->

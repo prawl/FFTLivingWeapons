@@ -105,6 +105,27 @@ the technical detail lives in the indented lines under it.
     the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
     space).
 
+- **[LW-188] Too many early enemies hover on Float gear; the two rebalance-added armor Floats are cut back** (opened 2026-08-13) [AWAITING-LIVE]
+  - Done means: chapter 1 stops being a hovering parade. The owner observed a majority of early
+    enemies floating off equipped gear (and caught an Empyrean Robe floater live mid-battle).
+    Root cause: the rebalance grew the game's Float sources from two to five, and one of the
+    new ones sat on the single most-worn enemy helmet in the game. Enemy auto-equip honors the
+    vanilla level gates our sparse tables never touch, so every level-15+ knight wore the Float
+    helm and every level-38+ caster the Float robe. The cutback reverts exactly the two new
+    armor-slot grants: Sunsteel Helm (id 149, vanilla Golden Helm) trades innate Float for
+    Jump+1 (vanilla EB row 43, kept as the only mobility helm), and Empyrean Robe (id 206,
+    vanilla Luminous Robe) trades innate Float for Silence immunity (vanilla EB row 26, the MP
+    throne whose voice cannot be stolen). Float now lives only on its vanilla sources
+    (Featherfoot Boots, Envoutement) plus the Cursed Ring unique, so enemy Float prevalence
+    returns to exactly vanilla. (Tech: re-points only, no EB row redefined; descriptions
+    re-baked into item.en.nxd via patch_names.py, audit INTENDED 1130 / DRIFT 0 / UNINTENDED 0;
+    also shrinks LW-170's half-float render bug exposure to rare late pieces.)
+  - Verify: generate plus analyze green (both dominance passes, rider prose, desc budget), the
+    nxd bake audit green, suite 3101 green. Live half, owner only: after the next deploy and
+    restart, knights wearing the helm stand on the ground, the helm card reads Jump +1, the
+    robe card reads Wards against Silence, and no early-battle enemy floats without a vanilla
+    Float source equipped.
+
 ## Backlog
 
 - [LW-187] 2026-08-13: The build pipeline's test gate never exercises the dev-only code paths,
@@ -249,10 +270,14 @@ the technical detail lives in the indented lines under it.
   slightly only over water, and the float look overrides the critical kneel (the owner saw a
   critical Agrias over a water tile in an upright standing pose players never normally see,
   hovering above the water).
-  Owner observed live 2026-08-12 on enemies and on Agrias. The items are the mod's own innate
+  Owner observed live 2026-08-12 on enemies and on Agrias. The items were the mod's own innate
   Float pieces: Sunsteel Helm (id 149, vanilla Golden Helm) and Empyrean Robe (id 206, vanilla
-  Luminous Robe, EquipBonus row 46); enemies pick them up through level lists, so the state is
-  common in late fights. Cosmetic only so far; nobody has verified whether the gameplay half
+  Luminous Robe, EquipBonus row 46); enemies picked them up through level lists, so the state
+  was common in late fights. UPDATE 2026-08-13 (LW-188): both named pieces lost Float in the
+  cutback, so they no longer reproduce this; the remaining repro gear is the vanilla Float pair
+  (Featherfoot Boots row 46, Envoutement row 66) plus the Cursed Ring unique (row 56), making
+  exposure rare instead of common. The render question itself is unchanged and this row stays
+  open on it. Cosmetic only so far; nobody has verified whether the gameplay half
   of the innate Float (Earth/Quake immunity, trap immunity, terrain walk) actually works on
   these pieces, and that check should ride the diagnosis, since a broken gameplay half would
   reclassify this from cosmetic oddity to broken rider. Diagnosis leads when picked up:

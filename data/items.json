@@ -4426,8 +4426,8 @@
       "vanillaName": "Golden Helm",
       "name": "Sunsteel Helm",
       "tier": 3,
-      "identity": "Niche: innate Float dodges Earth magic and ground traps and ignores swamp/terrain damage — a positioning tool, not raw defense; the only mobility helm.",
-      "flavorOverride": "Gilded steel light as a held breath, lifting its bearer clear of swamp, snare, and earth.",
+      "identity": "Niche: Jump+1, the only mobility helm — vertical reach on a heavy-armor head slot, stacking with Jump boots for cliff-vaulting knights. (Was innate Float until the 2026-08-13 owner cutback: enemy auto-equip put Golden Helm on every level-15+ knight, flooding early chapters with floaters.)",
+      "flavorOverride": "Gilded steel light as a held breath; its bearer vaults ledges other knights walk around.",
       "baseline": {
         "hp": 60,
         "mp": 0,
@@ -4439,8 +4439,8 @@
         "mp": 0,
         "physEv": 0,
         "magEv": 0,
-        "rider": "innate Float",
-        "equipBonusId": 46
+        "rider": "Jump+1",
+        "equipBonusId": 43
       },
       "iconTint": [
         0.13,
@@ -6021,8 +6021,8 @@
       "vanillaName": "Luminous Robe",
       "name": "Empyrean Robe",
       "tier": 5,
-      "identity": "T5 MP throne — highest MP short of the capstone. Its vanilla rider slot was empty; repurposed to innate Float (EB46): dodge Earth/Quake/floor-trap damage and ignore terrain. The battlefield-control caster body — a mobility/immunity trait even Lordly lacks, so it stands on its own axis, not just availability.",
-      "flavorOverride": "Robe of the high heavens, deep with reserves, lifting its wearer a breath above the earth.",
+      "identity": "T5 MP throne — highest MP short of the capstone, now with Silence immunity (EB26): the caster body whose voice cannot be stolen — an immunity even Lordly lacks, so it stands on its own axis, not just availability. (Was innate Float until the 2026-08-13 owner cutback: level-38+ enemy casters auto-equipped it and floated; Float now lives only on its vanilla sources plus Cursed Ring.)",
+      "flavorOverride": "Robe of the high heavens, deep with reserves; no hush may still its wearer's word.",
       "baseline": {
         "hp": 75,
         "mp": 50,
@@ -6034,8 +6034,8 @@
         "mp": 52,
         "physEv": 0,
         "magEv": 0,
-        "rider": "innate Float",
-        "equipBonusId": 46
+        "rider": "immune Silence",
+        "equipBonusId": 26
       },
       "iconTint": [
         0.14,
