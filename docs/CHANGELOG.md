@@ -10,6 +10,26 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-186] SHIPPED 3aaefdd 2026-08-13: the engine's tick table now defends its own shape. The
+  phase list that says what runs when can be handed to tests as plain data, no engine built
+  and no game memory touched, and the "after" ordering notes on its rows are enforced instead
+  of decorative: a test fails if a note points at a row that runs later, if a cited name no
+  longer exists (so a rename cannot quietly void a constraint), if two rows share a name, or
+  if a row not on a reviewed allowlist of outside-battle rows lacks the in-battle gate. (Tech:
+  the owner-directed design note: Engine.BuildPhases went internal static with a nullable
+  engine, BuildPhases(null) returning the real production rows with their Run closures
+  unbound, chosen over a shape-only copy that could drift and over a named-delegates bag that
+  doubles the wiring surface; construction never dereferences the engine, only the deferred
+  lambdas do. Three tests in EngineTickTableTests.cs; the older After walk in EngineTests was
+  deleted as subsumed, with Phases_match now pinning After values on the instance table as the
+  bridge. Five sabotage rounds each turned exactly the predicted single test red, including
+  the rename round where the ordering test stayed vacuously green and the resolve test caught
+  it. The three-reviewer adversarial round returned seam 9/10 ship and dev-define baseline
+  9.5/10 ship, and the test skeptic's catches, the row-name uniqueness assert, the corrected
+  scholar-ring allowlist reason, and the instance After pin, were folded in before the commit.
+  Suite 3101 green in the gated config; the surfaced dev-define gate blind spot is captured as
+  LW-187.)
+
 - [LW-183] SHIPPED 6158503 2026-08-13: the live ledger is readable again. Each of its 118
   claims now opens with one or two sentences saying what is true right now (current claim,
   current status, latest date), with the complete original history preserved word for word

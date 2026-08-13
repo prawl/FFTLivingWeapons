@@ -105,30 +105,6 @@ the technical detail lives in the indented lines under it.
     the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
     space).
 
-- **[LW-186] The tick table's ordering notes are now enforced by tests instead of being decoration** (opened 2026-08-13) [BUILDING]
-  - Done means: the engine's phase table can be handed to tests as plain data, with no engine
-    built and no game memory touched, and three new checks make its annotations load-bearing:
-    every "after" note must point at a row that really runs earlier, every cited name must still
-    exist (so a rename cannot quietly void a constraint), and every row not on a reviewed
-    allowlist of outside-battle rows must carry the in-battle gate. Before this, the After notes
-    were written on every row and read by nothing at runtime. (Tech: Engine.BuildPhases went
-    internal static with a nullable engine; BuildPhases(null) returns the real production rows
-    with their Run closures unbound, safe because construction never dereferences the engine,
-    only the deferred lambdas do. Design choice recorded here: the nullable-engine static
-    factory keeps the table a single source with its comments intact, instead of a second
-    shape-only copy that could drift or a named-delegates bag that doubles the wiring surface.
-    New tests live in EngineTickTableTests.cs; the older After walk in EngineTests was deleted
-    as subsumed, since both tables now come from the same method.)
-  - Verify: the suite is green in the gated config (3101 tests), the three new tests are green
-    under the dev define too (the 21-row table), and five sabotage rounds each turned exactly
-    the predicted single test red: a later-row cite, a renamed cite (the ordering test stayed
-    green on that one, proving the vacuity pairing is real), a battle row escaping its gate, a
-    stale allowlist entry, and a duplicated row name. The independent adversarial review ran
-    before the commit (three reviewers: seam correctness 9/10 ship, dev-define baseline 9.5/10
-    ship with the 77 dev-flavor failures proven pre-existing at the parent commit, and a test
-    skeptic whose three catches were folded in: the row-name uniqueness assert, the corrected
-    scholar-ring allowlist reason, and the After values now pinned on the engine's own table).
-
 ## Backlog
 
 - [LW-187] 2026-08-13: The build pipeline's test gate never exercises the dev-only code paths,
