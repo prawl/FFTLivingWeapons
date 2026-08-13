@@ -135,23 +135,6 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
-- [LW-197] 2026-08-13: Three of the sixteen recolored shields were reviewed under names that do
-  not exist in the game, and one of them may now clash with its own equipment set. The icon
-  tint table has carried the labels "Ronin Wall", "Conduit" and "Bastion" for ids 140-142 since
-  before the shields pass, but items.json (the naming authority) keeps those three on their
-  vanilla names on purpose: Genji Shield, Kaiser Shield, Venetian Shield, rare items whose
-  vanilla identity the rebalance preserves. Every LW-190 review gallery repeated the wrong
-  labels, so the owner approved the LOOKS under fictional names; the looks themselves shipped
-  correctly and were confirmed in game (the owner's screenshot shows all three wearing their
-  approved colours), and the table comments are corrected in this commit. What remains is a
-  design call, owner only: the Genji Shield now wears cold steel-blue while the rest of the
-  Genji set carries dark crimson and bronze (helm tint 0.02/0.70, armor 0.99/0.65, gloves
-  0.10/0.45), making the set's shield the odd one out. If set-colour harmony should win, the
-  fix is one tint line plus the settled preview-bake-verify loop; if the blue stays, this row
-  closes with a note. Provenance rider: the stale labels predate the pass (some earlier draft
-  of shield naming), and the lesson is that a tint-table comment is not a naming source;
-  items.json is.
-
 - [LW-196] 2026-08-13: The item icon shown when picking up a Move-Find Treasure appears NOT to
   carry the mod's recolor; it looks like the vanilla icon even for items whose menu icons are
   recolored. Owner sighting 2026-08-13 (softly held, "pretty sure"), logged with a concrete

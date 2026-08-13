@@ -10,6 +10,20 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-197] SHIPPED dbb7f1f 2026-08-13: three recolored shields had been reviewed under names
+  that do not exist in the game, and the fix was corrections plus one owner call, both now
+  done. The icon tint table had carried the labels "Ronin Wall", "Conduit" and "Bastion" for
+  ids 140-142 since before the shields pass, while the real items keep their vanilla names on
+  purpose (Genji Shield, Kaiser Shield, Venetian Shield); nothing in game ever showed a wrong
+  name, since items.json is the naming authority and it was always right. The comments are
+  corrected, and the one real consequence was settled by the owner the same day: the Genji
+  Shield KEEPS its shipped cold steel-blue. The deciding authority is the item's own
+  description, "an unusually shaped, pitch-black shield forged from iron", which the dark
+  blue-black rendering already honors in game (owner screenshot on the completed save); the
+  set-harmony alternative (crimson, to match Genji Helm/Armor/Gloves) was considered and
+  rejected against that prose. Lesson banked in the tint table itself: a comment is not a
+  naming source.
+
 - [LW-190] SHIPPED cca4acc 2026-08-13: every shield icon now wears its own two colours instead
   of the old one-hue paint dip, and the owner confirmed the in-game look the same day the bake
   shipped ("it looks so good in game", the live half of the verify). Sixteen shields were
