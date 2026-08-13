@@ -131,10 +131,15 @@ the technical detail lives in the indented lines under it.
 - [LW-189] 2026-08-13: Recolor every weapon icon again with two-zone accuracy: blade and hilt
   take different colors instead of the current one-hue stamp that melts the whole sprite into
   a single color family (owner request; the touch-up they have wanted since the first pass).
-  Proof of concept run 2026-08-13 on Flamberge and Galewind: per-icon color clustering
-  separates blade from grip on real vanilla art, the two-zone result reads as two materials,
-  and the residual blade speckle is zone noise a spatial smoothing pass removes. Owner saw the
-  before/after gallery. Build shape when picked up: upgrade tools/recolor_icons.py to per-icon
+  Scope sharpened by an owner question 2026-08-13: every item ships TWO separate sprites, the
+  100x100 equip-card weapon image (equip_item) and the 48x48 list icon (equip_item_s), and the
+  small one is its own simplified art, not a downscale (verified by decoding both for one id),
+  so segmentation and the visual pass must run on both surfaces, roughly doubling the QA. The
+  in-battle weapon drawn in a unit's hand is a third, welded asset no recolor reaches (the
+  tabled WEAPON_VISUALS_SCOPING research). Proof of concept run 2026-08-13 on Flamberge and
+  Galewind card images: per-icon color clustering separates blade from grip on real vanilla
+  art, the two-zone result reads as two materials, and the residual blade speckle is zone
+  noise a spatial smoothing pass removes. Owner saw the before/after gallery. Build shape when picked up: upgrade tools/recolor_icons.py to per-icon
   segmentation (k-means over hue/sat/value, smoothing, brightest-zone-is-blade heuristic with
   a per-item override), add an optional second trim tint per item in data/items.json (absent
   means trim keeps its vanilla colors), regenerate all icon tex files, and gate on an
