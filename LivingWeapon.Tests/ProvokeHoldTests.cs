@@ -945,7 +945,7 @@ public class ProvokeHoldTests
     public void Two_disagreeing_player_side_flag_owners_fail_open_by_design_LW131()
     {
         // PlayerSideOwnsTurn's OTHER documented fail-open path (ProvokeHold.Scan.cs): not just
-        // "nobody owns the flag", but Band.FlagOwner (LivingWeapon/Band.cs) also bails AMBIGUOUS
+        // "nobody owns the flag", but Band.FlagOwner (LivingWeapon/Battle/Band.cs) also bails AMBIGUOUS
         // when TWO player-side seats both carry ATurnFlag==1 with valid, real positions and
         // DIFFERENT identities. An ambiguous read is treated the same as "nobody owns it": the gate
         // opens rather than refusing to count the turn. Deliberate, not an accident -- see the

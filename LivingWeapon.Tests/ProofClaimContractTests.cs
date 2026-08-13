@@ -67,26 +67,37 @@ public class ProofClaimContractTests
     /// <summary>Scanned surfaces: production code, tests, and the top-level CONTRACT docs.
     /// EXCLUDED: docs/LIVE_LEDGER.md (it IS the authority, and its Proven section is supposed to
     /// say "proven"), and docs/research + docs/archive (JOURNAL and ARCHIVED tier, which are
-    /// historical records allowed to preserve what was believed at the time).</summary>
-    private static IEnumerable<string> ScannedFiles(string root)
+    /// historical records allowed to preserve what was believed at the time). Source enumeration
+    /// is RECURSIVE (the projects folder their files by domain) with obj/bin pruned; the KEY
+    /// stays the project-qualified FILENAME ("LivingWeapon/Bulwark.cs" wherever the file sits)
+    /// so the frozen baseline below survives folder moves. That scheme would silently merge two
+    /// same-named files, so Scan_covers_the_expected_surfaces asserts key uniqueness.</summary>
+    private static IEnumerable<(string Key, string FullPath)> ScannedFiles(string root)
     {
         foreach (var dir in new[] { "LivingWeapon", "LivingWeapon.Tests" })
-            foreach (var f in Directory.GetFiles(Path.Combine(root, dir), "*.cs").OrderBy(f => f))
+            foreach (var f in Directory.GetFiles(Path.Combine(root, dir), "*.cs", SearchOption.AllDirectories)
+                         .Where(f => !HasDirSegment(f, "obj") && !HasDirSegment(f, "bin")).OrderBy(f => f))
                 if (Path.GetFileName(f) != SelfExclusion)
-                    yield return $"{dir}/{Path.GetFileName(f)}";
+                    yield return ($"{dir}/{Path.GetFileName(f)}", f);
 
         foreach (var f in Directory.GetFiles(Path.Combine(root, "docs"), "*.md").OrderBy(f => f))
             if (Path.GetFileName(f) != "LIVE_LEDGER.md")
-                yield return $"docs/{Path.GetFileName(f)}";
+                yield return ($"docs/{Path.GetFileName(f)}", f);
     }
+
+    /// <summary>Segment-aware directory test (DocsContractTests.HasDirSegment's twin): a bare
+    /// Contains would also match a folder merely ENDING in "obj".</summary>
+    private static bool HasDirSegment(string path, string segment)
+        => path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+               .Any(part => string.Equals(part, segment, StringComparison.OrdinalIgnoreCase));
 
     private static Dictionary<string, int> CurrentCounts(string root)
     {
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var rel in ScannedFiles(root))
+        foreach (var (key, fullPath) in ScannedFiles(root))
         {
-            int n = ClaimRegex.Matches(File.ReadAllText(Path.Combine(root, rel.Replace('/', Path.DirectorySeparatorChar)))).Count;
-            if (n > 0) counts[rel] = n;
+            int n = ClaimRegex.Matches(File.ReadAllText(fullPath)).Count;
+            if (n > 0) counts[key] = n;
         }
         return counts;
     }
@@ -220,11 +231,15 @@ public class ProofClaimContractTests
     [Fact]
     public void Scan_covers_the_expected_surfaces()
     {
-        var files = ScannedFiles(RepoRoot()).ToList();
+        var files = ScannedFiles(RepoRoot()).Select(f => f.Key).ToList();
         Assert.True(files.Count(f => f.StartsWith("LivingWeapon/")) > 50, $"production sweep too small: {files.Count}");
         Assert.True(files.Count(f => f.StartsWith("LivingWeapon.Tests/")) > 20, "test sweep too small");
         Assert.Contains("docs/CHANGELOG.md", files);
         Assert.DoesNotContain("docs/LIVE_LEDGER.md", files);
         Assert.DoesNotContain($"LivingWeapon.Tests/{SelfExclusion}", files);
+        var dupes = files.GroupBy(f => f, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+        Assert.True(dupes.Count == 0,
+            "Two scanned files share a project-qualified filename, which would merge their baseline rows:\n" +
+            string.Join("\n", dupes));
     }
 }

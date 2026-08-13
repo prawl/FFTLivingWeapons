@@ -13,7 +13,7 @@ same JobCommand injection the shipped Barrage and Shadow Blade signatures perfor
 an arbitrary ability id.  Try three candidates in one sitting, no rebuild, no restart.
 
 It is a straight port of the PROVEN mechanism, not a new one.  Every constant and every bit of the
-extend/learned math comes from LivingWeapon/Barrage.Policy.cs, which is live-proven twice (Barrage
+extend/learned math comes from LivingWeapon/Signatures/Barrage.Policy.cs, which is live-proven twice (Barrage
 cast end-to-end 2026-06-10; Shadow Blade on a Knight 2026-06-14) and unit-tested.
 
 It also edits the ability ACTION table, which is what makes a hijack viable rather than merely
@@ -118,7 +118,7 @@ PROCESS_QUERY_INFORMATION = 0x0400
 PAGE_EXECUTE_READWRITE = 0x40
 PROC_NAME = "fft_enhanced.exe"
 
-# --- JobCommand table (LivingWeapon/Barrage.cs:43-46, 1.5 re-found live 2026-06-17) -------------
+# --- JobCommand table (LivingWeapon/Signatures/Barrage.cs:43-46, 1.5 re-found live 2026-06-17) -------------
 ABILITY_BASE = 0x14067E213   # record 0's AbilityId1 byte
 REC_SIZE = 25                # 3 flag bytes + 16 ability bytes + 6 RSM bytes
 FLAG_PREFIX = 3
@@ -136,7 +136,7 @@ R_LEARNED_BASE = 0x32
 LEARNED_STRIDE = 3
 ROSTER_SLOTS = 50     # Offsets.RosterSlots -- 50 is a HARD CEILING, not a guess (LW-96)
 
-# Job names, ported verbatim from LivingWeapon/LogNames.cs:17-42 (the verified PSX-wheel mapping).
+# Job names, ported verbatim from LivingWeapon/Logging/LogNames.cs:17-42 (the verified PSX-wheel mapping).
 # `roster` exists to answer "which slot is my Knight", and a bare job NUMBER does not answer it.
 JOB_NAMES = {74: "Squire", 75: "Chemist", 76: "Knight", 77: "Archer", 78: "Monk",
              79: "White Mage", 80: "Black Mage", 81: "Time Mage", 82: "Summoner", 83: "Thief",
@@ -188,7 +188,7 @@ k32 = ctypes.windll.kernel32
 
 
 # --------------------------------------------------------------------------- pure math
-# Verbatim from LivingWeapon/Barrage.Policy.cs -- covered by --selftest against its documented
+# Verbatim from LivingWeapon/Signatures/Barrage.Policy.cs -- covered by --selftest against its documented
 # anchors so a divergence from the shipped C# shows up offline, not in a live session.
 def slot_byte(ability_id):
     """The byte stored in an ability slot: the id's low 8 bits."""

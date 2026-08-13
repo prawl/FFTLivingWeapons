@@ -1,6 +1,6 @@
 """Print a human-readable timeline from a flight-recorder .jsonl archive.
 
-The flight recorder (LivingWeapon/FlightRecorder.cs) flushes an always-on bounded ring of
+The flight recorder (LivingWeapon/Logging/FlightRecorder.cs) flushes an always-on bounded ring of
 on-change events to <modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl on the battle-exit
 edge or the first ModLogger.LogError of a launch (see docs/LOGGING.md, "Flight recorder"). Each
 file is JSONL: a header line ({"hdr": true, "wall": "...", "t": <elapsedMs>}) followed by one

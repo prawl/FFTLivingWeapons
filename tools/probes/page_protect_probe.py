@@ -8,7 +8,7 @@ InflictStatus byte in the LIVE action table.
 
 That is not a given.  The external probe (ability_grant_probe.py, class Mem.write) writes, and if
 the write does not read back it falls back to VirtualProtectEx -> PAGE_EXECUTE_READWRITE and puts
-the old protection back.  The in-process runtime has NO such fallback: LivingWeapon/Mem.cs is
+the old protection back.  The in-process runtime has NO such fallback: LivingWeapon/Memory/Mem.cs is
 WriteProcessMemory only, and every shipped writer pre-filters with Mem.Writable, which is a
 VirtualQuery that accepts ONLY PAGE_READWRITE, PAGE_WRITECOPY, PAGE_EXECUTE_READWRITE and
 PAGE_EXECUTE_WRITECOPY (Mem.cs:124).  A PAGE_READONLY page therefore fails the pre-filter and the
@@ -64,7 +64,7 @@ PROC_NAME = "fft_enhanced.exe"
 MEM_COMMIT = 0x1000
 PAGE_GUARD = 0x100
 PAGE_NOACCESS = 0x01
-# Verbatim from LivingWeapon/Mem.cs:124 -- RW | WriteCopy | ExecRW | ExecWriteCopy. The point of
+# Verbatim from LivingWeapon/Memory/Mem.cs:124 -- RW | WriteCopy | ExecRW | ExecWriteCopy. The point of
 # this probe is to compare a live page against THIS set, so it must not drift from the C#.
 MEM_CS_WRITABLE = 0x04 | 0x08 | 0x40 | 0x80
 
@@ -138,7 +138,7 @@ def protect_name(protect):
 
 
 def mem_cs_writable(state, protect):
-    """Replica of LivingWeapon/Mem.cs Probe(needWrite: true), minus the range check. Returns True
+    """Replica of LivingWeapon/Memory/Mem.cs Probe(needWrite: true), minus the range check. Returns True
     when the SHIPPED runtime's pre-filter would allow a write to this page."""
     if state != MEM_COMMIT:
         return False
@@ -169,7 +169,7 @@ class Mem:
 
     def raw_write(self, addr, data):
         """Bare WriteProcessMemory, NO VirtualProtect fallback -- deliberately the same shape as
-        LivingWeapon/Mem.cs, because the whole question is what the DLL can do unaided.
+        LivingWeapon/Memory/Mem.cs, because the whole question is what the DLL can do unaided.
         Returns (call_succeeded, last_error)."""
         buf = (ctypes.c_ubyte * len(data))(*data)
         put = ctypes.c_size_t(0)

@@ -56,7 +56,7 @@ LOG_NAME = "livingweapon.log"
 PREV_LOG_NAME = "livingweapon.prev.log"
 
 # --- Stable log-text landmarks (substrings, kept in sync with the C# source by comment) ---
-# The exact wording lives in LivingWeapon/LaunchGuard.cs; matched on the most stable fragment so a
+# The exact wording lives in LivingWeapon/Guard/LaunchGuard.cs; matched on the most stable fragment so a
 # copy edit to the surrounding sentence does not silently blind the scanner.
 ARMED_MARK = "Living Weapons is armed"                 # LaunchGuard.ArmedEdge (INFO [startup])
 STANDDOWN_MARK = "standing down to protect your save"  # LaunchGuard.StandDown (ERROR [startup])

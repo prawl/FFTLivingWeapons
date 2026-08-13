@@ -8,7 +8,7 @@ KillTracker.Corpses.cs fires on), records TWO columns side by side:
   Column A (SHIPPED): the exact read KillTracker.Corpses.cs:232 performs at that edge -- a
     FRESH TqTeam (TurnQueue+0x02, Readable-guarded else 0) read taken right at the edge, verdict
     nonPlayerTurn = team in (1, 2).
-  Column B (PROPOSED): Band.FlagOwner's verbatim answer (LivingWeapon/Band.cs:171-204) -- the
+  Column B (PROPOSED): Band.FlagOwner's verbatim answer (LivingWeapon/Battle/Band.cs:171-204) -- the
     single real-position seat holding the per-unit turn flag (band +0x19C == 1), with FlagOwner's
     own identity-dedup (same nameId when both are nonzero, else the same (lvl,br,fa)) and its own
     ambiguity refusal (two DIFFERENT identities both holding the flag this tick). THEN,
@@ -139,7 +139,7 @@ def shipped_team():
 
 
 def flag_owner(seats):
-    """Band.FlagOwner (LivingWeapon/Band.cs:171-204), replayed verbatim -- the same replay
+    """Band.FlagOwner (LivingWeapon/Battle/Band.cs:171-204), replayed verbatim -- the same replay
     cursor_resolve_probe.py's flag_owner already exercises against this game build. Walks every
     non-None seat with ATurnFlag==1 AND a real (nonzero) position; the first such seat is the
     candidate, and every later candidate must share its identity (nameId when BOTH are nonzero,

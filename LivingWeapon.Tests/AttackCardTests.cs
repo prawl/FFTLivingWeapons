@@ -1323,7 +1323,7 @@ public class AttackCardTests
     // ==================== LW-91: strike retention on the AttackCard cache ====================
     // A cached copy that fails its SyncHit verify is RETAINED under a per-Hit strike episode
     // (Hit.FirstFailMs, 0 = healthy) instead of instantly evicted, for up to
-    // Tuning.AttackCardEvictAfterMs. See LivingWeapon\AttackCard.Paint.cs's RepaintAll. All of
+    // Tuning.AttackCardEvictAfterMs. See LivingWeapon\Display\AttackCard.Paint.cs's RepaintAll. All of
     // these tests use the clock-wired Build overload with a NONZERO starting Ms: 0 doubles as
     // FirstFailMs's own "healthy" sentinel, so a strike that starts exactly at clock 0 would be
     // indistinguishable from never having struck at all.

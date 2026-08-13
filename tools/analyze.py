@@ -265,7 +265,7 @@ def check_dormant_poach_formulas_lockstep(items):
 
 
 def check_kills_scaffold_lockstep(items):
-    """Pins the Python bake's Kills-scaffold body width to LivingWeapon/Signatures.cs's own
+    """Pins the Python bake's Kills-scaffold body width to LivingWeapon/Signatures/Signatures.cs's own
     KillsMeterSlotChars (11, the single source of truth for the width: see that constant's
     derivation comment). KILLS_SCAFFOLD's own body must be exactly KILLS_SLOT_BODY_CHARS chars,
     and every living weapon's baked description must actually lead with

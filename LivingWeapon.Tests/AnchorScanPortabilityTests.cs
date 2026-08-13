@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace LivingWeapon.Tests;
@@ -19,12 +20,18 @@ public class AnchorScanPortabilityTests
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "LivingWeapon", "AnchorScan.cs")))
+            if (File.Exists(Path.Combine(dir.FullName, "docs", "TODO.md")) &&
+                Directory.Exists(Path.Combine(dir.FullName, "LivingWeapon")))
                 return dir.FullName;
             dir = dir.Parent;
         }
-        throw new FileNotFoundException("repo root (LivingWeapon/AnchorScan.cs) not found above the test bin dir");
+        throw new FileNotFoundException("repo root (docs/TODO.md + LivingWeapon/) not found above the test bin dir");
     }
+
+    /// <summary>Located by name rather than pinned path so the domain-folder layout can shift
+    /// without touching this contract; Single() keeps a duplicate copy from hiding.</summary>
+    private static string AnchorScanPath()
+        => Directory.GetFiles(Path.Combine(RepoRoot(), "LivingWeapon"), "AnchorScan.cs", SearchOption.AllDirectories).Single();
 
     private static readonly string[] ForbiddenTokens =
     {
@@ -51,8 +58,7 @@ public class AnchorScanPortabilityTests
     [Fact]
     public void AnchorScan_has_zero_project_dependencies()
     {
-        string path = Path.Combine(RepoRoot(), "LivingWeapon", "AnchorScan.cs");
-        string code = StripCommentLines(File.ReadAllText(path));
+        string code = StripCommentLines(File.ReadAllText(AnchorScanPath()));
         var found = new List<string>();
         foreach (var token in ForbiddenTokens)
             if (code.Contains(token)) found.Add(token);

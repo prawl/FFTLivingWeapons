@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-148: LivingWeapon/SaveLocation.cs's ResolveSaveDir (C#) and tools/pipeline.ps1's
+/// LW-148: LivingWeapon/Persistence/SaveLocation.cs's ResolveSaveDir (C#) and tools/pipeline.ps1's
 /// Resolve-SaveDir (PowerShell, extracted off BuildLinked.ps1's own inline copy in this same
 /// change) are one derivation deliberately kept in two languages -- BuildLinked's dev-vs-prod
 /// deploy guard needs to know where the player's real save lives WITHOUT loading the DLL. Both

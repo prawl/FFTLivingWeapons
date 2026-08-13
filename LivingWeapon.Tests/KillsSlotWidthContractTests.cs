@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-148: tools/lib/flavor.py's KILLS_SLOT_BODY_CHARS and LivingWeapon/Signatures.cs's
+/// LW-148: tools/lib/flavor.py's KILLS_SLOT_BODY_CHARS and LivingWeapon/Signatures/Signatures.cs's
 /// KillsMeterSlotChars are one width pinned in two languages on purpose (Signatures.cs's own doc
 /// comment says so, and flavor.py's says it mirrors Signatures byte-for-byte): the Python bake
 /// pads every living weapon's "Kills: " scaffold line to this many characters, and the C# card

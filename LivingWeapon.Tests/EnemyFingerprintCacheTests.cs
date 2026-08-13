@@ -5,7 +5,7 @@ namespace LivingWeapon.Tests;
 
 /// <summary>
 /// Per-battle ADDITIVE cache of the static-array enemy fingerprint set
-/// (LivingWeapon/EnemyFingerprintCache.cs). Mirrors EnemyOracle's production-proven additive
+/// (LivingWeapon/Battle/EnemyFingerprintCache.cs). Mirrors EnemyOracle's production-proven additive
 /// capture: TickField only ever unions the latest scan in, never removes, so a one-tick
 /// Readable() flap on the static array cannot make an enemy vanish mid-battle.
 /// </summary>

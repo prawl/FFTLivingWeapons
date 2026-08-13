@@ -117,7 +117,7 @@ function Copy-PreservedItems([string]$from, [string]$to, [string[]]$files, [swit
 
 # LW-51 / LW-134 (LW-148 extraction): the update-safe save directory's location, shared by
 # BuildLinked.ps1's deploy guard and (via the DeployGuardTests-style cross-language pin) a C# test
-# asserting it resolves to the exact same path as LivingWeapon/SaveLocation.cs's own
+# asserting it resolves to the exact same path as LivingWeapon/Persistence/SaveLocation.cs's own
 # ResolveSaveDir. modsDir is the Mods folder itself (one level ABOVE the deployed mod dir, e.g.
 # "<root>\Reloaded\Mods"), matching the C# side's own two-levels-up walk from the deployed mod dir
 # (Directory.GetParent(modDir)?.Parent). Pure over its two string inputs so it is testable without
@@ -132,7 +132,7 @@ function Resolve-SaveDir([string]$modsDir, [string]$modId) {
 # over a real player's install would wipe their real progress -- the guard's whole job is to catch
 # that BEFORE it happens. The old guard's fallback checked for kills.json next to the mod folder,
 # but LW-51 moved save files into the update-safe Reloaded/User/Mods/<ModId> dir
-# (SaveLocation.ResolveSaveDir, LivingWeapon/SaveLocation.cs), so that check was looking at a spot
+# (SaveLocation.ResolveSaveDir, LivingWeapon/Persistence/SaveLocation.cs), so that check was looking at a spot
 # the file can never be in anymore -- it always came back "nothing to worry about" and would have
 # waved a real installed save through. On 2026-07-25 a plain dev BuildLinked run got all the way
 # to the edge of overwriting a production install with a live 384-kill tally and no marker file at

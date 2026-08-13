@@ -530,7 +530,7 @@ internal static class Offsets
     public const long PoachStoreBase = 0x1411A7A1B;
 
     // --- Corpse despawn (LW-167 stage 3): the engine's own declarative render-node removal,
-    // promoted from BodyDoubleSpike.cs's Ctrl+F5 dev instrument (LivingWeapon/BodyDoubleSpike.cs,
+    // promoted from BodyDoubleSpike.cs's Ctrl+F5 dev instrument (LivingWeapon/Dev/BodyDoubleSpike.cs,
     // #if LWDEV) into CorpseDespawn.cs's guarded production helper. docs/LIVE_LEDGER.md's
     // "DESPAWN any unit mid-battle, sprite and all" Proven row (owner live 2026-07-10, flip
     // 2026-07-21): write mode 2 into the render node's flag word and the engine's own per-frame

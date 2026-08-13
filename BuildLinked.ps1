@@ -83,7 +83,7 @@ try {
     # (Test-Path next to the mod) was checking a spot kills.json can no longer be in; it failed
     # open, and a plain dev BuildLinked run nearly stomped a real production save that same day,
     # caught only by a human noticing. $saveDir below MUST mirror
-    # SaveLocation.ResolveSaveDir (LivingWeapon/SaveLocation.cs) exactly: the two are one
+    # SaveLocation.ResolveSaveDir (LivingWeapon/Persistence/SaveLocation.cs) exactly: the two are one
     # resolution rule kept in two languages, and they move together. run_flavor.txt ($stampPath)
     # is stamped by the RUNNING mod itself on every launch (FlavorStamp.cs), so it is last-RUN
     # truth, a second and independent witness from build_flavor.txt's last-DEPLOY truth.

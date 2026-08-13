@@ -32,7 +32,7 @@ ADDRESSING
 ----------
 The image base is fixed at 0x140000000 (no ASLR), so file offsets map to virtual addresses by a
 constant delta.  Anchor for the delta: the JobCommand table sits at file offset 0x67D6DB and its
-virtual address is known independently from LivingWeapon/Barrage.cs:43 (0x14067E213 is record 0's
+virtual address is known independently from LivingWeapon/Signatures/Barrage.cs:43 (0x14067E213 is record 0's
 first ability byte; the rec-8 signature that located it lives at 0x14067E2DB).  0x67D6DB + delta =
 0x14067E2DB gives delta = 0x140000C00, which the PE section table corroborates.
 
