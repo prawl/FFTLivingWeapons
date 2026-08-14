@@ -13,71 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-230] Every recolored icon wears a cloud of coloured smoke, and the fix now reaches the art the owner already approved** (opened 2026-08-14) [AWAITING-LIVE]
-  - Done means: an item stops looking like it is giving off coloured smoke. Each icon sprite is
-    drawn sitting in a soft see through haze that the artist left neutral, and the recolor
-    engines painted every pixel down to the faintest edge, so the haze took the item's identity
-    colour too. The owner spotted it on the hat previews and rejected it. The fix is one ramp,
-    proven on the hats: full tint only on genuinely solid pixels, none on the haze, and a long
-    blend between so no hard ring appears at the cutoff. It now runs in every engine that paints
-    reviewed art, and the families the owner has signed off are re-baked so they actually carry
-    it. Legacy stays smoky on purpose: its 72 items are unreviewed and their look must not move
-    before their own pass (LW-217 through LW-226). (Tech: _halo_weight ramping 48 to 224, called
-    from two_zone_bright, small_bright, shield_two_tone and helm_recolor, blending through
-    _halo_int in each lane's OWN quantizer; the weapon and shield lanes truncate and the helm
-    and hat lanes round, and unifying them moves 24,476 of 107,237 solid weapon pixels and
-    31,396 of 48,389 solid shield pixels by one LSB.)
-  - Shipped and baked: the 16 shields and the 13 helmets, verified 58 of 58 pixel-exact between
-    the approved previews and the production bake, and moving 0 solid pixels against the pre-fix
-    engine, so the only thing that changed on them is the haze.
-  - The weapons are settled and NOT held open on this row. Owner decision 2026-08-14, after the
-    review gallery: they keep their current look, smoke and all, until each family's own queued
-    re-pass comes up, and that pass chooses the family's engine from its art the way the
-    crossbows did, which is what finally puts the colour on the object. Nothing regresses,
-    nothing ships without a gallery, and the family that needs it most is next in the queue
-    anyway. The reasoning and the measurements live on LW-232; the engine change here is
-    complete, so a weapon family bakes correctly the moment its own pass runs.
-  - Honest scale of this fix, measured as the share of each card's identity colour that was
-    sitting in the haze rather than on the item: weapons 27.5 percent, hats 12.0, helmets 8.2,
-    shields 4.6. So on the two families that shipped here the change is real but small, which
-    the owner said out loud on first look and the numbers agree with. The hats are where it was
-    visible enough to be rejected, and the weapons are where it would have been dramatic.
-  - Verify: the engine's selftest is green and is now a real gate (tools/pipeline.ps1 runs it,
-    with Pillow pip-installed in CI for the step), ten mutations of the new code each turn at
-    least one named check red, and `icon_preview.py compare` measures the whole change against
-    the committed engine over all 468 surfaces: 0 of 107,237 solid weapon pixels and 0 of 48,389
-    solid shield pixels move, while the hats, crossbows and legacy families come out byte
-    identical. Owner half, owner only: the shields and helmets look right in game after a
-    deploy, and the LW-232 call decides the weapons.
-
-- **[LW-231] Recolored icons come out mottled with coloured speckle, and the fix stays on the hats where the speckle actually is** (opened 2026-08-14) [AWAITING-LIVE]
-  - Done means: a recolored item reads as a solid object with real shading instead of a blotchy
-    one. The engines expand light against dark one pixel at a time, which also multiplies the
-    art's own compression grain, and under a saturated tint that grain reads as coloured
-    mottling. The fix expands the contrast on a softened copy of the brightness (the artist's
-    real domes and folds) and adds the fine grain back at reduced strength. It shipped on the
-    twelve hats and the six crossbows, and after this row it stays there.
-  - Scope settled by looking at the pictures, 2026-08-14, and the finding is the useful part of
-    this row. Extending the fix to the thirteen helmets was built, gated, baked and then
-    REVERTED the same day on sight: a blur cannot tell a drawn one pixel line from compression
-    grain, and helmet art is engraved metal whose whole subject is that line work. The scale
-    rows on the Sunsteel crown, the visor slots on the Grand Helm and the black seams through
-    the Timeward's white plate all smeared. Every aggregate measurement passed while it happened
-    (blurred difference 8 to 11 of 255, tonal spread down under 10 percent, grain swing down
-    42.3 percent) precisely because those metrics are blind to one pixel features, which is the
-    lesson worth keeping: for a change that is about fine detail, the picture is the instrument
-    and the summary statistic is not. Helmets were never the speckle complaint either; the hats
-    were. The weapon and shield engines stay out for a separate and simpler reason, measured
-    rather than assumed: they carry no contrast expansion at all, so their gamma and shoulder
-    damp grain at about 0.86 times against the hats' pre-fix 1.36 to 2.14.
-  - Verify: green selftest, including a check that renders a one pixel engraved grid through
-    both contrast engines and requires the per-pixel curve to keep at least 25 percent more line
-    contrast than the smooth field, plus its sibling pinning that the two engines are NOT
-    interchangeable, so a future tidy-up cannot quietly unify them. The thirteen helmets move 0
-    of 34,931 solid pixels against the pre-fix engine, so what shipped for them is the haze fix
-    alone. Owner half, owner only: the hats and crossbows still read clean in game.
-
-
 - **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [AWAITING-LIVE]
   - Built and adversarially checked 2026-08-12, same session it was opened: six new pinned
     tests written red first, the extractor now emits the five alias entries (each tagged with
@@ -116,27 +51,6 @@ the technical detail lives in the indented lines under it.
     169-173 live is the one unverified link (band equals sheet key was read live at 95 in
     the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
     space).
-
-- **[LW-188] Too many early enemies hover on Float gear; the two rebalance-added armor Floats are cut back** (opened 2026-08-13) [AWAITING-LIVE]
-  - Done means: chapter 1 stops being a hovering parade. The owner observed a majority of early
-    enemies floating off equipped gear (and caught an Empyrean Robe floater live mid-battle).
-    Root cause: the rebalance grew the game's Float sources from two to five, and one of the
-    new ones sat on the single most-worn enemy helmet in the game. Enemy auto-equip honors the
-    vanilla level gates our sparse tables never touch, so every level-15+ knight wore the Float
-    helm and every level-38+ caster the Float robe. The cutback reverts exactly the two new
-    armor-slot grants: Sunsteel Helm (id 149, vanilla Golden Helm) trades innate Float for
-    Jump+1 (vanilla EB row 43, kept as the only mobility helm), and Empyrean Robe (id 206,
-    vanilla Luminous Robe) trades innate Float for Silence immunity (vanilla EB row 26, the MP
-    throne whose voice cannot be stolen). Float now lives only on its vanilla sources
-    (Featherfoot Boots, Envoutement) plus the Cursed Ring unique, so enemy Float prevalence
-    returns to exactly vanilla. (Tech: re-points only, no EB row redefined; descriptions
-    re-baked into item.en.nxd via patch_names.py, audit INTENDED 1130 / DRIFT 0 / UNINTENDED 0;
-    also shrinks LW-170's half-float render bug exposure to rare late pieces.)
-  - Verify: generate plus analyze green (both dominance passes, rider prose, desc budget), the
-    nxd bake audit green, suite 3101 green. Live half, owner only: after the next deploy and
-    restart, knights wearing the helm stand on the ground, the helm card reads Jump +1, the
-    robe card reads Wards against Silence, and no early-battle enemy floats without a vanilla
-    Float source equipped.
 
 - **[LW-201] The nine bow icons get the crossbow treatment, and it is the family that needs it most** (opened 2026-08-14) [QUEUED]
   - Done means: each of the nine bows reads as its own weapon in the list and on the card,

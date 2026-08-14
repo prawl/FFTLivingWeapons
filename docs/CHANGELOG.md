@@ -10,6 +10,60 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-230] SHIPPED 495f9fc 2026-08-14: every recoloured icon looked like it was giving off
+  coloured smoke, and the shields and helmets no longer do. Each sprite is drawn sitting in a
+  soft see-through haze the artist left neutral, and the recolour engines painted every pixel
+  down to the faintest edge, so the haze took the item's identity colour too. The owner spotted
+  it on the hat previews, the fix landed there first, and he then asked for the families he had
+  already approved to be re-baked so they carry it. The 16 shields and 13 helmets shipped;
+  the 115 weapons deliberately did not, because pulling the smoke off them exposed an older
+  defect underneath (see LW-232), and the owner scoped those to their own family passes.
+  Confirmed in game 2026-08-14: shields "look fine", helmets landed correctly. Honest scale of
+  the fix, since it is a small change on these two families and the owner said so on first
+  look: measured as the share of a card's identity colour that was sitting in the haze rather
+  than on the item, weapons are 27.5 percent, hats 12.0, helmets 8.2, shields 4.6. (Tech:
+  _halo_weight ramping alpha 48 to 224, blended via _halo_int in each lane's OWN quantizer,
+  called from two_zone_bright, small_bright, shield_two_tone and helm_recolor; legacy excluded
+  by design with a selftest tripwire, since its 72 items are unreviewed. Proofs: 0 of 107,237
+  solid weapon and 0 of 48,389 solid shield pixels move against the pre-fix engine, hats and
+  crossbows and legacy byte identical, bake matches previews 58 of 58, ten mutations each turn
+  a named check red. New: icon_preview.py compare, which diffs the working engine against any
+  committed revision, and a bake WARN naming any item whose tint reaches under 2 percent of its
+  solid art. recolor_icons.py --selftest was wired into tools/pipeline.ps1 as a real gate, with
+  Pillow pip-installed in release.yml for the step.)
+
+- [LW-231] SHIPPED fb02f80 2026-08-14: recoloured icons came out mottled with coloured speckle,
+  and the hats and crossbows now carry the artist's own smooth shading. The engines expand light
+  against dark one pixel at a time, which multiplies the art's own compression grain, and under
+  a saturated tint that grain reads as blotchy cloud across the surface. The fix expands the
+  contrast on a softened copy of the brightness and returns the fine grain at reduced strength.
+  It stays on the eighteen items that needed it. Extending it to the thirteen helmets was built,
+  gated, baked and REVERTED the same day (42f6c11) on sight: a blur cannot tell a drawn
+  one-pixel line from compression grain, and helmet art is engraved metal whose whole subject is
+  that line work, so the Sunsteel crown's scale rows and the Timeward's black seams smeared.
+  Every aggregate measurement passed while that happened (blurred difference 8 to 11 of 255,
+  tonal spread down under 10 percent, grain swing down 42.3 percent) precisely because those
+  metrics are blind to one-pixel features, which is the lesson worth keeping: for a change about
+  fine detail the picture is the instrument and the summary statistic is not. Weapons and
+  shields stay out for a simpler measured reason, no contrast expansion to protect. Confirmed in
+  game: crossbows "look great" 2026-08-14, hats passed with LW-216. (Tech: _value_fields plus
+  DETAIL_GAIN 0.30 in zone_recolor; the selftest now renders a one-pixel engraved grid through
+  both contrast engines and requires the per-pixel curve to keep at least 25 percent more line
+  contrast, plus a pin that the two engines are deliberately NOT interchangeable.)
+
+- [LW-188] SHIPPED 5f95a5e 2026-08-14: chapter 1 stopped being a hovering parade. The owner saw
+  a majority of early enemies floating off equipped gear, because the rebalance had grown the
+  game's Float sources from two to five and one of the new ones sat on the single most-worn
+  enemy helmet in the game. Enemy auto-equip honours the vanilla level gates our sparse tables
+  never touch, so every level-15+ knight wore the Float helm and every level-38+ caster the
+  Float robe. The two rebalance-added armor Floats were reverted: Sunsteel Helm trades innate
+  Float for Jump +1, Empyrean Robe trades it for Silence immunity, and Float now lives only on
+  its vanilla sources plus the Cursed Ring. Enemy Float prevalence returns to exactly vanilla.
+  Owner verified in game 2026-08-14 ("working for a while now"). (Tech: re-points only, no
+  EquipBonus row redefined, descriptions re-baked into item.en.nxd via patch_names.py with the
+  audit reading INTENDED 1130 / DRIFT 0 / UNINTENDED 0. Also shrinks LW-170's half-float render
+  bug exposure to rare late pieces.)
+
 - [LW-202] SHIPPED 8b80e06 2026-08-14: the six crossbows were the drab corner of the weapon
   list and now every one of them is a colour you can name. The owner's word for the family was
   dull and it was true twice over: the tints were timid, three of the six sitting at a
