@@ -54,6 +54,56 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-233] 2026-08-14: Rewinding a turn lets the same enemy be killed twice, and the second
+  kill counts, so a player can inflate a weapon's tally without meaning to and the growth they
+  get is not the growth they earned. Found in a real user's flight tape, not in testing. The
+  game's in-battle rewind puts dead units back on the field; the mod never sees it happen, so
+  its per-slot "already credited" latch re-arms when the slot comes back alive and the re-kill
+  pays out again. On the tape one enemy (band slot 15, nameId 860, job 94) was credited at count
+  23, restored to full HP by a rewind, killed again, and credited at count 25, and count 25 is
+  the credit that fired this player's "Vagabond has grown to Vagabond+2" toast. A second rewind
+  later revived another already-credited enemy that was never re-killed. The tally is saved at
+  battle exit, so the inflation is permanent. Farming it is trivial and the player need not even
+  intend to. (Tech: evidence in Downloads/flight_20260812_023337_battle-exit.jsonl. The rewind
+  is one tick, t=12446343: battleMode 0 to 3, ActorPtr transitions to 0x0, and SIX band slots
+  simultaneously change tile and are healed, three of them from 0 HP to full. Two clean
+  detectors, both measured on this corpus: ActorPtr reading null while In fires exactly twice,
+  once per rewind, with zero false positives across 538 seconds and 163 pointer transitions; and
+  "healed from 0 HP AND moved on the same tick" separates rewinds (5 units, then 1) from all
+  eight ordinary heal ticks (0 and 0). The pair matters because a real Raise heals from 0 but
+  never relocates its target. Fix shape: freeze credit while the rewind signal is up, then
+  reconcile the tally against the pre-rewind snapshot. Ledger row owed for the ActorPtr-null
+  signal before anything is built on it.)
+
+- [LW-234] 2026-08-14: The mod files the player's own guests as enemies, so a guest dying could
+  hand the player's weapon a kill it did not earn, complete with a growth toast. Found in the
+  same user's tape. Two player-side units (nameId 4 and nameId 7, band seats 8 and 9) were
+  bridged Enemy fourteen times with rescue=OracleEnemy, meaning the enemy oracle had captured
+  them. That they are on the player's side is visible in the tape rather than assumed: seat 8
+  takes 18 damage at t=12782890 and never dies, while every unit that does die is one of the
+  job 169 to 172 monsters. Nothing was mis-credited this session because neither guest died, so
+  this is a live exposure and not an observed loss. What makes it sharp is that oracle
+  membership is the ONLY team gate on kill credit, and the class doc for EnemyOracle states that
+  guests are "structurally excluded", which this tape falsifies. (Tech:
+  Downloads/flight_20260812_023631_battle-exit.jsonl; the gate is _oracle.Contains(slot.Id) in
+  KillTracker.Corpses.cs. Either add a real side-membership read, which the Provoke arc proved
+  must come from the band's own bit and never from seat position, or stop claiming exclusion in
+  the doc and gate credit on something that actually holds. Rides naturally with LW-233 since
+  both are corpse-credit correctness.)
+
+- [LW-235] 2026-08-14: The mod has no way to learn which weapons players actually use, and the
+  one time real user logs arrived they answered nothing. Owner question 2026-08-14: which
+  weapons are used and which are ignored. The six submitted Reloaded console logs contain ZERO
+  lines from this mod, across two different users and including two logs that run more than
+  twenty minutes into play, while five other mods log to that console freely, so support
+  requests built on those logs have never carried our evidence. The only weapon data that
+  existed came from flight tapes one user happened to send, and it is a chapter 1 party holding
+  the gear the game gives you (four Vagabonds, two Cutpurses, one Quicksilver), which is not a
+  preference signal at all. Worth noting the mod already persists exactly the right data:
+  kills.json in the save dir is a per-weapon tally across a whole playthrough. The question is
+  whether an opt-in way exists for a player to send it, what it must not contain, and whether
+  the console silence is itself a bug worth fixing first since it costs support time today.
+
 - [LW-201] 2026-08-13: Bows re-pass: the 9 bow icons get the shields-grade per item review;
   process per LW-198. PAUSED by the owner 2026-08-14, along with the whole icon re-pass and
   freshen-up program (LW-198 through LW-226 and LW-232), after the crossbows, shields and
