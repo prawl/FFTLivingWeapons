@@ -177,12 +177,21 @@ ICON_TINTS = {
                               #                 stays warm and only deepens toward lacquer red
                               #                 (was 0.58/0.42/0.95, a storm grey-blue that
                               #                 fought the art it sits on)
-    91: (0.135, 0.55, 1.25),  # Perseus Bow     RESERVED NAME, and the Chaos Blade's case: its
-                              #                 vanilla measures chroma 0.031, near enough to
-                              #                 colourless that the anchor constrains VALUE and
-                              #                 not hue, so the Holy gold it already wore is
-                              #                 legitimate. Paler and less saturated than the
-                              #                 Stormarc so the two do not trade places
+    91: (0.135, 0.55, 1.25),  # Perseus Bow     RESERVED NAME, kept GOLD on an owner ruling
+                              #                 2026-08-14, and the reasoning is corrected here
+                              #                 because the original was wrong. This was
+                              #                 anchored as "vanilla chroma 0.031, near enough
+                              #                 to colourless that hue is free", measured on the
+                              #                 CARD. An audit the same day found the card
+                              #                 understates chroma by a mean 2.4x against the
+                              #                 item's own list icon, and this bow's ICON reads
+                              #                 chroma 0.120 at hue 229 degrees: a visibly BLUE
+                              #                 bow. So gold is a ~180 degree move away from its
+                              #                 own art, not a free choice. The owner reviewed
+                              #                 that and kept gold, on the convention that Holy
+                              #                 is gold everywhere in this mod (Excalibur,
+                              #                 Lightbringer). Measure BOTH surfaces before
+                              #                 calling an anchor colourless
                               #                 (was 0.13/0.45/1.18, and 0.0% covered)
     # --- Shields (ids 128-143) ---
     # Hues are DELIBERATELY SPACED, and SHIELD_MIN_HUE_GAP in selftest() enforces it. Under the
@@ -1185,6 +1194,7 @@ BLACK_IRON = (0.615, 0.10, 0.45)
 # Graviton when an earlier near-neutral rim sat within 0.30 saturation of the blade).
 LEVIN = (0.145, 0.95, 1.30)      # the one hue hot enough to read as lightning at 48px
 PLASMA = (0.485, 0.82, 1.34)     # not a metal: the cold light bleeding off an event horizon
+VERDANT = (0.330, 0.85, 1.10)    # nor this: living green, for the one rod whose orb is a spring
 VIOLET_FLAME = (0.790, 0.88, 1.02)  # nor this: the dark arriving as fire on Ragnarok's fuller
 NIGHT_IRON = (0.740, 0.45, 0.42)    # furniture for a near-NEUTRAL blade. A plain black iron is
                                     # the obvious choice there and the no-single-colour gate
@@ -1256,6 +1266,7 @@ SWORD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Sword")
 KNIGHT_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "KnightSword")
 BOW_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bow")
 GUN_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Gun")
+ROD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Rod")
 
 ZONE_OVERRIDES = {
     # --- Swords (LW-199, 2026-08-14) ------------------------------------------------------
@@ -1400,6 +1411,40 @@ ZONE_OVERRIDES = {
     # thing from Save the Queen, whose sprite it borrows.
     50: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
                    _edge(GOLD, pct=22)], "gleam": 0.20, "contrast": 0.60},  # Sunderer
+    # --- Rods (LW-208, 2026-08-14) --------------------------------------------------------
+    # The worst family left before this pass: a TRUE median of 1.8% of the solid art, with the
+    # Ember Rod and the Rod of Faith at 0.0.
+    #
+    # A rod is the fourth art shape to need no new engine, and the neatest fit yet. It is a
+    # SHAFT, an ORB and a ferrule, and the two sword keys land on exactly those: measured over
+    # the six distinct sprites, darkness claims 3.3 to 17.6 percent and is the shaft every time,
+    # brightness claims 4.0 to 21.9 percent and is the orb. So these are the swords' recipes with
+    # the meanings swapped, _hilt taking the shaft and _edge the orb, which is also why the orb
+    # tone is a LIGHT on the elemental rods rather than a metal: the orb is where the magic is.
+    #
+    # Tints live in data/items.json for this family. Reserved names are anchored against BOTH
+    # surfaces, not just the card: the Dragon Rod's icon reads hue 153 degrees, a jade teal, and
+    # the tint follows it; the Rod of Faith's icon reads a warm 18 degrees, so Holy gold sits
+    # with its art rather than against it. Measuring the card alone is what put the Perseus Bow
+    # 180 degrees from its own colour (see id 91).
+    51: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.34),
+                   _edge(VERDANT, pct=18, floor=0.60)], "gleam": 0.25},      # Wellspring Rod
+    52: {"zones": [_hilt(STEEL, pct=22, floor=0.48),
+                   _edge(LEVIN, pct=20, floor=0.62)], "gleam": 0.22,
+         "contrast": 0.60},                                                  # Spark Rod
+    53: {"zones": [_hilt(BLACK_IRON, pct=24, floor=0.34),
+                   _edge(WHITE, pct=18, floor=0.68)], "gleam": 0.22},        # Ember Rod
+    54: {"zones": [_hilt(SILVER, pct=22, floor=0.50),
+                   _edge(WHITE, pct=18, floor=0.66)], "gleam": 0.30},        # Frost Rod
+    55: {"zones": [_hilt(BRASS, pct=22, floor=0.48),
+                   _edge(BONE, pct=18, floor=0.62)], "gleam": 0.25},         # Hushward Rod
+    56: {"zones": [_hilt(SILVER, pct=22, floor=0.48),
+                   _edge(PLASMA, pct=18, floor=0.62)], "gleam": 0.20,
+         "contrast": 0.65},                                                  # Umbral Rod
+    57: {"zones": [_hilt(STEEL, pct=22, floor=0.48),
+                   _edge(GOLD, pct=18, floor=0.58)], "gleam": 0.25},         # Dragon Rod
+    58: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.36),
+                   _edge(WHITE, pct=20, floor=0.70)], "gleam": 0.25},        # Rod of Faith
     # --- Guns (LW-203, 2026-08-14) --------------------------------------------------------
     # The least-coloured family in the game before this pass: measured, the shipping bake reached
     # a MEDIAN 1.7% of each gun's solid art and 0.0% of the Ironclad Repeater's, which is last of
@@ -2198,7 +2243,7 @@ def selftest():
     # family that has actually been through a review pass, not that they are all hats: the zone
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
-    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun"}
+    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2245,7 +2290,7 @@ def selftest():
     check("every reviewed family is picked, whole",
           sorted(ZONE_OVERRIDES)
           == sorted({i for i, c in _CATEGORY.items()
-                     if c in ("Hat", "Crossbow", "Bow", "Gun")}
+                     if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod")}
                     | SWORD_RACK | KNIGHT_RACK))
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
@@ -2293,6 +2338,7 @@ def selftest():
     knights = sorted(KNIGHT_RACK)
     bows = sorted(BOW_RACK)
     guns = sorted(GUN_RACK)
+    rods = sorted(ROD_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2313,7 +2359,7 @@ def selftest():
         return all(tuple(z["tone"]) in METALS for z in ZONE_OVERRIDES[i]["zones"])
 
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
-                            ("bow", bows), ("gun", guns),
+                            ("bow", bows), ("gun", guns), ("rod", rods),
                             ("hat", hats), ("crossbow", xbows)):
         rack = [i for i in rack if body_is_whole_signal(i)]
         rack_collisions = [
@@ -2330,6 +2376,7 @@ def selftest():
     check("the knight sword rack is all seven", len(knights) == 7)
     check("the bow rack is all nine", len(bows) == 9)
     check("the gun rack is all six", len(guns) == 6)
+    check("the rod rack is all eight", len(rods) == 8)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2362,7 +2409,7 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    bladed = swords + knights + bows + guns
+    bladed = swords + knights + bows + guns + rods
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in

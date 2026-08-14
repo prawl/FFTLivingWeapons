@@ -187,6 +187,28 @@ the technical detail lives in the indented lines under it.
     pixel; and the owner's gallery pass.
 
 
+- **[LW-208] Two rods are not recoloured at all and four more are under six percent, making rods the worst family left** (opened 2026-08-13) [BUILDING]
+  - Promoted 2026-08-14 on the same evidence that picked guns: measured across every family still
+    on the old engine, rods come last at a TRUE median of 1.8 percent, with the Ember Rod and the
+    Rod of Faith at 0.0 and four more under six.
+  - A rod is the fourth art shape and, like the three before it, needs no new engine. It is a
+    SHAFT, an ORB, and a ferrule, and the two keys already in the vocabulary land on exactly
+    those: darkness finds the shaft on 6 of 6 sprites and brightness finds the orb. So a rod is
+    the swords' body-plus-hilt-plus-edge shape with the meanings swapped, the shaft taking the
+    role the hilt plays and the orb the role of the lit ridge.
+  - Two of the eight kept their vanilla names (Dragon Rod, Rod of Faith) and are anchored to
+    their own measured art. This family is also where the anchor method gets corrected: an audit
+    found the CARD understates chroma by a mean 2.4x against the same item's list icon, which is
+    how the Perseus Bow was anchored as colourless when its icon reads a clear blue. Both
+    surfaces are measured here, and the icon is believed over the card.
+  - Done means: all eight carry their identity colour across their solid art with the shaft as a
+    visibly separate material, no two read alike at list size, the two reserved names are
+    enriched rather than reinvented against BOTH surfaces, and no already-approved art moves.
+  - Verify: recolor_icons selftest green with this family inside every owner-rule pin; each rod's
+    second material measured on the real art; `icon_preview.py compare --expect` naming exactly
+    these ids and reporting nothing else moved; the bake matching the reviewed gallery pixel for
+    pixel against a FULL preview manifest; and the owner's gallery pass.
+
 ## Backlog
 
 - [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
@@ -288,8 +310,6 @@ the technical detail lives in the indented lines under it.
 - [LW-206] 2026-08-13: Poles re-pass: the 9 pole icons get the shields-grade per item review; process per LW-198.
 
 - [LW-207] 2026-08-13: Polearms re-pass: the 8 polearm icons get the shields-grade per item review; process per LW-198.
-
-- [LW-208] 2026-08-13: Rods re-pass: the 8 rod icons get the shields-grade per item review; process per LW-198.
 
 - [LW-209] 2026-08-13: Staves re-pass: the 8 staff icons get the shields-grade per item review; process per LW-198.
 
