@@ -13,21 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-227] The icon check that proves "the shipped picture is the approved picture" was passing without looking at any colour** (opened 2026-08-13) [BUILDING]
-  - Done means: the check compares two images and asks Pillow whether they differ, but the
-    newest Pillow answers by looking only at which pixels are see-through, so two pictures with
-    completely different colours came back "identical" (proven by handing it the shipped red
-    Genji Helm and the untinted vanilla art of the same helmet). Done is the comparison seeing
-    colour again, a regression case pinning it so it cannot silently rot back, and the already
-    shipped families re-checked under the honest gate. (Tech: tools/icon_preview.py used
-    `ImageChops.difference(a, b).getbbox() is not None`; Pillow 10 made getbbox alpha-only by
-    default and this box runs Pillow 12.0.0. Fix is a shared bytes-level `images_equal` in
-    tools/recolor_icons.py used by the verify verb, plus red-vs-blue and alpha-only regression
-    cases in the recolor selftest.)
-  - Verify: the recolor selftest is green including the new honesty cases, and
-    `icon_preview.py verify` across the full catalog reports zero mismatches under the honest
-    comparison, which is the shields-and-weapons re-check happening in the same breath.
-
 - **[LW-215] Give the thirteen helmet icons the shields-grade treatment, first section of the re-pass program** (opened 2026-08-13) [BUILDING]
   - Done means: helmets stop being the family the icon work never reached: all thirteen still
     wear the legacy one-hue stamp (one flat colour over every pixel), now the worst look in a
@@ -130,6 +115,16 @@ the technical detail lives in the indented lines under it.
     Float source equipped.
 
 ## Backlog
+
+- [LW-228] 2026-08-13: Harp signature ideas from the owner, banked for when the instruments
+  arc opens. One harp grants Ramza's Tailwind so the wielder can hand a unit extra Speed. The
+  blood-string harp keeps its long range HP steal, which is unique, and its awakened tier
+  could cast Elmdore's Blood Suck, turning the bitten enemy into a vampire. A third harp
+  takes the MP restoring ability the tree monsters use and widens it into an area effect.
+  (Tech: the granted-command trio (Barrage, Shadow Blade, Provoke via JobCommand injection)
+  is the proven candidate mechanism for the Tailwind grant; the Blood Suck vampire conversion
+  and the AOE widening are both unverified and need their own live RE before any of this is
+  promised in a design doc.)
 
 - [LW-198] 2026-08-13: Daggers re-pass: the 11 dagger icons get the shields-grade per item
   review. This row also carries the LW-198 through LW-226 program statement the other section

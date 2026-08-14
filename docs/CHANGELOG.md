@@ -10,6 +10,18 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-227] SHIPPED eabc893 2026-08-13: the check that proves "the icon we shipped is exactly
+  the icon that was approved" had been passing without looking at any colour, and it is honest
+  again. The comparison asked the imaging library whether two pictures differ, but the newer
+  library answers that by looking only at which pixels are see-through, so a red and a blue
+  picture compared as identical (proven against the shipped red Genji Helm versus its untinted
+  vanilla art). The comparison now reads the actual bytes, red-versus-blue and alpha-only
+  regression cases pin it in the recolor selftest, and re-running the whole catalog under the
+  honest check came back 468 of 468 clean, which also retroactively confirms the shields and
+  weapons shipped correctly all along. (Tech: Pillow 10 made getbbox alpha-only by default;
+  tools/icon_preview.py verify now uses the shared bytes-level images_equal from
+  tools/recolor_icons.py. Found and fixed inside the LW-215 helmet pass.)
+
 - [LW-189] SHIPPED 4872ed5 2026-08-13: every weapon icon got per-surface recoloring instead of
   the one-hue stamp, and the owner gave the live verdict the same week it deployed: the weapons
   look ACCEPTABLE in game, which closes this row's remaining half. "Acceptable" is also the
