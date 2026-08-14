@@ -10,6 +10,40 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-216] SHIPPED fb02f80 2026-08-14: every hat in the game wore one flat colour smeared over
+  every pixel, and now all twelve carry a real colour scheme. The flat stamp erased the exact
+  thing each hat is named for: the Wardplume's plume, the Zephyr Beret's feather, the Arcanist
+  Cap's painted star. Four of them (the Roughspun Cap, the Adept's Hood, the Martial Band and
+  the Assassin's Cowl) were decided outright rather than sent back for another round of
+  lettered options, on the owner's instruction to just colour them, and he passed the whole set
+  in game. The hats needed a new engine to get there: the old one splits a picture into a body
+  and one accent, which is all a helmet is, while a hat is cloth plus a brim or lining plus a
+  crest or a painted emblem. The new one lays as many zones as the art can carry, in order,
+  with the last one winning where two overlap, which is what lets a white star sit inside a
+  bright crest instead of blending into it. Two long-standing flaws in the recolouring were
+  fixed here too, on the hats only: sprites no longer look like they are giving off coloured
+  smoke, and surfaces no longer come out mottled with speckle. Hair adornments share the equip
+  slot but ship under LW-217. (Tech: engine hat_recolor in tools/recolor_icons.py routed as
+  "hat-three-zone", recipes in HAT_OVERRIDES, body tints in items.json iconTint, third mask key
+  "desat" on a saturation percentile because a brightness key cannot see white paint on pink
+  felt. LW-230 halo ramp and LW-231 smooth-field contrast ride along for hats. Proofs: bake
+  byte-identical to the approved previews on all 28 surfaces, icon_preview verify 28/28, git
+  status showing exactly 28 changed .tex files so every untouched family is proven unchanged,
+  selftest and analyze.py green, suite 3101/3101. Follow-up faa9af9 rebuilt four selftest pins
+  that an adversarial pass proved were passing without testing anything.)
+
+- [LW-215] SHIPPED fb02f80 2026-08-14: the helmets are finished. Eleven of the thirteen shipped
+  in eabc893 last week; the last two, the Mendsteel Helm and the Timeward Helm, had been left on
+  the old flat tint because their picks never landed, and both of their old colours collided
+  with a sibling anyway. They were decided rather than lettered, in the same pass as the hats,
+  and the owner passed them in game. The Mendsteel is the one green helmet, which is what its
+  Regen and Poison immunity should look like, with gold on the inset panel the artist painted
+  across its brow. The Timeward is the head slot's one bright metal, which is the honest answer
+  to a shelf that has no unclaimed colour left on it. (Tech: 145 and 151 join HELM_OVERRIDES on
+  style "helm". 151's accent rides shade rather than cover because its bright pixels are
+  scattered horn highlights that a cover mask returns as confetti; an ice blue version was tried
+  and dropped since four helmets are already blue. Same proof set as LW-216 above.)
+
 - [LW-227] SHIPPED eabc893 2026-08-13: the check that proves "the icon we shipped is exactly
   the icon that was approved" had been passing without looking at any colour, and it is honest
   again. The comparison asked the imaging library whether two pictures differ, but the newer
