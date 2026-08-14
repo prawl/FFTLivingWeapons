@@ -10,6 +10,29 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-203] SHIPPED 3a8d828 2026-08-14: The six guns were the least-coloured family in the game
+  and now read as coloured objects. Picked next on evidence rather than queue order: every
+  weapon family still on the old engine was measured for how much of its solid art the shipping
+  bake actually reached, and guns came last of twelve at a MEDIAN of 1.7 percent, with five of
+  the six under 15 percent and the Ironclad Repeater at 0.0. All six now carry their identity
+  colour across the stock and frame with the barrel as a separate material. Owner verified in
+  game 2026-08-14 ("Gun updated verified"), after passing the gallery ("Those look fucking
+  amazing. All of them"). (Tech: a gun is the THIRD art shape in a row to need no new engine,
+  which is the transferable part. A sword has a hilt and the darkness key finds it; a bow has a
+  string and the saturation key finds it; a gun is a wooden STOCK against a metal BARREL, which
+  is the crossbow's own split, so _material finds the barrel on all six at 12 to 21 percent of
+  the solid art. Four of the six kept their vanilla names and are anchored to their own MEASURED
+  chroma-weighted vanilla hue rather than a remembered one: the Blaze Gun's anchor carries chroma
+  0.143, roughly three times its siblings and the most chromatic met in any family, so it wanted
+  little more than saturating, while the Blaster's 0.032 is near enough to colourless that its
+  anchor constrains value and not hue, freeing it to be lightning yellow. The Outrider Pistol
+  moved off walnut mid-round because walnut put two brown guns in a six-item list beside the
+  anchored Stoneshooter, so the free name gave way. Verification: compare reports 0 moved pixels
+  across bright-v2, shield-bright, helm-two-tone, legacy and all 98 already-approved three-zone
+  surfaces; the bake matches the reviewed gallery 12 of 12 pixel-exact against a FULL preview
+  manifest, since a partial one silently narrows what verify checks; suite 2947 green and CI
+  green on the push.)
+
 - [LW-10] SHIPPED 2aee150 2026-08-14: Treasure Master is gone from the mod, not merely switched
   off. It marked the battle tiles hiding Move-Find treasure, had shipped disarmed since 2.3.0,
   and had been slated for removal for six weeks; carrying it cost a background thread, a baked
