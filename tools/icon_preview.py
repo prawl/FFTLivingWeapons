@@ -19,12 +19,16 @@ Verbs (all outputs go under --out, default %TEMP%\\icon_preview; never a repo di
   python tools/icon_preview.py gallery [--out D]            # the owner's before/after HTML
   python tools/icon_preview.py verify [--out D]             # preview PNGs vs the production bake's
                                                             # working/icons PNGs, pixel identity
+  python tools/icon_preview.py compare [ids...] [--rev R]   # working-tree engine vs the one
+                                                            # committed at R (default HEAD): what
+                                                            # an engine change did to approved art
 preview with no ids does every tinted item, each routed through recolor_icons.route() -- the
 SAME per-category split production uses (LW-189 bright-v2 for weapons, LW-190 two-tone for
 shields, legacy whole-tint for the rest), so the split can never drift from production.
 flags.json in the out dir ({id: note}) annotates gallery rows amber.
 """
 import base64
+import importlib.util
 import io
 import json
 import os
@@ -188,6 +192,95 @@ def cmd_verify(out):
     return 1 if (bad or missing) else 0
 
 
+def load_engine(rev, out):
+    """Import a SECOND copy of the recolor engine, as of a git revision, alongside the live one.
+
+    An engine change silently invalidates the identity of every family already approved under
+    the old one (docs/DEV_TEST_RECIPES.md says so in as many words), and until this verb existed
+    the only way to see what a change did to approved art was to eyeball a gallery. Loading the
+    committed engine as its own module makes that a measurement instead: same vanilla input,
+    two engines, one diff.
+
+    The copy lands in the out dir and NOT beside the live module: same-directory would put two
+    files named recolor_icons.py on one path and the second import would win. tools/ stays on
+    sys.path so the copy's own `from lib...` imports resolve to the same shared package."""
+    src = out / f"_engine_{rev.replace('/', '_')}.py"
+    src.write_bytes(subprocess.run(["git", "show", f"{rev}:tools/recolor_icons.py"],
+                                   cwd=str(ROOT), capture_output=True, check=True).stdout)
+    spec = importlib.util.spec_from_file_location(f"recolor_icons_{abs(hash(rev)):x}", src)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def band_census(van, old, new):
+    """Per-alpha-band diff between two renders of the same sprite, plus how much of the identity
+    colour survives. Solid means alpha >= ri.HALO_HI: the band the halo ramp leaves at FULL
+    tint, so a nonzero count there is an engine change reaching art the owner already signed
+    off, not a halo fix."""
+    vp, op, np_ = van.load(), old.load(), new.load()
+    solid = solid_moved = band = band_moved = 0
+    kept_old = kept_new = 0.0
+    for y in range(van.height):
+        for x in range(van.width):
+            r, g, b, a = vp[x, y]
+            if a < 8:
+                continue
+            same = op[x, y] == np_[x, y]
+            if a >= ri.HALO_HI:
+                solid += 1
+                solid_moved += not same
+            else:
+                band += 1
+                band_moved += not same
+            # alpha-weighted distance from the artist's own colour: what the tint is "worth"
+            kept_old += a * sum(abs(c - v) for c, v in zip(op[x, y][:3], (r, g, b)))
+            kept_new += a * sum(abs(c - v) for c, v in zip(np_[x, y][:3], (r, g, b)))
+    return {"solid": solid, "solid_moved": solid_moved, "band": band, "band_moved": band_moved,
+            "kept": (kept_new / kept_old) if kept_old else 1.0}
+
+
+def cmd_compare(rev, only, out):
+    """Render every tinted item through the committed engine and the working-tree engine."""
+    out.mkdir(parents=True, exist_ok=True)
+    old_ri = load_engine(rev, out)
+    rows = []
+    for iid, tint in sorted(ri.ICON_TINTS.items()):
+        if only and iid not in only:
+            continue
+        src_id = ri.SRC.get(iid, iid)
+        for sub, pfx, surface in SURFACES:
+            van = decode_vanilla(sub, pfx, src_id, out)
+            if van is None:
+                continue
+            old = old_ri.route(van.copy(), iid, tint, surface)
+            new = ri.route(van.copy(), iid, tint, surface)
+            row = {"id": iid, "surface": surface, "engine": ri.engine_for(iid),
+                   "was": old_ri.engine_for(iid), **band_census(van, old, new)}
+            rows.append(row)
+            for tag, im in (("0van", van), ("1old", old), ("2new", new)):
+                im.save(out / f"c{iid:03d}_{surface}_{tag}.png")
+        print(f"id{iid:>3} {ri.engine_for(iid)}", end="\r")
+    (out / "compare.json").write_text(json.dumps(rows, indent=1), encoding="utf-8")
+    engines = sorted({r["engine"] for r in rows})
+    print(f"\n{len(rows)} surfaces compared against {rev}\n")
+    print(f"{'engine':<15} {'items':>5} {'solid px':>9} {'MOVED':>7} {'band px':>8} {'moved':>7}"
+          f" {'colour kept':>12}")
+    for eng in engines:
+        g = [r for r in rows if r["engine"] == eng]
+        keep = sorted(r["kept"] for r in g)
+        print(f"{eng:<15} {len(g):>5} {sum(r['solid'] for r in g):>9}"
+              f" {sum(r['solid_moved'] for r in g):>7} {sum(r['band'] for r in g):>8}"
+              f" {sum(r['band_moved'] for r in g):>7}"
+              f" {keep[len(keep) // 2] * 100:>10.0f}% ")
+    thin = sorted((r for r in rows if r["kept"] < 0.60), key=lambda r: r["kept"])
+    if thin:
+        print(f"\n{len(thin)} surfaces keep under 60% of their identity colour:")
+        for r in thin[:40]:
+            print(f"  id{r['id']:>3} {r['surface']:<6} {r['engine']:<14} {r['kept'] * 100:>5.1f}%")
+    return rows
+
+
 def main(argv):
     if not argv:
         print(__doc__)
@@ -203,6 +296,9 @@ def main(argv):
         cmd_gallery(out)
     elif verb == "verify":
         return cmd_verify(out)
+    elif verb == "compare":
+        rev = rest[rest.index("--rev") + 1] if "--rev" in rest else "HEAD"
+        cmd_compare(rev, {int(a) for a in rest if a.isdigit()}, out)
     else:
         print(__doc__)
         return 2

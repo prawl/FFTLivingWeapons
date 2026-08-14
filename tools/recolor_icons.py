@@ -28,15 +28,22 @@ LW-190, LW-215 and LW-216 carry the decision trails):
   under a contrast S-curve and a sheen, with the recipe's second colour blended across ONE
   feathered organic mask (cover = the bright fittings, shade = the recesses).
 
-  HATS (ZONE_OVERRIDES) get the LW-216 THREE-ZONE treatment: zone_recolor lays N feathered zones
-  over the body in list order, because a hat is cloth plus a brim or lining plus a plume or a
-  painted emblem, and two zones cannot say that. It also carries two fixes the older engines do
-  not have, since re-baking their already-approved art is a separate owner call: the halo ramp
-  (LW-230) and the smooth-field contrast (LW-231).
+  HATS and CROSSBOWS (ZONE_OVERRIDES) get the LW-216 THREE-ZONE treatment: zone_recolor lays N
+  feathered zones over the body in list order, because a hat is cloth plus a brim or lining plus
+  a plume or a painted emblem, and two zones cannot say that.
 
   EVERYTHING ELSE (armor, accessories, hair adornments) keeps the ORIGINAL whole-icon tint: not
   yet reviewed under the new rules, so their shipped look must not change until an owner pass
   covers them.
+
+TWO LATE FIXES cut across those engines (owner scope call 2026-08-14, docs/TODO.md LW-230 and
+LW-231). The HALO RAMP runs in every engine that paints reviewed art (all but legacy): the tint
+only fully owns genuinely solid pixels, so an item stops fuming coloured smoke into the neutral
+haze the artist drew around it. The SMOOTH-FIELD CONTRAST runs in the two engines that carry a
+per-pixel contrast expansion (helm and zone), so the art's own compression grain stops being
+multiplied into blotchy speckle. Both shipped in zone_recolor first and reached the rest once
+the owner agreed to re-bake art he had already approved; legacy is excluded on purpose, since
+its families are unreviewed and their shipped look must not move before their own pass.
 
 ICON_TINTS = {id: (hue, sat, value_mult)}; hue/sat in 0..1, value_mult scales brightness.
 Run: python tools/recolor_icons.py [ids...]   |   python tools/recolor_icons.py --selftest
@@ -282,10 +289,14 @@ def two_zone_bright(im, tint, category, override):
     out = im.copy()
     opx = out.load()
     for (x, y) in coords:
-        if mask[(x, y)]:
-            r, g, b, a = px[x, y]
-            _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-            opx[x, y] = (*shade_bright(h_t, s_t, vmult, s0, v0), a)
+        if not mask[(x, y)]:
+            continue                      # outside the tint zone: the artist's pixel stands
+        r, g, b, a = px[x, y]
+        halo = _halo_weight(a)
+        if halo <= 0.0:
+            continue                      # pure haze: the artist's pixel stands (LW-230)
+        _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        opx[x, y] = (*_halo_int((r, g, b), shade_bright(h_t, s_t, vmult, s0, v0), halo), a)
     return out
 
 
@@ -304,7 +315,10 @@ def small_bright(im, tint):
         for x in range(out.width):
             r, g, b, a = px[x, y]
             if a < 8:
-                continue
+                continue                  # the mean_s pool boundary above; the two move together
+            halo = _halo_weight(a)
+            if halo <= 0.0:
+                continue                  # pure haze: the artist's pixel stands (LW-230)
             _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
             base_s = s0 * max(0.55, min(1.35, (s_t * 1.3 + 0.03) / 0.5))
             if mean_s < 0.10:                       # achromatic glyph: identity must land
@@ -315,7 +329,8 @@ def small_bright(im, tint):
             nr, ng, nb = colorsys.hsv_to_rgb(nh, ns, v)
             if s0 < 0.20 and v0 > 0.85:             # vanilla gleam stays near-white
                 nr, ng, nb = (c + (1.0 - c) * 0.60 for c in (nr, ng, nb))
-            px[x, y] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+            px[x, y] = (*_halo_int((r, g, b),
+                                   (int(nr * 255), int(ng * 255), int(nb * 255)), halo), a)
     return out
 
 
@@ -515,12 +530,16 @@ def shield_two_tone(im, tint, override=None, surface="card"):
     opx = out.load()
     for c in coords:
         r, g, b, a = px[c]
+        halo = _halo_weight(a)
+        if halo <= 0.0:
+            continue                         # pure haze: the artist's pixel stands (LW-230)
+        van = (r, g, b)
         _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
         if invert:
             # Inverse assignment (Swiftguard): the identity tint lands ON the bright fittings and
             # the plate keeps its vanilla paint, the owner's "inner plate stays original" rule.
             if mask[c]:
-                opx[c] = (*shade_shield(h_t, s_t, vmult, s0, v0), a)
+                opx[c] = (*_halo_int(van, shade_shield(h_t, s_t, vmult, s0, v0), halo), a)
             continue
         if mask[c]:
             if trim_mode == "vanilla":
@@ -530,12 +549,12 @@ def shield_two_tone(im, tint, override=None, surface="card"):
                 # the mask zone takes its OWN full identity tint through the same shader,
                 # so both materials read hot instead of one deferring to a metal tone.
                 t2 = ov["trim_tint"]
-                opx[c] = (*shade_shield(t2[0], t2[1], t2[2], s0, v0), a)
+                opx[c] = (*_halo_int(van, shade_shield(t2[0], t2[1], t2[2], s0, v0), halo), a)
                 continue
             nr, ng, nb = trim_tone(h_t, s_t, v0, trim_mode)
-            opx[c] = (int(nr * 255), int(ng * 255), int(nb * 255), a)
+            opx[c] = (*_halo_int(van, (int(nr * 255), int(ng * 255), int(nb * 255)), halo), a)
         else:
-            opx[c] = (*shade_shield(h_t, s_t, vmult, s0, v0), a)
+            opx[c] = (*_halo_int(van, shade_shield(h_t, s_t, vmult, s0, v0), halo), a)
     return out
 
 
@@ -688,7 +707,13 @@ def _helm_tone(spec, s0, v0, sheen, floor=0.0, gleam=1.0):
 
 def helm_recolor(im, tint, opts, surface="card"):
     """Owner-picked two-tone: body tint under contrast expansion and sheen, the recipe's
-    second colour blended across the feathered mask weight."""
+    second colour blended across the feathered mask weight.
+
+    Carries BOTH late fixes since 2026-08-14 (the owner's scope call to re-bake approved art):
+    the halo ramp and the smooth-field contrast. Every line of the shader below is deliberately
+    the same arithmetic zone_recolor runs, in the same order and through the same quantizer,
+    because this is the only other engine with a per-pixel contrast expansion in it and the
+    selftest pins the two as one shader on a matched fixture. If you change one, change both."""
     o = dict(opts or {})
     px = im.load()
     coords, w = helm_mask(im, o.get("mode", "cover"), o.get("pct", 22),
@@ -700,18 +725,31 @@ def helm_recolor(im, tint, opts, surface="card"):
             solid_v.append(colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[2])
     median = sorted(solid_v)[len(solid_v) // 2] if solid_v else 0.5
     contrast, sheen = o.get("contrast", 0.0), o.get("sheen", 0.0)
+    detail = o.get("detail", DETAIL_GAIN)   # test-only, as in zone_recolor; no recipe carries it
     trim = tuple(o["trim"])
+    # The median stays on the RAW solid brightness, matching zone_recolor: measured against a
+    # median taken from the smooth field the two differ by 0.2 to 4.3 of 255 and the alternative
+    # buys nothing, while drifting from the hat engine costs the shared-shader pin.
+    raw_v, smooth_v = _value_fields(im, max(0.6, 0.9 * im.width / 100.0))
     out = im.copy()
     opx = out.load()
     for c in coords:
         r, g, b, a = px[c]
-        _, s0, v0raw = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-        v0 = _helm_scurve(v0raw, median, contrast)
+        halo = _halo_weight(a)
+        if halo <= 0.0:
+            continue                        # pure haze: the artist's pixel stands (LW-230)
+        _, s0, _ = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        base = smooth_v[c]
+        v0 = max(0.0, min(1.0, _helm_scurve(base, median, contrast)
+                          + (raw_v[c] - base) * detail))
         body = _helm_sheen(helm_body(tint, s0, v0, o.get("gleam", 1.0)), sheen)
         t = _helm_tone(trim, s0, v0, o.get("trim_sheen", sheen),
                        o.get("trim_floor", 0.0), o.get("trim_gleam", 1.0))
         wc = w[c]
         rgb = tuple(bb * (1 - wc) + tt * wc for bb, tt in zip(body, t))
+        if halo < 1.0:
+            van = (r / 255, g / 255, b / 255)
+            rgb = tuple(v * (1 - halo) + n * halo for v, n in zip(van, rgb))
         opx[c] = (*[max(0, min(255, int(x * 255 + 0.5))) for x in rgb], a)
     return out
 
@@ -846,6 +884,27 @@ def _halo_weight(a):
     if a <= HALO_LO:
         return 0.0
     return (a - HALO_LO) / float(HALO_HI - HALO_LO)
+
+
+def _halo_int(van, lit, halo):
+    """The same blend for the engines whose shaders hand back 0-255 ints (LW-230, extended past
+    this section on the owner's scope call 2026-08-14; the zone engine below blends in floats
+    because it owns its pixel all the way to the quantizer).
+
+    `lit` comes back UNCHANGED at full weight, so every solid pixel of the already-approved bake
+    is bit-identical by construction rather than by arithmetic luck. Measured, the lerp happens
+    to agree at weight 1.0 under either quantizer, so this arm buys nothing TODAY; it is here so
+    that the identity proof does not quietly depend on that coincidence surviving the next edit.
+
+    The quantizer this blend inherits is the one that genuinely matters, and it must stay each
+    lane's OWN. The weapon and shield lanes truncate (shade_bright, shade_shield, and
+    trim_tone's caller) while the helm and hat lanes round. Switching those shaders to rounding
+    moves 24,476 of 107,237 solid weapon pixels and 31,396 of 48,389 solid shield pixels by one
+    LSB: invisible on screen, fatal to the pixel-exact claim. Reproduce with
+    `python tools/icon_preview.py compare` after changing one."""
+    if halo >= 1.0:
+        return lit
+    return tuple(int(v * (1.0 - halo) + n * halo) for v, n in zip(van, lit))
 
 
 DETAIL_GAIN = 0.30     # how much of the sprite's fine grain survives the contrast expansion
@@ -1136,6 +1195,30 @@ def route(im, item_id, tint, surface):
     return recolor(im.copy(), *tint)
 
 
+SOLID_TINT_FLOOR = 0.02    # below this an item ships as vanilla art wearing a coloured glow
+
+
+def solid_tint_share(van, out):
+    """What fraction of an item's SOLID art the recolour actually repainted.
+
+    Added 2026-08-14 with the halo ramp, because the ramp exposed a defect it did not cause:
+    two_zone_bright picks the brightest k-means cluster, and on thin line art (staves, bows,
+    spears) the brightest population is the sprite's own haze, so the engine painted the glow
+    and left the weapon vanilla. Thirteen weapon cards had ZERO solid pixels in their tint zone,
+    which read as a recoloured item only for as long as the glow was allowed to take the tint.
+    A colour that lives entirely in the haze is not an identity colour, so the bake says so out
+    loud instead of shipping a vanilla sprite under a coloured name."""
+    vp, op = van.load(), out.load()
+    solid = tinted = 0
+    for y in range(van.height):
+        for x in range(van.width):
+            if vp[x, y][3] < HALO_HI:
+                continue
+            solid += 1
+            tinted += op[x, y][:3] != vp[x, y][:3]
+    return (tinted / solid) if solid else 0.0
+
+
 def process(item_id, tint, src_id=None):
     WORK.mkdir(parents=True, exist_ok=True)
     sid = item_id if src_id is None else src_id
@@ -1148,7 +1231,13 @@ def process(item_id, tint, src_id=None):
         work_tex = WORK / f"{src_name}.tex"
         shutil.copy(src, work_tex)
         subprocess.run([str(FF16), "tex-conv", "-i", str(work_tex)], capture_output=True)
-        im = route(Image.open(WORK / f"{src_name}.dds").convert("RGBA"), item_id, tint, surface)
+        van = Image.open(WORK / f"{src_name}.dds").convert("RGBA")
+        im = route(van, item_id, tint, surface)
+        share = solid_tint_share(van, im)
+        if share < SOLID_TINT_FLOOR:
+            print(f"  WARN {out_name}: the tint reaches {share * 100:.1f}% of the solid art, so"
+                  f" this ships as the vanilla sprite. Its family needs its engine chosen from"
+                  f" the art (docs/TODO.md LW-232) before the bake means anything.")
         png = WORK / f"{out_name}.png"
         im.save(png)
         work_tex.unlink(missing_ok=True)
@@ -1500,16 +1589,172 @@ def selftest():
     # the S-curve expanded, and bypassing the smooth field makes these two exactly equal.
     matched = {"contrast": 0.7, "sheen": 0.0, "gleam": 1.0}
     smoothed = zone_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[]))
-    perpixel = helm_recolor(grain, (0.6, 0.8, 1.0),
-                            dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0)))
-    check("smooth-field contrast amplifies less grain than the per-pixel curve",
-          swing(smoothed) < swing(perpixel) * 0.9)
+    helm_render = helm_recolor(grain, (0.6, 0.8, 1.0),
+                               dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0)))
+    # This used to read "the hat engine amplifies less grain than the helmet engine", which was
+    # the true statement while the fix lived in one engine. Now that both carry it the two are
+    # the SAME shader, so the honest form of the check is equality: an empty zone list and an
+    # empty helm mask must render one fixture identically once contrast, sheen and gleam are
+    # matched. Stronger than the inequality it replaces, because it goes red if EITHER engine
+    # drifts, in either direction, instead of only when the hat engine gets worse.
+    check("the hat and helmet engines are one shader once every knob is matched",
+          images_equal(smoothed, helm_render))
     # The other half of the fix: the grain is DAMPED, not deleted. Measured against the same
     # render with the residue term removed, which is a flat blurred stamp; "swing > 0" is not
     # this test, because the fixture's own gradient satisfies that with the residue gone.
     no_detail = zone_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[], detail=0.0))
     check("the fine grain is damped, not thrown away",
           0.0 < DETAIL_GAIN < 1.0 and swing(smoothed) > swing(no_detail) * 1.05)
+    # ...and the helmet engine now runs the same field, so it gets the same two questions asked
+    # of it: does the expansion run on the smooth field, and is the grain damped rather than
+    # deleted. detail is a TEST-ONLY knob on both engines (it is deliberately absent from
+    # _HELM_KEYS, so no recipe can carry it) and exists exactly so these two can be measured
+    # without mutating the engine to find out.
+    helm_knobs = dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0))
+    helm_smooth = helm_recolor(grain, (0.6, 0.8, 1.0), helm_knobs)
+    helm_raw = helm_recolor(grain, (0.6, 0.8, 1.0), dict(helm_knobs, detail=1.0))
+    helm_flat = helm_recolor(grain, (0.6, 0.8, 1.0), dict(helm_knobs, detail=0.0))
+    check("helm: the contrast curve runs on the smooth field, not the raw pixel",
+          swing(helm_smooth) < swing(helm_raw) * 0.9)
+    check("helm: the fine grain is damped, not thrown away",
+          swing(helm_smooth) > swing(helm_flat) * 1.05)
+
+    # --- LW-230 and LW-231 past the hat engine (owner scope call, 2026-08-14) ----------------
+    # Both fixes shipped inside zone_recolor alone, because re-baking art the owner had already
+    # approved was his call and not ours. He made it, so the halo ramp now runs in every engine
+    # that paints REVIEWED art, and the smooth field in the helmet engine, the only other one
+    # carrying a per-pixel contrast expansion.
+    #
+    # The checks above pin the ramp and the field as FUNCTIONS. These pin that the engines
+    # actually call them, which is a different claim and the one that was missing: measured
+    # before the extension, all of LW-230 could be deleted from three of the four engines and
+    # every existing check stayed green.
+    #
+    # legacy is deliberately NOT in the fixed set (see the scope tripwire below).
+
+    def hazed_sprite(w=22):
+        """One fixture every engine can chew: all THREE alpha populations plus two materials.
+
+        A rim of haze below the ramp, two rings INSIDE it, and a solid body split into pale
+        metal and a saturated field so the brightness and saturation masks each have something
+        to find. The middle rings are the load-bearing part: haze short-circuits before the
+        blend and solid multiplies through it by 1.0, so a fixture without ramp-band pixels
+        leaves the blend itself untested."""
+        im = Image.new("RGBA", (w, w), (0, 0, 0, 0))
+        for y in range(w):
+            for x in range(w):
+                d = min(x, y, w - 1 - x, w - 1 - y)
+                if d == 0:
+                    im.putpixel((x, y), (196 + x, 198, 194 + y, 24))       # haze, below the ramp
+                elif d == 1:
+                    im.putpixel((x, y), (190 + y, 192, 188 + x, 40))       # haze, below the ramp
+                elif d == 2:
+                    im.putpixel((x, y), (150 + x, 152 + y, 148, 96))       # inside the ramp
+                elif d == 3:
+                    im.putpixel((x, y), (140 + y, 142 + x, 138, 176))      # inside the ramp
+                elif 5 <= x <= 7:
+                    im.putpixel((x, y), (198 + x, 202 + y, 206 + x, 255))  # solid: pale metal
+                else:
+                    im.putpixel((x, y), (104 + 3 * x, 58 + y, 44, 255))    # solid: saturated
+        return im
+
+    hazed = hazed_sprite()
+    hazed_haze, hazed_ramp = (0, 11), (2, 11)
+    hazed_solid = ((6, 11), (14, 11))       # one metal pixel, one body pixel
+    # Routing coverage: a future engine added without the fix must fail HERE rather than ship
+    # smoking. The right-hand side is every engine name the router can actually return today.
+    halo_sample = {"bright-v2": 19, "shield-bright": 128, "helm-two-tone": 156,
+                   "three-zone": 157, "legacy": 169}
+    check("the halo sample names every engine the router can return",
+          set(halo_sample) == {engine_for(i) for i in ICON_TINTS})
+    check("every halo sample id really routes to the engine it is filed under",
+          all(engine_for(i) == e for e, i in halo_sample.items()))
+    for eng, iid in sorted(halo_sample.items()):
+        if eng == "legacy":
+            continue
+        for surf in ("card", "small"):
+            painted = route(hazed, iid, ICON_TINTS[iid], surf)
+            check(f"{eng}/{surf} leaves the artist's haze at its own colour",
+                  painted.getpixel(hazed_haze) == hazed.getpixel(hazed_haze))
+            check(f"{eng}/{surf} still paints the solid art",
+                  any(painted.getpixel(c)[:3] != hazed.getpixel(c)[:3] for c in hazed_solid))
+            check(f"{eng}/{surf} never rewrites alpha",
+                  all(painted.getpixel(c)[3] == hazed.getpixel(c)[3]
+                      for c in (hazed_haze, hazed_ramp) + hazed_solid))
+    # The branches the one-id-per-engine sample cannot reach: a helmet that bakes through the
+    # SHIELD engine (style "shield"), and a weapon small that takes the card's two-zone split
+    # instead of the whole-glyph ramp. A fixer who patches helm_recolor and stops would leave
+    # id147 smoking, and it is filed under helmets.
+    check("both helmet styles and the two-zone weapon small keep the haze too",
+          all(route(hazed, i, ICON_TINTS[i], s).getpixel(hazed_haze)
+              == hazed.getpixel(hazed_haze)
+              for i, s in ((147, "card"), (147, "small"), (156, "card"), (24, "small"))))
+
+    def opaque_twin(im):
+        """The same sprite with every painted pixel forced solid."""
+        out = im.copy()
+        p = out.load()
+        for y in range(im.height):
+            for x in range(im.width):
+                r, g, b, a = p[x, y]
+                if a >= 8:
+                    p[x, y] = (r, g, b, 255)
+        return out
+
+    # Byte identity with no magic constant in it. bright-v2, shield-bright and legacy rank their
+    # masks on COLOUR alone over an alpha>=8 pool, so erasing the haze must not move one solid
+    # pixel. This is what goes red the moment someone "fixes" a mask pool to skip the haze,
+    # which is the natural next thought and measures as flipping 28% of solid weapon pixels into
+    # the other zone, on 115 of 115 sprites. Excluded on purpose: the helm and hat engines rank
+    # over alpha>=HELM_SOLID (so an opaque twin legitimately re-ranks), and the ring shield
+    # (id132) keys its BFS on alpha>=160 for the same reason.
+    twin = opaque_twin(hazed)
+    for iid in (19, 24, 128, 143, 169):
+        for surf in ("card", "small"):
+            with_haze = route(hazed, iid, ICON_TINTS[iid], surf)
+            without = route(twin, iid, ICON_TINTS[iid], surf)
+            check(f"id{iid}/{surf} ({engine_for(iid)}): the haze cannot move a solid pixel",
+                  all(with_haze.getpixel(c) == without.getpixel(c) for c in hazed_solid))
+    # No hard ring at the cutoff. One flat colour whose alpha ramps across the strip, through a
+    # mask-free configuration of every engine: the distance from the artist's own pixel must
+    # climb gradually, never in one step. A cliff here is exactly the artefact the long 48->224
+    # ramp exists to prevent, and it is invisible in a per-pixel unit test.
+    strip = Image.new("RGBA", (64, 3), (0, 0, 0, 0))
+    for x in range(64):
+        for y in range(3):
+            strip.putpixel((x, y), (140, 120, 96, min(255, x * 4 + 3)))
+    sp = strip.load()
+    for name, im_r in (("weapon cards", two_zone_bright(strip, (0.6, 0.8, 1.0), "Sword", {})),
+                       ("weapon smalls", small_bright(strip, (0.6, 0.8, 1.0))),
+                       ("shields", shield_two_tone(strip, (0.6, 0.8, 1.0))),
+                       ("helmets", helm_recolor(strip, (0.6, 0.8, 1.0),
+                                                {"mode": "cover", "pct": 0, "contrast": 0.5,
+                                                 "trim": (0.6, 0.8, 1.0)})),
+                       ("hats", zone_recolor(strip, (0.6, 0.8, 1.0), {"zones": []}))):
+        rp = im_r.load()
+        prof = [sum(abs(rp[x, 1][i] - sp[x, 1][i]) for i in range(3)) for x in range(64)]
+        check(f"{name}: the alpha ramp has no hard ring in it",
+              max(prof) > 0 and max(b - a for a, b in zip(prof, prof[1:])) < max(prof) * 0.25)
+    # Scope tripwire. The legacy engine KEEPS its smoky halo: its 72 items are unreviewed under
+    # the new rules and their shipped look must not move until their own owner pass lands
+    # (LW-217 through LW-226). Whoever runs that pass deletes this check; until then it is what
+    # stops a tidy-minded refactor from silently re-skinning 72 approved icons.
+    check("the legacy engine still paints the haze, until its own families are reviewed",
+          route(hazed, 169, ICON_TINTS[169], "card").getpixel(hazed_haze)
+          != hazed.getpixel(hazed_haze))
+    # The bake-time reading that catches an item whose colour lives entirely in its glow. Both
+    # arms are the pin: a whole-glyph render reads 1.0, and a render that touched only the haze
+    # reads 0.0 even though it is visibly, colourfully different from the vanilla art.
+    check("solid tint share reads a fully painted sprite as whole",
+          solid_tint_share(hazed, small_bright(hazed, (0.6, 0.9, 1.1))) == 1.0)
+    glow_only = hazed.copy()
+    gp = glow_only.load()
+    for gy in range(glow_only.height):
+        for gx in range(glow_only.width):
+            if 8 <= gp[gx, gy][3] < HALO_HI:
+                gp[gx, gy] = (20, 60, 240, gp[gx, gy][3])
+    check("solid tint share reads a glow-only recolour as untouched art",
+          solid_tint_share(hazed, glow_only) == 0.0 and SOLID_TINT_FLOOR > 0.0)
     # Three zones, composited in list order, and the LAST one wins where two overlap. That is
     # what lets a white star sit inside a bright crest instead of averaging with it.
     tri = Image.new("RGBA", (20, 20), (0, 0, 0, 0))

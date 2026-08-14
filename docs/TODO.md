@@ -31,31 +31,56 @@ the technical detail lives in the indented lines under it.
     in-game look after a deploy. Owner only, as every live flip is. All six are baked and the
     gates are green; the gallery is signed off, so what is left is the in-game look.
 
-- **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [AWAITING-LIVE]
-  - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
-    decision is made from that number. The mod now prints one plain line the first time the kill
-    counters come alive each launch, saying how many card text spots it maintains and how many
-    seconds after arming that happened, so the owner's next Deck cold boot turns the complaint
-    into a stopwatch reading. Already measured from the 2026-08-11 Deck log: the whole heap
-    sweep never ran (pool coverage carries everything) and arming tracked the save load
-    closely, so the unmeasured gap between arming and the first paint is the only suspect left.
-    (Tech: the Info line fires on the false to true edge of the pool coverage latch in
-    Display.PoolPaint.cs, once per launch, timed from Display's own first Tick, which Engine
-    only starts after the guard arms; later re coverages after an Invalidate log at Debug to
-    the file only. If the measured gap comes back under a second, the felt lag was the arming
-    follows save load seconds plus menu time, and the only deeper lever is read only pre
-    locating before arming, which touches the born disarmed principle and would need its own
-    arc.)
-  - Desktop halves measured 2026-08-12: two launches read 10.5s and 10.9s between arming and
-    the first paint, and the owner reproduced the felt symptom on desktop (a party menu opened
-    right after a save load shows the baked zero counts until the menu is re-entered). Owner
-    decision same night: ACCEPTED for the 2.3.3 cut, the README carries the player note, and
-    the row stays open for the Deck cold boot reading and the tune decision it may still
-    force (the likely tune is an unthrottled first pool locate at arming).
-  - Verify: the suite is green including the born red first coverage line test and the once per
-    launch pin, and the owner's next Steam Deck cold boot log shows the new line with its
-    seconds reading, which becomes the tune or accept decision. Owner only, as every live flip
-    is.
+- **[LW-230] Every recolored icon wears a cloud of coloured smoke, and the fix now reaches the art the owner already approved** (opened 2026-08-14) [BLOCKED(the weapon half needs an owner call, see LW-232)]
+  - Done means: an item stops looking like it is giving off coloured smoke. Each icon sprite is
+    drawn sitting in a soft see through haze that the artist left neutral, and the recolor
+    engines painted every pixel down to the faintest edge, so the haze took the item's identity
+    colour too. The owner spotted it on the hat previews and rejected it. The fix is one ramp,
+    proven on the hats: full tint only on genuinely solid pixels, none on the haze, and a long
+    blend between so no hard ring appears at the cutoff. It now runs in every engine that paints
+    reviewed art, and the families the owner has signed off are re-baked so they actually carry
+    it. Legacy stays smoky on purpose: its 72 items are unreviewed and their look must not move
+    before their own pass (LW-217 through LW-226). (Tech: _halo_weight ramping 48 to 224, called
+    from two_zone_bright, small_bright, shield_two_tone and helm_recolor, blending through
+    _halo_int in each lane's OWN quantizer; the weapon and shield lanes truncate and the helm
+    and hat lanes round, and unifying them moves 24,476 of 107,237 solid weapon pixels and
+    31,396 of 48,389 solid shield pixels by one LSB.)
+  - Shipped and baked this commit: the 16 shields and the 13 helmets, verified 58 of 58
+    pixel-exact between the approved previews and the production bake. Still held: the 115
+    weapons, because the halo fix exposed a separate and older defect in their card engine that
+    only the owner can scope (LW-232). The engine change itself is complete and every weapon
+    would take it correctly the moment that call is made.
+  - Verify: the engine's selftest is green and is now a real gate (tools/pipeline.ps1 runs it,
+    with Pillow pip-installed in CI for the step), ten mutations of the new code each turn at
+    least one named check red, and `icon_preview.py compare` measures the whole change against
+    the committed engine over all 468 surfaces: 0 of 107,237 solid weapon pixels and 0 of 48,389
+    solid shield pixels move, while the hats, crossbows and legacy families come out byte
+    identical. Owner half, owner only: the shields and helmets look right in game after a
+    deploy, and the LW-232 call decides the weapons.
+
+- **[LW-231] Recolored icons come out mottled with coloured speckle, and the helmets now get the smooth shading the artist painted** (opened 2026-08-14) [BLOCKED(rides LW-230's owner call)]
+  - Done means: a recolored item reads as a solid object with real shading instead of a blotchy
+    one. This is what the owner kept calling smoke across three rounds of the hat pass, and the
+    earlier fixes missed it because the effect is ON the item, not around it. The engines expand
+    light against dark one pixel at a time, which also multiplies the art's own compression
+    grain, and under a saturated tint that grain reads as coloured mottling across the surface.
+    The fix, proven on the hats, expands the contrast on a softened copy of the brightness (the
+    artist's real domes and folds) and adds the fine grain back at reduced strength, so large
+    features separate exactly as before and noise stops being amplified. It reaches the nine
+    helmets that carry a contrast knob. (Tech: _value_fields plus DETAIL_GAIN 0.30 in
+    helm_recolor, the same arithmetic zone_recolor runs, pinned by a selftest that renders one
+    fixture through both engines with every knob matched and requires them byte identical.)
+  - Scope, measured rather than assumed: the weapon and shield engines are NOT included, because
+    they have no contrast expansion to protect. Their gamma and shoulder measure as a grain
+    damper at about 0.86 times, against the hats' pre-fix 1.36 to 2.14, so the smooth field
+    would delete roughly half the artist's own texture there; on shields it would also move 88.8
+    percent of solid pixels, which is a re-render, not a fix. On the nine helmets it does what it
+    says: grain swing on solid pixels drops 42.3 percent while the picture survives, with the
+    blurred difference at 8 to 11 of 255 and tonal spread losing between 1.9 and 9.2 percent.
+  - Verify: green selftest with the helmet arms mutation-proven (reverting helm_recolor to the
+    per-pixel curve turns the shared-shader pin red), and the four shield-style helmets move 0
+    solid pixels while the nine helm-style ones move deliberately. Owner half, owner only: the
+    thirteen helmets read cleaner in game, not flatter.
 
 - **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [AWAITING-LIVE]
   - Built and adversarially checked 2026-08-12, same session it was opened: six new pinned
@@ -180,43 +205,48 @@ the technical detail lives in the indented lines under it.
 
 - [LW-214] 2026-08-13: Throwing weapons and Bombs first pass: the 6 shuriken and bomb icons were never tinted at all (they sit outside the 121-weapon set), so this is a first coloring, not a re-pass; process per LW-198.
 
-- [LW-230] 2026-08-14: Every recolored icon we have ever shipped wears a cloud of coloured smoke,
-  and it should be the artist's own neutral haze instead. Each icon sprite is drawn sitting in a
-  soft semi-transparent halo that the artist left grey; the recolor engines paint every pixel
-  down to alpha 8, so the halo takes the identity tint too and the item looks like it is giving
-  off coloured smoke. The owner spotted it on the hat previews and rejected it. Measured on the
-  shipped bake: 100 percent of the smoke band is repainted on all three engines, and the Genji
-  Helm's halo gains 0.58 saturation. The fix is one ramp, proven in the hat pass: full tint only
-  on genuinely opaque pixels (alpha 224 and up), none below 48, a blend between so no hard ring
-  appears. The first attempt reused the mask code's own alpha threshold of 160 and the owner
-  still saw smoke, correctly: measured per band, the 160 to 191 pixels were keeping the full
-  tint and that band is exactly the visible outer glow. The mask threshold answers a different
-  question (is there enough signal here to classify) than this one (is this pixel solid enough
-  to own the identity colour). The fix is now BUILT and SHIPPED, but only on the hats: what is
-  left is purely the owner's scope call, whether to re-bake the art he has already approved.
-  Say the word and weapons, shields and the thirteen helmets get the same clean silhouette;
-  leave it and the hats simply look better than their neighbours. (Tech: _halo_weight in
-  tools/recolor_icons.py, used by hat_recolor; extending it means applying the same blend inside
-  route() for the other three engines. Selftest pins the ramp shape, a haze pixel left at the
-  artist's own colour, and a solid pixel tinted.)
+- [LW-232] 2026-08-14: On a lot of weapon CARDS the identity colour was never on the weapon at
+  all, it was on the glow around it, so those items have been shipping as vanilla art wearing a
+  coloured haze. Found while extending the LW-230 halo ramp: the card engine splits a sprite
+  into groups by brightness and paints the brightest one, which is right for a chunky item and
+  wrong for line art, because on a thin staff or bow the brightest population IS the sprite's
+  own semi-transparent haze. Measured over all 115 weapons: 104 of the card masks are more than
+  half haze, 13 have ZERO solid pixels in the tint zone, and once the haze is left alone the
+  median card keeps 57 percent of its identity colour with 37 items under 30 percent and 14
+  under 10 percent. The list icons are fine (median 97 percent, worst 91) because they take a
+  whole glyph ramp with no mask in it, so this is a card-only defect. The owner has seen the
+  pictures; nothing bakes for weapons until he scopes it. The fix is already proven in this
+  repo: it is exactly what LW-202 found on the crossbows ("bright-v2 splits a picture into two
+  clusters and a crossbow is line art with no second cluster in it"), and the answer there was
+  to route the family to the zone engine and pick its materials by saturation. The queued per
+  family re-passes (LW-198 daggers, LW-199 swords, LW-201 bows, LW-206 poles, LW-207 polearms,
+  LW-209 staves and the rest) are where that judgement belongs, one family and one owner gallery
+  at a time. Two smaller options exist if he wants the whole family moved at once: restrict the
+  card engine's clustering to solid pixels, which puts the tint on the object but re-renders all
+  115 cards (28.1 percent of solid pixels change zone, on 115 of 115 sprites), or accept the
+  honest de-tint and let each family's own pass restore the colour. (Tech: reproduce the whole
+  measurement with `python tools/icon_preview.py compare`; the bake now prints a WARN naming any
+  item whose tint reaches under 2 percent of its solid art, so this can never ship silently
+  again.)
 
-- [LW-231] 2026-08-14: Recolored icons come out mottled with coloured speckle, and it should be
-  the smooth shading the artist painted. This is what the owner kept calling smoke across three
-  rounds of the hat pass, and the first two fixes missed because the effect is ON the item, not
-  around it. Cause: the engines expand tonal contrast one pixel at a time, so the art's own
-  compression grain is amplified along with the real shading, and under a saturated tint that
-  grain reads as blotchy cloud across the surface. Worst on the grainy leather and wool hats,
-  present anywhere the contrast knob is high. The fix is to expand contrast on the BLURRED
-  brightness (the artist's real domes and folds) and add the fine grain back at reduced gain, so
-  large features separate exactly as before and noise stops being multiplied. Like LW-230 the
-  fix is now BUILT and SHIPPED on the twelve hats, and the only thing left is the owner's scope
-  call on re-baking the families he has already approved. (Tech: _value_fields plus DETAIL_GAIN
-  0.30 in tools/recolor_icons.py, used by hat_recolor, whose defaults are contrast 0.50 and
-  sheen 0.20. The per-pixel _helm_scurve call in helm_recolor is the older equivalent. Verified
-  by compositing over the review page's own checkerboard, which is where the speckle is most
-  visible; a dark background hides it, which is why two earlier rounds passed inspection. The
-  selftest measures grain against helm_recolor with every other knob matched.)
-
+- [LW-165] 2026-08-12: Kill counts are slow to appear in the status menu after a cold boot on
+  the Steam Deck; demoted from Now 2026-08-14 to make room for LW-230 and LW-231, which are
+  being actively worked. Nothing about it changed and nothing is blocked on it: the owner
+  ACCEPTED it for the 2.3.3 cut on 2026-08-12, the README carries the player note, and it has
+  been waiting since then on a Deck cold boot that has not been run, so holding a Now seat for
+  it is how the ledger starts lying about what is being worked (the same argument LW-100 and
+  LW-112 were demoted under). State, preserved in full: the mod prints one plain line the first
+  time the kill counters come alive each launch, saying how many card text spots it maintains
+  and how many seconds after arming that happened, so the next Deck cold boot turns the
+  complaint into a stopwatch reading. Desktop halves already measured 2026-08-12: two launches
+  read 10.5s and 10.9s between arming and the first paint, and the owner reproduced the felt
+  symptom on desktop (a party menu opened right after a save load shows the baked zero counts
+  until the menu is re-entered). Promote it back the moment a Deck cold boot log exists; the
+  likely tune is an unthrottled first pool locate at arming. (Tech: the Info line fires on the
+  false to true edge of the pool coverage latch in Display.PoolPaint.cs, once per launch, timed
+  from Display's own first Tick, which Engine only starts after the guard arms. The deeper lever
+  is read only pre locating before arming, which touches the born disarmed principle and would
+  need its own arc.)
 - [LW-217] 2026-08-13: Hair Adornments re-pass: the 3 hair adornment icons still wear the legacy one-hue stamp; process per LW-198.
 
 - [LW-218] 2026-08-13: Heavy Armor re-pass: the 14 armor icons still wear the legacy one-hue stamp; process per LW-198.

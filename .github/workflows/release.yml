@@ -52,6 +52,11 @@ jobs:
       with:
         python-version: '3.12'
 
+    # Pillow is needed by ONE pipeline step: the icon recolor engine's selftest, which
+    # tools/pipeline.ps1 runs as a gate. The generators and the dominance gate are stdlib-only.
+    - name: Install Pillow (for the icon engine's selftest gate)
+      run: python -m pip install --disable-pip-version-check "Pillow>=10"
+
     - name: Setup .NET 8.0 SDK (for the Living Weapon DLL)
       uses: actions/setup-dotnet@v6
       with:

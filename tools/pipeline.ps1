@@ -235,6 +235,18 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: scan_logs.py --selftest failed (exit $LASTEXITCODE)."
     }
 
+    # Same argument for the icon recolor engine (LW-230). Its selftest carries every rule four
+    # owner review passes bought (the halo ramp, the smooth-field contrast, the two-tone and
+    # three-zone mask keys, the per-item override tables) and until now NOTHING ran it: the .tex
+    # files it bakes are committed artifacts, so an engine regression would sit in the tree
+    # unnoticed until someone re-baked a family and wondered why it moved. Costs about a fifth
+    # of a second. Needs Pillow, which release.yml pip-installs for exactly this step.
+    Write-Host "  -> tools/recolor_icons.py --selftest (the icon engine's regression cases)..."
+    & python "$PipelineRepoRoot\tools\recolor_icons.py" --selftest
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: recolor_icons.py --selftest failed (exit $LASTEXITCODE)."
+    }
+
     Write-Host "  -> Generated + gated + meta baked OK." -ForegroundColor Green
 }
 
