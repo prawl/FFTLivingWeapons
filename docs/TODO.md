@@ -94,6 +94,22 @@ the technical detail lives in the indented lines under it.
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
     then verify.)
 
+- [LW-242] 2026-08-14: Nine weapons wear a second colour so dark that the measurement says it is
+  barely there, and the file's own rule predicted exactly that. The rule, written during the
+  sword pass, is that a dark tone laid on the art's dark share is invisible by construction,
+  because the body already renders those pixels dark. The file then said the one dark metal was
+  used on one sword as a deliberate exception. It is on nine items, and re-measuring on the
+  pixels each zone actually claims puts every one of them at 27 to 44 out of 255 from the same
+  render without its second colour, where every bright metal on the same key sits at 109 to 159.
+  The owner passed all nine by eye and that is the higher authority, which is why nothing was
+  re-tinted; this row exists so the choice is a choice. Affected: Flamberge, Swiftedge,
+  Lightbringer, Defender, Excalibur, Chaos Blade, Wellspring Rod, Ember Rod, Rod of Faith.
+  (Tech: BLACK_IRON (0.615, 0.10, 0.45) on a shade-keyed zone, ids 26/28/31/33/35/37/51/53/58.
+  Measure with zone_recolor over one zone against the same recipe with zones removed, median
+  max-channel delta over pixels at mask weight >= 0.5. A p90 over the whole sprite, which is how
+  the original rule was stated, reads 0 for any zone under a tenth of the art and is the reason
+  this went unnoticed.)
+
 - [LW-237] 2026-08-14: The Wellspring Rod's orb, the one part of it that is supposed to glow
   green, never gets painted on the big equip card. Its recipe asks for the brightest slice of
   the picture and on that particular sprite the slice survives smoothing as a SINGLE pixel, so

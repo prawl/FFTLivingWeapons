@@ -269,6 +269,43 @@ def tint_comment_names():
             out[int(iid)] = tail.split("#", 1)[1].strip()
     return out
 
+
+def recipe_comment_names():
+    """The same read-back for the ZONE_OVERRIDES table, which the scan above cannot see.
+
+    Every family whose colours live in data/items.json (guns, rods, poles, spears, harps) has no
+    row in ICON_TINTS at all, so its item names appear ONLY as a recipe's trailing comment, and
+    for five families that is 46 recipes the name-rot pin was not reading. An audit on
+    2026-08-14 demonstrated the gap by renaming one recipe's comment to another item's name with
+    the gate still green, and found live rot in the region nothing checked (id 158 saying
+    "Wardplume" against items.json's "Wardplume Hat").
+
+    A recipe spans several lines and carries explanation as well as a name, so the scan takes
+    the FIRST trailing comment of each row: the name is written beside the id, the reasoning
+    after it. Taking the last instead reads id 165's gleam note as its name."""
+    import re
+    src = Path(__file__).read_text(encoding="utf-8")
+    # Anchored on the newline so it finds the TABLE and not this function's own source: unlike
+    # tint_comment_names, this reader is defined ABOVE the table it parses, so a bare index()
+    # matches the mention three lines up and slices an empty body (which the pins below then
+    # correctly call vacuous).
+    body = src[src.index("\nZONE_OVERRIDES = {") + 1:]
+    body = body[:body.index("\n}\n")]
+    out, cur, first = {}, None, None
+    for line in body.split("\n"):
+        m = re.match(r"^\s*(\d+):\s*\{", line)
+        if m:
+            cur, first = int(m.group(1)), None
+        if cur is None:
+            continue
+        code, _, tail = line.partition("#")
+        if tail and code.strip() and first is None:
+            first = tail.strip()
+        if code.rstrip().endswith("},"):
+            out[cur] = first
+            cur = None
+    return out
+
 # --- LW-189 BRIGHT v2 engine (weapons only) -------------------------------------------------
 # The reference implementation these constants and functions were frozen from is the approved
 # preview generator (session scratchpad bright_all.py); the owner signed the full 121-weapon
@@ -1175,9 +1212,17 @@ SILVER = (0.585, 0.10, 1.30)
 # sword's second colour is keyed on the art's dark share, so the body already renders those
 # pixels dark, and a dark tone laid over them is invisible by construction. Swept on ids 19, 22
 # and 23, a dark second material measured a p90 distance of 44 to 73 out of 255 from the
-# body-only render where every bright metal measured 113 to 172. BLACK_IRON survives as the one
-# exception because it sits on the Flamberge, whose body is the rack's hottest orange, so the
-# separation there is chroma rather than weight. Five tones written for these passes are NOT
+# body-only render where every bright metal measured 113 to 172.
+# THE EXCEPTION SENTENCE THAT USED TO SIT HERE WAS FALSE, and an audit on 2026-08-14 said so:
+# it claimed BLACK_IRON "survives as the one exception because it sits on the Flamberge". It
+# sits on NINE items (26, 28, 31, 33, 35, 37, 51, 53, 58) and the Flamberge is not the best of
+# them. Re-measured on the pixels each zone actually claims, which is the honest form of the
+# test (a p90 over the whole sprite reads 0 for any zone under a tenth of it), every BLACK_IRON
+# darkness zone lands 27 to 44 from the body-only render while every bright metal on the same
+# key lands 109 to 159, the Flamberge itself at 36. So the rule is confirmed and the exception
+# is not: nine items wear a second material the measurement calls faint. The owner passed all of
+# them by eye, which is the higher authority, so nothing is re-tinted here; docs/TODO.md LW-242
+# carries the question with the numbers. Five tones written for these passes are NOT
 # here, having been measured and then deleted rather than left to read as live vocabulary: a
 # COLD_IRON at v0.52 and a DARK_STEEL at v0.60 (both lost the darkness argument above), an
 # AGED_BRONZE that the Claymore and Tanglethorn both outgrew when their bodies deepened, a
@@ -1433,8 +1478,10 @@ ZONE_OVERRIDES = {
     # items, so it says five. Reproduce with zone_weight over pixels at alpha >= HALO_HI,
     # counting weight >= 0.5, which is the method that returns the rods' figures below exactly.
     #
-    # The Terrastaff draws itself with the Greenwood Pole's sprite (SRC), the third such pair in
-    # the program, so those two are chosen to be far apart in BODY: earth against living green.
+    # The Terrastaff draws itself with the Greenwood Pole's sprite (SRC), the FOURTH such pair in
+    # the program (the derived scan finds 19/67, 33/49, 34/50 and 107/48, and the selftest's own
+    # note in the same commit said four while this line said three), so those two are chosen to
+    # be far apart in BODY: earth against living green.
     # Their METALS are cold silver and bone, which are near neighbours by design and NOT a second
     # axis of separation; an earlier version of this line claimed brass here, which the next line
     # refuses and the code never shipped.
@@ -1560,11 +1607,20 @@ ZONE_OVERRIDES = {
     # the sentence: the list icon was already fully covered by the old whole-glyph path.
     #
     # A rod is the fourth art shape to need no new engine, and the neatest fit yet. It is a
-    # SHAFT, an ORB and a ferrule, and the two sword keys land on exactly those: measured on the
-    # eight cards, darkness claims 3.3 to 17.6 percent and is the shaft every time, brightness
-    # claims 0.3 to 14.3 percent and is the orb. So these are the swords' recipes with the
-    # meanings swapped, _hilt taking the shaft and _edge the orb, which is also why the orb tone
-    # is a LIGHT on the elemental rods rather than a metal: the orb is where the magic is.
+    # SHAFT, an ORB and a ferrule, and the two sword keys land close enough to those: measured on
+    # the eight cards, darkness claims 3.3 to 17.6 percent and brightness 0.3 to 14.3. So these
+    # are the swords' recipes with the meanings swapped, _hilt taking the shaft and _edge the
+    # orb, which is also why the orb tone is a LIGHT on the elemental rods rather than a metal:
+    # the orb is where the magic is.
+    # "EVERY TIME" WAS TOO STRONG on both halves, corrected 2026-08-14 after the audit projected
+    # each zone onto the sprite's own long axis (0 is the orb end, 1 the butt). Brightness does
+    # find the orb, on seven of eight, centroid 0.04 to 0.20; the exception is the Wellspring
+    # Rod, whose orb zone is one pixel at 0.69 (LW-237). Darkness finds the shaft on five,
+    # centroid 0.47 to 0.61, and on the Ember Rod and the Wellspring it finds the BUTT FERRULE
+    # instead, centroid 0.94 spanning 0.91 to 1.00, with the Rod of Faith smeared between the two
+    # at 0.80. A ferrule is still furniture and still the right colour, so the recipes stand;
+    # what does not stand is a sentence claiming a key lands in one place on a family where it
+    # measurably lands in two.
     # TWO CORRECTIONS from the audit of 2026-08-14, and the second is a live defect rather than a
     # typo. There are EIGHT distinct rod sprites, not the six first written: no rod carries an
     # iconSource and every decoded card is unique, so a reader hunting the twin pair finds none.
@@ -1678,7 +1734,7 @@ ZONE_OVERRIDES = {
     # Rounds one and two: locked on the owner's save list, converted from the two-zone recipes
     # they were approved as. Same colours, same masks, now through the three-zone engine so the
     # whole family gets the halo ramp and the smooth-field contrast.
-    158: {"zones": [_accent(20, (0.125, 0.88, 1.28), floor=0.50)],               # Wardplume
+    158: {"zones": [_accent(20, (0.125, 0.88, 1.28), floor=0.50)],               # Wardplume Hat
           "contrast": 0.55},
     162: {"zones": [_accent(22, (0.115, 0.85, 1.28), floor=0.50)],               # Zephyr Beret
           "contrast": 0.55},
@@ -2404,6 +2460,17 @@ def selftest():
     check(f"every tint row names its real item (drifted: {drifted})", not drifted)
     check("the tint comment scan actually finds rows, so the check above cannot pass by parsing "
           "nothing", len(tint_comment_names()) >= 50)
+    # The same read-back over the RECIPE table. Five families keep their colours in items.json
+    # and so have no ICON_TINTS row at all, which left 46 recipes outside the scan above until
+    # an audit found rot inside the gap (2026-08-14).
+    recipe_names = recipe_comment_names()
+    unnamed = sorted(i for i in ZONE_OVERRIDES if not recipe_names.get(i))
+    check(f"every recipe row names the item it colours (unnamed: {unnamed})", not unnamed)
+    recipe_drift = sorted(i for i, c in recipe_names.items()
+                          if c and i in _NAME and not c.startswith(_NAME[i]))
+    check(f"every recipe row names its REAL item (drifted: {recipe_drift})", not recipe_drift)
+    check("the recipe comment scan reaches every recipe, so the two checks above cannot pass by "
+          "parsing nothing", len(recipe_names) == len(ZONE_OVERRIDES))
     check("every zone override names an item from a reviewed family",
           all(_CATEGORY.get(i) in _ZONED_CATS for i in ZONE_OVERRIDES))
     check("every zone override key is a known option",
@@ -2511,6 +2578,19 @@ def selftest():
     # sprite and the owner passed all twelve by eye across four review rounds. A blade wears one
     # identity colour and a metal, so its body really is the signal.
     METALS = frozenset({STEEL, BONE, BRASS, GOLD, SILVER, COPPER, BLACK_IRON, WHITE})
+    # The exemption is really about NAMED versus INVENTED tones, and keying it on metals alone
+    # was too narrow: an audit on 2026-08-14 showed the tripwire silently stops judging any item
+    # whose accent is one of the file's LIGHTS, then proved it by giving two rods byte-identical
+    # tints with the selftest green. A light (levin on the Spark Rod, plasma on the Umbral,
+    # verdant on the Wellspring) is a FITTING in exactly the sense that matters here: it is a
+    # small accent laid on a body that still carries the item's whole colour signal, which is why
+    # those rods belong under the tripwire. What genuinely escapes it is an item wearing a second
+    # IDENTITY colour, and in this file that is written as an inline triple rather than a name
+    # from the shared vocabulary: every hat has one and nothing else does. So the rule is "all of
+    # this recipe's tones come from the vocabulary below", which guards 71 of the 83 zone items
+    # against the old 63 and leaves exactly the twelve hats out, as intended.
+    LIGHTS = frozenset({LEVIN, PLASMA, VERDANT, VIOLET_FLAME, EMBER, NIGHT_IRON})
+    VOCABULARY = METALS | LIGHTS
 
     def body_is_whole_signal(i):
         # An id with no recipe is NOT judged here. The racks are derived from the item data while
@@ -2520,7 +2600,7 @@ def selftest():
         # (found by audit 2026-08-14). Returning False keeps the traceback from eating the
         # diagnosis; "every reviewed family is picked, whole" is what fails, by name.
         o = ZONE_OVERRIDES.get(i)
-        return bool(o) and all(tuple(z["tone"]) in METALS for z in o["zones"])
+        return bool(o) and all(tuple(z["tone"]) in VOCABULARY for z in o["zones"])
 
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
@@ -2537,6 +2617,12 @@ def selftest():
     guarded_total = sum(1 for i in ZONE_OVERRIDES if body_is_whole_signal(i))
     check(f"the collision tripwire still guards most of the zone engine ({guarded_total}/"
           f"{len(ZONE_OVERRIDES)})", guarded_total >= 35)
+    # The exemption may only ever cover HATS. Stated as a floor on the guarded count it drifts
+    # quietly downward as families arrive; stated this way, any future recipe that buys its way
+    # out of the palette tripwire with an invented tone has to say so out loud.
+    escaped = sorted(i for i in ZONE_OVERRIDES
+                     if not body_is_whole_signal(i) and _CATEGORY.get(i) != "Hat")
+    check(f"only hats escape the collision tripwire (escaped: {escaped})", not escaped)
     check("the sword rack is all fifteen", len(swords) == 15)
     check("the knight sword rack is all seven", len(knights) == 7)
     check("the bow rack is all nine", len(bows) == 9)
@@ -2550,19 +2636,29 @@ def selftest():
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
     # are DERIVED from SRC rather than listed, because the next family to do this will otherwise
     # be guarded by nothing. They get a harder floor than the rack's.
+    # The reviewed-family filter is GONE from this scan (audit 2026-08-14). A twin pair on
+    # bright-v2 is if anything worse off than one under the zone engine, because that engine
+    # paints the whole small glyph in the tint, so the tint really is the only signal there.
+    # Dropping the filter brings the knife, ninja blade and katana pairs (1/68, 11/69, 38/70)
+    # under the same floor, and all three already clear it.
     twins = sorted((src, i) for i, src in SRC.items()
                    if i in ICON_TINTS and src in ICON_TINTS
-                   and _CATEGORY.get(i) == _CATEGORY.get(src)
-                   and _CATEGORY.get(i) in _ZONED_CATS)
+                   and _CATEGORY.get(i) == _CATEGORY.get(src))
     # Non-vacuity without a magic count: the scan must find the pair this rule was written for
     # (the Vagabond's sprite worn by the Warbrand) and must not come back empty. A hardcoded
     # total had to be edited every time a family brought its own twins, which makes the pin fail
     # for being correct; poles brought the fourth pair on 2026-08-14.
     check(f"the shared-sprite scan is not vacuous ({len(twins)} pairs found)",
           (19, 67) in twins and len(twins) >= 3)
+    # The floor is HUE OR SATURATION, not hue or value. Written with a value term it let two
+    # items drawn with one picture ship on the same hue AND the same saturation, separated by
+    # brightness alone, which is the exact escape this file bans one screen below for second
+    # materials ("value alone does not make a material... a literal shadow of the body"). An
+    # audit demonstrated it on the Terrastaff in 2026-08-14 with the gate green. All seven pairs
+    # clear the stricter rule as shipped, the closest being 33/49 at 0.115 of hue.
     same_picture = [(a, b) for a, b in twins
                     if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < 0.05
-                    and abs(ICON_TINTS[a][2] - ICON_TINTS[b][2]) < 0.35]
+                    and abs(ICON_TINTS[a][1] - ICON_TINTS[b][1]) < 0.20]
     check(f"items sharing one sprite are far apart (too close: {same_picture})", not same_picture)
     # NO SINGLE-COLOUR SWORD (owner rule, 2026-08-14: "if you send me a updated weapon that's a
     # single color I'm going to immediately reject it"). THREE checks, because the first two
@@ -2594,12 +2690,18 @@ def selftest():
           not stale_bright)
     check("every reviewed weapon has a recipe at all",
           all(i in ZONE_OVERRIDES for i in bladed))
-    check("the no-single-colour rule covers every item under the zone engine",
-          len(zone_ids) == len(ZONE_OVERRIDES) and len(zone_ids) >= len(bladed) + 18)
     check("every sword carries a second material",
           all(ZONE_OVERRIDES[i]["zones"] for i in zone_ids))
-    flat = []
+    # COVERAGE, asserted from what the two loops below ACTUALLY VISIT. The previous wording was
+    # `len(zone_ids) == len(ZONE_OVERRIDES) and len(zone_ids) >= len(bladed) + 18`, whose first
+    # half cannot be false (zone_ids is built from that dict two lines up) and whose second half
+    # is a hardcoded count of hats plus crossbows. An audit on 2026-08-14 re-pointed both loops
+    # back at `bladed`, the exact regression the coverage pin was written to stop, and the pin
+    # stayed green while a literally single-colour crossbow rode through. So the loops now record
+    # the ids they touched and the check compares THAT against the table.
+    flat, seen_flat = [], set()
     for i in zone_ids:
+        seen_flat.add(i)
         h_b, s_b, _ = ICON_TINTS[i]
         for z in ZONE_OVERRIDES[i]["zones"]:
             h_z, s_z, _ = z["tone"]
@@ -2653,11 +2755,12 @@ def selftest():
                  for z in ZONE_OVERRIDES[i]["zones"] if z.get("min_blob", 4) > 8)
     check(f"no zone's despeckle floor can eat a thin second material (too fat: {fat})", not fat)
 
-    silent = []
+    silent, seen_silent = [], set()
     for fixture_name, zsprite in (("blob", hazed_sprite(28)), ("thread", threaded_sprite(28))):
         zsolid = [c for c in ((x, y) for y in range(28) for x in range(28))
                   if zsprite.getpixel(c)[3] >= HALO_HI]
         for i in zone_ids:
+            seen_silent.add(i)
             o = ZONE_OVERRIDES[i]
             painted = zone_recolor(zsprite, ICON_TINTS[i], o)
             bare = zone_recolor(zsprite, ICON_TINTS[i], {**o, "zones": []})
@@ -2668,6 +2771,12 @@ def selftest():
                 silent.append((fixture_name, i, moved, len(zsolid)))
     check(f"every zone recipe paints some of the art and not all of it (bad: {silent})",
           not silent)
+    missed_flat = sorted(set(ZONE_OVERRIDES) - seen_flat)
+    missed_silent = sorted(set(ZONE_OVERRIDES) - seen_silent)
+    check(f"the no-single-colour config check judged every item under the zone engine "
+          f"(missed: {missed_flat})", not missed_flat)
+    check(f"the no-single-colour render check judged every item under the zone engine "
+          f"(missed: {missed_silent})", not missed_silent)
 
     if failures:
         print("SELFTEST FAILURES:", "; ".join(failures))
