@@ -1413,30 +1413,59 @@ ZONE_OVERRIDES = {
     50: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
                    _edge(GOLD, pct=22)], "gleam": 0.20, "contrast": 0.60},  # Sunderer
     # --- Poles (LW-206, 2026-08-14) -------------------------------------------------------
-    # Median 4.7% of the solid art before this pass, with the Slumber Rod, the Sage's Pole and
-    # the Ivory Pole all at 0.0 percent.
+    # CARD median 4.7% of the solid art before this pass, with the Slumber Rod, the Sage's Pole
+    # and the Ivory Pole all at 0.0 percent. The surface matters and was missing from the first
+    # writing of this line (audit 2026-08-14): the list ICON was already at 98-100% under the old
+    # whole-glyph path, just in a colour nobody had chosen for it, so it is the card that was
+    # shipping the artist's own picture.
     #
     # A pole is the FIFTH art shape to need no new engine, and it goes back to the crossbow's
     # split: a long shaft with metal ferrules at each end, wood against metal, which saturation
-    # separates in one pass. Measured over the nine, the desat key claims 13.4 to 27.1 percent
-    # and lands on the caps every time, while DARKNESS returns 0.0 percent on four of them,
-    # because a pole has no dark furniture anywhere on it. That is the whole reason this family
-    # takes _material and not the rods' _hilt, even though a rod and a pole are both a stick.
+    # separates in one pass. Measured on the nine CARDS at the helper's defaults, the desat key
+    # claims 10.1 to 19.1 percent and lands on the caps every time (10.5 to 23.4 at the shipped
+    # per-item knobs below), while DARKNESS returns 0.0 percent on FIVE of them, because a pole
+    # has no dark furniture anywhere on it. That is the whole reason this family takes _material
+    # and not the rods' _hilt, even though a rod and a pole are both a stick.
+    # Both ranges above were overstated when first written (13.4 to 27.1, and four rather than
+    # five) and are corrected here rather than left to be copied forward. Four is right only if
+    # "them" means distinct SPRITES, since ids 48 and 107 share one picture; the sentence counts
+    # items, so it says five. Reproduce with zone_weight over pixels at alpha >= HALO_HI,
+    # counting weight >= 0.5, which is the method that returns the rods' figures below exactly.
     #
     # The Terrastaff draws itself with the Greenwood Pole's sprite (SRC), the third such pair in
-    # the program, so those two are chosen to be far apart in BODY and in metal: earth and brass
-    # against living green and bone.
-    # Brass caps were refused here: on an earth-brown shaft they are the same colour with a
-    # highlight on it. Cold metal against warm wood is the pairing that reads.
+    # the program, so those two are chosen to be far apart in BODY: earth against living green.
+    # Their METALS are cold silver and bone, which are near neighbours by design and NOT a second
+    # axis of separation; an earlier version of this line claimed brass here, which the next line
+    # refuses and the code never shipped.
+    # Brass caps were refused: on an earth-brown shaft they are the same colour with a highlight
+    # on it. Cold metal against warm wood is the pairing that reads.
     48:  {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.22},  # Terrastaff
     107: {"zones": [_material(BONE, sat_p=30, min_blob=2)], "gleam": 0.25},    # Greenwood Pole
     108: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.25},   # Ironreed Pole
     109: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.30},  # Slumber Rod
     110: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.25},    # Hushfan
     # Gokuu's Pole under its new name, and the one item here whose vanilla art is strongly
-    # chromatic already (icon chroma 0.272, three times its siblings): vermilion with gold caps
-    # is what the Ruyi Jingu Bang is, so the anchor and the reference agree.
+    # chromatic already (icon chroma 0.272, TWICE its siblings' mean of 0.135; "three times" was
+    # the first writing and only holds against the single least chromatic sibling): vermilion
+    # with gold caps is what the Ruyi Jingu Bang is, so the anchor and the reference agree.
     111: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.22},    # Sage's Pole
+    # THE RESERVED NAMES OF THIS FAMILY, measured after the fact (audit 2026-08-14: the pass
+    # shipped without recording a single anchor here, one commit after the rods' block made
+    # measuring both surfaces the rule). Chroma-weighted circular mean hue over solid pixels,
+    # the same metric that reproduces the Perseus Bow's figures at id 91 exactly:
+    #   112 Ivory Pole      icon 359.2 deg at chroma 0.071, card 331.3 at 0.036. Below the
+    #                       Perseus icon's 0.120, so this is the documented near-neutral case
+    #                       and hue is genuinely free; painted 37.8 deg, an enriched ivory.
+    #   113 Eight-Fluted    icon 221.5 deg at chroma 0.112, painted 237.6. Sits WITH its art.
+    #                       Note it is a reserved name that an exact name == vanillaName test
+    #                       does NOT catch: the rename changed only a capital F.
+    #   114 Whale Whisker   icon 1.7 deg at chroma 0.148, a visibly RED pole, painted 196.2 deg.
+    #                       That is a ~165 degree move away from its own art, on art MORE
+    #                       chromatic than the Perseus Bow's, and unlike that bow it carries no
+    #                       measurement, no note and no owner ruling. The defence is real (this
+    #                       is the family's only Water pole and cyan says water) but it is a
+    #                       ruling only the owner can make, so it is docs/TODO.md LW-238 rather
+    #                       than a quiet re-tint here.
     112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
     113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
     114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
@@ -1484,15 +1513,24 @@ ZONE_OVERRIDES = {
     # take 20.0% of the card and the gold stops being the item's colour).
     94: {"zones": [_edge(STEEL, pct=22)], "gleam": 0.25},   # Faerie Harp
     # --- Rods (LW-208, 2026-08-14) --------------------------------------------------------
-    # The worst family left before this pass: a TRUE median of 1.8% of the solid art, with the
-    # Ember Rod and the Rod of Faith at 0.0.
+    # The worst family left before this pass: a TRUE CARD median of 1.8% of the solid art, with
+    # the Ember Rod and the Rod of Faith at 0.0. As with the poles above, the surface belongs in
+    # the sentence: the list icon was already fully covered by the old whole-glyph path.
     #
     # A rod is the fourth art shape to need no new engine, and the neatest fit yet. It is a
-    # SHAFT, an ORB and a ferrule, and the two sword keys land on exactly those: measured over
-    # the six distinct sprites, darkness claims 3.3 to 17.6 percent and is the shaft every time,
-    # brightness claims 4.0 to 21.9 percent and is the orb. So these are the swords' recipes with
-    # the meanings swapped, _hilt taking the shaft and _edge the orb, which is also why the orb
-    # tone is a LIGHT on the elemental rods rather than a metal: the orb is where the magic is.
+    # SHAFT, an ORB and a ferrule, and the two sword keys land on exactly those: measured on the
+    # eight cards, darkness claims 3.3 to 17.6 percent and is the shaft every time, brightness
+    # claims 0.3 to 14.3 percent and is the orb. So these are the swords' recipes with the
+    # meanings swapped, _hilt taking the shaft and _edge the orb, which is also why the orb tone
+    # is a LIGHT on the elemental rods rather than a metal: the orb is where the magic is.
+    # TWO CORRECTIONS from the audit of 2026-08-14, and the second is a live defect rather than a
+    # typo. There are EIGHT distinct rod sprites, not the six first written: no rod carries an
+    # iconSource and every decoded card is unique, so a reader hunting the twin pair finds none.
+    # And the brightness range was written as 4.0 to 21.9 when it is 0.3 to 14.3; the floor is
+    # the number that matters, because 0.3% is the Wellspring Rod, whose orb survives smoothing
+    # as a SINGLE pixel on the card. That rod therefore ships with one visible material where
+    # this comment promises two, which is docs/TODO.md LW-237 and needs the owner's eye on a
+    # before-and-after, not a quiet re-tune of art he has already passed.
     #
     # Tints live in data/items.json for this family. Reserved names are anchored against BOTH
     # surfaces, not just the card: the Dragon Rod's icon reads hue 153 degrees, a jade teal, and
