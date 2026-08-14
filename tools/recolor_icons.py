@@ -2386,7 +2386,14 @@ def selftest():
     METALS = frozenset({STEEL, BONE, BRASS, GOLD, SILVER, COPPER, BLACK_IRON, WHITE})
 
     def body_is_whole_signal(i):
-        return all(tuple(z["tone"]) in METALS for z in ZONE_OVERRIDES[i]["zones"])
+        # An id with no recipe is NOT judged here. The racks are derived from the item data while
+        # the recipes are a hand-written table, so a half-added family reaches this line before
+        # anything reports; indexing it raised a KeyError that killed the run and swallowed the
+        # failure list, including the two checks whose whole value is naming the missing id
+        # (found by audit 2026-08-14). Returning False keeps the traceback from eating the
+        # diagnosis; "every reviewed family is picked, whole" is what fails, by name.
+        o = ZONE_OVERRIDES.get(i)
+        return bool(o) and all(tuple(z["tone"]) in METALS for z in o["zones"])
 
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),

@@ -19,16 +19,23 @@ Verbs (all outputs go under --out, default %TEMP%\\icon_preview; never a repo di
   python tools/icon_preview.py gallery [--out D]            # the owner's before/after HTML
   python tools/icon_preview.py verify [--out D]             # preview PNGs vs the production bake's
                                                             # working/icons PNGs, pixel identity
-  python tools/icon_preview.py compare [ids...] [--rev R] [--expect ids...]
-                                                            # working-tree engine vs the one
+  python tools/icon_preview.py compare [ids...] [--rev R]   # working-tree engine vs the one
                                                             # committed at R (default HEAD): what
                                                             # an engine change did to approved art
+  python tools/icon_preview.py compare --expect ids... [--rev R]
+                                                            # the same sweep as a GATE: name the
+                                                            # ids this pass may move and anything
+                                                            # else moving exits nonzero. Takes no
+                                                            # positional ids: a gate that judged
+                                                            # only what you scoped it to is not a
+                                                            # gate
 preview with no ids does every tinted item, each routed through recolor_icons.route() -- the
 SAME per-category split production uses (LW-189 bright-v2 for weapons, LW-190 two-tone for
 shields, legacy whole-tint for the rest), so the split can never drift from production.
 flags.json in the out dir ({id: note}) annotates gallery rows amber.
 """
 import base64
+import copy
 import importlib.util
 import io
 import json
@@ -42,6 +49,10 @@ from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from lib.paths import ROOT, FF16
+# Imported as a MODULE, not `from lib.items import load_items`: load_engine below swaps the
+# package's own attribute so a second copy of the engine reads the item data of ITS revision,
+# and a from-import here would hold a reference the swap cannot reach.
+import lib.items as lib_items
 import recolor_icons as ri
 
 DEFAULT_OUT = pathlib.Path(os.environ.get("TEMP", ".")) / "icon_preview"
@@ -204,26 +215,35 @@ def load_engine(rev, out):
 
     The copy lands in the out dir and NOT beside the live module: same-directory would put two
     files named recolor_icons.py on one path and the second import would win. tools/ stays on
-    sys.path so the copy's own `from lib...` imports resolve to the same shared package."""
+    sys.path so the copy's own `from lib...` imports resolve to the same shared package.
+
+    THE ITEM DATA HAS TO COME FROM THE SAME REVISION AS THE ENGINE, and getting that wrong is
+    what made this verb lie twice. The module merges data/items.json at IMPORT time and reads it
+    from DISK, so left alone the "old" engine comes up wearing TODAY'S colours. The first fix
+    (2026-08-14) wrote the committed tints back afterwards, which repaired an EDITED row and
+    stayed blind to an ADDED one: an id whose committed row carries no iconTint was never written
+    back, so a tint newly added to items.json for one of the 29 approved items whose colour lives
+    in the ICON_TINTS table sat on BOTH sides of the comparison. A second audit demonstrated it
+    on sword id 25, where compare reported a serene 0 MOVED for a 96% repaint.
+    So the loader itself is swapped for the duration of the import instead. `from lib.items
+    import load_items` binds the attribute at import time, which is why patching the package
+    before exec_module reaches the copy; and doing it here rather than after the fact restores
+    everything else items.json feeds the engine (iconSource, category, name) to the same
+    revision, not just the tints."""
     src = out / f"_engine_{rev.replace('/', '_')}.py"
     src.write_bytes(subprocess.run(["git", "show", f"{rev}:tools/recolor_icons.py"],
                                    cwd=str(ROOT), capture_output=True, check=True).stdout)
-    spec = importlib.util.spec_from_file_location(f"recolor_icons_{abs(hash(rev)):x}", src)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    # The module above merges data/items.json into ICON_TINTS at import time, and it reads that
-    # file from DISK, so the "old" engine comes up wearing TODAY'S colours for every item whose
-    # tint lives in items.json rather than in the table. Left uncorrected, this verb measures
-    # engine changes only and reports a serene 0 MOVED for a tint edit that repaints an approved
-    # item completely (found by audit 2026-08-14, on a Sanctguard edit that moved 1714 of its
-    # 2207 solid pixels while compare called it clean). Restore the committed tints too, so the
-    # comparison is old-engine-with-old-colours against new-engine-with-new-colours.
     old_items = json.loads(subprocess.run(["git", "show", f"{rev}:data/items.json"],
                                           cwd=str(ROOT), capture_output=True,
                                           check=True).stdout.decode("utf-8"))
-    for it in old_items["items"]:
-        if it.get("iconTint"):
-            mod.ICON_TINTS[it["id"]] = tuple(it["iconTint"])
+    spec = importlib.util.spec_from_file_location(f"recolor_icons_{abs(hash(rev)):x}", src)
+    mod = importlib.util.module_from_spec(spec)
+    live_loader = lib_items.load_items
+    lib_items.load_items = lambda *a, **k: copy.deepcopy(old_items)
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        lib_items.load_items = live_loader
     return mod
 
 
@@ -334,7 +354,20 @@ def main(argv):
             i = rest.index("--expect")
             expect = {int(a) for a in rest[i + 1:] if a.isdigit()}
             rest = rest[:i]
-        return cmd_compare(rev, {int(a) for a in rest if a.isdigit()}, out, expect)
+        only = {int(a) for a in rest if a.isdigit()}
+        # A GATE CANNOT BE SCOPED. Positional ids narrow which items get rendered, and --expect
+        # judges only what was rendered, so the two together produce the most dangerous output
+        # this file can print: `compare 51 --expect 51` examines one item of 234 and signs off in
+        # the same words as a full sweep. Found by audit 2026-08-14 and demonstrated with an
+        # engine edit that moved an approved sword while the scoped run stayed green. The
+        # diagnostic verb keeps its scoping; the gate refuses it outright rather than widening
+        # silently, so a scoped invocation cannot be mistaken for a pass.
+        if expect is not None and only:
+            print("compare --expect is a GATE and may not be scoped: it can only report on the "
+                  f"items it rendered, and you named {sorted(only)}. Drop the positional ids to "
+                  "sweep every tinted item, or drop --expect to use the diagnostic instead.")
+            return 2
+        return cmd_compare(rev, only, out, expect)
     else:
         print(__doc__)
         return 2
