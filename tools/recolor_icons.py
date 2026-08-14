@@ -28,7 +28,7 @@ LW-190, LW-215 and LW-216 carry the decision trails):
   under a contrast S-curve and a sheen, with the recipe's second colour blended across ONE
   feathered organic mask (cover = the bright fittings, shade = the recesses).
 
-  HATS (HAT_OVERRIDES) get the LW-216 THREE-ZONE treatment: hat_recolor lays N feathered zones
+  HATS (ZONE_OVERRIDES) get the LW-216 THREE-ZONE treatment: zone_recolor lays N feathered zones
   over the body in list order, because a hat is cloth plus a brim or lining plus a plume or a
   painted emblem, and two zones cannot say that. It also carries two fixes the older engines do
   not have, since re-baking their already-approved art is a separate owner call: the halo ramp
@@ -89,12 +89,17 @@ ICON_TINTS = {
     31: (0.27, 0.65, 0.88),   # Hexfang         toad green (Toad)
     32: (0.78, 0.50, 0.62),   # Nightfall       dark violet (Dark/MP)
     # --- Crossbows (ids 77-82) ---
-    77: (0.08, 0.40, 0.85),   # Scoutbolt       wood brown
-    78: (0.99, 0.55, 0.55),   # Knightslayer    dark crimson (Death)
-    79: (0.60, 0.12, 0.85),   # Arbalest        gunmetal
-    80: (0.25, 0.70, 0.85),   # Venombolt       toxic green (Poison)
-    81: (0.09, 0.55, 0.88),   # Snarebolt       amber bronze (Immobilize)
-    82: (0.60, 0.15, 0.68),   # Siegebolt       dark iron (capstone)
+    # LW-202, 2026-08-14. The pre-pass palette is kept in the trailing comments because it is
+    # the diagnosis: three of the six sat at saturation 0.15 or below and two more below 0.55,
+    # so the family rendered as brown and grey sticks whatever engine ran over it. Every one is
+    # now a saturated identity colour carried on the limb and frame, with a bright metal on the
+    # stock (see ZONE_OVERRIDES). Hues are spread so the six stay nameable in one list.
+    77: (0.075, 0.85, 1.12),  # Scoutbolt       honey amber wood      (was 0.08/0.40/0.85)
+    78: (0.985, 0.92, 1.02),  # Knightslayer    blood crimson (Death) (was 0.99/0.55/0.55)
+    79: (0.565, 0.82, 1.05),  # Arbalest        blued steel           (was 0.60/0.12/0.85)
+    80: (0.265, 0.92, 1.05),  # Venombolt       venom green (Poison)  (was 0.25/0.70/0.85)
+    81: (0.815, 0.88, 1.02),  # Snarebolt       plum (Immobilize)     (was 0.09/0.55/0.88)
+    82: (0.695, 0.88, 0.98),  # Siegebolt       deep indigo (capstone)(was 0.60/0.15/0.68)
     # --- Bows (ids 83-91) ---
     83: (0.10, 0.30, 0.95),   # Skirmisher      light leather/tan
     84: (0.45, 0.18, 1.05),   # Windrunner      pale silver-teal
@@ -872,7 +877,7 @@ def _value_fields(im, radius):
     return raw, {c: sp[c] / 255.0 for c in raw}
 
 
-def hat_recolor(im, tint, opts, surface="card"):
+def zone_recolor(im, tint, opts, surface="card"):
     """Body tint, then each zone blended over it by its own feathered weight, in list order."""
     o = dict(opts)
     zones = o["zones"]      # required: a recipe with no zones is a typo, not a plain tint
@@ -972,6 +977,21 @@ def _accent(pct, tone, floor=0.45, gleam=0.30, sheen=0.30, min_blob=5, feather=1
             "sheen": sheen, "min_blob": min_blob, "feather": feather}
 
 
+def _material(tone, sat_p=30, val_p=20, floor=0.45, gleam=0.35, sheen=0.35, min_blob=4,
+              feather=0.8):
+    """The second MATERIAL, separated by saturation rather than by brightness.
+
+    Brightness keys answer "which part is lit"; on a solid object that happens to coincide with
+    "which part is a fitting", and on line art it does not coincide with anything. A crossbow is
+    the case that needs this: a thin stock, a curved limb, a string, a stirrup, and almost no
+    broad surface, so a brightness crest claims 0.4 to 1.7 percent of the sprite and is simply
+    invisible. What a crossbow does have is two MATERIALS, warm wood against grey metal, and
+    saturation separates those in one pass: measured 23 to 26 percent of the solid sprite on all
+    six, landing on the stock and leaving the limb and frame to the identity colour."""
+    return {"key": "desat", "sat_p": sat_p, "val_p": val_p, "tone": tone, "floor": floor,
+            "gleam": gleam, "sheen": sheen, "min_blob": min_blob, "feather": feather}
+
+
 # The Arcanist Cap's star, found by saturation because white paint on pink felt is invisible to a
 # brightness key. sat_p 12 with val_p 72 is the window that catches the paint and nothing else:
 # looser settings claimed the cone's whole shadowed side and handed back a pink smudge. Claims
@@ -979,7 +999,31 @@ def _accent(pct, tone, floor=0.45, gleam=0.30, sheen=0.30, min_blob=5, feather=1
 STAR = {"key": "desat", "sat_p": 12, "val_p": 72, "min_blob": 2, "feather": 0.5,
         "tone": WHITE, "floor": 0.75, "gleam": 1.0}
 
-HAT_OVERRIDES = {
+STEEL = (0.575, 0.14, 1.28)
+BONE = (0.105, 0.14, 1.30)
+BRASS = (0.115, 0.90, 1.20)
+GOLD = (0.125, 0.92, 1.24)
+SILVER = (0.585, 0.10, 1.30)
+
+ZONE_OVERRIDES = {
+    # --- Crossbows (LW-202, 2026-08-14) ---------------------------------------------------
+    # The owner's word for the family was dull, and it was true twice over. The tints were
+    # timid, three of the six at saturation 0.15 or below, so the render came back looking like
+    # the vanilla sprite with a wash over it. And the engine was wrong for the art: bright-v2
+    # splits a picture into two clusters, which is right for a sword (blade against hilt) and
+    # meaningless on line art with no second cluster in it.
+    #
+    # So every crossbow now runs one hot identity colour over the limb, frame and string, with a
+    # bright METAL on the stock found by saturation. That is the owner's own taste rule from the
+    # helmet rounds, a rich saturated body plus one bright metallic accent and two instantly
+    # nameable materials, applied to a family that never had a second material before.
+    77: {"zones": [_material(STEEL)]},                     # Scoutbolt   honey wood, steel stock
+    78: {"zones": [_material(BONE)]},                      # Knightslayer blood and bone (Death)
+    79: {"zones": [_material(BRASS)]},                     # Arbalest    blued steel and brass
+    80: {"zones": [_material(GOLD)]},                      # Venombolt   venom green, gilt stock
+    81: {"zones": [_material(SILVER)]},                    # Snarebolt   plum, cold silver
+    82: {"zones": [_material(GOLD, sat_p=36)]},            # Siegebolt   the capstone, gold-heavy
+    # --- Hats (LW-216) ----------------------------------------------------------------------
     # Round four, 2026-08-14: the four the owner never lettered, decided on the rule above.
     157: {"zones": [_lining(22, (0.690, 0.92, 1.05)), _crest(WHITE)]},           # Roughspun Cap
     159: {"zones": [_lining(14, (0.455, 0.88, 1.10)), _crest(WHITE)]},           # Adept's Hood
@@ -1054,6 +1098,14 @@ WHOLE_BRIGHT_CATS = {"Shield"}   # families reviewed under LW-190
 
 
 def engine_for(item_id):
+    """Per-ITEM opt-in beats per-category default, which is why ZONE_OVERRIDES is consulted
+    first: the zone engine is not tied to a family, and the re-pass reaches items whose category
+    already has an engine. Crossbows are the case that forced the order. They are weapons, so
+    the category rule sends them to bright-v2, but bright-v2 splits a picture into two clusters
+    and a crossbow is line art with no second cluster in it, so it came back looking like the
+    vanilla sprite with a wash over it."""
+    if item_id in ZONE_OVERRIDES:
+        return "three-zone"
     cat = _CATEGORY.get(item_id)
     if cat in WEAPON_CATS:
         return "bright-v2"
@@ -1061,8 +1113,6 @@ def engine_for(item_id):
         return "shield-bright"
     if cat == "Helmet" and item_id in HELM_OVERRIDES:
         return "helm-two-tone"
-    if cat == "Hat" and item_id in HAT_OVERRIDES:
-        return "hat-three-zone"
     return "legacy"
 
 
@@ -1081,8 +1131,8 @@ def route(im, item_id, tint, surface):
         if style == "shield":
             return shield_two_tone(im, tint, ov, surface)
         return helm_recolor(im, tint, ov, surface)
-    if engine == "hat-three-zone":
-        return hat_recolor(im, tint, HAT_OVERRIDES[item_id], surface)
+    if engine == "three-zone":
+        return zone_recolor(im, tint, ZONE_OVERRIDES[item_id], surface)
     return recolor(im.copy(), *tint)
 
 
@@ -1405,11 +1455,11 @@ def selftest():
                 haze.putpixel((x, y), (130, 130, 130, 140))         # INSIDE the ramp
             else:
                 haze.putpixel((x, y), (120 + x, 110 + y, 100, 255))  # solid: above the ramp
-    hz = hat_recolor(haze, (0.33, 0.9, 1.1), {"zones": [_lining(20, (0.9, 0.9, 1.2))]})
+    hz = zone_recolor(haze, (0.33, 0.9, 1.1), {"zones": [_lining(20, (0.9, 0.9, 1.2))]})
     check("halo pixels keep the artist's neutral haze", hz.getpixel((0, 7)) == haze.getpixel((0, 7)))
     check("solid pixels still take the identity colour", hz.getpixel((7, 7)) != haze.getpixel((7, 7)))
     ramp_px, ramp_van = hz.getpixel((1, 7))[:3], haze.getpixel((1, 7))[:3]
-    full = hat_recolor(Image.new("RGBA", (14, 14), (130, 130, 130, 255)), (0.33, 0.9, 1.1),
+    full = zone_recolor(Image.new("RGBA", (14, 14), (130, 130, 130, 255)), (0.33, 0.9, 1.1),
                        {"zones": []}).getpixel((7, 7))[:3]
     check("a ramp-band pixel lands strictly between the artist's colour and the full tint",
           ramp_px != ramp_van and ramp_px != full
@@ -1449,7 +1499,7 @@ def selftest():
     # whatever the curve does; matched, the only surviving difference is which brightness field
     # the S-curve expanded, and bypassing the smooth field makes these two exactly equal.
     matched = {"contrast": 0.7, "sheen": 0.0, "gleam": 1.0}
-    smoothed = hat_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[]))
+    smoothed = zone_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[]))
     perpixel = helm_recolor(grain, (0.6, 0.8, 1.0),
                             dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0)))
     check("smooth-field contrast amplifies less grain than the per-pixel curve",
@@ -1457,7 +1507,7 @@ def selftest():
     # The other half of the fix: the grain is DAMPED, not deleted. Measured against the same
     # render with the residue term removed, which is a flat blurred stamp; "swing > 0" is not
     # this test, because the fixture's own gradient satisfies that with the residue gone.
-    no_detail = hat_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[], detail=0.0))
+    no_detail = zone_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[], detail=0.0))
     check("the fine grain is damped, not thrown away",
           0.0 < DETAIL_GAIN < 1.0 and swing(smoothed) > swing(no_detail) * 1.05)
     # Three zones, composited in list order, and the LAST one wins where two overlap. That is
@@ -1468,8 +1518,8 @@ def selftest():
             v = 60 + y * 8 + x                    # dark at the top, bright at the bottom
             tri.putpixel((x, y), (min(v, 250), min(v, 250) - 20, min(v, 250) - 40, 255))
     zoned = {"zones": [_lining(20, (0.9, 0.92, 1.2)), _crest((0.6, 0.9, 1.2), pct=20)]}
-    three = hat_recolor(tri, (0.33, 0.9, 1.05), zoned)
-    plain = hat_recolor(tri, (0.33, 0.9, 1.05), {"zones": []})
+    three = zone_recolor(tri, (0.33, 0.9, 1.05), zoned)
+    plain = zone_recolor(tri, (0.33, 0.9, 1.05), {"zones": []})
     body_px, lin_px, crest_px = three.getpixel((10, 10)), three.getpixel((10, 0)), three.getpixel((10, 19))
     # Measured AGAINST THE SAME RENDER WITH NO ZONES, not against each other. The three sample
     # pixels sit at three different brightnesses on the fixture's gradient, so a body tint alone
@@ -1487,8 +1537,8 @@ def selftest():
     # brightness mask, the emblem stops being repainted and this goes red.
     star_spec = {"key": "desat", "sat_p": 12, "val_p": 40, "min_blob": 2, "feather": 0.0,
                  "tone": WHITE, "floor": 0.75, "gleam": 1.0}
-    starred = hat_recolor(dim, (0.9, 0.9, 1.0), {"zones": [star_spec]})
-    bare = hat_recolor(dim, (0.9, 0.9, 1.0), {"zones": []})
+    starred = zone_recolor(dim, (0.9, 0.9, 1.0), {"zones": [star_spec]})
+    bare = zone_recolor(dim, (0.9, 0.9, 1.0), {"zones": []})
     check("a desat zone routes through zone_weight and repaints the emblem only",
           sum(abs(a - b) for a, b in zip(starred.getpixel((7, 7))[:3], bare.getpixel((7, 7))[:3])) > 30
           and starred.getpixel((14, 1)) == bare.getpixel((14, 1))
@@ -1499,9 +1549,9 @@ def selftest():
     # backwards, and backwards is exactly the bug this guards (a star listed last would end up
     # underneath the crest it is painted on).
     blue, white = _crest((0.6, 0.9, 1.2), pct=20, feather=0.0), _crest(WHITE, pct=20, feather=0.0)
-    both = hat_recolor(tri, (0.33, 0.9, 1.05), {"zones": [blue, white]})
-    only_white = hat_recolor(tri, (0.33, 0.9, 1.05), {"zones": [white]})
-    only_blue = hat_recolor(tri, (0.33, 0.9, 1.05), {"zones": [blue]})
+    both = zone_recolor(tri, (0.33, 0.9, 1.05), {"zones": [blue, white]})
+    only_white = zone_recolor(tri, (0.33, 0.9, 1.05), {"zones": [white]})
+    only_blue = zone_recolor(tri, (0.33, 0.9, 1.05), {"zones": [blue]})
     check("a later zone wins where two overlap",
           both.getpixel((10, 19)) == only_white.getpixel((10, 19))
           and both.getpixel((10, 19)) != only_blue.getpixel((10, 19)))
@@ -1511,35 +1561,46 @@ def selftest():
     check("hat transparency untouched",
           all(hz.getpixel(c)[3] == haze.getpixel(c)[3]
               for c in ((0, 0), (0, 7), (1, 7), (7, 7), (13, 13))))
-    # the picked-recipe table
-    check("every hat override names a real hat", all(_CATEGORY.get(i) == "Hat" for i in HAT_OVERRIDES))
-    check("every hat override key is a known option",
+    # the picked-recipe table. It spans families now, so the pin is that every id belongs to a
+    # family that has actually been through a review pass, not that they are all hats: the zone
+    # engine takes items per item, and engine_for consults this table BEFORE any category rule,
+    # so a stray id here silently overrides its family's engine.
+    _ZONED_CATS = {"Hat", "Crossbow"}
+    check("every zone override names an item from a reviewed family",
+          all(_CATEGORY.get(i) in _ZONED_CATS for i in ZONE_OVERRIDES))
+    check("every zone override key is a known option",
           all(set(o) <= {"zones", "gleam", "contrast", "sheen", "detail"}
-              for o in HAT_OVERRIDES.values()))
+              for o in ZONE_OVERRIDES.values()))
     # Keys are checked PER MASK KEY, not as one pooled set. Pooled, a desat zone typo'd with
     # "pct" instead of "sat_p" passes and then silently runs on the default window.
     _COMMON = {"key", "tone", "floor", "gleam", "sheen", "min_blob", "feather"}
     _BY_KEY = {"cover": _COMMON | {"pct"}, "shade": _COMMON | {"pct"},
                "desat": _COMMON | {"sat_p", "val_p"}}
-    zones_all = [z for o in HAT_OVERRIDES.values() for z in o["zones"]]
-    check("every hat zone names a known mask key",
+    zones_all = [z for o in ZONE_OVERRIDES.values() for z in o["zones"]]
+    check("every zone names a known mask key",
           all(z.get("key") in _BY_KEY for z in zones_all))
-    check("every hat zone key is a known option for ITS mask key",
+    check("every zone key is a known option for ITS mask key",
           all(set(z) <= _BY_KEY[z["key"]] for z in zones_all if z.get("key") in _BY_KEY))
-    check("every hat carries at least one zone", all(o["zones"] for o in HAT_OVERRIDES.values()))
-    check("every hat override has a body tint to lay its zones over",
-          all(i in ICON_TINTS for i in HAT_OVERRIDES))
+    check("every zone override carries at least one zone",
+          all(o["zones"] for o in ZONE_OVERRIDES.values()))
+    check("every zone override has a body tint to lay its zones over",
+          all(i in ICON_TINTS for i in ZONE_OVERRIDES))
 
-    # routing: shields take the shield engine, weapons keep bright-v2, picked helmets the helm
-    # engine, picked hats the three-zone engine, everything unreviewed legacy
+    # routing: shields take the shield engine, unreviewed weapons keep bright-v2, picked helmets
+    # the helm engine, anything in the zone table the three-zone engine, everything else legacy
     check("shield routes to shield-bright", engine_for(128) == "shield-bright")
     check("weapon routes to bright-v2", engine_for(19) == "bright-v2")
     check("picked helmet routes to helm-two-tone", engine_for(156) == "helm-two-tone")
     check("the last two helmets joined the helm engine",
           engine_for(145) == "helm-two-tone" and engine_for(151) == "helm-two-tone")
-    check("picked hat routes to hat-three-zone", engine_for(157) == "hat-three-zone")
-    check("all twelve hats are picked",
-          sorted(HAT_OVERRIDES) == [i for i, c in sorted(_CATEGORY.items()) if c == "Hat"])
+    check("picked hat routes to three-zone", engine_for(157) == "three-zone")
+    # The crossbows are the pin that the per-item table BEATS the per-category rule: they are
+    # weapons, so a category-first engine_for would send them to bright-v2 and quietly ignore
+    # their recipes.
+    check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
+    check("all twelve hats and all six crossbows are picked",
+          sorted(ZONE_OVERRIDES)
+          == [i for i, c in sorted(_CATEGORY.items()) if c in ("Hat", "Crossbow")])
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
     check("hair adornments stay legacy until their own pass",
