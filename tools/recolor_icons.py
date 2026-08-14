@@ -1142,11 +1142,12 @@ SILVER = (0.585, 0.10, 1.30)
 # and 23, a dark second material measured a p90 distance of 44 to 73 out of 255 from the
 # body-only render where every bright metal measured 113 to 172. BLACK_IRON survives as the one
 # exception because it sits on the Flamberge, whose body is the rack's hottest orange, so the
-# separation there is chroma rather than weight. Four tones written for this pass are NOT here,
-# having been measured and then deleted rather than left to read as live vocabulary: a COLD_IRON
-# at v0.52 and a DARK_STEEL at v0.60 (both lost the darkness argument above), an AGED_BRONZE that
-# the Claymore and Tanglethorn both outgrew when their bodies deepened, and a VOIDLIGHT the
-# Graviton wore until it went properly exotic.
+# separation there is chroma rather than weight. Five tones written for these passes are NOT
+# here, having been measured and then deleted rather than left to read as live vocabulary: a
+# COLD_IRON at v0.52 and a DARK_STEEL at v0.60 (both lost the darkness argument above), an
+# AGED_BRONZE that the Claymore and Tanglethorn both outgrew when their bodies deepened, a
+# VOIDLIGHT the Graviton wore until it went properly exotic, and a VENOM acid-green the owner
+# rejected on the Chaos Blade.
 COPPER = (0.055, 0.88, 1.10)
 BLACK_IRON = (0.615, 0.10, 0.45)
 # The last three are not metals at all, and that is the point: the Stormbrand, the Graviton and
@@ -1157,6 +1158,13 @@ BLACK_IRON = (0.615, 0.10, 0.45)
 # Graviton when an earlier near-neutral rim sat within 0.30 saturation of the blade).
 LEVIN = (0.145, 0.95, 1.30)      # the one hue hot enough to read as lightning at 48px
 PLASMA = (0.485, 0.82, 1.34)     # not a metal: the cold light bleeding off an event horizon
+VIOLET_FLAME = (0.790, 0.88, 1.02)  # nor this: the dark arriving as fire on Ragnarok's fuller
+NIGHT_IRON = (0.740, 0.45, 0.42)    # furniture for a near-NEUTRAL blade. A plain black iron is
+                                    # the obvious choice there and the no-single-colour gate
+                                    # refuses it, correctly: against a pale near-neutral body it
+                                    # differs in value alone, which is a shadow rather than a
+                                    # second material. Tinting the iron toward the item's own
+                                    # accent keeps the look and earns the pass.
 EMBER = (0.045, 0.98, 0.90)      # not a metal either: iron still cooling from the forge. Its
                                  # value multiplier is BELOW 1 on purpose, which looks backwards
                                  # for something meant to glow. ramp_color desaturates highlights
@@ -1218,6 +1226,7 @@ def _edge(tone, pct=20, floor=0.52, gleam=0.30, sheen=0.45, min_blob=3, feather=
 # (iconSource 19, the Vagabond). That pair shares one picture, so colour is the only thing that
 # separates them and selftest holds them to a harder floor than the rest of the rack.
 SWORD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Sword")
+KNIGHT_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "KnightSword")
 
 ZONE_OVERRIDES = {
     # --- Swords (LW-199, 2026-08-14) ------------------------------------------------------
@@ -1317,6 +1326,49 @@ ZONE_OVERRIDES = {
                    _edge(EMBER, pct=22, floor=0.50, sheen=0.10, gleam=0.0,
                          min_blob=2, feather=0.6)], "gleam": 0.06,
          "contrast": 0.85},                                                 # Warbrand
+    # --- Knight Swords (LW-200, 2026-08-14) -----------------------------------------------
+    # The sword vocabulary, unchanged, on the swords' direct siblings in art: measured on all
+    # five distinct sprites, the dark share is guard/grip/pommel (8.8 to 16.7 percent) and the
+    # bright share is the fuller running the blade's whole length (9.4 to 18.8 percent).
+    33: {"zones": [_hilt(BLACK_IRON, pct=24, floor=0.34),
+                   _edge(STEEL, pct=22)], "gleam": 0.25},                   # Defender
+    34: {"zones": [_hilt(STEEL, pct=24, floor=0.50),
+                   _edge(WHITE, pct=22, floor=0.62)], "gleam": 0.45},       # Save the Queen
+    35: {"zones": [_hilt(BLACK_IRON, pct=24, floor=0.32),
+                   _edge(WHITE, pct=22, floor=0.68)], "gleam": 0.25,
+         "contrast": 0.55},                                                 # Excalibur
+    # Owner picker, 2026-08-14: variant B, "spectral ice, violet flame". Its art is cold and PALE
+    # (measured hue 0.587) while the item carries the Dark element, and B is the answer that
+    # sides with the ART: the artist's icy blade kept, with the darkness arriving as a violet
+    # flame down the fuller and violet-black furniture under it.
+    36: {"zones": [_hilt(NIGHT_IRON, pct=22, floor=0.30),
+                   _edge(VIOLET_FLAME, pct=22, floor=0.55)], "gleam": 0.45,
+         "contrast": 0.55},                                                 # Ragnarok
+    # Chaos Blade's cover mask claims 3.9% at the family default, the same fragmentation the
+    # Warbrand hit: its brightest pixels scatter across a wide ornate blade and the despeckle
+    # pass eats them. 30 is where the crimson survives as a line.
+    # Owner picker, round three, 2026-08-14: "blood-black, bone edge". Three rounds and nine
+    # candidates went into this one, and the finding that settled it was about the FAMILY rather
+    # than the item: all six of its settled siblings are bright saturated blades, so there is no
+    # dark sword on the shelf, and the Chaos Blade's colourless vanilla art (chroma 0.041) was
+    # already asking to be the dark one. That made the 48px icon the real test, and of nine
+    # candidates this was the only one still unmistakably dark at that size without tuning.
+    # Its one risk is the Ravager, also red: they separate on WEIGHT and on FURNITURE (a
+    # luminous red blade with gold fittings against near-black plum with black ones), which are
+    # the two differences that survive being shrunk to a list glyph. An acid-green version and a
+    # molten-crimson one were rejected by the owner before this.
+    37: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.30),
+                   _edge(BONE, pct=26, floor=0.66)], "gleam": 0.12,
+         "contrast": 0.78},                                                 # Chaos Blade
+    49: {"zones": [_hilt(BRASS, pct=24, floor=0.50),
+                   _edge(BRASS, pct=22, floor=0.56)], "gleam": 0.15,
+         "contrast": 0.60},                                                 # Ravager
+    # Free name, and the one that had to move: with the Defender on brass and the Ravager on
+    # blood, a copper Sunderer made three warm blades out of seven. Patinated bronze is what
+    # copper BECOMES, so gold fittings still belong on it, and a cold body is also the furthest
+    # thing from Save the Queen, whose sprite it borrows.
+    50: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
+                   _edge(GOLD, pct=22)], "gleam": 0.20, "contrast": 0.60},  # Sunderer
     # --- Crossbows (LW-202, 2026-08-14) ---------------------------------------------------
     # The owner's word for the family was dull, and it was true twice over. The tints were
     # timid, three of the six at saturation 0.15 or below, so the render came back looking like
@@ -2064,7 +2116,7 @@ def selftest():
     # family that has actually been through a review pass, not that they are all hats: the zone
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
-    _ZONED_CATS = {"Hat", "Crossbow", "Sword"}
+    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2107,9 +2159,10 @@ def selftest():
     # weapons, so a category-first engine_for would send them to bright-v2 and quietly ignore
     # their recipes.
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
-    check("all twelve hats, all six crossbows and the whole sword rack are picked",
+    check("every reviewed family is picked, whole",
           sorted(ZONE_OVERRIDES)
-          == sorted({i for i, c in _CATEGORY.items() if c in ("Hat", "Crossbow")} | SWORD_RACK))
+          == sorted({i for i, c in _CATEGORY.items() if c in ("Hat", "Crossbow")}
+                    | SWORD_RACK | KNIGHT_RACK))
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
     check("hair adornments stay legacy until their own pass",
@@ -2140,29 +2193,44 @@ def selftest():
     check("shield palette covers all 16", len(shields) == 16)
     check("the tripwire still guards most of the set", len(guarded) >= 10)
 
-    # SWORD RACK (LW-199). The same tripwire as the shields above, for the same reason and one
-    # more. Under the zone engine the body tint owns every solid pixel, so a sword's tint IS its
-    # colour signal; and the owner's brief for this pass was explicit ("try and make no two swords
-    # look similar in color"), which is a claim a person cannot keep by eye across fifteen items
-    # and a later tweak can silently break. Sat gap 0.20 rather than the shields' 0.25: this rack
-    # deliberately carries near-neighbours in hue that separate by weight instead (Warbrand is a
-    # near-black iron two hundredths off Flamberge's fire orange), so the pair check below leans
-    # on the value term the shields' pin does not have.
-    SWORD_MIN_HUE_GAP, SWORD_MIN_SAT_GAP, SWORD_MIN_VAL_GAP = 0.05, 0.20, 0.28
+    # THE BLADE RACKS (LW-199 swords, LW-200 knight swords). The same tripwire as the shields
+    # above, for the same reason and one more. Under the zone engine the body tint owns every
+    # solid pixel, so a blade's tint IS its colour signal; and the owner's brief for these passes
+    # was explicit ("try and make no two swords look similar in color"), which is a claim a
+    # person cannot keep by eye across a family and a later tweak can silently break. Sat gap
+    # 0.20 rather than the shields' 0.25: these racks deliberately carry near-neighbours in hue
+    # that separate by weight instead (Warbrand is a near-black iron two hundredths off
+    # Flamberge's fire orange), so the pair check leans on the value term the shields' pin has
+    # no need for. Each rack is checked WITHIN itself: two families are never on screen in the
+    # same list, and holding one rack's palette away from another's would spend hue the wheel
+    # does not have.
+    RACK_MIN_HUE_GAP, RACK_MIN_SAT_GAP, RACK_MIN_VAL_GAP = 0.05, 0.20, 0.28
     swords = sorted(SWORD_RACK)
-    sword_collisions = [
-        (a, b) for n, a in enumerate(swords) for b in swords[n + 1:]
-        if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < SWORD_MIN_HUE_GAP
-        and abs(ICON_TINTS[a][1] - ICON_TINTS[b][1]) < SWORD_MIN_SAT_GAP
-        and abs(ICON_TINTS[a][2] - ICON_TINTS[b][2]) < SWORD_MIN_VAL_GAP]
-    check(f"sword tints stay distinguishable (collisions: {sword_collisions})",
-          not sword_collisions)
+    knights = sorted(KNIGHT_RACK)
+    for rack_name, rack in (("sword", swords), ("knight sword", knights)):
+        rack_collisions = [
+            (a, b) for n, a in enumerate(rack) for b in rack[n + 1:]
+            if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < RACK_MIN_HUE_GAP
+            and abs(ICON_TINTS[a][1] - ICON_TINTS[b][1]) < RACK_MIN_SAT_GAP
+            and abs(ICON_TINTS[a][2] - ICON_TINTS[b][2]) < RACK_MIN_VAL_GAP]
+        check(f"{rack_name} tints stay distinguishable (collisions: {rack_collisions})",
+              not rack_collisions)
     check("the sword rack is all fifteen", len(swords) == 15)
-    # Vagabond and Warbrand are ONE PICTURE (id 67 sources id 19's art, see SRC), so colour is
-    # the only thing that tells them apart. They get their own harder floor.
-    check("the two swords that share a sprite are far apart",
-          abs(arc(ICON_TINTS[19][0], ICON_TINTS[67][0])) >= 0.05
-          or abs(ICON_TINTS[19][2] - ICON_TINTS[67][2]) >= 0.35)
+    check("the knight sword rack is all seven", len(knights) == 7)
+    # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
+    # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
+    # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
+    # are DERIVED from SRC rather than listed, because the next family to do this will otherwise
+    # be guarded by nothing. They get a harder floor than the rack's.
+    twins = sorted((src, i) for i, src in SRC.items()
+                   if i in ICON_TINTS and src in ICON_TINTS
+                   and _CATEGORY.get(i) == _CATEGORY.get(src)
+                   and _CATEGORY.get(i) in _ZONED_CATS)
+    check("the shared-sprite scan finds every known twin pair", len(twins) == 3)
+    same_picture = [(a, b) for a, b in twins
+                    if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < 0.05
+                    and abs(ICON_TINTS[a][2] - ICON_TINTS[b][2]) < 0.35]
+    check(f"items sharing one sprite are far apart (too close: {same_picture})", not same_picture)
     # NO SINGLE-COLOUR SWORD (owner rule, 2026-08-14: "if you send me a updated weapon that's a
     # single color I'm going to immediately reject it"). THREE checks, because the first two
     # versions of this gate were both provably cheatable and an adversarial audit demonstrated
@@ -2175,8 +2243,9 @@ def selftest():
     #      escape: a second material must differ in HUE or in SATURATION.
     # These are the pins standing in for a rule the owner enforces by rejection, so they are held
     # to the standard of failing when the thing they describe is false.
-    zone_ids = [i for i in swords if i in ZONE_OVERRIDES]
-    check("every sword has a recipe at all", len(zone_ids) == len(swords))
+    bladed = swords + knights
+    zone_ids = [i for i in bladed if i in ZONE_OVERRIDES]
+    check("every blade has a recipe at all", len(zone_ids) == len(bladed))
     check("every sword carries a second material",
           all(ZONE_OVERRIDES[i]["zones"] for i in zone_ids))
     flat = []

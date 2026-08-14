@@ -115,6 +115,50 @@ the technical detail lives in the indented lines under it.
     and a mask despeckled until it swallows the sprite) each turn the gate red. Owner gallery
     published for sign-off; nothing bakes into the mod tree until he passes it.
 
+- **[LW-200] Two pairs of knight swords are the same picture in two names, because the recolour never reached the blade** (opened 2026-08-13) [BUILDING]
+  - Promoted 2026-08-14, the owner's pick for the family after the swords landed. Knight swords
+    are the swords' direct siblings in art, so the engine and the vocabulary from LW-199 carry
+    over unchanged: measured on all five distinct sprites, darkness finds guard, grip and pommel
+    and the bright ridge runs the length of the fuller, exactly as it does on a sword.
+  - The reason this family goes next is worse than dullness. TWO of the seven draw themselves
+    with ANOTHER item's sprite (the Ravager on the Defender's, the Sunderer on Save the Queen's),
+    and the shipping bake reaches 1.0 percent of the Ravager's solid art and 3.2 percent of the
+    Chaos Blade's, so colour is the only thing that could tell those pairs apart and there is
+    effectively none of it. In the equip list today the Ravager IS the Defender.
+  - FIVE of the seven KEPT their vanilla names (Defender, Save the Queen, Excalibur, Ragnarok,
+    Chaos Blade), so this family is mostly the owner's reserved-name rule rather than free
+    design: players know these by sight, so each is anchored to its own vanilla look and only
+    enriched. The anchor is measured rather than remembered, the chroma-weighted mean hue of the
+    item's own solid art, which is the same method the shields used for the four the owner asked
+    to build FROM the original.
+  - Done means: all seven carry their identity colour across their solid art with a second
+    material on hilt and ridge, the two shared-sprite pairs are unmistakable at list size, the
+    five reserved names read as enriched versions of themselves rather than reinventions, and no
+    already-approved art moves. (Tech: route the family into ZONE_OVERRIDES with _hilt and _edge
+    per LW-199. Measured vanilla anchors: Defender hue 0.107, Save the Queen 0.604, Excalibur
+    0.085, Ragnarok 0.587, Chaos Blade 0.012 at chroma 0.041, which is near enough to colourless
+    that its anchor constrains value and not hue. Chaos Blade also needs a wider ridge than the
+    default: its cover mask claims 3.9 percent at pct 22, the same fragmentation the Warbrand hit
+    on a wide flat blade.)
+  - Settled 2026-08-14 after two owner rejections and two pickers. The Ragnarok took variant B,
+    the answer that sides with its ART over its element: the artist's pale icy blade kept, with
+    the darkness arriving as a violet flame down the fuller. The Chaos Blade took blood and bone
+    after nine candidates across three rounds, and the argument that settled it was about the
+    FAMILY rather than the item: every one of its six siblings is a bright saturated blade, so
+    the dark slot on the shelf was empty and its colourless vanilla art was asking for it anyway.
+    Of nine candidates it was the only one still unmistakably dark at 48px untuned.
+  - Two of those rounds also exposed the same real gap in the no-single-colour gate, which is
+    the transferable part. A NEUTRAL dark furniture on a NEAR-NEUTRAL body differs from it in
+    value alone, which the gate correctly calls a shadow rather than a material, and both the
+    Ragnarok and one Chaos Blade candidate hit it. The fix each time was the art, not the gate:
+    tint the furniture toward the item's own accent (NIGHT_IRON) or deepen the body until the
+    two are genuinely different substances.
+  - Verify: recolor_icons selftest green with the palette pins extended to this family, including
+    the shared-sprite floor applied to BOTH pairs; every item's second material measured on the
+    real art (worst 26.6 percent, on the Chaos Blade); `icon_preview.py compare` showing 0 moved
+    pixels for every already-approved family; the bake matching the reviewed gallery pixel for
+    pixel; and the owner's gallery pass.
+
 ## Backlog
 
 - [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
@@ -222,8 +266,6 @@ the technical detail lives in the indented lines under it.
   process") plus the engine modes in tools/recolor_icons.py. Helmets run first (LW-215
   promoted 2026-08-13, the owner delegated the order call): headgear still wears the legacy
   one-hue stamp, and a helmet is the same art shape the shield engine was built for.
-
-- [LW-200] 2026-08-13: Knight Swords re-pass: the 7 knight sword icons get the shields-grade per item review; process per LW-198.
 
 - [LW-203] 2026-08-13: Guns re-pass: the 6 gun icons get the shields-grade per item review; process per LW-198.
 
