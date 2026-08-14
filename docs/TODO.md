@@ -159,6 +159,33 @@ the technical detail lives in the indented lines under it.
     pixels for every already-approved family; the bake matching the reviewed gallery pixel for
     pixel; and the owner's gallery pass.
 
+- **[LW-201] Five of the nine bows are not recoloured at all, they just ship as the artist's vanilla art** (opened 2026-08-14) [BUILDING]
+  - Promoted 2026-08-14 as the next family after the knight swords landed. This is the worst
+    remaining case of the LW-232 glow defect by a distance: measured, today's bake reaches 0.0
+    percent of the Skypiercer and the Perseus Bow, 0.2 percent of the Windrunner, 2.3 percent of
+    the Stormarc and 4.0 percent of the Huntress. Five of nine are the vanilla sprite wearing a
+    coloured haze and nothing else.
+  - The engine question is genuinely new, which is the other reason to do bows now. A bow is not
+    a blade: it is a curved limb, a STRING, and a few small fittings, and its solid art is tiny
+    (the Tidecaller card is 113 solid pixels against a sword's 400 to 1100). Darkness, which
+    finds a hilt on 15 of 15 swords, claims 0.7 to 12.4 percent here and lands on scattered limb
+    tips. What a bow actually has is the crossbow's own split: the STRING is the bright
+    desaturated line, and the desat key finds it on 10 to 24 percent of the art. That is also
+    the shape the sword pass proved matters, since the string crosses the sprite's longest
+    dimension rather than sitting at one end.
+  - Done means: all nine carry their identity colour across their solid art with the string as a
+    visibly separate material, no two read alike at list size, the two reserved names (Yoichi Bow
+    and Perseus Bow) are enriched rather than reinvented, and no already-approved art moves.
+    (Tech: route the family into ZONE_OVERRIDES reusing _material, the LW-202 crossbow helper,
+    rather than the swords' _hilt. Per-item sat_p tuning is expected: on the Skirmisher and the
+    Stormarc the desat key finds limb highlights instead of the string. Spatial knobs need
+    watching at this scale, since min_blob and feather are authored against a 100px card and
+    these sprites carry a fraction of a sword's solid pixels.)
+  - Verify: recolor_icons selftest green with the palette pins extended to this family; every
+    bow's second material measured on the real art; `icon_preview.py compare` showing 0 moved
+    pixels for every already-approved family; the bake matching the reviewed gallery pixel for
+    pixel; and the owner's gallery pass.
+
 ## Backlog
 
 - [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
@@ -217,20 +244,6 @@ the technical detail lives in the indented lines under it.
   kills.json in the save dir is a per-weapon tally across a whole playthrough. The question is
   whether an opt-in way exists for a player to send it, what it must not contain, and whether
   the console silence is itself a bug worth fixing first since it costs support time today.
-
-- [LW-201] 2026-08-13: Bows re-pass: the 9 bow icons get the shields-grade per item review;
-  process per LW-198. Paused with the rest of the program on 2026-08-14 and live again the same
-  day when the owner restarted it (see LW-198); swords went first, so this is still queued. It
-  was promoted to Now once before and demoted unworked, so nothing is half
-  done and nothing is blocked; promote it again when swords land. Two things found on
-  the way in are worth keeping, because they change where this starts: bows are the WORST case
-  of the LW-232 glow finding, thin line art where the Skypiercer and the Windrunner keep under 7
-  percent of their identity colour once the haze is left alone, which is the measured way of
-  saying they were never really recoloured; and three of the nine tints were keyed to item names
-  that no longer exist (id 88 Tidecaller was tinted for "Silentstring (Silence)" and actually
-  carries Water, id 90 Yoichi Bow for "Tempest", id 91 Perseus Bow for "Seraph"). The comments
-  are corrected already and a selftest check now fails on any future drift, so the pass restarts
-  from what the items actually do.
 
 - [LW-228] 2026-08-13: Harp signature ideas from the owner, banked for when the instruments
   arc opens. One harp grants Ramza's Tailwind so the wielder can hand a unit extra Speed. The

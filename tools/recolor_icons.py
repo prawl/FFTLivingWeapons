@@ -150,15 +150,40 @@ ICON_TINTS = {
     81: (0.815, 0.88, 1.02),  # Pitchbolt       plum (Oil)            (was 0.09/0.55/0.88)
     82: (0.695, 0.88, 0.98),  # Siegebolt       deep indigo (capstone)(was 0.60/0.15/0.68)
     # --- Bows (ids 83-91) ---
-    83: (0.10, 0.30, 0.95),   # Skirmisher      light leather/tan
-    84: (0.45, 0.18, 1.05),   # Windrunner      pale silver-teal
-    85: (0.50, 0.55, 1.08),   # Frostarc        ice cyan (Ice)
-    86: (0.14, 0.80, 1.10),   # Stormarc        electric yellow (Lightning)
-    87: (0.42, 0.52, 1.05),   # Skypiercer      sky teal (Wind)
-    88: (0.64, 0.42, 0.92),   # Tidecaller      muted indigo (Water)
-    89: (0.30, 0.55, 0.88),   # Huntress        forest green
-    90: (0.58, 0.42, 0.95),   # Yoichi Bow      storm grey-blue (agile capstone)
-    91: (0.13, 0.45, 1.18),   # Perseus Bow     radiant gold (Holy)
+    # LW-201, 2026-08-14. The family the LW-232 glow defect hit hardest: measured, the pre-pass
+    # bake reached 0.0% of the Skypiercer and the Perseus Bow and 0.2% of the Windrunner, so
+    # five of the nine were the artist's vanilla sprite under a coloured haze. The pre-pass
+    # palette is kept in the trailing comments as the diagnosis.
+    83: (0.085, 0.42, 0.95),  # Skirmisher      honey wood, bone string (was 0.10/0.30/0.95)
+    84: (0.740, 0.25, 1.16),  # Windrunner      pale lavender, silver string. Sage green was
+                              #                 tried and made three green bows of nine. A silver BODY was
+                              #                 tried first and the no-single-colour gate
+                              #                 refused it: a silver bow strung with steel
+                              #                 is one colour (was 0.45/0.18/1.05)
+    85: (0.520, 0.78, 1.05),  # Frostarc        ice cyan, white string (Ice)
+                              #                 (was 0.50/0.55/1.08)
+    86: (0.150, 0.95, 1.00),  # Stormarc        electric yellow, levin string (Lightning). It
+                              #                 sits one and a half hundredths off the Perseus
+                              #                 Bow's Holy gold and separates on SATURATION, the
+                              #                 same collision the swords hit between Stormbrand
+                              #                 and Lightbringer (was 0.14/0.80/1.10)
+    87: (0.420, 0.72, 1.00),  # Skypiercer      sky teal, white string (Wind)
+                              #                 (was 0.42/0.52/1.05, and 0.0% covered)
+    88: (0.620, 0.80, 0.85),  # Tidecaller      deep ocean blue, silver string (Water)
+                              #                 (was 0.64/0.42/0.92)
+    89: (0.330, 0.80, 0.72),  # Huntress        forest green, brass string (was 0.30/0.55/0.88)
+    90: (0.030, 0.70, 0.68),  # Yoichi Bow      RESERVED NAME, anchored to its own art: measured
+                              #                 vanilla hue 0.051, a warm lacquered wood, so it
+                              #                 stays warm and only deepens toward lacquer red
+                              #                 (was 0.58/0.42/0.95, a storm grey-blue that
+                              #                 fought the art it sits on)
+    91: (0.135, 0.55, 1.25),  # Perseus Bow     RESERVED NAME, and the Chaos Blade's case: its
+                              #                 vanilla measures chroma 0.031, near enough to
+                              #                 colourless that the anchor constrains VALUE and
+                              #                 not hue, so the Holy gold it already wore is
+                              #                 legitimate. Paler and less saturated than the
+                              #                 Stormarc so the two do not trade places
+                              #                 (was 0.13/0.45/1.18, and 0.0% covered)
     # --- Shields (ids 128-143) ---
     # Hues are DELIBERATELY SPACED, and SHIELD_MIN_HUE_GAP in selftest() enforces it. Under the
     # whole-glyph engine below the tint is the item's entire colour signal, so two shields whose
@@ -1227,6 +1252,7 @@ def _edge(tone, pct=20, floor=0.52, gleam=0.30, sheen=0.45, min_blob=3, feather=
 # separates them and selftest holds them to a harder floor than the rest of the rack.
 SWORD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Sword")
 KNIGHT_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "KnightSword")
+BOW_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bow")
 
 ZONE_OVERRIDES = {
     # --- Swords (LW-199, 2026-08-14) ------------------------------------------------------
@@ -1369,6 +1395,32 @@ ZONE_OVERRIDES = {
     # thing from Save the Queen, whose sprite it borrows.
     50: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
                    _edge(GOLD, pct=22)], "gleam": 0.20, "contrast": 0.60},  # Sunderer
+    # --- Bows (LW-201, 2026-08-14) --------------------------------------------------------
+    # Bows reuse the CROSSBOW helper, not the sword one, because a bow is a crossbow's relative
+    # and not a blade's: it has no hilt to find. Measured over the nine, the darkness key that
+    # finds a hilt on 15 of 15 swords claims 0.7 to 12.4 percent here and lands on scattered
+    # limb tips, while the saturation key finds the STRING on 10 to 24 percent. The string is
+    # also the right shape for a second material by the sword pass's own lesson, since it
+    # crosses the sprite's longest dimension instead of sitting at one end.
+    #
+    # min_blob is 2 across the family rather than the helper's 4. These sprites are TINY: the
+    # Tidecaller card carries 113 solid pixels against a sword's 400 to 1100, so a despeckle
+    # floor authored for a blade eats a bow's string whole.
+    83: {"zones": [_material(STEEL, sat_p=34, min_blob=2)], "gleam": 0.25},  # Skirmisher
+    84: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.45}, # Windrunner
+    # The one bow whose STRING the key cannot find, because the artist drew it almost
+    # invisibly. At this window the mask lands on patches along the limb instead, which on an
+    # ICE bow reads as rime and is the right answer for the wrong reason; taken deliberately
+    # rather than left at a setting that returned 3% of the card.
+    85: {"zones": [_material(WHITE, sat_p=48, min_blob=2)], "gleam": 0.30},  # Frostarc
+    # A levin string on a levin bow is one colour, which the gate said out loud. Black iron on
+    # a hot yellow limb is the Flamberge's pairing and the contrast is chroma, not weight.
+    86: {"zones": [_material(BLACK_IRON, sat_p=32, min_blob=2)], "gleam": 0.22},  # Stormarc
+    87: {"zones": [_material(WHITE, sat_p=30, min_blob=2)], "gleam": 0.30},  # Skypiercer
+    88: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25}, # Tidecaller
+    89: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.22},  # Huntress
+    90: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.20},   # Yoichi Bow
+    91: {"zones": [_material(WHITE, sat_p=30, min_blob=2)], "gleam": 0.40},  # Perseus Bow
     # --- Crossbows (LW-202, 2026-08-14) ---------------------------------------------------
     # The owner's word for the family was dull, and it was true twice over. The tints were
     # timid, three of the six at saturation 0.15 or below, so the render came back looking like
@@ -1969,7 +2021,7 @@ def selftest():
     hazed_solid = ((6, 11), (14, 11))       # one metal pixel, one body pixel
     # Routing coverage: a future engine added without the fix must fail HERE rather than ship
     # smoking. The right-hand side is every engine name the router can actually return today.
-    halo_sample = {"bright-v2": 83, "shield-bright": 128, "helm-two-tone": 156,
+    halo_sample = {"bright-v2": 1, "shield-bright": 128, "helm-two-tone": 156,
                    "three-zone": 157, "legacy": 169}
     check("the halo sample names every engine the router can return",
           set(halo_sample) == {engine_for(i) for i in ICON_TINTS})
@@ -2015,7 +2067,7 @@ def selftest():
     # over alpha>=HELM_SOLID (so an opaque twin legitimately re-ranks), and the ring shield
     # (id132) keys its BFS on alpha>=160 for the same reason.
     twin = opaque_twin(hazed)
-    for iid in (83, 13, 128, 143, 169):
+    for iid in (1, 13, 128, 143, 169):
         for surf in ("card", "small"):
             with_haze = route(hazed, iid, ICON_TINTS[iid], surf)
             without = route(twin, iid, ICON_TINTS[iid], surf)
@@ -2116,7 +2168,7 @@ def selftest():
     # family that has actually been through a review pass, not that they are all hats: the zone
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
-    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword"}
+    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2147,9 +2199,10 @@ def selftest():
     # routing: shields take the shield engine, unreviewed weapons keep bright-v2, picked helmets
     # the helm engine, anything in the zone table the three-zone engine, everything else legacy
     check("shield routes to shield-bright", engine_for(128) == "shield-bright")
-    # id 83 is a bow: a weapon whose family re-pass (LW-201) has NOT run, so it must still take
-    # the category default. This pin used to read id 19, which the sword pass has since moved.
-    check("an unreviewed weapon still routes to bright-v2", engine_for(83) == "bright-v2")
+    # id 1 is a knife: a weapon whose family re-pass (LW-198) has NOT run, so it must still take
+    # the category default. This pin has now been re-pointed twice, from id 19 when the swords
+    # moved and from id 83 when the bows did, which is the pin working rather than rotting.
+    check("an unreviewed weapon still routes to bright-v2", engine_for(1) == "bright-v2")
     check("a reviewed sword beats its category's engine", engine_for(19) == "three-zone")
     check("picked helmet routes to helm-two-tone", engine_for(156) == "helm-two-tone")
     check("the last two helmets joined the helm engine",
@@ -2161,7 +2214,7 @@ def selftest():
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
     check("every reviewed family is picked, whole",
           sorted(ZONE_OVERRIDES)
-          == sorted({i for i, c in _CATEGORY.items() if c in ("Hat", "Crossbow")}
+          == sorted({i for i, c in _CATEGORY.items() if c in ("Hat", "Crossbow", "Bow")}
                     | SWORD_RACK | KNIGHT_RACK))
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
@@ -2207,7 +2260,8 @@ def selftest():
     RACK_MIN_HUE_GAP, RACK_MIN_SAT_GAP, RACK_MIN_VAL_GAP = 0.05, 0.20, 0.28
     swords = sorted(SWORD_RACK)
     knights = sorted(KNIGHT_RACK)
-    for rack_name, rack in (("sword", swords), ("knight sword", knights)):
+    bows = sorted(BOW_RACK)
+    for rack_name, rack in (("sword", swords), ("knight sword", knights), ("bow", bows)):
         rack_collisions = [
             (a, b) for n, a in enumerate(rack) for b in rack[n + 1:]
             if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < RACK_MIN_HUE_GAP
@@ -2217,6 +2271,7 @@ def selftest():
               not rack_collisions)
     check("the sword rack is all fifteen", len(swords) == 15)
     check("the knight sword rack is all seven", len(knights) == 7)
+    check("the bow rack is all nine", len(bows) == 9)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2243,9 +2298,9 @@ def selftest():
     #      escape: a second material must differ in HUE or in SATURATION.
     # These are the pins standing in for a rule the owner enforces by rejection, so they are held
     # to the standard of failing when the thing they describe is false.
-    bladed = swords + knights
+    bladed = swords + knights + bows
     zone_ids = [i for i in bladed if i in ZONE_OVERRIDES]
-    check("every blade has a recipe at all", len(zone_ids) == len(bladed))
+    check("every reviewed weapon has a recipe at all", len(zone_ids) == len(bladed))
     check("every sword carries a second material",
           all(ZONE_OVERRIDES[i]["zones"] for i in zone_ids))
     flat = []
