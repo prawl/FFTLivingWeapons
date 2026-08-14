@@ -139,8 +139,8 @@ internal sealed class FingerprintGuard
 
     // ---- static landmark factories ----
 
-    // PE header layout (independently re-derived; matches ArmAudit.cs:22-24, the Treasure Master
-    // build-key gate this guard borrows the same field offsets from): e_lfanew (u32) at
+    // PE header layout (independently re-derived, and cross-checked at the time against a second
+    // in-tree implementation that has since been removed): e_lfanew (u32) at
     // moduleBase+0x3C; TimeDateStamp (u32) at moduleBase+e_lfanew+8; SizeOfImage (u32) at
     // moduleBase+e_lfanew+0x50. This is generic PE/COFF header shape, not an FFT-specific magic
     // number; the EXPECTED values for one game build are the adapter's job (LaunchGuard.cs).

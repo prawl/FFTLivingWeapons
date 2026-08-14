@@ -9,15 +9,21 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Config round-trip: write a Config.json to a temp dir, load it via
-/// Configurable&lt;Config&gt;.FromFile, and assert TreasureAlwaysOn survives the round-trip.
+/// Config loading, and the deliberate emptiness of the player-facing surface.
+///
+/// LW-52 removed the BannerToasts, DevSeedKills and VerboseLog toggles from the launcher so
+/// players could not switch off designed behaviour, leaving TreasureAlwaysOn as the only
+/// setting; LW-10 then removed Treasure Master itself (2026-08-14) and that setting went with
+/// it. So the surface is now EMPTY, and that is a decision worth pinning rather than a gap:
+/// every remaining behaviour keeps its compiled Tuning default on purpose.
 ///
 /// Invariants:
-///   (1) Default Config has TreasureAlwaysOn == false (opt-in via the config toggle).
-///   (2) FromFile on a missing path creates a new Config with the default value (false).
-///   (3) A Config.json written with TreasureAlwaysOn=false round-trips back as false.
-///   (4) A Config.json written with TreasureAlwaysOn=true  round-trips back as true.
-///   (5) FromFile on a corrupt JSON silently returns a default Config (no throw).
+///   (1) FromFile on a missing path returns a usable default Config and does not throw.
+///   (2) FromFile on corrupt JSON returns a default Config and does not throw. Mod.cs depends
+///       on exactly this: a config typo warns the player and startup continues.
+///   (3) A saved config round-trips back through FromFile.
+///   (4) Config declares NO read/write properties. Adding one is a product decision about what
+///       players may switch off, so it should fail here and be argued for, not slip in.
 ///
 /// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
@@ -38,74 +44,41 @@ public class ModConfigTests : IDisposable
     }
 
     [Fact]
-    public void DefaultConfig_TreasureAlwaysOnIsFalse()
+    public void FromFile_MissingPath_ReturnsDefaultAndDoesNotThrow()
     {
-        var c = new Config();
-        Assert.False(c.TreasureAlwaysOn);
-    }
-
-    [Fact]
-    public void FromFile_MissingPath_ReturnsDefaultFalse()
-    {
-        var dir  = TempDir();
-        var path = Path.Combine(dir, "Config.json");
-        var c    = Configurable<Config>.FromFile(path, "Test");
-        Assert.False(c.TreasureAlwaysOn);
-    }
-
-    [Fact]
-    public void RoundTrip_FalseValue()
-    {
-        var dir  = TempDir();
-        var path = Path.Combine(dir, "Config.json");
-
-        // Write a false config
-        var written = Configurable<Config>.FromFile(path, "Test");
-        written.TreasureAlwaysOn = false;
-        written.Save();
-
-        // Load it back fresh
-        var loaded = Configurable<Config>.FromFile(path, "Test");
-        Assert.False(loaded.TreasureAlwaysOn);
-    }
-
-    [Fact]
-    public void RoundTrip_TrueValue()
-    {
-        var dir  = TempDir();
-        var path = Path.Combine(dir, "Config.json");
-
-        var written = Configurable<Config>.FromFile(path, "Test");
-        written.TreasureAlwaysOn = true;
-        written.Save();
-
-        var loaded = Configurable<Config>.FromFile(path, "Test");
-        Assert.True(loaded.TreasureAlwaysOn);
+        var path = Path.Combine(TempDir(), "Config.json");
+        var ex = Record.Exception(() => Assert.NotNull(Configurable<Config>.FromFile(path, "Test")));
+        Assert.Null(ex);
     }
 
     [Fact]
     public void FromFile_CorruptJson_ReturnsDefaultNoThrow()
     {
-        var dir  = TempDir();
-        var path = Path.Combine(dir, "Config.json");
+        var path = Path.Combine(TempDir(), "Config.json");
         File.WriteAllText(path, "{ this is not valid json !!!");
 
-        var ex = Record.Exception(() =>
-        {
-            var c = Configurable<Config>.FromFile(path, "Test");
-            // corrupt load falls back to default (false)
-            Assert.False(c.TreasureAlwaysOn);
-        });
+        var ex = Record.Exception(() => Assert.NotNull(Configurable<Config>.FromFile(path, "Test")));
         Assert.Null(ex);
     }
 
-    // ---- LW-52: the player-facing config surface is exactly TreasureAlwaysOn ----
-    // The BannerToasts, DevSeedKills, and VerboseLog toggles were removed from the launcher: toasts
-    // are always on, dev-seeding is governed by the LWDEV compile flag, and console verbosity is
-    // fixed at Info (the log FILE still records every line unconditionally). This reflection guard
-    // fails if any of those properties reappears on Config, so the removal cannot silently regress.
     [Fact]
-    public void ConfigSurface_IsExactlyTreasureAlwaysOn_LW52()
+    public void SavedConfig_RoundTripsBackThroughFromFile()
+    {
+        var path = Path.Combine(TempDir(), "Config.json");
+
+        Configurable<Config>.FromFile(path, "Test").Save();
+
+        Assert.True(File.Exists(path));
+        Assert.NotNull(Configurable<Config>.FromFile(path, "Test"));
+    }
+
+    // ---- The player-facing surface is empty ON PURPOSE (LW-52, then LW-10) ----
+    // This reflection guard fails the moment any settable property appears on Config, including
+    // the three LW-52 removed (BannerToasts, DevSeedKills, VerboseLog) coming back. It is not
+    // saying "never add a setting"; it is saying a setting is a decision about what a player is
+    // allowed to switch off, and that decision should be made in front of this test.
+    [Fact]
+    public void ConfigSurface_IsEmpty_LW52_LW10()
     {
         var declared = typeof(Config)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
@@ -113,6 +86,6 @@ public class ModConfigTests : IDisposable
             .Select(p => p.Name)
             .OrderBy(n => n, StringComparer.Ordinal)
             .ToArray();
-        Assert.Equal(new[] { "TreasureAlwaysOn" }, declared);
+        Assert.Equal(Array.Empty<string>(), declared);
     }
 }

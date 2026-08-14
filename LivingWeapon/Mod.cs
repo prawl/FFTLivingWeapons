@@ -79,24 +79,23 @@ public class Mod : IMod
             // NOT to the deployed mod folder -- so we must read the user file when it exists (mirrors
             // FFTColorCustomizer.GetUserConfigPath), falling back to modDir/Config.json (the shipped
             // default) before the user has opened the config UI.
-            // LW-52: TreasureAlwaysOn is the only player-facing toggle left. Toasts (always on),
-            // dev-seeding (the LWDEV compile flag), and console verbosity (Info) are no longer
-            // config-driven: the Engine ctor takes its Tuning defaults for the first two, and the
-            // console is pinned to Info below (the log FILE always carries every line regardless).
-            bool treasureAlwaysOn = Tuning.TreasureAlwaysOn;   // documented default
+            // LW-10 (2026-08-14): with Treasure Master removed the mod exposes NO player-facing
+            // settings at all, so nothing is read out of the config. The file is still loaded so a
+            // corrupt one warns the player instead of failing silently, and so the resolved path is
+            // logged. Toasts (always on), dev-seeding (the LWDEV compile flag) and console
+            // verbosity (Info) keep their compiled Tuning defaults, as they have since LW-52.
             string configPath     = Path.Combine(modDir, "Config.json");   // overwritten below on success
             try
             {
                 configPath = ResolveConfigPath(modDir);
-                var cfg    = Configurable<Config>.FromFile(configPath, "FFT Living Weapons Configuration");
-                treasureAlwaysOn = cfg.TreasureAlwaysOn;
+                _ = Configurable<Config>.FromFile(configPath, "FFT Living Weapons Configuration");
             }
             catch (Exception cfgEx)
             {
                 // Warning, not Error (the audit's demotion): defaults cope, and a mere config
                 // typo must not burn the launch's one FlushOnce flight archive.
                 ModLogger.Warn(LogVerb.Config,
-                    $"Your settings could not be read; using defaults (TreasureAlwaysOn={treasureAlwaysOn}): {cfgEx.Message}");
+                    $"Your settings could not be read; using defaults: {cfgEx.Message}");
             }
             // Console at Info; the log FILE always carries every line unconditionally (docs/LOGGING.md).
             // DEFINED whether the try above succeeded or hit the catch (never skipped), so a
@@ -113,7 +112,7 @@ public class Mod : IMod
             const bool devForceFingerprintMismatch = false;
 #endif
             ModLogger.Event(LogVerb.Config,
-                $"Configuration loaded: TreasureAlwaysOn={treasureAlwaysOn} LogLevel={ModLogger.LogLevel} (from {configPath})");
+                $"Configuration loaded: LogLevel={ModLogger.LogLevel} (from {configPath})");
 
             // LW-50: born disarmed, before the Engine (and its FastHold background thread) exists.
             // Only LaunchGuard's Armed edge (inside Engine.Tick, via the guard's onArmed callback)
@@ -121,7 +120,7 @@ public class Mod : IMod
             Mem.WritesEnabled = false;
             // LW-52: bannerToasts and devSeedKills are no longer config-driven; omitting them lets
             // the Engine ctor fall back to its Tuning defaults (toasts on; dev-seed under LWDEV).
-            _engine = new Engine(modDir, treasureAlwaysOn, devForceFingerprintMismatch: devForceFingerprintMismatch);
+            _engine = new Engine(modDir, devForceFingerprintMismatch: devForceFingerprintMismatch);
             _engine.Start();
         }
         catch (Exception ex)

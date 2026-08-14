@@ -36,25 +36,3 @@ function myturn {
 function revive {
     python (Join-Path $script:FftRepo "tools\probes\battle_cheats.py") revive
 }
-
-# Treasure capture campaign (treasure_flags.py wrappers)
-function treasure {
-    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") session
-}
-
-function tstatus {
-    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") status
-}
-
-function tmapid {
-    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") mapid
-}
-
-function trefp([int]$mapId) {
-    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") refp $mapId
-}
-
-# Water/lava maps: convert to map-id-only mode (no terrain fingerprint).
-function tnofp([int]$mapId) {
-    python (Join-Path $script:FftRepo "tools\probes\treasure_flags.py") nofp $mapId
-}

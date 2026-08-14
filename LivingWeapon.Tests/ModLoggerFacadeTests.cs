@@ -146,8 +146,8 @@ public class ModLoggerFacadeTests
     public void ScopedLogger_Warn_demotes_to_Debug_when_not_armed()
     {
         var (console, file) = Install(LogLevel.Info);
-        var scoped = ModLogger.For(LogVerb.Treasure, () => false);
-        try { scoped.Warn("disarmed treasure marks: the dataset was built for a different game build"); }
+        var scoped = ModLogger.For(LogVerb.Display, () => false);
+        try { scoped.Warn("disarmed: the card pool was rebuilt under us"); }
         finally { ModLogger.UseNullLogger(); }
         Assert.Empty(console);
         Assert.Single(file);
@@ -158,12 +158,12 @@ public class ModLoggerFacadeTests
     public void ScopedLogger_Warn_reaches_console_at_Warning_tier_when_armed()
     {
         var (console, _) = Install();
-        var scoped = ModLogger.For(LogVerb.Treasure, () => true);
-        try { scoped.Warn("disarmed treasure marks: the dataset was built for a different game build"); }
+        var scoped = ModLogger.For(LogVerb.Display, () => true);
+        try { scoped.Warn("disarmed: the card pool was rebuilt under us"); }
         finally { ModLogger.UseNullLogger(); }
         Assert.Single(console);
         Assert.Contains("[WARN]", console[0]);
-        Assert.Contains("[treasure]", console[0]);   // Warning tier keeps the verb on console
+        Assert.Contains("[display]", console[0]);    // Warning tier keeps the verb on console
     }
 
     [Fact]

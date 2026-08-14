@@ -173,7 +173,7 @@ public class LoggerTests
         // but they are different events (different verbs) and both must get through.
         var (log, console, _) = Make();
         log.Log(LogVerb.Kill, "all enemies are accounted for");
-        log.Log(LogVerb.Treasure, "all enemies are accounted for");
+        log.Log(LogVerb.Display, "all enemies are accounted for");
         Assert.Equal(2, console.Count);
         // Same rendered text once the ms timestamp is normalized away (LW-20: a straddled
         // millisecond boundary between these two separate Write calls must not fail this on the

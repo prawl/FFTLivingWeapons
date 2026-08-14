@@ -102,12 +102,12 @@ internal sealed class BattleState
     public static bool ShouldPaintCard(bool statusCardOpen, bool onField, double secondsOffField, double settleSeconds) =>
         statusCardOpen || (!onField && secondsOffField > settleSeconds);
 
-    /// <summary>A battle map is currently on screen -- the broad gate used by the Treasure Master
+    /// <summary>A battle map is currently on screen -- the broad gate used by the pre-gate
     /// module. True when slot9 is the stuck in-battle sentinel AND battleMode is non-zero.
     /// Covers the formation/unit-placement screen (mode 1), your turn (modes 2/3/4), enemy turns
     /// and animations (mode 1), and cast targeting (mode 5). False on the world map / party menu
     /// (mode 0) regardless of whether slot9 is still stuck from a prior battle.
-    /// Preferred over InLiveBattle for the treasure gate: avoids the mode-1 flicker that
+    /// Preferred over InLiveBattle for a pre-gate module: avoids the mode-1 flicker that
     /// previously reset the stability counter on every enemy turn.</summary>
     public static bool BattleDisplayed(uint slot9, int battleMode) =>
         slot9 == 0xFFFFFFFFu && battleMode != 0;

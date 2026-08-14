@@ -271,51 +271,12 @@ internal static class Tuning
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
     public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
 
-    // â”€â”€ Treasure Master knobs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-    /// <summary>Documented default for Config.TreasureAlwaysOn (the runtime value flows from
-    /// LivingWeapon.Configuration.Config, loaded by Mod.cs at startup; this constant is the
-    /// fallback when the config file can't be read).  Default OFF -- the Scholar's Ring
-    /// (item id 260, RAccessory offset +0x12, probe-confirmed 2026-06-12) is the NORMAL gate:
-    /// TreasureMaster arms each battle iff any roster slot's accessory reads 260 via RingGate.
-    /// TreasureAlwaysOn=true is a force-on OVERRIDE that bypasses the ring check entirely
-    /// (roster is not read).  Ship with the default false; only toggle for dev testing.</summary>
-    public const bool TreasureAlwaysOn = false;
+    // ── Toasts ────────────────────────────────────────────────────────
 
     /// <summary>Compiled BannerToasts default, now the SOLE source since LW-52 removed the launcher
     /// toggle: Mod.cs no longer passes a config value, so Engine's ctor falls back to this constant.
     /// Default ON: the tier-up callout toast (BannerToast.cs) is the headline feature, always on.</summary>
     public const bool BannerToasts = true;
-
-    /// <summary>Consecutive same-map-id ticks required before arming begins (~1s at 33ms).</summary>
-    public const int TreasureArmStableTicks = 30;
-
-    /// <summary>Ticks between full fingerprint revalidations while ARMED.</summary>
-    public const int TreasureRevalidateEveryNTicks = 30;
-
-    /// <summary>Maximum arming attempts before logging "waiting to arm" once per battle.
-    /// Arming continues indefinitely after the cap -- the log is informational only.</summary>
-    public const int TreasureArmAttemptCap = 60;
-
-    /// <summary>Minimum number of Resting or Held ("ok") tile addresses required at arm time
-    /// to proceed with arming. Below this quorum the module stays ARMING (cheap polling) until
-    /// enough tiles scroll into view. Protects against a battle start where most tiles are
-    /// off-screen (action camera / narrow view) without permanently disarming.</summary>
-    public const int TreasureMinPlausibleAddrs = 4;
-
-    /// <summary>Consecutive bad-map-id ticks while ARMED before a full state reset
-    /// back to DISARMED. The map-id change IS the battle boundary for chained story battles
-    /// (the debounced exit edge may never fire in those cases).</summary>
-    public const int TreasureMapIdBadTicksToReset = 3;
-
-    /// <summary>How many Tick() calls between dataset-stamp checks (applies regardless of
-    /// phase or inLive). 30 ticks â‰ˆ 1 s at the 33 ms loop. A changed stamp triggers a full
-    /// reload + state reset so the next arm cycle uses fresh data.</summary>
-    public const int TreasureStampCheckTicks = 30;
-
-    /// <summary>FastHold re-stamp interval in ms (~2Ã— per 60 fps animation frame â‰ˆ 16 ms).
-    /// Out-paces the running-water wipe that clears 0x80 between 33 ms loop re-stamps.</summary>
-    public const int TreasureFastHoldMs = 8;
 
     /// <summary>Ultima (Materia Blade): tier (row 0..3) Ã— HP% band (col 100 / 75-99 / 50-74 / 25-49 /
     /// &lt;25) -> PA multiplier PERCENT. round(naturalPA Ã— pct/100) is the held PA. Always-on (every

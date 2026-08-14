@@ -433,28 +433,6 @@ internal static class Offsets
     // count[itemId] = u8 @ InventoryCountBase + itemId.  Read/write via IGameMemory so
     // the seam is testable.  Do NOT read or write mid-battle (gated by Engine.Tick !nowIn).
     public const long InventoryCountBase = 0x1411A7C00;   // 1.5 CONFIRMED +0x6440 (was 0x1411A17C0): dev give-all inventory present at predicted addr
-    /// <summary>Scholar's Ring item id.  Treasure Master needs this in a deployed unit's
-    /// accessory slot to enable tile-highlight; ring-grant ensures the player always has at
-    /// least one available.</summary>
-    public const int ScholarRingItemId = 260;
-
-    // --- Treasure Master: map identity + terrain grid ---
-    // u8, current battle's map id; valid 1..127 (FFTHandsFree LiveBattleMapId contract).
-    // Ported from FFTHandsFree GameBridge/LiveBattleMapId.cs; found 2026-04-19 via
-    // snapshot/diff; verified on 3 maps (Dugeura=86, Beddha=82, Araguay=80) + across restart.
-    // STALE out of battle: only read when InLiveBattle is true.
-    public const long LiveBattleMapId = 0x140784478;   // 1.5 RE-FOUND 2026-06-17 +0x6C3C (was 0x14077D83C): two-map differential (reads 76 on Zeklaus, 80 on Araguay, unique hit)
-
-    // Static per-map terrain records, 7 bytes/tile; used read-only as the map-identity
-    // fingerprint source (FNV-1a64 over a fixed-length prefix).
-    // 1.5 RE-FOUND 2026-06-17 +0x6440 (was 0x140C65000): the live v2 hash at this start matched
-    // map 80 (Araguay)'s STORED pre-1.5 fingerprint exactly -- proving the terrain DATA is unchanged
-    // on 1.5, so every captured map's stored fpHash stays valid (no re-fingerprint needed).
-    // NOT the same table as PathTerrainGrid below -- that one is the PATHFINDER's own live grid;
-    // this one is Treasure Master's read-only fingerprint scratch. Cross-referenced so nobody
-    // writes the wrong one.
-    public const long TerrainGrid = 0x140C6B440;
-
     // --- Bulwark (Sunderer +3, docs/BULWARK_AC.md): the PATHFINDER's own live terrain grid, 8
     // bytes/tile. idx = x + y*mapWidth + layerBit*0x100. BASE CORRECTED 2026-07-28: the true
     // record base is 0x140D8DCB0, NOT 0x140D8DCC0 -- the old base was 16 bytes (2 records) high,

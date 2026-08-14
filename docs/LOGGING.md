@@ -128,7 +128,6 @@ deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-face
 | `display` | `display:` | Info once per launch: sweep generation 1 is the liveness canary; every later generation is Debug, file-only. |
 | `growth` | `growth:` locate lines | Debug (file-only at default level); ambiguous-locate refusals are Warning. |
 | `turn` | `turn:` per-unit turn-finished bookkeeping | Debug (file-only): demoted off console per the no-heartbeats rule. |
-| `treasure` | `treasure:` `scholar-ring:` | Info only with the Ring armed (relevance gate); the Scholar's Ring grant keeps its one Info line per session. Module slated for removal; no further investment. |
 | `engine` | `engine:` tick-loop internal errors | Error, console-deduped per battle. |
 | `trace` | `ev:` `wielder-search:` `show-spike:` (dev), scan/dump evidence, id companions | Debug, file-only (the console is Info-only since LW-52). |
 

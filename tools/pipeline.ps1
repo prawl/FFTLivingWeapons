@@ -35,7 +35,6 @@ $RequiredModFiles = @(
     "LivingWeapon.deps.json",
     "Newtonsoft.Json.dll",
     "meta.json",
-    "treasure.json",
     # LW-167: Living Poach's species -> carcass key/name map (PoachMap.cs loads it from modDir).
     "poach.json",
     "FFTIVC/tables/enhanced/ItemData.xml",
@@ -213,14 +212,6 @@ function Invoke-TablePipeline {
     & python "$PipelineRepoRoot\tools\gen_living_weapon_meta.py"
     if ($LASTEXITCODE -ne 0) {
         throw "REFUSING TO ${FailVerb}: meta-gen failed (exit $LASTEXITCODE)."
-    }
-
-    # Bake the treasure tile address dataset.  Exit 1 from the gate (bad addr, coord
-    # mismatch, off-byte violation) refuses deploy/package like analyze.py does.
-    Write-Host "  -> tools/gen_treasure_db.py (treasure_addrs.json + map_trap_formation.json -> treasure.json)..."
-    & python "$PipelineRepoRoot\tools\gen_treasure_db.py"
-    if ($LASTEXITCODE -ne 0) {
-        throw "REFUSING TO ${FailVerb}: treasure-db gen failed (exit $LASTEXITCODE)."
     }
 
     # Run the log scanner's own built-in regression cases (LW-148 F2): scan_logs.py is a

@@ -33,7 +33,6 @@ internal sealed class Engine
     private readonly ShadowBlade _shadowBlade; // named: ticks pre-gate like Barrage (JobCommand grant of Shadow Blade)
     private readonly Provoke _provoke;     // named: ticks pre-gate like ShadowBlade (LW-123 arc 1; armed via id 33's signature block, disarmed by removing it)
     private readonly ProvokeHold _provokeHold;   // named: LW-123 arc 2a -- reads arc 1's mark, gates on the band bit itself, not meta[33].Signature
-    private readonly TreasureMaster _treasure;
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
     private readonly Display _display;
@@ -61,15 +60,13 @@ internal sealed class Engine
     private readonly PromptSwapHook _promptSwapHook;
 #if LWDEV
     private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
-    private readonly StatusSpike _statusSpike;   // LW-58: cold-call the status apply engine (F2 canary / F4 treasure), dev-only
+    private readonly StatusSpike _statusSpike;   // LW-58: cold-call the status apply engine (F2 canary / F4 chest-convert), dev-only
     private readonly BodyDoubleSpike _bodyDoubleSpike;   // LW-58 Canary 8: duplicate a hovered unit into a real AI fighter (F5), dev-only
     private readonly ProvokeSpike _provokeSpike;   // LW-123 arc 2a: plant the provoke mark without the real granted command (F6 / provoke_request.txt), dev-only
     private readonly NumeralSpike _numeralSpike;   // cold-call the floating number-popup builder (F8 / numeral_request.txt), dev-only
 #endif
 
-    /// <param name="modDir">Mod deployment directory (meta.json / treasure.json live here).</param>
-    /// <param name="treasureAlwaysOn">Override for the Treasure Master AlwaysOn gate, read from
-    /// Config.TreasureAlwaysOn at startup.  Null falls back to Tuning.TreasureAlwaysOn.</param>
+    /// <param name="modDir">Mod deployment directory (meta.json lives here).</param>
     /// <param name="bannerToasts">Tier-up callout toast gate. LW-52 removed the launcher toggle, so
     /// Mod.cs no longer passes this; null falls back to Tuning.BannerToasts (toasts always on). Kept
     /// as a parameter for the BannerToast enabled-gate tests.</param>
@@ -88,7 +85,7 @@ internal sealed class Engine
     /// (the default) falls back to <see cref="StandDownNotice.Show"/> right here at the production
     /// construction site, so a real build still raises the real message box on a mismatch; tests
     /// pass a captured no-op so `dotnet test` never pops a Win32 dialog.</param>
-    public Engine(string modDir, bool? treasureAlwaysOn = null, bool? bannerToasts = null, bool? devSeedKills = null,
+    public Engine(string modDir, bool? bannerToasts = null, bool? devSeedKills = null,
         bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null)
     {
         // LW-51: save files now live in the update-safe Reloaded/User/Mods/<ModId> dir, not the
@@ -218,21 +215,11 @@ internal sealed class Engine
         // Constructed after _toast (built above) so the toast injection is safe; no ordering dependency
         // with any other signature -- it never reads or writes another module's state.
         var bulwark = new Bulwark(meta, _kills, _toast, live);
-        var treasureJson = Path.Combine(modDir, "treasure.json");
-        _treasure = new TreasureMaster(
-            load:         () => TreasureDb.Load(modDir),
-            datasetStamp: () => { try { return File.GetLastWriteTimeUtc(treasureJson); }
-                                  catch { return null; } },
-            mem:      live,
-            alwaysOn: treasureAlwaysOn);
-        _treasure.StartFastHold();
         // Both orders are load-bearing and preserved verbatim from the hand-wired era:
         // reset runs extra..font with Barrage between Plague and Renewal; the in-battle tick
-        // excludes Barrage (ticks before the !nowIn early-return, learn screens included) and
-        // excludes TreasureMaster (ticks pre-gate on battleDisplayed, not inLive -- formation
-        // and enemy turns are included; world map excluded). TreasureMaster stays in _signatures
-        // so ResetBattle still fires on the debounced battle-exit edge.
-        _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark, _treasure };
+        // excludes Barrage, which ticks before the !nowIn early-return so learn screens are
+        // included.
+        _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         save.Migrate("gunslinger.json");
         _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live);
@@ -269,7 +256,7 @@ internal sealed class Engine
 
     /// <summary>LW-184: the declarative fan-out table Tick()'s post-edge tail steps through, in
     /// order, every tick -- same gates, same cadence, same call order as the hand-rolled kit-lane
-    /// trio / treasure / throttled gunslinger / <c>if (!nowIn) { ...; return; }</c> branch / the
+    /// trio / throttled gunslinger / <c>if (!nowIn) { ...; return; }</c> branch / the
     /// in-battle tail it replaces. Built once at the end of the ctor; every row reaches the
     /// subsystems through <paramref name="e"/>, dereferenced lazily at Run time. STATIC with a
     /// nullable engine (LW-186):
@@ -294,19 +281,11 @@ internal sealed class Engine
             new TickPhase("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" },
                 _ => e!._provoke.Tick()),
 
-            // Gates on "a battle map on screen" (slot9+mode), not strict InLiveBattle, so it stays
-            // stable through formation/enemy turns/casts; runs pre-gate so it fires where nowIn might not.
-            new TickPhase("treasure", TickGates.Always, 1, false, Array.Empty<string>(),
-                s => e!._treasure.Tick(s.Now, s.BattleDisplayed)),
             // Pre-gate (Barrage's precedent); re-asserts a snapshotted twin in battle but never
             // snapshots/restores there. Live-verified 2026-07-04: the twin fires twice in battle
             // with this hold. Old name: GunSlingerThrottleEveryNTicks (30, ~1s @ 33ms).
             new TickPhase("gunslinger", TickGates.Always, 30, false, Array.Empty<string>(),
                 s => e!._gunSlinger.PrepRoster(inBattle: s.NowIn)),
-            // DEV-only convenience grant (LW-86); Grant no-ops in Release. Old name:
-            // RingThrottleEveryNTicks (30, ~1s @ 33ms).
-            new TickPhase("scholar-ring", TickGates.OutOfBattle, 30, false, Array.Empty<string>(),
-                _ => ScholarRing.Grant(e!._live)),
             // Out of battle (slot9 cleared): keep the equip card painted.
             new TickPhase("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(),
                 _ => e!._display.Tick(false)),
@@ -384,8 +363,7 @@ internal sealed class Engine
     internal IReadOnlyList<Type> SignatureResetOrder => Array.ConvertAll(_signatures, s => s.GetType());
 
     /// <summary>Test/diagnostic seam (LW-150 S5): the in-battle field tick order -- excludes
-    /// Barrage, ShadowBlade, Provoke (kit-lane trio, pre-gate) and TreasureMaster
-    /// (pre-gate on battleDisplayed), all of which still appear in
+    /// Barrage, ShadowBlade and Provoke (kit-lane trio, pre-gate), all of which still appear in
     /// <see cref="SignatureResetOrder"/>. Pinned by EngineTests.</summary>
     internal IReadOnlyList<Type> FieldTickOrder => Array.ConvertAll(_fieldSignatures, s => s.GetType());
 
@@ -536,7 +514,7 @@ internal sealed class Engine
 
         // LW-184: everything past the two battle edges is a declarative fan-out over _phases
         // (see BuildPhases) -- one reused blackboard filled fresh every tick, then stepped in
-        // table order. Replaces the hand-rolled kit-lane trio / treasure / throttled gunslinger /
+        // table order. Replaces the hand-rolled kit-lane trio / throttled gunslinger /
         // the old `if (!nowIn) { ...; return; }` branch / the in-battle tail through the paint
         // decision; the OutOfBattle/InBattle gates reproduce that early return exactly (nothing
         // that ran after the old return ran out of battle, and nothing in the old !nowIn branch

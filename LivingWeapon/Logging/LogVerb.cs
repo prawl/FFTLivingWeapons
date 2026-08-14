@@ -26,7 +26,6 @@ internal enum LogVerb
     Display,
     Growth,
     Turn,
-    Treasure,
     Engine,
     Trace,
 }
@@ -53,7 +52,6 @@ internal static class LogVerbToken
         LogVerb.Display => "display",
         LogVerb.Growth => "growth",
         LogVerb.Turn => "turn",
-        LogVerb.Treasure => "treasure",
         LogVerb.Engine => "engine",
         LogVerb.Trace => "trace",
         _ => throw new ArgumentOutOfRangeException(nameof(verb), verb, "unmapped LogVerb: add it to both the enum's Token() switch and docs/LOGGING.md's verb table"),

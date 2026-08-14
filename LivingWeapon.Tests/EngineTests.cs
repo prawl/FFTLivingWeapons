@@ -155,14 +155,14 @@ public class EngineTests
                 typeof(Kobu), typeof(Iai), typeof(Mushin), typeof(Larceny), typeof(Puppeteer), typeof(Plague),
                 typeof(Barrage), typeof(ShadowBlade), typeof(Provoke), typeof(ProvokeHold),
                 typeof(Renewal), typeof(Rapture), typeof(SpiritualFont), typeof(FeignDeath),
-                typeof(Benediction), typeof(Sanctuary), typeof(Choir), typeof(Bulwark), typeof(TreasureMaster),
+                typeof(Benediction), typeof(Sanctuary), typeof(Choir), typeof(Bulwark),
             }, engine.SignatureResetOrder);
         }
         finally { ModLogger.UseNullLogger(); }
     }
 
     [Fact]
-    public void FieldTickOrder_matches_the_hand_wired_in_battle_sequence_and_excludes_the_pre_gate_four()
+    public void FieldTickOrder_matches_the_hand_wired_in_battle_sequence_and_excludes_the_pre_gate_trio()
     {
         ModLogger.UseNullLogger();
         try
@@ -179,9 +179,10 @@ public class EngineTests
             };
             Assert.Equal(expected, engine.FieldTickOrder);
 
-            // The four that tick pre-gate instead (see the ctor's comment above _signatures): named
+            // The three that tick pre-gate instead (see the ctor's comment above _signatures): named
             // explicitly so a reader never has to diff the two arrays above by eye to find them.
-            var preGate = new[] { typeof(Barrage), typeof(ShadowBlade), typeof(Provoke), typeof(TreasureMaster) };
+            // Was four until LW-10 removed Treasure Master (2026-08-14).
+            var preGate = new[] { typeof(Barrage), typeof(ShadowBlade), typeof(Provoke) };
             foreach (var t in preGate)
                 Assert.DoesNotContain(t, engine.FieldTickOrder);
         }
@@ -212,9 +213,7 @@ public class EngineTests
                 ("kit-barrage", TickGates.KitLane, 1, false, Array.Empty<string>()),
                 ("kit-shadowblade", TickGates.KitLane, 1, false, Array.Empty<string>()),
                 ("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" }),
-                ("treasure", TickGates.Always, 1, false, Array.Empty<string>()),
                 ("gunslinger", TickGates.Always, 30, false, Array.Empty<string>()),
-                ("scholar-ring", TickGates.OutOfBattle, 30, false, Array.Empty<string>()),
                 ("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>()),
                 ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
                 ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
@@ -287,7 +286,7 @@ public class EngineTests
             // Signature: Offsets.ActorPtr (the engine's own acting-unit pointer, resolved via
             // Band.ActorEntry) is touched ONLY by in-battle-gated rows -- kill-poll's
             // ActorRegister.Update chief among them -- never by the Always/OutOfBattle rows
-            // (kit-lane trio, treasure, gunslinger, scholar-ring, display-out), none of which ever
+            // (kit-lane trio, gunslinger, display-out), none of which ever
             // reference it. A region-level presence check, not an exact count, so this survives an
             // unrelated reshuffle of exactly which in-battle row reads it first.
             Assert.True(memIn.ReadCount.ContainsKey(Offsets.ActorPtr),

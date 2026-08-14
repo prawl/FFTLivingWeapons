@@ -69,9 +69,7 @@ public class EngineTickTableTests
             "kit-barrage",      // KitLane gate: learn screens/menus read the JobCommand table outside battle; the kit-lane guard (LW-112) is its write gate
             "kit-shadowblade",  // KitLane gate: same lane as kit-barrage
             "kit-provoke",      // KitLane gate: same lane as kit-barrage
-            "treasure",         // Always gate: self-gates on s.BattleDisplayed inside Tick (formation and enemy turns included by design)
             "gunslinger",       // Always gate: writes roster equipment, not battle memory; snapshot/restore self-gates on s.NowIn
-            "scholar-ring",     // OutOfBattle gate: DEV-only grant of the Scholar's Ring ITEM into the inventory count table (compiled no-op in Release); no battle memory
             "display-out",      // OutOfBattle gate: paints the equip card into menu buffers, not battle memory
         };
 
