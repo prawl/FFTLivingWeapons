@@ -10,6 +10,22 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-202] SHIPPED 8b80e06 2026-08-14: the six crossbows were the drab corner of the weapon
+  list and now every one of them is a colour you can name. The owner's word for the family was
+  dull and it was true twice over: the tints were timid, three of the six sitting at a
+  saturation of 0.15 or below, and the engine was wrong for the art. A crossbow is line art, a
+  thin stock and a curved limb and a string, so the weapons engine's two-cluster split found no
+  second cluster and handed back the vanilla sprite with a wash over it. Each now runs one hot
+  identity colour over the limb and frame with a bright metal on the stock, found by
+  saturation rather than brightness, which is the only key that can see two materials in line
+  art. The owner passed the gallery and then confirmed the in-game look on 2026-08-14: "look
+  great", with the six reading as six distinct colours in the inventory list. (Tech: routed to
+  zone_recolor via ZONE_OVERRIDES, which engine_for consults BEFORE any category rule precisely
+  so a per-item opt-in can beat a family default; _material zone specs on a desat key claiming
+  23 to 26 percent of the solid sprite on all six. Proofs: recolor selftest green, bake byte
+  identical to the approved previews, every untouched family unchanged. Two dead item names in
+  the tint table, ids 78 and 81, were corrected afterwards under LW-201.)
+
 - [LW-216] SHIPPED fb02f80 2026-08-14: every hat in the game wore one flat colour smeared over
   every pixel, and now all twelve carry a real colour scheme. The flat stamp erased the exact
   thing each hat is named for: the Wardplume's plume, the Zephyr Beret's feather, the Arcanist

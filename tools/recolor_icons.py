@@ -79,22 +79,28 @@ ICON_TINTS = {
     7:  (0.60, 0.12, 0.76),   # Adamant Fang    dark gunmetal
     8:  (0.27, 0.60, 0.90),   # Mortal Coil     necrotic green (Doom)
     9:  (0.46, 0.66, 1.05),   # Galewind        storm teal (Wind)
-    10: (0.72, 0.42, 1.10),   # Dreamsever      dream lavender (Sleep)
+    10: (0.72, 0.42, 1.10),   # Zwill Straightblade dream lavender (Sleep on hit)
     # --- Swords (ids 19-32) ---
     19: (0.08, 0.14, 0.90),   # Vagabond        worn warm steel
     20: (0.60, 0.10, 0.70),   # Cleaver         dark heavy steel
     21: (0.55, 0.08, 1.15),   # Riposte         bright silver (parry)
-    22: (0.48, 0.24, 1.08),   # Reaver          pale mythril teal
-    23: (0.99, 0.78, 0.92),   # Lifedrinker     blood red (HP drain)
+    22: (0.48, 0.24, 1.08),   # Claymore        pale mythril teal (the reach sword)
+    23: (0.99, 0.78, 0.92),   # Sanguine Sword  blood red (Absorb HP)
     24: (0.14, 0.82, 1.10),   # Stormbrand      electric yellow (Lightning)
     25: (0.10, 0.45, 0.78),   # Tanglethorn     earthy brown (Immobilize)
     26: (0.05, 0.85, 1.05),   # Flamberge       fire orange (Fire)
-    27: (0.60, 0.05, 1.18),   # Headsman        stark white (glass cannon)
-    28: (0.58, 0.32, 1.12),   # Bulwark         diamond light-blue
-    29: (0.50, 0.58, 1.08),   # Rimebrand       ice cyan (Ice)
+    27: (0.60, 0.05, 1.18),   # Wrathblade      stark white (damage = missing HP)
+    28: (0.58, 0.32, 1.12),   # Swiftedge       diamond light-blue (Speed x WP)
+    29: (0.50, 0.58, 1.08),   # Graviton        ice cyan, BUT SEE LW-199: this hue was
+                              # chosen for an Ice sword that no longer exists; Graviton casts
+                              # Gravity and carries no element at all.
     30: (0.74, 0.55, 0.95),   # Arcanum         arcane violet
-    31: (0.27, 0.65, 0.88),   # Hexfang         toad green (Toad)
-    32: (0.78, 0.50, 0.62),   # Nightfall       dark violet (Dark/MP)
+    31: (0.27, 0.65, 0.88),   # Lightbringer    toad green, WRONG AND KNOWN (LW-199): the hue
+                              # was picked for a Toad sword that no longer exists, while this
+                              # is the line's ONLY Holy sword. Compare id91, also Holy, gold.
+                              # Left alone deliberately: swords have not had their owner
+                              # review pass, and tints do not move without a gallery.
+    32: (0.78, 0.50, 0.62),   # Materia Blade   dark violet (Ultima living blade)
     # --- Crossbows (ids 77-82) ---
     # LW-202, 2026-08-14. The pre-pass palette is kept in the trailing comments because it is
     # the diagnosis: three of the six sat at saturation 0.15 or below and two more below 0.55,
@@ -102,10 +108,10 @@ ICON_TINTS = {
     # now a saturated identity colour carried on the limb and frame, with a bright metal on the
     # stock (see ZONE_OVERRIDES). Hues are spread so the six stay nameable in one list.
     77: (0.075, 0.85, 1.12),  # Scoutbolt       honey amber wood      (was 0.08/0.40/0.85)
-    78: (0.985, 0.92, 1.02),  # Knightslayer    blood crimson (Death) (was 0.99/0.55/0.55)
+    78: (0.985, 0.92, 1.02),  # Eclipsebolt     blood crimson (Doom)  (was 0.99/0.55/0.55)
     79: (0.565, 0.82, 1.05),  # Arbalest        blued steel           (was 0.60/0.12/0.85)
     80: (0.265, 0.92, 1.05),  # Venombolt       venom green (Poison)  (was 0.25/0.70/0.85)
-    81: (0.815, 0.88, 1.02),  # Snarebolt       plum (Immobilize)     (was 0.09/0.55/0.88)
+    81: (0.815, 0.88, 1.02),  # Pitchbolt       plum (Oil)            (was 0.09/0.55/0.88)
     82: (0.695, 0.88, 0.98),  # Siegebolt       deep indigo (capstone)(was 0.60/0.15/0.68)
     # --- Bows (ids 83-91) ---
     83: (0.10, 0.30, 0.95),   # Skirmisher      light leather/tan
@@ -113,10 +119,10 @@ ICON_TINTS = {
     85: (0.50, 0.55, 1.08),   # Frostarc        ice cyan (Ice)
     86: (0.14, 0.80, 1.10),   # Stormarc        electric yellow (Lightning)
     87: (0.42, 0.52, 1.05),   # Skypiercer      sky teal (Wind)
-    88: (0.64, 0.42, 0.92),   # Silentstring    muted indigo (Silence)
+    88: (0.64, 0.42, 0.92),   # Tidecaller      muted indigo (Water)
     89: (0.30, 0.55, 0.88),   # Huntress        forest green
-    90: (0.58, 0.42, 0.95),   # Tempest         storm grey-blue
-    91: (0.13, 0.45, 1.18),   # Seraph          radiant gold (Holy)
+    90: (0.58, 0.42, 0.95),   # Yoichi Bow      storm grey-blue (agile capstone)
+    91: (0.13, 0.45, 1.18),   # Perseus Bow     radiant gold (Holy)
     # --- Shields (ids 128-143) ---
     # Hues are DELIBERATELY SPACED, and SHIELD_MIN_HUE_GAP in selftest() enforces it. Under the
     # whole-glyph engine below the tint is the item's entire colour signal, so two shields whose
@@ -160,12 +166,38 @@ ICON_TINTS = {
 # Merge per-item tints from data/items.json (source for the new categories).
 SRC = {}  # item id -> vanilla icon id to source from, for repurposed weapons that need a different shape
 _CATEGORY = {}
+_NAME = {}
 for _it in load_items()["items"]:
     if _it.get("iconTint"):
         ICON_TINTS[_it["id"]] = tuple(_it["iconTint"])
     if _it.get("iconSource"):
         SRC[_it["id"]] = _it["iconSource"]
     _CATEGORY[_it["id"]] = _it.get("category")
+    _NAME[_it["id"]] = _it.get("name")
+
+
+def tint_comment_names():
+    """Every ICON_TINTS row's trailing comment, read back out of this file's own source.
+
+    The table above is hand-written and each row names the item it colours, because a bare hue
+    triple is unreviewable: the NAME is what says whether "toad green" was a good call. Those
+    names are copies, so they rot when an item is renamed in data/items.json, and they rot
+    silently because nothing executes a comment. It has bitten twice: three shields carried dead
+    names into their whole recolor pass (dbb7f1f), and on 2026-08-14 a scan found thirteen more,
+    including a Holy sword still wearing the hue picked for a Toad sword that no longer exists.
+
+    So the comments get read back and checked like data. Parsing our own source is the same
+    idiom analyze.py already uses on Offsets.cs and Tuning.cs; the alternative, moving the names
+    into the table as strings, would duplicate items.json instead of citing it."""
+    import re
+    src = Path(__file__).read_text(encoding="utf-8")
+    body = src[src.index("ICON_TINTS = {"):]
+    body = body[:body.index("\n}\n")]
+    out = {}
+    for iid, tail in re.findall(r"^\s*(\d+):\s*\([^)]*\),(.*)$", body, re.M):
+        if "#" in tail:
+            out[int(iid)] = tail.split("#", 1)[1].strip()
+    return out
 
 # --- LW-189 BRIGHT v2 engine (weapons only) -------------------------------------------------
 # The reference implementation these constants and functions were frozen from is the approved
@@ -1077,10 +1109,10 @@ ZONE_OVERRIDES = {
     # helmet rounds, a rich saturated body plus one bright metallic accent and two instantly
     # nameable materials, applied to a family that never had a second material before.
     77: {"zones": [_material(STEEL)]},                     # Scoutbolt   honey wood, steel stock
-    78: {"zones": [_material(BONE)]},                      # Knightslayer blood and bone (Death)
+    78: {"zones": [_material(BONE)]},                      # Eclipsebolt blood and bone (Doom)
     79: {"zones": [_material(BRASS)]},                     # Arbalest    blued steel and brass
     80: {"zones": [_material(GOLD)]},                      # Venombolt   venom green, gilt stock
-    81: {"zones": [_material(SILVER)]},                    # Snarebolt   plum, cold silver
+    81: {"zones": [_material(SILVER)]},                    # Pitchbolt   plum, cold silver
     82: {"zones": [_material(GOLD, sat_p=36)]},            # Siegebolt   the capstone, gold-heavy
     # --- Hats (LW-216) ----------------------------------------------------------------------
     # Round four, 2026-08-14: the four the owner never lettered, decided on the rule above.
@@ -1813,6 +1845,13 @@ def selftest():
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
     _ZONED_CATS = {"Hat", "Crossbow"}
+    # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
+    # triple is unreviewable without the item name beside it, and those names rot silently.
+    drifted = sorted(i for i, c in tint_comment_names().items()
+                     if i in _NAME and not c.startswith(_NAME[i]))
+    check(f"every tint row names its real item (drifted: {drifted})", not drifted)
+    check("the tint comment scan actually finds rows, so the check above cannot pass by parsing "
+          "nothing", len(tint_comment_names()) >= 50)
     check("every zone override names an item from a reviewed family",
           all(_CATEGORY.get(i) in _ZONED_CATS for i in ZONE_OVERRIDES))
     check("every zone override key is a known option",

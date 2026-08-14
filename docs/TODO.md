@@ -13,24 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-202] The six crossbow icons look dull and get the shields-grade treatment** (opened 2026-08-13) [AWAITING-LIVE]
-  - Done means: the crossbows stop being the drab corner of the weapon list. The owner's word
-    for them is dull, and the cause is visible in the art before any colour is chosen: a
-    crossbow is mostly a dark wooden stock with a thin metal bow and a string, so the LW-189
-    weapon engine finds one big low-contrast mass, tints the whole thing, and hands back a brown
-    smear with no second material in it. Each of the six gets its identity tint and its
-    treatment revisited per item, judged as pictures on both surfaces, card art and list icon,
-    with the engine picked from the art rather than assumed: the three-zone hat engine can put
-    the metal bow, the stock and the string on separate colours if the masks find them, and if
-    they do not, that finding decides the row rather than being tuned around. Process and
-    program reasoning per LW-198.
-  - Verify: recolor selftest green, every untouched family proven byte identical against the
-    committed engine (the 242 of 242 pattern the weapons, shields, helmets and hats all closed
-    on), the bake matches the approved previews pixel for pixel under the honest byte-level
-    comparison LW-227 restored, and the owner signs the gallery off and then confirms the
-    in-game look after a deploy. Owner only, as every live flip is. All six are baked and the
-    gates are green; the gallery is signed off, so what is left is the in-game look.
-
 - **[LW-230] Every recolored icon wears a cloud of coloured smoke, and the fix now reaches the art the owner already approved** (opened 2026-08-14) [AWAITING-LIVE]
   - Done means: an item stops looking like it is giving off coloured smoke. Each icon sprite is
     drawn sitting in a soft see through haze that the artist left neutral, and the recolor
@@ -156,6 +138,31 @@ the technical detail lives in the indented lines under it.
     robe card reads Wards against Silence, and no early-battle enemy floats without a vanilla
     Float source equipped.
 
+- **[LW-201] The nine bow icons get the crossbow treatment, and it is the family that needs it most** (opened 2026-08-14) [QUEUED]
+  - Done means: each of the nine bows reads as its own weapon in the list and on the card,
+    coloured on the bow itself rather than on the glow around it. Bows are the worst case of
+    the LW-232 finding: they are thin line art, so the current card engine looks at the picture,
+    decides the semi-transparent haze is the brightest thing in it, paints that, and leaves the
+    wood untouched. The Skypiercer and the Windrunner keep under 7 percent of their identity
+    colour once the haze is left alone, which is the measured way of saying they were never
+    recoloured at all. Each bow gets its engine chosen from its art the way LW-202 chose the
+    crossbows', which for line art means the saturation key that separates the two real
+    materials, wood against string and metal, instead of a brightness split that finds nothing.
+    Reserved-name bows (the Yoichi and Perseus Bows) stay anchored to their vanilla look and are
+    enhanced rather than reinvented, per the LW-198 program rule.
+  - Two corrections ride in before any colour is chosen, both found 2026-08-14 while the
+    crossbows were being signed off. Three of the nine tints are keyed to item names that no
+    longer exist (id 88 Tidecaller was tinted for "Silentstring (Silence)" and actually carries
+    Water, id 90 Yoichi Bow for "Tempest", id 91 Perseus Bow for "Seraph"), so the design
+    reasoning has to be rebuilt from what the items now DO, not from what the table says they
+    are. The comments are corrected already and a selftest check now fails on any future drift.
+  - Verify: recolor selftest green, every untouched family proven byte identical against the
+    committed engine (the pattern the weapons, shields, helmets, hats and crossbows all closed
+    on), the bake matches the approved previews pixel for pixel, and no bow trips the new
+    solid-tint floor the bake warns on, which is the mechanical form of "the colour is on the
+    bow and not on its glow". Then the owner signs the gallery off and confirms the in-game
+    look after a deploy. Owner only, as every live flip is.
+
 ## Backlog
 
 - [LW-228] 2026-08-13: Harp signature ideas from the owner, banked for when the instruments
@@ -189,11 +196,18 @@ the technical detail lives in the indented lines under it.
   promoted 2026-08-13, the owner delegated the order call): headgear still wears the legacy
   one-hue stamp, and a helmet is the same art shape the shield engine was built for.
 
-- [LW-199] 2026-08-13: Swords re-pass: the 15 sword icons get the shields-grade per item review; see LW-198 for the program's process and reasoning.
+- [LW-199] 2026-08-13: Swords re-pass: the 15 sword icons get the shields-grade per item review;
+  see LW-198 for the program's process and reasoning. Start here, found 2026-08-14: EIGHT of the
+  fifteen tints are keyed to item names that no longer exist, and two of those are now wrong
+  about the item rather than merely out of date. Lightbringer (id 31) is the line's ONLY Holy
+  sword and wears the toad green picked for a Toad sword that was renamed away; compare the
+  Perseus Bow, also Holy, correctly gold. Graviton (id 29) wears an ice cyan picked for an Ice
+  sword and carries no element at all, casting Gravity instead. The other six (ids 10, 22, 23,
+  27, 28, 32) kept reasoning that still fits their new names. Nothing was recoloured on the
+  finding, because tints do not move without an owner gallery and swords have not had their
+  pass; the comments are corrected and a selftest check now fails on any future drift.
 
 - [LW-200] 2026-08-13: Knight Swords re-pass: the 7 knight sword icons get the shields-grade per item review; process per LW-198.
-
-- [LW-201] 2026-08-13: Bows re-pass: the 9 bow icons get the shields-grade per item review; process per LW-198.
 
 - [LW-203] 2026-08-13: Guns re-pass: the 6 gun icons get the shields-grade per item review; process per LW-198.
 
