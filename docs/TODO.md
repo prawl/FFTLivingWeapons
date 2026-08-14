@@ -13,7 +13,7 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-202] The six crossbow icons look dull and get the shields-grade treatment** (opened 2026-08-13) [BUILDING]
+- **[LW-202] The six crossbow icons look dull and get the shields-grade treatment** (opened 2026-08-13) [AWAITING-LIVE]
   - Done means: the crossbows stop being the drab corner of the weapon list. The owner's word
     for them is dull, and the cause is visible in the art before any colour is chosen: a
     crossbow is mostly a dark wooden stock with a thin metal bow and a string, so the LW-189
@@ -28,7 +28,8 @@ the technical detail lives in the indented lines under it.
     committed engine (the 242 of 242 pattern the weapons, shields, helmets and hats all closed
     on), the bake matches the approved previews pixel for pixel under the honest byte-level
     comparison LW-227 restored, and the owner signs the gallery off and then confirms the
-    in-game look after a deploy. Owner only, as every live flip is.
+    in-game look after a deploy. Owner only, as every live flip is. All six are baked and the
+    gates are green; the gallery is signed off, so what is left is the in-game look.
 
 - **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [AWAITING-LIVE]
   - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
