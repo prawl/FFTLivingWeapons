@@ -786,9 +786,16 @@ def _desat_raw(im, sat_p, val_p):
 
 
 def zone_weight(im, spec):
-    """One zone spec -> per-pixel 0..1 weight. cover/shade delegate to helm_mask so the two
-    engines cannot drift; desat repeats helm_mask's smooth/despeckle/feather chain with the
-    saturation key, and scales every spatial knob to sprite width for the same reason."""
+    """One zone spec -> per-pixel 0..1 weight. cover/shade delegate to helm_mask so those two
+    cannot drift from the helmet engine. desat runs the same shape of chain (smooth, despeckle,
+    feather, every spatial knob scaled to sprite width) but ONE SMOOTHING PASS FEWER than
+    helm_mask at each size: 1 on the card and 0 on the icon, against helm_mask's 2 and 1.
+
+    That difference is deliberate and it is why the chain is repeated here instead of shared. A
+    saturation key is looking for small painted emblems, not for a plate's worth of fittings,
+    and majority smoothing eats them: on the Arcanist Cap's star, helm_mask's pass counts return
+    51px on the card and 26px on the icon against the 56 and 30 this keeps. If helm_mask's
+    smoothing default ever changes, this branch will NOT follow, by design."""
     key = spec.get("key", "cover")
     feather = spec.get("feather", 1.2)
     min_blob = spec.get("min_blob", 5)
@@ -867,9 +874,13 @@ def _value_fields(im, radius):
 
 def hat_recolor(im, tint, opts, surface="card"):
     """Body tint, then each zone blended over it by its own feathered weight, in list order."""
-    o = dict(opts or {})
-    zones = o["zones"]
+    o = dict(opts)
+    zones = o["zones"]      # required: a recipe with no zones is a typo, not a plain tint
     sheen, contrast, gleam = o.get("sheen", 0.20), o.get("contrast", 0.50), o.get("gleam", 0.80)
+    # No recipe overrides "detail"; it exists so the selftest can render the same fixture with
+    # the fine-grain residue turned off and measure what the residue is worth, without having
+    # to mutate the engine to find out.
+    detail = o.get("detail", DETAIL_GAIN)
     px = im.load()
     coords = [(x, y) for y in range(im.height) for x in range(im.width) if px[x, y][3] >= 8]
     weights = [(z, zone_weight(im, z)) for z in zones]
@@ -879,6 +890,13 @@ def hat_recolor(im, tint, opts, surface="card"):
             r, g, b, _ = px[c]
             solid_v.append(colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[2])
     median = sorted(solid_v)[len(solid_v) // 2] if solid_v else 0.5
+    # Blur radius: 0.9px on the 100px card, scaled to width like every other spatial knob, but
+    # FLOORED at 0.6 rather than following the scale down to 0.432 on the 48px icon. Sub-pixel
+    # Gaussians barely separate the artist's shading from the compression grain, which is the
+    # one thing this field exists to do, so the icon deliberately takes proportionally more
+    # blur. Measured on the 48px sprites of ids 157/160/165 (horizontal field swing, raw vs
+    # smoothed): the floor damps grain by 17-19% where pure scaling damps 10-12%, so the icon
+    # keeps roughly half again as much of the fix. Reproduce with _value_fields at both radii.
     raw_v, smooth_v = _value_fields(im, max(0.6, 0.9 * im.width / 100.0))
     out = im.copy()
     opx = out.load()
@@ -890,18 +908,14 @@ def hat_recolor(im, tint, opts, surface="card"):
         _, s0, _ = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
         base = smooth_v[c]
         v0 = max(0.0, min(1.0, _helm_scurve(base, median, contrast)
-                          + (raw_v[c] - base) * DETAIL_GAIN))
+                          + (raw_v[c] - base) * detail))
         rgb = _helm_sheen(helm_body(tint, s0, v0, gleam), sheen)
         for z, w in weights:
             wc = w.get(c, 0.0)
             if wc <= 0.002:
                 continue
-            tone = z["tone"]
-            if tone == "vanilla":
-                zc = (r / 255, g / 255, b / 255)
-            else:
-                zc = _helm_tone(tone, s0, v0, z.get("sheen", sheen),
-                                z.get("floor", 0.45), z.get("gleam", 0.30))
+            zc = _helm_tone(z["tone"], s0, v0, z.get("sheen", sheen),
+                            z.get("floor", 0.45), z.get("gleam", 0.30))
             rgb = tuple(bb * (1 - wc) + tt * wc for bb, tt in zip(rgb, zc))
         if halo < 1.0:
             van = (r / 255, g / 255, b / 255)
@@ -914,15 +928,21 @@ def hat_recolor(im, tint, opts, surface="card"):
 # in data/items.json iconTint (single source); these are the zones laid over them.
 #
 # Round three's rule, the one the owner called fire on the Arcanist Cap and which all four of the
-# last hats are built on: body and lining nearly OPPOSITE on the hue wheel, both at saturation
-# 0.90 or higher, and the third colour PURE white rather than a tinted off-white.
+# last hats are built on: body and lining far apart on the hue wheel, both saturated hard, and
+# the third colour a NEUTRAL white rather than a tinted off-white. Read it as a direction, not as
+# a formula the table obeys to three decimals: the four are 0.475 / 0.475 / 0.495 / 0.475 apart
+# in hue at saturations of 0.88 to 0.93, while the Arcanist itself, the item the rule is named
+# after, sits only 0.335 apart because its third colour is a white STAR rather than a crest and
+# the picture could carry a closer pair. WHITE below is saturation 0.05, not zero, and renders
+# around RGB 252/249/238; a true zero reads slightly cold against warm sprite art.
 #
 # Two knobs read as arbitrary and are not. The lining percentage is per item because it is a
-# percentile of the sprite's own darkness: on a POINTED hat the darkest quarter is the brim, so
-# 26 is right, but on a HOOD it is the shaded side of a smooth dome and 26 comes back as
-# camouflage across the cloth, so the hooded shapes were swept 10-26 and settled at 14. And a
-# crest much above 10 percent stops reading as a crest and starts reading as glare, a wet white
-# patch across the crown.
+# percentile of the sprite's OWN darkness, so the same number means a different thing on a
+# different shape: on a pointed or brimmed hat the darkest quarter really is the brim, so 22 to
+# 26 is right, but on a HOOD it is the shaded side of a smooth dome and a quarter comes back as
+# camouflage across the cloth, so the three hooded shapes were swept 10 to 26 and settled at 14.
+# And a crest much above 10 percent stops reading as a crest and starts reading as glare, a wet
+# white patch across the crown.
 WHITE = (0.130, 0.05, 1.35)
 
 
@@ -1370,14 +1390,37 @@ def selftest():
     check("the ramp clears the mask threshold it used to reuse", HALO_HI > HELM_SOLID)
     # ...and end to end: a haze pixel keeps the artist's own colour while a solid one takes the
     # tint. Without this the identity colour becomes a cloud of coloured smoke around the item.
-    haze = Image.new("RGBA", (12, 12), (0, 0, 0, 0))
-    for y in range(12):
-        for x in range(12):
-            edge = x in (0, 11) or y in (0, 11)
-            haze.putpixel((x, y), (130, 130, 130, 30) if edge else (120 + x, 110 + y, 100, 255))
+    # The fixture carries all THREE alpha populations, and the middle one is the point: a pixel
+    # inside the 48-223 ramp is where the blend actually runs. A fixture with only haze and
+    # solid pixels leaves the blend itself untested, because haze short-circuits before it and
+    # solid multiplies by 1.0 through it, so the whole of LW-230 can be deleted under a green
+    # gate. (Measured when it was: 765 pixels off on the Roughspun card, 817 on the
+    # Nightrunner, max delta 201 of 255. That is the look the owner rejected twice.)
+    haze = Image.new("RGBA", (14, 14), (0, 0, 0, 0))
+    for y in range(14):
+        for x in range(14):
+            if x in (0, 13) or y in (0, 13):
+                haze.putpixel((x, y), (130, 130, 130, 30))          # haze: below the ramp
+            elif x in (1, 12) or y in (1, 12):
+                haze.putpixel((x, y), (130, 130, 130, 140))         # INSIDE the ramp
+            else:
+                haze.putpixel((x, y), (120 + x, 110 + y, 100, 255))  # solid: above the ramp
     hz = hat_recolor(haze, (0.33, 0.9, 1.1), {"zones": [_lining(20, (0.9, 0.9, 1.2))]})
-    check("halo pixels keep the artist's neutral haze", hz.getpixel((0, 6)) == haze.getpixel((0, 6)))
-    check("solid pixels still take the identity colour", hz.getpixel((6, 6)) != haze.getpixel((6, 6)))
+    check("halo pixels keep the artist's neutral haze", hz.getpixel((0, 7)) == haze.getpixel((0, 7)))
+    check("solid pixels still take the identity colour", hz.getpixel((7, 7)) != haze.getpixel((7, 7)))
+    ramp_px, ramp_van = hz.getpixel((1, 7))[:3], haze.getpixel((1, 7))[:3]
+    full = hat_recolor(Image.new("RGBA", (14, 14), (130, 130, 130, 255)), (0.33, 0.9, 1.1),
+                       {"zones": []}).getpixel((7, 7))[:3]
+    check("a ramp-band pixel lands strictly between the artist's colour and the full tint",
+          ramp_px != ramp_van and ramp_px != full
+          and all(min(v, n) - 1 <= p <= max(v, n) + 1
+                  for p, v, n in zip(ramp_px, ramp_van, full)))
+    # ...and the band has to be the one that was measured as visible glow. At the first
+    # attempt's ceiling of 160 the 160-191 pixels still took the full tint and the owner still
+    # saw smoke, so a regression to any ceiling at or below HELM_SOLID must fail here.
+    check("the ramp ceiling clears the whole visible glow band", HALO_HI >= 224)
+    check("alpha is never touched by the recolour",
+          all(hz.getpixel(c)[3] == haze.getpixel(c)[3] for c in ((0, 7), (1, 7), (7, 7))))
     # Smooth-field contrast (LW-231): the S-curve runs on the BLURRED brightness, so the art's
     # own compression grain stops being multiplied into coloured speckle. Measured as
     # neighbour-to-neighbour swing across a grainy field, against the per-pixel engine on the
@@ -1390,8 +1433,10 @@ def selftest():
             grain.putpixel((x, y), (base, base - 6, base - 12, 255))
 
     def swing(im):
-        """Neighbour-to-neighbour swing ACROSS the grain. The fixture's real gradient runs down
-        the y axis, so a horizontal walk measures the noise and nothing else."""
+        """Neighbour-to-neighbour swing along the x axis. The fixture's structural gradient also
+        runs along x (measured: 2208 of the 7092 a grainy walk reports, i.e. under a third), so
+        this is grain PLUS a constant pedestal, not grain alone. That is fine for comparing two
+        engines on the same fixture and wrong for reading any single number as noise."""
         p = im.load()
         return sum(abs(p[x, y][0] - p[x + 1, y][0]) for y in range(24) for x in range(23))
     raw_f, smooth_f = _value_fields(grain, max(0.6, 0.9 * 24 / 100.0))
@@ -1409,7 +1454,12 @@ def selftest():
                             dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0)))
     check("smooth-field contrast amplifies less grain than the per-pixel curve",
           swing(smoothed) < swing(perpixel) * 0.9)
-    check("the fine grain is not thrown away either", 0.0 < DETAIL_GAIN < 1.0 and swing(smoothed) > 0)
+    # The other half of the fix: the grain is DAMPED, not deleted. Measured against the same
+    # render with the residue term removed, which is a flat blurred stamp; "swing > 0" is not
+    # this test, because the fixture's own gradient satisfies that with the residue gone.
+    no_detail = hat_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[], detail=0.0))
+    check("the fine grain is damped, not thrown away",
+          0.0 < DETAIL_GAIN < 1.0 and swing(smoothed) > swing(no_detail) * 1.05)
     # Three zones, composited in list order, and the LAST one wins where two overlap. That is
     # what lets a white star sit inside a bright crest instead of averaging with it.
     tri = Image.new("RGBA", (20, 20), (0, 0, 0, 0))
@@ -1417,13 +1467,32 @@ def selftest():
         for x in range(20):
             v = 60 + y * 8 + x                    # dark at the top, bright at the bottom
             tri.putpixel((x, y), (min(v, 250), min(v, 250) - 20, min(v, 250) - 40, 255))
-    three = hat_recolor(tri, (0.33, 0.9, 1.05),
-                        {"zones": [_lining(20, (0.9, 0.92, 1.2)), _crest((0.6, 0.9, 1.2), pct=20)]})
+    zoned = {"zones": [_lining(20, (0.9, 0.92, 1.2)), _crest((0.6, 0.9, 1.2), pct=20)]}
+    three = hat_recolor(tri, (0.33, 0.9, 1.05), zoned)
+    plain = hat_recolor(tri, (0.33, 0.9, 1.05), {"zones": []})
     body_px, lin_px, crest_px = three.getpixel((10, 10)), three.getpixel((10, 0)), three.getpixel((10, 19))
+    # Measured AGAINST THE SAME RENDER WITH NO ZONES, not against each other. The three sample
+    # pixels sit at three different brightnesses on the fixture's gradient, so a body tint alone
+    # already puts 215-562 between them and an each-other comparison passes with zones deleted.
+    check("each zone actually repaints its own region",
+          all(sum(abs(a - b) for a, b in zip(three.getpixel(c)[:3], plain.getpixel(c)[:3])) > 30
+              for c in ((10, 0), (10, 19)))
+          and three.getpixel((10, 10)) == plain.getpixel((10, 10)))
     check("three zones come out as three distinct tones",
           sum(abs(a - b) for a, b in zip(body_px[:3], lin_px[:3])) > 40
           and sum(abs(a - b) for a, b in zip(body_px[:3], crest_px[:3])) > 40
           and sum(abs(a - b) for a, b in zip(lin_px[:3], crest_px[:3])) > 40)
+    # zone_weight's desat branch, through the ROUTING rather than by calling _desat_raw: the
+    # pins above prove the key works, this proves the engine reaches it. Rerouted to a
+    # brightness mask, the emblem stops being repainted and this goes red.
+    star_spec = {"key": "desat", "sat_p": 12, "val_p": 40, "min_blob": 2, "feather": 0.0,
+                 "tone": WHITE, "floor": 0.75, "gleam": 1.0}
+    starred = hat_recolor(dim, (0.9, 0.9, 1.0), {"zones": [star_spec]})
+    bare = hat_recolor(dim, (0.9, 0.9, 1.0), {"zones": []})
+    check("a desat zone routes through zone_weight and repaints the emblem only",
+          sum(abs(a - b) for a, b in zip(starred.getpixel((7, 7))[:3], bare.getpixel((7, 7))[:3])) > 30
+          and starred.getpixel((14, 1)) == bare.getpixel((14, 1))
+          and starred.getpixel((1, 1)) == bare.getpixel((1, 1)))
     # Order, pinned by WHICH zone wins rather than by the two orderings differing: two zones on
     # the identical unfeathered mask, so the second must overwrite the first completely. Merely
     # asserting the two orderings differ passes just as happily when the list is composited
@@ -1436,17 +1505,27 @@ def selftest():
     check("a later zone wins where two overlap",
           both.getpixel((10, 19)) == only_white.getpixel((10, 19))
           and both.getpixel((10, 19)) != only_blue.getpixel((10, 19)))
-    check("hat transparency untouched", three.getpixel((0, 0))[3] == 255 and hz.getpixel((0, 0))[3] == 30)
+    # Transparency: a sprite with THREE alpha levels must come back with all three intact. The
+    # earlier version of this pin read an opaque fixture pixel and a haze pixel the engine never
+    # writes, so destroying every written pixel's alpha passed it.
+    check("hat transparency untouched",
+          all(hz.getpixel(c)[3] == haze.getpixel(c)[3]
+              for c in ((0, 0), (0, 7), (1, 7), (7, 7), (13, 13))))
     # the picked-recipe table
     check("every hat override names a real hat", all(_CATEGORY.get(i) == "Hat" for i in HAT_OVERRIDES))
     check("every hat override key is a known option",
-          all(set(o) <= {"zones", "gleam", "contrast", "sheen"} for o in HAT_OVERRIDES.values()))
-    _ZONE_KEYS = {"key", "pct", "sat_p", "val_p", "tone", "floor", "gleam", "sheen",
-                  "min_blob", "feather"}
+          all(set(o) <= {"zones", "gleam", "contrast", "sheen", "detail"}
+              for o in HAT_OVERRIDES.values()))
+    # Keys are checked PER MASK KEY, not as one pooled set. Pooled, a desat zone typo'd with
+    # "pct" instead of "sat_p" passes and then silently runs on the default window.
+    _COMMON = {"key", "tone", "floor", "gleam", "sheen", "min_blob", "feather"}
+    _BY_KEY = {"cover": _COMMON | {"pct"}, "shade": _COMMON | {"pct"},
+               "desat": _COMMON | {"sat_p", "val_p"}}
     zones_all = [z for o in HAT_OVERRIDES.values() for z in o["zones"]]
-    check("every hat zone key is a known option", all(set(z) <= _ZONE_KEYS for z in zones_all))
     check("every hat zone names a known mask key",
-          all(z.get("key") in ("cover", "shade", "desat") for z in zones_all))
+          all(z.get("key") in _BY_KEY for z in zones_all))
+    check("every hat zone key is a known option for ITS mask key",
+          all(set(z) <= _BY_KEY[z["key"]] for z in zones_all if z.get("key") in _BY_KEY))
     check("every hat carries at least one zone", all(o["zones"] for o in HAT_OVERRIDES.values()))
     check("every hat override has a body tint to lay its zones over",
           all(i in ICON_TINTS for i in HAT_OVERRIDES))
