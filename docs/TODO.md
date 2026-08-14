@@ -31,7 +31,7 @@ the technical detail lives in the indented lines under it.
     in-game look after a deploy. Owner only, as every live flip is. All six are baked and the
     gates are green; the gallery is signed off, so what is left is the in-game look.
 
-- **[LW-230] Every recolored icon wears a cloud of coloured smoke, and the fix now reaches the art the owner already approved** (opened 2026-08-14) [BLOCKED(the weapon half needs an owner call, see LW-232)]
+- **[LW-230] Every recolored icon wears a cloud of coloured smoke, and the fix now reaches the art the owner already approved** (opened 2026-08-14) [AWAITING-LIVE]
   - Done means: an item stops looking like it is giving off coloured smoke. Each icon sprite is
     drawn sitting in a soft see through haze that the artist left neutral, and the recolor
     engines painted every pixel down to the faintest edge, so the haze took the item's identity
@@ -47,10 +47,19 @@ the technical detail lives in the indented lines under it.
     31,396 of 48,389 solid shield pixels by one LSB.)
   - Shipped and baked: the 16 shields and the 13 helmets, verified 58 of 58 pixel-exact between
     the approved previews and the production bake, and moving 0 solid pixels against the pre-fix
-    engine, so the only thing that changed on them is the haze. Still held: the 115 weapons,
-    because the halo fix exposed a separate and older defect in their card engine that only the
-    owner can scope (LW-232). The engine change itself is complete and every weapon would take
-    it correctly the moment that call is made.
+    engine, so the only thing that changed on them is the haze.
+  - The weapons are settled and NOT held open on this row. Owner decision 2026-08-14, after the
+    review gallery: they keep their current look, smoke and all, until each family's own queued
+    re-pass comes up, and that pass chooses the family's engine from its art the way the
+    crossbows did, which is what finally puts the colour on the object. Nothing regresses,
+    nothing ships without a gallery, and the family that needs it most is next in the queue
+    anyway. The reasoning and the measurements live on LW-232; the engine change here is
+    complete, so a weapon family bakes correctly the moment its own pass runs.
+  - Honest scale of this fix, measured as the share of each card's identity colour that was
+    sitting in the haze rather than on the item: weapons 27.5 percent, hats 12.0, helmets 8.2,
+    shields 4.6. So on the two families that shipped here the change is real but small, which
+    the owner said out loud on first look and the numbers agree with. The hats are where it was
+    visible enough to be rejected, and the weapons are where it would have been dramatic.
   - Verify: the engine's selftest is green and is now a real gate (tools/pipeline.ps1 runs it,
     with Pillow pip-installed in CI for the step), ten mutations of the new code each turn at
     least one named check red, and `icon_preview.py compare` measures the whole change against
@@ -219,17 +228,21 @@ the technical detail lives in the indented lines under it.
   half haze, 13 have ZERO solid pixels in the tint zone, and once the haze is left alone the
   median card keeps 57 percent of its identity colour with 37 items under 30 percent and 14
   under 10 percent. The list icons are fine (median 97 percent, worst 91) because they take a
-  whole glyph ramp with no mask in it, so this is a card-only defect. The owner has seen the
-  pictures; nothing bakes for weapons until he scopes it. The fix is already proven in this
+  whole glyph ramp with no mask in it, so this is a card-only defect. SCOPED by the owner
+  2026-08-14 after the review gallery: weapons keep their current look until each family's own
+  queued re-pass comes up, and that pass is where the engine gets chosen from the art. Nothing
+  bakes for weapons before then, so this row is a standing brief for those passes rather than a
+  decision waiting to be made. The fix is already proven in this
   repo: it is exactly what LW-202 found on the crossbows ("bright-v2 splits a picture into two
   clusters and a crossbow is line art with no second cluster in it"), and the answer there was
   to route the family to the zone engine and pick its materials by saturation. The queued per
   family re-passes (LW-198 daggers, LW-199 swords, LW-201 bows, LW-206 poles, LW-207 polearms,
   LW-209 staves and the rest) are where that judgement belongs, one family and one owner gallery
-  at a time. Two smaller options exist if he wants the whole family moved at once: restrict the
-  card engine's clustering to solid pixels, which puts the tint on the object but re-renders all
-  115 cards (28.1 percent of solid pixels change zone, on 115 of 115 sprites), or accept the
-  honest de-tint and let each family's own pass restore the colour. (Tech: reproduce the whole
+  at a time. Two alternatives were offered and declined: restricting the card engine's
+  clustering to solid pixels, which puts the tint on the object but re-renders all 115 cards
+  (28.1 percent of solid pixels change zone, on 115 of 115 sprites) and would need one very
+  large review round, or baking the honest de-tint now and letting each family's pass restore
+  the colour later, which is the only option that looks worse before it looks better. (Tech: reproduce the whole
   measurement with `python tools/icon_preview.py compare`; the bake now prints a WARN naming any
   item whose tint reaches under 2 percent of its solid art, so this can never ship silently
   again.)
