@@ -1267,6 +1267,7 @@ BOW_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bow")
 GUN_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Gun")
 ROD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Rod")
 POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
+SPEAR_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Polearm")
 HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
@@ -1469,6 +1470,47 @@ ZONE_OVERRIDES = {
     112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
     113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
     114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
+    # --- Polearms (LW-207, 2026-08-14) ----------------------------------------------------
+    # CARD median 10.4% of the solid art before this pass, with the Tombspire at 0.3 and the
+    # Skewer at 1.1.
+    #
+    # A spear is a BLADE and a SHAFT, which is the crossbow's split for the sixth time, and
+    # saturation separates them in one pass: the artist drew these heads in near-neutral steel
+    # and the hafts in wood or lacquer, so the desat key lands on the head. It does NOT always
+    # land there, and that is the family's own lesson: the key finds whichever part the artist
+    # left GREY, so on the Wyrmpike, whose head is painted gold, the same key finds the SHAFT
+    # instead and the identity colour keeps the blade. Both readings are honest; what matters is
+    # that each item ends up with the metal on one part and its colour on the other.
+    #
+    # sat_p is per item for a measured reason. At the helper's 30 the four hafted-in-grey items
+    # give a card share of 4 to 11 percent, because a card's ranked population is half haze (the
+    # harps' haze tax, id 92 above), and on the Skewer that share lands on the OUTLINE between
+    # head and haft rather than on the head's face: rendered, the steel head came back orange
+    # and the spear read as one colour. 40 to 42 puts the face inside the window on those four
+    # (card 13 to 22 percent, icon 29 to 36) and the remaining four already sat there at 30.
+    # Measured at the shipped settings, zone share of solid art: card 13.1 to 26.1 percent,
+    # icon 23.2 to 36.4.
+    #
+    # THE HOLY LANCE (104) IS THE FAMILY'S RESERVED-NAME CASE and it resolves the way the
+    # Stormbrand did rather than the way the Perseus Bow did. Its list icon reads hue 222 degrees
+    # at chroma 0.186, the most chromatic anchor met in this programme, so it is emphatically a
+    # BLUE lance; the mod's other convention is that Holy is gold everywhere (Excalibur,
+    # Lightbringer, the Perseus Bow). Instead of choosing, the blue stays on the body where the
+    # art put it and the Holy goes into the accent, which is exactly the answer the Stormbrand
+    # and Stormarc took when lightning collided with holy gold.
+    # The Dragon Whisker (105) is reserved too and measures the OTHER way: icon chroma 0.070,
+    # card 0.032, below the Perseus icon's 0.120 and level with the Ivory Pole's 0.071 that was
+    # ruled near-neutral, so hue is free by the documented rule and the capstone takes dragon
+    # crimson under a gold head. Recorded rather than assumed, since not recording it is the
+    # defect the poles shipped (LW-238).
+    99:  {"zones": [_material(STEEL, sat_p=42, min_blob=2)], "gleam": 0.25},   # Skewer
+    100: {"zones": [_material(SILVER, sat_p=40, min_blob=2)], "gleam": 0.25},  # Footman's Spear
+    101: {"zones": [_material(WHITE, sat_p=40, min_blob=2)], "gleam": 0.25},   # Frostpoint
+    102: {"zones": [_material(LEVIN, sat_p=30, min_blob=2)], "gleam": 0.25},   # Stormpike
+    103: {"zones": [_material(BONE, sat_p=40, min_blob=2)], "gleam": 0.25},    # Tombspire
+    104: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.25},    # Holy Lance
+    105: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.25},    # Dragon Whisker
+    106: {"zones": [_material(BLACK_IRON, sat_p=30, min_blob=2)], "gleam": 0.25},  # Wyrmpike
     # --- Instruments (LW-211, 2026-08-14) -------------------------------------------------
     # The least-coloured family left after the guns, rods and poles: measured, the shipping bake
     # reached a TRUE median 3.4% of each harp's solid art, and 0.7% of the Siren's Lyre's card.
@@ -2354,7 +2396,7 @@ def selftest():
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
-                   "Pole", "Instrument"}
+                   "Pole", "Instrument", "Polearm"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2401,7 +2443,8 @@ def selftest():
     check("every reviewed family is picked, whole",
           sorted(ZONE_OVERRIDES)
           == sorted({i for i, c in _CATEGORY.items()
-                     if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument")}
+                     if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
+                              "Polearm")}
                     | SWORD_RACK | KNIGHT_RACK))
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
@@ -2452,6 +2495,7 @@ def selftest():
     rods = sorted(ROD_RACK)
     poles = sorted(POLE_RACK)
     harps = sorted(HARP_RACK)
+    spears = sorted(SPEAR_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2480,7 +2524,8 @@ def selftest():
 
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
-                            ("harp", harps), ("hat", hats), ("crossbow", xbows)):
+                            ("harp", harps), ("spear", spears),
+                            ("hat", hats), ("crossbow", xbows)):
         rack = [i for i in rack if body_is_whole_signal(i)]
         rack_collisions = [
             (a, b) for n, a in enumerate(rack) for b in rack[n + 1:]
@@ -2499,6 +2544,7 @@ def selftest():
     check("the rod rack is all eight", len(rods) == 8)
     check("the pole rack is all nine", len(poles) == 9)
     check("the harp rack is all three", len(harps) == 3)
+    check("the polearm rack is all eight", len(spears) == 8)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2536,7 +2582,7 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    bladed = swords + knights + bows + guns + rods + poles + harps
+    bladed = swords + knights + bows + guns + rods + poles + harps + spears
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in

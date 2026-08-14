@@ -43,6 +43,31 @@ the technical detail lives in the indented lines under it.
     naming exactly these ids and exiting clean; the bake matching the reviewed gallery pixel for
     pixel against a FULL preview manifest; and the owner's gallery pass.
 
+- **[LW-207] The eight spears are the least-coloured family left after the harps, at ten percent of their own art** (opened 2026-08-13) [AWAITING-LIVE]
+  - BUILT and gated 2026-08-14, owner gallery pass outstanding. Every spear now carries its
+    colour on the haft with a separate metal on the head: a steel-headed honey Skewer, a navy
+    Footman's Spear under white steel, an ice Frostpoint with a rime head, a storm-indigo
+    Stormpike under a levin head, a grave-green Tombspire under bone, the Holy Lance keeping its
+    own blue with the holy gold moved into its trim, a crimson Dragon Whisker under gold, and a
+    wyrm-green Wyrmpike on a dark iron haft. The card went from a median 10.4 percent of each
+    spear's art to 100 percent on every one.
+  - The family's own lesson is that the saturation key finds whichever part the artist left
+    GREY, not "the head" as such: on seven spears that is the steel head, and on the Wyrmpike,
+    whose head is painted gold, it is the haft instead, so that one keeps its colour on the
+    blade. Both readings are honest, and the rule that matters is only that the metal and the
+    colour end up on different parts. (Tech: _material, sat_p 40-42 on the four whose card share
+    at the helper's 30 was 4 to 11 percent and landed on the outline between head and haft
+    rather than the head's face, 30 on the other four. Shipped zone share: card 13.1 to 26.1
+    percent, icon 23.2 to 36.4.)
+  - Done means: all eight carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, both reserved names are anchored
+    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
+  - Verify: recolor_icons selftest green with the family inside every owner-rule pin and four
+    mutations proving those pins bite; each spear's second material measured on the real art;
+    icon_preview.py compare --expect naming exactly these ids and exiting clean over all 468
+    surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
+    pass, which is also where the Holy Lance's blue-body-with-gold-trim reading gets its ruling.
+
 
 ## Backlog
 
@@ -60,7 +85,10 @@ the technical detail lives in the indented lines under it.
     re-bake them now so code and picture agree, or leave them and re-bake each family as its
     pass lands (which is what will happen anyway). Either way the identity check needs to be run
     at full scope from now on, or it will keep certifying whatever the last partial run covered.
-  - (Tech: 115 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 38-47, 59-70, 95-106,
+  - Each family that goes through its own colour pass leaves this set on its way past, so the
+    number falls on its own: it was 58 items when found and is 50 now that the polearms have
+    been through (LW-207).
+  - (Tech: 99 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 38-47, 59-70, 95-98,
     115-121. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
     signature of the LW-230 ramp. _halo_int reached shade_bright in 495f9fc; those .tex files
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
@@ -224,8 +252,6 @@ the technical detail lives in the indented lines under it.
 - [LW-204] 2026-08-13: Katanas re-pass: the 11 katana icons get the shields-grade per item review, including the five smalls that carry the card-style override today; process per LW-198.
 
 - [LW-205] 2026-08-13: Ninja Blades re-pass: the 9 ninja blade icons get the shields-grade per item review; process per LW-198.
-
-- [LW-207] 2026-08-13: Polearms re-pass: the 8 polearm icons get the shields-grade per item review; process per LW-198.
 
 - [LW-209] 2026-08-13: Staves re-pass: the 8 staff icons get the shields-grade per item review; process per LW-198.
 
