@@ -28,6 +28,26 @@ the technical detail lives in the indented lines under it.
     approved previews pixel for pixel, and the owner signs the gallery off and then confirms
     the in-game look after a deploy. Owner only, as every live flip is.
 
+- **[LW-216] Give the twelve hat icons the shields-grade treatment, second section of the re-pass program** (opened 2026-08-13) [BUILDING]
+  - Done means: the hats stop being flat. All twelve still wear the legacy one-hue stamp, one
+    colour laid over every pixel, which erases the very thing each hat is named for: the
+    Wardplume's white plume turns green, the Zephyr Beret's feather turns green, the Ribbon's
+    pearl disappears into the cloth. Each hat gets its identity tint and treatment revisited per
+    item with owner review rounds on both surfaces, card art and list icon, and the engine picked
+    by looking at the art rather than by assuming the helmet recipe transfers. The opener round
+    already falsified that assumption twice, and the finding is the row's design spine: the
+    helmet engine keys on brightness, so on soft cloth it grabs a fold instead of a fitting and
+    paints gold blotches mid-hood; the shield engine keys on saturation and finds real accents
+    cleanly; and half these items carry no second material at all, so any two-tone rule invents
+    trim the artist never drew and those hats take a single rich tint with the original shading
+    kept instead. Process and program reasoning per LW-198. Hair adornments are the same slot but
+    ship separately under LW-217.
+  - Verify: recolor selftest green, every untouched family proven byte identical against the
+    committed engine (the 242 of 242 pattern the weapons and shields both closed on), the bake
+    matches the approved previews pixel for pixel under the honest byte-level comparison that
+    LW-227 restored, and the owner signs the gallery off and then confirms the in-game look after
+    a deploy. Owner only, as every live flip is.
+
 - **[LW-165] Kill counts are slow to appear in the status menu after a cold boot on the Steam Deck** (opened 2026-08-12) [AWAITING-LIVE]
   - Done means: the felt delay is a measured number instead of a feeling, and a tune or accept
     decision is made from that number. The mod now prints one plain line the first time the kill
@@ -179,7 +199,39 @@ the technical detail lives in the indented lines under it.
 
 - [LW-214] 2026-08-13: Throwing weapons and Bombs first pass: the 6 shuriken and bomb icons were never tinted at all (they sit outside the 121-weapon set), so this is a first coloring, not a re-pass; process per LW-198.
 
-- [LW-216] 2026-08-13: Hats re-pass: the 12 hat icons still wear the legacy one-hue stamp; process per LW-198.
+- [LW-230] 2026-08-14: Every recolored icon we have ever shipped wears a cloud of coloured smoke,
+  and it should be the artist's own neutral haze instead. Each icon sprite is drawn sitting in a
+  soft semi-transparent halo that the artist left grey; the recolor engines paint every pixel
+  down to alpha 8, so the halo takes the identity tint too and the item looks like it is giving
+  off coloured smoke. The owner spotted it on the hat previews and rejected it. Measured on the
+  shipped bake: 100 percent of the smoke band is repainted on all three engines, and the Genji
+  Helm's halo gains 0.58 saturation. The fix is one ramp, proven in the hat pass: full tint only
+  on genuinely opaque pixels (alpha 224 and up), none below 48, a blend between so no hard ring
+  appears. The first attempt reused the mask code's own alpha threshold of 160 and the owner
+  still saw smoke, correctly: measured per band, the 160 to 191 pixels were keeping the full
+  tint and that band is exactly the visible outer glow. The mask threshold answers a different
+  question (is there enough signal here to classify) than this one (is this pixel solid enough
+  to own the identity colour). Scope question for the owner, since it re-bakes
+  already-approved art: weapons, shields and the eleven helmets would all change. (Tech:
+  restore_halo in the session's hat3.py is the reference implementation; it belongs in
+  tools/recolor_icons.py applied inside route(), with a selftest pinning a halo pixel unchanged
+  and a solid pixel changed.)
+
+- [LW-231] 2026-08-14: Recolored icons come out mottled with coloured speckle, and it should be
+  the smooth shading the artist painted. This is what the owner kept calling smoke across three
+  rounds of the hat pass, and the first two fixes missed because the effect is ON the item, not
+  around it. Cause: the engines expand tonal contrast one pixel at a time, so the art's own
+  compression grain is amplified along with the real shading, and under a saturated tint that
+  grain reads as blotchy cloud across the surface. Worst on the grainy leather and wool hats,
+  present anywhere the contrast knob is high. The fix is to expand contrast on the BLURRED
+  brightness (the artist's real domes and folds) and add the fine grain back at reduced gain, so
+  large features separate exactly as before and noise stops being multiplied. Proven on the hat
+  pass and now used for all fifteen. Same owner scope question as LW-230, since re-baking
+  changes already-approved art. (Tech: _value_fields plus DETAIL_GAIN 0.30 in the session's
+  hat3.py; helm3 defaults dropped to contrast 0.50 / sheen 0.20. The per-pixel _helm_scurve call
+  in helm_recolor is the shipped equivalent. Verified by compositing over the review page's own
+  checkerboard, which is where the speckle is most visible; a dark background hides it, which is
+  why two earlier rounds passed inspection.)
 
 - [LW-217] 2026-08-13: Hair Adornments re-pass: the 3 hair adornment icons still wear the legacy one-hue stamp; process per LW-198.
 
