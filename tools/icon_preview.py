@@ -19,7 +19,8 @@ Verbs (all outputs go under --out, default %TEMP%\\icon_preview; never a repo di
   python tools/icon_preview.py gallery [--out D]            # the owner's before/after HTML
   python tools/icon_preview.py verify [--out D]             # preview PNGs vs the production bake's
                                                             # working/icons PNGs, pixel identity
-  python tools/icon_preview.py compare [ids...] [--rev R]   # working-tree engine vs the one
+  python tools/icon_preview.py compare [ids...] [--rev R] [--expect ids...]
+                                                            # working-tree engine vs the one
                                                             # committed at R (default HEAD): what
                                                             # an engine change did to approved art
 preview with no ids does every tinted item, each routed through recolor_icons.route() -- the
@@ -210,6 +211,19 @@ def load_engine(rev, out):
     spec = importlib.util.spec_from_file_location(f"recolor_icons_{abs(hash(rev)):x}", src)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
+    # The module above merges data/items.json into ICON_TINTS at import time, and it reads that
+    # file from DISK, so the "old" engine comes up wearing TODAY'S colours for every item whose
+    # tint lives in items.json rather than in the table. Left uncorrected, this verb measures
+    # engine changes only and reports a serene 0 MOVED for a tint edit that repaints an approved
+    # item completely (found by audit 2026-08-14, on a Sanctguard edit that moved 1714 of its
+    # 2207 solid pixels while compare called it clean). Restore the committed tints too, so the
+    # comparison is old-engine-with-old-colours against new-engine-with-new-colours.
+    old_items = json.loads(subprocess.run(["git", "show", f"{rev}:data/items.json"],
+                                          cwd=str(ROOT), capture_output=True,
+                                          check=True).stdout.decode("utf-8"))
+    for it in old_items["items"]:
+        if it.get("iconTint"):
+            mod.ICON_TINTS[it["id"]] = tuple(it["iconTint"])
     return mod
 
 
@@ -240,7 +254,7 @@ def band_census(van, old, new):
             "kept": (kept_new / kept_old) if kept_old else 1.0}
 
 
-def cmd_compare(rev, only, out):
+def cmd_compare(rev, only, out, expect=None):
     """Render every tinted item through the committed engine and the working-tree engine."""
     out.mkdir(parents=True, exist_ok=True)
     old_ri = load_engine(rev, out)
@@ -253,10 +267,12 @@ def cmd_compare(rev, only, out):
             van = decode_vanilla(sub, pfx, src_id, out)
             if van is None:
                 continue
-            old = old_ri.route(van.copy(), iid, tint, surface)
+            old_tint = old_ri.ICON_TINTS.get(iid, tint)
+            old = old_ri.route(van.copy(), iid, old_tint, surface)
             new = ri.route(van.copy(), iid, tint, surface)
             row = {"id": iid, "surface": surface, "engine": ri.engine_for(iid),
-                   "was": old_ri.engine_for(iid), **band_census(van, old, new)}
+                   "was": old_ri.engine_for(iid), "tint_moved": old_tint != tint,
+                   **band_census(van, old, new)}
             rows.append(row)
             for tag, im in (("0van", van), ("1old", old), ("2new", new)):
                 im.save(out / f"c{iid:03d}_{surface}_{tag}.png")
@@ -278,7 +294,22 @@ def cmd_compare(rev, only, out):
         print(f"\n{len(thin)} surfaces keep under 60% of their identity colour:")
         for r in thin[:40]:
             print(f"  id{r['id']:>3} {r['surface']:<6} {r['engine']:<14} {r['kept'] * 100:>5.1f}%")
-    return rows
+    # --expect turns this verb from a diagnostic into a GATE for the claim every icon-pass commit
+    # makes: "no already-approved art moves". Name the ids the pass is allowed to move and any
+    # movement outside them fails. Without it the verb stays a report, because during a pass the
+    # family being worked moves on purpose and there is nothing to assert.
+    if expect is not None:
+        strays = sorted({r["id"] for r in rows
+                         if r["id"] not in expect and (r["solid_moved"] or r["band_moved"])})
+        if strays:
+            print(f"\nFAIL: {len(strays)} item(s) moved that --expect did not allow: {strays}")
+            for iid in strays[:12]:
+                for r in (x for x in rows if x["id"] == iid):
+                    print(f"  id{iid:>3} {r['surface']:<6} solid_moved={r['solid_moved']:>5}"
+                          f" band_moved={r['band_moved']:>5} tint_moved={r['tint_moved']}")
+            return 1
+        print(f"\nOK: nothing moved outside the {len(expect)} item(s) named by --expect.")
+    return 0
 
 
 def main(argv):
@@ -298,7 +329,12 @@ def main(argv):
         return cmd_verify(out)
     elif verb == "compare":
         rev = rest[rest.index("--rev") + 1] if "--rev" in rest else "HEAD"
-        cmd_compare(rev, {int(a) for a in rest if a.isdigit()}, out)
+        expect = None
+        if "--expect" in rest:
+            i = rest.index("--expect")
+            expect = {int(a) for a in rest[i + 1:] if a.isdigit()}
+            rest = rest[:i]
+        return cmd_compare(rev, {int(a) for a in rest if a.isdigit()}, out, expect)
     else:
         print(__doc__)
         return 2

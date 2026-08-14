@@ -268,11 +268,13 @@ def tint_comment_names():
 NO_BLADE_CATS = {"Bag", "Book", "Instrument", "Cloth"}   # no blade: tint the LARGEST cluster
 CARD_OVERRIDES = {
     9: {"k": 2},                # Galewind: 3 clusters shredded the blade
-    37: {"vmult_floor": 0.85},  # Chaos Blade: deliberate dark, but not that dark
-    33: {"k": 2},               # Defender: zone missed the metal mass
     113: {"k": 2},              # Eight-Fluted Pole: shaft never took the tint
     117: {"k": 2},              # Hornet Pouch: cluster fragmentation read as camo blobs
-}
+}   # ids 33 (Defender) and 37 (Chaos Blade) were here until LW-200 routed the knight swords to
+    # the zone engine, which made both rows unreachable: route() consults ZONE_OVERRIDES first.
+    # 37's row also still described a vmult_floor of 0.85 against a shipped value of 0.24, so it
+    # was dead config that ALSO lied. Same defect the sword pass fixed by deleting SMALL_TWO_ZONE
+    # id 24, found again by audit 2026-08-14; a selftest pin now refuses the whole class.
 SMALL_TWO_ZONE = {13, 15, 16, 18}       # owner round-1: card-style split on these glyphs
                                         # (id 24 was a fifth until LW-199 routed the sword rack
                                         # to the zone engine, which consults ZONE_OVERRIDES
@@ -1373,7 +1375,9 @@ ZONE_OVERRIDES = {
          "contrast": 0.55},                                                 # Ragnarok
     # Chaos Blade's cover mask claims 3.9% at the family default, the same fragmentation the
     # Warbrand hit: its brightest pixels scatter across a wide ornate blade and the despeckle
-    # pass eats them. 30 is where the crimson survives as a line.
+    # pass eats them. 26 is where the BONE edge survives as a line. (This comment described a
+    # crimson edge until 2026-08-14; crimson was an earlier candidate the owner rejected, and
+    # the note outlived it by one round.)
     # Owner picker, round three, 2026-08-14: "blood-black, bone edge". Three rounds and nine
     # candidates went into this one, and the finding that settled it was about the FAMILY rather
     # than the item: all six of its settled siblings are bright saturated blades, so there is no
@@ -2289,8 +2293,29 @@ def selftest():
     knights = sorted(KNIGHT_RACK)
     bows = sorted(BOW_RACK)
     guns = sorted(GUN_RACK)
+    hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
+    xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
+
+    # Which items this tripwire may judge, on the SHIELDS' rule (tint_is_whole_signal above): a
+    # body tint may only stand in for an item's whole colour signal when the item's other tones
+    # are FITTINGS. The metal vocabulary is listed here rather than guessed from saturation,
+    # because brass and gold are as saturated as any identity colour.
+    #
+    # This exemption is not a convenience. Run without it, the check calls four HAT pairs
+    # collisions (157/167, 158/161, 160/163, 164/165) and every one is a false alarm: their
+    # bodies do sit close, and their second colours are a violet lining against a teal one, a
+    # magenta against a gold. A hat wears three identity colours over 18 to 38 percent of the
+    # sprite and the owner passed all twelve by eye across four review rounds. A blade wears one
+    # identity colour and a metal, so its body really is the signal.
+    METALS = frozenset({STEEL, BONE, BRASS, GOLD, SILVER, COPPER, BLACK_IRON, WHITE})
+
+    def body_is_whole_signal(i):
+        return all(tuple(z["tone"]) in METALS for z in ZONE_OVERRIDES[i]["zones"])
+
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
-                            ("bow", bows), ("gun", guns)):
+                            ("bow", bows), ("gun", guns),
+                            ("hat", hats), ("crossbow", xbows)):
+        rack = [i for i in rack if body_is_whole_signal(i)]
         rack_collisions = [
             (a, b) for n, a in enumerate(rack) for b in rack[n + 1:]
             if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < RACK_MIN_HUE_GAP
@@ -2298,6 +2323,9 @@ def selftest():
             and abs(ICON_TINTS[a][2] - ICON_TINTS[b][2]) < RACK_MIN_VAL_GAP]
         check(f"{rack_name} tints stay distinguishable (collisions: {rack_collisions})",
               not rack_collisions)
+    guarded_total = sum(1 for i in ZONE_OVERRIDES if body_is_whole_signal(i))
+    check(f"the collision tripwire still guards most of the zone engine ({guarded_total}/"
+          f"{len(ZONE_OVERRIDES)})", guarded_total >= 35)
     check("the sword rack is all fifteen", len(swords) == 15)
     check("the knight sword rack is all seven", len(knights) == 7)
     check("the bow rack is all nine", len(bows) == 9)
@@ -2328,9 +2356,26 @@ def selftest():
     #      escape: a second material must differ in HUE or in SATURATION.
     # These are the pins standing in for a rule the owner enforces by rejection, so they are held
     # to the standard of failing when the thing they describe is false.
+    # EVERY item under the zone engine, derived from the table itself rather than from a list of
+    # families. An audit on 2026-08-14 found the previous version covered 37 of 55: all twelve
+    # hats and all six crossbows sat outside both owner-rule pins AND every palette check, and
+    # the auditor turned all six crossbows one colour with the gate still green. A list of racks
+    # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
+    # what puts an item under this engine in the first place.
     bladed = swords + knights + bows + guns
-    zone_ids = [i for i in bladed if i in ZONE_OVERRIDES]
-    check("every reviewed weapon has a recipe at all", len(zone_ids) == len(bladed))
+    zone_ids = sorted(ZONE_OVERRIDES)
+    # Dead per-item config for the OLD engine. Both tables below are read only inside the
+    # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in
+    # both is unreachable configuration that still reads as live. This has now bitten twice
+    # (SMALL_TWO_ZONE id 24, then CARD_OVERRIDES ids 33 and 37), so it gets a pin rather than a
+    # third discovery.
+    stale_bright = sorted((set(CARD_OVERRIDES) | set(SMALL_TWO_ZONE)) & set(ZONE_OVERRIDES))
+    check(f"no bright-v2 override survives for an item that left that engine ({stale_bright})",
+          not stale_bright)
+    check("every reviewed weapon has a recipe at all",
+          all(i in ZONE_OVERRIDES for i in bladed))
+    check("the no-single-colour rule covers every item under the zone engine",
+          len(zone_ids) == len(ZONE_OVERRIDES) and len(zone_ids) >= len(bladed) + 18)
     check("every sword carries a second material",
           all(ZONE_OVERRIDES[i]["zones"] for i in zone_ids))
     flat = []
@@ -2351,20 +2396,58 @@ def selftest():
     # min_blob to 99999, where the despeckle pass flips the whole mask to TRUE instead of to
     # FALSE and the zone tone swallows the entire sprite. That is a single-colour sword just as
     # surely as a zone that paints nothing, and a floor-only check called it healthy.
-    zsprite = hazed_sprite(28)
-    zsolid = [c for c in ((x, y) for y in range(28) for x in range(28))
-              if zsprite.getpixel(c)[3] >= HALO_HI]
+    # TWO fixtures, and the second exists because the first has a blind spot an audit found on
+    # 2026-08-14. hazed_sprite's second material is one fat contiguous blob, so the DESPECKLE
+    # knob is untested across its whole useful range: min_blob=40 leaves that fixture reading an
+    # unchanged 15.5% while zeroing the second material on six of the nine real bow cards. A
+    # bow's string is a one-pixel line, so the fixture has to carry a THIN feature too or the
+    # pin certifies a setting that erases real art.
+    def threaded_sprite(w):
+        """The hazed fixture plus a one-pixel diagonal of desaturated-but-lit pixels: a string,
+        a fuller, a filigree line. Anything a despeckle floor authored for a blob will eat."""
+        im = hazed_sprite(w)
+        for k in range(4, w - 4):
+            im.putpixel((k, k), (236, 238, 240, 255))
+        return im
+
+    # The thin-feature check runs at CARD SIZE, and that is the whole point of it. Every spatial
+    # knob in this file is authored against a 100px card and scaled by sprite width, so on a 28px
+    # fixture a despeckle floor of 40 collapses to 3 and passes anything. Run at 100 it means
+    # what it means in production. Only the MASK is computed here, not a full recolor, because
+    # the question is purely whether the key still finds a one-pixel feature.
+    # Isolate the DESPECKLE knob rather than the window. Each zone is measured twice on the same
+    # fixture, once at its own min_blob and once at the floor's minimum, and the question is only
+    # how much the despeckle setting costs it. A narrow WINDOW that finds nothing is not a defect
+    # (the Arcanist Cap's star is sat_p 12 by design, to catch white paint on pink felt), but a
+    # despeckle floor that throws away most of what its own window found is the bug the audit
+    # demonstrated: min_blob 40 reads healthy on a chunky fixture and erases a bow's string.
+    # DESPECKLE FLOOR, bounded rather than simulated. The audit's escape was min_blob=40, which
+    # reads healthy on a chunky fixture and zeroes the second material on six of the nine real
+    # bow cards, because the floor scales with sprite width squared and a bow's string is a
+    # one-pixel line. A fixture that catches it honestly was attempted and abandoned: these keys
+    # are PERCENTILES, so a thin feature is either swallowed by the cut or joined to a big
+    # component, and the one smoothing pass erases a genuinely 1px line before despeckle ever
+    # sees it. The value itself is the risk, so the value is what gets bounded. Every recipe in
+    # this file sits at 2 to 6; 8 is a ceiling with headroom that still refuses the failure.
+    fat = sorted((i, z.get("min_blob"), z["key"]) for i in zone_ids
+                 for z in ZONE_OVERRIDES[i]["zones"] if z.get("min_blob", 4) > 8)
+    check(f"no zone's despeckle floor can eat a thin second material (too fat: {fat})", not fat)
+
     silent = []
-    for i in zone_ids:
-        o = ZONE_OVERRIDES[i]
-        painted = zone_recolor(zsprite, ICON_TINTS[i], o)
-        bare = zone_recolor(zsprite, ICON_TINTS[i], {**o, "zones": []})
-        moved = sum(1 for c in zsolid
-                    if max(abs(a - b) for a, b in zip(painted.getpixel(c)[:3],
-                                                      bare.getpixel(c)[:3])) >= 12)
-        if not (0.05 * len(zsolid) <= moved <= 0.90 * len(zsolid)):
-            silent.append((i, moved, len(zsolid)))
-    check(f"every sword's zones paint some of it and not all of it (bad: {silent})", not silent)
+    for fixture_name, zsprite in (("blob", hazed_sprite(28)), ("thread", threaded_sprite(28))):
+        zsolid = [c for c in ((x, y) for y in range(28) for x in range(28))
+                  if zsprite.getpixel(c)[3] >= HALO_HI]
+        for i in zone_ids:
+            o = ZONE_OVERRIDES[i]
+            painted = zone_recolor(zsprite, ICON_TINTS[i], o)
+            bare = zone_recolor(zsprite, ICON_TINTS[i], {**o, "zones": []})
+            moved = sum(1 for c in zsolid
+                        if max(abs(a - b) for a, b in zip(painted.getpixel(c)[:3],
+                                                          bare.getpixel(c)[:3])) >= 12)
+            if not (0.03 * len(zsolid) <= moved <= 0.90 * len(zsolid)):
+                silent.append((fixture_name, i, moved, len(zsolid)))
+    check(f"every zone recipe paints some of the art and not all of it (bad: {silent})",
+          not silent)
 
     if failures:
         print("SELFTEST FAILURES:", "; ".join(failures))

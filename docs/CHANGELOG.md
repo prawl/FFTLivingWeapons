@@ -13,8 +13,11 @@ before 2026-07-21 keep their original prose.
 - [LW-203] SHIPPED 3a8d828 2026-08-14: The six guns were the least-coloured family in the game
   and now read as coloured objects. Picked next on evidence rather than queue order: every
   weapon family still on the old engine was measured for how much of its solid art the shipping
-  bake actually reached, and guns came last of twelve at a MEDIAN of 1.7 percent, with five of
-  the six under 15 percent and the Ironclad Repeater at 0.0. All six now carry their identity
+  bake actually reached, and guns came last of twelve at a MEDIAN of 1.4 percent, with five of
+  the six under 15 percent and the Ironclad Repeater at 0.0. (The median was first published
+  as 1.7: the measuring script indexed the upper of the two middle values instead of
+  averaging them, which overstates every EVEN-sized family. Corrected 2026-08-14 along with
+  the queue order it fed, where rods read 2.2 and are really 1.8.) All six now carry their identity
   colour across the stock and frame with the barrel as a separate material. Owner verified in
   game 2026-08-14 ("Gun updated verified"), after passing the gallery ("Those look fucking
   amazing. All of them"). (Tech: a gun is the THIRD art shape in a row to need no new engine,
