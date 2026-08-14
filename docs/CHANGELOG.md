@@ -34,7 +34,10 @@ before 2026-07-21 keep their original prose.
   down 154; analyze exit 0; 32,036 lines deleted. Four pinned contracts caught the loose ends and
   were updated with the change rather than around it: the LW-184 phase table, the tick-table
   non-battle allowlist, the LOGGING.md verb-table lockstep, and the config-surface reflection
-  guard.)
+  guard.) Owner live smoke test passed 2026-08-14 after deploy: the launcher's Configure Mod
+  pane opens empty without erroring (the one thing no test could cover, since a third-party UI
+  reflects over the now-property-less Config), the Scholar's Ring card no longer mentions the
+  module, and a kill still updates the tally on the weapon.
 
 - [LW-230] SHIPPED 495f9fc 2026-08-14: every recoloured icon looked like it was giving off
   coloured smoke, and the shields and helmets no longer do. Each sprite is drawn sitting in a

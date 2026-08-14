@@ -55,32 +55,32 @@ the technical detail lives in the indented lines under it.
 ## Backlog
 
 - [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
-  weapon can grow on kills the player never really earned. Found in a real user's flight tape,
-  not in testing. What the tape shows, with no interpretation: the player's Ramza was chipped
-  down over two minutes (72 to 54 to 42 to 30 to 18 to 6) and fell to 0 at t=12435203; eleven
-  seconds later, in ONE tick, six band slots were restored to FULL hit points and moved to new
-  tiles, three of them from 0. Ramza falling is a defeat in this game, and full HP at fresh
-  positions is what the start of a battle looks like, so the reading is that the player took the
-  loss and restarted the fight. The mod never noticed. It kept the same battle session and the
-  same tally, and its per-slot "already credited" latch re-armed as each corpse came back alive,
-  which is correct behaviour for a Raise and wrong for a restart. So the second run through the
-  same fight paid out for the same enemies again: band slot 15 (nameId 860) was credited at
-  count 23, restored, killed again, and credited at count 25, and count 25 is the credit that
-  fired this player's "Vagabond has grown to Vagabond+2" toast. A later restore revived another
-  already-credited enemy that was never re-killed. The tally saves at battle exit, so the
-  inflation is permanent, and a player who retries a hard fight a few times inflates it without
-  ever meaning to. (Tech: evidence in Downloads/flight_20260812_023337_battle-exit.jsonl. The
-  double credit is straight from the kill records and does not depend on the cause being a
-  retry. What IS inference is the cause: the exact UI path the player took was not observed, and
-  the mod saw no battle-exit edge across the whole event, which is itself the thing to explain,
-  since a real restart ought to look like a battle ending. Two candidate detectors, both
-  measured on this corpus: the ActorPtr transitions to 0x0 exactly twice, once per restore, with
-  zero false positives across 538 seconds and 163 pointer transitions; and "healed from 0 HP AND
-  moved on the same tick" separates the two restores (5 units, then 1) from all eight ordinary
-  heal ticks (0 and 0). The pair matters because a real Raise heals from 0 but never relocates
-  its target. First question when picked up, before any fix: watch a deliberate battle retry
-  live with the recorder running and settle whether the mod should be seeing a battle-exit edge
-  it is currently missing, because if so the honest fix is upstream of the credit latch.)
+  weapon can grow on kills the player never really earned. The cause is now SETTLED by a
+  deliberate owner drill (2026-08-14, lose then retry, tape banked at
+  tools/probes/tapes/lw233_retry_drill_20260814.jsonl), and it is not what the first reading
+  guessed: the mod does not mis-handle the restart, it never sees one. Across the whole retry
+  the log carries ONE battle-start and ZERO battle-end lines, no exit edge fires and no flight
+  flush happens, so a defeat and a fresh attempt run as a single continuous battle session. The
+  credit latch then behaves CORRECTLY given what it was told: corpses stood up, so it re-armed,
+  which is exactly right for a Raise and exactly wrong for a restart, and the same enemies pay
+  out again. First seen in a stranger's tape where band slot 15 was credited at count 23,
+  restored, killed again and credited at count 25, with count 25 firing that player's growth
+  toast. The tally saves at battle exit, so the inflation is permanent, and a player who retries
+  a hard fight a few times inflates it without ever meaning to.
+  - Fix belongs UPSTREAM of the credit latch: patching the latch would paper over a missing
+    battle-restart signal. Two detectors are now measured across THREE retries (two accidental
+    in the user's tape, one deliberate here) with 188 actor records and zero false positives.
+    (1) ActorPtr reads 0x0 while In, exactly once per retry, and on the drill it fired 62ms
+    BEFORE the restore landed, so it is a leading indicator and credit can be frozen rather than
+    reconciled. (2) "healed from 0 HP AND moved on the same tick" marks the restore itself: on
+    the drill, 3 heals of which 2 from zero and all 3 relocated, against zero such ticks in
+    ordinary play. The pair matters because a real Raise heals from 0 but never relocates its
+    target, and because every restored unit lands back on its own battle-start tile.
+  - Open design question before building: whether the honest fix is to synthesize a battle-end
+    (which resets tallies, signatures and the whole session the way a real exit does) or a
+    narrower "restart" edge that only rewinds the credit ledger. The first is truer to what
+    happened and riskier; the second is smaller and leaves the turn counter lying, which the
+    drill also showed (the exit line reported 3 turns for a battle that spanned two attempts).
 
 - [LW-234] 2026-08-14: The mod files the player's own guests as enemies, so a guest dying could
   hand the player's weapon a kill it did not earn, complete with a growth toast. Found in the
