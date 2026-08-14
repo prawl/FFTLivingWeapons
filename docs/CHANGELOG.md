@@ -10,6 +10,32 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-10] SHIPPED 2aee150 2026-08-14: Treasure Master is gone from the mod, not merely switched
+  off. It marked the battle tiles hiding Move-Find treasure, had shipped disarmed since 2.3.0,
+  and had been slated for removal for six weeks; carrying it cost a background thread, a baked
+  dataset in every release, a build-pipeline gate, the mod's only player-facing config toggle,
+  154 tests and a block of verified memory addresses, all for a feature nobody was running.
+  Removed whole: the eight runtime files and their folder, their tests, the four generator tools
+  and the treasure-db pipeline step, the tile datasets and capture probes that fed it, the shell
+  helpers that drove those probes, the two tick-table rows, the Tuning knobs, and the three
+  Offsets anchors nothing else read. Bulwark's PathTerrainGrid is a different table and stays,
+  with its cross-reference reworded to cite the address rather than a deleted symbol, since that
+  comment exists to stop someone writing to the wrong grid. Two things stayed on purpose: the
+  game's OWN Treasure status (composed id 15, the unit-to-chest conversion) with its dev spike,
+  which is engine knowledge unrelated to the module, and the LIVE_LEDGER rows recording what the
+  module's reverse engineering proved, which are a record and not a dependency. The Scholar's
+  Ring survives as an item and its description was rewritten to say what it actually does,
+  double JP, instead of advertising the module; item.en.nxd was re-baked for that one cell
+  (INTENDED 1130 / DRIFT 0 / UNINTENDED 0). Player-facing consequence, stated plainly: the mod
+  now exposes NO settings at all, so the launcher's configuration pane is empty, and a test pins
+  that rather than letting it drift. (Tech: the stage-1 work on
+  feature/lw10-remove-treasure-master was 339 commits behind main and predated the LW-182 folder
+  restructure, so it served as a checklist and the removal was redone on main. Suite 2947 green,
+  down 154; analyze exit 0; 32,036 lines deleted. Four pinned contracts caught the loose ends and
+  were updated with the change rather than around it: the LW-184 phase table, the tick-table
+  non-battle allowlist, the LOGGING.md verb-table lockstep, and the config-surface reflection
+  guard.)
+
 - [LW-230] SHIPPED 495f9fc 2026-08-14: every recoloured icon looked like it was giving off
   coloured smoke, and the shields and helmets no longer do. Each sprite is drawn sitting in a
   soft see-through haze the artist left neutral, and the recolour engines painted every pixel

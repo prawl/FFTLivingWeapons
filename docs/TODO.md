@@ -955,12 +955,6 @@ the technical detail lives in the indented lines under it.
   Candidates when picked up: later availability tier, price bump, or stat trim (re-run the
   analyze.py dominance gate after any change). Independent of the release-scope
   spriteIdOverride cleanup.
-- [LW-10] 2026-07-04: Remove the Treasure Master module (owner-paused until after the 2.3.0
-  tag).
-  2.3.0 ships the module disarmed (smoke row 7.22). Stage 1 committed 0f842f5 on branch feature/lw10-remove-treasure-master (worktree
-  C:\Users\ptyRa\Dev\FFTLivingWeapons-lw10, plan at the worktree root lw10_plan.md, stage 2
-  first half uncommitted there); merges to main only after the tag. The production Scholar's
-  Ring grant was killed separately in 2.3.0 (LW-86); demoted from Now 2026-07-14 for LW-86.
 - [LW-11] 2026-07-04: Give Squires and Geomancers their axe-style weapons back, the cheap
   way only (equip access on existing sword-typed items).
   The rest is walled research: type-welded formula, id-welded art, no known flail formula id.
