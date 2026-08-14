@@ -277,7 +277,6 @@ def tint_comment_names():
 NO_BLADE_CATS = {"Bag", "Book", "Instrument", "Cloth"}   # no blade: tint the LARGEST cluster
 CARD_OVERRIDES = {
     9: {"k": 2},                # Galewind: 3 clusters shredded the blade
-    113: {"k": 2},              # Eight-Fluted Pole: shaft never took the tint
     117: {"k": 2},              # Hornet Pouch: cluster fragmentation read as camo blobs
 }   # ids 33 (Defender) and 37 (Chaos Blade) were here until LW-200 routed the knight swords to
     # the zone engine, which made both rows unreachable: route() consults ZONE_OVERRIDES first.
@@ -1267,6 +1266,7 @@ KNIGHT_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "KnightSword")
 BOW_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bow")
 GUN_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Gun")
 ROD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Rod")
+POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
 
 ZONE_OVERRIDES = {
     # --- Swords (LW-199, 2026-08-14) ------------------------------------------------------
@@ -1411,6 +1411,34 @@ ZONE_OVERRIDES = {
     # thing from Save the Queen, whose sprite it borrows.
     50: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
                    _edge(GOLD, pct=22)], "gleam": 0.20, "contrast": 0.60},  # Sunderer
+    # --- Poles (LW-206, 2026-08-14) -------------------------------------------------------
+    # Median 4.7% of the solid art before this pass, with the Slumber Rod, the Sage's Pole and
+    # the Ivory Pole all at 0.0 percent.
+    #
+    # A pole is the FIFTH art shape to need no new engine, and it goes back to the crossbow's
+    # split: a long shaft with metal ferrules at each end, wood against metal, which saturation
+    # separates in one pass. Measured over the nine, the desat key claims 13.4 to 27.1 percent
+    # and lands on the caps every time, while DARKNESS returns 0.0 percent on four of them,
+    # because a pole has no dark furniture anywhere on it. That is the whole reason this family
+    # takes _material and not the rods' _hilt, even though a rod and a pole are both a stick.
+    #
+    # The Terrastaff draws itself with the Greenwood Pole's sprite (SRC), the third such pair in
+    # the program, so those two are chosen to be far apart in BODY and in metal: earth and brass
+    # against living green and bone.
+    # Brass caps were refused here: on an earth-brown shaft they are the same colour with a
+    # highlight on it. Cold metal against warm wood is the pairing that reads.
+    48:  {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.22},  # Terrastaff
+    107: {"zones": [_material(BONE, sat_p=30, min_blob=2)], "gleam": 0.25},    # Greenwood Pole
+    108: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.25},   # Ironreed Pole
+    109: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.30},  # Slumber Rod
+    110: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.25},    # Hushfan
+    # Gokuu's Pole under its new name, and the one item here whose vanilla art is strongly
+    # chromatic already (icon chroma 0.272, three times its siblings): vermilion with gold caps
+    # is what the Ruyi Jingu Bang is, so the anchor and the reference agree.
+    111: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.22},    # Sage's Pole
+    112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
+    113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
+    114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
     # --- Rods (LW-208, 2026-08-14) --------------------------------------------------------
     # The worst family left before this pass: a TRUE median of 1.8% of the solid art, with the
     # Ember Rod and the Rod of Faith at 0.0.
@@ -2243,7 +2271,8 @@ def selftest():
     # family that has actually been through a review pass, not that they are all hats: the zone
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
-    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod"}
+    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
+                   "Pole"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2290,7 +2319,7 @@ def selftest():
     check("every reviewed family is picked, whole",
           sorted(ZONE_OVERRIDES)
           == sorted({i for i, c in _CATEGORY.items()
-                     if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod")}
+                     if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole")}
                     | SWORD_RACK | KNIGHT_RACK))
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
@@ -2339,6 +2368,7 @@ def selftest():
     bows = sorted(BOW_RACK)
     guns = sorted(GUN_RACK)
     rods = sorted(ROD_RACK)
+    poles = sorted(POLE_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2359,7 +2389,7 @@ def selftest():
         return all(tuple(z["tone"]) in METALS for z in ZONE_OVERRIDES[i]["zones"])
 
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
-                            ("bow", bows), ("gun", guns), ("rod", rods),
+                            ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
                             ("hat", hats), ("crossbow", xbows)):
         rack = [i for i in rack if body_is_whole_signal(i)]
         rack_collisions = [
@@ -2377,6 +2407,7 @@ def selftest():
     check("the bow rack is all nine", len(bows) == 9)
     check("the gun rack is all six", len(guns) == 6)
     check("the rod rack is all eight", len(rods) == 8)
+    check("the pole rack is all nine", len(poles) == 9)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2386,7 +2417,12 @@ def selftest():
                    if i in ICON_TINTS and src in ICON_TINTS
                    and _CATEGORY.get(i) == _CATEGORY.get(src)
                    and _CATEGORY.get(i) in _ZONED_CATS)
-    check("the shared-sprite scan finds every known twin pair", len(twins) == 3)
+    # Non-vacuity without a magic count: the scan must find the pair this rule was written for
+    # (the Vagabond's sprite worn by the Warbrand) and must not come back empty. A hardcoded
+    # total had to be edited every time a family brought its own twins, which makes the pin fail
+    # for being correct; poles brought the fourth pair on 2026-08-14.
+    check(f"the shared-sprite scan is not vacuous ({len(twins)} pairs found)",
+          (19, 67) in twins and len(twins) >= 3)
     same_picture = [(a, b) for a, b in twins
                     if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < 0.05
                     and abs(ICON_TINTS[a][2] - ICON_TINTS[b][2]) < 0.35]
@@ -2409,7 +2445,7 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    bladed = swords + knights + bows + guns + rods
+    bladed = swords + knights + bows + guns + rods + poles
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in

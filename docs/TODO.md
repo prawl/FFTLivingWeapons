@@ -13,45 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [AWAITING-LIVE]
-  - Built and adversarially checked 2026-08-12, same session it was opened: six new pinned
-    tests written red first, the extractor now emits the five alias entries (each tagged with
-    its base job), the regenerated map is byte identical on a re run, and the independent
-    verify broke the implementation three ways to prove the new guards really trip (suite
-    3086 green, analyze exit 0, verdict SHIP at 9/10). Only the live premise beat remains.
-  - Premise rescoped 2026-08-12 after a full encounter-table sweep: alias jobs appear in
-    EXACTLY three battles in the whole game (384 Siedge Weald, the TIC name for PSX Sweegy
-    Woods, fielding six alias units; 389 one panther; 400 one chocobo), all story battles,
-    so the player impact is those battles plus NG+ replays, and a late save cannot reach any
-    of them naturally. The owner's live pass instead confirmed base-job poaches end to end
-    (goblin, skeleton x2, black goblin, red panther all claimed, despawned, and Den counted,
-    with the Den UI cross-checked exact against the store bytes). The live settle for the
-    alias byte is a staged encounter: inject one MainJob 169 panther into a reachable random
-    battle through the moddable encounter table (the arena lane the sibling repo showed
-    working live), restart, poach it; a toast plus key 19 rising settles it, silence means
-    the engine normalizes aliases and this row gets a retraction note instead.
-  - Done means: a monster the game fields on one of the Job sheet's five alias rows (jobs
-    169-173, which per the sheet are exact clones of jobs 103/97/98/100/94 with the same
-    species and the same carcass keys) poaches exactly like its base-job twin: the map
-    resolves it, the Den store gets the right carcass, the toast fires, and nothing else
-    changes. The extractor emits alias entries pointing at the same carcass pairs instead of
-    folding them into a skip list, and two job ids sharing one carcass pair is explicitly
-    allowed, since the store write is keyed by carcass key alone. (Tech: the confirmed major
-    finding from the ac43327 adversarial verify round. PoachMap.TryGetJob membership is the
-    mod's entire monster gate at LivingPoach.cs:108, so an unmapped alias job is a silent
-    refusal, the same failure shape as the Black Chocobo job 95 bug that round's parent
-    commit fixed. Offline evidence: the vanilla ENTD table, decoded, fields MainJob 169-172
-    for all six monsters of battle 384, the Sweegy Woods chapter 1 composition, plus aliases
-    in battles 389 and 400, so ordinary story play hits the gap.)
-  - Verify: the suite is green with pinned tests proving jobs 169-173 resolve to the same
-    carcass keys as their base jobs and that the real committed poach.json carries the alias
-    entries; the existing global key-uniqueness test is deliberately relaxed to base rows
-    only, with alias rows asserted equal to their base instead. Live premise watch, owner
-    only: one alias-job monster poached in a story battle, since the band job byte reading
-    169-173 live is the one unverified link (band equals sheet key was read live at 95 in
-    the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
-    space).
-
 - **[LW-199] Every sword in the game ships as a grey sword with a coloured stripe down one edge, because the colour was landing on the glow instead of on the blade** (opened 2026-08-13) [AWAITING-LIVE]
   - The owner restarted the paused icon program on 2026-08-14, chose this family to go first,
     and this row was promoted to Now the same day. Three standing rules came with it: make them pop and use several colours per item,
@@ -209,7 +170,41 @@ the technical detail lives in the indented lines under it.
     these ids and reporting nothing else moved; the bake matching the reviewed gallery pixel for
     pixel against a FULL preview manifest; and the owner's gallery pass.
 
+- **[LW-206] Three poles are not recoloured at all, and two more items share one picture with nothing to tell them apart** (opened 2026-08-13) [BUILDING]
+  - Promoted 2026-08-14, next on the same evidence that picked guns and rods: poles measure a
+    median 4.7 percent of their solid art, with the Slumber Rod, the Sage's Pole and the Ivory
+    Pole all at 0.0 and the Hushfan at 1.7.
+  - The family also carries a THIRD shared-sprite pair, after the swords' Vagabond/Warbrand and
+    the knight swords' two: the Terrastaff draws itself with the Greenwood Pole's art, and today
+    both reach the same 4.7 percent, so they are very nearly the same object in two names.
+  - A pole is the fifth art shape and the fifth to need no new engine: a long SHAFT with metal
+    ferrules at each end, which is the crossbow's wood-against-metal split again. Measured, the
+    saturation key claims 13.4 to 27.1 percent and lands on the caps every time, while darkness
+    returns 0.0 percent on four of the nine because a pole has no dark furniture at all.
+  - Done means: all nine carry their identity colour across the shaft with the ferrules as a
+    visibly separate material, the shared-sprite pair is unmistakable, the two reserved names
+    (Ivory Pole, Whale Whisker) are anchored against BOTH surfaces, and no already-approved art
+    moves. (Tech: CARD_OVERRIDES row 113 goes dead when this family leaves bright-v2 and must be
+    deleted in the same commit; the pin added on 2026-08-14 refuses that class of stale config.)
+  - Verify: recolor_icons selftest green with this family inside every owner-rule pin; each
+    pole's second material measured on the real art; `icon_preview.py compare --expect` naming
+    exactly these ids; the bake matching the reviewed gallery pixel for pixel against a FULL
+    preview manifest; and the owner's gallery pass.
+
 ## Backlog
+
+- [LW-174] 2026-08-12: Five story-battle monster jobs are invisible to Living Poach because the
+  map skips their alias rows. Demoted from Now 2026-08-14 to make room for the icon re-pass
+  program the owner is actively working; nothing about it changed and nothing is blocked on me.
+  The build and the adversarial verify both finished on 2026-08-12 (six pinned tests written red
+  first, the regenerated map byte identical on a re-run, verdict SHIP), and the only step left is
+  a live premise beat that is OWNER-ONLY: alias jobs appear in exactly three battles in the whole
+  game, all story battles a late save cannot reach, so settling it needs a staged encounter with
+  one MainJob 169 panther injected into a reachable random battle through the moddable encounter
+  table. Promote it again when that drill is on the table. (Tech: full detail in the entry this
+  replaces, commit ac43327 and the rows around it; PoachMap.TryGetJob membership at
+  LivingPoach.cs:108 is the mod's entire monster gate, so an unmapped alias job is a silent
+  refusal.)
 
 - [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
   weapon can grow on kills the player never really earned. The cause is now SETTLED by a
@@ -306,8 +301,6 @@ the technical detail lives in the indented lines under it.
 - [LW-204] 2026-08-13: Katanas re-pass: the 11 katana icons get the shields-grade per item review, including the five smalls that carry the card-style override today; process per LW-198.
 
 - [LW-205] 2026-08-13: Ninja Blades re-pass: the 9 ninja blade icons get the shields-grade per item review; process per LW-198.
-
-- [LW-206] 2026-08-13: Poles re-pass: the 9 pole icons get the shields-grade per item review; process per LW-198.
 
 - [LW-207] 2026-08-13: Polearms re-pass: the 8 polearm icons get the shields-grade per item review; process per LW-198.
 
