@@ -14,7 +14,7 @@ namespace LivingWeapon.Tests;
 /// file that actually lives under mod/FFTIVC/tables/enhanced/*.xml and
 /// mod/FFTIVC/data/enhanced/nxd/*.nxd (parked bloodpact tables excluded, since those must never
 /// ship) must appear somewhere in the parsed manifest. The manifest legitimately also lists
-/// build outputs (LivingWeapon.dll, meta.json, treasure.json) that are not in mod/, so the
+/// build outputs (LivingWeapon.dll, meta.json, poach.json) that are not in mod/, so the
 /// comparison is subset-only, not a set-equals ratchet.
 /// </summary>
 public class PipelineManifestContractTests
