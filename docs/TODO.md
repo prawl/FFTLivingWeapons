@@ -126,6 +126,15 @@ the technical detail lives in the indented lines under it.
   and the AOE widening are both unverified and need their own live RE before any of this is
   promised in a design doc.)
 
+- [LW-229] 2026-08-13: Dancers should be able to equip harps, owner call, banked alongside the
+  LW-228 harp signature ideas. Vanilla locks instruments to Bards, so a Dancer today cannot
+  touch any of the harp designs at all; opening the slot makes the harp arc serve both of the
+  performance jobs instead of half of them. (Tech: which job may wear which equipment category
+  is job table data, not item table data, and whether the modloader reaches that table has not
+  been checked; find the equip category mask in the job data first, and if the modloader cannot
+  write it this becomes a runtime write behind the guarded Mem layer like every other live
+  mechanism.)
+
 - [LW-198] 2026-08-13: Daggers re-pass: the 11 dagger icons get the shields-grade per item
   review. This row also carries the LW-198 through LW-226 program statement the other section
   rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
