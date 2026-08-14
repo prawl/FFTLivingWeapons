@@ -9,7 +9,8 @@ Pipeline per item (both the 100x100 card image and the 48x48 list icon):
 FOUR recolor engines, routed per item by engine_for() (owner-directed; docs/TODO.md LW-189,
 LW-190, LW-215 and LW-216 carry the decision trails):
 
-  WEAPONS (category in lib.categories.WEAPON_CATS) get the LW-189 BRIGHT v2 treatment:
+  UNREVIEWED WEAPONS (category in lib.categories.WEAPON_CATS, minus the families that have had
+  their own re-pass and appear in ZONE_OVERRIDES below) get the LW-189 BRIGHT v2 treatment:
     - card image: TWO-ZONE k-means segmentation of the VANILLA art (the identity tint goes on
       the metal/blade zone, hilt and trim keep their vanilla colors), shaded on a hue-graded
       ramp: shadows lean cool and gain saturation, highlights lean gently warm (clamped so
@@ -28,9 +29,13 @@ LW-190, LW-215 and LW-216 carry the decision trails):
   under a contrast S-curve and a sheen, with the recipe's second colour blended across ONE
   feathered organic mask (cover = the bright fittings, shade = the recesses).
 
-  HATS and CROSSBOWS (ZONE_OVERRIDES) get the LW-216 THREE-ZONE treatment: zone_recolor lays N
-  feathered zones over the body in list order, because a hat is cloth plus a brim or lining plus
-  a plume or a painted emblem, and two zones cannot say that.
+  HATS, CROSSBOWS and SWORDS (ZONE_OVERRIDES) get the LW-216 THREE-ZONE treatment: zone_recolor
+  lays N feathered zones over the body in list order, because a hat is cloth plus a brim or
+  lining plus a plume or a painted emblem, and two zones cannot say that. THIS TABLE IS THE
+  ENGINE MAP for reviewed families: engine_for consults it BEFORE any category rule, so a family
+  named here has left the category default above whatever its category says. Keep this paragraph
+  in step with it; the tint rows below are machine-checked against items.json for exactly this
+  kind of rot (tint_comment_names) and a prose engine map has no such guard.
 
   EVERYTHING ELSE (armor, accessories, hair adornments) keeps the ORIGINAL whole-icon tint: not
   yet reviewed under the new rules, so their shipped look must not change until an owner pass
@@ -80,27 +85,58 @@ ICON_TINTS = {
     8:  (0.27, 0.60, 0.90),   # Mortal Coil     necrotic green (Doom)
     9:  (0.46, 0.66, 1.05),   # Galewind        storm teal (Wind)
     10: (0.72, 0.42, 1.10),   # Zwill Straightblade dream lavender (Sleep on hit)
-    # --- Swords (ids 19-32) ---
-    19: (0.08, 0.14, 0.90),   # Vagabond        worn warm steel
-    20: (0.60, 0.10, 0.70),   # Cleaver         dark heavy steel
-    21: (0.55, 0.08, 1.15),   # Riposte         bright silver (parry)
-    22: (0.48, 0.24, 1.08),   # Claymore        pale mythril teal (the reach sword)
-    23: (0.99, 0.78, 0.92),   # Sanguine Sword  blood red (Absorb HP)
-    24: (0.14, 0.82, 1.10),   # Stormbrand      electric yellow (Lightning)
-    25: (0.10, 0.45, 0.78),   # Tanglethorn     earthy brown (Immobilize)
-    26: (0.05, 0.85, 1.05),   # Flamberge       fire orange (Fire)
-    27: (0.60, 0.05, 1.18),   # Wrathblade      stark white (damage = missing HP)
-    28: (0.58, 0.32, 1.12),   # Swiftedge       diamond light-blue (Speed x WP)
-    29: (0.50, 0.58, 1.08),   # Graviton        ice cyan, BUT SEE LW-199: this hue was
-                              # chosen for an Ice sword that no longer exists; Graviton casts
-                              # Gravity and carries no element at all.
-    30: (0.74, 0.55, 0.95),   # Arcanum         arcane violet
-    31: (0.27, 0.65, 0.88),   # Lightbringer    toad green, WRONG AND KNOWN (LW-199): the hue
-                              # was picked for a Toad sword that no longer exists, while this
-                              # is the line's ONLY Holy sword. Compare id91, also Holy, gold.
-                              # Left alone deliberately: swords have not had their owner
-                              # review pass, and tints do not move without a gallery.
-    32: (0.78, 0.50, 0.62),   # Materia Blade   dark violet (Ultima living blade)
+    # --- Swords (ids 19-32, plus id 67 which rides id 19's art; tint in data/items.json) ---
+    # LW-199, 2026-08-14. The pre-pass palette is kept in the trailing comments as the diagnosis,
+    # same as the crossbows above. Two of the fifteen were provably WRONG about their item rather
+    # than merely timid: Lightbringer is the line's only Holy sword and wore the toad green picked
+    # for a Toad sword that was renamed away, and Graviton wore an ice cyan picked for an Ice
+    # sword when it carries no element at all. The rest were the family's real problem, which is
+    # that eleven of them sat under saturation 0.6 on near-white blade art, so whatever the engine
+    # did the answer came back grey.
+    #
+    # Hues are spread so the fifteen stay nameable in one list, and the spread is pinned in
+    # selftest (SWORD_MIN_HUE_GAP and its saturation/value escapes). Read the pairs that sit
+    # close in hue by their WEIGHT: 67 near-black against 26 molten, 19 dull tan against 31
+    # blazing gold, 32 near-neutral white against 21 saturated blue.
+    19: (0.085, 0.72, 0.82),  # Vagabond        weathered bronze, bright steel furniture
+                              #                 (was 0.08/0.14/0.90, "worn warm steel")
+    20: (0.615, 0.52, 0.52),  # Cleaver         deep blued iron, raw copper
+                              #                 (was 0.60/0.10/0.70, dark heavy steel)
+    21: (0.570, 0.62, 1.08),  # Riposte         duelist's azure, brass guard and edge
+                              #                 (was 0.55/0.08/1.15, bright silver)
+    22: (0.440, 0.78, 0.88),  # Claymore        jade mythril, copper (the reach sword)
+                              #                 (was 0.48/0.24/1.08)
+    23: (0.985, 0.98, 0.82),  # Sanguine Sword  blood crimson, bone furniture (Absorb HP)
+                              #                 (was 0.99/0.78/0.92)
+    24: (0.655, 0.78, 0.82),  # Stormbrand      storm indigo under a levin edge (Lightning)
+                              #                 (was 0.14/0.82/1.10, electric yellow: it collided
+                              #                 with Lightbringer's Holy gold, so the yellow moved
+                              #                 to the edge and hilt where it reads hotter anyway)
+    25: (0.335, 0.95, 0.46),  # Tanglethorn     deep forest green, gold (Immobilize)
+                              #                 (was 0.10/0.45/0.78, earthy brown)
+    26: (0.045, 0.98, 0.82),  # Flamberge       fire orange, white-hot edge (Fire)
+                              #                 (was 0.05/0.85/1.05)
+    27: (0.925, 0.95, 0.40),  # Wrathblade      garnet wine, bone furniture (damage = missing HP)
+                              #                 (was 0.60/0.05/1.18, stark white: nothing on a
+                              #                 near-white sprite, and the rack has white already)
+    28: (0.505, 0.90, 0.98),  # Swiftedge       diamond cyan, white edge over a dark guard (Speed x WP)
+                              #                 (was 0.58/0.32/1.12)
+    29: (0.700, 0.58, 0.17),  # Graviton        near-black under a collapsing pale rim; casts
+                              #                 Gravity and carries no element, so the old ice
+                              #                 cyan (0.50/0.58/1.08) was a colour for a sword
+                              #                 that no longer exists (LW-199)
+    30: (0.780, 0.95, 0.88),  # Arcanum         amethyst, gold runework (arcane buff-thief)
+                              #                 (was 0.74/0.55/0.95)
+    31: (0.135, 0.90, 0.98),  # Lightbringer    molten gold, white radiance over dark furniture.
+                              #                 The line's ONLY Holy sword, corrected off the toad
+                              #                 green (0.27/0.65/0.88) picked for a renamed Toad
+                              #                 sword.
+                              #                 Compare id91, also Holy, also gold (LW-199)
+    32: (0.585, 0.07, 1.20),  # Materia Blade   cool silver-white with gold furniture. RESERVED
+                              #                 NAME: it kept its vanilla name, so it is anchored
+                              #                 to the vanilla look and only enhanced (owner rule
+                              #                 2026-08-14) rather than recoloured to the dark
+                              #                 violet it wore (0.78/0.50/0.62)
     # --- Crossbows (ids 77-82) ---
     # LW-202, 2026-08-14. The pre-pass palette is kept in the trailing comments because it is
     # the diagnosis: three of the six sat at saturation 0.15 or below and two more below 0.55,
@@ -212,7 +248,11 @@ CARD_OVERRIDES = {
     113: {"k": 2},              # Eight-Fluted Pole: shaft never took the tint
     117: {"k": 2},              # Hornet Pouch: cluster fragmentation read as camo blobs
 }
-SMALL_TWO_ZONE = {13, 15, 16, 18, 24}   # owner round-1: card-style split on these glyphs
+SMALL_TWO_ZONE = {13, 15, 16, 18}       # owner round-1: card-style split on these glyphs
+                                        # (id 24 was a fifth until LW-199 routed the sword rack
+                                        # to the zone engine, which consults ZONE_OVERRIDES
+                                        # first; the entry became unreachable, so it is gone
+                                        # rather than left to read as live configuration)
 COOL, WARM = 0.66, 0.13                  # shadow / highlight hue targets
 
 
@@ -1095,8 +1135,188 @@ BONE = (0.105, 0.14, 1.30)
 BRASS = (0.115, 0.90, 1.20)
 GOLD = (0.125, 0.92, 1.24)
 SILVER = (0.585, 0.10, 1.30)
+# The sword rack's own metals (LW-199), on top of the five above. Every one of these is BRIGHT
+# except BLACK_IRON, and that is a measured rule rather than a taste: the zone that carries a
+# sword's second colour is keyed on the art's dark share, so the body already renders those
+# pixels dark, and a dark tone laid over them is invisible by construction. Swept on ids 19, 22
+# and 23, a dark second material measured a p90 distance of 44 to 73 out of 255 from the
+# body-only render where every bright metal measured 113 to 172. BLACK_IRON survives as the one
+# exception because it sits on the Flamberge, whose body is the rack's hottest orange, so the
+# separation there is chroma rather than weight. Four tones written for this pass are NOT here,
+# having been measured and then deleted rather than left to read as live vocabulary: a COLD_IRON
+# at v0.52 and a DARK_STEEL at v0.60 (both lost the darkness argument above), an AGED_BRONZE that
+# the Claymore and Tanglethorn both outgrew when their bodies deepened, and a VOIDLIGHT the
+# Graviton wore until it went properly exotic.
+COPPER = (0.055, 0.88, 1.10)
+BLACK_IRON = (0.615, 0.10, 0.45)
+# The last three are not metals at all, and that is the point: the Stormbrand, the Graviton and
+# the Warbrand are the rack's three exotic items, and their second colour is a LIGHT rather than
+# a fitting. Each is SATURATED where a metal would be pale, which is also what keeps them honest
+# under the no-single-colour gate: a rim that differs from its blade only in brightness is a
+# highlight, not a material, and the gate says so out loud (it caught exactly that on the
+# Graviton when an earlier near-neutral rim sat within 0.30 saturation of the blade).
+LEVIN = (0.145, 0.95, 1.30)      # the one hue hot enough to read as lightning at 48px
+PLASMA = (0.485, 0.82, 1.34)     # not a metal: the cold light bleeding off an event horizon
+EMBER = (0.045, 0.98, 0.90)      # not a metal either: iron still cooling from the forge. Its
+                                 # value multiplier is BELOW 1 on purpose, which looks backwards
+                                 # for something meant to glow. ramp_color desaturates highlights
+                                 # by 30% at full brightness, so pushing this tone brighter walks
+                                 # it toward peach: measured on the Warbrand's ridge, vmult 1.36
+                                 # renders (238,156,113) at saturation 0.53 while 0.90 renders
+                                 # (206,103,53) at 0.74. Heat reads as SATURATION against a dark
+                                 # blade, not as brightness.
+
+
+def _hilt(tone, pct=26, floor=0.44, gleam=0.25, sheen=0.35, min_blob=4, feather=1.0):
+    """The sword's SECOND MATERIAL: guard, grip and pommel, found on the art's dark share.
+
+    Which key finds a sword's furniture is a measurement, not a preference, and the three
+    candidates disagree completely on this family. Measured over all fifteen card sprites:
+
+      shade (darkest N%)   lands on the guard, grip and pommel on 15 of 15, 10-27% of the
+                           solid art. The artist drew every hilt darker than its blade, so
+                           one key covers the whole rack.
+      desat (LW-202's)     lands on the BLADE, because a blade is the desaturated-but-lit
+                           population. Right for a crossbow's metal stock, backwards here.
+      cover (brightest)    lands on the blade's specular ridge, which is what bright-v2 was
+                           already painting and why this family reads as vanilla art with a
+                           coloured streak on it (LW-232).
+
+    floor 0.44 and gleam 0.25 are the pair that keeps furniture legible: a guard sits in the
+    art's shadow, so unfloored brass renders near-black (the documented round-two helmet trap),
+    while an unclamped gleam preserve lifts a metal on a bright sprite straight back to white.
+    Reproduce the coverage numbers with tools/icon_preview.py preview plus helm_mask."""
+    return {"key": "shade", "pct": pct, "tone": tone, "floor": floor, "gleam": gleam,
+            "sheen": sheen, "min_blob": min_blob, "feather": feather}
+
+
+def _edge(tone, pct=20, floor=0.52, gleam=0.30, sheen=0.45, min_blob=3, feather=0.7):
+    """The metal along the blade's lit ridge: the zone that makes a sword read as two colours.
+
+    This is the cover key that LW-232 condemned, used deliberately. The finding there was that
+    the brightest population is the sprite's own haze; helm_mask ranks only pixels at
+    alpha >= HELM_SOLID, so the haze is not a candidate here and the same key returns the ridge
+    the artist actually drew, running the full length of the blade.
+
+    It exists because of an owner rejection worth recording. Round one gave every sword a body
+    colour plus a hilt, which is genuinely two materials and measured as such, and he still
+    called a handful of them one colour. He was right and the measurement was answering the
+    wrong question: a hilt is 10-27% of the sprite and it sits at ONE END, so the blade, which
+    is about 70% of what the eye gets, was still a single flat colour. The lesson generalises
+    past swords: a second material has to cross the object's LARGEST shape, not merely exist
+    somewhere on it.
+
+    pct is swept per item between 18 and 24. The sweep is in the commit: below ~12 the ridge
+    reads as a highlight rather than a material, and by ~36 the metal has taken the blade and
+    the identity colour is the accent (measured on ids 19, 21, 23, 25 and 30)."""
+    return {"key": "cover", "pct": pct, "tone": tone, "floor": floor, "gleam": gleam,
+            "sheen": sheen, "min_blob": min_blob, "feather": feather}
+
+# The sword rack, DERIVED so it cannot drift from the data. Fourteen of the fifteen are the
+# contiguous ids 19-32; the fifteenth is the Warbrand (id 67), a Sword built on the retired Iron
+# Flail's slot, and the one item in the game that draws itself with ANOTHER item's sprite
+# (iconSource 19, the Vagabond). That pair shares one picture, so colour is the only thing that
+# separates them and selftest holds them to a harder floor than the rest of the rack.
+SWORD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Sword")
 
 ZONE_OVERRIDES = {
+    # --- Swords (LW-199, 2026-08-14) ------------------------------------------------------
+    # The rack the owner asked for by name, and the family LW-232 was worst on: measured, the
+    # shipping bake reached a MEDIAN 34% of each sword's solid art and as little as 14% (id 31),
+    # which on screen is the artist's grey sword wearing a coloured stripe down one edge. The
+    # body tint now owns every solid pixel, and TWO zones bring the metal back: the hilt on the
+    # art's dark share (see _hilt for why darkness is the key that finds furniture on all
+    # fifteen) and the blade's lit ridge on its bright share (see _edge, which exists because
+    # the hilt alone was not enough and the owner said so).
+    #
+    # ROUND ONE WAS REJECTED and the reason is the useful part. Body plus hilt IS two materials
+    # and measures as two materials, and he still called a handful of them one colour. The hilt
+    # is 10-27% of the sprite and sits at one END, so the blade, which is most of what the eye
+    # gets, stayed flat. The ridge runs the blade's whole length, and that is what turns the
+    # measurement and the picture into the same answer.
+    #
+    # THE PALETTE RULE, owner brief 2026-08-14: "make them pop... use multiple colors, try and
+    # make no two swords look similar in color", and "if you send me a updated weapon that's a
+    # single color I'm going to immediately reject it". Both halves are pinned in selftest
+    # rather than trusted: hue/saturation/value separation across the rack, and a floor on how
+    # far each second material sits from its own body. Where two swords sit close in hue they
+    # separate by WEIGHT instead (Warbrand is near-black where Flamberge is molten), which is
+    # the same escape the shield palette uses and the only one available on a wheel this full.
+    #
+    # gleam is the knob that decides whether a hot colour lands at all. These blades are bright
+    # near-white art, so the preserve fires on most of the sprite and pulls a saturated tint back
+    # toward white, and the whole rack therefore runs it well below the engine's 0.80 default.
+    # Read the column as one rule with two exceptions: thirteen swords sit between 0.15 and 0.30,
+    # scaled by how hard their colour has to fight the art's own white, while the Claymore (0.55)
+    # and the Materia Blade (0.85) keep a high preserve on purpose, because those two are PALE by
+    # design and the artist's white is doing the work rather than getting in its way.
+    19: {"zones": [_hilt(STEEL, pct=28, floor=0.46),
+                   _edge(STEEL, pct=22)], "gleam": 0.30},                   # Vagabond
+    20: {"zones": [_hilt(COPPER, pct=22, floor=0.52),
+                   _edge(COPPER, pct=20, floor=0.55)],
+         "gleam": 0.25, "contrast": 0.55},                                  # Cleaver
+    21: {"zones": [_hilt(BRASS, pct=24),
+                   _edge(BRASS, pct=22)], "gleam": 0.30},                   # Riposte
+    22: {"zones": [_hilt(COPPER, pct=26, floor=0.46),
+                   _edge(COPPER, pct=24)], "gleam": 0.40},                  # Claymore
+    # Bone is the loudest second colour in the rack against a dark body, so both of the swords
+    # that wear it (this and the Wrathblade) take a NARROWER ridge than the metals do: at the
+    # rack's usual 22 the white had eaten half the blade and the sword stopped being red.
+    23: {"zones": [_hilt(BONE, pct=24, floor=0.46),
+                   _edge(BONE, pct=17, floor=0.55)], "gleam": 0.22},        # Sanguine Sword
+    # Lightning is the one identity that cannot live in the body alone: a yellow blade collides
+    # with Lightbringer's gold four hundredths away. So the storm is the body and the levin is
+    # the furniture AND the ridge, which is also the rack's hottest pairing.
+    24: {"zones": [_hilt(LEVIN, pct=22, floor=0.55), _edge(LEVIN, pct=20, floor=0.62)],
+         "gleam": 0.22, "contrast": 0.60},                                  # Stormbrand
+    25: {"zones": [_hilt(GOLD, pct=22, floor=0.48),
+                   _edge(GOLD, pct=22, floor=0.52)], "gleam": 0.22},        # Tanglethorn
+    26: {"zones": [_hilt(BLACK_IRON, pct=24, floor=0.34), _edge(WHITE, pct=22, floor=0.68)],
+         "gleam": 0.22, "contrast": 0.55},                                  # Flamberge
+    27: {"zones": [_hilt(BONE, pct=22, floor=0.50),
+                   _edge(BONE, pct=18, floor=0.55)], "gleam": 0.25},        # Wrathblade
+    28: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.30),
+                   _edge(WHITE, pct=22, floor=0.62)], "gleam": 0.30},       # Swiftedge
+    # The only body dark enough that its own furniture would vanish into it, so the second
+    # colour is light instead of metal and the ridge carries the same tone: a black blade with a
+    # collapsing rim, which is what a Gravity proc looks like if it looks like anything.
+    # EXOTIC PASS (owner round five). A black blade with a white rim is a dark sword; these two
+    # are supposed to look like objects rather than equipment, so both take a LIGHT as their
+    # second colour instead of a metal. The Graviton's is cold: void-black under the cyan bleed
+    # of something falling into a hole, which is also the only place in the rack where the
+    # second colour is more saturated than the body it sits on.
+    29: {"zones": [_hilt(PLASMA, pct=13, floor=0.42), _edge(PLASMA, pct=15, floor=0.90)],
+         "gleam": 0.05, "contrast": 0.85},                                  # Graviton
+    30: {"zones": [_hilt(GOLD, pct=22),
+                   _edge(GOLD, pct=22)], "gleam": 0.25},                    # Arcanum
+    # Holy, and the rack's inverse pair with the Materia Blade below: gold blade with white
+    # furniture against white blade with gold furniture. They read apart because the blade is
+    # ~70% of the pixels, so the body decides the item's colour at a glance.
+    31: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.28), _edge(WHITE, pct=22, floor=0.72)],
+         "gleam": 0.25, "contrast": 0.60},                                  # Lightbringer
+    # RESERVED NAME (owner rule, 2026-08-14: an item that kept its vanilla name kept it because
+    # players know it, so it is anchored to the vanilla look and only enhanced). The vanilla
+    # Materia Blade is a white blade with gold furniture; this is that, with the white cooled
+    # and the gold brought up, and nothing invented. Its ridge is the rack's narrowest for the
+    # same reason: enough to tie the gold cross into the blade, not enough to restyle the item.
+    32: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
+                   _edge(GOLD, pct=12, floor=0.55)], "gleam": 0.85},        # Materia Blade
+    # Two things about this one are the shared sprite's fault. It is a WIDE flat blade, so a
+    # ridge percentage that reads as a line on a tapered sword reads as half the blade here, and
+    # it keeps the rack's narrowest metal because of it. And its body had to go COLD: a warm
+    # near-black under a warm brass ridge is brown with a tan stripe down it, which the owner
+    # correctly called a hotdog. Black steel with gold is the same idea with the bun removed.
+    # And the Warbrand's is hot: meteoric iron with the forge heat still in its edge. Brass stays
+    # on the furniture so the sword keeps one honest metal, and the ember line is deliberately
+    # the rack's narrowest zone, because heat reads as a line and never as a surface.
+    # pct 22 rather than the 10 a heat line wants: measured on THIS sprite the cover mask claims
+    # 1% of the solid art at pct 10 and 1% again at 14, because the brightest pixels on a wide
+    # flat blade scatter into blobs the despeckle pass then eats. It reaches 12% at 22, which is
+    # the first setting where the ember survives as a line instead of a speck.
+    67: {"zones": [_hilt(BRASS, pct=14, floor=0.55),
+                   _edge(EMBER, pct=22, floor=0.50, sheen=0.10, gleam=0.0,
+                         min_blob=2, feather=0.6)], "gleam": 0.06,
+         "contrast": 0.85},                                                 # Warbrand
     # --- Crossbows (LW-202, 2026-08-14) ---------------------------------------------------
     # The owner's word for the family was dull, and it was true twice over. The tints were
     # timid, three of the six at saturation 0.15 or below, so the render came back looking like
@@ -1697,7 +1917,7 @@ def selftest():
     hazed_solid = ((6, 11), (14, 11))       # one metal pixel, one body pixel
     # Routing coverage: a future engine added without the fix must fail HERE rather than ship
     # smoking. The right-hand side is every engine name the router can actually return today.
-    halo_sample = {"bright-v2": 19, "shield-bright": 128, "helm-two-tone": 156,
+    halo_sample = {"bright-v2": 83, "shield-bright": 128, "helm-two-tone": 156,
                    "three-zone": 157, "legacy": 169}
     check("the halo sample names every engine the router can return",
           set(halo_sample) == {engine_for(i) for i in ICON_TINTS})
@@ -1722,7 +1942,7 @@ def selftest():
     check("both helmet styles and the two-zone weapon small keep the haze too",
           all(route(hazed, i, ICON_TINTS[i], s).getpixel(hazed_haze)
               == hazed.getpixel(hazed_haze)
-              for i, s in ((147, "card"), (147, "small"), (156, "card"), (24, "small"))))
+              for i, s in ((147, "card"), (147, "small"), (156, "card"), (13, "small"))))
 
     def opaque_twin(im):
         """The same sprite with every painted pixel forced solid."""
@@ -1743,7 +1963,7 @@ def selftest():
     # over alpha>=HELM_SOLID (so an opaque twin legitimately re-ranks), and the ring shield
     # (id132) keys its BFS on alpha>=160 for the same reason.
     twin = opaque_twin(hazed)
-    for iid in (19, 24, 128, 143, 169):
+    for iid in (83, 13, 128, 143, 169):
         for surf in ("card", "small"):
             with_haze = route(hazed, iid, ICON_TINTS[iid], surf)
             without = route(twin, iid, ICON_TINTS[iid], surf)
@@ -1844,7 +2064,7 @@ def selftest():
     # family that has actually been through a review pass, not that they are all hats: the zone
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
-    _ZONED_CATS = {"Hat", "Crossbow"}
+    _ZONED_CATS = {"Hat", "Crossbow", "Sword"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -1875,7 +2095,10 @@ def selftest():
     # routing: shields take the shield engine, unreviewed weapons keep bright-v2, picked helmets
     # the helm engine, anything in the zone table the three-zone engine, everything else legacy
     check("shield routes to shield-bright", engine_for(128) == "shield-bright")
-    check("weapon routes to bright-v2", engine_for(19) == "bright-v2")
+    # id 83 is a bow: a weapon whose family re-pass (LW-201) has NOT run, so it must still take
+    # the category default. This pin used to read id 19, which the sword pass has since moved.
+    check("an unreviewed weapon still routes to bright-v2", engine_for(83) == "bright-v2")
+    check("a reviewed sword beats its category's engine", engine_for(19) == "three-zone")
     check("picked helmet routes to helm-two-tone", engine_for(156) == "helm-two-tone")
     check("the last two helmets joined the helm engine",
           engine_for(145) == "helm-two-tone" and engine_for(151) == "helm-two-tone")
@@ -1884,9 +2107,9 @@ def selftest():
     # weapons, so a category-first engine_for would send them to bright-v2 and quietly ignore
     # their recipes.
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
-    check("all twelve hats and all six crossbows are picked",
+    check("all twelve hats, all six crossbows and the whole sword rack are picked",
           sorted(ZONE_OVERRIDES)
-          == [i for i, c in sorted(_CATEGORY.items()) if c in ("Hat", "Crossbow")])
+          == sorted({i for i, c in _CATEGORY.items() if c in ("Hat", "Crossbow")} | SWORD_RACK))
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
     check("hair adornments stay legacy until their own pass",
@@ -1916,6 +2139,78 @@ def selftest():
     check(f"shield tints stay distinguishable (collisions: {collisions})", not collisions)
     check("shield palette covers all 16", len(shields) == 16)
     check("the tripwire still guards most of the set", len(guarded) >= 10)
+
+    # SWORD RACK (LW-199). The same tripwire as the shields above, for the same reason and one
+    # more. Under the zone engine the body tint owns every solid pixel, so a sword's tint IS its
+    # colour signal; and the owner's brief for this pass was explicit ("try and make no two swords
+    # look similar in color"), which is a claim a person cannot keep by eye across fifteen items
+    # and a later tweak can silently break. Sat gap 0.20 rather than the shields' 0.25: this rack
+    # deliberately carries near-neighbours in hue that separate by weight instead (Warbrand is a
+    # near-black iron two hundredths off Flamberge's fire orange), so the pair check below leans
+    # on the value term the shields' pin does not have.
+    SWORD_MIN_HUE_GAP, SWORD_MIN_SAT_GAP, SWORD_MIN_VAL_GAP = 0.05, 0.20, 0.28
+    swords = sorted(SWORD_RACK)
+    sword_collisions = [
+        (a, b) for n, a in enumerate(swords) for b in swords[n + 1:]
+        if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < SWORD_MIN_HUE_GAP
+        and abs(ICON_TINTS[a][1] - ICON_TINTS[b][1]) < SWORD_MIN_SAT_GAP
+        and abs(ICON_TINTS[a][2] - ICON_TINTS[b][2]) < SWORD_MIN_VAL_GAP]
+    check(f"sword tints stay distinguishable (collisions: {sword_collisions})",
+          not sword_collisions)
+    check("the sword rack is all fifteen", len(swords) == 15)
+    # Vagabond and Warbrand are ONE PICTURE (id 67 sources id 19's art, see SRC), so colour is
+    # the only thing that tells them apart. They get their own harder floor.
+    check("the two swords that share a sprite are far apart",
+          abs(arc(ICON_TINTS[19][0], ICON_TINTS[67][0])) >= 0.05
+          or abs(ICON_TINTS[19][2] - ICON_TINTS[67][2]) >= 0.35)
+    # NO SINGLE-COLOUR SWORD (owner rule, 2026-08-14: "if you send me a updated weapon that's a
+    # single color I'm going to immediately reject it"). THREE checks, because the first two
+    # versions of this gate were both provably cheatable and an adversarial audit demonstrated
+    # each one with a mutation that stayed green:
+    #   1. a zone LIST that is merely non-empty passes with pct=0 or min_blob=9999, i.e. a zone
+    #      that paints nothing at all, so the config check below is backed by a RENDER check;
+    #   2. a tone check with three ANDed terms lets one far term excuse the other two, so a tone
+    #      identical in hue and saturation and darker only in value, which is a literal shadow of
+    #      the body, sailed through. Value alone does not make a material, so it is gone as an
+    #      escape: a second material must differ in HUE or in SATURATION.
+    # These are the pins standing in for a rule the owner enforces by rejection, so they are held
+    # to the standard of failing when the thing they describe is false.
+    zone_ids = [i for i in swords if i in ZONE_OVERRIDES]
+    check("every sword has a recipe at all", len(zone_ids) == len(swords))
+    check("every sword carries a second material",
+          all(ZONE_OVERRIDES[i]["zones"] for i in zone_ids))
+    flat = []
+    for i in zone_ids:
+        h_b, s_b, _ = ICON_TINTS[i]
+        for z in ZONE_OVERRIDES[i]["zones"]:
+            h_z, s_z, _ = z["tone"]
+            if abs(arc(h_b, h_z)) < 0.08 and abs(s_b - s_z) < 0.30:
+                flat.append((i, z["tone"]))
+    check(f"no sword's second material collapses into its body (flat: {flat})", not flat)
+    # The render half. Every sword recipe runs over the fixture and its zones must actually move
+    # a real share of the SOLID pixels away from the same recipe with its zones removed. The
+    # fixture is not the real sprite, so this cannot pin per-item coverage (that is measured on
+    # the art by tools/icon_preview.py); what it pins is that no recipe has been tuned into a
+    # no-op, which is exactly the mutation that beat the config check.
+    #
+    # The band is two-sided, and the ceiling is not hypothetical: it was found by mutating
+    # min_blob to 99999, where the despeckle pass flips the whole mask to TRUE instead of to
+    # FALSE and the zone tone swallows the entire sprite. That is a single-colour sword just as
+    # surely as a zone that paints nothing, and a floor-only check called it healthy.
+    zsprite = hazed_sprite(28)
+    zsolid = [c for c in ((x, y) for y in range(28) for x in range(28))
+              if zsprite.getpixel(c)[3] >= HALO_HI]
+    silent = []
+    for i in zone_ids:
+        o = ZONE_OVERRIDES[i]
+        painted = zone_recolor(zsprite, ICON_TINTS[i], o)
+        bare = zone_recolor(zsprite, ICON_TINTS[i], {**o, "zones": []})
+        moved = sum(1 for c in zsolid
+                    if max(abs(a - b) for a, b in zip(painted.getpixel(c)[:3],
+                                                      bare.getpixel(c)[:3])) >= 12)
+        if not (0.05 * len(zsolid) <= moved <= 0.90 * len(zsolid)):
+            silent.append((i, moved, len(zsolid)))
+    check(f"every sword's zones paint some of it and not all of it (bad: {silent})", not silent)
 
     if failures:
         print("SELFTEST FAILURES:", "; ".join(failures))

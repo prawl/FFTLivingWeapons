@@ -52,6 +52,69 @@ the technical detail lives in the indented lines under it.
     the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
     space).
 
+- **[LW-199] Every sword in the game ships as a grey sword with a coloured stripe down one edge, because the colour was landing on the glow instead of on the blade** (opened 2026-08-13) [AWAITING-LIVE]
+  - The owner restarted the paused icon program on 2026-08-14, chose this family to go first,
+    and this row was promoted to Now the same day. Three standing rules came with it: make them pop and use several colours per item,
+    make no two swords look similar in colour, and treat any item that KEPT its vanilla name as
+    anchored to its vanilla look and only enhanced, because players know those items by sight
+    (the rule the Genji Helm was done under). Among the fifteen swords only the Materia Blade
+    kept its name.
+  - Measured before touching anything: the shipping bake reaches a median 34 percent of each
+    sword's solid art and as little as 14 percent, which is the LW-232 defect at its worst in
+    any family. Eleven of the fifteen tints also sat under saturation 0.6 on near-white blade
+    art, so even the part that was painted came back grey.
+  - Done means: all fifteen swords (ids 19 to 32 plus id 67, which draws itself with id 19's
+    sprite) carry their identity colour across their whole solid sprite, each one also carries a
+    visibly separate second material, no two of them read as the same object at list size, the
+    two tints that were provably wrong about their item are corrected (Lightbringer to Holy
+    gold, Graviton off an Ice colour it has no claim to), the Materia Blade is anchored to its
+    vanilla white and gold rather than recoloured, and no already-approved family moves by a
+    single pixel. (Tech: the family routes to the three-zone engine via ZONE_OVERRIDES the same
+    way the crossbows did in LW-202. The second material is a shade-keyed zone, which lands on
+    guard, grip and pommel on 15 of 15 sprites because the artist drew every hilt darker than
+    its blade; the desat key LW-202 used lands on the BLADE here, and the cover key is what
+    bright-v2 was already mispainting. A second finding from this pass: on a shade-keyed zone
+    the second material must be BRIGHT, since the body already renders those pixels dark, and a
+    dark-on-dark pairing measured a p90 colour distance of 44 to 73 out of 255 against 113 to
+    172 for every bright metal. A third finding came from the owner rejecting round one: body
+    plus hilt is genuinely two materials and measures as two materials, and he still called
+    several of them one colour, because a hilt is a tenth to a quarter of the sprite and sits at
+    one END while the blade is about seventy percent of what the eye gets. The metal now also
+    runs the blade's lit ridge, found on the bright share of the same art. Generalised: a second
+    material has to cross the object's LARGEST shape, not merely exist somewhere on it.)
+  - Verify: recolor_icons selftest green, including new pins that no two sword tints sit close
+    in hue, saturation and weight at once, that the two swords sharing one sprite are held to a
+    harder floor, that every sword carries at least one zone, and that no zone's tone collapses
+    into its own body colour. Coverage measured at 100 percent of solid art on all fifteen, and
+    the weakest second material at 14.2 percent of the sprite, median 40 percent, with a p90
+    colour distance of 125 of 255 at worst. The Warbrand also went from warm iron to cold black
+    steel in a fourth round, because a warm near-black blade under a warm brass ridge is brown
+    with a tan stripe down it, which the owner named on sight as a hotdog. A fifth round then
+    made the Graviton and the Warbrand EXOTIC at his word, and they are the pass's most
+    transferable idea: their second colour is a LIGHT rather than a metal, cold plasma bleeding
+    off the void blade and forge heat still running inside the meteoric one. Two engine facts
+    came out of it. A cover mask can be too NARROW to survive its own despeckle pass (on the
+    Warbrand's wide flat sprite it claims 1 percent of the art at pct 10 and 12 percent at 22),
+    and a glowing tone must be tuned by SATURATION rather than brightness, because ramp_color
+    desaturates highlights 30 percent at full value, so the ember renders (238,156,113) at
+    saturation 0.53 when pushed bright and (206,103,53) at 0.74 when pulled back. Three owner rounds are folded in: round one put the
+    colour on the blade, round two put the metal along the blade's ridge after he said several
+    still looked like one colour, and round three deepened every blade after he asked which of
+    them made me go "woah" and the honest answer was three. That last round is the useful one to
+    remember: most blades were as BRIGHT as their own metal, so the metal had nothing to stand
+    against, and the two that already worked were the two with deep blades under hot metal. `icon_preview.py compare` reports 0 moved pixels for bright-v2 (200 surfaces),
+    shield-bright (32), helm-two-tone (26), legacy (144) and for the 36 hat and crossbow
+    surfaces inside three-zone, so the only art that moved is the 30 sword surfaces. A four
+    lens adversarial audit (code, pin non-vacuity, palette by eye, claim reproduction) then
+    reproduced every number independently and returned ten surviving findings, all fixed here:
+    the module's own engine map still routed swords to the old engine, two metal constants were
+    dead on arrival, five tint rows named a material the recipe no longer paints, and both pins
+    guarding the no-single-colour rule were cheatable. Those two are now backed by a render
+    check with a floor AND a ceiling, and six mutations (equal tints, a zone painting nothing, a
+    zone that is a pure shadow of its body, a missing recipe, the shared-sprite pair converging,
+    and a mask despeckled until it swallows the sprite) each turn the gate red. Owner gallery
+    published for sign-off; nothing bakes into the mod tree until he passes it.
+
 ## Backlog
 
 - [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
@@ -112,10 +175,10 @@ the technical detail lives in the indented lines under it.
   the console silence is itself a bug worth fixing first since it costs support time today.
 
 - [LW-201] 2026-08-13: Bows re-pass: the 9 bow icons get the shields-grade per item review;
-  process per LW-198. PAUSED by the owner 2026-08-14, along with the whole icon re-pass and
-  freshen-up program (LW-198 through LW-226 and LW-232), after the crossbows, shields and
-  helmets landed. It was promoted to Now that same day and demoted unworked, so nothing is half
-  done and nothing is blocked; promote it again when the program restarts. Two things found on
+  process per LW-198. Paused with the rest of the program on 2026-08-14 and live again the same
+  day when the owner restarted it (see LW-198); swords went first, so this is still queued. It
+  was promoted to Now once before and demoted unworked, so nothing is half
+  done and nothing is blocked; promote it again when swords land. Two things found on
   the way in are worth keeping, because they change where this starts: bows are the WORST case
   of the LW-232 glow finding, thin line art where the Skypiercer and the Windrunner keep under 7
   percent of their identity colour once the haze is left alone, which is the measured way of
@@ -145,10 +208,11 @@ the technical detail lives in the indented lines under it.
   mechanism.)
 
 - [LW-198] 2026-08-13: Daggers re-pass: the 11 dagger icons get the shields-grade per item
-  review. PROGRAM PAUSED by the owner 2026-08-14: every icon re-pass and freshen-up row
-  (LW-198 through LW-226, plus the LW-232 weapon-card brief) is parked after the crossbows,
-  shields and helmets landed, so no icon work starts until he restarts it. Nothing is half
-  finished; the engine, the assembly line and the gates are all in a shipped state. This row
+  review. PROGRAM PAUSED by the owner 2026-08-14 after the crossbows, shields and helmets
+  landed, then RESTARTED by him the same day with a wider scope than it had: no further bug work
+  until the weapon, armor and accessory art is reworked, so LW-198 through LW-226 and the
+  LW-232 weapon-card brief are all live again. He chose weapons first and swords first within
+  weapons (LW-199, promoted to Now). This row
   also carries the LW-198 through LW-226 program statement the other section rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
   the owner called the first-pass recolors hasty ("sloppy"), so every equipment section gets
   the treatment that made the shields land: per item owner review rounds judged as pictures,
@@ -158,17 +222,6 @@ the technical detail lives in the indented lines under it.
   process") plus the engine modes in tools/recolor_icons.py. Helmets run first (LW-215
   promoted 2026-08-13, the owner delegated the order call): headgear still wears the legacy
   one-hue stamp, and a helmet is the same art shape the shield engine was built for.
-
-- [LW-199] 2026-08-13: Swords re-pass: the 15 sword icons get the shields-grade per item review;
-  see LW-198 for the program's process and reasoning. Start here, found 2026-08-14: EIGHT of the
-  fifteen tints are keyed to item names that no longer exist, and two of those are now wrong
-  about the item rather than merely out of date. Lightbringer (id 31) is the line's ONLY Holy
-  sword and wears the toad green picked for a Toad sword that was renamed away; compare the
-  Perseus Bow, also Holy, correctly gold. Graviton (id 29) wears an ice cyan picked for an Ice
-  sword and carries no element at all, casting Gravity instead. The other six (ids 10, 22, 23,
-  27, 28, 32) kept reasoning that still fits their new names. Nothing was recoloured on the
-  finding, because tints do not move without an owner gallery and swords have not had their
-  pass; the comments are corrected and a selftest check now fails on any future drift.
 
 - [LW-200] 2026-08-13: Knight Swords re-pass: the 7 knight sword icons get the shields-grade per item review; process per LW-198.
 
@@ -212,7 +265,13 @@ the technical detail lives in the indented lines under it.
   decision waiting to be made. The fix is already proven in this
   repo: it is exactly what LW-202 found on the crossbows ("bright-v2 splits a picture into two
   clusters and a crossbow is line art with no second cluster in it"), and the answer there was
-  to route the family to the zone engine and pick its materials by saturation. The queued per
+  to route the family to the zone engine and pick its materials by saturation. Swords are the
+  first family through this brief (LW-199, 2026-08-14) and they add the piece the crossbows
+  could not show: which mask finds a family's second material is a property of the ART, not of
+  the engine, and it flips between families. Saturation found the crossbow's stock; on a sword
+  the same key lands on the blade and it is DARKNESS that finds the hilt, on 15 of 15 sprites.
+  Measure all three keys on the real art before choosing, and prefer a bright second tone,
+  since a dark one on a darkness-keyed mask is invisible by construction. The queued per
   family re-passes (LW-198 daggers, LW-199 swords, LW-201 bows, LW-206 poles, LW-207 polearms,
   LW-209 staves and the rest) are where that judgement belongs, one family and one owner gallery
   at a time. Two alternatives were offered and declined: restricting the card engine's
