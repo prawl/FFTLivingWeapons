@@ -10,6 +10,92 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-206] SHIPPED aa75813 2026-08-14: The nine poles were three-at-zero, and one of them was
+  the same picture as another item. The Slumber Rod, the Sage's Pole and the Ivory Pole reached
+  0.0 percent of their own art, the Hushfan 1.7, and the Terrastaff drew itself with the
+  Greenwood Pole's sprite at the same 4.7 percent, so those two were very nearly one object under
+  two names. All nine now carry their colour across the shaft with the metal ferrules as a second
+  material, and the twins are earth under cold metal against living green under bone. Owner
+  passed the gallery and unlocked the row 2026-08-14; committed but NOT yet deployed, so the
+  in-game look is still owed. (Tech: fifth art shape, fifth time no new engine was needed, and it
+  returns to the CROSSBOW split rather than the rods'. Saturation finds the end caps on all nine
+  at 13.4 to 27.1 percent while darkness returns 0.0 percent on four of them, because a pole has
+  no dark furniture at all. A rod and a pole are both a stick and they take different helpers,
+  which is the clearest case in the programme for asking the art rather than the category. Three
+  gate catches, all correct: brass caps refused on an earth-brown shaft as one colour with a
+  highlight on it; the Eight-Fluted Pole's dead bright-v2 override caught by the pin added that
+  same morning rather than by a later audit; and the shared-sprite pin failing for being RIGHT,
+  since it asserted a hardcoded three pairs and poles brought the fourth, so that count became a
+  non-vacuity check instead.)
+
+- [LW-208] SHIPPED 1eaa135 2026-08-14: The eight rods were the worst family left, with the Ember
+  Rod and the Rod of Faith at literally zero percent of their own art and four more under six.
+  All eight now carry their colour with the shaft as a second material and the orb as a third.
+  Owner passed the gallery and unlocked the row 2026-08-14; committed but NOT yet deployed, so
+  the in-game look is still owed. (Tech: fourth art shape, fourth time no new engine, and the
+  cleanest map of the six. A rod is a shaft, an orb and a ferrule; darkness finds the shaft on 6
+  of 6 and brightness finds the orb, so these are the sword recipes with the meanings swapped,
+  and the orb takes a LIGHT rather than a metal because that is where the magic is. This pass
+  also CORRECTED how a reserved name is anchored, which is its transferable half: anchors had
+  been measured on the card alone, and the card understates chroma by a mean 2.4x against the
+  same item's list icon, which is how the Perseus Bow was called colourless when its icon reads a
+  clear blue. Both surfaces are measured now, and the icon is what told the Dragon Rod to be
+  jade. The lightning-versus-holy collision recurred a third time and took the same answer as the
+  Stormbrand and the Stormarc. The Umbral Rod's violet orb on a violet rod was refused by the
+  no-single-colour gate, which is that gate catching a design mistake rather than a typo.)
+
+- [LW-201] SHIPPED 438b6bb 2026-08-14: Five of the nine bows had never been recoloured at all,
+  two of them at literally zero percent: they shipped as the artist's untouched sprite under a
+  coloured haze. All nine now carry their colour with the STRING as a separate material.
+  Deployed and gallery-passed; owner unlocked the row 2026-08-14. (Tech: a bow has no hilt, so
+  the sword key that finds furniture on 15 of 15 blades claims under 12 percent here and lands on
+  scattered limb tips. A bow is the crossbow's relative: the string is the bright desaturated
+  line, the saturation key finds it at 10 to 24 percent, and it is also the right SHAPE by the
+  sword pass's lesson, crossing the sprite's longest dimension instead of sitting at one end. The
+  despeckle floor dropped across the family because these sprites are tiny, the Tidecaller's card
+  being 113 solid pixels against a sword's 400 to 1100. Three gate refusals: a silver bow strung
+  with steel is one colour, a levin bow strung with levin is one colour, and two pins naming a BOW
+  as their unreviewed-weapon sample had to re-point at a knife. One honest oddity recorded rather
+  than hidden: the Frostarc's string is drawn so faintly that no window finds it, so its mask
+  lands on limb patches, which on an ice bow read as rime. Right answer, wrong reason.)
+
+- [LW-200] SHIPPED f86efdc 2026-08-14: Two pairs of knight swords were shipping as literally the
+  same image. The Ravager draws itself with the Defender's sprite and the Sunderer with Save the
+  Queen's, and the old bake reached 1.0 percent of the Ravager and 3.2 of the Chaos Blade, so in
+  the equip list the Ravager simply WAS the Defender. Save the Queen was also shipping as a
+  bright green blade, which is neither her art nor her name. All seven now carry their colour
+  with a second material on hilt and ridge. Deployed and gallery-passed; owner unlocked the row
+  2026-08-14. (Tech: five of the seven kept their vanilla names, so most of this family runs on
+  the reserved-name rule against each item's own MEASURED chroma-weighted hue: Excalibur 0.085
+  and already gold, Ragnarok 0.587 cold and pale against a Dark element, Chaos Blade chroma 0.041
+  and effectively colourless so its anchor constrains value and not hue. Two items went to owner
+  pickers. The Ragnarok took the variant siding with its ART over its element. The Chaos Blade
+  took blood and bone after nine candidates across three rounds, settled by a FAMILY argument
+  rather than an item one: all six siblings are bright saturated blades, so the dark slot was
+  empty and its colourless art was asking for it. Both pickers also exposed a real gap in the
+  no-single-colour gate, since a neutral dark furniture on a near-neutral body differs in value
+  alone, which the gate correctly calls a shadow; the fix each time was the art and not the gate.)
+
+- [LW-199] SHIPPED c987d17 2026-08-14: Every sword in the game was shipping as the artist's grey
+  sword with a coloured stripe down one edge. The colour was landing on the soft haze drawn
+  around the blade rather than on the blade itself: a median 34 percent of each sword's solid art
+  and as little as 14. Two were also wrong about the item, the Lightbringer wearing a toad green
+  picked for a renamed Toad sword while being the line's ONLY Holy sword, and the Graviton
+  wearing an ice cyan while carrying no element at all. All fifteen now carry their colour across
+  the blade with a second material on hilt and ridge. Deployed and gallery-passed over five owner
+  rounds; owner unlocked the row 2026-08-14. (Tech: the family routes to the three-zone engine as
+  the crossbows did, and this pass established the vocabulary the five families after it reused.
+  Which mask finds a family's second material is a property of the ART and it flips between
+  families: saturation found the crossbow's stock, but on a sword that key lands on the blade and
+  it is DARKNESS that finds guard, grip and pommel on 15 of 15. Three findings are recorded where
+  they bite. A second material must cross the object's LARGEST shape rather than merely exist on
+  it, which is why body-plus-hilt measured as two materials and still looked like one colour
+  until the metal ran the blade's ridge. A dark tone on a darkness-keyed zone is invisible by
+  construction, 44 to 73 of 255 against 113 to 172 for every bright metal. And a glow is tuned by
+  SATURATION rather than brightness, since the shading ramp desaturates highlights 30 percent at
+  full value. The owner's no-single-colour rule was also hardened from a config check into a
+  render check with a floor and a ceiling, after an audit proved both earlier versions cheatable.)
+
 - [LW-203] SHIPPED 3a8d828 2026-08-14: The six guns were the least-coloured family in the game
   and now read as coloured objects. Picked next on evidence rather than queue order: every
   weapon family still on the old engine was measured for how much of its solid art the shipping

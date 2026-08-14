@@ -13,183 +13,20 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-199] Every sword in the game ships as a grey sword with a coloured stripe down one edge, because the colour was landing on the glow instead of on the blade** (opened 2026-08-13) [AWAITING-LIVE]
-  - The owner restarted the paused icon program on 2026-08-14, chose this family to go first,
-    and this row was promoted to Now the same day. Three standing rules came with it: make them pop and use several colours per item,
-    make no two swords look similar in colour, and treat any item that KEPT its vanilla name as
-    anchored to its vanilla look and only enhanced, because players know those items by sight
-    (the rule the Genji Helm was done under). Among the fifteen swords only the Materia Blade
-    kept its name.
-  - Measured before touching anything: the shipping bake reaches a median 34 percent of each
-    sword's solid art and as little as 14 percent, which is the LW-232 defect at its worst in
-    any family. Eleven of the fifteen tints also sat under saturation 0.6 on near-white blade
-    art, so even the part that was painted came back grey.
-  - Done means: all fifteen swords (ids 19 to 32 plus id 67, which draws itself with id 19's
-    sprite) carry their identity colour across their whole solid sprite, each one also carries a
-    visibly separate second material, no two of them read as the same object at list size, the
-    two tints that were provably wrong about their item are corrected (Lightbringer to Holy
-    gold, Graviton off an Ice colour it has no claim to), the Materia Blade is anchored to its
-    vanilla white and gold rather than recoloured, and no already-approved family moves by a
-    single pixel. (Tech: the family routes to the three-zone engine via ZONE_OVERRIDES the same
-    way the crossbows did in LW-202. The second material is a shade-keyed zone, which lands on
-    guard, grip and pommel on 15 of 15 sprites because the artist drew every hilt darker than
-    its blade; the desat key LW-202 used lands on the BLADE here, and the cover key is what
-    bright-v2 was already mispainting. A second finding from this pass: on a shade-keyed zone
-    the second material must be BRIGHT, since the body already renders those pixels dark, and a
-    dark-on-dark pairing measured a p90 colour distance of 44 to 73 out of 255 against 113 to
-    172 for every bright metal. A third finding came from the owner rejecting round one: body
-    plus hilt is genuinely two materials and measures as two materials, and he still called
-    several of them one colour, because a hilt is a tenth to a quarter of the sprite and sits at
-    one END while the blade is about seventy percent of what the eye gets. The metal now also
-    runs the blade's lit ridge, found on the bright share of the same art. Generalised: a second
-    material has to cross the object's LARGEST shape, not merely exist somewhere on it.)
-  - Verify: recolor_icons selftest green, including new pins that no two sword tints sit close
-    in hue, saturation and weight at once, that the two swords sharing one sprite are held to a
-    harder floor, that every sword carries at least one zone, and that no zone's tone collapses
-    into its own body colour. Coverage measured at 100 percent of solid art on all fifteen, and
-    the weakest second material at 14.2 percent of the sprite, median 40 percent, with a p90
-    colour distance of 125 of 255 at worst. The Warbrand also went from warm iron to cold black
-    steel in a fourth round, because a warm near-black blade under a warm brass ridge is brown
-    with a tan stripe down it, which the owner named on sight as a hotdog. A fifth round then
-    made the Graviton and the Warbrand EXOTIC at his word, and they are the pass's most
-    transferable idea: their second colour is a LIGHT rather than a metal, cold plasma bleeding
-    off the void blade and forge heat still running inside the meteoric one. Two engine facts
-    came out of it. A cover mask can be too NARROW to survive its own despeckle pass (on the
-    Warbrand's wide flat sprite it claims 1 percent of the art at pct 10 and 12 percent at 22),
-    and a glowing tone must be tuned by SATURATION rather than brightness, because ramp_color
-    desaturates highlights 30 percent at full value, so the ember renders (238,156,113) at
-    saturation 0.53 when pushed bright and (206,103,53) at 0.74 when pulled back. Three owner rounds are folded in: round one put the
-    colour on the blade, round two put the metal along the blade's ridge after he said several
-    still looked like one colour, and round three deepened every blade after he asked which of
-    them made me go "woah" and the honest answer was three. That last round is the useful one to
-    remember: most blades were as BRIGHT as their own metal, so the metal had nothing to stand
-    against, and the two that already worked were the two with deep blades under hot metal. `icon_preview.py compare` reports 0 moved pixels for bright-v2 (200 surfaces),
-    shield-bright (32), helm-two-tone (26), legacy (144) and for the 36 hat and crossbow
-    surfaces inside three-zone, so the only art that moved is the 30 sword surfaces. A four
-    lens adversarial audit (code, pin non-vacuity, palette by eye, claim reproduction) then
-    reproduced every number independently and returned ten surviving findings, all fixed here:
-    the module's own engine map still routed swords to the old engine, two metal constants were
-    dead on arrival, five tint rows named a material the recipe no longer paints, and both pins
-    guarding the no-single-colour rule were cheatable. Those two are now backed by a render
-    check with a floor AND a ceiling, and six mutations (equal tints, a zone painting nothing, a
-    zone that is a pure shadow of its body, a missing recipe, the shared-sprite pair converging,
-    and a mask despeckled until it swallows the sprite) each turn the gate red. Owner gallery
-    published for sign-off; nothing bakes into the mod tree until he passes it.
-
-- **[LW-200] Two pairs of knight swords are the same picture in two names, because the recolour never reached the blade** (opened 2026-08-13) [BUILDING]
-  - Promoted 2026-08-14, the owner's pick for the family after the swords landed. Knight swords
-    are the swords' direct siblings in art, so the engine and the vocabulary from LW-199 carry
-    over unchanged: measured on all five distinct sprites, darkness finds guard, grip and pommel
-    and the bright ridge runs the length of the fuller, exactly as it does on a sword.
-  - The reason this family goes next is worse than dullness. TWO of the seven draw themselves
-    with ANOTHER item's sprite (the Ravager on the Defender's, the Sunderer on Save the Queen's),
-    and the shipping bake reaches 1.0 percent of the Ravager's solid art and 3.2 percent of the
-    Chaos Blade's, so colour is the only thing that could tell those pairs apart and there is
-    effectively none of it. In the equip list today the Ravager IS the Defender.
-  - FIVE of the seven KEPT their vanilla names (Defender, Save the Queen, Excalibur, Ragnarok,
-    Chaos Blade), so this family is mostly the owner's reserved-name rule rather than free
-    design: players know these by sight, so each is anchored to its own vanilla look and only
-    enriched. The anchor is measured rather than remembered, the chroma-weighted mean hue of the
-    item's own solid art, which is the same method the shields used for the four the owner asked
-    to build FROM the original.
-  - Done means: all seven carry their identity colour across their solid art with a second
-    material on hilt and ridge, the two shared-sprite pairs are unmistakable at list size, the
-    five reserved names read as enriched versions of themselves rather than reinventions, and no
-    already-approved art moves. (Tech: route the family into ZONE_OVERRIDES with _hilt and _edge
-    per LW-199. Measured vanilla anchors: Defender hue 0.107, Save the Queen 0.604, Excalibur
-    0.085, Ragnarok 0.587, Chaos Blade 0.012 at chroma 0.041, which is near enough to colourless
-    that its anchor constrains value and not hue. Chaos Blade also needs a wider ridge than the
-    default: its cover mask claims 3.9 percent at pct 22, the same fragmentation the Warbrand hit
-    on a wide flat blade.)
-  - Settled 2026-08-14 after two owner rejections and two pickers. The Ragnarok took variant B,
-    the answer that sides with its ART over its element: the artist's pale icy blade kept, with
-    the darkness arriving as a violet flame down the fuller. The Chaos Blade took blood and bone
-    after nine candidates across three rounds, and the argument that settled it was about the
-    FAMILY rather than the item: every one of its six siblings is a bright saturated blade, so
-    the dark slot on the shelf was empty and its colourless vanilla art was asking for it anyway.
-    Of nine candidates it was the only one still unmistakably dark at 48px untuned.
-  - Two of those rounds also exposed the same real gap in the no-single-colour gate, which is
-    the transferable part. A NEUTRAL dark furniture on a NEAR-NEUTRAL body differs from it in
-    value alone, which the gate correctly calls a shadow rather than a material, and both the
-    Ragnarok and one Chaos Blade candidate hit it. The fix each time was the art, not the gate:
-    tint the furniture toward the item's own accent (NIGHT_IRON) or deepen the body until the
-    two are genuinely different substances.
-  - Verify: recolor_icons selftest green with the palette pins extended to this family, including
-    the shared-sprite floor applied to BOTH pairs; every item's second material measured on the
-    real art (worst 26.6 percent, on the Chaos Blade); `icon_preview.py compare` showing 0 moved
-    pixels for every already-approved family; the bake matching the reviewed gallery pixel for
-    pixel; and the owner's gallery pass.
-
-- **[LW-201] Five of the nine bows are not recoloured at all, they just ship as the artist's vanilla art** (opened 2026-08-14) [BUILDING]
-  - Promoted 2026-08-14 as the next family after the knight swords landed. This is the worst
-    remaining case of the LW-232 glow defect by a distance: measured, today's bake reaches 0.0
-    percent of the Skypiercer and the Perseus Bow, 0.2 percent of the Windrunner, 2.3 percent of
-    the Stormarc and 4.0 percent of the Huntress. Five of nine are the vanilla sprite wearing a
-    coloured haze and nothing else.
-  - The engine question is genuinely new, which is the other reason to do bows now. A bow is not
-    a blade: it is a curved limb, a STRING, and a few small fittings, and its solid art is tiny
-    (the Tidecaller card is 113 solid pixels against a sword's 400 to 1100). Darkness, which
-    finds a hilt on 15 of 15 swords, claims 0.7 to 12.4 percent here and lands on scattered limb
-    tips. What a bow actually has is the crossbow's own split: the STRING is the bright
-    desaturated line, and the desat key finds it on 10 to 24 percent of the art. That is also
-    the shape the sword pass proved matters, since the string crosses the sprite's longest
-    dimension rather than sitting at one end.
-  - Done means: all nine carry their identity colour across their solid art with the string as a
-    visibly separate material, no two read alike at list size, the two reserved names (Yoichi Bow
-    and Perseus Bow) are enriched rather than reinvented, and no already-approved art moves.
-    (Tech: route the family into ZONE_OVERRIDES reusing _material, the LW-202 crossbow helper,
-    rather than the swords' _hilt. Per-item sat_p tuning is expected: on the Skirmisher and the
-    Stormarc the desat key finds limb highlights instead of the string. Spatial knobs need
-    watching at this scale, since min_blob and feather are authored against a 100px card and
-    these sprites carry a fraction of a sword's solid pixels.)
-  - Verify: recolor_icons selftest green with the palette pins extended to this family; every
-    bow's second material measured on the real art; `icon_preview.py compare` showing 0 moved
-    pixels for every already-approved family; the bake matching the reviewed gallery pixel for
-    pixel; and the owner's gallery pass.
-
-
-- **[LW-208] Two rods are not recoloured at all and four more are under six percent, making rods the worst family left** (opened 2026-08-13) [BUILDING]
-  - Promoted 2026-08-14 on the same evidence that picked guns: measured across every family still
-    on the old engine, rods come last at a TRUE median of 1.8 percent, with the Ember Rod and the
-    Rod of Faith at 0.0 and four more under six.
-  - A rod is the fourth art shape and, like the three before it, needs no new engine. It is a
-    SHAFT, an ORB, and a ferrule, and the two keys already in the vocabulary land on exactly
-    those: darkness finds the shaft on 6 of 6 sprites and brightness finds the orb. So a rod is
-    the swords' body-plus-hilt-plus-edge shape with the meanings swapped, the shaft taking the
-    role the hilt plays and the orb the role of the lit ridge.
-  - Two of the eight kept their vanilla names (Dragon Rod, Rod of Faith) and are anchored to
-    their own measured art. This family is also where the anchor method gets corrected: an audit
-    found the CARD understates chroma by a mean 2.4x against the same item's list icon, which is
-    how the Perseus Bow was anchored as colourless when its icon reads a clear blue. Both
-    surfaces are measured here, and the icon is believed over the card.
-  - Done means: all eight carry their identity colour across their solid art with the shaft as a
-    visibly separate material, no two read alike at list size, the two reserved names are
-    enriched rather than reinvented against BOTH surfaces, and no already-approved art moves.
-  - Verify: recolor_icons selftest green with this family inside every owner-rule pin; each rod's
-    second material measured on the real art; `icon_preview.py compare --expect` naming exactly
-    these ids and reporting nothing else moved; the bake matching the reviewed gallery pixel for
+- **[LW-211] The three instrument icons are the least-coloured family left, at three percent of their own art** (opened 2026-08-13) [QUEUED]
+  - Next by the same evidence that picked guns, rods and poles. With those done, instruments
+    measure a TRUE median of 3.4 percent of their solid art, the worst of everything still on the
+    old engine, and all three sit under 15 percent. Polearms (10.4) and staves (14.2) follow.
+    NOT STARTED: this row is the successor promoted so that Now does not go empty when the six
+    finished families exit.
+  - Done means: all three carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, any reserved name is anchored
+    against BOTH the card and the list icon, and no already-approved art moves.
+  - Verify: recolor_icons selftest green with the family inside every owner-rule pin; each
+    instrument's second material measured on the real art; icon_preview.py compare --expect
+    naming exactly these ids and exiting clean; the bake matching the reviewed gallery pixel for
     pixel against a FULL preview manifest; and the owner's gallery pass.
 
-- **[LW-206] Three poles are not recoloured at all, and two more items share one picture with nothing to tell them apart** (opened 2026-08-13) [BUILDING]
-  - Promoted 2026-08-14, next on the same evidence that picked guns and rods: poles measure a
-    median 4.7 percent of their solid art, with the Slumber Rod, the Sage's Pole and the Ivory
-    Pole all at 0.0 and the Hushfan at 1.7.
-  - The family also carries a THIRD shared-sprite pair, after the swords' Vagabond/Warbrand and
-    the knight swords' two: the Terrastaff draws itself with the Greenwood Pole's art, and today
-    both reach the same 4.7 percent, so they are very nearly the same object in two names.
-  - A pole is the fifth art shape and the fifth to need no new engine: a long SHAFT with metal
-    ferrules at each end, which is the crossbow's wood-against-metal split again. Measured, the
-    saturation key claims 13.4 to 27.1 percent and lands on the caps every time, while darkness
-    returns 0.0 percent on four of the nine because a pole has no dark furniture at all.
-  - Done means: all nine carry their identity colour across the shaft with the ferrules as a
-    visibly separate material, the shared-sprite pair is unmistakable, the two reserved names
-    (Ivory Pole, Whale Whisker) are anchored against BOTH surfaces, and no already-approved art
-    moves. (Tech: CARD_OVERRIDES row 113 goes dead when this family leaves bright-v2 and must be
-    deleted in the same commit; the pin added on 2026-08-14 refuses that class of stale config.)
-  - Verify: recolor_icons selftest green with this family inside every owner-rule pin; each
-    pole's second material measured on the real art; `icon_preview.py compare --expect` naming
-    exactly these ids; the bake matching the reviewed gallery pixel for pixel against a FULL
-    preview manifest; and the owner's gallery pass.
 
 ## Backlog
 
@@ -307,8 +144,6 @@ the technical detail lives in the indented lines under it.
 - [LW-209] 2026-08-13: Staves re-pass: the 8 staff icons get the shields-grade per item review; process per LW-198.
 
 - [LW-210] 2026-08-13: Books re-pass: the 4 book icons get the shields-grade per item review (no-blade art, largest-cluster rule today); process per LW-198.
-
-- [LW-211] 2026-08-13: Instruments re-pass: the 3 instrument icons get the shields-grade per item review (no-blade art); process per LW-198.
 
 - [LW-212] 2026-08-13: Bags re-pass: the 4 bag icons get the shields-grade per item review (no-blade art); process per LW-198.
 
