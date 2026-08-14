@@ -52,32 +52,21 @@ the technical detail lives in the indented lines under it.
     the Black Chocobo falsifying case, ledger row still Uncertain; MainJob is sheet-key
     space).
 
-- **[LW-201] The nine bow icons get the crossbow treatment, and it is the family that needs it most** (opened 2026-08-14) [QUEUED]
-  - Done means: each of the nine bows reads as its own weapon in the list and on the card,
-    coloured on the bow itself rather than on the glow around it. Bows are the worst case of
-    the LW-232 finding: they are thin line art, so the current card engine looks at the picture,
-    decides the semi-transparent haze is the brightest thing in it, paints that, and leaves the
-    wood untouched. The Skypiercer and the Windrunner keep under 7 percent of their identity
-    colour once the haze is left alone, which is the measured way of saying they were never
-    recoloured at all. Each bow gets its engine chosen from its art the way LW-202 chose the
-    crossbows', which for line art means the saturation key that separates the two real
-    materials, wood against string and metal, instead of a brightness split that finds nothing.
-    Reserved-name bows (the Yoichi and Perseus Bows) stay anchored to their vanilla look and are
-    enhanced rather than reinvented, per the LW-198 program rule.
-  - Two corrections ride in before any colour is chosen, both found 2026-08-14 while the
-    crossbows were being signed off. Three of the nine tints are keyed to item names that no
-    longer exist (id 88 Tidecaller was tinted for "Silentstring (Silence)" and actually carries
-    Water, id 90 Yoichi Bow for "Tempest", id 91 Perseus Bow for "Seraph"), so the design
-    reasoning has to be rebuilt from what the items now DO, not from what the table says they
-    are. The comments are corrected already and a selftest check now fails on any future drift.
-  - Verify: recolor selftest green, every untouched family proven byte identical against the
-    committed engine (the pattern the weapons, shields, helmets, hats and crossbows all closed
-    on), the bake matches the approved previews pixel for pixel, and no bow trips the new
-    solid-tint floor the bake warns on, which is the mechanical form of "the colour is on the
-    bow and not on its glow". Then the owner signs the gallery off and confirms the in-game
-    look after a deploy. Owner only, as every live flip is.
-
 ## Backlog
+
+- [LW-201] 2026-08-13: Bows re-pass: the 9 bow icons get the shields-grade per item review;
+  process per LW-198. PAUSED by the owner 2026-08-14, along with the whole icon re-pass and
+  freshen-up program (LW-198 through LW-226 and LW-232), after the crossbows, shields and
+  helmets landed. It was promoted to Now that same day and demoted unworked, so nothing is half
+  done and nothing is blocked; promote it again when the program restarts. Two things found on
+  the way in are worth keeping, because they change where this starts: bows are the WORST case
+  of the LW-232 glow finding, thin line art where the Skypiercer and the Windrunner keep under 7
+  percent of their identity colour once the haze is left alone, which is the measured way of
+  saying they were never really recoloured; and three of the nine tints were keyed to item names
+  that no longer exist (id 88 Tidecaller was tinted for "Silentstring (Silence)" and actually
+  carries Water, id 90 Yoichi Bow for "Tempest", id 91 Perseus Bow for "Seraph"). The comments
+  are corrected already and a selftest check now fails on any future drift, so the pass restarts
+  from what the items actually do.
 
 - [LW-228] 2026-08-13: Harp signature ideas from the owner, banked for when the instruments
   arc opens. One harp grants Ramza's Tailwind so the wielder can hand a unit extra Speed. The
@@ -99,8 +88,11 @@ the technical detail lives in the indented lines under it.
   mechanism.)
 
 - [LW-198] 2026-08-13: Daggers re-pass: the 11 dagger icons get the shields-grade per item
-  review. This row also carries the LW-198 through LW-226 program statement the other section
-  rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
+  review. PROGRAM PAUSED by the owner 2026-08-14: every icon re-pass and freshen-up row
+  (LW-198 through LW-226, plus the LW-232 weapon-card brief) is parked after the crossbows,
+  shields and helmets landed, so no icon work starts until he restarts it. Nothing is half
+  finished; the engine, the assembly line and the gates are all in a shipped state. This row
+  also carries the LW-198 through LW-226 program statement the other section rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
   the owner called the first-pass recolors hasty ("sloppy"), so every equipment section gets
   the treatment that made the shields land: per item owner review rounds judged as pictures,
   rule fixes over pixel fixes, variant picker pages when a call is contested, engines chosen
