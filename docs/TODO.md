@@ -54,26 +54,33 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
-- [LW-233] 2026-08-14: Rewinding a turn lets the same enemy be killed twice, and the second
-  kill counts, so a player can inflate a weapon's tally without meaning to and the growth they
-  get is not the growth they earned. Found in a real user's flight tape, not in testing. The
-  game's in-battle rewind puts dead units back on the field; the mod never sees it happen, so
-  its per-slot "already credited" latch re-arms when the slot comes back alive and the re-kill
-  pays out again. On the tape one enemy (band slot 15, nameId 860, job 94) was credited at count
-  23, restored to full HP by a rewind, killed again, and credited at count 25, and count 25 is
-  the credit that fired this player's "Vagabond has grown to Vagabond+2" toast. A second rewind
-  later revived another already-credited enemy that was never re-killed. The tally is saved at
-  battle exit, so the inflation is permanent. Farming it is trivial and the player need not even
-  intend to. (Tech: evidence in Downloads/flight_20260812_023337_battle-exit.jsonl. The rewind
-  is one tick, t=12446343: battleMode 0 to 3, ActorPtr transitions to 0x0, and SIX band slots
-  simultaneously change tile and are healed, three of them from 0 HP to full. Two clean
-  detectors, both measured on this corpus: ActorPtr reading null while In fires exactly twice,
-  once per rewind, with zero false positives across 538 seconds and 163 pointer transitions; and
-  "healed from 0 HP AND moved on the same tick" separates rewinds (5 units, then 1) from all
-  eight ordinary heal ticks (0 and 0). The pair matters because a real Raise heals from 0 but
-  never relocates its target. Fix shape: freeze credit while the rewind signal is up, then
-  reconcile the tally against the pre-rewind snapshot. Ledger row owed for the ActorPtr-null
-  signal before anything is built on it.)
+- [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
+  weapon can grow on kills the player never really earned. Found in a real user's flight tape,
+  not in testing. What the tape shows, with no interpretation: the player's Ramza was chipped
+  down over two minutes (72 to 54 to 42 to 30 to 18 to 6) and fell to 0 at t=12435203; eleven
+  seconds later, in ONE tick, six band slots were restored to FULL hit points and moved to new
+  tiles, three of them from 0. Ramza falling is a defeat in this game, and full HP at fresh
+  positions is what the start of a battle looks like, so the reading is that the player took the
+  loss and restarted the fight. The mod never noticed. It kept the same battle session and the
+  same tally, and its per-slot "already credited" latch re-armed as each corpse came back alive,
+  which is correct behaviour for a Raise and wrong for a restart. So the second run through the
+  same fight paid out for the same enemies again: band slot 15 (nameId 860) was credited at
+  count 23, restored, killed again, and credited at count 25, and count 25 is the credit that
+  fired this player's "Vagabond has grown to Vagabond+2" toast. A later restore revived another
+  already-credited enemy that was never re-killed. The tally saves at battle exit, so the
+  inflation is permanent, and a player who retries a hard fight a few times inflates it without
+  ever meaning to. (Tech: evidence in Downloads/flight_20260812_023337_battle-exit.jsonl. The
+  double credit is straight from the kill records and does not depend on the cause being a
+  retry. What IS inference is the cause: the exact UI path the player took was not observed, and
+  the mod saw no battle-exit edge across the whole event, which is itself the thing to explain,
+  since a real restart ought to look like a battle ending. Two candidate detectors, both
+  measured on this corpus: the ActorPtr transitions to 0x0 exactly twice, once per restore, with
+  zero false positives across 538 seconds and 163 pointer transitions; and "healed from 0 HP AND
+  moved on the same tick" separates the two restores (5 units, then 1) from all eight ordinary
+  heal ticks (0 and 0). The pair matters because a real Raise heals from 0 but never relocates
+  its target. First question when picked up, before any fix: watch a deliberate battle retry
+  live with the recorder running and settle whether the mod should be seeing a battle-exit edge
+  it is currently missing, because if so the honest fix is upstream of the credit latch.)
 
 - [LW-234] 2026-08-14: The mod files the player's own guests as enemies, so a guest dying could
   hand the player's weapon a kill it did not earn, complete with a growth toast. Found in the
