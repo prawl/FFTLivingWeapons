@@ -45,11 +45,12 @@ the technical detail lives in the indented lines under it.
     _halo_int in each lane's OWN quantizer; the weapon and shield lanes truncate and the helm
     and hat lanes round, and unifying them moves 24,476 of 107,237 solid weapon pixels and
     31,396 of 48,389 solid shield pixels by one LSB.)
-  - Shipped and baked this commit: the 16 shields and the 13 helmets, verified 58 of 58
-    pixel-exact between the approved previews and the production bake. Still held: the 115
-    weapons, because the halo fix exposed a separate and older defect in their card engine that
-    only the owner can scope (LW-232). The engine change itself is complete and every weapon
-    would take it correctly the moment that call is made.
+  - Shipped and baked: the 16 shields and the 13 helmets, verified 58 of 58 pixel-exact between
+    the approved previews and the production bake, and moving 0 solid pixels against the pre-fix
+    engine, so the only thing that changed on them is the haze. Still held: the 115 weapons,
+    because the halo fix exposed a separate and older defect in their card engine that only the
+    owner can scope (LW-232). The engine change itself is complete and every weapon would take
+    it correctly the moment that call is made.
   - Verify: the engine's selftest is green and is now a real gate (tools/pipeline.ps1 runs it,
     with Pillow pip-installed in CI for the step), ten mutations of the new code each turn at
     least one named check red, and `icon_preview.py compare` measures the whole change against
@@ -58,29 +59,33 @@ the technical detail lives in the indented lines under it.
     identical. Owner half, owner only: the shields and helmets look right in game after a
     deploy, and the LW-232 call decides the weapons.
 
-- **[LW-231] Recolored icons come out mottled with coloured speckle, and the helmets now get the smooth shading the artist painted** (opened 2026-08-14) [BLOCKED(rides LW-230's owner call)]
+- **[LW-231] Recolored icons come out mottled with coloured speckle, and the fix stays on the hats where the speckle actually is** (opened 2026-08-14) [AWAITING-LIVE]
   - Done means: a recolored item reads as a solid object with real shading instead of a blotchy
-    one. This is what the owner kept calling smoke across three rounds of the hat pass, and the
-    earlier fixes missed it because the effect is ON the item, not around it. The engines expand
-    light against dark one pixel at a time, which also multiplies the art's own compression
-    grain, and under a saturated tint that grain reads as coloured mottling across the surface.
-    The fix, proven on the hats, expands the contrast on a softened copy of the brightness (the
-    artist's real domes and folds) and adds the fine grain back at reduced strength, so large
-    features separate exactly as before and noise stops being amplified. It reaches the nine
-    helmets that carry a contrast knob. (Tech: _value_fields plus DETAIL_GAIN 0.30 in
-    helm_recolor, the same arithmetic zone_recolor runs, pinned by a selftest that renders one
-    fixture through both engines with every knob matched and requires them byte identical.)
-  - Scope, measured rather than assumed: the weapon and shield engines are NOT included, because
-    they have no contrast expansion to protect. Their gamma and shoulder measure as a grain
-    damper at about 0.86 times, against the hats' pre-fix 1.36 to 2.14, so the smooth field
-    would delete roughly half the artist's own texture there; on shields it would also move 88.8
-    percent of solid pixels, which is a re-render, not a fix. On the nine helmets it does what it
-    says: grain swing on solid pixels drops 42.3 percent while the picture survives, with the
-    blurred difference at 8 to 11 of 255 and tonal spread losing between 1.9 and 9.2 percent.
-  - Verify: green selftest with the helmet arms mutation-proven (reverting helm_recolor to the
-    per-pixel curve turns the shared-shader pin red), and the four shield-style helmets move 0
-    solid pixels while the nine helm-style ones move deliberately. Owner half, owner only: the
-    thirteen helmets read cleaner in game, not flatter.
+    one. The engines expand light against dark one pixel at a time, which also multiplies the
+    art's own compression grain, and under a saturated tint that grain reads as coloured
+    mottling. The fix expands the contrast on a softened copy of the brightness (the artist's
+    real domes and folds) and adds the fine grain back at reduced strength. It shipped on the
+    twelve hats and the six crossbows, and after this row it stays there.
+  - Scope settled by looking at the pictures, 2026-08-14, and the finding is the useful part of
+    this row. Extending the fix to the thirteen helmets was built, gated, baked and then
+    REVERTED the same day on sight: a blur cannot tell a drawn one pixel line from compression
+    grain, and helmet art is engraved metal whose whole subject is that line work. The scale
+    rows on the Sunsteel crown, the visor slots on the Grand Helm and the black seams through
+    the Timeward's white plate all smeared. Every aggregate measurement passed while it happened
+    (blurred difference 8 to 11 of 255, tonal spread down under 10 percent, grain swing down
+    42.3 percent) precisely because those metrics are blind to one pixel features, which is the
+    lesson worth keeping: for a change that is about fine detail, the picture is the instrument
+    and the summary statistic is not. Helmets were never the speckle complaint either; the hats
+    were. The weapon and shield engines stay out for a separate and simpler reason, measured
+    rather than assumed: they carry no contrast expansion at all, so their gamma and shoulder
+    damp grain at about 0.86 times against the hats' pre-fix 1.36 to 2.14.
+  - Verify: green selftest, including a check that renders a one pixel engraved grid through
+    both contrast engines and requires the per-pixel curve to keep at least 25 percent more line
+    contrast than the smooth field, plus its sibling pinning that the two engines are NOT
+    interchangeable, so a future tidy-up cannot quietly unify them. The thirteen helmets move 0
+    of 34,931 solid pixels against the pre-fix engine, so what shipped for them is the haze fix
+    alone. Owner half, owner only: the hats and crossbows still read clean in game.
+
 
 - **[LW-174] Five story-battle monster jobs are invisible to Living Poach because the map skips their alias rows** (opened 2026-08-12) [AWAITING-LIVE]
   - Built and adversarially checked 2026-08-12, same session it was opened: six new pinned

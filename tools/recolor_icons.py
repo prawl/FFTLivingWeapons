@@ -709,11 +709,18 @@ def helm_recolor(im, tint, opts, surface="card"):
     """Owner-picked two-tone: body tint under contrast expansion and sheen, the recipe's
     second colour blended across the feathered mask weight.
 
-    Carries BOTH late fixes since 2026-08-14 (the owner's scope call to re-bake approved art):
-    the halo ramp and the smooth-field contrast. Every line of the shader below is deliberately
-    the same arithmetic zone_recolor runs, in the same order and through the same quantizer,
-    because this is the only other engine with a per-pixel contrast expansion in it and the
-    selftest pins the two as one shader on a matched fixture. If you change one, change both."""
+    Carries the halo ramp (LW-230) and DELIBERATELY NOT the smooth-field contrast (LW-231),
+    which is the one place the two contrast engines are allowed to disagree.
+
+    The smooth field expands contrast on a blurred copy of the brightness and returns the fine
+    residue at 30%, which on a hat is exactly right: hats are cloth domes, so that residue is
+    compression grain and damping it is the whole fix. Helmet art is not cloth. It is engraved
+    metal whose subject IS one-pixel line work, the scale rows on the Sunsteel crown, the visor
+    slots on the Grand Helm, the black seams through the Timeward's white plate, and a Gaussian
+    cannot tell a drawn line from grain. Tried on the thirteen helmets 2026-08-14 and rejected
+    on sight: the aggregate metrics passed (blurred difference 8 to 11 of 255, tonal spread down
+    under 10%) precisely because they are blind to 1px features, while the pictures lost their
+    engraving. Helmets were also never the speckle complaint; the hats were."""
     o = dict(opts or {})
     px = im.load()
     coords, w = helm_mask(im, o.get("mode", "cover"), o.get("pct", 22),
@@ -725,12 +732,7 @@ def helm_recolor(im, tint, opts, surface="card"):
             solid_v.append(colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[2])
     median = sorted(solid_v)[len(solid_v) // 2] if solid_v else 0.5
     contrast, sheen = o.get("contrast", 0.0), o.get("sheen", 0.0)
-    detail = o.get("detail", DETAIL_GAIN)   # test-only, as in zone_recolor; no recipe carries it
     trim = tuple(o["trim"])
-    # The median stays on the RAW solid brightness, matching zone_recolor: measured against a
-    # median taken from the smooth field the two differ by 0.2 to 4.3 of 255 and the alternative
-    # buys nothing, while drifting from the hat engine costs the shared-shader pin.
-    raw_v, smooth_v = _value_fields(im, max(0.6, 0.9 * im.width / 100.0))
     out = im.copy()
     opx = out.load()
     for c in coords:
@@ -738,10 +740,8 @@ def helm_recolor(im, tint, opts, surface="card"):
         halo = _halo_weight(a)
         if halo <= 0.0:
             continue                        # pure haze: the artist's pixel stands (LW-230)
-        _, s0, _ = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-        base = smooth_v[c]
-        v0 = max(0.0, min(1.0, _helm_scurve(base, median, contrast)
-                          + (raw_v[c] - base) * detail))
+        _, s0, v0raw = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        v0 = _helm_scurve(v0raw, median, contrast)      # per pixel ON PURPOSE, see the docstring
         body = _helm_sheen(helm_body(tint, s0, v0, o.get("gleam", 1.0)), sheen)
         t = _helm_tone(trim, s0, v0, o.get("trim_sheen", sheen),
                        o.get("trim_floor", 0.0), o.get("trim_gleam", 1.0))
@@ -1591,39 +1591,41 @@ def selftest():
     smoothed = zone_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[]))
     helm_render = helm_recolor(grain, (0.6, 0.8, 1.0),
                                dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0)))
-    # This used to read "the hat engine amplifies less grain than the helmet engine", which was
-    # the true statement while the fix lived in one engine. Now that both carry it the two are
-    # the SAME shader, so the honest form of the check is equality: an empty zone list and an
-    # empty helm mask must render one fixture identically once contrast, sheen and gleam are
-    # matched. Stronger than the inequality it replaces, because it goes red if EITHER engine
-    # drifts, in either direction, instead of only when the hat engine gets worse.
-    check("the hat and helmet engines are one shader once every knob is matched",
-          images_equal(smoothed, helm_render))
+    check("smooth-field contrast amplifies less grain than the per-pixel curve",
+          swing(smoothed) < swing(helm_render) * 0.9)
+    # ...and the helmet engine KEEPS that per-pixel curve, which is why this comparison still has
+    # two sides to it. Extending the smooth field there was tried and reverted the same day: a
+    # Gaussian cannot tell a drawn one-pixel line from compression grain, and helmet art is
+    # engraved metal whose subject is exactly that line work. The check below is what stops a
+    # future tidy-up from unifying the two engines on the grounds that they look like the same
+    # function: they are not, and the difference is the thirteen helmets' engraving.
+    check("the helmet engine keeps its per-pixel curve, so the engines are NOT interchangeable",
+          not images_equal(smoothed, helm_render))
     # The other half of the fix: the grain is DAMPED, not deleted. Measured against the same
     # render with the residue term removed, which is a flat blurred stamp; "swing > 0" is not
     # this test, because the fixture's own gradient satisfies that with the residue gone.
     no_detail = zone_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[], detail=0.0))
     check("the fine grain is damped, not thrown away",
           0.0 < DETAIL_GAIN < 1.0 and swing(smoothed) > swing(no_detail) * 1.05)
-    # ...and the helmet engine now runs the same field, so it gets the same two questions asked
-    # of it: does the expansion run on the smooth field, and is the grain damped rather than
-    # deleted. detail is a TEST-ONLY knob on both engines (it is deliberately absent from
-    # _HELM_KEYS, so no recipe can carry it) and exists exactly so these two can be measured
-    # without mutating the engine to find out.
-    helm_knobs = dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0))
-    helm_smooth = helm_recolor(grain, (0.6, 0.8, 1.0), helm_knobs)
-    helm_raw = helm_recolor(grain, (0.6, 0.8, 1.0), dict(helm_knobs, detail=1.0))
-    helm_flat = helm_recolor(grain, (0.6, 0.8, 1.0), dict(helm_knobs, detail=0.0))
-    check("helm: the contrast curve runs on the smooth field, not the raw pixel",
-          swing(helm_smooth) < swing(helm_raw) * 0.9)
-    check("helm: the fine grain is damped, not thrown away",
-          swing(helm_smooth) > swing(helm_flat) * 1.05)
+    # The fine line work a blur cannot tell from grain, which is why the smooth field stays out
+    # of the helmet engine. The fixture is a one-pixel dark grid, the shape of engraved metal:
+    # through the per-pixel curve the lines survive as lines, through the smooth field they lose
+    # most of their depth. Both numbers are the measurement that reverted LW-231 on helmets.
+    lines = Image.new("RGBA", (24, 24), (0, 0, 0, 0))
+    for y in range(24):
+        for x in range(24):
+            drawn = x % 4 == 0 or y % 6 == 0        # 1px engraved lines on a lit plate
+            lines.putpixel((x, y), (70, 62, 50, 255) if drawn else (196, 188, 170, 255))
+    line_knobs = dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0))
+    check("the per-pixel curve keeps one-pixel line work that the smooth field flattens",
+          swing(helm_recolor(lines, (0.6, 0.8, 1.0), line_knobs))
+          > swing(zone_recolor(lines, (0.6, 0.8, 1.0), dict(matched, zones=[]))) * 1.25)
 
-    # --- LW-230 and LW-231 past the hat engine (owner scope call, 2026-08-14) ----------------
-    # Both fixes shipped inside zone_recolor alone, because re-baking art the owner had already
-    # approved was his call and not ours. He made it, so the halo ramp now runs in every engine
-    # that paints REVIEWED art, and the smooth field in the helmet engine, the only other one
-    # carrying a per-pixel contrast expansion.
+    # --- LW-230 past the hat engine (owner scope call, 2026-08-14) ---------------------------
+    # The halo ramp shipped inside zone_recolor alone, because re-baking art the owner had
+    # already approved was his call and not ours. He made it, so it now runs in every engine
+    # that paints REVIEWED art. (LW-231, the smooth field, deliberately did NOT follow: see
+    # helm_recolor's docstring and the line-work check above.)
     #
     # The checks above pin the ramp and the field as FUNCTIONS. These pin that the engines
     # actually call them, which is a different claim and the one that was missing: measured
