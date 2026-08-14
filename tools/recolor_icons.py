@@ -1267,6 +1267,7 @@ BOW_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bow")
 GUN_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Gun")
 ROD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Rod")
 POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
+HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
     # --- Swords (LW-199, 2026-08-14) ------------------------------------------------------
@@ -1439,6 +1440,49 @@ ZONE_OVERRIDES = {
     112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
     113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
     114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
+    # --- Instruments (LW-211, 2026-08-14) -------------------------------------------------
+    # The least-coloured family left after the guns, rods and poles: measured, the shipping bake
+    # reached a TRUE median 3.4% of each harp's solid art, and 0.7% of the Siren's Lyre's card.
+    #
+    # A harp is a FRAME and a set of STRINGS, and its two surfaces disagree about what the
+    # strings are. On the 48px list icon they are solid bright bars and the brightness key finds
+    # them on all three (13.8 to 15.3 percent of the solid art at pct 20). On the 100px card the
+    # artist drew them at alpha 48-159, which is BELOW the mask code's own ranking floor
+    # (HELM_SOLID) and inside the halo ramp, so no key can reach them and none needs to: the ramp
+    # leaves them near the artist's own pale colour, and the card reads two-material for free,
+    # a coloured frame strung with white. The card's solid art IS the frame, so what the zone
+    # does there is light the top rail and the tuning pegs.
+    #
+    # Darkness was measured and refused, and this is the one family where the swords' hilt key is
+    # actively wrong: a harp's darkest share is its KEYLINE and the void between its strings, so a
+    # bright metal there dissolves the glyph's outline at list size. Saturation was refused too,
+    # because it is not one answer across the three: the Siren's Lyre's strings are gold and the
+    # other two are white, so a saturation window that finds one misses the others.
+    #
+    # THE HAZE TAX, and why these percentiles look high next to the swords' 18-24. Every mask key
+    # ranks pixels at alpha >= HELM_SOLID, and on these cards HALF that population is the haze the
+    # artist drew around the harp (447 haze-band pixels against 444 solid on id 92). So a given
+    # percentile buys about half as much SOLID art on the card as it does on the icon, and 28 is
+    # what it takes to reach the rail. Measured at the shipped settings: card 7.2 / 8.8 / 13.8
+    # percent, icon 22.8 / 21.5 / 16.2 percent.
+    #
+    # Tints live in data/items.json for this family, so the reasoning lives here beside the
+    # recipes. Two of the three are free names and were simply wrong for the item they now name:
+    # id 93 wore the blood red picked for a Bloodstring Harp that was renamed to the Duskstring,
+    # and id 92 had the right hue at saturation 0.55, which is the family's real problem rather
+    # than a wrong colour. The third is a RESERVED NAME and is anchored to its own art on BOTH
+    # surfaces: the Faerie Harp's icon reads hue 0.132 at chroma 0.215 and its card 0.105, a gold
+    # harp, so gold is what it keeps, against the violet (0.83) it wore.
+    92: {"zones": [_edge(BRASS, pct=28)], "gleam": 0.25},   # Siren's Lyre
+    93: {"zones": [_edge(BONE, pct=28)], "gleam": 0.25},    # Duskstring Harp
+    # The reserved name, and the one that takes a COOL metal: brass on a gold body was tried
+    # first and is a single colour with a highlight on it, exactly what the no-single-colour rule
+    # refuses. Steel is also what the artist drew, since this harp's vanilla strings are pale
+    # blue where the other two are white. Its pct is SIX LOWER than its siblings' for a measured
+    # reason rather than taste: its haze is 40% of the ranking where theirs is 50%, and its top
+    # rail is broad and lit, so the same coverage arrives at a lower percentile (at 28 it would
+    # take 20.0% of the card and the gold stops being the item's colour).
+    94: {"zones": [_edge(STEEL, pct=22)], "gleam": 0.25},   # Faerie Harp
     # --- Rods (LW-208, 2026-08-14) --------------------------------------------------------
     # The worst family left before this pass: a TRUE median of 1.8% of the solid art, with the
     # Ember Rod and the Rod of Faith at 0.0.
@@ -2272,7 +2316,7 @@ def selftest():
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
-                   "Pole"}
+                   "Pole", "Instrument"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2319,7 +2363,7 @@ def selftest():
     check("every reviewed family is picked, whole",
           sorted(ZONE_OVERRIDES)
           == sorted({i for i, c in _CATEGORY.items()
-                     if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole")}
+                     if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument")}
                     | SWORD_RACK | KNIGHT_RACK))
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
@@ -2369,6 +2413,7 @@ def selftest():
     guns = sorted(GUN_RACK)
     rods = sorted(ROD_RACK)
     poles = sorted(POLE_RACK)
+    harps = sorted(HARP_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2397,7 +2442,7 @@ def selftest():
 
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
-                            ("hat", hats), ("crossbow", xbows)):
+                            ("harp", harps), ("hat", hats), ("crossbow", xbows)):
         rack = [i for i in rack if body_is_whole_signal(i)]
         rack_collisions = [
             (a, b) for n, a in enumerate(rack) for b in rack[n + 1:]
@@ -2415,6 +2460,7 @@ def selftest():
     check("the gun rack is all six", len(guns) == 6)
     check("the rod rack is all eight", len(rods) == 8)
     check("the pole rack is all nine", len(poles) == 9)
+    check("the harp rack is all three", len(harps) == 3)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2452,7 +2498,7 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    bladed = swords + knights + bows + guns + rods + poles
+    bladed = swords + knights + bows + guns + rods + poles + harps
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in

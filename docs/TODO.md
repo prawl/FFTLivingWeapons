@@ -13,12 +13,28 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-211] The three instrument icons are the least-coloured family left, at three percent of their own art** (opened 2026-08-13) [QUEUED]
+- **[LW-211] The three instrument icons are the least-coloured family left, at three percent of their own art** (opened 2026-08-13) [AWAITING-LIVE]
   - Next by the same evidence that picked guns, rods and poles. With those done, instruments
     measure a TRUE median of 3.4 percent of their solid art, the worst of everything still on the
     old engine, and all three sit under 15 percent. Polearms (10.4) and staves (14.2) follow.
-    NOT STARTED: this row is the successor promoted so that Now does not go empty when the six
-    finished families exit.
+  - BUILT and gated 2026-08-14, owner gallery pass outstanding. All three harps now carry their
+    colour across the whole instrument with the strings as a visibly separate metal: a sea-teal
+    lyre strung with brass, a dusk-violet harp strung with bone, and the Faerie Harp back on the
+    gold its own picture is painted in, strung with pale steel. The card went from 0.7, 5.1 and
+    3.4 percent of each harp's art to 92, 100 and 98 percent.
+  - The finding worth keeping is that a harp's two pictures disagree about what its strings are.
+    On the small list icon they are solid bright bars, so the brightness key finds them on all
+    three. On the big card the artist drew them half transparent, below the level any of the
+    three keys can even see, and the fix for that was to stop trying: the haze rule the owner
+    already approved leaves half-transparent pixels near their original colour, so the card gets
+    a coloured frame strung with white for free and the metal goes on the top rail instead.
+    (Tech: strings sit at alpha 48-159, below HELM_SOLID and inside the LW-230 halo ramp. Zone
+    key is _edge, brightness, at pct 28/28/22: darkness was refused because a harp's darkest
+    share IS its keyline and the void between its strings, and saturation because one harp's
+    strings are gold and two are white. The percentiles run high against the swords' 18-24
+    because half of each card's ranked population is haze, 447 haze-band pixels against 444
+    solid on id 92, so a percentile buys about half as much solid art there as on the icon.
+    Measured at the shipped settings: zone claims card 7.2/8.8/13.8, icon 22.8/21.5/16.2.)
   - Done means: all three carry their identity colour across their solid art with a visibly
     separate second material, no two read alike at list size, any reserved name is anchored
     against BOTH the card and the list icon, and no already-approved art moves.
@@ -29,6 +45,76 @@ the technical detail lives in the indented lines under it.
 
 
 ## Backlog
+
+- [LW-236] 2026-08-14: Fifty-eight weapon icons still ship the version of themselves that fumes
+  coloured smoke, because the fix that stopped it was never baked into their pictures. The
+  smoke fix (LW-230) was written into the shared shader that these families use, but only the
+  families being reviewed at the time had their art re-made, so the code and the shipped picture
+  have disagreed ever since. Found 2026-08-14 by running the pixel-identity check over EVERY
+  item for the first time instead of over the family being worked, which is exactly the blind
+  spot the docs warned about. Nothing looks broken in game; the affected icons simply keep the
+  older, hazier look. The families are the ones still waiting for their own colour pass: knives,
+  ninja blades, katanas, staves, polearms, books, bags and cloths.
+  - The call is the owner's, because it moves art on 58 items that have never had a review pass,
+    and the standing rule is that their look must not change until it does. Two honest options:
+    re-bake them now so code and picture agree, or leave them and re-bake each family as its
+    pass lands (which is what will happen anyway). Either way the identity check needs to be run
+    at full scope from now on, or it will keep certifying whatever the last partial run covered.
+  - (Tech: 115 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 38-47, 59-70, 95-106,
+    115-121. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
+    signature of the LW-230 ramp. _halo_int reached shade_bright in 495f9fc; those .tex files
+    were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
+    then verify.)
+
+- [LW-237] 2026-08-14: The Wellspring Rod's orb, the one part of it that is supposed to glow
+  green, never gets painted on the big equip card. Its recipe asks for the brightest slice of
+  the picture and on that particular sprite the slice survives smoothing as a SINGLE pixel, so
+  the card ships the rod's body colour over the artist's green orb and reads as one flat colour.
+  The same recipe finds a 30 pixel orb on the small list icon, so the item looks right in the
+  list and wrong on the card. Confirmed by the LW-208 audit; no gate can see it, because the
+  no-single-colour pin measures a fixture, not the real art. (Tech: id 51, card. cover mask at
+  pct 18 is 104 raw pixels and 1 after two smoothing passes; min_blob makes no difference,
+  pct 26 recovers 33. Total second-material share 9.5% against a rod median of 33.6%, the
+  minimum of every reviewed weapon card. Fixing it changes art the owner already passed, so it
+  needs his eye on a before-and-after.)
+
+- [LW-238] 2026-08-14: The Whale Whisker kept its vanilla name, which by the owner's own rule
+  means its colour should start from its own picture, and it was painted cyan over art that is
+  visibly red. Its list icon reads warm red at a chroma HIGHER than the Perseus Bow's, and that
+  bow got a measurement, a written note and an owner ruling one commit earlier; this pole got
+  none of the three, and its hue barely moved from the pre-pass value. The counter-argument is
+  real (it is the family's only Water pole, and cyan says water), but it is unrecorded, so the
+  next pass will read the file and learn the wrong lesson. Owner call: re-anchor to the art, or
+  write the exception down the way the Perseus Bow's is. (Tech: id 114. Icon 1.7 deg at chroma
+  0.148 against the tint's 196.2 deg; the shipped SILVER zone takes the blue end caps, so the
+  body the tint actually paints reads 6.9 deg at chroma 0.177.)
+
+- [LW-239] 2026-08-14: Three pairs of items sit close enough in colour to be mistaken for each
+  other in the same equip list, and two of them clear the look-alike tripwire by a hundredth.
+  The tripwire only ever reads the three colour numbers, so it cannot know that a pair also
+  shares one silhouette, which is when colour is the ONLY thing telling them apart. Pole 109
+  against 113 is byte-identical in outline and 0.010 of hue from a red gate; 108 against 113 is
+  inside the saturation floor by a float hair; rods 55 and 57 are the family's two green rods on
+  a 99.5 percent identical outline. Found by the LW-206/LW-208 audit. (Tech: RACK_MIN_HUE_GAP
+  0.05, dhue 0.060 on both pole pairs; mean-Lab dE 6.45 for 109/113 against 16.04 for the
+  runner-up. Fix is a design call plus, separately, LW-240.)
+
+- [LW-240] 2026-08-14: The hard rule that keeps two items sharing one picture from also sharing
+  one colour only knows about pairs the data declares, and the data declares one of them. It is
+  derived from the iconSource field, so it guards the four items built on another item's sprite
+  and misses every pair where the artist simply drew the same generic glyph at list size: 15 of
+  the 16 byte-identical 48px outlines in the reviewed families are unguarded. The fix is to
+  derive the pairs from the art the gate already decodes (equal solid-alpha masks) instead of
+  from the field. (Tech: tools/recolor_icons.py, the twins scan; rod small clusters
+  [[51,55],[52,54,58]], pole small [[48,107,108,110],[109,111,112,113]].)
+
+- [LW-241] 2026-08-14: Nothing runs the check that proves an icon pass left every other item
+  alone; a person has to remember. The build pipeline runs the recolor selftest and refuses a
+  red one, but the compare gate is invoked by hand, which is how two holes in it survived three
+  passes. It cannot simply be added to the pipeline as-is, because during a pass the family
+  being worked moves on purpose, so it needs an expected-movers list that lives somewhere the
+  build can read. (Tech: tools/pipeline.ps1 runs recolor_icons.py --selftest and throws on
+  failure; grep finds no icon_preview call in any script or workflow.)
 
 - [LW-174] 2026-08-12: Five story-battle monster jobs are invisible to Living Poach because the
   map skips their alias rows. Demoted from Now 2026-08-14 to make room for the icon re-pass
