@@ -6,8 +6,8 @@ Pipeline per item (both the 100x100 card image and the 48x48 list icon):
   vanilla BC7 .tex (Pac Files/0008) -> FF16Tools tex-conv -> DDS -> Pillow recolor
   -> img-conv --no-chunk-compression -> .tex placed in the mod tree.
 
-THREE recolor engines, routed per item by engine_for() (owner-directed; docs/TODO.md LW-189
-and LW-190 carry the decision trails):
+FOUR recolor engines, routed per item by engine_for() (owner-directed; docs/TODO.md LW-189,
+LW-190, LW-215 and LW-216 carry the decision trails):
 
   WEAPONS (category in lib.categories.WEAPON_CATS) get the LW-189 BRIGHT v2 treatment:
     - card image: TWO-ZONE k-means segmentation of the VANILLA art (the identity tint goes on
@@ -24,8 +24,19 @@ and LW-190 carry the decision trails):
   trim, inverted tint-on-fittings, forced mask cover). k-means was tried and rejected here:
   a shield is one convex plate, so it clusters the lighting, not the materials.
 
-  EVERYTHING ELSE (armor, accessories) keeps the ORIGINAL whole-icon tint: not yet reviewed
-  under the new rules, so their shipped look must not change until an owner pass covers them.
+  HELMETS (HELM_OVERRIDES) get the LW-215 two-tone helm treatment: helm_recolor's body tint
+  under a contrast S-curve and a sheen, with the recipe's second colour blended across ONE
+  feathered organic mask (cover = the bright fittings, shade = the recesses).
+
+  HATS (HAT_OVERRIDES) get the LW-216 THREE-ZONE treatment: hat_recolor lays N feathered zones
+  over the body in list order, because a hat is cloth plus a brim or lining plus a plume or a
+  painted emblem, and two zones cannot say that. It also carries two fixes the older engines do
+  not have, since re-baking their already-approved art is a separate owner call: the halo ramp
+  (LW-230) and the smooth-field contrast (LW-231).
+
+  EVERYTHING ELSE (armor, accessories, hair adornments) keeps the ORIGINAL whole-icon tint: not
+  yet reviewed under the new rules, so their shipped look must not change until an owner pass
+  covers them.
 
 ICON_TINTS = {id: (hue, sat, value_mult)}; hue/sat in 0..1, value_mult scales brightness.
 Run: python tools/recolor_icons.py [ids...]   |   python tools/recolor_icons.py --selftest
@@ -726,13 +737,276 @@ HELM_OVERRIDES = {
     156: {"style": "helm", "mode": "cover", "pct": 28, "trim": (0.58, 0.03, 1.30),
           "trim_sheen": 0.8, "gleam": 0.15, "feather": 1.2, "min_blob": 5,
           "contrast": 0.45, "sheen": 0.4},
+    # The last two, 2026-08-14. These close the helmet family: they were the only ones left on
+    # the legacy one-hue stamp, and both of their old tints collided with a sibling anyway (145
+    # sat 0.005 from the Clarion Helm's amber, 151 exactly on the Wardsteel Helm's teal).
+    # 145 Mendsteel, Regen and Poison immunity: the one green helmet, with the gold landing on
+    # the inset panel the artist painted across the brow, so the emblem stays an emblem.
+    145: {"style": "helm", "mode": "cover", "pct": 22, "trim": (0.125, 0.90, 1.15),
+          "trim_floor": 0.45, "trim_gleam": 0.30, "feather": 1.2, "min_blob": 5,
+          "contrast": 0.50, "sheen": 0.45},
+    # 151 Timeward, Stop immunity: the head slot's one bright metal, which is the honest answer
+    # to a shelf with no hue left on it. The accent is on SHADE and not on cover: this helm's
+    # bright pixels are scattered highlights along a horn, so a cover mask returns confetti,
+    # while the recesses take brass cleanly and the whole thing reads as chrono-metal. An ice
+    # blue version was tried and dropped, since four helmets are already blue.
+    151: {"style": "helm", "mode": "shade", "pct": 26, "trim": (0.105, 0.92, 1.15),
+          "trim_floor": 0.45, "trim_gleam": 0.30, "gleam": 0.30, "feather": 1.2, "min_blob": 6,
+          "contrast": 0.55, "sheen": 0.45},
+}
+
+
+# --- LW-216 THREE-ZONE engine (hats) --------------------------------------------------------
+# A helmet is one plate plus its fittings, so two zones say everything there is to say about it.
+# A hat is not: it is cloth, plus a brim or an underside, plus a plume or a painted emblem, and
+# the owner asked for all three ("is it possible to put three colors into it?", 2026-08-13). So
+# this engine runs the same organic masks helm_recolor does, but N of them, composited over the
+# body in list order. A later zone wins where two overlap, which is why an emblem is listed last:
+# a white star inside a bright crest has to survive the crest, not average with it.
+
+def _desat_raw(im, sat_p, val_p):
+    """Binary SATURATION key: the desaturated-but-lit population of the solid sprite.
+
+    The third mask key, and the one the two-zone engine had no way to express. The Arcanist
+    Cap's star is white paint on pink felt, and a brightness key cannot see it because the lit
+    felt beside it is exactly as bright; keying on saturation finds it in one pass."""
+    px = im.load()
+    coords = [(x, y) for y in range(im.height) for x in range(im.width) if px[x, y][3] >= 8]
+    ss, vv = {}, {}
+    for c in coords:
+        if px[c][3] >= HELM_SOLID:
+            r, g, b, _ = px[c]
+            _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            ss[c], vv[c] = s0, v0
+    if not ss:
+        return coords, {c: False for c in coords}
+    s_cut = _pct(list(ss.values()), sat_p)
+    v_cut = _pct(list(vv.values()), val_p)
+    return coords, {c: (c in ss and ss[c] <= s_cut and vv[c] >= v_cut) for c in coords}
+
+
+def zone_weight(im, spec):
+    """One zone spec -> per-pixel 0..1 weight. cover/shade delegate to helm_mask so the two
+    engines cannot drift; desat repeats helm_mask's smooth/despeckle/feather chain with the
+    saturation key, and scales every spatial knob to sprite width for the same reason."""
+    key = spec.get("key", "cover")
+    feather = spec.get("feather", 1.2)
+    min_blob = spec.get("min_blob", 5)
+    if key in ("cover", "shade"):
+        return helm_mask(im, key, spec.get("pct", 22), feather, min_blob)[1]
+    scale = im.width / 100.0
+    coords, raw = _desat_raw(im, spec.get("sat_p", 22), spec.get("val_p", 45))
+    raw = smooth_mask(raw, im.width, im.height, passes=1 if scale >= 0.72 else 0)
+    raw = _helm_despeckle({c: bool(v) for c, v in raw.items()},
+                          max(2, round(min_blob * scale * scale)))
+    f = feather * scale
+    if f <= 0:
+        return {c: (1.0 if raw[c] else 0.0) for c in coords}
+    buf = Image.new("L", im.size, 0)
+    bp = buf.load()
+    for c, v in raw.items():
+        if v:
+            bp[c] = 255
+    bp = buf.filter(ImageFilter.GaussianBlur(f)).load()
+    return {c: bp[c] / 255.0 for c in coords}
+
+
+HALO_LO, HALO_HI = 48, 224
+
+
+def _halo_weight(a):
+    """How much of the recolour a pixel may take, by its own alpha (LW-230).
+
+    Every one of these sprites is drawn sitting in a soft semi-transparent haze, and the artist
+    drew that haze NEUTRAL. The older engines paint every pixel down to alpha 8, so the haze
+    takes the identity tint and the item looks like it is fuming; the owner rejected exactly
+    that on the hat previews (2026-08-14).
+
+    The first attempt ramped 64 -> 160, reusing HELM_SOLID because that is the threshold the
+    mask code treats as real art, and the owner still saw smoke. Correctly: measured per alpha
+    band, the 160-191 pixels were still taking the full tint (+0.54 saturation) and that band IS
+    the visible outer glow. HELM_SOLID answers a different question ("is there enough signal
+    here to classify?") than this one ("is this pixel solid enough to own the identity
+    colour?"). 48 -> 224 is the ramp that holds, and its length is also what keeps a hard ring
+    from appearing at the cutoff."""
+    if a >= HALO_HI:
+        return 1.0
+    if a <= HALO_LO:
+        return 0.0
+    return (a - HALO_LO) / float(HALO_HI - HALO_LO)
+
+
+DETAIL_GAIN = 0.30     # how much of the sprite's fine grain survives the contrast expansion
+
+
+def _value_fields(im, radius):
+    """Split the sprite's brightness into a SMOOTH field and a fine-grain residue (LW-231).
+
+    The contrast S-curve is what makes a recolour read as a solid object instead of a flat
+    stamp, but applied per pixel it also multiplies the art's own compression grain, and under a
+    saturated tint that grain reads as blotchy coloured speckle across the surface. That speckle
+    is what the owner kept calling smoke across three rounds: it is ON the hat, not around it,
+    which is why two rounds of halo work never touched it.
+
+    So the expansion runs on the BLURRED brightness (the artist's real shading: the domes, the
+    folds, the Lumen Crown's ridge) and the residue is added back at reduced gain. Large
+    features separate exactly as before; pixel noise stops being amplified."""
+    px = im.load()
+    raw = {}
+    val = Image.new("L", im.size, 0)          # Pillow only blurs integer modes, not "F"
+    vp = val.load()
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[2] if a >= 8 else 0.0
+            raw[(x, y)] = v
+            vp[x, y] = int(v * 255 + 0.5)
+    sp = val.filter(ImageFilter.GaussianBlur(radius)).load()
+    return raw, {c: sp[c] / 255.0 for c in raw}
+
+
+def hat_recolor(im, tint, opts, surface="card"):
+    """Body tint, then each zone blended over it by its own feathered weight, in list order."""
+    o = dict(opts or {})
+    zones = o["zones"]
+    sheen, contrast, gleam = o.get("sheen", 0.20), o.get("contrast", 0.50), o.get("gleam", 0.80)
+    px = im.load()
+    coords = [(x, y) for y in range(im.height) for x in range(im.width) if px[x, y][3] >= 8]
+    weights = [(z, zone_weight(im, z)) for z in zones]
+    solid_v = []
+    for c in coords:
+        if px[c][3] >= HELM_SOLID:
+            r, g, b, _ = px[c]
+            solid_v.append(colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[2])
+    median = sorted(solid_v)[len(solid_v) // 2] if solid_v else 0.5
+    raw_v, smooth_v = _value_fields(im, max(0.6, 0.9 * im.width / 100.0))
+    out = im.copy()
+    opx = out.load()
+    for c in coords:
+        r, g, b, a = px[c]
+        halo = _halo_weight(a)
+        if halo <= 0.0:
+            continue                      # pure haze: the artist's own pixel stands
+        _, s0, _ = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        base = smooth_v[c]
+        v0 = max(0.0, min(1.0, _helm_scurve(base, median, contrast)
+                          + (raw_v[c] - base) * DETAIL_GAIN))
+        rgb = _helm_sheen(helm_body(tint, s0, v0, gleam), sheen)
+        for z, w in weights:
+            wc = w.get(c, 0.0)
+            if wc <= 0.002:
+                continue
+            tone = z["tone"]
+            if tone == "vanilla":
+                zc = (r / 255, g / 255, b / 255)
+            else:
+                zc = _helm_tone(tone, s0, v0, z.get("sheen", sheen),
+                                z.get("floor", 0.45), z.get("gleam", 0.30))
+            rgb = tuple(bb * (1 - wc) + tt * wc for bb, tt in zip(rgb, zc))
+        if halo < 1.0:
+            van = (r / 255, g / 255, b / 255)
+            rgb = tuple(v * (1 - halo) + n * halo for v, n in zip(van, rgb))
+        opx[c] = (*[max(0, min(255, int(x * 255 + 0.5))) for x in rgb], a)
+    return out
+
+
+# The head slot's own colour vocabulary, settled over four owner review rounds. Body tints live
+# in data/items.json iconTint (single source); these are the zones laid over them.
+#
+# Round three's rule, the one the owner called fire on the Arcanist Cap and which all four of the
+# last hats are built on: body and lining nearly OPPOSITE on the hue wheel, both at saturation
+# 0.90 or higher, and the third colour PURE white rather than a tinted off-white.
+#
+# Two knobs read as arbitrary and are not. The lining percentage is per item because it is a
+# percentile of the sprite's own darkness: on a POINTED hat the darkest quarter is the brim, so
+# 26 is right, but on a HOOD it is the shaded side of a smooth dome and 26 comes back as
+# camouflage across the cloth, so the hooded shapes were swept 10-26 and settled at 14. And a
+# crest much above 10 percent stops reading as a crest and starts reading as glare, a wet white
+# patch across the crown.
+WHITE = (0.130, 0.05, 1.35)
+
+
+def _lining(pct, tone, floor=0.48, gleam=0.30, sheen=None, min_blob=5, feather=1.2):
+    """The second colour, on the art's own dark share: an underside, a brim, deep folds. Half
+    these hats have no second material at all, so an invented fitting would be trim the artist
+    never drew; the dark zone reads as a lining instead, which is real.
+
+    sheen None means inherit the recipe's own, which is not the same as passing the default: a
+    lining sits in shadow, so it takes the body's restrained specular rather than the crest's."""
+    z = {"key": "shade", "pct": pct, "tone": tone, "floor": floor, "gleam": gleam,
+         "min_blob": min_blob, "feather": feather}
+    if sheen is not None:
+        z["sheen"] = sheen
+    return z
+
+
+def _crest(tone, pct=10, floor=0.55, gleam=0.35, sheen=0.30, min_blob=4, feather=0.7):
+    """The third colour, on the lit crown."""
+    return {"key": "cover", "pct": pct, "tone": tone, "floor": floor, "gleam": gleam,
+            "sheen": sheen, "min_blob": min_blob, "feather": feather}
+
+
+def _accent(pct, tone, floor=0.45, gleam=0.30, sheen=0.30, min_blob=5, feather=1.2):
+    """The second colour where the artist DID draw one: a plume, a faceplate, a set stone."""
+    return {"key": "cover", "pct": pct, "tone": tone, "floor": floor, "gleam": gleam,
+            "sheen": sheen, "min_blob": min_blob, "feather": feather}
+
+
+# The Arcanist Cap's star, found by saturation because white paint on pink felt is invisible to a
+# brightness key. sat_p 12 with val_p 72 is the window that catches the paint and nothing else:
+# looser settings claimed the cone's whole shadowed side and handed back a pink smudge. Claims
+# 56px on the card and 30px on the icon.
+STAR = {"key": "desat", "sat_p": 12, "val_p": 72, "min_blob": 2, "feather": 0.5,
+        "tone": WHITE, "floor": 0.75, "gleam": 1.0}
+
+HAT_OVERRIDES = {
+    # Round four, 2026-08-14: the four the owner never lettered, decided on the rule above.
+    157: {"zones": [_lining(22, (0.690, 0.92, 1.05)), _crest(WHITE)]},           # Roughspun Cap
+    159: {"zones": [_lining(14, (0.455, 0.88, 1.10)), _crest(WHITE)]},           # Adept's Hood
+    160: {"zones": [_lining(14, (0.555, 0.90, 1.08)), _crest(WHITE)]},           # Martial Band
+    165: {"zones": [_lining(14, (0.300, 0.92, 1.15)), _crest(WHITE)],            # Assassin's Cowl
+          "gleam": 0.40},   # a cowl that reads bright is not a cowl, and the gleam preserve
+                            # lifts this body straight back toward lilac if left at full
+    # Round three: settled on the owner's letter E, "FIIIIIRE".
+    161: {"zones": [_lining(26, (0.900, 0.92, 1.20)), STAR], "gleam": 0.28},     # Arcanist Cap
+    # Rounds one and two: locked on the owner's save list, converted from the two-zone recipes
+    # they were approved as. Same colours, same masks, now through the three-zone engine so the
+    # whole family gets the halo ramp and the smooth-field contrast.
+    158: {"zones": [_accent(20, (0.125, 0.88, 1.28), floor=0.50)],               # Wardplume
+          "contrast": 0.55},
+    162: {"zones": [_accent(22, (0.115, 0.85, 1.28), floor=0.50)],               # Zephyr Beret
+          "contrast": 0.55},
+    # 163's vanilla is near-white linen, so the gleam preserve fires on nearly every pixel and
+    # lifts the tint straight back toward white (the documented helm_body trap). gleam 0.15 is
+    # what lets a hot colour land on pale art at all.
+    163: {"zones": [_accent(18, (0.130, 0.92, 1.28), floor=0.52, gleam=0.5,      # Twisted Headband
+                            min_blob=4, feather=1.1)],
+          "contrast": 0.60, "gleam": 0.15},
+    164: {"zones": [_accent(24, (0.520, 0.80, 1.28), floor=0.50)],               # Hierophant Miter
+          "contrast": 0.55},
+    166: {"zones": [_accent(32, (0.130, 0.92, 1.30), floor=0.58, min_blob=4,     # Mana Coronet
+                            feather=1.1)],
+          "contrast": 0.55},
+    # Round two, redone on the owner's notes. 167: the ridge is a dark seam the artist drew along
+    # the crest and round one's gold clipped the whole top of the sprite to near-white, erasing
+    # it; the value comes down, the gleam comes down, and the contrast goes up until the seam
+    # separates from the cloth either side of it.
+    167: {"zones": [_lining(26, (0.545, 0.88, 1.12), floor=0.42, sheen=0.30,     # Lumen Crown
+                            feather=1.1)],
+          "contrast": 0.78, "gleam": 0.30},
+    # 168 was too close to the Hierophant's violet, so it separates by VALUE instead of hue: a
+    # near-black cap with an ember plume, the only dark item on the shelf. trim gleam matters as
+    # much as the colour here; left high the preserve returns the pale plume to white, which is
+    # how round two lost the ember twice.
+    168: {"zones": [_accent(24, (0.055, 0.95, 1.25), floor=0.55, gleam=0.15)],   # Nightrunner Cap
+          "contrast": 0.65, "gleam": 0.15},
 }
 
 
 def recolor(im, hue, sat, val_mult):
-    """LEGACY whole-icon tint: armor, accessories, and the two helmets whose owner letters
-    have not landed (their look must not change until they do); everything else predates
-    LW-189 review and keeps its shipped look the same way."""
+    """LEGACY whole-icon tint: armor, accessories, and the hair adornments whose own re-pass has
+    not run yet (their look must not change until it does); everything else predates LW-189
+    review and keeps its shipped look the same way."""
     px = im.load()
     for y in range(im.height):
         for x in range(im.width):
@@ -767,6 +1041,8 @@ def engine_for(item_id):
         return "shield-bright"
     if cat == "Helmet" and item_id in HELM_OVERRIDES:
         return "helm-two-tone"
+    if cat == "Hat" and item_id in HAT_OVERRIDES:
+        return "hat-three-zone"
     return "legacy"
 
 
@@ -785,6 +1061,8 @@ def route(im, item_id, tint, surface):
         if style == "shield":
             return shield_two_tone(im, tint, ov, surface)
         return helm_recolor(im, tint, ov, surface)
+    if engine == "hat-three-zone":
+        return hat_recolor(im, tint, HAT_OVERRIDES[item_id], surface)
     return recolor(im.copy(), *tint)
 
 
@@ -1060,10 +1338,133 @@ def selftest():
 
     # routing: shields take the shield engine, weapons keep bright-v2, picked helmets the helm
     # engine, unpicked helmets (and everything unreviewed) legacy
+    # --- LW-216 three-zone hat engine -------------------------------------------------------
+    # The desat key exists because a brightness key CANNOT find painted-on paint. This fixture
+    # is the Arcanist Cap's problem in miniature: a pale emblem sitting on a field that is
+    # exactly as bright as the emblem and differs only in saturation. Both halves are the pin:
+    # the saturation key finds it AND the brightness key does not, or the third key is dead
+    # weight and someone will delete it in a tidy-up.
+    dim = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    for y in range(16):
+        for x in range(16):
+            lit = 200 + x                      # gradient: flat fields defeat percentile cuts
+            if 6 <= x <= 9 and 6 <= y <= 9:
+                dim.putpixel((x, y), (lit, lit - 2, lit - 1, 255))       # emblem: near-neutral
+            else:
+                dim.putpixel((x, y), (lit, 40 + y, 90 + y, 255))         # felt: same value, hot
+    _, dmask = _desat_raw(dim, 12, 40)
+    # (14, 1) is felt at the emblem's OWN brightness. Testing against a dark felt pixel instead
+    # would pass with the saturation half of the key deleted, which is the whole point of it.
+    check("desat key finds the low-saturation emblem",
+          dmask[(7, 7)] and not dmask[(14, 1)] and not dmask[(1, 1)])
+    _, bmask = _helm_raw_mask(dim, "cover", 12)
+    check("a brightness key cannot find that emblem (so the desat key is load-bearing)",
+          not bmask[(7, 7)])
+    # Halo ramp (LW-230): full tint only on genuinely opaque pixels, none on the artist's haze,
+    # and a long ramp between so no hard ring appears at the cutoff.
+    check("halo ramp is off below the floor", _halo_weight(HALO_LO) == 0.0 and _halo_weight(8) == 0.0)
+    check("halo ramp is full above the ceiling", _halo_weight(HALO_HI) == 1.0 and _halo_weight(255) == 1.0)
+    check("halo ramp is partial in between", 0.0 < _halo_weight(160) < 1.0)
+    check("halo ramp is monotone",
+          all(_halo_weight(a) <= _halo_weight(a + 1) for a in range(0, 255)))
+    check("the ramp clears the mask threshold it used to reuse", HALO_HI > HELM_SOLID)
+    # ...and end to end: a haze pixel keeps the artist's own colour while a solid one takes the
+    # tint. Without this the identity colour becomes a cloud of coloured smoke around the item.
+    haze = Image.new("RGBA", (12, 12), (0, 0, 0, 0))
+    for y in range(12):
+        for x in range(12):
+            edge = x in (0, 11) or y in (0, 11)
+            haze.putpixel((x, y), (130, 130, 130, 30) if edge else (120 + x, 110 + y, 100, 255))
+    hz = hat_recolor(haze, (0.33, 0.9, 1.1), {"zones": [_lining(20, (0.9, 0.9, 1.2))]})
+    check("halo pixels keep the artist's neutral haze", hz.getpixel((0, 6)) == haze.getpixel((0, 6)))
+    check("solid pixels still take the identity colour", hz.getpixel((6, 6)) != haze.getpixel((6, 6)))
+    # Smooth-field contrast (LW-231): the S-curve runs on the BLURRED brightness, so the art's
+    # own compression grain stops being multiplied into coloured speckle. Measured as
+    # neighbour-to-neighbour swing across a grainy field, against the per-pixel engine on the
+    # SAME input, tint and contrast.
+    grain = Image.new("RGBA", (24, 24), (0, 0, 0, 0))
+    for y in range(24):
+        for x in range(24):
+            noise = 26 if (x * 7 + y * 3) % 5 == 0 else 0     # 1px speckle, no structure
+            base = 90 + x * 4 + noise
+            grain.putpixel((x, y), (base, base - 6, base - 12, 255))
+
+    def swing(im):
+        """Neighbour-to-neighbour swing ACROSS the grain. The fixture's real gradient runs down
+        the y axis, so a horizontal walk measures the noise and nothing else."""
+        p = im.load()
+        return sum(abs(p[x, y][0] - p[x + 1, y][0]) for y in range(24) for x in range(23))
+    raw_f, smooth_f = _value_fields(grain, max(0.6, 0.9 * 24 / 100.0))
+    field_swing = lambda f: sum(abs(f[(x, y)] - f[(x + 1, y)]) for y in range(24) for x in range(23))
+    check("the smoothed field carries much less grain than the raw one",
+          field_swing(smooth_f) < field_swing(raw_f) * 0.75)
+    # The comparison that matters is against the shipped per-pixel engine on the SAME fixture
+    # with EVERY other knob matched: sheen off, gleam full, an empty mask. Matching them is the
+    # point. Compared loosely the two engines differ for a dozen reasons and the check passes
+    # whatever the curve does; matched, the only surviving difference is which brightness field
+    # the S-curve expanded, and bypassing the smooth field makes these two exactly equal.
+    matched = {"contrast": 0.7, "sheen": 0.0, "gleam": 1.0}
+    smoothed = hat_recolor(grain, (0.6, 0.8, 1.0), dict(matched, zones=[]))
+    perpixel = helm_recolor(grain, (0.6, 0.8, 1.0),
+                            dict(matched, mode="cover", pct=0, trim=(0.6, 0.8, 1.0)))
+    check("smooth-field contrast amplifies less grain than the per-pixel curve",
+          swing(smoothed) < swing(perpixel) * 0.9)
+    check("the fine grain is not thrown away either", 0.0 < DETAIL_GAIN < 1.0 and swing(smoothed) > 0)
+    # Three zones, composited in list order, and the LAST one wins where two overlap. That is
+    # what lets a white star sit inside a bright crest instead of averaging with it.
+    tri = Image.new("RGBA", (20, 20), (0, 0, 0, 0))
+    for y in range(20):
+        for x in range(20):
+            v = 60 + y * 8 + x                    # dark at the top, bright at the bottom
+            tri.putpixel((x, y), (min(v, 250), min(v, 250) - 20, min(v, 250) - 40, 255))
+    three = hat_recolor(tri, (0.33, 0.9, 1.05),
+                        {"zones": [_lining(20, (0.9, 0.92, 1.2)), _crest((0.6, 0.9, 1.2), pct=20)]})
+    body_px, lin_px, crest_px = three.getpixel((10, 10)), three.getpixel((10, 0)), three.getpixel((10, 19))
+    check("three zones come out as three distinct tones",
+          sum(abs(a - b) for a, b in zip(body_px[:3], lin_px[:3])) > 40
+          and sum(abs(a - b) for a, b in zip(body_px[:3], crest_px[:3])) > 40
+          and sum(abs(a - b) for a, b in zip(lin_px[:3], crest_px[:3])) > 40)
+    # Order, pinned by WHICH zone wins rather than by the two orderings differing: two zones on
+    # the identical unfeathered mask, so the second must overwrite the first completely. Merely
+    # asserting the two orderings differ passes just as happily when the list is composited
+    # backwards, and backwards is exactly the bug this guards (a star listed last would end up
+    # underneath the crest it is painted on).
+    blue, white = _crest((0.6, 0.9, 1.2), pct=20, feather=0.0), _crest(WHITE, pct=20, feather=0.0)
+    both = hat_recolor(tri, (0.33, 0.9, 1.05), {"zones": [blue, white]})
+    only_white = hat_recolor(tri, (0.33, 0.9, 1.05), {"zones": [white]})
+    only_blue = hat_recolor(tri, (0.33, 0.9, 1.05), {"zones": [blue]})
+    check("a later zone wins where two overlap",
+          both.getpixel((10, 19)) == only_white.getpixel((10, 19))
+          and both.getpixel((10, 19)) != only_blue.getpixel((10, 19)))
+    check("hat transparency untouched", three.getpixel((0, 0))[3] == 255 and hz.getpixel((0, 0))[3] == 30)
+    # the picked-recipe table
+    check("every hat override names a real hat", all(_CATEGORY.get(i) == "Hat" for i in HAT_OVERRIDES))
+    check("every hat override key is a known option",
+          all(set(o) <= {"zones", "gleam", "contrast", "sheen"} for o in HAT_OVERRIDES.values()))
+    _ZONE_KEYS = {"key", "pct", "sat_p", "val_p", "tone", "floor", "gleam", "sheen",
+                  "min_blob", "feather"}
+    zones_all = [z for o in HAT_OVERRIDES.values() for z in o["zones"]]
+    check("every hat zone key is a known option", all(set(z) <= _ZONE_KEYS for z in zones_all))
+    check("every hat zone names a known mask key",
+          all(z.get("key") in ("cover", "shade", "desat") for z in zones_all))
+    check("every hat carries at least one zone", all(o["zones"] for o in HAT_OVERRIDES.values()))
+    check("every hat override has a body tint to lay its zones over",
+          all(i in ICON_TINTS for i in HAT_OVERRIDES))
+
+    # routing: shields take the shield engine, weapons keep bright-v2, picked helmets the helm
+    # engine, picked hats the three-zone engine, everything unreviewed legacy
     check("shield routes to shield-bright", engine_for(128) == "shield-bright")
     check("weapon routes to bright-v2", engine_for(19) == "bright-v2")
     check("picked helmet routes to helm-two-tone", engine_for(156) == "helm-two-tone")
-    check("unpicked helmet stays legacy", engine_for(145) == "legacy" and engine_for(151) == "legacy")
+    check("the last two helmets joined the helm engine",
+          engine_for(145) == "helm-two-tone" and engine_for(151) == "helm-two-tone")
+    check("picked hat routes to hat-three-zone", engine_for(157) == "hat-three-zone")
+    check("all twelve hats are picked",
+          sorted(HAT_OVERRIDES) == [i for i, c in sorted(_CATEGORY.items()) if c == "Hat"])
+    # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
+    # have quietly ridden along on this pass
+    check("hair adornments stay legacy until their own pass",
+          all(engine_for(i) == "legacy" for i, c in _CATEGORY.items() if c == "HairAdornment"))
     # PALETTE SEPARATION. Under whole-glyph coverage the tint is the item's entire colour signal,
     # so two close tints are one shield in two names. The pre-LW-190 palette had seven such pairs
     # (140 vs 142 were 0.02 hue and 0.02 saturation apart). This is the tripwire that keeps a
