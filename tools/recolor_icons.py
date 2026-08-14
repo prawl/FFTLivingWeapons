@@ -39,7 +39,7 @@ import sys
 from collections import deque
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
@@ -523,9 +523,216 @@ def shield_two_tone(im, tint, override=None, surface="card"):
     return out
 
 
+# --- LW-215 helmet engine -------------------------------------------------------------------
+# Eleven of the thirteen helmets carry an owner-picked two-tone recipe (four review rounds,
+# 2026-08-13; the two unpicked ids stay on the legacy tint until their letters land). Four
+# picks are plain shield-engine recipes and route to shield_two_tone above. The other seven
+# ride this engine: the identity tint on the body, a second tone across a FEATHERED ORGANIC
+# mask (a brightness- or darkness-keyed zone that follows the art; the owner banned straight
+# geometric mask edges from the 48px icon after round two), with per-recipe knobs for contrast
+# expansion, metal sheen, dark-zone accent floors, and the gleam preserve.
+
+HELM_SOLID = 160    # alpha floor for every mask/rank decision: the smoky semi-transparent halo
+                    # around every sprite is darker than any real pixel, so ranking over all
+                    # painted pixels spends the whole mask budget on invisible halo (measured:
+                    # 80-94% of a darkness mask landed there on the 48px icons)
+
+
+def images_equal(a, b):
+    """Honest pixel identity. ImageChops.difference(...).getbbox() is NOT this: Pillow 10 made
+    getbbox() alpha-only by default, so two pictures differing only in colour compare equal
+    under the old idiom (proven against the shipped red Genji Helm vs its untinted vanilla)."""
+    return a.size == b.size and a.tobytes() == b.tobytes()
+
+
+def _helm_raw_mask(im, mode, pct):
+    """Binary first pass. cover = brightest pct% of the SOLID sprite (fittings, wings, combs);
+    shade = darkest pct% (recesses, plumes, visor voids). Both follow the art, never geometry."""
+    px = im.load()
+    coords = [(x, y) for y in range(im.height) for x in range(im.width) if px[x, y][3] >= 8]
+    vals = {}
+    for c in coords:
+        if px[c][3] >= HELM_SOLID:
+            r, g, b, _ = px[c]
+            vals[c] = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[2]
+    if not vals:
+        return coords, {c: False for c in coords}
+    if mode == "shade":
+        cut = _pct(list(vals.values()), pct)
+        return coords, {c: (c in vals and vals[c] <= cut) for c in coords}
+    cut = _pct(list(vals.values()), 100 - pct)
+    return coords, {c: (c in vals and vals[c] > cut) for c in coords}
+
+
+def _helm_despeckle(mask, min_blob):
+    """Drop connected components smaller than min_blob, in BOTH polarities. This is the
+    jaggedness the owner rejected in round one: BC7 sprite art misclassifies scattered single
+    pixels under any per-pixel key, and they read as speckle across a clean plate."""
+    for want in (True, False):
+        seen = set()
+        for start, val in mask.items():
+            if val is not want or start in seen:
+                continue
+            blob, q = [], deque([start])
+            seen.add(start)
+            while q:
+                c = q.popleft()
+                blob.append(c)
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    n = (c[0] + dx, c[1] + dy)
+                    if n in mask and n not in seen and mask[n] is want:
+                        seen.add(n)
+                        q.append(n)
+            if len(blob) < min_blob:
+                for c in blob:
+                    mask[c] = not want
+    return mask
+
+
+def helm_mask(im, mode, pct, feather, min_blob, smooth=2):
+    """Binary key -> majority smooth -> despeckle -> Gaussian feather into a 0..1 weight.
+
+    Every spatial knob is authored against the 100px card and SCALED to the sprite: applied
+    absolutely, the 48px icon got proportionally double the blur and a despeckle floor bigger
+    than its real features, and the mask ate the icon's legitimate colour zones. Feather scales
+    with width, the blob floor with width squared, and the icon drops one smoothing pass (the
+    LW-190 trim hunt already measured two passes eating 1px features on 48px art)."""
+    scale = im.width / 100.0
+    coords, raw = _helm_raw_mask(im, mode, pct)
+    passes = 0 if smooth <= 0 else (smooth if scale >= 0.72 else max(1, smooth - 1))
+    raw = smooth_mask(raw, im.width, im.height, passes=passes)
+    raw = _helm_despeckle({c: bool(v) for c, v in raw.items()}, max(2, round(min_blob * scale * scale)))
+    f = feather * scale
+    if f <= 0:
+        return coords, {c: (1.0 if raw[c] else 0.0) for c in coords}
+    buf = Image.new("L", im.size, 0)
+    bp = buf.load()
+    for c, v in raw.items():
+        if v:
+            bp[c] = 255
+    buf = buf.filter(ImageFilter.GaussianBlur(f))
+    bp = buf.load()
+    return coords, {c: bp[c] / 255.0 for c in coords}
+
+
+def _helm_scurve(v, median, amount):
+    """Expand tonal separation around the sprite's OWN median brightness (amount 0 = off).
+    The flat two-colour look the owner rejected came from the shoulder compressing the
+    artist's centre-to-rim gradient; this puts the third tone back."""
+    if amount <= 0:
+        return v
+    t = v - median
+    return max(0.0, min(1.0, median + math.copysign(abs(t) ** (1.0 / (1.0 + amount)), t)
+                        * (1.0 + 0.25 * amount)))
+
+
+def _helm_sheen(rgb, strength, knee=0.72):
+    """Specular pass, keyed on the OUTPUT tone's own brightness and gated on its chroma.
+    Both halves are load-bearing: keyed on the vanilla pixel instead, a dark-tinted body on
+    these mostly-bright sprites sheened everywhere and two near-black recipes rendered as
+    white helmets; ungated, a hot brass faceplate washed to cream. Bare metal throws a hard
+    white specular; lacquer and paint keep their colour in the highlight."""
+    v = max(rgb)
+    if strength <= 0 or v <= knee:
+        return rgb
+    chroma = 0.0 if v <= 0 else (v - min(rgb)) / v
+    gate = 1.0 - min(1.0, chroma * 1.15)
+    if gate <= 0.0:
+        return rgb
+    t = ((v - knee) / (1.0 - knee)) ** 1.4 * strength * gate
+    return tuple(c + (1.0 - c) * min(0.60, t) for c in rgb)
+
+
+def helm_body(tint, s0, v0, gleam=1.0):
+    """shade_shield's exact math with the gleam preserve on a STRENGTH knob; at gleam=1.0 it
+    is bit-identical to shade_shield (pinned in selftest, so shader drift fails loudly). The
+    knob exists because the widened gleam branch protects light devices on dark shield plates,
+    but on a near-white helmet sprite it fires on nearly every pixel and lifts a dark tint
+    straight back toward white."""
+    h_t, s_t, vmult = tint
+    s_hot = min(0.97, s_t * 1.3 + 0.03)
+    v = shoulder((v0 ** 0.88) * vmult)
+    nh, ns = ramp_color(h_t, s_hot, v)
+    rgb = colorsys.hsv_to_rgb(nh, ns, v)
+    if gleam > 0 and s0 < SHIELD_GLEAM_S and v0 > SHIELD_GLEAM_V:
+        lift = 0.60 * min(1.0, (v0 - SHIELD_GLEAM_V) / (1.0 - SHIELD_GLEAM_V) + 0.35) * gleam
+        rgb = tuple(c + (1.0 - c) * lift for c in rgb)
+    return rgb
+
+
+def _helm_tone(spec, s0, v0, sheen, floor=0.0, gleam=1.0):
+    """The mask zone's tone: a full [h,s,v] identity colour. floor guarantees brightness for
+    an accent painted INTO a recess (unfloored, brass rivets and ember slits rendered
+    near-black and three round-two helmets came back looking untinted). gleam routes through
+    helm_body, not shade_shield, so a black comb can stay black and a gold crown gold on
+    bright zones (trim_gleam low) while white and silver accents keep the full preserve."""
+    v = floor + (1.0 - floor) * v0 if floor > 0 else v0
+    return _helm_sheen(helm_body(spec, s0, v, gleam), sheen)
+
+
+def helm_recolor(im, tint, opts, surface="card"):
+    """Owner-picked two-tone: body tint under contrast expansion and sheen, the recipe's
+    second colour blended across the feathered mask weight."""
+    o = dict(opts or {})
+    px = im.load()
+    coords, w = helm_mask(im, o.get("mode", "cover"), o.get("pct", 22),
+                          o.get("feather", 1.0), o.get("min_blob", 4))
+    solid_v = []
+    for c in coords:
+        if px[c][3] >= HELM_SOLID:
+            r, g, b, _ = px[c]
+            solid_v.append(colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[2])
+    median = sorted(solid_v)[len(solid_v) // 2] if solid_v else 0.5
+    contrast, sheen = o.get("contrast", 0.0), o.get("sheen", 0.0)
+    trim = tuple(o["trim"])
+    out = im.copy()
+    opx = out.load()
+    for c in coords:
+        r, g, b, a = px[c]
+        _, s0, v0raw = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        v0 = _helm_scurve(v0raw, median, contrast)
+        body = _helm_sheen(helm_body(tint, s0, v0, o.get("gleam", 1.0)), sheen)
+        t = _helm_tone(trim, s0, v0, o.get("trim_sheen", sheen),
+                       o.get("trim_floor", 0.0), o.get("trim_gleam", 1.0))
+        wc = w[c]
+        rgb = tuple(bb * (1 - wc) + tt * wc for bb, tt in zip(body, t))
+        opx[c] = (*[max(0, min(255, int(x * 255 + 0.5))) for x in rgb], a)
+    return out
+
+
+# Owner picks, one entry per settled helmet (rounds and letters in the commit that added each).
+# style "shield" = the recipe is a plain shield-engine override and bakes via shield_two_tone;
+# style "helm" = it bakes via helm_recolor above. Body tints live in data/items.json iconTint
+# (single source), same split as the shields' SHIELD_OVERRIDES.
+HELM_OVERRIDES = {
+    147: {"style": "shield", "trim_tint": (0.13, 0.86, 1.0), "split": "sat", "split_p": 44},
+    153: {"style": "shield", "trim_tint": (0.12, 0.72, 1.16), "cover_small": 0.24},
+    154: {"style": "shield", "trim": "vanilla", "cover_small": 0.18},
+    155: {"style": "shield", "trim_tint": (0.11, 0.60, 1.02), "split": "sat", "split_p": 50},
+    144: {"style": "helm", "mode": "cover", "pct": 22, "trim": (0.115, 0.85, 1.10),
+          "feather": 1.2, "min_blob": 5, "contrast": 0.45, "sheen": 0.45},
+    146: {"style": "helm", "mode": "cover", "pct": 20, "trim": (0.118, 0.80, 1.10),
+          "trim_floor": 0.35, "trim_gleam": 0.3, "feather": 1.2, "min_blob": 5,
+          "contrast": 0.5, "sheen": 0.45},
+    148: {"style": "helm", "mode": "cover", "pct": 20, "trim": (0.10, 0.10, 1.18),
+          "feather": 1.2, "min_blob": 5, "contrast": 0.5, "sheen": 0.5},
+    149: {"style": "helm", "mode": "shade", "pct": 24, "trim": (0.995, 0.85, 0.95),
+          "trim_floor": 0.5, "feather": 1.2, "min_blob": 5, "contrast": 0.5, "sheen": 0.45},
+    150: {"style": "helm", "mode": "cover", "pct": 20, "trim": (0.58, 0.05, 1.20),
+          "trim_sheen": 0.75, "gleam": 0.3, "feather": 1.2, "min_blob": 5,
+          "contrast": 0.5, "sheen": 0.35},
+    152: {"style": "helm", "mode": "shade", "pct": 22, "trim": (0.045, 0.75, 1.10),
+          "trim_floor": 0.5, "feather": 1.1, "min_blob": 5, "contrast": 0.45, "sheen": 0.4},
+    156: {"style": "helm", "mode": "cover", "pct": 28, "trim": (0.58, 0.03, 1.30),
+          "trim_sheen": 0.8, "gleam": 0.15, "feather": 1.2, "min_blob": 5,
+          "contrast": 0.45, "sheen": 0.4},
+}
+
+
 def recolor(im, hue, sat, val_mult):
-    """LEGACY whole-icon tint: armor and accessories only (their look predates LW-189 and is
-    unreviewed under the new rules; do not route weapons or shields here)."""
+    """LEGACY whole-icon tint: armor, accessories, and the two helmets whose owner letters
+    have not landed (their look must not change until they do); everything else predates
+    LW-189 review and keeps its shipped look the same way."""
     px = im.load()
     for y in range(im.height):
         for x in range(im.width):
@@ -558,6 +765,8 @@ def engine_for(item_id):
         return "bright-v2"
     if cat in WHOLE_BRIGHT_CATS:
         return "shield-bright"
+    if cat == "Helmet" and item_id in HELM_OVERRIDES:
+        return "helm-two-tone"
     return "legacy"
 
 
@@ -570,6 +779,12 @@ def route(im, item_id, tint, surface):
         return apply_weapon(im, item_id, tint, surface)
     if engine == "shield-bright":
         return shield_two_tone(im, tint, SHIELD_OVERRIDES.get(item_id), surface)
+    if engine == "helm-two-tone":
+        ov = dict(HELM_OVERRIDES[item_id])
+        style = ov.pop("style")
+        if style == "shield":
+            return shield_two_tone(im, tint, ov, surface)
+        return helm_recolor(im, tint, ov, surface)
     return recolor(im.copy(), *tint)
 
 
@@ -741,9 +956,114 @@ def selftest():
     s_r, s_g, s_b = trim_tone(0.10, 0.07, 0.85)
     check("gold trim is warm", g_r > g_b and (g_r - g_b) > 0.15)
     check("gold trim separates from the neutral default", abs(g_r - s_r) + abs(g_b - s_b) > 0.2)
-    # routing: shields take the shield engine, weapons keep bright-v2, everything else legacy
+    # --- LW-215 helmet engine ---------------------------------------------------------------
+    # Honest image identity: the old getbbox idiom compared ONLY alpha under Pillow 10+, so a
+    # red and a blue image passed as identical. This pin keeps the comparison colour-aware.
+    red = Image.new("RGBA", (4, 4), (255, 0, 0, 255))
+    blue = Image.new("RGBA", (4, 4), (0, 0, 255, 255))
+    ghost = red.copy()
+    ghost.putpixel((0, 0), (255, 0, 0, 128))
+    check("images_equal same is true", images_equal(red, red.copy()))
+    check("images_equal sees colour-only difference", not images_equal(red, blue))
+    check("images_equal sees alpha-only difference", not images_equal(red, ghost))
+    # masks rank over SOLID pixels only: a sprite ringed by a dark semi-transparent halo must
+    # never spend its shade budget on the halo (measured 80-94% loss on the 48px icons)
+    him = Image.new("RGBA", (20, 20), (0, 0, 0, 0))
+    for y in range(20):
+        for x in range(20):
+            edge = x in (0, 1, 18, 19) or y in (0, 1, 18, 19)
+            if edge:
+                him.putpixel((x, y), (10, 10, 10, 100))          # dark halo, NOT solid
+            else:
+                # dark recess in a plate whose brightness VARIES (a two-value plate defeats
+                # percentile cuts: the cut can only land on the majority value)
+                shade = 40 if (4 <= x <= 7 and 4 <= y <= 7) else 150 + (x + y) * 2
+                him.putpixel((x, y), (min(shade, 235),) * 3 + (255,))
+    hc, hm = _helm_raw_mask(him, "shade", 6)
+    hpx = him.load()
+    check("shade mask never lands on the halo", not any(hm[c] for c in hc if hpx[c][3] < HELM_SOLID))
+    check("shade mask finds the real recess", hm[(5, 5)] and not hm[(14, 14)])
+    # despeckle: an isolated wrong pixel dies in both polarities; a real blob survives
+    spk = {(x, y): False for x in range(8) for y in range(8)}
+    spk[(3, 3)] = True
+    check("despeckle kills an isolated speck", not _helm_despeckle(dict(spk), 3)[(3, 3)])
+    blob = {(x, y): (2 <= x <= 5 and 2 <= y <= 5) for x in range(8) for y in range(8)}
+    check("despeckle keeps a real blob", _helm_despeckle(dict(blob), 3)[(3, 3)])
+    # sheen: keyed on the OUTPUT tone (a dark body must not sheen), gated on chroma (saturated
+    # gold keeps its colour while neutral silver takes the lift)
+    check("sheen leaves a dark tone alone", _helm_sheen((0.3, 0.3, 0.3), 0.6) == (0.3, 0.3, 0.3))
+    lift_n = _helm_sheen((0.9, 0.9, 0.9), 0.6)[0] - 0.9
+    lift_g = _helm_sheen((0.9, 0.6, 0.1), 0.6)[0] - 0.9
+    check("sheen lifts a bright neutral", lift_n > 0.01)
+    check("sheen chroma gate protects saturated gold", lift_g < lift_n * 0.2)
+    # gleam knob: at 1.0 helm_body IS shade_shield (bit-identical, so shader drift fails here);
+    # at 0 a gleam-qualified pixel comes out darker (the lift that whitewashed dark bodies)
+    drift = []
+    for s0 in (0.05, 0.2, 0.35, 0.6):
+        for v0 in (0.1, 0.5, 0.76, 0.9, 1.0):
+            for tt in ((0.6, 0.1, 0.45), (0.02, 0.7, 0.8), (0.13, 0.85, 1.1)):
+                a1 = tuple(int(c * 255) for c in helm_body(tt, s0, v0, gleam=1.0))
+                if a1 != shade_shield(tt[0], tt[1], tt[2], s0, v0):
+                    drift.append((tt, s0, v0))
+    check(f"helm_body(gleam=1) is bit-identical to shade_shield (drift: {drift})", not drift)
+    check("gleam 0 kills the whitewash on a dark body",
+          max(helm_body((0.6, 0.1, 0.35), 0.1, 0.9, gleam=0.0))
+          < max(helm_body((0.6, 0.1, 0.35), 0.1, 0.9, gleam=1.0)))
+    # trim_floor: an accent painted into a recess must be able to read as a light source
+    check("trim_floor lifts a dark-zone accent",
+          max(_helm_tone((0.115, 0.85, 1.1), 0.4, 0.1, 0.0, floor=0.5))
+          > max(_helm_tone((0.115, 0.85, 1.1), 0.4, 0.1, 0.0, floor=0.0)))
+    # spatial knobs scale with sprite width: the same 2px feature a 100px card despeckles as
+    # noise (floor 5) must SURVIVE on a 48px icon (floor scales to 2), or icons lose real zones
+    def two_px_sprite(w):
+        s = Image.new("RGBA", (w, w), (0, 0, 0, 0))
+        for y in range(w):
+            for x in range(w):
+                s.putpixel((x, y), (60, 60, 60, 255))
+        s.putpixel((w // 2, w // 2), (250, 250, 250, 255))
+        s.putpixel((w // 2 + 1, w // 2), (250, 250, 250, 255))
+        return s
+    _, w100 = helm_mask(two_px_sprite(100), "cover", 2, feather=0.0, min_blob=5, smooth=0)
+    _, w48 = helm_mask(two_px_sprite(48), "cover", 2, feather=0.0, min_blob=5, smooth=0)
+    check("card-size despeckle eats a 2px speck", not any(v > 0 for v in w100.values()))
+    check("icon-size blob floor scales down and keeps it", any(v > 0 for v in w48.values()))
+    # scurve: off at 0, output clamped, monotone around the median
+    check("scurve identity at amount 0", _helm_scurve(0.37, 0.5, 0.0) == 0.37)
+    check("scurve expands away from the median",
+          _helm_scurve(0.8, 0.5, 0.5) > 0.8 and _helm_scurve(0.2, 0.5, 0.5) < 0.2)
+    # helm_recolor end to end on a synthetic sprite: body tinted, mask zone a distinct tone,
+    # transparency untouched
+    hr = helm_recolor(him, (0.6, 0.7, 0.9), {"mode": "shade", "pct": 6, "trim": (0.1, 0.8, 1.1),
+                                             "trim_floor": 0.5, "feather": 0.5, "min_blob": 3})
+    check("helm body takes the tint", hr.getpixel((14, 14)) != him.getpixel((14, 14)))
+    check("helm mask zone is a distinct tone",
+          sum(abs(a - b) for a, b in zip(hr.getpixel((5, 5))[:3], hr.getpixel((14, 14))[:3])) > 60)
+    check("helm transparency untouched", hr.getpixel((0, 5))[3] == 100)
+    # the picked-recipe table: every entry names a real helmet, a known style, known keys
+    check("every helm override names a real helmet",
+          all(_CATEGORY.get(i) == "Helmet" for i in HELM_OVERRIDES))
+    check("every helm override names a known style",
+          all(o.get("style") in ("shield", "helm") for o in HELM_OVERRIDES.values()))
+    _SHIELD_KEYS = {"trim", "invert", "cover", "cover_small", "trim_tint", "split", "split_p",
+                    "swap_small", "ring"}
+    _HELM_KEYS = {"mode", "pct", "trim", "trim_floor", "trim_gleam", "trim_sheen",
+                  "feather", "min_blob", "contrast", "sheen", "gleam"}
+    check("shield-style helm recipes use only shield keys",
+          all(set(o) - {"style"} <= _SHIELD_KEYS
+              for o in HELM_OVERRIDES.values() if o["style"] == "shield"))
+    check("helm-style recipes use only helm keys",
+          all(set(o) - {"style"} <= _HELM_KEYS
+              for o in HELM_OVERRIDES.values() if o["style"] == "helm"))
+    check("helm-style masks are organic modes only",
+          all(o.get("mode") in ("cover", "shade")
+              for o in HELM_OVERRIDES.values() if o["style"] == "helm"))
+
+    # routing: shields take the shield engine, weapons keep bright-v2, picked helmets the helm
+    # engine, unpicked helmets (and everything unreviewed) legacy
     check("shield routes to shield-bright", engine_for(128) == "shield-bright")
     check("weapon routes to bright-v2", engine_for(19) == "bright-v2")
+    check("picked helmet routes to helm-two-tone", engine_for(156) == "helm-two-tone")
+    check("unpicked helmet stays legacy", engine_for(145) == "legacy" and engine_for(151) == "legacy")
     # PALETTE SEPARATION. Under whole-glyph coverage the tint is the item's entire colour signal,
     # so two close tints are one shield in two names. The pre-LW-190 palette had seven such pairs
     # (140 vs 142 were 0.02 hue and 0.02 saturation apart). This is the tripwire that keeps a

@@ -4302,11 +4302,7 @@
         "rider": "None",
         "equipBonusId": 0
       },
-      "iconTint": [
-        0.08,
-        0.45,
-        0.55
-      ]
+      "iconTint": [0.015, 0.68, 0.85]
     },
     {
       "id": 145,
@@ -4358,11 +4354,7 @@
         "rider": "innate Protect",
         "equipBonusId": 2
       },
-      "iconTint": [
-        0.0,
-        0.0,
-        0.5
-      ]
+      "iconTint": [0.605, 0.8, 0.9]
     },
     {
       "id": 147,
@@ -4386,11 +4378,7 @@
         "rider": "null Lightning",
         "equipBonusId": 35
       },
-      "iconTint": [
-        0.15,
-        0.7,
-        0.85
-      ]
+      "iconTint": [0.58, 0.3, 0.82]
     },
     {
       "id": 148,
@@ -4414,11 +4402,7 @@
         "rider": "immune Silence",
         "equipBonusId": 26
       },
-      "iconTint": [
-        0.5,
-        0.3,
-        0.8
-      ]
+      "iconTint": [0.085, 0.65, 0.75]
     },
     {
       "id": 149,
@@ -4442,11 +4426,7 @@
         "rider": "Jump+1",
         "equipBonusId": 43
       },
-      "iconTint": [
-        0.13,
-        0.85,
-        0.9
-      ]
+      "iconTint": [0.125, 0.85, 1.05]
     },
     {
       "id": 150,
@@ -4470,11 +4450,7 @@
         "rider": "immune Sleep, Blind",
         "equipBonusId": 20
       },
-      "iconTint": [
-        0.0,
-        0.0,
-        0.35
-      ]
+      "iconTint": [0.63, 0.6, 0.5]
     },
     {
       "id": 151,
@@ -4526,11 +4502,7 @@
         "rider": "innate Shell",
         "equipBonusId": 4
       },
-      "iconTint": [
-        0.55,
-        0.08,
-        0.85
-      ]
+      "iconTint": [0.5, 0.7, 0.65]
     },
     {
       "id": 153,
@@ -4554,11 +4526,7 @@
         "rider": "immune Charm",
         "equipBonusId": 82
       },
-      "iconTint": [
-        0.14,
-        0.6,
-        0.95
-      ]
+      "iconTint": [0.94, 0.48, 1.12]
     },
     {
       "id": 154,
@@ -4582,11 +4550,7 @@
         "rider": "immune Stop, Stone",
         "equipBonusId": 59
       },
-      "iconTint": [
-        0.78,
-        0.4,
-        0.95
-      ]
+      "iconTint": [0.8, 0.44, 0.9]
     },
     {
       "id": 155,
@@ -4610,11 +4574,7 @@
         "rider": "innate Protect, Shell",
         "equipBonusId": 68
       },
-      "iconTint": [
-        0.02,
-        0.7,
-        0.8
-      ]
+      "iconTint": [0.01, 0.88, 0.92]
     },
     {
       "id": 156,
@@ -4638,11 +4598,7 @@
         "rider": "immune Doom, Sleep",
         "equipBonusId": 54
       },
-      "iconTint": [
-        0.13,
-        0.35,
-        1.0
-      ]
+      "iconTint": [0.6, 0.1, 0.32]
     },
     {
       "id": 157,

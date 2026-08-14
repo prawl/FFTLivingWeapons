@@ -13,6 +13,21 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
+- **[LW-227] The icon check that proves "the shipped picture is the approved picture" was passing without looking at any colour** (opened 2026-08-13) [BUILDING]
+  - Done means: the check compares two images and asks Pillow whether they differ, but the
+    newest Pillow answers by looking only at which pixels are see-through, so two pictures with
+    completely different colours came back "identical" (proven by handing it the shipped red
+    Genji Helm and the untinted vanilla art of the same helmet). Done is the comparison seeing
+    colour again, a regression case pinning it so it cannot silently rot back, and the already
+    shipped families re-checked under the honest gate. (Tech: tools/icon_preview.py used
+    `ImageChops.difference(a, b).getbbox() is not None`; Pillow 10 made getbbox alpha-only by
+    default and this box runs Pillow 12.0.0. Fix is a shared bytes-level `images_equal` in
+    tools/recolor_icons.py used by the verify verb, plus red-vs-blue and alpha-only regression
+    cases in the recolor selftest.)
+  - Verify: the recolor selftest is green including the new honesty cases, and
+    `icon_preview.py verify` across the full catalog reports zero mismatches under the honest
+    comparison, which is the shields-and-weapons re-check happening in the same breath.
+
 - **[LW-215] Give the thirteen helmet icons the shields-grade treatment, first section of the re-pass program** (opened 2026-08-13) [BUILDING]
   - Done means: helmets stop being the family the icon work never reached: all thirteen still
     wear the legacy one-hue stamp (one flat colour over every pixel), now the worst look in a
@@ -115,22 +130,6 @@ the technical detail lives in the indented lines under it.
     Float source equipped.
 
 ## Backlog
-
-- [LW-227] 2026-08-13: The icon check that is supposed to prove "the shipped picture is exactly
-  the picture you approved" has been passing without actually looking at any colour. It compares
-  two images and asks Pillow whether they differ, but the newest Pillow answers that question by
-  looking only at which pixels are see-through, so two pictures with completely different colours
-  come back "identical". Proven here by handing it the shipped red Genji Helm and the untinted
-  vanilla art of the same helmet: it called them the same image. Nothing shipped is known to be
-  wrong, but every "bake matched the preview pixel for pixel" sign-off since the Pillow upgrade
-  proved less than it claimed, so the shields and weapons want a re-check once the check is
-  honest again. (Tech: tools/icon_preview.py:180 uses
-  `ImageChops.difference(a, b).getbbox() is not None`; Pillow 10 added `alpha_only=True` as
-  getbbox's default and this box runs Pillow 12.0.0, so the all-zero alpha channel of the
-  difference image short-circuits it. Fix is a direct `a.tobytes() != b.tobytes()`, which also
-  keeps catching alpha drift and needs no version floor; add a red-vs-blue regression case so it
-  cannot silently rot again. Found during the LW-215 helmet pass, whose own harness check hit
-  the same trap.)
 
 - [LW-198] 2026-08-13: Daggers re-pass: the 11 dagger icons get the shields-grade per item
   review. This row also carries the LW-198 through LW-226 program statement the other section

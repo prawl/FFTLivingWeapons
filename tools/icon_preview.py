@@ -177,7 +177,10 @@ def cmd_verify(out):
                 continue
             a = Image.open(prod).convert("RGBA")
             b = Image.open(ref).convert("RGBA")
-            if a.size != b.size or ImageChops.difference(a, b).getbbox() is not None:
+            # ri.images_equal, NOT ImageChops.difference(...).getbbox(): Pillow 10 made
+            # getbbox() alpha-only by default, so the old idiom passed two images that
+            # differed only in colour (LW-227; regression pinned in the recolor selftest).
+            if not ri.images_equal(a, b):
                 bad.append(f"{prod.name} vs {ref.name}")
     print(f"{len(manifest) * 2} comparisons: {len(bad)} mismatched, {len(missing)} missing")
     for x in bad + missing:
