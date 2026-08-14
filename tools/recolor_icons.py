@@ -1253,6 +1253,7 @@ def _edge(tone, pct=20, floor=0.52, gleam=0.30, sheen=0.45, min_blob=3, feather=
 SWORD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Sword")
 KNIGHT_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "KnightSword")
 BOW_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bow")
+GUN_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Gun")
 
 ZONE_OVERRIDES = {
     # --- Swords (LW-199, 2026-08-14) ------------------------------------------------------
@@ -1395,6 +1396,31 @@ ZONE_OVERRIDES = {
     # thing from Save the Queen, whose sprite it borrows.
     50: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
                    _edge(GOLD, pct=22)], "gleam": 0.20, "contrast": 0.60},  # Sunderer
+    # --- Guns (LW-203, 2026-08-14) --------------------------------------------------------
+    # The least-coloured family in the game before this pass: measured, the shipping bake reached
+    # a MEDIAN 1.7% of each gun's solid art and 0.0% of the Ironclad Repeater's, which is last of
+    # the twelve families still on bright-v2.
+    #
+    # A gun is the crossbow's split again, and the third art shape to need no new engine: a
+    # wooden STOCK against a metal BARREL, which saturation separates in one pass. Measured, the
+    # desat key claims 12 to 21 percent on all six and lands on the barrel every time, so the
+    # identity colour lives on the stock and frame where a player reads it.
+    #
+    # Tints for this family live in data/items.json, not in the table above, so the reasoning
+    # lives here beside the recipes. Four of the six kept their vanilla names and are anchored to
+    # their own measured hue: Stoneshooter 0.075 (warm earth), Glacial Gun 0.574 (cool),
+    # Blaze Gun 0.033 at chroma 0.143 (the most chromatic anchor met so far, and it wanted little
+    # more than saturating), Blaster 0.184 at chroma 0.032 (near colourless, so value is what its
+    # anchor constrains, the Chaos Blade's case).
+    # A walnut stock was tried first and put two BROWN guns in a six-gun list beside the
+    # Stoneshooter, which is anchored to its own earth hue and cannot move. This one is the
+    # free name, so it takes the burgundy lacquer a duelling pistol would wear.
+    71: {"zones": [_material(STEEL, sat_p=32)], "gleam": 0.25},              # Outrider Pistol
+    72: {"zones": [_material(BRASS, sat_p=30)], "gleam": 0.25},              # Ironclad Repeater
+    73: {"zones": [_material(SILVER, sat_p=32)], "gleam": 0.22},             # Stoneshooter
+    74: {"zones": [_material(WHITE, sat_p=30)], "gleam": 0.35},              # Glacial Gun
+    75: {"zones": [_material(BLACK_IRON, sat_p=32)], "gleam": 0.20},         # Blaze Gun
+    76: {"zones": [_material(STEEL, sat_p=30)], "gleam": 0.22},              # Blaster
     # --- Bows (LW-201, 2026-08-14) --------------------------------------------------------
     # Bows reuse the CROSSBOW helper, not the sword one, because a bow is a crossbow's relative
     # and not a blade's: it has no hilt to find. Measured over the nine, the darkness key that
@@ -2168,7 +2194,7 @@ def selftest():
     # family that has actually been through a review pass, not that they are all hats: the zone
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
-    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow"}
+    _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2214,7 +2240,8 @@ def selftest():
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
     check("every reviewed family is picked, whole",
           sorted(ZONE_OVERRIDES)
-          == sorted({i for i, c in _CATEGORY.items() if c in ("Hat", "Crossbow", "Bow")}
+          == sorted({i for i, c in _CATEGORY.items()
+                     if c in ("Hat", "Crossbow", "Bow", "Gun")}
                     | SWORD_RACK | KNIGHT_RACK))
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
@@ -2261,7 +2288,9 @@ def selftest():
     swords = sorted(SWORD_RACK)
     knights = sorted(KNIGHT_RACK)
     bows = sorted(BOW_RACK)
-    for rack_name, rack in (("sword", swords), ("knight sword", knights), ("bow", bows)):
+    guns = sorted(GUN_RACK)
+    for rack_name, rack in (("sword", swords), ("knight sword", knights),
+                            ("bow", bows), ("gun", guns)):
         rack_collisions = [
             (a, b) for n, a in enumerate(rack) for b in rack[n + 1:]
             if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < RACK_MIN_HUE_GAP
@@ -2272,6 +2301,7 @@ def selftest():
     check("the sword rack is all fifteen", len(swords) == 15)
     check("the knight sword rack is all seven", len(knights) == 7)
     check("the bow rack is all nine", len(bows) == 9)
+    check("the gun rack is all six", len(guns) == 6)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2298,7 +2328,7 @@ def selftest():
     #      escape: a second material must differ in HUE or in SATURATION.
     # These are the pins standing in for a rule the owner enforces by rejection, so they are held
     # to the standard of failing when the thing they describe is false.
-    bladed = swords + knights + bows
+    bladed = swords + knights + bows + guns
     zone_ids = [i for i in bladed if i in ZONE_OVERRIDES]
     check("every reviewed weapon has a recipe at all", len(zone_ids) == len(bladed))
     check("every sword carries a second material",

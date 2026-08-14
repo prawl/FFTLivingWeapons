@@ -186,6 +186,28 @@ the technical detail lives in the indented lines under it.
     pixels for every already-approved family; the bake matching the reviewed gallery pixel for
     pixel; and the owner's gallery pass.
 
+- **[LW-203] The guns are the least-coloured family in the game: half of them are the artist's sprite with a tint that never landed** (opened 2026-08-13) [BUILDING]
+  - Promoted 2026-08-14, chosen on evidence rather than order. Every remaining bright-v2 weapon
+    family was measured for how much of its solid art the shipping bake actually reaches, and
+    guns came last of twelve: median 1.7 percent, five of six under 15 percent, and the Ironclad
+    Repeater at 0.0. Rods (median 2.2) and poles (4.7) are the next two and should follow.
+  - A gun is a third art shape, after the blade and the bow, and it needs no new engine either.
+    It is a wooden STOCK plus a metal BARREL, which is the crossbow's own split ("warm wood
+    against grey metal"), so the saturation key finds the barrel on all six at 12 to 21 percent
+    and the identity colour lives on the stock and frame.
+  - FOUR of the six kept their vanilla names (Stoneshooter, Glacial Gun, Blaze Gun, Blaster), so
+    this family runs mostly on the reserved-name rule, anchored to each item's own measured
+    vanilla hue. The Blaze Gun is the most chromatic anchor met so far (chroma 0.143) and wants
+    little more than saturating; the Blaster is near colourless (0.032) so its anchor constrains
+    value and not hue, the Chaos Blade's case.
+  - Done means: all six carry their identity colour across their solid art with the barrel as a
+    visibly separate material, no two read alike at list size, the four reserved names are
+    enriched rather than reinvented, and no already-approved art moves.
+  - Verify: recolor_icons selftest green with the palette pins extended to this family; every
+    gun's second material measured on the real art; `icon_preview.py compare` showing 0 moved
+    pixels for every already-approved family; the bake matching the reviewed gallery pixel for
+    pixel; and the owner's gallery pass.
+
 ## Backlog
 
 - [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
@@ -279,8 +301,6 @@ the technical detail lives in the indented lines under it.
   process") plus the engine modes in tools/recolor_icons.py. Helmets run first (LW-215
   promoted 2026-08-13, the owner delegated the order call): headgear still wears the legacy
   one-hue stamp, and a helmet is the same art shape the shield engine was built for.
-
-- [LW-203] 2026-08-13: Guns re-pass: the 6 gun icons get the shields-grade per item review; process per LW-198.
 
 - [LW-204] 2026-08-13: Katanas re-pass: the 11 katana icons get the shields-grade per item review, including the five smalls that carry the card-style override today; process per LW-198.
 
