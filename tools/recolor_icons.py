@@ -1315,6 +1315,7 @@ POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
 SPEAR_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Polearm")
 STAFF_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Staff")
 CLOTH_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Cloth")
+KATANA_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Katana")
 HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
@@ -1519,6 +1520,55 @@ ZONE_OVERRIDES = {
     112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
     113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
     114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
+    # --- Katanas (LW-204, 2026-08-14) -----------------------------------------------------
+    # CARD median 33.3% of the solid art before this pass. The number is not why this family
+    # needed doing: TEN OF THE ELEVEN KEPT THEIR VANILLA NAMES, which by the owner's rule means
+    # each is anchored to its own art, and five of them were painted 88 to 179 degrees away from
+    # it. The Masamune's art is blue and it wore gold; the Chirijiraden's is amber and it wore
+    # blue; the Muramasa's is the second most chromatic sprite in the game and it wore violet.
+    # That is the Whale Whisker defect (LW-238) five times over, in one family.
+    #
+    # Measured on the 48px icons, chroma-weighted, the same metric that returns the Perseus Bow's
+    # published figures: six sit at or above the 0.120 line and are genuinely coloured art, so
+    # they keep what they have. 38 Ashura 213 deg / 0.137, 43 Kiyomori 185 / 0.132, 44 Muramasa
+    # 23 / 0.251, 46 Masamune 228 / 0.147, 47 Chirijiraden 36 / 0.261, and 70 rides 38's sprite.
+    # Five measure 0.079 to 0.114, inside the near-neutral case the Ivory Pole established, so
+    # their hue is free: 39 Kotetsu, 40 Bizen Osafune, 41 Murasame, 42 Ame-no-Murakumo and
+    # 45 Kiku-ichimonji.
+    #
+    # TWO anchors collide with a convention and take the Holy Lance's resolution rather than
+    # choosing. The Masamune is the line's Holy blade and its art is blue, so the blue stays on
+    # the body and the holy goes into a gold fuller. The Kiyomori poisons on hit and its art is
+    # cyan, so the venom goes into the edge.
+    #
+    # The recipe is the SWORD's, unchanged, because a katana is a sword: a tsuka the artist drew
+    # darker than the blade and a fuller he drew brighter. Both keys land where their docstrings
+    # say. Three items needed their percentile moved and the reason is per sprite rather than per
+    # family: the Murasame's hilt is barely darker than its blade (24 gives 3.1 percent of the
+    # card, 34 gives 11.0), the Muramasa's fuller is wide (28), the Masamune's tsuka is small
+    # (30).
+    # THE AME-NO-MURAKUMO'S FULLER CANNOT BE REACHED ON ITS CARD and that is left as it is. The
+    # artist drew the gathering-storm blade as a wisp: 213 solid pixels against 433 in the halo
+    # band, with 68 percent of the solid art in the hilt third, so the brightest-share key finds
+    # nothing solid to sit on at any percentile worth having (0.0 percent until pct 46, where the
+    # icon has gone to 46). Its card carries a 23.5 percent brass tsuka instead, which is a real
+    # second material, so this is the harp's finding on one item rather than the Wellspring Rod's
+    # defect (LW-237): a zone that is empty on one surface while the ITEM still reads two-tone on
+    # both.
+    38: {"zones": [_hilt(BRASS, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},   # Ashura
+    39: {"zones": [_hilt(BONE, pct=24), _edge(STEEL, pct=22)], "gleam": 0.25},    # Kotetsu
+    40: {"zones": [_hilt(GOLD, pct=24), _edge(SILVER, pct=22)], "gleam": 0.25},   # Bizen Osafune
+    41: {"zones": [_hilt(BONE, pct=34), _edge(WHITE, pct=22)], "gleam": 0.25},    # Murasame
+    42: {"zones": [_hilt(BRASS, pct=24), _edge(LEVIN, pct=22)], "gleam": 0.25},   # Ame-no-Murakumo
+    43: {"zones": [_hilt(BRASS, pct=24), _edge(VERDANT, pct=22)], "gleam": 0.25},  # Kiyomori
+    44: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(BONE, pct=28)], "gleam": 0.25},  # Muramasa
+    45: {"zones": [_hilt(STEEL, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},   # Kiku-ichimonji
+    46: {"zones": [_hilt(SILVER, pct=30), _edge(GOLD, pct=22)], "gleam": 0.25},   # Masamune
+    47: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},  # Chirijiraden
+    # The Sasori draws itself with the Ashura's sprite, the fifth such pair in the programme, so
+    # colour is the only thing telling them apart: venom green under bone against steel blue
+    # under brass, 0.29 of hue apart.
+    70: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(BONE, pct=22)], "gleam": 0.25},  # Sasori
     # --- Cloths (LW-213, 2026-08-14) ------------------------------------------------------
     # CARD median 32.0% of the solid art before this pass, the healthiest starting point of any
     # family so far, and the reason this one came next anyway is that the dancer's three veils
@@ -2542,7 +2592,7 @@ def selftest():
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
-                   "Pole", "Instrument", "Polearm", "Staff", "Cloth"}
+                   "Pole", "Instrument", "Polearm", "Staff", "Cloth", "Katana"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2600,7 +2650,8 @@ def selftest():
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
     _reviewed = sorted({i for i, c in _CATEGORY.items()
                         if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
-                                 "Polearm", "Staff", "Cloth")} | SWORD_RACK | KNIGHT_RACK)
+                                 "Polearm", "Staff", "Cloth", "Katana")}
+                       | SWORD_RACK | KNIGHT_RACK)
     _no_recipe = sorted(set(_reviewed) - set(ZONE_OVERRIDES))
     _extra = sorted(set(ZONE_OVERRIDES) - set(_reviewed))
     # Named, not just counted. The guard added on 2026-08-14 stopped a half-added family killing
@@ -2661,6 +2712,7 @@ def selftest():
     spears = sorted(SPEAR_RACK)
     staves = sorted(STAFF_RACK)
     cloths = sorted(CLOTH_RACK)
+    katanas = sorted(KATANA_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2703,7 +2755,7 @@ def selftest():
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
                             ("harp", harps), ("spear", spears), ("staff", staves),
-                            ("cloth", cloths),
+                            ("cloth", cloths), ("katana", katanas),
                             ("hat", hats), ("crossbow", xbows)):
         # `i in ICON_TINTS` for the same reason body_is_whole_signal uses .get: the racks come
         # from the item data and the tints from a second source, so an id can legitimately be
@@ -2736,6 +2788,7 @@ def selftest():
     check("the polearm rack is all eight", len(spears) == 8)
     check("the staff rack is all eight", len(staves) == 8)
     check("the cloth rack is all three", len(cloths) == 3)
+    check("the katana rack is all eleven", len(katanas) == 11)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2783,7 +2836,8 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    bladed = swords + knights + bows + guns + rods + poles + harps + spears + staves + cloths
+    bladed = (swords + knights + bows + guns + rods + poles + harps + spears + staves
+              + cloths + katanas)
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in

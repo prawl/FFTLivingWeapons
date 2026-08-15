@@ -121,6 +121,39 @@ the technical detail lives in the indented lines under it.
     surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
     pass.
 
+- **[LW-204] Ten of the eleven katanas kept their original names, and five were painted the wrong colour for their own artwork** (opened 2026-08-13) [AWAITING-LIVE]
+  - BUILT and gated 2026-08-14, owner gallery pass outstanding. The coverage number was not this
+    family's problem. Ten of the eleven kept their vanilla names, which by your rule means each
+    is built from its own picture, and five of them were between 88 and 179 degrees away from it:
+    the Masamune's art is blue and it wore gold, the Chirijiraden's is amber and it wore blue,
+    the Muramasa's is the second most strongly coloured sprite in the game and it wore violet.
+    All eleven now have a blade colour, a metal on the handle and a metal down the fuller.
+  - Measured on the list icons, six of the eleven are genuinely coloured art and keep what they
+    have; five measure below the near-neutral line the Ivory Pole established, so their colour is
+    free. Two of the anchored ones collide with a convention and take the Holy Lance's
+    resolution rather than choosing: the Masamune is the Holy blade and its art is blue, so the
+    blue stays on the body and the holy goes into a gold fuller, and the Kiyomori poisons on hit
+    and its art is cyan, so the venom goes into the edge. (Tech: anchors, chroma-weighted on the
+    icon: 38 Ashura 213 deg / 0.137, 43 Kiyomori 185 / 0.132, 44 Muramasa 23 / 0.251, 46 Masamune
+    228 / 0.147, 47 Chirijiraden 36 / 0.261; free at 0.079 to 0.114 are 39, 40, 41, 42, 45. The
+    recipe is the SWORD's unchanged, since a katana is a sword with a tsuka the artist drew
+    darker and a fuller he drew brighter. Three percentiles moved per sprite: 41's hilt to 34,
+    44's fuller to 28, 46's hilt to 30.)
+  - One item's fuller cannot be reached on its card and is left that way on purpose. The artist
+    drew the Ame-no-Murakumo as a wisp, 213 solid pixels against 433 of haze with 68 percent of
+    the solid art in the hilt third, so the brightest-share key has nothing solid to sit on. Its
+    card carries a 23.5 percent brass tsuka instead, so the ITEM still reads two-tone on both
+    surfaces; this is the harps' finding on one item, not the Wellspring Rod's defect.
+  - Done means: all eleven carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, every reserved name is anchored
+    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
+  - Verify: recolor_icons selftest green with the family inside every owner-rule pin and three
+    mutations proving those pins bite, including the harder shared-sprite floor on the
+    Ashura/Sasori pair; every anchor measured on both surfaces; icon_preview.py compare --expect
+    naming exactly these ids and exiting clean over all 468 surfaces; the bake matching a FULL
+    preview manifest pixel for pixel; and the owner's gallery pass, which is where the two
+    art-versus-convention rulings get settled.
+
 
 ## Backlog
 
@@ -139,10 +172,9 @@ the technical detail lives in the indented lines under it.
     pass lands (which is what will happen anyway). Either way the identity check needs to be run
     at full scope from now on, or it will keep certifying whatever the last partial run covered.
   - Each family that goes through its own colour pass leaves this set on its way past, so the
-    number falls on its own: it was 58 items when found, and is 39 now that the polearms, the
-    staves and the cloths have been through (LW-207, LW-209, LW-213).
-  - (Tech: 77 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 38-47, 68-70, 95-98,
-    115-118. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
+    number falls on its own: it was 58 items when found, and is 28 now that the polearms, the
+    staves, the cloths and the katanas have been through (LW-207, LW-209, LW-213, LW-204).
+  - (Tech: 55 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 68-69, 95-98, 115-118. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
     signature of the LW-230 ramp. _halo_int reached shade_bright in 495f9fc; those .tex files
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
     then verify.)
@@ -333,8 +365,6 @@ the technical detail lives in the indented lines under it.
   process") plus the engine modes in tools/recolor_icons.py. Helmets run first (LW-215
   promoted 2026-08-13, the owner delegated the order call): headgear still wears the legacy
   one-hue stamp, and a helmet is the same art shape the shield engine was built for.
-
-- [LW-204] 2026-08-13: Katanas re-pass: the 11 katana icons get the shields-grade per item review, including the five smalls that carry the card-style override today; process per LW-198.
 
 - [LW-205] 2026-08-13: Ninja Blades re-pass: the 9 ninja blade icons get the shields-grade per item review; process per LW-198.
 
