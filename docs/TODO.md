@@ -70,6 +70,34 @@ the technical detail lives in the indented lines under it.
     surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
     pass, which is also where the Holy Lance's blue-body-with-gold-trim reading gets its ruling.
 
+- **[LW-209] The eight staves are the least-coloured family left after the spears, and two pairs of them read as each other** (opened 2026-08-13) [AWAITING-LIVE]
+  - BUILT and gated 2026-08-14, owner gallery pass outstanding. On the big equip card the colour
+    was reaching a median 14.2 percent of each staff's own artwork, and nothing at all on three
+    of them. Worse than the number: side by side in a list, the Mending and Warding Staves were
+    the same green and the Warlock's Staff and the Staff of the Magi the same purple. All eight
+    now carry their colour with a separate metal running the staff's lit ridge: ash wood under
+    bone, warlock violet under silver, healer's jade under white, ward blue under brass, fire
+    under white-hot, a radiant white Sanctus with its holy moved into a gold ridge, storm indigo
+    under levin, and the Staff of the Magi keeping the gold head its own picture is painted with
+    over a near-black shaft.
+  - This is the first family where the artist drew the whole object as ONE material, so the
+    second one had to be invented, which is the crossbow's case rather than the sword's. The
+    only honest place to put it is where the light already falls, and the brightness key's answer
+    here happens to be the best possible one: the lit ridge runs the staff's whole length, head
+    to ferrule, so it crosses the largest shape instead of sitting at one end. (Tech: _edge at
+    pct 32 across the family, uniform because the eight sprites are four pairs of one drawing;
+    saturation claims 9 to 20 percent of these cards and lands on scattered edge pixels,
+    darkness returns 0.0 to 2.7 percent, the lowest of any family met. Shipped zone share: card
+    8 to 25 percent, icon 28 to 33.)
+  - Done means: all eight carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, both reserved names are anchored
+    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
+  - Verify: recolor_icons selftest green with the family inside every owner-rule pin and five
+    mutations proving those pins bite; each staff's second material measured on the real art;
+    icon_preview.py compare --expect naming exactly these ids and exiting clean over all 468
+    surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
+    pass, which is also where the Sanctus Staff's white-with-gold reading gets its ruling.
+
 
 ## Backlog
 
@@ -88,9 +116,9 @@ the technical detail lives in the indented lines under it.
     pass lands (which is what will happen anyway). Either way the identity check needs to be run
     at full scope from now on, or it will keep certifying whatever the last partial run covered.
   - Each family that goes through its own colour pass leaves this set on its way past, so the
-    number falls on its own: it was 58 items when found and is 50 now that the polearms have
-    been through (LW-207).
-  - (Tech: 99 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 38-47, 59-70, 95-98,
+    number falls on its own: it was 58 items when found, and is 42 now that the polearms and the
+    staves have been through (LW-207, LW-209).
+  - (Tech: 83 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 38-47, 68-70, 95-98,
     115-121. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
     signature of the LW-230 ramp. _halo_int reached shade_bright in 495f9fc; those .tex files
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
@@ -286,8 +314,6 @@ the technical detail lives in the indented lines under it.
 - [LW-204] 2026-08-13: Katanas re-pass: the 11 katana icons get the shields-grade per item review, including the five smalls that carry the card-style override today; process per LW-198.
 
 - [LW-205] 2026-08-13: Ninja Blades re-pass: the 9 ninja blade icons get the shields-grade per item review; process per LW-198.
-
-- [LW-209] 2026-08-13: Staves re-pass: the 8 staff icons get the shields-grade per item review; process per LW-198.
 
 - [LW-210] 2026-08-13: Books re-pass: the 4 book icons get the shields-grade per item review (no-blade art, largest-cluster rule today); process per LW-198.
 

@@ -1313,6 +1313,7 @@ GUN_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Gun")
 ROD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Rod")
 POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
 SPEAR_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Polearm")
+STAFF_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Staff")
 HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
@@ -1517,6 +1518,50 @@ ZONE_OVERRIDES = {
     112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
     113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
     114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
+    # --- Staves (LW-209, 2026-08-14) ------------------------------------------------------
+    # CARD median 14.2% of the solid art before this pass, with the Warding Staff, the Zeus Mace
+    # and the Staff of the Magi all at 0.0 percent. Two of the eight also read as each other:
+    # the Mending and Warding Staves shipped as the same green (0.03 apart in hue and exactly at
+    # the saturation floor, so the palette tripwire allowed it by a hair) and the Warlock's and
+    # the Magi as the same purple. Both pairs are visible side by side in the pre-pass list row.
+    #
+    # A staff is a HEAD and a SHAFT and, unlike every family before it, the artist drew them as
+    # ONE material: the four hooked staves are a single piece of wood and the four spiral ones a
+    # single piece of metal with a gem set in the head. So there is no second material to find,
+    # and this family is the crossbow's case rather than the sword's: the second material has to
+    # be invented, and the only honest place to put it is where the light already falls.
+    # The brightness key is what does that here, and its answer is unusually good: it lands on
+    # the staff's LIT RIDGE, which runs the whole length of the object, head to ferrule. That is
+    # the sword pass's own test for a second material, that it cross the object's largest shape
+    # rather than sit at one end, and a ridge passes it in a way a head ornament would not.
+    # Saturation was measured and refused: it claims 9 to 20 percent of these cards and lands on
+    # scattered edge pixels rather than on any part a player could name. Darkness returns 0.0 to
+    # 2.7 percent, the lowest of any family met so far, because a staff has no dark furniture.
+    #
+    # pct is 32 across the family, higher than the swords' 18-24 for the harps' reason (half of
+    # each card's ranked population is haze) and uniform because these eight sprites are four
+    # pairs of one drawing. Measured at the shipped setting: card 8 to 25 percent, icon 28 to 33.
+    #
+    # THE TWO RESERVED NAMES sit on opposite sides of the anchor rule, which is why both are
+    # written down. The Zeus Mace measures icon chroma 0.050 and card 0.030, the least chromatic
+    # art this programme has met and well inside the near-neutral case the Ivory Pole established,
+    # so its hue is free and it takes storm indigo under a levin ridge, the same answer the
+    # Stormbrand and the Stormpike took. The Staff of the Magi measures icon chroma 0.167 at hue
+    # 43 degrees, ABOVE the Perseus Bow's 0.120, so it is genuinely a gold-headed staff and it
+    # keeps that: the gold stays on the head where the artist put it and the shaft keeps its dark.
+    # The first attempt inverted that (gold body, dark ridge) and rendered a grey head on a gold
+    # shaft, which is its own art backwards.
+    59: {"zones": [_edge(BONE, pct=32)], "gleam": 0.25},        # Birchwood Staff
+    60: {"zones": [_edge(SILVER, pct=32)], "gleam": 0.25},      # Warlock's Staff
+    61: {"zones": [_edge(WHITE, pct=32)], "gleam": 0.25},       # Mending Staff
+    62: {"zones": [_edge(BRASS, pct=32)], "gleam": 0.25},       # Warding Staff
+    63: {"zones": [_edge(WHITE, pct=32)], "gleam": 0.25},       # Blazing Staff
+    # The Sanctus Staff moves its holy INTO the accent rather than onto the body, the Holy
+    # Lance's resolution one commit earlier: a radiant white staff with a gold ridge, which also
+    # leaves the family's gold to the item whose own art earned it.
+    64: {"zones": [_edge(GOLD, pct=32)], "gleam": 0.25},        # Sanctus Staff
+    65: {"zones": [_edge(LEVIN, pct=32)], "gleam": 0.25},       # Zeus Mace
+    66: {"zones": [_edge(GOLD, pct=32)], "gleam": 0.25},        # Staff of the Magi
     # --- Polearms (LW-207, 2026-08-14) ----------------------------------------------------
     # CARD median 10.4% of the solid art before this pass, with the Tombspire at 0.3 and the
     # Skewer at 1.1.
@@ -2473,7 +2518,7 @@ def selftest():
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
-                   "Pole", "Instrument", "Polearm"}
+                   "Pole", "Instrument", "Polearm", "Staff"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2531,7 +2576,7 @@ def selftest():
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
     _reviewed = sorted({i for i, c in _CATEGORY.items()
                         if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
-                                 "Polearm")} | SWORD_RACK | KNIGHT_RACK)
+                                 "Polearm", "Staff")} | SWORD_RACK | KNIGHT_RACK)
     _no_recipe = sorted(set(_reviewed) - set(ZONE_OVERRIDES))
     _extra = sorted(set(ZONE_OVERRIDES) - set(_reviewed))
     # Named, not just counted. The guard added on 2026-08-14 stopped a half-added family killing
@@ -2590,6 +2635,7 @@ def selftest():
     poles = sorted(POLE_RACK)
     harps = sorted(HARP_RACK)
     spears = sorted(SPEAR_RACK)
+    staves = sorted(STAFF_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2631,7 +2677,7 @@ def selftest():
 
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
-                            ("harp", harps), ("spear", spears),
+                            ("harp", harps), ("spear", spears), ("staff", staves),
                             ("hat", hats), ("crossbow", xbows)):
         # `i in ICON_TINTS` for the same reason body_is_whole_signal uses .get: the racks come
         # from the item data and the tints from a second source, so an id can legitimately be
@@ -2662,6 +2708,7 @@ def selftest():
     check("the pole rack is all nine", len(poles) == 9)
     check("the harp rack is all three", len(harps) == 3)
     check("the polearm rack is all eight", len(spears) == 8)
+    check("the staff rack is all eight", len(staves) == 8)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2709,7 +2756,7 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    bladed = swords + knights + bows + guns + rods + poles + harps + spears
+    bladed = swords + knights + bows + guns + rods + poles + harps + spears + staves
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in
