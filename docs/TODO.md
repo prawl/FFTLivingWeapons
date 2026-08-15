@@ -53,14 +53,20 @@ the technical detail lives in the indented lines under it.
     own blue with the holy gold moved into its trim, a crimson Dragon Whisker under gold, and a
     wyrm-green Wyrmpike on a dark iron haft. The card went from a median 10.4 percent of each
     spear's art to 100 percent on every one.
-  - The family's own lesson is that the saturation key finds whichever part the artist left
-    GREY, not "the head" as such: on seven spears that is the steel head, and on the Wyrmpike,
-    whose head is painted gold, it is the haft instead, so that one keeps its colour on the
-    blade. Both readings are honest, and the rule that matters is only that the metal and the
-    colour end up on different parts. (Tech: _material, sat_p 40-42 on the four whose card share
-    at the helper's 30 was 4 to 11 percent and landed on the outline between head and haft
-    rather than the head's face, 30 on the other four. Shipped zone share: card 13.1 to 26.1
-    percent, icon 23.2 to 36.4.)
+  - The family's lesson, CORRECTED by an audit the same day: the saturation key finds whichever
+    part the artist left GREY, and which part that is depends on the PICTURE, not the item. On
+    every one of the eight big cards the artist left the whole spear near-neutral and the key
+    finds the head. On the small list icons he painted some heads and some butt caps, and there
+    the key moves to whichever end is left grey, which is the haft on the Wyrmpike and the head
+    end on the Tombspire. The first writing of this row called that an item-level split and named
+    only the Wyrmpike, which is the same surface-blind mistake the commit before it had just gone
+    and fixed in two other families. (Tech: _material, sat_p 40-42 on four and 30 on the other
+    four; the four were moved because their card share at 30 was 4 to 11 percent and, on the
+    Skewer, landed on the outline between head and haft rather than the head's face. The haze
+    explanation first given here was borrowed from the harps and does not hold: these cards are
+    15 to 35 percent haze, and the lowest-share item has among the lowest haze. Shipped zone
+    share: card 13.1 to 26.1 percent, icon 16.9 to 39.1; the icon range was first published as
+    23.2 to 36.4, measured before the final knob change and never re-taken.)
   - Done means: all eight carry their identity colour across their solid art with a visibly
     separate second material, no two read alike at list size, both reserved names are anchored
     against BOTH surfaces with the reasoning recorded, and no already-approved art moves.

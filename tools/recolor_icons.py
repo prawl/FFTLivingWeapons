@@ -1642,25 +1642,42 @@ ZONE_OVERRIDES = {
     #
     # A spear is a BLADE and a SHAFT, which is the crossbow's split for the sixth time, and
     # saturation separates them in one pass: the artist drew these heads in near-neutral steel
-    # and the hafts in wood or lacquer, so the desat key lands on the head. It does NOT always
-    # land there, and that is the family's own lesson: the key finds whichever part the artist
-    # left GREY, so on the Wyrmpike, whose head is painted gold, the same key finds the SHAFT
-    # instead and the identity colour keeps the blade. Both readings are honest; what matters is
-    # that each item ends up with the metal on one part and its colour on the other.
+    # and the hafts in wood or lacquer, so the desat key lands on the head.
     #
-    # sat_p is per item for a measured reason. At the helper's 30 the four hafted-in-grey items
-    # give a card share of 4 to 11 percent, because a card's ranked population is half haze (the
-    # harps' haze tax, id 92 above), and on the Skewer that share lands on the OUTLINE between
-    # head and haft rather than on the head's face: rendered, the steel head came back orange
-    # and the spear read as one colour. 40 to 42 puts the face inside the window on those four
-    # (card 13 to 22 percent, icon 29 to 36) and the remaining four already sat there at 30.
+    # IT DOES NOT ALWAYS LAND THERE, and the correction is worth more than the original claim.
+    # This block first said the key finds whichever part the artist left GREY and named the
+    # Wyrmpike, whose head is painted gold, as the item where it therefore finds the SHAFT. That
+    # is true of the 48px ICON and false of the card, so it is a SURFACE split written up as an
+    # item split, which is the exact defect the commit before this one went and corrected in two
+    # other blocks (audit 2026-08-14). Measured in fifths along each sprite's long axis: the
+    # Wyrmpike's CARD art is flat, chroma 0.045 to 0.085 with no gold head anywhere, and its mask
+    # sits 64 percent in the two head-most fifths like its seven siblings; its ICON art peaks at
+    # chroma 0.288 on the head and the mask moves 77 percent onto the shaft. The Tombspire does
+    # the same thing with the ends swapped. So the honest statement is: on the CARDS the artist
+    # left every spear near-neutral and the key finds the head on all eight; on the ICONS he
+    # painted some heads and some butt caps, and the key finds whichever END he left grey.
+    #
+    # sat_p is per item for a measured reason, though not the reason first written here. At the
+    # helper's 30 four of the eight give a card share of 4 to 11 percent AND, on the Skewer, that
+    # share lands on the OUTLINE between head and haft rather than on the head's face: rendered,
+    # the steel head came back orange and the spear read as one colour. 40 to 42 puts the face
+    # inside the window on those four. The haze explanation this block used to give was borrowed
+    # from the harps and does not hold here: these cards are 15 to 35 percent haze, mean 27, and
+    # the item with the LOWEST share at 30 (the Tombspire, 4.4) has among the LOWEST haze (21),
+    # while the highest share (the Dragon Whisker, 26.1) has the highest haze (35). The
+    # observation stands; the mechanism was another family's.
     # Measured at the shipped settings, zone share of solid art: card 13.1 to 26.1 percent,
-    # icon 23.2 to 36.4.
+    # icon 16.9 to 39.1. The icon range was published as 23.2 to 36.4 and was wrong at both ends,
+    # because it was measured before the final sat_p change and never re-taken: 36.4 is the
+    # Skewer at 40 rather than the 42 it ships, and 23.2 is the Tombspire at 30 rather than 40.
+    # That is this file's own lesson landing on its own author, one commit after writing it down.
     #
     # THE HOLY LANCE (104) IS THE FAMILY'S RESERVED-NAME CASE and it resolves the way the
     # Stormbrand did rather than the way the Perseus Bow did. Its list icon reads hue 222 degrees
-    # at chroma 0.186, the most chromatic anchor met in this programme, so it is emphatically a
-    # BLUE lance; the mod's other convention is that Holy is gold everywhere (Excalibur,
+    # at chroma 0.186, which is strongly coloured art but NOT the record this block first claimed
+    # (the Yoichi Bow is 0.245 and the Faerie Harp 0.215, both reserved-name anchors this
+    # programme measured earlier, and the Sage's Pole's 0.272 is recorded a few lines below); it
+    # is emphatically a BLUE lance; the mod's other convention is that Holy is gold everywhere (Excalibur,
     # Lightbringer, the Perseus Bow). Instead of choosing, the blue stays on the body where the
     # art put it and the Holy goes into the accent, which is exactly the answer the Stormbrand
     # and Stormarc took when lightning collided with holy gold.
