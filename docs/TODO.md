@@ -205,22 +205,6 @@ the technical detail lives in the indented lines under it.
   colours change. (Tech: tools/icon_preview.py anchors / silhouettes / compare --expect; the
   recolor selftest is the only one wired into tools/pipeline.ps1 today.)
 
-- [LW-243] 2026-08-14: DONE in the same session it was opened, so this row exists only to be
-  exited: the rule that an item keeping its original name keeps its own colour now has a check
-  behind it. `python tools/icon_preview.py anchors` measures every reserved name's rendered list
-  icon against its own artwork and fails on anything more than 40 degrees away that has no
-  written ruling. It compares the RENDERED item rather than its tint, because a recipe can keep
-  an item's colour by moving it into a zone, which is exactly what the Staff of the Magi and the
-  Holy Lance do. It found one violation nobody knew about (LW-244, Ragnarok) on its first run.
-  The companion check, `silhouettes`, derives the shared-picture pairs from the art instead of
-  from the iconSource field and so guards 39 groups where the old scan knew 7, closing LW-240.
-  (Tech: chroma floor 0.120, the Perseus line; tolerance 40 degrees, chosen because 30 flags four
-  items sitting 33 to 35 away, which is inside the noise of a chroma-weighted mean over a 48px
-  sprite. Rulings live in recolor_icons.ANCHOR_RULINGS, pinned in the selftest to be real
-  reserved names carrying real reasons. Both gates proved to bite: repainting the Faerie Harp
-  violet or the Holy Lance gold fails anchors; converging the Ashura/Sasori or two same-outline
-  staves fails silhouettes.)
-
 - [LW-242] 2026-08-14: Nine weapons wear a second colour so dark that the measurement says it is
   barely there, and the file's own rule predicted exactly that. The rule, written during the
   sword pass, is that a dark tone laid on the art's dark share is invisible by construction,
@@ -271,14 +255,6 @@ the technical detail lives in the indented lines under it.
   a 99.5 percent identical outline. Found by the LW-206/LW-208 audit. (Tech: RACK_MIN_HUE_GAP
   0.05, dhue 0.060 on both pole pairs; mean-Lab dE 6.45 for 109/113 against 16.04 for the
   runner-up. Fix is a design call plus, separately, LW-240.)
-
-- [LW-240] 2026-08-14: DONE, closed by the silhouettes gate described in LW-243: the pairs are
-  now derived from the artwork's own solid-alpha mask rather than from the iconSource field, so
-  the check covers 39 groups of same-picture items where the old one knew about 7. Every judged
-  pair clears the floor as shipped. The recolor selftest keeps its iconSource-derived pin as
-  well, because that one runs in CI and this one cannot. (Tech: tools/icon_preview.py
-  silhouettes; judged items are those where recolor_icons.body_is_whole_signal is true, which
-  drops hats, helmets and legacy for the documented reason.)
 
 - [LW-241] 2026-08-14: Nothing runs the check that proves an icon pass left every other item
   alone; a person has to remember. The build pipeline runs the recolor selftest and refuses a

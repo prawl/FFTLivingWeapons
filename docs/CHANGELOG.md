@@ -10,6 +10,35 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-243] SHIPPED 6ec78c2 2026-08-14: Your rule that an item which kept its original name keeps
+  its original look now has a check behind it, opened and closed in the same session. It was
+  cited in six colour passes and enforced by nobody, which is how five katanas came to be painted
+  as much as 179 degrees from their own artwork. `python tools/icon_preview.py anchors` measures
+  every reserved name's finished list icon against the picture the artist drew and fails on
+  anything more than forty degrees away with no written ruling. It found one violation nobody
+  knew about on its first run, Ragnarok, now LW-244. (Tech: it compares the RENDERED item rather
+  than the tint, because a recipe can keep an item's colour by moving it into a zone, which is
+  exactly what the Staff of the Magi and the Holy Lance do; a tint check would call both of those
+  violations and miss the real ones. Chroma floor 0.120, the Perseus line. Tolerance 40 degrees,
+  because 30 flags four items sitting 33 to 35 away, inside the noise of a chroma-weighted mean
+  over a 48px sprite. Rulings live in recolor_icons.ANCHOR_RULINGS with a reason each, pinned in
+  the selftest to be real reserved names. It cannot run in CI, which needs neither the game files
+  nor the texture tool; that gap is LW-245. Proved to bite: repainting the Faerie Harp violet
+  fails at 108 degrees, the Holy Lance gold at 179.)
+
+- [LW-240] SHIPPED 6ec78c2 2026-08-14: The rule that stops two items drawn with one picture from
+  also wearing one colour now finds those pairs by looking at the pictures, instead of trusting a
+  field in the data that only knew about seven of them. `python tools/icon_preview.py
+  silhouettes` groups every coloured item by category and by the exact shape of its list icon,
+  and holds each group to the same colour floor: 39 groups where the old scan knew 7, and
+  everything shipped clears it. (Tech: derived from the solid-alpha mask of the 48px sprite.
+  Judged items are those where recolor_icons.body_is_whole_signal is true, which drops hats,
+  helmets and legacy for the documented reason that an item wearing three identity colours is
+  told apart by more than its body; run unscoped it calls the Clarion and Sunsteel Helms a
+  collision, and they are brown and gold with a red plume. The selftest keeps its
+  iconSource-derived pin as well, because that one runs in CI and this one cannot. Proved to
+  bite: converging the Ashura/Sasori pair or two same-outline staves fails it.)
+
 - [LW-206] SHIPPED aa75813 2026-08-14: The nine poles were three-at-zero, and one of them was
   the same picture as another item. The Slumber Rod, the Sage's Pole and the Ivory Pole reached
   0.0 percent of their own art, the Hushfan 1.7, and the Terrastaff drew itself with the
