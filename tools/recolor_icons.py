@@ -1974,6 +1974,42 @@ def route(im, item_id, tint, surface):
     return recolor(im.copy(), *tint)
 
 
+# The shared tone vocabulary, and the rule for when an item's BODY TINT stands in for its whole
+# colour signal. Both were local to selftest() until tools/icon_preview.py's anchors and
+# silhouettes gates needed the same rule; one definition, imported, rather than a second copy
+# that drifts.
+METALS = frozenset({STEEL, BONE, BRASS, GOLD, SILVER, COPPER, BLACK_IRON, WHITE})
+LIGHTS = frozenset({LEVIN, PLASMA, VERDANT, VIOLET_FLAME, EMBER, NIGHT_IRON})
+VOCABULARY = METALS | LIGHTS
+
+
+def body_is_whole_signal(i):
+    """True when this item's colour IS its body tint, so a palette rule may judge it.
+
+    False for anything wearing a second IDENTITY colour rather than a fitting, which in this file
+    is written as an inline tone rather than a name from the vocabulary above: every hat, and
+    every item on the helm or legacy engines, which carry no zone recipe at all. See the
+    selftest's palette-separation block for why the exemption exists and what it costs."""
+    o = ZONE_OVERRIDES.get(i)
+    return bool(o) and all(tuple(z["tone"]) in VOCABULARY for z in o["zones"])
+
+
+# RESERVED-NAME RULINGS. The owner's rule is that an item which kept its vanilla name is built
+# from its own art; these are the items where he (or the evidence) settled on something else, so
+# the anchors gate reports them instead of failing. An id may only sit here with a reason, and
+# every id must actually BE a reserved name (pinned in selftest).
+ANCHOR_RULINGS = {
+    91: "OWNER RULING 2026-08-14: the Perseus Bow's icon is a blue bow at chroma 0.120 and it "
+        "keeps GOLD, on the convention that Holy is gold everywhere in this mod (Excalibur, "
+        "Lightbringer). The measurement is recorded at its ICON_TINTS row.",
+    114: "OPEN, docs/TODO.md LW-238: the Whale Whisker's icon is a red pole at chroma 0.148 and "
+         "it ships cyan. The defence is that it is the family's only Water pole. Awaiting the "
+         "owner; listed here so the gate reports it rather than blocking on it.",
+    36: "OPEN, docs/TODO.md LW-244: Ragnarok's icon is warm at chroma 0.138 and it renders lilac "
+        "under a violet-flame fuller, 115 degrees away. The violet was chosen as the dark "
+        "arriving as fire; it was never measured against the art. Awaiting the owner.",
+}
+
 SOLID_TINT_FLOOR = 0.02    # below this an item ships as vanilla art wearing a coloured glow
 
 
@@ -2727,30 +2763,17 @@ def selftest():
     # magenta against a gold. A hat wears three identity colours over 18 to 38 percent of the
     # sprite and the owner passed all twelve by eye across four review rounds. A blade wears one
     # identity colour and a metal, so its body really is the signal.
-    METALS = frozenset({STEEL, BONE, BRASS, GOLD, SILVER, COPPER, BLACK_IRON, WHITE})
-    # The exemption is really about NAMED versus INVENTED tones, and keying it on metals alone
-    # was too narrow: an audit on 2026-08-14 showed the tripwire silently stops judging any item
-    # whose accent is one of the file's LIGHTS, then proved it by giving two rods byte-identical
-    # tints with the selftest green. A light (levin on the Spark Rod, plasma on the Umbral,
-    # verdant on the Wellspring) is a FITTING in exactly the sense that matters here: it is a
-    # small accent laid on a body that still carries the item's whole colour signal, which is why
-    # those rods belong under the tripwire. What genuinely escapes it is an item wearing a second
-    # IDENTITY colour, and in this file that is written as an inline triple rather than a name
-    # from the shared vocabulary: every hat has one and nothing else does. So the rule is "all of
-    # this recipe's tones come from the vocabulary below", which guards 71 of the 83 zone items
-    # against the old 63 and leaves exactly the twelve hats out, as intended.
-    LIGHTS = frozenset({LEVIN, PLASMA, VERDANT, VIOLET_FLAME, EMBER, NIGHT_IRON})
-    VOCABULARY = METALS | LIGHTS
-
-    def body_is_whole_signal(i):
-        # An id with no recipe is NOT judged here. The racks are derived from the item data while
-        # the recipes are a hand-written table, so a half-added family reaches this line before
-        # anything reports; indexing it raised a KeyError that killed the run and swallowed the
-        # failure list, including the two checks whose whole value is naming the missing id
-        # (found by audit 2026-08-14). Returning False keeps the traceback from eating the
-        # diagnosis; "every reviewed family is picked, whole" is what fails, by name.
-        o = ZONE_OVERRIDES.get(i)
-        return bool(o) and all(tuple(z["tone"]) in VOCABULARY for z in o["zones"])
+    # METALS, LIGHTS, VOCABULARY and body_is_whole_signal are MODULE level (defined above
+    # SOLID_TINT_FLOOR) because tools/icon_preview.py's silhouettes gate applies the same
+    # exemption to the same items, and two copies of a rule this load-bearing would drift.
+    # The exemption is about NAMED versus INVENTED tones, and keying it on metals alone was too
+    # narrow: an audit on 2026-08-14 showed the tripwire silently stops judging any item whose
+    # accent is one of the file's LIGHTS, then proved it by giving two rods byte-identical tints
+    # with the selftest green. A light (levin on the Spark Rod, plasma on the Umbral, verdant on
+    # the Wellspring) is a FITTING in exactly the sense that matters: a small accent laid on a
+    # body that still carries the item's whole colour signal. What genuinely escapes is an item
+    # wearing a second IDENTITY colour, written here as an inline triple rather than a name from
+    # the vocabulary: every hat has one and nothing else does.
 
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
@@ -2778,6 +2801,17 @@ def selftest():
     escaped = sorted(i for i in ZONE_OVERRIDES
                      if not body_is_whole_signal(i) and _CATEGORY.get(i) != "Hat")
     check(f"only hats escape the collision tripwire (escaped: {escaped})", not escaped)
+    # ANCHOR_RULINGS is read by tools/icon_preview.py's anchors gate, which cannot run in CI
+    # (it needs the game files and the texture tool), so what CAN be checked here is that the
+    # table is honest: every id in it is a real reserved name carrying a real reason. Without
+    # this an id could be parked there to silence the gate for an item the rule never covered.
+    _res = {it["id"] for it in load_items()["items"]
+            if it.get("name") and it["name"].lower() == it["vanillaName"].lower()}
+    bad_rulings = sorted(i for i in ANCHOR_RULINGS if i not in _res)
+    check(f"every reserved-name ruling names a reserved name (not: {bad_rulings})",
+          not bad_rulings)
+    check("every reserved-name ruling carries a reason",
+          all(isinstance(v, str) and len(v) > 40 for v in ANCHOR_RULINGS.values()))
     check("the sword rack is all fifteen", len(swords) == 15)
     check("the knight sword rack is all seven", len(knights) == 7)
     check("the bow rack is all nine", len(bows) == 9)

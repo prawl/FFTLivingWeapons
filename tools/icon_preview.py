@@ -19,6 +19,12 @@ Verbs (all outputs go under --out, default %TEMP%\\icon_preview; never a repo di
   python tools/icon_preview.py gallery [--out D]            # the owner's before/after HTML
   python tools/icon_preview.py verify [--out D]             # preview PNGs vs the production bake's
                                                             # working/icons PNGs, pixel identity
+  python tools/icon_preview.py anchors [--out D]            # GATE: every item that kept its
+                                                            # vanilla name still renders like its
+                                                            # own art (or carries a ruling)
+  python tools/icon_preview.py silhouettes [--out D]        # GATE: items the artist drew with
+                                                            # one picture are far enough apart in
+                                                            # colour, derived from the art
   python tools/icon_preview.py compare [ids...] [--rev R]   # working-tree engine vs the one
                                                             # committed at R (default HEAD): what
                                                             # an engine change did to approved art
@@ -35,10 +41,13 @@ shields, legacy whole-tint for the rest), so the split can never drift from prod
 flags.json in the out dir ({id: note}) annotates gallery rows amber.
 """
 import base64
+import colorsys
 import copy
+import hashlib
 import importlib.util
 import io
 import json
+import math
 import os
 import pathlib
 import shutil
@@ -53,6 +62,7 @@ from lib.paths import ROOT, FF16
 # package's own attribute so a second copy of the engine reads the item data of ITS revision,
 # and a from-import here would hold a reference the swap cannot reach.
 import lib.items as lib_items
+from lib.items import load_items
 import recolor_icons as ri
 
 DEFAULT_OUT = pathlib.Path(os.environ.get("TEMP", ".")) / "icon_preview"
@@ -377,6 +387,153 @@ def cmd_compare(rev, only, out, expect=None):
     return 0
 
 
+ANCHOR_CHROMA = 0.120      # below this an item's own art has no colour to be anchored to
+ANCHOR_TOLERANCE = 40      # degrees the RENDERED item may sit from its own art
+
+
+def art_reading(im):
+    """Chroma-weighted circular mean hue (degrees) and mean chroma over the solid art.
+
+    Calibrated, not invented: this is the one metric that reproduces the figures already
+    published in recolor_icons.py for the Perseus Bow (icon 229.0 deg at chroma 0.120, card
+    0.031). Chroma is (max - min) / 255, the same quantity as saturation x value."""
+    px = im.load()
+    sx = sy = c = 0.0
+    n = 0
+    for y in range(im.height):
+        for x in range(im.width):
+            r, g, b, a = px[x, y]
+            if a < ri.HALO_HI:
+                continue
+            ch = (max(r, g, b) - min(r, g, b)) / 255
+            h = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)[0]
+            sx += ch * math.cos(2 * math.pi * h)
+            sy += ch * math.sin(2 * math.pi * h)
+            c += ch
+            n += 1
+    if not n:
+        return 0.0, 0.0
+    return ((math.atan2(sy, sx) / (2 * math.pi)) % 1.0) * 360, c / n
+
+
+def _hue_gap(a, b):
+    d = abs(a - b) % 360
+    return min(d, 360 - d)
+
+
+def cmd_anchors(out):
+    """THE RESERVED-NAME GATE: an item that kept its vanilla name must still look like itself.
+
+    The rule is the owner's and it has been cited in six passes; until now nothing checked it,
+    and a verify round showed the exact wrong colour one pass had just corrected would sail
+    through every gate. It cannot live in the recolor selftest, which runs in CI on a machine
+    with neither the game files nor the texture tool, so it lives here beside the other art
+    gates.
+
+    What it compares is the RENDERED icon against the vanilla icon, not the tint against the
+    vanilla, because a recipe can keep an item's colour by moving it into a zone: the Staff of
+    the Magi's body tint is a near-black steel while its gold head is a zone, and the item still
+    reads as the gold-headed staff its art is. Comparing tints would call that a violation.
+
+    Scope: reviewed engines only. A family still on bright-v2 or legacy has not had its pass, so
+    its colours are the ones being replaced, not defended. Chroma floor: art below
+    ANCHOR_CHROMA has no colour to be anchored to (the near-neutral case the Ivory Pole
+    established). Rulings live in recolor_icons.ANCHOR_RULINGS with a reason each."""
+    out.mkdir(parents=True, exist_ok=True)
+    items = {it["id"]: it for it in load_items()["items"]}
+    reviewed = {"three-zone", "shield-bright", "helm-two-tone"}
+    rows, bad = [], []
+    for iid in sorted(ri.ICON_TINTS):
+        it = items.get(iid)
+        if not it or not it.get("name"):
+            continue
+        if it["name"].lower() != it["vanillaName"].lower():
+            continue
+        if ri.engine_for(iid) not in reviewed:
+            continue
+        van = decode_vanilla("equip_item_s", "ei_s", ri.SRC.get(iid, iid), out)
+        if van is None:
+            continue
+        art_hue, art_chroma = art_reading(van)
+        made_hue, _ = art_reading(ri.route(van.copy(), iid, ri.ICON_TINTS[iid], "small"))
+        gap = _hue_gap(art_hue, made_hue)
+        ruling = ri.ANCHOR_RULINGS.get(iid)
+        if art_chroma < ANCHOR_CHROMA:
+            state = "free"
+        elif gap <= ANCHOR_TOLERANCE:
+            state = "anchored"
+        elif ruling:
+            state = "RULED"
+        else:
+            state = "OFF ITS ART"
+            bad.append((iid, it["name"], gap))
+        rows.append((iid, it["name"], ri.engine_for(iid), art_hue, art_chroma, made_hue, gap,
+                     state))
+    print(f"{len(rows)} reserved-name items under a reviewed engine\n")
+    print(f"{'id':>4} {'name':<20} {'engine':<14} {'art hue':>8} {'chroma':>7} {'made':>7}"
+          f" {'gap':>5}  state")
+    for r in rows:
+        print(f"{r[0]:>4} {r[1][:20]:<20} {r[2]:<14} {r[3]:>7.1f} {r[4]:>7.3f} {r[5]:>7.1f}"
+              f" {r[6]:>5.0f}  {r[7]}")
+    for iid, why in sorted(ri.ANCHOR_RULINGS.items()):
+        print(f"\nruling id {iid}: {why}")
+    if bad:
+        print(f"\nFAIL: {len(bad)} reserved-name item(s) render more than {ANCHOR_TOLERANCE} "
+              f"degrees from their own art with no ruling: "
+              f"{[(i, n, round(g)) for i, n, g in bad]}")
+        return 1
+    print(f"\nOK: every reserved name is within {ANCHOR_TOLERANCE} degrees of its own art, "
+          f"near-neutral, or ruled.")
+    return 0
+
+
+def cmd_silhouettes(out):
+    """THE SHARED-PICTURE GATE, derived from the ART rather than from the iconSource field.
+
+    recolor_icons' own twins pin reads SRC, which knows only about items built on another item's
+    sprite: 7 pairs. The artist also drew plain glyphs that repeat, and at 48px those are just as
+    indistinguishable, which an audit measured at 15 of 16 byte-identical outlines unguarded.
+    This groups every tinted item by category and by the exact solid-alpha mask of its list icon,
+    then holds each group to the same hue-or-saturation floor.
+
+    Judged items are those whose body tint IS their colour signal (recolor_icons'
+    body_is_whole_signal), which drops hats, helmets and legacy for the documented reason: an
+    item wearing three identity colours is told apart by more than its body."""
+    out.mkdir(parents=True, exist_ok=True)
+    MIN_HUE, MIN_SAT = 0.05, 0.20
+    groups = {}
+    for iid in sorted(ri.ICON_TINTS):
+        van = decode_vanilla("equip_item_s", "ei_s", ri.SRC.get(iid, iid), out)
+        if van is None:
+            continue
+        px = van.load()
+        mask = bytes(1 if px[x, y][3] >= ri.HALO_HI else 0
+                     for y in range(van.height) for x in range(van.width))
+        groups.setdefault((ri._CATEGORY.get(iid), hashlib.md5(mask).hexdigest()), []).append(iid)
+    shared = sorted((c, v) for (c, h), v in groups.items() if len(v) > 1)
+    judged = bad = 0
+    print(f"{len(shared)} groups of items share one 48px silhouette\n")
+    for cat, ids in shared:
+        keep = [i for i in ids if ri.body_is_whole_signal(i)]
+        note = "" if len(keep) == len(ids) else f"  (judging {keep} of {ids})"
+        print(f"  {str(cat):<12} {ids}{note}")
+        for n, a in enumerate(keep):
+            for b in keep[n + 1:]:
+                judged += 1
+                dh = abs(ri.arc(ri.ICON_TINTS[a][0], ri.ICON_TINTS[b][0]))
+                ds = abs(ri.ICON_TINTS[a][1] - ri.ICON_TINTS[b][1])
+                if dh < MIN_HUE and ds < MIN_SAT:
+                    bad += 1
+                    print(f"      FAIL {a} vs {b}: hue {dh:.3f} and saturation {ds:.3f} are both "
+                          f"inside the floor")
+    if bad:
+        print(f"\nFAIL: {bad} pair(s) drawn with one picture are too close in colour.")
+        return 1
+    print(f"\nOK: {judged} judged pair(s) sharing a picture are far enough apart in hue or "
+          f"saturation.")
+    return 0
+
+
 def main(argv):
     if not argv:
         print(__doc__)
@@ -392,6 +549,10 @@ def main(argv):
         cmd_gallery(out)
     elif verb == "verify":
         return cmd_verify(out)
+    elif verb == "anchors":
+        return cmd_anchors(out)
+    elif verb == "silhouettes":
+        return cmd_silhouettes(out)
     elif verb == "compare":
         rev = rest[rest.index("--rev") + 1] if "--rev" in rest else "HEAD"
         expect = None

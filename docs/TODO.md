@@ -179,19 +179,41 @@ the technical detail lives in the indented lines under it.
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
     then verify.)
 
-- [LW-243] 2026-08-14: The rule that an item keeping its original name must keep its original
-  colour is enforced by nobody. It is the owner's rule, it has been cited in four passes, and a
-  verify round showed the exact violet the harp pass condemned would sail through every check.
-  Two items already carry deliberate exceptions he ruled on himself (the Perseus Bow and now the
-  Holy Lance), so a gate has to know the difference between a violation and a ruling. The
-  blocker is where the evidence lives: checking this means measuring the vanilla art, and the
-  checks run in CI on a machine that has neither the game files nor the texture tool. The
-  workable shape is a small table of measured anchors in the tools file, written when a family
-  is passed, with a pin that every reserved name either sits near its anchor or carries a
-  written ruling; that is a design call, not a typo fix.
-  (Tech: 63 items have name == vanillaName, plus at least one the exact comparison misses
-  because the rename was a single capital letter, id 113. recolor_icons.py never reads
-  vanillaName today; grep finds it only in analyze.py and generate.py.)
+- [LW-244] 2026-08-14: Ragnarok kept its original name and renders lilac over artwork that is
+  warm orange, 115 degrees away, and nobody ever measured it. It is the same shape of problem as
+  the Whale Whisker (LW-238): a knight sword you passed by eye, whose violet was chosen as "the
+  dark arriving as fire" on its fuller, which is a good reason for a colour and not a reason
+  that survives the rule that an item keeping its name keeps its look. Found by the new
+  reserved-name gate the moment that gate existed, which is the point of building it. Owner
+  call: keep the violet and let the reason be written down, or bring it back toward its own
+  amber. (Tech: id 36, icon chroma 0.138 at hue 18 degrees against a rendered 263;
+  `python tools/icon_preview.py anchors` lists it, and it sits in recolor_icons.ANCHOR_RULINGS
+  as OPEN so the gate reports rather than blocks.)
+
+- [LW-245] 2026-08-14: The two gates that judge artwork have to be run by hand, and one of them
+  now matters enough that forgetting it is a real risk. The reserved-name check and the
+  shared-picture check both need the game files and the texture tool, which the automated build
+  on the server does not have, so they live beside compare as things a person runs. That is the
+  same gap LW-241 describes for compare itself, and the answer is probably the same one: a
+  single local pre-commit or pipeline step that runs all three when the icon tools or the item
+  colours change. (Tech: tools/icon_preview.py anchors / silhouettes / compare --expect; the
+  recolor selftest is the only one wired into tools/pipeline.ps1 today.)
+
+- [LW-243] 2026-08-14: DONE in the same session it was opened, so this row exists only to be
+  exited: the rule that an item keeping its original name keeps its own colour now has a check
+  behind it. `python tools/icon_preview.py anchors` measures every reserved name's rendered list
+  icon against its own artwork and fails on anything more than 40 degrees away that has no
+  written ruling. It compares the RENDERED item rather than its tint, because a recipe can keep
+  an item's colour by moving it into a zone, which is exactly what the Staff of the Magi and the
+  Holy Lance do. It found one violation nobody knew about (LW-244, Ragnarok) on its first run.
+  The companion check, `silhouettes`, derives the shared-picture pairs from the art instead of
+  from the iconSource field and so guards 39 groups where the old scan knew 7, closing LW-240.
+  (Tech: chroma floor 0.120, the Perseus line; tolerance 40 degrees, chosen because 30 flags four
+  items sitting 33 to 35 away, which is inside the noise of a chroma-weighted mean over a 48px
+  sprite. Rulings live in recolor_icons.ANCHOR_RULINGS, pinned in the selftest to be real
+  reserved names carrying real reasons. Both gates proved to bite: repainting the Faerie Harp
+  violet or the Holy Lance gold fails anchors; converging the Ashura/Sasori or two same-outline
+  staves fails silhouettes.)
 
 - [LW-242] 2026-08-14: Nine weapons wear a second colour so dark that the measurement says it is
   barely there, and the file's own rule predicted exactly that. The rule, written during the
@@ -244,14 +266,13 @@ the technical detail lives in the indented lines under it.
   0.05, dhue 0.060 on both pole pairs; mean-Lab dE 6.45 for 109/113 against 16.04 for the
   runner-up. Fix is a design call plus, separately, LW-240.)
 
-- [LW-240] 2026-08-14: The hard rule that keeps two items sharing one picture from also sharing
-  one colour only knows about pairs the data declares, and the data declares one of them. It is
-  derived from the iconSource field, so it guards the four items built on another item's sprite
-  and misses every pair where the artist simply drew the same generic glyph at list size: 15 of
-  the 16 byte-identical 48px outlines in the reviewed families are unguarded. The fix is to
-  derive the pairs from the art the gate already decodes (equal solid-alpha masks) instead of
-  from the field. (Tech: tools/recolor_icons.py, the twins scan; rod small clusters
-  [[51,55],[52,54,58]], pole small [[48,107,108,110],[109,111,112,113]].)
+- [LW-240] 2026-08-14: DONE, closed by the silhouettes gate described in LW-243: the pairs are
+  now derived from the artwork's own solid-alpha mask rather than from the iconSource field, so
+  the check covers 39 groups of same-picture items where the old one knew about 7. Every judged
+  pair clears the floor as shipped. The recolor selftest keeps its iconSource-derived pin as
+  well, because that one runs in CI and this one cannot. (Tech: tools/icon_preview.py
+  silhouettes; judged items are those where recolor_icons.body_is_whole_signal is true, which
+  drops hats, helmets and legacy for the documented reason.)
 
 - [LW-241] 2026-08-14: Nothing runs the check that proves an icon pass left every other item
   alone; a person has to remember. The build pipeline runs the recolor selftest and refuses a
