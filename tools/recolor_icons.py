@@ -1314,6 +1314,7 @@ ROD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Rod")
 POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
 SPEAR_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Polearm")
 STAFF_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Staff")
+CLOTH_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Cloth")
 HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
@@ -1518,6 +1519,29 @@ ZONE_OVERRIDES = {
     112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
     113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
     114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
+    # --- Cloths (LW-213, 2026-08-14) ------------------------------------------------------
+    # CARD median 32.0% of the solid art before this pass, the healthiest starting point of any
+    # family so far, and the reason this one came next anyway is that the dancer's three veils
+    # were the drabbest thing left on the shelf: a washed brown, a pale steel and a mauve grey.
+    #
+    # A bolt of cloth is the FIRST family whose sprite already carries two zones the artist drew
+    # on purpose: an upper roll and a lower one, in different colours on all three (grey over
+    # blue, orange over green, tan over violet). What the brightness key does here is take
+    # whichever of the two the artist lit, which is the lower roll on the Tarsilk and the upper
+    # on the other two. That is a spatial split arriving through a tonal key, so it is worth
+    # saying out loud that it works by luck of the art rather than by design, the way the
+    # Wyrmpike's haft does.
+    #
+    # ALL THREE SECOND TONES ARE PALE NEUTRALS, which is a deliberate break from the metal-on-
+    # colour pairing every weapon family uses. Silk's own second material IS its sheen; a
+    # chromatic tone here reads as a stain rather than as a fitting, which is exactly how a brass
+    # first attempt rendered on the Tarsilk's card. The three pales are kept distinct anyway
+    # (cream, white, cold silver) so the family does not become one recipe in three hues.
+    # pct 24, lower than the staves' 32 because these sprites are broad and their lit share is a
+    # real surface rather than a ridge: card 15 to 26 percent, icon 18 to 24.
+    119: {"zones": [_edge(BONE, pct=24)], "gleam": 0.25},       # Tarsilk Veil
+    120: {"zones": [_edge(WHITE, pct=24)], "gleam": 0.25},      # Bindsilk Veil
+    121: {"zones": [_edge(SILVER, pct=24)], "gleam": 0.25},     # Gravesilk Veil
     # --- Staves (LW-209, 2026-08-14) ------------------------------------------------------
     # CARD median 14.2% of the solid art before this pass, with the Warding Staff, the Zeus Mace
     # and the Staff of the Magi all at 0.0 percent. Two of the eight also read as each other:
@@ -2518,7 +2542,7 @@ def selftest():
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
-                   "Pole", "Instrument", "Polearm", "Staff"}
+                   "Pole", "Instrument", "Polearm", "Staff", "Cloth"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2576,7 +2600,7 @@ def selftest():
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
     _reviewed = sorted({i for i, c in _CATEGORY.items()
                         if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
-                                 "Polearm", "Staff")} | SWORD_RACK | KNIGHT_RACK)
+                                 "Polearm", "Staff", "Cloth")} | SWORD_RACK | KNIGHT_RACK)
     _no_recipe = sorted(set(_reviewed) - set(ZONE_OVERRIDES))
     _extra = sorted(set(ZONE_OVERRIDES) - set(_reviewed))
     # Named, not just counted. The guard added on 2026-08-14 stopped a half-added family killing
@@ -2636,6 +2660,7 @@ def selftest():
     harps = sorted(HARP_RACK)
     spears = sorted(SPEAR_RACK)
     staves = sorted(STAFF_RACK)
+    cloths = sorted(CLOTH_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2678,6 +2703,7 @@ def selftest():
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
                             ("harp", harps), ("spear", spears), ("staff", staves),
+                            ("cloth", cloths),
                             ("hat", hats), ("crossbow", xbows)):
         # `i in ICON_TINTS` for the same reason body_is_whole_signal uses .get: the racks come
         # from the item data and the tints from a second source, so an id can legitimately be
@@ -2709,6 +2735,7 @@ def selftest():
     check("the harp rack is all three", len(harps) == 3)
     check("the polearm rack is all eight", len(spears) == 8)
     check("the staff rack is all eight", len(staves) == 8)
+    check("the cloth rack is all three", len(cloths) == 3)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2756,7 +2783,7 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    bladed = swords + knights + bows + guns + rods + poles + harps + spears + staves
+    bladed = swords + knights + bows + guns + rods + poles + harps + spears + staves + cloths
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in

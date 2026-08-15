@@ -98,6 +98,29 @@ the technical detail lives in the indented lines under it.
     surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
     pass, which is also where the Sanctus Staff's white-with-gold reading gets its ruling.
 
+- **[LW-213] The dancer's three veils are the drabbest thing left on the shelf** (opened 2026-08-13) [AWAITING-LIVE]
+  - BUILT and gated 2026-08-14, owner gallery pass outstanding. These three were not the worst by
+    coverage, they were the worst by eye: a washed brown, a pale steel and a mauve grey. They are
+    now oil-black, binding green and grave violet, each with its own pale sheen.
+  - The finding: a bolt of cloth is the FIRST family whose picture already carried two zones the
+    artist drew on purpose, an upper roll and a lower one in different colours on all three. And
+    all three second tones are PALE NEUTRALS rather than the metal-on-colour pairing every weapon
+    family uses, because silk's own second material is its SHEEN: a coloured tone there reads as
+    a stain, which is exactly how a brass first attempt rendered on the Tarsilk's card.
+    (Tech: _edge at pct 24, lower than the staves' 32 because these sprites are broad and their
+    lit share is a surface rather than a ridge. Shipped zone share: card 15 to 26 percent, icon
+    18 to 24. The key takes whichever roll the artist LIT, the lower one on the Tarsilk and the
+    upper on the other two, so it reaches a spatial split through a tonal key by luck of the art
+    rather than by design, the same way the Wyrmpike's haft does.)
+  - Done means: all three carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, and no already-approved art moves.
+    No reserved names in this family; all three were renamed.
+  - Verify: recolor_icons selftest green with the family inside every owner-rule pin and three
+    mutations proving those pins bite; each veil's second material measured on the real art;
+    icon_preview.py compare --expect naming exactly these ids and exiting clean over all 468
+    surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
+    pass.
+
 
 ## Backlog
 
@@ -116,10 +139,10 @@ the technical detail lives in the indented lines under it.
     pass lands (which is what will happen anyway). Either way the identity check needs to be run
     at full scope from now on, or it will keep certifying whatever the last partial run covered.
   - Each family that goes through its own colour pass leaves this set on its way past, so the
-    number falls on its own: it was 58 items when found, and is 42 now that the polearms and the
-    staves have been through (LW-207, LW-209).
-  - (Tech: 83 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 38-47, 68-70, 95-98,
-    115-121. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
+    number falls on its own: it was 58 items when found, and is 39 now that the polearms, the
+    staves and the cloths have been through (LW-207, LW-209, LW-213).
+  - (Tech: 77 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 38-47, 68-70, 95-98,
+    115-118. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
     signature of the LW-230 ramp. _halo_int reached shade_bright in 495f9fc; those .tex files
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
     then verify.)
@@ -318,8 +341,6 @@ the technical detail lives in the indented lines under it.
 - [LW-210] 2026-08-13: Books re-pass: the 4 book icons get the shields-grade per item review (no-blade art, largest-cluster rule today); process per LW-198.
 
 - [LW-212] 2026-08-13: Bags re-pass: the 4 bag icons get the shields-grade per item review (no-blade art); process per LW-198.
-
-- [LW-213] 2026-08-13: Cloths re-pass: the 3 cloth icons get the shields-grade per item review (no-blade art); process per LW-198.
 
 - [LW-214] 2026-08-13: Throwing weapons and Bombs first pass: the 6 shuriken and bomb icons were never tinted at all (they sit outside the 121-weapon set), so this is a first coloring, not a re-pass; process per LW-198.
 
