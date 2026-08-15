@@ -175,7 +175,24 @@ match the approved pictures exactly.
 5. `python tools/recolor_icons.py [ids...]` bakes the real tex files into the mod tree.
 6. `python tools/icon_preview.py verify` proves the bake's intermediate images are
    pixel-identical to the approved previews (the LW-189 weapon pass closed at 242/242).
+   **Run `preview` with NO ids first.** verify reads the manifest of the LAST preview run,
+   so a preview scoped to the family you just worked makes verify silently certify only
+   those items. Running it at full scope for the first time (2026-08-14) is what found 58
+   icons shipping art one engine version behind (docs/TODO.md LW-236).
 7. Commit, deploy, owner eyeballs the cards in-game.
+
+**THE FOUR GATES, and what each one is for.** The first runs in CI; the other three need the
+game files and the texture tool, so they are run here, by hand, before the commit:
+
+| gate | what it refuses |
+| --- | --- |
+| `python tools/recolor_icons.py --selftest` | a recipe that paints nothing or everything, two items in one family wearing one colour, a second material that is really a shadow, dead config for an engine an item has left, a comment naming the wrong item |
+| `python tools/icon_preview.py compare --expect <ids>` | any already-approved item moving. Name the ids this pass may move; with NO ids it means "nothing anywhere may move", which is what a tooling-only or comment-only commit should prove. It refuses positional ids, because a gate that judged only what you scoped it to is not a gate |
+| `python tools/icon_preview.py anchors` | an item that kept its vanilla name rendering more than 40 degrees from its own artwork without a written ruling in recolor_icons.ANCHOR_RULINGS |
+| `python tools/icon_preview.py silhouettes` | two items the artist drew with the same 48px picture wearing colours too close to tell apart |
+
+Mutation-test any pin you add. Every gate above has been walked past at least once by an
+adversarial audit, and each fix is proved by replaying the escape and watching it go red.
 
 Extending to a NEW equipment family (shields, armor, accessories): those categories still
 route through the legacy whole-tint on purpose (unreviewed under the new rules). The work
