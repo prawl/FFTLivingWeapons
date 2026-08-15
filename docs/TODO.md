@@ -34,7 +34,9 @@ the technical detail lives in the indented lines under it.
     strings are gold and two are white. The percentiles run high against the swords' 18-24
     because half of each card's ranked population is haze, 447 haze-band pixels against 444
     solid on id 92, so a percentile buys about half as much solid art there as on the icon.
-    Measured at the shipped settings: zone claims card 7.2/8.8/13.8, icon 22.8/21.5/16.2.)
+    Measured at the shipped settings: zone claims card 7.2/8.8/13.8, icon 22.8/21.5/16.2. The
+    3.4 above is a CARD median: the list icons were already fully covered by the old whole-glyph
+    path, so across all six surfaces the pre-pass family median is 52.3.)
   - Done means: all three carry their identity colour across their solid art with a visibly
     separate second material, no two read alike at list size, any reserved name is anchored
     against BOTH the card and the list icon, and no already-approved art moves.
@@ -114,12 +116,14 @@ the technical detail lives in the indented lines under it.
   green, never gets painted on the big equip card. Its recipe asks for the brightest slice of
   the picture and on that particular sprite the slice survives smoothing as a SINGLE pixel, so
   the card ships the rod's body colour over the artist's green orb and reads as one flat colour.
+  The single surviving pixel is not even on the orb: it sits halfway down the shaft.
   The same recipe finds a 30 pixel orb on the small list icon, so the item looks right in the
   list and wrong on the card. Confirmed by the LW-208 audit; no gate can see it, because the
   no-single-colour pin measures a fixture, not the real art. (Tech: id 51, card. cover mask at
-  pct 18 is 104 raw pixels and 1 after two smoothing passes; min_blob makes no difference,
-  pct 26 recovers 33. Total second-material share 9.5% against a rod median of 33.6%, the
-  minimum of every reviewed weapon card. Fixing it changes art the owner already passed, so it
+  pct 18 is 104 raw pixels, 14 after two smoothing passes and 1 solid pixel after the whole
+  chain, sitting at 0.68 along the sprite's long axis where the other seven rods' orb zones sit
+  at 0.03 to 0.28; min_blob makes no difference, pct 26 recovers 33. Total second-material share
+  9.5% against a rod median of 32.2%, the minimum of every reviewed weapon card. Fixing it changes art the owner already passed, so it
   needs his eye on a before-and-after.)
 
 - [LW-238] 2026-08-14: The Whale Whisker kept its vanilla name, which by the owner's own rule

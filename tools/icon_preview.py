@@ -222,9 +222,11 @@ def load_engine(rev, out):
     from DISK, so left alone the "old" engine comes up wearing TODAY'S colours. The first fix
     (2026-08-14) wrote the committed tints back afterwards, which repaired an EDITED row and
     stayed blind to an ADDED one: an id whose committed row carries no iconTint was never written
-    back, so a tint newly added to items.json for one of the 29 approved items whose colour lives
+    back, so a tint newly added to items.json for one of the 45 approved items whose colour lives
     in the ICON_TINTS table sat on BOTH sides of the comparison. A second audit demonstrated it
-    on sword id 25, where compare reported a serene 0 MOVED for a 96% repaint.
+    on sword id 25, where compare reported a serene 0 MOVED for a 96% repaint. (45, not the 29
+    first written: 55 ids are table-only, 29 of them under the zone engine and the other 16 the
+    whole shield family, which is just as approved and just as reviewed.)
     So the loader itself is swapped for the duration of the import instead. `from lib.items
     import load_items` binds the attribute at import time, which is why patching the package
     before exec_module reaches the copy; and doing it here rather than after the fact restores
@@ -275,31 +277,68 @@ def band_census(van, old, new):
 
 
 def cmd_compare(rev, only, out, expect=None):
-    """Render every tinted item through the committed engine and the working-tree engine."""
+    """Render every tinted item through the committed engine and the working-tree engine.
+
+    THE SWEEP POPULATION IS THE UNION of the two revisions' tint tables, and each side decodes
+    the sprite ITS OWN revision names. Both were audit findings on 2026-08-14 and both let an
+    approved item change with the gate printing OK:
+
+      - iterating only the working tree's ICON_TINTS meant DELETING an items.json tint dropped
+        that id out of the sweep entirely. It was never rendered, never diffed, and the closing
+        sentence was identical to a full pass (demonstrated on an approved helmet). The same
+        deletion also stops the item being re-baked forever, so it is a movement, not an absence.
+      - decoding one sprite from the working tree's SRC and feeding it to BOTH engines meant a
+        changed iconSource repainted an item with a completely different picture on both sides
+        and the diff came out exactly zero (demonstrated by turning an approved rod into a harp).
+    """
     out.mkdir(parents=True, exist_ok=True)
     old_ri = load_engine(rev, out)
     rows = []
-    for iid, tint in sorted(ri.ICON_TINTS.items()):
+    ids = sorted(set(ri.ICON_TINTS) | set(old_ri.ICON_TINTS))
+    for iid in ids:
         if only and iid not in only:
             continue
-        src_id = ri.SRC.get(iid, iid)
+        tint = ri.ICON_TINTS.get(iid)
+        old_tint = old_ri.ICON_TINTS.get(iid, tint)
+        new_src = ri.SRC.get(iid, iid)
+        old_src = old_ri.SRC.get(iid, iid)
         for sub, pfx, surface in SURFACES:
-            van = decode_vanilla(sub, pfx, src_id, out)
-            if van is None:
+            van_new = decode_vanilla(sub, pfx, new_src, out) if tint is not None else None
+            # `van_new is not None` is load-bearing: a DROPPED id has no new render to reuse, so
+            # without it the old sprite is never decoded, base comes back None and the row this
+            # branch exists to report is skipped. It was, for one round.
+            van_old = (van_new if (van_new is not None and old_src == new_src)
+                       else decode_vanilla(sub, pfx, old_src, out))
+            base = van_new if van_new is not None else van_old
+            if base is None:
                 continue
-            old_tint = old_ri.ICON_TINTS.get(iid, tint)
-            old = old_ri.route(van.copy(), iid, old_tint, surface)
-            new = ri.route(van.copy(), iid, tint, surface)
-            row = {"id": iid, "surface": surface, "engine": ri.engine_for(iid),
+            row = {"id": iid, "surface": surface,
+                   "engine": ri.engine_for(iid) if tint is not None else "DROPPED",
                    "was": old_ri.engine_for(iid), "tint_moved": old_tint != tint,
-                   **band_census(van, old, new)}
+                   "src_moved": old_src != new_src}
+            if tint is None:
+                # The id lost its tint: it leaves the bake, so every solid pixel of the art it
+                # used to paint is a movement, and the census cannot be run against a render
+                # that no longer exists.
+                px = base.load()
+                solid = sum(1 for y in range(base.height) for x in range(base.width)
+                            if px[x, y][3] >= ri.HALO_HI)
+                row.update(solid=solid, solid_moved=solid, band=0, band_moved=0, kept=0.0)
+                rows.append(row)
+                continue
+            old = old_ri.route(van_old.copy(), iid, old_tint, surface)
+            new = ri.route(van_new.copy(), iid, tint, surface)
+            row.update(band_census(van_new, old, new))
+            if old_src != new_src:
+                row["solid_moved"] = row["solid"]     # a different picture is a total repaint
             rows.append(row)
-            for tag, im in (("0van", van), ("1old", old), ("2new", new)):
+            for tag, im in (("0van", van_new), ("1old", old), ("2new", new)):
                 im.save(out / f"c{iid:03d}_{surface}_{tag}.png")
-        print(f"id{iid:>3} {ri.engine_for(iid)}", end="\r")
+        print(f"id{iid:>3} {ri.engine_for(iid) if tint is not None else 'DROPPED'}", end="\r")
     (out / "compare.json").write_text(json.dumps(rows, indent=1), encoding="utf-8")
     engines = sorted({r["engine"] for r in rows})
-    print(f"\n{len(rows)} surfaces compared against {rev}\n")
+    swept = len({r["id"] for r in rows})
+    print(f"\n{len(rows)} surfaces over {swept} items compared against {rev}\n")
     print(f"{'engine':<15} {'items':>5} {'solid px':>9} {'MOVED':>7} {'band px':>8} {'moved':>7}"
           f" {'colour kept':>12}")
     for eng in engines:
@@ -320,15 +359,21 @@ def cmd_compare(rev, only, out, expect=None):
     # family being worked moves on purpose and there is nothing to assert.
     if expect is not None:
         strays = sorted({r["id"] for r in rows
-                         if r["id"] not in expect and (r["solid_moved"] or r["band_moved"])})
+                         if r["id"] not in expect
+                         and (r["solid_moved"] or r["band_moved"] or r["src_moved"])})
         if strays:
             print(f"\nFAIL: {len(strays)} item(s) moved that --expect did not allow: {strays}")
             for iid in strays[:12]:
                 for r in (x for x in rows if x["id"] == iid):
                     print(f"  id{iid:>3} {r['surface']:<6} solid_moved={r['solid_moved']:>5}"
-                          f" band_moved={r['band_moved']:>5} tint_moved={r['tint_moved']}")
+                          f" band_moved={r['band_moved']:>5} tint_moved={r['tint_moved']}"
+                          f" src_moved={r['src_moved']} engine={r['engine']}")
             return 1
-        print(f"\nOK: nothing moved outside the {len(expect)} item(s) named by --expect.")
+        # The count is stated because it is the evidence: a commit that cites this gate cites the
+        # sweep size with it, and a run that examined fewer items than it should have is then
+        # visible in the sentence rather than only in the header two lines up.
+        print(f"\nOK: nothing moved outside the {len(expect)} item(s) named by --expect, "
+              f"across {swept} items and {len(rows)} surfaces.")
     return 0
 
 

@@ -1501,7 +1501,7 @@ ZONE_OVERRIDES = {
     # shipped without recording a single anchor here, one commit after the rods' block made
     # measuring both surfaces the rule). Chroma-weighted circular mean hue over solid pixels,
     # the same metric that reproduces the Perseus Bow's figures at id 91 exactly:
-    #   112 Ivory Pole      icon 359.2 deg at chroma 0.071, card 331.3 at 0.036. Below the
+    #   112 Ivory Pole      icon 359.2 deg at chroma 0.071, card 331.3 at 0.046. Below the
     #                       Perseus icon's 0.120, so this is the documented near-neutral case
     #                       and hue is genuinely free; painted 37.8 deg, an enriched ivory.
     #   113 Eight-Fluted    icon 221.5 deg at chroma 0.112, painted 237.6. Sits WITH its art.
@@ -1560,22 +1560,34 @@ ZONE_OVERRIDES = {
     106: {"zones": [_material(BLACK_IRON, sat_p=30, min_blob=2)], "gleam": 0.25},  # Wyrmpike
     # --- Instruments (LW-211, 2026-08-14) -------------------------------------------------
     # The least-coloured family left after the guns, rods and poles: measured, the shipping bake
-    # reached a TRUE median 3.4% of each harp's solid art, and 0.7% of the Siren's Lyre's card.
+    # reached a CARD median 3.4% of each harp's solid art, and 0.7% of the Siren's Lyre's card.
+    # The surface belongs in that sentence for the same reason it belongs in the rod and pole
+    # blocks below: the list icons were already at 99.6 to 100 percent under the old whole-glyph
+    # path, so the family median across all six surfaces is 52.3 and it is the CARD that was
+    # shipping the artist's own picture. (First written without the surface, one line above the
+    # two blocks corrected for exactly that; caught by verify 2026-08-14.)
     #
     # A harp is a FRAME and a set of STRINGS, and its two surfaces disagree about what the
     # strings are. On the 48px list icon they are solid bright bars and the brightness key finds
     # them on all three (13.8 to 15.3 percent of the solid art at pct 20). On the 100px card the
-    # artist drew them at alpha 48-159, which is BELOW the mask code's own ranking floor
-    # (HELM_SOLID) and inside the halo ramp, so no key can reach them and none needs to: the ramp
-    # leaves them near the artist's own pale colour, and the card reads two-material for free,
-    # a coloured frame strung with white. The card's solid art IS the frame, so what the zone
-    # does there is light the top rail and the tuning pegs.
+    # artist drew them SEMI-TRANSPARENT: not one interior pixel of any of the three reaches
+    # HALO_HI, so the card's solid art IS the frame and the halo ramp leaves the strings near the
+    # artist's own colour, which gives the card a coloured frame strung pale for free and leaves
+    # the zone to light the top rail and the tuning pegs.
+    # The first writing of that said "alpha 48-159, below the mask code's ranking floor, so no
+    # key can reach them", and the ranking half is false: interior pixels run to alpha 219-223
+    # and 71 to 105 of them per card sit at or above HELM_SOLID, so a key CAN rank them and the
+    # shipped mask does select a handful. What is true, and is what the recipe rests on, is the
+    # HALO_HI line: a string pixel never owns the identity colour, so it cannot be the card's
+    # second material no matter which key is chosen.
     #
     # Darkness was measured and refused, and this is the one family where the swords' hilt key is
     # actively wrong: a harp's darkest share is its KEYLINE and the void between its strings, so a
     # bright metal there dissolves the glyph's outline at list size. Saturation was refused too,
-    # because it is not one answer across the three: the Siren's Lyre's strings are gold and the
-    # other two are white, so a saturation window that finds one misses the others.
+    # because it is not one answer across the three: measured on the list icons the Siren's Lyre's
+    # strings are amber (mean RGB 231,147,76), the Duskstring's are a pale mauve-white and the
+    # Faerie Harp's are the family's only lit blue (45 pixels, mean 162,203,236). Three different
+    # colours, so a saturation window that finds one misses the others.
     #
     # THE HAZE TAX, and why these percentiles look high next to the swords' 18-24. Every mask key
     # ranks pixels at alpha >= HELM_SOLID, and on these cards HALF that population is the haze the
@@ -1596,7 +1608,7 @@ ZONE_OVERRIDES = {
     # The reserved name, and the one that takes a COOL metal: brass on a gold body was tried
     # first and is a single colour with a highlight on it, exactly what the no-single-colour rule
     # refuses. Steel is also what the artist drew, since this harp's vanilla strings are pale
-    # blue where the other two are white. Its pct is SIX LOWER than its siblings' for a measured
+    # blue, the only lit blue in the family. Its pct is SIX LOWER than its siblings' for a measured
     # reason rather than taste: its haze is 40% of the ranking where theirs is 50%, and its top
     # rail is broad and lit, so the same coverage arrives at a lower percentile (at 28 it would
     # take 20.0% of the card and the gold stops being the item's colour).
@@ -1625,10 +1637,12 @@ ZONE_OVERRIDES = {
     # typo. There are EIGHT distinct rod sprites, not the six first written: no rod carries an
     # iconSource and every decoded card is unique, so a reader hunting the twin pair finds none.
     # And the brightness range was written as 4.0 to 21.9 when it is 0.3 to 14.3; the floor is
-    # the number that matters, because 0.3% is the Wellspring Rod, whose orb survives smoothing
-    # as a SINGLE pixel on the card. That rod therefore ships with one visible material where
-    # this comment promises two, which is docs/TODO.md LW-237 and needs the owner's eye on a
-    # before-and-after, not a quiet re-tune of art he has already passed.
+    # the number that matters, because 0.3% is the Wellspring Rod, whose orb zone survives the
+    # chain as a SINGLE solid pixel on the card, and that pixel is not even on the orb: it sits
+    # mid-shaft at 0.68 along the sprite's long axis, while the orb's own surviving mask pixels
+    # all fall below HALO_HI and so own nothing. That rod therefore ships with one visible
+    # material where this comment promises two, which is docs/TODO.md LW-237 and needs the
+    # owner's eye on a before-and-after, not a quiet re-tune of art he has already passed.
     #
     # Tints live in data/items.json for this family. Reserved names are anchored against BOTH
     # surfaces, not just the card: the Dragon Rod's icon reads hue 153 degrees, a jade teal, and
@@ -2488,7 +2502,8 @@ def selftest():
           all(set(z) <= _BY_KEY[z["key"]] for z in zones_all if z.get("key") in _BY_KEY))
     check("every zone override carries at least one zone",
           all(o["zones"] for o in ZONE_OVERRIDES.values()))
-    check("every zone override has a body tint to lay its zones over",
+    check(f"every zone override has a body tint to lay its zones over (no tint: "
+          f"{sorted(set(ZONE_OVERRIDES) - set(ICON_TINTS))})",
           all(i in ICON_TINTS for i in ZONE_OVERRIDES))
 
     # routing: shields take the shield engine, unreviewed weapons keep bright-v2, picked helmets
@@ -2507,12 +2522,17 @@ def selftest():
     # weapons, so a category-first engine_for would send them to bright-v2 and quietly ignore
     # their recipes.
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
-    check("every reviewed family is picked, whole",
-          sorted(ZONE_OVERRIDES)
-          == sorted({i for i, c in _CATEGORY.items()
-                     if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
-                              "Polearm")}
-                    | SWORD_RACK | KNIGHT_RACK))
+    _reviewed = sorted({i for i, c in _CATEGORY.items()
+                        if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
+                                 "Polearm")} | SWORD_RACK | KNIGHT_RACK)
+    _no_recipe = sorted(set(_reviewed) - set(ZONE_OVERRIDES))
+    _extra = sorted(set(ZONE_OVERRIDES) - set(_reviewed))
+    # Named, not just counted. The guard added on 2026-08-14 stopped a half-added family killing
+    # the run with a KeyError, but the checks it left standing were static strings, so the output
+    # was strictly LESS specific than the traceback it replaced: the id went missing from the
+    # message entirely. These say which.
+    check(f"every reviewed family is picked, whole (no recipe: {_no_recipe}; "
+          f"not a reviewed family: {_extra})", not _no_recipe and not _extra)
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
     check("hair adornments stay legacy until their own pass",
@@ -2606,7 +2626,11 @@ def selftest():
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
                             ("harp", harps), ("spear", spears),
                             ("hat", hats), ("crossbow", xbows)):
-        rack = [i for i in rack if body_is_whole_signal(i)]
+        # `i in ICON_TINTS` for the same reason body_is_whole_signal uses .get: the racks come
+        # from the item data and the tints from a second source, so an id can legitimately be
+        # mid-edit. Judging it here raised a KeyError that killed the run and swallowed the
+        # failure list, including the check that names the missing tint (audit 2026-08-14).
+        rack = [i for i in rack if i in ICON_TINTS and body_is_whole_signal(i)]
         rack_collisions = [
             (a, b) for n, a in enumerate(rack) for b in rack[n + 1:]
             if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < RACK_MIN_HUE_GAP
@@ -2688,7 +2712,8 @@ def selftest():
     stale_bright = sorted((set(CARD_OVERRIDES) | set(SMALL_TWO_ZONE)) & set(ZONE_OVERRIDES))
     check(f"no bright-v2 override survives for an item that left that engine ({stale_bright})",
           not stale_bright)
-    check("every reviewed weapon has a recipe at all",
+    check(f"every reviewed weapon has a recipe at all (missing: "
+          f"{sorted(set(bladed) - set(ZONE_OVERRIDES))})",
           all(i in ZONE_OVERRIDES for i in bladed))
     check("every sword carries a second material",
           all(ZONE_OVERRIDES[i]["zones"] for i in zone_ids))
@@ -2699,9 +2724,15 @@ def selftest():
     # back at `bladed`, the exact regression the coverage pin was written to stop, and the pin
     # stayed green while a literally single-colour crossbow rode through. So the loops now record
     # the ids they touched and the check compares THAT against the table.
+    # The mirror of the missing-recipe case, and the same lesson: an id that HAS a recipe but no
+    # body tint raised a bare KeyError here, which killed the run before the failure list printed
+    # and swallowed the very check written to diagnose it ("every zone override has a body tint
+    # to lay its zones over"). Found by audit 2026-08-14, one guard away from the first.
     flat, seen_flat = [], set()
     for i in zone_ids:
         seen_flat.add(i)
+        if i not in ICON_TINTS:
+            continue
         h_b, s_b, _ = ICON_TINTS[i]
         for z in ZONE_OVERRIDES[i]["zones"]:
             h_z, s_z, _ = z["tone"]
@@ -2755,19 +2786,32 @@ def selftest():
                  for z in ZONE_OVERRIDES[i]["zones"] if z.get("min_blob", 4) > 8)
     check(f"no zone's despeckle floor can eat a thin second material (too fat: {fat})", not fat)
 
+    # THE CEILING, recalibrated 2026-08-14 from 0.90 after an audit walked a single-zone recipe
+    # through it: a harp at pct 85 kept the selftest green while the metal owned 90 percent of
+    # the real 48px icon and the identity colour was a sliver. 0.90 was chosen against the
+    # min_blob=99999 failure, where the despeckle flips the whole mask TRUE, and a two-zone
+    # recipe hits it long before a one-zone recipe does, which is why the escape only existed for
+    # families carrying a single zone. Measured on both fixtures: the widest SHIPPED recipe is
+    # the Claymore at 53.5 percent, and the audit's mutation reads 58.2 at pct 60, 65.2 at 70 and
+    # 86.0 at 85. 0.60 leaves the real recipes six points of headroom and refuses the escape.
+    # It remains a proxy: real per-family coverage is measured on the art and recorded in the
+    # ledger row for each pass, and that is what the owner's eye is actually judging.
+    RUNAWAY_CEILING = 0.60
     silent, seen_silent = [], set()
     for fixture_name, zsprite in (("blob", hazed_sprite(28)), ("thread", threaded_sprite(28))):
         zsolid = [c for c in ((x, y) for y in range(28) for x in range(28))
                   if zsprite.getpixel(c)[3] >= HALO_HI]
         for i in zone_ids:
             seen_silent.add(i)
+            if i not in ICON_TINTS:
+                continue
             o = ZONE_OVERRIDES[i]
             painted = zone_recolor(zsprite, ICON_TINTS[i], o)
             bare = zone_recolor(zsprite, ICON_TINTS[i], {**o, "zones": []})
             moved = sum(1 for c in zsolid
                         if max(abs(a - b) for a, b in zip(painted.getpixel(c)[:3],
                                                           bare.getpixel(c)[:3])) >= 12)
-            if not (0.03 * len(zsolid) <= moved <= 0.90 * len(zsolid)):
+            if not (0.03 * len(zsolid) <= moved <= RUNAWAY_CEILING * len(zsolid)):
                 silent.append((fixture_name, i, moved, len(zsolid)))
     check(f"every zone recipe paints some of the art and not all of it (bad: {silent})",
           not silent)
