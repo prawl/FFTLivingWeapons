@@ -1572,8 +1572,15 @@ ZONE_OVERRIDES = {
     # them on all three (13.8 to 15.3 percent of the solid art at pct 20). On the 100px card the
     # artist drew them SEMI-TRANSPARENT: not one interior pixel of any of the three reaches
     # HALO_HI, so the card's solid art IS the frame and the halo ramp leaves the strings near the
-    # artist's own colour, which gives the card a coloured frame strung pale for free and leaves
-    # the zone to light the top rail and the tuning pegs.
+    # artist's own colour, which leaves the zone to light the top rail and the tuning pegs.
+    # HOW MUCH that ramp is worth is per item, and the id-94 pct below turns on it. Measured on
+    # the shipped cards, the strings come out this far from their own frame: id 92 at 0.305 of
+    # saturation, id 93 at 0.209, and id 94 at 0.097, which is not a second colour at all. So
+    # two of the three cards do get a pale-strung frame for free and the Faerie Harp does not,
+    # its body hue being close enough to a metal that its strings simply read as more gold. That
+    # is the other half of why 94 carries the family's widest rail zone (13.8 percent of the card
+    # against 7.2 and 8.8): on that harp the zone is not an accent, it is the whole second
+    # material. (First written as though the free reading held on all three; verify 2026-08-14.)
     # The first writing of that said "alpha 48-159, below the mask code's ranking floor, so no
     # key can reach them", and the ranking half is false: interior pixels run to alpha 219-223
     # and 71 to 105 of them per card sit at or above HELM_SOLID, so a key CAN rank them and the

@@ -96,6 +96,20 @@ the technical detail lives in the indented lines under it.
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
     then verify.)
 
+- [LW-243] 2026-08-14: The rule that an item keeping its original name must keep its original
+  colour is enforced by nobody. It is the owner's rule, it has been cited in four passes, and a
+  verify round showed the exact violet the harp pass condemned would sail through every check.
+  Two items already carry deliberate exceptions he ruled on himself (the Perseus Bow and now the
+  Holy Lance), so a gate has to know the difference between a violation and a ruling. The
+  blocker is where the evidence lives: checking this means measuring the vanilla art, and the
+  checks run in CI on a machine that has neither the game files nor the texture tool. The
+  workable shape is a small table of measured anchors in the tools file, written when a family
+  is passed, with a pin that every reserved name either sits near its anchor or carries a
+  written ruling; that is a design call, not a typo fix.
+  (Tech: 63 items have name == vanillaName, plus at least one the exact comparison misses
+  because the rename was a single capital letter, id 113. recolor_icons.py never reads
+  vanillaName today; grep finds it only in analyze.py and generate.py.)
+
 - [LW-242] 2026-08-14: Nine weapons wear a second colour so dark that the measurement says it is
   barely there, and the file's own rule predicted exactly that. The rule, written during the
   sword pass, is that a dark tone laid on the art's dark share is invisible by construction,
