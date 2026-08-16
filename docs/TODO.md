@@ -114,6 +114,28 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-246] 2026-08-16: Players do not like the recoloured icons. The owner reports a resounding
+  no, which lands after eleven weapon families have been rebuilt, so before another item is
+  touched somebody has to find out WHAT they dislike. There is a measured hypothesis and it is
+  only a hypothesis: the artist paints a plain grey object with one small patch of colour on it,
+  and we have been painting the whole object in colour and leaving a small patch of grey, which
+  is the opposite arrangement. Turning our colours down does not undo that, it only makes pastel
+  versions of the same fully coloured objects. Nothing has been changed in response and nothing
+  was ever put in front of a player by us, since not one icon from this programme has been
+  deployed, so whatever the answer turns out to be, it is still cheap. Do not mass revert on the
+  strength of the measurement alone; get one sentence of detail from a real player first, because
+  change aversion, the soft halo around each sprite, or a handful of loud outliers would each
+  explain the same complaint and each has a different fix. (Tech: reproduce with
+  `python tools/probes/vanilla_palette_sample.py <out.json>` and
+  `python tools/probes/palette_experiment.py <out.png> <family>`. Measured over solid pixels,
+  alpha at or above HALO_HI, on both surfaces: 7.1 percent of vanilla art is genuinely colourful
+  at saturation 0.5 and value 0.35 or better; 78 percent of the artist's committed chroma sits
+  in hue 0 to 59 degrees with amber and gold alone at 42 percent; 20 of 36 hue bins are
+  effectively unused; 44 percent of our 133 recoloured items sit in a hue he essentially never
+  commits to; our 48px icon mean saturation is 0.643 against his 0.314, a factor of 2.05.
+  Treatments already rendered in tools/probes: A ships-now 0.662, B same hues at 0.45 saturation
+  0.393, D neutral body with the colour moved into the accent 0.297 against vanilla 0.322.
+  Full writeup in handoff.md section 1.)
 - [LW-244] 2026-08-14: Ragnarok kept its original name and renders lilac over artwork that is
   warm orange, 115 degrees away, and nobody ever measured it. It is the same shape of problem as
   the Whale Whisker (LW-238): a knight sword you passed by eye, whose violet was chosen as "the
