@@ -50,6 +50,30 @@ the technical detail lives in the indented lines under it.
     MEASUREMENT rather than by the ledger, lowest true CARD median first; eleven families have
     been through it as of 2026-08-16, and what remains after the knives is ninja blades (63.2
     percent), books (67.0) and bags (72.1).
+- **[LW-205] Four of the nine ninja blades were a pale blade with the whole identity in a small coloured guard** (opened 2026-08-13) [AWAITING-LIVE]
+  - BUILT and gated 2026-08-16, owner gallery pass outstanding. Like the knives before them these
+    were picked for what a player sees rather than for a coverage number, which was already a
+    CARD median of 63.2 percent. All nine now have a coloured blade, a metal guard and a bright
+    fuller, and one of them is back on the colour its own artwork is painted in.
+  - Three kept their vanilla names and they split two ways under the anchoring gate. The Sasuke's
+    Blade and the Iga Blade measure near-neutral, so their colour is free, though the Iga is kept
+    WARM because its art is warm and there was no reason to fight it. The Koga Blade is not free:
+    at chroma 0.232 it is emphatically a gold blade with a green guard and it was wearing flat
+    green, so it keeps its gold and its Dark element and Poison rider go where the artist already
+    put green, into the hilt. That is the Holy Lance's resolution for the fourth time.
+  - (Tech: same sword recipe as the knives and katanas. Three percentiles moved per sprite: the
+    Mistedge's and Silentfang's guards are barely darker than their blades, and the Raijin
+    Longblade is the family's awkward one, its CARD carrying a large dark region the hilt key
+    claims 42.5 percent of at the default while its ICON guard is small, so hilt 18 with the
+    levin fuller widened to 34 to keep the lightning on the card. Moving the family off bright-v2
+    emptied SMALL_TWO_ZONE entirely and displaced three more pins, all caught by the pins.)
+  - Done means: all nine carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, every reserved name is anchored
+    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
+  - Verify: all four gates green with the family inside every owner-rule pin and three mutations
+    proving those pins bite; each blade's second material measured on the real art; the bake
+    matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
+
 
 ## Backlog
 
@@ -68,10 +92,9 @@ the technical detail lives in the indented lines under it.
     pass lands (which is what will happen anyway). Either way the identity check needs to be run
     at full scope from now on, or it will keep certifying whatever the last partial run covered.
   - Each family that goes through its own colour pass leaves this set on its way past, so the
-    number falls on its own: it was 58 items when found, and is 17 now that the polearms, the
-    staves, the cloths, the katanas and the knives have been through. What is left is exactly
-    the three families that have not had a pass: ninja blades, books and bags.
-  - (Tech: 33 of 468 surfaces mismatch, all engine bright-v2, ids 11-18, 69, 95-98, 115-118. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
+    number falls on its own: it was 58 items when found, and is 8 now. What is left is exactly
+    the two families that have not had a pass: books (ids 95-98) and bags (115-118).
+  - (Tech: 16 of 468 surfaces mismatch, all engine bright-v2, ids 95-98 and 115-118. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
     signature of the LW-230 ramp. _halo_int reached shade_bright in 495f9fc; those .tex files
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
     then verify.)
@@ -243,8 +266,6 @@ the technical detail lives in the indented lines under it.
   been checked; find the equip category mask in the job data first, and if the modloader cannot
   write it this becomes a runtime write behind the guarded Mem layer like every other live
   mechanism.)
-
-- [LW-205] 2026-08-13: Ninja Blades re-pass: the 9 ninja blade icons get the shields-grade per item review; process per LW-198.
 
 - [LW-210] 2026-08-13: Books re-pass: the 4 book icons get the shields-grade per item review (no-blade art, largest-cluster rule today); process per LW-198.
 

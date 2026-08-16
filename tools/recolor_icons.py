@@ -344,11 +344,13 @@ CARD_OVERRIDES = {
     # 37's row also still described a vmult_floor of 0.85 against a shipped value of 0.24, so it
     # was dead config that ALSO lied. Same defect the sword pass fixed by deleting SMALL_TWO_ZONE
     # id 24, found again by audit 2026-08-14; a selftest pin now refuses the whole class.
-SMALL_TWO_ZONE = {13, 15, 16, 18}       # owner round-1: card-style split on these glyphs
-                                        # (id 24 was a fifth until LW-199 routed the sword rack
-                                        # to the zone engine, which consults ZONE_OVERRIDES
-                                        # first; the entry became unreachable, so it is gone
-                                        # rather than left to read as live configuration)
+SMALL_TWO_ZONE = set()  # EMPTY since LW-205 (2026-08-16). It held ids 13, 15, 16 and 18, the
+                        # four ninja blades whose small glyph took the card's two-zone split on
+                        # owner round one, and all four left bright-v2 with their family. id 24
+                        # was a fifth until LW-199 moved the swords. The table stays as a named
+                        # empty set rather than being deleted, because route() still reads it and
+                        # the next unreviewed family may need it; the pin below is what caught
+                        # all five of these entries going dead.
 COOL, WARM = 0.66, 0.13                  # shadow / highlight hue targets
 
 
@@ -1341,6 +1343,7 @@ STAFF_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Staff")
 CLOTH_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Cloth")
 KATANA_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Katana")
 KNIFE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Knife")
+NINJA_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "NinjaBlade")
 HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
@@ -1545,6 +1548,39 @@ ZONE_OVERRIDES = {
     112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
     113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
     114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
+    # --- Ninja blades (LW-205, 2026-08-16) ------------------------------------------------
+    # CARD median 63.2 percent of the solid art before this pass, so like the knives this family
+    # was picked for what a player sees rather than for a coverage number: four of the nine were
+    # a pale blade with a small coloured guard, and the guard is where the whole identity lived.
+    #
+    # Same recipe as the knives and the katanas, because a ninja blade is a sword too: the hilt
+    # key finds the guard and the edge key finds the blade on all nine.
+    #
+    # THREE ITEMS KEPT THEIR VANILLA NAMES and they split two ways under the anchors gate. The
+    # Sasuke's Blade (icon chroma 0.085) and the Iga Blade (0.095) are inside the near-neutral
+    # case and their hue is free, though the Iga is kept WARM because its art is warm and there
+    # was no reason to fight it. The Koga Blade is not: at chroma 0.232 it is emphatically a gold
+    # blade with a green guard, and it was wearing flat green. It keeps its gold, and its Dark
+    # element and Poison rider go where the artist already put green, into the hilt, which is the
+    # Holy Lance's resolution for the fourth time.
+    #
+    # Three percentiles moved per sprite rather than per family. The Mistedge's guard is barely
+    # darker than its blade (24 gives 2.9 percent of the card, 34 gives 9.9). The Silentfang's is
+    # the same shape of problem. And the Raijin Longblade is the family's awkward one: its CARD
+    # carries a large dark region that the hilt key claims 42.5 percent of at the family default,
+    # while its ICON's guard is small, so the two surfaces want opposite settings; 18 is the
+    # compromise, with the levin fuller widened to 34 to keep the lightning visible on the card
+    # (1.2 percent at 22).
+    11: {"zones": [_hilt(BRASS, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},      # Swiftfang
+    12: {"zones": [_hilt(BONE, pct=34), _edge(WHITE, pct=22)], "gleam": 0.25},       # Mistedge
+    13: {"zones": [_hilt(STEEL, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},  # Frost Kodachi
+    14: {"zones": [_hilt(BRASS, pct=18), _edge(LEVIN, pct=34)],
+         "gleam": 0.25},                                                     # Raijin Longblade
+    15: {"zones": [_hilt(SILVER, pct=30), _edge(WHITE, pct=22)], "gleam": 0.25},    # Silentfang
+    16: {"zones": [_hilt(GOLD, pct=24), _edge(BONE, pct=22)], "gleam": 0.25},  # Sasuke's Blade
+    17: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(STEEL, pct=22)], "gleam": 0.25},  # Iga Blade
+    18: {"zones": [_hilt(VERDANT, pct=24), _edge(BONE, pct=22)], "gleam": 0.25},    # Koga Blade
+    69: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(BONE, pct=22)], "gleam": 0.25},  # Climhazzard
     # --- Knives (LW-198, 2026-08-16) ------------------------------------------------------
     # CARD median 41.2 percent of the solid art before this pass, the healthiest of any family
     # that has been through the programme, and it needed doing anyway: four of the eleven read as
@@ -2557,10 +2593,10 @@ def selftest():
     hazed_solid = ((6, 11), (14, 11))       # one metal pixel, one body pixel
     # Routing coverage: a future engine added without the fix must fail HERE rather than ship
     # smoking. The right-hand side is every engine name the router can actually return today.
-    # id 11 is a ninja blade: the bright-v2 sample has been re-pointed each time its family
-    # left that engine (id 19 when the swords went, 83 when the bows did, 1 when the knives did),
-    # which is the pin working rather than rotting.
-    halo_sample = {"bright-v2": 11, "shield-bright": 128, "helm-two-tone": 156,
+    # id 95 is a book: the bright-v2 sample has been re-pointed each time its family left that
+    # engine (id 19 when the swords went, 83 the bows, 1 the knives, 11 the ninja blades), which
+    # is the pin working rather than rotting. Only books and bags are left on bright-v2.
+    halo_sample = {"bright-v2": 95, "shield-bright": 128, "helm-two-tone": 156,
                    "three-zone": 157, "legacy": 169}
     check("the halo sample names every engine the router can return",
           set(halo_sample) == {engine_for(i) for i in ICON_TINTS})
@@ -2582,10 +2618,22 @@ def selftest():
     # SHIELD engine (style "shield"), and a weapon small that takes the card's two-zone split
     # instead of the whole-glyph ramp. A fixer who patches helm_recolor and stops would leave
     # id147 smoking, and it is filed under helmets.
-    check("both helmet styles and the two-zone weapon small keep the haze too",
+    # The two-zone weapon SMALL branch used to be checked here through id 13, and cannot be any
+    # more: SMALL_TWO_ZONE emptied when the ninja blades left bright-v2 (LW-205), so no real item
+    # reaches that branch. It is exercised on the fixture below instead, through a hand-made id,
+    # so the branch stays covered rather than quietly untested while it waits for a family that
+    # needs it again.
+    check("both helmet styles keep the haze too",
           all(route(hazed, i, ICON_TINTS[i], s).getpixel(hazed_haze)
               == hazed.getpixel(hazed_haze)
-              for i, s in ((147, "card"), (147, "small"), (156, "card"), (13, "small"))))
+              for i, s in ((147, "card"), (147, "small"), (156, "card"))))
+    check("the dormant two-zone weapon small branch still keeps the haze",
+          apply_weapon(hazed, 95, ICON_TINTS[95], "small").getpixel(hazed_haze)
+          == hazed.getpixel(hazed_haze)
+          and (lambda: (SMALL_TWO_ZONE.add(95),
+                        apply_weapon(hazed, 95, ICON_TINTS[95], "small")
+                        .getpixel(hazed_haze) == hazed.getpixel(hazed_haze),
+                        SMALL_TWO_ZONE.discard(95))[1])())
 
     def opaque_twin(im):
         """The same sprite with every painted pixel forced solid."""
@@ -2606,10 +2654,12 @@ def selftest():
     # over alpha>=HELM_SOLID (so an opaque twin legitimately re-ranks), and the ring shield
     # (id132) keys its BFS on alpha>=160 for the same reason.
     twin = opaque_twin(hazed)
-    # id 11 replaced id 1 here when the knives left bright-v2 (LW-198); the list needs one item
-    # per COLOUR-ranked engine and id 1 is now a zone item, which ranks over alpha>=HELM_SOLID
-    # and so re-ranks legitimately against an opaque twin.
-    for iid in (11, 13, 128, 143, 169):
+    # id 95 replaced id 11 here when the ninja blades left bright-v2 (LW-205), which had itself
+    # replaced id 1 when the knives went (LW-198); the list needs one item per COLOUR-ranked
+    # engine, and a zone item ranks over alpha>=HELM_SOLID and so re-ranks legitimately against
+    # an opaque twin. id 13 goes for the same reason and is not replaced: id 95 covers bright-v2
+    # and the two-zone small branch it stood for is now an empty table.
+    for iid in (95, 128, 143, 169):
         for surf in ("card", "small"):
             with_haze = route(hazed, iid, ICON_TINTS[iid], surf)
             without = route(twin, iid, ICON_TINTS[iid], surf)
@@ -2711,7 +2761,8 @@ def selftest():
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
-                   "Pole", "Instrument", "Polearm", "Staff", "Cloth", "Katana", "Knife"}
+                   "Pole", "Instrument", "Polearm", "Staff", "Cloth", "Katana", "Knife",
+                   "NinjaBlade"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2754,10 +2805,10 @@ def selftest():
     # routing: shields take the shield engine, unreviewed weapons keep bright-v2, picked helmets
     # the helm engine, anything in the zone table the three-zone engine, everything else legacy
     check("shield routes to shield-bright", engine_for(128) == "shield-bright")
-    # id 11 is a ninja blade: a weapon whose family re-pass (LW-205) has NOT run, so it must
-    # still take the category default. Re-pointed three times now, from id 19 when the swords
-    # moved, id 83 when the bows did and id 1 when the knives did.
-    check("an unreviewed weapon still routes to bright-v2", engine_for(11) == "bright-v2")
+    # id 95 is a book: a weapon whose family re-pass (LW-210) has NOT run, so it must still take
+    # the category default. Re-pointed four times now, from id 19 when the swords moved, id 83
+    # the bows, id 1 the knives and id 11 the ninja blades.
+    check("an unreviewed weapon still routes to bright-v2", engine_for(95) == "bright-v2")
     check("a reviewed sword beats its category's engine", engine_for(19) == "three-zone")
     check("picked helmet routes to helm-two-tone", engine_for(156) == "helm-two-tone")
     check("the last two helmets joined the helm engine",
@@ -2769,7 +2820,8 @@ def selftest():
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
     _reviewed = sorted({i for i, c in _CATEGORY.items()
                         if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
-                                 "Polearm", "Staff", "Cloth", "Katana", "Knife")}
+                                 "Polearm", "Staff", "Cloth", "Katana", "Knife",
+                                 "NinjaBlade")}
                        | SWORD_RACK | KNIGHT_RACK)
     _no_recipe = sorted(set(_reviewed) - set(ZONE_OVERRIDES))
     _extra = sorted(set(ZONE_OVERRIDES) - set(_reviewed))
@@ -2833,6 +2885,7 @@ def selftest():
     cloths = sorted(CLOTH_RACK)
     katanas = sorted(KATANA_RACK)
     knives = sorted(KNIFE_RACK)
+    ninjas = sorted(NINJA_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2863,7 +2916,7 @@ def selftest():
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
                             ("harp", harps), ("spear", spears), ("staff", staves),
                             ("cloth", cloths), ("katana", katanas),
-                            ("knife", knives),
+                            ("knife", knives), ("ninja blade", ninjas),
                             ("hat", hats), ("crossbow", xbows)):
         # `i in ICON_TINTS` for the same reason body_is_whole_signal uses .get: the racks come
         # from the item data and the tints from a second source, so an id can legitimately be
@@ -2909,6 +2962,7 @@ def selftest():
     check("the cloth rack is all three", len(cloths) == 3)
     check("the katana rack is all eleven", len(katanas) == 11)
     check("the knife rack is all eleven", len(knives) == 11)
+    check("the ninja blade rack is all nine", len(ninjas) == 9)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2957,7 +3011,7 @@ def selftest():
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
     bladed = (swords + knights + bows + guns + rods + poles + harps + spears + staves
-              + cloths + katanas + knives)
+              + cloths + katanas + knives + ninjas)
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in
