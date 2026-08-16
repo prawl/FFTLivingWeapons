@@ -75,16 +75,39 @@ MOD = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "ui" / "ffto" / "icon"
 
 # id -> (hue, saturation, value_mult). Chosen to match each knife's identity.
 ICON_TINTS = {
-    1:  (0.09, 0.50, 0.92),   # Cutpurse        tarnished bronze
-    2:  (0.52, 0.20, 1.12),   # Quicksilver     pale silver-blue
-    3:  (0.79, 0.72, 0.80),   # Gloomfang       dark violet (shadow)
-    4:  (0.60, 0.58, 0.95),   # Hushblade       cold blue (silence)
-    5:  (0.60, 0.06, 1.18),   # Argent Dirk     bright platinum
-    6:  (0.985, 0.72, 1.00),  # Sanguine Gauche crimson (HP-leech)
-    7:  (0.60, 0.12, 0.76),   # Adamant Fang    dark gunmetal
-    8:  (0.27, 0.60, 0.90),   # Mortal Coil     necrotic green (Doom)
-    9:  (0.46, 0.66, 1.05),   # Galewind        storm teal (Wind)
-    10: (0.72, 0.42, 1.10),   # Zwill Straightblade dream lavender (Sleep on hit)
+    # --- Knives (ids 1-10, plus id 68 which rides id 1's art; that one's tint is in items.json) ---
+    # LW-198, 2026-08-16. The pre-pass palette is kept in the trailing comments as the diagnosis.
+    # This family's problem was never coverage, which was already a CARD median of 41.2 percent.
+    # It was that four of the eleven read as the same pale sliver in a list, because the artist
+    # drew every knife with a white blade and only the small grip in colour, and a timid tint left
+    # the blade white. Every one now has a coloured BLADE, which is what a player actually sees.
+    #
+    # Two things forced specific colours. The Zwill Straightblade kept its vanilla name and was
+    # painted dream lavender over art that measures a warm 46 degrees at chroma 0.178, so it was
+    # 141 degrees from its own picture: the anchors gate reported it on sight and it is gold now.
+    # And the Mortal Coil and the Bloodlash were the SAME necrotic green (0.27 both, 0.05 apart in
+    # value), which the palette tripwire could not see while the family was on bright-v2; Doom
+    # goes to a darker olive and the poison knife keeps the brighter venom green.
+    1:  (0.070, 0.65, 0.68),  # Cutpurse        tarnished bronze  (was 0.09/0.50/0.92)
+    2:  (0.520, 0.62, 1.12),  # Quicksilver     mercury cyan; the pale silver-blue it wore
+                              #                 (0.52/0.20/1.12) was one of the four whites
+    3:  (0.760, 0.75, 0.55),  # Gloomfang       gloom violet, deepened (was 0.79/0.72/0.80)
+    4:  (0.605, 0.78, 0.95),  # Hushblade       silence blue (was 0.60/0.58/0.95)
+    5:  (0.585, 0.15, 1.22),  # Argent Dirk     platinum, and deliberately still the family's
+                              #                 near-white: argent IS silver, so this one keeps
+                              #                 its identity in a gold fuller and a night-iron
+                              #                 grip rather than in its blade
+    6:  (0.985, 0.88, 0.85),  # Sanguine Gauche blood crimson (was 0.985/0.72/1.00)
+    7:  (0.650, 0.40, 0.42),  # Adamant Fang    gunmetal, darkened and given a hue so its brass
+                              #                 guard is a material and not a highlight
+                              #                 (was 0.60/0.12/0.76)
+    8:  (0.215, 0.75, 0.58),  # Mortal Coil     necrotic olive (Doom); was 0.27/0.60/0.90, which
+                              #                 is the Bloodlash's green in another value
+    9:  (0.455, 0.75, 1.05),  # Galewind        storm teal (Wind) (was 0.46/0.66/1.05)
+    10: (0.125, 0.80, 1.08),  # Zwill Straightblade RESERVED NAME, anchored to its own art: the
+                              #                 icon reads hue 46 degrees at chroma 0.178 and it
+                              #                 wore dream lavender (0.72/0.42/1.10), 141 degrees
+                              #                 away. Sleep is the rider, gold is the item
     # --- Swords (ids 19-32, plus id 67 which rides id 19's art; tint in data/items.json) ---
     # LW-199, 2026-08-14. The pre-pass palette is kept in the trailing comments as the diagnosis,
     # same as the crossbows above. Two of the fifteen were provably WRONG about their item rather
@@ -313,9 +336,10 @@ def recipe_comment_names():
 
 NO_BLADE_CATS = {"Bag", "Book", "Instrument", "Cloth"}   # no blade: tint the LARGEST cluster
 CARD_OVERRIDES = {
-    9: {"k": 2},                # Galewind: 3 clusters shredded the blade
     117: {"k": 2},              # Hornet Pouch: cluster fragmentation read as camo blobs
-}   # ids 33 (Defender) and 37 (Chaos Blade) were here until LW-200 routed the knight swords to
+}   # id 9 (Galewind) was here until LW-198 routed the knives to the zone engine, and the pin
+    # below caught it on the same run, which is the third time that pin has earned its keep.
+    # ids 33 (Defender) and 37 (Chaos Blade) were here until LW-200 routed the knight swords to
     # the zone engine, which made both rows unreachable: route() consults ZONE_OVERRIDES first.
     # 37's row also still described a vmult_floor of 0.85 against a shipped value of 0.24, so it
     # was dead config that ALSO lied. Same defect the sword pass fixed by deleting SMALL_TWO_ZONE
@@ -1316,6 +1340,7 @@ SPEAR_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Polearm")
 STAFF_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Staff")
 CLOTH_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Cloth")
 KATANA_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Katana")
+KNIFE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Knife")
 HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
@@ -1520,6 +1545,41 @@ ZONE_OVERRIDES = {
     112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
     113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
     114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
+    # --- Knives (LW-198, 2026-08-16) ------------------------------------------------------
+    # CARD median 41.2 percent of the solid art before this pass, the healthiest of any family
+    # that has been through the programme, and it needed doing anyway: four of the eleven read as
+    # the same pale sliver in a list, because the artist drew every knife with a white blade and
+    # only the small grip in colour. The tints then left the blade white, so the item's whole
+    # colour lived in a handle a few pixels across.
+    #
+    # A knife is a SWORD in miniature and takes the sword recipe unchanged, which the CARD art
+    # makes obvious: a dark braided grip, a bright fuller down the blade, and the two sword keys
+    # landing on exactly those. The icons are less clean (at 48px the darkness key finds as much
+    # blade outline as grip) and that is fine, because what the icons need is the coloured blade,
+    # which the body tint gives them.
+    #
+    # THE SHARED SPRITE forced one setting. The Bloodlash draws itself with the Cutpurse's
+    # picture, the sixth such pair in the programme, and on that one sprite the grip zone claims
+    # only 2.8 percent of the icon at the family's pct 24; 30 puts it at 15.2 on both surfaces.
+    # The two are 0.25 of hue apart, tarnished bronze against venom green.
+    # Shipped zone share: grip card 6.5 to 22.3 percent and icon 6.2 to 15.2, fuller card 12.2 to
+    # 25.4 and icon 14.5 to 21.0.
+    1:  {"zones": [_hilt(BONE, pct=30), _edge(STEEL, pct=22)], "gleam": 0.25},        # Cutpurse
+    2:  {"zones": [_hilt(STEEL, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},       # Quicksilver
+    3:  {"zones": [_hilt(BONE, pct=24), _edge(SILVER, pct=22)], "gleam": 0.25},       # Gloomfang
+    4:  {"zones": [_hilt(BRASS, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},       # Hushblade
+    # The one knife whose blade is SUPPOSED to stay near-white, since argent is silver. Its
+    # identity lives in a gold fuller over a night-iron grip instead, and NIGHT_IRON is the right
+    # furniture for exactly this case: a plain black iron on a near-neutral body differs in value
+    # alone, which the no-single-colour gate refuses and is correct to refuse.
+    5:  {"zones": [_hilt(NIGHT_IRON, pct=24), _edge(GOLD, pct=22)], "gleam": 0.25},   # Argent Dirk
+    6:  {"zones": [_hilt(BONE, pct=24), _edge(SILVER, pct=22)], "gleam": 0.25},  # Sanguine Gauche
+    7:  {"zones": [_hilt(BRASS, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},     # Adamant Fang
+    8:  {"zones": [_hilt(BONE, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},       # Mortal Coil
+    9:  {"zones": [_hilt(BRASS, pct=24), _edge(SILVER, pct=22)], "gleam": 0.25},        # Galewind
+    10: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(WHITE, pct=22)],
+         "gleam": 0.25},                                                    # Zwill Straightblade
+    68: {"zones": [_hilt(BLACK_IRON, pct=30), _edge(BONE, pct=22)], "gleam": 0.25},   # Bloodlash
     # --- Katanas (LW-204, 2026-08-14) -----------------------------------------------------
     # CARD median 33.3% of the solid art before this pass. The number is not why this family
     # needed doing: TEN OF THE ELEVEN KEPT THEIR VANILLA NAMES, which by the owner's rule means
@@ -2497,7 +2557,10 @@ def selftest():
     hazed_solid = ((6, 11), (14, 11))       # one metal pixel, one body pixel
     # Routing coverage: a future engine added without the fix must fail HERE rather than ship
     # smoking. The right-hand side is every engine name the router can actually return today.
-    halo_sample = {"bright-v2": 1, "shield-bright": 128, "helm-two-tone": 156,
+    # id 11 is a ninja blade: the bright-v2 sample has been re-pointed each time its family
+    # left that engine (id 19 when the swords went, 83 when the bows did, 1 when the knives did),
+    # which is the pin working rather than rotting.
+    halo_sample = {"bright-v2": 11, "shield-bright": 128, "helm-two-tone": 156,
                    "three-zone": 157, "legacy": 169}
     check("the halo sample names every engine the router can return",
           set(halo_sample) == {engine_for(i) for i in ICON_TINTS})
@@ -2543,7 +2606,10 @@ def selftest():
     # over alpha>=HELM_SOLID (so an opaque twin legitimately re-ranks), and the ring shield
     # (id132) keys its BFS on alpha>=160 for the same reason.
     twin = opaque_twin(hazed)
-    for iid in (1, 13, 128, 143, 169):
+    # id 11 replaced id 1 here when the knives left bright-v2 (LW-198); the list needs one item
+    # per COLOUR-ranked engine and id 1 is now a zone item, which ranks over alpha>=HELM_SOLID
+    # and so re-ranks legitimately against an opaque twin.
+    for iid in (11, 13, 128, 143, 169):
         for surf in ("card", "small"):
             with_haze = route(hazed, iid, ICON_TINTS[iid], surf)
             without = route(twin, iid, ICON_TINTS[iid], surf)
@@ -2645,7 +2711,7 @@ def selftest():
     # engine takes items per item, and engine_for consults this table BEFORE any category rule,
     # so a stray id here silently overrides its family's engine.
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
-                   "Pole", "Instrument", "Polearm", "Staff", "Cloth", "Katana"}
+                   "Pole", "Instrument", "Polearm", "Staff", "Cloth", "Katana", "Knife"}
     # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
     # triple is unreviewable without the item name beside it, and those names rot silently.
     drifted = sorted(i for i, c in tint_comment_names().items()
@@ -2688,10 +2754,10 @@ def selftest():
     # routing: shields take the shield engine, unreviewed weapons keep bright-v2, picked helmets
     # the helm engine, anything in the zone table the three-zone engine, everything else legacy
     check("shield routes to shield-bright", engine_for(128) == "shield-bright")
-    # id 1 is a knife: a weapon whose family re-pass (LW-198) has NOT run, so it must still take
-    # the category default. This pin has now been re-pointed twice, from id 19 when the swords
-    # moved and from id 83 when the bows did, which is the pin working rather than rotting.
-    check("an unreviewed weapon still routes to bright-v2", engine_for(1) == "bright-v2")
+    # id 11 is a ninja blade: a weapon whose family re-pass (LW-205) has NOT run, so it must
+    # still take the category default. Re-pointed three times now, from id 19 when the swords
+    # moved, id 83 when the bows did and id 1 when the knives did.
+    check("an unreviewed weapon still routes to bright-v2", engine_for(11) == "bright-v2")
     check("a reviewed sword beats its category's engine", engine_for(19) == "three-zone")
     check("picked helmet routes to helm-two-tone", engine_for(156) == "helm-two-tone")
     check("the last two helmets joined the helm engine",
@@ -2703,7 +2769,7 @@ def selftest():
     check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
     _reviewed = sorted({i for i, c in _CATEGORY.items()
                         if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
-                                 "Polearm", "Staff", "Cloth", "Katana")}
+                                 "Polearm", "Staff", "Cloth", "Katana", "Knife")}
                        | SWORD_RACK | KNIGHT_RACK)
     _no_recipe = sorted(set(_reviewed) - set(ZONE_OVERRIDES))
     _extra = sorted(set(ZONE_OVERRIDES) - set(_reviewed))
@@ -2766,6 +2832,7 @@ def selftest():
     staves = sorted(STAFF_RACK)
     cloths = sorted(CLOTH_RACK)
     katanas = sorted(KATANA_RACK)
+    knives = sorted(KNIFE_RACK)
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
@@ -2796,6 +2863,7 @@ def selftest():
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
                             ("harp", harps), ("spear", spears), ("staff", staves),
                             ("cloth", cloths), ("katana", katanas),
+                            ("knife", knives),
                             ("hat", hats), ("crossbow", xbows)):
         # `i in ICON_TINTS` for the same reason body_is_whole_signal uses .get: the racks come
         # from the item data and the tints from a second source, so an id can legitimately be
@@ -2840,6 +2908,7 @@ def selftest():
     check("the staff rack is all eight", len(staves) == 8)
     check("the cloth rack is all three", len(cloths) == 3)
     check("the katana rack is all eleven", len(katanas) == 11)
+    check("the knife rack is all eleven", len(knives) == 11)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -2888,7 +2957,7 @@ def selftest():
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
     bladed = (swords + knights + bows + guns + rods + poles + harps + spears + staves
-              + cloths + katanas)
+              + cloths + katanas + knives)
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in

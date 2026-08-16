@@ -13,14 +13,25 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-198] The eleven knives are the next family by measurement, and one of them is painted the wrong colour for its own artwork** (opened 2026-08-13) [QUEUED]
-  - Next by the same evidence that picked every family before it: a TRUE CARD median of 41.2
-    percent of each knife's own art, the worst of what is left now that the harps, spears,
-    staves, veils and katanas are done. Two of the eleven sit under a third. NOT STARTED.
-  - One knife is a reserved name that fails the new anchoring gate on sight: the Zwill
-    Straightblade renders 141 degrees from its own picture at chroma 0.178, which is the same
-    defect the katana family had five times over. The Bloodlash also draws itself with the
-    Cutpurse's sprite, so that pair needs the harder colour floor.
+- **[LW-198] The eleven knives all had a white blade, so their colour lived in a handle a few pixels across** (opened 2026-08-13) [AWAITING-LIVE]
+  - BUILT and gated 2026-08-16, owner gallery pass outstanding. Coverage was never this family's
+    problem, at a CARD median of 41.2 percent, the healthiest of any family in the programme.
+    The problem was that four of the eleven read as the same pale sliver in a list, because the
+    artist drew every knife with a white blade and only the small grip in colour, and the tints
+    left the blade white. All eleven now have a coloured BLADE with a bright fuller and a
+    distinct grip.
+  - Two specific colours were forced rather than chosen. The Zwill Straightblade kept its vanilla
+    name and was painted dream lavender over art that measures a warm 46 degrees at chroma 0.178,
+    141 degrees from its own picture; the new anchors gate reported it on sight, which is the
+    first time that gate has caught something before the art shipped rather than after. And the
+    Mortal Coil and the Bloodlash were the SAME necrotic green, 0.05 apart in value and nothing
+    else, which the palette tripwire could not see while the family was still on the old engine.
+  - A knife is a SWORD in miniature and takes the sword recipe unchanged: the card art has a dark
+    braided grip and a bright fuller, and the two sword keys land on exactly those. (Tech: shared
+    sprite id 1 / id 68 needed grip pct 30 rather than 24, where the icon claims 2.8 percent.
+    Shipped zone share: grip card 6.5 to 22.3 percent and icon 6.2 to 15.2, fuller card 12.2 to
+    25.4 and icon 14.5 to 21.0. Moving the family off bright-v2 displaced four selftest pins that
+    used a knife as their sample and killed one dead override, all caught by the pins themselves.)
   - Done means: all eleven carry their identity colour across their solid art with a visibly
     separate second material, no two read alike at list size, every reserved name is anchored
     against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
@@ -57,9 +68,10 @@ the technical detail lives in the indented lines under it.
     pass lands (which is what will happen anyway). Either way the identity check needs to be run
     at full scope from now on, or it will keep certifying whatever the last partial run covered.
   - Each family that goes through its own colour pass leaves this set on its way past, so the
-    number falls on its own: it was 58 items when found, and is 28 now that the polearms, the
-    staves, the cloths and the katanas have been through (LW-207, LW-209, LW-213, LW-204).
-  - (Tech: 55 of 468 surfaces mismatch, all engine bright-v2, ids 1-18, 68-69, 95-98, 115-118. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
+    number falls on its own: it was 58 items when found, and is 17 now that the polearms, the
+    staves, the cloths, the katanas and the knives have been through. What is left is exactly
+    the three families that have not had a pass: ninja blades, books and bags.
+  - (Tech: 33 of 468 surfaces mismatch, all engine bright-v2, ids 11-18, 69, 95-98, 115-118. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
     signature of the LW-230 ramp. _halo_int reached shade_bright in 495f9fc; those .tex files
     were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
     then verify.)
