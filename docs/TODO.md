@@ -13,153 +13,32 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
-- **[LW-211] The three instrument icons are the least-coloured family left, at three percent of their own art** (opened 2026-08-13) [AWAITING-LIVE]
-  - Next by the same evidence that picked guns, rods and poles. With those done, instruments
-    measure a TRUE median of 3.4 percent of their solid art, the worst of everything still on the
-    old engine, and all three sit under 15 percent. Polearms (10.4) and staves (14.2) follow.
-  - BUILT and gated 2026-08-14, owner gallery pass outstanding. All three harps now carry their
-    colour across the whole instrument with the strings as a visibly separate metal: a sea-teal
-    lyre strung with brass, a dusk-violet harp strung with bone, and the Faerie Harp back on the
-    gold its own picture is painted in, strung with pale steel. The card went from 0.7, 5.1 and
-    3.4 percent of each harp's art to 92, 100 and 98 percent.
-  - The finding worth keeping is that a harp's two pictures disagree about what its strings are.
-    On the small list icon they are solid bright bars, so the brightness key finds them on all
-    three. On the big card the artist drew them half transparent, below the level any of the
-    three keys can even see, and the fix for that was to stop trying: the haze rule the owner
-    already approved leaves half-transparent pixels near their original colour, so the card gets
-    a coloured frame strung with white for free and the metal goes on the top rail instead.
-    (Tech: strings sit at alpha 48-159, below HELM_SOLID and inside the LW-230 halo ramp. Zone
-    key is _edge, brightness, at pct 28/28/22: darkness was refused because a harp's darkest
-    share IS its keyline and the void between its strings, and saturation because one harp's
-    strings are gold and two are white. The percentiles run high against the swords' 18-24
-    because half of each card's ranked population is haze, 447 haze-band pixels against 444
-    solid on id 92, so a percentile buys about half as much solid art there as on the icon.
-    Measured at the shipped settings: zone claims card 7.2/8.8/13.8, icon 22.8/21.5/16.2. The
-    3.4 above is a CARD median: the list icons were already fully covered by the old whole-glyph
-    path, so across all six surfaces the pre-pass family median is 52.3.)
-  - Done means: all three carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, any reserved name is anchored
-    against BOTH the card and the list icon, and no already-approved art moves.
-  - Verify: recolor_icons selftest green with the family inside every owner-rule pin; each
-    instrument's second material measured on the real art; icon_preview.py compare --expect
-    naming exactly these ids and exiting clean; the bake matching the reviewed gallery pixel for
-    pixel against a FULL preview manifest; and the owner's gallery pass.
-
-- **[LW-207] The eight spears are the least-coloured family left after the harps, at ten percent of their own art** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-14, owner gallery pass outstanding. Every spear now carries its
-    colour on the haft with a separate metal on the head: a steel-headed honey Skewer, a navy
-    Footman's Spear under white steel, an ice Frostpoint with a rime head, a storm-indigo
-    Stormpike under a levin head, a grave-green Tombspire under bone, the Holy Lance keeping its
-    own blue with the holy gold moved into its trim, a crimson Dragon Whisker under gold, and a
-    wyrm-green Wyrmpike on a dark iron haft. The card went from a median 10.4 percent of each
-    spear's art to 100 percent on every one.
-  - The family's lesson, CORRECTED by an audit the same day: the saturation key finds whichever
-    part the artist left GREY, and which part that is depends on the PICTURE, not the item. On
-    every one of the eight big cards the artist left the whole spear near-neutral and the key
-    finds the head. On the small list icons he painted some heads and some butt caps, and there
-    the key moves to whichever end is left grey, which is the haft on the Wyrmpike and the head
-    end on the Tombspire. The first writing of this row called that an item-level split and named
-    only the Wyrmpike, which is the same surface-blind mistake the commit before it had just gone
-    and fixed in two other families. (Tech: _material, sat_p 40-42 on four and 30 on the other
-    four; the four were moved because their card share at 30 was 4 to 11 percent and, on the
-    Skewer, landed on the outline between head and haft rather than the head's face. The haze
-    explanation first given here was borrowed from the harps and does not hold: these cards are
-    15 to 35 percent haze, and the lowest-share item has among the lowest haze. Shipped zone
-    share: card 13.1 to 26.1 percent, icon 16.9 to 39.1; the icon range was first published as
-    23.2 to 36.4, measured before the final knob change and never re-taken.)
-  - Done means: all eight carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, both reserved names are anchored
-    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
-  - Verify: recolor_icons selftest green with the family inside every owner-rule pin and four
-    mutations proving those pins bite; each spear's second material measured on the real art;
-    icon_preview.py compare --expect naming exactly these ids and exiting clean over all 468
-    surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
-    pass, which is also where the Holy Lance's blue-body-with-gold-trim reading gets its ruling.
-
-- **[LW-209] The eight staves are the least-coloured family left after the spears, and two pairs of them read as each other** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-14, owner gallery pass outstanding. On the big equip card the colour
-    was reaching a median 14.2 percent of each staff's own artwork, and nothing at all on three
-    of them. Worse than the number: side by side in a list, the Mending and Warding Staves were
-    the same green and the Warlock's Staff and the Staff of the Magi the same purple. All eight
-    now carry their colour with a separate metal running the staff's lit ridge: ash wood under
-    bone, warlock violet under silver, healer's jade under white, ward blue under brass, fire
-    under white-hot, a radiant white Sanctus with its holy moved into a gold ridge, storm indigo
-    under levin, and the Staff of the Magi keeping the gold head its own picture is painted with
-    over a near-black shaft.
-  - This is the first family where the artist drew the whole object as ONE material, so the
-    second one had to be invented, which is the crossbow's case rather than the sword's. The
-    only honest place to put it is where the light already falls, and the brightness key's answer
-    here happens to be the best possible one: the lit ridge runs the staff's whole length, head
-    to ferrule, so it crosses the largest shape instead of sitting at one end. (Tech: _edge at
-    pct 32 across the family, uniform because the eight sprites are four pairs of one drawing;
-    saturation claims 9 to 20 percent of these cards and lands on scattered edge pixels,
-    darkness returns 0.0 to 2.7 percent, the lowest of any family met. Shipped zone share: card
-    8 to 25 percent, icon 28 to 33.)
-  - Done means: all eight carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, both reserved names are anchored
-    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
-  - Verify: recolor_icons selftest green with the family inside every owner-rule pin and five
-    mutations proving those pins bite; each staff's second material measured on the real art;
-    icon_preview.py compare --expect naming exactly these ids and exiting clean over all 468
-    surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
-    pass, which is also where the Sanctus Staff's white-with-gold reading gets its ruling.
-
-- **[LW-213] The dancer's three veils are the drabbest thing left on the shelf** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-14, owner gallery pass outstanding. These three were not the worst by
-    coverage, they were the worst by eye: a washed brown, a pale steel and a mauve grey. They are
-    now oil-black, binding green and grave violet, each with its own pale sheen.
-  - The finding: a bolt of cloth is the FIRST family whose picture already carried two zones the
-    artist drew on purpose, an upper roll and a lower one in different colours on all three. And
-    all three second tones are PALE NEUTRALS rather than the metal-on-colour pairing every weapon
-    family uses, because silk's own second material is its SHEEN: a coloured tone there reads as
-    a stain, which is exactly how a brass first attempt rendered on the Tarsilk's card.
-    (Tech: _edge at pct 24, lower than the staves' 32 because these sprites are broad and their
-    lit share is a surface rather than a ridge. Shipped zone share: card 15 to 26 percent, icon
-    18 to 24. The key takes whichever roll the artist LIT, the lower one on the Tarsilk and the
-    upper on the other two, so it reaches a spatial split through a tonal key by luck of the art
-    rather than by design, the same way the Wyrmpike's haft does.)
-  - Done means: all three carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, and no already-approved art moves.
-    No reserved names in this family; all three were renamed.
-  - Verify: recolor_icons selftest green with the family inside every owner-rule pin and three
-    mutations proving those pins bite; each veil's second material measured on the real art;
-    icon_preview.py compare --expect naming exactly these ids and exiting clean over all 468
-    surfaces; the bake matching a FULL preview manifest pixel for pixel; and the owner's gallery
-    pass.
-
-- **[LW-204] Ten of the eleven katanas kept their original names, and five were painted the wrong colour for their own artwork** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-14, owner gallery pass outstanding. The coverage number was not this
-    family's problem. Ten of the eleven kept their vanilla names, which by your rule means each
-    is built from its own picture, and five of them were between 88 and 179 degrees away from it:
-    the Masamune's art is blue and it wore gold, the Chirijiraden's is amber and it wore blue,
-    the Muramasa's is the second most strongly coloured sprite in the game and it wore violet.
-    All eleven now have a blade colour, a metal on the handle and a metal down the fuller.
-  - Measured on the list icons, six of the eleven are genuinely coloured art and keep what they
-    have; five measure below the near-neutral line the Ivory Pole established, so their colour is
-    free. Two of the anchored ones collide with a convention and take the Holy Lance's
-    resolution rather than choosing: the Masamune is the Holy blade and its art is blue, so the
-    blue stays on the body and the holy goes into a gold fuller, and the Kiyomori poisons on hit
-    and its art is cyan, so the venom goes into the edge. (Tech: anchors, chroma-weighted on the
-    icon: 38 Ashura 213 deg / 0.137, 43 Kiyomori 185 / 0.132, 44 Muramasa 23 / 0.251, 46 Masamune
-    228 / 0.147, 47 Chirijiraden 36 / 0.261; free at 0.079 to 0.114 are 39, 40, 41, 42, 45. The
-    recipe is the SWORD's unchanged, since a katana is a sword with a tsuka the artist drew
-    darker and a fuller he drew brighter. Three percentiles moved per sprite: 41's hilt to 34,
-    44's fuller to 28, 46's hilt to 30.)
-  - One item's fuller cannot be reached on its card and is left that way on purpose. The artist
-    drew the Ame-no-Murakumo as a wisp, 213 solid pixels against 433 of haze with 68 percent of
-    the solid art in the hilt third, so the brightest-share key has nothing solid to sit on. Its
-    card carries a 23.5 percent brass tsuka instead, so the ITEM still reads two-tone on both
-    surfaces; this is the harps' finding on one item, not the Wellspring Rod's defect.
+- **[LW-198] The eleven knives are the next family by measurement, and one of them is painted the wrong colour for its own artwork** (opened 2026-08-13) [QUEUED]
+  - Next by the same evidence that picked every family before it: a TRUE CARD median of 41.2
+    percent of each knife's own art, the worst of what is left now that the harps, spears,
+    staves, veils and katanas are done. Two of the eleven sit under a third. NOT STARTED.
+  - One knife is a reserved name that fails the new anchoring gate on sight: the Zwill
+    Straightblade renders 141 degrees from its own picture at chroma 0.178, which is the same
+    defect the katana family had five times over. The Bloodlash also draws itself with the
+    Cutpurse's sprite, so that pair needs the harder colour floor.
   - Done means: all eleven carry their identity colour across their solid art with a visibly
     separate second material, no two read alike at list size, every reserved name is anchored
     against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
-  - Verify: recolor_icons selftest green with the family inside every owner-rule pin and three
-    mutations proving those pins bite, including the harder shared-sprite floor on the
-    Ashura/Sasori pair; every anchor measured on both surfaces; icon_preview.py compare --expect
-    naming exactly these ids and exiting clean over all 468 surfaces; the bake matching a FULL
-    preview manifest pixel for pixel; and the owner's gallery pass, which is where the two
-    art-versus-convention rulings get settled.
-
+  - Verify: all four gates green (recolor_icons selftest with the family inside every owner-rule
+    pin and mutations proving those pins bite, icon_preview.py compare --expect naming exactly
+    these ids, anchors, silhouettes); each knife's second material measured on the real art; the
+    bake matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
+  - This row also carries the LW-198 through LW-226 PROGRAM STATEMENT that the other section
+    rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
+    the owner called the first-pass recolours hasty ("sloppy"), so every equipment section gets
+    the treatment that made the shields land: per item owner review rounds judged as pictures,
+    rule fixes over pixel fixes, variant picker pages when a call is contested, engines chosen
+    per family on evidence, and the identity proof (preview equals production, bake matched
+    pixel for pixel) at the end. The assembly line is docs/DEV_TEST_RECIPES.md ("Icon recolor
+    process") plus the engine modes in tools/recolor_icons.py. Order is now decided by
+    MEASUREMENT rather than by the ledger, lowest true CARD median first; eleven families have
+    been through it as of 2026-08-16, and what remains after the knives is ninja blades (63.2
+    percent), books (67.0) and bags (72.1).
 
 ## Backlog
 
@@ -352,22 +231,6 @@ the technical detail lives in the indented lines under it.
   been checked; find the equip category mask in the job data first, and if the modloader cannot
   write it this becomes a runtime write behind the guarded Mem layer like every other live
   mechanism.)
-
-- [LW-198] 2026-08-13: Daggers re-pass: the 11 dagger icons get the shields-grade per item
-  review. PROGRAM PAUSED by the owner 2026-08-14 after the crossbows, shields and helmets
-  landed, then RESTARTED by him the same day with a wider scope than it had: no further bug work
-  until the weapon, armor and accessory art is reworked, so LW-198 through LW-226 and the
-  LW-232 weapon-card brief are all live again. He chose weapons first and swords first within
-  weapons (LW-199, promoted to Now). This row
-  also carries the LW-198 through LW-226 program statement the other section rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
-  the owner called the first-pass recolors hasty ("sloppy"), so every equipment section gets
-  the treatment that made the shields land: per item owner review rounds judged as pictures,
-  rule fixes over pixel fixes, variant picker pages when a call is contested, engines chosen
-  per family on evidence, and the identity proof (preview equals production, bake matched
-  pixel for pixel) at the end. The assembly line is docs/DEV_TEST_RECIPES.md ("Icon recolor
-  process") plus the engine modes in tools/recolor_icons.py. Helmets run first (LW-215
-  promoted 2026-08-13, the owner delegated the order call): headgear still wears the legacy
-  one-hue stamp, and a helmet is the same art shape the shield engine was built for.
 
 - [LW-205] 2026-08-13: Ninja Blades re-pass: the 9 ninja blade icons get the shields-grade per item review; process per LW-198.
 

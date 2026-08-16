@@ -10,6 +10,77 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-204] SHIPPED 3676fcc 2026-08-14: Ten of the eleven katanas kept their original names, and
+  five were painted the wrong colour for their own artwork. The Masamune's picture is blue and it
+  wore gold, the Chirijiraden's is amber and it wore blue, the Muramasa's is the second most
+  strongly coloured sprite in the game and it wore violet. All eleven now have a blade colour, a
+  metal on the handle and a metal down the fuller, and the five wrong ones are back on their own
+  colours. Owner signed the family off 2026-08-16. Committed but NOT deployed: the live install
+  still carries the 2026-08-13 build, so the in-game look is owed at the next deploy. (Tech:
+  measured on the 48px icons, six of eleven sit at or above the 0.120 chroma line and keep what
+  they have, five measure 0.079 to 0.114 and are free by the near-neutral rule the Ivory Pole
+  established. Two anchors collide with a convention and take the Holy Lance's resolution rather
+  than choosing: the Masamune is the Holy blade and its art is blue, so the holy goes into a gold
+  fuller, and the Kiyomori poisons on hit and its art is cyan, so the venom goes into the edge.
+  The recipe is the SWORD's unchanged, since a katana is a sword with a tsuka drawn darker and a
+  fuller drawn brighter. Three percentiles moved per sprite. The Ame-no-Murakumo's fuller cannot
+  be reached on its card, 213 solid pixels against 433 of haze, so its brass tsuka carries that
+  surface alone.)
+
+- [LW-213] SHIPPED 2d7e042 2026-08-14: The dancer's three veils were the drabbest thing left on
+  the shelf, a washed brown, a pale steel and a mauve grey. They are oil black, binding green and
+  grave violet now, each with its own pale sheen. Owner signed the family off 2026-08-16.
+  Committed but NOT deployed. (Tech: the first family whose sprite already carried two zones the
+  artist drew on purpose, an upper roll and a lower one in different colours on all three. And
+  the first whose second tone is a PALE NEUTRAL rather than the metal-on-colour pairing every
+  weapon family uses, because silk's own second material is its sheen: a coloured tone reads as a
+  stain, which is how a brass first attempt rendered on the Tarsilk's card. _edge at pct 24;
+  shipped zone share card 15 to 26 percent, icon 18 to 24.)
+
+- [LW-209] SHIPPED 31d2766 2026-08-14: The eight staves had a worse problem than being drab. Two
+  pairs read as each other in a list, the Mending and Warding Staves as one green and the
+  Warlock's and the Staff of the Magi as one purple, and three of the eight reached nothing at
+  all of their own artwork on the big card. All eight now carry a colour with a metal running the
+  staff's lit ridge, and all eight read apart. Owner signed the family off 2026-08-16. Committed
+  but NOT deployed. (Tech: the first family the artist drew as ONE material, four hooked staves
+  of a single piece of wood and four spiral ones of a single piece of metal, so the second
+  material had to be invented the way the crossbows' was. The lit ridge is the best answer
+  available because it runs the whole length, head to ferrule, which is the sword pass's own test
+  that a second material cross the object's largest shape. _edge at pct 32 uniformly; saturation
+  was refused at 9 to 20 percent landing on scattered edge pixels, darkness at 0.0 to 2.7, the
+  lowest of any family met. The two reserved names land on opposite sides of the anchor rule: the
+  Zeus Mace at icon chroma 0.050 is free, the Staff of the Magi at 0.167 is not and keeps its
+  gold head over a near-black shaft.)
+
+- [LW-207] SHIPPED 3e66170 2026-08-14: The eight spears reached a median of ten percent of their
+  own artwork on the big card, and as little as 0.3 percent on the Tombspire. Every spear now
+  carries its colour on the haft with a separate metal on the head. The Holy Lance is the
+  interesting one: it kept its original name and its picture is the most strongly coloured art
+  in the family, a blue lance, while holy is gold everywhere else in this mod, so the blue stays
+  where the artist put it and the gold goes into the trim. Owner signed the family off
+  2026-08-16. Committed but NOT deployed. (Tech: the crossbow's saturation split again.
+  sat_p 40-42 on four and 30 on the other four, moved because their card share at 30 was 4 to 11
+  percent and, on the Skewer, landed on the outline between head and haft rather than the head's
+  face. Shipped zone share: card 13.1 to 26.1 percent, icon 16.9 to 39.1. An audit corrected two
+  claims this pass first published: the icon range had been measured before the final knob change
+  and never re-taken, and the finding that the key finds whichever part the artist left grey is a
+  SURFACE fact, true of the icons and not of the cards, where every spear is near-neutral and the
+  key finds the head on all eight.)
+
+- [LW-211] SHIPPED fb2fb95 2026-08-14: The three harps were the least-coloured family in the
+  game, reaching 0.7, 5.1 and 3.4 percent of their own artwork on the big card. All three now
+  carry their colour across the whole instrument with the strings standing out as a separate
+  metal, and two of the three were simply the wrong colour for the item wearing them: the
+  Duskstring was still red from when it was called the Bloodstring, and the Faerie Harp, which
+  kept its original name, had been painted violet over gold art. Owner signed the family off
+  2026-08-16. Committed but NOT deployed. (Tech: a harp's two surfaces disagree about what its
+  strings are. On the 48px icon they are solid bright bars and the brightness key finds them on
+  all three; on the card the artist drew them semi-transparent, never reaching HALO_HI, so the
+  card's solid art IS the frame and the halo ramp leaves the strings near the artist's colour.
+  _edge at pct 28/28/22; darkness was refused because a harp's darkest share is its keyline and
+  the void between its strings, saturation because the three harps' strings are three different
+  colours. Shipped zone share: card 7.2/8.8/13.8, icon 22.8/21.5/16.2.)
+
 - [LW-243] SHIPPED 6ec78c2 2026-08-14: Your rule that an item which kept its original name keeps
   its original look now has a check behind it, opened and closed in the same session. It was
   cited in six colour passes and enforced by nobody, which is how five katanas came to be painted
