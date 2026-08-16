@@ -74,30 +74,45 @@ the technical detail lives in the indented lines under it.
     proving those pins bite; each blade's second material measured on the real art; the bake
     matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
 
+- **[LW-210] The four books, and the game's most strongly coloured sprite was wearing gold** (opened 2026-08-13) [AWAITING-LIVE]
+  - BUILT and gated 2026-08-16, owner gallery pass outstanding. The healthiest family by coverage
+    the programme ever measured, at a CARD median of 67.0 percent, so this one is here to finish
+    the set rather than to fix a number. A book is a coloured cover and a pale page block, which
+    is a second material the artist already drew, so one zone is enough and the brightness key
+    finds the pages on all four.
+  - The Omnilex kept its vanilla name and is the Book line's Holy capstone, and its artwork is
+    the most strongly coloured sprite in the whole game at icon chroma 0.388, a deep vermilion.
+    It takes the Holy Lance's resolution for the fifth time: the vermilion stays on the cover
+    where the artist put it and the holy goes into gilt-edged pages.
+  - Done means: all four carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, the reserved name is anchored
+    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
+  - Verify: all four gates green with the family inside every owner-rule pin and mutations
+    proving those pins bite; each book's page block measured on the real art; the bake matching a
+    FULL preview manifest pixel for pixel; and the owner's gallery pass.
+
+- **[LW-212] The four bags, the last weapon family in the game to have its colour looked at** (opened 2026-08-13) [AWAITING-LIVE]
+  - BUILT and gated 2026-08-16, owner gallery pass outstanding. A CARD median of 72.1 percent,
+    the highest of any family, and the one real fix is the one the new anchoring gate catches:
+    the Fallingstar Bag kept its vanilla name and was painted gold over artwork that is green.
+    A bag is one piece of leather with no furniture, so its second tone is a SHEEN in the veils'
+    sense and a pale neutral for the same reason: a coloured tone on a pouch reads as a stain.
+    The falling star is its gold clasp.
+  - WITH THIS FAMILY, EVERY WEAPON IN THE GAME HAS BEEN THROUGH THE RE-PASS. The old bright-v2
+    engine has no items left at all, so it is retired to a dormant branch rather than deleted
+    (Axe and Flail are weapon categories with no items today, and a future one would land there)
+    and both its small branches are exercised on the fixture instead. CARD_OVERRIDES and
+    SMALL_TWO_ZONE are now empty tables for the same reason.
+  - Done means: all four carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, the reserved name is anchored
+    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
+  - Verify: all four gates green with the family inside every owner-rule pin and four mutations
+    proving those pins bite; each bag's sheen measured on the real art; the bake matching a FULL
+    preview manifest pixel for pixel, which for the first time in the programme is 468 of 468
+    surfaces with nothing stale; and the owner's gallery pass.
+
 
 ## Backlog
-
-- [LW-236] 2026-08-14: Fifty-eight weapon icons still ship the version of themselves that fumes
-  coloured smoke, because the fix that stopped it was never baked into their pictures. The
-  smoke fix (LW-230) was written into the shared shader that these families use, but only the
-  families being reviewed at the time had their art re-made, so the code and the shipped picture
-  have disagreed ever since. Found 2026-08-14 by running the pixel-identity check over EVERY
-  item for the first time instead of over the family being worked, which is exactly the blind
-  spot the docs warned about. Nothing looks broken in game; the affected icons simply keep the
-  older, hazier look. The families are the ones still waiting for their own colour pass: knives,
-  ninja blades, katanas, staves, polearms, books, bags and cloths.
-  - The call is the owner's, because it moves art on 58 items that have never had a review pass,
-    and the standing rule is that their look must not change until it does. Two honest options:
-    re-bake them now so code and picture agree, or leave them and re-bake each family as its
-    pass lands (which is what will happen anyway). Either way the identity check needs to be run
-    at full scope from now on, or it will keep certifying whatever the last partial run covered.
-  - Each family that goes through its own colour pass leaves this set on its way past, so the
-    number falls on its own: it was 58 items when found, and is 8 now. What is left is exactly
-    the two families that have not had a pass: books (ids 95-98) and bags (115-118).
-  - (Tech: 16 of 468 surfaces mismatch, all engine bright-v2, ids 95-98 and 115-118. ZERO solid pixels differ; every difference is in the alpha 48-223 halo band, the
-    signature of the LW-230 ramp. _halo_int reached shade_bright in 495f9fc; those .tex files
-    were last baked at 4872ed5, long before. Reproduce: icon_preview.py preview with no ids,
-    then verify.)
 
 - [LW-244] 2026-08-14: Ragnarok kept its original name and renders lilac over artwork that is
   warm orange, 115 degrees away, and nobody ever measured it. It is the same shape of problem as
@@ -266,10 +281,6 @@ the technical detail lives in the indented lines under it.
   been checked; find the equip category mask in the job data first, and if the modloader cannot
   write it this becomes a runtime write behind the guarded Mem layer like every other live
   mechanism.)
-
-- [LW-210] 2026-08-13: Books re-pass: the 4 book icons get the shields-grade per item review (no-blade art, largest-cluster rule today); process per LW-198.
-
-- [LW-212] 2026-08-13: Bags re-pass: the 4 bag icons get the shields-grade per item review (no-blade art); process per LW-198.
 
 - [LW-214] 2026-08-13: Throwing weapons and Bombs first pass: the 6 shuriken and bomb icons were never tinted at all (they sit outside the 121-weapon set), so this is a first coloring, not a re-pass; process per LW-198.
 

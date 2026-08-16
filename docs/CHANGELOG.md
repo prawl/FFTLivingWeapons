@@ -10,6 +10,18 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-236] SHIPPED b36ba7c 2026-08-16: Fifty-eight weapon icons had been shipping the version of
+  themselves that fumes coloured smoke, because the fix that stopped it was written into their
+  shared shader but their pictures were never re-made. It is fixed now, and not by re-baking them
+  on purpose: every one of those families has since been through its own colour pass, which
+  re-made the art as a side effect. The pixel-identity check now reports 468 of 468 surfaces
+  matching, the first time in the programme it has been clean at full scope. (Tech: found
+  2026-08-14 by running icon_preview.py verify over EVERY item for the first time rather than
+  over the family being worked, which is the blind spot the process doc now warns about. The
+  count fell 58 to 50 to 42 to 39 to 28 to 17 to 8 to 0 as the polearms, staves, cloths, katanas,
+  knives, ninja blades, books and bags each left bright-v2. Zero solid pixels ever differed; the
+  whole thing lived in the alpha 48-223 halo band.)
+
 - [LW-204] SHIPPED 3676fcc 2026-08-14: Ten of the eleven katanas kept their original names, and
   five were painted the wrong colour for their own artwork. The Masamune's picture is blue and it
   wore gold, the Chirijiraden's is amber and it wore blue, the Muramasa's is the second most
