@@ -1833,6 +1833,30 @@ Uncertain as of 2026-08-17 (evidence strong, owner flip pending): with the roste
 
 </details>
 
+### [battle-retry-rewind-fingerprint] A battle RETRY rewinds the battlefield with no exit edge of any kind, has TWO depths (battle-start and mid-battle checkpoint), and carries a unique tape fingerprint: an actor-pointer null blip at-or-before the restore plus units healed and relocated in the same instant
+
+Uncertain as of 2026-08-17 (evidence re-derived independently from banked tapes; owner flip pending): when a player loses a battle and picks retry, the game rewinds the battlefield without ever telling the mod the battle ended. Across three retries on tape (one owner drill 2026-08-14, two in a real player session 2026-08-12) the recorder shows one battle start, no exit between attempts, and turn and kill bookkeeping running straight through, so an enemy the player was already paid for stood back up and paid out again (Vagabond kills 23 and 25 were the same soldier at band slot 15, and the phantom 25th kill fired a real growth toast). This is the LW-233 mechanism, cause and fingerprint.
+
+<details><summary>How we got here</summary>
+
+**Claim:** the LW-233 backlog account (written 2026-08-14) holds up under independent re-derivation, and the retry moment is machine-detectable with zero false positives on the banked evidence.
+
+**Mechanism:** the retry screen keeps whatever sentinel drives the exit edge armed throughout, so no exit debounce ever completes and no flush fires between attempts; the credit latch then correctly re-arms revived corpses as it would for a Raise, and re-kills credit again. The tally saves on change and at exit, so the inflation is permanent in the save file.
+
+**Evidence (independent re-derivation 2026-08-17 from tools/probes/tapes/lw233_retry_drill_20260814.jsonl plus the player's six 2026-08-12 flight tapes; denominator 7 files, 1484 records, 221 ev records, 20 healing events):**
+* One battle-start and ZERO exit edges per retry, proven by flush continuity: every tape file's first record continues exactly from the prior flush, and the player's 67KB exit tape spans BOTH of that battle's retries under a single header with continuous time.
+* Actor-pointer to-null transitions: exactly 3 in 1484 records, one per retry, zero elsewhere; the null lands at-or-before the restore by 0 to 172 ms (62 ms on the drill; 0 ms on player retry A). CAUTION: a null read is also documented once at battle-open idle (Offsets.ActorPtr provenance), so the detector must gate away from battle enter.
+* Heal-plus-same-instant-relocate coincidences: 9 across all tapes, ALL at the three restore moments, zero in ordinary play (the 11 ordinary heals have no same-tick move and none is from 0 HP). "Same instant" spans up to 16 ms on tape, so a runtime window, not strict tick equality.
+* TWO RETRY DEPTHS (new): the drill and player retry A rewound to battle start (full HP, first-seen tiles, 6 and 5 units restored); player retry B rewound to a MID-BATTLE CHECKPOINT (slot 11 revived 0 to 20 of 56 on its death tile with NO move; slot 24 restored 0 to 6 of 72 with a move), tripping the heal-relocate detector through ONE unit only. A fix must not assume full HP or start tiles, must arm on both detectors, and must rewind per revived victim, since checkpoint-surviving kills remain legitimately earned.
+* Bookkeeping continuity: the player's global turn counter ran 1..27 monotonically across both retries while the genuinely new next battle reset it to 1; the drill's turn 3 acted edge landed 14.8 s after the restore.
+* The double payout end to end: slot 15 credited count 23 at t=12326390/12326640, healed 0 to 58 and moved at the retry restore t=12446343, re-killed and credited count 25 at t=12513109/12513359, toast "Vagabond has gained its 25th kill and has grown to Vagabond+2" delivered 12513625.
+
+**Recorded caveats:** (1) "a real Raise never relocates its target" is UNVERIFIABLE from these tapes: no genuine revive occurs anywhere in them, so the Raise-vs-restart discriminator rests on the zero-false-positive record, not on an observed Raise. (2) A third candidate signal, a same-instant multi-slot move cluster, fired at all three restores but also once at battle-start deployment, so it only serves gated away from battle enter. (3) A long battleMode-0 spell does NOT discriminate (12.6 and 13.2 s non-retry spells exist on the same tapes); mode 0 to 3 within ~16 ms of the restore is confirming context only. (4) One restore printed a heal to 69 of a unit whose true max reads 72 elsewhere; never key a detector on healed-to-max. (5) Flight records are on-change, so a unit rewound onto its current values leaves no record; the runtime's per-tick sampling sees more than the tape does.
+
+**Date:** 2026-08-17
+
+</details>
+
 ## Contradicted — probe before building on these
 
 ### [terrain-height-byte-blocks-movement] Terrain grid HEIGHT (byte +2) write BLOCKS movement (the Bulwark premise, as ORIGINALLY built)
