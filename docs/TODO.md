@@ -125,46 +125,28 @@ the technical detail lives in the indented lines under it.
     preview manifest pixel for pixel, which for the first time in the programme is 468 of 468
     surfaces with nothing stale; and the owner's gallery pass.
 
-- **[LW-193] Using Crossfire or Gun Slinger can destroy the wielder's shield forever and mint a free copy of the gun, and both failure shapes are now on tape** (opened 2026-08-13) [BUILDING]
-  - The twin-weapon perk conjures a second gun into the wielder's other hand by writing the
-    save data directly, but the game keeps its own careful books about who owns what. The two
-    sets of books disagree, and the game settles the argument by destroying gear: a shield the
-    player equips while the perk holds gets deleted with no refund, and unequipping the
-    conjured gun through the game's own menu refunds a pistol the player never owned. An
-    owner-driven watch drill on 2026-08-17 recorded both on one tape: the shield deletion at
-    05:53:06 and the duplicate mint at 05:56:02.
-  - The engine of the bug is the perk's once-a-second re-stamp: the game clears the illegal
-    second gun whenever the player touches that hand, the mod stamps it right back, and the
-    game eventually finds a hand arrangement it considers impossible and zaps the shield slot
-    without returning the item. The mod never touches the shield byte; it keeps rebuilding the
-    illegal state until the game destroys gear resolving it. The fix direction is consent: a
-    hand the player filled wins, which also gives LW-194 its missing opt-out (equip a shield
-    and the twin stands down). (Tech: ledger row [twin-grant-inventory-desync]; probe
-    tools/probes/offhand_shield_probe.py; tape tools/probes/tapes/lw193_watch_20260817_055131.log;
-    shield slot RShield +0x1A is separate from ROffHand +0x18 and GunSlinger.cs snapshots only
-    the latter, so every origOff in the live gunslinger.json reads EMPTY; the sack array is
-    InventoryCountBase and mod writes never move it. Open design questions carried from the
-    original report for the fix plan: what happens to the conjured twin on save, on battle end,
-    on crystallize, and on the wielder dying mid battle. Owner-approved design 2026-08-17: an
-    empty off-hand means yes to the twin, anything equipped there means no, and the twin never
-    exists while a menu is open. Owner-locked card wording, to ship IN THE SAME RELEASE as the
-    behavior and never before, p3Desc id 71: "Gain a twin pistol and dual wield in your
-    empty off-hand; must equip outside of battle." (87 chars) and id 79 the same with
-    "crossbow" (89 chars). "Your empty off-hand" carries the empty-hand condition inside
-    the destination, which is what fits the crossbow line under the 90 char gate. The
-    flavor lines stay untouched, they are the Kills counter's paint anchor; the
-    living_weapon_grid.csv +3 ability cells move in lockstep per the analyze gate.)
-  - Done means: the twin grant can no longer destroy or duplicate anything the player owns:
-    a shield or any item the player placed in the off hand is never overwritten and suppresses
-    the twin instead, the re-assert never overwrites a player-made change, releasing the twin
-    leaves the game's inventory counts exactly as the player earned them, and a player who
-    wants no dual wield can refuse it by equipping what they want and having it stick.
-  - Verify: TDD policy tests red first for both tape shapes (the shield wrestle and the
-    release refund), the offhand_shield_probe watch drill re-run end to end showing zero
-    unrefunded losses and zero duplicate mints across equip, wrestle, battle, and release,
-    and the owner's live pass.
-
 ## Backlog
+
+- [LW-253] 2026-08-17: The twin weapon takes up to ten seconds to visibly appear on the status
+  page when the player bounces in and out of menus, and the owner asked for about two if it
+  comes cheap. The wait is polling arithmetic, not a bug: the twin pass runs once a second and
+  the safety rule wants two consecutive safe-screen readings before writing, so every dip back
+  into the equip screen resets the count. (Tech: raise the gunslinger phase cadence from 30
+  ticks toward 10 with an in-battle modulo guard so the in-battle re-assert keeps its
+  established one second rhythm, or sample PartyBrowseFlag per tick and decide per pass; the owner accepted
+  the current feel for the shipped cut, so this rides a normal round with its own verify.)
+
+- [LW-254] 2026-08-17: The phantom-pistol refund detector shipped watching but not acting: it
+  names every refund the game issues for the conjured twin and records the full evidence, and
+  the correction that would take the phantom back out of the inventory stays unbuilt until
+  those recordings prove the detector fires on phantoms and nothing else. The adversarial
+  review rejected arming it because the inventory count is one global number per item, so a
+  teammate's lawful pistol return inside the same second could be blamed on the twin and a REAL
+  pistol destroyed. (Tech: watch-mode lane in GunSlinger.Reconcile.cs, flight record type
+  twin-refund; arming needs the hardened rule from the plan-v3 review verdict: menu context
+  required, rise exactly one, both sack reads valid, no other row's gear transition touching
+  the id in the window, plus one round of watch tapes showing the fire-set equals the phantom
+  set. The interim cost is accepted phantom inflation, benign direction only.)
 
 - [LW-246] 2026-08-16: Players did not like the recoloured icons, and the reason is now known
   and measured instead of guessed. A spriter player named it and a five lens diagnostic confirmed
@@ -449,19 +431,6 @@ the technical detail lives in the indented lines under it.
   reads to audit are the RRHand roster reads in Wielder/ActorResolver/Display and the
   mainHandWeapon field the kobu/credit log lines already print. The flight tape from the
   sighting battle, if one flushed, shows what the credit lane resolved for that unit.)
-
-- [LW-194] 2026-08-13: A player who does NOT want the twin-weapon signatures has to fight the
-  game to refuse them: opting out of Gun Slinger or Crossfire (say, to keep a shield in the off
-  hand) is a wrestling match instead of a choice. Owner report 2026-08-13, same session as the
-  LW-193 gear-loss report and almost certainly the same lane: the grant logic re-asserts the
-  twin weapon on its tick loop, so whatever the player changes in the equip menu gets stamped
-  back over. Design gap, not just a bug: the signatures have no opt-out surface at all. The fix
-  needs a deliberate refusal rule the re-assert respects, and the obvious candidate is "an off
-  hand the PLAYER filled is never overwritten", which would also shrink LW-193's damage. Rides
-  with LW-193 when picked up; probing one probes the other. (Tech: unverified, logged with the
-  report: check how the twin lane decides the off hand is free, and whether it distinguishes
-  "empty because the player wants it empty or filled with a shield" from "empty because my
-  phantom copy is missing and needs re-stamping".)
 
 - [LW-192] 2026-08-13: Signature idea from Patrick, "Scholar": the weapon teaches its wielder any
   spell an enemy casts on them, so getting hit with something new is how you learn it. A book or

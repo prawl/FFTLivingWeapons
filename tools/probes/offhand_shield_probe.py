@@ -57,7 +57,7 @@ O = _offsets.load()
     ["RosterBase", "RosterStride", "RosterSlots", "RRHand", "RLHand", "ROffHand", "RShield",
      "RAccessory", "RSupport", "RLevel", "RNameId", "InventoryCountBase"], O)
 
-MAX_ITEM_ID = 315          # GunSlingerPolicy.MaxItemId; sack array read as 0..315 inclusive
+MAX_ITEM_ID = 315          # the sack (InventoryCountBase) array's own bound; read as 0..315 inclusive
 ALWAYS_WATCH = {71, 79}    # Outrider Pistol (Gun Slinger) / Arbalest (Crossfire) twin ids
 FIELDS = [("rh", R_RHAND), ("lh", R_LHAND), ("oh", R_OFFHAND), ("sh", R_SHIELD),
           ("acc", R_ACCESSORY), ("supp", R_SUPPORT)]
