@@ -170,7 +170,10 @@ public class ProofClaimContractTests
         // three-cast tape), given before the exit row was written. It asserts the FEATURE's owner
         // verdict, not a LIVE_LEDGER mechanism row; the supporting turn-order rows deliberately
         // stay under Uncertain until the owner flips them, and the row says so.
-        { "docs/CHANGELOG.md", 26 },
+        // 26 -> 27 (2026-08-17, LW-252 exit row): "Owner live-verified the same day" in the
+        // SHIPPED 3b6786f entry. Backed by the ledger: [party-nameid-unique-key] sits in the
+        // Proven section, owner-flipped d038fa7 with the twin-chocobo trial evidence in its fold.
+        { "docs/CHANGELOG.md", 27 },
         { "docs/DESIGN.md", 1 },
         { "docs/DEV_TEST_RECIPES.md", 2 },
         { "docs/MECHANICS.md", 20 },
