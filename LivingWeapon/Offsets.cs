@@ -175,6 +175,9 @@ internal static class Offsets
     public const int ROffHand = 0x18;  // u16 dual-wield OFF-HAND weapon. FFTHandsFree mislabels this "reserved" --
                                        // a live FFT:IC roster dump proved the 2nd weapon lands HERE (+0x16 stays empty;
                                        // shields go to +0x1A). Read alongside RRHand to credit both blades.
+    public const int RShield = 0x1A;   // u16 equipped SHIELD id -- a SEPARATE slot from ROffHand (same 2026-06-21
+                                       // dual-gun roster dump as the ROffHand note above). GunSlinger's twin grant
+                                       // writes only +0x18 and never reads this slot; LW-193 (gear loss) probes here.
     public const int RSupport = 0x0A;   // u16 picked support ability KEY (empty = 0; Dual Wield = 477 = live id 221 + 256; reaction +0x08 / movement +0x0C siblings; LW-168 owner-observed 2026-08-12. FFTHandsFree's "u8 id" reading was the low byte)
     public const int RLevel  = 0x1D;   // u8  (0 / empty slot guard)
     public const int RBrave  = 0x1E;   // u8  (fingerprint to find this unit's combat struct)

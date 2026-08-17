@@ -111,6 +111,36 @@ the technical detail lives in the indented lines under it.
     preview manifest pixel for pixel, which for the first time in the programme is 468 of 468
     surfaces with nothing stale; and the owner's gallery pass.
 
+- **[LW-193] Using Crossfire or Gun Slinger can destroy the wielder's shield forever and mint a free copy of the gun, and both failure shapes are now on tape** (opened 2026-08-13) [BUILDING]
+  - The twin-weapon perk conjures a second gun into the wielder's other hand by writing the
+    save data directly, but the game keeps its own careful books about who owns what. The two
+    sets of books disagree, and the game settles the argument by destroying gear: a shield the
+    player equips while the perk holds gets deleted with no refund, and unequipping the
+    conjured gun through the game's own menu refunds a pistol the player never owned. An
+    owner-driven watch drill on 2026-08-17 recorded both on one tape: the shield deletion at
+    05:53:06 and the duplicate mint at 05:56:02.
+  - The engine of the bug is the perk's once-a-second re-stamp: the game clears the illegal
+    second gun whenever the player touches that hand, the mod stamps it right back, and the
+    game eventually finds a hand arrangement it considers impossible and zaps the shield slot
+    without returning the item. The mod never touches the shield byte; it keeps rebuilding the
+    illegal state until the game destroys gear resolving it. The fix direction is consent: a
+    hand the player filled wins, which also gives LW-194 its missing opt-out (equip a shield
+    and the twin stands down). (Tech: ledger row [twin-grant-inventory-desync]; probe
+    tools/probes/offhand_shield_probe.py; tape tools/probes/tapes/lw193_watch_20260817_055131.log;
+    shield slot RShield +0x1A is separate from ROffHand +0x18 and GunSlinger.cs snapshots only
+    the latter, so every origOff in the live gunslinger.json reads EMPTY; the sack array is
+    InventoryCountBase and mod writes never move it. Open design questions carried from the
+    original report for the fix plan: what happens to the conjured twin on save, on battle end,
+    on crystallize, and on the wielder dying mid battle.)
+  - Done means: the twin grant can no longer destroy or duplicate anything the player owns:
+    a shield or any item the player placed in the off hand is never overwritten and suppresses
+    the twin instead, the re-assert never overwrites a player-made change, releasing the twin
+    leaves the game's inventory counts exactly as the player earned them, and a player who
+    wants no dual wield can refuse it by equipping what they want and having it stick.
+  - Verify: TDD policy tests red first for both tape shapes (the shield wrestle and the
+    release refund), the offhand_shield_probe watch drill re-run end to end showing zero
+    unrefunded losses and zero duplicate mints across equip, wrestle, battle, and release,
+    and the owner's live pass.
 
 ## Backlog
 
@@ -425,23 +455,6 @@ the technical detail lives in the indented lines under it.
   report: check how the twin lane decides the off hand is free, and whether it distinguishes
   "empty because the player wants it empty or filled with a shield" from "empty because my
   phantom copy is missing and needs re-stamping".)
-
-- [LW-193] 2026-08-13: Using Crossfire or Gun Slinger permanently deletes whatever the wielder
-  had in their off hand, a shield included; the item is just gone afterwards, not returned to
-  the inventory. Owner hit it live 2026-08-13 during normal play. That makes the two twin-weapon
-  signatures net gear destroyers right now: a player who tries the feature once can lose an
-  expensive shield forever, which is worse than the signature not existing. Until fixed, the
-  README/Nexus page should warn players to unequip the off hand first, and the fix must also
-  answer what happens to the phantom copy on save, on battle end, on crystallize, and on the
-  wielder dying mid battle. (Tech: unverified suspicion only, logged with the report: both
-  signatures ride the twin-weapon lane (LW-171 GunSlinger, data-driven N-weapon), and the
-  proven dual-gun recipe works by writing the SECOND weapon into the roster off-hand slot, so
-  the natural failure shape is the grant overwriting the shield's item id in that slot and the
-  restore half never running or losing the original id. First probe: equip a shield, trigger
-  the grant, and read the roster row's off-hand bytes before, during, and after battle to see
-  whether the shield id is overwritten in place and whether any copy of it survives anywhere;
-  also check whether the game's inventory count for the shield changes, since "permanently
-  removed" may mean the id was overwritten in the one place the game stores it.)
 
 - [LW-192] 2026-08-13: Signature idea from Patrick, "Scholar": the weapon teaches its wielder any
   spell an enemy casts on them, so getting hit with something new is how you learn it. A book or

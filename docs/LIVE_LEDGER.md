@@ -1765,6 +1765,31 @@ Uncertain as of 2026-08-12: a player report says cards render factory-reset afte
 
 </details>
 
+### [twin-grant-inventory-desync] The twin-weapon grant's raw roster writes desync the game's inventory accounting: a player-equipped shield is DESTROYED without refund, and a lawfully unequipped twin is REFUNDED as a duplicate
+
+The Gun Slinger / Crossfire twin grant (the [gunslinger-roster-offhand-support-writes] mechanism) and the game's own equip bookkeeping run rival ledgers over the same roster row, and both LW-193 failure shapes were caught on one tape 2026-08-17 (owner-driven drill, throwaway save): the game deleted a player-equipped shield with no inventory refund after the mod re-asserted the twin over the game's own normalize, and the game minted a second Outrider Pistol when the player lawfully re-equipped the main hand while the conjured twin sat in the off-hand slot. Flip to Proven is the owner's call; the tape is decisive on both shapes.
+
+<details><summary>How we got here</summary>
+
+**Claim:** LW-193 (owner report 2026-08-13: Crossfire/Gun Slinger permanently deletes the wielder's off-hand item) is caused by the twin grant writing raw roster bytes that the game's inventory accounting never sees, with the destruction performed by the GAME's illegal-state cleanup and the loss made permanent by the absence of any refund.
+
+**Mechanism:** the roster row has a shield slot (RShield +0x1A) SEPARATE from the dual-wield off-hand weapon slot (ROffHand +0x18); GunSlinger snapshots and writes only +0x18 and +0x0A (support), never +0x1A. The live gunslinger.json confirms it: every unit that ever received a twin holds origOff 255 (EMPTY), so no shield id was ever captured anywhere. When the player equips gear the game moves items between the sack (count[id] u8 at InventoryCountBase) and the row with full accounting; the mod's stamps move nothing. The game clears an illegal off-hand within ~1s of a player equip touching the row; the mod's re-assert branch (GunSlingerPolicy Write) stamps it back within ~1s, and the loop ends when the game finds an already-illegal state and zaps the shield slot with NO refund.
+
+**Evidence (probe `tools/probes/offhand_shield_probe.py` watch, tape
+`tools/probes/tapes/lw193_watch_20260817_055131.log`, all timestamps 2026-08-17, slot 0 Ramza):**
+* 05:52:39 control leg, lawful flow: equipping gun 73 removed shield 138 from +0x1A AND refunded it (sack 138: 3 to 4). The game refunds when IT removes gear through its own flow.
+* 05:52:43 twin stamp: oh 255 to 71, support to 477, no sack movement (mod writes are invisible to the sack).
+* 05:52:54 the game cleared the twin (oh to 255); 05:52:55 the mod stamped it back. The re-assert war, one round per second.
+* 05:52:57 player equipped shield 128 (sack 128: 2 to 1, sh to 128); the game again cleared the illegal oh; 05:52:58 the mod re-stamped oh 71. Row now holds main gun + twin gun + shield, a state the game considers impossible.
+* 05:53:06 the game resolved the impossible state: sh 128 to 255 with NO sack refund. Sack 128 stayed at 1. The shield ceased to exist anywhere; this is the LW-193 loss, timestamped.
+* 05:56:02 release leg: player equipped weapon 10 in the main hand; the game cleared the twin AND refunded it (sack 71: 0 to 2) despite the player owning ONE Outrider. Item duplication, the second failure shape.
+
+**Recorded caveats:** (1) the supp byte flip-flopped 477/455 in lockstep with the game's normalizes, so the game holds its own authoritative copy of the support pick somewhere and rewrites the row from it; the mod's support re-assert fights the same unwinnable war. (2) The exact game-side trigger of the 05:53:06 zap (menu navigation vs a background legality sweep) was not isolated; the loss itself does not depend on it. (3) Battle-edge behavior (the gear commit at battleMode 0) was not exercised in this drill.
+
+**Date:** 2026-08-17
+
+</details>
+
 ## Contradicted — probe before building on these
 
 ### [terrain-height-byte-blocks-movement] Terrain grid HEIGHT (byte +2) write BLOCKS movement (the Bulwark premise, as ORIGINALLY built)

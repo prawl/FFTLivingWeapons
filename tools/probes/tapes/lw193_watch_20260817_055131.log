@@ -1,0 +1,83 @@
+# lw193 off-hand/shield watch, started 2026-08-17 05:51:31
+# watched sack ids (flagged with *): [71, 79, 115, 138]; every other id 0..315 reported too
+05:51:31.954 BASE  slot  0 nameId    1 lvl  99  rh=115 lh=255 oh=255 sh=138 acc=218 supp=461
+05:51:31.954 BASE  slot  1 nameId  298 lvl  99  rh=256 lh=255 oh=255 sh=140 acc=218 supp=471
+05:51:31.954 BASE  slot  2 nameId  908 lvl  91  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot  3 nameId  271 lvl  99  rh=56 lh=255 oh=255 sh=255 acc=218 supp=456
+05:51:31.954 BASE  slot  4 nameId  575 lvl   1  rh=19 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot  5 nameId  915 lvl  93  rh=0 lh=255 oh=0 sh=255 acc=0 supp=0
+05:51:31.954 BASE  slot  6 nameId   15 lvl  92  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot  7 nameId   13 lvl  88  rh=19 lh=255 oh=255 sh=139 acc=218 supp=478
+05:51:31.954 BASE  slot  8 nameId   50 lvl  91  rh=3 lh=255 oh=255 sh=142 acc=218 supp=469
+05:51:31.954 BASE  slot  9 nameId  990 lvl  36  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 10 nameId  772 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 11 nameId   22 lvl  35  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 12 nameId   30 lvl  36  rh=255 lh=255 oh=255 sh=255 acc=224 supp=479
+05:51:31.954 BASE  slot 13 nameId 1002 lvl  97  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 14 nameId  890 lvl   1  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 15 nameId   31 lvl  97  rh=255 lh=255 oh=255 sh=255 acc=255 supp=468
+05:51:31.954 BASE  slot 16 nameId  929 lvl  36  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 17 nameId  975 lvl  89  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 18 nameId   41 lvl  89  rh=109 lh=255 oh=255 sh=255 acc=232 supp=480
+05:51:31.954 BASE  slot 19 nameId   26 lvl  91  rh=111 lh=255 oh=255 sh=255 acc=226 supp=480
+05:51:31.954 BASE  slot 20 nameId  847 lvl  93  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 21 nameId  988 lvl  89  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 22 nameId  117 lvl  89  rh=255 lh=255 oh=255 sh=255 acc=255 supp=466
+05:51:31.954 BASE  slot 23 nameId   42 lvl  94  rh=255 lh=255 oh=255 sh=136 acc=213 supp=465
+05:51:31.954 BASE  slot 24 nameId 1019 lvl   1  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 25 nameId  775 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 26 nameId  863 lvl   1  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 27 nameId 1000 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 28 nameId 1018 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 29 nameId  819 lvl   1  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 30 nameId  947 lvl  89  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 31 nameId  816 lvl  91  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 32 nameId  844 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 33 nameId  774 lvl  89  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.954 BASE  slot 34 nameId  930 lvl  91  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.955 BASE  slot 35 nameId  904 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.955 BASE  slot 36 nameId 1020 lvl   1  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.955 BASE  slot 37 nameId 1001 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.955 BASE  slot 38 nameId  973 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.955 BASE  slot 39 nameId  914 lvl  36  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.955 BASE  slot 40 nameId  937 lvl  89  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.955 BASE  slot 41 nameId  839 lvl  99  rh=255 lh=255 oh=255 sh=255 acc=255 supp=0
+05:51:31.955 BASE  sack id 71=1  id 79=1  id 115=0  id 138=3
+# watching... (Ctrl+C to stop; do NOT click/select in this console)
+05:52:39.130 EQUIP slot  0 nameId    1  rh: 115 -> 73; sh: 138 -> 255
+05:52:39.130 SACK  id  73: 2 -> 1
+05:52:39.130 SACK* id 115: 0 -> 1
+05:52:39.130 SACK* id 138: 3 -> 4
+05:52:39.130 SACK  id 274: 91 -> 75
+05:52:39.130 SACK  id 292: 115 -> 73
+05:52:39.130 SACK  id 298: 138 -> 255
+05:52:42.472 EQUIP slot  0 nameId    1  rh: 73 -> 71
+05:52:42.472 SACK* id  71: 1 -> 0
+05:52:42.472 SACK  id  73: 1 -> 2
+05:52:42.472 SACK  id 292: 73 -> 71
+05:52:43.687 EQUIP slot  0 nameId    1  oh: 255 -> 71; supp: 461 -> 477
+05:52:43.687 SACK  id 282: 205 -> 221
+05:52:43.687 SACK  id 296: 255 -> 71
+05:52:54.772 EQUIP slot  0 nameId    1  oh: 71 -> 255; supp: 477 -> 455
+05:52:54.772 SACK  id 282: 221 -> 199
+05:52:54.772 SACK  id 296: 71 -> 255
+05:52:55.634 EQUIP slot  0 nameId    1  oh: 255 -> 71; supp: 455 -> 477
+05:52:55.634 SACK  id 282: 199 -> 221
+05:52:55.634 SACK  id 296: 255 -> 71
+05:52:57.658 EQUIP slot  0 nameId    1  oh: 71 -> 255; sh: 255 -> 128; supp: 477 -> 455
+05:52:57.658 SACK  id 128: 2 -> 1
+05:52:57.658 SACK  id 282: 221 -> 199
+05:52:57.658 SACK  id 296: 71 -> 255
+05:52:57.658 SACK  id 298: 255 -> 128
+05:52:58.670 EQUIP slot  0 nameId    1  oh: 255 -> 71; supp: 455 -> 477
+05:52:58.670 SACK  id 282: 199 -> 221
+05:52:58.670 SACK  id 296: 255 -> 71
+05:53:06.464 EQUIP slot  0 nameId    1  sh: 128 -> 255
+05:53:06.464 SACK  id 298: 128 -> 255
+05:56:02.787 EQUIP slot  0 nameId    1  rh: 71 -> 10; oh: 71 -> 255
+05:56:02.787 SACK  id  10: 99 -> 98
+05:56:02.787 SACK* id  71: 0 -> 2
+05:56:02.787 SACK  id 292: 71 -> 10
+05:56:02.787 SACK  id 296: 71 -> 255
+05:56:03.497 SACK  id 282: 221 -> 205
+05:56:03.548 EQUIP slot  0 nameId    1  supp: 477 -> 461
