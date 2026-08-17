@@ -15,13 +15,17 @@ namespace LivingWeapon;
 ///
 /// ARMED OR INERT IS A DATA QUESTION, not a code one: this module grants nothing unless
 /// items.json id 33 (Defender) carries a `signature` block, since it ticks, finds no
-/// meta.Signature, and returns. 2.3.2 shipped with that block removed and the module therefore
-/// inert (LW-133); it is back for LW-123's acceptance pass, and the pairing is machine-checked
-/// (ProvokeHoldTests.The_baked_meta_signature_block_agrees_with_the_ship_switch pins the block
-/// against Tuning.ProvokeEnabled, so the grant can never be live while the hold that clears the
-/// mark is switched off -- the mark this module makes castable does NOT expire on its own; see
-/// docs/PROVOKE_AC.md). Tests supply their own meta dictionary (exactly like ShadowBladeTests),
-/// so this module stays fully covered either way, without touching data/items.json.
+/// meta.Signature, and returns. It is ARMED today (LW-123 shipped 3565363): id 33 carries the
+/// block and Tuning.ProvokeEnabled is true, so a tier-3 main-hand Defender wielder really is
+/// granted the command and this module really does repoint the table. It shipped INERT before
+/// that (2.3.2 removed the block, LW-133) because the mark it makes castable NEVER EXPIRES and
+/// CANNOT BE RE-APPLIED, so arming it before the hold engine existed would have stranded the
+/// mark on whatever it was cast at; ProvokeHold (arc 2a) is what clears it again. The pairing is
+/// machine-checked (ProvokeHoldTests.The_baked_meta_signature_block_agrees_with_the_ship_switch
+/// pins the block against Tuning.ProvokeEnabled, so the grant can never be live while the hold
+/// is switched off; see docs/PROVOKE_AC.md). Tests supply their own meta dictionary (exactly
+/// like ShadowBladeTests), so this module stays fully covered either way, without touching
+/// data/items.json.
 ///
 /// The wielder scan below does NOT filter by job eligibility (unlike ShadowBlade's scan, where
 /// IsEligible and TryResolveGrant are the same check): it finds any valid Defender main-hand
