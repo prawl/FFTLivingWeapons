@@ -10,6 +10,41 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-233] SHIPPED 703176a 2026-08-17: Losing a battle and picking retry used to pay a weapon
+  twice for the same dead enemies, and because the tally is written to disk the moment it moves,
+  that invented number was permanent. The mod never learns that a retry happened: the whole lose
+  and retry runs as one unbroken battle with no exit of any kind, so from where the mod sits the
+  corpses simply stand back up, which is exactly what a Raise spell looks like, and it pays again.
+  The mod now recognises the rewind and takes back credit for exactly the enemies who stood back
+  up, while a genuine Raise still pays out exactly as it always did. The first version of this fix
+  FAILED its live drill and the reason is worth keeping: it was blinded by its own safety rule. The
+  death to game over screen leaves the battlefield for about nine seconds, the detector reads a
+  long absence as a sign that a different fight is starting and wipes its clock, and the real retry
+  arriving sixteen milliseconds later was then refused for being too early in a battle that had
+  only just begun. The cure was to let identity overrule that freshness rule, because on a retry
+  the enemy standing back up is provably the one the weapon was already paid for, while a different
+  fight cannot produce that match. Owner live pass the same evening, both legs: the retry leg held
+  the tally at 23 where the previous build read 24, and the control leg raised a corpse and killed
+  it again and correctly paid twice. (Tech: RestartSentinel opens a latch only when a raw actor
+  pointer null persisting 2+ ticks joins a credited healed-from-zero revive within 30 ticks, and
+  the reversal is per victim, never a battle-wide delta, because the game has TWO retry depths and
+  checkpoint-surviving kills stay earned. Identity is the roster nameId AND the level, brave, faith
+  and maxHp fingerprint, both nameIds required nonzero and equal, so a doubtful case fails closed
+  into a miss rather than destroying earned credit. Evidence tape
+  tools/probes/tapes/lw233_death_retry_live_20260817.jsonl, whose restart record reads latch open
+  with grace exempted by a matching revived identity at battle age 46 ticks against a 150 tick
+  rule, on a zero tick null to revive join. Round one shipped broken because the production seam
+  between crediting a kill and presenting a revive had no coverage at all: two mutations passed the
+  entire suite, one of them in the false positive direction, and both now go red. The load bearing
+  replay test drives onField from the real BattleState derivation and parses the victim nameId out
+  of the banked tape rather than a synthetic value. Three verify rounds, final SHIP 8 of 10; suite
+  3103. Two residuals stay open by choice, both misses rather than false payouts and both recorded
+  in the LW-256 and LW-172 neighbourhood of the board: a timing race that misses roughly one retry
+  in fifteen, and the identity-swap branch where a brave or faith altered victim can still double
+  count. LW-108 rides out with this row as the same family. New ledger row
+  [retry-preserves-credited-identity] is Uncertain and awaits an owner flip, as does
+  [battle-retry-rewind-fingerprint].)
+
 - [LW-193] SHIPPED ad2240a 2026-08-17: Using the twin-weapon perks could destroy a player's
   shield forever and mint pistols the player never bought, and both crimes were caught on tape
   before the cure was designed. The perk used to keep its conjured copy alive by force,
