@@ -131,7 +131,12 @@ the technical detail lives in the indented lines under it.
     the latter, so every origOff in the live gunslinger.json reads EMPTY; the sack array is
     InventoryCountBase and mod writes never move it. Open design questions carried from the
     original report for the fix plan: what happens to the conjured twin on save, on battle end,
-    on crystallize, and on the wielder dying mid battle.)
+    on crystallize, and on the wielder dying mid battle. Owner-approved design 2026-08-17: an
+    empty off-hand means yes to the twin, anything equipped there means no, and the twin never
+    exists while a menu is open. Owner-locked card wording, to ship IN THE SAME RELEASE as the
+    behavior and never before, p3Desc for id 71: "Out of battle, an empty off-hand gains a twin
+    pistol and dual-wield. Fill it to decline." and for id 79 the same with "arbalest"; the
+    living_weapon_grid.csv +3 ability cells move in lockstep per the analyze gate.)
   - Done means: the twin grant can no longer destroy or duplicate anything the player owns:
     a shield or any item the player placed in the off hand is never overwritten and suppresses
     the twin instead, the re-assert never overwrites a player-made change, releasing the twin
