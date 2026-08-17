@@ -134,10 +134,10 @@ the technical detail lives in the indented lines under it.
     on crystallize, and on the wielder dying mid battle. Owner-approved design 2026-08-17: an
     empty off-hand means yes to the twin, anything equipped there means no, and the twin never
     exists while a menu is open. Owner-locked card wording, to ship IN THE SAME RELEASE as the
-    behavior and never before, p3Desc id 71: "Loads a twin pistol into a free off-hand,
-    granting dual wield; must equip out of battle." (88 chars) and id 79 the same with
-    "crossbow" (90 chars, at the gate cap exactly). "A free off-hand" carries the
-    empty-hand condition inside the destination, which is what fits the crossbow line. The
+    behavior and never before, p3Desc id 71: "Gain a twin pistol in a free off-hand,
+    granting dual wield; must equip out of battle." (85 chars) and id 79 the same with
+    "crossbow" (87 chars). "A free off-hand" carries the empty-hand condition inside
+    the destination, which is what fits the crossbow line under the 90 char gate. The
     flavor lines stay untouched, they are the Kills counter's paint anchor; the
     living_weapon_grid.csv +3 ability cells move in lockstep per the analyze gate.)
   - Done means: the twin grant can no longer destroy or duplicate anything the player owns:
