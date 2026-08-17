@@ -1833,6 +1833,31 @@ Uncertain as of 2026-08-17 (evidence strong, owner flip pending): with the roste
 
 </details>
 
+### [party-browse-screen-byte] A byte at 0x140D408E2 reads 1 exactly on the party menu's two safe BROWSE screens (the unit overview root and the Character Status page) and 0 on every screen where equipment can be changed
+
+Uncertain as of 2026-08-17 (owner-driven torture tour the same afternoon; owner flip pending): found for the LW-193 owner-AC round, which wants the twin grant allowed to stamp exactly where the player can SEE it appear (backing out of the equip screen) but never where gear can be edited. Complements [worldmap-menu-open-byte]: that byte says "some menu is open", this one says "and it is one of the two read-only browse screens".
+
+<details><summary>How we got here</summary>
+
+**Claim:** 0x140D408E2 (u8) is a safe allow-list gate for out-of-battle twin stamping: 1 only on screens with no equip actions.
+
+**Mechanism:** offline solve over the morning's five wide state captures (free/party/equip/save/free2, 12 samples each): exactly 3 bytes separated party-root from BOTH the equip screen and the save menu; 0x140D408E2 is the only clean 0/1 flag among them (the other two, 0x140C6AD38/39, are noisy cursor-region bytes). It sits in the same 0x140D4xxxx screen-flag family as SubmenuFlag.
+
+**Evidence (owner-driven labeled torture tour, tape tools/probes/tapes/lw193_menusig_20260817_110948.log; stations announced by the owner in session, timestamps matched to transitions):**
+* 11:10:02.566 party menu ROOT opened: 0 to 1.
+* Held 1 through the Character Status page (owner parked there ~11:10:30-11:11:10; no transition).
+* 11:11:10.633 entered Equipment and Abilities: 1 to 0.
+* 11:11:45.998 ESC from E&A back to Status: 0 to 1 (the exact moment the owner's AC wants the twin to appear).
+* 11:13:07.867 first tab away from the root: 1 to 0, and it stayed 0 through the remaining tabs, the menu close, world-map travel, and the SHOP (shop confirmed open 11:13:26 via the menu byte, browse byte stayed 0).
+* 11:14:51.049 root reopened: 0 to 1; 11:14:54.627 tabbed to Inventory: 1 to 0; Chronicle and Options produced no rise (owner announced each; no transitions on the tape).
+* Free world map reads 0 (wide solve, 24 samples across two free states).
+
+**Recorded caveats:** (1) The E&A SUB-pages (the weapon picker and ability picker) were NOT probed; the gate built on this byte must deny by default so an unprobed screen can never enable writes. (2) Formation and battle were not visited on this tape; the gate never consults this byte there because [worldmap-menu-open-byte] already reads 0 through those flows, so no coverage is claimed. (3) One session, one save; the byte is a UI-family static and moves on game patches like any other (add to the PATCH_REANCHOR list when wired). (4) The shop's sub-flows (fitting/optimize) were not separately visited; deny-by-default covers them.
+
+**Date:** 2026-08-17
+
+</details>
+
 ### [battle-retry-rewind-fingerprint] A battle RETRY rewinds the battlefield with no exit edge of any kind, has TWO depths (battle-start and mid-battle checkpoint), and carries a unique tape fingerprint: an actor-pointer null blip at-or-before the restore plus units healed and relocated in the same instant
 
 Uncertain as of 2026-08-17 (evidence re-derived independently from banked tapes; owner flip pending): when a player loses a battle and picks retry, the game rewinds the battlefield without ever telling the mod the battle ended. Across three retries on tape (one owner drill 2026-08-14, two in a real player session 2026-08-12) the recorder shows one battle start, no exit between attempts, and turn and kill bookkeeping running straight through, so an enemy the player was already paid for stood back up and paid out again (Vagabond kills 23 and 25 were the same soldier at band slot 15, and the phantom 25th kill fired a real growth toast). This is the LW-233 mechanism, cause and fingerprint.
