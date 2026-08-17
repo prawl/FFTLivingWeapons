@@ -20,6 +20,58 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [live-icon-repaint] Equip icons repaint LIVE, no game restart
+
+An equip icon's bytes can be overwritten in place inside `<game>/data/enhanced/modded.pac` while the game is running, and the new art appears the next time that inventory list is loaded (leave the list and come back); no restart, both the 48px row icon and the 100px detail card. Proven, owner live-verified 2026-08-16. This RETIRES the long-standing "icon changes are restart-only" belief: that was true of editing our loose `.tex` files, because those are only a merge input.
+
+<details><summary>How we got here</summary>
+
+**Claim:** the mod can change an equip icon's art in a running game.
+
+**Mechanism:** the modloader (`fftivc.utility.modloader`) merges every enabled mod's
+`FFTIVC/data/enhanced/...` files into `<game>/data/enhanced/modded.pac` AT LAUNCH, and the
+game reads that pac, never our loose files. That is why mid-session `.tex` deploys appeared
+to do nothing, and why the belief "textures are restart-only" survived so long: we were
+editing the merge's INPUT after the merge had already run. Inside `modded.pac` each icon is
+stored UNCOMPRESSED, VERBATIM and EXACTLY ONCE, at the same byte length as the `.tex` on
+disk (cards 0x C860, smalls 0x3060), so an in-place same-length overwrite is well defined.
+The listed `dataOffset` in `modded_files.txt` is section-relative, not a file offset, so the
+probe locates each icon by CONTENT SEARCH (and asserts a single occurrence) rather than
+trusting the index. The file is writable while the game holds it open (no exclusive lock).
+
+**Refresh granularity (the load-bearing detail):** the engine does NOT re-read on every
+frame. An icon already drawn on the open list does not change under you; navigating to
+another inventory tab and back re-loads the list and shows the new art. So the refresh unit
+is the list/tab load, not the frame and not the process.
+
+**Evidence:** `tools/probes/live_icon_patch_probe.py` (stage 1 cold, stage 2 warm). Owner
+live-verified 2026-08-16 with the game running: Tideward's slot showed Emberward's red art
+in BOTH surfaces (screenshot), Galewall likewise after a tab round-trip, and both restored
+cleanly. Safety: `modded.pac` is regenerated from the loose files at every launch, so any
+patch is transient and a relaunch is a guaranteed repair.
+
+**Corroborated by decompiling the modloader** (same day, `fftivc.utility.modloader.dll`),
+which also explains the refresh granularity. The modloader has THREE override channels and
+our icons sit in the third:
+  * `fftpack/` (`unit/battle_*_spr.bin`): a read-request detour serves each request with a
+    fresh `File.OpenRead` of the mod's file, NO cache -- genuinely live per read. This is
+    the channel FFTColorCustomizer's live palette recolours ride.
+  * `system/ffto/g2d/tex_N.bin`: served from a `_cachedFileBuffers` dictionary, read once
+    per file index per process -- restart-only, and FFTColorCustomizer's own docs say so.
+  * everything else, `nxd/` and `ui/**.tex` INCLUDING our icons: merged into `modded.pac`
+    by `FFTOModPackManager.Apply()` once at startup. So writing our loose `.tex` mid-session
+    can never show up, which is the whole origin of the wrong "restart-only" belief -- but
+    the merged pac is just a file on disk, and patching THAT is what this row proves works.
+The engine then re-reads through `faith::Resource::ResourceManager::OpenFileAndCache` and
+holds textures in DX12 VRAM, which is exactly why an icon already drawn does not change
+under you and a tab round-trip does: the round-trip is what re-loads the resource.
+NOTE the modloader also exposes an unused `IFFTOModPackManager.AddModdedFile` API; no mod
+in this install calls it, and it is registration-time, so it is not an alternative here.
+
+**Date:** 2026-08-16
+
+</details>
+
 ### [turn-moved-acted-flags] Per-unit turn/moved/acted flags (the full-wait read)
 
 The game exposes each unit's menu-open, moved, and acted flags at band +0x19C/+0x19D/+0x19E, with the falling edge of +0x19C as the turn-end decision point; Proven, owner live-verified 2026-07-09.

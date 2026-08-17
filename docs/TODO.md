@@ -1301,6 +1301,59 @@ the technical detail lives in the indented lines under it.
   must write whole coherent records, paused, likely with the record count; treat it as a
   small arc now, not a one-poke test.
 
+- [LW-248] 2026-08-16: The mod's shipping look is DECIDED for colour and OPEN for glow: every
+  item gets the new recolour, and no item gets a glow rim unless a later decision adds one.
+  The owner settled the colour half on 2026-08-16 after seeing the whole catalogue in game;
+  the glow half stays open because it is a separate layer that can be added or removed later
+  without touching a single body pixel, which was proven repeatedly the same day by re-rimming
+  the sixteen shields four times in seconds. Remaining colour work is hats, armour and
+  accessories, on the same set by set rhythm the weapons and shields used. Anything that
+  depends on the glow decision waits for the owner, and nothing about that decision blocks the
+  colour pass from shipping. (Tech: the four glow candidates and their prices are laid out in
+  the decision brief artifact f9835932; the deployed install currently DOES carry glow on
+  shields, helms, weapons and bags, so shipping colour-only means a final de-glow bake, not a
+  revert of anything the owner approved.)
+
+- [LW-249] 2026-08-16: Nine poles grow the wrong stat, so a mage who levels a Whale Whisker
+  gets thirty percent more muscle and not one point of extra spell power. Their damage runs on
+  Magick Attack, but the growth code only recognises rods and staves as caster gear, so every
+  pole climbs Physical Attack instead, which does nothing for the weapon the player is holding.
+  Three guns have the same shape of problem from the other direction: their damage ignores
+  stats entirely, so their growth cannot help them at all and is silently wasted. Confirm the
+  poles really are magick scaled in the shipped data before changing anything, because the
+  claim comes from the design grid rather than from a live reading. (Tech: Tuning.IsCaster
+  tests category Rod or Staff only; poles carry category Pole and route to the PA lane in
+  GrowthEngine.cs's stat picker. Affected ids 48, 107 through 114. The stat-independent guns
+  are 71, 72 and 73, formula 3, WP times WP.)
+
+- [LW-250] 2026-08-16: An idea worth keeping: let each weapon grow the stat its own damage
+  actually uses, which fixes several families being under rewarded and, as a side effect, makes
+  a colour coded glow possible later. Today seventy eight percent of weapons grow Physical
+  Attack, so growth feels the same on nearly everything and a colour coded rim would be almost
+  entirely one colour. Tying growth to the weapon's own formula gives knives speed, katanas and
+  knight swords courage, books and instruments and veils both attack stats, and leaves the
+  stat-independent guns honestly ungrown. Books, instruments and veils are the clearest fix:
+  their damage averages the two attack stats, so growing only one of them hands them half the
+  reward a sword gets for the same kills. NOT DECIDED, and deliberately parked until the owner
+  is ready. (Tech: proposed lanes by damage formula, with counts, are in the
+  growth-stat-recolour-design memory. Brave is capped at 97 so high-Brave wielders gain less
+  than the full thirty percent, and the Brave write mechanism is already proven in production by
+  Kobu, holding the CURRENT copy at combat +0x2B. Guns are held back because WP lives in the
+  item table, so growing it would buff every copy in the game including enemy-held ones, and a
+  per-wielder hold would need its own probe.)
+
+- [LW-251] 2026-08-16: The weapon a unit swings in battle still wears its vanilla colours, so a
+  recoloured icon and the sprite on the field disagree. The art is a 2D texture inside an
+  eleven megabyte container of roughly fourteen hundred images, and the two easy colour levers
+  were already tested in game and both failed, so the work is to find the right image in that
+  container and repaint it with the same engine the icons use. Two limits to plan around before
+  promising players anything: that channel is cached for the whole session, so battle art can
+  never update live the way icons now can, and the art is likely shared per weapon class, which
+  would mean every sword recolours together rather than one at a time. (Tech: the container is
+  FFTIVC/data/enhanced/system/ffto/g2d.dat, magic YOX, header suggests 0x592 entries. Find the
+  weapon sheet by decoding entries or by shipping garish overrides and bisecting. The modloader
+  serves this channel from a per-index cache read once per process.)
+
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
