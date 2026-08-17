@@ -9,45 +9,75 @@ namespace LivingWeapon;
 /// makes the split a real seam rather than the same state machine spread across two files (Tick()
 /// and PresentRevive, in RestartSentinel.cs, still reach into this state to clear/add/return it,
 /// the same cross-file field access KillTracker's own partial-class split already relies on). See
-/// RestartSentinel.cs's class doc, DEFERRED VERDICT section, for why the stash exists (the 0ms-join
-/// gap) and RestartSentinel.Policy.cs's ShouldStash for the pure opening-window predicate this
-/// file's TTL loop enforces stateful.
+/// RestartSentinelPolicy.ShouldStash's own doc for why the stash exists (the 0ms-join gap) and for
+/// the pure opening-window predicate this file's TTL loop enforces stateful.
 /// </summary>
 internal sealed partial class RestartSentinel
 {
     // Revives presented while a null is mid-flight but not yet qualified. Drained (or dropped) by
-    // Tick()/ProcessStash -- see the class doc's DEFERRED VERDICT section.
-    private readonly List<(int Slot, List<int> Weapons, bool ViaFallback, int TicksRemaining)> _stash = new();
+    // Tick()/ProcessStash -- see RestartSentinelPolicy.ShouldStash's doc for the deferred-verdict
+    // mechanism (the 0ms-join gap) this stash exists to cover. IdentityMatch is recorded ONCE, at
+    // stash time (PresentRevive already computed it against the credited/presented identity passed
+    // in then) -- entries are drained per-entry below rather than as a single stash-wide grace
+    // check, because a matching-identity entry may be exempt from grace while a mismatched one
+    // stashed the same tick is not. CreditedIdentity/PresentedIdentity/CreditedNameId/
+    // PresentedNameId (FINDING 0 + FINDING 5, 2026-08-17) ride along too, purely so the drain log
+    // below can report the SAME identity evidence the direct-open path reports -- IdentityMatch
+    // alone (a bare bool) would tell the flight tape THAT a retry drill matched, never WHAT it
+    // actually saw, which is what FINDING 3's open premise needs answered.
+    private readonly List<(int Slot, List<int> Weapons, bool ViaFallback, int TicksRemaining, bool IdentityMatch,
+                            (byte lvl, byte br, byte fa, ushort mhp) CreditedIdentity,
+                            (byte lvl, byte br, byte fa, ushort mhp) PresentedIdentity,
+                            ushort CreditedNameId, ushort PresentedNameId)> _stash = new();
     // Reused scratch buffer for Tick()'s return value -- cleared and refilled every call rather
     // than allocated fresh, since most ticks drain nothing.
     private readonly List<(int Slot, List<int> Weapons, bool ViaFallback)> _drainedThisTick = new();
 
-    /// <summary>Decrements every stashed entry's TTL and expires (drops silently) any that hit
-    /// zero; if the null streak JUST qualified this tick (and grace still holds -- "opens per the
-    /// normal rule"), drains every still-live entry into <see cref="_drainedThisTick"/> instead and
-    /// opens the latch, logging the retry line exactly once even when several entries drain
-    /// together.</summary>
+    /// <summary>Per-entry TTL/drain: if the null streak JUST qualified this tick AND this entry's
+    /// own grace-or-identity gate is satisfied (<see cref="RestartSentinelPolicy.GraceTicks"/> OR
+    /// the identity match recorded at stash time -- same exemption as ShouldOpenLatch/ShouldStash,
+    /// see their doc), drain it into <see cref="_drainedThisTick"/>; otherwise decrement its TTL
+    /// and expire (drop silently) any that hit zero. Entries drain independently -- a batch of
+    /// mixed matching/mismatched entries stashed on the same tick can split between draining now
+    /// and continuing to wait -- but the latch-open log line still fires at most once per tick,
+    /// covering every entry that drained together.</summary>
     private void ProcessStash(bool justQualified)
     {
         if (_stash.Count == 0) return;
 
-        bool canOpen = justQualified && _battleAgeTicks > RestartSentinelPolicy.GraceTicks;
-        if (!canOpen)
+        bool wasOpen = LatchOpen;
+        int drainedCount = 0;
+        for (int i = _stash.Count - 1; i >= 0; i--)
         {
-            for (int i = _stash.Count - 1; i >= 0; i--)
+            var e = _stash[i];
+            bool canOpen = justQualified && (_battleAgeTicks > RestartSentinelPolicy.GraceTicks || e.IdentityMatch);
+            if (canOpen)
             {
-                var e = _stash[i];
-                int remaining = e.TicksRemaining - 1;
-                if (remaining <= 0) _stash.RemoveAt(i);   // the null broke before qualifying -- forgotten, exactly today's re-arm
-                else _stash[i] = (e.Slot, e.Weapons, e.ViaFallback, remaining);
+                _drainedThisTick.Add((e.Slot, e.Weapons, e.ViaFallback));
+                // FINDING 5 (2026-08-17): per-entry identity evidence, same compact tap the direct-
+                // open path uses (RestartSentinel.cs's IdentityTap) -- a bare IdentityMatch bool on
+                // the stash tuple would tell the tape THAT a drain matched, never WHAT it saw.
+                _recorder?.Invoke("restart", $"stash-drain slot={e.Slot} {IdentityTap(e.CreditedIdentity, e.CreditedNameId, e.PresentedIdentity, e.PresentedNameId)}");
+                _stash.RemoveAt(i);
+                drainedCount++;
+                continue;
             }
-            return;
+
+            int remaining = e.TicksRemaining - 1;
+            if (remaining <= 0)
+            {
+                // Punch-list item 3 (2026-08-17): the null broke before qualifying -- forgotten,
+                // exactly today's re-arm, but no longer SILENTLY forgotten (see this class's own
+                // drain record just above and RestartSentinel.cs's stash-time record for why the
+                // silence here was the one remaining hole in the owner's live retry drill).
+                _recorder?.Invoke("restart", $"stash-drop slot={e.Slot} {IdentityTap(e.CreditedIdentity, e.CreditedNameId, e.PresentedIdentity, e.PresentedNameId)}");
+                _stash.RemoveAt(i);
+            }
+            else _stash[i] = (e.Slot, e.Weapons, e.ViaFallback, remaining, e.IdentityMatch,
+                              e.CreditedIdentity, e.PresentedIdentity, e.CreditedNameId, e.PresentedNameId);
         }
 
-        bool wasOpen = LatchOpen;
-        int drainedCount = _stash.Count;
-        foreach (var e in _stash) _drainedThisTick.Add((e.Slot, e.Weapons, e.ViaFallback));
-        _stash.Clear();
+        if (drainedCount == 0) return;
         _latchOpenTicksRemaining = RestartSentinelPolicy.LatchTicks;
         if (!wasOpen)
             LogOpenEdge($"null qualified this tick, draining {drainedCount} deferred revive(s) stashed while it was still forming, battle age {_battleAgeTicks} ticks");

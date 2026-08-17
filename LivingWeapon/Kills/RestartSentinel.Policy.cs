@@ -48,15 +48,42 @@ internal static class RestartSentinelPolicy
 
     /// <summary>THE LATCH-OPEN DECISION (asymmetric, per-event): true only when a credited
     /// heal-from-zero revive is presented while a qualified null occurred AT OR BEFORE it, within
-    /// <see cref="JoinWindowTicks"/>, and the battle is past its own opening grace. A null observed
-    /// on a LATER tick can never retroactively satisfy an earlier revive: callers only ever pass
-    /// the null's age as of THIS event, so "a null after the revive never opens" falls out
-    /// structurally rather than needing its own check here.</summary>
+    /// <see cref="JoinWindowTicks"/>, and EITHER the battle is past its own opening grace OR the
+    /// revived identity matches the one this slot was credited to. A null observed on a LATER tick
+    /// can never retroactively satisfy an earlier revive: callers only ever pass the null's age as
+    /// of THIS event, so "a null after the revive never opens" falls out structurally rather than
+    /// needing its own check here.
+    ///
+    /// IDENTITY EXEMPTION (LW-233 live-drill residual, 2026-08-17; identity KEY corrected FINDING 0,
+    /// same date): grace alone cannot tell a real retry from LW-108's starved-bracket hole -- both
+    /// present as a low battle age. The 2026-08-17 live tape proved this concretely: the death ->
+    /// game-over screen sits at battleMode 0 (off field) for ~8.75s, long enough for the sentinel's
+    /// OWN out-of-live re-arm (<see cref="OutOfLiveRearmTicks"/>, ~2s) to fire repeatedly and zero
+    /// battle age down to ~25-30 ticks by the time the credited corpse's revive lands -- nowhere
+    /// near <see cref="GraceTicks"/> (150), so the direct grace check refused every time even
+    /// though the null had qualified and joined within window.
+    ///
+    /// What discriminates a retry from LW-108's hole is unit identity -- but NOT the bare
+    /// (lvl,br,fa,maxHp) tuple a first version of this fix keyed on. docs/LIVE_LEDGER.md row
+    /// [party-nameid-unique-key] PROVES the opposite of what that version assumed: two
+    /// deliberately deployed fingerprint twins resolved to two DISTINCT roster nameIds, i.e. the
+    /// tuple is exactly the collision-prone key the LW-252 rework moved every OTHER identity check
+    /// off of. The caller (RestartSentinel.PresentRevive) now requires the tuple AND a nonzero
+    /// nameId to BOTH agree before identityMatches is true -- strictly harder to satisfy than the
+    /// tuple alone, which is the right direction for a check whose only job is exempting a safety
+    /// floor (identityMatches narrowly exempts the grace floor ONLY -- every other requirement
+    /// stays exactly as strict as before). A mismatched OR unavailable identity gets zero benefit
+    /// from this clause and must still clear grace the old way, which is what keeps LW-108's hole
+    /// closed. Whether a retry actually PRESERVES a revived unit's nameId is itself unproven --
+    /// see docs/LIVE_LEDGER.md row [retry-preserves-credited-identity] -- so this requirement may
+    /// turn some genuine retries into misses rather than catches; that is the deliberate,
+    /// precision-first-safe direction (a miss costs nothing a player can feel; a false positive
+    /// destroys an earned kill).</summary>
     internal static bool ShouldOpenLatch(bool wasCredited, bool healedFromZero, bool haveQualifiedNull,
-                                          int ticksSinceQualifiedNull, int battleAgeTicks)
+                                          int ticksSinceQualifiedNull, int battleAgeTicks, bool identityMatches)
         => wasCredited && healedFromZero && haveQualifiedNull
            && ticksSinceQualifiedNull <= JoinWindowTicks
-           && battleAgeTicks > GraceTicks;
+           && (battleAgeTicks > GraceTicks || identityMatches);
 
     /// <summary>THE DEFERRED-VERDICT DECISION (LW-233 fix, verifier-caught): retry A's REAL tape
     /// shape is a 0ms null-revive join -- the raw null and the credited corpses' alive-again read
@@ -66,13 +93,16 @@ internal static class RestartSentinelPolicy
     /// DOES qualify, the corpse's re-arm has already cleared its credited-weapon evidence. This
     /// predicate names exactly the deferral window: a credited heal-from-zero revive presented
     /// while a null is CURRENTLY mid-flight (streak &gt;= 1) but has not yet reached
-    /// <see cref="NullPersistTicks"/>, past grace. True here means "stash it, do not decide yet" --
-    /// RestartSentinel.Tick drains the stash once the streak either reaches NullPersistTicks (drain
-    /// through UncreditKills) or breaks first (drop silently, exactly today's ordinary re-arm). An
-    /// already-qualified null (streak &gt;= NullPersistTicks) never reaches here: ShouldOpenLatch
-    /// handles that case directly, with no need to stash anything.</summary>
-    internal static bool ShouldStash(bool wasCredited, bool healedFromZero, int nullStreakTicks, int battleAgeTicks)
+    /// <see cref="NullPersistTicks"/>, with the SAME grace-or-identity gate as
+    /// <see cref="ShouldOpenLatch"/> (see its doc for the identity exemption's own provenance).
+    /// True here means "stash it, do not decide yet" -- RestartSentinel.Tick drains the stash once
+    /// the streak either reaches NullPersistTicks (drain through UncreditKills) or breaks first
+    /// (drop silently, exactly today's ordinary re-arm). An already-qualified null (streak &gt;=
+    /// NullPersistTicks) never reaches here: ShouldOpenLatch handles that case directly, with no
+    /// need to stash anything.</summary>
+    internal static bool ShouldStash(bool wasCredited, bool healedFromZero, int nullStreakTicks,
+                                      int battleAgeTicks, bool identityMatches)
         => wasCredited && healedFromZero
            && nullStreakTicks >= 1 && nullStreakTicks < NullPersistTicks
-           && battleAgeTicks > GraceTicks;
+           && (battleAgeTicks > GraceTicks || identityMatches);
 }

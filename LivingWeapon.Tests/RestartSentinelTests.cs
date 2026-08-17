@@ -22,6 +22,25 @@ public class RestartSentinelTests
     private const int LatchDuration = RestartSentinelPolicy.LatchTicks;
     private const int RearmTicks = RestartSentinelPolicy.OutOfLiveRearmTicks;
 
+    // LW-233 live-drill residual (2026-08-17): PresentRevive's identity-tuple params. SameId/SameId
+    // models "the revived unit IS the one this slot was credited to" (the ordinary case for every
+    // test below that isn't specifically about the exemption); OtherId as the credited half models
+    // "no genuine prior credit matches this presentation" (a fresh battle, or a different
+    // encounter's unit after LW-108's starved-bracket hole) -- used only where a test's whole point
+    // is that grace alone must still hold.
+    //
+    // FINDING 0 (2026-08-17 verifier correction): PresentRevive also takes a nameId pair now --
+    // SameNameId/SameNameId pairs with SameId/SameId everywhere below (a genuine match needs BOTH
+    // the tuple and the nameId to agree); OtherNameId pairs with OtherId the same way. Neither
+    // constant is ever 0 -- 0 is the fail-closed "unavailable" sentinel, covered by its own
+    // dedicated tests below (A_zero_nameId_never_opens_even_with_a_matching_tuple's KillTracker-
+    // level twin lives in KillTrackerRestartTests.cs; the pure PresentRevive-level pin is
+    // A_zero_nameId_never_substitutes_for_the_tuple_match below).
+    private static readonly (byte lvl, byte br, byte fa, ushort mhp) SameId = (10, 50, 50, 400);
+    private static readonly (byte lvl, byte br, byte fa, ushort mhp) OtherId = (99, 89, 76, 352);
+    private const ushort SameNameId = 555;
+    private const ushort OtherNameId = 777;
+
     /// <summary>Advance n ticks with the given raw-null/inLiveish inputs held constant. Returns
     /// the LAST tick's drained-stash list (only the final call's drain is usually interesting).</summary>
     private static IReadOnlyList<(int Slot, List<int> Weapons, bool ViaFallback)> Advance(
@@ -47,7 +66,7 @@ public class RestartSentinelTests
         var s = new RestartSentinel();
         PastGraceWithQualifiedNull(s);
 
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
         Assert.True(s.LatchOpen);
     }
 
@@ -67,7 +86,7 @@ public class RestartSentinelTests
         var s = new RestartSentinel();
         Advance(s, Grace + 1);
 
-        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
         Assert.False(s.LatchOpen);
     }
 
@@ -78,7 +97,7 @@ public class RestartSentinelTests
         Advance(s, Grace + 1);
 
         // Revive first, while the sentinel has never seen a null.
-        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
 
         // The qualifying null arrives only now -- too late for the revive already presented (and
         // there was no in-progress streak at presentation time to stash against either).
@@ -87,15 +106,71 @@ public class RestartSentinelTests
     }
 
     [Fact]
-    public void Grace_holds_even_with_a_qualified_null_and_a_joining_revive()
+    public void Grace_holds_even_with_a_qualified_null_and_a_joining_revive_of_a_different_identity()
     {
+        // LW-233 live-drill residual (2026-08-17): grace is now exempted by a MATCHING identity
+        // (see Opens_before_grace_when_the_revived_identity_matches_the_credited_one below), so
+        // this test now specifically pins the mismatched-identity half -- grace alone still guards
+        // a genuinely different unit (a fresh battle, or LW-108's starved-bracket hole), which is
+        // the whole reason the exemption is identity-GATED rather than unconditional.
         var s = new RestartSentinel();
         // Land battleAgeTicks EXACTLY at Grace (not past it: > Grace is required to open) once the
         // null has also qualified.
         Advance(s, Grace - Persist);
         Advance(s, Persist, rawNull: true);
 
-        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, OtherId, SameId, OtherNameId, SameNameId));
+        Assert.False(s.LatchOpen);
+    }
+
+    [Fact]
+    public void Opens_before_grace_when_the_revived_identity_matches_the_credited_one()
+    {
+        // Same shape as the mismatched-identity test above (battleAgeTicks lands EXACTLY at Grace,
+        // not past it), differing only in identity -- proves the exemption is real at the
+        // RestartSentinel level, not just in the pure Policy table.
+        var s = new RestartSentinel();
+        Advance(s, Grace - Persist);
+        Advance(s, Persist, rawNull: true);
+
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
+        Assert.True(s.LatchOpen);
+    }
+
+    // ---- FINDING 0 (2026-08-17 verifier correction): the nameId half is REQUIRED, not optional ----
+
+    [Fact]
+    public void A_matching_tuple_with_a_mismatched_nameId_never_opens_the_twin_collision_case()
+    {
+        // The exact case FINDING 0 exists for: docs/LIVE_LEDGER.md row [party-nameid-unique-key]
+        // proves two real, distinct units can share the SAME (lvl,br,fa,maxHp) tuple. Same shape as
+        // Opens_before_grace_when_the_revived_identity_matches_the_credited_one above (battle age
+        // AT grace, not past it) but the nameId half disagrees -- must refuse even though the tuple
+        // half alone would have matched.
+        var s = new RestartSentinel();
+        Advance(s, Grace - Persist);
+        Advance(s, Persist, rawNull: true);
+
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, OtherNameId));
+        Assert.False(s.LatchOpen);
+    }
+
+    [Fact]
+    public void A_zero_nameId_never_substitutes_for_the_tuple_match()
+    {
+        // Fail-closed: a matching tuple with an UNAVAILABLE (zero) nameId on either side must never
+        // open, even though the tuple half alone would have matched. 0 is this codebase's existing
+        // "no resolved identity" sentinel (both "genuinely unreadable" and "genuinely zero" collapse
+        // to it), so treating it as a wildcard match would reopen exactly the false-positive risk
+        // requiring nameId was meant to close.
+        var s = new RestartSentinel();
+        Advance(s, Grace - Persist);
+        Advance(s, Persist, rawNull: true);
+
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, 0, SameNameId));
+        Assert.False(s.LatchOpen);
+
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, 0));
         Assert.False(s.LatchOpen);
     }
 
@@ -104,7 +179,7 @@ public class RestartSentinelTests
     {
         var s = new RestartSentinel();
         PastGraceWithQualifiedNull(s);
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
         Assert.True(s.LatchOpen);
 
         Advance(s, RearmTicks, inLiveish: false);   // sustained off-field/out-of-live stretch
@@ -112,15 +187,16 @@ public class RestartSentinelTests
 
         // Grace re-armed: an otherwise-qualifying join right after the stretch still refuses,
         // because the null history was cleared too (haveQualifiedNull is now false) AND the
-        // battle age reset below the grace floor.
+        // battle age reset below the grace floor. Mismatched identity (OtherId) so the LW-233
+        // exemption cannot paper over the grace check this specific assertion is pinning.
         Advance(s, Persist, rawNull: true);
-        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, OtherId, SameId, OtherNameId, SameNameId));
 
         // But grace can be re-earned exactly like a fresh battle: past grace again, a fresh
         // qualified null opens normally.
         Advance(s, Grace + 1);
         Advance(s, Persist, rawNull: true);
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
     }
 
     [Fact]
@@ -128,7 +204,7 @@ public class RestartSentinelTests
     {
         var s = new RestartSentinel();
         PastGraceWithQualifiedNull(s);
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
         Assert.True(s.LatchOpen);
 
         Advance(s, LatchDuration);   // let the full duration elapse with no re-arming event
@@ -136,7 +212,7 @@ public class RestartSentinelTests
 
         // A fresh qualifying join re-opens it.
         Advance(s, Persist, rawNull: true);
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
         Assert.True(s.LatchOpen);
     }
 
@@ -145,11 +221,11 @@ public class RestartSentinelTests
     {
         var s = new RestartSentinel();
         PastGraceWithQualifiedNull(s);
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
 
         Advance(s, LatchDuration - 1);   // one tick from expiry
         Assert.True(s.LatchOpen);
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));   // re-arms
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));   // re-arms
 
         Advance(s, LatchDuration - 1);   // would have expired under the OLD countdown
         Assert.True(s.LatchOpen);
@@ -161,10 +237,10 @@ public class RestartSentinelTests
         // Named residual: healedFromZero==false must refuse regardless of latch state.
         var s = new RestartSentinel();
         PastGraceWithQualifiedNull(s);
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
         Assert.True(s.LatchOpen);
 
-        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: false));
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: false, SameId, SameId, SameNameId, SameNameId));
     }
 
     [Fact]
@@ -172,16 +248,18 @@ public class RestartSentinelTests
     {
         var s = new RestartSentinel();
         PastGraceWithQualifiedNull(s);
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
         Assert.True(s.LatchOpen);
 
         s.ResetBattle();
         Assert.False(s.LatchOpen);
 
         // And grace is back in effect -- a null right after reset does not open the latch until
-        // grace elapses again.
+        // grace elapses again. Mismatched identity: ResetBattle is what clears KillTracker's own
+        // _creditedIdentity in production, so a genuinely fresh battle never has a matching
+        // credited identity to exempt against.
         Advance(s, Persist, rawNull: true);
-        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, OtherId, SameId, OtherNameId, SameNameId));
     }
 
     [Fact]
@@ -191,8 +269,8 @@ public class RestartSentinelTests
         var s = new RestartSentinel((type, payload) => recorded.Add((type, payload)));
         PastGraceWithQualifiedNull(s);
 
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));
-        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true));   // a second joining revive, same open latch
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
+        Assert.Equal(RevivePresentResult.UncreditNow, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));   // a second joining revive, same open latch
 
         var restartRecords = recorded.FindAll(r => r.type == "restart");
         Assert.Single(restartRecords);
@@ -208,7 +286,7 @@ public class RestartSentinelTests
         Advance(s, Grace + 1);
         Advance(s, 1, rawNull: true);   // the null just started -- streak == 1, not yet qualified
 
-        var verdict = s.PresentRevive(0, W(1), false, healedFromZero: true);
+        var verdict = s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId);
 
         Assert.Equal(RevivePresentResult.Stashed, verdict);
         Assert.False(s.LatchOpen);   // not decided yet -- neither open nor refused
@@ -221,7 +299,7 @@ public class RestartSentinelTests
         Advance(s, Grace + 1);
         Advance(s, 1, rawNull: true);   // streak == 1
 
-        var verdict = s.PresentRevive(5, W(19), false, healedFromZero: true);
+        var verdict = s.PresentRevive(5, W(19), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId);
         Assert.Equal(RevivePresentResult.Stashed, verdict);
 
         var drained = s.Tick(rawActorNull: true, inLiveish: true);   // streak -> 2, QUALIFIES
@@ -232,13 +310,54 @@ public class RestartSentinelTests
         Assert.True(s.LatchOpen);
     }
 
+    // ---- Identity-gated stash drain (LW-233 live-drill residual, 2026-08-17) ----
+
+    [Fact]
+    public void A_stashed_revive_before_grace_drains_via_a_matching_identity_even_though_grace_never_clears()
+    {
+        // Everything below GraceTicks the whole way through -- no PastGrace helper at all -- and
+        // the stash still both ACCEPTS (ShouldStash) and DRAINS (ProcessStash's per-entry canOpen)
+        // purely on the matching identity. This is the exact live-tape shape: the out-of-live
+        // re-arm never lets battle age clear grace, but the revived identity matches.
+        var s = new RestartSentinel();
+        Advance(s, 5);                   // nowhere near Grace (150)
+        Advance(s, 1, rawNull: true);    // streak == 1, not yet qualified
+
+        var verdict = s.PresentRevive(7, W(42), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId);
+        Assert.Equal(RevivePresentResult.Stashed, verdict);
+        Assert.False(s.LatchOpen);
+
+        var drained = s.Tick(rawActorNull: true, inLiveish: true);   // streak -> 2, QUALIFIES
+
+        Assert.Single(drained);
+        Assert.Equal(7, drained[0].Slot);
+        Assert.Equal(42, drained[0].Weapons[0]);
+        Assert.True(s.LatchOpen);
+    }
+
+    [Fact]
+    public void A_would_be_stash_before_grace_with_a_mismatched_identity_refuses_outright()
+    {
+        // The mirror negative: same razor-thin timing, same everything, except the identity does
+        // not match -- ShouldStash's own grace-or-identity gate (mirrors ShouldOpenLatch's) is
+        // false on both counts here, so PresentRevive refuses immediately instead of stashing
+        // something that could never legitimately drain.
+        var s = new RestartSentinel();
+        Advance(s, 5);
+        Advance(s, 1, rawNull: true);
+
+        var verdict = s.PresentRevive(7, W(42), false, healedFromZero: true, OtherId, SameId, OtherNameId, SameNameId);
+        Assert.Equal(RevivePresentResult.Refuse, verdict);
+        Assert.False(s.LatchOpen);
+    }
+
     [Fact]
     public void A_stashed_revive_whose_null_breaks_before_qualifying_drops_silently()
     {
         var s = new RestartSentinel();
         Advance(s, Grace + 1);
         Advance(s, 1, rawNull: true);   // streak == 1
-        var verdict = s.PresentRevive(0, W(1), false, healedFromZero: true);
+        var verdict = s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId);
         Assert.Equal(RevivePresentResult.Stashed, verdict);
 
         var drained = s.Tick(rawActorNull: false, inLiveish: true);   // the flicker breaks -- streak resets to 0
@@ -260,8 +379,8 @@ public class RestartSentinelTests
         Advance(s, Grace + 1);
         Advance(s, 1, rawNull: true);   // streak == 1
 
-        Assert.Equal(RevivePresentResult.Stashed, s.PresentRevive(1, W(10), false, healedFromZero: true));
-        Assert.Equal(RevivePresentResult.Stashed, s.PresentRevive(2, W(11), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.Stashed, s.PresentRevive(1, W(10), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
+        Assert.Equal(RevivePresentResult.Stashed, s.PresentRevive(2, W(11), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
 
         var drained = s.Tick(rawActorNull: true, inLiveish: true);   // qualifies
 
@@ -280,7 +399,7 @@ public class RestartSentinelTests
         // what this test isolates.
         var s = new RestartSentinel();
         Advance(s, Grace - 1);
-        var verdict = s.PresentRevive(0, W(1), false, healedFromZero: true);   // streak == 0 -- not even in-progress
+        var verdict = s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId);   // streak == 0 -- not even in-progress
         Assert.Equal(RevivePresentResult.Refuse, verdict);
     }
 
@@ -296,7 +415,7 @@ public class RestartSentinelTests
         var s = new RestartSentinel();
         Advance(s, Grace + 1);
         Advance(s, 1, rawNull: true);   // streak == 1
-        Assert.Equal(RevivePresentResult.Stashed, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.Stashed, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
 
         Advance(s, RearmTicks, inLiveish: false);   // sustained out-of-live stretch
 
@@ -311,7 +430,7 @@ public class RestartSentinelTests
         var s = new RestartSentinel();
         Advance(s, Grace + 1);
         Advance(s, 1, rawNull: true);
-        Assert.Equal(RevivePresentResult.Stashed, s.PresentRevive(0, W(1), false, healedFromZero: true));
+        Assert.Equal(RevivePresentResult.Stashed, s.PresentRevive(0, W(1), false, healedFromZero: true, SameId, SameId, SameNameId, SameNameId));
 
         s.ResetBattle();
 
@@ -326,7 +445,7 @@ public class RestartSentinelTests
         Advance(s, Grace + 1);
         Advance(s, 1, rawNull: true);   // streak == 1, in-progress
 
-        var verdict = s.PresentRevive(0, W(1), false, healedFromZero: false);
+        var verdict = s.PresentRevive(0, W(1), false, healedFromZero: false, SameId, SameId, SameNameId, SameNameId);
 
         Assert.Equal(RevivePresentResult.Refuse, verdict);
         var drained = s.Tick(rawActorNull: true, inLiveish: true);   // qualifies -- nothing was ever stashed

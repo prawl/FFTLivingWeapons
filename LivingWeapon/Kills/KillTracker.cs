@@ -387,8 +387,35 @@ internal sealed partial class KillTracker
     /// actor path (KillTracker.Delayed.cs's ConsumeDelayedCulprit -- a Jump or charged spellcast
     /// that just landed); reported alongside every RecordPoachDeed call so a future consumer
     /// (stage 4's action discriminator) can tell a delayed strike from an ordinary one. Defaults
-    /// false, matching every pre-existing call site that never passes it.</summary>
-    internal bool CreditKill(int s, int gx, int gy, List<int> weapons, bool viaFallback = false, bool delayedOrCharged = false)
+    /// false, matching every pre-existing call site that never passes it. <paramref name="identity"/>
+    /// (LW-233 live-drill residual, 2026-08-17): the (lvl,br,fa,maxHp) tuple this slot's kill was
+    /// credited under (KillTracker.Corpses.cs's callers pass slot.Id), stamped into
+    /// _creditedIdentity for RestartSentinel's identity-gated grace exemption.
+    ///
+    /// FINDING 4 (2026-08-17 verifier correction): the parameter DEFAULTS to the zero tuple, and
+    /// every direct-call test site that never passes it relies on that default being SAFE, not
+    /// merely inert. The real reason it is safe: the zero tuple is not a REPRESENTABLE identity in
+    /// this runtime at all. <see cref="Band.IsValid"/> (Battle/Band.cs:54-67) floors lvl, brave,
+    /// and faith at 1 and maxHp at 1 for every band entry this class ever reads a slot.Id from
+    /// (ScanCorpses skips a slot entirely, before any SlotSnapshot is even built, whenever
+    /// IsValid fails), so a real slot.Id can never carry a 0 in any of those four fields -- the
+    /// zero tuple could only ever equal ANOTHER zero tuple, never a genuine revived identity. A
+    /// stale/unset _creditedIdentity[s] is therefore inert for the SAME reason a genuinely absent
+    /// identity is safe, not because of anything about which call sites happen to reach the revive
+    /// path today -- a future caller wiring a new path through here inherits the safety
+    /// automatically, rather than silently invalidating a claim about its own call site.
+    ///
+    /// <paramref name="identity"/>'s nameId counterpart is NOT a parameter here: CreditKill stamps
+    /// _creditedNameId[s] itself, from the SAME VictimReader.Read snapshot (_victimAtEdge[s]) this
+    /// method already consumes a few lines below (see the stamp site and _creditedNameId's own
+    /// doc comment, KillTracker.Corpses.cs). The same reasoning applies to ITS zero default: 0 is
+    /// this codebase's existing "no resolved identity" sentinel everywhere a nameId is read
+    /// (KillTracker.LastActorNameId, ActorRegister.CurrentNameId), never a value a live band
+    /// entry's frame nameId is asserted to legitimately hold, so an absent/zero nameId is exactly
+    /// as safe to default-and-forget as the zero tuple above -- both fail CLOSED (a miss), never
+    /// open a latch they shouldn't.</summary>
+    internal bool CreditKill(int s, int gx, int gy, List<int> weapons, bool viaFallback = false, bool delayedOrCharged = false,
+                              (byte lvl, byte br, byte fa, ushort mhp) identity = default)
     {
         bool changed = false;
         List<int> credited = weapons;
@@ -414,9 +441,16 @@ internal sealed partial class KillTracker
         // rewrite what THIS slot thinks it was credited to).
         _creditedWeapons[s] = new List<int>(credited);
         _creditedViaFallback[s] = viaFallback;
+        _creditedIdentity[s] = identity;   // LW-233: mirrors _creditedWeapons/_creditedViaFallback's own stamp
         LogKillDiag(s, credited);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
         _victimProbe.LogAtCredit(s);   // Reliquary P1 probe: log-only, zero behavioral dependence
         VictimSnapshot snap = _victimAtEdge[s];
+        // LW-233 FINDING 0 (2026-08-17): the credited victim's OWN nameId, from the SAME snapshot
+        // read just above -- no new memory access (see _creditedNameId's own doc comment,
+        // KillTracker.Corpses.cs, for why this is required IN ADDITION to _creditedIdentity's
+        // tuple). snap.Has false (no sane read at the death edge) stamps 0, the same fail-closed
+        // "unavailable" sentinel a genuinely-zero or unreadable nameId collapses to everywhere else.
+        _creditedNameId[s] = snap.Has ? snap.NameId : (ushort)0;
         if (snap.Has)
             foreach (int w in credited)
             {

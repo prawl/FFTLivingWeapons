@@ -30,6 +30,19 @@ public class KillTrackerRestartTests
         m.SeedU64(Offsets.ActorPtr, 0);
     }
 
+    /// <summary>Seed a band slot's frame nameId AND mark it Readable (FINDING 0/1 fixtures). The
+    /// shared SetFrameNameId helper only writes FakeSparseMemory.U16s, which is enough for the
+    /// UNGUARDED read SlotSnapshot.NameId uses (the presented-identity half, KillTracker.Corpses.cs)
+    /// but NOT for the Readable-gated VictimReader.Read (the credited-identity half, captured at the
+    /// dead edge and consumed by CreditKill) -- see VictimReaderTests.cs's own MarkReadable(addr +
+    /// Offsets.ANameId, 2) convention for the precedent. Without this, the credited nameId always
+    /// stamps 0 (VictimSnapshot.Has false), which fails closed regardless of what the test intends.</summary>
+    private static void SetReadableNameId(FakeSparseMemory m, int bandIdx, int nameId)
+    {
+        SetFrameNameId(m, bandIdx, nameId);
+        m.MarkReadable(Band.Entry(bandIdx) + Offsets.ANameId, 2);
+    }
+
     private static KillTracker MakeLatchedTracker(FakeSparseMemory m, Dictionary<int, int> kills,
         HashSet<int> weapons, int weapon, System.Func<int, bool>? hasLiveWielder = null,
         int lhand = 0xFFFF)
@@ -647,5 +660,137 @@ public class KillTrackerRestartTests
         Assert.Equal(Tuning.ProdThresholds[0], kills[weapon]);
         bt.Tick(tallyChanged: true);
         Assert.Single(bt._queue);   // toasts again -- the snapshot followed the tally back down
+    }
+
+    // ---- FINDING 1 (2026-08-17 verifier correction): the CreditKill<->PresentRevive seam had
+    // ZERO coverage -- every existing end-to-end test above pre-rolls AdvanceTicks(t, 200), which
+    // clears the sentinel's own battle-age grace on its own, so identity is never load-bearing in
+    // any of them (grace alone already opens the latch). The four tests below deliberately DO NOT
+    // pre-roll: battle age stays well under RestartSentinelPolicy.GraceTicks (150) throughout, so
+    // identity (the tuple AND the nameId, FINDING 0) is the ONLY thing that can open the latch.
+    // Two sabotages were hunted against these four and both go RED (see the arc's own PR notes for
+    // the exact failure output): (A) KillTracker.cs's `_creditedIdentity[s] = identity;` changed to
+    // `= default` (severs the tuple half) fails Same_identity_revive_under_150_ticks... below (the
+    // credited tuple can never again equal a real revived tuple, so even a genuine same-identity
+    // revive stops exempting grace). (B) KillTracker.Corpses.cs's two PresentRevive call sites'
+    // identity args changed to always pass the CURRENT slot's own tuple+nameId on BOTH the credited
+    // and presented side (the natural generalization of the pre-FINDING-0 "grace floor disabled
+    // entirely" sabotage, now that there are two identity channels instead of one) fails
+    // Different_identity_revive_under_150_ticks... below (a genuinely different unit's revive would
+    // incorrectly exempt grace and destroy an earned kill).
+    // ----
+
+    [Fact]
+    public void Same_identity_revive_under_150_ticks_of_battle_age_uncredits_via_the_ordinary_rearm_path()
+    {
+        const int weapon = 19;
+        var weapons = new HashSet<int> { weapon };
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var t = MakeLatchedTracker(m, kills, weapons, weapon);
+
+        const int slot = 10;
+        const int nameId = 555;
+        SetReadableNameId(m, slot, nameId);
+        AliveThenDead(m, slot, t);
+        Assert.Equal(1, kills.GetValueOrDefault(weapon));
+
+        // NO 200-tick grace preroll: battle age stays well under GraceTicks (150) for the whole
+        // test, so identity is the ONLY thing that can open the latch here.
+        NullPointer(m);
+        AdvanceTicks(t, 2);   // qualifies (NullPersistTicks == 2)
+        PointAt(m, Wilham);
+
+        SetUnit(m, slot, hp: 100, maxHp: 400, level: 10, brave: 50, faith: 50);
+        SetReadableNameId(m, slot, nameId);   // the SAME identity revives -- tuple AND nameId both match
+        Settle(t);
+
+        Assert.Equal(0, kills.GetValueOrDefault(weapon));   // reversed
+        Assert.True(t.Restart.LatchOpen);
+    }
+
+    [Fact]
+    public void Different_identity_revive_under_150_ticks_of_battle_age_never_opens_via_the_swap_branch()
+    {
+        const int weapon = 19;
+        var weapons = new HashSet<int> { weapon };
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var t = MakeLatchedTracker(m, kills, weapons, weapon);
+
+        const int slot = 10;
+        SetReadableNameId(m, slot, 555);
+        AliveThenDead(m, slot, t);   // identity captured as tuple (10,50,50,400) / nameId 555
+        Assert.Equal(1, kills.GetValueOrDefault(weapon));
+
+        NullPointer(m);
+        AdvanceTicks(t, 2);
+        PointAt(m, Wilham);
+
+        // A DIFFERENT unit revives at the same slot: different brave (the swap branch's own
+        // trigger) AND a different nameId -- neither half of the credited identity matches.
+        SetUnit(m, slot, hp: 100, maxHp: 400, level: 10, brave: 70, faith: 50);
+        SetReadableNameId(m, slot, 777);
+        t.Poll(true);   // the swap branch fires on the first read of the new identity, no debounce
+
+        Assert.Equal(1, kills.GetValueOrDefault(weapon));   // untouched -- a genuinely different unit
+        Assert.False(t.Restart.LatchOpen);
+    }
+
+    [Fact]
+    public void Matching_tuple_with_a_mismatched_nameId_never_opens_the_twin_collision_case()
+    {
+        // FINDING 0's whole reason to exist: docs/LIVE_LEDGER.md row [party-nameid-unique-key]
+        // proves a real (lvl,br,fa,maxHp) tuple can collide between two distinct units. Same tuple
+        // means the ORDINARY re-arm branch fires (not the swap branch, whose trigger IS a tuple
+        // mismatch), so nameId is the only thing this test's outcome can turn on.
+        const int weapon = 19;
+        var weapons = new HashSet<int> { weapon };
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var t = MakeLatchedTracker(m, kills, weapons, weapon);
+
+        const int slot = 10;
+        SetReadableNameId(m, slot, 555);
+        AliveThenDead(m, slot, t);
+        Assert.Equal(1, kills.GetValueOrDefault(weapon));
+
+        NullPointer(m);
+        AdvanceTicks(t, 2);
+        PointAt(m, Wilham);
+
+        SetUnit(m, slot, hp: 100, maxHp: 400, level: 10, brave: 50, faith: 50);   // SAME tuple
+        SetReadableNameId(m, slot, 777);                                            // DIFFERENT nameId
+        Settle(t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(weapon));   // untouched -- the twin is not the credited victim
+        Assert.False(t.Restart.LatchOpen);
+    }
+
+    [Fact]
+    public void A_zero_nameId_never_opens_even_with_a_matching_tuple()
+    {
+        const int weapon = 19;
+        var weapons = new HashSet<int> { weapon };
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var t = MakeLatchedTracker(m, kills, weapons, weapon);
+
+        const int slot = 10;
+        // Deliberately never seed a nameId: the band entry's ANameId stays at FakeSparseMemory's
+        // unseeded-read default (0), the same fail-closed value an unreadable page collapses to in
+        // production (SlotSnapshot.NameId's own doc comment).
+        AliveThenDead(m, slot, t);
+        Assert.Equal(1, kills.GetValueOrDefault(weapon));
+
+        NullPointer(m);
+        AdvanceTicks(t, 2);
+        PointAt(m, Wilham);
+
+        SetUnit(m, slot, hp: 100, maxHp: 400, level: 10, brave: 50, faith: 50);   // same tuple, still no nameId
+        Settle(t);
+
+        Assert.Equal(1, kills.GetValueOrDefault(weapon));   // fail closed -- a miss, never a false positive
+        Assert.False(t.Restart.LatchOpen);
     }
 }

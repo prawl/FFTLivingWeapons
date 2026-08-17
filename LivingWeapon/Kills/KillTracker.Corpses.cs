@@ -129,6 +129,42 @@ internal sealed partial class KillTracker
     // _lethalViaFallback's own per-slot bookkeeping); feeds UncreditKills' FallbackCredits
     // decrement so an uncredit reverses the SAME counter CreditKill incremented.
     private readonly bool[] _creditedViaFallback = new bool[Offsets.BandSlots];
+    // LW-233 live-drill residual (2026-08-17): the (lvl,br,fa,maxHp) identity this slot was
+    // credited under, stamped alongside _creditedWeapons in CreditKill (KillTracker.cs) from
+    // slot.Id -- the SAME identity tuple _identityAlive already keys on. Fed to
+    // RestartSentinel.PresentRevive so it can compare against the reviving unit's CURRENT slot.Id
+    // and, TOGETHER WITH _creditedNameId below (FINDING 0, same date -- this tuple alone is NOT
+    // trusted as an identity match; see _creditedNameId's own doc comment for why), narrowly
+    // exempt the battle-age grace floor when both agree. Reset/cleared on the exact same three
+    // sites as _creditedWeapons/_creditedViaFallback above -- treated identically, never
+    // independently, so it can never outlive the credited-weapon set it is meant to accompany.
+    private readonly (byte lvl, byte br, byte fa, ushort mhp)[] _creditedIdentity = new (byte, byte, byte, ushort)[Offsets.BandSlots];
+
+    // LW-233 FINDING 0 (2026-08-17 verifier correction): the credited victim's OWN frame nameId
+    // (Offsets.ANameId), the SECOND, STRONGER half of RestartSentinel's identity gate. A prior
+    // version of this fix keyed the gate on _creditedIdentity's (lvl,br,fa,maxHp) tuple ALONE,
+    // on the mistaken premise that the tuple "resolves to the roster nameId end to end" (LW-252).
+    // That is backwards: docs/LIVE_LEDGER.md row [party-nameid-unique-key] PROVES the OPPOSITE --
+    // two deliberately deployed fingerprint twins resolved to two DISTINCT nameIds, i.e. the tuple
+    // is exactly the collision-prone key LW-252 moved every other identity check OFF of. Requiring
+    // nameId to ALSO match (not instead of the tuple -- either alone still collides on its own
+    // known edge cases) is strictly harder to satisfy than either alone, which is what
+    // precision-first demands here: a false positive destroys earned kills, a miss is merely
+    // today's bug. Stamped in CreditKill from the SAME VictimReader.Read snapshot CreditKill
+    // already consumes (_victimAtEdge[s]) -- no new memory read. 0 = unavailable (unreadable OR
+    // genuinely zero -- the codebase's existing "no resolved identity" sentinel, e.g.
+    // KillTracker.LastActorNameId, ActorRegister.CurrentNameId), which RestartSentinel treats as
+    // fail-closed (never exempts grace). Reset/cleared on the exact same three sites as
+    // _creditedIdentity -- never independently, so it can never outlive the tuple it accompanies.
+    //
+    // UNPROVEN (docs/LIVE_LEDGER.md row [retry-preserves-credited-identity]): whether a battle
+    // retry preserves a revived unit's nameId at all has no live evidence yet either way -- only
+    // PLAYER nameIds are proven stable across a battle reload ([party-nameid-unique-key]'s caveat 3);
+    // generic ENEMY nameIds are proven to RE-ROLL per load ([boss-canonical-nameid-stable]). If a
+    // retry re-rolls enemy nameIds, this requirement turns every enemy retry into a MISS rather
+    // than a catch -- an accepted, deliberate direction (see this array's own doc above), not a
+    // silent failure.
+    private readonly ushort[] _creditedNameId = new ushort[Offsets.BandSlots];
 
     // Alive-edge belt: true = identity last observed alive (creditable); false = last observed dead.
     // Set true on seenAlive and on revive; set false on credit or expiry-without-actor.
@@ -164,6 +200,8 @@ internal sealed partial class KillTracker
         Array.Clear(_prevHp, 0, _prevHp.Length);               // LW-233
         Array.Clear(_creditedWeapons, 0, _creditedWeapons.Length);
         Array.Clear(_creditedViaFallback, 0, _creditedViaFallback.Length);
+        Array.Clear(_creditedIdentity, 0, _creditedIdentity.Length);   // LW-233
+        Array.Clear(_creditedNameId, 0, _creditedNameId.Length);   // LW-233 FINDING 0
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
         _victimProbe.ResetBattle();   // P1 probe: clear every slot's alive/edge snapshots
@@ -188,8 +226,16 @@ internal sealed partial class KillTracker
         internal readonly byte Fa;
         internal readonly bool DeadBit;
         internal readonly bool IsDead;
+        // LW-233 FINDING 0 (2026-08-17): this slot's OWN frame nameId (Offsets.ANameId), read the
+        // same unguarded fail-safe way as every other seat-identity read in Battle/*.cs and
+        // Growth/*.cs (the "Iai pattern, D8" convention -- Mem.U16 returns 0 on an unreadable
+        // page, so no separate Readable() branch is needed here). 0 doubles as the codebase's
+        // existing "no resolved identity" sentinel, which is exactly the fail-closed value
+        // RestartSentinel's identity gate wants for "unavailable" -- see _creditedNameId's own
+        // doc comment (KillTracker.Corpses.cs, above ResetBattleCorpses) for the full rationale.
+        internal readonly ushort NameId;
 
-        internal SlotSnapshot(long addr, ushort hp, int gx, int gy, ushort maxHp, byte lvl, byte br, byte fa, bool deadBit)
+        internal SlotSnapshot(long addr, ushort hp, int gx, int gy, ushort maxHp, byte lvl, byte br, byte fa, bool deadBit, ushort nameId)
         {
             Addr = addr;
             Hp = hp;
@@ -200,6 +246,7 @@ internal sealed partial class KillTracker
             Br = br;
             Fa = fa;
             DeadBit = deadBit;
+            NameId = nameId;
             IsDead = hp == 0 || deadBit;
         }
 
@@ -227,7 +274,8 @@ internal sealed partial class KillTracker
                 _mem.U8(addr + Offsets.ABrave),
                 _mem.U8(addr + Offsets.AFaith),
                 // Dead bit: +0x45/0x20 (Doom research). U8 returns 0 on unreadable address -- safe.
-                (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0);
+                (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0,
+                _mem.U16(addr + Offsets.ANameId));   // LW-233 FINDING 0: the presented-identity nameId half
 
             if (onField) ScanFieldEvidence(s, in slot);
 
@@ -285,11 +333,26 @@ internal sealed partial class KillTracker
             // branch's trigger, not the ordinary re-arm block below. Present it to the sentinel
             // BEFORE the reset wipes every trace of the old identity's state. A null slot list means
             // this slot was never credited at all -- nothing to present.
+            //
+            // FINDING 6(ii) RESIDUAL (2026-08-17, verifier-caught -- this is NOT handled, despite
+            // how the paragraph above reads): this branch's own trigger condition (the tuple
+            // differs from _slotId[s]) and _creditedIdentity[s]'s own provenance (stamped as
+            // slot.Id at the ORIGINAL credit, which is what _slotId[s] was seeded from) together
+            // GUARANTEE _creditedIdentity[s]'s tuple equals _slotId[s]'s tuple on every field this
+            // branch's own condition tests -- so slot.Id (the revived tuple) can never equal
+            // _creditedIdentity[s] here BY CONSTRUCTION. identityMatches is therefore structurally
+            // ALWAYS false on this branch, regardless of nameId: a retry landing here relies
+            // entirely on the plain battle-age grace (RestartSentinelPolicy.GraceTicks), never the
+            // identity exemption. A retry whose victim was Rend-Braved / Charmed / Praised before
+            // dying, revived within the live drill's own battleMode-0 window (which is exactly what
+            // starves grace), still double-counts -- a named, accepted residual, not yet fixed.
             var creditedHere = _creditedWeapons[s];
             if (creditedHere != null)
             {
                 bool healedFromZero = _prevHp[s] == 0 && slot.Hp > 0;
-                if (_restart.PresentRevive(s, creditedHere, _creditedViaFallback[s], healedFromZero) == RevivePresentResult.UncreditNow)
+                if (_restart.PresentRevive(s, creditedHere, _creditedViaFallback[s], healedFromZero,
+                                            _creditedIdentity[s], slot.Id,
+                                            _creditedNameId[s], slot.NameId) == RevivePresentResult.UncreditNow)
                 {
                     UncreditKills(creditedHere, _creditedViaFallback[s], s);
                     changed = true;
@@ -299,6 +362,8 @@ internal sealed partial class KillTracker
             _deadCredited[s] = false; _pending[s] = false;
             _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
             _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // LW-233: a stale set could misattribute a later revive
+            _creditedIdentity[s] = default;   // LW-233: mirrors _creditedWeapons' own clear, same reasoning
+            _creditedNameId[s] = 0;   // LW-233 FINDING 0: mirrors _creditedIdentity's own clear
             _victimProbe.Reset(s);   // P1 probe: a slot-reuse identity swap invalidates any stale snapshot
             _victimAtEdge[s] = default;   // Reliquary: same invalidation for the captured snapshot
             return;
@@ -324,7 +389,9 @@ internal sealed partial class KillTracker
                 if (creditedHere != null)
                 {
                     bool healedFromZero = _prevHp[s] == 0 && slot.Hp > 0;
-                    if (_restart.PresentRevive(s, creditedHere, _creditedViaFallback[s], healedFromZero) == RevivePresentResult.UncreditNow)
+                    if (_restart.PresentRevive(s, creditedHere, _creditedViaFallback[s], healedFromZero,
+                                                _creditedIdentity[s], slot.Id,
+                                                _creditedNameId[s], slot.NameId) == RevivePresentResult.UncreditNow)
                     {
                         UncreditKills(creditedHere, _creditedViaFallback[s], s);
                         changed = true;
@@ -335,6 +402,8 @@ internal sealed partial class KillTracker
             _pending[s] = false;
             _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
             _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // LW-233: clear every seenAlive tick, mirrors _lethalActor above
+            _creditedIdentity[s] = default;   // LW-233: mirrors _creditedWeapons' own clear, same reasoning
+            _creditedNameId[s] = 0;   // LW-233 FINDING 0: mirrors _creditedIdentity's own clear
             // P1 probe: a revived victim's OLD dead-edge snapshot is stale -- clear it here,
             // BEFORE CaptureAlive below repopulates the alive half this same tick (ordering
             // matters: this runs every seenAlive tick, not only true revives, so the capture
@@ -508,7 +577,7 @@ internal sealed partial class KillTracker
         {
             bool orphanViaFallback = _lethalActor[s] != null ? _lethalViaFallback[s] : _latchViaFallback;
             _deadCredited[s] = true;
-            if (CreditKill(s, slot.Gx, slot.Gy, orphanCulprit, orphanViaFallback)) { _identityAlive[slot.Id] = false; changed = true; }
+            if (CreditKill(s, slot.Gx, slot.Gy, orphanCulprit, orphanViaFallback, identity: slot.Id)) { _identityAlive[slot.Id] = false; changed = true; }
             return false;
         }
         // No culprit stamped yet: the belt is now repaired, so fall through to the shared
@@ -589,7 +658,7 @@ internal sealed partial class KillTracker
                     $"Crediting the unit that landed the finishing blow, wielding {string.Join(", ", culprit.ConvertAll(LogNames.Weapon))}, rather than the unit that acted most recently.",
                     $"finishing-blow detail (lethal=[{string.Join(",", culprit)}] live-latch=[{string.Join(",", _lastPlayerWeapons)}], battle slot {s}, dead-streak {_deadStreak[s]})");
             bool viaFallback = delayed == null && (_lethalActor[s] != null ? _lethalViaFallback[s] : _latchViaFallback);
-            bool c = CreditKill(s, slot.Gx, slot.Gy, culprit, viaFallback, delayedOrCharged: delayed != null);
+            bool c = CreditKill(s, slot.Gx, slot.Gy, culprit, viaFallback, delayedOrCharged: delayed != null, identity: slot.Id);
             _deadCredited[s] = true;
             // LW-68/D2/B5: only burn the shared alive-edge when a credit actually landed.
             // A fully-refused credit (no live wielder) tallies nothing, so the identity was

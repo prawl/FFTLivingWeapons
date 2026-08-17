@@ -104,6 +104,24 @@ the technical detail lives in the indented lines under it.
     property proven by sabotage, both gates green, and the owner's live retry drill (lose,
     retry, win) showing the tally rising exactly once and the flight tape carrying a restart
     edge.
+  - Two known gaps stayed open on purpose after the 2026-08-17 verifier pass, both misses rather
+    than false payouts, so the fix stays safe while they wait for a future round: sometimes the
+    mod's own "did the battle really leave" re-check lands at exactly the wrong moment and a
+    retry slips through uncaught (roughly one time in fifteen to one time in twelve, worse on a
+    slow machine or a long game over screen), and separately, if the enemy who died had been hit
+    with a brave or faith changing move right before the retry, the mod cannot tell that revived
+    enemy apart from the one it already paid out for, so that one retry can still double count.
+    (Tech: (i) a re-arm landing between the null qualifying and the revive presenting with
+    nullStreakTicks==0 (RestartSentinel.Tick's OutOfLiveRearmTicks race), neither open nor stash.
+    Estimate corrected 2026-08-17: the earlier 2 to 3 percent figure was unsourced and read better
+    than the evidence supports. Derivation from the banked tape's own geometry: the null persists
+    roughly 4 ticks while still off-field before the mod returns on-field, against the 60-tick
+    OutOfLiveRearmTicks window that clears the evidence, so 4 divided by 60 is about 6.7 percent;
+    stated as a 6 to 8 percent range since the 4-tick count is a rough read off one tape, not an
+    exact measurement. (ii) KillTracker.Corpses.cs's identity-swap branch: its own trigger
+    (slot.Lvl/Br/Fa differing from _slotId[s]) guarantees _creditedIdentity[s] equals _slotId[s]
+    on those fields, so identityMatches is structurally always false there regardless of nameId;
+    a Rend-Braved, Charmed, or Praised victim revived by a retry relies on plain grace only.)
 
 - **[LW-212] The four bags, the last weapon family in the game to have its colour looked at** (opened 2026-08-13) [AWAITING-LIVE]
   - BUILT and gated 2026-08-16, owner gallery pass outstanding. A CARD median of 72.1 percent,
@@ -165,6 +183,22 @@ the technical detail lives in the indented lines under it.
     and the owner's live pass.
 
 ## Backlog
+
+- [LW-256] 2026-08-17: Four files point to an explanation of the retry bug that this branch does
+  not have yet, and nothing automated notices. The `battle-retry-rewind-fingerprint` writeup
+  landed on `main` in commit 438b173, but this arc's branch (`lw233`) was cut from an earlier
+  commit, so `RestartSentinel.cs`, `RestartSentinel.Policy.cs`, `KillTracker.cs`, and
+  `KillTracker.Corpses.cs` all cite a ledger row that is not in this branch's copy of
+  `docs/LIVE_LEDGER.md`, and the doc gate stays green anyway because it only checks links between
+  docs, not whether a code comment's citation of a ledger row actually exists. Merging `lw233`
+  back onto a `main` that already carries that row settles it for free; this row exists so the
+  gap is not silently forgotten if that merge is delayed or done some other way. Not a fix to make
+  here: no rebase, no hand-added row, that is a merge-time call for the owner. (Tech:
+  `DocsContractTests` (LivingWeapon.Tests) enforces repo-wide doc-to-doc link integrity but has no
+  check that a `[slug]` cited from a `.cs` comment actually resolves to a row in
+  `docs/LIVE_LEDGER.md`; the four current citations are `LivingWeapon/Kills/RestartSentinel.cs:17`,
+  `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
+  `[battle-retry-rewind-fingerprint]`.)
 
 - [LW-246] 2026-08-16: Players did not like the recoloured icons, and the reason is now known
   and measured instead of guessed. A spriter player named it and a five lens diagnostic confirmed
@@ -642,8 +676,31 @@ the technical detail lives in the indented lines under it.
   and siblings); a show routine plus text holder pair would make this a callable surface, the
   same shape as the battle callout bubble arc.
 
+- [LW-257] 2026-08-17: Two places show the same weapon's kill count and they disagree during a
+  battle, so the player is told two different numbers at once. Owner sighting during the LW-233
+  retry drill: after a kill the battle menu's Attack row read 23 while the status card still read
+  22, and the card only caught up later. This is NOT the retry bug, which was verified correct in
+  the same session with the tally file agreeing at 23; it is the display half, and the owner has
+  called it blocking before the retry work counts as done. Worth separating from LW-165, which is
+  about counts being stale after a cold boot or a save load: this one triggers mid-battle with the
+  mod fully armed and both painters running, and the card demonstrably updates (it followed the
+  rewind down to 22) while lagging one step behind. (Tech: two independent paint paths, the
+  attack-row painter and the budgeted pool sweep in the Display files, sample the tally at
+  different cadences with no shared invalidation. First question when picked up is whether the card
+  is one whole sweep behind by design or whether the rewind and the re-credit landed inside one
+  sweep window; the LW-233 drill log plus flight_20260817_175855_battle-exit.jsonl carry both
+  credits and the uncredit with timestamps, so the answer is already banked.)
+
 - [LW-172] 2026-08-12: The mod's human versus monster job boundary is off by two, and every
   consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.
+  OWNER SIGHTING 2026-08-17, the player-visible cost is now on record: during the LW-233 retry
+  drill the mod announced "Stoneshooter claims kill number 25, felling a human" twice over a
+  chocobo, once at 18:08:16 and once at 18:09:07 after the bird was raised and killed again.
+  The victim probe read job 94 both times (nameId 861, battle slot 12), and job 94 sits inside
+  the generic human band because Puppeteer.Policy.cs:25 sets GenericJobHi to 95 while
+  Puppeteer.Policy.cs:31 sets MonsterJobLo to 96, so every chocobo in the game is announced as a
+  person. The toast is the harmless half; VictimClass feeds Reliquary victim classing, so fix the
+  boundary rather than the wording.
   Falsified live during the LW-167 pass (a Black Chocobo victim's job byte read 95 at the
   credit edge) and confirmed by the game's own Job sheet (Key 94 Chocobo, 95 Black Chocobo,
   96 Red Chocobo; the sheet also carries each monster's poach keys). Known consumers of the

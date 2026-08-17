@@ -1833,6 +1833,24 @@ Uncertain as of 2026-08-17 (evidence strong, owner flip pending): with the roste
 
 </details>
 
+### [retry-preserves-credited-identity] A battle retry preserves the credited band slot's identity (nameId and the lvl/br/fa/maxHp tuple), for enemies specifically
+
+Uncertain as of 2026-08-17 (evidence strong, owner flip pending): RestartSentinel's identity-gated grace exemption (LW-233 FINDING 0) assumes a checkpoint retry's revived unit carries the SAME frame nameId and (lvl,br,fa,maxHp) tuple as the slot's credited victim. One live retry now backs the nameId half for a single generic enemy: band slot 15 (nameId 378, job 85, maxHp 306) was credited before the retry and re-killed after it with every one of those fields unchanged. Still short of PROVEN: n=1, one generic enemy, one retry, and this tape never directly observed level/brave/faith (the tuple's other three fields) -- only nameId, job, and maxHp. If nameId does not survive a retry in general, the gate produces a MISS (a retry goes uncaught), never a false positive -- the deliberate, safe direction this code chose.
+
+<details><summary>How we got here</summary>
+
+**Claim:** a battle retry (both the full-rewind and the mid-battle checkpoint depth, docs/TODO.md's LW-233 entry) preserves the revived band slot's frame nameId (Offsets.ANameId) and its (lvl,br,fa,maxHp) fingerprint closely enough that comparing them against the values captured at credit time reliably identifies "the same victim, revived by a retry" versus "a different unit landing in the same slot" (LW-108's starved-bracket hole).
+
+**Mechanism:** RestartSentinel.PresentRevive requires BOTH the tuple AND a nonzero nameId to agree before exempting the battle-age grace floor (LivingWeapon/Kills/RestartSentinel.cs; the credited half is stamped in LivingWeapon/Kills/KillTracker.Corpses.cs's `_creditedNameId`). The nameId half leans on [party-nameid-unique-key]'s PROVEN finding that PLAYER nameIds are stable across a battle reload -- but that row's own caveat 3 says generic ENEMY nameIds RE-ROLL per load ([boss-canonical-nameid-stable]), and this fix's whole target population is enemy corpses. A checkpoint retry rewinds IN PLACE with no exit edge at all ([battle-retry-rewind-fingerprint]), which is not the same event as a documented reload, so whether the same re-roll behavior fires on a retry is untested either way.
+
+**Contradicting case already on record for the tuple half:** KillTracker.Corpses.cs's identity-swap branch (ScanAlivePath, the tuple-mismatch trigger) documents that a checkpoint retry CAN restore brave/faith to their pre-death values (a status effect or Rend-family hit undone by the rewind) -- direct evidence the tuple half is not universally stable across a retry. That branch is structurally excluded from the identity exemption regardless of this row (FINDING 6(ii), same arc: the branch's own trigger condition guarantees the tuple never matches there), so today's code already treats it as grace-only, not a silent false-positive risk -- but it is proof the "identity survives a retry" premise has at least one known hole.
+
+**Evidence (tape `tools/probes/tapes/lw233_death_retry_live_20260817.jsonl`, one owner-run retry, band slot 15):** the pre-retry `victim` record (t=2165156, wall 14:09:34) and the post-retry `victim` record (t=2503015, wall 14:15:12) both read `alive=(nameId=378,job=85,undead=0,has=1) edge=(nameId=378,...) credit=(nameId=378,...)`; the `census` records at t=2185515 (pre-retry) and t=2537734 (post-retry battle-exit) both carry `s15:378/85`; the `ev` healing/damage records for slot 15 (t=2134859, t=2240078's revive, t=2476031) all read maxHp 306. Independently corroborated in the owner's `livingweapon.prev.log` at 14:09:34 and 14:15:12, both nameId 378. Recorded limits: n=1, one generic enemy, one retry; level/brave/faith were never directly observed in this tape (only nameId/job/maxHp); and this in-place retry rewind ([battle-retry-rewind-fingerprint]) is a DIFFERENT operation from the fresh world-map load [boss-canonical-nameid-stable] measured when it found generic nameIds re-roll, so this evidence answers "does an in-place rewind preserve identity" and leaves the reload question exactly where [boss-canonical-nameid-stable] left it. FINDING 5 (2026-08-17) wired the credited/presented identity (both nameId and tuple) into the flight recorder's "restart" records so a FUTURE drill can answer this the same way without extra instrumentation -- read a tape with `python tools/parse_flight.py <file>` and compare the credited vs presented nameId/tuple fields.
+
+**Date:** 2026-08-17
+
+</details>
+
 ## Contradicted — probe before building on these
 
 ### [terrain-height-byte-blocks-movement] Terrain grid HEIGHT (byte +2) write BLOCKS movement (the Bulwark premise, as ORIGINALLY built)
