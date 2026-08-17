@@ -10,6 +10,19 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-252] SHIPPED 3b6786f 2026-08-17: The mod could mistake one soldier for a lookalike, sending
+  kills to the wrong weapon and letting one unit borrow another unit's gift, exactly as a player
+  reported. It told units apart by level, bravery and faith, which twins can share; the owner's
+  own roster held such a pair. Every identity decision now keys on the unit's name id, which a
+  live probe proved unique across the party and mirrored into battle memory, and every genuinely
+  ambiguous case refuses instead of guessing: a kill the mod cannot attribute with certainty is
+  missed on purpose, never handed to the wrong weapon. Owner live-verified the same day with the
+  two fingerprint-twin chocobos fielded: their kills went uncredited as designed, Ramza's
+  credited normally, and the flight tape showed the twins tracked as two distinct units for the
+  first time. (Tech: six stages in 3b6786f, probe and premise in cd936e0; three adversarial plan
+  reviews, red-first tests, four sabotage checks in the independent verify; ledger
+  [party-nameid-unique-key] flipped PROVEN with this exit.)
+
 - [LW-236] SHIPPED b36ba7c 2026-08-16: Fifty-eight weapon icons had been shipping the version of
   themselves that fumes coloured smoke, because the fix that stopped it was written into their
   shared shader but their pictures were never re-made. It is fixed now, and not by re-baking them

@@ -1144,11 +1144,9 @@ The terrain grid at 0x140D8DCC0 is real per-tile height read live for the single
 
 </details>
 
-## Uncertain — observed live, not yet isolated / built on
+### [party-nameid-unique-key] Party roster nameIds are UNIQUE per occupied row, and the frame mirror covers every deployed player seat (the LW-252 identity key)
 
-### [party-nameid-unique-key] Party roster nameIds are UNIQUE per occupied row, and the frame mirror covers every deployed player seat (wrong-unit fix premise)
-
-Every occupied party roster row carries a nonzero nameId distinct from every other row, and in battle every deployed player seat's frame nameId (Offsets.ANameId, the [frame-1fc-nameid-mirror] field) reads nonzero, maps to exactly one roster row, and holds steady through movement, damage, and the unit's own death; two deliberately deployed (level,brave,faith) fingerprint twins resolved to distinct nameIds. Observed 2026-08-17, pending owner PROVEN flip.
+Every occupied party roster row carries a nonzero nameId distinct from every other row, and in battle every deployed player seat's frame nameId (Offsets.ANameId, the [frame-1fc-nameid-mirror] field) reads nonzero, maps to exactly one roster row, and holds steady through movement, damage, and the unit's own death; two deliberately deployed (level,brave,faith) fingerprint twins resolved to distinct nameIds. PROVEN, owner-flipped 2026-08-17 after the LW-252 live trial (below). The LW-252 identity rework (shipped 3b6786f) keys every locate, kill credit, and per-wielder grant on this fact and fails closed on the duplicate case this row rules out.
 
 <details><summary>How we got here</summary>
 
@@ -1191,9 +1189,21 @@ load ([boss-canonical-nameid-stable]), so nameId is an in-session join key for p
 a cross-save persistent identity. (4) No player seat ever read nameId 0 in these runs; the
 unseeded-0 fail-safe convention in code stays.
 
+**PROVEN flip evidence (owner live trial, 2026-08-17, the LW-252 acceptance battle):** dev
+build 3b6786f deployed; owner fielded Ramza plus BOTH fingerprint-twin chocobos in a random
+battle. Leg 1: Save the Queen claimed kills 17 and 18 normally (no over-refusal). Leg 2 bait:
+each chocobo's killing blow resolved as a real player with no living weapon and went
+UNCREDITED (log: "the acting player wields no Living Weapon"; tape: latch weapons=[] and
+no-credit reason=untracked-weapon), where the pre-fix code credited such kills to the stale
+latch. Leg 3: zero guard events, zero ambiguity warnings, clean battle-exit flush. The tape
+additionally shows TWO independent turn counters for the one shared fingerprint (36,49,62):
+the twins tracked as distinct units in live combat for the first time.
+
 **Date:** 2026-08-17
 
 </details>
+
+## Uncertain — observed live, not yet isolated / built on
 
 ### [pe-key-match-kitlane-mismatch-discriminator] PE-build-key match + JobCommand rec8/rec9 mismatch discriminates a mod rewrite from a game update (LW-112 guard split)
 
