@@ -539,4 +539,35 @@ internal static class Offsets
     /// positived on it).</summary>
     public const int ACorpseConvertMarker = 0x46;
     public const byte ACorpseChestBitMask = 0x01;  // mask: bit 0 of ACorpseConvertMarker (id 15, the byte's last slot MSB-first) is Treasure/chest
+
+    // --- Gun Slinger / Crossfire twin-grant consent (LW-193/LW-194): a world-map "a menu
+    // panel is open" flag. Reads 1 exactly while a party/equip/shop/save menu is open, 0 on the
+    // free map, during travel, and through the WHOLE formation and battle-load flow --
+    // DELIBERATELY, so a gate built on this byte never suppresses the pre-battle window (the
+    // twin must already be present in the roster when a battle constructs, or the wielder fires
+    // only once for that whole battle; see [twin-dualfire-construction-bound]).
+    // Found by menu_signal_probe.py's wide constant-intersection solve over five UI states, then
+    // a torture tour (tape lw193_menusig_20260817_063908.log): flipped cleanly on every party/
+    // equip/shop open-close, one 500ms double-pulse on a town-exit fade (hence the caller's
+    // 3-pass debounce), silent across four world-map travel hops. Disqualified the early
+    // favorite 0x140D506B4, which pulsed 50ms on every travel hop instead. Sibling
+    // 0x140D508EC tracks it; 0x140D50916 is its clean inverse (neither promoted here -- nothing
+    // reads them). See [worldmap-menu-open-byte] (LIVE_LEDGER.md, Uncertain as of 2026-08-17,
+    // owner flip pending). UNREADABLE MEANS SUPPRESS: the caller (GunSlinger.cs) treats a failed
+    // read as menuOpen == true -- fail toward not writing, never toward writing over a player's
+    // own gear.
+    public const long MenuOpenFlag = 0x140D508D0;   // u8
+
+    // --- Gun Slinger / Crossfire twin-grant consent, owner-AC round (LW-193): the party-BROWSE
+    // screen stamp. Reads 1 exactly on the party overview root AND the Character Status page; 0
+    // in E&A (all three tabs: Inventory/Chronicle/Options), the save menu, the shop, world-map
+    // travel, formation, and battle. Torture-proven 2026-08-17 afternoon (tape
+    // lw193_menusig_20260817_110948.log, verify-watch method): clean edges on every root/Status
+    // open-close. NOT yet probed on E&A's own sub-pickers (item/ability lists opened FROM E&A);
+    // the gate's own deny-default (unreadable/0 -> not-browse) covers that gap safely either way.
+    // UNREADABLE MEANS NOT-BROWSE (deny), matching [worldmap-menu-open-byte]'s own fail-toward-
+    // suppression convention: a failed read must never be mistaken for "safe to write". See
+    // [party-browse-screen-byte] (LIVE_LEDGER.md) for the full evidence; [worldmap-menu-open-byte]
+    // narrows to the DENY-side half of the gate as of this round (see its row for the note).
+    public const long PartyBrowseFlag = 0x140D408E2;   // u8
 }

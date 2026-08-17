@@ -10,6 +10,34 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-193] SHIPPED ad2240a 2026-08-17: Using the twin-weapon perks could destroy a player's
+  shield forever and mint pistols the player never bought, and both crimes were caught on tape
+  before the cure was designed. The perk used to keep its conjured copy alive by force,
+  re-stamping it over whatever the player or the game did; the game settled the resulting
+  impossible hand states by deleting gear without refunds, and its honest bookkeeping refunded
+  the conjured copy as a free gun on lawful swaps. The perk now asks permission: an empty off
+  hand and shield slot invite the twin, anything the player equips declines it everywhere
+  including battle formation, the mod writes nothing inside gear-editing screens, the copy
+  appears visibly when backing out to the status page and dies with its source, and the one
+  refund lane that remains is detected and recorded in watch mode without touching anything.
+  The owner wrote the acceptance criteria in his own words and walked every block against the
+  deployed build in session; each behaved as written, and the watch mode recorded its first
+  phantom refund on cue. (Tech: the arc ran the full pipeline twice in one day: probe first
+  (offhand_shield_probe, menu_signal_probe, twinless_probe), evidence rows
+  [twin-grant-inventory-desync] owner-flipped plus [worldmap-menu-open-byte],
+  [party-browse-screen-byte], [twin-dualfire-construction-bound] awaiting flips; three
+  adversarial plan reviews, three independent verify rounds with sabotage-proven tests, one
+  mid-arc failed live leg that caught the battle-end mint and became the twilight hold; suite
+  3027, premise commits 19043ab aa6bb44 d65be08.)
+
+- [LW-194] SHIPPED ad2240a 2026-08-17: A player who did not want the twin-weapon perk used to
+  have to fight the mod for their own off hand, losing the wrestling match every second. The
+  consent rule shipped with LW-193 is the opt-out: equip anything in the off hand or shield
+  slot and the twin declines to appear; empty the hand and it returns. The player's gear always
+  wins, and the equip card's own wording now teaches the rule. (Tech: same commit and evidence
+  as LW-193; the re-assert lanes write only over EMPTY or the mod's own twin id, never player
+  property, pinned by the consent test suite.)
+
 - [LW-252] SHIPPED 3b6786f 2026-08-17: The mod could mistake one soldier for a lookalike, sending
   kills to the wrong weapon and letting one unit borrow another unit's gift, exactly as a player
   reported. It told units apart by level, bravery and faith, which twins can share; the owner's

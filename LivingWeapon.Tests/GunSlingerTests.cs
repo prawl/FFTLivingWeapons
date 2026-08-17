@@ -21,6 +21,12 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class GunSlingerTests
 {
+    // LW-193: shared defaults for the Stage-2 Policy call sites below -- a "consenting" out-of-
+    // battle world: no menu open, no shield in the way, and a twinIds set containing whichever
+    // single weapon id that test's `twin` argument uses (76, the Blaster, throughout Stage-2).
+    private const ushort EmptyShieldForTest = 0xFFFF;
+    private static readonly HashSet<int> BlasterTwinIds = new() { 76 };
+
     // ── Stage-1: W16 seam ──────────────────────────────────────────────────────
 
     [Fact]
@@ -58,7 +64,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: true, twin: 76, off: 0xFFFF, snap: snap);
+            mainIsGS: true, twin: 76, off: 0xFFFF, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerOffAction.SnapshotAndWrite, action);
     }
 
@@ -67,17 +74,21 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: true, twin: 76, off: 76, snap: snap);
+            mainIsGS: true, twin: 76, off: 76, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerOffAction.Leave, action);
     }
 
+    // LW-193 consent model (reversed from the pre-fix behavior this test used to pin): a real
+    // player item with no snap on record withholds consent outright -- it is never grabbed.
     [Fact]
-    public void Policy_OffHand_realItem_noSnap_SnapshotAndWrite()
+    public void Policy_OffHand_realItem_noSnap_declines_Leave()
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: true, twin: 76, off: 100, snap: snap);
-        Assert.Equal(GunSlingerOffAction.SnapshotAndWrite, action);
+            mainIsGS: true, twin: 76, off: 100, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
+        Assert.Equal(GunSlingerOffAction.Leave, action);
     }
 
     // Re-assert path: snap exists, off != twin -> Write (never re-snapshot)
@@ -86,7 +97,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap { HasOff = true, OrigOff = 100 };
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: true, twin: 76, off: 0xFFFF, snap: snap);
+            mainIsGS: true, twin: 76, off: 0xFFFF, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerOffAction.Write, action);
     }
 
@@ -98,7 +110,8 @@ public class GunSlingerTests
         var snap = new GunSlingerSnap { HasOff = true, OrigOff = 100 };
         // Decision should be Write, not SnapshotAndWrite
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: true, twin: 76, off: 0xFFFF, snap: snap);
+            mainIsGS: true, twin: 76, off: 0xFFFF, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerOffAction.Write, action);
         // The snap object itself must not have been touched by the policy
         Assert.Equal(100, snap.OrigOff);
@@ -110,7 +123,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap { HasOff = true, OrigOff = 100 };
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: false, twin: 76, off: 76, snap: snap);
+            mainIsGS: false, twin: 76, off: 76, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerOffAction.Restore, action);
     }
 
@@ -119,7 +133,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: false, twin: 76, off: 0xFFFF, snap: snap);
+            mainIsGS: false, twin: 76, off: 0xFFFF, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerOffAction.Leave, action);
     }
 
@@ -129,7 +144,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: true, twin: 76, off: 0, snap: snap);
+            mainIsGS: true, twin: 76, off: 0, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerOffAction.Leave, action);
     }
 
@@ -139,7 +155,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredOffHand(
-            mainIsGS: true, twin: 76, off: 65000, snap: snap);
+            mainIsGS: true, twin: 76, off: 65000, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerOffAction.Leave, action);
     }
 
@@ -158,7 +175,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: 221, snap: snap);
+            mainIsGS: true, supp: 221, off: EmptyShieldForTest, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerSuppAction.SnapshotAndWrite, action);
     }
 
@@ -167,7 +185,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: DualWieldKey, snap: snap);
+            mainIsGS: true, supp: DualWieldKey, off: EmptyShieldForTest, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerSuppAction.Leave, action);
     }
 
@@ -176,7 +195,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: 463, snap: snap);
+            mainIsGS: true, supp: 463, off: EmptyShieldForTest, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerSuppAction.SnapshotAndWrite, action);
     }
 
@@ -185,7 +205,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap { HasSupp = true, OrigSupp = 463 };
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: 0, snap: snap);
+            mainIsGS: true, supp: 0, off: EmptyShieldForTest, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerSuppAction.Write, action);
     }
 
@@ -194,7 +215,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap { HasSupp = true, OrigSupp = 463 };
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: false, supp: 0, snap: snap);
+            mainIsGS: false, supp: 0, off: EmptyShieldForTest, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerSuppAction.Restore, action);
     }
 
@@ -203,7 +225,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: false, supp: 0, snap: snap);
+            mainIsGS: false, supp: 0, off: EmptyShieldForTest, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerSuppAction.Leave, action);
     }
 
@@ -215,7 +238,8 @@ public class GunSlingerTests
     {
         var snap = new GunSlingerSnap();
         var action = GunSlingerPolicy.DesiredSupport(
-            mainIsGS: true, supp: 0, snap: snap);
+            mainIsGS: true, supp: 0, off: EmptyShieldForTest, shield: EmptyShieldForTest, snap: snap,
+            menuOpen: false, inBattle: false, twinIds: BlasterTwinIds);
         Assert.Equal(GunSlingerSuppAction.SnapshotAndWrite, action);
     }
 
@@ -326,6 +350,12 @@ public class GunSlingerTests
         // Mark off-hand and support writable
         mem.MarkWritable(b + Offsets.ROffHand, 2);   // production gates the u16 twin write with n=2 (GunSlinger.cs WriteOffHand)
         mem.MarkWritable(b + Offsets.RSupport, 2);   // production gates the u16 support write with n=2 (GunSlinger.cs WriteSupport)
+        // LW-193: the menu gate is unreadable-means-suppress (fail toward not writing), so every
+        // test that wants the pre-existing "world map, menu closed" behavior must mark it
+        // readable+closed explicitly -- a shared, idempotent one-liner here rather than a dozen
+        // per-test copies. Tests that exercise the menu gate itself override this afterward.
+        mem.ReadableAddrs.Add(Offsets.MenuOpenFlag);
+        mem.U8s[Offsets.MenuOpenFlag] = 0;
     }
 
     // Integration keystone: main=Blaster/off=EMPTY/supp=EMPTY -> off==76, supp==477 (Dual Wield Key)
@@ -352,9 +382,13 @@ public class GunSlingerTests
         Assert.Equal(DualWieldKey, mem.WrittenU16[b + Offsets.RSupport]);
     }
 
-    // Integration: real item in off-hand gets snapshotted and overwritten
+    // LW-193 consent model (reversed from the pre-fix behavior this test used to pin, when a real
+    // off-hand item got grabbed and snapshotted -- exactly the [twin-grant-inventory-desync]
+    // pattern): a real item in the off-hand withholds consent. Nothing is written, nothing is
+    // snapshotted, and Dual Wield is withheld right alongside it (the off-hand feeds the
+    // SUPPORT consent check too).
     [Fact]
-    public void PrepRoster_snapshots_and_overwrites_real_offhand()
+    public void PrepRoster_realOffhand_declines_grant_no_write()
     {
         using var temp = TempDirs.Create("gs_test_");
         string dir = temp.Dir;
@@ -368,19 +402,18 @@ public class GunSlingerTests
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-        Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
-        Assert.Equal(DualWieldKey, mem.WrittenU16[b + Offsets.RSupport]);
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "a real off-hand item must never be overwritten by the grant");
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.RSupport),
+            "Dual Wield must not be granted while the off-hand withholds consent");
 
-        // snapshot should have originals
-        var store = gs.StoreForTest();
-        var snap = store.Get(nameId: 1);
-        Assert.True(snap.HasOff);
-        Assert.Equal(100, snap.OrigOff);
-        Assert.True(snap.HasSupp);
-        Assert.Equal(463, snap.OrigSupp);
+        var snap = gs.StoreForTest().Get(nameId: 1);
+        Assert.False(snap.HasOff);
+        Assert.False(snap.HasSupp);
     }
 
-    // Integration: unequip Blaster -> restore original off-hand and support
+    // Integration: unequip Blaster -> restore original off-hand (EMPTY, the only state that ever
+    // invites the grant under the consent model) and support.
     [Fact]
     public void PrepRoster_restores_originals_when_Blaster_unequipped()
     {
@@ -390,10 +423,10 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: 100, supp: 463);
+                       off: EmptyU16, supp: 463);
 
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-        gs.PrepRoster();  // snapshot + write twin/Dual Wield
+        gs.PrepRoster();  // snapshot (OrigOff = EMPTY) + write twin/Dual Wield
 
         // Now switch to a different main-hand weapon
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -404,11 +437,11 @@ public class GunSlingerTests
         mem.Written.Clear();
         mem.WrittenU16.Clear();
 
-        gs.PrepRoster();  // should restore 100 and 463
+        gs.PrepRoster();  // should restore EMPTY and 463
 
         Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
             "must restore off-hand to original");
-        Assert.Equal((ushort)100, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.Equal(EmptyU16, mem.WrittenU16[b + Offsets.ROffHand]);
         Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.RSupport),
             "must restore support to original");
         Assert.Equal((ushort)463, mem.WrittenU16[b + Offsets.RSupport]);
@@ -502,9 +535,16 @@ public class GunSlingerTests
         Assert.False(snap.HasOff);   // NOTHING captured to the persistent store
     }
 
-    // In battle, an unequipped GunSlinger must NOT restore (that touches the store + the real gear).
+    // LW-193 blocker-1 resolution (reversed from the pre-fix "never restores in battle" blanket
+    // guard this test used to pin): with the shield slot empty and the off-hand still holding
+    // OUR own twin, a Restore is now PERMITTED in battle -- the previous blanket suppression is
+    // replaced by the consent table's rule 2b, which cares only about consent (shield/OrigOff),
+    // never about whether a battle is live. See
+    // GunSlingerConsentTests.PrepRoster_inBattle_shieldOccupied_killsReassert_formationFix
+    // (GunSlingerConsentTests.cs) for the case that DOES still block (a shield in the way) --
+    // it pins the RE-ASSERT lane (rule 3), not this test's Restore lane (rule 2b).
     [Fact]
-    public void PrepRoster_inBattle_never_restores()
+    public void PrepRoster_inBattle_restore_permitted_when_shield_free()
     {
         using var temp = TempDirs.Create("gs_test_");
         string dir = temp.Dir;
@@ -512,19 +552,20 @@ public class GunSlingerTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
-                       off: 100, supp: 463);
+                       off: EmptyU16, supp: 0);
         var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
-        gs.PrepRoster();   // out of battle: snapshot established
+        gs.PrepRoster();   // out of battle: snapshot established (OrigOff = EMPTY)
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-        mem.U16s[b + Offsets.RRHand] = 77;   // switched off the Blaster
+        mem.U16s[b + Offsets.RRHand] = 77;   // switched off the Blaster; the twin (76) still sits in the off-hand
         mem.WrittenU16.Clear();
 
-        gs.PrepRoster(inBattle: true);   // in battle: restore is suppressed
+        gs.PrepRoster(inBattle: true);   // in battle, shield empty: restore fires
 
-        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
-            "in battle, a Restore must be suppressed (the off-hand is left as-is)");
-        Assert.True(gs.StoreForTest().Get(nameId: 1).HasOff);   // snapshot NOT cleared
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "in battle with the shield slot empty, a Restore is now permitted (LW-193 blocker 1)");
+        Assert.Equal(EmptyU16, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.False(gs.StoreForTest().Get(nameId: 1).HasOff);   // snapshot cleared
     }
 
     // Tier guard: below tier 3 -> no writes even if Blaster is equipped
@@ -645,10 +686,12 @@ public class GunSlingerTests
         Assert.Equal(100, gs.StoreForTest().Get(nameId: 1).OrigOff);   // untouched by the re-assert
     }
 
-    // Shield off-hand: a legitimate item (not a flagged weapon) in the off-hand gets
-    // snapshotted and overwritten with the wielder's own twin; unequipping restores it.
+    // LW-193 consent model (reversed from the pre-fix behavior this test used to pin -- its old
+    // name called the real item "shield off-hand", but it was a plain real weapon id, id 111,
+    // grabbed exactly the way [twin-grant-inventory-desync] describes): a real item in the
+    // off-hand withholds consent outright. Nothing is written, nothing is snapshotted.
     [Fact]
-    public void PrepRoster_shield_offhand_snapshots_and_restores()
+    public void PrepRoster_realItem_offhand_declines_grant_no_write()
     {
         using var temp = TempDirs.Create("gs_test_");
         string dir = temp.Dir;
@@ -665,26 +708,20 @@ public class GunSlingerTests
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-        Assert.Equal((ushort)ArbalestId, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "a real off-hand item must never be overwritten by the grant");
         var snap = gs.StoreForTest().Get(nameId: 1);
-        Assert.True(snap.HasOff);
-        Assert.Equal(111, snap.OrigOff);
-
-        // Switch away from every flagged weapon -> restore the shield.
-        mem.U16s[b + Offsets.RRHand] = 1;   // an unflagged weapon
-        mem.WrittenU16.Clear();
-
-        gs.PrepRoster();
-
-        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
-        Assert.Equal((ushort)111, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.False(snap.HasOff);
     }
 
-    // Cross-twin collision (deliberate): the OTHER flagged weapon legitimately sits in the
-    // off-hand when the main-hand flips to a flagged weapon at tier 3 -- it gets snapshotted and
-    // overwritten like any other off-hand item, and unequipping restores it.
+    // Ownership discriminator at the integration level (rule 4 vs rule 5, mirrors the Policy-level
+    // GunSlingerConsentTests.OwnershipDiscriminator_twinId_withoutHasOff_neverTouched): the OTHER
+    // flagged weapon sitting in the off-hand with NO grant on record is a player-owned dual-wield
+    // build, not our own conjured copy -- never touched. Renamed from
+    // PrepRoster_flagged_weapon_in_offhand_is_snapshotted_and_overwritten, whose premise (grabbing
+    // it) this deliberately reverses.
     [Fact]
-    public void PrepRoster_flagged_weapon_in_offhand_is_snapshotted_and_overwritten()
+    public void PrepRoster_flagged_weapon_in_offhand_without_grant_is_never_touched()
     {
         using var temp = TempDirs.Create("gs_test_");
         string dir = temp.Dir;
@@ -702,18 +739,10 @@ public class GunSlingerTests
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-        Assert.Equal((ushort)ArbalestId, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
+            "a player-owned dual-wield build (the other flagged weapon, no grant on record) must never be touched");
         var snap = gs.StoreForTest().Get(nameId: 1);
-        Assert.True(snap.HasOff);
-        Assert.Equal((ushort)OutriderPistolId, snap.OrigOff);
-
-        mem.U16s[b + Offsets.RRHand] = 1;   // unequip the Arbalest
-        mem.WrittenU16.Clear();
-
-        gs.PrepRoster();
-
-        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
-        Assert.Equal((ushort)OutriderPistolId, mem.WrittenU16[b + Offsets.ROffHand]);
+        Assert.False(snap.HasOff);
     }
 
     // ── LW-252: an unseeded roster row (nameId 0) must never touch the snapshot store ─────────

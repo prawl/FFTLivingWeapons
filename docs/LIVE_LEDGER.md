@@ -1846,6 +1846,54 @@ Uncertain as of 2026-08-17 (evidence strong, owner flip pending): RestartSentine
 **Contradicting case already on record for the tuple half:** KillTracker.Corpses.cs's identity-swap branch (ScanAlivePath, the tuple-mismatch trigger) documents that a checkpoint retry CAN restore brave/faith to their pre-death values (a status effect or Rend-family hit undone by the rewind) -- direct evidence the tuple half is not universally stable across a retry. That branch is structurally excluded from the identity exemption regardless of this row (FINDING 6(ii), same arc: the branch's own trigger condition guarantees the tuple never matches there), so today's code already treats it as grace-only, not a silent false-positive risk -- but it is proof the "identity survives a retry" premise has at least one known hole.
 
 **Evidence (tape `tools/probes/tapes/lw233_death_retry_live_20260817.jsonl`, one owner-run retry, band slot 15):** the pre-retry `victim` record (t=2165156, wall 14:09:34) and the post-retry `victim` record (t=2503015, wall 14:15:12) both read `alive=(nameId=378,job=85,undead=0,has=1) edge=(nameId=378,...) credit=(nameId=378,...)`; the `census` records at t=2185515 (pre-retry) and t=2537734 (post-retry battle-exit) both carry `s15:378/85`; the `ev` healing/damage records for slot 15 (t=2134859, t=2240078's revive, t=2476031) all read maxHp 306. Independently corroborated in the owner's `livingweapon.prev.log` at 14:09:34 and 14:15:12, both nameId 378. Recorded limits: n=1, one generic enemy, one retry; level/brave/faith were never directly observed in this tape (only nameId/job/maxHp); and this in-place retry rewind ([battle-retry-rewind-fingerprint]) is a DIFFERENT operation from the fresh world-map load [boss-canonical-nameid-stable] measured when it found generic nameIds re-roll, so this evidence answers "does an in-place rewind preserve identity" and leaves the reload question exactly where [boss-canonical-nameid-stable] left it. FINDING 5 (2026-08-17) wired the credited/presented identity (both nameId and tuple) into the flight recorder's "restart" records so a FUTURE drill can answer this the same way without extra instrumentation -- read a tape with `python tools/parse_flight.py <file>` and compare the credited vs presented nameId/tuple fields.
+**Date:** 2026-08-17
+
+</details>
+
+### [party-browse-screen-byte] A byte at 0x140D408E2 reads 1 exactly on the party menu's two safe BROWSE screens (the unit overview root and the Character Status page) and 0 on every screen where equipment can be changed
+
+Uncertain as of 2026-08-17 (owner-driven torture tour the same afternoon; owner flip pending): found for the LW-193 owner-AC round, which wants the twin grant allowed to stamp exactly where the player can SEE it appear (backing out of the equip screen) but never where gear can be edited. Complements [worldmap-menu-open-byte]: that byte says "some menu is open", this one says "and it is one of the two read-only browse screens".
+
+<details><summary>How we got here</summary>
+
+**Claim:** 0x140D408E2 (u8) is a safe allow-list gate for out-of-battle twin stamping: 1 only on screens with no equip actions.
+
+**Mechanism:** offline solve over the morning's five wide state captures (free/party/equip/save/free2, 12 samples each): exactly 3 bytes separated party-root from BOTH the equip screen and the save menu; 0x140D408E2 is the only clean 0/1 flag among them (the other two, 0x140C6AD38/39, are noisy cursor-region bytes). It sits in the same 0x140D4xxxx screen-flag family as SubmenuFlag.
+
+**Evidence (owner-driven labeled torture tour, tape tools/probes/tapes/lw193_menusig_20260817_110948.log; stations announced by the owner in session, timestamps matched to transitions):**
+* 11:10:02.566 party menu ROOT opened: 0 to 1.
+* Held 1 through the Character Status page (owner parked there ~11:10:30-11:11:10; no transition).
+* 11:11:10.633 entered Equipment and Abilities: 1 to 0.
+* 11:11:45.998 ESC from E&A back to Status: 0 to 1 (the exact moment the owner's AC wants the twin to appear).
+* 11:13:07.867 first tab away from the root: 1 to 0, and it stayed 0 through the remaining tabs, the menu close, world-map travel, and the SHOP (shop confirmed open 11:13:26 via the menu byte, browse byte stayed 0).
+* 11:14:51.049 root reopened: 0 to 1; 11:14:54.627 tabbed to Inventory: 1 to 0; Chronicle and Options produced no rise (owner announced each; no transitions on the tape).
+* Free world map reads 0 (wide solve, 24 samples across two free states).
+
+**Recorded caveats:** (1) The E&A SUB-pages (the weapon picker and ability picker) were NOT probed; the gate built on this byte must deny by default so an unprobed screen can never enable writes. (2) Formation and battle were not visited on this tape; the gate never consults this byte there because [worldmap-menu-open-byte] already reads 0 through those flows, so no coverage is claimed. (3) One session, one save; the byte is a UI-family static and moves on game patches like any other (add to the PATCH_REANCHOR list when wired). (4) The shop's sub-flows (fitting/optimize) were not separately visited; deny-by-default covers them.
+
+**Date:** 2026-08-17
+
+</details>
+
+### [battle-retry-rewind-fingerprint] A battle RETRY rewinds the battlefield with no exit edge of any kind, has TWO depths (battle-start and mid-battle checkpoint), and carries a unique tape fingerprint: an actor-pointer null blip at-or-before the restore plus units healed and relocated in the same instant
+
+Uncertain as of 2026-08-17 (evidence re-derived independently from banked tapes; owner flip pending): when a player loses a battle and picks retry, the game rewinds the battlefield without ever telling the mod the battle ended. Across three retries on tape (one owner drill 2026-08-14, two in a real player session 2026-08-12) the recorder shows one battle start, no exit between attempts, and turn and kill bookkeeping running straight through, so an enemy the player was already paid for stood back up and paid out again (Vagabond kills 23 and 25 were the same soldier at band slot 15, and the phantom 25th kill fired a real growth toast). This is the LW-233 mechanism, cause and fingerprint.
+
+<details><summary>How we got here</summary>
+
+**Claim:** the LW-233 backlog account (written 2026-08-14) holds up under independent re-derivation, and the retry moment is machine-detectable with zero false positives on the banked evidence.
+
+**Mechanism:** the retry screen keeps whatever sentinel drives the exit edge armed throughout, so no exit debounce ever completes and no flush fires between attempts; the credit latch then correctly re-arms revived corpses as it would for a Raise, and re-kills credit again. The tally saves on change and at exit, so the inflation is permanent in the save file.
+
+**Evidence (independent re-derivation 2026-08-17 from tools/probes/tapes/lw233_retry_drill_20260814.jsonl plus the player's six 2026-08-12 flight tapes; denominator 7 files, 1484 records, 221 ev records, 20 healing events):**
+* One battle-start and ZERO exit edges per retry, proven by flush continuity: every tape file's first record continues exactly from the prior flush, and the player's 67KB exit tape spans BOTH of that battle's retries under a single header with continuous time.
+* Actor-pointer to-null transitions: exactly 3 in 1484 records, one per retry, zero elsewhere; the null lands at-or-before the restore by 0 to 172 ms (62 ms on the drill; 0 ms on player retry A). CAUTION: a null read is also documented once at battle-open idle (Offsets.ActorPtr provenance), so the detector must gate away from battle enter.
+* Heal-plus-same-instant-relocate coincidences: 9 across all tapes, ALL at the three restore moments, zero in ordinary play (the 11 ordinary heals have no same-tick move and none is from 0 HP). "Same instant" spans up to 16 ms on tape, so a runtime window, not strict tick equality.
+* TWO RETRY DEPTHS (new): the drill and player retry A rewound to battle start (full HP, first-seen tiles, 6 and 5 units restored); player retry B rewound to a MID-BATTLE CHECKPOINT (slot 11 revived 0 to 20 of 56 on its death tile with NO move; slot 24 restored 0 to 6 of 72 with a move), tripping the heal-relocate detector through ONE unit only. A fix must not assume full HP or start tiles, must arm on both detectors, and must rewind per revived victim, since checkpoint-surviving kills remain legitimately earned.
+* Bookkeeping continuity: the player's global turn counter ran 1..27 monotonically across both retries while the genuinely new next battle reset it to 1; the drill's turn 3 acted edge landed 14.8 s after the restore.
+* The double payout end to end: slot 15 credited count 23 at t=12326390/12326640, healed 0 to 58 and moved at the retry restore t=12446343, re-killed and credited count 25 at t=12513109/12513359, toast "Vagabond has gained its 25th kill and has grown to Vagabond+2" delivered 12513625.
+
+**Recorded caveats:** (1) "a real Raise never relocates its target" is UNVERIFIABLE from these tapes: no genuine revive occurs anywhere in them, so the Raise-vs-restart discriminator rests on the zero-false-positive record, not on an observed Raise. (2) A third candidate signal, a same-instant multi-slot move cluster, fired at all three restores but also once at battle-start deployment, so it only serves gated away from battle enter. (3) A long battleMode-0 spell does NOT discriminate (12.6 and 13.2 s non-retry spells exist on the same tapes); mode 0 to 3 within ~16 ms of the restore is confirming context only. (4) One restore printed a heal to 69 of a unit whose true max reads 72 elsewhere; never key a detector on healed-to-max. (5) Flight records are on-change, so a unit rewound onto its current values leaves no record; the runtime's per-tick sampling sees more than the tape does.
 
 **Date:** 2026-08-17
 
