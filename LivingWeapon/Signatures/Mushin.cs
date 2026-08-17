@@ -65,9 +65,13 @@ namespace LivingWeapon;
 ///   (3) twin/mirror frames carry frozen flags; the twin-filtered Wielder.Locate underneath
 ///       ResolveDeployedMainHandAll already prefers the real (non-frozen) entry.
 ///
-/// The armed dictionary lives SHARED with GrowthEngine (constructed once in Engine.cs, passed to
-/// both), keyed by wielder fingerprint (lvl,br,fa) like every other per-wielder signature hold,
-/// so two Kiku-ichimonji wielders never cross-arm or cross-consume each other.
+/// The armed store lives SHARED with GrowthEngine (constructed once in Engine.cs, passed to
+/// both). LW-252 stage 5: re-keyed via <see cref="WielderKeyedStore{TState}"/> (nameId primary,
+/// fp fallback -- see its class doc), closing the fp-twin collision the old fp-only dictionary
+/// carried: two SEEDED Kiku-ichimonji wielders never cross-arm or cross-consume each other, even
+/// sharing (lvl,br,fa); a mixed pair (either member's nameId never resolves) still shares one
+/// arm count, matching yesterday's behavior for that pair. _prevTurnFlag rides its OWN private
+/// store (not shared with GrowthEngine, which never reads it).
 /// </summary>
 internal sealed partial class Mushin : ISignature
 {
@@ -85,19 +89,23 @@ internal sealed partial class Mushin : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly Dictionary<(int lvl, int br, int fa), int> _armed;
-    private readonly List<(long entry, (int lvl, int br, int fa) fp)> _wielders = new();
+    private readonly WielderKeyedStore<Box<int>> _armed;
+    private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _wielders = new();
 
-    /// <summary>Per-wielder previous TURN FLAG value. Absence means "not yet primed": the very
-    /// next observed value is captured WITHOUT deciding (a mid-turn prime is safe, the flags reset
-    /// at that turn's own open, so priming mid-window can never fabricate a phantom edge).</summary>
-    private readonly Dictionary<(int lvl, int br, int fa), int> _prevTurnFlag = new();
+    /// <summary>Per-wielder previous TURN FLAG value, boxed so it can ride WielderKeyedStore
+    /// (LW-252 stage 5; private to this class -- GrowthEngine never reads it, unlike
+    /// <see cref="_armed"/>). Box.Value == -1 means "not yet primed": the very next observed
+    /// value is captured WITHOUT deciding (a mid-turn prime is safe, the flags reset at that
+    /// turn's own open, so priming mid-window can never fabricate a phantom edge) -- -1 rather
+    /// than a missing dictionary entry, since the store always returns a live Box once created;
+    /// the sentinel is what distinguishes "never primed" from a legitimately observed 0.</summary>
+    private readonly WielderKeyedStore<Box<int>> _prevTurnFlag = new();
 
     private readonly ScopedLogger _slog;   // armed gate: a benched/below-tier Kiku must not narrate on console
     private bool _wasActive;
 
     public Mushin(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
-                  Dictionary<(int lvl, int br, int fa), int> armed, IGameMemory? mem = null)
+                  WielderKeyedStore<Box<int>> armed, IGameMemory? mem = null)
     {
         _mem = mem ?? new LiveMemory();
         _meta = meta;
@@ -131,30 +139,45 @@ internal sealed partial class Mushin : ISignature
         }
         if (!active) return;
 
-        foreach (var (entry, fp) in _wielders)
-            TickWielder(entry, fp);
+        foreach (var (entry, fp, nameId) in _wielders)
+            TickWielder(entry, fp, nameId);
     }
 
-    private void TickWielder(long entry, (int lvl, int br, int fa) fp)
+    private void TickWielder(long entry, (int lvl, int br, int fa) fp, int nameId)
     {
         if (!_mem.Readable(entry + TurnFlagOffset, 1)) return;
         int cur = _mem.U8(entry + TurnFlagOffset);
 
-        if (!_prevTurnFlag.TryGetValue(fp, out int prev))
+        // LW-252 stage 5: keyed via WielderKeyedStore (nameId primary, fp fallback -- see its
+        // class doc). null = an ambiguous nameId-0 tick for a fp two SEEDED twins already
+        // registered under: SKIP this wielder entirely this tick (no prime, no decide, no
+        // create) -- treat it exactly as "not located this tick".
+        var flag = _prevTurnFlag.GetOrCreate(nameId, fp, () => new Box<int> { Value = -1 });
+        if (flag == null) return;
+
+        if (flag.Value == -1)
         {
-            _prevTurnFlag[fp] = cur;   // first sight: prime only, never decide
+            flag.Value = cur;   // first sight: prime only, never decide
             return;
         }
-        _prevTurnFlag[fp] = cur;
+        int prev = flag.Value;
+        flag.Value = cur;
         if (prev != 1 || cur != 0) return;   // only the FALLING edge decides
 
         bool moved = _mem.Readable(entry + MovedOffset, 1) && _mem.U8(entry + MovedOffset) != 0;
         bool acted = _mem.Readable(entry + ActedOffset, 1) && _mem.U8(entry + ActedOffset) != 0;
 
+        // Same store, same (nameId, fp) key as _prevTurnFlag above -- both derive their key
+        // through the identical resolution law, so they can never disagree on which twin this
+        // tick's wielder is (the SAME helper instance rule Part C requires for the pair sharing
+        // data across Mushin.cs and GrowthEngine.Mushin.cs).
+        var arm = _armed.GetOrCreate(nameId, fp, () => new Box<int>());
+        if (arm == null) return;
+
         if (MushinPolicy.ShouldConsume(turnEnded: true, acted))
         {
-            bool wasArmed = _armed.TryGetValue(fp, out int s) && s != 0;
-            _armed[fp] = 0;
+            bool wasArmed = arm.Value != 0;
+            arm.Value = 0;
             ModLogger.Debug(LogVerb.Signature,
                 $"Mushin falling edge (level {fp.lvl}, brave {fp.br}, faith {fp.fa}): moved {moved}, acted {acted}, verdict CONSUME{(wasArmed ? "" : " (nothing armed)")}.");
             if (wasArmed)
@@ -163,7 +186,7 @@ internal sealed partial class Mushin : ISignature
         }
         else if (MushinPolicy.ShouldArm(turnEnded: true, moved, acted))
         {
-            _armed[fp] = 1;   // idempotent: an already-armed wielder waiting again simply re-arms 1
+            arm.Value = 1;   // idempotent: an already-armed wielder waiting again simply re-arms 1
             ModLogger.Debug(LogVerb.Signature,
                 $"Mushin falling edge (level {fp.lvl}, brave {fp.br}, faith {fp.fa}): moved {moved}, acted {acted}, verdict ARM.");
             ModLogger.Event(LogVerb.Signature,

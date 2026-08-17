@@ -50,6 +50,11 @@ internal sealed partial class KillTracker
     internal List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
     internal int _lastPlayerMainHand;                // RRHand id of the last latched actor (0 when none)
     internal (int lvl, int br, int fa) _lastActorFp; // fingerprint of the unit latched this acted-period
+    // LW-252 stage 3: the latched actor's own frame nameId, mirrored beside _lastActorFp through
+    // the same Seed/Step/Apply round trip (SeedLatchOutputs/ApplyLatchOutputs below); see
+    // ActedPeriodOutputs.LastActorNameId's doc comment for the refresh/Reset contract. 0 = no
+    // resolved identity (never-latched, ambiguous, or a first-kill-fallback latch).
+    internal int _lastActorNameId;
     // Register tick of the period's most recent SUCCESSFUL latch resolve (stamped at BOTH
     // latch-confirm sites: the acted==1 TryResolveActingPlayer success below, and
     // FirstKillFallback's acceptance block). KillerStamp's ordering gate compares a register
@@ -214,6 +219,7 @@ internal sealed partial class KillTracker
         o.LastPlayerWeapons = _lastPlayerWeapons;
         o.LastPlayerMainHand = _lastPlayerMainHand;
         o.LastActorFp = _lastActorFp;
+        o.LastActorNameId = _lastActorNameId;   // LW-252 stage 3: seeds beside LastActorFp
         o.LatchResolvedEmpty = _latchResolvedEmpty;
         o.LatchViaFallback = _latchViaFallback;
         o.LastResolveTick = _lastResolveTick;
@@ -236,6 +242,7 @@ internal sealed partial class KillTracker
         _lastPlayerWeapons = o.LastPlayerWeapons;
         _lastPlayerMainHand = o.LastPlayerMainHand;
         _lastActorFp = o.LastActorFp;
+        _lastActorNameId = o.LastActorNameId;   // LW-252 stage 3: applies beside LastActorFp
         _latchResolvedEmpty = o.LatchResolvedEmpty;
         _latchViaFallback = o.LatchViaFallback;
         _lastResolveTick = o.LastResolveTick;
@@ -277,6 +284,13 @@ internal sealed partial class KillTracker
     /// <summary>The (level,brave,faith) of the unit latched this acted-period, or default when
     /// none/ambiguous. Consumers must not cache across ticks.</summary>
     public (int lvl, int br, int fa) LastActorFingerprint => _lastActorFp;
+
+    /// <summary>LW-252 stage 3: the acting unit's own frame nameId, latched alongside
+    /// <see cref="LastActorFingerprint"/> (same refresh timing, same Reset-clears contract). 0 =
+    /// no resolved identity (never-latched, an ambiguous/enemy acted-period, or a first-kill-
+    /// fallback latch -- see <see cref="ActedPeriodLatch.Step"/>'s and FirstKillFallback's own
+    /// notes). Consumers must not cache across ticks (same caveat as every other latch field).</summary>
+    public int LastActorNameId => _lastActorNameId;
 
     /// <summary>The acting player's weapon id(s) from the most recent latched actor.
     /// Empty at battle start and for any turn where no player actor was resolved.

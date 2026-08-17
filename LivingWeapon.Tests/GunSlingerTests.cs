@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using LivingWeapon;
 using Xunit;
 
@@ -713,5 +714,91 @@ public class GunSlingerTests
 
         Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
         Assert.Equal((ushort)OutriderPistolId, mem.WrittenU16[b + Offsets.ROffHand]);
+    }
+
+    // ── LW-252: an unseeded roster row (nameId 0) must never touch the snapshot store ─────────
+    //
+    // GunSlingerStore.Get CREATES on read and keys snapshots by nameId (GunSlinger.Store.cs's
+    // own class doc). Two unseeded rows (nameId 0 -- a Mem fail-safe transient, or a genuinely
+    // stale read) therefore share ONE snapshot: whichever row's SnapshotAndWrite runs first
+    // captures ITS gear into the shared object, and any OTHER unseeded row that later reads
+    // snap.HasOff==true takes the Write/Restore branch instead of its own SnapshotAndWrite --
+    // its own real gear is never recorded, and a later restore hands back the FIRST row's
+    // originals into the SECOND row's save-persistent roster slot. Never observed live (real
+    // saves' nameIds are all seeded, per this session's probe), but the guard is cheap and the
+    // write is unacceptable.
+
+    private static Dictionary<int, GunSlingerSnap> Snaps(GunSlingerStore store) =>
+        (Dictionary<int, GunSlingerSnap>)typeof(GunSlingerStore)
+            .GetField("_snaps", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(store)!;
+
+    [Fact]
+    public void PrepRoster_never_shares_a_key0_snapshot_between_two_unseeded_wielders()
+    {
+        // [LW-252 G1, THE red] Two unseeded (nameId 0) roster rows, both wielding the SAME
+        // GunSlinger-flagged weapon with their own DISTINCT real off-hand items. Pre-fix, both
+        // rows key into the SAME shared key-0 snapshot: row A's SnapshotAndWrite captures A's
+        // own original (100) into it; row B then sees snap.HasOff already true (the SAME shared
+        // object) and takes the Write branch instead of its own SnapshotAndWrite -- its real
+        // off-hand (200) is overwritten and never recorded anywhere. Fixed: `nameId == 0` skips
+        // BOTH rows outright, unconditionally (no lookahead/collision detection needed) --
+        // _store.Get(0) is never called, so neither row is touched and no key-0 entry exists.
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };   // tier 3
+        SeedRosterSlot(mem, slot: 0, nameId: 0, level: 30, rh: BlasterId, off: 100, supp: 0);
+        SeedRosterSlot(mem, slot: 1, nameId: 0, level: 30, rh: BlasterId, off: 200, supp: 0);
+
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        gs.PrepRoster();
+
+        long bA = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        long bB = Offsets.RosterBase + 1 * Offsets.RosterStride;
+        Assert.False(mem.WrittenU16.ContainsKey(bA + Offsets.ROffHand),
+            "an unseeded row must never be touched, even alone");
+        Assert.False(mem.WrittenU16.ContainsKey(bB + Offsets.ROffHand),
+            "an unseeded row must never be touched, even sharing key 0 with another");
+        Assert.False(mem.WrittenU16.ContainsKey(bA + Offsets.RSupport));
+        Assert.False(mem.WrittenU16.ContainsKey(bB + Offsets.RSupport));
+
+        Assert.False(Snaps(gs.StoreForTest()).ContainsKey(0), "Get(0) must never be called");
+    }
+
+    // [LW-252 G3, parity] Checked first per spec: PrepRoster_snapshots_and_overwrites_real_offhand
+    // and PrepRoster_restores_originals_when_Blaster_unequipped (Stage-3 section above) already
+    // drive a properly-seeded row (nameId: 1) through the full snapshot+restore round trip end
+    // to end, and both are in the MUST-NOT-TOUCH set below (green before and after, unmodified)
+    // -- that coverage already IS this guard's parity pin (nameId > 0 must never trip the new
+    // `continue`), so no duplicate test is added here.
+
+    [Fact]
+    public void Ctor_purges_a_pre_existing_key0_snapshot_warns_once_and_persists_the_purge()
+    {
+        // [LW-252 G2] A key-0 snapshot already on disk (from before this fix shipped, or any
+        // other stale-nameId hazard) is unrecoverable-by-construction -- it cannot be safely
+        // attributed to either unit that shared it. The ctor purges it, warns exactly ONCE
+        // (naming the hazard), and forces a Save() immediately so the warning fires once EVER,
+        // not once per launch. An unrelated seeded entry (key 1) must survive untouched.
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+        var primary = Path.Combine(dir, "gunslinger.json");
+        File.WriteAllText(primary, "{\"0\":{\"hasOff\":true,\"origOff\":100},\"1\":{\"hasOff\":true,\"origOff\":200}}");
+
+        using var cap = LogCapture.Start();
+        var store = new GunSlingerStore(dir);
+
+        Assert.Single(cap.File);
+        Assert.Contains("WARN", cap.File[0]);
+
+        var snaps = Snaps(store);
+        Assert.False(snaps.ContainsKey(0));
+        Assert.True(snaps.ContainsKey(1));   // the unrelated seeded entry survives untouched
+
+        // Save was invoked: the purge is already on disk (a fresh reload would not re-warn).
+        string onDisk = File.ReadAllText(primary);
+        Assert.DoesNotContain("\"0\":", onDisk);
+        Assert.Contains("\"1\":", onDisk);
     }
 }

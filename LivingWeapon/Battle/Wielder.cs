@@ -7,6 +7,8 @@ namespace LivingWeapon;
 /// (see Wielder.Roster.cs), find that unit's LIVE band entry. Ports ExtraTurn's proven
 /// Locate pair -- twin filter included -- behind IGameMemory so the walk is unit-testable
 /// with the fake (the live caller passes a LiveMemory; reads stay RPM-backed and fail-safe).
+/// The LW-252 ambiguous-roster branch (LocateAmbiguous/LocateAllAmbiguous) lives in
+/// Wielder.Ambiguous.cs.
 /// </summary>
 internal static partial class Wielder
 {
@@ -15,13 +17,26 @@ internal static partial class Wielder
 
     /// <summary>The wielder's LIVE band entry -- PUBLIC entry point, signature UNCHANGED (12
     /// callers untouched). Resolves the roster nameId implicitly (Wielder.ResolveAnyHandNameId,
-    /// D4) and delegates to the explicit-nameId overload below. Every existing caller that has
-    /// NOT seeded a matching roster nameId resolves -1 here (0 or 2+ matching roster slots), so
-    /// this degrades to the identical tier-2-only behavior that shipped before this two-tier
-    /// split -- see the tier-2 doc comment's parity note.</summary>
+    /// D4) and delegates to the explicit-nameId overload below -- UNLESS the any-hand scan finds
+    /// 2+ matching roster rows, in which case (LW-252) it routes to <see cref="LocateAmbiguous"/>
+    /// instead. Pre-LW-252, a 2+-match roster resolved to the SAME -1 sentinel as a 0-match
+    /// roster, which disarmed tier 2's foreign-nameId veto exactly when a real wielder was
+    /// fp-twinned with another roster row, letting an unrelated band collider get adopted
+    /// (ledger [party-nameid-unique-key] pending owner flip; mirror mechanism
+    /// [frame-1fc-nameid-mirror] PROVEN). Every existing caller that has NOT seeded a matching
+    /// roster nameId still resolves via the explicit-nameId overload below with rosterNameId -1
+    /// (0 matching roster slots, or a 2+-match roster where at least one row's own nameId is
+    /// unseeded -- LocateAmbiguous's rule (a) -- degrades to this exact path too), the identical
+    /// tier-2-only behavior that shipped before this two-tier split -- see the tier-2 doc
+    /// comment's parity note.</summary>
     public static long Locate(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                               (int lvl, int br, int fa) fp)
-        => Locate(mem, weaponId, hands, fp, ResolveAnyHandNameId(mem, weaponId, fp));
+    {
+        int rosterNameId = ResolveAnyHandNameId(mem, weaponId, fp, out int matchCount);
+        return matchCount >= 2
+            ? LocateAmbiguous(mem, weaponId, hands, fp)
+            : Locate(mem, weaponId, hands, fp, rosterNameId);
+    }
 
     /// <summary>Two-tier locate (D2): TIER 1 (below) runs when <paramref name="rosterNameId"/> is
     /// positive and returns a nonzero hit whenever the frame-nameId-verified predicate resolves
@@ -60,8 +75,13 @@ internal static partial class Wielder
     /// unknown -- holds re-apply every tick and the mirror revolves, so a mis-targeted tick self-
     /// heals; (2) an enemy colliding on nameId AND full fp AND weapon id simultaneously is
     /// indistinguishable from a mirror copy here -- accepted, strictly narrower than the fp+weapon
-    /// collision bail class this whole rebuild replaces.</summary>
-    private static long LocateTier1(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
+    /// collision bail class this whole rebuild replaces.
+    /// WIDENED internal (LW-252, precedent: TryOccupiedSlot in LW-149): <see cref="LocateAmbiguous"/>
+    /// probes one collected roster row at a time with tier-1 semantics ONLY (that row's own
+    /// nameId + hand set) -- it must call this directly rather than the internal 5-arg
+    /// <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int),int)"/>, which falls
+    /// through to tier 2 on zero tier-1 candidates and would reopen the collider leak.</summary>
+    internal static long LocateTier1(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                     (int lvl, int br, int fa) fp, int rosterNameId, out int candidatesSeen)
     {
         candidatesSeen = 0;
@@ -159,10 +179,18 @@ internal static partial class Wielder
     /// <paramref name="results"/> (no twin filtering; no tie guard). Intended for callers that
     /// write idempotent values and want every copy covered -- the live entry takes effect and
     /// any frozen twins are inert. PUBLIC entry point, signature UNCHANGED: resolves the roster
-    /// nameId implicitly, same as <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int))"/>.</summary>
+    /// nameId implicitly, same as <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int))"/>
+    /// -- INCLUDING its LW-252 ambiguous-roster branch (<see cref="LocateAllAmbiguous"/>): 2+
+    /// matching roster rows route there instead of the plain -1 scan, which has no twin filter by
+    /// design and would otherwise hand a write like SpiritualFont's to two GENUINELY DIFFERENT
+    /// deployed wielders sharing a weapon, not just to copies of one unit.</summary>
     public static void LocateAll(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                  (int lvl, int br, int fa) fp, List<long> results)
-        => LocateAll(mem, weaponId, hands, fp, ResolveAnyHandNameId(mem, weaponId, fp), results);
+    {
+        int rosterNameId = ResolveAnyHandNameId(mem, weaponId, fp, out int matchCount);
+        if (matchCount >= 2) { LocateAllAmbiguous(mem, weaponId, hands, fp, results); return; }
+        LocateAll(mem, weaponId, hands, fp, rosterNameId, results);
+    }
 
     /// <summary>Two-tier LocateAll (D2 analog): when tier 1 (nameId-matching copies only) collects
     /// at least one entry, those are the whole result -- no tier-2 fallback for a battle where

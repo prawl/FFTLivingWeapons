@@ -607,7 +607,7 @@ public class WielderTests
     {
         var m = new FakeSparseMemory();
         MemSeats.SeatRoster(m, 0, lvl: 20, br: 70, fa: 50, rh: 1);
-        var results = new List<(long, (int, int, int))>();
+        var results = new List<(long, (int, int, int), int)>();
         Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
         Assert.Empty(results);
     }
@@ -618,7 +618,7 @@ public class WielderTests
         var m = new FakeSparseMemory();
         MemSeats.SeatRoster(m, 2, lvl: 31, br: 65, fa: 58, rh: Weapon);
         MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
-        var results = new List<(long, (int, int, int))>();
+        var results = new List<(long, (int, int, int), int)>();
         Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
         Assert.Single(results);
         Assert.Equal(Band.Entry(5), results[0].Item1);
@@ -634,7 +634,7 @@ public class WielderTests
         MemSeats.SeatRoster(m, 1, lvl: 25, br: 60, fa: 40, rh: Weapon);
         MemSeats.SeatBand(m, 4, Weapon, lvl: 20, br: 70, fa: 50, gx: 2, gy: 2);
         MemSeats.SeatBand(m, 8, Weapon, lvl: 25, br: 60, fa: 40, gx: 6, gy: 6);
-        var results = new List<(long, (int, int, int))>();
+        var results = new List<(long, (int, int, int), int)>();
         Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
         Assert.Equal(2, results.Count);
         Assert.Contains(results, r => r.Item1 == Band.Entry(4));
@@ -649,7 +649,7 @@ public class WielderTests
         MemSeats.SeatRoster(m, 0, lvl: 99, br: 97, fa: 75, rh: Weapon);
         MemSeats.SeatRoster(m, 1, lvl: 99, br: 89, fa: 76, rh: Weapon);   // benched
         MemSeats.SeatBand(m, 12, Weapon, lvl: 99, br: 97, fa: 75, gx: 3, gy: 5);
-        var results = new List<(long, (int, int, int))>();
+        var results = new List<(long, (int, int, int), int)>();
         Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
         Assert.Single(results);
         Assert.Equal(Band.Entry(12), results[0].Item1);
@@ -661,8 +661,8 @@ public class WielderTests
         var m = new FakeSparseMemory();
         MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon);
         MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
-        var results = new List<(long, (int, int, int))>();
-        results.Add((9999L, (0, 0, 0)));   // stale entry
+        var results = new List<(long, (int, int, int), int)>();
+        results.Add((9999L, (0, 0, 0), 0));   // stale entry
         Wielder.ResolveDeployedMainHandAll(m, Weapon, results);
         Assert.Single(results);
         Assert.Equal(Band.Entry(5), results[0].Item1);
@@ -679,6 +679,136 @@ public class WielderTests
         MemSeats.SeatBand(m, 4, Weapon, lvl: 20, br: 70, fa: 50, gx: 2, gy: 2);
         MemSeats.SeatBand(m, 8, Weapon, lvl: 25, br: 60, fa: 40, gx: 6, gy: 6);
         Assert.Equal(0, Wielder.ResolveDeployedMainHand(m, Weapon, out _));
+    }
+
+    // ---- Locate/LocateAll: ambiguous-roster per-row disambiguation (LW-252) ----
+    // A live probe (2026-08-17) proved party roster nameIds are unique per occupied row and the
+    // combat frame mirrors them at Offsets.ANameId (ledger [frame-1fc-nameid-mirror] PROVEN;
+    // [party-nameid-unique-key] pending owner flip). Pre-fix, ResolveAnyHandNameId's 3-arg
+    // overload collapsed BOTH "zero roster rows hold this weapon+fp" and "2+ roster rows hold
+    // it" onto the same -1 sentinel, so Locate's tier-2 veto (a foreign nonzero frame nameId
+    // excluded) never armed in the ambiguous case -- exactly when a real (but undeployed or
+    // twinned) wielder shares a weapon+fp with another roster row, an unrelated band collider
+    // could be adopted at the matches == 1 return.
+
+    [Fact]
+    public void Locate_refuses_ambiguous_roster_instead_of_adopting_a_foreign_collider()
+    {
+        // [LW-252 T1, THE load-bearing test] Two fp-twin roster rows both hold Weapon (one main
+        // hand, one off hand), distinct nameIds, NEITHER deployed. The lone band seat matching
+        // weapon+fp carries a FOREIGN frame nameId (belongs to neither row) -- an enemy fp-
+        // collider. Pre-fix: ResolveAnyHandNameId(3-arg) returns -1 for this 2-match roster (the
+        // same value it returns for a 0-match roster), so Locate's explicit-nameId overload sees
+        // rosterNameId -1, tier 1 never runs, and tier 2's veto (rosterNameId &gt; 0 only) stays
+        // inert -- the collider is the sole fp match and gets adopted.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 100);
+        MemSeats.SeatRoster(m, 1, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon, nameId: 200);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);   // enemy fp-collider
+        MemSeats.SeatFrameNameId(m, 5, 999);
+        Assert.Equal(0, Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void Locate_resolves_the_deployed_row_among_an_ambiguous_twin_roster()
+    {
+        // [LW-252 T2] Same two ambiguous rows; row 0 (nameId 100) is now deployed at a real-
+        // position seat whose frame nameId matches it, row 1 (nameId 200) has no band entry at
+        // all. Exactly one collected row's tier-1 probe resolves nonzero, so Locate returns it.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 100);
+        MemSeats.SeatRoster(m, 1, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon, nameId: 200);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        MemSeats.SeatFrameNameId(m, 5, 100);
+        Assert.Equal(Band.Entry(5), Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void Locate_refuses_when_both_ambiguous_rows_are_deployed_and_nameId_verified()
+    {
+        // [LW-252 T3] Both ambiguous rows deployed this time, each at its own real-position seat
+        // whose frame nameId matches that row -- two genuinely distinct wielders share weapon Q.
+        // The per-row probe resolves TWO rows nonzero, so Locate refuses rather than pick one.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon, nameId: 100);
+        MemSeats.SeatRoster(m, 1, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon, nameId: 200);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);
+        MemSeats.SeatFrameNameId(m, 5, 100);
+        MemSeats.SeatBand(m, 10, Weapon, lvl: 31, br: 65, fa: 58, gx: 6, gy: 2);
+        MemSeats.SeatFrameNameId(m, 10, 200);
+        Assert.Equal(0, Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void Locate_falls_back_to_todays_minus_one_path_when_an_ambiguous_row_has_no_nameId()
+    {
+        // [LW-252 T4, the 0-trap generalized] Two ambiguous rows again, but row 0's nameId reads
+        // 0 (unseeded) -- untrustworthy. Running the per-row probe with an unverified row would
+        // reopen the 0==0 trap Locate_roster_nameId_zero_is_not_a_zero_equals_zero_trap guards
+        // against, so the ambiguous branch instead degrades to the pre-LW-252 -1 path outright:
+        // today's plain fp scan with the veto inert. One band seat exists and matches weapon+fp
+        // regardless of its own frame nameId (also unseeded here), so this pins the degradation
+        // byte-identical rather than asserting any behavior change.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 31, br: 65, fa: 58, rh: Weapon);                    // nameId defaults 0
+        MemSeats.SeatRoster(m, 1, lvl: 31, br: 65, fa: 58, rh: 1, oh: Weapon, nameId: 200);
+        MemSeats.SeatBand(m, 5, Weapon, lvl: 31, br: 65, fa: 58, gx: 4, gy: 7);   // frame nameId unseeded (0)
+        Assert.Equal(Band.Entry(5), Wielder.Locate(m, Weapon, new[] { Weapon }, (31, 65, 58)));
+    }
+
+    [Fact]
+    public void LocateAll_ambiguous_roster_returns_empty_when_both_rows_are_deployed()
+    {
+        // [LW-252 T5a] Mirrors T3 for LocateAll: two distinct deployed wielders share weapon Q.
+        // Pre-fix, LocateAll's -1 path has no twin filter or tie guard at all (by design, so a
+        // revolving mirror's copies all get covered) -- it would hand a write like
+        // SpiritualFont's to BOTH seats even though they are two unrelated units, not copies of
+        // one. Fixed: two rows resolve copies, so results stay empty rather than crediting both.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 89, fa: 76, rh: Weapon, nameId: 100);
+        MemSeats.SeatRoster(m, 1, lvl: 99, br: 89, fa: 76, rh: 1, oh: Weapon, nameId: 200);
+        MemSeats.SeatBand(m, 20, Weapon, lvl: 99, br: 89, fa: 76, gx: 9, gy: 9);
+        MemSeats.SeatFrameNameId(m, 20, 100);
+        MemSeats.SeatBand(m, 24, Weapon, lvl: 99, br: 89, fa: 76, gx: 2, gy: 2);
+        MemSeats.SeatFrameNameId(m, 24, 200);
+        var results = new List<long>();
+        Wielder.LocateAll(m, Weapon, new[] { Weapon }, (99, 89, 76), results);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public void LocateAll_ambiguous_roster_returns_only_the_one_deployed_rows_copies()
+    {
+        // [LW-252 T5b] Same two ambiguous rows; only row 0 (nameId 100) is deployed. Exactly one
+        // row's tier-1 scan collects entries, so LocateAll returns that row's entry alone.
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 89, fa: 76, rh: Weapon, nameId: 100);
+        MemSeats.SeatRoster(m, 1, lvl: 99, br: 89, fa: 76, rh: 1, oh: Weapon, nameId: 200);
+        MemSeats.SeatBand(m, 20, Weapon, lvl: 99, br: 89, fa: 76, gx: 9, gy: 9);
+        MemSeats.SeatFrameNameId(m, 20, 100);
+        var results = new List<long>();
+        Wielder.LocateAll(m, Weapon, new[] { Weapon }, (99, 89, 76), results);
+        Assert.Single(results);
+        Assert.Equal(Band.Entry(20), results[0]);
+    }
+
+    [Fact]
+    public void Locate_resolves_each_twins_own_weapon_when_fp_twins_hold_different_weapons()
+    {
+        // [LW-252 T6, positive control] Two fp-twin roster rows hold DIFFERENT weapons --
+        // ResolveAnyHandNameId's match rule keys on weaponId, so querying either weapon finds
+        // exactly ONE matching row (matchCount == 1): the ambiguous branch never fires and each
+        // weapon resolves its own deployed seat exactly as before this change.
+        const int OtherWeapon = Weapon + 1;
+        var m = new FakeSparseMemory();
+        MemSeats.SeatRoster(m, 0, lvl: 99, br: 89, fa: 76, rh: Weapon, nameId: 100);
+        MemSeats.SeatRoster(m, 1, lvl: 99, br: 89, fa: 76, rh: OtherWeapon, nameId: 200);
+        MemSeats.SeatBand(m, 20, Weapon, lvl: 99, br: 89, fa: 76, gx: 9, gy: 9);
+        MemSeats.SeatFrameNameId(m, 20, 100);
+        MemSeats.SeatBand(m, 24, OtherWeapon, lvl: 99, br: 89, fa: 76, gx: 2, gy: 2);
+        MemSeats.SeatFrameNameId(m, 24, 200);
+        Assert.Equal(Band.Entry(20), Wielder.Locate(m, Weapon, new[] { Weapon }, (99, 89, 76)));
+        Assert.Equal(Band.Entry(24), Wielder.Locate(m, OtherWeapon, new[] { OtherWeapon }, (99, 89, 76)));
     }
 
 }

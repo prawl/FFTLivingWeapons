@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using LivingWeapon;
 using Xunit;
 using static LivingWeapon.Tests.KillTrackerFixtures;
@@ -1249,6 +1250,47 @@ public class KillTrackerTests
 
         // TryResolveActingPlayer returns false for enemies -> _latched is never set -> fp stays default.
         Assert.Equal(default, t.LastActorFingerprint);
+    }
+
+    // --- LastActorNameId: LW-252 stage 3's Seed/Apply copy-back LAW ---
+
+    [Fact]
+    public void LastActorNameId_round_trips_through_seed_and_apply_and_clears_on_reset()
+    {
+        // [LW-252 stage 3, S1: THE Seed/Apply copy-back LAW] Every mirror-output field must be
+        // wired in BOTH SeedLatchOutputs (the carrier's INPUT) and ApplyLatchOutputs (the
+        // carrier's OUTPUT) -- a missed wire in either fails silently (nothing else notices), so
+        // this is the one test standing between a silent regression and a real one. Two
+        // independent halves, because a persistent carrier object (_latchIO, reused every tick)
+        // can mask either half in isolation:
+        //
+        // HALF 1 proves APPLY: a fresh latch resolve makes ActedPeriodLatch.Step write a BRAND
+        // NEW value into the carrier; only ApplyLatchOutputs copying it back onto
+        // _lastActorNameId lets the public accessor observe it (drop that line and this reads 0
+        // forever, since nothing else ever touches _lastActorNameId).
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: 52, nameId: 601);
+        SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetFrameNameId(m, Wilham, 601);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(new Dictionary<int, int>(), m, Weapons);
+        Settle(t);
+        Assert.Equal(601, t.LastActorNameId);
+
+        // HALF 2 proves SEED: overwrite the KillTracker's OWN backing field directly (bypassing
+        // Apply entirely, so the carrier's cached copy is now STALE at 601 while the field reads
+        // 777), then run one more tick of the SAME already-latched period -- Step's `if
+        // (!o.Latched)` gate blocks any write to the carrier's nameId this tick, so ONLY
+        // SeedLatchOutputs re-reading _lastActorNameId into the carrier before Step (and
+        // ApplyLatchOutputs copying the carrier back out after) can make the accessor observe
+        // 777. Drop the Seed line and the stale carrier value (601) overwrites our 777 sentinel.
+        typeof(KillTracker).GetField("_lastActorNameId", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .SetValue(t, 777);
+        t.Poll(true);
+        Assert.Equal(777, t.LastActorNameId);
+
+        t.ResetBattle();
+        Assert.Equal(0, t.LastActorNameId);
     }
 
     // --- lethal-actor stamp: kill credit goes to the actor latched at the dead-streak EDGE ---

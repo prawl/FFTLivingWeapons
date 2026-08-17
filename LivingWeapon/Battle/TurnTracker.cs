@@ -41,12 +41,22 @@ using System.Collections.Generic;
 /// already has one -- the same rarity class of exposure fingerprint keying already carries
 /// generally (see the ambiguity-bail caveat above); accepted for the same reason.
 ///
+/// LW-252 stage 5: the counter store rides <see cref="WielderKeyedStore{TState}"/> (nameId
+/// primary, fp fallback -- see its class doc), closing the fp-twin collision the old fp-only
+/// dictionary carried. Settle (above) applies ONLY to the fp lane -- nameId keys never drift
+/// (a level-up doesn't change roster nameId, so byName[n] survives it with no correction needed).
+/// The credit site reads the credited band entry's OWN frame nameId (Offsets.ANameId, fail-safe
+/// 0) and resolves through the store's law; <see cref="Turns(int,int,int)"/> (the pre-stage-5
+/// signature) stays and delegates with nameId 0 (the fp lane, with side-map recovery); every
+/// consumer that HAS a real nameId from its own wielder resolve should call
+/// <see cref="Turns(int,int,int,int)"/> instead so its query key matches the credit key.
+///
 /// Memory access is injected (IGameMemory) so the counting is unit-testable with no live game.
 /// </summary>
 internal sealed class TurnTracker
 {
     private readonly IGameMemory _mem;
-    private readonly Dictionary<(int level, int brave, int faith), int> _turns = new();
+    private readonly WielderKeyedStore<Box<int>> _turnStore = new();
     private bool _wasActed;
     // Flight recorder tap (optional; null/no-op default keeps every existing test green
     // unmodified). Engine wires this to Flight.Record -- see the injected-BattleLog-sink
@@ -66,14 +76,25 @@ internal sealed class TurnTracker
     /// <summary>Forget all turn counts. Call on battle enter and exit.</summary>
     public void ResetBattle()
     {
-        _turns.Clear();
+        _turnStore.Clear();
         _wasActed = false;
         GlobalTurns = 0;
     }
 
-    /// <summary>Completed turns this battle for the unit with this fingerprint (0 if none).</summary>
-    public int Turns(int level, int brave, int faith) =>
-        _turns.TryGetValue((level, brave, faith), out int t) ? t : 0;
+    /// <summary>Completed turns this battle for the unit with this fingerprint (0 if none). Pre-
+    /// LW-252-stage-5 signature: delegates with nameId 0 (the fp lane -- a single-registered
+    /// state at this fp still resolves via side-map recovery; an fp shared by 2+ SEEDED units
+    /// returns 0, matching a genuine miss). Callers that resolved a real nameId should prefer
+    /// <see cref="Turns(int,int,int,int)"/> so their query key matches the credit key.</summary>
+    public int Turns(int level, int brave, int faith) => Turns(0, level, brave, faith);
+
+    /// <summary>LW-252 stage 5: nameId-aware sibling. Completed turns this battle for the unit
+    /// identified by <paramref name="nameId"/> (falls back to the fp lane when 0 or unresolved --
+    /// see WielderKeyedStore's class doc for the full resolution law). 0 on any miss, INCLUDING
+    /// the ambiguous nameId-0-shared-by-2+-seeded-twins case (Probe never creates, so this is a
+    /// pure read).</summary>
+    public int Turns(int nameId, int level, int brave, int faith)
+        => _turnStore.Probe(nameId, (level, brave, faith))?.Value ?? 0;
 
     /// <summary>One tick. On the rising edge of the acted flag, advance the global clock (always) and
     /// credit a turn to the active unit (when it can be fingerprinted).</summary>
@@ -87,20 +108,31 @@ internal sealed class TurnTracker
             // line naming Larceny read as "Larceny spam" even with no Arcanum fielded. The per-unit turn
             // line below is generic and only logs when an actor is identified.)
             _recorder?.Invoke("turn", $"acted rising edge -- global turn #{GlobalTurns}");
-            bool viaFlags = TryActiveViaFlags(out var fp);
-            bool viaPointer = !viaFlags && TryActiveViaPointer(out fp);
-            if (viaFlags || viaPointer || TryActiveFingerprint(out fp))
+            bool viaFlags = TryActiveViaFlags(out var fp, out long entry);
+            bool viaPointer = !viaFlags && TryActiveViaPointer(out fp, out entry);
+            bool viaFallback = !viaFlags && !viaPointer && TryActiveFingerprint(out fp, out entry);
+            if (viaFlags || viaPointer || viaFallback)
             {
-                var key = Settle(fp);
-                int n = (_turns.TryGetValue(key, out int t) ? t : 0) + 1;
-                _turns[key] = n;
-                string source = viaFlags ? "the turn flags" : viaPointer ? "the actor pointer" : "the turn-queue fallback";
-                // Facelift: the per-turn heartbeat is black-box evidence, never match report;
-                // demoted off the console (the biggest console-ceiling violation in the audit).
-                ModLogger.Debug(LogVerb.Turn,
-                    $"a unit finished its turn (number {n} this battle) (identity level {key.Item1} brave {key.Item2} faith {key.Item3}, via {source})");
-                string src = viaFlags ? "turn-flags" : viaPointer ? "actor-ptr" : "tq-fallback";
-                _recorder?.Invoke("turn", $"credit level={key.Item1} brave={key.Item2} faith={key.Item3} count={n} src={src}");
+                // LW-252 stage 5: the credited unit's OWN frame nameId, read off the SAME entry
+                // that resolved fp (fail-safe 0 on an unreadable/invalid address -- the same
+                // convention every other nameId consumer in this codebase uses). Settle (the
+                // drift rule) applies ONLY when nameId is unavailable: a name-keyed credit never
+                // drifts, so it skips straight to the store.
+                int nameId = entry != 0 ? _mem.U16(entry + Offsets.ANameId) : 0;
+                var key = nameId > 0 ? fp : Settle(fp);
+                var state = _turnStore.GetOrCreate(nameId, key, () => new Box<int>());
+                if (state != null)   // null = LW-252 SKIP (ambiguous nameId-0 twin transient): no credit this tick
+                {
+                    state.Value++;
+                    int n = state.Value;
+                    string source = viaFlags ? "the turn flags" : viaPointer ? "the actor pointer" : "the turn-queue fallback";
+                    // Facelift: the per-turn heartbeat is black-box evidence, never match report;
+                    // demoted off the console (the biggest console-ceiling violation in the audit).
+                    ModLogger.Debug(LogVerb.Turn,
+                        $"a unit finished its turn (number {n} this battle) (identity level {key.Item1} brave {key.Item2} faith {key.Item3}, via {source})");
+                    string src = viaFlags ? "turn-flags" : viaPointer ? "actor-ptr" : "tq-fallback";
+                    _recorder?.Invoke("turn", $"credit level={key.Item1} brave={key.Item2} faith={key.Item3} count={n} src={src}");
+                }
             }
         }
         else if (!acted && _wasActed)
@@ -114,11 +146,12 @@ internal sealed class TurnTracker
     /// live-proven per-unit PSX turn-flags owner walk -- tried FIRST because it names the
     /// acting unit structurally, unlike the engine actor pointer (which parks on the action's
     /// target). Returns false when Band.FlagOwner itself refuses (no owner, or two owners
-    /// disagreeing) -- callers fall back to <see cref="TryActiveViaPointer"/>.</summary>
-    private bool TryActiveViaFlags(out (int, int, int) fp)
+    /// disagreeing) -- callers fall back to <see cref="TryActiveViaPointer"/>. LW-252 stage 5:
+    /// also outs the resolved entry address so the caller can read its own nameId.</summary>
+    private bool TryActiveViaFlags(out (int, int, int) fp, out long entry)
     {
         fp = default;
-        if (!Band.FlagOwner(_mem, out long entry, out _)) return false;
+        if (!Band.FlagOwner(_mem, out entry, out _)) { entry = 0; return false; }
         fp = (_mem.U8(entry + Offsets.ALevel), _mem.U8(entry + Offsets.ABrave), _mem.U8(entry + Offsets.AFaith));
         return true;
     }
@@ -126,24 +159,28 @@ internal sealed class TurnTracker
     /// <summary>Settle a freshly-resolved fingerprint against the drift rule (LW-94, part 2,
     /// see the class doc comment): if the exact key has no count yet but (level-1, brave,
     /// faith) already does, the turn continues under the pre-drift key instead of starting a
-    /// fresh one.</summary>
+    /// fresh one. LW-252 stage 5: probes the fp lane (nameId 0) rather than a raw
+    /// ContainsKey -- a single seeded state registered at this fp is still found via the
+    /// store's own side-map recovery, so the drift check stays correct even when the pre-drift
+    /// key's owner happens to be name-keyed.</summary>
     private (int, int, int) Settle((int, int, int) fp)
     {
         var (lvl, br, fa) = fp;
         var priorLevelKey = (lvl - 1, br, fa);
-        if (!_turns.ContainsKey(fp) && _turns.ContainsKey(priorLevelKey)) return priorLevelKey;
+        if (_turnStore.Probe(0, fp) == null && _turnStore.Probe(0, priorLevelKey) != null) return priorLevelKey;
         return fp;
     }
 
     /// <summary>The active unit's (level,brave,faith) via the engine's own ActorPtr global
     /// (Band.ActorEntry). Returns false when the pointer is invalid or the pointed-to entry
-    /// fails Band.IsValid -- callers fall back to <see cref="TryActiveFingerprint"/>.</summary>
-    private bool TryActiveViaPointer(out (int, int, int) fp)
+    /// fails Band.IsValid -- callers fall back to <see cref="TryActiveFingerprint"/>. LW-252
+    /// stage 5: also outs the resolved entry address.</summary>
+    private bool TryActiveViaPointer(out (int, int, int) fp, out long entry)
     {
         fp = default;
-        long addr = Band.ActorEntry(_mem);
-        if (addr == 0 || !Band.IsValid(_mem, addr)) return false;
-        fp = (_mem.U8(addr + Offsets.ALevel), _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith));
+        entry = Band.ActorEntry(_mem);
+        if (entry == 0 || !Band.IsValid(_mem, entry)) { entry = 0; return false; }
+        fp = (_mem.U8(entry + Offsets.ALevel), _mem.U8(entry + Offsets.ABrave), _mem.U8(entry + Offsets.AFaith));
         return true;
     }
 
@@ -151,7 +188,7 @@ internal sealed class TurnTracker
     /// (the shared band walk every own-turn-detecting signature now uses: FeignDeath, Puppeteer,
     /// Mushin, and this tracker). See its doc comment for the ambiguity-bail and twin-filter
     /// contract; this pure extraction changed no behavior (every existing test above stays
-    /// green, proving parity).</summary>
-    private bool TryActiveFingerprint(out (int, int, int) fp)
-        => Band.ActiveOwner(_mem, out fp, out _);
+    /// green, proving parity). LW-252 stage 5: also outs the resolved entry address.</summary>
+    private bool TryActiveFingerprint(out (int, int, int) fp, out long entry)
+        => Band.ActiveOwner(_mem, out fp, out entry);
 }

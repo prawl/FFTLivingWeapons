@@ -84,7 +84,13 @@ internal sealed class HealPulse
             _slog.Info(active ? _cfg.ActiveLine : _cfg.InactiveLine);
         if (!active) { _lastTurns = -1; return; }   // re-baseline on re-equip (no stale-diff pulse)
 
-        int turns = _turns.Turns(fp.lvl, fp.br, fp.fa);
+        // LW-252 stage 5: query keyed by this wielder's own roster nameId, resolved off the SAME
+        // main-hand row TryResolveMainHand just matched -- Wielder.RosterNameId's -1 (capture
+        // failed/ambiguous) falls through to the fp lane exactly like 0 (unseeded) does, so no
+        // extra clamping is needed. Query key and credit key must come from the same
+        // TurnTracker/WielderKeyedStore law, or the ramp-edge detection below desyncs.
+        int nameId = Wielder.RosterNameId(_mem, _cfg.WeaponId, fp);
+        int turns = _turns.Turns(nameId, fp.lvl, fp.br, fp.fa);
         bool edge = IsTurnEdge(_lastTurns, turns);
         _lastTurns = turns;
         if (!edge) return;

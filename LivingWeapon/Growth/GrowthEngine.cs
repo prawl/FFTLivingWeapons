@@ -49,21 +49,22 @@ internal sealed partial class GrowthEngine
     private readonly HashSet<int> _fallbackLogged = new();            // slots whose tier-2 fallback was already logged this battle
     private bool _logged;
     // Kiku-ichimonji's Mushin stack count: SHARED with Mushin.cs (Engine.cs constructs one
-    // dictionary and passes it to both), keyed by wielder fingerprint (lvl,br,fa), value 0..
-    // Tuning.MushinMaxStacks. Defaults to a fresh (empty, so always effectively 0 stacks)
-    // dictionary when a caller doesn't wire one, so every pre-existing positional
-    // GrowthEngine(...) call site stays untouched.
-    private readonly Dictionary<(int lvl, int br, int fa), int> _mushinArmed;
+    // WielderKeyedStore and passes it to both). LW-252 stage 5: re-keyed off WielderKeyedStore
+    // (nameId primary, fp fallback -- see its class doc; both sides derive keys through this SAME
+    // instance, closing the fp-twin collision the old fp-only dictionary carried). Defaults to a
+    // fresh (empty, so always effectively 0 stacks) store when a caller doesn't wire one, so every
+    // pre-existing positional GrowthEngine(...) call site stays untouched.
+    private readonly WielderKeyedStore<Box<int>> _mushinArmed;
 
     public GrowthEngine(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns,
-                        IGameMemory? mem = null, Dictionary<(int lvl, int br, int fa), int>? mushinArmed = null,
+                        IGameMemory? mem = null, WielderKeyedStore<Box<int>>? mushinArmed = null,
                         NaturalLedger? ledger = null)
     {
         _meta = meta;
         _kills = kills;
         _turns = turns;
         _mem = mem ?? new LiveMemory();
-        _mushinArmed = mushinArmed ?? new Dictionary<(int, int, int), int>();
+        _mushinArmed = mushinArmed ?? new WielderKeyedStore<Box<int>>();
         // LW-90: Engine passes the ONE shared instance (mushinArmed precedent); the default is
         // only for tests, where a private ledger is inert unless the test drives it.
         _ledger = ledger ?? new NaturalLedger();

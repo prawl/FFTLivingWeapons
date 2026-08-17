@@ -77,19 +77,22 @@ internal sealed partial class KillTracker
             byte fa  = _mem.U8(addr + Offsets.AFaith);
 
             // SNAPSHOT at commit: bit set, no snapshot yet, a latch exists, AND this slot's
-            // fingerprint matches the latched actor (so we capture the committer, not a bystander
-            // whose bit happened to be set while a different actor was the latch).
+            // identity matches the latched actor (so we capture the committer, not a bystander
+            // whose bit happened to be set while a different actor was the latch). LW-252 stage 3:
+            // CommitterMatches prefers nameId equality once both sides have one -- a bare
+            // (level,brave,faith) compare cannot tell an fp-twin bystander from the true committer.
             if (delayed && _chargeWeapons[s] == null
                 && _lastPlayerWeapons.Count > 0
-                && _lastActorFp == ((int)lvl, (int)br, (int)fa))
+                && CommitterMatches(addr, lvl, br, fa))
                 _chargeWeapons[s] = new List<int>(_lastPlayerWeapons);
             // UNTRACKED snapshot: the committer is the latched roster player with NO living weapon
             // (summoner/dancer). Mutually exclusive with the tracked snapshot within a tick (opposite
             // _lastPlayerWeapons.Count). _latchResolvedEmpty rejects the "never-resolved" first-kill
-            // state (Count==0 but no resolved player); the fp-match targets THIS slot, not a bystander.
+            // state (Count==0 but no resolved player); the identity match targets THIS slot, not a
+            // bystander (same LW-252 CommitterMatches rule as the tracked snapshot above).
             else if (delayed && !_chargeUntracked[s]
                      && _lastPlayerWeapons.Count == 0 && _latchResolvedEmpty
-                     && _lastActorFp == ((int)lvl, (int)br, (int)fa))
+                     && CommitterMatches(addr, lvl, br, fa))
                 _chargeUntracked[s] = true;
 
             // ARM on 1->0 (action lands): tracked arm fires when we have a weapon snapshot.
@@ -109,6 +112,25 @@ internal sealed partial class KillTracker
 
             _performing[s] = delayed;
         }
+    }
+
+    /// <summary>LW-252 stage 3: does band seat <paramref name="addr"/> (its own frame nameId,
+    /// Offsets.ANameId) identify the latched actor? Uses nameId EQUALITY when BOTH sides have one
+    /// (<see cref="_lastActorNameId"/> &gt; 0 AND this seat's own nameId &gt; 0) -- the same
+    /// identity signal stage 1 (Wielder.cs) and stage 2 (ActorResolver.TurnQueue.cs) already trust
+    /// to close an fp-twin ambiguity a bare (level,brave,faith) compare cannot: two fp-twin
+    /// committers are indistinguishable to a fingerprint-only snapshot check without it (ledger
+    /// [frame-1fc-nameid-mirror] PROVEN + [party-nameid-unique-key]). Falls back to TODAY'S
+    /// (level,brave,faith) compare, byte-for-byte, whenever either side's nameId is unreadable
+    /// (0) -- the same fail-open convention every other LW-252 veto/compare in this codebase
+    /// uses. <paramref name="lvl"/>/<paramref name="br"/>/<paramref name="fa"/> are the same bytes
+    /// TrackDelayed already read off <paramref name="addr"/> for the fp fallback, passed in
+    /// rather than re-read.</summary>
+    private bool CommitterMatches(long addr, byte lvl, byte br, byte fa)
+    {
+        int seatNameId = _mem.U16(addr + Offsets.ANameId);
+        if (_lastActorNameId > 0 && seatNameId > 0) return seatNameId == _lastActorNameId;
+        return _lastActorFp == ((int)lvl, (int)br, (int)fa);
     }
 
     /// <summary>Return and consume the armed delayed actor on the first credit within the

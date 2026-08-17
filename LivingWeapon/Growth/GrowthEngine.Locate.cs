@@ -138,7 +138,9 @@ internal sealed partial class GrowthEngine
     /// multi-matches. <paramref name="nameId"/> threads to MatchesEntry (D5): 0 = fingerprint mode
     /// (today's exact behavior, NEVER reads the frame nameId); &gt; 0 = tier-1 exact-match mode.
     /// Returns the pick, or 0 (with <paramref name="matchCount"/> for the caller's ambiguity log)
-    /// when nothing matches or a heterogeneous multi-match refuses.</summary>
+    /// when nothing matches, a heterogeneous multi-match refuses, or (LW-252 stage 6) a
+    /// homogeneous multi-match with nameId &lt;= 0 has 2+ REAL-position candidates -- see
+    /// <see cref="PickHomogeneousTwin"/>'s own doc comment.</summary>
     internal static long ScanEntries(IGameMemory mem, int level, int brave, int faith,
                                      List<(int weapon, WeaponMeta m)> hands,
                                      IReadOnlyList<(bool isPlayer, long addr)> entries, int nameId, out int matchCount)
@@ -173,12 +175,22 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Re-scan a homogeneous multi-match (all matches share the same weapon id) and
     /// apply the twin tie-break: prefer a real-position (non-zero gx or gy) entry; if all are at
-    /// (0,0) return the first deterministically.</summary>
+    /// (0,0) return the first deterministically.
+    /// LW-252 stage 6, decision-4 exception (b): when <paramref name="nameId"/> &lt;= 0 (no
+    /// verified identity -- fingerprint-only matching) AND two or more REAL-position candidates
+    /// survive, REFUSE instead of picking one. A wrong-twin stat HOLD is a wrong-unit WRITE, and
+    /// the engine's per-turn normalize can bake an active hold into the save baseline (ledger
+    /// [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN; LW-90) -- miss beats mis-credit.
+    /// The single-real-candidate shape and the real+(0,0)-mirror shape are UNCHANGED: this only
+    /// fires on 2+ REAL candidates, so a lone real entry (with or without a frozen (0,0) twin)
+    /// still resolves exactly as before. A verified-identity match (nameId &gt; 0, e.g. a
+    /// revolving-mirror clone under tier 1) is UNCHANGED too -- the refusal never applies there.</summary>
     private static long PickHomogeneousTwin(IGameMemory mem, int level, int brave, int faith,
                                             List<(int weapon, WeaponMeta m)> hands,
                                             IReadOnlyList<(bool isPlayer, long addr)> entries, int nameId)
     {
-        long first = 0;
+        long first = 0, firstReal = 0;
+        int realCount = 0;
         for (int pass = 0; pass < 2; pass++)
         {
             bool wantPlayer = pass == 0;
@@ -188,10 +200,15 @@ internal sealed partial class GrowthEngine
                 if (!MatchesEntry(mem, addr, level, brave, faith, hands, nameId)) continue;
                 if (first == 0) first = addr;
                 bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
-                if (realPos) return addr;
+                if (realPos)
+                {
+                    if (firstReal == 0) firstReal = addr;
+                    realCount++;
+                }
             }
         }
-        return first;   // all at (0,0): return first deterministically
+        if (nameId <= 0 && realCount >= 2) return 0;   // decision-4 exception (b): refuse, never guess
+        return firstReal != 0 ? firstReal : first;      // all at (0,0): return first deterministically
     }
 
     /// <summary>True if S is a readable combat struct matching this unit (level + brave/faith +

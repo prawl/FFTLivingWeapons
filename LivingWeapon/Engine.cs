@@ -180,10 +180,11 @@ internal sealed class Engine
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(verbose: true, sink: s => { ModLogger.Debug(LogVerb.Trace, s); Flight.Record("ev", s); }),
                                    Flight.Record, deeds: deeds, hasLiveWielder: id => Wielder.HasLiveWielder(live, id));
-        // Kiku-ichimonji's Mushin stack count: ONE dictionary shared by reference between the
-        // trigger (Mushin, banks/spends stacks) and the growth hold (GrowthEngine.HoldMushin,
-        // reads it), keyed by wielder fingerprint (lvl,br,fa) like Iai's fp-keyed _holds.
-        var mushinArmed = new Dictionary<(int lvl, int br, int fa), int>();
+        // Kiku-ichimonji's Mushin stack count: ONE WielderKeyedStore shared by reference between
+        // the trigger (Mushin, banks/spends stacks) and the growth hold (GrowthEngine.HoldMushin,
+        // reads it). LW-252 stage 5: nameId primary, fp fallback -- see WielderKeyedStore's class
+        // doc; both sides deriving keys through this SAME instance is load-bearing.
+        var mushinArmed = new WielderKeyedStore<Box<int>>();
         // LW-90: ONE NaturalLedger shared by reference between every capture-natural hold
         // (GrowthEngine's five lanes + Iai), so a value one subsystem baked is recognized by
         // whichever subsystem captures it after a battle restart. Reset/clear wiring below

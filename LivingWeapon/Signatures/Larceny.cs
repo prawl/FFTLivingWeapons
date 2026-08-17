@@ -51,9 +51,10 @@ internal sealed class Larceny : ISignature
     private long Locate((int lvl, int br, int fa) fp)
         => Wielder.Locate(_mem, ArcanumId, _arcHand, fp);
 
-    /// <summary>Completed turns this battle for the wielder at this fingerprint.</summary>
-    private int Turns((int lvl, int br, int fa) fp)
-        => _turns.Turns(fp.lvl, fp.br, fp.fa);
+    /// <summary>Completed turns this battle for the wielder identified by nameId (LW-252 stage 5:
+    /// falls back to the fp lane when nameId is 0/unresolved -- see TurnTracker.Turns).</summary>
+    private int Turns(int nameId, (int lvl, int br, int fa) fp)
+        => _turns.Turns(nameId, fp.lvl, fp.br, fp.fa);
 
     public void ResetBattle()
     {
@@ -74,6 +75,10 @@ internal sealed class Larceny : ISignature
         // once per acted-period outside the SameSet guard, so it updates even when two Arcanum
         // holders share weapon set {30} and SameSet between them is always true.
         var actorFp = _tracker.LastActorFingerprint;
+        // LW-252 stage 5: the SAME latch's own nameId (KillTracker.LastActorNameId, stage 3) --
+        // threaded through to LarcenyHoldings so two fp-twin Arcanum holders get independent
+        // ledgers instead of sharing one.
+        int actorNameId = _tracker.LastActorNameId;
         bool tierOk = LarcenyPolicy.IsActive(m.Signature, tier);
         bool actingMain = Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, ArcanumId);
         int actedByte = _mem.Readable(Offsets.Acted, 1) ? _mem.U8(Offsets.Acted) : -1;
@@ -121,13 +126,13 @@ internal sealed class Larceny : ISignature
             // each buff from only one of them, dispels duplicates the wielder already owns, and never
             // strips a copy it has already stolen (LarcenyPolicy.Decide).
             bool wielderHas = LarcenyPolicy.HasBit(_mem, actingAddr, key.Item1, key.Item2);
-            var action = LarcenyPolicy.Decide(_holdings.IsHeld(actorFp, key), wielderHas);
+            var action = LarcenyPolicy.Decide(_holdings.IsHeld(actorNameId, actorFp, key), wielderHas);
             if (action == LarcenyAction.Skip) continue;   // already wearing this buff -- leave the foe's copy
 
             LarcenyPolicy.ClearBit(_mem, addr, key.Item1, key.Item2);   // strip the foe (Dispel + Steal)
             if (action == LarcenyAction.Steal)
             {
-                _holdings.Steal(actorFp, actingAddr, key, Turns(actorFp));
+                _holdings.Steal(actorNameId, actorFp, actingAddr, key, Turns(actorNameId, actorFp));
                 ModLogger.Event(LogVerb.Signature, $"{buff.Value.Name} was stolen from the struck enemy and is held on the wielder for {Tuning.LarcenyHoldTurns} of its turns.");
             }
             else

@@ -33,7 +33,11 @@ internal sealed partial class Choir : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly List<(long entry, (int lvl, int br, int fa) fp)> _bearers = new();
+    // LW-252 stage 5: ResolveDeployedMainHandAll's result widened to carry each bearer's own
+    // nameId; Choir has no per-wielder state keyed off it (its _granted set is band-read-fp-
+    // keyed, see the class doc) so the third element is simply ignored below -- zero behavior
+    // change (ChoirTests stay green unmodified).
+    private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _bearers = new();
     private bool _wasActive;
 
     // Fingerprints (band-read: mhp,lvl,br,fa) of bearer band entries whose Non-charge bit
@@ -69,7 +73,7 @@ internal sealed partial class Choir : ISignature
         // Every deployed main-hand bearer; a dead bearer must not project.
         Wielder.ResolveDeployedMainHandAll(_mem, WarlockStaffId, _bearers);
         int aliveBearers = 0;
-        foreach (var (entry, _) in _bearers)
+        foreach (var (entry, _, _) in _bearers)
             if (_mem.U16(entry + Offsets.AHp) > 0) aliveBearers++;
 
         bool active = IsActive(m.Signature, tier) && aliveBearers > 0;
@@ -114,7 +118,7 @@ internal sealed partial class Choir : ISignature
         // band-read fingerprint (NOT the roster fp.lvl) so the clear path matches later band scans
         // even after a mid-battle level-up (band lvl drifts up; roster lvl stays pre-battle).
         var winners = new HashSet<(int mhp, int lvl, int br, int fa)>();
-        foreach (var (entry, fp) in _bearers)
+        foreach (var (entry, fp, _) in _bearers)
         {
             if (_mem.U16(entry + Offsets.AHp) <= 0) continue;            // dead bearer doesn't project
             if (protectedBF.Contains((fp.br, fp.fa))) continue;          // self-picked Non-charge -> leave to them

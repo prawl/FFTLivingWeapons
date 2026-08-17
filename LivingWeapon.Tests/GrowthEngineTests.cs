@@ -200,6 +200,44 @@ public class GrowthEngineTests
         Assert.True(result == t1.Addr || result == t2.Addr);
     }
 
+    // ---- LW-252 stage 6, decision-4 exception (b): 2+ REAL-position homogeneous twins with NO
+    // verified identity (nameId <= 0) must REFUSE, not guess -- a wrong-unit stat HOLD is a
+    // wrong-unit WRITE the engine's per-turn normalize can bake into the save baseline (ledger
+    // [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN; LW-90). The single-real-candidate
+    // shape (ScanStructEntries_prefers_real_position_over_origin_twin, above) and the both-at-
+    // origin shape (ScanStructEntries_returns_one_when_all_twins_share_identity_at_origin, above)
+    // already pin the UNCHANGED shapes (X2 parity is covered by the former; no duplicate added). ----
+
+    [Fact]
+    public void ScanStructEntries_refuses_two_real_position_homogeneous_twins_with_no_nameId()
+    {
+        // [X1, THE RED] Two REAL-position entries share the SAME weapon+fp with no verified
+        // identity -- genuinely indistinguishable fp-twins. Master: the homogeneous tie-break
+        // picks the first real-position entry and would hold a stat on it (a wrong-unit write).
+        // Fixed: refuse (miss beats mis-credit).
+        using var t1 = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58, gx: 3, gy: 4);
+        using var t2 = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58, gx: 5, gy: 6);
+        var entries = new[] { (isPlayer: true, addr: t1.Addr), (isPlayer: true, addr: t2.Addr) };
+        long result = GrowthEngine.ScanEntries(Live, 30, 65, 58, MakeHands(10), entries);
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public void ScanEntries_tier1_still_resolves_two_real_position_mirror_copies_sharing_nameId()
+    {
+        // [X3, parity] Unlike X1, these two real-position entries carry the SAME VERIFIED nameId
+        // (a revolving-mirror clone scenario, tier-1) -- the new refusal is scoped to nameId <= 0
+        // only; a verified-identity homogeneous multi-match still resolves exactly as before
+        // (PickHomogeneousTwin's own mirror dedupe, unchanged).
+        using var m1 = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 298, gx: 3, gy: 4);
+        using var m2 = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 298, gx: 5, gy: 6);
+        var entries = new[] { (isPlayer: true, addr: m1.Addr), (isPlayer: true, addr: m2.Addr) };
+        long result = GrowthEngine.ScanEntries(Live, 30, 65, 58, MakeHands(10), entries, nameId: 298, out int matchCount);
+        Assert.NotEqual(0, result);
+        Assert.True(result == m1.Addr || result == m2.Addr);
+        Assert.Equal(2, matchCount);
+    }
+
     // ---- LocateStruct: ambiguous-log throttle ----
 
     [Fact]
@@ -441,6 +479,26 @@ public class GrowthEngineTests
         MemSeats.SeatFrameNameId(mem, 0, 918);   // only a foreign collider present -- no wielder entry at all
 
         var (hp, maxHp) = GrowthEngine.ReadHp(mem, 30, 65, 58, rosterNameId: 298);
+        Assert.Equal(0, hp);
+        Assert.Equal(0, maxHp);
+    }
+
+    [Fact]
+    public void ReadHp_returns_miss_for_two_real_position_candidates_with_no_nameId()
+    {
+        // [LW-252 stage 6, X4] Two real-position band entries share the SAME fp with no roster
+        // nameId at all (rosterNameId 0) -- master picks whichever comes LAST in band-slot scan
+        // order and hands back ITS hp/maxHp (a wrong-unit read feeding a wrong-unit HP-gated
+        // hold). Fixed: (0,0), the same "no info" miss value every consumer already treats a
+        // locate-miss as (GrowthEngine.cs, Ultima.cs, Afterimage.cs).
+        var mem = new FakeSparseMemory();
+        MemSeats.SeatBand(mem, bandIdx: 0, weapon: 0, lvl: 30, br: 65, fa: 58, gx: 3, gy: 4, hp: 111, maxHp: 200);
+        mem.MarkReadable(Band.Entry(0) + Offsets.AMaxHp, 2);
+        MemSeats.SeatBand(mem, bandIdx: 1, weapon: 0, lvl: 30, br: 65, fa: 58, gx: 5, gy: 6, hp: 222, maxHp: 200);
+        mem.MarkReadable(Band.Entry(1) + Offsets.AMaxHp, 2);
+
+        var (hp, maxHp) = GrowthEngine.ReadHp(mem, 30, 65, 58);
+
         Assert.Equal(0, hp);
         Assert.Equal(0, maxHp);
     }

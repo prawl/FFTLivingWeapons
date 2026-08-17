@@ -123,12 +123,19 @@ internal sealed partial class GrowthEngine
     /// <summary>One full band pass under either mode: <paramref name="exact"/> = tier 1 (requires
     /// the band entry's nameId == rosterNameId, unguarded read; only called with rosterNameId
     /// &gt; 0); !exact = tier 2 (today's fingerprint match, plus the D2 veto when rosterNameId
-    /// &gt; 0 -- a foreign nonzero nameId excludes the entry, 0/unseeded passes).</summary>
+    /// &gt; 0 -- a foreign nonzero nameId excludes the entry, 0/unseeded passes).
+    /// LW-252 stage 6, decision-4 exception (b): on the non-exact pass, when rosterNameId &lt;= 0
+    /// (no verified identity at all) AND two or more REAL-position candidates survive, returns
+    /// the miss value ((0,0)) instead of picking one -- the same refusal
+    /// GrowthEngine.Locate.cs's PickHomogeneousTwin applies, for the same reason (a wrong-unit HP
+    /// read feeds a wrong-unit HP-gated hold). Every consumer already treats (0,0) as "no info"
+    /// (GrowthEngine.cs, Ultima.cs, Afterimage.cs), so this degrades to an ordinary miss.</summary>
     private static (bool found, int hp, int maxHp) ReadHpScan(IGameMemory mem, int level, int brave, int faith,
                                                               int rosterNameId, bool exact)
     {
         (int hp, int maxHp) result = (0, 0);
         bool foundReal = false, found = false;
+        int realCount = 0;
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long addr = Offsets.BandReadBase + (long)s * Offsets.CombatStride;
@@ -148,10 +155,12 @@ internal sealed partial class GrowthEngine
             }
             bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
             if (foundReal && !realPos) continue;   // prefer real over twin
+            if (realPos) realCount++;
             result = (mem.U16(addr + Offsets.AHp), mem.U16(addr + Offsets.AMaxHp));
             found = true;
             if (realPos) foundReal = true;
         }
+        if (!exact && rosterNameId <= 0 && realCount >= 2) return (false, 0, 0);   // decision-4 exception (b): refuse, never guess
         return (found, result.hp, result.maxHp);
     }
 

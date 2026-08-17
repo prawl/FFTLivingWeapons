@@ -44,10 +44,18 @@ public class MushinTests
         mem.U8s[entry + ActedOffset] = (byte)acted;
     }
 
-    private static int StacksOf(Dictionary<(int lvl, int br, int fa), int> armed, (int lvl, int br, int fa) fp)
-        => armed.TryGetValue(fp, out int s) ? s : 0;
+    // LW-252 stage 5: Mushin's armed store is now a WielderKeyedStore<Box<int>> (shared with
+    // GrowthEngine); these two helpers replace the old dictionary's TryGetValue/indexer for the
+    // suite's own test-seam reads/writes. Every seeding call in this file omits nameId (defaults
+    // 0), so probing/creating at nameId 0 (the fp lane) is the exact byte-identical read/write
+    // the old fp-only dictionary gave -- no test in this file exercises the nameId-primary lane.
+    private static int StacksOf(WielderKeyedStore<Box<int>> armed, (int lvl, int br, int fa) fp)
+        => armed.Probe(0, fp)?.Value ?? 0;
 
-    private static (FakeSparseMemory mem, Dictionary<int, int> kills, Dictionary<(int lvl, int br, int fa), int> armed,
+    private static void SetArmed(WielderKeyedStore<Box<int>> armed, (int lvl, int br, int fa) fp, int value)
+        => armed.GetOrCreate(0, fp, () => new Box<int>())!.Value = value;
+
+    private static (FakeSparseMemory mem, Dictionary<int, int> kills, WielderKeyedStore<Box<int>> armed,
                     Mushin mushin, long wielderEntry, (int lvl, int br, int fa) fp)
         Build(int kills = -1)
     {
@@ -70,7 +78,7 @@ public class MushinTests
         MemSeats.SeatBand(mem, wielderSlot, weapon: KikuId, lvl: wielderFp.lvl, br: wielderFp.br, fa: wielderFp.fa,
                           gx: 5, gy: 5, hp: 200, maxHp: 300);
 
-        var armed = new Dictionary<(int lvl, int br, int fa), int>();
+        var armed = new WielderKeyedStore<Box<int>>();
         var mushin = new Mushin(meta, killDict, armed, mem);
         return (mem, killDict, armed, mushin, wielderEntry, wielderFp);
     }
@@ -119,7 +127,7 @@ public class MushinTests
         var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
         SetFlags(mem, wielderEntry, 0, 0, 0);
         mushin.Tick(true);   // prime
-        armed[fp] = 1;       // as if a prior wait already armed the charge
+        SetArmed(armed, fp, 1);   // as if a prior wait already armed the charge
 
         SetFlags(mem, wielderEntry, 1, 0, 0);
         mushin.Tick(true);
@@ -139,7 +147,7 @@ public class MushinTests
         var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
         SetFlags(mem, wielderEntry, 0, 0, 0);
         mushin.Tick(true);   // prime
-        armed[fp] = 1;       // pre-armed
+        SetArmed(armed, fp, 1);   // pre-armed
 
         SetFlags(mem, wielderEntry, 1, 0, 0);
         mushin.Tick(true);
@@ -159,7 +167,7 @@ public class MushinTests
         var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
         SetFlags(mem, wielderEntry, 0, 0, 0);
         mushin.Tick(true);   // prime
-        armed[fp] = 1;       // pre-armed: the discriminating precondition. A wrong implementation
+        SetArmed(armed, fp, 1);   // pre-armed: the discriminating precondition. A wrong implementation
                               // that checks "moved" before "acted" would leave this SURVIVING
                               // (the L-3 shape) instead of correctly consuming it.
 
@@ -206,7 +214,7 @@ public class MushinTests
             mushin.Tick(true);
         }
 
-        Assert.Empty(armed);
+        Assert.Empty(armed.All);
     }
 
     // ================= L-7 =================
@@ -239,7 +247,7 @@ public class MushinTests
         var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
         SetFlags(mem, wielderEntry, 1, 0, 0);   // first sight: mid-turn (flag already open)
         mushin.Tick(true);                       // primes only, no decision (safe: flags reset at open)
-        Assert.Empty(armed);
+        Assert.Empty(armed.All);
 
         SetFlags(mem, wielderEntry, 0, 0, 0);   // falls: decides normally
         mushin.Tick(true);
@@ -315,7 +323,7 @@ public class MushinTests
         SetFlags(mem, wielderEntryA, 0, 0, 0);
         SetFlags(mem, wielderEntryB, 0, 0, 0);
         mushin.Tick(true);   // primes both wielders' independent falling-edge state
-        armed[fpB] = 1;       // B pre-armed
+        SetArmed(armed, fpB, 1);   // B pre-armed
 
         // A does a genuine full wait: arms A only.
         SetFlags(mem, wielderEntryA, 1, 0, 0);
@@ -348,12 +356,12 @@ public class MushinTests
         mushin.Tick(false);
         SetFlags(mem, wielderEntry, 0, 0, 0);
         mushin.Tick(false);
-        Assert.Empty(armed);
+        Assert.Empty(armed.All);
 
         // Back on-field, prev is still frozen at 0 (the last on-field observation) and current
         // also reads 0: no phantom edge on return.
         mushin.Tick(true);
-        Assert.Empty(armed);
+        Assert.Empty(armed.All);
 
         // The module is still fully alive: a genuine subsequent full wait still arms normally.
         SetFlags(mem, wielderEntry, 1, 0, 0);
@@ -383,12 +391,12 @@ public class MushinTests
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>();
         var kills = new Dictionary<int, int> { [KikuId] = Tuning.ProdThresholds[2] };
-        var armed = new Dictionary<(int, int, int), int>();
+        var armed = new WielderKeyedStore<Box<int>>();
         var mushin = new Mushin(meta, kills, armed, mem);
 
         mushin.Tick(true);
 
-        Assert.Empty(armed);
+        Assert.Empty(armed.All);
     }
 
     [Fact]
@@ -400,12 +408,12 @@ public class MushinTests
             [KikuId] = new WeaponMeta { Name = "Kiku-ichimonji", Wp = 13, Cat = "Katana", Formula = 2, Signature = null }
         };
         var kills = new Dictionary<int, int> { [KikuId] = Tuning.ProdThresholds[2] };
-        var armed = new Dictionary<(int, int, int), int>();
+        var armed = new WielderKeyedStore<Box<int>>();
         var mushin = new Mushin(meta, kills, armed, mem);
 
         mushin.Tick(true);
 
-        Assert.Empty(armed);
+        Assert.Empty(armed.All);
     }
 
     [Fact]
@@ -426,13 +434,13 @@ public class MushinTests
         MemSeats.SeatRoster(mem, 0, lvl: fp.lvl, br: fp.br, fa: fp.fa, rh: OtherWeaponId, oh: KikuId);
         MemSeats.SeatBand(mem, 20, weapon: OtherWeaponId, lvl: fp.lvl, br: fp.br, fa: fp.fa,
                           gx: 2, gy: 2, hp: 200, maxHp: 300);
-        var armed = new Dictionary<(int lvl, int br, int fa), int>();
+        var armed = new WielderKeyedStore<Box<int>>();
         var mushin = new Mushin(meta, kills, armed, mem);
 
         mushin.Tick(true);
 
         Assert.True(StacksOf(armed, fp) == 0, "offhand-only wielder must never arm Mushin");
-        Assert.Empty(armed);   // ResolveDeployedMainHandAll never returns an offhand-only slot
+        Assert.Empty(armed.All);   // ResolveDeployedMainHandAll never returns an offhand-only slot
     }
 
     [Fact]
@@ -443,10 +451,10 @@ public class MushinTests
         mushin.Tick(true);   // prime at closed
         SetFlags(mem, wielderEntry, 1, 0, 0);
         mushin.Tick(true);   // turn opens: prev becomes 1 (mid-turn, no decision yet)
-        armed[fp] = 1;         // pretend a charge is already armed going into the reset
+        SetArmed(armed, fp, 1);   // pretend a charge is already armed going into the reset
 
         mushin.ResetBattle();
-        Assert.Empty(armed);
+        Assert.Empty(armed.All);
 
         // The prime state must ALSO be cleared: if a stale prev==1 survived the reset, the very
         // next tick reading flag==0 would be wrongly treated as a genuine falling edge (a decision
@@ -454,7 +462,7 @@ public class MushinTests
         // FIRST SIGHT instead: prime only, no decision.
         SetFlags(mem, wielderEntry, 0, 0, 0);
         mushin.Tick(true);
-        Assert.Empty(armed);   // no decision: this was a fresh prime, not a leaked falling edge
+        Assert.Empty(armed.All);   // no decision: this was a fresh prime, not a leaked falling edge
 
         // The module is fully alive post-reset: a genuine subsequent full wait still arms.
         SetFlags(mem, wielderEntry, 1, 0, 0);

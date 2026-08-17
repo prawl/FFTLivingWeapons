@@ -53,7 +53,10 @@ internal sealed partial class GrowthEngine
             ModLogger.Debug(LogVerb.Growth, $"mushin: restart residue corrected at capture (read {step.Baked}, natural {step.Natural})");
 
         var fp = (level, brave, faith);
-        int stacks = _mushinArmed.TryGetValue(fp, out int s0) ? s0 : 0;
+        // LW-252 stage 5: Probe (read-only, never creates) via the SAME resolution law
+        // Mushin.cs's writer side uses -- a null Probe (no stacks armed yet, OR an ambiguous
+        // nameId-0 twin transient) degrades to 0 stacks, identical to the old dictionary miss.
+        int stacks = _mushinArmed.Probe(rosterNameId, fp)?.Value ?? 0;
         int effectiveStacks = MushinPolicy.EffectiveStacks(stacks, tier, m.Signature!.AtTier);
         int target = Clamp(MushinPolicy.PaHeld(rec.natural, tier, Tuning.Factor, effectiveStacks, Tuning.MushinBonus));
 

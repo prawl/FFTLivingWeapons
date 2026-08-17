@@ -211,6 +211,40 @@ public class ActedPeriodLatchTests
         Assert.Equal("30", h.O.ActorTag);                    // unchanged too (same guard)
     }
 
+    [Fact]
+    public void LastActorNameId_refreshes_for_a_second_wielder_sharing_the_same_weapon_set()
+    {
+        // [LW-252 stage 3, S4: the F6 stale case] Mirrors LastActorFp_refreshes_... above for the
+        // new nameId field -- two Arcanum (30) holders again (SameSet true between them), this
+        // time each with their own roster nameId and a matching band-seat frame nameId. The
+        // refresh MUST sit outside the !SameSet guard exactly like LastActorFp's does: gated
+        // inside, wielder B's Step would never update LastActorNameId, leaving TrackDelayed's
+        // committer compare (KillTracker.Delayed.cs) checking B's band seat against A's stale
+        // identity -- a nameId-flavored repeat of the original Larceny bug.
+        const int NameIdA = 501, NameIdB = 502;
+        var h = new Harness();
+        MemSeats.SeatRoster(h.Mem, slot: 3, lvl: 99, br: 89, fa: 76, rh: 30, nameId: NameIdA);
+        MemSeats.SeatRoster(h.Mem, slot: 4, lvl: 50, br: 60, fa: 55, rh: 30, nameId: NameIdB);
+        SetUnit(h.Mem, P1, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetUnit(h.Mem, P2, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        MemSeats.SeatFrameNameId(h.Mem, P1, NameIdA);
+        MemSeats.SeatFrameNameId(h.Mem, P2, NameIdB);
+
+        SetActive(h.Mem, hp: 352, maxHp: 352, level: 99, acted: 1);
+        h.Step(); h.Step(); h.Step();
+        Assert.Equal(NameIdA, h.O.LastActorNameId);
+        Assert.Equal(new List<int> { 30 }, h.O.LastPlayerWeapons);
+
+        SetActive(h.Mem, hp: 352, maxHp: 352, level: 99, acted: 0);
+        h.Step(); h.Step(); h.Step();   // debounced fall
+
+        SetActive(h.Mem, hp: 400, maxHp: 400, level: 50, acted: 1);
+        h.Step();   // B latches; SameSet([30],[30]) is true
+
+        Assert.Equal(NameIdB, h.O.LastActorNameId);          // refreshed DESPITE SameSet
+        Assert.Equal(new List<int> { 30 }, h.O.LastPlayerWeapons);   // unchanged (SameSet guard)
+    }
+
     // --- fallback 3-streak stability ---
 
     [Fact]

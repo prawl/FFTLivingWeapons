@@ -21,6 +21,20 @@ internal sealed class GunSlingerStore
     {
         _path = Path.Combine(modDir, "gunslinger.json");
         _snaps = Load(_path);
+        // LW-252 decision-4 exception (a): a key-0 snapshot can only exist from BEFORE
+        // GunSlinger.cs's own nameId==0 scan guard shipped -- it was shared between whichever
+        // unseeded roster rows happened to collide on it, so its original-gear record cannot be
+        // safely attributed to either unit anymore. Purge it, warn ONCE (naming the hazard and
+        // the recovery the affected unit needs), and force a Save() immediately so the warning
+        // fires once EVER, not once per launch (Load never wrote back on its own).
+        if (_snaps.Remove(0))
+        {
+            ModLogger.Warn(LogVerb.Save,
+                "A shared gun-slinger gear snapshot (key 0, from an unseeded roster row) was found and discarded. "
+                + "Its original-gear record could not be safely attributed to any one unit. The affected unit keeps "
+                + "their twin weapon and Dual Wield until re-equipped, which re-snapshots their gear correctly.");
+            Save();
+        }
     }
 
     /// <summary>Get (or create) the mutable snapshot for a nameId.</summary>

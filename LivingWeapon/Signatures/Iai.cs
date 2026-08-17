@@ -64,17 +64,26 @@ namespace LivingWeapon;
 /// its restore is always best-effort via HoldState.LastEntry (a stale address is still better
 /// than leaving a wielder permanently fast for the rest of the battle).
 ///
-/// KNOWN LIMITATION (pre-existing, unchanged by this rebuild): two wielders sharing an IDENTICAL
-/// roster fingerprint (lvl,br,fa) collide on the fp-keyed <see cref="_holds"/> dictionary and
-/// share one HoldState. Vanishingly rare (the live repro's two wielders had distinct
-/// fingerprints); the release SIGNAL itself no longer depends on the fingerprint at all -- only
-/// the arming/hold bookkeeping does. Now ALSO covers a shared/ambiguous roster-nameId capture:
-/// Wielder.RosterNameId returns -1 when it can't uniquely identify a nameId for a hold's fp,
-/// which just routes that hold to the address-fallback path above -- never a crash, never a
-/// silent starve. And the inverse corner: two wielders with DIFFERENT fingerprints whose roster
-/// slots carry the SAME nameId (duplicated roster identities) would both identity-match the same
-/// acting unit and release together on the first one's turn -- premature-release direction only
-/// (both lose the boost early; nobody is left permanently fast), so it fails safe.
+/// FP-TWIN COLLISION (LW-252 stage 5, 2026-08-17): two wielders sharing an IDENTICAL roster
+/// fingerprint (lvl,br,fa) used to collide on the fp-keyed <see cref="_holds"/> dictionary and
+/// share one HoldState -- CLOSED for the common case: <see cref="_holds"/> is now a
+/// <see cref="WielderKeyedStore{TState}"/>, keyed primarily on each wielder's OWN roster nameId
+/// (each <see cref="_wielders"/> tuple carries its own row's nameId since LW-252 stage 5 widened
+/// Wielder.ResolveDeployedMainHandAll), so two SEEDED fp-twins now arm and release fully
+/// independent HoldStates. REMAINING LIMITATION, MASTER-PARITY (not a regression -- this pair was
+/// never distinguishable before this stage either): a MIXED pair where at least one member's
+/// nameId never resolves (genuinely unseeded, not merely a transient 0) still shares one HoldState
+/// -- WielderKeyedStore's own law (see its class doc): without ANY readable identity for that
+/// member, there is nothing to key it apart from its twin. Vanishingly rare (the live repro's two
+/// wielders had distinct fingerprints); the release SIGNAL itself never depended on the
+/// fingerprint at all -- only the arming/hold bookkeeping does. Still covers a shared/ambiguous
+/// roster-nameId capture: Wielder.RosterNameId returns -1 when it can't uniquely identify a
+/// nameId for a hold's fp, which just routes that hold to the address-fallback path above -- never
+/// a crash, never a silent starve. And the inverse corner: two wielders with DIFFERENT
+/// fingerprints whose roster slots carry the SAME nameId (duplicated roster identities) would both
+/// identity-match the same acting unit and release together on the first one's turn --
+/// premature-release direction only (both lose the boost early; nobody is left permanently fast),
+/// so it fails safe.
 ///
 /// LW-90 post-release corrective. Its premise was OBSERVED live 2026-07-21 (owner repro
 /// session) but is NOT proven: docs/LIVE_LEDGER.md files that row under Uncertain, and only
@@ -115,8 +124,12 @@ internal sealed partial class Iai : ISignature
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly NaturalLedger _ledger;
-    private readonly List<(long entry, (int lvl, int br, int fa) fp)> _wielders = new();
-    private readonly Dictionary<(int lvl, int br, int fa), HoldState> _holds = new();
+    private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _wielders = new();
+    // LW-252 stage 5: re-keyed off WielderKeyedStore -- see its class doc for the resolution law.
+    // Closes the fp-twin collision the old fp-only dictionary carried as a documented limitation
+    // (below): two SEEDED fp-twin wielders now get independent HoldStates; a mixed pair (either
+    // member genuinely unseeded) still shares one, matching yesterday's behavior for that pair.
+    private readonly WielderKeyedStore<HoldState> _holds = new();
 
     // Priming (F5, load-bearing -- see Iai.Policy.ReleaseSignal's doc comment): both
     // previous-state values are seeded from the CURRENT read on the first evaluated tick
@@ -156,7 +169,7 @@ internal sealed partial class Iai : ISignature
         // Collect all Iai wielder entries before the scan so the field-max excludes them all (F2):
         // excluding only self makes two wielders ratchet each other upward to the sane clamp.
         var wielderEntries = new HashSet<long>(_wielders.Count);
-        foreach (var (e, _) in _wielders) wielderEntries.Add(e);
+        foreach (var (e, _, _) in _wielders) wielderEntries.Add(e);
 
         int fieldMax = ScanFieldMax(wielderEntries);
 
@@ -192,15 +205,22 @@ internal sealed partial class Iai : ISignature
     /// computed once per tick in Tick; <paramref name="now"/> is Tick's own clock parameter.</summary>
     private void ApplyHolds(DateTime now, int fieldMax)
     {
-        foreach (var (entry, fp) in _wielders)
+        foreach (var (entry, fp, nameId) in _wielders)
         {
-            if (!_holds.TryGetValue(fp, out var state))
+            // LW-252 stage 5: keyed via WielderKeyedStore (nameId primary, fp fallback -- see its
+            // class doc). The factory below runs ONLY on a genuine first arm (never on an
+            // alias-adopt, so NameId capture + the arm log still fire exactly once per hold's
+            // lifetime, byte-identical to the old TryGetValue-miss branch). null = LW-252 SKIP
+            // (an ambiguous nameId-0 tick for a fp two SEEDED twins already registered): treat
+            // this wielder exactly as "not located this tick" -- no create, no re-arm, no write.
+            var state = _holds.GetOrCreate(nameId, fp, () =>
             {
-                state = new HoldState { ArmedAt = now };
-                state.NameId = Wielder.RosterNameId(_mem, AmeNoMurakumoId, fp);
-                _holds[fp] = state;
+                var s = new HoldState { ArmedAt = now };
+                s.NameId = Wielder.RosterNameId(_mem, AmeNoMurakumoId, fp);
                 ModLogger.Event(LogVerb.Signature, $"The Ame-no-Murakumo wielder's Speed is held above the whole field so they act first this battle (level {fp.lvl}, brave {fp.br}, faith {fp.fa})");
-            }
+                return s;
+            });
+            if (state == null) continue;
 
             // Refresh the last-known-resolved entry every tick this wielder appears in _wielders,
             // whether or not it is still held -- the release+cap pass below needs it even on
@@ -278,7 +298,7 @@ internal sealed partial class Iai : ISignature
     private void SweepReleases(bool evaluate, long acting, bool actedNow, int actingNameId,
         bool flagResolved, long flagEntry, int flagNameId, DateTime now)
     {
-        foreach (var (fp, state) in _holds)
+        foreach (var (state, fp, _) in _holds.All)
         {
             if (state.Released) continue;
 
@@ -334,8 +354,9 @@ internal sealed partial class Iai : ISignature
         return max;
     }
 
-    /// <summary>Mutable per-wielder hold state, keyed by roster fingerprint (lvl,br,fa) in
-    /// <see cref="_holds"/>. A reference type so Tick mutates the SAME instance in place across ticks.</summary>
+    /// <summary>Mutable per-wielder hold state, keyed via <see cref="WielderKeyedStore{TState}"/>
+    /// in <see cref="_holds"/> (LW-252 stage 5: nameId primary, fp fallback -- see its class doc).
+    /// A reference type so Tick mutates the SAME instance in place across ticks.</summary>
     private sealed class HoldState
     {
         public DateTime ArmedAt;

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Reflection;
 using LivingWeapon;
 using Xunit;
 using static LivingWeapon.Tests.KillTrackerFixtures;
@@ -358,5 +359,74 @@ public class DelayedActorTests
 
         Assert.Equal(1, kills.GetValueOrDefault(wb));
         Assert.False(kills.ContainsKey(wa));
+    }
+
+    // --- LW-252 stage 3: the committer snapshot uses nameId (not bare fingerprint) once both
+    // sides have one, closing the fp-twin ambiguity a (level,brave,faith)-only compare cannot:
+    // two fp-twin band slots are indistinguishable to TrackDelayed's snapshot check without it. ---
+
+    private static List<int>?[] ChargeWeapons(KillTracker t) => (List<int>?[])typeof(KillTracker)
+        .GetField("_chargeWeapons", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(t)!;
+
+    [Fact]
+    public void TrackDelayed_snapshot_uses_nameId_not_bare_fp_to_pick_the_true_committer_among_twins()
+    {
+        // [S2, THE stage-3 red] TrueCommitter (nameId 501) is the genuinely latched actor.
+        // TwinBystander sits at a SEPARATE band slot sharing the SAME (level,brave,faith) --
+        // a pure fp-twin -- but carries a DIFFERENT frame nameId (777) and, this tick, ALSO
+        // shows the delayed bit set (its own unrelated Jump/charge, nothing to do with the
+        // latch). Pre-fix: TrackDelayed's per-slot compare is bare fp equality, so BOTH slots
+        // pass it -- a "double snapshot" that makes the bystander's own bit-clear timing
+        // eligible to arm the delayed-credit window. Fixed: the latch carries a nameId (501,
+        // > 0) and both seats' own frame nameIds are readable (> 0), so nameId equality decides
+        // -- only TrueCommitter's slot (501 == 501) passes; TwinBystander's (777 != 501) does not.
+        const int TrueNameId = 501, TwinNameId = 777;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: W, nameId: TrueNameId);
+        SetUnit(m, PSlot, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        SetFrameNameId(m, PSlot, TrueNameId);
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t, 3);   // TrueCommitter latches: _lastActorFp=(99,89,76), _lastActorNameId=501
+
+        // Stage the fp-twin bystander at a separate slot: same fp, foreign nameId, ALSO delayed.
+        SetUnit(m, QSlot, hp: 400, maxHp: 400, level: 99, brave: 89, faith: 76);
+        SetFrameNameId(m, QSlot, TwinNameId);
+        SetJumpBit(m, PSlot, set: true);
+        SetJumpBit(m, QSlot, set: true);
+        t.Poll(true);   // one TrackDelayed pass: both slots see delayed==true, no prior snapshot
+
+        var chargeWeapons = ChargeWeapons(t);
+        Assert.NotNull(chargeWeapons[PSlot]);   // the true committer IS snapshotted
+        Assert.Null(chargeWeapons[QSlot]);      // the fp-twin bystander is NOT (nameId 777 != 501)
+    }
+
+    [Fact]
+    public void TrackDelayed_snapshot_falls_back_to_fp_when_either_side_has_no_nameId()
+    {
+        // [S3, the nameId-0 parity pin] Identical shape to S2, but nobody's nameId is seeded
+        // (the latch's own _lastActorNameId stays 0, and neither band seat's frame nameId is
+        // set either) -- the DELIBERATE fail-open degradation to today's bare fp compare, same
+        // convention as every other LW-252 veto/compare in this codebase. Both slots pass, same
+        // as the pre-fix behavior, because there is no readable identity on either side to trust.
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        SetRoster(m, slot: 3, level: 99, brave: 89, faith: 76, weapon: W);   // nameId defaults 0
+        SetUnit(m, PSlot, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
+        // PSlot's own frame nameId left unseeded (0) too.
+        SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);
+        var t = new KillTracker(kills, m, Weapons);
+        Settle(t, 3);   // latches; _lastActorNameId stays 0 (never seeded)
+
+        SetUnit(m, QSlot, hp: 400, maxHp: 400, level: 99, brave: 89, faith: 76);
+        // QSlot's own frame nameId also left unseeded (0).
+        SetJumpBit(m, PSlot, set: true);
+        SetJumpBit(m, QSlot, set: true);
+        t.Poll(true);
+
+        var chargeWeapons = ChargeWeapons(t);
+        Assert.NotNull(chargeWeapons[PSlot]);   // fp compare passes for both, same as pre-fix
+        Assert.NotNull(chargeWeapons[QSlot]);
     }
 }

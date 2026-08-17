@@ -55,7 +55,12 @@ internal sealed partial class GrowthEngine
         AfterimageState next;
         if (AfterimagePolicy.IsActive(m.Signature, tier))
         {
-            int turns = _turns.Turns(level, brave, faith);
+            // LW-252 stage 5: query keyed by the SAME rosterNameId TurnTracker's credit site
+            // would resolve for this unit (both read off the same roster row's nameId field) --
+            // a split between query key and credit key would freeze the ramp at whatever it read
+            // on the tick the keys diverged (a permanent stat hold), so this must never fall back
+            // to the bare fp overload.
+            int turns = _turns.Turns(rosterNameId, level, brave, faith);
             int hp = ReadHp(_mem, level, brave, faith, rosterNameId).hp;   // 0 if no band match -> policy treats as unreadable
             next = AfterimagePolicy.Step(rec.st, turns, hp, Tuning.AfterimageSpeedCap);
         }

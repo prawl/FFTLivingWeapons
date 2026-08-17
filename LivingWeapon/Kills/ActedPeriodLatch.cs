@@ -26,6 +26,14 @@ internal sealed class ActedPeriodOutputs
     internal List<int> LastPlayerWeapons = new();
     internal int LastPlayerMainHand;
     internal (int lvl, int br, int fa) LastActorFp;
+    // LW-252 stage 3: the acting unit's own frame nameId, carried beside LastActorFp through the
+    // whole latch lifecycle (same refresh timing, same Reset/FirstKillFallback treatment) so
+    // KillTracker's delayed-action committer compare (TrackDelayed) can verify identity by nameId
+    // instead of bare fingerprint once both sides have one -- see ActedPeriodLatch.Step's refresh
+    // site for why it sits OUTSIDE the !SameSet guard exactly like LastActorFp does. 0 = no
+    // resolved actor this latch has ever named a nameId for (never-latched, an ambiguous/enemy
+    // acted-period, or the first-kill fallback -- see FirstKillFallback's own note).
+    internal int LastActorNameId;
     internal bool LatchResolvedEmpty;
     internal bool LatchViaFallback;
     internal int LastResolveTick;
@@ -127,7 +135,14 @@ internal sealed class ActedPeriodLatch
                     // MUST be outside the !SameSet guard: two Arcanum holders share weapon set {30},
                     // so SameSet is true between them -- if gated inside, switching between two
                     // same-weapon wielders would never update the fingerprint (the Larceny bug).
-                    o.LastActorFp = _resolver.TryResolveActingFingerprint(out var afp) ? afp : default;
+                    // LW-252 stage 3: the acting unit's nameId refreshes on the SAME call, SAME
+                    // placement, for the SAME reason -- two same-set wielders handing off must not
+                    // leave a stale identity behind either (TrackDelayed's committer compare would
+                    // otherwise keep matching the PREVIOUS wielder's nameId against the new one's
+                    // band seat).
+                    bool resolvedFp = _resolver.TryResolveActingFingerprint(out var afp, out var actorNameId);
+                    o.LastActorFp = resolvedFp ? afp : default;
+                    o.LastActorNameId = actorNameId;   // 0 on any unresolved/ambiguous path (the resolver's own contract)
                     if (!ActorResolver.SameSet(ws, o.LastPlayerWeapons))
                     {
                         o.LastPlayerWeapons = ws;
@@ -190,6 +205,13 @@ internal sealed class ActedPeriodLatch
         {
             o.LastPlayerWeapons = ws;
             o.LastPlayerMainHand = _resolver.ResolveActingMainHand();
+            // LW-252 stage 3: NO nameId set here on purpose -- ResolveActingWeapons/ResolveActingMainHand
+            // above only ever surface weapon ids, never an identity, and this path only reaches
+            // acceptance when o.LastActorNameId is still at its Reset-time default (0: the acted-path
+            // branch above is the only latch-confirm site that resolves a fingerprint at all, and it
+            // never ran this battle -- that is this method's own precondition, `o.LastPlayerWeapons.Count
+            // == 0` at entry). Leaving it untouched keeps it 0, so TrackDelayed's committer compare
+            // correctly falls back to fp for a first-kill-fallback-latched actor.
             o.ActorTag = string.Join(",", ws);
             o.LastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
             _fallbackStreak = 0; _fallbackSet = new();
@@ -216,6 +238,7 @@ internal sealed class ActedPeriodLatch
         o.LastPlayerWeapons = new();
         o.LastPlayerMainHand = 0;
         o.LastActorFp = default;
+        o.LastActorNameId = 0;   // LW-252 stage 3: clears beside LastActorFp
         o.LastResolveTick = 0;
         o.Latched = false;
         o.PeriodOpen = false;

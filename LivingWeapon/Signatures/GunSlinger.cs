@@ -74,6 +74,17 @@ internal sealed class GunSlinger
             ushort offH   = _mem.U16(b + Offsets.ROffHand);
             ushort supp   = _mem.U16(b + Offsets.RSupport);
 
+            // LW-252 decision-4 exception (a): GunSlingerStore.Get CREATES on read and keys
+            // snapshots by nameId, so two unseeded rows (nameId 0 -- a Mem fail-safe transient,
+            // or a genuinely stale read) would share ONE snapshot: whichever row's
+            // SnapshotAndWrite ran first captures ITS original gear into the shared object, and
+            // restoring it later cross-writes that gear into a DIFFERENT unit's save-persistent
+            // roster row. Skipping is safe: never observed live (real saves' nameIds are all
+            // seeded, per this session's probe) and self-healing (the next tick's read is a
+            // fresh Mem sample, so a genuinely transient 0 clears itself without ever having
+            // touched the store).
+            if (nameId == 0) continue;
+
             int tier = Tuning.TierOf(_kills, mainH);
             bool mainIsGS = _twinIds.Contains(mainH)
                          && _meta.TryGetValue(mainH, out var m)
