@@ -148,6 +148,26 @@ the technical detail lives in the indented lines under it.
   the id in the window, plus one round of watch tapes showing the fire-set equals the phantom
   set. The interim cost is accepted phantom inflation, benign direction only.)
 
+- [LW-255] 2026-08-17: The black box records what the mod SAW but not what it DECIDED, so any
+  check that quietly says no leaves no trace at all and the next person has to re-derive the
+  refusal by hand. Proven the expensive way on the LW-233 live drill: the retry detector declined
+  to fire, and because it only ever writes a record on SUCCESS, settling which of its gates
+  refused took a code read plus stopwatch arithmetic against the tape instead of a single line
+  saying so. Three gaps, worst first. One, a detector that can decline records nothing when it
+  does; it should name the gate that refused. Two, values the code DERIVES are absent, so a
+  reader has to recompute them from the raw inputs and can get it wrong. Three, records are
+  written only on change, which makes a quiet stretch and a stalled tick loop look identical on
+  the tape, and the LW-233 drill carried an 8.6 second hole of exactly that kind across the
+  game-over screen. The generalisation worth keeping is that a silent refusal is the expensive
+  kind of silence, because the moment anyone cares about it the evidence is already gone.
+  (Tech: RestartSentinel.LogOpenEdge is the only recorder call in the class, so the miss paths
+  in Tick / PresentRevive / ProcessStash and the ShouldOpenLatch grace refusal are all invisible;
+  onField, the derived gate input feeding the sentinel's inLiveish, is absent from the tape and
+  has to be re-derived from the mode records through BattleState.OnField; a sparse heartbeat
+  record would separate a starved tick loop from a quiet one. Evidence tape
+  tools/probes/tapes/lw233_death_retry_live_20260817.jsonl. Vocabulary is FROZEN per the
+  log-facelift note, so new record types need that constraint respected.)
+
 - [LW-246] 2026-08-16: Players did not like the recoloured icons, and the reason is now known
   and measured instead of guessed. A spriter player named it and a five lens diagnostic confirmed
   it: the old engine threw away the artist's own colour choices pixel by pixel, so highlights
