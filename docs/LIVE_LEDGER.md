@@ -1146,6 +1146,55 @@ The terrain grid at 0x140D8DCC0 is real per-tile height read live for the single
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [party-nameid-unique-key] Party roster nameIds are UNIQUE per occupied row, and the frame mirror covers every deployed player seat (wrong-unit fix premise)
+
+Every occupied party roster row carries a nonzero nameId distinct from every other row, and in battle every deployed player seat's frame nameId (Offsets.ANameId, the [frame-1fc-nameid-mirror] field) reads nonzero, maps to exactly one roster row, and holds steady through movement, damage, and the unit's own death; two deliberately deployed (level,brave,faith) fingerprint twins resolved to distinct nameIds. Observed 2026-08-17, pending owner PROVEN flip.
+
+<details><summary>How we got here</summary>
+
+**Claim:** the roster nameId can serve as the truly unique join key between a party roster
+row and its live band seat, replacing the colliding (level,brave,faith) stat fingerprint
+that fuels the wrong-unit bug (player report 2026-08-17: kills credited to the wrong weapon,
+Dual Wield leaking onto a second unit).
+
+**Mechanism:** roster RNameId (row +0x230, u16) is assigned per recruited unit; the combat
+frame mirrors it at +0x1FC ([frame-1fc-nameid-mirror], PROVEN 2026-07-01). If no two
+occupied rows share a nameId, then nameId equality is an exact identity join and every
+stat-fingerprint ambiguity becomes resolvable instead of guessable.
+
+**Evidence (probe `tools/probes/nameid_unique_probe.py`, read-only, addresses parsed from
+Offsets.cs):**
+* P1 `roster` verb, world map, owner's real save: 42 occupied rows, every nameId nonzero,
+  zero duplicates. Bonus: rows 16 and 39 are exact (36,49,62) fingerprint twins (the two
+  chocobos Phlegrai and Pisos) with DISTINCT nameIds 929 and 914, live proof that the
+  collision class behind the player report occurs in an ordinary roster.
+* P2 `battle` verb, run 1: owner deployed Ramza plus BOTH fingerprint twins. Seats 24/25
+  read nameIds 929/914 and mapped to roster rows 16/39 respectively; identical on every
+  field the current locate matches (level, brave, faith, unarmed weapon sentinel). Ramza
+  appeared at his real seat AND his frozen (0,0) mirror seat, both nameId 1.
+* P2 run 2, several turns later, one twin KO'd: all 18 plausible seats read byte-identical
+  nameIds to run 1 while positions and HP moved; the KO'd twin (HP 0) KEPT nameId 929. So
+  the mirror survives death, which also covers corpse-side identity.
+* P2 run 3, battle RESTARTED with placement order reversed (Ramza first, twins after): the
+  three player seats re-bound per the NEW placement order (Ramza moved seat 26 to 24), the
+  nameId join still resolved every unit to its correct roster row, and all three nameIds
+  were IDENTICAL across the reload. So band seats follow PLACEMENT order (never roster
+  order), the join is order-proof by construction, and player nameIds are stable across
+  battle loads. The frozen (0,0) mirror seat cloned the LAST-PLACED unit in both battles
+  (Ramza in run 1, Pisos in run 3), each time with that unit's exact nameId.
+
+**Recorded caveats:** (1) uniqueness sampled on ONE save (42 rows); a duplicate on another
+save must still fail closed, never mis-resolve. (2) The frozen (0,0) mirror carries the
+SAME nameId as the real seat, so the real-position twin filter stays mandatory; nameId
+replaces the stats guessing, not the mirror handling. (3) Generic ENEMY nameIds re-roll per
+load ([boss-canonical-nameid-stable]), so nameId is an in-session join key for players, not
+a cross-save persistent identity. (4) No player seat ever read nameId 0 in these runs; the
+unseeded-0 fail-safe convention in code stays.
+
+**Date:** 2026-08-17
+
+</details>
+
 ### [pe-key-match-kitlane-mismatch-discriminator] PE-build-key match + JobCommand rec8/rec9 mismatch discriminates a mod rewrite from a game update (LW-112 guard split)
 
 The claim that a matching PE build key combined with a rec8/rec9 landmark mismatch means another mod rewrote the table (so the split guard arms the mod and stands down only the weapon-command lane) is Uncertain: desk analysis plus a player field report support it, but the owner's pre-registered two-leg conflict-mod drill is still the pending live proof (2026-07-28).

@@ -111,6 +111,30 @@ the technical detail lives in the indented lines under it.
     preview manifest pixel for pixel, which for the first time in the programme is 468 of 468
     surfaces with nothing stale; and the owner's gallery pass.
 
+- **[LW-252] The mod can mistake one soldier for a lookalike, sending kills and weapon gifts to the wrong unit** (opened 2026-08-17) [BUILDING]
+  - A player reported kills landing on the wrong weapon's tally, and a Dragoon attacking twice
+    because another unit's granted ability leaked onto him. The cause: the mod tells units apart
+    by level, bravery and faith, and two units can share all three. The code path that should
+    refuse in that ambiguous case instead quietly falls back to an even weaker check and picks
+    somebody. The owner's own roster holds such a twin pair right now (two chocobos, both level
+    36 bravery 49 faith 62), so the collision is ordinary, not exotic.
+  - The fix has two halves. First, every ambiguous match refuses instead of guessing (miss,
+    never mis-credit). Second, identity moves onto the unit's name id, which the 2026-08-17
+    live probe showed is unique across all 42 party members and mirrored into each unit's
+    battle struct, holding steady through movement, damage and even a deployed twin's death.
+    (Tech: probe tools/probes/nameid_unique_probe.py; ledger [party-nameid-unique-key], flip
+    pending. Holes: Wielder.Roster.cs ResolveAnyHandNameId returns minus one on 2+ fp matches,
+    which disables BOTH the tier 1 nameId gate and the tier 2 veto in Wielder.Locate, and
+    ActorResolver.FingerprintPlayer's legacy armed fallback returns a colliding row's hands
+    when the acting weapon fails to disambiguate.)
+  - Done means: two roster units sharing level, bravery and faith are never conflated. Locate
+    and kill attribution key on the roster name id end to end, every genuinely ambiguous case
+    refuses rather than guesses, and the twin chocobo scenario passes live.
+  - Verify: new xUnit tests covering the twin collision (two fake roster slots sharing the
+    fingerprint with different weapons and name ids) fail on the old code and pass on the new;
+    analyze.py plus the full suite green; owner live pass with the two chocobo twins deployed
+    confirming signatures and kill credit land on the right unit.
+
 
 ## Backlog
 
