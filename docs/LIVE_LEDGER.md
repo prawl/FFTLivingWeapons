@@ -1790,6 +1790,49 @@ Uncertain as of 2026-08-12: a player report says cards render factory-reset afte
 
 </details>
 
+### [worldmap-menu-open-byte] A byte at 0x140D508D0 reads 1 exactly while a world-map menu (party, equip, shop, save) is open, 0 on the free map, during travel, and through the whole formation and battle-load flow
+
+Uncertain as of 2026-08-17 (evidence strong, owner flip pending): found this session for the LW-193 consent rewrite, which wants the twin grant suppressed exactly while the player can touch equipment. The byte flipped 0 to 1 on every menu open and back on every close across a scripted torture tour, stayed 0 across four world-map travel hops, and stayed 0 through formation screens and battle loading in four separate battle runs.
+
+<details><summary>How we got here</summary>
+
+**Claim:** 0x140D508D0 (u8) is a world-map "a menu panel is open" flag suitable as the twin grant's suppression gate; PauseFlag and SubmenuFlag cannot serve (both are battle-scope status-card signals per their own doc comments, re-confirmed reading 0 in every world-map menu state this session).
+
+**Mechanism:** sits in a UI panel-flag family around 0x140D508xx; sibling 0x140D508EC tracks it, 0x140D50916 is its clean inverse. Nearby decode from the same hunt: 0x140D49554 is a menu-transition fade countdown (steps 15..0 per transition) and 0x140D4955C its fade-done flag.
+
+**Evidence (probe `tools/probes/menu_signal_probe.py`, method = the consistency-sampled multi-state solve from the 1.5.1 re-anchor):**
+* Narrow solve over the three known candidate families came up EMPTY across 5 states (free, party, equip, save, free2), which is itself the proof that no previously known constant covers this.
+* Wide solve over the full 17.5MB static span (12 samples per state, numpy constant-intersection): 1855 bytes separate menu from free, 146 of them clean 0/1 flags.
+* Torture tour on the top 12 (tape `tools/probes/tapes/lw193_menusig_20260817_063908.log`): 0x140D508D0 flipped on party open/close twice, the equip trip, and the SHOP, silent across all travel hops; one 500ms double-pulse during the town-exit fade. The early favorite 0x140D506B4 was disqualified there, pulsing 50ms on every travel hop.
+* Formation/battle behavior: read 0 through the entire formation and battle-load flow in the twinless runs (tapes lw193_twinless*.log), so a gate on this byte deliberately does NOT suppress the pre-battle window, which premise [twin-dualfire-construction-bound] requires.
+
+**Recorded caveats:** (1) story dialogs, the world-map modal message box, and mid-battle menus were not sampled; the shipped gate should debounce flips and fail toward suppression when unreadable. (2) Not yet an Offsets.cs constant; promote it with the fix arc. (3) Single save, single session; the byte is a UI-family flag, so a game patch can move it like any static.
+
+**Date:** 2026-08-17
+
+</details>
+
+### [twin-dualfire-construction-bound] Dual-wield twin-fire is WELDED at battle construction: a battle built with an empty roster off-hand fires ONE shot even after the twin is stamped into the roster mid-battle
+
+Uncertain as of 2026-08-17 (evidence strong, owner flip pending): with the roster off-hand held EMPTY through unit construction and released on the visible battlefield, the mod's stamp landed 0.4s later and the wielder still rendered one pistol and fired ONE shot. Post-construction roster stamps reach neither the dual-fire nor the field visual. Consequence for the LW-193 consent rewrite: the twin must be present in the roster when a battle constructs, so grant suppression must never cover the formation flow (and per [worldmap-menu-open-byte], the chosen gate naturally does not).
+
+<details><summary>How we got here</summary>
+
+**Claim:** the question the menu-evaporation design hinged on: if the twin is absent at construction, does the in-battle re-assert still deliver double Attack? Answer: NO.
+
+**Mechanism:** battle units are constructed from the roster; the constructed unit's weapon state (and its field model) never re-derives from later roster writes. The in-battle re-assert's real job is therefore keeping the twin in the ROSTER (the game clears it mid-battle; observed at 07:17:15 coinciding to the second with the autosave write) so the battle-end gear commit and the NEXT construction still carry it, not enabling the current battle's dual-fire.
+
+**Evidence (probe `tools/probes/twinless_probe.py`, four owner-run battles 2026-08-17, tapes `tools/probes/tapes/lw193_twinless*.log`):**
+* Runs 1-3 were CONFOUNDED, each teaching the construction timeline: battleMode flips at the FORMATION phase ~40s before units build (run 1); the battle band holds stale frozen seats from the previous battle so seat-counting fires instantly (run 2); the band is rewritten in STAGES with the encounter load first, so a bulk-rewrite trigger still fires pre-formation (run 3). In each, the mod's stamp won the race and the owner correctly saw two pistols at formation.
+* Run 4 (hold4, human-released): the hold kept the off-hand EMPTY through formation (owner bait check: ONE pistol rendered at formation, vs two in the confounded runs), construction completed during the hold, the release marker landed at 07:16:22.343 and the mod stamped oh=71 supp=477 at 07:16:22.746. The owner then observed ONE pistol on the field unit and Attack fired ONE shot.
+* The pre-fix baseline (twin present at construction) fires two shots, re-confirmed live in runs 1-3 the same hour.
+
+**Recorded caveats:** (1) one weapon (Outrider Pistol) and one battle for the decisive leg; the crossbow twin shares the identical lane (LW-171 data-driven). (2) Whether a mid-battle Re-equip can re-derive the constructed unit's weapons (the LW-191 lane) remains its own open question; nothing here settles it. (3) The 07:17:15 game-side roster clear coinciding with the autosave write is an observation, not an isolated mechanism.
+
+**Date:** 2026-08-17
+
+</details>
+
 ## Contradicted — probe before building on these
 
 ### [terrain-height-byte-blocks-movement] Terrain grid HEIGHT (byte +2) write BLOCKS movement (the Bulwark premise, as ORIGINALLY built)

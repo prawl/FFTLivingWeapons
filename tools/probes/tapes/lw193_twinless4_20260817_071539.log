@@ -1,0 +1,58 @@
+# twinless hold4: Ramza roster slot 0, rh=71; clearing until release marker C:\Users\ptyRa\AppData\Local\Temp\lw193_release_hold
+07:15:39.841 battleMode: None -> 0
+07:15:39.841 off-hand: None -> 71 (mode=0, clears=0)
+07:15:39.892 off-hand: 71 -> 255 (mode=0, clears=1)
+07:15:40.448 off-hand: 255 -> 71 (mode=0, clears=1)
+07:15:40.499 off-hand: 71 -> 255 (mode=0, clears=2)
+07:15:41.963 off-hand: 255 -> 71 (mode=0, clears=2)
+07:15:42.014 off-hand: 71 -> 255 (mode=0, clears=3)
+07:15:43.480 off-hand: 255 -> 71 (mode=0, clears=3)
+07:15:43.531 off-hand: 71 -> 255 (mode=0, clears=4)
+07:15:44.997 off-hand: 255 -> 71 (mode=0, clears=4)
+07:15:45.047 off-hand: 71 -> 255 (mode=0, clears=5)
+07:15:46.462 off-hand: 255 -> 71 (mode=0, clears=5)
+07:15:46.513 off-hand: 71 -> 255 (mode=0, clears=6)
+07:15:47.979 off-hand: 255 -> 71 (mode=0, clears=6)
+07:15:48.030 off-hand: 71 -> 255 (mode=0, clears=7)
+07:15:49.495 off-hand: 255 -> 71 (mode=0, clears=7)
+07:15:49.548 off-hand: 71 -> 255 (mode=0, clears=8)
+07:15:51.014 off-hand: 255 -> 71 (mode=0, clears=8)
+07:15:51.065 off-hand: 71 -> 255 (mode=0, clears=9)
+07:15:52.529 off-hand: 255 -> 71 (mode=0, clears=9)
+07:15:52.580 off-hand: 71 -> 255 (mode=0, clears=10)
+07:15:54.044 off-hand: 255 -> 71 (mode=0, clears=10)
+07:15:54.095 off-hand: 71 -> 255 (mode=0, clears=11)
+07:15:55.561 off-hand: 255 -> 71 (mode=0, clears=11)
+07:15:55.612 off-hand: 71 -> 255 (mode=0, clears=12)
+07:15:57.026 off-hand: 255 -> 71 (mode=0, clears=12)
+07:15:57.077 off-hand: 71 -> 255 (mode=0, clears=13)
+07:15:58.544 off-hand: 255 -> 71 (mode=0, clears=13)
+07:15:58.595 off-hand: 71 -> 255 (mode=0, clears=14)
+07:16:00.009 off-hand: 255 -> 71 (mode=0, clears=14)
+07:16:00.061 off-hand: 71 -> 255 (mode=0, clears=15)
+07:16:01.525 off-hand: 255 -> 71 (mode=0, clears=15)
+07:16:01.576 off-hand: 71 -> 255 (mode=0, clears=16)
+07:16:03.040 off-hand: 255 -> 71 (mode=0, clears=16)
+07:16:03.091 off-hand: 71 -> 255 (mode=0, clears=17)
+07:16:04.506 off-hand: 255 -> 71 (mode=0, clears=17)
+07:16:04.556 off-hand: 71 -> 255 (mode=0, clears=18)
+07:16:04.909 battleMode: 0 -> 1
+07:16:06.019 off-hand: 255 -> 71 (mode=1, clears=18)
+07:16:06.069 off-hand: 71 -> 255 (mode=1, clears=19)
+07:16:06.575 battleMode: 1 -> 0
+07:16:07.333 battleMode: 0 -> 1
+07:16:07.535 off-hand: 255 -> 71 (mode=1, clears=19)
+07:16:07.586 off-hand: 71 -> 255 (mode=1, clears=20)
+07:16:07.940 battleMode: 1 -> 2
+07:16:08.495 battleMode: 2 -> 1
+07:16:08.596 battleMode: 1 -> 0
+07:16:09.961 off-hand: 255 -> 71 (mode=0, clears=20)
+07:16:10.012 off-hand: 71 -> 255 (mode=0, clears=21)
+07:16:21.584 battleMode: 0 -> 1
+07:16:21.736 battleMode: 1 -> 3
+07:16:22.040 battleMode: 3 -> 2
+07:16:22.343 RELEASE MARKER SEEN: hold released after 21 clears; watching read-only
+07:16:22.746 off-hand: 255 -> 71 (mode=2, supp=477)
+07:17:15.008 off-hand: 71 -> 255 (mode=0, supp=477)
+07:17:16.371 off-hand: 255 -> 71 (mode=0, supp=477)
+07:19:22.386 watch window over

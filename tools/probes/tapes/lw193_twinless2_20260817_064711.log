@@ -1,0 +1,6 @@
+# twinless hold2: Ramza roster slot 0, rh=71; clearing until >=2 plausible band seats
+06:47:11.316 battleMode: None -> 0
+06:47:11.316 off-hand: None -> 71 (mode=0)
+06:47:11.316 plausible band seats: -1 -> 17
+06:47:11.316 CONSTRUCTION SEEN (17 seats): HOLD RELEASED after 0 clears; watching read-only
+06:49:11.353 watch window over
