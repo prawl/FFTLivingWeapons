@@ -74,22 +74,36 @@ the technical detail lives in the indented lines under it.
     proving those pins bite; each blade's second material measured on the real art; the bake
     matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
 
-- **[LW-210] The four books, and the game's most strongly coloured sprite was wearing gold** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-16, owner gallery pass outstanding. The healthiest family by coverage
-    the programme ever measured, at a CARD median of 67.0 percent, so this one is here to finish
-    the set rather than to fix a number. A book is a coloured cover and a pale page block, which
-    is a second material the artist already drew, so one zone is enough and the brightness key
-    finds the pages on all four.
-  - The Omnilex kept its vanilla name and is the Book line's Holy capstone, and its artwork is
-    the most strongly coloured sprite in the whole game at icon chroma 0.388, a deep vermilion.
-    It takes the Holy Lance's resolution for the fifth time: the vermilion stays on the cover
-    where the artist put it and the holy goes into gilt-edged pages.
-  - Done means: all four carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, the reserved name is anchored
-    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
-  - Verify: all four gates green with the family inside every owner-rule pin and mutations
-    proving those pins bite; each book's page block measured on the real art; the bake matching a
-    FULL preview manifest pixel for pixel; and the owner's gallery pass.
+- **[LW-233] Losing a battle and retrying it makes the same enemies count twice, so a weapon grows on kills the player never really earned** (opened 2026-08-14) [BUILDING]
+  - Promoted 2026-08-17: the cause is settled by an owner drill and the fix premises live on
+    banked tapes, so the arc can run while the owner is away. The mod never sees a retry: the
+    whole lose-and-retry runs as one continuous battle session (one battle-start, ZERO exit
+    edges on the drill tape), corpses stand back up, the credit latch correctly re-arms as it
+    would for a Raise, and the same enemies pay out again. The tally saves at battle exit, so
+    the inflation is permanent in the save file.
+  - Two restart detectors are measured across THREE retries with 188 actor records and zero
+    false positives: the engine's actor pointer reads null exactly once per retry, firing 62ms
+    BEFORE the restore lands (a leading indicator, so credit can be frozen rather than
+    reconciled), and "healed from 0 HP AND relocated on the same tick" marks the restore
+    itself, a shape a real Raise never produces. (Tech: drill tape
+    tools/probes/tapes/lw233_retry_drill_20260814.jsonl; first sighting in a player tape,
+    band slot 15 credited at count 23, restored, credited again at 25. LW-108 is the same
+    family seen earlier, a fast reload under the 4s exit debounce; the fix must answer both.
+    LW-234, guests captured by the enemy oracle, rides the same corpse-credit lane and its
+    verdict should be checked against whatever this fix reshapes. The fix belongs UPSTREAM
+    of the credit latch, which behaved correctly given what it was told; the open design
+    fork carried from the capture, to be settled in the plan with the owner able to veto at
+    QA: synthesize a full battle end on the restart edge, or a narrower rewind that resets
+    only credit and per-battle state without a phantom exit flush.)
+  - Done means: losing and retrying a battle can no longer inflate any weapon's kill count:
+    the mod notices the restart, rewinds every kill credited during the aborted attempt, and
+    re-arms cleanly so the retried battle counts each enemy exactly once, with the turn
+    counters and signatures reset honestly rather than left lying.
+  - Verify: unit tests replaying the drill tape's retry shape written red first, the two
+    detectors pinned against fixtures built from the banked tapes with the zero-false-positive
+    property proven by sabotage, both gates green, and the owner's live retry drill (lose,
+    retry, win) showing the tally rising exactly once and the flight tape carrying a restart
+    edge.
 
 - **[LW-212] The four bags, the last weapon family in the game to have its colour looked at** (opened 2026-08-13) [AWAITING-LIVE]
   - BUILT and gated 2026-08-16, owner gallery pass outstanding. A CARD median of 72.1 percent,
@@ -270,33 +284,18 @@ the technical detail lives in the indented lines under it.
   LivingPoach.cs:108 is the mod's entire monster gate, so an unmapped alias job is a silent
   refusal.)
 
-- [LW-233] 2026-08-14: Losing a battle and retrying it makes the same enemies count twice, so a
-  weapon can grow on kills the player never really earned. The cause is now SETTLED by a
-  deliberate owner drill (2026-08-14, lose then retry, tape banked at
-  tools/probes/tapes/lw233_retry_drill_20260814.jsonl), and it is not what the first reading
-  guessed: the mod does not mis-handle the restart, it never sees one. Across the whole retry
-  the log carries ONE battle-start and ZERO battle-end lines, no exit edge fires and no flight
-  flush happens, so a defeat and a fresh attempt run as a single continuous battle session. The
-  credit latch then behaves CORRECTLY given what it was told: corpses stood up, so it re-armed,
-  which is exactly right for a Raise and exactly wrong for a restart, and the same enemies pay
-  out again. First seen in a stranger's tape where band slot 15 was credited at count 23,
-  restored, killed again and credited at count 25, with count 25 firing that player's growth
-  toast. The tally saves at battle exit, so the inflation is permanent, and a player who retries
-  a hard fight a few times inflates it without ever meaning to.
-  - Fix belongs UPSTREAM of the credit latch: patching the latch would paper over a missing
-    battle-restart signal. Two detectors are now measured across THREE retries (two accidental
-    in the user's tape, one deliberate here) with 188 actor records and zero false positives.
-    (1) ActorPtr reads 0x0 while In, exactly once per retry, and on the drill it fired 62ms
-    BEFORE the restore landed, so it is a leading indicator and credit can be frozen rather than
-    reconciled. (2) "healed from 0 HP AND moved on the same tick" marks the restore itself: on
-    the drill, 3 heals of which 2 from zero and all 3 relocated, against zero such ticks in
-    ordinary play. The pair matters because a real Raise heals from 0 but never relocates its
-    target, and because every restored unit lands back on its own battle-start tile.
-  - Open design question before building: whether the honest fix is to synthesize a battle-end
-    (which resets tallies, signatures and the whole session the way a real exit does) or a
-    narrower "restart" edge that only rewinds the credit ledger. The first is truer to what
-    happened and riskier; the second is smaller and leaves the turn counter lying, which the
-    drill also showed (the exit line reported 3 turns for a battle that spanned two attempts).
+- [LW-210] 2026-08-13: Books re-pass: all four books BUILT and gated 2026-08-16, demoted from
+  Now 2026-08-17 to make room for LW-233, which is being actively worked; nothing about the
+  books changed and nothing is blocked on this repo, the owner gallery pass is the only step
+  left and it waits on the same future session as the other art rows. State preserved: the
+  healthiest family by coverage (CARD median 67.0 percent), one zone suffices (a book is a
+  coloured cover and a pale page block the brightness key finds on all four), and the Omnilex,
+  the game's most strongly coloured sprite at icon chroma 0.388 deep vermilion, keeps its
+  vermilion cover with the holy in gilt-edged pages (the Holy Lance's resolution, fifth use).
+  Promote it back when the owner gallery pass is on the table; the Done means and Verify are
+  the standard art-row set (identity colour with a visibly separate second material, no two
+  alike at list size, reserved-name anchoring recorded, four gates green with pins proven by
+  mutation, bake matching the FULL preview manifest, owner gallery pass).
 
 - [LW-234] 2026-08-14: The mod files the player's own guests as enemies, so a guest dying could
   hand the player's weapon a kill it did not earn, complete with a growth toast. Found in the
