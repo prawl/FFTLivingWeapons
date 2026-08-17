@@ -47,6 +47,15 @@ internal enum UntrackedReason : byte
 /// token-identical off the pre-split loop (modulo the mechanical continue-&gt;return and
 /// local-&gt;slot-field substitutions), so read the original line numbers in each doc comment
 /// against docs/CHANGELOG.md's LW-150 entry if you need the pre-split shape.
+///
+/// LW-233 RESIDUAL (verifier-flagged, partially closed): ResolveCredit peeks the delayed-actor
+/// arm rather than consuming it before checking the restart latch (see its own comment), so a
+/// suppressed tick no longer BURNS the arm for nothing. That does not make the arm outlive the
+/// retry latch, though: Tuning.DelayedActorWindow (the arm's own short fuse, ~12 ticks) is far
+/// shorter than RestartSentinelPolicy.LatchTicks (90). A delayed/charged culprit that arms WHILE
+/// the latch is open and stays suppressed past its own window still expires unclaimed and falls
+/// through to the ordinary fallback culprit -- a narrow, accepted miss (never a mis-credit),
+/// matching this file's existing "miss beats mis-credit" doctrine elsewhere (KillTracker.Delayed.cs).
 /// </summary>
 internal sealed partial class KillTracker
 {
@@ -97,6 +106,30 @@ internal sealed partial class KillTracker
     // resolve source; None == the old false, any other value == the old true.
     private readonly UntrackedReason[] _lethalUntracked = new UntrackedReason[Offsets.BandSlots];
 
+    // LW-233 (docs/LIVE_LEDGER.md row [battle-retry-rewind-fingerprint]): this slot's most
+    // recently OBSERVED-DEAD hp, updated every tick the slot reads dead (ScanDeadPath's call site
+    // in ScanCorpses below) and left UNTOUCHED while alive -- so by the time the AliveNeeded
+    // debounce (3 ticks) recognizes a revive, _prevHp[s] still holds the hp from the corpse's LAST
+    // dead tick, not a tick or two of already-positive hp the debounce swallowed. That is exactly
+    // the signal RestartSentinel's healedFromZero check needs (_prevHp[s] == 0 && current hp &gt;
+    // 0): a status-death (dead-bit only, hp stayed positive throughout) never wrote 0 here, so it
+    // correctly never reads as a heal-from-zero revive (the named precision-first residual). Zero
+    // new memory reads -- filled from the SlotSnapshot already built below. (v2 review: the
+    // matching _prevGx/_prevGy position snapshot was dropped -- the relocation arm was deleted
+    // from the spec, and nothing ever consumed them; do not re-add without a consumer.)
+    private readonly ushort[] _prevHp = new ushort[Offsets.BandSlots];
+    // The POST-CreditGate survivor weapon set this slot was actually credited to (stamped inside
+    // CreditKill, KillTracker.cs); empty = not credited. A fresh copy every credit (CreditKill
+    // never retains the caller's list), so RestartSentinel's uncredit can safely be handed this
+    // reference directly. Cleared on ResetBattleCorpses, on re-arm completion, and in the
+    // identity-swap branch below -- all three ALSO clear _lethalActor, so a stale set can never
+    // survive to misattribute a later, unrelated revive on the same slot.
+    private readonly List<int>?[] _creditedWeapons = new List<int>?[Offsets.BandSlots];
+    // Whether that credit was itself resolved via the turn-queue fallback (mirrors
+    // _lethalViaFallback's own per-slot bookkeeping); feeds UncreditKills' FallbackCredits
+    // decrement so an uncredit reverses the SAME counter CreditKill incremented.
+    private readonly bool[] _creditedViaFallback = new bool[Offsets.BandSlots];
+
     // Alive-edge belt: true = identity last observed alive (creditable); false = last observed dead.
     // Set true on seenAlive and on revive; set false on credit or expiry-without-actor.
     private readonly Dictionary<(byte lvl, byte br, byte fa, ushort mhp), bool> _identityAlive = new();
@@ -128,6 +161,9 @@ internal sealed partial class KillTracker
         Array.Clear(_lethalUntracked, 0, _lethalUntracked.Length);
         Array.Clear(_lethalViaFallback, 0, _lethalViaFallback.Length);
         Array.Clear(_victimAtEdge, 0, _victimAtEdge.Length);   // Reliquary: clear every slot's captured snapshot
+        Array.Clear(_prevHp, 0, _prevHp.Length);               // LW-233
+        Array.Clear(_creditedWeapons, 0, _creditedWeapons.Length);
+        Array.Clear(_creditedViaFallback, 0, _creditedViaFallback.Length);
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
         _victimProbe.ResetBattle();   // P1 probe: clear every slot's alive/edge snapshots
@@ -195,8 +231,12 @@ internal sealed partial class KillTracker
 
             if (onField) ScanFieldEvidence(s, in slot);
 
-            if (!slot.IsDead) { ScanAlivePath(s, onField, in slot); continue; }
+            if (!slot.IsDead) { ScanAlivePath(s, onField, in slot, ref changed); continue; }
 
+            // LW-233: stamp this tick's dead hp BEFORE dispatching (every ScanDeadPath guard that
+            // returns early still leaves this update in place) -- see _prevHp's own doc for why
+            // this deliberately never happens on the alive side.
+            _prevHp[s] = slot.Hp;
             ScanDeadPath(s, onField, in slot, ref changed);
         }
         return changed;
@@ -233,15 +273,32 @@ internal sealed partial class KillTracker
     /// ended in `continue` (there was nothing left in the loop body after it either way), so each
     /// of those becomes a plain `return` here and the caller unconditionally continues the outer
     /// loop right after calling this.</summary>
-    private void ScanAlivePath(int s, bool onField, in SlotSnapshot slot)
+    private void ScanAlivePath(int s, bool onField, in SlotSnapshot slot, ref bool changed)
     {
         _deadStreak[s] = 0;
         if (!onField) return;
         if (_seenAlive[s] && (_slotId[s].lvl != slot.Lvl || _slotId[s].br != slot.Br || _slotId[s].fa != slot.Fa))
         {
+            // LW-233: this slot's PREVIOUS identity may have been credited. A checkpoint retry can
+            // restore brave/faith to their pre-death values (a status effect or Rend-family hit
+            // undone by the rewind) at the same moment the corpse revives from 0 hp -- exactly this
+            // branch's trigger, not the ordinary re-arm block below. Present it to the sentinel
+            // BEFORE the reset wipes every trace of the old identity's state. A null slot list means
+            // this slot was never credited at all -- nothing to present.
+            var creditedHere = _creditedWeapons[s];
+            if (creditedHere != null)
+            {
+                bool healedFromZero = _prevHp[s] == 0 && slot.Hp > 0;
+                if (_restart.PresentRevive(s, creditedHere, _creditedViaFallback[s], healedFromZero) == RevivePresentResult.UncreditNow)
+                {
+                    UncreditKills(creditedHere, _creditedViaFallback[s], s);
+                    changed = true;
+                }
+            }
             _seenAlive[s] = false; _aliveStreak[s] = 0;
             _deadCredited[s] = false; _pending[s] = false;
             _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
+            _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // LW-233: a stale set could misattribute a later revive
             _victimProbe.Reset(s);   // P1 probe: a slot-reuse identity swap invalidates any stale snapshot
             _victimAtEdge[s] = default;   // Reliquary: same invalidation for the captured snapshot
             return;
@@ -256,10 +313,28 @@ internal sealed partial class KillTracker
         if (_seenAlive[s])
         {
             // revive after a credited death: re-enable the alive-edge for this identity
-            if (_deadCredited[s]) _identityAlive[slot.Id] = true;
+            if (_deadCredited[s])
+            {
+                _identityAlive[slot.Id] = true;
+                // LW-233: a corpse this tracker had credited just came back alive. If a checkpoint
+                // retry's rewind is why (RestartSentinel's latch, possibly via its deferred-verdict
+                // stash for the 0ms-join shape), the credit was a phantom -- pay it back before the
+                // clears below wipe the evidence.
+                var creditedHere = _creditedWeapons[s];
+                if (creditedHere != null)
+                {
+                    bool healedFromZero = _prevHp[s] == 0 && slot.Hp > 0;
+                    if (_restart.PresentRevive(s, creditedHere, _creditedViaFallback[s], healedFromZero) == RevivePresentResult.UncreditNow)
+                    {
+                        UncreditKills(creditedHere, _creditedViaFallback[s], s);
+                        changed = true;
+                    }
+                }
+            }
             _deadCredited[s] = false;
             _pending[s] = false;
             _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
+            _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // LW-233: clear every seenAlive tick, mirrors _lethalActor above
             // P1 probe: a revived victim's OLD dead-edge snapshot is stale -- clear it here,
             // BEFORE CaptureAlive below repopulates the alive half this same tick (ordering
             // matters: this runs every seenAlive tick, not only true revives, so the capture
@@ -471,8 +546,19 @@ internal sealed partial class KillTracker
         // while an untracked unit is latched still wins. The two CAN coexist on the same slot
         // (delayed is armed separately via TrackDelayed, not stamped at deadStreak==1), so the
         // guard -- not mutual exclusion -- is the load-bearing ordering (T4 pins it).
-        var delayed = ConsumeDelayedCulprit();
-        if (delayed == null && _lethalUntracked[s] != UntrackedReason.None)
+        //
+        // LW-233 (verifier-flagged residual): PEEK the arm rather than consuming it immediately.
+        // ConsumeDelayedCulprit's "first credit wins" semantics would otherwise burn the arm on a
+        // tick that never actually credits anyone (the restart-latch suppression below), stranding
+        // the delayed action's real kill to a stale fallback (or nothing) once the corpse's death
+        // finally resolves. Reads the same private fields ConsumeDelayedCulprit itself guards on
+        // (KillTracker.Delayed.cs) -- partial classes share field scope, so no new method there is
+        // needed. The arm is actually consumed (via the real ConsumeDelayedCulprit call) only once
+        // we know this tick is really going to use it, right below; the bury/pending/expire paths
+        // all leave it fully intact for a later tick.
+        bool delayedPeek = _delayedArmedTicks > 0 && _delayedActor != null && _delayedActor.Count > 0;
+        List<int>? delayedCandidate = delayedPeek ? _delayedActor : null;
+        if (delayedCandidate == null && _lethalUntracked[s] != UntrackedReason.None)
         {
             // Killing edge was stamped during a roster player's turn with no tracked weapon.
             // Credit nobody: the summoner/dancer/item-user's AoE kill is intentionally uncredited.
@@ -480,9 +566,20 @@ internal sealed partial class KillTracker
             LogUntrackedBury(s);
             return;
         }
-        var culprit = delayed ?? _lethalActor[s] ?? _lastPlayerWeapons;
-        if (culprit.Count > 0)
+        var culprit = delayedCandidate ?? _lethalActor[s] ?? _lastPlayerWeapons;
+        // LW-233: while the restart latch is open, a fresh dead-edge might be the rewind-induced
+        // phantom-death lane (a pre-checkpoint corpse Raised post-checkpoint snapping back to dead
+        // AT the restore) rather than a real re-kill -- hold it pending instead of crediting. The
+        // pending/expiry machinery below (unchanged) resolves it once the latch closes, exactly as
+        // it would any other corpse whose culprit briefly could not be determined. NOTE: this can
+        // still outlast a genuinely armed delayed culprit if the latch stays open longer than
+        // Tuning.DelayedActorWindow (the arm's own short fuse, unrelated to the retry latch) --
+        // documented residual, see this method's class-level note in KillTracker.Corpses.cs's doc
+        // comment.
+        bool restartSuppressed = culprit.Count > 0 && _restart.LatchOpen;
+        if (culprit.Count > 0 && !restartSuppressed)
         {
+            List<int>? delayed = delayedCandidate != null ? ConsumeDelayedCulprit() : null;
             if (delayed != null)
                 ModLogger.EventWithTrace(LogVerb.Credit,
                     $"Crediting the charged attack that just landed (a Jump or a spellcast) to the unit that committed it, wielding {string.Join(", ", delayed.ConvertAll(LogNames.Weapon))}, not the unit acting now.",

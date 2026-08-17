@@ -716,4 +716,64 @@ public class ActorRegisterTests
         r.Update();     // tick4
         Assert.Equal(2, r.OwnershipAge);
     }
+
+    // --- RawNullThisTick (LW-233: RestartSentinel's raw-signal input, distinct from CurrentEntry/
+    // Band.ActorEntry, which fold raw-zero and shape-fail into the same 0 -- see the property's own
+    // doc). A second guarded read, independent of the priming/transition bookkeeping above. ---
+
+    [Fact]
+    public void RawNullThisTick_true_only_on_a_literal_zero_read()
+    {
+        var m = new FakeSparseMemory();
+        m.MarkReadable(Offsets.ActorPtr, 8);
+        m.SeedU64(Offsets.ActorPtr, 0);
+        var r = new ActorRegister(m);
+
+        r.Update();
+
+        Assert.True(r.RawNullThisTick);
+    }
+
+    [Fact]
+    public void RawNullThisTick_false_on_shape_fail_garbage()
+    {
+        // A readable but NONZERO pointer that fails Band.ActorEntry's shape checks (not aligned to
+        // a whole seat) must still read RawNullThisTick == false: the raw bytes are not zero.
+        var m = new FakeSparseMemory();
+        m.MarkReadable(Offsets.ActorPtr, 8);
+        m.SeedU64(Offsets.ActorPtr, (ulong)(Offsets.FrameReadBase + 3));   // misaligned garbage, nonzero
+        var r = new ActorRegister(m);
+
+        r.Update();
+
+        Assert.False(r.RawNullThisTick);
+    }
+
+    [Fact]
+    public void RawNullThisTick_false_on_an_unreadable_page()
+    {
+        // A guarded read that FAILS must never be laundered into "null" -- an unreadable page marks
+        // nothing in ReadableAddrs, so Readable(ActorPtr, 8) refuses even though the unseeded bytes
+        // would read as zero if asked directly.
+        var m = new FakeSparseMemory();
+        var r = new ActorRegister(m);   // ActorPtr never marked readable
+
+        r.Update();
+
+        Assert.False(r.RawNullThisTick);
+    }
+
+    [Fact]
+    public void RawNullThisTick_resets_on_ResetBattle()
+    {
+        var m = new FakeSparseMemory();
+        m.MarkReadable(Offsets.ActorPtr, 8);
+        m.SeedU64(Offsets.ActorPtr, 0);
+        var r = new ActorRegister(m);
+        r.Update();
+        Assert.True(r.RawNullThisTick);
+
+        r.ResetBattle();
+        Assert.False(r.RawNullThisTick);
+    }
 }

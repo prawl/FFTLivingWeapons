@@ -122,6 +122,19 @@ internal sealed partial class ActorRegister
     /// gates its hypothesis on this being STRICTLY newer than the latch's own resolve tick.</summary>
     public int LastPlayerArrivalTick { get; private set; }
 
+    /// <summary>LW-233: true only when the RAW U64 read of <see cref="Offsets.ActorPtr"/> is
+    /// LITERALLY ZERO this tick. Deliberately distinct from <see cref="CurrentEntry"/> (and
+    /// <see cref="Band.ActorEntry"/>, which it wraps): that path folds a raw-zero pointer and a
+    /// nonzero-but-bad-shape pointer into the same 0 return (Band.cs's own doc), which is fine for
+    /// "who is acting" but useless as RestartSentinel's retry signal -- a shape-fail garbage
+    /// pointer must read false here, and a guarded read that FAILS (an unreadable page) must never
+    /// be laundered into "null" either, or the one signal the retry detector watches for could be
+    /// counterfeited by a bad read. A second guarded read (Readable-gated, mirroring the rest of
+    /// this runtime's guarded-access rule), independent of the priming/_prevEntry transition
+    /// bookkeeping <see cref="Update"/> already does -- RestartSentinel needs this raw signal every
+    /// tick, not only on an observed transition.</summary>
+    public bool RawNullThisTick { get; private set; }
+
     public ActorRegister(IGameMemory mem, Action<string, string>? recorder = null,
                           Func<(int lvl, int br, int fa, int maxHp), bool>? isOracleEnemy = null)
     {
@@ -153,6 +166,7 @@ internal sealed partial class ActorRegister
         LastPlayerNameId = 0;
         LastPlayerRosterBase = 0;
         LastPlayerArrivalTick = 0;
+        RawNullThisTick = false;
     }
 
     /// <summary>One tick: read the engine's own actor pointer and, on an observed transition past
@@ -160,6 +174,10 @@ internal sealed partial class ActorRegister
     public void Update()
     {
         Tick++;
+        // LW-233: RawNullThisTick's own guarded read, ahead of (and independent from) the
+        // Band.ActorEntry resolve below -- see the property's doc for why the two must not share
+        // Band.ActorEntry's folded-zero return.
+        RawNullThisTick = _mem.Readable(Offsets.ActorPtr, 8) && _mem.U64(Offsets.ActorPtr) == 0;
         long entry = Band.ActorEntry(_mem);
 
         if (!_primed)

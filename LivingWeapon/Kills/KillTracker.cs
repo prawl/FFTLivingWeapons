@@ -128,6 +128,12 @@ internal sealed partial class KillTracker
     private readonly ActedPeriodLatch _latch;
     private readonly ActedPeriodOutputs _latchIO = new();
 
+    // LW-233: the checkpoint-retry detector (docs/LIVE_LEDGER.md row
+    // [battle-retry-rewind-fingerprint]). Ticked once per Poll alongside _register; consulted by
+    // KillTracker.Corpses.cs's revive detection (uncredit) and ResolveCredit (latch-open dead-edge
+    // suppression). See RestartSentinel.cs for the mechanism.
+    private readonly RestartSentinel _restart;
+
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
                         Action<string, string>? recorder = null, IDeedSink? deeds = null,
                         Func<int, bool>? hasLiveWielder = null)
@@ -152,7 +158,13 @@ internal sealed partial class KillTracker
         _deeds = deeds;
         _hasLiveWielder = hasLiveWielder;
         _klog = ModLogger.For(LogVerb.Kill, () => AnyTrackedWeaponThisBattle);
+        _restart = new RestartSentinel(recorder);
     }
+
+    /// <summary>LW-233: read-only exposure of this tracker's own retry-rewind detector, mirroring
+    /// <see cref="Register"/>'s test-observability convention. Callers must never mutate it
+    /// (Tick/ResetBattle stay this class's own responsibility).</summary>
+    internal RestartSentinel Restart => _restart;
 
     /// <summary>Read-only exposure of this tracker's own actor-pointer ownership register
     /// (TurnOwnerSpike under LWDEV; AttackCard no longer consumes it since the 2026-07-06
@@ -205,6 +217,7 @@ internal sealed partial class KillTracker
         ResetBattleCorpses();   // clear per-battle band-scan state (Corpses.cs)
         ResetDelayed();         // clear delayed-action snapshot/arm state (Delayed.cs)
         _census.ResetBattle();  // re-arm the P2 identity-census probe (BattleCensus.cs)
+        _restart.ResetBattle(); // LW-233: forget any latch/null history from the prior battle
     }
 
     /// <summary>S3 (LW-150): seed <see cref="_latchIO"/> with the CURRENT value of every
@@ -259,6 +272,15 @@ internal sealed partial class KillTracker
         bool changed;
 
         _register.Update();       // ownership tracker: one read of the engine actor pointer per tick
+        // LW-233: tick the retry-rewind detector BEFORE this same tick's corpse scan, so a null
+        // observed this tick can join a revive detected later in the same Poll (Corpses.cs). The
+        // return value drains the DEFERRED-VERDICT stash (the 0ms-join fix): a revive presented
+        // last tick while the null was still mid-flight, now qualified -- apply the uncredit(s) it
+        // was waiting on right here so the tally is correct before anything else this tick reads it.
+        var restartDrained = _restart.Tick(_register.RawNullThisTick, onField);
+        bool drainedChanged = restartDrained.Count > 0;
+        foreach (var (drainSlot, drainWeapons, drainViaFallback) in restartDrained)
+            UncreditKills(drainWeapons, drainViaFallback, drainSlot);
         UpdateCorpseAnchor();     // V1 corpse-anchor veto, pushed to the resolver for this tick's resolves
 
         // S3 (LW-150): the acted-period latch (latches the acting player's weapon(s) ONCE per
@@ -274,7 +296,7 @@ internal sealed partial class KillTracker
 
         TrackDelayed(onField);   // snapshot/arm the committer of a delayed action (Delayed.cs)
 
-        changed = ScanCorpses(onField);   // band corpse scan + identity capture (Corpses.cs)
+        changed = ScanCorpses(onField) || drainedChanged;   // band corpse scan + identity capture (Corpses.cs)
 
         _census.Tick(_oracle.CoverageDone);   // P2 probe: fires once, right after the oracle's own tick
 
@@ -384,6 +406,14 @@ internal sealed partial class KillTracker
                     _recorder?.Invoke("kill", $"no-credit slot={s} reason=no-live-wielder weapon={w}");
             }
         }
+        // LW-233: stamp the POST-CreditGate survivor set this slot was actually credited to (empty
+        // when the gate refused everyone), for RestartSentinel's revive-uncredit path
+        // (KillTracker.Corpses.cs). A fresh List copy -- `credited` may alias `weapons`, which may
+        // alias `_lastPlayerWeapons` (a mutable list this class replaces wholesale on the next
+        // acted-period resolve; retaining a reference to it would let a LATER latch silently
+        // rewrite what THIS slot thinks it was credited to).
+        _creditedWeapons[s] = new List<int>(credited);
+        _creditedViaFallback[s] = viaFallback;
         LogKillDiag(s, credited);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
         _victimProbe.LogAtCredit(s);   // Reliquary P1 probe: log-only, zero behavioral dependence
         VictimSnapshot snap = _victimAtEdge[s];
@@ -412,6 +442,43 @@ internal sealed partial class KillTracker
         }
         _pending[s] = false;
         return changed;
+    }
+
+    /// <summary>LW-233: the ONE inverse of CreditKill's per-weapon mutation above (the foreach at
+    /// :425-436) -- reverses exactly the weapon set a corpse was credited to when RestartSentinel's
+    /// latch proves a checkpoint retry's rewind means that victim never really died. Called from
+    /// KillTracker.Corpses.cs's revive detection (the re-arm block and the identity-swap branch),
+    /// passing the exact <c>_creditedWeapons[s]</c> CreditKill itself stamped -- so this can never
+    /// diverge from what was actually incremented. Floors each weapon's tally and BattleCredits at
+    /// 0 with a WARN if a floor would have gone negative (a bookkeeping-desync tripwire that should
+    /// never fire, since the credited set is CreditKill's own record of what it added).
+    /// FallbackCredits mirrors CreditKill's own "one corpse = one fallback credit" bookkeeping
+    /// (decremented once per call, not once per weapon). One flight record per weapon;
+    /// deliberately NO console line per weapon here -- the sentinel's own latch-open edge
+    /// (RestartSentinel.cs) already told the player once, and a line per uncredited weapon would
+    /// just be noise on top of it.</summary>
+    internal void UncreditKills(IReadOnlyList<int> weapons, bool viaFallback, int slot)
+    {
+        foreach (int w in weapons)
+        {
+            _kills.TryGetValue(w, out int c);
+            if (c > 0)
+            {
+                _kills[w] = c - 1;
+            }
+            else
+            {
+                _kills[w] = 0;
+                ModLogger.Warn(LogVerb.Kill,
+                    $"A retry uncredit tried to remove a kill from {LogNames.Weapon(w)} that already read zero; the tally stays at zero (bookkeeping desync).");
+            }
+
+            BattleCredits.TryGetValue(w, out int bc);
+            BattleCredits[w] = bc > 0 ? bc - 1 : 0;
+
+            _recorder?.Invoke("restart", $"uncredit weapon={w} slot={slot}");
+        }
+        if (viaFallback && weapons.Count > 0 && FallbackCredits > 0) FallbackCredits--;
     }
 
     /// <summary>D4 -- AREC kill diagnostic (evidence accumulator, ZERO behavioral dependence): read
