@@ -1,0 +1,2326 @@
+{
+ "7": {
+  "tint": [
+   0.816,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.65,
+   0.4,
+   0.42
+  ],
+  "donors": [
+   "Eight-Fluted Pole"
+  ],
+  "name": "Adamant Fang",
+  "cat": "Knife",
+  "hue_swapped": true
+ },
+ "5": {
+  "tint": [
+   0.687,
+   0.6,
+   1.22
+  ],
+  "old": [
+   0.585,
+   0.15,
+   1.22
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Argent Dirk",
+  "cat": "Knife",
+  "hue_swapped": true
+ },
+ "9": {
+  "tint": [
+   0.041,
+   0.6,
+   1.05
+  ],
+  "old": [
+   0.455,
+   0.75,
+   1.05
+  ],
+  "donors": [
+   "Spellbane",
+   "Tempo Vest"
+  ],
+  "name": "Galewind",
+  "cat": "Knife"
+ },
+ "6": {
+  "tint": [
+   0.75,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.985,
+   0.88,
+   0.85
+  ],
+  "donors": [
+   "Hushward Mail"
+  ],
+  "name": "Sanguine Gauche",
+  "cat": "Knife",
+  "hue_swapped": true
+ },
+ "68": {
+  "tint": [
+   0.335,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.32,
+   0.88,
+   0.8
+  ],
+  "donors": [
+   "Dragon Rod",
+   "Ironclad Repeater",
+   "Arbalest"
+  ],
+  "name": "Bloodlash",
+  "cat": "Knife",
+  "hue_swapped": true
+ },
+ "8": {
+  "tint": [
+   0.957,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.215,
+   0.75,
+   0.58
+  ],
+  "donors": [
+   "Koga Blade",
+   "Venombolt",
+   "Duskstring Harp"
+  ],
+  "name": "Mortal Coil",
+  "cat": "Knife",
+  "hue_swapped": true
+ },
+ "10": {
+  "tint": [
+   0.125,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.125,
+   0.8,
+   1.08
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Zwill Straightblade",
+  "cat": "Knife",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "4": {
+  "tint": [
+   0.624,
+   0.6,
+   0.95
+  ],
+  "old": [
+   0.605,
+   0.78,
+   0.95
+  ],
+  "donors": [
+   "Quicksilver",
+   "Sasuke's Blade",
+   "Claymore"
+  ],
+  "name": "Hushblade",
+  "cat": "Knife"
+ },
+ "2": {
+  "tint": [
+   0.23,
+   0.6,
+   1.12
+  ],
+  "old": [
+   0.52,
+   0.62,
+   1.12
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Quicksilver",
+  "cat": "Knife",
+  "hue_swapped": true
+ },
+ "1": {
+  "tint": [
+   0.405,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.07,
+   0.65,
+   0.68
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Cutpurse",
+  "cat": "Knife",
+  "hue_swapped": true
+ },
+ "3": {
+  "tint": [
+   0.498,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.76,
+   0.75,
+   0.55
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Gloomfang",
+  "cat": "Knife",
+  "hue_swapped": true
+ },
+ "17": {
+  "tint": [
+   0.111,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.045,
+   0.75,
+   0.72
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Iga Blade",
+  "cat": "NinjaBlade",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "13": {
+  "tint": [
+   0.272,
+   0.6,
+   1.1
+  ],
+  "old": [
+   0.585,
+   0.8,
+   1.1
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Frost Kodachi",
+  "cat": "NinjaBlade",
+  "hue_swapped": true
+ },
+ "18": {
+  "tint": [
+   0.186,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.15,
+   0.85,
+   0.95
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Koga Blade",
+  "cat": "NinjaBlade",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "16": {
+  "tint": [
+   0.627,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.4,
+   0.7,
+   0.75
+  ],
+  "donors": [
+   "Skypiercer",
+   "Genji Armor"
+  ],
+  "name": "Sasuke's Blade",
+  "cat": "NinjaBlade",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "12": {
+  "tint": [
+   0.791,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.7,
+   0.4,
+   0.88
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Mistedge",
+  "cat": "NinjaBlade",
+  "hue_swapped": true
+ },
+ "14": {
+  "tint": [
+   0.899,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.66,
+   0.75,
+   0.72
+  ],
+  "donors": [
+   "Eight-Fluted Pole"
+  ],
+  "name": "Raijin Longblade",
+  "cat": "NinjaBlade"
+ },
+ "69": {
+  "tint": [
+   0.405,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.96,
+   0.85,
+   0.8
+  ],
+  "donors": [
+   "Hushward Mail"
+  ],
+  "name": "Climhazzard",
+  "cat": "NinjaBlade",
+  "hue_swapped": true
+ },
+ "11": {
+  "tint": [
+   0.707,
+   0.6,
+   0.95
+  ],
+  "old": [
+   0.52,
+   0.55,
+   0.95
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Swiftfang",
+  "cat": "NinjaBlade",
+  "hue_swapped": true
+ },
+ "15": {
+  "tint": [
+   0.999,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.815,
+   0.68,
+   0.72
+  ],
+  "donors": [
+   "Duskstring Harp",
+   "Gravesilk Veil"
+  ],
+  "name": "Silentfang",
+  "cat": "NinjaBlade",
+  "hue_swapped": true
+ },
+ "25": {
+  "tint": [
+   0.75,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.335,
+   0.95,
+   0.46
+  ],
+  "donors": [
+   "Dragon Rod",
+   "Ironclad Repeater",
+   "Arbalest"
+  ],
+  "name": "Tanglethorn",
+  "cat": "Sword"
+ },
+ "26": {
+  "tint": [
+   0.985,
+   0.7,
+   1.05
+  ],
+  "old": [
+   0.045,
+   0.98,
+   0.82
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Flamberge",
+  "cat": "Sword",
+  "hue_swapped": true,
+  "tribunal": "Flamberge: the name is a flame; the sword now agrees"
+ },
+ "32": {
+  "tint": [
+   0.114,
+   0.58,
+   1.0
+  ],
+  "old": [
+   0.585,
+   0.07,
+   1.2
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Materia Blade",
+  "cat": "Sword",
+  "reserved": true
+ },
+ "24": {
+  "tint": [
+   0.189,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.655,
+   0.78,
+   0.82
+  ],
+  "donors": [
+   "Eight-Fluted Pole"
+  ],
+  "name": "Stormbrand",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "28": {
+  "tint": [
+   0.982,
+   0.6,
+   0.98
+  ],
+  "old": [
+   0.505,
+   0.9,
+   0.98
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Swiftedge",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "27": {
+  "tint": [
+   0.045,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.925,
+   0.95,
+   0.4
+  ],
+  "donors": [
+   "Grand Helm"
+  ],
+  "name": "Wrathblade",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "29": {
+  "tint": [
+   0.72,
+   0.65,
+   1.0
+  ],
+  "old": [
+   0.7,
+   0.58,
+   0.17
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Graviton",
+  "cat": "Sword",
+  "hue_swapped": true,
+  "tribunal": "Graviton: gravity wears deep violet, not olive"
+ },
+ "20": {
+  "tint": [
+   0.624,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.615,
+   0.52,
+   0.52
+  ],
+  "donors": [
+   "Quicksilver",
+   "Sasuke's Blade",
+   "Claymore"
+  ],
+  "name": "Cleaver",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "23": {
+  "tint": [
+   0.397,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.985,
+   0.98,
+   0.82
+  ],
+  "donors": [
+   "Hushward Mail"
+  ],
+  "name": "Sanguine Sword",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "31": {
+  "tint": [
+   0.704,
+   0.6,
+   0.98
+  ],
+  "old": [
+   0.135,
+   0.9,
+   0.98
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Lightbringer",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "21": {
+  "tint": [
+   0.46,
+   0.6,
+   1.08
+  ],
+  "old": [
+   0.57,
+   0.62,
+   1.08
+  ],
+  "donors": [
+   "Spellbane",
+   "Tempo Vest"
+  ],
+  "name": "Riposte",
+  "cat": "Sword"
+ },
+ "67": {
+  "tint": [
+   0.401,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.6,
+   0.24,
+   0.17
+  ],
+  "donors": [
+   "Skypiercer",
+   "Genji Armor"
+  ],
+  "name": "Warbrand",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "22": {
+  "tint": [
+   0.291,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.44,
+   0.78,
+   0.88
+  ],
+  "donors": [
+   "Studded Mail"
+  ],
+  "name": "Claymore",
+  "cat": "Sword"
+ },
+ "19": {
+  "tint": [
+   0.85,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.085,
+   0.72,
+   0.82
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Vagabond",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "30": {
+  "tint": [
+   0.913,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.78,
+   0.95,
+   0.88
+  ],
+  "donors": [
+   "Duskstring Harp",
+   "Gravesilk Veil"
+  ],
+  "name": "Arcanum",
+  "cat": "Sword",
+  "hue_swapped": true
+ },
+ "37": {
+  "tint": [
+   0.337,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.93,
+   0.52,
+   0.24
+  ],
+  "donors": [
+   "Grand Helm"
+  ],
+  "name": "Chaos Blade",
+  "cat": "KnightSword",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "33": {
+  "tint": [
+   0.097,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.1,
+   0.62,
+   0.72
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Defender",
+  "cat": "KnightSword",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "49": {
+  "tint": [
+   0.975,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.985,
+   0.82,
+   0.55
+  ],
+  "donors": [
+   "Hushward Mail"
+  ],
+  "name": "Ravager",
+  "cat": "KnightSword"
+ },
+ "36": {
+  "tint": [
+   0.248,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.64,
+   0.22,
+   1.12
+  ],
+  "donors": [
+   "Eight-Fluted Pole"
+  ],
+  "name": "Ragnarok",
+  "cat": "KnightSword",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "50": {
+  "tint": [
+   0.479,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.47,
+   0.72,
+   0.78
+  ],
+  "donors": [
+   "Spellbane",
+   "Tempo Vest"
+  ],
+  "name": "Sunderer",
+  "cat": "KnightSword",
+  "hue_swapped": true
+ },
+ "34": {
+  "tint": [
+   0.637,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.6,
+   0.45,
+   1.1
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Save the Queen",
+  "cat": "KnightSword",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "35": {
+  "tint": [
+   0.178,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.13,
+   0.85,
+   1.1
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Excalibur",
+  "cat": "KnightSword",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "44": {
+  "tint": [
+   0.299,
+   0.58,
+   1.0
+  ],
+  "old": [
+   0.045,
+   0.92,
+   0.72
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Muramasa",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "38": {
+  "tint": [
+   0.616,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.59,
+   0.45,
+   0.75
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Ashura",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "47": {
+  "tint": [
+   0.546,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.1,
+   0.8,
+   0.95
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Chirijiraden",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "70": {
+  "tint": [
+   0.287,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.3,
+   0.85,
+   0.7
+  ],
+  "donors": [
+   "Studded Mail"
+  ],
+  "name": "Sasori",
+  "cat": "Katana"
+ },
+ "46": {
+  "tint": [
+   0.415,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.635,
+   0.8,
+   1.1
+  ],
+  "donors": [
+   "Quicksilver",
+   "Sasuke's Blade",
+   "Claymore"
+  ],
+  "name": "Masamune",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "39": {
+  "tint": [
+   0.707,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.72,
+   0.35,
+   0.4
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Kotetsu",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "43": {
+  "tint": [
+   0.917,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.513,
+   0.72,
+   0.88
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Kiyomori",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "41": {
+  "tint": [
+   0.083,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.44,
+   0.62,
+   0.82
+  ],
+  "donors": [
+   "Spellbane",
+   "Tempo Vest"
+  ],
+  "name": "Murasame",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "45": {
+  "tint": [
+   0.234,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.17,
+   0.85,
+   1.1
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Kiku-ichimonji",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "42": {
+  "tint": [
+   0.156,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.68,
+   0.72,
+   0.72
+  ],
+  "donors": [
+   "Eight-Fluted Pole"
+  ],
+  "name": "Ame-no-Murakumo",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "40": {
+  "tint": [
+   0.796,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.78,
+   0.72,
+   0.72
+  ],
+  "donors": [
+   "Duskstring Harp",
+   "Gravesilk Veil"
+  ],
+  "name": "Bizen Osafune",
+  "cat": "Katana",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "112": {
+  "tint": [
+   0.099,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.105,
+   0.18,
+   1.2
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Ivory Pole",
+  "cat": "Pole",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "113": {
+  "tint": [
+   0.687,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.66,
+   0.6,
+   0.78
+  ],
+  "donors": [
+   "Eight-Fluted Pole"
+  ],
+  "name": "Eight-Fluted Pole",
+  "cat": "Pole",
+  "hue_swapped": true
+ },
+ "111": {
+  "tint": [
+   0.543,
+   0.6,
+   1.02
+  ],
+  "old": [
+   0.035,
+   0.92,
+   1.02
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Sage's Pole",
+  "cat": "Pole",
+  "hue_swapped": true
+ },
+ "48": {
+  "tint": [
+   0.624,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.095,
+   0.7,
+   0.6
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Terrastaff",
+  "cat": "Pole",
+  "hue_swapped": true
+ },
+ "109": {
+  "tint": [
+   0.23,
+   0.6,
+   0.95
+  ],
+  "old": [
+   0.72,
+   0.55,
+   0.95
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Slumber Rod",
+  "cat": "Pole",
+  "hue_swapped": true
+ },
+ "107": {
+  "tint": [
+   0.335,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.32,
+   0.7,
+   0.82
+  ],
+  "donors": [
+   "Dragon Rod",
+   "Ironclad Repeater",
+   "Arbalest"
+  ],
+  "name": "Greenwood Pole",
+  "cat": "Pole"
+ },
+ "108": {
+  "tint": [
+   0.75,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.6,
+   0.4,
+   0.65
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Ironreed Pole",
+  "cat": "Pole"
+ },
+ "110": {
+  "tint": [
+   0.46,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.95,
+   0.55,
+   0.85
+  ],
+  "donors": [
+   "Grand Helm"
+  ],
+  "name": "Hushfan",
+  "cat": "Pole",
+  "hue_swapped": true
+ },
+ "114": {
+  "tint": [
+   0.161,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.545,
+   0.45,
+   1.08
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Whale Whisker",
+  "cat": "Pole",
+  "reserved": true
+ },
+ "53": {
+  "tint": [
+   0.79,
+   0.6,
+   1.02
+  ],
+  "old": [
+   0.045,
+   0.95,
+   1.02
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Ember Rod",
+  "cat": "Rod",
+  "hue_swapped": true
+ },
+ "52": {
+  "tint": [
+   0.65,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.655,
+   0.75,
+   0.82
+  ],
+  "donors": [
+   "Eight-Fluted Pole"
+  ],
+  "name": "Spark Rod",
+  "cat": "Rod"
+ },
+ "55": {
+  "tint": [
+   0.418,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.3,
+   0.65,
+   0.72
+  ],
+  "donors": [
+   "Studded Mail"
+  ],
+  "name": "Hushward Rod",
+  "cat": "Rod",
+  "hue_swapped": true
+ },
+ "57": {
+  "tint": [
+   0.33,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.42,
+   0.6,
+   0.85
+  ],
+  "donors": [
+   "Skypiercer",
+   "Genji Armor"
+  ],
+  "name": "Dragon Rod",
+  "cat": "Rod",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "58": {
+  "tint": [
+   0.073,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.125,
+   0.8,
+   1.15
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Rod of Faith",
+  "cat": "Rod",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "54": {
+  "tint": [
+   0.498,
+   0.6,
+   1.05
+  ],
+  "old": [
+   0.52,
+   0.78,
+   1.05
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Frost Rod",
+  "cat": "Rod"
+ },
+ "51": {
+  "tint": [
+   0.584,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.075,
+   0.45,
+   0.78
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Wellspring Rod",
+  "cat": "Rod",
+  "hue_swapped": true
+ },
+ "56": {
+  "tint": [
+   0.147,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.78,
+   0.7,
+   0.55
+  ],
+  "donors": [
+   "Duskstring Harp",
+   "Gravesilk Veil"
+  ],
+  "name": "Umbral Rod",
+  "cat": "Rod",
+  "hue_swapped": true
+ },
+ "62": {
+  "tint": [
+   0.106,
+   0.6,
+   0.95
+  ],
+  "old": [
+   0.58,
+   0.75,
+   0.95
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Warding Staff",
+  "cat": "Staff",
+  "hue_swapped": true
+ },
+ "66": {
+  "tint": [
+   0.301,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.62,
+   0.5,
+   0.32
+  ],
+  "donors": [
+   "Quicksilver",
+   "Sasuke's Blade",
+   "Claymore"
+  ],
+  "name": "Staff of the Magi",
+  "cat": "Staff",
+  "reserved": true
+ },
+ "61": {
+  "tint": [
+   0.405,
+   0.6,
+   1.0
+  ],
+  "old": [
+   0.4,
+   0.78,
+   1.0
+  ],
+  "donors": [
+   "Skypiercer",
+   "Genji Armor"
+  ],
+  "name": "Mending Staff",
+  "cat": "Staff"
+ },
+ "65": {
+  "tint": [
+   0.166,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.66,
+   0.78,
+   0.85
+  ],
+  "donors": [
+   "Eight-Fluted Pole"
+  ],
+  "name": "Zeus Mace",
+  "cat": "Staff",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "63": {
+  "tint": [
+   0.584,
+   0.6,
+   0.95
+  ],
+  "old": [
+   0.035,
+   0.95,
+   0.95
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Blazing Staff",
+  "cat": "Staff",
+  "hue_swapped": true
+ },
+ "64": {
+  "tint": [
+   0.708,
+   0.6,
+   1.25
+  ],
+  "old": [
+   0.13,
+   0.12,
+   1.25
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Sanctus Staff",
+  "cat": "Staff",
+  "hue_swapped": true
+ },
+ "59": {
+  "tint": [
+   0.498,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.075,
+   0.55,
+   0.72
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Birchwood Staff",
+  "cat": "Staff",
+  "hue_swapped": true
+ },
+ "60": {
+  "tint": [
+   0.85,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.78,
+   0.8,
+   0.8
+  ],
+  "donors": [
+   "Duskstring Harp",
+   "Gravesilk Veil"
+  ],
+  "name": "Warlock's Staff",
+  "cat": "Staff"
+ },
+ "76": {
+  "tint": [
+   0.17,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.15,
+   0.92,
+   1.05
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Blaster",
+  "cat": "Gun",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "73": {
+  "tint": [
+   0.092,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.1,
+   0.78,
+   0.7
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Stoneshooter",
+  "cat": "Gun",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "75": {
+  "tint": [
+   0.238,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.03,
+   0.92,
+   0.95
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Blaze Gun",
+  "cat": "Gun",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "72": {
+  "tint": [
+   0.708,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.6,
+   0.45,
+   0.72
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Ironclad Repeater",
+  "cat": "Gun",
+  "hue_swapped": true
+ },
+ "71": {
+  "tint": [
+   0.355,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.955,
+   0.5,
+   0.66
+  ],
+  "donors": [
+   "Hushward Mail"
+  ],
+  "name": "Outrider Pistol",
+  "cat": "Gun",
+  "hue_swapped": true
+ },
+ "74": {
+  "tint": [
+   0.624,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.545,
+   0.7,
+   1.05
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Glacial Gun",
+  "cat": "Gun",
+  "reserved": true
+ },
+ "78": {
+  "tint": [
+   0.106,
+   0.6,
+   1.02
+  ],
+  "old": [
+   0.985,
+   0.92,
+   1.02
+  ],
+  "donors": [
+   "Hushward Mail"
+  ],
+  "name": "Eclipsebolt",
+  "cat": "Crossbow",
+  "hue_swapped": true
+ },
+ "82": {
+  "tint": [
+   0.04,
+   0.6,
+   0.98
+  ],
+  "old": [
+   0.695,
+   0.88,
+   0.98
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Siegebolt",
+  "cat": "Crossbow"
+ },
+ "80": {
+  "tint": [
+   0.816,
+   0.6,
+   1.05
+  ],
+  "old": [
+   0.265,
+   0.92,
+   1.05
+  ],
+  "donors": [
+   "Warded Circlet",
+   "Adept's Hood",
+   "Hierophant Miter"
+  ],
+  "name": "Venombolt",
+  "cat": "Crossbow",
+  "hue_swapped": true
+ },
+ "79": {
+  "tint": [
+   0.75,
+   0.6,
+   1.05
+  ],
+  "old": [
+   0.565,
+   0.82,
+   1.05
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Arbalest",
+  "cat": "Crossbow"
+ },
+ "77": {
+  "tint": [
+   0.624,
+   0.6,
+   1.12
+  ],
+  "old": [
+   0.075,
+   0.85,
+   1.12
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Scoutbolt",
+  "cat": "Crossbow",
+  "hue_swapped": true
+ },
+ "81": {
+  "tint": [
+   0.933,
+   0.6,
+   1.02
+  ],
+  "old": [
+   0.815,
+   0.88,
+   1.02
+  ],
+  "donors": [
+   "Duskstring Harp",
+   "Gravesilk Veil"
+  ],
+  "name": "Pitchbolt",
+  "cat": "Crossbow"
+ },
+ "86": {
+  "tint": [
+   0.982,
+   0.6,
+   1.0
+  ],
+  "old": [
+   0.15,
+   0.95,
+   1.0
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Stormarc",
+  "cat": "Bow",
+  "hue_swapped": true
+ },
+ "88": {
+  "tint": [
+   0.371,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.62,
+   0.8,
+   0.85
+  ],
+  "donors": [
+   "Quicksilver",
+   "Sasuke's Blade",
+   "Claymore"
+  ],
+  "name": "Tidecaller",
+  "cat": "Bow"
+ },
+ "89": {
+  "tint": [
+   0.501,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.33,
+   0.8,
+   0.72
+  ],
+  "donors": [
+   "Dragon Rod",
+   "Ironclad Repeater",
+   "Arbalest"
+  ],
+  "name": "Huntress",
+  "cat": "Bow"
+ },
+ "91": {
+  "tint": [
+   0.614,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.135,
+   0.55,
+   1.25
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Perseus Bow",
+  "cat": "Bow",
+  "reserved": true
+ },
+ "87": {
+  "tint": [
+   0.265,
+   0.6,
+   1.0
+  ],
+  "old": [
+   0.42,
+   0.72,
+   1.0
+  ],
+  "donors": [
+   "Skypiercer",
+   "Genji Armor"
+  ],
+  "name": "Skypiercer",
+  "cat": "Bow",
+  "hue_swapped": true
+ },
+ "90": {
+  "tint": [
+   0.084,
+   0.6,
+   1.0
+  ],
+  "old": [
+   0.03,
+   0.7,
+   0.68
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Yoichi Bow",
+  "cat": "Bow",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "83": {
+  "tint": [
+   0.75,
+   0.6,
+   0.95
+  ],
+  "old": [
+   0.085,
+   0.42,
+   0.95
+  ],
+  "donors": [
+   "Hushward Mail"
+  ],
+  "name": "Skirmisher",
+  "cat": "Bow",
+  "hue_swapped": true
+ },
+ "85": {
+  "tint": [
+   0.2,
+   0.6,
+   1.05
+  ],
+  "old": [
+   0.52,
+   0.78,
+   1.05
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Frostarc",
+  "cat": "Bow",
+  "hue_swapped": true
+ },
+ "84": {
+  "tint": [
+   0.874,
+   0.6,
+   1.16
+  ],
+  "old": [
+   0.74,
+   0.25,
+   1.16
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Windrunner",
+  "cat": "Bow"
+ },
+ "92": {
+  "tint": [
+   0.46,
+   0.6,
+   0.95
+  ],
+  "old": [
+   0.46,
+   0.88,
+   0.95
+  ],
+  "donors": [
+   "Spellbane",
+   "Tempo Vest"
+  ],
+  "name": "Siren's Lyre",
+  "cat": "Instrument"
+ },
+ "93": {
+  "tint": [
+   0.335,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.72,
+   0.82,
+   0.78
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Duskstring Harp",
+  "cat": "Instrument",
+  "hue_swapped": true
+ },
+ "94": {
+  "tint": [
+   0.126,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.13,
+   0.88,
+   1.14
+  ],
+  "donors": [
+   "Hushblade",
+   "Birchwood Staff",
+   "Zeus Mace"
+  ],
+  "name": "Faerie Harp",
+  "cat": "Instrument",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "95": {
+  "tint": [
+   0.65,
+   0.6,
+   1.05
+  ],
+  "old": [
+   0.115,
+   0.85,
+   1.05
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Glarebound Tome",
+  "cat": "Book",
+  "hue_swapped": true
+ },
+ "97": {
+  "tint": [
+   0.106,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.61,
+   0.8,
+   0.85
+  ],
+  "donors": [
+   "Quicksilver",
+   "Sasuke's Blade",
+   "Claymore"
+  ],
+  "name": "Binding Codex",
+  "cat": "Book",
+  "hue_swapped": true
+ },
+ "98": {
+  "tint": [
+   0.027,
+   0.68,
+   1.0
+  ],
+  "old": [
+   0.03,
+   0.8,
+   0.95
+  ],
+  "donors": [
+   "Galewind",
+   "Sanguine Sword",
+   "Tanglethorn"
+  ],
+  "name": "Omnilex",
+  "cat": "Book",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "96": {
+  "tint": [
+   0.791,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.76,
+   0.65,
+   0.5
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Knell Codex",
+  "cat": "Book"
+ },
+ "103": {
+  "tint": [
+   0.248,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.23,
+   0.75,
+   0.62
+  ],
+  "donors": [
+   "Zephyr Beret"
+  ],
+  "name": "Tombspire",
+  "cat": "Polearm",
+  "hue_swapped": true
+ },
+ "106": {
+  "tint": [
+   0.335,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.33,
+   0.85,
+   0.8
+  ],
+  "donors": [
+   "Dragon Rod",
+   "Ironclad Repeater",
+   "Arbalest"
+  ],
+  "name": "Wyrmpike",
+  "cat": "Polearm"
+ },
+ "102": {
+  "tint": [
+   0.04,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.7,
+   0.78,
+   0.85
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Stormpike",
+  "cat": "Polearm"
+ },
+ "104": {
+  "tint": [
+   0.625,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.615,
+   0.72,
+   1.05
+  ],
+  "donors": [
+   "Quicksilver",
+   "Sasuke's Blade",
+   "Claymore"
+  ],
+  "name": "Holy Lance",
+  "cat": "Polearm",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "100": {
+  "tint": [
+   0.106,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.605,
+   0.45,
+   0.42
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Footman's Spear",
+  "cat": "Polearm",
+  "hue_swapped": true
+ },
+ "99": {
+  "tint": [
+   0.79,
+   0.6,
+   0.98
+  ],
+  "old": [
+   0.085,
+   0.72,
+   0.98
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Skewer",
+  "cat": "Polearm",
+  "hue_swapped": true
+ },
+ "101": {
+  "tint": [
+   0.899,
+   0.6,
+   1.05
+  ],
+  "old": [
+   0.52,
+   0.8,
+   1.05
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Frostpoint",
+  "cat": "Polearm",
+  "hue_swapped": true
+ },
+ "105": {
+  "tint": [
+   0.694,
+   0.55,
+   1.0
+  ],
+  "old": [
+   0.01,
+   0.85,
+   0.88
+  ],
+  "donors": [
+   "Hushward Mail"
+  ],
+  "name": "Dragon Whisker",
+  "cat": "Polearm",
+  "hue_swapped": true,
+  "reserved": true
+ },
+ "116": {
+  "tint": [
+   0.323,
+   0.58,
+   1.15
+  ],
+  "old": [
+   0.3,
+   0.72,
+   0.85
+  ],
+  "donors": [
+   "Studded Mail"
+  ],
+  "name": "Fallingstar Bag",
+  "cat": "Bag",
+  "hue_swapped": true,
+  "reserved": true,
+  "tribunal": "bag: own vanilla green through the engine at sibling brightness; gold star preserved (rule 1: similar, popped)"
+ },
+ "117": {
+  "tint": [
+   0.089,
+   0.85,
+   1.0
+  ],
+  "old": [
+   0.095,
+   0.88,
+   0.8
+  ],
+  "donors": [
+   "Cutpurse",
+   "Sanguine Gauche",
+   "Zwill Straightblade"
+  ],
+  "name": "Hornet Pouch",
+  "cat": "Bag",
+  "tribunal": "bag: VANILLA body (correct highlights) wearing the shipped body colour"
+ },
+ "118": {
+  "tint": [
+   0.567,
+   0.93,
+   1.0
+  ],
+  "old": [
+   0.56,
+   0.7,
+   0.72
+  ],
+  "donors": [
+   "Stormbrand",
+   "Frostarc",
+   "Faerie Harp"
+  ],
+  "name": "Hexweave Bag",
+  "cat": "Bag",
+  "hue_swapped": true,
+  "tribunal": "bag: VANILLA body (correct highlights) wearing the shipped body colour"
+ },
+ "115": {
+  "tint": [
+   0.739,
+   0.62,
+   1.18
+  ],
+  "old": [
+   0.74,
+   0.6,
+   0.7
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Sandman Satchel",
+  "cat": "Bag",
+  "tribunal": "bag: shipped violet lifted (vm 1.18) so the vanilla shading reads"
+ },
+ "119": {
+  "tint": [
+   0.106,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.5,
+   0.6,
+   0.32
+  ],
+  "donors": [
+   "Siren's Lyre"
+  ],
+  "name": "Tarsilk Veil",
+  "cat": "Cloth",
+  "hue_swapped": true
+ },
+ "120": {
+  "tint": [
+   0.584,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.36,
+   0.8,
+   0.75
+  ],
+  "donors": [
+   "Dragon Rod",
+   "Ironclad Repeater",
+   "Arbalest"
+  ],
+  "name": "Bindsilk Veil",
+  "cat": "Cloth",
+  "hue_swapped": true
+ },
+ "121": {
+  "tint": [
+   0.707,
+   0.6,
+   0.9
+  ],
+  "old": [
+   0.75,
+   0.6,
+   0.55
+  ],
+  "donors": [
+   "Crystalward Helm"
+  ],
+  "name": "Gravesilk Veil",
+  "cat": "Cloth",
+  "hue_swapped": true
+ }
+}

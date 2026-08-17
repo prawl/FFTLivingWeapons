@@ -1,0 +1,390 @@
+{
+ "sections": [
+  {
+   "cat": "Bag",
+   "ids": [
+    115,
+    116,
+    117,
+    118
+   ],
+   "names": [
+    "Sandman Satchel",
+    "Fallingstar Bag",
+    "Hornet Pouch",
+    "Hexweave Bag"
+   ],
+   "small": "proto_strip_w_Bag_small.png",
+   "card": "proto_strip_w_Bag_card.png"
+  },
+  {
+   "cat": "Book",
+   "ids": [
+    95,
+    96,
+    97,
+    98
+   ],
+   "names": [
+    "Glarebound Tome",
+    "Knell Codex",
+    "Binding Codex",
+    "Omnilex"
+   ],
+   "small": "proto_strip_w_Book_small.png",
+   "card": "proto_strip_w_Book_card.png"
+  },
+  {
+   "cat": "Bow",
+   "ids": [
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91
+   ],
+   "names": [
+    "Skirmisher",
+    "Windrunner",
+    "Frostarc",
+    "Stormarc",
+    "Skypiercer",
+    "Tidecaller",
+    "Huntress",
+    "Yoichi Bow",
+    "Perseus Bow"
+   ],
+   "small": "proto_strip_w_Bow_small.png",
+   "card": "proto_strip_w_Bow_card.png"
+  },
+  {
+   "cat": "Cloth",
+   "ids": [
+    119,
+    120,
+    121
+   ],
+   "names": [
+    "Tarsilk Veil",
+    "Bindsilk Veil",
+    "Gravesilk Veil"
+   ],
+   "small": "proto_strip_w_Cloth_small.png",
+   "card": "proto_strip_w_Cloth_card.png"
+  },
+  {
+   "cat": "Crossbow",
+   "ids": [
+    77,
+    78,
+    79,
+    80,
+    81,
+    82
+   ],
+   "names": [
+    "Scoutbolt",
+    "Eclipsebolt",
+    "Arbalest",
+    "Venombolt",
+    "Pitchbolt",
+    "Siegebolt"
+   ],
+   "small": "proto_strip_w_Crossbow_small.png",
+   "card": "proto_strip_w_Crossbow_card.png"
+  },
+  {
+   "cat": "Gun",
+   "ids": [
+    71,
+    72,
+    73,
+    74,
+    75,
+    76
+   ],
+   "names": [
+    "Outrider Pistol",
+    "Ironclad Repeater",
+    "Stoneshooter",
+    "Glacial Gun",
+    "Blaze Gun",
+    "Blaster"
+   ],
+   "small": "proto_strip_w_Gun_small.png",
+   "card": "proto_strip_w_Gun_card.png"
+  },
+  {
+   "cat": "Instrument",
+   "ids": [
+    92,
+    93,
+    94
+   ],
+   "names": [
+    "Siren's Lyre",
+    "Duskstring Harp",
+    "Faerie Harp"
+   ],
+   "small": "proto_strip_w_Instrument_small.png",
+   "card": "proto_strip_w_Instrument_card.png"
+  },
+  {
+   "cat": "Katana",
+   "ids": [
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    70
+   ],
+   "names": [
+    "Ashura",
+    "Kotetsu",
+    "Bizen Osafune",
+    "Murasame",
+    "Ame-no-Murakumo",
+    "Kiyomori",
+    "Muramasa",
+    "Kiku-ichimonji",
+    "Masamune",
+    "Chirijiraden",
+    "Sasori"
+   ],
+   "small": "proto_strip_w_Katana_small.png",
+   "card": "proto_strip_w_Katana_card.png"
+  },
+  {
+   "cat": "Knife",
+   "ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    68
+   ],
+   "names": [
+    "Cutpurse",
+    "Quicksilver",
+    "Gloomfang",
+    "Hushblade",
+    "Argent Dirk",
+    "Sanguine Gauche",
+    "Adamant Fang",
+    "Mortal Coil",
+    "Galewind",
+    "Zwill Straightblade",
+    "Bloodlash"
+   ],
+   "small": "proto_strip_w_Knife_small.png",
+   "card": "proto_strip_w_Knife_card.png"
+  },
+  {
+   "cat": "KnightSword",
+   "ids": [
+    33,
+    34,
+    35,
+    36,
+    37,
+    49,
+    50
+   ],
+   "names": [
+    "Defender",
+    "Save the Queen",
+    "Excalibur",
+    "Ragnarok",
+    "Chaos Blade",
+    "Ravager",
+    "Sunderer"
+   ],
+   "small": "proto_strip_w_KnightSword_small.png",
+   "card": "proto_strip_w_KnightSword_card.png"
+  },
+  {
+   "cat": "NinjaBlade",
+   "ids": [
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    69
+   ],
+   "names": [
+    "Swiftfang",
+    "Mistedge",
+    "Frost Kodachi",
+    "Raijin Longblade",
+    "Silentfang",
+    "Sasuke's Blade",
+    "Iga Blade",
+    "Koga Blade",
+    "Climhazzard"
+   ],
+   "small": "proto_strip_w_NinjaBlade_small.png",
+   "card": "proto_strip_w_NinjaBlade_card.png"
+  },
+  {
+   "cat": "Pole",
+   "ids": [
+    48,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114
+   ],
+   "names": [
+    "Terrastaff",
+    "Greenwood Pole",
+    "Ironreed Pole",
+    "Slumber Rod",
+    "Hushfan",
+    "Sage's Pole",
+    "Ivory Pole",
+    "Eight-Fluted Pole",
+    "Whale Whisker"
+   ],
+   "small": "proto_strip_w_Pole_small.png",
+   "card": "proto_strip_w_Pole_card.png"
+  },
+  {
+   "cat": "Polearm",
+   "ids": [
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106
+   ],
+   "names": [
+    "Skewer",
+    "Footman's Spear",
+    "Frostpoint",
+    "Stormpike",
+    "Tombspire",
+    "Holy Lance",
+    "Dragon Whisker",
+    "Wyrmpike"
+   ],
+   "small": "proto_strip_w_Polearm_small.png",
+   "card": "proto_strip_w_Polearm_card.png"
+  },
+  {
+   "cat": "Rod",
+   "ids": [
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58
+   ],
+   "names": [
+    "Wellspring Rod",
+    "Spark Rod",
+    "Ember Rod",
+    "Frost Rod",
+    "Hushward Rod",
+    "Umbral Rod",
+    "Dragon Rod",
+    "Rod of Faith"
+   ],
+   "small": "proto_strip_w_Rod_small.png",
+   "card": "proto_strip_w_Rod_card.png"
+  },
+  {
+   "cat": "Staff",
+   "ids": [
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66
+   ],
+   "names": [
+    "Birchwood Staff",
+    "Warlock's Staff",
+    "Mending Staff",
+    "Warding Staff",
+    "Blazing Staff",
+    "Sanctus Staff",
+    "Zeus Mace",
+    "Staff of the Magi"
+   ],
+   "small": "proto_strip_w_Staff_small.png",
+   "card": "proto_strip_w_Staff_card.png"
+  },
+  {
+   "cat": "Sword",
+   "ids": [
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    67
+   ],
+   "names": [
+    "Vagabond",
+    "Cleaver",
+    "Riposte",
+    "Claymore",
+    "Sanguine Sword",
+    "Stormbrand",
+    "Tanglethorn",
+    "Flamberge",
+    "Wrathblade",
+    "Swiftedge",
+    "Graviton",
+    "Arcanum",
+    "Lightbringer",
+    "Materia Blade",
+    "Warbrand"
+   ],
+   "small": "proto_strip_w_Sword_small.png",
+   "card": "proto_strip_w_Sword_card.png"
+  }
+ ]
+}
