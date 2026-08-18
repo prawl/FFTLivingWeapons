@@ -35,8 +35,14 @@ internal sealed partial class PoolLocator
     /// PURE PROGRESS on a fixed cadence (no "something is wrong" claim at all) so the owner's
     /// first live tape can finally show what a real completion tick count looks like; retune
     /// (or reinstate a real anomaly threshold, once one can be derived from that tape) from those
-    /// numbers.</summary>
-    private const int ProgressLogEveryTicks = 300;   // 1.2GB/tick-count at LocateBudgetInBattle (4.8GB out of battle, LocateBudgetOutOfBattle); a readable cadence, not a measured one
+    /// numbers.
+    ///
+    /// Internal, not private (LW-267 pin, zero behavior change): lets PoolLocatorGuardTests
+    /// name this constant in its doc cref. The pin itself deliberately hardcodes the literal
+    /// 300 instead of reading this symbol, so a mutated constant cannot silently retune the
+    /// test along with the code (the pin's first draft did read it, and was vacuous for exactly
+    /// that reason). Mirrors the test-accessor convention Display.Flight.cs documents.</summary>
+    internal const int ProgressLogEveryTicks = 300;   // 1.2GB/tick-count at LocateBudgetInBattle (4.8GB out of battle, LocateBudgetOutOfBattle); a readable cadence, not a measured one
 
     internal readonly record struct LocateCompletion(int Regions, int Ticks, long Bytes, long ElapsedMs, string Trigger);
 

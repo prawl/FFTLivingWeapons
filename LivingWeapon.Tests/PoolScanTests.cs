@@ -204,6 +204,84 @@ public class PoolScanTests
         Assert.Equal(callsAfterBegin + 1, spy.RegionsCalls);
     }
 
+    /// <summary>PIN (LW-267): the read==0 branch inside Step's chunk loop
+    /// (<c>if (read == 0) { chunkStart += ChunkReader.ChunkSize; continue; }</c>) skips the one
+    /// failed chunk and keeps walking the SAME region, rather than abandoning it outright. NOTE ON
+    /// THE TICKET'S OWN PROSE: docs/TODO.md's LW-267 entry describes this guard as "the choice to
+    /// stop reading a region when a read fails rather than skipping past it" -- that is the
+    /// OPPOSITE of what the code does (it skips past, via `continue`, not `break`). This test pins
+    /// the ACTUAL current behavior (skip-and-continue), not the ticket's prose; production
+    /// behavior is unchanged.
+    ///
+    /// One 12MB region (three 4MB chunks): the pool-identifying marker sits at the 9MB offset, in
+    /// the FINAL chunk. FailWindowMem fails every read whose start address lands in the middle
+    /// third (a window comfortably containing the middle chunk's own lookback-adjusted read start
+    /// without reaching the first or third chunk's), so the middle chunk always returns 0 bytes
+    /// while the first and third read normally.
+    ///
+    /// RED under MUTATION (change `continue;` to `break;`): the middle chunk's failed read now
+    /// abandons the whole region on the spot, so the third chunk (and the marker inside it) is
+    /// never read. The scan still completes (nothing left to walk), but the completed result's
+    /// Regions comes back empty -- the region-present assert below fails.</summary>
+    [Fact]
+    public void Step_skips_a_failed_chunk_read_instead_of_abandoning_the_region()
+    {
+        var pats = new CardPatterns(BuildMeta());
+        long regionBase = 0x70_0000_0000L;
+        var data = new byte[12 * 1024 * 1024];
+        var marker = BuildPoolBuffer();
+        Array.Copy(marker, 0, data, 9 * 1024 * 1024, marker.Length);
+        var heap = new FakeHeap((regionBase, data, true));
+
+        // Fails any read starting in the middle third of the region (comfortably covers the
+        // middle chunk's actual lookback-adjusted read start, ~4MB-4KB into the region, while
+        // staying clear of the first chunk's read start (region base) and the third chunk's
+        // (~8MB-4KB into the region).
+        long failStart = regionBase + 3 * 1024 * 1024;
+        long failEnd = regionBase + 7 * 1024 * 1024;
+        var mem = new FailWindowMem(heap, failStart, failEnd);
+        var scan = new PoolScan(mem, pats);
+        scan.Begin(0);
+
+        long now = 0;
+        PoolScan.StepResult result = default;
+        for (int i = 0; i < 10 && !result.Complete; i++)
+        {
+            now += 33;
+            result = scan.Step(PoolLocator.LocateBudgetInBattle, now);
+        }
+
+        Assert.True(result.Complete, "scan did not complete within the bound");
+        Assert.Contains(result.Regions, r => r.baseAddr == regionBase);
+    }
+
+    /// <summary>IGameMemory wrapper whose ReadInto fails (returns 0) for any read starting inside
+    /// [<paramref name="failStart"/>, <paramref name="failEnd"/>), forwarding everything else --
+    /// mirrors BytesSpyMem.cs's own wrap-and-forward shape, this file's own no-cross-file-reference
+    /// convention for test-only fakes.</summary>
+    private sealed class FailWindowMem : IGameMemory
+    {
+        private readonly IGameMemory _inner;
+        private readonly long _failStart, _failEnd;
+        public FailWindowMem(IGameMemory inner, long failStart, long failEnd)
+        {
+            _inner = inner;
+            _failStart = failStart;
+            _failEnd = failEnd;
+        }
+
+        public byte U8(long addr) => _inner.U8(addr);
+        public ushort U16(long addr) => _inner.U16(addr);
+        public bool TryReadBytes(long addr, int len, out byte[] buf) => _inner.TryReadBytes(addr, len, out buf);
+        public int ReadInto(long addr, byte[] buf, int len)
+            => (addr >= _failStart && addr < _failEnd) ? 0 : _inner.ReadInto(addr, buf, len);
+        public void WriteBytes(long addr, byte[] data) => _inner.WriteBytes(addr, data);
+        public void W8(long addr, byte value) => _inner.W8(addr, value);
+        public bool Readable(long addr, int len) => _inner.Readable(addr, len);
+        public bool Writable(long addr, int len) => _inner.Writable(addr, len);
+        public IEnumerable<(long baseAddr, long size)> Regions() => _inner.Regions();
+    }
+
     /// <summary>IGameMemory wrapper that counts Regions() calls, forwarding everything else --
     /// copied from PoolLocatorTests.cs's private helper of the same name (this file's own
     /// no-cross-file-reference convention for test-only fakes).</summary>

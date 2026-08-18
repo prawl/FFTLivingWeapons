@@ -91,9 +91,10 @@ the technical detail lives in the indented lines under it.
 
 - **[LW-267] Three guards inside the new resumable search have no test holding them down** (opened 2026-08-18) [BUILDING]
   - The line that keeps the region list marked stale on two of its three paths, the number
-    deciding how often a long search reports progress, and the choice to stop reading a region
-    when a read fails rather than skipping past it. Each survived deliberate mutation with the
-    whole suite green. None is believed wrong today; they are simply unpinned.
+    deciding how often a long search reports progress, and the choice to SKIP PAST a failed
+    chunk read and keep scanning the rest of the region rather than abandoning it. An earlier
+    draft of this row described that third guard backwards. Each survived deliberate mutation
+    with the whole suite green. None is believed wrong today; they are simply unpinned.
   - Done means: one pin per guard, each proven non-vacuous by re-applying the exact mutation
     that survived and watching the new pin go red. Tests only; any test-accessor visibility
     flip follows the established convention with zero behavior change. (Tech: the _stale
@@ -120,6 +121,16 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; every pin red under its mutation and green on restore.
 
 ## Backlog
+
+- [LW-271] 2026-08-18: The progress heartbeat of a long memory search is pinned to fire at tick
+  300 and to stay silent before it, but nothing proves it fires AGAIN at 600 and 900, so a slip
+  that degrades the every-300 rhythm to a one-shot would leave a real 650 tick scan logging once
+  and then going quiet, with every gate green. Low stakes, it is a debug diagnostic line only,
+  and the dangerous regressions (wrong constant, log spam, never firing) are all pinned by
+  LW-267's test. Found by the LW-267 verify round's own extra mutation, which the suite did not
+  catch. (Tech: `result.Ticks % ProgressLogEveryTicks == 0` in PoolLocator.Restart.cs Step; the
+  uncaught mutation was `%` degraded to `==`; the fix is one more assertion driving the scan to
+  tick 600 in PoolLocatorGuardTests.)
 
 - [LW-270] 2026-08-18: One small piece of the cleanup rate limiter has no test holding it down:
   when a big cleanup pass earns an immediate repeat, the refusal counter is also supposed to
