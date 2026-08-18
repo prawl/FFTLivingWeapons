@@ -91,23 +91,7 @@ the technical detail lives in the indented lines under it.
 
 
 
-- **[LW-263] Three of the new pool search files describe their own size wrongly** (opened 2026-08-18) [BUILDING]
-  - The numbers went stale the moment a method moved between files, and stale AGAIN since the
-    ticket was filed, which settles the argument: stop quoting line counts in prose at all.
-  - Done means: no comment in the pool search files quotes a line count; the header keeps the
-    true substance (the split was mostly comment prose, not logic growth) without numbers.
-    (Tech: the PoolLocator.Restart.cs header carried every count; wc counts are always current.)
-  - Verify: grep the three PoolLocator files for quoted line counts finds none; full suite
-    green.
-- **[LW-264] One doc comment still claims the search finishes rarely, which stopped being true** (opened 2026-08-18) [BUILDING]
-  - On a cold boot with no text pool yet, the search finishes and restarts about once a second
-    indefinitely. The twin of this sentence was corrected during the arc; this copy was missed.
-  - Done means: the LocateRecordBudget doc states the cold boot trickle truthfully and cites
-    the corrected twin, and explains why the cap matters precisely because of that trickle.
-    (Tech: LocateRecordBudget doc in Display.Flight.cs; twin is LogLocateComplete in
-    PoolLocator.Log.cs.)
-  - Verify: the corrected sentence matches LogLocateComplete's account and RevalidateMs; full
-    suite green.
+
 
 ## Backlog
 
@@ -170,22 +154,6 @@ the technical detail lives in the indented lines under it.
   by Prune_evicting_exactly_the_floor_rearms_immediate_retry.)
 
 - [LW-268] 2026-08-18: The search re-reads the whole 2.8GB of game memory every time, even though at most 145MB of it has ever held what it is looking for, and the regions it found last time were still there next time. An index that remembers which regions were already checked and re-reads only new or resized ones could cut a rescan from tens of seconds to a few. The catch that must be probed FIRST: if the game pre-commits big arenas and writes card text into them later, a region can become interesting without changing its size, and the index would skip it forever with no error and no log line. Step one is a probe that logs the full region list diff alongside each locate across one battle and checks whether newly interesting regions are freshly committed or pre-existing. Sequence this after LW-262, because fixing coverage latching should make rescans rare enough to re-price the whole idea. (Tech: candidate design diffs (base,size) against the last completed PoolScan snapshot and carries not-pool verdicts for unchanged regions; hazard is that VirtualQueryEx sees commit granularity, not content.)
-
-- [LW-256] 2026-08-17: Four files point to an explanation of the retry bug that this branch does
-  not have yet, and nothing automated notices. The `battle-retry-rewind-fingerprint` writeup
-  landed on `main` in commit 438b173, but this arc's branch (`lw233`) was cut from an earlier
-  commit, so `RestartSentinel.cs`, `RestartSentinel.Policy.cs`, `KillTracker.cs`, and
-  `KillTracker.Corpses.cs` all cite a ledger row that is not in this branch's copy of
-  `docs/LIVE_LEDGER.md`, and the doc gate stays green anyway because it only checks links between
-  docs, not whether a code comment's citation of a ledger row actually exists. Merging `lw233`
-  back onto a `main` that already carries that row settles it for free; this row exists so the
-  gap is not silently forgotten if that merge is delayed or done some other way. Not a fix to make
-  here: no rebase, no hand-added row, that is a merge-time call for the owner. (Tech:
-  `DocsContractTests` (LivingWeapon.Tests) enforces repo-wide doc-to-doc link integrity but has no
-  check that a `[slug]` cited from a `.cs` comment actually resolves to a row in
-  `docs/LIVE_LEDGER.md`; the four current citations are `LivingWeapon/Kills/RestartSentinel.cs:17`,
-  `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
-  `[battle-retry-rewind-fingerprint]`.)
 
 - [LW-258] 2026-08-17: Stage 3 of the card-disagreement fix, parked deliberately until the new tapes
   say whether it is needed. If the LW-257 commits land and a card copy is STILL going dark (rather

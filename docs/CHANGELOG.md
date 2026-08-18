@@ -10,6 +10,29 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-263] SHIPPED c9b5e57 2026-08-18: Comments in the pool search quoted their own files' line
+  counts and the numbers went stale twice, including being wrong the day they were written. The
+  counts are deleted, the true substance kept, and the header now explains why prose never
+  quotes a count again. The verify round swept wider and found three more such comments
+  elsewhere, banked as LW-276. (Tech: the PoolLocator.Restart.cs header carried every count;
+  the fact check confirmed no PoolLocator file quotes one now.)
+
+- [LW-264] SHIPPED c9b5e57 2026-08-18: A comment claimed the memory search completes only a
+  handful of times per window, false since the cold boot retry lane landed: with no text pool
+  yet it completes about once a second indefinitely. The comment now tells the truth, cites its
+  corrected twin, and explains the record cap exists precisely to keep that trickle readable.
+  (Tech: the LocateRecordBudget doc in Display.Flight.cs; twin LogLocateComplete in
+  PoolLocator.Log.cs; verified against RevalidateMs and the LW-266 test.)
+
+- [LW-256] SHIPPED 068cd3e 2026-08-18: Four files cited a ledger explanation their branch did
+  not carry yet, and the ticket existed so the gap would not be forgotten if the merge was
+  delayed. The merge landed and settled it exactly as predicted: all four citations now resolve
+  to the battle retry rewind row in docs/LIVE_LEDGER.md, verified by grep this session. The
+  ticket's real lesson, that no gate checks code to ledger citations, is banked as LW-275
+  rather than dying with this exit. (Tech: RestartSentinel.cs, RestartSentinel.Policy.cs,
+  KillTracker.cs, KillTracker.Corpses.cs all cite [battle-retry-rewind-fingerprint], present at
+  LIVE_LEDGER.md line 1896 since the lw233 merge.)
+
 - [LW-259] SHIPPED 42846ff 2026-08-18: The card painter's black box could fall silent partway
   through a long battle: the 64 line budget one window gets was spent on routine paint lines,
   roughly eleven kills worth, and every eviction record after that was dropped without a word,
