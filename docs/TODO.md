@@ -88,25 +88,6 @@ the technical detail lives in the indented lines under it.
     separate second material, no two alike, and the Fallingstar Bag matches its own artwork.
   - Verify: the four icon gates green with the pins proven by mutation, the bake matching the FULL
     preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
-- **[LW-269] Three small pieces of the new cache-splitting fix have no test holding them down, so a later edit could quietly break any of them and every gate would still pass** (opened 2026-08-18) [BUILDING]
-  - Found by the verifier round on LW-262. The worst of the three: when a weapon's name-suffix
-    note is evicted, its per-weapon count must go back down, and nothing proves it does; if that
-    ever broke, the weapon would hit its 12-copy ceiling and refuse new suffix notes forever,
-    silently. The other two: the rule deciding when a big cleanup pass earns an immediate repeat
-    is only tested one below its boundary, never at it, so an off-by-one would slip through; and
-    the small budget on how many cleanup-eviction lines reach the black box has no test at all.
-  - Done means: three new test pins, one per piece, each proven non-vacuous by re-applying the
-    exact mutation that survived the LW-262 verify round and watching the new pin go red. The
-    only production edit is a visibility flip so a test can cite the budget constant, matching
-    how the file's two sibling budget constants are already exposed; zero behavior change. (Tech:
-    _suffixCountById decrementing in CardSites.Admission.cs's EvictList; PruneRearmFloor's `>=`
-    boundary at exactly 16 in the same file; OnSitePruned's use of the shared _flightBudget/
-    FlightRecordBudget tier in Display.Flight.cs, whose const goes internal like
-    CoverageRecordBudget and LocateRecordBudget already are.)
-  - Verify: full suite green with the three pins in; each pin shown red under its target
-    mutation and green again on restore; the pre-existing partition and cap-relief tests
-    unmodified.
-
 ## Backlog
 
 - [LW-270] 2026-08-18: One small piece of the cleanup rate limiter has no test holding it down:

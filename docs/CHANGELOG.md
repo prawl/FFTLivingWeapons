@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-269] SHIPPED 304ff60 2026-08-18: Three pieces of the paint spot cache rules were correct but
+  had no test holding them down, so a later edit could have quietly broken any of them with every
+  gate still green. The worst would have been silent forever: if the per weapon count of name
+  suffix entries ever stopped going back down on eviction, that weapon would hit its 12 copy
+  ceiling and refuse new name tags for the rest of time with no error anywhere. All three now have
+  pins, each proven honest by re-applying the exact mutation that survived the LW-262 verify round
+  and watching the new test go red, and an independent verifier re-proved all three mutations
+  itself plus two of its own (both caught). Its one uncaught extra mutation is filed as LW-270. The
+  only production change is a visibility flip so a test can cite a constant; no behavior changed,
+  so no owner live pass was needed. (Tech: pins for the _suffixCountById decrement in
+  CardSites.Admission.cs EvictList, the PruneRearmFloor >= boundary at exactly 16 in
+  PruneDeadSites, and OnSitePruned's shared _flightBudget/FlightRecordBudget tier in
+  Display.Flight.cs, whose const went internal like its two sibling budgets; suite 3156 to 3159
+  green; verifier verdict SHIP 9/10.)
+
 - [LW-262] SHIPPED aff6b91 2026-08-18: The mod's notebook of paint spots kept filling to its 2048
   ceiling because kill count entries and name suffix entries shared one room, and a full notebook
   silently forced the whole memory search to run again, eight times in one battle on the incident
