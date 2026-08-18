@@ -106,7 +106,7 @@ public class DisplayPoolPaintTests
         var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
 
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         Assert.False(display._sweep.IsComplete);   // proves attribution came from the pool path
 
@@ -123,7 +123,7 @@ public class DisplayPoolPaintTests
         var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
 
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         Assert.False(display._sweep.IsComplete);
 
@@ -147,7 +147,7 @@ public class DisplayPoolPaintTests
 
         using var cap = LogCapture.Start();
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         Assert.False(display._sweep.IsComplete);   // proves attribution came from the pool path
 
@@ -169,11 +169,11 @@ public class DisplayPoolPaintTests
 
         using var cap = LogCapture.Start();
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);   // first coverage: the announce line fires
+        CardFixtures.TickWithPoolLocate(display, false);   // first coverage: the announce line fires
 
         display.Invalidate();
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);   // re-coverage: must not repeat the Info line
+        CardFixtures.TickWithPoolLocate(display, false);   // re-coverage: must not repeat the Info line
 
         Assert.False(display._sweep.IsComplete);
 
@@ -223,7 +223,7 @@ public class DisplayPoolPaintTests
         for (int i = 0; i < 10; i++)
         {
             clock.Ms += DisplaySweep.HotRescanMs + 1;
-            display.Tick(false);
+            CardFixtures.TickWithPoolLocate(display, false);
         }
 
         // Coverage never completing is itself the documented existing fallback shape
@@ -260,7 +260,7 @@ public class DisplayPoolPaintTests
         for (int i = 0; i < 10; i++)
         {
             clock.Ms += DisplaySweep.HotRescanMs + 1;
-            display.Tick(false);
+            CardFixtures.TickWithPoolLocate(display, false);
         }
 
         Assert.False(display._sweep.IsComplete);
@@ -277,12 +277,12 @@ public class DisplayPoolPaintTests
         for (int i = 0; i < 10; i++)
         {
             clock.Ms += DisplaySweep.HotRescanMs + 1;
-            display.Tick(false);
+            CardFixtures.TickWithPoolLocate(display, false);
         }
         Assert.True(display._sweep.IsComplete);   // the sweep ran a full pass, unlike the skip case above
 
         clock.Ms += DisplaySweep.GenerationRestMs + DisplaySweep.HotRescanMs + 10;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         Assert.Equal(2, display._sweep.Generation);   // a fresh generation started, regression guard
     }
@@ -314,7 +314,7 @@ public class DisplayPoolPaintTests
         for (int i = 0; i < 30; i++)
         {
             clock.Ms += DisplaySweep.HotRescanMs + 1;
-            display.Tick(false);
+            CardFixtures.TickWithPoolLocate(display, false);
         }
 
         // Read-only means the pool is absent from Regions() (matches production Mem.Regions()),
@@ -334,14 +334,14 @@ public class DisplayPoolPaintTests
         var clock = new TestClock();
         var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
 
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         // Sanity (passes today): the target weapon's suffix is painted at tier 3.
         Assert.Equal("+3", ReadAscii(f.Heap, f.RegionBase + f.SuffixPos[10], 2));
 
         display.Invalidate();   // the battle-exit / forced-exit edge (LW-56)
         f.Kills.Clear();        // the PlaythroughReset action (LW-51)
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         foreach (int id in f.Meta.Keys)
         {
@@ -359,7 +359,7 @@ public class DisplayPoolPaintTests
         var clock = new TestClock();
         var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
 
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         var suffixIds = new HashSet<int>();
         foreach (var s in display._sites.Snapshot())
@@ -376,7 +376,7 @@ public class DisplayPoolPaintTests
         var clock = new TestClock();
         var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
 
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         // MANDATORY Act-1 mid-state assert: the main-menu New Game path never calls
         // Invalidate, so standing coverage from this very first Tick is what must heal the
@@ -386,7 +386,7 @@ public class DisplayPoolPaintTests
             Assert.Equal("+3", ReadAscii(f.Heap, f.RegionBase + f.SuffixPos[id], 2));
 
         f.Kills.Clear();   // the main-menu New Game path: no forced exit, no Invalidate
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         foreach (int id in f.Meta.Keys)
         {
@@ -408,7 +408,7 @@ public class DisplayPoolPaintTests
         // Exactly ONE Tick: the single-chunk region completes generation 1 here. Do NOT
         // advance the clock past HotRescanMs between steps (a hot re-offer would legitimately
         // march the rotation further and break this bound for a reason unrelated to D1).
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         Assert.True(display._sweep.IsComplete);
 
@@ -448,7 +448,7 @@ public class DisplayPoolPaintTests
         var clock = new TestClock();
         var display = CardFixtures.MakeDisplay(f.Meta, f.Kills, f.Heap, f.StaticsBase, clock, poolPaint: true);
 
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         Assert.False(display._sweep.IsComplete);   // proves attribution came from the pool path
         Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, f.PoolBase + f.SlotA, Signatures.KillsMeterSlotChars));
@@ -469,7 +469,7 @@ public class DisplayPoolPaintTests
         for (int beat = 0; beat < Tuning.CardEvictStrikes; beat++)
         {
             clock.Ms += Display.MaintenanceMs + 1;
-            display.Tick(false);
+            CardFixtures.TickWithPoolLocate(display, false);
         }
 
         Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
@@ -497,7 +497,7 @@ public class DisplayPoolPaintTests
         var wrapped = new OffsetRemapMem(spy, f.StaticsBase, f.StaticsBase + 2, f.StaticsBase + 4);
         var display = new Display(f.Meta, f.Kills, wrapped, clock.Func, legends: null, poolPaint: true);
 
-        display.Tick(false);   // establish coverage
+        CardFixtures.TickWithPoolLocate(display, false);   // establish coverage
         Assert.False(display._sweep.IsComplete);
 
         int callsAfterCoverage = spy.RegionsCalls;
@@ -505,7 +505,7 @@ public class DisplayPoolPaintTests
 
         // (a) steady state: several ticks with sites alive must short-circuit on the cheap count
         // gate alone, never calling into the locator (so Regions() is never re-enumerated).
-        for (int i = 0; i < 5; i++) display.Tick(false);
+        for (int i = 0; i < 5; i++) CardFixtures.TickWithPoolLocate(display, false);
         Assert.Equal(callsAfterCoverage, spy.RegionsCalls);
 
         // Drain (same recipe as the born-red test above), then heal after the strike window.
@@ -517,28 +517,50 @@ public class DisplayPoolPaintTests
         CardFixtures.WriteCardForwardWithName(newBuf, nextStart2, "BowY", "Arrow never sleeps");
         f.Heap.AddRegion(newBase, newBuf, writable: true);
 
-        // LW-257: every beat before the strike cap is still a live-count steady state as far as
-        // MaybePoolPaint is concerned (the dead sites are struck but not yet evicted, so Count
-        // hasn't moved) -- Regions() must stay untouched through all of them.
-        for (int beat = 0; beat < Tuning.CardEvictStrikes - 1; beat++)
+        // Retune round (R1): PoolLocator's own independent RevalidateMs reverify (driven every
+        // beat now by TickWithPoolLocate, standing in for Engine's own "pool-locate" phase) is no
+        // longer gated behind Display's OWN strike-cap eviction schedule -- it notices the removed
+        // region and republishes CachedRegions on the FIRST beat that crosses RevalidateMs after
+        // the drain. That relocate is ALSO this beat's own CardSites strike #1 against the now-
+        // dead OLD sites (their anchor read fails, but CardSites.Verify.cs's leniency means one
+        // strike alone does not evict) -- so MaybePoolPaint's cheap site-COUNT short-circuit still
+        // holds (nothing evicted yet) and does not re-scan the freshly-republished region or
+        // repaint the card until CardSites actually evicts, CardEvictStrikes beats in, exactly as
+        // before this retune round. Only WHEN Regions() gets called moved earlier; WHEN the card
+        // repaints did not -- F6 (round 5 verify): that second half was previously asserted only
+        // in this comment, never in code (a verifier mutation of CardSites.Verify.cs's ApplyStrike
+        // to evict on the FIRST strike left this test green), so the NotEqual checks below pin it
+        // directly: the new site must NOT yet read the painted meter until the strike cap beat.
+        clock.Ms += Display.MaintenanceMs + 1;
+        CardFixtures.TickWithPoolLocate(display, false);   // strike 1: PoolLocator relocates and republishes THIS beat
+        int callsAfterRelocate = spy.RegionsCalls;
+        Assert.True(callsAfterRelocate > callsAfterCoverage, "PoolLocator's own revalidate must have re-scanned Regions() once the region vanished");
+        Assert.NotEqual(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
+
+        for (int beat = 1; beat < Tuning.CardEvictStrikes - 1; beat++)
         {
             clock.Ms += Display.MaintenanceMs + 1;
-            display.Tick(false);
-            Assert.Equal(callsAfterCoverage, spy.RegionsCalls);
+            CardFixtures.TickWithPoolLocate(display, false);
+            Assert.Equal(callsAfterRelocate, spy.RegionsCalls);   // PoolLocator's cache is already fresh: nothing further to revalidate
+            Assert.NotEqual(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
         }
 
         clock.Ms += Display.MaintenanceMs + 1;
-        display.Tick(false);   // the beat that reaches the strike cap: evicts, then heals, same Tick
+        CardFixtures.TickWithPoolLocate(display, false);   // the strike-cap beat: CardSites finally evicts, MaybePoolPaint's count changes, the card repaints at its new address
 
         Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
 
         int callsAfterHeal = spy.RegionsCalls;
-        Assert.True(callsAfterHeal > callsAfterCoverage, "the heal must have re-scanned Regions()");
+        Assert.Equal(callsAfterRelocate, callsAfterHeal);   // the repaint itself needs no NEW Regions() call -- the region was already relocated
 
-        // (b) re-latch pin: one further tick with the healed sites alive must NOT call
+        // (b) re-latch pin: further ticks with the healed region alive must NOT call
         // Regions() again -- the fix re-latches, it does not become a permanent rescan.
-        display.Tick(false);
-        Assert.Equal(callsAfterHeal, spy.RegionsCalls);
+        for (int beat = 0; beat < Tuning.CardEvictStrikes; beat++)
+        {
+            clock.Ms += Display.MaintenanceMs + 1;
+            CardFixtures.TickWithPoolLocate(display, false);
+            Assert.Equal(callsAfterHeal, spy.RegionsCalls);
+        }
     }
 
     /// <summary>IGameMemory wrapper that counts Regions() calls, forwarding everything else --

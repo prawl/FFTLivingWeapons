@@ -30,7 +30,7 @@ internal sealed partial class PoolLocator
         ModLogger.Debug(LogVerb.Display, $"LW37 locate: still scanning after {ticks} ticks ({bytes} bytes so far)");
 
     /// <summary>Fires on every real scan completion: the ticks/bytes/ms evidence the budget
-    /// constant (LocateBudgetBytes) needs retuning from once real numbers exist. Never rate-
+    /// constants (LocateBudgetInBattle/LocateBudgetOutOfBattle) need retuning from once real numbers exist. Never rate-
     /// limited, and NOT rare on every path (round 3 verify, C3(c), corrects an earlier version of
     /// this doc that said "at most one per Invalidate() window, or one per failed periodic
     /// revalidate" -- true for those two triggers, but silent on the third: a cold boot before

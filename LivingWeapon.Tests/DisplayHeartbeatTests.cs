@@ -122,7 +122,7 @@ public class DisplayHeartbeatTests
         var heap = new FakeHeap((poolBase, poolBuf, true), (staticsBase, statics, true));
         var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock, poolPaint: true);
 
-        display.Tick(false);   // locates the pool region (id 10's card)
+        CardFixtures.TickWithPoolLocate(display, false);   // locates the pool region (id 10's card)
 
         bool poolSiteFound = false;
         foreach (var s in display._sites.Snapshot())
@@ -214,7 +214,7 @@ public class DisplayHeartbeatTests
         var heap = new FakeHeap((poolBase, poolBuf, true), (staticsBase, statics, true));
         var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock, poolPaint: true);
 
-        display.Tick(false);   // locates+covers the original pool region
+        CardFixtures.TickWithPoolLocate(display, false);   // locates+covers the original pool region
 
         display.Invalidate();   // battle-edge style: RegionsStale flips true; CachedRegions keeps
                                  // serving the OLD (poolBase) list until a fresh scan republishes
@@ -272,7 +272,7 @@ public class DisplayHeartbeatTests
         var wrapped = new OffsetRemapMem(spy, staticsBase, staticsBase + 2, staticsBase + 4);
         var display = new Display(meta, kills, wrapped, clock.Func, legends: null, poolPaint: true);
 
-        display.Tick(false);   // both regions located+scanned; id 10 gets a kills site in each
+        CardFixtures.TickWithPoolLocate(display, false);   // both regions located+scanned; id 10 gets a kills site in each
 
         int killsSitesFor10 = 0;
         foreach (var s in display._sites.Snapshot()) if (s.Id == 10 && s.IsKills) killsSitesFor10++;
@@ -291,6 +291,12 @@ public class DisplayHeartbeatTests
         heap.WriteBytes(regionBBase + 500, freshCard);
 
         clock.Ms += Display.MaintenanceMs + 1;
+        // Plain Tick, not TickWithPoolLocate: coverage is already established (above), and this
+        // beat means to isolate ReOfferDrainedRegions' OWN targeted re-offer -- also stepping
+        // StepPoolLocate here would additionally trigger PoolLocator's own independent RevalidateMs
+        // reverify (same 1000ms cadence as Display.MaintenanceMs, by design -- PoolLocator.Restart.
+        // cs's own doc), which reads BOTH cached regions and would confound this test's
+        // region-A-untouched assertion below with a second, unrelated read source.
         display.Tick(false);   // one maintenance beat: evict, then re-offer region B alone
 
         Assert.Equal(Signatures.KillsMeterSlot(7), ReadSlot2(heap, regionABase + slotA, Signatures.KillsMeterSlotChars));
@@ -346,7 +352,7 @@ public class DisplayHeartbeatTests
         var wrapped = new OffsetRemapMem(spy, staticsBase, staticsBase + 2, staticsBase + 4);
         var display = new Display(meta, kills, wrapped, clock.Func, legends: null, poolPaint: true);
 
-        display.Tick(false);   // establish coverage
+        CardFixtures.TickWithPoolLocate(display, false);   // establish coverage
         int regionsCallsAtCoverage = spy.RegionsCalls;
         Assert.True(regionsCallsAtCoverage > 0);
         int readMark = spy.ReadMark();   // everything before this is setup noise, not steady state
@@ -356,6 +362,12 @@ public class DisplayHeartbeatTests
         {
             if (i == 3) kills[10] = 12;   // a real change mid-steady-state: proves non-vacuity
             clock.Ms += Display.MaintenanceMs + 1;
+            // Plain Tick, not TickWithPoolLocate: same reasoning as
+            // Losing_one_copy_of_a_still_covered_weapon_re_offers_only_that_region above --
+            // coverage is already established, and stepping StepPoolLocate on this same
+            // MaintenanceMs-aligned clock would also trigger PoolLocator's own independent
+            // RevalidateMs reverify of the cached region, confounding this test's own
+            // never-re-read assertion with an unrelated read source.
             display.Tick(false);
         }
 

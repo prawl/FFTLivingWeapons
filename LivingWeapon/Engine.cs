@@ -302,8 +302,11 @@ internal sealed class Engine
             // loop measured 7 to 10 seconds live before this arc, so the scan's progress must
             // never wait on either paint path. Reads heap memory only (finding pool regions);
             // never touches battle memory, so it stays on the Always gate rather than InBattle.
+            // Retune round (R1/R3): the SOLE production driver (MaybePoolPaint no longer steps
+            // it); s.NowIn selects the in-battle/out-of-battle budget, mirroring the "gunslinger"
+            // row's own precedent for reading NowIn out of the shared tick blackboard.
             new TickPhase("pool-locate", TickGates.Always, 1, false, Array.Empty<string>(),
-                _ => e!._display.StepPoolLocate()),
+                s => e!._display.StepPoolLocate(s.NowIn)),
 
             // Every ~33ms tick so a fast-forward death's brief hp==0 window isn't missed.
             new TickPhase("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),

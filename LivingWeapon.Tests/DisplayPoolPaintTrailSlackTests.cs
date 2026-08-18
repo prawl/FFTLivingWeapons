@@ -67,7 +67,7 @@ public class DisplayPoolPaintTrailSlackTests
         var heap = new FakeHeap((regionBase, regionData, true), (statBase, statics, true));
         var display = CardFixtures.MakeDisplay(meta, kills, heap, statBase, clock, poolPaint: true);
 
-        // LW-261: the region here (two chunks + slack, > PoolLocator.LocateBudgetBytes) now takes
+        // LW-261: the region here (two chunks + slack, > PoolLocator.LocateBudgetInBattle) now takes
         // more than one Tick's worth of the resumable scan's own budget to locate. Drive the
         // locate to completion directly (StepPoolLocate, the same method Engine's own "pool-
         // locate" lane calls independently every tick) BEFORE the first Tick(), rather than
@@ -77,10 +77,10 @@ public class DisplayPoolPaintTrailSlackTests
         // race the budgeted pool locate and win, which is the correct real-world fallback
         // behavior but not what this fixture means to exercise: whether the pool path itself can
         // discover a boundary-straddling card once it HAS located the region.
-        for (int i = 0; i < 10; i++) { display.StepPoolLocate(); clock.Ms += 33; }
+        for (int i = 0; i < 10; i++) { display.StepPoolLocate(false); clock.Ms += 33; }
 
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         // The sweep never ran (Tick(budget, OnChunk) was never invoked): the paint below can
         // only have come from PoolLocator's own chunked region walk.

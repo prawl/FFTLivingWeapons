@@ -39,7 +39,7 @@ public class PoolLocatorStepTests
         var pats = new CardPatterns(BuildMeta());
         long poolBase = 0x20_0000_0000L;
         long fillerBase = 0x21_0000_0000L;
-        var filler = new byte[12 * 1024 * 1024];   // > LocateBudgetBytes: forces several more Step calls
+        var filler = new byte[12 * 1024 * 1024];   // > LocateBudgetInBattle: forces several more Step calls
         var heap = new FakeHeap((poolBase, BuildPoolBuffer(), true), (fillerBase, filler, true));
         var locator = new PoolLocator(heap, pats);
 
@@ -51,7 +51,7 @@ public class PoolLocatorStepTests
         PoolLocator.LocateCompletion? completion = null;
         for (int i = 0; i < 20 && completion == null; i++)
         {
-            completion = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            completion = locator.Step(PoolLocator.LocateBudgetInBattle, now);
             now += 33;
             int cur = locator.CachedRegions.Count;
             if (cur != lastCount)
@@ -85,7 +85,7 @@ public class PoolLocatorStepTests
         var locator = new PoolLocator(heap, pats);
 
         long now = 0;
-        var r1 = locator.Step(PoolLocator.LocateBudgetBytes, now);
+        var r1 = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         Assert.Null(r1);   // the filler alone cannot complete in one 4MB-budget Step
 
         // A region committed AFTER the scan started, addressed higher than the filler so the
@@ -96,8 +96,11 @@ public class PoolLocatorStepTests
         PoolLocator.LocateCompletion? completion = null;
         for (int i = 0; i < 20 && completion == null; i++)
         {
-            now += 33;
-            completion = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            // Retune round (R2): past PoolScan.SnapshotRefreshMs every call, not just 33ms --
+            // otherwise the cadence gate reuses the stale pre-commit snapshot the whole way
+            // through and this hazard is invisible by construction.
+            now += PoolScan.SnapshotRefreshMs + 1;
+            completion = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         }
 
         Assert.NotNull(completion);
@@ -122,7 +125,7 @@ public class PoolLocatorStepTests
         for (int i = 0; i < 20 && completion == null; i++)
         {
             locator.Invalidate();   // fires every tick -- must not abort the running scan
-            completion = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            completion = locator.Step(PoolLocator.LocateBudgetInBattle, now);
             now += 33;
         }
 
@@ -130,21 +133,25 @@ public class PoolLocatorStepTests
         Assert.Contains(locator.CachedRegions, r => r.baseAddr == poolBase);
     }
 
-    /// <summary>FIX 6 (adversarial verify round): the second call site (MaybePoolPaint's own
-    /// fall-through, in addition to Engine's pool-locate phase) can reach Step again in the SAME
-    /// real tick a scan just completed. A multi-tick scan (filler region forces several Step
-    /// calls) is the real shape this bites: _lastRevalidateMs was only ever stamped inside the
-    /// cadence-gated revalidate branch OR at the moment a NEW scan starts -- never at the moment
-    /// one actually FINISHES, several ticks later -- so the second call site's own Step, landing
-    /// on the exact tick the scan published, saw a timestamp several ticks stale, read the
-    /// cadence as "overdue", and ran a full unbudgeted AllCachedStillPool over every
-    /// just-published region on the spot. Pinned via _revalidateCount staying at 0 across the
-    /// completing call and the same-tick second call right after it.</summary>
+    /// <summary>FIX 6 (adversarial verify round; round 5 verify, F8: the "second call site" this
+    /// doc originally described -- MaybePoolPaint's own fall-through, in addition to Engine's
+    /// pool-locate phase -- was REMOVED by this arc's own later R1 retune, so this is now past
+    /// tense as a PRODUCTION scenario; the guard itself is still correct and still tested directly
+    /// here, since any future caller could still Step twice in the same tick). A caller stepping
+    /// Step again in the SAME real tick a scan just completed used to be exactly this bug: a
+    /// multi-tick scan (filler region forces several Step calls) is the real shape it bit --
+    /// _lastRevalidateMs was only ever stamped inside the cadence-gated revalidate branch OR at
+    /// the moment a NEW scan starts -- never at the moment one actually FINISHES, several ticks
+    /// later -- so a second Step call landing on the exact tick the scan published saw a timestamp
+    /// several ticks stale, read the cadence as "overdue", and ran a full unbudgeted
+    /// AllCachedStillPool over every just-published region on the spot. Pinned via
+    /// _revalidateCount staying at 0 across the completing call and the same-tick second call
+    /// right after it.</summary>
     [Fact]
     public void Revalidate_does_not_run_in_the_same_tick_a_scan_just_published()
     {
         var pats = new CardPatterns(BuildMeta());
-        // Sized (with the 33ms/tick, LocateBudgetBytes/tick production cadence) so the scan's
+        // Sized (with the 33ms/tick, LocateBudgetInBattle/tick production cadence) so the scan's
         // OWN wall-clock duration exceeds RevalidateMs by the time it completes -- 160MB / 4MB
         // per tick = 40 ticks, 40 * 33ms ~= 1320ms > RevalidateMs (1000ms). The live tape this
         // arc measured saw 52 to 145MB of real pool regions, so this is not a contrived size.
@@ -158,7 +165,7 @@ public class PoolLocatorStepTests
         PoolLocator.LocateCompletion? completion = null;
         for (int i = 0; i < 60 && completion == null; i++)
         {
-            completion = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            completion = locator.Step(PoolLocator.LocateBudgetInBattle, now);
             now += 33;
         }
         Assert.NotNull(completion);
@@ -166,8 +173,8 @@ public class PoolLocatorStepTests
             $"fixture sanity: the scan must take longer than RevalidateMs to complete (took {now - 33}ms)");
         Assert.Equal(0, locator._revalidateCount);
 
-        // A second call site stepping again the SAME tick (same nowMs) right after the publish.
-        var second = locator.Step(PoolLocator.LocateBudgetBytes, now - 33);
+        // A caller stepping Step again the SAME tick (same nowMs) right after the publish.
+        var second = locator.Step(PoolLocator.LocateBudgetInBattle, now - 33);
 
         Assert.Null(second);
         Assert.Equal(0, locator._revalidateCount);
@@ -184,14 +191,14 @@ public class PoolLocatorStepTests
     public void RegionsStale_stays_true_across_a_scan_that_straddled_an_invalidate_until_the_queued_restart_publishes()
     {
         var pats = new CardPatterns(BuildMeta());
-        var filler = new byte[12 * 1024 * 1024];   // > LocateBudgetBytes: forces several Step calls
+        var filler = new byte[12 * 1024 * 1024];   // > LocateBudgetInBattle: forces several Step calls
         long fillerBase = 0x80_0000_0000L;
         long poolBase = 0x81_0000_0000L;
         var heap = new FakeHeap((fillerBase, filler, true), (poolBase, BuildPoolBuffer(), true));
         var locator = new PoolLocator(heap, pats);
 
         long now = 0;
-        var first = locator.Step(PoolLocator.LocateBudgetBytes, now);
+        var first = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         Assert.Null(first);   // still in flight
 
         locator.Invalidate();   // lands MID-FLIGHT: the running scan straddles this
@@ -201,7 +208,7 @@ public class PoolLocatorStepTests
         for (int i = 0; i < 20 && straddled == null; i++)
         {
             now += 33;
-            straddled = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            straddled = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         }
         Assert.NotNull(straddled);
         Assert.True(locator.RegionsStale,
@@ -211,7 +218,7 @@ public class PoolLocatorStepTests
         for (int i = 0; i < 20 && restart == null; i++)
         {
             now += 33;
-            restart = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            restart = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         }
         Assert.NotNull(restart);
         Assert.False(locator.RegionsStale);
@@ -235,7 +242,7 @@ public class PoolLocatorStepTests
         var locator = new PoolLocator(heap, pats);
 
         long now = 0;
-        var first = locator.Step(PoolLocator.LocateBudgetBytes, now);
+        var first = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         Assert.Null(first);
 
         locator.Invalidate();   // mid-flight
@@ -244,7 +251,7 @@ public class PoolLocatorStepTests
         for (int i = 0; i < 20 && straddled == null; i++)
         {
             now += 33;
-            straddled = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            straddled = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         }
         Assert.NotNull(straddled);
         Assert.Equal("first", straddled!.Value.Trigger);
@@ -253,7 +260,7 @@ public class PoolLocatorStepTests
         for (int i = 0; i < 20 && restart == null; i++)
         {
             now += 33;
-            restart = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            restart = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         }
         Assert.NotNull(restart);
         Assert.Equal("invalidate", restart!.Value.Trigger);
@@ -275,12 +282,12 @@ public class PoolLocatorStepTests
         var locator = new PoolLocator(spy, pats);
 
         long now = 0;
-        var seed = locator.Step(PoolLocator.LocateBudgetBytes, now);   // establishes the cache
+        var seed = locator.Step(PoolLocator.LocateBudgetInBattle, now);   // establishes the cache
         Assert.NotNull(seed);
 
         locator.Invalidate();
         now += 33;
-        var restart = locator.Step(PoolLocator.LocateBudgetBytes, now);   // picks up the queued restart, completes (tiny fixture)
+        var restart = locator.Step(PoolLocator.LocateBudgetInBattle, now);   // picks up the queued restart, completes (tiny fixture)
         Assert.NotNull(restart);
 
         int callsAfterRestart = spy.RegionsCalls;
@@ -288,7 +295,7 @@ public class PoolLocatorStepTests
         for (int i = 0; i < 5; i++)
         {
             now += 33;
-            var r = locator.Step(PoolLocator.LocateBudgetBytes, now);
+            var r = locator.Step(PoolLocator.LocateBudgetInBattle, now);
             Assert.Null(r);
         }
         Assert.Equal(callsAfterRestart, spy.RegionsCalls);
@@ -296,7 +303,7 @@ public class PoolLocatorStepTests
 
     /// <summary>FIX 1 (adversarial verify round): the empty-cache path had NO cadence at all --
     /// a scan that finds nothing restarted on the very next Step call, forever, at
-    /// PoolLocator.LocateBudgetBytes per tick on the Always lane. RED against the pre-fix code:
+    /// PoolLocator.LocateBudgetInBattle per tick on the Always lane. RED against the pre-fix code:
     /// the fixture has no pool-shaped bytes anywhere, so the first Step completes with
     /// regions=0, and the second Step (33ms later, well under RevalidateMs) must NOT have started
     /// a second scan -- pinned by the Regions() call count staying flat, since PoolScan.Step's own
@@ -310,14 +317,14 @@ public class PoolLocatorStepTests
         var locator = new PoolLocator(spy, pats);
 
         long now = 0;
-        var first = locator.Step(PoolLocator.LocateBudgetBytes, now);
+        var first = locator.Step(PoolLocator.LocateBudgetInBattle, now);
         Assert.NotNull(first);
         Assert.Equal(0, first!.Value.Regions);
         int callsAfterFirstScan = spy.RegionsCalls;
         Assert.True(callsAfterFirstScan > 0, "the first (cold) scan must have walked Regions()");
 
         now += 33;   // well under RevalidateMs
-        var second = locator.Step(PoolLocator.LocateBudgetBytes, now);
+        var second = locator.Step(PoolLocator.LocateBudgetInBattle, now);
 
         Assert.Null(second);
         Assert.Equal(callsAfterFirstScan, spy.RegionsCalls);
@@ -337,30 +344,30 @@ public class PoolLocatorStepTests
         // not this test's simulated `now`) so FIX 6's publish-time stamp and every check below
         // share one consistent timeline.
         long now = 0;
-        var seed = locator.Step(PoolLocator.LocateBudgetBytes, now);   // cold: completes in one call (tiny fixture)
+        var seed = locator.Step(PoolLocator.LocateBudgetInBattle, now);   // cold: completes in one call (tiny fixture)
         Assert.NotNull(seed);
         Assert.Equal(0, locator._revalidateCount);   // FIX 6: publish itself must not count as a revalidate
 
         for (int i = 0; i < 5; i++)
         {
             now += 100;
-            locator.Step(PoolLocator.LocateBudgetBytes, now);   // all well within RevalidateMs of the seed publish
+            locator.Step(PoolLocator.LocateBudgetInBattle, now);   // all well within RevalidateMs of the seed publish
         }
         Assert.Equal(0, locator._revalidateCount);
 
         now += PoolLocator.RevalidateMs + 1;
-        locator.Step(PoolLocator.LocateBudgetBytes, now);
+        locator.Step(PoolLocator.LocateBudgetInBattle, now);
         Assert.Equal(1, locator._revalidateCount);
 
         for (int i = 0; i < 5; i++)
         {
             now += 100;
-            locator.Step(PoolLocator.LocateBudgetBytes, now);   // all well within RevalidateMs of the last revalidate
+            locator.Step(PoolLocator.LocateBudgetInBattle, now);   // all well within RevalidateMs of the last revalidate
         }
         Assert.Equal(1, locator._revalidateCount);
 
         now += PoolLocator.RevalidateMs + 1;
-        locator.Step(PoolLocator.LocateBudgetBytes, now);
+        locator.Step(PoolLocator.LocateBudgetInBattle, now);
         Assert.Equal(2, locator._revalidateCount);
     }
 

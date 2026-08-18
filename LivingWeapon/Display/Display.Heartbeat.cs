@@ -158,13 +158,20 @@ internal sealed partial class Display
     /// SHORTER: it did not, and framing it that way risks misreading a live tape. The old
     /// synchronous PoolLocator.LocateAll blocked for 7 to 10 seconds and was then DONE -- a short,
     /// blocking window. The resumable scan (PoolLocator.cs's own class doc) never blocks, but at
-    /// one ChunkReader.ChunkSize chunk per Step (LocateBudgetBytes's own doc) it can take many
-    /// hundreds to thousands of ticks to walk the whole process heap, which in WALL CLOCK is
-    /// plausibly LONGER than the old block, not shorter -- this arc has not yet measured a real
-    /// completion, so the true figure is whatever the first live tape's "LW37 locate-complete"
-    /// line reports. Practically: RegionsStale can now read true for a comparable or longer
-    /// stretch of a battle than before, which means ProcessPending's permissive branch above runs
-    /// for most of that stretch too. That is NOT a new risk -- it is the exact behavior every
+    /// at least one ChunkReader.ChunkSize chunk per Step (LocateBudgetInBattle's own doc) it can
+    /// take many hundreds of ticks to walk the whole process heap -- CONFIRMED by the owner's live
+    /// pass 2026-08-18: six full scans logged that day (647/645/631/651/681/689 ticks), 65.4 to
+    /// 101.7s wall clock, well LONGER than the old block, not shorter. A retune round landed the
+    /// same day: SnapshotRefreshMs (PoolScan.cs) should cut most of the region-snapshot share of
+    /// that (round 5 verify correction: measured at about 32 percent of the 92.2s scan, about 29
+    /// percent of the 101.7s one -- an earlier version of this doc said ~60 percent), and the
+    /// battle-aware budget (PoolLocator.cs) adds more per-Step work out of battle. Removing the
+    /// second call site (this same retune round) does NOT itself shorten wall time -- one driver
+    /// instead of two means MORE ticks per scan, not fewer; its own win is per-tick latency and
+    /// total CPU. The true post-retune figure is still whatever the NEXT live tape's "LW37
+    /// locate-complete" line reports. Practically: RegionsStale can now read true for a comparable
+    /// or longer stretch of a battle than before, which means ProcessPending's permissive branch
+    /// above runs for most of that stretch too. That is NOT a new risk -- it is the exact behavior every
     /// post-invalidate window already had before this arc (the old Invalidate() cleared _cached
     /// outright, so regions.Count==0 made the SAME branch permissive for the whole old blocking
     /// window too) -- but a reader should expect the permissive branch to be common, not rare, on

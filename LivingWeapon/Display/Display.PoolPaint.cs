@@ -61,18 +61,23 @@ internal sealed partial class Display
     /// DisplayPoolPaintTests.cs) now drive Tuning.CardEvictStrikes beats before asserting the
     /// heal, matching this method's real behavior instead of the pre-fix one.
     ///
-    /// LW-261: this method no longer triggers or blocks on a region walk at all. It calls <see
-    /// cref="StepPoolLocate"/> (Display.PoolLocate.cs) -- the SAME method Engine's own
-    /// "pool-locate" tick lane calls independently every tick -- and then only ever READS the
-    /// currently-published result (PoolLocator.CachedRegions). The old synchronous
-    /// PoolLocator.LocateAll call that used to sit here blocked this same call path for 7 to 10
-    /// seconds, live-measured; that walk is now resumable and budgeted (PoolLocator.cs's own
-    /// class doc). Calling StepPoolLocate from here too (not only from Engine's own lane) is
-    /// deliberate: it means a bare Display driven only by repeated Tick() calls -- every existing
-    /// unit test, and any future caller that never wires an Engine -- still drives its own scan to
-    /// completion, exactly as LocateAll always did, with the two call sites racing to complete the
-    /// SAME scan on a real engine tick being a harmless minor over-spend against the per-tick
-    /// budget, never a correctness issue.</summary>
+    /// Retune round (R1): this method no longer triggers or blocks on a region walk at all, and
+    /// no longer steps it either -- it only ever READS the currently-published result
+    /// (PoolLocator.CachedRegions). The old synchronous PoolLocator.LocateAll call that used to
+    /// sit here blocked this same call path for 7 to 10 seconds, live-measured; the LW-261 rewrite
+    /// made that walk resumable and budgeted, but this method ALSO calling StepPoolLocate (so a
+    /// bare Display driven only by Tick() could still make progress) meant production paid the
+    /// scan's own ~45ms region-snapshot cost roughly twice a tick. Round 5 verify correction: that
+    /// double payment was NOT ~60 percent of a scan (an earlier version of this doc said so) -- it
+    /// was about 32 percent of one 92.2s owner-tape scan, about 29 percent of a 101.7s one
+    /// (PoolScan.cs's SnapshotRefreshMs doc has the six-completion arithmetic). Removing THIS call
+    /// site does not itself shorten a scan's wall time either -- one driver instead of two means
+    /// MORE engine ticks per scan, not fewer; this change's own win is per-tick latency (nothing
+    /// else on the loop waits behind a doubled cost) and total CPU, while SnapshotRefreshMs (the
+    /// cadence) and the battle-aware budget are what actually cut the wall-clock number. Engine's
+    /// own "pool-locate" tick lane (Display.PoolLocate.cs's StepPoolLocate) is now the SOLE
+    /// driver; a bare Display under test has to step it explicitly in its own drive loop
+    /// (CardFixtures.TickWithPoolLocate).</summary>
     private bool MaybePoolPaint()
     {
         if (!_poolPaint) return false;
@@ -83,7 +88,6 @@ internal sealed partial class Display
             _poolCovered = false;                                              // drained below coverage: fall through to re-locate
         }
 
-        StepPoolLocate();
         var regions = _poolLocator.CachedRegions;
         if (regions.Count == 0)
         {

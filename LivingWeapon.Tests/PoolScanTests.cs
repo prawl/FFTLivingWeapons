@@ -47,10 +47,10 @@ public class PoolScanTests
         var scan = new PoolScan(spy, pats);
         scan.Begin(0);
 
-        var result = scan.Step(PoolLocator.LocateBudgetBytes, 0);
+        var result = scan.Step(PoolLocator.LocateBudgetInBattle, 0);
 
         Assert.False(result.Complete, "a 12MB region cannot finish in one 4MB-budget Step");
-        long bound = PoolLocator.LocateBudgetBytes + DisplaySweep.ChunkSize;
+        long bound = PoolLocator.LocateBudgetInBattle + DisplaySweep.ChunkSize;
         Assert.True(spy.TotalBytesRead <= bound,
             $"Step read {spy.TotalBytesRead} bytes, more than budget+one chunk ({bound})");
     }
@@ -60,9 +60,13 @@ public class PoolScanTests
     /// live shape this arc's own measurement showed (one region: 16.8MB, then 29.6MB, then
     /// 29.7MB, all mid-battle). The marker sits ONLY in the grown tail (past the region's
     /// original 8MB), reachable only on a THIRD Step call, so a scan that only ever remembers the
-    /// region's size as of when it first touched it (rather than re-reading it fresh every call,
-    /// as Step's own per-call Regions() snapshot does) would stop after the original extent and
-    /// never stage this region at all.</summary>
+    /// region's size as of when it first touched it (rather than re-reading it fresh every
+    /// SnapshotRefreshMs-due call, as Step's own cadence-gated Regions() snapshot does) would stop
+    /// after the original extent and never stage this region at all. Retune round (R2): every
+    /// `now` value here is spaced past PoolScan.SnapshotRefreshMs from the one before it, so each
+    /// Step call is actually due for a fresh snapshot -- without that spacing this hazard is
+    /// invisible by construction (the cadence gate would simply reuse the stale pre-growth
+    /// snapshot the whole way through, passing for the wrong reason).</summary>
     [Fact]
     public void Step_covers_a_region_that_grows_in_place_while_being_resumed()
     {
@@ -73,7 +77,8 @@ public class PoolScanTests
         var scan = new PoolScan(heap, pats);
         scan.Begin(0);
 
-        var r1 = scan.Step(PoolLocator.LocateBudgetBytes, 0);
+        long now = 0;
+        var r1 = scan.Step(PoolLocator.LocateBudgetInBattle, now);
         Assert.False(r1.Complete);
 
         // Grow the SAME region (same base) to 12MB, with the only pool-shaped marker in the
@@ -87,7 +92,10 @@ public class PoolScanTests
 
         PoolScan.StepResult result = r1;
         for (int i = 0; i < 10 && !result.Complete; i++)
-            result = scan.Step(PoolLocator.LocateBudgetBytes, i + 1);
+        {
+            now += PoolScan.SnapshotRefreshMs + 1;   // past the cadence every call: each one is due for a fresh snapshot
+            result = scan.Step(PoolLocator.LocateBudgetInBattle, now);
+        }
 
         Assert.True(result.Complete, "scan did not complete within the bound");
         Assert.Contains(result.Regions, r => r.baseAddr == regionBase && r.size >= 12 * 1024 * 1024);
@@ -110,7 +118,7 @@ public class PoolScanTests
         var scan = new PoolScan(heap, pats);
         scan.Begin(0);
 
-        var r1 = scan.Step(PoolLocator.LocateBudgetBytes, 0);   // stages region A, then starts on filler
+        var r1 = scan.Step(PoolLocator.LocateBudgetInBattle, 0);   // stages region A, then starts on filler
         Assert.False(r1.Complete);
 
         // The restart: region A and the filler are gone; a different region B takes their place.
@@ -120,7 +128,7 @@ public class PoolScanTests
         heap.AddRegion(regionBBase, BuildPoolBuffer(), writable: true);
 
         scan.Begin(1);
-        var result = scan.Step(PoolLocator.LocateBudgetBytes, 1);   // tiny fixture: completes in one call
+        var result = scan.Step(PoolLocator.LocateBudgetInBattle, 1);   // tiny fixture: completes in one call
 
         Assert.True(result.Complete);
         Assert.Single(result.Regions);
@@ -139,14 +147,78 @@ public class PoolScanTests
         var scan = new PoolScan(heap, pats);
         scan.Begin(0);
 
-        int bound = regionSize / (int)PoolLocator.LocateBudgetBytes + 5;
+        int bound = regionSize / (int)PoolLocator.LocateBudgetInBattle + 5;
         bool complete = false;
         for (int i = 0; i < bound && !complete; i++)
         {
-            var result = scan.Step(PoolLocator.LocateBudgetBytes, i);
+            var result = scan.Step(PoolLocator.LocateBudgetInBattle, i);
             complete = result.Complete;
         }
 
         Assert.True(complete, $"scan did not complete within {bound} Step calls");
+    }
+
+    /// <summary>R2 (retune round): a region's Regions() snapshot is retaken only once
+    /// SnapshotRefreshMs has elapsed since the last one -- not on every Step call. The fixture has
+    /// TWO regions so a single Step call cannot complete the whole scan (forcing several calls
+    /// within the cadence window), and the spy counts Regions() calls directly, mirroring the
+    /// Regions-counting spy pattern already used across PoolLocatorTests.cs/PoolLocatorStepTests.
+    /// cs (copied here, not referenced, per this suite's own no-cross-file-reference convention
+    /// for test-only fakes).</summary>
+    [Fact]
+    public void Snapshot_is_not_retaken_within_the_refresh_cadence()
+    {
+        var pats = new CardPatterns(BuildMeta());
+        var fillerA = new byte[12 * 1024 * 1024];
+        var fillerB = new byte[12 * 1024 * 1024];
+        long baseA = 0xA0_0000_0000L;
+        long baseB = 0xA1_0000_0000L;
+        var heap = new FakeHeap((baseA, fillerA, true), (baseB, fillerB, true));
+        var spy = new RegionsSpyMem(heap);
+        var scan = new PoolScan(spy, pats);
+        scan.Begin(0);   // Begin's own unconditional snapshot: RegionsCalls == 1 after this
+
+        int callsAfterBegin = spy.RegionsCalls;
+        Assert.Equal(1, callsAfterBegin);
+
+        long now = 0;
+        PoolScan.StepResult result = default;
+        for (int i = 0; i < 5; i++)
+        {
+            now += 100;   // well within SnapshotRefreshMs of Begin's own snapshot
+            result = scan.Step(PoolLocator.LocateBudgetInBattle, now);
+        }
+
+        Assert.False(result.Complete, "fixture sanity: two 12MB regions cannot finish in five 4MB-budget Steps");
+        Assert.Equal(callsAfterBegin, spy.RegionsCalls);
+
+        now += PoolScan.SnapshotRefreshMs + 1;
+        scan.Step(PoolLocator.LocateBudgetInBattle, now);
+
+        Assert.Equal(callsAfterBegin + 1, spy.RegionsCalls);
+    }
+
+    /// <summary>IGameMemory wrapper that counts Regions() calls, forwarding everything else --
+    /// copied from PoolLocatorTests.cs's private helper of the same name (this file's own
+    /// no-cross-file-reference convention for test-only fakes).</summary>
+    private sealed class RegionsSpyMem : IGameMemory
+    {
+        private readonly IGameMemory _inner;
+        public int RegionsCalls { get; private set; }
+        public RegionsSpyMem(IGameMemory inner) => _inner = inner;
+
+        public byte U8(long addr) => _inner.U8(addr);
+        public ushort U16(long addr) => _inner.U16(addr);
+        public bool TryReadBytes(long addr, int len, out byte[] buf) => _inner.TryReadBytes(addr, len, out buf);
+        public int ReadInto(long addr, byte[] buf, int len) => _inner.ReadInto(addr, buf, len);
+        public void WriteBytes(long addr, byte[] data) => _inner.WriteBytes(addr, data);
+        public void W8(long addr, byte value) => _inner.W8(addr, value);
+        public bool Readable(long addr, int len) => _inner.Readable(addr, len);
+        public bool Writable(long addr, int len) => _inner.Writable(addr, len);
+        public IEnumerable<(long baseAddr, long size)> Regions()
+        {
+            RegionsCalls++;
+            return _inner.Regions();
+        }
     }
 }

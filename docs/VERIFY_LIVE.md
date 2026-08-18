@@ -121,3 +121,14 @@ LW-257 and LW-261 both working as intended, NOT the strict branch quietly failin
 not read "permissive branch is common" as a fail signature on its own; read the actual settlement
 timing (kills converging within about 1s) and the `card locate-complete` records' own ticks/ms
 instead.
+
+CONFIRMED 2026-08-18: the owner's live pass measured exactly this shape and PASSED. The log held
+six full searches that day (647/645/631/651/681/689 ticks), 65 to 102 real seconds each, moving
+2.8 to 3.0 gigabytes, well into the "comparable or longer" range this note pre-registered, and the
+pass still converged on every kill with zero freezes. Correction (a first read of the numbers was
+too generous): the retune that landed the same day removes roughly a THIRD of that time, not two
+thirds, and its "one driving call site instead of two" half does not shorten a search by itself
+(fewer call sites means MORE turns of the clock per search, not fewer); its real win is spreading
+less work per tick and freeing the shared background job sooner, not a shorter single search. If
+the next tape still shows a long stretch of the permissive branch, that alone is still not a fail
+signature, only the settlement timing and the completion records' own numbers are.

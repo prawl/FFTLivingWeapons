@@ -14,6 +14,10 @@ internal sealed class BytesSpyMem : IGameMemory
 {
     private readonly IGameMemory _inner;
     public long TotalBytesRead { get; private set; }
+    /// <summary>Retune round (R3): one successful ReadInto call is one ChunkReader chunk read --
+    /// counted separately from TotalBytesRead so a test can distinguish "one big chunk" from
+    /// "several small ones" once LocateBudgetOutOfBattle stopped equaling ChunkSize.</summary>
+    public int ChunkReads { get; private set; }
 
     public BytesSpyMem(IGameMemory inner) => _inner = inner;
 
@@ -23,7 +27,7 @@ internal sealed class BytesSpyMem : IGameMemory
     public int ReadInto(long addr, byte[] buf, int len)
     {
         int got = _inner.ReadInto(addr, buf, len);
-        if (got > 0) TotalBytesRead += got;
+        if (got > 0) { TotalBytesRead += got; ChunkReads++; }
         return got;
     }
     public void WriteBytes(long addr, byte[] data) => _inner.WriteBytes(addr, data);

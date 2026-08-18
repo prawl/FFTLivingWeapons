@@ -144,6 +144,18 @@ internal static class CardFixtures
         return new Display(meta, kills, wrapped, clock.Func, legends, poolPaint, recorder);
     }
 
+    /// <summary>R1 (LW-261 retune): production now drives the resumable pool locate ONLY from
+    /// Engine's own "pool-locate" phase -- MaybePoolPaint no longer calls StepPoolLocate on its
+    /// own fall-through. A bare Display exercised only through Tick() (every test in this suite,
+    /// no Engine wired) therefore has to step the locate itself too, or a poolPaint:true fixture
+    /// would never make progress. A no-op when poolPaint is off, so every existing sweep-only
+    /// caller is unaffected.</summary>
+    internal static void TickWithPoolLocate(Display display, bool inBattle)
+    {
+        display.StepPoolLocate(inBattle);
+        display.Tick(inBattle);
+    }
+
     /// <summary>Advance the clock and call Tick until the generation is complete or maxTicks
     /// is reached. Advances by HotRescanMs+1 per tick to keep hot chunks live.</summary>
     internal static void DrainGeneration(Display display, TestClock clock, int maxTicks)
@@ -151,7 +163,7 @@ internal static class CardFixtures
         for (int i = 0; i < maxTicks; i++)
         {
             clock.Ms += DisplaySweep.HotRescanMs + 1;
-            display.Tick(false);
+            TickWithPoolLocate(display, false);
         }
     }
 }

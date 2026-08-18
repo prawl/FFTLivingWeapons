@@ -28,15 +28,15 @@ internal sealed partial class PoolLocator
     /// justified 90 ticks against ~145MB, the FOUND POOL REGIONS this arc measured live -- but
     /// PoolScan walks every committed writable region Mem.Regions() yields, the WHOLE process
     /// heap, an unrelated and far larger quantity nothing here has ever measured. Since
-    /// LocateBudgetBytes equals ChunkReader.ChunkSize, the at-least-one-chunk floor means exactly
-    /// one chunk per Step, so a real scan is many hundreds to thousands of Steps -- 90 would have
+    /// LocateBudgetInBattle equals ChunkReader.ChunkSize, the at-least-one-chunk floor meant
+    /// exactly one chunk per in-battle Step, so a real scan is many hundreds to thousands of Steps -- 90 would have
     /// fired on essentially every scan, a false anomaly signature on the very tape a live pass
     /// reads. Rather than guess a second threshold with the same failure mode, this now logs
     /// PURE PROGRESS on a fixed cadence (no "something is wrong" claim at all) so the owner's
     /// first live tape can finally show what a real completion tick count looks like; retune
     /// (or reinstate a real anomaly threshold, once one can be derived from that tape) from those
     /// numbers.</summary>
-    private const int ProgressLogEveryTicks = 300;   // 1.2GB/tick-count at LocateBudgetBytes; a readable cadence, not a measured one
+    private const int ProgressLogEveryTicks = 300;   // 1.2GB/tick-count at LocateBudgetInBattle (4.8GB out of battle, LocateBudgetOutOfBattle); a readable cadence, not a measured one
 
     internal readonly record struct LocateCompletion(int Regions, int Ticks, long Bytes, long ElapsedMs, string Trigger);
 
@@ -85,8 +85,8 @@ internal sealed partial class PoolLocator
             // Verify round FIX 1: this cadence gate used to sit ONLY inside the `_cached.Count > 0`
             // branch, so a scan that completed having found NOTHING (no pool region anywhere yet,
             // e.g. cold boot before the pool has been allocated) had no cadence at all -- Step
-            // restarted a brand-new scan on the very next call, forever, at LocateBudgetBytes per
-            // tick on the Always lane. The cadence now gates BOTH shapes identically: whether the
+            // restarted a brand-new scan on the very next call, forever, at LocateBudgetInBattle/
+            // LocateBudgetOutOfBattle per tick on the Always lane. The cadence now gates BOTH shapes identically: whether the
             // cache is populated (revalidate it) or empty (retry a fresh scan), neither may run
             // again before RevalidateMs has elapsed, unless a restart is explicitly queued
             // (Invalidate() or a failed revalidate from a PRIOR call, both of which bypass this
@@ -177,11 +177,13 @@ internal sealed partial class PoolLocator
         // Verify round FIX 6: stamp the revalidate clock HERE, at the moment the fresh set is
         // actually published, not just at whatever earlier tick decided to start this scan. A
         // scan can take many ticks to complete (the live tape saw 52 to 145MB regions; at
-        // LocateBudgetBytes/tick that alone can exceed RevalidateMs), so leaving the clock at its
-        // scan-START stamp meant a second call site (MaybePoolPaint's own fall-through) landing on
-        // the SAME tick the scan finishes read the cadence as long overdue and ran a full
-        // unbudgeted AllCachedStillPool over the just-published regions on the spot -- exactly the
-        // per-tick cost this whole arc exists to bound.
+        // LocateBudgetInBattle/tick that alone can exceed RevalidateMs), so leaving the clock at its
+        // scan-START stamp meant a second call site (MaybePoolPaint's own fall-through, REMOVED by
+        // this same retune round's R1 -- past tense now, but the guard below is still correct and
+        // still tested directly, since any future caller could still Step twice in one tick)
+        // landing on the SAME tick the scan finished would have read the cadence as long overdue
+        // and run a full unbudgeted AllCachedStillPool over the just-published regions on the spot
+        // -- exactly the per-tick cost this whole arc exists to bound.
         _lastRevalidateMs = nowMs;
         LogRegionsFound();
     }

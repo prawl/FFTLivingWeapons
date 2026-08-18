@@ -149,13 +149,13 @@ public class DisplayFlightTests
         for (int beat = 1; beat < Tuning.CardEvictStrikes; beat++)
         {
             clock.Ms += Display.MaintenanceMs + 1;
-            display.Tick(false);
+            CardFixtures.TickWithPoolLocate(display, false);
             Assert.DoesNotContain(recorded, r => r.type == "card" && r.payload.Contains("site-evicted"));
         }
 
         // The capping strike: the record fires now, carrying the right reason.
         clock.Ms += Display.MaintenanceMs + 1;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
         Assert.Contains(recorded, r => r.type == "card" && r.payload.Contains("site-evicted")
                                         && r.payload.Contains("reason=anchor-unreadable"));
     }
@@ -216,7 +216,7 @@ public class DisplayFlightTests
         var (display, clock, recorded) = BuildSingleWeaponPoolDisplay();
 
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
 
         var firstPass = recorded.FindAll(r => r.type == "card" && r.payload.StartsWith("coverage"));
         Assert.Single(firstPass);
@@ -237,12 +237,12 @@ public class DisplayFlightTests
         display._coverageBudget = Display.CoverageRecordBudget;   // simulate "already exhausted"
 
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
         Assert.DoesNotContain(recorded, r => r.type == "card" && r.payload.StartsWith("coverage"));
 
         display.Invalidate();
         clock.Ms += DisplaySweep.HotRescanMs + 1;
-        display.Tick(false);
+        CardFixtures.TickWithPoolLocate(display, false);
         Assert.Contains(recorded, r => r.type == "card" && r.payload.StartsWith("coverage"));
     }
 
@@ -272,7 +272,7 @@ public class DisplayFlightTests
         var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock, poolPaint: true,
             recorder: (t, p) => recorded.Add((t, p)));
 
-        for (int i = 0; i < 20; i++) { display.StepPoolLocate(); clock.Ms += 33; }
+        for (int i = 0; i < 20; i++) { display.StepPoolLocate(false); clock.Ms += 33; }
 
         var hits = recorded.FindAll(r => r.type == "card" && r.payload.StartsWith("locate-complete"));
         Assert.Single(hits);

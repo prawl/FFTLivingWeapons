@@ -148,6 +148,20 @@ the technical detail lives in the indented lines under it.
   - This is commit 1A of a two commit fix. This commit lands the resumable search itself; a second
     commit still needs to bound the cost of painting what the search finds, which is a smaller,
     separate cost this commit does not touch.
+  - Owner live pass 2026-08-18, roughly 04:31: PASS. No freeze, no stalls, all four drilled kills
+    converged, zero errors, and a battle enter correctly queued a fresh search while one was still
+    running without losing it. One benign line: a kill's watch gave up while a cold boot search was
+    still finishing, and the very next heartbeat beat healed it anyway. The pass also measured real
+    numbers for the first time: the log held six full searches that day, taking between 65 and 102
+    seconds each and moving between 2.8 and 3.0 gigabytes. Correction (a first read of the numbers
+    was too generous): roughly a THIRD of that time, not two thirds, was one repeated step, re
+    listing every memory region the game holds, paid every single step instead of on its own clock.
+    This commit is the retune that measurement calls for: the search now re lists memory on its own
+    one second clock instead of every step, it reads more per step while the player is out of
+    battle where nothing is watching the clock, and it runs from exactly one place instead of two,
+    which does not shorten a search by itself (one place instead of two means more turns of the
+    clock per search, not fewer) but does stop the mod paying the listing cost twice as often and
+    frees up time on the shared background job for everything else it does.
   - Done means: the search never blocks a tick for more than a small, fixed slice of work, telling it
     to start over never throws away a search already in flight, and nothing downstream, LW-257's own
     fix included, ever sees a half finished search result.
@@ -160,6 +174,8 @@ the technical detail lives in the indented lines under it.
     bytes=N ms=N trigger=...`.)
 
 ## Backlog
+
+- [LW-268] 2026-08-18: The search re-reads the whole 2.8GB of game memory every time, even though at most 145MB of it has ever held what it is looking for, and the regions it found last time were still there next time. An index that remembers which regions were already checked and re-reads only new or resized ones could cut a rescan from tens of seconds to a few. The catch that must be probed FIRST: if the game pre-commits big arenas and writes card text into them later, a region can become interesting without changing its size, and the index would skip it forever with no error and no log line. Step one is a probe that logs the full region list diff alongside each locate across one battle and checks whether newly interesting regions are freshly committed or pre-existing. Sequence this after LW-262, because fixing coverage latching should make rescans rare enough to re-price the whole idea. (Tech: candidate design diffs (base,size) against the last completed PoolScan snapshot and carries not-pool verdicts for unchanged regions; hazard is that VirtualQueryEx sees commit granularity, not content.)
 
 - [LW-263] 2026-08-18: Three of the new pool search files describe their own size wrongly, saying a
   file is 186 lines when it is 160, and another is 186 when it is 188. The numbers went stale the
@@ -181,7 +197,7 @@ the technical detail lives in the indented lines under it.
   3141 tests still passed. The cause is that the budget and the slice size are the same number today,
   so the test's allowance of one budget plus one slice is exactly twice the real spend. Fix is to
   assert the slice count directly, or to raise the budget above the slice size inside the test. (Tech:
-  PoolScanTests.Step_never_reads_more_than_budget_plus_one_chunk; LocateBudgetBytes currently equals
+  PoolScanTests.Step_never_reads_more_than_budget_plus_one_chunk; LocateBudgetInBattle currently equals
   ChunkReader.ChunkSize.)
 
 - [LW-266] 2026-08-18: Nothing tests the small budget that limits how many search completion records

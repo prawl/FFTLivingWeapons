@@ -55,22 +55,34 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class PoolLocator
 {
-    /// <summary>The resumable scan's own per-CALL byte lane, separate from Display.Tick's own
-    /// BudgetInBattle/BudgetOutOfBattle budgets so this scan's cost stays bounded independent of
-    /// whatever else is sharing the tick. NOT a per-REAL-ENGINE-TICK cap: Display.PoolPaint.cs's
-    /// MaybePoolPaint and Engine's own "pool-locate" phase both call Display.StepPoolLocate (that
-    /// file's own class doc explains why), and both CAN land in the same real tick, so the true
-    /// worst case per real tick is roughly twice this constant, not once (pinned by
-    /// DisplayPoolLocateBudgetTests.Two_same_tick_call_sites_never_exceed_roughly_twice_the_locate_budget).
-    /// A FIRST ESTIMATE, not a measurement: half of Display's in-battle sweep budget, picked
-    /// before any live data existed on how many ticks or how long a resumable scan actually
-    /// takes. Retune this from the ticks/bytes/ms the "LW37 locate-complete" line and the
-    /// "locate-complete" flight record (Display.PoolLocate.cs) report on the first live pass
-    /// after this ships -- but NOT downward: this constant currently EQUALS ChunkReader.ChunkSize,
-    /// and PoolScan.Step always reads at least one whole chunk to guarantee forward progress
-    /// (its own doc), so any value at or below ChunkSize reads exactly one chunk per call either
-    /// way. A downward retune is a no-op until this is raised above ChunkSize first.</summary>
-    internal const long LocateBudgetBytes = 4L * 1024 * 1024;
+    /// <summary>Retune round (live tape 2026-08-18, owner pass): the resumable scan's own
+    /// per-CALL byte lane while IN battle, mirroring Display's own BudgetInBattle/
+    /// BudgetOutOfBattle precedent (Display.cs). ONE Step per real tick now (R1 of this retune:
+    /// Engine's own "pool-locate" phase is the SOLE production driver, Display.PoolPaint.cs's
+    /// MaybePoolPaint no longer calls StepPoolLocate) -- round 5 verify correction: that change
+    /// does NOT shorten a scan's wall time, one driver instead of two means MORE ticks per scan,
+    /// not fewer; its real win is per-tick latency and total CPU, not this constant's own
+    /// arithmetic. Left at one ChunkReader.ChunkSize chunk (unchanged from the original first
+    /// estimate) so the in-battle loop stays near its 33ms cadence: the live tape logged six
+    /// completions that day (647/645/631/651/681/689 ticks, ~2.8 to 3.0GB each) at 100.5 to
+    /// 157.7ms per tick under the OLD every-call-snapshot design. A verifier's own re-derivation
+    /// (round 5), NOT this file's own first-pass guess: subtracting only what SnapshotRefreshMs
+    /// verifiably removes (one ~45ms snapshot per Step, tools/probes/vq_walk_cost.py) from those
+    /// SAME observed per-step times gives ~36 to 73s per in-battle scan under the new cadence,
+    /// typical ~50s -- NOT a flat 46 to 51ms/step: that number is only the FLOOR if per-chunk
+    /// read+scan were the sole other cost, and the tape's own spread (100.5 to 157.7ms/step,
+    /// nowhere near a flat rate) shows real engine work sharing the tick refutes a flat floor.
+    /// Retune from what the next live tape's "LW37 locate-complete" line and flight record
+    /// actually report.</summary>
+    internal const long LocateBudgetInBattle = 4L * 1024 * 1024;
+
+    /// <summary>Retune round: the same lane while OUT of battle, where nothing is latency
+    /// sensitive -- same reasoning as DisplaySweep's own out-of-battle budget (Display.cs's
+    /// BudgetOutOfBattle, also 16MB). Four ChunkReader.ChunkSize chunks per Step. PREDICTION, not
+    /// yet measured (this derivation held up under round 5 verify, just widened): a cold-boot scan
+    /// (armed before any battle, so it runs through THIS lane) should land near ~14 to 17s (about
+    /// about 175 Step calls at ~85 to 90ms each). Retune from the live numbers once measured.</summary>
+    internal const long LocateBudgetOutOfBattle = 16L * 1024 * 1024;
 
     private readonly CardPatterns _pats;
     private readonly ChunkReader _reader;      // AllCachedStillPool's own reader -- the cheap cached-region reverify, never the full walk
@@ -106,7 +118,7 @@ internal sealed partial class PoolLocator
         _restartPending = false;
         _scan.Begin(_nowMs());
         PoolScan.StepResult result;
-        do { result = _scan.Step(LocateBudgetBytes, _nowMs()); } while (!result.Complete);
+        do { result = _scan.Step(LocateBudgetInBattle, _nowMs()); } while (!result.Complete);
 
         Publish(result.Regions, _nowMs());
         return _cached;
