@@ -29,8 +29,9 @@ internal sealed partial class Display
     /// window is one Invalidate() cycle (battle edge / status-card reopen / new game) -- the same
     /// boundary CardSites' own cache already resets on. Diagnostic headroom, not a hard
     /// requirement: dropping the tail of a storm is fine, this is a flight recorder, not an audit
-    /// log.</summary>
-    private const int FlightRecordBudget = 64;
+    /// log. Internal (not private) so a test can cite the cap directly (LW-269), mirroring
+    /// CoverageRecordBudget and LocateRecordBudget's own test-accessor convention.</summary>
+    internal const int FlightRecordBudget = 64;
     private int _flightBudget;
 
     /// <summary>Round-3 review (F3): coverage records get their OWN small reserve, never drawn

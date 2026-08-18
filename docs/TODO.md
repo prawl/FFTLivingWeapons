@@ -88,21 +88,35 @@ the technical detail lives in the indented lines under it.
     separate second material, no two alike, and the Fallingstar Bag matches its own artwork.
   - Verify: the four icon gates green with the pins proven by mutation, the bake matching the FULL
     preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
+- **[LW-269] Three small pieces of the new cache-splitting fix have no test holding them down, so a later edit could quietly break any of them and every gate would still pass** (opened 2026-08-18) [BUILDING]
+  - Found by the verifier round on LW-262. The worst of the three: when a weapon's name-suffix
+    note is evicted, its per-weapon count must go back down, and nothing proves it does; if that
+    ever broke, the weapon would hit its 12-copy ceiling and refuse new suffix notes forever,
+    silently. The other two: the rule deciding when a big cleanup pass earns an immediate repeat
+    is only tested one below its boundary, never at it, so an off-by-one would slip through; and
+    the small budget on how many cleanup-eviction lines reach the black box has no test at all.
+  - Done means: three new test pins, one per piece, each proven non-vacuous by re-applying the
+    exact mutation that survived the LW-262 verify round and watching the new pin go red. The
+    only production edit is a visibility flip so a test can cite the budget constant, matching
+    how the file's two sibling budget constants are already exposed; zero behavior change. (Tech:
+    _suffixCountById decrementing in CardSites.Admission.cs's EvictList; PruneRearmFloor's `>=`
+    boundary at exactly 16 in the same file; OnSitePruned's use of the shared _flightBudget/
+    FlightRecordBudget tier in Display.Flight.cs, whose const goes internal like
+    CoverageRecordBudget and LocateRecordBudget already are.)
+  - Verify: full suite green with the three pins in; each pin shown red under its target
+    mutation and green again on restore; the pre-existing partition and cap-relief tests
+    unmodified.
 
 ## Backlog
 
-- [LW-269] 2026-08-18: Three small pieces of the new cache-splitting fix have no test holding
-  them down, so a later edit could quietly break any of them and every gate would still pass.
-  Found by the verifier round on LW-262. One, the per-weapon count of live name-suffix notes is
-  supposed to go back down when a note is removed, and nothing proves it actually does, so a
-  slow leak here could eventually make one weapon's name-suffix notes wrongly refuse forever with
-  no error anywhere. Two, the rule for when a big cleanup pass earns itself an immediate repeat is
-  an at-least-this-many boundary, and the only test near it uses a count one below the line, never
-  the line itself, so an off-by-one there would not be caught. Three, the small budget on how many
-  cleanup-eviction lines reach the black box has no test of its own at all. (Tech: _suffixCountById
-  decrementing in CardSites.Admission.cs's EvictList; PruneRearmFloor's `>=` boundary at exactly 16
-  in the same file; OnSitePruned's use of the shared _flightBudget/FlightRecordBudget tier in
-  Display.Flight.cs.)
+- [LW-270] 2026-08-18: One small piece of the cleanup rate limiter has no test holding it down:
+  when a big cleanup pass earns an immediate repeat, the refusal counter is also supposed to
+  reset to zero, and deliberately deleting that reset leaves all 3159 tests green. The effect of
+  losing it is mild, the every-32-refusals cleanup rhythm would start from a stale phase after a
+  later low-yield pass, but it is the same unpinned-guard class as LW-269 and was found by the
+  LW-269 verify round's own extra mutations. (Tech: the `_refusalsAtCap = 0` half of the rearm
+  block in CardSites.Admission.cs's PruneDeadSites; the `_pruneImmediately = true` half IS pinned
+  by Prune_evicting_exactly_the_floor_rearms_immediate_retry.)
 
 - [LW-268] 2026-08-18: The search re-reads the whole 2.8GB of game memory every time, even though at most 145MB of it has ever held what it is looking for, and the regions it found last time were still there next time. An index that remembers which regions were already checked and re-reads only new or resized ones could cut a rescan from tens of seconds to a few. The catch that must be probed FIRST: if the game pre-commits big arenas and writes card text into them later, a region can become interesting without changing its size, and the index would skip it forever with no error and no log line. Step one is a probe that logs the full region list diff alongside each locate across one battle and checks whether newly interesting regions are freshly committed or pre-existing. Sequence this after LW-262, because fixing coverage latching should make rescans rare enough to re-price the whole idea. (Tech: candidate design diffs (base,size) against the last completed PoolScan snapshot and carries not-pool verdicts for unchanged regions; hazard is that VirtualQueryEx sees commit granularity, not content.)
 

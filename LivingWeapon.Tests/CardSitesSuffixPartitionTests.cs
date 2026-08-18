@@ -119,6 +119,63 @@ public class CardSitesSuffixPartitionTests
         Assert.True(sites.Add(fresh), "capacity freed by eviction must be available to a new suffix add");
     }
 
+    // ─── LW-269: evicting one suffix copy frees exactly one per-id slot ──────
+
+    /// <summary>LW-269: pins the per-id decrement half of EvictList (CardSites.Admission.cs)
+    /// directly -- Evicting_a_suffix_site_returns_capacity_for_a_new_suffix_add above proves
+    /// capacity comes back at all, but evicts the WHOLE fill in one PaintAll storm, so it can
+    /// never tell "decremented by exactly one" apart from "reset to zero" or "decremented by
+    /// some other amount". This test evicts exactly ONE of twelve copies for the SAME id and
+    /// checks the per-id count lands exactly one lower, not merely lower.</summary>
+    [Fact]
+    public void Evicting_one_suffix_copy_frees_exactly_one_per_id_slot()
+    {
+        var meta = CardSitesFixtures.BuildMeta();
+        var pats = new CardPatterns(meta);
+
+        // The live anchor for id 1 enc 1 ("Sword") at 0x1000; 0x1100 stays zeroed -- a
+        // readable-but-WRONG anchor (Mismatch), which evicts on its very first PaintAll pass
+        // (CardSites.Verify.cs's VerifyAnchor/ApplyStrike, LW-163's unweakened contract).
+        var buf = new byte[512];
+        byte[] liveAnchor = ByteScan.Ascii("Sword");
+        Array.Copy(liveAnchor, 0, buf, 0, liveAnchor.Length);
+
+        var heap = new FakeHeap((0x1000L, buf, writable: true));
+        var sites = new CardSites(heap, pats);
+
+        // 11 keepers: live anchor (survive verify), but an unmapped SlotAddr so their own slot
+        // read refuses harmlessly on paint -- they neither write nor get evicted.
+        for (int i = 0; i < CardSites.SuffixCopiesPerId - 1; i++)
+        {
+            var keeper = new CardSites.Site(1, 1, 0xBEEF_0000_0000L + i, 0x1000L, IsKills: false);
+            Assert.True(sites.Add(keeper), $"keeper copy {i} within SuffixCopiesPerId must be admitted");
+        }
+
+        // The 12th (and last) copy for id 1: a mismatching anchor, so PaintAll evicts it.
+        var victim = new CardSites.Site(1, 1, 0xBEEF_0000_1000L, 0x1100L, IsKills: false);
+        Assert.True(sites.Add(victim), "the 12th copy (victim) must be admitted");
+
+        // Per-id cap already reached: a 13th add is refused despite the huge global headroom
+        // (MaxSuffixSites is 1024), so this refusal is unambiguously the PER-ID cap, not the
+        // global one.
+        var overflow = new CardSites.Site(1, 1, 0xBEEF_0000_2000L, 0x1000L, IsKills: false);
+        Assert.False(sites.Add(overflow), "the 13th copy must be refused before any eviction");
+
+        sites.PaintAll(_ => 0);   // the 11 keepers verify Live and stay; the victim's anchor
+                                  // reads back zeros (Mismatch) and is evicted on this one pass.
+        Assert.Equal(11, sites.SuffixCount);
+
+        // Evicting the victim must free exactly one per-id slot: a fresh add for the same id
+        // is admitted again...
+        var replacement = new CardSites.Site(1, 1, 0xBEEF_0000_3000L, 0x1000L, IsKills: false);
+        Assert.True(sites.Add(replacement), "evicting one copy must free exactly one per-id slot");
+
+        // ...but only once: the per-id count is back at its cap (12), proving the decrement
+        // was exactly one, not a reset of the whole id's count to zero.
+        var second = new CardSites.Site(1, 1, 0xBEEF_0000_4000L, 0x1000L, IsKills: false);
+        Assert.False(sites.Add(second), "the per-id count must be back at its cap, proving the decrement was one, not a reset");
+    }
+
     // ─── Test 3: a policy refusal must never prune ────────────────────────────
 
     [Fact]
@@ -262,5 +319,90 @@ public class CardSitesSuffixPartitionTests
         bool admitted = sites.Add(second);
         Assert.False(admitted, "a low-yield prune must not re-arm immediate retry");
         Assert.Equal(cap, sites.Count); // nothing evicted by this refused attempt
+    }
+
+    // ─── Test 5 (LW-269): the floor is a re-arm boundary, not just a below-floor guard ──
+
+    /// <summary>LW-269: the sibling test above pins PruneRearmFloor - 1 (does not re-arm); this
+    /// pins PruneRearmFloor ITSELF (does re-arm), the boundary the sibling never touches. Copies
+    /// that test's T2 fixture shape verbatim (its own comment explains why: a kills-site anchor
+    /// verify keys off ONE shared SlotAddr with a distinct AnchorAddr per site).</summary>
+    [Fact]
+    public void Prune_evicting_exactly_the_floor_rearms_immediate_retry()
+    {
+        var meta = CardSitesFixtures.BuildMeta();
+        var pats = new CardPatterns(meta);
+
+        int cap = CardSites.MaxSites;
+        int anchorStride = 20;
+        int bufSize = cap * anchorStride + 512;
+        var buf = new byte[bufSize];
+
+        byte[] flavorBytes = ByteScan.Ascii("A fine blade");
+        byte[] prefixBytes = ByteScan.Ascii("Kills: ");
+        byte[] slotBytes   = ByteScan.Ascii("0   ");
+
+        int extraBase = cap * anchorStride;
+        for (int i = 0; i < cap; i++)
+            Array.Copy(flavorBytes, 0, buf, i * anchorStride, flavorBytes.Length);
+        Array.Copy(prefixBytes, 0, buf, extraBase, prefixBytes.Length);
+        Array.Copy(slotBytes, 0, buf, extraBase + prefixBytes.Length, slotBytes.Length);
+
+        var heap = new FakeHeap((0x1000L, buf, writable: true));
+        var sites = new CardSites(heap, pats);
+        long liveSlotAddr = 0x1000 + extraBase + prefixBytes.Length;
+
+        const int floorDead = CardSites.PruneRearmFloor; // ON the re-arm floor, not below it
+
+        for (int i = 0; i < floorDead; i++)
+        {
+            var dead = new CardSites.Site(1, 1, 0xDEAD_3000_0000L + i, 0xDEAD_0000_0000L + i, IsKills: true);
+            sites.Add(dead);
+        }
+        for (int i = floorDead; i < cap; i++)
+        {
+            long anchor = 0x1000 + i * anchorStride;
+            var live = new CardSites.Site(1, 1, liveSlotAddr, anchor, IsKills: true);
+            sites.Add(live);
+        }
+        Assert.Equal(cap, sites.Count);
+
+        // First cap-hit: _pruneImmediately starts true (fresh CardSites), so this one prunes and
+        // evicts exactly `floorDead` (== PruneRearmFloor) sites, then admits. Meeting the floor
+        // exactly re-arms _pruneImmediately (CardSites.Admission.cs's PruneDeadSites: the rearm
+        // check is `>=`, so the boundary value itself counts as "met").
+        var first = new CardSites.Site(3, 1, 0xABCD_0000_0000L, 0xABCD_1000_0000L, IsKills: true);
+        Assert.True(sites.Add(first));
+        Assert.Equal(cap - floorDead + 1, sites.Count);
+
+        // Re-fill to cap with sites that would ALSO be dead if pruned (so a second prune, if it
+        // ran, would be observable via a Count drop).
+        int gap = cap - sites.Count;
+        for (int i = 0; i < gap; i++)
+        {
+            var dead2 = new CardSites.Site(1, 1, 0xDEAD_4000_0000L + i, 0xDEAD_0001_0000L + i, IsKills: true);
+            sites.Add(dead2);
+        }
+        Assert.Equal(cap, sites.Count);
+
+        // The prune that just ran evicted exactly the floor, so _pruneImmediately DID re-arm:
+        // this next cap-hit prunes immediately (unlike the sibling test, which is refused
+        // outright with no second prune at all) and admits in the same call.
+        //
+        // DEVIATION FROM THE ORIGINAL SPEC ARITHMETIC (flagged per the task instructions): the
+        // spec predicted the final count as `cap - gap + 1`, reasoning that the second prune
+        // evicts only the `gap` dead2 refill sites just added. That undercounts by one: `first`
+        // (id 3) is itself untracked in `meta` (only ids 1 and 2 exist), so CardPatterns.TryGet
+        // fails for it and VerifyAnchor returns Mismatch regardless of its address -- `first` is
+        // dead too, and PruneDeadSites evicts it right alongside the `gap` dead2 sites on this
+        // second pass (gap + 1 == floorDead evictions, again meeting the floor exactly). The
+        // sibling (below-floor) test never exposes this because its second cap-hit never runs a
+        // real prune at all (rate-limited refusal). The correct steady-state count after any
+        // prune-then-admit cycle that evicts exactly `floorDead` sites is `cap - floorDead + 1`,
+        // the SAME value as after the first admit -- confirmed by direct trace, not assumption.
+        var second = new CardSites.Site(3, 1, 0xABCD_0000_0001L, 0xABCD_1000_0001L, IsKills: true);
+        bool admitted = sites.Add(second);
+        Assert.True(admitted, "a prune that evicts exactly the floor must re-arm immediate retry");
+        Assert.Equal(cap - floorDead + 1, sites.Count);
     }
 }

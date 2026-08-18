@@ -309,6 +309,61 @@ public class DisplayFlightTests
                                         && r.payload.Contains("reason=pruned-dead"));
     }
 
+    /// <summary>LW-269: OnSitePruned (Display.Flight.cs) spends the SAME shared _flightBudget/
+    /// FlightRecordBudget tiers EmitVerdict's site-evicted lane already spends -- a dedicated
+    /// reserve was explicitly rejected (that method's own class doc). A cap-relief prune that
+    /// evicts thousands of dead sites in one burst must still stop recording at exactly the
+    /// budget, and once that budget is spent, a genuinely separate paint that happens later in
+    /// the SAME window must have its OWN record suppressed too -- proving the two taps really do
+    /// share one counter, not two counters that merely happen to be sized the same.</summary>
+    [Fact]
+    public void Cap_relief_prune_records_stop_at_the_shared_flight_budget()
+    {
+        var meta = BuildMeta();   // id 10
+        var kills = new Dictionary<int, int> { { 10, 5 } };
+        var clock = new TestClock();
+        clock.Ms = 100_000;   // repo test hygiene (LW-261 lesson): nonzero clock origin; not
+                              // load-bearing here -- this test's vacuity guard is the
+                              // heap.Writes assert below, not the clock
+
+        var src = new byte[512];
+        int slotPos = CardFixtures.WriteKillsBlock(src, 0, "Bright edge of dawn", gap: 20);
+        var heap = BuildHeap(src);
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock, recorder: (t, p) => recorded.Add((t, p)));
+
+        // Fill the KILLS cache to cap with dead sites (unmapped anchors), exactly like this
+        // file's Pruned_dead_site_reaches_the_flight_tape_as_site_evicted above.
+        for (int i = 0; i < CardSites.MaxSites; i++)
+            display._sites.Add(new CardSites.Site(10, 1, 0xDEAD_1000_0000L + i, 0xDEAD_0000_0000L + i, IsKills: true));
+        Assert.Equal(CardSites.MaxSites, display._sites.Count);
+
+        // One more Add hits the cap: the cap-relief prune evicts the WHOLE dead fill (2048
+        // sites) in a single burst, then admits this one live site.
+        var live = new CardSites.Site(10, 1, SourceBase + slotPos, SourceBase, IsKills: true);
+        Assert.True(display._sites.Add(live), "the cap-relief prune should have freed room for the live site");
+        Assert.Equal(1, display._sites.Count);
+
+        int pruned = 0;
+        foreach (var r in recorded)
+            if (r.type == "card" && r.payload.Contains("reason=pruned-dead"))
+            {
+                pruned++;
+                Assert.StartsWith("site-evicted id=10 addr=0x", r.payload);
+            }
+        // Thousands of evictions happened above; the records clamp at EXACTLY the shared budget.
+        Assert.Equal(Display.FlightRecordBudget, pruned);
+
+        // Sharedness half: the budget the prune just exhausted is the SAME one EmitVerdict's
+        // paint lane spends, not a private reserve.
+        int writesBefore = heap.Writes;
+        display.PaintCountsIfChanged();   // kills[10]=5 vs empty _lastCounts reads as a change,
+                                           // so it paints through PaintAllTapped
+        Assert.Equal(writesBefore + 1, heap.Writes);   // the paint genuinely wrote
+        Assert.DoesNotContain(recorded, r => r.type == "card" && r.payload.StartsWith("paint id=10"));
+        // ^ suppressed: the prune above already exhausted the shared budget for this window.
+    }
+
     /// <summary>LW-262 test 6: the coverage record's new `suffix=` field (Display.Flight.cs's
     /// RecordCoverageIfTapped) must carry the REAL CardSites.SuffixCount, not just be present --
     /// asserted against an independently hardcoded expected count that DIFFERS from the kills
