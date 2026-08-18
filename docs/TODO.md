@@ -161,6 +161,42 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-263] 2026-08-18: Three of the new pool search files describe their own size wrongly, saying a
+  file is 186 lines when it is 160, and another is 186 when it is 188. The numbers went stale the
+  moment a method moved between those files during the fix rounds, which is the whole argument
+  against quoting a figure in prose that changes every time someone edits the file. Found by the
+  fourth verify round on LW-261, and that is four rounds in a row finding this same class of defect.
+  Fix is either to correct them or to stop quoting line counts in prose at all. (Tech: the
+  PoolLocator.Restart.cs header and the matching claims in PoolLocator.cs and PoolLocator.Log.cs.)
+
+- [LW-264] 2026-08-18: One doc comment still says the search finishes at most a handful of times per
+  restart window, which stopped being true when the empty retry lane landed. On a cold boot where no
+  text pool exists yet, the search finishes and starts again roughly once a second, indefinitely. The
+  twin of this exact sentence was corrected during the same arc and this copy was missed. (Tech: the
+  LocateRecordBudget doc in Display.Flight.cs; the corrected twin is LogLocateComplete in
+  PoolLocator.Log.cs.)
+
+- [LW-265] 2026-08-18: The test guarding the search's per tick cost cannot tell one slice of work from
+  two, so a one character slip would quietly double how much memory the mod reads every tick while all
+  3141 tests still passed. The cause is that the budget and the slice size are the same number today,
+  so the test's allowance of one budget plus one slice is exactly twice the real spend. Fix is to
+  assert the slice count directly, or to raise the budget above the slice size inside the test. (Tech:
+  PoolScanTests.Step_never_reads_more_than_budget_plus_one_chunk; LocateBudgetBytes currently equals
+  ChunkReader.ChunkSize.)
+
+- [LW-266] 2026-08-18: Nothing tests the small budget that limits how many search completion records
+  reach the flight tape, and that record is the one the owner is asked to read numbers off after a
+  live pass. If it were wired to the wrong counter or silently ran out, the tape would go quiet, the
+  live pass would yield no numbers, and nothing would fail to warn anybody. (Tech: _locateFlightBudget
+  and LocateRecordBudget in Display.Flight.cs; two mutations against it left the suite green.)
+
+- [LW-267] 2026-08-18: Three guards inside the new resumable search have no test holding them down:
+  the line that keeps the region list marked stale on two of its three paths, the number deciding how
+  often a long search reports progress, and the choice to stop reading a region when a read fails
+  rather than skipping past it. Each survived deliberate mutation with the whole suite green. None is
+  believed wrong today, they are simply unpinned. (Tech: the _stale assignment and ProgressLogEveryTicks
+  in PoolLocator.Restart.cs, and PoolScan's read == 0 branch.)
+
 - [LW-256] 2026-08-17: Four files point to an explanation of the retry bug that this branch does
   not have yet, and nothing automated notices. The `battle-retry-rewind-fingerprint` writeup
   landed on `main` in commit 438b173, but this arc's branch (`lw233`) was cut from an earlier
