@@ -93,19 +93,6 @@ the technical detail lives in the indented lines under it.
 
 
 
-- **[LW-272] A dual wielder's kill credits BOTH weapons and nothing a player reads says so** (opened 2026-08-18) [AWAITING-LIVE]
-  - The owner proved the gap by being surprised by his own mod when Ramza's two knives each
-    claimed the same undead. The behavior is deliberate and test pinned; the docs just never
-    say it.
-  - Done means: a short section in docs/MECHANICS.md naming the rule and its edge cases
-    (shields never leech credit, an off hand weapon counts even with a shield mainhand, one
-    blade in two hands counts once, both blades genuinely strike so picking one hand would be
-    fake precision), and a player facing line in README.md if it has a mechanics section.
-    (Tech: ActorResolver.Hands, KillTracker.CreditKill, pins at KillTrackerTests.cs:655
-    onward.)
-  - Verify: doc gates green and every claim matched to the four pins (both DONE, b991071);
-    remaining half is owner only: owner reads the paragraph and recognizes his own surprise
-    answered.
 
 ## Backlog
 

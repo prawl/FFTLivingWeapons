@@ -10,6 +10,15 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-272] SHIPPED b991071 2026-08-18: A dual wielder's kill credits BOTH weapons and nothing a
+  player could read said so, a gap the owner proved by being surprised by his own mod when
+  Ramza's two knives each claimed the same undead. The mechanics ledger now carries the full
+  entry with the rationale and edge cases, and the player README carries a Good to know line.
+  Every sentence was matched to the four kill tracker pins by the verify round, and the owner
+  read the paragraph and signed off the same day. (Tech: entry under Shipped signatures and
+  systems in docs/MECHANICS.md beside the Kill attribution bullet; pins at
+  KillTrackerTests.cs 653 to 726; owner read and close out 2026-08-18.)
+
 - [LW-275] SHIPPED b991071 2026-08-18: A code comment could cite a ledger row that does not
   exist and nothing would notice, which is how four files pointed at a missing explanation for
   a week (LW-256). A new doc gate now scans the runtime's comments for ledger citations and
