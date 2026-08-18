@@ -72,16 +72,20 @@ internal sealed partial class PoolLocator
     /// typical ~50s -- NOT a flat 46 to 51ms/step: that number is only the FLOOR if per-chunk
     /// read+scan were the sole other cost, and the tape's own spread (100.5 to 157.7ms/step,
     /// nowhere near a flat rate) shows real engine work sharing the tick refutes a flat floor.
-    /// Retune from what the next live tape's "LW37 locate-complete" line and flight record
-    /// actually report.</summary>
+    /// MEASURED, 2026-08-18 12:01-12:05 live pass: 72.2s (631 ticks) and 88.4s (663 ticks) -- one
+    /// inside that band, one ~20 percent above it (card-open stretches run the full Display.Tick
+    /// on the same ticks, which the derivation does not model). Kill-to-paint stayed 63 to 140ms
+    /// throughout, including a kill landing mid-scan, so the wall time is background cost only.</summary>
     internal const long LocateBudgetInBattle = 4L * 1024 * 1024;
 
     /// <summary>Retune round: the same lane while OUT of battle, where nothing is latency
     /// sensitive -- same reasoning as DisplaySweep's own out-of-battle budget (Display.cs's
-    /// BudgetOutOfBattle, also 16MB). Four ChunkReader.ChunkSize chunks per Step. PREDICTION, not
-    /// yet measured (this derivation held up under round 5 verify, just widened): a cold-boot scan
-    /// (armed before any battle, so it runs through THIS lane) should land near ~14 to 17s (about
-    /// about 175 Step calls at ~85 to 90ms each). Retune from the live numbers once measured.</summary>
+    /// BudgetOutOfBattle, also 16MB). Four ChunkReader.ChunkSize chunks per Step. MEASURED,
+    /// 2026-08-18 12:01 live pass: the cold-boot scan (armed before any battle, so it runs
+    /// through THIS lane) took 29.8s over 151 Step calls (~197ms each) -- the step COUNT matched
+    /// the ~14 to 17s derivation exactly, but each step cost about double the predicted 85 to
+    /// 90ms because the whole-heap sweep spends its own 16MB out-of-battle budget on the same
+    /// ticks while the locate is mid-flight, which the prediction did not model.</summary>
     internal const long LocateBudgetOutOfBattle = 16L * 1024 * 1024;
 
     private readonly CardPatterns _pats;

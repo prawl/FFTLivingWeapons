@@ -10,6 +10,60 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-262] SHIPPED aff6b91 2026-08-18: The mod's notebook of paint spots kept filling to its 2048
+  ceiling because kill count entries and name suffix entries shared one room, and a full notebook
+  silently forced the whole memory search to run again, eight times in one battle on the incident
+  tape. Name suffixes now get their own room of 1024 with at most 12 copies per weapon while kill
+  counts keep all 2048, a refusal under the caps no longer triggers the expensive full re-check,
+  the emergency prune only re-arms after freeing a real batch of at least 16, and the once silent
+  prune path now writes a site-evicted line with reason pruned-dead, the evidence LW-258 was
+  parked on. Riding along: the repaint of found regions stopped re-running on every tick while
+  coverage was missing, and an adversarial verifier caught the fresh-publish branch forgetting to
+  stamp the cadence clock before it could ship, a bug whose guarding test was false-green off a
+  zero-origin test clock. Owner live pass 2026-08-18 12:01 to 12:05: cache held at 847 to 850 of
+  2048 with suffix at 484 to 487 of its 1024, coverage latched and re-latched cleanly on every
+  edge, and the battle ran two searches from genuine edges where the incident battle ran eight
+  from saturation. (Tech: CardSites.Admission.cs with MaxSuffixSites=1024, SuffixCopiesPerId=12,
+  PruneRearmFloor=16, onPruneEvict wired to site-evicted reason=pruned-dead, coverage suffix=N;
+  Display.PoolPaintCadence.cs gates ScanPoolRegion to the maintenance beat plus PublishGeneration
+  bumps and the drain re-offer.)
+
+- [LW-261] SHIPPED 7d132fb 2026-08-18: Finding the game's text used to freeze the whole mod for
+  7 to 10 seconds at a stretch, eight times in one battle, because the search read the entire
+  process in one sitting on the 33ms engine loop. It is now a resumable budgeted scan that reads
+  one slice per tick on its own always-on lane, publishes only finished results, keeps serving
+  the previous result while a rescan runs, and treats a mid-scan invalidate as a queued restart
+  instead of an abort. The follow-up retune (0b55ef0) cut the redundant region re-listing, about
+  32 percent of each scan, to a once a second cadence with tools/probes/vq_walk_cost.py as its
+  provenance, made the engine lane the sole driver, and split the budget 4MB in battle and 16MB
+  out. Two owner live passes 2026-08-18: the 04:31 pass proved the freeze gone with all four
+  kills converging, and the 12:01 pass measured the retuned scans at 29.8s cold (151 ticks,
+  against 92s before the retune) and 72 to 88s in battle, with a kill landing mid-scan painting
+  in 63 milliseconds where the original bug took about 15 seconds. Recorded honestly: the cold
+  boot prediction was 14 to 17s and the measured 29.8s exceeded it because the whole-heap sweep
+  spends its own budget on the same ticks; the constants' comments now carry the measured
+  figures. (Tech: PoolScan address cursor with SnapshotRefreshMs=1000 re-snapshot;
+  PoolLocator.Restart.cs owns publish, staleness, trigger and cadence; RegionsStale keeps
+  ProcessPending permissive across the stale window; card flight payload locate-complete.)
+
+- [LW-257] SHIPPED b8b4099 2026-08-18: A weapon's kill count shows in two places, the battle
+  menu's Attack row and the equip card, and mid battle they could disagree, 23 against 22 on the
+  owner's sighting, because one failed read of a cached paint spot was treated exactly like
+  finding wrong text there and the spot was deleted for good. Commit 82c9b46 stops the loss: an
+  unreadable spot now takes three consecutive strikes before it is dropped while genuinely wrong
+  text still evicts on the first, and the card painter got its first flight taps and a paint
+  verdict ledger. Commit b8b4099 gives the card the same maintenance heartbeat the battle menu
+  already had, on the path the game actually takes on the battlefield. The arc was blocked mid
+  flight when its own live pass measured the background search starving the heartbeat, which
+  became LW-261; with that fixed and LW-262 closing the loop that kept triggering the search, the
+  owner's combined live pass 2026-08-18 12:01 showed all three kills painting to every pool copy
+  within 63 to 140 milliseconds, including one landing mid-scan. Known residual, recorded not
+  hidden: a status card left OPEN across a kill stays a snapshot until reopened; closing that
+  needs the unproven FnSetTextString render intercept and was deliberately not attempted.
+  (Tech: Tuning.CardEvictStrikes=3 for Unreadable only, Mismatch evicts first-strike per the
+  LW-163 contract; Display.Heartbeat.cs settlement watchdog; card flight records site-evicted,
+  paint, coverage.)
+
 - [LW-233] SHIPPED 703176a 2026-08-17: Losing a battle and picking retry used to pay a weapon
   twice for the same dead enemies, and because the tally is written to disk the moment it moves,
   that invented number was permanent. The mod never learns that a retry happened: the whole lose
