@@ -96,6 +96,32 @@ internal static class Tuning
     /// 1000ms each) rather than holding it forever.</summary>
     public const int CardEvictStrikes = 3;
 
+    /// <summary>Display.Heartbeat.cs (LW-257 commit 2): maintenance beats (Display.MaintenanceMs
+    /// apart, ~1s each) a changed weapon id may sit WATCHED in the pending set before
+    /// RunMaintenance gives up and drops it (one Debug line). This is a watchdog cap, not a retry
+    /// budget (correction, round 2 review -- an earlier version of this doc described "extra
+    /// skip-if-equal passes" that do not exist: RunMaintenance runs the exact same single PaintAll
+    /// every beat whether or not anything is pending, so a pending id costs no extra paint work at
+    /// all). What this constant actually bounds is how long the runtime keeps asking "has this id
+    /// settled somewhere trustworthy yet" before concluding it will not and saying so on the log,
+    /// for the one load-bearing premise the pending-set clear predicate leans on -- which located
+    /// pool region the card actually materializes from, docs/LIVE_LEDGER.md's
+    /// [card-materializes-from-named-pool] row, filed Uncertain 2026-08-17. If that premise were
+    /// ever wrong, an id would never settle inside a located region despite a real paint existing
+    /// somewhere else, and this cap is what turns that into a bounded, logged give-up instead of a
+    /// permanently growing watchlist.</summary>
+    public const int CardPendingMaxBeats = 10;
+
+    /// <summary>Display.PoolPaint.cs's ReOfferDrainedRegions (LW-257 commit 2): kill switch for
+    /// the per-region drain re-offer, mirroring PoolPaintEnabled's own on-by-default convention.
+    /// Default ON -- the mechanism reuses ScanPoolRegion byte for byte (the same discovery/write/
+    /// foreign-refusal path the initial pool scan already runs, docs/LIVE_LEDGER.md's PROVEN
+    /// [flavor-line-overwrite-displays] row), scoped to only the specific region(s) a per-region
+    /// site-count compare found short of its own latch -- never a full relocate, never a
+    /// whole-heap sweep -- so its blast radius is bounded the same way the rest of this arc's
+    /// writes already are.</summary>
+    public const bool CardReOfferEnabled = true;
+
     /// <summary>AttackCard (LW-91): how long a cached table copy may fail its SyncHit verify
     /// before RepaintAll evicts it, instead of the old instant-evict-then-re-census. SyncHit for
     /// an already-cached hit runs only inside RepaintAll -- a compose-change edge, or the 1000ms

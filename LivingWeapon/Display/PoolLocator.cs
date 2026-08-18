@@ -88,6 +88,14 @@ internal sealed class PoolLocator
     /// relocated, or their buffers been reallocated: called from Display.Invalidate()).</summary>
     internal void Invalidate() => _cached.Clear();
 
+    /// <summary>LW-257 commit 2: the CURRENTLY cached region list, exactly as of the last real
+    /// LocateAll scan -- a plain accessor, no scan of its own, no Regions() walk. Empty whenever
+    /// LocateAll has never run (every poolPaint:false test, and the pool path before its first
+    /// successful locate): Display.Heartbeat.cs's pending-set clear predicate reads this to tell
+    /// "the sweep path, nothing located yet" apart from "the pool path, at least one region
+    /// known", and Display.PoolPaint.cs's per-region drain latch keys off the same list.</summary>
+    internal IReadOnlyList<(long baseAddr, long size)> CachedRegions => _cached;
+
     /// <summary>Test-only cache seed (mirrors GrowthEngine.SeedStructForSlotForTest): drives
     /// LocateAll's revalidate path directly against pinned regions, without needing a prior scan.</summary>
     internal void SeedForTest(params (long baseAddr, long size)[] regions)

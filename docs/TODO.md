@@ -141,6 +141,28 @@ the technical detail lives in the indented lines under it.
   `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
   `[battle-retry-rewind-fingerprint]`.)
 
+- [LW-260] 2026-08-18: Six things in the card heartbeat work are correct today but have no test,
+  so a later edit could undo any of them and every gate would still pass. Found by mutation during
+  the LW-257 commit 2 verify, which changed each one deliberately and watched the suite stay green.
+  Worst first. Adding a second call to the drain check at the end of the tick loop, on top of the one
+  on the beat, ships green, and that would pay a full copy of the paint spot list plus a compare of
+  every region against every spot thirty times a second instead of once. Giving the in battle path
+  its own separate clock instead of sharing the one heartbeat ships green, which is the exact thing
+  the design says must never happen. Clearing the pending list when the cache is wiped ships green if
+  removed, costing up to ten wasted watch beats and one misleading gave up line per battle. Throwing
+  away the located region cache after a successful targeted re scan ships green, and that forces the
+  next locate to walk the whole process again, which is the 143 to 569 millisecond stall this arc
+  exists to remove, reintroduced one step removed. The two guards that stop the beat painting twice
+  in one tick when a count or target change already painted both ship green if removed, costing about
+  1400 to 2000 extra guarded reads in that tick. And the region range check accepts a loosened end
+  bound. Note what is NOT here: the drain comparison itself IS pinned, RED on two tests, and an
+  earlier draft of this row said otherwise before the tests were strengthened. (Tech: mutations E2, M,
+  K, F, the two !countsChanged guards at Display.cs:81 and :120, and the end bound at
+  Display.PoolDrain.cs:67. Two soft spots also carried over from the first draft and remain true: the
+  settled predicate falls back to permissive for the whole on field stretch after a battle starts,
+  because only an out of battle tick refreshes the located region list; and the drain re latch walks
+  the OLD key set, so a region found later never enters the latch until the next full coverage latch.)
+
 - [LW-259] 2026-08-17: The card painter's new black box can fall silent partway through a long
   battle, so a problem that happens later leaves no trace at all. The budget that caps how many card
   records one window may write is spent across a whole battle, while the priority rule protecting the

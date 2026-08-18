@@ -146,6 +146,10 @@ internal sealed partial class Display
         _poolLocator.Invalidate();
         _flightBudget = 0;     // LW-257: a new coverage/cache window gets a fresh record budget
         _coverageBudget = 0;   // LW-257 (F3): its own reserve, reset on the same window boundary
+        _pendingIds.Clear();   // LW-257 commit 2 (round 2 review): _sites is wiped above, so every
+                               // pending id's watch is against a cache that no longer exists --
+                               // without this it burns all CardPendingMaxBeats watching nothing
+                               // and logs a false "gave up" line for a kill that was never lost.
     }
 
     /// <summary>LW-91 stage 2: a narrow, in-battle-safe repaint driven by a kill-count change
@@ -156,16 +160,45 @@ internal sealed partial class Display
     /// above), since this narrow path is the ONLY place that consumes the shared _lastCounts edge
     /// this tick; if it fired the two out of order, a story-line rotation would render one call
     /// stale for whatever painted here. RequestRescan latches the sweep's next full Tick onto a
-    /// hot re-offer rather than stepping the sweep itself: no pool/sweep locate work, no sweep
-    /// stepping, no Invalidate -- those stay exclusively inside the full Tick.</summary>
+    /// hot re-offer rather than stepping the sweep itself: still no sweep stepping, no full pool
+    /// relocate (PoolLocator.LocateAll's own Regions() walk), no Invalidate -- those stay
+    /// exclusively inside the full Tick.
+    ///
+    /// LW-257 commit 2 (CORRECTED -- this doc previously promised "no pool/sweep locate work ...
+    /// those stay exclusively inside the full Tick" with no qualifier at all, which this commit
+    /// deliberately makes untrue): on a call where nothing above already painted, this method now
+    /// ALSO reaches the shared maintenance beat (MaintenanceDue/RunMaintenance, Display.
+    /// Heartbeat.cs) that used to live only inside Tick -- the on-field path needed that same
+    /// once-a-second repaint discipline just as much as the off-field path already had (see
+    /// Display.Heartbeat.cs's own class doc for what the beat actually does; it is a settlement
+    /// watchdog, not a retry loop -- no extra paint work follows from anything being pending).
+    /// That beat CAN, in turn, issue a targeted single-region ScanPoolRegion re-offer when a
+    /// located pool region's kills-site count has drained below its latch (Display.PoolDrain.cs's
+    /// ReOfferDrainedRegions) -- real pool-scanning work, just never a full relocate, never a
+    /// Regions() walk, and never the whole-heap sweep FROM THIS METHOD ITSELF. One honest caveat
+    /// (round 2 review): that re-offer can still flip _poolCovered to false when a whole region is
+    /// genuinely gone (Display.PoolDrain.cs's own class doc), and that flag only SCHEDULES a
+    /// future full relocate -- unlike Tick, nothing on this call path runs MaybePoolPaint
+    /// afterward to act on it, so on the on-field path the flag just sits until Engine's paint
+    /// phase next takes the Tick(true) branch (BattleState.ShouldPaintCard, Engine.cs).</summary>
     public void PaintCountsIfChanged()
     {
         var changedIds = new List<int>();
-        if (!CheckAndSnapshotCounts(changedIds)) return;
+        bool countsChanged = CheckAndSnapshotCounts(changedIds);
 
-        _stories?.RecomposeChanged(changedIds);
-        _sweep.RequestRescan();
-        if (_sites.Count > 0) PaintAllTapped();
+        if (countsChanged)
+        {
+            _stories?.RecomposeChanged(changedIds);
+            _sweep.RequestRescan();
+            if (_sites.Count > 0) PaintAllTapped();
+        }
+
+        // Maintenance beat, shared with Tick (Display.Heartbeat.cs). Skipped when the branch
+        // above already painted this call -- mirrors Tick's own "skip the maintenance paint when
+        // a count/target change already painted this tick" gating exactly, just without a
+        // targetsChanged term (this narrow path never touches BuildTargets/_lastTargets at all).
+        if (MaintenanceDue(_nowMs()) && !countsChanged)
+            RunMaintenance();
     }
 
     /// <summary>Drive one display cycle. <paramref name="inBattle"/> true shrinks the byte
@@ -197,16 +230,17 @@ internal sealed partial class Display
             PaintAllTapped();
         }
 
-        // Maintenance repaint: PaintAll on a clock cadence to drain dead sites and
-        // refresh any stale on-screen copy without waiting for a kill-count change.
-        // skip-if-equal keeps steady-state writes at zero; this is cheap in the common case.
-        long now = _nowMs();
-        if (now - _lastMaintenanceMs >= MaintenanceMs)
-        {
-            _lastMaintenanceMs = now;
-            if (!countsChanged && !targetsChanged)
-                PaintAllTapped();
-        }
+        // Maintenance repaint: PaintAll on a clock cadence (shared with PaintCountsIfChanged,
+        // Display.Heartbeat.cs's MaintenanceDue/RunMaintenance) to drain dead sites, refresh any
+        // stale on-screen copy, and check whether any still-pending id has settled yet (a
+        // settlement watchdog, not a retry -- Display.Heartbeat.cs's own class doc: this same
+        // PaintAll runs regardless of what is pending, so nothing extra is attempted on its
+        // account), without waiting for a kill-count change. skip-if-equal keeps steady-state
+        // writes at zero; this is cheap in the common case. MaintenanceDue ALWAYS advances the
+        // shared clock when due, even on the branch below that then skips the actual paint --
+        // see that method's own doc.
+        if (MaintenanceDue(_nowMs()) && !countsChanged && !targetsChanged)
+            RunMaintenance();
 
         // Target change means fresh card buffers may have appeared; start a new generation
         // after the min-gap floor rather than waiting up to GenerationRestMs (90s).
@@ -344,20 +378,8 @@ internal sealed partial class Display
             targets.Add(id);
     }
 
-    /// <summary>Compare current kill counts against the last snapshot for all tracked ids.
-    /// Updates the snapshot on any change, appending each changed id to <paramref name="changedIds"/>
-    /// (Reliquary Phase 1's StoryLines.RecomposeChanged input). Returns true if any count changed.</summary>
-    private bool CheckAndSnapshotCounts(List<int> changedIds)
-    {
-        bool changed = false;
-        foreach (int id in _meta.Keys)
-        {
-            int cur = KillsFor(id);
-            _lastCounts.TryGetValue(id, out int last);
-            if (cur != last) { _lastCounts[id] = cur; changed = true; changedIds.Add(id); }
-        }
-        return changed;
-    }
+    // CheckAndSnapshotCounts moved to Display.Heartbeat.cs (LW-257 commit 2): its body now also
+    // stages changed ids into the pending set that file owns.
 
     internal int KillsFor(int id) => _kills.TryGetValue(id, out int k) ? k : 0;
 }

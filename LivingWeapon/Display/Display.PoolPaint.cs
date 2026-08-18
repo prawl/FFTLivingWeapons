@@ -101,6 +101,7 @@ internal sealed partial class Display
         if (_poolCovered)
         {
             _countAtCoverage = _sites.Count;   // LW-163: snapshot the count the re-check above compares against
+            LatchRegionCounts(regions);        // LW-257 commit 2: this beat's per-region baseline (own doc)
             AnnounceCoverage(regions);         // LW-165 stage 1: this is always a false->true edge (see field doc)
         }
         // LW-257: promoted from #if LWDEV, rate-limited via PoolCoverageLogGate (Display.
