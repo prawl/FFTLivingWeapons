@@ -90,6 +90,29 @@ the technical detail lives in the indented lines under it.
     preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
 
 
+- **[LW-259] The card painter's black box can fall silent partway through a long battle** (opened 2026-08-17) [BUILDING]
+  - The budget that caps how many card records one window may write is spent across a whole
+    battle, while the priority rule protecting the records that matter only applies inside a
+    single paint pass, so a long fight spends the window on routine paint lines and every
+    eviction record after that is dropped without a word. Roughly eleven kills is enough. The
+    fix already exists one field over: coverage records got their own small reserve in the same
+    commit and never starve; evictions want exactly that treatment. Three tidy ups ride along
+    from the same review: AnnounceCoverage takes two full site snapshots where one would do,
+    CardVerdict.Note's bump is O(n) in the all evictions corner and leaves Entries out of
+    insertion order with neither documented, and the targeted Paint path accrues strikes
+    without evicting, consistent but undocumented.
+  - Done means: a failing test FIRST reproducing the starvation (a window full of routine paint
+    lines, then an eviction that today leaves no trace), then an eviction reserve mirroring
+    CoverageRecordBudget makes it green; the reserve resets with the window; the cap relief
+    prune tap keeps its documented shared tier rationale; the snapshot duplication is removed;
+    the two undocumented behaviors get truthful doc sentences. (Tech: EmitVerdict tier 1 moves
+    off _flightBudget onto its own EvictedRecordBudget reserve in Display.Flight.cs; reset
+    rides Display.Invalidate's existing trio; OnSitePruned unchanged per its own doc;
+    AnnounceCoverage single snapshot in Display.PoolPaint.cs.)
+  - Verify: the starvation test red before the fix and green after; the reserve proven by
+    mutation like every budget before it; full suite green; live confirmation rides the next
+    owner tape read, pre registered signature: eviction lines present late in a long battle.
+
 ## Backlog
 
 - [LW-274] 2026-08-18: Two soft spots in the card heartbeat, observed by the LW-257 verify and
@@ -166,22 +189,6 @@ the technical detail lives in the indented lines under it.
   `docs/LIVE_LEDGER.md`; the four current citations are `LivingWeapon/Kills/RestartSentinel.cs:17`,
   `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
   `[battle-retry-rewind-fingerprint]`.)
-
-- [LW-259] 2026-08-17: The card painter's new black box can fall silent partway through a long
-  battle, so a problem that happens later leaves no trace at all. The budget that caps how many card
-  records one window may write is spent across a whole battle, while the priority rule protecting the
-  records that matter only applies inside a single paint pass, so a long fight spends the window on
-  routine paint lines and every eviction record after that is dropped without a word. Roughly eleven
-  kills is enough. Found by the LW-257 round 4 adversarial verify, which also noted the fix already
-  exists one field over: coverage records were given their own small reserved budget in the same
-  commit and never starve, so evictions want exactly that treatment. Until then the workaround is in
-  the LW-257 live script, since opening the status card resets the window. Three tidy-ups ride along
-  from the same review: AnnounceCoverage takes two full site snapshots on one call where one would
-  do; CardVerdict.Note's bump is O(n) in the all-evictions corner and leaves Entries no longer in
-  insertion order, neither of which its class doc mentions; and the targeted Paint path accrues
-  strikes without evicting, which is consistent but undocumented. (Tech: _flightBudget in
-  Display.Flight.cs resets only in Display.Invalidate(); mirror CoverageRecordBudget's reserve for
-  the Evicted tier.)
 
 - [LW-258] 2026-08-17: Stage 3 of the card-disagreement fix, parked deliberately until the new tapes
   say whether it is needed. If the LW-257 commits land and a card copy is STILL going dark (rather

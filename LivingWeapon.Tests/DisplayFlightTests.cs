@@ -208,6 +208,171 @@ public class DisplayFlightTests
                                         && r.payload.Contains($"id={id}") && r.payload.Contains("reason=anchor-mismatch"));
     }
 
+    /// <summary>LW-259: EmitVerdict's three tiers only order spending WITHIN one pass -- across
+    /// many passes in the SAME window (no Invalidate between them), routine tier-2 paint lines
+    /// can exhaust the entire shared <see cref="Display.FlightRecordBudget"/> (64) on their own,
+    /// long before a rare tier-1 eviction ever shows up. One live kills site is repainted across
+    /// exactly Display.FlightRecordBudget separate PaintCountsIfChanged passes -- a changing kills
+    /// value each time so every pass genuinely writes and Note()s exactly one Wrote entry, spending
+    /// the shared budget one-for-one (64 passes, 64 "paint" records, honestly earned, not a single
+    /// oversized pass). Only THEN does a second site with a mismatched anchor get registered and
+    /// painted -- tier 1's own Evicted loop -- reproducing the live failure: a late strike-cap or
+    /// buffer-reuse eviction silently dropped because the shared budget a storm of routine paints
+    /// already emptied.</summary>
+    [Fact]
+    public void A_late_eviction_still_records_after_paint_lines_exhaust_the_shared_budget()
+    {
+        const int id = 10;
+        var meta = BuildMeta();   // id 10, Flavor = "Bright edge of dawn"
+        var kills = new Dictionary<int, int> { { id, 0 } };
+        var clock = new TestClock();
+
+        var buf = new byte[1024];
+        int slotPos = CardFixtures.WriteKillsBlock(buf, 0, "Bright edge of dawn", gap: 20);
+        int wrongAnchorPos = 200;
+        var wrongFlavor = ByteScan.Ascii(new string('X', "Bright edge of dawn".Length));
+        Array.Copy(wrongFlavor, 0, buf, wrongAnchorPos, wrongFlavor.Length);
+
+        var heap = BuildHeap(buf);
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock, recorder: (t, p) => recorded.Add((t, p)));
+
+        // The one live kills site, registered directly (bypassing the scan), so each pass below
+        // is a pure repaint like a live kill landing -- CardFixtures.WriteKillsBlock's own idiom.
+        display._sites.Add(new CardSites.Site(id, 1, SourceBase + slotPos, SourceBase + 0, IsKills: true));
+
+        // Spend the WHOLE shared budget across Display.FlightRecordBudget separate passes, one
+        // Wrote record per pass (a changing kills value each time so ByteEq never skips the write).
+        for (int i = 1; i <= Display.FlightRecordBudget; i++)
+        {
+            kills[id] = i;
+            display.PaintCountsIfChanged();
+        }
+        int paintRecordsAfterExhaustion = recorded.FindAll(r => r.type == "card" && r.payload.StartsWith($"paint id={id}")).Count;
+        Assert.Equal(Display.FlightRecordBudget, paintRecordsAfterExhaustion);   // honestly earned, one per pass
+
+        // NOW register the mismatched-anchor site and paint one more pass: a genuine tier-1
+        // eviction landing in the SAME window the loop above already emptied the shared budget in.
+        long evictedSlotAddr = SourceBase + wrongAnchorPos + 10_000;   // never read -- the mismatch evicts first
+        display._sites.Add(new CardSites.Site(id, 1, evictedSlotAddr, SourceBase + wrongAnchorPos, IsKills: true));
+        kills[id] = 999;
+        display.PaintCountsIfChanged();
+
+        Assert.Contains(recorded, r => r.type == "card" && r.payload.Contains("site-evicted")
+                                        && r.payload.Contains($"id={id}") && r.payload.Contains("reason=anchor-mismatch"));
+    }
+
+    /// <summary>LW-259: <see cref="Display.EvictedRecordBudget"/> pin, mirroring every other
+    /// reserve's own clamp test in this file (Coverage_record_budget_caps_then_resets_on_Invalidate
+    /// below). More than the reserve's worth of GENUINE tier-1 evictions (mismatched anchors, not
+    /// OnSitePruned's cap-relief bursts -- so the count filters on `reason=anchor-mismatch`,
+    /// deliberately excluding `reason=pruned-dead`) land in a single pass: exactly
+    /// EvictedRecordBudget of them get recorded, the rest silently dropped past the reserve, same
+    /// diagnostic-not-transcript contract every other budget in this file already accepts.</summary>
+    [Fact]
+    public void Evicted_record_budget_clamps_even_with_more_genuine_evictions_in_one_pass()
+    {
+        const int id = 10;
+        const int blockStride = 64;
+        int mismatchCount = Display.EvictedRecordBudget + 4;   // more tier-1 evictions than the reserve holds
+
+        var meta = BuildMeta();   // id 10, Flavor = "Bright edge of dawn"
+        var kills = new Dictionary<int, int> { { id, 8 } };
+        var clock = new TestClock();
+
+        var buf = new byte[mismatchCount * blockStride + 256];
+        var wrongFlavor = ByteScan.Ascii(new string('X', "Bright edge of dawn".Length));
+        for (int i = 0; i < mismatchCount; i++)
+            Array.Copy(wrongFlavor, 0, buf, i * blockStride, wrongFlavor.Length);   // every anchor mismatches
+
+        var heap = new FakeHeap((SourceBase, buf, true));
+        heap.AddRegion(StaticsBase, new byte[16], writable: true);
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock, recorder: (t, p) => recorded.Add((t, p)));
+
+        for (int i = 0; i < mismatchCount; i++)
+            display._sites.Add(new CardSites.Site(id, 1, SourceBase + i * blockStride + 10_000, SourceBase + i * blockStride, IsKills: true));
+        Assert.Equal(mismatchCount, display._sites.Count);
+
+        display.PaintCountsIfChanged();   // one pass: every one of the mismatchCount sites evicts
+
+        int evictedRecords = recorded.FindAll(r => r.type == "card" && r.payload.Contains("site-evicted")
+                                                     && r.payload.Contains("reason=anchor-mismatch")).Count;
+        Assert.Equal(Display.EvictedRecordBudget, evictedRecords);
+    }
+
+    /// <summary>LW-259: EvictedRecordBudget's own Invalidate() reset, mirroring
+    /// Coverage_record_budget_caps_then_resets_on_Invalidate's shape exactly -- drives
+    /// <see cref="Display._evictedBudget"/> straight to the cap (the reserve's own test-accessor
+    /// convention, this file) instead of manufacturing EvictedRecordBudget real evictions just to
+    /// reach the same state.</summary>
+    [Fact]
+    public void Evicted_record_budget_resets_on_Invalidate()
+    {
+        const int id = 10;
+        var meta = BuildMeta();
+        var kills = new Dictionary<int, int> { { id, 8 } };
+        var clock = new TestClock();
+
+        var buf = new byte[512];
+        var wrongFlavor = ByteScan.Ascii(new string('X', "Bright edge of dawn".Length));
+        Array.Copy(wrongFlavor, 0, buf, 0, wrongFlavor.Length);   // mismatches on read
+
+        var heap = new FakeHeap((SourceBase, buf, true));
+        heap.AddRegion(StaticsBase, new byte[16], writable: true);
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock, recorder: (t, p) => recorded.Add((t, p)));
+
+        display._evictedBudget = Display.EvictedRecordBudget;   // simulate "already exhausted"
+
+        display._sites.Add(new CardSites.Site(id, 1, SourceBase + 10_000, SourceBase + 0, IsKills: true));
+        display.PaintCountsIfChanged();   // kills[id]=8 vs empty _lastCounts reads as a change
+        Assert.DoesNotContain(recorded, r => r.type == "card" && r.payload.Contains("site-evicted")
+                                              && r.payload.Contains("reason=anchor-mismatch"));
+
+        display.Invalidate();
+        display._sites.Add(new CardSites.Site(id, 1, SourceBase + 10_000, SourceBase + 0, IsKills: true));   // Invalidate wiped the cache
+        kills[id] = 9;   // force a genuine count change so this pass actually paints
+        display.PaintCountsIfChanged();
+
+        Assert.Contains(recorded, r => r.type == "card" && r.payload.Contains("site-evicted")
+                                        && r.payload.Contains("reason=anchor-mismatch"));
+    }
+
+    /// <summary>LW-259 fix pin: a starvation bug the split itself introduced. EmitVerdict's tier-1
+    /// loop guard used to be `if (_evictedBudget >= EvictedRecordBudget) return;` -- fine
+    /// pre-split when every tier shared one budget, but once tier 1 got its OWN <see
+    /// cref="Display._evictedBudget"/> reserve that `return` aborts the WHOLE method the moment
+    /// the reserve caps, silencing tiers 2/3's genuinely separate <see cref="Display._flightBudget"/>
+    /// lane for the rest of the window even though that budget has 63/64 of headroom left
+    /// (DrainGeneration's settle pass spends one paint line here before the pre-seed). Mirrors
+    /// Recorder_receives_a_card_record_when_a_site_is_painted's own paint recipe exactly, but
+    /// drives _evictedBudget straight to the cap first (the reserve's own test-accessor
+    /// convention, this file) -- no eviction traffic at all, so if tier 1's guard were still
+    /// `return` this test fails with the to=8 repaint record missing.</summary>
+    [Fact]
+    public void Paint_records_still_flow_after_the_eviction_reserve_caps()
+    {
+        var meta = BuildMeta();
+        var kills = new Dictionary<int, int> { { 10, 5 } };
+        var clock = new TestClock();
+        var src = new byte[512];
+        CardFixtures.WriteCard(src, 0, "SwordA", "Bright edge of dawn");
+        var heap = BuildHeap(src);
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock, recorder: (t, p) => recorded.Add((t, p)));
+
+        CardFixtures.DrainGeneration(display, clock, 500);
+
+        display._evictedBudget = Display.EvictedRecordBudget;   // simulate "already exhausted";
+                                                                  // _flightBudget keeps its headroom
+
+        kills[10] = 8;
+        display.PaintCountsIfChanged();   // routes through PaintAllTapped -> CardSites.PaintAll(verdict)
+
+        Assert.Contains(recorded, r => r.type == "card" && r.payload.StartsWith("paint id=10 to=8"));
+    }
+
     /// <summary>Item 2 (round-4 review): RecordCoverageIfTapped was entirely unpinned. A normal
     /// first-coverage pass must emit exactly one "coverage" record, trigger=first.</summary>
     [Fact]
@@ -310,9 +475,13 @@ public class DisplayFlightTests
     }
 
     /// <summary>LW-269: OnSitePruned (Display.Flight.cs) spends the SAME shared _flightBudget/
-    /// FlightRecordBudget tiers EmitVerdict's site-evicted lane already spends -- a dedicated
-    /// reserve was explicitly rejected (that method's own class doc). A cap-relief prune that
-    /// evicts thousands of dead sites in one burst must still stop recording at exactly the
+    /// FlightRecordBudget tiers EmitVerdict's paint and site-refused lanes already spend -- a
+    /// dedicated reserve was explicitly rejected (that method's own class doc). LW-259
+    /// CORRECTION: this used to say "EmitVerdict's site-evicted lane" here, back when that lane
+    /// drew from this same _flightBudget too -- it no longer does (its own EvictedRecordBudget
+    /// reserve, EmitVerdict's own doc), so today's shared-budget spenders are EmitVerdict's tier 2
+    /// (paint) and tier 3 (site-refused) lines plus this method, not tier 1. A cap-relief prune
+    /// that evicts thousands of dead sites in one burst must still stop recording at exactly the
     /// budget, and once that budget is spent, a genuinely separate paint that happens later in
     /// the SAME window must have its OWN record suppressed too -- proving the two taps really do
     /// share one counter, not two counters that merely happen to be sized the same.</summary>

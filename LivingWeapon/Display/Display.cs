@@ -151,6 +151,7 @@ internal sealed partial class Display
         _flightBudget = 0;     // LW-257: a new coverage/cache window gets a fresh record budget
         _coverageBudget = 0;   // LW-257 (F3): its own reserve, reset on the same window boundary
         _locateFlightBudget = 0;   // LW-261: the locate-complete tap's own reserve, same window boundary
+        _evictedBudget = 0;    // LW-259: tier 1's own reserve, reset on the same window boundary
         _pendingIds.Clear();   // LW-257 commit 2 (round 2 review): _sites is wiped above, so every
                                // pending id's watch is against a cache that no longer exists --
                                // without this it burns all CardPendingMaxBeats watching nothing

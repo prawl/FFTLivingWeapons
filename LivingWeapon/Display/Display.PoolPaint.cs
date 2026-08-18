@@ -153,8 +153,15 @@ internal sealed partial class Display
     /// in the file, never console noise.</summary>
     private void AnnounceCoverage(IReadOnlyList<(long baseAddr, long size)> regions)
     {
+        // LW-259 ride-along: ONE snapshot for the whole call chain -- killsSites below AND the
+        // flight tap's per-region breakdown (RecordCoverageIfTapped) both used to take their OWN
+        // full CardSites.Snapshot() copy, paying the list-copy cost twice per call whenever a
+        // recorder was actually wired. Behavior-identical: RecordCoverageIfTapped's early-return
+        // (no recorder wired, or its own budget already spent) still means the copy is only ever
+        // used when it's actually going to be read.
+        var snapshot = _sites.Snapshot();
         int killsSites = 0;
-        foreach (var s in _sites.Snapshot()) if (s.IsKills) killsSites++;
+        foreach (var s in snapshot) if (s.IsKills) killsSites++;
 
         // LW-257: captured before _coverageAnnounced flips, for both branches below and the
         // flight tap's own "trigger" field.
@@ -176,7 +183,7 @@ internal sealed partial class Display
                 $"pool coverage re-established: {killsSites} spots across {regions.Count} region(s) ({_sites.Count}/{CardSites.MaxSites} cache slots in use)");
         }
 
-        RecordCoverageIfTapped(regions, killsSites, trigger);   // LW-257: Flight.Record tap, Display.Flight.cs
+        RecordCoverageIfTapped(regions, killsSites, trigger, snapshot);   // LW-257: Flight.Record tap, Display.Flight.cs
     }
 
     /// <summary>Walk the located pool region in chunks (ChunkReader's own Lookback/TrailSlack

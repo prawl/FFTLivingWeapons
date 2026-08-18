@@ -206,6 +206,19 @@ internal sealed partial class CardSites
         var r = PaintSiteWithResult(s, killsFor, out var outcome, out var kills);
         // Paint() (OnChunk's freshly-discovered sites) never evicts -- only PaintAll does --
         // so evicted is always false here (CardVerdict.Note's own doc).
+        //
+        // LW-259 doc pass: this is deliberate, not an oversight. PaintSiteWithResult can still
+        // return PaintResult.Evict from THIS call path (a freshly-discovered site can mismatch on
+        // its very first paint just like any cached one -- a Mismatch evicts on its first
+        // occurrence, no leniency, LW-163's contract -- but cannot strike OUT on that first paint:
+        // strikes start at zero, so one paint accrues at most strike 1 of Tuning.CardEvictStrikes)
+        // -- Paint() simply never acts on that verdict by removing the site here, unlike PaintAll's
+        // own toEvict/EvictList pass above. A strike still accrues (ApplyStrike already ran inside
+        // PaintSiteWithResult), it just never crosses into an actual eviction from THIS call
+        // site; only a later PaintAll pass over the (by-then-cached) site can finish the job.
+        // Consistent with PaintAll's own policy, not a second one: the two entry points share one
+        // state machine (PaintSiteWithResult) and one strike ledger, and only differ in whether
+        // the CALLER acts on an Evict result.
         verdict?.Note(s.Id, s.SlotAddr, outcome, ObservedFor(s.IsKills, outcome, kills), evicted: false);
         return r == PaintResult.Write;
     }

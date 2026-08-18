@@ -69,7 +69,21 @@ internal sealed class CardVerdict
     /// permanently starve it just by getting here first. A lane that is somehow already 100%
     /// evictions has nothing lower-priority left to bump, so a newer eviction is dropped like
     /// anything else past the cap -- an acceptable edge the diagnostic-not-transcript contract
-    /// (class doc) already accepts.</summary>
+    /// (class doc) already accepts.
+    ///
+    /// Two honest costs of the bump, neither load-bearing enough to change the algorithm (LW-259
+    /// doc pass): the bump loop is O(n) in the worst case -- it scans from index 0 looking for the
+    /// first non-evicted slot, so a lane already dense with evictions near the front pays a longer
+    /// scan on every further eviction admitted this pass; at MaxEntries=256 that is still cheap
+    /// (a plain array scan, no allocation), just not O(1) like the normal Add path above it. And a
+    /// bump means <see cref="Entries"/> is NOT reliably insertion-ordered the moment any bump has
+    /// happened this pass: the bumped slot keeps its ORIGINAL list position, now holding a LATER
+    /// entry, so a reader walking Entries front-to-back can see a newer eviction before an older
+    /// surviving Wrote/refusal that was actually Note()'d first. EmitVerdict's own three-tier walk
+    /// (Display.Flight.cs) never depends on cross-tier ordering (it does three full separate
+    /// passes keyed on outcome/Evicted, not on list position), so this is safe for every reader
+    /// this codebase has today -- but a future reader that assumes Entries is a straight timeline
+    /// would be wrong to.</summary>
     public void Note(int id, long slotAddr, PaintOutcome outcome, int observed, bool evicted = false)
     {
         if (outcome == PaintOutcome.Wrote || outcome == PaintOutcome.AlreadyEqual)
