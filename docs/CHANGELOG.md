@@ -10,6 +10,24 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-259] SHIPPED 42846ff 2026-08-18: The card painter's black box could fall silent partway
+  through a long battle: the 64 line budget one window gets was spent on routine paint lines,
+  roughly eleven kills worth, and every eviction record after that was dropped without a word,
+  so the battles where things go weird were exactly the ones with blank tape. Eviction lines now
+  hold their own reserved 16 seats that routine chatter can never take, the same reserved seat
+  design the coverage and search completion lines already use. Built strict TDD: the silence was
+  reproduced red first. The verify round then caught the fix introducing the same disease one
+  lane over, an early return at the new reserve's cap silencing the routine lines despite their
+  own empty budget; one word fixed it, break instead of return, and a dedicated pin holds that
+  word in place. Ride alongs from the same review: the coverage line no longer copies the paint
+  spot list twice per report, and two comments describing impossible or undocumented behavior
+  were corrected. Live confirmation rides the next owner tape read, pre registered signature:
+  eviction lines present late in a long battle. (Tech: EvictedRecordBudget 16 and _evictedBudget
+  in Display.Flight.cs, EmitVerdict tier 1 off the shared _flightBudget, break not return at the
+  reserve cap; reset rides Invalidate's quartet in Display.cs; OnSitePruned deliberately
+  unchanged on the shared tier; AnnounceCoverage single snapshot; suite 3171 to 3175; verdicts
+  SHIP 9/10 twice around one FIX-NEEDED 7 that found the return bug.)
+
 - [LW-260] SHIPPED 9ef5c9d 2026-08-18: Six safety choices in the card heartbeat had no test
   holding them down, each proven breakable with every gate green by the LW-257 verify's own
   mutations. All six are now pinned by eight tests: idle ticks do zero repaint work, the beat
