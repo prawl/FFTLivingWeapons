@@ -94,7 +94,7 @@ the technical detail lives in the indented lines under it.
     preview manifest pixel for pixel, which for the first time in the programme is 468 of 468
     surfaces with nothing stale; and the owner's gallery pass.
 
-- **[LW-257] Two places show the same weapon's kill count and they can disagree, because the card quietly loses the spot it paints** (opened 2026-08-17) [BUILDING]
+- **[LW-257] Two places show the same weapon's kill count and they can disagree, because the card quietly loses the spot it paints** (opened 2026-08-17) [BLOCKED(LW-261 nine second search starves the new heartbeat)]
   - The battle menu's Attack row repaints its number from the tally every third of a second and never
     forgets where its text lives. The equip card does neither. Worse, when the mod re-checks one of the
     card's paint spots and the read simply fails for a moment, it treats that exactly like finding the
@@ -112,6 +112,16 @@ the technical detail lives in the indented lines under it.
     none at all. The second gives the card the Attack row's once-a-second heartbeat while the player is
     on the battlefield, retries a kill whose paint found nothing cached, and re-scans only the one
     memory region that lost spots instead of searching everything.
+  - LIVE PASS RUN 2026-08-18, PARTIAL. Owner drilled four kills on the throwaway save. Three
+    converged immediately, card and Attack row agreeing. One took about 15 seconds, which is a fail
+    against this row's own signature. Cause measured on the same tape and filed as LW-261 and
+    LW-262: the kill landed just before one of the mod's nine second whole process searches, and the
+    heartbeat cannot run while that search holds the loop. The fix in these two commits is not
+    implicated; it is starved, not wrong. Also seen and NOT new: the Attack row briefly showing the
+    plain word Attack, which is LW-179's fail closed behaviour when the mod cannot prove whose menu
+    is open. Good news on the tape: zero pending give up lines, so nothing contradicted the Uncertain
+    ledger row this arc filed, and zero eviction records, though that silence is the known cap relief
+    blind spot rather than proof of health.
   - Done means: the two surfaces agree within one second of a kill for every paint spot still cached, a
     spot whose read fails once is never dropped, a spot holding genuinely wrong text is still dropped
     immediately, and a tape can name which spot went dark and why.
@@ -140,6 +150,34 @@ the technical detail lives in the indented lines under it.
   `docs/LIVE_LEDGER.md`; the four current citations are `LivingWeapon/Kills/RestartSentinel.cs:17`,
   `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
   `[battle-retry-rewind-fingerprint]`.)
+
+- [LW-261] 2026-08-18: Finding the game's text takes the mod nine seconds, and while it looks, the
+  mod cannot do anything else, including keeping the kill counter fresh. Measured live for the first
+  time on 2026-08-18: eight of these searches in one five minute battle, each between 7.4 and 10.5
+  seconds. This is the direct cause of the one failed leg of the LW-257 live pass, where a kill
+  counter took about 15 seconds to reach the status card: the kill landed roughly two seconds before
+  one of these searches started, and the once a second heartbeat that should have painted it could
+  not run until the search finished. Everything on the mod's background loop stops for the duration,
+  not just painting. Worth being blunt about the earlier number: the whole LW-257 proposal costed this
+  at 143 to 569 milliseconds, which was wrong, because that figure was the gap between two log lines
+  that brackets only the SCAN, and the search itself had never been measured at all until the LW-257
+  work added the timing that revealed it. The fix shape is the one the whole heap sweep already uses:
+  spend a byte budget per tick and resume across ticks, so the search can never hold the loop.
+  (Tech: PoolLocator.LocateAll walks every committed writable region through ScanRegion; the new
+  `LW37 locate-timing:` line reports it. Rides with LW-262, which is what keeps triggering it.)
+
+- [LW-262] 2026-08-18: The mod's list of places to paint fills up completely, and a full list is what
+  keeps sending it back to do the nine second search. Measured live 2026-08-18: the cache hit its
+  2048 ceiling three times in one battle. When it is full, new paint spots are refused, so coverage
+  can never be reported as complete, so the mod re searches the whole process, which fills the cache
+  again. The LW-257 commit 1 review predicted this exactly and refused to raise the ceiling without a
+  measurement, which is the right call and the measurement now exists. Also worth noting what the
+  tape does NOT show: zero eviction records across the whole battle even though the cache was
+  visibly draining, because the cap relief path that does the draining is the one path deliberately
+  left untapped. Its silence is a known blind spot, not evidence of health. Fix is probably a larger
+  ceiling plus a look at why a live process holds this many copies, since 2048 was sized from an
+  estimate of about 5.8 copies per weapon. (Tech: CardSites.MaxSites, PruneDeadSites, and the new
+  `(N/2048 cache slots in use)` figure on the coverage log line.)
 
 - [LW-260] 2026-08-18: Six things in the card heartbeat work are correct today but have no test,
   so a later edit could undo any of them and every gate would still pass. Found by mutation during
