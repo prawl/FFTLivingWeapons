@@ -89,26 +89,18 @@ the technical detail lives in the indented lines under it.
   - Verify: the four icon gates green with the pins proven by mutation, the bake matching the FULL
     preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
 
-- **[LW-260] Six things in the card heartbeat work are correct today but have no test** (opened 2026-08-18) [BUILDING]
-  - Found by mutation during the LW-257 commit 2 verify, which changed each one deliberately
-    and watched the suite stay green. Worst first: a second drain check call per tick ships
-    green and would pay a full paint spot copy plus an every region compare thirty times a
-    second instead of once; a separate in battle clock ships green, the exact thing the design
-    forbids; dropping the pending list clear on cache wipe ships green, costing wasted watch
-    beats and a misleading gave up line; throwing away the located region cache after a
-    targeted re scan ships green and reintroduces the 143 to 569 millisecond stall one step
-    removed; the two guards stopping a double paint in one tick ship green if removed; and the
-    region range check accepts a loosened end bound. Two soft spots noted by the same verify
-    carry along for the exit note: the settled predicate falls back to permissive for the whole
-    on field stretch after a battle starts, and the drain re latch walks the OLD key set.
-  - Done means: one pin per mutation, each proven non-vacuous by re-applying its exact mutation
-    and watching the new pin go red. Tests only; locate the guards by code pattern, not the
-    quoted line numbers, which may have drifted. (Tech: mutations E2, M, K, F from the LW-257
-    commit 2 verify; the two !countsChanged guards near Display.cs:81 and :120; the end bound
-    at Display.PoolDrain.cs:67.)
-  - Verify: full suite green; every pin red under its mutation and green on restore.
 
 ## Backlog
+
+- [LW-274] 2026-08-18: Two soft spots in the card heartbeat, observed by the LW-257 verify and
+  carried out of LW-260's exit so they do not die in the changelog archive. Neither is a known
+  bug, both are places the design leans permissive. One: after a battle starts, the settled
+  check falls back to its permissive answer for the whole on field stretch, because only an out
+  of battle tick refreshes the located region list. Two: the drain re latch walks the OLD key
+  set, so a region found later never enters the latch until the next full coverage latch. Each
+  wants either a pin proving the permissiveness is bounded or a live tape showing it never
+  matters in practice. (Tech: the settled predicate and drain re latch live in
+  Display.Heartbeat.cs and Display.PoolDrain.cs; the LW-260 changelog row holds the provenance.)
 
 - [LW-272] 2026-08-18: A dual wielder's kill credits BOTH weapons, and nothing a player or a
   future maintainer reads says so, which the owner proved by being surprised by his own mod

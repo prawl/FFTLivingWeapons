@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-260] SHIPPED 9ef5c9d 2026-08-18: Six safety choices in the card heartbeat had no test
+  holding them down, each proven breakable with every gate green by the LW-257 verify's own
+  mutations. All six are now pinned by eight tests: idle ticks do zero repaint work, the beat
+  never pays a second full paint pass when a count change or a hovered weapon change already
+  painted that tick, both halves of that guard proven separately after the verify round caught
+  the first draft claiming coverage it did not have, the in battle path shares the one heartbeat
+  clock, wiping the cache wipes the pending watch list, a successful targeted re check keeps the
+  found region map instead of forcing the old half second stall one step removed, and a paint
+  spot exactly on a region's end boundary counts as outside. The two soft spot observations the
+  ticket carried move to LW-274 rather than dying with this exit. (Tech: pins in
+  DisplayHeartbeatTests.cs with ReadCountSpyMem; guards at Display.cs 209/251, Invalidate's
+  _pendingIds.Clear, ReOfferDrainedRegions, CountKillsSitesIn's end bound, MaintenanceDue's
+  shared clock; CountKillsSitesIn flipped internal, zero behavior; suite 3163 to 3171; verdict
+  SHIP 9/10 after one FIX-NEEDED round at 7.)
+
 - [LW-267] SHIPPED d92e576 2026-08-18: Three safety decisions inside the resumable memory search
   had no test holding them down, each proven able to survive deliberate breakage with every gate
   green. Now pinned: the search keeps treating its old region list as untrustworthy while a
