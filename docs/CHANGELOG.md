@@ -10,6 +10,20 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-267] SHIPPED d92e576 2026-08-18: Three safety decisions inside the resumable memory search
+  had no test holding them down, each proven able to survive deliberate breakage with every gate
+  green. Now pinned: the search keeps treating its old region list as untrustworthy while a
+  rescan is in flight, the still-alive heartbeat fires at step 300 and never before, and a slice
+  of memory that refuses to be read is skipped while the rest of its region still gets scanned.
+  The heartbeat pin hardcodes the literal 300 deliberately, because its first draft read the
+  constant symbolically and adapted to the mutation it was supposed to catch. The ticket
+  originally described the third guard backwards (stop instead of skip); the row was corrected
+  and the pin holds what the code actually does. The verify round's own extra mutation found the
+  heartbeat is not proven to fire again at step 600, banked as LW-271. (Tech: the unconditional
+  _stale assignment and ProgressLogEveryTicks in PoolLocator.Restart.cs, PoolScan's read == 0
+  skip branch; PoolLocatorGuardTests.cs new, FailWindowMem fixture in PoolScanTests.cs;
+  ProgressLogEveryTicks flipped internal, zero behavior; suite 3160 to 3163; verdict SHIP 9/10.)
+
 - [LW-266] SHIPPED 1d274ab 2026-08-18: Nothing tested the budget on the search completion record,
   the one flight tape line the owner reads live pass numbers off, so wiring it to the wrong
   counter would have silenced the tape with every gate green, exactly what two earlier mutations

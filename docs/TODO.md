@@ -89,18 +89,6 @@ the technical detail lives in the indented lines under it.
   - Verify: the four icon gates green with the pins proven by mutation, the bake matching the FULL
     preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
 
-- **[LW-267] Three guards inside the new resumable search have no test holding them down** (opened 2026-08-18) [BUILDING]
-  - The line that keeps the region list marked stale on two of its three paths, the number
-    deciding how often a long search reports progress, and the choice to SKIP PAST a failed
-    chunk read and keep scanning the rest of the region rather than abandoning it. An earlier
-    draft of this row described that third guard backwards. Each survived deliberate mutation
-    with the whole suite green. None is believed wrong today; they are simply unpinned.
-  - Done means: one pin per guard, each proven non-vacuous by re-applying the exact mutation
-    that survived and watching the new pin go red. Tests only; any test-accessor visibility
-    flip follows the established convention with zero behavior change. (Tech: the _stale
-    assignment and ProgressLogEveryTicks in PoolLocator.Restart.cs, and PoolScan's read == 0
-    branch.)
-  - Verify: full suite green; each pin red under its target mutation and green on restore.
 - **[LW-260] Six things in the card heartbeat work are correct today but have no test** (opened 2026-08-18) [BUILDING]
   - Found by mutation during the LW-257 commit 2 verify, which changed each one deliberately
     and watched the suite stay green. Worst first: a second drain check call per tick ships
