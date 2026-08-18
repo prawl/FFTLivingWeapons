@@ -316,4 +316,94 @@ public class DocsContractTests
             $"newly dangling (fix or declare): [{string.Join(", ", observed.Except(KnownPreexistingDanglingRefs))}]. " +
             $"no longer dangling (SHRINK the list): [{string.Join(", ", KnownPreexistingDanglingRefs.Except(observed))}].");
     }
+
+    // --- E. LIVE_LEDGER ghost-citation gate (LW-275) ---
+
+    /// <summary>Matches a bracketed LIVE_LEDGER citation slug in production prose: lowercase
+    /// kebab-case with AT LEAST 3 segments (2+ hyphens). Chosen from a survey of every bracketed
+    /// token under LivingWeapon/**/*.cs (2026-08-18, production project only): every real ledger
+    /// citation found there runs 3-6 segments (e.g. [frame-1fc-nameid-mirror],
+    /// [per-turn-normalize-repaints-boosted-baseline]), while the one look-alike bracket,
+    /// [battle-end] (BattleSummary.cs -- names a console-line format, not a ledger row), carries
+    /// only ONE hyphen and so is excluded by construction, no allow-list needed. The survey's other
+    /// bracket idioms -- loop/array-index locals ([i], [s], [tier], [addr]...) and C# attributes
+    /// ([ThreadStatic], [Out]) -- never match either: no hyphen at all, or PascalCase (this pattern
+    /// is lowercase-only).</summary>
+    private static readonly Regex LedgerCitationRegex =
+        new(@"\[([a-z0-9]+(?:-[a-z0-9]+){2,})\]", RegexOptions.Compiled);
+
+    /// <summary>Extracts every LIVE_LEDGER-citation-shaped bracket from raw text, with its 1-based
+    /// line number and the bare slug (brackets stripped). Same walk-the-lines idiom as
+    /// ExtractDocPathReferences above; pure and testable in isolation.</summary>
+    internal static List<(int Line, string Slug)> ExtractLedgerCitations(string source)
+    {
+        var results = new List<(int, string)>();
+        var lines = source.Replace("\r\n", "\n").Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+            foreach (Match m in LedgerCitationRegex.Matches(lines[i]))
+                results.Add((i + 1, m.Groups[1].Value));
+        return results;
+    }
+
+    [Theory]
+    [InlineData("see ledger [frame-1fc-nameid-mirror] row", "frame-1fc-nameid-mirror", true)]
+    [InlineData("into the one [battle-end] console line", "battle-end", false)]
+    [InlineData("kills[i] tracking, weapons[s] too", "i", false)]
+    [InlineData("[ThreadStatic]", "ThreadStatic", false)]
+    [InlineData("tier[tier] and addr[addr]", "tier", false)]
+    public void ExtractLedgerCitations_lexical_cases(string text, string slug, bool expectedFound)
+        => Assert.Equal(expectedFound, ExtractLedgerCitations(text).Any(c => c.Slug == slug));
+
+    [Fact]
+    public void ExtractLedgerCitations_finds_every_citation_on_one_line()
+    {
+        var found = ExtractLedgerCitations(
+            "/// [frame-1fc-nameid-mirror] PROVEN + [party-nameid-unique-key]) -- see that file's doc comment.");
+        Assert.Contains(found, c => c.Slug == "frame-1fc-nameid-mirror");
+        Assert.Contains(found, c => c.Slug == "party-nameid-unique-key");
+        Assert.Equal(2, found.Count);
+    }
+
+    /// <summary>Matches a LIVE_LEDGER.md row header (<c>### [slug]</c>) and captures the slug.</summary>
+    private static readonly Regex LedgerRowHeaderRegex =
+        new(@"^### \[([a-z0-9]+(?:-[a-z0-9]+)*)\]", RegexOptions.Compiled | RegexOptions.Multiline);
+
+    internal static HashSet<string> ExtractLedgerRowSlugs(string ledgerText)
+    {
+        var slugs = new HashSet<string>(StringComparer.Ordinal);
+        foreach (Match m in LedgerRowHeaderRegex.Matches(ledgerText.Replace("\r\n", "\n")))
+            slugs.Add(m.Groups[1].Value);
+        return slugs;
+    }
+
+    [Fact]
+    public void ExtractLedgerRowSlugs_finds_a_row_header()
+    {
+        var slugs = ExtractLedgerRowSlugs("intro text\n\n### [some-real-row] A row title\n\nbody");
+        Assert.Contains("some-real-row", slugs);
+    }
+
+    /// <summary>THE gate (LW-275): every LIVE_LEDGER-citation-shaped bracket in production code
+    /// (LivingWeapon/**/*.cs -- NOT the test project, which legitimately contains lexical example
+    /// slugs like the Theory data above) must resolve to a real docs/LIVE_LEDGER.md <c>### [slug]</c>
+    /// row. A comment that cites a row that was renamed, retired, or never existed goes red here
+    /// instead of silently misleading the next reader.</summary>
+    [Fact]
+    public void No_production_code_cites_a_LIVE_LEDGER_row_that_does_not_exist()
+    {
+        string repoRoot = RepoRoot();
+        var ledgerSlugs = ExtractLedgerRowSlugs(File.ReadAllText(Path.Combine(repoRoot, "docs", "LIVE_LEDGER.md")));
+
+        var offenders = new List<string>();
+        foreach (var path in CsFilesUnder(Path.Combine(repoRoot, "LivingWeapon")))
+        {
+            string text = File.ReadAllText(path);
+            foreach (var (line, slug) in ExtractLedgerCitations(text))
+                if (!ledgerSlugs.Contains(slug))
+                    offenders.Add($"{Path.GetFileName(path)}:{line} cites [{slug}], which has no " +
+                                  $"docs/LIVE_LEDGER.md '### [{slug}]' row (renamed, retired, or a typo?)");
+        }
+        Assert.True(offenders.Count == 0,
+            "Ghost LIVE_LEDGER citation(s) found (fix the slug or add the row):\n" + string.Join("\n", offenders));
+    }
 }

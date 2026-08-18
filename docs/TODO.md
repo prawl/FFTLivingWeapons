@@ -93,16 +93,33 @@ the technical detail lives in the indented lines under it.
 
 
 
-## Backlog
+- **[LW-275] A code comment can cite a ledger row that does not exist and nothing notices** (opened 2026-08-18) [BUILDING]
+  - How four files pointed at a missing explanation for a week (LW-256). The doc gate checks
+    links between docs but never checks that a [slug] cited from a .cs comment resolves to a
+    real row in docs/LIVE_LEDGER.md. Making that mechanical retires the comments-citing-ghosts
+    defect class the verify rounds keep finding by hand.
+  - Done means: DocsContractTests gains a scan of the runtime's .cs comments for ledger slug
+    citations, each asserted to resolve to a LIVE_LEDGER row header; the discriminator is
+    designed from a survey of real bracket usage so it cannot cry wolf on non-citation
+    brackets; non-vacuity proven by planting a ghost citation and watching the gate go red.
+    (Tech: seed cases are the four [battle-retry-rewind-fingerprint] citations; row headers
+    are the ### [slug] lines in LIVE_LEDGER.md.)
+  - Verify: the new gate green on the current tree; red with a planted ghost citation; red
+    with a ledger row header renamed; full suite green.
+- **[LW-272] A dual wielder's kill credits BOTH weapons and nothing a player reads says so** (opened 2026-08-18) [BUILDING]
+  - The owner proved the gap by being surprised by his own mod when Ramza's two knives each
+    claimed the same undead. The behavior is deliberate and test pinned; the docs just never
+    say it.
+  - Done means: a short section in docs/MECHANICS.md naming the rule and its edge cases
+    (shields never leech credit, an off hand weapon counts even with a shield mainhand, one
+    blade in two hands counts once, both blades genuinely strike so picking one hand would be
+    fake precision), and a player facing line in README.md if it has a mechanics section.
+    (Tech: ActorResolver.Hands, KillTracker.CreditKill, pins at KillTrackerTests.cs:655
+    onward.)
+  - Verify: doc gates green; the section's every claim matches the four pins; owner reads the
+    paragraph and recognizes his own surprise answered.
 
-- [LW-275] 2026-08-18: A code comment can cite a ledger row that does not exist and nothing
-  notices, which is how four files pointed at a missing explanation for a week (LW-256, settled
-  by the merge). The doc gate checks links between docs but never checks that a [slug] cited
-  from a .cs comment resolves to a real row in docs/LIVE_LEDGER.md. Adding that check makes the
-  whole comments-citing-ghosts defect class mechanical instead of a thing verify rounds keep
-  finding by hand. (Tech: extend DocsContractTests with a scan of LivingWeapon/**/*.cs for
-  bracketed slug citations and assert each resolves to a LIVE_LEDGER row header; the four
-  LW-256 citations are the seed cases and now resolve.)
+## Backlog
 
 - [LW-276] 2026-08-18: Three more comments quote their own file's line count in prose, the
   exact rot LW-263 just cleaned out of the pool search files, found by the LW-263 verify round
@@ -120,19 +137,6 @@ the technical detail lives in the indented lines under it.
   wants either a pin proving the permissiveness is bounded or a live tape showing it never
   matters in practice. (Tech: the settled predicate and drain re latch live in
   Display.Heartbeat.cs and Display.PoolDrain.cs; the LW-260 changelog row holds the provenance.)
-
-- [LW-272] 2026-08-18: A dual wielder's kill credits BOTH weapons, and nothing a player or a
-  future maintainer reads says so, which the owner proved by being surprised by his own mod
-  when Ramza's two knives each claimed the same undead (owner report 2026-08-18, kill numbers
-  40 and 27 at tile 4,6). The behavior is deliberate and test pinned: both blades genuinely
-  strike in a dual wield attack and memory has no killing blow hand, so picking one hand would
-  be fake precision. Shields never leech credit, an off hand weapon counts even with a shield
-  mainhand, and one blade in two hands counts once. Fix is a short paragraph in DESIGN.md or
-  MECHANICS.md naming the rule and its edge cases, and a line in the player facing README if
-  it has a mechanics section, since two living weapons at once is quietly the fastest leveling
-  loadout in the mod. (Tech: ActorResolver.Hands walks RRHand/RLHand/ROffHand;
-  KillTracker.CreditKill increments every credited weapon; the four pins live at
-  KillTrackerTests.cs:655 onward.)
 
 - [LW-271] 2026-08-18: The progress heartbeat of a long memory search is pinned to fire at tick
   300 and to stay silent before it, but nothing proves it fires AGAIN at 600 and 900, so a slip

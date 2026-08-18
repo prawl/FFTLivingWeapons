@@ -68,6 +68,9 @@ Everything the mod *does* works in every game language: the item rebalance (stat
   immediately after a load, the cards can briefly show zeroed "Kills" text — the mod paints
   the real tally moments later. Back out and re-open the menu and your numbers are there.
   Nothing is ever lost; only the first paint lags a few seconds.
+- **Dual-wielding doubles the growth.** A kill while wielding two weapons credits both of them,
+  not just one, so pairing two Living Weapons together is the fastest way to grow a pair at once.
+  A shield equipped in either hand never earns credit; only a real weapon does.
 
 ## How it works / build from source
 
