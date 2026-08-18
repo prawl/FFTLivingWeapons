@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-266] SHIPPED 1d274ab 2026-08-18: Nothing tested the budget on the search completion record,
+  the one flight tape line the owner reads live pass numbers off, so wiring it to the wrong
+  counter would have silenced the tape with every gate green, exactly what two earlier mutations
+  had demonstrated. A new test drives thirteen completions through the empty retry lane, proves
+  all thirteen genuinely happened via the publish generation counter, proves records clamp at
+  exactly the eight line cap, and proves a new window resets the budget. The verify round earned
+  its keep twice: it sabotaged the first draft into passing while completions silently stopped
+  after eight, which forced the premise assert, and it re-proved every mutation itself. (Tech:
+  _locateFlightBudget/LocateRecordBudget in Display.Flight.cs; the new test in
+  DisplayPoolLocateBudgetTests.cs; _poolLocator flipped internal in Display.PoolPaint.cs, zero
+  behavior; verdict SHIP 9/10 after one FIX-NEEDED round at 7.)
+
+- [LW-265] SHIPPED 1d274ab 2026-08-18: The unit test guarding the search's per tick read cost
+  allowed exactly double the real spend, because the budget equals the slice size, and only
+  caught a double spend through a twelve kilobyte accident of read overhead rather than by
+  design. It now asserts the slice count directly, proven to discriminate on its own by a double
+  spend mutation run with the old byte bound disabled. The retune round's battle aware budget
+  test already pinned the count at the Display level; this closes the same hole at the unit
+  level. (Tech: Assert.Equal(1, spy.ChunkReads) in
+  PoolScanTests.Step_never_reads_more_than_budget_plus_one_chunk; the truthful slack accident
+  comment replaced the first draft's overclaim, the verify round's other finding.)
+
 - [LW-269] SHIPPED 304ff60 2026-08-18: Three pieces of the paint spot cache rules were correct but
   had no test holding them down, so a later edit could have quietly broken any of them with every
   gate still green. The worst would have been silent forever: if the per weapon count of name

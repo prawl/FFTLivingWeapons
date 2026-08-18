@@ -88,33 +88,36 @@ the technical detail lives in the indented lines under it.
     separate second material, no two alike, and the Fallingstar Bag matches its own artwork.
   - Verify: the four icon gates green with the pins proven by mutation, the bake matching the FULL
     preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
-- **[LW-266] Nothing tests the budget on the search completion record, the one line the owner reads live pass numbers off** (opened 2026-08-18) [BUILDING]
-  - If that budget were wired to the wrong counter or silently ran out, the flight tape would go
-    quiet, a live pass would yield no numbers, and nothing would warn anybody. Two mutations
-    against it already left the whole suite green.
-  - Done means: a test drives more locate completions than the budget allows in one window,
-    proves the completions genuinely happened, proves records clamp at exactly the cap, and
-    proves a new window resets the budget. Proven non-vacuous by the wrong-counter mutations
-    going red and by a stop-completing sabotage going red on the premise assert. (Tech:
-    _locateFlightBudget and LocateRecordBudget in Display.Flight.cs; completions driven through
-    the empty-retry lane, one per RevalidateMs, on DisplayPoolLocateBudgetTests' fixture shape;
-    the premise assert reads PoolLocator.PublishGeneration through Display's _poolLocator,
-    flipped internal per the file's own test-accessor convention.)
-  - Verify: full suite green; the new test red under both wrong-counter mutations and green on
-    restore.
-- **[LW-265] The test guarding the search's per tick cost cannot tell one slice of work from two** (opened 2026-08-18) [BUILDING]
-  - The byte allowance is budget plus one slice, double the real spend while the budget equals
-    the slice size, so a double spend only trips it by the few kilobytes of read overhead that
-    ride each slice, a slack accident rather than a designed catch. The battle-aware budget test
-    added in the retune round already pins the count at the Display level; the named unit test
-    needed the same designed pin.
-  - Done means: the unit test asserts the slice COUNT directly, exactly one slice under the
-    in-battle budget, proven non-vacuous by a double-spend mutation going red on this test.
-    (Tech: Assert.Equal(1, spy.ChunkReads) added to PoolScanTests.Step_never_reads_more_than_
-    budget_plus_one_chunk, the same BytesSpyMem.ChunkReads discriminator the retune round's
-    StepPoolLocate_selects_the_battle_aware_budget_by_chunk_count already uses.)
-  - Verify: full suite green; the strengthened test red under a mutation that spends two slices
-    per step, green on restore.
+
+- **[LW-267] Three guards inside the new resumable search have no test holding them down** (opened 2026-08-18) [BUILDING]
+  - The line that keeps the region list marked stale on two of its three paths, the number
+    deciding how often a long search reports progress, and the choice to stop reading a region
+    when a read fails rather than skipping past it. Each survived deliberate mutation with the
+    whole suite green. None is believed wrong today; they are simply unpinned.
+  - Done means: one pin per guard, each proven non-vacuous by re-applying the exact mutation
+    that survived and watching the new pin go red. Tests only; any test-accessor visibility
+    flip follows the established convention with zero behavior change. (Tech: the _stale
+    assignment and ProgressLogEveryTicks in PoolLocator.Restart.cs, and PoolScan's read == 0
+    branch.)
+  - Verify: full suite green; each pin red under its target mutation and green on restore.
+- **[LW-260] Six things in the card heartbeat work are correct today but have no test** (opened 2026-08-18) [BUILDING]
+  - Found by mutation during the LW-257 commit 2 verify, which changed each one deliberately
+    and watched the suite stay green. Worst first: a second drain check call per tick ships
+    green and would pay a full paint spot copy plus an every region compare thirty times a
+    second instead of once; a separate in battle clock ships green, the exact thing the design
+    forbids; dropping the pending list clear on cache wipe ships green, costing wasted watch
+    beats and a misleading gave up line; throwing away the located region cache after a
+    targeted re scan ships green and reintroduces the 143 to 569 millisecond stall one step
+    removed; the two guards stopping a double paint in one tick ship green if removed; and the
+    region range check accepts a loosened end bound. Two soft spots noted by the same verify
+    carry along for the exit note: the settled predicate falls back to permissive for the whole
+    on field stretch after a battle starts, and the drain re latch walks the OLD key set.
+  - Done means: one pin per mutation, each proven non-vacuous by re-applying its exact mutation
+    and watching the new pin go red. Tests only; locate the guards by code pattern, not the
+    quoted line numbers, which may have drifted. (Tech: mutations E2, M, K, F from the LW-257
+    commit 2 verify; the two !countsChanged guards near Display.cs:81 and :120; the end bound
+    at Display.PoolDrain.cs:67.)
+  - Verify: full suite green; every pin red under its mutation and green on restore.
 
 ## Backlog
 
@@ -144,13 +147,6 @@ the technical detail lives in the indented lines under it.
   LocateRecordBudget doc in Display.Flight.cs; the corrected twin is LogLocateComplete in
   PoolLocator.Log.cs.)
 
-- [LW-267] 2026-08-18: Three guards inside the new resumable search have no test holding them down:
-  the line that keeps the region list marked stale on two of its three paths, the number deciding how
-  often a long search reports progress, and the choice to stop reading a region when a read fails
-  rather than skipping past it. Each survived deliberate mutation with the whole suite green. None is
-  believed wrong today, they are simply unpinned. (Tech: the _stale assignment and ProgressLogEveryTicks
-  in PoolLocator.Restart.cs, and PoolScan's read == 0 branch.)
-
 - [LW-256] 2026-08-17: Four files point to an explanation of the retry bug that this branch does
   not have yet, and nothing automated notices. The `battle-retry-rewind-fingerprint` writeup
   landed on `main` in commit 438b173, but this arc's branch (`lw233`) was cut from an earlier
@@ -166,28 +162,6 @@ the technical detail lives in the indented lines under it.
   `docs/LIVE_LEDGER.md`; the four current citations are `LivingWeapon/Kills/RestartSentinel.cs:17`,
   `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
   `[battle-retry-rewind-fingerprint]`.)
-
-- [LW-260] 2026-08-18: Six things in the card heartbeat work are correct today but have no test,
-  so a later edit could undo any of them and every gate would still pass. Found by mutation during
-  the LW-257 commit 2 verify, which changed each one deliberately and watched the suite stay green.
-  Worst first. Adding a second call to the drain check at the end of the tick loop, on top of the one
-  on the beat, ships green, and that would pay a full copy of the paint spot list plus a compare of
-  every region against every spot thirty times a second instead of once. Giving the in battle path
-  its own separate clock instead of sharing the one heartbeat ships green, which is the exact thing
-  the design says must never happen. Clearing the pending list when the cache is wiped ships green if
-  removed, costing up to ten wasted watch beats and one misleading gave up line per battle. Throwing
-  away the located region cache after a successful targeted re scan ships green, and that forces the
-  next locate to walk the whole process again, which is the 143 to 569 millisecond stall this arc
-  exists to remove, reintroduced one step removed. The two guards that stop the beat painting twice
-  in one tick when a count or target change already painted both ship green if removed, costing about
-  1400 to 2000 extra guarded reads in that tick. And the region range check accepts a loosened end
-  bound. Note what is NOT here: the drain comparison itself IS pinned, RED on two tests, and an
-  earlier draft of this row said otherwise before the tests were strengthened. (Tech: mutations E2, M,
-  K, F, the two !countsChanged guards at Display.cs:81 and :120, and the end bound at
-  Display.PoolDrain.cs:67. Two soft spots also carried over from the first draft and remain true: the
-  settled predicate falls back to permissive for the whole on field stretch after a battle starts,
-  because only an out of battle tick refreshes the located region list; and the drain re latch walks
-  the OLD key set, so a region found later never enters the latch until the next full coverage latch.)
 
 - [LW-259] 2026-08-17: The card painter's new black box can fall silent partway through a long
   battle, so a problem that happens later leaves no trace at all. The budget that caps how many card
