@@ -59,7 +59,20 @@ internal sealed partial class Display
     /// budget. The three tests that used to pin single-beat eviction (DisplayMaintenanceTests.
     /// Dead_sites_evicted_by_maintenance_pass_after_the_strike_window and two in
     /// DisplayPoolPaintTests.cs) now drive Tuning.CardEvictStrikes beats before asserting the
-    /// heal, matching this method's real behavior instead of the pre-fix one.</summary>
+    /// heal, matching this method's real behavior instead of the pre-fix one.
+    ///
+    /// LW-261: this method no longer triggers or blocks on a region walk at all. It calls <see
+    /// cref="StepPoolLocate"/> (Display.PoolLocate.cs) -- the SAME method Engine's own
+    /// "pool-locate" tick lane calls independently every tick -- and then only ever READS the
+    /// currently-published result (PoolLocator.CachedRegions). The old synchronous
+    /// PoolLocator.LocateAll call that used to sit here blocked this same call path for 7 to 10
+    /// seconds, live-measured; that walk is now resumable and budgeted (PoolLocator.cs's own
+    /// class doc). Calling StepPoolLocate from here too (not only from Engine's own lane) is
+    /// deliberate: it means a bare Display driven only by repeated Tick() calls -- every existing
+    /// unit test, and any future caller that never wires an Engine -- still drives its own scan to
+    /// completion, exactly as LocateAll always did, with the two call sites racing to complete the
+    /// SAME scan on a real engine tick being a harmless minor over-spend against the per-tick
+    /// budget, never a correctness issue.</summary>
     private bool MaybePoolPaint()
     {
         if (!_poolPaint) return false;
@@ -70,19 +83,8 @@ internal sealed partial class Display
             _poolCovered = false;                                              // drained below coverage: fall through to re-locate
         }
 
-        long locateStartMs = _nowMs();
-        var regions = _poolLocator.LocateAll();
-        long locateMs = _nowMs() - locateStartMs;
-        // LW-257 (round-5 fix): gated on locateMs > 0, NOT unconditional -- round 4's "once per
-        // locate, no spam risk" reasoning was wrong, proven empirically against the never-latch
-        // fixture (10 ticks, 10 lines): LocateAll() short-circuits via AllCachedStillPool() on
-        // every call after the first real scan, so "once per locate" is not "once per Tick" the
-        // way it needs to be here -- a persistent non-coverage state calls LocateAll() every
-        // single Tick, and every one of those short-circuited calls printed its own 0ms line. A
-        // real re-scan (143-569ms, live-measured -- spec 1.5's own motivation for this timing)
-        // is always well above zero, so this gate costs nothing the live pass needs.
-        if (locateMs > 0)
-            ModLogger.Debug(LogVerb.Display, $"LW37 locate-timing: {locateMs}ms");
+        StepPoolLocate();
+        var regions = _poolLocator.CachedRegions;
         if (regions.Count == 0)
         {
             // LW-257: promoted from #if LWDEV, rate-limited via NoPoolRegionLogGate (item 7,

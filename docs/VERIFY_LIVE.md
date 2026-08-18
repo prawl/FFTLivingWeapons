@@ -103,3 +103,21 @@ build failures are already caught by generate/analyze/test/compile. Confirm the 
 - The 2.3.0 release verification doc is docs/archive/SMOKE_TEST_2.3.0.md (LW-60), built from this file
   plus docs/RELEASE_SCOPE.md's IN list. Row 1 (Choir multi-bearer) is folded into its regression
   section (7.17); flip both places together.
+
+## Pre-registered note: LW-257/LW-261 permissive-branch expectation
+
+Written BEFORE the owner's live pass so a green tape is not misread. The equip-card kill-count
+fix (LW-257) has two settlement branches (Display.Heartbeat.cs's ProcessPending): a STRICT one
+that checks a kill landed inside a currently-located pool region, and a PERMISSIVE one that
+accepts any settled site. LW-261 made the pool locate resumable instead of a single 7-to-10-second
+block, but that also means it can now take many hundreds to thousands of Engine ticks (the real
+number is whatever the first live tape's `LW37 locate-complete` line reports) to walk the whole
+process heap, so `RegionsStale` plausibly reads true, and ProcessPending runs the PERMISSIVE
+branch, for a comparable or LONGER stretch of a battle than the old blocking design ever produced.
+That is not a regression (a post-invalidate window was already fully permissive before this arc);
+it just means the pre-registered PASS signature (owner live pass, docs/TODO.md's LW-261 row) needs
+this caveat: if the tape shows the permissive branch running through most of a battle, that is
+LW-257 and LW-261 both working as intended, NOT the strict branch quietly failing to engage. Do
+not read "permissive branch is common" as a fail signature on its own; read the actual settlement
+timing (kills converging within about 1s) and the `card locate-complete` records' own ticks/ms
+instead.

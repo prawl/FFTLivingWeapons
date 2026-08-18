@@ -294,6 +294,16 @@ internal sealed class Engine
             // Out of battle (slot9 cleared): keep the equip card painted.
             new TickPhase("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(),
                 _ => e!._display.Tick(false)),
+            // LW-261: the resumable pool-region locate's own lane, every tick, in AND out of
+            // battle -- independent of whether the card happens to be paintable this tick
+            // (display-out above only runs OutOfBattle; the "paint" row further down only reaches
+            // Display.Tick when ShouldPaintCard, PaintCountsIfChanged otherwise, which never
+            // steps the locate at all). A synchronous whole-process walk on this same background
+            // loop measured 7 to 10 seconds live before this arc, so the scan's progress must
+            // never wait on either paint path. Reads heap memory only (finding pool regions);
+            // never touches battle memory, so it stays on the Always gate rather than InBattle.
+            new TickPhase("pool-locate", TickGates.Always, 1, false, Array.Empty<string>(),
+                _ => e!._display.StepPoolLocate()),
 
             // Every ~33ms tick so a fast-forward death's brief hp==0 window isn't missed.
             new TickPhase("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),

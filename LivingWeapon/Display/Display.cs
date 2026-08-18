@@ -90,7 +90,7 @@ internal sealed partial class Display
         _nowMs     = nowMs ?? (() => Environment.TickCount64);
         _pats      = new CardPatterns(meta);
         _poolPaint   = poolPaint ?? false;
-        _poolLocator = new PoolLocator(mem, _pats);
+        _poolLocator = new PoolLocator(mem, _pats, _nowMs);
         _sweep     = new DisplaySweep(mem, _nowMs);
         // StoryLines owns EarnedAnchors (the three-way anchor registry, decision 2) -- built
         // before CardSites so CardSites can be handed its anchors at construction. SeedAtStartup
@@ -146,6 +146,7 @@ internal sealed partial class Display
         _poolLocator.Invalidate();
         _flightBudget = 0;     // LW-257: a new coverage/cache window gets a fresh record budget
         _coverageBudget = 0;   // LW-257 (F3): its own reserve, reset on the same window boundary
+        _locateFlightBudget = 0;   // LW-261: the locate-complete tap's own reserve, same window boundary
         _pendingIds.Clear();   // LW-257 commit 2 (round 2 review): _sites is wiped above, so every
                                // pending id's watch is against a cache that no longer exists --
                                // without this it burns all CardPendingMaxBeats watching nothing
@@ -160,9 +161,13 @@ internal sealed partial class Display
     /// above), since this narrow path is the ONLY place that consumes the shared _lastCounts edge
     /// this tick; if it fired the two out of order, a story-line rotation would render one call
     /// stale for whatever painted here. RequestRescan latches the sweep's next full Tick onto a
-    /// hot re-offer rather than stepping the sweep itself: still no sweep stepping, no full pool
-    /// relocate (PoolLocator.LocateAll's own Regions() walk), no Invalidate -- those stay
-    /// exclusively inside the full Tick.
+    /// hot re-offer rather than stepping the sweep itself: still no sweep stepping and no
+    /// Invalidate call FROM THIS METHOD. LW-261 correction: the pool relocate itself is no longer
+    /// something only the full Tick can trigger -- Engine's own "pool-locate" tick lane
+    /// (Engine.cs, TickGates.Always) steps PoolLocator.Step (Display.PoolLocate.cs's
+    /// StepPoolLocate) on EVERY tick, independent of whether Tick or this narrow method runs this
+    /// particular tick, so a relocate this method itself never asked for can still be quietly
+    /// making progress, or even publish, in the background while the player stays on-field.
     ///
     /// LW-257 commit 2 (CORRECTED -- this doc previously promised "no pool/sweep locate work ...
     /// those stay exclusively inside the full Tick" with no qualifier at all, which this commit

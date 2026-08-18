@@ -93,10 +93,11 @@ internal sealed partial class Display
         // Re-DECIDE coverage rather than assume the re-offer found everything it lost (class doc:
         // the lesson this file was built around). A tracked id that has now lost its LAST copy
         // entirely (the whole region relocated or vanished, not just one redundant copy) must drop
-        // _poolCovered so MaybePoolPaint's own fall-through can run the real relocate (via
-        // PoolLocator.LocateAll, never called directly from here) -- but that only happens THIS
-        // Tick when RunMaintenance was reached from Tick itself; from PaintCountsIfChanged (which
-        // never calls MaybePoolPaint) the flag just sits until Tick next runs (class doc).
+        // _poolCovered so MaybePoolPaint's own fall-through can run the real relocate (LW-261:
+        // PoolLocator.Step via Display.PoolLocate.cs's StepPoolLocate, never called directly from
+        // here) -- but that only happens THIS Tick when RunMaintenance was reached from Tick
+        // itself; from PaintCountsIfChanged (which never calls MaybePoolPaint) the flag just sits
+        // until Tick next runs (class doc).
         if (!CoversAllMeta()) { _poolCovered = false; return; }
 
         LatchRegionCounts(new List<(long baseAddr, long size)>(_regionCountAtCoverage.Keys));

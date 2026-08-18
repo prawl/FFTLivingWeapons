@@ -215,6 +215,7 @@ public class EngineTests
                 ("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" }),
                 ("gunslinger", TickGates.Always, 30, false, Array.Empty<string>()),
                 ("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>()),
+                ("pool-locate", TickGates.Always, 1, false, Array.Empty<string>()),
                 ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
                 ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
                 ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }),

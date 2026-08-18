@@ -71,6 +71,7 @@ public class EngineTickTableTests
             "kit-provoke",      // KitLane gate: same lane as kit-barrage
             "gunslinger",       // Always gate: writes roster equipment, not battle memory; snapshot/restore self-gates on s.NowIn
             "display-out",      // OutOfBattle gate: paints the equip card into menu buffers, not battle memory
+            "pool-locate",      // Always gate: reads heap memory only (finding pool regions); the paint that consumes the result stays InBattle/OutOfBattle-gated separately
         };
 
         var rows = Engine.BuildPhases(null);
@@ -86,5 +87,21 @@ public class EngineTickTableTests
         var stale = nonBattle.Except(unGated).ToList();
         Assert.True(stale.Count == 0,
             $"stale allowlist entries (no matching row, or the row now gates on InBattle): {string.Join(", ", stale)}");
+    }
+
+    /// <summary>LW-261 test 9: the resumable pool-locate scan's own tick lane exists, gated
+    /// Always (every tick, in and out of battle) rather than InBattle -- its progress must not
+    /// depend on battle state any more than it depends on Display.Tick (see PoolLocator.cs's own
+    /// class doc). Mirrors LW-186's own BuildPhases shape-test idiom (Assert.Same by reference,
+    /// not by re-deriving gate behavior).</summary>
+    [Fact]
+    public void Pool_locate_phase_exists_with_the_Always_gate_and_runs_every_tick()
+    {
+        var rows = Engine.BuildPhases(null);
+        var row = Array.Find(rows, r => r.Name == "pool-locate");
+
+        Assert.NotNull(row);
+        Assert.Same(TickGates.Always, row!.Gate);
+        Assert.Equal(1, row.EveryNTicks);
     }
 }

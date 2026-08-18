@@ -133,6 +133,32 @@ the technical detail lives in the indented lines under it.
     intercept whose premise is unproven, and it is not in this arc. Stage 3 (a standing per-beat
     re-offer of the known pool regions) is parked in the backlog, gated on what the new tapes show.
 
+- **[LW-261] Finding the game's text took nine seconds and froze the mod's whole background job while it searched** (opened 2026-08-18) [BUILDING]
+  - The mod keeps a private map of where every weapon's kill count is painted on the equip card. When
+    that map needed rebuilding, the mod used to search the whole game's memory in one go, and while it
+    searched, nothing else on the mod's background job could run either, not even the once a second
+    heartbeat that keeps the two kill displays agreeing. Measured live 2026-08-18: eight of these
+    searches in one five minute battle, each between 7.4 and 10.5 seconds, and this is the exact cause
+    of the one failed leg of LW-257's live pass, where a kill took about 15 seconds to reach the
+    status card because a search was holding the loop right when the kill landed.
+  - The search is now a job that does one small slice of work per tick and picks up where it left off,
+    so it can never again hold the loop hostage for seconds at a time. It also survives being told to
+    start over partway through (a battle ending mid search, say) without throwing away the work it had
+    already done, and it never hands the rest of the mod a half built answer, only a fully finished one.
+  - This is commit 1A of a two commit fix. This commit lands the resumable search itself; a second
+    commit still needs to bound the cost of painting what the search finds, which is a smaller,
+    separate cost this commit does not touch.
+  - Done means: the search never blocks a tick for more than a small, fixed slice of work, telling it
+    to start over never throws away a search already in flight, and nothing downstream, LW-257's own
+    fix included, ever sees a half finished search result.
+  - Verify: the full suite green with the load-bearing tests proven to fail first by sabotage or
+    mutation, an independent adversarial verify, and the owner's live watch reading the new completion
+    line's tick and time numbers, which is what lets the search's own per tick budget be tuned from
+    real play instead of a guess. (Tech: PoolLocator.Step drives PoolScan, a byte budgeted resumable
+    walk over Regions(); the deleted `LW37 locate-timing:` line is replaced by `LW37 locate-complete:
+    N ticks, N bytes, Nms` plus a matching `card` flight payload `locate-complete regions=N ticks=N
+    bytes=N ms=N trigger=...`.)
+
 ## Backlog
 
 - [LW-256] 2026-08-17: Four files point to an explanation of the retry bug that this branch does
@@ -150,21 +176,6 @@ the technical detail lives in the indented lines under it.
   `docs/LIVE_LEDGER.md`; the four current citations are `LivingWeapon/Kills/RestartSentinel.cs:17`,
   `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
   `[battle-retry-rewind-fingerprint]`.)
-
-- [LW-261] 2026-08-18: Finding the game's text takes the mod nine seconds, and while it looks, the
-  mod cannot do anything else, including keeping the kill counter fresh. Measured live for the first
-  time on 2026-08-18: eight of these searches in one five minute battle, each between 7.4 and 10.5
-  seconds. This is the direct cause of the one failed leg of the LW-257 live pass, where a kill
-  counter took about 15 seconds to reach the status card: the kill landed roughly two seconds before
-  one of these searches started, and the once a second heartbeat that should have painted it could
-  not run until the search finished. Everything on the mod's background loop stops for the duration,
-  not just painting. Worth being blunt about the earlier number: the whole LW-257 proposal costed this
-  at 143 to 569 milliseconds, which was wrong, because that figure was the gap between two log lines
-  that brackets only the SCAN, and the search itself had never been measured at all until the LW-257
-  work added the timing that revealed it. The fix shape is the one the whole heap sweep already uses:
-  spend a byte budget per tick and resume across ticks, so the search can never hold the loop.
-  (Tech: PoolLocator.LocateAll walks every committed writable region through ScanRegion; the new
-  `LW37 locate-timing:` line reports it. Rides with LW-262, which is what keeps triggering it.)
 
 - [LW-262] 2026-08-18: The mod's list of places to paint fills up completely, and a full list is what
   keeps sending it back to do the nine second search. Measured live 2026-08-18: the cache hit its

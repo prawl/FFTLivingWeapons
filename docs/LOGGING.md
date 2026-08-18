@@ -266,7 +266,14 @@ the armed edge and a stand-down's landmark diag, so a stand-down archive is self
 (LW-53); and the Attack card's cursor-gate tripwire (`"card"`, AttackCard.Resolve.cs, LW-55):
 one record per refused cursor answer (roster/band weapon disagreement, or a hover that is not
 yet the turn owner), deduped to once per refusal key per battle, naming the refusal kind and
-both weapon ids so a live "wrong dossier" report can be diagnosed after the fact; and the Defender's
+both weapon ids so a live "wrong dossier" report can be diagnosed after the fact; the equip-card
+pool locate's own completion record (`"card"`, LW-261, PoolLocator.Step via Display.PoolLocate.cs's
+RecordLocateCompleteIfTapped -- an ADDITIONAL payload shape under the existing frozen `"card"` type,
+not a new type string): `locate-complete regions=N ticks=N bytes=N ms=N trigger=...`, one record per
+completed resumable scan (never a partial result), naming how many named-pool regions it found, how
+many Step calls and how many bytes and milliseconds it took, and why the scan ran (`first`,
+`revalidate`, `invalidate`, or `empty-retry`) -- read alongside `LW37 locate-complete:` in
+`livingweapon.log`, the file-only line carrying the same numbers; and the Defender's
 provoke hold (`"provoke"`, ProvokeHold, LW-123): `arm nameId=.. tile=..`, `release reason=.. tile=..`
 (the reason is the `Release` enum verbatim, so `EnemyTurnDone` is the good one and `Watchdog` means
 a release condition was missed), plus the two mark scrubs, `scrub-player-side` (a shout cast at your

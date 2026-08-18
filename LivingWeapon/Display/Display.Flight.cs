@@ -129,4 +129,20 @@ internal sealed partial class Display
         _recorder("card", $"coverage regions={regions.Count} sites={_sites.Count} kills={killsSites} trigger={trigger} " + string.Join(" ", parts));
         _coverageBudget++;
     }
+
+    /// <summary>LW-261: PoolLocator.Step's completion tap, Display.PoolLocate.cs's own call site.
+    /// Mirrors RecordCoverageIfTapped above: its own small reserve, never drawn from <see
+    /// cref="_flightBudget"/> (see that field's own doc for why the two traffic shapes must not
+    /// share) -- a scan completes at most a handful of times per Invalidate() window, nowhere near
+    /// a per-site traffic shape, but it deserves its own budget rather than being able to starve
+    /// or be starved by either existing lane.</summary>
+    internal const int LocateRecordBudget = 8;
+    internal int _locateFlightBudget;
+
+    private void RecordLocateCompleteIfTapped(PoolLocator.LocateCompletion c)
+    {
+        if (_recorder == null || _locateFlightBudget >= LocateRecordBudget) return;
+        _recorder("card", $"locate-complete regions={c.Regions} ticks={c.Ticks} bytes={c.Bytes} ms={c.ElapsedMs} trigger={c.Trigger}");
+        _locateFlightBudget++;
+    }
 }

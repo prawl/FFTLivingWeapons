@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -18,62 +19,96 @@ namespace LivingWeapon;
 ///
 /// Correctness invariant (build-plan B1): Regions() yields ONLY committed/PRIVATE/writable
 /// memory (Mem.cs), so any region located is writable BY CONSTRUCTION: a read-only pool is never
-/// in Regions() at all, so LocateAll simply omits it (caller keeps sweeping) rather than
+/// in Regions() at all, so a scan simply omits it (the caller keeps sweeping) rather than
 /// reporting a write target that cannot be painted.
 ///
 /// PREMISE STATUS: that the specific named pool this class locates is the copy the card actually
 /// materializes from is docs/LIVE_LEDGER.md's [card-materializes-from-named-pool] row -- filed
-/// Uncertain (commit/changelog grade, one below ledger-PROVEN), owner-only flip. LW-257 commit 1
-/// does not touch this premise at all; it matters only for a targeted per-region drain check that
-/// is explicitly OUT of commit 1's scope.
+/// Uncertain (commit/changelog grade, one below ledger-PROVEN), owner-only flip. LW-261 does not
+/// touch this premise at all; it matters only for a targeted per-region drain check that is
+/// explicitly out of this arc's scope.
+///
+/// LW-261: the region walk itself is now resumable and byte-budgeted (<see cref="PoolScan"/>),
+/// replacing a synchronous full-process walk that a live measurement clocked at 7 to 10 seconds
+/// on the mod's single 33ms background loop. <see cref="Step"/> is the production entry point --
+/// Engine's own "pool-locate" tick lane (Display.PoolLocate.cs's StepPoolLocate) drives it every
+/// tick, independent of whether the equip card happens to be paintable this tick, and
+/// Display.PoolPaint.cs's MaybePoolPaint also drives it on its own fall-through so a bare Display
+/// exercised only through repeated Tick() calls (every existing unit test) still makes progress
+/// on its own. <see cref="CachedRegions"/> publishes ONLY on a scan's completion, never a partial
+/// result; <see cref="Invalidate"/> queues a restart rather than clearing the cache outright, so a
+/// mid-flight scan is never aborted and CachedRegions keeps serving the last good list (marked
+/// <see cref="RegionsStale"/>) until the queued restart republishes. <see cref="LocateAll"/>
+/// remains as a synchronous drive-to-completion convenience: production no longer calls it (the
+/// whole point of this arc is that nothing should block a tick waiting for a full scan), but it
+/// keeps every pre-existing test that calls it directly working unchanged.
+///
+/// FILE SPLIT (round 2 verify B4, revised round 3 C5): this file holds the plain cache surface --
+/// CachedRegions, SeedForTest, the cheap AllCachedStillPool/ScanRegion reverify, and the
+/// test-only synchronous LocateAll. PoolLocator.Restart.cs holds the restart/cadence/staleness
+/// state machine that decides WHEN to (re)scan and what RegionsStale/trigger a caller sees while
+/// that decision plays out -- Step, Invalidate, AND Publish (moved there in round 3: the single
+/// most contested line in the whole state machine, Publish's `_stale = _restartPending`, needs to
+/// sit beside the field it writes and the method whose queued restart it has to outlive, not in
+/// this file). A genuinely different concern (timing and trust vs. plain data), not a split of
+/// one state machine across two files.
 /// </summary>
-internal sealed class PoolLocator
+internal sealed partial class PoolLocator
 {
-    private readonly IGameMemory _mem;
+    /// <summary>The resumable scan's own per-CALL byte lane, separate from Display.Tick's own
+    /// BudgetInBattle/BudgetOutOfBattle budgets so this scan's cost stays bounded independent of
+    /// whatever else is sharing the tick. NOT a per-REAL-ENGINE-TICK cap: Display.PoolPaint.cs's
+    /// MaybePoolPaint and Engine's own "pool-locate" phase both call Display.StepPoolLocate (that
+    /// file's own class doc explains why), and both CAN land in the same real tick, so the true
+    /// worst case per real tick is roughly twice this constant, not once (pinned by
+    /// DisplayPoolLocateBudgetTests.Two_same_tick_call_sites_never_exceed_roughly_twice_the_locate_budget).
+    /// A FIRST ESTIMATE, not a measurement: half of Display's in-battle sweep budget, picked
+    /// before any live data existed on how many ticks or how long a resumable scan actually
+    /// takes. Retune this from the ticks/bytes/ms the "LW37 locate-complete" line and the
+    /// "locate-complete" flight record (Display.PoolLocate.cs) report on the first live pass
+    /// after this ships -- but NOT downward: this constant currently EQUALS ChunkReader.ChunkSize,
+    /// and PoolScan.Step always reads at least one whole chunk to guarantee forward progress
+    /// (its own doc), so any value at or below ChunkSize reads exactly one chunk per call either
+    /// way. A downward retune is a no-op until this is raised above ChunkSize first.</summary>
+    internal const long LocateBudgetBytes = 4L * 1024 * 1024;
+
     private readonly CardPatterns _pats;
-    private readonly ChunkReader _reader;
+    private readonly ChunkReader _reader;      // AllCachedStillPool's own reader -- the cheap cached-region reverify, never the full walk
+    private readonly PoolScan _scan;           // the resumable full walk (LW-261)
+    private readonly Func<long> _nowMs;
 
     private readonly List<(long baseAddr, long size)> _cached = new();
 
-    // LW-257 (item 7): Signatures.StuckEdge state for the locate log line below -- a persistent
-    // "found nothing" state (or a pool that never resolves) would otherwise log every single
-    // Tick forever once promoted out of #if LWDEV. Mirrors Display.PoolPaint.cs's own
-    // _noPoolRegionLatched, kept separate since the two fire from different call sites.
-    private bool _noneFoundLatched;
-
-    public PoolLocator(IGameMemory mem, CardPatterns pats)
+    public PoolLocator(IGameMemory mem, CardPatterns pats, Func<long>? nowMs = null)
     {
-        _mem = mem;
         _pats = pats;
         _reader = new ChunkReader(mem);
+        _scan = new PoolScan(mem, pats);
+        _nowMs = nowMs ?? (() => Environment.TickCount64);
     }
 
-    /// <summary>Every writable region whose buffer holds baked pool entries (a "Kills: " hit with
-    /// its owner weapon's name adjacent). Cached; a cache whose every region still reads as pool is
-    /// reused without a rescan. Empty when nothing qualifies (caller keeps sweeping).</summary>
+    /// <summary>TEST-ONLY. Production must NEVER call this: it blocks the calling thread until the
+    /// WHOLE resumable scan finishes, which is exactly the 7-to-10-second freeze this arc exists to
+    /// remove (this class's own opening doc). The only reason it still exists is so every
+    /// pre-existing test that calls LocateAll directly keeps its exact cache-or-rescan behavior,
+    /// now with the resumable scan underneath instead of a plain loop -- a future caller reaching
+    /// for "just locate it synchronously" here reintroduces the original bug; call <see
+    /// cref="Step"/> from a tick instead (Display.PoolLocate.cs's StepPoolLocate is the real entry
+    /// point). Reuses the same short-circuit LocateAll always had (a cache whose every region still
+    /// reads as pool is returned without a rescan), now ALSO refusing the short-circuit while a
+    /// restart is queued (an Invalidate() or a failed revalidate must still force the next call
+    /// here to rescan).</summary>
     internal IReadOnlyList<(long baseAddr, long size)> LocateAll()
     {
-        if (_cached.Count > 0 && AllCachedStillPool()) return _cached;
+        if (_cached.Count > 0 && !_restartPending && AllCachedStillPool()) return _cached;
 
-        _cached.Clear();
-        foreach (var (rbase, rsize) in _mem.Regions())
-            if (ScanRegion(rbase, rsize).isPool) _cached.Add((rbase, rsize));
-        // LW-257: promoted from #if LWDEV to unconditional Debug (file-only, no console noise --
-        // ModLogger.Debug always writes livingweapon.log, LogLevel only gates the console mirror)
-        // so a RELEASE tape can answer "how many pool regions, and how big" without a dev rebuild.
-        // Size is new alongside the base address: the base-only line could not tell a small region
-        // from one large enough to make MaybePoolPaint's per-region scan cost (Display.PoolPaint.
-        // cs's own ScanPoolRegion doc) actually matter. Rate-limited (item 7) when nothing is
-        // found: StuckEdge logs that transition once instead of every Tick a drought persists;
-        // a found-something result (rare once coverage latches -- LocateAll then short-circuits
-        // above) always logs, since it is never a per-tick event in practice.
-        bool noneFound = _cached.Count == 0;
-        bool edge = Signatures.StuckEdge(ref _noneFoundLatched, noneFound);
-        if (!noneFound || edge)
-        {
-            var parts = _cached.ConvertAll(r => "0x" + r.baseAddr.ToString("X") + ":" + r.size);
-            ModLogger.Debug(LogVerb.Display, $"LW37 locate: {_cached.Count} named-pool region(s) at [{string.Join(", ", parts)}]");
-        }
+        _pendingTrigger = _cached.Count == 0 ? "first" : "invalidate";
+        _restartPending = false;
+        _scan.Begin(_nowMs());
+        PoolScan.StepResult result;
+        do { result = _scan.Step(LocateBudgetBytes, _nowMs()); } while (!result.Complete);
+
+        Publish(result.Regions, _nowMs());
         return _cached;
     }
 
@@ -84,29 +119,29 @@ internal sealed class PoolLocator
         return true;
     }
 
-    /// <summary>Drop the cache so the next LocateAll rescans from scratch (regions may have
-    /// relocated, or their buffers been reallocated: called from Display.Invalidate()).</summary>
-    internal void Invalidate() => _cached.Clear();
-
-    /// <summary>LW-257 commit 2: the CURRENTLY cached region list, exactly as of the last real
-    /// LocateAll scan -- a plain accessor, no scan of its own, no Regions() walk. Empty whenever
-    /// LocateAll has never run (every poolPaint:false test, and the pool path before its first
-    /// successful locate): Display.Heartbeat.cs's pending-set clear predicate reads this to tell
-    /// "the sweep path, nothing located yet" apart from "the pool path, at least one region
-    /// known", and Display.PoolPaint.cs's per-region drain latch keys off the same list.</summary>
+    /// <summary>The CURRENTLY published region list, exactly as of the last completed scan -- a
+    /// plain accessor, no scan of its own, no Regions() walk. Empty whenever no scan has ever
+    /// completed yet (every poolPaint:false test, and the pool path before its first successful
+    /// locate): Display.Heartbeat.cs's pending-set clear predicate reads this (together with <see
+    /// cref="RegionsStale"/>) to tell "nothing trustworthy known yet" apart from "a currently
+    /// located, non-stale region set", and Display.PoolPaint.cs's per-region drain latch keys off
+    /// the same list.</summary>
     internal IReadOnlyList<(long baseAddr, long size)> CachedRegions => _cached;
 
-    /// <summary>Test-only cache seed (mirrors GrowthEngine.SeedStructForSlotForTest): drives
-    /// LocateAll's revalidate path directly against pinned regions, without needing a prior scan.</summary>
+    /// <summary>Test-only cache seed (mirrors GrowthEngine.SeedStructForSlotForTest): drives the
+    /// revalidate path directly against pinned regions, without needing a prior scan.</summary>
     internal void SeedForTest(params (long baseAddr, long size)[] regions)
     {
         _cached.Clear();
         _cached.AddRange(regions);
+        _restartPending = false;
+        _stale = false;
     }
 
     /// <summary>Aggregate PoolLocatorPolicy.Scan across every chunk of [rbase, rbase+rsize)
     /// via ChunkReader (not a slack-less whole-region read: a real pool can exceed
-    /// ChunkSize). IsPool and the distinct-weapon count union across chunks.</summary>
+    /// ChunkSize). IsPool and the distinct-weapon count union across chunks. Used only by
+    /// AllCachedStillPool's cheap per-region reverify -- the full walk lives in PoolScan.</summary>
     private (bool isPool, int distinct) ScanRegion(long rbase, long rsize)
     {
         var ids = new HashSet<int>();

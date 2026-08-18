@@ -175,8 +175,15 @@ public class PoolLocatorTests
         Assert.DoesNotContain(regions, r => r.baseAddr == staleBase);
     }
 
+    /// <summary>LW-261 REWRITE: under the new coalescing semantics, Invalidate() no longer clears
+    /// the cache outright (a mid-flight resumable scan must never be aborted -- PoolLocator.cs's
+    /// own class doc); it queues a restart instead. This still has to pin the same real-world
+    /// guarantee the old title promised -- a rescan eventually happens -- just via the new
+    /// mechanism: LocateAll (the synchronous drive-to-completion convenience every pre-existing
+    /// caller here still uses) must refuse its own cache-hit short-circuit while a restart is
+    /// queued, forcing the next call to walk Regions() again exactly as before.</summary>
     [Fact]
-    public void Invalidate_clears_the_cache_and_forces_a_rescan()
+    public void Invalidate_queues_a_restart_that_forces_the_next_locate_to_rescan()
     {
         var pats = new CardPatterns(BuildMeta());
         long poolBase = 0x9000L;
@@ -186,11 +193,16 @@ public class PoolLocatorTests
 
         locator.LocateAll();
         int callsAfterFirst = spy.RegionsCalls;
+        Assert.False(locator.RegionsStale, "a completed scan must publish as non-stale");
 
         locator.Invalidate();
+        Assert.True(locator.RegionsStale, "Invalidate must mark the published set stale immediately");
+        Assert.NotEmpty(locator.CachedRegions);   // LW-261: no longer cleared outright -- still serves the last good list
+
         locator.LocateAll();
 
         Assert.True(spy.RegionsCalls > callsAfterFirst, "Invalidate must force the next locate to rescan");
+        Assert.False(locator.RegionsStale, "the rescan's publish must clear the stale flag");
     }
 
     // ─── READ-ONLY POOL (B1/premise-9) ────────────────────────────────────────

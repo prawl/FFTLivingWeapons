@@ -41,11 +41,12 @@ internal sealed partial class Display
     ///
     /// The real trigger for repeated fall-through (round-4 review, item 4 -- corrected from an
     /// earlier draft that cited the WRONG incident): Engine.cs's Display.Invalidate() call on
-    /// every status-card open (Engine.cs:515) sets _poolCovered=false and clears PoolLocator's
-    /// own cache, so the next several Ticks genuinely re-enter MaybePoolPaint's fall-through
-    /// branch until coverage re-latches -- repeated status-card open/close cycling could
-    /// otherwise re-log this summary (and pay its _sites.Snapshot() cost) every one of those
-    /// ticks. NOT the CardEvictStrikes-tuned incident (Tuning.cs's own doc): that incident's site
+    /// every status-card open (Engine.cs:525) sets _poolCovered=false and (LW-261: queues a
+    /// PoolLocator restart rather than clearing its cache outright, PoolLocator.cs's own class
+    /// doc) marks PoolLocator's cache stale, so the next several Ticks genuinely re-enter
+    /// MaybePoolPaint's fall-through branch until coverage re-latches -- repeated status-card
+    /// open/close cycling could otherwise re-log this summary (and pay its _sites.Snapshot() cost)
+    /// every one of those ticks. NOT the CardEvictStrikes-tuned incident (Tuning.cs's own doc): that incident's site
     /// count fell 836 to 726 to 690 while CoversAllMeta() stayed TRUE throughout, so _poolCovered
     /// never dropped and this fall-through branch was never reached during it at all --
     /// MaybePoolPaint's top short-circuit kept returning early via the count-compare/

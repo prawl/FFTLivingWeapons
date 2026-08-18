@@ -125,19 +125,52 @@ internal sealed partial class Display
     }
 
     /// <summary>Judge every id in <see cref="_pendingIds"/> against THIS beat's verdict. Settled
-    /// (Wrote or AlreadyEqual, CardVerdict.Settled) at a site inside a currently-located pool
-    /// region clears it. With NO located regions at all, any settled site clears it instead: the
-    /// sweep never narrows down "which physical copy the card reads from" the way the pool path's
-    /// named-pool premise does (PoolLocator.cs's own PREMISE STATUS doc), so demanding a
-    /// located-region match there would just drive every id to the drop cap on every single kill.
-    /// This permissive branch is not only "every poolPaint:false case (the sweep path)" (an
-    /// earlier version of this doc said so, incompletely -- round 2 review): PoolLocator._cached
-    /// stays empty until a Tick actually runs MaybePoolPaint, and the on-field path
-    /// (PaintCountsIfChanged) never does, so it ALSO covers every on-field stretch after any
-    /// Invalidate() even when poolPaint is true, until the next off-field Tick relocates. An id
-    /// that neither clears nor hits the cap this beat has its watched-beat count bumped by exactly
-    /// one (this file's class doc: a watch count, not a retry count -- no extra paint follows
-    /// either way).
+    /// (Wrote or AlreadyEqual, CardVerdict.Settled) at a site inside a currently-located, NON-
+    /// STALE pool region clears it. LW-261 changed what "currently-located" means: PoolLocator no
+    /// longer clears its cache on Invalidate() (its own resumable scan can take many ticks to
+    /// republish, and a mid-flight scan must never be aborted -- PoolLocator.cs's own class doc),
+    /// so <see cref="PoolLocator.CachedRegions"/> can stay non-empty and simply STALE for a while
+    /// after a battle edge. The permissive branch below (any settled site anywhere clears the id)
+    /// therefore fires on <c>regions.Count == 0 || _poolLocator.RegionsStale</c>, not on an empty
+    /// cache alone: a stale-but-non-empty cache is exactly as untrustworthy as an empty one here,
+    /// because the fresh site a real kill just painted may sit at an address the OLD (pre-
+    /// invalidate) region list knows nothing about -- trusting that stale list would judge a
+    /// genuinely-settled kill against the wrong, pre-relocation regions and never clear it,
+    /// reproducing the exact false "gave up" bug this arc's own regression test
+    /// (DisplayHeartbeatTests.ProcessPending_after_invalidate_still_settles_ids_painted_at_new_addresses)
+    /// pins.
+    ///
+    /// With no trustworthy region list at all (empty or stale), any settled site clears it
+    /// instead: the sweep never narrows down "which physical copy the card reads from" the way
+    /// the pool path's named-pool premise does (PoolLocator.cs's own PREMISE STATUS doc), so
+    /// demanding a located-region match there would just drive every id to the drop cap on every
+    /// single kill. This permissive branch is not only "every poolPaint:false case (the sweep
+    /// path)" (an earlier version of this doc said so, incompletely -- round 2 review): it also
+    /// covers every on-field stretch after ANY Invalidate() even when poolPaint is true, until the
+    /// scan that Invalidate() queued actually republishes. PaintCountsIfChanged (the on-field
+    /// path) itself still never steps the locate -- that premise stands -- but Engine's own
+    /// "pool-locate" tick lane (Engine.cs, TickGates.Always) does, on EVERY tick regardless of
+    /// battle state, so it keeps making progress on the queued restart even while the player
+    /// stays on-field, and the window closes as soon as that background scan republishes rather
+    /// than lasting the whole on-field stretch.
+    ///
+    /// Round 3 verify (C4), correcting an earlier version of this doc that implied the window got
+    /// SHORTER: it did not, and framing it that way risks misreading a live tape. The old
+    /// synchronous PoolLocator.LocateAll blocked for 7 to 10 seconds and was then DONE -- a short,
+    /// blocking window. The resumable scan (PoolLocator.cs's own class doc) never blocks, but at
+    /// one ChunkReader.ChunkSize chunk per Step (LocateBudgetBytes's own doc) it can take many
+    /// hundreds to thousands of ticks to walk the whole process heap, which in WALL CLOCK is
+    /// plausibly LONGER than the old block, not shorter -- this arc has not yet measured a real
+    /// completion, so the true figure is whatever the first live tape's "LW37 locate-complete"
+    /// line reports. Practically: RegionsStale can now read true for a comparable or longer
+    /// stretch of a battle than before, which means ProcessPending's permissive branch above runs
+    /// for most of that stretch too. That is NOT a new risk -- it is the exact behavior every
+    /// post-invalidate window already had before this arc (the old Invalidate() cleared _cached
+    /// outright, so regions.Count==0 made the SAME branch permissive for the whole old blocking
+    /// window too) -- but a reader should expect the permissive branch to be common, not rare, on
+    /// a real tape, and should not read that as a sign anything broke. An id that neither clears
+    /// nor hits the cap this beat has its watched-beat count bumped by exactly one (this file's
+    /// class doc: a watch count, not a retry count -- no extra paint follows either way).
     ///
     /// Collects into snapshot lists rather than mutating _pendingIds while enumerating it. NOT
     /// because the runtime would throw either way (correction, round 2 review, independently
@@ -150,6 +183,7 @@ internal sealed partial class Display
     {
         if (_pendingIds.Count == 0) return;
         var regions = _poolLocator.CachedRegions;
+        bool permissive = regions.Count == 0 || _poolLocator.RegionsStale;
 
         List<int>? toClear = null;
         List<(int id, int beats)>? toBump = null;
@@ -158,7 +192,7 @@ internal sealed partial class Display
         foreach (var kv in _pendingIds)
         {
             int id = kv.Key;
-            bool settled = regions.Count == 0
+            bool settled = permissive
                 ? verdict.Settled(id, _ => true)
                 : verdict.Settled(id, addr => InAnyRegion(addr, regions));
 

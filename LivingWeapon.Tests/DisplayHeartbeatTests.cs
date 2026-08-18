@@ -184,6 +184,61 @@ public class DisplayHeartbeatTests
         Assert.False(display._pendingIds.ContainsKey(10), "must be dropped after CardPendingMaxBeats beats");
     }
 
+    // ─── LW-261: RegionsStale keeps ProcessPending permissive across a queued restart ──
+
+    /// <summary>The regression this arc's own PoolLocator rewrite could have introduced: since
+    /// Invalidate() no longer clears CachedRegions (PoolLocator.cs's own class doc -- it queues a
+    /// restart and marks the cache STALE instead), a naive ProcessPending that keys its permissive
+    /// branch off "regions.Count == 0" alone would now see a non-empty (but stale) cache right
+    /// after a battle edge and wrongly take the RESTRICTIVE branch -- judging a freshly-painted
+    /// site at a brand-new (post-relocation) address against the OLD region list, which never
+    /// contains it, so the id never settles and the watchdog eventually logs a false "gave up".
+    /// RED under that naive predicate: regions.Count stays 1 (the stale poolBase entry) the whole
+    /// test, so InAnyRegion(newBase, regions) is false and the pending id never clears.</summary>
+    [Fact]
+    public void ProcessPending_after_invalidate_still_settles_ids_painted_at_new_addresses()
+    {
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 10, new WeaponMeta { Name = "BowX", Flavor = "Fletched with regret" } },
+        };
+        var kills = new Dictionary<int, int> { { 10, 7 } };
+        var clock = new TestClock();
+
+        var poolBuf = new byte[500];
+        CardFixtures.WriteCardForwardWithName(poolBuf, 0, "BowX", "Fletched with regret");
+        long poolBase = 0x7E_1000_0000L;
+        long staticsBase = 0x7E_2000_0000L;
+        var statics = new byte[64];
+        statics[0] = 10;
+        var heap = new FakeHeap((poolBase, poolBuf, true), (staticsBase, statics, true));
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock, poolPaint: true);
+
+        display.Tick(false);   // locates+covers the original pool region
+
+        display.Invalidate();   // battle-edge style: RegionsStale flips true; CachedRegions keeps
+                                 // serving the OLD (poolBase) list until a fresh scan republishes
+
+        // A relocated card at a brand-new address, OUTSIDE the (now stale) cached region -- the
+        // battle-exit shape (menu buffers reallocated). Registered directly, mirroring
+        // A_pending_id_is_not_cleared_by_a_site_outside_every_located_region's own recipe.
+        var newBuf = new byte[500];
+        var (_, newSlot, newFlavor) = CardFixtures.WriteCardForwardWithName(newBuf, 0, "BowX", "Fletched with regret");
+        long newBase = 0x7E_3000_0000L;
+        heap.AddRegion(newBase, newBuf, writable: true);
+        display._sites.Add(new CardSites.Site(10, 1, newBase + newSlot, newBase + newFlavor, IsKills: true));
+
+        kills[10] = 9;
+        display.PaintCountsIfChanged();   // stages id 10 pending -- the on-field path never steps the pool locator
+        Assert.True(display._pendingIds.ContainsKey(10));
+
+        clock.Ms += Display.MaintenanceMs + 1;
+        display.PaintCountsIfChanged();   // one beat: the relocated site settles under the PERMISSIVE branch
+
+        Assert.False(display._pendingIds.ContainsKey(10),
+            "RegionsStale after Invalidate must route ProcessPending onto the permissive branch, exactly like an empty cache did before this arc");
+    }
+
     // ─── T11/T12: the per-region drain check ───────────────────────────────────
 
     /// <summary>Losing ONE region's copy of a weapon that still has a copy elsewhere (CoversAllMeta

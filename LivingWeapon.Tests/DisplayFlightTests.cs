@@ -246,6 +246,40 @@ public class DisplayFlightTests
         Assert.Contains(recorded, r => r.type == "card" && r.payload.StartsWith("coverage"));
     }
 
+    /// <summary>LW-261 test 8: PoolLocator.Step's own completion tap (Display.PoolLocate.cs's
+    /// RecordLocateCompleteIfTapped), driven directly here since StepPoolLocate is normally called
+    /// by Engine's own "pool-locate" tick lane, not by anything this unit-test level fixture wires
+    /// up. The pool buffer is small enough to complete within the FIRST Step call, so exactly one
+    /// "locate-complete" record must land, never more across the remaining (no-op) calls.</summary>
+    [Fact]
+    public void Locate_completion_emits_one_card_flight_record()
+    {
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 10, new WeaponMeta { Name = "BowX", Flavor = "Fletched with regret" } },
+        };
+        var kills = new Dictionary<int, int> { { 10, 7 } };
+        var clock = new TestClock();
+
+        var poolBuf = new byte[500];
+        CardFixtures.WriteCardForwardWithName(poolBuf, 0, "BowX", "Fletched with regret");
+        long poolBase = 0x7E_5000_0000L;
+        long staticsBase = 0x7E_6000_0000L;
+        var statics = new byte[64];
+        statics[0] = 10;
+        var heap = new FakeHeap((poolBase, poolBuf, true), (staticsBase, statics, true));
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock, poolPaint: true,
+            recorder: (t, p) => recorded.Add((t, p)));
+
+        for (int i = 0; i < 20; i++) { display.StepPoolLocate(); clock.Ms += 33; }
+
+        var hits = recorded.FindAll(r => r.type == "card" && r.payload.StartsWith("locate-complete"));
+        Assert.Single(hits);
+        Assert.Contains("regions=1", hits[0].payload);
+        Assert.Contains("trigger=first", hits[0].payload);
+    }
+
     /// <summary>Shared fixture for the two coverage-record tests above: one weapon, a single pool
     /// region, poolPaint:true, a recorder wired.</summary>
     private static (Display display, TestClock clock, List<(string type, string payload)> recorded) BuildSingleWeaponPoolDisplay()
