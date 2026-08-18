@@ -93,20 +93,7 @@ the technical detail lives in the indented lines under it.
 
 
 
-- **[LW-275] A code comment can cite a ledger row that does not exist and nothing notices** (opened 2026-08-18) [BUILDING]
-  - How four files pointed at a missing explanation for a week (LW-256). The doc gate checks
-    links between docs but never checks that a [slug] cited from a .cs comment resolves to a
-    real row in docs/LIVE_LEDGER.md. Making that mechanical retires the comments-citing-ghosts
-    defect class the verify rounds keep finding by hand.
-  - Done means: DocsContractTests gains a scan of the runtime's .cs comments for ledger slug
-    citations, each asserted to resolve to a LIVE_LEDGER row header; the discriminator is
-    designed from a survey of real bracket usage so it cannot cry wolf on non-citation
-    brackets; non-vacuity proven by planting a ghost citation and watching the gate go red.
-    (Tech: seed cases are the four [battle-retry-rewind-fingerprint] citations; row headers
-    are the ### [slug] lines in LIVE_LEDGER.md.)
-  - Verify: the new gate green on the current tree; red with a planted ghost citation; red
-    with a ledger row header renamed; full suite green.
-- **[LW-272] A dual wielder's kill credits BOTH weapons and nothing a player reads says so** (opened 2026-08-18) [BUILDING]
+- **[LW-272] A dual wielder's kill credits BOTH weapons and nothing a player reads says so** (opened 2026-08-18) [AWAITING-LIVE]
   - The owner proved the gap by being surprised by his own mod when Ramza's two knives each
     claimed the same undead. The behavior is deliberate and test pinned; the docs just never
     say it.
@@ -116,8 +103,9 @@ the technical detail lives in the indented lines under it.
     fake precision), and a player facing line in README.md if it has a mechanics section.
     (Tech: ActorResolver.Hands, KillTracker.CreditKill, pins at KillTrackerTests.cs:655
     onward.)
-  - Verify: doc gates green; the section's every claim matches the four pins; owner reads the
-    paragraph and recognizes his own surprise answered.
+  - Verify: doc gates green and every claim matched to the four pins (both DONE, b991071);
+    remaining half is owner only: owner reads the paragraph and recognizes his own surprise
+    answered.
 
 ## Backlog
 

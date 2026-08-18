@@ -10,6 +10,18 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-275] SHIPPED b991071 2026-08-18: A code comment could cite a ledger row that does not
+  exist and nothing would notice, which is how four files pointed at a missing explanation for
+  a week (LW-256). A new doc gate now scans the runtime's comments for ledger citations and
+  turns red, naming the file and line, when one fails to resolve. Proven in both directions: a
+  planted ghost citation and a renamed ledger header each fail loudly, the renamed header
+  naming all four real citing sites. The pattern was designed from a survey of real bracket
+  usage, lowercase kebab with at least two hyphens, so ordinary code and log vocabulary cannot
+  trip it; the failure mode if one ever does is a loud self explaining red, never silence.
+  (Tech: DocsContractTests section E; 12 distinct slugs across 43 citation instances in 18
+  production files all resolve to ### [slug] headers in docs/LIVE_LEDGER.md; suite 3175 to
+  3183; verdict SHIP 9/10.)
+
 - [LW-263] SHIPPED c9b5e57 2026-08-18: Comments in the pool search quoted their own files' line
   counts and the numbers went stale twice, including being wrong the day they were written. The
   counts are deleted, the true substance kept, and the header now explains why prose never
