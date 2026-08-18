@@ -273,7 +273,17 @@ not a new type string): `locate-complete regions=N ticks=N bytes=N ms=N trigger=
 completed resumable scan (never a partial result), naming how many named-pool regions it found, how
 many Step calls and how many bytes and milliseconds it took, and why the scan ran (`first`,
 `revalidate`, `invalidate`, or `empty-retry`) -- read alongside `LW37 locate-complete:` in
-`livingweapon.log`, the file-only line carrying the same numbers; and the Defender's
+`livingweapon.log`, the file-only line carrying the same numbers; LW-262's own two additions under
+this same "card" type, neither a new type string: the `coverage` payload (Display.PoolPaint.cs's
+AnnounceCoverage, Display.Flight.cs's RecordCoverageIfTapped) gained a `suffix=N` field alongside
+its pre-existing `kills=N`, naming how many suffix sites (CardSites.SuffixCount) the cache holds
+at the moment coverage latches, read the same way the pre-existing `sites=`/`kills=` pair already
+is; and a `site-evicted ... reason=pruned-dead` record (Display.Flight.cs's OnSitePruned, wired as
+CardSites' onPruneEvict ctor param) now fires for every site the cap-relief prune
+(CardSites.Admission.cs's PruneDeadSites) actually evicts, reusing the SAME budget tiers as the
+strike-driven `site-evicted` lines EmitVerdict already emits -- before this, a cap-relief drain was
+invisible on the tape entirely (only inferable as a falling `sites=` count with no matching
+eviction line); and the Defender's
 provoke hold (`"provoke"`, ProvokeHold, LW-123): `arm nameId=.. tile=..`, `release reason=.. tile=..`
 (the reason is the `Release` enum verbatim, so `EnemyTurnDone` is the good one and `Watchdog` means
 a release condition was missed), plus the two mark scrubs, `scrub-player-side` (a shout cast at your

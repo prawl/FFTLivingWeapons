@@ -148,6 +148,7 @@ internal sealed partial class PoolLocator
         _cached.AddRange(regions);
         _restartPending = false;
         _stale = false;
+        PublishGeneration++;   // commit 1B: a seed is a "fresh region list" event too
     }
 
     /// <summary>Aggregate PoolLocatorPolicy.Scan across every chunk of [rbase, rbase+rsize)

@@ -98,7 +98,11 @@ internal sealed partial class Display
         // from the store's "lastPainted", so the very first paint already carries earned lines.
         _stories   = legends != null ? new StoryLines(legends, meta, kills, _pats) : null;
         _stories?.SeedAtStartup();
-        _sites     = new CardSites(mem, _pats, _stories?.Anchors);
+        // LW-262: the cap-relief prune's own eviction tap, Display.Flight.cs's OnSitePruned.
+        // Wiring the method group here is safe even though _recorder is assigned further below
+        // (OnSitePruned only reads _recorder when actually INVOKED, at a future PruneDeadSites
+        // call, by which point this constructor has long since finished).
+        _sites     = new CardSites(mem, _pats, _stories?.Anchors, OnSitePruned);
         _wpScratch = new WpScratchPainter(mem, meta, KillsFor);
 
         // Startup invariant: the sweep's lookback prefix must hold the longest anchor plus

@@ -67,6 +67,17 @@ internal sealed partial class PoolLocator
     /// site inside a "currently located" region.</summary>
     internal bool RegionsStale => _stale;
 
+    /// <summary>Commit 1B: bumped on every <see cref="Publish"/> (and <see cref="SeedForTest"/>,
+    /// PoolLocator.cs), never reset. Display.PoolPaint.cs's MaybePoolPaint compares this against
+    /// the generation it last actually ran ScanPoolRegion against, so a genuinely fresh region
+    /// list (a completed locate, revalidate-triggered rescan, or straddled-invalidate republish)
+    /// is always scanned immediately rather than waiting out the maintenance cadence -- "a fresh
+    /// publish from the locate" is one of the two genuine triggers that commit's own doc names.
+    /// A plain int, not a bool: CachedRegions' own contents can be mutated in place by Publish
+    /// (Clear+AddRange on the SAME List), so reference identity cannot signal a change the way it
+    /// would for an immutable snapshot.</summary>
+    internal int PublishGeneration { get; private set; }
+
     /// <summary>Drive the resumable scan by up to <paramref name="budgetBytes"/> THIS call, or run
     /// the cheap periodic revalidate of the already-published regions when nothing else is due.
     /// The production entry point (Display.PoolLocate.cs's StepPoolLocate, called every Engine
@@ -185,6 +196,7 @@ internal sealed partial class PoolLocator
         // and run a full unbudgeted AllCachedStillPool over the just-published regions on the spot
         // -- exactly the per-tick cost this whole arc exists to bound.
         _lastRevalidateMs = nowMs;
+        PublishGeneration++;   // commit 1B: every publish is a "fresh region list" event
         LogRegionsFound();
     }
 }

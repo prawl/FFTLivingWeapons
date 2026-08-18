@@ -248,6 +248,98 @@ public class DisplayPoolPaintTests
         Assert.True(locateTimingLines.Count < 10, "must not print once per tick regardless of value");
     }
 
+    // ─── commit 1B: bound the full-region ScanPoolRegion pass ─────────────────────
+
+    /// <summary>Commit 1B, test 1: an unlatched steady state (this fixture's own doc: id 11 is
+    /// never written anywhere, so CoversAllMeta() can never return true and MaybePoolPaint's
+    /// region-found branch is reached every Tick) must NOT re-run the full-region scan on two
+    /// CONSECUTIVE ticks at the same clock time -- only the maintenance cadence (MaintenanceMs) or
+    /// a genuinely fresh PoolLocator publish may trigger it again. Uses the identical fixture
+    /// shape as Persistent_partial_coverage_logs_the_summary_line_once_not_every_tick above.</summary>
+    [Fact]
+    public void Unlatched_steady_state_does_not_rescan_regions_on_consecutive_ticks()
+    {
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 10, new WeaponMeta { Name = "BowX", Flavor = "Fletched with regret" } },
+            { 11, new WeaponMeta { Name = "BowY", Flavor = "Arrow never sleeps" } },   // never written
+        };
+        var kills = new Dictionary<int, int> { { 10, 0 }, { 11, 0 } };
+        // Realistic nonzero clock origin (verifier F1): TestClock starting at 0 made
+        // ShouldRunFullPoolScan's cadence check `now - _lastPoolScanMs < MaintenanceMs` read
+        // `now - (-1)` as coincidentally small (a few hundred ms) whenever the generation branch
+        // forgot to stamp _lastPoolScanMs, masking exactly that bug. A real process clock
+        // (Environment.TickCount64) is never anywhere near zero, so this pins the realistic case.
+        var clock = new TestClock { Ms = 5_000_000 };
+
+        var poolBuf = new byte[2000];
+        CardFixtures.WriteCardForwardWithName(poolBuf, 0, "BowX", "Fletched with regret");
+
+        long poolBase = 0x58_0000_0000L;
+        long staticsBase = 0x58_1000_0000L;
+        var statics = new byte[64];
+        statics[0] = 10; statics[1] = 0;
+
+        var heap = new FakeHeap((poolBase, poolBuf, true), (staticsBase, statics, true));
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock, poolPaint: true);
+
+        // Drive until the locate completes and the first scan pass has run at least once.
+        int ticks = 0;
+        while (display.PoolScanPassesForTest == 0 && ticks < 20)
+        {
+            clock.Ms += DisplaySweep.HotRescanMs + 1;
+            CardFixtures.TickWithPoolLocate(display, false);
+            ticks++;
+        }
+        Assert.True(display.PoolScanPassesForTest > 0, "the fixture must reach at least one real scan pass to be a meaningful test");
+        int passesAfterFirstScan = display.PoolScanPassesForTest;
+
+        // A SECOND tick at the SAME clock time: no cadence elapsed, no fresh publish queued.
+        CardFixtures.TickWithPoolLocate(display, false);
+
+        Assert.Equal(passesAfterFirstScan, display.PoolScanPassesForTest);
+    }
+
+    /// <summary>Commit 1B, test 2: a genuinely fresh PoolLocator publish (Invalidate + a
+    /// completed re-locate) must trigger a scan pass immediately, even with NO time elapsed on the
+    /// maintenance-cadence clock -- proving PublishGeneration, not just MaintenanceMs, is a real
+    /// trigger.</summary>
+    [Fact]
+    public void Fresh_publish_triggers_a_scan_pass_even_with_no_cadence_elapsed()
+    {
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 10, new WeaponMeta { Name = "BowX", Flavor = "Fletched with regret" } },
+        };
+        var kills = new Dictionary<int, int> { { 10, 7 } };
+        var clock = new TestClock();
+
+        var poolBuf = new byte[500];
+        CardFixtures.WriteCardForwardWithName(poolBuf, 0, "BowX", "Fletched with regret");
+
+        long poolBase = 0x58_2000_0000L;
+        long staticsBase = 0x58_3000_0000L;
+        var statics = new byte[64];
+        statics[0] = 10;
+
+        var heap = new FakeHeap((poolBase, poolBuf, true), (staticsBase, statics, true));
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock, poolPaint: true);
+
+        CardFixtures.TickWithPoolLocate(display, false);   // completes: coverage latches, one scan pass
+        Assert.True(display.PoolScanPassesForTest > 0);
+        Assert.Equal(1, display.PoolScanPassesForTest);
+        int passesBeforeInvalidate = display.PoolScanPassesForTest;
+
+        // Same clock instant: no cadence has elapsed at all. Invalidate() queues a restart that
+        // bypasses PoolLocator's own revalidate cadence too (its Step's _restartPending branch),
+        // so the re-locate completes within the SAME tick and republishes (a new PublishGeneration).
+        display.Invalidate();
+        CardFixtures.TickWithPoolLocate(display, false);
+
+        Assert.True(display.PoolScanPassesForTest > passesBeforeInvalidate,
+            "a fresh publish must trigger a scan pass even though no maintenance cadence has elapsed");
+    }
+
     // ─── sweep-gate via the injected flag (B2) ─────────────────────────────────────
 
     [Fact]

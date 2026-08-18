@@ -114,7 +114,9 @@ internal sealed partial class Display
     /// <summary>AnnounceCoverage's flight tap (Display.PoolPaint.cs). Separate from the two
     /// per-site records above -- one line per coverage LATCH, not per site -- AND spends its own
     /// <see cref="CoverageRecordBudget"/>, never <see cref="_flightBudget"/> (see that field's own
-    /// doc for why the two must not share).</summary>
+    /// doc for why the two must not share). LW-262: gained a `suffix=` field (CardSites.SuffixCount)
+    /// alongside the pre-existing `kills=` one, so a tape can tell the two partitioned caps'
+    /// occupancy apart directly instead of only inferring it from `sites=` minus `kills=`.</summary>
     private void RecordCoverageIfTapped(IReadOnlyList<(long baseAddr, long size)> regions, int killsSites, string trigger)
     {
         if (_recorder == null || _coverageBudget >= CoverageRecordBudget) return;
@@ -126,8 +128,39 @@ internal sealed partial class Display
             foreach (var s in snapshot) if (s.SlotAddr >= rbase && s.SlotAddr < rbase + rsize) count++;
             parts.Add($"base=0x{rbase:X}:{count}");
         }
-        _recorder("card", $"coverage regions={regions.Count} sites={_sites.Count} kills={killsSites} trigger={trigger} " + string.Join(" ", parts));
+        _recorder("card", $"coverage regions={regions.Count} sites={_sites.Count} kills={killsSites} suffix={_sites.SuffixCount} trigger={trigger} " + string.Join(" ", parts));
         _coverageBudget++;
+    }
+
+    /// <summary>LW-262: CardSites' cap-relief prune tap (CardSites.Admission.cs's _onPruneEvict
+    /// ctor param, wired in Display.cs's constructor). Reuses the EXISTING <see
+    /// cref="_flightBudget"/>/<see cref="FlightRecordBudget"/> tiers rather than a dedicated
+    /// reserve. CORRECTION (verifier F3): an earlier version of this doc claimed cap-relief
+    /// pruning is not "a genuinely different traffic shape" from the strike-driven eviction path
+    /// EmitVerdict's tier 1 already covers -- that was backwards. It IS different: EmitVerdict's
+    /// per-pass eviction traffic tops out at CardVerdict.MaxEntries (256) entries spread across
+    /// one PaintAll call, while ONE cap-relief prune can evict 1000+ dead KILLS sites in a single
+    /// burst (kills now use the full 2048 ceiling with no suffix competition), which would
+    /// exhaust this 64-record budget instantly and starve every strike-driven site-evicted line
+    /// for the rest of the window. The budget choice stands anyway, on an honestly different
+    /// basis: the burst risk is ACCEPTED, not overlooked, because a KILLS cap-relief prune should
+    /// be rare post-partition in the first place -- the 2026-08-18 tape's own peak (726-728 of
+    /// 2048) leaves wide headroom before the kills cap is ever hit at all, and the ONE path that
+    /// WAS routinely hitting a cap (suffix) never prunes anymore (CardSites.Admission.cs's own
+    /// "prune amplification bound"). A dedicated reserve was considered and rejected: sizing one
+    /// for a worst-case 1000+ site burst means either a reserve nearly as large as
+    /// FlightRecordBudget itself (defeating the point of a small separate tier) or one still too
+    /// small to capture a real burst anyway -- so if a kills cap-relief burst DOES turn out to be
+    /// common on a live tape, contrary to this rationale, the fix is to size a real reserve from
+    /// that measurement, not to keep pretending the traffic shapes match. Format mirrors
+    /// EmitVerdict's site-evicted line exactly, with a literal `reason=pruned-dead` in place of a
+    /// PaintOutcome phrase (a cap-relief prune has no PaintOutcome to report -- it only ever asks
+    /// "is this anchor Live", never attempts a paint).</summary>
+    private void OnSitePruned(CardSites.Site s)
+    {
+        if (_recorder == null || _flightBudget >= FlightRecordBudget) return;
+        _recorder("card", $"site-evicted id={s.Id} addr=0x{s.SlotAddr:X} reason=pruned-dead");
+        _flightBudget++;
     }
 
     /// <summary>LW-261: PoolLocator.Step's completion tap, Display.PoolLocate.cs's own call site.

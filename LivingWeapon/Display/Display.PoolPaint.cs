@@ -32,6 +32,10 @@ internal sealed partial class Display
     // LW-257: the StuckEdge/coverage-transition log gates (NoPoolRegionLogGate/
     // ReArmNoPoolRegionLog/PoolCoverageLogGate, called below) live in Display.PoolPaintLog.cs --
     // a real seam once this file crossed the 200-line trigger; see that file's class doc.
+    // Commit 1B's own cadence-gate state (ShouldRunFullPoolScan, PoolScanPassesForTest) lives in
+    // Display.PoolPaintCadence.cs by the same precedent -- WHEN to run the full-region scan is a
+    // different concern from what ScanPoolRegion below actually does, mirroring PoolLocator.cs
+    // vs. PoolLocator.Restart.cs's own cache-vs-cadence split.
 
     /// <summary>True if the sweep should be skipped this Tick. Locates the pool at most once
     /// per coverage window: a cached "already covering" flag short-circuits every subsequent
@@ -99,9 +103,22 @@ internal sealed partial class Display
         }
         ReArmNoPoolRegionLog();   // the next drought gets its own transition line
 
-        // Paint EVERY name-bearing baked region: the card materializes from one of them and there
-        // is no static signature for which, so covering them all guarantees the read source is painted.
-        foreach (var (rbase, rsize) in regions) ScanPoolRegion(rbase, rsize);
+        // Commit 1B: paint EVERY name-bearing baked region, but only on a genuine trigger
+        // (ShouldRunFullPoolScan's own doc) -- skipping this on an off-cadence tick leaves
+        // _poolCovered's re-check below re-deriving the SAME answer from the unchanged _sites
+        // cache (harmless), and simply falls through to the sweep fallback (Display.cs's Tick)
+        // for this one tick instead of repainting a region nothing new was found in.
+        if (ShouldRunFullPoolScan())
+        {
+            long t0 = _nowMs();
+            foreach (var (rbase, rsize) in regions) ScanPoolRegion(rbase, rsize);
+            PoolScanPassesForTest++;
+            // Distinct prefix ("LW37 region-scan:", not "LW37 paint:") so this line's own text
+            // never collides with PoolCoverageLogGate's pre-existing "LW37 paint: N region(s),
+            // kills sites=..." summary below -- DisplayPoolPaintTests.Persistent_partial_
+            // coverage_logs_the_summary_line_once_not_every_tick filters on that exact phrase.
+            ModLogger.Debug(LogVerb.Display, $"LW37 region-scan: took {_nowMs() - t0}ms across {regions.Count} region(s)");
+        }
 
         _poolCovered = CoversAllMeta();
         if (_poolCovered)

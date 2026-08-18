@@ -74,25 +74,42 @@ the technical detail lives in the indented lines under it.
     proving those pins bite; each blade's second material measured on the real art; the bake
     matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
 
-- **[LW-212] The four bags, the last weapon family in the game to have its colour looked at** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-16, owner gallery pass outstanding. A CARD median of 72.1 percent,
-    the highest of any family, and the one real fix is the one the new anchoring gate catches:
-    the Fallingstar Bag kept its vanilla name and was painted gold over artwork that is green.
-    A bag is one piece of leather with no furniture, so its second tone is a SHEEN in the veils'
-    sense and a pale neutral for the same reason: a coloured tone on a pouch reads as a stain.
-    The falling star is its gold clasp.
-  - WITH THIS FAMILY, EVERY WEAPON IN THE GAME HAS BEEN THROUGH THE RE-PASS. The old bright-v2
-    engine has no items left at all, so it is retired to a dormant branch rather than deleted
-    (Axe and Flail are weapon categories with no items today, and a future one would land there)
-    and both its small branches are exercised on the fixture instead. CARD_OVERRIDES and
-    SMALL_TWO_ZONE are now empty tables for the same reason.
-  - Done means: all four carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, the reserved name is anchored
-    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
-  - Verify: all four gates green with the family inside every owner-rule pin and four mutations
-    proving those pins bite; each bag's sheen measured on the real art; the bake matching a FULL
-    preview manifest pixel for pixel, which for the first time in the programme is 468 of 468
-    surfaces with nothing stale; and the owner's gallery pass.
+- **[LW-262] The mod's list of places to paint fills up completely, and a full list is what keeps sending it back to do the nine second search** (opened 2026-08-18) [BUILDING]
+  - The mod keeps two kinds of note in the same one list: where a weapon's kill count is painted,
+    and where its name suffix is painted. Measured live 2026-08-18: the list hit its 2048 ceiling
+    three times in one battle, kill-count notes never got past 726 to 728 of those 2048 slots, and
+    one region alone held 1076 name-suffix copies. When the list is full of name-suffix notes,
+    kill-count notes get refused too, so the mod can never report every weapon covered, so it goes
+    back and searches the whole game's memory again, which fills the list right back up. That
+    search is the nine second one LW-261 already made cheaper per second but did not stop from
+    running over and over.
+  - The fix gives the two kinds of note their own separate room instead of one shared list: kill
+    counts keep the full 2048 they always had, and name suffixes get their own smaller room of
+    1024 with a further limit of 12 copies for any one weapon, so a flood of one weapon's name
+    text can never crowd out either the OTHER weapons' name text or any weapon's kill count.
+    Nothing already on the list gets thrown away to make this room; a refusal is just a refusal,
+    the same as before. A second, smaller problem rides along: freeing up room for kill counts
+    used to run a fairly expensive full re-check every time even when it only found a couple of
+    stale notes to clear, and that could snowball into running the re-check on almost every
+    refusal; it now only re-arms that fast path when a re-check actually clears a real batch. And
+    the part of this that used to happen with no trace on the tape now writes one: every note the
+    room-clearing pass throws away shows up as its own line.
+  - Sequenced after LW-261 per the coordinator's LW-268 note: fixing coverage latching here is
+    what makes LW-268's re-scan-avoidance idea worth re-pricing, since a search that reliably
+    stops recurring is a different cost problem than one that recurs by design.
+  - Done means: suffix entries can never crowd kill entries out of the cache, a full cache never
+    triggers the re-search loop, and the previously silent prune path writes an eviction record.
+  - Verify: suite green with the central guarantee proven non-vacuous by sabotage, one independent
+    adversarial verify, and the owner's live watch showing coverage latching and staying latched
+    (sites below the ceiling, no repeat searches) in one battle. (Tech: CardSites.Admission.cs
+    (new file, the admission/accounting seam split from CardSites.cs): MaxSites=2048 unchanged for
+    kills, new MaxSuffixSites=1024 and SuffixCopiesPerId=12 (both encodings pooled) for suffix,
+    new PruneRearmFloor=16 gating when a low-yield prune re-arms _pruneImmediately, a new
+    onPruneEvict ctor callback wired to Display.Flight.cs's OnSitePruned (reuses the existing
+    _flightBudget tiers, not a new reserve) emitting `site-evicted ... reason=pruned-dead`, and the
+    coverage record's `suffix=N` field (docs/LOGGING.md). Live tape
+    flight_20260818_011921_battle-exit.jsonl: sites=2048 x3, kills 726-728, region 0x15F800000 at
+    1076, region 0x4F9B490000 242 to 0.)
 
 - **[LW-257] Two places show the same weapon's kill count and they can disagree, because the card quietly loses the spot it paints** (opened 2026-08-17) [BLOCKED(LW-261 nine second search starves the new heartbeat)]
   - The battle menu's Attack row repaints its number from the tally every third of a second and never
@@ -145,9 +162,13 @@ the technical detail lives in the indented lines under it.
     so it can never again hold the loop hostage for seconds at a time. It also survives being told to
     start over partway through (a battle ending mid search, say) without throwing away the work it had
     already done, and it never hands the rest of the mod a half built answer, only a fully finished one.
-  - This is commit 1A of a two commit fix. This commit lands the resumable search itself; a second
-    commit still needs to bound the cost of painting what the search finds, which is a smaller,
-    separate cost this commit does not touch.
+  - This is commit 1A of a two commit fix. This commit lands the resumable search itself; a second,
+    smaller commit (1B) bounds the cost of painting what the search finds, which used to run in
+    full on every single tick while the map was not yet complete, measured at 130 to 480ms a pass.
+    That repaint now only runs when the map genuinely has something new to paint, or once a
+    second at most otherwise, so a slow stretch can no longer cost that much on every tick in a
+    row. LW-262's own fix is expected to make the slow stretch rare in the first place; this is
+    the belt alongside that suspenders.
   - Owner live pass 2026-08-18, roughly 04:31: PASS. No freeze, no stalls, all four drilled kills
     converged, zero errors, and a battle enter correctly queued a fresh search while one was still
     running without losing it. One benign line: a kill's watch gave up while a cold boot search was
@@ -174,6 +195,36 @@ the technical detail lives in the indented lines under it.
     bytes=N ms=N trigger=...`.)
 
 ## Backlog
+
+- [LW-212] 2026-08-13: The four bags, the last weapon family in the game to have its colour
+  looked at, demoted from Now 2026-08-18 to lend its seat to LW-262, which is being actively
+  worked. Nothing about it changed and nothing is blocked on this repo: it was BUILT and gated
+  2026-08-16, and the owner gallery pass is the only step left, waiting on the same future
+  session as the other art rows. State preserved: a CARD median of 72.1 percent, the highest of
+  any family, and the one real fix is the one the new anchoring gate catches, the Fallingstar Bag
+  kept its vanilla name and was painted gold over artwork that is green. A bag is one piece of
+  leather with no furniture, so its second tone is a SHEEN in the veils' sense and a pale neutral
+  for the same reason: a coloured tone on a pouch reads as a stain. The falling star is its gold
+  clasp. With this family, every weapon in the game has been through the re-pass: the old
+  bright-v2 engine has no items left at all, so it is retired to a dormant branch rather than
+  deleted, and CARD_OVERRIDES and SMALL_TWO_ZONE are now empty tables for the same reason.
+  Promote it back when the owner gallery pass is on the table; the Done means and Verify are the
+  standard art-row set (identity colour with a visibly separate second material, no two alike at
+  list size, reserved-name anchoring recorded, four gates green with pins proven by mutation, the
+  bake matching the FULL preview manifest, and the owner's gallery pass).
+
+- [LW-269] 2026-08-18: Three small pieces of the new cache-splitting fix have no test holding
+  them down, so a later edit could quietly break any of them and every gate would still pass.
+  Found by the verifier round on LW-262. One, the per-weapon count of live name-suffix notes is
+  supposed to go back down when a note is removed, and nothing proves it actually does, so a
+  slow leak here could eventually make one weapon's name-suffix notes wrongly refuse forever with
+  no error anywhere. Two, the rule for when a big cleanup pass earns itself an immediate repeat is
+  an at-least-this-many boundary, and the only test near it uses a count one below the line, never
+  the line itself, so an off-by-one there would not be caught. Three, the small budget on how many
+  cleanup-eviction lines reach the black box has no test of its own at all. (Tech: _suffixCountById
+  decrementing in CardSites.Admission.cs's EvictList; PruneRearmFloor's `>=` boundary at exactly 16
+  in the same file; OnSitePruned's use of the shared _flightBudget/FlightRecordBudget tier in
+  Display.Flight.cs.)
 
 - [LW-268] 2026-08-18: The search re-reads the whole 2.8GB of game memory every time, even though at most 145MB of it has ever held what it is looking for, and the regions it found last time were still there next time. An index that remembers which regions were already checked and re-reads only new or resized ones could cut a rescan from tens of seconds to a few. The catch that must be probed FIRST: if the game pre-commits big arenas and writes card text into them later, a region can become interesting without changing its size, and the index would skip it forever with no error and no log line. Step one is a probe that logs the full region list diff alongside each locate across one battle and checks whether newly interesting regions are freshly committed or pre-existing. Sequence this after LW-262, because fixing coverage latching should make rescans rare enough to re-price the whole idea. (Tech: candidate design diffs (base,size) against the last completed PoolScan snapshot and carries not-pool verdicts for unchanged regions; hazard is that VirtualQueryEx sees commit granularity, not content.)
 
@@ -228,19 +279,6 @@ the technical detail lives in the indented lines under it.
   `docs/LIVE_LEDGER.md`; the four current citations are `LivingWeapon/Kills/RestartSentinel.cs:17`,
   `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
   `[battle-retry-rewind-fingerprint]`.)
-
-- [LW-262] 2026-08-18: The mod's list of places to paint fills up completely, and a full list is what
-  keeps sending it back to do the nine second search. Measured live 2026-08-18: the cache hit its
-  2048 ceiling three times in one battle. When it is full, new paint spots are refused, so coverage
-  can never be reported as complete, so the mod re searches the whole process, which fills the cache
-  again. The LW-257 commit 1 review predicted this exactly and refused to raise the ceiling without a
-  measurement, which is the right call and the measurement now exists. Also worth noting what the
-  tape does NOT show: zero eviction records across the whole battle even though the cache was
-  visibly draining, because the cap relief path that does the draining is the one path deliberately
-  left untapped. Its silence is a known blind spot, not evidence of health. Fix is probably a larger
-  ceiling plus a look at why a live process holds this many copies, since 2048 was sized from an
-  estimate of about 5.8 copies per weapon. (Tech: CardSites.MaxSites, PruneDeadSites, and the new
-  `(N/2048 cache slots in use)` figure on the coverage log line.)
 
 - [LW-260] 2026-08-18: Six things in the card heartbeat work are correct today but have no test,
   so a later edit could undo any of them and every gate would still pass. Found by mutation during

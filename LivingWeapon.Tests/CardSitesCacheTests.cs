@@ -162,21 +162,29 @@ public class CardSitesCacheTests
     }
 
     [Fact]
-    public void Cap_at_MaxSites_live_anchors_refused()
+    public void Cap_at_MaxSuffixSites_live_anchors_refused()
     {
-        // Prune-on-cap evicts DEAD sites (unreadable anchor).  When ALL cached sites are
-        // LIVE (readable anchor that matches), prune finds nothing to evict and the cap
-        // still refuses the new site.  This verifies that MaxSites is the true upper bound
-        // on the number of simultaneously-live cached sites.
+        // LW-262 correction: this test used to fill cap=MaxSites (2048) suffix sites all sharing
+        // Id=1 to prove "the cap is a true upper bound even with nothing dead to prune" -- a
+        // suffix site was chosen deliberately (the original comment: "only the weapon NAME is
+        // checked, no kills-literal read needed") purely as the simpler fixture, not because the
+        // cap under test was meant to be suffix-specific. Now that Add partitions admission by
+        // kind (CardSites.Admission.cs), a suffix Add is gated by MaxSuffixSites (1024) and
+        // SuffixCopiesPerId (12) instead, and a suffix refusal NEVER prunes at all (that file's
+        // own "prune amplification bound" doc) -- so "prune finds nothing to evict" no longer
+        // applies to this fixture's shape; the cap simply refuses on a pure count check regardless
+        // of anchor liveness. Retargeted at MaxSuffixSites (still the honest cap this fixture
+        // shape exercises) with ids spread across 200 values (CardSitesSuffixPartitionTests' own
+        // convention) so the per-id cap never binds first: 1024/200 is about 5 copies per id,
+        // well under SuffixCopiesPerId (12).
         var meta = CardSitesFixtures.BuildMeta();
         var pats = new CardPatterns(meta);
 
-        int cap = CardSites.MaxSites;
+        int cap = CardSites.MaxSuffixSites;
 
         // Build a buffer large enough for cap distinct anchor positions (IsKills=false: only
         // the weapon NAME is checked, no kills-literal read needed).
-        // The meta id=1 has Name = "Sword" (5 bytes via CardSitesFixtures).
-        byte[] nameBytes   = ByteScan.Ascii("Sword"); // Name for id=1
+        byte[] nameBytes   = ByteScan.Ascii("Sword");
         int    anchorStride = nameBytes.Length + 4;   // stride > name length
         int    bufSize      = cap * anchorStride + 256;
         var    buf          = new byte[bufSize];
@@ -188,20 +196,21 @@ public class CardSitesCacheTests
         var heap  = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);
 
-        // Fill to cap with live-anchor suffix sites (distinct SlotAddr/AnchorAddr, no dedup).
+        // Fill to cap with live-anchor suffix sites (distinct SlotAddr/AnchorAddr, no dedup),
+        // spread across many synthetic ids so SuffixCopiesPerId never binds first.
         for (int i = 0; i < cap; i++)
         {
             long slotAddr   = 0x2000_0000L + i;      // distinct; slot not read at Add time
             long anchorAddr = 0x1000L + i * anchorStride;
-            var site = new CardSites.Site(Id: 1, Enc: 1, SlotAddr: slotAddr, AnchorAddr: anchorAddr, IsKills: false);
+            int  id         = 1 + (i % 200);
+            var site = new CardSites.Site(Id: id, Enc: 1, SlotAddr: slotAddr, AnchorAddr: anchorAddr, IsKills: false);
             Assert.True(sites.Add(site), $"slot {i} must be accepted");
         }
         Assert.Equal(cap, sites.Count);
 
-        // Prune fires on the first cap-hit but finds nothing to evict (all anchors live).
         var overSite = new CardSites.Site(Id: 1, Enc: 1, SlotAddr: 0x2000_0000L + cap,
             AnchorAddr: 0x1000L, IsKills: false);
-        Assert.False(sites.Add(overSite), "must refuse when all sites are live");
+        Assert.False(sites.Add(overSite), "must refuse when the suffix cache is full");
         Assert.Equal(cap, sites.Count);
     }
 

@@ -191,8 +191,10 @@ public class CardSitesCapReliefTests
         }
         Assert.Equal(cap, sites.Count);
 
-        // First Add at cap: prune runs, dead half evicted, site admitted.
-        var newSite1 = new CardSites.Site(2, 1, 0x1000 + slotOff + cap + 1, 0x1000, IsKills: false);
+        // First Add at cap: prune runs, dead half evicted, site admitted. IsKills: true (LW-262
+        // correction: this probe must be a KILLS site -- Add now partitions by kind, so a suffix
+        // probe would never touch the kills cap this test exercises at all).
+        var newSite1 = new CardSites.Site(2, 1, 0x1000 + slotOff + cap + 1, 0x1000, IsKills: true);
         bool ok1 = sites.Add(newSite1);
         Assert.True(ok1, "first cap-hit add should be admitted after prune");
         int countAfterFirst = sites.Count;
@@ -207,7 +209,7 @@ public class CardSitesCapReliefTests
         Assert.Equal(cap, sites.Count);
 
         // The FIRST refusal after prune succeeded should immediately trigger another prune.
-        var newSite2 = new CardSites.Site(2, 1, 0x1000 + slotOff + cap + 2, 0x1000, IsKills: false);
+        var newSite2 = new CardSites.Site(2, 1, 0x1000 + slotOff + cap + 2, 0x1000, IsKills: true);
         bool ok2 = sites.Add(newSite2);
         Assert.True(ok2, "first cap-hit after successful prune must prune immediately and admit");
     }

@@ -12,21 +12,25 @@ namespace LivingWeapon;
 /// this arc fixes: a single unreadable frame used to delete a live, correctly-painted site.
 /// Skip-if-equal (steady state) is NOT an eviction trigger, before or after.
 ///
-/// Cap-relief prune (F1): when Add finds the cache at cap it first runs a prune pass -- re-
+/// Cap-relief prune (F1): when Add finds the KILLS cache at cap it first runs a prune pass -- re-
 /// verifying every site's anchor without painting -- to evict dead entries, then retries the
 /// admit. Rate-limited to at most one prune per PruneEveryRefusals refusals while saturated; the
 /// FIRST cap-hit after any successful prune or Clear always prunes immediately (so the
 /// status-card case never waits 32 cycles). Deliberately EXEMPT from the strike leniency above
 /// (PruneDeadSites's own doc): a cap-relief pass needs room back now, not after a strike window.
+/// LW-262 moved Add/PruneDeadSites/EvictList and their rate-limit/counter state into
+/// CardSites.Admission.cs (this file's own real seam once suffix/kills got separate caps -- see
+/// that file's class doc for the partition design and its provenance).
 ///
-/// LINE COUNT: this file sits at 282 (checked, not estimated -- round-4 review caught an earlier
-/// "~261" claim here that was already stale by the time it was written), over both the 200-line
-/// trigger and its own 234-line pre-LW-257 size. SyncFlavorToCurrent already moved out
-/// (CardSites.Reliquary.cs, a real seam); what remains is one state machine (PaintSiteWithResult)
-/// whose seven branches each now tag their own PaintOutcome for CardVerdict, which is exactly the
-/// fidelity this arc exists to add -- splitting that method across files would be the
-/// state-machine fragmentation the house rules warn against, not a seam. Going over is the honest
-/// call here, not a further split.
+/// LINE COUNT: this file was 282 before the LW-262 split moved Add/PruneDeadSites/EvictList and
+/// their state into CardSites.Admission.cs (a real seam -- verifier F7: this doc used to point a
+/// reader there "for that file's own count" while Admission.cs states no count of its own; a
+/// number here would only go stale the moment either file is next edited, the exact LW-263 defect
+/// class four separate verify rounds already caught -- so neither file cites one at all).
+/// SyncFlavorToCurrent already moved out (CardSites.Reliquary.cs, a real seam); what remains here
+/// is one state machine (PaintSiteWithResult) whose seven branches each tag their own PaintOutcome
+/// for CardVerdict, which is exactly the fidelity the LW-257 arc added -- splitting that method
+/// across files would be the state-machine fragmentation the house rules warn against, not a seam.
 /// </summary>
 internal sealed partial class CardSites
 {
@@ -38,17 +42,6 @@ internal sealed partial class CardSites
     // is NOT treated as a duplicate -- the new-owner site must be admitted.
     private readonly HashSet<(long slot, int enc, bool kills, int id, long anchor)> _keys = new();
 
-    /// <summary>Upper bound on simultaneously-live cached sites. LW-59: raised from 768 so the
-    /// pool path's all-ids suffix pass (Display.OnChunk's allSuffixes gate) is never refused at
-    /// the cap. Sizing: ~701 live kills sites observed on the 2026-07-10 tape
-    /// (docs/CHANGELOG.md LW-37 row) across 121 tracked ids is about 5.8 pool copies per id;
-    /// 121 ids x 2 site kinds (kills + suffix) x 8-copy headroom (rounded up from that 5.8)
-    /// = 1936, which 2048 clears.</summary>
-    internal const int MaxSites = 2048;
-
-    /// <summary>Minimum refused Adds between successive prune passes while saturated.</summary>
-    internal const int PruneEveryRefusals = 32;
-
     private readonly IGameMemory _mem;
     private readonly CardPatterns _pats;
     // Reliquary Phase 1 (docs/RELIQUARY_AC.md, decision 2): the three-way anchor registry.
@@ -56,43 +49,26 @@ internal sealed partial class CardSites
     // byte-identical to the original behavior.
     private readonly EarnedAnchors? _anchors;
     private readonly List<Site> _sites = new();
+    // LW-262: fired for every site PruneDeadSites (CardSites.Admission.cs) actually evicts. Null
+    // (the default) is a pure no-op -- every existing caller/test passes none, mirroring the
+    // CardVerdict-null idiom this codebase already uses for Display's _verdict/recorder params.
+    private readonly Action<Site>? _onPruneEvict;
 
-    // Prune-rate-limit state.
-    private int _refusalsAtCap;
-    private bool _pruneImmediately = true; // true after Clear or successful prune
-
-    public CardSites(IGameMemory mem, CardPatterns pats, EarnedAnchors? anchors = null)
+    public CardSites(IGameMemory mem, CardPatterns pats, EarnedAnchors? anchors = null, Action<Site>? onPruneEvict = null)
     {
-        _mem = mem;  _pats = pats;  _anchors = anchors;
+        _mem = mem;  _pats = pats;  _anchors = anchors;  _onPruneEvict = onPruneEvict;
     }
 
-    /// <summary>Number of sites in the cache.</summary>
+    /// <summary>Number of sites in the cache (both kinds).</summary>
     public int Count => _sites.Count;
 
     /// <summary>Test accessor (DisplayMaintenanceTests): a point-in-time copy of the cached sites.</summary>
     internal List<Site> Snapshot() => new(_sites);
 
-    /// <summary>Clear the cache and reset the prune rate-limit.</summary>
-    public void Clear() { _sites.Clear(); _keys.Clear(); _strikes.Clear(); _refusalsAtCap = 0; _pruneImmediately = true; }
-
-    /// <summary>Add a site if not already present (dedup by SlotAddr/Enc/IsKills/Id/AnchorAddr).
-    /// When at cap, attempts a prune pass first (rate-limited).
-    /// Returns true if added, false if duplicate or cap cannot be relieved.</summary>
-    public bool Add(Site s)
-    {
-        if (_sites.Count >= MaxSites)
-        {
-            if (_pruneImmediately || _refusalsAtCap % PruneEveryRefusals == 0)
-                PruneDeadSites();
-            _refusalsAtCap++;
-            if (_sites.Count >= MaxSites)
-                return false;
-        }
-        var key = (s.SlotAddr, s.Enc, s.IsKills, s.Id, s.AnchorAddr);
-        if (!_keys.Add(key)) return false;
-        _sites.Add(s);
-        return true;
-    }
+    /// <summary>Clear the cache and reset every piece of Admission state (LW-262: the rate-limit
+    /// fields plus the new per-kind counters -- CardSites.Admission.cs's own ResetAdmission owns
+    /// the second half so this method does not need to know their names).</summary>
+    public void Clear() { _sites.Clear(); _keys.Clear(); _strikes.Clear(); ResetAdmission(); }
 
     /// <summary>Paint the given sites. Returns the number of writes issued. Byte-identical
     /// signature preserved (LW-257): delegates to the verdict-taking overload with null, which
@@ -141,46 +117,7 @@ internal sealed partial class CardSites
 
     private enum PaintResult { NoWrite, Write, Evict }
 
-    /// <summary>Scan all cached sites and evict those with a dead anchor. Resets the
-    /// prune rate-limit on any eviction; marks _pruneImmediately=false otherwise so the
-    /// rate-limit keeps ticking when no sites could be freed.
-    ///
-    /// Deliberately bypasses the strike leniency (LW-257): this is a cap-relief pass, called
-    /// only when Add finds the cache genuinely full (CardSites.cs's class doc, "F1"). Its whole
-    /// job is to free room for a new site RIGHT NOW, so it must evict everything not currently
-    /// verifiable in one pass -- waiting out a possibly-transient Unreadable site here would let
-    /// Add keep failing while genuinely dead entries sit on strike 1 or 2. PaintAll's own
-    /// maintenance passes are a different question (steady-state hygiene, not "we are stuck at
-    /// cap"), which is exactly where the leniency belongs instead.
-    ///
-    /// UNTAPPED (round-3 review, F5): this path evicts through EvictList with no CardVerdict in
-    /// scope at all -- Add's own call chain never threads one through, and adding it here would be
-    /// more invasion (a verdict parameter down through Add) than the diagnostic is worth for a
-    /// cap-relief pass that should be rare in practice (CardSites.MaxSites is sized with headroom).
-    /// A live reader: a drain sourced from HERE, not from PaintAll's own strike policy, shows up
-    /// only as a falling `sites=` count in a coverage record with NO matching site-evicted lines --
-    /// silence here does not mean nothing happened, it means this specific path is not wired.</summary>
-    private void PruneDeadSites()
-    {
-        List<Site>? toEvict = null;
-        foreach (var s in _sites) if (VerifyAnchor(s) != AnchorState.Live) (toEvict ??= new List<Site>()).Add(s);
-        if (toEvict != null) { EvictList(toEvict); _refusalsAtCap = 0; _pruneImmediately = true; }
-        else _pruneImmediately = false;
-    }
-
-    /// <summary>Remove a list of sites from _sites, _keys, AND _strikes (LW-257: an evicted site
-    /// must not leave a stale strike count behind for some future, unrelated site that happens to
-    /// reuse the same Site key shape -- unbounded growth guard, per CardSites.Verify.cs's own
-    /// class doc).</summary>
-    private void EvictList(List<Site> list)
-    {
-        foreach (var s in list)
-        {
-            _sites.Remove(s);
-            _keys.Remove((s.SlotAddr, s.Enc, s.IsKills, s.Id, s.AnchorAddr));
-            _strikes.Remove(s);
-        }
-    }
+    // Add, PruneDeadSites, and EvictList moved to CardSites.Admission.cs (LW-262).
 
     /// <summary>CardVerdict's numeric field -- KILLS SITES ONLY. AlreadyEqual: the value the slot
     /// was READ holding, a genuine match (skip-if-equal's own comparison). Wrote: the value just

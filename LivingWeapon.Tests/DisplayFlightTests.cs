@@ -280,6 +280,131 @@ public class DisplayFlightTests
         Assert.Contains("trigger=first", hits[0].payload);
     }
 
+    /// <summary>LW-262 test 5: CardSites.Admission.cs's cap-relief prune now reaches Display's
+    /// flight tape via the onPruneEvict ctor param (Display.cs) and Display.Flight.cs's
+    /// OnSitePruned -- the round-3 review's "UNTAPPED" gap this arc closes. Drives the real
+    /// Display-owned CardSites (not a bare CardSites instance) so the wiring itself is proven, not
+    /// just the underlying prune logic CardSitesSuffixPartitionTests already pins.</summary>
+    [Fact]
+    public void Pruned_dead_site_reaches_the_flight_tape_as_site_evicted()
+    {
+        var meta = BuildMeta();
+        var kills = new Dictionary<int, int> { { 10, 5 } };
+        var clock = new TestClock();
+        var heap = new FakeHeap((StaticsBase, new byte[16], writable: true));
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock, recorder: (t, p) => recorded.Add((t, p)));
+
+        // Fill the KILLS cap with dead sites (anchors point at unmapped memory, never written to
+        // any FakeHeap region), then one more Add hits the cap and triggers the cap-relief prune
+        // (_pruneImmediately starts true on a fresh CardSites, so this is the FIRST cap-hit).
+        for (int i = 0; i < CardSites.MaxSites; i++)
+            display._sites.Add(new CardSites.Site(10, 1, 0xDEAD_5000_0000L + i, 0xDEAD_0000_0000L + i, IsKills: true));
+        Assert.Equal(CardSites.MaxSites, display._sites.Count);
+
+        var trigger = new CardSites.Site(10, 1, 0xDEAD_6000_0000L, 0xDEAD_0000_0001L, IsKills: true);
+        Assert.True(display._sites.Add(trigger), "the cap-relief prune should have freed room");
+
+        Assert.Contains(recorded, r => r.type == "card" && r.payload.Contains("site-evicted")
+                                        && r.payload.Contains("reason=pruned-dead"));
+    }
+
+    /// <summary>LW-262 test 6: the coverage record's new `suffix=` field (Display.Flight.cs's
+    /// RecordCoverageIfTapped) must carry the REAL CardSites.SuffixCount, not just be present --
+    /// asserted against an independently hardcoded expected count that DIFFERS from the kills
+    /// count (see the F5(b) note in the body: asserting against the live accessor was
+    /// tautological, since the record reads that same property).</summary>
+    [Fact]
+    public void Coverage_record_carries_the_real_suffix_site_count()
+    {
+        // Verifier F5(b) correction: the old version of this test asserted against
+        // `display._sites.SuffixCount` itself (`$"suffix={display._sites.SuffixCount}"`), which
+        // is tautological -- RecordCoverageIfTapped reads that SAME property, so the assertion
+        // could never distinguish "the payload carries the real count" from "the payload carries
+        // whatever this property happens to return", correct or not. Seeds extra suffix sites
+        // directly (bypassing the real scan) so kills and suffix are two INDEPENDENTLY KNOWN,
+        // hardcoded numbers that must differ, proven against literal expected text.
+        var (display, clock, recorded) = BuildSingleWeaponPoolDisplay();   // one tracked id (10), one real card -> 1 kills site, 1 real suffix site once scanned
+
+        // id 10 (not a fake untracked id): VerifyAnchor's first step is _pats.TryGet(s.Id, ...),
+        // which returns Mismatch (evicts on its FIRST occurrence, no leniency) for any id absent
+        // from meta -- an untracked fake id was tried first and got wiped by the very first
+        // PaintAllTapped() inside Tick(), before the scan ever ran. Id 10 IS tracked, so
+        // VerifyAnchor gets past that check; the unmapped AnchorAddr then reads Unreadable (not
+        // Mismatch), which is LENIENT (Tuning.CardEvictStrikes=3 misses before eviction) and
+        // survives the single PaintAllTapped call this test drives.
+        const int seededExtraSuffixSites = 4;
+        for (int i = 0; i < seededExtraSuffixSites; i++)
+            display._sites.Add(new CardSites.Site(10, 1, 0x6F00_0000L + i, 0x6F01_0000L + i, IsKills: false));
+
+        clock.Ms += DisplaySweep.HotRescanMs + 1;
+        CardFixtures.TickWithPoolLocate(display, false);   // discovers the 1 real kills site and 1 real suffix site for id 10
+
+        const int expectedKills = 1;
+        const int expectedSuffix = 1 + seededExtraSuffixSites;   // 1 real + 4 seeded = 5
+        Assert.NotEqual(expectedKills, expectedSuffix);   // the two numbers must genuinely differ for this test to discriminate anything
+
+        var firstPass = recorded.FindAll(r => r.type == "card" && r.payload.StartsWith("coverage"));
+        Assert.Single(firstPass);
+        Assert.Contains($"kills={expectedKills}", firstPass[0].payload);
+        Assert.Contains($"suffix={expectedSuffix}", firstPass[0].payload);
+    }
+
+    /// <summary>LW-262 test 7: the end-to-end feedback-loop pin. A pool region holding far more
+    /// live suffix-pattern hits than MaxSuffixSites (found through the REAL ScanPoolRegion/OnChunk
+    /// path, not seeded directly into CardSites like test 5 above) must still let kills coverage
+    /// latch on the very FIRST locate/scan pass -- exactly one "coverage" record, trigger=first,
+    /// no repeat locate fall-through. This is the actual bug the 2026-08-18 live tape showed: a
+    /// suffix flood filling the (then-shared) cache before kills coverage could ever be reported
+    /// complete, forcing an endless re-search loop.</summary>
+    [Fact]
+    public void Suffix_flood_in_the_real_pool_scan_still_lets_coverage_latch()
+    {
+        // Verifier F4 correction: a single-id flood only ever exercises the PER-ID cap (12), so
+        // the latch assertion below used to pass even with BOTH caps disabled -- the per-id gate
+        // alone already kept one id's suffix count small enough to never threaten coverage.
+        // MANY ids instead, each contributing well under SuffixCopiesPerId copies, so the total
+        // across ids exceeds MaxSuffixSites and only the GLOBAL cap can be what binds.
+        const int idCount = 300;
+        const int copiesPerId = 4;   // 300 * 4 = 1200 > MaxSuffixSites (1024), each id well under SuffixCopiesPerId (12)
+        var meta = new Dictionary<int, WeaponMeta>();
+        var kills = new Dictionary<int, int>();
+        for (int i = 0; i < idCount; i++)
+        {
+            meta[i] = new WeaponMeta { Name = $"Bow{i:D3}", Flavor = $"Flv{i:D3}" };
+            kills[i] = 0;
+        }
+
+        const int stride = 48;
+        var poolBuf = new byte[idCount * copiesPerId * stride + 1024];
+        int pos = 0;
+        for (int i = 0; i < idCount; i++)
+            for (int c = 0; c < copiesPerId; c++)
+            {
+                CardFixtures.WriteCardForwardWithName(poolBuf, pos, $"Bow{i:D3}", $"Flv{i:D3}");
+                pos += stride;
+            }
+
+        long poolBase = 0x5A_5000_0000L;
+        long staticsBase = 0x5A_6000_0000L;
+        var statics = new byte[64];
+        statics[0] = 0;
+
+        var heap = new FakeHeap((poolBase, poolBuf, true), (staticsBase, statics, true));
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock: new TestClock(), poolPaint: true,
+            recorder: (t, p) => recorded.Add((t, p)));
+
+        CardFixtures.TickWithPoolLocate(display, false);
+
+        var firstPass = recorded.FindAll(r => r.type == "card" && r.payload.StartsWith("coverage"));
+        Assert.Single(firstPass);   // latches on the FIRST pass -- no repeat locate fall-through
+        Assert.Contains("trigger=first", firstPass[0].payload);
+        // No single id offers more than copiesPerId (4), well under SuffixCopiesPerId (12), so
+        // ONLY the global cap can be responsible for this exact number.
+        Assert.Equal(CardSites.MaxSuffixSites, display._sites.SuffixCount);
+    }
+
     /// <summary>Shared fixture for the two coverage-record tests above: one weapon, a single pool
     /// region, poolPaint:true, a recorder wired.</summary>
     private static (Display display, TestClock clock, List<(string type, string payload)> recorded) BuildSingleWeaponPoolDisplay()

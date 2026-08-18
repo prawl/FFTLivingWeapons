@@ -132,3 +132,27 @@ thirds, and its "one driving call site instead of two" half does not shorten a s
 less work per tick and freeing the shared background job sooner, not a shorter single search. If
 the next tape still shows a long stretch of the permissive branch, that alone is still not a fail
 signature, only the settlement timing and the completion records' own numbers are.
+
+## Pre-registered note: LW-262 partition expectation (verifier F6)
+
+Written BEFORE the owner's live pass on LW-262 so a green tape is not misread against a
+now-outdated number. Before LW-262, kill-count notes and name-suffix notes shared ONE 2048-slot
+cache, so the old, honest pass criterion was that the `sites=` figure on the coverage line settles
+somewhere well under the 2048 ceiling and never pins there, since pinning meant the shared cache
+was full and coverage could never be reported complete.
+
+That criterion no longer applies: LW-262 gives the two kinds of note SEPARATE ceilings on the same
+underlying list, not a shared pool split between them. Kill-count notes may legitimately use the
+whole 2048 on their own; name-suffix notes may legitimately use the whole 1024 on their own; the
+two can both be near full AT THE SAME TIME, so `sites=` (their sum) can legitimately reach 3072
+without that meaning anything is wrong. Reading a `sites=` figure near 2048 as a bad sign, the way
+the pre-LW-262 criterion would have, is exactly the misreading this note exists to head off.
+
+The honest post-partition pass signal is NOT a sites number at all: coverage latches (a `coverage`
+record with `trigger=first` or `trigger=re-latch`) and STAYS latched, with no repeat nine-second
+locate fall-through after it does. The one number still worth reading off the coverage line is
+`suffix=`, which must never exceed 1024 (MaxSuffixSites) -- if it does, that is a real regression
+of the cap itself, not a healthy-but-large total the way `sites=` near 2048 now can be. Watch
+alongside it for `site-evicted ... reason=pruned-dead` lines, which should be rare (a kills
+cap-relief prune, expected to seldom fire post-partition -- Display.Flight.cs's OnSitePruned doc)
+rather than routine.
