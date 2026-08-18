@@ -91,7 +91,41 @@ the technical detail lives in the indented lines under it.
 
 
 
+- **[LW-263] Three of the new pool search files describe their own size wrongly** (opened 2026-08-18) [BUILDING]
+  - The numbers went stale the moment a method moved between files, and stale AGAIN since the
+    ticket was filed, which settles the argument: stop quoting line counts in prose at all.
+  - Done means: no comment in the pool search files quotes a line count; the header keeps the
+    true substance (the split was mostly comment prose, not logic growth) without numbers.
+    (Tech: the PoolLocator.Restart.cs header carried every count; wc counts are always current.)
+  - Verify: grep the three PoolLocator files for quoted line counts finds none; full suite
+    green.
+- **[LW-264] One doc comment still claims the search finishes rarely, which stopped being true** (opened 2026-08-18) [BUILDING]
+  - On a cold boot with no text pool yet, the search finishes and restarts about once a second
+    indefinitely. The twin of this sentence was corrected during the arc; this copy was missed.
+  - Done means: the LocateRecordBudget doc states the cold boot trickle truthfully and cites
+    the corrected twin, and explains why the cap matters precisely because of that trickle.
+    (Tech: LocateRecordBudget doc in Display.Flight.cs; twin is LogLocateComplete in
+    PoolLocator.Log.cs.)
+  - Verify: the corrected sentence matches LogLocateComplete's account and RevalidateMs; full
+    suite green.
+
 ## Backlog
+
+- [LW-275] 2026-08-18: A code comment can cite a ledger row that does not exist and nothing
+  notices, which is how four files pointed at a missing explanation for a week (LW-256, settled
+  by the merge). The doc gate checks links between docs but never checks that a [slug] cited
+  from a .cs comment resolves to a real row in docs/LIVE_LEDGER.md. Adding that check makes the
+  whole comments-citing-ghosts defect class mechanical instead of a thing verify rounds keep
+  finding by hand. (Tech: extend DocsContractTests with a scan of LivingWeapon/**/*.cs for
+  bracketed slug citations and assert each resolves to a LIVE_LEDGER row header; the four
+  LW-256 citations are the seed cases and now resolve.)
+
+- [LW-276] 2026-08-18: Three more comments quote their own file's line count in prose, the
+  exact rot LW-263 just cleaned out of the pool search files, found by the LW-263 verify round
+  sweeping wider. One is present tense and will go stale on the next edit. Fix is the same:
+  delete the numbers, keep the substance. (Tech: ActorResolver.TurnQueue.cs:7 "grown to ~452
+  lines"; CardSites.Verify.cs:7 "at 234 lines before this arc"; Display.PoolPaintLog.cs:6 "155
+  to 217 lines". Line refs will drift; grep for the quoted numbers.)
 
 - [LW-274] 2026-08-18: Two soft spots in the card heartbeat, observed by the LW-257 verify and
   carried out of LW-260's exit so they do not die in the changelog archive. Neither is a known
@@ -136,21 +170,6 @@ the technical detail lives in the indented lines under it.
   by Prune_evicting_exactly_the_floor_rearms_immediate_retry.)
 
 - [LW-268] 2026-08-18: The search re-reads the whole 2.8GB of game memory every time, even though at most 145MB of it has ever held what it is looking for, and the regions it found last time were still there next time. An index that remembers which regions were already checked and re-reads only new or resized ones could cut a rescan from tens of seconds to a few. The catch that must be probed FIRST: if the game pre-commits big arenas and writes card text into them later, a region can become interesting without changing its size, and the index would skip it forever with no error and no log line. Step one is a probe that logs the full region list diff alongside each locate across one battle and checks whether newly interesting regions are freshly committed or pre-existing. Sequence this after LW-262, because fixing coverage latching should make rescans rare enough to re-price the whole idea. (Tech: candidate design diffs (base,size) against the last completed PoolScan snapshot and carries not-pool verdicts for unchanged regions; hazard is that VirtualQueryEx sees commit granularity, not content.)
-
-- [LW-263] 2026-08-18: Three of the new pool search files describe their own size wrongly, saying a
-  file is 186 lines when it is 160, and another is 186 when it is 188. The numbers went stale the
-  moment a method moved between those files during the fix rounds, which is the whole argument
-  against quoting a figure in prose that changes every time someone edits the file. Found by the
-  fourth verify round on LW-261, and that is four rounds in a row finding this same class of defect.
-  Fix is either to correct them or to stop quoting line counts in prose at all. (Tech: the
-  PoolLocator.Restart.cs header and the matching claims in PoolLocator.cs and PoolLocator.Log.cs.)
-
-- [LW-264] 2026-08-18: One doc comment still says the search finishes at most a handful of times per
-  restart window, which stopped being true when the empty retry lane landed. On a cold boot where no
-  text pool exists yet, the search finishes and starts again roughly once a second, indefinitely. The
-  twin of this exact sentence was corrected during the same arc and this copy was missed. (Tech: the
-  LocateRecordBudget doc in Display.Flight.cs; the corrected twin is LogLocateComplete in
-  PoolLocator.Log.cs.)
 
 - [LW-256] 2026-08-17: Four files point to an explanation of the retry bug that this branch does
   not have yet, and nothing automated notices. The `battle-retry-rewind-fingerprint` writeup

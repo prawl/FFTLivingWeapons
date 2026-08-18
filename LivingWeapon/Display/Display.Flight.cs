@@ -209,9 +209,13 @@ internal sealed partial class Display
     /// <summary>LW-261: PoolLocator.Step's completion tap, Display.PoolLocate.cs's own call site.
     /// Mirrors RecordCoverageIfTapped above: its own small reserve, never drawn from <see
     /// cref="_flightBudget"/> (see that field's own doc for why the two traffic shapes must not
-    /// share) -- a scan completes at most a handful of times per Invalidate() window, nowhere near
-    /// a per-site traffic shape, but it deserves its own budget rather than being able to starve
-    /// or be starved by either existing lane.</summary>
+    /// share). LW-264 correction: completions are NOT always rare -- on a cold boot before the
+    /// pool exists, the empty-retry lane completes about once a second indefinitely
+    /// (LogLocateComplete's own doc, PoolLocator.Log.cs, the twin of this sentence corrected
+    /// first), which is exactly why this cap matters: a drought's steady trickle spends these 8
+    /// and the tape stays readable instead of drowning. Still nowhere near a per-site traffic
+    /// shape, and it deserves its own budget rather than being able to starve or be starved by
+    /// either neighboring lane.</summary>
     internal const int LocateRecordBudget = 8;
     internal int _locateFlightBudget;
 

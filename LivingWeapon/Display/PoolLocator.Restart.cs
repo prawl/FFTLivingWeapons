@@ -7,10 +7,11 @@ namespace LivingWeapon;
 /// machine -- WHEN to (re)scan, what a caller sees (RegionsStale, the completion's trigger) while
 /// that decision plays out, and the one write that actually clears staleness (Publish). Split out
 /// of PoolLocator.cs once the resumable-scan rewrite plus the B1/B2 straddled-invalidate fixes
-/// pushed that file to 305 lines (round 3 correction, C6: MOSTLY comment prose documenting those
-/// fixes, not code growth -- do not read "past the 200-line trigger" as "the logic got more
-/// complex"; PoolLocator.cs itself is back to 186 lines after this split, most of it doc comments
-/// too). Genuinely a different concern from PoolLocator.cs's own (what the cache holds vs. WHEN
+/// pushed that file well past the 200-line trigger (round 3 correction, C6: MOSTLY comment prose
+/// documenting those fixes, not code growth -- do not read the size as "the logic got more
+/// complex"; both halves are mostly doc comments. LW-263: the exact counts this header used to
+/// quote went stale twice in two days, so no prose here quotes one anymore -- `wc -l` is always
+/// current). Genuinely a different concern from PoolLocator.cs's own (what the cache holds vs. WHEN
 /// and how it may change): Step, Invalidate, and Publish, the three methods that actually drive
 /// this timing state, all stay whole here rather than being cut across files.
 /// </summary>
