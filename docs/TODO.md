@@ -110,6 +110,19 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-272] 2026-08-18: A dual wielder's kill credits BOTH weapons, and nothing a player or a
+  future maintainer reads says so, which the owner proved by being surprised by his own mod
+  when Ramza's two knives each claimed the same undead (owner report 2026-08-18, kill numbers
+  40 and 27 at tile 4,6). The behavior is deliberate and test pinned: both blades genuinely
+  strike in a dual wield attack and memory has no killing blow hand, so picking one hand would
+  be fake precision. Shields never leech credit, an off hand weapon counts even with a shield
+  mainhand, and one blade in two hands counts once. Fix is a short paragraph in DESIGN.md or
+  MECHANICS.md naming the rule and its edge cases, and a line in the player facing README if
+  it has a mechanics section, since two living weapons at once is quietly the fastest leveling
+  loadout in the mod. (Tech: ActorResolver.Hands walks RRHand/RLHand/ROffHand;
+  KillTracker.CreditKill increments every credited weapon; the four pins live at
+  KillTrackerTests.cs:655 onward.)
+
 - [LW-271] 2026-08-18: The progress heartbeat of a long memory search is pinned to fire at tick
   300 and to stay silent before it, but nothing proves it fires AGAIN at 600 and 900, so a slip
   that degrades the every-300 rhythm to a one-shot would leave a real 650 tick scan logging once
@@ -1435,6 +1448,21 @@ the technical detail lives in the indented lines under it.
   weapon sheet by decoding entries or by shipping garish overrides and bisecting. The modloader
   serves this channel from a per-index cache read once per process.)
 
+
+- [LW-273] 2026-08-18: When a unit falls in the game's very first battle, the game draws NO
+  three hearts countdown at all, the corpse just lies there with no permadeath clock, which
+  proves the engine has a native no hearts mode (owner observation 2026-08-18). Our Staff of
+  the Magi's Sanctuary signature wants exactly that look: today it protects the fallen by
+  HOLDING the heart counter at 3 forever, so the player stares at a countdown that never counts,
+  which reads as a bug rather than a blessing. Research how the first battle suppresses the
+  hearts render entirely (a battle flag, a per unit flag, or the counter field holding some
+  sentinel the renderer treats as no clock) and, if the lever is per unit and safe, switch
+  Sanctuary from pinning 3 to removing the hearts outright. Probe first: find the field diff
+  between a first battle corpse and a normal battle corpse at the same offsets. (Tech:
+  Sanctuary.cs pins Offsets.ACrystalHearts, band entry -0x15 == combat base +0x07, guarded W8
+  of 3, idempotent; LivingPoach.Despawn.cs shares the same field; candidate levers are a
+  sentinel value in that byte, a nearby render gate byte, or an ENTD per unit flag, none
+  verified; check LIVE_LEDGER.md before building on any of them.)
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

@@ -60,7 +60,10 @@ internal sealed partial class Display
             _regionCountAtCoverage[region] = CountKillsSitesIn(snapshot, region.baseAddr, region.size);
     }
 
-    private static int CountKillsSitesIn(List<CardSites.Site> snapshot, long rbase, long rsize)
+    // Internal, not private (LW-260 pin, zero behavior change): lets DisplayHeartbeatTests pin the
+    // end-bound check (a site sitting exactly at rbase+rsize is OUTSIDE the region) directly,
+    // mirroring PoolLocator.Restart.cs's ProgressLogEveryTicks test-accessor convention.
+    internal static int CountKillsSitesIn(List<CardSites.Site> snapshot, long rbase, long rsize)
     {
         int count = 0;
         foreach (var s in snapshot)
