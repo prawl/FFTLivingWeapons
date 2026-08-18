@@ -80,6 +80,22 @@ internal static class Tuning
     /// archetypes without a re-tune; enforced by a unit test (TuningTests.MaxArchetypes_...).</summary>
     public const int MaxArchetypes = 6;
 
+    /// <summary>CardSites (LW-257 commit 1): consecutive Unreadable anchor-verify misses a
+    /// cached equip-card paint site may accrue before PaintAll evicts it. A transient unreadable
+    /// read must not permanently delete a live site -- the bug this constant exists to fix: the
+    /// pre-LW-257 verify (CardSites.cs's old bare-bool AnchorIsLive) treated a single unreadable
+    /// frame identically to a genuine buffer-reuse mismatch and evicted on the spot. Outside the
+    /// #if LWDEV split, unlike the kill-tier thresholds above -- this is a paint-cache hygiene
+    /// knob, not a difficulty/pacing one, so both build flavors share it. Tuned from the
+    /// 2026-08-17 tape: across three successive maintenance passes the live cache's site count
+    /// fell 836 -> 726 -> 690 while Display.PoolPaint.cs's CoversAllMeta() reported coverage
+    /// "complete" throughout (each weapon id keeps roughly 5.8 pool copies on average,
+    /// CardSites.cs's own MaxSites sizing comment, so losing one copy per id never trips that
+    /// per-id check). Three strikes survives that observed multi-pass drain pattern while still
+    /// evicting a genuinely dead site within a few maintenance beats (Display.MaintenanceMs is
+    /// 1000ms each) rather than holding it forever.</summary>
+    public const int CardEvictStrikes = 3;
+
     /// <summary>AttackCard (LW-91): how long a cached table copy may fail its SyncHit verify
     /// before RepaintAll evicts it, instead of the old instant-evict-then-re-census. SyncHit for
     /// an already-cached hit runs only inside RepaintAll -- a compose-change edge, or the 1000ms

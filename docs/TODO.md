@@ -94,6 +94,35 @@ the technical detail lives in the indented lines under it.
     preview manifest pixel for pixel, which for the first time in the programme is 468 of 468
     surfaces with nothing stale; and the owner's gallery pass.
 
+- **[LW-257] Two places show the same weapon's kill count and they can disagree, because the card quietly loses the spot it paints** (opened 2026-08-17) [BUILDING]
+  - The battle menu's Attack row repaints its number from the tally every third of a second and never
+    forgets where its text lives. The equip card does neither. Worse, when the mod re-checks one of the
+    card's paint spots and the read simply fails for a moment, it treats that exactly like finding the
+    wrong text there and deletes the spot for good. Once the copy the card actually reads has been
+    deleted, that copy keeps whatever number it was last given, so the row says 23 while the card says
+    22 until an expensive full search happens to run again, which on the incident tape took 10 to 25
+    seconds.
+  - Owner sighting 2026-08-17 during the LW-233 retry drill: row 23, card 22, with the tally itself
+    correct at 23, so this is the display half and not the retry fix. The owner called it blocking
+    before the retry work counts as done. Separate from LW-165, which is about counts being stale after
+    a cold boot or a save load: this one triggers mid-battle with the mod fully armed.
+  - Shipping in two green-gated commits. The first stops the deletion (a read that fails now takes
+    Tuning.CardEvictStrikes tries before the spot is dropped, while genuinely wrong text still evicts
+    at once) and gives the black box its first record of what the card painter DECIDED, since it had
+    none at all. The second gives the card the Attack row's once-a-second heartbeat while the player is
+    on the battlefield, retries a kill whose paint found nothing cached, and re-scans only the one
+    memory region that lost spots instead of searching everything.
+  - Done means: the two surfaces agree within one second of a kill for every paint spot still cached, a
+    spot whose read fails once is never dropped, a spot holding genuinely wrong text is still dropped
+    immediately, and a tape can name which spot went dark and why.
+  - Verify: the full suite green with the load-bearing tests proven to fail first by mutation, an
+    independent adversarial verify at 8/10 or better, and the owner's live watch of one battle read
+    against the pre-registered pass and fail signatures.
+  - Known residual, stated so it is a choice: a status card left OPEN across a kill is a snapshot the
+    game rebuilds only on reopen, so it stays stale until reopened. Closing that needs a render-time
+    intercept whose premise is unproven, and it is not in this arc. Stage 3 (a standing per-beat
+    re-offer of the known pool regions) is parked in the backlog, gated on what the new tapes show.
+
 ## Backlog
 
 - [LW-256] 2026-08-17: Four files point to an explanation of the retry bug that this branch does
@@ -111,6 +140,35 @@ the technical detail lives in the indented lines under it.
   `docs/LIVE_LEDGER.md`; the four current citations are `LivingWeapon/Kills/RestartSentinel.cs:17`,
   `RestartSentinel.Policy.cs:8`, `KillTracker.cs:132`, and `KillTracker.Corpses.cs:109`, all citing
   `[battle-retry-rewind-fingerprint]`.)
+
+- [LW-259] 2026-08-17: The card painter's new black box can fall silent partway through a long
+  battle, so a problem that happens later leaves no trace at all. The budget that caps how many card
+  records one window may write is spent across a whole battle, while the priority rule protecting the
+  records that matter only applies inside a single paint pass, so a long fight spends the window on
+  routine paint lines and every eviction record after that is dropped without a word. Roughly eleven
+  kills is enough. Found by the LW-257 round 4 adversarial verify, which also noted the fix already
+  exists one field over: coverage records were given their own small reserved budget in the same
+  commit and never starve, so evictions want exactly that treatment. Until then the workaround is in
+  the LW-257 live script, since opening the status card resets the window. Three tidy-ups ride along
+  from the same review: AnnounceCoverage takes two full site snapshots on one call where one would
+  do; CardVerdict.Note's bump is O(n) in the all-evictions corner and leaves Entries no longer in
+  insertion order, neither of which its class doc mentions; and the targeted Paint path accrues
+  strikes without evicting, which is consistent but undocumented. (Tech: _flightBudget in
+  Display.Flight.cs resets only in Display.Invalidate(); mirror CoverageRecordBudget's reserve for
+  the Evicted tier.)
+
+- [LW-258] 2026-08-17: Stage 3 of the card-disagreement fix, parked deliberately until the new tapes
+  say whether it is needed. If the LW-257 commits land and a card copy is STILL going dark (rather
+  than merely being drawn before the paint), the answer already designed is a standing re-offer: walk
+  one chunk of one already-located pool region per maintenance beat, round-robin, through the existing
+  OnChunk. Never a whole-process region walk, never the retired whole-heap sweep. What makes it
+  affordable is a second piece worth having on its own: split CardScanner.FindKills so the literal hit
+  and the meter-slot check happen BEFORE the 121-flavor attribution search, and skip attribution
+  entirely for a slot address CardSites already owns, which cuts the dominant per-chunk cost by
+  roughly ten times in steady state. Promote this only on evidence from the LW-257 taps (a site that
+  keeps getting evicted, or a region whose count keeps draining), never on suspicion. (Tech: full
+  design in the LW-257 round 1 proposal, section 4 items 10 and 11; the new `card` flight records
+  named `site-evicted` and `coverage` are the evidence to read.)
 
 - [LW-253] 2026-08-17: The twin weapon takes up to ten seconds to visibly appear on the status
   page when the player bounces in and out of menus, and the owner asked for about two if it
@@ -615,21 +673,6 @@ the technical detail lives in the indented lines under it.
   it); the RTTI scan of the live image names candidate window classes (FFTOItemConfirmWindow
   and siblings); a show routine plus text holder pair would make this a callable surface, the
   same shape as the battle callout bubble arc.
-
-- [LW-257] 2026-08-17: Two places show the same weapon's kill count and they disagree during a
-  battle, so the player is told two different numbers at once. Owner sighting during the LW-233
-  retry drill: after a kill the battle menu's Attack row read 23 while the status card still read
-  22, and the card only caught up later. This is NOT the retry bug, which was verified correct in
-  the same session with the tally file agreeing at 23; it is the display half, and the owner has
-  called it blocking before the retry work counts as done. Worth separating from LW-165, which is
-  about counts being stale after a cold boot or a save load: this one triggers mid-battle with the
-  mod fully armed and both painters running, and the card demonstrably updates (it followed the
-  rewind down to 22) while lagging one step behind. (Tech: two independent paint paths, the
-  attack-row painter and the budgeted pool sweep in the Display files, sample the tally at
-  different cadences with no shared invalidation. First question when picked up is whether the card
-  is one whole sweep behind by design or whether the rewind and the re-credit landed inside one
-  sweep window; the LW-233 drill log plus flight_20260817_175855_battle-exit.jsonl carry both
-  credits and the uncredit with timestamps, so the answer is already banked.)
 
 - [LW-172] 2026-08-12: The mod's human versus monster job boundary is off by two, and every
   consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.

@@ -20,6 +20,12 @@ namespace LivingWeapon;
 /// memory (Mem.cs), so any region located is writable BY CONSTRUCTION: a read-only pool is never
 /// in Regions() at all, so LocateAll simply omits it (caller keeps sweeping) rather than
 /// reporting a write target that cannot be painted.
+///
+/// PREMISE STATUS: that the specific named pool this class locates is the copy the card actually
+/// materializes from is docs/LIVE_LEDGER.md's [card-materializes-from-named-pool] row -- filed
+/// Uncertain (commit/changelog grade, one below ledger-PROVEN), owner-only flip. LW-257 commit 1
+/// does not touch this premise at all; it matters only for a targeted per-region drain check that
+/// is explicitly OUT of commit 1's scope.
 /// </summary>
 internal sealed class PoolLocator
 {
@@ -28,6 +34,12 @@ internal sealed class PoolLocator
     private readonly ChunkReader _reader;
 
     private readonly List<(long baseAddr, long size)> _cached = new();
+
+    // LW-257 (item 7): Signatures.StuckEdge state for the locate log line below -- a persistent
+    // "found nothing" state (or a pool that never resolves) would otherwise log every single
+    // Tick forever once promoted out of #if LWDEV. Mirrors Display.PoolPaint.cs's own
+    // _noPoolRegionLatched, kept separate since the two fire from different call sites.
+    private bool _noneFoundLatched;
 
     public PoolLocator(IGameMemory mem, CardPatterns pats)
     {
@@ -46,10 +58,22 @@ internal sealed class PoolLocator
         _cached.Clear();
         foreach (var (rbase, rsize) in _mem.Regions())
             if (ScanRegion(rbase, rsize).isPool) _cached.Add((rbase, rsize));
-#if LWDEV
-        var bases = _cached.ConvertAll(r => "0x" + r.baseAddr.ToString("X"));
-        ModLogger.Debug(LogVerb.Display, $"LW37 locate: {_cached.Count} named-pool region(s) at [{string.Join(", ", bases)}]");
-#endif
+        // LW-257: promoted from #if LWDEV to unconditional Debug (file-only, no console noise --
+        // ModLogger.Debug always writes livingweapon.log, LogLevel only gates the console mirror)
+        // so a RELEASE tape can answer "how many pool regions, and how big" without a dev rebuild.
+        // Size is new alongside the base address: the base-only line could not tell a small region
+        // from one large enough to make MaybePoolPaint's per-region scan cost (Display.PoolPaint.
+        // cs's own ScanPoolRegion doc) actually matter. Rate-limited (item 7) when nothing is
+        // found: StuckEdge logs that transition once instead of every Tick a drought persists;
+        // a found-something result (rare once coverage latches -- LocateAll then short-circuits
+        // above) always logs, since it is never a per-tick event in practice.
+        bool noneFound = _cached.Count == 0;
+        bool edge = Signatures.StuckEdge(ref _noneFoundLatched, noneFound);
+        if (!noneFound || edge)
+        {
+            var parts = _cached.ConvertAll(r => "0x" + r.baseAddr.ToString("X") + ":" + r.size);
+            ModLogger.Debug(LogVerb.Display, $"LW37 locate: {_cached.Count} named-pool region(s) at [{string.Join(", ", parts)}]");
+        }
         return _cached;
     }
 

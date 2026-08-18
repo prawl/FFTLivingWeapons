@@ -8,7 +8,9 @@ namespace LivingWeapon.Tests;
 /// Display's pool-anchored in-place Kills paint (LW-37): once a writable pool region is
 /// located and fully covers every tracked weapon id, the per-paint whole-heap DisplaySweep
 /// is skipped. poolPaint is INJECTED (Display's ctor) so these tests reach the ON branch
-/// under the PROD compile (LWDEV undefined), where Tuning.PoolPaintEnabled is always false.
+/// directly regardless of the compiled Tuning.PoolPaintEnabled default (true in both build
+/// flavors today, Tuning.cs) -- the injection is what makes the pool path deterministic to
+/// test, not a PROD/DEV compile difference.
 /// Every test proves non-vacuity the same way: display._sweep.IsComplete stays FALSE when
 /// the pool path is exercised (the sweep is literally never Tick()'d), so a correct paint
 /// result can only have come from the pool path, never a fallback sweep pass.
@@ -177,6 +179,73 @@ public class DisplayPoolPaintTests
 
         var infoHits = cap.File.FindAll(l => l.Contains("[INFO]") && l.Contains("paint spots"));
         Assert.Single(infoHits);
+    }
+
+    // ─── LW-257 round-3 review, F1: the coverage summary line is rate-limited ─────
+
+    /// <summary>F1: a region IS located (regions.Count > 0, so the "no named-pool region"
+    /// StuckEdge gate never engages), but coverage can never complete (one tracked id is simply
+    /// never present anywhere in the pool). Pre-fix, MaybePoolPaint's "LW37 paint: ..." summary
+    /// line -- and the full _sites.Snapshot() copy behind it -- re-ran on EVERY Tick for as long
+    /// as that persisted. NOT the CardEvictStrikes-tuned incident (Tuning.cs's own doc: that one's
+    /// site count fell while CoversAllMeta() stayed TRUE throughout, so _poolCovered never
+    /// dropped and this fall-through branch was never reached during it at all) -- this fixture
+    /// instead models ScanPoolRegion's own documented "coverage never latches" residual risk (a
+    /// tracked weapon absent from every pool region) and the repeated status-card-open unlatch
+    /// window (Engine.cs's Display.Invalidate() call), both real triggers for this same
+    /// fall-through repeating. Ten ticks of that permanent non-coverage must produce exactly one
+    /// line, not ten.</summary>
+    [Fact]
+    public void Persistent_partial_coverage_logs_the_summary_line_once_not_every_tick()
+    {
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 10, new WeaponMeta { Name = "BowX", Flavor = "Fletched with regret" } },
+            { 11, new WeaponMeta { Name = "BowY", Flavor = "Arrow never sleeps" } },   // never written below
+        };
+        var kills = new Dictionary<int, int> { { 10, 0 }, { 11, 0 } };
+        var clock = new TestClock();
+
+        var poolBuf = new byte[2000];
+        CardFixtures.WriteCardForwardWithName(poolBuf, 0, "BowX", "Fletched with regret");
+        // id 11 ("BowY") is deliberately never written anywhere: CoversAllMeta() can never
+        // return true, so _poolCovered stays false and MaybePoolPaint falls through every Tick.
+
+        long poolBase = 0x56_0000_0000L;
+        long staticsBase = 0x57_0000_0000L;
+        var statics = new byte[64];
+        statics[0] = 10; statics[1] = 0;
+
+        var heap = new FakeHeap((poolBase, poolBuf, true), (staticsBase, statics, true));
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock, poolPaint: true);
+
+        using var cap = LogCapture.Start();
+        for (int i = 0; i < 10; i++)
+        {
+            clock.Ms += DisplaySweep.HotRescanMs + 1;
+            display.Tick(false);
+        }
+
+        // Coverage never completing is itself the documented existing fallback shape
+        // (ScanPoolRegion's own doc, NOT MaybePoolPaint's: "it already re-scans all regions AND
+        // runs the sweep every tick today" when coverage never latches), so the whole-heap sweep
+        // legitimately also runs in this scenario -- unrelated to what this test checks. Non-vacuity instead: the
+        // captured line must report the ONE region this fixture actually located ("1 region(s)"),
+        // proving MaybePoolPaint's region-found branch (locate -> scan -> CoversAllMeta -> the
+        // rate-limited log) is what ran, not the empty-regions StuckEdge branch (item 7).
+        var summaryLines = cap.File.FindAll(l => l.Contains("LW37 paint:") && l.Contains("1 region(s)"));
+        Assert.Single(summaryLines);
+
+        // Round-5 fix (F1): the "LW37 locate-timing:" line escaped this same arc's own
+        // rate-limit discipline -- it was unconditional, so this same ten-tick fixture printed
+        // ten of them (a live verifier measured this exact fixture and got 10-to-1 against the
+        // gated summary line above). TestClock cannot simulate elapsed wall-time within one
+        // synchronous call (both _nowMs() reads in MaybePoolPaint see the same fixed Ms value),
+        // so locateMs is deterministically 0 here regardless of real vs. short-circuited work --
+        // this asserts the flood is gone, not that the line still fires when locateMs is
+        // genuinely positive (a live-only fact, per spec 1.5's own 143-569ms measurement).
+        var locateTimingLines = cap.File.FindAll(l => l.Contains("LW37 locate-timing:"));
+        Assert.True(locateTimingLines.Count < 10, "must not print once per tick regardless of value");
     }
 
     // ─── sweep-gate via the injected flag (B2) ─────────────────────────────────────
@@ -361,9 +430,16 @@ public class DisplayPoolPaintTests
     /// (mirroring DisplayMutationGapTests' C4 region-move) remove the pool region and add a
     /// fresh one at a different base with unpainted card bytes for the same two weapons, advance
     /// the clock past Display.MaintenanceMs so the maintenance PaintAll evicts the now-dead sites
-    /// (their anchors live in memory that no longer exists), and Tick once more with NO
-    /// Invalidate() anywhere in the test. A correct fix re-locates within that same Tick (the
-    /// eviction and the pool-paint re-check both run inside Display.Tick, eviction first).</summary>
+    /// (their anchors live in memory that no longer exists), and Tick with NO Invalidate()
+    /// anywhere in the test. A correct fix re-locates the same Tick eviction actually happens on
+    /// (the eviction and the pool-paint re-check both run inside Display.Tick, eviction first).
+    ///
+    /// LW-257: eviction itself now takes Tuning.CardEvictStrikes consecutive maintenance beats,
+    /// not one (CardSites.Verify.cs's ApplyStrike leniency -- a single transient unreadable read
+    /// must survive). So this recipe drives that many beats before the re-locate can be expected;
+    /// MaybePoolPaint's count-compare short-circuit stays latched (Regions() untouched) for every
+    /// beat before the last, exactly like the steady state it is, and only falls through once
+    /// Count actually drops on the beat that reaches the strike cap.</summary>
     [Fact]
     public void PoolPaint_drained_pool_relocates_without_any_invalidate()
     {
@@ -387,10 +463,14 @@ public class DisplayPoolPaintTests
         var (_, slotB2, _) = CardFixtures.WriteCardForwardWithName(newBuf, nextStart2, "BowY", "Arrow never sleeps");
         f.Heap.AddRegion(newBase, newBuf, writable: true);
 
-        // Advance past MaintenanceMs so the maintenance PaintAll runs, re-verifies every cached
-        // site's anchor, and evicts the ones whose anchor now lives in removed memory.
-        clock.Ms += Display.MaintenanceMs + 1;
-        display.Tick(false);
+        // Advance past MaintenanceMs Tuning.CardEvictStrikes times so the maintenance PaintAll
+        // actually evicts the now-dead sites (LW-257: one strike per beat, eviction only on the
+        // beat that reaches the cap) before the pool-paint re-check can see Count drop.
+        for (int beat = 0; beat < Tuning.CardEvictStrikes; beat++)
+        {
+            clock.Ms += Display.MaintenanceMs + 1;
+            display.Tick(false);
+        }
 
         Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
         Assert.Equal(Signatures.KillsMeterSlot(3), ReadAscii(f.Heap, newBase + slotB2, Signatures.KillsMeterSlotChars));
@@ -400,7 +480,13 @@ public class DisplayPoolPaintTests
     /// <summary>LW-163 regression pin, the non-vacuous negative for the fall-through above: the
     /// fix must not turn into a permanent every-tick rescan. RegionsSpyMem is copied (not
     /// referenced) from PoolLocatorTests.cs's private helper of the same name, per this file's
-    /// own no-cross-file-reference convention for test-only fakes.</summary>
+    /// own no-cross-file-reference convention for test-only fakes.
+    ///
+    /// LW-257: the drain-to-heal window now spans Tuning.CardEvictStrikes maintenance beats
+    /// (CardSites.Verify.cs's ApplyStrike leniency), not one, so the "steady state calls
+    /// Regions() zero times" pin has to hold across every beat but the last too, not just the
+    /// five pre-drain ticks part (a) already covers -- that is what the loop below's own
+    /// per-beat assertion proves, before the final beat is allowed to actually heal.</summary>
     [Fact]
     public void PoolPaint_steady_state_short_circuits_and_relatches_after_heal()
     {
@@ -422,7 +508,7 @@ public class DisplayPoolPaintTests
         for (int i = 0; i < 5; i++) display.Tick(false);
         Assert.Equal(callsAfterCoverage, spy.RegionsCalls);
 
-        // Drain (same recipe as the born-red test above), then heal on the next Tick.
+        // Drain (same recipe as the born-red test above), then heal after the strike window.
         f.Heap.RemoveRegion(f.PoolBase);
         long newBase = 0x59_0000_0000L;
         var newBuf = new byte[2000];
@@ -431,8 +517,18 @@ public class DisplayPoolPaintTests
         CardFixtures.WriteCardForwardWithName(newBuf, nextStart2, "BowY", "Arrow never sleeps");
         f.Heap.AddRegion(newBase, newBuf, writable: true);
 
+        // LW-257: every beat before the strike cap is still a live-count steady state as far as
+        // MaybePoolPaint is concerned (the dead sites are struck but not yet evicted, so Count
+        // hasn't moved) -- Regions() must stay untouched through all of them.
+        for (int beat = 0; beat < Tuning.CardEvictStrikes - 1; beat++)
+        {
+            clock.Ms += Display.MaintenanceMs + 1;
+            display.Tick(false);
+            Assert.Equal(callsAfterCoverage, spy.RegionsCalls);
+        }
+
         clock.Ms += Display.MaintenanceMs + 1;
-        display.Tick(false);   // maintenance evicts, then the drained-cache re-check heals, same Tick
+        display.Tick(false);   // the beat that reaches the strike cap: evicts, then heals, same Tick
 
         Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
 

@@ -1230,6 +1230,24 @@ The Gun Slinger / Crossfire twin grant (the [gunslinger-roster-offhand-support-w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [card-materializes-from-named-pool] The equip card rebuilds its description text from the name-gated string pool at open, so painting the pool before the draw is what reaches the screen
+
+The claim that the specific NAME-GATED pool copy (the one `PoolLocatorPolicy`'s NameWindow gate keeps, as against the ~26 name-less transient render copies it deliberately drops) is the copy the equip card materialises from is Uncertain as of 2026-08-17: it is the premise the entire LW-37 pool-paint design rests on and it has never had a ledger row of its own. Everything supporting it is one grade below ledger-PROVEN, and the nearest PROVEN row, [flavor-line-overwrite-displays], cannot discriminate: that probe wrote EVERY site the whole-heap sweep had discovered, pool copies and render copies alike, so it proves the card renders from paintable heap buffers without naming WHICH.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** The equip card re-materializes its description from the stable, name-bearing UE string pool on every open; a paint that lands in that pool before the draw reaches the screen, and a paint that lands after it does not (nothing repaints an already-drawn copy)
+
+**Mechanism:** PoolLocator keeps only regions holding a fully baked entry (a "Kills: " literal tied to its owner's flavor AND the owner weapon's NAME within NameWindow=512 bytes); PoolLocator.Policy.cs's class doc records that transient FText/widget render copies carry flavor + Kills with NO adjacent name, and that without the name gate ~26 lower-addressed render copies won the distinct-weapon tiebreak and left the real pool unpainted. Once pool coverage latches, Display.cs's `if (!(_poolPaint && MaybePoolPaint()))` retires the whole-heap sweep, which was the only lane that ever wrote into those render copies, so from that moment the mod paints the pool and nothing else.
+
+**Evidence:** LW-37 changelog row ("The card re-materializes its description from stable UE string-pool regions"); the 2026-07-07 in-place pool overwrite that made a reopened Gloomfang card display the probe string; LW-59's stale "+3" suffix persisting "in the very pool text the card materializes from" after a tally reset; the 2026-07-08 live pass through this exact code path. All commit and changelog grade, none of it a row here. The cheap settling drill is the LW-37 recipe repeated deliberately: write a distinctive marker into ONE located pool copy with the LWDEV path armed, reopen the card, and confirm the marker shows.
+
+**Why it matters for LW-257:** the arc's commit 2 leans on this in exactly one place, the pending-set clear predicate preferring a site inside a located pool region. If the premise is wrong there, the failure is bounded and benign (a pending id retries an already-correct repaint until its 10-beat cap drops it, costing skip-if-equal passes and no wrong write), which is why that arc shipped without settling this first.
+
+**Date:** 2026-08-17
+
+</details>
+
 ### [pe-key-match-kitlane-mismatch-discriminator] PE-build-key match + JobCommand rec8/rec9 mismatch discriminates a mod rewrite from a game update (LW-112 guard split)
 
 The claim that a matching PE build key combined with a rec8/rec9 landmark mismatch means another mod rewrote the table (so the split guard arms the mod and stands down only the weapon-command lane) is Uncertain: desk analysis plus a player field report support it, but the owner's pre-registered two-leg conflict-mod drill is still the pending live proof (2026-07-28).

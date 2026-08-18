@@ -97,14 +97,18 @@ public class DisplayMaintenanceTests
         Assert.Equal(nine, ReadSlot(heap, card.killsSlotPos, meterWidth));
     }
 
-    // ─── T4: dead sites evicted by maintenance pass ───────────────────────────
+    // ─── T4: dead sites evicted by maintenance pass, after the strike window ──
 
     /// <summary>
-    /// Dead sites (anchor removed from heap) are evicted by the maintenance PaintAll,
-    /// causing Count to decrease on the maintenance cadence, NOT only on count changes.
+    /// Dead sites (anchor removed from heap) are evicted by the maintenance PaintAll on the
+    /// maintenance cadence, NOT only on count changes -- but not on the very first bad verify.
+    /// LW-257: a transient unreadable read must survive one miss (CardSites.Verify.cs's
+    /// ApplyStrike leniency), so eviction now takes Tuning.CardEvictStrikes consecutive
+    /// maintenance beats, not one. The site's continued presence after the first beat is itself
+    /// part of this test's contract now, not just a step on the way to the old assertion.
     /// </summary>
     [Fact]
-    public void Dead_sites_evicted_by_maintenance_pass()
+    public void Dead_sites_evicted_by_maintenance_pass_after_the_strike_window()
     {
         var kills   = new Dictionary<int, int> { { 10, 5 } };
         var (heap, card, display, clock) = BuildFixture(kills);
@@ -117,11 +121,20 @@ public class DisplayMaintenanceTests
         // Simulate buffer freed: remove the heap region so anchor reads fail.
         heap.RemoveRegion(SourceBase);
 
-        // Anchor the maintenance clock: advance past MaintenanceMs so the next tick fires.
+        // LW-257: each maintenance beat past MaintenanceMs is one Unreadable strike
+        // (CardSites.Verify.cs's ApplyStrike). Eviction only fires on the beat that reaches
+        // Tuning.CardEvictStrikes -- every beat before that must leave the site cached.
+        for (int beat = 1; beat < Tuning.CardEvictStrikes; beat++)
+        {
+            clock.Ms += Display.MaintenanceMs + 1;
+            display.Tick(false);
+            Assert.Equal(countBeforeRemoval, display._sites.Count);
+        }
+
+        // The beat that reaches the strike cap: PaintAll triggered by maintenance should now
+        // have evicted ALL now-dead sites.
         clock.Ms += Display.MaintenanceMs + 1;
         display.Tick(false);
-
-        // PaintAll triggered by maintenance should have evicted ALL now-dead sites.
         Assert.Equal(0, display._sites.Count);
     }
 }

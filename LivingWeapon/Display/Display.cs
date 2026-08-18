@@ -76,8 +76,13 @@ internal sealed partial class Display
     /// so every test defaults to deterministic sweep behavior INDEPENDENT of the release flag.
     /// PRODUCTION (Engine) passes Tuning.PoolPaintEnabled explicitly; a test injects true to
     /// exercise the pool-paint path.</param>
+    /// <param name="recorder">LW-257: the flight-recorder tap, mirroring AttackCard's own ctor
+    /// idiom (AttackCard.cs's `Action&lt;string,string&gt;? recorder` param). Null (the default,
+    /// every existing test) means no flight lines are ever emitted -- see Display.Flight.cs's
+    /// class doc. Production (Engine.cs) passes Flight.Record.</param>
     public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
-                   Func<long>? nowMs = null, LegendStore? legends = null, bool? poolPaint = null)
+                   Func<long>? nowMs = null, LegendStore? legends = null, bool? poolPaint = null,
+                   Action<string, string>? recorder = null)
     {
         _meta      = meta;
         _kills     = kills;
@@ -87,7 +92,7 @@ internal sealed partial class Display
         _poolPaint   = poolPaint ?? false;
         _poolLocator = new PoolLocator(mem, _pats);
         _sweep     = new DisplaySweep(mem, _nowMs);
-        // StoryLines owns EarnedAnchors (the three-way anchor registry, decision 12) -- built
+        // StoryLines owns EarnedAnchors (the three-way anchor registry, decision 2) -- built
         // before CardSites so CardSites can be handed its anchors at construction. SeedAtStartup
         // recomposes every weapon's CURRENT line from persisted deed state and loads PREVIOUS
         // from the store's "lastPainted", so the very first paint already carries earned lines.
@@ -122,6 +127,12 @@ internal sealed partial class Display
             ModLogger.Debug(LogVerb.Trace, "painter misconfiguration detail (trailSlack="
                       + DisplaySweep.TrailSlack + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot)");
         }
+
+        // LW-257: Display.Flight.cs owns everything else about this tap. _verdict is left null
+        // (no allocation) when no recorder is wired, so the common no-recorder case (every
+        // existing test) never sees this arc's ledger bookkeeping at all.
+        _recorder = recorder;
+        _verdict = recorder != null ? new CardVerdict() : null;
     }
 
     /// <summary>Drop the site cache and start a new sweep generation on the next Tick.
@@ -133,6 +144,8 @@ internal sealed partial class Display
         _lastTargets = new HashSet<int>();
         _poolCovered = false;
         _poolLocator.Invalidate();
+        _flightBudget = 0;     // LW-257: a new coverage/cache window gets a fresh record budget
+        _coverageBudget = 0;   // LW-257 (F3): its own reserve, reset on the same window boundary
     }
 
     /// <summary>LW-91 stage 2: a narrow, in-battle-safe repaint driven by a kill-count change
@@ -152,7 +165,7 @@ internal sealed partial class Display
 
         _stories?.RecomposeChanged(changedIds);
         _sweep.RequestRescan();
-        if (_sites.Count > 0) _sites.PaintAll(KillsFor);
+        if (_sites.Count > 0) PaintAllTapped();
     }
 
     /// <summary>Drive one display cycle. <paramref name="inBattle"/> true shrinks the byte
@@ -181,7 +194,7 @@ internal sealed partial class Display
         if (countsChanged || targetsChanged)
         {
             _sweep.RequestRescan();
-            _sites.PaintAll(KillsFor);
+            PaintAllTapped();
         }
 
         // Maintenance repaint: PaintAll on a clock cadence to drain dead sites and
@@ -192,7 +205,7 @@ internal sealed partial class Display
         {
             _lastMaintenanceMs = now;
             if (!countsChanged && !targetsChanged)
-                _sites.PaintAll(KillsFor);
+                PaintAllTapped();
         }
 
         // Target change means fresh card buffers may have appeared; start a new generation
@@ -290,8 +303,27 @@ internal sealed partial class Display
 
         if (newSites.Count > 0)
         {
-            // Paint only the new sites from this chunk (not the full 512-site cache).
-            _sites.Paint(newSites, KillsFor);
+            // Paint only the new sites from this chunk (not the full 512-site cache). LW-257
+            // (round-3 review, F4): the verdict rides along too, so a freshly-discovered site
+            // refused on its FIRST paint (SlotShapeRefused, NotWritable) reaches the tape instead
+            // of vanishing silently -- before this, only PaintAllTapped's PaintAll fed the ledger,
+            // so a site that never survives past discovery had no trace at all. Deliberately "let
+            // it ride" rather than emit here: entries accumulate in the shared _verdict across
+            // every OnChunk call (this can run many times in a single Tick, once per offered
+            // chunk) until the next PaintAllTapped's EmitVerdict+Clear -- emitting per chunk would
+            // multiply log-formatting cost far past the cadence this arc's cost budget accepts.
+            // Bounded the same way every other Note() caller already is (CardVerdict's own
+            // 256-entry notable cap); nothing here is a new unbounded-growth risk.
+            // DECLARED OMISSION (round-4 review, item 4, same declare-the-gap rule the spec
+            // applied to the dropped `from=` field): letting it ride costs TIMESTAMP ACCURACY,
+            // not just delay. Flight.Record stamps a record when Flight.Record is actually
+            // CALLED, so a discovery outcome noted here is emitted later, inside the next
+            // PaintAllTapped's EmitVerdict -- its "card" record therefore carries THAT LATER
+            // moment's clock time, up to about a second after (Display.MaintenanceMs) the site
+            // was actually discovered, not this OnChunk call's own timestamp. Fine for what this
+            // ledger is used for (a diagnostic ordering, not a precise event log), but a reader
+            // correlating this tape against another system's timestamps should know the skew exists.
+            _sites.Paint(newSites, KillsFor, _verdict);
             // Mark chunk as hot so it gets priority on the next HotRescanMs interval.
             long chunkStart = bufBaseAddr + lookback;
             _sweep.MarkHot(chunkStart);
