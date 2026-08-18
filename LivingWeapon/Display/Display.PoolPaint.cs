@@ -11,7 +11,10 @@ namespace LivingWeapon;
 internal sealed partial class Display
 {
     private readonly bool _poolPaint;
-    private readonly PoolLocator _poolLocator;
+    // internal (not private): DisplayPoolLocateBudgetTests' LW-266 budget test reads
+    // PublishGeneration off this field as its completions-actually-happened premise, the same
+    // test-accessor convention Display.Flight.cs documents (_verdict, _coverageBudget, etc).
+    internal readonly PoolLocator _poolLocator;
     private bool _poolCovered;
     // LW-163: the site count the cache held the moment coverage last latched true. While
     // _poolCovered is true, nothing else in this Tick offers a site to the pool cache (the

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using LivingWeapon;
 using Xunit;
 
@@ -102,5 +103,74 @@ public class DisplayPoolLocateBudgetTests
             clock.Func, legends: null, poolPaint: true);
         outOfBattleDisplay.StepPoolLocate(false);
         Assert.Equal(4, outOfBattleSpy.ChunkReads);
+    }
+
+    /// <summary>LW-266: the locate-complete flight tap (Display.Flight.cs's
+    /// RecordLocateCompleteIfTapped) is the record the owner reads a live pass's completion
+    /// numbers off, and two PRIOR mutations to it (swapping which counter it checks, and which
+    /// counter it spends) both left this suite green -- nothing exercised its own budget/reset
+    /// contract directly. This pins both halves: the tap clamps at its OWN reserve
+    /// (<see cref="Display.LocateRecordBudget"/>), separate from every other flight lane's
+    /// budget, and <see cref="Display.Invalidate"/> resets that reserve for the next window
+    /// (Display.cs's own reset trio -- _flightBudget/_coverageBudget/_locateFlightBudget all
+    /// zeroed together).
+    ///
+    /// The heap carries NO pool-shaped bytes anywhere (a statics region only), so every scan
+    /// completes having found nothing: PoolLocator.CachedRegions never fills, which keeps every
+    /// completion after the first on the empty-retry lane (PoolLocator.Restart.cs's own
+    /// "_hasScannedOnce ? empty-retry : first" branch) rather than the revalidate one -- the
+    /// cheapest way to drive many completions from one tiny fixture.</summary>
+    [Fact]
+    public void Locate_complete_records_stop_at_their_own_budget_and_reset_per_window()
+    {
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 10, new WeaponMeta { Name = "BowX", Flavor = "Fletched with regret" } },
+        };
+        var kills = new Dictionary<int, int> { { 10, 7 } };
+        var clock = new TestClock();
+        clock.Ms = 100_000;   // repo hygiene: nonzero origin, not load-bearing
+
+        long staticsBase = 0x7A_0000_0000L;
+        var statics = new byte[64];
+        statics[0] = 10;
+        var heap = new FakeHeap((staticsBase, statics, true));
+
+        var recorded = new List<(string type, string payload)>();
+        var display = CardFixtures.MakeDisplay(meta, kills, heap, staticsBase, clock,
+            poolPaint: true, recorder: (t, p) => recorded.Add((t, p)));
+
+        // Drive completions through the empty-retry lane: each iteration's scan finds nothing
+        // and completes within that single call (the heap is tiny), emitting one locate-complete
+        // tap attempt every time. LocateRecordBudget + 5 attempts, well past the clamp.
+        for (int i = 0; i < Display.LocateRecordBudget + 5; i++)
+        {
+            clock.Ms += PoolLocator.RevalidateMs + 1;
+            display.StepPoolLocate(false);
+        }
+
+        // Premise assert: all 13 completions genuinely happened (each Publish bumps
+        // PublishGeneration), so the 8 below is the record budget clamping, not completions
+        // drying up (LW-266 verify round).
+        Assert.Equal(Display.LocateRecordBudget + 5, display._poolLocator.PublishGeneration);
+
+        var completes = recorded.Where(r => r.type == "card" && r.payload.StartsWith("locate-complete")).ToList();
+        Assert.Equal(Display.LocateRecordBudget, completes.Count);
+        Assert.Contains("trigger=first", completes[0].payload);
+        Assert.Contains(completes, r => r.payload.Contains("trigger=empty-retry"));
+
+        // Window reset: Invalidate() zeroes the locate tap's own reserve (Display.cs's reset
+        // trio), so the very next completion after a fresh RevalidateMs wait is recorded again
+        // instead of staying clamped at the old window's cap.
+        display.Invalidate();
+        clock.Ms += PoolLocator.RevalidateMs + 1;
+        display.StepPoolLocate(false);
+
+        // Same premise, post-reset: one more genuine completion landed (LocateRecordBudget + 6),
+        // not a completions-stopped false pass on the reset half of this test.
+        Assert.Equal(Display.LocateRecordBudget + 6, display._poolLocator.PublishGeneration);
+
+        var afterReset = recorded.Count(r => r.type == "card" && r.payload.StartsWith("locate-complete"));
+        Assert.Equal(Display.LocateRecordBudget + 1, afterReset);
     }
 }

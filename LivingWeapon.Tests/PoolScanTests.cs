@@ -53,6 +53,12 @@ public class PoolScanTests
         long bound = PoolLocator.LocateBudgetInBattle + DisplaySweep.ChunkSize;
         Assert.True(spy.TotalBytesRead <= bound,
             $"Step read {spy.TotalBytesRead} bytes, more than budget+one chunk ({bound})");
+        // LW-265: a double-spending Step (two chunks instead of one) trips the byte bound above
+        // only via the ~12KB Lookback/TrailSlack read overhead paid twice -- a slack-margin
+        // accident, not a designed catch. Only the chunk COUNT pins one slice versus two by
+        // design, the same discriminator DisplayPoolLocateBudgetTests' battle-aware budget test
+        // uses.
+        Assert.Equal(1, spy.ChunkReads);
     }
 
     /// <summary>C2(a) (round 3 verify): a region that GROWS IN PLACE while the cursor is still
