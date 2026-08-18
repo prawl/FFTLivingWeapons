@@ -89,6 +89,29 @@ the technical detail lives in the indented lines under it.
   - Verify: the four icon gates green with the pins proven by mutation, the bake matching the FULL
     preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
 
+- **[LW-247] The icon look players see today lives only in a probe script; the repo's own bake would put the rejected look back** (opened 2026-08-16) [BUILDING]
+  - Promoted from Backlog 2026-08-18. Plain: after players rejected the old recolours, a replacement engine was built in a probe
+    and its output was painted straight into the live install, where the owner passed it in
+    game on 2026-08-16 ("fits the game perfectly"). The repo pipeline never learned the new
+    recipe, so today a normal deploy would silently clobber every approved icon back to the
+    rejected look, and every deploy needs a manual snapshot and restore dance to avoid that.
+    This ticket teaches the real pipeline the new recipe so the repo can rebuild exactly what
+    is deployed, and the dance retires. The wait clause on this row (the owner's in game pass
+    of the deployed shields) was satisfied 2026-08-16.
+  - (Tech: port tools/probes/ramp/ramp_engine.py and its four json tables into
+    tools/recolor_icons.py routing for the 121 weapons, 16 shields and 13 helmets, both
+    surfaces, 300 textures; donor ramps read the vanilla cache, re-extractable from the Pac
+    Files source; glow rims ride as an explicit knob because LW-248's glow half is still open
+    while the install carries glow today; every approved round's bytes are banked in
+    Downloads\fft_ref and the live install is the ground truth.)
+  - Done means: running the repo's icon bake reproduces the live install's textures byte for
+    byte for all 300 ramp-covered files with zero differences, the remaining 168 already-agreed
+    files stay untouched, the probe bank stays as history, and BuildLinked can deploy without
+    the manual snapshot dance.
+  - Verify: a byte compare of the repo bake against the live install passes 468 of 468 with any
+    exception named and owner-visible; the four icon gates green with the ramp engine inside
+    them and mutations proving the new pins bite; both glow flavors render from the knob.
+
 
 
 
@@ -204,16 +227,6 @@ the technical detail lives in the indented lines under it.
   zero invented edges, ring delta 0.000, mean saturation within about 1.2x of vanilla. The
   earlier palette census in this row's history reproduces via
   `python tools/probes/vanilla_palette_sample.py <out.json>`.)
-- [LW-247] 2026-08-16: The new shield look lives only in a probe script, so the repo cannot
-  rebuild what is now deployed. Port the ramp engine into tools/recolor_icons.py as a real
-  engine, regenerate the sixteen shields through the pipeline, and take the four icon gates
-  green, so the deployed look and the repo agree again. Waits on the owner's in game pass of
-  the deployed shields. (Tech: rules to port from the probe: hue rotation with one per material
-  delta and value never touched; donor ramps from the vanilla cache with hue discipline; twin
-  groups keyed by shared drawings with consensus frame seeds; ink neutralisation; the shadow
-  saturation ceiling 0.30 plus 0.55 times value; per surface identity placement; the POP boost
-  on ids 134, 136 and 138 and every per item call from the 2026-08-16 session ride in the
-  probe's tables.)
 - [LW-244] 2026-08-14: Ragnarok kept its original name and renders lilac over artwork that is
   warm orange, 115 degrees away, and nobody ever measured it. It is the same shape of problem as
   the Whale Whisker (LW-238): a knight sword you passed by eye, whose violet was chosen as "the
