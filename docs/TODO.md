@@ -283,15 +283,6 @@ the technical detail lives in the indented lines under it.
   once per battle load, observed eight times in one session at gaps from 17 seconds to nine
   minutes; the swap tool is tools/probes/lw289_palette_selector.py --deploy --hot.)
 
-- [LW-293] 2026-08-19: Fix a comment in the build tooling that tells the next reader something we
-  have now proved is false, before it costs someone a session. The comment says the item table's
-  sprite field picks which weapon graphic gets drawn in battle, and it is the stated reason the
-  tooling repoints sprites when an item changes category. It is wrong for battle art: the field
-  was rewritten live from a sword to an axe, the write is in the loader log, and the weapon never
-  changed shape. It is the menu icon graphic. (Tech: tools/generate.py itemdata_entry comment
-  about SpriteID being ItemData byte 0x01 driving the drawn weapon; evidence in ledger row
-  [weapon-palette-assignment-walled] lever 2; check whether any spriteIdOverride in data/items.json
-  was added on the strength of that belief.)
 
 - [LW-290] 2026-08-19: Once weapons are painted from their icons, nothing stops the two
   drifting apart again, because a recoloured icon and a stale weapon sheet both look fine on

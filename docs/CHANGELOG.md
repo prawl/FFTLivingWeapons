@@ -10,6 +10,27 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-293] SHIPPED f8b1a0b 2026-08-19: A comment in the table generator told the next reader
+  that the item table's sprite field chooses which weapon a unit swings, and that a weapon moved
+  between families has to have that field repointed or it will render wrong mid swing. Both halves
+  are false, and the comment was the stated reason the tooling offers that knob at all. The field
+  is the menu icon. The swung weapon is tied to the item id itself, through a value that also
+  drives damage, so no picture only lever exists. The audit half came back clean: no item in the
+  hand edited source ever used the knob, so nothing shipped was built on the wrong belief. The
+  comment now also records the real consequence, which is that seven retyped weapons keep swinging
+  their old axe and flail art while equipping and fighting as swords, knives, katana and poles.
+  That is accepted and harmless, and it is specifically not fixable the way the old comment
+  implied, so the note tells the reader not to try. (Tech: tools/generate.py itemdata_entry.
+  Disproven twice with no shared assumptions, 2026-06-26 spriteIdOverride live no-op on the
+  retyped weapons and 2026-08-19 lever 2 of ledger row [weapon-palette-assignment-walled], where
+  the field was rewritten live sword to axe with the write in the loader log and the swung shape
+  never changed. Battle model welds to combat CWeapon +0x20, the same field the damage maths
+  reads. Zero spriteIdOverride rows in data/items.json; the emitter stays because the field is
+  real for the menu icon. The seven are the only categoryOverride rows: 48 Terrastaff, 49 Ravager,
+  50 Sunderer from vanilla axes at BATTLE.BIN graphic 0, and 67 Warbrand, 68 Bloodlash,
+  69 Climhazzard, 70 Sasori from vanilla flails at graphic 3. Gates: analyze.py exit 0 and
+  generate.py reproduces the tables byte for byte.)
+
 - [LW-294] SHIPPED 7eff74c 2026-08-19: A probe file described the battle weapon sprite sheet
   the wrong way, and the sibling colour mod had already published a feature proposal built on
   that description. The sheet was written up as one tall picture with its colours at the front.
